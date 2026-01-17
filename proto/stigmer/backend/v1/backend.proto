@@ -1,0 +1,289 @@
+syntax = "proto3";
+
+package stigmer.backend.v1;
+
+option go_package = "github.com/stigmer/stigmer/internal/gen/stigmer/backend/v1;backendv1";
+
+// BackendService defines the core interface that ALL Stigmer backends must implement.
+// This ensures feature parity between Local (SQLite) and Cloud (gRPC) backends.
+service BackendService {
+  // Execution lifecycle management
+  rpc CreateExecution(CreateExecutionRequest) returns (Execution);
+  rpc GetExecution(GetExecutionRequest) returns (Execution);
+  rpc UpdateExecutionStatus(UpdateExecutionStatusRequest) returns (Execution);
+  rpc ListExecutions(ListExecutionsRequest) returns (ListExecutionsResponse);
+  rpc CancelExecution(CancelExecutionRequest) returns (Execution);
+  
+  // Just-In-Time execution context retrieval (includes secrets)
+  rpc GetExecutionContext(GetExecutionContextRequest) returns (ExecutionContext);
+  
+  // Resource management
+  rpc GetAgent(GetResourceRequest) returns (Agent);
+  rpc GetWorkflow(GetResourceRequest) returns (Workflow);
+  rpc ListAgents(ListResourcesRequest) returns (ListAgentsResponse);
+  rpc ListWorkflows(ListResourcesRequest) returns (ListWorkflowsResponse);
+  
+  // Resource creation/updates
+  rpc CreateAgent(CreateAgentRequest) returns (Agent);
+  rpc UpdateAgent(UpdateAgentRequest) returns (Agent);
+  rpc DeleteAgent(DeleteResourceRequest) returns (DeleteResourceResponse);
+  
+  rpc CreateWorkflow(CreateWorkflowRequest) returns (Workflow);
+  rpc UpdateWorkflow(UpdateWorkflowRequest) returns (Workflow);
+  rpc DeleteWorkflow(DeleteResourceRequest) returns (DeleteResourceResponse);
+  
+  // Environment and secrets
+  rpc GetEnvironment(GetResourceRequest) returns (Environment);
+  rpc CreateEnvironment(CreateEnvironmentRequest) returns (Environment);
+  rpc UpdateEnvironment(UpdateEnvironmentRequest) returns (Environment);
+  
+  // Artifact storage
+  rpc StoreArtifact(StoreArtifactRequest) returns (StoreArtifactResponse);
+  rpc GetArtifact(GetArtifactRequest) returns (Artifact);
+}
+
+// ============================================================================
+// Execution Messages
+// ============================================================================
+
+message CreateExecutionRequest {
+  string resource_id = 1;  // Agent or Workflow ID
+  ResourceType resource_type = 2;
+  map<string, string> inputs = 3;
+  repeated string secret_refs = 4;  // References like "${secrets.API_KEY}"
+  string environment_id = 5;  // Optional environment for secrets
+}
+
+message GetExecutionRequest {
+  string execution_id = 1;
+}
+
+message UpdateExecutionStatusRequest {
+  string execution_id = 1;
+  ExecutionStatus status = 2;
+  string error_message = 3;
+  map<string, string> outputs = 4;
+}
+
+message ListExecutionsRequest {
+  string resource_id = 1;  // Filter by resource
+  ResourceType resource_type = 2;
+  int32 limit = 3;
+  string page_token = 4;
+}
+
+message ListExecutionsResponse {
+  repeated Execution executions = 1;
+  string next_page_token = 2;
+}
+
+message CancelExecutionRequest {
+  string execution_id = 1;
+  string reason = 2;
+}
+
+message Execution {
+  string id = 1;
+  string resource_id = 2;
+  ResourceType resource_type = 3;
+  ExecutionStatus status = 4;
+  map<string, string> inputs = 5;
+  map<string, string> outputs = 6;
+  string error_message = 7;
+  string created_at = 8;
+  string updated_at = 9;
+  string started_at = 10;
+  string completed_at = 11;
+}
+
+enum ResourceType {
+  RESOURCE_TYPE_UNSPECIFIED = 0;
+  AGENT = 1;
+  WORKFLOW = 2;
+}
+
+enum ExecutionStatus {
+  EXECUTION_STATUS_UNSPECIFIED = 0;
+  PENDING = 1;
+  RUNNING = 2;
+  COMPLETED = 3;
+  FAILED = 4;
+  CANCELLED = 5;
+}
+
+// ============================================================================
+// Execution Context (JIT Secret Resolution)
+// ============================================================================
+
+message GetExecutionContextRequest {
+  string execution_id = 1;
+}
+
+message ExecutionContext {
+  string execution_id = 1;
+  map<string, string> secrets = 2;  // Decrypted secrets, only for runners
+  map<string, string> variables = 3;
+  map<string, string> metadata = 4;
+}
+
+// ============================================================================
+// Resource Messages
+// ============================================================================
+
+message GetResourceRequest {
+  string id = 1;  // Resource ID
+}
+
+message DeleteResourceRequest {
+  string id = 1;
+}
+
+message DeleteResourceResponse {
+  bool success = 1;
+}
+
+message ListResourcesRequest {
+  int32 limit = 1;
+  string page_token = 2;
+}
+
+// ============================================================================
+// Agent Messages
+// ============================================================================
+
+message Agent {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  AgentSpec spec = 4;
+  AgentStatus status = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message AgentSpec {
+  string instructions = 1;
+  repeated string mcp_servers = 2;
+  map<string, string> config = 3;
+}
+
+message AgentStatus {
+  string state = 1;
+  string message = 2;
+}
+
+message CreateAgentRequest {
+  string name = 1;
+  AgentSpec spec = 2;
+}
+
+message UpdateAgentRequest {
+  string id = 1;
+  AgentSpec spec = 2;
+}
+
+message ListAgentsResponse {
+  repeated Agent agents = 1;
+  string next_page_token = 2;
+}
+
+// ============================================================================
+// Workflow Messages
+// ============================================================================
+
+message Workflow {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  WorkflowSpec spec = 4;
+  WorkflowStatus status = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message WorkflowSpec {
+  repeated WorkflowTask tasks = 1;
+  map<string, string> inputs = 2;
+}
+
+message WorkflowTask {
+  string name = 1;
+  string agent_id = 2;
+  map<string, string> inputs = 3;
+  repeated string depends_on = 4;
+}
+
+message WorkflowStatus {
+  string state = 1;
+  string message = 2;
+}
+
+message CreateWorkflowRequest {
+  string name = 1;
+  WorkflowSpec spec = 2;
+}
+
+message UpdateWorkflowRequest {
+  string id = 1;
+  WorkflowSpec spec = 2;
+}
+
+message ListWorkflowsResponse {
+  repeated Workflow workflows = 1;
+  string next_page_token = 2;
+}
+
+// ============================================================================
+// Environment Messages
+// ============================================================================
+
+message Environment {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  map<string, string> variables = 4;
+  map<string, string> secrets = 5;  // Encrypted in storage
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message CreateEnvironmentRequest {
+  string name = 1;
+  map<string, string> variables = 2;
+  map<string, string> secrets = 3;
+}
+
+message UpdateEnvironmentRequest {
+  string id = 1;
+  map<string, string> variables = 2;
+  map<string, string> secrets = 3;
+}
+
+// ============================================================================
+// Artifact Messages
+// ============================================================================
+
+message StoreArtifactRequest {
+  string execution_id = 1;
+  string name = 2;
+  bytes content = 3;
+  string content_type = 4;
+}
+
+message StoreArtifactResponse {
+  string artifact_id = 1;
+  string url = 2;
+}
+
+message GetArtifactRequest {
+  string artifact_id = 1;
+}
+
+message Artifact {
+  string id = 1;
+  string execution_id = 2;
+  string name = 3;
+  bytes content = 4;
+  string content_type = 5;
+  string created_at = 6;
+}
