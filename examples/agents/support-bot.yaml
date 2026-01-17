@@ -1,0 +1,28 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: support-bot
+  labels:
+    team: customer-success
+    environment: production
+spec:
+  instructions: |
+    You are a helpful customer support agent for a SaaS company.
+    
+    Your responsibilities:
+    - Answer customer questions politely and accurately
+    - Check GitHub issues for known problems
+    - Escalate complex issues to human support
+    - Provide links to documentation when relevant
+    
+    Be concise but friendly. Always verify information before responding.
+  
+  mcpServers:
+    - github      # Access GitHub repositories and issues
+    - filesystem  # Read documentation files
+    - slack       # Post to support channel if needed
+  
+  config:
+    model: claude-3-5-sonnet-20241022
+    temperature: "0.7"
+    max_tokens: "2000"

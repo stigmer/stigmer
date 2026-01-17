@@ -1,0 +1,68 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: pr-review-workflow
+  labels:
+    team: engineering
+    automation: code-review
+spec:
+  inputs:
+    pr_url:
+      type: string
+      description: GitHub pull request URL
+      required: true
+  
+  tasks:
+    - name: fetch-pr-details
+      agent: github-analyst
+      inputs:
+        pr_url: "${workflow.inputs.pr_url}"
+      outputs:
+        - pr_title
+        - pr_description
+        - changed_files
+        - diff
+    
+    - name: analyze-code-quality
+      agent: code-reviewer
+      dependsOn:
+        - fetch-pr-details
+      inputs:
+        files: "${tasks.fetch-pr-details.outputs.changed_files}"
+        diff: "${tasks.fetch-pr-details.outputs.diff}"
+      outputs:
+        - issues
+        - suggestions
+        - severity
+    
+    - name: check-tests
+      agent: test-analyzer
+      dependsOn:
+        - fetch-pr-details
+      inputs:
+        diff: "${tasks.fetch-pr-details.outputs.diff}"
+      outputs:
+        - has_tests
+        - test_coverage
+    
+    - name: generate-review
+      agent: review-synthesizer
+      dependsOn:
+        - analyze-code-quality
+        - check-tests
+      inputs:
+        code_issues: "${tasks.analyze-code-quality.outputs.issues}"
+        suggestions: "${tasks.analyze-code-quality.outputs.suggestions}"
+        test_status: "${tasks.check-tests.outputs}"
+      outputs:
+        - review_comment
+        - approval_status
+    
+    - name: post-review
+      agent: github-commenter
+      dependsOn:
+        - generate-review
+      inputs:
+        pr_url: "${workflow.inputs.pr_url}"
+        comment: "${tasks.generate-review.outputs.review_comment}"
+        status: "${tasks.generate-review.outputs.approval_status}"
