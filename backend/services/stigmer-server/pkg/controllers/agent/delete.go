@@ -36,7 +36,7 @@ func (c *AgentController) Delete(ctx context.Context, agentId *agentv1.AgentId) 
 	// Get deleted agent from context (set by LoadExistingForDelete step before deletion)
 	deletedAgent := reqCtx.Get(steps.ExistingResourceKey)
 	if deletedAgent == nil {
-		return nil, grpclib.InternalError("deleted agent not found in context")
+		return nil, grpclib.InternalError(nil, "deleted agent not found in context")
 	}
 
 	return deletedAgent.(*agentv1.Agent), nil
