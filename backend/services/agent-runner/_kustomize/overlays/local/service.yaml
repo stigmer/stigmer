@@ -1,0 +1,26 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: KubernetesDeployment
+metadata:
+  name: agent-runner
+spec:
+  container:
+    app:
+      env:
+        variables:
+          ENV:
+            value: local
+          LOG_LEVEL:
+            value: DEBUG
+          # Temporal Configuration (using external endpoints for local development)
+          TEMPORAL_SERVICE_ADDRESS:
+            value: localhost:7233
+          TEMPORAL_NAMESPACE:
+            value: default
+          TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE:
+            value: agent_execution_runner
+          # Redis Configuration (using external endpoint for local development)
+          REDIS_HOST:
+            value: localhost
+          # Stigmer Backend (local endpoint)
+          STIGMER_BACKEND_ENDPOINT:
+            value: localhost:8080

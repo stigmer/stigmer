@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "worker",
+    srcs = ["worker.go"],
+    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/worker",
+    visibility = ["//backend/services/workflow-runner:__subpackages__"],
+    deps = [
+        "//backend/services/workflow-runner/pkg/claimcheck",
+        "//backend/services/workflow-runner/pkg/executor",
+        "//backend/services/workflow-runner/pkg/interceptors",
+        "//backend/services/workflow-runner/pkg/temporal/searchattributes",
+        "//backend/services/workflow-runner/pkg/zigflow/tasks",
+        "//backend/services/workflow-runner/worker/activities",
+        "//backend/services/workflow-runner/worker/config",
+        "@com_github_rs_zerolog//log",
+        "@io_temporal_go_sdk//activity",
+        "@io_temporal_go_sdk//client",
+        "@io_temporal_go_sdk//interceptor",
+        "@io_temporal_go_sdk//worker",
+        "@io_temporal_go_sdk//workflow",
+    ],
+)

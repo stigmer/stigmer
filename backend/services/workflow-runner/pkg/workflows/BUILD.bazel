@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "workflows",
+    srcs = ["validate_workflow.go"],
+    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/workflows",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless",
+        "//backend/services/workflow-runner/worker/activities",
+        "@io_temporal_go_sdk//temporal",
+        "@io_temporal_go_sdk//workflow",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

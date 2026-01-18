@@ -1,0 +1,33 @@
+# Golden Test 06: Sleep Delay
+# Tests: Sleep state, Temporal timers, delays
+# CONVERTED TO DSL 1.0.0 FORMAT
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: sleep-delay-test
+  version: '1.0.0'
+  description: Tests delays with sleep/wait functionality
+
+do:
+  - initial:
+      call: http
+      with:
+        method: POST
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/posts
+        body:
+          message: "Before sleep"
+  
+  - wait:
+      wait:
+        seconds: 5
+  
+  - after:
+      call: http
+      with:
+        method: POST
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/posts
+        body:
+          message: "After sleep"
