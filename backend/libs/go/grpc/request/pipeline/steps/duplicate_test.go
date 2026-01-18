@@ -22,8 +22,8 @@ func TestCheckDuplicateStep_NoDuplicate(t *testing.T) {
 		},
 	}
 
-	step := NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
-	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	step := NewCheckDuplicateStep[*agentv1.Agent](store)
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
 	ctx.SetNewState(agent)
 
 	// Execute (no existing resources, should succeed)
@@ -58,8 +58,8 @@ func TestCheckDuplicateStep_DuplicateExists(t *testing.T) {
 		},
 	}
 
-	step := NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
-	ctx := pipeline.NewRequestContext(context.Background(), newAgent)
+	step := NewCheckDuplicateStep[*agentv1.Agent](store)
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), newAgent)
 	ctx.SetNewState(newAgent)
 
 	// Execute (should fail with duplicate error)
@@ -82,8 +82,8 @@ func TestCheckDuplicateStep_EmptySlug(t *testing.T) {
 		},
 	}
 
-	step := NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
-	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	step := NewCheckDuplicateStep[*agentv1.Agent](store)
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
 	ctx.SetNewState(agent)
 
 	err := step.Execute(ctx)
@@ -101,8 +101,8 @@ func TestCheckDuplicateStep_NilMetadata(t *testing.T) {
 		Metadata: nil,
 	}
 
-	step := NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
-	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	step := NewCheckDuplicateStep[*agentv1.Agent](store)
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
 	ctx.SetNewState(agent)
 
 	err := step.Execute(ctx)
@@ -144,8 +144,8 @@ func TestCheckDuplicateStep_MultipleSlugs(t *testing.T) {
 		},
 	}
 
-	step := NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
-	ctx := pipeline.NewRequestContext(context.Background(), newAgent)
+	step := NewCheckDuplicateStep[*agentv1.Agent](store)
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), newAgent)
 	ctx.SetNewState(newAgent)
 
 	err := step.Execute(ctx)
@@ -159,7 +159,7 @@ func TestCheckDuplicateStep_Name(t *testing.T) {
 	store := setupTestStore(t)
 	defer store.Close()
 
-	step := NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
+	step := NewCheckDuplicateStep[*agentv1.Agent](store)
 	if step.Name() != "CheckDuplicate" {
 		t.Errorf("Expected Name()=CheckDuplicate, got %q", step.Name())
 	}

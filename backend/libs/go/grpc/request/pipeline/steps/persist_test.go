@@ -34,8 +34,8 @@ func TestPersistStep_Execute(t *testing.T) {
 		ApiVersion: "ai.stigmer.agentic.agent/v1",
 	}
 
-	step := NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
-	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	step := NewPersistStep[*agentv1.Agent](store)
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
 	ctx.SetNewState(agent)
 
 	// Execute
@@ -48,7 +48,7 @@ func TestPersistStep_Execute(t *testing.T) {
 
 	// Verify resource was saved to store
 	retrieved := &agentv1.Agent{}
-	err = store.GetResource(context.Background(), "agent-123", retrieved)
+	err = store.GetResource(context.Background(), "agent", "agent-123", retrieved)
 	if err != nil {
 		t.Errorf("Failed to retrieve saved resource: %v", err)
 	}
@@ -76,8 +76,8 @@ func TestPersistStep_Update(t *testing.T) {
 		ApiVersion: "ai.stigmer.agentic.agent/v1",
 	}
 
-	step := NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
-	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	step := NewPersistStep[*agentv1.Agent](store)
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
 	ctx.SetNewState(agent)
 	step.Execute(ctx)
 
@@ -88,7 +88,7 @@ func TestPersistStep_Update(t *testing.T) {
 
 	// Verify updated version was saved
 	retrieved := &agentv1.Agent{}
-	err := store.GetResource(context.Background(), "agent-123", retrieved)
+	err := store.GetResource(context.Background(), "agent", "agent-123", retrieved)
 	if err != nil {
 		t.Errorf("Failed to retrieve updated resource: %v", err)
 	}
@@ -109,8 +109,8 @@ func TestPersistStep_EmptyID(t *testing.T) {
 		},
 	}
 
-	step := NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
-	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	step := NewPersistStep[*agentv1.Agent](store)
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
 	ctx.SetNewState(agent)
 
 	err := step.Execute(ctx)
@@ -128,8 +128,8 @@ func TestPersistStep_NilMetadata(t *testing.T) {
 		Metadata: nil,
 	}
 
-	step := NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
-	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	step := NewPersistStep[*agentv1.Agent](store)
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
 	ctx.SetNewState(agent)
 
 	err := step.Execute(ctx)
@@ -143,7 +143,7 @@ func TestPersistStep_MultipleResources(t *testing.T) {
 	store := setupTestStore(t)
 	defer store.Close()
 
-	step := NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
+	step := NewPersistStep[*agentv1.Agent](store)
 
 	// Save multiple agents
 	for i := 1; i <= 5; i++ {
@@ -156,7 +156,7 @@ func TestPersistStep_MultipleResources(t *testing.T) {
 			ApiVersion: "ai.stigmer.agentic.agent/v1",
 		}
 
-		ctx := pipeline.NewRequestContext(context.Background(), agent)
+		ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
 		ctx.SetNewState(agent)
 		err := step.Execute(ctx)
 
@@ -168,7 +168,7 @@ func TestPersistStep_MultipleResources(t *testing.T) {
 	// Verify all agents were saved
 	for i := 1; i <= 5; i++ {
 		retrieved := &agentv1.Agent{}
-		err := store.GetResource(context.Background(), fmt.Sprintf("agent-%d", i), retrieved)
+		err := store.GetResource(context.Background(), "agent", fmt.Sprintf("agent-%d", i), retrieved)
 		if err != nil {
 			t.Errorf("Failed to retrieve agent-%d: %v", i, err)
 		}
@@ -179,7 +179,7 @@ func TestPersistStep_Name(t *testing.T) {
 	store := setupTestStore(t)
 	defer store.Close()
 
-	step := NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
+	step := NewPersistStep[*agentv1.Agent](store)
 	if step.Name() != "Persist" {
 		t.Errorf("Expected Name()=Persist, got %q", step.Name())
 	}
