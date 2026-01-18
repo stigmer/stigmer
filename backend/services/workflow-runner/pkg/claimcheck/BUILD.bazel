@@ -1,0 +1,39 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "claimcheck",
+    srcs = [
+        "compressor.go",
+        "global.go",
+        "manager.go",
+        "metrics.go",
+        "r2_store.go",
+        "reference.go",
+        "store.go",
+    ],
+    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/claimcheck",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_aws_aws_sdk_go_v2//aws",
+        "@com_github_aws_aws_sdk_go_v2_config//:config",
+        "@com_github_aws_aws_sdk_go_v2_credentials//:credentials",
+        "@com_github_aws_aws_sdk_go_v2_service_s3//:s3",
+        "@com_github_google_uuid//:uuid",
+        "@io_temporal_go_sdk//temporal",
+        "@io_temporal_go_sdk//workflow",
+    ],
+)
+
+go_test(
+    name = "claimcheck_test",
+    srcs = [
+        "compressor_test.go",
+        "r2_store_test.go",
+        "reference_test.go",
+    ],
+    deps = [
+        ":claimcheck",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

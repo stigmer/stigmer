@@ -1,0 +1,33 @@
+document:
+  dsl: "1.0.0"
+  namespace: demo
+  name: test-simple-fetch
+  version: "1.0.0"
+  description: "Simple fetch test following golden-02 pattern"
+
+do:
+  # Step 1: Initialize context variable
+  - initContext:
+      set:
+        apiBase: https://jsonplaceholder.typicode.com
+  
+  # Step 2: Fetch data (export flattens response into context)
+  - fetchData:
+      call: http
+      with:
+        method: GET
+        endpoint:
+          uri: ${ $context.apiBase + "/posts/1" }
+        headers:
+          Content-Type: application/json
+      export:
+        as: ${ . }  # This exports: $context.id, $context.title, $context.body, etc.
+  
+  # Step 3: Process the response (access flattened fields directly)
+  - processResponse:
+      set:
+        postBody: ${ $context.body }      # ✅ Direct access (not fetchData.body)
+        postTitle: ${ $context.title }    # ✅ Direct access (not fetchData.title)
+        postId: ${ $context.id }
+        userId: ${ $context.userId }
+        status: completed

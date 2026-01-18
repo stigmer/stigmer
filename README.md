@@ -50,41 +50,109 @@ stigmer agent execute support-bot "Check open issues in myorg/myrepo"
 
 ## Architecture
 
-Stigmer uses an **Open Core** model:
+Stigmer uses an **Open Core** model with a clean separation between local and cloud backends:
 
 ```
-┌─────────────────────────────────────────┐
-│   Stigmer CLI (Open Source)             │
-│   - Agent execution                     │
-│   - Workflow orchestration              │
-│   - SDK (Go, Python)                    │
-└─────────────┬───────────────────────────┘
-              │
-              ├──► Local Daemon (localhost:50051)
-              │    │  - gRPC Server
-              │    │  - BadgerDB (file lock)
-              │    ✓ Zero infrastructure
-              │    ✓ Single tenant
-              │    ✓ Local secrets
-              │
-              └──► Cloud Backend (gRPC)
-                   ✓ Multi-tenant
-                   ✓ Team collaboration
-                   ✓ Enterprise features
+┌─────────────────────────────────────────────────────────────┐
+│                     Stigmer CLI                              │
+│              (cmd/stigmer - Open Source)                     │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ In-process gRPC
+                       ↓
+┌─────────────────────────────────────────────────────────────┐
+│                  stigmer-server (Go)                         │
+│              (backend/services/stigmer-server)               │
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ Agent API    │  │ Workflow API │  │ Skill API    │      │
+│  │ Controller   │  │ Controller   │  │ Controller   │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│         │                  │                  │              │
+│         └──────────────────┴──────────────────┘              │
+│                       │                                      │
+│                       ↓                                      │
+│         ┌──────────────────────────────┐                    │
+│         │   SQLite Storage Layer       │                    │
+│         │  (libs/go/sqlite)            │                    │
+│         │                              │                    │
+│         │  resources table:            │                    │
+│         │  - id (PK)                   │                    │
+│         │  - kind (discriminator)      │                    │
+│         │  - data (JSON)               │                    │
+│         └──────────────────────────────┘                    │
+└─────────────────────────────────────────────────────────────┘
+                       │
+                       ↓
+         ┌──────────────────────────────┐
+         │   Temporal Orchestration     │
+         └──────────────────────────────┘
+                   ↙         ↘
+          ┌──────────┐   ┌──────────────┐
+          │  agent-  │   │  workflow-   │
+          │  runner  │   │  runner      │
+          │ (Python) │   │    (Go)      │
+          └──────────┘   └──────────────┘
 ```
+
+### Components
+
+**stigmer-server** - Go gRPC API server with SQLite storage
+- Single-table generic resource storage (zero migrations)
+- In-process gRPC (no network overhead for local usage)
+- Protobuf validation
+- **Location**: `backend/services/stigmer-server/`
+
+**agent-runner** - Python Temporal worker for Graphton agent execution
+- Real-time status updates via gRPC
+- Session-based sandbox management
+- Skills integration
+- **Location**: `backend/services/agent-runner/`
+
+**workflow-runner** - Go Temporal worker for CNCF Serverless Workflows
+- Claim Check pattern for large payloads
+- Continue-As-New for unbounded workflows
+- gRPC command controller
+- **Location**: `backend/services/workflow-runner/`
+
+### Storage Strategy
+
+Stigmer uses a **generic single-table pattern** to avoid migration hell:
+
+```sql
+CREATE TABLE resources (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,           -- "Agent", "Workflow", "Skill"
+    org_id TEXT DEFAULT '',
+    data JSON NOT NULL,           -- Full proto serialized to JSON
+    updated_at DATETIME
+);
+```
+
+**Benefits**:
+- ✅ Zero schema migrations when adding new resource kinds
+- ✅ 90% less persistence layer code
+- ✅ Cloud parity (mimics MongoDB document model)
+
+See [ADR: Generic Resource Storage Strategy](docs/adr/2026-01/2026-01-19-170000-sqllite-with-json-data.md)
+
+### Open Source vs Cloud
 
 **Open Source** (Apache 2.0):
-- CLI and execution engine
-- Workflow runner
-- Agent runner
+- CLI and execution engine (`cmd/stigmer/`)
+- stigmer-server (Go gRPC API server)
+- agent-runner (Python Temporal worker)
+- workflow-runner (Go Temporal worker)
 - Go and Python SDKs
-- Local BadgerDB backend
+- SQLite storage layer
+- **Repository**: `github.com/stigmer/stigmer`
 
 **Proprietary** (Stigmer Cloud):
 - Multi-tenant SaaS platform
-- Organizations and IAM
-- Web console
-- Advanced governance
+- stigmer-service (Java Spring Boot with MongoDB)
+- Organizations and IAM (Auth0 + FGA)
+- Web console (React + TanStack)
+- Advanced governance and audit
+- **Repository**: `github.com/leftbin/stigmer-cloud` (private)
 
 ## Core Concepts
 
