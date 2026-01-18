@@ -92,6 +92,402 @@ Stigmer OSS supports two handler implementation patterns:
 
 ---
 
+## Go Package Organization
+
+### Controller Package Structure
+
+**IMPORTANT**: Follow industry-standard Go patterns (Kubernetes, Docker, gRPC-Go) for controller organization.
+
+#### Recommended Structure: Domain Package Pattern
+
+```
+backend/services/stigmer-server/pkg/controllers/
+├── agent/                              # Agent domain package
+│   ├── agent_controller.go             # Controller struct + constructor
+│   ├── create.go                       # Create handler + pipeline
+│   ├── update.go                       # Update handler
+│   ├── delete.go                       # Delete handler
+│   ├── query.go                        # Query handlers (Get, GetByReference, etc.)
+│   ├── agent_controller_test.go        # Tests
+│   ├── README.md                       # Architecture documentation
+│   └── steps/                          # Custom pipeline steps
+│       ├── create_default_instance.go  # Agent-specific step
+│       └── update_agent_status.go      # Agent-specific step
+├── workflow/                           # Workflow domain package (future)
+│   ├── workflow_controller.go
+│   ├── create.go
+│   └── ...
+└── task/                               # Task domain package (future)
+    └── ...
+```
+
+#### Key Principles
+
+**1. Domain Package at Package Root**
+
+✅ **DO**: Create domain-specific package for each resource
+```
+controllers/agent/create.go
+controllers/workflow/create.go
+```
+
+❌ **DON'T**: Mix all resources in flat structure
+```
+controllers/agent_controller.go
+controllers/workflow_controller.go
+controllers/task_controller.go
+```
+
+**Why**: Scalability - easy to add new resources without file count explosion.
+
+**2. Handlers at Package Root (NOT in sub-package)**
+
+✅ **DO**: Place handler files directly in domain package
+```
+agent/create.go
+agent/update.go
+agent/delete.go
+agent/query.go
+```
+
+❌ **DON'T**: Add extra nesting with handlers sub-package
+```
+agent/handlers/create.go
+agent/handlers/update.go
+```
+
+**Why**: Go convention favors flat packages. Simpler imports: `agent.NewController()` vs `agent/handlers.NewController()`.
+
+**3. Custom Steps in Sub-Package**
+
+✅ **DO**: Place resource-specific pipeline steps in `steps/` sub-package
+```
+agent/steps/create_default_instance.go
+agent/steps/update_agent_status.go
+```
+
+❌ **DON'T**: Mix custom steps with handlers at root
+```
+agent/create.go
+agent/create_default_instance.go  // Confusing - is this a handler or step?
+```
+
+**Why**: Clear namespace separation. Import clarity distinguishes common vs custom steps:
+```go
+import (
+    commonSteps "github.com/stigmer/stigmer/.../pipeline/steps"
+    agentsteps "github.com/stigmer/stigmer/.../controllers/agent/steps"
+)
+
+// Usage makes distinction clear
+commonSteps.NewResolveSlugStep()              // Reusable across all resources
+agentsteps.NewCreateDefaultInstanceStep()     // Agent-specific
+```
+
+#### File Breakdown
+
+**`{resource}_controller.go`** (Controller struct):
+```go
+package agent
+
+import (
+    "github.com/stigmer/stigmer/backend/libs/go/badger"
+    agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
+)
+
+type AgentController struct {
+    agentv1.UnimplementedAgentCommandControllerServer
+    agentv1.UnimplementedAgentQueryControllerServer
+    store *badger.Store
+}
+
+func NewAgentController(store *badger.Store) *AgentController {
+    return &AgentController{store: store}
+}
+```
+
+**Purpose**: Pure structure definition - controller struct, embedded servers, constructor.  
+**Size**: 15-25 lines (no business logic).
+
+**`create.go`** (Create handler):
+```go
+package agent
+
+func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, agent)
+    p := c.buildCreatePipeline()
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+    return reqCtx.NewState(), nil
+}
+
+func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agent] {
+    return pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+        AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).
+        AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store, "Agent")).
+        AddStep(steps.NewSetDefaultsStep[*agentv1.Agent]("agent")).
+        AddStep(steps.NewPersistStep[*agentv1.Agent](c.store, "Agent")).
+        AddStep(agentsteps.NewCreateDefaultInstanceStep()).
+        Build()
+}
+```
+
+**Purpose**: Create operation handler + pipeline builder.  
+**Size**: 40-80 lines (including pipeline definition and constants).
+
+**`update.go`** (Update handler):
+```go
+package agent
+
+func (c *AgentController) Update(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, agent)
+    
+    p := pipeline.NewPipeline[*agentv1.Agent]("agent-update").
+        AddStep(steps.NewPersistStep[*agentv1.Agent](c.store, "Agent")).
+        Build()
+    
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+    
+    return reqCtx.NewState(), nil
+}
+```
+
+**Purpose**: Update operation handler.  
+**Size**: 20-30 lines (simpler than Create).
+
+**`delete.go`** (Delete handler):
+```go
+package agent
+
+func (c *AgentController) Delete(ctx context.Context, agentId *agentv1.AgentId) (*agentv1.Agent, error) {
+    if agentId == nil || agentId.Value == "" {
+        return nil, grpclib.InvalidArgumentError("agent id is required")
+    }
+    
+    agent := &agentv1.Agent{}
+    if err := c.store.GetResource(ctx, agentId.Value, agent); err != nil {
+        return nil, grpclib.NotFoundError("Agent", agentId.Value)
+    }
+    
+    if err := c.store.DeleteResource(ctx, agentId.Value); err != nil {
+        return nil, grpclib.InternalError(err, "failed to delete agent")
+    }
+    
+    return agent, nil
+}
+```
+
+**Purpose**: Delete operation handler (direct pattern).  
+**Size**: 20-30 lines.
+
+**`query.go`** (Query handlers):
+```go
+package agent
+
+func (c *AgentController) Get(ctx context.Context, agentId *agentv1.AgentId) (*agentv1.Agent, error) {
+    // Implementation
+}
+
+func (c *AgentController) GetByReference(ctx context.Context, ref *apiresource.ApiResourceReference) (*agentv1.Agent, error) {
+    // Implementation
+}
+
+func (c *AgentController) findByName(ctx context.Context, name string, orgID string) (*agentv1.Agent, error) {
+    // Helper function
+}
+```
+
+**Purpose**: All query operations (Get, GetByReference, List, etc.).  
+**Size**: 50-100 lines (includes helper functions).
+
+**`steps/{custom_step}.go`** (Custom pipeline steps):
+```go
+package steps
+
+type CreateDefaultInstanceStep struct {
+    // Dependencies
+}
+
+func NewCreateDefaultInstanceStep() *CreateDefaultInstanceStep {
+    return &CreateDefaultInstanceStep{}
+}
+
+func (s *CreateDefaultInstanceStep) Name() string {
+    return "CreateDefaultInstance"
+}
+
+func (s *CreateDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv1.Agent]) error {
+    // Implementation
+}
+```
+
+**Purpose**: Resource-specific pipeline steps.  
+**Size**: 40-80 lines per step.
+
+#### File Size Guidelines (Go Community Best Practices)
+
+| Range | Status | Action |
+|-------|--------|--------|
+| **50-150 lines** | ✅ Ideal | Perfect - keep as is |
+| **150-300 lines** | ⚠️ Acceptable | Consider splitting if multiple responsibilities |
+| **300-500 lines** | ⚠️ Large | Split into multiple files |
+| **500+ lines** | ❌ Too large | **MUST split** - violates Go best practices |
+
+**Target**: All handler files < 100 lines.
+
+#### Example: Agent Controller File Sizes
+
+| File | Lines | Status |
+|------|-------|--------|
+| `agent_controller.go` | 18 | ✅ Ideal |
+| `create.go` | 56 | ✅ Ideal |
+| `update.go` | 25 | ✅ Ideal |
+| `delete.go` | 28 | ✅ Ideal |
+| `query.go` | 76 | ✅ Ideal |
+| `steps/create_default_instance.go` | 63 | ✅ Ideal |
+| `steps/update_agent_status.go` | 60 | ✅ Ideal |
+
+**Result**: 8 focused files, all well below 100-line threshold.
+
+#### Real-World Pattern Alignment
+
+This structure matches production Go projects:
+
+**Kubernetes:**
+```
+pkg/controller/
+├── deployment/
+│   ├── deployment_controller.go
+│   ├── sync.go
+│   ├── rollback.go
+│   └── util.go
+```
+
+**Docker:**
+```
+pkg/daemon/
+├── daemon.go
+├── create.go
+├── start.go
+└── stop.go
+```
+
+**Stigmer OSS:**
+```
+controllers/
+├── agent/
+│   ├── agent_controller.go
+│   ├── create.go
+│   ├── update.go
+│   ├── delete.go
+│   └── query.go
+```
+
+#### Go vs Java: Same Philosophy, Different Idioms
+
+| Separation Mechanism | Java (Stigmer Cloud) | Go (Stigmer OSS) |
+|---------------------|---------------------|------------------|
+| **Pattern** | Inner static classes | Separate files in same package |
+| **File Size** | 300-500 lines (one file) | 8 files, all < 100 lines |
+| **Navigation** | Nested classes in one file | File-per-handler pattern |
+| **Imports** | Import outer class | Import package |
+
+**Key Insight**: The **conceptual architecture is identical** - Go uses files to achieve the same separation that Java achieves with nested classes.
+
+#### Benefits of This Structure
+
+**1. Single Responsibility**
+- ✅ Each file has ONE clear purpose
+- ✅ Easy to understand file scope
+- ✅ No mixing of unrelated code
+
+**2. Discoverability**
+- ✅ File names match handler responsibilities
+- ✅ New developers can navigate by filename
+- ✅ IDE file search finds code quickly
+
+**3. Scalability**
+- ✅ Easy to add `workflow/`, `task/` packages
+- ✅ No file size bloat as features grow
+- ✅ Clear domain boundaries
+
+**4. Collaboration**
+- ✅ Different handlers in different files = fewer merge conflicts
+- ✅ Clear code ownership
+- ✅ Easier code reviews (focused diffs)
+
+**5. Testability**
+- ✅ Each handler can have focused tests
+- ✅ Custom steps can be tested independently
+- ✅ Test file in same package (Go idiom)
+
+#### Migration from Monolithic to Domain Package
+
+If you have existing monolithic controller:
+
+**Before:**
+```
+controllers/
+└── agent_controller.go  (300+ lines)
+```
+
+**After:**
+```
+controllers/agent/
+├── agent_controller.go  (18 lines)
+├── create.go            (56 lines)
+├── update.go            (25 lines)
+├── delete.go            (28 lines)
+├── query.go             (76 lines)
+└── steps/
+    ├── step1.go         (63 lines)
+    └── step2.go         (60 lines)
+```
+
+**Migration steps:**
+1. Create `controllers/{resource}/` directory
+2. Create `{resource}_controller.go` with just struct + constructor
+3. Extract Create logic to `create.go`
+4. Extract Update logic to `update.go`
+5. Extract Delete logic to `delete.go`
+6. Extract query handlers to `query.go`
+7. Move custom pipeline steps to `steps/` directory
+8. Update imports in `cmd/server/main.go`
+9. Move test file to new package
+10. Delete old monolithic file
+
+#### Quality Checklist
+
+Before completing controller implementation:
+
+**Package Structure:**
+- [ ] Domain package created: `controllers/{resource}/`
+- [ ] Handler files at package root (not in sub-package)
+- [ ] Custom steps in `steps/` sub-package
+- [ ] All files < 100 lines (ideally 50-150)
+
+**File Organization:**
+- [ ] `{resource}_controller.go` contains only struct + constructor
+- [ ] `create.go` contains Create handler + pipeline builder
+- [ ] `update.go` contains Update handler
+- [ ] `delete.go` contains Delete handler
+- [ ] `query.go` contains all query handlers + helpers
+
+**Documentation:**
+- [ ] Package README.md created explaining architecture
+- [ ] Complex patterns documented in comments
+- [ ] Custom steps have purpose documentation
+
+**Testing:**
+- [ ] Test file in same package: `{resource}_controller_test.go`
+- [ ] Tests for all CRUD operations
+- [ ] Tests for error cases
+
+---
+
 ## Pipeline Architecture
 
 ### Request Context Design Philosophy
