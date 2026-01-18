@@ -82,3 +82,7 @@ tmp/
 *.o
 *.a
 *.out
+
+# Bazel build outputs
+bazel-*
+/MODULE.bazel.lock

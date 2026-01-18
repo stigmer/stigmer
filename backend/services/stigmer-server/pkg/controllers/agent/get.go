@@ -48,7 +48,7 @@ func (c *AgentController) buildGetPipeline() *pipeline.Pipeline[*agentv1.AgentId
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*agentv1.AgentId]("agent-get").
-		AddStep(steps.NewValidateProtoStep[*agentv1.AgentId]()).                           // 1. Validate input
+		AddStep(steps.NewValidateProtoStep[*agentv1.AgentId]()).                     // 1. Validate input
 		AddStep(steps.NewLoadTargetStep[*agentv1.AgentId, *agentv1.Agent](c.store)). // 2. Load by ID
 		Build()
 }
