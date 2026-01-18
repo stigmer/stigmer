@@ -7,48 +7,48 @@
 ## Current Status
 
 ✅ **Task T01 Complete** - Pipeline framework foundation implemented  
-🟡 **Task T02 Partial** - Common pipeline steps implemented (interface fix needed)
+✅ **Task T02 Complete** - Common pipeline steps implemented and interface fixed  
+✅ **Architecture Alignment Complete** - Pipeline moved to correct location in grpc/request/
 
 ## Current Task
 
-**Task T02.1:** Fix Pipeline Step Interface Mismatch
+**Task T03:** Integrate Pipeline into Agent Controller
 
-**Status:** READY TO START (15 minutes)
+**Status:** READY TO START
 
-**Previous Task:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/tasks/T02_1_partial.md`
+**Previous Task:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/tasks/T02_2_complete.md`
 
 ## What to Do Next
 
-**Quick fix needed (15 minutes):**
+Now that the pipeline framework is complete and properly located, integrate it into the Agent Controller:
 
-All 4 step files need Execute method signature updated:
+### Implementation Checklist
 
-**Current (incorrect):**
-```go
-func (s *Step[T]) Execute(ctx *pipeline.RequestContext[T]) pipeline.StepResult {
-    // ...
-    return pipeline.StepResult{Success: true}
-}
-```
+1. **Update Agent Controller** - Replace inline logic with pipeline
+   - Location: `backend/services/stigmer-server/pkg/controllers/agent_controller.go`
+   - Import: `github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline`
+   
+2. **Build Create Pipeline**:
+   ```go
+   p := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+       AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).
+       AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")).
+       AddStep(steps.NewSetDefaultsStep[*agentv1.Agent]("agent")).
+       AddStep(steps.NewPersistStep[*agentv1.Agent](store, "Agent")).
+       Build()
+   ```
 
-**Required:**
-```go
-func (s *Step[T]) Execute(ctx *pipeline.RequestContext[T]) error {
-    // ...
-    return nil  // for success
-}
-```
+3. **Execute Pipeline** in Create method
+4. **Update Update/Delete methods** similarly
+5. **Run tests** to verify integration
 
-**Files to fix:**
-1. `pkg/pipeline/steps/slug.go`
-2. `pkg/pipeline/steps/defaults.go`
-3. `pkg/pipeline/steps/persist.go`
-4. `pkg/pipeline/steps/duplicate.go`
+## Architecture Note
 
-**After fix:**
-- Run tests: `go test ./backend/services/stigmer-server/pkg/pipeline/steps/...`
-- All tests should pass
-- Ready for T03 (agent controller integration)
+Pipeline is now at correct location matching Java structure:
+- **Go:** `backend/libs/go/grpc/request/pipeline/`
+- **Java:** `backend/libs/java/grpc/grpc-request/pipeline/`
+
+See: `@backend/libs/go/grpc/request/README.md`
 
 ## Quick Context
 

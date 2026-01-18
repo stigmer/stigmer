@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/backend/libs/go/telemetry"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
 )
@@ -27,13 +27,14 @@ func TestAgentCreatePipeline_Integration(t *testing.T) {
 	p := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
 		WithTracer(telemetry.NewNoOpTracer()).
 		AddStep(NewResolveSlugStep[*agentv1.Agent]()).
-		AddStep(NewCheckDuplicateStep(store, "Agent")).
+		AddStep(NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")).
 		AddStep(NewSetDefaultsStep[*agentv1.Agent]("agent")).
-		AddStep(NewPersistStep(store, "Agent")).
+		AddStep(NewPersistStep[*agentv1.Agent](store, "Agent")).
 		Build()
 
 	// Execute
-	ctx := p.NewRequestContext(context.Background(), agent)
+	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	ctx.SetNewState(agent)
 	err := p.Execute(ctx)
 
 	if err != nil {
