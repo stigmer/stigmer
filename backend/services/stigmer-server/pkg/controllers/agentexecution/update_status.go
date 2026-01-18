@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentexecution/v1"
@@ -86,10 +87,10 @@ func (s *ValidateUpdateStatusInputStep) Execute(ctx *pipeline.RequestContext[*ag
 
 // LoadExistingExecutionStep loads the existing execution from database
 type LoadExistingExecutionStep struct {
-	store Store
+	store *badger.Store
 }
 
-func newLoadExistingExecutionStep(store Store) *LoadExistingExecutionStep {
+func newLoadExistingExecutionStep(store *badger.Store) *LoadExistingExecutionStep {
 	return &LoadExistingExecutionStep{store: store}
 }
 
@@ -210,10 +211,10 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 
 // PersistExecutionStep saves the execution to database
 type PersistExecutionStep struct {
-	store Store
+	store *badger.Store
 }
 
-func newPersistExecutionStep(store Store) *PersistExecutionStep {
+func newPersistExecutionStep(store *badger.Store) *PersistExecutionStep {
 	return &PersistExecutionStep{store: store}
 }
 
