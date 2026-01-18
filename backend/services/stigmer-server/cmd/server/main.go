@@ -7,11 +7,14 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agent"
+	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentinstance"
+	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
+	agentinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentinstance/v1"
 )
 
 func main() {
@@ -44,8 +47,18 @@ func main() {
 	server := grpclib.NewServer()
 	grpcServer := server.GRPCServer()
 
-	// Create and register Agent controller
-	agentController := agent.NewAgentController(store)
+	// Create and register AgentInstance controller
+	agentInstanceController := agentinstancecontroller.NewAgentInstanceController(store)
+	agentinstancev1.RegisterAgentInstanceCommandControllerServer(grpcServer, agentInstanceController)
+	agentinstancev1.RegisterAgentInstanceQueryServiceServer(grpcServer, agentInstanceController)
+
+	log.Info().Msg("Registered AgentInstance controllers")
+
+	// Create in-process AgentInstance client for downstream calls
+	agentInstanceClient := agentinstanceclient.NewClient(agentInstanceController)
+
+	// Create and register Agent controller (with AgentInstance client for default instance creation)
+	agentController := agent.NewAgentController(store, agentInstanceClient)
 	agentv1.RegisterAgentCommandControllerServer(grpcServer, agentController)
 	agentv1.RegisterAgentQueryControllerServer(grpcServer, agentController)
 
