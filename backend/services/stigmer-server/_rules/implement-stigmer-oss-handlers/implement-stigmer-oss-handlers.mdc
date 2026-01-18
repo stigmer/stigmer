@@ -1626,6 +1626,8 @@ type UpdateContext[T proto.Message] struct {
 
 ## Differences from Stigmer Cloud
 
+### Architectural Differences
+
 | Aspect | Stigmer Cloud (Java) | Stigmer OSS (Go) |
 |--------|---------------------|------------------|
 | **Architecture** | Pipeline with specialized contexts | Pipeline with single context |
@@ -1633,7 +1635,7 @@ type UpdateContext[T proto.Message] struct {
 | **State Management** | Typed fields (existingResource, newState) | Metadata map + newState field |
 | **Type Safety** | Compile-time (strong typing) | Runtime (type assertions) |
 | **Storage** | MongoDB | BadgerDB/SQLite |
-| **Authorization** | FGA/IAM integration | Local/simple auth |
+| **Authorization** | FGA/IAM integration | None (local single-user) |
 | **Complexity** | High (enterprise multi-tenant) | Low (local single-user) |
 | **Error Handling** | Status-based pipeline errors | grpclib helpers + Go errors |
 | **Validation** | buf.validate + pipeline steps | buf.validate + pipeline steps |
@@ -1642,6 +1644,63 @@ type UpdateContext[T proto.Message] struct {
 **Both use pipeline pattern, but:**
 - Java optimizes for **type safety and enterprise scale**
 - Go optimizes for **simplicity and rapid iteration**
+
+---
+
+### Pipeline Steps: Cloud vs OSS
+
+**Steps EXCLUDED in Stigmer OSS** (present in Cloud):
+
+| Step | Purpose | Why Excluded in OSS |
+|------|---------|-------------------|
+| **Authorize** | Verify caller has permission to create/update/delete resource | OSS is local/single-user - no multi-tenant auth |
+| **CreateIamPolicies** | Establish ownership relationships in OpenFGA | OSS has no IAM/FGA system |
+| **Publish** | Publish domain events to event bus | OSS has no event publishing infrastructure |
+| **TransformResponse** | Apply response transformations/filtering | OSS returns full resource - no need for transformations |
+
+**Steps INCLUDED in both Cloud and OSS:**
+
+| Step | Purpose | Implementation |
+|------|---------|---------------|
+| **ValidateFieldConstraints** | Validate proto field constraints using buf validate | Same in both |
+| **ResolveSlug** | Generate slug from metadata.name | Same in both |
+| **CheckDuplicate** | Verify no duplicate exists | Same in both (different storage backends) |
+| **BuildNewState** | Generate ID, timestamps, audit fields | Same in both |
+| **Persist** | Save resource to database | Different storage (MongoDB vs BadgerDB/SQLite) |
+
+**Example: Agent Create Pipeline Comparison**
+
+**Stigmer Cloud (Java):**
+```java
+pipeline()
+    .addStep(commonSteps.validateFieldConstraints)   // 1. Validate
+    .addStep(createSteps.authorize)                  // 2. Authorize ← OSS EXCLUDES
+    .addStep(commonSteps.resolveSlug)                // 3. Resolve slug
+    .addStep(createSteps.checkDuplicate)             // 4. Check duplicate
+    .addStep(createSteps.buildNewState)              // 5. Build new state
+    .addStep(createSteps.persist)                    // 6. Persist
+    .addStep(createIamPolicies)                      // 7. Create IAM policies ← OSS EXCLUDES
+    .addStep(createDefaultInstance)                  // 8. Create default instance
+    .addStep(updateAgentStatusWithDefaultInstance)   // 9. Update status
+    .addStep(commonSteps.publish)                    // 10. Publish event ← OSS EXCLUDES
+    .addStep(commonSteps.transformResponse)          // 11. Transform ← OSS EXCLUDES
+    .addStep(commonSteps.sendResponse)               // 12. Send response
+```
+
+**Stigmer OSS (Go):**
+```go
+pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+    AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).         // 1. Validate
+    AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).           // 2. Resolve slug
+    AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)). // 3. Check duplicate
+    AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).         // 4. Build new state
+    AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).        // 5. Persist
+    AddStep(c.newCreateDefaultInstanceStep()).                     // 6. Create default instance
+    AddStep(c.newUpdateAgentStatusWithDefaultInstanceStep()).      // 7. Update status
+    Build()
+```
+
+**Key Insight:** OSS pipelines are **simpler and more focused** on core resource lifecycle management, excluding enterprise features like authorization, IAM, event publishing, and response transformations.
 
 ---
 
