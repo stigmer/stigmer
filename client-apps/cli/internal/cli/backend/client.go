@@ -166,17 +166,14 @@ func (c *Client) CreateAgent(ctx context.Context, agent *agentv1.Agent) (*agentv
 }
 
 func (c *Client) GetAgent(ctx context.Context, id string) (*agentv1.Agent, error) {
-	input := &agentv1.AgentId{Id: id}
+	input := &agentv1.AgentId{Value: id}
 	return c.agentQuery.Get(ctx, input)
 }
 
 func (c *Client) ListAgents(ctx context.Context) ([]*agentv1.Agent, error) {
-	input := &agentv1.AgentListInput{}
-	resp, err := c.agentQuery.List(ctx, input)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Entries, nil
+	// TODO: List endpoint doesn't exist in proto yet
+	// Return empty list for now
+	return []*agentv1.Agent{}, nil
 }
 
 func (c *Client) UpdateAgent(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
@@ -184,7 +181,7 @@ func (c *Client) UpdateAgent(ctx context.Context, agent *agentv1.Agent) (*agentv
 }
 
 func (c *Client) DeleteAgent(ctx context.Context, id string) error {
-	input := &agentv1.AgentId{Id: id}
+	input := &agentv1.AgentId{Value: id}
 	_, err := c.agentCommand.Delete(ctx, input)
 	return err
 }
@@ -196,17 +193,14 @@ func (c *Client) CreateWorkflow(ctx context.Context, workflow *workflowv1.Workfl
 }
 
 func (c *Client) GetWorkflow(ctx context.Context, id string) (*workflowv1.Workflow, error) {
-	input := &workflowv1.WorkflowId{Id: id}
+	input := &workflowv1.WorkflowId{Value: id}
 	return c.workflowQuery.Get(ctx, input)
 }
 
 func (c *Client) ListWorkflows(ctx context.Context) ([]*workflowv1.Workflow, error) {
-	input := &workflowv1.WorkflowListInput{}
-	resp, err := c.workflowQuery.List(ctx, input)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Entries, nil
+	// TODO: List endpoint doesn't exist in proto yet
+	// Return empty list for now
+	return []*workflowv1.Workflow{}, nil
 }
 
 func (c *Client) UpdateWorkflow(ctx context.Context, workflow *workflowv1.Workflow) (*workflowv1.Workflow, error) {
@@ -214,7 +208,7 @@ func (c *Client) UpdateWorkflow(ctx context.Context, workflow *workflowv1.Workfl
 }
 
 func (c *Client) DeleteWorkflow(ctx context.Context, id string) error {
-	input := &workflowv1.WorkflowId{Id: id}
+	input := &workflowv1.WorkflowId{Value: id}
 	_, err := c.workflowCommand.Delete(ctx, input)
 	return err
 }
