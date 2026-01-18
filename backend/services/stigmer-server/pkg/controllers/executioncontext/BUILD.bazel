@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "executioncontext",
+    srcs = [
+        "apply.go",
+        "create.go",
+        "delete.go",
+        "executioncontext_controller.go",
+        "get.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/executioncontext",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/libs/go/badger",
+        "//backend/libs/go/grpc",
+        "//backend/libs/go/grpc/request/pipeline",
+        "//backend/libs/go/grpc/request/pipeline/steps",
+        "//internal/gen/ai/stigmer/agentic/executioncontext/v1:executioncontext",
+        "//internal/gen/ai/stigmer/commons/apiresource",
+        "@com_github_rs_zerolog//log",
+    ],
+)
