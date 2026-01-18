@@ -1,0 +1,12 @@
+###############################################################################
+# Global workspace defaults (apply to *all* builds)                          #
+###############################################################################
+
+# Always define these so genrules see $(TAG)/$(STABLE_GIT_REV)
+build --define TAG=
+build --define STABLE_GIT_REV=
+
+###############################################################################
+# CI configuration (used in pipeline builds)                                 #
+###############################################################################
+build:ci --stamp

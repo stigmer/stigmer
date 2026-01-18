@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "grpc",
+    srcs = ["server.go"],
+    importpath = "github.com/stigmer/stigmer/backend/libs/go/grpc",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_rs_zerolog//log",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//credentials/insecure",
+        "@org_golang_google_grpc//status",
+        "@org_golang_google_grpc//test/bufconn",
+    ],
+)
+
+go_test(
+    name = "grpc_test",
+    srcs = ["inprocess_test.go"],
+    embed = [":grpc"],
+    deps = ["@org_golang_google_grpc//:grpc"],
+)

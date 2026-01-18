@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "server_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/cmd/server",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//backend/libs/go/badger",
+        "//backend/libs/go/grpc",
+        "//backend/libs/go/grpc/interceptors/apiresource",
+        "//backend/services/stigmer-server/pkg/config",
+        "//backend/services/stigmer-server/pkg/controllers/agent",
+        "//backend/services/stigmer-server/pkg/controllers/agentinstance",
+        "//backend/services/stigmer-server/pkg/downstream/agentinstance",
+        "//internal/gen/ai/stigmer/agentic/agent/v1:agent",
+        "//internal/gen/ai/stigmer/agentic/agentinstance/v1:agentinstance",
+        "@com_github_rs_zerolog//:zerolog",
+        "@com_github_rs_zerolog//log",
+    ],
+)
+
+go_binary(
+    name = "server",
+    embed = [":server_lib"],
+    visibility = ["//visibility:public"],
+)

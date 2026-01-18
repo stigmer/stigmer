@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+###############################################################################
+# Bazel wrapper (simplified - no GCP auth)
+###############################################################################
+
+# 1. Install bazelisk once if not present
+if ! command -v bazelisk >/dev/null 2>&1 ; then
+  echo "Installing bazelisk..."
+  mkdir -p "${HOME}/.local/bin"
+  curl -sSfL \
+    "https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)" \
+    -o "${HOME}/.local/bin/bazelisk"
+  chmod +x "${HOME}/.local/bin/bazelisk"
+  export PATH="${HOME}/.local/bin:${PATH}"
+fi
+
+# 2. Delegate to bazelisk
+exec bazelisk "$@"

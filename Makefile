@@ -1,7 +1,7 @@
 # Default bump type for releases (can be overridden: make protos-release bump=minor)
 bump ?= patch
 
-.PHONY: help setup build test clean proto-gen protos protos-release lint coverage
+.PHONY: help setup build test clean protos protos-release lint coverage
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -12,16 +12,11 @@ help: ## Show this help message
 setup: ## Install dependencies and tools
 	@echo "Installing Go dependencies..."
 	go mod download
-	@echo "Installing buf..."
-	go install github.com/bufbuild/buf/cmd/buf@latest
-	@echo "Installing protoc plugins..."
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 	@echo "Installing Python dependencies..."
 	cd sdk/python && pip install -e .[dev]
 	@echo "Setup complete!"
 
-build: proto-gen ## Build the Stigmer CLI
+build: protos ## Build the Stigmer CLI
 	@echo "Building Stigmer CLI..."
 	go build -o bin/stigmer ./cmd/stigmer
 	@echo "Build complete: bin/stigmer"
@@ -38,13 +33,8 @@ coverage: ## Generate test coverage report
 	go tool cover -html=coverage.txt -o coverage.html
 	@echo "Coverage report: coverage.html"
 
-proto-gen: ## Generate code from protobuf definitions
-	@echo "Generating protobuf code..."
-	@cd apis && buf generate --template buf.gen.go.yaml
-	@cd apis && buf generate --template buf.gen.python.yaml
-	@echo "Protobuf generation complete!"
-
-protos: proto-gen ## Generate protocol buffer stubs (alias for proto-gen)
+protos: ## Generate protocol buffer stubs
+	$(MAKE) -C apis build
 
 protos-release: ## Release protos to Buf and create Git tag (usage: make protos-release [bump=patch|minor|major])
 	@echo "============================================"
@@ -53,7 +43,7 @@ protos-release: ## Release protos to Buf and create Git tag (usage: make protos-
 	@echo ""
 	@echo "Step 1: Publishing protos to Buf..."
 	@echo "--------------------------------------------"
-	@cd apis && buf push
+	$(MAKE) -C apis release
 	@echo ""
 	@echo "✓ Protos released successfully to buf.build/stigmer/stigmer"
 	@echo ""
@@ -122,8 +112,8 @@ lint: ## Run linters
 	@echo "Running Go linters..."
 	go vet ./...
 	gofmt -s -w .
-	@echo "Running buf lint..."
-	buf lint
+	@echo "Running proto linters..."
+	$(MAKE) -C apis lint
 	@echo "Linting complete!"
 
 clean: ## Clean build artifacts
@@ -131,6 +121,7 @@ clean: ## Clean build artifacts
 	rm -rf bin/
 	rm -rf coverage.txt coverage.html
 	rm -rf sdk/python/build sdk/python/dist sdk/python/*.egg-info
+	$(MAKE) -C apis clean
 	@echo "Clean complete!"
 
 install: build ## Install Stigmer CLI to system
