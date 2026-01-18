@@ -33,7 +33,7 @@ func (c *AgentExecutionController) Get(ctx context.Context, executionId *agentex
 // buildGetPipeline constructs the pipeline for agent execution retrieval
 func (c *AgentExecutionController) buildGetPipeline() *pipeline.Pipeline[*agentexecutionv1.AgentExecutionId] {
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecutionId]("agent-execution-get").
-		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecutionId]()).                                   // 1. Validate input
+		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecutionId]()).                                       // 1. Validate input
 		AddStep(steps.NewLoadTargetStep[*agentexecutionv1.AgentExecutionId, *agentexecutionv1.AgentExecution](c.store)). // 2. Load target
 		Build()
 }
