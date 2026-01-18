@@ -15,6 +15,8 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agent"
 	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentexecution"
 	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentinstance"
+	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/environment"
+	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/executioncontext"
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/session"
 	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
@@ -22,6 +24,8 @@ import (
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentinstance/v1"
+	environmentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/environment/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/executioncontext/v1"
 	sessionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/session/v1"
 )
 
@@ -74,8 +78,22 @@ func main() {
 	sessionv1.RegisterSessionQueryControllerServer(grpcServer, sessionController)
 
 	log.Info().Msg("Registered Session controllers")
+
+	// Create and register Environment controller
+	environmentController := environmentcontroller.NewEnvironmentController(store)
+	environmentv1.RegisterEnvironmentCommandControllerServer(grpcServer, environmentController)
+	environmentv1.RegisterEnvironmentQueryControllerServer(grpcServer, environmentController)
+
+	log.Info().Msg("Registered Environment controllers")
+
+	// Create and register ExecutionContext controller
+	executionContextController := executioncontextcontroller.NewExecutionContextController(store)
+	executioncontextv1.RegisterExecutionContextCommandControllerServer(grpcServer, executionContextController)
+	executioncontextv1.RegisterExecutionContextQueryControllerServer(grpcServer, executionContextController)
+
+	log.Info().Msg("Registered ExecutionContext controllers")
 	
-	// TODO: Register other controllers here (Workflow, Skill, Environment)
+	// TODO: Register other controllers here (Workflow, Skill)
 	// All services must be registered BEFORE starting the server or creating connections
 
 	// Create downstream clients for in-process gRPC calls
