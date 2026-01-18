@@ -7,7 +7,6 @@ import (
 
 	"github.com/rs/zerolog/log"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
-	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
@@ -59,12 +58,12 @@ func (c *AgentExecutionController) Create(ctx context.Context, execution *agente
 func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*agentexecutionv1.AgentExecution] {
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecution]("agent-execution-create").
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).  // 1. Validate field constraints
-		AddStep(c.newValidateSessionOrAgentStep()).                                // 2. Validate session_id OR agent_id
-		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).     // 3. Resolve slug
-		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).   // 4. Build new state
-		AddStep(c.newCreateDefaultInstanceIfNeededStep()).                         // 5. Create default instance if needed
-		AddStep(c.newCreateSessionIfNeededStep()).                                 // 6. Create session if needed
-		AddStep(c.newSetInitialPhaseStep()).                                       // 7. Set phase to PENDING
+		AddStep(c.newValidateSessionOrAgentStep()).                               // 2. Validate session_id OR agent_id
+		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).    // 3. Resolve slug
+		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).  // 4. Build new state
+		AddStep(c.newCreateDefaultInstanceIfNeededStep()).                        // 5. Create default instance if needed
+		AddStep(c.newCreateSessionIfNeededStep()).                                // 6. Create session if needed
+		AddStep(c.newSetInitialPhaseStep()).                                      // 7. Set phase to PENDING
 		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)). // 8. Persist execution
 		Build()
 }
@@ -151,14 +150,14 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		Str("agent_id", agentID).
 		Msg("Checking if agent has default instance")
 
-	// 1. Load agent by ID
-	agent := &agentv1.Agent{}
-	if err := s.controller.store.GetResource(ctx.Context(), "Agent", agentID, agent); err != nil {
+	// 1. Load agent by ID via in-process gRPC (single source of truth)
+	agent, err := s.controller.agentClient.Get(ctx.Context(), &agentv1.AgentId{Value: agentID})
+	if err != nil {
 		log.Error().
 			Err(err).
 			Str("agent_id", agentID).
 			Msg("Agent not found")
-		return grpclib.NotFoundError("Agent", agentID)
+		return err // Already a gRPC error from the client
 	}
 
 	defaultInstanceID := agent.GetStatus().GetDefaultInstanceId()
@@ -227,9 +226,11 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 	}
 	agent.Status.DefaultInstanceId = createdInstanceID
 
-	// Get api_resource_kind from request context (injected by interceptor)
-	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
-	if err := s.controller.store.SaveResource(ctx.Context(), kind.String(), agentID, agent); err != nil {
+	// Update agent via in-process gRPC (single source of truth)
+	// Note: We use the agent client's Update method which ensures all interceptors
+	// run with the correct api_resource_kind (AGENT), not the current request's kind
+	_, err = s.controller.agentClient.Update(ctx.Context(), agent)
+	if err != nil {
 		log.Error().
 			Err(err).
 			Str("agent_id", agentID).
@@ -302,14 +303,14 @@ func (s *createSessionIfNeededStep) Execute(ctx *pipeline.RequestContext[*agente
 		Str("default_instance_id", defaultInstanceID).
 		Msg("Using default instance from context for session creation")
 
-	// 2. Load agent for metadata (scope, org)
-	agent := &agentv1.Agent{}
-	if err := s.controller.store.GetResource(ctx.Context(), "Agent", agentID, agent); err != nil {
+	// 2. Load agent for metadata (scope, org) via in-process gRPC (single source of truth)
+	agent, err := s.controller.agentClient.Get(ctx.Context(), &agentv1.AgentId{Value: agentID})
+	if err != nil {
 		log.Error().
 			Err(err).
 			Str("agent_id", agentID).
 			Msg("Agent not found")
-		return grpclib.NotFoundError("Agent", agentID)
+		return err // Already a gRPC error from the client
 	}
 
 	ownerScope := agent.GetMetadata().GetOwnerScope()
@@ -341,25 +342,17 @@ func (s *createSessionIfNeededStep) Execute(ctx *pipeline.RequestContext[*agente
 		Str("instance_id", defaultInstanceID).
 		Msg("Built session request")
 
-	// 4. Create session via direct store access
-	// TODO: Replace with session client when Session controller is implemented
-	createdSession := sessionRequest
-	
-	// Generate ID for session
-	sessionID = fmt.Sprintf("ses_%d", time.Now().UnixNano())
-	if createdSession.Metadata == nil {
-		createdSession.Metadata = &apiresource.ApiResourceMetadata{}
-	}
-	createdSession.Metadata.Id = sessionID
-
-	// Save session to store
-	if err := s.controller.store.SaveResource(ctx.Context(), "Session", sessionID, createdSession); err != nil {
+	// 4. Create session via in-process gRPC (single source of truth)
+	createdSession, err := s.controller.sessionClient.Create(ctx.Context(), sessionRequest)
+	if err != nil {
 		log.Error().
 			Err(err).
 			Str("agent_id", agentID).
 			Msg("Failed to create session")
 		return fmt.Errorf("failed to create session: %w", err)
 	}
+
+	sessionID = createdSession.GetMetadata().GetId()
 
 	log.Info().
 		Str("session_id", sessionID).

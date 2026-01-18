@@ -13,7 +13,8 @@
 ✅ **Framework Enhanced** - Auto-extract API resource kind from proto (zero boilerplate)  
 ✅ **Architecture Documented** - OSS vs Cloud pipeline differences clarified  
 ✅ **Query Handlers Refactored** - Generic pipeline steps for Get/GetByReference  
-✅ **Apply Pattern Established** - Simple delegation pattern (not inline)
+✅ **Apply Pattern Established** - Simple delegation pattern (not inline)  
+✅ **Session Client Infrastructure Ready** - Downstream client created, awaiting Session controller
 
 ## Project Status
 
@@ -196,8 +197,10 @@ return c.Update(ctx, resource)
 
 ## Documentation Created
 
-- **Latest Checkpoint:** `@checkpoints/2026-01-18-agentinstance-handlers-complete.md`
-- **Latest Changelog:** `@_changelog/2026-01/2026-01-18-232944-implement-agentinstance-handlers.md`
+- **Latest Checkpoint:** `@checkpoints/2026-01-18-session-client-infrastructure-setup.md`
+- **Latest Changelog:** `@_changelog/2026-01/2026-01-18-234507-add-session-downstream-client.md`
+- **Previous Checkpoint:** `@checkpoints/2026-01-18-agentinstance-handlers-complete.md`
+- **Previous Changelog:** `@_changelog/2026-01/2026-01-18-232944-implement-agentinstance-handlers.md`
 - **Package README:** `@backend/services/stigmer-server/pkg/controllers/agentinstance/README.md`
 - **Previous Checkpoint:** `@checkpoints/2026-01-18-generic-query-handler-pipeline-steps.md`
 - **Previous Changelog:** `@_changelog/2026-01/2026-01-18-224250-refactor-agent-query-handlers-generic-pipeline-steps.md`
