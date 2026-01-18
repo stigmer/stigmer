@@ -164,41 +164,60 @@ async def _execute_graphton_impl(
             f"Agent config: model={model_name}, instructions_length={len(instructions)}"
         )
         
-        # Step 2: Get or create sandbox (with session-based reuse)
-        api_key = os.environ.get("DAYTONA_API_KEY")
-        if not api_key:
-            raise ValueError("DAYTONA_API_KEY environment variable required")
+        # Step 2: Get sandbox configuration from worker config
+        # Import config to get sandbox settings
+        from worker.config import Config
+        worker_config = Config.load_from_env()
+        sandbox_config = worker_config.get_sandbox_config()
         
-        sandbox_manager = SandboxManager(api_key)
+        activity_logger.info(
+            f"Sandbox mode: {worker_config.mode} - using {sandbox_config.get('type')} backend"
+        )
         
-        # Configure sandbox (type + optional snapshot)
-        sandbox_config = {"type": "daytona"}
-        snapshot_id = os.environ.get("DAYTONA_DEV_TOOLS_SNAPSHOT_ID")
-        if snapshot_id:
-            sandbox_config["snapshot_id"] = snapshot_id
-            activity_logger.info(f"Using Daytona snapshot: {snapshot_id}")
+        # Initialize sandbox manager based on mode
+        # Note: In local mode (filesystem), SandboxManager is not used
+        # The sandbox_config is passed directly to Graphton
+        sandbox_manager = None
+        if worker_config.mode != "local":
+            # Cloud mode - use Daytona SandboxManager
+            api_key = os.environ.get("DAYTONA_API_KEY")
+            if not api_key:
+                raise ValueError("DAYTONA_API_KEY environment variable required for cloud mode")
+            
+            sandbox_manager = SandboxManager(api_key)
+            
+            if snapshot_id := sandbox_config.get("snapshot_id"):
+                activity_logger.info(f"Using Daytona snapshot: {snapshot_id}")
         
         # Get session_id from execution (if exists)
         session_id = execution.spec.session_id if execution.spec.session_id else None
         
-        # Session client already initialized above
-        # (We need it for both session retrieval and sandbox management)
+        # Handle sandbox based on mode
+        sandbox = None
+        is_new_sandbox = False
         
-        # Get or create sandbox (reuse if session exists)
-        activity_logger.info(
-            f"{'Checking for existing sandbox in session' if session_id else 'Creating ephemeral sandbox'}"
-        )
-        
-        sandbox, is_new_sandbox = await sandbox_manager.get_or_create_sandbox(
-            sandbox_config=sandbox_config,
-            session_id=session_id,
-            session_client=session_client,
-        )
-        
-        activity_logger.info(
-            f"Sandbox {'created' if is_new_sandbox else 'reused'}: {sandbox.id} "
-            f"for execution {execution_id}"
-        )
+        if worker_config.is_local_mode():
+            # Local mode - no sandbox management needed
+            # Graphton will create filesystem backend from config
+            activity_logger.info(
+                f"Local mode - using filesystem backend at {sandbox_config.get('root_dir')}"
+            )
+        else:
+            # Cloud mode - get or create Daytona sandbox (reuse if session exists)
+            activity_logger.info(
+                f"{'Checking for existing sandbox in session' if session_id else 'Creating ephemeral sandbox'}"
+            )
+            
+            sandbox, is_new_sandbox = await sandbox_manager.get_or_create_sandbox(
+                sandbox_config=sandbox_config,
+                session_id=session_id,
+                session_client=session_client,
+            )
+            
+            activity_logger.info(
+                f"Sandbox {'created' if is_new_sandbox else 'reused'}: {sandbox.id} "
+                f"for execution {execution_id}"
+            )
         
         # Step 3: Fetch and write skills (from agent template via references)
         skills_prompt_section = ""
@@ -217,27 +236,38 @@ async def _execute_graphton_impl(
                 )
                 skills = await skill_client.list_by_refs(list(skill_refs))
                 
-                # Write skills to Daytona sandbox
-                activity_logger.info(
-                    f"Uploading {len(skills)} skills to Daytona sandbox "
-                    f"(sandbox {'newly created' if is_new_sandbox else 'reused, updating skills'})"
-                )
+                # Write skills to sandbox (Daytona or filesystem based on mode)
+                if worker_config.is_local_mode():
+                    # Local mode - write to filesystem
+                    activity_logger.info(
+                        f"Writing {len(skills)} skills to filesystem at {sandbox_config.get('root_dir')}/skills"
+                    )
+                    skill_writer = SkillWriter(
+                        root_dir=sandbox_config.get('root_dir'),
+                        mode="filesystem"
+                    )
+                else:
+                    # Cloud mode - upload to Daytona sandbox
+                    activity_logger.info(
+                        f"Uploading {len(skills)} skills to Daytona sandbox "
+                        f"(sandbox {'newly created' if is_new_sandbox else 'reused, updating skills'})"
+                    )
+                    skill_writer = SkillWriter(sandbox=sandbox, mode="daytona")
                 
-                skill_writer = SkillWriter(sandbox=sandbox)
                 skill_paths = skill_writer.write_skills(skills)
                 
                 # Generate prompt section with skill metadata
                 skills_prompt_section = SkillWriter.generate_prompt_section(skills, skill_paths)
                 
                 activity_logger.info(
-                    f"Successfully uploaded {len(skills)} skills: "
-                    f"{[s.metadata.name for s in skills]}"
+                    f"Successfully {'wrote' if worker_config.is_local_mode() else 'uploaded'} "
+                    f"{len(skills)} skills: {[s.metadata.name for s in skills]}"
                 )
                     
             except RuntimeError as e:
-                # Catch upload failures from SkillWriter
-                activity_logger.error(f"Failed to upload skills to Daytona sandbox: {e}")
-                raise ValueError(f"Skill upload failed: {e}") from e
+                # Catch write/upload failures from SkillWriter
+                activity_logger.error(f"Failed to write skills: {e}")
+                raise ValueError(f"Skill write failed: {e}") from e
             except Exception as e:
                 activity_logger.error(f"Unexpected error preparing skills: {e}")
                 raise
@@ -304,13 +334,20 @@ async def _execute_graphton_impl(
             enhanced_system_prompt += skills_prompt_section
             activity_logger.info("Enhanced system prompt with skills metadata")
         
-        # Pass sandbox_id via sandbox_config to enable graphton to reuse the sandbox
-        sandbox_config_for_agent = {
-            "type": "daytona",
-            "sandbox_id": sandbox.id,  # Reuse existing sandbox with skills
-        }
-        
-        activity_logger.info(f"Configuring agent to use existing sandbox {sandbox.id}")
+        # Configure sandbox for Graphton agent
+        if worker_config.is_local_mode():
+            # Local mode - pass filesystem config directly
+            sandbox_config_for_agent = sandbox_config.copy()
+            activity_logger.info(
+                f"Configuring agent for local mode with filesystem backend at {sandbox_config.get('root_dir')}"
+            )
+        else:
+            # Cloud mode - pass Daytona config with sandbox_id to reuse existing sandbox
+            sandbox_config_for_agent = {
+                "type": "daytona",
+                "sandbox_id": sandbox.id,  # Reuse existing sandbox with skills
+            }
+            activity_logger.info(f"Configuring agent to use existing sandbox {sandbox.id}")
         
         # Create Graphton agent
         # Recursion limit set to 1000 for maximum autonomy

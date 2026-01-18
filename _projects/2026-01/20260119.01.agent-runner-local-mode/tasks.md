@@ -37,25 +37,37 @@
 
 ## Phase 2: Agent Runner Configuration
 
-### T2: Update Agent Runner config to detect `ENV=local` and use filesystem backend
-**Status**: ⏸️ TODO
+### T2: Update Agent Runner config to detect `MODE=local` and use filesystem backend
+**Status**: ✅ COMPLETED
 
 **Objective**: Add local mode detection and configuration in Agent Runner.
 
-**Location**: Agent runner config files (in Stigmer or separate repo)
+**Location**: `stigmer/backend/services/agent-runner/worker/config.py`
 
 **Requirements**:
-- Detect `ENV=local` environment variable
+- Detect `MODE=local` environment variable (separate from ENV for dev/staging/prod)
 - Return filesystem backend config when local
 - Return Daytona config when cloud
 - Set proper workspace paths
 - Skip cloud-specific config (Auth0, Redis, etc.)
 
 **Acceptance**:
-- [ ] Config switches based on `ENV` variable
-- [ ] Local mode uses filesystem backend
-- [ ] Cloud mode uses Daytona backend
-- [ ] No errors when cloud config is missing in local mode
+- [x] Config switches based on `MODE` variable
+- [x] Local mode uses filesystem backend
+- [x] Cloud mode uses Daytona backend
+- [x] No errors when cloud config is missing in local mode
+- [x] MODE is separate from ENV (development/staging/production)
+
+**Implementation Details**:
+- Updated `Config` class to detect `MODE=local` environment variable
+- Added `mode`, `sandbox_type`, and `sandbox_root_dir` fields to Config
+- Made Redis configuration optional (None in local mode)
+- Added `get_sandbox_config()` method that returns appropriate config based on mode
+- Added `is_local_mode()` helper method
+- Updated `execute_graphton.py` to use config-driven sandbox configuration
+- In local mode, sandbox manager is bypassed and config passed directly to Graphton
+- Skills temporarily disabled in local mode (will be implemented in future iteration)
+- Clear separation: MODE (local/cloud) vs ENV (dev/staging/prod)
 
 ---
 
@@ -66,7 +78,7 @@
 
 **Objective**: Replace cloud service connections with Stigmer Daemon gRPC in local mode.
 
-**Location**: Agent runner main file
+**Location**: `stigmer/backend/services/agent-runner/worker/worker.py` and `main.py`
 
 **Requirements**:
 - Connect to `STIGMER_BACKEND_ENDPOINT` (localhost:50051) in local mode
@@ -137,9 +149,9 @@
 ## Progress Summary
 
 - **Total Tasks**: 5
-- **Completed**: 1
+- **Completed**: 2
 - **In Progress**: 0
-- **Remaining**: 4
+- **Remaining**: 3
 
-**Current Status**: T1 Complete - FilesystemBackend execute() method implemented and tested
-**Next Task**: T2 - Update Agent Runner config for local mode detection
+**Current Status**: T2 Complete - Agent Runner config updated for local mode detection
+**Next Task**: T3 - Update Agent Runner main to connect to Stigmer Daemon gRPC
