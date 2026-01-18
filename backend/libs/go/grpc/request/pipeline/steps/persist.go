@@ -1,11 +1,10 @@
 package steps
 
 import (
-	"context"
 	"fmt"
 
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/sqlite"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/pipeline"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -40,39 +39,31 @@ func (s *PersistStep[T]) Name() string {
 }
 
 // Execute saves the resource to the database
-func (s *PersistStep[T]) Execute(ctx *pipeline.RequestContext[T]) pipeline.StepResult {
+func (s *PersistStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	resource := ctx.NewState()
 
 	// Type assertion to access metadata
 	metadataResource, ok := any(resource).(HasMetadata)
 	if !ok {
-		return pipeline.StepResult{
-			Error: pipeline.StepError(s.Name(), fmt.Errorf("resource does not implement HasMetadata interface")),
-		}
+		return fmt.Errorf("resource does not implement HasMetadata interface")
 	}
 
 	metadata := metadataResource.GetMetadata()
 	if metadata == nil {
-		return pipeline.StepResult{
-			Error: pipeline.StepError(s.Name(), fmt.Errorf("resource metadata is nil")),
-		}
+		return fmt.Errorf("resource metadata is nil")
 	}
 
 	// Verify ID is set
 	if metadata.Id == "" {
-		return pipeline.StepResult{
-			Error: pipeline.StepError(s.Name(), fmt.Errorf("resource ID is empty, cannot persist")),
-		}
+		return fmt.Errorf("resource ID is empty, cannot persist")
 	}
 
 	// Save to database
 	// Use the context from the pipeline context
 	err := s.store.SaveResource(ctx.Context(), s.kind, metadata.Id, resource)
 	if err != nil {
-		return pipeline.StepResult{
-			Error: pipeline.StepError(s.Name(), fmt.Errorf("failed to save resource to store: %w", err)),
-		}
+		return fmt.Errorf("failed to save resource to store: %w", err)
 	}
 
-	return pipeline.StepResult{Success: true}
+	return nil
 }

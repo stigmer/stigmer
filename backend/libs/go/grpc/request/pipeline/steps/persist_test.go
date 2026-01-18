@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/backend/libs/go/sqlite"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
 )
 
 func setupTestStore(t *testing.T) *sqlite.Store {
 	// Create an in-memory SQLite database for testing
-	store, err := sqlite.New(":memory:")
+	store, err := sqlite.NewStore(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test store: %v", err)
 	}
@@ -35,21 +35,19 @@ func TestPersistStep_Execute(t *testing.T) {
 
 	step := NewPersistStep[*agentv1.Agent](store, "Agent")
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	ctx.SetNewState(agent)
 
 	// Execute
-	result := step.Execute(ctx)
+	err := step.Execute(ctx)
 
 	// Verify
-	if result.Error != nil {
-		t.Errorf("Expected success, got error: %v", result.Error)
-	}
-	if !result.Success {
-		t.Errorf("Expected Success=true, got false")
+	if err != nil {
+		t.Errorf("Expected success, got error: %v", err)
 	}
 
 	// Verify resource was saved to store
 	retrieved := &agentv1.Agent{}
-	err := store.GetResource(context.Background(), "agent-123", retrieved)
+	err = store.GetResource(context.Background(), "agent-123", retrieved)
 	if err != nil {
 		t.Errorf("Failed to retrieve saved resource: %v", err)
 	}
@@ -79,10 +77,12 @@ func TestPersistStep_Update(t *testing.T) {
 
 	step := NewPersistStep[*agentv1.Agent](store, "Agent")
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	ctx.SetNewState(agent)
 	step.Execute(ctx)
 
 	// Update the agent
 	agent.Metadata.Name = "Test Agent V2"
+	ctx.SetNewState(agent)
 	step.Execute(ctx)
 
 	// Verify updated version was saved
@@ -110,10 +110,11 @@ func TestPersistStep_EmptyID(t *testing.T) {
 
 	step := NewPersistStep[*agentv1.Agent](store, "Agent")
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	ctx.SetNewState(agent)
 
-	result := step.Execute(ctx)
+	err := step.Execute(ctx)
 
-	if result.Error == nil {
+	if err == nil {
 		t.Errorf("Expected error for empty ID, got success")
 	}
 }
@@ -128,10 +129,11 @@ func TestPersistStep_NilMetadata(t *testing.T) {
 
 	step := NewPersistStep[*agentv1.Agent](store, "Agent")
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	ctx.SetNewState(agent)
 
-	result := step.Execute(ctx)
+	err := step.Execute(ctx)
 
-	if result.Error == nil {
+	if err == nil {
 		t.Errorf("Expected error for nil metadata, got success")
 	}
 }
@@ -154,10 +156,11 @@ func TestPersistStep_MultipleResources(t *testing.T) {
 		}
 
 		ctx := pipeline.NewRequestContext(context.Background(), agent)
-		result := step.Execute(ctx)
+		ctx.SetNewState(agent)
+		err := step.Execute(ctx)
 
-		if result.Error != nil {
-			t.Errorf("Failed to save agent-%d: %v", i, result.Error)
+		if err != nil {
+			t.Errorf("Failed to save agent-%d: %v", i, err)
 		}
 	}
 
