@@ -86,3 +86,6 @@ tmp/
 # Bazel build outputs
 bazel-*
 /MODULE.bazel.lock
+
+# Cursor
+_cursor/
