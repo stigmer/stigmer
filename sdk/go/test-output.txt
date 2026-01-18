@@ -1,0 +1,1513 @@
+=== RUN   TestAddSkill
+--- PASS: TestAddSkill (0.00s)
+=== RUN   TestAddSkills
+--- PASS: TestAddSkills (0.00s)
+=== RUN   TestAddSkill_Chaining
+--- PASS: TestAddSkill_Chaining (0.00s)
+=== RUN   TestAddMCPServer
+--- PASS: TestAddMCPServer (0.00s)
+=== RUN   TestAddMCPServers
+--- PASS: TestAddMCPServers (0.00s)
+=== RUN   TestAddMCPServer_Chaining
+--- PASS: TestAddMCPServer_Chaining (0.00s)
+=== RUN   TestAddSubAgent
+--- PASS: TestAddSubAgent (0.00s)
+=== RUN   TestAddSubAgents
+--- PASS: TestAddSubAgents (0.00s)
+=== RUN   TestAddSubAgent_Chaining
+--- PASS: TestAddSubAgent_Chaining (0.00s)
+=== RUN   TestAddEnvironmentVariable
+--- PASS: TestAddEnvironmentVariable (0.00s)
+=== RUN   TestAddEnvironmentVariables
+--- PASS: TestAddEnvironmentVariables (0.00s)
+=== RUN   TestAddEnvironmentVariable_Chaining
+--- PASS: TestAddEnvironmentVariable_Chaining (0.00s)
+=== RUN   TestBuilder_ComplexChaining
+--- PASS: TestBuilder_ComplexChaining (0.00s)
+=== RUN   TestBuilder_MixWithOptions
+--- PASS: TestBuilder_MixWithOptions (0.00s)
+=== RUN   TestWithEnvironmentVariable
+--- PASS: TestWithEnvironmentVariable (0.00s)
+=== RUN   TestWithEnvironmentVariables
+--- PASS: TestWithEnvironmentVariables (0.00s)
+=== RUN   TestWithMultipleEnvironmentVariableCalls
+--- PASS: TestWithMultipleEnvironmentVariableCalls (0.00s)
+=== RUN   TestWithInstructionsFromFile
+=== RUN   TestWithInstructionsFromFile/valid_instructions_file
+=== RUN   TestWithInstructionsFromFile/non-existent_file
+--- PASS: TestWithInstructionsFromFile (0.00s)
+    --- PASS: TestWithInstructionsFromFile/valid_instructions_file (0.00s)
+    --- PASS: TestWithInstructionsFromFile/non-existent_file (0.00s)
+=== RUN   TestWithInstructionsFromFile_EmptyFile
+--- PASS: TestWithInstructionsFromFile_EmptyFile (0.00s)
+=== RUN   TestWithInstructionsFromFile_TooShort
+--- PASS: TestWithInstructionsFromFile_TooShort (0.00s)
+=== RUN   TestWithInstructionsFromFile_LargeFile
+--- PASS: TestWithInstructionsFromFile_LargeFile (0.00s)
+=== RUN   TestWithSkill
+=== RUN   TestWithSkill/single_skill
+=== RUN   TestWithSkill/multiple_skills
+--- PASS: TestWithSkill (0.00s)
+    --- PASS: TestWithSkill/single_skill (0.00s)
+    --- PASS: TestWithSkill/multiple_skills (0.00s)
+=== RUN   TestWithSkills
+--- PASS: TestWithSkills (0.00s)
+=== RUN   TestAgentWithSubAgents
+=== RUN   TestAgentWithSubAgents/agent_with_inline_sub-agent
+=== RUN   TestAgentWithSubAgents/agent_with_referenced_sub-agent
+=== RUN   TestAgentWithSubAgents/agent_with_multiple_sub-agents
+=== RUN   TestAgentWithSubAgents/agent_with_inline_sub-agent_with_MCP_servers
+=== RUN   TestAgentWithSubAgents/agent_with_inline_sub-agent_with_skills
+=== RUN   TestAgentWithSubAgents/agent_with_inline_sub-agent_with_tool_selections
+--- PASS: TestAgentWithSubAgents (0.00s)
+    --- PASS: TestAgentWithSubAgents/agent_with_inline_sub-agent (0.00s)
+    --- PASS: TestAgentWithSubAgents/agent_with_referenced_sub-agent (0.00s)
+    --- PASS: TestAgentWithSubAgents/agent_with_multiple_sub-agents (0.00s)
+    --- PASS: TestAgentWithSubAgents/agent_with_inline_sub-agent_with_MCP_servers (0.00s)
+    --- PASS: TestAgentWithSubAgents/agent_with_inline_sub-agent_with_skills (0.00s)
+    --- PASS: TestAgentWithSubAgents/agent_with_inline_sub-agent_with_tool_selections (0.00s)
+=== RUN   TestNew
+=== RUN   TestNew/valid_agent_with_required_fields
+=== RUN   TestNew/valid_agent_with_all_fields
+=== RUN   TestNew/missing_name
+=== RUN   TestNew/missing_instructions
+=== RUN   TestNew/invalid_name_-_uppercase
+=== RUN   TestNew/invalid_name_-_special_chars
+=== RUN   TestNew/invalid_instructions_-_too_short
+=== RUN   TestNew/invalid_description_-_too_long
+=== RUN   TestNew/invalid_icon_URL
+--- PASS: TestNew (0.00s)
+    --- PASS: TestNew/valid_agent_with_required_fields (0.00s)
+    --- PASS: TestNew/valid_agent_with_all_fields (0.00s)
+    --- PASS: TestNew/missing_name (0.00s)
+    --- PASS: TestNew/missing_instructions (0.00s)
+    --- PASS: TestNew/invalid_name_-_uppercase (0.00s)
+    --- PASS: TestNew/invalid_name_-_special_chars (0.00s)
+    --- PASS: TestNew/invalid_instructions_-_too_short (0.00s)
+    --- PASS: TestNew/invalid_description_-_too_long (0.00s)
+    --- PASS: TestNew/invalid_icon_URL (0.00s)
+=== RUN   TestAgent_String
+--- PASS: TestAgent_String (0.00s)
+=== RUN   TestWithName
+=== RUN   TestWithName/valid_name
+=== RUN   TestWithName/empty_name
+--- PASS: TestWithName (0.00s)
+    --- PASS: TestWithName/valid_name (0.00s)
+    --- PASS: TestWithName/empty_name (0.00s)
+=== RUN   TestWithInstructions
+--- PASS: TestWithInstructions (0.00s)
+=== RUN   TestWithDescription
+--- PASS: TestWithDescription (0.00s)
+=== RUN   TestWithIconURL
+--- PASS: TestWithIconURL (0.00s)
+=== RUN   TestWithOrg
+--- PASS: TestWithOrg (0.00s)
+=== RUN   TestValidationError_Error
+=== RUN   TestValidationError_Error/with_field
+=== RUN   TestValidationError_Error/without_field
+--- PASS: TestValidationError_Error (0.00s)
+    --- PASS: TestValidationError_Error/with_field (0.00s)
+    --- PASS: TestValidationError_Error/without_field (0.00s)
+=== RUN   TestValidationError_Unwrap
+--- PASS: TestValidationError_Unwrap (0.00s)
+=== RUN   TestValidationError_Is
+=== RUN   TestValidationError_Is/matches_ErrInvalidName
+=== RUN   TestValidationError_Is/matches_ErrInvalidInstructions
+=== RUN   TestValidationError_Is/does_not_match
+--- PASS: TestValidationError_Is (0.00s)
+    --- PASS: TestValidationError_Is/matches_ErrInvalidName (0.00s)
+    --- PASS: TestValidationError_Is/matches_ErrInvalidInstructions (0.00s)
+    --- PASS: TestValidationError_Is/does_not_match (0.00s)
+=== RUN   TestNewValidationError
+--- PASS: TestNewValidationError (0.00s)
+=== RUN   TestNewValidationErrorWithCause
+--- PASS: TestNewValidationErrorWithCause (0.00s)
+=== RUN   TestConversionError_Error
+=== RUN   TestConversionError_Error/with_field
+=== RUN   TestConversionError_Error/without_field
+--- PASS: TestConversionError_Error (0.00s)
+    --- PASS: TestConversionError_Error/with_field (0.00s)
+    --- PASS: TestConversionError_Error/without_field (0.00s)
+=== RUN   TestConversionError_Unwrap
+--- PASS: TestConversionError_Unwrap (0.00s)
+=== RUN   TestNewConversionError
+--- PASS: TestNewConversionError (0.00s)
+=== RUN   TestNewConversionErrorWithCause
+--- PASS: TestNewConversionErrorWithCause (0.00s)
+=== RUN   TestValidateName
+=== RUN   TestValidateName/valid_lowercase
+=== RUN   TestValidateName/valid_single_char
+=== RUN   TestValidateName/valid_with_numbers
+=== RUN   TestValidateName/valid_max_length
+=== RUN   TestValidateName/valid_hyphen_middle
+=== RUN   TestValidateName/empty
+=== RUN   TestValidateName/too_long
+=== RUN   TestValidateName/uppercase
+=== RUN   TestValidateName/underscore
+=== RUN   TestValidateName/space
+=== RUN   TestValidateName/special_chars
+=== RUN   TestValidateName/start_with_hyphen
+=== RUN   TestValidateName/end_with_hyphen
+=== RUN   TestValidateName/only_hyphen
+--- PASS: TestValidateName (0.00s)
+    --- PASS: TestValidateName/valid_lowercase (0.00s)
+    --- PASS: TestValidateName/valid_single_char (0.00s)
+    --- PASS: TestValidateName/valid_with_numbers (0.00s)
+    --- PASS: TestValidateName/valid_max_length (0.00s)
+    --- PASS: TestValidateName/valid_hyphen_middle (0.00s)
+    --- PASS: TestValidateName/empty (0.00s)
+    --- PASS: TestValidateName/too_long (0.00s)
+    --- PASS: TestValidateName/uppercase (0.00s)
+    --- PASS: TestValidateName/underscore (0.00s)
+    --- PASS: TestValidateName/space (0.00s)
+    --- PASS: TestValidateName/special_chars (0.00s)
+    --- PASS: TestValidateName/start_with_hyphen (0.00s)
+    --- PASS: TestValidateName/end_with_hyphen (0.00s)
+    --- PASS: TestValidateName/only_hyphen (0.00s)
+=== RUN   TestValidateInstructions
+=== RUN   TestValidateInstructions/valid_min_length
+=== RUN   TestValidateInstructions/valid_typical
+=== RUN   TestValidateInstructions/valid_max_length
+=== RUN   TestValidateInstructions/valid_with_whitespace
+=== RUN   TestValidateInstructions/empty
+=== RUN   TestValidateInstructions/too_short
+=== RUN   TestValidateInstructions/too_long
+=== RUN   TestValidateInstructions/only_whitespace
+--- PASS: TestValidateInstructions (0.00s)
+    --- PASS: TestValidateInstructions/valid_min_length (0.00s)
+    --- PASS: TestValidateInstructions/valid_typical (0.00s)
+    --- PASS: TestValidateInstructions/valid_max_length (0.00s)
+    --- PASS: TestValidateInstructions/valid_with_whitespace (0.00s)
+    --- PASS: TestValidateInstructions/empty (0.00s)
+    --- PASS: TestValidateInstructions/too_short (0.00s)
+    --- PASS: TestValidateInstructions/too_long (0.00s)
+    --- PASS: TestValidateInstructions/only_whitespace (0.00s)
+=== RUN   TestValidateDescription
+=== RUN   TestValidateDescription/empty_(optional)
+=== RUN   TestValidateDescription/valid_short
+=== RUN   TestValidateDescription/valid_max_length
+=== RUN   TestValidateDescription/too_long
+--- PASS: TestValidateDescription (0.00s)
+    --- PASS: TestValidateDescription/empty_(optional) (0.00s)
+    --- PASS: TestValidateDescription/valid_short (0.00s)
+    --- PASS: TestValidateDescription/valid_max_length (0.00s)
+    --- PASS: TestValidateDescription/too_long (0.00s)
+=== RUN   TestValidateIconURL
+=== RUN   TestValidateIconURL/valid_http
+=== RUN   TestValidateIconURL/valid_https
+=== RUN   TestValidateIconURL/valid_with_path
+=== RUN   TestValidateIconURL/valid_with_query
+=== RUN   TestValidateIconURL/empty_(optional)
+=== RUN   TestValidateIconURL/invalid_format
+=== RUN   TestValidateIconURL/missing_scheme
+=== RUN   TestValidateIconURL/ftp_scheme
+=== RUN   TestValidateIconURL/no_host
+--- PASS: TestValidateIconURL (0.00s)
+    --- PASS: TestValidateIconURL/valid_http (0.00s)
+    --- PASS: TestValidateIconURL/valid_https (0.00s)
+    --- PASS: TestValidateIconURL/valid_with_path (0.00s)
+    --- PASS: TestValidateIconURL/valid_with_query (0.00s)
+    --- PASS: TestValidateIconURL/empty_(optional) (0.00s)
+    --- PASS: TestValidateIconURL/invalid_format (0.00s)
+    --- PASS: TestValidateIconURL/missing_scheme (0.00s)
+    --- PASS: TestValidateIconURL/ftp_scheme (0.00s)
+    --- PASS: TestValidateIconURL/no_host (0.00s)
+=== RUN   TestValidate
+=== RUN   TestValidate/valid_minimal_agent
+=== RUN   TestValidate/valid_complete_agent
+=== RUN   TestValidate/invalid_name
+=== RUN   TestValidate/invalid_instructions
+=== RUN   TestValidate/invalid_description
+=== RUN   TestValidate/invalid_icon_URL
+--- PASS: TestValidate (0.00s)
+    --- PASS: TestValidate/valid_minimal_agent (0.00s)
+    --- PASS: TestValidate/valid_complete_agent (0.00s)
+    --- PASS: TestValidate/invalid_name (0.00s)
+    --- PASS: TestValidate/invalid_instructions (0.00s)
+    --- PASS: TestValidate/invalid_description (0.00s)
+    --- PASS: TestValidate/invalid_icon_URL (0.00s)
+=== RUN   TestAgent_NewWithContext
+--- PASS: TestAgent_NewWithContext (0.00s)
+=== RUN   TestAgent_NewWithoutContext
+--- PASS: TestAgent_NewWithoutContext (0.00s)
+=== RUN   TestAgentBuilder_WithNameStringRef
+--- PASS: TestAgentBuilder_WithNameStringRef (0.00s)
+=== RUN   TestAgentBuilder_WithNameString
+--- PASS: TestAgentBuilder_WithNameString (0.00s)
+=== RUN   TestAgentBuilder_WithInstructionsStringRef
+--- PASS: TestAgentBuilder_WithInstructionsStringRef (0.00s)
+=== RUN   TestAgentBuilder_WithInstructionsString
+--- PASS: TestAgentBuilder_WithInstructionsString (0.00s)
+=== RUN   TestAgentBuilder_WithDescriptionStringRef
+--- PASS: TestAgentBuilder_WithDescriptionStringRef (0.00s)
+=== RUN   TestAgentBuilder_WithDescriptionString
+--- PASS: TestAgentBuilder_WithDescriptionString (0.00s)
+=== RUN   TestAgentBuilder_WithIconURLStringRef
+--- PASS: TestAgentBuilder_WithIconURLStringRef (0.00s)
+=== RUN   TestAgentBuilder_WithIconURLString
+--- PASS: TestAgentBuilder_WithIconURLString (0.00s)
+=== RUN   TestAgentBuilder_WithOrgStringRef
+--- PASS: TestAgentBuilder_WithOrgStringRef (0.00s)
+=== RUN   TestAgentBuilder_WithOrgString
+--- PASS: TestAgentBuilder_WithOrgString (0.00s)
+=== RUN   TestAgentBuilder_MixedTypedAndLegacy
+--- PASS: TestAgentBuilder_MixedTypedAndLegacy (0.00s)
+=== RUN   TestAgentBuilder_StringRefConcat
+--- PASS: TestAgentBuilder_StringRefConcat (0.00s)
+=== RUN   TestRefHelpers_toExpression
+--- PASS: TestRefHelpers_toExpression (0.00s)
+PASS
+ok  	github.com/leftbin/stigmer-sdk/go/agent	1.272s
+=== RUN   TestNew
+=== RUN   TestNew/minimal_required_variable
+=== RUN   TestNew/secret_variable_with_description
+=== RUN   TestNew/optional_variable_with_default
+=== RUN   TestNew/config_variable_not_secret
+=== RUN   TestNew/explicitly_optional
+=== RUN   TestNew/missing_name
+=== RUN   TestNew/invalid_name_-_lowercase
+=== RUN   TestNew/invalid_name_-_starts_with_number
+=== RUN   TestNew/invalid_name_-_special_characters
+=== RUN   TestNew/valid_name_with_numbers
+=== RUN   TestNew/valid_name_with_underscores
+--- PASS: TestNew (0.00s)
+    --- PASS: TestNew/minimal_required_variable (0.00s)
+    --- PASS: TestNew/secret_variable_with_description (0.00s)
+    --- PASS: TestNew/optional_variable_with_default (0.00s)
+    --- PASS: TestNew/config_variable_not_secret (0.00s)
+    --- PASS: TestNew/explicitly_optional (0.00s)
+    --- PASS: TestNew/missing_name (0.00s)
+    --- PASS: TestNew/invalid_name_-_lowercase (0.00s)
+    --- PASS: TestNew/invalid_name_-_starts_with_number (0.00s)
+    --- PASS: TestNew/invalid_name_-_special_characters (0.00s)
+    --- PASS: TestNew/valid_name_with_numbers (0.00s)
+    --- PASS: TestNew/valid_name_with_underscores (0.00s)
+=== RUN   TestVariableString
+=== RUN   TestVariableString/required_non-secret
+=== RUN   TestVariableString/required_secret
+=== RUN   TestVariableString/optional_non-secret
+=== RUN   TestVariableString/optional_secret
+--- PASS: TestVariableString (0.00s)
+    --- PASS: TestVariableString/required_non-secret (0.00s)
+    --- PASS: TestVariableString/required_secret (0.00s)
+    --- PASS: TestVariableString/optional_non-secret (0.00s)
+    --- PASS: TestVariableString/optional_secret (0.00s)
+=== RUN   TestIsValidEnvVarName
+=== RUN   TestIsValidEnvVarName/valid_uppercase
+=== RUN   TestIsValidEnvVarName/valid_with_numbers
+=== RUN   TestIsValidEnvVarName/valid_with_underscores
+=== RUN   TestIsValidEnvVarName/valid_single_char
+=== RUN   TestIsValidEnvVarName/invalid_empty
+=== RUN   TestIsValidEnvVarName/invalid_lowercase
+=== RUN   TestIsValidEnvVarName/invalid_mixed_case
+=== RUN   TestIsValidEnvVarName/invalid_starts_with_number
+=== RUN   TestIsValidEnvVarName/invalid_hyphen
+=== RUN   TestIsValidEnvVarName/invalid_dot
+=== RUN   TestIsValidEnvVarName/invalid_space
+=== RUN   TestIsValidEnvVarName/invalid_special_chars
+--- PASS: TestIsValidEnvVarName (0.00s)
+    --- PASS: TestIsValidEnvVarName/valid_uppercase (0.00s)
+    --- PASS: TestIsValidEnvVarName/valid_with_numbers (0.00s)
+    --- PASS: TestIsValidEnvVarName/valid_with_underscores (0.00s)
+    --- PASS: TestIsValidEnvVarName/valid_single_char (0.00s)
+    --- PASS: TestIsValidEnvVarName/invalid_empty (0.00s)
+    --- PASS: TestIsValidEnvVarName/invalid_lowercase (0.00s)
+    --- PASS: TestIsValidEnvVarName/invalid_mixed_case (0.00s)
+    --- PASS: TestIsValidEnvVarName/invalid_starts_with_number (0.00s)
+    --- PASS: TestIsValidEnvVarName/invalid_hyphen (0.00s)
+    --- PASS: TestIsValidEnvVarName/invalid_dot (0.00s)
+    --- PASS: TestIsValidEnvVarName/invalid_space (0.00s)
+    --- PASS: TestIsValidEnvVarName/invalid_special_chars (0.00s)
+PASS
+ok  	github.com/leftbin/stigmer-sdk/go/environment	(cached)
+=== RUN   TestExample01_BasicAgent
+    examples_test.go:17: Example 01_basic_agent.go output:
+        ✅ Created basic agent:
+           Name: code-reviewer
+           Instructions: Review code and suggest improvements based on best practices
+        
+        ✅ Created full agent:
+           Name: code-reviewer-pro
+           Instructions: Review code and suggest improvements based on best practices and security considerations
+           Description: Professional code reviewer with security focus
+           IconURL: https://example.com/icons/code-reviewer.png
+           Org: my-org
+        
+        ❌ Attempting to create invalid agent:
+           Error: validation failed for field "name": name must be lowercase alphanumeric with hyphens, starting and ending with alphanumeric
+        
+        ✅ Example completed successfully!
+        → Stigmer SDK: Synthesizing manifest for 2 agents...
+        ✓ Stigmer SDK: Agent manifest written to: /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestExample01_BasicAgent1983240154/001/agent-manifest.pb
+--- PASS: TestExample01_BasicAgent (2.95s)
+=== RUN   TestExample02_AgentWithSkills
+    examples_test.go:60: Example 02_agent_with_skills.go output:
+        === Agent with Skills Example ===
+        
+        ✅ Created agent with inline skill:
+           Name: code-reviewer
+           Skills: 1
+             1. Skill(inline:code-analyzer)
+        
+        ✅ Created agent with platform skills:
+           Name: security-reviewer
+           Skills: 2 platform skills
+             1. Skill(platform:coding-best-practices)
+             2. Skill(platform:security-analysis)
+        
+        ✅ Created agent with organization skills:
+           Name: internal-reviewer
+           Skills: 2 organization skills
+             1. Skill(org:internal-coding-standards@my-org)
+             2. Skill(org:proprietary-frameworks@my-org)
+        
+        ✅ Created agent with mixed skills (using builder pattern):
+           Name: enterprise-reviewer
+           Skills:
+             1. Skill(inline:code-analyzer)
+             2. Skill(platform:coding-best-practices)
+             3. Skill(org:internal-security-guidelines@my-org)
+        
+        ✅ Created agent with bulk added skills:
+           Name: bulk-reviewer
+           Skills: 4
+        
+        ✅ Example completed successfully!
+        
+        Note: When you run `stigmer deploy`, the CLI will:
+          1. Create inline skills on the platform
+          2. Convert all skills to ApiResourceReference
+          3. Create the agent with skill references
+        → Stigmer SDK: Synthesizing manifest for 5 agents...
+        ✓ Stigmer SDK: Agent manifest written to: /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestExample02_AgentWithSkills319161677/001/agent-manifest.pb
+--- PASS: TestExample02_AgentWithSkills (0.92s)
+=== RUN   TestExample03_AgentWithMCPServers
+    examples_test.go:80: Example 03_agent_with_mcp_servers.go output:
+        === Agent Configuration ===
+        Name: devops-agent
+        Instructions: You are a DevOps automation agent with access to multiple tools.
+        
+        You have access to:
+        - GitHub (crea...
+        Skills: 2
+        MCP Servers: 4
+        
+        === MCP Servers ===
+        1. github
+           Enabled tools: [create_issue list_repos create_pr]
+        2. api-service
+           Enabled tools: [search fetch analyze]
+        3. custom-mcp
+           Enabled tools: [process_data generate_report]
+        4. aws
+           Enabled tools: all
+        
+        === Summary ===
+        ✓ Created agent with 4 MCP servers
+        ✓ Stdio servers: 2 (GitHub, AWS)
+        ✓ HTTP servers: 1 (API service)
+        ✓ Docker servers: 1 (Custom MCP)
+        ✓ All servers configured with:
+          - Environment variable placeholders
+          - Enabled tool selections
+          - Type-specific configurations
+        
+        Note: When you run `stigmer deploy`, the CLI will convert this to proto and deploy to Stigmer.
+        → Stigmer SDK: Synthesizing manifest for 1 agent...
+        ✓ Stigmer SDK: Agent manifest written to: /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestExample03_AgentWithMCPServers3346518056/001/agent-manifest.pb
+--- PASS: TestExample03_AgentWithMCPServers (1.18s)
+=== RUN   TestExample04_AgentWithSubagents
+    examples_test.go:100: Example 04_agent_with_subagents.go output:
+        === Example 04: Agent with Sub-Agents ===
+        
+        
+        1. Simple Agent with Inline Sub-Agent
+        =                                     
+        Agent Name: code-reviewer
+        Instructions: Review code changes and coordinate with specialized sub-agents for deeper analysis
+        Sub-Agents: 1
+          [1] Inline: security-scanner
+        
+        Note: When you run `stigmer deploy`, the CLI will convert this to proto and deploy to Stigmer.
+        
+        2. Agent with Referenced Sub-Agent
+        =                                  
+        Agent Name: deployment-orchestrator
+        Instructions: Orchestrate deployment process by delegating to specialized agents
+        Sub-Agents: 1
+          [1] Reference: SubAgent(security-checker -> sec-checker-prod)
+        
+        Note: When you run `stigmer deploy`, the CLI will convert this to proto and deploy to Stigmer.
+        
+        3. Complex Agent with Multiple Sub-Agents
+        =                                         
+        Agent Name: ci-cd-orchestrator
+        Instructions: Manage the entire CI/CD pipeline by delegating to specialized agents
+        Sub-Agents: 4
+          [1] Inline: code-quality-checker
+          [2] Inline: test-runner
+          [3] Reference: SubAgent(security-scanner -> sec-scanner-prod)
+          [4] Reference: SubAgent(deployer -> deployer-prod)
+        
+        Note: When you run `stigmer deploy`, the CLI will convert this to proto and deploy to Stigmer.
+        
+        4. Agent with Sub-Agent Using MCP Servers
+        =                                         
+        Agent Name: multi-repo-manager
+        Instructions: Manage repositories across multiple platforms
+        Sub-Agents: 2
+          [1] Inline: github-specialist
+          [2] Inline: cross-platform-sync
+        
+        Note: When you run `stigmer deploy`, the CLI will convert this to proto and deploy to Stigmer.
+        
+        5. Agent with Sub-Agent Using Skills
+        =                                    
+        Agent Name: development-assistant
+        Instructions: Assist with software development tasks by leveraging specialized knowledge
+        Sub-Agents: 1
+          [1] Inline: coding-expert
+        
+        Note: When you run `stigmer deploy`, the CLI will convert this to proto and deploy to Stigmer.
+        
+        6. Agent with Sub-Agent Using Tool Selections
+        =                                             
+        Agent Name: selective-github-bot
+        Instructions: Manage GitHub operations with specialized sub-agents
+        Sub-Agents: 2
+          [1] Inline: issue-manager
+          [2] Inline: pr-reviewer
+        
+        Note: When you run `stigmer deploy`, the CLI will convert this to proto and deploy to Stigmer.
+        → Stigmer SDK: Synthesizing manifest for 6 agents...
+        ✓ Stigmer SDK: Agent manifest written to: /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestExample04_AgentWithSubagents94845757/001/agent-manifest.pb
+--- PASS: TestExample04_AgentWithSubagents (0.83s)
+=== RUN   TestExample05_AgentWithEnvironmentVariables
+    examples_test.go:120: Example 05_agent_with_environment_variables.go output:
+        === Example 5: Agent with Environment Variables ===
+        
+        ✓ Created secret: EnvVar(GITHUB_TOKEN (secret))
+        ✓ Created config with default: EnvVar(AWS_REGION (optional))
+        ✓ Created optional config: EnvVar(LOG_LEVEL (optional))
+        ✓ Created multiple secrets: EnvVar(SLACK_BOT_TOKEN (secret)), EnvVar(OPENAI_API_KEY (secret))
+        
+        === Creating Agent with Environment Variables ===
+        
+        ✓ Created agent: cloud-deployer
+          - Instructions: 344 characters
+          - Environment Variables: 5
+          - MCP Servers: 1
+        
+        === Environment Variables Configuration ===
+        
+        1. EnvVar(GITHUB_TOKEN (secret))
+           - Secret: true
+           - Required: true
+           - Description: GitHub personal access token with repo scope
+        
+        2. EnvVar(AWS_REGION (optional))
+           - Secret: false
+           - Required: false
+           - Default: us-east-1
+           - Description: AWS region for resource deployment
+        
+        3. EnvVar(LOG_LEVEL (optional))
+           - Secret: false
+           - Required: false
+           - Description: Logging level (debug, info, warn, error)
+        
+        4. EnvVar(SLACK_BOT_TOKEN (secret))
+           - Secret: true
+           - Required: true
+           - Description: Slack bot token for team communication
+        
+        5. EnvVar(OPENAI_API_KEY (secret))
+           - Secret: true
+           - Required: true
+           - Description: OpenAI API key for embeddings
+        
+        === Validation Examples ===
+        
+        ✓ Correctly rejected invalid name: invalid environment variable name: github_token (must be uppercase letters, numbers, and underscores)
+        ✓ Correctly rejected name starting with number: invalid environment variable name: 2FA_TOKEN (must be uppercase letters, numbers, and underscores)
+        ✓ Correctly rejected name with hyphens: invalid environment variable name: API-KEY (must be uppercase letters, numbers, and underscores)
+        ✓ Correctly rejected missing name: environment variable name is required
+        
+        === Common Use Cases ===
+        
+        ✓ Database connection variables:
+          EnvVar(DB_HOST (optional)), EnvVar(DB_PORT (optional)), EnvVar(DB_PASSWORD (secret))
+        
+        ✓ API integration variables:
+          EnvVar(API_ENDPOINT (optional)), EnvVar(API_KEY (secret)), EnvVar(API_TIMEOUT (optional))
+        
+        ✓ Feature flag variables:
+          EnvVar(FEATURE_DEBUG (optional)), EnvVar(FEATURE_CACHE (optional))
+        
+        === Key Concepts ===
+        
+        1. Secret vs Configuration:
+           - Secrets (is_secret=true): Encrypted at rest, redacted in logs
+           - Config (is_secret=false): Plaintext, visible in audit logs
+        
+        2. Required vs Optional:
+           - Required: Must be provided at AgentInstance creation
+           - Optional: Can use default value if not provided
+        
+        3. Default Values:
+           - Variables with defaults are automatically optional
+           - Useful for configuration with sensible defaults
+        
+        4. Variable Names:
+           - Must be uppercase letters, numbers, and underscores
+           - Cannot start with a number
+           - Follow standard environment variable conventions
+        
+        5. Integration:
+           - MCP servers can reference env vars via placeholders
+           - Agent templates declare requirements
+           - AgentInstance provides actual values
+        
+        ✓ Example completed successfully!
+        → Stigmer SDK: Synthesizing manifest for 1 agent...
+        ✓ Stigmer SDK: Agent manifest written to: /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestExample05_AgentWithEnvironmentVariables3195393869/001/agent-manifest.pb
+--- PASS: TestExample05_AgentWithEnvironmentVariables (0.81s)
+=== RUN   TestExample06_AgentWithInstructionsFromFiles
+    examples_test.go:140: Example 06_agent_with_instructions_from_files.go output:
+        === Example 06: Agent with Instructions from Files + Synthesis ===
+        
+        
+        1. Basic Agent with Instructions from File
+        =                                          
+        Agent Name: code-reviewer
+        Description: AI code reviewer with comprehensive guidelines
+        Instructions Length: 3085 characters
+        Skills: 0
+        MCP Servers: 0
+        Sub-Agents: 0
+        Instructions Preview: # Code Reviewer Agent Instructions
+        
+        You are an expert code reviewer with deep knowledge of software ...
+        
+        ✅ Files loaded successfully!
+        
+        ℹ️  Synthesis Mode:
+           - Dry-run: No STIGMER_OUT_DIR set (current)
+           - Synthesis: Set STIGMER_OUT_DIR=/tmp to write manifest.pb
+        
+        2. Agent with Skills Loaded from Files
+        =                                      
+        Agent Name: senior-reviewer
+        Description: Senior code reviewer with security and testing expertise
+        Instructions Length: 3085 characters
+        Skills: 2
+        MCP Servers: 0
+        Sub-Agents: 0
+        Instructions Preview: # Code Reviewer Agent Instructions
+        
+        You are an expert code reviewer with deep knowledge of software ...
+        
+        ✅ Files loaded successfully!
+        
+        ℹ️  Synthesis Mode:
+           - Dry-run: No STIGMER_OUT_DIR set (current)
+           - Synthesis: Set STIGMER_OUT_DIR=/tmp to write manifest.pb
+        
+        3. Complex Agent with All Content from Files
+        =                                            
+        Agent Name: github-reviewer
+        Description: GitHub PR reviewer with comprehensive guidelines
+        Instructions Length: 3085 characters
+        Skills: 3
+        MCP Servers: 1
+        Sub-Agents: 0
+        Instructions Preview: # Code Reviewer Agent Instructions
+        
+        You are an expert code reviewer with deep knowledge of software ...
+        
+        ✅ Files loaded successfully!
+        
+        ℹ️  Synthesis Mode:
+           - Dry-run: No STIGMER_OUT_DIR set (current)
+           - Synthesis: Set STIGMER_OUT_DIR=/tmp to write manifest.pb
+        
+        4. Agent with Sub-Agent Instructions from File
+        =                                              
+        Agent Name: orchestrator
+        Description: Main orchestrator with specialized sub-agents
+        Instructions Length: 3085 characters
+        Skills: 0
+        MCP Servers: 0
+        Sub-Agents: 1
+        Instructions Preview: # Code Reviewer Agent Instructions
+        
+        You are an expert code reviewer with deep knowledge of software ...
+        
+        ✅ Files loaded successfully!
+        
+        ℹ️  Synthesis Mode:
+           - Dry-run: No STIGMER_OUT_DIR set (current)
+           - Synthesis: Set STIGMER_OUT_DIR=/tmp to write manifest.pb
+        → Stigmer SDK: Synthesizing manifest for 4 agents...
+        ✓ Stigmer SDK: Agent manifest written to: /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestExample06_AgentWithInstructionsFromFiles1333135040/001/agent-manifest.pb
+--- PASS: TestExample06_AgentWithInstructionsFromFiles (0.78s)
+=== RUN   TestExample07_BasicWorkflow
+    examples_test.go:161: Example 07_basic_workflow.go output:
+        2026/01/16 23:07:14 Created workflow: Workflow(namespace=data-processing, name=basic-data-fetch, version=1.0.0)
+        2026/01/16 23:07:14 Tasks: 2
+        2026/01/16 23:07:14   - fetchData (HTTP GET)
+        2026/01/16 23:07:14   - processResponse (depends on fetchData implicitly)
+        2026/01/16 23:07:14 Workflow will be synthesized automatically on completion
+        2026/01/16 23:07:14 ✅ Workflow created and synthesized successfully!
+    examples_test.go:163: Expected file does not exist: /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestExample07_BasicWorkflow1091813331/001/workflow-manifest.pb
+--- FAIL: TestExample07_BasicWorkflow (0.77s)
+=== RUN   TestExample08_WorkflowWithConditionals
+    examples_test.go:198: Example 08_workflow_with_conditionals.go output:
+        2026/01/16 23:07:15 Created conditional workflow: Workflow(namespace=data-processing, name=conditional-deployment, version=0.1.0)
+        → Stigmer SDK: Synthesizing manifest for 1 workflow...
+        ✓ Stigmer SDK: Workflow manifest written to: /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestExample08_WorkflowWithConditionals1717768099/001/workflow-manifest.pb
+--- PASS: TestExample08_WorkflowWithConditionals (0.79s)
+=== RUN   TestExample09_WorkflowWithLoops
+    examples_test.go:227: Example 09_workflow_with_loops.go output:
+        2026/01/16 23:07:15 Created loop workflow: Workflow(namespace=data-processing, name=batch-processor, version=1.0.0)
+        → Stigmer SDK: Synthesizing manifest for 1 workflow...
+        ✓ Stigmer SDK: Workflow manifest written to: /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestExample09_WorkflowWithLoops678940357/001/workflow-manifest.pb
+--- PASS: TestExample09_WorkflowWithLoops (0.80s)
+=== RUN   TestExample10_WorkflowWithErrorHandling
+    examples_test.go:256: Example 10_workflow_with_error_handling.go output:
+        2026/01/16 23:07:16 Created error handling workflow: Workflow(namespace=data-processing, name=resilient-api-call, version=1.0.0)
+        → Stigmer SDK: Synthesizing manifest for 1 workflow...
+        ✓ Stigmer SDK: Workflow manifest written to: /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestExample10_WorkflowWithErrorHandling2925972351/001/workflow-manifest.pb
+--- PASS: TestExample10_WorkflowWithErrorHandling (1.02s)
+=== RUN   TestExample11_WorkflowWithParallelExecution
+    examples_test.go:285: Example 11_workflow_with_parallel_execution.go output:
+        2026/01/16 23:07:17 Created parallel workflow: Workflow(namespace=data-processing, name=parallel-data-fetch, version=1.0.0)
+        → Stigmer SDK: Synthesizing manifest for 1 workflow...
+        ✓ Stigmer SDK: Workflow manifest written to: /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestExample11_WorkflowWithParallelExecution584136051/001/workflow-manifest.pb
+--- PASS: TestExample11_WorkflowWithParallelExecution (0.90s)
+FAIL
+FAIL	github.com/leftbin/stigmer-sdk/go/examples	12.396s
+=== RUN   TestGlobal
+--- PASS: TestGlobal (0.00s)
+=== RUN   TestRegisterAgent
+--- PASS: TestRegisterAgent (0.00s)
+=== RUN   TestGetAgent_NoAgentRegistered
+--- PASS: TestGetAgent_NoAgentRegistered (0.00s)
+=== RUN   TestHasAgent
+--- PASS: TestHasAgent (0.00s)
+=== RUN   TestRegisterMultipleAgents
+--- PASS: TestRegisterMultipleAgents (0.00s)
+=== RUN   TestClear
+--- PASS: TestClear (0.00s)
+=== RUN   TestConcurrentAccess
+--- PASS: TestConcurrentAccess (0.00s)
+=== RUN   TestRegistrySingletonAcrossGoroutines
+--- PASS: TestRegistrySingletonAcrossGoroutines (0.00s)
+=== RUN   TestRegistryIsolation
+=== RUN   TestRegistryIsolation/test1
+=== RUN   TestRegistryIsolation/test2
+=== RUN   TestRegistryIsolation/test3
+--- PASS: TestRegistryIsolation (0.00s)
+    --- PASS: TestRegistryIsolation/test1 (0.00s)
+    --- PASS: TestRegistryIsolation/test2 (0.00s)
+    --- PASS: TestRegistryIsolation/test3 (0.00s)
+PASS
+ok  	github.com/leftbin/stigmer-sdk/go/internal/registry	(cached)
+=== RUN   TestSetTaskMapping
+--- PASS: TestSetTaskMapping (0.00s)
+=== RUN   TestHttpCallTaskMapping
+--- PASS: TestHttpCallTaskMapping (0.00s)
+=== RUN   TestSwitchTaskMapping
+--- PASS: TestSwitchTaskMapping (0.00s)
+=== RUN   TestForTaskMapping
+--- PASS: TestForTaskMapping (0.00s)
+=== RUN   TestForkTaskMapping
+--- PASS: TestForkTaskMapping (0.00s)
+=== RUN   TestTryTaskMapping
+--- PASS: TestTryTaskMapping (0.00s)
+=== RUN   TestGrpcCallTaskMapping
+--- PASS: TestGrpcCallTaskMapping (0.00s)
+=== RUN   TestListenTaskMapping
+--- PASS: TestListenTaskMapping (0.00s)
+=== RUN   TestWaitTaskMapping
+--- PASS: TestWaitTaskMapping (0.00s)
+=== RUN   TestCallActivityTaskMapping
+--- PASS: TestCallActivityTaskMapping (0.00s)
+=== RUN   TestRaiseTaskMapping
+--- PASS: TestRaiseTaskMapping (0.00s)
+=== RUN   TestRunTaskMapping
+--- PASS: TestRunTaskMapping (0.00s)
+=== RUN   TestAutoSynth_DryRunMode
+✓ Stigmer SDK: Dry-run complete. Run 'stigmer up' to deploy.
+--- PASS: TestAutoSynth_DryRunMode (0.00s)
+=== RUN   TestAutoSynth_SynthesisMode
+    synth_integration_test.go:129: manifest.pb was not created at /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestAutoSynth_SynthesisMode1678611626/001/manifest.pb
+--- FAIL: TestAutoSynth_SynthesisMode (0.00s)
+=== RUN   TestMultipleAgents_AllSynthesized
+    synth_integration_test.go:267: Failed to read manifest.pb: open /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestMultipleAgents_AllSynthesized3951782360/001/manifest.pb: no such file or directory
+--- FAIL: TestMultipleAgents_AllSynthesized (0.00s)
+=== RUN   TestConcurrentSynthesis_IsolatedDirectories
+=== RUN   TestConcurrentSynthesis_IsolatedDirectories/session-1
+    synth_integration_test.go:326: Session 1 has 0 agents, want 1
+    synth_integration_test.go:332: ✅ Session 1 isolated: session-1-agent → /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestConcurrentSynthesis_IsolatedDirectoriessession-13316429258/001
+=== RUN   TestConcurrentSynthesis_IsolatedDirectories/session-2
+    synth_integration_test.go:358: Session 2 has 0 agents, want 1
+    synth_integration_test.go:364: ✅ Session 2 isolated: session-2-agent → /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/TestConcurrentSynthesis_IsolatedDirectoriessession-21609687619/001
+--- FAIL: TestConcurrentSynthesis_IsolatedDirectories (0.00s)
+    --- FAIL: TestConcurrentSynthesis_IsolatedDirectories/session-1 (0.00s)
+    --- FAIL: TestConcurrentSynthesis_IsolatedDirectories/session-2 (0.00s)
+FAIL
+FAIL	github.com/leftbin/stigmer-sdk/go/internal/synth	1.883s
+=== RUN   TestStdioServer_Success
+--- PASS: TestStdioServer_Success (0.00s)
+=== RUN   TestStdioServer_MissingName
+--- PASS: TestStdioServer_MissingName (0.00s)
+=== RUN   TestStdioServer_MissingCommand
+--- PASS: TestStdioServer_MissingCommand (0.00s)
+=== RUN   TestHTTPServer_Success
+--- PASS: TestHTTPServer_Success (0.00s)
+=== RUN   TestHTTPServer_MissingName
+--- PASS: TestHTTPServer_MissingName (0.00s)
+=== RUN   TestHTTPServer_MissingURL
+--- PASS: TestHTTPServer_MissingURL (0.00s)
+=== RUN   TestHTTPServer_InvalidURL
+--- PASS: TestHTTPServer_InvalidURL (0.00s)
+=== RUN   TestHTTPServer_DefaultTimeout
+--- PASS: TestHTTPServer_DefaultTimeout (0.00s)
+=== RUN   TestDockerServer_Success
+--- PASS: TestDockerServer_Success (0.00s)
+=== RUN   TestDockerServer_MissingName
+--- PASS: TestDockerServer_MissingName (0.00s)
+=== RUN   TestDockerServer_MissingImage
+--- PASS: TestDockerServer_MissingImage (0.00s)
+=== RUN   TestDockerServer_InvalidVolumeMount
+--- PASS: TestDockerServer_InvalidVolumeMount (0.00s)
+=== RUN   TestDockerServer_InvalidPortMapping
+--- PASS: TestDockerServer_InvalidPortMapping (0.00s)
+=== RUN   TestDockerServer_InvalidProtocol
+--- PASS: TestDockerServer_InvalidProtocol (0.00s)
+=== RUN   TestServerType_String
+--- PASS: TestServerType_String (0.00s)
+=== RUN   TestMCPServer_Interface
+--- PASS: TestMCPServer_Interface (0.00s)
+=== RUN   TestOption_WrongServerType
+=== RUN   TestOption_WrongServerType/WithCommand_on_HTTPServer
+=== RUN   TestOption_WrongServerType/WithURL_on_StdioServer
+=== RUN   TestOption_WrongServerType/WithImage_on_StdioServer
+=== RUN   TestOption_WrongServerType/WithWorkingDir_on_HTTPServer
+--- PASS: TestOption_WrongServerType (0.00s)
+    --- PASS: TestOption_WrongServerType/WithCommand_on_HTTPServer (0.00s)
+    --- PASS: TestOption_WrongServerType/WithURL_on_StdioServer (0.00s)
+    --- PASS: TestOption_WrongServerType/WithImage_on_StdioServer (0.00s)
+    --- PASS: TestOption_WrongServerType/WithWorkingDir_on_HTTPServer (0.00s)
+=== RUN   TestDockerServer_MultipleVolumesAndPorts
+--- PASS: TestDockerServer_MultipleVolumesAndPorts (0.00s)
+PASS
+ok  	github.com/leftbin/stigmer-sdk/go/mcpserver	(cached)
+=== RUN   TestNew
+=== RUN   TestNew/valid_inline_skill
+=== RUN   TestNew/valid_inline_skill_with_description
+=== RUN   TestNew/missing_name
+=== RUN   TestNew/missing_markdown
+=== RUN   TestNew/no_options
+--- PASS: TestNew (0.00s)
+    --- PASS: TestNew/valid_inline_skill (0.00s)
+    --- PASS: TestNew/valid_inline_skill_with_description (0.00s)
+    --- PASS: TestNew/missing_name (0.00s)
+    --- PASS: TestNew/missing_markdown (0.00s)
+    --- PASS: TestNew/no_options (0.00s)
+=== RUN   TestWithMarkdownFromFile
+=== RUN   TestWithMarkdownFromFile/valid_markdown_file
+=== RUN   TestWithMarkdownFromFile/non-existent_file
+--- PASS: TestWithMarkdownFromFile (0.00s)
+    --- PASS: TestWithMarkdownFromFile/valid_markdown_file (0.00s)
+    --- PASS: TestWithMarkdownFromFile/non-existent_file (0.00s)
+=== RUN   TestInlineSkill_Fields
+--- PASS: TestInlineSkill_Fields (0.00s)
+=== RUN   TestInlineSkill_IsPlatformReference_IsOrganizationReference
+--- PASS: TestInlineSkill_IsPlatformReference_IsOrganizationReference (0.00s)
+=== RUN   TestInlineSkill_String
+--- PASS: TestInlineSkill_String (0.00s)
+=== RUN   TestInlineVsReferencedSkills
+--- PASS: TestInlineVsReferencedSkills (0.00s)
+=== RUN   TestPlatform
+=== RUN   TestPlatform/platform_skill
+=== RUN   TestPlatform/platform_skill_with_hyphens
+--- PASS: TestPlatform (0.00s)
+    --- PASS: TestPlatform/platform_skill (0.00s)
+    --- PASS: TestPlatform/platform_skill_with_hyphens (0.00s)
+=== RUN   TestOrganization
+=== RUN   TestOrganization/org_skill
+=== RUN   TestOrganization/org_skill_with_complex_names
+--- PASS: TestOrganization (0.00s)
+    --- PASS: TestOrganization/org_skill (0.00s)
+    --- PASS: TestOrganization/org_skill_with_complex_names (0.00s)
+=== RUN   TestSkill_IsPlatformReference
+=== RUN   TestSkill_IsPlatformReference/platform_skill
+=== RUN   TestSkill_IsPlatformReference/organization_skill
+=== RUN   TestSkill_IsPlatformReference/skill_with_empty_org
+--- PASS: TestSkill_IsPlatformReference (0.00s)
+    --- PASS: TestSkill_IsPlatformReference/platform_skill (0.00s)
+    --- PASS: TestSkill_IsPlatformReference/organization_skill (0.00s)
+    --- PASS: TestSkill_IsPlatformReference/skill_with_empty_org (0.00s)
+=== RUN   TestSkill_IsOrganizationReference
+=== RUN   TestSkill_IsOrganizationReference/platform_skill
+=== RUN   TestSkill_IsOrganizationReference/organization_skill
+=== RUN   TestSkill_IsOrganizationReference/skill_with_org
+--- PASS: TestSkill_IsOrganizationReference (0.00s)
+    --- PASS: TestSkill_IsOrganizationReference/platform_skill (0.00s)
+    --- PASS: TestSkill_IsOrganizationReference/organization_skill (0.00s)
+    --- PASS: TestSkill_IsOrganizationReference/skill_with_org (0.00s)
+=== RUN   TestSkill_String
+=== RUN   TestSkill_String/platform_skill
+=== RUN   TestSkill_String/organization_skill
+--- PASS: TestSkill_String (0.00s)
+    --- PASS: TestSkill_String/platform_skill (0.00s)
+    --- PASS: TestSkill_String/organization_skill (0.00s)
+PASS
+ok  	github.com/leftbin/stigmer-sdk/go/skill	(cached)
+=== RUN   TestNewContext
+--- PASS: TestNewContext (0.00s)
+=== RUN   TestContext_SetString
+--- PASS: TestContext_SetString (0.00s)
+=== RUN   TestContext_SetSecret
+--- PASS: TestContext_SetSecret (0.00s)
+=== RUN   TestContext_SetInt
+--- PASS: TestContext_SetInt (0.00s)
+=== RUN   TestContext_SetBool
+--- PASS: TestContext_SetBool (0.00s)
+=== RUN   TestContext_SetObject
+--- PASS: TestContext_SetObject (0.00s)
+=== RUN   TestContext_Get
+--- PASS: TestContext_Get (0.00s)
+=== RUN   TestContext_GetString
+--- PASS: TestContext_GetString (0.00s)
+=== RUN   TestContext_GetInt
+--- PASS: TestContext_GetInt (0.00s)
+=== RUN   TestContext_GetBool
+--- PASS: TestContext_GetBool (0.00s)
+=== RUN   TestContext_GetObject
+--- PASS: TestContext_GetObject (0.00s)
+=== RUN   TestContext_OverwriteVariable
+--- PASS: TestContext_OverwriteVariable (0.00s)
+=== RUN   TestContext_VariableExpressions
+=== RUN   TestContext_VariableExpressions/string_expression
+=== RUN   TestContext_VariableExpressions/int_expression
+=== RUN   TestContext_VariableExpressions/bool_expression
+--- PASS: TestContext_VariableExpressions (0.00s)
+    --- PASS: TestContext_VariableExpressions/string_expression (0.00s)
+    --- PASS: TestContext_VariableExpressions/int_expression (0.00s)
+    --- PASS: TestContext_VariableExpressions/bool_expression (0.00s)
+=== RUN   TestContext_ComputedExpressions
+--- PASS: TestContext_ComputedExpressions (0.00s)
+=== RUN   TestRun_Success
+--- PASS: TestRun_Success (0.00s)
+=== RUN   TestRun_FunctionError
+--- PASS: TestRun_FunctionError (0.00s)
+=== RUN   TestRun_ContextAvailable
+--- PASS: TestRun_ContextAvailable (0.00s)
+=== RUN   TestContext_Variables
+--- PASS: TestContext_Variables (0.00s)
+=== RUN   TestContext_Workflows
+--- PASS: TestContext_Workflows (0.00s)
+=== RUN   TestContext_Agents
+--- PASS: TestContext_Agents (0.00s)
+=== RUN   TestContext_ConcurrentAccess
+--- PASS: TestContext_ConcurrentAccess (0.00s)
+=== RUN   TestContext_CompleteWorkflow
+--- PASS: TestContext_CompleteWorkflow (0.00s)
+=== RUN   TestStringRef_Expression
+--- PASS: TestStringRef_Expression (0.00s)
+=== RUN   TestStringRef_Name
+--- PASS: TestStringRef_Name (0.00s)
+=== RUN   TestStringRef_IsSecret
+=== RUN   TestStringRef_IsSecret/not_secret
+=== RUN   TestStringRef_IsSecret/is_secret
+--- PASS: TestStringRef_IsSecret (0.00s)
+    --- PASS: TestStringRef_IsSecret/not_secret (0.00s)
+    --- PASS: TestStringRef_IsSecret/is_secret (0.00s)
+=== RUN   TestStringRef_Value
+--- PASS: TestStringRef_Value (0.00s)
+=== RUN   TestStringRef_Concat
+=== RUN   TestStringRef_Concat/concat_with_literal_string
+=== RUN   TestStringRef_Concat/concat_with_another_StringRef
+=== RUN   TestStringRef_Concat/concat_multiple_parts
+--- PASS: TestStringRef_Concat (0.00s)
+    --- PASS: TestStringRef_Concat/concat_with_literal_string (0.00s)
+    --- PASS: TestStringRef_Concat/concat_with_another_StringRef (0.00s)
+    --- PASS: TestStringRef_Concat/concat_multiple_parts (0.00s)
+=== RUN   TestStringRef_Upper
+--- PASS: TestStringRef_Upper (0.00s)
+=== RUN   TestStringRef_Lower
+--- PASS: TestStringRef_Lower (0.00s)
+=== RUN   TestStringRef_Prepend
+--- PASS: TestStringRef_Prepend (0.00s)
+=== RUN   TestStringRef_Append
+--- PASS: TestStringRef_Append (0.00s)
+=== RUN   TestIntRef_Expression
+--- PASS: TestIntRef_Expression (0.00s)
+=== RUN   TestIntRef_Value
+--- PASS: TestIntRef_Value (0.00s)
+=== RUN   TestIntRef_Add
+--- PASS: TestIntRef_Add (0.00s)
+=== RUN   TestIntRef_Subtract
+--- PASS: TestIntRef_Subtract (0.00s)
+=== RUN   TestIntRef_Multiply
+--- PASS: TestIntRef_Multiply (0.00s)
+=== RUN   TestIntRef_Divide
+--- PASS: TestIntRef_Divide (0.00s)
+=== RUN   TestBoolRef_Expression
+--- PASS: TestBoolRef_Expression (0.00s)
+=== RUN   TestBoolRef_Value
+=== RUN   TestBoolRef_Value/true_value
+=== RUN   TestBoolRef_Value/false_value
+--- PASS: TestBoolRef_Value (0.00s)
+    --- PASS: TestBoolRef_Value/true_value (0.00s)
+    --- PASS: TestBoolRef_Value/false_value (0.00s)
+=== RUN   TestBoolRef_And
+--- PASS: TestBoolRef_And (0.00s)
+=== RUN   TestBoolRef_Or
+--- PASS: TestBoolRef_Or (0.00s)
+=== RUN   TestBoolRef_Not
+--- PASS: TestBoolRef_Not (0.00s)
+=== RUN   TestObjectRef_Expression
+--- PASS: TestObjectRef_Expression (0.00s)
+=== RUN   TestObjectRef_Value
+--- PASS: TestObjectRef_Value (0.00s)
+=== RUN   TestObjectRef_Field
+--- PASS: TestObjectRef_Field (0.00s)
+=== RUN   TestObjectRef_NestedFields
+--- PASS: TestObjectRef_NestedFields (0.00s)
+=== RUN   TestObjectRef_FieldAsString
+--- PASS: TestObjectRef_FieldAsString (0.00s)
+=== RUN   TestObjectRef_FieldAsInt
+--- PASS: TestObjectRef_FieldAsInt (0.00s)
+=== RUN   TestObjectRef_FieldAsBool
+--- PASS: TestObjectRef_FieldAsBool (0.00s)
+=== RUN   TestComplexExpressions_StringConcat
+    refs_test.go:529: Complex expression: ${ $context.baseURL + "/api/" + $context.version + "/" + $context.endpoint }
+--- PASS: TestComplexExpressions_StringConcat (0.00s)
+=== RUN   TestComplexExpressions_IntArithmetic
+    refs_test.go:555: Complex arithmetic: ${ (($context.base * $context.multiplier) + $context.offset) }
+--- PASS: TestComplexExpressions_IntArithmetic (0.00s)
+=== RUN   TestComplexExpressions_BoolLogic
+    refs_test.go:581: Complex boolean: ${ (($context.isProd and ($context.isDebug | not)) or $context.hasAccess) }
+--- PASS: TestComplexExpressions_BoolLogic (0.00s)
+=== RUN   TestSecretPropagation
+    refs_test.go:600: Header secret status: true
+--- PASS: TestSecretPropagation (0.00s)
+PASS
+ok  	github.com/leftbin/stigmer-sdk/go/stigmer	2.436s
+=== RUN   TestInline
+=== RUN   TestInline/basic_inline_sub-agent
+=== RUN   TestInline/inline_with_description
+=== RUN   TestInline/inline_with_MCP_servers
+=== RUN   TestInline/inline_with_tool_selections
+=== RUN   TestInline/inline_with_skills
+=== RUN   TestInline/inline_with_multiple_MCP_servers_at_once
+=== RUN   TestInline/inline_with_multiple_skills_at_once
+--- PASS: TestInline (0.00s)
+    --- PASS: TestInline/basic_inline_sub-agent (0.00s)
+    --- PASS: TestInline/inline_with_description (0.00s)
+    --- PASS: TestInline/inline_with_MCP_servers (0.00s)
+    --- PASS: TestInline/inline_with_tool_selections (0.00s)
+    --- PASS: TestInline/inline_with_skills (0.00s)
+    --- PASS: TestInline/inline_with_multiple_MCP_servers_at_once (0.00s)
+    --- PASS: TestInline/inline_with_multiple_skills_at_once (0.00s)
+=== RUN   TestReference
+=== RUN   TestReference/valid_reference
+=== RUN   TestReference/reference_with_empty_name
+=== RUN   TestReference/reference_with_empty_ref
+--- PASS: TestReference (0.00s)
+    --- PASS: TestReference/valid_reference (0.00s)
+    --- PASS: TestReference/reference_with_empty_name (0.00s)
+    --- PASS: TestReference/reference_with_empty_ref (0.00s)
+=== RUN   TestValidateInline
+=== RUN   TestValidateInline/valid_inline_sub-agent
+=== RUN   TestValidateInline/missing_name
+=== RUN   TestValidateInline/missing_instructions
+=== RUN   TestValidateInline/instructions_too_short
+=== RUN   TestValidateInline/invalid_skill_reference
+--- PASS: TestValidateInline (0.00s)
+    --- PASS: TestValidateInline/valid_inline_sub-agent (0.00s)
+    --- PASS: TestValidateInline/missing_name (0.00s)
+    --- PASS: TestValidateInline/missing_instructions (0.00s)
+    --- PASS: TestValidateInline/instructions_too_short (0.00s)
+    --- PASS: TestValidateInline/invalid_skill_reference (0.00s)
+=== RUN   TestString
+=== RUN   TestString/inline_sub-agent
+--- PASS: TestString (0.00s)
+    --- PASS: TestString/inline_sub-agent (0.00s)
+=== RUN   TestString_Reference
+--- PASS: TestString_Reference (0.00s)
+PASS
+ok  	github.com/leftbin/stigmer-sdk/go/subagent	(cached)
+=== RUN   TestCatchHTTPErrors
+--- PASS: TestCatchHTTPErrors (0.00s)
+=== RUN   TestCatchGRPCErrors
+--- PASS: TestCatchGRPCErrors (0.00s)
+=== RUN   TestCatchValidationErrors
+--- PASS: TestCatchValidationErrors (0.00s)
+=== RUN   TestCatchNetworkErrors
+--- PASS: TestCatchNetworkErrors (0.00s)
+=== RUN   TestCatchAny
+--- PASS: TestCatchAny (0.00s)
+=== RUN   TestCatchCustom
+--- PASS: TestCatchCustom (0.00s)
+=== RUN   TestCatchMultiple
+--- PASS: TestCatchMultiple (0.00s)
+=== RUN   TestErrorMatcherOr
+--- PASS: TestErrorMatcherOr (0.00s)
+=== RUN   TestWithCatchTyped
+--- PASS: TestWithCatchTyped (0.00s)
+=== RUN   TestWithCatchTypedMultiple
+--- PASS: TestWithCatchTypedMultiple (0.00s)
+=== RUN   TestWithCatchTypedComposition
+--- PASS: TestWithCatchTypedComposition (0.00s)
+=== RUN   TestErrorTypeConstants
+=== RUN   TestErrorTypeConstants/HTTP_Call
+=== RUN   TestErrorTypeConstants/gRPC_Call
+=== RUN   TestErrorTypeConstants/Validation
+=== RUN   TestErrorTypeConstants/If_Statement
+=== RUN   TestErrorTypeConstants/Command
+=== RUN   TestErrorTypeConstants/Any
+--- PASS: TestErrorTypeConstants (0.00s)
+    --- PASS: TestErrorTypeConstants/HTTP_Call (0.00s)
+    --- PASS: TestErrorTypeConstants/gRPC_Call (0.00s)
+    --- PASS: TestErrorTypeConstants/Validation (0.00s)
+    --- PASS: TestErrorTypeConstants/If_Statement (0.00s)
+    --- PASS: TestErrorTypeConstants/Command (0.00s)
+    --- PASS: TestErrorTypeConstants/Any (0.00s)
+=== RUN   TestGetErrorTypeInfo
+=== RUN   TestGetErrorTypeInfo/HTTP_Call_exists
+=== RUN   TestGetErrorTypeInfo/gRPC_Call_exists
+=== RUN   TestGetErrorTypeInfo/Validation_exists
+=== RUN   TestGetErrorTypeInfo/Unknown_type
+=== RUN   TestGetErrorTypeInfo/Custom_user_type
+--- PASS: TestGetErrorTypeInfo (0.00s)
+    --- PASS: TestGetErrorTypeInfo/HTTP_Call_exists (0.00s)
+    --- PASS: TestGetErrorTypeInfo/gRPC_Call_exists (0.00s)
+    --- PASS: TestGetErrorTypeInfo/Validation_exists (0.00s)
+    --- PASS: TestGetErrorTypeInfo/Unknown_type (0.00s)
+    --- PASS: TestGetErrorTypeInfo/Custom_user_type (0.00s)
+=== RUN   TestIsPlatformErrorType
+=== RUN   TestIsPlatformErrorType/HTTP_Call_is_platform
+=== RUN   TestIsPlatformErrorType/gRPC_Call_is_platform
+=== RUN   TestIsPlatformErrorType/Validation_is_platform
+=== RUN   TestIsPlatformErrorType/Any_is_platform
+=== RUN   TestIsPlatformErrorType/Custom_is_not_platform
+=== RUN   TestIsPlatformErrorType/Unknown_is_not_platform
+--- PASS: TestIsPlatformErrorType (0.00s)
+    --- PASS: TestIsPlatformErrorType/HTTP_Call_is_platform (0.00s)
+    --- PASS: TestIsPlatformErrorType/gRPC_Call_is_platform (0.00s)
+    --- PASS: TestIsPlatformErrorType/Validation_is_platform (0.00s)
+    --- PASS: TestIsPlatformErrorType/Any_is_platform (0.00s)
+    --- PASS: TestIsPlatformErrorType/Custom_is_not_platform (0.00s)
+    --- PASS: TestIsPlatformErrorType/Unknown_is_not_platform (0.00s)
+=== RUN   TestListPlatformErrorTypes
+--- PASS: TestListPlatformErrorTypes (0.00s)
+=== RUN   TestErrorRegistry
+=== RUN   TestErrorRegistry/*
+=== RUN   TestErrorRegistry/CallHTTP_error
+=== RUN   TestErrorRegistry/CallGRPC_error
+=== RUN   TestErrorRegistry/Validation
+=== RUN   TestErrorRegistry/If_statement_error
+=== RUN   TestErrorRegistry/command
+--- PASS: TestErrorRegistry (0.00s)
+    --- PASS: TestErrorRegistry/* (0.00s)
+    --- PASS: TestErrorRegistry/CallHTTP_error (0.00s)
+    --- PASS: TestErrorRegistry/CallGRPC_error (0.00s)
+    --- PASS: TestErrorRegistry/Validation (0.00s)
+    --- PASS: TestErrorRegistry/If_statement_error (0.00s)
+    --- PASS: TestErrorRegistry/command (0.00s)
+=== RUN   TestVarRef
+=== RUN   TestVarRef/simple_variable
+=== RUN   TestVarRef/counter_variable
+=== RUN   TestVarRef/status_variable
+--- PASS: TestVarRef (0.00s)
+    --- PASS: TestVarRef/simple_variable (0.00s)
+    --- PASS: TestVarRef/counter_variable (0.00s)
+    --- PASS: TestVarRef/status_variable (0.00s)
+=== RUN   TestFieldRef
+=== RUN   TestFieldRef/simple_field
+=== RUN   TestFieldRef/nested_field
+=== RUN   TestFieldRef/deep_nested_field
+--- PASS: TestFieldRef (0.00s)
+    --- PASS: TestFieldRef/simple_field (0.00s)
+    --- PASS: TestFieldRef/nested_field (0.00s)
+    --- PASS: TestFieldRef/deep_nested_field (0.00s)
+=== RUN   TestInterpolate
+=== RUN   TestInterpolate/single_variable_reference
+=== RUN   TestInterpolate/variable_with_path_suffix
+=== RUN   TestInterpolate/prefix_with_variable
+=== RUN   TestInterpolate/multiple_parts
+=== RUN   TestInterpolate/plain_string_only
+=== RUN   TestInterpolate/multiple_plain_strings
+--- PASS: TestInterpolate (0.00s)
+    --- PASS: TestInterpolate/single_variable_reference (0.00s)
+    --- PASS: TestInterpolate/variable_with_path_suffix (0.00s)
+    --- PASS: TestInterpolate/prefix_with_variable (0.00s)
+    --- PASS: TestInterpolate/multiple_parts (0.00s)
+    --- PASS: TestInterpolate/plain_string_only (0.00s)
+    --- PASS: TestInterpolate/multiple_plain_strings (0.00s)
+=== RUN   TestIncrement
+=== RUN   TestIncrement/retry_counter
+=== RUN   TestIncrement/iteration_counter
+--- PASS: TestIncrement (0.00s)
+    --- PASS: TestIncrement/retry_counter (0.00s)
+    --- PASS: TestIncrement/iteration_counter (0.00s)
+=== RUN   TestDecrement
+=== RUN   TestDecrement/remaining_items
+=== RUN   TestDecrement/countdown_timer
+--- PASS: TestDecrement (0.00s)
+    --- PASS: TestDecrement/remaining_items (0.00s)
+    --- PASS: TestDecrement/countdown_timer (0.00s)
+=== RUN   TestExpr
+=== RUN   TestExpr/arithmetic_with_context_variables
+=== RUN   TestExpr/string_concatenation
+=== RUN   TestExpr/field_access
+--- PASS: TestExpr (0.00s)
+    --- PASS: TestExpr/arithmetic_with_context_variables (0.00s)
+    --- PASS: TestExpr/string_concatenation (0.00s)
+    --- PASS: TestExpr/field_access (0.00s)
+=== RUN   TestErrorHelpers
+=== RUN   TestErrorHelpers/error_message
+=== RUN   TestErrorHelpers/error_code
+=== RUN   TestErrorHelpers/error_stack_trace
+=== RUN   TestErrorHelpers/error_object
+--- PASS: TestErrorHelpers (0.00s)
+    --- PASS: TestErrorHelpers/error_message (0.00s)
+    --- PASS: TestErrorHelpers/error_code (0.00s)
+    --- PASS: TestErrorHelpers/error_stack_trace (0.00s)
+    --- PASS: TestErrorHelpers/error_object (0.00s)
+=== RUN   TestConditionBuilders
+=== RUN   TestConditionBuilders/field_equals_number
+=== RUN   TestConditionBuilders/context_var_equals_literal
+=== RUN   TestConditionBuilders/field_not_equals_number
+=== RUN   TestConditionBuilders/field_greater_than_number
+=== RUN   TestConditionBuilders/field_greater_than_or_equal
+=== RUN   TestConditionBuilders/field_less_than_number
+=== RUN   TestConditionBuilders/field_less_than_or_equal
+=== RUN   TestConditionBuilders/AND_condition
+=== RUN   TestConditionBuilders/OR_condition
+=== RUN   TestConditionBuilders/NOT_condition
+--- PASS: TestConditionBuilders (0.00s)
+    --- PASS: TestConditionBuilders/field_equals_number (0.00s)
+    --- PASS: TestConditionBuilders/context_var_equals_literal (0.00s)
+    --- PASS: TestConditionBuilders/field_not_equals_number (0.00s)
+    --- PASS: TestConditionBuilders/field_greater_than_number (0.00s)
+    --- PASS: TestConditionBuilders/field_greater_than_or_equal (0.00s)
+    --- PASS: TestConditionBuilders/field_less_than_number (0.00s)
+    --- PASS: TestConditionBuilders/field_less_than_or_equal (0.00s)
+    --- PASS: TestConditionBuilders/AND_condition (0.00s)
+    --- PASS: TestConditionBuilders/OR_condition (0.00s)
+    --- PASS: TestConditionBuilders/NOT_condition (0.00s)
+=== RUN   TestVarInCondition
+--- PASS: TestVarInCondition (0.00s)
+=== RUN   TestFieldInCondition
+--- PASS: TestFieldInCondition (0.00s)
+=== RUN   TestComplexInterpolation
+=== RUN   TestComplexInterpolation/API_URL_with_version_and_path
+=== RUN   TestComplexInterpolation/Authorization_header
+=== RUN   TestComplexInterpolation/Dynamic_endpoint_with_port
+--- PASS: TestComplexInterpolation (0.00s)
+    --- PASS: TestComplexInterpolation/API_URL_with_version_and_path (0.00s)
+    --- PASS: TestComplexInterpolation/Authorization_header (0.00s)
+    --- PASS: TestComplexInterpolation/Dynamic_endpoint_with_port (0.00s)
+=== RUN   TestWorkflow_DocumentValidation
+=== RUN   TestWorkflow_DocumentValidation/valid_document
+=== RUN   TestWorkflow_DocumentValidation/valid_document_with_pre-release_version
+=== RUN   TestWorkflow_DocumentValidation/valid_document_with_build_metadata
+=== RUN   TestWorkflow_DocumentValidation/empty_namespace
+=== RUN   TestWorkflow_DocumentValidation/empty_name
+=== RUN   TestWorkflow_DocumentValidation/empty_version_(defaults_to_0.1.0)
+=== RUN   TestWorkflow_DocumentValidation/invalid_version_format
+=== RUN   TestWorkflow_DocumentValidation/invalid_version_format_(missing_patch)
+--- PASS: TestWorkflow_DocumentValidation (0.00s)
+    --- PASS: TestWorkflow_DocumentValidation/valid_document (0.00s)
+    --- PASS: TestWorkflow_DocumentValidation/valid_document_with_pre-release_version (0.00s)
+    --- PASS: TestWorkflow_DocumentValidation/valid_document_with_build_metadata (0.00s)
+    --- PASS: TestWorkflow_DocumentValidation/empty_namespace (0.00s)
+    --- PASS: TestWorkflow_DocumentValidation/empty_name (0.00s)
+    --- PASS: TestWorkflow_DocumentValidation/empty_version_(defaults_to_0.1.0) (0.00s)
+    --- PASS: TestWorkflow_DocumentValidation/invalid_version_format (0.00s)
+    --- PASS: TestWorkflow_DocumentValidation/invalid_version_format_(missing_patch) (0.00s)
+=== RUN   TestWorkflow_DescriptionLength
+--- PASS: TestWorkflow_DescriptionLength (0.00s)
+=== RUN   TestWorkflow_NewWithContext
+--- PASS: TestWorkflow_NewWithContext (0.00s)
+=== RUN   TestWorkflow_NewWithoutContext
+--- PASS: TestWorkflow_NewWithoutContext (0.00s)
+=== RUN   TestTaskBuilder_WithURIStringRef
+--- PASS: TestTaskBuilder_WithURIStringRef (0.00s)
+=== RUN   TestTaskBuilder_WithURIString
+--- PASS: TestTaskBuilder_WithURIString (0.00s)
+=== RUN   TestTaskBuilder_WithURIStringRefConcat
+--- PASS: TestTaskBuilder_WithURIStringRefConcat (0.00s)
+=== RUN   TestTaskBuilder_WithHeaderStringRef
+--- PASS: TestTaskBuilder_WithHeaderStringRef (0.00s)
+=== RUN   TestTaskBuilder_WithHeaderString
+--- PASS: TestTaskBuilder_WithHeaderString (0.00s)
+=== RUN   TestTaskBuilder_WithTimeoutIntRef
+--- PASS: TestTaskBuilder_WithTimeoutIntRef (0.00s)
+=== RUN   TestTaskBuilder_WithTimeoutInt
+--- PASS: TestTaskBuilder_WithTimeoutInt (0.00s)
+=== RUN   TestTaskBuilder_SetVarStringRef
+--- PASS: TestTaskBuilder_SetVarStringRef (0.00s)
+=== RUN   TestTaskBuilder_SetVarString
+--- PASS: TestTaskBuilder_SetVarString (0.00s)
+=== RUN   TestTaskBuilder_SetIntIntRef
+--- PASS: TestTaskBuilder_SetIntIntRef (0.00s)
+=== RUN   TestTaskBuilder_SetIntInt
+--- PASS: TestTaskBuilder_SetIntInt (0.00s)
+=== RUN   TestTaskBuilder_SetStringStringRef
+--- PASS: TestTaskBuilder_SetStringStringRef (0.00s)
+=== RUN   TestTaskBuilder_SetStringString
+--- PASS: TestTaskBuilder_SetStringString (0.00s)
+=== RUN   TestTaskBuilder_SetBoolBoolRef
+--- PASS: TestTaskBuilder_SetBoolBoolRef (0.00s)
+=== RUN   TestTaskBuilder_SetBoolBool
+--- PASS: TestTaskBuilder_SetBoolBool (0.00s)
+=== RUN   TestTaskBuilder_WithServiceStringRef
+--- PASS: TestTaskBuilder_WithServiceStringRef (0.00s)
+=== RUN   TestTaskBuilder_WithServiceString
+--- PASS: TestTaskBuilder_WithServiceString (0.00s)
+=== RUN   TestRefHelpers_toExpression
+--- PASS: TestRefHelpers_toExpression (0.00s)
+=== RUN   TestSetTask
+--- PASS: TestSetTask (0.00s)
+=== RUN   TestHttpCallTask
+--- PASS: TestHttpCallTask (0.00s)
+=== RUN   TestTask_Export
+--- PASS: TestTask_Export (0.00s)
+=== RUN   TestTask_Then
+--- PASS: TestTask_Then (0.00s)
+=== RUN   TestTask_End
+--- PASS: TestTask_End (0.00s)
+=== RUN   TestTask_FluentAPI
+--- PASS: TestTask_FluentAPI (0.00s)
+=== RUN   TestSwitchTask
+--- PASS: TestSwitchTask (0.00s)
+=== RUN   TestSwitchTask_WithCaseRef
+--- PASS: TestSwitchTask_WithCaseRef (0.00s)
+=== RUN   TestSwitchTask_MixedReferences
+--- PASS: TestSwitchTask_MixedReferences (0.00s)
+=== RUN   TestForTask
+--- PASS: TestForTask (0.00s)
+=== RUN   TestForkTask
+--- PASS: TestForkTask (0.00s)
+=== RUN   TestTryTask
+--- PASS: TestTryTask (0.00s)
+=== RUN   TestGrpcCallTask
+--- PASS: TestGrpcCallTask (0.00s)
+=== RUN   TestListenTask
+--- PASS: TestListenTask (0.00s)
+=== RUN   TestWaitTask
+--- PASS: TestWaitTask (0.00s)
+=== RUN   TestCallActivityTask
+--- PASS: TestCallActivityTask (0.00s)
+=== RUN   TestRaiseTask
+--- PASS: TestRaiseTask (0.00s)
+=== RUN   TestRunTask
+--- PASS: TestRunTask (0.00s)
+=== RUN   TestTask_ExportAll
+--- PASS: TestTask_ExportAll (0.00s)
+=== RUN   TestTask_ExportField
+--- PASS: TestTask_ExportField (0.00s)
+=== RUN   TestTask_ExportFields
+--- PASS: TestTask_ExportFields (0.00s)
+=== RUN   TestSetInt
+--- PASS: TestSetInt (0.00s)
+=== RUN   TestSetString
+--- PASS: TestSetString (0.00s)
+=== RUN   TestSetBool
+--- PASS: TestSetBool (0.00s)
+=== RUN   TestSetFloat
+--- PASS: TestSetFloat (0.00s)
+=== RUN   TestVarRef
+--- PASS: TestVarRef (0.00s)
+=== RUN   TestFieldRef
+--- PASS: TestFieldRef (0.00s)
+=== RUN   TestInterpolate
+--- PASS: TestInterpolate (0.00s)
+=== RUN   TestErrorMessage
+--- PASS: TestErrorMessage (0.00s)
+=== RUN   TestErrorCode
+--- PASS: TestErrorCode (0.00s)
+=== RUN   TestErrorStackTrace
+--- PASS: TestErrorStackTrace (0.00s)
+=== RUN   TestErrorObject
+--- PASS: TestErrorObject (0.00s)
+=== RUN   TestIncrement
+--- PASS: TestIncrement (0.00s)
+=== RUN   TestDecrement
+--- PASS: TestDecrement (0.00s)
+=== RUN   TestExpr
+=== RUN   TestExpr/arithmetic_expression
+=== RUN   TestExpr/string_concatenation#01
+=== RUN   TestExpr/conditional_expression
+--- PASS: TestExpr (0.00s)
+    --- PASS: TestExpr/arithmetic_expression (0.00s)
+    --- PASS: TestExpr/string_concatenation#01 (0.00s)
+    --- PASS: TestExpr/conditional_expression (0.00s)
+=== RUN   TestSeconds
+--- PASS: TestSeconds (0.00s)
+=== RUN   TestMinutes
+--- PASS: TestMinutes (0.00s)
+=== RUN   TestHours
+--- PASS: TestHours (0.00s)
+=== RUN   TestDays
+--- PASS: TestDays (0.00s)
+=== RUN   TestField
+--- PASS: TestField (0.00s)
+=== RUN   TestVar
+--- PASS: TestVar (0.00s)
+=== RUN   TestLiteral
+--- PASS: TestLiteral (0.00s)
+=== RUN   TestNumber
+=== RUN   TestNumber/integer
+=== RUN   TestNumber/float
+=== RUN   TestNumber/negative
+--- PASS: TestNumber (0.00s)
+    --- PASS: TestNumber/integer (0.00s)
+    --- PASS: TestNumber/float (0.00s)
+    --- PASS: TestNumber/negative (0.00s)
+=== RUN   TestEquals
+--- PASS: TestEquals (0.00s)
+=== RUN   TestNotEquals
+--- PASS: TestNotEquals (0.00s)
+=== RUN   TestGreaterThan
+--- PASS: TestGreaterThan (0.00s)
+=== RUN   TestGreaterThanOrEqual
+--- PASS: TestGreaterThanOrEqual (0.00s)
+=== RUN   TestLessThan
+--- PASS: TestLessThan (0.00s)
+=== RUN   TestLessThanOrEqual
+--- PASS: TestLessThanOrEqual (0.00s)
+=== RUN   TestAnd
+--- PASS: TestAnd (0.00s)
+=== RUN   TestOr
+--- PASS: TestOr (0.00s)
+=== RUN   TestNot
+--- PASS: TestNot (0.00s)
+=== RUN   TestConditionBuildersIntegration
+--- PASS: TestConditionBuildersIntegration (0.00s)
+=== RUN   TestHighLevelHelpersIntegration
+--- PASS: TestHighLevelHelpersIntegration (0.00s)
+=== RUN   TestTask_ThenRef
+--- PASS: TestTask_ThenRef (0.00s)
+=== RUN   TestTask_EndFlow
+--- PASS: TestTask_EndFlow (0.00s)
+=== RUN   TestWorkflow_TaskNameValidation
+=== RUN   TestWorkflow_TaskNameValidation/valid_task_name_with_alphanumeric
+=== RUN   TestWorkflow_TaskNameValidation/valid_task_name_with_hyphens
+=== RUN   TestWorkflow_TaskNameValidation/valid_task_name_with_underscores
+=== RUN   TestWorkflow_TaskNameValidation/valid_task_name_mixed
+=== RUN   TestWorkflow_TaskNameValidation/empty_task_name
+=== RUN   TestWorkflow_TaskNameValidation/task_name_with_spaces
+=== RUN   TestWorkflow_TaskNameValidation/task_name_with_special_characters
+--- PASS: TestWorkflow_TaskNameValidation (0.00s)
+    --- PASS: TestWorkflow_TaskNameValidation/valid_task_name_with_alphanumeric (0.00s)
+    --- PASS: TestWorkflow_TaskNameValidation/valid_task_name_with_hyphens (0.00s)
+    --- PASS: TestWorkflow_TaskNameValidation/valid_task_name_with_underscores (0.00s)
+    --- PASS: TestWorkflow_TaskNameValidation/valid_task_name_mixed (0.00s)
+    --- PASS: TestWorkflow_TaskNameValidation/empty_task_name (0.00s)
+    --- PASS: TestWorkflow_TaskNameValidation/task_name_with_spaces (0.00s)
+    --- PASS: TestWorkflow_TaskNameValidation/task_name_with_special_characters (0.00s)
+=== RUN   TestWorkflow_TaskConfigValidation_SetTask
+--- PASS: TestWorkflow_TaskConfigValidation_SetTask (0.00s)
+=== RUN   TestWorkflow_TaskConfigValidation_HttpCallTask
+=== RUN   TestWorkflow_TaskConfigValidation_HttpCallTask/valid_HTTP_CALL_task
+=== RUN   TestWorkflow_TaskConfigValidation_HttpCallTask/HTTP_CALL_task_with_missing_method
+=== RUN   TestWorkflow_TaskConfigValidation_HttpCallTask/HTTP_CALL_task_with_missing_URI
+=== RUN   TestWorkflow_TaskConfigValidation_HttpCallTask/HTTP_CALL_task_with_invalid_method
+=== RUN   TestWorkflow_TaskConfigValidation_HttpCallTask/HTTP_CALL_task_with_invalid_timeout_(negative)
+=== RUN   TestWorkflow_TaskConfigValidation_HttpCallTask/HTTP_CALL_task_with_invalid_timeout_(too_large)
+--- PASS: TestWorkflow_TaskConfigValidation_HttpCallTask (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_HttpCallTask/valid_HTTP_CALL_task (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_HttpCallTask/HTTP_CALL_task_with_missing_method (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_HttpCallTask/HTTP_CALL_task_with_missing_URI (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_HttpCallTask/HTTP_CALL_task_with_invalid_method (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_HttpCallTask/HTTP_CALL_task_with_invalid_timeout_(negative) (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_HttpCallTask/HTTP_CALL_task_with_invalid_timeout_(too_large) (0.00s)
+=== RUN   TestWorkflow_TaskConfigValidation_GrpcCallTask
+=== RUN   TestWorkflow_TaskConfigValidation_GrpcCallTask/valid_GRPC_CALL_task
+=== RUN   TestWorkflow_TaskConfigValidation_GrpcCallTask/GRPC_CALL_task_with_missing_service
+=== RUN   TestWorkflow_TaskConfigValidation_GrpcCallTask/GRPC_CALL_task_with_missing_method
+--- PASS: TestWorkflow_TaskConfigValidation_GrpcCallTask (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_GrpcCallTask/valid_GRPC_CALL_task (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_GrpcCallTask/GRPC_CALL_task_with_missing_service (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_GrpcCallTask/GRPC_CALL_task_with_missing_method (0.00s)
+=== RUN   TestWorkflow_TaskConfigValidation_SwitchTask
+--- PASS: TestWorkflow_TaskConfigValidation_SwitchTask (0.00s)
+=== RUN   TestWorkflow_TaskConfigValidation_ForTask
+=== RUN   TestWorkflow_TaskConfigValidation_ForTask/valid_FOR_task
+=== RUN   TestWorkflow_TaskConfigValidation_ForTask/FOR_task_with_missing_'in'
+=== RUN   TestWorkflow_TaskConfigValidation_ForTask/FOR_task_with_no_tasks_in_'do'
+--- PASS: TestWorkflow_TaskConfigValidation_ForTask (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_ForTask/valid_FOR_task (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_ForTask/FOR_task_with_missing_'in' (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_ForTask/FOR_task_with_no_tasks_in_'do' (0.00s)
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/valid_FORK_task
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/invalid_FORK_task_(no_branches)
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/valid_TRY_task
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/invalid_TRY_task_(no_tasks)
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/valid_LISTEN_task
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/invalid_LISTEN_task_(no_event)
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/valid_WAIT_task
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/invalid_WAIT_task_(no_duration)
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/valid_CALL_ACTIVITY_task
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/invalid_CALL_ACTIVITY_task_(no_activity)
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/valid_RAISE_task
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/invalid_RAISE_task_(no_error)
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/valid_RUN_task
+=== RUN   TestWorkflow_TaskConfigValidation_OtherTasks/invalid_RUN_task_(no_workflow)
+--- PASS: TestWorkflow_TaskConfigValidation_OtherTasks (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/valid_FORK_task (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/invalid_FORK_task_(no_branches) (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/valid_TRY_task (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/invalid_TRY_task_(no_tasks) (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/valid_LISTEN_task (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/invalid_LISTEN_task_(no_event) (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/valid_WAIT_task (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/invalid_WAIT_task_(no_duration) (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/valid_CALL_ACTIVITY_task (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/invalid_CALL_ACTIVITY_task_(no_activity) (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/valid_RAISE_task (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/invalid_RAISE_task_(no_error) (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/valid_RUN_task (0.00s)
+    --- PASS: TestWorkflow_TaskConfigValidation_OtherTasks/invalid_RUN_task_(no_workflow) (0.00s)
+=== RUN   TestWorkflow_New
+=== RUN   TestWorkflow_New/valid_workflow_with_all_required_fields
+=== RUN   TestWorkflow_New/valid_workflow_with_description
+=== RUN   TestWorkflow_New/missing_namespace
+=== RUN   TestWorkflow_New/missing_name
+=== RUN   TestWorkflow_New/missing_version_(defaults_to_0.1.0)
+=== RUN   TestWorkflow_New/invalid_version_(not_semver)
+=== RUN   TestWorkflow_New/no_tasks_(allowed_for_Pulumi-style_pattern)
+--- PASS: TestWorkflow_New (0.00s)
+    --- PASS: TestWorkflow_New/valid_workflow_with_all_required_fields (0.00s)
+    --- PASS: TestWorkflow_New/valid_workflow_with_description (0.00s)
+    --- PASS: TestWorkflow_New/missing_namespace (0.00s)
+    --- PASS: TestWorkflow_New/missing_name (0.00s)
+    --- PASS: TestWorkflow_New/missing_version_(defaults_to_0.1.0) (0.00s)
+    --- PASS: TestWorkflow_New/invalid_version_(not_semver) (0.00s)
+    --- PASS: TestWorkflow_New/no_tasks_(allowed_for_Pulumi-style_pattern) (0.00s)
+=== RUN   TestWorkflow_DefaultVersion
+--- PASS: TestWorkflow_DefaultVersion (0.00s)
+=== RUN   TestWorkflow_AddTask
+--- PASS: TestWorkflow_AddTask (0.00s)
+=== RUN   TestWorkflow_AddTasks
+--- PASS: TestWorkflow_AddTasks (0.00s)
+=== RUN   TestWorkflow_AddEnvironmentVariable
+--- PASS: TestWorkflow_AddEnvironmentVariable (0.00s)
+=== RUN   TestWorkflow_String
+--- PASS: TestWorkflow_String (0.00s)
+=== RUN   TestWorkflow_DuplicateTaskNames
+--- PASS: TestWorkflow_DuplicateTaskNames (0.00s)
+=== RUN   TestWorkflow_WithOrg
+--- PASS: TestWorkflow_WithOrg (0.00s)
+PASS
+ok  	github.com/leftbin/stigmer-sdk/go/workflow	2.932s
+FAIL

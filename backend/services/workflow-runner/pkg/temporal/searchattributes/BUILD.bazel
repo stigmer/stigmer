@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "searchattributes",
+    srcs = ["setup.go"],
+    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/temporal/searchattributes",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_rs_zerolog//log",
+        "@io_temporal_go_api//enums/v1:enums",
+        "@io_temporal_go_api//operatorservice/v1:operatorservice",
+        "@io_temporal_go_sdk//client",
+    ],
+)

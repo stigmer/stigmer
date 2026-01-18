@@ -1,0 +1,41 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "zigflow",
+    srcs = [
+        "errors.go",
+        "loader.go",
+        "schedules.go",
+        "workflow_builder.go",
+    ],
+    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/zigflow",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/services/workflow-runner/pkg/utils",
+        "//backend/services/workflow-runner/pkg/zigflow/metadata",
+        "//backend/services/workflow-runner/pkg/zigflow/tasks",
+        "@com_github_masterminds_semver_v3//:semver",
+        "@com_github_rs_zerolog//log",
+        "@com_github_serverlessworkflow_sdk_go_v3//model",
+        "@io_k8s_sigs_yaml//:yaml",
+        "@io_temporal_go_sdk//client",
+        "@io_temporal_go_sdk//worker",
+    ],
+)
+
+go_test(
+    name = "zigflow_test",
+    srcs = [
+        "loader_test.go",
+        "validation_mode_test.go",
+        "yaml_roundtrip_test.go",
+    ],
+    deps = [
+        ":zigflow",
+        "//backend/services/workflow-runner/pkg/zigflow/tasks",
+        "@com_github_serverlessworkflow_sdk_go_v3//model",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@io_k8s_sigs_yaml//:yaml",
+    ],
+)

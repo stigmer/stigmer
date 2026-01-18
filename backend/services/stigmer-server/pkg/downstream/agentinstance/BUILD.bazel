@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "agentinstance",
+    srcs = ["client.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_rs_zerolog//log",
+        "@org_golang_google_grpc//:grpc",
+    ],
+)

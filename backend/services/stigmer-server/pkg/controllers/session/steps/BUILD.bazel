@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "steps",
+    srcs = ["filter_by_agent_instance.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/session/steps",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/libs/go/badger",
+        "//backend/libs/go/grpc",
+        "//backend/libs/go/grpc/interceptors/apiresource",
+        "//backend/libs/go/grpc/request/pipeline",
+        "@com_github_rs_zerolog//log",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)

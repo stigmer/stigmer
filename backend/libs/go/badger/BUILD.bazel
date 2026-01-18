@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "badger",
+    srcs = ["store.go"],
+    importpath = "github.com/stigmer/stigmer/backend/libs/go/badger",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_dgraph_io_badger_v4//:badger",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "badger_test",
+    srcs = ["store_test.go"],
+    embed = [":badger"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

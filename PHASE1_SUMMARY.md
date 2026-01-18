@@ -18,26 +18,25 @@ Created a well-organized repository with:
 - Complete directory structure for Go and Python SDKs
 - Build system (Makefile, buf for protobuf, Go modules, Python packaging)
 
-### 2. Backend Abstraction Layer ✅
+### 2. gRPC Service Architecture ✅
 
-Defined the core interface that ensures local/cloud parity:
+Defined API contracts using gRPC services for each resource:
 
-**Protobuf Service** (`proto/stigmer/backend/v1/backend.proto`):
-- 20+ RPC methods for all backend operations
-- Full CRUD for Agents, Workflows, Environments
-- Execution lifecycle management
-- JIT (Just-In-Time) secret resolution
-- Artifact storage
+**API Resource Services** (`apis/ai/stigmer/agentic/*/v1/`):
+- Each resource has its own CommandController and QueryController services
+- Agent, Workflow, AgentExecution, WorkflowExecution, Environment, Session, Skill
+- Standard operations: create, update, delete, get, list
+- Proto-defined authorization annotations
 
-**Go Implementation** (`internal/backend/`):
-- `Backend` interface that both implementations satisfy
-- Factory pattern for backend selection
-- Local backend stub (SQLite)
-- Cloud backend stub (gRPC proxy)
+**Implementation Strategy**:
+- Local mode: Implements gRPC server interfaces with BadgerDB (in-process adapter)
+- Cloud mode: Implements same gRPC services over network
+- No separate "backend interface" - gRPC services ARE the interface
+- Factory pattern for client creation (local adapter vs network client)
 
 ### 3. Database Schema ✅
 
-SQLite schema for local mode (`internal/backend/local/migrations/001_initial_schema.sql`):
+BadgerDB key-value storage for local mode:
 
 **12 Tables** derived from API resource kinds:
 - Agents & Agent Instances
@@ -72,7 +71,7 @@ Comprehensive documentation in `docs/`:
 
 **Architecture**:
 - `open-core-model.md` - Explains open source vs. proprietary split
-- `backend-abstraction.md` - Deep dive on interface design
+- `backend-abstraction.md` - Deep dive on gRPC service architecture
 
 **Getting Started**:
 - `local-mode.md` - Complete guide for local development
@@ -100,7 +99,7 @@ Lines of Code: ~3,000
 
 **File Breakdown**:
 - CLI: ~300 LOC
-- Backend interfaces: ~600 LOC
+- gRPC service definitions: ~600 LOC
 - Protobuf: ~300 LOC
 - Documentation: ~1,200 LOC
 - SQL schema: ~400 LOC
@@ -114,20 +113,22 @@ Lines of Code: ~3,000
 - Read and understood by developers
 
 **Not yet functional**:
-- Proto code generation (need to run `make proto-gen`)
+- Proto code generation (need to run `make protos`)
 - Backend CRUD operations (stubs only)
 - Actual agent/workflow execution
 - Secret encryption
 
 ## Architecture Highlights
 
-### Backend Abstraction Pattern
+### gRPC Service Pattern
 
 ```
-CLI/SDK → Backend Interface (Go) → Local (SQLite) OR Cloud (gRPC)
+CLI/SDK → gRPC Client → In-Process Adapter → Local Controllers (BadgerDB)
+                     OR
+CLI/SDK → gRPC Client → Network → Cloud gRPC Services
 ```
 
-**Key Insight**: Same CLI commands work with both backends. Switching is just a config change:
+**Key Insight**: Same CLI commands work with both modes. Switching is just a config change:
 
 ```yaml
 # Local mode
@@ -146,12 +147,13 @@ backend:
 
 ### Database Design Philosophy
 
-**Principle**: One table per `ApiResourceKind` (from protobuf enum)
+**Principle**: One table per API resource, matching gRPC service structure
 
 This ensures:
-- Schema mirrors API exactly
-- No drift between storage and interface
+- Schema mirrors gRPC service contracts exactly
+- No drift between storage and service interface
 - Easy to extend with new resource types
+- Each gRPC service maps to one table
 
 **Storage Pattern**:
 ```sql
@@ -188,10 +190,10 @@ Compared to Stigmer Cloud, local mode removes:
 1. **Generate Protobuf Code**:
    ```bash
    cd /Users/suresh/scm/github.com/stigmer/stigmer
-   make proto-gen
+   make protos
    ```
 
-2. **Implement SQLite CRUD**:
+2. **Implement BadgerDB CRUD**:
    - CreateAgent, GetAgent, ListAgents, UpdateAgent, DeleteAgent
    - Same for Workflows, Executions, Environments
    - Secret encryption with OS keychain
@@ -260,18 +262,18 @@ Compared to Stigmer Cloud, local mode removes:
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `proto/stigmer/backend/v1/backend.proto` | Backend interface contract | ✅ Complete |
-| `internal/backend/backend.go` | Go interface definition | ✅ Complete |
-| `internal/backend/factory.go` | Backend factory | ✅ Complete |
-| `internal/backend/local/local.go` | SQLite implementation | 🚧 Stubs |
-| `internal/backend/cloud/cloud.go` | Cloud proxy | 🚧 Stubs |
+| `apis/ai/stigmer/agentic/*/v1/command.proto` | gRPC command services | ✅ Complete |
+| `apis/ai/stigmer/agentic/*/v1/query.proto` | gRPC query services | ✅ Complete |
+| `internal/backend/local/agent_controller.go` | Local AgentController (gRPC impl) | 🚧 Stubs |
+| `internal/backend/adapter/agent_adapter.go` | In-process adapter | 🚧 Stubs |
+| `internal/backend/factory.go` | Client factory | 🚧 Stubs |
 | `cmd/stigmer/main.go` | CLI entry point | 🚧 Stubs |
 
 ### Database
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `internal/backend/local/migrations/001_initial_schema.sql` | SQLite schema | ✅ Complete |
+| `internal/backend/local/local.go` | BadgerDB backend | ✅ Complete |
 
 ### Documentation
 
@@ -295,22 +297,24 @@ Compared to Stigmer Cloud, local mode removes:
 
 ## Design Decisions Log
 
-1. **Protobuf over REST**: Type safety, multi-language support, versioning
-2. **SQLite over Postgres**: Zero setup for local mode, good enough for single user
-3. **Open Core model**: Execution open, control plane proprietary
-4. **Removed multi-tenancy**: Local mode is single-user by design
-5. **JSON for spec/status**: Proto flexibility, easy to evolve
-6. **WAL mode**: SQLite concurrency for workflow execution
-7. **Factory pattern**: Clean backend switching without code changes
+1. **gRPC Services as Interface**: No separate Go interface - proto services ARE the contract
+2. **In-Process Adapter**: Local mode implements gRPC server interface without network
+3. **BadgerDB over Postgres**: Zero setup for local mode, pure Go, no CGO dependencies
+4. **Open Core model**: Execution and API contracts open, cloud implementation proprietary
+5. **Removed multi-tenancy**: Local mode is single-user by design
+6. **JSON for spec/status**: Proto flexibility, easy to evolve
+7. **LSM tree storage**: BadgerDB's efficient key-value storage for fast reads and writes
+8. **Factory pattern**: Clean mode switching without code changes
 
 ## Success Metrics (T01 Goals)
 
 | Goal | Status | Notes |
 |------|--------|-------|
-| Repository structure | ✅ Complete | 22 files, well-organized |
-| Backend interface defined | ✅ Complete | 20+ RPC methods |
-| SQLite schema | ✅ Complete | 12 tables, migrations ready |
-| Backend implementations | 🚧 Stubs | Structure complete, logic pending |
+| Repository structure | ✅ Complete | 90+ API proto files, well-organized |
+| gRPC services defined | ✅ Complete | Command/Query per resource |
+| BadgerDB backend | ✅ Complete | Key-value storage, protobuf serialization |
+| Local controllers | 🚧 Stubs | Structure complete, logic pending |
+| In-process adapters | 🚧 Stubs | Structure complete, logic pending |
 | CLI foundation | 🚧 Stubs | Commands defined, wiring pending |
 | Documentation | ✅ Complete | Architecture, guides, examples |
 
@@ -318,8 +322,8 @@ Compared to Stigmer Cloud, local mode removes:
 
 | Risk | Impact | Mitigation | Status |
 |------|--------|------------|--------|
-| Proto code gen fails | High | Test with `make proto-gen` | 🔜 Next |
-| SQLite concurrency issues | Medium | WAL mode, testing | ✅ Planned |
+| Proto code gen fails | High | Test with `make protos` | 🔜 Next |
+| BadgerDB concurrency | Low | Built-in MVCC support | ✅ Planned |
 | Community adoption | Medium | Strong docs, examples | ✅ Done |
 | Code migration complexity | High | Careful analysis, tests | 🔜 Phase 2 |
 
@@ -329,7 +333,7 @@ Phase 1 successfully established the foundational architecture for open source S
 
 ✅ **Repository ready** for development  
 ✅ **Architecture documented** and validated  
-✅ **Backend abstraction** ensures local/cloud parity  
+✅ **gRPC service architecture** ensures local/cloud parity  
 ✅ **Database schema** aligned with API resources  
 ✅ **Examples** demonstrate the vision  
 
@@ -339,4 +343,4 @@ Phase 1 successfully established the foundational architecture for open source S
 
 ---
 
-**Next Action**: Run `make proto-gen` and begin implementing SQLite CRUD operations in Phase 2.
+**Next Action**: Run `make protos` and begin implementing BadgerDB CRUD operations in Phase 2.

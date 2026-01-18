@@ -1,0 +1,34 @@
+document:
+  dsl: "1.0.0"
+  namespace: demo
+  name: test-context-variables
+  version: "1.0.0"
+  description: "Test context variable injection with proper export"
+
+do:
+  # Step 1: Initialize context variables
+  - __stigmer_init_context:
+      set:
+        apiBase: https://jsonplaceholder.typicode.com
+  
+  # Step 2: Fetch data using context variable
+  - fetchData:
+      call: http
+      with:
+        method: GET
+        endpoint:
+          uri: ${ $context.apiBase + "/posts/1" }
+        headers:
+          Content-Type: application/json
+        timeout_seconds: 30
+      export:  # ✅ FIXED: Export the response to context
+        as: ${ . }
+  
+  # Step 3: Process the response
+  - processResponse:
+      set:
+        postBody: ${ $context.fetchData.body }
+        postTitle: ${ $context.fetchData.title }
+        postId: ${ $context.fetchData.id }
+        userId: ${ $context.fetchData.userId }
+        status: completed

@@ -1,0 +1,565 @@
+# Rule: Improve Proto API Creation Rule (action)
+
+**Purpose**: Iteratively improve the `model-stigmer-protos.mdc` rule based on real-world proto API creation, errors, and feedback.
+
+**Usage**: Invoke this rule when you encounter issues or learn something valuable while creating Stigmer proto APIs.
+
+---
+
+## 🚦 Quick Decision: Should You Document This Learning?
+
+**Before proceeding, check if this learning is worth documenting:**
+
+```
+Did you create a proto API or learn something?
+├─ YES → Is it already in docs/learning-log.md?
+│         ├─ NO → ✅ Document it! (proceed below)
+│         └─ YES → ⏭️ Skip (already captured)
+│
+└─ NO → ⏭️ No action needed
+```
+
+### ✅ Document If ANY Of These Are True
+
+- ✅ Created proto for new resource
+- ✅ Discovered reusable validation pattern
+- ✅ Found authorization configuration gap
+- ✅ Hit file organization issue
+- ✅ Created complex message structure
+- ✅ Designed new resource standard
+- ✅ Solved multi-scope authorization
+- ✅ Created custom validation rule
+- ✅ Fixed proto compilation error
+
+### ⏭️ Skip If
+
+- ❌ Exact copy of existing proto
+- ❌ Already documented in standards
+- ❌ Trivial message field addition
+
+---
+
+## 📊 Quick Check: Where Should This Go?
+
+| What You Learned | Learning Log Section | Consider Topic Doc? |
+|-----------------|---------------------|-------------------|
+| New proto API created | File Organization Patterns | If new structure |
+| Validation constraint | Validation Patterns | If reusable |
+| Authorization config | Authorization Configuration | If new pattern |
+| File structure issue | File Organization | **Important** |
+| API resource standard | API Resource Standards | If new field/pattern |
+| Proto compilation error | Common Mistakes | **Always** |
+
+---
+
+## The Hybrid Documentation Approach
+
+This rule uses a **dual-track documentation system**:
+
+### 1. Topic-Specific Reference Docs (Standards & Patterns)
+
+**Location**: `docs/{topic-name}.md`
+
+**Purpose**: Reusable proto patterns and standards
+
+**Create when:**
+- ✅ Pattern used 2-3+ times (stabilized)
+- ✅ Standard that applies to all protos
+- ✅ Complex structure worth documenting
+- ✅ Common mistake needing prevention
+
+**Current Topic Docs:**
+- `organization-patterns.md` - 5-file proto structure guide
+- `api-resource-standards.md` - Kubernetes-inspired resource standards
+
+**Future Topic Docs:**
+- `validation-patterns.md` - buf.validate best practices
+- `authorization-configuration.md` - RPC authorization patterns
+- `common-mistakes.md` - Error catalog
+- `shared-messages.md` - Cross-domain message organization
+- `versioning-guide.md` - v1 → v2 migration patterns
+
+---
+
+### 2. Learning Log (Evolution Record)
+
+**Location**: `docs/learning-log.md`
+
+**Purpose**: Chronicle of proto API creation evolution
+
+**Structure**: Organized by topic with dates
+
+**Add to when:**
+- ✅ Create proto API for new resource
+- ✅ Discover new validation pattern
+- ✅ Encounter proto organization issue
+- ✅ Learn from proto → FGA → backend integration
+
+**Format:**
+```markdown
+## Topic Category
+
+### YYYY-MM-DD: Brief Title
+
+**Pattern**: Description or issue
+
+**Proto Code** (if applicable):
+```protobuf
+{proto definitions}
+```
+
+**Impact**: What this enables or prevents
+
+**Reference Doc**: Link to topic doc (if pattern extracted)
+```
+
+---
+
+## Self-Improvement Workflow
+
+**When creating proto APIs or encountering issues:**
+
+### Step 1: Add to Learning Log
+
+1. **Open** `docs/learning-log.md`
+2. **Find or create** appropriate topic section
+3. **Add entry** with:
+   - Date
+   - Pattern or issue description
+   - Proto code examples
+   - Impact and lessons learned
+   - Reference to topic doc (if exists)
+
+**Example:**
+```markdown
+## Validation Patterns
+
+### 2026-01-20: Email Validation Pattern
+
+**Pattern**: Email fields require regex validation for proper format.
+
+**Proto Code**:
+```protobuf
+string email = 1 [(buf.validate.field).string = {
+  min_len: 1,
+  max_len: 320,
+  pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+}];
+```
+
+**Impact**: Catches invalid emails at proto validation, before database.
+
+**Reference Doc**: Pattern added to `validation-patterns.md`
+```
+
+---
+
+### Step 2: Decide If Topic Doc Needed
+
+**Create new topic doc if:**
+- ✅ Pattern used for 2+ resources
+- ✅ Standard that should apply to all protos
+- ✅ Complex enough to need comprehensive guide
+- ✅ Common mistake worth preventing
+- ❌ One-off unique proto (stays in log only)
+
+**Update existing topic doc if:**
+- ✅ New example strengthens standard
+- ✅ Variation of existing pattern
+- ✅ Additional use case discovered
+- ✅ Correction to existing guidance
+
+**Topic doc template:**
+```markdown
+# {Pattern/Standard Name}
+
+## Overview
+
+{Description of pattern and when to use}
+
+## Proto Structure
+
+```protobuf
+{proto code example}
+```
+
+## Use Cases
+
+- Resource type 1: {example}
+- Resource type 2: {example}
+
+## Variations
+
+### Variation 1: {Name}
+{Description and proto code}
+
+## Common Mistakes
+
+### Mistake 1: {Description}
+
+❌ **WRONG**:
+```protobuf
+{incorrect proto}
+```
+
+✅ **CORRECT**:
+```protobuf
+{correct proto}
+```
+
+## Verification Checklist
+
+- [ ] Item 1
+- [ ] Item 2
+
+## Integration
+
+**FGA Impact**: {how this affects FGA modeling}
+**Backend Impact**: {how this affects handler generation}
+
+## Related Patterns
+
+- {Links to related patterns}
+```
+
+---
+
+### Step 3: Update Main Rule's Reference Documentation Section
+
+⚠️ **MANDATORY**: When you create or significantly update a topic doc, you MUST add/update it in the main rule's "Reference Documentation" section.
+
+**Why This is Critical**:
+- Standards docs are only useful if they're referenced in the main rule
+- AI reads the main rule during proto creation - if docs aren't listed, they won't be consulted
+- Documentation without visibility = documentation that doesn't exist
+
+**How to Update Reference Documentation Section**:
+
+1. **Open main rule**: `model-stigmer-protos.mdc`
+
+2. **Find "Reference Documentation" section** (near top, after Prerequisites)
+
+3. **Add new doc in appropriate category**:
+
+   **Core Standards**:
+   ```markdown
+   - **Organization Patterns**: `docs/organization-patterns.md` ⚠️ **5-file structure**
+   - **[NEW DOC]**: `docs/new-standard.md` ⚠️ **Description**
+   ```
+
+   **Learning & Evolution** (always present):
+   ```markdown
+   - **Learning Log**: `docs/learning-log.md` - All proto APIs created
+   - **Complete Index**: `docs/README.md` - Full catalog
+   ```
+
+**Verification**: New doc appears in Reference Documentation section before next proto creation.
+
+---
+
+### Step 4: Update Main Rule Content (If Critical)
+
+**Update main rule CONTENT if:**
+- ✅ New critical standard discovered
+- ✅ Warning needed to prevent errors
+- ✅ Process step needs clarification
+- ✅ Common mistake severe enough for mention
+
+**Keep in topic docs if:**
+- ✅ Detailed pattern variations
+- ✅ Comprehensive examples
+- ✅ Multiple use cases
+- ✅ Background information
+
+---
+
+### Step 5: Update docs/README.md
+
+If you created a new topic doc:
+- Add it to `docs/README.md`
+- Include brief description
+- Mark as critical if needed
+
+---
+
+## Process for Different Learning Types
+
+### Type 1: New Proto API Creation
+
+**When**: Creating proto API for new resource
+
+**Actions**:
+1. ✅ Follow 5-file organization pattern
+2. ✅ Apply API resource standards
+3. ✅ Configure authorization
+4. ✅ Add validations
+5. ✅ Add to `learning-log.md` with proto snippets
+6. ✅ If new pattern → create/update topic doc
+
+**Example**: Creating proto for new `agent_execution` resource
+
+---
+
+### Type 2: Validation Pattern Discovery
+
+**When**: Find reusable validation constraint
+
+**Actions**:
+1. ✅ Add to `learning-log.md` under "Validation Patterns"
+2. ✅ If used 2+ times → add to `validation-patterns.md`
+3. ✅ Update main rule with reference
+
+**Example**: Discovered URL validation pattern with protocol requirement
+
+---
+
+### Type 3: File Organization Violation
+
+**When**: Encountered or prevented file structure mistake
+
+**Actions**:
+1. ✅ Add to `learning-log.md` under "File Organization"
+2. ✅ Add to `common-mistakes.md` catalog
+3. ✅ Show wrong vs right structure
+4. ✅ Strengthen warning in main rule if needed
+
+**Example**: Service defined in api.proto instead of command.proto
+
+---
+
+### Type 4: Authorization Pattern
+
+**When**: Learned something about RPC authorization config
+
+**Actions**:
+1. ✅ Add to `learning-log.md` under "Authorization Configuration"
+2. ✅ Create/update `authorization-configuration.md`
+3. ✅ Cross-reference backend handler rule
+4. ✅ Document FGA implications
+
+**Example**: Alternative key lookup authorization pattern
+
+---
+
+### Type 5: API Resource Standard Evolution
+
+**When**: New standard field or structure discovered
+
+**Actions**:
+1. ✅ Add to `learning-log.md` under "API Resource Standards"
+2. ✅ Update `api-resource-standards.md`
+3. ✅ Update main rule if critical
+4. ✅ Document impact on existing protos
+
+**Example**: New standard metadata field for resource tagging
+
+---
+
+## Proto-Specific Guidelines
+
+### What Makes a Good Proto Pattern Doc
+
+**Characteristics:**
+- Clear proto code examples
+- Multiple resource examples
+- Shows validation constraints
+- Documents authorization impact
+- Links to FGA and backend patterns
+- Verification checklist
+
+**Structure:**
+1. Overview and when to use
+2. Proto structure with code
+3. Real-world examples
+4. Common variations
+5. Mistakes to avoid
+6. Integration impacts
+
+---
+
+### What Makes a Good Proto Learning Entry
+
+**Characteristics:**
+- Includes proto code snippets
+- Shows before/after if correction
+- Explains reasoning behind structure
+- Notes validation choices
+- Documents authorization decisions
+- Links to pattern doc if extracted
+
+**Example:**
+```markdown
+### 2026-01-20: AgentExecution Proto API
+
+**Pattern**: New resource following 5-file organization.
+
+**Files Created**:
+- `apis/ai/stigmer/agentic/agentexecution/v1/api.proto`
+- `apis/ai/stigmer/agentic/agentexecution/v1/spec.proto`
+- `apis/ai/stigmer/agentic/agentexecution/v1/command.proto`
+- `apis/ai/stigmer/agentic/agentexecution/v1/query.proto`
+- `apis/ai/stigmer/agentic/agentexecution/v1/io.proto`
+
+**Authorization**: Parent-based (inherits from agent relation)
+
+**Validation**: Added execution_time timestamp validation
+
+**Reference Doc**: Standard 5-file pattern in `organization-patterns.md`
+```
+
+---
+
+## Documentation Structure
+
+```
+model-stigmer-protos/
+├── model-stigmer-protos.mdc             # Main rule
+├── improve-this-rule.mdc                # This file
+└── docs/
+    ├── README.md                        # Index
+    ├── learning-log.md                  # Historical record (by topic)
+    │
+    ├── organization-patterns.md         # 5-file structure
+    └── api-resource-standards.md        # Kubernetes-inspired standards
+```
+
+---
+
+## Verification Checklist
+
+After making improvements:
+
+- [ ] Added entry to `docs/learning-log.md` under correct topic
+- [ ] Created/updated topic doc if pattern stabilized
+- [ ] **⚠️ CRITICAL**: Updated main rule's "Reference Documentation" section if new doc created
+- [ ] Updated main rule content if critical standard needs warning
+- [ ] Proto code examples are complete and correct
+- [ ] Authorization impact documented
+- [ ] FGA integration noted
+- [ ] Backend handler impact described
+- [ ] `docs/README.md` updated if new doc created
+- [ ] Cross-references to related rules added
+- [ ] New docs are categorized correctly in Reference Documentation
+
+---
+
+## Anti-Patterns to Avoid
+
+❌ **Don't**: Create protos without following 5-file organization
+✅ **Do**: Use `organization-patterns.md` as template
+
+❌ **Don't**: Skip authorization configuration
+✅ **Do**: Configure authorization for every RPC (or explicitly document skip)
+
+❌ **Don't**: Forget validation constraints
+✅ **Do**: Add buf.validate rules to all fields
+
+❌ **Don't**: Violate API resource standards
+✅ **Do**: Follow Kubernetes-inspired structure (api_version, kind, metadata, spec, status)
+
+❌ **Don't**: Make learning log purely chronological
+✅ **Do**: Group by topic (File Organization, Validation, Authorization, etc.)
+
+❌ **Don't**: Create topic doc for every proto
+✅ **Do**: Wait until pattern is used 2-3+ times
+
+---
+
+## Cross-Rule Integration
+
+**Proto API → FGA Modeling → Backend Handlers**:
+
+When you create a proto API:
+1. Proto defines resource structure and RPCs
+2. FGA model defines authorization relations (based on proto)
+3. Backend handlers implement proto RPCs (create IAM policies based on FGA)
+
+**Learning flow**:
+- Proto authorization config → FGA relations → Backend policy creation
+- Learnings from any layer can improve all three rules
+
+**Cross-references**:
+- Proto → `@model-stigmer-fga-authorization` (design FGA model)
+- Proto → `@implement-stigmer-backend-handlers` (implement RPCs)
+- Both rules reference back to proto for structure
+
+---
+
+## Example Improvement Session
+
+**Scenario**: Created proto for `agent_execution` resource
+
+**Steps:**
+
+### 1. Add to Learning Log
+
+```markdown
+## File Organization Patterns
+
+### 2026-01-20: AgentExecution Proto - Complete 5-File Structure
+
+**Pattern**: Created new resource following established organization.
+
+**Files**:
+```
+apis/ai/stigmer/agentic/agentexecution/v1/
+├── api.proto          # AgentExecution message (ApiVersion, Kind, Metadata, Spec, Status)
+├── spec.proto         # AgentExecutionSpec (execution config)
+├── command.proto      # AgentExecutionCommandController service
+├── query.proto        # AgentExecutionQueryController service
+└── io.proto           # CreateInput, UpdateInput, AgentExecutions
+```
+
+**Authorization**: Configured for all RPCs (can_edit for commands, can_view for queries)
+
+**Validation**: Added execution_time, status enum, result size limits
+
+**Impact**: Clean structure, consistent with other resources
+
+**Reference Doc**: See `organization-patterns.md` - 5-file pattern
+```
+
+### 2. No New Pattern Doc Needed
+
+Pattern already documented in `organization-patterns.md`. This is an application of existing pattern, not a new one.
+
+### 3. Verify
+
+- ✅ Learning log has entry with file list
+- ✅ Authorization documented
+- ✅ Validation noted
+- ✅ No main rule update needed (standard pattern)
+- ✅ Ready for FGA modeling and backend implementation
+
+---
+
+## Meta: Improving This Meta-Rule
+
+If this improvement rule itself needs improvement:
+- Follow the same process
+- Add to `docs/learning-log.md` under appropriate category
+- Keep focused on proto API creation process
+- Don't get too recursive
+
+---
+
+## Summary: The Hybrid Approach for Proto APIs
+
+**Why both learning log AND pattern docs?**
+
+| Learning Log | Pattern Docs |
+|-------------|--------------|
+| Record of each proto created | Reusable standards |
+| Chronicles discovery process | Current best practices |
+| Shows evolution of patterns | Template structures |
+| Includes reasoning | Organized by concept |
+
+**Result:**
+- Main rule stays focused on process
+- Pattern docs provide templates and standards
+- Learning log preserves context and evolution
+- All three enable rapid proto API creation
+
+---
+
+**Goal**: Continuously improve proto API creation through pattern discovery and standardization, maintaining clean organization via hybrid documentation (standards library + organized learning log + concise main rule).
