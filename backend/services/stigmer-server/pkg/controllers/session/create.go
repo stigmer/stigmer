@@ -36,9 +36,9 @@ func (c *SessionController) Create(ctx context.Context, session *sessionv1.Sessi
 // buildCreatePipeline constructs the pipeline for session creation
 func (c *SessionController) buildCreatePipeline() *pipeline.Pipeline[*sessionv1.Session] {
 	return pipeline.NewPipeline[*sessionv1.Session]("session-create").
-		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).             // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).               // 2. Resolve slug
-		AddStep(steps.NewBuildNewStateStep[*sessionv1.Session]()).             // 3. Build new state
-		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store, "Session")). // 4. Persist session
+		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).  // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).    // 2. Resolve slug
+		AddStep(steps.NewBuildNewStateStep[*sessionv1.Session]()).  // 3. Build new state
+		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)). // 4. Persist session
 		Build()
 }
