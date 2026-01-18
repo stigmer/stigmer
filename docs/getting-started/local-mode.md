@@ -20,7 +20,9 @@ brew install stigmer/tap/stigmer
 stigmer version
 ```
 
-## Initialize Local Backend
+## Initialize and Start Local Backend
+
+### First-Time Setup
 
 ```bash
 stigmer init
@@ -34,8 +36,59 @@ This creates `~/.stigmer/local.db` with the initial schema.
 ✓ Initialized local backend
 ✓ Stigmer is ready to use in local mode
 
-Try: stigmer agent execute my-agent "hello world"
+Next: stigmer local start
 ```
+
+### Start Local Daemon
+
+```bash
+stigmer local start
+```
+
+On first start, you'll be prompted for required API keys:
+
+```
+Enter Anthropic API key: ********
+✓ Anthropic API key configured
+Starting daemon...
+Daemon started successfully
+  PID:  12345
+  Port: 50051
+  Data: /Users/you/.stigmer
+Agent-runner started successfully
+```
+
+**What happens:**
+- Stigmer prompts for missing API keys (masked input)
+- Starts local stigmer-server on `localhost:50051`
+- Starts agent-runner subprocess with injected secrets
+- Both processes run in background
+
+**Subsequent starts:** If you've set `ANTHROPIC_API_KEY` in your environment, no prompt will appear.
+
+### Check Status
+
+```bash
+stigmer local status
+```
+
+**Output**:
+```
+Daemon Status:
+─────────────────────────────────────
+  Status: ✓ Running
+  PID:    12345
+  Port:   50051
+  Data:   /Users/you/.stigmer
+```
+
+### Stop Local Daemon
+
+```bash
+stigmer local stop
+```
+
+This gracefully shuts down both stigmer-server and agent-runner.
 
 ## Create Your First Agent
 
