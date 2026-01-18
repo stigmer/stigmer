@@ -34,8 +34,8 @@ Each step:
 
 ```go
 import (
-    "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/pipeline"
-    "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/pipeline/steps"
+    "github.com/stigmer/stigmer/backend/libs/go/pipeline"
+    "github.com/stigmer/stigmer/backend/libs/go/pipeline/steps"
     "github.com/stigmer/stigmer/backend/libs/go/telemetry"
     agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 )
