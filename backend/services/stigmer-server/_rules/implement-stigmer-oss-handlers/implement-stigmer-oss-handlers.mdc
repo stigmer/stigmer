@@ -18,16 +18,28 @@ alwaysApply: false
 
 ## Quick Start: Implementation Approach
 
-### TL;DR - What Pattern to Use
+### ⚠️ CRITICAL: ALL Handlers MUST Use Pipeline Pattern
 
-| Operation | Recommended Pattern | Reason |
-|-----------|-------------------|---------|
-| **Create** | Pipeline | Needs validation, duplicate check, defaults |
-| **Update** | Pipeline (simple) | Consistent with Create, easy to extend |
-| **Delete** | Direct | Simple load-and-delete flow |
-| **Get** | Direct | Just database lookup |
-| **GetByReference** | Direct | Lookup with filtering |
-| **List/Find** | Direct | Database query with filter |
+**MANDATORY**: Every handler in Stigmer OSS MUST use the pipeline pattern - NO EXCEPTIONS.
+
+| Operation | Pattern | Pipeline Steps |
+|-----------|---------|---------------|
+| **Create** | Pipeline | Validate → ResolveSlug → CheckDuplicate → SetDefaults → Persist |
+| **Update** | Pipeline | Validate → LoadExisting → Merge → Persist |
+| **Delete** | Pipeline | Validate → LoadExisting → Delete |
+| **Get** | Pipeline | Validate → LoadTarget |
+| **Apply** | Pipeline | Validate → ResolveSlug → LoadForApply → Persist |
+| **List/Find** | Pipeline | Validate → Query → Return |
+
+**Why Pipeline for Everything:**
+- ✅ **Consistency**: All handlers follow the same pattern
+- ✅ **Observability**: Built-in tracing and logging
+- ✅ **Reusability**: Common steps shared across resources
+- ✅ **Extensibility**: Easy to add/remove/reorder steps
+- ✅ **Testability**: Each step can be tested independently
+- ✅ **Maintainability**: Clear separation of concerns
+
+**Even "simple" operations use pipelines - this is non-negotiable.**
 
 ### Key Architectural Decisions
 
@@ -37,18 +49,13 @@ alwaysApply: false
 - Trade-off: Runtime type assertions vs compile-time safety
 - **Why**: Simpler for small team, easier evolution, Go-idiomatic
 
-**Decision 2: Pipeline Pattern for Business Logic**
-- Composable steps: ResolveSlug → CheckDuplicate → SetDefaults → Persist
+**Decision 2: Pipeline Pattern for ALL Operations**
+- ALL handlers use composable pipeline steps
 - Reusable across resources
 - Clear separation of concerns
-- **Why**: Consistency, testability, reusability
+- **Why**: Consistency, testability, reusability, observability
 
-**Decision 3: Direct Pattern for Simple Operations**
-- Get/Delete don't need pipeline overhead
-- Inline validation and database calls
-- **Why**: Simpler code for simple operations
-
-**Decision 4: Context Metadata for Inter-Step Communication**
+**Decision 3: Context Metadata for Inter-Step Communication**
 - Use string keys with constants: `const ExistingResourceKey = "existingResource"`
 - Add helper methods for type safety when pattern emerges
 - **Why**: Flexible, doesn't require changing context type
@@ -65,30 +72,29 @@ alwaysApply: false
 Stigmer OSS uses a simplified architecture compared to Stigmer Cloud:
 
 **Storage**: BadgerDB or SQLite for local persistence  
-**Handlers**: Direct gRPC method implementations OR pipeline-based processing  
-**Context Pattern**: Single `RequestContext[T]` for all operations (create, update, delete)  
+**Handlers**: Pipeline-based processing (ALL handlers)  
+**Context Pattern**: Single `RequestContext[T]` for all operations (create, update, delete, get, apply)  
 **Pipeline Steps**: Reusable, composable processing steps  
 **Error handling**: Using `grpclib` helpers for consistent gRPC errors
 
-### Two Implementation Approaches
+### Pipeline Pattern - The ONLY Approach
 
-Stigmer OSS supports two handler implementation patterns:
+**ALL Stigmer OSS handlers MUST use the pipeline pattern:**
 
-1. **Direct Handler Pattern** (simpler, for basic CRUD)
-   - Inline validation and storage operations
-   - Good for simple resources with minimal business logic
-   - Example: Simple getter/setter operations
-
-2. **Pipeline Pattern** (recommended for complex operations)
+✅ **Pipeline Pattern** (MANDATORY for ALL operations):
    - Composable pipeline steps
    - Reusable validation, persistence, and business logic
    - Single context for all operation types
-   - Example: Agent creation with validation, duplicate checking, defaults
+   - Examples: Create, Update, Delete, Get, Apply, List
 
-**When to use which:**
-- Use **Direct Pattern** for simple Get/Delete operations
-- Use **Pipeline Pattern** for Create/Update operations with validation, defaults, etc.
-- See "Pipeline vs Direct Implementation" section below for detailed guidance
+**Why no direct pattern:**
+- ❌ Direct inline implementations lack observability
+- ❌ Cannot add tracing/logging without refactoring
+- ❌ Difficult to extend with new steps
+- ❌ Inconsistent with Cloud version architecture
+- ❌ Hard to test individual concerns
+
+**This is a fundamental architectural principle - not optional.**
 
 ---
 
@@ -727,45 +733,36 @@ func NewResourceController(store *sqlite.Store) *ResourceController {
 }
 ```
 
-### Pipeline vs Direct Implementation
+### ⚠️ Pipeline Pattern - MANDATORY for ALL Operations
 
-**Use Pipeline Pattern when:**
-- ✅ Create operations with validation, duplicate checking, defaults
-- ✅ Update operations that need to load existing state
-- ✅ Complex business logic split across multiple steps
-- ✅ Need to reuse validation/persistence logic across resources
-- ✅ Want to add telemetry/tracing per step
+**ALL handlers MUST use the pipeline pattern - NO EXCEPTIONS:**
 
-**Use Direct Pattern when:**
-- ✅ Simple Get operations (just load and return)
-- ✅ Simple Delete operations (load, delete, return)
-- ✅ Minimal business logic
-- ✅ No need for step composition
+✅ **Create** - Validation → ResolveSlug → CheckDuplicate → SetDefaults → Persist
+✅ **Update** - Validation → LoadExisting → Merge → Persist  
+✅ **Delete** - Validation → LoadExisting → Delete
+✅ **Get** - Validation → LoadTarget
+✅ **Apply** - Validation → ResolveSlug → LoadForApply → Persist
+✅ **List/Query** - Validation → Query → Return
 
-**Example Decision Tree:**
+**Why Pipeline for Everything:**
+- ✅ **Consistency**: All handlers follow the same architectural pattern
+- ✅ **Observability**: Built-in tracing and logging at each step
+- ✅ **Reusability**: Common steps shared across all resources
+- ✅ **Extensibility**: Easy to add/remove/reorder steps without refactoring
+- ✅ **Testability**: Each step can be tested in isolation
+- ✅ **Maintainability**: Clear separation of concerns
+
+**Implementation Rule:**
 
 ```
-Create Handler
-├─ Needs validation? ────────────────────────► Pipeline
-├─ Needs duplicate checking? ────────────────► Pipeline
-├─ Needs to set defaults? ───────────────────► Pipeline
-├─ Complex multi-step flow? ─────────────────► Pipeline
-└─ Simple insert with basic validation ──────► Either (Pipeline preferred for consistency)
-
-Update Handler
-├─ Needs to load existing resource? ─────────► Pipeline
-├─ Needs to merge changes? ──────────────────► Pipeline
-├─ Complex validation against existing? ─────► Pipeline
-└─ Simple field updates ─────────────────────► Pipeline (to handle existing state)
-
-Delete Handler
-├─ Just load and delete? ────────────────────► Direct (simpler)
-├─ Need to check dependencies? ──────────────► Pipeline
-└─ Complex cleanup? ─────────────────────────► Pipeline
-
-Get/Query Handlers
-└─ Always use Direct ────────────────────────► Direct (no need for pipeline)
+ANY Handler (Create, Update, Delete, Get, Apply, List)
+└─ MUST use Pipeline Pattern ✅
+   └─ Define pipeline with steps
+   └─ Execute via RequestContext
+   └─ Return result from context
 ```
+
+**This is a fundamental architectural principle - not a suggestion.**
 
 ---
 
@@ -812,62 +809,8 @@ func (c *ResourceController) Create(ctx context.Context, resource *pb.Resource) 
 3. `SetDefaultsStep` - Set ID, kind, api_version, timestamps
 4. `PersistStep` - Save to database
 
----
-
-**Approach 2: Direct Pattern (Simpler, Less Flexible)**
-
-```go
-// Create creates a new resource (direct implementation)
-func (c *ResourceController) Create(ctx context.Context, resource *pb.Resource) (*pb.Resource, error) {
-    if resource == nil {
-        return nil, grpclib.InvalidArgumentError("resource is required")
-    }
-
-    // Validate required fields
-    if resource.Metadata == nil {
-        return nil, grpclib.InvalidArgumentError("metadata is required")
-    }
-
-    if resource.Metadata.Name == "" {
-        return nil, grpclib.InvalidArgumentError("name is required")
-    }
-
-    // Generate slug if not provided
-    if resource.Metadata.Slug == "" {
-        resource.Metadata.Slug = slugify(resource.Metadata.Name)
-    }
-
-    // Check for duplicates by slug
-    existing, _ := c.findBySlug(ctx, resource.Metadata.Slug)
-    if existing != nil {
-        return nil, grpclib.AlreadyExistsError("Resource", resource.Metadata.Slug)
-    }
-
-    // Generate ID if not provided
-    if resource.Metadata.Id == "" {
-        resource.Metadata.Id = fmt.Sprintf("res-%s", generateID())
-    }
-
-    // Set kind and api_version (MUST match proto definition)
-    resource.Kind = "Resource"
-    resource.ApiVersion = "ai.stigmer.domain.resource/v1"
-
-    // Save resource
-    if err := c.store.SaveResource(ctx, "Resource", resource.Metadata.Id, resource); err != nil {
-        return nil, grpclib.InternalError(err, "failed to save resource")
-    }
-
-    return resource, nil
-}
-```
-
-**Direct Pattern Use Cases:**
-- Simple resources with minimal logic
-- Prototyping before extracting steps
-- One-off custom validation
-
-**Key Points (Both Patterns):**
-- Validate required fields
+**Key Implementation Points:**
+- Validate required fields (done by pipeline steps)
 - Generate slug from name (slugify: lowercase, hyphenate)
 - Check for duplicates by slug (NOT by ID)
 - Generate ID if not provided
@@ -1007,40 +950,9 @@ func (s *MergeChangesStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 }
 ```
 
----
-
-**Approach 2: Direct Pattern (Simpler)**
-
-```go
-// Update updates an existing resource (direct implementation)
-func (c *ResourceController) Update(ctx context.Context, resource *pb.Resource) (*pb.Resource, error) {
-    if resource == nil {
-        return nil, grpclib.InvalidArgumentError("resource is required")
-    }
-
-    if resource.Metadata == nil || resource.Metadata.Id == "" {
-        return nil, grpclib.InvalidArgumentError("resource id is required")
-    }
-
-    // Check if resource exists (optional but recommended)
-    existing := &pb.Resource{}
-    err := c.store.GetResource(ctx, resource.Metadata.Id, existing)
-    if err != nil {
-        return nil, grpclib.NotFoundError("Resource", resource.Metadata.Id)
-    }
-
-    // Update resource (SaveResource does upsert)
-    if err := c.store.SaveResource(ctx, "Resource", resource.Metadata.Id, resource); err != nil {
-        return nil, grpclib.InternalError(err, "failed to update resource")
-    }
-
-    return resource, nil
-}
-```
-
-**Key Points:**
-- Pipeline pattern better for updates needing to merge existing state
-- Direct pattern fine for simple full-replacement updates
+**Key Implementation Points:**
+- Use pipeline pattern for all updates
+- Load existing state if merging changes
 - Always verify resource exists before updating
 - `SaveResource` has upsert semantics (creates if not exists)
 
@@ -1052,56 +964,69 @@ func (c *ResourceController) Update(ctx context.Context, resource *pb.Resource) 
 
 ### Delete Handler
 
+**Pipeline Pattern (MANDATORY):**
+
 ```go
-// Delete deletes a resource
+// Delete deletes a resource using pipeline
 func (c *ResourceController) Delete(ctx context.Context, resourceId *pb.ResourceId) (*pb.Resource, error) {
-    if resourceId == nil || resourceId.Value == "" {
-        return nil, grpclib.InvalidArgumentError("resource id is required")
+    // Create request context
+    reqCtx := pipeline.NewRequestContext(ctx, resourceId)
+
+    // Build pipeline
+    p := pipeline.NewPipeline[*pb.ResourceId]("resource-delete").
+        AddStep(steps.NewValidateInputStep[*pb.ResourceId]()).    // 1. Validate
+        AddStep(steps.NewLoadExistingStep[*pb.ResourceId](c.store, "Resource")). // 2. Load (sets resource in context)
+        AddStep(steps.NewDeleteStep[*pb.ResourceId](c.store, "Resource")).       // 3. Delete
+        Build()
+
+    // Execute pipeline
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
     }
 
-    // Get resource before deletion (to return it)
-    resource := &pb.Resource{}
-    if err := c.store.GetResource(ctx, resourceId.Value, resource); err != nil {
-        return nil, grpclib.NotFoundError("Resource", resourceId.Value)
-    }
-
-    // Delete resource
-    if err := c.store.DeleteResource(ctx, resourceId.Value); err != nil {
-        return nil, grpclib.InternalError(err, "failed to delete resource")
-    }
-
-    return resource, nil
+    // Return deleted resource from context
+    return reqCtx.Get("deletedResource").(*pb.Resource), nil
 }
 ```
 
-**Key Points:**
+**Key Implementation Points:**
+- Use pipeline with LoadExisting → Delete steps
 - Load resource before deletion (gRPC convention: return deleted resource)
-- Use `DeleteResource` method from store
+- DeleteStep removes from store and saves resource to context
 - Return the deleted resource
 
 ---
 
 ### Get Handler
 
+**Pipeline Pattern (MANDATORY):**
+
 ```go
-// Get retrieves a resource by ID
+// Get retrieves a resource by ID using pipeline
 func (c *ResourceController) Get(ctx context.Context, resourceId *pb.ResourceId) (*pb.Resource, error) {
-    if resourceId == nil || resourceId.Value == "" {
-        return nil, grpclib.InvalidArgumentError("resource id is required")
+    // Create request context
+    reqCtx := pipeline.NewRequestContext(ctx, resourceId)
+
+    // Build pipeline
+    p := pipeline.NewPipeline[*pb.ResourceId]("resource-get").
+        AddStep(steps.NewValidateInputStep[*pb.ResourceId]()).  // 1. Validate
+        AddStep(steps.NewLoadTargetStep[*pb.ResourceId](c.store, "Resource")). // 2. Load
+        Build()
+
+    // Execute pipeline
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
     }
 
-    resource := &pb.Resource{}
-    if err := c.store.GetResource(ctx, resourceId.Value, resource); err != nil {
-        return nil, grpclib.NotFoundError("Resource", resourceId.Value)
-    }
-
-    return resource, nil
+    // Return loaded resource from context
+    return reqCtx.Get("targetResource").(*pb.Resource), nil
 }
 ```
 
-**Key Points:**
-- Simple ID-based lookup
-- Return NotFound error if resource doesn't exist
+**Key Implementation Points:**
+- Use pipeline with Validate → LoadTarget steps
+- LoadTarget step loads resource and stores in context
+- Return NotFound error if resource doesn't exist (handled by step)
 
 ---
 
@@ -1747,89 +1672,61 @@ func (c *ResourceController) Update(ctx context.Context, resource *pb.Resource) 
 }
 ```
 
-### 3. Delete Handler (Direct)
+### 3. Delete Handler (Pipeline)
 
 ```go
 func (c *ResourceController) Delete(ctx context.Context, resourceId *pb.ResourceId) (*pb.Resource, error) {
-    if resourceId == nil || resourceId.Value == "" {
-        return nil, grpclib.InvalidArgumentError("resource id is required")
+    reqCtx := pipeline.NewRequestContext(ctx, resourceId)
+
+    p := pipeline.NewPipeline[*pb.ResourceId]("resource-delete").
+        AddStep(steps.NewValidateInputStep[*pb.ResourceId]()).
+        AddStep(steps.NewLoadExistingStep[*pb.ResourceId](c.store, "Resource")).
+        AddStep(steps.NewDeleteStep[*pb.ResourceId](c.store, "Resource")).
+        Build()
+
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
     }
 
-    resource := &pb.Resource{}
-    if err := c.store.GetResource(ctx, resourceId.Value, resource); err != nil {
-        return nil, grpclib.NotFoundError("Resource", resourceId.Value)
-    }
-
-    if err := c.store.DeleteResource(ctx, resourceId.Value); err != nil {
-        return nil, grpclib.InternalError(err, "failed to delete resource")
-    }
-
-    return resource, nil
+    return reqCtx.Get("deletedResource").(*pb.Resource), nil
 }
 ```
 
-### 4. Get Handler (Direct)
+### 4. Get Handler (Pipeline)
 
 ```go
 func (c *ResourceController) Get(ctx context.Context, resourceId *pb.ResourceId) (*pb.Resource, error) {
-    if resourceId == nil || resourceId.Value == "" {
-        return nil, grpclib.InvalidArgumentError("resource id is required")
+    reqCtx := pipeline.NewRequestContext(ctx, resourceId)
+
+    p := pipeline.NewPipeline[*pb.ResourceId]("resource-get").
+        AddStep(steps.NewValidateInputStep[*pb.ResourceId]()).
+        AddStep(steps.NewLoadTargetStep[*pb.ResourceId](c.store, "Resource")).
+        Build()
+
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
     }
 
-    resource := &pb.Resource{}
-    if err := c.store.GetResource(ctx, resourceId.Value, resource); err != nil {
-        return nil, grpclib.NotFoundError("Resource", resourceId.Value)
-    }
-
-    return resource, nil
+    return reqCtx.Get("targetResource").(*pb.Resource), nil
 }
 ```
 
-### 5. GetByReference Handler (Direct with Helper)
+### 5. GetByReference Handler (Pipeline)
 
 ```go
 func (c *ResourceController) GetByReference(ctx context.Context, ref *apiresource.ApiResourceReference) (*pb.Resource, error) {
-    if ref == nil {
-        return nil, grpclib.InvalidArgumentError("reference is required")
+    reqCtx := pipeline.NewRequestContext(ctx, ref)
+
+    p := pipeline.NewPipeline[*apiresource.ApiResourceReference]("resource-get-by-reference").
+        AddStep(steps.NewValidateInputStep[*apiresource.ApiResourceReference]()).
+        AddStep(steps.NewLoadByReferenceStep[*apiresource.ApiResourceReference](c.store, "Resource")).
+        Build()
+
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
     }
 
-    if ref.Slug != "" {
-        return c.findByName(ctx, ref.Slug, ref.Org)
-    }
-
-    return nil, grpclib.InvalidArgumentError("slug is required")
-}
-
-func (c *ResourceController) findByName(ctx context.Context, name string, orgID string) (*pb.Resource, error) {
-    var resources [][]byte
-    var err error
-
-    if orgID != "" {
-        resources, err = c.store.ListResourcesByOrg(ctx, "Resource", orgID)
-    } else {
-        resources, err = c.store.ListResources(ctx, "Resource")
-    }
-
-    if err != nil {
-        return nil, grpclib.InternalError(err, "failed to list resources")
-    }
-
-    for _, data := range resources {
-        resource := &pb.Resource{}
-        if err := protojson.Unmarshal(data, resource); err != nil {
-            continue
-        }
-
-        if resource.Metadata.Name == name {
-            if orgID != "" && resource.Metadata.Org != orgID {
-                continue
-            }
-            return resource, nil
-        }
-    }
-
-    return nil, grpclib.WrapError(nil, codes.NotFound, 
-        fmt.Sprintf("resource not found with name: %s", name))
+    return reqCtx.Get("targetResource").(*pb.Resource), nil
 }
 ```
 
@@ -1855,15 +1752,15 @@ func (c *ResourceController) findByName(ctx context.Context, name string, orgID 
 - [ ] Returns `reqCtx.NewState()` as response
 
 ### Delete Handler
-- [ ] Uses direct pattern (simpler)
-- [ ] Validates ID is provided
-- [ ] Loads resource before deletion
-- [ ] Deletes from store
-- [ ] Returns deleted resource
+- [ ] Uses pipeline pattern with LoadExisting → Delete steps
+- [ ] Validates ID is provided (via pipeline step)
+- [ ] Loads resource before deletion (via LoadExisting step)
+- [ ] Deletes from store (via Delete step)
+- [ ] Returns deleted resource from context
 
 ### Query Handlers (Get, GetByReference)
-- [ ] Use direct pattern
-- [ ] Validate inputs
+- [ ] Use pipeline pattern with LoadTarget step
+- [ ] Validate inputs (via pipeline step)
 - [ ] Use grpclib error helpers
 - [ ] GetByReference supports slug and org filtering
 
@@ -1888,73 +1785,6 @@ func (c *ResourceController) findByName(ctx context.Context, name string, orgID 
 
 ---
 
-## Migration Guide: Direct → Pipeline
-
-If you implemented direct handlers first and want to migrate to pipeline:
-
-### Before (Direct)
-```go
-func (c *ResourceController) Create(ctx context.Context, resource *pb.Resource) (*pb.Resource, error) {
-    // Validation
-    if resource.Metadata.Name == "" {
-        return nil, grpclib.InvalidArgumentError("name is required")
-    }
-    
-    // Generate slug
-    if resource.Metadata.Slug == "" {
-        resource.Metadata.Slug = slugify(resource.Metadata.Name)
-    }
-    
-    // Check duplicates
-    existing, _ := c.findBySlug(ctx, resource.Metadata.Slug)
-    if existing != nil {
-        return nil, grpclib.AlreadyExistsError("Resource", resource.Metadata.Slug)
-    }
-    
-    // Set defaults
-    if resource.Metadata.Id == "" {
-        resource.Metadata.Id = generateID()
-    }
-    resource.Kind = "Resource"
-    
-    // Persist
-    if err := c.store.SaveResource(ctx, "Resource", resource.Metadata.Id, resource); err != nil {
-        return nil, grpclib.InternalError(err, "failed to save")
-    }
-    
-    return resource, nil
-}
-```
-
-### After (Pipeline)
-```go
-func (c *ResourceController) Create(ctx context.Context, resource *pb.Resource) (*pb.Resource, error) {
-    reqCtx := pipeline.NewRequestContext(ctx, resource)
-
-    p := pipeline.NewPipeline[*pb.Resource]("resource-create").
-        AddStep(steps.NewResolveSlugStep[*pb.Resource]()).          // Replaces slug generation
-        AddStep(steps.NewCheckDuplicateStep[*pb.Resource](c.store, "Resource")). // Replaces duplicate check
-        AddStep(steps.NewSetDefaultsStep[*pb.Resource]("resource")). // Replaces defaults
-        AddStep(steps.NewPersistStep[*pb.Resource](c.store, "Resource")). // Replaces persist
-        Build()
-
-    if err := p.Execute(reqCtx); err != nil {
-        return nil, err
-    }
-
-    return reqCtx.NewState(), nil
-}
-```
-
-**Benefits of migration:**
-- Less code in handler
-- Reusable steps across resources
-- Easier to add tracing/metrics
-- Consistent error handling
-- Steps can be tested independently
-
----
-
 ## Goal
 
 Implement **composable, pipeline-based** gRPC handlers for Stigmer OSS that:
@@ -1963,5 +1793,6 @@ Implement **composable, pipeline-based** gRPC handlers for Stigmer OSS that:
 - ✅ Work well for local usage
 - ✅ Are easy to test and maintain
 - ✅ Can evolve as requirements grow
+- ✅ Follow consistent architectural patterns
 
-**Start with pipeline pattern for Create/Update, use direct pattern for Get/Delete.**
+**ALL handlers MUST use the pipeline pattern - this is a fundamental architectural requirement.**
