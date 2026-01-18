@@ -10,7 +10,6 @@ go_library(
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/grpc/request/pipeline",
-        "//internal/gen/ai/stigmer/agentic/session/v1:session",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_protobuf//encoding/protojson",
     ],

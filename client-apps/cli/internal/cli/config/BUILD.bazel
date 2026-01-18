@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "config",
+    srcs = ["config.go"],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/config",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "@com_github_pkg_errors//:errors",
+        "@in_gopkg_yaml_v3//:yaml_v3",
+    ],
+)

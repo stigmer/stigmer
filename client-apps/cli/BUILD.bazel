@@ -1,15 +1,15 @@
 load("@rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "stigmer_lib",
+    name = "cli_lib",
     srcs = ["main.go"],
-    importpath = "github.com/stigmer/stigmer/cmd/stigmer",
+    importpath = "github.com/stigmer/stigmer/client-apps/cli",
     visibility = ["//visibility:private"],
-    deps = ["@com_github_spf13_cobra//:cobra"],
+    deps = ["//client-apps/cli/cmd/stigmer"],
 )
 
 go_binary(
     name = "stigmer",
-    embed = [":stigmer_lib"],
+    embed = [":cli_lib"],
     visibility = ["//visibility:public"],
 )
