@@ -14,45 +14,20 @@
 ✅ **Architecture Documented** - OSS vs Cloud pipeline differences clarified  
 ✅ **Query Handlers Refactored** - Generic pipeline steps for Get/GetByReference  
 ✅ **Apply Pattern Established** - Simple delegation pattern (not inline)  
-✅ **Session Client Infrastructure Ready** - Downstream client created, awaiting Session controller  
-✅ **AgentExecution Delete Handler Aligned** - Migrated to pipeline pattern (100% compliance)
+✅ **Session Controller Implemented** - Full pipeline with create handler  
+✅ **AgentExecution Delete Handler Aligned** - Migrated to pipeline pattern (100% compliance)  
+✅ **AgentExecution Cross-Domain Migration** - In-process gRPC for single source of truth
 
 ## Project Status
 
-🎉 **PHASE 9.4 COMPLETE** 🎉
+🎉 **PHASE 9.5 COMPLETE** 🎉
 
-**Latest:** AgentExecution delete handler aligned with Cloud using pipeline pattern  
-**Next:** Apply pattern to Workflow, Task, and other resources
+**Latest:** AgentExecution fully migrated to in-process gRPC for cross-domain operations  
+**Next:** Integration testing and apply pattern to Workflow, Task resources
 
-## What Was Accomplished (Phase 9.4)
+## What Was Accomplished (Phase 9.5)
 
-### ✅ AgentExecution Delete Handler Pipeline Alignment
-
-**Location**: `backend/services/stigmer-server/pkg/controllers/agentexecution/delete.go`
-
-**What changed**:
-- Migrated from direct inline implementation to pipeline pattern
-- Now uses 4 standard pipeline steps (ValidateProto → ExtractResourceId → LoadExistingForDelete → DeleteResource)
-- Aligned with Java `AgentExecutionDeleteHandler` structure (with OSS exclusions documented)
-- 100% standard step reuse (no custom steps needed)
-
-**Why it matters**:
-- **100% Compliance**: ALL handlers must use pipeline pattern per implementation rule
-- **Architectural Consistency**: AgentExecution now fully aligned with Cloud implementation
-- **Pattern Validation**: Proves delete pipeline steps work across all resources
-- **Zero Custom Code**: All functionality provided by standard steps
-
-**Pipeline Steps**:
-1. ValidateProto - Field constraint validation
-2. ExtractResourceId - Extract ID from ApiResourceId wrapper
-3. LoadExistingForDelete - Load resource for audit trail
-4. DeleteResource - Delete from database
-
-**See**: `@checkpoints/2026-01-18-agentexecution-delete-handler-pipeline-alignment.md`
-
-## What Was Accomplished (Phase 9.4)
-
-### ✅ AgentExecution In-Process gRPC Migration
+### ✅ AgentExecution In-Process gRPC Migration (Latest)
 
 **Location**: `backend/services/stigmer-server/pkg/controllers/agentexecution/`, `backend/services/stigmer-server/pkg/downstream/agent/`, `backend/services/stigmer-server/pkg/controllers/session/`
 
@@ -88,6 +63,32 @@
 > 4. Full interceptor chain executes (validation, logging, correct metadata)
 
 **See**: `@checkpoints/2026-01-18-agentexecution-in-process-grpc-migration.md`
+
+## Previous Accomplishments (Phase 9.4)
+
+### ✅ AgentExecution Delete Handler Pipeline Alignment
+
+**Location**: `backend/services/stigmer-server/pkg/controllers/agentexecution/delete.go`
+
+**What changed**:
+- Migrated from direct inline implementation to pipeline pattern
+- Now uses 4 standard pipeline steps (ValidateProto → ExtractResourceId → LoadExistingForDelete → DeleteResource)
+- Aligned with Java `AgentExecutionDeleteHandler` structure (with OSS exclusions documented)
+- 100% standard step reuse (no custom steps needed)
+
+**Why it matters**:
+- **100% Compliance**: ALL handlers must use pipeline pattern per implementation rule
+- **Architectural Consistency**: AgentExecution now fully aligned with Cloud implementation
+- **Pattern Validation**: Proves delete pipeline steps work across all resources
+- **Zero Custom Code**: All functionality provided by standard steps
+
+**Pipeline Steps**:
+1. ValidateProto - Field constraint validation
+2. ExtractResourceId - Extract ID from ApiResourceId wrapper
+3. LoadExistingForDelete - Load resource for audit trail
+4. DeleteResource - Delete from database
+
+**See**: `@checkpoints/2026-01-18-agentexecution-delete-handler-pipeline-alignment.md`
 
 ## Previous Accomplishments (Phase 9.3)
 
@@ -263,10 +264,10 @@ return c.Update(ctx, resource)
 
 ## Documentation Created
 
-- **Latest Checkpoint:** `@checkpoints/2026-01-18-agentexecution-delete-handler-pipeline-alignment.md`
-- **Latest Changelog:** `@_changelog/2026-01/2026-01-18-235942-align-agentexecution-delete-handler-with-cloud.md`
-- **Previous Checkpoint:** `@checkpoints/2026-01-18-session-client-infrastructure-setup.md`
-- **Previous Changelog:** `@_changelog/2026-01/2026-01-18-234507-add-session-downstream-client.md`
+- **Latest Checkpoint:** `@checkpoints/2026-01-18-agentexecution-in-process-grpc-migration.md`
+- **Latest Changelog:** `@_changelog/2026-01/2026-01-18-235914-migrate-agentexecution-to-inprocess-grpc.md`
+- **Previous Checkpoint:** `@checkpoints/2026-01-18-agentexecution-delete-handler-pipeline-alignment.md`
+- **Previous Changelog:** `@_changelog/2026-01/2026-01-18-235942-align-agentexecution-delete-handler-with-cloud.md`
 - **Previous Checkpoint:** `@checkpoints/2026-01-18-agentinstance-handlers-complete.md`
 - **Previous Changelog:** `@_changelog/2026-01/2026-01-18-232944-implement-agentinstance-handlers.md`
 - **Package README:** `@backend/services/stigmer-server/pkg/controllers/agentinstance/README.md`
