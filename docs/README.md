@@ -12,6 +12,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Backend Abstraction](architecture/backend-abstraction.md) - Backend interface design and abstraction layers
 - [Open Core Model](architecture/open-core-model.md) - Open source vs enterprise architecture
 - [Request Pipeline Context Design](architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
+- [Temporal Integration](architecture/temporal-integration.md) - Polyglot workflow orchestration with Temporal (Go workflows, Python activities)
 - [Agent Runner: Local Mode](agent-runner-local-mode.md) - Mode-aware execution architecture (local vs cloud)
 
 ### Architecture Decision Records (ADR)
