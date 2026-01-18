@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentinstance/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // Context keys for inter-step communication
@@ -47,17 +47,16 @@ func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*ag
 
 // buildCreatePipeline constructs the pipeline for agent creation
 func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agent] {
-	// Use the ApiResourceKind enum for agent
-	kind := apiresourcekind.ApiResourceKind_agent
-
+	// api_resource_kind is automatically extracted from proto service descriptor
+	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*agentv1.Agent]("agent-create").
-		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).               // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).                 // 3. Resolve slug
-		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store, kind)). // 4. Check duplicate
-		AddStep(steps.NewSetDefaultsStep[*agentv1.Agent](kind)).             // 5. Set defaults
-		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store, kind)).        // 6. Persist agent
-		AddStep(c.newCreateDefaultInstanceStep()).                           // 8. Create default instance (TODO)
-		AddStep(c.newUpdateAgentStatusWithDefaultInstanceStep()).            // 9. Update status (TODO)
+		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).         // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).           // 3. Resolve slug
+		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)). // 4. Check duplicate
+		AddStep(steps.NewSetDefaultsStep[*agentv1.Agent]()).           // 5. Set defaults
+		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).        // 6. Persist agent
+		AddStep(c.newCreateDefaultInstanceStep()).                     // 8. Create default instance
+		AddStep(c.newUpdateAgentStatusWithDefaultInstanceStep()).      // 9. Update status
 		// TODO: Add CreateIamPolicies step when IAM system is ready
 		// TODO: Add Publish step when event system is ready
 		Build()
@@ -191,7 +190,8 @@ func (s *updateAgentStatusWithDefaultInstanceStep) Execute(ctx *pipeline.Request
 	agent.Status.DefaultInstanceId = defaultInstanceID
 
 	// 3. Persist updated agent to repository
-	kind := apiresourcekind.ApiResourceKind_agent
+	// Get api_resource_kind from request context (injected by interceptor)
+	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 	if err := s.controller.store.SaveResource(ctx.Context(), kind.String(), agentID, agent); err != nil {
 		log.Error().
 			Err(err).
