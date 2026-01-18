@@ -5,21 +5,27 @@ import (
 	"strings"
 	"testing"
 
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
-func TestSetDefaultsStep_Execute(t *testing.T) {
+// Helper function to create a context with api_resource_kind injected
+func contextWithKind(kind apiresourcekind.ApiResourceKind) context.Context {
+	return context.WithValue(context.Background(), apiresourceinterceptor.ApiResourceKindKey, kind)
+}
+
+func TestBuildNewStateStep_Execute(t *testing.T) {
 	agent := &agentv1.Agent{
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "Test Agent",
 		},
 	}
 
-	step := NewSetDefaultsStep[*agentv1.Agent](apiresourcekind.ApiResourceKind_agent)
-	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	step := NewBuildNewStateStep[*agentv1.Agent]()
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
 	ctx.SetNewState(agent)
 
 	// Execute
@@ -35,21 +41,34 @@ func TestSetDefaultsStep_Execute(t *testing.T) {
 		t.Errorf("Expected ID to be generated, got empty string")
 	}
 
-	// Check ID format (should start with "agent-")
-	if !strings.HasPrefix(agent.Metadata.Id, "agent-") {
-		t.Errorf("Expected ID to start with 'agent-', got %q", agent.Metadata.Id)
+	// Check ID format (should start with "agt-" for agent kind)
+	if !strings.HasPrefix(agent.Metadata.Id, "agt-") {
+		t.Errorf("Expected ID to start with 'agt-', got %q", agent.Metadata.Id)
 	}
 
 	// Check ID contains timestamp
 	parts := strings.Split(agent.Metadata.Id, "-")
 	if len(parts) != 2 {
-		t.Errorf("Expected ID format 'agent-{timestamp}', got %q", agent.Metadata.Id)
+		t.Errorf("Expected ID format 'agt-{timestamp}', got %q", agent.Metadata.Id)
+	}
+
+	// Check audit fields were set
+	if agent.Status == nil || agent.Status.Audit == nil {
+		t.Errorf("Expected audit fields to be set")
+	}
+
+	if agent.Status.Audit.SpecAudit == nil || agent.Status.Audit.StatusAudit == nil {
+		t.Errorf("Expected both spec_audit and status_audit to be set")
+	}
+
+	if agent.Status.Audit.SpecAudit.Event != "created" {
+		t.Errorf("Expected event='created', got %q", agent.Status.Audit.SpecAudit.Event)
 	}
 }
 
-func TestSetDefaultsStep_Idempotent(t *testing.T) {
+func TestBuildNewStateStep_Idempotent(t *testing.T) {
 	// Pre-set ID
-	existingID := "agent-123456789"
+	existingID := "agt-123456789"
 	agent := &agentv1.Agent{
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "Test Agent",
@@ -57,8 +76,8 @@ func TestSetDefaultsStep_Idempotent(t *testing.T) {
 		},
 	}
 
-	step := NewSetDefaultsStep[*agentv1.Agent](apiresourcekind.ApiResourceKind_agent)
-	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	step := NewBuildNewStateStep[*agentv1.Agent]()
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
 	ctx.SetNewState(agent)
 
 	// Execute
@@ -75,7 +94,7 @@ func TestSetDefaultsStep_Idempotent(t *testing.T) {
 	}
 }
 
-func TestSetDefaultsStep_DifferentKinds(t *testing.T) {
+func TestBuildNewStateStep_DifferentKinds(t *testing.T) {
 	tests := []struct {
 		name     string
 		kind     apiresourcekind.ApiResourceKind
@@ -94,8 +113,8 @@ func TestSetDefaultsStep_DifferentKinds(t *testing.T) {
 				},
 			}
 
-			step := NewSetDefaultsStep[*agentv1.Agent](tt.kind)
-			ctx := pipeline.NewRequestContext(context.Background(), agent)
+			step := NewBuildNewStateStep[*agentv1.Agent]()
+			ctx := pipeline.NewRequestContext(contextWithKind(tt.kind), agent)
 			ctx.SetNewState(agent)
 
 			err := step.Execute(ctx)
@@ -111,7 +130,7 @@ func TestSetDefaultsStep_DifferentKinds(t *testing.T) {
 	}
 }
 
-func TestSetDefaultsStep_MultipleResources(t *testing.T) {
+func TestBuildNewStateStep_MultipleResources(t *testing.T) {
 	// Create multiple agents and ensure they get different IDs
 	ids := make(map[string]bool)
 
@@ -122,8 +141,8 @@ func TestSetDefaultsStep_MultipleResources(t *testing.T) {
 			},
 		}
 
-		step := NewSetDefaultsStep[*agentv1.Agent](apiresourcekind.ApiResourceKind_agent)
-		ctx := pipeline.NewRequestContext(context.Background(), agent)
+		step := NewBuildNewStateStep[*agentv1.Agent]()
+		ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
 		ctx.SetNewState(agent)
 		step.Execute(ctx)
 
@@ -140,13 +159,13 @@ func TestSetDefaultsStep_MultipleResources(t *testing.T) {
 	}
 }
 
-func TestSetDefaultsStep_NilMetadata(t *testing.T) {
+func TestBuildNewStateStep_NilMetadata(t *testing.T) {
 	agent := &agentv1.Agent{
 		Metadata: nil,
 	}
 
-	step := NewSetDefaultsStep[*agentv1.Agent](apiresourcekind.ApiResourceKind_agent)
-	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	step := NewBuildNewStateStep[*agentv1.Agent]()
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
 	ctx.SetNewState(agent)
 
 	err := step.Execute(ctx)
@@ -156,10 +175,10 @@ func TestSetDefaultsStep_NilMetadata(t *testing.T) {
 	}
 }
 
-func TestSetDefaultsStep_Name(t *testing.T) {
-	step := NewSetDefaultsStep[*agentv1.Agent](apiresourcekind.ApiResourceKind_agent)
-	if step.Name() != "SetDefaults" {
-		t.Errorf("Expected Name()=SetDefaults, got %q", step.Name())
+func TestBuildNewStateStep_Name(t *testing.T) {
+	step := NewBuildNewStateStep[*agentv1.Agent]()
+	if step.Name() != "BuildNewState" {
+		t.Errorf("Expected Name()=BuildNewState, got %q", step.Name())
 	}
 }
 
@@ -168,10 +187,9 @@ func TestGenerateID(t *testing.T) {
 		prefix   string
 		expected string
 	}{
-		{"agent", "agent-"},
-		{"AGENT", "agent-"},
-		{"workflow", "workflow-"},
-		{"AgentInstance", "agentinstance-"},
+		{"agt", "agt-"},
+		{"wfl", "wfl-"},
+		{"ain", "ain-"},
 	}
 
 	for _, tt := range tests {
@@ -196,7 +214,7 @@ func TestGenerateID_Uniqueness(t *testing.T) {
 	ids := make(map[string]bool)
 
 	for i := 0; i < 100; i++ {
-		id := generateID("agent")
+		id := generateID("agt")
 		if ids[id] {
 			t.Errorf("Duplicate ID generated: %q", id)
 		}

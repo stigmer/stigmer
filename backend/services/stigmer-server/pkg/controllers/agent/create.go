@@ -25,7 +25,7 @@ const (
 // 2. Authorize - Verify caller has permission (TODO: when auth ready)
 // 3. ResolveSlug - Generate slug from metadata.name
 // 4. CheckDuplicate - Verify no duplicate exists
-// 5. SetDefaults - Set ID, kind, api_version, timestamps
+// 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 6. Persist - Save agent to repository
 // 7. CreateIamPolicies - Establish ownership relationships (TODO: when IAM ready)
 // 8. CreateDefaultInstance - Create default agent instance (TODO: when AgentInstance ready)
@@ -53,7 +53,7 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).         // 1. Validate field constraints
 		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).           // 3. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)). // 4. Check duplicate
-		AddStep(steps.NewSetDefaultsStep[*agentv1.Agent]()).           // 5. Set defaults
+		AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).         // 5. Build new state
 		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).        // 6. Persist agent
 		AddStep(c.newCreateDefaultInstanceStep()).                     // 8. Create default instance
 		AddStep(c.newUpdateAgentStatusWithDefaultInstanceStep()).      // 9. Update status
