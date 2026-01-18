@@ -8,17 +8,51 @@
 
 ✅ **All Core Tasks Complete** - Pipeline framework with agent instance creation  
 ✅ **In-Process gRPC Implemented** - Downstream client pattern for cross-domain calls  
-✅ **Agent Creation Complete** - Steps 1-9 fully implemented and building  
-✅ **Framework Enhanced** - Auto-extract API resource kind from proto (zero boilerplate)
+✅ **Agent Creation Complete** - Steps 1-7 fully implemented and building  
+✅ **Framework Enhanced** - Auto-extract API resource kind from proto (zero boilerplate)  
+✅ **Architecture Documented** - OSS vs Cloud pipeline differences clarified
 
 ## Project Status
 
-🎉 **PHASE 1-9 COMPLETE** 🎉
+🎉 **PHASE 1-9.1 COMPLETE** 🎉
 
-**Latest:** Automatic API resource kind extraction implemented - controllers simplified, boilerplate eliminated  
+**Latest:** OSS pipeline architecture documented - clear boundaries between Cloud (12 steps) and OSS (7 steps)  
 **Next:** Integration testing and remaining CRUD operations for AgentInstance
 
-## What Was Accomplished (Phase 9)
+## What Was Accomplished (Phase 9.1)
+
+### ✅ OSS Pipeline Architecture Documentation
+
+**Location**: `backend/services/stigmer-server/pkg/controllers/agent/create.go`, `_rules/implement-stigmer-oss-handlers/`
+
+**What changed**:
+- Updated Agent create handler documentation (12 steps → 7 steps)
+- Removed TODOs for steps that won't be implemented in OSS
+- Added explicit architectural comparison note
+- Enhanced implementation rule with "Pipeline Steps: Cloud vs OSS" section
+
+**Why it matters**:
+- **Prevents confusion**: No more wondering when auth/IAM will be added (answer: never in OSS)
+- **Clear template**: All future controllers know exactly which steps to implement
+- **Architectural clarity**: OSS = local/single-user (7 steps), Cloud = enterprise (12 steps)
+
+**OSS Pipeline Template** (for all controllers):
+1. ValidateFieldConstraints
+2. ResolveSlug
+3. CheckDuplicate
+4. BuildNewState
+5. Persist
+6. Custom business logic steps (if needed)
+
+**Excluded from OSS** (with rationale):
+- Authorize (no multi-tenant auth)
+- CreateIamPolicies (no IAM/FGA)
+- Publish (no event publishing)
+- TransformResponse (no response filtering)
+
+**See**: `@checkpoints/2026-01-18-document-oss-pipeline-differences.md`
+
+## Previous Accomplishments (Phase 9)
 
 ### ✅ Automatic API Resource Kind Extraction
 
@@ -53,7 +87,7 @@ steps.NewPersistStep[*agentv1.Agent](c.store)
 
 ## Latest Checkpoint
 
-**See**: `@checkpoints/2026-01-18-auto-extract-api-resource-kind.md`
+**See**: `@checkpoints/2026-01-18-document-oss-pipeline-differences.md`
 
 ## Previous Accomplishments (Phase 8)
 
@@ -162,6 +196,7 @@ Return Agent with default_instance_id populated
 - `pkg/controllers/agentinstance/README.md`
 - `pkg/downstream/agentinstance/README.md`
 - `backend/libs/go/grpc/interceptors/apiresource/` (with comprehensive documentation)
+- `_rules/implement-stigmer-oss-handlers/` - Enhanced with OSS vs Cloud pipeline comparison
 
 ## Build Status
 
@@ -190,8 +225,8 @@ Return Agent with default_instance_id populated
 
 ## Project Documentation
 
-- **Latest Checkpoint:** `@checkpoints/2026-01-18-auto-extract-api-resource-kind.md`
-- **Latest Changelog:** `@_changelog/2026-01/20260118-204648-auto-extract-api-resource-kind-from-proto.md`
+- **Latest Checkpoint:** `@checkpoints/2026-01-18-document-oss-pipeline-differences.md`
+- **Latest Changelog:** `@_changelog/2026-01/2026-01-18-211338-document-oss-pipeline-differences.md`
 - **API Resource Interceptor:** `@backend/libs/go/grpc/interceptors/apiresource/`
 - **Latest ADR:** `@docs/adr/20260118-214000-in-process-grpc-calls-and-agent-instance-creation.md`
 - **AgentInstance Controller:** `@backend/services/stigmer-server/pkg/controllers/agentinstance/README.md`

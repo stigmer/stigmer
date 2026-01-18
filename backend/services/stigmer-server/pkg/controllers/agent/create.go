@@ -20,19 +20,20 @@ const (
 
 // Create creates a new agent using the pipeline framework
 //
-// Pipeline (aligned with Stigmer Cloud AgentCreateHandler):
+// Pipeline (Stigmer OSS - simplified from Cloud):
 // 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
-// 2. Authorize - Verify caller has permission (TODO: when auth ready)
-// 3. ResolveSlug - Generate slug from metadata.name
-// 4. CheckDuplicate - Verify no duplicate exists
-// 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
-// 6. Persist - Save agent to repository
-// 7. CreateIamPolicies - Establish ownership relationships (TODO: when IAM ready)
-// 8. CreateDefaultInstance - Create default agent instance (TODO: when AgentInstance ready)
-// 9. UpdateAgentStatusWithDefaultInstance - Update agent status with default_instance_id (TODO: when AgentInstance ready)
-// 10. Publish - Publish event (TODO: when event system ready)
-// 11. TransformResponse - Apply response transformations (TODO: if needed)
-// 12. SendResponse - Return created agent (implicit via return statement)
+// 2. ResolveSlug - Generate slug from metadata.name
+// 3. CheckDuplicate - Verify no duplicate exists
+// 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+// 5. Persist - Save agent to repository
+// 6. CreateDefaultInstance - Create default agent instance
+// 7. UpdateAgentStatusWithDefaultInstance - Update agent status with default_instance_id
+//
+// Note: Compared to Stigmer Cloud, OSS excludes:
+// - Authorize step (no multi-tenant auth in OSS)
+// - CreateIamPolicies step (no IAM/FGA in OSS)
+// - Publish step (no event publishing in OSS)
+// - TransformResponse step (no response transformations in OSS)
 func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, agent)
 
@@ -51,14 +52,12 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*agentv1.Agent]("agent-create").
 		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).         // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).           // 3. Resolve slug
-		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)). // 4. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).         // 5. Build new state
-		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).        // 6. Persist agent
-		AddStep(c.newCreateDefaultInstanceStep()).                     // 8. Create default instance
-		AddStep(c.newUpdateAgentStatusWithDefaultInstanceStep()).      // 9. Update status
-		// TODO: Add CreateIamPolicies step when IAM system is ready
-		// TODO: Add Publish step when event system is ready
+		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).           // 2. Resolve slug
+		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)). // 3. Check duplicate
+		AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).         // 4. Build new state
+		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).        // 5. Persist agent
+		AddStep(c.newCreateDefaultInstanceStep()).                     // 6. Create default instance
+		AddStep(c.newUpdateAgentStatusWithDefaultInstanceStep()).      // 7. Update status
 		Build()
 }
 
