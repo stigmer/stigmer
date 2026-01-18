@@ -150,13 +150,13 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 				"Additions: ", fetchPR.Field("additions"), "\n",
 				"Deletions: ", fetchPR.Field("deletions"), "\n",
 			)),
-			workflow.WithEnv(map[string]string{
-				"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN").Expression(),
-				"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER").Expression(),
-			}),
-			workflow.AgentTimeout(300), // 5 minutes
-		)
-		log.Println("  ✅ Step 2: Security scan agent")
+		workflow.WithEnv(map[string]string{
+			"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"),
+			"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER"),
+		}),
+		workflow.AgentTimeout(300), // 5 minutes
+	)
+	log.Println("  ✅ Step 2: Security scan agent")
 
 		// ============================================================================
 		// Step 3: Code quality review (Agent 2)
@@ -170,13 +170,13 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 				"Description: ", fetchPR.Field("body"), "\n",
 				"Changed files: ", fetchPR.Field("changed_files"), "\n",
 			)),
-			workflow.WithEnv(map[string]string{
-				"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN").Expression(),
-				"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER").Expression(),
-			}),
-			workflow.AgentTimeout(300),
-		)
-		log.Println("  ✅ Step 3: Code quality review agent")
+		workflow.WithEnv(map[string]string{
+			"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"),
+			"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER"),
+		}),
+		workflow.AgentTimeout(300),
+	)
+	log.Println("  ✅ Step 3: Code quality review agent")
 
 		// ============================================================================
 		// Step 4: Performance analysis (Agent 3)
@@ -189,12 +189,12 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 				"Changed files: ", fetchPR.Field("changed_files"), "\n",
 				"Code changes: ", fetchPR.Field("additions"), " additions, ", fetchPR.Field("deletions"), " deletions\n",
 			)),
-			workflow.WithEnv(map[string]string{
-				"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN").Expression(),
-			}),
-			workflow.AgentTimeout(300),
-		)
-		log.Println("  ✅ Step 4: Performance analysis agent")
+		workflow.WithEnv(map[string]string{
+			"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"),
+		}),
+		workflow.AgentTimeout(300),
+	)
+	log.Println("  ✅ Step 4: Performance analysis agent")
 
 		// ============================================================================
 		// Step 5: Aggregate results
@@ -222,12 +222,12 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 				"Performance: ", aggregateResults.Field("performance_score"), "/100\n",
 				"PR: ", fetchPR.Field("title"), "\n",
 			)),
-			workflow.WithEnv(map[string]string{
-				"ENVIRONMENT": workflow.RuntimeEnv("DEPLOY_ENV").Expression(), // staging/production
-			}),
-			workflow.AgentTimeout(180),
-		)
-		log.Println("  ✅ Step 6: Generate deployment plan")
+		workflow.WithEnv(map[string]string{
+			"ENVIRONMENT": workflow.RuntimeEnv("DEPLOY_ENV"), // staging/production
+		}),
+		workflow.AgentTimeout(180),
+	)
+	log.Println("  ✅ Step 6: Generate deployment plan")
 
 		// ============================================================================
 		// Step 7: Execute deployment
@@ -235,14 +235,14 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 		executeDeploy := wf.HttpPost(
 			"executeDeploy",
 			workflow.RuntimeEnv("DEPLOYMENT_API_URL"),
-			workflow.Header("Authorization", workflow.Interpolate("Bearer ", workflow.RuntimeSecret("DEPLOY_API_TOKEN"))),
-			workflow.WithBody(map[string]any{
-				"pr_number":   workflow.RuntimeEnv("PR_NUMBER").Expression(),
-				"plan":        deploymentPlan.Field("plan").Expression(),
-				"environment": workflow.RuntimeEnv("DEPLOY_ENV").Expression(),
-			}),
-		)
-		log.Println("  ✅ Step 7: Execute deployment")
+		workflow.Header("Authorization", workflow.Interpolate("Bearer ", workflow.RuntimeSecret("DEPLOY_API_TOKEN"))),
+		workflow.WithBody(map[string]any{
+			"pr_number":   workflow.RuntimeEnv("PR_NUMBER"),
+			"plan":        deploymentPlan.Field("plan"),
+			"environment": workflow.RuntimeEnv("DEPLOY_ENV"),
+		}),
+	)
+	log.Println("  ✅ Step 7: Execute deployment")
 
 		// ============================================================================
 		// Step 8: Post-deployment verification (Agent 5)
@@ -256,12 +256,12 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 				"Environment: ", workflow.RuntimeEnv("DEPLOY_ENV"), "\n",
 				"Expected behavior: ", deploymentPlan.Field("expected_metrics"), "\n",
 			)),
-			workflow.WithEnv(map[string]string{
-				"MONITORING_API_KEY": workflow.RuntimeSecret("MONITORING_API_KEY").Expression(),
-				"ENVIRONMENT":        workflow.RuntimeEnv("DEPLOY_ENV").Expression(),
-			}),
-			workflow.AgentTimeout(600), // 10 minutes for full verification
-		)
+		workflow.WithEnv(map[string]string{
+			"MONITORING_API_KEY": workflow.RuntimeSecret("MONITORING_API_KEY"),
+			"ENVIRONMENT":        workflow.RuntimeEnv("DEPLOY_ENV"),
+		}),
+		workflow.AgentTimeout(600), // 10 minutes for full verification
+	)
 		log.Println("  ✅ Step 8: Post-deployment verification")
 
 		// ============================================================================
@@ -270,18 +270,18 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 		notifyTeam := wf.HttpPost(
 			"notifyTeam",
 			workflow.RuntimeSecret("SLACK_WEBHOOK"),
-			workflow.WithBody(map[string]any{
-				"text": workflow.Interpolate(
-					"🚀 Deployment Pipeline Complete for PR #", workflow.RuntimeEnv("PR_NUMBER"), "\n",
-					"Security: ", aggregateResults.Field("security_status"), "\n",
-					"Quality: ", aggregateResults.Field("code_quality_score"), "/100\n",
-					"Performance: ", aggregateResults.Field("performance_score"), "/100\n",
-					"Deployment: ", executeDeploy.Field("status"), "\n",
-					"Verification: ", verifyDeployment.Field("status"), "\n",
-				).Expression(),
-			}),
-		)
-		log.Println("  ✅ Step 9: Notify team on Slack")
+		workflow.WithBody(map[string]any{
+			"text": workflow.Interpolate(
+				"🚀 Deployment Pipeline Complete for PR #", workflow.RuntimeEnv("PR_NUMBER"), "\n",
+				"Security: ", aggregateResults.Field("security_status"), "\n",
+				"Quality: ", aggregateResults.Field("code_quality_score"), "/100\n",
+				"Performance: ", aggregateResults.Field("performance_score"), "/100\n",
+				"Deployment: ", executeDeploy.Field("status"), "\n",
+				"Verification: ", verifyDeployment.Field("status"), "\n",
+			),
+		}),
+	)
+	log.Println("  ✅ Step 9: Notify team on Slack")
 
 		// ============================================================================
 		// Pipeline Summary
