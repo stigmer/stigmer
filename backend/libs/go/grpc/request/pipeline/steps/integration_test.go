@@ -28,13 +28,13 @@ func TestAgentCreatePipeline_Integration(t *testing.T) {
 	p := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
 		WithTracer(telemetry.NewNoOpTracer()).
 		AddStep(NewResolveSlugStep[*agentv1.Agent]()).
-		AddStep(NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)).
-		AddStep(NewSetDefaultsStep[*agentv1.Agent](apiresourcekind.ApiResourceKind_agent)).
-		AddStep(NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)).
+		AddStep(NewCheckDuplicateStep[*agentv1.Agent](store)).
+		AddStep(NewBuildNewStateStep[*agentv1.Agent]()).
+		AddStep(NewPersistStep[*agentv1.Agent](store)).
 		Build()
 
 	// Execute
-	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), agent)
 	ctx.SetNewState(agent)
 	err := p.Execute(ctx)
 
@@ -51,8 +51,13 @@ func TestAgentCreatePipeline_Integration(t *testing.T) {
 	if agent.Metadata.Id == "" {
 		t.Errorf("Expected ID to be generated")
 	}
-	if !strings.HasPrefix(agent.Metadata.Id, "agent-") {
-		t.Errorf("Expected ID to start with 'agent-', got %q", agent.Metadata.Id)
+	if !strings.HasPrefix(agent.Metadata.Id, "agt-") {
+		t.Errorf("Expected ID to start with 'agt-', got %q", agent.Metadata.Id)
+	}
+
+	// Verify audit fields
+	if agent.Status == nil || agent.Status.Audit == nil {
+		t.Errorf("Expected audit fields to be set")
 	}
 
 	// Verify persistence
