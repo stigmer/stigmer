@@ -1,13 +1,13 @@
 package steps
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -74,9 +74,7 @@ func (s *ExtractResourceIdStep[T]) Execute(ctx *pipeline.RequestContext[T]) erro
 //
 // Unlike LoadExistingStep (used in Update), this step works with ID input types.
 type LoadExistingForDeleteStep[T proto.Message, R proto.Message] struct {
-	store interface {
-		GetResource(ctx context.Context, kind string, id string, resource interface{}) error
-	}
+	store store.Store
 }
 
 // NewLoadExistingForDeleteStep creates a new LoadExistingForDeleteStep
@@ -84,12 +82,8 @@ type LoadExistingForDeleteStep[T proto.Message, R proto.Message] struct {
 // Type parameters:
 //   - T: The input type (ID wrapper, e.g., *AgentId)
 //   - R: The resource type (e.g., *Agent)
-func NewLoadExistingForDeleteStep[T proto.Message, R proto.Message](
-	store interface {
-		GetResource(ctx context.Context, kind string, id string, resource interface{}) error
-	},
-) *LoadExistingForDeleteStep[T, R] {
-	return &LoadExistingForDeleteStep[T, R]{store: store}
+func NewLoadExistingForDeleteStep[T proto.Message, R proto.Message](s store.Store) *LoadExistingForDeleteStep[T, R] {
+	return &LoadExistingForDeleteStep[T, R]{store: s}
 }
 
 // Name returns the step name
@@ -141,18 +135,12 @@ func (s *LoadExistingForDeleteStep[T, R]) Execute(ctx *pipeline.RequestContext[T
 // The resource must be loaded first (by LoadExistingForDeleteStep) to ensure it exists
 // and to have it available for the return value.
 type DeleteResourceStep[T proto.Message] struct {
-	store interface {
-		DeleteResource(ctx context.Context, kind string, id string) error
-	}
+	store store.Store
 }
 
 // NewDeleteResourceStep creates a new DeleteResourceStep
-func NewDeleteResourceStep[T proto.Message](
-	store interface {
-		DeleteResource(ctx context.Context, kind string, id string) error
-	},
-) *DeleteResourceStep[T] {
-	return &DeleteResourceStep[T]{store: store}
+func NewDeleteResourceStep[T proto.Message](s store.Store) *DeleteResourceStep[T] {
+	return &DeleteResourceStep[T]{store: s}
 }
 
 // Name returns the step name
