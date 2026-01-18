@@ -246,6 +246,46 @@ apis/ai/stigmer/agentic/
 
 Both local and cloud import these exact proto files.
 
+### Schema Unification Strategy
+
+To enable true code reuse, proto schemas include fields needed for both local and cloud modes, even if some fields are unused in specific contexts.
+
+**Example: ApiResourceMetadata**
+
+The metadata schema includes multi-tenancy fields in the open-source version:
+
+```protobuf
+message ApiResourceMetadata {
+  string name = 1;
+  string slug = 2;
+  string id = 3;
+  
+  // Multi-tenancy fields (used differently in each mode)
+  string org = 4;                    // Local: ignored; Cloud: enforced
+  ApiResourceOwnerScope owner_scope = 5;  // Local: defaults; Cloud: RBAC
+  
+  map<string, string> labels = 6;
+  map<string, string> annotations = 7;
+  repeated string tags = 8;
+  ApiResourceMetadataVersion version = 9;
+}
+```
+
+**Benefits of Unified Schema**:
+
+1. **Direct Code Reuse**: Cloud can import OSS proto libraries without forking
+2. **Migration Compatibility**: Local exports are Cloud-compatible (just add org ID)
+3. **Enterprise-Friendly**: OSS users can build multi-tenant systems using the same schema
+4. **Zero Duplication**: Single proto definition, no wrapper types needed
+
+**Trade-off**: OSS contains fields it doesn't use, but this is vastly outweighed by:
+- Eliminated code duplication
+- Simplified maintenance
+- Seamless data migration
+- Shared generated code libraries
+
+**See**: `_changelog/2026-01-18-211932-unify-apiresource-metadata-schema.md` for the complete rationale and implementation details.
+
 ### Divergent: Implementations
 
 **Open Source** (`github.com/stigmer/stigmer`):
