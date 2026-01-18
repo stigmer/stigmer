@@ -18,15 +18,22 @@ import (
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/environment"
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/executioncontext"
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/session"
+	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/skill"
+	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/workflow"
+	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/workflowinstance"
 	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	sessionclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
+	workflowinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentinstance/v1"
 	environmentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/executioncontext/v1"
 	sessionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/session/v1"
+	skillv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/skill/v1"
+	workflowv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflow/v1"
+	workflowinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflowinstance/v1"
 )
 
 func main() {
@@ -92,16 +99,30 @@ func main() {
 	executioncontextv1.RegisterExecutionContextQueryControllerServer(grpcServer, executionContextController)
 
 	log.Info().Msg("Registered ExecutionContext controllers")
+
+	// Create and register Skill controller
+	skillController := skillcontroller.NewSkillController(store)
+	skillv1.RegisterSkillCommandControllerServer(grpcServer, skillController)
+	skillv1.RegisterSkillQueryControllerServer(grpcServer, skillController)
+
+	log.Info().Msg("Registered Skill controllers")
+
+	// Create and register WorkflowInstance controller
+	workflowInstanceController := workflowinstancecontroller.NewWorkflowInstanceController(store)
+	workflowinstancev1.RegisterWorkflowInstanceCommandControllerServer(grpcServer, workflowInstanceController)
+	workflowinstancev1.RegisterWorkflowInstanceQueryControllerServer(grpcServer, workflowInstanceController)
+
+	log.Info().Msg("Registered WorkflowInstance controllers")
 	
-	// TODO: Register other controllers here (Workflow, Skill)
 	// All services must be registered BEFORE starting the server or creating connections
 
 	// Create downstream clients for in-process gRPC calls
 	// These clients ensure single source of truth through the full interceptor chain
 	var (
-		agentClient         *agentclient.Client
-		agentInstanceClient *agentinstanceclient.Client
-		sessionClient       *sessionclient.Client
+		agentClient            *agentclient.Client
+		agentInstanceClient    *agentinstanceclient.Client
+		sessionClient          *sessionclient.Client
+		workflowInstanceClient *workflowinstanceclient.Client
 	)
 	{
 		// Start in-process gRPC server (must be done before creating connections)
@@ -122,8 +143,9 @@ func main() {
 		agentClient = agentclient.NewClient(inProcessConn)
 		agentInstanceClient = agentinstanceclient.NewClient(inProcessConn)
 		sessionClient = sessionclient.NewClient(inProcessConn)
+		workflowInstanceClient = workflowinstanceclient.NewClient(inProcessConn)
 
-		log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, and Session")
+		log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, and WorkflowInstance")
 	}
 
 	// Create and register Agent controller (with AgentInstance client for default instance creation)
@@ -145,6 +167,13 @@ func main() {
 	agentexecutionv1.RegisterAgentExecutionQueryControllerServer(grpcServer, agentExecutionController)
 
 	log.Info().Msg("Registered AgentExecution controllers")
+
+	// Create and register Workflow controller (with WorkflowInstance client for default instance creation)
+	workflowController := workflowcontroller.NewWorkflowController(store, workflowInstanceClient)
+	workflowv1.RegisterWorkflowCommandControllerServer(grpcServer, workflowController)
+	workflowv1.RegisterWorkflowQueryControllerServer(grpcServer, workflowController)
+
+	log.Info().Msg("Registered Workflow controllers")
 
 	// Setup graceful shutdown
 	done := make(chan os.Signal, 1)

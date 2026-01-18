@@ -51,7 +51,7 @@ func (c *ExecutionContextController) buildGetByReferencePipeline() *pipeline.Pip
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*apiresource.ApiResourceReference]("execution-context-get-by-reference").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()).                                    // 1. Validate input
-		AddStep(steps.NewLoadByReferenceStep[*apiresource.ApiResourceReference, *executioncontextv1.ExecutionContext](c.store)). // 2. Load by reference
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()).  // 1. Validate input
+		AddStep(steps.NewLoadByReferenceStep[*executioncontextv1.ExecutionContext](c.store)). // 2. Load by reference
 		Build()
 }
