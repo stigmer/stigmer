@@ -21,11 +21,17 @@ import (
 // - Loads workflows directly from store (same service)
 // - WorkflowInstance calls are in-process gRPC (full interceptor chain)
 // - Maintains clean domain boundaries for future microservice migration
+//
+// Streaming (ADR 011):
+// - streamBroker manages in-memory Go channels for real-time updates
+// - UpdateStatus broadcasts to subscribers after persisting to database
+// - Subscribe() provides streaming updates without polling
 type WorkflowExecutionController struct {
 	workflowexecutionv1.UnimplementedWorkflowExecutionCommandControllerServer
 	workflowexecutionv1.UnimplementedWorkflowExecutionQueryControllerServer
 	store                  *badger.Store
 	workflowInstanceClient *workflowinstance.Client
+	streamBroker           *StreamBroker
 }
 
 // NewWorkflowExecutionController creates a new WorkflowExecutionController
@@ -40,5 +46,6 @@ func NewWorkflowExecutionController(
 	return &WorkflowExecutionController{
 		store:                  store,
 		workflowInstanceClient: workflowInstanceClient,
+		streamBroker:           NewStreamBroker(),
 	}
 }
