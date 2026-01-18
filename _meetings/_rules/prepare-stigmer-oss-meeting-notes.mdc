@@ -1,0 +1,93 @@
+---
+description: Action rule to transform raw meeting transcripts and materials into structured meeting notes and refined transcripts with proper naming, image handling, and workspace cleanup.
+globs: []
+alwaysApply: false
+---
+
+# Rule: Prepare Meeting Notes (action)
+
+Purpose: When invoked, transform raw meeting transcripts and materials from `_meetings/_workspace/` into structured meeting notes with proper naming conventions and organization.
+
+Usage: Invoke explicitly as `@prepare-meeting-notes` after a meeting with raw materials in the workspace.
+
+## Input
+
+Raw materials typically found in `_meetings/_workspace/`:
+- Transcript files (`.md`, `.txt`)
+- Screenshots or images
+- Notes or agenda documents
+
+## Output
+
+Structured files in `_meetings/`:
+- `YYYY-MM-DD-HHMMSS.[topic].notes.md` - Structured meeting notes
+- `YYYY-MM-DD-HHMMSS.[topic].transcript.md` - Cleaned transcript (if applicable)
+
+## Process
+
+1. **Read Raw Materials**
+   - Check `_meetings/_workspace/` for input files
+   - Identify transcript, notes, and any images
+
+2. **Generate Timestamp**
+   - Run `date +"%Y-%m-%d-%H%M%S"` for the file prefix
+   - Or use meeting date if specified
+
+3. **Create Structured Notes**
+   ```markdown
+   # Meeting: [Topic]
+
+   **Date**: [Date]
+   **Attendees**: [Extracted from transcript or provided]
+   **Duration**: [If known]
+
+   ## Agenda
+   [Topics covered]
+
+   ## Discussion Summary
+   [Key points from the meeting]
+
+   ## Decisions Made
+   - [Decision 1]
+   - [Decision 2]
+
+   ## Action Items
+   - [ ] [Action] - @[Owner]
+   - [ ] [Action] - @[Owner]
+
+   ## Notes
+   [Additional context or details]
+
+   ## Follow-up
+   [Next meeting, deadlines, etc.]
+   ```
+
+4. **Clean Transcript** (if provided)
+   - Remove filler words and false starts
+   - Fix speaker attributions
+   - Add paragraph breaks for readability
+   - Preserve technical accuracy
+
+5. **Handle Images**
+   - Move to `_meetings/_images/` if needed
+   - Update references in notes
+
+6. **Cleanup Workspace**
+   - After processing, workspace files can be deleted or archived
+
+## File Naming Convention
+
+```
+YYYY-MM-DD-HHMMSS.[topic-slug].notes.md
+YYYY-MM-DD-HHMMSS.[topic-slug].transcript.md
+```
+
+Examples:
+- `2025-01-15-143000.product-roadmap.notes.md`
+- `2025-01-15-143000.product-roadmap.transcript.md`
+
+## Notes
+
+- Topic slug should be kebab-case, descriptive but concise
+- Multiple meetings on same day differentiated by timestamp
+- Raw workspace files can be deleted after processing
