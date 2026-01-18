@@ -1,8 +1,6 @@
 package agentexecution
 
 import (
-	"time"
-
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
@@ -12,19 +10,19 @@ import (
 
 // Subscribe provides real-time execution updates via gRPC streaming
 //
-// For OSS: This is a simplified implementation that polls the database.
-// In Cloud, this uses Redis Streams for true real-time updates.
+// This implements the Read Path from ADR 011:
+// 1. CLI: Calls grpc_stub.Watch(id) to localhost:50051
+// 2. Daemon: Subscribes the request to internal Go Channel
+// 3. Daemon: Streams new events from channel down gRPC pipe to CLI
 //
 // Pipeline Steps:
 // 1. ValidateSubscribeInput - Validate execution_id is provided
 // 2. LoadInitialExecution - Load initial execution state and send to client
-// 3. StreamUpdates - Poll for updates and stream to client until terminal state
+// 3. StreamUpdates - Subscribe to broker's Go channel and stream updates to client
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
-// - Redis Streams (uses polling instead)
-//
-// TODO: Implement proper streaming with file watchers or similar mechanism
+// - Redis Streams (uses in-memory Go channels instead per ADR 011)
 func (c *AgentExecutionController) Subscribe(executionId *agentexecutionv1.AgentExecutionId, stream agentexecutionv1.AgentExecutionQueryController_SubscribeServer) error {
 	// Create request context with execution ID input
 	reqCtx := pipeline.NewRequestContext(stream.Context(), executionId)
@@ -36,7 +34,7 @@ func (c *AgentExecutionController) Subscribe(executionId *agentexecutionv1.Agent
 	p := pipeline.NewPipeline[*agentexecutionv1.AgentExecutionId]("agentexecution-subscribe").
 		AddStep(newValidateSubscribeInputStep()).
 		AddStep(newLoadInitialExecutionStep(c.store)).
-		AddStep(newStreamUpdatesStep(c.store)).
+		AddStep(newStreamUpdatesStep(c.streamBroker)).
 		Build()
 
 	// Execute pipeline
@@ -118,13 +116,19 @@ func (s *LoadInitialExecutionStep) Execute(ctx *pipeline.RequestContext[*agentex
 	return nil
 }
 
-// StreamUpdatesStep polls for updates and streams them to the client
+// StreamUpdatesStep subscribes to the broker's Go channel and streams updates to client
+//
+// This implements the ADR 011 Read Path:
+// - Daemon: Subscribes the request to internal Go Channel
+// - Daemon: Streams new events from channel down gRPC pipe to CLI
+//
+// This provides near-instant updates without polling as specified in the ADR.
 type StreamUpdatesStep struct {
-	store *badger.Store
+	broker *StreamBroker
 }
 
-func newStreamUpdatesStep(store *badger.Store) *StreamUpdatesStep {
-	return &StreamUpdatesStep{store: store}
+func newStreamUpdatesStep(broker *StreamBroker) *StreamUpdatesStep {
+	return &StreamUpdatesStep{broker: broker}
 }
 
 func (s *StreamUpdatesStep) Name() string {
@@ -138,19 +142,15 @@ func (s *StreamUpdatesStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 		return grpclib.InternalError(nil, "stream not found in context")
 	}
 
-	execution, ok := ctx.Get("execution").(*agentexecutionv1.AgentExecution)
-	if !ok {
-		return grpclib.InternalError(nil, "execution not found in context")
-	}
+	// Subscribe to broker's channel for this execution
+	updatesCh := s.broker.Subscribe(executionID)
+	defer s.broker.Unsubscribe(executionID, updatesCh)
 
-	// Poll for updates (simplified implementation for OSS)
-	// TODO: Replace with proper event-driven mechanism
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
+	log.Debug().
+		Str("execution_id", executionID).
+		Msg("Subscribed to execution updates channel")
 
-	lastPhase := execution.GetStatus().GetPhase()
-	lastMessageCount := len(execution.GetStatus().GetMessages())
-
+	// Stream updates from channel until terminal state or client disconnect
 	for {
 		select {
 		case <-ctx.Context().Done():
@@ -159,46 +159,35 @@ func (s *StreamUpdatesStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 				Msg("Subscription cancelled by client")
 			return nil
 
-		case <-ticker.C:
-			// Load latest state
-			updated := &agentexecutionv1.AgentExecution{}
-			if err := s.store.GetResource(ctx.Context(), "AgentExecution", executionID, updated); err != nil {
+		case updated, ok := <-updatesCh:
+			if !ok {
+				// Channel closed (should not happen unless broker closes it)
+				log.Warn().
+					Str("execution_id", executionID).
+					Msg("Updates channel closed unexpectedly")
+				return nil
+			}
+
+			// Send updated state to client
+			if err := stream.Send(updated); err != nil {
 				log.Error().
 					Err(err).
 					Str("execution_id", executionID).
-					Msg("Failed to load execution during subscription")
-				continue
+					Msg("Failed to send updated execution state")
+				return grpclib.InternalError(err, "failed to send execution updates")
 			}
 
-			// Check if execution has changed
-			currentPhase := updated.GetStatus().GetPhase()
-			currentMessageCount := len(updated.GetStatus().GetMessages())
-
-			if currentPhase != lastPhase || currentMessageCount != lastMessageCount {
-				// Send updated state
-				if err := stream.Send(updated); err != nil {
-					log.Error().
-						Err(err).
-						Str("execution_id", executionID).
-						Msg("Failed to send updated execution state")
-					return grpclib.InternalError(err, "failed to send execution updates")
-				}
-
-				log.Debug().
-					Str("execution_id", executionID).
-					Str("phase", currentPhase.String()).
-					Int("messages", currentMessageCount).
-					Msg("Sent execution update")
-
-				lastPhase = currentPhase
-				lastMessageCount = currentMessageCount
-			}
+			log.Debug().
+				Str("execution_id", executionID).
+				Str("phase", updated.GetStatus().GetPhase().String()).
+				Int("messages", len(updated.GetStatus().GetMessages())).
+				Msg("Sent execution update")
 
 			// Check if execution is in terminal state
-			if isTerminalPhase(currentPhase) {
+			if isTerminalPhase(updated.GetStatus().GetPhase()) {
 				log.Info().
 					Str("execution_id", executionID).
-					Str("phase", currentPhase.String()).
+					Str("phase", updated.GetStatus().GetPhase().String()).
 					Msg("Execution reached terminal state, ending subscription")
 				return nil
 			}

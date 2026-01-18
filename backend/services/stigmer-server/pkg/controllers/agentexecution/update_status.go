@@ -21,10 +21,11 @@ import (
 // 2. LoadExisting - Load existing execution from DB
 // 3. BuildNewStateWithStatus - Merge status updates from input
 // 4. Persist - Save to database
+// 5. BroadcastToStreams - Push update to active Go channels (ADR 011)
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
-// - PublishToRedis step (no Redis in OSS)
+// - PublishToRedis step (no Redis in OSS - uses in-memory Go channels instead per ADR 011)
 // - Publish step (no event publishing in OSS)
 func (c *AgentExecutionController) UpdateStatus(ctx context.Context, input *agentexecutionv1.AgentExecutionUpdateStatusInput) (*agentexecutionv1.AgentExecution, error) {
 	// Create request context with input
@@ -36,6 +37,7 @@ func (c *AgentExecutionController) UpdateStatus(ctx context.Context, input *agen
 		AddStep(newLoadExistingExecutionStep(c.store)).
 		AddStep(newBuildNewStateWithStatusStep()).
 		AddStep(newPersistExecutionStep(c.store)).
+		AddStep(newBroadcastToStreamsStep(c.streamBroker)).
 		Build()
 
 	// Execute pipeline
@@ -242,6 +244,42 @@ func (s *PersistExecutionStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 		Str("execution_id", executionID).
 		Str("phase", execution.Status.Phase.String()).
 		Msg("Successfully updated execution status")
+
+	return nil
+}
+
+// BroadcastToStreamsStep broadcasts the execution update to all active subscribers
+//
+// This implements the "Daemon (Streaming): Pushes message to active Go Channels" step
+// from ADR 011 Write Path.
+//
+// After persisting to SQLite, the daemon must push updates to in-memory channels
+// so that Subscribe() streams can receive updates in real-time without polling.
+type BroadcastToStreamsStep struct {
+	broker *StreamBroker
+}
+
+func newBroadcastToStreamsStep(broker *StreamBroker) *BroadcastToStreamsStep {
+	return &BroadcastToStreamsStep{broker: broker}
+}
+
+func (s *BroadcastToStreamsStep) Name() string {
+	return "BroadcastToStreams"
+}
+
+func (s *BroadcastToStreamsStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecutionUpdateStatusInput]) error {
+	execution, ok := ctx.Get("execution").(*agentexecutionv1.AgentExecution)
+	if !ok {
+		return grpclib.InternalError(nil, "execution not found in context")
+	}
+
+	// Broadcast to all active subscribers
+	s.broker.Broadcast(execution)
+
+	log.Debug().
+		Str("execution_id", execution.Metadata.Id).
+		Int("subscribers", s.broker.GetSubscriberCount(execution.Metadata.Id)).
+		Msg("Broadcasted execution update to subscribers")
 
 	return nil
 }

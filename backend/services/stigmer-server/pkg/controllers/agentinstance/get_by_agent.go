@@ -46,7 +46,7 @@ func (c *AgentInstanceController) GetByAgent(ctx context.Context, req *agentinst
 func (c *AgentInstanceController) buildGetByAgentPipeline() *pipeline.Pipeline[*agentinstancev1.GetAgentInstancesByAgentRequest] {
 	return pipeline.NewPipeline[*agentinstancev1.GetAgentInstancesByAgentRequest]("agent-instance-get-by-agent").
 		AddStep(steps.NewValidateProtoStep[*agentinstancev1.GetAgentInstancesByAgentRequest]()). // 1. Validate field constraints
-		AddStep(newLoadByAgentStep(c.store)).                                                     // 2. Load by agent
+		AddStep(newLoadByAgentStep(c.store)).                                                    // 2. Load by agent
 		Build()
 }
 
