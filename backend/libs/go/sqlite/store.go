@@ -110,13 +110,13 @@ func (s *Store) SaveResource(ctx context.Context, kind string, id string, msg pr
 }
 
 // GetResource retrieves a resource by ID and unmarshals into the provided proto message
-func (s *Store) GetResource(ctx context.Context, id string, msg proto.Message) error {
+func (s *Store) GetResource(ctx context.Context, kind string, id string, msg proto.Message) error {
 	var data string
-	query := "SELECT data FROM resources WHERE id = ?"
+	query := "SELECT data FROM resources WHERE kind = ? AND id = ?"
 
-	err := s.db.QueryRowContext(ctx, query, id).Scan(&data)
+	err := s.db.QueryRowContext(ctx, query, kind, id).Scan(&data)
 	if err == sql.ErrNoRows {
-		return fmt.Errorf("resource not found: %s", id)
+		return fmt.Errorf("resource not found: %s (kind: %s)", id, kind)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to query resource: %w", err)
@@ -183,10 +183,10 @@ func (s *Store) ListResourcesByOrg(ctx context.Context, kind string, orgID strin
 }
 
 // DeleteResource deletes a resource by ID
-func (s *Store) DeleteResource(ctx context.Context, id string) error {
-	query := "DELETE FROM resources WHERE id = ?"
+func (s *Store) DeleteResource(ctx context.Context, kind string, id string) error {
+	query := "DELETE FROM resources WHERE kind = ? AND id = ?"
 
-	result, err := s.db.ExecContext(ctx, query, id)
+	result, err := s.db.ExecContext(ctx, query, kind, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete resource: %w", err)
 	}
@@ -197,27 +197,31 @@ func (s *Store) DeleteResource(ctx context.Context, id string) error {
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("resource not found: %s", id)
+		return fmt.Errorf("resource not found: %s (kind: %s)", id, kind)
 	}
 
 	return nil
 }
 
 // DeleteResourcesByKind deletes all resources of a given kind
-func (s *Store) DeleteResourcesByKind(ctx context.Context, kind string) (int64, error) {
+func (s *Store) DeleteResourcesByKind(ctx context.Context, kind string) error {
 	query := "DELETE FROM resources WHERE kind = ?"
 
 	result, err := s.db.ExecContext(ctx, query, kind)
 	if err != nil {
-		return 0, fmt.Errorf("failed to delete resources: %w", err)
+		return fmt.Errorf("failed to delete resources: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return 0, fmt.Errorf("failed to get rows affected: %w", err)
+		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 
-	return rowsAffected, nil
+	if rowsAffected == 0 {
+		return fmt.Errorf("no resources found for kind: %s", kind)
+	}
+
+	return nil
 }
 
 // Close closes the database connection
