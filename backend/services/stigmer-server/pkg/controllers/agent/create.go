@@ -5,9 +5,11 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentinstance/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
@@ -56,8 +58,8 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)). // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).         // 4. Build new state
 		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).        // 5. Persist agent
-		AddStep(c.newCreateDefaultInstanceStep()).                     // 6. Create default instance
-		AddStep(c.newUpdateAgentStatusWithDefaultInstanceStep()).      // 7. Update status
+		AddStep(newCreateDefaultInstanceStep(c.agentInstanceClient)).  // 6. Create default instance
+		AddStep(newUpdateAgentStatusWithDefaultInstanceStep(c.store)). // 7. Update status
 		Build()
 }
 
@@ -76,11 +78,11 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 // The agent instance creation handler handles all persistence and validation.
 // This step does NOT update agent status - that's done in updateAgentStatusWithDefaultInstanceStep.
 type createDefaultInstanceStep struct {
-	controller *AgentController
+	agentInstanceClient *agentinstance.Client
 }
 
-func (c *AgentController) newCreateDefaultInstanceStep() *createDefaultInstanceStep {
-	return &createDefaultInstanceStep{controller: c}
+func newCreateDefaultInstanceStep(agentInstanceClient *agentinstance.Client) *createDefaultInstanceStep {
+	return &createDefaultInstanceStep{agentInstanceClient: agentInstanceClient}
 }
 
 func (s *createDefaultInstanceStep) Name() string {
@@ -125,7 +127,7 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv
 	// 2. Create instance via downstream client (in-process, system credentials)
 	// This calls AgentInstanceCommandController.Create() in-process
 	// All persistence and validation handled by instance handler
-	createdInstance, err := s.controller.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
+	createdInstance, err := s.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
 	if err != nil {
 		return fmt.Errorf("failed to create default instance: %w", err)
 	}
@@ -153,11 +155,11 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv
 // Separated from createDefaultInstanceStep for pipeline clarity - makes it explicit
 // that a database persist operation is happening.
 type updateAgentStatusWithDefaultInstanceStep struct {
-	controller *AgentController
+	store *badger.Store
 }
 
-func (c *AgentController) newUpdateAgentStatusWithDefaultInstanceStep() *updateAgentStatusWithDefaultInstanceStep {
-	return &updateAgentStatusWithDefaultInstanceStep{controller: c}
+func newUpdateAgentStatusWithDefaultInstanceStep(store *badger.Store) *updateAgentStatusWithDefaultInstanceStep {
+	return &updateAgentStatusWithDefaultInstanceStep{store: store}
 }
 
 func (s *updateAgentStatusWithDefaultInstanceStep) Name() string {
@@ -191,7 +193,7 @@ func (s *updateAgentStatusWithDefaultInstanceStep) Execute(ctx *pipeline.Request
 	// 3. Persist updated agent to repository
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
-	if err := s.controller.store.SaveResource(ctx.Context(), kind.String(), agentID, agent); err != nil {
+	if err := s.store.SaveResource(ctx.Context(), kind.String(), agentID, agent); err != nil {
 		log.Error().
 			Err(err).
 			Str("agent_id", agentID).
