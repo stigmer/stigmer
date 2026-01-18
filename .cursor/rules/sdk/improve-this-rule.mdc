@@ -1,0 +1,446 @@
+# Rule: Improve Stigmer SDK Rules (Orchestrator)
+
+## Purpose
+
+Orchestrator for improving SDK rules across Python and Go implementations. Analyzes which SDK language(s) had learnings and delegates to the appropriate language-specific improvement rules.
+
+## When This Rule is Invoked
+
+This orchestrator is automatically triggered by `@complete-stigmer-work.mdc` when:
+1. SDK files were modified (`sdk/python/**/*.py` or `sdk/go/**/*.go`)
+2. AI detected new patterns, errors solved, or discoveries
+3. Genuine learning occurred (not routine work)
+
+It can also be manually invoked when:
+- You notice SDK rules have incorrect/outdated guidance
+- You want to add new patterns discovered during multi-language work
+- Documentation needs updates across Python and/or Go SDKs
+
+## What This Orchestrator Does
+
+1. **Analyzes Recent Work**: Reviews conversation history and git changes
+2. **Detects Language(s)**: Identifies Python, Go, or both
+3. **Evaluates Learning Value**: High-signal vs routine work
+4. **Delegates to Language-Specific Rules**: Invokes appropriate improve-this-rule.mdc
+5. **Coordinates Cross-Language Learnings**: Ensures patterns documented in both if applicable
+
+## Execution Flow
+
+### Step 1: Detect SDK Language(s)
+
+Analyze file changes to determine which SDK was worked on:
+
+```bash
+# Python SDK detection
+sdk/python/stigmer/**/*.py → Python SDK
+sdk/python/tests/**/*.py → Python SDK
+sdk/python/_rules (monorepo: stigmer/sdk/python/_rules)/**/*.mdc → Python SDK rules
+
+# Go SDK detection
+sdk/go/**/*.go → Go SDK
+sdk/go/**/*_test.go → Go SDK
+sdk/go/_rules (stigmer-sdk repo)/**/*.mdc → Go SDK rules
+```
+
+**Detection Logic:**
+```
+python_work = has_python_file_changes()
+go_work = has_go_file_changes()
+
+if python_work and go_work:
+    mode = MULTI_LANGUAGE
+elif python_work:
+    mode = PYTHON_ONLY
+elif go_work:
+    mode = GO_ONLY
+else:
+    mode = NO_SDK_WORK
+```
+
+### Step 2: Evaluate Learning Detection
+
+Ask evaluation questions for the detected language(s):
+
+#### Python SDK Evaluation Questions
+
+If Python files changed, ask:
+1. Did I fix a proto conversion or field mapping error?
+2. Did I discover a validation pattern not documented?
+3. Did I solve a task implementation or serialization problem?
+4. Did I create a new converter or task type?
+5. Did I fix an agent configuration issue?
+6. Did I enhance error handling or testing patterns?
+7. Did I discover a synthesis generation pattern?
+
+#### Go SDK Evaluation Questions
+
+If Go files changed, ask:
+1. Did I fix a proto conversion or pointer handling error?
+2. Did I discover a validation pattern not documented?
+3. Did I solve an interface implementation problem?
+4. Did I create a new agent builder pattern?
+5. Did I fix configuration or environment handling?
+6. Did I enhance error handling with Go error wrapping?
+7. Did I discover testing patterns with table-driven tests?
+
+### Step 3: Delegate to Language-Specific Improvement Rules
+
+Based on detection and evaluation:
+
+**Python Only** (python_work = TRUE, go_work = FALSE, learning = YES):
+```
+✅ Python SDK learning detected
+Delegating to: @sdk/python/_rules (monorepo: stigmer/sdk/python/_rules)/implement-stigmer-sdk-features/improve-python-sdk-rule.mdc
+
+[Python improvement rule executes]
+```
+
+**Go Only** (python_work = FALSE, go_work = TRUE, learning = YES):
+```
+✅ Go SDK learning detected
+Delegating to: @sdk/go/_rules (stigmer-sdk repo)/implement-stigmer-sdk-features/improve-go-sdk-rule.mdc
+
+[Go improvement rule executes]
+```
+
+**Both Languages** (python_work = TRUE, go_work = TRUE, learning = YES):
+```
+✅ Multi-language SDK learning detected
+Improving both Python and Go SDK rules...
+
+Python SDK:
+[Invokes @sdk/python/_rules (monorepo: stigmer/sdk/python/_rules)/implement-stigmer-sdk-features/improve-python-sdk-rule.mdc]
+
+Go SDK:
+[Invokes @sdk/go/_rules (stigmer-sdk repo)/implement-stigmer-sdk-features/improve-go-sdk-rule.mdc]
+
+Cross-language patterns noted in both learning logs.
+```
+
+**No Learning** (learning = NO):
+```
+ℹ️  No significant SDK learnings detected:
+   - Routine application of existing patterns
+   - No errors encountered
+   - Standard implementation
+   - Skipping SDK rule improvement
+```
+
+### Step 4: Handle Cross-Language Learnings
+
+If a learning applies to both languages but only one was modified:
+
+**Scenario**: Fixed Python proto repeated field handling (`.extend()`), but Go has same concept (`append()`)
+
+**Action**:
+1. Improve Python SDK rule with Python-specific solution
+2. Add cross-reference note to Go SDK learning log:
+   ```markdown
+   **Cross-reference**: See Python SDK learning log for repeated field pattern.
+   Go equivalent uses `append()` instead of `.extend()`.
+   ```
+
+**Benefits**:
+- Python developers see Python solution
+- Go developers see Go solution
+- Both reference each other for conceptual understanding
+
+## Language-Specific Improvement Rules
+
+### Python SDK Improvement
+
+**Rule**: `@sdk/python/_rules (monorepo: stigmer/sdk/python/_rules)/implement-stigmer-sdk-features/improve-python-sdk-rule.mdc`
+
+**Updates**:
+- `sdk/python/_rules (monorepo: stigmer/sdk/python/_rules)/implement-stigmer-sdk-features/docs/learning-log.md`
+- Python-specific topic documentation
+- Python main rule references
+
+**Commits**: Python SDK rule improvements separately
+
+### Go SDK Improvement
+
+**Rule**: `@sdk/go/_rules (stigmer-sdk repo)/implement-stigmer-sdk-features/improve-go-sdk-rule.mdc`
+
+**Updates**:
+- `sdk/go/_rules (stigmer-sdk repo)/implement-stigmer-sdk-features/docs/learning-log.md`
+- Go-specific topic documentation
+- Go main rule references
+
+**Commits**: Go SDK rule improvements separately
+
+## Improvement Criteria
+
+### Trigger Improvement If:
+
+**Python SDK**:
+- ✅ Fixed proto conversion error (repeated fields, nested messages, maps)
+- ✅ Discovered validation pattern for Python dataclasses
+- ✅ Solved Poetry dependency or environment issue
+- ✅ Created new task type or converter
+- ✅ Enhanced pytest patterns or fixtures
+- ✅ Discovered Python type hint patterns
+
+**Go SDK**:
+- ✅ Fixed proto conversion error (pointer handling, nil checks)
+- ✅ Discovered validation pattern for Go structs
+- ✅ Solved Go module or dependency issue
+- ✅ Created new builder pattern or interface
+- ✅ Enhanced Go testing patterns (table-driven tests)
+- ✅ Discovered Go error wrapping patterns
+
+**Both SDKs**:
+- ✅ Conceptual pattern that applies to both languages
+- ✅ Proto schema change affecting both SDKs
+- ✅ Validation rule that should align across languages
+- ✅ API design decision impacting both
+
+### Skip Improvement If:
+
+- ❌ Routine application of existing patterns
+- ❌ Trivial changes (typo fixes, formatting)
+- ❌ Pattern already documented in learning log
+- ❌ Standard implementation with no variations
+
+## Example Executions
+
+### Example 1: Python Only Learning
+
+**Context**: Implemented Python SDK agent converter, fixed repeated field bug
+
+**Orchestrator execution**:
+```
+Evaluating SDK learnings...
+
+Detected changes:
+- sdk/python/stigmer/agent/converters/agent_converter.py
+- sdk/python/tests/unit/test_agent_converter.py
+
+Language: Python SDK only
+Learning: YES (proto repeated field conversion error fixed)
+
+✅ Delegating to Python SDK improvement rule...
+
+[Python improve-python-sdk-rule.mdc executes]
+✅ Added to learning-log.md: Proto repeated field pattern
+✅ Updated proto-converters.md with .extend() example
+✅ Committed: docs(sdk/python): improve rule - proto repeated fields
+
+Summary:
+- Python SDK rule improved
+- 1 learning documented
+- Go SDK not affected
+```
+
+### Example 2: Go Only Learning
+
+**Context**: Implemented Go SDK environment validation with pointer checks
+
+**Orchestrator execution**:
+```
+Evaluating SDK learnings...
+
+Detected changes:
+- sdk/go/environment/environment.go
+- sdk/go/environment/environment_test.go
+
+Language: Go SDK only
+Learning: YES (nil pointer validation pattern discovered)
+
+✅ Delegating to Go SDK improvement rule...
+
+[Go improve-go-sdk-rule.mdc executes]
+✅ Added to learning-log.md: Nil pointer validation pattern
+✅ Updated validation-patterns.md with Go error wrapping
+✅ Committed: docs(sdk/go): improve rule - nil pointer validation
+
+Summary:
+- Go SDK rule improved
+- 1 learning documented
+- Python SDK not affected
+```
+
+### Example 3: Multi-Language Learning
+
+**Context**: Implemented MCP server configuration in both Python and Go with different patterns
+
+**Orchestrator execution**:
+```
+Evaluating SDK learnings...
+
+Detected changes:
+- sdk/python/stigmer/agent/config/mcp.py
+- sdk/go/mcpserver/mcpserver.go
+- Proto schema changes affecting both
+
+Language: Both Python and Go SDK
+Learning: YES (MCP server configuration patterns for both languages)
+
+✅ Multi-language learning detected
+Improving both SDK rules...
+
+Python SDK:
+[Python improve-python-sdk-rule.mdc executes]
+✅ Added to learning-log.md: MCP server config with Python dataclasses
+✅ Updated agent-configuration.md
+✅ Cross-reference to Go SDK: "Go uses builder pattern"
+
+Go SDK:
+[Go improve-go-sdk-rule.mdc executes]
+✅ Added to learning-log.md: MCP server config with Go builders
+✅ Updated agent-configuration.md
+✅ Cross-reference to Python SDK: "Python uses dataclasses"
+
+✅ Committed both: 
+   - docs(sdk/python): improve rule - mcp server config
+   - docs(sdk/go): improve rule - mcp server config
+
+Summary:
+- Both Python and Go SDK rules improved
+- 2 learnings documented (one per language)
+- Cross-references added for conceptual alignment
+```
+
+### Example 4: No Learning (Routine Work)
+
+**Context**: Added simple field to existing Python SDK config using documented pattern
+
+**Orchestrator execution**:
+```
+Evaluating SDK learnings...
+
+Detected changes:
+- sdk/python/stigmer/agent/config/skill.py
+
+Language: Python SDK
+Learning: NO (standard field addition using existing pattern)
+
+ℹ️  No significant learnings detected:
+   - Standard field addition pattern (documented)
+   - No errors encountered
+   - Straightforward implementation
+   - Skipping SDK rule improvement
+
+Summary:
+- No rule improvements needed
+- Routine work completed successfully
+```
+
+## Integration with Complete Stigmer Work
+
+The `@complete-stigmer-work` orchestrator flow:
+
+```
+@complete-stigmer-work
+  ├─> Step 1: Create changelog
+  ├─> Step 2: Update project progress
+  ├─> Step 3: Commit changes
+  └─> Step 4: Evaluate rule improvements
+      └─> Detects SDK work (Python/Go/Both)
+          └─> Invokes @sdk/_rules/improve-this-rule.mdc (this orchestrator)
+              ├─> Python work → @sdk/python/.../improve-this-rule.mdc
+              ├─> Go work → @sdk/go/.../improve-this-rule.mdc
+              └─> Both → Both improvement rules with cross-references
+```
+
+## Decision Framework
+
+```python
+def should_improve_sdk_rules(conversation, file_changes):
+    python_work = any(f.startswith('sdk/python/') for f in file_changes)
+    go_work = any(f.startswith('sdk/go/') for f in file_changes)
+    
+    if not (python_work or go_work):
+        return None  # No SDK work
+    
+    # Evaluate learning questions
+    python_learning = evaluate_python_learning_questions(conversation)
+    go_learning = evaluate_go_learning_questions(conversation)
+    
+    if python_work and python_learning:
+        if go_work and go_learning:
+            return "BOTH"  # Improve both
+        return "PYTHON"  # Python only
+    
+    if go_work and go_learning:
+        return "GO"  # Go only
+    
+    return None  # SDK work but no learnings
+```
+
+## Output Format
+
+After orchestrator completes:
+
+**Single Language**:
+```
+📚 SDK Rule Improvements (Python)
+
+Updated Documentation:
+✅ sdk/python/.../docs/learning-log.md - Added 2 new entries
+✅ sdk/python/.../docs/proto-converters.md - Updated repeated field section
+✅ sdk/python/.../implement-stigmer-sdk-features.mdc - Enhanced troubleshooting
+
+Key Learnings Captured:
+• Proto repeated field conversion: Must use .extend() not assignment
+• Validation pattern: Hierarchical validation for nested configs
+
+Committed: docs(sdk/python): improve rule - proto and validation patterns
+```
+
+**Multi-Language**:
+```
+📚 SDK Rule Improvements (Python + Go)
+
+Python SDK:
+✅ sdk/python/.../docs/learning-log.md - Added 1 entry
+✅ Updated MCP server config documentation
+✅ Cross-referenced Go builder pattern
+
+Go SDK:
+✅ sdk/go/.../docs/learning-log.md - Added 1 entry
+✅ Updated MCP server config documentation
+✅ Cross-referenced Python dataclass pattern
+
+Committed:
+- docs(sdk/python): improve rule - mcp server config
+- docs(sdk/go): improve rule - mcp server config
+```
+
+**No Improvements**:
+```
+ℹ️  No SDK rule improvements needed
+   - Routine application of existing patterns
+   - No new learnings detected
+```
+
+## Benefits of Orchestrator Approach
+
+**For @complete-stigmer-work**:
+- ✅ Single entry point for all SDK improvements
+- ✅ Automatic language detection
+- ✅ Handles multi-language scenarios
+- ✅ No need to know which specific rule to invoke
+
+**For Learning Capture**:
+- ✅ Language-specific learnings stay separate
+- ✅ Cross-language patterns documented with references
+- ✅ Each SDK evolves independently
+- ✅ Conceptual alignment maintained
+
+**For Maintenance**:
+- ✅ Python SDK rules don't pollute Go docs
+- ✅ Go SDK rules don't pollute Python docs
+- ✅ Easy to add new SDK languages (Rust, TypeScript, etc.)
+- ✅ Clear separation of concerns
+
+## Related Rules
+
+- `@sdk/_rules/implement-stigmer-sdk-features.mdc` - Main orchestrator for SDK implementation
+- `@sdk/python/_rules (monorepo: stigmer/sdk/python/_rules)/implement-stigmer-sdk-features/improve-python-sdk-rule.mdc` - Python improvements
+- `@sdk/go/_rules (stigmer-sdk repo)/implement-stigmer-sdk-features/improve-go-sdk-rule.mdc` - Go improvements
+- `@complete-stigmer-work` - Invokes this orchestrator for SDK work
+
+---
+
+**Remember**: This orchestrator is intelligent middleware for SDK rule improvements. It doesn't replace language-specific improvement rules - it coordinates them, ensuring the right rules are improved based on what was actually worked on.

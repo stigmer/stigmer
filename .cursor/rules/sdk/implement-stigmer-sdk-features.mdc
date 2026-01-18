@@ -1,0 +1,312 @@
+# Rule: Implement Stigmer SDK Features (Orchestrator)
+
+**Purpose**: Orchestrator rule that delegates to language-specific SDK implementation rules (Python or Go) based on the work being done.
+
+**Usage**: Invoke this rule when adding SDK features, and it will automatically route to the appropriate language-specific rule.
+
+---
+
+## How This Orchestrator Works
+
+This is a **smart dispatcher** that:
+1. Analyzes the conversation context and file changes
+2. Detects which SDK language is being worked on (Python or Go)
+3. Delegates to the appropriate language-specific implementation rule
+4. Provides unified documentation and learning capture across both SDKs
+
+## Architecture
+
+```
+sdk/_rules/                                    # Root orchestrator (stigmer-sdk repo)
+├── implement-stigmer-sdk-features.mdc        # Delegates to language-specific rules
+├── improve-this-rule.mdc                      # Coordinates improvement across SDKs
+└── README.md                                  # Architecture documentation
+
+sdk/python/_rules (monorepo) (monorepo: stigmer/sdk/python/_rules (monorepo))/                             # Python-specific rules
+├── implement-stigmer-sdk-features/
+│   ├── implement-stigmer-sdk-features.mdc    # Python SDK implementation patterns
+│   ├── improve-this-rule.mdc                  # Python-specific improvements
+│   └── docs/
+│       ├── README.md                          # Python SDK docs index
+│       └── learning-log.md                    # Python SDK learnings
+
+sdk/go/_rules (public) (stigmer-sdk repo)/                                 # Go-specific rules
+├── implement-stigmer-sdk-features/
+│   ├── implement-stigmer-sdk-features.mdc    # Go SDK implementation patterns
+│   ├── improve-this-rule.mdc                  # Go-specific improvements
+│   └── docs/
+│       ├── README.md                          # Go SDK docs index
+│       └── learning-log.md                    # Go SDK learnings
+```
+
+## Execution Flow
+
+### Step 1: Language Detection
+
+When this orchestrator is invoked, it analyzes:
+
+**File Patterns:**
+- `sdk/python/**/*.py` → Python SDK work
+- `sdk/go/**/*.go` → Go SDK work
+- `sdk/python/tests/**/*.py` → Python SDK work
+- `sdk/go/**/*_test.go` → Go SDK work
+
+**Conversation Context:**
+- Mentions of "Python", "Poetry", "pytest" → Python
+- Mentions of "Go", "Golang", "go.mod" → Go
+- Proto converters in Python vs Go syntax → Language-specific
+
+**Multi-language Detection:**
+- If both languages modified → Ask user which to focus on
+- Or handle both by invoking both language-specific rules
+
+### Step 2: Delegation
+
+**If Python SDK work detected:**
+```
+Detected: Python SDK work
+Delegating to: @sdk/python/_rules (monorepo) (monorepo: stigmer/sdk/python/_rules (monorepo))/implement-stigmer-sdk-features/implement-python-sdk-features.mdc
+
+[Python-specific guidance follows...]
+```
+
+**If Go SDK work detected:**
+```
+Detected: Go SDK work
+Delegating to: @sdk/go/_rules (public) (stigmer-sdk repo)/implement-stigmer-sdk-features/implement-go-sdk-features.mdc
+
+[Go-specific guidance follows...]
+```
+
+**If both languages:**
+```
+Detected: Multi-language SDK work (Python + Go)
+
+Option 1: Focus on one language first
+Option 2: Provide guidance for both
+
+Which would you prefer?
+```
+
+### Step 3: Provide Context
+
+When delegating, provide:
+- Original user request
+- Detected language
+- Relevant file paths
+- Any cross-language considerations
+
+## Language-Specific Rules
+
+### Python SDK Rule
+
+**Location**: `sdk/python/_rules (monorepo) (monorepo: stigmer/sdk/python/_rules (monorepo))/implement-stigmer-sdk-features/implement-python-sdk-features.mdc`
+
+**Covers:**
+- Python dataclasses and type hints
+- Proto message conversion in Python (`.extend()` for repeated fields, `.CopyFrom()` for nested)
+- Poetry dependency management
+- pytest testing patterns
+- Python-specific validation patterns
+- Poetry environment and package structure
+
+**Learning Log**: `sdk/python/_rules (monorepo) (monorepo: stigmer/sdk/python/_rules (monorepo))/implement-stigmer-sdk-features/docs/learning-log.md`
+
+### Go SDK Rule
+
+**Location**: `sdk/go/_rules (public) (stigmer-sdk repo)/implement-stigmer-sdk-features/implement-go-sdk-features.mdc`
+
+**Covers:**
+- Go structs and interfaces
+- Proto message conversion in Go (pointer semantics, nil checks)
+- Go module management
+- Go testing patterns
+- Go-specific validation patterns
+- Error handling with errors package
+
+**Learning Log**: `sdk/go/_rules (public) (stigmer-sdk repo)/implement-stigmer-sdk-features/docs/learning-log.md`
+
+## Common Patterns Across Both SDKs
+
+While language-specific rules handle implementation details, both SDKs share:
+
+### Conceptual Architecture
+- Agent configuration and setup
+- Skill management
+- Environment variable handling
+- MCP server integration
+- Validation patterns
+- Error handling philosophy
+
+### Proto API Alignment
+- Both SDKs convert the same proto definitions
+- Field mappings should be consistent
+- Validation rules should align
+- Owner scope logic should match
+
+### Testing Philosophy
+- Unit tests for converters
+- Integration tests for agent execution
+- Validation tests for config
+- Proto roundtrip tests
+
+## Cross-Language Learnings
+
+When a learning applies to both languages:
+1. Document in language-specific learning log with language-specific solution
+2. Cross-reference in the other language's learning log
+3. Note in this orchestrator's documentation if pattern is universal
+
+**Example:**
+- Proto repeated field handling differs between languages
+- Python uses `.extend()`, Go uses `append()`
+- Both solve same problem, different syntax
+- Document in both learning logs with cross-reference
+
+## Delegation Examples
+
+### Example 1: Pure Python Work
+
+**User request:**
+```
+@sdk/python/_rules (monorepo) (monorepo: stigmer/sdk/python/_rules (monorepo))/implement-stigmer-sdk-features
+Implement AgentConfig dataclass with proto converter
+```
+
+**Orchestrator action:**
+```
+✅ Detected: Python SDK work (*.py files, dataclass mention)
+Delegating to Python SDK rule...
+
+[Invokes @sdk/python/_rules (monorepo) (monorepo: stigmer/sdk/python/_rules (monorepo))/implement-stigmer-sdk-features/implement-python-sdk-features.mdc]
+```
+
+### Example 2: Pure Go Work
+
+**User request:**
+```
+@sdk/_rules/implement-stigmer-sdk-features
+Add environment validation to Go SDK
+```
+
+**Orchestrator action:**
+```
+✅ Detected: Go SDK work (go.mod context, Go SDK mention)
+Delegating to Go SDK rule...
+
+[Invokes @sdk/go/_rules (public) (stigmer-sdk repo)/implement-stigmer-sdk-features/implement-go-sdk-features.mdc]
+```
+
+### Example 3: Multi-Language Work
+
+**User request:**
+```
+@sdk/_rules/implement-stigmer-sdk-features
+Implement skill configuration in both SDKs
+```
+
+**Orchestrator action:**
+```
+✅ Detected: Multi-language SDK work
+Providing guidance for both Python and Go...
+
+Python SDK:
+[Invokes Python rule with skill config focus]
+
+Go SDK:
+[Invokes Go rule with skill config focus]
+
+Ensure consistency in:
+- Field names and types
+- Validation rules
+- Error messages
+```
+
+## Integration with Complete Stigmer Work
+
+The `@complete-stigmer-work` orchestrator uses this root SDK orchestrator for:
+
+**Detection:**
+```
+# Check for SDK work
+sdk/python/**/*.py → SDK work (delegates to this orchestrator)
+sdk/go/**/*.go → SDK work (delegates to this orchestrator)
+```
+
+**Improvement Flow:**
+```
+@complete-stigmer-work
+  └─> Detects SDK changes
+      └─> Invokes @sdk/_rules/improve-this-rule.mdc (orchestrator)
+          └─> Delegates to language-specific improve-this-rule.mdc
+```
+
+## When to Use This Orchestrator
+
+**Use the orchestrator** when:
+- ✅ You want automatic language detection
+- ✅ You're working on SDK features but not sure which rule to invoke
+- ✅ You want consistent entry point across languages
+- ✅ You're implementing cross-language features
+
+**Use language-specific rules directly** when:
+- ✅ You know exactly which language you're working on
+- ✅ You want to see language-specific patterns immediately
+- ✅ You prefer explicit invocation
+
+Both approaches work - the orchestrator just adds convenience.
+
+## Self-Improvement
+
+When SDK work is completed via `@complete-stigmer-work`:
+1. Orchestrator detects SDK changes
+2. Invokes `@sdk/_rules/improve-this-rule.mdc` (orchestrator)
+3. Orchestrator analyzes which language(s) had learnings
+4. Delegates to language-specific `improve-this-rule.mdc`
+5. Language-specific rules update their learning logs
+6. Cross-language patterns noted in both logs
+
+## Benefits of Hierarchical Architecture
+
+**For Users:**
+- ✅ Single entry point (`@sdk/_rules/implement-stigmer-sdk-features`)
+- ✅ Automatic routing to correct language
+- ✅ No need to remember which rule to invoke
+
+**For Maintenance:**
+- ✅ Language-specific patterns stay separate
+- ✅ Python patterns don't pollute Go docs and vice versa
+- ✅ Each SDK can evolve independently
+- ✅ Shared concepts documented at orchestrator level
+
+**For Learning:**
+- ✅ Language-specific learnings in language-specific logs
+- ✅ Cross-references for universal patterns
+- ✅ Clear separation between syntax differences and conceptual patterns
+
+## Quick Reference
+
+**Invoke orchestrator:**
+```
+@sdk/_rules/implement-stigmer-sdk-features
+[Describe what SDK feature you're implementing]
+```
+
+**Or invoke language-specific directly:**
+```
+# Python
+@sdk/python/_rules (monorepo) (monorepo: stigmer/sdk/python/_rules (monorepo))/implement-stigmer-sdk-features/implement-python-sdk-features
+
+# Go
+@sdk/go/_rules (public) (stigmer-sdk repo)/implement-stigmer-sdk-features/implement-go-sdk-features
+```
+
+**Related rules:**
+- `@sdk/_rules/improve-this-rule.mdc` - Orchestrator for improvements
+- `@sdk/python/_rules (monorepo) (monorepo: stigmer/sdk/python/_rules (monorepo))/implement-stigmer-sdk-features/implement-python-sdk-features.mdc` - Python implementation
+- `@sdk/go/_rules (public) (stigmer-sdk repo)/implement-stigmer-sdk-features/implement-go-sdk-features.mdc` - Go implementation
+- `@complete-stigmer-work` - Uses this orchestrator for SDK detection
+
+---
+
+**Implementation Note**: This orchestrator is intelligent middleware. It doesn't replace language-specific rules - it enhances them by providing a unified entry point with automatic language detection and delegation.
