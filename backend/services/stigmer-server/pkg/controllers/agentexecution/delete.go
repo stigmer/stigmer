@@ -38,9 +38,9 @@ func (c *AgentExecutionController) Delete(ctx context.Context, executionId *apir
 // buildDeletePipeline constructs the pipeline for agent execution deletion
 func (c *AgentExecutionController) buildDeletePipeline() *pipeline.Pipeline[*apiresource.ApiResourceId] {
 	return pipeline.NewPipeline[*apiresource.ApiResourceId]("agent-execution-delete").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceId]()).                                          // 1. Validate input
-		AddStep(steps.NewExtractResourceIdStep[*apiresource.ApiResourceId]()).                                      // 2. Extract ID from wrapper
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceId]()).                                                  // 1. Validate input
+		AddStep(steps.NewExtractResourceIdStep[*apiresource.ApiResourceId]()).                                              // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceId, *agentexecutionv1.AgentExecution](c.store)). // 3. Load existing
-		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceId](c.store)).                                  // 4. Delete from database
+		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceId](c.store)).                                          // 4. Delete from database
 		Build()
 }
