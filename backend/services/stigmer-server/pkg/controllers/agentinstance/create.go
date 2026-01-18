@@ -6,7 +6,6 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	agentinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentinstance/v1"
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // Create creates a new agent instance using the pipeline framework
@@ -31,14 +30,13 @@ func (c *AgentInstanceController) Create(ctx context.Context, instance *agentins
 
 // buildCreatePipeline constructs the pipeline for agent instance creation
 func (c *AgentInstanceController) buildCreatePipeline() *pipeline.Pipeline[*agentinstancev1.AgentInstance] {
-	// Use the ApiResourceKind enum for agent_instance
-	kind := apiresourcekind.ApiResourceKind_agent_instance
-
+	// api_resource_kind is automatically extracted from proto service descriptor
+	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*agentinstancev1.AgentInstance]("agent-instance-create").
-		AddStep(steps.NewValidateProtoStep[*agentinstancev1.AgentInstance]()).                    // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*agentinstancev1.AgentInstance]()).                      // 2. Resolve slug
-		AddStep(steps.NewCheckDuplicateStep[*agentinstancev1.AgentInstance](c.store, kind)).      // 3. Check duplicate
-		AddStep(steps.NewSetDefaultsStep[*agentinstancev1.AgentInstance](kind)).                  // 4. Set defaults
-		AddStep(steps.NewPersistStep[*agentinstancev1.AgentInstance](c.store, kind)).             // 5. Persist agent instance
+		AddStep(steps.NewValidateProtoStep[*agentinstancev1.AgentInstance]()).             // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*agentinstancev1.AgentInstance]()).               // 2. Resolve slug
+		AddStep(steps.NewCheckDuplicateStep[*agentinstancev1.AgentInstance](c.store)).     // 3. Check duplicate
+		AddStep(steps.NewSetDefaultsStep[*agentinstancev1.AgentInstance]()).               // 4. Set defaults
+		AddStep(steps.NewPersistStep[*agentinstancev1.AgentInstance](c.store)).            // 5. Persist agent instance
 		Build()
 }
