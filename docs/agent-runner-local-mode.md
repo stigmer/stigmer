@@ -18,13 +18,60 @@ The Stigmer Agent Runner supports two execution modes: **local** (filesystem-bas
 
 ## Quick Start
 
-### 1. Set Execution Mode
+### Using Stigmer CLI Daemon (Recommended)
+
+The easiest way to run agent-runner in local mode is via the Stigmer CLI daemon, which handles all configuration automatically:
+
+```bash
+# Start local daemon (stigmer-server + agent-runner)
+stigmer local start
+```
+
+On first start, you'll be prompted for required secrets:
+
+```
+Enter Anthropic API key: ********
+✓ Anthropic API key configured
+Starting daemon...
+Daemon started successfully
+  PID:  12345
+  Port: 50051
+  Data: /Users/you/.stigmer
+Agent-runner started successfully
+```
+
+**What the daemon does:**
+- Detects missing API keys and prompts with masked input
+- Configures local mode environment automatically:
+  - `MODE=local`
+  - `SANDBOX_TYPE=filesystem`
+  - `SANDBOX_ROOT_DIR=./workspace`
+  - `STIGMER_BACKEND_ENDPOINT=localhost:50051`
+- Starts stigmer-server and agent-runner processes
+- Injects secrets into agent-runner environment
+- Manages lifecycle (start/stop/restart)
+
+**Check status:**
+```bash
+stigmer local status
+```
+
+**Stop daemon:**
+```bash
+stigmer local stop
+```
+
+### Manual Configuration (Advanced)
+
+For development or testing, you can run agent-runner manually:
+
+#### 1. Set Execution Mode
 
 ```bash
 export MODE="local"
 ```
 
-### 2. Configure Temporal
+#### 2. Configure Temporal
 
 ```bash
 export TEMPORAL_SERVICE_ADDRESS="localhost:7233"
@@ -32,21 +79,27 @@ export TEMPORAL_NAMESPACE="default"
 export TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE="agent_execution_runner"
 ```
 
-### 3. Configure Stigmer Backend
+#### 3. Configure Stigmer Backend
 
 ```bash
 export STIGMER_BACKEND_ENDPOINT="localhost:50051"  # Stigmer Daemon
 export STIGMER_API_KEY="dummy-local-key"            # Local development key
 ```
 
-### 4. Configure Sandbox
+#### 4. Configure Sandbox
 
 ```bash
 export SANDBOX_TYPE="filesystem"      # Default for local mode
 export SANDBOX_ROOT_DIR="./workspace" # Default workspace directory
 ```
 
-### 5. Start Agent Runner
+#### 5. Configure Secrets
+
+```bash
+export ANTHROPIC_API_KEY="your-api-key"  # Required for agent execution
+```
+
+#### 6. Start Agent Runner
 
 ```bash
 cd backend/services/agent-runner
@@ -223,6 +276,44 @@ else:
     - Use Daytona sandbox
 ```
 
+## Secret Management
+
+### CLI Daemon (Recommended)
+
+When using `stigmer local start`, the daemon handles secret management automatically:
+
+**Security features:**
+- ✅ Masked terminal input (password-style)
+- ✅ Secrets only in process memory (never written to disk)
+- ✅ No plaintext secrets in config files
+- ✅ Environment isolation (secrets only visible to agent-runner subprocess)
+
+**How it works:**
+1. Daemon checks for `ANTHROPIC_API_KEY` in environment
+2. If missing, prompts user with masked input
+3. Injects secret into agent-runner subprocess environment
+4. Secret exists only in process memory
+
+**Using existing environment variables:**
+```bash
+# Set API key in your shell
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Start daemon (no prompt)
+stigmer local start
+```
+
+### Manual Configuration
+
+If running agent-runner manually (not via daemon), set required secrets in your environment:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."  # If using OpenAI
+```
+
+**⚠️ Security Note:** Manual configuration requires you to manage secret security yourself. The CLI daemon approach is more secure for local development.
+
 ## Security Considerations
 
 ### Local Mode
@@ -231,6 +322,7 @@ else:
 - **Auth0**: Not enforced
 - **Execution**: Commands run with your user permissions
 - **Filesystem access**: Full host filesystem accessible
+- **LLM API Keys**: Managed via CLI daemon (prompting + injection) or manual environment variables
 - **Suitable for**: Trusted local development environments only
 
 ### Cloud Mode
