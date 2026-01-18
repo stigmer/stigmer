@@ -3,8 +3,10 @@ package steps
 import (
 	"fmt"
 
+	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -18,15 +20,16 @@ import (
 // The step uses the configured store (SQLite, BadgerDB, etc.) to save the resource.
 type PersistStep[T proto.Message] struct {
 	store store.Store
-	kind  string
+	kind  apiresourcekind.ApiResourceKind
 }
 
 // NewPersistStep creates a new PersistStep
 //
 // Parameters:
 //   - store: The store instance (implements store.Store interface)
-//   - kind: The resource kind (e.g., "Agent", "Workflow")
-func NewPersistStep[T proto.Message](s store.Store, kind string) *PersistStep[T] {
+//   - kind: The ApiResourceKind enum value (e.g., ApiResourceKind_agent)
+//     The kind name is automatically extracted from the enum's proto options
+func NewPersistStep[T proto.Message](s store.Store, kind apiresourcekind.ApiResourceKind) *PersistStep[T] {
 	return &PersistStep[T]{
 		store: s,
 		kind:  kind,
@@ -58,9 +61,15 @@ func (s *PersistStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 		return fmt.Errorf("resource ID is empty, cannot persist")
 	}
 
+	// Extract kind name from the enum's proto options
+	kindName, err := apiresource.GetKindName(s.kind)
+	if err != nil {
+		return fmt.Errorf("failed to get kind name: %w", err)
+	}
+
 	// Save to database
 	// Use the context from the pipeline context
-	err := s.store.SaveResource(ctx.Context(), s.kind, metadata.Id, resource)
+	err = s.store.SaveResource(ctx.Context(), kindName, metadata.Id, resource)
 	if err != nil {
 		return fmt.Errorf("failed to save resource to store: %w", err)
 	}

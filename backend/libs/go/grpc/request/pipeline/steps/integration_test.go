@@ -5,10 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/libs/go/telemetry"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/telemetry"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // TestAgentCreatePipeline_Integration tests the complete agent creation pipeline
@@ -27,9 +28,9 @@ func TestAgentCreatePipeline_Integration(t *testing.T) {
 	p := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
 		WithTracer(telemetry.NewNoOpTracer()).
 		AddStep(NewResolveSlugStep[*agentv1.Agent]()).
-		AddStep(NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")).
-		AddStep(NewSetDefaultsStep[*agentv1.Agent]("agent")).
-		AddStep(NewPersistStep[*agentv1.Agent](store, "Agent")).
+		AddStep(NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)).
+		AddStep(NewSetDefaultsStep[*agentv1.Agent](apiresourcekind.ApiResourceKind_agent)).
+		AddStep(NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)).
 		Build()
 
 	// Execute

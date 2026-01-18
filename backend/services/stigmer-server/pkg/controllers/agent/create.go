@@ -7,6 +7,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	agentsteps "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agent/steps"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
+	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // Context keys for inter-step communication
@@ -43,14 +44,17 @@ func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*ag
 
 // buildCreatePipeline constructs the pipeline for agent creation
 func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agent] {
+	// Use the ApiResourceKind enum for agent
+	kind := apiresourcekind.ApiResourceKind_agent
+
 	return pipeline.NewPipeline[*agentv1.Agent]("agent-create").
-		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).                         // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).                           // 3. Resolve slug
-		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store, "Agent")).        // 4. Check duplicate
-		AddStep(steps.NewSetDefaultsStep[*agentv1.Agent]("agent")).                    // 5. Set defaults
-		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store, "Agent")).               // 6. Persist agent
-		AddStep(agentsteps.NewCreateDefaultInstanceStep()).                            // 8. Create default instance (TODO)
-		AddStep(agentsteps.NewUpdateAgentStatusWithDefaultInstanceStep(c.store)).      // 9. Update status (TODO)
+		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).                    // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).                      // 3. Resolve slug
+		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store, kind)).      // 4. Check duplicate
+		AddStep(steps.NewSetDefaultsStep[*agentv1.Agent](kind)).                  // 5. Set defaults
+		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store, kind)).             // 6. Persist agent
+		AddStep(agentsteps.NewCreateDefaultInstanceStep()).                       // 8. Create default instance (TODO)
+		AddStep(agentsteps.NewUpdateAgentStatusWithDefaultInstanceStep(c.store)). // 9. Update status (TODO)
 		// TODO: Add CreateIamPolicies step when IAM system is ready
 		// TODO: Add Publish step when event system is ready
 		Build()
