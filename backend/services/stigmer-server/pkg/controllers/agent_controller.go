@@ -12,7 +12,6 @@ import (
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 // AgentController implements AgentCommandController and AgentQueryController
@@ -29,29 +28,8 @@ func NewAgentController(store *sqlite.Store) *AgentController {
 
 // Create creates a new agent using the pipeline framework
 func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
-	if agent == nil {
-		return nil, grpclib.InvalidArgumentError("agent is required")
-	}
-
-	// Validate required fields
-	if agent.Metadata == nil {
-		return nil, grpclib.InvalidArgumentError("metadata is required")
-	}
-
-	if agent.Metadata.Name == "" {
-		return nil, grpclib.InvalidArgumentError("name is required")
-	}
-
-	// Clone input to newState and set kind/api_version
-	newState := proto.Clone(agent).(*agentv1.Agent)
-	newState.Kind = "Agent"
-	newState.ApiVersion = "ai.stigmer.agentic.agent/v1"
-
-	// Create request context
 	reqCtx := pipeline.NewRequestContext(ctx, agent)
-	reqCtx.SetNewState(newState)
 
-	// Build and execute pipeline
 	p := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
 		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).
 		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store, "Agent")).
@@ -60,7 +38,7 @@ func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*ag
 		Build()
 
 	if err := p.Execute(reqCtx); err != nil {
-		return nil, grpclib.InternalError(err, "pipeline execution failed")
+		return nil, err
 	}
 
 	return reqCtx.NewState(), nil
@@ -68,35 +46,14 @@ func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*ag
 
 // Update updates an existing agent using the pipeline framework
 func (c *AgentController) Update(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
-	if agent == nil {
-		return nil, grpclib.InvalidArgumentError("agent is required")
-	}
-
-	if agent.Metadata == nil || agent.Metadata.Id == "" {
-		return nil, grpclib.InvalidArgumentError("agent id is required")
-	}
-
-	// Check if agent exists
-	existing := &agentv1.Agent{}
-	err := c.store.GetResource(ctx, agent.Metadata.Id, existing)
-	if err != nil {
-		return nil, grpclib.NotFoundError("Agent", agent.Metadata.Id)
-	}
-
-	// Clone input to newState
-	newState := proto.Clone(agent).(*agentv1.Agent)
-
-	// Create request context
 	reqCtx := pipeline.NewRequestContext(ctx, agent)
-	reqCtx.SetNewState(newState)
 
-	// Build and execute pipeline (simpler for update)
 	p := pipeline.NewPipeline[*agentv1.Agent]("agent-update").
 		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store, "Agent")).
 		Build()
 
 	if err := p.Execute(reqCtx); err != nil {
-		return nil, grpclib.InternalError(err, "pipeline execution failed")
+		return nil, err
 	}
 
 	return reqCtx.NewState(), nil
