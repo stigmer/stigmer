@@ -15,8 +15,8 @@ temporalio = "^1.9.0"
 langgraph = "*"
 langchain-core = ">=1.0.0"
 
-# Graphton
-graphton = {git = "https://github.com/plantonhq/graphton.git", branch = "main"}
+# Graphton (local copy)
+graphton = {path = "../../libs/python/graphton", develop = true}
 
 # Daytona sandbox support
 daytona = ">=0.113.0"
