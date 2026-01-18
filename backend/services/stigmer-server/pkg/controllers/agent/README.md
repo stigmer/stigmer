@@ -1,205 +1,196 @@
-# Agent Controller Package
+# Agent Controller Implementation Summary
 
-**Purpose**: Implements gRPC handlers for Agent resource CRUD operations using the pipeline framework.
+This package implements the Agent controller with generic, reusable pipeline-based handlers.
 
-## Package Structure
+## File Structure
 
 ```
 agent/
-├── agent_controller.go              # Controller struct + constructor (18 lines)
-├── create.go                        # Create handler + pipeline (56 lines)
-├── update.go                        # Update handler (25 lines)
-├── delete.go                        # Delete handler (28 lines)
-├── query.go                         # Query handlers: Get, GetByReference (76 lines)
-├── agent_controller_test.go         # Tests (197 lines)
-└── steps/                           # Custom pipeline steps
-    ├── create_default_instance.go   # Creates default agent instance (63 lines)
-    └── update_agent_status.go       # Updates agent status with instance ID (60 lines)
+├── agent_controller.go      # Controller struct + constructor (18 lines)
+├── apply.go                  # Apply handler (72 lines)
+├── create.go                 # Create handler + custom steps (213 lines)
+├── update.go                 # Update handler (48 lines)
+├── delete.go                 # Delete handler (60 lines)
+├── get.go                    # Get by ID handler (NEW - 44 lines)
+├── get_by_reference.go       # Get by reference handler (NEW - 47 lines)
+└── README.md                 # This file
 ```
 
-## Architecture
+## Recent Changes
 
-### Design Philosophy
+### Refactoring: Split Query Handlers into Separate Files
 
-This package follows **industry-standard Go practices**:
+**Date**: 2026-01-18
 
-1. **Single Responsibility Principle**: Each file has ONE clear purpose
-2. **Domain Package Pattern**: All agent-related code in one package (like Kubernetes, Docker)
-3. **Flat Structure**: Handlers at package root, only custom steps in sub-package
-4. **Small Files**: All files < 100 lines (ideal: 50-150 lines)
+**What Changed**:
+1. **Deleted**: `query.go` (75 lines) - monolithic file with both Get and GetByReference handlers
+2. **Created**: `get.go` (44 lines) - dedicated handler for Get by ID operation
+3. **Created**: `get_by_reference.go` (47 lines) - dedicated handler for GetByReference operation
 
-### Why This Structure?
+**Why**:
+- **Single Responsibility**: Each file now handles ONE operation
+- **Reusability**: Generic pipeline steps can be used across all resources
+- **Consistency**: Follows same pattern as apply, create, delete, update handlers
+- **Maintainability**: Easier to understand and modify individual operations
 
-**Comparison with Java Pattern:**
+### New Generic Pipeline Steps
 
-| Aspect | Java (Stigmer Cloud) | Go (Stigmer OSS) |
-|--------|---------------------|------------------|
-| **Organization** | Inner static classes | Separate files in same package |
-| **File Size** | 369 lines (acceptable in Java) | 8 files, all < 100 lines |
-| **Navigation** | Nested classes in one file | File-per-handler pattern |
-| **Testing** | Inline test classes | Separate test file |
+Added two new reusable pipeline steps in `backend/libs/go/grpc/request/pipeline/steps/`:
 
-**Go doesn't have nested classes**, so we use files to achieve the same separation of concerns.
+#### 1. `LoadTargetStep` (load_target.go)
+- **Purpose**: Loads a resource by ID for Get operations
+- **Input**: ID wrapper type (e.g., `AgentId`)
+- **Output**: Full resource stored in context with key `TargetResourceKey`
+- **Reusable**: Works for any API resource with ID wrapper input
 
-### Pipeline Architecture
-
-The Create handler uses a composable pipeline pattern:
-
-```go
-func (c *AgentController) Create(ctx, agent) (*Agent, error) {
-    pipeline.NewPipeline("agent-create").
-        AddStep(ResolveSlug).              // 3. Generate slug
-        AddStep(CheckDuplicate).           // 4. Verify uniqueness
-        AddStep(SetDefaults).              // 5. Set ID, timestamps
-        AddStep(Persist).                  // 6. Save to BadgerDB
-        AddStep(CreateDefaultInstance).    // 8. Create default instance (TODO)
-        AddStep(UpdateAgentStatus).        // 9. Update status (TODO)
-        Build().Execute(ctx)
-}
-```
-
-**Step Types:**
-
-- **Common Steps** (from `backend/libs/go/grpc/request/pipeline/steps/`):
-  - `ResolveSlugStep` - Generate slug from name
-  - `CheckDuplicateStep` - Verify no duplicate exists
-  - `SetDefaultsStep` - Set ID, kind, api_version, timestamps
-  - `PersistStep` - Save to BadgerDB
-
-- **Agent-Specific Steps** (from `steps/`):
-  - `CreateDefaultInstanceStep` - Create default agent instance (TODO)
-  - `UpdateAgentStatusWithDefaultInstanceStep` - Update status (TODO)
+#### 2. `LoadByReferenceStep` (load_by_reference.go)
+- **Purpose**: Loads a resource by ApiResourceReference (slug-based lookup)
+- **Input**: `ApiResourceReference` (contains slug, optional org filter, kind)
+- **Output**: Full resource stored in context with key `TargetResourceKey`
+- **Reusable**: Works for any API resource
+- **Logic**: Lists all resources and filters by slug + optional org (acceptable for local/OSS usage)
 
 ## Handler Patterns
 
-### Create (Pipeline Pattern)
-- **Why**: Complex multi-step operation with validation, duplicate checking, defaults
-- **Pattern**: Pipeline with reusable + custom steps
-- **File**: `create.go`
-
-### Update (Simple Pipeline)
-- **Why**: Consistent with Create, easy to extend
-- **Pattern**: Pipeline with just Persist step
-- **File**: `update.go`
-
-### Delete (Direct Pattern)
-- **Why**: Simple load-and-delete flow
-- **Pattern**: Direct implementation (no pipeline overhead)
-- **File**: `delete.go`
-
-### Query Handlers (Direct Pattern)
-- **Why**: Simple database lookups
-- **Pattern**: Direct implementation
-- **File**: `query.go`
-
-## Context Keys
-
-For inter-step communication, use constants defined in `create.go`:
+### Get Handler (`get.go`)
 
 ```go
-const (
-    DefaultInstanceIDKey = "default_instance_id"
-)
+func (c *AgentController) Get(ctx context.Context, agentId *AgentId) (*Agent, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, agentId)
+    
+    p := pipeline.NewPipeline[*AgentId]("agent-get").
+        AddStep(steps.NewValidateProtoStep[*AgentId]()).
+        AddStep(steps.NewLoadTargetStep[*AgentId, *Agent](c.store)).
+        Build()
+    
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+    
+    return reqCtx.Get(steps.TargetResourceKey).(*Agent), nil
+}
 ```
 
-## Future Work
+**Pipeline Steps**:
+1. `ValidateProtoStep` - Validates buf.validate constraints on input
+2. `LoadTargetStep` - Loads agent by ID from store
 
-**TODO Steps** (when dependencies are ready):
+### GetByReference Handler (`get_by_reference.go`)
 
-1. **CreateDefaultInstance** - Create default agent instance
-   - Requires: AgentInstance controller implementation
-   - Location: `steps/create_default_instance.go`
+```go
+func (c *AgentController) GetByReference(ctx context.Context, ref *ApiResourceReference) (*Agent, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, ref)
+    
+    p := pipeline.NewPipeline[*ApiResourceReference]("agent-get-by-reference").
+        AddStep(steps.NewValidateProtoStep[*ApiResourceReference]()).
+        AddStep(steps.NewLoadByReferenceStep[*Agent](c.store)).
+        Build()
+    
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+    
+    return reqCtx.Get(steps.TargetResourceKey).(*Agent), nil
+}
+```
 
-2. **UpdateAgentStatusWithDefaultInstance** - Update agent status with instance ID
-   - Requires: AgentInstance controller implementation
-   - Location: `steps/update_agent_status.go`
+**Pipeline Steps**:
+1. `ValidateProtoStep` - Validates buf.validate constraints on reference
+2. `LoadByReferenceStep` - Queries agents by slug (with optional org filter)
 
-3. **CreateIamPolicies** - Establish ownership relationships
-   - Requires: IAM system implementation
-   - Location: TBD (new file in `steps/`)
+## Benefits of This Approach
 
-4. **Publish** - Publish agent creation event
-   - Requires: Event system implementation
-   - Location: TBD (new file in `steps/`)
+### 1. Reusability
+- `LoadTargetStep` and `LoadByReferenceStep` can be used for **any** API resource
+- No need to write custom query logic for each resource
+- Just change the type parameters when creating new handlers
 
-## Benefits of This Architecture
-
-### ✅ Maintainability
-- Easy to find code (file names match responsibilities)
-- Small files = easier to understand
+### 2. Consistency
+- All handlers (create, update, delete, apply, get, getByReference) use the same pipeline pattern
+- Easy to understand and maintain
 - Clear separation of concerns
 
-### ✅ Testability
-- Each step can be tested independently
-- Handler logic separated from pipeline construction
-- Custom steps isolated in their own files
+### 3. Testability
+- Pipeline steps can be tested independently
+- Each step has comprehensive unit tests
+- Easy to mock dependencies
 
-### ✅ Reusability
-- Common steps shared across all resources
-- Custom steps can be extracted to common library if reused
+### 4. Extensibility
+- Adding new steps (e.g., caching, authorization) is trivial
+- Can reorder steps without changing handler code
+- Clear execution flow
 
-### ✅ Extensibility
-- Adding new steps = just add to pipeline builder
-- No need to modify existing step implementations
-- Pipeline order explicit and easy to change
+## Using These Patterns for Other Resources
 
-### ✅ Scalability
-- Easy to add more agents (just create `workflow/`, `task/` packages)
-- Each domain isolated in its own package
-- No risk of merge conflicts (different files)
-
-## File Size Guidelines
-
-All files follow Go community best practices:
-
-- ✅ **18-76 lines**: Perfect range (all handler files)
-- ✅ **60-63 lines**: Ideal for step implementations
-- ✅ **< 100 lines**: All files well below threshold
-- ✅ **< 300 lines**: Excellent (threshold is for consideration)
-
-**Previous**: 311 lines in one file  
-**Current**: 8 files, largest is 76 lines
-
-## Real-World Examples
-
-This structure mirrors industry-standard Go projects:
-
-**Kubernetes:**
-```
-pkg/controller/
-├── deployment/
-│   ├── deployment_controller.go
-│   ├── sync.go
-│   ├── rollback.go
-│   └── util.go
-```
-
-**Our Pattern:**
-```
-pkg/controllers/
-├── agent/
-│   ├── agent_controller.go
-│   ├── create.go
-│   ├── update.go
-│   ├── delete.go
-│   └── query.go
-```
-
-## Import Usage
+When implementing Get/GetByReference for a new resource (e.g., Workflow):
 
 ```go
-import (
-    // Import the agent package
-    agentctrl "github.com/stigmer/stigmer/.../controllers/agent"
-)
+// get.go
+func (c *WorkflowController) Get(ctx context.Context, workflowId *WorkflowId) (*Workflow, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, workflowId)
+    
+    p := pipeline.NewPipeline[*WorkflowId]("workflow-get").
+        AddStep(steps.NewValidateProtoStep[*WorkflowId]()).
+        AddStep(steps.NewLoadTargetStep[*WorkflowId, *Workflow](c.store)).
+        Build()
+    
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+    
+    return reqCtx.Get(steps.TargetResourceKey).(*Workflow), nil
+}
 
-// Use the controller
-controller := agentctrl.NewAgentController(store)
+// get_by_reference.go
+func (c *WorkflowController) GetByReference(ctx context.Context, ref *ApiResourceReference) (*Workflow, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, ref)
+    
+    p := pipeline.NewPipeline[*ApiResourceReference]("workflow-get-by-reference").
+        AddStep(steps.NewValidateProtoStep[*ApiResourceReference]()).
+        AddStep(steps.NewLoadByReferenceStep[*Workflow](c.store)).
+        Build()
+    
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+    
+    return reqCtx.Get(steps.TargetResourceKey).(*Workflow), nil
+}
 ```
 
-## Related Documentation
+**Note**: Only need to change type parameters - the pipeline steps remain the same!
 
-- **Pipeline Framework**: `backend/libs/go/grpc/request/pipeline/README.md`
-- **Common Steps**: `backend/libs/go/grpc/request/pipeline/steps/README.md`
-- **Implementation Guide**: `backend/services/stigmer-server/_rules/implement-stigmer-oss-handlers/`
-- **ADR BadgerDB**: `docs/adr/20260118-181912-local-backend-to-use-badgerdb.md`
+## Testing
+
+Tests are provided for the new pipeline steps:
+- `backend/libs/go/grpc/request/pipeline/steps/load_target_test.go`
+- `backend/libs/go/grpc/request/pipeline/steps/load_by_reference_test.go`
+
+To run tests (after regenerating protos if needed):
+```bash
+go test ./backend/libs/go/grpc/request/pipeline/steps/... -run TestLoadTarget -v
+go test ./backend/libs/go/grpc/request/pipeline/steps/... -run TestLoadByReference -v
+```
+
+## Architecture Alignment
+
+This implementation aligns with Stigmer Cloud (Java) patterns:
+
+| Stigmer Cloud (Java) | Stigmer OSS (Go) |
+|---------------------|------------------|
+| `AgentGetHandler` extends `GetOperationHandlerV2` | `Get()` uses `LoadTargetStep` |
+| `AgentGetByReferenceHandler` extends `CustomOperationHandlerV2` | `GetByReference()` uses `LoadByReferenceStep` |
+| Pipeline with `loadTarget` step | Pipeline with `NewLoadTargetStep` |
+| Custom `LoadFromRepo` step | Generic `LoadByReferenceStep` |
+
+Both use pipeline pattern, but Go optimizes for simplicity and generic reusability.
+
+## Next Steps
+
+To use these patterns for other resources:
+1. Create `{resource}/get.go` with Get handler
+2. Create `{resource}/get_by_reference.go` with GetByReference handler
+3. Use the same generic pipeline steps
+4. No custom query logic needed!
+
+This demonstrates the power of the pipeline pattern - write generic steps once, reuse everywhere.

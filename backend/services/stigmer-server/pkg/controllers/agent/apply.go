@@ -38,7 +38,7 @@ func (c *AgentController) Apply(ctx context.Context, agent *agentv1.Agent) (*age
 	shouldCreateVal := reqCtx.Get(steps.ShouldCreateKey)
 	if shouldCreateVal == nil {
 		log.Error().Msg("Apply pipeline did not set shouldCreate flag")
-		return nil, grpclib.InternalError("apply operation failed to determine create vs update")
+		return nil, grpclib.InternalError(nil, "apply operation failed to determine create vs update")
 	}
 
 	shouldCreate := shouldCreateVal.(bool)
