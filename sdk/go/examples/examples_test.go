@@ -1116,13 +1116,18 @@ func readProtoManifest(t *testing.T, path string, message proto.Message) {
 	}
 }
 
+// Helper function to check approximate equality for floats
+func approxEqual(a, b, epsilon float64) bool {
+	if a-b < epsilon && b-a < epsilon {
+		return true
+	}
+	return false
+}
+
 // ============================================================================
 // Agent-Workflow Integration Tests (Examples 15-19)
 // ============================================================================
-// TODO: Uncomment these tests after proto refactoring and open-sourcing
-// Currently commented out due to proto dependency issues
 
-/*
 // TestExample15_WorkflowCallingSimpleAgent tests the basic agent call pattern
 func TestExample15_WorkflowCallingSimpleAgent(t *testing.T) {
 	runExampleTest(t, "15_workflow_calling_simple_agent.go", func(t *testing.T, outputDir string) {
@@ -1634,8 +1639,8 @@ func TestExample19_WorkflowAgentExecutionConfig(t *testing.T) {
 		// Should have low temperature (0.1)
 		if tempField, ok := categorizeConfig.Fields["temperature"]; ok {
 			temp := tempField.GetNumberValue()
-			if temp != 0.1 {
-				t.Errorf("categorizeTicket temperature = %v, want 0.1", temp)
+			if !approxEqual(temp, 0.1, 0.01) {
+				t.Errorf("categorizeTicket temperature = %v, want ~0.1", temp)
 			}
 		} else {
 			t.Error("categorizeTicket should specify temperature")
@@ -1667,8 +1672,8 @@ func TestExample19_WorkflowAgentExecutionConfig(t *testing.T) {
 		// Should have high temperature (0.9) for creativity
 		if tempField, ok := generateConfig.Fields["temperature"]; ok {
 			temp := tempField.GetNumberValue()
-			if temp != 0.9 {
-				t.Errorf("generateCopy temperature = %v, want 0.9 (creative)", temp)
+			if !approxEqual(temp, 0.9, 0.01) {
+				t.Errorf("generateCopy temperature = %v, want ~0.9 (creative)", temp)
 			}
 		}
 
@@ -1722,4 +1727,3 @@ func TestExample19_WorkflowAgentExecutionConfig(t *testing.T) {
 		t.Log("   - Different configs for different use cases!")
 	})
 }
-*/
