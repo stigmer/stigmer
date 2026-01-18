@@ -52,7 +52,7 @@ protos-release: ## Release protos to Buf and create Git tag (usage: make protos-
 	@echo ""
 	@echo "Step 1: Publishing protos to Buf..."
 	@echo "--------------------------------------------"
-	@cd proto && buf push
+	@cd apis && buf push
 	@echo ""
 	@echo "✓ Protos released successfully to buf.build/stigmer/stigmer"
 	@echo ""

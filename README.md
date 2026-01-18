@@ -191,7 +191,7 @@ stigmer init
 stigmer login
 ```
 
-**Switching is seamless**: Your agent and workflow definitions work in both modes. The backend abstraction ensures feature parity.
+**Switching is seamless**: Your agent and workflow definitions work in both modes. Both implementations use the same gRPC service interfaces.
 
 ## SDK Usage
 
@@ -241,29 +241,38 @@ def transform_data(ctx):
 workflow.run("data-pipeline")
 ```
 
-## Backend Abstraction
+## gRPC Service Architecture
 
-Stigmer's backend interface is defined in Protocol Buffers, ensuring strict parity between local and cloud implementations:
+Stigmer uses gRPC service interfaces as the contract between CLI and backends:
 
 ```protobuf
-service BackendService {
-  rpc CreateExecution(CreateExecutionRequest) returns (Execution);
-  rpc UpdateStatus(UpdateStatusRequest) returns (Execution);
-  rpc GetExecutionContext(GetContextRequest) returns (ExecutionContext);
-  // ... more operations
+// Each resource defines its own gRPC services
+service AgentCommandController {
+  rpc create(Agent) returns (Agent);
+  rpc update(Agent) returns (Agent);
+  rpc delete(AgentId) returns (Agent);
+}
+
+service AgentQueryController {
+  rpc get(AgentId) returns (Agent);
+  rpc list(ListRequest) returns (ListResponse);
 }
 ```
 
-Both local (SQLite) and cloud (gRPC) backends implement this interface. This guarantees:
+**Local Mode**: Implements these gRPC services with SQLite (in-process, no network).  
+**Cloud Mode**: Implements these gRPC services over network with distributed storage.
+
+This guarantees:
 - ✅ Same features in both modes
 - ✅ Zero code changes when switching backends
-- ✅ Predictable behavior everywhere
+- ✅ Compiler enforces interface compatibility
+- ✅ No drift between implementations
 
 ## Documentation
 
 - [Getting Started](docs/getting-started/) - Installation and first agent
 - [Architecture](docs/architecture/) - How Stigmer works
-- [API Reference](docs/api/) - Backend interface and SDK docs
+- [API Reference](docs/api/) - gRPC service interfaces and SDK docs
 - [Examples](examples/) - Sample agents and workflows
 
 ## Contributing

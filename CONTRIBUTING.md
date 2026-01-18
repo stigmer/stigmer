@@ -37,7 +37,7 @@ stigmer/
 │   └── agent/           # Agent execution
 ├── sdk/                 # SDKs for Go and Python
 ├── runners/             # Workflow and agent runners
-├── proto/               # Protobuf definitions
+├── apis/                # Protobuf definitions
 ├── docs/                # Documentation
 └── examples/            # Example agents and workflows
 ```
@@ -57,7 +57,7 @@ make coverage
 
 ### Code Generation
 
-Protocol Buffer definitions are in `proto/`. After modifying protos:
+Protocol Buffer definitions are in `apis/`. After modifying protos:
 
 ```bash
 make proto-gen

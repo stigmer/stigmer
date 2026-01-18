@@ -1,147 +1,195 @@
-# Backend Abstraction Layer
+# gRPC Service Architecture
 
-Stigmer's backend abstraction ensures feature parity between local (SQLite) and cloud (gRPC) modes.
+Stigmer's architecture ensures feature parity between local (SQLite) and cloud modes by using gRPC service interfaces as the single source of truth.
 
 ## Design Philosophy
 
 **Core Principle**: The same CLI commands, SDK code, and workflow definitions must work identically in both local and cloud modes.
 
-This is achieved through a strict Protobuf contract that both backends implement.
+This is achieved through a strict Protobuf contract where both local and cloud implementations provide the same gRPC services.
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────┐
-│   CLI / SDK / Runners                   │
-│   (User-facing components)              │
-└─────────────┬───────────────────────────┘
-              │
-              │ Uses Backend Interface
-              ▼
-┌─────────────────────────────────────────┐
-│   Backend Interface (Go)                │
-│   Defined in: internal/backend/         │
-│   Generated from: proto/stigmer/backend/│
-└─────────────┬───────────────────────────┘
-              │
-       ┌──────┴──────┐
-       │             │
-       ▼             ▼
-┌─────────────┐  ┌─────────────┐
-│   Local     │  │   Cloud     │
-│   Backend   │  │   Backend   │
-│   (SQLite)  │  │   (gRPC)    │
-└─────────────┘  └─────────────┘
-       │                  │
-       ▼                  ▼
-   ~/.stigmer/       api.stigmer.io
-   local.db
+```mermaid
+flowchart TB
+    CLI[CLI / SDK / Runners]
+    
+    subgraph "Local Mode (In-Process)"
+        Client1[gRPC Client Interface]
+        Adapter[In-Process Adapter]
+        LocalImpl[Local Controller<br/>SQLite Implementation]
+    end
+    
+    subgraph "Cloud Mode (Network)"
+        Client2[gRPC Client Interface]
+        Network[Network / TLS]
+        CloudImpl[Cloud gRPC Server]
+    end
+    
+    CLI --> Client1
+    CLI --> Client2
+    
+    Client1 --> Adapter
+    Adapter --> LocalImpl
+    LocalImpl --> SQLite[(SQLite DB)]
+    
+    Client2 --> Network
+    Network --> CloudImpl
+    CloudImpl --> Postgres[(Postgres + Vault)]
+    
+    style LocalImpl fill:#a8e6cf
+    style CloudImpl fill:#ffd3b6
+    style Adapter fill:#ffaaa5
 ```
 
-## Protobuf Contract
+**Key Insight**: Both modes use the exact same gRPC client interface. The difference is:
+- **Local Mode**: Adapter routes calls directly to in-process SQLite implementation (no network)
+- **Cloud Mode**: gRPC client connects over network to cloud servers
 
-The backend interface is defined in `proto/stigmer/backend/v1/backend.proto`:
+## gRPC Service Contracts
+
+Each API resource defines its own gRPC services in the `apis/` directory:
+
+### Example: Agent Services
 
 ```protobuf
-service BackendService {
-  // Execution lifecycle
-  rpc CreateExecution(CreateExecutionRequest) returns (Execution);
-  rpc GetExecution(GetExecutionRequest) returns (Execution);
-  rpc UpdateExecutionStatus(UpdateExecutionStatusRequest) returns (Execution);
-  rpc ListExecutions(ListExecutionsRequest) returns (ListExecutionsResponse);
-  rpc CancelExecution(CancelExecutionRequest) returns (Execution);
-  
-  // Just-In-Time context (secrets)
-  rpc GetExecutionContext(GetExecutionContextRequest) returns (ExecutionContext);
-  
-  // Resource management
-  rpc GetAgent(GetResourceRequest) returns (Agent);
-  rpc CreateAgent(CreateAgentRequest) returns (Agent);
-  rpc UpdateAgent(UpdateAgentRequest) returns (Agent);
-  // ... more operations
+// apis/ai/stigmer/agentic/agent/v1/command.proto
+service AgentCommandController {
+  rpc apply(Agent) returns (Agent);
+  rpc create(Agent) returns (Agent);
+  rpc update(Agent) returns (Agent);
+  rpc delete(AgentId) returns (Agent);
+}
+
+// apis/ai/stigmer/agentic/agent/v1/query.proto
+service AgentQueryController {
+  rpc get(AgentId) returns (Agent);
+  rpc getByReference(ApiResourceReference) returns (Agent);
 }
 ```
 
-### Why Protobuf?
+### Why This Pattern?
 
-1. **Type Safety**: Compile-time validation of request/response structures
-2. **Language Agnostic**: Go and Python SDKs use the same definitions
-3. **Versioning**: Protobuf handles backward compatibility
-4. **Documentation**: Single source of truth for the API
+1. **Single Contract**: Protobuf is the only source of truth - no parallel Go/Python interfaces
+2. **Type Safety**: Compile-time validation of request/response structures
+3. **Language Agnostic**: Go and Python SDKs use the same definitions
+4. **No Drift**: Interface changes force updates to both local and cloud implementations
 
-## Backend Implementations
+## Implementation Patterns
 
-### Local Backend (`internal/backend/local/`)
+### Local Mode: In-Process Adapter
 
-**Implementation**: Direct SQLite queries
-
-**Example**:
+**The "Trick"**: Implement the gRPC *server* interface, but call it directly without a network.
 
 ```go
-func (b *Backend) CreateAgent(ctx context.Context, req *pb.CreateAgentRequest) (*pb.Agent, error) {
+// Local controller implements the gRPC server interface
+type LocalAgentController struct {
+    db *sqlite.Database
+    agentpb.UnimplementedAgentCommandControllerServer
+}
+
+func (s *LocalAgentController) Create(ctx context.Context, req *agentpb.Agent) (*agentpb.Agent, error) {
+    // Direct SQLite operations
     id := generateID("agt")
-    slug := slugify(req.Name)
-    
-    // Check uniqueness
-    var count int
-    err := b.db.QueryRow("SELECT COUNT(*) FROM agents WHERE slug = ?", slug).Scan(&count)
-    if err != nil {
-        return nil, fmt.Errorf("failed to check slug: %w", err)
-    }
-    if count > 0 {
-        return nil, fmt.Errorf("agent with slug %s already exists", slug)
-    }
-    
-    // Insert agent
     specJSON, _ := json.Marshal(req.Spec)
-    _, err = b.db.ExecContext(ctx, `
-        INSERT INTO agents (id, name, slug, spec, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, '{}', datetime('now'), datetime('now'))
-    `, id, req.Name, slug, specJSON)
+    
+    _, err := s.db.ExecContext(ctx, `
+        INSERT INTO agents (id, name, spec, created_at)
+        VALUES (?, ?, ?, datetime('now'))
+    `, id, req.Metadata.Name, specJSON)
     
     if err != nil {
         return nil, fmt.Errorf("failed to create agent: %w", err)
     }
     
-    // Return created agent
-    return b.GetAgent(ctx, &pb.GetResourceRequest{Id: id})
+    req.Metadata.Id = id
+    return req, nil
 }
 ```
 
-### Cloud Backend (`internal/backend/cloud/`)
-
-**Implementation**: gRPC proxy
-
-**Example**:
+**The Adapter**: Satisfies the gRPC client interface but calls the server directly.
 
 ```go
-func (b *Backend) CreateAgent(ctx context.Context, req *pb.CreateAgentRequest) (*pb.Agent, error) {
-    // Simply proxy to cloud service
-    return b.client.CreateAgent(ctx, req)
+type AgentClientAdapter struct {
+    server agentpb.AgentCommandControllerServer
 }
+
+func (a *AgentClientAdapter) Create(ctx context.Context, in *agentpb.Agent, opts ...grpc.CallOption) (*agentpb.Agent, error) {
+    // Direct function call - no network!
+    return a.server.Create(ctx, in)
+}
+```
+
+### Cloud Mode: Network gRPC
+
+**Implementation**: Standard gRPC client connecting to remote server.
+
+```go
+// Cloud mode uses standard gRPC over network
+conn, err := grpc.Dial("api.stigmer.io:443", 
+    grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})),
+    grpc.WithPerRPCCredentials(oauth.NewOauthAccess(token)),
+)
+
+client := agentpb.NewAgentCommandControllerClient(conn)
+agent, err := client.Create(ctx, &agentpb.Agent{...})
 ```
 
 The cloud service handles multi-tenancy, IAM, and distributed storage.
 
-## Backend Factory
+## Client Factory Pattern
 
-The CLI and runners use a factory to create the appropriate backend:
+The CLI and runners use a factory to create the appropriate client:
+
+```go
+// Factory returns the same client interface for both modes
+func NewAgentClient(cfg *Config) (agentpb.AgentCommandControllerClient, error) {
+    switch cfg.Backend.Type {
+    case "local":
+        // In-process: No network, direct calls
+        db, err := sqlite.Open(cfg.Backend.Local.DBPath)
+        if err != nil {
+            return nil, err
+        }
+        
+        controller := &local.LocalAgentController{db: db}
+        return &adapter.AgentClientAdapter{server: controller}, nil
+        
+    case "cloud":
+        // Network: Standard gRPC
+        conn, err := grpc.Dial(cfg.Backend.Cloud.Endpoint,
+            grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})),
+        )
+        if err != nil {
+            return nil, err
+        }
+        
+        return agentpb.NewAgentCommandControllerClient(conn), nil
+        
+    default:
+        return nil, fmt.Errorf("unknown backend type: %s", cfg.Backend.Type)
+    }
+}
+```
+
+**Usage** (identical for both modes):
 
 ```go
 // Load configuration
 cfg := loadConfig() // Reads ~/.stigmer/config.yaml
 
-// Create backend
-backend, err := backend.NewBackend(cfg)
+// Create client (local or cloud)
+client, err := NewAgentClient(cfg)
 if err != nil {
-    log.Fatalf("Failed to create backend: %v", err)
+    log.Fatalf("Failed to create client: %v", err)
 }
-defer backend.Close()
 
-// Use backend (same code for both local and cloud)
-agent, err := backend.CreateAgent(ctx, &pb.CreateAgentRequest{
-    Name: "support-bot",
-    Spec: &pb.AgentSpec{
+// Use client (same code for both modes!)
+agent, err := client.Create(ctx, &agentpb.Agent{
+    Metadata: &apipb.ApiResourceMetadata{
+        Name: "support-bot",
+    },
+    Spec: &agentpb.AgentSpec{
         Instructions: "You are a helpful assistant",
     },
 })
@@ -171,209 +219,166 @@ backend:
     organization: my-org
 ```
 
-## Switching Backends
-
-```bash
-# Check current backend
-stigmer backend status
-
-# Switch to cloud
-stigmer login
-
-# Switch back to local
-stigmer backend switch local
-```
-
-The CLI updates the config file. No code changes needed.
-
 ## Feature Parity Guarantees
 
 ### ✅ Guaranteed Parity
 
-These features work identically in both modes:
+These features work identically in both modes because they use the same gRPC interface:
 
-- Agent execution
-- Workflow execution
-- Secret resolution (JIT)
-- Execution history
-- Resource CRUD operations
+- Agent CRUD operations (create, get, update, delete)
+- Workflow CRUD operations
+- Execution lifecycle management
+- Resource queries and listing
 - MCP server integration
+
+### ⚠️ Local Mode Simplifications
+
+Local mode **ignores** these Proto annotations (single-user trusted mode):
+
+- `(rpcauthorization.config)` - No IAM checks
+- Organization scoping - Implicit single organization
+- Multi-tenancy fields - Single user context
 
 ### ❌ Cloud-Only Features
 
-These features require Stigmer Cloud:
+These features require cloud infrastructure:
 
 - Web console access
 - Multi-user collaboration
-- IAM policies
-- Distributed execution
-- Enterprise support
+- Distributed IAM policies
+- Distributed execution across regions
+- Enterprise support and SLAs
+
+## API Resource Services
+
+Each API resource type has its own pair of gRPC services:
+
+| Resource | Command Service | Query Service |
+|----------|----------------|---------------|
+| Agent | `AgentCommandController` | `AgentQueryController` |
+| Workflow | `WorkflowCommandController` | `WorkflowQueryController` |
+| AgentExecution | `AgentExecutionCommandController` | `AgentExecutionQueryController` |
+| WorkflowExecution | `WorkflowExecutionCommandController` | `WorkflowExecutionQueryController` |
+| Environment | `EnvironmentCommandController` | `EnvironmentQueryController` |
+| Session | `SessionCommandController` | `SessionQueryController` |
+| Skill | `SkillCommandController` | `SkillQueryController` |
+
+**Pattern**: Each resource has:
+- `command.proto` - Write operations (create, update, delete, apply)
+- `query.proto` - Read operations (get, list, search)
+- `api.proto` - Resource definition (message types)
+- `spec.proto` - Resource specification
+- `status.proto` - Resource status (where applicable)
 
 ## Testing Strategy
 
-Both backends pass the same test suite:
+Both implementations pass the same test suite:
 
 ```go
-func TestBackendCompliance(t *testing.T) {
-    backends := []backend.Backend{
-        setupLocalBackend(t),
-        setupCloudBackend(t),
+func TestAgentOperations(t *testing.T) {
+    clients := []struct {
+        name   string
+        client agentpb.AgentCommandControllerClient
+    }{
+        {"Local", setupLocalClient(t)},
+        {"Cloud", setupCloudClient(t)},
     }
     
-    for _, b := range backends {
-        t.Run(fmt.Sprintf("%T", b), func(t *testing.T) {
-            // Test CreateAgent
-            agent, err := b.CreateAgent(ctx, &pb.CreateAgentRequest{
-                Name: "test-agent",
-                Spec: &pb.AgentSpec{Instructions: "test"},
+    for _, tc := range clients {
+        t.Run(tc.name, func(t *testing.T) {
+            // Test Create
+            agent, err := tc.client.Create(ctx, &agentpb.Agent{
+                Metadata: &apipb.ApiResourceMetadata{Name: "test-agent"},
+                Spec:     &agentpb.AgentSpec{Instructions: "test"},
             })
             assert.NoError(t, err)
-            assert.NotEmpty(t, agent.Id)
+            assert.NotEmpty(t, agent.Metadata.Id)
             
-            // Test GetAgent
-            retrieved, err := b.GetAgent(ctx, &pb.GetResourceRequest{Id: agent.Id})
+            // Test Get
+            retrieved, err := queryClient.Get(ctx, &agentpb.AgentId{
+                Value: agent.Metadata.Id,
+            })
             assert.NoError(t, err)
-            assert.Equal(t, agent.Id, retrieved.Id)
-            
-            // ... more tests
+            assert.Equal(t, agent.Metadata.Id, retrieved.Metadata.Id)
         })
     }
 }
 ```
 
-If a test passes for one backend, it must pass for the other.
+If a test passes for one implementation, it must pass for the other.
 
-## Extension Points
+## Adding New Operations
 
-To add a new backend operation:
+To add a new operation to an existing resource:
 
-1. **Update proto** (`proto/stigmer/backend/v1/backend.proto`):
+1. **Update the proto** (e.g., `apis/ai/stigmer/agentic/agent/v1/command.proto`):
    ```protobuf
-   rpc GetAgentMetrics(GetMetricsRequest) returns (Metrics);
+   rpc archive(AgentId) returns (Agent);
    ```
 
 2. **Regenerate code**:
    ```bash
-   make proto-gen
+   make protos
    ```
 
-3. **Implement in both backends**:
-   - `internal/backend/local/local.go`
-   - `internal/backend/cloud/cloud.go`
-
-4. **Update interface** (`internal/backend/backend.go`):
+3. **Implement in local backend**:
    ```go
-   GetAgentMetrics(ctx context.Context, req *pb.GetMetricsRequest) (*pb.Metrics, error)
+   func (s *LocalAgentController) Archive(ctx context.Context, req *agentpb.AgentId) (*agentpb.Agent, error) {
+       // SQLite implementation
+   }
    ```
 
-5. **Write tests** for both backends
+4. **Implement in cloud backend** (in private cloud repo)
 
-## Secret Management
+5. **Update adapter** (automatically satisfies interface):
+   ```go
+   func (a *AgentClientAdapter) Archive(ctx context.Context, in *agentpb.AgentId, opts ...grpc.CallOption) (*agentpb.Agent, error) {
+       return a.server.Archive(ctx, in)
+   }
+   ```
 
-Both backends implement Just-In-Time (JIT) secret resolution:
+6. **Write tests** for both implementations
 
-### Local Backend
+## Benefits of This Architecture
 
-```go
-func (b *Backend) GetExecutionContext(ctx context.Context, req *pb.GetExecutionContextRequest) (*pb.ExecutionContext, error) {
-    // Fetch execution
-    exec, err := b.GetExecution(ctx, &pb.GetExecutionRequest{ExecutionId: req.ExecutionId})
-    if err != nil {
-        return nil, err
-    }
-    
-    // Load environment
-    env, err := b.GetEnvironment(ctx, &pb.GetResourceRequest{Id: exec.EnvironmentId})
-    if err != nil {
-        return nil, err
-    }
-    
-    // Decrypt secrets using OS keychain
-    secrets, err := b.decryptSecrets(env.Secrets)
-    if err != nil {
-        return nil, err
-    }
-    
-    return &pb.ExecutionContext{
-        ExecutionId: req.ExecutionId,
-        Secrets:     secrets,
-        Variables:   env.Variables,
-    }, nil
-}
-```
+### ✅ No Network Stack in Local Mode
 
-### Cloud Backend
+- **No port binding**: No "Allow incoming connections?" firewall prompts
+- **No port conflicts**: No "Port 8080 already in use" errors
+- **Instant startup**: No server initialization delay
+- **Lower resource usage**: No network threads or buffers
 
-```go
-func (b *Backend) GetExecutionContext(ctx context.Context, req *pb.GetExecutionContextRequest) (*pb.ExecutionContext, error) {
-    // Cloud service handles decryption using Vault
-    return b.client.GetExecutionContext(ctx, req)
-}
-```
+### ✅ Single Source of Truth
 
-Runners never see encrypted secrets—only decrypted values at execution time.
+- **Protobuf defines everything**: One contract for both modes
+- **Compiler enforces parity**: Changes to proto force updates everywhere
+- **No interface drift**: Impossible for local and cloud to diverge
 
-## Error Handling
+### ✅ Natural Testing
 
-Both backends return consistent error codes:
+- **Local as mock**: The local implementation doubles as a perfect integration test mock
+- **Same test suite**: Both implementations run identical tests
+- **Contract testing**: Proto validation ensures compatibility
 
-```go
-// Not found
-if err != nil {
-    return nil, status.Errorf(codes.NotFound, "agent not found: %s", id)
-}
+## Trade-offs
 
-// Already exists
-if err != nil {
-    return nil, status.Errorf(codes.AlreadyExists, "agent with slug %s exists", slug)
-}
+### Binary Size
 
-// Invalid argument
-if req.Name == "" {
-    return nil, status.Errorf(codes.InvalidArgument, "name is required")
-}
-```
+**Impact**: CLI binary includes SQLite driver and all local controller logic.
 
-This ensures consistent error messages across backends.
+**Mitigation**: 
+- Acceptable for modern systems (5-10 MB is reasonable)
+- Can build cloud-only binary without local dependencies if needed
 
-## Performance Considerations
+### Streaming Complexity
 
-### Local Backend
+**Impact**: gRPC streaming (e.g., `stream AgentExecution`) requires channels/pipes in adapter.
 
-- **Reads**: Fast (SQLite in-process, ~1ms)
-- **Writes**: Fast (WAL mode, ~5ms)
-- **Concurrency**: Limited (single file, but WAL helps)
-
-### Cloud Backend
-
-- **Reads**: Slower (network + distributed DB, ~50-100ms)
-- **Writes**: Slower (network + replication, ~100-200ms)
-- **Concurrency**: Unlimited (distributed system)
-
-The abstraction layer doesn't hide these differences—it's expected that cloud is slower but more scalable.
-
-## Migration Between Backends
-
-Export from local:
-
-```bash
-stigmer export --all > local-backup.yaml
-```
-
-Switch to cloud:
-
-```bash
-stigmer login
-```
-
-Import to cloud:
-
-```bash
-stigmer import < local-backup.yaml
-```
-
-The export/import format is the same (YAML with protobuf serialization), ensuring seamless migration.
+**Mitigation**:
+- Use Go channels to simulate streaming
+- Most operations are request/response, not streaming
+- Streaming is valuable enough to justify the complexity
 
 ---
 
-The backend abstraction is the foundation of Stigmer's Open Core model. It allows developers to start local and scale to cloud without rewriting code.
+This architecture is the foundation of Stigmer's Open Core model. It allows developers to start local with SQLite and scale to cloud with gRPC without changing a single line of application code.

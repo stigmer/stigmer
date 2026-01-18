@@ -14,20 +14,25 @@ Located in `github.com/stigmer/stigmer`:
 - **Agent Runner** (`runners/agent/`) - Executes agent instances
 - **SDKs** (`sdk/go/`, `sdk/python/`) - Libraries for building workflows
 
-**Backend Implementations**:
-- **Local Backend** (`internal/backend/local/`) - SQLite-based storage
-- **Cloud Client** (`internal/backend/cloud/`) - gRPC client for Stigmer Cloud
-- **Backend Interface** (`proto/stigmer/backend/v1/`) - Protobuf contract
+**Local Backend**:
+- **Local Controllers** (`internal/backend/local/`) - SQLite-based gRPC service implementations
+- **In-Process Adapter** (`internal/backend/adapter/`) - Bridges gRPC client to local controllers
+- **SQLite Schema** (`internal/backend/local/migrations/`) - Database migrations
+
+**API Contracts**:
+- **gRPC Services** (`apis/ai/stigmer/agentic/*/v1/`) - Protobuf service definitions
+- **Resource Definitions** (`apis/ai/stigmer/agentic/*/v1/api.proto`) - Agent, Workflow, etc.
 
 ### Proprietary (Stigmer Cloud)
 
-Located in `github.com/leftbin/stigmer` (private):
+Located in `github.com/leftbin/stigmer-cloud` (private):
 
 **Control Plane**:
-- **API Service** - Multi-tenant backend service
+- **gRPC Services** - Multi-tenant implementations of the same gRPC interfaces
 - **Web Console** - Browser-based UI
 - **Auth Service** - User authentication and IAM
 - **Orchestration** - Workflow scheduling and distribution
+- **Distributed Storage** - Postgres, Vault, Redis
 
 ## Why This Split?
 
@@ -43,27 +48,65 @@ Located in `github.com/leftbin/stigmer` (private):
 - Advanced features remain competitive advantage
 - Hosted service reduces operational burden
 
-## Backend Abstraction Layer
+## gRPC Service Architecture
 
-The key to this architecture is the **Backend Interface** defined in Protocol Buffers:
+The key to this architecture is using **gRPC service interfaces as the contract** between CLI and backends.
+
+```mermaid
+flowchart TB
+    subgraph "Open Source (github.com/stigmer/stigmer)"
+        CLI[CLI/SDK]
+        Proto[gRPC Service Definitions<br/>apis/]
+        Local[Local Controllers<br/>SQLite]
+        Adapter[In-Process Adapter]
+    end
+    
+    subgraph "Proprietary (github.com/leftbin/stigmer-cloud)"
+        Cloud[Cloud gRPC Services<br/>Multi-tenant]
+        Console[Web Console]
+    end
+    
+    CLI --> Proto
+    Proto -.defines.-> Local
+    Proto -.defines.-> Cloud
+    
+    CLI -->|Local Mode| Adapter
+    Adapter --> Local
+    Local --> SQLite[(SQLite)]
+    
+    CLI -->|Cloud Mode| Network[Network/TLS]
+    Network --> Cloud
+    Cloud --> Postgres[(Postgres)]
+    Cloud --> Vault[(Vault)]
+    
+    Console --> Cloud
+    
+    style Proto fill:#ffaaa5
+    style Local fill:#a8e6cf
+    style Cloud fill:#ffd3b6
+```
+
+### The Contract
+
+Both backends implement the exact same gRPC service interfaces defined in `apis/`:
 
 ```protobuf
-service BackendService {
-  rpc CreateExecution(...) returns (Execution);
-  rpc GetExecutionContext(...) returns (ExecutionContext);
-  // ... more operations
+// Open source proto definition
+service AgentCommandController {
+  rpc create(Agent) returns (Agent);
+  rpc update(Agent) returns (Agent);
+  rpc delete(AgentId) returns (Agent);
 }
 ```
 
-Both backends implement this interface:
-
-**Local Backend**: Stores data in SQLite (`~/.stigmer/local.db`)  
-**Cloud Backend**: Proxies calls to Stigmer Cloud via gRPC
+**Local Backend**: Implements these services with SQLite storage (in-process).  
+**Cloud Backend**: Implements these services with distributed storage (over network).
 
 This guarantees:
 - ✅ Feature parity between local and cloud
 - ✅ Zero code changes when switching backends
-- ✅ Predictable behavior everywhere
+- ✅ Compiler enforces interface compatibility
+- ✅ No drift between implementations
 
 ## Feature Parity Matrix
 
@@ -71,13 +114,14 @@ This guarantees:
 |---------|---------------|---------------|
 | Agent execution | ✅ | ✅ |
 | Workflow execution | ✅ | ✅ |
-| Secret storage | ✅ Encrypted | ✅ Vault |
+| Secret storage | ✅ OS Keychain | ✅ Vault |
 | Execution history | ✅ SQLite | ✅ Postgres |
 | MCP server integration | ✅ | ✅ |
 | CLI access | ✅ | ✅ |
+| gRPC services | ✅ In-process | ✅ Network |
 | Web console | ❌ | ✅ Cloud only |
 | Multi-user collaboration | ❌ | ✅ Cloud only |
-| IAM policies | ❌ | ✅ Cloud only |
+| IAM policies | ❌ Ignored | ✅ Cloud only |
 | Distributed execution | ❌ | ✅ Cloud only |
 | Enterprise support | ❌ | ✅ Cloud only |
 
@@ -111,31 +155,92 @@ Users can start with local mode and upgrade to cloud mode seamlessly:
 
 - **Authentication**: None (trust the local user)
 - **Secrets**: Encrypted with OS keychain or local master key
-- **Access control**: None needed (single user)
+- **Access control**: Single-user mode (no IAM)
 - **Audit**: Basic timestamps in SQLite
+- **Authorization**: Proto IAM annotations are ignored
 
 ### Cloud Mode
 
 - **Authentication**: OAuth 2.0 / API keys
 - **Secrets**: HashiCorp Vault
-- **Access control**: IAM policies per resource
+- **Access control**: IAM policies per resource (Proto annotations enforced)
 - **Audit**: Complete audit logs with compliance tracking
+- **Authorization**: Full IAM with organization/team/user scopes
 
 ## Development Workflow
 
 ### Contributing to Open Source
 
 1. Fork `github.com/stigmer/stigmer`
-2. Make changes to execution components
+2. Make changes to:
+   - API contracts (`apis/`)
+   - Local controllers (`internal/backend/local/`)
+   - CLI (`cmd/stigmer/`)
+   - SDKs (`sdk/`)
 3. Test against local backend
 4. Submit pull request
 
 ### Internal Development (Stigmer Team)
 
-1. Core execution changes go to open source repo
-2. Cloud-specific features go to private repo
-3. Backend interface changes require coordination
-4. Both repos stay in sync via shared protobuf definitions
+1. **API Changes**:
+   - Update proto files in open source repo
+   - Regenerate code: `make protos`
+   - Update local implementation
+   - Update cloud implementation (private repo)
+   - Both repos stay in sync via shared protobuf definitions
+
+2. **Local-Only Features**:
+   - Add to open source repo
+   - Implement in local controllers
+
+3. **Cloud-Only Features**:
+   - Add to cloud repo only
+   - May extend existing gRPC services
+   - Does not affect local mode
+
+## Code Sharing Pattern
+
+### Shared: API Contracts (Open Source)
+
+```
+apis/ai/stigmer/agentic/
+├── agent/v1/
+│   ├── api.proto          # Agent message definition
+│   ├── command.proto      # AgentCommandController service
+│   ├── query.proto        # AgentQueryController service
+│   ├── spec.proto         # AgentSpec definition
+│   └── status.proto       # AgentStatus definition
+├── workflow/v1/
+│   ├── api.proto
+│   ├── command.proto
+│   └── query.proto
+└── ... (other resources)
+```
+
+Both local and cloud import these exact proto files.
+
+### Divergent: Implementations
+
+**Open Source** (`github.com/stigmer/stigmer`):
+```
+internal/backend/local/
+├── agent_controller.go     # Implements AgentCommandControllerServer
+├── workflow_controller.go  # Implements WorkflowCommandControllerServer
+└── database.go             # SQLite operations
+```
+
+**Proprietary** (`github.com/leftbin/stigmer-cloud`):
+```
+apis/platform/grpc/
+├── agent/
+│   └── service.go          # Implements AgentCommandControllerServer
+├── workflow/
+│   └── service.go          # Implements WorkflowCommandControllerServer
+└── middleware/
+    ├── auth.go             # IAM enforcement
+    ├── tenancy.go          # Multi-tenant isolation
+    └── audit.go            # Audit logging
+```
 
 ## License Compliance
 
@@ -149,6 +254,7 @@ Users can start with local mode and upgrade to cloud mode seamlessly:
 - Stigmer Cloud source code remains private
 - Only exposed via gRPC API
 - Client libraries (SDK) remain open source
+- Protobuf definitions (API contracts) remain open source
 
 ## Community Governance
 
@@ -162,6 +268,21 @@ Users can start with local mode and upgrade to cloud mode seamlessly:
 - Private roadmap for cloud features
 - Enterprise customer feedback prioritized
 - SLA and support contracts available
+
+## Why gRPC Services (Not a Separate "Backend Interface")?
+
+**Previous approach**: Many projects define a Go interface for the backend, then implement it twice.
+
+**Problem**: The Go interface can drift from the actual gRPC API. You end up maintaining two contracts.
+
+**Our approach**: The gRPC service definitions in proto files **ARE** the interface.
+
+**Benefits**:
+- Single source of truth (Protobuf)
+- Compiler enforces compatibility
+- Works across languages (Go, Python, etc.)
+- Impossible for local and cloud to drift
+- Standard gRPC tooling and ecosystem
 
 ---
 

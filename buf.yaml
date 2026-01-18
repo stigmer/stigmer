@@ -2,7 +2,7 @@ version: v2
 deps:
   - buf.build/bufbuild/protovalidate
 modules:
-  - path: proto
+  - path: apis
     name: buf.build/stigmer/stigmer
 lint:
   use:

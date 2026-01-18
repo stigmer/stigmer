@@ -18,22 +18,21 @@ Created a well-organized repository with:
 - Complete directory structure for Go and Python SDKs
 - Build system (Makefile, buf for protobuf, Go modules, Python packaging)
 
-### 2. Backend Abstraction Layer ✅
+### 2. gRPC Service Architecture ✅
 
-Defined the core interface that ensures local/cloud parity:
+Defined API contracts using gRPC services for each resource:
 
-**Protobuf Service** (`proto/stigmer/backend/v1/backend.proto`):
-- 20+ RPC methods for all backend operations
-- Full CRUD for Agents, Workflows, Environments
-- Execution lifecycle management
-- JIT (Just-In-Time) secret resolution
-- Artifact storage
+**API Resource Services** (`apis/ai/stigmer/agentic/*/v1/`):
+- Each resource has its own CommandController and QueryController services
+- Agent, Workflow, AgentExecution, WorkflowExecution, Environment, Session, Skill
+- Standard operations: create, update, delete, get, list
+- Proto-defined authorization annotations
 
-**Go Implementation** (`internal/backend/`):
-- `Backend` interface that both implementations satisfy
-- Factory pattern for backend selection
-- Local backend stub (SQLite)
-- Cloud backend stub (gRPC proxy)
+**Implementation Strategy**:
+- Local mode: Implements gRPC server interfaces with SQLite (in-process adapter)
+- Cloud mode: Implements same gRPC services over network
+- No separate "backend interface" - gRPC services ARE the interface
+- Factory pattern for client creation (local adapter vs network client)
 
 ### 3. Database Schema ✅
 
@@ -72,7 +71,7 @@ Comprehensive documentation in `docs/`:
 
 **Architecture**:
 - `open-core-model.md` - Explains open source vs. proprietary split
-- `backend-abstraction.md` - Deep dive on interface design
+- `backend-abstraction.md` - Deep dive on gRPC service architecture
 
 **Getting Started**:
 - `local-mode.md` - Complete guide for local development
@@ -100,7 +99,7 @@ Lines of Code: ~3,000
 
 **File Breakdown**:
 - CLI: ~300 LOC
-- Backend interfaces: ~600 LOC
+- gRPC service definitions: ~600 LOC
 - Protobuf: ~300 LOC
 - Documentation: ~1,200 LOC
 - SQL schema: ~400 LOC
@@ -121,13 +120,15 @@ Lines of Code: ~3,000
 
 ## Architecture Highlights
 
-### Backend Abstraction Pattern
+### gRPC Service Pattern
 
 ```
-CLI/SDK → Backend Interface (Go) → Local (SQLite) OR Cloud (gRPC)
+CLI/SDK → gRPC Client → In-Process Adapter → Local Controllers (SQLite)
+                     OR
+CLI/SDK → gRPC Client → Network → Cloud gRPC Services
 ```
 
-**Key Insight**: Same CLI commands work with both backends. Switching is just a config change:
+**Key Insight**: Same CLI commands work with both modes. Switching is just a config change:
 
 ```yaml
 # Local mode
@@ -146,12 +147,13 @@ backend:
 
 ### Database Design Philosophy
 
-**Principle**: One table per `ApiResourceKind` (from protobuf enum)
+**Principle**: One table per API resource, matching gRPC service structure
 
 This ensures:
-- Schema mirrors API exactly
-- No drift between storage and interface
+- Schema mirrors gRPC service contracts exactly
+- No drift between storage and service interface
 - Easy to extend with new resource types
+- Each gRPC service maps to one table
 
 **Storage Pattern**:
 ```sql
@@ -260,11 +262,11 @@ Compared to Stigmer Cloud, local mode removes:
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `proto/stigmer/backend/v1/backend.proto` | Backend interface contract | ✅ Complete |
-| `internal/backend/backend.go` | Go interface definition | ✅ Complete |
-| `internal/backend/factory.go` | Backend factory | ✅ Complete |
-| `internal/backend/local/local.go` | SQLite implementation | 🚧 Stubs |
-| `internal/backend/cloud/cloud.go` | Cloud proxy | 🚧 Stubs |
+| `apis/ai/stigmer/agentic/*/v1/command.proto` | gRPC command services | ✅ Complete |
+| `apis/ai/stigmer/agentic/*/v1/query.proto` | gRPC query services | ✅ Complete |
+| `internal/backend/local/agent_controller.go` | Local AgentController (gRPC impl) | 🚧 Stubs |
+| `internal/backend/adapter/agent_adapter.go` | In-process adapter | 🚧 Stubs |
+| `internal/backend/factory.go` | Client factory | 🚧 Stubs |
 | `cmd/stigmer/main.go` | CLI entry point | 🚧 Stubs |
 
 ### Database
@@ -295,22 +297,24 @@ Compared to Stigmer Cloud, local mode removes:
 
 ## Design Decisions Log
 
-1. **Protobuf over REST**: Type safety, multi-language support, versioning
-2. **SQLite over Postgres**: Zero setup for local mode, good enough for single user
-3. **Open Core model**: Execution open, control plane proprietary
-4. **Removed multi-tenancy**: Local mode is single-user by design
-5. **JSON for spec/status**: Proto flexibility, easy to evolve
-6. **WAL mode**: SQLite concurrency for workflow execution
-7. **Factory pattern**: Clean backend switching without code changes
+1. **gRPC Services as Interface**: No separate Go interface - proto services ARE the contract
+2. **In-Process Adapter**: Local mode implements gRPC server interface without network
+3. **SQLite over Postgres**: Zero setup for local mode, good enough for single user
+4. **Open Core model**: Execution and API contracts open, cloud implementation proprietary
+5. **Removed multi-tenancy**: Local mode is single-user by design
+6. **JSON for spec/status**: Proto flexibility, easy to evolve
+7. **WAL mode**: SQLite concurrency for workflow execution
+8. **Factory pattern**: Clean mode switching without code changes
 
 ## Success Metrics (T01 Goals)
 
 | Goal | Status | Notes |
 |------|--------|-------|
-| Repository structure | ✅ Complete | 22 files, well-organized |
-| Backend interface defined | ✅ Complete | 20+ RPC methods |
+| Repository structure | ✅ Complete | 90+ API proto files, well-organized |
+| gRPC services defined | ✅ Complete | Command/Query per resource |
 | SQLite schema | ✅ Complete | 12 tables, migrations ready |
-| Backend implementations | 🚧 Stubs | Structure complete, logic pending |
+| Local controllers | 🚧 Stubs | Structure complete, logic pending |
+| In-process adapters | 🚧 Stubs | Structure complete, logic pending |
 | CLI foundation | 🚧 Stubs | Commands defined, wiring pending |
 | Documentation | ✅ Complete | Architecture, guides, examples |
 
@@ -329,7 +333,7 @@ Phase 1 successfully established the foundational architecture for open source S
 
 ✅ **Repository ready** for development  
 ✅ **Architecture documented** and validated  
-✅ **Backend abstraction** ensures local/cloud parity  
+✅ **gRPC service architecture** ensures local/cloud parity  
 ✅ **Database schema** aligned with API resources  
 ✅ **Examples** demonstrate the vision  
 
