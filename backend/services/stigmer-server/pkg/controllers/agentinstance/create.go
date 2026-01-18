@@ -33,10 +33,10 @@ func (c *AgentInstanceController) buildCreatePipeline() *pipeline.Pipeline[*agen
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*agentinstancev1.AgentInstance]("agent-instance-create").
-		AddStep(steps.NewValidateProtoStep[*agentinstancev1.AgentInstance]()).             // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*agentinstancev1.AgentInstance]()).               // 2. Resolve slug
-		AddStep(steps.NewCheckDuplicateStep[*agentinstancev1.AgentInstance](c.store)).     // 3. Check duplicate
-		AddStep(steps.NewSetDefaultsStep[*agentinstancev1.AgentInstance]()).               // 4. Set defaults
-		AddStep(steps.NewPersistStep[*agentinstancev1.AgentInstance](c.store)).            // 5. Persist agent instance
+		AddStep(steps.NewValidateProtoStep[*agentinstancev1.AgentInstance]()).         // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*agentinstancev1.AgentInstance]()).           // 2. Resolve slug
+		AddStep(steps.NewCheckDuplicateStep[*agentinstancev1.AgentInstance](c.store)). // 3. Check duplicate
+		AddStep(steps.NewBuildNewStateStep[*agentinstancev1.AgentInstance]()).         // 4. Build new state
+		AddStep(steps.NewPersistStep[*agentinstancev1.AgentInstance](c.store)).        // 5. Persist agent instance
 		Build()
 }
