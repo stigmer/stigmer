@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
-	"github.com/stigmer/stigmer/backend/libs/go/sqlite"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -15,20 +15,20 @@ import (
 //   - metadata.id must be set
 //   - kind must be provided to the constructor
 //
-// The step uses the SQLite store to save the resource as JSON.
+// The step uses the configured store (SQLite, BadgerDB, etc.) to save the resource.
 type PersistStep[T proto.Message] struct {
-	store *sqlite.Store
+	store store.Store
 	kind  string
 }
 
 // NewPersistStep creates a new PersistStep
 //
 // Parameters:
-//   - store: The SQLite store instance
+//   - store: The store instance (implements store.Store interface)
 //   - kind: The resource kind (e.g., "Agent", "Workflow")
-func NewPersistStep[T proto.Message](store *sqlite.Store, kind string) *PersistStep[T] {
+func NewPersistStep[T proto.Message](s store.Store, kind string) *PersistStep[T] {
 	return &PersistStep[T]{
-		store: store,
+		store: s,
 		kind:  kind,
 	}
 }
