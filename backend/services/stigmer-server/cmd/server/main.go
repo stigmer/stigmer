@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
-	"github.com/stigmer/stigmer/backend/libs/go/sqlite"
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
@@ -30,14 +30,15 @@ func main() {
 		Str("env", cfg.Env).
 		Msg("Starting Stigmer Server")
 
-	// Initialize SQLite store
-	store, err := sqlite.NewStore(cfg.DBPath)
+	// Initialize BadgerDB store (replaced SQLite per ADR-005 Revised)
+	// BadgerDB is a pure Go key-value store optimized for the daemon architecture
+	store, err := badger.NewStore(cfg.DBPath)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to initialize SQLite store")
+		log.Fatal().Err(err).Msg("Failed to initialize BadgerDB store")
 	}
 	defer store.Close()
 
-	log.Info().Str("db_path", cfg.DBPath).Msg("SQLite store initialized")
+	log.Info().Str("db_path", cfg.DBPath).Msg("BadgerDB store initialized")
 
 	// Create gRPC server
 	server := grpclib.NewServer()

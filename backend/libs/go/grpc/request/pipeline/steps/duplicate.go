@@ -5,8 +5,7 @@ import (
 	"fmt"
 
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
-	"github.com/stigmer/stigmer/backend/libs/go/sqlite"
-	"google.golang.org/protobuf/encoding/protojson"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -18,18 +17,18 @@ import (
 // The step requires:
 //   - metadata.slug must be set (typically by ResolveSlugStep)
 type CheckDuplicateStep[T proto.Message] struct {
-	store *sqlite.Store
+	store store.Store
 	kind  string
 }
 
 // NewCheckDuplicateStep creates a new CheckDuplicateStep
 //
 // Parameters:
-//   - store: The SQLite store instance
+//   - store: The store instance (implements store.Store interface)
 //   - kind: The resource kind (e.g., "Agent", "Workflow")
-func NewCheckDuplicateStep[T proto.Message](store *sqlite.Store, kind string) *CheckDuplicateStep[T] {
+func NewCheckDuplicateStep[T proto.Message](s store.Store, kind string) *CheckDuplicateStep[T] {
 	return &CheckDuplicateStep[T]{
-		store: store,
+		store: s,
 		kind:  kind,
 	}
 }
@@ -87,7 +86,8 @@ func (s *CheckDuplicateStep[T]) findBySlug(ctx context.Context, slug string) (pr
 		var resource T
 		resource = resource.ProtoReflect().New().Interface().(T)
 
-		if err := protojson.Unmarshal(data, resource); err != nil {
+		// Use proto.Unmarshal since stores return proto bytes (not JSON)
+		if err := proto.Unmarshal(data, resource); err != nil {
 			// Skip resources that can't be unmarshaled
 			continue
 		}
