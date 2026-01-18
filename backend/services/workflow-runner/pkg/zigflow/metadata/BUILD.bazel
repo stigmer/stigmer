@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "metadata",
+    srcs = [
+        "activity_options.go",
+        "constants.go",
+        "continueAsNew.go",
+        "schedules.go",
+        "search_attributes.go",
+    ],
+    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/zigflow/metadata",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/services/workflow-runner/pkg/utils",
+        "@com_github_go_viper_mapstructure_v2//:mapstructure",
+        "@com_github_serverlessworkflow_sdk_go_v3//model",
+        "@io_temporal_go_sdk//temporal",
+        "@io_temporal_go_sdk//workflow",
+    ],
+)
+
+go_test(
+    name = "metadata_test",
+    srcs = ["activity_options_test.go"],
+    deps = [
+        ":metadata",
+        "//backend/services/workflow-runner/pkg/utils",
+        "@com_github_serverlessworkflow_sdk_go_v3//model",
+        "@com_github_stretchr_testify//assert",
+        "@io_temporal_go_sdk//temporal",
+    ],
+)

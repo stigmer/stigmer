@@ -1,0 +1,122 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push")
+load("@rules_pkg//:pkg.bzl", "pkg_tar")
+load("//tools/bazel/macros:dot_env.bzl", "dot_env_binary")
+load("//tools/bazel/macros:port_forward.bzl", "port_forward_binary")
+
+# ---------------------------------------------------------------------------
+# Go binary (Unified dual-mode main - Phase 1.5)
+# ---------------------------------------------------------------------------
+
+go_library(
+    name = "workflow-runner_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//backend/services/workflow-runner/pkg/config",
+        "//backend/services/workflow-runner/pkg/env",
+        "//backend/services/workflow-runner/pkg/grpc",
+        "//backend/services/workflow-runner/worker",
+        "//backend/services/workflow-runner/worker/config",
+        "@com_github_rs_zerolog//:zerolog",
+        "@com_github_rs_zerolog//log",
+    ],
+)
+
+go_binary(
+    name = "workflow_runner",
+    data = glob(
+        [".env"],
+        allow_empty = True,
+    ),
+    embed = [":workflow-runner_lib"],
+    visibility = ["//visibility:public"],
+)
+
+# ---------------------------------------------------------------------------
+# Helper binaries for local development
+# ---------------------------------------------------------------------------
+
+# Generate .env file for local development
+dot_env_binary(
+    name = "dot_env_local",
+    local_service_port = "8080",  # gRPC server port (matches stigmer-service)
+    service_name = "workflow-runner",
+)
+
+# Port-forward for remote debugging
+port_forward_binary(
+    name = "port_forward_local",
+    local_port = 2345,  # Standard Go/Delve debug port
+    namespace = "stigmer-prod",
+    remote_port = 2345,
+    service_name = "workflow-runner",
+)
+
+# ---------------------------------------------------------------------------
+# Container image packaging
+# ---------------------------------------------------------------------------
+
+# Tag file for versioning
+# Priority: --define TAG=... > STABLE_GIT_REV > "nogit"
+genrule(
+    name = "workflow_runner_tags",
+    outs = ["remote_tags.txt"],
+    cmd = """
+# --define TAG=... overrides everything
+if [ -n "$(TAG)" ]; then
+  echo "$(TAG)" > "$@"
+# With --stamp, Bazel substitutes $(STABLE_GIT_REV) with the commit SHA
+elif [ -n "$(STABLE_GIT_REV)" ]; then
+  echo "$(STABLE_GIT_REV)" > "$@"
+else
+  echo "nogit" > "$@"
+fi
+""",
+    stamp = 1,  # enables $(STABLE_...) substitution
+)
+
+# Package binary into a tar layer
+pkg_tar(
+    name = "workflow_runner_binary_layer",
+    srcs = [":workflow_runner"],
+    package_dir = "/app",
+    strip_prefix = "backend/services/workflow-runner",
+)
+
+# Package example workflow
+pkg_tar(
+    name = "workflow_runner_workflow_layer",
+    srcs = ["example-workflow.yaml"],
+    package_dir = "/app/workflows",
+)
+
+# Package test workflows for development
+pkg_tar(
+    name = "workflow_runner_test_workflows_layer",
+    srcs = ["//backend/services/workflow-runner/test/golden:test_workflows"],
+    package_dir = "/app/test/golden",
+    strip_prefix = "backend/services/workflow-runner",
+)
+
+# OCI image with Alpine base
+oci_image(
+    name = "workflow_runner_image",
+    base = "@alpine_linux_amd64",
+    entrypoint = ["/app/workflow_runner"],
+    target_compatible_with = ["@platforms//os:linux"],
+    tars = [
+        ":workflow_runner_binary_layer",
+        ":workflow_runner_workflow_layer",
+        ":workflow_runner_test_workflows_layer",
+    ],
+)
+
+# Push to container registry
+oci_push(
+    name = "workflow_runner_push",
+    image = ":workflow_runner_image",
+    remote_tags = ":workflow_runner_tags",
+    repository = "ghcr.io/leftbin/stigmer-cloud/backend/services/workflow-runner",
+)

@@ -1,0 +1,41 @@
+# Golden Test 11: Claim Check Large Payload
+# Tests: Claim Check pattern with large payloads (>50KB), HTTP GET, data flow
+# CONVERTED TO DSL 1.0.0 FORMAT
+# Workflow: Fetches large dataset and processes it to test automatic R2 offloading
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: claimcheck-large-payload-test
+  version: '1.0.0'
+  description: Tests the Claim Check pattern by fetching large payloads (>50KB) from public APIs
+
+do:
+  # Step 1: Fetch all photos (5000 photos, ~500KB) - DEFINITELY triggers Claim Check
+  - fetchLargeData:
+      call: http
+      with:
+        method: GET
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/photos
+  
+  # Step 2: Fetch all comments (500 comments, ~75KB) - Also triggers Claim Check
+  - fetchMoreData:
+      call: http
+      with:
+        method: GET
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/comments
+  
+  # Step 3: Post combined result summary
+  - postSummary:
+      call: http
+      with:
+        method: POST
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/posts
+        body:
+          title: Claim Check Test Complete
+          photosCount: ${ .fetchLargeData | length }
+          commentsCount: ${ .fetchMoreData | length }
+          message: Successfully processed large payloads via Claim Check pattern

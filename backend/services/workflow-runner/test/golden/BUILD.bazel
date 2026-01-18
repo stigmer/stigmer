@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+# Export YAML files for use by parent package
+filegroup(
+    name = "test_workflows",
+    srcs = glob(["*.yaml"]),
+    visibility = ["//backend/services/workflow-runner:__pkg__"],
+)
+
+go_test(
+    name = "golden_test",
+    srcs = ["golden_test.go"],
+    data = glob(["*.yaml"]),
+    deps = [
+        "//backend/services/workflow-runner/pkg/utils",
+        "//backend/services/workflow-runner/pkg/zigflow",
+        "//backend/services/workflow-runner/pkg/zigflow/tasks",
+        "@com_github_serverlessworkflow_sdk_go_v3//model",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

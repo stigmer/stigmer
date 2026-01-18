@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "executor",
+    srcs = [
+        "temporal_workflow.go",
+        "workflow_executor.go",
+    ],
+    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/executor",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",
+        "//apis/stubs/go/ai/stigmer/agentic/workflowrunner/v1:workflowrunner",
+        "//backend/services/workflow-runner/pkg/claimcheck",
+        "//backend/services/workflow-runner/pkg/grpc_client",
+        "//backend/services/workflow-runner/pkg/types",
+        "//backend/services/workflow-runner/pkg/utils",
+        "//backend/services/workflow-runner/pkg/zigflow",
+        "//backend/services/workflow-runner/pkg/zigflow/tasks",
+        "@com_github_rs_zerolog//log",
+        "@com_github_serverlessworkflow_sdk_go_v3//model",
+        "@io_temporal_go_sdk//log",
+        "@io_temporal_go_sdk//workflow",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

@@ -1,0 +1,71 @@
+[tool.poetry]
+name = "agent-runner"
+version = "1.0.0"
+description = "Temporal worker for Graphton agent execution in Stigmer"
+authors = ["Stigmer <engineering@stigmer.ai>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.11,<4.0"
+
+# Temporal
+temporalio = "^1.9.0"
+
+# LangGraph (for Graphton state persistence)
+langgraph = "*"
+langchain-core = ">=1.0.0"
+
+# Graphton
+graphton = {git = "https://github.com/plantonhq/graphton.git", branch = "main"}
+
+# Daytona sandbox support
+daytona = ">=0.113.0"
+deepagents-cli = "*"
+
+# gRPC
+grpcio = "*"
+grpcio-reflection = "*"
+protobuf = "^6.32.0"
+
+# Authentication
+authlib = "^1.3.0"
+httpx = "^0.28.1"
+pyjwt = "^2.8.0"
+
+# Redis
+redis = "^5.0.0"
+
+# Environment variable loading (local development)
+python-dotenv = "^1.0.0"
+
+# Local API stubs
+stigmer-stubs = { path = "../../../apis/stubs/python/stigmer", develop = true }
+
+[tool.poetry.group.dev.dependencies]
+pylint = "*"
+flake8 = "*"
+mypy = "*"
+pytest = "*"
+pytest-asyncio = "*"
+
+[tool.mypy]
+python_version = "3.11"
+show_error_codes = true
+strict = false
+check_untyped_defs = true
+warn_unreachable = true
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "ai.stigmer.*"
+ignore_errors = true
+
+# Type checking enabled for worker.* to catch import errors
+# [[tool.mypy.overrides]]
+# module = "worker.*"
+# ignore_errors = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

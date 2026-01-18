@@ -1,0 +1,256 @@
+# Rule: Improve Agent Runner Features Rule (action)
+
+## Purpose
+
+Autonomously improve the `implement-agent-runner-features.mdc` rule based on lessons learned during implementation. Updates patterns, adds missing documentation, and refines guidance to prevent future issues.
+
+## When This Rule is Invoked
+
+This rule is automatically triggered by `@complete-stigmer-work.mdc` when:
+1. Agent runner Python files were modified
+2. New patterns were discovered or issues were solved
+3. Genuine learning occurred (not routine work)
+
+It can also be manually invoked when:
+- You notice the rule has incorrect/outdated guidance
+- You want to add a new pattern discovered during work
+- Documentation is missing for a common task
+
+## What This Rule Does
+
+1. **Analyzes Recent Work**: Reviews conversation history and git changes
+2. **Identifies Learnings**: Extracts new patterns, fixes, or discoveries
+3. **Updates Documentation**: 
+   - Adds entries to `docs/learning-log.md`
+   - Updates reference docs in `docs/`
+   - Refines main rule guidance
+4. **Validates Changes**: Ensures updates are accurate and helpful
+
+## How AI Should Execute This
+
+### Step 1: Identify Learnings
+
+Review the conversation for:
+
+**Proto Import Issues**:
+- New proto stub generation problems
+- Import path corrections
+- Missing dependencies discovered
+
+**Temporal Activity Issues**:
+- Activity registration problems
+- Deserialization errors
+- Retry/timeout patterns discovered
+
+**gRPC Client Issues**:
+- Authentication problems solved
+- Interceptor patterns refined
+- Connection handling discoveries
+
+**Sandbox Management Issues**:
+- Session-based reuse problems
+- Health check improvements
+- Cleanup patterns refined
+
+**Graphton Agent Issues**:
+- Agent creation errors solved
+- Event streaming problems fixed
+- Configuration patterns discovered
+
+**Skills Integration Issues**:
+- Skill fetching errors
+- File writing problems
+- Prompt generation improvements
+
+**Error Handling Patterns**:
+- New exception types handled
+- Error message improvements
+- Status update patterns
+
+### Step 2: Categorize Learnings
+
+For each learning, determine:
+
+- **Topic**: Proto Imports, Temporal, gRPC, Sandbox, Graphton, Skills, etc.
+- **Type**: Bug fix, new pattern, configuration, best practice
+- **Impact**: Critical (blocks work), Important (saves time), Nice-to-have
+- **Reusability**: Applies to one case, applies broadly, affects all implementations
+
+### Step 3: Update Documentation
+
+#### Update `docs/learning-log.md`
+
+Add entry under appropriate topic:
+
+```markdown
+## [Topic Name]
+
+### [Date] - [Brief Title]
+
+**Problem**: [What went wrong or what needed solving]
+
+**Root Cause**: [Why it happened]
+
+**Solution**: [How to fix it]
+
+**Prevention**: [How to avoid in future]
+
+**Related Docs**: [Links to relevant sections]
+
+**Example**:
+```python
+# Code example showing the fix
+```
+```
+
+#### Update Reference Docs
+
+If the learning affects a specific doc:
+- Update `docs/proto-imports.md` for proto issues
+- Update `docs/temporal-patterns.md` for activity issues
+- Update `docs/grpc-clients.md` for client issues
+- Update `docs/sandbox-lifecycle.md` for sandbox issues
+- Create new doc if topic doesn't exist
+
+#### Update Main Rule
+
+If patterns in `implement-agent-runner-features.mdc` need refinement:
+- Add new examples to relevant sections
+- Update troubleshooting guide
+- Add common pitfalls
+- Refine implementation guidance
+
+### Step 4: Validate Changes
+
+Before finalizing:
+
+- [ ] Learning is genuinely new (not already documented)
+- [ ] Solution is tested and works
+- [ ] Documentation is clear and actionable
+- [ ] Examples are accurate
+- [ ] Links between docs are correct
+
+## Improvement Criteria
+
+### Trigger Improvement If:
+
+✅ **New Error Patterns**:
+- Fixed an import error not in docs
+- Solved authentication issue
+- Discovered missing configuration
+
+✅ **New Implementation Patterns**:
+- Created new activity type
+- Implemented new gRPC client
+- Added new sandbox feature
+
+✅ **Performance Discoveries**:
+- Optimized sandbox reuse
+- Improved event processing
+- Enhanced token caching
+
+✅ **Integration Fixes**:
+- Fixed Temporal connectivity
+- Solved proto compatibility
+- Improved error handling
+
+### Skip Improvement If:
+
+❌ **Routine Application**:
+- Used existing patterns correctly
+- No issues encountered
+- Straightforward implementation
+
+❌ **Trivial Changes**:
+- Typo fixes
+- Comment updates
+- Minor refactoring
+
+❌ **Already Documented**:
+- Pattern exists in learning log
+- Solution in reference docs
+- No new discovery
+
+## Example Improvement
+
+### Scenario: Redis Connection Timeout
+
+**Learning Discovered**:
+- Redis connection times out in long-running activities
+- Need to configure socket timeout
+- Default timeout (no timeout) causes hanging
+
+**Documentation Updates**:
+
+1. **Add to `docs/learning-log.md`**:
+```markdown
+### 2026-01-12 - Redis Connection Timeout in Long Activities
+
+**Problem**: Activities hang indefinitely when Redis connection drops during execution.
+
+**Root Cause**: Default Redis client has no socket timeout, waits forever for response.
+
+**Solution**: Configure socket_timeout and socket_connect_timeout when creating Redis client:
+
+```python
+redis_client = redis.Redis(
+    host=config.redis_host,
+    port=config.redis_port,
+    password=config.redis_password,
+    decode_responses=True,
+    socket_timeout=5,        # ← Add this
+    socket_connect_timeout=5, # ← Add this
+)
+```
+
+**Prevention**: Always configure timeouts for external service connections in activities.
+```
+
+2. **Update `implement-agent-runner-features.mdc`**:
+
+Add to Token Management section:
+```python
+# IMPORTANT: Configure timeouts for reliability
+redis_client = redis.Redis(
+    host=config.redis_host,
+    port=config.redis_port,
+    socket_timeout=5,  # Prevent hanging on connection loss
+    socket_connect_timeout=5,
+)
+```
+
+## Self-Referential Improvement
+
+If this improvement rule itself has issues:
+
+1. Document the meta-problem in `docs/learning-log.md` under "Rule Improvement Process"
+2. Update this rule's guidance
+3. Note the recursive improvement in changelog
+
+## Output Format
+
+After making improvements, summarize:
+
+```
+📚 Agent Runner Rule Improvements
+
+Updated Documentation:
+✅ docs/learning-log.md - Added [X] new entries
+✅ docs/[topic].md - Updated [specific section]
+✅ implement-agent-runner-features.mdc - Enhanced [area]
+
+Key Learnings Captured:
+• [Learning 1]: [Brief description]
+• [Learning 2]: [Brief description]
+• [Learning 3]: [Brief description]
+
+Prevention Added:
+• [Pitfall 1]: [How to avoid]
+• [Pitfall 2]: [How to avoid]
+```
+
+## Related Rules
+
+- `@implement-agent-runner-features` - Main rule being improved
+- `@complete-stigmer-work` - Orchestrator that triggers this rule
+- `@commit-stigmer-changes` - Commits the improvements

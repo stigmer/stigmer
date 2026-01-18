@@ -1,0 +1,98 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: KubernetesDeployment
+metadata:
+  name: workflow-runner
+  env: prod
+  labels:
+    pulumi.project-planton.org/stack.name: prod.KubernetesDeployment.workflow-runner
+spec:
+  namespace:
+    value: stigmer-prod
+  container:
+    app:
+      env:
+        variables:
+          ENV:
+            value: prod
+          # gRPC Server Configuration
+          # Workflow runner listens on this port for commands from Stigmer Service
+          GRPC_PORT:
+            value: "8080"
+          # Temporal Configuration (using internal Kubernetes endpoint for prod)
+          TEMPORAL_SERVICE_ADDRESS:
+            value: $variables-group/stigmer-temporal-config/prod.kube-endpoint
+          TEMPORAL_NAMESPACE:
+            value: default
+          TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE:
+            value: workflow_execution_runner
+          # Stigmer Backend Configuration
+          # Used by workflow runner to report progress back to Stigmer backend service
+          STIGMER_BACKEND_ENDPOINT:
+            value: $variables-group/stigmer-api/prod.endpoint
+          STIGMER_SERVICE_USE_TLS:
+            value: "true"
+          # Claim Check Configuration (for large payload handling)
+          CLAIMCHECK_ENABLED:
+            value: "true"
+          CLAIMCHECK_THRESHOLD_BYTES:
+            value: "51200"  # 50KB
+          CLAIMCHECK_TTL_DAYS:
+            value: "30"
+          CLAIMCHECK_COMPRESSION_ENABLED:
+            value: "true"
+          # Cloudflare R2 Configuration (S3-compatible storage)
+          R2_BUCKET:
+            value: $variables-group/workflow-runner-r2-config/prod.bucket-name
+          R2_ENDPOINT:
+            value: $variables-group/workflow-runner-r2-config/prod.endpoint
+          R2_REGION:
+            value: $variables-group/workflow-runner-r2-config/region
+        secrets:
+          # Cloudflare R2 Credentials
+          R2_ACCESS_KEY_ID:
+            value: $secrets-group/workflow-runner-r2-credentials/prod.access-key-id
+          R2_SECRET_ACCESS_KEY:
+            value: $secrets-group/workflow-runner-r2-credentials/prod.secret-access-key
+          # Stigmer API Key (unified with agent-runner)
+          STIGMER_API_KEY:
+            value: $secrets-group/stigmer-api/prod.api-key
+      resources:
+        limits:
+          cpu: "2"
+          memory: 2Gi
+        requests:
+          cpu: 60m
+          memory: 100Mi
+      # Health probes for zero-downtime deployments
+      readinessProbe:
+        grpc:
+          port: 8080
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      livenessProbe:
+        grpc:
+          port: 8080
+        initialDelaySeconds: 30
+        periodSeconds: 30
+        timeoutSeconds: 5
+        failureThreshold: 3
+      startupProbe:
+        grpc:
+          port: 8080
+        initialDelaySeconds: 0
+        periodSeconds: 5
+        timeoutSeconds: 5
+        failureThreshold: 30
+  availability:
+    minReplicas: 3  # More replicas for production
+    # Zero-downtime deployment strategy
+    deploymentStrategy:
+      maxUnavailable: "0"
+      maxSurge: "1"
+    # Pod disruption budget for cluster maintenance protection
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: "1"
+
