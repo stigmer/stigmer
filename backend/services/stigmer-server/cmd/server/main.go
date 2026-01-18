@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -44,11 +45,13 @@ func main() {
 
 	log.Info().Str("db_path", cfg.DBPath).Msg("BadgerDB store initialized")
 
-	// Create gRPC server with apiresource interceptor
+	// Create gRPC server with apiresource interceptor and in-process support
 	// The interceptor automatically extracts api_resource_kind from proto service descriptors
 	// and injects it into the request context for use by pipeline steps
+	// In-process support enables internal service calls through full gRPC stack (with interceptors)
 	server := grpclib.NewServer(
 		grpclib.WithUnaryInterceptor(apiresourceinterceptor.UnaryServerInterceptor()),
+		grpclib.WithInProcess(), // Enable in-process gRPC for internal calls
 	)
 	grpcServer := server.GRPCServer()
 
@@ -59,8 +62,31 @@ func main() {
 
 	log.Info().Msg("Registered AgentInstance controllers")
 
+	// TODO: Register other controllers here (Workflow, Skill, Environment, Session)
+	// All services must be registered BEFORE starting the server or creating connections
+
 	// Create in-process AgentInstance client for downstream calls
-	agentInstanceClient := agentinstanceclient.NewClient(agentInstanceController)
+	// The in-process server will be started automatically when Start() is called
+	// Note: We create this client BEFORE starting the server, but it will work because
+	// the connection is established lazily when the first RPC is made
+	var agentInstanceClient *agentinstanceclient.Client
+	{
+		// Start in-process gRPC server (must be done before creating connections)
+		if err := server.StartInProcess(); err != nil {
+			log.Fatal().Err(err).Msg("Failed to start in-process gRPC server")
+		}
+
+		// Create in-process gRPC connection
+		// This connection goes through all gRPC interceptors (validation, logging, etc.)
+		// even though it's in-process, ensuring consistent behavior with network calls
+		inProcessConn, err := server.NewInProcessConnection(context.Background())
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to create in-process gRPC connection")
+		}
+		defer inProcessConn.Close()
+
+		agentInstanceClient = agentinstanceclient.NewClient(inProcessConn)
+	}
 
 	// Create and register Agent controller (with AgentInstance client for default instance creation)
 	agentController := agent.NewAgentController(store, agentInstanceClient)
@@ -69,13 +95,11 @@ func main() {
 
 	log.Info().Msg("Registered Agent controllers")
 
-	// TODO: Register other controllers (Workflow, Skill, Environment, Session)
-
 	// Setup graceful shutdown
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	// Start server in goroutine
+	// Start network server in goroutine
 	go func() {
 		if err := server.Start(cfg.GRPCPort); err != nil {
 			log.Fatal().Err(err).Msg("Failed to start gRPC server")

@@ -98,8 +98,27 @@ func (s *Server) GRPCServer() *grpc.Server {
 	return s.grpcServer
 }
 
-// Start starts the gRPC server on the given port.
-// If in-process support is enabled, it also starts serving on the bufconn listener.
+// StartInProcess starts serving in-process requests via bufconn.
+// This must be called before Start() to enable in-process connections.
+// This is automatically called by Start() if WithInProcess() was set.
+func (s *Server) StartInProcess() error {
+	if !s.inProcessEnabled || s.bufListener == nil {
+		return fmt.Errorf("in-process support not enabled - use WithInProcess() when creating server")
+	}
+
+	go func() {
+		log.Debug().Msg("Starting in-process gRPC server on bufconn")
+		if err := s.grpcServer.Serve(s.bufListener); err != nil {
+			log.Error().Err(err).Msg("In-process gRPC server stopped")
+		}
+	}()
+
+	return nil
+}
+
+// Start starts the gRPC server on the given port for network connections.
+// Note: If in-process support is enabled, you must call StartInProcess() first
+// before calling Start().
 func (s *Server) Start(port int) error {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -109,17 +128,7 @@ func (s *Server) Start(port int) error {
 	s.listener = listener
 	s.port = port
 
-	log.Info().Int("port", port).Msg("Starting gRPC server")
-
-	// If in-process is enabled, start serving on bufconn in a goroutine
-	if s.inProcessEnabled && s.bufListener != nil {
-		go func() {
-			log.Debug().Msg("Starting in-process gRPC listener")
-			if err := s.grpcServer.Serve(s.bufListener); err != nil {
-				log.Error().Err(err).Msg("In-process gRPC listener error")
-			}
-		}()
-	}
+	log.Info().Int("port", port).Msg("Starting gRPC network server")
 
 	// Serve on network listener (this blocks)
 	if err := s.grpcServer.Serve(listener); err != nil {
