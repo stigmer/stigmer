@@ -28,6 +28,12 @@ type Config struct {
 	TTLDays            int   // Auto-delete after N days
 	CompressionEnabled bool  // Enable gzip compression
 
+	// Storage selection
+	StorageType string // "r2" or "filesystem" (default: "r2")
+
+	// Filesystem configuration
+	FilesystemBasePath string // Base directory for local storage
+
 	// Cloudflare R2 configuration (S3-compatible)
 	R2Bucket          string
 	R2Endpoint        string // Cloudflare R2 endpoint
