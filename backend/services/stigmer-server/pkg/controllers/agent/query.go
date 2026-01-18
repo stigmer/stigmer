@@ -7,6 +7,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
@@ -17,8 +18,9 @@ func (c *AgentController) Get(ctx context.Context, agentId *agentv1.AgentId) (*a
 		return nil, grpclib.InvalidArgumentError("agent id is required")
 	}
 
+	kind := apiresourcekind.ApiResourceKind_agent.String()
 	agent := &agentv1.Agent{}
-	if err := c.store.GetResource(ctx, agentId.Value, agent); err != nil {
+	if err := c.store.GetResource(ctx, kind, agentId.Value, agent); err != nil {
 		return nil, grpclib.NotFoundError("Agent", agentId.Value)
 	}
 
@@ -43,15 +45,11 @@ func (c *AgentController) GetByReference(ctx context.Context, ref *apiresource.A
 func (c *AgentController) findByName(ctx context.Context, name string, orgID string) (*agentv1.Agent, error) {
 	// List all agents and filter by name
 	// Note: This is not efficient for large datasets, but acceptable for local usage
-	var resources [][]byte
-	var err error
-
-	if orgID != "" {
-		resources, err = c.store.ListResourcesByOrg(ctx, "Agent", orgID)
-	} else {
-		resources, err = c.store.ListResources(ctx, "Agent")
-	}
-
+	kind := apiresourcekind.ApiResourceKind_agent.String()
+	
+	// Note: BadgerDB doesn't support ListResourcesByOrg (local-only, no org filtering needed)
+	// All resources are in the same local database
+	resources, err := c.store.ListResources(ctx, kind)
 	if err != nil {
 		return nil, grpclib.InternalError(err, "failed to list agents")
 	}
