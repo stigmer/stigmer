@@ -1127,12 +1127,12 @@ files = [
 [[package]]
 name = "graphton"
 version = "0.1.0"
-description = "Declarative agent creation framework for LangGraph"
+description = "Declarative agent creation framework for LangGraph (Stigmer local copy)"
 optional = false
 python-versions = ">=3.11,<4.0"
 groups = ["main"]
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 deepagents = ">=0.2.4,<0.3.0"
@@ -1145,10 +1145,8 @@ nest-asyncio = ">=1.6.0,<2.0.0"
 pydantic = ">=2.0.0,<3.0.0"
 
 [package.source]
-type = "git"
-url = "https://github.com/plantonhq/graphton.git"
-reference = "main"
-resolved_reference = "e81ee9d4025050acdbe4b58827fe7b6e09b804b9"
+type = "directory"
+url = "../../libs/python/graphton"
 
 [[package]]
 name = "grpcio"
@@ -3912,18 +3910,17 @@ full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart 
 
 [[package]]
 name = "stigmer-stubs"
-version = "0.0.0"
-description = "Generated Python stubs for Stigmer APIs (buf output)"
+version = "0.1.0"
+description = "Generated Python stubs for Stigmer APIs"
 optional = false
-python-versions = "^3.11"
+python-versions = ">=3.11,<4.0"
 groups = ["main"]
 files = []
 develop = true
 
 [package.dependencies]
-grpcio = ">=1.74.0,<2.0.0"
-protobuf = ">=6.32.0,<7.0.0"
-typing-extensions = ">=4.14.0"
+grpcio = "*"
+protobuf = "^6.32.0"
 
 [package.source]
 type = "directory"
@@ -5057,4 +5054,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "39e6d6936c419de3b974434727a25dec52e2593d6c83fb080ec4a19815cbca4a"
+content-hash = "6a589af77d9154425ba306770a5497b7affac9a8df2d1dbe185ed83871b5e27b"
