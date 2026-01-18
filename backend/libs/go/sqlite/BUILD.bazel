@@ -17,9 +17,5 @@ go_test(
     name = "sqlite_test",
     srcs = ["store_test.go"],
     embed = [":sqlite"],
-    deps = [
-        "//internal/gen/ai/stigmer/agentic/agent/v1:agent",
-        "//internal/gen/ai/stigmer/commons/apiresource",
-        "@org_golang_google_protobuf//proto",
-    ],
+    deps = ["@org_golang_google_protobuf//proto"],
 )

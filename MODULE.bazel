@@ -28,9 +28,11 @@ use_repo(
     "build_buf_go_protovalidate",  # keep: Required for protovalidate runtime validation
     "com_github_dgraph_io_badger_v4",
     "com_github_mattn_go_sqlite3",
+    "com_github_pkg_errors",  # keep: Required for CLI error handling
     "com_github_rs_zerolog",
     "com_github_spf13_cobra",
     "com_github_stretchr_testify",
+    "in_gopkg_yaml_v3",  # keep: Required for CLI config YAML
     "org_golang_google_grpc",
     "org_golang_google_protobuf",  # keep: Required for protobuf types (timestamppb, structpb, etc.)
 )
