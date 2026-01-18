@@ -16,13 +16,13 @@ type ValidateProtoStep[T proto.Message] struct {
 }
 
 // NewValidateProtoStep creates a new validation step.
-// Returns an error if the validator cannot be initialized.
-func NewValidateProtoStep[T proto.Message]() (*ValidateProtoStep[T], error) {
+// Panics if the validator cannot be initialized (this is an initialization error, not a runtime error).
+func NewValidateProtoStep[T proto.Message]() *ValidateProtoStep[T] {
 	v, err := protovalidate.New()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create protovalidate validator: %w", err)
+		panic(fmt.Sprintf("failed to create protovalidate validator: %v", err))
 	}
-	return &ValidateProtoStep[T]{validator: v}, nil
+	return &ValidateProtoStep[T]{validator: v}
 }
 
 // Name returns the step name for logging and tracing.

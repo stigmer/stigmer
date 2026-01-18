@@ -1,7 +1,7 @@
 # Agent Controller Pipeline Framework
 
 **Created:** 2026-01-18  
-**Status:** Phase 6 Complete - BadgerDB Migration & Cloud Alignment  
+**Status:** Phase 7.1 Complete - Validation Step Integration (58% Cloud Parity)  
 **Timeline:** Multi-day iterative implementation
 
 ## Project Description
@@ -123,7 +123,23 @@ New Components to Create:
 - **Files Modified:** 5 (main.go, agent_controller.go, 2 steps, go.mod)
 - **See:** `checkpoints/2026-01-18-badgerdb-migration-complete.md`
 
-### Phase 7: AgentInstance Implementation (Next)
+### Phase 7: Go Package Structure Refactoring ✅ COMPLETE
+- ✅ Refactored monolithic file into domain package
+- ✅ 8 focused files (all < 100 lines)
+- ✅ Idiomatic Go organization following Kubernetes/Docker patterns
+- **Completed:** 2026-01-18
+- **See:** `checkpoints/2026-01-18-go-package-structure-refactoring.md`
+
+### Phase 7.1: Validation Step Integration ✅ COMPLETE
+- ✅ Added ValidateProtoStep to agent create pipeline
+- ✅ Improved step constructor pattern (matches other steps)
+- ✅ Updated tests to match new signature
+- ✅ Cloud parity increased to 58% (7/12 steps)
+- **Completed:** 2026-01-18
+- **Files Modified:** 3 (validation.go, validation_test.go, create.go)
+- **See:** `checkpoints/2026-01-18-validation-step-added.md`
+
+### Phase 8: AgentInstance Implementation (Next)
 - [ ] Define AgentInstance proto
 - [ ] Implement AgentInstance controller
 - [ ] Implement CreateDefaultInstance step
@@ -198,5 +214,7 @@ To resume work on this project in any session:
 - [x] Phase 3: Architecture Alignment (moved to grpc/request/)
 - [x] Phase 4: Agent Controller Integration
 - [x] Phase 5: Pure Pipeline Refactoring
-- [x] Phase 6: BadgerDB Migration & Cloud Alignment
-- [ ] Phase 7: AgentInstance Implementation (Next)
+- [x] Phase 6: BadgerDB Migration & Cloud Alignment (50% Cloud parity)
+- [x] Phase 7: Go Package Structure Refactoring
+- [x] Phase 7.1: Validation Step Integration (58% Cloud parity)
+- [ ] Phase 8: AgentInstance Implementation (Next - 75% Cloud parity target)

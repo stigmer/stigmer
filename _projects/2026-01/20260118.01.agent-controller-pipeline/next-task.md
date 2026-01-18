@@ -12,15 +12,15 @@
 ✅ **Task T03 Complete** - Pipeline integrated into Agent Controller  
 ✅ **Controller Refactoring Complete** - Removed all manual logic, pure pipeline pattern achieved  
 ✅ **BadgerDB Migration Complete** - Storage layer migrated from SQLite to BadgerDB  
-✅ **Cloud Pipeline Alignment Complete** - 6/12 steps implemented, 6/12 documented as TODO  
-✅ **Go Package Structure Refactoring Complete** - Idiomatic Go organization (domain package pattern)
+✅ **Go Package Structure Refactoring Complete** - Idiomatic Go organization (domain package pattern)  
+✅ **Validation Step Added** - ValidateProtoStep integrated, Cloud parity 58% (7/12 steps)
 
 ## Project Status
 
 🎉 **PHASE 1-7 COMPLETE** 🎉
 
-**Latest:** Agent controller refactored into industry-standard Go package structure (8 files, all < 100 lines).  
-**Next:** AgentInstance implementation.
+**Latest:** Validation step added to agent create pipeline. Cloud parity increased to 58% (7/12 steps).  
+**Next:** AgentInstance implementation to reach 75% Cloud parity.
 
 ## What Was Accomplished
 
@@ -99,13 +99,41 @@ This project successfully implemented a pipeline framework for the Stigmer OSS a
 
 ## Files to Reference
 
-- **Latest Checkpoint:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/checkpoints/2026-01-18-go-package-structure-refactoring.md`
+- **Latest Checkpoint:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/checkpoints/2026-01-18-validation-step-added.md`
+- **Latest Changelog:** `@stigmer/_changelog/2026-01/2026-01-18-200103-add-validation-step-to-agent-create-pipeline.md`
 - **Package Architecture:** `@stigmer/backend/services/stigmer-server/pkg/controllers/agent/README.md`
 - **README:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/README.md`
 - **Pipeline Docs:** `@stigmer/backend/libs/go/grpc/request/pipeline/README.md`
-- **Previous Checkpoint:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/checkpoints/2026-01-18-controller-refactoring-complete.md`
+- **Previous Checkpoint:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/checkpoints/2026-01-18-go-package-structure-refactoring.md`
 
-## Latest Work: Phase 7 - Go Package Structure Refactoring ✅
+## Latest Work: Phase 7.1 - Validation Step Integration ✅
+
+**Completed:** 2026-01-18
+
+### Validation Integration
+
+**What Changed**:
+- Added `ValidateProtoStep` as first step in agent create pipeline
+- Improved step constructor pattern (removed error return, use panic)
+- Updated tests to match new constructor signature
+
+**Impact**:
+- Cloud parity increased from 50% to 58% (7/12 steps)
+- Proto field constraints now validated before processing
+- Consistent step constructor pattern across all generic steps
+
+**Files Modified**:
+```
+backend/libs/go/grpc/request/pipeline/steps/validation.go
+backend/libs/go/grpc/request/pipeline/steps/validation_test.go
+backend/services/stigmer-server/pkg/controllers/agent/create.go
+```
+
+**See**: `@checkpoints/2026-01-18-validation-step-added.md`
+
+---
+
+## Previous Work: Phase 7 - Go Package Structure Refactoring ✅
 
 **Completed:** 2026-01-18
 
@@ -169,25 +197,24 @@ controllers/agent/              # Domain package
 - Easy to switch backends
 - Clean separation: business logic vs storage
 
-### Cloud Pipeline Alignment (50% Complete)
+### Cloud Pipeline Alignment (58% Complete)
 
 **Agent Controller Pipeline Status** (vs Java Cloud version):
 
-✅ **Implemented** (6/12 steps):
-1. ResolveSlug
-2. CheckDuplicate
-3. SetDefaults
-4. Persist (now using BadgerDB)
-5. SendResponse
+✅ **Implemented** (7/12 steps):
+1. **ValidateFieldConstraints** (using buf validate) ✅ **NEW**
+2. ResolveSlug
+3. CheckDuplicate
+4. SetDefaults
+5. Persist (now using BadgerDB)
+6. SendResponse
 
-❌ **Documented as TODO** (6/12 steps):
-1. ValidateFieldConstraints (needs validation framework)
-2. Authorize (needs IAM, may skip for local)
-3. CreateIamPolicies (needs IAM, may skip for local)
-4. **CreateDefaultInstance** (needs AgentInstance controller) ← **HIGH PRIORITY**
-5. **UpdateAgentStatusWithDefaultInstance** (needs AgentInstance) ← **HIGH PRIORITY**
-6. Publish (needs event system, future)
-7. TransformResponse (optional)
+❌ **Documented as TODO** (5/12 steps):
+1. Authorize (needs IAM, may skip for local)
+2. CreateIamPolicies (needs IAM, may skip for local)
+3. **CreateDefaultInstance** (needs AgentInstance controller) ← **HIGH PRIORITY**
+4. **UpdateAgentStatusWithDefaultInstance** (needs AgentInstance) ← **HIGH PRIORITY**
+5. Publish (needs event system, future)
 
 **Added**: Placeholder pipeline steps with full implementation notes from Cloud version
 

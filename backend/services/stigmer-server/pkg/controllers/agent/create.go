@@ -17,7 +17,7 @@ const (
 // Create creates a new agent using the pipeline framework
 //
 // Pipeline (aligned with Stigmer Cloud AgentCreateHandler):
-// 1. ValidateFieldConstraints - Validate proto field constraints (TODO: when validation framework ready)
+// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
 // 2. Authorize - Verify caller has permission (TODO: when auth ready)
 // 3. ResolveSlug - Generate slug from metadata.name
 // 4. CheckDuplicate - Verify no duplicate exists
@@ -44,6 +44,7 @@ func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*ag
 // buildCreatePipeline constructs the pipeline for agent creation
 func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agent] {
 	return pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).                         // 1. Validate field constraints
 		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).                           // 3. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store, "Agent")).        // 4. Check duplicate
 		AddStep(steps.NewSetDefaultsStep[*agentv1.Agent]("agent")).                    // 5. Set defaults

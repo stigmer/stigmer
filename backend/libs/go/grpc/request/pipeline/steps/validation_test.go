@@ -9,10 +9,7 @@ import (
 )
 
 func TestNewValidateProtoStep(t *testing.T) {
-	step, err := NewValidateProtoStep[*emptypb.Empty]()
-	if err != nil {
-		t.Fatalf("failed to create validation step: %v", err)
-	}
+	step := NewValidateProtoStep[*emptypb.Empty]()
 
 	if step == nil {
 		t.Error("expected non-nil step")
@@ -24,10 +21,7 @@ func TestNewValidateProtoStep(t *testing.T) {
 }
 
 func TestValidateProtoStepExecute(t *testing.T) {
-	step, err := NewValidateProtoStep[*emptypb.Empty]()
-	if err != nil {
-		t.Fatalf("failed to create validation step: %v", err)
-	}
+	step := NewValidateProtoStep[*emptypb.Empty]()
 
 	tests := []struct {
 		name    string
@@ -57,20 +51,14 @@ func TestValidateProtoStepExecute(t *testing.T) {
 }
 
 func TestValidateProtoStepIntegration(t *testing.T) {
-	// Create validation step
-	validateStep, err := NewValidateProtoStep[*emptypb.Empty]()
-	if err != nil {
-		t.Fatalf("failed to create validation step: %v", err)
-	}
-
-	// Build a simple pipeline
+	// Build a simple pipeline with validation step
 	p := pipeline.NewPipeline[*emptypb.Empty]("test-validation").
-		AddStep(validateStep).
+		AddStep(NewValidateProtoStep[*emptypb.Empty]()).
 		Build()
 
 	// Execute pipeline
 	ctx := pipeline.NewRequestContext(context.Background(), &emptypb.Empty{})
-	err = p.Execute(ctx)
+	err := p.Execute(ctx)
 
 	if err != nil {
 		t.Errorf("pipeline execution failed: %v", err)
