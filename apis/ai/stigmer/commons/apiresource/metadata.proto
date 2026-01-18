@@ -16,25 +16,17 @@ message ApiResourceMetadata {
   // System-generated unique identifier.
   string id = 3;
 
-  // Organization to which this resource belongs.
-  string org = 4;
-
-  // Owner scope determines visibility and access control for this resource.
-  // Defines who can see and access this resource.
-  // Default: organization (set by middleware).
-  ApiResourceOwnerScope owner_scope = 5 [(buf.validate.field).enum.defined_only = true];
-
   // Key-value labels for organization and filtering.
-  map<string, string> labels = 6;
+  map<string, string> labels = 4;
 
   // Key-value annotations for additional metadata.
-  map<string, string> annotations = 7;
+  map<string, string> annotations = 5;
 
   // Tags for categorization.
-  repeated string tags = 8;
+  repeated string tags = 6;
 
   // Version information for the resource.
-  ApiResourceMetadataVersion version = 9;
+  ApiResourceMetadataVersion version = 7;
 }
 
 // ApiResourceMetadataVersion contains version tracking information.
