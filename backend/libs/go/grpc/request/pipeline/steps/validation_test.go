@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 

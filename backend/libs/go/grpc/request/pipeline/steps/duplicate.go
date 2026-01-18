@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/sqlite"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/pipeline"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -40,48 +40,38 @@ func (s *CheckDuplicateStep[T]) Name() string {
 }
 
 // Execute checks for duplicate resources by slug
-func (s *CheckDuplicateStep[T]) Execute(ctx *pipeline.RequestContext[T]) pipeline.StepResult {
+func (s *CheckDuplicateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	resource := ctx.NewState()
 
 	// Type assertion to access metadata
 	metadataResource, ok := any(resource).(HasMetadata)
 	if !ok {
-		return pipeline.StepResult{
-			Error: pipeline.StepError(s.Name(), fmt.Errorf("resource does not implement HasMetadata interface")),
-		}
+		return fmt.Errorf("resource does not implement HasMetadata interface")
 	}
 
 	metadata := metadataResource.GetMetadata()
 	if metadata == nil {
-		return pipeline.StepResult{
-			Error: pipeline.StepError(s.Name(), fmt.Errorf("resource metadata is nil")),
-		}
+		return fmt.Errorf("resource metadata is nil")
 	}
 
 	// Verify slug is set
 	if metadata.Slug == "" {
-		return pipeline.StepResult{
-			Error: pipeline.StepError(s.Name(), fmt.Errorf("resource slug is empty, cannot check for duplicates")),
-		}
+		return fmt.Errorf("resource slug is empty, cannot check for duplicates")
 	}
 
 	// Check for duplicate by slug
 	existing, err := s.findBySlug(ctx.Context(), metadata.Slug)
 	if err != nil {
-		return pipeline.StepResult{
-			Error: pipeline.StepError(s.Name(), fmt.Errorf("failed to check for duplicates: %w", err)),
-		}
+		return fmt.Errorf("failed to check for duplicates: %w", err)
 	}
 
 	// If duplicate found, return error
 	if existing != nil {
 		existingMetadata := existing.(HasMetadata).GetMetadata()
-		return pipeline.StepResult{
-			Error: pipeline.StepError(s.Name(), fmt.Errorf("%s with slug '%s' already exists (id: %s)", s.kind, metadata.Slug, existingMetadata.Id)),
-		}
+		return fmt.Errorf("%s with slug '%s' already exists (id: %s)", s.kind, metadata.Slug, existingMetadata.Id)
 	}
 
-	return pipeline.StepResult{Success: true}
+	return nil
 }
 
 // findBySlug searches for a resource by slug globally

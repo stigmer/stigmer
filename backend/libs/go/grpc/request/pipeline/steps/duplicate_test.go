@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
 )
@@ -23,15 +23,13 @@ func TestCheckDuplicateStep_NoDuplicate(t *testing.T) {
 
 	step := NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	ctx.SetNewState(agent)
 
 	// Execute (no existing resources, should succeed)
-	result := step.Execute(ctx)
+	err := step.Execute(ctx)
 
-	if result.Error != nil {
-		t.Errorf("Expected success when no duplicate exists, got error: %v", result.Error)
-	}
-	if !result.Success {
-		t.Errorf("Expected Success=true, got false")
+	if err != nil {
+		t.Errorf("Expected success when no duplicate exists, got error: %v", err)
 	}
 }
 
@@ -61,11 +59,12 @@ func TestCheckDuplicateStep_DuplicateExists(t *testing.T) {
 
 	step := NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")
 	ctx := pipeline.NewRequestContext(context.Background(), newAgent)
+	ctx.SetNewState(newAgent)
 
 	// Execute (should fail with duplicate error)
-	result := step.Execute(ctx)
+	err := step.Execute(ctx)
 
-	if result.Error == nil {
+	if err == nil {
 		t.Errorf("Expected duplicate error, got success")
 	}
 }
@@ -84,10 +83,11 @@ func TestCheckDuplicateStep_EmptySlug(t *testing.T) {
 
 	step := NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	ctx.SetNewState(agent)
 
-	result := step.Execute(ctx)
+	err := step.Execute(ctx)
 
-	if result.Error == nil {
+	if err == nil {
 		t.Errorf("Expected error for empty slug, got success")
 	}
 }
@@ -102,10 +102,11 @@ func TestCheckDuplicateStep_NilMetadata(t *testing.T) {
 
 	step := NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	ctx.SetNewState(agent)
 
-	result := step.Execute(ctx)
+	err := step.Execute(ctx)
 
-	if result.Error == nil {
+	if err == nil {
 		t.Errorf("Expected error for nil metadata, got success")
 	}
 }
@@ -144,10 +145,11 @@ func TestCheckDuplicateStep_MultipleSlugs(t *testing.T) {
 
 	step := NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")
 	ctx := pipeline.NewRequestContext(context.Background(), newAgent)
+	ctx.SetNewState(newAgent)
 
-	result := step.Execute(ctx)
+	err := step.Execute(ctx)
 
-	if result.Error == nil {
+	if err == nil {
 		t.Errorf("Expected duplicate error, got success")
 	}
 }

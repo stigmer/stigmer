@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
 )
@@ -19,16 +19,14 @@ func TestSetDefaultsStep_Execute(t *testing.T) {
 
 	step := NewSetDefaultsStep[*agentv1.Agent]("agent")
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	ctx.SetNewState(agent)
 
 	// Execute
-	result := step.Execute(ctx)
+	err := step.Execute(ctx)
 
 	// Verify
-	if result.Error != nil {
-		t.Errorf("Expected success, got error: %v", result.Error)
-	}
-	if !result.Success {
-		t.Errorf("Expected Success=true, got false")
+	if err != nil {
+		t.Errorf("Expected success, got error: %v", err)
 	}
 
 	// Check ID was generated
@@ -60,13 +58,14 @@ func TestSetDefaultsStep_Idempotent(t *testing.T) {
 
 	step := NewSetDefaultsStep[*agentv1.Agent]("agent")
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	ctx.SetNewState(agent)
 
 	// Execute
-	result := step.Execute(ctx)
+	err := step.Execute(ctx)
 
 	// Verify
-	if result.Error != nil {
-		t.Errorf("Expected success, got error: %v", result.Error)
+	if err != nil {
+		t.Errorf("Expected success, got error: %v", err)
 	}
 
 	// Check that existing ID was NOT overwritten (idempotent)
@@ -97,11 +96,12 @@ func TestSetDefaultsStep_DifferentPrefixes(t *testing.T) {
 
 			step := NewSetDefaultsStep[*agentv1.Agent](tt.prefix)
 			ctx := pipeline.NewRequestContext(context.Background(), agent)
+			ctx.SetNewState(agent)
 
-			result := step.Execute(ctx)
+			err := step.Execute(ctx)
 
-			if result.Error != nil {
-				t.Errorf("Expected success, got error: %v", result.Error)
+			if err != nil {
+				t.Errorf("Expected success, got error: %v", err)
 			}
 
 			if !strings.HasPrefix(agent.Metadata.Id, tt.expected) {
@@ -124,6 +124,7 @@ func TestSetDefaultsStep_MultipleResources(t *testing.T) {
 
 		step := NewSetDefaultsStep[*agentv1.Agent]("agent")
 		ctx := pipeline.NewRequestContext(context.Background(), agent)
+		ctx.SetNewState(agent)
 		step.Execute(ctx)
 
 		// Check for duplicate IDs
@@ -146,10 +147,11 @@ func TestSetDefaultsStep_NilMetadata(t *testing.T) {
 
 	step := NewSetDefaultsStep[*agentv1.Agent]("agent")
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	ctx.SetNewState(agent)
 
-	result := step.Execute(ctx)
+	err := step.Execute(ctx)
 
-	if result.Error == nil {
+	if err == nil {
 		t.Errorf("Expected error for nil metadata, got success")
 	}
 }

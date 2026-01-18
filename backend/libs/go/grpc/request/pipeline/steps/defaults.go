@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -45,22 +45,18 @@ func (s *SetDefaultsStep[T]) Name() string {
 }
 
 // Execute sets default values on the resource
-func (s *SetDefaultsStep[T]) Execute(ctx *pipeline.RequestContext[T]) pipeline.StepResult {
+func (s *SetDefaultsStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	resource := ctx.NewState()
 
 	// Type assertion to access metadata
 	metadataResource, ok := any(resource).(HasMetadata)
 	if !ok {
-		return pipeline.StepResult{
-			Error: pipeline.StepError(s.Name(), fmt.Errorf("resource does not implement HasMetadata interface")),
-		}
+		return fmt.Errorf("resource does not implement HasMetadata interface")
 	}
 
 	metadata := metadataResource.GetMetadata()
 	if metadata == nil {
-		return pipeline.StepResult{
-			Error: pipeline.StepError(s.Name(), fmt.Errorf("resource metadata is nil")),
-		}
+		return fmt.Errorf("resource metadata is nil")
 	}
 
 	// Set ID if not already set (idempotent)
@@ -68,7 +64,7 @@ func (s *SetDefaultsStep[T]) Execute(ctx *pipeline.RequestContext[T]) pipeline.S
 		metadata.Id = generateID(s.idPrefix)
 	}
 
-	return pipeline.StepResult{Success: true}
+	return nil
 }
 
 // generateID generates a unique ID for a resource
