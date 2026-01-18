@@ -8,6 +8,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 func TestCheckDuplicateStep_NoDuplicate(t *testing.T) {
@@ -21,7 +22,7 @@ func TestCheckDuplicateStep_NoDuplicate(t *testing.T) {
 		},
 	}
 
-	step := NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")
+	step := NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
 	ctx.SetNewState(agent)
 
@@ -57,7 +58,7 @@ func TestCheckDuplicateStep_DuplicateExists(t *testing.T) {
 		},
 	}
 
-	step := NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")
+	step := NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
 	ctx := pipeline.NewRequestContext(context.Background(), newAgent)
 	ctx.SetNewState(newAgent)
 
@@ -81,7 +82,7 @@ func TestCheckDuplicateStep_EmptySlug(t *testing.T) {
 		},
 	}
 
-	step := NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")
+	step := NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
 	ctx.SetNewState(agent)
 
@@ -100,7 +101,7 @@ func TestCheckDuplicateStep_NilMetadata(t *testing.T) {
 		Metadata: nil,
 	}
 
-	step := NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")
+	step := NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
 	ctx.SetNewState(agent)
 
@@ -143,7 +144,7 @@ func TestCheckDuplicateStep_MultipleSlugs(t *testing.T) {
 		},
 	}
 
-	step := NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")
+	step := NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
 	ctx := pipeline.NewRequestContext(context.Background(), newAgent)
 	ctx.SetNewState(newAgent)
 
@@ -158,7 +159,7 @@ func TestCheckDuplicateStep_Name(t *testing.T) {
 	store := setupTestStore(t)
 	defer store.Close()
 
-	step := NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")
+	step := NewCheckDuplicateStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
 	if step.Name() != "CheckDuplicate" {
 		t.Errorf("Expected Name()=CheckDuplicate, got %q", step.Name())
 	}

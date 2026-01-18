@@ -2,10 +2,11 @@ package steps
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
+	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -22,20 +23,20 @@ import (
 //
 // Example:
 //
-//	For kind="agent"
-//	Generated ID: "agent-1705678901234567890"
+//	For kind=ApiResourceKind_agent
+//	Generated ID: "agt-1705678901234567890"
 type SetDefaultsStep[T proto.Message] struct {
-	idPrefix string
+	kind apiresourcekind.ApiResourceKind
 }
 
 // NewSetDefaultsStep creates a new SetDefaultsStep
 //
 // Parameters:
-//   - idPrefix: The prefix for generated IDs (e.g., "agent", "workflow")
-//     This is typically the lowercase version of the resource kind
-func NewSetDefaultsStep[T proto.Message](idPrefix string) *SetDefaultsStep[T] {
+//   - kind: The ApiResourceKind enum value (e.g., ApiResourceKind_agent)
+//     The ID prefix is automatically extracted from the enum's proto options
+func NewSetDefaultsStep[T proto.Message](kind apiresourcekind.ApiResourceKind) *SetDefaultsStep[T] {
 	return &SetDefaultsStep[T]{
-		idPrefix: idPrefix,
+		kind: kind,
 	}
 }
 
@@ -61,7 +62,12 @@ func (s *SetDefaultsStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 
 	// Set ID if not already set (idempotent)
 	if metadata.Id == "" {
-		metadata.Id = generateID(s.idPrefix)
+		// Extract ID prefix from the kind's proto options
+		idPrefix, err := apiresource.GetIdPrefix(s.kind)
+		if err != nil {
+			return fmt.Errorf("failed to get ID prefix from kind: %w", err)
+		}
+		metadata.Id = generateID(idPrefix)
 	}
 
 	return nil
@@ -70,11 +76,8 @@ func (s *SetDefaultsStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 // generateID generates a unique ID for a resource
 //
 // Format: {prefix}-{unix-nano-timestamp}
-// Example: agent-1705678901234567890
+// Example: agt-1705678901234567890
 func generateID(prefix string) string {
-	// Ensure prefix is lowercase
-	prefix = strings.ToLower(prefix)
-
 	// Use Unix nanoseconds for uniqueness
 	timestamp := time.Now().UnixNano()
 
