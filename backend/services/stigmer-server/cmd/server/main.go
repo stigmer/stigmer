@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agent"
 	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentinstance"
@@ -43,8 +44,12 @@ func main() {
 
 	log.Info().Str("db_path", cfg.DBPath).Msg("BadgerDB store initialized")
 
-	// Create gRPC server
-	server := grpclib.NewServer()
+	// Create gRPC server with apiresource interceptor
+	// The interceptor automatically extracts api_resource_kind from proto service descriptors
+	// and injects it into the request context for use by pipeline steps
+	server := grpclib.NewServer(
+		grpclib.WithUnaryInterceptor(apiresourceinterceptor.UnaryServerInterceptor()),
+	)
 	grpcServer := server.GRPCServer()
 
 	// Create and register AgentInstance controller

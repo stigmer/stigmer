@@ -6,18 +6,16 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // Update updates an existing agent using the pipeline framework
 func (c *AgentController) Update(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, agent)
 
-	// Use the ApiResourceKind enum for agent
-	kind := apiresourcekind.ApiResourceKind_agent
-
+	// api_resource_kind is automatically extracted from proto service descriptor
+	// by the apiresource interceptor and injected into request context
 	p := pipeline.NewPipeline[*agentv1.Agent]("agent-update").
-		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store, kind)).
+		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).
 		// TODO: Add Publish step when event system is ready
 		Build()
 

@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -21,23 +21,21 @@ import (
 // the pipeline, as they are resource-specific and cannot be set generically
 // without proto reflection.
 //
+// The api_resource_kind is extracted from request context (injected by interceptor).
+//
 // Example:
 //
 //	For kind=ApiResourceKind_agent
 //	Generated ID: "agt-1705678901234567890"
 type SetDefaultsStep[T proto.Message] struct {
-	kind apiresourcekind.ApiResourceKind
 }
 
 // NewSetDefaultsStep creates a new SetDefaultsStep
 //
-// Parameters:
-//   - kind: The ApiResourceKind enum value (e.g., ApiResourceKind_agent)
-//     The ID prefix is automatically extracted from the enum's proto options
-func NewSetDefaultsStep[T proto.Message](kind apiresourcekind.ApiResourceKind) *SetDefaultsStep[T] {
-	return &SetDefaultsStep[T]{
-		kind: kind,
-	}
+// The api_resource_kind is automatically extracted from the request context
+// by the apiresource interceptor during request handling.
+func NewSetDefaultsStep[T proto.Message]() *SetDefaultsStep[T] {
+	return &SetDefaultsStep[T]{}
 }
 
 // Name returns the step name
@@ -62,8 +60,11 @@ func (s *SetDefaultsStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 
 	// Set ID if not already set (idempotent)
 	if metadata.Id == "" {
+		// Get api_resource_kind from request context (injected by interceptor)
+		kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
+
 		// Extract ID prefix from the kind's proto options
-		idPrefix, err := apiresource.GetIdPrefix(s.kind)
+		idPrefix, err := apiresource.GetIdPrefix(kind)
 		if err != nil {
 			return fmt.Errorf("failed to get ID prefix from kind: %w", err)
 		}
