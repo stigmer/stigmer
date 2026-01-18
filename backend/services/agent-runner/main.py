@@ -53,21 +53,8 @@ async def shutdown_handler(worker: AgentRunner):
     logger.info("🛑 Received shutdown signal, stopping worker gracefully...")
     
     try:
-        # Stop accepting new tasks and wait for in-flight activities to complete
-        logger.info("Stopping worker (waiting for in-flight activities)...")
-        if worker.worker:
-            await worker.worker.shutdown()
-            logger.info("✓ Worker stopped successfully")
-        
-        # Cancel token rotation background task
-        if worker.rotation_task and not worker.rotation_task.done():
-            logger.info("Canceling token rotation task...")
-            worker.rotation_task.cancel()
-            try:
-                await worker.rotation_task
-            except asyncio.CancelledError:
-                logger.info("✓ Token rotation task canceled")
-        
+        # Shutdown worker (stops accepting tasks, waits for in-flight activities, closes connections)
+        await worker.shutdown()
         logger.info("✅ Graceful shutdown complete")
         
     except Exception as e:
@@ -77,10 +64,36 @@ async def shutdown_handler(worker: AgentRunner):
 
 async def main():
     """Main entry point."""
-    config = Config.load_from_env()
-    logger.info(f"Starting Agent Runner (task queue: {config.task_queue})")
+    try:
+        config = Config.load_from_env()
+    except Exception as e:
+        logger.error(f"❌ Failed to load configuration: {e}", exc_info=True)
+        sys.exit(1)
     
-    worker = AgentRunner(config)
+    # Log startup banner
+    mode = "LOCAL" if config.is_local_mode() else "CLOUD"
+    logger.info("=" * 60)
+    logger.info(f"🚀 Stigmer Agent Runner - {mode} Mode")
+    logger.info("=" * 60)
+    logger.info(f"Task Queue: {config.task_queue}")
+    logger.info(f"Temporal: {config.temporal_service_address} (namespace: {config.temporal_namespace})")
+    logger.info(f"Backend: {config.stigmer_backend_endpoint}")
+    
+    if config.is_local_mode():
+        logger.info(f"Sandbox: {config.sandbox_type} (root: {config.sandbox_root_dir})")
+        logger.info("Note: Using gRPC to Stigmer Daemon for state/streaming")
+    else:
+        logger.info(f"Sandbox: {config.sandbox_type}")
+        logger.info(f"Redis: {config.redis_host}:{config.redis_port}")
+    
+    logger.info("=" * 60)
+    
+    # Initialize worker
+    try:
+        worker = AgentRunner(config)
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize worker: {e}", exc_info=True)
+        sys.exit(1)
     
     try:
         # Register activities and connect to Temporal
@@ -103,8 +116,10 @@ async def main():
         # Run worker until shutdown
         await worker.start()
         
+    except KeyboardInterrupt:
+        logger.info("Interrupted by user")
     except Exception as e:
-        logger.error(f"Fatal error in worker: {e}", exc_info=True)
+        logger.error(f"❌ Fatal error in worker: {e}", exc_info=True)
         sys.exit(1)
     finally:
         logger.info("Worker process exiting")

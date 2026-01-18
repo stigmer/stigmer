@@ -5,7 +5,9 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 from .config import Config
 from .token_manager import set_api_key
+from .redis_config import RedisConfig, create_redis_client
 import logging
+import redis
 
 class AgentRunner:
     """Temporal worker that executes Graphton agent activities."""
@@ -14,11 +16,35 @@ class AgentRunner:
         self.config = config
         self.client: Optional[Client] = None
         self.worker: Optional[Worker] = None
+        self.redis_client: Optional[redis.Redis] = None
         self.logger = logging.getLogger(__name__)
         
         # Set global API key for activities
         set_api_key(config.stigmer_api_key)
         self.logger.info("Configured Stigmer API authentication")
+        
+        # Initialize Redis in cloud mode
+        if not config.is_local_mode():
+            self._initialize_redis()
+        else:
+            self.logger.info("Local mode: Skipping Redis initialization (using gRPC to Stigmer Daemon)")
+    
+    def _initialize_redis(self):
+        """Initialize Redis connection for cloud mode."""
+        try:
+            redis_config = RedisConfig(
+                host=self.config.redis_host,
+                port=self.config.redis_port,
+                password=self.config.redis_password,
+            )
+            self.redis_client = create_redis_client(redis_config)
+            self.logger.info(f"✅ Connected to Redis at {self.config.redis_host}:{self.config.redis_port}")
+        except redis.ConnectionError as e:
+            self.logger.error(f"❌ Failed to connect to Redis: {e}")
+            raise
+        except Exception as e:
+            self.logger.error(f"❌ Error initializing Redis: {e}")
+            raise
     
     async def register_activities(self):
         """Connect to Temporal and register activities.
@@ -33,16 +59,31 @@ class AgentRunner:
         from worker.activities.ensure_thread import ensure_thread
         from worker.activities.cleanup_sandbox import cleanup_sandbox
         
-        self.client = await Client.connect(
-            self.config.temporal_service_address,
-            namespace=self.config.temporal_namespace,
-        )
+        # Log execution mode
+        mode = "LOCAL" if self.config.is_local_mode() else "CLOUD"
+        self.logger.info(f"🔧 Execution Mode: {mode}")
+        self.logger.info(f"🔧 Stigmer Backend: {self.config.stigmer_backend_endpoint}")
+        if self.config.is_local_mode():
+            self.logger.info(f"🔧 Sandbox: {self.config.sandbox_type} (root: {self.config.sandbox_root_dir})")
+        else:
+            self.logger.info(f"🔧 Sandbox: {self.config.sandbox_type}")
+            self.logger.info(f"🔧 Redis: {self.config.redis_host}:{self.config.redis_port}")
         
-        self.logger.info(
-            f"✅ [POLYGLOT] Connected to Temporal server at {self.config.temporal_service_address}, "
-            f"namespace: {self.config.temporal_namespace}"
-        )
+        # Connect to Temporal
+        try:
+            self.client = await Client.connect(
+                self.config.temporal_service_address,
+                namespace=self.config.temporal_namespace,
+            )
+            self.logger.info(
+                f"✅ [POLYGLOT] Connected to Temporal server at {self.config.temporal_service_address}, "
+                f"namespace: {self.config.temporal_namespace}"
+            )
+        except Exception as e:
+            self.logger.error(f"❌ Failed to connect to Temporal: {e}")
+            raise
         
+        # Register worker
         self.worker = Worker(
             self.client,
             task_queue=self.config.task_queue,
@@ -75,3 +116,25 @@ class AgentRunner:
         self.logger.info(f"Starting Temporal worker on task queue: {self.config.task_queue}")
         if self.worker:
             await self.worker.run()
+    
+    async def shutdown(self):
+        """Shutdown the worker and close connections."""
+        self.logger.info("Shutting down worker...")
+        
+        # Stop worker
+        if self.worker:
+            try:
+                await self.worker.shutdown()
+                self.logger.info("✓ Worker stopped")
+            except Exception as e:
+                self.logger.error(f"Error stopping worker: {e}")
+        
+        # Close Redis connection (cloud mode only)
+        if self.redis_client:
+            try:
+                self.redis_client.close()
+                self.logger.info("✓ Redis connection closed")
+            except Exception as e:
+                self.logger.error(f"Error closing Redis connection: {e}")
+        
+        self.logger.info("✅ Worker shutdown complete")
