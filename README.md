@@ -2,7 +2,7 @@
 
 **Build AI agents and workflows with zero infrastructure.**
 
-Stigmer is an open-source agentic automation platform that runs locally with BadgerDB or scales to production with Stigmer Cloud. Define agents and workflows in code, execute them anywhere.
+Stigmer is an open-source agentic automation platform that runs locally with BadgerDB key-value store or scales to production with Stigmer Cloud. Define agents and workflows in code, execute them anywhere.
 
 ## Why Stigmer?
 
@@ -14,28 +14,135 @@ Most AI agent frameworks force you to choose: either run locally with limited fe
 
 Same CLI. Same SDK. Same workflow definitions. Your choice of backend.
 
-## Quick Start
+## Prerequisites
 
-### Install
+### Required Dependencies
+
+**Anthropic API Key**:
+- Required for AI agent execution
+- Get one at [Anthropic Console](https://console.anthropic.com/)
+- The CLI will prompt for it on first `stigmer local start`
+- Or set `ANTHROPIC_API_KEY` environment variable
+
+**Temporal Server** (optional for basic CLI, required for agent execution):
+- Workflow orchestration engine for durable agent executions
+- Only needed if you plan to execute agents (not required for creating/listing agents)
+
+**For building from source**:
+- Go 1.21+ (for CLI and stigmer-server)
+- Python 3.11+ with Poetry (only if running agent-runner manually)
+
+### Installing Temporal (Optional)
+
+If you want to execute agents (not just create/manage them), run Temporal locally:
 
 ```bash
-# Build from source
-cd client-apps/cli
-make build
+# Using Docker (recommended)
+docker run -d \
+  --name temporal \
+  -p 7233:7233 \
+  temporalio/auto-setup:latest
 
-# Or use pre-built binary (when available)
-curl -sSL https://stigmer.ai/install.sh | bash
+# Verify it's running
+docker ps | grep temporal
 ```
 
-### Initialize Local Mode
+**Temporal UI** (optional, for debugging workflows):
+
+```bash
+docker run -d \
+  --name temporal-ui \
+  -p 8080:8080 \
+  --env TEMPORAL_ADDRESS=host.docker.internal:7233 \
+  temporalio/ui:latest
+
+# Access at http://localhost:8080
+```
+
+## Quick Start
+
+### 1. Build and Install CLI
+
+```bash
+# Clone the repository
+git clone https://github.com/stigmer/stigmer.git
+cd stigmer/client-apps/cli
+
+# Build and install (installs to GOPATH/bin)
+make install
+
+# Or use release-local for testing (cleans + builds + installs + verifies)
+make release-local
+```
+
+### 2. Initialize Local Backend
 
 ```bash
 stigmer init
 ```
 
-This creates `~/.stigmer/` directory, config file, and starts the local daemon.
+This creates `~/.stigmer/` directory, initializes configuration, and starts the local daemon automatically.
 
-### Create Your First Agent
+### 3. Start the Local Daemon
+
+**Option A: Interactive (prompts for missing values)**
+
+```bash
+stigmer local start
+```
+
+You'll be prompted for your Anthropic API key on first start:
+
+```
+Enter Anthropic API key: ********
+✓ Anthropic API key configured
+Starting daemon...
+Daemon started successfully
+  PID:  12345
+  Port: 50051
+  Data: /Users/you/.stigmer
+```
+
+**Option B: Fully automated (environment variables)**
+
+```bash
+# Set required API key
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# Optional: Override Temporal address (defaults to localhost:7233)
+export TEMPORAL_HOST=192.168.1.5:7233
+
+# Start daemon (no prompts)
+stigmer local start
+```
+
+**Option C: Fully automated (command-line flags)**
+
+```bash
+# Pass all configuration via flags
+stigmer local start \
+  --anthropic-api-key=sk-ant-... \
+  --temporal-host=192.168.1.5:7233
+```
+
+**Configuration Priority** (highest to lowest):
+1. Command-line flags (`--anthropic-api-key`, `--temporal-host`)
+2. Environment variables (`ANTHROPIC_API_KEY`, `TEMPORAL_HOST`)
+3. OS keychain (for Anthropic API key only)
+4. Defaults (`localhost:7233` for Temporal)
+5. Interactive prompt (Anthropic API key only, if none of above)
+
+**What happens:**
+- Stigmer resolves configuration from flags → env vars → keychain → defaults → prompt
+- Starts `stigmer-server` on `localhost:50051` (gRPC API server)
+- Starts `agent-runner` subprocess (Python Temporal worker for agent execution)
+- Both processes run in background as daemons
+
+**Without Temporal:** The daemon will start successfully but agent execution will fail. You can still create/list/manage agents via the CLI.
+
+### 4. Create Your First Agent
+
+**Currently**: Create agents via CLI flags
 
 ```bash
 stigmer agent create \
@@ -43,10 +150,84 @@ stigmer agent create \
   --instructions "You are a helpful customer support agent"
 ```
 
-### List Your Agents
+**Future**: Create agents from YAML files (coming soon)
+
+```yaml
+# agent.yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: support-bot
+spec:
+  instructions: "You are a helpful customer support agent"
+```
+
+```bash
+# Not yet implemented
+stigmer apply -f agent.yaml
+```
+
+### 5. List Your Agents
 
 ```bash
 stigmer agent list
+```
+
+### 6. Execute an Agent
+
+**Note**: Agent execution requires Temporal and is not yet implemented in the OSS CLI.
+
+```bash
+# Coming soon
+stigmer agent execute support-bot "What are the latest trends in AI?"
+```
+
+### Managing the Local Daemon
+
+```bash
+# Check daemon status
+stigmer local status
+
+# Stop daemon
+stigmer local stop
+
+# Restart daemon (uses same config as last start)
+stigmer local restart
+
+# Restart with new Temporal address
+stigmer local restart --temporal-host=new-host:7233
+```
+
+**Available flags for `stigmer local start`:**
+
+| Flag | Environment Variable | Default | Description |
+|------|---------------------|---------|-------------|
+| `--anthropic-api-key` | `ANTHROPIC_API_KEY` | (prompt) | Anthropic API key for Claude models |
+| `--temporal-host` | `TEMPORAL_HOST` | `localhost:7233` | Temporal server address |
+| `--temporal-namespace` | `TEMPORAL_NAMESPACE` | `default` | Temporal namespace |
+| `--data-dir` | `STIGMER_DATA_DIR` | `~/.stigmer` | Data directory for BadgerDB |
+
+### Environment Variables Reference
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ANTHROPIC_API_KEY` | Anthropic API key for Claude models | (required, prompts if missing) |
+| `TEMPORAL_HOST` | Temporal server address | `localhost:7233` |
+| `TEMPORAL_NAMESPACE` | Temporal namespace | `default` |
+| `STIGMER_DATA_DIR` | Data directory for BadgerDB and logs | `~/.stigmer` |
+
+**Example: Automated CI/CD setup**
+
+```bash
+#!/bin/bash
+# .env file or CI/CD secrets
+
+export ANTHROPIC_API_KEY=sk-ant-api-03-xxx
+export TEMPORAL_HOST=temporal.internal:7233
+export TEMPORAL_NAMESPACE=staging
+
+stigmer init
+stigmer local start  # Fully automated, no prompts
 ```
 
 **Next Steps**: See the [CLI README](client-apps/cli/README.md) for complete command reference and configuration options.
@@ -75,13 +256,13 @@ Stigmer uses an **Open Core** model with a clean separation between local and cl
 │                       │                                      │
 │                       ↓                                      │
 │         ┌──────────────────────────────┐                    │
-│         │   SQLite Storage Layer       │                    │
-│         │  (libs/go/sqlite)            │                    │
+│         │   BadgerDB Storage Layer     │                    │
+│         │  (libs/go/badger)            │                    │
 │         │                              │                    │
-│         │  resources table:            │                    │
-│         │  - id (PK)                   │                    │
-│         │  - kind (discriminator)      │                    │
-│         │  - data (JSON)               │                    │
+│         │  Key-Value Pattern:          │                    │
+│         │  - Key: kind/id              │                    │
+│         │  - Value: Protobuf bytes     │                    │
+│         │  - Prefix scan for listing   │                    │
 │         └──────────────────────────────┘                    │
 └─────────────────────────────────────────────────────────────┘
                        │
@@ -105,8 +286,8 @@ Stigmer uses an **Open Core** model with a clean separation between local and cl
 - Agent and workflow CRUD operations
 - **Location**: `client-apps/cli/` - [See CLI README](client-apps/cli/README.md)
 
-**stigmer-server** - Go gRPC API server with SQLite storage
-- Single-table generic resource storage (zero migrations)
+**stigmer-server** - Go gRPC API server with BadgerDB storage
+- Key-value storage with prefix scanning (zero schema migrations)
 - In-process gRPC (no network overhead for local usage)
 - Protobuf validation
 - **Location**: `backend/services/stigmer-server/`
@@ -123,26 +304,104 @@ Stigmer uses an **Open Core** model with a clean separation between local and cl
 - gRPC command controller
 - **Location**: `backend/services/workflow-runner/`
 
+### Local Development Stack
+
+For full local development with agent execution:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 1: User Interface                                    │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │         stigmer CLI (Go)                              │  │
+│  │  Commands: agent create/list/execute, workflow, etc. │  │
+│  └──────────────────┬───────────────────────────────────┘  │
+└────────────────────│──────────────────────────────────────┘
+                     │ gRPC (localhost:50051)
+┌────────────────────▼──────────────────────────────────────┐
+│  Layer 2: API Server (stigmer-server - Go)                │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │  Controllers: Agent, Workflow, Session, etc.         │ │
+│  │  Storage: BadgerDB (~/.stigmer/data/)                │ │
+│  └──────────────────┬───────────────────────────────────┘ │
+└────────────────────│──────────────────────────────────────┘
+                     │ Temporal Client
+┌────────────────────▼──────────────────────────────────────┐
+│  Layer 3: Temporal (Docker)                               │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │  Workflow Orchestration                              │ │
+│  │  Task Queues: agent_execution_stigmer (Go)           │ │
+│  │              agent_execution_runner (Python)         │ │
+│  └──────────────────┬───────────────────────────────────┘ │
+└────────────────────│──────────────────────────────────────┘
+                     │ Task Queue Polling
+┌────────────────────▼──────────────────────────────────────┐
+│  Layer 4: Agent Runner (Python)                           │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │  Temporal Activities: ExecuteGraphton, etc.          │ │
+│  │  AI Provider: Anthropic Claude (via API key)         │ │
+│  │  Sandbox: Filesystem-based workspace                 │ │
+│  └──────────────────────────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────┘
+```
+
+**Minimal setup** (create/list agents only):
+```bash
+stigmer init
+
+# Interactive mode (prompts for API key)
+stigmer local start
+
+# OR automated mode
+export ANTHROPIC_API_KEY=sk-ant-...
+stigmer local start
+```
+
+**Full setup** (execute agents):
+```bash
+# 1. Start Temporal
+docker run -d --name temporal -p 7233:7233 temporalio/auto-setup:latest
+
+# 2. Start Stigmer (automated mode)
+export ANTHROPIC_API_KEY=sk-ant-...
+stigmer init
+stigmer local start  # Connects to localhost:7233 by default
+
+# OR with custom Temporal address
+stigmer local start --temporal-host=192.168.1.5:7233
+```
+
+**Production-like setup** (remote Temporal):
+```bash
+# Export all configuration
+export ANTHROPIC_API_KEY=sk-ant-...
+export TEMPORAL_HOST=temporal.company.internal:7233
+export TEMPORAL_NAMESPACE=production
+
+# Start daemon (fully automated, no prompts)
+stigmer init
+stigmer local start
+```
+
 ### Storage Strategy
 
-Stigmer uses a **generic single-table pattern** to avoid migration hell:
+Stigmer uses **BadgerDB** with a simple **key-value pattern**:
 
-```sql
-CREATE TABLE resources (
-    id TEXT PRIMARY KEY,
-    kind TEXT NOT NULL,           -- "Agent", "Workflow", "Skill"
-    org_id TEXT DEFAULT '',
-    data JSON NOT NULL,           -- Full proto serialized to JSON
-    updated_at DATETIME
-);
+**Key Format**: `resource_kind/resource_id` (e.g., `agent/abc123`)  
+**Value**: Raw Protobuf bytes (no JSON conversion overhead)
+
+**Listing**: BadgerDB's prefix scan enables fast listing by kind:
+```go
+// List all agents: Seek("agent/")
+// List all workflows: Seek("workflow/")
 ```
 
 **Benefits**:
 - ✅ Zero schema migrations when adding new resource kinds
+- ✅ 10-50x faster than SQLite for Protobuf storage (no JSON conversion)
+- ✅ Pure Go implementation (no CGO dependencies)
 - ✅ 90% less persistence layer code
-- ✅ Cloud parity (mimics MongoDB document model)
 
-See [ADR: Generic Resource Storage Strategy](docs/adr/2026-01/2026-01-19-170000-sqllite-with-json-data.md)
+See [ADR: Local Backend to Use BadgerDB](docs/adr/20260118-181912-local-backend-to-use-badgerdb.md)
 
 ### Open Source vs Cloud
 
@@ -152,7 +411,7 @@ See [ADR: Generic Resource Storage Strategy](docs/adr/2026-01/2026-01-19-170000-
 - agent-runner (Python Temporal worker)
 - workflow-runner (Go Temporal worker)
 - Go and Python SDKs
-- SQLite storage layer
+- BadgerDB storage layer
 - **Repository**: `github.com/stigmer/stigmer`
 
 **Proprietary** (Stigmer Cloud):
@@ -242,18 +501,29 @@ Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to gi
 
 **How it works**:
 - Local daemon runs on `localhost:50051` (started with `stigmer local start`)
-- BadgerDB key-value store in `~/.stigmer/data` (daemon holds file lock)
+- BadgerDB key-value store in `~/.stigmer/data/` (daemon holds exclusive lock)
 - CLI and Agent Runner both connect to daemon via gRPC
 - Single implicit user (`local-user`)
 - Secrets stored in OS keychain or encrypted file
+- Optional Temporal integration for durable agent execution
+
+**What runs locally:**
+- **stigmer-server** (Go): gRPC API server with BadgerDB storage
+- **agent-runner** (Python): Temporal worker for executing AI agents
+- **Temporal** (optional): Workflow orchestration (runs in Docker)
 
 **Start using**:
 ```bash
-# Start the local daemon
+# Initialize and start the local daemon
+stigmer init
 stigmer local start
 
-# In another terminal, initialize and run commands
-stigmer init
+# Create and manage agents
+stigmer agent create --name my-agent --instructions "..."
+stigmer agent list
+
+# Execute agents (requires Temporal)
+stigmer agent execute my-agent "Your prompt here"
 ```
 
 ### Cloud Mode (Stigmer Cloud)
@@ -352,11 +622,104 @@ This guarantees:
 - ✅ Compiler enforces interface compatibility
 - ✅ No drift between implementations
 
+## Troubleshooting
+
+### Daemon won't start
+
+**Check if already running:**
+```bash
+stigmer local status
+```
+
+**Kill existing processes:**
+```bash
+ps aux | grep stigmer
+killall stigmer-server stigmer
+```
+
+**Check logs:**
+```bash
+cat ~/.stigmer/logs/daemon.log
+```
+
+### Agent execution fails
+
+**Verify Temporal is running:**
+```bash
+docker ps | grep temporal
+# If not running:
+docker start temporal
+```
+
+**Check Temporal connection:**
+```bash
+# stigmer-server should log Temporal connection on startup
+cat ~/.stigmer/logs/daemon.log | grep -i temporal
+```
+
+**Connect to custom Temporal server:**
+```bash
+# If Temporal is running on a different host/port
+stigmer local restart --temporal-host=192.168.1.5:7233
+
+# Or set environment variable
+export TEMPORAL_HOST=192.168.1.5:7233
+stigmer local restart
+```
+
+**Without Temporal:** Agent execution will fail. You can still create/list agents, but execution requires Temporal.
+
+### Missing Anthropic API key
+
+**Set via environment variable:**
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+stigmer local restart
+```
+
+**Set via flag:**
+```bash
+stigmer local start --anthropic-api-key=sk-ant-...
+```
+
+**Update keychain (macOS):**
+```bash
+# Open Keychain Access app
+# Search for "ANTHROPIC_API_KEY" and update
+stigmer local restart
+```
+
+### Database locked errors
+
+If you see "database is locked":
+
+```bash
+# Stop the daemon first
+stigmer local stop
+
+# Wait a moment for cleanup
+sleep 2
+
+# Restart
+stigmer local start
+```
+
+### Reset everything
+
+**⚠️ This deletes all local data:**
+
+```bash
+stigmer local stop
+rm -rf ~/.stigmer
+stigmer init
+```
+
 ## Documentation
 
 - 📚 [Complete Documentation](docs/README.md) - Full documentation index
-- [Getting Started](docs/getting-started/) - Installation and first agent
+- [Getting Started](docs/getting-started/local-mode.md) - Detailed local mode guide
 - [Architecture](docs/architecture/) - How Stigmer works
+  - [Temporal Integration](docs/architecture/temporal-integration.md) - Workflow orchestration design
   - [Request Pipeline Context Design](docs/architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
 - [API Reference](docs/api/) - gRPC service interfaces and SDK docs
 - [Examples](examples/) - Sample agents and workflows
@@ -365,16 +728,54 @@ This guarantees:
 
 ### Building from Source
 
+**Prerequisites:**
+- Go 1.21 or later
+- Git
+- Make
+
+**Build the CLI:**
+
 ```bash
 # Clone the repository
 git clone https://github.com/stigmer/stigmer.git
 cd stigmer
 
 # Build the CLI
+cd client-apps/cli
 make build
 
-# Run tests
+# Binary will be in: client-apps/cli/bin/stigmer
+```
+
+**Build stigmer-server (optional, if modifying the API server):**
+
+```bash
+cd backend/services/stigmer-server
+go build -o stigmer-server cmd/server/main.go
+```
+
+**Build agent-runner (optional, if modifying agent execution):**
+
+```bash
+cd backend/services/agent-runner
+
+# Install dependencies
+poetry install
+
+# Run type checking
+make build
+```
+
+**Run tests:**
+
+```bash
+# CLI tests
+cd client-apps/cli
 make test
+
+# stigmer-server tests
+cd backend/services/stigmer-server
+go test ./...
 ```
 
 ### Proto Generation
