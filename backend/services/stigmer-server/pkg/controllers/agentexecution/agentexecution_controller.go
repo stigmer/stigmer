@@ -16,6 +16,7 @@ type AgentExecutionController struct {
 	agentClient         *agent.Client
 	agentInstanceClient *agentinstance.Client
 	sessionClient       *session.Client
+	streamBroker        *StreamBroker
 }
 
 // NewAgentExecutionController creates a new AgentExecutionController
@@ -39,5 +40,6 @@ func NewAgentExecutionController(
 		agentClient:         agentClient,
 		agentInstanceClient: agentInstanceClient,
 		sessionClient:       sessionClient,
+		streamBroker:        NewStreamBroker(),
 	}
 }

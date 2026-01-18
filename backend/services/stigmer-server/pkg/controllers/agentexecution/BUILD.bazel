@@ -8,6 +8,8 @@ go_library(
         "delete.go",
         "get.go",
         "list.go",
+        "list_by_session.go",
+        "stream_broker.go",
         "subscribe.go",
         "update.go",
         "update_status.go",
