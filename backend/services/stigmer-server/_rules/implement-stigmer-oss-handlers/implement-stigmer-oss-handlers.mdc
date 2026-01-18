@@ -1,0 +1,536 @@
+---
+description: Action rule to implement Go gRPC handlers for Stigmer OSS API resources
+alwaysApply: false
+---
+
+# Rule: Implement Stigmer OSS Backend Handlers (action)
+
+**Purpose**: Generate complete Go backend implementation for Stigmer OSS API resources based on proto definitions. Creates gRPC controller with CRUD handlers using BadgerDB/SQLite storage.
+
+**Usage**: Invoke this rule after creating proto files using @model-stigmer-oss-protos. Provide the resource name (e.g., "Agent", "Workflow").
+
+**Prerequisites**: 
+- Proto files must exist and be generated (run `make protos`)
+- Resource must be registered in ApiResourceKind enum
+- Go proto bindings generated in `internal/gen/`
+
+---
+
+## Go Backend Architecture
+
+Stigmer OSS uses a simplified architecture compared to Stigmer Cloud:
+
+**Storage**: BadgerDB or SQLite for local persistence
+**Handlers**: Direct gRPC method implementations
+**No complex middleware**: Simple, straightforward CRUD operations
+**Error handling**: Using `grpclib` helpers for consistent gRPC errors
+
+---
+
+## Handler Implementation Pattern
+
+### Controller Structure
+
+```go
+package controllers
+
+import (
+    "context"
+    "fmt"
+    "time"
+
+    grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+    "github.com/stigmer/stigmer/backend/libs/go/sqlite"
+    pb "github.com/stigmer/stigmer/internal/gen/ai/stigmer/domain/resource/v1"
+    "github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/protobuf/encoding/protojson"
+)
+
+// ResourceController implements ResourceCommandController and ResourceQueryController
+type ResourceController struct {
+    pb.UnimplementedResourceCommandControllerServer
+    pb.UnimplementedResourceQueryControllerServer
+    store *sqlite.Store
+}
+
+// NewResourceController creates a new ResourceController
+func NewResourceController(store *sqlite.Store) *ResourceController {
+    return &ResourceController{store: store}
+}
+```
+
+---
+
+## CRUD Operation Implementations
+
+### Create Handler
+
+```go
+// Create creates a new resource
+func (c *ResourceController) Create(ctx context.Context, resource *pb.Resource) (*pb.Resource, error) {
+    if resource == nil {
+        return nil, grpclib.InvalidArgumentError("resource is required")
+    }
+
+    // Validate required fields
+    if resource.Metadata == nil {
+        return nil, grpclib.InvalidArgumentError("metadata is required")
+    }
+
+    if resource.Metadata.Name == "" {
+        return nil, grpclib.InvalidArgumentError("name is required")
+    }
+
+    // Generate ID if not provided
+    if resource.Metadata.Id == "" {
+        resource.Metadata.Id = fmt.Sprintf("res-%s", generateID())
+    }
+
+    // Set kind and api_version (MUST match proto definition)
+    resource.Kind = "Resource"
+    resource.ApiVersion = "ai.stigmer.domain.resource/v1"
+
+    // Check if resource already exists
+    existing := &pb.Resource{}
+    err := c.store.GetResource(ctx, resource.Metadata.Id, existing)
+    if err == nil {
+        return nil, grpclib.AlreadyExistsError("Resource", resource.Metadata.Id)
+    }
+
+    // Save resource
+    if err := c.store.SaveResource(ctx, "Resource", resource.Metadata.Id, resource); err != nil {
+        return nil, grpclib.InternalError(err, "failed to save resource")
+    }
+
+    return resource, nil
+}
+```
+
+**Key Points:**
+- Validate required fields
+- Generate ID if not provided (use `generateID()` helper)
+- Set `kind` and `api_version` to match proto
+- Check for duplicates before creating
+- Use `grpclib` error helpers for consistent error responses
+
+---
+
+### Update Handler
+
+```go
+// Update updates an existing resource
+func (c *ResourceController) Update(ctx context.Context, resource *pb.Resource) (*pb.Resource, error) {
+    if resource == nil {
+        return nil, grpclib.InvalidArgumentError("resource is required")
+    }
+
+    if resource.Metadata == nil || resource.Metadata.Id == "" {
+        return nil, grpclib.InvalidArgumentError("resource id is required")
+    }
+
+    // Check if resource exists
+    existing := &pb.Resource{}
+    err := c.store.GetResource(ctx, resource.Metadata.Id, existing)
+    if err != nil {
+        return nil, grpclib.NotFoundError("Resource", resource.Metadata.Id)
+    }
+
+    // Update resource
+    if err := c.store.SaveResource(ctx, "Resource", resource.Metadata.Id, resource); err != nil {
+        return nil, grpclib.InternalError(err, "failed to update resource")
+    }
+
+    return resource, nil
+}
+```
+
+**Key Points:**
+- Validate resource ID is provided
+- Load existing resource to verify it exists
+- Use same `SaveResource` method (upsert semantics)
+
+---
+
+### Delete Handler
+
+```go
+// Delete deletes a resource
+func (c *ResourceController) Delete(ctx context.Context, resourceId *pb.ResourceId) (*pb.Resource, error) {
+    if resourceId == nil || resourceId.Value == "" {
+        return nil, grpclib.InvalidArgumentError("resource id is required")
+    }
+
+    // Get resource before deletion (to return it)
+    resource := &pb.Resource{}
+    if err := c.store.GetResource(ctx, resourceId.Value, resource); err != nil {
+        return nil, grpclib.NotFoundError("Resource", resourceId.Value)
+    }
+
+    // Delete resource
+    if err := c.store.DeleteResource(ctx, resourceId.Value); err != nil {
+        return nil, grpclib.InternalError(err, "failed to delete resource")
+    }
+
+    return resource, nil
+}
+```
+
+**Key Points:**
+- Load resource before deletion (gRPC convention: return deleted resource)
+- Use `DeleteResource` method from store
+- Return the deleted resource
+
+---
+
+### Get Handler
+
+```go
+// Get retrieves a resource by ID
+func (c *ResourceController) Get(ctx context.Context, resourceId *pb.ResourceId) (*pb.Resource, error) {
+    if resourceId == nil || resourceId.Value == "" {
+        return nil, grpclib.InvalidArgumentError("resource id is required")
+    }
+
+    resource := &pb.Resource{}
+    if err := c.store.GetResource(ctx, resourceId.Value, resource); err != nil {
+        return nil, grpclib.NotFoundError("Resource", resourceId.Value)
+    }
+
+    return resource, nil
+}
+```
+
+**Key Points:**
+- Simple ID-based lookup
+- Return NotFound error if resource doesn't exist
+
+---
+
+### GetByReference Handler (Slug-based lookup)
+
+```go
+// GetByReference retrieves a resource by reference (slug)
+func (c *ResourceController) GetByReference(ctx context.Context, ref *apiresource.ApiResourceReference) (*pb.Resource, error) {
+    if ref == nil {
+        return nil, grpclib.InvalidArgumentError("reference is required")
+    }
+
+    // Try to get by slug
+    if ref.Slug != "" {
+        return c.findByName(ctx, ref.Slug, ref.Org)
+    }
+
+    return nil, grpclib.InvalidArgumentError("slug is required")
+}
+
+// findByName finds a resource by name (helper function)
+func (c *ResourceController) findByName(ctx context.Context, name string, orgID string) (*pb.Resource, error) {
+    // List all resources and filter by name
+    // Note: This is not efficient for large datasets, but acceptable for local usage
+    var resources [][]byte
+    var err error
+
+    if orgID != "" {
+        resources, err = c.store.ListResourcesByOrg(ctx, "Resource", orgID)
+    } else {
+        resources, err = c.store.ListResources(ctx, "Resource")
+    }
+
+    if err != nil {
+        return nil, grpclib.InternalError(err, "failed to list resources")
+    }
+
+    for _, data := range resources {
+        resource := &pb.Resource{}
+        if err := protojson.Unmarshal(data, resource); err != nil {
+            continue
+        }
+
+        if resource.Metadata.Name == name {
+            // Check org filter if provided
+            if orgID != "" && resource.Metadata.Org != orgID {
+                continue
+            }
+            return resource, nil
+        }
+    }
+
+    return nil, grpclib.WrapError(nil, codes.NotFound, fmt.Sprintf("resource not found with name: %s", name))
+}
+```
+
+**Key Points:**
+- Support both slug (name) and org-scoped lookups
+- Iterate through all resources (acceptable for local/OSS usage)
+- Use protojson for deserialization
+
+---
+
+## Helper Functions
+
+### ID Generation
+
+```go
+// generateID generates a simple unique ID
+// In production, use UUID or similar
+func generateID() string {
+    // For now, use timestamp-based ID
+    // TODO: Replace with proper UUID generation
+    return fmt.Sprintf("%d", time.Now().UnixNano())
+}
+```
+
+**Note**: For production, replace with UUID library (e.g., `github.com/google/uuid`).
+
+---
+
+## Error Handling Patterns
+
+Use the `grpclib` helper functions for consistent error responses:
+
+```go
+// Invalid input
+return nil, grpclib.InvalidArgumentError("field is required")
+
+// Resource not found
+return nil, grpclib.NotFoundError("Resource", id)
+
+// Resource already exists
+return nil, grpclib.AlreadyExistsError("Resource", id)
+
+// Internal server error
+return nil, grpclib.InternalError(err, "operation failed")
+
+// Custom error with code
+return nil, grpclib.WrapError(err, codes.NotFound, "custom message")
+```
+
+---
+
+## Controller Registration
+
+In `main.go` or server setup:
+
+```go
+func main() {
+    // Initialize store
+    store, err := sqlite.NewStore("stigmer.db")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer store.Close()
+
+    // Create gRPC server
+    server := grpc.NewServer()
+
+    // Register controllers
+    agentCtrl := controllers.NewAgentController(store)
+    agentv1.RegisterAgentCommandControllerServer(server, agentCtrl)
+    agentv1.RegisterAgentQueryControllerServer(server, agentCtrl)
+
+    // ... register other controllers ...
+
+    // Start server
+    lis, err := net.Listen("tcp", ":50051")
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    log.Println("Server listening on :50051")
+    if err := server.Serve(lis); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+---
+
+## File Organization
+
+```
+backend/services/stigmer-server/
+├── cmd/
+│   └── server/
+│       └── main.go                  # Server entry point
+├── pkg/
+│   └── controllers/
+│       ├── agent_controller.go      # Agent CRUD handlers
+│       ├── workflow_controller.go   # Workflow CRUD handlers
+│       └── ...
+└── ...
+```
+
+---
+
+## Process
+
+### Phase 1: Analyze Proto Definitions
+
+1. Read proto files for the resource
+2. Identify:
+   - Resource name (e.g., Agent, Workflow)
+   - Package path (e.g., ai.stigmer.agentic.agent.v1)
+   - Generated Go package import path
+   - RPC methods (Create, Update, Delete, Get, etc.)
+
+### Phase 2: Generate Controller
+
+1. Create `{resource}_controller.go` in `pkg/controllers/`
+2. Implement struct with embedded unimplemented servers
+3. Add `New{Resource}Controller` constructor
+
+### Phase 3: Implement CRUD Methods
+
+For each RPC method in the proto:
+1. Create method signature matching proto definition
+2. Add validation
+3. Implement business logic using store
+4. Return appropriate errors
+
+### Phase 4: Register Controller
+
+Update `main.go` to:
+1. Create controller instance
+2. Register with gRPC server
+
+---
+
+## Best Practices
+
+### Validation
+- Always validate required fields
+- Check for nil pointers
+- Validate IDs are non-empty
+
+### Error Handling
+- Use grpclib helpers for consistent errors
+- Include resource type and ID in error messages
+- Wrap internal errors with context
+
+### ID Generation
+- Generate IDs with meaningful prefix (e.g., `agent-`, `wf-`)
+- Use timestamp or UUID for uniqueness
+- Allow client-provided IDs (idempotency)
+
+### Logging
+- Log at entry and exit of handlers
+- Log errors with context
+- Use structured logging (e.g., zerolog, zap)
+
+---
+
+## Testing
+
+### Unit Tests
+
+```go
+func TestAgentController_Create(t *testing.T) {
+    // Setup
+    store := setupTestStore(t)
+    defer store.Close()
+    
+    ctrl := NewAgentController(store)
+    
+    // Test case
+    agent := &agentv1.Agent{
+        Metadata: &apiresource.ApiResourceMetadata{
+            Name: "test-agent",
+        },
+    }
+    
+    // Execute
+    result, err := ctrl.Create(context.Background(), agent)
+    
+    // Assert
+    assert.NoError(t, err)
+    assert.NotNil(t, result)
+    assert.NotEmpty(t, result.Metadata.Id)
+}
+```
+
+---
+
+## Common Patterns
+
+### List Operations
+
+```go
+// FindAll retrieves all resources
+func (c *ResourceController) FindAll(ctx context.Context, _ *emptypb.Empty) (*pb.Resources, error) {
+    data, err := c.store.ListResources(ctx, "Resource")
+    if err != nil {
+        return nil, grpclib.InternalError(err, "failed to list resources")
+    }
+
+    resources := make([]*pb.Resource, 0, len(data))
+    for _, d := range data {
+        resource := &pb.Resource{}
+        if err := protojson.Unmarshal(d, resource); err != nil {
+            continue // Skip invalid entries
+        }
+        resources = append(resources, resource)
+    }
+
+    return &pb.Resources{Entries: resources}, nil
+}
+```
+
+### Filtered Lists (by Owner/Org)
+
+```go
+// FindByOrg retrieves resources by organization
+func (c *ResourceController) FindByOrg(ctx context.Context, orgId *pb.OrganizationId) (*pb.Resources, error) {
+    if orgId == nil || orgId.Value == "" {
+        return nil, grpclib.InvalidArgumentError("organization id is required")
+    }
+
+    data, err := c.store.ListResourcesByOrg(ctx, "Resource", orgId.Value)
+    if err != nil {
+        return nil, grpclib.InternalError(err, "failed to list resources")
+    }
+
+    resources := make([]*pb.Resource, 0, len(data))
+    for _, d := range data {
+        resource := &pb.Resource{}
+        if err := protojson.Unmarshal(d, resource); err != nil {
+            continue
+        }
+        resources = append(resources, resource)
+    }
+
+    return &pb.Resources{Entries: resources}, nil
+}
+```
+
+---
+
+## Differences from Stigmer Cloud
+
+| Aspect | Stigmer Cloud (Java) | Stigmer OSS (Go) |
+|--------|---------------------|------------------|
+| Architecture | Pipeline/middleware pattern | Direct handlers |
+| Storage | MongoDB | BadgerDB/SQLite |
+| Authorization | FGA/IAM integration | Local/simple auth |
+| Complexity | High (enterprise) | Low (local usage) |
+| Error handling | Custom pipeline | grpclib helpers |
+| Validation | buf.validate + custom | buf.validate + code |
+
+---
+
+## Post-Implementation Checklist
+
+- [ ] Controller struct created with embedded servers
+- [ ] All RPC methods implemented
+- [ ] Validation for required fields
+- [ ] ID generation implemented
+- [ ] Error handling using grpclib
+- [ ] Controller registered in main.go
+- [ ] Code compiles (`go build`)
+- [ ] Basic tests written
+
+---
+
+## Goal
+
+Implement simple, straightforward gRPC handlers for Stigmer OSS that work well for local usage and are easy to understand and maintain.

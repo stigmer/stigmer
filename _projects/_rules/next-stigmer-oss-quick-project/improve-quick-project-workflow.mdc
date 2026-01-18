@@ -1,0 +1,343 @@
+---
+title: Improve Quick Project Workflow
+description: Ask-only rule to gather feedback and implement improvements to the Next Quick Project Framework
+tags: [ask-only, projects, quick-projects, improvements, feedback]
+globs: []
+---
+
+# Improve Quick Project Workflow
+
+## Rule Type
+**ASK-ONLY RULE** - This rule gathers feedback and implements improvements.
+
+## Purpose
+Interview the developer about pain points, inefficiencies, or desired improvements in the Next Quick Project Framework, then implement changes to scripts, templates, documentation, or processes.
+
+## When to Use This Rule
+
+Invoke this rule when:
+- Developer expresses frustration with the quick project workflow
+- A process step feels unnecessarily complex
+- Templates need updating or new ones are needed
+- Documentation is unclear or outdated
+- Scripts have bugs or missing features
+- New capabilities would make quick projects more efficient
+
+## Interview Process
+
+### 1. Understand the Context
+```
+What aspect of the Next Quick Project Framework would you like to improve?
+
+Options:
+1. Setup/bootstrap process
+2. Task tracking approach
+3. Resume/context loading
+4. Notes organization
+5. Templates content or structure
+6. Scripts or automation
+7. Documentation clarity
+8. Something else
+```
+
+### 2. Dig Into Specifics
+
+#### For Process Issues:
+```
+What specifically is painful or inefficient?
+- What step takes too long?
+- What's confusing or unclear?
+- What do you find yourself repeating manually?
+- What doesn't match your workflow?
+```
+
+#### For Missing Features:
+```
+What would make your workflow better?
+- What capability is missing?
+- What manual step could be automated?
+- What information would be helpful to have?
+- What friction point could be smoothed?
+```
+
+#### For Template/Documentation Issues:
+```
+What needs to change?
+- What's unclear or confusing?
+- What information is missing?
+- What examples would help?
+- What's too verbose or too sparse?
+```
+
+### 3. Understand Impact
+```
+How often do you encounter this issue?
+- Every project?
+- Specific types of projects?
+- Occasionally?
+
+How much time does it cost you?
+- A few seconds?
+- A few minutes?
+- Significant time?
+```
+
+### 4. Explore Solutions Together
+```
+What would an ideal solution look like?
+- How would you prefer it to work?
+- What examples from other tools work well?
+- Any specific ideas for implementation?
+```
+
+### 5. Confirm Scope
+```
+Based on your feedback, I'll make these changes:
+
+[List specific changes to be made]
+
+This will affect:
+- Files: [list files]
+- Scripts: [list scripts]
+- Documentation: [list docs]
+
+Does this address your need? Any adjustments?
+```
+
+## What This Rule Can Modify
+
+### Scripts (`tools/projects/`)
+- `bootstrap_quick_project.py` - The main bootstrap script
+- `start-quick-project.sh` - Shell wrapper
+- Template files in `tools/projects/templates/quick/`
+
+### Documentation
+- `_projects/_rules/next-stigmer-quick-project/README.md` - Framework overview
+- Template files (readme, tasks, notes)
+- Rule files in `_projects/_rules/next-stigmer-quick-project/`
+
+### Templates (`tools/projects/templates/quick/`)
+- `quick_project_readme.md`
+- `quick_tasks.md`
+- `quick_notes.md`
+- `quick_next_task.md`
+
+## Common Improvement Patterns
+
+### Pattern 1: Simplify Bootstrap Questions
+**Symptom**: "The setup questions take too long"
+
+**Solution**: 
+- Reduce required questions
+- Make more fields optional with smart defaults
+- Offer quick templates for common project types
+
+### Pattern 2: Better Task Templates
+**Symptom**: "The suggested tasks don't match my needs"
+
+**Solution**:
+- Add more project type templates
+- Improve task suggestion logic
+- Allow custom task templates
+
+### Pattern 3: Enhanced Resume Experience
+**Symptom**: "next-task.md doesn't have the info I need"
+
+**Solution**:
+- Add more context to next-task.md
+- Include recent updates or blockers
+- Add quick status summary
+
+### Pattern 4: Notes Organization
+**Symptom**: "notes.md becomes messy quickly"
+
+**Solution**:
+- Add structure guidance
+- Provide note templates
+- Add timestamping helpers
+
+### Pattern 5: Project Type Support
+**Symptom**: "My project type isn't well supported"
+
+**Solution**:
+- Add new project type templates
+- Customize task breakdowns
+- Add specific guidance
+
+### Pattern 6: Stigmer-Specific Improvements
+**Symptom**: "Quick projects for Stigmer have specific needs"
+
+**Solution**:
+- Add Stigmer-specific task templates (proto work, gRPC handlers, Bazel builds)
+- Include common Stigmer commands in templates
+- Add Stigmer architecture context to templates
+
+## Implementation Approach
+
+### For Small Changes (< 30 lines)
+1. Confirm the change with developer
+2. Make the modification
+3. Show what was changed
+4. Offer to test/validate
+
+### For Medium Changes (30-200 lines)
+1. Create a plan of changes
+2. Review plan with developer
+3. Implement in logical chunks
+4. Show progress and validate
+
+### For Large Changes (200+ lines)
+1. Create detailed design
+2. Review and iterate on design
+3. Break into phases
+4. Implement phase by phase
+5. Validate each phase
+
+## Quality Standards
+
+All improvements must:
+- ✅ Maintain the "quick and lightweight" philosophy
+- ✅ Keep the framework simple (resist feature creep)
+- ✅ Not break existing projects
+- ✅ Include updated documentation
+- ✅ Follow Python/Bash best practices
+- ✅ Support Stigmer's tech stack (Go, Java, TypeScript, Dart, Proto, Bazel)
+
+## Testing Improvements
+
+After implementing changes:
+1. **For Script Changes**: Test bootstrap flow
+   ```bash
+   python3 tools/projects/bootstrap_quick_project.py \
+     --name "test-project" \
+     --description "Test" \
+     --goal "Test" \
+     --tech "Test" \
+     --components "Test"
+   ```
+
+2. **For Template Changes**: Create test project and review output
+
+3. **For Documentation Changes**: Read through and verify clarity
+
+## Example Improvement Flow
+
+```
+User: @_projects/_rules/next-stigmer-quick-project/improve-quick-project-workflow
+
+AI: I'd love to help improve the Quick Project Framework! 
+What aspect would you like to improve?
+
+User: The setup asks for tech stack but I mostly do proto API work
+
+AI: I see - you'd like quicker setup for proto API projects.
+How often do you create proto API quick projects?
+
+User: At least 2-3 per week
+
+AI: Got it. A few options:
+1. Add a "proto-api" project type template with defaults
+2. Make tech stack optional with common defaults
+3. Create shortcuts for common Stigmer project types
+
+Which approach would you prefer?
+
+User: The project type template sounds good
+
+AI: Perfect! I'll create a proto API project type:
+
+Changes:
+1. Add proto-api template to bootstrap script
+2. Pre-fill common settings (tech: "Proto/Buf", common tasks)
+3. Add `--type proto-api` flag to skip questions
+4. Update documentation with examples
+
+This will let you create proto projects with minimal questions.
+
+Proceed?
+
+User: Yes
+
+AI: [Implements changes...]
+
+✅ Improvements complete!
+
+Created:
+- Proto API project type template
+- Quick start flag: --type proto-api
+- Updated documentation
+
+Try it:
+python3 tools/projects/bootstrap_quick_project.py \
+  --name "add-user-field" \
+  --type proto-api
+
+Would you like to test it now?
+```
+
+## Philosophy: Keep It Quick
+
+**Important**: When implementing improvements, always ask:
+- Does this maintain the lightweight philosophy?
+- Does this add complexity or remove it?
+- Will this slow down or speed up developers?
+- Is this feature worth the maintenance cost?
+
+**The Quick Framework should always be fast and simple.** If an improvement starts adding significant complexity, suggest whether it belongs in the full framework instead.
+
+## Common Anti-Patterns to Avoid
+
+❌ **Don't** add multi-file task structures (that's what full framework is for)  
+❌ **Don't** add review workflows (defeats the quick purpose)  
+❌ **Don't** create knowledge folder complexity  
+❌ **Don't** add features that make quick projects slow  
+
+✅ **Do** reduce friction and speedup workflows  
+✅ **Do** improve templates and suggestions  
+✅ **Do** enhance resume experience  
+✅ **Do** make common tasks even faster  
+
+## Stigmer-Specific Considerations
+
+When improving the quick project framework for Stigmer:
+
+### Common Stigmer Quick Project Types
+1. **Proto API Work**: Adding fields, new messages, services
+2. **Backend Handlers**: gRPC handlers in Go or Java
+3. **CLI Commands**: New stigmer CLI commands
+4. **Build Fixes**: Bazel BUILD.bazel updates
+5. **Bug Fixes**: Quick fixes in services
+6. **Mobile UI**: Small Flutter widget updates
+7. **Web UI**: TypeScript/React component work
+
+### Stigmer Tech Stack Shortcuts
+Consider adding shortcuts for:
+- Go/Bazel (backend services)
+- Java/gRPC (backend services)
+- Proto/Buf (API definitions)
+- TypeScript/React (web client)
+- Dart/Flutter (mobile client)
+
+### Common Stigmer Commands
+Templates could include:
+- `bazel build //...` - Build all targets
+- `bazel test //...` - Run tests
+- `buf generate` - Generate proto stubs
+- `stigmer workflow run` - Test workflows
+- `make` - Common build commands
+
+## Success Metrics
+
+Improvements succeed when:
+- Setup time decreases or stays the same
+- Developer satisfaction increases
+- Workflow friction decreases
+- Framework remains simple and focused
+- Quick projects stay quick!
+- Stigmer-specific tasks are easier
+
+## Related Rules
+
+- `@_projects/_rules/next-stigmer-quick-project/start-quick-project` - Bootstrap new quick projects
+- `@_projects/_rules/improve-project-workflow` - Improve full framework (different scope)
+- `@_projects/_rules/start-new-project` - Full framework for complex projects

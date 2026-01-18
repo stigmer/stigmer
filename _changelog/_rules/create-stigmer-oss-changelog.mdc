@@ -1,0 +1,114 @@
+---
+description: Action rule to create a well-structured changelog document capturing meaningful work, sized proportionally to the feature's impact and complexity.
+globs: []
+alwaysApply: false
+---
+
+# Rule: Create Changelog (action)
+
+Purpose: When invoked, create a comprehensive changelog document in the `_changelog/` directory that captures the essence, context, and impact of recent work. The changelog should be meaningful, well-structured, and appropriately sized based on the scope and impact of the change.
+
+Usage: Invoke explicitly as `@create-changelog` after completing meaningful work in a conversation.
+
+## CRITICAL: Explicit Invocation Only
+
+**DO NOT** create a changelog automatically or proactively. Changelogs must ONLY be created when the user explicitly invokes this rule.
+
+## When to Create a Changelog
+
+Create a changelog when:
+- You've completed a meaningful feature, refactoring, or improvement
+- The work involved multiple files or system components
+- The change introduces new patterns or architectural decisions
+- The work took significant time/effort (typically 1+ hours)
+- The change has notable impact on the product, team, or users
+
+**Skip changelogs for**:
+- Trivial bug fixes or typo corrections
+- Minor configuration tweaks
+- Work-in-progress or incomplete changes
+
+## Changelog Structure
+
+### File Naming
+```
+YYYY-MM-DD-HHMMSS-brief-descriptive-slug.md
+```
+
+**IMPORTANT**: Get the actual current timestamp by running the command `date +"%Y-%m-%d-%H%M%S"` and use that exact output as the prefix for the filename.
+
+### Required Sections
+
+```markdown
+# [Clear, Descriptive Title]
+
+**Date**: [Month Day, Year]
+
+## Summary
+
+[2-4 sentence overview of what was accomplished and why it matters]
+
+## Problem Statement
+
+[Describe the problem or need that motivated this work]
+
+### Pain Points
+
+[Bullet list of specific issues being addressed]
+
+## Solution
+
+[High-level description of the approach taken]
+
+## Implementation Details
+
+[Technical specifics - code changes, new patterns, key decisions]
+
+## Benefits
+
+[Concrete improvements - metrics, time savings, developer experience]
+
+## Impact
+
+[Who/what is affected and how]
+
+## Related Work
+
+[Connect to other changelogs, features, or initiatives]
+
+---
+
+**Status**: ✅ [Production Ready | In Progress | Experimental]
+**Timeline**: [Duration if relevant]
+```
+
+## Sizing Guidance
+
+**Critical principle**: The changelog length should be proportional to the feature's complexity and impact.
+
+### Small Changes (150-300 lines)
+- Single service or component updates
+- Focused bug fixes with clear before/after
+- Minor API additions
+
+### Medium Changes (300-600 lines)
+- Multi-service refactorings
+- New framework patterns
+- Integration work across 2-3 services
+
+### Large Changes (600-1000+ lines)
+- Major architectural shifts
+- Comprehensive feature rollouts
+- System-wide refactorings with broad impact
+
+## Execution
+
+When this rule is triggered:
+
+1. Get current timestamp: Run `date +"%Y-%m-%d-%H%M%S"`
+2. Analyze the conversation: Extract key decisions, changes, outcomes
+3. Assess scope: Count files, services, resources affected
+4. Determine sections: Include only relevant sections
+5. Size appropriately: Match detail level to impact
+6. Write the file: Create in `_changelog/YYYY-MM/` directory
+7. Confirm creation: Provide file path and next steps
