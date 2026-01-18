@@ -93,10 +93,10 @@ func handleWorkflowCreate(name, description string) {
 	// Create workflow
 	workflow := &workflowv1.Workflow{
 		Metadata: &apiresourcev1.ApiResourceMetadata{
-			Name:        name,
-			Description: description,
+			Name: name,
 		},
 		Spec: &workflowv1.WorkflowSpec{
+			Description: description,
 			// TODO: Add workflow spec fields (tasks, etc.)
 		},
 	}
@@ -166,8 +166,8 @@ func handleWorkflowGet(id string) {
 	fmt.Println("─────────────────────────────────────")
 	cliprint.Info("  ID:   %s", workflow.Metadata.Id)
 	cliprint.Info("  Name: %s", workflow.Metadata.Name)
-	if workflow.Metadata.Description != "" {
-		cliprint.Info("  Description: %s", workflow.Metadata.Description)
+	if workflow.Spec != nil && workflow.Spec.Description != "" {
+		cliprint.Info("  Description: %s", workflow.Spec.Description)
 	}
 }
 
