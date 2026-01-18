@@ -1,0 +1,255 @@
+---
+description: Ask-only rule to gather feedback and implement improvements to the Next Project Framework. Interviews developer about pain points and implements changes to scripts, templates, or documentation.
+globs:
+alwaysApply: false
+---
+
+# Rule: Improve Project Workflow (ask-only)
+
+Purpose: Interview the developer about improvements to the Next Project Framework, gather detailed feedback, and implement changes to scripts, prompts, templates, or documentation based on their needs.
+
+This is an ask-only rule. Gather requirements through structured interview, propose solutions, and implement with user confirmation.
+
+Usage: Invoke explicitly as `@improve-stigmer-oss-project-workflow` or when user wants to enhance the project workflow system.
+
+References: `@README.md`, `@start-stigmer-oss-new-project.mdc`, `tools/_projects/bootstrap_project.py`, `tools/_projects/templates/`
+
+## High-level Flow
+
+1. **Discovery Phase**: Understand what aspect needs improvement
+2. **Analysis Phase**: Gather detailed information about the issue/enhancement
+3. **Proposal Phase**: Suggest specific changes to address the feedback
+4. **Implementation Phase**: Make the approved changes
+5. **Validation Phase**: Confirm the improvements work as expected
+
+## Interview Structure
+
+### Phase 1: Discovery
+
+Start with: "I'd love to help improve the Next Project Framework! Let me understand what aspect you'd like to enhance."
+
+**Initial Questions:**
+1. "Which aspect of the project workflow would you like to improve?"
+   - Project creation process (`@start-stigmer-oss-new-project`)
+   - Project resumption (`next-task.md`)
+   - Documentation structure (folders, templates)
+   - Automation scripts (Python/Shell)
+   - Templates (README, system-prompt, tasks)
+   - Something else
+
+2. "Is this a:"
+   - Bug fix (something not working correctly)
+   - Enhancement (new feature or capability)
+   - Usability improvement (making something easier)
+   - Documentation clarification
+   - Performance optimization
+
+### Phase 2: Detailed Analysis
+
+Based on the aspect chosen, dive deeper:
+
+#### If Project Creation:
+- "What specific part of the creation process needs improvement?"
+- "Have you encountered any errors or friction points?"
+- "What would make the setup process better for you?"
+- "Are there missing templates or prompts you'd like to add?"
+
+#### If Project Resumption:
+- "What challenges do you face when resuming projects?"
+- "Is the `next-task.md` file missing something important?"
+- "Would different file organization help?"
+- "Are the absolute paths working correctly?"
+
+#### If Documentation Structure:
+- "Which folders or files aren't serving their purpose well?"
+- "Are there new types of documentation you need to track?"
+- "Should we add new folders (e.g., 'test-results/', 'meeting-notes/')?"
+- "Are the current templates too verbose or too sparse?"
+
+#### If Automation Scripts:
+- "What manual steps are you still doing that could be automated?"
+- "Are there edge cases the scripts don't handle?"
+- "Do you need new command-line options?"
+- "Should we add validation or error handling?"
+
+#### If Templates:
+- "Which templates need improvement?"
+- "What information is missing or unnecessary?"
+- "Do you need project-type-specific templates?"
+- "Should templates be more opinionated or more flexible?"
+
+### Phase 3: Specific Feedback Gathering
+
+**Follow-up Questions:**
+3. "Can you describe a specific scenario where this was a problem?"
+4. "What would the ideal behavior/solution look like?"
+5. "Are there any constraints or requirements I should consider?"
+6. "How frequently do you encounter this issue?"
+7. "Would this change affect existing projects or just new ones?"
+
+## Common Improvement Categories
+
+### 1. Bug Fixes
+- Path resolution issues
+- Template rendering problems
+- Script execution errors
+- Missing dependencies
+- Incorrect date formatting
+
+### 2. Feature Enhancements
+- New folder types (e.g., 'benchmarks/', 'experiments/')
+- Additional templates for specific project types
+- Integration with external tools (JIRA, GitHub Issues)
+- Batch operations (archiving old projects, bulk updates)
+- Project templates library
+
+### 3. Usability Improvements
+- Better error messages
+- Interactive prompts with validation
+- Color-coded output
+- Progress indicators
+- Keyboard shortcuts
+
+### 4. Workflow Optimizations
+- Faster project switching
+- Quick task creation
+- Automated checkpoint generation
+- Smart task ordering
+- Context compression for large projects
+
+## Implementation Approach
+
+After gathering feedback, follow this pattern:
+
+### 1. Proposal Generation
+Present a clear plan:
+```
+Based on your feedback, I propose the following changes:
+
+1. **Change**: [Specific modification]
+   **File**: [Which file(s) will be modified]
+   **Reason**: [Why this addresses the issue]
+
+2. **Change**: [Next modification]
+   ...
+
+Would you like me to proceed with these changes?
+```
+
+### 2. Implementation
+For each approved change:
+- Show the before/after comparison
+- Explain the impact
+- Test the change if possible
+- Update related documentation
+
+### 3. Files Commonly Modified
+
+#### Scripts and Automation:
+- `tools/_projects/bootstrap_project.py` - Core project creation logic
+- `tools/_projects/start-project.sh` - Interactive shell interface
+- `tools/_projects/templates/*` - Project templates
+
+#### Rules and Documentation:
+- `_projects/_rules/next-stigmer-project/README.md` - Framework documentation
+- `_projects/_rules/next-stigmer-project/start-stigmer-new-project.mdc` - Creation rule
+- `_projects/_rules/next-stigmer-project/improve-stigmer-project-workflow.mdc` - This rule
+
+#### Templates:
+- `tools/_projects/templates/project_readme.md`
+- `tools/_projects/templates/initial_task_*.md`
+- `tools/_projects/templates/task_review_template.md`
+- `tools/_projects/templates/checkpoint_template.md`
+- `tools/_projects/templates/design_decision_template.md`
+- `tools/_projects/templates/next_task.md`
+
+## Example Improvements
+
+### Example 1: Adding Meeting Notes Folder
+**User Request**: "I need to track meeting notes for each project"
+**Implementation**:
+1. Add `meeting-notes/` to folder structure in `bootstrap_project.py`
+2. Update `next-task.md` template to include meeting notes path
+3. Create `meeting_note_template.md` in templates
+4. Update README documentation
+
+### Example 2: Improving Resume Experience
+**User Request**: "The next-task.md should show current task status"
+**Implementation**:
+1. Modify `next_task.md` template to include status section
+2. Add current task tracking to bootstrap script
+3. Create status update mechanism
+4. Document the new feature
+
+### Example 3: Project Type Templates
+**User Request**: "I want different templates for API vs UI projects"
+**Implementation**:
+1. Add `--template` option to bootstrap script
+2. Create project-type-specific template sets
+3. Update interview questions in `start-stigmer-new-project.mdc`
+4. Add template selection logic
+
+## Validation Questions
+
+After implementation, ask:
+1. "Would you like to test the changes with a sample project?"
+2. "Does this address your original concern?"
+3. "Are there any edge cases we should handle?"
+4. "Should we document this change in the README?"
+5. "Do existing projects need migration instructions?"
+
+## Error Handling
+
+- **Breaking Changes**: Warn user and provide migration path
+- **Compatibility Issues**: Ensure backward compatibility or version the framework
+- **Failed Modifications**: Provide rollback instructions
+- **Missing Dependencies**: List required installations
+
+## Success Metrics
+
+The improvement is successful when:
+- The reported issue is resolved
+- No new issues are introduced
+- Documentation is updated
+- User confirms the improvement meets their needs
+- Changes are tested (if applicable)
+
+## Notes
+
+- Always backup files before modification (mention this to user)
+- Consider impact on existing projects
+- Update all related documentation
+- Test changes when possible
+- Provide clear rollback instructions if needed
+- Keep improvements focused and incremental
+- Document decisions for future reference
+
+## Common Quick Fixes
+
+Ready-to-apply solutions for frequent requests:
+
+### "Make project names more flexible"
+- Update validation regex in scripts
+- Allow underscores, capitals, etc.
+
+### "Add more project metadata"
+- Extend bootstrap script parameters
+- Update templates to use metadata
+- Add metadata to README
+
+### "Improve checkpoint format"
+- Create structured checkpoint template
+- Add automatic date stamping
+- Include task references
+
+### "Better error messages"
+- Add detailed error descriptions
+- Include troubleshooting steps
+- Provide relevant documentation links
+
+### "Project archiving"
+- Add archive command to scripts
+- Move to `_projects/archive/` folder
+- Compress old project data
+
+Remember: The goal is to continuously improve the framework based on real user needs while maintaining simplicity and effectiveness.

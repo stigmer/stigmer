@@ -1,0 +1,196 @@
+---
+description: Action rule to interview developer and bootstrap a new multi-day project with Next Project Framework structure, documentation templates, and tracking systems. Creates dated project folders with comprehensive organization.
+globs:
+alwaysApply: false
+---
+
+# Rule: Start New Multi-Day Project (action)
+
+Purpose: When invoked, interview the developer to gather project requirements, then automatically bootstrap a new project following the Next Project Framework with proper folder structure, documentation templates, and tracking systems.
+
+This is an action rule. Execute project setup non-interactively after gathering requirements through a structured interview.
+
+Usage: Invoke explicitly as `@start-stigmer-oss-new-project` or when user expresses intent to start a new multi-day project.
+
+References: `@README.md`, `tools/_projects/bootstrap_project.py`, `tools/_projects/templates/`
+
+## High-level Flow
+
+1. **Interview Phase**: Gather project information through structured questions
+2. **Validation Phase**: Confirm project details with the developer
+3. **Bootstrap Phase**: Create folder structure and initial documentation
+4. **Initialization Phase**: Generate task plan and system prompt
+5. **Handoff Phase**: Provide clear next steps for the developer
+
+## Interview Questions (ask in order, adapt based on responses)
+
+**Note**: Projects are automatically organized by month with sequence numbers. A project will be created at:
+`__projects/YYYY-MM/YYYYMMDD.NN.project-name/` (e.g., `__projects/2025-12/20251226.01.api-migration/`)
+where NN is an auto-incrementing sequence number (01, 02, 03...) for projects created on the same day.
+
+### Essential Information (required)
+1. **Project Name**: "What would you like to name this project? (use-kebab-case, e.g., 'api-migration', 'auth-refactor') - Note: This will be automatically prefixed with today's date (YYYYMMDD), a sequence number (NN), and placed in the current month folder (YYYY-MM)"
+2. **Project Description**: "In 1-2 sentences, what is this project about?"
+3. **Primary Goal**: "What is the main objective you want to achieve with this project?"
+4. **Timeline**: "What's your target timeline? (e.g., '1 week', '2 sprints', 'by end of month')"
+
+### Technical Details (required)
+5. **Technology Stack**: "What technologies/languages will this project primarily involve? (e.g., 'Python/FastAPI', 'TypeScript/React', 'Java/Spring')"
+6. **Project Type**: "What type of project is this? (options: feature-development, refactoring, migration, bug-fix, optimization, research, other)"
+7. **Affected Components**: "Which parts of your codebase will this touch? (e.g., 'backend services', 'frontend components', 'database schema')"
+
+### Context and Constraints (optional but recommended)
+8. **Dependencies**: "Are there any external dependencies or blockers we should be aware of?"
+9. **Success Criteria**: "How will we know when this project is successfully completed? (specific, measurable outcomes)"
+10. **Risks**: "What are the main risks or challenges you foresee?"
+
+### Additional Context (optional)
+11. **Related Work**: "Are there any related PRs, issues, or documentation we should reference?"
+12. **Special Requirements**: "Any specific coding standards, patterns, or constraints to follow?"
+
+## Bootstrap Process (deterministic execution)
+
+After gathering information, execute the bootstrap script:
+
+```bash
+# Set up variables from interview
+PROJECT_NAME="<from-interview>"
+PROJECT_DESC="<from-interview>"
+PROJECT_GOAL="<from-interview>"
+PROJECT_TIMELINE="<from-interview>"
+PROJECT_TECH="<from-interview>"
+PROJECT_TYPE="<from-interview>"
+PROJECT_COMPONENTS="<from-interview>"
+PROJECT_DEPENDENCIES="<from-interview-or-none>"
+PROJECT_SUCCESS="<from-interview>"
+PROJECT_RISKS="<from-interview-or-none>"
+
+# Ensure we're in the repo root
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+
+# Create projects directory structure if it doesn't exist
+# Projects are organized by month: __projects/YYYY-MM/YYYYMMDD.project-name/
+mkdir -p _projects
+
+# Run bootstrap script with gathered information
+# The script automatically creates the month folder and date-prefixed project
+python3 tools/_projects/bootstrap_project.py \
+  --name "$PROJECT_NAME" \
+  --description "$PROJECT_DESC" \
+  --goal "$PROJECT_GOAL" \
+  --timeline "$PROJECT_TIMELINE" \
+  --tech "$PROJECT_TECH" \
+  --type "$PROJECT_TYPE" \
+  --components "$PROJECT_COMPONENTS" \
+  --dependencies "$PROJECT_DEPENDENCIES" \
+  --success-criteria "$PROJECT_SUCCESS" \
+  --risks "$PROJECT_RISKS"
+```
+
+## Initial Task Planning
+
+After bootstrapping, generate an initial task breakdown:
+
+1. Analyze the project goals and components
+2. Create 3-5 initial high-level tasks
+3. Write T01_0_plan.md with the first task to tackle
+4. Generate a specialized system prompt for this project
+
+## Task Plan Review Process
+
+After creating T01_0_plan.md:
+1. **Stop and Request Review**: Present the plan to the developer with:
+   - "I've created the initial task plan at `_projects/<project-name>/tasks/T01_0_plan.md`"
+   - "Please review the plan and provide your feedback"
+   - "I'll capture your review and revise the plan accordingly"
+
+2. **Wait for Developer Feedback** - Do not proceed to execution
+
+3. **Capture Review**: When developer provides feedback:
+   - Create `T01_1_review.md` with their feedback
+   - Structure: Date, Reviewer Comments, Requested Changes
+
+4. **Create Revised Plan**: Based on review:
+   - Create `T01_2_revised_plan.md` incorporating feedback
+   - Present revised plan for approval
+
+5. **Wait for Approval**: Only after explicit approval:
+   - Create `T01_3_execution.md` for execution details
+   - Begin implementation
+
+## Handoff to Developer
+
+Present the developer with:
+1. Confirmation that the project has been set up at `__projects/YYYY-MM/YYYYMMDD.NN.project-name/`
+2. Summary of what was created (note the month-based organization with sequence numbers)
+3. **IMPORTANT**: Present the initial task plan for review:
+   - "I've created an initial task plan at `__projects/YYYY-MM/YYYYMMDD.NN.project-name/tasks/T01_0_plan.md`"
+   - "Please review this plan and provide your feedback"
+   - "Once you approve the plan, I'll proceed with execution"
+4. **Key instruction**: "To resume in ANY future session, simply drag `__projects/YYYY-MM/YYYYMMDD.NN.project-name/next-task.md` into the chat"
+5. Review process:
+   - "Review the plan in T01_0_plan.md"
+   - "Provide any feedback or requested changes"
+   - "I'll capture your review and create a revised plan"
+   - "After your approval, I'll begin execution"
+
+**DO NOT proceed with execution until the developer explicitly approves the plan**
+
+## Error Handling
+
+- If project name already exists: Ask for a different name or confirm overwrite
+- If bootstrap script fails: Show error and provide manual setup instructions
+- If missing required tools: Provide installation instructions
+
+## Project Structure Created
+
+Projects are organized by month for better chronological organization:
+
+```
+__projects/
+└── YYYY-MM/                           # Month folder (e.g., 2025-12)
+    └── YYYYMMDD.NN.project-name/      # Date + sequence prefixed project folder
+        ├── README.md                      # Auto-filled with interview responses
+        ├── next-task.md                  # Quick resume file with direct paths (drag into chat)
+        ├── tasks/
+        │   ├── T01_0_plan.md            # Initial task plan (PENDING REVIEW)
+        │   ├── T01_1_review.md          # Developer feedback (created after review)
+        │   ├── T01_2_revised_plan.md    # Revised plan (created after review)
+        │   └── T01_3_execution.md       # Execution details (created after approval)
+        ├── checkpoints/                  # Empty, ready for milestones
+        ├── design-decisions/             # Empty, ready for decisions
+        ├── coding-guidelines/            # Empty, ready for guidelines
+        ├── wrong-assumptions/            # Empty, ready for learnings
+        └── dont-dos/                     # Empty, ready for anti-patterns
+```
+
+**Example**: The first project started on December 26, 2025 named "api-migration" would be created at:
+`__projects/2025-12/20251226.01.api-migration/`
+The second project that day would be: `__projects/2025-12/20251226.02.auth-setup/`
+And so on, with the sequence number automatically incrementing.
+
+## Notes
+
+- This rule depends on `tools/_projects/bootstrap_project.py` being present
+- Templates are stored in `tools/_projects/templates/`
+- Projects are automatically organized by month in `__projects/YYYY-MM/` folders
+- Project names are automatically prefixed with the date (YYYYMMDD) and sequence number (NN)
+- Sequence numbers ensure proper ordering when multiple projects are created on the same day
+- The interview should feel conversational but efficient
+- Adapt questions based on responses (skip obvious follow-ups)
+- Always create the structure even with minimal information
+- The goal is to reduce friction for starting structured projects
+
+## Month-Based Organization
+
+Projects are organized chronologically by month:
+- `__projects/2025-12/` contains all projects started in December 2025
+- `__projects/2026-01/` contains all projects started in January 2026
+- This organization makes it easy to:
+  - Find projects by when they were started
+  - Archive old months
+  - Review project activity by time period
+  - Keep the projects folder organized as the repo grows
+
+@README.md
