@@ -291,6 +291,256 @@ Future resource implementations will be:
 
 ---
 
+## Update: Generic Query Handler Pipeline Steps (Evening, 2026-01-18)
+
+### What Was Learned
+
+**Discovery**: Query handlers (Get, GetByReference) can use the SAME pipeline pattern with generic, reusable steps.
+
+**Before this learning**:
+- Query handlers used direct pattern (inline logic)
+- Each resource would need custom query logic
+- No reusability across resources
+
+**After this learning**:
+- Created `LoadTargetStep[InputType, OutputType]` - generic Get by ID
+- Created `LoadByReferenceStep[OutputType]` - generic GetByReference by slug
+- Same pipeline pattern as Create/Update/Delete/Apply
+- 100% reusable across ALL resources
+
+### Key Innovation: Generic Pipeline Steps for Queries
+
+#### LoadTargetStep Pattern
+
+```go
+// Works for ANY resource - just change type parameters
+pipeline.NewPipeline[*AgentId]("agent-get").
+    AddStep(steps.NewValidateProtoStep[*AgentId]()).
+    AddStep(steps.NewLoadTargetStep[*AgentId, *Agent](c.store)).
+    Build()
+
+// Same pattern for Workflow
+pipeline.NewPipeline[*WorkflowId]("workflow-get").
+    AddStep(steps.NewValidateProtoStep[*WorkflowId]()).
+    AddStep(steps.NewLoadTargetStep[*WorkflowId, *Workflow](c.store)).
+    Build()
+
+// Same pattern for ANY resource
+```
+
+**Implementation**: `backend/libs/go/grpc/request/pipeline/steps/load_target.go`
+
+**Key features**:
+- Generic over ID wrapper type (e.g., `AgentId`, `WorkflowId`)
+- Generic over resource type (e.g., `Agent`, `Workflow`)
+- Extracts ID from wrapper using `HasIdValue` interface
+- Loads from store using api_resource_kind from context
+- Stores in context with key `TargetResourceKey`
+- Returns NotFound if resource doesn't exist
+
+#### LoadByReferenceStep Pattern
+
+```go
+// Works for ANY resource - just change type parameter
+pipeline.NewPipeline[*ApiResourceReference]("agent-get-by-reference").
+    AddStep(steps.NewValidateProtoStep[*ApiResourceReference]()).
+    AddStep(steps.NewLoadByReferenceStep[*Agent](c.store)).
+    Build()
+
+// Same pattern for Workflow
+pipeline.NewPipeline[*ApiResourceReference]("workflow-get-by-reference").
+    AddStep(steps.NewValidateProtoStep[*ApiResourceReference]()).
+    AddStep(steps.NewLoadByReferenceStep[*Workflow](c.store)).
+    Build()
+```
+
+**Implementation**: `backend/libs/go/grpc/request/pipeline/steps/load_by_reference.go`
+
+**Key features**:
+- Generic over resource type only (input is always `ApiResourceReference`)
+- Validates reference kind matches expected kind
+- Queries all resources and filters by slug
+- Handles both platform-scoped (no org) and org-scoped queries
+- Returns NotFound if no match
+- Stores in context with key `TargetResourceKey`
+
+### File Organization Pattern Established
+
+**Pattern**: Separate file per handler operation
+
+**Before**:
+```
+agent/
+└── query.go (75 lines - both Get and GetByReference)
+```
+
+**After**:
+```
+agent/
+├── get.go (44 lines - ONLY Get by ID)
+└── get_by_reference.go (47 lines - ONLY GetByReference)
+```
+
+**Why**:
+- Single responsibility per file
+- Each file < 50 lines (easy to understand)
+- Consistent with other handlers (create.go, update.go, delete.go, apply.go)
+- Easy to find specific handler
+
+### Updated Decision Tree
+
+```
+Create           → Pipeline (needs validation, duplicates, defaults)
+Update           → Pipeline (needs existing state, merging)
+Delete           → Pipeline (needs load, delete)
+Apply            → Pipeline (needs existence check, delegation)
+Get              → Pipeline (generic LoadTargetStep)  ← UPDATED
+GetByReference   → Pipeline (generic LoadByReferenceStep)  ← UPDATED
+List             → Direct (query with filters)
+```
+
+**All operations now use pipeline pattern except List.**
+
+### Benefits Realized
+
+1. **Zero Code Duplication**
+   - Workflow, Task, AgentInstance can copy exact handler pattern
+   - Only type parameters change
+   - No custom query logic needed
+
+2. **Consistent Architecture**
+   - ALL handlers use pipeline framework
+   - Same observability (tracing, logging)
+   - Same error handling approach
+
+3. **Better Code Organization**
+   - Each file handles ONE operation
+   - Clear responsibilities
+   - Easy to navigate
+
+4. **Testability**
+   - Generic steps tested once
+   - Work for all resources
+   - Comprehensive test coverage
+
+### Migration Template
+
+For any new resource:
+
+```go
+// 1. Create get.go
+func (c *ResourceController) Get(ctx context.Context, id *ResourceId) (*Resource, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, id)
+    
+    p := pipeline.NewPipeline[*ResourceId]("resource-get").
+        AddStep(steps.NewValidateProtoStep[*ResourceId]()).
+        AddStep(steps.NewLoadTargetStep[*ResourceId, *Resource](c.store)).
+        Build()
+    
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+    
+    return reqCtx.Get(steps.TargetResourceKey).(*Resource), nil
+}
+
+// 2. Create get_by_reference.go
+func (c *ResourceController) GetByReference(ctx context.Context, ref *ApiResourceReference) (*Resource, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, ref)
+    
+    p := pipeline.NewPipeline[*ApiResourceReference]("resource-get-by-reference").
+        AddStep(steps.NewValidateProtoStep[*ApiResourceReference]()).
+        AddStep(steps.NewLoadByReferenceStep[*Resource](c.store)).
+        Build()
+    
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+    
+    return reqCtx.Get(steps.TargetResourceKey).(*Resource), nil
+}
+```
+
+**That's it!** No custom query logic needed.
+
+### Files Created
+
+**Generic Pipeline Steps**:
+- `backend/libs/go/grpc/request/pipeline/steps/load_target.go` (96 lines)
+- `backend/libs/go/grpc/request/pipeline/steps/load_target_test.go` (71 lines)
+- `backend/libs/go/grpc/request/pipeline/steps/load_by_reference.go` (164 lines)
+- `backend/libs/go/grpc/request/pipeline/steps/load_by_reference_test.go` (121 lines)
+
+**Agent Handlers**:
+- `backend/services/stigmer-server/pkg/controllers/agent/get.go` (44 lines)
+- `backend/services/stigmer-server/pkg/controllers/agent/get_by_reference.go` (47 lines)
+
+**Documentation**:
+- `backend/services/stigmer-server/pkg/controllers/agent/README.md` (300 lines)
+
+**Deleted**:
+- `backend/services/stigmer-server/pkg/controllers/agent/query.go` (75 lines - replaced by get.go + get_by_reference.go)
+
+### Rule Updates Needed
+
+**Add to "Available Standard Pipeline Steps" section**:
+
+```markdown
+| Step | Purpose | When to Use |
+|------|---------|-------------|
+| **LoadTargetStep** | Load resource by ID | Get operations |
+| **LoadByReferenceStep** | Load resource by slug/reference | GetByReference operations |
+```
+
+**Update "Handler Implementation Patterns" section**:
+
+Add Get and GetByReference patterns using the generic steps.
+
+**Update "Recommended Implementation Pattern" section**:
+
+Change Get/GetByReference from "Direct" to "Pipeline with generic steps".
+
+### Impact on Future Development
+
+**For Workflow Resource**:
+- Copy `get.go` and `get_by_reference.go` from Agent
+- Change type parameters: `Agent` → `Workflow`, `AgentId` → `WorkflowId`
+- **No other changes needed**
+
+**For Task Resource**:
+- Same copy-paste pattern
+- **No custom query logic needed**
+
+**For ALL Resources**:
+- Consistent query operation implementation
+- Generic steps handle all complexity
+- Just change type parameters
+
+### Lessons Learned
+
+1. **Pipelines Work for Everything**: Even "simple" Get operations benefit from pipeline pattern (consistency, tracing, reusability)
+
+2. **Generic Steps are Powerful**: Type parameters make steps truly reusable across all resources
+
+3. **File-per-Handler Scales**: Agent controller now has 6 handler files, all < 75 lines, all crystal clear
+
+4. **Test Infrastructure Pays Off**: Shared helpers (setupTestStore, contextWithKind) made testing new steps trivial
+
+5. **Documentation Matters**: README.md explaining patterns helps others apply them correctly
+
+### Alignment with Stigmer Cloud
+
+| Stigmer Cloud (Java) | Stigmer OSS (Go) |
+|---------------------|------------------|
+| `GetOperationHandlerV2` with `loadTarget` step | `LoadTargetStep` pipeline step |
+| `CustomOperationHandlerV2` with custom `LoadFromRepo` | `LoadByReferenceStep` pipeline step |
+| Separate handler classes | Separate handler files |
+| Pipeline pattern | Pipeline pattern |
+
+**Both use same conceptual architecture**, Go just optimizes for simplicity and generic reusability.
+
+---
+
 **Documentation is a love letter to your future self.**
 
-This rule is now that love letter for Stigmer OSS backend development.
+This rule is now that love letter for Stigmer OSS backend development - including generic query handler patterns!
