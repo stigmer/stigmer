@@ -8,6 +8,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 func TestSetDefaultsStep_Execute(t *testing.T) {
@@ -17,7 +18,7 @@ func TestSetDefaultsStep_Execute(t *testing.T) {
 		},
 	}
 
-	step := NewSetDefaultsStep[*agentv1.Agent]("agent")
+	step := NewSetDefaultsStep[*agentv1.Agent](apiresourcekind.ApiResourceKind_agent)
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
 	ctx.SetNewState(agent)
 
@@ -56,7 +57,7 @@ func TestSetDefaultsStep_Idempotent(t *testing.T) {
 		},
 	}
 
-	step := NewSetDefaultsStep[*agentv1.Agent]("agent")
+	step := NewSetDefaultsStep[*agentv1.Agent](apiresourcekind.ApiResourceKind_agent)
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
 	ctx.SetNewState(agent)
 
@@ -74,16 +75,15 @@ func TestSetDefaultsStep_Idempotent(t *testing.T) {
 	}
 }
 
-func TestSetDefaultsStep_DifferentPrefixes(t *testing.T) {
+func TestSetDefaultsStep_DifferentKinds(t *testing.T) {
 	tests := []struct {
 		name     string
-		prefix   string
+		kind     apiresourcekind.ApiResourceKind
 		expected string
 	}{
-		{"lowercase prefix", "agent", "agent-"},
-		{"uppercase prefix", "AGENT", "agent-"},
-		{"mixed case prefix", "AgEnT", "agent-"},
-		{"workflow prefix", "workflow", "workflow-"},
+		{"agent kind", apiresourcekind.ApiResourceKind_agent, "agt-"},
+		{"workflow kind", apiresourcekind.ApiResourceKind_workflow, "wfl-"},
+		{"agent_instance kind", apiresourcekind.ApiResourceKind_agent_instance, "ain-"},
 	}
 
 	for _, tt := range tests {
@@ -94,7 +94,7 @@ func TestSetDefaultsStep_DifferentPrefixes(t *testing.T) {
 				},
 			}
 
-			step := NewSetDefaultsStep[*agentv1.Agent](tt.prefix)
+			step := NewSetDefaultsStep[*agentv1.Agent](tt.kind)
 			ctx := pipeline.NewRequestContext(context.Background(), agent)
 			ctx.SetNewState(agent)
 
@@ -122,7 +122,7 @@ func TestSetDefaultsStep_MultipleResources(t *testing.T) {
 			},
 		}
 
-		step := NewSetDefaultsStep[*agentv1.Agent]("agent")
+		step := NewSetDefaultsStep[*agentv1.Agent](apiresourcekind.ApiResourceKind_agent)
 		ctx := pipeline.NewRequestContext(context.Background(), agent)
 		ctx.SetNewState(agent)
 		step.Execute(ctx)
@@ -145,7 +145,7 @@ func TestSetDefaultsStep_NilMetadata(t *testing.T) {
 		Metadata: nil,
 	}
 
-	step := NewSetDefaultsStep[*agentv1.Agent]("agent")
+	step := NewSetDefaultsStep[*agentv1.Agent](apiresourcekind.ApiResourceKind_agent)
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
 	ctx.SetNewState(agent)
 
@@ -157,7 +157,7 @@ func TestSetDefaultsStep_NilMetadata(t *testing.T) {
 }
 
 func TestSetDefaultsStep_Name(t *testing.T) {
-	step := NewSetDefaultsStep[*agentv1.Agent]("agent")
+	step := NewSetDefaultsStep[*agentv1.Agent](apiresourcekind.ApiResourceKind_agent)
 	if step.Name() != "SetDefaults" {
 		t.Errorf("Expected Name()=SetDefaults, got %q", step.Name())
 	}

@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/libs/go/sqlite"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/sqlite"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 func setupTestStore(t *testing.T) *sqlite.Store {
@@ -33,7 +34,7 @@ func TestPersistStep_Execute(t *testing.T) {
 		ApiVersion: "ai.stigmer.agentic.agent/v1",
 	}
 
-	step := NewPersistStep[*agentv1.Agent](store, "Agent")
+	step := NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
 	ctx.SetNewState(agent)
 
@@ -75,7 +76,7 @@ func TestPersistStep_Update(t *testing.T) {
 		ApiVersion: "ai.stigmer.agentic.agent/v1",
 	}
 
-	step := NewPersistStep[*agentv1.Agent](store, "Agent")
+	step := NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
 	ctx.SetNewState(agent)
 	step.Execute(ctx)
@@ -108,7 +109,7 @@ func TestPersistStep_EmptyID(t *testing.T) {
 		},
 	}
 
-	step := NewPersistStep[*agentv1.Agent](store, "Agent")
+	step := NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
 	ctx.SetNewState(agent)
 
@@ -127,7 +128,7 @@ func TestPersistStep_NilMetadata(t *testing.T) {
 		Metadata: nil,
 	}
 
-	step := NewPersistStep[*agentv1.Agent](store, "Agent")
+	step := NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
 	ctx := pipeline.NewRequestContext(context.Background(), agent)
 	ctx.SetNewState(agent)
 
@@ -142,7 +143,7 @@ func TestPersistStep_MultipleResources(t *testing.T) {
 	store := setupTestStore(t)
 	defer store.Close()
 
-	step := NewPersistStep[*agentv1.Agent](store, "Agent")
+	step := NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
 
 	// Save multiple agents
 	for i := 1; i <= 5; i++ {
@@ -178,7 +179,7 @@ func TestPersistStep_Name(t *testing.T) {
 	store := setupTestStore(t)
 	defer store.Close()
 
-	step := NewPersistStep[*agentv1.Agent](store, "Agent")
+	step := NewPersistStep[*agentv1.Agent](store, apiresourcekind.ApiResourceKind_agent)
 	if step.Name() != "Persist" {
 		t.Errorf("Expected Name()=Persist, got %q", step.Name())
 	}
