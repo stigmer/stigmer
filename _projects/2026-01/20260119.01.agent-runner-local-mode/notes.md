@@ -648,15 +648,421 @@ Created comprehensive summary: `SKILLS_LOCAL_MODE_IMPLEMENTATION.md`
 
 ---
 
-## Next: T3 - Agent Runner Daemon Connection
+## T3: Agent Runner Mode-Aware Initialization
 
-**Goal**: Update Agent Runner main to connect to Stigmer Daemon gRPC when `MODE=local`
+**Date**: January 19, 2026  
+**Status**: ✅ Completed
+
+### What Was Built
+
+Updated Agent Runner worker and main entry point to support mode-aware initialization with proper Redis connection handling and enhanced error handling.
+
+#### Files Modified
+
+1. **`stigmer/backend/services/agent-runner/worker/worker.py`**
+   - Added Redis client initialization (cloud mode only)
+   - Created `_initialize_redis()` private method
+   - Added `shutdown()` method for graceful cleanup
+   - Enhanced logging to show execution mode and configuration
+   - Added mode-aware connection handling
+   - Added proper error handling for Redis and Temporal connections
+
+2. **`stigmer/backend/services/agent-runner/main.py`**
+   - Added startup banner showing mode and configuration
+   - Enhanced error handling for config loading
+   - Fixed outdated reference to non-existent `rotation_task`
+   - Simplified shutdown handler to use new `worker.shutdown()` method
+   - Added KeyboardInterrupt handling
+   - Improved logging for debugging
+
+#### Technical Details
+
+**Worker Class Changes**:
+
+**New Instance Variables**:
+```python
+self.redis_client: Optional[redis.Redis] = None  # Cloud mode only
+```
+
+**Redis Initialization** (Cloud Mode Only):
+```python
+def _initialize_redis(self):
+    """Initialize Redis connection for cloud mode."""
+    try:
+        redis_config = RedisConfig(
+            host=self.config.redis_host,
+            port=self.config.redis_port,
+            password=self.config.redis_password,
+        )
+        self.redis_client = create_redis_client(redis_config)
+        self.logger.info(f"✅ Connected to Redis at {self.config.redis_host}:{self.config.redis_port}")
+    except redis.ConnectionError as e:
+        self.logger.error(f"❌ Failed to connect to Redis: {e}")
+        raise
+```
+
+**Shutdown Method**:
+```python
+async def shutdown(self):
+    """Shutdown the worker and close connections."""
+    # Stop worker
+    if self.worker:
+        await self.worker.shutdown()
+    
+    # Close Redis connection (cloud mode only)
+    if self.redis_client:
+        self.redis_client.close()
+```
+
+**Main Entry Point Changes**:
+
+**Startup Banner**:
+```python
+mode = "LOCAL" if config.is_local_mode() else "CLOUD"
+logger.info("=" * 60)
+logger.info(f"🚀 Stigmer Agent Runner - {mode} Mode")
+logger.info("=" * 60)
+logger.info(f"Task Queue: {config.task_queue}")
+logger.info(f"Temporal: {config.temporal_service_address} (namespace: {config.temporal_namespace})")
+logger.info(f"Backend: {config.stigmer_backend_endpoint}")
+
+if config.is_local_mode():
+    logger.info(f"Sandbox: {config.sandbox_type} (root: {config.sandbox_root_dir})")
+    logger.info("Note: Using gRPC to Stigmer Daemon for state/streaming")
+else:
+    logger.info(f"Sandbox: {config.sandbox_type}")
+    logger.info(f"Redis: {config.redis_host}:{config.redis_port}")
+```
+
+**Enhanced Error Handling**:
+```python
+# Config loading
+try:
+    config = Config.load_from_env()
+except Exception as e:
+    logger.error(f"❌ Failed to load configuration: {e}", exc_info=True)
+    sys.exit(1)
+
+# Worker initialization
+try:
+    worker = AgentRunner(config)
+except Exception as e:
+    logger.error(f"❌ Failed to initialize worker: {e}", exc_info=True)
+    sys.exit(1)
+
+# Activity registration (includes Temporal connection)
+try:
+    await worker.register_activities()
+except Exception as e:
+    logger.error(f"❌ Failed to connect to Temporal: {e}")
+    raise
+```
+
+#### Mode-Specific Behavior
+
+**Local Mode (MODE=local)**:
+```
+Initialization:
+  1. Load config (MODE=local detected)
+  2. Skip Redis initialization → "Local mode: Skipping Redis..."
+  3. Connect to Temporal
+  4. Register activities
+  5. Start polling
+
+Logging:
+  🚀 Stigmer Agent Runner - LOCAL Mode
+  Backend: localhost:50051
+  Sandbox: filesystem (root: ./workspace)
+  Note: Using gRPC to Stigmer Daemon for state/streaming
+
+Shutdown:
+  1. Stop worker (wait for in-flight activities)
+  2. No Redis cleanup needed
+```
+
+**Cloud Mode (MODE=cloud)**:
+```
+Initialization:
+  1. Load config (MODE=cloud detected)
+  2. Initialize Redis → "✅ Connected to Redis at..."
+  3. Connect to Temporal
+  4. Register activities
+  5. Start polling
+
+Logging:
+  🚀 Stigmer Agent Runner - CLOUD Mode
+  Backend: <cloud-endpoint>
+  Sandbox: daytona
+  Redis: <redis-host>:<redis-port>
+
+Shutdown:
+  1. Stop worker (wait for in-flight activities)
+  2. Close Redis connection → "✓ Redis connection closed"
+```
+
+#### Connection Architecture
+
+**Local Mode**:
+```
+Agent Runner
+    │
+    ├─> Temporal Server (localhost:7233)
+    │   └─ Activities: ExecuteGraphton, EnsureThread, etc.
+    │
+    └─> Stigmer Daemon gRPC (localhost:50051)
+        └─ Status updates, state management
+        
+Redis: NOT CONNECTED (skipped)
+```
+
+**Cloud Mode**:
+```
+Agent Runner
+    │
+    ├─> Temporal Server (cloud)
+    │   └─ Activities: ExecuteGraphton, EnsureThread, etc.
+    │
+    ├─> Stigmer Backend gRPC (cloud)
+    │   └─ Status updates via AgentExecutionClient
+    │
+    └─> Redis (cloud)
+        └─ Pub/sub, state streaming
+```
+
+#### gRPC Client Setup
+
+The gRPC client (AgentExecutionClient) already supports both modes:
+
+**Existing Code** (no changes needed):
+```python
+# grpc_client/agent_execution_client.py
+class AgentExecutionClient:
+    def __init__(self, api_key: str):
+        config = Config.load_from_env()
+        endpoint = config.stigmer_backend_endpoint  # Mode-aware
+        
+        # Create interceptor with API key (works for both modes)
+        interceptor = AuthClientInterceptor(api_key)
+        
+        # Create channel (secure vs insecure based on port)
+        if endpoint.endswith(":443"):
+            self.channel = grpc.aio.secure_channel(endpoint, ...)
+        else:
+            self.channel = grpc.aio.insecure_channel(endpoint, ...)
+```
+
+**Why No Changes Needed**:
+1. `config.stigmer_backend_endpoint` already returns mode-appropriate value
+   - Local: `localhost:50051`
+   - Cloud: `<cloud-endpoint>`
+2. API key is already mode-aware
+   - Local: `"dummy-local-key"`
+   - Cloud: Real JWT token
+3. Auth interceptor adds Bearer token header (server decides validation)
+4. Channel type (secure/insecure) determined by port, not mode
+
+#### Auth0 Validation
+
+**Question from T3**: "Skip Auth0 validation when MODE=local"
+
+**Answer**: Already handled at config level, no changes needed.
+
+**How It Works**:
+```python
+# Config sets dummy key in local mode
+if is_local and not stigmer_api_key:
+    stigmer_api_key = "dummy-local-key"
+
+# Auth interceptor adds header (both modes)
+metadata.append(("authorization", f"Bearer {api_key}"))
+
+# Server-side validation (not in scope for this task):
+# - Local: Server accepts dummy key or skips validation
+# - Cloud: Server validates JWT against Auth0
+```
+
+#### Error Handling
+
+**Connection Failures**:
+
+1. **Redis Connection Failure** (Cloud Mode):
+   ```
+   ❌ Failed to connect to Redis: [Errno 61] Connection refused
+   ❌ Failed to initialize worker: ...
+   [Worker exits with code 1]
+   ```
+
+2. **Temporal Connection Failure** (Both Modes):
+   ```
+   ❌ Failed to connect to Temporal: Cannot connect to Temporal server at localhost:7233
+   [Worker exits with code 1]
+   ```
+
+3. **Configuration Error** (Both Modes):
+   ```
+   ❌ Failed to load configuration: Missing required environment variable: TEMPORAL_SERVICE_ADDRESS
+   [Worker exits with code 1]
+   ```
+
+**Graceful Shutdown**:
+```
+🛑 Received shutdown signal, stopping worker gracefully...
+Shutting down worker...
+✓ Worker stopped
+✓ Redis connection closed  # Cloud mode only
+✅ Worker shutdown complete
+✅ Graceful shutdown complete
+Worker process exiting
+```
+
+#### Logging Examples
+
+**Local Mode Startup**:
+```
+============================================================
+🚀 Stigmer Agent Runner - LOCAL Mode
+============================================================
+Task Queue: agent_execution_runner
+Temporal: localhost:7233 (namespace: default)
+Backend: localhost:50051
+Sandbox: filesystem (root: ./workspace)
+Note: Using gRPC to Stigmer Daemon for state/streaming
+============================================================
+Configured Stigmer API authentication
+Local mode: Skipping Redis initialization (using gRPC to Stigmer Daemon)
+🔧 Execution Mode: LOCAL
+🔧 Stigmer Backend: localhost:50051
+🔧 Sandbox: filesystem (root: ./workspace)
+✅ [POLYGLOT] Connected to Temporal server at localhost:7233, namespace: default
+✅ [POLYGLOT] Registered Python activities on task queue: 'agent_execution_runner'
+✅ [POLYGLOT] Activities: ExecuteGraphton, EnsureThread, CleanupSandbox
+✅ [POLYGLOT] Max concurrency: 10
+✅ [POLYGLOT] Java workflows (InvokeAgentExecutionWorkflow) handled by stigmer-service on same queue
+✅ [POLYGLOT] Temporal routes: workflow tasks → Java, Python activity tasks → Python
+✓ Signal handlers registered (SIGTERM, SIGINT)
+🚀 Worker ready, polling for tasks...
+```
+
+**Cloud Mode Startup**:
+```
+============================================================
+🚀 Stigmer Agent Runner - CLOUD Mode
+============================================================
+Task Queue: agent_execution_runner
+Temporal: temporal.prod.example.com:7233 (namespace: production)
+Backend: backend.prod.example.com:443
+Sandbox: daytona
+Redis: redis.prod.example.com:6379
+============================================================
+Configured Stigmer API authentication
+✅ Connected to Redis at redis.prod.example.com:6379
+🔧 Execution Mode: CLOUD
+🔧 Stigmer Backend: backend.prod.example.com:443
+🔧 Sandbox: daytona
+🔧 Redis: redis.prod.example.com:6379
+✅ [POLYGLOT] Connected to Temporal server at temporal.prod.example.com:7233, namespace: production
+...
+```
+
+#### Key Implementation Decisions
+
+1. **Conditional Initialization**: Redis only initialized in cloud mode (not created then closed)
+2. **Fail-Fast**: Configuration errors cause immediate exit with clear messages
+3. **Graceful Shutdown**: Worker stops accepting tasks, waits for in-flight activities
+4. **Centralized Cleanup**: All cleanup logic in `worker.shutdown()` method
+5. **Mode Visibility**: Startup banner makes it obvious which mode is running
+6. **No gRPC Changes**: Existing AgentExecutionClient already mode-aware
+7. **Removed Cruft**: Cleaned up reference to non-existent rotation_task
+
+#### Removed Code
+
+**main.py - Old Shutdown Handler**:
+```python
+# OLD (referenced non-existent rotation_task)
+if worker.rotation_task and not worker.rotation_task.done():
+    logger.info("Canceling token rotation task...")
+    worker.rotation_task.cancel()
+    try:
+        await worker.rotation_task
+    except asyncio.CancelledError:
+        logger.info("✓ Token rotation task canceled")
+
+# NEW (simplified)
+await worker.shutdown()
+```
+
+#### Testing Strategy
+
+**Local Mode Test**:
+```bash
+export MODE="local"
+export TEMPORAL_SERVICE_ADDRESS="localhost:7233"
+export STIGMER_BACKEND_ENDPOINT="localhost:50051"
+python -m backend.services.agent-runner.main
+```
+
+**Expected**:
+- ✅ No Redis initialization
+- ✅ Connect to local Temporal
+- ✅ Connect to local Stigmer Daemon
+- ✅ Filesystem sandbox configured
+- ✅ Worker ready for tasks
+
+**Cloud Mode Test**:
+```bash
+export MODE="cloud"
+export REDIS_HOST="localhost"
+export REDIS_PORT="6379"
+export TEMPORAL_SERVICE_ADDRESS="localhost:7233"
+python -m backend.services.agent-runner.main
+```
+
+**Expected**:
+- ✅ Initialize Redis connection
+- ✅ Connect to Temporal
+- ✅ Daytona sandbox configured
+- ✅ Worker ready for tasks
+
+**Error Test** (Redis unavailable in cloud mode):
+```bash
+export MODE="cloud"
+export REDIS_HOST="nonexistent"
+python -m backend.services.agent-runner.main
+```
+
+**Expected**:
+- ❌ Redis connection failure
+- ❌ Worker initialization failure
+- ❌ Process exits with code 1
+
+#### Lessons Learned
+
+1. **Existing Infrastructure**: gRPC client already mode-aware, no changes needed
+2. **Centralized Config**: All mode logic in Config class makes worker simple
+3. **Clear Logging**: Startup banner prevents mode confusion
+4. **Fail-Fast**: Better to fail immediately with clear error than partially initialize
+5. **Graceful Shutdown**: Proper cleanup prevents resource leaks
+6. **Code Cleanup**: Removing outdated references improves maintainability
+7. **Defensive Coding**: Check for None before calling methods (worker, redis_client)
+
+#### Related Documentation
+
+- Changelog: `_changelog/2026-01/2026-01-19-030000-agent-runner-local-cloud-mode-switching.md`
+- ADR: `_cursor/adr-doc` (Section 2: Configuration & Dependencies)
+- Next Task: `next-task.md` (Updated with T3 completion)
+
+---
+
+## Next: T4 - Secret Injection in Stigmer CLI/Daemon
+
+**Goal**: Implement interactive secret prompting and injection in Go-based Stigmer CLI/Daemon
 
 **Steps**:
-1. Update worker initialization to check `MODE`
-2. Skip Redis connection when `MODE=local`
-3. Connect to Stigmer Daemon gRPC in local mode
-4. Handle streaming
-5. Test mode switching
+1. Locate Stigmer CLI/Daemon code (likely stigmer-cloud repo)
+2. Create `stigmer local start` command
+3. Detect missing `ANTHROPIC_API_KEY`
+4. Prompt user for API key (masked input)
+5. Spawn Agent Runner subprocess with injected environment
+6. Handle lifecycle (start/stop/restart)
 
-**Key**: Use `MODE` env var, not `ENV` (which is for dev/staging/prod)
+**Key**: Secrets injected via environment, never stored in config files
