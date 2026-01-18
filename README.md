@@ -19,11 +19,12 @@ Same CLI. Same SDK. Same workflow definitions. Your choice of backend.
 ### Install
 
 ```bash
-# macOS/Linux
-curl -sSL https://stigmer.ai/install.sh | bash
+# Build from source
+cd client-apps/cli
+make build
 
-# Or with Homebrew
-brew install stigmer/tap/stigmer
+# Or use pre-built binary (when available)
+curl -sSL https://stigmer.ai/install.sh | bash
 ```
 
 ### Initialize Local Mode
@@ -32,21 +33,23 @@ brew install stigmer/tap/stigmer
 stigmer init
 ```
 
-This creates `~/.stigmer/data` and you're ready to build agents.
+This creates `~/.stigmer/` directory, config file, and starts the local daemon.
 
 ### Create Your First Agent
 
 ```bash
-stigmer agent create support-bot \
-  --instructions "You are a helpful customer support agent" \
-  --mcp-server github
+stigmer agent create \
+  --name support-bot \
+  --instructions "You are a helpful customer support agent"
 ```
 
-### Execute
+### List Your Agents
 
 ```bash
-stigmer agent execute support-bot "Check open issues in myorg/myrepo"
+stigmer agent list
 ```
+
+**Next Steps**: See the [CLI README](client-apps/cli/README.md) for complete command reference and configuration options.
 
 ## Architecture
 
@@ -95,6 +98,12 @@ Stigmer uses an **Open Core** model with a clean separation between local and cl
 ```
 
 ### Components
+
+**stigmer CLI** - Command-line interface for managing agents and workflows
+- Backend abstraction (local daemon vs cloud)
+- Daemon lifecycle management
+- Agent and workflow CRUD operations
+- **Location**: `client-apps/cli/` - [See CLI README](client-apps/cli/README.md)
 
 **stigmer-server** - Go gRPC API server with SQLite storage
 - Single-table generic resource storage (zero migrations)
