@@ -25,6 +25,7 @@ import (
 	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	sessionclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
+	workflowclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
 	workflowinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentexecution/v1"
@@ -109,12 +110,13 @@ func main() {
 
 	log.Info().Msg("Registered Skill controllers")
 
-	// Create and register WorkflowInstance controller
-	workflowInstanceController := workflowinstancecontroller.NewWorkflowInstanceController(store)
-	workflowinstancev1.RegisterWorkflowInstanceCommandControllerServer(grpcServer, workflowInstanceController)
-	workflowinstancev1.RegisterWorkflowInstanceQueryControllerServer(grpcServer, workflowInstanceController)
+	// Create and register Workflow controller (will be updated after in-process clients are created)
+	// Note: Workflow controller is registered here without dependencies, then re-created below with WorkflowInstance client
+	workflowController := workflowcontroller.NewWorkflowController(store, nil)
+	workflowv1.RegisterWorkflowCommandControllerServer(grpcServer, workflowController)
+	workflowv1.RegisterWorkflowQueryControllerServer(grpcServer, workflowController)
 
-	log.Info().Msg("Registered WorkflowInstance controllers")
+	log.Info().Msg("Registered Workflow controllers (initial registration)")
 	
 	// All services must be registered BEFORE starting the server or creating connections
 
@@ -124,6 +126,7 @@ func main() {
 		agentClient            *agentclient.Client
 		agentInstanceClient    *agentinstanceclient.Client
 		sessionClient          *sessionclient.Client
+		workflowClient         *workflowclient.Client
 		workflowInstanceClient *workflowinstanceclient.Client
 	)
 	{
@@ -145,9 +148,10 @@ func main() {
 		agentClient = agentclient.NewClient(inProcessConn)
 		agentInstanceClient = agentinstanceclient.NewClient(inProcessConn)
 		sessionClient = sessionclient.NewClient(inProcessConn)
+		workflowClient = workflowclient.NewClient(inProcessConn)
 		workflowInstanceClient = workflowinstanceclient.NewClient(inProcessConn)
 
-		log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, and WorkflowInstance")
+		log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, and WorkflowInstance")
 	}
 
 	// Create and register Agent controller (with AgentInstance client for default instance creation)
@@ -170,12 +174,20 @@ func main() {
 
 	log.Info().Msg("Registered AgentExecution controllers")
 
-	// Create and register Workflow controller (with WorkflowInstance client for default instance creation)
-	workflowController := workflowcontroller.NewWorkflowController(store, workflowInstanceClient)
+	// Re-create and register Workflow controller with WorkflowInstance client (for default instance creation)
+	// Note: This replaces the initial registration made earlier (before in-process clients were available)
+	workflowController = workflowcontroller.NewWorkflowController(store, workflowInstanceClient)
 	workflowv1.RegisterWorkflowCommandControllerServer(grpcServer, workflowController)
 	workflowv1.RegisterWorkflowQueryControllerServer(grpcServer, workflowController)
 
-	log.Info().Msg("Registered Workflow controllers")
+	log.Info().Msg("Re-registered Workflow controllers with dependencies")
+
+	// Create and register WorkflowInstance controller (with Workflow client for parent workflow loading)
+	workflowInstanceController := workflowinstancecontroller.NewWorkflowInstanceController(store, workflowClient)
+	workflowinstancev1.RegisterWorkflowInstanceCommandControllerServer(grpcServer, workflowInstanceController)
+	workflowinstancev1.RegisterWorkflowInstanceQueryControllerServer(grpcServer, workflowInstanceController)
+
+	log.Info().Msg("Registered WorkflowInstance controllers")
 
 	// Create and register WorkflowExecution controller
 	// Note: Loads workflows directly from store (same service), uses WorkflowInstance client for default instance creation
