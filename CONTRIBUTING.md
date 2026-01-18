@@ -37,7 +37,7 @@ stigmer/
 │   └── agent/           # Agent execution
 ├── sdk/                 # SDKs for Go and Python
 ├── runners/             # Workflow and agent runners
-├── proto/               # Protobuf definitions
+├── apis/                # Protobuf definitions
 ├── docs/                # Documentation
 └── examples/            # Example agents and workflows
 ```
@@ -57,10 +57,10 @@ make coverage
 
 ### Code Generation
 
-Protocol Buffer definitions are in `proto/`. After modifying protos:
+Protocol Buffer definitions are in `apis/`. After modifying protos:
 
 ```bash
-make proto-gen
+make protos
 ```
 
 This generates Go and Python code from `.proto` files.
@@ -258,7 +258,7 @@ Use shared test utilities in `internal/testutil/`:
 import "github.com/stigmer/stigmer/internal/testutil"
 
 func TestSomething(t *testing.T) {
-    db := testutil.NewTestDB(t)           // Auto-cleanup SQLite
+    db := testutil.NewTestDB(t)           // Auto-cleanup BadgerDB
     backend := testutil.NewTestBackend(t) // Mock backend
     // ...
 }

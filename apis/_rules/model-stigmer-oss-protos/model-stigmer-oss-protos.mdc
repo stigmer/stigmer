@@ -1,0 +1,377 @@
+# Rule: Model Stigmer Protos (action)
+
+**Purpose**: Generate complete API resource following Stigmer proto standards. Creates all 5 required proto files with proper validation, authorization, and registers the resource in the ApiResourceKind enum.
+
+**Usage**: Invoke this rule when creating a new API resource for Stigmer. Provide resource name and domain.
+
+**Prerequisites**: 
+- Understanding of the domain organization (iam, agentic, tenancy, connect, foundation)
+- Clear resource purpose and ownership model
+
+---
+
+## 🎓 Before You Start: Check the Learning Log!
+
+**IMPORTANT**: Before creating proto APIs, check `docs/learning-log.md` for established patterns:
+- 4+ proto APIs documented with complete structure
+- Authorization configuration patterns
+- Validation standards and examples
+- Organized by topic: File Organization, Authorization, Validation, Standards
+- Saves time by following proven patterns
+
+**Quick lookup by topic**:
+- File structure questions → See "File Organization Patterns"
+- Authorization config → See "Authorization Configuration"
+- Validation constraints → See "Validation Patterns"
+- Field standards → See "API Resource Standards"
+
+**Complete documentation**: See `docs/README.md` for full catalog.
+
+---
+
+**Reference Documentation**:
+
+**Core Standards**:
+- **Organization Patterns**: `docs/organization-patterns.md` ⚠️ **5-file structure**
+- **API Resource Standards**: `docs/api-resource-standards.md` ⚠️ **Kubernetes-inspired**
+
+**Learning & Evolution**:
+- **Learning Log**: `docs/learning-log.md` - All proto APIs created, organized by topic
+- **Complete Index**: `docs/README.md` - Full documentation catalog
+
+**Self-Improvement Cycle**: After creating proto APIs:
+1. If you learned something or fixed errors → Update `docs/learning-log.md` with the pattern
+2. If patterns need correction → Invoke `@improve-this-rule.mdc` to update the rule
+3. **Check `docs/learning-log.md` FIRST** to see if similar resource was already created
+
+---
+
+## ⚠️ CRITICAL: The 5-File Pattern
+
+Every API resource MUST have exactly 5 proto files:
+
+### DO CREATE THESE:
+
+✅ **`api.proto`** - Main resource message with metadata, spec, and status
+✅ **`spec.proto`** - User-configurable specification
+✅ **`command.proto`** - Command service (create, update, delete)
+✅ **`query.proto`** - Query service (get, list, search)
+✅ **`io.proto`** - Request/response messages
+
+**Error if pattern violated**:
+```
+❌ Mixing services and messages in one file
+❌ Request messages in command.proto or query.proto
+❌ Missing any of the 5 files
+❌ Services in api.proto
+```
+
+### File Responsibilities:
+
+| File | Contains | Does NOT Contain |
+|------|----------|------------------|
+| **`api.proto`** | Main resource message, List message | Services, Request messages, Spec |
+| **`spec.proto`** | Spec message, Supporting types, Enums | Main resource, Services, Requests |
+| **`command.proto`** | Command service definition only | Request messages, Query operations |
+| **`query.proto`** | Query service definition only | Request messages, Command operations |
+| **`io.proto`** | All request/response messages | Services, Main resource, Spec |
+
+**See**: `docs/organization-patterns.md` for complete pattern explanation.
+
+---
+
+## ⚠️ CRITICAL: API Resource Structure
+
+**ALWAYS follow the Kubernetes-inspired structure:**
+
+```protobuf
+message ResourceName {
+  // API version - MUST use const validation
+  string api_version = 1 [(buf.validate.field).string.const = 'resourcename.stigmer.ai/v1'];
+  
+  // Kind - MUST match message name exactly
+  string kind = 2 [(buf.validate.field).string.const = 'ResourceName'];
+  
+  // Metadata - ALWAYS required
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+  
+  // User configuration
+  ResourceNameSpec spec = 4;
+  
+  // System state
+  ResourceNameStatus status = 5;
+}
+```
+
+**See**: `docs/api-resource-standards.md` for complete standards and all process details.
+
+---
+
+---
+
+## ⚠️ CRITICAL: FGA Authorization Configuration
+
+**Every RPC method MUST have proper authorization configuration.**
+
+### Standard Authorization Pattern (ID-based RPCs)
+
+For RPCs that operate on a single resource by ID:
+
+```protobuf
+rpc get(ResourceId) returns (Resource) {
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = {resource_kind};
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to view {resource}";
+}
+
+rpc update(Resource) returns (Resource) {
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = {resource_kind};
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update {resource}";
+}
+
+rpc delete(ResourceId) returns (Resource) {
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = {resource_kind};
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete {resource}";
+}
+```
+
+**Configuration Fields:**
+- `resource_kind`: The API resource kind (e.g., `api_key`, `agent`, `organization`)
+- `permission`: The FGA permission to check (e.g., `can_view`, `can_edit`, `can_delete`)
+- `field_path`: Path to the resource ID in the request message (e.g., `"value"` for ID messages, `"metadata.id"` for full resources)
+- `error_msg`: User-friendly error message when authorization fails
+
+### Skip Authorization Pattern (Find/List Operations)
+
+**ONLY use for find/list operations that implement custom authorization in handler:**
+
+```protobuf
+// Find all resources accessible to the caller
+rpc findAll(google.protobuf.Empty) returns (Resources) {
+  // Authorization handled in handler via IAM Policy listAuthorizedResourceIds
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+}
+```
+
+**When to skip authorization:**
+- ✅ Find/list operations that query IAM Policy via `listAuthorizedResourceIds`
+- ✅ Hash-based lookups where input doesn't contain resource ID
+- ❌ NEVER skip for operations with resource ID in input
+
+### Custom Handler Authorization Pattern
+
+For operations where input doesn't contain resource ID (e.g., getByHash, getByEmail):
+
+```protobuf
+rpc getByKeyHash(ApiKeyHash) returns (ApiKey) {
+  // Authorization is handled in the handler after loading the resource
+  // (input doesn't contain API key ID, so proto-level auth cannot work)
+}
+```
+
+**Handler must implement custom authorization step after loading resource.**
+
+### Authorization Decision Tree
+
+```
+Does input contain resource ID?
+├─ YES: Which field contains the ID?
+│  ├─ "value" field (XxxId messages): Use field_path = "value"
+│  └─ "metadata.id" field (Full resource): Use field_path = "metadata.id"
+└─ NO: What type of operation?
+   ├─ Find/list operation: Skip authorization + implement IAM Policy listAuthorizedResourceIds
+   ├─ Multi-factor authorization (parent + scope): Use FGA contextual tuples in handler
+   └─ Alternative key lookup: Leave empty + implement custom check after loading
+```
+
+### Common Authorization Patterns by RPC Type
+
+| RPC Method | Input Type | field_path | Permission | Pattern |
+|------------|-----------|-----------|------------|---------|
+| `get(ResourceId)` | ID message | `"value"` | `can_view` | Proto config |
+| `create(Resource)` | Full resource | Varies | Varies | Proto config OR Contextual tuples |
+| `update(Resource)` | Full resource | `"metadata.id"` | `can_edit` | Proto config |
+| `delete(ResourceId)` | ID message | `"value"` | `can_delete` | Proto config |
+| `findAll(Empty)` | Empty | N/A | N/A | Skip + Handler IAM query |
+| `getByHash(Hash)` | Hash/other | N/A | N/A | Empty + Handler check |
+
+### Field Path Examples
+
+**For ID messages (XxxId):**
+```protobuf
+message ApiKeyId {
+  string value = 1;  // ← field_path = "value"
+}
+
+rpc get(ApiKeyId) returns (ApiKey) {
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+}
+```
+
+**For full resource messages:**
+```protobuf
+message ApiKey {
+  ApiResourceMetadata metadata = 3;  // ← metadata.id, so field_path = "metadata.id"
+}
+
+rpc update(ApiKey) returns (ApiKey) {
+  option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
+}
+```
+
+### ⚠️ Advanced: FGA Contextual Tuples Pattern
+
+**When to Use**: Authorization depends on multiple factors where proto config only supports checking one.
+
+**Example**: Agent instance creation needs:
+1. Permission on parent agent (via spec.agent_id)
+2. Membership in target organization (via metadata.org)
+
+**Proto config limitation**: Can only configure ONE authorization check per RPC.
+
+**Solution**: Use FGA contextual tuples in handler
+
+**Proto Configuration**:
+```protobuf
+rpc create(AgentInstance) returns (AgentInstance) {
+  // No proto authorization - using FGA contextual tuples in handler
+  // Handler provides dynamic organization context to FGA
+}
+```
+
+**Handler Pattern**:
+```java
+// Single authorization check with contextual tuple
+CheckAuthorizationInput checkInput = CheckAuthorizationInput.newBuilder()
+    .setPolicy(mainPolicy)  // Check: user has can_create_instance on agent
+    .addContextualPolicies(contextualTuple)  // Context: agent in target org
+    .build();
+
+var result = iamPolicyGrpcRepo.checkAuthorization(checkInput);
+```
+
+**Benefits**:
+- One authorization call instead of two
+- Dynamic context without persisting tuples
+- FGA evaluates multi-factor authorization
+
+**When to Use**:
+- ✅ Authorization needs runtime context
+- ✅ Proto config cannot express full check
+- ✅ Need "what-if" authorization
+- ❌ Don't use if proto config is sufficient
+
+**See**: 
+- `@model-stigmer-fga-authorization` - Contextual Tuples section
+- `@implement-stigmer-oss-handlers` - Pattern 3: Contextual Tuples
+
+---
+
+**See**: `@model-stigmer-fga-authorization` for complete FGA modeling guide.
+
+---
+
+## 📋 Post-Creation Checklist
+
+After creating proto API:
+
+### File Organization
+- [ ] All 5 proto files created (api, spec, command, query, io)
+- [ ] Services only in command.proto and query.proto
+- [ ] Messages only in api.proto, spec.proto, io.proto
+- [ ] No mixing of services and messages
+
+### API Resource Standards
+- [ ] ApiVersion, Kind, Metadata, Spec, Status structure
+- [ ] buf.validate constraints on all fields
+- [ ] Proper field numbering (no gaps, no reuse)
+
+### Authorization
+- [ ] Every RPC has authorization config OR is_skip_authorization
+- [ ] Authorization field_path correct for each RPC
+- [ ] Comments explain authorization decisions
+
+### Registration
+- [ ] Resource registered in ApiResourceKind enum
+- [ ] Enum value follows naming convention
+
+---
+
+## 🎓 Learning Capture: Did You Learn Something New?
+
+**Common learning moments during proto API creation:**
+
+### During Creation
+- ✅ Discovered new validation pattern
+- ✅ Found authorization configuration issue
+- ✅ Created complex message structure
+- ✅ Designed multi-scope resource
+- ✅ Hit file organization violation
+
+### After Creation
+- ✅ FGA modeling revealed gaps
+- ✅ Backend implementation found issues
+- ✅ Authorization was unclear
+- ✅ Validation constraints were tricky
+
+### From Integration
+- ⚠️ Authorization config didn't work as expected
+- ⚠️ Validation rejected valid input
+- ⚠️ File organization caused issues
+- ⚠️ Missing creation permissions
+
+---
+
+## 🚦 Should You Document This Learning?
+
+**Quick Decision**:
+
+```
+Did you encounter an issue or learn something?
+├─ YES → Is it already in docs/learning-log.md?
+│         ├─ NO → Document it!
+│         └─ YES → Skip (already captured)
+└─ NO → No action needed
+```
+
+**Document if ANY of these are true:**
+- ✅ Created proto for new resource
+- ✅ Discovered reusable validation pattern
+- ✅ Found authorization configuration gap
+- ✅ Hit file organization issue
+- ✅ Created complex message structure
+- ✅ Designed new resource standard
+
+**Skip if:**
+- ❌ Exact copy of existing proto
+- ❌ Already documented in standards
+- ❌ Trivial message addition
+
+---
+
+## 📝 How to Capture Learning
+
+**If you learned something worth sharing:**
+
+1. **Invoke the improvement rule**:
+   ```
+   @stigmer/apis/_rules/model-stigmer-protos/improve-this-rule.mdc
+   ```
+
+2. **Or note it down** for batch update later
+
+3. **When in doubt**: Document it. Proto patterns evolve.
+
+**The improvement rule will guide you through:**
+- Adding to learning log with proto code
+- Creating/updating standard docs if pattern emerges
+- Cross-referencing FGA and backend integration
+
+---
+
+**Goal**: Consistently create well-structured, validated, authorized proto APIs following Stigmer standards.

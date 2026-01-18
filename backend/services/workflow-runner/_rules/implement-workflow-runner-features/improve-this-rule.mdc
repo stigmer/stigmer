@@ -1,0 +1,303 @@
+# Rule: Improve Workflow Runner Features Rule (action)
+
+## Purpose
+
+Autonomously improve the `implement-workflow-runner-features.mdc` rule based on lessons learned during implementation. Updates patterns, adds missing documentation, and refines guidance to prevent future issues.
+
+## When This Rule is Invoked
+
+This rule is automatically triggered by `@complete-stigmer-work.mdc` when:
+1. Workflow runner Go files were modified
+2. New patterns were discovered or issues were solved
+3. Genuine learning occurred (not routine work)
+
+It can also be manually invoked when:
+- You notice the rule has incorrect/outdated guidance
+- You want to add a new pattern discovered during work
+- Documentation is missing for a common task
+
+## What This Rule Does
+
+1. **Analyzes Recent Work**: Reviews conversation history and git changes
+2. **Identifies Learnings**: Extracts new patterns, fixes, or discoveries
+3. **Updates Documentation**: 
+   - Adds entries to `docs/learning-log.md`
+   - Updates reference docs in `docs/`
+   - Refines main rule guidance
+4. **Validates Changes**: Ensures updates are accurate and helpful
+
+## How AI Should Execute This
+
+### Step 1: Identify Learnings
+
+Review the conversation for:
+
+**Temporal Workflow Issues**:
+- Non-determinism errors solved
+- Workflow replay problems
+- Continue-As-New pattern usage
+- State management discoveries
+
+**Temporal Activity Issues**:
+- Activity registration problems
+- Timeout configuration patterns
+- Retry policy discoveries
+- Context handling improvements
+
+**Zigflow Integration Issues**:
+- CNCF workflow parsing errors
+- State type implementation problems
+- Task builder patterns refined
+- Interpreter logic discoveries
+
+**Claim Check Issues**:
+- R2 storage upload/download errors
+- Compression optimization discoveries
+- Reference resolution problems
+- Threshold tuning patterns
+
+**gRPC Server Issues**:
+- Request handling problems solved
+- Authentication/authorization patterns
+- Error response improvements
+- Streaming patterns discovered
+
+**Bazel Build Issues**:
+- Gazelle configuration problems
+- Dependency resolution errors
+- BUILD file patterns
+- Cross-package imports solved
+
+**Testing Issues**:
+- Temporal test suite patterns
+- Golden test improvements
+- Mock setup patterns
+- Integration test discoveries
+
+**Error Handling Patterns**:
+- New error types created
+- Error wrapping improvements
+- Context preservation patterns
+- Recovery strategies
+
+### Step 2: Categorize Learnings
+
+For each learning, determine:
+
+- **Topic**: Temporal Workflows, Activities, Zigflow, Claim Check, gRPC, Bazel, Testing, etc.
+- **Type**: Bug fix, new pattern, configuration, best practice
+- **Impact**: Critical (blocks work), Important (saves time), Nice-to-have
+- **Reusability**: Applies to one case, applies broadly, affects all implementations
+
+### Step 3: Update Documentation
+
+#### Update `docs/learning-log.md`
+
+Add entry under appropriate topic:
+
+```markdown
+## [Topic Name]
+
+### [Date] - [Brief Title]
+
+**Problem**: [What went wrong or what needed solving]
+
+**Root Cause**: [Why it happened]
+
+**Solution**: [How to fix it]
+
+**Prevention**: [How to avoid in future]
+
+**Related Docs**: [Links to relevant sections]
+
+**Example**:
+```go
+// Code example showing the fix
+```
+```
+
+#### Update Reference Docs
+
+If the learning affects a specific doc:
+- Update `docs/architecture/overview.md` for architectural discoveries
+- Update `docs/architecture/claimcheck.md` for claim check issues
+- Update `docs/guides/phase-1.5.md` for implementation guidance
+- Update `docs/guides/build-strategy.md` for Bazel issues
+- Update `docs/guides/testing-guide.md` for testing patterns
+- Create new doc if topic doesn't exist
+
+#### Update Main Rule
+
+If patterns in `implement-workflow-runner-features.mdc` need refinement:
+- Add new examples to relevant sections
+- Update troubleshooting guide
+- Add common pitfalls
+- Refine implementation guidance
+
+### Step 4: Validate Changes
+
+Before finalizing:
+
+- [ ] Learning is genuinely new (not already documented)
+- [ ] Solution is tested and works
+- [ ] Documentation is clear and actionable
+- [ ] Examples are accurate
+- [ ] Links between docs are correct
+
+## Improvement Criteria
+
+### Trigger Improvement If:
+
+✅ **New Error Patterns**:
+- Fixed a non-determinism error not in docs
+- Solved Bazel build issue
+- Discovered missing configuration
+
+✅ **New Implementation Patterns**:
+- Implemented new state type in Zigflow
+- Created new activity pattern
+- Enhanced claim check storage
+
+✅ **Performance Discoveries**:
+- Optimized workflow execution
+- Improved claim check compression
+- Enhanced parallel processing
+
+✅ **Integration Fixes**:
+- Fixed Temporal connectivity
+- Solved proto compatibility
+- Improved error handling
+
+### Skip Improvement If:
+
+❌ **Routine Application**:
+- Used existing patterns correctly
+- No issues encountered
+- Straightforward implementation
+
+❌ **Trivial Changes**:
+- Typo fixes
+- Comment updates
+- Minor refactoring
+
+❌ **Already Documented**:
+- Pattern exists in learning log
+- Solution in reference docs
+- No new discovery
+
+## Example Improvement
+
+### Scenario: Workflow Non-Determinism from time.Now()
+
+**Learning Discovered**:
+- Workflow failed with non-determinism error
+- Root cause: using time.Now() instead of workflow.Now()
+- Need to use workflow.Now(ctx) for deterministic time
+
+**Documentation Updates**:
+
+1. **Add to `docs/learning-log.md`**:
+```markdown
+### 2026-01-15 - Workflow Non-Determinism from time.Now()
+
+**Problem**: Workflow execution failed with error: "workflow.ExecuteActivity called at different point than expected"
+
+**Root Cause**: Used time.Now() in workflow code, which returns different values on replay, causing non-deterministic behavior.
+
+**Solution**: Use workflow.Now(ctx) instead of time.Now() in workflow code:
+
+```go
+// ❌ Wrong: Non-deterministic
+func MyWorkflow(ctx workflow.Context) error {
+    currentTime := time.Now()  // Different value on replay!
+    if currentTime.Hour() > 12 {
+        // ...
+    }
+}
+
+// ✅ Correct: Deterministic
+func MyWorkflow(ctx workflow.Context) error {
+    currentTime := workflow.Now(ctx)  // Same value on replay
+    if currentTime.Hour() > 12 {
+        // ...
+    }
+}
+```
+
+**Prevention**: 
+- Always use workflow.Now(ctx) for time in workflows
+- Use workflow.SideEffect for other non-deterministic operations
+- Run with --replay flag to catch non-determinism in tests
+
+**Related Docs**: [Troubleshooting Guide - Workflow Non-Determinism](../implement-workflow-runner-features.mdc#workflow-non-determinism-errors)
+```
+
+2. **Update `implement-workflow-runner-features.mdc`**:
+
+Add to Troubleshooting Guide:
+```markdown
+### Common Mistake: Using time.Now() in Workflows
+
+Always use workflow.Now(ctx) instead of time.Now() in workflow code:
+
+```go
+// ❌ Wrong
+currentTime := time.Now()
+
+// ✅ Correct
+currentTime := workflow.Now(ctx)
+```
+
+Using time.Now() causes non-determinism because it returns different values on replay.
+```
+
+3. **Update main rule's Common Patterns section**:
+```markdown
+### Time Handling in Workflows
+
+```go
+// Use workflow.Now for deterministic time
+currentTime := workflow.Now(ctx)
+
+// Use workflow.Sleep for delays
+err := workflow.Sleep(ctx, 5*time.Minute)
+
+// Never use time.Now() or time.Sleep() in workflow code
+```
+```
+
+## Self-Referential Improvement
+
+If this improvement rule itself has issues:
+
+1. Document the meta-problem in `docs/learning-log.md` under "Rule Improvement Process"
+2. Update this rule's guidance
+3. Note the recursive improvement in changelog
+
+## Output Format
+
+After making improvements, summarize:
+
+```
+📚 Workflow Runner Rule Improvements
+
+Updated Documentation:
+✅ docs/learning-log.md - Added [X] new entries
+✅ docs/[topic].md - Updated [specific section]
+✅ implement-workflow-runner-features.mdc - Enhanced [area]
+
+Key Learnings Captured:
+• [Learning 1]: [Brief description]
+• [Learning 2]: [Brief description]
+• [Learning 3]: [Brief description]
+
+Prevention Added:
+• [Pitfall 1]: [How to avoid]
+• [Pitfall 2]: [How to avoid]
+```
+
+## Related Rules
+
+- `@implement-workflow-runner-features` - Main rule being improved
+- `@complete-stigmer-work` - Orchestrator that triggers this rule
+- `@commit-stigmer-changes` - Commits the improvements

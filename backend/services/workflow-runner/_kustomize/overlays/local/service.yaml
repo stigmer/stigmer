@@ -1,0 +1,41 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: KubernetesDeployment
+metadata:
+  name: workflow-runner
+spec:
+  container:
+    app:
+      env:
+        variables:
+          ENV:
+            value: local
+          # Execution Mode - dual (gRPC + Temporal worker in same process)
+          EXECUTION_MODE:
+            value: dual
+          # gRPC Server Configuration
+          GRPC_PORT:
+            value: "9090"
+          PORT:
+            value: "9090"
+          # For local development, use a test workflow file
+          WORKFLOW_FILE:
+            value: /app/test/golden/01-operation-basic.yaml
+          # Temporal Configuration (using external endpoint for local development)
+          TEMPORAL_SERVICE_ADDRESS:
+            value: localhost:7233
+          TEMPORAL_NAMESPACE:
+            value: default
+          TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE:
+            value: workflow_execution_runner
+          # More verbose logging for local dev
+          LOG_LEVEL:
+            value: info
+          # OpenTelemetry (using external HTTP endpoint if available)
+          OTEL_EXPORTER_OTLP_TRANSPORT:
+            value: http
+          # Stigmer Backend Configuration (for local testing, unified with agent-runner)
+          STIGMER_BACKEND_ENDPOINT:
+            value: localhost:8080
+          STIGMER_SERVICE_USE_TLS:
+            value: "false"
+

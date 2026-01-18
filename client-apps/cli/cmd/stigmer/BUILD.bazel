@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "stigmer",
+    srcs = ["root.go"],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/cmd/stigmer",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//client-apps/cli/cmd/stigmer/root",
+        "@com_github_spf13_cobra//:cobra",
+    ],
+)

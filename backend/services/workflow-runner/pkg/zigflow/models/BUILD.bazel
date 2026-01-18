@@ -1,0 +1,11 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "models",
+    srcs = [
+        "activity.go",
+        "retries.go",
+    ],
+    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/zigflow/models",
+    visibility = ["//visibility:public"],
+)

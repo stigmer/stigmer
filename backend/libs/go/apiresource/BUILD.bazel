@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "apiresource",
+    srcs = ["metadata.go"],
+    importpath = "github.com/stigmer/stigmer/backend/libs/go/apiresource",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+    ],
+)
+
+go_test(
+    name = "apiresource_test",
+    srcs = ["metadata_test.go"],
+    embed = [":apiresource"],
+)

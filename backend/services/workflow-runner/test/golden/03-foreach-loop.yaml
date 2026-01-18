@@ -1,0 +1,25 @@
+# Golden Test 03: ForEach Loop
+# Tests: ForEach loops, collection iteration, batch processing
+# CONVERTED TO DSL 1.0.0 FORMAT
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: foreach-loop-test
+  version: '1.0.0'
+  description: Tests iteration over collections with forEach loops
+
+do:
+  - processItems:
+      for:
+        each: item
+        in: ${ $data.items }
+      do:
+        - processItem:
+            call: http
+            with:
+              method: POST
+              endpoint:
+                uri: https://jsonplaceholder.typicode.com/posts
+              body:
+                item: ${ $data.item }

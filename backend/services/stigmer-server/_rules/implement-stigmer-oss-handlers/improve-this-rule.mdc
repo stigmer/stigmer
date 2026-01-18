@@ -1,0 +1,121 @@
+---
+description: Ask-only rule to capture learnings and improve the Stigmer OSS handler implementation rule
+alwaysApply: false
+---
+
+# Rule: Improve Handler Implementation Rule (ask-only)
+
+**Purpose**: Systematically capture learnings from Go handler implementations and update the rule to make future implementations easier.
+
+**Usage**: Invoke after implementing handlers when you discover patterns, issues, or improvements worth documenting.
+
+## When to Invoke
+
+Invoke this rule when you:
+- ✅ Fixed a Go compilation error not covered in the rule
+- ✅ Discovered a better handler pattern
+- ✅ Found a common mistake or pitfall
+- ✅ Created a reusable helper function
+- ✅ Encountered a storage/persistence pattern
+- ✅ Learned something about gRPC error handling
+- ✅ Discovered a testing pattern
+
+## Learning Categories
+
+### Go Patterns
+- Controller struct patterns
+- Error handling with grpclib
+- Context usage
+- Nil pointer handling
+
+### Storage Patterns  
+- BadgerDB/SQLite usage
+- Query optimization for local usage
+- Serialization/deserialization
+- List filtering patterns
+
+### gRPC Patterns
+- Method signature matching
+- Server registration
+- Streaming (if applicable)
+- Interceptors (if needed)
+
+### Testing Patterns
+- Controller testing
+- Mock store setup
+- Test data generation
+- Integration testing
+
+## Improvement Process
+
+1. **Identify the Learning**
+   - What did you learn?
+   - What was confusing or missing?
+   - What could be clearer?
+
+2. **Determine Impact**
+   - Is this a one-time edge case or common pattern?
+   - Will this help future implementations?
+   - Is it specific to one resource or general?
+
+3. **Document the Pattern**
+   - Add code example
+   - Explain the why, not just the how
+   - Include common pitfalls
+
+4. **Update the Rule**
+   - Add to appropriate section
+   - Include example code
+   - Update checklist if needed
+
+## Common Improvements
+
+### Handler Patterns
+```go
+// Example: Better validation pattern
+func validateResource(r *pb.Resource) error {
+    if r == nil {
+        return grpclib.InvalidArgumentError("resource is required")
+    }
+    if r.Metadata == nil {
+        return grpclib.InvalidArgumentError("metadata is required")
+    }
+    // ... more validations
+    return nil
+}
+```
+
+### Store Patterns
+```go
+// Example: Generic list with filter
+func listWithFilter[T proto.Message](
+    store *sqlite.Store, 
+    kind string, 
+    filter func(T) bool,
+) ([]T, error) {
+    // Implementation
+}
+```
+
+### Error Handling
+```go
+// Example: Better error context
+func (c *Controller) Get(ctx context.Context, id *pb.ResourceId) (*pb.Resource, error) {
+    if id == nil || id.Value == "" {
+        return nil, grpclib.InvalidArgumentError("resource id is required")
+    }
+    
+    resource := &pb.Resource{}
+    if err := c.store.GetResource(ctx, id.Value, resource); err != nil {
+        // Add context to error
+        return nil, grpclib.WrapError(err, codes.NotFound, 
+            fmt.Sprintf("resource %s not found", id.Value))
+    }
+    
+    return resource, nil
+}
+```
+
+## Goal
+
+Continuously improve the handler implementation rule so each new resource is easier and faster to implement than the last.

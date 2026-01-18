@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "grpc_client",
+    srcs = [
+        "workflow_client.go",
+        "workflow_execution_client.go",
+        "workflow_instance_client.go",
+    ],
+    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/grpc_client",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
+        "//apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",
+        "//apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
+        "//backend/services/workflow-runner/pkg/config",
+        "@com_github_rs_zerolog//log",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//credentials",
+        "@org_golang_google_grpc//credentials/insecure",
+        "@org_golang_google_grpc//metadata",
+    ],
+)

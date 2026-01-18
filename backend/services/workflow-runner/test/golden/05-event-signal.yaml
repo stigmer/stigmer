@@ -1,0 +1,29 @@
+# Golden Test 05: Event Signal
+# Tests: Event waiting, external signals, human-in-the-loop approvals
+# CONVERTED TO DSL 1.0.0 FORMAT
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: event-signal-test
+  version: '1.0.0'
+  description: Tests waiting for external events and signals
+
+do:
+  - waitForApproval:
+      listen:
+        to:
+          one:
+            with:
+              id: approval_signal
+              type: signal
+  
+  - approved:
+      call: http
+      with:
+        method: POST
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/posts
+        body:
+          message: "Approval received"
+          signal_data: ${ . }

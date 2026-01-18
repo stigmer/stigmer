@@ -1,0 +1,28 @@
+# Golden Test 07: Data Injection
+# Tests: Data injection, state transformation, data manipulation
+# CONVERTED TO DSL 1.0.0 FORMAT
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: inject-transform-test
+  version: '1.0.0'
+  description: Tests data injection and transformation
+
+do:
+  - injectData:
+      set:
+        timestamp: ${ now }
+        computed: ${ .a + .b }
+        message: "Data injected"
+  
+  - useData:
+      call: http
+      with:
+        method: POST
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/posts
+        body:
+          timestamp: ${ .timestamp }
+          computed: ${ .computed }
+          message: ${ .message }

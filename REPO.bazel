@@ -1,0 +1,6 @@
+# Ignore directories that should not be scanned by Bazel
+ignore_directories([
+    "**/.venv",
+    "**/node_modules",
+    "**/.next",
+])
