@@ -10,14 +10,18 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/test/bufconn"
 )
 
-// Server wraps a gRPC server with lifecycle management
+// Server wraps a gRPC server with lifecycle management and in-process support
 type Server struct {
-	grpcServer *grpc.Server
-	listener   net.Listener
-	port       int
+	grpcServer       *grpc.Server
+	listener         net.Listener
+	port             int
+	inProcessEnabled bool
+	bufListener      *bufconn.Listener
 }
 
 // ServerOption configures a Server
@@ -26,6 +30,7 @@ type ServerOption func(*serverOptions)
 type serverOptions struct {
 	unaryInterceptors  []grpc.UnaryServerInterceptor
 	streamInterceptors []grpc.StreamServerInterceptor
+	enableInProcess    bool
 }
 
 // WithUnaryInterceptor adds a unary interceptor
@@ -39,6 +44,13 @@ func WithUnaryInterceptor(i grpc.UnaryServerInterceptor) ServerOption {
 func WithStreamInterceptor(i grpc.StreamServerInterceptor) ServerOption {
 	return func(o *serverOptions) {
 		o.streamInterceptors = append(o.streamInterceptors, i)
+	}
+}
+
+// WithInProcess enables in-process gRPC connections via bufconn
+func WithInProcess() ServerOption {
+	return func(o *serverOptions) {
+		o.enableInProcess = true
 	}
 }
 
@@ -67,9 +79,18 @@ func NewServer(opts ...ServerOption) *Server {
 		grpc.MaxSendMsgSize(10*1024*1024), // 10MB
 	)
 
-	return &Server{
-		grpcServer: grpcServer,
+	s := &Server{
+		grpcServer:       grpcServer,
+		inProcessEnabled: options.enableInProcess,
 	}
+
+	// Create bufconn listener for in-process connections if enabled
+	if s.inProcessEnabled {
+		s.bufListener = bufconn.Listen(1024 * 1024) // 1MB buffer
+		log.Debug().Msg("In-process gRPC support enabled")
+	}
+
+	return s
 }
 
 // GRPCServer returns the underlying gRPC server for service registration
@@ -77,7 +98,8 @@ func (s *Server) GRPCServer() *grpc.Server {
 	return s.grpcServer
 }
 
-// Start starts the gRPC server on the given port
+// Start starts the gRPC server on the given port.
+// If in-process support is enabled, it also starts serving on the bufconn listener.
 func (s *Server) Start(port int) error {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -89,6 +111,17 @@ func (s *Server) Start(port int) error {
 
 	log.Info().Int("port", port).Msg("Starting gRPC server")
 
+	// If in-process is enabled, start serving on bufconn in a goroutine
+	if s.inProcessEnabled && s.bufListener != nil {
+		go func() {
+			log.Debug().Msg("Starting in-process gRPC listener")
+			if err := s.grpcServer.Serve(s.bufListener); err != nil {
+				log.Error().Err(err).Msg("In-process gRPC listener error")
+			}
+		}()
+	}
+
+	// Serve on network listener (this blocks)
 	if err := s.grpcServer.Serve(listener); err != nil {
 		return fmt.Errorf("failed to serve gRPC: %w", err)
 	}
@@ -197,4 +230,35 @@ func InternalError(err error, message string) error {
 // AlreadyExistsError returns a gRPC ALREADY_EXISTS error
 func AlreadyExistsError(resource string, id string) error {
 	return status.Errorf(codes.AlreadyExists, "%s already exists: %s", resource, id)
+}
+
+// NewInProcessConnection creates a new gRPC client connection to this server
+// using the in-process bufconn listener. This connection goes through the full
+// gRPC stack with all interceptors, but without network overhead.
+//
+// This method can only be called if the server was created with WithInProcess().
+//
+// The caller is responsible for closing the connection when done.
+func (s *Server) NewInProcessConnection(ctx context.Context) (*grpc.ClientConn, error) {
+	if !s.inProcessEnabled || s.bufListener == nil {
+		return nil, fmt.Errorf("in-process support not enabled - use WithInProcess() when creating server")
+	}
+
+	// Create dialer that connects to the bufconn listener
+	bufDialer := func(context.Context, string) (net.Conn, error) {
+		return s.bufListener.Dial()
+	}
+
+	conn, err := grpc.DialContext(
+		ctx,
+		"bufnet",
+		grpc.WithContextDialer(bufDialer),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create in-process connection: %w", err)
+	}
+
+	log.Debug().Msg("Created in-process gRPC client connection")
+	return conn, nil
 }

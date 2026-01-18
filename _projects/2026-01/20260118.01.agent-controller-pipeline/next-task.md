@@ -8,16 +8,54 @@
 
 ✅ **All Core Tasks Complete** - Pipeline framework with agent instance creation  
 ✅ **In-Process gRPC Implemented** - Downstream client pattern for cross-domain calls  
-✅ **Agent Creation Complete** - Steps 1-9 fully implemented and building
+✅ **Agent Creation Complete** - Steps 1-9 fully implemented and building  
+✅ **Framework Enhanced** - Auto-extract API resource kind from proto (zero boilerplate)
 
 ## Project Status
 
-🎉 **PHASE 1-8 COMPLETE** 🎉
+🎉 **PHASE 1-9 COMPLETE** 🎉
 
-**Latest:** In-process gRPC and agent instance creation implemented - agent creation pipeline 100% complete
+**Latest:** Automatic API resource kind extraction implemented - controllers simplified, boilerplate eliminated  
 **Next:** Integration testing and remaining CRUD operations for AgentInstance
 
-## What Was Accomplished (Phase 8)
+## What Was Accomplished (Phase 9)
+
+### ✅ Automatic API Resource Kind Extraction
+
+**Location**: `backend/libs/go/grpc/interceptors/apiresource/`
+
+**What it does**:
+- gRPC interceptor extracts `api_resource_kind` from proto service descriptors
+- Injects kind into request context automatically
+- Eliminates manual kind specification in controllers
+
+**Benefits**:
+- **Zero boilerplate**: Controllers no longer specify kind manually
+- **Framework-level**: Works for all controllers automatically
+- **Aligned with Java**: Mirrors `RequestMethodMetadataRegistry` approach
+- **5-7 lines eliminated** per controller
+
+**Before**:
+```go
+kind := apiresourcekind.ApiResourceKind_agent
+steps.NewPersistStep[*agentv1.Agent](c.store, kind)
+```
+
+**After**:
+```go
+// Kind extracted automatically from proto!
+steps.NewPersistStep[*agentv1.Agent](c.store)
+```
+
+**Controllers simplified**:
+- Agent controller (`create.go`, `update.go`)
+- AgentInstance controller (`create.go`)
+
+## Latest Checkpoint
+
+**See**: `@checkpoints/2026-01-18-auto-extract-api-resource-kind.md`
+
+## Previous Accomplishments (Phase 8)
 
 ### ✅ Agent Instance Controller Created
 
@@ -57,8 +95,6 @@
 - Wired AgentInstance controller
 - Created and injected downstream client
 - All components integrated and building successfully
-
-## Latest Checkpoint
 
 **See**: `@checkpoints/2026-01-18-in-process-grpc-agent-instance-creation.md`
 
@@ -125,6 +161,7 @@ Return Agent with default_instance_id populated
 - `docs/adr/20260118-214000-in-process-grpc-calls-and-agent-instance-creation.md`
 - `pkg/controllers/agentinstance/README.md`
 - `pkg/downstream/agentinstance/README.md`
+- `backend/libs/go/grpc/interceptors/apiresource/` (with comprehensive documentation)
 
 ## Build Status
 
@@ -153,9 +190,10 @@ Return Agent with default_instance_id populated
 
 ## Project Documentation
 
-- **Latest Checkpoint:** `@checkpoints/2026-01-18-in-process-grpc-agent-instance-creation.md`
+- **Latest Checkpoint:** `@checkpoints/2026-01-18-auto-extract-api-resource-kind.md`
+- **Latest Changelog:** `@_changelog/2026-01/20260118-204648-auto-extract-api-resource-kind-from-proto.md`
+- **API Resource Interceptor:** `@backend/libs/go/grpc/interceptors/apiresource/`
 - **Latest ADR:** `@docs/adr/20260118-214000-in-process-grpc-calls-and-agent-instance-creation.md`
-- **Latest Changelog:** `@_changelog/2026-01/20260118-220000-implement-in-process-grpc-and-agent-instance-creation.md`
 - **AgentInstance Controller:** `@backend/services/stigmer-server/pkg/controllers/agentinstance/README.md`
 - **Downstream Client:** `@backend/services/stigmer-server/pkg/downstream/agentinstance/README.md`
 - **Agent Controller:** `@backend/services/stigmer-server/pkg/controllers/agent/README.md`

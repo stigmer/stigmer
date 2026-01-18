@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -18,21 +18,21 @@ import (
 //
 // The step requires:
 //   - metadata.slug must be set (typically by ResolveSlugStep)
+//   - api_resource_kind is extracted from request context (injected by interceptor)
 type CheckDuplicateStep[T proto.Message] struct {
 	store store.Store
-	kind  apiresourcekind.ApiResourceKind
 }
 
 // NewCheckDuplicateStep creates a new CheckDuplicateStep
 //
 // Parameters:
 //   - store: The store instance (implements store.Store interface)
-//   - kind: The ApiResourceKind enum value (e.g., ApiResourceKind_agent)
-//     The kind name is automatically extracted from the enum's proto options
-func NewCheckDuplicateStep[T proto.Message](s store.Store, kind apiresourcekind.ApiResourceKind) *CheckDuplicateStep[T] {
+//
+// The api_resource_kind is automatically extracted from the request context
+// by the apiresource interceptor during request handling.
+func NewCheckDuplicateStep[T proto.Message](s store.Store) *CheckDuplicateStep[T] {
 	return &CheckDuplicateStep[T]{
 		store: s,
-		kind:  kind,
 	}
 }
 
@@ -61,8 +61,11 @@ func (s *CheckDuplicateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 		return fmt.Errorf("resource slug is empty, cannot check for duplicates")
 	}
 
+	// Get api_resource_kind from request context (injected by interceptor)
+	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
+
 	// Extract kind name from the enum's proto options
-	kindName, err := apiresource.GetKindName(s.kind)
+	kindName, err := apiresource.GetKindName(kind)
 	if err != nil {
 		return fmt.Errorf("failed to get kind name: %w", err)
 	}

@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -15,24 +15,23 @@ import (
 // This step calls store.SaveResource() to persist the resource.
 // It requires:
 //   - metadata.id must be set
-//   - kind must be provided to the constructor
+//   - api_resource_kind is extracted from request context (injected by interceptor)
 //
 // The step uses the configured store (SQLite, BadgerDB, etc.) to save the resource.
 type PersistStep[T proto.Message] struct {
 	store store.Store
-	kind  apiresourcekind.ApiResourceKind
 }
 
 // NewPersistStep creates a new PersistStep
 //
 // Parameters:
 //   - store: The store instance (implements store.Store interface)
-//   - kind: The ApiResourceKind enum value (e.g., ApiResourceKind_agent)
-//     The kind name is automatically extracted from the enum's proto options
-func NewPersistStep[T proto.Message](s store.Store, kind apiresourcekind.ApiResourceKind) *PersistStep[T] {
+//
+// The api_resource_kind is automatically extracted from the request context
+// by the apiresource interceptor during request handling.
+func NewPersistStep[T proto.Message](s store.Store) *PersistStep[T] {
 	return &PersistStep[T]{
 		store: s,
-		kind:  kind,
 	}
 }
 
@@ -61,8 +60,11 @@ func (s *PersistStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 		return fmt.Errorf("resource ID is empty, cannot persist")
 	}
 
+	// Get api_resource_kind from request context (injected by interceptor)
+	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
+
 	// Extract kind name from the enum's proto options
-	kindName, err := apiresource.GetKindName(s.kind)
+	kindName, err := apiresource.GetKindName(kind)
 	if err != nil {
 		return fmt.Errorf("failed to get kind name: %w", err)
 	}
