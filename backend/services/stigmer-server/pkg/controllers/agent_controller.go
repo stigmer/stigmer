@@ -3,14 +3,16 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/sqlite"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // AgentController implements AgentCommandController and AgentQueryController
@@ -25,7 +27,7 @@ func NewAgentController(store *sqlite.Store) *AgentController {
 	return &AgentController{store: store}
 }
 
-// Create creates a new agent
+// Create creates a new agent using the pipeline framework
 func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
 	if agent == nil {
 		return nil, grpclib.InvalidArgumentError("agent is required")
@@ -40,31 +42,31 @@ func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*ag
 		return nil, grpclib.InvalidArgumentError("name is required")
 	}
 
-	// Generate ID if not provided
-	if agent.Metadata.Id == "" {
-		agent.Metadata.Id = fmt.Sprintf("agent-%s", generateID())
+	// Clone input to newState and set kind/api_version
+	newState := proto.Clone(agent).(*agentv1.Agent)
+	newState.Kind = "Agent"
+	newState.ApiVersion = "ai.stigmer.agentic.agent/v1"
+
+	// Create request context
+	reqCtx := pipeline.NewRequestContext(ctx, agent)
+	reqCtx.SetNewState(newState)
+
+	// Build and execute pipeline
+	p := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).
+		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store, "Agent")).
+		AddStep(steps.NewSetDefaultsStep[*agentv1.Agent]("agent")).
+		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store, "Agent")).
+		Build()
+
+	if err := p.Execute(reqCtx); err != nil {
+		return nil, grpclib.InternalError(err, "pipeline execution failed")
 	}
 
-	// Set kind and api_version
-	agent.Kind = "Agent"
-	agent.ApiVersion = "ai.stigmer.agentic.agent/v1"
-
-	// Check if agent already exists
-	existing := &agentv1.Agent{}
-	err := c.store.GetResource(ctx, agent.Metadata.Id, existing)
-	if err == nil {
-		return nil, grpclib.AlreadyExistsError("Agent", agent.Metadata.Id)
-	}
-
-	// Save agent
-	if err := c.store.SaveResource(ctx, "Agent", agent.Metadata.Id, agent); err != nil {
-		return nil, grpclib.InternalError(err, "failed to save agent")
-	}
-
-	return agent, nil
+	return reqCtx.NewState(), nil
 }
 
-// Update updates an existing agent
+// Update updates an existing agent using the pipeline framework
 func (c *AgentController) Update(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
 	if agent == nil {
 		return nil, grpclib.InvalidArgumentError("agent is required")
@@ -81,12 +83,23 @@ func (c *AgentController) Update(ctx context.Context, agent *agentv1.Agent) (*ag
 		return nil, grpclib.NotFoundError("Agent", agent.Metadata.Id)
 	}
 
-	// Update agent
-	if err := c.store.SaveResource(ctx, "Agent", agent.Metadata.Id, agent); err != nil {
-		return nil, grpclib.InternalError(err, "failed to update agent")
+	// Clone input to newState
+	newState := proto.Clone(agent).(*agentv1.Agent)
+
+	// Create request context
+	reqCtx := pipeline.NewRequestContext(ctx, agent)
+	reqCtx.SetNewState(newState)
+
+	// Build and execute pipeline (simpler for update)
+	p := pipeline.NewPipeline[*agentv1.Agent]("agent-update").
+		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store, "Agent")).
+		Build()
+
+	if err := p.Execute(reqCtx); err != nil {
+		return nil, grpclib.InternalError(err, "pipeline execution failed")
 	}
 
-	return agent, nil
+	return reqCtx.NewState(), nil
 }
 
 // Delete deletes an agent
@@ -170,12 +183,4 @@ func (c *AgentController) findByName(ctx context.Context, name string, orgID str
 	}
 
 	return nil, grpclib.WrapError(nil, codes.NotFound, fmt.Sprintf("agent not found with name: %s", name))
-}
-
-// generateID generates a simple unique ID
-// In production, use UUID or similar
-func generateID() string {
-	// For now, use timestamp-based ID
-	// TODO: Replace with proper UUID generation
-	return fmt.Sprintf("%d", time.Now().UnixNano())
 }
