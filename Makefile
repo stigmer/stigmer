@@ -40,7 +40,8 @@ coverage: ## Generate test coverage report
 
 proto-gen: ## Generate code from protobuf definitions
 	@echo "Generating protobuf code..."
-	buf generate
+	@cd apis && buf generate --template buf.gen.go.yaml
+	@cd apis && buf generate --template buf.gen.python.yaml
 	@echo "Protobuf generation complete!"
 
 protos: proto-gen ## Generate protocol buffer stubs (alias for proto-gen)
