@@ -1,7 +1,7 @@
 # Default bump type for releases (can be overridden: make protos-release bump=minor)
 bump ?= patch
 
-.PHONY: help setup build test clean protos protos-release lint coverage
+.PHONY: help setup build build-backend test clean protos protos-release lint coverage
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -20,6 +20,31 @@ build: protos ## Build the Stigmer CLI
 	@echo "Building Stigmer CLI..."
 	go build -o bin/stigmer ./cmd/stigmer
 	@echo "Build complete: bin/stigmer"
+
+build-backend: protos ## Build all backend services
+	@echo "Building all backend services..."
+	@echo ""
+	@echo "1/4 Building stigmer-server..."
+	go build -o bin/stigmer-server ./backend/services/stigmer-server/cmd/server
+	@echo "✓ Built: bin/stigmer-server"
+	@echo ""
+	@echo "2/4 Building workflow-runner worker..."
+	go build -o bin/workflow-runner ./backend/services/workflow-runner/cmd/worker
+	@echo "✓ Built: bin/workflow-runner"
+	@echo ""
+	@echo "3/4 Building workflow-runner gRPC server..."
+	go build -o bin/workflow-runner-grpc ./backend/services/workflow-runner/cmd/grpc-server
+	@echo "✓ Built: bin/workflow-runner-grpc"
+	@echo ""
+	@echo "4/4 Type checking agent-runner (Python)..."
+	@cd backend/services/agent-runner && \
+		poetry install --no-interaction --quiet && \
+		poetry run mypy grpc_client/ worker/ --show-error-codes
+	@echo "✓ Type checking passed: agent-runner"
+	@echo ""
+	@echo "============================================"
+	@echo "✓ All backend services built successfully!"
+	@echo "============================================"
 
 test: ## Run all tests
 	@echo "Running Go tests..."
@@ -121,6 +146,7 @@ clean: ## Clean build artifacts
 	rm -rf bin/
 	rm -rf coverage.txt coverage.html
 	rm -rf sdk/python/build sdk/python/dist sdk/python/*.egg-info
+	rm -rf backend/services/workflow-runner/bin/
 	$(MAKE) -C apis clean
 	@echo "Clean complete!"
 
