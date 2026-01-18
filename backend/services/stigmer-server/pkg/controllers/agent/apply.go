@@ -64,8 +64,8 @@ func (c *AgentController) Apply(ctx context.Context, agent *agentv1.Agent) (*age
 // It does NOT perform the actual create/update - that's delegated.
 func (c *AgentController) buildApplyPipeline() *pipeline.Pipeline[*agentv1.Agent] {
 	return pipeline.NewPipeline[*agentv1.Agent]("agent-apply").
-		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()). // 1. Validate input
-		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).    // 2. Resolve slug
+		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).       // 1. Validate input
+		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).         // 2. Resolve slug
 		AddStep(steps.NewLoadForApplyStep[*agentv1.Agent](c.store)). // 3. Check existence
 		Build()
 }
