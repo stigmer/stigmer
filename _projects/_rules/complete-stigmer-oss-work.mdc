@@ -11,10 +11,34 @@ When triggered, executes a complete workflow to finalize work on a Stigmer OSS c
 1. Create a changelog entry
 2. Update the Next Project progress/documentation
 3. Commit all changes to Git
-4. **[AI-Driven]** Check for documentation opportunities and create/update documentation
+4. **[MANDATORY]** Create/update documentation - work is NOT complete without it
 5. **[AI-Driven]** Autonomously improve relevant rules when genuine learning occurred
 
-This orchestrator rule combines multiple action rules into a single streamlined workflow with intelligent documentation management and rule improvement.
+This orchestrator rule combines multiple action rules into a single streamlined workflow with **documentation as a mandatory requirement** and intelligent rule improvement.
+
+## Documentation Philosophy
+
+**⚠️ CRITICAL**: Stigmer is an open-source project. The `docs/` folder must be comprehensive enough for users to understand and adopt Stigmer.
+
+**Documentation vs Changelogs:**
+- **Changelogs** capture: What was done, why, and implementation details (temporary reference)
+- **Documentation** captures: How to use features, how systems work, stable patterns (permanent reference)
+- **Don't duplicate** - If changelog has it, don't repeat it in docs
+
+**When documentation IS needed (beyond changelog):**
+- ✅ User-facing features (how to use it)
+- ✅ New architectural concepts (how the system works)
+- ✅ Stable patterns (reusable approaches)
+- ✅ Getting started changes (if usage changed)
+- ✅ Significant design decisions (ADRs for major choices)
+
+**When changelog is sufficient (no separate docs needed):**
+- ✅ Internal refactoring (no user/contributor impact)
+- ✅ Bug fixes (unless reveal architectural insights)
+- ✅ Minor improvements (incremental changes to existing features)
+- ✅ Implementation details already in changelog
+
+**Rule of thumb**: Documentation is for understanding and using Stigmer. Changelogs are for tracking what changed. Avoid duplication.
 
 ## Rule Type
 
@@ -34,13 +58,13 @@ This orchestrator rule combines multiple action rules into a single streamlined 
 2. User drags project reference (e.g., `@_projects/2026-01/20260110.01.proto-api-definitions`) into chat
 3. User invokes this rule: `@complete-stigmer-oss-work`
 4. AI executes steps 1-3 automatically (changelog, project update, commit)
-5. **AI autonomously evaluates** if documentation is needed (Step 4)
-6. If documentation needed: AI creates/updates documentation following standards
+5. **AI MUST create/update documentation** (Step 4) - work is NOT complete without it
+6. AI determines what type of documentation is needed and where it goes
 7. **AI autonomously evaluates** if rule improvement is needed (Step 5)
 8. If learning detected: AI executes rule improvement
-9. If routine work: AI skips improvement steps
+9. If routine work: AI skips improvement steps (only Step 5, NOT Step 4)
 
-**No explicit request needed** - The AI decides based on what happened during the conversation.
+**Documentation is ALWAYS required** - Only rule improvements (Step 5) are optional based on learning detection.
 
 ## Execution Flow
 
@@ -81,7 +105,94 @@ This orchestrator rule combines multiple action rules into a single streamlined 
 
 **Success criteria**: Git commit created and verified
 
-### Step 4: Improve Rules (AI-Driven - Automatic Evaluation)
+### Step 4: Documentation (Smart Evaluation - Avoid Duplication)
+
+**⚠️ SMART EVALUATION**: AI evaluates if separate documentation is needed beyond the changelog.
+
+**Documentation Purpose:**
+- Open-source projects need docs for users to understand and use features
+- Changelogs track changes (temporary reference)
+- Documentation explains how to use and how things work (permanent reference)
+- Don't duplicate what's already in the changelog
+
+**AI's Responsibility:**
+1. Analyze what was built/changed
+2. Determine if separate documentation is needed (beyond changelog)
+3. If needed: Create or update appropriate documentation
+4. If not needed: Ensure changelog has sufficient detail
+5. Follow `@stigmer-oss-documentation-standards.md`
+6. Update indexes if documentation created
+
+**Evaluation Questions (AI asks these):**
+
+**User Impact:**
+1. Is this user-facing? (can users configure/use this?)
+2. Does usage change? (do getting-started docs need updating?)
+3. Will users need examples or guides for this?
+
+**Architectural Impact:**
+1. Does this introduce new concepts? (new component types, patterns)
+2. Does this change how the system works? (architecture change)
+3. Are there design decisions that affect future work?
+
+**Pattern Stability:**
+1. Is this a reusable pattern? (other developers will use this approach)
+2. Is this pattern stable? (or experimental/in-flux)
+
+**Documentation Existing:**
+1. Is there existing documentation that needs updating?
+2. Would this be better as a note in existing docs?
+3. Is the changelog sufficient for this change?
+
+**Decision Logic:**
+
+```
+# High-priority documentation (beyond changelog)
+if (new_user_facing_feature):
+    create_getting_started_docs()
+    create_or_update_architecture_docs()
+    
+elif (new_architectural_concept):
+    create_architecture_docs()
+    possibly_create_adr()
+    
+elif (stable_reusable_pattern):
+    document_pattern_in_guides_or_references()
+    
+elif (changes_existing_feature_usage):
+    update_existing_getting_started_or_guides()
+
+# Changelog is sufficient (no separate docs)
+elif (internal_refactoring):
+    changelog_sufficient = True
+    
+elif (bug_fix):
+    if (reveals_architectural_insight):
+        add_note_to_architecture_docs()
+    else:
+        changelog_sufficient = True
+        
+elif (minor_improvement):
+    changelog_sufficient = True
+
+# If uncertain, prefer minimal documentation
+else:
+    consider_adding_brief_implementation_note()
+```
+
+**Three Outcomes:**
+
+1. **Create/Update Documentation** - User-facing features, new concepts, stable patterns
+2. **Update Existing Documentation** - Changes to documented features
+3. **Changelog Sufficient** - Internal changes, bug fixes, minor improvements
+
+**⚠️ AVOID DUPLICATION**
+
+Don't copy changelog content into docs. Instead:
+- Changelogs → Detailed "what and why" for this specific change
+- Documentation → Timeless "how to use" and "how it works"
+
+### Step 5: Improve Rules (AI-Driven - Automatic Evaluation)
 
 **⚠️ KEY INNOVATION**: This step is **automatically evaluated by AI** - no user request needed.
 
@@ -314,66 +425,78 @@ Executing Step 3/5: Committing changes...
 - Stage and commit: `git add -A && git commit -m "..."`
 - Confirm: "✅ Committed: [commit hash] [commit message]"
 
-### 5. Execute Step 4: AI-Driven Documentation Check
+### 5. Execute Step 4: Documentation (Smart Evaluation)
 
-**AI evaluates conversation autonomously**:
+**AI analyzes work and evaluates documentation needs**:
 ```
-Evaluating if documentation is needed...
+Analyzing work for documentation requirements beyond changelog...
 ```
 
-**Evaluation process**:
-1. Review conversation for new features/components
-2. Check file changes for significant additions
+**Analysis process**:
+1. Review conversation for features/components/changes
+2. Check file changes for what was modified
 3. Ask evaluation questions (see Step 4 criteria)
-4. Decide: Create/Update docs OR Skip
+4. Determine if separate documentation is needed (beyond changelog)
+5. If needed: Create/update docs; If not: Ensure changelog is comprehensive
 
-**If documentation needed**:
+**Outcome 1: Documentation Created/Updated (User-facing or architectural changes)**:
 ```
-✅ Documentation needed - creating/updating documentation...
+✅ Documentation needed beyond changelog - creating/updating...
 ```
-- Determine appropriate category (getting-started, architecture, guides, etc.)
-- Create or update documentation file
+- Determine appropriate category (getting-started, architecture, guides, ADR)
+- Create new documentation OR update existing documentation
 - Follow `@stigmer-oss-documentation-standards.md`
-- Update `docs/README.md` index
-- Update root `README.md` if key document
+- Update indexes (`docs/README.md`, root `README.md` if key doc)
 - Commit documentation changes
-- Confirm: "✅ Documentation: {action} {file}"
+- Confirm: "✅ Documentation: {action} {file(s)}"
 
-**If documentation not needed**:
+**Example:**
 ```
-ℹ️  No new documentation needed - changes are internal/minor
+✅ Documentation created (user-facing feature):
+   - Added docs/architecture/agent-pipeline-integration.md
+   - Updated docs/getting-started/local-mode.md (agent configuration section)
+   - Updated docs/README.md index
+   - Docs committed: b4c2d3e docs: add agent pipeline integration and usage
+   
+   Rationale: New user-facing feature (agent pipeline) needs architecture explanation and usage guide.
 ```
-- Skip to Step 5 (rule improvement)
-- No documentation changes
-- Saves time on routine work
 
-### 6. Execute Step 5: AI-Driven Rule Improvement Evaluation
+**Outcome 2: Changelog Sufficient (Internal changes, bug fixes)**:
+```
+ℹ️  Changelog sufficient - no separate documentation needed
+```
+- Verify changelog has comprehensive details
+- No separate documentation created
+- Report rationale for skipping
 
-**Evaluation process**:
-1. Review conversation for new features/components
-2. Check file changes for significant additions
-3. Ask evaluation questions (see Step 4 criteria)
-4. Decide: Create/Update docs OR Skip
+**Example:**
+```
+ℹ️  Changelog sufficient for this work:
+   - Internal refactoring (no user/contributor impact)
+   - Changelog captures implementation details
+   - No architectural concepts introduced
+   - No usage changes
+   
+   Rationale: Backend controller refactoring is internal. Changelog provides sufficient detail for future reference.
+```
 
-**If documentation needed**:
+**Outcome 3: Update Existing Documentation (Changes to documented features)**:
 ```
-✅ Documentation needed - creating/updating documentation...
+✅ Updating existing documentation...
 ```
-- Determine appropriate category (getting-started, architecture, guides, etc.)
-- Create or update documentation file
-- Follow `@stigmer-oss-documentation-standards.md`
-- Update `docs/README.md` index
-- Update root `README.md` if key document
-- Commit documentation changes
-- Confirm: "✅ Documentation: {action} {file}"
+- Update relevant existing documentation files
+- Keep changes minimal (don't duplicate changelog)
+- Update indexes if needed
+- Commit documentation updates
 
-**If documentation not needed**:
+**Example:**
 ```
-ℹ️  No new documentation needed - changes are internal/minor
+✅ Documentation updated (existing feature changed):
+   - Updated docs/architecture/backend-abstraction.md (refined controller lifecycle)
+   - Docs committed: e7d4f1c docs: update backend controller lifecycle details
+   
+   Rationale: Backend abstraction architecture changed. Updated existing architecture doc to reflect new lifecycle.
 ```
-- Skip to Step 5 (rule improvement)
-- No documentation changes
-- Saves time on routine work
 
 ### 6. Execute Step 5: AI-Driven Rule Improvement Evaluation
 
@@ -409,21 +532,7 @@ Evaluating if rule improvement is needed...
 
 ### 7. Final Summary
 
-**Without documentation or rule improvement** (routine work):
-```
-🎉 All steps completed successfully!
-
-✅ Changelog: _changelog/2026-01/2026-01-11-181525-description.md
-✅ Checkpoint: checkpoints/2026-01-11-description.md
-✅ Commit: 47ee5f8 refactor(scope): message
-
-ℹ️  No documentation needed (changes are internal/minor)
-ℹ️  No rule improvements needed (routine application of existing patterns)
-
-Work is documented and committed. Ready for next task!
-```
-
-**With documentation** (new feature or significant change):
+**Completion with documentation (user-facing feature)**:
 ```
 🎉 All steps completed successfully!
 
@@ -433,12 +542,33 @@ Work is documented and committed. Ready for next task!
 
 📖 Documentation created:
 ✅ Added docs/architecture/agent-lifecycle.md
+✅ Updated docs/getting-started/local-mode.md
 ✅ Updated docs/README.md index
-✅ Docs committed: b4c2d3e docs: add agent lifecycle architecture documentation
+✅ Docs committed: b4c2d3e docs: add agent lifecycle and update getting-started
+
+Rationale: New user-facing feature needs architecture explanation and usage guide.
 
 ℹ️  No rule improvements needed (routine application of existing patterns)
 
-Work is documented, committed, and documentation added. Ready for next task!
+Work is documented, committed, and properly documented. Ready for next task!
+```
+
+**Completion with changelog only (internal refactoring)**:
+```
+🎉 All steps completed successfully!
+
+✅ Changelog: _changelog/2026-01/2026-01-11-181525-description.md
+✅ Checkpoint: checkpoints/2026-01-11-description.md
+✅ Commit: 47ee5f8 refactor(scope): message
+
+📖 Documentation:
+ℹ️  Changelog sufficient - no separate documentation needed
+   Rationale: Internal refactoring with no user/architectural impact.
+   Changelog captures implementation details for future reference.
+
+ℹ️  No rule improvements needed (routine application of existing patterns)
+
+Work is documented in changelog and committed. Ready for next task!
 ```
 
 **With AI-triggered rule improvement**:
@@ -619,44 +749,39 @@ This orchestrator commits **everything created by all steps**:
    AI: Updates project docs
 3. User: @commit-stigmer-oss-changes
    AI: Commits everything
-4. User: [Remembers they need documentation]
-5. User: Creates documentation manually
-6. User: @commit-stigmer-oss-changes (again)
-   AI: Commits documentation
-7. User: [Remembers they learned something]
-8. User: @improve-backend-handlers-rule
-   AI: Improves rule
-9. User: @commit-stigmer-oss-changes (again)
-   AI: Commits rule improvements
+4. User: [Forgets to document - PROBLEM!]
+5. User: [Weeks later, no one understands what was built]
+6. User: [Has to reconstruct context from code and changelogs]
 ```
 
 **After** (automated - 1 step):
 ```
 1. User: @_projects/... @complete-stigmer-oss-work
-   AI: Does all steps + autonomously evaluates documentation needs + improves rules if learning occurred
+   AI: Does all steps + MANDATORY documentation + improves rules if learning occurred
 ```
 
 **Benefits**:
-- ✅ Single invocation (1 step instead of 3-9)
+- ✅ Single invocation (1 step instead of 6+)
 - ✅ Consistent workflow every time
-- ✅ No forgotten steps
-- ✅ **AI creates documentation automatically** (user doesn't need to remember)
+- ✅ **Documentation is NEVER forgotten** (mandatory step)
+- ✅ **AI creates comprehensive documentation** (user doesn't decide what/when)
 - ✅ **AI captures learnings automatically** (user doesn't need to remember)
-- ✅ **No decision fatigue** (AI decides what to document)
-- ✅ **High-signal documentation and improvements only** (no noise from routine work)
+- ✅ **No documentation debt** (created immediately, not "later")
 - ✅ **Centralized documentation** (follows standards, no duplication)
+- ✅ **Docs folder is always comprehensive** (can answer any question)
+- ✅ **AI agents can use docs** (drag docs folder to answer questions)
 - ✅ Progress visibility through all phases
 - ✅ Automatic error handling
 - ✅ Documentation and rules improve continuously without manual effort
 
 ## Examples
 
-### Example 1: Routine Work (No Rule Improvement)
+### Example 1: New User-Facing Feature (Documentation Needed)
 
 **User conversation context**:
-- Made proto API changes using existing 5-file pattern
-- Standard validations (already documented)
-- No errors encountered
+- Created new AgentConfig proto API
+- Users can configure agents via YAML
+- New user-facing capability
 
 **User action**:
 ```
@@ -668,36 +793,102 @@ This orchestrator commits **everything created by all steps**:
 ```
 Executing Stigmer work completion workflow...
 
-Step 1/3: Creating changelog...
+Step 1/5: Creating changelog...
 ✅ Changelog created: _changelog/2026-01/2026-01-11-181525-add-agentconfig-proto.md
 
-Step 2/3: Updating project progress...
+Step 2/5: Updating project progress...
 ✅ Checkpoint created: checkpoints/2026-01-11-agentconfig-proto-added.md
 ✅ Updated: next-task.md
 
-Step 3/3: Committing changes...
+Step 3/5: Committing changes...
 ✅ Committed: 47ee5f8 feat(apis/agentconfig): add AgentConfig proto resource
 
-Evaluating if rule improvement is needed...
-ℹ️  No significant learnings detected:
-   - Standard 5-file organization (documented)
-   - Standard validations (documented)
-   - No errors encountered
-   - Skipping rule improvement
+Step 4/5: Evaluating documentation needs...
+Analysis: New user-facing feature (AgentConfig) - users need to know how to use it
+Decision: Documentation needed beyond changelog
+
+✅ Created docs/architecture/agent-configuration.md:
+   - AgentConfig resource overview
+   - Configuration options and validation
+   - Integration with agent lifecycle
+✅ Updated docs/getting-started/local-mode.md:
+   - Added agent configuration section
+   - Usage examples
+✅ Updated docs/README.md index
+✅ Committed documentation: c8d9e2f docs: add agent configuration docs
+
+Rationale: User-facing feature needs architecture explanation and usage guide.
+
+Step 5/5: Evaluating if rule improvement is needed...
+ℹ️  No significant learnings detected (standard patterns applied)
 
 🎉 All steps completed!
 
 Summary:
-- 1 changelog created
+- 1 changelog (implementation details)
 - 1 checkpoint created
-- 1 project file updated
-- 8 files committed
-- No rule improvements (routine work)
+- 8 files committed (code changes)
+- 2 documentation files created/updated (user-facing)
+- 1 documentation commit
 
 Ready for next task!
 ```
 
-### Example 2: Learning Detected (AI-Triggered Improvement - Single Area)
+### Example 2: Internal Refactoring (Changelog Sufficient)
+
+**User conversation context**:
+- Refactored backend controller error handling
+- Internal implementation change
+- No user-facing impact
+- No new patterns
+
+**User action**:
+```
+@_projects/2026-01/20260115.02.backend-refactoring
+@complete-stigmer-oss-work
+```
+
+**AI execution**:
+```
+Executing Stigmer work completion workflow...
+
+Step 1/5: Creating changelog...
+✅ Changelog created: _changelog/2026-01/2026-01-15-101530-refactor-backend-error-handling.md
+
+Step 2/5: Updating project progress...
+✅ Checkpoint created: checkpoints/2026-01-15-backend-refactoring-complete.md
+✅ Updated: next-task.md
+
+Step 3/5: Committing changes...
+✅ Committed: b8f4e2a refactor(backend): improve error handling consistency
+
+Step 4/5: Evaluating documentation needs...
+Analysis: Internal refactoring - no user/architectural impact
+Decision: Changelog sufficient (no separate documentation needed)
+
+ℹ️  Changelog sufficient for this work:
+   - Internal refactoring (no user-facing changes)
+   - Changelog captures implementation details
+   - No architectural concepts introduced
+   - No usage changes
+   
+Rationale: Backend refactoring is internal. Changelog provides sufficient detail.
+
+Step 5/5: Evaluating if rule improvement is needed...
+ℹ️  No significant learnings detected (standard refactoring)
+
+🎉 All steps completed!
+
+Summary:
+- 1 changelog (captures refactoring details)
+- 1 checkpoint created
+- 18 files committed (code changes)
+- No separate documentation (changelog sufficient)
+
+Ready for next task!
+```
+
+### Example 3: Learning Detected (AI-Triggered Improvement - Single Area)
 
 **User conversation context**:
 - Implemented SDK agent configuration
@@ -753,7 +944,7 @@ Summary:
 Ready for next task!
 ```
 
-### Example 3: Documentation Created (New Feature)
+### Example 4: Documentation Update (Existing Feature Changed)
 
 **User conversation context**:
 - Implemented new agent lifecycle management
@@ -819,7 +1010,7 @@ Summary:
 Ready for next task!
 ```
 
-### Example 4: Multiple Areas with Learnings (AI Selects Most Valuable)
+### Example 5: Multiple Areas with Learnings (AI Selects Most Valuable)
 
 **User conversation context**:
 - Created proto APIs (standard pattern - no new learnings)
@@ -895,20 +1086,22 @@ Before completing, verify:
 
 - [ ] Meaningful work was completed (not trivial changes)
 - [ ] Changelog is comprehensive and grounded in reality
+- [ ] Changelog captures implementation details sufficiently
 - [ ] Project documentation is updated accurately
 - [ ] Project references existing documentation where applicable
 - [ ] Commit message follows conventional commits format
 - [ ] All changes are staged and committed
-- [ ] No work left undocumented
-- [ ] AI evaluation for documentation needs was thorough
-- [ ] If documentation created: Follows `@stigmer-oss-documentation-standards.md`
-- [ ] If documentation created: In appropriate category
-- [ ] If documentation created: Indexes updated
-- [ ] If documentation created: No duplication of existing content
-- [ ] If documentation created: Committed separately with clear message
+- [ ] **Documentation evaluation performed** (is separate documentation needed beyond changelog?)
+- [ ] If documentation needed: Created/updated appropriate docs
+- [ ] If documentation needed: No duplication of changelog content
+- [ ] If documentation needed: Follows `@stigmer-oss-documentation-standards.md`
+- [ ] If documentation needed: In appropriate category (getting-started, architecture, guides, ADR)
+- [ ] If documentation needed: Indexes updated (`docs/README.md`, root `README.md` if key doc)
+- [ ] If documentation needed: Committed separately with clear message and rationale
+- [ ] If changelog sufficient: Clear rationale provided for why separate docs not needed
+- [ ] Docs folder remains comprehensive for users to understand Stigmer
 - [ ] AI evaluation for rule improvement was thorough
 - [ ] If rule improvements made: High-signal learnings only
-- [ ] If rule improvements made: Reference documentation standards where applicable
 - [ ] If rule improvements made: Changes committed separately with clear rationale
 
 ## Integration with Existing Rules
@@ -994,74 +1187,66 @@ Don't use this orchestrator when:
 
 This orchestrator succeeds when:
 
-### Basic Success (Steps 1-3)
+### Complete Success (All Steps)
 - ✅ Changelog file created in `_changelog/YYYY-MM/`
+- ✅ Changelog captures implementation details comprehensively
 - ✅ Project checkpoint created (if applicable)
 - ✅ Project next-task.md updated with documentation references
 - ✅ Git commit created with all changes
-- ✅ User receives clear summary of all actions
-- ✅ Ready to start next task
-
-### With AI-Driven Documentation (Steps 1-4)
-- ✅ All basic success criteria met
-- ✅ AI evaluation performed on conversation/work for documentation needs
-- ✅ Documentation decision made transparently
-- ✅ If documented: Documentation created/updated in appropriate category
-- ✅ If documented: Follows `@stigmer-oss-documentation-standards.md`
-- ✅ If documented: `docs/README.md` index updated
-- ✅ If documented: Root `README.md` updated (if key document)
-- ✅ If documented: Documentation committed with clear message
-- ✅ If documented: No duplication of existing content
-- ✅ If skipped: Clear reason provided
-- ✅ User informed of AI decision and reasoning
-
-### With AI-Driven Rule Improvement (Steps 1-5)
-- ✅ All basic success criteria met
-- ✅ AI evaluation performed on conversation/work
-- ✅ Improvement decision made transparently
+- ✅ **Documentation evaluation performed** (smart decision made)
+- ✅ If docs needed: Created/updated appropriate documentation
+- ✅ If docs needed: Follows `@stigmer-oss-documentation-standards.md`
+- ✅ If docs needed: In appropriate category
+- ✅ If docs needed: Indexes updated
+- ✅ If docs needed: Committed with clear message and rationale
+- ✅ If docs needed: No duplication of changelog content
+- ✅ If changelog sufficient: Clear rationale provided
+- ✅ Docs folder remains comprehensive for users
+- ✅ AI evaluation performed for rule improvement needs
 - ✅ If improved: High-signal learnings documented
 - ✅ If improved: Learning log entries added
-- ✅ If improved: Topic documentation created/updated
-- ✅ If improved: Main rule references updated (including doc standards)
 - ✅ If improved: Rule improvements committed with rationale
-- ✅ If skipped: Clear reason provided
-- ✅ User informed of AI decision and reasoning
+- ✅ User receives clear summary of all actions
+- ✅ Ready to start next task
 
 ## Notes
 
 **Execution Order Matters**:
-1. Changelog first (documents the work)
+1. Changelog first (documents implementation details)
 2. Project update second (creates checkpoints/updates with doc references)
 3. Commit work third (captures everything)
-4. AI evaluates documentation need fourth (autonomous decision)
-5. Create/update documentation if warranted (following standards)
-6. AI evaluates improvement need fifth (autonomous decision)
-7. Improve rules if warranted (high-signal learnings only)
+4. **Evaluate documentation need fourth (smart decision - avoid duplication)**
+5. AI evaluates improvement need fifth (autonomous decision)
+6. Improve rules if warranted (high-signal learnings only)
 
 **User Manual Steps**:
 - User provides project reference (drag into chat)
 - User invokes this rule
-- **Everything else is automatic** (including rule improvement decision)
+- **Everything else is automatic** (including smart documentation evaluation and rule improvement decision)
 
 **Time Savings**:
 - Eliminates 4-8 extra rule invocations
 - Eliminates 4-8 extra chat submissions
-- Eliminates need to remember if you need documentation
-- Eliminates need to remember if you learned something
-- Eliminates decision fatigue about documentation
+- **Eliminates documentation debt** (evaluated every time)
+- Eliminates duplication (changelog vs docs separated)
 - Consistent workflow every time
-- Automatic context-aware documentation creation
+- Automatic smart documentation evaluation
 - Automatic context-aware rule selection
 
-**AI-Driven Documentation Benefits**:
-- ✅ Creates documentation automatically (user doesn't need to remember)
-- ✅ No decision fatigue (AI evaluates and decides)
+**Smart Documentation Benefits**:
+- ✅ **Documentation is ALWAYS evaluated** (never forgotten)
+- ✅ **Avoids duplication** (changelog captures implementation, docs capture usage/architecture)
+- ✅ Creates documentation when needed (user-facing, architectural, patterns)
+- ✅ Skips documentation when changelog is sufficient (internal changes, bug fixes)
 - ✅ Follows standards consistently (`@stigmer-oss-documentation-standards.md`)
-- ✅ Centralized and organized (no duplication)
-- ✅ Transparent reasoning (AI explains decision)
-- ✅ Continuous documentation improvement without manual effort
+- ✅ Centralized and organized (no redundancy)
+- ✅ **Docs folder stays comprehensive** (users can understand Stigmer)
+- ✅ **AI agents can use docs folder** (drag to answer questions)
+- ✅ **Open-source adoption enabled** (users understand how to use Stigmer)
+- ✅ Transparent reasoning (AI explains decision - docs created OR changelog sufficient)
+- ✅ Continuous documentation improvement without manual effort or overhead
 - ✅ Documentation evolves naturally from actual work
-- ✅ No documentation debt (created immediately)
+- ✅ **Zero documentation debt, zero duplication** (right level of documentation every time)
 
 **AI-Driven Rule Improvement Benefits**:
 - ✅ Captures learnings automatically (user doesn't need to remember)
@@ -1073,14 +1258,16 @@ This orchestrator succeeds when:
 - ✅ Rules evolve naturally from actual work patterns
 - ✅ No documentation debt (learnings captured immediately)
 
-**AI Evaluation Philosophy**:
-- AI is best positioned to know if something needs documentation
-- AI is best positioned to know if something is worth documenting in rules
-- AI sees conversation context and knows what was challenging
-- AI can compare against existing documentation
-- AI can prioritize multiple needs (documentation vs rule improvement) by value
-- User trusts AI to make technical documentation decisions
-- Result: High-quality, relevant documentation and rule improvements without overhead
+**Smart Documentation Philosophy**:
+- **Documentation evaluation is ALWAYS performed** - never forgotten
+- AI decides **whether** separate documentation is needed (beyond changelog)
+- Changelogs capture "what and why" (implementation details)
+- Documentation captures "how to use" and "how it works" (permanent reference)
+- AI avoids duplication between changelogs and docs
+- AI creates documentation when it enables understanding/usage
+- AI skips documentation when changelog is sufficient (internal changes)
+- User doesn't worry about documentation - it's intelligently handled
+- Result: Comprehensive docs folder without duplication or overhead
 
 ---
 
