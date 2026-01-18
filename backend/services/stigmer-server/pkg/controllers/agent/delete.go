@@ -5,6 +5,7 @@ import (
 
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
+	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // Delete deletes an agent
@@ -13,14 +14,16 @@ func (c *AgentController) Delete(ctx context.Context, agentId *agentv1.AgentId) 
 		return nil, grpclib.InvalidArgumentError("agent id is required")
 	}
 
+	kind := apiresourcekind.ApiResourceKind_agent.String()
+
 	// Get agent before deletion (to return it)
 	agent := &agentv1.Agent{}
-	if err := c.store.GetResource(ctx, agentId.Value, agent); err != nil {
+	if err := c.store.GetResource(ctx, kind, agentId.Value, agent); err != nil {
 		return nil, grpclib.NotFoundError("Agent", agentId.Value)
 	}
 
 	// Delete agent
-	if err := c.store.DeleteResource(ctx, agentId.Value); err != nil {
+	if err := c.store.DeleteResource(ctx, kind, agentId.Value); err != nil {
 		return nil, grpclib.InternalError(err, "failed to delete agent")
 	}
 

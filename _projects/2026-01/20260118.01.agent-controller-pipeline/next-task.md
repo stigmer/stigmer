@@ -12,16 +12,17 @@
 ✅ **Task T03 Complete** - Pipeline integrated into Agent Controller  
 ✅ **Controller Refactoring Complete** - Removed all manual logic, pure pipeline pattern achieved  
 ✅ **BadgerDB Migration Complete** - Storage layer migrated from SQLite to BadgerDB  
+✅ **BadgerDB Schema Cleanup Complete** - Removed cloud fields, optimized to O(1) operations (ADR 013)  
 ✅ **Go Package Structure Refactoring Complete** - Idiomatic Go organization (domain package pattern)  
 ✅ **Validation Step Added** - ValidateProtoStep integrated, Cloud parity 58% (7/12 steps)  
 ✅ **Inline Steps Refactoring** - Agent-specific steps inlined into create.go (Java pattern alignment)
 
 ## Project Status
 
-🎉 **PHASE 1-7.2 COMPLETE** 🎉
+🎉 **PHASE 1-7.3 COMPLETE** 🎉
 
-**Latest:** Agent-specific pipeline steps inlined into create.go, matching Java pattern. Code structure now fully aligned with stigmer-cloud.  
-**Next:** AgentInstance implementation to reach 75% Cloud parity.
+**Latest:** BadgerDB schema cleanup complete - removed cloud-specific fields, achieved O(1) delete operations, 50% code reduction.  
+**Next:** Update controller code to use new store signatures, then AgentInstance implementation.
 
 ## What Was Accomplished
 
@@ -100,16 +101,61 @@ This project successfully implemented a pipeline framework for the Stigmer OSS a
 
 ## Files to Reference
 
-- **Latest Checkpoint:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/checkpoints/2026-01-18-inline-agent-pipeline-steps.md`
-- **Latest Changelog:** `@stigmer/_changelog/2026-01/2026-01-18-202236-inline-agent-pipeline-steps.md`
+- **Latest Checkpoint:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/checkpoints/2026-01-18-badger-schema-cleanup.md`
+- **Latest Changelog:** `@stigmer/_changelog/2026-01/20260118-203309-implement-badger-schema-cleanup.md`
+- **Latest ADR:** `@stigmer/docs/adr/20260118-202523-badger-schema-changes.md`
 - **Package Architecture:** `@stigmer/backend/services/stigmer-server/pkg/controllers/agent/README.md`
 - **README:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/README.md`
 - **Pipeline Docs:** `@stigmer/backend/libs/go/grpc/request/pipeline/README.md`
-- **Previous Checkpoint:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/checkpoints/2026-01-18-validation-step-added.md`
 
-## Latest Work: Phase 7.2 - Inline Agent Pipeline Steps ✅
+## Latest Work: Phase 6.1 - BadgerDB Schema Cleanup ✅
 
 **Completed:** 2026-01-18
+
+### Schema Refinement (ADR 013 Implementation)
+
+**What Changed**:
+- Removed cloud-specific fields (`OrgID`, `ProjectID`) from `Resource` struct
+- Updated all methods to use explicit `kind` parameters
+- Optimized `DeleteResource` from O(n) to O(1)
+- Removed `ListResourcesByOrg` method (not needed for local storage)
+- Removed helper functions (`getKindFromMessage`, `extractFieldString`)
+- Cleaned up imports (removed `strings`, `protoreflect`)
+
+**Impact**:
+- ✅ **50% Code Reduction**: 320 lines → 160 lines
+- ✅ **Performance**: O(1) delete operations (was O(n))
+- ✅ **Clarity**: Explicit kind parameters (no magic inference)
+- ✅ **Correctness**: Local schema matches local-only use case
+- ✅ **ADR Compliance**: 100% matches ADR 013 specification
+
+**Files Changed**:
+```
+Modified:
+- backend/libs/go/badger/store.go (320 → 160 lines, 50% reduction)
+
+Created:
+- docs/adr/20260118-202523-badger-schema-changes.md (ADR documentation)
+```
+
+**Breaking Changes**:
+- `GetResource(ctx, id, msg)` → `GetResource(ctx, kind, id, msg)`
+- `DeleteResource(ctx, id)` → `DeleteResource(ctx, kind, id)`
+- Controllers must be updated to use new signatures
+
+**Next Step**: Update controller code and store interface to use new signatures
+
+**See**: 
+- **Checkpoint:** `@checkpoints/2026-01-18-badger-schema-cleanup.md`
+- **ADR:** `@docs/adr/20260118-202523-badger-schema-changes.md`
+
+---
+
+## Previous Work: Phase 7.2 - Inline Agent Pipeline Steps ✅
+
+**Completed:** 2026-01-18
+
+**See**: `@checkpoints/2026-01-18-inline-agent-pipeline-steps.md`
 
 ### Code Structure Refactoring (Java Pattern Alignment)
 
@@ -190,6 +236,8 @@ controllers/agent/              # Domain package
 ## Previous Work: Phase 6 - BadgerDB Migration & Cloud Alignment ✅
 
 **Completed:** 2026-01-18
+
+**See**: `@checkpoints/2026-01-18-badgerdb-migration-complete.md`
 
 ### Storage Layer Migration (SQLite → BadgerDB)
 

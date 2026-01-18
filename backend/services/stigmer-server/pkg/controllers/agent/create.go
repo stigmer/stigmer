@@ -2,10 +2,14 @@ package agent
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
+	agentinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentinstance/v1"
+	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
@@ -65,24 +69,20 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 
 // createDefaultInstanceStep creates a default agent instance for the newly created agent.
 //
-// This step (when implemented) will:
-// 1. Build AgentInstance request with no environment_refs
-// 2. Call AgentInstanceController via in-process gRPC (similar to Java's AgentInstanceGrpcRepo)
-// 3. Store returned default_instance_id in context for next step
+// This step:
+// 1. Builds AgentInstance request with no environment_refs
+// 2. Calls AgentInstanceController via in-process client (similar to Java's AgentInstanceGrpcRepo)
+// 3. Stores returned default_instance_id in context for next step
 //
-// Architecture note: Uses downstream controller to maintain domain separation.
+// Architecture note: Uses downstream client to maintain domain separation.
 // The agent instance creation handler handles all persistence and validation.
 // This step does NOT update agent status - that's done in updateAgentStatusWithDefaultInstanceStep.
-//
-// Status: TODO - Requires AgentInstance controller and gRPC client implementation
 type createDefaultInstanceStep struct {
-	// agentInstanceClient AgentInstanceCommandControllerClient // TODO: Add when gRPC client ready
+	controller *AgentController
 }
 
 func (c *AgentController) newCreateDefaultInstanceStep() *createDefaultInstanceStep {
-	return &createDefaultInstanceStep{
-		// agentInstanceClient: c.agentInstanceClient, // TODO: inject from controller
-	}
+	return &createDefaultInstanceStep{controller: c}
 }
 
 func (s *createDefaultInstanceStep) Name() string {
@@ -90,71 +90,70 @@ func (s *createDefaultInstanceStep) Name() string {
 }
 
 func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv1.Agent]) error {
-	// TODO: Implement when AgentInstance controller and gRPC client are ready
-	//
-	// Following the Java pattern from AgentCreateHandler.CreateDefaultInstance:
-	//
-	// agent := ctx.NewState()
-	// agentID := agent.Metadata.Id
-	// agentSlug := agent.Metadata.Name
-	// ownerScope := agent.Metadata.OwnerScope
-	//
-	// log.Info("Creating default instance for agent: %s (slug: %s, scope: %s)",
-	//     agentID, agentSlug, ownerScope)
-	//
-	// // 1. Build default instance request
-	// defaultInstanceName := agentSlug + "-default"
-	//
-	// metadataBuilder := &apiresource.ApiResourceMetadata{
-	//     Name: defaultInstanceName,
-	//     OwnerScope: ownerScope,
-	// }
-	//
-	// // Copy org if org-scoped
-	// if ownerScope == apiresource.ApiResourceOwnerScope_organization {
-	//     metadataBuilder.Org = agent.Metadata.Org
-	// }
-	//
-	// instanceRequest := &agentinstancev1.AgentInstance{
-	//     ApiVersion: "agentic.stigmer.ai/v1",
-	//     Kind: "AgentInstance",
-	//     Metadata: metadataBuilder,
-	//     Spec: &agentinstancev1.AgentInstanceSpec{
-	//         AgentId: agentID,
-	//         Description: "Default instance (auto-created, no custom configuration)",
-	//     },
-	// }
-	//
-	// // 2. Create instance via downstream gRPC (in-process, system credentials)
-	// // This calls AgentInstanceCommandController.Create() in-process
-	// // All persistence, IAM policies, and validation handled by instance handler
-	// createdInstance, err := s.agentInstanceClient.Create(ctx.Context(), instanceRequest)
-	// if err != nil {
-	//     return fmt.Errorf("failed to create default instance: %w", err)
-	// }
-	//
-	// defaultInstanceID := createdInstance.Metadata.Id
-	// log.Info("Successfully created default instance: %s for agent: %s",
-	//     defaultInstanceID, agentID)
-	//
-	// // 3. Store instance ID in context for next step
-	// ctx.Set(DefaultInstanceIDKey, defaultInstanceID)
+	agent := ctx.NewState()
+	agentID := agent.GetMetadata().GetId()
+	agentSlug := agent.GetMetadata().GetName()
+	ownerScope := agent.GetMetadata().GetOwnerScope()
 
-	return nil // Skip for now
+	log.Info().
+		Str("agent_id", agentID).
+		Str("slug", agentSlug).
+		Str("scope", ownerScope.String()).
+		Msg("Creating default instance for agent")
+
+	// 1. Build default instance request
+	defaultInstanceName := agentSlug + "-default"
+
+	metadataBuilder := &apiresource.ApiResourceMetadata{
+		Name:       defaultInstanceName,
+		OwnerScope: ownerScope,
+	}
+
+	// Copy org if org-scoped
+	if ownerScope == apiresource.ApiResourceOwnerScope_organization {
+		metadataBuilder.Org = agent.GetMetadata().GetOrg()
+	}
+
+	instanceRequest := &agentinstancev1.AgentInstance{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "AgentInstance",
+		Metadata:   metadataBuilder,
+		Spec: &agentinstancev1.AgentInstanceSpec{
+			AgentId:     agentID,
+			Description: "Default instance (auto-created, no custom configuration)",
+		},
+	}
+
+	// 2. Create instance via downstream client (in-process, system credentials)
+	// This calls AgentInstanceCommandController.Create() in-process
+	// All persistence and validation handled by instance handler
+	createdInstance, err := s.controller.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
+	if err != nil {
+		return fmt.Errorf("failed to create default instance: %w", err)
+	}
+
+	defaultInstanceID := createdInstance.GetMetadata().GetId()
+	log.Info().
+		Str("instance_id", defaultInstanceID).
+		Str("agent_id", agentID).
+		Msg("Successfully created default instance for agent")
+
+	// 3. Store instance ID in context for next step
+	ctx.Set(DefaultInstanceIDKey, defaultInstanceID)
+
+	return nil
 }
 
 // updateAgentStatusWithDefaultInstanceStep updates agent status with default instance ID.
 //
-// This step (when implemented) will:
-// 1. Read default_instance_id from context (set by createDefaultInstanceStep)
-// 2. Update agent status with default_instance_id
-// 3. Persist updated agent to repository
-// 4. Update context with persisted agent for response
+// This step:
+// 1. Reads default_instance_id from context (set by createDefaultInstanceStep)
+// 2. Updates agent status with default_instance_id
+// 3. Persists updated agent to repository
+// 4. Updates context with persisted agent for response
 //
 // Separated from createDefaultInstanceStep for pipeline clarity - makes it explicit
 // that a database persist operation is happening.
-//
-// Status: TODO - Requires AgentInstance controller implementation
 type updateAgentStatusWithDefaultInstanceStep struct {
 	controller *AgentController
 }
@@ -168,42 +167,47 @@ func (s *updateAgentStatusWithDefaultInstanceStep) Name() string {
 }
 
 func (s *updateAgentStatusWithDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv1.Agent]) error {
-	// TODO: Implement when AgentInstance is ready
-	//
-	// Following the Java pattern from AgentCreateHandler.UpdateAgentStatusWithDefaultInstance:
-	//
-	// agent := ctx.NewState()
-	// agentID := agent.Metadata.Id
-	//
-	// // 1. Read default instance ID from context
-	// defaultInstanceID, ok := ctx.Get(DefaultInstanceIDKey).(string)
-	// if !ok || defaultInstanceID == "" {
-	//     log.Error("DEFAULT_INSTANCE_ID not found in context for agent: %s", agentID)
-	//     return fmt.Errorf("default instance ID not found in context")
-	// }
-	//
-	// log.Info("Updating agent status with default_instance_id: %s for agent: %s",
-	//     defaultInstanceID, agentID)
-	//
-	// // 2. Update agent status with default_instance_id
-	// if agent.Status == nil {
-	//     agent.Status = &agentv1.AgentStatus{}
-	// }
-	// agent.Status.DefaultInstanceId = defaultInstanceID
-	//
-	// // 3. Persist updated agent to repository
-	// if err := s.controller.store.SaveResource(ctx.Context(), "Agent", agentID, agent); err != nil {
-	//     log.Error("Failed to persist agent with default_instance_id for agent: %s: %v",
-	//         agentID, err)
-	//     return fmt.Errorf("failed to persist agent with default instance: %w", err)
-	// }
-	// log.Debug("Persisted agent with default_instance_id: %s", agentID)
-	//
-	// // 4. Update context with persisted agent for response
-	// ctx.SetNewState(agent)
-	//
-	// log.Info("Successfully updated agent status with default_instance_id: %s for agent: %s",
-	//     defaultInstanceID, agentID)
+	agent := ctx.NewState()
+	agentID := agent.GetMetadata().GetId()
 
-	return nil // Skip for now
+	// 1. Read default instance ID from context
+	defaultInstanceID, ok := ctx.Get(DefaultInstanceIDKey).(string)
+	if !ok || defaultInstanceID == "" {
+		log.Error().
+			Str("agent_id", agentID).
+			Msg("DEFAULT_INSTANCE_ID not found in context for agent")
+		return fmt.Errorf("default instance ID not found in context")
+	}
+
+	log.Info().
+		Str("default_instance_id", defaultInstanceID).
+		Str("agent_id", agentID).
+		Msg("Updating agent status with default_instance_id")
+
+	// 2. Update agent status with default_instance_id
+	if agent.Status == nil {
+		agent.Status = &agentv1.AgentStatus{}
+	}
+	agent.Status.DefaultInstanceId = defaultInstanceID
+
+	// 3. Persist updated agent to repository
+	kind := apiresourcekind.ApiResourceKind_agent
+	if err := s.controller.store.SaveResource(ctx.Context(), kind.String(), agentID, agent); err != nil {
+		log.Error().
+			Err(err).
+			Str("agent_id", agentID).
+			Msg("Failed to persist agent with default_instance_id")
+		return fmt.Errorf("failed to persist agent with default instance: %w", err)
+	}
+	log.Debug().Str("agent_id", agentID).Msg("Persisted agent with default_instance_id")
+
+	// 4. Update context with persisted agent for response
+	ctx.SetNewState(agent)
+
+	log.Info().
+		Str("default_instance_id", defaultInstanceID).
+		Str("agent_id", agentID).
+		Msg("Successfully updated agent status with default_instance_id")
+
+	return nil
 }
