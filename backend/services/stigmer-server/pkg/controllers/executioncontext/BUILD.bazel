@@ -8,6 +8,7 @@ go_library(
         "delete.go",
         "executioncontext_controller.go",
         "get.go",
+        "get_by_reference.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/executioncontext",
     visibility = ["//visibility:public"],

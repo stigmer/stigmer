@@ -64,8 +64,8 @@ func (c *SessionController) Apply(ctx context.Context, session *sessionv1.Sessio
 // It does NOT perform the actual create/update - that's delegated.
 func (c *SessionController) buildApplyPipeline() *pipeline.Pipeline[*sessionv1.Session] {
 	return pipeline.NewPipeline[*sessionv1.Session]("session-apply").
-		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).          // 1. Validate input
-		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).            // 2. Resolve slug
-		AddStep(steps.NewLoadForApplyStep[*sessionv1.Session](c.store)).    // 3. Check existence
+		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).       // 1. Validate input
+		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).         // 2. Resolve slug
+		AddStep(steps.NewLoadForApplyStep[*sessionv1.Session](c.store)). // 3. Check existence
 		Build()
 }
