@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "session",
+    srcs = [
+        "apply.go",
+        "create.go",
+        "delete.go",
+        "get.go",
+        "get_by_reference.go",
+        "list.go",
+        "list_by_agent.go",
+        "session_controller.go",
+        "update.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/session",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/libs/go/badger",
+        "//backend/libs/go/grpc",
+        "//backend/libs/go/grpc/interceptors/apiresource",
+        "//backend/libs/go/grpc/request/pipeline",
+        "//backend/libs/go/grpc/request/pipeline/steps",
+        "//backend/services/stigmer-server/pkg/controllers/session/steps",
+        "@com_github_rs_zerolog//log",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)

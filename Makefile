@@ -1,7 +1,7 @@
 # Default bump type for releases (can be overridden: make protos-release bump=minor)
 bump ?= patch
 
-.PHONY: help setup build test clean proto-gen protos protos-release lint coverage
+.PHONY: help setup build build-backend test clean protos protos-release lint coverage
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -12,19 +12,39 @@ help: ## Show this help message
 setup: ## Install dependencies and tools
 	@echo "Installing Go dependencies..."
 	go mod download
-	@echo "Installing buf..."
-	go install github.com/bufbuild/buf/cmd/buf@latest
-	@echo "Installing protoc plugins..."
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 	@echo "Installing Python dependencies..."
 	cd sdk/python && pip install -e .[dev]
 	@echo "Setup complete!"
 
-build: proto-gen ## Build the Stigmer CLI
+build: protos ## Build the Stigmer CLI
 	@echo "Building Stigmer CLI..."
 	go build -o bin/stigmer ./cmd/stigmer
 	@echo "Build complete: bin/stigmer"
+
+build-backend: protos ## Build all backend services
+	@echo "Building all backend services..."
+	@echo ""
+	@echo "1/4 Building stigmer-server..."
+	go build -o bin/stigmer-server ./backend/services/stigmer-server/cmd/server
+	@echo "✓ Built: bin/stigmer-server"
+	@echo ""
+	@echo "2/4 Building workflow-runner worker..."
+	go build -o bin/workflow-runner ./backend/services/workflow-runner/cmd/worker
+	@echo "✓ Built: bin/workflow-runner"
+	@echo ""
+	@echo "3/4 Building workflow-runner gRPC server..."
+	go build -o bin/workflow-runner-grpc ./backend/services/workflow-runner/cmd/grpc-server
+	@echo "✓ Built: bin/workflow-runner-grpc"
+	@echo ""
+	@echo "4/4 Type checking agent-runner (Python)..."
+	@cd backend/services/agent-runner && \
+		poetry install --no-interaction --quiet && \
+		poetry run mypy grpc_client/ worker/ --show-error-codes
+	@echo "✓ Type checking passed: agent-runner"
+	@echo ""
+	@echo "============================================"
+	@echo "✓ All backend services built successfully!"
+	@echo "============================================"
 
 test: ## Run all tests
 	@echo "Running Go tests..."
@@ -38,12 +58,8 @@ coverage: ## Generate test coverage report
 	go tool cover -html=coverage.txt -o coverage.html
 	@echo "Coverage report: coverage.html"
 
-proto-gen: ## Generate code from protobuf definitions
-	@echo "Generating protobuf code..."
-	buf generate
-	@echo "Protobuf generation complete!"
-
-protos: proto-gen ## Generate protocol buffer stubs (alias for proto-gen)
+protos: ## Generate protocol buffer stubs
+	$(MAKE) -C apis build
 
 protos-release: ## Release protos to Buf and create Git tag (usage: make protos-release [bump=patch|minor|major])
 	@echo "============================================"
@@ -52,7 +68,7 @@ protos-release: ## Release protos to Buf and create Git tag (usage: make protos-
 	@echo ""
 	@echo "Step 1: Publishing protos to Buf..."
 	@echo "--------------------------------------------"
-	@cd proto && buf push
+	$(MAKE) -C apis release
 	@echo ""
 	@echo "✓ Protos released successfully to buf.build/stigmer/stigmer"
 	@echo ""
@@ -121,8 +137,8 @@ lint: ## Run linters
 	@echo "Running Go linters..."
 	go vet ./...
 	gofmt -s -w .
-	@echo "Running buf lint..."
-	buf lint
+	@echo "Running proto linters..."
+	$(MAKE) -C apis lint
 	@echo "Linting complete!"
 
 clean: ## Clean build artifacts
@@ -130,6 +146,8 @@ clean: ## Clean build artifacts
 	rm -rf bin/
 	rm -rf coverage.txt coverage.html
 	rm -rf sdk/python/build sdk/python/dist sdk/python/*.egg-info
+	rm -rf backend/services/workflow-runner/bin/
+	$(MAKE) -C apis clean
 	@echo "Clean complete!"
 
 install: build ## Install Stigmer CLI to system

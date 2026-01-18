@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "apiresource",
+    srcs = ["interceptor.go"],
+    importpath = "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_rs_zerolog//log",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//reflect/protoregistry",
+        "@org_golang_google_protobuf//types/descriptorpb",
+    ],
+)
+
+go_test(
+    name = "apiresource_test",
+    srcs = ["interceptor_test.go"],
+    embed = [":apiresource"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@org_golang_google_grpc//:grpc",
+    ],
+)

@@ -1,0 +1,129 @@
+---
+description: Generate a PR title and a Markdown PR description as exactly two copyable code blocks (ask-only). Conventional Commit prefix + scope from file paths. No repo edits.
+globs:
+alwaysApply: false
+---
+
+# Rule: Pull Request Title and Description (ask-only)
+
+Purpose: When asked to write a PR title and PR description, respond with exactly two copyable code blocks — first the title, then the description — without making any repository changes.
+
+This rule is designed for ask mode only. Do not modify files or propose edits. It will automatically analyze local commits on the current branch to generate contextual PR info.
+
+Usage: In Ask mode, invoke explicitly as `@generate-stigmer-oss-pr-info`.
+
+## Automatic Commit Analysis
+
+When invoked, the rule will:
+1. Detect the current branch
+2. Compare commits against the base branch (main/master)
+3. Analyze commit messages using `git log`
+4. Examine changed files using `git diff --name-status`
+5. Review change statistics using `git diff --stat`
+6. Use all this context to generate accurate PR title and description
+
+## How to respond (strict)
+1) First block: PR Title
+   - Fenced code block with language: `text`
+   - Single line only
+   - Prefix using Conventional Commits: one of `feat`, `fix`, `refactor`, `docs`, `test`, `perf`, `ci`, `build`, `chore`, `revert`
+   - Scope is required and must be project-aware, using a path-like token derived from changed files (examples below)
+   - Imperative mood, concise, ≤ 72 characters after the prefix
+   - No trailing period
+
+2) Second block: PR Description
+   - Fenced code block with language: `markdown`
+   - Use the following sections when applicable. Omit any that are not relevant.
+     - "Summary": 1–3 sentences describing what this PR does in plain language
+     - "Context": Why this change is needed (problem, bug, or goal)
+     - "Changes": Bullet list of key changes; group by area if helpful
+     - "Implementation notes": Important design decisions or trade-offs
+     - "Breaking changes": Clearly call out any breaking behavior and migration steps
+     - "Test plan": How this was verified (tests, manual steps, screenshots/links)
+     - "Risks": Known risks or rollback plan
+     - "Checklist": Markdown checkboxes for docs, tests, backward compatibility
+     - Optionally include issue links like `Closes #123` when known
+
+## Title format (exactly)
+
+```text
+<prefix>(<scope-path>): <concise, imperative title>
+```
+
+- Examples of valid scopes: `apis`, `apis/menu`, `apis/booking`, `apis/commons`, `docs`, `tools`, `repo`.
+- Use kebab-case for bounded context names
+
+## How to infer the title prefix
+- `feat`: Adds a new capability, feature, or API resource
+- `fix`: Corrects a bug or regression
+- `refactor`: Code restructuring without changing externally visible behavior
+- `docs`: Documentation-only changes (`*.md`, docs site)
+- `test`: Tests only
+- `perf`: Performance improvements
+- `ci`: CI pipeline/config changes
+- `build`: Build system or dependency changes (Makefiles, buf configs)
+- `chore`: Routine maintenance (formatting, small cleanups) not covered above
+- `revert`: Reverts a previous commit/PR
+
+## Scope heuristics
+Determine the `<scope-path>` from the changed files. Use the most impacted area by lines changed.
+
+- APIs
+  - `apis/com/bellavista/menu/**` → `apis/menu`
+  - `apis/com/bellavista/booking/**` → `apis/booking`
+  - `apis/com/bellavista/commons/**` → `apis/commons`
+  - `apis/**` (multiple bounded contexts) → `apis`
+
+- Build Configuration
+  - `apis/buf.yaml`, `apis/Makefile` → `apis`
+  - Root `Makefile`, `MODULE.bazel` → `build`
+
+- Documentation
+  - `*.md` files → `docs`
+
+- Repository configuration
+  - Root files (`.cursor/**`, `.gitignore`, etc.) → `repo`
+
+### Multi-area changes
+- If changes span multiple bounded contexts, use `apis`
+- If changes span multiple areas at the root, use `repo`
+
+## Output blocks (exactly two, nothing else)
+
+```text
+<prefix>(<scope-path>): <concise, imperative title>
+```
+
+```markdown
+## Summary
+<1–3 sentences>
+
+## Context
+<why this change was needed>
+
+## Changes
+- <key change 1>
+- <key change 2>
+- <key change 3>
+
+## Implementation notes
+- <notable decision or trade-off>
+
+## Breaking changes
+- <explicitly list or state "None">
+
+## Test plan
+- <how verified>
+
+## Risks
+- <risks and rollback>
+
+## Checklist
+- [ ] Docs updated (if needed)
+- [ ] Tests added/updated (if needed)
+- [ ] Backward compatible
+
+<!-- Optionally: Closes #123 -->
+```
+
+@README.md

@@ -1,0 +1,71 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_library")
+load("//tools/bazel/macros:dot_env.bzl", "dot_env_binary")
+load("//tools/bazel/macros:port_forward.bzl", "port_forward_binary")
+
+# ---------------------------------------------------------------------------
+# Main service library and binary
+# ---------------------------------------------------------------------------
+
+# Library with the service sources
+py_library(
+    name = "agent_runner_lib",
+    srcs = glob([
+        "worker/**/*.py",
+        "grpc_client/**/*.py",
+    ]),
+    # Make the top-level directory importable
+    imports = ["."],
+    visibility = ["//visibility:public"],
+    # Note: External dependencies are managed by Poetry
+    # They're available at runtime via Poetry's virtualenv
+)
+
+# Python binary that runs the service
+# This uses Poetry for dependency management at runtime
+py_binary(
+    name = "agent_runner_bin",
+    srcs = ["main.py"],
+    # Include .env file for local development
+    data = glob(
+        [".env"],
+        allow_empty = True,
+    ),
+    main = "main.py",
+    visibility = ["//visibility:public"],
+    deps = [":agent_runner_lib"],
+)
+
+# Wrapper that runs the service via Poetry (for dependency management)
+# This ensures all Poetry-managed dependencies are available
+sh_binary(
+    name = "agent_runner",
+    srcs = ["run.sh"],
+    args = ["$(location :agent_runner_bin)"],
+    data = [
+        ":agent_runner_bin",
+    ] + glob(
+        [".env"],
+        allow_empty = True,
+    ),
+    visibility = ["//visibility:public"],
+)
+
+# ---------------------------------------------------------------------------
+# Helper binaries for local development
+# ---------------------------------------------------------------------------
+
+# Generate .env file for local development
+dot_env_binary(
+    name = "dot_env_local",
+    local_service_port = "8080",  # gRPC server port (matches stigmer-service)
+    service_name = "agent-runner",
+)
+
+# Port-forward for remote debugging
+port_forward_binary(
+    name = "port_forward_local",
+    local_port = 5678,  # Python debugpy port
+    namespace = "stigmer-prod",
+    remote_port = 5678,
+    service_name = "agent-runner",
+)

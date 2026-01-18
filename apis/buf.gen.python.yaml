@@ -1,0 +1,19 @@
+version: v2
+
+managed:
+  enabled: true
+
+plugins:
+  - remote: buf.build/protocolbuffers/python:v31.1
+    out: stubs/python/stigmer
+    include_imports: true  # generate imported protos like buf.validate.*
+    include_wkt: true
+  - remote: buf.build/grpc/python:v1.74.1
+    out: stubs/python/stigmer
+  - remote: buf.build/protocolbuffers/pyi:v31.1
+    out: stubs/python/stigmer
+    include_imports: true  # generate .pyi for imported protos too
+    include_wkt: true
+
+inputs:
+  - directory: .

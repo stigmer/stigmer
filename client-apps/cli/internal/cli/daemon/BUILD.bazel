@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "daemon",
+    srcs = [
+        "daemon.go",
+        "secrets.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "@com_github_pkg_errors//:errors",
+        "@com_github_rs_zerolog//log",
+        "@org_golang_x_term//:go_default_library",
+    ],
+)

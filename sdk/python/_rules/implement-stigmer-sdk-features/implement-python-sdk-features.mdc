@@ -1,0 +1,623 @@
+# Rule: Implement Python SDK Features (action)
+
+**Purpose**: Implement and enhance Python-based workflow orchestration features in the Stigmer Python SDK. Handles workflow tasks, agent integration, proto converters, validation patterns, and synthesis generation following established patterns.
+
+**Usage**: Invoke this rule when adding new features, fixing issues, or enhancing SDK capabilities.
+
+**Prerequisites**: 
+- Python 3.13+ environment with Poetry
+- Proto stubs generated for Stigmer APIs
+- Understanding of workflow DSL patterns
+
+---
+
+## 🎓 Before You Start: Check the Learning Log!
+
+**IMPORTANT**: Before implementing features, check `docs/learning-log.md` for solutions to common issues:
+- Documented patterns and fixes from real implementations
+- Organized by topic (not chronological)
+- Real-world solutions that save time
+- Avoids repeating known issues
+
+**Quick lookup by topic**:
+- Proto conversions → See "Proto Converters & Transformations"
+- Agent configuration → See "Agent Configuration & Setup"
+- Workflow tasks → See "Workflow Tasks"
+- Validation patterns → See "Validation Rules"
+- Synthesis generation → See "Workflow Synthesis"
+
+**Complete documentation**: See `docs/README.md` for full catalog of reference docs.
+
+---
+
+**Reference Documentation**:
+
+⚠️ **CRITICAL - Read Before Implementation**:
+- **Proto Converters**: `docs/proto-converters.md` ⚠️ **READ THIS FIRST**
+- **Agent Configuration**: `docs/agent-configuration.md` ⚠️ **SETUP PATTERNS**
+- **Workflow Tasks**: `docs/workflow-tasks.md` ⚠️ **TASK IMPLEMENTATION**
+- **Validation Rules**: `docs/validation-rules.md` ⚠️ **VALIDATION PATTERNS**
+
+**Implementation Guides**:
+- **Task Implementation**: `docs/task-implementation.md` - Creating new workflow tasks
+- **Error Handling**: `docs/error-handling.md` - Exception patterns and validation
+- **Testing Patterns**: `docs/testing-patterns.md` - Unit and integration tests
+- **Configuration**: `docs/configuration.md` - Agent and environment setup
+
+**Learning & Evolution**:
+- **Learning Log**: `docs/learning-log.md` - All discoveries organized by topic
+- **Complete Index**: `docs/README.md` - Full documentation catalog
+
+**Self-Improvement Cycle**: After implementing features:
+1. If you learned something or fixed errors → Update `docs/learning-log.md` with the lesson
+2. If patterns need correction → Invoke `@improve-this-rule.mdc` to update the rule
+3. **Check `docs/learning-log.md`** for solutions BEFORE asking
+
+---
+
+## Core Implementation Areas
+
+### 1. Workflow Tasks
+
+**Location**: `stigmer/tasks/*.py`
+
+**Patterns**:
+- Inherit from `WorkflowTask` base class
+- Implement `to_dict()` for JSON serialization
+- Support proto message conversion via converters
+- Use type hints for parameters
+- Validate inputs in constructor
+
+**Example**:
+```python
+from stigmer.tasks.base import WorkflowTask
+from typing import Optional
+
+class HttpTask(WorkflowTask):
+    """HTTP request task for workflow orchestration."""
+    
+    def __init__(
+        self,
+        url: str,
+        method: str = "GET",
+        headers: Optional[dict] = None,
+        body: Optional[dict] = None,
+        result_var: Optional[str] = None,
+    ):
+        super().__init__(task_type="http")
+        self.url = url
+        self.method = method
+        self.headers = headers or {}
+        self.body = body
+        self.result_var = result_var
+    
+    def to_dict(self) -> dict:
+        """Convert to JSON-serializable dictionary."""
+        return {
+            "type": self.task_type,
+            "url": self.url,
+            "method": self.method,
+            "headers": self.headers,
+            "body": self.body,
+            "result": self.result_var,
+        }
+```
+
+### 2. Agent Configuration
+
+**Location**: `stigmer/agent/*.py`
+
+**Patterns**:
+- Use dataclasses for configuration objects
+- Support proto message imports from SDK
+- Validate configuration before use
+- Provide builder patterns for complex setup
+- Handle optional fields gracefully
+
+**Example**:
+```python
+from dataclasses import dataclass, field
+from typing import Optional, List
+from stigmer.agent.config.skill import SkillConfig
+from stigmer.agent.config.environment import EnvironmentConfig
+
+@dataclass
+class AgentConfig:
+    """Agent configuration for workflow execution."""
+    
+    instructions: str
+    skills: List[SkillConfig] = field(default_factory=list)
+    environments: List[EnvironmentConfig] = field(default_factory=list)
+    mcp_servers: dict = field(default_factory=dict)
+    sub_agents: Optional[List[str]] = None
+    
+    def validate(self) -> None:
+        """Validate configuration."""
+        if not self.instructions:
+            raise ValueError("instructions is required")
+        
+        # Validate nested configs
+        for skill in self.skills:
+            skill.validate()
+        
+        for env in self.environments:
+            env.validate()
+```
+
+### 3. Proto Converters
+
+**Location**: `stigmer/agent/converters/*.py`
+
+**Patterns**:
+- One converter per proto resource type
+- Handle repeated fields properly
+- Manage nested message conversions
+- Support bidirectional conversion (proto ↔ SDK)
+- Handle missing optional fields gracefully
+
+**Example**:
+```python
+from ai.stigmer.agentic.agent.v1.api_pb2 import Agent
+from stigmer.agent.agent import AgentConfig
+from stigmer.agent.converters.skill_converter import SkillConverter
+
+class AgentConverter:
+    """Convert between proto Agent and SDK AgentConfig."""
+    
+    @staticmethod
+    def from_proto(agent: Agent) -> AgentConfig:
+        """Convert proto Agent to SDK AgentConfig."""
+        skills = [
+            SkillConverter.from_proto(skill_ref)
+            for skill_ref in agent.spec.skill_refs
+        ]
+        
+        return AgentConfig(
+            instructions=agent.spec.instructions,
+            skills=skills,
+            # ... other fields
+        )
+    
+    @staticmethod
+    def to_proto(config: AgentConfig) -> Agent:
+        """Convert SDK AgentConfig to proto Agent."""
+        agent = Agent()
+        agent.spec.instructions = config.instructions
+        
+        for skill in config.skills:
+            skill_ref = SkillConverter.to_proto(skill)
+            agent.spec.skill_refs.append(skill_ref)
+        
+        return agent
+```
+
+### 4. Validation Rules
+
+**Location**: `stigmer/agent/validation/*.py`
+
+**Patterns**:
+- Separate validation from business logic
+- Raise descriptive ValidationError exceptions
+- Validate early (at construction or before use)
+- Support hierarchical validation (nested objects)
+- Provide clear error messages with context
+
+**Example**:
+```python
+from stigmer.agent.exceptions import ValidationError
+
+class AgentValidator:
+    """Validation rules for agent configuration."""
+    
+    @staticmethod
+    def validate_instructions(instructions: str) -> None:
+        """Validate agent instructions."""
+        if not instructions:
+            raise ValidationError("instructions cannot be empty")
+        
+        if len(instructions) > 50000:
+            raise ValidationError(
+                f"instructions too long: {len(instructions)} chars "
+                f"(max 50000)"
+            )
+    
+    @staticmethod
+    def validate_skill_refs(skill_refs: list) -> None:
+        """Validate skill references."""
+        if not skill_refs:
+            return  # Optional field
+        
+        for i, ref in enumerate(skill_refs):
+            if not ref.slug:
+                raise ValidationError(
+                    f"skill_refs[{i}]: slug is required"
+                )
+```
+
+### 5. Workflow Synthesis
+
+**Location**: `stigmer/synthesis/*.py`
+
+**Patterns**:
+- Generate workflow JSON from task lists
+- Handle task dependencies and sequencing
+- Support parallel execution (fork tasks)
+- Validate workflow structure before synthesis
+- Generate human-readable JSON output
+
+**Example**:
+```python
+from stigmer.synthesis.generator import WorkflowGenerator
+from stigmer.tasks.http import HttpTask
+from stigmer.tasks.switch import SwitchTask
+
+# Define workflow
+tasks = [
+    HttpTask(
+        url="https://api.example.com/data",
+        method="GET",
+        result_var="api_response",
+    ),
+    SwitchTask(
+        condition="${api_response.status == 'success'}",
+        cases=[
+            ("true", [
+                # Success case tasks
+            ]),
+            ("false", [
+                # Failure case tasks
+            ]),
+        ],
+    ),
+]
+
+# Generate workflow JSON
+generator = WorkflowGenerator()
+workflow_json = generator.generate(tasks)
+```
+
+### 6. Agent Instance Management
+
+**Location**: `stigmer/agent/agent_instance.py`
+
+**Patterns**:
+- Manage agent deployments with environments
+- Support runtime environment overrides
+- Handle environment variable merging
+- Provide session-based execution
+- Track agent instance lifecycle
+
+**Example**:
+```python
+from stigmer.agent.agent import AgentConfig
+from stigmer.agent.agent_instance import AgentInstance
+from stigmer.agent.config.environment import EnvironmentConfig
+
+# Create agent instance with environments
+agent_instance = AgentInstance(
+    agent=agent_config,
+    environments=[
+        EnvironmentConfig(name="aws-prod", data={"AWS_REGION": "us-west-2"}),
+        EnvironmentConfig(name="github", data={"GITHUB_TOKEN": "..."}),
+    ],
+)
+
+# Execute with runtime overrides
+result = agent_instance.execute(
+    message="Deploy application",
+    runtime_env={"DEPLOY_ENV": "production"},
+)
+```
+
+### 7. Session Management
+
+**Location**: `stigmer/agent/session.py`
+
+**Patterns**:
+- Track conversation threads
+- Maintain execution history
+- Support session persistence
+- Handle sandbox lifecycle
+- Manage thread-based context
+
+**Example**:
+```python
+from stigmer.agent.session import Session
+
+# Create session
+session = Session(
+    agent_instance_id="agent-inst-123",
+    sandbox_id="sandbox-abc",
+)
+
+# Execute turns
+execution1 = session.execute("First message")
+execution2 = session.execute("Follow-up message")
+
+# Session maintains thread context
+assert execution1.thread_id == execution2.thread_id
+```
+
+---
+
+## Common Patterns
+
+### Proto Message Handling
+
+```python
+# Import proto messages
+from ai.stigmer.agentic.agent.v1.api_pb2 import Agent
+from ai.stigmer.agentic.skill.v1.api_pb2 import Skill
+
+# Convert from proto
+from stigmer.agent.converters.agent_converter import AgentConverter
+
+agent_config = AgentConverter.from_proto(proto_agent)
+
+# Convert to proto
+proto_agent = AgentConverter.to_proto(agent_config)
+```
+
+### Configuration Validation
+
+```python
+from stigmer.agent.validation.rules import AgentValidator
+
+# Validate configuration
+validator = AgentValidator()
+validator.validate_agent_config(config)
+
+# Validate nested objects
+validator.validate_skill_refs(config.skills)
+validator.validate_environment_vars(config.environments)
+```
+
+### Error Handling
+
+```python
+from stigmer.agent.exceptions import ValidationError, ConfigurationError
+
+try:
+    agent_config.validate()
+except ValidationError as e:
+    logger.error(f"Invalid configuration: {e}")
+    raise
+except ConfigurationError as e:
+    logger.error(f"Configuration error: {e}")
+    raise
+```
+
+### Task Composition
+
+```python
+from stigmer.workflow import Workflow
+from stigmer.tasks.http import HttpTask
+from stigmer.tasks.grpc import GrpcTask
+from stigmer.tasks.switch import SwitchTask
+
+# Build workflow with multiple tasks
+workflow = Workflow()
+
+workflow.add_task(
+    HttpTask(url="https://api.example.com", result_var="response")
+)
+
+workflow.add_task(
+    SwitchTask(
+        condition="${response.status}",
+        cases=[
+            ("200", [GrpcTask(...)]),
+            ("default", [HttpTask(...)]),
+        ],
+    )
+)
+
+# Generate JSON
+workflow_json = workflow.to_json()
+```
+
+---
+
+## Testing Patterns
+
+### Unit Tests
+
+```python
+import pytest
+from stigmer.agent.agent import AgentConfig
+from stigmer.agent.exceptions import ValidationError
+
+def test_agent_config_validation():
+    """Test agent configuration validation."""
+    # Valid config
+    config = AgentConfig(instructions="Do something")
+    config.validate()  # Should not raise
+    
+    # Invalid config
+    with pytest.raises(ValidationError, match="instructions cannot be empty"):
+        config = AgentConfig(instructions="")
+        config.validate()
+
+def test_proto_conversion():
+    """Test proto message conversion."""
+    from ai.stigmer.agentic.agent.v1.api_pb2 import Agent
+    from stigmer.agent.converters.agent_converter import AgentConverter
+    
+    # Create SDK config
+    config = AgentConfig(instructions="Test instructions")
+    
+    # Convert to proto
+    proto_agent = AgentConverter.to_proto(config)
+    assert proto_agent.spec.instructions == "Test instructions"
+    
+    # Convert back to SDK
+    config2 = AgentConverter.from_proto(proto_agent)
+    assert config2.instructions == config.instructions
+```
+
+### Integration Tests
+
+```python
+import pytest
+
+@pytest.mark.integration
+def test_agent_execution():
+    """Test full agent execution flow."""
+    from stigmer.agent.agent import AgentConfig
+    from stigmer.agent.agent_instance import AgentInstance
+    
+    # Create agent
+    config = AgentConfig(
+        instructions="Echo the message",
+        skills=[],
+    )
+    
+    instance = AgentInstance(agent=config)
+    
+    # Execute
+    result = instance.execute("Hello world")
+    
+    # Verify
+    assert result.status == "completed"
+    assert "Hello world" in result.output
+```
+
+---
+
+## Troubleshooting Guide
+
+### Proto Import Errors
+
+**Error**: `ModuleNotFoundError: No module named 'ai.stigmer'`
+
+**Fix**: Ensure proto stubs are generated and in PYTHONPATH:
+```bash
+# Check stubs exist
+ls -la apis/stubs/python/stigmer/
+
+# Regenerate if needed
+buf generate apis/ai/stigmer
+```
+
+### Validation Errors
+
+**Error**: `ValidationError: instructions cannot be empty`
+
+**Fix**: Provide required fields:
+```python
+# ❌ Missing required field
+config = AgentConfig()
+
+# ✅ Provide required fields
+config = AgentConfig(instructions="Do something")
+```
+
+### Proto Conversion Errors
+
+**Error**: `AttributeError: 'Agent' object has no attribute 'config'`
+
+**Fix**: Check proto field names:
+```python
+# ❌ Wrong field name
+agent.spec.config  # Doesn't exist
+
+# ✅ Correct field name
+agent.spec.instructions
+```
+
+---
+
+## Self-Improvement Workflow
+
+After implementing features in the SDK:
+
+### 1. Check Learning Log First
+
+Before solving a problem, check `docs/learning-log.md`:
+- Has this issue been solved before?
+- Is there a documented pattern?
+- What was the root cause last time?
+
+### 2. Document New Learnings
+
+If you discovered something new:
+- Add entry to `docs/learning-log.md` under appropriate topic
+- Include: problem, root cause, solution, prevention
+- Link to related docs if applicable
+
+### 3. Update Reference Docs
+
+If patterns changed:
+- Update relevant doc in `docs/`
+- Add examples from real code
+- Document edge cases discovered
+
+### 4. Improve This Rule
+
+If the rule itself needs updating:
+- Invoke `@improve-this-rule.mdc`
+- Provide specific feedback on what's missing/wrong
+- AI will update the rule and its documentation
+
+---
+
+## Quick Reference
+
+**File Locations**:
+- Workflow: `stigmer/workflow.py`
+- Tasks: `stigmer/tasks/*.py`
+- Agent: `stigmer/agent/*.py`
+- Config: `stigmer/agent/config/*.py`
+- Converters: `stigmer/agent/converters/*.py`
+- Validation: `stigmer/agent/validation/*.py`
+- Synthesis: `stigmer/synthesis/*.py`
+- Tests: `tests/`
+
+**Key Imports**:
+```python
+# Workflow and tasks
+from stigmer.workflow import Workflow
+from stigmer.tasks.http import HttpTask
+from stigmer.tasks.grpc import GrpcTask
+
+# Agent configuration
+from stigmer.agent.agent import AgentConfig
+from stigmer.agent.agent_instance import AgentInstance
+from stigmer.agent.session import Session
+
+# Proto converters
+from stigmer.agent.converters.agent_converter import AgentConverter
+
+# Validation
+from stigmer.agent.validation.rules import AgentValidator
+from stigmer.agent.exceptions import ValidationError
+
+# Proto messages (adjust based on actual resource)
+from ai.stigmer.agentic.agent.v1.api_pb2 import Agent
+```
+
+**Common Commands**:
+```bash
+# Install dependencies
+poetry install
+
+# Run tests
+poetry run pytest
+
+# Run specific test
+poetry run pytest tests/unit/test_agent.py
+
+# Type checking
+poetry run mypy stigmer/
+
+# Code coverage
+poetry run pytest --cov=stigmer tests/
+```
+
+---
+
+## Related Rules
+
+- `@model-stigmer-protos` - Create proto definitions first
+- `@complete-stigmer-work` - Finalize and commit work
+- `@improve-this-rule` - Update this rule based on learnings

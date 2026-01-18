@@ -1,0 +1,23 @@
+# Golden Test 01: Basic Operation State
+# Tests: Basic operation state, simple task execution
+# CONVERTED TO DSL 1.0.0 FORMAT - UPDATED WITH WORKING TASK TYPE
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: operation-basic
+  version: '1.0.0'
+  description: Tests basic operation state with simple task execution
+do:
+  - initialize:
+      set:
+        workflow_started: true
+  - hello:
+      set:
+        message: "Hello, Zigflow!"
+        status: "success"
+        executed: true
+  - finalize:
+      set:
+        workflow_completed: true
+

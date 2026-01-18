@@ -1,0 +1,299 @@
+---
+title: Start Quick Project
+description: Action rule to interview developer and bootstrap a new lightweight single or two-session project with the Next Quick Project Framework
+tags: [action, projects, quick-projects, bootstrap]
+globs: []
+---
+
+# Start Quick Project
+
+## Rule Type
+**ACTION RULE** - This rule performs actions and creates files.
+
+## Purpose
+Interview the developer and bootstrap a new **lightweight project** using the Next Quick Project Framework. This framework is for projects that will complete in 1-2 sessions (typically < 4 hours total), as opposed to multi-day projects that need the full Next Project Framework.
+
+## When to Use This Rule vs Full Framework
+
+### Use This Quick Framework When:
+- Project will complete in 1-2 sessions (< 4 hours)
+- Scope is well-defined and focused
+- No complex architectural decisions requiring extensive documentation
+- Need structure but must move fast
+- Examples: Bug fixes, small features, quick refactors, utility scripts, proto field additions
+
+### Use Full Framework (@_projects/_rules/start-new-project) When:
+- Project spans 3+ days or multiple long sessions
+- Complex architectural decisions need documentation
+- Team collaboration or handoffs expected
+- Scope might evolve significantly
+
+## Project Structure Created
+
+The quick framework creates a minimal structure organized by month in `_projects/`:
+
+```
+_projects/
+└── YYYY-MM/                           # Month folder (e.g., 2026-01)
+    └── YYYYMMDD.NN.<project-name>/    # Date + sequence prefixed project folder
+        ├── README.md          # Single-page project overview
+        ├── next-task.md       # Quick resume file (drag into chat!)
+        ├── tasks.md           # All tasks tracked in one file
+        └── notes.md           # Quick notes and learnings
+```
+
+**Note**: Projects are automatically organized by month with sequence numbers (01, 02, 03...) for projects created on the same day.
+
+Just **4 files** instead of 10+ in the full framework!
+
+## Interview Process
+
+Ask the developer these streamlined questions:
+
+### 1. Project Name (Required)
+```
+What would you like to name this quick project?
+(Use kebab-case, e.g., 'fix-auth-timeout' or 'add-workflow-labels')
+Note: This will be automatically prefixed with today's date (YYYYMMDD), a sequence number (NN), 
+and placed in the current month folder (YYYY-MM)
+```
+
+### 2. Brief Description (Required)
+```
+Briefly describe what this project does (1-2 sentences):
+```
+
+### 3. Primary Goal (Required)
+```
+What is the main goal or desired outcome?
+(e.g., "Fix authentication timeout causing login failures")
+```
+
+### 4. Technology Stack (Required)
+```
+What technology stack are you using?
+(e.g., "Go/Bazel", "TypeScript/React", "Java/gRPC", "Proto/Buf", "Dart/Flutter")
+```
+
+### 5. Affected Components (Required)
+```
+Which components or areas will be changed?
+(e.g., "workflow-runner service", "auth APIs", "CLI commands", "mobile app UI")
+```
+
+### 6. Initial Task Breakdown (Optional)
+```
+Do you already have an idea of the tasks, or should I suggest a breakdown?
+(If they provide tasks, use them. Otherwise, propose a 2-4 task breakdown based on the goal)
+```
+
+### 7. Success Criteria (Optional)
+```
+How will you know this is complete? (Optional - I can infer from the goal)
+```
+
+## After Gathering Information
+
+1. **Confirm the plan:**
+   ```
+   Based on your input, I'll create a quick project:
+   
+   Name: [name]
+   Goal: [goal]
+   Tech: [tech]
+   Components: [components]
+   
+   Location: _projects/YYYY-MM/YYYYMMDD.NN.[name]/
+   
+   Estimated tasks: [2-5 tasks]
+   
+   Proceed with creation?
+   ```
+
+2. **If approved, create the project** using the bootstrap script:
+   ```bash
+   python3 tools/projects/bootstrap_quick_project.py \
+     --name "[name]" \
+     --description "[description]" \
+     --goal "[goal]" \
+     --tech "[tech]" \
+     --components "[components]" \
+     --tasks "[task1;task2;task3]"
+   ```
+
+3. **After creation, provide guidance:**
+   ```
+   ✅ Quick project created at: _projects/YYYY-MM/YYYYMMDD.NN.[name]/
+   
+   📋 Created files:
+   - README.md (project overview)
+   - next-task.md (drag into chat to resume!)
+   - tasks.md (task tracking)
+   - notes.md (quick notes)
+   
+   🚀 Ready to start! 
+   
+   Next steps:
+   1. Review the task breakdown in tasks.md
+   2. Review the project structure and files created
+   3. Let me know how you'd like to proceed
+   
+   💡 To resume later: Just drag next-task.md into any chat
+   ```
+
+4. **Ask how to proceed:**
+   ```
+   How would you like to proceed with this project?
+   ```
+
+## Task Breakdown Guidelines
+
+When suggesting tasks, keep it simple (2-5 tasks):
+
+### For Bug Fixes:
+1. Reproduce and identify root cause
+2. Implement fix
+3. Test and validate
+
+### For Small Features:
+1. Design approach
+2. Implement core functionality
+3. Add UI/styling (if applicable)
+4. Test and validate
+
+### For Proto API Work:
+1. Define proto messages and services
+2. Generate stubs (Go/Java/TypeScript/Dart)
+3. Update backend handlers
+4. Test with sample requests
+
+### For Scripts/Tools:
+1. Parse input/setup
+2. Core logic implementation
+3. Error handling and validation
+4. Testing and documentation
+
+### For Quick Refactors:
+1. Analyze current implementation
+2. Refactor with tests
+3. Validate no regressions
+
+### For Bazel/Build Issues:
+1. Identify dependency issue
+2. Update BUILD.bazel files
+3. Validate build succeeds
+
+### For CLI Enhancements:
+1. Design command/flags
+2. Implement with cobra
+3. Add help documentation
+4. Test various scenarios
+
+## Important Notes
+
+### Keep It Lightweight
+- **No review workflows** - trust and move fast
+- **Single file tracking** - all tasks in tasks.md
+- **Minimal documentation** - just notes.md for learnings
+- **Fast execution** - structure without ceremony
+
+### Status Markers
+Use these in tasks.md:
+- `⏸️ TODO` - Not started
+- `🚧 IN PROGRESS` - Currently working
+- `✅ DONE` - Completed
+
+### When to Upgrade
+If during the project you notice:
+- Growing to 6+ tasks
+- Complex architectural decisions emerging
+- Spanning into 3rd session
+- Needing multiple design decisions documented
+
+**Suggest upgrading to the full Next Project Framework:**
+```
+This project is growing beyond quick project scope. 
+Would you like me to migrate it to the full Next Project Framework?
+This would give you:
+- Individual task files with review workflow
+- Knowledge folders for design decisions, guidelines, etc.
+- Better structure for multi-day work
+```
+
+## Next Quick Project Philosophy
+
+**Fast Structure, Not Heavy Process**
+
+The quick framework gives you:
+- ✅ Clear goals and success criteria
+- ✅ Task-by-task structured progress
+- ✅ Context persistence (next-task.md)
+- ✅ Learning capture (notes.md)
+
+Without:
+- ❌ Review overhead
+- ❌ Multiple files per task
+- ❌ Extensive knowledge folders
+- ❌ Formal checkpoints
+
+Perfect for focused work that needs structure but must move fast.
+
+## Example Conversation Flow
+
+```
+User: @_projects/_rules/next-stigmer-quick-project/start-quick-project
+
+AI: I'll help you bootstrap a lightweight project! Let me ask a few quick questions...
+
+What would you like to name this project? (use kebab-case)
+
+User: fix-workflow-timeout
+
+AI: Great! Briefly describe what this project does (1-2 sentences):
+
+User: Fix the workflow execution timeout issue causing jobs to fail prematurely
+
+AI: Perfect! What's the main goal?
+
+User: Increase execution timeout from 5 minutes to 30 minutes and make it configurable
+
+AI: What technology stack?
+
+User: Go/gRPC with Bazel
+
+AI: Which components will be affected?
+
+User: workflow-runner service and config management
+
+AI: Based on this, I suggest these tasks:
+1. Identify current timeout configuration
+2. Update timeout logic and make configurable
+3. Test with various timeout values
+
+Does this work, or do you want to adjust?
+
+User: Looks good
+
+AI: Perfect! Creating your quick project...
+
+[Creates structure]
+
+✅ Quick project created at: _projects/2026-01/20260116.01.fix-workflow-timeout/
+
+How would you like to proceed with this project?
+```
+
+## Success Metrics
+
+The quick framework works when:
+- Setup takes < 2 minutes
+- Projects complete in 1-2 sessions
+- Developer can resume instantly with next-task.md
+- Minimal overhead, maximum focus
+- Easy to upgrade if scope expands
+
+## Related Rules
+
+- `@_projects/_rules/next-stigmer-quick-project/improve-quick-project-workflow` - Suggest improvements to this framework
+- `@_projects/_rules/start-new-project` - For multi-day, complex projects
+- `@_projects/_rules/improve-project-workflow` - For full framework improvements

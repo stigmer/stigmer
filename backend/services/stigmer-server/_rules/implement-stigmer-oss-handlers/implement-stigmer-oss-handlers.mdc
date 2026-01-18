@@ -1,0 +1,1798 @@
+---
+description: Action rule to implement Go gRPC handlers for Stigmer OSS API resources
+alwaysApply: false
+---
+
+# Rule: Implement Stigmer OSS Backend Handlers (action)
+
+**Purpose**: Generate complete Go backend implementation for Stigmer OSS API resources based on proto definitions. Creates gRPC controller with CRUD handlers using BadgerDB/SQLite storage.
+
+**Usage**: Invoke this rule after creating proto files using @model-stigmer-oss-protos. Provide the resource name (e.g., "Agent", "Workflow").
+
+**Prerequisites**: 
+- Proto files must exist and be generated (run `make protos`)
+- Resource must be registered in ApiResourceKind enum
+- Go proto bindings generated in `internal/gen/`
+
+---
+
+## Quick Start: Implementation Approach
+
+### ⚠️ CRITICAL: ALL Handlers MUST Use Pipeline Pattern
+
+**MANDATORY**: Every handler in Stigmer OSS MUST use the pipeline pattern - NO EXCEPTIONS.
+
+| Operation | Pattern | Pipeline Steps |
+|-----------|---------|---------------|
+| **Create** | Pipeline | Validate → ResolveSlug → CheckDuplicate → SetDefaults → Persist |
+| **Update** | Pipeline | Validate → LoadExisting → Merge → Persist |
+| **Delete** | Pipeline | Validate → LoadExisting → Delete |
+| **Get** | Pipeline | Validate → LoadTarget |
+| **Apply** | Pipeline | Validate → ResolveSlug → LoadForApply → Persist |
+| **List/Find** | Pipeline | Validate → Query → Return |
+
+**Why Pipeline for Everything:**
+- ✅ **Consistency**: All handlers follow the same pattern
+- ✅ **Observability**: Built-in tracing and logging
+- ✅ **Reusability**: Common steps shared across resources
+- ✅ **Extensibility**: Easy to add/remove/reorder steps
+- ✅ **Testability**: Each step can be tested independently
+- ✅ **Maintainability**: Clear separation of concerns
+
+**Even "simple" operations use pipelines - this is non-negotiable.**
+
+### Key Architectural Decisions
+
+**Decision 1: Single Context for All Operations**
+- Unlike Java (CreateContext, UpdateContext, DeleteContext), Go uses one `RequestContext[T]`
+- Flexibility via metadata map: `ctx.Set("key", value)` and `ctx.Get("key")`
+- Trade-off: Runtime type assertions vs compile-time safety
+- **Why**: Simpler for small team, easier evolution, Go-idiomatic
+
+**Decision 2: Pipeline Pattern for ALL Operations**
+- ALL handlers use composable pipeline steps
+- Reusable across resources
+- Clear separation of concerns
+- **Why**: Consistency, testability, reusability, observability
+
+**Decision 3: Context Metadata for Inter-Step Communication**
+- Use string keys with constants: `const ExistingResourceKey = "existingResource"`
+- Add helper methods for type safety when pattern emerges
+- **Why**: Flexible, doesn't require changing context type
+
+**When to Revisit These Decisions:**
+- If type assertion bugs become frequent → Add type-safe helpers or specialized contexts
+- If metadata keys are confusing → Document conventions or add helpers
+- If team grows → Consider more compile-time guardrails
+
+---
+
+## Go Backend Architecture
+
+Stigmer OSS uses a simplified architecture compared to Stigmer Cloud:
+
+**Storage**: BadgerDB or SQLite for local persistence  
+**Handlers**: Pipeline-based processing (ALL handlers)  
+**Context Pattern**: Single `RequestContext[T]` for all operations (create, update, delete, get, apply)  
+**Pipeline Steps**: Reusable, composable processing steps  
+**Error handling**: Using `grpclib` helpers for consistent gRPC errors
+
+### Pipeline Pattern - The ONLY Approach
+
+**ALL Stigmer OSS handlers MUST use the pipeline pattern:**
+
+✅ **Pipeline Pattern** (MANDATORY for ALL operations):
+   - Composable pipeline steps
+   - Reusable validation, persistence, and business logic
+   - Single context for all operation types
+   - Examples: Create, Update, Delete, Get, Apply, List
+
+**Why no direct pattern:**
+- ❌ Direct inline implementations lack observability
+- ❌ Cannot add tracing/logging without refactoring
+- ❌ Difficult to extend with new steps
+- ❌ Inconsistent with Cloud version architecture
+- ❌ Hard to test individual concerns
+
+**This is a fundamental architectural principle - not optional.**
+
+---
+
+## Go Package Organization
+
+### Controller Package Structure
+
+**IMPORTANT**: Follow industry-standard Go patterns (Kubernetes, Docker, gRPC-Go) for controller organization.
+
+#### Recommended Structure: Domain Package Pattern
+
+```
+backend/services/stigmer-server/pkg/controllers/
+├── agent/                              # Agent domain package
+│   ├── agent_controller.go             # Controller struct + constructor
+│   ├── create.go                       # Create handler + pipeline
+│   ├── update.go                       # Update handler
+│   ├── delete.go                       # Delete handler
+│   ├── query.go                        # Query handlers (Get, GetByReference, etc.)
+│   ├── agent_controller_test.go        # Tests
+│   ├── README.md                       # Architecture documentation
+│   └── steps/                          # Custom pipeline steps
+│       ├── create_default_instance.go  # Agent-specific step
+│       └── update_agent_status.go      # Agent-specific step
+├── workflow/                           # Workflow domain package (future)
+│   ├── workflow_controller.go
+│   ├── create.go
+│   └── ...
+└── task/                               # Task domain package (future)
+    └── ...
+```
+
+#### Key Principles
+
+**1. Domain Package at Package Root**
+
+✅ **DO**: Create domain-specific package for each resource
+```
+controllers/agent/create.go
+controllers/workflow/create.go
+```
+
+❌ **DON'T**: Mix all resources in flat structure
+```
+controllers/agent_controller.go
+controllers/workflow_controller.go
+controllers/task_controller.go
+```
+
+**Why**: Scalability - easy to add new resources without file count explosion.
+
+**2. Handlers at Package Root (NOT in sub-package)**
+
+✅ **DO**: Place handler files directly in domain package
+```
+agent/create.go
+agent/update.go
+agent/delete.go
+agent/query.go
+```
+
+❌ **DON'T**: Add extra nesting with handlers sub-package
+```
+agent/handlers/create.go
+agent/handlers/update.go
+```
+
+**Why**: Go convention favors flat packages. Simpler imports: `agent.NewController()` vs `agent/handlers.NewController()`.
+
+**3. Custom Steps in Sub-Package**
+
+✅ **DO**: Place resource-specific pipeline steps in `steps/` sub-package
+```
+agent/steps/create_default_instance.go
+agent/steps/update_agent_status.go
+```
+
+❌ **DON'T**: Mix custom steps with handlers at root
+```
+agent/create.go
+agent/create_default_instance.go  // Confusing - is this a handler or step?
+```
+
+**Why**: Clear namespace separation. Import clarity distinguishes common vs custom steps:
+```go
+import (
+    commonSteps "github.com/stigmer/stigmer/.../pipeline/steps"
+    agentsteps "github.com/stigmer/stigmer/.../controllers/agent/steps"
+)
+
+// Usage makes distinction clear
+commonSteps.NewResolveSlugStep()              // Reusable across all resources
+agentsteps.NewCreateDefaultInstanceStep()     // Agent-specific
+```
+
+#### File Breakdown
+
+**`{resource}_controller.go`** (Controller struct):
+```go
+package agent
+
+import (
+    "github.com/stigmer/stigmer/backend/libs/go/badger"
+    agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
+)
+
+type AgentController struct {
+    agentv1.UnimplementedAgentCommandControllerServer
+    agentv1.UnimplementedAgentQueryControllerServer
+    store *badger.Store
+}
+
+func NewAgentController(store *badger.Store) *AgentController {
+    return &AgentController{store: store}
+}
+```
+
+**Purpose**: Pure structure definition - controller struct, embedded servers, constructor.  
+**Size**: 15-25 lines (no business logic).
+
+**`create.go`** (Create handler):
+```go
+package agent
+
+func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, agent)
+    p := c.buildCreatePipeline()
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+    return reqCtx.NewState(), nil
+}
+
+func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agent] {
+    return pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+        AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).
+        AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store, "Agent")).
+        AddStep(steps.NewSetDefaultsStep[*agentv1.Agent]("agent")).
+        AddStep(steps.NewPersistStep[*agentv1.Agent](c.store, "Agent")).
+        AddStep(agentsteps.NewCreateDefaultInstanceStep()).
+        Build()
+}
+```
+
+**Purpose**: Create operation handler + pipeline builder.  
+**Size**: 40-80 lines (including pipeline definition and constants).
+
+**`update.go`** (Update handler):
+```go
+package agent
+
+func (c *AgentController) Update(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, agent)
+    
+    p := pipeline.NewPipeline[*agentv1.Agent]("agent-update").
+        AddStep(steps.NewPersistStep[*agentv1.Agent](c.store, "Agent")).
+        Build()
+    
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+    
+    return reqCtx.NewState(), nil
+}
+```
+
+**Purpose**: Update operation handler.  
+**Size**: 20-30 lines (simpler than Create).
+
+**`delete.go`** (Delete handler):
+```go
+package agent
+
+func (c *AgentController) Delete(ctx context.Context, agentId *agentv1.AgentId) (*agentv1.Agent, error) {
+    if agentId == nil || agentId.Value == "" {
+        return nil, grpclib.InvalidArgumentError("agent id is required")
+    }
+    
+    agent := &agentv1.Agent{}
+    if err := c.store.GetResource(ctx, agentId.Value, agent); err != nil {
+        return nil, grpclib.NotFoundError("Agent", agentId.Value)
+    }
+    
+    if err := c.store.DeleteResource(ctx, agentId.Value); err != nil {
+        return nil, grpclib.InternalError(err, "failed to delete agent")
+    }
+    
+    return agent, nil
+}
+```
+
+**Purpose**: Delete operation handler (direct pattern).  
+**Size**: 20-30 lines.
+
+**`query.go`** (Query handlers):
+```go
+package agent
+
+func (c *AgentController) Get(ctx context.Context, agentId *agentv1.AgentId) (*agentv1.Agent, error) {
+    // Implementation
+}
+
+func (c *AgentController) GetByReference(ctx context.Context, ref *apiresource.ApiResourceReference) (*agentv1.Agent, error) {
+    // Implementation
+}
+
+func (c *AgentController) findByName(ctx context.Context, name string, orgID string) (*agentv1.Agent, error) {
+    // Helper function
+}
+```
+
+**Purpose**: All query operations (Get, GetByReference, List, etc.).  
+**Size**: 50-100 lines (includes helper functions).
+
+**`steps/{custom_step}.go`** (Custom pipeline steps):
+```go
+package steps
+
+type CreateDefaultInstanceStep struct {
+    // Dependencies
+}
+
+func NewCreateDefaultInstanceStep() *CreateDefaultInstanceStep {
+    return &CreateDefaultInstanceStep{}
+}
+
+func (s *CreateDefaultInstanceStep) Name() string {
+    return "CreateDefaultInstance"
+}
+
+func (s *CreateDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv1.Agent]) error {
+    // Implementation
+}
+```
+
+**Purpose**: Resource-specific pipeline steps.  
+**Size**: 40-80 lines per step.
+
+#### File Size Guidelines (Go Community Best Practices)
+
+| Range | Status | Action |
+|-------|--------|--------|
+| **50-150 lines** | ✅ Ideal | Perfect - keep as is |
+| **150-300 lines** | ⚠️ Acceptable | Consider splitting if multiple responsibilities |
+| **300-500 lines** | ⚠️ Large | Split into multiple files |
+| **500+ lines** | ❌ Too large | **MUST split** - violates Go best practices |
+
+**Target**: All handler files < 100 lines.
+
+#### Example: Agent Controller File Sizes
+
+| File | Lines | Status |
+|------|-------|--------|
+| `agent_controller.go` | 18 | ✅ Ideal |
+| `create.go` | 56 | ✅ Ideal |
+| `update.go` | 25 | ✅ Ideal |
+| `delete.go` | 28 | ✅ Ideal |
+| `query.go` | 76 | ✅ Ideal |
+| `steps/create_default_instance.go` | 63 | ✅ Ideal |
+| `steps/update_agent_status.go` | 60 | ✅ Ideal |
+
+**Result**: 8 focused files, all well below 100-line threshold.
+
+#### Real-World Pattern Alignment
+
+This structure matches production Go projects:
+
+**Kubernetes:**
+```
+pkg/controller/
+├── deployment/
+│   ├── deployment_controller.go
+│   ├── sync.go
+│   ├── rollback.go
+│   └── util.go
+```
+
+**Docker:**
+```
+pkg/daemon/
+├── daemon.go
+├── create.go
+├── start.go
+└── stop.go
+```
+
+**Stigmer OSS:**
+```
+controllers/
+├── agent/
+│   ├── agent_controller.go
+│   ├── create.go
+│   ├── update.go
+│   ├── delete.go
+│   └── query.go
+```
+
+#### Go vs Java: Same Philosophy, Different Idioms
+
+| Separation Mechanism | Java (Stigmer Cloud) | Go (Stigmer OSS) |
+|---------------------|---------------------|------------------|
+| **Pattern** | Inner static classes | Separate files in same package |
+| **File Size** | 300-500 lines (one file) | 8 files, all < 100 lines |
+| **Navigation** | Nested classes in one file | File-per-handler pattern |
+| **Imports** | Import outer class | Import package |
+
+**Key Insight**: The **conceptual architecture is identical** - Go uses files to achieve the same separation that Java achieves with nested classes.
+
+#### Benefits of This Structure
+
+**1. Single Responsibility**
+- ✅ Each file has ONE clear purpose
+- ✅ Easy to understand file scope
+- ✅ No mixing of unrelated code
+
+**2. Discoverability**
+- ✅ File names match handler responsibilities
+- ✅ New developers can navigate by filename
+- ✅ IDE file search finds code quickly
+
+**3. Scalability**
+- ✅ Easy to add `workflow/`, `task/` packages
+- ✅ No file size bloat as features grow
+- ✅ Clear domain boundaries
+
+**4. Collaboration**
+- ✅ Different handlers in different files = fewer merge conflicts
+- ✅ Clear code ownership
+- ✅ Easier code reviews (focused diffs)
+
+**5. Testability**
+- ✅ Each handler can have focused tests
+- ✅ Custom steps can be tested independently
+- ✅ Test file in same package (Go idiom)
+
+#### Migration from Monolithic to Domain Package
+
+If you have existing monolithic controller:
+
+**Before:**
+```
+controllers/
+└── agent_controller.go  (300+ lines)
+```
+
+**After:**
+```
+controllers/agent/
+├── agent_controller.go  (18 lines)
+├── create.go            (56 lines)
+├── update.go            (25 lines)
+├── delete.go            (28 lines)
+├── query.go             (76 lines)
+└── steps/
+    ├── step1.go         (63 lines)
+    └── step2.go         (60 lines)
+```
+
+**Migration steps:**
+1. Create `controllers/{resource}/` directory
+2. Create `{resource}_controller.go` with just struct + constructor
+3. Extract Create logic to `create.go`
+4. Extract Update logic to `update.go`
+5. Extract Delete logic to `delete.go`
+6. Extract query handlers to `query.go`
+7. Move custom pipeline steps to `steps/` directory
+8. Update imports in `cmd/server/main.go`
+9. Move test file to new package
+10. Delete old monolithic file
+
+#### Quality Checklist
+
+Before completing controller implementation:
+
+**Package Structure:**
+- [ ] Domain package created: `controllers/{resource}/`
+- [ ] Handler files at package root (not in sub-package)
+- [ ] Custom steps in `steps/` sub-package
+- [ ] All files < 100 lines (ideally 50-150)
+
+**File Organization:**
+- [ ] `{resource}_controller.go` contains only struct + constructor
+- [ ] `create.go` contains Create handler + pipeline builder
+- [ ] `update.go` contains Update handler
+- [ ] `delete.go` contains Delete handler
+- [ ] `query.go` contains all query handlers + helpers
+
+**Documentation:**
+- [ ] Package README.md created explaining architecture
+- [ ] Complex patterns documented in comments
+- [ ] Custom steps have purpose documentation
+
+**Testing:**
+- [ ] Test file in same package: `{resource}_controller_test.go`
+- [ ] Tests for all CRUD operations
+- [ ] Tests for error cases
+
+---
+
+## Pipeline Architecture
+
+### Request Context Design Philosophy
+
+Unlike Stigmer Cloud (Java) which uses specialized contexts (`CreateContextV2`, `UpdateContextV2`, `DeleteContextV2`), Stigmer OSS uses a **single context type** for all operations:
+
+```go
+// Single context type for ALL operations
+type RequestContext[T proto.Message] struct {
+    ctx      context.Context  // Go context for cancellation
+    input    T                // Original request message
+    newState T                // Resource being built/modified
+    metadata map[string]interface{} // For inter-step communication
+    span     telemetry.Span   // Tracing span
+}
+```
+
+**Why a single context?**
+
+| Consideration | Single Context (Go) | Multiple Contexts (Java) |
+|---------------|---------------------|-------------------------|
+| **Simplicity** | ✅ One type to learn | ❌ Multiple types to manage |
+| **Flexibility** | ✅ Metadata map for any data | ❌ Fixed fields per context |
+| **Type Safety** | ⚠️ Runtime type assertions | ✅ Compile-time checks |
+| **Discoverability** | ⚠️ Need to read step code | ✅ Context shows all fields |
+| **Ceremony** | ✅ Minimal boilerplate | ❌ More context definitions |
+| **Evolution** | ✅ Add data without changing types | ❌ Modify context classes |
+
+**Decision**: For Stigmer OSS at this stage, single context optimizes for:
+- Rapid iteration and evolution
+- Simplicity over strict type safety  
+- Small team with direct communication
+- Local/development use case
+
+**When to evolve**: Consider specialized contexts when:
+- Type assertion bugs become frequent
+- Team grows and needs stricter guardrails
+- Documentation burden for metadata keys is high
+- Different operations have very different I/O types
+
+### Pipeline Step Pattern
+
+Pipeline steps are reusable, composable units of work:
+
+```go
+// Step interface
+type Step[T proto.Message] interface {
+    Name() string
+    Execute(ctx *RequestContext[T]) error
+}
+
+// Example step implementation
+type ResolveSlugStep[T proto.Message] struct{}
+
+func (s *ResolveSlugStep[T]) Name() string {
+    return "ResolveSlug"
+}
+
+func (s *ResolveSlugStep[T]) Execute(ctx *RequestContext[T]) error {
+    resource := ctx.NewState()
+    
+    // Get metadata via interface
+    metadataResource, ok := any(resource).(HasMetadata)
+    if !ok {
+        return fmt.Errorf("resource does not implement HasMetadata")
+    }
+    
+    metadata := metadataResource.GetMetadata()
+    
+    // Generate slug from name if not provided
+    if metadata.Slug == "" {
+        metadata.Slug = slugify(metadata.Name)
+    }
+    
+    return nil
+}
+```
+
+**Common Pipeline Steps:**
+- `ResolveSlugStep` - Generate slug from name
+- `CheckDuplicateStep` - Verify no duplicate exists
+- `SetDefaultsStep` - Apply default values
+- `PersistStep` - Save to database
+- `LoadExistingStep` - Load resource for update/delete
+- `ValidateStep` - Validate business rules
+
+### Context Metadata Pattern
+
+For passing data between steps, use the metadata map with constants:
+
+```go
+// Define metadata keys as constants (prevents typos)
+const (
+    ExistingResourceKey = "existingResource"
+    PreviousVersionKey  = "previousVersion"
+    ResolvedSlugKey     = "resolvedSlug"
+)
+
+// Step 1: Store data
+func (s *LoadExistingStep[T]) Execute(ctx *RequestContext[T]) error {
+    existing, err := s.store.GetResource(...)
+    if err != nil {
+        return err
+    }
+    
+    // Store in context for later steps
+    ctx.Set(ExistingResourceKey, existing)
+    return nil
+}
+
+// Step 2: Retrieve data
+func (s *MergeChangesStep[T]) Execute(ctx *RequestContext[T]) error {
+    // Get existing resource from context
+    existing, ok := ctx.Get(ExistingResourceKey).(T)
+    if !ok {
+        return fmt.Errorf("existing resource not found in context")
+    }
+    
+    // Merge with new changes
+    merged := mergeResources(existing, ctx.Input())
+    ctx.SetNewState(merged)
+    return nil
+}
+```
+
+**Best Practices for Metadata:**
+1. Define constants for keys (prevents typos)
+2. Document what keys each operation uses
+3. Add type-safe helper methods for common patterns:
+
+```go
+// Add to RequestContext:
+func (c *RequestContext[T]) GetExistingResource() (T, bool) {
+    val := c.metadata[ExistingResourceKey]
+    if val == nil {
+        var zero T
+        return zero, false
+    }
+    existing, ok := val.(T)
+    return existing, ok
+}
+
+func (c *RequestContext[T]) SetExistingResource(existing T) {
+    c.metadata[ExistingResourceKey] = existing
+}
+```
+
+### Available Standard Pipeline Steps
+
+The pipeline library provides reusable steps in `backend/libs/go/grpc/request/pipeline/steps/`:
+
+| Step | Purpose | When to Use |
+|------|---------|-------------|
+| **ResolveSlugStep** | Generate slug from metadata.name | Always in Create (before CheckDuplicate) |
+| **CheckDuplicateStep** | Verify no duplicate slug exists | Always in Create (after ResolveSlug) |
+| **SetDefaultsStep** | Set ID, kind, api_version, timestamps | Always in Create (before Persist) |
+| **PersistStep** | Save resource to database | Create and Update operations |
+| **ValidateStep** | Validate business rules | When proto validation isn't enough |
+
+**Coming Soon (implement as needed):**
+- `LoadExistingStep` - Load resource for Update
+- `MergeChangesStep` - Merge input with existing state
+- `AuthorizeStep` - Check permissions (future multi-user support)
+- `PublishEventStep` - Publish events (future event system)
+- `AuditStep` - Record audit trail (future audit logging)
+
+**Step Execution Order Matters:**
+```
+Create Pipeline:
+1. ResolveSlugStep      ← Must be before CheckDuplicate
+2. CheckDuplicateStep   ← Needs slug from step 1
+3. SetDefaultsStep      ← Must be before Persist (needs ID)
+4. PersistStep          ← Last step that modifies resource
+
+Update Pipeline (simple):
+1. PersistStep          ← Just save changes
+
+Update Pipeline (with merge):
+1. LoadExistingStep     ← Load current state
+2. MergeChangesStep     ← Merge with input
+3. PersistStep          ← Save merged result
+```
+
+### HasMetadata Interface
+
+All steps that work with resource metadata expect resources to implement:
+
+```go
+type HasMetadata interface {
+    GetMetadata() *apiresource.ApiResourceMetadata
+}
+```
+
+This interface is automatically implemented by any proto with:
+```protobuf
+message Resource {
+    string api_version = 1;
+    string kind = 2;
+    ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
+    // ...
+}
+```
+
+---
+
+## Handler Implementation Patterns
+
+### Controller Structure (Same for Both Patterns)
+
+```go
+package controllers
+
+import (
+    "context"
+    "fmt"
+
+    grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+    "github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+    "github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+    "github.com/stigmer/stigmer/backend/libs/go/sqlite"
+    pb "github.com/stigmer/stigmer/internal/gen/ai/stigmer/domain/resource/v1"
+    "github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/protobuf/encoding/protojson"
+)
+
+// ResourceController implements ResourceCommandController and ResourceQueryController
+type ResourceController struct {
+    pb.UnimplementedResourceCommandControllerServer
+    pb.UnimplementedResourceQueryControllerServer
+    store *sqlite.Store
+}
+
+// NewResourceController creates a new ResourceController
+func NewResourceController(store *sqlite.Store) *ResourceController {
+    return &ResourceController{store: store}
+}
+```
+
+### ⚠️ Pipeline Pattern - MANDATORY for ALL Operations
+
+**ALL handlers MUST use the pipeline pattern - NO EXCEPTIONS:**
+
+✅ **Create** - Validation → ResolveSlug → CheckDuplicate → SetDefaults → Persist
+✅ **Update** - Validation → LoadExisting → Merge → Persist  
+✅ **Delete** - Validation → LoadExisting → Delete
+✅ **Get** - Validation → LoadTarget
+✅ **Apply** - Validation → ResolveSlug → LoadForApply → Persist
+✅ **List/Query** - Validation → Query → Return
+
+**Why Pipeline for Everything:**
+- ✅ **Consistency**: All handlers follow the same architectural pattern
+- ✅ **Observability**: Built-in tracing and logging at each step
+- ✅ **Reusability**: Common steps shared across all resources
+- ✅ **Extensibility**: Easy to add/remove/reorder steps without refactoring
+- ✅ **Testability**: Each step can be tested in isolation
+- ✅ **Maintainability**: Clear separation of concerns
+
+**Implementation Rule:**
+
+```
+ANY Handler (Create, Update, Delete, Get, Apply, List)
+└─ MUST use Pipeline Pattern ✅
+   └─ Define pipeline with steps
+   └─ Execute via RequestContext
+   └─ Return result from context
+```
+
+**This is a fundamental architectural principle - not a suggestion.**
+
+---
+
+## CRUD Operation Implementations
+
+### Create Handler
+
+**Approach 1: Pipeline Pattern (Recommended)**
+
+```go
+// Create creates a new resource using the pipeline framework
+func (c *ResourceController) Create(ctx context.Context, resource *pb.Resource) (*pb.Resource, error) {
+    // Create request context
+    reqCtx := pipeline.NewRequestContext(ctx, resource)
+
+    // Build pipeline with reusable steps
+    p := pipeline.NewPipeline[*pb.Resource]("resource-create").
+        AddStep(steps.NewResolveSlugStep[*pb.Resource]()).          // 1. Generate slug from name
+        AddStep(steps.NewCheckDuplicateStep[*pb.Resource](c.store, "Resource")). // 2. Check duplicates
+        AddStep(steps.NewSetDefaultsStep[*pb.Resource]("resource")). // 3. Set defaults (ID, kind, etc.)
+        AddStep(steps.NewPersistStep[*pb.Resource](c.store, "Resource")). // 4. Save to database
+        Build()
+
+    // Execute pipeline
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+
+    // Return created resource
+    return reqCtx.NewState(), nil
+}
+```
+
+**Pipeline Benefits:**
+- ✅ Reusable steps across resources
+- ✅ Clear separation of concerns
+- ✅ Easy to add/remove/reorder steps
+- ✅ Built-in tracing support
+- ✅ Consistent error handling
+
+**Common Pipeline Steps for Create:**
+1. `ResolveSlugStep` - Generate slug from metadata.name
+2. `CheckDuplicateStep` - Verify no duplicate slug exists
+3. `SetDefaultsStep` - Set ID, kind, api_version, timestamps
+4. `PersistStep` - Save to database
+
+**Key Implementation Points:**
+- Validate required fields (done by pipeline steps)
+- Generate slug from name (slugify: lowercase, hyphenate)
+- Check for duplicates by slug (NOT by ID)
+- Generate ID if not provided
+- Set `kind` and `api_version` to match proto
+- Use `grpclib` error helpers
+
+---
+
+### Update Handler
+
+**Approach 1: Pipeline Pattern (Recommended for Update)**
+
+```go
+// Update updates an existing resource using the pipeline framework
+func (c *ResourceController) Update(ctx context.Context, resource *pb.Resource) (*pb.Resource, error) {
+    // Create request context
+    reqCtx := pipeline.NewRequestContext(ctx, resource)
+
+    // Build pipeline - simpler than Create, just persist
+    // (Add LoadExistingStep and MergeStep if you need to preserve fields)
+    p := pipeline.NewPipeline[*pb.Resource]("resource-update").
+        AddStep(steps.NewPersistStep[*pb.Resource](c.store, "Resource")).
+        Build()
+
+    // Execute pipeline
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+
+    return reqCtx.NewState(), nil
+}
+```
+
+**For more complex updates with merge logic:**
+
+```go
+// Update with existing state merge
+func (c *ResourceController) Update(ctx context.Context, resource *pb.Resource) (*pb.Resource, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, resource)
+
+    p := pipeline.NewPipeline[*pb.Resource]("resource-update").
+        AddStep(NewLoadExistingStep[*pb.Resource](c.store, "Resource")). // Load existing
+        AddStep(NewMergeChangesStep[*pb.Resource]()).                     // Merge input + existing
+        AddStep(steps.NewPersistStep[*pb.Resource](c.store, "Resource")). // Save merged
+        Build()
+
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+
+    return reqCtx.NewState(), nil
+}
+```
+
+**Implementing LoadExistingStep:**
+
+```go
+// LoadExistingStep loads the existing resource and stores it in context
+type LoadExistingStep[T proto.Message] struct {
+    store *sqlite.Store
+    kind  string
+}
+
+func NewLoadExistingStep[T proto.Message](store *sqlite.Store, kind string) *LoadExistingStep[T] {
+    return &LoadExistingStep[T]{store: store, kind: kind}
+}
+
+func (s *LoadExistingStep[T]) Name() string {
+    return "LoadExisting"
+}
+
+func (s *LoadExistingStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
+    input := ctx.Input()
+    
+    // Get resource ID from input
+    metadataResource, ok := any(input).(HasMetadata)
+    if !ok {
+        return fmt.Errorf("resource does not implement HasMetadata")
+    }
+    
+    metadata := metadataResource.GetMetadata()
+    if metadata.Id == "" {
+        return grpclib.InvalidArgumentError("resource ID is required for update")
+    }
+    
+    // Load existing from database
+    var existing T
+    existing = existing.ProtoReflect().New().Interface().(T)
+    
+    err := s.store.GetResource(ctx.Context(), metadata.Id, existing)
+    if err != nil {
+        return grpclib.NotFoundError(s.kind, metadata.Id)
+    }
+    
+    // Store in context metadata for merge step
+    ctx.Set("existingResource", existing)
+    
+    return nil
+}
+```
+
+**Implementing MergeChangesStep:**
+
+```go
+// MergeChangesStep merges input changes with existing resource
+type MergeChangesStep[T proto.Message] struct{}
+
+func NewMergeChangesStep[T proto.Message]() *MergeChangesStep[T] {
+    return &MergeChangesStep[T]{}
+}
+
+func (s *MergeChangesStep[T]) Name() string {
+    return "MergeChanges"
+}
+
+func (s *MergeChangesStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
+    // Get existing resource from context
+    existing, ok := ctx.Get("existingResource").(T)
+    if !ok {
+        return fmt.Errorf("existing resource not found in context")
+    }
+    
+    input := ctx.Input()
+    
+    // Merge logic depends on your merge strategy:
+    // Option 1: Full spec replacement (input overwrites existing)
+    // Option 2: Field-by-field merge (preserve unset fields)
+    // Option 3: Custom merge logic
+    
+    // Example: Full replacement (common pattern)
+    merged := input // For full replacement, just use input
+    
+    // Set the merged resource as new state
+    ctx.SetNewState(merged)
+    
+    return nil
+}
+```
+
+**Key Implementation Points:**
+- Use pipeline pattern for all updates
+- Load existing state if merging changes
+- Always verify resource exists before updating
+- `SaveResource` has upsert semantics (creates if not exists)
+
+**Context Metadata Usage in Update:**
+- `existingResource` - The resource before update (from LoadExistingStep)
+- `mergedResource` - The resource after merging changes (becomes newState)
+
+---
+
+### Delete Handler
+
+**Pipeline Pattern (MANDATORY):**
+
+```go
+// Delete deletes a resource using pipeline
+func (c *ResourceController) Delete(ctx context.Context, resourceId *pb.ResourceId) (*pb.Resource, error) {
+    // Create request context
+    reqCtx := pipeline.NewRequestContext(ctx, resourceId)
+
+    // Build pipeline
+    p := pipeline.NewPipeline[*pb.ResourceId]("resource-delete").
+        AddStep(steps.NewValidateInputStep[*pb.ResourceId]()).    // 1. Validate
+        AddStep(steps.NewLoadExistingStep[*pb.ResourceId](c.store, "Resource")). // 2. Load (sets resource in context)
+        AddStep(steps.NewDeleteStep[*pb.ResourceId](c.store, "Resource")).       // 3. Delete
+        Build()
+
+    // Execute pipeline
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+
+    // Return deleted resource from context
+    return reqCtx.Get("deletedResource").(*pb.Resource), nil
+}
+```
+
+**Key Implementation Points:**
+- Use pipeline with LoadExisting → Delete steps
+- Load resource before deletion (gRPC convention: return deleted resource)
+- DeleteStep removes from store and saves resource to context
+- Return the deleted resource
+
+---
+
+### Get Handler
+
+**Pipeline Pattern (MANDATORY):**
+
+```go
+// Get retrieves a resource by ID using pipeline
+func (c *ResourceController) Get(ctx context.Context, resourceId *pb.ResourceId) (*pb.Resource, error) {
+    // Create request context
+    reqCtx := pipeline.NewRequestContext(ctx, resourceId)
+
+    // Build pipeline
+    p := pipeline.NewPipeline[*pb.ResourceId]("resource-get").
+        AddStep(steps.NewValidateInputStep[*pb.ResourceId]()).  // 1. Validate
+        AddStep(steps.NewLoadTargetStep[*pb.ResourceId](c.store, "Resource")). // 2. Load
+        Build()
+
+    // Execute pipeline
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+
+    // Return loaded resource from context
+    return reqCtx.Get("targetResource").(*pb.Resource), nil
+}
+```
+
+**Key Implementation Points:**
+- Use pipeline with Validate → LoadTarget steps
+- LoadTarget step loads resource and stores in context
+- Return NotFound error if resource doesn't exist (handled by step)
+
+---
+
+### GetByReference Handler (Slug-based lookup)
+
+```go
+// GetByReference retrieves a resource by reference (slug)
+func (c *ResourceController) GetByReference(ctx context.Context, ref *apiresource.ApiResourceReference) (*pb.Resource, error) {
+    if ref == nil {
+        return nil, grpclib.InvalidArgumentError("reference is required")
+    }
+
+    // Try to get by slug
+    if ref.Slug != "" {
+        return c.findByName(ctx, ref.Slug, ref.Org)
+    }
+
+    return nil, grpclib.InvalidArgumentError("slug is required")
+}
+
+// findByName finds a resource by name (helper function)
+func (c *ResourceController) findByName(ctx context.Context, name string, orgID string) (*pb.Resource, error) {
+    // List all resources and filter by name
+    // Note: This is not efficient for large datasets, but acceptable for local usage
+    var resources [][]byte
+    var err error
+
+    if orgID != "" {
+        resources, err = c.store.ListResourcesByOrg(ctx, "Resource", orgID)
+    } else {
+        resources, err = c.store.ListResources(ctx, "Resource")
+    }
+
+    if err != nil {
+        return nil, grpclib.InternalError(err, "failed to list resources")
+    }
+
+    for _, data := range resources {
+        resource := &pb.Resource{}
+        if err := protojson.Unmarshal(data, resource); err != nil {
+            continue
+        }
+
+        if resource.Metadata.Name == name {
+            // Check org filter if provided
+            if orgID != "" && resource.Metadata.Org != orgID {
+                continue
+            }
+            return resource, nil
+        }
+    }
+
+    return nil, grpclib.WrapError(nil, codes.NotFound, fmt.Sprintf("resource not found with name: %s", name))
+}
+```
+
+**Key Points:**
+- Support both slug (name) and org-scoped lookups
+- Iterate through all resources (acceptable for local/OSS usage)
+- Use protojson for deserialization
+
+---
+
+## Helper Functions
+
+### ID Generation
+
+```go
+// generateID generates a simple unique ID
+// In production, use UUID or similar
+func generateID() string {
+    // For now, use timestamp-based ID
+    // TODO: Replace with proper UUID generation
+    return fmt.Sprintf("%d", time.Now().UnixNano())
+}
+```
+
+**Note**: For production, replace with UUID library (e.g., `github.com/google/uuid`).
+
+---
+
+## Error Handling Patterns
+
+Use the `grpclib` helper functions for consistent error responses:
+
+```go
+// Invalid input
+return nil, grpclib.InvalidArgumentError("field is required")
+
+// Resource not found
+return nil, grpclib.NotFoundError("Resource", id)
+
+// Resource already exists
+return nil, grpclib.AlreadyExistsError("Resource", id)
+
+// Internal server error
+return nil, grpclib.InternalError(err, "operation failed")
+
+// Custom error with code
+return nil, grpclib.WrapError(err, codes.NotFound, "custom message")
+```
+
+---
+
+## Controller Registration
+
+In `main.go` or server setup:
+
+```go
+func main() {
+    // Initialize store
+    store, err := sqlite.NewStore("stigmer.db")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer store.Close()
+
+    // Create gRPC server
+    server := grpc.NewServer()
+
+    // Register controllers
+    agentCtrl := controllers.NewAgentController(store)
+    agentv1.RegisterAgentCommandControllerServer(server, agentCtrl)
+    agentv1.RegisterAgentQueryControllerServer(server, agentCtrl)
+
+    // ... register other controllers ...
+
+    // Start server
+    lis, err := net.Listen("tcp", ":50051")
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    log.Println("Server listening on :50051")
+    if err := server.Serve(lis); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+---
+
+## File Organization
+
+```
+backend/services/stigmer-server/
+├── cmd/
+│   └── server/
+│       └── main.go                  # Server entry point
+├── pkg/
+│   └── controllers/
+│       ├── agent_controller.go      # Agent CRUD handlers
+│       ├── workflow_controller.go   # Workflow CRUD handlers
+│       └── ...
+└── ...
+```
+
+---
+
+## Process
+
+### Phase 1: Analyze Proto Definitions
+
+1. Read proto files for the resource
+2. Identify:
+   - Resource name (e.g., Agent, Workflow)
+   - Package path (e.g., ai.stigmer.agentic.agent.v1)
+   - Generated Go package import path
+   - RPC methods (Create, Update, Delete, Get, etc.)
+
+### Phase 2: Generate Controller
+
+1. Create `{resource}_controller.go` in `pkg/controllers/`
+2. Implement struct with embedded unimplemented servers
+3. Add `New{Resource}Controller` constructor
+
+### Phase 3: Implement CRUD Methods
+
+For each RPC method in the proto:
+1. Create method signature matching proto definition
+2. Add validation
+3. Implement business logic using store
+4. Return appropriate errors
+
+### Phase 4: Register Controller
+
+Update `main.go` to:
+1. Create controller instance
+2. Register with gRPC server
+
+---
+
+## Best Practices
+
+### Validation
+- Always validate required fields
+- Check for nil pointers
+- Validate IDs are non-empty
+
+### Error Handling
+- Use grpclib helpers for consistent errors
+- Include resource type and ID in error messages
+- Wrap internal errors with context
+
+### ID Generation
+- Generate IDs with meaningful prefix (e.g., `agent-`, `wf-`)
+- Use timestamp or UUID for uniqueness
+- Allow client-provided IDs (idempotency)
+
+### Logging
+- Log at entry and exit of handlers
+- Log errors with context
+- Use structured logging (e.g., zerolog, zap)
+
+---
+
+## Testing
+
+### Unit Tests
+
+```go
+func TestAgentController_Create(t *testing.T) {
+    // Setup
+    store := setupTestStore(t)
+    defer store.Close()
+    
+    ctrl := NewAgentController(store)
+    
+    // Test case
+    agent := &agentv1.Agent{
+        Metadata: &apiresource.ApiResourceMetadata{
+            Name: "test-agent",
+        },
+    }
+    
+    // Execute
+    result, err := ctrl.Create(context.Background(), agent)
+    
+    // Assert
+    assert.NoError(t, err)
+    assert.NotNil(t, result)
+    assert.NotEmpty(t, result.Metadata.Id)
+}
+```
+
+---
+
+## Common Patterns
+
+### List Operations
+
+```go
+// FindAll retrieves all resources
+func (c *ResourceController) FindAll(ctx context.Context, _ *emptypb.Empty) (*pb.Resources, error) {
+    data, err := c.store.ListResources(ctx, "Resource")
+    if err != nil {
+        return nil, grpclib.InternalError(err, "failed to list resources")
+    }
+
+    resources := make([]*pb.Resource, 0, len(data))
+    for _, d := range data {
+        resource := &pb.Resource{}
+        if err := protojson.Unmarshal(d, resource); err != nil {
+            continue // Skip invalid entries
+        }
+        resources = append(resources, resource)
+    }
+
+    return &pb.Resources{Entries: resources}, nil
+}
+```
+
+### Filtered Lists (by Owner/Org)
+
+```go
+// FindByOrg retrieves resources by organization
+func (c *ResourceController) FindByOrg(ctx context.Context, orgId *pb.OrganizationId) (*pb.Resources, error) {
+    if orgId == nil || orgId.Value == "" {
+        return nil, grpclib.InvalidArgumentError("organization id is required")
+    }
+
+    data, err := c.store.ListResourcesByOrg(ctx, "Resource", orgId.Value)
+    if err != nil {
+        return nil, grpclib.InternalError(err, "failed to list resources")
+    }
+
+    resources := make([]*pb.Resource, 0, len(data))
+    for _, d := range data {
+        resource := &pb.Resource{}
+        if err := protojson.Unmarshal(d, resource); err != nil {
+            continue
+        }
+        resources = append(resources, resource)
+    }
+
+    return &pb.Resources{Entries: resources}, nil
+}
+```
+
+---
+
+## Creating Custom Pipeline Steps
+
+When you need resource-specific or custom business logic, create custom steps:
+
+### Step Template
+
+```go
+// CustomBusinessLogicStep performs resource-specific validation or transformation
+type CustomBusinessLogicStep[T proto.Message] struct {
+    store *sqlite.Store
+    // Add any dependencies needed
+}
+
+func NewCustomBusinessLogicStep[T proto.Message](store *sqlite.Store) *CustomBusinessLogicStep[T] {
+    return &CustomBusinessLogicStep[T]{store: store}
+}
+
+func (s *CustomBusinessLogicStep[T]) Name() string {
+    return "CustomBusinessLogic"
+}
+
+func (s *CustomBusinessLogicStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
+    resource := ctx.NewState()
+    
+    // Type assertion to access fields
+    specificResource, ok := any(resource).(*pb.SpecificResource)
+    if !ok {
+        return fmt.Errorf("expected *pb.SpecificResource, got %T", resource)
+    }
+    
+    // Custom validation
+    if err := s.validateBusinessRules(specificResource); err != nil {
+        return grpclib.InvalidArgumentError(err.Error())
+    }
+    
+    // Custom transformation
+    s.applyDefaults(specificResource)
+    
+    // Store computed data in context if needed by later steps
+    ctx.Set("computedValue", someValue)
+    
+    return nil
+}
+
+func (s *CustomBusinessLogicStep[T]) validateBusinessRules(r *pb.SpecificResource) error {
+    // Resource-specific validation logic
+    if r.Spec.SomeField < 0 {
+        return fmt.Errorf("someField must be non-negative")
+    }
+    return nil
+}
+
+func (s *CustomBusinessLogicStep[T]) applyDefaults(r *pb.SpecificResource) {
+    // Set defaults based on other fields
+    if r.Spec.AutoField == "" {
+        r.Spec.AutoField = "default-" + r.Metadata.Name
+    }
+}
+```
+
+### Using Custom Steps in Handlers
+
+```go
+func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, agent)
+
+    p := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+        AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).
+        AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store, "Agent")).
+        AddStep(NewValidateAgentConfigStep[*agentv1.Agent]()). // Custom step
+        AddStep(steps.NewSetDefaultsStep[*agentv1.Agent]("agent")).
+        AddStep(NewCreateDefaultInstanceStep[*agentv1.Agent](c.instanceRepo)). // Custom step
+        AddStep(steps.NewPersistStep[*agentv1.Agent](c.store, "Agent")).
+        Build()
+
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+
+    return reqCtx.NewState(), nil
+}
+```
+
+### Step Best Practices
+
+1. **Single Responsibility**: Each step does ONE thing
+2. **Reusability**: Generic steps go in `backend/libs/go/grpc/request/pipeline/steps/`
+3. **Resource-specific**: Domain-specific steps stay in controller file or package
+4. **Error Context**: Use `grpclib` helpers to return gRPC-compatible errors
+5. **Metadata Keys**: Use constants for context metadata keys
+6. **Type Assertions**: Check type assertions and return errors, don't panic
+7. **Dependencies**: Inject via constructor, don't use globals
+
+### When to Create a Custom Step
+
+Create a custom step when:
+- ✅ Logic is complex enough to deserve its own function
+- ✅ Logic might be reusable across resources
+- ✅ You want to test the logic in isolation
+- ✅ You want clear step names in traces/logs
+- ✅ Logic needs its own dependencies (repos, clients, etc.)
+
+Keep it inline when:
+- ❌ One-liner field assignment
+- ❌ Simple validation already in validation step
+- ❌ Extremely resource-specific, never reused
+
+---
+
+## Context Architecture: Stigmer Cloud vs Stigmer OSS
+
+Understanding why the two implementations differ:
+
+### Stigmer Cloud (Java): Multiple Specialized Contexts
+
+```java
+// Different context types for different operations
+public class CreateContextV2<T> {
+    private T request;
+    private T newState;              // The resource being created
+    private T existingResource;      // From duplicate check
+    private String resolvedSlug;
+    private boolean eventPublished;
+    // ... other create-specific fields
+}
+
+public class UpdateContextV2<T> {
+    private T request;
+    private T existingResource;      // Loaded from DB
+    private T newState;              // After merge
+    private String resolvedSlug;
+    // ... other update-specific fields
+}
+
+public class DeleteContextV2<I, O> {  // Different input/output types!
+    private I request;               // ID input
+    private O existingResource;      // The resource being deleted
+    private String resourceId;
+    private boolean deleted;
+    // ... other delete-specific fields
+}
+```
+
+**Benefits:**
+- ✅ Type safety: Compiler enforces correct field usage
+- ✅ Self-documenting: Context shows exactly what data exists
+- ✅ IDE support: Auto-complete shows only relevant fields
+- ✅ Different I/O types: Delete can take ID, return Resource
+
+**Trade-offs:**
+- ❌ More code: Multiple context classes to maintain
+- ❌ Rigidity: Adding fields requires modifying classes
+- ❌ Ceremony: More boilerplate for each operation type
+
+### Stigmer OSS (Go): Single Flexible Context
+
+```go
+// One context type for ALL operations
+type RequestContext[T proto.Message] struct {
+    ctx      context.Context
+    input    T                        // Original request
+    newState T                        // Resource being built/modified
+    metadata map[string]interface{}   // Flexible storage
+    span     telemetry.Span
+}
+
+// Data flows via metadata map:
+ctx.Set("existingResource", existing) // Update loads existing
+existing := ctx.Get("existingResource").(T) // Later step retrieves it
+```
+
+**Benefits:**
+- ✅ Simplicity: One type to understand
+- ✅ Flexibility: Add any data via metadata without changing types
+- ✅ Less ceremony: No need to define new context classes
+- ✅ Rapid iteration: Easy to evolve
+
+**Trade-offs:**
+- ⚠️ Type assertions: Runtime errors if keys/types wrong
+- ⚠️ Less discoverable: Need to read step code to know what's in metadata
+- ⚠️ No compile-time help: Typos in keys not caught by compiler
+
+### When to Evolve from Single Context
+
+Consider adding specialized contexts when:
+1. **Type assertion bugs**: Frequent runtime panics from wrong types
+2. **Documentation burden**: Team can't remember metadata key conventions
+3. **Different I/O types**: Operation needs different input and output types (like Delete[ID, Resource])
+4. **Team growth**: More developers need stricter compile-time guardrails
+5. **Complexity**: Operations have very different data requirements
+
+**For now, single context is appropriate** because:
+- Early stage: Patterns still evolving
+- Small team: Direct communication about conventions
+- Local usage: Not enterprise-scale complexity
+- Go idiomatic: Favors simplicity over ceremony
+
+### Evolution Path
+
+When ready to add type safety, add helper methods first:
+
+```go
+// Phase 1: Helper methods (keeps single context)
+func (c *RequestContext[T]) GetExistingResource() (T, bool) {
+    val := c.metadata["existingResource"]
+    if val == nil {
+        var zero T
+        return zero, false
+    }
+    return val.(T), true
+}
+
+// Phase 2: Specialized contexts (if really needed)
+type UpdateContext[T proto.Message] struct {
+    *RequestContext[T]
+    existingResource T  // Strongly typed
+}
+```
+
+---
+
+## Differences from Stigmer Cloud
+
+### Architectural Differences
+
+| Aspect | Stigmer Cloud (Java) | Stigmer OSS (Go) |
+|--------|---------------------|------------------|
+| **Architecture** | Pipeline with specialized contexts | Pipeline with single context |
+| **Context Types** | CreateContext, UpdateContext, DeleteContext, CustomContext | RequestContext[T] for all ops |
+| **State Management** | Typed fields (existingResource, newState) | Metadata map + newState field |
+| **Type Safety** | Compile-time (strong typing) | Runtime (type assertions) |
+| **Storage** | MongoDB | BadgerDB/SQLite |
+| **Authorization** | FGA/IAM integration | None (local single-user) |
+| **Complexity** | High (enterprise multi-tenant) | Low (local single-user) |
+| **Error Handling** | Status-based pipeline errors | grpclib helpers + Go errors |
+| **Validation** | buf.validate + pipeline steps | buf.validate + pipeline steps |
+| **Step Reusability** | High (shared steps library) | Growing (common steps in libs) |
+
+**Both use pipeline pattern, but:**
+- Java optimizes for **type safety and enterprise scale**
+- Go optimizes for **simplicity and rapid iteration**
+
+---
+
+### Pipeline Steps: Cloud vs OSS
+
+**Steps EXCLUDED in Stigmer OSS** (present in Cloud):
+
+| Step | Purpose | Why Excluded in OSS |
+|------|---------|-------------------|
+| **Authorize** | Verify caller has permission to create/update/delete resource | OSS is local/single-user - no multi-tenant auth |
+| **CreateIamPolicies** | Establish ownership relationships in OpenFGA | OSS has no IAM/FGA system |
+| **Publish** | Publish domain events to event bus | OSS has no event publishing infrastructure |
+| **TransformResponse** | Apply response transformations/filtering | OSS returns full resource - no need for transformations |
+
+**Steps INCLUDED in both Cloud and OSS:**
+
+| Step | Purpose | Implementation |
+|------|---------|---------------|
+| **ValidateFieldConstraints** | Validate proto field constraints using buf validate | Same in both |
+| **ResolveSlug** | Generate slug from metadata.name | Same in both |
+| **CheckDuplicate** | Verify no duplicate exists | Same in both (different storage backends) |
+| **BuildNewState** | Generate ID, timestamps, audit fields | Same in both |
+| **Persist** | Save resource to database | Different storage (MongoDB vs BadgerDB/SQLite) |
+
+**Example: Agent Create Pipeline Comparison**
+
+**Stigmer Cloud (Java):**
+```java
+pipeline()
+    .addStep(commonSteps.validateFieldConstraints)   // 1. Validate
+    .addStep(createSteps.authorize)                  // 2. Authorize ← OSS EXCLUDES
+    .addStep(commonSteps.resolveSlug)                // 3. Resolve slug
+    .addStep(createSteps.checkDuplicate)             // 4. Check duplicate
+    .addStep(createSteps.buildNewState)              // 5. Build new state
+    .addStep(createSteps.persist)                    // 6. Persist
+    .addStep(createIamPolicies)                      // 7. Create IAM policies ← OSS EXCLUDES
+    .addStep(createDefaultInstance)                  // 8. Create default instance
+    .addStep(updateAgentStatusWithDefaultInstance)   // 9. Update status
+    .addStep(commonSteps.publish)                    // 10. Publish event ← OSS EXCLUDES
+    .addStep(commonSteps.transformResponse)          // 11. Transform ← OSS EXCLUDES
+    .addStep(commonSteps.sendResponse)               // 12. Send response
+```
+
+**Stigmer OSS (Go):**
+```go
+pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+    AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).         // 1. Validate
+    AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).           // 2. Resolve slug
+    AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)). // 3. Check duplicate
+    AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).         // 4. Build new state
+    AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).        // 5. Persist
+    AddStep(c.newCreateDefaultInstanceStep()).                     // 6. Create default instance
+    AddStep(c.newUpdateAgentStatusWithDefaultInstanceStep()).      // 7. Update status
+    Build()
+```
+
+**Key Insight:** OSS pipelines are **simpler and more focused** on core resource lifecycle management, excluding enterprise features like authorization, IAM, event publishing, and response transformations.
+
+---
+
+## Recommended Implementation Pattern (Current Best Practice)
+
+Based on the Agent controller implementation, follow this pattern:
+
+### 1. Create Handler (Pipeline)
+
+```go
+func (c *ResourceController) Create(ctx context.Context, resource *pb.Resource) (*pb.Resource, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, resource)
+
+    p := pipeline.NewPipeline[*pb.Resource]("resource-create").
+        AddStep(steps.NewResolveSlugStep[*pb.Resource]()).
+        AddStep(steps.NewCheckDuplicateStep[*pb.Resource](c.store, "Resource")).
+        AddStep(steps.NewSetDefaultsStep[*pb.Resource]("resource")).
+        AddStep(steps.NewPersistStep[*pb.Resource](c.store, "Resource")).
+        Build()
+
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+
+    return reqCtx.NewState(), nil
+}
+```
+
+### 2. Update Handler (Pipeline - Simple)
+
+```go
+func (c *ResourceController) Update(ctx context.Context, resource *pb.Resource) (*pb.Resource, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, resource)
+
+    p := pipeline.NewPipeline[*pb.Resource]("resource-update").
+        AddStep(steps.NewPersistStep[*pb.Resource](c.store, "Resource")).
+        Build()
+
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+
+    return reqCtx.NewState(), nil
+}
+```
+
+### 3. Delete Handler (Pipeline)
+
+```go
+func (c *ResourceController) Delete(ctx context.Context, resourceId *pb.ResourceId) (*pb.Resource, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, resourceId)
+
+    p := pipeline.NewPipeline[*pb.ResourceId]("resource-delete").
+        AddStep(steps.NewValidateInputStep[*pb.ResourceId]()).
+        AddStep(steps.NewLoadExistingStep[*pb.ResourceId](c.store, "Resource")).
+        AddStep(steps.NewDeleteStep[*pb.ResourceId](c.store, "Resource")).
+        Build()
+
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+
+    return reqCtx.Get("deletedResource").(*pb.Resource), nil
+}
+```
+
+### 4. Get Handler (Pipeline)
+
+```go
+func (c *ResourceController) Get(ctx context.Context, resourceId *pb.ResourceId) (*pb.Resource, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, resourceId)
+
+    p := pipeline.NewPipeline[*pb.ResourceId]("resource-get").
+        AddStep(steps.NewValidateInputStep[*pb.ResourceId]()).
+        AddStep(steps.NewLoadTargetStep[*pb.ResourceId](c.store, "Resource")).
+        Build()
+
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+
+    return reqCtx.Get("targetResource").(*pb.Resource), nil
+}
+```
+
+### 5. GetByReference Handler (Pipeline)
+
+```go
+func (c *ResourceController) GetByReference(ctx context.Context, ref *apiresource.ApiResourceReference) (*pb.Resource, error) {
+    reqCtx := pipeline.NewRequestContext(ctx, ref)
+
+    p := pipeline.NewPipeline[*apiresource.ApiResourceReference]("resource-get-by-reference").
+        AddStep(steps.NewValidateInputStep[*apiresource.ApiResourceReference]()).
+        AddStep(steps.NewLoadByReferenceStep[*apiresource.ApiResourceReference](c.store, "Resource")).
+        Build()
+
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+
+    return reqCtx.Get("targetResource").(*pb.Resource), nil
+}
+```
+
+---
+
+## Post-Implementation Checklist
+
+### Controller Setup
+- [ ] Controller struct created with embedded unimplemented servers
+- [ ] Constructor `New{Resource}Controller(store)` implemented
+- [ ] All RPC methods from proto implemented
+
+### Create Handler
+- [ ] Uses pipeline pattern with standard steps
+- [ ] Pipeline includes: ResolveSlug → CheckDuplicate → SetDefaults → Persist
+- [ ] Returns `reqCtx.NewState()` as response
+- [ ] Add custom steps if needed for business logic
+
+### Update Handler
+- [ ] Uses pipeline pattern (even if simple)
+- [ ] Includes LoadExistingStep if merging changes needed
+- [ ] Otherwise just PersistStep for full replacement
+- [ ] Returns `reqCtx.NewState()` as response
+
+### Delete Handler
+- [ ] Uses pipeline pattern with LoadExisting → Delete steps
+- [ ] Validates ID is provided (via pipeline step)
+- [ ] Loads resource before deletion (via LoadExisting step)
+- [ ] Deletes from store (via Delete step)
+- [ ] Returns deleted resource from context
+
+### Query Handlers (Get, GetByReference)
+- [ ] Use pipeline pattern with LoadTarget step
+- [ ] Validate inputs (via pipeline step)
+- [ ] Use grpclib error helpers
+- [ ] GetByReference supports slug and org filtering
+
+### Error Handling
+- [ ] All errors use grpclib helpers (InvalidArgumentError, NotFoundError, etc.)
+- [ ] Error messages include resource type and identifier
+- [ ] Internal errors wrapped with context
+
+### Registration
+- [ ] Controller registered in main.go
+- [ ] Both Command and Query servers registered (if applicable)
+
+### Testing
+- [ ] Code compiles (`go build` or `make build`)
+- [ ] Basic manual testing (create, get, update, delete flow)
+- [ ] Unit tests for custom steps (if any)
+
+### Documentation
+- [ ] Custom steps documented with comments
+- [ ] Metadata keys documented if using context.Set/Get
+- [ ] Any business logic decisions documented
+
+---
+
+## Goal
+
+Implement **composable, pipeline-based** gRPC handlers for Stigmer OSS that:
+- ✅ Are simple and easy to understand
+- ✅ Reuse common logic across resources
+- ✅ Work well for local usage
+- ✅ Are easy to test and maintain
+- ✅ Can evolve as requirements grow
+- ✅ Follow consistent architectural patterns
+
+**ALL handlers MUST use the pipeline pattern - this is a fundamental architectural requirement.**

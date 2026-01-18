@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "cliprint",
+    srcs = [
+        "cliprint.go",
+        "progress.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "@com_github_charmbracelet_bubbles//spinner:go_default_library",
+        "@com_github_charmbracelet_bubbletea//:go_default_library",
+        "@com_github_charmbracelet_lipgloss//:go_default_library",
+        "@com_github_fatih_color//:go_default_library",
+    ],
+)

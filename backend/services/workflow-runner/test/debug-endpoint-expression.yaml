@@ -1,0 +1,21 @@
+document:
+  dsl: "1.0.0"
+  namespace: demo
+  name: debug-endpoint-expression
+  version: "1.0.0"
+  description: "Debug workflow to test endpoint expression parsing"
+do:
+  - fetchData:
+      call: http
+      with:
+        endpoint:
+          uri: ${ $context.apiBase + "/posts/1" }
+        headers:
+          Content-Type: application/json
+        method: GET
+        timeout_seconds: 30
+  - processResponse:
+      set:
+        postBody: ${ $context.fetchData.body }
+        postTitle: ${ $context.fetchData.title }
+        status: completed

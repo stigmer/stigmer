@@ -1,0 +1,172 @@
+---
+description: Action rule to commit changes with appropriate conventional commit messages
+alwaysApply: false
+---
+
+# Rule: Commit Stigmer OSS Changes
+
+## Purpose
+
+When triggered, create a Git commit with an appropriate commit message following Conventional Commits format, based on the current conversation context and file changes.
+
+## Rule Type
+
+**Action Rule** - Executes git commit operations
+
+## When to Use
+
+- When user explicitly asks to commit changes
+- After completing a feature or fix that's ready to be committed
+- When wrapping up a development session
+
+## Commit Message Format
+
+Follow Conventional Commits format:
+
+\`\`\`
+<type>(<scope>): <subject>
+
+[optional body]
+
+[optional footer]
+\`\`\`
+
+### Types
+
+Use these commit types:
+- \`feat\`: New feature or capability
+- \`fix\`: Bug fix
+- \`refactor\`: Code refactoring (no functional changes)
+- \`docs\`: Documentation only changes
+- \`test\`: Adding or updating tests
+- \`chore\`: Build process, tooling, dependencies
+- \`perf\`: Performance improvements
+- \`style\`: Code style changes (formatting, no logic changes)
+- \`ci\`: CI/CD changes
+- \`revert\`: Reverting previous commits
+
+### Scope
+
+Determine scope from the affected files/components:
+
+#### APIs
+- \`apis\`: Protocol buffer changes
+- \`apis/agent\`: Agent proto changes
+- \`apis/workflow\`: Workflow proto changes
+- \`apis/commons\`: Commons/shared proto changes
+
+#### Backend
+- \`backend\`: Backend service changes
+- \`backend/stigmer-server\`: Main server changes
+- \`backend/libs\`: Shared libraries
+
+#### SDK
+- \`sdk\`: SDK changes (if applicable)
+
+#### Other Areas
+- \`docs\`: Documentation changes
+- \`examples\`: Example code/configurations
+- \`repo\`: Repository-wide configuration
+
+#### Cross-cutting
+- If multiple areas: Use broader scope or omit scope
+- For repo-wide changes: Use \`repo\` or omit scope
+
+### Subject
+
+- Use imperative mood ("add" not "added" or "adds")
+- No period at the end
+- Keep under 72 characters
+- Be specific but concise
+
+### Body (Optional)
+
+Add detailed body when:
+- The change is complex and needs explanation
+- Multiple related changes are included
+- There are breaking changes
+- Context would help future developers understand "why"
+
+Body guidelines:
+- Wrap at 72 characters
+- Explain what and why, not how
+- Use bullet points for multiple items
+- Reference issues/tickets if applicable
+
+### Footer (Optional)
+
+Include footer for:
+- \`BREAKING CHANGE:\` for breaking changes
+- \`Closes #123\` or \`Fixes #123\` for issue references
+- Co-authored-by for pair programming
+
+## Execution Steps
+
+1. **Analyze Changes**
+   - Check \`git status\` to see modified files
+   - Review the conversation context to understand what was changed
+   - Identify the type and scope of changes
+
+2. **Determine Commit Type and Scope**
+   - Map file changes to appropriate type
+   - Determine most relevant scope from file paths
+
+3. **Craft Commit Message**
+   - Write concise subject line (< 72 chars)
+   - Decide if detailed body is needed
+   - Add footer if there are breaking changes or issue references
+
+4. **Create Commit**
+   - Stage all changes with \`git add -A\`
+   - Commit with the crafted message using \`git commit -m "subject" [-m "body"]\`
+
+## Examples
+
+### Simple API Addition
+
+\`\`\`bash
+git commit -m "feat(apis/agent): add agent execution status field"
+\`\`\`
+
+### Bug Fix with Context
+
+\`\`\`bash
+git commit -m "fix(backend/stigmer-server): correct agent state handling" \\
+  -m "The agent state transitions were not properly validated.
+This commit adds validation for state changes."
+\`\`\`
+
+### Documentation Enhancement
+
+\`\`\`bash
+git commit -m "docs: add API usage examples to README"
+\`\`\`
+
+## Command Patterns
+
+For simple commits:
+\`\`\`bash
+git add -A && git commit -m "<type>(<scope>): <subject>"
+\`\`\`
+
+For commits with body:
+\`\`\`bash
+git add -A && git commit -m "<type>(<scope>): <subject>" -m "<body>"
+\`\`\`
+
+## Important Notes
+
+- **Don't commit without reviewing**: Show the proposed commit message to the user before executing if the changes are significant
+- **Stage selectively if needed**: If only some changes should be committed, stage specific files instead of \`git add -A\`
+- **Don't skip hooks**: Never use \`--no-verify\` unless explicitly requested
+- **Check for unstaged changes**: Review \`git status\` output to ensure all intended changes are staged
+
+## Execution
+
+When this rule is triggered:
+
+1. Run \`git status\` to check current changes
+2. Analyze changes and conversation context
+3. Propose commit message following the format above
+4. Execute the commit command with appropriate permissions (git_write)
+5. Confirm successful commit

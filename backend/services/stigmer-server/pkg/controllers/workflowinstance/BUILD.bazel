@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "workflowinstance",
+    srcs = [
+        "apply.go",
+        "create.go",
+        "delete.go",
+        "query.go",
+        "update.go",
+        "workflowinstance_controller.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/workflowinstance",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/libs/go/apiresource",
+        "//backend/libs/go/badger",
+        "//backend/libs/go/grpc",
+        "//backend/libs/go/grpc/interceptors/apiresource",
+        "//backend/libs/go/grpc/request/pipeline",
+        "//backend/libs/go/grpc/request/pipeline/steps",
+        "//backend/libs/go/store",
+        "//backend/services/stigmer-server/pkg/downstream/workflow",
+        "@com_github_rs_zerolog//log",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)
