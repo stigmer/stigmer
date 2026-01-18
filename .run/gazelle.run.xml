@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="gazelle" type="BazelRunConfigurationType">
+    <bsp-state handler-provider-id="GenericRunHandlerProvider">
+      <bsp-target>@//:gazelle</bsp-target>
+      <handler-state />
+    </bsp-state>
+    <method v="2" />
+  </configuration>
+</component>

@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="stigmer-server.launch" type="BazelRunConfigurationType">
+    <bsp-state handler-provider-id="GenericRunHandlerProvider">
+      <bsp-target>@//backend/services/stigmer-server/cmd/server:server</bsp-target>
+      <handler-state />
+    </bsp-state>
+    <method v="2" />
+  </configuration>
+</component>

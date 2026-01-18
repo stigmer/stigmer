@@ -1,0 +1,8 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "telemetry",
+    srcs = ["tracer.go"],
+    importpath = "github.com/stigmer/stigmer/backend/libs/go/telemetry",
+    visibility = ["//visibility:public"],
+)

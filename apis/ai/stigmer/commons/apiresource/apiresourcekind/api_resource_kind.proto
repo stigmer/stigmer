@@ -22,7 +22,7 @@ enum ApiResourceVersion {
 enum ResourceTier {
   TIER_UNSPECIFIED = 0;
   TIER_OPEN_SOURCE = 1; // Available in CLI local mode & Cloud
-  TIER_CLOUD_ONLY = 2;  // Hidden in CLI local mode; Available in Cloud
+  TIER_CLOUD_ONLY = 2; // Hidden in CLI local mode; Available in Cloud
 }
 
 // Platform ID values - defines the singleton platform instance ID
