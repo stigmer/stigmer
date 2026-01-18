@@ -10,16 +10,54 @@
 ✅ **In-Process gRPC Implemented** - Downstream client pattern for cross-domain calls  
 ✅ **Agent Creation Complete** - Steps 1-7 fully implemented and building  
 ✅ **Framework Enhanced** - Auto-extract API resource kind from proto (zero boilerplate)  
-✅ **Architecture Documented** - OSS vs Cloud pipeline differences clarified
+✅ **Architecture Documented** - OSS vs Cloud pipeline differences clarified  
+✅ **Query Handlers Refactored** - Generic pipeline steps for Get/GetByReference
 
 ## Project Status
 
-🎉 **PHASE 1-9.1 COMPLETE** 🎉
+🎉 **PHASE 1-9.2 COMPLETE** 🎉
 
-**Latest:** OSS pipeline architecture documented - clear boundaries between Cloud (12 steps) and OSS (7 steps)  
-**Next:** Integration testing and remaining CRUD operations for AgentInstance
+**Latest:** Generic query handler pipeline steps - reusable LoadTargetStep and LoadByReferenceStep  
+**Next:** Apply pattern to Workflow, Task, and other resources
 
-## What Was Accomplished (Phase 9.1)
+## What Was Accomplished (Phase 9.2)
+
+### ✅ Generic Query Handler Pipeline Steps
+
+**Location**: `backend/libs/go/grpc/request/pipeline/steps/`, `backend/services/stigmer-server/pkg/controllers/agent/`
+
+**What changed**:
+- Deleted monolithic `query.go` (75 lines with both Get and GetByReference)
+- Created separate handler files: `get.go` (44 lines) and `get_by_reference.go` (47 lines)
+- Created generic `LoadTargetStep` pipeline step - loads resource by ID
+- Created generic `LoadByReferenceStep` pipeline step - loads resource by slug/reference
+- Comprehensive unit tests for both new pipeline steps
+- Created `README.md` documenting patterns and migration guide
+
+**Why it matters**:
+- **100% Reusable**: Works for ANY resource - just change type parameters
+- **Zero Duplication**: Future resources (Workflow, Task) use same pipeline steps
+- **Consistent Architecture**: All handlers (create, update, delete, apply, get, getByReference) use pipelines
+- **Better Organization**: Each file handles ONE operation (< 50 lines)
+
+**Generic Pattern** (works for all resources):
+```go
+// Agent
+LoadTargetStep[*AgentId, *Agent]
+LoadByReferenceStep[*Agent]
+
+// Workflow (future)
+LoadTargetStep[*WorkflowId, *Workflow]
+LoadByReferenceStep[*Workflow]
+```
+
+**Bug Fixes**:
+- Fixed `grpclib.InternalError` calls in apply.go and delete.go
+- Updated delete.go to use proper `store.Store` interface
+
+**See**: `@checkpoints/2026-01-18-generic-query-handler-pipeline-steps.md`
+
+## Previous Accomplishments (Phase 9.1)
 
 ### ✅ OSS Pipeline Architecture Documentation
 
@@ -87,7 +125,7 @@ steps.NewPersistStep[*agentv1.Agent](c.store)
 
 ## Latest Checkpoint
 
-**See**: `@checkpoints/2026-01-18-document-oss-pipeline-differences.md`
+**See**: `@checkpoints/2026-01-18-generic-query-handler-pipeline-steps.md`
 
 ## Previous Accomplishments (Phase 8)
 
@@ -155,7 +193,32 @@ Return Agent with default_instance_id populated
 
 ## Next Tasks
 
-### 1. Integration Testing 🎯 IMMEDIATE
+### 1. Apply Query Handler Pattern to Other Resources 🎯 IMMEDIATE
+
+**Goal**: Demonstrate pattern reusability
+
+**Steps**:
+1. Implement Workflow Get/GetByReference using the generic pattern
+2. Implement Task Get/GetByReference using the same pattern
+3. Verify no modifications needed to pipeline steps
+4. Confirm pattern is truly reusable
+
+**Pattern** (copy-paste for each resource):
+```go
+// get.go
+pipeline.NewPipeline[*ResourceId]("resource-get").
+    AddStep(steps.NewValidateProtoStep[*ResourceId]()).
+    AddStep(steps.NewLoadTargetStep[*ResourceId, *Resource](c.store)).
+    Build()
+
+// get_by_reference.go
+pipeline.NewPipeline[*ApiResourceReference]("resource-get-by-reference").
+    AddStep(steps.NewValidateProtoStep[*ApiResourceReference]()).
+    AddStep(steps.NewLoadByReferenceStep[*Resource](c.store)).
+    Build()
+```
+
+### 2. Integration Testing
 
 **Goal**: Verify agent creation works end-to-end
 
@@ -166,7 +229,7 @@ Return Agent with default_instance_id populated
 4. Verify agent.status.default_instance_id populated
 5. Query default instance: should be `test-agent-default`
 
-### 2. Implement Remaining AgentInstance Operations
+### 3. Implement Remaining AgentInstance Operations
 
 **Goal**: Complete CRUD operations
 
@@ -181,7 +244,7 @@ Return Agent with default_instance_id populated
 - `apis/ai/stigmer/agentic/agentinstance/v1/query.proto`
 - `apis/ai/stigmer/agentic/agentinstance/v1/command.proto`
 
-### 3. Add Agent Query Methods (Future)
+### 4. Add Agent Query Methods (Future)
 
 **Goal**: Support advanced queries
 
@@ -225,8 +288,10 @@ Return Agent with default_instance_id populated
 
 ## Project Documentation
 
-- **Latest Checkpoint:** `@checkpoints/2026-01-18-document-oss-pipeline-differences.md`
-- **Latest Changelog:** `@_changelog/2026-01/2026-01-18-211338-document-oss-pipeline-differences.md`
+- **Latest Checkpoint:** `@checkpoints/2026-01-18-generic-query-handler-pipeline-steps.md`
+- **Latest Changelog:** `@_changelog/2026-01/2026-01-18-224250-refactor-agent-query-handlers-generic-pipeline-steps.md`
+- **Previous Checkpoint:** `@checkpoints/2026-01-18-document-oss-pipeline-differences.md`
+- **Previous Changelog:** `@_changelog/2026-01/2026-01-18-211338-document-oss-pipeline-differences.md`
 - **API Resource Interceptor:** `@backend/libs/go/grpc/interceptors/apiresource/`
 - **Latest ADR:** `@docs/adr/20260118-214000-in-process-grpc-calls-and-agent-instance-creation.md`
 - **AgentInstance Controller:** `@backend/services/stigmer-server/pkg/controllers/agentinstance/README.md`
