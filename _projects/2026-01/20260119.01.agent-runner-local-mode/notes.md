@@ -424,6 +424,230 @@ Since this is configuration-only changes, testing focuses on:
 
 ---
 
+## T2.1: Skills Support in Local Mode
+
+**Date**: January 19, 2026  
+**Status**: ✅ Completed
+
+### What Was Built
+
+Enabled skills support in local mode by enhancing SkillWriter to support both Daytona and filesystem backends. Previously, skills were only supported in cloud mode with Daytona sandboxes.
+
+#### Problem Identified
+
+Skills were explicitly disabled in local mode:
+```python
+# OLD CODE
+if skill_refs and not worker_config.is_local_mode():
+    # Skills only supported in cloud mode
+    ...
+elif skill_refs and worker_config.is_local_mode():
+    activity_logger.warning(
+        f"Skills not yet supported in local mode - skipping {len(skill_refs)} skill(s)"
+    )
+```
+
+This limitation prevented local development and testing of agents with skills.
+
+#### Files Modified
+
+1. **`stigmer/backend/services/agent-runner/worker/activities/graphton/skill_writer.py`**
+   - Added `mode` parameter to `__init__()` ("daytona" or "filesystem")
+   - Split `write_skills()` into mode-specific implementations:
+     - `_write_skills_daytona()` - Uses Daytona SDK's `fs.upload_files()` API
+     - `_write_skills_filesystem()` - Uses Python's standard file operations
+   - Added `_build_skill_content()` helper method (shared by both modes)
+   - Added imports: `os`, `pathlib.Path`
+   - Enhanced error handling for both modes
+
+2. **`stigmer/backend/services/agent-runner/worker/activities/execute_graphton.py`**
+   - Removed local mode restriction for skills (lines 226-271)
+   - Added mode-aware SkillWriter initialization
+   - Updated logging messages to reflect mode ("wrote" vs "uploaded")
+   - Simplified error handling (same path for both modes)
+
+#### Technical Details
+
+**SkillWriter Constructor Changes**:
+```python
+def __init__(self, sandbox=None, root_dir=None, mode="daytona"):
+    """Initialize SkillWriter.
+    
+    Args:
+        sandbox: Daytona Sandbox instance (required for Daytona mode)
+        root_dir: Filesystem root directory (required for filesystem mode)
+        mode: "daytona" or "filesystem"
+    """
+    self.mode = mode
+    self.sandbox = sandbox
+    self.root_dir = root_dir
+    
+    if mode == "daytona":
+        if not sandbox:
+            raise ValueError("sandbox is required for Daytona mode")
+        self.skills_dir = self.SKILLS_DIR  # /workspace/skills
+    elif mode == "filesystem":
+        if not root_dir:
+            raise ValueError("root_dir is required for filesystem mode")
+        self.skills_dir = os.path.join(root_dir, "skills")
+    else:
+        raise ValueError(f"Invalid mode: {mode}")
+```
+
+**Filesystem Implementation**:
+```python
+def _write_skills_filesystem(self, skills: list[Skill]) -> dict[str, str]:
+    """Write skills to local filesystem."""
+    # Create skills directory
+    Path(self.skills_dir).mkdir(parents=True, exist_ok=True)
+    
+    skill_paths = {}
+    for skill in skills:
+        skill_id = skill.metadata.id
+        skill_name = skill.metadata.name
+        description = skill.spec.description
+        content = skill.spec.markdown_content
+        
+        # Build file content with metadata header
+        file_content = self._build_skill_content(skill_name, description, content)
+        
+        # Write to filesystem
+        filename = f"{skill_name}.md"
+        filepath = os.path.join(self.skills_dir, filename)
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(file_content)
+        
+        skill_paths[skill_id] = filepath
+    
+    return skill_paths
+```
+
+**Usage in execute_graphton.py**:
+```python
+if skill_refs:
+    # Fetch skills via gRPC
+    skills = await skill_client.list_by_refs(list(skill_refs))
+    
+    # Write skills based on mode
+    if worker_config.is_local_mode():
+        # Local mode - write to filesystem
+        skill_writer = SkillWriter(
+            root_dir=sandbox_config.get('root_dir'),
+            mode="filesystem"
+        )
+    else:
+        # Cloud mode - upload to Daytona sandbox
+        skill_writer = SkillWriter(sandbox=sandbox, mode="daytona")
+    
+    skill_paths = skill_writer.write_skills(skills)
+    
+    # Generate prompt section (same for both modes)
+    skills_prompt_section = SkillWriter.generate_prompt_section(skills, skill_paths)
+```
+
+#### Behavior
+
+**Local Mode (MODE=local)**:
+- Skills written to: `{SANDBOX_ROOT_DIR}/skills/*.md`
+- Example: `./workspace/skills/aws-troubleshooting.md`
+- File operations use Python's standard library (`open()`, `Path.mkdir()`)
+- Agent reads skills using filesystem paths
+
+**Cloud Mode (MODE=cloud)**:
+- Skills uploaded to: `/workspace/skills/*.md` (in Daytona sandbox)
+- Uses Daytona SDK: `sandbox.fs.upload_files()`
+- Agent reads skills using sandbox paths
+
+#### File Structure
+
+**Skills Directory**:
+```
+<root_dir>/skills/
+  ├── aws-troubleshooting.md
+  ├── kubernetes-debugging.md
+  └── terraform-best-practices.md
+```
+
+**Skill File Format** (same for both modes):
+```markdown
+# Skill Name
+
+**Description**: Skill description text
+
+---
+
+[Markdown content from skill.spec.markdown_content]
+```
+
+#### Other Functionalities Reviewed
+
+Analyzed entire `execute_graphton.py` to identify any other mode-specific gaps:
+
+**✅ Fully Supported in Both Modes**:
+1. Environments - merging, runtime overrides, no mode checks
+2. Sandbox management - mode-aware, fully functional
+3. Graphton agent creation - works with both backends
+4. Execution streaming - identical in both modes
+
+**⏳ Not Yet Implemented** (not mode-specific):
+1. MCP servers - `mcp_servers={}` (line 354)
+2. Sub-agents - `subagents=None` (line 356)
+
+**Conclusion**: Skills were the **only** functionality being skipped specifically in local mode. Now fully enabled.
+
+#### Testing Strategy
+
+**Manual Testing**:
+1. Local mode: Set `MODE=local`, create agent with skills, verify files written to `./workspace/skills/`
+2. Cloud mode: Set `MODE=cloud`, create agent with skills, verify uploaded to Daytona
+3. Verify agent can read skills using `read_file` tool in both modes
+
+**Integration Testing**:
+- Agent executions with skills should work identically in both modes
+- Skills should be accessible via `read_file` tool
+- Prompt section should include skill metadata
+
+#### Key Implementation Decisions
+
+1. **Mode Parameter**: Explicit mode parameter makes code clear and maintainable
+2. **Separate Methods**: `_write_skills_daytona()` and `_write_skills_filesystem()` keep logic isolated
+3. **Shared Helper**: `_build_skill_content()` ensures consistent file format
+4. **Error Handling**: Same error types (RuntimeError) for both modes
+5. **Logging**: Mode-specific messages ("wrote" vs "uploaded") for clarity
+6. **No Breaking Changes**: Cloud mode behavior unchanged, backward compatible
+
+#### Lessons Learned
+
+1. **Premature Restrictions**: Skills could have worked in local mode from the start with proper abstraction
+2. **Mode Patterns**: Establishing mode-aware patterns early (like in T2) made this change straightforward
+3. **Interface Abstraction**: SkillWriter's interface (write_skills) didn't change, only implementation
+4. **Testing Gaps**: Manual testing needed since no existing skill tests
+5. **Documentation**: Clear mode documentation in docstrings prevents future confusion
+
+#### Security Considerations
+
+**Local Mode**:
+- Skills written to host filesystem with user's permissions
+- Skills persisted between runs (not ephemeral)
+- Skills visible in workspace directory
+
+**Cloud Mode**:
+- Skills uploaded to isolated Daytona sandbox
+- Skills ephemeral (unless sandbox persisted)
+- Skills not accessible outside sandbox
+
+#### Related Documentation
+
+Created comprehensive summary: `SKILLS_LOCAL_MODE_IMPLEMENTATION.md`
+- Problem statement
+- Solution architecture
+- Behavior comparison
+- Testing guidance
+- Complete functionality review
+
+---
+
 ## Next: T3 - Agent Runner Daemon Connection
 
 **Goal**: Update Agent Runner main to connect to Stigmer Daemon gRPC when `MODE=local`
