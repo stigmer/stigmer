@@ -1,0 +1,12 @@
+document:
+  dsl: 1.0.0
+  namespace: stigmer
+  name: example-workflow
+  version: 0.0.1
+  description: Simple example workflow for local development
+do:
+  - step:
+      set:
+        message: "Hello from Zigflow Worker!"
+        status: "running"
+

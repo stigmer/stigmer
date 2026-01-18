@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "interceptors",
+    srcs = ["progress_interceptor.go"],
+    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/interceptors",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",
+        "//backend/services/workflow-runner/pkg/config",
+        "//backend/services/workflow-runner/pkg/grpc_client",
+        "//backend/services/workflow-runner/pkg/utils",
+        "@com_github_rs_zerolog//log",
+        "@io_temporal_go_sdk//activity",
+        "@io_temporal_go_sdk//interceptor",
+        "@io_temporal_go_sdk//workflow",
+    ],
+)

@@ -1,0 +1,824 @@
+# Rule: Implement Workflow Runner Features (action)
+
+**Purpose**: Implement and enhance Go-based workflow execution features in the workflow-runner service. Handles CNCF Serverless Workflow interpretation, Temporal workflows, activities, Zigflow integration, claim check pattern, and gRPC server following established patterns.
+
+**Usage**: Invoke this rule when adding new features, fixing issues, or enhancing workflow-runner capabilities.
+
+**Prerequisites**: 
+- Go 1.23+ environment with Bazel
+- Proto stubs generated for Stigmer APIs
+- Access to Temporal and Cloudflare R2 services
+- Understanding of CNCF Serverless Workflow specification
+
+---
+
+## 🎓 Before You Start: Check the Learning Log!
+
+**IMPORTANT**: Before implementing features, check `docs/learning-log.md` for solutions to common issues:
+- Documented patterns and fixes from real implementations
+- Organized by topic (not chronological)
+- Real-world solutions that save time
+- Avoids repeating known issues
+
+**Quick lookup by topic**:
+- Temporal workflow errors → See "Temporal Workflows"
+- Zigflow interpreter issues → See "Zigflow Integration"
+- Claim check problems → See "Claim Check Pattern"
+- gRPC server issues → See "gRPC Server"
+- Build errors → See "Bazel Build"
+
+**Complete documentation**: See `docs/README.md` for full catalog of reference docs.
+
+---
+
+**Reference Documentation**:
+
+⚠️ **CRITICAL - Read Before Implementation**:
+- **Architecture Overview**: `docs/architecture/overview.md` ⚠️ **READ THIS FIRST**
+  - How workflow-runner interprets CNCF workflows
+  - Zigflow interpreter pattern
+  - Temporal integration architecture
+  - Complete architecture with diagrams
+- **Learning Log**: `docs/learning-log.md` ⚠️ **CHECK FOR KNOWN ISSUES**
+  - Organized by topic for quick lookup
+  - Solutions to common problems
+  - Patterns and anti-patterns
+
+**Implementation Guides**:
+- **Phase 1.5 Guide**: `docs/guides/phase-1.5.md` - Implementation roadmap
+- **Build Strategy**: `docs/guides/build-strategy.md` - Bazel build patterns
+- **Testing Guide**: `docs/guides/testing-guide.md` - Testing strategies
+- **YAML Reference**: `docs/guides/yaml-format-reference.md` - Workflow definition syntax
+
+**Architecture Details**:
+- **Claim Check Pattern**: `docs/architecture/claimcheck.md` - Large payload handling
+- **Callbacks**: `docs/architecture/callbacks.md` - Callback mechanism
+- **gRPC Integration**: `docs/architecture/grpc.md` - gRPC server architecture
+- **Continue-As-New**: `docs/architecture/continue-as-new-pattern.md` - Workflow continuation
+
+**Implementation References**:
+- **Claim Check Implementation**: `docs/implementation/claimcheck.md` - Current status
+- **Phase Summaries**: `docs/implementation/phase-*.md` - What was implemented
+
+**Additional References**:
+- **Security Audit**: `docs/references/security-audit.md` - Security considerations
+- **Upstream Notes**: `docs/references/upstream-notes.md` - Changes from Zigflow
+- **Complete Index**: `docs/README.md` - Full documentation catalog
+
+**Self-Improvement Cycle**: After implementing features:
+1. If you learned something or fixed errors → Update `docs/learning-log.md` with the lesson
+2. If patterns need correction → Invoke `@improve-this-rule.mdc` to update the rule
+3. **Check `docs/learning-log.md`** for solutions BEFORE asking
+
+---
+
+## Core Implementation Areas
+
+### 1. Temporal Workflows
+
+**Location**: `pkg/zigflow/*.go`, `pkg/executor/*.go`
+
+**Patterns**:
+- Use `workflow.ExecuteActivity()` for non-deterministic operations
+- All workflow code must be deterministic
+- Use `workflow.GetLogger()` for logging
+- Handle Continue-As-New for long-running workflows
+- Use workflow.Context, not context.Context
+
+**Example**:
+```go
+package zigflow
+
+import (
+    "go.temporal.io/sdk/workflow"
+)
+
+func WorkflowDefinition(ctx workflow.Context, input WorkflowInput) (WorkflowOutput, error) {
+    logger := workflow.GetLogger(ctx)
+    logger.Info("Starting workflow", "workflowId", input.ID)
+    
+    // Execute activity (non-deterministic)
+    var result ActivityResult
+    err := workflow.ExecuteActivity(ctx, ExecuteWorkflowActivity, input).Get(ctx, &result)
+    if err != nil {
+        logger.Error("Activity failed", "error", err)
+        return WorkflowOutput{}, err
+    }
+    
+    // Deterministic logic
+    output := WorkflowOutput{
+        Status: "completed",
+        Result: result.Data,
+    }
+    
+    return output, nil
+}
+```
+
+**Register in worker**:
+```go
+// worker/worker.go
+w := worker.New(c, taskQueue, worker.Options{})
+w.RegisterWorkflow(WorkflowDefinition)
+w.RegisterActivity(ExecuteWorkflowActivity)
+```
+
+### 2. Temporal Activities
+
+**Location**: `worker/activities/*.go`
+
+**Patterns**:
+- Activities handle all non-deterministic operations
+- Use context.Context (not workflow.Context)
+- Accept and return proto messages or simple types
+- Handle errors with proper context
+- Use structured logging
+
+**Example**:
+```go
+package activities
+
+import (
+    "context"
+    "go.temporal.io/sdk/activity"
+)
+
+func ExecuteWorkflowActivity(ctx context.Context, input WorkflowInput) (ActivityResult, error) {
+    logger := activity.GetLogger(ctx)
+    logger.Info("Starting activity", "workflowId", input.ID)
+    
+    // Non-deterministic work here
+    result, err := performOperation(ctx, input)
+    if err != nil {
+        logger.Error("Operation failed", "error", err)
+        return ActivityResult{}, err
+    }
+    
+    return ActivityResult{
+        Status: "success",
+        Data:   result,
+    }, nil
+}
+```
+
+### 3. Zigflow Integration
+
+**Location**: `pkg/zigflow/*.go`
+
+**Patterns**:
+- Parse CNCF Serverless Workflow YAML definitions
+- Build internal state machine from workflow spec
+- Execute states using Temporal workflows
+- Support all CNCF state types (Operation, Switch, ForEach, Parallel, Event, Sleep, Inject)
+- Use task builders for state execution
+
+**Example**:
+```go
+package zigflow
+
+import (
+    "github.com/mrsimonemms/zigflow/pkg/models"
+)
+
+func BuildWorkflow(spec *models.Workflow) (*WorkflowBuilder, error) {
+    builder := NewWorkflowBuilder(spec)
+    
+    // Parse states
+    for _, state := range spec.States {
+        switch state.Type {
+        case "operation":
+            builder.AddOperationState(state)
+        case "switch":
+            builder.AddSwitchState(state)
+        case "forEach":
+            builder.AddForEachState(state)
+        // ... other state types
+        }
+    }
+    
+    return builder, nil
+}
+```
+
+### 4. Claim Check Pattern
+
+**Location**: `pkg/claimcheck/*.go`
+
+**Patterns**:
+- Automatically store large payloads (>50KB) in Cloudflare R2
+- Compress payloads with gzip (70%+ compression)
+- Replace large data with lightweight references
+- Auto-retrieve references when needed
+- Transparent to workflow logic
+
+**Example**:
+```go
+package claimcheck
+
+import (
+    "context"
+    "github.com/aws/aws-sdk-go-v2/service/s3"
+)
+
+type Manager struct {
+    store     Store
+    threshold int64
+}
+
+func (m *Manager) StoreIfNeeded(ctx context.Context, data []byte) (interface{}, error) {
+    if int64(len(data)) < m.threshold {
+        // Below threshold, return as-is
+        return data, nil
+    }
+    
+    // Above threshold, store in R2
+    compressed := compress(data)
+    ref, err := m.store.Put(ctx, compressed)
+    if err != nil {
+        return nil, err
+    }
+    
+    return &Reference{
+        Type:         "claimcheck",
+        Bucket:       m.store.Bucket(),
+        Key:          ref.Key,
+        OriginalSize: len(data),
+    }, nil
+}
+
+func (m *Manager) Resolve(ctx context.Context, value interface{}) (interface{}, error) {
+    ref, ok := value.(*Reference)
+    if !ok {
+        // Not a reference, return as-is
+        return value, nil
+    }
+    
+    // Retrieve from R2
+    compressed, err := m.store.Get(ctx, ref.Key)
+    if err != nil {
+        return nil, err
+    }
+    
+    return decompress(compressed), nil
+}
+```
+
+### 5. gRPC Server
+
+**Location**: `pkg/grpc/*.go`, `cmd/grpc-server/*.go`
+
+**Patterns**:
+- Serve workflow execution requests via gRPC
+- Accept YAML workflow definitions
+- Execute workflows via Temporal or directly
+- Report progress to callbacks
+- Handle authentication and authorization
+
+**Example**:
+```go
+package grpc
+
+import (
+    "context"
+    pb "stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+)
+
+type Server struct {
+    pb.UnimplementedWorkflowServiceServer
+    executor WorkflowExecutor
+}
+
+func (s *Server) Execute(ctx context.Context, req *pb.ExecuteRequest) (*pb.ExecuteResponse, error) {
+    // Parse workflow YAML
+    workflow, err := parseWorkflow(req.GetWorkflowYaml())
+    if err != nil {
+        return nil, status.Errorf(codes.InvalidArgument, "invalid workflow: %v", err)
+    }
+    
+    // Execute workflow
+    result, err := s.executor.Execute(ctx, workflow, req.GetInput())
+    if err != nil {
+        return nil, status.Errorf(codes.Internal, "execution failed: %v", err)
+    }
+    
+    return &pb.ExecuteResponse{
+        Status: "completed",
+        Output: result,
+    }, nil
+}
+```
+
+### 6. Configuration
+
+**Location**: `pkg/config/*.go`, `worker/config/*.go`
+
+**Patterns**:
+- Load configuration from environment variables
+- Validate required fields on startup
+- Provide sensible defaults
+- Document each field
+- Share Temporal config with other services
+
+**Example**:
+```go
+package config
+
+import (
+    "fmt"
+    "os"
+)
+
+type Config struct {
+    TemporalServiceAddress       string
+    TemporalNamespace            string
+    WorkerTaskQueue              string
+    MaxConcurrentActivities      int
+    MaxConcurrentWorkflowTasks   int
+    ClaimCheckEnabled            bool
+    ClaimCheckThresholdBytes     int64
+    R2Bucket                     string
+    R2Endpoint                   string
+    R2AccessKeyID                string
+    R2SecretAccessKey            string
+}
+
+func LoadFromEnv() (*Config, error) {
+    cfg := &Config{
+        TemporalServiceAddress:     getEnvOrDefault("TEMPORAL_SERVICE_ADDRESS", "localhost:7233"),
+        TemporalNamespace:          getEnvOrDefault("TEMPORAL_NAMESPACE", "default"),
+        WorkerTaskQueue:            getEnvOrDefault("WORKER_TASK_QUEUE", "zigflow-tasks"),
+        MaxConcurrentActivities:    getEnvIntOrDefault("MAX_CONCURRENT_ACTIVITIES", 50),
+        MaxConcurrentWorkflowTasks: getEnvIntOrDefault("MAX_CONCURRENT_WORKFLOW_TASKS", 10),
+        ClaimCheckEnabled:          getEnvBoolOrDefault("CLAIMCHECK_ENABLED", false),
+        ClaimCheckThresholdBytes:   getEnvInt64OrDefault("CLAIMCHECK_THRESHOLD_BYTES", 51200),
+    }
+    
+    // Validate required fields
+    if cfg.ClaimCheckEnabled {
+        if cfg.R2Bucket = os.Getenv("R2_BUCKET"); cfg.R2Bucket == "" {
+            return nil, fmt.Errorf("R2_BUCKET required when claim check enabled")
+        }
+        // ... validate other R2 fields
+    }
+    
+    return cfg, nil
+}
+```
+
+### 7. Error Handling
+
+**Location**: All modules
+
+**Patterns**:
+- Return errors with context using `fmt.Errorf()`
+- Use custom error types for specific failures
+- Log errors before returning
+- Don't swallow errors (no silent failures)
+- Wrap errors to preserve stack trace
+
+**Example**:
+```go
+func processWorkflow(ctx context.Context, spec *Workflow) error {
+    logger := getLogger(ctx)
+    
+    // Validate workflow
+    if err := validateWorkflow(spec); err != nil {
+        logger.Error("Validation failed", "error", err, "workflowId", spec.ID)
+        return fmt.Errorf("validate workflow %s: %w", spec.ID, err)
+    }
+    
+    // Execute workflow
+    result, err := executeWorkflow(ctx, spec)
+    if err != nil {
+        logger.Error("Execution failed", "error", err, "workflowId", spec.ID)
+        return fmt.Errorf("execute workflow %s: %w", spec.ID, err)
+    }
+    
+    logger.Info("Workflow completed", "workflowId", spec.ID, "result", result)
+    return nil
+}
+```
+
+### 8. Bazel Build
+
+**Location**: `BUILD.bazel` files
+
+**Patterns**:
+- DO NOT manually create or edit BUILD.bazel files
+- Files are auto-generated by Gazelle
+- Run `bazel run //:gazelle` to update BUILD files
+- Use go_library, go_binary, go_test targets
+- Dependencies auto-managed by Gazelle
+
+**Commands**:
+```bash
+# Update BUILD files
+bazel run //:gazelle
+
+# Build worker
+bazel build //backend/services/workflow-runner/cmd/worker
+
+# Run tests
+bazel test //backend/services/workflow-runner/...
+
+# Build Docker image
+bazel build //backend/services/workflow-runner:image
+```
+
+---
+
+## Common Patterns
+
+### Workflow State Management
+
+```go
+// Access workflow state
+var state map[string]interface{}
+workflow.SideEffect(ctx, func(ctx workflow.Context) interface{} {
+    return getCurrentState()
+}).Get(&state)
+
+// Update state deterministically
+state["result"] = result
+workflow.SideEffect(ctx, func(ctx workflow.Context) interface{} {
+    return updateState(state)
+})
+```
+
+### Propagating Workflow Context to Activities
+
+When activities need workflow metadata but you can't modify activity signatures, use Temporal Search Attributes:
+
+```go
+// In workflow: Set search attribute
+err := workflow.UpsertSearchAttributes(ctx, map[string]interface{}{
+    "WorkflowExecutionID": executionID,
+})
+
+// In activity: Read from search attributes
+activityInfo := activity.GetInfo(ctx)
+if searchAttrs := activityInfo.WorkflowExecution.SearchAttributes; searchAttrs != nil {
+    if val, ok := searchAttrs.IndexedFields["WorkflowExecutionID"]; ok {
+        var executionID string
+        val.Get(&executionID)
+    }
+}
+```
+
+**Use Case**: Progress reporting interceptor needs execution ID to report task status to backend.
+
+**Pattern**: Workflow sets search attribute → Auto-propagates to activities → Interceptor extracts from context.
+
+**Deployment**: Requires search attribute registration in Temporal (one-time):
+```bash
+temporal operator search-attribute create --name WorkflowExecutionID --type Text
+```
+
+**See**: `docs/learning-log.md` → "Execution ID Propagation via Temporal Search Attributes"
+
+### Activity Options
+
+```go
+// Configure activity timeouts and retries
+activityOptions := workflow.ActivityOptions{
+    StartToCloseTimeout: 5 * time.Minute,
+    RetryPolicy: &temporal.RetryPolicy{
+        InitialInterval:    time.Second,
+        BackoffCoefficient: 2.0,
+        MaximumInterval:    time.Minute,
+        MaximumAttempts:    5,
+    },
+}
+ctx = workflow.WithActivityOptions(ctx, activityOptions)
+
+// Execute with options
+err := workflow.ExecuteActivity(ctx, MyActivity, input).Get(ctx, &result)
+```
+
+### Logging Best Practices
+
+```go
+// In workflows - use workflow.GetLogger
+func MyWorkflow(ctx workflow.Context, input Input) error {
+    logger := workflow.GetLogger(ctx)
+    logger.Info("Workflow started", "workflowId", input.ID)
+    logger.Debug("Processing state", "state", currentState)
+    logger.Error("Workflow failed", "error", err)
+}
+
+// In activities - use activity.GetLogger
+func MyActivity(ctx context.Context, input Input) error {
+    logger := activity.GetLogger(ctx)
+    logger.Info("Activity started", "inputId", input.ID)
+    logger.Warn("Retrying operation", "attempt", attempt)
+}
+
+// Elsewhere - use standard logger
+import "log/slog"
+
+logger := slog.Default()
+logger.Info("Server starting", "port", port)
+logger.Error("Failed to connect", "error", err)
+```
+
+---
+
+## Testing Patterns
+
+### Unit Tests
+
+```go
+package zigflow
+
+import (
+    "testing"
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/require"
+)
+
+func TestWorkflowBuilder(t *testing.T) {
+    spec := &Workflow{
+        ID:      "test-workflow",
+        Version: "1.0",
+        States: []State{
+            {Name: "start", Type: "operation"},
+        },
+    }
+    
+    builder, err := BuildWorkflow(spec)
+    require.NoError(t, err)
+    assert.NotNil(t, builder)
+    assert.Equal(t, "test-workflow", builder.ID())
+}
+```
+
+### Workflow Tests (Temporal Test Suite)
+
+```go
+package zigflow
+
+import (
+    "testing"
+    "go.temporal.io/sdk/testsuite"
+)
+
+func TestWorkflowExecution(t *testing.T) {
+    testSuite := &testsuite.WorkflowTestSuite{}
+    env := testSuite.NewTestWorkflowEnvironment()
+    
+    // Mock activity
+    env.OnActivity(ExecuteWorkflowActivity, mock.Anything, mock.Anything).Return(
+        ActivityResult{Status: "success"}, nil,
+    )
+    
+    // Execute workflow
+    env.ExecuteWorkflow(WorkflowDefinition, WorkflowInput{ID: "test"})
+    
+    // Assert
+    require.True(t, env.IsWorkflowCompleted())
+    require.NoError(t, env.GetWorkflowError())
+}
+```
+
+### Integration Tests (Golden Tests)
+
+```bash
+# Run all golden tests
+make golden-tests
+
+# Run specific test
+./test/golden/test-04-parallel-concurrent.sh
+```
+
+---
+
+## Deployment Checklist
+
+Before deploying workflow-runner:
+
+- [ ] Proto stubs generated for workflow APIs
+- [ ] Environment variables configured (see Configuration Guide)
+- [ ] Temporal server reachable
+- [ ] Cloudflare R2 configured (if claim check enabled)
+- [ ] Bazel build successful
+- [ ] Unit tests passing
+- [ ] Golden tests passing
+- [ ] Docker image builds
+- [ ] Kubernetes secrets created
+- [ ] Task queue matches agent execution workflow
+
+---
+
+## Troubleshooting Guide
+
+### Workflow Non-Determinism Errors
+
+**Error**: `workflow.ExecuteActivity called at different point than expected`
+
+**Cause**: Workflow code is non-deterministic (different execution path on replay)
+
+**Fix**: 
+- Don't use random numbers, time.Now(), or external state in workflow code
+- Use workflow.SideEffect for non-deterministic operations
+- Use workflow.Now() instead of time.Now()
+
+```go
+// ❌ Wrong: Non-deterministic
+func MyWorkflow(ctx workflow.Context) error {
+    if time.Now().Hour() > 12 {  // Non-deterministic!
+        // ...
+    }
+}
+
+// ✅ Correct: Deterministic
+func MyWorkflow(ctx workflow.Context) error {
+    if workflow.Now(ctx).Hour() > 12 {  // Deterministic
+        // ...
+    }
+}
+```
+
+### Claim Check Upload Errors
+
+**Error**: `failed to upload to R2: access denied`
+
+**Fix**: Check Cloudflare R2 credentials:
+```bash
+# Verify credentials
+echo $R2_BUCKET
+echo $R2_ENDPOINT
+echo $R2_ACCESS_KEY_ID
+
+# Test R2 access (using AWS CLI)
+aws s3 ls s3://$R2_BUCKET --endpoint-url=$R2_ENDPOINT
+```
+
+### Bazel Build Errors
+
+**Error**: `no such target '//backend/services/workflow-runner:worker'`
+
+**Fix**: Regenerate BUILD files:
+```bash
+# Update all BUILD files
+bazel run //:gazelle
+
+# If still failing, clean and rebuild
+bazel clean
+bazel build //backend/services/workflow-runner/...
+```
+
+### Temporal Connection Errors
+
+**Error**: `rpc error: code = Unavailable desc = connection error`
+
+**Fix**: Verify Temporal service:
+```bash
+# Check environment
+echo $TEMPORAL_SERVICE_ADDRESS
+echo $TEMPORAL_NAMESPACE
+
+# Test connectivity
+nc -zv temporal-host 7233
+
+# Check service status
+temporal workflow list --namespace default
+```
+
+### gRPC Server Errors
+
+**Error**: `failed to start gRPC server: address already in use`
+
+**Fix**: Check port conflicts:
+```bash
+# Find process using port
+lsof -i :9090
+
+# Kill existing process
+kill -9 <PID>
+
+# Or use different port
+export GRPC_SERVER_PORT=9091
+```
+
+---
+
+## Self-Improvement Workflow
+
+After implementing features in workflow-runner:
+
+### 1. Check Learning Log First
+
+Before solving a problem, check `docs/learning-log.md`:
+- Has this issue been solved before?
+- Is there a documented pattern?
+- What was the root cause last time?
+
+### 2. Document New Learnings
+
+If you discovered something new:
+- Add entry to `docs/learning-log.md` under appropriate topic
+- Include: problem, root cause, solution, prevention
+- Link to related docs if applicable
+
+### 3. Update Reference Docs
+
+If patterns changed:
+- Update relevant doc in `docs/`
+- Add examples from real code
+- Document edge cases discovered
+
+### 4. Improve This Rule
+
+If the rule itself needs updating:
+- Invoke `@improve-this-rule.mdc`
+- Provide specific feedback on what's missing/wrong
+- AI will update the rule and its documentation
+
+---
+
+## Key Differences from Agent Runner Rule
+
+This workflow-runner rule differs from agent-runner rule:
+
+1. **Language**: Go vs Python
+2. **Build System**: Bazel vs Poetry
+3. **Architecture**: CNCF workflows + Zigflow vs Graphton agents
+4. **State Management**: Temporal workflow state vs LangGraph threads
+5. **Testing**: Go testing + Temporal test suite vs pytest
+6. **Key Feature**: Claim check pattern for large payloads
+
+---
+
+## Quick Reference
+
+**File Locations**:
+- Workflows: `pkg/zigflow/*.go`
+- Activities: `worker/activities/*.go`
+- gRPC Server: `pkg/grpc/*.go`, `cmd/grpc-server/*.go`
+- Claim Check: `pkg/claimcheck/*.go`
+- Config: `pkg/config/*.go`, `worker/config/*.go`
+- Executor: `pkg/executor/*.go`
+- Worker: `worker/worker.go`
+
+**Key Imports**:
+```go
+// Temporal
+import (
+    "go.temporal.io/sdk/workflow"
+    "go.temporal.io/sdk/activity"
+    "go.temporal.io/sdk/client"
+    "go.temporal.io/sdk/worker"
+)
+
+// gRPC
+import (
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/grpc/status"
+)
+
+// Zigflow (internal fork)
+import (
+    "stigmer/backend/services/workflow-runner/pkg/zigflow"
+)
+
+// Proto (adjust based on actual resource)
+import (
+    pb "stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+)
+```
+
+**Common Commands**:
+```bash
+# Update BUILD files
+bazel run //:gazelle
+
+# Build worker
+bazel build //backend/services/workflow-runner/cmd/worker
+
+# Build gRPC server
+bazel build //backend/services/workflow-runner/cmd/grpc-server
+
+# Run tests
+bazel test //backend/services/workflow-runner/...
+
+# Run golden tests
+make golden-tests
+
+# Run worker locally
+bazel run //backend/services/workflow-runner:workflow_runner -- \
+  --file example-workflow.yaml \
+  --temporal-address localhost:7233
+
+# Build Docker image
+docker build -f Dockerfile -t workflow-runner .
+```
+
+---
+
+## Related Rules
+
+- `@model-stigmer-protos` - Create proto definitions first
+- `@implement-agent-runner-features` - Python agent execution
+- `@complete-stigmer-work` - Finalize and commit work
+- `@improve-this-rule` - Update this rule based on learnings
