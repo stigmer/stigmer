@@ -13,13 +13,14 @@
 ✅ **Controller Refactoring Complete** - Removed all manual logic, pure pipeline pattern achieved  
 ✅ **BadgerDB Migration Complete** - Storage layer migrated from SQLite to BadgerDB  
 ✅ **Go Package Structure Refactoring Complete** - Idiomatic Go organization (domain package pattern)  
-✅ **Validation Step Added** - ValidateProtoStep integrated, Cloud parity 58% (7/12 steps)
+✅ **Validation Step Added** - ValidateProtoStep integrated, Cloud parity 58% (7/12 steps)  
+✅ **Inline Steps Refactoring** - Agent-specific steps inlined into create.go (Java pattern alignment)
 
 ## Project Status
 
-🎉 **PHASE 1-7 COMPLETE** 🎉
+🎉 **PHASE 1-7.2 COMPLETE** 🎉
 
-**Latest:** Validation step added to agent create pipeline. Cloud parity increased to 58% (7/12 steps).  
+**Latest:** Agent-specific pipeline steps inlined into create.go, matching Java pattern. Code structure now fully aligned with stigmer-cloud.  
 **Next:** AgentInstance implementation to reach 75% Cloud parity.
 
 ## What Was Accomplished
@@ -99,35 +100,53 @@ This project successfully implemented a pipeline framework for the Stigmer OSS a
 
 ## Files to Reference
 
-- **Latest Checkpoint:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/checkpoints/2026-01-18-validation-step-added.md`
-- **Latest Changelog:** `@stigmer/_changelog/2026-01/2026-01-18-200103-add-validation-step-to-agent-create-pipeline.md`
+- **Latest Checkpoint:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/checkpoints/2026-01-18-inline-agent-pipeline-steps.md`
+- **Latest Changelog:** `@stigmer/_changelog/2026-01/2026-01-18-202236-inline-agent-pipeline-steps.md`
 - **Package Architecture:** `@stigmer/backend/services/stigmer-server/pkg/controllers/agent/README.md`
 - **README:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/README.md`
 - **Pipeline Docs:** `@stigmer/backend/libs/go/grpc/request/pipeline/README.md`
-- **Previous Checkpoint:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/checkpoints/2026-01-18-go-package-structure-refactoring.md`
+- **Previous Checkpoint:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/checkpoints/2026-01-18-validation-step-added.md`
 
-## Latest Work: Phase 7.1 - Validation Step Integration ✅
+## Latest Work: Phase 7.2 - Inline Agent Pipeline Steps ✅
 
 **Completed:** 2026-01-18
 
-### Validation Integration
+### Code Structure Refactoring (Java Pattern Alignment)
 
 **What Changed**:
-- Added `ValidateProtoStep` as first step in agent create pipeline
-- Improved step constructor pattern (removed error return, use panic)
-- Updated tests to match new constructor signature
+- Inlined agent-specific pipeline steps into `create.go`
+- Deleted separate `steps/` directory (3 files → 1 file)
+- Added factory methods on controller (`newCreateDefaultInstanceStep()`, etc.)
+- Documented in-process gRPC pattern for future AgentInstance implementation
 
 **Impact**:
-- Cloud parity increased from 50% to 58% (7/12 steps)
-- Proto field constraints now validated before processing
-- Consistent step constructor pattern across all generic steps
+- ✅ **Java Pattern Alignment**: Matches `AgentCreateHandler` inner class pattern
+- ✅ **Code Locality**: Complete create flow visible in single file
+- ✅ **Reduced Navigation**: No need to jump between files for handler-specific steps
+- ✅ **Clear Separation**: Common steps in `pipeline/steps/`, handler-specific steps inline
 
-**Files Modified**:
+**Files Changed**:
 ```
-backend/libs/go/grpc/request/pipeline/steps/validation.go
-backend/libs/go/grpc/request/pipeline/steps/validation_test.go
-backend/services/stigmer-server/pkg/controllers/agent/create.go
+Modified:
+- backend/services/stigmer-server/pkg/controllers/agent/create.go (62 → 210 lines)
+
+Deleted:
+- backend/services/stigmer-server/pkg/controllers/agent/steps/create_default_instance.go
+- backend/services/stigmer-server/pkg/controllers/agent/steps/update_agent_status.go
+- backend/services/stigmer-server/pkg/controllers/agent/steps/ (directory removed)
 ```
+
+**Pattern Decision**:
+- **Common steps** (used by all controllers) → `pipeline/steps/`
+- **Handler-specific steps** (used by one controller) → Inline in handler file
+
+**See**: `@checkpoints/2026-01-18-inline-agent-pipeline-steps.md`
+
+---
+
+## Previous Work: Phase 7.1 - Validation Step Integration ✅
+
+**Completed:** 2026-01-18
 
 **See**: `@checkpoints/2026-01-18-validation-step-added.md`
 

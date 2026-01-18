@@ -1,7 +1,7 @@
 # Agent Controller Pipeline Framework
 
 **Created:** 2026-01-18  
-**Status:** Phase 7.1 Complete - Validation Step Integration (58% Cloud Parity)  
+**Status:** Phase 7.2 Complete - Inline Steps Refactoring (58% Cloud Parity, Java Pattern Aligned)  
 **Timeline:** Multi-day iterative implementation
 
 ## Project Description
@@ -139,6 +139,17 @@ New Components to Create:
 - **Files Modified:** 3 (validation.go, validation_test.go, create.go)
 - **See:** `checkpoints/2026-01-18-validation-step-added.md`
 
+### Phase 7.2: Inline Agent Pipeline Steps ✅ COMPLETE
+- ✅ Inlined agent-specific steps into create.go
+- ✅ Deleted separate steps/ directory (3 files → 1 file)
+- ✅ Added factory methods on controller
+- ✅ Documented in-process gRPC pattern for future use
+- ✅ Full alignment with Java AgentCreateHandler pattern
+- **Completed:** 2026-01-18
+- **Files Modified:** 1 (create.go: 62 → 210 lines)
+- **Files Deleted:** 2 (create_default_instance.go, update_agent_status.go)
+- **See:** `checkpoints/2026-01-18-inline-agent-pipeline-steps.md`
+
 ### Phase 8: AgentInstance Implementation (Next)
 - [ ] Define AgentInstance proto
 - [ ] Implement AgentInstance controller
@@ -217,4 +228,5 @@ To resume work on this project in any session:
 - [x] Phase 6: BadgerDB Migration & Cloud Alignment (50% Cloud parity)
 - [x] Phase 7: Go Package Structure Refactoring
 - [x] Phase 7.1: Validation Step Integration (58% Cloud parity)
+- [x] Phase 7.2: Inline Agent Pipeline Steps (Java pattern alignment)
 - [ ] Phase 8: AgentInstance Implementation (Next - 75% Cloud parity target)
