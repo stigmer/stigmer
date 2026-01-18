@@ -2,8 +2,10 @@ version: v2
 deps:
   - buf.build/bufbuild/protovalidate
 modules:
-  - path: apis
+  - path: .
     name: buf.build/stigmer/stigmer
+    excludes:
+      - stubs
 lint:
   use:
     - STANDARD
