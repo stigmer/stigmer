@@ -4,138 +4,276 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	workflowexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflowexecution/v1"
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/proto"
 )
 
-// UpdateStatus updates workflow execution status during workflow execution.
+// UpdateStatus updates execution status during workflow execution
 //
-// This RPC is called by the workflow-runner to send progressive status updates
-// (phase transitions, task states, output, errors, etc.).
+// Used by workflow-runner to send progressive status updates (tasks, phase, etc.)
+// This RPC is optimized for frequent status updates and merges status fields with existing state.
 //
-// This handler is optimized for frequent status updates and merges status fields
-// with existing state without requiring the full execution resource.
+// Pipeline Steps:
+// 1. ValidateInput - Validate execution_id and status are provided
+// 2. LoadExisting - Load existing execution from DB
+// 3. BuildNewStateWithStatus - Merge status updates from input
+// 4. Persist - Save to database
+// 5. BroadcastToStreams - Push update to active Go channels (ADR 011)
 //
-// What Can Be Updated:
-// - status.phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
-// - status.tasks (update task statuses, outputs, errors)
-// - status.output (set final workflow output when COMPLETED)
-// - status.error (set error message when FAILED)
-// - status.started_at (set when execution starts)
-// - status.completed_at (set when execution finishes)
-//
-// What Cannot Be Updated:
-// - spec.* (user inputs are immutable after creation)
-// - metadata.id (resource ID is immutable)
-// - status.audit.created_at (creation timestamp is immutable)
-//
-// Implementation Notes:
-// - This is a DIRECT implementation (not using pipeline pattern)
-// - Loads existing execution, merges status updates, persists
-// - Updates status.audit.updated_at timestamp
-// - Returns updated execution for confirmation
-//
-// Authorization:
-// In Cloud, this RPC verifies caller is the workflow runner service (system identity).
-// In OSS, we skip authorization checks (single-user local environment).
-//
-// Use Cases:
-// 1. Task Started: Workflow runner updates status.tasks[i].status = IN_PROGRESS
-// 2. Task Completed: Workflow runner updates status.tasks[i].status = COMPLETED, sets output
-// 3. Task Failed: Workflow runner updates status.tasks[i].status = FAILED, sets error
-// 4. Workflow Completed: Workflow runner updates status.phase = COMPLETED, sets output
-// 5. Workflow Failed: Workflow runner updates status.phase = FAILED, sets error
-// 6. Workflow Cancelled: Workflow runner updates status.phase = CANCELLED
+// Note: Compared to Stigmer Cloud, OSS excludes:
+// - Authorize step (no multi-tenant auth in OSS)
+// - PublishToRedis step (no Redis in OSS - uses in-memory Go channels instead per ADR 011)
+// - Publish step (no event publishing in OSS)
 func (c *WorkflowExecutionController) UpdateStatus(ctx context.Context, input *workflowexecutionv1.WorkflowExecutionUpdateStatusInput) (*workflowexecutionv1.WorkflowExecution, error) {
-	executionID := input.GetExecutionId()
-	statusUpdate := input.GetStatus()
+	// Create request context with input
+	reqCtx := pipeline.NewRequestContext(ctx, input)
 
-	if executionID == "" {
-		return nil, grpclib.InvalidArgumentError("execution_id is required")
+	// Build pipeline
+	p := pipeline.NewPipeline[*workflowexecutionv1.WorkflowExecutionUpdateStatusInput]("workflowexecution-update-status").
+		AddStep(newValidateUpdateStatusInputStep()).
+		AddStep(newLoadExistingExecutionStep(c.store)).
+		AddStep(newBuildNewStateWithStatusStep()).
+		AddStep(newPersistExecutionStep(c.store)).
+		AddStep(newBroadcastToStreamsStep(c.streamBroker)).
+		Build()
+
+	// Execute pipeline
+	if err := p.Execute(reqCtx); err != nil {
+		return nil, err
 	}
 
-	if statusUpdate == nil {
-		return nil, grpclib.InvalidArgumentError("status is required")
+	// Return updated execution from context
+	execution, ok := reqCtx.Get("execution").(*workflowexecutionv1.WorkflowExecution)
+	if !ok {
+		return nil, grpclib.InternalError(nil, "execution not found in context after pipeline")
+	}
+
+	return execution, nil
+}
+
+// ValidateUpdateStatusInputStep validates the input for UpdateStatus
+type ValidateUpdateStatusInputStep struct{}
+
+func newValidateUpdateStatusInputStep() *ValidateUpdateStatusInputStep {
+	return &ValidateUpdateStatusInputStep{}
+}
+
+func (s *ValidateUpdateStatusInputStep) Name() string {
+	return "ValidateUpdateStatusInput"
+}
+
+func (s *ValidateUpdateStatusInputStep) Execute(ctx *pipeline.RequestContext[*workflowexecutionv1.WorkflowExecutionUpdateStatusInput]) error {
+	input := ctx.Input()
+
+	if input == nil {
+		return grpclib.InvalidArgumentError("input is required")
+	}
+
+	if input.ExecutionId == "" {
+		return grpclib.InvalidArgumentError("execution_id is required")
+	}
+
+	if input.Status == nil {
+		return grpclib.InvalidArgumentError("status is required")
 	}
 
 	log.Debug().
+		Str("execution_id", input.ExecutionId).
+		Msg("Validated UpdateStatus input")
+
+	return nil
+}
+
+// LoadExistingExecutionStep loads the existing execution from database
+type LoadExistingExecutionStep struct {
+	store *badger.Store
+}
+
+func newLoadExistingExecutionStep(store *badger.Store) *LoadExistingExecutionStep {
+	return &LoadExistingExecutionStep{store: store}
+}
+
+func (s *LoadExistingExecutionStep) Name() string {
+	return "LoadExistingExecution"
+}
+
+func (s *LoadExistingExecutionStep) Execute(ctx *pipeline.RequestContext[*workflowexecutionv1.WorkflowExecutionUpdateStatusInput]) error {
+	input := ctx.Input()
+	executionID := input.ExecutionId
+
+	log.Debug().
 		Str("execution_id", executionID).
-		Str("phase", statusUpdate.GetPhase().String()).
-		Int("tasks_count", len(statusUpdate.GetTasks())).
-		Msg("Updating workflow execution status")
+		Msg("Loading existing execution")
 
-	// 1. Load existing execution
 	existing := &workflowexecutionv1.WorkflowExecution{}
-	if err := c.store.GetResource(ctx, "WorkflowExecution", executionID, existing); err != nil {
+	if err := s.store.GetResource(ctx.Context(), "WorkflowExecution", executionID, existing); err != nil {
+		return grpclib.NotFoundError("WorkflowExecution", executionID)
+	}
+
+	// Store existing execution in context for merge step
+	ctx.Set("existingExecution", existing)
+
+	log.Debug().
+		Str("execution_id", executionID).
+		Str("phase", existing.Status.GetPhase().String()).
+		Msg("Loaded existing execution")
+
+	return nil
+}
+
+// BuildNewStateWithStatusStep merges status updates from input with existing execution
+//
+// This step follows the Java implementation's merge logic:
+// - Replaces tasks array
+// - Updates phase, output, error, timestamps if provided
+// - Preserves spec from existing execution (does NOT update spec)
+type BuildNewStateWithStatusStep struct{}
+
+func newBuildNewStateWithStatusStep() *BuildNewStateWithStatusStep {
+	return &BuildNewStateWithStatusStep{}
+}
+
+func (s *BuildNewStateWithStatusStep) Name() string {
+	return "BuildNewStateWithStatus"
+}
+
+func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*workflowexecutionv1.WorkflowExecutionUpdateStatusInput]) error {
+	input := ctx.Input()
+	existing, ok := ctx.Get("existingExecution").(*workflowexecutionv1.WorkflowExecution)
+	if !ok {
+		return grpclib.InternalError(nil, "existing execution not found in context")
+	}
+
+	// Start with existing execution as base (cloning)
+	updated := proto.Clone(existing).(*workflowexecutionv1.WorkflowExecution)
+
+	// Ensure status is initialized
+	if updated.Status == nil {
+		updated.Status = &workflowexecutionv1.WorkflowExecutionStatus{}
+	}
+
+	requestStatus := input.Status
+
+	// CRITICAL: Merge status from input (for progressive updates from workflow-runner)
+	// Following Java implementation's merge strategy
+
+	// Merge tasks (replace with latest from request)
+	if len(requestStatus.Tasks) > 0 {
+		updated.Status.Tasks = requestStatus.Tasks
+	}
+
+	// Update phase (if provided)
+	if requestStatus.Phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED {
+		updated.Status.Phase = requestStatus.Phase
+	}
+
+	// Update output (if provided)
+	if requestStatus.Output != nil {
+		updated.Status.Output = requestStatus.Output
+	}
+
+	// Update error (if provided)
+	if requestStatus.Error != "" {
+		updated.Status.Error = requestStatus.Error
+	}
+
+	// Update timestamps (if provided)
+	if requestStatus.StartedAt != "" {
+		updated.Status.StartedAt = requestStatus.StartedAt
+	}
+	if requestStatus.CompletedAt != "" {
+		updated.Status.CompletedAt = requestStatus.CompletedAt
+	}
+
+	// Update temporal workflow ID (if provided)
+	if requestStatus.TemporalWorkflowId != "" {
+		updated.Status.TemporalWorkflowId = requestStatus.TemporalWorkflowId
+	}
+
+	log.Debug().
+		Str("execution_id", input.ExecutionId).
+		Str("phase", updated.Status.Phase.String()).
+		Int("tasks_count", len(updated.Status.Tasks)).
+		Msg("Merged status fields")
+
+	// Store merged execution in context for persist step
+	ctx.Set("execution", updated)
+
+	return nil
+}
+
+// PersistExecutionStep saves the execution to database
+type PersistExecutionStep struct {
+	store *badger.Store
+}
+
+func newPersistExecutionStep(store *badger.Store) *PersistExecutionStep {
+	return &PersistExecutionStep{store: store}
+}
+
+func (s *PersistExecutionStep) Name() string {
+	return "PersistExecution"
+}
+
+func (s *PersistExecutionStep) Execute(ctx *pipeline.RequestContext[*workflowexecutionv1.WorkflowExecutionUpdateStatusInput]) error {
+	execution, ok := ctx.Get("execution").(*workflowexecutionv1.WorkflowExecution)
+	if !ok {
+		return grpclib.InternalError(nil, "execution not found in context")
+	}
+
+	executionID := execution.Metadata.Id
+
+	if err := s.store.SaveResource(ctx.Context(), "WorkflowExecution", executionID, execution); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).
-			Msg("Failed to load workflow execution")
-		return nil, grpclib.NotFoundError("WorkflowExecution", executionID)
-	}
-
-	// 2. Merge status fields
-	if existing.Status == nil {
-		existing.Status = &workflowexecutionv1.WorkflowExecutionStatus{}
-	}
-
-	// Merge phase
-	if statusUpdate.Phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED {
-		existing.Status.Phase = statusUpdate.Phase
-	}
-
-	// Merge tasks (replace entire tasks array if provided)
-	if statusUpdate.Tasks != nil {
-		existing.Status.Tasks = statusUpdate.Tasks
-	}
-
-	// Merge output
-	if statusUpdate.Output != nil {
-		existing.Status.Output = statusUpdate.Output
-	}
-
-	// Merge error
-	if statusUpdate.Error != "" {
-		existing.Status.Error = statusUpdate.Error
-	}
-
-	// Merge timestamps
-	if statusUpdate.StartedAt != "" {
-		existing.Status.StartedAt = statusUpdate.StartedAt
-	}
-
-	if statusUpdate.CompletedAt != "" {
-		existing.Status.CompletedAt = statusUpdate.CompletedAt
-	}
-
-	if statusUpdate.TemporalWorkflowId != "" {
-		existing.Status.TemporalWorkflowId = statusUpdate.TemporalWorkflowId
-	}
-
-	// 3. Update audit timestamp
-	if existing.Status.Audit == nil {
-		existing.Status.Audit = &apiresource.ApiResourceAudit{}
-	}
-	if existing.Status.Audit.StatusAudit == nil {
-		existing.Status.Audit.StatusAudit = &apiresource.ApiResourceAuditInfo{}
-	}
-	existing.Status.Audit.StatusAudit.UpdatedAt = timestamppb.Now()
-
-	// 4. Persist updated execution
-	if err := c.store.SaveResource(ctx, "WorkflowExecution", executionID, existing); err != nil {
-		log.Error().
-			Err(err).
-			Str("execution_id", executionID).
-			Msg("Failed to persist workflow execution status update")
-		return nil, grpclib.InternalError(err, "failed to update workflow execution status")
+			Msg("Failed to persist execution with updated status")
+		return grpclib.InternalError(err, "failed to update execution status")
 	}
 
 	log.Info().
 		Str("execution_id", executionID).
-		Str("phase", existing.Status.Phase.String()).
-		Msg("Successfully updated workflow execution status")
+		Str("phase", execution.Status.Phase.String()).
+		Msg("Successfully updated execution status")
 
-	return existing, nil
+	return nil
+}
+
+// BroadcastToStreamsStep broadcasts the execution update to all active subscribers
+//
+// This implements the "Daemon (Streaming): Pushes message to active Go Channels" step
+// from ADR 011 Write Path.
+//
+// After persisting to BadgerDB, the daemon must push updates to in-memory channels
+// so that Subscribe() streams can receive updates in real-time without polling.
+type BroadcastToStreamsStep struct {
+	broker *StreamBroker
+}
+
+func newBroadcastToStreamsStep(broker *StreamBroker) *BroadcastToStreamsStep {
+	return &BroadcastToStreamsStep{broker: broker}
+}
+
+func (s *BroadcastToStreamsStep) Name() string {
+	return "BroadcastToStreams"
+}
+
+func (s *BroadcastToStreamsStep) Execute(ctx *pipeline.RequestContext[*workflowexecutionv1.WorkflowExecutionUpdateStatusInput]) error {
+	execution, ok := ctx.Get("execution").(*workflowexecutionv1.WorkflowExecution)
+	if !ok {
+		return grpclib.InternalError(nil, "execution not found in context")
+	}
+
+	// Broadcast to all active subscribers
+	s.broker.Broadcast(execution)
+
+	log.Debug().
+		Str("execution_id", execution.Metadata.Id).
+		Int("subscribers", s.broker.GetSubscriberCount(execution.Metadata.Id)).
+		Msg("Broadcasted execution update to subscribers")
+
+	return nil
 }
