@@ -1,17 +1,17 @@
-package controllers
+package agent
 
 import (
 	"context"
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/libs/go/sqlite"
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
 )
 
 func TestAgentController_Create(t *testing.T) {
-	// Create in-memory SQLite store
-	store, err := sqlite.NewStore(":memory:")
+	// Create temporary BadgerDB store
+	store, err := badger.NewStore(t.TempDir() + "/badger")
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestAgentController_Create(t *testing.T) {
 }
 
 func TestAgentController_Update(t *testing.T) {
-	store, err := sqlite.NewStore(":memory:")
+	store, err := badger.NewStore(t.TempDir() + "/badger")
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestAgentController_Update(t *testing.T) {
 }
 
 func TestAgentController_Delete(t *testing.T) {
-	store, err := sqlite.NewStore(":memory:")
+	store, err := badger.NewStore(t.TempDir() + "/badger")
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
