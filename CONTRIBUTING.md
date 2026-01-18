@@ -60,7 +60,7 @@ make coverage
 Protocol Buffer definitions are in `apis/`. After modifying protos:
 
 ```bash
-make proto-gen
+make protos
 ```
 
 This generates Go and Python code from `.proto` files.

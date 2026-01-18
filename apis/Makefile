@@ -6,25 +6,25 @@ help:
 	@echo "Available targets:"
 	@echo ""
 	@echo "  Build:"
-	@echo "    make build       - Lint, format, and generate all stubs"
-	@echo "    make protos      - Alias for build"
+	@echo "    make build        - Lint, format, and generate all stubs"
+	@echo "    make protos       - Alias for build"
 	@echo ""
 	@echo "  Linting & Formatting:"
-	@echo "    make lint        - Run buf lint"
-	@echo "    make fmt         - Format proto files"
+	@echo "    make lint         - Run buf lint"
+	@echo "    make fmt          - Format proto files"
 	@echo ""
 	@echo "  Stub Generation:"
-	@echo "    make go-stubs    - Generate Go stubs only"
+	@echo "    make go-stubs     - Generate Go stubs only"
 	@echo "    make python-stubs - Generate Python stubs only"
 	@echo ""
 	@echo "  Publishing:"
-	@echo "    make push        - Push protos to Buf Schema Registry (buf.build/stigmer/stigmer)"
-	@echo "    make release     - Lint, format, generate, and push to Buf (full release)"
+	@echo "    make push         - Push protos to Buf Schema Registry (buf.build/stigmer/stigmer)"
+	@echo "    make release      - Lint, format, generate, and push to Buf (full release)"
 	@echo ""
 	@echo "  Maintenance:"
-	@echo "    make clean       - Remove all generated stubs"
-	@echo "    make update      - Update buf dependencies"
-	@echo "    make prep        - Clean and initialize stub directories"
+	@echo "    make clean        - Remove all generated stubs"
+	@echo "    make update       - Update buf dependencies"
+	@echo "    make prep         - Clean and initialize stub directories"
 
 # --------------------------------------------------------------------------- #
 #  Core build targets
@@ -79,11 +79,12 @@ GO_STUBS_DIR := stubs/go
 
 .PHONY: go-stubs-clean
 go-stubs-clean:
-	rm -rf $(GO_STUBS_DIR)
+	@echo "Cleaning Go stubs..."
+	@rm -rf $(GO_STUBS_DIR)
 
 .PHONY: go-stubs-init
 go-stubs-init:
-	mkdir -p $(GO_STUBS_DIR)
+	@mkdir -p $(GO_STUBS_DIR)
 
 .PHONY: go-stubs-fix-structure
 go-stubs-fix-structure:
@@ -109,12 +110,19 @@ go-stubs-ensure-gomod:
 		echo "✓ go.mod updated"; \
 	fi
 
+.PHONY: go-stubs-generate-build-files
+go-stubs-generate-build-files:
+	@echo "Generating BUILD.bazel files for Go stubs..."
+	@cd .. && ./bazelw run //:gazelle
+	@echo "✓ BUILD.bazel files generated"
+
 .PHONY: go-stubs
 go-stubs: go-stubs-clean go-stubs-init
 	@echo "Generating Go stubs..."
 	@$(BUF) generate --template buf.gen.go.yaml
 	@$(MAKE) go-stubs-fix-structure
 	@$(MAKE) go-stubs-ensure-gomod
+	@$(MAKE) go-stubs-generate-build-files
 	@echo "✓ Go stubs generated successfully"
 
 # --------------------------------------------------------------------------- #

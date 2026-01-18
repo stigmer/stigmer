@@ -113,7 +113,7 @@ Lines of Code: ~3,000
 - Read and understood by developers
 
 **Not yet functional**:
-- Proto code generation (need to run `make proto-gen`)
+- Proto code generation (need to run `make protos`)
 - Backend CRUD operations (stubs only)
 - Actual agent/workflow execution
 - Secret encryption
@@ -190,7 +190,7 @@ Compared to Stigmer Cloud, local mode removes:
 1. **Generate Protobuf Code**:
    ```bash
    cd /Users/suresh/scm/github.com/stigmer/stigmer
-   make proto-gen
+   make protos
    ```
 
 2. **Implement BadgerDB CRUD**:
@@ -322,7 +322,7 @@ Compared to Stigmer Cloud, local mode removes:
 
 | Risk | Impact | Mitigation | Status |
 |------|--------|------------|--------|
-| Proto code gen fails | High | Test with `make proto-gen` | 🔜 Next |
+| Proto code gen fails | High | Test with `make protos` | 🔜 Next |
 | BadgerDB concurrency | Low | Built-in MVCC support | ✅ Planned |
 | Community adoption | Medium | Strong docs, examples | ✅ Done |
 | Code migration complexity | High | Careful analysis, tests | 🔜 Phase 2 |
@@ -343,4 +343,4 @@ Phase 1 successfully established the foundational architecture for open source S
 
 ---
 
-**Next Action**: Run `make proto-gen` and begin implementing BadgerDB CRUD operations in Phase 2.
+**Next Action**: Run `make protos` and begin implementing BadgerDB CRUD operations in Phase 2.
