@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agent.v1;
+
+import "ai/stigmer/agentic/agent/v1/spec.proto";
+import "ai/stigmer/agentic/agent/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// Agent represents an AI agent definition with Graphton configuration.
+message Agent {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Agent'];
+
+  // Standard resource metadata including name, id, labels, and tags.
+  // Agents can only have platform or organization scope (not identity_account).
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "agent.owner_scope.platform_or_org_only"
+      message: "Agent resources can only have platform or organization scope"
+      expression: "this.owner_scope == 1 || this.owner_scope == 2"
+    }
+  ];
+
+  // Agent-specific configuration.
+  AgentSpec spec = 4;
+
+  // System-managed status containing audit information and default instance ID.
+  AgentStatus status = 5;
+}

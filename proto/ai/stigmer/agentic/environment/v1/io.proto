@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.environment.v1;
+
+import "buf/validate/validate.proto";
+
+// EnvironmentId wraps an Environment identifier.
+message EnvironmentId {
+  string value = 1 [(buf.validate.field).required = true];
+}

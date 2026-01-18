@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package ai.stigmer.commons.rpc;
+
+message PageInfo {
+  int32 num = 1;
+  int32 size = 2;
+}
+
+//google style of pagination
+message GooglePageInfo {
+  //google apis include a token to retrieve next page of results.
+  //if there are no more items to return, the next_page_token is empty
+  string page_token = 1;
+  //number of items to include in the result
+  int32 size = 2;
+}

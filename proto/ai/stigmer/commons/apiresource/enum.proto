@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package ai.stigmer.commons.apiresource;
+
+//enumeration of the union of all event types used across all the api resources.
+//this is used for specifying the event type produced by rpc methods in command controllers.
+//using different enum for these event types while specifying in rpc methods and individual api resource would
+// work because the events are eventually converted to strings during message passing.
+enum ApiResourceEventType {
+  unspecified = 0;
+  created = 1;
+  updated = 2;
+  deleted = 3;
+  renamed = 4;
+  //this is only applicable for cloud-resources
+  stack_outputs_updated = 5;
+}
+
+enum ApiResourceStateOperationType {
+  api_resource_state_operation_type_unspecified = 0;
+  create = 1;
+  update = 2;
+  delete = 3;
+  read = 4;
+  stream = 5;
+}
+
+// Defines who owns and has primary control over an API resource.
+// Ownership determines visibility and access control rules.
+// This enum is used across multiple resource types (agents, MCP servers, etc.)
+// Values align with FGA model owner types: platform, organization, identity_account.
+enum ApiResourceOwnerScope {
+  // Default/unspecified value - should not be used in practice.
+  // When unspecified, backend should infer from context or reject.
+  api_resource_owner_scope_unspecified = 0;
+
+  // Platform-owned resources created by platform operators.
+  // These are official/public resources visible to all users.
+  // Examples: Official agents, pre-configured MCP servers
+  platform = 1;
+
+  // Organization-owned resources created by org admins.
+  // These are visible only to members of the owning organization.
+  // Examples: Custom enterprise agents, org-specific tools
+  organization = 2;
+
+  // Identity account-owned resources created by individual users.
+  // These are private resources visible only to the owning identity account.
+  // Examples: Personal agents, private experiments
+  identity_account = 3;
+}
+
+// WorkflowTaskKind enum defines all supported task types in workflows.
+// These map directly to Zigflow DSL task types.
+//
+// Task config schemas (for each kind):
+//
+// SET: {"variables": {"key": "value", ...}}
+// HTTP_CALL: {"method": "POST", "endpoint": {"uri": "..."}, "headers": {...}, "body": {...}}
+// GRPC_CALL: {"service": "...", "method": "...", "request": {...}}
+// CALL_ACTIVITY: {"activity": "ActivityName", "input": {...}}
+// SWITCH: {"cases": [{"name": "...", "when": "${expr}", "then": "taskName"}, ...]}
+// FOR: {"each": "item", "in": "${$data.items}", "do": [{task}, ...]}
+// FORK: {"branches": [{"name": "...", "do": [{task}, ...]}, ...], "compete": false}
+// TRY: {"try": [{task}, ...], "catch": {"as": "error", "do": [{task}, ...]}}
+// LISTEN: {"to": {"mode": "one", "signals": [{"id": "...", "type": "signal"}]}}
+// WAIT: {"seconds": 5}
+// RAISE: {"error": "ErrorType", "message": "${...}"}
+// RUN: {"workflow": "workflow-name", "input": {...}}
+enum WorkflowTaskKind {
+  // Unspecified (invalid).
+  WORKFLOW_TASK_KIND_UNSPECIFIED = 0;
+
+  // SET: Set variables in workflow state.
+  WORKFLOW_TASK_KIND_SET = 1;
+
+  // HTTP_CALL: Make HTTP requests (GET, POST, PUT, DELETE, PATCH).
+  WORKFLOW_TASK_KIND_HTTP_CALL = 2;
+
+  // GRPC_CALL: Make gRPC requests.
+  WORKFLOW_TASK_KIND_GRPC_CALL = 3;
+
+  // CALL_ACTIVITY: Execute Temporal activities.
+  WORKFLOW_TASK_KIND_CALL_ACTIVITY = 4;
+
+  // SWITCH: Conditional branching based on expressions.
+  WORKFLOW_TASK_KIND_SWITCH = 5;
+
+  // FOR: Iterate over collections (forEach loop).
+  WORKFLOW_TASK_KIND_FOR = 6;
+
+  // FORK: Parallel execution of multiple branches.
+  WORKFLOW_TASK_KIND_FORK = 7;
+
+  // TRY: Error handling (try/catch).
+  WORKFLOW_TASK_KIND_TRY = 8;
+
+  // LISTEN: Wait for external signals/events.
+  WORKFLOW_TASK_KIND_LISTEN = 9;
+
+  // WAIT: Sleep/delay (Temporal timer).
+  WORKFLOW_TASK_KIND_WAIT = 10;
+
+  // RAISE: Raise errors/exceptions.
+  WORKFLOW_TASK_KIND_RAISE = 11;
+
+  // RUN: Execute sub-workflows.
+  WORKFLOW_TASK_KIND_RUN = 12;
+
+  // AGENT_CALL: Invoke AI agents as tasks.
+  // Allows workflows to delegate complex operations to specialized agents.
+  WORKFLOW_TASK_KIND_AGENT_CALL = 13;
+}

@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.session.v1;
+
+import "buf/validate/validate.proto";
+
+// SessionSpec defines the configurable properties of an agent conversation session.
+// This is the "Execution" layer - ephemeral runtime against an AgentInstance.
+message SessionSpec {
+  // ID of the AgentInstance this session runs against (required).
+  // The instance contains all configuration and secrets needed for execution.
+  string agent_instance_id = 1 [(buf.validate.field).required = true];
+
+  // Conversation title/subject for UI display (optional).
+  string subject = 2;
+
+  // thread ID (generated on first execution, persists across all executions).
+  string thread_id = 3;
+
+  // Daytona sandbox ID (created on first execution, reused for file persistence).
+  string sandbox_id = 4;
+
+  // Session metadata (e.g., client info, tags).
+  map<string, string> metadata = 5;
+}

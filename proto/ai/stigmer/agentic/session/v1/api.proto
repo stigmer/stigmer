@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.session.v1;
+
+import "ai/stigmer/agentic/session/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+
+// Session represents a multi-turn conversation thread with an agent.
+message Session {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Session'];
+
+  // Standard resource metadata including name, id, labels, and tags.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "session.owner_scope.org_or_identity_only"
+      message: "Session resources can only have organization or identity_account scope"
+      expression: "this.owner_scope == 2 || this.owner_scope == 3"
+    }
+  ];
+
+  // Session-specific configuration.
+  SessionSpec spec = 4;
+
+  // System-managed status containing audit information.
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+}

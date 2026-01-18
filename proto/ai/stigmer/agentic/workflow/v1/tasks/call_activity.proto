@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+// CallActivityTaskConfig defines the configuration for CALL_ACTIVITY tasks.
+//
+// CALL_ACTIVITY tasks execute Temporal activities.
+//
+// YAML Example:
+//   - taskName:
+//       call: activity
+//       with:
+//         activity: "ProcessDataActivity"
+//         input:
+//           data: ${ .data }
+//
+// Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
+message CallActivityTaskConfig {
+  // Activity name to execute.
+  // Must match registered Temporal activity.
+  string activity = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Activity input (optional).
+  // Can be any JSON structure.
+  // Supports expressions in string values.
+  google.protobuf.Struct input = 2;
+}

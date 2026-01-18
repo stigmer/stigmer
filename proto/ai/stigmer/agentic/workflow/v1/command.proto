@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1;
+
+import "ai/stigmer/agentic/workflow/v1/api.proto";
+import "ai/stigmer/agentic/workflow/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// WorkflowCommandController handles write operations for workflows.
+service WorkflowCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = workflow;
+
+  // Create or update a workflow.
+  // The authorization and state-operation are determined depending on whether the workflow
+  // is going to be created or updated which is determined as part of the request execution.
+  rpc apply(Workflow) returns (Workflow);
+
+  // Create a new workflow.
+  //
+  // Authorization:
+  // - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
+  // - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
+  rpc create(Workflow) returns (Workflow) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_workflow;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.org";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to create workflow in this organization";
+  }
+
+  // Update an existing workflow.
+  rpc update(Workflow) returns (Workflow) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update workflow";
+  }
+
+  // Delete a workflow.
+  rpc delete(WorkflowId) returns (Workflow) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete workflow";
+  }
+}

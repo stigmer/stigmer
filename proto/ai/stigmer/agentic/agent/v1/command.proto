@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agent.v1;
+
+import "ai/stigmer/agentic/agent/v1/api.proto";
+import "ai/stigmer/agentic/agent/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// AgentCommandController handles write operations for AI agents.
+service AgentCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent;
+
+  // Create or update an agent.
+  // The authorization and state-operation are determined depending on whether the agent
+  // is going to be created or updated which is determined as part of the request execution.
+  rpc apply(Agent) returns (Agent);
+
+  // Create a new agent.
+  //
+  // Authorization:
+  // - Organization-scoped agents: Caller must have can_create_agent permission in the organization
+  // - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
+  rpc create(Agent) returns (Agent) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_agent;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.org";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to create agent in this organization";
+  }
+
+  // Update an existing agent.
+  rpc update(Agent) returns (Agent) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update agent";
+  }
+
+  // Delete an agent.
+  rpc delete(AgentId) returns (Agent) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete agent";
+  }
+}

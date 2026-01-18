@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "buf/validate/validate.proto";
+
+// WaitTaskConfig defines the configuration for WAIT tasks.
+//
+// WAIT tasks pause workflow execution (Temporal timer).
+//
+// YAML Example:
+//   - taskName:
+//       wait:
+//         seconds: 5
+//
+// Reference: zigflow-dsl-pattern-catalog.md - Task Type 8
+message WaitTaskConfig {
+  // Number of seconds to wait.
+  // Must be at least 1 second.
+  int32 seconds = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).int32 = {gte: 1}
+  ];
+}

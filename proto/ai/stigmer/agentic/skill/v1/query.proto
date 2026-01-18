@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.skill.v1;
+
+import "ai/stigmer/agentic/skill/v1/api.proto";
+import "ai/stigmer/agentic/skill/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// SkillQueryController handles read operations for skills.
+service SkillQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = skill;
+
+  // Get a single skill by ID.
+  rpc get(SkillId) returns (Skill) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = skill;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get skill";
+  }
+
+  // Get a skill by API resource reference.
+  // Authorization is handled in the handler after resolving the reference to a skill ID.
+  // (Input doesn't contain skill ID, so proto-level auth cannot work)
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Skill) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+}

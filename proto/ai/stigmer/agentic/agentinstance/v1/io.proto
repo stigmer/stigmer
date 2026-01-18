@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentinstance.v1;
+
+import "ai/stigmer/agentic/agentinstance/v1/api.proto";
+import "ai/stigmer/commons/rpc/pagination.proto";
+import "buf/validate/validate.proto";
+
+// GetAgentInstanceRequest retrieves a single agent instance by ID.
+message AgentInstanceId {
+  // Instance ID (required).
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// GetAgentInstancesByAgentRequest gets all instances of a specific agent template.
+message GetAgentInstancesByAgentRequest {
+  // Agent ID to filter by (required).
+  string agent_id = 1 [(buf.validate.field).required = true];
+
+  // Pagination options.
+  ai.stigmer.commons.rpc.PageInfo page_info = 2;
+}
+
+// AgentInstanceList represents a list of agent instances.
+message AgentInstanceList {
+  // Total count of instances.
+  int32 total_count = 1;
+
+  // List of instances.
+  repeated AgentInstance items = 2;
+}

@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.iampolicy.v1.rpcauthorization;
+
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/io.proto";
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.MethodOptions {
+  ai.stigmer.iam.iampolicy.v1.rpcauthorization.RpcAuthorizationConfig config = 50056;
+  bool is_public = 50057;
+  bool is_skip_authorization = 50058;
+}

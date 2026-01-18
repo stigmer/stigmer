@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.executioncontext.v1;
+
+import "buf/validate/validate.proto";
+
+// ExecutionContextId wraps an ExecutionContext identifier.
+message ExecutionContextId {
+  string value = 1 [(buf.validate.field).required = true];
+}

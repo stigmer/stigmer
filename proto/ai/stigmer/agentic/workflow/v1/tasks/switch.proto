@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "buf/validate/validate.proto";
+
+// SwitchTaskConfig defines the configuration for SWITCH tasks.
+//
+// SWITCH tasks provide conditional branching based on expressions.
+//
+// YAML Example:
+//   - taskName:
+//       switch:
+//         - case1:
+//             when: ${ $context.value > 5 }
+//             then: highValueTask
+//         - defaultCase:
+//             then: unknownTask
+//
+// Reference: zigflow-dsl-pattern-catalog.md - Task Type 3
+message SwitchTaskConfig {
+  // List of switch cases (at least one required).
+  // Cases are evaluated in order. First matching case executes.
+  // If no "when" is specified, the case acts as default.
+  repeated SwitchCase cases = 1 [(buf.validate.field).repeated.min_items = 1];
+}
+
+// SwitchCase defines a single case in a switch statement.
+message SwitchCase {
+  // Case name/identifier.
+  string name = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Condition expression (optional).
+  // If empty, this is the default case.
+  // Example: "${ $context.value > 5 }"
+  string when = 2;
+
+  // Target task name to execute if condition matches.
+  string then = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+}

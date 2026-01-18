@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agent.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+
+// AgentStatus contains system-managed state for an Agent resource.
+message AgentStatus {
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // ID of the default agent instance created automatically for this agent.
+  // Every agent has exactly one default instance that requires no configuration.
+  // This instance has no environment variables and uses all agent defaults.
+  // Created automatically when the agent is created.
+  string default_instance_id = 1;
+}

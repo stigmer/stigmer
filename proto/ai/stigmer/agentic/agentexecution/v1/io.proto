@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentexecution.v1;
+
+import "ai/stigmer/agentic/agentexecution/v1/api.proto";
+import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "buf/validate/validate.proto";
+
+// AgentExecutionId wraps an agent execution identifier.
+message AgentExecutionId {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// SessionId wraps a session identifier for filtering.
+message SessionId {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// AgentExecutionList contains a paginated list of agent executions.
+message AgentExecutionList {
+  // Total number of pages available.
+  int32 total_pages = 1;
+
+  // Agent executions in the current page.
+  repeated AgentExecution entries = 2;
+}
+
+// ListAgentExecutionsRequest specifies parameters for listing executions.
+message ListAgentExecutionsRequest {
+  // Maximum number of executions to return per page.
+  int32 page_size = 1;
+
+  // Token for pagination, obtained from previous response.
+  string page_token = 2;
+
+  // Filter by execution phase (optional).
+  ExecutionPhase phase = 3;
+
+  // Filter by tags (optional).
+  repeated string tags = 4;
+}
+
+// ListAgentExecutionsBySessionRequest lists all executions in a session.
+message ListAgentExecutionsBySessionRequest {
+  // Session ID to filter by.
+  string session_id = 1 [(buf.validate.field).required = true];
+
+  // Maximum number of executions to return per page.
+  int32 page_size = 2;
+
+  // Token for pagination, obtained from previous response.
+  string page_token = 3;
+}

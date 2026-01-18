@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+// Package workflowinstance contains the API definition for WorkflowInstance resources.
+//
+// WorkflowInstance represents a configured deployment of a Workflow template with environment
+// bindings and secrets. It follows the Template→Instance→Execution pattern where:
+// - Workflow = Template (reusable orchestration blueprint)
+// - WorkflowInstance = Instance (configured with environments and secrets)
+// - WorkflowExecution = Runtime execution of an instance
+package ai.stigmer.agentic.workflowinstance.v1;
+
+import "ai/stigmer/agentic/workflowinstance/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+
+// WorkflowInstance represents a configured deployment of a Workflow template.
+//
+// WorkflowInstance is the "Instance" layer in the Template→Instance→Execution pattern.
+// It binds a reusable Workflow template to specific environments containing credentials,
+// configuration, and secrets needed for execution.
+//
+// A WorkflowInstance:
+// - References a Workflow template (the orchestration blueprint)
+// - Binds one or more Environment resources (configuration + secrets)
+// - Can be executed multiple times via WorkflowExecution resources
+// - Can be platform-scoped (global defaults), org-scoped (team instances), or user-scoped (personal)
+//
+// Example use case:
+// Workflow "deploy-to-cloud" (template) → WorkflowInstance "prod-deploy" (with aws-prod-env)
+// → WorkflowExecution "prod-deploy-20250111-001" (specific run)
+//
+// This separation allows:
+// - Workflow templates to be reusable across teams/environments
+// - Instances to maintain stateful configuration with secrets
+// - Executions to track individual runs with results
+message WorkflowInstance {
+  // API version for this resource type.
+  // Format: 'agentic.stigmer.ai/v1'
+  // Validated as const to ensure version consistency.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  // Must be exactly 'WorkflowInstance' to match the message name.
+  // Validated as const for type safety.
+  string kind = 2 [(buf.validate.field).string.const = 'WorkflowInstance'];
+
+  // Standard resource metadata including name, id, slug, labels, tags, and annotations.
+  //
+  // Owner Scope:
+  // WorkflowInstances can have platform, organization, or identity_account scope.
+  //
+  // Allowed scopes:
+  // - platform (owner_scope = 1): Global default instances (auto-created)
+  // - organization (owner_scope = 2): Shared across organization members
+  // - identity_account (owner_scope = 3): Private to individual user
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // User-provided configuration for this workflow instance.
+  // Defines which Workflow template to use and which Environments provide configuration/secrets.
+  // See WorkflowInstanceSpec for detailed field documentation.
+  WorkflowInstanceSpec spec = 4;
+
+  // System-managed status and audit information.
+  // Contains creation/update timestamps, version number, and other audit metadata.
+  // This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
+  // Execution state is tracked in WorkflowExecution resources.
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+}

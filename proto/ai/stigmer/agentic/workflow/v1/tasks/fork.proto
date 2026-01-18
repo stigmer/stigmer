@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "ai/stigmer/agentic/workflow/v1/spec.proto";
+import "buf/validate/validate.proto";
+
+// ForkTaskConfig defines the configuration for FORK tasks.
+//
+// FORK tasks execute multiple branches in parallel.
+//
+// YAML Example:
+//   - taskName:
+//       fork:
+//         branches:
+//           - branch1:
+//               do:
+//                 - task1:
+//                     call: http
+//                     with:
+//                       method: POST
+//                       endpoint:
+//                         uri: https://api.example.com/branch1
+//           - branch2:
+//               do:
+//                 - task2:
+//                     call: http
+//
+// Reference: zigflow-dsl-pattern-catalog.md - Task Type 5
+message ForkTaskConfig {
+  // Branches to execute in parallel (at least 2 required).
+  repeated ForkBranch branches = 1 [(buf.validate.field).repeated.min_items = 2];
+
+  // If true, first branch to complete wins (race mode).
+  // If false, all branches must complete (default).
+  bool compete = 2;
+}
+
+// ForkBranch defines a single branch in parallel execution.
+message ForkBranch {
+  // Branch name/identifier.
+  string name = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Tasks to execute in this branch.
+  repeated ai.stigmer.agentic.workflow.v1.WorkflowTask do = 2 [(buf.validate.field).repeated.min_items = 1];
+}

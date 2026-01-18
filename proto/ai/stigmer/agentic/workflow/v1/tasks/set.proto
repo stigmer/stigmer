@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "buf/validate/validate.proto";
+
+// SetTaskConfig defines the configuration for SET tasks.
+//
+// SET tasks assign variables in workflow state.
+//
+// YAML Example:
+//   - taskName:
+//       set:
+//         variable1: value
+//         variable2: ${ expression }
+//         computed: ${ .a + .b }
+//
+// Reference: zigflow-dsl-pattern-catalog.md - Task Type 1
+message SetTaskConfig {
+  // Variables to set in workflow state.
+  // Keys are variable names, values can be literals or expressions.
+  // Expressions use ${...} syntax, e.g., "${.a + .b}" or "${now}"
+  map<string, string> variables = 1 [(buf.validate.field).required = true];
+}

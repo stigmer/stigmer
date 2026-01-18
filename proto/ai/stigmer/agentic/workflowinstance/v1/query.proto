@@ -1,0 +1,132 @@
+syntax = "proto3";
+
+// Package workflowinstance contains the query controller for WorkflowInstance read operations.
+package ai.stigmer.agentic.workflowinstance.v1;
+
+import "ai/stigmer/agentic/workflowinstance/v1/api.proto";
+import "ai/stigmer/agentic/workflowinstance/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// WorkflowInstanceQueryController handles read operations (Get, List, Search) for WorkflowInstance resources.
+//
+// This service provides all query operations following the Command-Query Separation pattern.
+// All RPCs that read state without modifying it go through this controller.
+//
+// Authorization:
+// - get: Requires get permission on the specific instance
+// - getByWorkflow: Authorization handled in handler via FGA query (returns filtered instances)
+// - getByReference: Custom authorization (supports flexible reference lookup)
+//
+// All operations respect owner scope visibility rules (users see only their org/identity resources).
+service WorkflowInstanceQueryController {
+  // Service-level option linking this controller to the workflow_instance resource kind.
+  // This enables generic middleware to identify the resource type for logging, metrics, and policy enforcement.
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = workflow_instance;
+
+  // Get a single workflow instance by ID.
+  //
+  // Retrieves a specific WorkflowInstance using its unique resource identifier.
+  //
+  // Input:
+  // WorkflowInstanceId with the instance ID (e.g., "wfi-abc123")
+  //
+  // Returns:
+  // Complete WorkflowInstance resource with:
+  // - api_version, kind, metadata
+  // - spec (workflow_id, description, env_refs)
+  // - status (audit information: created_at, updated_at, version)
+  //
+  // Authorization:
+  // Requires "get" permission on the specific WorkflowInstance.
+  // Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
+  // Verifies user has access based on:
+  // - Instance owner scope (organization or identity_account)
+  // - User's IAM policies
+  //
+  // Use Cases:
+  // - Retrieve instance configuration before executing
+  // - View instance details in UI
+  // - Fetch instance for editing/updating
+  //
+  // Error: PERMISSION_DENIED if user lacks get permission
+  // Error: NOT_FOUND if instance ID doesn't exist
+  rpc get(WorkflowInstanceId) returns (WorkflowInstance) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_instance;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get workflow instance";
+  }
+
+  // Get all instances of a specific workflow template.
+  //
+  // Retrieves all WorkflowInstance resources that reference a specific Workflow template.
+  // Useful for discovering all configured deployments of a workflow.
+  //
+  // Example Use Case:
+  // Workflow "deploy-to-cloud" (wfl-123) has instances:
+  // - "prod-deploy" (wfi-abc) - Production deployment with aws-prod-env
+  // - "staging-deploy" (wfi-def) - Staging deployment with aws-staging-env
+  // - "dev-deploy" (wfi-ghi) - Development deployment with aws-dev-env
+  //
+  // Input:
+  // GetWorkflowInstancesByWorkflowRequest with:
+  // - workflow_id: Workflow template ID to filter by
+  // - page_info: Pagination settings (page_size, page_token)
+  //
+  // Returns:
+  // WorkflowInstanceList with:
+  // - total_pages: Total number of pages available
+  // - entries: Array of WorkflowInstance resources in current page
+  //
+  // Authorization:
+  // Authorization is handled in handler via FGA query for authorized workflow_instance_ids,
+  // then filtered by workflow_id. This ensures users only see instances they have access to,
+  // even if the parent workflow is shared across organizations.
+  //
+  // Filtering:
+  // Results are filtered by:
+  // - User's organization/identity visibility
+  // - IAM policies
+  // - Owner scope rules
+  //
+  // Error: PERMISSION_DENIED if user lacks access to the workflow
+  // Error: NOT_FOUND if workflow_id doesn't exist
+  rpc getByWorkflow(GetWorkflowInstancesByWorkflowRequest) returns (WorkflowInstanceList) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+
+  // Get a workflow instance by flexible reference (ID or slug).
+  //
+  // Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods:
+  // - By ID: {id: "wfi-abc123"}
+  // - By slug: {slug: "prod-deploy"}
+  // - By name: {name: "Production Deploy"}
+  //
+  // Input:
+  // ApiResourceReference with one of: id, slug, or name
+  //
+  // Returns:
+  // Complete WorkflowInstance resource matching the reference.
+  //
+  // Authorization:
+  // Uses custom authorization logic in the handler.
+  // Allows for flexible authorization based on reference type and context.
+  // Typical checks:
+  // - User has get permission on the resolved instance
+  // - Instance owner scope matches user's organization/identity
+  //
+  // Use Cases:
+  // - User-friendly lookups by slug instead of opaque IDs
+  // - CLI commands using human-readable names
+  // - API integrations using stable slugs
+  //
+  // Example:
+  // Input: ApiResourceReference{slug: "prod-deploy"}
+  // Output: WorkflowInstance with metadata.slug = "prod-deploy"
+  //
+  // Error: PERMISSION_DENIED if user lacks access
+  // Error: NOT_FOUND if reference doesn't resolve to an instance
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (WorkflowInstance);
+}

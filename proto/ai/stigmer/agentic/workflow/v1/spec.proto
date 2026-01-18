@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1;
+
+import "ai/stigmer/agentic/environment/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/enum.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+// WorkflowSpec defines the complete specification of a workflow.
+// Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
+//
+// This replaces the old `synthesized_yaml` field with structured proto definitions.
+// Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,
+// providing maximum flexibility and extensibility.
+message WorkflowSpec {
+  // Human-readable description for UI and marketplace display.
+  string description = 1;
+
+  // Workflow document metadata (DSL version, namespace, name, version).
+  WorkflowDocument document = 2 [(buf.validate.field).required = true];
+
+  // Ordered list of tasks that make up this workflow.
+  // Tasks execute sequentially unless fork/parallel is used.
+  repeated WorkflowTask tasks = 3 [(buf.validate.field).repeated.min_items = 1];
+
+  // Environment variables required by the workflow.
+  // Uses the shared EnvironmentSpec for consistent env var handling.
+  ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4;
+}
+
+// WorkflowDocument contains workflow metadata.
+// Maps to the `document:` block in Zigflow DSL YAML.
+message WorkflowDocument {
+  // DSL version (semver). Must be "1.0.0" for current Zigflow.
+  string dsl = 1 [(buf.validate.field).string = {pattern: "^1\\.0\\.0$"}];
+
+  // Workflow namespace (organization/categorization).
+  string namespace = 2 [(buf.validate.field).required = true];
+
+  // Workflow name (unique identifier within namespace).
+  string name = 3 [(buf.validate.field).required = true];
+
+  // Workflow version (semver).
+  string version = 4 [(buf.validate.field).required = true];
+
+  // Human-readable description.
+  string description = 5;
+}
+
+// WorkflowTask represents a single task in the workflow.
+// Uses the "kind + Struct" pattern (like CloudResource in Planton Cloud):
+// - `kind` determines the task type (SET, HTTP_CALL, SWITCH, etc.)
+// - `task_config` contains task-specific configuration as dynamic JSON
+// - Backend unmarshals `task_config` to the appropriate Go struct based on `kind`
+//
+// Example (HTTP Call):
+// {
+//   "name": "fetchData",
+//   "kind": "HTTP_CALL",
+//   "task_config": {
+//     "method": "GET",
+//     "endpoint": {"uri": "https://api.example.com/data"},
+//     "headers": {"Authorization": "Bearer ${TOKEN}"}
+//   },
+//   "export": {"as": "${.}"},
+//   "flow": {"then": "processData"}
+// }
+message WorkflowTask {
+  // Task name/identifier (must be unique within workflow).
+  string name = 1 [(buf.validate.field).required = true];
+
+  // Task type (determines how to interpret task_config).
+  ai.stigmer.commons.apiresource.WorkflowTaskKind kind = 2 [(buf.validate.field).required = true];
+
+  // Task-specific configuration (dynamic typed).
+  // Structure depends on `kind` value.
+  //
+  // Backend unmarshals this Struct to the appropriate proto message:
+  // - SET: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
+  // - HTTP_CALL: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
+  // - GRPC_CALL: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig
+  // - SWITCH: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig
+  // - FOR: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig
+  // - FORK: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig
+  // - TRY: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig
+  // - LISTEN: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig
+  // - WAIT: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig
+  // - CALL_ACTIVITY: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig
+  // - RAISE: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
+  // - RUN: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
+  //
+  // See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.
+  google.protobuf.Struct task_config = 3 [(buf.validate.field).required = true];
+
+  // Export configuration (how to save task output to context).
+  // Optional - if not set, output is not saved.
+  Export export = 4;
+
+  // Flow control (which task executes next).
+  // Optional - if not set, continues to next task in sequence.
+  FlowControl flow = 5;
+}
+
+// Export defines how to save task output to context.
+// Maps to the `export:` block in Zigflow DSL.
+//
+// Examples:
+// - {"as": "${.}"} - Export entire output
+// - {"as": "${.fieldName}"} - Export specific field
+// - {"as": "${$context + {taskName: .}}"} - Merge into context
+message Export {
+  // Expression defining how to export output.
+  // Uses Zigflow expression syntax: ${...}
+  string as = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// FlowControl defines which task executes next.
+// Maps to the `then:` directive in Zigflow DSL.
+//
+// Examples:
+// - {"then": "nextTaskName"} - Jump to specific task
+// - {"then": "end"} - Terminate workflow
+// - Not set - Continue to next task in sequence (default)
+message FlowControl {
+  // Target task name or "end" to terminate workflow.
+  string then = 1;
+}

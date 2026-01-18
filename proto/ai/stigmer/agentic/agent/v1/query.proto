@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agent.v1;
+
+import "ai/stigmer/agentic/agent/v1/api.proto";
+import "ai/stigmer/agentic/agent/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// AgentQueryController handles read operations for AI agents.
+service AgentQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent;
+
+  // Get a single agent by ID.
+  rpc get(AgentId) returns (Agent) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get agent";
+  }
+
+  // Custom authorization in handler
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Agent);
+}

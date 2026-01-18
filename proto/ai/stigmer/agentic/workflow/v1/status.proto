@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1;
+
+import "ai/stigmer/agentic/workflow/v1/serverless/validation.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+
+// WorkflowStatus contains system-managed state for a Workflow resource.
+message WorkflowStatus {
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // ID of the default workflow instance created automatically for this workflow.
+  // Every workflow has exactly one default instance that requires no configuration.
+  // This instance has no environment bindings and uses all workflow defaults.
+  // Created automatically when the workflow is created.
+  string default_instance_id = 1;
+
+  // Serverless Workflow YAML generation and validation state.
+  // Populated asynchronously after workflow creation via Temporal workflow.
+  // Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
+  //
+  // Workflow creation does NOT block on validation - the workflow is created immediately
+  // with status.state = PENDING, then validation runs in the background.
+  //
+  // Users can check this field to see if their workflow is valid before executing it.
+  ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverless_workflow_validation = 2;
+}

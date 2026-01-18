@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.executioncontext.v1;
+
+import "buf/validate/validate.proto";
+
+// ExecutionContextSpec defines ephemeral runtime configuration and secrets.
+// This is created during execution and deleted when execution completes.
+message ExecutionContextSpec {
+  // The execution ID this context belongs to.
+  // This is typically a WorkflowExecution ID or AgentExecution ID.
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Key-value pairs containing both configuration and secrets.
+  // These are provided at runtime and only exist for the duration of the execution.
+  // Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+  map<string, ExecutionValue> data = 2;
+}
+
+// ExecutionValue represents a single runtime configuration or secret value.
+message ExecutionValue {
+  // The actual value.
+  // - If is_secret=true: This value is encrypted at rest and redacted in logs
+  // - If is_secret=false: This value is stored as plaintext
+  string value = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Whether this value should be treated as a secret.
+  // When true:
+  // - Value is encrypted at rest
+  // - Value is redacted in logs
+  // - Value is deleted when execution completes
+  // When false:
+  // - Value is stored as plaintext
+  // - Value is visible in audit logs
+  bool is_secret = 2;
+}

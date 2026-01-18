@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agent.v1;
+
+import "buf/validate/validate.proto";
+
+// AgentId wraps an agent identifier.
+message AgentId {
+  string value = 1 [(buf.validate.field).required = true];
+}

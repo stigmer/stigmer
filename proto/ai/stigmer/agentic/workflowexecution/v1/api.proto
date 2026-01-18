@@ -1,0 +1,604 @@
+syntax = "proto3";
+
+// Package ai.stigmer.agentic.workflowexecution.v1 contains the API definition for WorkflowExecution.
+//
+// WorkflowExecution is the "Execution" layer in the Template→Instance→Execution pattern.
+// It represents a single runtime invocation of a WorkflowInstance, capturing the complete
+// execution lifecycle from trigger to completion.
+//
+// This package belongs to the "agentic" bounded context, which encompasses all AI agent
+// systems and workflow orchestration capabilities.
+package ai.stigmer.agentic.workflowexecution.v1;
+
+import "ai/stigmer/agentic/workflowexecution/v1/enum.proto";
+import "ai/stigmer/agentic/workflowexecution/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+// WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
+//
+// WorkflowExecution is the "Execution" layer in the Template→Instance→Execution pattern.
+// It captures the complete lifecycle of a workflow run, from initial trigger through
+// task-by-task execution to final completion or failure.
+//
+// A WorkflowExecution:
+// - References a WorkflowInstance (which contains configuration and environment bindings)
+// - Is triggered by a user action, API call, webhook, or scheduled event
+// - Executes tasks sequentially or in parallel based on the workflow definition
+// - Tracks real-time progress through tasks and phases
+// - Captures outputs, errors, and execution metadata
+// - Is ephemeral - deleted after completion based on retention policies
+//
+// Execution Pattern:
+// Workflow "customer-onboarding" (template)
+//   → WorkflowInstance "acme-onboarding" (with prod-env)
+//     → WorkflowExecution "acme-onboarding-20250111-143022" (specific run)
+//       - Phase: IN_PROGRESS
+//       - Tasks: [validate_email: COMPLETED, create_account: IN_PROGRESS, send_welcome: PENDING]
+//       - Progress: 1/3 tasks completed
+//
+// Use Cases:
+// - Track workflow execution progress in real-time
+// - Debug failed workflows with full execution history
+// - Audit workflow runs for compliance and analysis
+// - Monitor workflow performance and duration
+// - Retry failed executions with same inputs
+//
+// Separation of Concerns:
+// - User Inputs (spec): workflow_instance_id, trigger_message, trigger_metadata, runtime_env
+// - System State (status): phase, tasks, output, timestamps, errors
+//
+// This separation ensures:
+// - Clear boundary between what users control (spec) and what the system manages (status)
+// - Status can be updated independently during execution without modifying user inputs
+// - Execution can be retried by creating a new WorkflowExecution with the same spec
+message WorkflowExecution {
+  // API version for this resource type.
+  // Format: 'agentic.stigmer.ai/v1'
+  // Validated as const to ensure version consistency across all workflow execution resources.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  // Must be exactly 'WorkflowExecution' to match the message name.
+  // Validated as const for type safety and resource identification.
+  string kind = 2 [(buf.validate.field).string.const = 'WorkflowExecution'];
+
+  // Standard resource metadata including name, id, slug, labels, tags, and annotations.
+  //
+  // Owner Scope Restrictions:
+  // WorkflowExecution resources can only have organization or identity_account scope (not platform).
+  // This restriction ensures executions belong to a specific organization or user account.
+  //
+  // Validation:
+  // - owner_scope == 2 (ORGANIZATION) - Execution owned by an organization
+  // - owner_scope == 3 (IDENTITY_ACCOUNT) - Execution owned by a user account
+  //
+  // Why This Restriction?
+  // - Executions are tenant-specific runtime instances, not platform-level templates
+  // - Each execution consumes resources and should be attributed to a billable entity
+  // - Access control is enforced at the organization or user level
+  //
+  // Naming Pattern:
+  // - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
+  // - Name Format: "{workflow_instance_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
+  // - Slug Format: Same as name, URL-safe
+  //
+  // Labels and Tags:
+  // - Labels: workflow_instance_id, workflow_id, trigger_source
+  // - Tags: environment names, team names, execution metadata
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "workflow_execution.owner_scope.org_or_identity_only"
+      message: "WorkflowExecution resources can only have organization or identity_account scope"
+      expression: "this.owner_scope == 2 || this.owner_scope == 3"
+    }
+  ];
+
+  // User-provided inputs and configuration for this workflow execution.
+  //
+  // Contains:
+  // - workflow_instance_id: Which WorkflowInstance to execute (required)
+  // - trigger_message: Input message or payload for the workflow (optional)
+  // - trigger_metadata: Metadata about who/what triggered the execution (optional)
+  // - runtime_env: Execution-specific environment variables and secrets (optional)
+  //
+  // The spec is immutable after creation - it represents the "inputs" for this execution.
+  // To retry with different inputs, create a new WorkflowExecution with updated spec.
+  //
+  // Example:
+  // spec {
+  //   workflow_instance_id: "wfi-customer-onboarding-prod"
+  //   trigger_message: "New customer: customer-email@example.com"
+  //   trigger_metadata: {
+  //     "source": "api"
+  //     "caller_id": "usr-john-doe"
+  //     "timestamp": "2025-01-11T14:30:22Z"
+  //   }
+  //   runtime_env: {
+  //     "CUSTOMER_EMAIL": { value: "customer-email@example.com" }
+  //     "WEBHOOK_URL": { secret_ref: "sec-webhook-callback" }
+  //   }
+  // }
+  WorkflowExecutionSpec spec = 4;
+
+  // System-managed execution state and results.
+  //
+  // Contains:
+  // - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
+  // - tasks: List of workflow tasks with their execution state (source of truth for progress)
+  // - output: Final workflow output (JSON structure, only for COMPLETED executions)
+  // - error: Error message (only for FAILED executions)
+  // - started_at: Timestamp when execution started
+  // - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
+  // - temporal_workflow_id: Correlation ID for Temporal workflow engine
+  //
+  // The status is continuously updated by the workflow execution engine as the workflow progresses.
+  // Users can read status but cannot modify it - it reflects the actual execution state.
+  //
+  // Progress Tracking:
+  // - Total tasks: tasks.length
+  // - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
+  // - Progress percentage: (completed_tasks / total_tasks) * 100
+  //
+  // Example (in-progress execution):
+  // status {
+  //   phase: EXECUTION_IN_PROGRESS
+  //   tasks: [
+  //     { task_id: "task-1", task_name: "validate_email", status: WORKFLOW_TASK_COMPLETED }
+  //     { task_id: "task-2", task_name: "create_account", status: WORKFLOW_TASK_IN_PROGRESS }
+  //     { task_id: "task-3", task_name: "send_welcome", status: WORKFLOW_TASK_PENDING }
+  //   ]
+  //   started_at: "2025-01-11T14:30:22Z"
+  // }
+  WorkflowExecutionStatus status = 5;
+}
+
+// WorkflowExecutionStatus contains all system-managed execution state and results.
+//
+// Everything populated during or after execution goes here, not in spec.
+// This message follows the standard pattern: audit information at field 99, custom fields at 1-98.
+//
+// Status Lifecycle:
+// 1. Created: audit.created_at set, phase = EXECUTION_PENDING
+// 2. Started: started_at set, phase = EXECUTION_IN_PROGRESS, tasks populated
+// 3. Progress: tasks updated as workflow runner sends status updates
+// 4. Completed: completed_at set, phase = EXECUTION_COMPLETED, output populated
+// 5. Failed: completed_at set, phase = EXECUTION_FAILED, error populated
+// 6. Cancelled: completed_at set, phase = EXECUTION_CANCELLED
+//
+// The status is read-only to users and continuously updated by the workflow execution engine.
+//
+// Progress Tracking Pattern (Matches Agent Execution):
+// - Agent execution: messages[], tool_calls[], sub_agent_executions[] (transformed from LLM streaming events)
+// - Workflow execution: tasks[] (transformed from workflow task execution)
+// - Both store structured state, not raw streaming events
+// - Both use updateStatus RPC for progressive updates during execution
+message WorkflowExecutionStatus {
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  // Always at field 99 for consistency across all Stigmer API resources.
+  //
+  // Contains:
+  // - created_at: When this execution was created (ISO 8601 timestamp)
+  // - updated_at: Last time status was updated (ISO 8601 timestamp)
+  // - created_by: User or system that created this execution
+  //
+  // Example:
+  // audit {
+  //   created_at: "2025-01-11T14:30:22Z"
+  //   updated_at: "2025-01-11T14:32:15Z"
+  //   created_by: "usr-john-doe"
+  // }
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // Current execution lifecycle phase.
+  //
+  // Phases:
+  // - EXECUTION_PENDING: Execution created, waiting to start
+  // - EXECUTION_IN_PROGRESS: Actively executing tasks
+  // - EXECUTION_COMPLETED: Successfully completed all tasks
+  // - EXECUTION_FAILED: Failed during execution (see error field)
+  // - EXECUTION_CANCELLED: Cancelled by user or system
+  //
+  // Phase Transitions:
+  // PENDING → IN_PROGRESS → COMPLETED
+  //        ↓              ↘ FAILED
+  //        ↓              ↘ CANCELLED
+  //
+  // The phase is used for:
+  // - UI status indicators (progress bars, badges)
+  // - Filtering executions (show only failed, show only in-progress)
+  // - Alerting and notifications (notify on failure)
+  // - Retry logic (retry failed executions)
+  //
+  // Validation: Must be a defined enum value (no unspecified/unknown).
+  ExecutionPhase phase = 1 [(buf.validate.field).enum.defined_only = true];
+
+  // Workflow tasks with their execution state (source of truth for progress).
+  //
+  // Tasks represent the atomic units of work within the workflow.
+  // Each task has:
+  // - task_id: Unique identifier within this execution
+  // - task_name: Human-readable name (e.g., "validate_email", "send_notification")
+  // - task_type: Type of task (agent_invocation, api_call, approval, etc.)
+  // - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
+  // - input: Task input parameters (JSON structure)
+  // - output: Task output results (JSON structure, only for COMPLETED tasks)
+  // - error: Error message (only for FAILED tasks)
+  // - started_at: When task started executing
+  // - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
+  //
+  // Tasks are populated as the workflow progresses through its task graph.
+  // The order in this list reflects the execution order (sequential or parallel).
+  //
+  // Progress Calculation:
+  // - Total tasks: tasks.length
+  // - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
+  // - Progress percentage: (completed_tasks / total_tasks) * 100
+  // - Current task: tasks.find(status == IN_PROGRESS)
+  //
+  // Use Cases:
+  // - Display task-level progress in UI (which tasks are done, which are running)
+  // - Calculate overall progress (no need to store total_tasks/completed_tasks)
+  // - Debug task failures (inspect task inputs, outputs, errors)
+  // - Retry individual failed tasks (if workflow supports partial retry)
+  // - Audit task execution for compliance
+  //
+  // Example:
+  // tasks: [
+  //   {
+  //     task_id: "task-1"
+  //     task_name: "validate_email"
+  //     task_type: WORKFLOW_TASK_API_CALL
+  //     status: WORKFLOW_TASK_COMPLETED
+  //     started_at: "2025-01-11T14:30:23Z"
+  //     completed_at: "2025-01-11T14:30:23.450Z"
+  //     output: { "valid": true, "domain": "example.com" }
+  //   }
+  //   {
+  //     task_id: "task-2"
+  //     task_name: "create_account"
+  //     task_type: WORKFLOW_TASK_AGENT_INVOCATION
+  //     status: WORKFLOW_TASK_IN_PROGRESS
+  //     started_at: "2025-01-11T14:30:24Z"
+  //   }
+  // ]
+  repeated WorkflowTask tasks = 2;
+
+  // Workflow output (JSON structure).
+  //
+  // Contains the final result or payload produced by the workflow.
+  // Only populated when phase == EXECUTION_COMPLETED.
+  //
+  // The output structure is workflow-specific and defined by the Workflow template.
+  // Common patterns:
+  // - API response data (e.g., created user ID, order confirmation)
+  // - Aggregated results from multiple tasks
+  // - Links to generated artifacts (reports, files)
+  // - Summary statistics (items processed, duration)
+  //
+  // Example (customer onboarding workflow):
+  // output: {
+  //   "customer_id": "cus-abc123"
+  //   "account_created": true
+  //   "welcome_email_sent": true
+  //   "trial_activated": true
+  //   "trial_expires_at": "2025-02-10T14:30:22Z"
+  // }
+  google.protobuf.Struct output = 3;
+
+  // Error message if execution failed.
+  //
+  // Contains a human-readable description of what went wrong.
+  // Only populated when phase == EXECUTION_FAILED.
+  //
+  // Error message includes:
+  // - What failed (which task or workflow step)
+  // - Why it failed (validation error, API error, timeout, etc.)
+  // - How to fix it (if known)
+  //
+  // For detailed debugging, inspect tasks[].error for task-specific error messages.
+  //
+  // Example:
+  // error: "Task 'create_account' failed: API rate limit exceeded (429). Retry after 60 seconds."
+  string error = 4;
+
+  // ISO 8601 timestamp when execution started.
+  //
+  // Set when the workflow execution engine begins processing this execution.
+  // This is when phase transitions from PENDING to IN_PROGRESS.
+  //
+  // Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
+  // Example: "2025-01-11T14:30:22Z"
+  //
+  // Used for:
+  // - Calculating execution duration (completed_at - started_at)
+  // - Sorting executions by start time
+  // - Detecting stuck executions (started but not completed after X hours)
+  string started_at = 5;
+
+  // ISO 8601 timestamp when execution completed, failed, or was cancelled.
+  //
+  // Set when the workflow reaches a terminal state:
+  // - EXECUTION_COMPLETED: Successfully finished
+  // - EXECUTION_FAILED: Failed during execution
+  // - EXECUTION_CANCELLED: Cancelled by user or system
+  //
+  // Not set for PENDING or IN_PROGRESS executions.
+  //
+  // Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
+  // Example: "2025-01-11T14:35:47Z"
+  //
+  // Used for:
+  // - Calculating execution duration (completed_at - started_at)
+  // - Retention policies (delete completed executions after 30 days)
+  // - SLA monitoring (alert if execution takes longer than expected)
+  string completed_at = 6;
+
+  // Temporal workflow ID (if using Temporal as execution engine).
+  //
+  // This is the workflow ID in the Temporal workflow engine, used for:
+  // - Correlation between Stigmer and Temporal (for debugging)
+  // - Querying Temporal directly (for advanced troubleshooting)
+  // - Signaling or cancelling Temporal workflows
+  //
+  // Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
+  // Example: "wfi-prod-deploy-wfx-abc123xyz456" or "temporal-wf-uuid-12345"
+  //
+  // This field is optional and only relevant when Temporal is used as the execution engine.
+  // Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
+  string temporal_workflow_id = 7;
+}
+
+// WorkflowTask represents a single task within a workflow execution.
+//
+// Tasks are the atomic units of work in a workflow. Each task:
+// - Has a specific type (agent invocation, API call, approval, conditional, etc.)
+// - Receives input parameters from the workflow context or previous tasks
+// - Executes its specific logic (invoke an agent, call an API, wait for approval)
+// - Produces output that can be used by subsequent tasks
+// - Tracks its own execution state (pending, in-progress, completed, failed, skipped)
+//
+// Task Execution Flow:
+// 1. Task is in PENDING state when workflow starts
+// 2. When task dependencies are met, task_status changes to IN_PROGRESS
+// 3. Task executes its logic (invoke agent, call API, etc.)
+// 4. Task completes successfully (COMPLETED) or fails (FAILED) or is skipped (SKIPPED)
+//
+// Task Types and Examples:
+// - WORKFLOW_TASK_AGENT_INVOCATION: Invoke an AI agent with a prompt
+// - WORKFLOW_TASK_API_CALL: Call an external API (REST, GraphQL, gRPC)
+// - WORKFLOW_TASK_APPROVAL: Wait for human approval before proceeding
+// - WORKFLOW_TASK_CONDITIONAL: Evaluate a condition to decide next steps
+// - WORKFLOW_TASK_PARALLEL: Execute multiple sub-tasks in parallel
+// - WORKFLOW_TASK_TRANSFORM: Transform data between tasks (map, filter, aggregate)
+//
+// Use Cases:
+// - Display task-level progress in UI (task list with checkmarks)
+// - Debug workflow failures (which task failed, what was the input/output)
+// - Retry individual tasks (if workflow engine supports partial retry)
+// - Monitor task performance (which tasks take longest)
+message WorkflowTask {
+  // Unique task identifier within this workflow execution.
+  //
+  // Format: Typically "task-{number}" or a descriptive slug
+  // Examples: "task-1", "task-validate-email", "task-send-notification"
+  //
+  // The task_id is unique within this WorkflowExecution but may repeat across
+  // different executions of the same WorkflowInstance (same task, different run).
+  string task_id = 1;
+
+  // Human-readable task name.
+  //
+  // Describes what this task does in plain language.
+  // Used in UI to show task progress and in logs for debugging.
+  //
+  // Examples:
+  // - "Validate customer email"
+  // - "Create Stripe account"
+  // - "Send welcome email"
+  // - "Wait for admin approval"
+  //
+  // Naming conventions:
+  // - Use verb phrases (validate, create, send, wait)
+  // - Be specific about what's being operated on
+  // - Keep it concise (under 50 characters)
+  string task_name = 2;
+
+  // Type of task (agent invocation, API call, approval, etc.).
+  //
+  // Determines how the task is executed by the workflow engine:
+  // - WORKFLOW_TASK_AGENT_INVOCATION: Calls an AI agent with a prompt, waits for response
+  // - WORKFLOW_TASK_API_CALL: Makes HTTP/gRPC API call to external service
+  // - WORKFLOW_TASK_APPROVAL: Pauses workflow, waits for human approval
+  // - WORKFLOW_TASK_CONDITIONAL: Evaluates condition, branches to different paths
+  // - WORKFLOW_TASK_PARALLEL: Executes multiple sub-tasks concurrently
+  // - WORKFLOW_TASK_TRANSFORM: Transforms data using expressions or scripts
+  // - WORKFLOW_TASK_CUSTOM: Custom task logic defined by plugins
+  //
+  // The task_type influences:
+  // - How task.input is structured (different types expect different input schemas)
+  // - How task.output is produced (different types produce different outputs)
+  // - How errors are handled (retry policies, timeout behaviors)
+  //
+  // Validation: Must be a defined enum value (no unspecified).
+  WorkflowTaskType task_type = 3 [(buf.validate.field).enum.defined_only = true];
+
+  // Task input parameters (JSON structure).
+  //
+  // Contains the configuration and data needed for this task to execute.
+  // The structure varies by task_type.
+  //
+  // Examples by task type:
+  //
+  // WORKFLOW_TASK_AGENT_INVOCATION:
+  // input: {
+  //   "agent_instance_id": "agi-customer-support"
+  //   "prompt": "Analyze customer feedback: {{workflow.input.feedback}}"
+  //   "max_tokens": 500
+  // }
+  //
+  // WORKFLOW_TASK_API_CALL:
+  // input: {
+  //   "method": "POST"
+  //   "url": "https://api.stripe.com/v1/customers"
+  //   "headers": { "Authorization": "Bearer {{env.STRIPE_API_KEY}}" }
+  //   "body": { "email": "{{workflow.input.email}}" }
+  // }
+  //
+  // WORKFLOW_TASK_APPROVAL:
+  // input: {
+  //   "approvers": ["usr-admin-1", "usr-admin-2"]
+  //   "message": "Approve account creation for {{workflow.input.email}}?"
+  //   "timeout_hours": 24
+  // }
+  //
+  // Input can reference:
+  // - Workflow inputs: {{workflow.input.field_name}}
+  // - Previous task outputs: {{tasks.task-1.output.field_name}}
+  // - Environment variables: {{env.VARIABLE_NAME}}
+  google.protobuf.Struct input = 4;
+
+  // Task output results (JSON structure).
+  //
+  // Contains the data produced by this task after successful execution.
+  // Only populated when status == WORKFLOW_TASK_COMPLETED.
+  //
+  // Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
+  //
+  // Examples by task type:
+  //
+  // WORKFLOW_TASK_AGENT_INVOCATION:
+  // output: {
+  //   "agent_execution_id": "agx-abc123"
+  //   "response": "The customer feedback is positive overall..."
+  //   "sentiment": "positive"
+  //   "confidence": 0.92
+  // }
+  //
+  // WORKFLOW_TASK_API_CALL:
+  // output: {
+  //   "status_code": 200
+  //   "body": {
+  //     "id": "cus_abc123"
+  //     "email": "customer@example.com"
+  //     "created": 1704988800
+  //   }
+  // }
+  //
+  // WORKFLOW_TASK_APPROVAL:
+  // output: {
+  //   "approved": true
+  //   "approved_by": "usr-admin-1"
+  //   "approved_at": "2025-01-11T15:22:33Z"
+  //   "comment": "Looks good, approved"
+  // }
+  google.protobuf.Struct output = 5;
+
+  // Current task execution status.
+  //
+  // Statuses:
+  // - WORKFLOW_TASK_PENDING: Task not yet started (waiting for dependencies)
+  // - WORKFLOW_TASK_IN_PROGRESS: Task is currently executing
+  // - WORKFLOW_TASK_COMPLETED: Task finished successfully
+  // - WORKFLOW_TASK_FAILED: Task failed during execution (see error field)
+  // - WORKFLOW_TASK_SKIPPED: Task was skipped (conditional logic, early exit)
+  //
+  // Status Transitions:
+  // PENDING → IN_PROGRESS → COMPLETED
+  //        ↓              ↘ FAILED
+  //        ↓              ↘ SKIPPED (if conditional)
+  //
+  // Validation: Must be a defined enum value (no unspecified).
+  WorkflowTaskStatus status = 6 [(buf.validate.field).enum.defined_only = true];
+
+  // ISO 8601 timestamp when task started executing.
+  //
+  // Set when task status changes from PENDING to IN_PROGRESS.
+  //
+  // Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
+  // Example: "2025-01-11T14:30:23Z"
+  //
+  // Used for:
+  // - Calculating task duration (completed_at - started_at)
+  // - Detecting stuck tasks (started but not completed after X minutes)
+  // - Performance analysis (which tasks are slow)
+  string started_at = 7;
+
+  // ISO 8601 timestamp when task completed, failed, or was skipped.
+  //
+  // Set when task reaches a terminal state:
+  // - WORKFLOW_TASK_COMPLETED: Successfully finished
+  // - WORKFLOW_TASK_FAILED: Failed during execution
+  // - WORKFLOW_TASK_SKIPPED: Skipped by conditional logic
+  //
+  // Not set for PENDING or IN_PROGRESS tasks.
+  //
+  // Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
+  // Example: "2025-01-11T14:30:27.450Z"
+  //
+  // Used for:
+  // - Calculating task duration (completed_at - started_at)
+  // - SLA monitoring (alert if task takes longer than expected)
+  // - Performance benchmarking (average task duration over time)
+  string completed_at = 8;
+
+  // Error message if task failed.
+  //
+  // Contains a human-readable description of why the task failed.
+  // Only populated when status == WORKFLOW_TASK_FAILED.
+  //
+  // Error message includes:
+  // - What operation failed (API call, agent invocation, etc.)
+  // - Error type (validation error, network error, timeout, etc.)
+  // - Error details (status code, exception message, stacktrace)
+  // - How to fix it (if known)
+  //
+  // Examples:
+  // - "API call failed: 429 Too Many Requests. Retry after 60 seconds."
+  // - "Agent invocation failed: Agent execution timeout after 300 seconds."
+  // - "Approval task failed: Timeout after 24 hours with no approval."
+  //
+  // For detailed debugging, also check:
+  // - task.input (what parameters were used)
+  // - task.metadata (retry count, execution context)
+  string error = 9;
+
+  // Task metadata (arbitrary JSON data).
+  //
+  // Contains task-specific information that doesn't fit in other fields.
+  // Used for:
+  // - Retry count (how many times this task was retried)
+  // - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
+  // - API response headers (for WORKFLOW_TASK_API_CALL)
+  // - Approval history (who approved, when, comments)
+  // - Performance metrics (execution time, memory usage)
+  //
+  // Examples:
+  //
+  // Agent invocation task:
+  // metadata: {
+  //   "agent_execution_id": "agx-abc123"
+  //   "retry_count": 0
+  //   "tokens_used": 450
+  // }
+  //
+  // API call task:
+  // metadata: {
+  //   "retry_count": 2
+  //   "response_headers": {
+  //     "x-ratelimit-remaining": "98"
+  //     "x-request-id": "req-xyz789"
+  //   }
+  // }
+  //
+  // Approval task:
+  // metadata: {
+  //   "approval_history": [
+  //     { "user": "usr-admin-1", "action": "approved", "timestamp": "2025-01-11T15:22:33Z" }
+  //   ]
+  // }
+  google.protobuf.Struct metadata = 10;
+}

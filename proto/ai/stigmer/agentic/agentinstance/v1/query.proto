@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentinstance.v1;
+
+import "ai/stigmer/agentic/agentinstance/v1/api.proto";
+import "ai/stigmer/agentic/agentinstance/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// AgentInstanceQueryService provides queries for retrieving agent instances.
+service AgentInstanceQueryService {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_instance;
+
+  // Get a single agent instance by ID.
+  rpc get(AgentInstanceId) returns (AgentInstance) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_instance;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get Agent Instance";
+  }
+
+  // Get all instances of a specific agent template.
+  // Authorization is handled in handler via FGA query for authorized agent_instance_ids,
+  // then filtered by agent_id. This ensures users only see instances they have access to,
+  // even if the parent agent is shared across organizations.
+  rpc getByAgent(GetAgentInstancesByAgentRequest) returns (AgentInstanceList) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+
+  // Custom authorization in handler
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (AgentInstance);
+}

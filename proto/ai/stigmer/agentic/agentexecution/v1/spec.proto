@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentexecution.v1;
+
+import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
+import "buf/validate/validate.proto";
+
+// AgentExecutionSpec contains only user-provided inputs for triggering an execution.
+// All execution results and state live in AgentExecutionStatus (in api.proto).
+message AgentExecutionSpec {
+  // Session ID this execution belongs to (optional).
+  // If not provided, agent_id must be specified - a session will be auto-created
+  // using the agent's default instance.
+  // Either session_id or agent_id must be provided (enforced in handler).
+  string session_id = 1;
+
+  // Agent ID (optional).
+  // If session_id is not provided, agent_id must be specified.
+  // When provided without session_id, a new session is auto-created using
+  // the agent's default instance ID.
+  // Either session_id or agent_id must be provided (enforced in handler).
+  string agent_id = 2;
+
+  // User input message that triggers this execution.
+  // Each execution represents one user message and the agent's response.
+  string message = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Optional execution-time configuration overrides.
+  // Example: Specify the model to use for this execution.
+  ExecutionConfig execution_config = 4;
+
+  // Runtime environment variables and secrets (execution-scoped).
+  // These values are only available for this specific execution.
+  // Use case: B2B integrations where secrets are injected at runtime (e.g., Plant & Cloud).
+  // These values are stored in ExecutionContext and deleted when execution completes.
+  // Merge priority: Agent defaults < Environment < runtime_env (highest)
+  map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 5;
+}
+
+// Configuration that can be applied at execution time.
+message ExecutionConfig {
+  // The model to use for this execution.
+  // Example: "claude-sonnet-4-20250514"
+  string model_name = 1;
+
+  // Additional configuration options can be added here.
+  // Examples: temperature, max_tokens, top_p, etc.
+}

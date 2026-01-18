@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1;
+
+import "ai/stigmer/agentic/workflow/v1/api.proto";
+import "ai/stigmer/agentic/workflow/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// WorkflowQueryController handles read operations for workflows.
+service WorkflowQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = workflow;
+
+  // Get a single workflow by ID.
+  rpc get(WorkflowId) returns (Workflow) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get workflow";
+  }
+
+  // Custom authorization in handler
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Workflow);
+}

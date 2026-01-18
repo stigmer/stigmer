@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.skill.v1;
+
+import "ai/stigmer/agentic/skill/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+
+// Skill represents reusable agent knowledge/documentation.
+message Skill {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Skill'];
+
+  // Standard resource metadata including name, id, labels, and tags.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "skill.owner_scope.platform_or_org_only"
+      message: "Skill resources can only have platform or organization scope"
+      expression: "this.owner_scope == 1 || this.owner_scope == 2"
+    }
+  ];
+
+  // Skill-specific configuration.
+  SkillSpec spec = 4;
+
+  // System-managed status containing audit information.
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+}

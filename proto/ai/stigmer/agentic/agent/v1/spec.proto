@@ -1,0 +1,213 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agent.v1;
+
+import "ai/stigmer/agentic/environment/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "buf/validate/validate.proto";
+
+// AgentSpec defines the configurable properties of an AI agent.
+// This is the "Template" layer - immutable logic that declares requirements.
+message AgentSpec {
+  // Human-readable description for UI and marketplace display.
+  string description = 1;
+
+  // Icon URL for marketplace and UI display.
+  string icon_url = 2;
+
+  // Instructions defining the agent's behavior and personality (min 10 characters).
+  string instructions = 3 [(buf.validate.field).string.min_len = 10];
+
+  // MCP server definitions declaring required servers (not configured instances).
+  // Actual configuration with secrets happens at AgentInstance level.
+  repeated McpServerDefinition mcp_servers = 4;
+
+  // References to Skill resources providing agent knowledge.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [(buf.validate.field).repeated.items.cel = {
+    id: "skill_refs.kind"
+    message: "skill_refs must reference resources with kind=skill"
+    expression: "this.kind == 43" // 43 = skill enum value
+  }];
+
+  // Sub-agents that can be delegated to (inline or referenced).
+  repeated SubAgent sub_agents = 6;
+
+  // Environment variables required by the agent.
+  // Uses the shared EnvironmentSpec for consistent env var handling.
+  ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 7;
+}
+
+// SubAgent represents a sub-agent that can be delegated to.
+message SubAgent {
+  oneof agent_reference {
+    // Inline sub-agent definition.
+    InlineSubAgentSpec inline_spec = 1;
+
+    // Reference to existing Agent resource.
+    ai.stigmer.commons.apiresource.ApiResourceReference agent_instance_refs = 2 [(buf.validate.field).cel = {
+      id: "agent_instance_refs.kind"
+      message: "agent_instance_refs must reference resources with kind=agent_instance"
+      expression: "this.kind == 45" // 45 = agent_instance enum value
+    }];
+  }
+}
+
+// InlineSubAgentSpec defines a sub-agent inline without creating a separate resource.
+message InlineSubAgentSpec {
+  // Name of the sub-agent.
+  string name = 1 [(buf.validate.field).required = true];
+
+  // Description of what this sub-agent does.
+  string description = 2;
+
+  // Behavior instructions for this sub-agent.
+  string instructions = 3 [(buf.validate.field).string.min_len = 10];
+
+  // MCP server names this sub-agent can use (references McpServerDefinition.name).
+  repeated string mcp_servers = 4;
+
+  // Tool selections for each MCP server.
+  map<string, McpToolSelection> mcp_tool_selections = 5;
+
+  // References to Skill resources for this sub-agent's knowledge.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 6 [(buf.validate.field).repeated.items.cel = {
+    id: "skill_refs.kind"
+    message: "skill_refs must reference resources with kind=skill"
+    expression: "this.kind == 43" // 43 = skill enum value
+  }];
+}
+
+// McpToolSelection defines which tools from an MCP server are enabled.
+message McpToolSelection {
+  // Tool names to enable from the MCP server (empty = all tools).
+  repeated string enabled_tools = 1;
+}
+
+// McpServerDefinition defines an MCP server without configuration.
+// Configuration with secrets happens at AgentInstance level.
+//
+// Supports three types of MCP servers:
+// 1. **stdio**: Subprocess-based servers (most common)
+//    - Example: npx @modelcontextprotocol/server-github
+//    - Use when: Running Node.js, Python, or other CLI-based MCP servers
+//    - Communication: stdin/stdout
+//
+// 2. **http**: HTTP + SSE servers (for remote/managed services)
+//    - Example: https://mcp.example.com/github
+//    - Use when: Connecting to remote MCP services, managed infrastructure
+//    - Communication: HTTP requests + Server-Sent Events
+//
+// 3. **docker**: Containerized MCP servers
+//    - Example: ghcr.io/org/custom-mcp:latest
+//    - Use when: Running custom/isolated MCP servers, need volume mounts
+//    - Communication: stdio (via Docker exec) or HTTP (via port mapping)
+message McpServerDefinition {
+  // Name of the MCP server (e.g., "github", "aws", "slack").
+  string name = 1 [(buf.validate.field).required = true];
+
+  // Server type and transport configuration (choose one).
+  oneof server_type {
+    // stdio-based server (subprocess with stdin/stdout communication).
+    StdioServer stdio = 2;
+
+    // HTTP-based server (HTTP + Server-Sent Events communication).
+    HttpServer http = 3;
+
+    // Docker-based server (containerized MCP server).
+    DockerServer docker = 4;
+  }
+
+  // Tool names to enable from this server (empty = all tools).
+  repeated string enabled_tools = 5;
+}
+
+// StdioServer defines an MCP server that runs as a subprocess.
+// Communication happens via stdin/stdout (most common type).
+message StdioServer {
+  // Command to run the MCP server (e.g., "npx", "python", "node").
+  string command = 1 [(buf.validate.field).required = true];
+
+  // Command arguments (e.g., ["-y", "@modelcontextprotocol/server-github"]).
+  repeated string args = 2;
+
+  // Environment variable placeholders (e.g., {"GITHUB_TOKEN": "${GITHUB_TOKEN}"}).
+  // Actual values provided at AgentInstance level via ConfigSchema.
+  // The key is the env var name that the MCP server expects.
+  // The value is a placeholder reference like "${GITHUB_TOKEN}" that maps to
+  // a secret or env_var defined in the Agent's ConfigSchema.
+  map<string, string> env_placeholders = 3;
+
+  // Working directory for the process (optional).
+  string working_dir = 4;
+}
+
+// HttpServer defines an MCP server accessible via HTTP + SSE.
+// Used for remote/managed MCP services.
+message HttpServer {
+  // Base URL of the MCP server.
+  // Example: "http://localhost:3000/mcp" or "https://mcp.example.com"
+  string url = 1 [(buf.validate.field).required = true];
+
+  // HTTP headers for authentication/configuration.
+  // Example: {"Authorization": "Bearer ${API_TOKEN}"}
+  // Placeholders like ${API_TOKEN} reference secrets in ConfigSchema.
+  map<string, string> headers = 2;
+
+  // Query parameters for the MCP endpoint (optional).
+  // Example: {"version": "v1", "region": "${AWS_REGION}"}
+  map<string, string> query_params = 3;
+
+  // Timeout for HTTP requests in seconds (default: 30).
+  int32 timeout_seconds = 4;
+}
+
+// DockerServer defines an MCP server that runs in a Docker container.
+message DockerServer {
+  // Docker image name and tag.
+  // Example: "ghcr.io/org/mcp-server:latest"
+  string image = 1 [(buf.validate.field).required = true];
+
+  // Container command arguments (optional).
+  // Overrides the default CMD in the Docker image.
+  repeated string args = 2;
+
+  // Environment variable placeholders (same as StdioServer).
+  // Example: {"GITHUB_TOKEN": "${GITHUB_TOKEN}"}
+  map<string, string> env_placeholders = 3;
+
+  // Volume mounts for the container (optional).
+  repeated VolumeMount volumes = 4;
+
+  // Docker network to attach the container to (optional, default: "bridge").
+  string network = 5;
+
+  // Port mappings for the container (optional).
+  repeated PortMapping ports = 6;
+
+  // Container name (optional, auto-generated if not provided).
+  string container_name = 7;
+}
+
+// VolumeMount defines a Docker volume mount.
+message VolumeMount {
+  // Host path to mount.
+  string host_path = 1 [(buf.validate.field).required = true];
+
+  // Container path where the volume is mounted.
+  string container_path = 2 [(buf.validate.field).required = true];
+
+  // Whether the mount is read-only (default: false).
+  bool read_only = 3;
+}
+
+// PortMapping defines a Docker port mapping.
+message PortMapping {
+  // Host port to bind to.
+  int32 host_port = 1 [(buf.validate.field).int32.gte = 1];
+
+  // Container port to expose.
+  int32 container_port = 2 [(buf.validate.field).int32.gte = 1];
+
+  // Protocol (default: "tcp"). Can be "tcp" or "udp".
+  string protocol = 3;
+}

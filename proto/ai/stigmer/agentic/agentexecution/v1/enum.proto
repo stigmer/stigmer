@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentexecution.v1;
+
+// ExecutionPhase defines the lifecycle phase of an agent execution.
+enum ExecutionPhase {
+  EXECUTION_PHASE_UNSPECIFIED = 0;
+  EXECUTION_PENDING = 1; // Waiting to start
+  EXECUTION_IN_PROGRESS = 2; // Currently executing
+  EXECUTION_COMPLETED = 3; // Successfully completed
+  EXECUTION_FAILED = 4; // Failed with error
+  EXECUTION_CANCELLED = 5; // Cancelled by user
+}
+
+// MessageType defines the type of message in the conversation.
+enum MessageType {
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  MESSAGE_HUMAN = 1; // User message
+  MESSAGE_AI = 2; // AI assistant message
+  MESSAGE_TOOL = 3; // Tool call result
+  MESSAGE_SYSTEM = 4; // System message
+}
+
+// ToolCallStatus defines the status of a tool call.
+enum ToolCallStatus {
+  TOOL_CALL_STATUS_UNSPECIFIED = 0;
+  TOOL_CALL_PENDING = 1; // Waiting to execute
+  TOOL_CALL_RUNNING = 2; // Currently executing
+  TOOL_CALL_COMPLETED = 3; // Successfully completed
+  TOOL_CALL_FAILED = 4; // Failed with error
+}
+
+// TodoStatus defines the status of a todo item.
+enum TodoStatus {
+  TODO_STATUS_UNSPECIFIED = 0;
+  TODO_PENDING = 1; // Not started
+  TODO_IN_PROGRESS = 2; // Currently being worked on
+  TODO_COMPLETED = 3; // Successfully completed
+  TODO_CANCELLED = 4; // Cancelled/no longer needed
+}
+
+// SubAgentStatus defines the status of a sub-agent execution.
+enum SubAgentStatus {
+  SUB_AGENT_STATUS_UNSPECIFIED = 0;
+  SUB_AGENT_PENDING = 1; // Waiting to start
+  SUB_AGENT_IN_PROGRESS = 2; // Currently executing
+  SUB_AGENT_COMPLETED = 3; // Successfully completed
+  SUB_AGENT_FAILED = 4; // Failed with error
+}

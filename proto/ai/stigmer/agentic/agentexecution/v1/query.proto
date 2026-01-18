@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentexecution.v1;
+
+import "ai/stigmer/agentic/agentexecution/v1/api.proto";
+import "ai/stigmer/agentic/agentexecution/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// AgentExecutionQueryController handles read operations for agent executions.
+service AgentExecutionQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_execution;
+
+  // Get a single agent execution by ID.
+  rpc get(AgentExecutionId) returns (AgentExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get agent execution";
+  }
+
+  // List all agent executions with pagination and optional filtering.
+  rpc list(ListAgentExecutionsRequest) returns (AgentExecutionList) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+
+  // List all executions in a specific session.
+  // Authorization is handled in handler via FGA query for authorized agent_execution_ids,
+  // then filtered by session_id. This ensures consistent authorization pattern across all list operations.
+  rpc listBySession(ListAgentExecutionsBySessionRequest) returns (AgentExecutionList) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+
+  // Subscribe to real-time execution updates (streaming).
+  // Authorization is handled by the FJ model via proto configuration.
+  rpc subscribe(AgentExecutionId) returns (stream AgentExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to subscribe to agent execution";
+  }
+}

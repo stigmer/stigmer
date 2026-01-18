@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+// Package workflowinstance contains input/output messages for WorkflowInstance RPCs.
+//
+// These messages are helper types used in RPC signatures and are NOT part of the
+// main WorkflowInstance API resource definition.
+package ai.stigmer.agentic.workflowinstance.v1;
+
+import "ai/stigmer/agentic/workflowinstance/v1/api.proto";
+import "ai/stigmer/commons/rpc/pagination.proto";
+import "buf/validate/validate.proto";
+
+// WorkflowInstanceId wraps a workflow instance identifier for RPC operations.
+//
+// Used as input to RPCs that operate on a single instance:
+// - get: Retrieve a specific instance by ID
+// - delete: Remove a specific instance by ID
+//
+// Format: Resource ID string (e.g., "wfi-abc123")
+// Validation: Required field (must not be empty)
+message WorkflowInstanceId {
+  // The workflow instance resource ID.
+  // Example: "wfi-abc123"
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific Workflow template.
+//
+// This allows you to find all configured deployments of a given Workflow.
+// For example, a "deploy-to-cloud" Workflow might have instances:
+// - "prod-deploy" (with production environments)
+// - "staging-deploy" (with staging environments)
+// - "dev-deploy" (with development environments)
+//
+// Supports pagination for efficient retrieval of large result sets.
+message GetWorkflowInstancesByWorkflowRequest {
+  // Workflow template ID to filter by.
+  //
+  // Returns all WorkflowInstance resources where spec.workflow_id matches this value.
+  // Format: Workflow resource ID (e.g., "wfl-abc123")
+  // Validation: Required field
+  string workflow_id = 1 [(buf.validate.field).required = true];
+
+  // Pagination options for controlling result set size and pages.
+  //
+  // Includes:
+  // - page_size: Maximum number of instances per page
+  // - page_token: Token from previous response for next page
+  //
+  // Example pagination flow:
+  // 1. Request with page_info.page_size = 20
+  // 2. Response includes page_token = "next_page_token_here"
+  // 3. Subsequent request with page_info.page_token = "next_page_token_here"
+  ai.stigmer.commons.rpc.PageInfo page_info = 2;
+}
+
+// WorkflowInstanceList contains a paginated list of workflow instances.
+//
+// Returned by list and query operations. Includes pagination metadata
+// to support iterating through large result sets.
+message WorkflowInstanceList {
+  // Total number of pages available in the full result set.
+  //
+  // Use this to determine if there are more pages to fetch.
+  // If total_pages > current_page, more results are available.
+  //
+  // Example: If total_pages = 5, you can fetch up to 5 pages of results.
+  int32 total_pages = 1;
+
+  // Workflow instances in the current page.
+  //
+  // The number of entries is controlled by the page_size parameter
+  // in the request. May be fewer than page_size on the last page.
+  //
+  // Each entry is a complete WorkflowInstance resource with:
+  // - api_version, kind, metadata
+  // - spec (workflow_id, description, env_refs)
+  // - status (audit information)
+  repeated WorkflowInstance entries = 2;
+}

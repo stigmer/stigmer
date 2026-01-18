@@ -1,0 +1,235 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflowexecution.v1;
+
+import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
+
+// WorkflowExecutionSpec defines the user-provided inputs for a workflow execution.
+//
+// This is the "Execution" layer in the Template→Instance→Execution pattern.
+// WorkflowExecutionSpec is ephemeral - it defines the inputs for a single runtime invocation.
+//
+// Following Stigmer proto standards:
+// - Spec contains ONLY user inputs (what the user controls)
+// - Status contains execution state (what the system manages)
+//
+// The spec is immutable after creation. To retry with different inputs, create a new
+// WorkflowExecution with updated spec values.
+//
+// Spec vs Status Separation:
+// ✅ Spec: workflow_instance_id, workflow_id, trigger_message, trigger_metadata, runtime_env
+// ✅ Status: phase, tasks, output, error, timestamps
+//
+// Instance Resolution (matches AgentExecution pattern):
+// - Either workflow_instance_id OR workflow_id must be provided
+// - If workflow_instance_id: Use the specified instance directly
+// - If workflow_id: Resolve to workflow's default instance (auto-create if missing)
+// - Handler enforces: at least one must be provided
+//
+// Example Use Case 1 (Direct Instance Reference):
+// spec {
+//   workflow_instance_id: "wfi-customer-onboarding-prod"
+//   trigger_message: "New signup: john.doe@example.com"
+//   trigger_metadata: {
+//     "source": "web_signup_form"
+//     "ip_address": "203.0.113.42"
+//     "referrer": "https://marketing.example.com/campaign"
+//     "timestamp": "2025-01-11T14:30:22Z"
+//   }
+//   runtime_env: {
+//     "CUSTOMER_EMAIL": { value: "john.doe@example.com" }
+//     "CUSTOMER_PLAN": { value: "pro" }
+//     "STRIPE_API_KEY": { secret_ref: "sec-stripe-prod" }
+//   }
+// }
+//
+// Example Use Case 2 (Default Instance Resolution):
+// spec {
+//   workflow_id: "wf-customer-onboarding"  // System resolves to default instance
+//   trigger_message: "New signup: john.doe@example.com"
+//   runtime_env: {
+//     "CUSTOMER_EMAIL": { value: "john.doe@example.com" }
+//   }
+// }
+message WorkflowExecutionSpec {
+  // ID of the WorkflowInstance to execute (optional).
+  //
+  // The WorkflowInstance contains:
+  // - Reference to the Workflow template (orchestration definition)
+  // - Environment bindings (configuration and secrets)
+  // - Default configuration values
+  //
+  // Format: "wfi-{slug}" (e.g., "wfi-customer-onboarding-prod")
+  //
+  // Relationship:
+  // Workflow (template) → WorkflowInstance (config + secrets) → WorkflowExecution (runtime)
+  //
+  // Example:
+  // workflow_instance_id: "wfi-customer-onboarding-prod"
+  //
+  // The workflow_instance_id determines:
+  // - Which Workflow template to execute (the orchestration blueprint)
+  // - Which Environments provide configuration and secrets
+  // - What default values apply (if runtime_env doesn't override)
+  //
+  // Authorization:
+  // User must have "execute" permission on the referenced WorkflowInstance.
+  //
+  // Note: Either workflow_instance_id OR workflow_id must be provided.
+  // Handler enforces this validation.
+  string workflow_instance_id = 1;
+
+  // ID of the Workflow template to execute (optional).
+  //
+  // When workflow_id is provided without workflow_instance_id, the system:
+  // 1. Checks if the Workflow has a default_instance_id in its status
+  // 2. If exists: Uses the default instance
+  // 3. If missing: Auto-creates a default instance (name: "{workflow_slug}-default")
+  // 4. Updates the Workflow status with the default_instance_id
+  // 5. Executes using the resolved instance
+  //
+  // Format: "wf-{slug}" (e.g., "wf-customer-onboarding")
+  //
+  // This provides a simpler UX for common cases where users want to
+  // "just execute a workflow" without manually managing instances.
+  //
+  // Use Cases:
+  // - Quick workflow execution without instance setup
+  // - Development and testing (use default instance)
+  // - Simple workflows that don't need custom configuration
+  //
+  // For advanced use cases requiring custom environment bindings or
+  // multiple instances with different configurations, use workflow_instance_id.
+  //
+  // Authorization:
+  // User must have "execute" permission on the resolved WorkflowInstance.
+  //
+  // Note: Either workflow_instance_id OR workflow_id must be provided.
+  // Handler enforces this validation.
+  string workflow_id = 6;
+
+  // Input message or payload for the workflow.
+  //
+  // This is the primary input to the workflow - the "trigger event" or "request payload".
+  // It can be:
+  // - A human-readable message (for conversational workflows)
+  // - A JSON payload (for API-triggered workflows)
+  // - An event description (for webhook/event-driven workflows)
+  //
+  // The workflow can access this value using: {{workflow.input.trigger_message}}
+  // Tasks can reference it in their input configurations.
+  //
+  // Examples:
+  //
+  // Conversational workflow:
+  // trigger_message: "Analyze sentiment of recent customer feedback"
+  //
+  // API workflow:
+  // trigger_message: '{"customer_id": "cus-abc123", "action": "upgrade_plan"}'
+  //
+  // Event-driven workflow:
+  // trigger_message: "Payment received: $99.00 for order #12345"
+  //
+  // The trigger_message is optional - some workflows don't need input (scheduled jobs,
+  // workflows that fetch data from APIs, etc.).
+  string trigger_message = 3;
+
+  // Trigger context metadata.
+  //
+  // Contains contextual information about who/what triggered this execution and how.
+  // This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
+  // and analytics.
+  //
+  // Common metadata keys:
+  // - "source": How was this triggered? (api, webhook, schedule, manual, ui)
+  // - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
+  // - "ip_address": Client IP address (for API/UI triggers)
+  // - "user_agent": Client user agent (for API/UI triggers)
+  // - "referrer": HTTP referrer (for UI triggers)
+  // - "webhook_id": Webhook ID (for webhook triggers)
+  // - "schedule_id": Schedule ID (for scheduled triggers)
+  // - "timestamp": When was it triggered? (ISO 8601)
+  //
+  // Example (API trigger):
+  // trigger_metadata: {
+  //   "source": "api"
+  //   "caller_id": "usr-john-doe"
+  //   "ip_address": "203.0.113.42"
+  //   "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+  //   "timestamp": "2025-01-11T14:30:22Z"
+  // }
+  //
+  // Example (webhook trigger):
+  // trigger_metadata: {
+  //   "source": "webhook"
+  //   "webhook_id": "whk-stripe-payment-received"
+  //   "webhook_source": "stripe.com"
+  //   "event_type": "payment_intent.succeeded"
+  //   "timestamp": "2025-01-11T14:30:22Z"
+  // }
+  //
+  // Use Cases:
+  // - Audit trail: Who triggered this execution and when?
+  // - Analytics: Which trigger sources are most common?
+  // - Debugging: Was this triggered by a webhook or manually?
+  // - Rate limiting: Limit executions per user/source
+  map<string, string> trigger_metadata = 4;
+
+  // Runtime environment variables and secrets (execution-scoped).
+  //
+  // These values are only available for this specific execution and override values
+  // from Environments and Workflow defaults.
+  //
+  // Merge Priority (highest to lowest):
+  // 1. runtime_env (this field) - Execution-specific overrides
+  // 2. Environment values (from WorkflowInstance.environment_ids)
+  // 3. Workflow defaults (from Workflow.default_env)
+  //
+  // Use Cases:
+  //
+  // 1. B2B SaaS Integrations (e.g., Plant & Cloud):
+  // runtime_env: {
+  //   "CUSTOMER_API_KEY": { secret_ref: "sec-customer-abc-api-key" }
+  //   "CUSTOMER_WORKSPACE_ID": { value: "ws-customer-abc" }
+  // }
+  //
+  // 2. Dynamic Configuration:
+  // runtime_env: {
+  //   "DEPLOYMENT_REGION": { value: "us-west-2" }
+  //   "ENABLE_BETA_FEATURES": { value: "true" }
+  // }
+  //
+  // 3. Temporary Overrides (testing, debugging):
+  // runtime_env: {
+  //   "LOG_LEVEL": { value: "debug" }
+  //   "DRY_RUN": { value: "true" }
+  // }
+  //
+  // Value Types:
+  // - value: Plain text value (not encrypted, use for non-sensitive config)
+  // - secret_ref: Reference to a Secret resource (encrypted, use for API keys, passwords)
+  //
+  // Security:
+  // - runtime_env values are stored in ExecutionContext
+  // - ExecutionContext is deleted when execution completes (ephemeral secrets)
+  // - Secret references are resolved at runtime (never exposed in logs)
+  //
+  // Example:
+  // runtime_env: {
+  //   "CUSTOMER_EMAIL": {
+  //     value: "john.doe@example.com"
+  //   }
+  //   "STRIPE_API_KEY": {
+  //     secret_ref: "sec-stripe-prod"
+  //   }
+  //   "WEBHOOK_URL": {
+  //     secret_ref: "sec-webhook-callback-url"
+  //   }
+  //   "ENABLE_NOTIFICATIONS": {
+  //     value: "true"
+  //   }
+  // }
+  //
+  // Tasks can access these values using: {{env.VARIABLE_NAME}}
+  map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 5;
+}

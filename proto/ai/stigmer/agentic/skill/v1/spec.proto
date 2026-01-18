@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.skill.v1;
+
+import "buf/validate/validate.proto";
+
+// SkillSpec defines the configurable properties of a skill.
+message SkillSpec {
+  // Brief description for UI display.
+  string description = 1;
+
+  // Markdown content containing the skill documentation/knowledge.
+  string markdown_content = 2 [(buf.validate.field).string.min_len = 1];
+}

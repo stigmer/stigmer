@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.session.v1;
+
+import "ai/stigmer/agentic/session/v1/api.proto";
+import "buf/validate/validate.proto";
+
+// SessionId wraps a session identifier.
+message SessionId {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// AgentId wraps an agent identifier for filtering.
+message AgentId {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// SessionList contains a paginated list of sessions.
+message SessionList {
+  // Total number of pages available.
+  int32 total_pages = 1;
+
+  // Sessions in the current page.
+  repeated Session entries = 2;
+}
+
+// ListSessionsRequest specifies parameters for listing sessions.
+message ListSessionsRequest {
+  // Maximum number of sessions to return per page.
+  int32 page_size = 1;
+
+  // Token for pagination, obtained from previous response.
+  string page_token = 2;
+
+  // Filter by tags (optional).
+  repeated string tags = 3;
+}
+
+// ListSessionsByAgentRequest lists all sessions for a specific agent.
+message ListSessionsByAgentRequest {
+  // Agent ID to filter by.
+  string agent_id = 1 [(buf.validate.field).required = true];
+
+  // Maximum number of sessions to return per page.
+  int32 page_size = 2;
+
+  // Token for pagination, obtained from previous response.
+  string page_token = 3;
+}

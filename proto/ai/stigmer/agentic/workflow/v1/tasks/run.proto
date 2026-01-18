@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+// RunTaskConfig defines the configuration for RUN tasks.
+//
+// RUN tasks execute sub-workflows (Temporal child workflows).
+//
+// YAML Example:
+//   - taskName:
+//       run:
+//         workflow: "sub-workflow-name"
+//         input:
+//           data: ${ .data }
+//
+// Reference: zigflow-dsl-pattern-catalog.md - Task Type 12
+message RunTaskConfig {
+  // Sub-workflow name/identifier to execute.
+  string workflow = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Sub-workflow input (optional).
+  // Can be any JSON structure.
+  // Supports expressions in string values.
+  google.protobuf.Struct input = 2;
+}

@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "ai/stigmer/agentic/workflow/v1/spec.proto";
+import "buf/validate/validate.proto";
+
+// TryTaskConfig defines the configuration for TRY tasks.
+//
+// TRY tasks provide try/catch error handling.
+//
+// YAML Example:
+//   - taskName:
+//       try:
+//         - attemptTask:
+//             call: http
+//             with:
+//               method: POST
+//               endpoint:
+//                 uri: https://api.example.com/flaky
+//       catch:
+//         as: error
+//         do:
+//           - errorHandler:
+//               call: http
+//               with:
+//                 body:
+//                   error: ${ .error }
+//
+// Reference: zigflow-dsl-pattern-catalog.md - Task Type 6
+message TryTaskConfig {
+  // Tasks to attempt (at least one required).
+  // If any task fails, execution jumps to catch block.
+  repeated ai.stigmer.agentic.workflow.v1.WorkflowTask try = 1 [(buf.validate.field).repeated.min_items = 1];
+
+  // Catch block for error handling (optional).
+  // If not provided, errors propagate to parent.
+  CatchBlock catch = 2;
+}
+
+// CatchBlock defines error handling logic.
+message CatchBlock {
+  // Variable name to store the error (optional).
+  // Accessible via ${ .error } in catch tasks.
+  string as = 1;
+
+  // Tasks to execute when error is caught.
+  repeated ai.stigmer.agentic.workflow.v1.WorkflowTask do = 2 [(buf.validate.field).repeated.min_items = 1];
+}

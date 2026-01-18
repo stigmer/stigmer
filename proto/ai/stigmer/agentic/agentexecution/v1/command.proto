@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentexecution.v1;
+
+import "ai/stigmer/agentic/agentexecution/v1/api.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "buf/validate/validate.proto";
+
+// AgentExecutionCommandController handles write operations for agent executions.
+// Follows the standard pattern: create, update, delete (no granular field updates).
+service AgentExecutionCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_execution;
+
+  // Create and trigger a new agent execution.
+  // Session is optional - can be provided or auto-created from agent_id.
+  // Authorization is handled in handler:
+  //   - If session_id provided: checks can_create_execution_in on session
+  //   - If session_id NOT provided: checks can_create_execution_in on organization
+  rpc create(AgentExecution) returns (AgentExecution) {}
+
+  // Update an execution with full state.
+  // Used by users to update execution configuration (spec fields).
+  // No individual field updates - always provide complete state.
+  rpc update(AgentExecution) returns (AgentExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update agent execution";
+  }
+
+  // Update execution status during agent execution.
+  // Used by agent-runner to send progressive status updates (messages, tool_calls, phase, etc.)
+  // This RPC is optimized for frequent status updates and merges status fields with existing state.
+  rpc updateStatus(AgentExecutionUpdateStatusInput) returns (AgentExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "execution_id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update agent execution status";
+  }
+
+  // Delete an execution.
+  rpc delete(ai.stigmer.commons.apiresource.ApiResourceId) returns (AgentExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete agent execution";
+  }
+}
+
+// Input message for updateStatus RPC.
+// Contains only the execution ID and the status fields to be updated.
+// This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
+message AgentExecutionUpdateStatusInput {
+  // ID of the agent execution to update (required).
+  // Format: "aex_abc123xyz456"
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Status fields to update.
+  // The handler will merge these status fields with the existing execution's status.
+  // Only the fields present in this status object will be updated.
+  AgentExecutionStatus status = 2 [(buf.validate.field).required = true];
+}

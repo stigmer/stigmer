@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.executioncontext.v1;
+
+import "ai/stigmer/agentic/executioncontext/v1/api.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// ExecutionContextCommandController provides write operations for ExecutionContext resources.
+// Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+service ExecutionContextCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = execution_context;
+
+  // Create or update an ExecutionContext.
+  // The authorization and state-operation are determined depending on whether the execution context
+  // is going to be created or updated which is determined as part of the request execution.
+  rpc apply(ExecutionContext) returns (ExecutionContext);
+
+  // Create a new ExecutionContext (typically called by execution engine).
+  rpc create(ExecutionContext) returns (ExecutionContext) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = operator;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to create Execution Context (operator-only action)";
+  }
+
+  // Delete an ExecutionContext (called when execution completes).
+  rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (ExecutionContext) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = operator;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete Execution Context (operator-only action)";
+  }
+}

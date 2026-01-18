@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "buf/validate/validate.proto";
+
+// RaiseTaskConfig defines the configuration for RAISE tasks.
+//
+// RAISE tasks raise errors/exceptions, terminating workflow execution.
+//
+// YAML Example:
+//   - taskName:
+//       raise:
+//         error: ValidationError
+//         message: ${ .errorMessage }
+//
+// Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
+message RaiseTaskConfig {
+  // Error type/name.
+  string error = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Error message.
+  // Can contain expressions: "${ .errorMessage }"
+  string message = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+}

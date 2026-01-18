@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentinstance.v1;
+
+import "ai/stigmer/agentic/agentinstance/v1/api.proto";
+import "ai/stigmer/agentic/agentinstance/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// AgentInstanceCommandController handles write operations for agent instances.
+// Follows the standard pattern: create, update, delete (no granular field updates).
+service AgentInstanceCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_instance;
+
+  // Create or update an agent instance.
+  // The authorization and state-operation are determined depending on whether the agent instance
+  // is going to be created or updated which is determined as part of the request execution.
+  rpc apply(AgentInstance) returns (AgentInstance);
+
+  // Create a new agent instance with full state.
+  // Provide organization_id in metadata.org, and complete spec with configuration and secrets.
+  //
+  // Authorization: Uses FGA contextual tuples (handler-level)
+  // - Checks can_create_instance on parent agent (via spec.agent_id)
+  // - For org-scoped: Passes contextual tuple agent#organization@organization:target-org
+  // - FGA evaluates membership via contextual tuple (single authorization check)
+  //
+  // This pattern eliminates redundant checks by providing organization context to FGA
+  rpc create(AgentInstance) returns (AgentInstance) {
+    // Authorization handled in handler using FGA contextual tuples
+  }
+
+  // Update an instance with full state.
+  // Used to update entire instance configuration including metadata, spec, and secrets.
+  // No individual field updates - always provide complete state.
+  // Authorization: Owner or org admin can update (can_edit permission)
+  rpc update(AgentInstance) returns (AgentInstance) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_instance;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update agent instance";
+  }
+
+  // Delete an agent instance.
+  // Authorization: Only owner can delete (can_delete permission)
+  rpc delete(AgentInstanceId) returns (AgentInstance) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_instance;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete agent instance";
+  }
+}

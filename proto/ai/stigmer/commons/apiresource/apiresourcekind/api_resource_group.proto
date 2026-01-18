@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package ai.stigmer.commons.apiresource.apiresourcekind;
+
+import "google/protobuf/descriptor.proto";
+
+// Enum value options for api-resource-group
+extend google.protobuf.EnumValueOptions {
+  ApiResourceGroupMeta group_meta = 91101;
+}
+
+// Metadata for api-resource-group
+message ApiResourceGroupMeta {
+  // Name/domain of the api-resource-group
+  string domain = 1;
+  // Display name of the api-resource-group
+  string display_name = 2;
+}
+
+// API resource groups for organizing resources by functional area
+enum ApiResourceGroup {
+  api_resource_group_unspecified = 0;
+
+  // Agentic - AI agents, workflows, executions, sessions, skills, and orchestration
+  agentic = 1 [(group_meta) = {
+    domain: "agentic.stigmer.ai"
+    display_name: "Agentic"
+  }];
+
+  // Identity and Access Management - IAM policies, identity accounts, and credentials
+  iam = 2 [(group_meta) = {
+    domain: "iam.stigmer.ai"
+    display_name: "IAM"
+  }];
+
+  // Tenancy - Platform and organizational resources
+  tenancy = 3 [(group_meta) = {
+    domain: "tenancy.stigmer.ai"
+    display_name: "Tenancy"
+  }];
+}

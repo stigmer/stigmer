@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.skill.v1;
+
+import "buf/validate/validate.proto";
+
+// SkillId wraps a skill identifier.
+message SkillId {
+  string value = 1 [(buf.validate.field).required = true];
+}

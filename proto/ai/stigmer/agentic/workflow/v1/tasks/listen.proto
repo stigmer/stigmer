@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "buf/validate/validate.proto";
+
+// ListenTaskConfig defines the configuration for LISTEN tasks.
+//
+// LISTEN tasks wait for external signals/events (Temporal signals).
+//
+// YAML Example:
+//   - taskName:
+//       listen:
+//         to:
+//           one:
+//             with:
+//               id: approval_signal
+//               type: signal
+//
+// Reference: zigflow-dsl-pattern-catalog.md - Task Type 7
+message ListenTaskConfig {
+  // Signal listening configuration.
+  ListenTo to = 1 [(buf.validate.field).required = true];
+}
+
+// ListenTo defines what signals to listen for.
+message ListenTo {
+  // Listening mode:
+  // - "one": Wait for any one signal
+  // - "all": Wait for all signals
+  string mode = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      in: [
+        "one",
+        "all"
+      ]
+    }
+  ];
+
+  // Signals to listen for.
+  repeated SignalSpec signals = 2 [(buf.validate.field).repeated.min_items = 1];
+}
+
+// SignalSpec defines a signal/event to listen for.
+message SignalSpec {
+  // Signal identifier.
+  string id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Signal type:
+  // - "signal": Temporal signal
+  // - "query": Temporal query
+  // - "update": Temporal update
+  string type = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      in: [
+        "signal",
+        "query",
+        "update"
+      ]
+    }
+  ];
+}

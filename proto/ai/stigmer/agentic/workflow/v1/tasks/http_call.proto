@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+// HttpCallTaskConfig defines the configuration for HTTP_CALL tasks.
+//
+// HTTP_CALL tasks make HTTP requests (GET, POST, PUT, DELETE, PATCH).
+//
+// YAML Example:
+//   - taskName:
+//       call: http
+//       with:
+//         method: POST
+//         endpoint:
+//           uri: https://api.example.com/data
+//         headers:
+//           Authorization: "Bearer ${TOKEN}"
+//         body:
+//           field1: value
+//
+// Reference: zigflow-dsl-pattern-catalog.md - Task Type 2
+message HttpCallTaskConfig {
+  // HTTP method (GET, POST, PUT, DELETE, PATCH).
+  string method = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      in: [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ]
+    }
+  ];
+
+  // HTTP endpoint configuration.
+  HttpEndpoint endpoint = 2 [(buf.validate.field).required = true];
+
+  // HTTP headers (optional).
+  // Values can contain expressions: "Bearer ${TOKEN}"
+  map<string, string> headers = 3;
+
+  // Request body (optional).
+  // Can be any JSON structure. Supports expressions in string values.
+  google.protobuf.Struct body = 4;
+
+  // Request timeout in seconds (optional, default: 30).
+  int32 timeout_seconds = 5 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 300
+  }];
+}
+
+// HttpEndpoint defines the HTTP endpoint to call.
+message HttpEndpoint {
+  // URI of the endpoint.
+  // Can contain expressions: "https://api.example.com/${.resource}"
+  string uri = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+}

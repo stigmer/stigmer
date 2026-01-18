@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+// GrpcCallTaskConfig defines the configuration for GRPC_CALL tasks.
+//
+// GRPC_CALL tasks make gRPC requests to external services.
+//
+// YAML Example:
+//   - taskName:
+//       call: grpc
+//       with:
+//         service: "com.example.UserService"
+//         method: "GetUser"
+//         request:
+//           userId: ${ .userId }
+//
+// Reference: zigflow-dsl-pattern-catalog.md - Task Type 9
+message GrpcCallTaskConfig {
+  // Fully qualified service name.
+  // Example: "com.example.UserService"
+  string service = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Method name to call.
+  // Example: "GetUser"
+  string method = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Request message (optional).
+  // Can be any JSON structure matching the proto schema.
+  // Supports expressions in string values.
+  google.protobuf.Struct request = 3;
+}

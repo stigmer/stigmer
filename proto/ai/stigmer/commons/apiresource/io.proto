@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package ai.stigmer.commons.apiresource;
+
+import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
+import "ai/stigmer/commons/apiresource/enum.proto";
+import "ai/stigmer/commons/rpc/pagination.proto";
+import "buf/validate/validate.proto";
+
+// Wrapper for api-resource-id
+message ApiResourceId {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// Input for rpc to delete or preview delete for any api resource
+message ApiResourceDeleteInput {
+  // ID of the resource
+  string resource_id = 1 [(buf.validate.field).required = true];
+  // A descriptive message explaining the reason for deleting the resource. This is used for audit purposes.
+  // For example, "Deleting as it is no longer needed".
+  string version_message = 2;
+  // Flag for api-resources that require force deletion override from the clients
+  bool force = 3;
+}
+
+// Input for requests that need api-resource org and slug
+message ApiResourceByOrgBySlugRequest {
+  // ID of the organization
+  string org = 1 [(buf.validate.field).required = true];
+  // Slug of the resource
+  string slug = 2 [(buf.validate.field).required = true];
+}
+
+// Input for find (list) operations with pagination
+message FindApiResourcesRequest {
+  // Organization ID to filter by
+  string org = 1 [(buf.validate.field).required = true];
+  // API resource kind (optional filter)
+  string kind = 3;
+  // Pagination info
+  ai.stigmer.commons.rpc.PageInfo page = 4;
+  // Page number (1-indexed) - deprecated, use page.num
+  int32 page_number = 5;
+  // Number of items per page (default: 20, max: 100) - deprecated, use page.size
+  int32 page_size = 6;
+}
+
+// Generic reference to any API resource by scope, org, and name.
+// Used across resources to reference other resources (e.g., Environment, Agent, etc.)
+message ApiResourceReference {
+  // Owner scope of the referenced resource
+  ApiResourceOwnerScope scope = 1 [(buf.validate.field).enum.defined_only = true];
+
+  // Organization ID (required if scope = organization)
+  string org = 2;
+
+  ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 3;
+
+  // Resource slug (user-friendly name, not ID)
+  string slug = 4 [(buf.validate.field).string.min_len = 1];
+}

@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "ai/stigmer/agentic/workflow/v1/spec.proto";
+import "buf/validate/validate.proto";
+
+// ForTaskConfig defines the configuration for FOR tasks.
+//
+// FOR tasks iterate over collections, executing tasks for each item.
+//
+// YAML Example:
+//   - taskName:
+//       for:
+//         each: item
+//         in: ${ $data.items }
+//       do:
+//         - processItem:
+//             call: http
+//             with:
+//               method: POST
+//               body:
+//                 item: ${ $data.item }
+//                 index: ${ $data.index }
+//
+// Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
+message ForTaskConfig {
+  // Variable name for each item in the iteration.
+  // Accessible via ${ $data.item } in expressions.
+  string each = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Expression evaluating to the collection to iterate over.
+  // Example: "${ $data.items }" or "${ [1, 2, 3] }"
+  string in = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Tasks to execute for each iteration.
+  // Loop variables available: ${ $data.item }, ${ $data.index }
+  repeated ai.stigmer.agentic.workflow.v1.WorkflowTask do = 3 [(buf.validate.field).repeated.min_items = 1];
+}

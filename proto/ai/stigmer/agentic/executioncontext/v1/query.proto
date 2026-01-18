@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.executioncontext.v1;
+
+import "ai/stigmer/agentic/executioncontext/v1/api.proto";
+import "ai/stigmer/agentic/executioncontext/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// ExecutionContextQueryController provides read operations for ExecutionContext resources.
+service ExecutionContextQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = execution_context;
+
+  // Get an ExecutionContext by ID.
+  // Note: Only the execution engine should typically need to read these.
+  rpc get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId) returns (ExecutionContext) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = operator;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get Execution Context (operator-only action)";
+  }
+
+  // Get an ExecutionContext by reference (operator-only).
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (ExecutionContext) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = operator;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get Execution Context by reference (operator-only action)";
+  }
+}

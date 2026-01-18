@@ -1,0 +1,217 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentexecution.v1;
+
+import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+// AgentExecution represents a single agent execution instance (conversational).
+// Follows the standard pattern: spec contains user inputs, status contains execution results.
+message AgentExecution {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'AgentExecution'];
+
+  // Standard resource metadata including name, id, labels, and tags.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "agent_execution.owner_scope.unspecified_only"
+      message: "AgentExecution owner_scope must be unspecified (inherits premission from session)"
+      expression: "this.owner_scope == 0"
+    }
+  ];
+
+  // User-provided inputs for this execution.
+  // Contains: session_id, agent_id, message, execution_config, environment_id, credential_overrides
+  AgentExecutionSpec spec = 4;
+
+  // System-managed execution state and results.
+  // Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+  AgentExecutionStatus status = 5;
+}
+
+// AgentExecutionStatus contains all execution results and state.
+// Everything populated during or after execution goes here, not in spec.
+message AgentExecutionStatus {
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // Sequential stream of execution events: AI messages, tool calls, and system notifications.
+  // Ordered chronologically to reconstruct the complete execution flow.
+  // Each message captures what happened during execution (agent responses, tool invocations, progress updates).
+  repeated AgentMessage messages = 1;
+
+  // Current execution lifecycle phase.
+  // Tracks the execution state from creation (PENDING) through active processing (IN_PROGRESS)
+  // to terminal states (COMPLETED/FAILED/CANCELLED).
+  ExecutionPhase phase = 2 [(buf.validate.field).enum.defined_only = true];
+
+  // Tool calls made during this execution.
+  // Tracked separately for easier querying and display.
+  // Also referenced within messages[].tool_calls for conversation context.
+  repeated ToolCall tool_calls = 3;
+
+  // Sub-agent executions invoked during this execution.
+  // Tracks when the main agent delegates work to specialized sub-agents.
+  // Ordered chronologically by invocation time.
+  repeated SubAgentExecution sub_agent_executions = 4;
+
+  // Error message if execution failed.
+  // Only populated when phase == EXECUTION_FAILED.
+  string error = 6;
+
+  // ISO 8601 timestamp when execution started.
+  // Example: "2025-01-10T10:30:00Z"
+  string started_at = 7;
+
+  // ISO 8601 timestamp when execution completed, failed, or was cancelled.
+  // Only populated for terminal states.
+  string completed_at = 8;
+
+  // Todo list tracking multi-step tasks and progress for this execution.
+  // Updated via write_todos tool (if TodoListMiddleware is enabled).
+  // Each execution maintains its own snapshot of todos at execution time.
+  // Key: todo item ID, Value: todo item details
+  map<string, TodoItem> todos = 9;
+}
+
+// Represents a single item in the agent's todo list.
+// Used by the write_todos tool to track multi-step tasks and progress.
+message TodoItem {
+  // Unique identifier for this todo item.
+  string id = 1;
+
+  // Description of the task to be completed.
+  string content = 2;
+
+  // Current status of the todo item.
+  TodoStatus status = 3;
+
+  // ISO 8601 timestamp when the todo was created.
+  string created_at = 4;
+
+  // ISO 8601 timestamp when the todo was last updated.
+  string updated_at = 5;
+}
+
+// Represents a single message in the agent conversation.
+// Used to track the full conversation flow including user messages,
+// AI responses, and tool execution details.
+message AgentMessage {
+  // Type of message (human, ai, tool, system).
+  MessageType type = 1 [(buf.validate.field).enum.defined_only = true];
+
+  // The text content of the message.
+  string content = 2;
+
+  // ISO 8601 timestamp when the message was created.
+  string timestamp = 3;
+
+  // Tool calls associated with this message (if type == ai and tools were invoked).
+  repeated ToolCall tool_calls = 4;
+
+  // Optional message metadata.
+  google.protobuf.Struct metadata = 5;
+}
+
+// Represents a tool call made by the agent during execution.
+message ToolCall {
+  // Unique identifier for this tool call.
+  string id = 1;
+
+  // Name of the tool being called.
+  string name = 2;
+
+  // Arguments passed to the tool (JSON structure).
+  google.protobuf.Struct args = 3;
+
+  // Result returned by the tool (optional, populated after execution).
+  string result = 4;
+
+  // Status of the tool call execution.
+  ToolCallStatus status = 5 [(buf.validate.field).enum.defined_only = true];
+
+  // Optional metadata to guide frontend UI component rendering.
+  // Set by Python worker based on tool name or explicitly by agents.
+  // Example: kubectl_get_pods → component_type="terminal"
+  ComponentMetadata component_metadata = 6;
+
+  // ISO 8601 timestamp when the tool call started.
+  string started_at = 7;
+
+  // ISO 8601 timestamp when the tool call completed or failed.
+  string completed_at = 8;
+
+  // Error message if status == TOOL_CALL_FAILED.
+  string error = 9;
+}
+
+// Metadata to guide frontend UI component rendering for tool calls.
+// All fields are optional - if not set, frontend uses default rendering logic.
+message ComponentMetadata {
+  // Type of UI component to render for this tool call.
+  // Examples: "terminal", "preview", "form", "approval", "diagram", "progress"
+  // Frontend maps these to React Flow node types (TerminalNode, PreviewNode, etc.).
+  string component_type = 1;
+
+  // Optional group identifier for related tool calls.
+  // Tool calls with the same group_id can be aggregated into a single UI component.
+  // Example: Multiple kubectl commands in a deployment workflow.
+  string component_group = 2;
+
+  // Optional layout hint for canvas positioning.
+  // Examples: "inline", "full-width", "sidebar", "floating"
+  string layout_hint = 3;
+
+  // Flexible metadata for component-specific configuration.
+  // Frontend components can read this for custom behavior.
+  // Example: {"syntax": "yaml", "readonly": true} for file preview
+  google.protobuf.Struct metadata = 4;
+}
+
+// Represents a sub-agent invocation within an execution.
+// When the main agent delegates work to a specialized sub-agent, this message
+// tracks the complete lifecycle of that delegation including input, output, and timing.
+message SubAgentExecution {
+  // Unique identifier for this sub-agent execution.
+  // Matches the tool call ID from the LangGraph "task" tool invocation.
+  string id = 1;
+
+  // Name of the sub-agent being invoked.
+  // Examples: "code_editor", "researcher", "debugger"
+  // Extracted from tool call args.subagent_type field.
+  string name = 2;
+
+  // Task/instruction given to the sub-agent.
+  // This is the input prompt that tells the sub-agent what to do.
+  string input = 3;
+
+  // Result returned by the sub-agent when complete.
+  // Only populated when status == SUB_AGENT_COMPLETED.
+  string output = 4;
+
+  // Current lifecycle status of the sub-agent execution.
+  SubAgentStatus status = 5 [(buf.validate.field).enum.defined_only = true];
+
+  // ISO 8601 timestamp when the sub-agent was invoked.
+  // Example: "2025-11-22T10:30:00Z"
+  string started_at = 6;
+
+  // ISO 8601 timestamp when the sub-agent completed or failed.
+  // Only populated for terminal states (completed/failed).
+  string completed_at = 7;
+
+  // Error message if status == SUB_AGENT_FAILED.
+  // Contains the failure reason for debugging and user display.
+  string error = 8;
+
+  // Optional sub-agent execution metadata.
+  google.protobuf.Struct metadata = 9;
+}

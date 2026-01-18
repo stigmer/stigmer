@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package ai.stigmer.commons.apiresource;
+
+import "google/protobuf/descriptor.proto";
+
+// Field-level options for api-resource fields
+extend google.protobuf.FieldOptions {
+  // Marks a field as computed/read-only
+  bool computed = 90201;
+  // Marks a field as immutable (can be set on create, but not updated)
+  bool immutable = 90202;
+}

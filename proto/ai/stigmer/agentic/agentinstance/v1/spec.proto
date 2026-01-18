@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentinstance.v1;
+
+import "ai/stigmer/commons/apiresource/io.proto";
+import "buf/validate/validate.proto";
+
+// AgentInstanceSpec defines a configured deployment of an Agent template.
+// This is the "Instance" layer - stateful configuration with secrets.
+message AgentInstanceSpec {
+  // Reference to the Agent template this instance deploys.
+  string agent_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable description for this instance.
+  // Example: "Production GitHub bot for main repo"
+  string description = 2;
+
+  // References to Environment resources (can be multiple).
+  // Environments are merged in order: later environments override earlier ones.
+  // Example: [base-env, aws-prod-env, github-team-env]
+  // This allows layering of configurations (base → specific overrides).
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [(buf.validate.field).repeated.items.cel = {
+    id: "environment_refs.kind"
+    message: "environment_refs must reference resources with kind=environment"
+    expression: "this.kind == 52" // 52 = environment enum value
+  }];
+}

@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.iampolicy.v1.rpcauthorization;
+
+import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/iam_permission.proto";
+
+// authorization config message to check before executing rpc
+message RpcAuthorizationConfig {
+  // permission required to run the service
+  ai.stigmer.iam.iampolicy.v1.rpcauthorization.ApiResourceIamPermission permission = 1;
+  // api-resource-kind that the permission should be granted
+  ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind resource_kind = 2;
+  // path of the field that contains the api-resource-kind on which to perform authorization.
+  //this is useful when the resource_kind is part of the input object
+  string resource_kind_path = 3;
+  // path of the field inside the input object to be used for performing authorization.
+  string field_path = 4;
+  // error message to be returned when the permission is not granted to user
+  string error_msg = 5;
+  // identifier value to be configured if identifier is not part of the input
+  // this will be used in case of system internal rpc`s where the resource_id is `planton-cloud`
+  string resource_id = 6;
+}

@@ -1,0 +1,123 @@
+syntax = "proto3";
+
+// Package workflowinstance contains the command controller for WorkflowInstance write operations.
+package ai.stigmer.agentic.workflowinstance.v1;
+
+import "ai/stigmer/agentic/workflowinstance/v1/api.proto";
+import "ai/stigmer/agentic/workflowinstance/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// WorkflowInstanceCommandController handles write operations (Create, Update, Delete) for WorkflowInstance resources.
+//
+// This service provides the CUD (Create, Update, Delete) operations following the
+// Command-Query Separation pattern. All RPCs that modify state go through this controller.
+//
+// Authorization:
+// - create: Custom authorization logic (validates workflow_id access, env_refs access)
+// - update: Standard authorization (requires update permission on the instance)
+// - delete: Standard authorization (requires delete permission on the instance)
+//
+// All operations enforce owner scope restrictions (organization or identity_account only).
+service WorkflowInstanceCommandController {
+  // Service-level option linking this controller to the workflow_instance resource kind.
+  // This enables generic middleware to identify the resource type for logging, metrics, and policy enforcement.
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = workflow_instance;
+
+  // Create or update a workflow instance.
+  // The authorization and state-operation are determined depending on whether the workflow instance
+  // is going to be created or updated which is determined as part of the request execution.
+  rpc apply(WorkflowInstance) returns (WorkflowInstance);
+
+  // Create a new workflow instance.
+  //
+  // Creates a configured deployment of a Workflow template with environment bindings.
+  //
+  // Input validation:
+  // - metadata.owner_scope must be organization (2) or identity_account (3)
+  // - spec.workflow_id must be a valid Workflow resource ID
+  // - spec.env_refs must reference valid Environment resources
+  //
+  // Authorization:
+  // Uses custom authorization logic to verify:
+  // 1. User has permission to access the referenced Workflow template
+  // 2. User has permission to access all referenced Environment resources
+  // 3. Owner scope is valid for the user's organization/identity
+  //
+  // Returns:
+  // The created WorkflowInstance with:
+  // - Assigned resource ID (metadata.id)
+  // - Created timestamp (status.audit.created_at)
+  // - Initial version (status.audit.version = 1)
+  //
+  // Example:
+  // Input: WorkflowInstance with workflow_id="wfl-123", env_refs=["env-prod"]
+  // Output: WorkflowInstance with id="wfi-abc456", created_at="2025-01-11T10:00:00Z"
+  rpc create(WorkflowInstance) returns (WorkflowInstance);
+
+  // Update an existing workflow instance.
+  //
+  // Modifies the configuration of an existing WorkflowInstance.
+  // You can update:
+  // - spec.description (change descriptive text)
+  // - spec.env_refs (add/remove/reorder environment bindings)
+  // - metadata.labels, metadata.tags, metadata.annotations
+  //
+  // You cannot update:
+  // - spec.workflow_id (must delete and recreate to change template)
+  // - metadata.id (immutable resource identifier)
+  // - metadata.owner_scope (immutable after creation)
+  //
+  // Authorization:
+  // Requires "update" permission on the specific WorkflowInstance resource.
+  // Field path "metadata.id" identifies which resource to authorize.
+  //
+  // Versioning:
+  // Each update increments status.audit.version and updates status.audit.updated_at.
+  //
+  // Returns:
+  // The updated WorkflowInstance with:
+  // - Incremented version number
+  // - Updated timestamp
+  // - Modified spec fields
+  //
+  // Error: PERMISSION_DENIED if user lacks update permission
+  rpc update(WorkflowInstance) returns (WorkflowInstance) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_instance;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update workflow instance";
+  }
+
+  // Delete a workflow instance.
+  //
+  // Permanently removes a WorkflowInstance resource.
+  //
+  // Important:
+  // - Deletion is permanent and cannot be undone
+  // - Does NOT delete the referenced Workflow template (templates are reusable)
+  // - Does NOT delete the referenced Environment resources (environments are reusable)
+  // - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)
+  //
+  // Authorization:
+  // Requires "delete" permission on the specific WorkflowInstance resource.
+  // Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
+  //
+  // Use Cases:
+  // - Remove deprecated instances
+  // - Clean up test/dev instances
+  // - Decommission old deployment configurations
+  //
+  // Returns:
+  // The deleted WorkflowInstance (final state before deletion).
+  // Useful for audit logs and confirming what was deleted.
+  //
+  // Error: PERMISSION_DENIED if user lacks delete permission
+  // Error: NOT_FOUND if instance ID doesn't exist
+  rpc delete(WorkflowInstanceId) returns (WorkflowInstance) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_instance;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete workflow instance";
+  }
+}

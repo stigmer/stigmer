@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.serverless;
+
+import "google/protobuf/timestamp.proto";
+
+// ServerlessWorkflowValidation contains the generated Serverless Workflow YAML
+// and its validation state. This is populated asynchronously after workflow creation
+// via a Temporal workflow that validates the workflow structure.
+message ServerlessWorkflowValidation {
+  // Current validation state
+  ValidationState state = 1;
+
+  // Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)
+  // This YAML may contain runtime expressions for environment variables:
+  //   Example: ${ .env.API_BASE_URL }
+  //
+  // Present even if validation failed (helps debugging).
+  // Empty if validation hasn't started yet.
+  string yaml = 2;
+
+  // Validation errors (empty if valid)
+  // Examples:
+  //   - "Invalid YAML syntax at line 15"
+  //   - "Unknown task type 'invalid_task'"
+  //   - "Missing required field: document.namespace"
+  repeated string errors = 3;
+
+  // Non-fatal warnings
+  // Examples:
+  //   - "Environment variable API_KEY referenced but not defined"
+  //   - "Task 'fetchData' has no error handling"
+  repeated string warnings = 4;
+
+  // When validation was performed
+  // Null if validation hasn't completed yet
+  google.protobuf.Timestamp validated_at = 5;
+
+  // Temporal workflow ID for the validation workflow
+  // Format: "validate-workflow-{workflow_id}"
+  // Useful for tracking/debugging validation progress
+  string validation_workflow_id = 6;
+}
+
+// ValidationState represents the current state of serverless workflow validation
+enum ValidationState {
+  // Unspecified state (should not be used)
+  VALIDATION_STATE_UNSPECIFIED = 0;
+
+  // Validation has been triggered but not yet completed
+  // This is the initial state when a workflow is created
+  PENDING = 1;
+
+  // Validation completed successfully - workflow structure is valid
+  // The generated YAML is stored and can be used for execution
+  VALID = 2;
+
+  // Validation completed but found errors - workflow structure is invalid
+  // The workflow cannot be executed until errors are fixed
+  // Errors are listed in the 'errors' field
+  INVALID = 3;
+
+  // Validation process itself failed (system error, not user error)
+  // Examples: Temporal workflow crashed, activity timeout, etc.
+  // User should retry validation or contact support
+  FAILED = 4;
+}

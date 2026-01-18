@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.session.v1;
+
+import "ai/stigmer/agentic/session/v1/api.proto";
+import "ai/stigmer/agentic/session/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// SessionCommandController handles write operations for agent sessions.
+service SessionCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = session;
+
+  // Create or update a session.
+  // The authorization and state-operation are determined depending on whether the session
+  // is going to be created or updated which is determined as part of the request execution.
+  rpc apply(Session) returns (Session);
+
+  // Create a new session for an agent.
+  // Requires can_create_session permission in the organization.
+  rpc create(Session) returns (Session) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_session;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.org";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to create session in this organization";
+  }
+
+  // Update an existing session (e.g., subject, thread_id, sandbox_id).
+  rpc update(Session) returns (Session) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = session;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update session";
+  }
+
+  // Delete a session (also cleans up thread and sandbox).
+  rpc delete(SessionId) returns (Session) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = session;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete session";
+  }
+}

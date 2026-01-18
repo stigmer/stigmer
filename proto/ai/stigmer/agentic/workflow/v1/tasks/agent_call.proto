@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "ai/stigmer/commons/apiresource/enum.proto";
+import "buf/validate/validate.proto";
+
+// AgentCallTaskConfig defines the configuration for AGENT_CALL tasks.
+//
+// This enables workflows to invoke AI agents as tasks, delegating complex
+// operations to specialized agents with their own skills and context.
+//
+// The agent is referenced by slug (name) and scope. The runtime resolves
+// the (slug, scope) pair to an actual agent:
+// 1. If scope is PLATFORM: look only in platform-scoped agents (public)
+// 2. If scope is ORGANIZATION: look only in org agents
+// 3. If scope is UNSPECIFIED: defaults to ORGANIZATION scope
+// 4. Before explicit scope lookup, check manifest (current deployment)
+//
+// The workflow's execution context (environment variables, secrets) is
+// passed to the agent invocation, allowing agents to access workflow state.
+//
+// YAML Example:
+//   - analyze:
+//       call: agent
+//       with:
+//         agent: "code-reviewer"
+//         scope: organization
+//         message: "Review this code: ${ $context.fetchCode.body }"
+//         env:
+//           GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
+//         config:
+//           model: "claude-3-5-sonnet"
+//           timeout: 300
+//
+// Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
+message AgentCallTaskConfig {
+  // Agent slug/name to invoke (e.g., "code-reviewer", "data-analyst").
+  // The runtime resolves this to an actual agent considering the scope.
+  // Required field.
+  string agent = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 63
+  ];
+
+  // Agent owner scope (platform or organization).
+  // Determines where to resolve the agent slug.
+  // Default (UNSPECIFIED) = ORGANIZATION scope.
+  // Optional (defaults to organization if not specified).
+  ai.stigmer.commons.apiresource.ApiResourceOwnerScope scope = 2;
+
+  // Instructions/prompt to send to the agent.
+  // Supports interpolation of workflow variables using JQ expressions.
+  // Example: "Analyze this code: ${ $context.fetchCode.body }"
+  // Required field.
+  string message = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Runtime environment variables to pass to the agent.
+  // Values can be literal strings or JQ expressions that reference
+  // workflow context or secrets.
+  // Example: {"GITHUB_TOKEN": "${ .secrets.GH_TOKEN }"}
+  // Optional.
+  map<string, string> env = 4;
+
+  // Execution configuration for the agent invocation.
+  // Optional - defaults are applied if not specified.
+  AgentExecutionConfig config = 5;
+}
+
+// AgentExecutionConfig defines optional execution parameters for agent calls.
+// These settings override the agent's default configuration for this specific invocation.
+message AgentExecutionConfig {
+  // LLM model to use for this invocation.
+  // Example: "claude-3-5-sonnet", "gpt-4", "claude-3-opus"
+  // Optional - uses agent's default model if not specified.
+  string model = 1;
+
+  // Timeout for agent execution in seconds.
+  // Default: 300 (5 minutes)
+  // Optional.
+  int32 timeout = 2 [
+    (buf.validate.field).int32.gte = 1,
+    (buf.validate.field).int32.lte = 3600 // max 1 hour
+  ];
+
+  // Temperature for LLM sampling (0.0 to 1.0).
+  // Lower = more deterministic, Higher = more creative
+  // Default: 0.7
+  // Optional.
+  float temperature = 3 [
+    (buf.validate.field).float.gte = 0.0,
+    (buf.validate.field).float.lte = 1.0
+  ];
+}
