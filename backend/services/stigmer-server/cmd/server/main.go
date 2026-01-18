@@ -10,7 +10,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agent"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 )
 
@@ -45,7 +45,7 @@ func main() {
 	grpcServer := server.GRPCServer()
 
 	// Create and register Agent controller
-	agentController := controllers.NewAgentController(store)
+	agentController := agent.NewAgentController(store)
 	agentv1.RegisterAgentCommandControllerServer(grpcServer, agentController)
 	agentv1.RegisterAgentQueryControllerServer(grpcServer, agentController)
 
