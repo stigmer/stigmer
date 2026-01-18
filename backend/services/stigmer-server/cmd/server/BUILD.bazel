@@ -1,0 +1,37 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "server_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/cmd/server",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//backend/libs/go/badger",
+        "//backend/libs/go/grpc",
+        "//backend/libs/go/grpc/interceptors/apiresource",
+        "//backend/services/stigmer-server/pkg/config",
+        "//backend/services/stigmer-server/pkg/controllers/agent",
+        "//backend/services/stigmer-server/pkg/controllers/agentexecution",
+        "//backend/services/stigmer-server/pkg/controllers/agentinstance",
+        "//backend/services/stigmer-server/pkg/controllers/environment",
+        "//backend/services/stigmer-server/pkg/controllers/executioncontext",
+        "//backend/services/stigmer-server/pkg/controllers/session",
+        "//backend/services/stigmer-server/pkg/controllers/skill",
+        "//backend/services/stigmer-server/pkg/controllers/workflow",
+        "//backend/services/stigmer-server/pkg/controllers/workflowexecution",
+        "//backend/services/stigmer-server/pkg/controllers/workflowinstance",
+        "//backend/services/stigmer-server/pkg/downstream/agent",
+        "//backend/services/stigmer-server/pkg/downstream/agentinstance",
+        "//backend/services/stigmer-server/pkg/downstream/session",
+        "//backend/services/stigmer-server/pkg/downstream/workflow",
+        "//backend/services/stigmer-server/pkg/downstream/workflowinstance",
+        "@com_github_rs_zerolog//:zerolog",
+        "@com_github_rs_zerolog//log",
+    ],
+)
+
+go_binary(
+    name = "server",
+    embed = [":server_lib"],
+    visibility = ["//visibility:public"],
+)

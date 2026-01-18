@@ -1,0 +1,413 @@
+---
+description: SEARCH-ONLY (read-only) rule to find existing changelogs. Does NOT create changelogs. Lookup changelogs by time references and keywords.
+globs: []
+alwaysApply: false
+---
+
+# Rule: Lookup Stigmer Changelog (ask-only)
+
+**THIS IS A SEARCH-ONLY RULE. DO NOT CREATE OR MODIFY ANYTHING.**
+
+Purpose: When invoked, help users quickly **FIND** existing changelogs without needing to specify directory paths. Parse temporal context (this month, last month, etc.), search appropriate directories, and present results in an easy-to-consume format with both clickable links and copyable paths.
+
+Usage: Invoke explicitly as `@find-stigmer-oss-changelog` with contextual information about when the change was made and/or keywords describing the change.
+
+**User Intent**: When a user invokes this rule, they are asking you to **SEARCH FOR** and **PRESENT** existing changelogs. They are **NOT** asking you to create a new changelog.
+
+References: Changelogs in `_changelog/YYYY-MM/` directories
+
+## ⚠️ CRITICAL: Ask-Only Rule - NO File Creation or Modification
+
+**DO NOT** create, modify, or write any files. This is a **search and presentation only** rule.
+
+### EXACT WORKFLOW TO FOLLOW:
+
+**Step 1**: Run ONLY this command to get current date:
+```bash
+date +"%Y-%m-%d"
+```
+
+**Step 2**: Parse user's temporal context (this month, last month, etc.)
+
+**Step 3**: List changelog files in appropriate directories:
+```bash
+ls -1 /Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/YYYY-MM/
+```
+
+**Step 4**: Filter by keywords using grep if needed
+
+**Step 5**: Read matching changelog files to extract summaries
+
+**Step 6**: Present results in the format specified below
+
+### NEVER DO THIS:
+- ❌ Run `git diff`
+- ❌ Run `git status`
+- ❌ Run `cd` and `git diff` together
+- ❌ Run ANY git commands
+- ❌ Create new changelog files
+- ❌ Modify existing changelogs
+- ❌ Make any changes to the filesystem
+- ❌ Invoke `@create-stigmer-oss-changelog` or any other creation rules
+
+### ALWAYS DO THIS:
+- ✅ ONLY run `date` command first
+- ✅ ONLY use `ls` to list changelog files
+- ✅ ONLY use `grep` to search filenames/content
+- ✅ ONLY use Read tool to read matching changelogs
+- ✅ ONLY present search results
+
+**This is a read-only search rule. You are finding existing changelogs, NOT creating new ones.**
+
+## ⚠️ CRITICAL: Changelog Location
+
+**All changelogs are stored in**:
+```
+/Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/YYYY-MM/
+```
+
+Where `YYYY-MM` is the year-month directory (e.g., `2026-01` for January 2026, `2025-12` for December 2025).
+
+**Filename pattern**:
+```
+YYYY-MM-DD-HHMMSS-descriptive-slug.md
+```
+
+Examples:
+- `2026-01-10-143022-agent-execution-status-tracking.md`
+- `2026-01-12-184800-fix-fga-authorization-queries.md`
+
+## Workflow
+
+### Step 1: Determine Current Date
+
+**ALWAYS** get the actual current date first by running:
+```bash
+date +"%Y-%m-%d"
+```
+
+Parse the output to determine current year and month.
+
+**DO NOT** run any other commands at this stage - no git commands, no git status, no git diff.
+
+### Step 2: Parse Temporal Context
+
+Listen for time references in the user's query:
+
+| User says... | Search directories |
+|--------------|-------------------|
+| "this month", "current month", "recently" | Current month only |
+| "last month", "previous month" | Previous month only |
+| "last 2 months", "past 2 months" | Current month + previous month |
+| "last 3 months", "past 3 months", "last quarter" | Current month + previous 2 months |
+| "December 2025", "Dec 2025" | Specific month (2025-12) |
+| "2026", "this year" | All months in current year |
+| No time context | Default to last 2 months |
+
+### Step 3: Extract Keywords
+
+Extract meaningful keywords from the user's query:
+- Feature names (e.g., "agent execution", "workflow", "authorization")
+- Technology terms (e.g., "FGA", "OpenFGA", "CLI", "gRPC")
+- Action verbs (e.g., "fix", "add", "improve", "refactor")
+- Component names (e.g., "agent", "session", "environment", "skill")
+
+## Search Strategy
+
+### 1. List Relevant Directories
+
+Based on temporal parsing, list the changelog files in the appropriate directories:
+```bash
+ls -1 /Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/2026-01/
+ls -1 /Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/2025-12/
+# ... etc
+```
+
+**IMPORTANT**: Only use `ls` and `grep` commands. Do NOT run `git diff`, `git status`, or any other git commands.
+
+### 2. Search by Keywords
+
+Use `grep` to search changelog filenames and content:
+
+**Search filenames**:
+```bash
+# Case-insensitive search in filenames
+grep -i "keyword" /Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/YYYY-MM/*.md
+```
+
+**Search content** (if needed for better matches):
+```bash
+# Search inside changelog files for better relevance
+grep -i -l "keyword" /Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/YYYY-MM/*.md
+```
+
+### 3. Rank Results
+
+Prioritize changelogs that:
+1. Match multiple keywords
+2. Are more recent
+3. Have keywords in the filename (higher relevance)
+
+## Response Format
+
+**CRITICAL**: Structure the response to make it easy for users to quickly grab changelog paths.
+
+### Format Template
+
+```markdown
+## Related Changelogs
+
+Here are the changelogs matching your search criteria:
+
+**Clickable links:**
+- [2026-01-10-143022-agent-execution-status-tracking.md](/Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/2026-01/2026-01-10-143022-agent-execution-status-tracking.md)
+- [2026-01-12-184800-fix-fga-authorization-queries.md](/Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/2026-01/2026-01-12-184800-fix-fga-authorization-queries.md)
+
+**Copyable filenames:**
+```
+2026-01-10-143022-agent-execution-status-tracking.md
+```
+```
+2026-01-12-184800-fix-fga-authorization-queries.md
+```
+
+---
+
+### Changelog Details
+
+#### 1. Agent Execution Status Tracking Implementation
+**Date**: January 10, 2026  
+**Path**: `/Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/2026-01/2026-01-10-143022-agent-execution-status-tracking.md`
+
+**Summary**: Implemented comprehensive status tracking for agent executions with detailed progress reporting.
+
+**Copyable filename**:
+```
+2026-01-10-143022-agent-execution-status-tracking.md
+```
+
+---
+
+#### 2. Fix FGA Authorization for Agent Instance and Execution Queries
+**Date**: January 12, 2026  
+**Path**: `/Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/2026-01/2026-01-12-184800-fix-fga-authorization-queries.md`
+
+**Summary**: Fixed OpenFGA authorization issues affecting agent instance and execution query endpoints.
+
+**Copyable filename**:
+```
+2026-01-12-184800-fix-fga-authorization-queries.md
+```
+
+---
+
+*Use the clickable links above to open the changelog, or copy the filenames from the code blocks to use with `@` mentions in another conversation.*
+```
+
+### Key Elements
+
+1. **Top Section**: 
+   - Bulleted list with clickable links for quick navigation
+   - Separate list with copyable code blocks for easy copy-paste
+2. **Details Section**: Numbered entries with:
+   - Changelog title
+   - Date
+   - Full path (for clarity)
+   - Brief summary
+   - Copyable code block with full path
+3. **Footer**: Clear instructions on how to use the links vs code blocks
+
+## Best Practices
+
+### Do:
+- ✅ **Always get current date first** using `date` command
+- ✅ **Search broadly** if user query is vague
+- ✅ **Present most relevant first** (recent + keyword matches)
+- ✅ **Read changelog summaries** to provide accurate descriptions
+- ✅ **Include both clickable and copyable** formats
+- ✅ **Show 3-7 results** (not too few, not overwhelming)
+- ✅ **Group by relevance** or chronology
+
+### Don't:
+- ❌ **Don't guess directories** - always verify with actual date
+- ❌ **Don't show all results** - filter to most relevant
+- ❌ **Don't provide just paths** - include context
+- ❌ **Don't forget the summary list** at the top
+- ❌ **Don't include non-matches** to pad results
+
+## Example Invocations
+
+### Example 1: Search for Recent Work
+```
+User: "@find-stigmer-oss-changelog We fixed FGA authorization for agent 
+       queries this month"
+```
+
+**What the user wants**: FIND existing changelogs about FGA authorization fixes for agent queries
+
+**Agent actions**:
+1. Run: `date +"%Y-%m-%d"` → January 14, 2026
+2. Parse temporal: "this month" → Search `2026-01/`
+3. Run: `ls -1 /Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/2026-01/`
+4. Extract keywords: "FGA", "authorization", "agent", "query"
+5. Filter with grep or by examining filenames
+6. Read matching changelogs to extract summaries
+7. Format response with clickable links + copyable filenames
+
+**DO NOT** run `git diff` or create a new changelog!
+
+### Example 2: Last Month
+```
+User: "@find-stigmer-oss-changelog What did we do last month 
+       related to workflow execution?"
+```
+
+**Agent actions**:
+1. Get current date → January 14, 2026
+2. Parse temporal: "last month" → Search `2025-12/`
+3. Extract keywords: "workflow", "execution"
+4. Search and rank results
+5. Format response
+
+### Example 3: Broader Search
+```
+User: "@find-stigmer-oss-changelog Show me recent agent instance work"
+```
+
+**Agent actions**:
+1. Get current date → January 14, 2026
+2. Parse temporal: "recent" → Search `2026-01/` and `2025-12/`
+3. Extract keywords: "agent", "instance"
+4. Search and rank results
+5. Format response
+
+### Example 4: Specific Month
+```
+User: "@find-stigmer-oss-changelog Find December 2025 changelogs 
+       about session management"
+```
+
+**Agent actions**:
+1. Parse temporal: "December 2025" → Search `2025-12/`
+2. Extract keywords: "session", "management"
+3. Search and rank results
+4. Format response
+
+## Search Quality Tips
+
+### Filename Search is Primary
+
+Changelog filenames are descriptive slugs, so searching filenames first often gives best results:
+```bash
+# Good matches come from descriptive filenames
+2026-01-10-143022-agent-execution-status-tracking.md
+2026-01-12-184800-fix-fga-authorization-queries.md
+```
+
+### Content Search is Secondary
+
+If filename search doesn't yield enough results, search content:
+```bash
+grep -i -l "keyword" /Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/YYYY-MM/*.md
+```
+
+Then read the matched files to extract summaries.
+
+### Multiple Keywords
+
+For multi-keyword searches, combine grep:
+```bash
+# Files containing both "agent" and "execution"
+grep -l "agent" /path/*.md | xargs grep -l "execution"
+```
+
+## Response Quality Checklist
+
+Before finalizing response:
+
+- [ ] Got actual current date (not assumed)
+- [ ] Correctly parsed user's temporal context
+- [ ] Searched appropriate month directories
+- [ ] Found relevant changelogs (3-7 results ideal)
+- [ ] Top section has bulleted list with clickable links
+- [ ] Each changelog has title, date, path, summary
+- [ ] Each changelog has copyable code block with full path
+- [ ] Results ordered by relevance or chronology
+- [ ] Provided clear instructions on using links vs paths
+- [ ] Summary accurately reflects changelog content
+
+## Edge Cases
+
+### No Results Found
+
+If no changelogs match:
+```markdown
+## No Changelogs Found
+
+I searched the following directories for changelogs matching your criteria:
+- `/Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/2026-01/`
+- `/Users/suresh/scm/github.com/leftbin/stigmer-oss/_changelog/2025-12/`
+
+**Search keywords**: agent execution, workflow, status tracking
+
+**Suggestions**:
+1. Try broader keywords (e.g., just "agent" instead of "agent execution")
+2. Expand time range (e.g., "last 3 months" instead of "this month")
+3. Check if the work was documented in a different month
+4. Use `ls` to browse available changelogs directly
+```
+
+### Ambiguous Time Reference
+
+If user's time reference is unclear:
+```markdown
+I'm not sure which time period you're referring to. Current date is January 14, 2026.
+
+Did you mean:
+- **This month** (January 2026) - Search `2026-01/`
+- **Last month** (December 2025) - Search `2025-12/`
+- **Last 2 months** (Dec 2025 + Jan 2026) - Search both
+
+Please clarify, or I can search the last 2 months by default.
+```
+
+### Too Many Results
+
+If search yields 15+ results:
+```markdown
+## Related Changelogs
+
+Found 18 changelogs matching your criteria. Showing the 7 most relevant:
+
+[... top 7 results ...]
+
+---
+
+**Note**: Found 11 additional changelogs. To narrow results:
+1. Add more specific keywords
+2. Narrow the time range
+3. Specify a component or feature area
+```
+
+## Remember
+
+**⚠️ THIS IS A READ-ONLY SEARCH RULE ⚠️**
+
+You are **ONLY** searching for and presenting existing changelogs. You are **NOT**:
+- Creating new changelog files
+- Modifying any files
+- Running git commands
+- Making any filesystem changes
+
+If the user wants to create a changelog, politely inform them to use `@create-stigmer-oss-changelog` instead.
+
+**Goal**: Make it trivially easy for users to find and reference changelogs without memorizing directory paths or filename patterns.
+
+**Success criteria**: User can:
+1. Quickly scan the bulleted list to find the right changelog
+2. Click to read it immediately, OR
+3. Copy the filename to use in another conversation with `@` mentions
+
+---
+
+*"The best search is the one that gets you the right result on the first try."*

@@ -1,0 +1,64 @@
+# Golden Test 12: Claim Check Between Steps
+# Tests: Claim Check pattern offloading large data BETWEEN workflow steps
+# CONVERTED TO DSL 1.0.0 FORMAT
+# Workflow: Tests that large data is automatically offloaded after each step
+#           and auto-retrieved when needed by the next step
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: claimcheck-between-steps-test
+  version: '1.0.0'
+  description: Tests Claim Check pattern for offloading data between workflow steps (not just at end)
+
+do:
+  # Step 1: Fetch large photos dataset (~500KB)
+  # This data will be offloaded to R2 AFTER this step completes
+  - fetchPhotos:
+      call: http
+      with:
+        method: GET
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/photos
+  
+  # Step 2: Fetch large comments dataset (~75KB)
+  # At this point:
+  #   - fetchPhotos data is stored as ClaimCheckRef in state
+  #   - Before executing this activity, fetchPhotos data is auto-retrieved
+  #   - After this step, comments data is also offloaded
+  - fetchComments:
+      call: http
+      with:
+        method: GET
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/comments
+  
+  # Step 3: Process the data by posting a summary
+  # This step needs access to data from previous steps
+  # Both datasets are auto-retrieved before this activity executes
+  - processCombined:
+      call: http
+      with:
+        method: POST
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/posts
+        body:
+          title: Claim Check Between Steps Test
+          photosCount: ${ .fetchPhotos | length }
+          commentsCount: ${ .fetchComments | length }
+          message: Successfully handled large data between steps via Claim Check
+          
+  # Step 4: Final verification post
+  # Proves that all previous data is still accessible
+  - verifyDataAccess:
+      call: http
+      with:
+        method: POST
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/posts
+        body:
+          title: Data Access Verification
+          allStepsCompleted: true
+          canAccessPhotos: ${ .fetchPhotos != null }
+          canAccessComments: ${ .fetchComments != null }
+          canAccessProcessed: ${ .processCombined != null }

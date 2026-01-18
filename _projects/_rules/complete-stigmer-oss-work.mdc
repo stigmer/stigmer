@@ -1,0 +1,1293 @@
+---
+description: Orchestrator rule that completes Stigmer work by creating changelog, updating project progress, committing changes, and autonomously improving rules when learning occurs
+alwaysApply: false
+---
+
+# Rule: Complete Stigmer Work (Orchestrator)
+
+## Purpose
+
+When triggered, executes a complete workflow to finalize work on a Stigmer OSS conversation:
+1. Create a changelog entry
+2. Update the Next Project progress/documentation
+3. Commit all changes to Git
+4. **[MANDATORY]** Create/update documentation - work is NOT complete without it
+5. **[AI-Driven]** Autonomously improve relevant rules when genuine learning occurred
+
+This orchestrator rule combines multiple action rules into a single streamlined workflow with **documentation as a mandatory requirement** and intelligent rule improvement.
+
+## Documentation Philosophy
+
+**⚠️ CRITICAL**: Stigmer is an open-source project. The `docs/` folder must be comprehensive enough for users to understand and adopt Stigmer.
+
+**Documentation vs Changelogs:**
+- **Changelogs** capture: What was done, why, and implementation details (temporary reference)
+- **Documentation** captures: How to use features, how systems work, stable patterns (permanent reference)
+- **Don't duplicate** - If changelog has it, don't repeat it in docs
+
+**When documentation IS needed (beyond changelog):**
+- ✅ User-facing features (how to use it)
+- ✅ New architectural concepts (how the system works)
+- ✅ Stable patterns (reusable approaches)
+- ✅ Getting started changes (if usage changed)
+- ✅ Significant design decisions (ADRs for major choices)
+
+**When changelog is sufficient (no separate docs needed):**
+- ✅ Internal refactoring (no user/contributor impact)
+- ✅ Bug fixes (unless reveal architectural insights)
+- ✅ Minor improvements (incremental changes to existing features)
+- ✅ Implementation details already in changelog
+
+**Rule of thumb**: Documentation is for understanding and using Stigmer. Changelogs are for tracking what changed. Avoid duplication.
+
+## Rule Type
+
+**Action Rule** - Orchestrates multiple action rules in sequence with AI-driven improvement detection
+
+## When to Use
+
+- After completing meaningful work in a Stigmer conversation
+- When you're ready to document and commit your changes
+- At the end of a development session
+- AI automatically evaluates if rule improvement is warranted
+
+## User Workflow
+
+**Simple invocation** - AI handles everything:
+1. User completes work in conversation
+2. User drags project reference (e.g., `@_projects/2026-01/20260110.01.proto-api-definitions`) into chat
+3. User invokes this rule: `@complete-stigmer-oss-work`
+4. AI executes steps 1-3 automatically (changelog, project update, commit)
+5. **AI MUST create/update documentation** (Step 4) - work is NOT complete without it
+6. AI determines what type of documentation is needed and where it goes
+7. **AI autonomously evaluates** if rule improvement is needed (Step 5)
+8. If learning detected: AI executes rule improvement
+9. If routine work: AI skips improvement steps (only Step 5, NOT Step 4)
+
+**Documentation is ALWAYS required** - Only rule improvements (Step 5) are optional based on learning detection.
+
+## Execution Flow
+
+### Step 1: Create Changelog
+
+**Action**: Invoke `@create-stigmer-oss-changelog.mdc`
+
+**What it does**:
+- Analyzes conversation history
+- Extracts key accomplishments and decisions
+- Creates comprehensive changelog in `_changelog/YYYY-MM/`
+- Sized proportionally to work scope
+
+**Success criteria**: Changelog file created
+
+### Step 2: Update Project Progress
+
+**Action**: Invoke `@update-next-project-progress.mdc`
+
+**What it does**:
+- Identifies relevant project from conversation/context
+- Creates checkpoint for milestone/completion
+- Updates `next-task.md` with current status
+- Updates project README with latest progress
+- Creates reference docs if needed
+
+**Success criteria**: Project documentation updated
+
+### Step 3: Commit Changes
+
+**Action**: Invoke `@commit-stigmer-oss-changes.mdc`
+
+**What it does**:
+- Analyzes git changes
+- Crafts appropriate conventional commit message
+- Stages and commits all changes
+- Verifies successful commit
+
+**Success criteria**: Git commit created and verified
+
+### Step 4: Documentation (Smart Evaluation - Avoid Duplication)
+
+**⚠️ SMART EVALUATION**: AI evaluates if separate documentation is needed beyond the changelog.
+
+**Documentation Purpose:**
+- Open-source projects need docs for users to understand and use features
+- Changelogs track changes (temporary reference)
+- Documentation explains how to use and how things work (permanent reference)
+- Don't duplicate what's already in the changelog
+
+**AI's Responsibility:**
+1. Analyze what was built/changed
+2. Determine if separate documentation is needed (beyond changelog)
+3. If needed: Create or update appropriate documentation
+4. If not needed: Ensure changelog has sufficient detail
+5. Follow `@stigmer-oss-documentation-standards.md`
+6. Update indexes if documentation created
+
+**Evaluation Questions (AI asks these):**
+
+**User Impact:**
+1. Is this user-facing? (can users configure/use this?)
+2. Does usage change? (do getting-started docs need updating?)
+3. Will users need examples or guides for this?
+
+**Architectural Impact:**
+1. Does this introduce new concepts? (new component types, patterns)
+2. Does this change how the system works? (architecture change)
+3. Are there design decisions that affect future work?
+
+**Pattern Stability:**
+1. Is this a reusable pattern? (other developers will use this approach)
+2. Is this pattern stable? (or experimental/in-flux)
+
+**Documentation Existing:**
+1. Is there existing documentation that needs updating?
+2. Would this be better as a note in existing docs?
+3. Is the changelog sufficient for this change?
+
+**Decision Logic:**
+
+```
+# High-priority documentation (beyond changelog)
+if (new_user_facing_feature):
+    create_getting_started_docs()
+    create_or_update_architecture_docs()
+    
+elif (new_architectural_concept):
+    create_architecture_docs()
+    possibly_create_adr()
+    
+elif (stable_reusable_pattern):
+    document_pattern_in_guides_or_references()
+    
+elif (changes_existing_feature_usage):
+    update_existing_getting_started_or_guides()
+
+# Changelog is sufficient (no separate docs)
+elif (internal_refactoring):
+    changelog_sufficient = True
+    
+elif (bug_fix):
+    if (reveals_architectural_insight):
+        add_note_to_architecture_docs()
+    else:
+        changelog_sufficient = True
+        
+elif (minor_improvement):
+    changelog_sufficient = True
+
+# If uncertain, prefer minimal documentation
+else:
+    consider_adding_brief_implementation_note()
+```
+
+**Three Outcomes:**
+
+1. **Create/Update Documentation** - User-facing features, new concepts, stable patterns
+2. **Update Existing Documentation** - Changes to documented features
+3. **Changelog Sufficient** - Internal changes, bug fixes, minor improvements
+
+**⚠️ AVOID DUPLICATION**
+
+Don't copy changelog content into docs. Instead:
+- Changelogs → Detailed "what and why" for this specific change
+- Documentation → Timeless "how to use" and "how it works"
+
+### Step 5: Improve Rules (AI-Driven - Automatic Evaluation)
+
+**⚠️ KEY INNOVATION**: This step is **automatically evaluated by AI** - no user request needed.
+
+**AI evaluates these questions:**
+
+#### Evaluation Criteria: Should Rules Be Improved?
+
+Ask yourself (AI) these questions about the conversation:
+
+**Proto API Work** (if proto files changed):
+1. Did I create a new proto resource not in learning log?
+2. Did I discover a validation pattern not documented?
+3. Did I solve a file organization problem?
+4. Did I encounter a proto compilation error to document?
+5. Did I make authorization configuration decisions?
+
+**Backend Handler Work** (if handler files changed):
+1. Did I fix a compilation error due to wrong imports/patterns?
+2. Did I discover missing infrastructure step (authorization, etc.)?
+3. Did I learn about IAM policy cleanup patterns?
+4. Did I solve a scope-aware lookup problem?
+5. Did I encounter handler type confusion (QueryController vs QueryService)?
+6. Did I create a new repository query pattern?
+
+**Agent Runner Work** (if agent-runner files changed):
+1. Did I fix a proto import or stub generation issue?
+2. Did I solve a Temporal activity registration problem?
+3. Did I discover a gRPC client authentication pattern?
+4. Did I improve sandbox lifecycle or reuse logic?
+5. Did I solve a Graphton agent creation issue?
+6. Did I enhance skills integration or event streaming?
+7. Did I create a new error handling pattern?
+
+**Workflow Runner Work** (if workflow-runner files changed):
+1. Did I fix a Temporal workflow non-determinism issue?
+2. Did I solve a Zigflow interpreter or CNCF workflow parsing problem?
+3. Did I discover a claim check pattern optimization?
+4. Did I improve gRPC server request handling?
+5. Did I solve a Bazel build or Gazelle configuration issue?
+6. Did I enhance workflow state management or activity patterns?
+7. Did I create new testing patterns (golden tests, Temporal test suite)?
+
+**SDK Work** (if SDK files changed - Python or Go):
+1. Did I fix a proto conversion or field mapping error?
+2. Did I discover a validation pattern not documented?
+3. Did I solve a task/agent implementation problem?
+4. Did I create a new converter or agent pattern?
+5. Did I fix an agent configuration issue?
+6. Did I enhance error handling or testing patterns?
+7. Did I discover SDK-specific patterns (Python or Go)?
+
+**CLI Work** (if CLI files changed):
+1. Did I fix a module import or Go dependency issue?
+2. Did I discover a Cobra command pattern worth documenting?
+3. Did I solve a gRPC client or authentication problem?
+4. Did I create a new agent discovery pattern (Python subprocess)?
+5. Did I enhance context management or config handling?
+6. Did I improve output formatting or error messages?
+7. Did I solve a flag handling or argument parsing issue?
+
+**FGA Authorization Work** (if FGA files changed):
+1. Did I create a new FGA model for a resource?
+2. Did I discover a relation pattern worth documenting?
+3. Did I solve a complex permission hierarchy?
+4. Did I make scope decisions (platform/org/user)?
+5. Did I learn about parent-child permission inheritance?
+
+**Decision Logic**:
+
+```
+if answer_yes_to_any_question:
+    improvement_needed = TRUE
+    trigger_step_4()
+else:
+    improvement_needed = FALSE
+    skip_step_4()
+    report("No new learnings detected - skipping rule improvement")
+```
+
+**Threshold for triggering**:
+- ✅ **Trigger** if ANY of above questions = YES
+- ❌ **Skip** if routine application of existing patterns
+- ❌ **Skip** if trivial changes (typo fixes, minor edits)
+- ❌ **Skip** if exact pattern already documented
+
+#### 4.1 Analyze Context
+
+If improvement is needed, analyze `git status` to determine which areas were worked on:
+
+```bash
+# Check for proto API changes
+apis/**/*.proto → Proto API work
+
+# Check for backend handler changes
+backend/**/handler/**/*.java → Backend handler work
+backend/**/request/handler/**/*.java → Backend handler work
+
+# Check for agent-runner changes
+backend/services/agent-runner/**/*.py → Agent runner work
+backend/services/agent-runner/**/*.mdc → Agent runner rule work
+
+# Check for workflow-runner changes
+backend/services/workflow-runner/**/*.go → Workflow runner work
+backend/services/workflow-runner/**/*.mdc → Workflow runner rule work
+
+# Check for SDK changes (Python or Go)
+stigmer-sdk/python/**/*.py → Python SDK work (external repo)
+stigmer-sdk/go/**/*.go → Go SDK work (external repo)
+stigmer-sdk/python/_rules/**/*.mdc → Python SDK rule work (external repo)
+stigmer-sdk/go/_rules/**/*.mdc → Go SDK rule work (external repo)
+
+# Check for CLI changes
+sdk/**/*.go → CLI work
+sdk/**/*.mdc → CLI rule work
+
+# Check for FGA model changes
+backend/**/fga/**/*.fga → FGA authorization work
+**/resources/fga/**/*.fga → FGA authorization work
+```
+
+#### 4.2 Map to Improvement Rules
+
+Based on file changes, identify relevant improvement rules:
+
+| File Pattern | Area | Improvement Rule |
+|-------------|------|-----------------|
+| `apis/**/*.proto` | Proto APIs | `@apis/_rules/model-stigmer-protos/improve-this-rule.mdc` |
+| `backend/**/handler/**/*.java` | Backend Handlers | `@backend/services/stigmer-server/_rules/implement-stigmer-backend-handlers/improve-this-rule.mdc` |
+| `backend/services/agent-runner/**/*.py` | Agent Runner | `@backend/services/agent-runner/_rules/implement-agent-runner-features/improve-this-rule.mdc` |
+| `backend/services/workflow-runner/**/*.go` | Workflow Runner | `@backend/services/workflow-runner/_rules/implement-workflow-runner-features/improve-this-rule.mdc` |
+| `stigmer-sdk/python/**/*.py` or `stigmer-sdk/go/**/*.go` | SDK | `@stigmer-sdk/_rules/improve-this-rule.mdc` (external repo - orchestrator delegates to language-specific) |
+| `sdk/**/*.go` | CLI | `@sdk/_rules/implement-stigmer-cli-features/improve-this-rule.mdc` |
+| `backend/**/fga/**/*.fga` | FGA Models | `@backend/services/stigmer-server/src/main/resources/fga/_rules/model-stigmer-fga-authorization/improve-this-rule.mdc` |
+
+#### 4.3 Handle Single vs Multiple Areas
+
+**If only ONE area with learnings**:
+- Automatically invoke that improvement rule
+- Report: "Learning detected in {area} - improving rule automatically"
+
+**If MULTIPLE areas with learnings**:
+- **Don't ask user** - AI decides which are most valuable
+- Prioritize:
+  1. Critical learnings (errors, security patterns)
+  2. Reusable patterns (used 2+ times)
+  3. Novel solutions (not in existing docs)
+- Improve the most valuable 1-2 rules
+- Report: "Multiple learnings detected - improving {selected areas}"
+
+**Rationale for AI decision**:
+- User doesn't need to decide technical documentation details
+- AI knows which learnings are most valuable based on criteria
+- Reduces cognitive load on user
+- Ensures high-signal rule improvements (not noise)
+
+#### 4.4 Execute Improvement Rule(s)
+
+For each selected improvement rule:
+
+1. **Invoke the improvement rule**
+   - Run the appropriate `improve-this-rule.mdc`
+   - Follow its self-improvement workflow
+   
+2. **What the improvement rule does**:
+   - Adds entry to `docs/learning-log.md`
+   - Creates/updates topic documentation if pattern stabilized
+   - Updates main rule's Reference Documentation section if new doc
+   - Updates main rule content if critical
+   - Updates `docs/README.md` if new doc created
+
+3. **Confirm completion**:
+   - Report: "✅ {Rule} improved: {what was learned}"
+
+#### 4.5 Commit Rule Improvements
+
+If rule improvements were made:
+
+```bash
+# Check for rule documentation changes
+git status
+
+# Stage rule improvements
+git add _projects/_rules/**
+git add apis/_rules/**
+git add backend/**/rules/**
+
+# Commit with descriptive message
+git commit -m "docs(rules): improve {area} rule - {brief learning summary}"
+```
+
+**Success criteria**: Rule improvements documented and committed
+
+## Implementation Steps
+
+When this rule is triggered:
+
+### 1. Verify Context
+- Check that conversation has meaningful work completed
+- Check that project reference is provided (if needed)
+- Prepare for AI-driven documentation and improvement evaluation
+- Confirm ready to proceed
+
+### 2. Execute Step 1: Changelog
+```
+Executing Step 1/5: Creating changelog...
+```
+- Run changelog creation logic from `@create-stigmer-oss-changelog.mdc`
+- Get timestamp: `date +"%Y-%m-%d-%H%M%S"`
+- Analyze conversation and create changelog
+- Confirm: "✅ Changelog created: _changelog/YYYY-MM/YYYY-MM-DD-HHMMSS-description.md"
+
+### 3. Execute Step 2: Project Update
+```
+Executing Step 2/5: Updating project progress...
+```
+- Run project update logic from `@update-next-project-progress.mdc`
+- Create checkpoint(s) for completed work
+- Update next-task.md with current status
+- Update project README if needed
+- **Reference existing documentation** (see `@stigmer-oss-documentation-standards.md`)
+- Confirm: "✅ Project updated: checkpoint + next-task.md + README.md"
+
+### 4. Execute Step 3: Commit
+```
+Executing Step 3/5: Committing changes...
+```
+- Run commit logic from `@commit-stigmer-oss-changes.mdc`
+- Analyze changes with `git status`
+- Craft conventional commit message
+- Stage and commit: `git add -A && git commit -m "..."`
+- Confirm: "✅ Committed: [commit hash] [commit message]"
+
+### 5. Execute Step 4: Documentation (Smart Evaluation)
+
+**AI analyzes work and evaluates documentation needs**:
+```
+Analyzing work for documentation requirements beyond changelog...
+```
+
+**Analysis process**:
+1. Review conversation for features/components/changes
+2. Check file changes for what was modified
+3. Ask evaluation questions (see Step 4 criteria)
+4. Determine if separate documentation is needed (beyond changelog)
+5. If needed: Create/update docs; If not: Ensure changelog is comprehensive
+
+**Outcome 1: Documentation Created/Updated (User-facing or architectural changes)**:
+```
+✅ Documentation needed beyond changelog - creating/updating...
+```
+- Determine appropriate category (getting-started, architecture, guides, ADR)
+- Create new documentation OR update existing documentation
+- Follow `@stigmer-oss-documentation-standards.md`
+- Update indexes (`docs/README.md`, root `README.md` if key doc)
+- Commit documentation changes
+- Confirm: "✅ Documentation: {action} {file(s)}"
+
+**Example:**
+```
+✅ Documentation created (user-facing feature):
+   - Added docs/architecture/agent-pipeline-integration.md
+   - Updated docs/getting-started/local-mode.md (agent configuration section)
+   - Updated docs/README.md index
+   - Docs committed: b4c2d3e docs: add agent pipeline integration and usage
+   
+   Rationale: New user-facing feature (agent pipeline) needs architecture explanation and usage guide.
+```
+
+**Outcome 2: Changelog Sufficient (Internal changes, bug fixes)**:
+```
+ℹ️  Changelog sufficient - no separate documentation needed
+```
+- Verify changelog has comprehensive details
+- No separate documentation created
+- Report rationale for skipping
+
+**Example:**
+```
+ℹ️  Changelog sufficient for this work:
+   - Internal refactoring (no user/contributor impact)
+   - Changelog captures implementation details
+   - No architectural concepts introduced
+   - No usage changes
+   
+   Rationale: Backend controller refactoring is internal. Changelog provides sufficient detail for future reference.
+```
+
+**Outcome 3: Update Existing Documentation (Changes to documented features)**:
+```
+✅ Updating existing documentation...
+```
+- Update relevant existing documentation files
+- Keep changes minimal (don't duplicate changelog)
+- Update indexes if needed
+- Commit documentation updates
+
+**Example:**
+```
+✅ Documentation updated (existing feature changed):
+   - Updated docs/architecture/backend-abstraction.md (refined controller lifecycle)
+   - Docs committed: e7d4f1c docs: update backend controller lifecycle details
+   
+   Rationale: Backend abstraction architecture changed. Updated existing architecture doc to reflect new lifecycle.
+```
+
+### 6. Execute Step 5: AI-Driven Rule Improvement Evaluation
+
+**AI evaluates conversation autonomously**:
+```
+Evaluating if rule improvement is needed...
+```
+
+**Evaluation process**:
+1. Review conversation for learning indicators
+2. Check file changes for area of work
+3. Ask evaluation questions (see Step 4 criteria)
+4. Decide: Improve rules OR Skip
+
+**If improvement needed**:
+```
+✅ Learning detected - proceeding with rule improvement...
+```
+- Analyze file changes to detect areas worked on
+- Map to relevant improvement rules
+- Decide which rules to improve (if multiple areas)
+- Invoke selected improvement rule(s)
+- Commit rule improvements
+- Confirm: "✅ Rules improved: {list of learnings}"
+
+**If improvement not needed**:
+```
+ℹ️  No significant learnings detected - skipping rule improvement
+```
+- Skip to final summary
+- No rule documentation changes
+- Saves time on routine work
+
+### 7. Final Summary
+
+**Completion with documentation (user-facing feature)**:
+```
+🎉 All steps completed successfully!
+
+✅ Changelog: _changelog/2026-01/2026-01-11-181525-description.md
+✅ Checkpoint: checkpoints/2026-01-11-description.md
+✅ Commit: 47ee5f8 feat(scope): message
+
+📖 Documentation created:
+✅ Added docs/architecture/agent-lifecycle.md
+✅ Updated docs/getting-started/local-mode.md
+✅ Updated docs/README.md index
+✅ Docs committed: b4c2d3e docs: add agent lifecycle and update getting-started
+
+Rationale: New user-facing feature needs architecture explanation and usage guide.
+
+ℹ️  No rule improvements needed (routine application of existing patterns)
+
+Work is documented, committed, and properly documented. Ready for next task!
+```
+
+**Completion with changelog only (internal refactoring)**:
+```
+🎉 All steps completed successfully!
+
+✅ Changelog: _changelog/2026-01/2026-01-11-181525-description.md
+✅ Checkpoint: checkpoints/2026-01-11-description.md
+✅ Commit: 47ee5f8 refactor(scope): message
+
+📖 Documentation:
+ℹ️  Changelog sufficient - no separate documentation needed
+   Rationale: Internal refactoring with no user/architectural impact.
+   Changelog captures implementation details for future reference.
+
+ℹ️  No rule improvements needed (routine application of existing patterns)
+
+Work is documented in changelog and committed. Ready for next task!
+```
+
+**With AI-triggered rule improvement**:
+```
+🎉 All steps completed successfully!
+
+✅ Changelog: _changelog/2026-01/2026-01-11-181525-description.md
+✅ Checkpoint: checkpoints/2026-01-11-description.md
+✅ Commit: 47ee5f8 refactor(scope): message
+
+📚 Learning detected - rules improved:
+✅ Backend handlers rule: IAM policy cleanup pattern documented
+✅ Rule docs committed: a3f7b2e docs(rules): improve backend-handlers rule - IAM cleanup pattern
+
+Work is documented, committed, and rules improved. Ready for next task!
+```
+
+**With both documentation and rule improvement**:
+```
+🎉 All steps completed successfully!
+
+✅ Changelog: _changelog/2026-01/2026-01-15-143520-implement-agent-config.md
+✅ Checkpoint: checkpoints/2026-01-15-agent-config-complete.md
+✅ Commit: c8f9a2b feat(backend/agent): implement agent configuration
+
+📖 Documentation created:
+✅ Added docs/guides/configuring-agents.md
+✅ Updated docs/README.md index
+✅ Docs committed: e7d4f1c docs: add agent configuration guide
+
+📚 Learning detected - rules improved:
+✅ Backend rule: Agent configuration validation pattern documented
+✅ Rule docs committed: f3a8b5e docs(rules): improve backend rule - agent config validation
+
+Work is documented, committed, documentation added, and rules improved. Ready for next task!
+```
+
+## Error Handling
+
+If any step fails:
+
+1. **Stop execution** - Don't proceed to next steps
+2. **Report error** - Clear message about what failed
+3. **Show completed steps** - What was successful
+4. **Provide guidance** - How to fix or proceed manually
+
+Example:
+```
+❌ Step 2 failed: Could not identify target project
+
+Completed:
+✅ Step 1: Changelog created
+
+Next actions:
+- Manually specify project path
+- Or run @update-next-project-progress separately
+- Or skip and proceed to commit
+```
+
+## AI Improvement Evaluation Guidelines
+
+### High-Signal Learnings (Always Improve)
+
+These warrant rule improvement:
+
+**Errors & Fixes**:
+- ✅ Compilation errors not in docs
+- ✅ Runtime errors from wrong patterns
+- ✅ Authorization failures
+- ✅ FGA modeling mistakes
+
+**New Patterns**:
+- ✅ First time creating resource type
+- ✅ Novel validation constraint
+- ✅ New repository query pattern
+- ✅ Complex permission hierarchy solution
+
+**Critical Discoveries**:
+- ✅ Security patterns (scope-aware lookups)
+- ✅ Missing mandatory steps (IAM cleanup)
+- ✅ Integration insights (proto → FGA → backend)
+- ✅ Performance patterns
+
+### Low-Signal Work (Skip Improvement)
+
+These don't warrant rule improvement:
+
+**Routine Work**:
+- ❌ Exact application of existing pattern
+- ❌ Copy-paste from similar resource
+- ❌ Minor field additions
+- ❌ Typo fixes
+
+**Already Documented**:
+- ❌ Pattern already in learning log
+- ❌ Error already in common mistakes doc
+- ❌ Standard workflow with no variations
+
+**Trivial Changes**:
+- ❌ Comment updates
+- ❌ Formatting changes
+- ❌ Variable renames
+
+### Decision Framework for AI
+
+```
+conversation_analysis:
+  errors_encountered: bool
+  new_patterns_discovered: bool
+  security_learnings: bool
+  integration_insights: bool
+  novel_solutions: bool
+  reusable_patterns: bool
+
+file_changes:
+  proto_files_modified: bool
+  handler_files_modified: bool
+  fga_files_modified: bool
+
+evaluate_improvement_need():
+  if conversation_analysis.has_any_true():
+    if file_changes.has_any_true():
+      return IMPROVE_RULES
+  return SKIP_IMPROVEMENT
+```
+
+## Project Reference Handling
+
+The user will **manually provide** the project reference by dragging it into the chat before invoking this rule.
+
+**Expected pattern**:
+```
+[User drags: @_projects/2026-01/20260110.01.proto-api-definitions]
+[User types: @complete-stigmer-oss-work]
+```
+
+**Project detection**:
+- Check conversation for project reference (folder path)
+- If found: Use that project for updates
+- If not found: Analyze file changes to detect project
+- If still unclear: Ask user which project
+
+## What Gets Committed
+
+This orchestrator commits **everything created by all steps**:
+
+**From Changelog (Step 1)**:
+- `_changelog/YYYY-MM/YYYY-MM-DD-HHMMSS-description.md`
+
+**From Project Update (Step 2)**:
+- `checkpoints/YYYY-MM-DD-description.md` (if created)
+- `next-task.md` (if updated)
+- `README.md` (if updated)
+- Any reference docs created
+
+**From Original Work**:
+- All proto changes
+- All code changes
+- All other modifications from the conversation
+
+**From AI-Driven Documentation (Step 4 - if triggered)**:
+- `docs/**/*.md` (new or updated documentation)
+- `docs/README.md` (documentation index)
+- `README.md` (root README if updated)
+
+**From AI-Driven Rule Improvements (Step 5 - if triggered)**:
+- `_projects/_rules/**` (orchestrator rules)
+- `apis/_rules/**/docs/**` (proto rule docs)
+- `backend/**/_rules/**/docs/**` (backend/FGA rule docs)
+
+## Advantages Over Manual Process
+
+**Before** (manual - 7+ steps):
+```
+1. User: @create-stigmer-oss-changelog
+   AI: Creates changelog
+2. User: @update-next-project-progress
+   AI: Updates project docs
+3. User: @commit-stigmer-oss-changes
+   AI: Commits everything
+4. User: [Forgets to document - PROBLEM!]
+5. User: [Weeks later, no one understands what was built]
+6. User: [Has to reconstruct context from code and changelogs]
+```
+
+**After** (automated - 1 step):
+```
+1. User: @_projects/... @complete-stigmer-oss-work
+   AI: Does all steps + MANDATORY documentation + improves rules if learning occurred
+```
+
+**Benefits**:
+- ✅ Single invocation (1 step instead of 6+)
+- ✅ Consistent workflow every time
+- ✅ **Documentation is NEVER forgotten** (mandatory step)
+- ✅ **AI creates comprehensive documentation** (user doesn't decide what/when)
+- ✅ **AI captures learnings automatically** (user doesn't need to remember)
+- ✅ **No documentation debt** (created immediately, not "later")
+- ✅ **Centralized documentation** (follows standards, no duplication)
+- ✅ **Docs folder is always comprehensive** (can answer any question)
+- ✅ **AI agents can use docs** (drag docs folder to answer questions)
+- ✅ Progress visibility through all phases
+- ✅ Automatic error handling
+- ✅ Documentation and rules improve continuously without manual effort
+
+## Examples
+
+### Example 1: New User-Facing Feature (Documentation Needed)
+
+**User conversation context**:
+- Created new AgentConfig proto API
+- Users can configure agents via YAML
+- New user-facing capability
+
+**User action**:
+```
+@_projects/2026-01/20260110.01.proto-api-definitions
+@complete-stigmer-oss-work
+```
+
+**AI execution**:
+```
+Executing Stigmer work completion workflow...
+
+Step 1/5: Creating changelog...
+✅ Changelog created: _changelog/2026-01/2026-01-11-181525-add-agentconfig-proto.md
+
+Step 2/5: Updating project progress...
+✅ Checkpoint created: checkpoints/2026-01-11-agentconfig-proto-added.md
+✅ Updated: next-task.md
+
+Step 3/5: Committing changes...
+✅ Committed: 47ee5f8 feat(apis/agentconfig): add AgentConfig proto resource
+
+Step 4/5: Evaluating documentation needs...
+Analysis: New user-facing feature (AgentConfig) - users need to know how to use it
+Decision: Documentation needed beyond changelog
+
+✅ Created docs/architecture/agent-configuration.md:
+   - AgentConfig resource overview
+   - Configuration options and validation
+   - Integration with agent lifecycle
+✅ Updated docs/getting-started/local-mode.md:
+   - Added agent configuration section
+   - Usage examples
+✅ Updated docs/README.md index
+✅ Committed documentation: c8d9e2f docs: add agent configuration docs
+
+Rationale: User-facing feature needs architecture explanation and usage guide.
+
+Step 5/5: Evaluating if rule improvement is needed...
+ℹ️  No significant learnings detected (standard patterns applied)
+
+🎉 All steps completed!
+
+Summary:
+- 1 changelog (implementation details)
+- 1 checkpoint created
+- 8 files committed (code changes)
+- 2 documentation files created/updated (user-facing)
+- 1 documentation commit
+
+Ready for next task!
+```
+
+### Example 2: Internal Refactoring (Changelog Sufficient)
+
+**User conversation context**:
+- Refactored backend controller error handling
+- Internal implementation change
+- No user-facing impact
+- No new patterns
+
+**User action**:
+```
+@_projects/2026-01/20260115.02.backend-refactoring
+@complete-stigmer-oss-work
+```
+
+**AI execution**:
+```
+Executing Stigmer work completion workflow...
+
+Step 1/5: Creating changelog...
+✅ Changelog created: _changelog/2026-01/2026-01-15-101530-refactor-backend-error-handling.md
+
+Step 2/5: Updating project progress...
+✅ Checkpoint created: checkpoints/2026-01-15-backend-refactoring-complete.md
+✅ Updated: next-task.md
+
+Step 3/5: Committing changes...
+✅ Committed: b8f4e2a refactor(backend): improve error handling consistency
+
+Step 4/5: Evaluating documentation needs...
+Analysis: Internal refactoring - no user/architectural impact
+Decision: Changelog sufficient (no separate documentation needed)
+
+ℹ️  Changelog sufficient for this work:
+   - Internal refactoring (no user-facing changes)
+   - Changelog captures implementation details
+   - No architectural concepts introduced
+   - No usage changes
+   
+Rationale: Backend refactoring is internal. Changelog provides sufficient detail.
+
+Step 5/5: Evaluating if rule improvement is needed...
+ℹ️  No significant learnings detected (standard refactoring)
+
+🎉 All steps completed!
+
+Summary:
+- 1 changelog (captures refactoring details)
+- 1 checkpoint created
+- 18 files committed (code changes)
+- No separate documentation (changelog sufficient)
+
+Ready for next task!
+```
+
+### Example 3: Learning Detected (AI-Triggered Improvement - Single Area)
+
+**User conversation context**:
+- Implemented SDK agent configuration
+- Fixed proto field mapping error (repeated fields)
+- Discovered validation pattern for environment merging
+
+**User action**:
+```
+@_projects/2026-01/20260115.03.sdk-agent-configuration
+@complete-stigmer-oss-work
+```
+
+**AI execution**:
+```
+Executing Stigmer work completion workflow...
+
+Step 1/3: Creating changelog...
+✅ Changelog created: _changelog/2026-01/2026-01-15-101530-implement-sdk-agent-configuration.md
+
+Step 2/3: Updating project progress...
+✅ Checkpoint created: checkpoints/2026-01-15-sdk-agent-config-complete.md
+✅ Updated: next-task.md
+
+Step 3/3: Committing changes...
+✅ Committed: b8f4e2a feat(sdk/agent): implement AgentConfig with validation
+
+Evaluating if rule improvement is needed...
+✅ Learning detected:
+   - Fixed proto repeated field conversion (must use .extend())
+   - Discovered environment merging pattern with override semantics
+   - SDK work detected
+
+Proceeding with rule improvement...
+Area: SDK
+Rule: implement-stigmer-sdk-features
+
+✅ Added learning log entries:
+   - Proto repeated field conversion pattern
+   - Environment variable merging with priorities
+✅ Updated docs/learning-log.md (Proto Converters section)
+✅ Updated main rule Reference Documentation section
+✅ Committed rule improvements: e3d7c1f docs(rules): improve sdk rule - proto repeated fields pattern
+
+🎉 All steps completed with rule improvements!
+
+Summary:
+- 1 changelog created
+- 1 checkpoint created
+- 1 project file updated
+- 18 files committed
+- SDK rule improved (2 learnings documented)
+
+Ready for next task!
+```
+
+### Example 4: Documentation Update (Existing Feature Changed)
+
+**User conversation context**:
+- Implemented new agent lifecycle management
+- Added state transitions and validation
+- New user-facing feature that needs explanation
+- No new patterns learned (applied existing patterns)
+
+**User action**:
+```
+@_projects/2026-01/20260116.02.agent-lifecycle-management
+@complete-stigmer-oss-work
+```
+
+**AI execution**:
+```
+Executing Stigmer OSS work completion workflow...
+
+Step 1/5: Creating changelog...
+✅ Changelog created: _changelog/2026-01/2026-01-16-114525-implement-agent-lifecycle.md
+
+Step 2/5: Updating project progress...
+✅ Checkpoint created: checkpoints/2026-01-16-agent-lifecycle-complete.md
+✅ Updated: next-task.md
+
+Step 3/5: Committing changes...
+✅ Committed: d7e3f9a feat(backend/agent): implement agent lifecycle management
+
+Evaluating if documentation is needed...
+✅ Documentation needed:
+   - New user-facing feature (agent lifecycle)
+   - Complex state transitions need explanation
+   - Users need to understand how agents are managed
+
+Proceeding with documentation creation...
+Category: architecture (system design and behavior)
+File: docs/architecture/agent-lifecycle.md
+
+✅ Created docs/architecture/agent-lifecycle.md:
+   - Agent lifecycle overview
+   - State transition diagram (Mermaid)
+   - State explanations
+   - Validation rules
+   - Examples
+✅ Updated docs/README.md index
+✅ Committed documentation: a9f2b1c docs: add agent lifecycle architecture documentation
+
+Evaluating if rule improvement is needed...
+ℹ️  No significant learnings detected:
+   - Applied existing state machine pattern
+   - Standard validation approach
+   - Skipping rule improvement
+
+🎉 All steps completed with documentation!
+
+Summary:
+- 1 changelog created
+- 1 checkpoint created
+- 1 project file updated
+- 12 files committed (code changes)
+- Documentation created: docs/architecture/agent-lifecycle.md
+- 1 documentation commit
+
+Ready for next task!
+```
+
+### Example 5: Multiple Areas with Learnings (AI Selects Most Valuable)
+
+**User conversation context**:
+- Created proto APIs (standard pattern - no new learnings)
+- Implemented SDK converters (fixed repeated field issue - HIGH VALUE)
+- Added agent configuration (validation pattern - HIGH VALUE)
+- Wrote unit tests (standard patterns - already documented)
+
+**User action**:
+```
+@_projects/2026-01/20260120.04.multi-area-sdk-implementation
+@complete-stigmer-oss-work
+```
+
+**AI execution**:
+```
+Executing Stigmer work completion workflow...
+
+Step 1/3: Creating changelog...
+✅ Changelog created: _changelog/2026-01/2026-01-20-173450-implement-sdk-converters-and-validation.md
+
+Step 2/3: Updating project progress...
+✅ Checkpoint created: checkpoints/2026-01-20-sdk-converters-complete.md
+✅ Updated: next-task.md
+✅ Updated: README.md
+
+Step 3/3: Committing changes...
+✅ Committed: c9d5e8f feat(sdk): implement proto converters and validation rules
+
+Evaluating if rule improvement is needed...
+✅ Learning detected in multiple areas:
+
+   Proto APIs:
+   ❌ No new learnings (standard patterns applied)
+   
+   SDK:
+   ✅ HIGH VALUE: Discovered proto repeated field .extend() requirement
+   ✅ HIGH VALUE: Learned hierarchical validation pattern
+   
+   Tests:
+   ❌ Low value: Standard pytest patterns already documented
+
+AI Decision: Improve SDK rule only (highest value learnings)
+
+Improving: SDK rule
+
+✅ Added learning log entries:
+   - Proto repeated field conversion pattern
+   - Hierarchical validation for nested configs
+✅ Updated docs/learning-log.md (Proto Converters + Validation sections)
+✅ Updated main rule Reference Documentation section
+✅ Committed rule improvements: f8a3d2c docs(rules): improve sdk rule - proto and validation patterns
+
+🎉 All steps completed with intelligent rule improvements!
+
+Summary:
+- 1 changelog created
+- 1 checkpoint created
+- 2 project files updated
+- 24 files committed
+- SDK rule improved (proto conversion and validation patterns documented)
+
+AI Improvement Rationale:
+- Proto work was routine (skipped)
+- SDK learnings were novel and reusable (improved)
+- Test patterns already documented (skipped)
+
+Ready for next task!
+```
+
+## Quality Checklist
+
+Before completing, verify:
+
+- [ ] Meaningful work was completed (not trivial changes)
+- [ ] Changelog is comprehensive and grounded in reality
+- [ ] Changelog captures implementation details sufficiently
+- [ ] Project documentation is updated accurately
+- [ ] Project references existing documentation where applicable
+- [ ] Commit message follows conventional commits format
+- [ ] All changes are staged and committed
+- [ ] **Documentation evaluation performed** (is separate documentation needed beyond changelog?)
+- [ ] If documentation needed: Created/updated appropriate docs
+- [ ] If documentation needed: No duplication of changelog content
+- [ ] If documentation needed: Follows `@stigmer-oss-documentation-standards.md`
+- [ ] If documentation needed: In appropriate category (getting-started, architecture, guides, ADR)
+- [ ] If documentation needed: Indexes updated (`docs/README.md`, root `README.md` if key doc)
+- [ ] If documentation needed: Committed separately with clear message and rationale
+- [ ] If changelog sufficient: Clear rationale provided for why separate docs not needed
+- [ ] Docs folder remains comprehensive for users to understand Stigmer
+- [ ] AI evaluation for rule improvement was thorough
+- [ ] If rule improvements made: High-signal learnings only
+- [ ] If rule improvements made: Changes committed separately with clear rationale
+
+## Integration with Existing Rules
+
+This orchestrator **invokes** these existing rules:
+
+### Core Workflow Rules (Always Invoked)
+
+1. **`@create-stigmer-oss-changelog.mdc`** (located in `_changelog/_rules/`)
+   - Reuses all changelog creation logic
+   - Same quality standards
+   - Same sizing guidance
+
+2. **`@update-next-project-progress.mdc`** (located in `.cursor/rules/`)
+   - Reuses all project update logic
+   - Same checkpoint patterns
+   - Same documentation standards
+
+3. **`@commit-stigmer-oss-changes.mdc`** (located in `.cursor/rules/`)
+   - Reuses all commit logic
+   - Same conventional commits format
+   - Same git operations
+
+### Improvement Rules (AI-Driven Conditional Invocation)
+
+4. **Proto API Improvement** (located in `apis/_rules/model-stigmer-protos/improve-this-rule.mdc`)
+   - Invoked when proto changes + AI detects new learnings
+   - Adds to learning log
+   - Updates topic documentation
+   - Updates main rule references
+
+5. **Backend Handlers Improvement** (located in `backend/services/stigmer-server/_rules/implement-stigmer-backend-handlers/improve-this-rule.mdc`)
+   - Invoked when backend handler changes + AI detects new learnings
+   - Adds to learning log
+   - Updates topic documentation
+   - Updates main rule references
+
+6. **Agent Runner Improvement** (located in `backend/services/agent-runner/_rules/implement-agent-runner-features/improve-this-rule.mdc`)
+   - Invoked when agent-runner changes + AI detects new learnings
+   - Adds to learning log
+   - Updates topic documentation
+   - Updates main rule references
+
+7. **Workflow Runner Improvement** (located in `backend/services/workflow-runner/_rules/implement-workflow-runner-features/improve-this-rule.mdc`)
+   - Invoked when workflow-runner changes + AI detects new learnings
+   - Adds to learning log
+   - Updates topic documentation
+   - Updates main rule references
+
+8. **SDK Improvement** (located in `stigmer-sdk/_rules/improve-this-rule.mdc` - external repo - orchestrator)
+   - Invoked when SDK changes (Python or Go) + AI detects new learnings
+   - Orchestrator detects language and delegates to Python or Go specific rule
+   - Adds to language-specific learning log
+   - Updates topic documentation
+   - Updates main rule references
+
+9. **CLI Improvement** (located in `sdk/_rules/implement-stigmer-cli-features/improve-this-rule.mdc`)
+   - Invoked when CLI changes + AI detects new learnings
+   - Adds to learning log
+   - Updates topic documentation
+   - Updates main rule references
+
+10. **FGA Authorization Improvement** (located in `backend/services/stigmer-server/src/main/resources/fga/_rules/model-stigmer-fga-authorization/improve-this-rule.mdc`)
+   - Invoked when FGA model changes + AI detects new learnings
+   - Adds to learning log
+   - Updates pattern documentation
+   - Updates main rule references
+
+**No duplication** - All logic stays in the original rules.
+
+## When NOT to Use
+
+Don't use this orchestrator when:
+
+- Work is incomplete or in-progress
+- You only want to create changelog (use `@create-stigmer-oss-changelog`)
+- You only want to update project docs (use `@update-next-project-progress`)
+- You only want to commit (use `@commit-stigmer-oss-changes`)
+- You only want to improve specific rule (use that rule's `improve-this-rule.mdc`)
+- Changes are trivial and don't need full documentation
+
+## Success Criteria
+
+This orchestrator succeeds when:
+
+### Complete Success (All Steps)
+- ✅ Changelog file created in `_changelog/YYYY-MM/`
+- ✅ Changelog captures implementation details comprehensively
+- ✅ Project checkpoint created (if applicable)
+- ✅ Project next-task.md updated with documentation references
+- ✅ Git commit created with all changes
+- ✅ **Documentation evaluation performed** (smart decision made)
+- ✅ If docs needed: Created/updated appropriate documentation
+- ✅ If docs needed: Follows `@stigmer-oss-documentation-standards.md`
+- ✅ If docs needed: In appropriate category
+- ✅ If docs needed: Indexes updated
+- ✅ If docs needed: Committed with clear message and rationale
+- ✅ If docs needed: No duplication of changelog content
+- ✅ If changelog sufficient: Clear rationale provided
+- ✅ Docs folder remains comprehensive for users
+- ✅ AI evaluation performed for rule improvement needs
+- ✅ If improved: High-signal learnings documented
+- ✅ If improved: Learning log entries added
+- ✅ If improved: Rule improvements committed with rationale
+- ✅ User receives clear summary of all actions
+- ✅ Ready to start next task
+
+## Notes
+
+**Execution Order Matters**:
+1. Changelog first (documents implementation details)
+2. Project update second (creates checkpoints/updates with doc references)
+3. Commit work third (captures everything)
+4. **Evaluate documentation need fourth (smart decision - avoid duplication)**
+5. AI evaluates improvement need fifth (autonomous decision)
+6. Improve rules if warranted (high-signal learnings only)
+
+**User Manual Steps**:
+- User provides project reference (drag into chat)
+- User invokes this rule
+- **Everything else is automatic** (including smart documentation evaluation and rule improvement decision)
+
+**Time Savings**:
+- Eliminates 4-8 extra rule invocations
+- Eliminates 4-8 extra chat submissions
+- **Eliminates documentation debt** (evaluated every time)
+- Eliminates duplication (changelog vs docs separated)
+- Consistent workflow every time
+- Automatic smart documentation evaluation
+- Automatic context-aware rule selection
+
+**Smart Documentation Benefits**:
+- ✅ **Documentation is ALWAYS evaluated** (never forgotten)
+- ✅ **Avoids duplication** (changelog captures implementation, docs capture usage/architecture)
+- ✅ Creates documentation when needed (user-facing, architectural, patterns)
+- ✅ Skips documentation when changelog is sufficient (internal changes, bug fixes)
+- ✅ Follows standards consistently (`@stigmer-oss-documentation-standards.md`)
+- ✅ Centralized and organized (no redundancy)
+- ✅ **Docs folder stays comprehensive** (users can understand Stigmer)
+- ✅ **AI agents can use docs folder** (drag to answer questions)
+- ✅ **Open-source adoption enabled** (users understand how to use Stigmer)
+- ✅ Transparent reasoning (AI explains decision - docs created OR changelog sufficient)
+- ✅ Continuous documentation improvement without manual effort or overhead
+- ✅ Documentation evolves naturally from actual work
+- ✅ **Zero documentation debt, zero duplication** (right level of documentation every time)
+
+**AI-Driven Rule Improvement Benefits**:
+- ✅ Captures learnings automatically (user doesn't need to remember)
+- ✅ No decision fatigue (AI evaluates and decides)
+- ✅ High-signal improvements only (filters out routine work)
+- ✅ References documentation standards where applicable
+- ✅ Transparent reasoning (AI explains decision)
+- ✅ Continuous rule improvement without manual effort
+- ✅ Rules evolve naturally from actual work patterns
+- ✅ No documentation debt (learnings captured immediately)
+
+**Smart Documentation Philosophy**:
+- **Documentation evaluation is ALWAYS performed** - never forgotten
+- AI decides **whether** separate documentation is needed (beyond changelog)
+- Changelogs capture "what and why" (implementation details)
+- Documentation captures "how to use" and "how it works" (permanent reference)
+- AI avoids duplication between changelogs and docs
+- AI creates documentation when it enables understanding/usage
+- AI skips documentation when changelog is sufficient (internal changes)
+- User doesn't worry about documentation - it's intelligently handled
+- Result: Comprehensive docs folder without duplication or overhead
+
+---
+
+**Related Rules**:
+- `@create-stigmer-oss-changelog` - Changelog creation (Step 1)
+- `@update-next-project-progress` - Project updates (Step 2)
+- `@commit-stigmer-oss-changes` - Git commit (Step 3)
+- `@stigmer-oss-documentation-standards.md` - Documentation standards (referenced in Steps 2, 4, 5)
+- `@apis/_rules/model-stigmer-protos/improve-this-rule.mdc` - Proto API rule improvement (Step 5 - AI-driven)
+- `@backend/services/stigmer-server/_rules/implement-stigmer-backend-handlers/improve-this-rule.mdc` - Backend handlers rule improvement (Step 5 - AI-driven)
+- `@backend/services/agent-runner/_rules/implement-agent-runner-features/improve-this-rule.mdc` - Agent runner rule improvement (Step 5 - AI-driven)
+- `@backend/services/workflow-runner/_rules/implement-workflow-runner-features/improve-this-rule.mdc` - Workflow runner rule improvement (Step 5 - AI-driven)
+- `@stigmer-sdk/_rules/improve-this-rule.mdc` - SDK rule improvement orchestrator (Step 5 - AI-driven, delegates to Python/Go) - **External repo: github.com/leftbin/stigmer-sdk**
+- `@sdk/_rules/implement-stigmer-cli-features/improve-this-rule.mdc` - CLI rule improvement (Step 5 - AI-driven)
+- `@backend/services/stigmer-server/src/main/resources/fga/_rules/model-stigmer-fga-authorization/improve-this-rule.mdc` - FGA authorization rule improvement (Step 5 - AI-driven)
+
+---
+
+**Remember**: This is a workflow orchestrator with **AI-driven intelligence**. The AI autonomously evaluates:
+1. **Documentation needs** - Creates/updates documentation following `@stigmer-oss-documentation-standards.md` when new features or significant changes are made
+2. **Rule improvement needs** - Improves rules when genuine high-signal learnings occur
+
+No user decision required - the AI handles it all, ensuring documentation stays centralized and rules evolve continuously.

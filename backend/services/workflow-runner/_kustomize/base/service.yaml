@@ -1,0 +1,89 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: KubernetesDeployment
+metadata:
+  name: workflow-runner
+  org: stigmer
+  labels:
+    project-planton.org/provisioner: pulumi
+    pulumi.project-planton.org/organization: stigmer
+    pulumi.project-planton.org/project: stigmer
+    kubernetes.project-planton.org/docker-config-json-file: "~/scm/github.com/leftbin/stigmer-cloud/ops/platform/service-deployments/files/docker-config.ghcr.json"
+spec:
+  container:
+    app:
+      image:
+        repo: ghcr.io/leftbin/stigmer-cloud/backend/services/workflow-runner
+        #tag: <comes-from-ci-git-commit-sha>
+      env:
+        variables:
+          # Execution Mode - temporal (Temporal worker only, no gRPC)
+          EXECUTION_MODE:
+            value: temporal
+          
+          # Temporal Configuration (using prod as default)
+          # Polyglot setup: Go activities on workflow_execution_runner, Java workflows on workflow_execution_stigmer
+          TEMPORAL_SERVICE_ADDRESS:
+            value: $variables-group/stigmer-temporal-config/prod.host
+          TEMPORAL_NAMESPACE:
+            value: $variables-group/stigmer-temporal-config/namespace
+          TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE:
+            value: workflow_execution_runner
+          TEMPORAL_ZIGFLOW_EXECUTION_TASK_QUEUE:
+            value: zigflow_execution
+          
+          # Worker Configuration (direct values, no need for variables-group)
+          MAX_CONCURRENT_ACTIVITIES:
+            value: "50"
+          MAX_CONCURRENT_WORKFLOW_TASKS:
+            value: "10"
+          
+          # Logging
+          LOG_LEVEL:
+            value: info
+          LOG_FORMAT:
+            value: json
+          
+          # OpenTelemetry
+          OTEL_SERVICE_NAME:
+            value: workflow-runner
+          OTEL_METRICS_EXPORTER:
+            value: none
+          OTEL_LOGS_EXPORTER:
+            value: none
+          OTEL_EXPORTER_OTLP_TRANSPORT:
+            value: grpc
+          
+          # Claim Check Configuration (for large payload handling)
+          CLAIMCHECK_ENABLED:
+            value: "true"
+          CLAIMCHECK_THRESHOLD_BYTES:
+            value: "51200"  # 50KB - offload payloads larger than this
+          CLAIMCHECK_TTL_DAYS:
+            value: "30"
+          CLAIMCHECK_COMPRESSION_ENABLED:
+            value: "true"
+          
+          # Stigmer Backend Configuration
+          # These should be set in environment-specific overlays (prod/local):
+          # - STIGMER_BACKEND_ENDPOINT: gRPC endpoint (unified with agent-runner)
+          # - STIGMER_API_KEY: API key from stigmer-api secrets-group (unified with agent-runner)
+          # - STIGMER_SERVICE_USE_TLS: TLS flag (true for prod, false for local)
+          
+      resources:
+        limits:
+          cpu: 500m
+          memory: 500Mi
+        requests:
+          cpu: 50m
+          memory: 100Mi
+      
+      # No ports needed - worker connects to Temporal, doesn't expose APIs
+      ports: []
+  
+  availability:
+    minReplicas: 1
+    horizontalPodAutoscaling:
+      isEnabled: false
+  
+  version: main
+

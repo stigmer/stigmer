@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "pipeline",
+    srcs = [
+        "context.go",
+        "error.go",
+        "pipeline.go",
+        "step.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/libs/go/telemetry",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "pipeline_test",
+    srcs = [
+        "context_test.go",
+        "error_test.go",
+        "pipeline_test.go",
+    ],
+    embed = [":pipeline"],
+    deps = [
+        "//backend/libs/go/telemetry",
+        "@org_golang_google_protobuf//types/known/emptypb",
+    ],
+)

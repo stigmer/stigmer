@@ -1,0 +1,715 @@
+# Rule: Implement Agent Runner Features (action)
+
+**Purpose**: Implement and enhance Python-based agent execution features in the agent-runner service. Handles Temporal activities, gRPC clients, Graphton agent creation, sandbox management, and skills integration following established patterns.
+
+**Usage**: Invoke this rule when adding new features, fixing issues, or enhancing agent-runner capabilities.
+
+**Prerequisites**: 
+- Python 3.13+ environment with Poetry
+- Proto stubs generated for Stigmer APIs
+- Access to Temporal, Redis, and Daytona services
+
+---
+
+## 🎓 Before You Start: Check the Learning Log!
+
+**IMPORTANT**: Before implementing features, check `docs/learning-log.md` for solutions to common issues:
+- Documented patterns and fixes from real implementations
+- Organized by topic (not chronological)
+- Real-world solutions that save time
+- Avoids repeating known issues
+
+**Quick lookup by topic**:
+- Proto import errors → See "Proto Imports & Stubs"
+- Temporal activity issues → See "Temporal Activities"
+- gRPC client problems → See "gRPC Clients"
+- Sandbox errors → See "Sandbox Management"
+- Graphton issues → See "Graphton Agent Creation"
+
+**Complete documentation**: See `docs/README.md` for full catalog of reference docs.
+
+---
+
+**Reference Documentation**:
+
+⚠️ **CRITICAL - Read Before Implementation**:
+- **Polyglot Temporal Workflow**: `docs/architecture/polyglot-temporal-workflow.md` ⚠️ **READ THIS FIRST FOR TEMPORAL**
+  - How workflow orchestrates Python and Java activities
+  - Activities cannot call other activities (must return data)
+  - Task queue separation (execution vs execution-persistence)
+  - Complete architecture with diagrams
+- **Learning Log**: `docs/learning-log.md` ⚠️ **CHECK FOR KNOWN ISSUES**
+  - Organized by topic for quick lookup
+  - Solutions to common problems
+  - Patterns and anti-patterns
+
+**Implementation Guides**:
+- **Polyglot Workflow Guide**: `docs/guides/polyglot-workflow-guide.md` - How to work with polyglot workflows
+  - Add new Python activities
+  - Add new Java activities
+  - Debugging techniques
+  - Best practices
+  - Troubleshooting
+
+**Implementation Details**:
+- **Polyglot Migration**: `docs/implementation/polyglot-workflow-migration.md` - What was fixed and why
+  - Root cause of activity-to-activity issue
+  - Correct polyglot pattern
+  - Files deleted and cleanup
+  - Testing verification
+
+**Additional References**:
+- **Data Model**: `docs/architecture/data-model.md` - Resource hierarchy
+- **Complete Index**: `docs/README.md` - Full documentation catalog
+
+**Self-Improvement Cycle**: After implementing features:
+1. If you learned something or fixed errors → Update `docs/learning-log.md` with the lesson
+2. If patterns need correction → Invoke `@improve-this-rule.mdc` to update the rule
+3. **Check `docs/learning-log.md`** for solutions BEFORE asking
+
+---
+
+## Core Implementation Areas
+
+### 1. Temporal Activities
+
+**Location**: `worker/activities/*.py`
+
+**Patterns**:
+- Use `@activity.defn(name="ActivityName")` decorator
+- Activity functions must be `async`
+- Accept proto messages directly (Temporal deserializes)
+- Return simple types or proto messages
+- Use `activity.logger` for structured logging
+- Handle exceptions with try/except, update execution status on failure
+
+**Example**:
+```python
+from temporalio import activity
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecution
+
+@activity.defn(name="ExecuteGraphton")
+async def execute_graphton(execution: AgentExecution, thread_id: str) -> None:
+    """Execute Graphton agent."""
+    activity_logger = activity.logger
+    activity_logger.info(f"Starting execution: {execution.metadata.id}")
+    
+    try:
+        # Implementation here
+        pass
+    except Exception as e:
+        activity_logger.error(f"Execution failed: {e}")
+        # Update execution status with error
+        raise
+```
+
+**Register in worker**:
+```python
+# worker/worker.py
+from worker.activities.execute_graphton import execute_graphton
+
+activities = [
+    execute_graphton,
+    # ... other activities
+]
+```
+
+### 2. gRPC Clients
+
+**Location**: `grpc_client/*.py`
+
+**Patterns**:
+- One client per API resource (AgentClient, ExecutionClient, etc.)
+- Use `AuthClientInterceptor` for machine account auth
+- Create async stubs with `grpc.aio`
+- Handle SSL/TLS based on endpoint port (443 = secure)
+- Accept `token_manager` in constructor
+- Load endpoint from `Config.load_from_env()`
+- **⚠️ CRITICAL**: Always include `api_version` and `kind` when constructing API resource protos
+
+**Proto Validation Requirement**:
+
+All API resource proto messages sent to backend MUST include `api_version` and `kind` fields:
+```python
+# ❌ WRONG - Missing required fields (will fail validation)
+execution = AgentExecution(
+    metadata=ApiResourceMetadata(id=execution_id),
+    status=status
+)
+
+# ✅ CORRECT - Include api_version and kind
+execution = AgentExecution(
+    api_version="agentic.stigmer.ai/v1",  # Required
+    kind="AgentExecution",                 # Required
+    metadata=ApiResourceMetadata(id=execution_id),
+    status=status
+)
+```
+
+Backend validation middleware enforces these fields. Without them, requests fail with:
+```
+Input validation failed: api_version – value must equal `agentic.stigmer.ai/v1`, kind – value must equal `AgentExecution`
+```
+
+**See**: Learning Log entry "Proto Validation: Required api_version and kind Fields" for details.
+
+**Example**:
+```python
+import grpc
+from ai.stigmer.agentic.agent.v1 import query_pb2_grpc
+from worker.config import Config
+from grpc_client.auth.client_interceptor import AuthClientInterceptor
+
+class AgentClient:
+    def __init__(self, token_manager):
+        config = Config.load_from_env()
+        endpoint = config.stigmer_backend_endpoint
+        
+        interceptor = AuthClientInterceptor(token_manager)
+        
+        if endpoint.endswith(":443"):
+            self.channel = grpc.aio.secure_channel(
+                endpoint,
+                grpc.ssl_channel_credentials(),
+                interceptors=[interceptor]
+            )
+        else:
+            self.channel = grpc.aio.insecure_channel(
+                endpoint,
+                interceptors=[interceptor]
+            )
+        
+        self.stub = query_pb2_grpc.AgentQueryControllerStub(self.channel)
+    
+    async def get(self, agent_id: str):
+        # For simple ID requests, no api_version/kind needed
+        request = AgentId(value=agent_id)
+        return await self.stub.get(request)
+    
+    async def update_status(self, agent_id: str, status: AgentStatus):
+        # For API resource updates, MUST include api_version and kind
+        agent_update = Agent(
+            api_version="agentic.stigmer.ai/v1",
+            kind="Agent",
+            metadata=ApiResourceMetadata(id=agent_id),
+            status=status
+        )
+        return await self.stub.updateStatus(agent_update)
+```
+
+### 3. Graphton Agent Creation
+
+**Location**: `worker/activities/execute_graphton.py`
+
+**Patterns**:
+- Use `create_deep_agent()` from graphton package
+- Pass `sandbox_config` with `sandbox_id` to reuse existing sandbox
+- Set `recursion_limit=1000` for maximum autonomy
+- Graphton's loop detection prevents infinite loops
+- Stream events with `astream_events(version="v2")`
+
+**Example**:
+```python
+from graphton import create_deep_agent
+
+agent_graph = create_deep_agent(
+    model="claude-sonnet-4.5",
+    system_prompt=instructions,
+    mcp_servers={},  # MCP config
+    mcp_tools=None,
+    subagents=None,
+    sandbox_config={
+        "type": "daytona",
+        "sandbox_id": sandbox.id,  # Reuse existing sandbox
+    },
+    recursion_limit=1000,
+)
+
+# Stream execution
+async for event in agent_graph.astream_events(
+    {"messages": [{"role": "user", "content": message}]},
+    config={"configurable": {"thread_id": thread_id}},
+    version="v2",
+):
+    await execution_client.update_from_event(execution_id, event)
+```
+
+### 4. Sandbox Management
+
+**Location**: `worker/sandbox_manager.py`
+
+**Patterns**:
+- Session-based lifecycle: sandbox tied to session
+- Health checking before reuse (`echo alive` command)
+- Graceful fallback to new sandbox if unhealthy
+- Store `sandbox_id` in `SessionSpec`
+- Poll for readiness after creation (max 180s)
+
+**Example**:
+```python
+sandbox, is_new = await sandbox_manager.get_or_create_sandbox(
+    sandbox_config={"type": "daytona", "snapshot_id": snapshot_id},
+    session_id=session_id,
+    session_client=session_client,
+)
+
+if is_new:
+    logger.info(f"Created new sandbox: {sandbox.id}")
+else:
+    logger.info(f"Reusing existing sandbox: {sandbox.id}")
+```
+
+### 5. Skills Integration
+
+**Location**: `worker/activities/graphton/skill_writer.py`
+
+**Patterns**:
+- Fetch skills via `SkillClient.list_by_ids()`
+- Write to `/workspace/skills/*.md` in sandbox
+- Use Daytona's `fs.upload_files()` for batch upload
+- Generate prompt section with metadata only
+- Agent reads full content with `read_file` tool
+
+**Example**:
+```python
+from worker.activities.graphton.skill_writer import SkillWriter
+
+skills = await skill_client.list_by_ids(skill_ids)
+skill_writer = SkillWriter(sandbox=sandbox)
+skill_paths = skill_writer.write_skills(skills)
+
+# Enhance system prompt
+skills_prompt = SkillWriter.generate_prompt_section(skills, skill_paths)
+enhanced_prompt = base_instructions + skills_prompt
+```
+
+### 6. Token Management
+
+**Location**: `worker/token_service.py`, `grpc_client/auth/token_manager.py`
+
+**Patterns**:
+- User tokens: One-time use from Redis, deleted after fetch
+- Machine account tokens: Cached, rotated every 10 minutes
+- Token key format: `execution:token:{execution_id}`
+- Use `TokenService` for Redis operations
+- Use `MachineAccountTokenManager` for Auth0
+
+**Example**:
+```python
+# Fetch user token (one-time use)
+token_service = TokenService(redis_client)
+user_token = token_service.get_user_token(execution_id)
+
+# Machine account token (cached)
+token_manager = MachineAccountTokenManager(
+    auth0_domain=config.auth0_domain,
+    auth0_audience=config.auth0_audience,
+    client_id=config.machine_account_client_id,
+    client_secret=config.machine_account_client_secret,
+)
+await token_manager.get_token()
+```
+
+### 7. Configuration
+
+**Location**: `worker/config.py`
+
+**Patterns**:
+- Use dataclass for type safety
+- Load from environment variables
+- Validate required fields on load
+- Provide sensible defaults where appropriate
+- Document each field
+
+**Example**:
+```python
+@dataclass
+class Config:
+    temporal_namespace: str
+    stigmer_backend_endpoint: str
+    # ... other fields
+    
+    @classmethod
+    def load_from_env(cls):
+        # Validate required fields
+        required = ["AUTH0_DOMAIN", "AUTH0_AUDIENCE", ...]
+        missing = [var for var in required if not os.getenv(var)]
+        if missing:
+            raise ValueError(f"Missing: {', '.join(missing)}")
+        
+        return cls(
+            temporal_namespace=os.getenv("TEMPORAL_NAMESPACE", "default"),
+            stigmer_backend_endpoint=os.getenv("STIGMER_BACKEND_ENDPOINT", "localhost:8080"),
+            # ... load other fields
+        )
+```
+
+### 8. Error Handling
+
+**Location**: All modules
+
+**Patterns**:
+- Catch specific exceptions, not bare `except:`
+- Log errors with context (execution_id, agent_id, etc.)
+- Update execution status before re-raising
+- Use structured logging with `activity.logger`
+- Best-effort cleanup (don't fail on cleanup errors)
+
+**Example**:
+```python
+try:
+    result = await some_operation()
+except SpecificError as e:
+    logger.error(f"Operation failed for execution {execution_id}: {e}")
+    
+    # Update execution with user-friendly error
+    try:
+        await execution_client.add_error_message(
+            execution_id, 
+            f"Operation failed: {str(e)}"
+        )
+        await execution_client.update_phase(
+            execution_id,
+            AgentExecutionPhase.agent_execution_phase_failed
+        )
+    except Exception as update_error:
+        logger.error(f"Failed to update execution: {update_error}")
+    
+    # Re-raise original error
+    raise
+```
+
+---
+
+## Common Patterns
+
+### Proto Message Handling
+
+```python
+# Temporal deserializes proto messages automatically
+@activity.defn(name="MyActivity")
+async def my_activity(execution: AgentExecution) -> None:
+    # Access fields directly
+    execution_id = execution.metadata.id
+    agent_id = execution.spec.agent_id
+    
+    # Modify proto messages
+    execution.status.phase = AgentExecutionPhase.agent_execution_phase_in_progress
+    
+    # Return proto messages (Temporal serializes)
+    return execution
+```
+
+### Async/Await Patterns
+
+```python
+# All gRPC calls are async
+agent = await agent_client.get(agent_id)
+execution = await execution_client.get(execution_id)
+
+# Parallel fetching
+agent, execution = await asyncio.gather(
+    agent_client.get(agent_id),
+    execution_client.get(execution_id),
+)
+
+# Sequential with error handling
+try:
+    agent = await agent_client.get(agent_id)
+    skills = await skill_client.list_by_ids(skill_ids)
+except grpc.RpcError as e:
+    logger.error(f"gRPC call failed: {e}")
+    raise
+```
+
+### Logging Best Practices
+
+```python
+# Use activity.logger in activities
+from temporalio import activity
+
+@activity.defn(name="MyActivity")
+async def my_activity(execution: AgentExecution) -> None:
+    logger = activity.logger
+    logger.info(f"Starting activity for execution: {execution.metadata.id}")
+    logger.debug(f"Agent ID: {execution.spec.agent_id}")
+    logger.error(f"Failed to process: {error}")
+
+# Use module logger elsewhere
+import logging
+logger = logging.getLogger(__name__)
+
+logger.info(f"Sandbox created: {sandbox.id}")
+logger.warning(f"Sandbox unhealthy, creating new one")
+logger.error(f"Operation failed: {e}")
+```
+
+---
+
+## Testing Patterns
+
+### Unit Tests
+
+```python
+import pytest
+from unittest.mock import AsyncMock, Mock
+
+@pytest.mark.asyncio
+async def test_execute_graphton():
+    # Mock dependencies
+    mock_token_manager = Mock()
+    mock_agent_client = AsyncMock()
+    mock_agent_client.get.return_value = Mock(spec=Agent)
+    
+    # Test execution
+    result = await execute_graphton(mock_execution, "thread-123")
+    
+    # Assertions
+    mock_agent_client.get.assert_called_once_with("agent-id")
+    assert result is not None
+```
+
+### Integration Tests
+
+```python
+@pytest.mark.asyncio
+async def test_agent_client_integration():
+    config = Config.load_from_env()
+    token_manager = MachineAccountTokenManager(...)
+    
+    # Real client
+    client = AgentClient(token_manager)
+    agent = await client.get("test-agent-id")
+    
+    assert agent.metadata.id == "test-agent-id"
+```
+
+---
+
+## Deployment Checklist
+
+Before deploying agent-runner:
+
+- [ ] All proto stubs generated and importable
+- [ ] Environment variables configured (see README)
+- [ ] Auth0 machine account credentials set
+- [ ] Redis connectivity verified
+- [ ] Temporal server reachable
+- [ ] Daytona API key configured
+- [ ] Docker image builds successfully
+- [ ] Kubernetes secrets created
+- [ ] Temporal task queue matches workflow-runner
+- [ ] gRPC endpoint points to stigmer-service
+
+---
+
+## Troubleshooting Guide
+
+### Temporal Polyglot Workflow Errors
+
+**Error**: `'Client' object has no attribute 'start_activity'`
+
+**Cause**: Trying to call activity from within activity (not supported in Temporal)
+
+**Fix**: Activities cannot invoke other activities. Use workflow orchestration:
+```python
+# ❌ Wrong: Activity trying to call activity
+@activity.defn(name="MyActivity")
+async def my_activity(...):
+    await client.start_activity("OtherActivity", ...)  # Won't work!
+
+# ✅ Correct: Return data, workflow orchestrates
+@activity.defn(name="MyActivity")
+async def my_activity(...):
+    result = build_result()
+    return result  # Workflow handles next steps
+```
+
+**Workflow orchestration**:
+```java
+Result result = activity1.execute();
+activity2.persist(result);  // Workflow passes data
+```
+
+**See**: [Learning Log: Activities Cannot Call Other Activities](docs/learning-log.md#temporal-activities)
+
+### Activity Not Registered
+
+**Error**: `Activity type 'ExecuteGraphton' is not registered`
+
+**Cause**: Worker not running or activity not in registration list
+
+**Fix**: 
+1. Check worker running: `poetry run python main.py`
+2. Check logs: "Registered activities on task queue: execution"
+3. Verify in `worker/worker.py`:
+```python
+activities=[
+    execute_graphton,  # Must be in list
+    ensure_thread,
+]
+```
+
+### Proto Import Errors
+
+**Error**: `ModuleNotFoundError: No module named 'ai.stigmer'`
+
+**Fix**: Ensure proto stubs are generated and in PYTHONPATH:
+```bash
+# Check stubs exist
+ls -la apis/stubs/python/stigmer/
+
+# Regenerate if needed
+buf generate apis/ai/stigmer
+```
+
+### Temporal Connection Errors
+
+**Error**: `temporalio.service.RPCError: Cannot connect to Temporal`
+
+**Fix**: Verify Temporal service address:
+```bash
+# Check environment
+echo $TEMPORAL_SERVICE_ADDRESS
+echo $TEMPORAL_NAMESPACE
+
+# Test connectivity
+nc -zv temporal-host 7233
+```
+
+### gRPC Authentication Errors
+
+**Error**: `grpc.StatusCode.UNAUTHENTICATED`
+
+**Fix**: Check Auth0 configuration:
+```bash
+# Verify credentials
+echo $AUTH0_DOMAIN
+echo $MACHINE_ACCOUNT_CLIENT_ID
+
+# Test token fetch
+curl -X POST https://$AUTH0_DOMAIN/oauth/token \
+  -d grant_type=client_credentials \
+  -d client_id=$MACHINE_ACCOUNT_CLIENT_ID \
+  -d client_secret=$MACHINE_ACCOUNT_CLIENT_SECRET \
+  -d audience=$AUTH0_AUDIENCE
+```
+
+### Sandbox Creation Errors
+
+**Error**: `RuntimeError: Failed to create Daytona sandbox`
+
+**Fix**: Check Daytona API key and connectivity:
+```bash
+# Verify API key
+echo $DAYTONA_API_KEY
+
+# Test Daytona API
+curl -H "Authorization: Bearer $DAYTONA_API_KEY" \
+  https://api.daytona.io/sandboxes
+```
+
+---
+
+## Self-Improvement Workflow
+
+After implementing features in agent-runner:
+
+### 1. Check Learning Log First
+
+Before solving a problem, check `docs/learning-log.md`:
+- Has this issue been solved before?
+- Is there a documented pattern?
+- What was the root cause last time?
+
+### 2. Document New Learnings
+
+If you discovered something new:
+- Add entry to `docs/learning-log.md` under appropriate topic
+- Include: problem, root cause, solution, prevention
+- Link to related docs if applicable
+
+### 3. Update Reference Docs
+
+If patterns changed:
+- Update relevant doc in `docs/`
+- Add examples from real code
+- Document edge cases discovered
+
+### 4. Improve This Rule
+
+If the rule itself needs updating:
+- Invoke `@improve-this-rule.mdc`
+- Provide specific feedback on what's missing/wrong
+- AI will update the rule and its documentation
+
+---
+
+## Key Differences from Backend Handlers Rule
+
+This agent-runner rule differs from stigmer-service backend handlers rule:
+
+1. **Language**: Python vs Java
+2. **Architecture**: Temporal activities vs gRPC handlers
+3. **State Management**: LangGraph threads vs MongoDB
+4. **Error Handling**: Activity failures vs exception handlers
+5. **Authentication**: Machine account + user tokens vs FGA
+6. **Testing**: pytest + asyncio vs JUnit + Mockito
+
+---
+
+## Quick Reference
+
+**File Locations**:
+- Activities: `worker/activities/*.py`
+- gRPC Clients: `grpc_client/*.py`
+- Config: `worker/config.py`
+- Sandbox: `worker/sandbox_manager.py`
+- Skills: `worker/activities/graphton/skill_writer.py`
+- Main: `main.py`
+- Worker: `worker/worker.py`
+
+**Key Imports**:
+```python
+# Temporal
+from temporalio import activity
+from temporalio.client import Client
+from temporalio.worker import Worker
+
+# gRPC
+import grpc
+from grpc_client.auth.client_interceptor import AuthClientInterceptor
+
+# Graphton
+from graphton import create_deep_agent
+
+# Proto (adjust based on actual resource)
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecution
+```
+
+**Common Commands**:
+```bash
+# Install dependencies
+poetry install
+
+# Run worker
+poetry run python main.py
+
+# Run tests
+poetry run pytest
+
+# Type checking
+poetry run mypy worker/
+
+# Build Docker image
+docker build -f Dockerfile -t agent-runner .
+```
+
+---
+
+## Related Rules
+
+- `@model-stigmer-protos` - Create proto definitions first
+- `@implement-stigmer-backend-handlers` - Backend gRPC handlers
+- `@complete-stigmer-work` - Finalize and commit work
+- `@improve-this-rule` - Update this rule based on learnings

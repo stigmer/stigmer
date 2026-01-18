@@ -1,0 +1,55 @@
+# Golden Test 09: Nested States
+# Tests: Nested state machines, complex transitions, state composition
+# CONVERTED TO DSL 1.0.0 FORMAT
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: nested-states-test
+  version: '1.0.0'
+  description: Tests nested state machines and complex transitions
+
+do:
+  # Step 1: Initialize with data for the forEach loop
+  - initialize:
+      export:
+        as: '${ $context + { initialize: . } }'
+      set:
+        items: [1, 2, 3]
+        shouldProceed: "TRUE"
+  
+  # Step 2: Make an outer HTTP call
+  - outer:
+      export:
+        as: '${ $context + { outer: . } }'
+      call: http
+      with:
+        method: POST
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/posts
+        body:
+          title: Outer task
+  
+  # Step 3: Switch based on outer result
+  - checkOuterResult:
+      switch:
+        - successCase:
+            when: ${ 1 == 1 }
+            then: nestedForEach
+  
+  # Step 4a: Success path - nested forEach loop
+  - nestedForEach:
+      for:
+        each: item
+        in: ${ $context.initialize.items }
+      do:
+        - processItem:
+            call: http
+            with:
+              method: POST
+              endpoint:
+                uri: https://jsonplaceholder.typicode.com/posts
+              body:
+                item: ${ $data.item }
+                outerTaskId: ${ $context.outer.id }
+  

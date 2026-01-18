@@ -1,0 +1,85 @@
+# Golden Test 10: Complex Real-World Workflow
+# Tests: Real-world complexity combining multiple state types
+# CONVERTED TO DSL 1.0.0 FORMAT
+
+document:
+  dsl: '1.0.0'
+  namespace: golden-tests
+  name: complex-workflow-test
+  version: '1.0.0'
+  description: Real-world workflow combining multiple patterns
+
+do:
+  - validateInput:
+      switch:
+        - validCase:
+            when: ${ $data.valid == true }
+            then: parallelProcessing
+        - defaultCase:
+            then: errorState
+  
+  - parallelProcessing:
+      fork:
+        branches:
+          - branchA:
+              do:
+                - processA:
+                    call: http
+                    with:
+                      method: POST
+                      endpoint:
+                        uri: https://jsonplaceholder.typicode.com/posts
+                      body:
+                        title: Process A
+                        branch: branchA
+          - branchB:
+              do:
+                - processB:
+                    call: http
+                    with:
+                      method: POST
+                      endpoint:
+                        uri: https://jsonplaceholder.typicode.com/posts
+                      body:
+                        title: Process B
+                        branch: branchB
+      then: aggregate
+  
+  - aggregate:
+      call: http
+      with:
+        method: POST
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/posts
+        body:
+          branchA: ${ .parallelProcessing.branchA }
+          branchB: ${ .parallelProcessing.branchB }
+      then: waitApproval
+  
+  - waitApproval:
+      listen:
+        to:
+          one:
+            with:
+              id: approval
+              type: signal
+      then: finalize
+  
+  - finalize:
+      call: http
+      with:
+        method: POST
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/posts
+        body:
+          result: ${ .aggregate }
+      then: end
+  
+  - errorState:
+      call: http
+      with:
+        method: POST
+        endpoint:
+          uri: https://jsonplaceholder.typicode.com/posts
+        body:
+          message: "Validation failed"

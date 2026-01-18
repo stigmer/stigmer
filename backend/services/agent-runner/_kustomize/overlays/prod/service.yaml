@@ -1,0 +1,59 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: KubernetesDeployment
+metadata:
+  name: agent-runner
+  env: prod
+  labels:
+    pulumi.project-planton.org/stack.name: prod.KubernetesDeployment.agent-runner
+spec:
+  namespace:
+    value: stigmer-prod
+  container:
+    app:
+      resources:
+        limits:
+          cpu: 2000m
+          memory: 4Gi
+        requests:
+          cpu: 200m
+          memory: 512Mi
+      env:
+        variables:
+          ENV:
+            value: prod
+          # Temporal Configuration (using internal Kubernetes endpoints)
+          TEMPORAL_SERVICE_ADDRESS:
+            value: $variables-group/stigmer-temporal-config/prod.kube-endpoint
+          TEMPORAL_NAMESPACE:
+            value: default
+          TEMPORAL_MAX_CONCURRENCY:
+            value: "20"
+          # Redis Configuration (using internal Kubernetes endpoint)
+          REDIS_HOST:
+            value: $variables-group/stigmer-redis-config/prod.kube-endpoint
+          # Stigmer API Configuration
+          STIGMER_BACKEND_ENDPOINT:
+            value: $variables-group/stigmer-api/prod.endpoint
+        secrets:
+          # Redis password
+          REDIS_PASSWORD:
+            value: $secrets-group/stigmer-redis-credentials/prod.password
+          # Stigmer API Key
+          STIGMER_API_KEY:
+            value: $secrets-group/stigmer-api/prod.api-key
+          # Daytona API Key
+          DAYTONA_API_KEY:
+            value: $secrets-group/daytona/prod.api-key
+          # Anthropic API Key
+          ANTHROPIC_API_KEY:
+            value: $secrets-group/anthropic/prod.api-key
+  availability:
+    minReplicas: 3
+    # Zero-downtime deployment strategy
+    deploymentStrategy:
+      maxUnavailable: "0"
+      maxSurge: "1"
+    # Pod disruption budget for cluster maintenance protection
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: "1"

@@ -14,20 +14,25 @@ Located in `github.com/stigmer/stigmer`:
 - **Agent Runner** (`runners/agent/`) - Executes agent instances
 - **SDKs** (`sdk/go/`, `sdk/python/`) - Libraries for building workflows
 
-**Backend Implementations**:
-- **Local Backend** (`internal/backend/local/`) - SQLite-based storage
-- **Cloud Client** (`internal/backend/cloud/`) - gRPC client for Stigmer Cloud
-- **Backend Interface** (`proto/stigmer/backend/v1/`) - Protobuf contract
+**Local Backend**:
+- **Local Daemon** (`cmd/stigmer-daemon/`) - gRPC server that holds BadgerDB file lock
+- **Local Controllers** (`internal/backend/local/`) - BadgerDB-based gRPC service implementations
+- **BadgerDB Storage** (`internal/backend/local/`) - Key-value storage layer (LSM tree)
+
+**API Contracts**:
+- **gRPC Services** (`apis/ai/stigmer/agentic/*/v1/`) - Protobuf service definitions
+- **Resource Definitions** (`apis/ai/stigmer/agentic/*/v1/api.proto`) - Agent, Workflow, etc.
 
 ### Proprietary (Stigmer Cloud)
 
-Located in `github.com/leftbin/stigmer` (private):
+Located in `github.com/leftbin/stigmer-cloud` (private):
 
 **Control Plane**:
-- **API Service** - Multi-tenant backend service
+- **gRPC Services** - Multi-tenant implementations of the same gRPC interfaces
 - **Web Console** - Browser-based UI
 - **Auth Service** - User authentication and IAM
 - **Orchestration** - Workflow scheduling and distribution
+- **Distributed Storage** - Postgres, Vault, Redis
 
 ## Why This Split?
 
@@ -43,27 +48,92 @@ Located in `github.com/leftbin/stigmer` (private):
 - Advanced features remain competitive advantage
 - Hosted service reduces operational burden
 
-## Backend Abstraction Layer
+## gRPC Service Architecture
 
-The key to this architecture is the **Backend Interface** defined in Protocol Buffers:
+The key to this architecture is using **gRPC service interfaces as the contract** between CLI and backends.
+
+```mermaid
+flowchart TB
+    subgraph "Open Source (github.com/stigmer/stigmer)"
+        CLI[CLI/SDK]
+        Proto[gRPC Service Definitions<br/>apis/]
+        Daemon[Local Daemon<br/>localhost:50051]
+        Local[Local Controllers<br/>BadgerDB]
+        AgentRunner[Agent Runner<br/>Python]
+    end
+    
+    subgraph "Proprietary (github.com/leftbin/stigmer-cloud)"
+        Cloud[Cloud gRPC Services<br/>Multi-tenant]
+        Console[Web Console]
+    end
+    
+    CLI --> Proto
+    Proto -.defines.-> Local
+    Proto -.defines.-> Cloud
+    
+    CLI -->|Local Mode<br/>gRPC| Daemon
+    AgentRunner -->|gRPC| Daemon
+    Daemon --> Local
+    Local --> BadgerDB[(BadgerDB<br/>File Lock)]
+    
+    CLI -->|Cloud Mode| Network[Network/TLS]
+    Network --> Cloud
+    Cloud --> Postgres[(Postgres)]
+    Cloud --> Vault[(Vault)]
+    
+    Console --> Cloud
+    
+    style Proto fill:#ffaaa5
+    style Local fill:#a8e6cf
+    style Cloud fill:#ffd3b6
+    style Daemon fill:#90caf9
+```
+
+### The Contract
+
+Both backends implement the exact same gRPC service interfaces defined in `apis/`:
 
 ```protobuf
-service BackendService {
-  rpc CreateExecution(...) returns (Execution);
-  rpc GetExecutionContext(...) returns (ExecutionContext);
-  // ... more operations
+// Open source proto definition
+service AgentCommandController {
+  rpc create(Agent) returns (Agent);
+  rpc update(Agent) returns (Agent);
+  rpc delete(AgentId) returns (Agent);
 }
 ```
 
-Both backends implement this interface:
+**Local Backend**: Implements these services with BadgerDB storage via daemon.  
+**Cloud Backend**: Implements these services with distributed storage (over network).
 
-**Local Backend**: Stores data in SQLite (`~/.stigmer/local.db`)  
-**Cloud Backend**: Proxies calls to Stigmer Cloud via gRPC
+### Local Daemon Architecture
+
+BadgerDB uses file-based locking (only one process can open the database at a time). To support both CLI and Agent Runner (Python) accessing the database concurrently, we use a **daemon model**:
+
+**Components**:
+1. **Local Daemon** (`stigmer local start`): Lightweight gRPC server that holds the BadgerDB file lock
+   - Listens on `localhost:50051`
+   - Implements the same gRPC services as Cloud
+   - Opens BadgerDB in `~/.stigmer/data`
+
+2. **CLI**: Connects to `localhost:50051` for all database operations
+   - No direct BadgerDB access (avoids file lock conflicts)
+   - Same gRPC client code as Cloud mode
+
+3. **Agent Runner** (Python): Connects to `localhost:50051` via gRPC
+   - No database driver needed
+   - Language-agnostic access through gRPC
+
+**Benefits**:
+- ✅ Safe concurrent access (daemon holds exclusive lock)
+- ✅ Language agnostic (Python, Go, Node can all talk to daemon)
+- ✅ Same gRPC interface as Cloud (seamless migration)
+- ✅ No complex database drivers needed in SDK
 
 This guarantees:
 - ✅ Feature parity between local and cloud
 - ✅ Zero code changes when switching backends
-- ✅ Predictable behavior everywhere
+- ✅ Compiler enforces interface compatibility
+- ✅ No drift between implementations
 
 ## Feature Parity Matrix
 
@@ -71,13 +141,14 @@ This guarantees:
 |---------|---------------|---------------|
 | Agent execution | ✅ | ✅ |
 | Workflow execution | ✅ | ✅ |
-| Secret storage | ✅ Encrypted | ✅ Vault |
-| Execution history | ✅ SQLite | ✅ Postgres |
+| Secret storage | ✅ OS Keychain | ✅ Vault |
+| Execution history | ✅ BadgerDB | ✅ Postgres |
 | MCP server integration | ✅ | ✅ |
 | CLI access | ✅ | ✅ |
+| gRPC services | ✅ In-process | ✅ Network |
 | Web console | ❌ | ✅ Cloud only |
 | Multi-user collaboration | ❌ | ✅ Cloud only |
-| IAM policies | ❌ | ✅ Cloud only |
+| IAM policies | ❌ Ignored | ✅ Cloud only |
 | Distributed execution | ❌ | ✅ Cloud only |
 | Enterprise support | ❌ | ✅ Cloud only |
 
@@ -111,31 +182,132 @@ Users can start with local mode and upgrade to cloud mode seamlessly:
 
 - **Authentication**: None (trust the local user)
 - **Secrets**: Encrypted with OS keychain or local master key
-- **Access control**: None needed (single user)
-- **Audit**: Basic timestamps in SQLite
+- **Access control**: Single-user mode (no IAM)
+- **Audit**: Basic timestamps in BadgerDB
+- **Authorization**: Proto IAM annotations are ignored
 
 ### Cloud Mode
 
 - **Authentication**: OAuth 2.0 / API keys
 - **Secrets**: HashiCorp Vault
-- **Access control**: IAM policies per resource
+- **Access control**: IAM policies per resource (Proto annotations enforced)
 - **Audit**: Complete audit logs with compliance tracking
+- **Authorization**: Full IAM with organization/team/user scopes
 
 ## Development Workflow
 
 ### Contributing to Open Source
 
 1. Fork `github.com/stigmer/stigmer`
-2. Make changes to execution components
+2. Make changes to:
+   - API contracts (`apis/`)
+   - Local controllers (`internal/backend/local/`)
+   - CLI (`cmd/stigmer/`)
+   - SDKs (`sdk/`)
 3. Test against local backend
 4. Submit pull request
 
 ### Internal Development (Stigmer Team)
 
-1. Core execution changes go to open source repo
-2. Cloud-specific features go to private repo
-3. Backend interface changes require coordination
-4. Both repos stay in sync via shared protobuf definitions
+1. **API Changes**:
+   - Update proto files in open source repo
+   - Regenerate code: `make protos`
+   - Update local implementation
+   - Update cloud implementation (private repo)
+   - Both repos stay in sync via shared protobuf definitions
+
+2. **Local-Only Features**:
+   - Add to open source repo
+   - Implement in local controllers
+
+3. **Cloud-Only Features**:
+   - Add to cloud repo only
+   - May extend existing gRPC services
+   - Does not affect local mode
+
+## Code Sharing Pattern
+
+### Shared: API Contracts (Open Source)
+
+```
+apis/ai/stigmer/agentic/
+├── agent/v1/
+│   ├── api.proto          # Agent message definition
+│   ├── command.proto      # AgentCommandController service
+│   ├── query.proto        # AgentQueryController service
+│   ├── spec.proto         # AgentSpec definition
+│   └── status.proto       # AgentStatus definition
+├── workflow/v1/
+│   ├── api.proto
+│   ├── command.proto
+│   └── query.proto
+└── ... (other resources)
+```
+
+Both local and cloud import these exact proto files.
+
+### Schema Unification Strategy
+
+To enable true code reuse, proto schemas include fields needed for both local and cloud modes, even if some fields are unused in specific contexts.
+
+**Example: ApiResourceMetadata**
+
+The metadata schema includes multi-tenancy fields in the open-source version:
+
+```protobuf
+message ApiResourceMetadata {
+  string name = 1;
+  string slug = 2;
+  string id = 3;
+  
+  // Multi-tenancy fields (used differently in each mode)
+  string org = 4;                    // Local: ignored; Cloud: enforced
+  ApiResourceOwnerScope owner_scope = 5;  // Local: defaults; Cloud: RBAC
+  
+  map<string, string> labels = 6;
+  map<string, string> annotations = 7;
+  repeated string tags = 8;
+  ApiResourceMetadataVersion version = 9;
+}
+```
+
+**Benefits of Unified Schema**:
+
+1. **Direct Code Reuse**: Cloud can import OSS proto libraries without forking
+2. **Migration Compatibility**: Local exports are Cloud-compatible (just add org ID)
+3. **Enterprise-Friendly**: OSS users can build multi-tenant systems using the same schema
+4. **Zero Duplication**: Single proto definition, no wrapper types needed
+
+**Trade-off**: OSS contains fields it doesn't use, but this is vastly outweighed by:
+- Eliminated code duplication
+- Simplified maintenance
+- Seamless data migration
+- Shared generated code libraries
+
+**See**: `_changelog/2026-01-18-211932-unify-apiresource-metadata-schema.md` for the complete rationale and implementation details.
+
+### Divergent: Implementations
+
+**Open Source** (`github.com/stigmer/stigmer`):
+```
+internal/backend/local/
+├── agent_controller.go     # Implements AgentCommandControllerServer
+├── workflow_controller.go  # Implements WorkflowCommandControllerServer
+└── database.go             # BadgerDB operations
+```
+
+**Proprietary** (`github.com/leftbin/stigmer-cloud`):
+```
+apis/platform/grpc/
+├── agent/
+│   └── service.go          # Implements AgentCommandControllerServer
+├── workflow/
+│   └── service.go          # Implements WorkflowCommandControllerServer
+└── middleware/
+    ├── auth.go             # IAM enforcement
+    ├── tenancy.go          # Multi-tenant isolation
+    └── audit.go            # Audit logging
+```
 
 ## License Compliance
 
@@ -149,6 +321,7 @@ Users can start with local mode and upgrade to cloud mode seamlessly:
 - Stigmer Cloud source code remains private
 - Only exposed via gRPC API
 - Client libraries (SDK) remain open source
+- Protobuf definitions (API contracts) remain open source
 
 ## Community Governance
 
@@ -162,6 +335,21 @@ Users can start with local mode and upgrade to cloud mode seamlessly:
 - Private roadmap for cloud features
 - Enterprise customer feedback prioritized
 - SLA and support contracts available
+
+## Why gRPC Services (Not a Separate "Backend Interface")?
+
+**Previous approach**: Many projects define a Go interface for the backend, then implement it twice.
+
+**Problem**: The Go interface can drift from the actual gRPC API. You end up maintaining two contracts.
+
+**Our approach**: The gRPC service definitions in proto files **ARE** the interface.
+
+**Benefits**:
+- Single source of truth (Protobuf)
+- Compiler enforces compatibility
+- Works across languages (Go, Python, etc.)
+- Impossible for local and cloud to drift
+- Standard gRPC tooling and ecosystem
 
 ---
 
