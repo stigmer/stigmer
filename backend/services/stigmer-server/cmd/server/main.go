@@ -13,9 +13,11 @@ import (
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agent"
+	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentexecution"
 	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentinstance"
 	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentinstance/v1"
 )
 
@@ -62,7 +64,12 @@ func main() {
 
 	log.Info().Msg("Registered AgentInstance controllers")
 
-	// TODO: Register other controllers here (Workflow, Skill, Environment, Session)
+	// TODO: Register Session controller here (needed for AgentExecution auto-create session)
+	// sessionController := sessioncontroller.NewSessionController(store)
+	// sessionv1.RegisterSessionCommandControllerServer(grpcServer, sessionController)
+	// sessionv1.RegisterSessionQueryServiceServer(grpcServer, sessionController)
+	
+	// TODO: Register other controllers here (Workflow, Skill, Environment)
 	// All services must be registered BEFORE starting the server or creating connections
 
 	// Create in-process AgentInstance client for downstream calls
@@ -85,6 +92,7 @@ func main() {
 		}
 		defer inProcessConn.Close()
 
+		// Create AgentInstance client (controller is registered above)
 		agentInstanceClient = agentinstanceclient.NewClient(inProcessConn)
 	}
 
@@ -94,6 +102,21 @@ func main() {
 	agentv1.RegisterAgentQueryControllerServer(grpcServer, agentController)
 
 	log.Info().Msg("Registered Agent controllers")
+
+	// Create and register AgentExecution controller
+	// Note: Passing nil for sessionClient (Session controller not yet implemented)
+	// AgentExecution will fall back to direct store access for session creation
+	// TODO: Once Session controller is implemented, create and pass session client:
+	//   sessionClient := sessionclient.NewClient(inProcessConn)
+	agentExecutionController := agentexecutioncontroller.NewAgentExecutionController(
+		store,
+		agentInstanceClient,
+		nil, // sessionClient - will be created once Session controller is implemented
+	)
+	agentexecutionv1.RegisterAgentExecutionCommandControllerServer(grpcServer, agentExecutionController)
+	agentexecutionv1.RegisterAgentExecutionQueryControllerServer(grpcServer, agentExecutionController)
+
+	log.Info().Msg("Registered AgentExecution controllers")
 
 	// Setup graceful shutdown
 	done := make(chan os.Signal, 1)
