@@ -15,10 +15,14 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agent"
 	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentexecution"
 	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentinstance"
+	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/session"
+	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
+	sessionclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentinstance/v1"
+	sessionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/session/v1"
 )
 
 func main() {
@@ -64,19 +68,23 @@ func main() {
 
 	log.Info().Msg("Registered AgentInstance controllers")
 
-	// TODO: Register Session controller here (needed for AgentExecution auto-create session)
-	// sessionController := sessioncontroller.NewSessionController(store)
-	// sessionv1.RegisterSessionCommandControllerServer(grpcServer, sessionController)
-	// sessionv1.RegisterSessionQueryServiceServer(grpcServer, sessionController)
+	// Create and register Session controller
+	sessionController := sessioncontroller.NewSessionController(store)
+	sessionv1.RegisterSessionCommandControllerServer(grpcServer, sessionController)
+	sessionv1.RegisterSessionQueryControllerServer(grpcServer, sessionController)
+
+	log.Info().Msg("Registered Session controllers")
 	
 	// TODO: Register other controllers here (Workflow, Skill, Environment)
 	// All services must be registered BEFORE starting the server or creating connections
 
-	// Create in-process AgentInstance client for downstream calls
-	// The in-process server will be started automatically when Start() is called
-	// Note: We create this client BEFORE starting the server, but it will work because
-	// the connection is established lazily when the first RPC is made
-	var agentInstanceClient *agentinstanceclient.Client
+	// Create downstream clients for in-process gRPC calls
+	// These clients ensure single source of truth through the full interceptor chain
+	var (
+		agentClient         *agentclient.Client
+		agentInstanceClient *agentinstanceclient.Client
+		sessionClient       *sessionclient.Client
+	)
 	{
 		// Start in-process gRPC server (must be done before creating connections)
 		if err := server.StartInProcess(); err != nil {
@@ -92,8 +100,12 @@ func main() {
 		}
 		defer inProcessConn.Close()
 
-		// Create AgentInstance client (controller is registered above)
+		// Create downstream clients (all controllers are registered above)
+		agentClient = agentclient.NewClient(inProcessConn)
 		agentInstanceClient = agentinstanceclient.NewClient(inProcessConn)
+		sessionClient = sessionclient.NewClient(inProcessConn)
+
+		log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, and Session")
 	}
 
 	// Create and register Agent controller (with AgentInstance client for default instance creation)
@@ -104,14 +116,12 @@ func main() {
 	log.Info().Msg("Registered Agent controllers")
 
 	// Create and register AgentExecution controller
-	// Note: Passing nil for sessionClient (Session controller not yet implemented)
-	// AgentExecution will fall back to direct store access for session creation
-	// TODO: Once Session controller is implemented, create and pass session client:
-	//   sessionClient := sessionclient.NewClient(inProcessConn)
+	// Note: All downstream calls use in-process gRPC clients for single source of truth
 	agentExecutionController := agentexecutioncontroller.NewAgentExecutionController(
 		store,
+		agentClient,
 		agentInstanceClient,
-		nil, // sessionClient - will be created once Session controller is implemented
+		sessionClient,
 	)
 	agentexecutionv1.RegisterAgentExecutionCommandControllerServer(grpcServer, agentExecutionController)
 	agentexecutionv1.RegisterAgentExecutionQueryControllerServer(grpcServer, agentExecutionController)

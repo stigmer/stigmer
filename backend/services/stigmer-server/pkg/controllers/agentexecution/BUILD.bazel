@@ -17,10 +17,11 @@ go_library(
     deps = [
         "//backend/libs/go/badger",
         "//backend/libs/go/grpc",
-        "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
+        "//backend/services/stigmer-server/pkg/downstream/agent",
         "//backend/services/stigmer-server/pkg/downstream/agentinstance",
+        "//backend/services/stigmer-server/pkg/downstream/session",
         "//internal/gen/ai/stigmer/agentic/agent/v1:agent",
         "//internal/gen/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "//internal/gen/ai/stigmer/agentic/agentinstance/v1:agentinstance",
