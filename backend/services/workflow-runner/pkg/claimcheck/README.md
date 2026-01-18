@@ -25,10 +25,13 @@ Activity → [400KB Result] → Check Size → Upload to R2 → [8-byte Referenc
 ## Components
 
 ### ObjectStore Interface (`store.go`)
-Abstraction for external storage backends (Cloudflare R2, S3, etc.)
+Abstraction for external storage backends (Cloudflare R2, filesystem, etc.)
 
 ### R2Store (`r2_store.go`)
 Cloudflare R2 implementation using AWS SDK (R2 is S3-compatible)
+
+### FilesystemStore (`filesystem_store.go`)
+Local filesystem implementation for development without cloud dependencies
 
 ### Compressor (`compressor.go`)
 Gzip compression for text payloads to reduce storage costs and improve performance
@@ -44,7 +47,7 @@ Tracks performance metrics (offload count, retrieval count, latency, storage usa
 
 ## Configuration
 
-Environment variables:
+### Common Settings
 
 ```bash
 # Enable Claim Check
@@ -58,6 +61,40 @@ CLAIMCHECK_COMPRESSION_ENABLED=true
 
 # Auto-delete after N days
 CLAIMCHECK_TTL_DAYS=30
+```
+
+### Storage Backend Configuration
+
+#### Local Mode (Filesystem)
+
+For local development without cloud credentials:
+
+```bash
+# Use filesystem storage
+BLOB_STORAGE_TYPE=filesystem
+
+# Storage location (optional, defaults to ~/.stigmer/data/blobs)
+BLOB_STORAGE_PATH=/path/to/storage
+```
+
+**How it works:**
+- Payloads stored as files with UUID names
+- Auto-creates storage directory if missing
+- No cloud credentials needed
+- Same ObjectStore interface as R2
+
+**When to use:**
+- Local development
+- Testing without cloud dependencies
+- CI/CD environments without R2 access
+
+#### Cloud Mode (Cloudflare R2)
+
+For production deployments (default if `BLOB_STORAGE_TYPE` not set):
+
+```bash
+# Use R2 storage (or omit - defaults to r2)
+BLOB_STORAGE_TYPE=r2
 
 # Cloudflare R2 Configuration
 R2_BUCKET=your-bucket-name
@@ -67,7 +104,64 @@ R2_ACCESS_KEY_ID=your-access-key
 R2_SECRET_ACCESS_KEY=your-secret-key
 ```
 
-## Usage Example
+**When to use:**
+- Production environments
+- Staging environments
+- Any shared deployment requiring durable storage
+
+## Usage Examples
+
+### Using Filesystem Storage (Local Mode)
+
+```go
+package main
+
+import (
+    "context"
+    "os"
+    "path/filepath"
+    "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/claimcheck"
+    "go.temporal.io/sdk/workflow"
+)
+
+func MyWorkflow(ctx workflow.Context) error {
+    // Initialize ClaimCheckManager with filesystem storage
+    cfg := claimcheck.Config{
+        ThresholdBytes:     50 * 1024, // 50KB
+        CompressionEnabled: true,
+        StorageType:        "filesystem",
+        FilesystemBasePath: filepath.Join(os.Getenv("HOME"), ".stigmer", "data", "blobs"),
+    }
+    
+    manager, err := claimcheck.NewManager(cfg)
+    if err != nil {
+        return err
+    }
+    
+    // Execute activity
+    var result []byte
+    err = workflow.ExecuteActivity(ctx, MyActivity).Get(ctx, &result)
+    if err != nil {
+        return err
+    }
+    
+    // MaybeOffload checks size and offloads if > threshold
+    stored, err := manager.MaybeOffload(ctx, result)
+    if err != nil {
+        return err
+    }
+    
+    // Later: MaybeRetrieve checks if it's a reference and retrieves
+    retrieved, err := manager.MaybeRetrieve(ctx, stored)
+    if err != nil {
+        return err
+    }
+    
+    return nil
+}
+```
+
+### Using R2 Storage (Cloud Mode)
 
 ```go
 package main
@@ -79,11 +173,11 @@ import (
 )
 
 func MyWorkflow(ctx workflow.Context) error {
-    // Initialize ClaimCheckManager
+    // Initialize ClaimCheckManager with R2 storage
     cfg := claimcheck.Config{
         ThresholdBytes:     50 * 1024, // 50KB
         CompressionEnabled: true,
-        TTLDays:            30,
+        StorageType:        "r2", // or omit - defaults to r2
         R2Bucket:           "my-bucket",
         R2Endpoint:         "https://abc123.r2.cloudflarestorage.com",
         R2AccessKeyID:      "my-key",
@@ -126,31 +220,61 @@ func MyWorkflow(ctx workflow.Context) error {
 - **Compression ratio**: > 50% for text payloads
 - **Total overhead**: < 1 second per large payload
 
-## Storage Backend
+## Storage Backends
 
-**Cloudflare R2** is used for all environments (dev, staging, prod):
+### Filesystem (Local Mode)
 
-- **Zero egress fees** (cost advantage over AWS S3)
-- **S3-compatible API** (uses AWS SDK)
-- **Globally distributed**
-- **Cost-effective storage**
+**When to use:**
+- Local development
+- Testing without cloud dependencies
+- CI/CD environments
+
+**Advantages:**
+- No cloud credentials needed
+- Fast local I/O
+- Zero cloud costs
+- Simple setup
+
+**Limitations:**
+- Not suitable for production (data lost on restart)
+- No data replication
+- No automatic TTL cleanup
+
+### Cloudflare R2 (Cloud Mode)
+
+**When to use:**
+- Production deployments
+- Staging environments
+- Shared/distributed systems
+
+**Advantages:**
+- Zero egress fees (cost advantage over AWS S3)
+- S3-compatible API (uses AWS SDK)
+- Globally distributed
+- Cost-effective storage
+- Automatic TTL cleanup via lifecycle policies
+
+**Recommended for:**
+- All production workloads
+- Long-running workflows
+- Multi-instance deployments
 
 ## Testing
 
-Run unit tests:
+Run all unit tests:
 
 ```bash
 cd pkg/claimcheck
 go test -v
 ```
 
-Run benchmarks:
+Run only filesystem tests:
 
 ```bash
-go test -bench=. -benchmem
+go test -v -run TestFilesystemStore
 ```
 
-Run integration tests (requires R2 credentials):
+Run only R2 tests (requires R2 credentials):
 
 ```bash
 export R2_BUCKET=test-bucket
@@ -158,7 +282,13 @@ export R2_ENDPOINT=https://test.r2.cloudflarestorage.com
 export R2_ACCESS_KEY_ID=test-key
 export R2_SECRET_ACCESS_KEY=test-secret
 
-go test -v
+go test -v -run TestR2Store
+```
+
+Run benchmarks:
+
+```bash
+go test -bench=. -benchmem
 ```
 
 ## Metrics

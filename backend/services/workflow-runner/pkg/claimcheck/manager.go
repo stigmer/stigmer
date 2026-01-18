@@ -24,11 +24,31 @@ type Manager struct {
 
 // NewManager creates ClaimCheckManager
 func NewManager(cfg Config) (*Manager, error) {
-	// Initialize Cloudflare R2 storage backend
 	ctx := context.Background()
-	store, err := NewR2Store(ctx, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize R2 store: %w", err)
+
+	// Default to R2 if not specified (backward compatibility)
+	storageType := cfg.StorageType
+	if storageType == "" {
+		storageType = "r2"
+	}
+
+	// Initialize storage backend based on type
+	var store ObjectStore
+	var err error
+
+	switch storageType {
+	case "r2":
+		store, err = NewR2Store(ctx, cfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize R2 store: %w", err)
+		}
+	case "filesystem":
+		store, err = NewFilesystemStore(cfg.FilesystemBasePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize filesystem store: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("unknown storage type: %s (supported: r2, filesystem)", storageType)
 	}
 
 	// Initialize compressor
