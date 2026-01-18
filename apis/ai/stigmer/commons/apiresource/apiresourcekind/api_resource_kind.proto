@@ -18,6 +18,13 @@ enum ApiResourceVersion {
   v1 = 1;
 }
 
+// Resource tier defines the availability context of a resource
+enum ResourceTier {
+  TIER_UNSPECIFIED = 0;
+  TIER_OPEN_SOURCE = 1; // Available in CLI local mode & Cloud
+  TIER_CLOUD_ONLY = 2;  // Hidden in CLI local mode; Available in Cloud
+}
+
 // Platform ID values - defines the singleton platform instance ID
 // This enum is used to define the platform kind value wherever platform kind is required
 enum PlatformIdValue {
@@ -44,6 +51,8 @@ message ApiResourceKindMeta {
   bool is_versioned = 6;
   // Flag to indicate if the api-resource-kind is not searchable
   bool not_search_indexed = 7;
+  // Defines availability context - whether resource is available in open source or cloud only
+  ResourceTier tier = 8;
 }
 
 // API resource kinds for Stigmer
@@ -59,6 +68,7 @@ enum ApiResourceKind {
     id_prefix: "ver"
     is_versioned: false
     not_search_indexed: true
+    tier: TIER_CLOUD_ONLY
   }];
 
   // IAM - Identity and Access Management
@@ -70,6 +80,7 @@ enum ApiResourceKind {
     id_prefix: "iamp"
     is_versioned: false
     not_search_indexed: true
+    tier: TIER_CLOUD_ONLY
   }];
 
   identity_account = 11 [(kind_meta) = {
@@ -80,6 +91,7 @@ enum ApiResourceKind {
     id_prefix: "ida"
     is_versioned: false
     not_search_indexed: false
+    tier: TIER_CLOUD_ONLY
   }];
 
   api_key = 12 [(kind_meta) = {
@@ -90,6 +102,7 @@ enum ApiResourceKind {
     id_prefix: "key"
     is_versioned: false
     not_search_indexed: true
+    tier: TIER_CLOUD_ONLY
   }];
 
   // IAM - Credential and connection management
@@ -101,6 +114,7 @@ enum ApiResourceKind {
     id_prefix: "crd"
     is_versioned: false
     not_search_indexed: true
+    tier: TIER_CLOUD_ONLY
   }];
 
   // Tenancy - Platform and organizational resources
@@ -112,6 +126,7 @@ enum ApiResourceKind {
     id_prefix: "org"
     is_versioned: false
     not_search_indexed: false
+    tier: TIER_CLOUD_ONLY
   }];
 
   platform = 31 [(kind_meta) = {
@@ -122,6 +137,7 @@ enum ApiResourceKind {
     id_prefix: "plt"
     is_versioned: false
     not_search_indexed: true
+    tier: TIER_CLOUD_ONLY
   }];
 
   // Agentic - AI agent management
@@ -133,6 +149,7 @@ enum ApiResourceKind {
     id_prefix: "agt"
     is_versioned: false
     not_search_indexed: false
+    tier: TIER_OPEN_SOURCE
   }];
 
   agent_execution = 41 [(kind_meta) = {
@@ -143,6 +160,7 @@ enum ApiResourceKind {
     id_prefix: "aex"
     is_versioned: false
     not_search_indexed: false
+    tier: TIER_OPEN_SOURCE
   }];
 
   session = 42 [(kind_meta) = {
@@ -153,6 +171,7 @@ enum ApiResourceKind {
     id_prefix: "ses"
     is_versioned: false
     not_search_indexed: false
+    tier: TIER_OPEN_SOURCE
   }];
 
   skill = 43 [(kind_meta) = {
@@ -163,6 +182,7 @@ enum ApiResourceKind {
     id_prefix: "skl"
     is_versioned: false
     not_search_indexed: false
+    tier: TIER_OPEN_SOURCE
   }];
 
   mcp_server = 44 [(kind_meta) = {
@@ -173,6 +193,7 @@ enum ApiResourceKind {
     id_prefix: "mcp"
     is_versioned: false
     not_search_indexed: false
+    tier: TIER_OPEN_SOURCE
   }];
 
   agent_instance = 45 [(kind_meta) = {
@@ -183,6 +204,7 @@ enum ApiResourceKind {
     id_prefix: "ain"
     is_versioned: false
     not_search_indexed: false
+    tier: TIER_OPEN_SOURCE
   }];
 
   // Agentic - Workflow orchestration
@@ -194,6 +216,7 @@ enum ApiResourceKind {
     id_prefix: "wfl"
     is_versioned: false
     not_search_indexed: false
+    tier: TIER_OPEN_SOURCE
   }];
 
   workflow_instance = 51 [(kind_meta) = {
@@ -204,6 +227,7 @@ enum ApiResourceKind {
     id_prefix: "win"
     is_versioned: false
     not_search_indexed: false
+    tier: TIER_OPEN_SOURCE
   }];
 
   workflow_execution = 52 [(kind_meta) = {
@@ -214,6 +238,7 @@ enum ApiResourceKind {
     id_prefix: "wex"
     is_versioned: false
     not_search_indexed: false
+    tier: TIER_OPEN_SOURCE
   }];
 
   environment = 53 [(kind_meta) = {
@@ -224,6 +249,7 @@ enum ApiResourceKind {
     id_prefix: "env"
     is_versioned: false
     not_search_indexed: false
+    tier: TIER_OPEN_SOURCE
   }];
 
   execution_context = 54 [(kind_meta) = {
@@ -234,6 +260,7 @@ enum ApiResourceKind {
     id_prefix: "exec"
     is_versioned: false
     not_search_indexed: false
+    tier: TIER_OPEN_SOURCE
   }];
 }
 
