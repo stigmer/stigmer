@@ -29,14 +29,14 @@ Defined API contracts using gRPC services for each resource:
 - Proto-defined authorization annotations
 
 **Implementation Strategy**:
-- Local mode: Implements gRPC server interfaces with SQLite (in-process adapter)
+- Local mode: Implements gRPC server interfaces with BadgerDB (in-process adapter)
 - Cloud mode: Implements same gRPC services over network
 - No separate "backend interface" - gRPC services ARE the interface
 - Factory pattern for client creation (local adapter vs network client)
 
 ### 3. Database Schema ✅
 
-SQLite schema for local mode (`internal/backend/local/migrations/001_initial_schema.sql`):
+BadgerDB key-value storage for local mode:
 
 **12 Tables** derived from API resource kinds:
 - Agents & Agent Instances
@@ -123,7 +123,7 @@ Lines of Code: ~3,000
 ### gRPC Service Pattern
 
 ```
-CLI/SDK → gRPC Client → In-Process Adapter → Local Controllers (SQLite)
+CLI/SDK → gRPC Client → In-Process Adapter → Local Controllers (BadgerDB)
                      OR
 CLI/SDK → gRPC Client → Network → Cloud gRPC Services
 ```
@@ -193,7 +193,7 @@ Compared to Stigmer Cloud, local mode removes:
    make proto-gen
    ```
 
-2. **Implement SQLite CRUD**:
+2. **Implement BadgerDB CRUD**:
    - CreateAgent, GetAgent, ListAgents, UpdateAgent, DeleteAgent
    - Same for Workflows, Executions, Environments
    - Secret encryption with OS keychain
@@ -273,7 +273,7 @@ Compared to Stigmer Cloud, local mode removes:
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `internal/backend/local/migrations/001_initial_schema.sql` | SQLite schema | ✅ Complete |
+| `internal/backend/local/local.go` | BadgerDB backend | ✅ Complete |
 
 ### Documentation
 
@@ -299,11 +299,11 @@ Compared to Stigmer Cloud, local mode removes:
 
 1. **gRPC Services as Interface**: No separate Go interface - proto services ARE the contract
 2. **In-Process Adapter**: Local mode implements gRPC server interface without network
-3. **SQLite over Postgres**: Zero setup for local mode, good enough for single user
+3. **BadgerDB over Postgres**: Zero setup for local mode, pure Go, no CGO dependencies
 4. **Open Core model**: Execution and API contracts open, cloud implementation proprietary
 5. **Removed multi-tenancy**: Local mode is single-user by design
 6. **JSON for spec/status**: Proto flexibility, easy to evolve
-7. **WAL mode**: SQLite concurrency for workflow execution
+7. **LSM tree storage**: BadgerDB's efficient key-value storage for fast reads and writes
 8. **Factory pattern**: Clean mode switching without code changes
 
 ## Success Metrics (T01 Goals)
@@ -312,7 +312,7 @@ Compared to Stigmer Cloud, local mode removes:
 |------|--------|-------|
 | Repository structure | ✅ Complete | 90+ API proto files, well-organized |
 | gRPC services defined | ✅ Complete | Command/Query per resource |
-| SQLite schema | ✅ Complete | 12 tables, migrations ready |
+| BadgerDB backend | ✅ Complete | Key-value storage, protobuf serialization |
 | Local controllers | 🚧 Stubs | Structure complete, logic pending |
 | In-process adapters | 🚧 Stubs | Structure complete, logic pending |
 | CLI foundation | 🚧 Stubs | Commands defined, wiring pending |
@@ -323,7 +323,7 @@ Compared to Stigmer Cloud, local mode removes:
 | Risk | Impact | Mitigation | Status |
 |------|--------|------------|--------|
 | Proto code gen fails | High | Test with `make proto-gen` | 🔜 Next |
-| SQLite concurrency issues | Medium | WAL mode, testing | ✅ Planned |
+| BadgerDB concurrency | Low | Built-in MVCC support | ✅ Planned |
 | Community adoption | Medium | Strong docs, examples | ✅ Done |
 | Code migration complexity | High | Careful analysis, tests | 🔜 Phase 2 |
 
@@ -343,4 +343,4 @@ Phase 1 successfully established the foundational architecture for open source S
 
 ---
 
-**Next Action**: Run `make proto-gen` and begin implementing SQLite CRUD operations in Phase 2.
+**Next Action**: Run `make proto-gen` and begin implementing BadgerDB CRUD operations in Phase 2.

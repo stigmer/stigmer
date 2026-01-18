@@ -1,6 +1,6 @@
 # Getting Started with Local Mode
 
-Stigmer local mode runs entirely on your machine with a SQLite database. No servers, no cloud dependencies, no complexity.
+Stigmer local mode runs entirely on your machine with a BadgerDB database. No servers, no cloud dependencies, no complexity.
 
 ## Installation
 

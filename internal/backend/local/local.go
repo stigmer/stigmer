@@ -16,63 +16,39 @@ package local
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	_ "modernc.org/sqlite" // SQLite driver
+	"github.com/dgraph-io/badger/v4"
 
 	pb "github.com/stigmer/stigmer/internal/gen/stigmer/backend/v1"
 )
 
-// Backend implements the Backend interface using SQLite
+// Backend implements the Backend interface using BadgerDB
 type Backend struct {
-	db *sql.DB
+	db *badger.DB
 }
 
-// NewBackend creates a new local SQLite backend
+// NewBackend creates a new local BadgerDB backend
 func NewBackend(dbPath string) (*Backend, error) {
 	// Ensure directory exists
-	dir := filepath.Dir(dbPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dbPath, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create database directory: %w", err)
 	}
 
-	// Open SQLite database with WAL mode for concurrency
-	db, err := sql.Open("sqlite", dbPath+"?_journal_mode=WAL&_foreign_keys=1")
+	// Open BadgerDB with default options
+	opts := badger.DefaultOptions(dbPath).
+		WithLogger(nil) // Disable BadgerDB logging for now
+
+	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
 	backend := &Backend{db: db}
 
-	// Run migrations
-	if err := backend.runMigrations(); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("failed to run migrations: %w", err)
-	}
-
 	return backend, nil
-}
-
-// runMigrations applies database migrations
-func (b *Backend) runMigrations() error {
-	// TODO: Implement proper migration system
-	// For now, just check if schema exists
-	var count int
-	err := b.db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='schema_version'").Scan(&count)
-	if err != nil {
-		return fmt.Errorf("failed to check schema: %w", err)
-	}
-
-	if count == 0 {
-		// Schema doesn't exist, needs to be created
-		// This would run the 001_initial_schema.sql migration
-		return fmt.Errorf("database schema not initialized - run migrations manually for now")
-	}
-
-	return nil
 }
 
 // Close closes the database connection

@@ -1,6 +1,6 @@
 # gRPC Service Architecture
 
-Stigmer's architecture ensures feature parity between local (SQLite) and cloud modes by using gRPC service interfaces as the single source of truth.
+Stigmer's architecture ensures feature parity between local (BadgerDB) and cloud modes by using gRPC service interfaces as the single source of truth.
 
 ## Design Philosophy
 
@@ -17,7 +17,7 @@ flowchart TB
     subgraph "Local Mode (In-Process)"
         Client1[gRPC Client Interface]
         Adapter[In-Process Adapter]
-        LocalImpl[Local Controller<br/>SQLite Implementation]
+        LocalImpl[Local Controller<br/>BadgerDB Implementation]
     end
     
     subgraph "Cloud Mode (Network)"
@@ -31,7 +31,7 @@ flowchart TB
     
     Client1 --> Adapter
     Adapter --> LocalImpl
-    LocalImpl --> SQLite[(SQLite DB)]
+    LocalImpl --> BadgerDB[(BadgerDB)]
     
     Client2 --> Network
     Network --> CloudImpl
@@ -43,8 +43,18 @@ flowchart TB
 ```
 
 **Key Insight**: Both modes use the exact same gRPC client interface. The difference is:
-- **Local Mode**: Adapter routes calls directly to in-process SQLite implementation (no network)
+- **Local Mode**: gRPC client connects to local daemon on `localhost:50051` (daemon holds BadgerDB file lock)
 - **Cloud Mode**: gRPC client connects over network to cloud servers
+
+**Why a Daemon for Local Mode?**
+
+BadgerDB (like BoltDB) allows only one process to hold the database file lock at a time. Since both the CLI and the Agent Runner (Python) need database access, we use a lightweight daemon:
+
+1. **Daemon (`stigmer local start`)**: Opens BadgerDB, listens on `localhost:50051`
+2. **CLI**: Connects to `localhost:50051` for all database operations
+3. **Agent Runner (Python)**: Connects to `localhost:50051` via gRPC
+
+This ensures safe concurrent access without file lock conflicts.
 
 ## gRPC Service Contracts
 
@@ -84,12 +94,12 @@ service AgentQueryController {
 ```go
 // Local controller implements the gRPC server interface
 type LocalAgentController struct {
-    db *sqlite.Database
+    db *badger.DB
     agentpb.UnimplementedAgentCommandControllerServer
 }
 
 func (s *LocalAgentController) Create(ctx context.Context, req *agentpb.Agent) (*agentpb.Agent, error) {
-    // Direct SQLite operations
+    // Direct BadgerDB operations
     id := generateID("agt")
     specJSON, _ := json.Marshal(req.Spec)
     
@@ -147,7 +157,7 @@ func NewAgentClient(cfg *Config) (agentpb.AgentCommandControllerClient, error) {
     switch cfg.Backend.Type {
     case "local":
         // In-process: No network, direct calls
-        db, err := sqlite.Open(cfg.Backend.Local.DBPath)
+        db, err := badger.Open(badger.DefaultOptions(cfg.Backend.Local.DBPath))
         if err != nil {
             return nil, err
         }
@@ -324,7 +334,7 @@ To add a new operation to an existing resource:
 3. **Implement in local backend**:
    ```go
    func (s *LocalAgentController) Archive(ctx context.Context, req *agentpb.AgentId) (*agentpb.Agent, error) {
-       // SQLite implementation
+       // BadgerDB implementation
    }
    ```
 
@@ -364,7 +374,7 @@ To add a new operation to an existing resource:
 
 ### Binary Size
 
-**Impact**: CLI binary includes SQLite driver and all local controller logic.
+**Impact**: CLI binary includes BadgerDB and all local controller logic.
 
 **Mitigation**: 
 - Acceptable for modern systems (5-10 MB is reasonable)
@@ -381,4 +391,4 @@ To add a new operation to an existing resource:
 
 ---
 
-This architecture is the foundation of Stigmer's Open Core model. It allows developers to start local with SQLite and scale to cloud with gRPC without changing a single line of application code.
+This architecture is the foundation of Stigmer's Open Core model. It allows developers to start local with BadgerDB and scale to cloud with gRPC without changing a single line of application code.

@@ -21,10 +21,10 @@ import (
 )
 
 // Backend defines the interface that all Stigmer backends must implement.
-// This ensures feature parity between Local (SQLite) and Cloud (gRPC) backends.
+// This ensures feature parity between Local (BadgerDB) and Cloud (gRPC) backends.
 //
 // Implementations:
-//   - Local: internal/backend/local - SQLite-based storage
+//   - Local: internal/backend/local - BadgerDB key-value storage
 //   - Cloud: internal/backend/cloud - gRPC client to Stigmer Cloud
 type Backend interface {
 	// Execution lifecycle management
@@ -71,9 +71,9 @@ type Config struct {
 	Cloud *CloudConfig
 }
 
-// LocalConfig holds SQLite backend configuration
+// LocalConfig holds BadgerDB backend configuration
 type LocalConfig struct {
-	DBPath string // Path to SQLite database file
+	DBPath string // Path to BadgerDB data directory
 }
 
 // CloudConfig holds cloud backend configuration

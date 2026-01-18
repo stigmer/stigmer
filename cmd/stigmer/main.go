@@ -38,7 +38,7 @@ var rootCmd = &cobra.Command{
 	Use:   "stigmer",
 	Short: "Stigmer - Build AI agents and workflows with zero infrastructure",
 	Long: `Stigmer is an open-source agentic automation platform that runs locally 
-with SQLite or scales to production with Stigmer Cloud.
+with BadgerDB or scales to production with Stigmer Cloud.
 
 Build agents and workflows in code, execute them anywhere.`,
 	Version: fmt.Sprintf("%s (commit: %s, built: %s)", version, commit, date),
@@ -60,12 +60,12 @@ func init() {
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize Stigmer local backend",
-	Long: `Initialize the Stigmer local backend by creating a SQLite database.
+	Long: `Initialize the Stigmer local backend by creating a BadgerDB data directory.
 
-This command creates ~/.stigmer/local.db and runs initial migrations.`,
+This command creates ~/.stigmer/data for the local BadgerDB storage.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// TODO: Implement initialization
-		fmt.Println("✓ Created ~/.stigmer/local.db")
+		fmt.Println("✓ Created ~/.stigmer/data")
 		fmt.Println("✓ Initialized local backend")
 		fmt.Println("✓ Stigmer is ready to use in local mode")
 		fmt.Println()

@@ -15,9 +15,9 @@ Located in `github.com/stigmer/stigmer`:
 - **SDKs** (`sdk/go/`, `sdk/python/`) - Libraries for building workflows
 
 **Local Backend**:
-- **Local Controllers** (`internal/backend/local/`) - SQLite-based gRPC service implementations
-- **In-Process Adapter** (`internal/backend/adapter/`) - Bridges gRPC client to local controllers
-- **SQLite Schema** (`internal/backend/local/migrations/`) - Database migrations
+- **Local Daemon** (`cmd/stigmer-daemon/`) - gRPC server that holds BadgerDB file lock
+- **Local Controllers** (`internal/backend/local/`) - BadgerDB-based gRPC service implementations
+- **BadgerDB Storage** (`internal/backend/local/`) - Key-value storage layer (LSM tree)
 
 **API Contracts**:
 - **gRPC Services** (`apis/ai/stigmer/agentic/*/v1/`) - Protobuf service definitions
@@ -57,8 +57,9 @@ flowchart TB
     subgraph "Open Source (github.com/stigmer/stigmer)"
         CLI[CLI/SDK]
         Proto[gRPC Service Definitions<br/>apis/]
-        Local[Local Controllers<br/>SQLite]
-        Adapter[In-Process Adapter]
+        Daemon[Local Daemon<br/>localhost:50051]
+        Local[Local Controllers<br/>BadgerDB]
+        AgentRunner[Agent Runner<br/>Python]
     end
     
     subgraph "Proprietary (github.com/leftbin/stigmer-cloud)"
@@ -70,9 +71,10 @@ flowchart TB
     Proto -.defines.-> Local
     Proto -.defines.-> Cloud
     
-    CLI -->|Local Mode| Adapter
-    Adapter --> Local
-    Local --> SQLite[(SQLite)]
+    CLI -->|Local Mode<br/>gRPC| Daemon
+    AgentRunner -->|gRPC| Daemon
+    Daemon --> Local
+    Local --> BadgerDB[(BadgerDB<br/>File Lock)]
     
     CLI -->|Cloud Mode| Network[Network/TLS]
     Network --> Cloud
@@ -84,6 +86,7 @@ flowchart TB
     style Proto fill:#ffaaa5
     style Local fill:#a8e6cf
     style Cloud fill:#ffd3b6
+    style Daemon fill:#90caf9
 ```
 
 ### The Contract
@@ -99,8 +102,32 @@ service AgentCommandController {
 }
 ```
 
-**Local Backend**: Implements these services with SQLite storage (in-process).  
+**Local Backend**: Implements these services with BadgerDB storage via daemon.  
 **Cloud Backend**: Implements these services with distributed storage (over network).
+
+### Local Daemon Architecture
+
+BadgerDB uses file-based locking (only one process can open the database at a time). To support both CLI and Agent Runner (Python) accessing the database concurrently, we use a **daemon model**:
+
+**Components**:
+1. **Local Daemon** (`stigmer local start`): Lightweight gRPC server that holds the BadgerDB file lock
+   - Listens on `localhost:50051`
+   - Implements the same gRPC services as Cloud
+   - Opens BadgerDB in `~/.stigmer/data`
+
+2. **CLI**: Connects to `localhost:50051` for all database operations
+   - No direct BadgerDB access (avoids file lock conflicts)
+   - Same gRPC client code as Cloud mode
+
+3. **Agent Runner** (Python): Connects to `localhost:50051` via gRPC
+   - No database driver needed
+   - Language-agnostic access through gRPC
+
+**Benefits**:
+- ✅ Safe concurrent access (daemon holds exclusive lock)
+- ✅ Language agnostic (Python, Go, Node can all talk to daemon)
+- ✅ Same gRPC interface as Cloud (seamless migration)
+- ✅ No complex database drivers needed in SDK
 
 This guarantees:
 - ✅ Feature parity between local and cloud
@@ -115,7 +142,7 @@ This guarantees:
 | Agent execution | ✅ | ✅ |
 | Workflow execution | ✅ | ✅ |
 | Secret storage | ✅ OS Keychain | ✅ Vault |
-| Execution history | ✅ SQLite | ✅ Postgres |
+| Execution history | ✅ BadgerDB | ✅ Postgres |
 | MCP server integration | ✅ | ✅ |
 | CLI access | ✅ | ✅ |
 | gRPC services | ✅ In-process | ✅ Network |
@@ -156,7 +183,7 @@ Users can start with local mode and upgrade to cloud mode seamlessly:
 - **Authentication**: None (trust the local user)
 - **Secrets**: Encrypted with OS keychain or local master key
 - **Access control**: Single-user mode (no IAM)
-- **Audit**: Basic timestamps in SQLite
+- **Audit**: Basic timestamps in BadgerDB
 - **Authorization**: Proto IAM annotations are ignored
 
 ### Cloud Mode
@@ -226,7 +253,7 @@ Both local and cloud import these exact proto files.
 internal/backend/local/
 ├── agent_controller.go     # Implements AgentCommandControllerServer
 ├── workflow_controller.go  # Implements WorkflowCommandControllerServer
-└── database.go             # SQLite operations
+└── database.go             # BadgerDB operations
 ```
 
 **Proprietary** (`github.com/leftbin/stigmer-cloud`):

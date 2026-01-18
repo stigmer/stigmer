@@ -258,7 +258,7 @@ Use shared test utilities in `internal/testutil/`:
 import "github.com/stigmer/stigmer/internal/testutil"
 
 func TestSomething(t *testing.T) {
-    db := testutil.NewTestDB(t)           // Auto-cleanup SQLite
+    db := testutil.NewTestDB(t)           // Auto-cleanup BadgerDB
     backend := testutil.NewTestBackend(t) // Mock backend
     // ...
 }

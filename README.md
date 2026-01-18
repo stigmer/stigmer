@@ -2,13 +2,13 @@
 
 **Build AI agents and workflows with zero infrastructure.**
 
-Stigmer is an open-source agentic automation platform that runs locally with SQLite or scales to production with Stigmer Cloud. Define agents and workflows in code, execute them anywhere.
+Stigmer is an open-source agentic automation platform that runs locally with BadgerDB or scales to production with Stigmer Cloud. Define agents and workflows in code, execute them anywhere.
 
 ## Why Stigmer?
 
 Most AI agent frameworks force you to choose: either run locally with limited features, or commit to a cloud platform from day one. Stigmer gives you both.
 
-**Local Mode**: Run agents and workflows on your laptop with a SQLite database. No servers, no auth, no complexity. Perfect for development, personal projects, and small teams.
+**Local Mode**: Run agents and workflows on your laptop with a BadgerDB key-value store. No servers, no auth, no complexity. Perfect for development, personal projects, and small teams.
 
 **Cloud Mode**: When you're ready, `stigmer login` switches to Stigmer Cloud for multi-user collaboration, secrets management, and production scale—without changing your code.
 
@@ -32,7 +32,7 @@ brew install stigmer/tap/stigmer
 stigmer init
 ```
 
-This creates `~/.stigmer/local.db` and you're ready to build agents.
+This creates `~/.stigmer/data` and you're ready to build agents.
 
 ### Create Your First Agent
 
@@ -60,7 +60,9 @@ Stigmer uses an **Open Core** model:
 │   - SDK (Go, Python)                    │
 └─────────────┬───────────────────────────┘
               │
-              ├──► Local Backend (SQLite)
+              ├──► Local Daemon (localhost:50051)
+              │    │  - gRPC Server
+              │    │  - BadgerDB (file lock)
               │    ✓ Zero infrastructure
               │    ✓ Single tenant
               │    ✓ Local secrets
@@ -76,7 +78,7 @@ Stigmer uses an **Open Core** model:
 - Workflow runner
 - Agent runner
 - Go and Python SDKs
-- Local SQLite backend
+- Local BadgerDB backend
 
 **Proprietary** (Stigmer Cloud):
 - Multi-tenant SaaS platform
@@ -162,13 +164,18 @@ Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to gi
 - Air-gapped environments
 
 **How it works**:
-- SQLite database in `~/.stigmer/local.db`
+- Local daemon runs on `localhost:50051` (started with `stigmer local start`)
+- BadgerDB key-value store in `~/.stigmer/data` (daemon holds file lock)
+- CLI and Agent Runner both connect to daemon via gRPC
 - Single implicit user (`local-user`)
-- No authentication or network calls
 - Secrets stored in OS keychain or encrypted file
 
 **Start using**:
 ```bash
+# Start the local daemon
+stigmer local start
+
+# In another terminal, initialize and run commands
 stigmer init
 ```
 
@@ -259,7 +266,7 @@ service AgentQueryController {
 }
 ```
 
-**Local Mode**: Implements these gRPC services with SQLite (in-process, no network).  
+**Local Mode**: Implements these gRPC services with BadgerDB (in-process, no network).  
 **Cloud Mode**: Implements these gRPC services over network with distributed storage.
 
 This guarantees:

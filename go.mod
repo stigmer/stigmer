@@ -3,11 +3,11 @@ module github.com/stigmer/stigmer
 go 1.21
 
 require (
+	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
 	google.golang.org/grpc v1.60.1
 	google.golang.org/protobuf v1.32.0
-	modernc.org/sqlite v1.28.0
 )
 
 require (
