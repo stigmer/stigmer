@@ -1,17 +1,14 @@
-[build-system]
-requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "stigmer"
+[tool.poetry]
+name = "stigmer-sdk"
 version = "0.1.0"
-description = "Stigmer SDK for building AI agents and workflows"
+description = "Python SDK for Stigmer - Write workflows as code that synthesize to CNCF Serverless Workflow DSL 1.0.0"
+authors = ["Stigmer Team <team@stigmer.io>"]
 readme = "README.md"
-requires-python = ">=3.11"
-license = {text = "Apache-2.0"}
-authors = [
-    {name = "Stigmer Contributors", email = "contributors@stigmer.ai"}
-]
+license = "Apache-2.0"
+homepage = "https://github.com/leftbin/stigmer"
+repository = "https://github.com/leftbin/stigmer"
+keywords = ["workflow", "orchestration", "temporal", "serverless-workflow", "dsl"]
+packages = [{include = "stigmer"}]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -19,47 +16,47 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-]
-dependencies = [
-    "grpcio>=1.60.0",
-    "protobuf>=4.25.0",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0",
-    "black>=23.0.0",
-    "mypy>=1.7.0",
-    "ruff>=0.1.0",
-]
+[tool.poetry.dependencies]
+python = "^3.11"
+pyyaml = "^6.0"
+pydantic = "^2.0"
+protobuf = "^6.31.1"
+grpcio = "^1.68.3"
 
-[project.urls]
-Homepage = "https://stigmer.ai"
-Documentation = "https://docs.stigmer.ai"
-Repository = "https://github.com/stigmer/stigmer"
-Issues = "https://github.com/stigmer/stigmer/issues"
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+pytest-cov = "^4.1"
+mypy = "^1.8"
+black = "^24.0"
+ruff = "^0.1"
+types-pyyaml = "^6.0"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["stigmer*"]
-
-[tool.black]
-line-length = 100
-target-version = ["py311"]
-
-[tool.ruff]
-line-length = 100
-target-version = "py311"
-
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
+addopts = "-v --cov=stigmer --cov-report=term-missing --cov-report=html"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "N", "W", "UP"]
