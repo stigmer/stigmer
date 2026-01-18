@@ -9,6 +9,9 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
 	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentinstance/v1"
@@ -58,13 +61,13 @@ func (c *AgentExecutionController) Create(ctx context.Context, execution *agente
 func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*agentexecutionv1.AgentExecution] {
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecution]("agent-execution-create").
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).  // 1. Validate field constraints
-		AddStep(c.newValidateSessionOrAgentStep()).                               // 2. Validate session_id OR agent_id
+		AddStep(newValidateSessionOrAgentStep()).                                 // 2. Validate session_id OR agent_id
 		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).    // 3. Resolve slug
 		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).  // 4. Build new state
-		AddStep(c.newCreateDefaultInstanceIfNeededStep()).                        // 5. Create default instance if needed
-		AddStep(c.newCreateSessionIfNeededStep()).                                // 6. Create session if needed
-		AddStep(c.newSetInitialPhaseStep()).                                      // 7. Set phase to PENDING
-		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)). // 8. Persist execution
+		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient)). // 5. Create default instance if needed
+		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).                // 6. Create session if needed
+		AddStep(newSetInitialPhaseStep()).                                                    // 7. Set phase to PENDING
+		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).             // 8. Persist execution
 		Build()
 }
 
@@ -73,12 +76,10 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 // ============================================================================
 
 // validateSessionOrAgentStep validates that at least one of session_id or agent_id is provided
-type validateSessionOrAgentStep struct {
-	controller *AgentExecutionController
-}
+type validateSessionOrAgentStep struct{}
 
-func (c *AgentExecutionController) newValidateSessionOrAgentStep() *validateSessionOrAgentStep {
-	return &validateSessionOrAgentStep{controller: c}
+func newValidateSessionOrAgentStep() *validateSessionOrAgentStep {
+	return &validateSessionOrAgentStep{}
 }
 
 func (s *validateSessionOrAgentStep) Name() string {
@@ -122,11 +123,18 @@ func (s *validateSessionOrAgentStep) Execute(ctx *pipeline.RequestContext[*agent
 // 5. Updates agent status with default_instance_id
 // 6. Stores default_instance_id in context for next step
 type createDefaultInstanceIfNeededStep struct {
-	controller *AgentExecutionController
+	agentClient         *agent.Client
+	agentInstanceClient *agentinstance.Client
 }
 
-func (c *AgentExecutionController) newCreateDefaultInstanceIfNeededStep() *createDefaultInstanceIfNeededStep {
-	return &createDefaultInstanceIfNeededStep{controller: c}
+func newCreateDefaultInstanceIfNeededStep(
+	agentClient *agent.Client,
+	agentInstanceClient *agentinstance.Client,
+) *createDefaultInstanceIfNeededStep {
+	return &createDefaultInstanceIfNeededStep{
+		agentClient:         agentClient,
+		agentInstanceClient: agentInstanceClient,
+	}
 }
 
 func (s *createDefaultInstanceIfNeededStep) Name() string {
@@ -151,7 +159,7 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		Msg("Checking if agent has default instance")
 
 	// 1. Load agent by ID via in-process gRPC (single source of truth)
-	agent, err := s.controller.agentClient.Get(ctx.Context(), &agentv1.AgentId{Value: agentID})
+	agent, err := s.agentClient.Get(ctx.Context(), &agentv1.AgentId{Value: agentID})
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -205,7 +213,7 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		Msg("Built default instance request")
 
 	// 4. Create instance via downstream client (in-process, system credentials)
-	createdInstance, err := s.controller.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
+	createdInstance, err := s.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -229,7 +237,7 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 	// Update agent via in-process gRPC (single source of truth)
 	// Note: We use the agent client's Update method which ensures all interceptors
 	// run with the correct api_resource_kind (AGENT), not the current request's kind
-	_, err = s.controller.agentClient.Update(ctx.Context(), agent)
+	_, err = s.agentClient.Update(ctx.Context(), agent)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -262,11 +270,18 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 // 4. Creates session with default instance ID
 // 5. Updates execution request with created session_id
 type createSessionIfNeededStep struct {
-	controller *AgentExecutionController
+	agentClient   *agent.Client
+	sessionClient *session.Client
 }
 
-func (c *AgentExecutionController) newCreateSessionIfNeededStep() *createSessionIfNeededStep {
-	return &createSessionIfNeededStep{controller: c}
+func newCreateSessionIfNeededStep(
+	agentClient *agent.Client,
+	sessionClient *session.Client,
+) *createSessionIfNeededStep {
+	return &createSessionIfNeededStep{
+		agentClient:   agentClient,
+		sessionClient: sessionClient,
+	}
 }
 
 func (s *createSessionIfNeededStep) Name() string {
@@ -304,7 +319,7 @@ func (s *createSessionIfNeededStep) Execute(ctx *pipeline.RequestContext[*agente
 		Msg("Using default instance from context for session creation")
 
 	// 2. Load agent for metadata (scope, org) via in-process gRPC (single source of truth)
-	agent, err := s.controller.agentClient.Get(ctx.Context(), &agentv1.AgentId{Value: agentID})
+	agent, err := s.agentClient.Get(ctx.Context(), &agentv1.AgentId{Value: agentID})
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -343,7 +358,7 @@ func (s *createSessionIfNeededStep) Execute(ctx *pipeline.RequestContext[*agente
 		Msg("Built session request")
 
 	// 4. Create session via in-process gRPC (single source of truth)
-	createdSession, err := s.controller.sessionClient.Create(ctx.Context(), sessionRequest)
+	createdSession, err := s.sessionClient.Create(ctx.Context(), sessionRequest)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -382,12 +397,10 @@ func (s *createSessionIfNeededStep) Execute(ctx *pipeline.RequestContext[*agente
 //
 // This allows the frontend to show a thinking indicator immediately when the execution is created,
 // before the agent worker begins processing.
-type setInitialPhaseStep struct {
-	controller *AgentExecutionController
-}
+type setInitialPhaseStep struct{}
 
-func (c *AgentExecutionController) newSetInitialPhaseStep() *setInitialPhaseStep {
-	return &setInitialPhaseStep{controller: c}
+func newSetInitialPhaseStep() *setInitialPhaseStep {
+	return &setInitialPhaseStep{}
 }
 
 func (s *setInitialPhaseStep) Name() string {

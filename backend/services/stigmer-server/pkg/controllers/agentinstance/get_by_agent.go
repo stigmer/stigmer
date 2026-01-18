@@ -3,6 +3,7 @@ package agentinstance
 import (
 	"context"
 
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
@@ -45,7 +46,7 @@ func (c *AgentInstanceController) GetByAgent(ctx context.Context, req *agentinst
 func (c *AgentInstanceController) buildGetByAgentPipeline() *pipeline.Pipeline[*agentinstancev1.GetAgentInstancesByAgentRequest] {
 	return pipeline.NewPipeline[*agentinstancev1.GetAgentInstancesByAgentRequest]("agent-instance-get-by-agent").
 		AddStep(steps.NewValidateProtoStep[*agentinstancev1.GetAgentInstancesByAgentRequest]()). // 1. Validate field constraints
-		AddStep(c.newLoadByAgentStep()).                                                         // 2. Load by agent
+		AddStep(newLoadByAgentStep(c.store)).                                                     // 2. Load by agent
 		Build()
 }
 
@@ -64,11 +65,11 @@ func (c *AgentInstanceController) buildGetByAgentPipeline() *pipeline.Pipeline[*
 // Note: In OSS (local usage), no authorization filtering is applied.
 // All instances for the agent are returned.
 type loadByAgentStep struct {
-	controller *AgentInstanceController
+	store *badger.Store
 }
 
-func (c *AgentInstanceController) newLoadByAgentStep() *loadByAgentStep {
-	return &loadByAgentStep{controller: c}
+func newLoadByAgentStep(store *badger.Store) *loadByAgentStep {
+	return &loadByAgentStep{store: store}
 }
 
 func (s *loadByAgentStep) Name() string {
@@ -85,7 +86,7 @@ func (s *loadByAgentStep) Execute(ctx *pipeline.RequestContext[*agentinstancev1.
 
 	// List all agent instances and filter by agent_id
 	// Note: This is not efficient for large datasets, but acceptable for local usage
-	resources, err := s.controller.store.ListResources(ctx.Context(), "AgentInstance")
+	resources, err := s.store.ListResources(ctx.Context(), "AgentInstance")
 	if err != nil {
 		return grpclib.InternalError(err, "failed to list agent instances")
 	}
