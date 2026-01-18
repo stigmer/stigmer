@@ -1,0 +1,66 @@
+package steps
+
+import (
+	"context"
+	"strings"
+	"testing"
+
+	"github.com/stigmer/stigmer/backend/libs/go/telemetry"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/pipeline"
+	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
+	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
+)
+
+// TestAgentCreatePipeline_Integration tests the complete agent creation pipeline
+func TestAgentCreatePipeline_Integration(t *testing.T) {
+	store := setupTestStore(t)
+	defer store.Close()
+
+	// Create a minimal agent
+	agent := &agentv1.Agent{
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "My Test Agent",
+		},
+	}
+
+	// Build pipeline
+	p := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+		WithTracer(telemetry.NewNoOpTracer()).
+		AddStep(NewResolveSlugStep[*agentv1.Agent]()).
+		AddStep(NewCheckDuplicateStep(store, "Agent")).
+		AddStep(NewSetDefaultsStep[*agentv1.Agent]("agent")).
+		AddStep(NewPersistStep(store, "Agent")).
+		Build()
+
+	// Execute
+	ctx := p.NewRequestContext(context.Background(), agent)
+	err := p.Execute(ctx)
+
+	if err != nil {
+		t.Fatalf("Pipeline execution failed: %v", err)
+	}
+
+	// Verify slug
+	if agent.Metadata.Slug != "my-test-agent" {
+		t.Errorf("Expected slug='my-test-agent', got %q", agent.Metadata.Slug)
+	}
+
+	// Verify ID
+	if agent.Metadata.Id == "" {
+		t.Errorf("Expected ID to be generated")
+	}
+	if !strings.HasPrefix(agent.Metadata.Id, "agent-") {
+		t.Errorf("Expected ID to start with 'agent-', got %q", agent.Metadata.Id)
+	}
+
+	// Verify persistence
+	retrieved := &agentv1.Agent{}
+	err = store.GetResource(context.Background(), agent.Metadata.Id, retrieved)
+	if err != nil {
+		t.Errorf("Failed to retrieve agent: %v", err)
+	}
+
+	if retrieved.Metadata.Name != "My Test Agent" {
+		t.Errorf("Expected name='My Test Agent', got %q", retrieved.Metadata.Name)
+	}
+}

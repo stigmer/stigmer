@@ -234,13 +234,229 @@ func TestValidateProtoStep(t *testing.T) {
 }
 ```
 
+### ResolveSlugStep
+
+Generates a URL-friendly slug from the resource name.
+
+**Usage:**
+
+```go
+slugStep := steps.NewResolveSlugStep[*agentv1.Agent]()
+
+pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+    AddStep(slugStep).
+    Build()
+```
+
+**Slug Generation Rules:**
+- Convert to lowercase
+- Replace spaces with hyphens
+- Remove special characters (keep only alphanumeric and hyphens)
+- Collapse multiple consecutive hyphens into one
+- Trim leading and trailing hyphens
+- Limit to 63 characters (Kubernetes DNS label limit)
+
+**Examples:**
+- "My Cool Agent" → "my-cool-agent"
+- "Agent@123!" → "agent123"
+- "Test___Agent" → "test-agent"
+
+**Behavior:**
+- Idempotent: If `metadata.slug` is already set, the step is a no-op
+- Requires `metadata.name` to be set
+
+---
+
+### CheckDuplicateStep
+
+Verifies that no resource with the same slug exists in the same scope.
+
+**Usage:**
+
+```go
+checkDupStep := steps.NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")
+
+pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+    AddStep(checkDupStep).
+    Build()
+```
+
+**Scope Checking:**
+- **Organization-scoped resources**: Checks within the same organization (uses `metadata.org`)
+- **Platform-scoped resources**: Checks globally (when `metadata.org` is empty)
+
+**Error Handling:**
+- Returns `ALREADY_EXISTS` error if duplicate found
+- Error message includes the existing resource ID
+
+**Dependencies:**
+- Requires `sqlite.Store` instance
+- Should run after `ResolveSlugStep` to ensure slug is set
+
+---
+
+### SetAuditFieldsStep
+
+Sets audit fields for tracking resource creation and updates.
+
+**Usage:**
+
+```go
+// For create operations
+auditStep := steps.NewSetAuditFieldsStep[*agentv1.Agent]()
+
+// For update operations
+auditStep := steps.NewSetAuditFieldsStepForUpdate[*agentv1.Agent]()
+
+pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+    AddStep(auditStep).
+    Build()
+```
+
+**Fields Set (Create):**
+- `metadata.created_at`: Current timestamp
+- `metadata.updated_at`: Current timestamp (same as created_at)
+- `metadata.version`: 1
+
+**Fields Set (Update):**
+- `metadata.updated_at`: Current timestamp (updated)
+- `metadata.version`: Incremented by 1
+- `metadata.created_at`: Unchanged
+
+**Behavior:**
+- Idempotent for create operations: Won't override existing values
+- Always updates for update operations
+
+---
+
+### SetDefaultsStep
+
+Sets default values for resource fields, primarily the resource ID.
+
+**Usage:**
+
+```go
+defaultsStep := steps.NewSetDefaultsStep[*agentv1.Agent]("agent")
+
+pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+    AddStep(defaultsStep).
+    Build()
+```
+
+**Fields Set:**
+- `metadata.id`: Generated from prefix + Unix nanosecond timestamp
+  - Format: `{prefix}-{timestamp}`
+  - Example: `agent-1705678901234567890`
+
+**Note:** `kind` and `api_version` should be set by the controller before entering the pipeline, as they are resource-specific and cannot be set generically without proto reflection.
+
+**Behavior:**
+- Idempotent: If `metadata.id` is already set, it will not be overwritten
+
+**ID Uniqueness:**
+- Uses Unix nanoseconds for uniqueness
+- Safe for concurrent creation within same millisecond
+- Prefix is always lowercase
+
+---
+
+### PersistStep
+
+Saves the resource to the SQLite database.
+
+**Usage:**
+
+```go
+persistStep := steps.NewPersistStep[*agentv1.Agent](store, "Agent")
+
+pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+    AddStep(persistStep).
+    Build()
+```
+
+**Requirements:**
+- `metadata.id` must be set (typically by `SetDefaultsStep`)
+- Resource should be fully populated with all required fields
+
+**Dependencies:**
+- Requires `sqlite.Store` instance
+- Uses the resource kind for storage organization
+
+**Error Handling:**
+- Returns detailed error if save fails
+- Wraps underlying store errors with context
+
+**Behavior:**
+- Works for both create and update operations
+- For updates, the existing resource is overwritten
+
+---
+
+## Complete Pipeline Example
+
+Here's how to build a complete create pipeline with all common steps:
+
+```go
+package controllers
+
+import (
+    "context"
+    "github.com/stigmer/stigmer/backend/libs/go/telemetry"
+    "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/pipeline"
+    "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/pipeline/steps"
+    agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
+)
+
+func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
+    // Set kind and apiVersion before pipeline
+    agent.Kind = "Agent"
+    agent.ApiVersion = "ai.stigmer.agentic.agent/v1"
+
+    // Build pipeline
+    p := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
+        WithTracer(telemetry.NewNoOpTracer()).
+        AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).
+        AddStep(steps.NewCheckDuplicateStep(c.store, "Agent")).
+        AddStep(steps.NewSetDefaultsStep[*agentv1.Agent]("agent")).
+        AddStep(steps.NewSetAuditFieldsStep[*agentv1.Agent]()).
+        AddStep(steps.NewPersistStep(c.store, "Agent")).
+        Build()
+
+    // Execute pipeline
+    pipelineCtx := p.NewRequestContext(ctx, agent)
+    if err := p.Execute(pipelineCtx); err != nil {
+        return nil, err
+    }
+
+    return pipelineCtx.NewState(), nil
+}
+```
+
+## Update Pipeline Example
+
+For update operations, use a different set of steps:
+
+```go
+func (c *AgentController) Update(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
+    // Build update pipeline (no slug resolution, no duplicate check, no ID generation)
+    p := pipeline.NewPipeline[*agentv1.Agent]("agent-update").
+        WithTracer(telemetry.NewNoOpTracer()).
+        AddStep(steps.NewSetAuditFieldsStepForUpdate[*agentv1.Agent]()).
+        AddStep(steps.NewPersistStep(c.store, "Agent")).
+        Build()
+
+    // Execute pipeline
+    pipelineCtx := p.NewRequestContext(ctx, agent)
+    if err := p.Execute(pipelineCtx); err != nil {
+        return nil, err
+    }
+
+    return pipelineCtx.NewState(), nil
+}
+```
+
 ## Future Steps
 
 Planned steps to be implemented:
 
-- **ResolveSlugStep** - Generate slug from resource name
-- **CheckDuplicateStep** - Verify resource doesn't already exist
-- **SetAuditFieldsStep** - Set created_at, updated_at, version
-- **SetDefaultsStep** - Apply default values to optional fields
-- **PersistStep** - Save resource to database
-- **PublishEventStep** - Publish domain event for async processing
+- **PublishEventStep** - Publish domain events for async processing (no-op initially)

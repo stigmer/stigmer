@@ -6,47 +6,69 @@
 
 ## Current Status
 
-✅ **Task T01 Complete** - Pipeline framework foundation implemented
+✅ **Task T01 Complete** - Pipeline framework foundation implemented  
+🟡 **Task T02 Partial** - Common pipeline steps implemented (interface fix needed)
 
 ## Current Task
 
-**Task T02:** Implement Common Pipeline Steps
+**Task T02.1:** Fix Pipeline Step Interface Mismatch
 
-**Status:** READY TO START
+**Status:** READY TO START (15 minutes)
 
-**Previous Task:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/tasks/T01_1_completed.md`
+**Previous Task:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/tasks/T02_1_partial.md`
 
 ## What to Do Next
 
-1. **Plan T02** - Design common reusable steps:
-   - ResolveSlugStep - Generate slug from resource name
-   - CheckDuplicateStep - Verify resource doesn't exist
-   - SetAuditFieldsStep - Add created_at, updated_at, version
-   - SetDefaultsStep - Apply default values
-   - PersistStep - Save to database
-   
-2. **Implement steps** following the patterns from ValidateProtoStep
+**Quick fix needed (15 minutes):**
 
-3. **Test thoroughly** with agent controller integration
+All 4 step files need Execute method signature updated:
+
+**Current (incorrect):**
+```go
+func (s *Step[T]) Execute(ctx *pipeline.RequestContext[T]) pipeline.StepResult {
+    // ...
+    return pipeline.StepResult{Success: true}
+}
+```
+
+**Required:**
+```go
+func (s *Step[T]) Execute(ctx *pipeline.RequestContext[T]) error {
+    // ...
+    return nil  // for success
+}
+```
+
+**Files to fix:**
+1. `pkg/pipeline/steps/slug.go`
+2. `pkg/pipeline/steps/defaults.go`
+3. `pkg/pipeline/steps/persist.go`
+4. `pkg/pipeline/steps/duplicate.go`
+
+**After fix:**
+- Run tests: `go test ./backend/services/stigmer-server/pkg/pipeline/steps/...`
+- All tests should pass
+- Ready for T03 (agent controller integration)
 
 ## Quick Context
 
-This project implements a pipeline framework for the Stigmer OSS agent controller to match the architecture used in Stigmer Cloud (Java). The goal is to transform the current monolithic controller into a maintainable, testable pipeline-based architecture.
+This project implements a pipeline framework for the Stigmer OSS agent controller to match the architecture used in Stigmer Cloud (Java). 
 
-Key features being added:
-- Generic pipeline framework with step execution
-- OpenTelemetry integration (no-op initially)
-- Proto validation using buf.build/validate
-- Slug resolution from resource names
-- Audit fields (timestamps, versioning)
-- Default instance creation
-- Proper error handling and tracing
+**Completed so far:**
+- ✅ Generic pipeline framework (T01)
+- 🟡 4 common reusable steps: slug resolution, duplicate checking, defaults, persistence (T02 - needs interface fix)
+
+**What remains:**
+- ⏳ Fix interface mismatch (15 min)
+- ⏳ Agent-specific steps (2-3 hours)
+- ⏳ Agent controller refactoring (1-2 hours)
+- ⏳ Integration testing
 
 ## Files to Reference
 
+- **Partial Completion:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/tasks/T02_1_partial.md`
 - **README:** `@stigmer/_projects/2026-01/20260118.01.agent-controller-pipeline/README.md`
-- **Current Controller:** `@stigmer/backend/services/stigmer-server/pkg/controllers/agent_controller.go`
-- **Java Reference:** `@stigmer-cloud/backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agent/request/handler/AgentCreateHandler.java`
+- **Step Interface:** `@stigmer/backend/services/stigmer-server/pkg/pipeline/step.go`
 
 ## To Resume in Future Sessions
 
