@@ -20,6 +20,7 @@ import (
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/session"
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/skill"
 	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/workflow"
+	workflowexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/workflowexecution"
 	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/workflowinstance"
 	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
@@ -33,6 +34,7 @@ import (
 	sessionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflow/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflowinstance/v1"
 )
 
@@ -174,6 +176,17 @@ func main() {
 	workflowv1.RegisterWorkflowQueryControllerServer(grpcServer, workflowController)
 
 	log.Info().Msg("Registered Workflow controllers")
+
+	// Create and register WorkflowExecution controller
+	// Note: Loads workflows directly from store (same service), uses WorkflowInstance client for default instance creation
+	workflowExecutionController := workflowexecutioncontroller.NewWorkflowExecutionController(
+		store,
+		workflowInstanceClient,
+	)
+	workflowexecutionv1.RegisterWorkflowExecutionCommandControllerServer(grpcServer, workflowExecutionController)
+	workflowexecutionv1.RegisterWorkflowExecutionQueryControllerServer(grpcServer, workflowExecutionController)
+
+	log.Info().Msg("Registered WorkflowExecution controllers")
 
 	// Setup graceful shutdown
 	done := make(chan os.Signal, 1)
