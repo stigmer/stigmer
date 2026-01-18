@@ -1,0 +1,80 @@
+---
+description: Action rule to analyze meeting notes and transcripts to help with tasks like creating summaries, answering questions, or generating follow-up communications.
+globs: []
+alwaysApply: false
+---
+
+# Rule: Analyze Meeting (action)
+
+Purpose: When invoked, analyze meeting notes and transcripts to extract insights, create summaries, answer questions, or generate follow-up communications.
+
+Usage: Invoke explicitly as `@analyze-meeting` with a reference to the meeting notes or transcript.
+
+## Capabilities
+
+This rule can help with:
+
+1. **Summarization**
+   - Executive summary (1-2 paragraphs)
+   - Key decisions made
+   - Action items with owners
+   - Open questions or blockers
+
+2. **Question Answering**
+   - Find specific discussions or decisions
+   - Identify who said what
+   - Locate context for a particular topic
+
+3. **Follow-up Generation**
+   - Meeting minutes for distribution
+   - Email summaries to stakeholders
+   - Task tickets or issues from action items
+
+4. **Pattern Recognition**
+   - Recurring themes across meetings
+   - Decision patterns
+   - Communication styles
+
+## How to Use
+
+1. Provide the meeting notes or transcript (either inline or as a file reference)
+2. Specify what you want to extract or generate
+3. The rule will analyze and produce the requested output
+
+## Output Formats
+
+### Meeting Summary
+```markdown
+# Meeting Summary: [Topic]
+**Date**: [Date]
+**Attendees**: [List]
+
+## Key Decisions
+- [Decision 1]
+- [Decision 2]
+
+## Action Items
+- [ ] [Action 1] - Owner: [Name], Due: [Date]
+- [ ] [Action 2] - Owner: [Name], Due: [Date]
+
+## Discussion Highlights
+[Brief notes on important discussions]
+
+## Next Steps
+[What happens next]
+```
+
+### Action Items Extract
+```markdown
+## Action Items from [Meeting Name]
+
+| Action | Owner | Due Date | Status |
+|--------|-------|----------|--------|
+| [Task] | [Name] | [Date] | Pending |
+```
+
+## Notes
+
+- Meeting files are typically stored in `_meetings/` directory
+- Raw transcripts may be in `_meetings/_workspace/` before processing
+- Processed notes follow naming pattern: `YYYY-MM-DD-HHMMSS.[topic].notes.md`
