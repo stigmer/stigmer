@@ -1,0 +1,627 @@
+# Rule: Implement Go SDK Features (action)
+
+**Purpose**: Implement and enhance Go-based agent SDK features for the Stigmer Go SDK. Handles agent configuration, skill management, environment handling, MCP server integration, and proto converters following Go best practices.
+
+**Usage**: Invoke this rule when adding new Go SDK features, fixing issues, or enhancing SDK capabilities.
+
+**Prerequisites**: 
+- Go 1.22+ environment with go.mod
+- Proto stubs generated for Stigmer APIs
+- Understanding of Go SDK patterns
+
+---
+
+## 🎓 Before You Start: Check the Learning Log!
+
+**IMPORTANT**: Before implementing features, check `docs/learning-log.md` for solutions to common issues:
+- Documented patterns and fixes from real Go implementations
+- Organized by topic (not chronological)
+- Real-world solutions that save time
+- Avoids repeating known issues
+
+**Quick lookup by topic**:
+- Proto conversions → See "Proto Converters & Transformations"
+- Agent configuration → See "Agent Configuration & Setup"
+- Testing → See "Testing Patterns"
+- Errors → See "Error Handling"
+
+**Complete documentation**: See `docs/README.md` for full catalog of reference docs.
+
+---
+
+## Core Implementation Areas
+
+### 1. Agent Configuration
+
+**Location**: `sdk/go/agent/*.go`
+
+**Patterns**:
+- Use structs for configuration
+- Builder pattern for complex setup
+- Functional options for flexibility
+- Validation in constructors
+- Exported fields with godoc comments
+
+**Example**:
+```go
+package agent
+
+import (
+	"fmt"
+)
+
+// Agent represents an AI agent configuration
+type Agent struct {
+	Instructions string
+	Skills       []Skill
+	Environments []Environment
+	MCPServers   []MCPServer
+	SubAgents    []string
+	Org          string // Optional: organization scope
+}
+
+// NewAgent creates a new Agent with instructions
+func NewAgent(instructions string) *Agent {
+	return &Agent{
+		Instructions: instructions,
+		Skills:       []Skill{},
+		Environments: []Environment{},
+		MCPServers:   []MCPServer{},
+	}
+}
+
+// WithSkills adds skills to the agent (functional option pattern)
+func (a *Agent) WithSkills(skills ...Skill) *Agent {
+	a.Skills = append(a.Skills, skills...)
+	return a
+}
+
+// WithEnvironments adds environments (functional option pattern)
+func (a *Agent) WithEnvironments(envs ...Environment) *Agent {
+	a.Environments = append(a.Environments, envs...)
+	return a
+}
+
+// Validate checks agent configuration
+func (a *Agent) Validate() error {
+	if a.Instructions == "" {
+		return fmt.Errorf("instructions cannot be empty")
+	}
+	// Validate nested configs
+	for i, skill := range a.Skills {
+		if err := skill.Validate(); err != nil {
+			return fmt.Errorf("skill[%d]: %w", i, err)
+		}
+	}
+	return nil
+}
+```
+
+### 2. Proto Converters
+
+**Location**: `sdk/go/agent/converters/*.go` (or inline)
+
+**Patterns**:
+- Handle nil pointers carefully
+- Check for nil before dereferencing
+- Use proto getters (e.g., `GetSpec()`)
+- Repeated fields use `append()`
+- Nested messages need careful construction
+
+**Example**:
+```go
+package agent
+
+import (
+	agentpb "github.com/leftbin/stigmer/apis/ai/stigmer/agentic/agent/v1"
+)
+
+// ToProto converts Agent to proto message
+func (a *Agent) ToProto() *agentpb.Agent {
+	proto := &agentpb.Agent{}
+	
+	// Basic fields
+	proto.Spec = &agentpb.AgentSpec{
+		Instructions: a.Instructions,
+	}
+	
+	// Repeated fields - use append
+	for _, skill := range a.Skills {
+		skillRef := skill.ToProtoRef()
+		proto.Spec.SkillRefs = append(proto.Spec.SkillRefs, skillRef)
+	}
+	
+	// MCP servers
+	for _, mcp := range a.MCPServers {
+		mcpProto := mcp.ToProto()
+		proto.Spec.McpServers = append(proto.Spec.McpServers, mcpProto)
+	}
+	
+	return proto
+}
+
+// FromProto converts proto message to Agent
+func FromProto(proto *agentpb.Agent) (*Agent, error) {
+	if proto == nil {
+		return nil, fmt.Errorf("proto cannot be nil")
+	}
+	
+	// Check nested message exists
+	spec := proto.GetSpec()
+	if spec == nil {
+		return nil, fmt.Errorf("spec cannot be nil")
+	}
+	
+	agent := &Agent{
+		Instructions: spec.GetInstructions(),
+	}
+	
+	// Convert repeated fields
+	for _, skillRef := range spec.GetSkillRefs() {
+		skill, err := SkillFromProtoRef(skillRef)
+		if err != nil {
+			return nil, fmt.Errorf("converting skill: %w", err)
+		}
+		agent.Skills = append(agent.Skills, *skill)
+	}
+	
+	return agent, nil
+}
+```
+
+### 3. Skill Management
+
+**Location**: `sdk/go/skill/*.go`
+
+**Patterns**:
+- Skill struct with validation
+- Proto reference conversion
+- Input parameter handling
+- Tool schema support
+
+**Example**:
+```go
+package skill
+
+import "fmt"
+
+// Skill represents an agent skill
+type Skill struct {
+	Slug   string
+	Inputs map[string]interface{}
+}
+
+// NewSkill creates a skill with slug
+func NewSkill(slug string) *Skill {
+	return &Skill{
+		Slug:   slug,
+		Inputs: make(map[string]interface{}),
+	}
+}
+
+// WithInput adds an input parameter
+func (s *Skill) WithInput(key string, value interface{}) *Skill {
+	s.Inputs[key] = value
+	return s
+}
+
+// Validate checks skill configuration
+func (s *Skill) Validate() error {
+	if s.Slug == "" {
+		return fmt.Errorf("skill slug cannot be empty")
+	}
+	return nil
+}
+```
+
+### 4. Environment Handling
+
+**Location**: `sdk/go/environment/*.go`
+
+**Patterns**:
+- Environment struct
+- Data validation
+- Merging multiple environments
+- Runtime overrides
+
+**Example**:
+```go
+package environment
+
+import "fmt"
+
+// Environment represents environment variables for an agent
+type Environment struct {
+	Name string
+	Data map[string]string
+}
+
+// NewEnvironment creates an environment with name
+func NewEnvironment(name string) *Environment {
+	return &Environment{
+		Name: name,
+		Data: make(map[string]string),
+	}
+}
+
+// WithData adds environment variables
+func (e *Environment) WithData(data map[string]string) *Environment {
+	for k, v := range data {
+		e.Data[k] = v
+	}
+	return e
+}
+
+// Validate checks environment configuration
+func (e *Environment) Validate() error {
+	if e.Name == "" {
+		return fmt.Errorf("environment name cannot be empty")
+	}
+	return nil
+}
+
+// Merge combines multiple environments (later values override earlier)
+func Merge(envs ...Environment) map[string]string {
+	result := make(map[string]string)
+	for _, env := range envs {
+		for k, v := range env.Data {
+			result[k] = v
+		}
+	}
+	return result
+}
+```
+
+### 5. MCP Server Configuration
+
+**Location**: `sdk/go/mcpserver/*.go`
+
+**Patterns**:
+- MCP server types (stdio, Docker, HTTP)
+- Builder pattern for complex config
+- Validation per server type
+- Environment placeholder handling
+
+**Example**:
+```go
+package mcpserver
+
+import "fmt"
+
+// MCPServer represents an MCP server configuration
+type MCPServer struct {
+	Name     string
+	Type     string // "stdio", "docker", "http"
+	Command  string
+	Args     []string
+	EnvPlaceholders map[string]string
+}
+
+// NewStdioServer creates a stdio MCP server
+func NewStdioServer(name, command string) *MCPServer {
+	return &MCPServer{
+		Name:            name,
+		Type:            "stdio",
+		Command:         command,
+		Args:            []string{},
+		EnvPlaceholders: make(map[string]string),
+	}
+}
+
+// WithArgs adds command arguments
+func (m *MCPServer) WithArgs(args ...string) *MCPServer {
+	m.Args = append(m.Args, args...)
+	return m
+}
+
+// WithEnvPlaceholder adds environment placeholder
+func (m *MCPServer) WithEnvPlaceholder(key, placeholder string) *MCPServer {
+	m.EnvPlaceholders[key] = placeholder
+	return m
+}
+
+// Validate checks MCP server configuration
+func (m *MCPServer) Validate() error {
+	if m.Name == "" {
+		return fmt.Errorf("mcp server name cannot be empty")
+	}
+	if m.Command == "" && m.Type == "stdio" {
+		return fmt.Errorf("command required for stdio server")
+	}
+	return nil
+}
+```
+
+---
+
+## Testing Patterns
+
+### Unit Tests
+
+**Pattern**: Table-driven tests
+
+```go
+package agent_test
+
+import (
+	"testing"
+	
+	"github.com/leftbin/stigmer-sdk/go/agent"
+)
+
+func TestAgent_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		agent   *agent.Agent
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid agent",
+			agent: agent.NewAgent("Do something"),
+			wantErr: false,
+		},
+		{
+			name: "empty instructions",
+			agent: agent.NewAgent(""),
+			wantErr: true,
+			errMsg: "instructions cannot be empty",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.agent.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err.Error() != tt.errMsg {
+				t.Errorf("Validate() error message = %v, want %v", err.Error(), tt.errMsg)
+			}
+		})
+	}
+}
+```
+
+### Proto Roundtrip Tests
+
+```go
+func TestAgent_ProtoRoundtrip(t *testing.T) {
+	original := agent.NewAgent("Test instructions").
+		WithSkills(skill.NewSkill("test-skill"))
+	
+	// Convert to proto
+	proto := original.ToProto()
+	
+	// Convert back
+	roundtrip, err := agent.FromProto(proto)
+	if err != nil {
+		t.Fatalf("FromProto() error = %v", err)
+	}
+	
+	// Compare
+	if roundtrip.Instructions != original.Instructions {
+		t.Errorf("Instructions mismatch: got %v, want %v", 
+			roundtrip.Instructions, original.Instructions)
+	}
+}
+```
+
+---
+
+## Common Go Patterns
+
+### Error Wrapping
+
+```go
+import "fmt"
+
+func ProcessAgent(a *Agent) error {
+	if err := a.Validate(); err != nil {
+		return fmt.Errorf("validating agent: %w", err)
+	}
+	// ... process
+	return nil
+}
+```
+
+### Nil Checks for Proto
+
+```go
+// Always use Get methods for proto
+spec := proto.GetSpec()  // Returns nil if not set
+if spec == nil {
+	return fmt.Errorf("spec is nil")
+}
+
+// Safe field access
+instructions := spec.GetInstructions()  // Returns "" if not set
+```
+
+### Functional Options
+
+```go
+type Option func(*Agent) error
+
+func WithOrg(org string) Option {
+	return func(a *Agent) error {
+		a.Org = org
+		return nil
+	}
+}
+
+func NewAgentWithOptions(instructions string, opts ...Option) (*Agent, error) {
+	a := NewAgent(instructions)
+	for _, opt := range opts {
+		if err := opt(a); err != nil {
+			return nil, err
+		}
+	}
+	return a, nil
+}
+
+// Usage
+agent, err := NewAgentWithOptions(
+	"Do something",
+	WithOrg("acme-corp"),
+)
+```
+
+---
+
+## Go Module Management
+
+```bash
+# Initialize module (if not exists)
+go mod init github.com/leftbin/stigmer-sdk/go
+
+# Add proto dependencies
+go get github.com/leftbin/stigmer/apis/...
+
+# Tidy dependencies
+go mod tidy
+
+# Update dependencies
+go get -u ./...
+```
+
+---
+
+## Common Commands
+
+```bash
+# Run tests
+go test ./...
+
+# Run specific test
+go test -run TestAgent_Validate ./agent
+
+# Run with coverage
+go test -cover ./...
+
+# Generate coverage report
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+
+# Run linter (if installed)
+golangci-lint run
+
+# Format code
+go fmt ./...
+
+# Build
+go build ./...
+```
+
+---
+
+## Troubleshooting Guide
+
+### Proto Import Errors
+
+**Error**: `cannot find package`
+
+**Fix**: Ensure proto stubs are generated and in go.mod:
+```bash
+# Check if proto module exists
+ls apis/stubs/go/
+
+# Regenerate if needed
+buf generate apis/ai/stigmer
+
+# Update go.mod
+go mod tidy
+```
+
+### Nil Pointer Dereference
+
+**Error**: `panic: runtime error: invalid memory address`
+
+**Fix**: Always use proto getters:
+```go
+// ❌ WRONG - Can panic
+instructions := proto.Spec.Instructions
+
+// ✅ CORRECT - Safe
+spec := proto.GetSpec()
+if spec != nil {
+	instructions := spec.GetInstructions()
+}
+```
+
+### Repeated Field Confusion
+
+**Error**: Trying to assign slice directly
+
+**Fix**: Use append for repeated proto fields:
+```go
+// ❌ WRONG
+proto.Spec.SkillRefs = skillRefs
+
+// ✅ CORRECT
+proto.Spec.SkillRefs = append(proto.Spec.SkillRefs, skillRefs...)
+```
+
+---
+
+## Self-Improvement Workflow
+
+After implementing features in the Go SDK:
+
+### 1. Check Learning Log First
+
+Before solving a problem, check `docs/learning-log.md`:
+- Has this issue been solved before?
+- Is there a documented pattern?
+- What was the root cause last time?
+
+### 2. Document New Learnings
+
+If you discovered something new:
+- Add entry to `docs/learning-log.md` under appropriate topic
+- Include: problem, root cause, solution, prevention
+- Add Go-specific code examples
+
+### 3. Cross-Reference Python SDK
+
+If pattern has Python equivalent:
+- Note cross-reference in learning log
+- Highlight syntax differences
+- Explain conceptual similarities
+
+### 4. Improve This Rule
+
+If the rule itself needs updating:
+- Invoke `@improve-this-rule.mdc`
+- Provide specific feedback on what's missing/wrong
+- AI will update the rule and its documentation
+
+---
+
+## Quick Reference
+
+**File Locations**:
+- Agent: `sdk/go/agent/*.go`
+- Skill: `sdk/go/skill/*.go`
+- Environment: `sdk/go/environment/*.go`
+- MCP Server: `sdk/go/mcpserver/*.go`
+- Tests: `sdk/go/**/*_test.go`
+
+**Key Commands**:
+```bash
+go test ./...              # Run all tests
+go test -cover ./...       # With coverage
+go mod tidy                # Update dependencies
+go fmt ./...               # Format code
+golangci-lint run          # Lint (if installed)
+```
+
+---
+
+## Related Rules
+
+- `@sdk/_rules/implement-stigmer-sdk-features` - Root orchestrator (auto-delegates to this rule)
+- `@sdk/python/_rules/implement-stigmer-sdk-features/implement-python-sdk-features` - Python equivalent
+- `@complete-stigmer-work` - Finalize and commit work
+- `@improve-go-sdk-rule` - Update this rule based on learnings
