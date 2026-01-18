@@ -282,6 +282,51 @@ This guarantees:
 - [API Reference](docs/api/) - gRPC service interfaces and SDK docs
 - [Examples](examples/) - Sample agents and workflows
 
+## Development
+
+### Building from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/stigmer/stigmer.git
+cd stigmer
+
+# Build the CLI
+make build
+
+# Run tests
+make test
+```
+
+### Proto Generation
+
+Stigmer uses Protocol Buffers to define its gRPC API contracts. All proto files are located in the `apis/` directory.
+
+```bash
+# Navigate to apis directory
+cd apis
+
+# Generate all stubs (Go + Python)
+make build
+
+# Or generate specific language stubs
+make go-stubs
+make python-stubs
+
+# Lint and format proto files
+make lint
+make fmt
+
+# Clean generated stubs
+make clean
+```
+
+Generated stubs are placed in `apis/stubs/` and are excluded from version control:
+- Go stubs: `apis/stubs/go/`
+- Python stubs: `apis/stubs/python/stigmer/`
+
+See [apis/README.md](apis/README.md) for more details on the proto structure and build process.
+
 ## Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
