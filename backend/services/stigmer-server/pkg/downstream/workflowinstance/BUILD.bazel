@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "workflowinstance",
+    srcs = ["client.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/gen/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
+        "@com_github_rs_zerolog//log",
+        "@org_golang_google_grpc//:grpc",
+    ],
+)
