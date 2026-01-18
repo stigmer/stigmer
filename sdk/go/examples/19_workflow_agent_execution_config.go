@@ -74,13 +74,14 @@ func main() {
 			// Long timeout for thorough analysis
 			workflow.AgentTimeout(600), // 10 minutes
 		)
-		log.Println("✅ Deep analysis task: architectureReview")
-		log.Println("   Model: claude-3-5-sonnet (powerful)")
-		log.Println("   Temperature: 0.5 (balanced)")
-		log.Println("   Timeout: 600s (thorough)")
+	log.Println("✅ Deep analysis task: architectureReview")
+	log.Println("   Model: claude-3-5-sonnet (powerful)")
+	log.Println("   Temperature: 0.5 (balanced)")
+	log.Println("   Timeout: 600s (thorough)")
+	_ = architectureReview // Used for demonstration purposes
 
-		// ============================================================================
-		// Scenario 3: Creative content generation
+	// ============================================================================
+	// Scenario 3: Creative content generation
 		// Use case: Write marketing copy
 		// ============================================================================
 		generateCopy := wf.CallAgent(
@@ -140,13 +141,14 @@ func main() {
 			// Longer timeout for code generation
 			workflow.AgentTimeout(300), // 5 minutes
 		)
-		log.Println("✅ Code generation task: generateCode")
-		log.Println("   Model: claude-3-5-sonnet (powerful)")
-		log.Println("   Temperature: 0.3 (good patterns)")
-		log.Println("   Timeout: 300s")
+	log.Println("✅ Code generation task: generateCode")
+	log.Println("   Model: claude-3-5-sonnet (powerful)")
+	log.Println("   Temperature: 0.3 (good patterns)")
+	log.Println("   Timeout: 300s")
+	_ = generateCode // Used for demonstration purposes
 
-		// ============================================================================
-		// Scenario 6: Real-time customer support (fast response required)
+	// ============================================================================
+	// Scenario 6: Real-time customer support (fast response required)
 		// Use case: Answer customer question in real-time
 		// ============================================================================
 		customerSupport := wf.CallAgent(
@@ -160,13 +162,14 @@ func main() {
 			// Very short timeout - customer is waiting!
 			workflow.AgentTimeout(15), // 15 seconds max
 		)
-		log.Println("✅ Real-time support task: customerSupport")
-		log.Println("   Model: claude-3-haiku (fastest)")
-		log.Println("   Temperature: 0.4 (helpful)")
-		log.Println("   Timeout: 15s (customer waiting!)")
+	log.Println("✅ Real-time support task: customerSupport")
+	log.Println("   Model: claude-3-haiku (fastest)")
+	log.Println("   Temperature: 0.4 (helpful)")
+	log.Println("   Timeout: 15s (customer waiting!)")
+	_ = customerSupport // Used for demonstration purposes
 
-		// ============================================================================
-		// Summary
+	// ============================================================================
+	// Summary
 		// ============================================================================
 		log.Println("\n📊 Execution Configuration Summary:")
 		log.Printf("   Total tasks: %d\n", len(wf.Tasks))

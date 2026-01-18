@@ -67,13 +67,13 @@ func main() {
 				"Description: ", fetchPR.Field("body"), "\n",
 				"Changed files: ", fetchPR.Field("changed_files"), "\n",
 			)),
-			// Pass runtime secrets to agent environment
-			workflow.WithEnv(map[string]string{
-				"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN").Expression(), // Agent can fetch more context
-				"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER").Expression(),       // Pass PR number
-				"REPO_OWNER":   "myorg",                                             // Static config
-				"REPO_NAME":    "myrepo",                                            // Static config
-			}),
+		// Pass runtime secrets to agent environment
+		workflow.WithEnv(map[string]string{
+			"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"), // Agent can fetch more context
+			"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER"),       // Pass PR number
+			"REPO_OWNER":   "myorg",                                // Static config
+			"REPO_NAME":    "myrepo",                               // Static config
+		}),
 			workflow.AgentTimeout(600), // 10 minutes for thorough review
 		)
 
@@ -82,16 +82,16 @@ func main() {
 		// ============================================================================
 		// Step 3: Post review to Slack
 		// ============================================================================
-		// Use agent output and another runtime secret
-		notifySlack := wf.HttpPost(
-			"notifySlack",
-			workflow.RuntimeSecret("SLACK_WEBHOOK"), // Webhook URL from runtime
-			workflow.WithBody(map[string]any{
-				"text": workflow.Interpolate(
-					"PR #", workflow.RuntimeEnv("PR_NUMBER"),
-					" Review Complete!\n\n",
-					reviewTask.Field("summary"), // Agent's review summary
-				).Expression(),
+	// Use agent output and another runtime secret
+	_ = wf.HttpPost(
+		"notifySlack",
+		workflow.RuntimeSecret("SLACK_WEBHOOK"), // Webhook URL from runtime
+		workflow.WithBody(map[string]any{
+			"text": workflow.Interpolate(
+				"PR #", workflow.RuntimeEnv("PR_NUMBER"),
+				" Review Complete!\n\n",
+				reviewTask.Field("summary"), // Agent's review summary
+			),
 				"attachments": []map[string]any{
 					{
 						"color": "good",
