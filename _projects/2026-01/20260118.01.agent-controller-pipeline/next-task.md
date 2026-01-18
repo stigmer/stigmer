@@ -14,16 +14,82 @@
 ✅ **Architecture Documented** - OSS vs Cloud pipeline differences clarified  
 ✅ **Query Handlers Refactored** - Generic pipeline steps for Get/GetByReference  
 ✅ **Apply Pattern Established** - Simple delegation pattern (not inline)  
-✅ **Session Client Infrastructure Ready** - Downstream client created, awaiting Session controller
+✅ **Session Client Infrastructure Ready** - Downstream client created, awaiting Session controller  
+✅ **AgentExecution Delete Handler Aligned** - Migrated to pipeline pattern (100% compliance)
 
 ## Project Status
 
-🎉 **PHASE 9.3 COMPLETE** 🎉
+🎉 **PHASE 9.4 COMPLETE** 🎉
 
-**Latest:** Complete AgentInstance CRUD with 7 handlers following Agent pattern  
+**Latest:** AgentExecution delete handler aligned with Cloud using pipeline pattern  
 **Next:** Apply pattern to Workflow, Task, and other resources
 
-## What Was Accomplished (Phase 9.3)
+## What Was Accomplished (Phase 9.4)
+
+### ✅ AgentExecution Delete Handler Pipeline Alignment
+
+**Location**: `backend/services/stigmer-server/pkg/controllers/agentexecution/delete.go`
+
+**What changed**:
+- Migrated from direct inline implementation to pipeline pattern
+- Now uses 4 standard pipeline steps (ValidateProto → ExtractResourceId → LoadExistingForDelete → DeleteResource)
+- Aligned with Java `AgentExecutionDeleteHandler` structure (with OSS exclusions documented)
+- 100% standard step reuse (no custom steps needed)
+
+**Why it matters**:
+- **100% Compliance**: ALL handlers must use pipeline pattern per implementation rule
+- **Architectural Consistency**: AgentExecution now fully aligned with Cloud implementation
+- **Pattern Validation**: Proves delete pipeline steps work across all resources
+- **Zero Custom Code**: All functionality provided by standard steps
+
+**Pipeline Steps**:
+1. ValidateProto - Field constraint validation
+2. ExtractResourceId - Extract ID from ApiResourceId wrapper
+3. LoadExistingForDelete - Load resource for audit trail
+4. DeleteResource - Delete from database
+
+**See**: `@checkpoints/2026-01-18-agentexecution-delete-handler-pipeline-alignment.md`
+
+## What Was Accomplished (Phase 9.4)
+
+### ✅ AgentExecution In-Process gRPC Migration
+
+**Location**: `backend/services/stigmer-server/pkg/controllers/agentexecution/`, `backend/services/stigmer-server/pkg/downstream/agent/`, `backend/services/stigmer-server/pkg/controllers/session/`
+
+**Problem solved**:
+- ❌ Direct store access saved agent with wrong `api_resource_kind` (AGENT_EXECUTION instead of AGENT)
+- ❌ Direct store access bypassed validation, business logic, interceptors
+- ❌ Hardcoded resource kind strings ("Agent", "Session")
+
+**Solution**:
+1. Created downstream Agent client (`pkg/downstream/agent/`)
+2. Created Session controller with create handler (`pkg/controllers/session/`)
+3. Replaced 4 direct store calls with in-process gRPC in AgentExecution controller
+4. Updated server initialization to wire up all clients
+
+**Changes**:
+- **Line 154**: `store.GetResource("Agent", ...)` → `agentClient.Get(...)`
+- **Line 232**: `store.SaveResource(kind, ...)` → `agentClient.Update(...)` (correct kind!)
+- **Line 307**: `store.GetResource("Agent", ...)` → `agentClient.Get(...)`
+- **Line 346**: `store.SaveResource("Session", ...)` → `sessionClient.Create(...)` (handler validates!)
+
+**Impact**:
+- ✅ Agent saved with correct `api_resource_kind = "Agent"`
+- ✅ Session created via pipeline (validation, ID generation, audit fields)
+- ✅ No hardcoded strings (handled by interceptors)
+- ✅ Single source of truth - all operations through domain controllers
+
+**Pattern established**:
+> **Cross-Domain Operations**:  
+> When Domain A needs Domain B's resources:
+> 1. Create downstream client in `pkg/downstream/{domainB}/`
+> 2. Inject client into Domain A's controller
+> 3. Use in-process gRPC (not direct store access)
+> 4. Full interceptor chain executes (validation, logging, correct metadata)
+
+**See**: `@checkpoints/2026-01-18-agentexecution-in-process-grpc-migration.md`
+
+## Previous Accomplishments (Phase 9.3)
 
 ### ✅ AgentInstance Handlers Complete
 
@@ -197,8 +263,10 @@ return c.Update(ctx, resource)
 
 ## Documentation Created
 
-- **Latest Checkpoint:** `@checkpoints/2026-01-18-session-client-infrastructure-setup.md`
-- **Latest Changelog:** `@_changelog/2026-01/2026-01-18-234507-add-session-downstream-client.md`
+- **Latest Checkpoint:** `@checkpoints/2026-01-18-agentexecution-delete-handler-pipeline-alignment.md`
+- **Latest Changelog:** `@_changelog/2026-01/2026-01-18-235942-align-agentexecution-delete-handler-with-cloud.md`
+- **Previous Checkpoint:** `@checkpoints/2026-01-18-session-client-infrastructure-setup.md`
+- **Previous Changelog:** `@_changelog/2026-01/2026-01-18-234507-add-session-downstream-client.md`
 - **Previous Checkpoint:** `@checkpoints/2026-01-18-agentinstance-handlers-complete.md`
 - **Previous Changelog:** `@_changelog/2026-01/2026-01-18-232944-implement-agentinstance-handlers.md`
 - **Package README:** `@backend/services/stigmer-server/pkg/controllers/agentinstance/README.md`
