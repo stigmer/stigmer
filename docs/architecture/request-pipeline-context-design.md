@@ -756,6 +756,69 @@ Both approaches are valid engineering trade-offs:
 
 **For Stigmer**: Current implementations are well-suited to their respective codebases and teams. No migration is recommended.
 
+## Delete Operation Pipeline Pattern
+
+### Generic Delete Steps (Stigmer OSS)
+
+As of 2026-01-18, Stigmer OSS implements generic, reusable delete pipeline steps that work for any API resource:
+
+```go
+// Delete pipeline composition (works for any resource)
+pipeline.NewPipeline[*ResourceId]("resource-delete").
+    AddStep(steps.NewValidateProtoStep[*ResourceId]()).
+    AddStep(steps.NewExtractResourceIdStep[*ResourceId]()).
+    AddStep(steps.NewLoadExistingForDeleteStep[*ResourceId, *Resource](store)).
+    AddStep(steps.NewDeleteResourceStep[*ResourceId](store)).
+    Build()
+```
+
+**Key Steps**:
+
+1. **ValidateProtoStep**: Validates proto field constraints on ID wrapper
+2. **ExtractResourceIdStep**: Extracts ID from wrapper types (`AgentId.Value` → string)
+3. **LoadExistingForDeleteStep**: Loads resource by ID, stores in context
+4. **DeleteResourceStep**: Deletes resource from database
+
+**Context Keys Used**:
+```go
+const (
+    ResourceIdKey      = "resourceId"      // Extracted ID value
+    ExistingResourceKey = "existingResource" // Loaded resource (for return)
+)
+```
+
+**Type Parameters**:
+- `T`: Input type (ID wrapper, e.g., `*AgentId`)
+- `R`: Resource type (e.g., `*Agent`)
+
+This achieves **100% code reusability** for delete operations across all resources.
+
+### Comparison: Delete Context Architecture
+
+**Stigmer Cloud (Java)**:
+```java
+DeleteContextV2<AgentId, Agent> deleteCtx = ...;
+// Type-safe fields:
+deleteCtx.getRequest();           // AgentId (input type)
+deleteCtx.getExistingResource();  // Agent (output type)
+deleteCtx.getResourceId();        // Extracted ID string
+deleteCtx.isDeleted();            // boolean flag
+```
+
+**Stigmer OSS (Go)**:
+```go
+reqCtx := pipeline.NewRequestContext(ctx, agentId)
+// Metadata-based communication:
+ctx.Get(ResourceIdKey).(string)         // Extracted ID
+ctx.Get(ExistingResourceKey).(*Agent)   // Loaded resource
+```
+
+**Trade-off Illustrated**:
+- Java: Type system enforces different input/output types (`DeleteContextV2<I, O>`)
+- Go: Generic context accepts any input, metadata stores intermediate values
+
+Both achieve the same goal (load resource, delete, return deleted), but with different safety guarantees.
+
 ## Related Documentation
 
 - [Backend Architecture](backend-architecture.md) - Overall backend design patterns
