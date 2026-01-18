@@ -345,8 +345,10 @@ This guarantees:
 
 ## Documentation
 
+- 📚 [Complete Documentation](docs/README.md) - Full documentation index
 - [Getting Started](docs/getting-started/) - Installation and first agent
 - [Architecture](docs/architecture/) - How Stigmer works
+  - [Request Pipeline Context Design](docs/architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
 - [API Reference](docs/api/) - gRPC service interfaces and SDK docs
 - [Examples](examples/) - Sample agents and workflows
 

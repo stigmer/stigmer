@@ -6,14 +6,8 @@ import (
 	"unicode"
 
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
 	"google.golang.org/protobuf/proto"
 )
-
-// HasMetadata is an interface for resources that have ApiResourceMetadata
-type HasMetadata interface {
-	GetMetadata() *apiresource.ApiResourceMetadata
-}
 
 // ResolveSlugStep generates a URL-friendly slug from the resource name
 //
