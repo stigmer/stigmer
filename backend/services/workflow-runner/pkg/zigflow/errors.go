@@ -18,4 +18,4 @@ package zigflow
 
 import "fmt"
 
-var ErrUnsupportedDSL = fmt.Errorf("unsupported dsl version")
+var ErrUnsupportedDSL = fmt.Errorf("unsupported DSL version")
