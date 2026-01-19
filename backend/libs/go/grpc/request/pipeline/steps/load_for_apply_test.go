@@ -32,8 +32,7 @@ func TestLoadForApplyStep_ResourceExists(t *testing.T) {
 		},
 	}
 
-	kindName, _ := apiresource.GetKindName(apiresourcekind.ApiResourceKind_agent)
-	err := store.SaveResource(ctx, kindName, "existing-id-123", existing)
+	err := store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, "existing-id-123", existing)
 	if err != nil {
 		t.Fatalf("Failed to save test resource: %v", err)
 	}
@@ -241,8 +240,7 @@ func TestLoadForApplyStep_IntegrationWithPipeline(t *testing.T) {
 			Description: "Existing",
 		},
 	}
-	kindName, _ := apiresource.GetKindName(apiresourcekind.ApiResourceKind_agent)
-	store.SaveResource(ctx, kindName, "existing-id", existing)
+	store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, "existing-id", existing)
 
 	// Create input
 	input := &agentv1.Agent{

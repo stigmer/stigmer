@@ -9,6 +9,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
@@ -85,21 +86,17 @@ func (s *LoadByReferenceStep[T]) Execute(ctx *pipeline.RequestContext[*apiresour
 		))
 	}
 
-	// Extract kind name from the enum's proto options
-	kindName, err := apiresource.GetKindName(kind)
-	if err != nil {
-		return fmt.Errorf("failed to get kind name: %w", err)
-	}
-
 	// Find resource by slug
 	// Note: This is not efficient for large datasets (lists all and filters),
 	// but acceptable for local/OSS usage. Production systems should use indexed queries.
-	target, found, err := s.findBySlug(ctx, kindName, ref.Slug, ref.Org)
+	target, found, err := s.findBySlug(ctx, kind, ref.Slug, ref.Org)
 	if err != nil {
 		return err
 	}
 
 	if !found {
+		// Extract kind name for error message
+		kindName, _ := apiresource.GetKindName(kind)
 		return grpclib.WrapError(nil, codes.NotFound, fmt.Sprintf(
 			"%s not found with slug: %s",
 			kindName,
@@ -125,15 +122,17 @@ func (s *LoadByReferenceStep[T]) Execute(ctx *pipeline.RequestContext[*apiresour
 //   - error: any error that occurred during search
 func (s *LoadByReferenceStep[T]) findBySlug(
 	ctx *pipeline.RequestContext[*apiresourcepb.ApiResourceReference],
-	kindName string,
+	kind apiresourcekind.ApiResourceKind,
 	slug string,
 	org string,
 ) (T, bool, error) {
 	var zero T
 
 	// List all resources (note: local/OSS doesn't have org-scoped queries)
-	resources, err := s.store.ListResources(ctx.Context(), kindName)
+	resources, err := s.store.ListResources(ctx.Context(), kind)
 	if err != nil {
+		// Extract kind name for error message
+		kindName, _ := apiresource.GetKindName(kind)
 		return zero, false, grpclib.InternalError(err, fmt.Sprintf("failed to list %s resources", kindName))
 	}
 

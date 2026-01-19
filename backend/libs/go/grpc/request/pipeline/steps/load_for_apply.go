@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -107,17 +107,8 @@ func (s *LoadForApplyStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 
-	// Extract kind name from the enum's proto options
-	kindName, err := apiresource.GetKindName(kind)
-	if err != nil {
-		// Can't determine kind - create new
-		ctx.Set(ExistsInDatabaseKey, false)
-		ctx.Set(ShouldCreateKey, true)
-		return nil
-	}
-
 	// Attempt to find existing resource by slug
-	existing, err := s.findBySlug(ctx.Context(), slug, kindName)
+	existing, err := s.findBySlug(ctx.Context(), slug, kind)
 	if err != nil {
 		// Database error - fail the operation
 		return fmt.Errorf("failed to check for existing resource: %w", err)
@@ -148,8 +139,8 @@ func (s *LoadForApplyStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 
 // findBySlug searches for a resource by slug globally
 // Returns the resource if found, nil if not found, error if database operation fails
-func (s *LoadForApplyStep[T]) findBySlug(ctx context.Context, slug string, kindName string) (proto.Message, error) {
-	resources, err := s.store.ListResources(ctx, kindName)
+func (s *LoadForApplyStep[T]) findBySlug(ctx context.Context, slug string, kind apiresourcekind.ApiResourceKind) (proto.Message, error) {
+	resources, err := s.store.ListResources(ctx, kind)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list resources: %w", err)
 	}
