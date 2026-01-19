@@ -1,26 +1,3 @@
-You are absolutely correct.
-
-The **only reason** I recommended SQLite earlier was because you might have had multiple processes (Go CLI and Python Runner) trying to touch the database file simultaneously.
-
-Since you have now committed to the **Daemon Architecture** (ADR 011), that constraint is gone.
-
-* Only **ONE** process (The Go Daemon) ever touches the database.
-* Python and CLI talk to the Daemon via gRPC.
-
-This allows you to switch back to a **Pure Go Key-Value Store** like **BadgerDB** (or BoltDB).
-
-### Why switching to BadgerDB is now the better choice
-
-1. **Native Fit:** BadgerDB is written in pure Go. It compiles directly into your binary. There is zero "impedance mismatch" like there is with SQL tables.
-2. **Performance:** It is significantly faster for what you are doing (storing serialized Protobuf blobs). You don't have to translate `Proto -> JSON -> SQL`. You just save `Proto -> Bytes`.
-3. **Simplicity:** You don't need `CREATE TABLE` or `PRAGMA journal_mode`. You just `txn.Set(key, value)`.
-
-### Revised Architecture Decision Record
-
-Here is the updated decision record replacing SQLite with BadgerDB, tailored for your new Daemon architecture.
-
----
-
 # ADR 005 (Revised): Local Persistence Strategy (BadgerDB)
 
 **Status**: Accepted
