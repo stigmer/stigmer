@@ -18,6 +18,7 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/badger",
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/interceptors/apiresource",

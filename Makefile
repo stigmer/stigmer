@@ -12,8 +12,8 @@ help: ## Show this help message
 setup: ## Install dependencies and tools
 	@echo "Installing Go dependencies..."
 	go mod download
-	@echo "Installing Python dependencies..."
-	cd sdk/python && pip install -e .[dev]
+	@echo "Installing Agent Runner dependencies..."
+	cd backend/services/agent-runner && poetry install
 	@echo "Setup complete!"
 
 build: protos ## Build the Stigmer CLI
@@ -48,17 +48,49 @@ build-backend: protos ## Build all backend services
 	@echo "============================================"
 
 test: ## Run all tests
-	@echo "Running Go tests..."
+	@echo "============================================"
+	@echo "Running All Tests"
+	@echo "============================================"
+	@echo ""
+	@echo "1/4 Running Root Module Tests..."
+	@echo "--------------------------------------------"
 	go test -v -race -timeout 30s ./...
-	@echo "Running Python SDK tests..."
-	cd sdk/python && pytest
-	@echo "Running Agent Runner tests..."
+	@echo ""
+	@echo "2/4 Running SDK Go Tests..."
+	@echo "--------------------------------------------"
+	cd sdk/go && go test -v -race -timeout 30s ./...
+	@echo ""
+	@echo "3/4 Running Workflow Runner Tests..."
+	@echo "--------------------------------------------"
+	cd backend/services/workflow-runner && go test -v -race -timeout 30s ./...
+	@echo ""
+	@echo "4/4 Running Agent Runner Tests (Python)..."
+	@echo "--------------------------------------------"
+	cd backend/services/agent-runner && poetry install --no-interaction --quiet && poetry run pytest
+	@echo ""
+	@echo "============================================"
+	@echo "✓ All Tests Complete!"
+	@echo "============================================"
+
+test-root: ## Run root module tests only
+	@echo "Running root module tests..."
+	go test -v -race -timeout 30s ./...
+
+test-sdk: ## Run SDK Go tests only
+	@echo "Running SDK Go tests..."
+	cd sdk/go && go test -v -race -timeout 30s ./...
+
+test-workflow-runner: ## Run workflow-runner tests only
+	@echo "Running workflow-runner tests..."
+	cd backend/services/workflow-runner && go test -v -race -timeout 30s ./...
+
+test-agent-runner: ## Run agent-runner tests only (Python)
+	@echo "Running agent-runner tests..."
 	cd backend/services/agent-runner && poetry install --no-interaction --quiet && poetry run pytest
 
 coverage: ## Generate test coverage report
 	@echo "Generating coverage report..."
 	go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
-	go tool cover -html=coverage.txt -o coverage.html
 	@echo "Coverage report: coverage.html"
 
 protos: ## Generate protocol buffer stubs
@@ -213,7 +245,6 @@ clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
 	rm -rf bin/
 	rm -rf coverage.txt coverage.html
-	rm -rf sdk/python/build sdk/python/dist sdk/python/*.egg-info
 	rm -rf backend/services/workflow-runner/bin/
 	$(MAKE) -C apis clean
 	@echo "Clean complete!"
