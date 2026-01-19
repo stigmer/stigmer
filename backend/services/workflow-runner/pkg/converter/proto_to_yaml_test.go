@@ -83,6 +83,7 @@ func TestProtoToYAML_HTTPCallTask(t *testing.T) {
 		Endpoint: &tasksv1.HttpEndpoint{
 			Uri: "https://api.example.com/data",
 		},
+		TimeoutSeconds: 30, // Required field: must be >= 1
 	}
 
 	// Marshal to Struct
