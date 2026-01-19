@@ -76,37 +76,37 @@ func TestFieldRef(t *testing.T) {
 func TestInterpolate(t *testing.T) {
 	tests := []struct {
 		name     string
-		parts    []string
+		parts    []interface{}
 		expected string
 	}{
 		{
 			name:     "single variable reference",
-			parts:    []string{VarRef("apiURL")},
+			parts:    []interface{}{VarRef("apiURL")},
 			expected: "${ $context.apiURL }",
 		},
 		{
 			name:     "variable with path suffix",
-			parts:    []string{VarRef("apiURL"), "/posts/1"},
+			parts:    []interface{}{VarRef("apiURL"), "/posts/1"},
 			expected: "${ $context.apiURL + \"/posts/1\" }",
 		},
 		{
 			name:     "prefix with variable",
-			parts:    []string{"Bearer ", VarRef("token")},
+			parts:    []interface{}{"Bearer ", VarRef("token")},
 			expected: "${ \"Bearer \" + $context.token }",
 		},
 		{
 			name:     "multiple parts",
-			parts:    []string{"https://", VarRef("domain"), "/api/v1"},
+			parts:    []interface{}{"https://", VarRef("domain"), "/api/v1"},
 			expected: "${ \"https://\" + $context.domain + \"/api/v1\" }",
 		},
 		{
 			name:     "plain string only",
-			parts:    []string{"https://api.example.com"},
+			parts:    []interface{}{"https://api.example.com"},
 			expected: "https://api.example.com",
 		},
 		{
 			name:     "multiple plain strings",
-			parts:    []string{"https://", "api.example.com", "/data"},
+			parts:    []interface{}{"https://", "api.example.com", "/data"},
 			expected: "https://api.example.com/data",
 		},
 	}

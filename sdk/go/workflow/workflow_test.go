@@ -89,7 +89,10 @@ func TestWorkflow_New(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wf, err := workflow.New(tt.opts...)
+			wf, err := workflow.New(
+
+				nil, // No context needed for tests
+		tt.opts...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -110,6 +113,8 @@ func TestWorkflow_New(t *testing.T) {
 func TestWorkflow_DefaultVersion(t *testing.T) {
 	// Test that version defaults to "0.1.0" when not provided
 	wf, err := workflow.New(
+
+		nil, // No context needed for tests
 		workflow.WithNamespace("test"),
 		workflow.WithName("test-workflow"),
 		workflow.WithTask(workflow.SetTask("task1", workflow.SetInt("x", 1))),
@@ -126,6 +131,8 @@ func TestWorkflow_DefaultVersion(t *testing.T) {
 
 func TestWorkflow_AddTask(t *testing.T) {
 	wf, err := workflow.New(
+
+		nil, // No context needed for tests
 		workflow.WithNamespace("test"),
 		workflow.WithName("test"),
 		workflow.WithVersion("1.0.0"),
@@ -151,6 +158,8 @@ func TestWorkflow_AddTask(t *testing.T) {
 
 func TestWorkflow_AddTasks(t *testing.T) {
 	wf, err := workflow.New(
+
+		nil, // No context needed for tests
 		workflow.WithNamespace("test"),
 		workflow.WithName("test"),
 		workflow.WithVersion("1.0.0"),
@@ -175,6 +184,8 @@ func TestWorkflow_AddTasks(t *testing.T) {
 
 func TestWorkflow_AddEnvironmentVariable(t *testing.T) {
 	wf, err := workflow.New(
+
+		nil, // No context needed for tests
 		workflow.WithNamespace("test"),
 		workflow.WithName("test"),
 		workflow.WithVersion("1.0.0"),
@@ -205,6 +216,8 @@ func TestWorkflow_AddEnvironmentVariable(t *testing.T) {
 
 func TestWorkflow_String(t *testing.T) {
 	wf, err := workflow.New(
+
+		nil, // No context needed for tests
 		workflow.WithNamespace("test-ns"),
 		workflow.WithName("test-wf"),
 		workflow.WithVersion("1.0.0"),
@@ -224,6 +237,7 @@ func TestWorkflow_String(t *testing.T) {
 
 func TestWorkflow_DuplicateTaskNames(t *testing.T) {
 	_, err := workflow.New(
+ 	nil, // No context needed for tests
 		workflow.WithNamespace("test"),
 		workflow.WithName("test"),
 		workflow.WithVersion("1.0.0"),
@@ -242,6 +256,8 @@ func TestWorkflow_DuplicateTaskNames(t *testing.T) {
 
 func TestWorkflow_WithOrg(t *testing.T) {
 	wf, err := workflow.New(
+
+		nil, // No context needed for tests
 		workflow.WithNamespace("test"),
 		workflow.WithName("test"),
 		workflow.WithVersion("1.0.0"),

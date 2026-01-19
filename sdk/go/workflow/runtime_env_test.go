@@ -16,7 +16,9 @@ import (
 func TestRuntimeSecretPreservedDuringSynthesis(t *testing.T) {
 	// Create a workflow that uses a runtime secret
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
-		wf, err := workflow.New(ctx,
+		wf, err := workflow.New(
+
+			ctx,
 			workflow.WithName("test-runtime-secret"),
 			workflow.WithNamespace("test"),
 		)

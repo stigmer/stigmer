@@ -16,7 +16,6 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
-        "//backend/libs/go/apiresource",
         "//backend/libs/go/badger",
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/interceptors/apiresource",

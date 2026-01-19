@@ -20,7 +20,8 @@ func (m *MockContext) RegisterWorkflow(wf *workflow.Workflow) {
 func TestWorkflow_NewWithContext(t *testing.T) {
 	ctx := stigmer.NewContext()
 	
-	wf, err := workflow.New(ctx,
+	wf, err := workflow.New(
+		ctx,
 		workflow.WithNamespace("test"),
 		workflow.WithName("test-workflow"),
 		workflow.WithVersion("1.0.0"),
@@ -49,6 +50,8 @@ func TestWorkflow_NewWithContext(t *testing.T) {
 func TestWorkflow_NewWithoutContext(t *testing.T) {
 	// Test that old API still works (backward compatibility)
 	wf, err := workflow.New(
+
+		nil, // No context needed for tests
 		workflow.WithNamespace("test"),
 		workflow.WithName("test-workflow"),
 		workflow.WithVersion("1.0.0"),

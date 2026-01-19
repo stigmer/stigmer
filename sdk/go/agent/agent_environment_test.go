@@ -17,6 +17,7 @@ func TestWithEnvironmentVariable(t *testing.T) {
 	}
 
 	agent, err := New(
+		nil, // No context needed for tests
 		WithName("github-bot"),
 		WithInstructions("Manage GitHub repositories"),
 		WithEnvironmentVariable(githubToken),
@@ -55,6 +56,7 @@ func TestWithEnvironmentVariables(t *testing.T) {
 	)
 
 	agent, err := New(
+		nil, // No context needed for tests
 		WithName("cloud-deployer"),
 		WithInstructions("Deploy applications to cloud"),
 		WithEnvironmentVariables(githubToken, awsRegion, logLevel),
@@ -93,6 +95,7 @@ func TestWithMultipleEnvironmentVariableCalls(t *testing.T) {
 	)
 
 	agent, err := New(
+		nil, // No context needed for tests
 		WithName("multi-cloud"),
 		WithInstructions("Manage multi-cloud deployments"),
 		WithEnvironmentVariable(githubToken),

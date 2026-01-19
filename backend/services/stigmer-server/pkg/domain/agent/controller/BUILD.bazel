@@ -34,6 +34,8 @@ go_test(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/badger",
+        "//backend/libs/go/grpc/interceptors/apiresource",
     ],
 )
