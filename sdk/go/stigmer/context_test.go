@@ -354,12 +354,13 @@ func TestContext_ComputedExpressions(t *testing.T) {
 	baseURL := ctx.SetString("baseURL", "https://api.example.com")
 	path := ctx.SetString("path", "/users")
 
-	// Create computed expression
+	// Create computed value - with compile-time resolution, this resolves immediately
 	fullURL := baseURL.Concat(path)
 
-	expected := "${ $context.baseURL + $context.path }"
-	if got := fullURL.Expression(); got != expected {
-		t.Errorf("Computed expression = %q, want %q", got, expected)
+	// Compile-time resolution: all values known, so result is the resolved value
+	expected := "https://api.example.com/users"
+	if got := fullURL.Value(); got != expected {
+		t.Errorf("Resolved value = %q, want %q", got, expected)
 	}
 }
 

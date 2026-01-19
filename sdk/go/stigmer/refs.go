@@ -109,9 +109,9 @@ func (s *StringRef) ToValue() interface{} {
 //	// Result: "${ $context.apiURL + "/users/" + $context.fetchTask.id }"
 func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 	// Track if all parts are known values (can resolve immediately)
-	// A StringRef is "known" only if it's a resolved literal (no name, no computation)
-	// Context variables (have name) are NOT known - they're runtime references
-	allKnown := !s.isComputed && s.name == ""
+	// A StringRef is "known" if it's NOT a computed expression (runtime reference)
+	// Both context variables (have name + value) AND literals (no name) are known at compile-time
+	allKnown := !s.isComputed
 	
 	// Build both the resolved value AND the expression (we'll use one or the other)
 	var resolvedParts []string
@@ -119,17 +119,17 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 	
 	// Add base value/expression
 	if !s.isComputed {
+		// Context variable or literal - use value directly for resolution
+		resolvedParts = append(resolvedParts, s.value)
 		if s.name != "" {
-			// Context variable - generate expression
-			allKnown = false
-			resolvedParts = append(resolvedParts, s.value)
+			// Context variable - generate expression for fallback
 			expressions = append(expressions, fmt.Sprintf("$context.%s", s.name))
 		} else {
-			// Resolved literal - use value directly
-			resolvedParts = append(resolvedParts, s.value)
+			// Literal - use quoted value in expression
 			expressions = append(expressions, fmt.Sprintf(`"%s"`, s.value))
 		}
 	} else {
+		// Computed expression - runtime only
 		allKnown = false
 		expressions = append(expressions, s.rawExpression)
 	}
@@ -145,17 +145,17 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 		case *StringRef:
 			// Another StringRef - check if it's known
 			if !v.isComputed {
+				// Context variable or literal - both are known at compile time
+				resolvedParts = append(resolvedParts, v.value)
 				if v.name != "" {
-					// Context variable - not known at compile time
-					allKnown = false
-					resolvedParts = append(resolvedParts, v.value)
+					// Context variable - generate expression for fallback
 					expressions = append(expressions, fmt.Sprintf("$context.%s", v.name))
 				} else {
-					// Resolved literal
-					resolvedParts = append(resolvedParts, v.value)
+					// Literal
 					expressions = append(expressions, fmt.Sprintf(`"%s"`, v.value))
 				}
 			} else {
+				// Computed expression - runtime only
 				allKnown = false
 				expressions = append(expressions, v.rawExpression)
 			}
@@ -163,17 +163,17 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 		case *IntRef:
 			// IntRef - check if it's known
 			if !v.isComputed {
+				// Context variable or literal - both are known at compile time
+				resolvedParts = append(resolvedParts, fmt.Sprintf("%d", v.value))
 				if v.name != "" {
-					// Context variable - not known at compile time
-					allKnown = false
-					resolvedParts = append(resolvedParts, fmt.Sprintf("%d", v.value))
+					// Context variable - generate expression for fallback
 					expressions = append(expressions, fmt.Sprintf("$context.%s", v.name))
 				} else {
-					// Resolved literal
-					resolvedParts = append(resolvedParts, fmt.Sprintf("%d", v.value))
+					// Literal
 					expressions = append(expressions, fmt.Sprintf("%d", v.value))
 				}
 			} else {
+				// Computed expression - runtime only
 				allKnown = false
 				expressions = append(expressions, v.rawExpression)
 			}
@@ -181,17 +181,17 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 		case *BoolRef:
 			// BoolRef - check if it's known
 			if !v.isComputed {
+				// Context variable or literal - both are known at compile time
+				resolvedParts = append(resolvedParts, fmt.Sprintf("%t", v.value))
 				if v.name != "" {
-					// Context variable - not known at compile time
-					allKnown = false
-					resolvedParts = append(resolvedParts, fmt.Sprintf("%t", v.value))
+					// Context variable - generate expression for fallback
 					expressions = append(expressions, fmt.Sprintf("$context.%s", v.name))
 				} else {
-					// Resolved literal
-					resolvedParts = append(resolvedParts, fmt.Sprintf("%t", v.value))
+					// Literal
 					expressions = append(expressions, fmt.Sprintf("%t", v.value))
 				}
 			} else {
+				// Computed expression - runtime only
 				allKnown = false
 				expressions = append(expressions, v.rawExpression)
 			}

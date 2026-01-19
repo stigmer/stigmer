@@ -81,7 +81,7 @@ func TestStringRef_Concat(t *testing.T) {
 				value:   "https://api.example.com",
 			},
 			parts:    []interface{}{"/users"},
-			expected: `${ $context.apiURL + "/users" }`,
+			expected: "https://api.example.com/users", // Compile-time resolution
 		},
 		{
 			name: "concat with another StringRef",
@@ -95,7 +95,7 @@ func TestStringRef_Concat(t *testing.T) {
 					value:   "/users",
 				},
 			},
-			expected: `${ $context.baseURL + $context.path }`,
+			expected: "https://api.example.com/users", // Compile-time resolution
 		},
 		{
 			name: "concat multiple parts",
@@ -110,15 +110,16 @@ func TestStringRef_Concat(t *testing.T) {
 					value:   "123",
 				},
 			},
-			expected: `${ $context.baseURL + "/users/" + $context.userID }`,
+			expected: "https://api.example.com/users/123", // Compile-time resolution
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := tt.base.Concat(tt.parts...)
-			if got := result.Expression(); got != tt.expected {
-				t.Errorf("Concat() expression = %q, want %q", got, tt.expected)
+			// After compile-time resolution, check Value() not Expression()
+			if got := result.Value(); got != tt.expected {
+				t.Errorf("Concat() value = %q, want %q", got, tt.expected)
 			}
 		})
 	}
@@ -519,14 +520,14 @@ func TestComplexExpressions_StringConcat(t *testing.T) {
 	// Build: baseURL + "/api/" + version + "/" + endpoint
 	fullURL := base.Concat("/api/", version, "/", endpoint)
 
-	// Expression should contain all parts
-	expr := fullURL.Expression()
-	if expr == "" {
-		t.Error("Complex expression should not be empty")
+	// With compile-time resolution, all values are known, so result is resolved
+	expectedValue := "https://api.example.com/api/v1/users"
+	if got := fullURL.Value(); got != expectedValue {
+		t.Errorf("Resolved value = %q, want %q", got, expectedValue)
 	}
 
-	// Should contain all variable references
-	t.Logf("Complex expression: %s", expr)
+	// Log the resolved value
+	t.Logf("Resolved value: %s", fullURL.Value())
 }
 
 func TestComplexExpressions_IntArithmetic(t *testing.T) {
