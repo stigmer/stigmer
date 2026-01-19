@@ -98,18 +98,78 @@ func ResolveConfig(cmd *cobra.Command) LLMConfig {
 
 ## Learnings
 
-_(Will be populated during implementation)_
+### Task 4 Implementation (2026-01-19)
+
+**What Worked Well**:
+- Mode-aware defaults pattern is clean and intuitive
+- Validation at load-time catches errors early
+- Environment variable naming with `STIGMER_LLM_*` prefix is clear
+- Backward compatibility with `ANTHROPIC_API_KEY` preserves existing setups
+
+**Implementation Insights**:
+- Moving worker config loading earlier in `execute_graphton.py` simplified access to both sandbox and LLM config
+- Using `Optional[str]` for provider-specific fields (base_url, api_key) makes validation explicit
+- Dataclass with validation method is cleaner than validation in `__post_init__`
+
+**Code Organization**:
+- LLMConfig before Config in same file works well (no circular dependencies)
+- Configuration cascade logic isolated in `load_from_env()` keeps it testable
+- Provider validation in separate `validate()` method allows future extension
+
+**Configuration Cascade Success**:
+- Three-level priority (execution > env vars > defaults) handles all use cases
+- Mode-aware defaults (local → Ollama, cloud → Anthropic) make zero-config possible
+- Explicit env vars allow power users to override anything
 
 ## Gotchas
 
-_(Will be populated during implementation)_
+### Implementation Gotchas
+
+1. **Import Order Matters**: Must import `Optional` from `typing` before using it in dataclass
+   - Fixed: Added `from typing import Optional` to imports
+
+2. **Config Loading Timing**: Worker config needs to be loaded before both sandbox and model config
+   - Fixed: Moved `Config.load_from_env()` earlier in `execute_graphton.py`
+
+3. **Type Annotations**: Python 3.10+ supports `str | None` but older versions need `Optional[str]`
+   - Decision: Used `Optional[str]` for broader compatibility
+
+4. **Validation Errors**: Should be raised at config load time, not during execution
+   - Implemented: `validate()` called at end of `load_from_env()`
+
+5. **Default Values**: Dataclass fields with defaults must come after fields without defaults
+   - Structure: `provider`, `model_name` (required) before `base_url`, `api_key` (optional)
+
+### Future Gotchas to Watch
+
+1. **Ollama Not Running**: No health check on startup - will fail during first execution
+   - TODO: Consider adding ping to Ollama endpoint in validation
+
+2. **API Key Security**: Environment variables visible in process lists
+   - Mitigation: Document secure practices, consider future secret management
+
+3. **Model Names**: Different providers use different naming conventions
+   - Ollama: `model-name:tag` (e.g., `qwen2.5-coder:7b`)
+   - Anthropic: `claude-*` (e.g., `claude-sonnet-4.5`)
+   - OpenAI: `gpt-*` or `o1-*` (e.g., `gpt-4`)
+
+4. **Base URL Format**: Ollama expects `http://host:port` not `http://host:port/v1`
+   - Note: Graphton's `parse_model_string()` handles URL formatting
 
 ## Questions/Blockers
 
-- [ ] Where exactly is the agent runner spawned in the daemon code?
-- [ ] Does the agent runner already read any environment variables?
-- [ ] Are there existing patterns for config in the codebase we should follow?
-- [ ] Should we validate that Ollama is running before using it? (probably yes, but could defer)
+- [x] ~~Where exactly is the agent runner spawned in the daemon code?~~ (Not needed for Task 4)
+- [x] ~~Does the agent runner already read any environment variables?~~ (Yes, via `Config.load_from_env()`)
+- [x] ~~Are there existing patterns for config in the codebase we should follow?~~ (Yes, `Config` dataclass pattern)
+- [ ] Should we validate that Ollama is running before using it? (Deferred - can add health check later)
+
+### Open Questions for Future Tasks
+
+- Should we add startup logging to show active LLM config?
+- Should we ping Ollama endpoint during validation?
+- Should we support model aliases (fast/balanced/powerful)?
+- Should we add `.stigmer/config.yaml` support?
+- How should we handle Ollama not being available in local mode?
 
 ## Testing Strategy
 
@@ -169,4 +229,25 @@ _(Will be populated during implementation)_
 
 ## Scratchpad
 
-_(Use this space for quick notes during implementation)_
+### Task 4 Completion Summary (2026-01-19)
+
+**Implementation Time**: ~1 hour  
+**Lines Changed**: ~170 lines added, 5 lines modified
+
+**Files Created**:
+- `task-4-completion.md` - Detailed completion documentation
+- `checkpoints/2026-01-19-task-4-llm-config-complete.md` - Checkpoint snapshot
+- `_changelog/2026-01/2026-01-19-070459-implement-llm-config-worker.md` - Changelog entry
+
+**Files Modified**:
+- `backend/services/agent-runner/worker/config.py` - Added LLMConfig dataclass
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` - Updated model selection
+- `next-task.md` - Updated progress and status
+
+**Linter Status**: ✅ No errors
+
+**Next Steps**:
+1. Integration testing with both Ollama and Anthropic
+2. Add startup logging to show active config
+3. Update user-facing documentation
+4. Consider CLI integration (daemon → worker config passing)
