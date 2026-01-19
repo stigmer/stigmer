@@ -23,6 +23,8 @@ Implementing local mode for Go workflow-runner service by adding filesystem-base
 
 Tasks 1-4 are complete! The filesystem storage backend is fully implemented, tested, and documented.
 
+**Recent Update (2026-01-20)**: Module dependencies fixed - testing is now unblocked! See checkpoint `checkpoints/2026-01-20-module-dependencies-fixed.md`.
+
 **What's Been Done:**
 
 1. **FilesystemStore Implementation** (`filesystem_store.go`)

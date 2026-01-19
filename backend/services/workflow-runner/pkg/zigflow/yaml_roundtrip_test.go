@@ -19,7 +19,7 @@ package zigflow_test
 import (
 	"testing"
 
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/zigflow"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/yaml"
