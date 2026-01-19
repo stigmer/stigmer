@@ -587,7 +587,9 @@ func TestCompileTimeVariableResolution(t *testing.T) {
 		timeout := ctx.SetInt("timeout", 30)
 
 		// Create workflow
-		wf, err := workflow.New(ctx,
+		wf, err := workflow.New(
+
+			ctx,
 			workflow.WithNamespace("test"),
 			workflow.WithName("compile-time-test"),
 			workflow.WithVersion("1.0.0"),

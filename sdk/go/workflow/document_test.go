@@ -103,7 +103,7 @@ func TestWorkflow_DocumentValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := workflow.New(tt.opts...)
+			_, err := workflow.New(nil, tt.opts...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Document validation error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -122,6 +122,7 @@ func TestWorkflow_DescriptionLength(t *testing.T) {
 	longDescription := string(make([]byte, 600)) // > 500 chars
 
 	_, err := workflow.New(
+		nil, // No context needed for tests
 		workflow.WithNamespace("test"),
 		workflow.WithName("test"),
 		workflow.WithVersion("1.0.0"),

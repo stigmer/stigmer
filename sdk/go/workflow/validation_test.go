@@ -53,6 +53,7 @@ func TestWorkflow_TaskNameValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := workflow.New(
+				nil, // No context needed for tests
 				workflow.WithNamespace("test"),
 				workflow.WithName("test"),
 				workflow.WithVersion("1.0.0"),
@@ -68,6 +69,7 @@ func TestWorkflow_TaskNameValidation(t *testing.T) {
 func TestWorkflow_TaskConfigValidation_SetTask(t *testing.T) {
 	// SET task with no variables should fail
 	_, err := workflow.New(
+		nil, // No context needed for tests
 		workflow.WithNamespace("test"),
 		workflow.WithName("test"),
 		workflow.WithVersion("1.0.0"),
@@ -140,6 +142,7 @@ func TestWorkflow_TaskConfigValidation_HttpCallTask(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := workflow.New(
+				nil, // No context needed for tests
 				workflow.WithNamespace("test"),
 				workflow.WithName("test"),
 				workflow.WithVersion("1.0.0"),
@@ -194,6 +197,7 @@ func TestWorkflow_TaskConfigValidation_GrpcCallTask(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := workflow.New(
+				nil, // No context needed for tests
 				workflow.WithNamespace("test"),
 				workflow.WithName("test"),
 				workflow.WithVersion("1.0.0"),
@@ -215,6 +219,7 @@ func TestWorkflow_TaskConfigValidation_GrpcCallTask(t *testing.T) {
 func TestWorkflow_TaskConfigValidation_SwitchTask(t *testing.T) {
 	// SWITCH task with no cases should fail
 	_, err := workflow.New(
+		nil, // No context needed for tests
 		workflow.WithNamespace("test"),
 		workflow.WithName("test"),
 		workflow.WithVersion("1.0.0"),
@@ -262,6 +267,7 @@ func TestWorkflow_TaskConfigValidation_ForTask(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := workflow.New(
+				nil, // No context needed for tests
 				workflow.WithNamespace("test"),
 				workflow.WithName("test"),
 				workflow.WithVersion("1.0.0"),
@@ -375,6 +381,7 @@ func TestWorkflow_TaskConfigValidation_OtherTasks(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := workflow.New(
+				nil, // No context needed for tests
 				workflow.WithNamespace("test"),
 				workflow.WithName("test"),
 				workflow.WithVersion("1.0.0"),

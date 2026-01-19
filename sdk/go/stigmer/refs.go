@@ -54,6 +54,11 @@ func (r *baseRef) Expression() string {
 	if r.isComputed {
 		return fmt.Sprintf("${ %s }", r.rawExpression)
 	}
+	// If name is empty, this is a resolved literal (not a context variable)
+	// This should not happen in normal usage - resolved literals should use ToValue()
+	if r.name == "" {
+		return "" // Return empty string for resolved literals
+	}
 	return fmt.Sprintf("${ $context.%s }", r.name)
 }
 
@@ -104,7 +109,9 @@ func (s *StringRef) ToValue() interface{} {
 //	// Result: "${ $context.apiURL + "/users/" + $context.fetchTask.id }"
 func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 	// Track if all parts are known values (can resolve immediately)
-	allKnown := !s.isComputed
+	// A StringRef is "known" only if it's a resolved literal (no name, no computation)
+	// Context variables (have name) are NOT known - they're runtime references
+	allKnown := !s.isComputed && s.name == ""
 	
 	// Build both the resolved value AND the expression (we'll use one or the other)
 	var resolvedParts []string
@@ -112,8 +119,16 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 	
 	// Add base value/expression
 	if !s.isComputed {
-		resolvedParts = append(resolvedParts, s.value)
-		expressions = append(expressions, fmt.Sprintf("$context.%s", s.name))
+		if s.name != "" {
+			// Context variable - generate expression
+			allKnown = false
+			resolvedParts = append(resolvedParts, s.value)
+			expressions = append(expressions, fmt.Sprintf("$context.%s", s.name))
+		} else {
+			// Resolved literal - use value directly
+			resolvedParts = append(resolvedParts, s.value)
+			expressions = append(expressions, fmt.Sprintf(`"%s"`, s.value))
+		}
 	} else {
 		allKnown = false
 		expressions = append(expressions, s.rawExpression)
@@ -130,8 +145,16 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 		case *StringRef:
 			// Another StringRef - check if it's known
 			if !v.isComputed {
-				resolvedParts = append(resolvedParts, v.value)
-				expressions = append(expressions, fmt.Sprintf("$context.%s", v.name))
+				if v.name != "" {
+					// Context variable - not known at compile time
+					allKnown = false
+					resolvedParts = append(resolvedParts, v.value)
+					expressions = append(expressions, fmt.Sprintf("$context.%s", v.name))
+				} else {
+					// Resolved literal
+					resolvedParts = append(resolvedParts, v.value)
+					expressions = append(expressions, fmt.Sprintf(`"%s"`, v.value))
+				}
 			} else {
 				allKnown = false
 				expressions = append(expressions, v.rawExpression)
@@ -140,8 +163,16 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 		case *IntRef:
 			// IntRef - check if it's known
 			if !v.isComputed {
-				resolvedParts = append(resolvedParts, fmt.Sprintf("%d", v.value))
-				expressions = append(expressions, fmt.Sprintf("$context.%s", v.name))
+				if v.name != "" {
+					// Context variable - not known at compile time
+					allKnown = false
+					resolvedParts = append(resolvedParts, fmt.Sprintf("%d", v.value))
+					expressions = append(expressions, fmt.Sprintf("$context.%s", v.name))
+				} else {
+					// Resolved literal
+					resolvedParts = append(resolvedParts, fmt.Sprintf("%d", v.value))
+					expressions = append(expressions, fmt.Sprintf("%d", v.value))
+				}
 			} else {
 				allKnown = false
 				expressions = append(expressions, v.rawExpression)
@@ -150,8 +181,16 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 		case *BoolRef:
 			// BoolRef - check if it's known
 			if !v.isComputed {
-				resolvedParts = append(resolvedParts, fmt.Sprintf("%t", v.value))
-				expressions = append(expressions, fmt.Sprintf("$context.%s", v.name))
+				if v.name != "" {
+					// Context variable - not known at compile time
+					allKnown = false
+					resolvedParts = append(resolvedParts, fmt.Sprintf("%t", v.value))
+					expressions = append(expressions, fmt.Sprintf("$context.%s", v.name))
+				} else {
+					// Resolved literal
+					resolvedParts = append(resolvedParts, fmt.Sprintf("%t", v.value))
+					expressions = append(expressions, fmt.Sprintf("%t", v.value))
+				}
 			} else {
 				allKnown = false
 				expressions = append(expressions, v.rawExpression)
