@@ -50,21 +50,70 @@ On first start, you'll be prompted for required API keys:
 ```
 Enter Anthropic API key: ********
 ✓ Anthropic API key configured
-Starting daemon...
-Daemon started successfully
+✓ Starting managed Temporal server...
+✓ Temporal started successfully
+✓ Ready! Stigmer is running
   PID:  12345
   Port: 50051
-  Data: /Users/you/.stigmer
-Agent-runner started successfully
+  Data: /Users/you/.stigmer/data
+
+Temporal UI: http://localhost:8233
 ```
 
 **What happens:**
 - Stigmer prompts for missing API keys (masked input)
+- Downloads and starts Temporal server (auto-managed, no Docker required)
 - Starts local stigmer-server on `localhost:50051`
 - Starts agent-runner subprocess with injected secrets
-- Both processes run in background
+- All processes run in background
+- Temporal Web UI available at `http://localhost:8233`
 
 **Subsequent starts:** If you've set `ANTHROPIC_API_KEY` in your environment, no prompt will appear.
+
+### Temporal Web UI (Workflow Debugging)
+
+When you start the local daemon, Temporal's Web UI is automatically available for visualizing and debugging workflows:
+
+**Access**: http://localhost:8233
+
+The Temporal UI provides:
+- **Workflow visualization** - See all running and completed workflows
+- **Execution history** - Inspect inputs, outputs, and events for each workflow
+- **Task queues** - Monitor task queue activity and worker status
+- **Workflow details** - Debug workflow state, activities, and errors
+
+**Example use cases**:
+```bash
+# Start daemon (Temporal UI starts automatically)
+stigmer local start
+✓ Ready! Stigmer is running
+  Temporal UI: http://localhost:8233
+
+# Execute a workflow
+stigmer workflow execute pr-review --input pr_url=https://github.com/org/repo/pull/123
+
+# Open UI to watch execution in real-time
+open http://localhost:8233
+```
+
+**What you'll see in the UI**:
+1. **Workflows tab**: All workflow executions with status (Running, Completed, Failed)
+2. **Task Queues tab**: Worker activity and pending tasks
+3. **Workflow details**: Click any workflow to see:
+   - Full execution timeline with all events
+   - Input/output data for each activity
+   - Stack trace for failed workflows
+   - Workflow state and variables
+
+**Debugging failed workflows**:
+1. Navigate to http://localhost:8233
+2. Find your workflow execution (search by workflow ID or filter by status)
+3. Click to view execution details
+4. Check "Event History" tab for step-by-step execution
+5. Look for failed activities in red
+6. Inspect error messages and stack traces
+
+The Temporal UI is invaluable for understanding workflow execution flow and debugging issues.
 
 ### Check Status
 
@@ -74,12 +123,14 @@ stigmer local status
 
 **Output**:
 ```
-Daemon Status:
+Stigmer Local Status:
 ─────────────────────────────────────
   Status: ✓ Running
   PID:    12345
   Port:   50051
-  Data:   /Users/you/.stigmer
+  Data:   /Users/you/.stigmer/data
+
+Temporal UI: http://localhost:8233
 ```
 
 ### Stop Local Daemon
