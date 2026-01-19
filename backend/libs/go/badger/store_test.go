@@ -40,11 +40,11 @@ func TestStore_SaveAndGetResource(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Save resource using the enum constant
+	// Save resource using kind string
 	err = store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, agent)
 	require.NoError(t, err)
 
-	// Get resource using the enum constant
+	// Get resource using kind string
 	retrievedAgent := &agentv1.Agent{}
 	err = store.GetResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, retrievedAgent)
 	require.NoError(t, err)
@@ -76,11 +76,11 @@ func TestStore_DeleteResource(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Save using the enum constant
+	// Save using kind string
 	err = store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, agent)
 	require.NoError(t, err)
 
-	// Delete using the enum constant
+	// Delete using kind string
 	err = store.DeleteResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id)
 	require.NoError(t, err)
 
@@ -168,7 +168,7 @@ func TestStore_GetResource_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	agent := &agentv1.Agent{}
-	err := store.GetResource(ctx, apiresourcekind.ApiResourceKind_agent, "non-existent-id", agent)
+	err = store.GetResource(ctx, apiresourcekind.ApiResourceKind_agent, "non-existent-id", agent)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }

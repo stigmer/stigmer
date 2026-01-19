@@ -22,6 +22,8 @@ go_test(
     srcs = ["interceptor_test.go"],
     embed = [":apiresource"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
+        "//apis/stubs/go/ai/stigmer/agentic/agentinstance/v1:agentinstance",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "@com_github_stretchr_testify//assert",
         "@org_golang_google_grpc//:grpc",
