@@ -312,7 +312,8 @@ func TestE2E_EmptyOptionalFields(t *testing.T) {
 		Endpoint: &tasksv1.HttpEndpoint{
 			Uri: "https://api.example.com",
 		},
-		// No headers, no timeout, no body
+		TimeoutSeconds: 30, // Required field: must be >= 1
+		// No headers, no body
 	}
 
 	taskConfig, err := validation.MarshalTaskConfig(httpConfig)
@@ -342,9 +343,10 @@ func TestE2E_EmptyOptionalFields(t *testing.T) {
 	assert.Contains(t, yaml, "call: http")
 	assert.Contains(t, yaml, "uri: https://api.example.com")
 
-	// Should NOT contain empty optional fields
-	// (YAML marshaler omits zero values)
-	assert.NotContains(t, yaml, "timeout_seconds: 0")
+	// Should contain timeout since it's required
+	assert.Contains(t, yaml, "timeout_seconds: 30")
+	
+	// Should NOT contain truly optional fields
 	assert.NotContains(t, yaml, "body:")
 }
 
@@ -441,7 +443,8 @@ func TestE2E_BodyAsStruct(t *testing.T) {
 		Endpoint: &tasksv1.HttpEndpoint{
 			Uri: "https://api.example.com/users",
 		},
-		Body: body,
+		Body:           body,
+		TimeoutSeconds: 30, // Required field: must be >= 1
 	}
 
 	taskConfig, err := validation.MarshalTaskConfig(httpConfig)
