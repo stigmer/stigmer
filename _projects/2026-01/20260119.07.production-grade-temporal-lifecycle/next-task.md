@@ -2,8 +2,8 @@
 
 **Project:** `_projects/2026-01/20260119.07.production-grade-temporal-lifecycle`  
 **Last Updated:** 2026-01-20  
-**Current Status:** 🚧 In Progress (4/6 tasks complete)  
-**Note:** Supervisor goroutine complete (checkpoint: task4-testing-guide.md)
+**Current Status:** 🚧 In Progress (5/6 tasks complete)  
+**Note:** Lock file implementation complete (checkpoint: task5-testing-guide.md)
 
 ---
 
@@ -20,49 +20,64 @@ Implementing production-grade subprocess lifecycle management for Temporal dev s
 - ✅ Task 2: Health Checks and Validation (DONE)
 - ✅ Task 3: Make Start Idempotent (DONE)
 - ✅ Task 4: Add Supervisor Goroutine (DONE)
-- ⏸️ Task 5: Replace PID Files with Lock Files (NEXT)
+- ✅ Task 5: Replace PID Files with Lock Files (DONE)
+- ⏸️ Task 6: Testing and Validation (NEXT)
 
 ---
 
-## 📋 Next Task: Task 5 - Replace PID Files with Lock Files
+## 📋 Next Task: Task 6 - Testing and Validation
 
 **Status:** ⏸️ TODO  
-**Estimated:** 45 minutes
+**Estimated:** 30 minutes
 
 ### What to Do
 
-1. **Create lock file using syscall.Flock:**
-   - Lock file: `~/.stigmer/temporal.lock`
-   - Use `LOCK_EX | LOCK_NB` for exclusive non-blocking lock
-   - Lock held for lifetime of Temporal process
-   - Automatically released on process death
+1. **Test normal lifecycle:**
+   - Start → Stop → Start cycle
+   - Verify clean startup and shutdown
+   - Check logs for proper sequencing
 
-2. **Implement lock file management:**
-   - Acquire lock before starting Temporal
-   - Release lock when stopping (automatic on file close)
-   - Handle lock acquisition failures gracefully
-   - Keep PID file for backward compatibility/debugging
+2. **Test crash recovery:**
+   - Kill Temporal with `kill -9`
+   - Verify supervisor auto-restarts (within 5s)
+   - Verify lock auto-released and reacquired
 
-3. **Use lock as source of truth:**
-   - Check lock availability instead of PID file for "already running"
-   - Lock prevents concurrent Temporal instances
-   - More reliable than PID-based detection
+3. **Test idempotency:**
+   - Run `stigmer local` multiple times
+   - Verify "already running" detection works
+   - Verify lock-based fast path
 
-4. **Test lock behavior:**
+4. **Test concurrent access:**
+   - Try starting two instances simultaneously
    - Verify lock prevents second instance
-   - Simulate crash and verify lock is released
-   - Verify clean restart after crash
-   - Check graceful shutdown releases lock
+   - Verify first instance continues normally
 
-### Files to Modify
-- `client-apps/cli/internal/cli/temporal/manager.go`
+5. **Test orphan cleanup:**
+   - Kill with `kill -9`, then start again
+   - Verify stale PID file cleaned
+   - Verify lock auto-released
+
+6. **Test health checks:**
+   - Verify health checks run every 5s
+   - Verify detect failures correctly
+   - Verify integrate with lock file
+
+### Test Scenarios
+
+1. **Normal flow**: `stigmer local` → `stigmer local stop` → `stigmer local`
+2. **Restart**: `stigmer local restart`
+3. **Crash recovery**: `kill -9 <pid>` → wait 5s → verify auto-restart
+4. **Orphan cleanup**: `kill -9 <pid>` → `stigmer local stop` → `stigmer local`
+5. **Concurrent start**: Two terminals run `stigmer local` simultaneously
+6. **Idempotent start**: `stigmer local` when already running
 
 ### Acceptance Criteria
-- [ ] Lock file prevents concurrent Temporal instances
-- [ ] Lock automatically released on crash (no manual cleanup needed)
-- [ ] Attempting to start second instance fails gracefully with clear message
-- [ ] PID file still written for debugging purposes
-- [ ] Lock-based detection more reliable than PID-based
+- [ ] All 6 test scenarios pass
+- [ ] No "already running" errors in normal usage
+- [ ] Auto-restart works reliably after crash
+- [ ] Lock prevents concurrent instances
+- [ ] Clear, helpful log messages for all scenarios
+- [ ] No stale locks or PID files after testing
 
 ---
 
