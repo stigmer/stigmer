@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.identityaccount.v1;
+
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "ai/stigmer/iam/identityaccount/v1/spec.proto";
+import "buf/validate/validate.proto";
+
+// identity-account for user accounts
+message IdentityAccount {
+  //api-version
+  string api_version = 1 [(buf.validate.field).string.const = 'iam.stigmer.ai/v1'];
+
+  //resource-kind
+  string kind = 2 [(buf.validate.field).string.const = 'IdentityAccount'];
+
+  // metadata
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
+
+  //spec
+  IdentityAccountSpec spec = 4;
+
+  //status
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+}

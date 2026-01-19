@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package ai.stigmer.tenancy.organization.v1;
+
+import "ai/stigmer/tenancy/organization/v1/api.proto";
+import "buf/validate/validate.proto";
+
+// List of organizations (unbounded)
+message Organizations {
+  repeated Organization entries = 1;
+}
+
+// Response for paginated list query
+message OrganizationList {
+  // total number of pages
+  int32 total_pages = 1;
+  // organizations in current page
+  repeated Organization entries = 2;
+}
+
+// Wrapper for organization id
+message OrganizationId {
+  // organization id (UUID format)
+  string value = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 64
+  }];
+}

@@ -1,0 +1,10 @@
+resource:
+  kind: reservation
+  id: rsv_01xyz789
+principalKind: identity_account
+relation: update
+contextualPolicies: []
+
+
+
+
