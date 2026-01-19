@@ -19,7 +19,7 @@ Run locally with BadgerDB or scale to production with Stigmer Cloud.`,
 func init() {
 	// Add subcommands
 	rootCmd.AddCommand(root.NewInitCommand())
-	rootCmd.AddCommand(root.NewLocalCommand())
+	rootCmd.AddCommand(root.NewDevCommand())
 	rootCmd.AddCommand(root.NewBackendCommand())
 	rootCmd.AddCommand(root.NewAgentCommand())
 	rootCmd.AddCommand(root.NewWorkflowCommand())

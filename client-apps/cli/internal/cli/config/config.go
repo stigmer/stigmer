@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -17,20 +18,20 @@ const (
 	DefaultDataDir = "data"
 )
 
-// BackendType represents the type of backend (local or cloud)
+// BackendType represents the type of backend (dev or cloud)
 type BackendType string
 
 const (
-	BackendTypeLocal BackendType = "local"
+	BackendTypeDev   BackendType = "dev"
 	BackendTypeCloud BackendType = "cloud"
 )
 
 // Config represents the Stigmer CLI configuration
 //
-// This config supports both local and cloud backends, inspired by Pulumi's approach.
+// This config supports both dev and cloud backends, inspired by Pulumi's approach.
 // The active backend determines where resources are stored and managed.
 //
-// Local mode: Resources stored in BadgerDB at ~/.stigmer/data
+// Dev mode: Resources stored in BadgerDB at ~/.stigmer/data
 // Cloud mode: Resources managed via Stigmer Cloud gRPC API
 type Config struct {
 	Backend BackendConfig `yaml:"backend"`
@@ -39,15 +40,32 @@ type Config struct {
 
 // BackendConfig represents backend configuration
 type BackendConfig struct {
-	Type  BackendType        `yaml:"type"` // "local" or "cloud"
-	Local *LocalBackendConfig `yaml:"local,omitempty"`
+	Type BackendType      `yaml:"type"` // "dev" or "cloud"
+	Dev  *DevBackendConfig `yaml:"dev,omitempty"`
 	Cloud *CloudBackendConfig `yaml:"cloud,omitempty"`
 }
 
-// LocalBackendConfig represents local backend configuration
-type LocalBackendConfig struct {
-	Endpoint string `yaml:"endpoint"` // Daemon endpoint (default: localhost:50051)
-	DataDir  string `yaml:"data_dir"` // Path to daemon data directory (for init)
+// DevBackendConfig represents dev backend configuration
+type DevBackendConfig struct {
+	Endpoint string          `yaml:"endpoint"`           // Daemon endpoint (default: localhost:50051)
+	DataDir  string          `yaml:"data_dir"`           // Path to daemon data directory (for init)
+	LLM      *LLMConfig      `yaml:"llm,omitempty"`      // LLM configuration
+	Temporal *TemporalConfig `yaml:"temporal,omitempty"` // Temporal configuration
+}
+
+// LLMConfig represents LLM provider configuration
+type LLMConfig struct {
+	Provider string `yaml:"provider"`           // "ollama", "anthropic", "openai"
+	Model    string `yaml:"model,omitempty"`    // Model name (e.g., "qwen2.5-coder:7b", "claude-sonnet-4.5")
+	BaseURL  string `yaml:"base_url,omitempty"` // Base URL for API (e.g., "http://localhost:11434")
+}
+
+// TemporalConfig represents Temporal runtime configuration
+type TemporalConfig struct {
+	Managed bool   `yaml:"managed"`           // true = auto-download/start, false = external
+	Version string `yaml:"version,omitempty"` // Version for managed binary (e.g., "1.25.1")
+	Port    int    `yaml:"port,omitempty"`    // Port for managed Temporal (default: 7233)
+	Address string `yaml:"address,omitempty"` // Address for external Temporal
 }
 
 // CloudBackendConfig represents cloud backend configuration
@@ -118,15 +136,26 @@ func Save(cfg *Config) error {
 
 // GetDefault returns the default configuration
 //
-// Default is local backend connecting to localhost:50051 daemon
+// Default is dev backend connecting to localhost:50051 daemon
+// with Ollama LLM and managed Temporal runtime (zero-config)
 func GetDefault() *Config {
 	dataDir, _ := GetDataDir()
 	return &Config{
 		Backend: BackendConfig{
-			Type: BackendTypeLocal,
-			Local: &LocalBackendConfig{
+			Type: BackendTypeDev,
+			Dev: &DevBackendConfig{
 				Endpoint: "localhost:50051", // ADR 011: daemon port
 				DataDir:  dataDir,
+				LLM: &LLMConfig{
+					Provider: "ollama",
+					Model:    "qwen2.5-coder:7b",
+					BaseURL:  "http://localhost:11434",
+				},
+				Temporal: &TemporalConfig{
+					Managed: true,
+					Version: "1.25.1",
+					Port:    7233,
+				},
 			},
 		},
 	}
@@ -172,4 +201,114 @@ func IsInitialized() bool {
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+// ResolveLLMProvider resolves the LLM provider with cascading config
+// Priority: env var > config file > default
+func (c *DevBackendConfig) ResolveLLMProvider() string {
+	// 1. Check environment variable
+	if provider := os.Getenv("STIGMER_LLM_PROVIDER"); provider != "" {
+		return provider
+	}
+	
+	// 2. Check config file
+	if c.LLM != nil && c.LLM.Provider != "" {
+		return c.LLM.Provider
+	}
+	
+	// 3. Default
+	return "ollama"
+}
+
+// ResolveLLMModel resolves the LLM model with cascading config
+func (c *DevBackendConfig) ResolveLLMModel() string {
+	// 1. Check environment variable
+	if model := os.Getenv("STIGMER_LLM_MODEL"); model != "" {
+		return model
+	}
+	
+	// 2. Check config file
+	if c.LLM != nil && c.LLM.Model != "" {
+		return c.LLM.Model
+	}
+	
+	// 3. Provider-specific defaults
+	provider := c.ResolveLLMProvider()
+	switch provider {
+	case "ollama":
+		return "qwen2.5-coder:7b"
+	case "anthropic":
+		return "claude-sonnet-4.5"
+	case "openai":
+		return "gpt-4"
+	default:
+		return "qwen2.5-coder:7b"
+	}
+}
+
+// ResolveLLMBaseURL resolves the LLM base URL with cascading config
+func (c *DevBackendConfig) ResolveLLMBaseURL() string {
+	// 1. Check environment variable
+	if baseURL := os.Getenv("STIGMER_LLM_BASE_URL"); baseURL != "" {
+		return baseURL
+	}
+	
+	// 2. Check config file
+	if c.LLM != nil && c.LLM.BaseURL != "" {
+		return c.LLM.BaseURL
+	}
+	
+	// 3. Provider-specific defaults
+	provider := c.ResolveLLMProvider()
+	switch provider {
+	case "ollama":
+		return "http://localhost:11434"
+	case "anthropic":
+		return "https://api.anthropic.com"
+	case "openai":
+		return "https://api.openai.com/v1"
+	default:
+		return "http://localhost:11434"
+	}
+}
+
+// ResolveTemporalAddress resolves the Temporal service address
+// Returns (address, isManaged)
+func (c *DevBackendConfig) ResolveTemporalAddress() (string, bool) {
+	// 1. Check environment variable (forces external mode)
+	if addr := os.Getenv("TEMPORAL_SERVICE_ADDRESS"); addr != "" {
+		return addr, false // external
+	}
+	
+	// 2. Check config: managed vs external
+	if c.Temporal != nil {
+		if c.Temporal.Managed {
+			port := c.Temporal.Port
+			if port == 0 {
+				port = 7233
+			}
+			return fmt.Sprintf("localhost:%d", port), true // managed
+		} else if c.Temporal.Address != "" {
+			return c.Temporal.Address, false // external
+		}
+	}
+	
+	// 3. Default: managed Temporal
+	return "localhost:7233", true
+}
+
+// ResolveTemporalVersion resolves the Temporal version for managed runtime
+func (c *DevBackendConfig) ResolveTemporalVersion() string {
+	if c.Temporal != nil && c.Temporal.Version != "" {
+		return c.Temporal.Version
+	}
+	return "1.25.1" // default version
+}
+
+// ResolveTemporalPort resolves the Temporal port for managed runtime
+func (c *DevBackendConfig) ResolveTemporalPort() int {
+	if c.Temporal != nil && c.Temporal.Port != 0 {
+		return c.Temporal.Port
+	}
+	return 7233 // default port
 }

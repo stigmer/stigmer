@@ -5,4 +5,8 @@ go_library(
     srcs = ["validate_workflow.go"],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/workflow/temporal/activities",
     visibility = ["//visibility:public"],
+    deps = [
+        "//internal/gen/ai/stigmer/agentic/workflow/v1:workflow",
+        "//internal/gen/ai/stigmer/agentic/workflow/v1/serverless",
+    ],
 )

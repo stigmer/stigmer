@@ -20,6 +20,9 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/services/stigmer-server/pkg/downstream/agentinstance",
+        "//internal/gen/ai/stigmer/agentic/agent/v1:agent",
+        "//internal/gen/ai/stigmer/agentic/agentinstance/v1:agentinstance",
+        "//internal/gen/ai/stigmer/commons/apiresource",
         "@com_github_rs_zerolog//log",
     ],
 )
@@ -28,5 +31,9 @@ go_test(
     name = "agent_test",
     srcs = ["agent_controller_test.go"],
     embed = [":agent"],
-    deps = ["//backend/libs/go/badger"],
+    deps = [
+        "//backend/libs/go/badger",
+        "//internal/gen/ai/stigmer/agentic/agent/v1:agent",
+        "//internal/gen/ai/stigmer/commons/apiresource",
+    ],
 )
