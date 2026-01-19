@@ -24,11 +24,11 @@ import (
 // This is called by the agent-runner worker via polyglot Temporal workflow.
 // Language-agnostic design: works regardless of which service implements the activity.
 type UpdateExecutionStatusActivityImpl struct {
-	store *badger.Store[*agentexecutionv1.AgentExecution]
+	store *badger.Store
 }
 
 // NewUpdateExecutionStatusActivityImpl creates a new UpdateExecutionStatusActivityImpl.
-func NewUpdateExecutionStatusActivityImpl(store *badger.Store[*agentexecutionv1.AgentExecution]) *UpdateExecutionStatusActivityImpl {
+func NewUpdateExecutionStatusActivityImpl(store *badger.Store) *UpdateExecutionStatusActivityImpl {
 	return &UpdateExecutionStatusActivityImpl{
 		store: store,
 	}
@@ -43,7 +43,8 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		Msg("Activity updating execution status")
 
 	// Load existing execution (SINGLE DB QUERY)
-	existing, err := a.store.Get(executionID)
+	existing := &agentexecutionv1.AgentExecution{}
+	err := a.store.GetResource(ctx, "AgentExecution", executionID, existing)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -130,13 +131,18 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 
 	// Update audit timestamp (status was modified)
 	if status.Audit == nil {
-		status.Audit = &apiresource.ApiResourceStatusAudit{}
+		status.Audit = &apiresource.ApiResourceAuditStatus{
+			Audit: &apiresource.ApiResourceAudit{},
+		}
 	}
-	if status.Audit.StatusAudit == nil {
-		status.Audit.StatusAudit = &apiresource.ApiResourceAudit{}
+	if status.Audit.Audit == nil {
+		status.Audit.Audit = &apiresource.ApiResourceAudit{}
 	}
-	status.Audit.StatusAudit.UpdatedAt = timestamppb.New(time.Now())
-	status.Audit.StatusAudit.Event = apiresource.ApiResourceEventType_updated.String()
+	if status.Audit.Audit.StatusAudit == nil {
+		status.Audit.Audit.StatusAudit = &apiresource.ApiResourceAuditInfo{}
+	}
+	status.Audit.Audit.StatusAudit.UpdatedAt = timestamppb.New(time.Now())
+	status.Audit.Audit.StatusAudit.Event = apiresource.ApiResourceEventType_updated.String()
 
 	existing.Status = status
 
@@ -150,7 +156,7 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		Msg("Built updated execution - new status")
 
 	// Persist to BadgerDB
-	if err := a.store.Put(executionID, existing); err != nil {
+	if err := a.store.SaveResource(ctx, "AgentExecution", executionID, existing); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).

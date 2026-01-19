@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "config.go",
         "worker_config.go",
+        "workflow_creator.go",
         "workflow_types.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentexecution/temporal",

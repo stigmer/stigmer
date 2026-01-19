@@ -3,6 +3,7 @@ package temporal
 import (
 	"time"
 
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
@@ -58,7 +59,7 @@ func ValidateWorkflowWorkflowImpl(ctx workflow.Context, spec *workflowv1.Workflo
 	activityOptions := workflow.ActivityOptions{
 		TaskQueue:           activityTaskQueue, // Route to workflow-runner (from memo)
 		StartToCloseTimeout: 30 * time.Second,
-		RetryPolicy: &workflow.RetryPolicy{
+		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts: 3,
 			InitialInterval: 1 * time.Second,
 		},
@@ -91,10 +92,13 @@ func ValidateWorkflowWorkflowImpl(ctx workflow.Context, spec *workflowv1.Workflo
 // Returns: Activity task queue name (defaults to "workflow_validation_runner")
 func getActivityTaskQueue(ctx workflow.Context) string {
 	info := workflow.GetInfo(ctx)
-	if taskQueue, ok := info.Memo.GetValue("activityTaskQueue"); ok {
-		var taskQueueStr string
-		if err := taskQueue.Get(&taskQueueStr); err == nil && taskQueueStr != "" {
-			return taskQueueStr
+	// Access memo fields directly
+	if info.Memo != nil && info.Memo.Fields != nil {
+		if taskQueueField, ok := info.Memo.Fields["activityTaskQueue"]; ok {
+			var taskQueueStr string
+			if err := workflow.PayloadConverter().FromPayload(taskQueueField, &taskQueueStr); err == nil && taskQueueStr != "" {
+				return taskQueueStr
+			}
 		}
 	}
 	// Default fallback (should never happen if workflow is created properly)
