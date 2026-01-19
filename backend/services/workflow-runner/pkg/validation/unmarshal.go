@@ -106,5 +106,10 @@ func UnmarshalTaskConfig(
 		return nil, fmt.Errorf("failed to unmarshal JSON to proto: %w", err)
 	}
 
+	// Validate the unmarshaled proto message
+	if err := ValidateTaskConfig(protoMsg); err != nil {
+		return nil, err
+	}
+
 	return protoMsg, nil
 }
