@@ -6,6 +6,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // Subscribe provides real-time execution updates via gRPC streaming
@@ -92,7 +93,7 @@ func (s *LoadInitialExecutionStep) Execute(ctx *pipeline.RequestContext[*agentex
 
 	// Verify execution exists
 	execution := &agentexecutionv1.AgentExecution{}
-	if err := s.store.GetResource(ctx.Context(), "AgentExecution", executionID, execution); err != nil {
+	if err := s.store.GetResource(ctx.Context(), apiresourcekind.ApiResourceKind_agent_execution, executionID, execution); err != nil {
 		return grpclib.NotFoundError("AgentExecution", executionID)
 	}
 

@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	"go.temporal.io/sdk/activity"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -44,7 +45,7 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 
 	// Load existing execution (SINGLE DB QUERY)
 	existing := &agentexecutionv1.AgentExecution{}
-	err := a.store.GetResource(ctx, "AgentExecution", executionID, existing)
+	err := a.store.GetResource(ctx, apiresourcekind.ApiResourceKind_agent_execution, executionID, existing)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -156,7 +157,7 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		Msg("Built updated execution - new status")
 
 	// Persist to BadgerDB
-	if err := a.store.SaveResource(ctx, "AgentExecution", executionID, existing); err != nil {
+	if err := a.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent_execution, executionID, existing); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).

@@ -6,6 +6,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
@@ -147,17 +148,8 @@ func (s *loadByWorkflowStep) Execute(ctx *pipeline.RequestContext[*workflowinsta
 	// Get api_resource_kind from request context
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 
-	// Get kind name from the enum
-	kindName, err := apiresource.GetKindName(kind)
-	if err != nil {
-		log.Error().
-			Err(err).
-			Msg("Failed to get kind name")
-		return grpclib.InternalError(err, "failed to get kind name")
-	}
-
 	// List all workflow instances
-	data, err := s.store.ListResources(ctx.Context(), kindName)
+	data, err := s.store.ListResources(ctx.Context(), kind)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -203,14 +195,8 @@ func (c *WorkflowInstanceController) findByWorkflowID(ctx context.Context, workf
 	// Get api_resource_kind from request context
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx)
 
-	// Get kind name from the enum
-	kindName, err := apiresource.GetKindName(kind)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get kind name: %w", err)
-	}
-
 	// List all instances
-	data, err := c.store.ListResources(ctx, kindName)
+	data, err := c.store.ListResources(ctx, kind)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list workflow instances: %w", err)
 	}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger/v4"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -20,8 +21,8 @@ type Store struct {
 // Note: OrgID and ProjectID are intentionally excluded (cloud-specific fields not needed locally).
 type Resource struct {
 	ID        string
-	Kind      string
-	Data      []byte    // The marshaled Protobuf message
+	Kind      apiresourcekind.ApiResourceKind
+	Data      []byte // The marshaled Protobuf message
 	UpdatedAt time.Time
 }
 
@@ -43,7 +44,7 @@ func NewStore(dbPath string) (*Store, error) {
 // SaveResource writes the proto message to the DB.
 // It relies on the caller to provide the correct Kind and ID.
 // It stores the raw proto bytes directly.
-func (s *Store) SaveResource(ctx context.Context, kind string, id string, msg proto.Message) error {
+func (s *Store) SaveResource(ctx context.Context, kind apiresourcekind.ApiResourceKind, id string, msg proto.Message) error {
 	// 1. Marshal the proto payload
 	data, err := proto.Marshal(msg)
 	if err != nil {
@@ -51,7 +52,7 @@ func (s *Store) SaveResource(ctx context.Context, kind string, id string, msg pr
 	}
 
 	// 2. Construct Key: "Kind/ID"
-	key := []byte(fmt.Sprintf("%s/%s", kind, id))
+	key := []byte(fmt.Sprintf("%s/%s", kind.String(), id))
 
 	// 3. Write to DB
 	return s.db.Update(func(txn *badger.Txn) error {
@@ -61,8 +62,8 @@ func (s *Store) SaveResource(ctx context.Context, kind string, id string, msg pr
 
 // GetResource retrieves a generic proto message by Kind and ID.
 // The caller MUST provide an initialized proto message pointer (msg) of the correct type.
-func (s *Store) GetResource(ctx context.Context, kind string, id string, msg proto.Message) error {
-	key := []byte(fmt.Sprintf("%s/%s", kind, id))
+func (s *Store) GetResource(ctx context.Context, kind apiresourcekind.ApiResourceKind, id string, msg proto.Message) error {
+	key := []byte(fmt.Sprintf("%s/%s", kind.String(), id))
 
 	return s.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(key)
@@ -82,8 +83,8 @@ func (s *Store) GetResource(ctx context.Context, kind string, id string, msg pro
 
 // ListResources returns all resources for a specific Kind.
 // It uses a Prefix Scan to simulate "GetCollection(Kind)".
-func (s *Store) ListResources(ctx context.Context, kind string) ([][]byte, error) {
-	prefix := []byte(kind + "/")
+func (s *Store) ListResources(ctx context.Context, kind apiresourcekind.ApiResourceKind) ([][]byte, error) {
+	prefix := []byte(kind.String() + "/")
 	var results [][]byte
 
 	err := s.db.View(func(txn *badger.Txn) error {
@@ -112,8 +113,8 @@ func (s *Store) ListResources(ctx context.Context, kind string) ([][]byte, error
 
 // DeleteResource deletes a specific resource.
 // Requires 'kind' to construct the key directly (O(1) operation).
-func (s *Store) DeleteResource(ctx context.Context, kind string, id string) error {
-	key := []byte(fmt.Sprintf("%s/%s", kind, id))
+func (s *Store) DeleteResource(ctx context.Context, kind apiresourcekind.ApiResourceKind, id string) error {
+	key := []byte(fmt.Sprintf("%s/%s", kind.String(), id))
 	return s.db.Update(func(txn *badger.Txn) error {
 		return txn.Delete(key)
 	})
@@ -122,9 +123,9 @@ func (s *Store) DeleteResource(ctx context.Context, kind string, id string) erro
 // DeleteResourcesByKind wipes all data for a specific resource type.
 // Useful for "stigmer local clean --kind=Agent"
 // Returns the number of resources deleted.
-func (s *Store) DeleteResourcesByKind(ctx context.Context, kind string) (int64, error) {
-	prefix := []byte(kind + "/")
-	
+func (s *Store) DeleteResourcesByKind(ctx context.Context, kind apiresourcekind.ApiResourceKind) (int64, error) {
+	prefix := []byte(kind.String() + "/")
+
 	// 1. Collect keys (Badger doesn't support range delete native in one go without collecting)
 	var keys [][]byte
 	err := s.db.View(func(txn *badger.Txn) error {
@@ -160,4 +161,3 @@ func (s *Store) DeleteResourcesByKind(ctx context.Context, kind string) (int64, 
 func (s *Store) Close() error {
 	return s.db.Close()
 }
-

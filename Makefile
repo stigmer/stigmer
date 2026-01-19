@@ -50,8 +50,10 @@ build-backend: protos ## Build all backend services
 test: ## Run all tests
 	@echo "Running Go tests..."
 	go test -v -race -timeout 30s ./...
-	@echo "Running Python tests..."
+	@echo "Running Python SDK tests..."
 	cd sdk/python && pytest
+	@echo "Running Agent Runner tests..."
+	cd backend/services/agent-runner && poetry install --no-interaction --quiet && poetry run pytest
 
 coverage: ## Generate test coverage report
 	@echo "Generating coverage report..."
