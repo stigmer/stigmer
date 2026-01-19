@@ -57,9 +57,9 @@ func Start(dataDir string) error {
 	}
 
 	// Resolve LLM configuration
-	llmProvider := cfg.Backend.Dev.ResolveLLMProvider()
-	llmModel := cfg.Backend.Dev.ResolveLLMModel()
-	llmBaseURL := cfg.Backend.Dev.ResolveLLMBaseURL()
+	llmProvider := cfg.Backend.Local.ResolveLLMProvider()
+	llmModel := cfg.Backend.Local.ResolveLLMModel()
+	llmBaseURL := cfg.Backend.Local.ResolveLLMBaseURL()
 
 	log.Debug().
 		Str("llm_provider", llmProvider).
@@ -74,7 +74,7 @@ func Start(dataDir string) error {
 	}
 
 	// Resolve Temporal configuration
-	temporalAddr, isManaged := cfg.Backend.Dev.ResolveTemporalAddress()
+	temporalAddr, isManaged := cfg.Backend.Local.ResolveTemporalAddress()
 	
 	log.Debug().
 		Str("temporal_address", temporalAddr).
@@ -88,8 +88,8 @@ func Start(dataDir string) error {
 		
 		temporalManager = temporal.NewManager(
 			dataDir,
-			cfg.Backend.Dev.ResolveTemporalVersion(),
-			cfg.Backend.Dev.ResolveTemporalPort(),
+			cfg.Backend.Local.ResolveTemporalVersion(),
+			cfg.Backend.Local.ResolveTemporalPort(),
 		)
 		
 		if err := temporalManager.EnsureInstalled(); err != nil {
@@ -199,9 +199,9 @@ func startAgentRunner(
 	// Prepare environment with LLM and Temporal configuration
 	env := os.Environ()
 	
-	// Add dev mode configuration
+	// Add local mode configuration
 	env = append(env,
-		"MODE=dev",
+		"MODE=local",
 		"SANDBOX_TYPE=filesystem",
 		"SANDBOX_ROOT_DIR=./workspace",
 		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=localhost:%d", DaemonPort),
@@ -335,15 +335,15 @@ func Stop(dataDir string) error {
 func stopManagedTemporal(dataDir string) {
 	// Load config to check if Temporal is managed
 	cfg, err := config.Load()
-	if err != nil || cfg == nil || cfg.Backend.Dev.Temporal == nil || !cfg.Backend.Dev.Temporal.Managed {
+	if err != nil || cfg == nil || cfg.Backend.Local.Temporal == nil || !cfg.Backend.Local.Temporal.Managed {
 		return // Not using managed Temporal
 	}
 	
 	// Create manager and check if running
 	tm := temporal.NewManager(
 		dataDir,
-		cfg.Backend.Dev.ResolveTemporalVersion(),
-		cfg.Backend.Dev.ResolveTemporalPort(),
+		cfg.Backend.Local.ResolveTemporalVersion(),
+		cfg.Backend.Local.ResolveTemporalPort(),
 	)
 	
 	if !tm.IsRunning() {
