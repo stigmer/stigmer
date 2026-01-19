@@ -99,6 +99,8 @@ func handleLocalStart() {
 		cliprint.Info("  PID:  %d", pid)
 		cliprint.Info("  Port: %d", daemon.DaemonPort)
 		cliprint.Info("  Data: %s", dataDir)
+		cliprint.Info("")
+		cliprint.Info("Temporal UI: http://localhost:8233")
 	}
 }
 
@@ -143,6 +145,8 @@ func handleLocalStatus() {
 		cliprint.Info("  PID:    %d", pid)
 		cliprint.Info("  Port:   %d", daemon.DaemonPort)
 		cliprint.Info("  Data:   %s", dataDir)
+		cliprint.Info("")
+		cliprint.Info("Temporal UI: http://localhost:8233")
 	} else {
 		cliprint.Warning("  Status: ✗ Stopped")
 		cliprint.Info("")
