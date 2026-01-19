@@ -71,6 +71,7 @@ func TestUnmarshalHttpCallTaskConfig(t *testing.T) {
 			"headers": map[string]interface{}{
 				"Authorization": "Bearer ${TOKEN}",
 			},
+			"timeout_seconds": 30,
 		})
 		require.NoError(t, err)
 
@@ -99,6 +100,7 @@ func TestUnmarshalHttpCallTaskConfig(t *testing.T) {
 				"field1": "value1",
 				"field2": 42,
 			},
+			"timeout_seconds": 60,
 		})
 		require.NoError(t, err)
 
