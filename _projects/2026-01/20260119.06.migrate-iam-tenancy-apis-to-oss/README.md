@@ -2,7 +2,11 @@
 
 **Project:** 20260119.06.migrate-iam-tenancy-apis-to-oss  
 **Created:** 2026-01-19  
-**Status:** 🚧 In Progress
+**Completed:** 2026-01-19  
+**Status:** ✅ Complete
+
+**Checkpoint:** `checkpoints/2026-01-19-migration-complete.md`  
+**Changelog:** `_changelog/2026-01/2026-01-19-070040-migrate-iam-tenancy-apis-to-oss.md`
 
 ## Description
 

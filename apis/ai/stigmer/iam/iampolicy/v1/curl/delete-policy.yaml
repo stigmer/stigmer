@@ -1,0 +1,11 @@
+principal:
+  kind: identity_account
+  id: ida_01jpw4t0vthaeq6fry94qq5g2k
+resource:
+  kind: reservation
+  id: rsv_01xyz789
+relation: update
+
+
+
+

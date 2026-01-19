@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.iampolicy.v1;
+
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "ai/stigmer/iam/iampolicy/v1/spec.proto";
+import "buf/validate/validate.proto";
+
+// IamPolicy represents a binding between a principal (who), a resource (what),
+// and a relation/permission (how).
+//
+// An IAM policy grants a specific permission (relation) to a principal on a resource.
+// For example: "Grant 'admin' permission to user 'john@example.com' on VPC 'vpc-123'"
+//
+// The policy is the source of truth for authorization and is synced to the
+// authorization backend (OpenFGA) as FGA tuples.
+message IamPolicy {
+  // api-version
+  string api_version = 1 [(buf.validate.field).string.const = 'iam.stigmer.ai/v1'];
+
+  // resource-kind
+  string kind = 2 [(buf.validate.field).string.const = 'IamPolicy'];
+
+  // metadata
+  // id format: iamp-<ulid>
+  // name: human-readable identifier (e.g., "john-vpc-admin")
+  // org: organization this policy belongs to
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
+
+  // spec
+  IamPolicySpec spec = 4;
+
+  // status
+  IamPolicyStatus status = 5;
+}
+
+// IamPolicyStatus represents the runtime state of the IAM policy.
+// It contains information about the policy's lifecycle and sync status with
+// the authorization backend.
+message IamPolicyStatus {
+  // Standard audit status containing created_by, created_at, updated_by, updated_at
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 1;
+}
