@@ -244,31 +244,39 @@ func (m *Manager) Stop() error {
 
 // IsRunning checks if Temporal is running with multi-layer validation
 func (m *Manager) IsRunning() bool {
-	// Layer 1: Check if PID file exists and read PID
-	pid, err := m.getPID()
-	if err != nil {
+	// Layer 1: Check if lock file is held (most reliable, source of truth)
+	if !m.isLocked() {
 		return false
 	}
 	
-	// Layer 2: Check if process exists and is alive
+	// Layer 2: Check if PID file exists and read PID
+	pid, err := m.getPID()
+	if err != nil {
+		log.Debug().Msg("Lock file held but PID file missing")
+		return false
+	}
+	
+	// Layer 3: Check if process exists and is alive
 	process, err := os.FindProcess(pid)
 	if err != nil {
+		log.Debug().Int("pid", pid).Msg("Lock file held but process not found")
 		return false
 	}
 	
 	// Send signal 0 to check if process is alive
 	err = process.Signal(syscall.Signal(0))
 	if err != nil {
+		log.Debug().Int("pid", pid).Msg("Lock file held but process not alive")
 		return false
 	}
 	
-	// Layer 3: Verify process is actually Temporal (not PID reuse)
+	// Layer 4: Verify process is actually Temporal (not PID reuse)
 	if !m.isActuallyTemporal(pid) {
 		log.Debug().Int("pid", pid).Msg("Process exists but is not Temporal")
 		return false
 	}
 	
-	// Layer 4: Check if Temporal port is listening
+	// Layer 5: Check if Temporal port is listening
 	if !m.isPortInUse() {
 		log.Debug().Int("pid", pid).Msg("Process is Temporal but port not listening")
 		return false
