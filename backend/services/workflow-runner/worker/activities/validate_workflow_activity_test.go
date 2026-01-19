@@ -17,7 +17,6 @@
 package activities_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
@@ -25,6 +24,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/worker/activities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.temporal.io/sdk/testsuite"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -44,24 +44,37 @@ func TestGenerateYAMLActivity_Success(t *testing.T) {
 				Kind: apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
 				TaskConfig: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
-						"message": structpb.NewStringValue("Hello, World!"),
+						"variables": structpb.NewStructValue(&structpb.Struct{
+							Fields: map[string]*structpb.Value{
+								"message": structpb.NewStringValue("Hello, World!"),
+								"status":  structpb.NewStringValue("success"),
+							},
+						}),
 					},
 				},
 			},
 		},
 	}
 
-	// Create activities instance
+	// Create Temporal test environment for activities
+	testSuite := &testsuite.WorkflowTestSuite{}
+	env := testSuite.NewTestActivityEnvironment()
+
+	// Create activities instance and register
 	act := activities.NewValidateWorkflowActivities()
+	env.RegisterActivity(act.GenerateYAMLActivity)
 
 	// Execute activity
-	output, err := act.GenerateYAMLActivity(context.Background(), activities.GenerateYAMLInput{
+	val, err := env.ExecuteActivity(act.GenerateYAMLActivity, activities.GenerateYAMLInput{
 		Spec: spec,
 	})
 
 	// Assert
 	require.NoError(t, err)
-	assert.NotNil(t, output)
+
+	var output activities.GenerateYAMLOutput
+	require.NoError(t, val.Get(&output))
+
 	assert.Empty(t, output.Error, "Expected no error in output")
 	assert.NotEmpty(t, output.YAML, "Expected YAML to be generated")
 	assert.Contains(t, output.YAML, "test-workflow", "YAML should contain workflow name")
@@ -71,14 +84,24 @@ func TestGenerateYAMLActivity_Success(t *testing.T) {
 
 // TestGenerateYAMLActivity_NilSpec tests error handling for nil WorkflowSpec.
 func TestGenerateYAMLActivity_NilSpec(t *testing.T) {
-	act := activities.NewValidateWorkflowActivities()
+	// Create Temporal test environment for activities
+	testSuite := &testsuite.WorkflowTestSuite{}
+	env := testSuite.NewTestActivityEnvironment()
 
-	output, err := act.GenerateYAMLActivity(context.Background(), activities.GenerateYAMLInput{
+	// Create activities instance and register
+	act := activities.NewValidateWorkflowActivities()
+	env.RegisterActivity(act.GenerateYAMLActivity)
+
+	// Execute activity
+	val, err := env.ExecuteActivity(act.GenerateYAMLActivity, activities.GenerateYAMLInput{
 		Spec: nil,
 	})
 
 	require.NoError(t, err, "Activity should not fail")
-	assert.NotNil(t, output)
+
+	var output activities.GenerateYAMLOutput
+	require.NoError(t, val.Get(&output))
+
 	assert.NotEmpty(t, output.Error, "Expected error in output for nil spec")
 	assert.Contains(t, output.Error, "cannot be nil")
 }
@@ -96,14 +119,24 @@ func TestGenerateYAMLActivity_InvalidSpec(t *testing.T) {
 		},
 	}
 
-	act := activities.NewValidateWorkflowActivities()
+	// Create Temporal test environment for activities
+	testSuite := &testsuite.WorkflowTestSuite{}
+	env := testSuite.NewTestActivityEnvironment()
 
-	output, err := act.GenerateYAMLActivity(context.Background(), activities.GenerateYAMLInput{
+	// Create activities instance and register
+	act := activities.NewValidateWorkflowActivities()
+	env.RegisterActivity(act.GenerateYAMLActivity)
+
+	// Execute activity
+	val, err := env.ExecuteActivity(act.GenerateYAMLActivity, activities.GenerateYAMLInput{
 		Spec: spec,
 	})
 
 	require.NoError(t, err, "Activity should not fail")
-	assert.NotNil(t, output)
+
+	var output activities.GenerateYAMLOutput
+	require.NoError(t, val.Get(&output))
+
 	assert.NotEmpty(t, output.Error, "Expected error in output for invalid spec")
 }
 
@@ -123,14 +156,24 @@ do:
         status: success
 `
 
-	act := activities.NewValidateWorkflowActivities()
+	// Create Temporal test environment for activities
+	testSuite := &testsuite.WorkflowTestSuite{}
+	env := testSuite.NewTestActivityEnvironment()
 
-	output, err := act.ValidateStructureActivity(context.Background(), activities.ValidateStructureInput{
+	// Create activities instance and register
+	act := activities.NewValidateWorkflowActivities()
+	env.RegisterActivity(act.ValidateStructureActivity)
+
+	// Execute activity
+	val, err := env.ExecuteActivity(act.ValidateStructureActivity, activities.ValidateStructureInput{
 		YAML: yaml,
 	})
 
 	require.NoError(t, err)
-	assert.NotNil(t, output)
+
+	var output activities.ValidateStructureOutput
+	require.NoError(t, val.Get(&output))
+
 	assert.True(t, output.IsValid, "Workflow should be valid")
 	assert.Empty(t, output.Errors, "Should have no errors")
 }
@@ -151,14 +194,24 @@ do:
       invalid_indentation:  # Invalid YAML
 `
 
-	act := activities.NewValidateWorkflowActivities()
+	// Create Temporal test environment for activities
+	testSuite := &testsuite.WorkflowTestSuite{}
+	env := testSuite.NewTestActivityEnvironment()
 
-	output, err := act.ValidateStructureActivity(context.Background(), activities.ValidateStructureInput{
+	// Create activities instance and register
+	act := activities.NewValidateWorkflowActivities()
+	env.RegisterActivity(act.ValidateStructureActivity)
+
+	// Execute activity
+	val, err := env.ExecuteActivity(act.ValidateStructureActivity, activities.ValidateStructureInput{
 		YAML: yaml,
 	})
 
 	require.NoError(t, err, "Activity should not fail")
-	assert.NotNil(t, output)
+
+	var output activities.ValidateStructureOutput
+	require.NoError(t, val.Get(&output))
+
 	assert.False(t, output.IsValid, "Workflow should be invalid")
 	assert.NotEmpty(t, output.Errors, "Should have validation errors")
 }
@@ -177,14 +230,24 @@ do:
         value: 123
 `
 
-	act := activities.NewValidateWorkflowActivities()
+	// Create Temporal test environment for activities
+	testSuite := &testsuite.WorkflowTestSuite{}
+	env := testSuite.NewTestActivityEnvironment()
 
-	output, err := act.ValidateStructureActivity(context.Background(), activities.ValidateStructureInput{
+	// Create activities instance and register
+	act := activities.NewValidateWorkflowActivities()
+	env.RegisterActivity(act.ValidateStructureActivity)
+
+	// Execute activity
+	val, err := env.ExecuteActivity(act.ValidateStructureActivity, activities.ValidateStructureInput{
 		YAML: yaml,
 	})
 
 	require.NoError(t, err, "Activity should not fail")
-	assert.NotNil(t, output)
+
+	var output activities.ValidateStructureOutput
+	require.NoError(t, val.Get(&output))
+
 	assert.False(t, output.IsValid, "Workflow should be invalid")
 	assert.NotEmpty(t, output.Errors, "Should have validation errors")
 	assert.Contains(t, output.Errors[0], "document.name", "Error should mention missing field")
@@ -201,14 +264,24 @@ document:
 do: []
 `
 
-	act := activities.NewValidateWorkflowActivities()
+	// Create Temporal test environment for activities
+	testSuite := &testsuite.WorkflowTestSuite{}
+	env := testSuite.NewTestActivityEnvironment()
 
-	output, err := act.ValidateStructureActivity(context.Background(), activities.ValidateStructureInput{
+	// Create activities instance and register
+	act := activities.NewValidateWorkflowActivities()
+	env.RegisterActivity(act.ValidateStructureActivity)
+
+	// Execute activity
+	val, err := env.ExecuteActivity(act.ValidateStructureActivity, activities.ValidateStructureInput{
 		YAML: yaml,
 	})
 
 	require.NoError(t, err, "Activity should not fail")
-	assert.NotNil(t, output)
+
+	var output activities.ValidateStructureOutput
+	require.NoError(t, val.Get(&output))
+
 	assert.False(t, output.IsValid, "Workflow should be invalid")
 	assert.NotEmpty(t, output.Errors, "Should have validation errors")
 	assert.Contains(t, output.Errors[0], "at least one task", "Error should mention missing tasks")
@@ -232,14 +305,24 @@ do:
           uri: ${ .env.API_BASE_URL + "/data" }
 `
 
-	act := activities.NewValidateWorkflowActivities()
+	// Create Temporal test environment for activities
+	testSuite := &testsuite.WorkflowTestSuite{}
+	env := testSuite.NewTestActivityEnvironment()
 
-	output, err := act.ValidateStructureActivity(context.Background(), activities.ValidateStructureInput{
+	// Create activities instance and register
+	act := activities.NewValidateWorkflowActivities()
+	env.RegisterActivity(act.ValidateStructureActivity)
+
+	// Execute activity
+	val, err := env.ExecuteActivity(act.ValidateStructureActivity, activities.ValidateStructureInput{
 		YAML: yaml,
 	})
 
 	require.NoError(t, err, "Activity should not fail")
-	assert.NotNil(t, output)
+
+	var output activities.ValidateStructureOutput
+	require.NoError(t, val.Get(&output))
+
 	assert.True(t, output.IsValid, "Workflow with runtime expressions should be valid")
 	assert.Empty(t, output.Errors, "Should have no errors")
 }
