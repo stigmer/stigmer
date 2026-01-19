@@ -19,9 +19,8 @@ import (
 //
 // Pipeline Steps:
 // 1. ValidateProto - Validate proto field constraints (API resource delete input)
-// 2. ExtractResourceId - Extract ID from ApiResourceDeleteInput
-// 3. LoadExistingForDelete - Load execution context from database (stores in context)
-// 4. DeleteResource - Delete execution context from database
+// 2. LoadExistingForDelete - Load execution context from database (stores in context)
+// 3. DeleteResource - Delete execution context from database
 //
 // Note: Unlike Stigmer Cloud, OSS excludes:
 // - Authorization step (no multi-user auth)
@@ -32,6 +31,10 @@ import (
 func (c *ExecutionContextController) Delete(ctx context.Context, deleteInput *apiresource.ApiResourceDeleteInput) (*executioncontextv1.ExecutionContext, error) {
 	// Create request context with the delete input
 	reqCtx := pipeline.NewRequestContext(ctx, deleteInput)
+
+	// Manually extract and store resource ID since ApiResourceDeleteInput uses
+	// ResourceId field instead of Value field (which ExtractResourceIdStep expects)
+	reqCtx.Set(steps.ResourceIdKey, deleteInput.ResourceId)
 
 	// Build and execute pipeline
 	p := c.buildDeletePipeline()
@@ -50,16 +53,12 @@ func (c *ExecutionContextController) Delete(ctx context.Context, deleteInput *ap
 
 // buildDeletePipeline constructs the pipeline for delete operations
 //
-// All steps are generic and reusable across all API resources:
-// - ValidateProtoStep: Generic proto validation
-// - ExtractResourceIdStep: Generic ID extraction from delete input
-// - LoadExistingForDeleteStep: Generic load by ID
-// - DeleteResourceStep: Generic delete by ID
+// Note: ExtractResourceIdStep is NOT used here because ApiResourceDeleteInput
+// has ResourceId field (not Value), so we manually extract it in Delete method
 func (c *ExecutionContextController) buildDeletePipeline() *pipeline.Pipeline[*apiresource.ApiResourceDeleteInput] {
 	return pipeline.NewPipeline[*apiresource.ApiResourceDeleteInput]("execution-context-delete").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceDeleteInput]()).                                         // 1. Validate field constraints
-		AddStep(steps.NewExtractResourceIdStep[*apiresource.ApiResourceDeleteInput]()).                                     // 2. Extract ID from delete input
-		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceDeleteInput, *executioncontextv1.ExecutionContext](c.store)). // 3. Load execution context
-		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).                                 // 4. Delete from database
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceDeleteInput]()).                                                // 1. Validate field constraints
+		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceDeleteInput, *executioncontextv1.ExecutionContext](c.store)). // 2. Load execution context
+		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).                                        // 3. Delete from database
 		Build()
 }
