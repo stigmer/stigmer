@@ -132,18 +132,13 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 
 	// Update audit timestamp (status was modified)
 	if status.Audit == nil {
-		status.Audit = &apiresource.ApiResourceAuditStatus{
-			Audit: &apiresource.ApiResourceAudit{},
-		}
+		status.Audit = &apiresource.ApiResourceAudit{}
 	}
-	if status.Audit.Audit == nil {
-		status.Audit.Audit = &apiresource.ApiResourceAudit{}
+	if status.Audit.StatusAudit == nil {
+		status.Audit.StatusAudit = &apiresource.ApiResourceAuditInfo{}
 	}
-	if status.Audit.Audit.StatusAudit == nil {
-		status.Audit.Audit.StatusAudit = &apiresource.ApiResourceAuditInfo{}
-	}
-	status.Audit.Audit.StatusAudit.UpdatedAt = timestamppb.New(time.Now())
-	status.Audit.Audit.StatusAudit.Event = apiresource.ApiResourceEventType_updated.String()
+	status.Audit.StatusAudit.UpdatedAt = timestamppb.New(time.Now())
+	status.Audit.StatusAudit.Event = apiresource.ApiResourceEventType_updated.String()
 
 	existing.Status = status
 
