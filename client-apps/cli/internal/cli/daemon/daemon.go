@@ -333,13 +333,19 @@ func Stop(dataDir string) error {
 
 // stopManagedTemporal stops managed Temporal if it's running
 func stopManagedTemporal(dataDir string) {
-	// Load config to check if Temporal is managed
+	// Load config, use defaults if it fails
 	cfg, err := config.Load()
-	if err != nil || cfg == nil || cfg.Backend.Local.Temporal == nil || !cfg.Backend.Local.Temporal.Managed {
-		return // Not using managed Temporal
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to load config, using defaults for Temporal stop")
+		cfg = config.GetDefault()
 	}
 	
-	// Create manager and check if running
+	// Skip if explicitly configured as external Temporal
+	if cfg.Backend.Local.Temporal != nil && !cfg.Backend.Local.Temporal.Managed {
+		return // Using external Temporal, don't stop it
+	}
+	
+	// Create manager with config (or defaults)
 	tm := temporal.NewManager(
 		dataDir,
 		cfg.Backend.Local.ResolveTemporalVersion(),
