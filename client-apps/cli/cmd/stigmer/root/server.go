@@ -10,64 +10,80 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 )
 
-// NewLocalCommand creates the local command for daemon management
-func NewLocalCommand() *cobra.Command {
+// NewServerCommand creates the server command for daemon management
+func NewServerCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "local",
-		Short: "Start local mode",
-		Long: `Start the Stigmer local daemon.
+		Use:   "server",
+		Short: "Start Stigmer server",
+		Long: `Start the Stigmer server in local mode.
 
-This command starts the local daemon with zero configuration:
+This command starts the Stigmer server with zero configuration:
   - Auto-downloads and starts Temporal
   - Uses Ollama (local LLM, no API keys)
   - Starts stigmer-server on localhost:50051
   - Starts agent-runner for AI agent execution
 
-Just run 'stigmer local' and start building!`,
+Just run 'stigmer server' and start building!`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Default action: start the daemon
-			handleLocalStart()
+			// Default action: start the server
+			handleServerStart()
 		},
 	}
 
-	cmd.AddCommand(newLocalStopCommand())
-	cmd.AddCommand(newLocalStatusCommand())
-	cmd.AddCommand(newLocalRestartCommand())
+	cmd.AddCommand(newServerStopCommand())
+	cmd.AddCommand(newServerStatusCommand())
+	cmd.AddCommand(newServerRestartCommand())
 
 	return cmd
 }
 
-func newLocalStopCommand() *cobra.Command {
+func newServerStopCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "stop",
-		Short: "Stop the local daemon",
+		Short: "Stop the Stigmer server",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleLocalStop()
+			handleServerStop()
 		},
 	}
 }
 
-func newLocalStatusCommand() *cobra.Command {
+func newServerStatusCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
-		Short: "Show daemon status",
+		Short: "Show server status",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleLocalStatus()
+			handleServerStatus()
 		},
 	}
 }
 
-func newLocalRestartCommand() *cobra.Command {
+func newServerRestartCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "restart",
-		Short: "Restart the local daemon",
+		Short: "Restart the Stigmer server",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleLocalRestart()
+			handleServerRestart()
 		},
 	}
 }
 
-func handleLocalStart() {
+func handleServerStart() {
+	// Auto-initialize config if needed
+	if !config.IsInitialized() {
+		cliprint.PrintInfo("First-time setup: Initializing Stigmer...")
+		
+		// Create default config
+		cfg := config.GetDefault()
+		if err := config.Save(cfg); err != nil {
+			cliprint.PrintError("Failed to create configuration")
+			clierr.Handle(err)
+			return
+		}
+		
+		configPath, _ := config.GetConfigPath()
+		cliprint.PrintSuccess("Created configuration at %s", configPath)
+	}
+
 	dataDir, err := config.GetDataDir()
 	if err != nil {
 		cliprint.PrintError("Failed to determine data directory")
@@ -77,7 +93,7 @@ func handleLocalStart() {
 
 	// Check if already running
 	if daemon.IsRunning(dataDir) {
-		cliprint.PrintInfo("Daemon is already running")
+		cliprint.PrintInfo("Server is already running")
 		running, pid := daemon.GetStatus(dataDir)
 		if running {
 			cliprint.PrintInfo("  PID:  %d", pid)
@@ -86,7 +102,7 @@ func handleLocalStart() {
 		return
 	}
 
-	cliprint.PrintInfo("Starting local mode...")
+	cliprint.PrintInfo("Starting Stigmer server...")
 	
 	// Create progress display
 	progress := cliprint.NewProgressDisplay()
@@ -96,7 +112,7 @@ func handleLocalStart() {
 	// Start daemon with progress tracking
 	if err := daemon.StartWithOptions(dataDir, daemon.StartOptions{Progress: progress}); err != nil {
 		progress.Stop()
-		cliprint.PrintError("Failed to start daemon")
+		cliprint.PrintError("Failed to start server")
 		clierr.Handle(err)
 		return
 	}
@@ -106,7 +122,7 @@ func handleLocalStart() {
 	progress.Stop()
 
 	// Show success message
-	cliprint.PrintSuccess("Ready! Stigmer is running")
+	cliprint.PrintSuccess("Ready! Stigmer server is running")
 	running, pid := daemon.GetStatus(dataDir)
 	if running {
 		cliprint.PrintInfo("  PID:  %d", pid)
@@ -117,7 +133,7 @@ func handleLocalStart() {
 	}
 }
 
-func handleLocalStop() {
+func handleServerStop() {
 	dataDir, err := config.GetDataDir()
 	if err != nil {
 		cliprint.Error("Failed to determine data directory")
@@ -127,21 +143,21 @@ func handleLocalStop() {
 
 	// Check if running
 	if !daemon.IsRunning(dataDir) {
-		cliprint.Info("Daemon is not running")
+		cliprint.Info("Server is not running")
 		return
 	}
 
-	cliprint.Info("Stopping daemon...")
+	cliprint.Info("Stopping server...")
 	if err := daemon.Stop(dataDir); err != nil {
-		cliprint.Error("Failed to stop daemon")
+		cliprint.Error("Failed to stop server")
 		clierr.Handle(err)
 		return
 	}
 
-	cliprint.Success("Daemon stopped successfully")
+	cliprint.Success("Server stopped successfully")
 }
 
-func handleLocalStatus() {
+func handleServerStatus() {
 	dataDir, err := config.GetDataDir()
 	if err != nil {
 		cliprint.Error("Failed to determine data directory")
@@ -151,7 +167,7 @@ func handleLocalStatus() {
 
 	running, pid := daemon.GetStatus(dataDir)
 	
-	fmt.Println("Stigmer Local Status:")
+	fmt.Println("Stigmer Server Status:")
 	fmt.Println("─────────────────────────────────────")
 	if running {
 		cliprint.Info("  Status: ✓ Running")
@@ -164,11 +180,11 @@ func handleLocalStatus() {
 		cliprint.Warning("  Status: ✗ Stopped")
 		cliprint.Info("")
 		cliprint.Info("To start:")
-		cliprint.Info("  stigmer local")
+		cliprint.Info("  stigmer server")
 	}
 }
 
-func handleLocalRestart() {
+func handleServerRestart() {
 	dataDir, err := config.GetDataDir()
 	if err != nil {
 		cliprint.Error("Failed to determine data directory")
@@ -178,23 +194,23 @@ func handleLocalRestart() {
 
 	// Stop if running
 	if daemon.IsRunning(dataDir) {
-		cliprint.Info("Stopping daemon...")
+		cliprint.Info("Stopping server...")
 		if err := daemon.Stop(dataDir); err != nil {
-			cliprint.Error("Failed to stop daemon")
+			cliprint.Error("Failed to stop server")
 			clierr.Handle(err)
 			return
 		}
 	}
 
 	// Start
-	cliprint.Info("Starting daemon...")
+	cliprint.Info("Starting server...")
 	if err := daemon.Start(dataDir); err != nil {
-		cliprint.Error("Failed to start daemon")
+		cliprint.Error("Failed to start server")
 		clierr.Handle(err)
 		return
 	}
 
-	cliprint.Success("Daemon restarted successfully")
+	cliprint.Success("Server restarted successfully")
 	running, pid := daemon.GetStatus(dataDir)
 	if running {
 		cliprint.Info("  PID:  %d", pid)
