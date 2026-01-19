@@ -24,3 +24,29 @@ spec:
           # Stigmer Backend (local endpoint)
           STIGMER_BACKEND_ENDPOINT:
             value: localhost:8080
+          # LLM Configuration (local development)
+          # Default: Ollama (zero-cost, runs locally)
+          # 
+          # To use OpenAI instead:
+          #   STIGMER_LLM_PROVIDER: openai
+          #   STIGMER_LLM_MODEL: gpt-4
+          #   STIGMER_LLM_API_KEY: <your-openai-key> (in secrets section below)
+          #
+          # To use Anthropic instead:
+          #   STIGMER_LLM_PROVIDER: anthropic
+          #   STIGMER_LLM_MODEL: claude-sonnet-4.5
+          #   STIGMER_LLM_API_KEY: <your-anthropic-key> (in secrets section below)
+          STIGMER_LLM_PROVIDER:
+            value: ollama
+          STIGMER_LLM_MODEL:
+            value: qwen2.5-coder:7b
+          STIGMER_LLM_BASE_URL:
+            value: $variables-group/stigmer-llm-config/local.ollama-base-url
+          STIGMER_LLM_MAX_TOKENS:
+            value: "8192"
+          STIGMER_LLM_TEMPERATURE:
+            value: "0.0"
+        # Secrets (uncomment and add API key if using OpenAI/Anthropic locally)
+        # secrets:
+        #   STIGMER_LLM_API_KEY:
+        #     value: <your-api-key-here>
