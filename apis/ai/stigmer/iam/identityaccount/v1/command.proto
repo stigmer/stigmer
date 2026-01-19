@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.identityaccount.v1;
+
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/iam/identityaccount/v1/api.proto";
+import "ai/stigmer/iam/identityaccount/v1/io.proto";
+import "google/protobuf/empty.proto";
+
+// identity-account command controller
+service IdentityAccountCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = identity_account;
+
+  // update an existing identity-account
+  rpc update(IdentityAccount) returns (IdentityAccount) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update identity account";
+  }
+
+  // delete an existing identity-account
+  rpc delete(IdentityAccountId) returns (IdentityAccount) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete identity account";
+  }
+
+  //simulate signup webhook to add a user who created account on auth0 but is not created on stigmer.
+  //this rpc will take the email, look it up on auth0,
+  // if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format.
+  rpc simulateSignupWebhook(IdentityAccountEmail) returns (google.protobuf.Empty);
+}

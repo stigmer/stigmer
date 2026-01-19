@@ -1,0 +1,210 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.iampolicy.v1;
+
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/api.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/spec.proto";
+import "google/protobuf/empty.proto";
+
+// IAM Policy Command Controller
+//
+// This service manages the lifecycle of IAM policies in Stigmer.
+// IAM policies define access control rules by connecting three key elements:
+// - Principal: WHO gets access (user, team, etc.)
+// - Resource: WHAT is being accessed (any API resource)
+// - Relation: HOW they can access it (viewer, admin, user, etc.)
+//
+// Under the hood, each IAM policy creates an OpenFGA tuple that enforces
+// the permission in the authorization system.
+//
+// Common Use Cases:
+// - Granting users access to organizations
+// - Setting up team-based access control
+// - Managing fine-grained permissions on any resource
+service IamPolicyCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = iam_policy;
+
+  // Create a new IAM policy
+  //
+  // Creates a single IAM policy that grants a principal access to a resource with a specific relation.
+  // This is the fundamental operation for establishing permissions.
+  //
+  // The operation:
+  // 1. Validates the input (principal, resource, relation are all valid)
+  // 2. Checks for duplicates (skips if the exact policy already exists, idempotent)
+  // 3. Creates the policy in the database with auto-generated ID and metadata
+  // 4. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
+  //
+  // Authorization:
+  // - Caller must have 'can_grant_access' permission on the RESOURCE being shared
+  // - This ensures only resource owners/admins can grant access to their resources
+  //
+  // Example:
+  // Input:
+  //   principal: {kind: "identity_account", id: "ia-alice-123"}
+  //   resource: {kind: "organization", id: "org-demo-456"}
+  //   relation: "viewer"
+  // Result:
+  //   Created IamPolicy with auto-generated ID (e.g., "iamp-01HQ...")
+  //   Alice can view (but not modify) the organization
+  //
+  // Input: IamPolicySpec containing principal, resource, and relation
+  // Output: The created IamPolicy with generated ID and metadata
+  rpc create(IamPolicySpec) returns (IamPolicy) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_grant_access;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to grant access";
+  }
+
+  // Delete a single IAM policy by spec
+  //
+  // Removes an existing IAM policy by matching the principal, resource, and relation.
+  // This is a surgical operation - it removes one specific policy without affecting others.
+  //
+  // The operation:
+  // 1. Finds the policy by matching principal+resource+relation
+  // 2. Removes it from the database
+  // 3. Deletes the corresponding tuple from OpenFGA
+  // 4. If no matching policy exists, the operation is idempotent (no error)
+  //
+  // Authorization:
+  // - Caller must have 'can_grant_access' permission on the RESOURCE referenced in the policy
+  //
+  // Use Cases:
+  // - Revoking a specific permission from a user
+  // - Removing access after a team member leaves
+  // - Cleaning up individual policies
+  //
+  // Example:
+  // Input:
+  //   principal: {kind: "identity_account", id: "ia-alice-123"}
+  //   resource: {kind: "organization", id: "org-demo-456"}
+  //   relation: "viewer"
+  // Result: The policy granting Alice viewer access to the organization is deleted
+  //
+  // Input: IamPolicySpec identifying the policy to delete (principal, resource, relation)
+  // Output: The deleted IamPolicy object (for audit/confirmation purposes)
+  rpc delete(IamPolicySpec) returns (IamPolicy) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_grant_access;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to revoke access";
+  }
+
+  // Create platform link policy (operator-only)
+  //
+  // Creates a platform link policy that associates an identity account with the platform.
+  // This is a privileged operation that can only be called by platform operators.
+  //
+  // The operation:
+  // 1. Validates that caller has operator permission on platform:stigmer
+  // 2. Validates the input is a platform link (principal=platform, relation=platform)
+  // 3. Checks for duplicates (idempotent if already exists)
+  // 4. Creates the policy in the database with auto-generated ID and metadata
+  // 5. Writes the corresponding tuple to OpenFGA
+  //
+  // Authorization:
+  // - Caller must have 'operator' permission on platform:stigmer
+  // - This is typically only granted to machine accounts (service-to-service)
+  //
+  // Use Cases:
+  // - Bootstrapping new identity accounts
+  // - Initial permission setup when standard authorization cannot work yet
+  // - Establishing platform-level relationships for new resources
+  //
+  // Example:
+  // Input:
+  //   principal: {kind: "platform", id: "stigmer"}
+  //   resource: {kind: "identity_account", id: "ida-alice-123"}
+  //   relation: "platform"
+  // Result:
+  //   Created IamPolicy linking the identity account to the platform
+  //   Machine accounts with operator permission can now manage this account
+  //
+  // Input: IamPolicySpec with principal=platform:stigmer, relation=platform, resource=identity_account:{id}
+  // Output: The created IamPolicy with generated ID and metadata
+  rpc createPlatformLink(IamPolicySpec) returns (IamPolicy) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = operator;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to create platform link - operator permission required";
+  }
+
+  // Bootstrap IAM policy during resource creation (operator-only)
+  //
+  // Creates IAM policies during resource creation when standard authorization cannot work yet
+  // because no tuples exist. This solves the chicken-and-egg problem where creating the first
+  // policy for a resource requires authorization, but authorization requires that first policy.
+  //
+  // The operation:
+  // 1. Validates that caller has operator permission on platform:stigmer
+  // 2. Validates the input (principal, resource, relation are all valid)
+  // 3. Checks for duplicates (skips if the exact policy already exists, idempotent)
+  // 4. Creates the policy in the database with auto-generated ID and metadata
+  // 5. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
+  //
+  // Authorization:
+  // - Caller must have 'operator' permission on platform:stigmer
+  // - This is typically only called by resource creation handlers running as machine accounts
+  //
+  // Use Cases:
+  // - Creating scope links (agent#organization@organization:acme) during agent creation
+  // - Creating owner relations (agent#owner@identity_account:alice) during agent creation
+  // - Establishing initial authorization tuples for any newly created resource
+  //
+  // Example:
+  // Input:
+  //   principal: {kind: "organization", id: "org-demo-123"}
+  //   resource: {kind: "agent", id: "agt-abc-456"}
+  //   relation: "organization"
+  // Result:
+  //   Created IamPolicy establishing agent's organization scope
+  //   Subsequent IAM policy operations can now use standard authorization
+  //
+  // Note: After the bootstrap policies are created, subsequent IAM policy modifications
+  // must use the standard 'create' RPC which requires 'can_grant_access' permission.
+  //
+  // Input: IamPolicySpec containing principal, resource, and relation
+  // Output: The created IamPolicy with generated ID and metadata
+  rpc bootstrapPolicy(IamPolicySpec) returns (IamPolicy) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = operator;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to bootstrap policy - operator permission required";
+  }
+
+  // Cleanup all IAM policies for a deleted resource (operator-only)
+  //
+  // This is a system-level cleanup operation that removes all IAM policies
+  // associated with a deleted resource. It performs bidirectional cleanup:
+  // 1. Policies where resource is the TARGET (policies granting access TO this resource)
+  // 2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)
+  //
+  // The operation:
+  // 1. Validates operator permission on platform:stigmer
+  // 2. Finds all policies where resource_id appears (as principal OR resource)
+  // 3. Deletes all matching policies from MongoDB
+  // 4. Removes all corresponding tuples from OpenFGA
+  // 5. Returns Empty (idempotent if no policies exist)
+  //
+  // Authorization:
+  // - Caller must have 'operator' permission on platform:stigmer
+  // - This is typically only granted to platform services
+  //
+  // Use Cases:
+  // - Resource deletion cleanup
+  // - Preventing orphaned FGA tuples
+  // - Maintaining authorization system integrity
+  //
+  // Example:
+  // Input: {kind: "organization", id: "org-demo-123"}
+  // Result: All policies referencing org-demo-123 are deleted
+  //
+  // Input: ApiResourceRef with resource kind and ID
+  // Output: Empty (google.protobuf.Empty)
+  rpc cleanupResourcePolicies(ApiResourceRef) returns (google.protobuf.Empty) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = operator;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to cleanup resource policies - operator permission required";
+  }
+}
