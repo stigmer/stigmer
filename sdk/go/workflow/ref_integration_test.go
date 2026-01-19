@@ -1,7 +1,6 @@
 package workflow_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
@@ -85,7 +84,8 @@ func TestTaskBuilder_WithURIStringRef(t *testing.T) {
 		t.Fatal("Task config is not HttpCallTaskConfig")
 	}
 	
-	expected := "${ $context.apiURL }"
+	// Compile-time resolution: context variables resolve to their values
+	expected := "https://api.example.com"
 	if cfg.URI != expected {
 		t.Errorf("Expected URI '%s', got '%s'", expected, cfg.URI)
 	}
@@ -124,12 +124,10 @@ func TestTaskBuilder_WithURIStringRefConcat(t *testing.T) {
 		t.Fatal("Task config is not HttpCallTaskConfig")
 	}
 	
-	// Should generate expression with concatenation
-	if !strings.Contains(cfg.URI, "$context.apiURL") {
-		t.Errorf("Expected URI to contain '$context.apiURL', got '%s'", cfg.URI)
-	}
-	if !strings.Contains(cfg.URI, "/users") {
-		t.Errorf("Expected URI to contain '/users', got '%s'", cfg.URI)
+	// Compile-time resolution: Concat() on known values resolves immediately
+	expected := "https://api.example.com/users"
+	if cfg.URI != expected {
+		t.Errorf("Expected URI '%s', got '%s'", expected, cfg.URI)
 	}
 }
 
@@ -148,7 +146,8 @@ func TestTaskBuilder_WithHeaderStringRef(t *testing.T) {
 		t.Fatal("Task config is not HttpCallTaskConfig")
 	}
 	
-	expected := "${ $context.token }"
+	// Compile-time resolution: context variables resolve to their values
+	expected := "secret-token-123"
 	if cfg.Headers["Authorization"] != expected {
 		t.Errorf("Expected header '%s', got '%s'", expected, cfg.Headers["Authorization"])
 	}
@@ -226,7 +225,8 @@ func TestTaskBuilder_SetVarStringRef(t *testing.T) {
 		t.Fatal("Task config is not SetTaskConfig")
 	}
 	
-	expected := "${ $context.apiURL }"
+	// Compile-time resolution: context variables resolve to their values
+	expected := "https://api.example.com"
 	if cfg.Variables["url"] != expected {
 		t.Errorf("Expected variable '%s', got '%s'", expected, cfg.Variables["url"])
 	}
@@ -262,7 +262,8 @@ func TestTaskBuilder_SetIntIntRef(t *testing.T) {
 		t.Fatal("Task config is not SetTaskConfig")
 	}
 	
-	expected := "${ $context.retries }"
+	// Compile-time resolution: context variables resolve to their values
+	expected := "3"
 	if cfg.Variables["count"] != expected {
 		t.Errorf("Expected variable '%s', got '%s'", expected, cfg.Variables["count"])
 	}
@@ -298,7 +299,8 @@ func TestTaskBuilder_SetStringStringRef(t *testing.T) {
 		t.Fatal("Task config is not SetTaskConfig")
 	}
 	
-	expected := "${ $context.status }"
+	// Compile-time resolution: context variables resolve to their values
+	expected := "pending"
 	if cfg.Variables["state"] != expected {
 		t.Errorf("Expected variable '%s', got '%s'", expected, cfg.Variables["state"])
 	}
@@ -334,7 +336,8 @@ func TestTaskBuilder_SetBoolBoolRef(t *testing.T) {
 		t.Fatal("Task config is not SetTaskConfig")
 	}
 	
-	expected := "${ $context.enabled }"
+	// Compile-time resolution: context variables resolve to their values
+	expected := "true"
 	if cfg.Variables["isEnabled"] != expected {
 		t.Errorf("Expected variable '%s', got '%s'", expected, cfg.Variables["isEnabled"])
 	}
@@ -371,7 +374,8 @@ func TestTaskBuilder_WithServiceStringRef(t *testing.T) {
 		t.Fatal("Task config is not GrpcCallTaskConfig")
 	}
 	
-	expected := "${ $context.service }"
+	// Compile-time resolution: context variables resolve to their values
+	expected := "UserService"
 	if cfg.Service != expected {
 		t.Errorf("Expected service '%s', got '%s'", expected, cfg.Service)
 	}
