@@ -82,11 +82,11 @@ class LLMConfig:
         Configuration Cascade:
             1. Environment variables (explicit user config)
             2. Mode-aware defaults:
-               - dev mode: Ollama with qwen2.5-coder:7b
+               - local mode: Ollama with qwen2.5-coder:7b
                - cloud mode: Anthropic with claude-sonnet-4.5
         """
         # Determine mode-aware defaults
-        if mode == "dev":
+        if mode == "local":
             defaults = {
                 "provider": "ollama",
                 "model_name": "qwen2.5-coder:7b",
@@ -175,9 +175,9 @@ class LLMConfig:
 class Config:
     """Worker configuration loaded from environment variables.
     
-    Dev Mode (MODE=dev):
-    --------------------
-    When MODE=dev, the runner operates in development mode:
+    Local Mode (MODE=local):
+    ------------------------
+    When MODE=local, the runner operates in local execution mode:
     - Uses filesystem backend instead of Daytona
     - Skips cloud dependencies (Redis, Auth0, etc.)
     - Connects to Stigmer Daemon (localhost:50051) for state/streaming
@@ -226,7 +226,7 @@ class Config:
         """Load configuration from environment variables."""
         # Detect execution mode (local vs cloud)
         mode = os.getenv("MODE", "cloud")
-        is_dev = mode == "dev"
+        is_local = mode == "local"
         
         # Load LLM configuration (mode-aware)
         llm_config = LLMConfig.load_from_env(mode)
@@ -296,7 +296,7 @@ class Config:
             Cloud mode:
                 {"type": "daytona", "snapshot_id": "..."}  # snapshot_id optional
         """
-        if self.mode == "dev":
+        if self.mode == "local":
             return {
                 "type": "filesystem",
                 "root_dir": self.sandbox_root_dir,
@@ -314,4 +314,4 @@ class Config:
     
     def is_local_mode(self) -> bool:
         """Check if running in local execution mode."""
-        return self.mode == "dev"
+        return self.mode == "local"
