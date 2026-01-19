@@ -1,0 +1,4 @@
+# Get an API key by ID
+# Note: This will NOT return the raw key, only the hash and fingerprint
+
+value: "api-key-id-here"

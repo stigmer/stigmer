@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.apikey.v1;
+
+import "ai/stigmer/iam/apikey/v1/api.proto";
+import "buf/validate/validate.proto";
+
+// wrapper to get list of api keys
+message ApiKeys {
+  repeated ApiKey entries = 1;
+}
+
+// wrapper for user api key id.
+message ApiKeyId {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// wrapper for hashed api key
+message ApiKeyHash {
+  string value = 1 [(buf.validate.field).required = true];
+}
