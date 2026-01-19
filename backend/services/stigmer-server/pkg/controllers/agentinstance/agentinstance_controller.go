@@ -2,7 +2,7 @@ package agentinstance
 
 import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
-	agentinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentinstance/v1"
+	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 )
 
 // AgentInstanceController implements AgentInstanceCommandController and AgentInstanceQueryService

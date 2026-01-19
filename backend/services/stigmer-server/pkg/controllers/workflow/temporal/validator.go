@@ -9,8 +9,8 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/converter"
 
-	workflowv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflow/v1"
-	serverlessv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflow/v1/serverless"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	serverlessv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless"
 )
 
 // ServerlessWorkflowValidator is a client for executing serverless workflow validation via Temporal.

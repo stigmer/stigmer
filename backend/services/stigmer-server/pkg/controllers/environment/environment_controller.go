@@ -2,7 +2,7 @@ package environment
 
 import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
-	environmentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/environment/v1"
+	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 )
 
 // EnvironmentController implements EnvironmentCommandController and EnvironmentQueryController

@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/rs/zerolog/log"
-	workflowexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflowexecution/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 )
 
 // StreamBroker manages in-memory Go channels for real-time execution updates
