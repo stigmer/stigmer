@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.apikey.v1;
+
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/apikey/v1/api.proto";
+import "ai/stigmer/iam/apikey/v1/io.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// api-key command controller
+service ApiKeyCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = api_key;
+  // create an api-key
+  rpc create(ApiKey) returns (ApiKey) {
+    //any authenticated user can create an api-key. so authorization is not required.
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+
+  // update an existing api-key
+  rpc update(ApiKey) returns (ApiKey) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = api_key;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update api key";
+  }
+
+  // delete an existing api-key
+  rpc delete(ApiKeyId) returns (ApiKey) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = api_key;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete api key";
+  }
+}

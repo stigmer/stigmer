@@ -1,0 +1,15 @@
+# Update an API key (e.g., extend expiration, rename)
+# Note: You cannot update the key value itself - create a new key instead
+
+apiVersion: iam.stigmer.ai/v1
+kind: ApiKey
+metadata:
+  id: "api-key-id-here"
+  name: my-renamed-key
+  description: Updated description
+spec:
+  # Update expiration
+  expiresAt: "2027-12-31T23:59:59Z"
+  
+  # OR set never expires
+  # neverExpires: true

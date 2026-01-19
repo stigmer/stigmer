@@ -1,0 +1,6 @@
+# List all API keys for the authenticated user
+# Returns all API keys owned by the identity account in the auth header
+# Each entry shows metadata, fingerprint, and expiration but NOT the raw key
+
+# No request body needed - uses identity from auth header
+{}
