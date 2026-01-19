@@ -21,6 +21,6 @@ go_library(
         "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/internal/cli/config",
         "//client-apps/cli/internal/cli/daemon",
-        "@com_github_spf13_cobra//:cobra",
+        "@com_github_spf13_cobra//:go_default_library",
     ],
 )

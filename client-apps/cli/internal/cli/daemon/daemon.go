@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
 )
@@ -28,6 +29,11 @@ const (
 	AgentRunnerPIDFileName = "agent-runner.pid"
 )
 
+// StartOptions provides options for starting the daemon
+type StartOptions struct {
+	Progress *cliprint.ProgressDisplay // Optional progress display for UI
+}
+
 // Start starts the stigmer daemon in the background
 //
 // The daemon runs stigmer-server on localhost:50051 as per ADR 011.
@@ -37,6 +43,11 @@ const (
 // - Workflow runner (embedded)
 // - Agent runner (subprocess)
 func Start(dataDir string) error {
+	return StartWithOptions(dataDir, StartOptions{})
+}
+
+// StartWithOptions starts the daemon with custom options
+func StartWithOptions(dataDir string, opts StartOptions) error {
 	log.Debug().Str("data_dir", dataDir).Msg("Starting daemon")
 
 	// Check if already running
@@ -45,11 +56,17 @@ func Start(dataDir string) error {
 	}
 
 	// Ensure data directory exists
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseInitializing, "Setting up data directory")
+	}
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return errors.Wrap(err, "failed to create data directory")
 	}
 
 	// Load configuration
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseInitializing, "Loading configuration")
+	}
 	cfg, err := config.Load()
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to load config, using defaults")
@@ -67,7 +84,19 @@ func Start(dataDir string) error {
 		Str("llm_base_url", llmBaseURL).
 		Msg("Resolved LLM configuration")
 
+	// Show LLM provider message
+	if opts.Progress != nil {
+		if llmProvider == "ollama" {
+			cliprint.PrintSuccess("Using Ollama (no API key required)")
+		} else {
+			cliprint.PrintInfo("Using %s with model %s", llmProvider, llmModel)
+		}
+	}
+
 	// Gather provider-specific secrets
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseInitializing, "Gathering credentials")
+	}
 	secrets, err := GatherRequiredSecrets(llmProvider)
 	if err != nil {
 		return errors.Wrap(err, "failed to gather required secrets")
@@ -84,6 +113,9 @@ func Start(dataDir string) error {
 	// Start managed Temporal if configured
 	var temporalManager *temporal.Manager
 	if isManaged {
+		if opts.Progress != nil {
+			opts.Progress.SetPhase(cliprint.PhaseInstalling, "Setting up Temporal")
+		}
 		log.Info().Msg("Starting managed Temporal server...")
 		
 		temporalManager = temporal.NewManager(
@@ -96,6 +128,9 @@ func Start(dataDir string) error {
 			return errors.Wrap(err, "failed to ensure Temporal installation")
 		}
 		
+		if opts.Progress != nil {
+			opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting Temporal server")
+		}
 		if err := temporalManager.Start(); err != nil {
 			return errors.Wrap(err, "failed to start Temporal")
 		}
@@ -107,6 +142,9 @@ func Start(dataDir string) error {
 	}
 
 	// Find stigmer-server binary
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting Stigmer server")
+	}
 	serverBin, err := findServerBinary()
 	if err != nil {
 		return err
@@ -169,6 +207,9 @@ func Start(dataDir string) error {
 	time.Sleep(500 * time.Millisecond)
 
 	// Start agent-runner subprocess with LLM config and injected secrets
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting agent runner")
+	}
 	if err := startAgentRunner(dataDir, logDir, llmProvider, llmModel, llmBaseURL, temporalAddr, secrets); err != nil {
 		log.Error().Err(err).Msg("Failed to start agent-runner, continuing without it")
 		// Don't fail the entire daemon startup if agent-runner fails
