@@ -25,6 +25,9 @@ const (
 	
 	// TemporalPIDFileName is the name of the PID file for Temporal
 	TemporalPIDFileName = "temporal.pid"
+	
+	// TemporalLockFileName is the name of the lock file for Temporal
+	TemporalLockFileName = "temporal.lock"
 )
 
 // Manager manages the Temporal CLI binary and dev server
@@ -34,7 +37,9 @@ type Manager struct {
 	version    string      // Temporal CLI version
 	port       int         // Port for dev server
 	logFile    string      // Path to log file
-	pidFile    string      // Path to PID file
+	pidFile    string      // Path to PID file (kept for debugging)
+	lockFile   string      // Path to lock file (source of truth)
+	lockFd     *os.File    // Lock file descriptor (held while Temporal runs)
 	supervisor *Supervisor // Optional supervisor for auto-restart
 }
 
@@ -50,6 +55,7 @@ func NewManager(stigmerDataDir string, version string, port int) *Manager {
 	binDir := filepath.Join(stigmerDataDir, "..", "bin")
 	logsDir := filepath.Join(stigmerDataDir, "..", "logs")
 	temporalDataDir := filepath.Join(stigmerDataDir, "..", "temporal-data")
+	stigmerDir := filepath.Join(stigmerDataDir, "..")
 	
 	return &Manager{
 		binPath:  filepath.Join(binDir, "temporal"),
@@ -57,7 +63,8 @@ func NewManager(stigmerDataDir string, version string, port int) *Manager {
 		version:  version,
 		port:     port,
 		logFile:  filepath.Join(logsDir, "temporal.log"),
-		pidFile:  filepath.Join(stigmerDataDir, "..", TemporalPIDFileName),
+		pidFile:  filepath.Join(stigmerDir, TemporalPIDFileName),
+		lockFile: filepath.Join(stigmerDir, TemporalLockFileName),
 	}
 }
 
@@ -84,10 +91,19 @@ func (m *Manager) EnsureInstalled() error {
 // This function is idempotent - if Temporal is already running and healthy,
 // it will log success and return without error.
 func (m *Manager) Start() error {
+	// Check lock file first (fastest check, source of truth)
+	if m.isLocked() {
+		log.Info().
+			Str("address", m.GetAddress()).
+			Str("ui_url", "http://localhost:8233").
+			Msg("Temporal is already running (lock file held) - reusing existing instance")
+		return nil
+	}
+	
 	// Cleanup any stale processes before checking if running
 	m.cleanupStaleProcesses()
 	
-	// Check if already running and healthy
+	// Check if already running and healthy (backup check)
 	if m.IsRunning() {
 		log.Info().
 			Str("address", m.GetAddress()).
@@ -98,6 +114,11 @@ func (m *Manager) Start() error {
 	
 	// Ensure binary is installed
 	if err := m.EnsureInstalled(); err != nil {
+		return err
+	}
+	
+	// Acquire lock before starting Temporal
+	if err := m.acquireLock(); err != nil {
 		return err
 	}
 	
@@ -135,13 +156,16 @@ func (m *Manager) Start() error {
 	
 	// Start process
 	if err := cmd.Start(); err != nil {
+		m.releaseLock()
 		return errors.Wrap(err, "failed to start Temporal process")
 	}
 	
 	// Write PID file with enhanced format (PID, command name, timestamp)
+	// Note: PID file is kept for debugging, but lock file is the source of truth
 	if err := m.writePIDFile(cmd.Process.Pid, "temporal"); err != nil {
 		// Kill the process if we can't write PID file
 		_ = cmd.Process.Kill()
+		m.releaseLock()
 		return errors.Wrap(err, "failed to write Temporal PID file")
 	}
 	
@@ -154,6 +178,7 @@ func (m *Manager) Start() error {
 	if err := m.waitForReady(10 * time.Second); err != nil {
 		_ = cmd.Process.Kill()
 		_ = os.Remove(m.pidFile)
+		m.releaseLock()
 		return errors.Wrap(err, "Temporal failed to start")
 	}
 	
@@ -168,12 +193,18 @@ func (m *Manager) Start() error {
 func (m *Manager) Stop() error {
 	pid, err := m.getPID()
 	if err != nil {
+		// No PID file - check if lock file is held
+		if m.isLocked() {
+			log.Warn().Msg("Lock file exists but PID file missing - releasing lock")
+			m.releaseLock()
+		}
 		return errors.Wrap(err, "Temporal is not running")
 	}
 	
 	// Send SIGTERM to entire process group for graceful shutdown
 	// Negative PID sends signal to process group
 	if err := syscall.Kill(-pid, syscall.SIGTERM); err != nil {
+		m.releaseLock()
 		return errors.Wrap(err, "failed to send SIGTERM to Temporal process group")
 	}
 	
@@ -182,8 +213,9 @@ func (m *Manager) Stop() error {
 	// Wait for process to exit (up to 10 seconds)
 	for i := 0; i < 20; i++ {
 		if !m.IsRunning() {
-			// Remove PID file
+			// Remove PID file and release lock
 			_ = os.Remove(m.pidFile)
+			m.releaseLock()
 			log.Info().Msg("Temporal stopped successfully")
 			return nil
 		}
@@ -197,13 +229,16 @@ func (m *Manager) Stop() error {
 		if !m.IsRunning() {
 			log.Info().Msg("Temporal process already terminated")
 			_ = os.Remove(m.pidFile)
+			m.releaseLock()
 			return nil
 		}
+		m.releaseLock()
 		return errors.Wrap(err, "failed to kill Temporal process group")
 	}
 	
-	// Remove PID file
+	// Remove PID file and release lock
 	_ = os.Remove(m.pidFile)
+	m.releaseLock()
 	return nil
 }
 
@@ -402,6 +437,70 @@ func (m *Manager) cleanupStaleProcesses() {
 	
 	// All checks passed - it's a valid running Temporal instance
 	log.Debug().Int("pid", pid).Msg("Found valid running Temporal instance")
+}
+
+// acquireLock attempts to acquire an exclusive lock on the lock file
+// Returns nil on success, error if lock is already held by another process
+func (m *Manager) acquireLock() error {
+	// Open lock file (create if doesn't exist)
+	fd, err := os.OpenFile(m.lockFile, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return errors.Wrap(err, "failed to open lock file")
+	}
+	
+	// Try to acquire exclusive non-blocking lock
+	err = syscall.Flock(int(fd.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	if err != nil {
+		fd.Close()
+		if err == syscall.EWOULDBLOCK {
+			return errors.New("Temporal is already running (lock file held by another process)")
+		}
+		return errors.Wrap(err, "failed to acquire lock")
+	}
+	
+	// Lock acquired successfully - store file descriptor
+	m.lockFd = fd
+	
+	log.Debug().Str("lock_file", m.lockFile).Msg("Acquired lock file")
+	return nil
+}
+
+// releaseLock releases the lock file
+// The lock is automatically released when the file is closed or process dies
+func (m *Manager) releaseLock() {
+	if m.lockFd == nil {
+		return
+	}
+	
+	// Unlock and close (both happen automatically, but being explicit)
+	_ = syscall.Flock(int(m.lockFd.Fd()), syscall.LOCK_UN)
+	_ = m.lockFd.Close()
+	m.lockFd = nil
+	
+	log.Debug().Str("lock_file", m.lockFile).Msg("Released lock file")
+}
+
+// isLocked checks if the lock file is currently held by another process
+// Returns true if locked, false if available
+func (m *Manager) isLocked() bool {
+	// Try to open lock file
+	fd, err := os.OpenFile(m.lockFile, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		// Can't open file - assume not locked
+		return false
+	}
+	defer fd.Close()
+	
+	// Try to acquire non-blocking lock
+	err = syscall.Flock(int(fd.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	if err != nil {
+		// Lock failed - someone else holds it
+		return true
+	}
+	
+	// Lock succeeded - release it and return false
+	_ = syscall.Flock(int(fd.Fd()), syscall.LOCK_UN)
+	return false
 }
 
 // StartSupervisor starts monitoring Temporal and auto-restarting on failure
