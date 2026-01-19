@@ -24,6 +24,7 @@ const (
 	PhaseInstalling   ProgressPhase = "installing"
 	PhaseDeleting     ProgressPhase = "deleting"
 	PhaseCompleted    ProgressPhase = "completed"
+	PhaseStarting     ProgressPhase = "starting"
 )
 
 // PhaseStatus represents the completion status of a phase
@@ -150,11 +151,12 @@ func (m ProgressModel) View() string {
 		{PhaseDiscovering, "Discovering resources"},
 		{PhaseValidating, "Validating configuration"},
 		{PhaseConnecting, "Connecting to backend"},
-		{PhaseDeploying, "Deploying agents"},
+		{PhaseDeploying, "Deploying"},
 		{PhaseExecuting, "Starting execution"},
-		{PhaseInitializing, "Initializing project"},
+		{PhaseInitializing, "Initializing"},
 		{PhaseInstalling, "Installing dependencies"},
 		{PhaseDeleting, "Deleting resources"},
+		{PhaseStarting, "Starting services"},
 	}
 	
 	for _, p := range phaseOrder {
