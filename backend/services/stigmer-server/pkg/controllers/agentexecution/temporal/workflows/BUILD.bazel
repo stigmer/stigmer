@@ -5,16 +5,12 @@ go_library(
     srcs = [
         "invoke_workflow.go",
         "invoke_workflow_impl.go",
-        "workflow_creator.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentexecution/temporal/workflows",
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
-        "//backend/services/stigmer-server/pkg/controllers/agentexecution/temporal",
         "//backend/services/stigmer-server/pkg/controllers/agentexecution/temporal/activities",
-        "@com_github_rs_zerolog//log",
-        "@io_temporal_go_sdk//client",
         "@io_temporal_go_sdk//temporal",
         "@io_temporal_go_sdk//workflow",
     ],

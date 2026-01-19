@@ -3,7 +3,6 @@ package activities
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
@@ -47,8 +46,8 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 		Msg("Activity updating workflow execution status")
 
 	// Load existing execution (SINGLE DB QUERY)
-	var existing workflowexecutionv1.WorkflowExecution
-	if err := a.store.Get(ctx, executionID, &existing); err != nil {
+	existing := &workflowexecutionv1.WorkflowExecution{}
+	if err := a.store.GetResource(ctx, "WorkflowExecution", executionID, existing); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).
@@ -63,7 +62,7 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 		Msg("Loaded workflow execution")
 
 	// Build updated execution with merged status
-	updated := existing
+	updated := *existing
 	if updated.Status == nil {
 		updated.Status = &workflowexecutionv1.WorkflowExecutionStatus{}
 	}
@@ -107,13 +106,18 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 
 	// Update audit timestamp (status was modified)
 	if updated.Status.Audit == nil {
-		updated.Status.Audit = &apiresourcev1.ApiResourceStatusAudit{}
+		updated.Status.Audit = &apiresourcev1.ApiResourceAuditStatus{
+			Audit: &apiresourcev1.ApiResourceAudit{},
+		}
 	}
-	if updated.Status.Audit.StatusAudit == nil {
-		updated.Status.Audit.StatusAudit = &apiresourcev1.ApiResourceAudit{}
+	if updated.Status.Audit.Audit == nil {
+		updated.Status.Audit.Audit = &apiresourcev1.ApiResourceAudit{}
 	}
-	updated.Status.Audit.StatusAudit.UpdatedAt = timestamppb.Now()
-	updated.Status.Audit.StatusAudit.Event = apiresourcev1.ApiResourceEventType_updated.String()
+	if updated.Status.Audit.Audit.StatusAudit == nil {
+		updated.Status.Audit.Audit.StatusAudit = &apiresourcev1.ApiResourceAuditInfo{}
+	}
+	updated.Status.Audit.Audit.StatusAudit.UpdatedAt = timestamppb.Now()
+	updated.Status.Audit.Audit.StatusAudit.Event = apiresourcev1.ApiResourceEventType_updated.String()
 
 	log.Debug().
 		Str("execution_id", executionID).
@@ -122,7 +126,7 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 		Msg("Built updated workflow execution")
 
 	// Persist to BadgerDB
-	if err := a.store.Put(ctx, executionID, &updated); err != nil {
+	if err := a.store.SaveResource(ctx, "WorkflowExecution", executionID, &updated); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).

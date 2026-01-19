@@ -116,11 +116,13 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 func (w *InvokeAgentExecutionWorkflowImpl) getActivityTaskQueue(ctx workflow.Context) string {
 	info := workflow.GetInfo(ctx)
 
-	// Try to get from memo
-	if taskQueue, ok := info.Memo.GetValue("activityTaskQueue"); ok {
-		var taskQueueStr string
-		if err := taskQueue.Get(&taskQueueStr); err == nil && taskQueueStr != "" {
-			return taskQueueStr
+	// Access memo fields directly
+	if info.Memo != nil && info.Memo.Fields != nil {
+		if taskQueueField, ok := info.Memo.Fields["activityTaskQueue"]; ok {
+			var taskQueueStr string
+			if err := workflow.PayloadConverter().FromPayload(taskQueueField, &taskQueueStr); err == nil && taskQueueStr != "" {
+				return taskQueueStr
+			}
 		}
 	}
 

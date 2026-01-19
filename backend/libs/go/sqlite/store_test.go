@@ -7,7 +7,6 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"google.golang.org/protobuf/proto"
 )
 
 func TestStoreLifecycle(t *testing.T) {
@@ -26,32 +25,31 @@ func TestStoreLifecycle(t *testing.T) {
 
 	// Create test agent
 	agent := &agentv1.Agent{
-		ApiResourceMetadata: &apiresource.ApiResourceMetadata{
+		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   "agent-test-001",
 			Name: "Test Agent",
-			OrgId: "org-test",
+			Org:  "org-test",
 		},
 		Spec: &agentv1.AgentSpec{
 			Description: "A test agent",
-			Model:       "gpt-4",
 		},
 	}
 
 	// Test SaveResource
-	err = store.SaveResource(ctx, "Agent", agent.ApiResourceMetadata.Id, agent)
+	err = store.SaveResource(ctx, "Agent", agent.Metadata.Id, agent)
 	if err != nil {
 		t.Fatalf("failed to save resource: %v", err)
 	}
 
 	// Test GetResource
 	retrieved := &agentv1.Agent{}
-	err = store.GetResource(ctx, agent.ApiResourceMetadata.Id, retrieved)
+	err = store.GetResource(ctx, "Agent", agent.Metadata.Id, retrieved)
 	if err != nil {
 		t.Fatalf("failed to get resource: %v", err)
 	}
 
-	if retrieved.ApiResourceMetadata.Name != agent.ApiResourceMetadata.Name {
-		t.Errorf("expected name %s, got %s", agent.ApiResourceMetadata.Name, retrieved.ApiResourceMetadata.Name)
+	if retrieved.Metadata.Name != agent.Metadata.Name {
+		t.Errorf("expected name %s, got %s", agent.Metadata.Name, retrieved.Metadata.Name)
 	}
 
 	// Test ListResources
@@ -66,13 +64,13 @@ func TestStoreLifecycle(t *testing.T) {
 
 	// Test UpdateResource (upsert)
 	agent.Spec.Description = "Updated description"
-	err = store.SaveResource(ctx, "Agent", agent.ApiResourceMetadata.Id, agent)
+	err = store.SaveResource(ctx, "Agent", agent.Metadata.Id, agent)
 	if err != nil {
 		t.Fatalf("failed to update resource: %v", err)
 	}
 
 	updated := &agentv1.Agent{}
-	err = store.GetResource(ctx, agent.ApiResourceMetadata.Id, updated)
+	err = store.GetResource(ctx, "Agent", agent.Metadata.Id, updated)
 	if err != nil {
 		t.Fatalf("failed to get updated resource: %v", err)
 	}
@@ -92,13 +90,13 @@ func TestStoreLifecycle(t *testing.T) {
 	}
 
 	// Test DeleteResource
-	err = store.DeleteResource(ctx, agent.ApiResourceMetadata.Id)
+	err = store.DeleteResource(ctx, "Agent", agent.Metadata.Id)
 	if err != nil {
 		t.Fatalf("failed to delete resource: %v", err)
 	}
 
 	// Verify deletion
-	err = store.GetResource(ctx, agent.ApiResourceMetadata.Id, retrieved)
+	err = store.GetResource(ctx, "Agent", agent.Metadata.Id, retrieved)
 	if err == nil {
 		t.Error("expected error when getting deleted resource")
 	}
@@ -118,32 +116,32 @@ func TestListResourcesByOrg(t *testing.T) {
 
 	// Create agents for different orgs
 	agent1 := &agentv1.Agent{
-		ApiResourceMetadata: &apiresource.ApiResourceMetadata{
+		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   "agent-001",
 			Name: "Agent 1",
-			OrgId: "org-1",
+			Org:  "org-1",
 		},
 	}
 
 	agent2 := &agentv1.Agent{
-		ApiResourceMetadata: &apiresource.ApiResourceMetadata{
+		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   "agent-002",
 			Name: "Agent 2",
-			OrgId: "org-1",
+			Org:  "org-1",
 		},
 	}
 
 	agent3 := &agentv1.Agent{
-		ApiResourceMetadata: &apiresource.ApiResourceMetadata{
+		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   "agent-003",
 			Name: "Agent 3",
-			OrgId: "org-2",
+			Org:  "org-2",
 		},
 	}
 
 	// Save all agents
 	for _, agent := range []*agentv1.Agent{agent1, agent2, agent3} {
-		err = store.SaveResource(ctx, "Agent", agent.ApiResourceMetadata.Id, agent)
+		err = store.SaveResource(ctx, "Agent", agent.Metadata.Id, agent)
 		if err != nil {
 			t.Fatalf("failed to save agent: %v", err)
 		}
@@ -185,12 +183,12 @@ func TestDeleteResourcesByKind(t *testing.T) {
 	// Create multiple agents
 	for i := 1; i <= 3; i++ {
 		agent := &agentv1.Agent{
-			ApiResourceMetadata: &apiresource.ApiResourceMetadata{
-				Id:   proto.String("agent-" + string(rune('0'+i))),
-				Name: proto.String("Agent " + string(rune('0'+i))),
+			Metadata: &apiresource.ApiResourceMetadata{
+				Id:   "agent-" + string(rune('0'+i)),
+				Name: "Agent " + string(rune('0'+i)),
 			},
 		}
-		err = store.SaveResource(ctx, "Agent", agent.ApiResourceMetadata.Id, agent)
+		err = store.SaveResource(ctx, "Agent", agent.Metadata.Id, agent)
 		if err != nil {
 			t.Fatalf("failed to save agent: %v", err)
 		}
