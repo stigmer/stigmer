@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "controller",
+    srcs = [
+        "agentinstance_controller.go",
+        "apply.go",
+        "create.go",
+        "delete.go",
+        "get.go",
+        "get_by_agent.go",
+        "get_by_reference.go",
+        "update.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agentinstance/v1:agentinstance",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//backend/libs/go/badger",
+        "//backend/libs/go/grpc",
+        "//backend/libs/go/grpc/request/pipeline",
+        "//backend/libs/go/grpc/request/pipeline/steps",
+        "@com_github_rs_zerolog//log",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)
