@@ -10,8 +10,8 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/workflowexecution/temporal/workflows",
     visibility = ["//visibility:public"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",
         "//backend/services/stigmer-server/pkg/controllers/workflowexecution/temporal/activities",
-        "//internal/gen/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",
         "@com_github_rs_zerolog//log",
         "@io_temporal_go_sdk//client:go_default_library",
         "@io_temporal_go_sdk//temporal:go_default_library",

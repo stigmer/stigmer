@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 )

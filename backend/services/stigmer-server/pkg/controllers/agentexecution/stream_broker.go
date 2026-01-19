@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/rs/zerolog/log"
-	agentexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentexecution/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 )
 
 // StreamBroker manages in-memory Go channels for real-time execution updates

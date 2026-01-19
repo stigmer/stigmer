@@ -7,9 +7,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
-	"github.com/stigmer/stigmer/backend/libs/go/prototime"
-	apiresourcev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/v1"
-	workflowexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflowexecution/v1"
+	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // UpdateWorkflowExecutionStatusActivityImpl implements UpdateWorkflowExecutionStatusActivity.
@@ -112,7 +112,7 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 	if updated.Status.Audit.StatusAudit == nil {
 		updated.Status.Audit.StatusAudit = &apiresourcev1.ApiResourceAudit{}
 	}
-	updated.Status.Audit.StatusAudit.UpdatedAt = prototime.Now()
+	updated.Status.Audit.StatusAudit.UpdatedAt = timestamppb.Now()
 	updated.Status.Audit.StatusAudit.Event = apiresourcev1.ApiResourceEventType_updated.String()
 
 	log.Debug().

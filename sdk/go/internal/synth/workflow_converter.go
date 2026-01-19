@@ -7,9 +7,9 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	// Import Buf-generated proto packages
-	apiresource "github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
-	workflowv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflow/v1"
-	sdk "github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/sdk"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	sdk "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/sdk"
 
 	// Import SDK types
 	"github.com/stigmer/stigmer/sdk/go/workflow"

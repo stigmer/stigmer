@@ -75,7 +75,7 @@ prep:
 # --------------------------------------------------------------------------- #
 #  Go protobuf/gRPC stub generation
 # --------------------------------------------------------------------------- #
-GO_STUBS_DIR := ../internal/gen
+GO_STUBS_DIR := stubs/go
 
 .PHONY: go-stubs-clean
 go-stubs-clean:
@@ -91,7 +91,7 @@ go-stubs-fix-structure:
 	@# Fix nested directory structure created by buf's go_package_prefix
 	@if [ -d "$(GO_STUBS_DIR)/github.com" ]; then \
 		echo "Fixing nested Go stubs directory structure..."; \
-		mv $(GO_STUBS_DIR)/github.com/stigmer/stigmer/internal/gen/* $(GO_STUBS_DIR)/ 2>/dev/null || true; \
+		mv $(GO_STUBS_DIR)/github.com/stigmer/stigmer/apis/stubs/go/* $(GO_STUBS_DIR)/ 2>/dev/null || true; \
 		rm -rf $(GO_STUBS_DIR)/github.com; \
 		echo "✓ Directory structure fixed"; \
 	fi
@@ -101,7 +101,7 @@ go-stubs-ensure-gomod:
 	@# Ensure go.mod exists for the Go module
 	@if [ ! -f "$(GO_STUBS_DIR)/go.mod" ]; then \
 		echo "Creating go.mod for Go stubs..."; \
-		echo 'module github.com/stigmer/stigmer/internal/gen\n\ngo 1.24\n\nrequire (\n\tbuf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20251209175733-2a1774d88802.1\n\tgoogle.golang.org/grpc v1.78.0\n\tgoogle.golang.org/protobuf v1.36.11\n)' > $(GO_STUBS_DIR)/go.mod; \
+		echo 'module github.com/stigmer/stigmer/apis/stubs/go\n\ngo 1.24\n\nrequire (\n\tbuf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20251209175733-2a1774d88802.1\n\tgoogle.golang.org/grpc v1.78.0\n\tgoogle.golang.org/protobuf v1.36.11\n)' > $(GO_STUBS_DIR)/go.mod; \
 		cd $(GO_STUBS_DIR) && go mod tidy; \
 		echo "✓ go.mod created"; \
 	else \

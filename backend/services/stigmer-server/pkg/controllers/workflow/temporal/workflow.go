@@ -5,8 +5,8 @@ import (
 
 	"go.temporal.io/sdk/workflow"
 
-	workflowv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflow/v1"
-	serverlessv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflow/v1/serverless"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	serverlessv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless"
 )
 
 // ValidateWorkflowWorkflow is the Temporal workflow interface for validating serverless workflows.
