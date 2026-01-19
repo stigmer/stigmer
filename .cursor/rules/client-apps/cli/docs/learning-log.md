@@ -15,118 +15,188 @@ After solving a new problem, add it here to help future work.
 
 ## Module & Dependencies
 
-### [To be populated during development]
-
-**Purpose**: Document Go module issues, proto stub imports, dependency conflicts, and build errors.
-
----
-
 ## CLI Commands
 
-### [To be populated during development]
 
-**Purpose**: Document Cobra command patterns, flag handling, argument parsing, and command organization.
+### 2026-01-20 - Auto-Initialization Pattern for First-Run Setup
 
----
+**Problem**: Requiring separate `stigmer init` and `stigmer server` commands creates friction:
+- Users confused about which command to run first
+- Documentation needs to explain two-step process
+- Error messages when users skip init are unhelpful
+- Mental overhead: "Did I run init? Do I need to?"
 
-## Backend Communication
+**Root Cause**: Treating initialization as separate user action instead of internal implementation detail. Users don't care about "initialization" - they just want to start the server.
 
-### [To be populated during development]
+**Solution**: Auto-detect first run and initialize automatically within `stigmer server`:
 
-**Purpose**: Document gRPC connection issues, health checks, error handling, and TLS configuration.
+```go
+func handleServerStart() {
+    // Auto-initialize config if needed
+    if !config.IsInitialized() {
+        cliprint.PrintInfo("First-time setup: Initializing Stigmer...")
+        cfg := config.GetDefault()
+        if err := config.Save(cfg); err != nil {
+            // Handle error
+            return
+        }
+        cliprint.PrintSuccess("Created configuration...")
+    }
+    
+    // Proceed with server start
+    startServer(dataDir)
+}
+```
 
----
+**Prevention**: 
+- For any CLI that needs setup, check and auto-initialize in the main command
+- Don't expose initialization as separate user-facing command
+- Make it an implementation detail, not a user requirement
 
-## Daemon Management
-
-### 2026-01-20 - Lock File-Based Subprocess Management
-
-**Problem**: PID-based process detection is unreliable for background processes like Temporal dev server. Issues include:
-- Stale PID files remain after crashes
-- PID reuse causes false positives (OS assigns same PID to different process)
-- Race conditions during concurrent starts (check-and-write not atomic)
-- Manual cleanup required after failures
-- "Already running" errors even when process is dead
-
-**Root Cause**: PID files are just text files with no OS-level guarantees. They don't auto-cleanup, can't prevent concurrent access, and don't prevent PID reuse.
-
-**Solution**: Replace PID-based detection with OS-level file locking using \`syscall.Flock\`:
-
-**Key Advantages**:
-1. **Auto-release on crash**: OS releases lock when process dies (no stale locks)
-2. **Atomic operation**: Kernel enforces exclusivity (no race conditions)
-3. **No PID reuse**: Lock tied to process, not PID number
-4. **Instant detection**: O(1) lock check vs O(n) process inspection (5-10x faster)
-5. **Crash recovery**: Automatic cleanup, no manual intervention
-
-**Prevention**: For any future subprocess management (agent-runner, etc.), use lock files as source of truth and keep PID files only for debugging.
-
-**Implementation Pattern**:
-- Lock file: ~/.stigmer/{process}.lock (source of truth)
-- PID file: ~/.stigmer/{process}.pid (debugging only)
-- Multi-layer validation: Lock → PID → Process → Command → Port
-- Idempotent start: Check lock first, return success if locked
-- Release on all paths: Defer-like pattern to ensure cleanup
+**Example**:
+- ❌ Bad: `myapp init` then `myapp start`
+- ✅ Good: `myapp start` (auto-initializes)
 
 **Related Docs**: 
-- CLI Subprocess Lifecycle Architecture (docs/architecture/cli-subprocess-lifecycle.md)
-- Task 5 Completion (_projects/2026-01/20260119.07.production-grade-temporal-lifecycle/20260120-task5-lockfile-complete.md)
-- Task 5 Testing Guide (_projects/2026-01/20260119.07.production-grade-temporal-lifecycle/task5-testing-guide.md)
-
-**Production-Grade Patterns Combined**:
-1. Lock files (concurrency control)
-2. Process groups (coordinated cleanup)
-3. Multi-layer validation (robust detection)
-4. Idempotent start (user-friendly)
-5. Supervisor auto-restart (self-healing)
+- CLI refactoring changelog (_changelog/2026-01/2026-01-20-043947-simplify-cli-commands-server-pattern.md)
+- COMMANDS.md (updated quick start)
 
 ---
 
-### [To be populated during future development]
+### 2026-01-20 - Command Consolidation Strategy
 
-**Purpose**: Document daemon binary download, secret management, and other daemon-related patterns.
+**Problem**: Too many commands with overlapping functionality:
+- `stigmer init` and `stigmer local` both start the daemon
+- `stigmer local` vs `stigmer local start` ambiguity
+- Users unsure which command to use
+- Maintenance burden of multiple command paths
 
----
+**Root Cause**: Creating separate commands for conceptually related actions instead of using command hierarchies with sensible defaults.
 
-## Configuration
+**Solution**: Consolidate related commands with implicit default action:
 
-### [To be populated during development]
+```go
+// Before: Two separate commands
+rootCmd.AddCommand(newInitCommand())      // Creates config + starts
+rootCmd.AddCommand(newLocalCommand())     // Manages daemon
 
-**Purpose**: Document config file issues, YAML parsing, environment variables, and file permissions.
+// After: One command with subcommands
+rootCmd.AddCommand(newServerCommand())    // Default: start (with auto-init)
+  serverCmd.AddCommand(newStopCommand())
+  serverCmd.AddCommand(newStatusCommand())
+  serverCmd.AddCommand(newRestartCommand())
+```
 
----
+**Key Pattern**:
+- Main command does the most common action (implicit start)
+- Subcommands for less common actions (stop, status, restart)
+- Auto-initialization happens transparently
 
-## Output & Errors
+**Prevention**:
+- Before adding a command, check if it can be a subcommand or flag
+- Default action should be the most common use case
+- Avoid commands that differ only in setup vs execution
 
-### [To be populated during development]
+**Example**:
+- ❌ Bad: Multiple top-level commands for same resource
+- ✅ Good: One resource command with subcommands
 
-**Purpose**: Document error message patterns, output formatting, progress indicators, and UX issues.
-
----
-
-## Testing
-
-### [To be populated during development]
-
-**Purpose**: Document unit test patterns, integration tests, mocking strategies, and test organization.
-
----
-
-## Build & Release
-
-### [To be populated during development]
-
-**Purpose**: Document build issues, Bazel/Gazelle problems, cross-compilation, and release processes.
-
----
-
-## How to Use This Log
-
-1. **Before implementing**: Search this log for similar issues
-2. **During implementation**: Reference solutions from past learnings
-3. **After solving**: Add new learnings under appropriate topic
-4. **When stuck**: Check if the issue was solved before
+**Related Docs**: 
+- CLI refactoring changelog
+- COMMANDS.md (new structure)
 
 ---
 
-*This log is continuously updated as we learn from real development work.*
+### 2026-01-20 - Industry-Standard Naming for Clarity
+
+**Problem**: Generic/vague command names confuse users:
+- `stigmer local` - local what? local mode? local file?
+- Users compare to similar tools and expect familiar patterns
+- Generic names don't communicate intent clearly
+
+**Root Cause**: Choosing names based on internal concepts rather than user mental models and industry conventions.
+
+**Solution**: Use industry-standard naming that matches user expectations:
+
+**Research industry patterns**:
+- Temporal: `temporal server start-dev`
+- Redis: `redis-server`
+- PostgreSQL: `postgres` 
+- Minikube: `minikube start`
+
+**Choose familiar name**:
+- ❌ `stigmer local` (vague)
+- ✅ `stigmer server` (clear - you're starting a server)
+
+**Prevention**:
+- Research how similar tools name their commands
+- Use nouns that match user mental models (server, daemon, etc.)
+- Avoid internal terminology (local, remote, backend) as command names
+- Test name with someone unfamiliar - if they can guess what it does, it's good
+
+**Example Patterns**:
+- Server management: `server`, `daemon`, `service`
+- Resource management: `create`, `get`, `list`, `delete`
+- Execution: `run`, `exec`, `execute`
+
+**Related Docs**: 
+- CLI refactoring changelog (design rationale section)
+- README.md (industry comparisons)
+
+---
+
+### 2026-01-20 - CLI Focus: Lifecycle vs CRUD
+
+**Problem**: CLI had CRUD commands for agents/workflows using flags:
+```bash
+stigmer agent create --name X --instructions Y --model Z ...
+stigmer workflow create --name X --description Y ...
+```
+This is cumbersome:
+- Too many flags to remember
+- Can't version-control resource definitions
+- Can't review changes in PRs
+- Hard to create complex configurations
+
+**Root Cause**: Trying to do resource management via CLI flags instead of declarative configuration files.
+
+**Solution**: Focus CLI on lifecycle management, use declarative files for CRUD:
+
+**CLI Purpose** (Lifecycle):
+```bash
+stigmer server              # Start/stop server
+stigmer server status       # Check status
+stigmer backend set local   # Configure backend
+```
+
+**Not CLI Purpose** (Resource CRUD):
+- ❌ Creating agents/workflows via CLI flags
+- ✅ Use Temporal UI during development
+- ✅ Use YAML files for production: `stigmer apply -f agent.yaml` (future)
+
+**Prevention**:
+- CLI should manage daemon/server lifecycle, not resource CRUD
+- Resource definitions belong in version-controlled YAML files
+- Use UI for interactive development, YAML for production
+- Only add CLI CRUD as convenience layer on top of YAML (not flags)
+
+**Example**:
+```yaml
+# agents/support-bot.yaml
+apiVersion: stigmer.ai/v1
+kind: Agent
+metadata:
+  name: support-bot
+spec:
+  instructions: "You are a helpful support agent"
+  model: claude-3-sonnet
+```
+
+```bash
+stigmer apply -f agents/support-bot.yaml  # Future
+```
+
+**Related Docs**: 
+- COMMANDS.md (future roadmap)
+- README.md (resource management section)
+
