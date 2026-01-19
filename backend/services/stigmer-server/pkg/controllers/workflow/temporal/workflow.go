@@ -3,6 +3,7 @@ package temporal
 import (
 	"time"
 
+	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 
@@ -96,7 +97,7 @@ func getActivityTaskQueue(ctx workflow.Context) string {
 	if info.Memo != nil && info.Memo.Fields != nil {
 		if taskQueueField, ok := info.Memo.Fields["activityTaskQueue"]; ok {
 			var taskQueueStr string
-			if err := workflow.PayloadConverter().FromPayload(taskQueueField, &taskQueueStr); err == nil && taskQueueStr != "" {
+			if err := converter.GetDefaultDataConverter().FromPayload(taskQueueField, &taskQueueStr); err == nil && taskQueueStr != "" {
 				return taskQueueStr
 			}
 		}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/workflowexecution/temporal/activities"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
@@ -115,11 +116,13 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) executeWorkflowFlow(ctx workflow.C
 func (w *InvokeWorkflowExecutionWorkflowImpl) getActivityTaskQueue(ctx workflow.Context) string {
 	info := workflow.GetInfo(ctx)
 
-	// Try to get from memo
-	if taskQueue, ok := info.Memo.GetValue("activityTaskQueue"); ok {
-		var taskQueueStr string
-		if err := taskQueue.Get(&taskQueueStr); err == nil && taskQueueStr != "" {
-			return taskQueueStr
+	// Access memo fields directly
+	if info.Memo != nil && info.Memo.Fields != nil {
+		if taskQueueField, ok := info.Memo.Fields["activityTaskQueue"]; ok {
+			var taskQueueStr string
+			if err := converter.GetDefaultDataConverter().FromPayload(taskQueueField, &taskQueueStr); err == nil && taskQueueStr != "" {
+				return taskQueueStr
+			}
 		}
 	}
 

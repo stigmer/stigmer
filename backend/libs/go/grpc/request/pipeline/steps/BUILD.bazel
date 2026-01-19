@@ -56,7 +56,7 @@ go_test(
         "//backend/libs/go/apiresource",
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/grpc/request/pipeline",
-        "//backend/libs/go/sqlite",
+        "//backend/libs/go/badger",
         "//backend/libs/go/telemetry",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",

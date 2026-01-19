@@ -17,7 +17,7 @@ import (
 //   - metadata.id must be set
 //   - api_resource_kind is extracted from request context (injected by interceptor)
 //
-// The step uses the configured store (SQLite, BadgerDB, etc.) to save the resource.
+// The step uses the configured store (BadgerDB, etc.) to save the resource.
 type PersistStep[T proto.Message] struct {
 	store store.Store
 }

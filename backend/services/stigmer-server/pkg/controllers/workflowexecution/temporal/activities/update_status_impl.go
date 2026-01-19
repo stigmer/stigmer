@@ -107,18 +107,13 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 
 	// Update audit timestamp (status was modified)
 	if updated.Status.Audit == nil {
-		updated.Status.Audit = &apiresourcev1.ApiResourceAuditStatus{
-			Audit: &apiresourcev1.ApiResourceAudit{},
-		}
+		updated.Status.Audit = &apiresourcev1.ApiResourceAudit{}
 	}
-	if updated.Status.Audit.Audit == nil {
-		updated.Status.Audit.Audit = &apiresourcev1.ApiResourceAudit{}
+	if updated.Status.Audit.StatusAudit == nil {
+		updated.Status.Audit.StatusAudit = &apiresourcev1.ApiResourceAuditInfo{}
 	}
-	if updated.Status.Audit.Audit.StatusAudit == nil {
-		updated.Status.Audit.Audit.StatusAudit = &apiresourcev1.ApiResourceAuditInfo{}
-	}
-	updated.Status.Audit.Audit.StatusAudit.UpdatedAt = timestamppb.Now()
-	updated.Status.Audit.Audit.StatusAudit.Event = apiresourcev1.ApiResourceEventType_updated.String()
+	updated.Status.Audit.StatusAudit.UpdatedAt = timestamppb.Now()
+	updated.Status.Audit.StatusAudit.Event = apiresourcev1.ApiResourceEventType_updated.String()
 
 	log.Debug().
 		Str("execution_id", executionID).
