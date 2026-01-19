@@ -18,6 +18,7 @@ import (
 // 5. Persist - Save agent instance to repository
 func (c *AgentInstanceController) Create(ctx context.Context, instance *agentinstancev1.AgentInstance) (*agentinstancev1.AgentInstance, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, instance)
+	reqCtx.SetNewState(instance)
 
 	p := c.buildCreatePipeline()
 

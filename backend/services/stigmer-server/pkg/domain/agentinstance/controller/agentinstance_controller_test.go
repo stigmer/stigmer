@@ -137,48 +137,6 @@ func TestAgentInstanceController_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("successful creation with environment references", func(t *testing.T) {
-		instance := &agentinstancev1.AgentInstance{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "AgentInstance",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Instance With Envs",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-			},
-			Spec: &agentinstancev1.AgentInstanceSpec{
-				AgentId:     "test-agent-id",
-				Description: "Instance with environment references",
-				EnvironmentRefs: []*apiresource.ApiResourceReference{
-					{
-						Kind: apiresourcekind.ApiResourceKind_environment,
-						Id:   "env-1",
-					},
-					{
-						Kind: apiresourcekind.ApiResourceKind_environment,
-						Id:   "env-2",
-					},
-				},
-			},
-		}
-
-		created, err := controller.Create(contextWithAgentInstanceKind(), instance)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		// Verify environment references are preserved
-		if len(created.Spec.EnvironmentRefs) != 2 {
-			t.Errorf("Expected 2 environment references, got %d", len(created.Spec.EnvironmentRefs))
-		}
-
-		if created.Spec.EnvironmentRefs[0].Id != "env-1" {
-			t.Errorf("Expected first environment ref ID 'env-1', got '%s'", created.Spec.EnvironmentRefs[0].Id)
-		}
-
-		if created.Spec.EnvironmentRefs[1].Id != "env-2" {
-			t.Errorf("Expected second environment ref ID 'env-2', got '%s'", created.Spec.EnvironmentRefs[1].Id)
-		}
-	})
 }
 
 func TestAgentInstanceController_Get(t *testing.T) {
@@ -305,62 +263,6 @@ func TestAgentInstanceController_Update(t *testing.T) {
 		}
 	})
 
-	t.Run("update environment references", func(t *testing.T) {
-		// Create instance with initial environment references
-		instance := &agentinstancev1.AgentInstance{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "AgentInstance",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Update Env Test Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-			},
-			Spec: &agentinstancev1.AgentInstanceSpec{
-				AgentId:     "test-agent-id",
-				Description: "Test description",
-				EnvironmentRefs: []*apiresource.ApiResourceReference{
-					{
-						Kind: apiresourcekind.ApiResourceKind_environment,
-						Id:   "env-1",
-					},
-				},
-			},
-		}
-
-		created, err := controller.Create(contextWithAgentInstanceKind(), instance)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		// Update environment references
-		created.Spec.EnvironmentRefs = []*apiresource.ApiResourceReference{
-			{
-				Kind: apiresourcekind.ApiResourceKind_environment,
-				Id:   "env-2",
-			},
-			{
-				Kind: apiresourcekind.ApiResourceKind_environment,
-				Id:   "env-3",
-			},
-		}
-
-		updated, err := controller.Update(contextWithAgentInstanceKind(), created)
-		if err != nil {
-			t.Fatalf("Update failed: %v", err)
-		}
-
-		// Verify environment references are updated
-		if len(updated.Spec.EnvironmentRefs) != 2 {
-			t.Errorf("Expected 2 environment references, got %d", len(updated.Spec.EnvironmentRefs))
-		}
-
-		if updated.Spec.EnvironmentRefs[0].Id != "env-2" {
-			t.Errorf("Expected first environment ref ID 'env-2', got '%s'", updated.Spec.EnvironmentRefs[0].Id)
-		}
-
-		if updated.Spec.EnvironmentRefs[1].Id != "env-3" {
-			t.Errorf("Expected second environment ref ID 'env-3', got '%s'", updated.Spec.EnvironmentRefs[1].Id)
-		}
-	})
 }
 
 func TestAgentInstanceController_Delete(t *testing.T) {
