@@ -10,7 +10,6 @@ import (
 	commonspb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/dynamicpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -68,11 +67,10 @@ func (s *BuildNewStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 		return fmt.Errorf("resource metadata is nil")
 	}
 
-	// 1. Clear status field
+	// 1. Clear status field using proto reflection
 	// Status is system-managed and should not contain any client-provided data
-	statusResource, hasStatus := any(resource).(HasStatus)
-	if hasStatus {
-		if err := clearStatusField(statusResource); err != nil {
+	if hasStatusField(resource) {
+		if err := clearStatusFieldReflect(resource); err != nil {
 			return fmt.Errorf("failed to clear status field: %w", err)
 		}
 	}
@@ -94,9 +92,9 @@ func (s *BuildNewStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 
 	// 4. TODO: Set version (when versioning is implemented)
 
-	// 5. Set audit fields in status
-	if hasStatus {
-		if err := setAuditFields(statusResource, ctx); err != nil {
+	// 5. Set audit fields in status using proto reflection
+	if hasStatusField(resource) {
+		if err := setAuditFieldsReflect(resource, "created"); err != nil {
 			return fmt.Errorf("failed to set audit fields: %w", err)
 		}
 	}
@@ -104,44 +102,58 @@ func (s *BuildNewStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	return nil
 }
 
-// clearStatusField clears the status field to ensure it contains no client-provided data
-// If the status field is nil, it will be initialized to an empty status message
-func clearStatusField(resource HasStatus) error {
-	status := resource.GetStatus()
-	if status == nil {
-		// Initialize the status field using proto reflection
-		resourceMsg := resource.ProtoReflect()
-		statusField := resourceMsg.Descriptor().Fields().ByName("status")
-		if statusField == nil {
-			// Resource doesn't have a status field
-			return nil
-		}
-		
-		// Create a new empty status message of the correct type
-		statusType := statusField.Message()
-		newStatus := dynamicpb.NewMessage(statusType)
-		resourceMsg.Set(statusField, protoreflect.ValueOfMessage(newStatus))
+// clearStatusFieldReflect clears the status field to ensure it contains no client-provided data
+// Uses proto reflection to access the status field generically.
+// If the status field is nil or already empty, nothing needs to be done.
+func clearStatusFieldReflect(resource proto.Message) error {
+	statusMsg := getStatusField(resource)
+	if statusMsg == nil {
+		// Status is nil or doesn't exist - nothing to clear
 		return nil
 	}
 
-	// Reset all fields in the status message
-	proto.Reset(status)
+	// Check if status is already empty (no fields set)
+	fields := statusMsg.Descriptor().Fields()
+	hasData := false
+	for i := 0; i < fields.Len(); i++ {
+		field := fields.Get(i)
+		if statusMsg.Has(field) {
+			hasData = true
+			break
+		}
+	}
+
+	// If status is already empty, don't clear it
+	if !hasData {
+		return nil
+	}
+
+	// Clear all fields in the status message
+	for i := 0; i < fields.Len(); i++ {
+		field := fields.Get(i)
+		statusMsg.Clear(field)
+	}
 	return nil
 }
 
-// setAuditFields sets the audit information in the status field
+// setAuditFieldsReflect sets the audit information in the status field using proto reflection
 //
-// For create operations:
+// For create operations (event="created"):
 // - Both spec_audit and status_audit are set identically
 // - created_by and updated_by are the same actor
 // - created_at and updated_at are the same timestamp
-// - event is set to "created"
+//
+// For update operations (event="updated"):
+// - spec_audit and status_audit are set with current actor/timestamp
 //
 // This function uses proto reflection to set the audit field generically.
-func setAuditFields[T proto.Message](resource HasStatus, ctx *pipeline.RequestContext[T]) error {
-	status := resource.GetStatus()
-	if status == nil {
-		return fmt.Errorf("status is nil")
+// The status field is created if it doesn't exist.
+func setAuditFieldsReflect(resource proto.Message, event string) error {
+	// Get or create status field using proto reflection
+	statusMsg := getOrCreateStatusField(resource)
+	if statusMsg == nil {
+		// Resource doesn't have a status field - this is OK for some resource types
+		return nil
 	}
 
 	// Get current timestamp
@@ -155,13 +167,13 @@ func setAuditFields[T proto.Message](resource HasStatus, ctx *pipeline.RequestCo
 		Avatar: "",
 	}
 
-	// Build audit info for creation
+	// Build audit info
 	auditInfo := &commonspb.ApiResourceAuditInfo{
 		CreatedBy: actor,
 		CreatedAt: now,
 		UpdatedBy: actor,
 		UpdatedAt: now,
-		Event:     "created",
+		Event:     event,
 	}
 
 	// Build complete audit with both spec_audit and status_audit
@@ -170,15 +182,16 @@ func setAuditFields[T proto.Message](resource HasStatus, ctx *pipeline.RequestCo
 		StatusAudit: auditInfo,
 	}
 
-	// Set audit field using proto reflection
-	statusMsg := status.ProtoReflect()
+	// Use proto reflection to set audit field
 	auditField := statusMsg.Descriptor().Fields().ByName("audit")
 	if auditField == nil {
-		// Status doesn't have an audit field - this is ok, not all resources may have audit
+		// Status doesn't have an audit field - this is ok for some resource types
 		return nil
 	}
 
+	// Set the audit field
 	statusMsg.Set(auditField, protoreflect.ValueOfMessage(audit.ProtoReflect()))
+
 	return nil
 }
 
