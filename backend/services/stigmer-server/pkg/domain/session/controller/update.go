@@ -23,6 +23,7 @@ import (
 // - TransformResponse step (no response transformations in OSS)
 func (c *SessionController) Update(ctx context.Context, session *sessionv1.Session) (*sessionv1.Session, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, session)
+	reqCtx.SetNewState(session)
 
 	p := c.buildUpdatePipeline()
 
