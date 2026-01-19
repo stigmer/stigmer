@@ -6,14 +6,18 @@ Complete documentation index for the Stigmer open-source project.
 
 ### Getting Started
 - [Local Mode](getting-started/local-mode.md) - Running Stigmer locally for development
-- [Agent Runner: Local Mode](agent-runner-local-mode.md) - Running the agent runner in local vs cloud mode
+
+### Guides
+- [Distribution Guide](guides/distribution.md) - Complete guide to packaging and distributing Stigmer
+- [Packaging Quick Start](guides/packaging-quickstart.md) - Quick reference for packaging strategy
+- [Agent Runner: Local Mode](guides/agent-runner-local-mode.md) - Running the agent runner in local vs cloud mode
 
 ### Architecture
 - [Backend Abstraction](architecture/backend-abstraction.md) - Backend interface design and abstraction layers
 - [Open Core Model](architecture/open-core-model.md) - Open source vs enterprise architecture
+- [Packaging Flow](architecture/packaging-flow.md) - How Stigmer is packaged and distributed (with diagrams)
 - [Request Pipeline Context Design](architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
 - [Temporal Integration](architecture/temporal-integration.md) - Polyglot workflow orchestration with Temporal (Go workflows, Python activities)
-- [Agent Runner: Local Mode](agent-runner-local-mode.md) - Mode-aware execution architecture (local vs cloud)
 
 ### Architecture Decision Records (ADR)
 - [Local Backend to Use BadgerDB](adr/20260118-181912-local-backend-to-use-badgerdb.md) - Decision to use BadgerDB for local mode
@@ -34,9 +38,16 @@ Start here if you're new to Stigmer:
 2. [Backend Abstraction](architecture/backend-abstraction.md) - Understand the architecture
 3. [Open Core Model](architecture/open-core-model.md) - Understand OSS vs enterprise split
 
+### Distributing Stigmer
+If you're working on releases or packaging:
+1. [Packaging Quick Start](guides/packaging-quickstart.md) - Quick reference for packaging strategy
+2. [Packaging Flow](architecture/packaging-flow.md) - Visual guide to how packaging works
+3. [Distribution Guide](guides/distribution.md) - Complete distribution documentation
+
 ### Understanding Design Decisions
 When you wonder "why was it built this way?":
 - [Request Pipeline Context Design](architecture/request-pipeline-context-design.md) - Why Go uses single context vs Java multi-context
+- [Packaging Flow](architecture/packaging-flow.md) - How CLI and server binaries are packaged together
 - [ADR Index](adr/) - Browse all architectural decisions
 
 ### Contributing

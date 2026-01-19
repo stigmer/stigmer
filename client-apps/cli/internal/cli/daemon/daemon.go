@@ -522,12 +522,14 @@ func getPID(dataDir string) (int, error) {
 // 1. STIGMER_SERVER_BIN environment variable
 // 2. Same directory as CLI binary
 // 3. Build output directories (for development)
+// 4. Try to auto-build with Go if in development environment
 func findServerBinary() (string, error) {
 	// Check environment variable
 	if bin := os.Getenv("STIGMER_SERVER_BIN"); bin != "" {
 		if _, err := os.Stat(bin); err == nil {
 			return bin, nil
 		}
+		log.Warn().Str("path", bin).Msg("STIGMER_SERVER_BIN set but file not found")
 	}
 
 	// Check same directory as CLI
@@ -535,25 +537,55 @@ func findServerBinary() (string, error) {
 	if err == nil {
 		serverBin := filepath.Join(filepath.Dir(cliPath), "stigmer-server")
 		if _, err := os.Stat(serverBin); err == nil {
+			log.Debug().Str("path", serverBin).Msg("Found stigmer-server in same directory as CLI")
 			return serverBin, nil
 		}
 	}
 
-	// Check bazel-bin directory (development)
+	// Check common development paths
 	possiblePaths := []string{
-		"bazel-bin/backend/services/stigmer-server/cmd/server/server_/server",
-		"./server", // if running from backend/services/stigmer-server
-		"../backend/services/stigmer-server/server", // if running from cli
+		"bin/stigmer-server",                                                  // make build-backend
+		"bazel-bin/backend/services/stigmer-server/cmd/server/server_/server", // bazel build
+		"./stigmer-server",                                                    // current directory
+		"backend/services/stigmer-server/stigmer-server",                      // from workspace root
 	}
 
 	for _, path := range possiblePaths {
 		if _, err := os.Stat(path); err == nil {
 			absPath, _ := filepath.Abs(path)
+			log.Debug().Str("path", absPath).Msg("Found stigmer-server")
 			return absPath, nil
 		}
 	}
 
-	return "", errors.New("stigmer-server binary not found (set STIGMER_SERVER_BIN environment variable)")
+	// Try to auto-build if we're in a development environment
+	if workspaceRoot := findWorkspaceRoot(); workspaceRoot != "" {
+		log.Info().Msg("stigmer-server not found, attempting to build it...")
+		
+		serverPath := filepath.Join(workspaceRoot, "bin", "stigmer-server")
+		buildCmd := exec.Command("go", "build", "-o", serverPath, "./backend/services/stigmer-server/cmd/server")
+		buildCmd.Dir = workspaceRoot
+		
+		if output, err := buildCmd.CombinedOutput(); err != nil {
+			log.Error().
+				Err(err).
+				Str("output", string(output)).
+				Msg("Failed to auto-build stigmer-server")
+		} else {
+			log.Info().Str("path", serverPath).Msg("Successfully built stigmer-server")
+			return serverPath, nil
+		}
+	}
+
+	return "", errors.New(`stigmer-server binary not found
+
+Please build it first:
+  make release-local    (recommended - builds and installs both CLI and server)
+  
+Or:
+  go build -o ~/bin/stigmer-server ./backend/services/stigmer-server/cmd/server
+
+Or set STIGMER_SERVER_BIN environment variable to point to the binary`)
 }
 
 // findAgentRunnerScript finds the agent-runner run script
@@ -567,9 +599,20 @@ func findAgentRunnerScript() (string, error) {
 		if _, err := os.Stat(script); err == nil {
 			return script, nil
 		}
+		log.Warn().Str("path", script).Msg("STIGMER_AGENT_RUNNER_SCRIPT set but file not found")
 	}
 
-	// Check default location (from workspace root)
+	// Try to find workspace root first
+	workspaceRoot := findWorkspaceRoot()
+	if workspaceRoot != "" {
+		scriptPath := filepath.Join(workspaceRoot, "backend/services/agent-runner/run.sh")
+		if _, err := os.Stat(scriptPath); err == nil {
+			log.Debug().Str("path", scriptPath).Msg("Found agent-runner script")
+			return scriptPath, nil
+		}
+	}
+
+	// Fallback: Check relative paths
 	possiblePaths := []string{
 		"backend/services/agent-runner/run.sh",
 		"./backend/services/agent-runner/run.sh",
@@ -579,9 +622,52 @@ func findAgentRunnerScript() (string, error) {
 	for _, path := range possiblePaths {
 		if _, err := os.Stat(path); err == nil {
 			absPath, _ := filepath.Abs(path)
+			log.Debug().Str("path", absPath).Msg("Found agent-runner script")
 			return absPath, nil
 		}
 	}
 
 	return "", errors.New("agent-runner script not found (set STIGMER_AGENT_RUNNER_SCRIPT environment variable)")
+}
+
+// findWorkspaceRoot attempts to find the Stigmer workspace root
+// by looking for characteristic files like go.mod, MODULE.bazel, etc.
+func findWorkspaceRoot() string {
+	// Start from current directory
+	dir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	// Walk up the directory tree looking for workspace markers
+	for {
+		// Check for Stigmer-specific markers
+		markers := []string{
+			"MODULE.bazel",
+			filepath.Join("backend", "services", "stigmer-server"),
+			filepath.Join("client-apps", "cli"),
+		}
+
+		allFound := true
+		for _, marker := range markers {
+			if _, err := os.Stat(filepath.Join(dir, marker)); err != nil {
+				allFound = false
+				break
+			}
+		}
+
+		if allFound {
+			return dir
+		}
+
+		// Move up one directory
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached root
+			break
+		}
+		dir = parent
+	}
+
+	return ""
 }
