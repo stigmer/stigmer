@@ -40,7 +40,11 @@ func TestWithSkill(t *testing.T) {
 				opts = append(opts, WithSkill(s))
 			}
 
-			agent, err := New(opts...)
+			agent, err := New(
+
+
+				nil, // No context needed for tests
+		opts...)
 			if err != nil {
 				t.Fatalf("New() unexpected error = %v", err)
 			}
@@ -70,6 +74,9 @@ func TestWithSkills(t *testing.T) {
 	}
 
 	agent, err := New(
+
+
+		nil, // No context needed for tests
 		WithName("test-agent"),
 		WithInstructions("Test instructions for agent"),
 		WithSkills(skills...),

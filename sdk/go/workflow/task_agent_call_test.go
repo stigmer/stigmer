@@ -203,7 +203,8 @@ func TestWorkflow_CallAgent(t *testing.T) {
 	// Create a mock context that implements workflow.Context
 	mockCtx := &mockWorkflowContext{}
 
-	wf, err := workflow.New(mockCtx,
+	wf, err := workflow.New(
+		mockCtx,
 		workflow.WithNamespace("test"),
 		workflow.WithName("test-workflow"),
 	)

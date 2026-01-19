@@ -26,6 +26,7 @@ import (
 // Status updates from agent-runner use UpdateStatus handler instead.
 func (c *AgentExecutionController) Update(ctx context.Context, execution *agentexecutionv1.AgentExecution) (*agentexecutionv1.AgentExecution, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, execution)
+	reqCtx.SetNewState(execution)
 
 	p := c.buildUpdatePipeline()
 

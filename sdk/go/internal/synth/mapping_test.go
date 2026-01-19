@@ -12,6 +12,7 @@ import (
 func TestSetTaskMapping(t *testing.T) {
 	// Create workflow with SET task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-set"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -43,6 +44,7 @@ func TestSetTaskMapping(t *testing.T) {
 func TestHttpCallTaskMapping(t *testing.T) {
 	// Create workflow with HTTP_CALL task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-http"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -85,6 +87,7 @@ func TestHttpCallTaskMapping(t *testing.T) {
 func TestSwitchTaskMapping(t *testing.T) {
 	// Create workflow with SWITCH task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-switch"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -135,6 +138,7 @@ func TestSwitchTaskMapping(t *testing.T) {
 func TestForTaskMapping(t *testing.T) {
 	// Create workflow with FOR task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-for"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -185,6 +189,7 @@ func TestForTaskMapping(t *testing.T) {
 func TestForkTaskMapping(t *testing.T) {
 	// Create workflow with FORK task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-fork"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -244,6 +249,7 @@ func TestForkTaskMapping(t *testing.T) {
 func TestTryTaskMapping(t *testing.T) {
 	// Create workflow with TRY task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-try"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -311,6 +317,7 @@ func TestTryTaskMapping(t *testing.T) {
 func TestGrpcCallTaskMapping(t *testing.T) {
 	// Create workflow with GRPC_CALL task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-grpc"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -339,6 +346,7 @@ func TestGrpcCallTaskMapping(t *testing.T) {
 // TestListenTaskMapping verifies LISTEN task field name mapping.
 func TestListenTaskMapping(t *testing.T) {
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-listen"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -361,6 +369,7 @@ func TestListenTaskMapping(t *testing.T) {
 // TestWaitTaskMapping verifies WAIT task field name mapping.
 func TestWaitTaskMapping(t *testing.T) {
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-wait"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -383,6 +392,7 @@ func TestWaitTaskMapping(t *testing.T) {
 // TestCallActivityTaskMapping verifies CALL_ACTIVITY task field name mapping.
 func TestCallActivityTaskMapping(t *testing.T) {
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-activity"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -407,6 +417,7 @@ func TestCallActivityTaskMapping(t *testing.T) {
 // TestRaiseTaskMapping verifies RAISE task field name mapping.
 func TestRaiseTaskMapping(t *testing.T) {
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-raise"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -433,6 +444,7 @@ func TestRaiseTaskMapping(t *testing.T) {
 // TestRunTaskMapping verifies RUN task field name mapping.
 func TestRunTaskMapping(t *testing.T) {
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-run"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -524,6 +536,7 @@ func TestContextInitTask_EmptyVars(t *testing.T) {
 func TestWorkflowWithContextVars(t *testing.T) {
 	// Create a simple workflow
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-context"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -569,6 +582,7 @@ func TestWorkflowWithContextVars(t *testing.T) {
 func TestWorkflowWithoutContextVars(t *testing.T) {
 	// Create a simple workflow
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-no-context"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -596,6 +610,7 @@ func TestWorkflowWithoutContextVars(t *testing.T) {
 func TestBackwardCompatibility(t *testing.T) {
 	// Create workflow using old function (no context)
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-backward-compat"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(

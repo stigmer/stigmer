@@ -47,6 +47,7 @@ const (
 // - TransformResponse step (no response transformations in OSS)
 func (c *AgentExecutionController) Create(ctx context.Context, execution *agentexecutionv1.AgentExecution) (*agentexecutionv1.AgentExecution, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, execution)
+	reqCtx.SetNewState(execution)
 
 	p := c.buildCreatePipeline()
 

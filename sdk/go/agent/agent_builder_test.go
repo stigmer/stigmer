@@ -11,6 +11,7 @@ import (
 
 func TestAddSkill(t *testing.T) {
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("test-agent"),
 		WithInstructions("Test instructions for agent"),
 	)
@@ -36,6 +37,7 @@ func TestAddSkill(t *testing.T) {
 
 func TestAddSkills(t *testing.T) {
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("test-agent"),
 		WithInstructions("Test instructions for agent"),
 	)
@@ -57,6 +59,7 @@ func TestAddSkills(t *testing.T) {
 
 func TestAddSkill_Chaining(t *testing.T) {
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("test-agent"),
 		WithInstructions("Test instructions for agent"),
 	)
@@ -77,6 +80,7 @@ func TestAddSkill_Chaining(t *testing.T) {
 
 func TestAddMCPServer(t *testing.T) {
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("test-agent"),
 		WithInstructions("Test instructions for agent"),
 	)
@@ -106,6 +110,7 @@ func TestAddMCPServer(t *testing.T) {
 
 func TestAddMCPServers(t *testing.T) {
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("test-agent"),
 		WithInstructions("Test instructions for agent"),
 	)
@@ -135,6 +140,7 @@ func TestAddMCPServers(t *testing.T) {
 
 func TestAddMCPServer_Chaining(t *testing.T) {
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("test-agent"),
 		WithInstructions("Test instructions for agent"),
 	)
@@ -166,6 +172,7 @@ func TestAddMCPServer_Chaining(t *testing.T) {
 
 func TestAddSubAgent(t *testing.T) {
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("test-agent"),
 		WithInstructions("Test instructions for agent"),
 	)
@@ -194,6 +201,7 @@ func TestAddSubAgent(t *testing.T) {
 
 func TestAddSubAgents(t *testing.T) {
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("test-agent"),
 		WithInstructions("Test instructions for agent"),
 	)
@@ -221,6 +229,7 @@ func TestAddSubAgents(t *testing.T) {
 
 func TestAddSubAgent_Chaining(t *testing.T) {
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("test-agent"),
 		WithInstructions("Test instructions for agent"),
 	)
@@ -250,6 +259,7 @@ func TestAddSubAgent_Chaining(t *testing.T) {
 
 func TestAddEnvironmentVariable(t *testing.T) {
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("test-agent"),
 		WithInstructions("Test instructions for agent"),
 	)
@@ -278,6 +288,7 @@ func TestAddEnvironmentVariable(t *testing.T) {
 
 func TestAddEnvironmentVariables(t *testing.T) {
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("test-agent"),
 		WithInstructions("Test instructions for agent"),
 	)
@@ -305,6 +316,7 @@ func TestAddEnvironmentVariables(t *testing.T) {
 
 func TestAddEnvironmentVariable_Chaining(t *testing.T) {
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("test-agent"),
 		WithInstructions("Test instructions for agent"),
 	)
@@ -351,6 +363,7 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 	)
 
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("complex-agent"),
 		WithInstructions("Complex agent with all features"),
 	)
@@ -386,6 +399,7 @@ func TestBuilder_MixWithOptions(t *testing.T) {
 	platformSkill := skill.Platform("initial-skill")
 
 	agent, err := New(
+		nil, // No context needed for builder tests
 		WithName("mixed-agent"),
 		WithInstructions("Agent using both patterns"),
 		WithSkill(platformSkill),
