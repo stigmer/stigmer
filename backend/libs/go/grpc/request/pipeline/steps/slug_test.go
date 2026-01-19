@@ -67,10 +67,10 @@ func TestResolveSlugStep_Execute(t *testing.T) {
 			shouldSucceed: true,
 		},
 		{
-			name:          "long name - should truncate to 63 chars",
+			name:          "long name - should preserve full length",
 			inputName:     "This is a very long agent name that exceeds the maximum allowed length for kubernetes dns labels",
 			existingSlug:  "",
-			expectedSlug:  "this-is-a-very-long-agent-name-that-exceeds-the-maximum-all",
+			expectedSlug:  "this-is-a-very-long-agent-name-that-exceeds-the-maximum-allowed-length-for-kubernetes-dns-labels",
 			shouldSucceed: true,
 		},
 		{
@@ -177,7 +177,7 @@ func TestGenerateSlug(t *testing.T) {
 		{"Agent123", "agent123"},
 		{"123Agent", "123agent"},
 		{"", ""},
-		{"This is a very long agent name that exceeds the maximum allowed length for kubernetes dns labels", "this-is-a-very-long-agent-name-that-exceeds-the-maximum-all"},
+		{"This is a very long agent name that exceeds the maximum allowed length for kubernetes dns labels", "this-is-a-very-long-agent-name-that-exceeds-the-maximum-allowed-length-for-kubernetes-dns-labels"},
 	}
 
 	for _, tt := range tests {
@@ -187,6 +187,33 @@ func TestGenerateSlug(t *testing.T) {
 				t.Errorf("generateSlug(%q) = %q, expected %q", tt.input, result, tt.expected)
 			}
 		})
+	}
+}
+
+// TestGenerateSlug_NoCollisions verifies that different names generate different slugs
+// This test documents why we removed truncation - to prevent silent collisions
+func TestGenerateSlug_NoCollisions(t *testing.T) {
+	// These names would collide if truncated to 59 characters
+	name1 := "This is a very long agent name that exceeds the maximum allowed AAAA"
+	name2 := "This is a very long agent name that exceeds the maximum allowed BBBB"
+
+	slug1 := generateSlug(name1)
+	slug2 := generateSlug(name2)
+
+	// Without truncation, these should be different
+	if slug1 == slug2 {
+		t.Errorf("Expected different slugs for different names, but both generated: %q", slug1)
+	}
+
+	// Verify they are indeed different
+	expectedSlug1 := "this-is-a-very-long-agent-name-that-exceeds-the-maximum-allowed-aaaa"
+	expectedSlug2 := "this-is-a-very-long-agent-name-that-exceeds-the-maximum-allowed-bbbb"
+
+	if slug1 != expectedSlug1 {
+		t.Errorf("Slug1: got %q, expected %q", slug1, expectedSlug1)
+	}
+	if slug2 != expectedSlug2 {
+		t.Errorf("Slug2: got %q, expected %q", slug2, expectedSlug2)
 	}
 }
 
