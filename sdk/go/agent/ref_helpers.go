@@ -39,12 +39,13 @@ func toExpression(value interface{}) string {
 	switch v := value.(type) {
 	case string:
 		return v
+	case StringValue:
+		// For synthesis, we need the actual value, not an expression
+		// Check StringValue BEFORE Ref because StringRef implements both interfaces
+		return v.Value()
 	case Ref:
 		// Use Expression() for context variables and computed expressions
 		return v.Expression()
-	case StringValue:
-		// For synthesis, we need the actual value, not an expression
-		return v.Value()
 	default:
 		// Fallback: convert to string
 		return fmt.Sprintf("%v", value)
