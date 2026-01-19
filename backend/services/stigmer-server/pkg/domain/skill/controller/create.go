@@ -24,6 +24,7 @@ import (
 // - TransformResponse step (no response transformations in OSS)
 func (c *SkillController) Create(ctx context.Context, skill *skillv1.Skill) (*skillv1.Skill, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, skill)
+	reqCtx.SetNewState(skill)
 
 	p := c.buildCreatePipeline()
 
