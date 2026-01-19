@@ -276,11 +276,12 @@ Ask yourself (AI) these questions about the conversation:
 **CLI Work** (if CLI files changed):
 1. Did I fix a module import or Go dependency issue?
 2. Did I discover a Cobra command pattern worth documenting?
-3. Did I solve a gRPC client or authentication problem?
-4. Did I create a new agent discovery pattern (Python subprocess)?
-5. Did I enhance context management or config handling?
+3. Did I solve a daemon management or lifecycle issue?
+4. Did I create a new backend communication pattern?
+5. Did I enhance configuration or context handling?
 6. Did I improve output formatting or error messages?
 7. Did I solve a flag handling or argument parsing issue?
+8. Did I fix a Bazel/Gazelle build issue?
 
 **FGA Authorization Work** (if FGA files changed):
 1. Did I create a new FGA model for a resource?
@@ -334,8 +335,9 @@ stigmer-sdk/python/_rules/**/*.mdc → Python SDK rule work (external repo)
 stigmer-sdk/go/_rules/**/*.mdc → Go SDK rule work (external repo)
 
 # Check for CLI changes
-sdk/**/*.go → CLI work
-sdk/**/*.mdc → CLI rule work
+client-apps/cli/**/*.go → CLI work
+client-apps/cli/**/*.mdc → CLI rule work
+.cursor/rules/client-apps/cli/**/*.mdc → CLI rule work
 
 # Check for FGA model changes
 backend/**/fga/**/*.fga → FGA authorization work
@@ -353,7 +355,7 @@ Based on file changes, identify relevant improvement rules:
 | `backend/services/agent-runner/**/*.py` | Agent Runner | `@backend/services/agent-runner/_rules/implement-agent-runner-features/improve-this-rule.mdc` |
 | `backend/services/workflow-runner/**/*.go` | Workflow Runner | `@backend/services/workflow-runner/_rules/implement-workflow-runner-features/improve-this-rule.mdc` |
 | `stigmer-sdk/python/**/*.py` or `stigmer-sdk/go/**/*.go` | SDK | `@stigmer-sdk/_rules/improve-this-rule.mdc` (external repo - orchestrator delegates to language-specific) |
-| `sdk/**/*.go` | CLI | `@sdk/_rules/implement-stigmer-cli-features/improve-this-rule.mdc` |
+| `client-apps/cli/**/*.go` | CLI | `@.cursor/rules/client-apps/cli/improve-this-rule.mdc` |
 | `backend/**/fga/**/*.fga` | FGA Models | `@backend/services/stigmer-server/src/main/resources/fga/_rules/model-stigmer-fga-authorization/improve-this-rule.mdc` |
 
 #### 4.3 Handle Single vs Multiple Areas
