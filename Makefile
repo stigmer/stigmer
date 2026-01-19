@@ -1,7 +1,7 @@
 # Default bump type for releases (can be overridden: make protos-release bump=minor)
 bump ?= patch
 
-.PHONY: help setup build build-backend test clean protos protos-release lint coverage
+.PHONY: help setup build build-backend test clean protos protos-release lint coverage release-local install dev
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -18,7 +18,8 @@ setup: ## Install dependencies and tools
 
 build: protos ## Build the Stigmer CLI
 	@echo "Building Stigmer CLI..."
-	go build -o bin/stigmer ./cmd/stigmer
+	@mkdir -p bin
+	cd client-apps/cli && go build -o ../../bin/stigmer .
 	@echo "Build complete: bin/stigmer"
 
 build-backend: protos ## Build all backend services
@@ -152,10 +153,48 @@ clean: ## Clean build artifacts
 
 install: build ## Install Stigmer CLI to system
 	@echo "Installing stigmer to /usr/local/bin..."
-	cp bin/stigmer /usr/local/bin/stigmer
+	sudo cp bin/stigmer /usr/local/bin/stigmer
+	sudo chmod +x /usr/local/bin/stigmer
 	@echo "Installation complete!"
 
+release-local: ## Build and install CLI for local testing (fast rebuild without protos)
+	@echo "============================================"
+	@echo "Building and Installing Stigmer CLI Locally"
+	@echo "============================================"
+	@echo ""
+	@echo "Step 1: Removing old binaries..."
+	@rm -f $(HOME)/bin/stigmer
+	@rm -f /usr/local/bin/stigmer 2>/dev/null || true
+	@rm -f bin/stigmer
+	@echo "✓ Old binaries removed"
+	@echo ""
+	@echo "Step 2: Building fresh CLI binary..."
+	@mkdir -p bin
+	@cd client-apps/cli && go build -o ../../bin/stigmer .
+	@echo "✓ Build complete: bin/stigmer"
+	@echo ""
+	@echo "Step 3: Installing to ~/bin..."
+	@mkdir -p $(HOME)/bin
+	@cp bin/stigmer $(HOME)/bin/stigmer
+	@chmod +x $(HOME)/bin/stigmer
+	@echo "✓ Installed: $(HOME)/bin/stigmer"
+	@echo ""
+	@echo "============================================"
+	@echo "✓ Release Complete!"
+	@echo "============================================"
+	@echo ""
+	@if command -v stigmer >/dev/null 2>&1; then \
+		echo "✓ CLI ready! Run: stigmer --help"; \
+		echo ""; \
+		stigmer --version 2>/dev/null || echo "Version: development"; \
+	else \
+		echo "⚠️  Add ~/bin to PATH to use 'stigmer' command:"; \
+		echo "   export PATH=\"\$$HOME/bin:\$$PATH\""; \
+	fi
+	@echo ""
+	@echo "Note: Run 'make protos' first if you need to regenerate proto stubs"
+
 dev: ## Run Stigmer in development mode
-	go run ./cmd/stigmer
+	cd client-apps/cli && go run .
 
 .DEFAULT_GOAL := help

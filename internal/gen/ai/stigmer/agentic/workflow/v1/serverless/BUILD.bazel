@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "serverless",
+    srcs = ["validation.pb.go"],
+    importpath = "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflow/v1/serverless",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

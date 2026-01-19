@@ -16,6 +16,8 @@ go_test(
     srcs = ["store_test.go"],
     embed = [":badger"],
     deps = [
+        "//internal/gen/ai/stigmer/agentic/agent/v1:agent",
+        "//internal/gen/ai/stigmer/commons/apiresource",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],

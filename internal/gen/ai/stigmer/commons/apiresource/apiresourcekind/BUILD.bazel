@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "apiresourcekind",
+    srcs = [
+        "api_resource_group.pb.go",
+        "api_resource_kind.pb.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/descriptorpb",
+    ],
+)

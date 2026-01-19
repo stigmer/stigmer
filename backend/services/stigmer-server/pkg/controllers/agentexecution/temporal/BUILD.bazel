@@ -12,6 +12,7 @@ go_library(
     deps = [
         "//backend/services/stigmer-server/pkg/controllers/agentexecution/temporal/activities",
         "//backend/services/stigmer-server/pkg/controllers/agentexecution/temporal/workflows",
+        "//internal/gen/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "@com_github_rs_zerolog//log",
         "@io_temporal_go_sdk//client:go_default_library",
         "@io_temporal_go_sdk//worker:go_default_library",
