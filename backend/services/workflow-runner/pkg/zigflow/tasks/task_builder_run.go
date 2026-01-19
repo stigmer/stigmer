@@ -28,6 +28,110 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+// evaluateRunTaskExpressions evaluates all expressions in a Run task configuration
+// This includes script/shell commands, arguments, and environment variables
+func evaluateRunTaskExpressions(ctx workflow.Context, task *model.RunTask, state *utils.State) error {
+	logger := workflow.GetLogger(ctx)
+	logger.Debug("Evaluating Run task expressions with direct field access")
+
+	// Evaluate Script task fields
+	if task.Run.Script != nil {
+		// 1. Evaluate InlineCode if it contains an expression
+		if task.Run.Script.InlineCode != nil && *task.Run.Script.InlineCode != "" {
+			if model.IsStrictExpr(*task.Run.Script.InlineCode) {
+				evaluated, err := utils.EvaluateString(*task.Run.Script.InlineCode, nil, state)
+				if err != nil {
+					return fmt.Errorf("error evaluating script inline code: %w", err)
+				}
+				evalStr := evaluated.(string)
+				task.Run.Script.InlineCode = &evalStr
+			}
+		}
+
+		// 2. Evaluate Arguments
+		if task.Run.Script.Arguments != nil {
+			if err := evaluateRunArguments(task.Run.Script.Arguments, state); err != nil {
+				return fmt.Errorf("error evaluating script arguments: %w", err)
+			}
+		}
+
+		// 3. Evaluate Environment variables
+		if err := evaluateEnvironmentVariables(task.Run.Script.Environment, state); err != nil {
+			return fmt.Errorf("error evaluating script environment: %w", err)
+		}
+	}
+
+	// Evaluate Shell task fields
+	if task.Run.Shell != nil {
+		// 1. Evaluate Command if it contains an expression
+		if task.Run.Shell.Command != "" {
+			if model.IsStrictExpr(task.Run.Shell.Command) {
+				evaluated, err := utils.EvaluateString(task.Run.Shell.Command, nil, state)
+				if err != nil {
+					return fmt.Errorf("error evaluating shell command: %w", err)
+				}
+				task.Run.Shell.Command = evaluated.(string)
+			}
+		}
+
+		// 2. Evaluate Arguments
+		if task.Run.Shell.Arguments != nil {
+			if err := evaluateRunArguments(task.Run.Shell.Arguments, state); err != nil {
+				return fmt.Errorf("error evaluating shell arguments: %w", err)
+			}
+		}
+
+		// 3. Evaluate Environment variables
+		if err := evaluateEnvironmentVariables(task.Run.Shell.Environment, state); err != nil {
+			return fmt.Errorf("error evaluating shell environment: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// evaluateRunArguments evaluates expressions in RunArguments
+func evaluateRunArguments(args *model.RunArguments, state *utils.State) error {
+	if args == nil || args.Value == nil {
+		return nil
+	}
+
+	// RunArguments.Value can be a map, slice, or other type
+	// Evaluate using TraverseAndEvaluateObj which handles all cases
+	evaluated, err := utils.TraverseAndEvaluateObj(
+		model.NewObjectOrRuntimeExpr(args.Value),
+		nil,
+		state,
+	)
+	if err != nil {
+		return err
+	}
+
+	// Update the arguments with evaluated values
+	args.Value = evaluated
+
+	return nil
+}
+
+// evaluateEnvironmentVariables evaluates expressions in environment variable map
+func evaluateEnvironmentVariables(env map[string]string, state *utils.State) error {
+	if len(env) == 0 {
+		return nil
+	}
+
+	for key, value := range env {
+		if model.IsStrictExpr(value) {
+			evaluated, err := utils.EvaluateString(value, nil, state)
+			if err != nil {
+				return err
+			}
+			env[key] = evaluated.(string)
+		}
+	}
+
+	return nil
+}
+
 func NewRunTaskBuilder(
 	temporalWorker worker.Worker,
 	task *model.RunTask,
