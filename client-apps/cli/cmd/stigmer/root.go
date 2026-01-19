@@ -40,12 +40,8 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&debugMode, "debug", "d", false, "enable debug mode with detailed logs")
 	
 	// Add subcommands
-	rootCmd.AddCommand(root.NewInitCommand())
-	rootCmd.AddCommand(root.NewLocalCommand())
+	rootCmd.AddCommand(root.NewServerCommand())
 	rootCmd.AddCommand(root.NewBackendCommand())
-	rootCmd.AddCommand(root.NewAgentCommand())
-	rootCmd.AddCommand(root.NewWorkflowCommand())
-	rootCmd.AddCommand(root.NewVersionCommand())
 }
 
 // Execute runs the root command

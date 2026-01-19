@@ -1,24 +1,21 @@
 # Stigmer CLI Commands
 
-## Currently Implemented
+## Available Commands
 
-### Initialization & Daemon Management
+### Server Management
 
 ```bash
-# Initialize local backend and start daemon
-stigmer init
+# Start Stigmer server (auto-initializes on first run)
+stigmer server
 
-# Start local daemon
-stigmer local start [--anthropic-api-key=...] [--temporal-host=...]
+# Stop server
+stigmer server stop
 
-# Stop local daemon
-stigmer local stop
+# Check server status
+stigmer server status
 
-# Check daemon status
-stigmer local status
-
-# Restart local daemon
-stigmer local restart
+# Restart server
+stigmer server restart
 ```
 
 ### Backend Configuration
@@ -34,95 +31,11 @@ stigmer backend set local
 stigmer backend set cloud
 ```
 
-### Agent Management (CLI-based)
-
-```bash
-# Create agent via CLI flags
-stigmer agent create --name <name> --instructions <instructions>
-
-# List all agents
-stigmer agent list
-
-# Get agent details
-stigmer agent get <agent-id>
-
-# Delete agent
-stigmer agent delete <agent-id>
-```
-
-### Workflow Management (CLI-based)
-
-```bash
-# Create workflow via CLI flags
-stigmer workflow create --name <name> [--description <desc>]
-
-# List all workflows
-stigmer workflow list
-
-# Get workflow details
-stigmer workflow get <workflow-id>
-
-# Delete workflow
-stigmer workflow delete <workflow-id>
-```
-
-### Version
-
-```bash
-# Show CLI version
-stigmer version
-```
-
-## Not Yet Implemented (Planned)
-
-### YAML-based Resource Management
-
-```bash
-# Apply resources from YAML files
-stigmer apply -f <file.yaml>
-stigmer apply -f <directory>/
-
-# Delete resources from YAML
-stigmer delete -f <file.yaml>
-```
-
-### Execution
-
-```bash
-# Execute an agent
-stigmer agent execute <agent-id|name> <prompt>
-
-# Execute a workflow
-stigmer workflow execute <workflow-id|name> --input key=value
-
-# Execute resources in current directory (auto-discovery)
-stigmer run
-```
-
-### Templates & Scaffolding
-
-```bash
-# Initialize a new Stigmer project with templates
-stigmer init --template <template-name>
-
-# Create example project structure
-stigmer init --example
-```
-
-### Resource Export/Import
-
-```bash
-# Export all resources to YAML
-stigmer export --all > backup.yaml
-stigmer export agents > agents.yaml
-
-# Import resources from YAML
-stigmer import < backup.yaml
-```
-
-## Configuration Files
+## Configuration
 
 ### `~/.stigmer/config.yaml`
+
+Auto-created on first run:
 
 ```yaml
 backend:
@@ -135,81 +48,26 @@ backend:
     token: <your-token>
 ```
 
-### `stigmer.yaml` (Project-level)
-
-Not yet implemented. Future project configuration:
-
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: Project
-metadata:
-  name: my-project
-spec:
-  agents:
-    - ./agents/*.yaml
-  workflows:
-    - ./workflows/*.yaml
-  environments:
-    - name: dev
-      secrets:
-        - GITHUB_TOKEN
-        - ANTHROPIC_API_KEY
-```
-
 ## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ANTHROPIC_API_KEY` | Anthropic API key for Claude models | (required, prompts if missing) |
-| `TEMPORAL_HOST` | Temporal server address | `localhost:7233` |
-| `TEMPORAL_NAMESPACE` | Temporal namespace | `default` |
-| `STIGMER_DATA_DIR` | Data directory for BadgerDB and logs | `~/.stigmer` |
+| `STIGMER_DATA_DIR` | Data directory for storage and logs | `~/.stigmer` |
 
-## Command-Line Flags
-
-### `stigmer local start`
-
-| Flag | Environment Variable | Default | Description |
-|------|---------------------|---------|-------------|
-| `--anthropic-api-key` | `ANTHROPIC_API_KEY` | (prompt) | Anthropic API key |
-| `--temporal-host` | `TEMPORAL_HOST` | `localhost:7233` | Temporal server address |
-| `--temporal-namespace` | `TEMPORAL_NAMESPACE` | `default` | Temporal namespace |
-| `--data-dir` | `STIGMER_DATA_DIR` | `~/.stigmer` | Data directory |
-
-## Examples
-
-### Current Usage (Implemented)
+## Quick Start
 
 ```bash
-# 1. Initialize
-stigmer init
+# 1. Start the server (auto-initializes everything)
+stigmer server
 
-# 2. Create an agent
-stigmer agent create \
-  --name github-analyzer \
-  --instructions "Analyze GitHub repositories for code quality"
+# 2. Use the Stigmer UI or API to create agents and workflows
+#    Open: http://localhost:8233 (Temporal UI)
 
-# 3. List agents
-stigmer agent list
+# 3. Check server status anytime
+stigmer server status
 
-# 4. Check daemon status
-stigmer local status
-```
-
-### Future Usage (Planned)
-
-```bash
-# 1. Initialize project with template
-stigmer init --template hello-world
-
-# 2. Apply resources from YAML
-stigmer apply -f ./agents/github-analyzer.yaml
-
-# 3. Execute agent
-stigmer agent execute github-analyzer "Analyze myorg/myrepo"
-
-# 4. Run all resources in project
-stigmer run
+# 4. Stop when done
+stigmer server stop
 ```
 
 ## Development
@@ -225,29 +83,49 @@ make install
 make release-local
 
 # Run without installing
-make run ARGS="agent list"
+make run ARGS="server status"
 
 # Run tests
 make test
 ```
 
-## Migration Path
+## Architecture
 
-The CLI is being developed with backwards compatibility in mind:
+The Stigmer CLI manages a local server that includes:
 
-1. **Phase 1 (Current)**: CLI-based resource management
-   - Direct commands: `stigmer agent create --name ...`
-   - Daemon management
-   - Backend switching
+- **stigmer-server**: gRPC API server (localhost:50051)
+- **Temporal**: Workflow orchestration (auto-downloaded and started)
+- **BadgerDB**: Local embedded storage
+- **agent-runner**: AI agent execution runtime
 
-2. **Phase 2 (Next)**: YAML-based resource management
-   - `stigmer apply -f file.yaml`
-   - `stigmer run` (auto-discovery)
-   - Template scaffolding
+Everything runs locally with zero external dependencies.
 
-3. **Phase 3 (Future)**: Advanced features
-   - Agent/workflow execution
-   - Real-time streaming
-   - Advanced debugging tools
+## Future Commands (Planned)
 
-All Phase 1 commands will continue to work in Phase 2 and 3.
+The following commands are planned for future releases:
+
+```bash
+# Resource management via YAML
+stigmer apply -f agent.yaml
+stigmer delete -f workflow.yaml
+
+# Direct execution
+stigmer agent execute <id> <prompt>
+stigmer workflow execute <id> --input key=value
+
+# Project scaffolding
+stigmer init my-project
+```
+
+## Migration from Old Commands
+
+| Old Command | New Command |
+|------------|-------------|
+| `stigmer init` | `stigmer server` (auto-initializes) |
+| `stigmer local start` | `stigmer server` |
+| `stigmer local stop` | `stigmer server stop` |
+| `stigmer local status` | `stigmer server status` |
+| `stigmer local restart` | `stigmer server restart` |
+| `stigmer agent create` | Use UI or API (removed from CLI) |
+| `stigmer workflow create` | Use UI or API (removed from CLI) |
+| `stigmer version` | Removed (use `--version` flag) |

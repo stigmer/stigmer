@@ -30,10 +30,10 @@ func handleGRPCError(st *status.Status) {
 	switch st.Code() {
 	case codes.Unavailable:
 		fmt.Fprintf(os.Stderr, "Error: Cannot connect to stigmer-server\n")
-		fmt.Fprintf(os.Stderr, "\nIs the daemon running?\n")
-		fmt.Fprintf(os.Stderr, "  stigmer local start\n")
-		fmt.Fprintf(os.Stderr, "\nOr check connection:\n")
-		fmt.Fprintf(os.Stderr, "  stigmer local status\n")
+		fmt.Fprintf(os.Stderr, "\nIs the server running?\n")
+		fmt.Fprintf(os.Stderr, "  stigmer server\n")
+		fmt.Fprintf(os.Stderr, "\nOr check status:\n")
+		fmt.Fprintf(os.Stderr, "  stigmer server status\n")
 		os.Exit(1)
 
 	case codes.NotFound:
