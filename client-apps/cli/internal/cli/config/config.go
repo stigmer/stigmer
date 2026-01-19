@@ -151,11 +151,11 @@ func GetDefault() *Config {
 					Model:    "qwen2.5-coder:7b",
 					BaseURL:  "http://localhost:11434",
 				},
-				Temporal: &TemporalConfig{
-					Managed: true,
-					Version: "1.25.1",
-					Port:    7233,
-				},
+			Temporal: &TemporalConfig{
+				Managed: true,
+				Version: "1.5.1",
+				Port:    7233,
+			},
 			},
 		},
 	}
@@ -302,7 +302,7 @@ func (c *LocalBackendConfig) ResolveTemporalVersion() string {
 	if c.Temporal != nil && c.Temporal.Version != "" {
 		return c.Temporal.Version
 	}
-	return "1.25.1" // default version
+	return "1.5.1" // default version
 }
 
 // ResolveTemporalPort resolves the Temporal port for managed runtime
