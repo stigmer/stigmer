@@ -19,10 +19,10 @@ package interceptors
 import (
 	"context"
 
-	workflowexecutionv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/config"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/grpc_client"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/utils"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/config"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/grpc_client"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/rs/zerolog/log"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/interceptor"

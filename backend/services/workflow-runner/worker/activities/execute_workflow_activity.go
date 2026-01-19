@@ -21,12 +21,12 @@ import (
 	"fmt"
 	"time"
 
-	workflowexecutionv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
-	workflowinstancev1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/config"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/converter"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/grpc_client"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/types"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/config"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/converter"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/grpc_client"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/types"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 )
