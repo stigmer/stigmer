@@ -48,7 +48,7 @@ func TestCheckDuplicateStep_DuplicateExists(t *testing.T) {
 		Kind:       "Agent",
 		ApiVersion: "ai.stigmer.agentic.agent/v1",
 	}
-	store.SaveResource(context.Background(), "Agent", existing.Metadata.Id, existing)
+	store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_agent, existing.Metadata.Id, existing)
 
 	// Try to create another agent with same slug
 	newAgent := &agentv1.Agent{
@@ -133,7 +133,7 @@ func TestCheckDuplicateStep_MultipleSlugs(t *testing.T) {
 			Kind:       "Agent",
 			ApiVersion: "ai.stigmer.agentic.agent/v1",
 		}
-		store.SaveResource(context.Background(), "Agent", agent.Metadata.Id, agent)
+		store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, agent)
 	}
 
 	// Try to create duplicate
