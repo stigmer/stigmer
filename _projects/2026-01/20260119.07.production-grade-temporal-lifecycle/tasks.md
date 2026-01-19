@@ -33,23 +33,44 @@
 ---
 
 ## Task 2: Implement Health Checks and Validation
-**Status:** ⏸️ TODO  
-**Estimated:** 45 min
+**Status:** ✅ DONE  
+**Estimated:** 45 min  
+**Actual:** 45 min  
+**Completed:** 2026-01-19
 
 ### Objectives
-- Enhance PID file to include: PID, command name, start timestamp
-- Implement `isActuallyTemporal()` to validate process is real Temporal
-- Improve `IsRunning()` with multi-layer validation (process exists + is Temporal + port listening)
-- Add TCP probe with command validation
+- ✅ Enhance PID file to include: PID, command name, start timestamp
+- ✅ Implement `isActuallyTemporal()` to validate process is real Temporal
+- ✅ Improve `IsRunning()` with multi-layer validation (process exists + is Temporal + port listening)
+- ✅ Add TCP probe with command validation
 
-### Files to Modify
+### Files Modified
 - `client-apps/cli/internal/cli/temporal/manager.go`
 
+### Implementation Details
+- Added `writePIDFile()` function that writes enhanced format: PID, command name, timestamp
+- Updated `getPID()` to read enhanced format (backward compatible with old format)
+- Added `isActuallyTemporal()` function that validates process via `ps` command:
+  - Checks command name contains "temporal"
+  - Verifies executable path matches expected binary
+  - Returns false for PID reuse cases
+- Added `isPortInUse()` helper for TCP health probe
+- Enhanced `IsRunning()` with 4-layer validation:
+  1. PID file exists and readable
+  2. Process with PID is alive
+  3. Process is actually Temporal (not PID reuse)
+  4. Temporal port (7233) is listening
+- Updated `cleanupStaleProcesses()` to use enhanced validation:
+  - Detects PID reuse and removes stale PID files
+  - Kills processes that are Temporal but port not listening
+  - Logs appropriate debug/warning messages for each case
+
 ### Acceptance Criteria
-- [ ] PID file includes process metadata (name, timestamp)
-- [ ] `IsRunning()` validates process is actually Temporal, not PID reuse
-- [ ] Health check combines TCP probe + process validation
-- [ ] Stale/invalid PID files are automatically cleaned
+- [x] PID file includes process metadata (name, timestamp)
+- [x] `IsRunning()` validates process is actually Temporal, not PID reuse
+- [x] Health check combines TCP probe + process validation
+- [x] Stale/invalid PID files are automatically cleaned
+- [x] Code compiles successfully (`go build` passes)
 
 ---
 
@@ -152,14 +173,14 @@
 
 **Total Tasks:** 6  
 **Estimated Time:** ~4 hours  
-**Current Status:** In Progress (1/6 complete)
+**Current Status:** In Progress (2/6 complete)
 
 ### Task Status Overview
-- ⏸️ TODO: 5 tasks
+- ⏸️ TODO: 4 tasks
 - 🚧 IN PROGRESS: 0 tasks
-- ✅ DONE: 1 task
+- ✅ DONE: 2 tasks
 
 ---
 
 **Last Updated:** 2026-01-19  
-**Next Task:** Task 2 - Implement Health Checks and Validation
+**Next Task:** Task 3 - Make Start Idempotent

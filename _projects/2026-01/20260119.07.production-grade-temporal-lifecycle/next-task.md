@@ -2,8 +2,8 @@
 
 **Project:** `_projects/2026-01/20260119.07.production-grade-temporal-lifecycle`  
 **Last Updated:** 2026-01-19  
-**Current Status:** 🚧 In Progress (1/6 tasks complete)  
-**Note:** Test suite fixed and stable (checkpoint: 20260119-test-fixes-complete.md)
+**Current Status:** 🚧 In Progress (2/6 tasks complete)  
+**Note:** Health checks and validation complete (checkpoint: 20260119-task2-health-checks-complete.md)
 
 ---
 
@@ -17,51 +17,46 @@ Implementing production-grade subprocess lifecycle management for Temporal dev s
 
 **Progress:**
 - ✅ Task 1: Process Group Management and Cleanup (DONE)
-- ⏸️ Task 2: Health Checks and Validation (NEXT)
+- ✅ Task 2: Health Checks and Validation (DONE)
+- ⏸️ Task 3: Make Start Idempotent (NEXT)
 
 ---
 
-## 📋 Next Task: Task 2 - Implement Health Checks and Validation
+## 📋 Next Task: Task 3 - Make Start Idempotent
 
 **Status:** ⏸️ TODO  
-**Estimated:** 45 min
+**Estimated:** 30 min
 
 ### What to Do
 
-1. **Enhance PID file format:**
-   - Change PID file to include: PID, command name, start timestamp
-   - Format: `<pid>\n<cmdname>\n<timestamp>`
-   - Update `writePIDFile()` and `getPID()` to handle new format
+1. **Refactor `Start()` to be idempotent:**
+   - Check if Temporal is already running via `IsRunning()`
+   - If running AND healthy → log success message and return (reuse existing)
+   - If not running OR unhealthy → cleanup and start fresh
 
-2. **Implement `isActuallyTemporal()` function:**
-   - Check process command line contains "temporal"
-   - Verify executable path matches expected Temporal binary
-   - Return true only if it's genuinely Temporal
+2. **Add clear logging:**
+   - Log when reusing existing healthy Temporal
+   - Log when cleaning up and starting fresh
+   - Make it obvious to users what's happening
 
-3. **Improve `IsRunning()` with multi-layer validation:**
-   - Check 1: Process exists (current check)
-   - Check 2: Process is actually Temporal (via `isActuallyTemporal()`)
-   - Check 3: Temporal port (7233) is listening
-   - All three must pass for `IsRunning()` to return true
+3. **Remove "already running" error:**
+   - Current code: `return errors.New("Temporal is already running")`
+   - New behavior: log and return success (idempotent)
 
-4. **Update `cleanupStaleProcesses()`:**
-   - Use enhanced validation to detect stale/invalid processes
-   - Remove PID files for non-Temporal processes (PID reuse case)
-
-5. **Test:**
-   - Build: `make build`
-   - Start Temporal, verify enhanced PID file format
-   - Kill Temporal, start unrelated process with same PID (simulated)
-   - Verify `IsRunning()` correctly identifies it's not Temporal
+4. **Test idempotency:**
+   - Run `stigmer local` twice in a row
+   - First: should start Temporal
+   - Second: should detect running instance, log reuse, return success
+   - Both commands should succeed
 
 ### Files to Modify
 - `client-apps/cli/internal/cli/temporal/manager.go`
 
 ### Acceptance Criteria
-- [ ] PID file includes process metadata (PID, name, timestamp)
-- [ ] `IsRunning()` validates process is actually Temporal, not PID reuse
-- [ ] Health check combines TCP probe + process validation
-- [ ] Stale/invalid PID files are automatically cleaned
+- [ ] Running `stigmer local` twice succeeds both times
+- [ ] Second invocation detects and reuses healthy Temporal
+- [ ] Clear logging shows whether reusing or starting fresh
+- [ ] No "already running" errors in normal usage
 
 ---
 

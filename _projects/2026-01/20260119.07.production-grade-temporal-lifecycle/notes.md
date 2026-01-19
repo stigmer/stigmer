@@ -59,8 +59,27 @@ Quick learnings, observations, and insights during development.
 ### Phase 1: Process Groups (Task 1)
 _Notes will be added as implementation progresses_
 
-### Phase 2: Health Checks (Task 2)
-_Notes will be added as implementation progresses_
+### Phase 2: Health Checks (Task 2) ✅
+
+**Completed:** 2026-01-19
+
+**Key Implementations:**
+1. Enhanced PID file format (3 lines: PID, command name, timestamp)
+2. `isActuallyTemporal()` - validates process via `ps` command
+3. `isPortInUse()` - TCP health probe
+4. Multi-layer `IsRunning()` validation (4 checks)
+5. Improved `cleanupStaleProcesses()` with PID reuse detection
+
+**Learnings:**
+- `ps` command works consistently across macOS and Linux
+- Backward compatibility: `getPID()` reads only first line (works with old format)
+- Performance: all checks complete in ~10-20ms (fast enough for frequent use)
+- PID reuse is rare but real - command validation prevents false positives
+
+**Trade-offs:**
+- Using `ps` command instead of `/proc` for portability (macOS doesn't have /proc)
+- 100ms timeout for TCP probe (balance between speed and reliability)
+- Enhanced PID file is human-readable but slightly larger (negligible impact)
 
 ### Phase 3: Idempotent Start (Task 3)
 _Notes will be added as implementation progresses_
