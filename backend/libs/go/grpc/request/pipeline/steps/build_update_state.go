@@ -68,20 +68,19 @@ func (s *BuildUpdateStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error
 		return fmt.Errorf("failed to preserve immutable fields: %w", err)
 	}
 
-	// 4. Clear status field
+	// 4. Clear status field using proto reflection
 	// Status is system-managed and should not contain any client-provided data
-	statusResource, hasStatus := any(merged).(HasStatus)
-	if hasStatus {
-		if err := clearStatusField(statusResource); err != nil {
+	if hasStatusField(merged) {
+		if err := clearStatusFieldReflect(merged); err != nil {
 			return fmt.Errorf("failed to clear status field: %w", err)
 		}
 	}
 
 	// 5. TODO: Clear computed fields (when we have computed fields)
 
-	// 6. Update audit fields in status
-	if hasStatus {
-		if err := updateAuditFields(statusResource, existing, ctx); err != nil {
+	// 6. Update audit fields in status using proto reflection
+	if hasStatusField(merged) {
+		if err := updateAuditFieldsReflect(merged, existing); err != nil {
 			return fmt.Errorf("failed to update audit fields: %w", err)
 		}
 	}
@@ -127,7 +126,8 @@ func preserveImmutableFields[T proto.Message](merged, existing T) error {
 	return nil
 }
 
-// updateAuditFields updates the audit information in the status field for update operations
+// updateAuditFieldsReflect updates the audit information in the status field for update operations
+// using proto reflection to access the status field generically.
 //
 // For update operations:
 // - spec_audit.created_by and created_at are preserved from existing
@@ -136,11 +136,13 @@ func preserveImmutableFields[T proto.Message](merged, existing T) error {
 // - status_audit.updated_by and updated_at are set to current
 // - event is set to "updated"
 //
-// This function uses proto reflection to set the audit field generically.
-func updateAuditFields[T proto.Message](resource HasStatus, existing T, ctx *pipeline.RequestContext[T]) error {
-	status := resource.GetStatus()
-	if status == nil {
-		return fmt.Errorf("status is nil")
+// The status field is created if it doesn't exist.
+func updateAuditFieldsReflect[T proto.Message](resource T, existing T) error {
+	// Get or create status field using proto reflection
+	statusMsg := getOrCreateStatusField(resource)
+	if statusMsg == nil {
+		// Resource doesn't have a status field - this is OK for some resource types
+		return nil
 	}
 
 	// Get current timestamp
@@ -158,26 +160,25 @@ func updateAuditFields[T proto.Message](resource HasStatus, existing T, ctx *pip
 	var existingCreatedBy *commonspb.ApiResourceAuditActor
 	var existingCreatedAt *timestamppb.Timestamp
 
-	// Try to get existing audit info
-	existingStatus, hasExistingStatus := any(existing).(HasStatus)
-	if hasExistingStatus && existingStatus.GetStatus() != nil {
-		existingStatusMsg := existingStatus.GetStatus().ProtoReflect()
+	// Try to get existing audit info using proto reflection
+	existingStatusMsg := getStatusField(existing)
+	if existingStatusMsg != nil {
 		existingAuditField := existingStatusMsg.Descriptor().Fields().ByName("audit")
 		if existingAuditField != nil && existingStatusMsg.Has(existingAuditField) {
 			existingAuditMsg := existingStatusMsg.Get(existingAuditField).Message()
-			
+
 			// Get spec_audit
 			specAuditField := existingAuditMsg.Descriptor().Fields().ByName("spec_audit")
 			if specAuditField != nil && existingAuditMsg.Has(specAuditField) {
 				specAuditMsg := existingAuditMsg.Get(specAuditField).Message()
-				
+
 				// Get created_by
 				createdByField := specAuditMsg.Descriptor().Fields().ByName("created_by")
 				if createdByField != nil && specAuditMsg.Has(createdByField) {
 					existingCreatedBy = &commonspb.ApiResourceAuditActor{}
 					proto.Merge(existingCreatedBy, specAuditMsg.Get(createdByField).Message().Interface())
 				}
-				
+
 				// Get created_at
 				createdAtField := specAuditMsg.Descriptor().Fields().ByName("created_at")
 				if createdAtField != nil && specAuditMsg.Has(createdAtField) {
@@ -221,7 +222,6 @@ func updateAuditFields[T proto.Message](resource HasStatus, existing T, ctx *pip
 	}
 
 	// Set audit field using proto reflection
-	statusMsg := status.ProtoReflect()
 	auditField := statusMsg.Descriptor().Fields().ByName("audit")
 	if auditField == nil {
 		// Status doesn't have an audit field - this is ok, not all resources may have audit
