@@ -19,6 +19,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps",
     visibility = ["//visibility:public"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//backend/libs/go/apiresource",
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/interceptors/apiresource",
@@ -49,6 +50,9 @@ go_test(
     ],
     embed = [":steps"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/apiresource",
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/grpc/request/pipeline",

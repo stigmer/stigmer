@@ -1,7 +1,7 @@
 package steps
 
 import (
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"google.golang.org/protobuf/proto"
 )
 

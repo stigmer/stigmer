@@ -1,0 +1,40 @@
+load("@rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+proto_library(
+    name = "ai_stigmer_tenancy_organization_v1_proto",
+    srcs = [
+        "api.proto",
+        "command.proto",
+        "io.proto",
+        "query.proto",
+        "spec.proto",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//ai/stigmer/commons/apiresource:apiresource_proto",
+        "//ai/stigmer/iam/iampolicy/v1/rpcauthorization:rpcauthorization_proto",
+        "//ai/stigmer/tenancy/organization/v1:v1_proto",
+        "//buf/validate:validate_proto",
+        "@com_google_protobuf//:empty_proto",
+    ],
+)
+
+go_proto_library(
+    name = "ai_stigmer_tenancy_organization_v1_go_proto",
+    compilers = ["@rules_go//proto:go_grpc"],
+    importpath = "github.com/stigmer/stigmer/apis/ai/stigmer/tenancy/organization/v1",
+    proto = ":ai_stigmer_tenancy_organization_v1_proto",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//ai/stigmer/commons/apiresource:io_proto",
+        "//ai/stigmer/commons/apiresource:metadata_proto",
+        "//ai/stigmer/commons/apiresource:rpc_service_options_proto",
+        "//ai/stigmer/commons/apiresource:status_proto",
+        "//ai/stigmer/iam/iampolicy/v1/rpcauthorization:method_options_proto",
+        "//ai/stigmer/tenancy/organization/v1:api_proto",
+        "//ai/stigmer/tenancy/organization/v1:io_proto",
+        "//ai/stigmer/tenancy/organization/v1:spec_proto",
+        "//buf/validate:validate_proto",
+    ],
+)

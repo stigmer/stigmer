@@ -1,7 +1,7 @@
 package activities
 
 import (
-	agentexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentexecution/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 )
 
 // UpdateExecutionStatusActivity is the interface for updating agent execution status.

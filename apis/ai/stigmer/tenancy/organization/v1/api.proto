@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package ai.stigmer.tenancy.organization.v1;
+
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "ai/stigmer/tenancy/organization/v1/spec.proto";
+import "buf/validate/validate.proto";
+
+// Organization is the top-level container for all Stigmer resources.
+// Similar to GitHub organizations, all agents, workflows, sessions, and other
+// resources are scoped under an organization. This enables multi-tenancy and
+// proper resource isolation.
+message Organization {
+  // api-version (tenancy.stigmer.ai/v1)
+  string api_version = 1 [(buf.validate.field).string.const = "tenancy.stigmer.ai/v1"];
+
+  // resource kind
+  string kind = 2 [(buf.validate.field).string.const = "Organization"];
+
+  // metadata
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "metadata.slug.chars"
+      message: "metadata.slug: Only lowercase letters, numbers, and hyphens are allowed"
+      // https://regex101.com/r/NKTohE/1
+      expression: "this.slug.matches('^[a-z0-9-]+$')"
+    },
+    (buf.validate.field).cel = {
+      id: "metadata.slug.start"
+      message: "metadata.slug: Must start with a lowercase letter"
+      // https://regex101.com/r/qpK7XF/1
+      expression: "this.slug.matches('^[a-z].*$')"
+    },
+    (buf.validate.field).cel = {
+      id: "metadata.slug.length"
+      message: "metadata.slug: Must be between 2 and 15 characters long"
+      expression: "size(this.slug) >= 2 && size(this.slug) <= 15"
+    }
+  ];
+
+  // spec
+  OrganizationSpec spec = 4;
+
+  // status
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+}

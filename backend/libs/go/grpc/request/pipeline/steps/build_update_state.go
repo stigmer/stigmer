@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
-	commonspb "github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
+	commonspb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/timestamppb"

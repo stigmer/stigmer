@@ -4,7 +4,7 @@ import (
 	"context"
 
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
-	workflowexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflowexecution/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 

@@ -3,7 +3,7 @@ package workflowinstance
 import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
-	workflowinstancev1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflowinstance/v1"
+	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 )
 
 // WorkflowInstanceController implements WorkflowInstanceCommandController and WorkflowInstanceQueryController
