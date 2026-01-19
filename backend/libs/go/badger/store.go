@@ -121,7 +121,8 @@ func (s *Store) DeleteResource(ctx context.Context, kind string, id string) erro
 
 // DeleteResourcesByKind wipes all data for a specific resource type.
 // Useful for "stigmer local clean --kind=Agent"
-func (s *Store) DeleteResourcesByKind(ctx context.Context, kind string) error {
+// Returns the number of resources deleted.
+func (s *Store) DeleteResourcesByKind(ctx context.Context, kind string) (int64, error) {
 	prefix := []byte(kind + "/")
 	
 	// 1. Collect keys (Badger doesn't support range delete native in one go without collecting)
@@ -135,12 +136,12 @@ func (s *Store) DeleteResourcesByKind(ctx context.Context, kind string) error {
 		return nil
 	})
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// 2. Batch Delete
 	if len(keys) > 0 {
-		return s.db.Update(func(txn *badger.Txn) error {
+		err := s.db.Update(func(txn *badger.Txn) error {
 			for _, k := range keys {
 				if err := txn.Delete(k); err != nil {
 					return err
@@ -148,8 +149,11 @@ func (s *Store) DeleteResourcesByKind(ctx context.Context, kind string) error {
 			}
 			return nil
 		})
+		if err != nil {
+			return 0, err
+		}
 	}
-	return nil
+	return int64(len(keys)), nil
 }
 
 // Close closes the database connection

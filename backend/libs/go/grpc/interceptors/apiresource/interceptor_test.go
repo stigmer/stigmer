@@ -7,6 +7,10 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
+
+	// Import proto packages to register their descriptors
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 )
 
 func TestUnaryServerInterceptor(t *testing.T) {
