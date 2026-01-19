@@ -6,6 +6,7 @@ import (
 
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentexecution/temporal/activities"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
@@ -120,7 +121,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) getActivityTaskQueue(ctx workflow.Con
 	if info.Memo != nil && info.Memo.Fields != nil {
 		if taskQueueField, ok := info.Memo.Fields["activityTaskQueue"]; ok {
 			var taskQueueStr string
-			if err := workflow.PayloadConverter().FromPayload(taskQueueField, &taskQueueStr); err == nil && taskQueueStr != "" {
+			if err := converter.GetDefaultDataConverter().FromPayload(taskQueueField, &taskQueueStr); err == nil && taskQueueStr != "" {
 				return taskQueueStr
 			}
 		}

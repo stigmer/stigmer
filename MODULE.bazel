@@ -27,7 +27,6 @@ use_repo(
     "build_buf_go_protovalidate",  # keep: Required for protovalidate runtime validation
     "com_github_dgraph_io_badger_v4",
     "com_github_google_uuid",
-    "com_github_mattn_go_sqlite3",
     "com_github_rs_zerolog",
     "com_github_stigmer_stigmer_apis_stubs_go",
     "com_github_stretchr_testify",

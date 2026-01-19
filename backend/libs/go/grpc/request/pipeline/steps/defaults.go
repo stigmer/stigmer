@@ -10,6 +10,7 @@ import (
 	commonspb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/dynamicpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -109,7 +110,7 @@ func clearStatusField(resource HasStatus) error {
 	status := resource.GetStatus()
 	if status == nil {
 		// Initialize the status field using proto reflection
-		resourceMsg := proto.MessageReflect(resource)
+		resourceMsg := resource.ProtoReflect()
 		statusField := resourceMsg.Descriptor().Fields().ByName("status")
 		if statusField == nil {
 			// Resource doesn't have a status field
@@ -118,8 +119,8 @@ func clearStatusField(resource HasStatus) error {
 		
 		// Create a new empty status message of the correct type
 		statusType := statusField.Message()
-		newStatus := statusType.New().Interface()
-		resourceMsg.Set(statusField, protoreflect.ValueOfMessage(newStatus.ProtoReflect()))
+		newStatus := dynamicpb.NewMessage(statusType)
+		resourceMsg.Set(statusField, protoreflect.ValueOfMessage(newStatus))
 		return nil
 	}
 
