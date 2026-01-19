@@ -3,9 +3,9 @@ package environment
 import (
 	"context"
 
+	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 )
 
 // Update updates an existing environment using the pipeline framework
@@ -39,10 +39,10 @@ func (c *EnvironmentController) buildUpdatePipeline() *pipeline.Pipeline[*enviro
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*environmentv1.Environment]("environment-update").
-		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).         // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).           // 2. Resolve slug (for fallback lookup)
-		AddStep(steps.NewLoadExistingStep[*environmentv1.Environment](c.store)).   // 3. Load existing environment
-		AddStep(steps.NewBuildUpdateStateStep[*environmentv1.Environment]()).      // 4. Build updated state
-		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).        // 5. Persist environment
+		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).       // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).         // 2. Resolve slug (for fallback lookup)
+		AddStep(steps.NewLoadExistingStep[*environmentv1.Environment](c.store)). // 3. Load existing environment
+		AddStep(steps.NewBuildUpdateStateStep[*environmentv1.Environment]()).    // 4. Build updated state
+		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).      // 5. Persist environment
 		Build()
 }
