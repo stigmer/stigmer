@@ -8,6 +8,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -109,7 +110,7 @@ func (s *LoadExistingExecutionStep) Execute(ctx *pipeline.RequestContext[*agente
 		Msg("Loading existing execution")
 
 	existing := &agentexecutionv1.AgentExecution{}
-	if err := s.store.GetResource(ctx.Context(), "AgentExecution", executionID, existing); err != nil {
+	if err := s.store.GetResource(ctx.Context(), apiresourcekind.ApiResourceKind_agent_execution, executionID, existing); err != nil {
 		return grpclib.NotFoundError("AgentExecution", executionID)
 	}
 
@@ -232,7 +233,7 @@ func (s *PersistExecutionStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 
 	executionID := execution.Metadata.Id
 
-	if err := s.store.SaveResource(ctx.Context(), "AgentExecution", executionID, execution); err != nil {
+	if err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_agent_execution, executionID, execution); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).

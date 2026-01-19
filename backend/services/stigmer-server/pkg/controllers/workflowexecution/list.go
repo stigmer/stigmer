@@ -3,8 +3,10 @@ package workflowexecution
 import (
 	"context"
 
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -27,7 +29,7 @@ import (
 // - Advanced filtering (can be added later if needed)
 func (c *WorkflowExecutionController) List(ctx context.Context, req *workflowexecutionv1.ListWorkflowExecutionsRequest) (*workflowexecutionv1.WorkflowExecutionList, error) {
 	// List all workflow executions from store
-	data, err := c.store.ListResources(ctx, "WorkflowExecution")
+	data, err := c.store.ListResources(ctx, apiresourcekind.ApiResourceKind_workflow_execution)
 	if err != nil {
 		return nil, grpclib.InternalError(err, "failed to list workflow executions")
 	}

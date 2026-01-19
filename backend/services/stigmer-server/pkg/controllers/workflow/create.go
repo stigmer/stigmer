@@ -13,6 +13,7 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // Context keys for inter-step communication
@@ -195,7 +196,7 @@ func (s *updateWorkflowStatusWithDefaultInstanceStep) Execute(ctx *pipeline.Requ
 	// 3. Persist updated workflow to repository
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
-	if err := s.store.SaveResource(ctx.Context(), kind.String(), workflowID, workflow); err != nil {
+	if err := s.store.SaveResource(ctx.Context(), kind, workflowID, workflow); err != nil {
 		log.Error().
 			Err(err).
 			Str("workflow_id", workflowID).

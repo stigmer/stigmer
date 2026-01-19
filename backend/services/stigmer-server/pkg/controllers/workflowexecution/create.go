@@ -14,6 +14,7 @@ import (
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // Context keys for inter-step communication
@@ -166,7 +167,7 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 
 	// 1. Load workflow by ID from store
 	workflow := &workflowv1.Workflow{}
-	if err := s.store.GetResource(ctx.Context(), "Workflow", workflowID, workflow); err != nil {
+	if err := s.store.GetResource(ctx.Context(), apiresourcekind.ApiResourceKind_workflow, workflowID, workflow); err != nil {
 		log.Error().
 			Err(err).
 			Str("workflow_id", workflowID).
@@ -247,7 +248,7 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 
 	// Save workflow with updated status
 	// Use "Workflow" as the kind (same as the resource type)
-	if err := s.store.SaveResource(ctx.Context(), "Workflow", workflowID, workflow); err != nil {
+	if err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_workflow, workflowID, workflow); err != nil {
 		log.Error().
 			Err(err).
 			Str("workflow_id", workflowID).
