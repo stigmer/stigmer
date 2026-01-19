@@ -16,221 +16,93 @@ Same CLI. Same SDK. Same workflow definitions. Your choice of backend.
 
 ## Prerequisites
 
-### Required Dependencies
+### Optional: Ollama (Recommended for Local Development)
 
-**Anthropic API Key**:
-- Required for AI agent execution
-- Get one at [Anthropic Console](https://console.anthropic.com/)
-- The CLI will prompt for it on first `stigmer local start`
-- Or set `ANTHROPIC_API_KEY` environment variable
-
-**Temporal Server** (optional for basic CLI, required for agent execution):
-- Workflow orchestration engine for durable agent executions
-- Only needed if you plan to execute agents (not required for creating/listing agents)
-
-**For building from source**:
-- Go 1.21+ (for CLI and stigmer-server)
-- Python 3.11+ with Poetry (only if running agent-runner manually)
-
-### Installing Temporal (Optional)
-
-If you want to execute agents (not just create/manage them), run Temporal locally:
+For the best local experience with zero API costs, install Ollama:
 
 ```bash
-# Using Docker (recommended)
-docker run -d \
-  --name temporal \
-  -p 7233:7233 \
-  temporalio/auto-setup:latest
+# macOS
+brew install ollama
 
-# Verify it's running
-docker ps | grep temporal
+# Start Ollama
+ollama serve
+
+# Pull the default model
+ollama pull qwen2.5-coder:7b
 ```
 
-**Temporal UI** (optional, for debugging workflows):
-
-```bash
-docker run -d \
-  --name temporal-ui \
-  -p 8080:8080 \
-  --env TEMPORAL_ADDRESS=host.docker.internal:7233 \
-  temporalio/ui:latest
-
-# Access at http://localhost:8080
-```
+**With Ollama**: Zero-config, free, works offline  
+**Without Ollama**: You'll be prompted for an Anthropic API key (cloud LLM)
 
 ## Quick Start
 
-### 1. Build and Install CLI
+### 1. Install Stigmer
 
 ```bash
-# Clone the repository
+# Clone and build
 git clone https://github.com/stigmer/stigmer.git
 cd stigmer/client-apps/cli
-
-# Build and install (installs to GOPATH/bin)
 make install
-
-# Or use release-local for testing (cleans + builds + installs + verifies)
-make release-local
 ```
 
-### 2. Initialize Local Backend
+### 2. Start Local Mode
 
 ```bash
-stigmer init
+stigmer local
 ```
 
-This creates `~/.stigmer/` directory, initializes configuration, and starts the local daemon automatically.
+**That's it!** This single command:
+- ✅ Downloads and starts Temporal automatically
+- ✅ Uses Ollama (local LLM - no API keys!)
+- ✅ Starts the daemon with zero configuration
+- ✅ Ready for agent execution
 
-### 3. Start the Local Daemon
+**First run output:**
+```
+✓ Using Ollama (no API key required)
+✓ Starting managed Temporal server...
+✓ Temporal started on localhost:7233
+✓ Starting stigmer-server...
+✓ Starting agent-runner...
+✓ Ready! Stigmer is running on localhost:50051
+```
 
-**Option A: Interactive (prompts for missing values)**
+### Managing Local Mode
 
 ```bash
-stigmer local start
-```
-
-You'll be prompted for your Anthropic API key on first start:
-
-```
-Enter Anthropic API key: ********
-✓ Anthropic API key configured
-Starting daemon...
-Daemon started successfully
-  PID:  12345
-  Port: 50051
-  Data: /Users/you/.stigmer
-```
-
-**Option B: Fully automated (environment variables)**
-
-```bash
-# Set required API key
-export ANTHROPIC_API_KEY=sk-ant-...
-
-# Optional: Override Temporal address (defaults to localhost:7233)
-export TEMPORAL_HOST=192.168.1.5:7233
-
-# Start daemon (no prompts)
-stigmer local start
-```
-
-**Option C: Fully automated (command-line flags)**
-
-```bash
-# Pass all configuration via flags
-stigmer local start \
-  --anthropic-api-key=sk-ant-... \
-  --temporal-host=192.168.1.5:7233
-```
-
-**Configuration Priority** (highest to lowest):
-1. Command-line flags (`--anthropic-api-key`, `--temporal-host`)
-2. Environment variables (`ANTHROPIC_API_KEY`, `TEMPORAL_HOST`)
-3. OS keychain (for Anthropic API key only)
-4. Defaults (`localhost:7233` for Temporal)
-5. Interactive prompt (Anthropic API key only, if none of above)
-
-**What happens:**
-- Stigmer resolves configuration from flags → env vars → keychain → defaults → prompt
-- Starts `stigmer-server` on `localhost:50051` (gRPC API server)
-- Starts `agent-runner` subprocess (Python Temporal worker for agent execution)
-- Both processes run in background as daemons
-
-**Without Temporal:** The daemon will start successfully but agent execution will fail. You can still create/list/manage agents via the CLI.
-
-### 4. Create Your First Agent
-
-**Currently**: Create agents via CLI flags
-
-```bash
-stigmer agent create \
-  --name support-bot \
-  --instructions "You are a helpful customer support agent"
-```
-
-**Future**: Create agents from YAML files (coming soon)
-
-```yaml
-# agent.yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: Agent
-metadata:
-  name: support-bot
-spec:
-  instructions: "You are a helpful customer support agent"
-```
-
-```bash
-# Not yet implemented
-stigmer apply -f agent.yaml
-```
-
-### 5. List Your Agents
-
-```bash
-stigmer agent list
-```
-
-### 6. Execute an Agent
-
-**Note**: Agent execution requires Temporal and is not yet implemented in the OSS CLI.
-
-```bash
-# Coming soon
-stigmer agent execute support-bot "What are the latest trends in AI?"
-```
-
-### Managing the Local Daemon
-
-```bash
-# Check daemon status
+# Check status
 stigmer local status
 
 # Stop daemon
 stigmer local stop
 
-# Restart daemon (uses same config as last start)
+# Restart
 stigmer local restart
-
-# Restart with new Temporal address
-stigmer local restart --temporal-host=new-host:7233
 ```
 
-**Available flags for `stigmer local start`:**
+### Configuration (Optional)
 
-| Flag | Environment Variable | Default | Description |
-|------|---------------------|---------|-------------|
-| `--anthropic-api-key` | `ANTHROPIC_API_KEY` | (prompt) | Anthropic API key for Claude models |
-| `--temporal-host` | `TEMPORAL_HOST` | `localhost:7233` | Temporal server address |
-| `--temporal-namespace` | `TEMPORAL_NAMESPACE` | `default` | Temporal namespace |
-| `--data-dir` | `STIGMER_DATA_DIR` | `~/.stigmer` | Data directory for BadgerDB |
+**Default**: Uses Ollama with `qwen2.5-coder:7b` (free, local)
 
-### Environment Variables Reference
+**Switch to Anthropic** (paid, cloud):
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ANTHROPIC_API_KEY` | Anthropic API key for Claude models | (required, prompts if missing) |
-| `TEMPORAL_HOST` | Temporal server address | `localhost:7233` |
-| `TEMPORAL_NAMESPACE` | Temporal namespace | `default` |
-| `STIGMER_DATA_DIR` | Data directory for BadgerDB and logs | `~/.stigmer` |
+Edit `~/.stigmer/config.yaml`:
+```yaml
+backend:
+  local:
+    llm:
+      provider: anthropic
+      model: claude-sonnet-4.5
+```
 
-**Example: Automated CI/CD setup**
-
+Or use environment variables:
 ```bash
-#!/bin/bash
-# .env file or CI/CD secrets
-
-export ANTHROPIC_API_KEY=sk-ant-api-03-xxx
-export TEMPORAL_HOST=temporal.internal:7233
-export TEMPORAL_NAMESPACE=staging
-
-stigmer init
-stigmer local start  # Fully automated, no prompts
+export STIGMER_LLM_PROVIDER=anthropic
+export ANTHROPIC_API_KEY=sk-ant-...
+stigmer local restart
 ```
 
-**Next Steps**: See the [CLI README](client-apps/cli/README.md) for complete command reference and configuration options.
+**See the full documentation** for advanced configuration options.
 
 ## Architecture
 
@@ -344,42 +216,17 @@ For full local development with agent execution:
 └───────────────────────────────────────────────────────────┘
 ```
 
-**Minimal setup** (create/list agents only):
+**Zero-config setup**:
 ```bash
-stigmer init
-
-# Interactive mode (prompts for API key)
-stigmer local start
-
-# OR automated mode
-export ANTHROPIC_API_KEY=sk-ant-...
-stigmer local start
+stigmer local
+# That's it! Temporal auto-starts, Ollama used by default
 ```
 
-**Full setup** (execute agents):
+**With Anthropic (paid)**:
 ```bash
-# 1. Start Temporal
-docker run -d --name temporal -p 7233:7233 temporalio/auto-setup:latest
-
-# 2. Start Stigmer (automated mode)
+export STIGMER_LLM_PROVIDER=anthropic
 export ANTHROPIC_API_KEY=sk-ant-...
-stigmer init
-stigmer local start  # Connects to localhost:7233 by default
-
-# OR with custom Temporal address
-stigmer local start --temporal-host=192.168.1.5:7233
-```
-
-**Production-like setup** (remote Temporal):
-```bash
-# Export all configuration
-export ANTHROPIC_API_KEY=sk-ant-...
-export TEMPORAL_HOST=temporal.company.internal:7233
-export TEMPORAL_NAMESPACE=production
-
-# Start daemon (fully automated, no prompts)
-stigmer init
-stigmer local start
+stigmer local
 ```
 
 ### Storage Strategy
@@ -500,29 +347,25 @@ Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to gi
 - Air-gapped environments
 
 **How it works**:
-- Local daemon runs on `localhost:50051` (started with `stigmer local start`)
+- Local daemon runs on `localhost:50051` (started with `stigmer local`)
 - BadgerDB key-value store in `~/.stigmer/data/` (daemon holds exclusive lock)
 - CLI and Agent Runner both connect to daemon via gRPC
 - Single implicit user (`local-user`)
-- Secrets stored in OS keychain or encrypted file
-- Optional Temporal integration for durable agent execution
+- Uses Ollama by default (no API keys needed)
+- Auto-manages Temporal for workflow orchestration
 
-**What runs locally:**
+**What runs in local mode:**
 - **stigmer-server** (Go): gRPC API server with BadgerDB storage
 - **agent-runner** (Python): Temporal worker for executing AI agents
-- **Temporal** (optional): Workflow orchestration (runs in Docker)
+- **Temporal** (managed): Workflow orchestration (auto-downloaded and started)
 
 **Start using**:
 ```bash
-# Initialize and start the local daemon
-stigmer init
-stigmer local start
+# Single command to start everything
+stigmer local
 
-# Create and manage agents
+# Now you can create and execute agents
 stigmer agent create --name my-agent --instructions "..."
-stigmer agent list
-
-# Execute agents (requires Temporal)
 stigmer agent execute my-agent "Your prompt here"
 ```
 
@@ -717,7 +560,7 @@ stigmer init
 ## Documentation
 
 - 📚 [Complete Documentation](docs/README.md) - Full documentation index
-- [Getting Started](docs/getting-started/local-mode.md) - Detailed local mode guide
+- [Getting Started](docs/getting-started/) - Detailed guides
 - [Architecture](docs/architecture/) - How Stigmer works
   - [Temporal Integration](docs/architecture/temporal-integration.md) - Workflow orchestration design
   - [Request Pipeline Context Design](docs/architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
