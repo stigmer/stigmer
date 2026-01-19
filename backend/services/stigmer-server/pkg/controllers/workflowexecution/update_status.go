@@ -8,6 +8,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -109,7 +110,7 @@ func (s *LoadExistingExecutionStep) Execute(ctx *pipeline.RequestContext[*workfl
 		Msg("Loading existing execution")
 
 	existing := &workflowexecutionv1.WorkflowExecution{}
-	if err := s.store.GetResource(ctx.Context(), "WorkflowExecution", executionID, existing); err != nil {
+	if err := s.store.GetResource(ctx.Context(), apiresourcekind.ApiResourceKind_workflow_execution, executionID, existing); err != nil {
 		return grpclib.NotFoundError("WorkflowExecution", executionID)
 	}
 
@@ -226,7 +227,7 @@ func (s *PersistExecutionStep) Execute(ctx *pipeline.RequestContext[*workflowexe
 
 	executionID := execution.Metadata.Id
 
-	if err := s.store.SaveResource(ctx.Context(), "WorkflowExecution", executionID, execution); err != nil {
+	if err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_workflow_execution, executionID, execution); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).

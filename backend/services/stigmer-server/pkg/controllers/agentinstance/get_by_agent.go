@@ -8,6 +8,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -86,7 +87,7 @@ func (s *loadByAgentStep) Execute(ctx *pipeline.RequestContext[*agentinstancev1.
 
 	// List all agent instances and filter by agent_id
 	// Note: This is not efficient for large datasets, but acceptable for local usage
-	resources, err := s.store.ListResources(ctx.Context(), "AgentInstance")
+	resources, err := s.store.ListResources(ctx.Context(), apiresourcekind.ApiResourceKind_agent_instance)
 	if err != nil {
 		return grpclib.InternalError(err, "failed to list agent instances")
 	}

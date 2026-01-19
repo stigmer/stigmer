@@ -50,7 +50,7 @@ func (s *filterByAgentInstanceStep) Execute(ctx *pipeline.RequestContext[*sessio
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 
 	// List all sessions from database
-	data, err := s.store.ListResources(ctx.Context(), kind.String())
+	data, err := s.store.ListResources(ctx.Context(), kind)
 	if err != nil {
 		log.Error().
 			Err(err).

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
@@ -77,7 +78,7 @@ func (s *listAllSessionsStep) Execute(ctx *pipeline.RequestContext[*sessionv1.Li
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 
 	// List all sessions from database
-	data, err := s.store.ListResources(ctx.Context(), kind.String())
+	data, err := s.store.ListResources(ctx.Context(), kind)
 	if err != nil {
 		log.Error().
 			Err(err).
