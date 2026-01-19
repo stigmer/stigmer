@@ -10,7 +10,6 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -97,11 +96,7 @@ func (s *LoadByReferenceStep[T]) Execute(ctx *pipeline.RequestContext[*apiresour
 	if !found {
 		// Extract kind name for error message
 		kindName, _ := apiresource.GetKindName(kind)
-		return grpclib.WrapError(nil, codes.NotFound, fmt.Sprintf(
-			"%s not found with slug: %s",
-			kindName,
-			ref.Slug,
-		))
+		return grpclib.NotFoundError(kindName, ref.Slug)
 	}
 
 	// Store loaded resource in context for handler to return
