@@ -2,6 +2,78 @@
 
 This guide shows how to configure the agent-runner for different LLM providers in local development.
 
+## Quick Start (CLI - Recommended)
+
+**For most users**, the Stigmer CLI provides zero-config local development:
+
+```bash
+# First time: Initialize Stigmer
+$ stigmer init
+✓ Created config directory: ~/.stigmer
+✓ Downloaded Temporal CLI v1.25.1
+✓ Created default config with Ollama
+✓ Configured for zero-dependency local mode
+
+# Start the local daemon (auto-manages Temporal + uses Ollama)
+$ stigmer local start
+✓ Using Ollama (no API key required)
+✓ Starting managed Temporal server...
+✓ Temporal started on localhost:7233
+✓ Starting stigmer-server...
+✓ Starting agent-runner with ollama
+✓ Daemon started successfully
+
+# Check status
+$ stigmer local status
+Daemon Status:
+─────────────────────────────────────
+  Status:   ✓ Running
+  PID:      12345
+  Port:     50051
+  Data:     ~/.stigmer/data
+
+Configuration:
+  LLM:      ollama (qwen2.5-coder:7b)
+  Temporal: Managed (running on port 7233)
+```
+
+**That's it!** No Docker, no API keys, no manual configuration.
+
+### Switching Providers
+
+**Option 1: Edit config file** (`~/.stigmer/config.yaml`):
+
+```yaml
+backend:
+  type: local
+  local:
+    llm:
+      provider: anthropic  # or "openai", "ollama"
+      model: claude-sonnet-4.5
+```
+
+**Option 2: Use environment variables**:
+
+```bash
+# Use Anthropic
+export STIGMER_LLM_PROVIDER=anthropic
+export ANTHROPIC_API_KEY=sk-ant-...
+stigmer local start
+
+# Use OpenAI
+export STIGMER_LLM_PROVIDER=openai
+export OPENAI_API_KEY=sk-...
+stigmer local start
+```
+
+**See [CLI Configuration Reference](#cli-configuration-reference) below for all options.**
+
+---
+
+## Manual Deployment (Kubernetes/Kustomize)
+
+If you're deploying the agent-runner manually (not using the CLI), follow these instructions:
+
 ## Option 1: Ollama (Default - Zero Cost)
 
 **Recommended for most local development.**
@@ -301,6 +373,234 @@ unset STIGMER_LLM_API_KEY
 # Deploy
 # Back to local Ollama (default)
 ```
+
+---
+
+## CLI Configuration Reference
+
+### Configuration File
+
+**Location**: `~/.stigmer/config.yaml`
+
+**Full Schema**:
+
+```yaml
+backend:
+  type: local  # or "cloud"
+  local:
+    endpoint: localhost:50051
+    data_dir: ~/.stigmer/data
+    
+    # LLM Configuration
+    llm:
+      provider: ollama  # "ollama", "anthropic", "openai"
+      model: qwen2.5-coder:7b
+      base_url: http://localhost:11434
+    
+    # Temporal Configuration
+    temporal:
+      managed: true  # Auto-download and manage Temporal
+      version: 1.25.1
+      port: 7233
+      # For external Temporal (when managed: false):
+      # address: temporal.example.com:7233
+```
+
+### Environment Variable Overrides
+
+Environment variables take precedence over config file settings:
+
+| Env Var | Overrides | Example |
+|---------|-----------|---------|
+| `STIGMER_LLM_PROVIDER` | `backend.local.llm.provider` | `ollama`, `anthropic`, `openai` |
+| `STIGMER_LLM_MODEL` | `backend.local.llm.model` | `qwen2.5-coder:7b`, `claude-sonnet-4.5` |
+| `STIGMER_LLM_BASE_URL` | `backend.local.llm.base_url` | `http://localhost:11434` |
+| `ANTHROPIC_API_KEY` | API key for Anthropic | `sk-ant-api-...` |
+| `OPENAI_API_KEY` | API key for OpenAI | `sk-...` |
+| `TEMPORAL_SERVICE_ADDRESS` | Temporal address (disables managed) | `my-temporal:7233` |
+
+### Configuration Cascade
+
+**Priority order** (highest to lowest):
+
+1. **Environment variables** - Explicit user override
+2. **Config file** (`~/.stigmer/config.yaml`)
+3. **Smart defaults** - Provider-specific defaults
+
+### Provider-Specific Defaults
+
+**Ollama**:
+- Model: `qwen2.5-coder:7b`
+- Base URL: `http://localhost:11434`
+- API Key: Not required
+
+**Anthropic**:
+- Model: `claude-sonnet-4.5`
+- Base URL: `https://api.anthropic.com`
+- API Key: Required (prompted on start if not set)
+
+**OpenAI**:
+- Model: `gpt-4`
+- Base URL: `https://api.openai.com/v1`
+- API Key: Required (prompted on start if not set)
+
+### Common Workflows
+
+#### First Time Setup
+
+```bash
+# Initialize Stigmer (creates config, downloads Temporal)
+$ stigmer init
+
+# Start daemon (uses defaults: Ollama + managed Temporal)
+$ stigmer local start
+```
+
+#### Switch to Anthropic (via config file)
+
+```bash
+# Edit config
+$ cat ~/.stigmer/config.yaml
+backend:
+  local:
+    llm:
+      provider: anthropic
+      model: claude-sonnet-4.5
+
+# Restart daemon
+$ stigmer local restart
+Enter Anthropic API key: [enter your key]
+```
+
+#### Switch to Anthropic (via env vars)
+
+```bash
+export STIGMER_LLM_PROVIDER=anthropic
+export ANTHROPIC_API_KEY=sk-ant-...
+
+stigmer local restart
+# Uses Anthropic without prompting
+```
+
+#### Use External Temporal
+
+```bash
+# Via config file
+$ cat ~/.stigmer/config.yaml
+backend:
+  local:
+    temporal:
+      managed: false
+      address: my-temporal.example.com:7233
+
+# Or via env var
+$ export TEMPORAL_SERVICE_ADDRESS=my-temporal:7233
+$ stigmer local start
+```
+
+#### Check Current Configuration
+
+```bash
+$ stigmer local status
+Daemon Status:
+─────────────────────────────────────
+  Status:   ✓ Running
+  PID:      12345
+  Port:     50051
+  Data:     ~/.stigmer/data
+
+Configuration:
+  LLM:      anthropic (claude-sonnet-4.5)
+  Temporal: Managed (running on port 7233)
+```
+
+#### Reset to Defaults
+
+```bash
+# Remove config file
+$ rm ~/.stigmer/config.yaml
+
+# Re-initialize
+$ stigmer init
+
+# Restart
+$ stigmer local start
+# Back to Ollama + managed Temporal
+```
+
+### Managed Temporal
+
+**What it does**:
+- Auto-downloads Temporal CLI binary on first run
+- Starts Temporal dev server as a subprocess
+- Manages lifecycle (start/stop with daemon)
+- Stores data in `~/.stigmer/temporal-data`
+
+**Disable managed Temporal**:
+
+```yaml
+backend:
+  local:
+    temporal:
+      managed: false
+      address: localhost:7233  # Your external Temporal
+```
+
+**Binary location**: `~/.stigmer/bin/temporal`
+
+**Data location**: `~/.stigmer/temporal-data/`
+
+**Logs**: `~/.stigmer/logs/temporal.log`
+
+### Troubleshooting CLI
+
+#### Config not loading
+
+```bash
+# Verify config file exists and is valid YAML
+$ cat ~/.stigmer/config.yaml
+
+# Check for syntax errors
+$ stigmer local status
+```
+
+#### Temporal download fails
+
+```bash
+# Check internet connection
+# Check GitHub releases page: https://github.com/temporalio/cli/releases
+
+# Manual download
+$ mkdir -p ~/.stigmer/bin
+$ # Download appropriate binary for your OS/arch
+$ chmod +x ~/.stigmer/bin/temporal
+```
+
+#### Wrong provider being used
+
+```bash
+# Check for environment variable overrides
+$ env | grep STIGMER_LLM
+
+# Unset overrides
+$ unset STIGMER_LLM_PROVIDER
+$ unset STIGMER_LLM_MODEL
+
+# Restart daemon
+$ stigmer local restart
+```
+
+#### API key not persisting
+
+Environment variables are not saved - they're temporary. To persist:
+
+**Option 1**: Add to shell profile
+```bash
+# ~/.zshrc or ~/.bashrc
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**Option 2**: Use config file (less secure, not recommended)
 
 ---
 

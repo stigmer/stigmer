@@ -13,14 +13,14 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/cmd/stigmer/root",
     visibility = ["//visibility:public"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
-        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
-        "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//client-apps/cli/internal/cli/backend",
         "//client-apps/cli/internal/cli/clierr",
         "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/internal/cli/config",
         "//client-apps/cli/internal/cli/daemon",
+        "//internal/gen/ai/stigmer/agentic/agent/v1:agent",
+        "//internal/gen/ai/stigmer/agentic/workflow/v1:workflow",
+        "//internal/gen/ai/stigmer/commons/apiresource",
         "@com_github_spf13_cobra//:cobra",
     ],
 )

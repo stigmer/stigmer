@@ -6,7 +6,7 @@ replace github.com/stigmer/stigmer => ../..
 
 replace github.com/stigmer/stigmer/sdk/go => ../../sdk/go
 
-replace github.com/stigmer/stigmer/apis/stubs/go => ../../apis/stubs/go
+replace github.com/stigmer/stigmer/internal/gen => ../../internal/gen
 
 require (
 	github.com/charmbracelet/bubbles v0.20.0
@@ -16,7 +16,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/cobra v1.8.1
-	github.com/stigmer/stigmer/apis/stubs/go v0.0.0
+	github.com/stigmer/stigmer/internal/gen v0.0.0
 	golang.org/x/term v0.39.0
 	google.golang.org/grpc v1.78.0
 	gopkg.in/yaml.v3 v3.0.1

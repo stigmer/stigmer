@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 
 	// Import Buf-generated proto packages
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	sdk "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/sdk"
+	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
+	sdk "github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/sdk"
 
 	// Import SDK types
 	"github.com/stigmer/stigmer/sdk/go/agent"
