@@ -6,7 +6,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/libs/go/apiresource",
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/gen/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//reflect/protoreflect",
     ],
@@ -17,7 +17,7 @@ go_test(
     srcs = ["metadata_test.go"],
     embed = [":apiresource"],
     deps = [
-        "//internal/gen/ai/stigmer/agentic/agent/v1:agent",
-        "//internal/gen/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
     ],
 )

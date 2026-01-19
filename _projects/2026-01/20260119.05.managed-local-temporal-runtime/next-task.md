@@ -130,6 +130,18 @@ Since implementation is complete, the project can move to:
 - Structured logging
 - Health checks and readiness polling
 
+## Infrastructure Improvement
+
+During this project session, a critical infrastructure fix was completed:
+
+**Proto Generation Alignment** (2026-01-19):
+- Fixed proto generation to align with Stigmer Cloud pattern
+- Moved generated stubs from `internal/gen` to `apis/stubs/go`
+- Updated 409 import statements across codebase
+- Eliminated `internal/gen` directory permanently
+- See: `checkpoints/2026-01-19-proto-generation-infrastructure-fix.md`
+- See: `PROTO_GENERATION_FIX.md` for technical details
+
 ---
 
 **No further development needed for this project!** 🎉

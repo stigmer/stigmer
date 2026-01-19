@@ -3,7 +3,7 @@ package workflowexecution
 import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
-	workflowexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflowexecution/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 )
 
 // WorkflowExecutionController implements WorkflowExecutionCommandController and WorkflowExecutionQueryController

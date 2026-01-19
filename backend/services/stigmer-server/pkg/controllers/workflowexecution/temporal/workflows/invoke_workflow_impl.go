@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/workflowexecution/temporal/activities"
-	workflowexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflowexecution/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )

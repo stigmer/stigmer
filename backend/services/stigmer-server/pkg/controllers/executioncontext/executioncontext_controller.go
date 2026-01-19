@@ -2,7 +2,7 @@ package executioncontext
 
 import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
-	executioncontextv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/executioncontext/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 )
 
 // ExecutionContextController implements ExecutionContextCommandController and ExecutionContextQueryController
