@@ -41,9 +41,9 @@ func TestLoadByReferenceStep(t *testing.T) {
 
 	// Save to store
 	ctx := context.Background()
-	err := testStore.SaveResource(ctx, "agent", platformAgent.Metadata.Id, platformAgent)
+	err := testStore.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, platformAgent.Metadata.Id, platformAgent)
 	require.NoError(t, err)
-	err = testStore.SaveResource(ctx, "agent", orgAgent.Metadata.Id, orgAgent)
+	err = testStore.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, orgAgent.Metadata.Id, orgAgent)
 	require.NoError(t, err)
 
 	t.Run("loads platform-scoped resource by slug", func(t *testing.T) {

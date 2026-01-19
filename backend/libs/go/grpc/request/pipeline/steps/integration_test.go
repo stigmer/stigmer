@@ -62,7 +62,7 @@ func TestAgentCreatePipeline_Integration(t *testing.T) {
 
 	// Verify persistence
 	retrieved := &agentv1.Agent{}
-	err = store.GetResource(context.Background(), "agent", agent.Metadata.Id, retrieved)
+	err = store.GetResource(context.Background(), apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, retrieved)
 	if err != nil {
 		t.Errorf("Failed to retrieve agent: %v", err)
 	}

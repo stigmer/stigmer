@@ -26,7 +26,7 @@ func TestLoadExistingStep_Execute(t *testing.T) {
 	}
 
 	// Save to store
-	err := store.SaveResource(context.Background(), "agent", "agent-123", existing)
+	err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_agent, "agent-123", existing)
 	if err != nil {
 		t.Fatalf("Failed to save test agent: %v", err)
 	}
