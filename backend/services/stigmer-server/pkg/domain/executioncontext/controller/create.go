@@ -30,6 +30,7 @@ import (
 // - TransformResponse step (no response transformations in OSS)
 func (c *ExecutionContextController) Create(ctx context.Context, executionContext *executioncontextv1.ExecutionContext) (*executioncontextv1.ExecutionContext, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, executionContext)
+	reqCtx.SetNewState(executionContext)
 
 	p := c.buildCreatePipeline()
 
