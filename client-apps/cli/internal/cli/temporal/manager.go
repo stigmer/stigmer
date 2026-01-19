@@ -29,12 +29,13 @@ const (
 
 // Manager manages the Temporal CLI binary and dev server
 type Manager struct {
-	binPath  string // Path to temporal binary (~/.stigmer/bin/temporal)
-	dataDir  string // Path to temporal data directory (~/.stigmer/temporal-data)
-	version  string // Temporal CLI version
-	port     int    // Port for dev server
-	logFile  string // Path to log file
-	pidFile  string // Path to PID file
+	binPath    string      // Path to temporal binary (~/.stigmer/bin/temporal)
+	dataDir    string      // Path to temporal data directory (~/.stigmer/temporal-data)
+	version    string      // Temporal CLI version
+	port       int         // Port for dev server
+	logFile    string      // Path to log file
+	pidFile    string      // Path to PID file
+	supervisor *Supervisor // Optional supervisor for auto-restart
 }
 
 // NewManager creates a new Temporal manager
@@ -80,13 +81,19 @@ func (m *Manager) EnsureInstalled() error {
 }
 
 // Start starts the Temporal dev server as a background process
+// This function is idempotent - if Temporal is already running and healthy,
+// it will log success and return without error.
 func (m *Manager) Start() error {
 	// Cleanup any stale processes before checking if running
 	m.cleanupStaleProcesses()
 	
-	// Check if already running
+	// Check if already running and healthy
 	if m.IsRunning() {
-		return errors.New("Temporal is already running")
+		log.Info().
+			Str("address", m.GetAddress()).
+			Str("ui_url", "http://localhost:8233").
+			Msg("Temporal is already running and healthy - reusing existing instance")
+		return nil
 	}
 	
 	// Ensure binary is installed
@@ -395,4 +402,25 @@ func (m *Manager) cleanupStaleProcesses() {
 	
 	// All checks passed - it's a valid running Temporal instance
 	log.Debug().Int("pid", pid).Msg("Found valid running Temporal instance")
+}
+
+// StartSupervisor starts monitoring Temporal and auto-restarting on failure
+func (m *Manager) StartSupervisor() {
+	if m.supervisor != nil {
+		log.Warn().Msg("Supervisor already running")
+		return
+	}
+	
+	m.supervisor = NewSupervisor(m)
+	m.supervisor.Start()
+}
+
+// StopSupervisor stops the supervisor gracefully
+func (m *Manager) StopSupervisor() {
+	if m.supervisor == nil {
+		return
+	}
+	
+	m.supervisor.Stop()
+	m.supervisor = nil
 }

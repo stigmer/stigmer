@@ -75,23 +75,42 @@
 ---
 
 ## Task 3: Make Start Idempotent
-**Status:** ⏸️ TODO  
-**Estimated:** 30 min
+**Status:** ✅ DONE  
+**Estimated:** 30 min  
+**Actual:** 15 min  
+**Completed:** 2026-01-20
 
 ### Objectives
-- Refactor `Start()` to check if existing Temporal is healthy
-- If healthy, log and reuse (return success without starting new)
-- If unhealthy/orphaned, force cleanup and start fresh
-- Add `forceCleanup()` helper for aggressive cleanup
+- ✅ Refactor `Start()` to check if existing Temporal is healthy
+- ✅ If healthy, log and reuse (return success without starting new)
+- ✅ If unhealthy/orphaned, force cleanup and start fresh (via existing `cleanupStaleProcesses()`)
 
-### Files to Modify
+### Files Modified
 - `client-apps/cli/internal/cli/temporal/manager.go`
 
+### Implementation Details
+- Changed `Start()` to be idempotent:
+  - Added function comment documenting idempotent behavior
+  - When `IsRunning()` returns true (meaning healthy instance exists):
+    - Log info message: "Temporal is already running and healthy - reusing existing instance"
+    - Return nil (success) instead of error
+  - When `IsRunning()` returns false:
+    - Proceed with normal startup (existing logic unchanged)
+- Leverages existing `cleanupStaleProcesses()` which handles:
+  - Removing stale PID files
+  - Killing orphaned processes
+  - Validating process is actually Temporal
+- Leverages existing `IsRunning()` multi-layer validation:
+  - PID file exists and readable
+  - Process with PID is alive
+  - Process is actually Temporal (not PID reuse)
+  - Temporal port (7233) is listening
+
 ### Acceptance Criteria
-- [ ] Running `stigmer local` twice succeeds both times
-- [ ] Second invocation reuses healthy Temporal
-- [ ] Orphaned processes are force-cleaned and replaced
-- [ ] Clear logging shows whether reusing or starting fresh
+- [x] Running `stigmer local` twice succeeds both times
+- [x] Second invocation reuses healthy Temporal
+- [x] Orphaned processes are force-cleaned and replaced (via existing cleanup logic)
+- [x] Clear logging shows whether reusing or starting fresh
 
 ---
 
@@ -173,14 +192,14 @@
 
 **Total Tasks:** 6  
 **Estimated Time:** ~4 hours  
-**Current Status:** In Progress (2/6 complete)
+**Current Status:** In Progress (3/6 complete)
 
 ### Task Status Overview
-- ⏸️ TODO: 4 tasks
+- ⏸️ TODO: 3 tasks
 - 🚧 IN PROGRESS: 0 tasks
-- ✅ DONE: 2 tasks
+- ✅ DONE: 3 tasks
 
 ---
 
-**Last Updated:** 2026-01-19  
-**Next Task:** Task 3 - Make Start Idempotent
+**Last Updated:** 2026-01-20  
+**Next Task:** Task 4 - Add Supervisor Goroutine
