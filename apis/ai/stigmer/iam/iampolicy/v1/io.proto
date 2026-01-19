@@ -1,0 +1,241 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.iampolicy.v1;
+
+import "ai/stigmer/iam/iampolicy/v1/api.proto";
+import "ai/stigmer/iam/iampolicy/v1/spec.proto";
+import "buf/validate/validate.proto";
+
+// ApiResourceRefView represents a reference to ANY API resource in the system
+// WITH display fields for UI rendering. This is used in view/query responses.
+//
+// For command inputs, use ApiResourceRef from spec.proto (which only has id, kind, relation).
+message ApiResourceRefView {
+  // Type of the API resource being referenced
+  string kind = 1;
+
+  // Unique identifier of the resource
+  string id = 2;
+
+  // Optional relation qualifier for the resource reference
+  string relation = 3;
+
+  // Display name of the resource (e.g., "John Doe", "Engineering Team")
+  string name = 4;
+
+  // Email address associated with the resource (primarily for identity_account)
+  string email = 5;
+
+  // URL-friendly slug identifier for the resource
+  string slug = 6;
+
+  // Avatar URL or identifier for the resource
+  string avatar = 7;
+
+  // Members of the resource (only populated when kind = "team")
+  repeated ApiResourceRefView members = 8;
+
+  // Teams that this identity account belongs to (only populated when kind = "identity_account")
+  repeated ApiResourceRefView teams = 9;
+}
+
+// Wrapper for IAM policy ID
+message IamPolicyId {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// PrincipalResourceInput defines a generic input for operations involving a principal and a resource.
+message PrincipalResourceInput {
+  // The principal in the relationship (WHO)
+  ApiResourceRef principal = 1 [(buf.validate.field).required = true];
+
+  // The resource in the relationship (WHAT)
+  ApiResourceRef resource = 2 [(buf.validate.field).required = true];
+}
+
+// ResourcePrincipalsInput defines input for operations involving multiple principals and a single resource.
+message ResourcePrincipalsInput {
+  // The resource being shared/accessed
+  ApiResourceRef resource = 1 [(buf.validate.field).required = true];
+
+  // List of principals being granted access
+  repeated ApiResourceRef principals = 2 [(buf.validate.field).required = true];
+}
+
+// RevokeOrgAccessInput defines the input for revoking all of a user's access to an organization.
+message RevokeOrgAccessInput {
+  // The identity account whose access is being revoked
+  string identity_account_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // The organization from which access is being revoked
+  string organization_id = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+}
+
+// IamPoliciesList wrapper for returning multiple IAM policies
+message IamPoliciesList {
+  repeated IamPolicy entries = 1;
+}
+
+// ListResourceAccessInput defines input for querying access grants on a resource.
+message ListResourceAccessInput {
+  // The resource to query access for
+  ApiResourceRef resource = 1 [(buf.validate.field).required = true];
+
+  // Whether to include inherited permissions from parent resources
+  bool include_inherited = 2;
+}
+
+// ResourceAccessByPrincipalList groups principals by who they are,
+// showing each principal and all their assigned roles.
+message ResourceAccessByPrincipalList {
+  repeated PrincipalAccess entries = 1;
+}
+
+// PrincipalAccess represents a principal and all their role grants on a resource.
+message PrincipalAccess {
+  // The principal with full display information
+  ApiResourceRefView principal = 1;
+
+  // All roles this principal has on the resource
+  repeated RoleGrant roles = 2;
+}
+
+// RoleGrant represents a single role assignment with metadata.
+message RoleGrant {
+  // The role being granted
+  RoleInfo role = 1;
+
+  // The resource that owns this role grant
+  ApiResourceRef owner_resource = 2;
+
+  // Whether this role is inherited from a parent resource
+  bool is_inherited = 3;
+}
+
+// ResourceAccessByRoleList groups roles by what they are,
+// showing each role and all principals assigned to it.
+message ResourceAccessByRoleList {
+  repeated RoleAccess entries = 1;
+}
+
+// RoleAccess represents a role and all principals that have it.
+message RoleAccess {
+  // The role with ownership and inheritance info
+  RoleGrant role = 1;
+
+  // All principals that have this role
+  repeated ApiResourceRefView principals = 2;
+}
+
+// RoleInfo contains basic information about an IAM role.
+message RoleInfo {
+  // Unique identifier for the role
+  string id = 1;
+
+  // Machine-readable role code (e.g., "admin", "viewer")
+  string code = 2;
+
+  // Human-readable role name (e.g., "Administrator")
+  string name = 3;
+
+  // Description of what this role grants
+  string description = 4;
+}
+
+// PrincipalResourceRoles contains all roles a principal has on a specific resource.
+message PrincipalResourceRoles {
+  repeated RoleInfo roles = 1;
+}
+
+// CheckAuthorizationInput defines input for checking if a principal is authorized.
+message CheckAuthorizationInput {
+  // The policy to check (principal, resource, relation)
+  IamPolicySpec policy = 1 [(buf.validate.field).required = true];
+
+  // Optional contextual policies for "what-if" scenarios
+  repeated IamPolicySpec contextual_policies = 2;
+}
+
+// CheckAuthorizationResult contains the result of an authorization check.
+message CheckAuthorizationResult {
+  // Whether the principal is authorized
+  bool is_authorized = 1;
+}
+
+// ListAuthorizedResourceIdsInput defines input for listing resources a principal can access.
+message ListAuthorizedResourceIdsInput {
+  // The principal whose access is being queried
+  ApiResourceRef principal = 1 [(buf.validate.field).required = true];
+
+  // The kind of resources to check
+  string resource_kind = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // The relation/permission to check for
+  string relation = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Optional contextual policies for "what-if" scenarios
+  repeated IamPolicySpec contextual_policies = 4;
+}
+
+// AuthorizedResourceIdsList contains all resource IDs a principal can access.
+message AuthorizedResourceIdsList {
+  repeated string resource_ids = 1;
+}
+
+// ListAuthorizedPrincipalIdsInput defines input for listing principals that can access a resource.
+message ListAuthorizedPrincipalIdsInput {
+  // The resource whose access is being queried
+  ApiResourceRef resource = 1 [(buf.validate.field).required = true];
+
+  // The kind of principals to check for
+  string principal_kind = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // The relation/permission to check for
+  string relation = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Optional contextual policies for "what-if" scenarios
+  repeated IamPolicySpec contextual_policies = 4;
+}
+
+// AuthorizedPrincipalIdsList contains all principal IDs that can access a resource.
+message AuthorizedPrincipalIdsList {
+  repeated string principal_ids = 1;
+}
+
+// GetPrincipalsCountInput defines input for counting principals in an organization.
+message GetPrincipalsCountInput {
+  // Organization ID to count principals for
+  string org_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // The kind of principals to count (identity_account or team)
+  string principal_kind = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+}
+
+// PrincipalsCount contains the count of principals.
+message PrincipalsCount {
+  int32 count = 1;
+}
