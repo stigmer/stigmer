@@ -70,37 +70,50 @@ func newLocalRestartCommand() *cobra.Command {
 func handleLocalStart() {
 	dataDir, err := config.GetDataDir()
 	if err != nil {
-		cliprint.Error("Failed to determine data directory")
+		cliprint.PrintError("Failed to determine data directory")
 		clierr.Handle(err)
 		return
 	}
 
 	// Check if already running
 	if daemon.IsRunning(dataDir) {
-		cliprint.Info("Daemon is already running")
+		cliprint.PrintInfo("Daemon is already running")
 		running, pid := daemon.GetStatus(dataDir)
 		if running {
-			cliprint.Info("  PID:  %d", pid)
-			cliprint.Info("  Port: %d", daemon.DaemonPort)
+			cliprint.PrintInfo("  PID:  %d", pid)
+			cliprint.PrintInfo("  Port: %d", daemon.DaemonPort)
 		}
 		return
 	}
 
-	cliprint.Info("Starting local mode...")
-	if err := daemon.Start(dataDir); err != nil {
-		cliprint.Error("Failed to start daemon")
+	cliprint.PrintInfo("Starting local mode...")
+	
+	// Create progress display
+	progress := cliprint.NewProgressDisplay()
+	progress.Start()
+	progress.SetPhase(cliprint.PhaseStarting, "Preparing environment")
+	
+	// Start daemon with progress tracking
+	if err := daemon.StartWithOptions(dataDir, daemon.StartOptions{Progress: progress}); err != nil {
+		progress.Stop()
+		cliprint.PrintError("Failed to start daemon")
 		clierr.Handle(err)
 		return
 	}
+	
+	// Mark as complete
+	progress.CompletePhase(cliprint.PhaseDeploying)
+	progress.Stop()
 
-	cliprint.Success("Ready! Stigmer is running")
+	// Show success message
+	cliprint.PrintSuccess("Ready! Stigmer is running")
 	running, pid := daemon.GetStatus(dataDir)
 	if running {
-		cliprint.Info("  PID:  %d", pid)
-		cliprint.Info("  Port: %d", daemon.DaemonPort)
-		cliprint.Info("  Data: %s", dataDir)
-		cliprint.Info("")
-		cliprint.Info("Temporal UI: http://localhost:8233")
+		cliprint.PrintInfo("  PID:  %d", pid)
+		cliprint.PrintInfo("  Port: %d", daemon.DaemonPort)
+		cliprint.PrintInfo("  Data: %s", dataDir)
+		cliprint.PrintInfo("")
+		cliprint.PrintInfo("Temporal UI: http://localhost:8233")
 	}
 }
 
