@@ -6,8 +6,8 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource",
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/gen/ai/stigmer/commons/apiresource",
-        "//internal/gen/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_protobuf//proto",
@@ -22,7 +22,7 @@ go_test(
     srcs = ["interceptor_test.go"],
     embed = [":apiresource"],
     deps = [
-        "//internal/gen/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "@com_github_stretchr_testify//assert",
         "@org_golang_google_grpc//:grpc",
     ],

@@ -6,7 +6,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session",
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/gen/ai/stigmer/agentic/session/v1:session",
+        "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_grpc//:grpc",
     ],

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	workflowexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflowexecution/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/rs/zerolog/log"
 	"go.temporal.io/sdk/client"
 )

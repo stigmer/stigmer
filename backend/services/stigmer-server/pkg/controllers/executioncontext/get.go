@@ -5,7 +5,7 @@ import (
 
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	executioncontextv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/executioncontext/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 )
 
 // Get retrieves an execution context by ID using the pipeline framework
