@@ -19,8 +19,8 @@ package validation
 import (
 	"fmt"
 
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"buf.build/go/protovalidate"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"google.golang.org/protobuf/proto"
 )
 
