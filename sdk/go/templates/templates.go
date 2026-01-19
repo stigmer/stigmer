@@ -132,11 +132,11 @@ func main() {
 }
 
 // AgentAndWorkflow returns a combined example with both agent and workflow.
-// This is the default template used by `stigmer init` to demonstrate both
-// major SDK capabilities in a single project.
+// This is the default template used by `stigmer new` to demonstrate both
+// major SDK capabilities in a single project with zero configuration.
 //
-// Used by: stigmer init (default template)
-// Demonstrates: agent.New(), workflow.New(), workflow.CallAgent(), context variables, task chaining
+// Used by: stigmer new (default template)
+// Demonstrates: agent.New(), workflow.New(), workflow.CallAgent(), real GitHub PR analysis
 func AgentAndWorkflow() string {
 	return `package main
 
@@ -152,115 +152,100 @@ func main() {
 	// Use stigmer.Run() for automatic context and synthesis management
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// ============================================
-		// CONFIGURATION: Set up context variables
+		// PART 1: Define AI Agent
 		// ============================================
-		// Context variables are shared across all resources and can be used
-		// for configuration, making your workflows parameterized and reusable
-		apiBase := ctx.SetString("apiBase", "https://api.github.com")
-		repoPath := ctx.SetString("repoPath", "/repos/leftbin/stigmer")
-		summaryLength := ctx.SetString("summaryLength", "3-4 sentences")
+		// This agent analyzes pull requests - just describe what you want in plain English!
 
-		// ============================================
-		// AGENT: Create a repository analyzer agent
-		// ============================================
-		// This agent analyzes GitHub repository data and provides insights
-		analyzer, err := agent.New(ctx,
-			agent.WithName("repo-analyzer"),
-			agent.WithDescription("AI agent that analyzes GitHub repositories"),
-			agent.WithInstructions(` + "`" + `You are a software engineering analyst who reviews GitHub repositories.
+		reviewer, err := agent.New(ctx,
+			agent.WithName("pr-reviewer"),
+			agent.WithDescription("AI code reviewer that analyzes pull requests"),
+			agent.WithInstructions(` + "`" + `You are an expert code reviewer.
 
-When you receive repository data, analyze it and create a summary with:
-1. **Project Overview**: What the project does based on description and language
-2. **Activity Level**: Based on stars, forks, and recent updates
-3. **Key Insights**: 2-3 interesting observations about the repository
+Analyze the provided pull request and give:
+1. Overall assessment (looks good / needs work / has issues)
+2. Key findings (bugs, improvements, security concerns)
+3. Actionable suggestions
 
-The summary length should be: ` + "`" + ` + "${.env.SUMMARY_LENGTH}" + ` + "`" + `
-
-Format your response as plain text with clear sections.` + "`" + `),
+Be concise and helpful.` + "`" + `),
 		)
 		if err != nil {
 			return err
 		}
 
-		log.Println("✅ Created repository analyzer agent:")
-		log.Printf("   Name: %s\n", analyzer.Name)
+		log.Println("✅ Created PR reviewer agent:")
+		log.Printf("   Name: %s\n", reviewer.Name)
 
 		// ============================================
-		// WORKFLOW: Repository analysis pipeline
+		// PART 2: Define Workflow
 		// ============================================
-		// This workflow demonstrates:
-		// 1. Fetching data from GitHub API (real-world API)
-		// 2. Calling an AI agent to analyze the data
-		// 3. Extracting and storing the results
+		// This workflow fetches a real PR from GitHub and asks the agent to review it
+
 		pipeline, err := workflow.New(ctx,
-			workflow.WithNamespace("examples"),
-			workflow.WithName("repo-analysis-pipeline"),
+			workflow.WithNamespace("quickstart"),
+			workflow.WithName("review-demo-pr"),
 			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Analyze GitHub repositories with AI"),
+			workflow.WithDescription("Analyzes a demo pull request with AI"),
 		)
 		if err != nil {
 			return err
 		}
 
-		// Build GitHub API endpoint using context variables
-		endpoint := apiBase.Concat(repoPath.Expression())
-
-		// TASK 1: Fetch repository data from GitHub API
-		fetchTask := pipeline.HttpGet("fetch-repo", endpoint,
+		// Step 1: Fetch PR from Stigmer's public demo repository
+		// No authentication needed - it's a public repo!
+		fetchPR := pipeline.HttpGet("fetch-pr",
+			"https://api.github.com/repos/stigmer/hello-stigmer/pulls/1",
 			workflow.Header("Accept", "application/vnd.github.v3+json"),
 			workflow.Header("User-Agent", "Stigmer-Demo"),
-			workflow.Timeout(30),
 		)
-		fetchTask.ExportAs = "repoData"
 
-		// TASK 2: Call AI agent to analyze the repository
-		// This demonstrates the CallAgent feature - workflows can invoke agents!
-		analyzeTask := pipeline.CallAgent(
-			"analyze-repo",
-			workflow.AgentOption(workflow.Agent(analyzer)),
-			workflow.Message(fetchTask.Field("body").Expression()), // Pass GitHub API response to agent
-			workflow.WithEnv(map[string]string{
-				"SUMMARY_LENGTH": summaryLength.Expression(), // Pass context variable to agent
-			}),
+		// Step 2: Get the PR diff to analyze the actual code changes
+		fetchDiff := pipeline.HttpGet("fetch-diff",
+			fetchPR.Field("diff_url").Expression(),
+			workflow.Header("Accept", "application/vnd.github.v3.diff"),
+		)
+
+		// Step 3: Send to AI agent for review
+		analyze := pipeline.CallAgent(
+			"analyze-pr",
+			workflow.AgentOption(workflow.Agent(reviewer)),
+			workflow.Message(
+				"PR Title: "+fetchPR.Field("title").Expression()+"\n"+
+					"PR Description: "+fetchPR.Field("body").Expression()+"\n"+
+					"Code Changes:\n"+fetchDiff.Field("body").Expression(),
+			),
 			workflow.AgentModel("claude-3-5-sonnet"),
 			workflow.AgentTimeout(60),
 		)
-		analyzeTask.ExportAs = "analysis"
 
-		// TASK 3: Extract and store final results
-		// Combines repository data with AI analysis
-		finalizeTask := pipeline.SetVars("finalize-results",
-			"repoName", fetchTask.Field("full_name"),
-			"repoStars", fetchTask.Field("stargazers_count"),
-			"primaryLanguage", fetchTask.Field("language"),
-			"aiAnalysis", analyzeTask.Field("response"),
-			"analyzedAt", "${.context.timestamp}",
-			"status", "completed",
+		// Step 4: Store the results
+		results := pipeline.SetVars("store-results",
+			"prTitle", fetchPR.Field("title"),
+			"prNumber", fetchPR.Field("number"),
+			"review", analyze.Field("response"),
+			"reviewedAt", "${.context.timestamp}",
 		)
-		finalizeTask.ExportAs = "results"
+		results.ExportAs = "pr-review-result"
 
 		// ============================================
 		// SUMMARY: Show what was created
 		// ============================================
-		log.Println("\n✅ Created repository analysis pipeline:")
+		log.Println("\n✅ Created PR review pipeline:")
 		log.Printf("   Workflow: %s\n", pipeline.Document.Name)
-		log.Printf("   Agent: %s\n", analyzer.Name)
-		log.Println("\n   Task Flow:")
-		log.Printf("     1. %s → Fetch repo data from GitHub API\n", fetchTask.Name)
-		log.Printf("     2. %s → AI agent analyzes the repository ✨\n", analyzeTask.Name)
-		log.Printf("     3. %s → Combine repo data + AI insights\n", finalizeTask.Name)
+		log.Printf("   Agent: %s\n", reviewer.Name)
+		log.Println("\n   What it does:")
+		log.Println("     1. Fetches PR from github.com/stigmer/hello-stigmer")
+		log.Println("     2. Gets the code diff")
+		log.Println("     3. AI agent reviews the changes ✨")
+		log.Println("     4. Outputs the review")
 
-		log.Println("\n🚀 Resources ready to deploy!")
-		log.Println("\n   Next steps:")
-		log.Println("     1. Deploy:  stigmer apply")
-		log.Println("     2. Run:     stigmer run repo-analysis-pipeline")
-		log.Println("\n   💡 This example demonstrates:")
+		log.Println("\n🚀 Ready to run!")
+		log.Println("\n   Try it:")
+		log.Println("     stigmer run")
+		log.Println("\n   💡 This demonstrates:")
+		log.Println("      • AI agents with natural language instructions")
 		log.Println("      • Real-world API integration (GitHub)")
-		log.Println("      • AI agents analyzing production data")
-		log.Println("      • Workflows calling agents (CallAgent feature)")
-		log.Println("      • Context variables for configuration")
-		log.Println("      • Task chaining with field references")
-		log.Println("      • Professional data processing pattern")
+		log.Println("      • Workflows calling agents")
+		log.Println("      • Zero configuration required!")
 
 		return nil
 	})

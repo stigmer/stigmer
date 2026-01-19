@@ -183,18 +183,18 @@ func TestCorrectAPIs(t *testing.T) {
 				"stigmer.Run(",
 			},
 		},
-		{
-			name:     "AgentAndWorkflow",
-			template: templates.AgentAndWorkflow,
-			requiredAPIs: []string{
-				"agent.New(ctx,",
-				"workflow.New(ctx,",
-				"stigmer.Run(",
-				"CallAgent(",           // Verify agent call feature is demonstrated
-				"workflow.Agent(",      // Verify agent reference
-				"ctx.SetString(",       // Verify context variables
-			},
+	{
+		name:     "AgentAndWorkflow",
+		template: templates.AgentAndWorkflow,
+		requiredAPIs: []string{
+			"agent.New(ctx,",
+			"workflow.New(ctx,",
+			"stigmer.Run(",
+			"CallAgent(",       // Verify agent call feature is demonstrated
+			"workflow.Agent(", // Verify agent reference
+			// Note: ctx.SetString() removed - this template demonstrates zero-config approach
 		},
+	},
 	}
 
 	for _, tc := range testCases {
