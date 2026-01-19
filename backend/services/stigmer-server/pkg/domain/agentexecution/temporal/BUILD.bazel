@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "temporal",
+    srcs = [
+        "config.go",
+        "worker_config.go",
+        "workflow_creator.go",
+        "workflow_types.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
+        "//backend/libs/go/badger",
+        "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities",
+        "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows",
+        "@com_github_rs_zerolog//log",
+        "@io_temporal_go_sdk//client",
+        "@io_temporal_go_sdk//worker",
+    ],
+)
