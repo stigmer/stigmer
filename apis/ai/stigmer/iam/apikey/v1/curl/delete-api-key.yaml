@@ -1,0 +1,4 @@
+# Delete an API key by ID
+# This will revoke the key immediately - it can no longer be used for authentication
+
+value: "api-key-id-here"

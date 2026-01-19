@@ -38,6 +38,13 @@ spec:
           # Daytona Configuration
           DAYTONA_DEV_TOOLS_SNAPSHOT_ID:
             value: $variables-group/daytona/dev-tools-snapshot-id
+          # LLM Configuration
+          # Provider, model, and API key are set in environment-specific overlays
+          # This allows flexibility: prod uses Anthropic, local can use Ollama/OpenAI/Anthropic
+          STIGMER_LLM_MAX_TOKENS:
+            value: $variables-group/stigmer-llm-config/max-tokens
+          STIGMER_LLM_BASE_URL:
+            value: $variables-group/stigmer-llm-config/prod.ollama-base-url
           # Logging
           LOG_LEVEL:
             value: INFO

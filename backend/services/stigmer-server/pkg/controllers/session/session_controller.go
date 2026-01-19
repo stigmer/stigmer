@@ -2,7 +2,7 @@ package session
 
 import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
-	sessionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/session/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 )
 
 // SessionController implements SessionCommandController and SessionQueryController

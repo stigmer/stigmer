@@ -26,7 +26,149 @@ How Polyglot Works:
 """
 
 from dataclasses import dataclass
+from typing import Optional
 import os
+
+
+@dataclass
+class LLMConfig:
+    """LLM configuration for agent execution.
+    
+    Supports multiple providers (Anthropic, Ollama, OpenAI) with provider-specific settings.
+    Configuration cascade: explicit config > env vars > mode-aware defaults.
+    
+    Local Mode Default:
+        - Provider: ollama
+        - Model: qwen2.5-coder:7b
+        - Base URL: http://localhost:11434
+        - Zero config, zero dependencies
+    
+    Cloud Mode Default:
+        - Provider: anthropic
+        - Model: claude-sonnet-4.5
+        - Requires API key
+    """
+    
+    # Core configuration
+    provider: str  # "anthropic" | "ollama" | "openai"
+    model_name: str
+    
+    # Provider-specific settings
+    base_url: Optional[str] = None  # Required for Ollama
+    api_key: Optional[str] = None  # Required for Anthropic/OpenAI
+    
+    # Model parameters (optional)
+    max_tokens: Optional[int] = None
+    temperature: Optional[float] = None
+    
+    @classmethod
+    def load_from_env(cls, mode: str) -> "LLMConfig":
+        """Load LLM configuration from environment variables.
+        
+        Args:
+            mode: Execution mode ("local" or "cloud") for default selection
+            
+        Returns:
+            LLMConfig instance with cascaded configuration
+            
+        Environment Variables:
+            STIGMER_LLM_PROVIDER: LLM provider (anthropic|ollama|openai)
+            STIGMER_LLM_MODEL: Model name (provider-specific)
+            STIGMER_LLM_BASE_URL: Base URL for Ollama (http://localhost:11434)
+            STIGMER_LLM_API_KEY: API key for Anthropic/OpenAI
+            STIGMER_LLM_MAX_TOKENS: Override default max_tokens
+            STIGMER_LLM_TEMPERATURE: Override default temperature
+            
+        Configuration Cascade:
+            1. Environment variables (explicit user config)
+            2. Mode-aware defaults:
+               - local mode: Ollama with qwen2.5-coder:7b
+               - cloud mode: Anthropic with claude-sonnet-4.5
+        """
+        # Determine mode-aware defaults
+        if mode == "local":
+            defaults = {
+                "provider": "ollama",
+                "model_name": "qwen2.5-coder:7b",
+                "base_url": "http://localhost:11434",
+                "max_tokens": 8192,
+                "temperature": 0.0,
+            }
+        else:  # cloud mode
+            defaults = {
+                "provider": "anthropic",
+                "model_name": "claude-sonnet-4.5",
+                "max_tokens": 20000,
+                "temperature": None,
+            }
+        
+        # Read from environment (overrides defaults)
+        provider = os.getenv("STIGMER_LLM_PROVIDER", defaults["provider"])
+        model_name = os.getenv("STIGMER_LLM_MODEL", defaults["model_name"])
+        
+        # Provider-specific settings
+        base_url = os.getenv("STIGMER_LLM_BASE_URL", defaults.get("base_url"))
+        
+        # API key with backward compatibility
+        api_key = (
+            os.getenv("STIGMER_LLM_API_KEY") or 
+            os.getenv("ANTHROPIC_API_KEY")
+        )
+        
+        # Optional overrides
+        max_tokens_str = os.getenv("STIGMER_LLM_MAX_TOKENS")
+        max_tokens = int(max_tokens_str) if max_tokens_str else defaults.get("max_tokens")
+        
+        temperature_str = os.getenv("STIGMER_LLM_TEMPERATURE")
+        temperature = float(temperature_str) if temperature_str else defaults.get("temperature")
+        
+        # Create config
+        config = cls(
+            provider=provider,
+            model_name=model_name,
+            base_url=base_url,
+            api_key=api_key,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+        
+        # Validate before returning
+        config.validate()
+        
+        return config
+    
+    def validate(self) -> None:
+        """Validate configuration is complete and correct.
+        
+        Raises:
+            ValueError: If configuration is invalid
+        """
+        # Validate provider
+        valid_providers = {"anthropic", "ollama", "openai"}
+        if self.provider not in valid_providers:
+            raise ValueError(
+                f"Invalid provider '{self.provider}'. "
+                f"Must be one of: {', '.join(valid_providers)}"
+            )
+        
+        # Validate provider-specific requirements
+        if self.provider == "ollama":
+            if not self.base_url:
+                raise ValueError(
+                    "base_url is required for Ollama provider. "
+                    "Set STIGMER_LLM_BASE_URL (default: http://localhost:11434)"
+                )
+        
+        if self.provider in {"anthropic", "openai"}:
+            if not self.api_key:
+                raise ValueError(
+                    f"api_key is required for {self.provider} provider. "
+                    f"Set STIGMER_LLM_API_KEY or ANTHROPIC_API_KEY"
+                )
+        
+        # Validate model name is not empty
+        if not self.model_name or not self.model_name.strip():
+            raise ValueError("model_name cannot be empty")
 
 
 @dataclass
@@ -75,6 +217,9 @@ class Config:
     redis_host: str | None
     redis_port: int | None
     redis_password: str | None
+    
+    # LLM configuration
+    llm: LLMConfig
 
     @classmethod
     def load_from_env(cls):
@@ -82,6 +227,9 @@ class Config:
         # Detect execution mode (local vs cloud)
         mode = os.getenv("MODE", "cloud")
         is_local = mode == "local"
+        
+        # Load LLM configuration (mode-aware)
+        llm_config = LLMConfig.load_from_env(mode)
         
         # Load Stigmer API configuration
         stigmer_api_key = os.getenv("STIGMER_API_KEY", "")
@@ -133,6 +281,7 @@ class Config:
             redis_host=redis_host,
             redis_port=redis_port,
             redis_password=redis_password if redis_password else None,
+            llm=llm_config,
         )
     
     def get_sandbox_config(self) -> dict:

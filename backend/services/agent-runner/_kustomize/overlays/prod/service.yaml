@@ -34,6 +34,11 @@ spec:
           # Stigmer API Configuration
           STIGMER_BACKEND_ENDPOINT:
             value: $variables-group/stigmer-api/prod.endpoint
+          # LLM Configuration (production uses Anthropic)
+          STIGMER_LLM_PROVIDER:
+            value: anthropic
+          STIGMER_LLM_MODEL:
+            value: claude-sonnet-4.5
         secrets:
           # Redis password
           REDIS_PASSWORD:
@@ -44,7 +49,10 @@ spec:
           # Daytona API Key
           DAYTONA_API_KEY:
             value: $secrets-group/daytona/prod.api-key
-          # Anthropic API Key
+          # LLM API Key (Anthropic for production)
+          STIGMER_LLM_API_KEY:
+            value: $secrets-group/anthropic/prod.api-key
+          # Backward compatibility (some code may still use ANTHROPIC_API_KEY)
           ANTHROPIC_API_KEY:
             value: $secrets-group/anthropic/prod.api-key
   availability:

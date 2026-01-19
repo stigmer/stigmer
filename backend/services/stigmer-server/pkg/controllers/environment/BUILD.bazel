@@ -14,6 +14,8 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/environment",
     visibility = ["//visibility:public"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/environment/v1:environment",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//backend/libs/go/badger",
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/request/pipeline",
