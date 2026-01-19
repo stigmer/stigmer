@@ -10,12 +10,12 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 )
 
-// NewDevCommand creates the dev command for daemon management
-func NewDevCommand() *cobra.Command {
+// NewLocalCommand creates the local command for daemon management
+func NewLocalCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "dev",
-		Short: "Start development mode",
-		Long: `Start the Stigmer development daemon.
+		Use:   "local",
+		Short: "Start local mode",
+		Long: `Start the Stigmer local daemon.
 
 This command starts the local daemon with zero configuration:
   - Auto-downloads and starts Temporal
@@ -23,51 +23,51 @@ This command starts the local daemon with zero configuration:
   - Starts stigmer-server on localhost:50051
   - Starts agent-runner for AI agent execution
 
-Just run 'stigmer dev' and start building!`,
+Just run 'stigmer local' and start building!`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// Default action: start the daemon
-			handleDevStart()
+			handleLocalStart()
 		},
 	}
 
-	cmd.AddCommand(newDevStopCommand())
-	cmd.AddCommand(newDevStatusCommand())
-	cmd.AddCommand(newDevRestartCommand())
+	cmd.AddCommand(newLocalStopCommand())
+	cmd.AddCommand(newLocalStatusCommand())
+	cmd.AddCommand(newLocalRestartCommand())
 
 	return cmd
 }
 
-func newDevStopCommand() *cobra.Command {
+func newLocalStopCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "stop",
-		Short: "Stop the development daemon",
+		Short: "Stop the local daemon",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleDevStop()
+			handleLocalStop()
 		},
 	}
 }
 
-func newDevStatusCommand() *cobra.Command {
+func newLocalStatusCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "Show daemon status",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleDevStatus()
+			handleLocalStatus()
 		},
 	}
 }
 
-func newDevRestartCommand() *cobra.Command {
+func newLocalRestartCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "restart",
-		Short: "Restart the development daemon",
+		Short: "Restart the local daemon",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleDevRestart()
+			handleLocalRestart()
 		},
 	}
 }
 
-func handleDevStart() {
+func handleLocalStart() {
 	dataDir, err := config.GetDataDir()
 	if err != nil {
 		cliprint.Error("Failed to determine data directory")
@@ -86,7 +86,7 @@ func handleDevStart() {
 		return
 	}
 
-	cliprint.Info("Starting development mode...")
+	cliprint.Info("Starting local mode...")
 	if err := daemon.Start(dataDir); err != nil {
 		cliprint.Error("Failed to start daemon")
 		clierr.Handle(err)
@@ -102,7 +102,7 @@ func handleDevStart() {
 	}
 }
 
-func handleDevStop() {
+func handleLocalStop() {
 	dataDir, err := config.GetDataDir()
 	if err != nil {
 		cliprint.Error("Failed to determine data directory")
@@ -126,7 +126,7 @@ func handleDevStop() {
 	cliprint.Success("Daemon stopped successfully")
 }
 
-func handleDevStatus() {
+func handleLocalStatus() {
 	dataDir, err := config.GetDataDir()
 	if err != nil {
 		cliprint.Error("Failed to determine data directory")
@@ -136,7 +136,7 @@ func handleDevStatus() {
 
 	running, pid := daemon.GetStatus(dataDir)
 	
-	fmt.Println("Stigmer Development Status:")
+	fmt.Println("Stigmer Local Status:")
 	fmt.Println("─────────────────────────────────────")
 	if running {
 		cliprint.Info("  Status: ✓ Running")
@@ -147,11 +147,11 @@ func handleDevStatus() {
 		cliprint.Warning("  Status: ✗ Stopped")
 		cliprint.Info("")
 		cliprint.Info("To start:")
-		cliprint.Info("  stigmer dev")
+		cliprint.Info("  stigmer local")
 	}
 }
 
-func handleDevRestart() {
+func handleLocalRestart() {
 	dataDir, err := config.GetDataDir()
 	if err != nil {
 		cliprint.Error("Failed to determine data directory")

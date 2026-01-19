@@ -18,20 +18,20 @@ const (
 	DefaultDataDir = "data"
 )
 
-// BackendType represents the type of backend (dev or cloud)
+// BackendType represents the type of backend (local or cloud)
 type BackendType string
 
 const (
-	BackendTypeDev   BackendType = "dev"
+	BackendTypeLocal BackendType = "local"
 	BackendTypeCloud BackendType = "cloud"
 )
 
 // Config represents the Stigmer CLI configuration
 //
-// This config supports both dev and cloud backends, inspired by Pulumi's approach.
+// This config supports both local and cloud backends, inspired by Pulumi's approach.
 // The active backend determines where resources are stored and managed.
 //
-// Dev mode: Resources stored in BadgerDB at ~/.stigmer/data
+// Local mode: Resources stored in BadgerDB at ~/.stigmer/data
 // Cloud mode: Resources managed via Stigmer Cloud gRPC API
 type Config struct {
 	Backend BackendConfig `yaml:"backend"`
@@ -40,13 +40,13 @@ type Config struct {
 
 // BackendConfig represents backend configuration
 type BackendConfig struct {
-	Type BackendType      `yaml:"type"` // "dev" or "cloud"
-	Dev  *DevBackendConfig `yaml:"dev,omitempty"`
+	Type  BackendType        `yaml:"type"` // "local" or "cloud"
+	Local *LocalBackendConfig `yaml:"local,omitempty"`
 	Cloud *CloudBackendConfig `yaml:"cloud,omitempty"`
 }
 
-// DevBackendConfig represents dev backend configuration
-type DevBackendConfig struct {
+// LocalBackendConfig represents local backend configuration
+type LocalBackendConfig struct {
 	Endpoint string          `yaml:"endpoint"`           // Daemon endpoint (default: localhost:50051)
 	DataDir  string          `yaml:"data_dir"`           // Path to daemon data directory (for init)
 	LLM      *LLMConfig      `yaml:"llm,omitempty"`      // LLM configuration
@@ -136,14 +136,14 @@ func Save(cfg *Config) error {
 
 // GetDefault returns the default configuration
 //
-// Default is dev backend connecting to localhost:50051 daemon
+// Default is local backend connecting to localhost:50051 daemon
 // with Ollama LLM and managed Temporal runtime (zero-config)
 func GetDefault() *Config {
 	dataDir, _ := GetDataDir()
 	return &Config{
 		Backend: BackendConfig{
-			Type: BackendTypeDev,
-			Dev: &DevBackendConfig{
+			Type: BackendTypeLocal,
+			Local: &LocalBackendConfig{
 				Endpoint: "localhost:50051", // ADR 011: daemon port
 				DataDir:  dataDir,
 				LLM: &LLMConfig{
@@ -205,7 +205,7 @@ func fileExists(path string) bool {
 
 // ResolveLLMProvider resolves the LLM provider with cascading config
 // Priority: env var > config file > default
-func (c *DevBackendConfig) ResolveLLMProvider() string {
+func (c *LocalBackendConfig) ResolveLLMProvider() string {
 	// 1. Check environment variable
 	if provider := os.Getenv("STIGMER_LLM_PROVIDER"); provider != "" {
 		return provider
@@ -221,7 +221,7 @@ func (c *DevBackendConfig) ResolveLLMProvider() string {
 }
 
 // ResolveLLMModel resolves the LLM model with cascading config
-func (c *DevBackendConfig) ResolveLLMModel() string {
+func (c *LocalBackendConfig) ResolveLLMModel() string {
 	// 1. Check environment variable
 	if model := os.Getenv("STIGMER_LLM_MODEL"); model != "" {
 		return model
@@ -247,7 +247,7 @@ func (c *DevBackendConfig) ResolveLLMModel() string {
 }
 
 // ResolveLLMBaseURL resolves the LLM base URL with cascading config
-func (c *DevBackendConfig) ResolveLLMBaseURL() string {
+func (c *LocalBackendConfig) ResolveLLMBaseURL() string {
 	// 1. Check environment variable
 	if baseURL := os.Getenv("STIGMER_LLM_BASE_URL"); baseURL != "" {
 		return baseURL
@@ -274,7 +274,7 @@ func (c *DevBackendConfig) ResolveLLMBaseURL() string {
 
 // ResolveTemporalAddress resolves the Temporal service address
 // Returns (address, isManaged)
-func (c *DevBackendConfig) ResolveTemporalAddress() (string, bool) {
+func (c *LocalBackendConfig) ResolveTemporalAddress() (string, bool) {
 	// 1. Check environment variable (forces external mode)
 	if addr := os.Getenv("TEMPORAL_SERVICE_ADDRESS"); addr != "" {
 		return addr, false // external
@@ -298,7 +298,7 @@ func (c *DevBackendConfig) ResolveTemporalAddress() (string, bool) {
 }
 
 // ResolveTemporalVersion resolves the Temporal version for managed runtime
-func (c *DevBackendConfig) ResolveTemporalVersion() string {
+func (c *LocalBackendConfig) ResolveTemporalVersion() string {
 	if c.Temporal != nil && c.Temporal.Version != "" {
 		return c.Temporal.Version
 	}
@@ -306,7 +306,7 @@ func (c *DevBackendConfig) ResolveTemporalVersion() string {
 }
 
 // ResolveTemporalPort resolves the Temporal port for managed runtime
-func (c *DevBackendConfig) ResolveTemporalPort() int {
+func (c *LocalBackendConfig) ResolveTemporalPort() int {
 	if c.Temporal != nil && c.Temporal.Port != 0 {
 		return c.Temporal.Port
 	}
