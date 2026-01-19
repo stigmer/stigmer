@@ -23,6 +23,7 @@ import (
 // - TransformResponse step (no response transformations in OSS)
 func (c *AgentInstanceController) Update(ctx context.Context, instance *agentinstancev1.AgentInstance) (*agentinstancev1.AgentInstance, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, instance)
+	reqCtx.SetNewState(instance)
 
 	p := c.buildUpdatePipeline()
 
