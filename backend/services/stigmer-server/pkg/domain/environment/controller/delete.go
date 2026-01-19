@@ -13,10 +13,9 @@ import (
 // Delete deletes an environment by ID using the pipeline pattern.
 //
 // Pipeline Steps:
-// 1. ValidateProto - Validate proto field constraints (environment ID wrapper)
-// 2. ExtractResourceId - Extract ID from ApiResourceDeleteInput wrapper
-// 3. LoadExistingForDelete - Load environment from database (stores in context)
-// 4. DeleteResource - Delete environment from database
+// 1. ValidateProto - Validate proto field constraints (ApiResourceDeleteInput)
+// 2. LoadExistingForDelete - Load environment from database (stores in context)
+// 3. DeleteResource - Delete environment from database
 //
 // Note: Unlike Stigmer Cloud, OSS excludes:
 // - Authorization step (no multi-user auth)
@@ -27,6 +26,10 @@ import (
 func (c *EnvironmentController) Delete(ctx context.Context, input *apiresource.ApiResourceDeleteInput) (*environmentv1.Environment, error) {
 	// Create request context with the delete input
 	reqCtx := pipeline.NewRequestContext(ctx, input)
+
+	// Manually extract and store resource ID since ApiResourceDeleteInput uses
+	// ResourceId field instead of Value field (which ExtractResourceIdStep expects)
+	reqCtx.Set(steps.ResourceIdKey, input.ResourceId)
 
 	// Build and execute pipeline
 	p := c.buildDeletePipeline()
@@ -45,16 +48,12 @@ func (c *EnvironmentController) Delete(ctx context.Context, input *apiresource.A
 
 // buildDeletePipeline constructs the pipeline for delete operations
 //
-// All steps are generic and reusable across all API resources:
-// - ValidateProtoStep: Generic proto validation
-// - ExtractResourceIdStep: Generic ID extraction from wrapper types
-// - LoadExistingForDeleteStep: Generic load by ID
-// - DeleteResourceStep: Generic delete by ID
+// Note: ExtractResourceIdStep is NOT used here because ApiResourceDeleteInput
+// has ResourceId field (not Value), so we manually extract it in Delete method
 func (c *EnvironmentController) buildDeletePipeline() *pipeline.Pipeline[*apiresource.ApiResourceDeleteInput] {
 	return pipeline.NewPipeline[*apiresource.ApiResourceDeleteInput]("environment-delete").
 		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceDeleteInput]()).                                        // 1. Validate field constraints
-		AddStep(steps.NewExtractResourceIdStep[*apiresource.ApiResourceDeleteInput]()).                                    // 2. Extract ID from wrapper
-		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceDeleteInput, *environmentv1.Environment](c.store)). // 3. Load environment
-		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).                                // 4. Delete from database
+		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceDeleteInput, *environmentv1.Environment](c.store)). // 2. Load environment
+		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).                                // 3. Delete from database
 		Build()
 }
