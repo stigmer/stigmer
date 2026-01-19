@@ -5,7 +5,6 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentexecution/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentexecution/temporal/workflows"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
@@ -56,14 +55,14 @@ import (
 // - TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE (Python activities, default: agent_execution_runner)
 type WorkerConfig struct {
 	config                     *Config
-	store                      *badger.Store[*agentexecutionv1.AgentExecution]
+	store                      *badger.Store
 	updateStatusActivityImpl   *activities.UpdateExecutionStatusActivityImpl
 }
 
 // NewWorkerConfig creates a new WorkerConfig.
 func NewWorkerConfig(
 	config *Config,
-	store *badger.Store[*agentexecutionv1.AgentExecution],
+	store *badger.Store,
 ) *WorkerConfig {
 	return &WorkerConfig{
 		config:                     config,

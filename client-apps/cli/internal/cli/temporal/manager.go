@@ -80,6 +80,9 @@ func (m *Manager) EnsureInstalled() error {
 
 // Start starts the Temporal dev server as a background process
 func (m *Manager) Start() error {
+	// Cleanup any stale processes before checking if running
+	m.cleanupStaleProcesses()
+	
 	// Check if already running
 	if m.IsRunning() {
 		return errors.New("Temporal is already running")
@@ -118,6 +121,9 @@ func (m *Manager) Start() error {
 	
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
+	
+	// Set up process group so we can kill all child processes
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	
 	// Start process
 	if err := cmd.Start(); err != nil {
@@ -158,18 +164,13 @@ func (m *Manager) Stop() error {
 		return errors.Wrap(err, "Temporal is not running")
 	}
 	
-	// Find process
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		return errors.Wrap(err, "failed to find Temporal process")
+	// Send SIGTERM to entire process group for graceful shutdown
+	// Negative PID sends signal to process group
+	if err := syscall.Kill(-pid, syscall.SIGTERM); err != nil {
+		return errors.Wrap(err, "failed to send SIGTERM to Temporal process group")
 	}
 	
-	// Send SIGTERM for graceful shutdown
-	if err := process.Signal(syscall.SIGTERM); err != nil {
-		return errors.Wrap(err, "failed to send SIGTERM to Temporal")
-	}
-	
-	log.Info().Int("pid", pid).Msg("Sent SIGTERM to Temporal")
+	log.Info().Int("pid", pid).Msg("Sent SIGTERM to Temporal process group")
 	
 	// Wait for process to exit (up to 10 seconds)
 	for i := 0; i < 20; i++ {
@@ -182,10 +183,16 @@ func (m *Manager) Stop() error {
 		time.Sleep(500 * time.Millisecond)
 	}
 	
-	// Force kill if still running
-	log.Warn().Msg("Temporal did not stop gracefully, force killing")
-	if err := process.Kill(); err != nil {
-		return errors.Wrap(err, "failed to kill Temporal process")
+	// Force kill entire process group if still running
+	log.Warn().Msg("Temporal did not stop gracefully, force killing process group")
+	if err := syscall.Kill(-pid, syscall.SIGKILL); err != nil {
+		// Check if process is already dead (common on macOS)
+		if !m.IsRunning() {
+			log.Info().Msg("Temporal process already terminated")
+			_ = os.Remove(m.pidFile)
+			return nil
+		}
+		return errors.Wrap(err, "failed to kill Temporal process group")
 	}
 	
 	// Remove PID file
@@ -245,4 +252,53 @@ func (m *Manager) waitForReady(timeout time.Duration) error {
 	}
 	
 	return errors.New("Temporal failed to start within timeout")
+}
+
+// cleanupStaleProcesses removes stale PID files and kills orphaned processes
+func (m *Manager) cleanupStaleProcesses() {
+	// Try to read PID file
+	pid, err := m.getPID()
+	if err != nil {
+		// No PID file or invalid - nothing to cleanup
+		return
+	}
+	
+	// Check if process exists
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		// Process doesn't exist - remove stale PID file
+		log.Debug().Int("pid", pid).Msg("Removing stale PID file (process not found)")
+		_ = os.Remove(m.pidFile)
+		return
+	}
+	
+	// Send signal 0 to check if process is alive
+	err = process.Signal(syscall.Signal(0))
+	if err != nil {
+		// Process is not alive - remove stale PID file
+		log.Debug().Int("pid", pid).Msg("Removing stale PID file (process not alive)")
+		_ = os.Remove(m.pidFile)
+		return
+	}
+	
+	// Process exists and is alive - verify it's actually Temporal
+	// Check if the port is in use by this process
+	conn, err := net.DialTimeout("tcp", m.GetAddress(), 100*time.Millisecond)
+	if err != nil {
+		// Port is not in use - this is likely a PID reuse case
+		log.Warn().Int("pid", pid).Msg("Process exists but Temporal port not in use - killing stale process")
+		
+		// Force kill the process group
+		if err := syscall.Kill(-pid, syscall.SIGKILL); err != nil {
+			log.Debug().Err(err).Msg("Failed to kill stale process (may be permission issue)")
+		}
+		
+		// Remove stale PID file
+		_ = os.Remove(m.pidFile)
+		return
+	}
+	conn.Close()
+	
+	// Process is alive and Temporal port is in use - it's a valid Temporal instance
+	log.Debug().Int("pid", pid).Msg("Found running Temporal instance")
 }

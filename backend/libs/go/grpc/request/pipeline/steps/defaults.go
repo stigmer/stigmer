@@ -104,9 +104,22 @@ func (s *BuildNewStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 }
 
 // clearStatusField clears the status field to ensure it contains no client-provided data
+// If the status field is nil, it will be initialized to an empty status message
 func clearStatusField(resource HasStatus) error {
 	status := resource.GetStatus()
 	if status == nil {
+		// Initialize the status field using proto reflection
+		resourceMsg := proto.MessageReflect(resource)
+		statusField := resourceMsg.Descriptor().Fields().ByName("status")
+		if statusField == nil {
+			// Resource doesn't have a status field
+			return nil
+		}
+		
+		// Create a new empty status message of the correct type
+		statusType := statusField.Message()
+		newStatus := statusType.New().Interface()
+		resourceMsg.Set(statusField, protoreflect.ValueOfMessage(newStatus.ProtoReflect()))
 		return nil
 	}
 

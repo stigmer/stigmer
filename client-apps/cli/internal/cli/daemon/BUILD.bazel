@@ -4,6 +4,7 @@ go_library(
     name = "daemon",
     srcs = [
         "daemon.go",
+        "download.go",
         "secrets.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon",

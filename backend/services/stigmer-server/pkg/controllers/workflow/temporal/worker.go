@@ -64,11 +64,9 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 	w := worker.New(temporalClient, wc.config.StigmerQueue, worker.Options{})
 
 	// Register Go workflow implementations ONLY
-	w.RegisterWorkflowWithOptions(ValidateWorkflowWorkflowImpl, worker.RegisterWorkflowOptions{
-		Name: WorkflowValidationWorkflowType,
-	})
+	w.RegisterWorkflow(ValidateWorkflowWorkflowImpl)
 
-	log.Printf("✅ [POLYGLOT] Registered ValidateWorkflowWorkflow (Go) on '%s' task queue", wc.config.StigmerQueue)
+	log.Printf("✅ [POLYGLOT] Registered ValidateWorkflowWorkflow (Go) on '%s' task queue (type: %s)", wc.config.StigmerQueue, WorkflowValidationWorkflowType)
 	log.Printf("✅ [POLYGLOT] Go activities (ValidateWorkflow) on '%s' queue", wc.config.RunnerQueue)
 	log.Printf("✅ [POLYGLOT] Temporal will route: workflow tasks → stigmer-server, Go activity tasks → workflow-runner")
 

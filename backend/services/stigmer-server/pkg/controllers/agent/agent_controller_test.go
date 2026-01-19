@@ -17,7 +17,7 @@ func TestAgentController_Create(t *testing.T) {
 	}
 	defer store.Close()
 
-	controller := NewAgentController(store)
+	controller := NewAgentController(store, nil) // nil agentInstanceClient for tests
 
 	t.Run("successful creation", func(t *testing.T) {
 		agent := &agentv1.Agent{
@@ -104,7 +104,7 @@ func TestAgentController_Update(t *testing.T) {
 	}
 	defer store.Close()
 
-	controller := NewAgentController(store)
+	controller := NewAgentController(store, nil) // nil agentInstanceClient for tests
 
 	t.Run("successful update", func(t *testing.T) {
 		// Create an agent first
@@ -156,7 +156,7 @@ func TestAgentController_Delete(t *testing.T) {
 	}
 	defer store.Close()
 
-	controller := NewAgentController(store)
+	controller := NewAgentController(store, nil) // nil agentInstanceClient for tests
 
 	t.Run("successful deletion", func(t *testing.T) {
 		// Create an agent first

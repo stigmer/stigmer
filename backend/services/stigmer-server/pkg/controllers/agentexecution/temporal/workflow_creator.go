@@ -1,4 +1,4 @@
-package workflows
+package temporal
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentexecution/temporal"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentexecution/temporal/workflows"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"go.temporal.io/sdk/client"
 )
@@ -20,11 +20,11 @@ import (
 // - Activity queue passed via memo for workflow to use when calling activities
 type InvokeAgentExecutionWorkflowCreator struct {
 	workflowClient client.Client
-	config         *temporal.Config
+	config         *Config
 }
 
 // NewInvokeAgentExecutionWorkflowCreator creates a new InvokeAgentExecutionWorkflowCreator.
-func NewInvokeAgentExecutionWorkflowCreator(workflowClient client.Client, config *temporal.Config) *InvokeAgentExecutionWorkflowCreator {
+func NewInvokeAgentExecutionWorkflowCreator(workflowClient client.Client, config *Config) *InvokeAgentExecutionWorkflowCreator {
 	return &InvokeAgentExecutionWorkflowCreator{
 		workflowClient: workflowClient,
 		config:         config,
@@ -36,7 +36,7 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(execution *agentexecutionv1
 	executionID := execution.GetMetadata().GetId()
 
 	// Workflow ID format: stigmer/agent-execution/invoke/{execution-id}
-	workflowID := fmt.Sprintf("%s/%s", InvokeAgentExecutionWorkflowName, executionID)
+	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeAgentExecutionWorkflowName, executionID)
 
 	// Build workflow options
 	options := client.StartWorkflowOptions{
@@ -52,7 +52,7 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(execution *agentexecutionv1
 	_, err := c.workflowClient.ExecuteWorkflow(
 		context.Background(), // Use background context for async start
 		options,
-		InvokeAgentExecutionWorkflowName,
+		workflows.InvokeAgentExecutionWorkflowName,
 		execution,
 	)
 	if err != nil {
