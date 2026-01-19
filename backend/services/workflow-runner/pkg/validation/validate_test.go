@@ -229,7 +229,7 @@ func TestValidateTask(t *testing.T) {
 		
 		// Check that error includes task name and kind
 		assert.Contains(t, err.Error(), "fetchData")
-		assert.Contains(t, err.Error(), "HTTP_CALL")
+		assert.Contains(t, err.Error(), "WORKFLOW_TASK_KIND_HTTP_CALL")
 	})
 
 	t.Run("nil task fails", func(t *testing.T) {
