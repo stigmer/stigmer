@@ -134,6 +134,71 @@ protos-release: ## Release protos to Buf and create Git tag (usage: make protos-
 	echo "  • Git Tag: $$LATEST_TAG"
 	@echo ""
 
+release: ## Create and push release tag (usage: make release [bump=patch|minor|major])
+	@echo "============================================"
+	@echo "Creating Stigmer CLI Release Tag"
+	@echo "============================================"
+	@echo ""
+	@# Get the latest tag, default to v0.0.0 if none exists
+	@LATEST_TAG=$$(git tag -l "v*" | sort -V | tail -n1); \
+	if [ -z "$$LATEST_TAG" ]; then \
+		LATEST_TAG="v0.0.0"; \
+		echo "No existing tags found. Starting from $$LATEST_TAG"; \
+	else \
+		echo "Latest tag: $$LATEST_TAG"; \
+	fi; \
+	\
+	VERSION=$$(echo $$LATEST_TAG | sed 's/^v//'); \
+	MAJOR=$$(echo $$VERSION | cut -d. -f1); \
+	MINOR=$$(echo $$VERSION | cut -d. -f2); \
+	PATCH=$$(echo $$VERSION | cut -d. -f3); \
+	\
+	echo "Bump type: $(bump)"; \
+	echo ""; \
+	\
+	case $(bump) in \
+		major) \
+			MAJOR=$$((MAJOR + 1)); \
+			MINOR=0; \
+			PATCH=0; \
+			;; \
+		minor) \
+			MINOR=$$((MINOR + 1)); \
+			PATCH=0; \
+			;; \
+		patch) \
+			PATCH=$$((PATCH + 1)); \
+			;; \
+		*) \
+			echo "ERROR: Invalid bump type '$(bump)'. Use: patch, minor, or major"; \
+			exit 1; \
+			;; \
+	esac; \
+	\
+	NEW_TAG="v$$MAJOR.$$MINOR.$$PATCH"; \
+	echo "New tag: $$NEW_TAG"; \
+	echo ""; \
+	\
+	if git rev-parse "$$NEW_TAG" >/dev/null 2>&1; then \
+		echo "ERROR: Tag $$NEW_TAG already exists"; \
+		exit 1; \
+	fi; \
+	\
+	echo "Creating release tag: $$NEW_TAG"; \
+	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
+	git push origin "$$NEW_TAG"; \
+	echo ""
+	@echo "============================================"
+	@echo "✓ Release Tag Created!"
+	@echo "============================================"
+	@echo ""
+	@echo "Summary:"
+	@LATEST_TAG=$$(git tag -l "v*" | sort -V | tail -n1); \
+	echo "  • Git Tag: $$LATEST_TAG pushed to origin"
+	@echo "  • GitHub Actions will now build and publish release"
+	@echo "  • Release URL: https://github.com/stigmer/stigmer/releases/tag/$$LATEST_TAG"
+	@echo ""
+
 lint: ## Run linters
 	@echo "Running Go linters..."
 	go vet ./...
@@ -159,25 +224,32 @@ install: build ## Install Stigmer CLI to system
 
 release-local: ## Build and install CLI for local testing (fast rebuild without protos)
 	@echo "============================================"
-	@echo "Building and Installing Stigmer CLI Locally"
+	@echo "Building and Installing Stigmer Locally"
 	@echo "============================================"
 	@echo ""
 	@echo "Step 1: Removing old binaries..."
 	@rm -f $(HOME)/bin/stigmer
+	@rm -f $(HOME)/bin/stigmer-server
 	@rm -f /usr/local/bin/stigmer 2>/dev/null || true
 	@rm -f bin/stigmer
+	@rm -f bin/stigmer-server
 	@echo "✓ Old binaries removed"
 	@echo ""
-	@echo "Step 2: Building fresh CLI binary..."
+	@echo "Step 2: Building fresh binaries..."
 	@mkdir -p bin
 	@cd client-apps/cli && go build -o ../../bin/stigmer .
-	@echo "✓ Build complete: bin/stigmer"
+	@echo "✓ CLI built: bin/stigmer"
+	@go build -o bin/stigmer-server ./backend/services/stigmer-server/cmd/server
+	@echo "✓ Server built: bin/stigmer-server"
 	@echo ""
 	@echo "Step 3: Installing to ~/bin..."
 	@mkdir -p $(HOME)/bin
 	@cp bin/stigmer $(HOME)/bin/stigmer
 	@chmod +x $(HOME)/bin/stigmer
 	@echo "✓ Installed: $(HOME)/bin/stigmer"
+	@cp bin/stigmer-server $(HOME)/bin/stigmer-server
+	@chmod +x $(HOME)/bin/stigmer-server
+	@echo "✓ Installed: $(HOME)/bin/stigmer-server"
 	@echo ""
 	@echo "============================================"
 	@echo "✓ Release Complete!"
@@ -185,6 +257,7 @@ release-local: ## Build and install CLI for local testing (fast rebuild without 
 	@echo ""
 	@if command -v stigmer >/dev/null 2>&1; then \
 		echo "✓ CLI ready! Run: stigmer --help"; \
+		echo "✓ Server ready for 'stigmer local'"; \
 		echo ""; \
 		stigmer --version 2>/dev/null || echo "Version: development"; \
 	else \
