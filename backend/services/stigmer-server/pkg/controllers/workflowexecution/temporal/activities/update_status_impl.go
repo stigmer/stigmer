@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -47,7 +48,7 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 
 	// Load existing execution (SINGLE DB QUERY)
 	existing := &workflowexecutionv1.WorkflowExecution{}
-	if err := a.store.GetResource(ctx, "WorkflowExecution", executionID, existing); err != nil {
+	if err := a.store.GetResource(ctx, apiresourcekind.ApiResourceKind_workflow_execution, executionID, existing); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).
@@ -126,7 +127,7 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 		Msg("Built updated workflow execution")
 
 	// Persist to BadgerDB
-	if err := a.store.SaveResource(ctx, "WorkflowExecution", executionID, &updated); err != nil {
+	if err := a.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_workflow_execution, executionID, &updated); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).

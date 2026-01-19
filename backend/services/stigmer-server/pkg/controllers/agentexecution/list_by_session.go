@@ -8,6 +8,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -100,7 +101,7 @@ func (s *queryExecutionsBySessionStep) Execute(ctx *pipeline.RequestContext[*age
 		Msg("Listing executions by session")
 
 	// List all executions and filter by session_id
-	data, err := s.store.ListResources(ctx.Context(), "AgentExecution")
+	data, err := s.store.ListResources(ctx.Context(), apiresourcekind.ApiResourceKind_agent_execution)
 	if err != nil {
 		return grpclib.InternalError(err, "failed to list agent executions")
 	}

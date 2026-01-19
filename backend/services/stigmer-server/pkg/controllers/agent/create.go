@@ -193,7 +193,7 @@ func (s *updateAgentStatusWithDefaultInstanceStep) Execute(ctx *pipeline.Request
 	// 3. Persist updated agent to repository
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
-	if err := s.store.SaveResource(ctx.Context(), kind.String(), agentID, agent); err != nil {
+	if err := s.store.SaveResource(ctx.Context(), kind, agentID, agent); err != nil {
 		log.Error().
 			Err(err).
 			Str("agent_id", agentID).
