@@ -1,0 +1,207 @@
+---
+description: Autonomously improve the Stigmer CLI implementation rule based on learnings
+alwaysApply: false
+---
+
+# Rule: Improve Stigmer CLI Features Rule (action)
+
+## Purpose
+
+Autonomously improve the `implement-stigmer-cli-features.mdc` rule based on lessons learned during implementation. Updates patterns, adds missing documentation, and refines guidance to prevent future issues.
+
+## When This Rule is Invoked
+
+This rule is automatically triggered by `@complete-stigmer-oss-work.mdc` when:
+1. CLI Go files were modified
+2. New patterns were discovered or issues were solved
+3. Genuine learning occurred (not routine work)
+
+It can also be manually invoked when:
+- You notice the rule has incorrect/outdated guidance
+- You want to add a new pattern discovered during work
+- Documentation is missing for a common task
+
+## What This Rule Does
+
+1. **Analyzes Recent Work**: Reviews conversation history and git changes
+2. **Identifies Learnings**: Extracts new patterns, fixes, or discoveries
+3. **Updates Documentation**: 
+   - Adds entries to `docs/learning-log.md`
+   - Updates reference docs in `docs/`
+   - Refines main rule guidance
+4. **Validates Changes**: Ensures updates are accurate and helpful
+
+## How AI Should Execute This
+
+### Step 1: Identify Learnings
+
+Review the conversation for:
+
+**Go Modules & Dependencies**:
+- Module path issues
+- Proto stub import errors
+- Dependency version conflicts
+- Build errors
+- Gazelle configuration issues
+
+**CLI Commands**:
+- Cobra command patterns
+- Flag handling issues
+- Argument parsing problems
+- Command organization
+- Handler structure violations
+
+**Backend Communication**:
+- gRPC connection issues
+- Health checks
+- Error handling patterns
+- TLS configuration
+
+**Daemon Management**:
+- Binary download issues
+- Process lifecycle problems
+- Secret management
+- Health monitoring
+
+**Configuration**:
+- Config file issues
+- YAML parsing problems
+- Environment variable handling
+- File permissions
+
+**Output & Errors**:
+- Error message clarity
+- Output formatting
+- Progress indicators
+- User experience issues
+
+### Step 2: Categorize Learnings
+
+For each learning, determine:
+
+- **Topic**: Modules, Commands, Backend, Daemon, Config, Output, Errors
+- **Type**: Bug fix, new pattern, configuration, best practice
+- **Impact**: Critical (blocks work), Important (saves time), Nice-to-have
+- **Reusability**: Applies to one case, applies broadly, affects all implementations
+
+### Step 3: Update Documentation
+
+#### Update `docs/learning-log.md`
+
+Add entry under appropriate topic:
+
+```markdown
+## [Topic Name]
+
+### [Date] - [Brief Title]
+
+**Problem**: [What went wrong or what needed solving]
+
+**Root Cause**: [Why it happened]
+
+**Solution**: [How to fix it]
+
+**Prevention**: [How to avoid in future]
+
+**Related Docs**: [Links to relevant sections]
+
+**Example**:
+```go
+// Code example showing the fix
+```
+```
+
+#### Update Reference Docs
+
+If the learning affects a specific doc:
+- Update `docs/command-patterns.md` for Cobra issues
+- Update `docs/daemon-management.md` for daemon issues
+- Update `docs/error-handling.md` for error patterns
+- Create new doc if topic doesn't exist
+
+#### Update Main Rule
+
+If patterns in `implement-stigmer-cli-features.mdc` need refinement:
+- Add new examples to relevant sections
+- Update troubleshooting guide
+- Add common pitfalls
+- Refine implementation guidance
+
+### Step 4: Validate Changes
+
+Before finalizing:
+
+- [ ] Learning is genuinely new (not already documented)
+- [ ] Solution is tested and works
+- [ ] Documentation is clear and actionable
+- [ ] Examples are accurate
+- [ ] Links between docs are correct
+
+## Improvement Criteria
+
+### Trigger Improvement If:
+
+✅ **New Error Patterns**:
+- Fixed module import error not in docs
+- Solved daemon lifecycle issue
+- Discovered missing configuration
+
+✅ **New Implementation Patterns**:
+- Created new command structure
+- Implemented new daemon feature
+- Added new error handling approach
+
+✅ **Performance Discoveries**:
+- Optimized daemon startup
+- Improved config loading
+- Enhanced error reporting
+
+✅ **Integration Fixes**:
+- Fixed proto stub issues
+- Solved Bazel/Gazelle problems
+- Improved backend connection
+
+### Skip Improvement If:
+
+❌ **Routine Application**:
+- Used existing patterns correctly
+- No issues encountered
+- Straightforward implementation
+
+❌ **Trivial Changes**:
+- Typo fixes
+- Comment updates
+- Minor refactoring
+
+❌ **Already Documented**:
+- Pattern exists in learning log
+- Solution in reference docs
+- No new discovery
+
+## Output Format
+
+After making improvements, summarize:
+
+```
+📚 Stigmer CLI Rule Improvements
+
+Updated Documentation:
+✅ docs/learning-log.md - Added [X] new entries
+✅ docs/[topic].md - Updated [specific section]
+✅ implement-stigmer-cli-features.mdc - Enhanced [area]
+
+Key Learnings Captured:
+• [Learning 1]: [Brief description]
+• [Learning 2]: [Brief description]
+• [Learning 3]: [Brief description]
+
+Prevention Added:
+• [Pitfall 1]: [How to avoid]
+• [Pitfall 2]: [How to avoid]
+```
+
+## Related Rules
+
+- `@implement-stigmer-cli-features` - Main rule being improved
+- `@complete-stigmer-oss-work` - Orchestrator that triggers this rule
+- `@commit-stigmer-oss-changes` - Commits the improvements
