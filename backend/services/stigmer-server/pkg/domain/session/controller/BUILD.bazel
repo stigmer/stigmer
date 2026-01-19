@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "controller",
@@ -27,5 +27,18 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/session/controller/steps",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)
+
+go_test(
+    name = "controller_test",
+    srcs = ["session_controller_test.go"],
+    embed = [":controller"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//backend/libs/go/badger",
+        "//backend/libs/go/grpc/interceptors/apiresource",
     ],
 )
