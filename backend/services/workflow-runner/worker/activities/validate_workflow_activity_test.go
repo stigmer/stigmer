@@ -20,9 +20,9 @@ import (
 	"context"
 	"testing"
 
-	workflowv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	tasksv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/worker/activities"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/worker/activities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -41,7 +41,7 @@ func TestGenerateYAMLActivity_Success(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name: "greet",
-				Kind: tasksv1.WorkflowTaskKind_SET,
+				Kind: apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
 				TaskConfig: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
 						"message": structpb.NewStringValue("Hello, World!"),
@@ -91,7 +91,7 @@ func TestGenerateYAMLActivity_InvalidSpec(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name: "task1",
-				Kind: tasksv1.WorkflowTaskKind_SET,
+				Kind: apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
 			},
 		},
 	}

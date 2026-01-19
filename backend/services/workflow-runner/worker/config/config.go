@@ -22,7 +22,7 @@ import (
 	"os"
 	"strconv"
 
-	stigmerconfig "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/config"
+	stigmerconfig "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/config"
 )
 
 // Config holds Temporal worker configuration loaded from environment variables

@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"time"
 
-	serverlessv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/worker/activities"
+	serverlessv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/worker/activities"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 	"google.golang.org/protobuf/types/known/timestamppb"
