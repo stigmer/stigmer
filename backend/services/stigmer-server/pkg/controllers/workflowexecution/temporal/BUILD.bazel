@@ -14,7 +14,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/controllers/workflowexecution/temporal/activities",
         "//backend/services/stigmer-server/pkg/controllers/workflowexecution/temporal/workflows",
         "@com_github_rs_zerolog//log",
-        "@io_temporal_go_sdk//client:go_default_library",
-        "@io_temporal_go_sdk//worker:go_default_library",
+        "@io_temporal_go_sdk//client",
+        "@io_temporal_go_sdk//worker",
     ],
 )
