@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/store/badger"
-	agentexecutionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"go.temporal.io/sdk/activity"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

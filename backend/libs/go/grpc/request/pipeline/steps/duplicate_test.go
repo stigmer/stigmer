@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
-	agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource/apiresourcekind"
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 func TestCheckDuplicateStep_NoDuplicate(t *testing.T) {

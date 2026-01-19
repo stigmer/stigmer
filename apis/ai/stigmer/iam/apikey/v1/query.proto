@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.apikey.v1;
+
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/apikey/v1/api.proto";
+import "ai/stigmer/iam/apikey/v1/io.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "google/protobuf/empty.proto";
+
+// api-key query controller
+service ApiKeyQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = api_key;
+
+  // lookup api-key.
+  rpc get(ApiKeyId) returns (ApiKey) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = api_key;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to view api key";
+  }
+
+  // lookup api-key by hashed key
+  rpc getByKeyHash(ApiKeyHash) returns (ApiKey) {
+    // Authorization is handled in the handler after loading the resource
+    // (input doesn't contain API key ID, so proto-level auth cannot work)
+  }
+
+  // lookup all api-keys for the identity-account in the auth header.
+  rpc findAll(google.protobuf.Empty) returns (ApiKeys) {
+    //only the api-keys that belong to the identity-account in the auth header are included.
+    //so authorization is not required.
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+}

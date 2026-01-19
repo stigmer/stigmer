@@ -1,0 +1,15 @@
+# Create a new API key
+# The raw API key is returned ONLY in the response - it cannot be retrieved later
+# Only the hash and fingerprint are stored
+
+apiVersion: iam.stigmer.ai/v1
+kind: ApiKey
+metadata:
+  name: my-api-key
+  description: API key for CI/CD pipeline
+spec:
+  # Set expiration (optional)
+  expiresAt: "2026-12-31T23:59:59Z"
+  
+  # OR set never expires flag
+  # neverExpires: true

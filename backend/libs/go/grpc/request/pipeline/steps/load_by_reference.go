@@ -8,7 +8,7 @@ import (
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
-	apiresourcepb "github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
+	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )

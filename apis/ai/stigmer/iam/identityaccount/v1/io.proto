@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.identityaccount.v1;
+
+import "ai/stigmer/commons/rpc/pagination.proto";
+import "ai/stigmer/iam/identityaccount/v1/api.proto";
+import "buf/validate/validate.proto";
+
+// wrapper to get list of identity accounts
+message IdentityAccounts {
+  repeated IdentityAccount entries = 1;
+}
+
+// wrapper for user identity account id.
+message IdentityAccountId {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// wrapper for email of the identity account.
+message IdentityAccountEmail {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// wrapper for idp id.
+message IdpId {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// input for paginated queries that require identity account id as input.
+message ListWithIdentityAccountIdReq {
+  // identity account id
+  string identity_account_id = 1;
+  ai.stigmer.commons.rpc.PageInfo page = 2;
+}
+
+// response for paginated rpc query to list identity accounts.
+message IdentityAccountsList {
+  //total number of pages
+  int32 total_pages = 1;
+  //current page entries
+  repeated IdentityAccount entries = 2;
+}
+
+// wrapper for identity account organization id.
+message ListWithIdentityOrg {
+  string org = 1;
+  ai.stigmer.commons.rpc.PageInfo page = 2;
+}

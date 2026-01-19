@@ -5,8 +5,8 @@ import (
 
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	sessionv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/session/v1"
-	"github.com/stigmer/stigmer/internal/gen/ai/stigmer/commons/apiresource"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 )
 
 // GetByReference retrieves a session by ApiResourceReference (slug-based lookup) using the pipeline framework

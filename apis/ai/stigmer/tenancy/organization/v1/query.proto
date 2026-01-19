@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package ai.stigmer.tenancy.organization.v1;
+
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/tenancy/organization/v1/api.proto";
+import "ai/stigmer/tenancy/organization/v1/io.proto";
+import "google/protobuf/empty.proto";
+
+// OrganizationQueryController provides read operations for organizations
+service OrganizationQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = organization;
+
+  // Get an organization by ID
+  // Requires: User must be a member of the organization (can_view)
+  rpc get(OrganizationId) returns (Organization) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to view organization";
+  }
+
+  // Find organizations with pagination and filtering
+  // Requires: Platform admin permission
+  // This is for administrative purposes only
+  rpc find(ai.stigmer.commons.apiresource.FindApiResourcesRequest) returns (OrganizationList) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+
+  // Find organizations the authenticated user is a member of
+  // Authorization handled in handler via IAM Policy listAuthorizedResourceIds
+  // Returns only organizations the caller has access to
+  rpc findMyOrganizations(google.protobuf.Empty) returns (Organizations) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+}

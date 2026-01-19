@@ -14,32 +14,27 @@ import (
 func NewLocalCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "local",
-		Short: "Manage local daemon",
-		Long: `Manage the local stigmer-server daemon.
+		Short: "Start local mode",
+		Long: `Start the Stigmer local daemon.
 
-The daemon runs on localhost:50051 and provides:
-  - gRPC API server
-  - BadgerDB storage
-  - Workflow runner (embedded)
-  - Agent runner (subprocess)`,
+This command starts the local daemon with zero configuration:
+  - Auto-downloads and starts Temporal
+  - Uses Ollama (local LLM, no API keys)
+  - Starts stigmer-server on localhost:50051
+  - Starts agent-runner for AI agent execution
+
+Just run 'stigmer local' and start building!`,
+		Run: func(cmd *cobra.Command, args []string) {
+			// Default action: start the daemon
+			handleLocalStart()
+		},
 	}
 
-	cmd.AddCommand(newLocalStartCommand())
 	cmd.AddCommand(newLocalStopCommand())
 	cmd.AddCommand(newLocalStatusCommand())
 	cmd.AddCommand(newLocalRestartCommand())
 
 	return cmd
-}
-
-func newLocalStartCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "start",
-		Short: "Start the local daemon",
-		Run: func(cmd *cobra.Command, args []string) {
-			handleLocalStart()
-		},
-	}
 }
 
 func newLocalStopCommand() *cobra.Command {
@@ -91,19 +86,21 @@ func handleLocalStart() {
 		return
 	}
 
-	cliprint.Info("Starting daemon...")
+	cliprint.Info("Starting local mode...")
 	if err := daemon.Start(dataDir); err != nil {
 		cliprint.Error("Failed to start daemon")
 		clierr.Handle(err)
 		return
 	}
 
-	cliprint.Success("Daemon started successfully")
+	cliprint.Success("Ready! Stigmer is running")
 	running, pid := daemon.GetStatus(dataDir)
 	if running {
 		cliprint.Info("  PID:  %d", pid)
 		cliprint.Info("  Port: %d", daemon.DaemonPort)
 		cliprint.Info("  Data: %s", dataDir)
+		cliprint.Info("")
+		cliprint.Info("Temporal UI: http://localhost:8233")
 	}
 }
 
@@ -141,21 +138,20 @@ func handleLocalStatus() {
 
 	running, pid := daemon.GetStatus(dataDir)
 	
-	fmt.Println("Daemon Status:")
+	fmt.Println("Stigmer Local Status:")
 	fmt.Println("─────────────────────────────────────")
 	if running {
 		cliprint.Info("  Status: ✓ Running")
 		cliprint.Info("  PID:    %d", pid)
 		cliprint.Info("  Port:   %d", daemon.DaemonPort)
 		cliprint.Info("  Data:   %s", dataDir)
+		cliprint.Info("")
+		cliprint.Info("Temporal UI: http://localhost:8233")
 	} else {
 		cliprint.Warning("  Status: ✗ Stopped")
 		cliprint.Info("")
 		cliprint.Info("To start:")
-		cliprint.Info("  stigmer local start")
-		cliprint.Info("")
-		cliprint.Info("Or initialize:")
-		cliprint.Info("  stigmer init")
+		cliprint.Info("  stigmer local")
 	}
 }
 

@@ -1,8 +1,8 @@
 package activities
 
 import (
-	workflowv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflow/v1"
-	serverlessv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/workflow/v1/serverless"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	serverlessv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless"
 )
 
 // ValidateWorkflowActivity is the interface for the workflow validation activity.

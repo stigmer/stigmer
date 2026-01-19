@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.iampolicy.v1;
+
+import "buf/validate/validate.proto";
+
+// IamPolicySpec defines the desired state of an IAM policy binding.
+// It specifies WHO (principal) gets WHAT permission (relation) on WHICH resource.
+message IamPolicySpec {
+  // Principal: WHO is being granted access
+  // This can be any API resource that acts as an identity:
+  // - identity_account (individual user)
+  // - team (group of users)
+  // - organization (for cross-org grants)
+  // - Any other resource that can be a subject in authorization
+  ApiResourceRef principal = 1 [(buf.validate.field).required = true];
+
+  // Resource: WHAT is being accessed
+  // This can be any API resource that is being protected:
+  // - organization
+  // - environment
+  // - cloud_resource (VPC, S3 bucket, etc.)
+  // - service
+  // - Any other resource that requires access control
+  ApiResourceRef resource = 2 [(buf.validate.field).required = true];
+
+  // Relation: HOW/what permission is being granted
+  // This is the FGA relation/permission being granted (e.g., "admin", "viewer", "owner")
+  // The relation value maps to the role_code from IamRole.
+  // Examples: "admin", "editor", "viewer", "owner", "member"
+  //
+  // When this policy is synced to OpenFGA, this becomes the relation in the tuple:
+  // principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation
+  string relation = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 64
+  ];
+}
+
+// ApiResourceRef represents a reference to ANY API resource in the system.
+// It is intentionally generic and reusable for both principals and resources
+// to maintain symmetry and flexibility in the authorization model.
+//
+// This message contains ONLY identification fields (kind, id, relation).
+// For view/query responses that need display information, use ApiResourceRefView in io.proto.
+message ApiResourceRef {
+  // Type of the API resource being referenced
+  // This should be the resource kind as defined in ApiResourceKind enum.
+  // Examples: "identity_account", "team", "organization", "environment",
+  // "cloud_resource", "service", etc.
+  string kind = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 256
+  ];
+
+  // Unique identifier of the resource
+  // This is the resource's ID field (e.g., ia-01HQUSER123, tm-01HQTEAM456)
+  string id = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 256
+  ];
+
+  // Optional relation qualifier for the resource reference
+  // Used when the reference needs additional context about the relationship.
+  //
+  // Primary use case: For team principals, this specifies the relation of the
+  // user to the team (e.g., "member", "admin").
+  // Example: principal { kind: "team", id: "tm-123", relation: "member" }
+  // means "members of team tm-123"
+  //
+  // In OpenFGA tuple notation, this becomes:
+  // team:tm-123#member (as the subject of the tuple)
+  //
+  // This field qualifies HOW the principal relates to this resource reference,
+  // NOT the permission being granted (that's IamPolicySpec.relation).
+  string relation = 3 [(buf.validate.field).string.max_len = 256];
+}
