@@ -16,6 +16,8 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/session",
     visibility = ["//visibility:public"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//backend/libs/go/badger",
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/interceptors/apiresource",

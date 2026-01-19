@@ -153,21 +153,24 @@ async def _execute_graphton_impl(
         # Extract agent instructions
         instructions = agent.spec.instructions if agent.spec.instructions else "You are a helpful AI assistant."
         
-        # Model name from execution config or default
+        # Step 2: Get worker configuration (for sandbox and LLM config)
+        from worker.config import Config
+        worker_config = Config.load_from_env()
+        
+        # Model name from execution config or worker config (mode-aware default)
+        # Priority: execution config > worker LLM config (env vars + mode-aware defaults)
         model_name = (
             execution.spec.execution_config.model_name 
             if execution.spec.execution_config and execution.spec.execution_config.model_name
-            else "claude-sonnet-4.5"
+            else worker_config.llm.model_name
         )
         
         activity_logger.info(
-            f"Agent config: model={model_name}, instructions_length={len(instructions)}"
+            f"Agent config: model={model_name} (provider={worker_config.llm.provider}), "
+            f"instructions_length={len(instructions)}"
         )
         
-        # Step 2: Get sandbox configuration from worker config
-        # Import config to get sandbox settings
-        from worker.config import Config
-        worker_config = Config.load_from_env()
+        # Get sandbox configuration from worker config
         sandbox_config = worker_config.get_sandbox_config()
         
         activity_logger.info(

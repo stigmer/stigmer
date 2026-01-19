@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.identityaccount.v1;
+
+import "buf/validate/validate.proto";
+
+//identity-account spec
+message IdentityAccountSpec {
+  // idp id of the identity account.
+  // this is the id assigned by auth0 to the identity account.
+  string idp_id = 1 [(buf.validate.field).required = true];
+
+  // email of the identity account.
+  // (ignored for create) this value is assigned by backend.
+  // email is based on the email used to signup to the application.
+  string email = 2;
+
+  // first name of the identity account.
+  string first_name = 3;
+
+  // last name of the identity account.
+  string last_name = 4;
+
+  //url of the profile picture for the user on auth0
+  string picture_url = 5;
+
+  // indicates if this is a machine account used for inter-service communication.
+  // machine accounts have idp_id values ending with "@clients" suffix.
+  // (ignored for create) this value is assigned by backend based on idp_id.
+  bool is_machine_account = 6;
+}

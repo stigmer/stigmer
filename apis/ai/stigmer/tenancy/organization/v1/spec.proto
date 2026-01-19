@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package ai.stigmer.tenancy.organization.v1;
+
+import "buf/validate/validate.proto";
+
+// OrganizationSpec defines the configuration for an organization.
+// Organizations are the top-level container for all Stigmer resources.
+// Similar to GitHub organizations, all agents, workflows, and other resources
+// are scoped under an organization.
+message OrganizationSpec {
+  // description for the organization
+  string description = 1 [(buf.validate.field).string.max_len = 500];
+
+  // public url for the organization logo (optional)
+  string logo_url = 2 [(buf.validate.field).string.max_len = 2048];
+}

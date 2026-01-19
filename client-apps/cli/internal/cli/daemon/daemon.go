@@ -13,6 +13,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
 )
 
 const (
@@ -47,10 +49,61 @@ func Start(dataDir string) error {
 		return errors.Wrap(err, "failed to create data directory")
 	}
 
-	// Gather required secrets (prompt for missing API keys)
-	secrets, err := GatherRequiredSecrets()
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to load config, using defaults")
+		cfg = config.GetDefault()
+	}
+
+	// Resolve LLM configuration
+	llmProvider := cfg.Backend.Local.ResolveLLMProvider()
+	llmModel := cfg.Backend.Local.ResolveLLMModel()
+	llmBaseURL := cfg.Backend.Local.ResolveLLMBaseURL()
+
+	log.Debug().
+		Str("llm_provider", llmProvider).
+		Str("llm_model", llmModel).
+		Str("llm_base_url", llmBaseURL).
+		Msg("Resolved LLM configuration")
+
+	// Gather provider-specific secrets
+	secrets, err := GatherRequiredSecrets(llmProvider)
 	if err != nil {
 		return errors.Wrap(err, "failed to gather required secrets")
+	}
+
+	// Resolve Temporal configuration
+	temporalAddr, isManaged := cfg.Backend.Local.ResolveTemporalAddress()
+	
+	log.Debug().
+		Str("temporal_address", temporalAddr).
+		Bool("temporal_managed", isManaged).
+		Msg("Resolved Temporal configuration")
+
+	// Start managed Temporal if configured
+	var temporalManager *temporal.Manager
+	if isManaged {
+		log.Info().Msg("Starting managed Temporal server...")
+		
+		temporalManager = temporal.NewManager(
+			dataDir,
+			cfg.Backend.Local.ResolveTemporalVersion(),
+			cfg.Backend.Local.ResolveTemporalPort(),
+		)
+		
+		if err := temporalManager.EnsureInstalled(); err != nil {
+			return errors.Wrap(err, "failed to ensure Temporal installation")
+		}
+		
+		if err := temporalManager.Start(); err != nil {
+			return errors.Wrap(err, "failed to start Temporal")
+		}
+		
+		temporalAddr = temporalManager.GetAddress()
+		log.Info().Str("address", temporalAddr).Msg("Temporal started successfully")
+	} else {
+		log.Info().Str("address", temporalAddr).Msg("Using external Temporal")
 	}
 
 	// Find stigmer-server binary
@@ -115,8 +168,8 @@ func Start(dataDir string) error {
 	// Wait a moment for server to start
 	time.Sleep(500 * time.Millisecond)
 
-	// Start agent-runner subprocess with injected secrets
-	if err := startAgentRunner(dataDir, logDir, secrets); err != nil {
+	// Start agent-runner subprocess with LLM config and injected secrets
+	if err := startAgentRunner(dataDir, logDir, llmProvider, llmModel, llmBaseURL, temporalAddr, secrets); err != nil {
 		log.Error().Err(err).Msg("Failed to start agent-runner, continuing without it")
 		// Don't fail the entire daemon startup if agent-runner fails
 		// The server is still useful without the agent-runner
@@ -125,8 +178,16 @@ func Start(dataDir string) error {
 	return nil
 }
 
-// startAgentRunner starts the agent-runner subprocess with injected secrets
-func startAgentRunner(dataDir string, logDir string, secrets map[string]string) error {
+// startAgentRunner starts the agent-runner subprocess with LLM config and injected secrets
+func startAgentRunner(
+	dataDir string,
+	logDir string,
+	llmProvider string,
+	llmModel string,
+	llmBaseURL string,
+	temporalAddr string,
+	secrets map[string]string,
+) error {
 	// Find agent-runner script
 	runnerScript, err := findAgentRunnerScript()
 	if err != nil {
@@ -135,7 +196,7 @@ func startAgentRunner(dataDir string, logDir string, secrets map[string]string) 
 
 	log.Debug().Str("script", runnerScript).Msg("Found agent-runner script")
 
-	// Prepare environment with injected secrets
+	// Prepare environment with LLM and Temporal configuration
 	env := os.Environ()
 	
 	// Add local mode configuration
@@ -145,16 +206,30 @@ func startAgentRunner(dataDir string, logDir string, secrets map[string]string) 
 		"SANDBOX_ROOT_DIR=./workspace",
 		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=localhost:%d", DaemonPort),
 		"STIGMER_API_KEY=dummy-local-key",
-		"TEMPORAL_SERVICE_ADDRESS=localhost:7233",
+		
+		// Temporal configuration
+		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", temporalAddr),
 		"TEMPORAL_NAMESPACE=default",
 		"TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner",
+		
+		// LLM configuration (matches agent-runner expectations)
+		fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", llmProvider),
+		fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
+		fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
+		
 		"LOG_LEVEL=DEBUG",
 	)
 	
-	// Inject gathered secrets
+	// Inject provider-specific secrets
 	for key, value := range secrets {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))
 	}
+	
+	log.Info().
+		Str("llm_provider", llmProvider).
+		Str("llm_model", llmModel).
+		Str("temporal_address", temporalAddr).
+		Msg("Starting agent-runner with configuration")
 
 	// Start agent-runner process
 	cmd := exec.Command(runnerScript)
@@ -201,12 +276,15 @@ func startAgentRunner(dataDir string, logDir string, secrets map[string]string) 
 	return nil
 }
 
-// Stop stops the stigmer daemon and agent-runner
+// Stop stops the stigmer daemon, agent-runner, and managed Temporal
 func Stop(dataDir string) error {
 	log.Debug().Str("data_dir", dataDir).Msg("Stopping daemon")
 
 	// Stop agent-runner first (if running)
 	stopAgentRunner(dataDir)
+
+	// Stop managed Temporal (if running)
+	stopManagedTemporal(dataDir)
 
 	// Stop stigmer-server
 	pid, err := getPID(dataDir)
@@ -251,6 +329,39 @@ func Stop(dataDir string) error {
 	_ = os.Remove(pidFile)
 
 	return nil
+}
+
+// stopManagedTemporal stops managed Temporal if it's running
+func stopManagedTemporal(dataDir string) {
+	// Load config, use defaults if it fails
+	cfg, err := config.Load()
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to load config, using defaults for Temporal stop")
+		cfg = config.GetDefault()
+	}
+	
+	// Skip if explicitly configured as external Temporal
+	if cfg.Backend.Local.Temporal != nil && !cfg.Backend.Local.Temporal.Managed {
+		return // Using external Temporal, don't stop it
+	}
+	
+	// Create manager with config (or defaults)
+	tm := temporal.NewManager(
+		dataDir,
+		cfg.Backend.Local.ResolveTemporalVersion(),
+		cfg.Backend.Local.ResolveTemporalPort(),
+	)
+	
+	if !tm.IsRunning() {
+		return // Not running
+	}
+	
+	log.Info().Msg("Stopping managed Temporal...")
+	if err := tm.Stop(); err != nil {
+		log.Error().Err(err).Msg("Failed to stop Temporal")
+	} else {
+		log.Info().Msg("Temporal stopped successfully")
+	}
 }
 
 // stopAgentRunner stops the agent-runner subprocess

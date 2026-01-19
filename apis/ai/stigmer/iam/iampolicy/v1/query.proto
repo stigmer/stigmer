@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.iampolicy.v1;
+
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/api.proto";
+import "ai/stigmer/iam/iampolicy/v1/io.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// iam-policy query controller
+service IamPolicyQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = iam_policy;
+
+  // lookup iam-policy by id
+  rpc get(IamPolicyId) returns (IamPolicy) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view_access;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to view access policies";
+  }
+
+  // Check if a principal is authorized to perform a relation on a resource
+  //
+  // This is the fundamental authorization check RPC that answers the question:
+  // "Does principal X have permission Y on resource Z?"
+  //
+  // It provides a simple boolean answer based on the complete authorization state,
+  // including existing IAM policies, inherited permissions, and group memberships.
+  //
+  // Use Cases:
+  // - Pre-flight UI checks before showing buttons/actions
+  // - API request authorization before processing operations
+  // - Service-to-service authorization
+  // - Team-based access checks
+  //
+  // Input: CheckAuthorizationInput with policy spec and optional contextual policies
+  // Output: CheckAuthorizationResult with is_authorized boolean
+  rpc checkAuthorization(CheckAuthorizationInput) returns (CheckAuthorizationResult) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+
+  // List all resource IDs of a specific kind that a principal is authorized to access
+  //
+  // This RPC answers: "What are all the [resource-kind] that [principal] can [relation] on?"
+  // Essential for building permission-aware UIs and filtering resource lists.
+  //
+  // Use Cases:
+  // - Resource list filtering in dropdowns
+  // - Permission-based navigation
+  // - Bulk authorization checks
+  //
+  // Input: ListAuthorizedResourceIdsInput with principal, resource_kind, and relation
+  // Output: AuthorizedResourceIdsList containing all accessible resource IDs
+  rpc listAuthorizedResourceIds(ListAuthorizedResourceIdsInput) returns (AuthorizedResourceIdsList) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view_access;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to view authorized resource ids";
+  }
+
+  // List all principal IDs of a specific kind that are authorized to access a resource
+  //
+  // This RPC answers: "What are all the [principal-kind] that have [relation] access on [resource]?"
+  // Inverse of listAuthorizedResourceIds.
+  //
+  // Use Cases:
+  // - Resource access audit (who can access this?)
+  // - Team discovery for resources
+  // - Compliance and security audits
+  //
+  // Input: ListAuthorizedPrincipalIdsInput with resource, principal_kind, and relation
+  // Output: AuthorizedPrincipalIdsList containing all authorized principal IDs
+  rpc listAuthorizedPrincipalIds(ListAuthorizedPrincipalIdsInput) returns (AuthorizedPrincipalIdsList) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view_access;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to view authorized principal ids";
+  }
+}

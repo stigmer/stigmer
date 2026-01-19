@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.apikey.v1;
+
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "ai/stigmer/iam/apikey/v1/spec.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// api-key for user-account or machine-account
+message ApiKey {
+  //api-version
+  string api_version = 1 [(buf.validate.field).string.const = 'iam.stigmer.ai/v1'];
+
+  //resource-kind
+  string kind = 2 [(buf.validate.field).string.const = 'ApiKey'];
+
+  // metadata
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
+
+  //spec
+  ApiKeySpec spec = 4;
+
+  //status
+  ApiKeyStatus status = 5;
+}
+
+message ApiKeyStatus {
+  // audit
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  //last used timestamp for the api-key
+  google.protobuf.Timestamp last_used_at = 1;
+}
