@@ -17,7 +17,7 @@ import (
 
 const (
 	// DefaultTemporalVersion is the default Temporal CLI version
-	DefaultTemporalVersion = "1.25.1"
+	DefaultTemporalVersion = "1.5.1"
 	
 	// DefaultTemporalPort is the default port for Temporal dev server
 	DefaultTemporalPort = 7233
@@ -106,7 +106,7 @@ func (m *Manager) Start() error {
 	cmd := exec.Command(m.binPath, "server", "start-dev",
 		"--port", strconv.Itoa(m.port),
 		"--db-filename", dbPath,
-		"--headless", // No UI
+		"--ui-port", "8233", // Web UI port
 	)
 	
 	// Redirect output to log file
@@ -144,7 +144,10 @@ func (m *Manager) Start() error {
 		return errors.Wrap(err, "Temporal failed to start")
 	}
 	
-	log.Info().Str("address", m.GetAddress()).Msg("Temporal is ready")
+	log.Info().
+		Str("address", m.GetAddress()).
+		Str("ui_url", "http://localhost:8233").
+		Msg("Temporal is ready")
 	return nil
 }
 

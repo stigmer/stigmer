@@ -39,6 +39,15 @@ Combined project to achieve zero-config local development:
    - Start managed Temporal before agent-runner
    - Graceful shutdown stops all processes
 
+6. **✅ Task 6**: Bug fixes and UX improvements (2026-01-19)
+   - Fixed Temporal CLI version (1.25.1 → 1.5.1) - resolved HTTP 404 error
+   - Enabled Temporal Web UI at http://localhost:8233
+   - Fixed config loading to use defaults when file missing/corrupted
+   - Improved daemon stop to reliably clean up all processes
+   - Enhanced CLI output to show Temporal UI URL
+   - **Checkpoint**: `checkpoints/2026-01-19-temporal-fixes-and-web-ui.md`
+   - **Changelog**: `_changelog/2026-01/2026-01-19-082152-fix-temporal-cli-version-and-enable-web-ui.md`
+
 ### Files Created
 
 **New Files**:
@@ -65,8 +74,9 @@ backend:
       base_url: http://localhost:11434
     temporal:
       managed: true
-      version: 1.25.1
+      version: 1.5.1  # Temporal CLI version (not server version)
       port: 7233
+      # Web UI available at: http://localhost:8233
 ```
 
 ### Environment Variable Overrides
@@ -120,16 +130,17 @@ $ stigmer local start
 
 ## Remaining Tasks
 
-### Task 6: Testing (Manual)
+### Task 7: Testing (Manual) - Partially Complete
 
 Since this is a CLI application with subprocess management, automated testing is complex. Manual testing checklist:
 
 **Zero-Config Flow**:
-- [ ] Fresh start with defaults
-- [ ] Temporal binary downloads automatically
-- [ ] Temporal starts on port 7233
-- [ ] Agent-runner receives correct env vars
-- [ ] No API key prompts for Ollama
+- [x] Fresh start with defaults ✅ (2026-01-19)
+- [x] Temporal binary downloads automatically ✅ (v1.5.1)
+- [x] Temporal starts on port 7233 ✅
+- [x] Temporal Web UI accessible at http://localhost:8233 ✅
+- [ ] Agent-runner receives correct env vars (needs verification)
+- [ ] No API key prompts for Ollama (needs verification)
 
 **Anthropic Flow**:
 - [ ] Edit config to use anthropic
@@ -143,22 +154,26 @@ Since this is a CLI application with subprocess management, automated testing is
 - [ ] Connects to external Temporal
 
 **Graceful Shutdown**:
-- [ ] `stigmer local stop` stops all processes
-- [ ] Managed Temporal stops cleanly
-- [ ] Agent-runner stops cleanly
-- [ ] stigmer-server stops cleanly
+- [x] `stigmer local stop` stops all processes ✅ (2026-01-19)
+- [x] Managed Temporal stops cleanly ✅
+- [x] Agent-runner stops cleanly ✅
+- [x] stigmer-server stops cleanly ✅
 
 **Status Command**:
 - [ ] Shows LLM provider and model
 - [ ] Shows Temporal status (managed vs external)
 - [ ] Shows correct port information
 
-### Task 7: Documentation
+### Task 8: Documentation
 
 Need to update:
+- [ ] Getting-started guide - Add Temporal Web UI section
+- [ ] Getting-started guide - Document workflow debugging via UI
 - [ ] `backend/services/agent-runner/_kustomize/LOCAL-LLM-SETUP.md` - Add CLI config section
 - [ ] `client-apps/cli/README.md` - Document new configuration
 - [ ] Create migration guide for existing users
+
+**Note**: Documentation will be created/updated following this session using documentation standards.
 
 ## Implementation Highlights
 
@@ -213,10 +228,16 @@ Since we can't easily run the full stack in CI, testing should focus on:
 
 ## Known Limitations
 
-- **No migration for existing users**: Users with old configs will get defaults added on next load
+- **No migration for existing users**: Old Cloud config format backed up, new config created (2026-01-19: Handled gracefully)
 - **No config validation**: Invalid provider names fail at runtime
 - **No version management**: Always downloads specified version, doesn't check for updates
 - **No cleanup**: Old Temporal data files accumulate
+
+## Fixed Limitations (2026-01-19)
+
+- ~~**Temporal CLI version incorrect**~~ ✅ Fixed: Updated to v1.5.1
+- ~~**No Temporal Web UI**~~ ✅ Fixed: Enabled at http://localhost:8233
+- ~~**Config errors during cleanup**~~ ✅ Fixed: Fallback to defaults when config missing
 
 ## Future Enhancements
 
