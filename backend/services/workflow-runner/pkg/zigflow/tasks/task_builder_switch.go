@@ -81,22 +81,25 @@ func (t *SwitchTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 				// Check if this is a task reference (inline task in do:) or a child workflow
 				targetTask := then.Value
 				
-				// Try to check if it's a task in the current workflow's do: list
-				// If so, we'll set the base task's Then directive to jump to that task
-				// Otherwise, fall back to child workflow execution
-				
 				logger.Info("Switch matched condition", "task", t.GetTaskName(), "condition", name, "target", targetTask)
 				
-				// Set the task base's Then directive so the Do builder can handle flow control
-				// This is the key: we're setting it on the base task so handleFlowDirective picks it up
-				if t.GetTask() != nil && t.GetTask().GetBase() != nil {
-					t.GetTask().GetBase().Then = then
-					logger.Debug("Set task Then directive for flow control", "target", targetTask)
-					// Return nil to let the Do builder handle the flow
-					return nil, nil
+				// Set the task base's Then directive for flow control if we're in a Do task context
+				// (indicated by having a doc reference). This allows the Do builder to handle flow control.
+				// Otherwise, execute as a child workflow directly (for standalone switch tasks).
+				if t.doc != nil {
+					baseTask := t.GetTask()
+					if baseTask != nil {
+						base := baseTask.GetBase()
+						if base != nil {
+							base.Then = then
+							logger.Debug("Set task Then directive for flow control", "target", targetTask)
+							// Return nil to let the Do builder handle the flow
+							return nil, nil
+						}
+					}
 				}
 				
-				// Fallback: Try executing as child workflow (for backward compatibility)
+				// Execute as child workflow (for standalone switch tasks or fallback)
 				logger.Info("Executing switch target as child workflow", "target", targetTask)
 				var res any
 				if err := workflow.ExecuteChildWorkflow(ctx, targetTask, input, state).Get(ctx, &res); err != nil {
@@ -105,7 +108,7 @@ func (t *SwitchTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 				}
 
 				// Stop it executing anything else
-				return nil, nil
+				return res, nil
 			}
 		}
 

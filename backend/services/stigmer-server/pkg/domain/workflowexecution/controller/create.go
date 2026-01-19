@@ -48,6 +48,7 @@ const (
 // - Handler enforces: at least one must be provided
 func (c *WorkflowExecutionController) Create(ctx context.Context, execution *workflowexecutionv1.WorkflowExecution) (*workflowexecutionv1.WorkflowExecution, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, execution)
+	reqCtx.SetNewState(execution)
 
 	p := c.buildCreatePipeline()
 
@@ -149,9 +150,10 @@ func (s *createDefaultInstanceIfNeededStep) Name() string {
 }
 
 func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext[*workflowexecutionv1.WorkflowExecution]) error {
-	execution := ctx.NewState()
-	workflowInstanceID := execution.GetSpec().GetWorkflowInstanceId()
-	workflowID := execution.GetSpec().GetWorkflowId()
+	// Check the input to see if workflow_instance_id was provided
+	input := ctx.Input()
+	workflowInstanceID := input.GetSpec().GetWorkflowInstanceId()
+	workflowID := input.GetSpec().GetWorkflowId()
 
 	// If workflow_instance_id is provided, skip this step
 	if workflowInstanceID != "" {
@@ -160,6 +162,9 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 			Msg("Workflow instance ID already provided, skipping default instance check")
 		return nil
 	}
+	
+	// Get the execution state to modify if needed
+	execution := ctx.NewState()
 
 	log.Debug().
 		Str("workflow_id", workflowID).

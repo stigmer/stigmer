@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "controller",
@@ -25,5 +25,20 @@ go_library(
         "//backend/services/stigmer-server/pkg/downstream/workflow",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)
+
+go_test(
+    name = "controller_test",
+    srcs = ["workflowinstance_controller_test.go"],
+    embed = [":controller"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
+        "//apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//backend/libs/go/badger",
+        "//backend/libs/go/grpc/interceptors/apiresource",
+        "//backend/services/stigmer-server/pkg/downstream/workflow",
     ],
 )
