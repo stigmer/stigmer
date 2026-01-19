@@ -50,24 +50,50 @@ func GetOrPromptSecret(envVar string, prompt string) (string, bool, error) {
 	return secret, true, nil
 }
 
-// GatherRequiredSecrets prompts for any missing required secrets.
+// GatherRequiredSecrets prompts for provider-specific secrets based on LLM provider.
 // Returns a map of environment variable names to secret values.
-func GatherRequiredSecrets() (map[string]string, error) {
+func GatherRequiredSecrets(llmProvider string) (map[string]string, error) {
 	secrets := make(map[string]string)
 	
-	// Check for ANTHROPIC_API_KEY
-	apiKey, prompted, err := GetOrPromptSecret("ANTHROPIC_API_KEY", "Enter Anthropic API key")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Anthropic API key: %w", err)
-	}
-	
-	if prompted {
+	switch llmProvider {
+	case "ollama":
+		// No secrets needed for Ollama!
+		fmt.Fprintf(os.Stderr, "✓ Using Ollama (no API key required)\n")
+		return secrets, nil
+		
+	case "anthropic":
+		// Check if already in environment
+		if apiKey := os.Getenv("ANTHROPIC_API_KEY"); apiKey != "" {
+			fmt.Fprintf(os.Stderr, "✓ Using ANTHROPIC_API_KEY from environment\n")
+			return secrets, nil
+		}
+		
+		// Prompt for API key
+		apiKey, err := PromptForSecret("Enter Anthropic API key")
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Anthropic API key: %w", err)
+		}
 		secrets["ANTHROPIC_API_KEY"] = apiKey
 		fmt.Fprintf(os.Stderr, "✓ Anthropic API key configured\n")
+		
+	case "openai":
+		// Check if already in environment
+		if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
+			fmt.Fprintf(os.Stderr, "✓ Using OPENAI_API_KEY from environment\n")
+			return secrets, nil
+		}
+		
+		// Prompt for API key
+		apiKey, err := PromptForSecret("Enter OpenAI API key")
+		if err != nil {
+			return nil, fmt.Errorf("failed to get OpenAI API key: %w", err)
+		}
+		secrets["OPENAI_API_KEY"] = apiKey
+		fmt.Fprintf(os.Stderr, "✓ OpenAI API key configured\n")
+		
+	default:
+		return nil, fmt.Errorf("unsupported LLM provider: %s (supported: ollama, anthropic, openai)", llmProvider)
 	}
-	
-	// Future: Add other provider keys here (OpenAI, etc.)
-	// openaiKey, prompted, err := GetOrPromptSecret("OPENAI_API_KEY", "Enter OpenAI API key (optional, press Enter to skip)")
 	
 	return secrets, nil
 }

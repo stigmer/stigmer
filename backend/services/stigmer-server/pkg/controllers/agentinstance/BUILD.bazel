@@ -19,6 +19,8 @@ go_library(
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
+        "//internal/gen/ai/stigmer/agentic/agentinstance/v1:agentinstance",
+        "//internal/gen/ai/stigmer/commons/apiresource",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_protobuf//encoding/protojson",
     ],
