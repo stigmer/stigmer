@@ -15,6 +15,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // contextWithWorkflowInstanceKind creates a context with the workflow instance resource kind injected
@@ -112,7 +113,23 @@ func setupTestController(t *testing.T) *testControllers {
 }
 
 // createTestWorkflow creates a workflow in the store for testing
+// Workflows require: platform/organization scope, document, and at least one task
 func createTestWorkflow(t *testing.T, controllers *testControllers, name string, scope apiresource.ApiResourceOwnerScope, org string) *workflowv1.Workflow {
+	// If scope is unspecified, default to platform (required for workflows)
+	if scope == apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified {
+		scope = apiresource.ApiResourceOwnerScope_platform
+	}
+
+	// Create minimal task config for a SET task
+	taskConfig, err := structpb.NewStruct(map[string]interface{}{
+		"set": map[string]interface{}{
+			"test_var": "test_value",
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to create task config: %v", err)
+	}
+
 	wf := &workflowv1.Workflow{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
@@ -122,7 +139,21 @@ func createTestWorkflow(t *testing.T, controllers *testControllers, name string,
 			Org:        org,
 		},
 		Spec: &workflowv1.WorkflowSpec{
-			Description: "Test workflow",
+			Description: "Test workflow description",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:         "1.0.0",
+				Namespace:   "test",
+				Name:        name,
+				Version:     "1.0.0",
+				Description: "Test document",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "test-task",
+					Kind:       apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+					TaskConfig: taskConfig,
+				},
+			},
 		},
 	}
 
@@ -267,7 +298,7 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 
 	t.Run("same-org validation - org workflow can create instance in same org", func(t *testing.T) {
 		// Create org-scoped workflow
-		parentWorkflow := createTestWorkflow(t, store, "wfl-org-123", "org-workflow", apiresource.ApiResourceOwnerScope_organization, "org-123")
+		parentWorkflow := createTestWorkflow(t, controllers, "org-workflow", apiresource.ApiResourceOwnerScope_organization, "org-123")
 
 		instance := &workflowinstancev1.WorkflowInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
@@ -295,7 +326,7 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 
 	t.Run("same-org validation - org workflow cannot create instance in different org", func(t *testing.T) {
 		// Create org-scoped workflow
-		parentWorkflow := createTestWorkflow(t, store, "wfl-org-456", "org-workflow-2", apiresource.ApiResourceOwnerScope_organization, "org-456")
+		parentWorkflow := createTestWorkflow(t, controllers, "org-workflow-2", apiresource.ApiResourceOwnerScope_organization, "org-456")
 
 		instance := &workflowinstancev1.WorkflowInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
@@ -506,12 +537,12 @@ func TestWorkflowInstanceController_Update(t *testing.T) {
 }
 
 func TestWorkflowInstanceController_Delete(t *testing.T) {
-	controller, store, _ := setupTestController(t)
-	defer store.Close()
+	controllers := setupTestController(t)
+	defer controllers.store.Close()
 
 	t.Run("successful deletion", func(t *testing.T) {
 		// Create parent workflow first
-		parentWorkflow := createTestWorkflow(t, store, "wfl-delete-test", "delete-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		parentWorkflow := createTestWorkflow(t, controllers, "delete-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
 
 		// Create instance first
 		instance := &workflowinstancev1.WorkflowInstance{
@@ -533,7 +564,7 @@ func TestWorkflowInstanceController_Delete(t *testing.T) {
 		}
 
 		// Delete the instance
-		deleted, err := controller.Delete(contextWithWorkflowInstanceKind(), &workflowinstancev1.WorkflowInstanceId{Value: created.Metadata.Id})
+		deleted, err := controllers.workflowInstance.Delete(contextWithWorkflowInstanceKind(), &workflowinstancev1.WorkflowInstanceId{Value: created.Metadata.Id})
 		if err != nil {
 			t.Fatalf("Delete failed: %v", err)
 		}
@@ -543,21 +574,21 @@ func TestWorkflowInstanceController_Delete(t *testing.T) {
 		}
 
 		// Verify instance is deleted
-		_, err = controller.Get(contextWithWorkflowInstanceKind(), &workflowinstancev1.WorkflowInstanceId{Value: created.Metadata.Id})
+		_, err = controllers.workflowInstance.Get(contextWithWorkflowInstanceKind(), &workflowinstancev1.WorkflowInstanceId{Value: created.Metadata.Id})
 		if err == nil {
 			t.Error("Expected error when getting deleted instance")
 		}
 	})
 
 	t.Run("delete non-existent instance", func(t *testing.T) {
-		_, err := controller.Delete(contextWithWorkflowInstanceKind(), &workflowinstancev1.WorkflowInstanceId{Value: "non-existent-id"})
+		_, err := controllers.workflowInstance.Delete(contextWithWorkflowInstanceKind(), &workflowinstancev1.WorkflowInstanceId{Value: "non-existent-id"})
 		if err == nil {
 			t.Error("Expected error for deleting non-existent instance")
 		}
 	})
 
 	t.Run("delete with empty ID", func(t *testing.T) {
-		_, err := controller.Delete(contextWithWorkflowInstanceKind(), &workflowinstancev1.WorkflowInstanceId{Value: ""})
+		_, err := controllers.workflowInstance.Delete(contextWithWorkflowInstanceKind(), &workflowinstancev1.WorkflowInstanceId{Value: ""})
 		if err == nil {
 			t.Error("Expected error when deleting with empty ID")
 		}
@@ -565,7 +596,7 @@ func TestWorkflowInstanceController_Delete(t *testing.T) {
 
 	t.Run("verify deleted instance returns correct data", func(t *testing.T) {
 		// Create parent workflow first
-		parentWorkflow := createTestWorkflow(t, store, "wfl-delete-verify", "delete-verify-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		parentWorkflow := createTestWorkflow(t, controllers, "delete-verify-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
 
 		// Create instance with specific data
 		instance := &workflowinstancev1.WorkflowInstance{
@@ -587,7 +618,7 @@ func TestWorkflowInstanceController_Delete(t *testing.T) {
 		}
 
 		// Delete and verify returned data
-		deleted, err := controller.Delete(contextWithWorkflowInstanceKind(), &workflowinstancev1.WorkflowInstanceId{Value: created.Metadata.Id})
+		deleted, err := controllers.workflowInstance.Delete(contextWithWorkflowInstanceKind(), &workflowinstancev1.WorkflowInstanceId{Value: created.Metadata.Id})
 		if err != nil {
 			t.Fatalf("Delete failed: %v", err)
 		}
@@ -608,15 +639,15 @@ func TestWorkflowInstanceController_Delete(t *testing.T) {
 }
 
 func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
-	controller, store, _ := setupTestController(t)
-	defer store.Close()
+	controllers := setupTestController(t)
+	defer controllers.store.Close()
 
 	t.Run("successful get by workflow with multiple instances", func(t *testing.T) {
 		// Create parent workflow first
-		parentWorkflow := createTestWorkflow(t, store, "wfl-list-test", "list-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		parentWorkflow := createTestWorkflow(t, controllers, "list-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
 
 		// Create another workflow to test filtering
-		otherWorkflow := createTestWorkflow(t, store, "wfl-other-test", "other-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		otherWorkflow := createTestWorkflow(t, controllers, "other-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
 
 		// Create multiple instances for the parent workflow
 		for i := 1; i <= 3; i++ {
@@ -651,7 +682,7 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 				Description: "Other instance description",
 			},
 		}
-		_, err := controller.Create(contextWithWorkflowInstanceKind(), otherInstance)
+		_, err := controllers.workflowInstance.Create(contextWithWorkflowInstanceKind(), otherInstance)
 		if err != nil {
 			t.Fatalf("Create failed for other instance: %v", err)
 		}
@@ -660,7 +691,7 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 		request := &workflowinstancev1.GetWorkflowInstancesByWorkflowRequest{
 			WorkflowId: parentWorkflow.Metadata.Id,
 		}
-		list, err := controller.GetByWorkflow(contextWithWorkflowInstanceKind(), request)
+		list, err := controllers.workflowInstance.GetByWorkflow(contextWithWorkflowInstanceKind(), request)
 		if err != nil {
 			t.Fatalf("GetByWorkflow failed: %v", err)
 		}
@@ -680,12 +711,12 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 
 	t.Run("get by workflow with no instances", func(t *testing.T) {
 		// Create a workflow with no instances
-		emptyWorkflow := createTestWorkflow(t, store, "wfl-empty-test", "empty-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		emptyWorkflow := createTestWorkflow(t, controllers, "empty-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
 
 		request := &workflowinstancev1.GetWorkflowInstancesByWorkflowRequest{
 			WorkflowId: emptyWorkflow.Metadata.Id,
 		}
-		list, err := controller.GetByWorkflow(contextWithWorkflowInstanceKind(), request)
+		list, err := controllers.workflowInstance.GetByWorkflow(contextWithWorkflowInstanceKind(), request)
 		if err != nil {
 			t.Fatalf("GetByWorkflow failed: %v", err)
 		}
@@ -700,7 +731,7 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 		request := &workflowinstancev1.GetWorkflowInstancesByWorkflowRequest{
 			WorkflowId: "",
 		}
-		_, err := controller.GetByWorkflow(contextWithWorkflowInstanceKind(), request)
+		_, err := controllers.workflowInstance.GetByWorkflow(contextWithWorkflowInstanceKind(), request)
 		if err == nil {
 			t.Error("Expected error when workflow_id is empty")
 		}
