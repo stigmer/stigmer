@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -57,12 +57,12 @@ func (c *SessionController) buildListPipeline() *pipeline.Pipeline[*sessionv1.Li
 // listAllSessionsStep loads all sessions from the database
 type listAllSessionsStep struct {
 	store interface {
-		ListResources(ctx context.Context, kind string) ([][]byte, error)
+		ListResources(ctx context.Context, kind apiresourcekind.ApiResourceKind) ([][]byte, error)
 	}
 }
 
 func newListAllSessionsStep(store interface {
-	ListResources(ctx context.Context, kind string) ([][]byte, error)
+	ListResources(ctx context.Context, kind apiresourcekind.ApiResourceKind) ([][]byte, error)
 }) *listAllSessionsStep {
 	return &listAllSessionsStep{store: store}
 }

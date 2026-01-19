@@ -68,19 +68,15 @@ func (s *LoadExistingStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 
-	// Extract kind name from the enum's proto options
-	kindName, err := apiresource.GetKindName(kind)
-	if err != nil {
-		return fmt.Errorf("failed to get kind name: %w", err)
-	}
-
 	// Create a new instance of the same type for loading
 	var existing T
 	existing = proto.Clone(input).(T)
 
 	// Load from database
-	err = s.store.GetResource(ctx.Context(), kindName, metadata.Id, existing)
+	err := s.store.GetResource(ctx.Context(), kind, metadata.Id, existing)
 	if err != nil {
+		// Extract kind name for error message
+		kindName, _ := apiresource.GetKindName(kind)
 		// Convert store error to NotFound gRPC error
 		return grpclib.NotFoundError(kindName, metadata.Id)
 	}

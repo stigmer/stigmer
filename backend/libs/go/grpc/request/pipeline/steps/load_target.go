@@ -1,8 +1,6 @@
 package steps
 
 import (
-	"fmt"
-
 	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
@@ -78,19 +76,15 @@ func (s *LoadTargetStep[I, T]) Execute(ctx *pipeline.RequestContext[I]) error {
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 
-	// Extract kind name from the enum's proto options
-	kindName, err := apiresource.GetKindName(kind)
-	if err != nil {
-		return fmt.Errorf("failed to get kind name: %w", err)
-	}
-
 	// Create a new instance of the target type
 	var target T
 	target = target.ProtoReflect().New().Interface().(T)
 
 	// Load from database
-	err = s.store.GetResource(ctx.Context(), kindName, resourceID, target)
+	err := s.store.GetResource(ctx.Context(), kind, resourceID, target)
 	if err != nil {
+		// Extract kind name for error message
+		kindName, _ := apiresource.GetKindName(kind)
 		// Convert store error to NotFound gRPC error
 		return grpclib.NotFoundError(kindName, resourceID)
 	}
