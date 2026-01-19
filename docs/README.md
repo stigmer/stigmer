@@ -14,6 +14,7 @@ Complete documentation index for the Stigmer open-source project.
 
 ### Architecture
 - [Backend Abstraction](architecture/backend-abstraction.md) - Backend interface design and abstraction layers
+- [CLI Subprocess Lifecycle](architecture/cli-subprocess-lifecycle.md) - Production-grade subprocess management with lock files, health checks, and auto-restart
 - [Open Core Model](architecture/open-core-model.md) - Open source vs enterprise architecture
 - [Packaging Flow](architecture/packaging-flow.md) - How Stigmer is packaged and distributed (with diagrams)
 - [Request Pipeline Context Design](architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
