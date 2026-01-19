@@ -218,7 +218,7 @@ Format your response as plain text with clear sections.` + "`" + `),
 		analyzeTask := pipeline.CallAgent(
 			"analyze-repo",
 			workflow.AgentOption(workflow.Agent(analyzer)),
-			workflow.Message(fetchTask.Field("body")), // Pass GitHub API response to agent
+			workflow.Message(fetchTask.Field("body").Expression()), // Pass GitHub API response to agent
 			workflow.WithEnv(map[string]string{
 				"SUMMARY_LENGTH": summaryLength.Expression(), // Pass context variable to agent
 			}),
