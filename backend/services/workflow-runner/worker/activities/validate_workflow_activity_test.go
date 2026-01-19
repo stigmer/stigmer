@@ -180,7 +180,7 @@ do:
 
 // TestValidateStructureActivity_InvalidYAML tests validation of invalid YAML syntax.
 func TestValidateStructureActivity_InvalidYAML(t *testing.T) {
-	// Invalid YAML syntax
+	// Malformed YAML - unclosed quote will cause parse error
 	yaml := `
 document:
   dsl: '1.0.0'
@@ -190,8 +190,8 @@ document:
 do:
   - greet:
       set:
-        message: Hello, World!
-      invalid_indentation:  # Invalid YAML
+        message: "Hello, World!
+        status: incomplete
 `
 
 	// Create Temporal test environment for activities
