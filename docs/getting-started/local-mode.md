@@ -45,6 +45,27 @@ Next: stigmer local start
 stigmer local start
 ```
 
+**Troubleshooting with Debug Mode**:
+
+If you encounter issues, enable debug mode to see detailed logs:
+
+```bash
+stigmer local start --debug
+# or
+stigmer local -d
+```
+
+Debug mode shows:
+- Configuration loading details
+- LLM provider resolution
+- Temporal startup logs
+- Agent runner initialization
+- All internal process information
+
+**Normal vs Debug Output**:
+- **Normal mode**: Clean UI with progress indicators (recommended)
+- **Debug mode**: Human-readable debug logs + progress UI (troubleshooting)
+
 On first start, you'll be prompted for required API keys:
 
 ```
