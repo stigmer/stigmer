@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
-	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 )
 
 // contextWithAgentExecutionKind creates a context with the agent execution resource kind injected
@@ -31,7 +31,6 @@ func setupTestController(t *testing.T) (*AgentExecutionController, *badger.Store
 
 	return controller, store
 }
-
 
 func TestAgentExecutionController_Create(t *testing.T) {
 	controller, store := setupTestController(t)

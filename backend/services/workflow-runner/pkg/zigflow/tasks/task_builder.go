@@ -148,8 +148,16 @@ func (d *builder[T]) evaluateTaskArguments(ctx workflow.Context, state *utils.St
 		logger.Debug("gRPC task expressions evaluated successfully", "task", d.name)
 		return any(task).(T), nil
 
+	case *model.RunTask:
+		// Run tasks: evaluate script/shell commands, arguments, environment
+		if err := evaluateRunTaskExpressions(ctx, task, state); err != nil {
+			return d.task, fmt.Errorf("error evaluating Run task expressions: %w", err)
+		}
+		logger.Debug("Run task expressions evaluated successfully", "task", d.name)
+		return any(task).(T), nil
+
 	default:
-		// This should never happen - only CallHTTP and CallGRPC use executeActivity()
+		// This should never happen - only CallHTTP, CallGRPC, and RunTask use executeActivity()
 		// which calls this function. If we get here, it's a programming error.
 		logger.Error("Unexpected task type in evaluateTaskArguments",
 			"task", d.name, "type", fmt.Sprintf("%T", d.task))
