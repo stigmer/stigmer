@@ -23,6 +23,7 @@ import (
 // - TransformResponse step (no response transformations in OSS)
 func (c *EnvironmentController) Update(ctx context.Context, environment *environmentv1.Environment) (*environmentv1.Environment, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, environment)
+	reqCtx.SetNewState(environment)
 
 	p := c.buildUpdatePipeline()
 
