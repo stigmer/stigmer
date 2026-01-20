@@ -24,7 +24,7 @@ go_library(
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/downstream/workflow",
         "@com_github_rs_zerolog//log",
-        "@org_golang_google_protobuf//encoding/protojson",
+        "@org_golang_google_protobuf//proto",
     ],
 )
 
@@ -41,6 +41,7 @@ go_test(
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/services/stigmer-server/pkg/domain/workflow/controller",
         "//backend/services/stigmer-server/pkg/downstream/workflow",
+        "//backend/services/stigmer-server/pkg/downstream/workflowinstance",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//test/bufconn",
         "@org_golang_google_protobuf//types/known/structpb",
