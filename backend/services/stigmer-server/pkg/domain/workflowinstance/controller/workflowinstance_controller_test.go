@@ -13,6 +13,7 @@ import (
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -30,51 +31,88 @@ func contextWithWorkflowKind() context.Context {
 	return context.WithValue(context.Background(), apiresourceinterceptor.ApiResourceKindKey, apiresourcekind.ApiResourceKind_workflow)
 }
 
-// setupInProcessWorkflowServer creates an in-process gRPC server for workflow
-func setupInProcessWorkflowServer(t *testing.T, store *badger.Store) (*grpc.ClientConn, func()) {
-	// Create a listener using bufconn
-	buffer := 1024 * 1024
-	listener := bufconn.Listen(buffer)
+// setupInProcessServers creates both gRPC servers with proper cross-dependencies
+// This handles the circular dependency between Workflow and WorkflowInstance services:
+// - Workflow needs WorkflowInstance client (to create default instances)
+// - WorkflowInstance needs Workflow client (to validate parent workflows)
+func setupInProcessServers(t *testing.T, store *badger.Store) (*workflow.Client, *workflowinstance.Client, func()) {
+	// STEP 1: Create listeners for both servers
+	workflowListener := bufconn.Listen(1024 * 1024)
+	workflowInstanceListener := bufconn.Listen(1024 * 1024)
 
-	// Create gRPC server
-	server := grpc.NewServer(
-		grpc.UnaryInterceptor(func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-			// Inject api_resource_kind for workflow operations
-			ctx = contextWithWorkflowKind()
-			return handler(ctx, req)
-		}),
-	)
-
-	// Register workflow controller (without workflow instance client to avoid circular dependency)
-	workflowController := workflowcontroller.NewWorkflowController(store, nil)
-	workflowv1.RegisterWorkflowCommandControllerServer(server, workflowController)
-	workflowv1.RegisterWorkflowQueryControllerServer(server, workflowController)
-
-	// Start server in background
-	go func() {
-		if err := server.Serve(listener); err != nil {
-			t.Logf("Server exited with error: %v", err)
-		}
-	}()
-
-	// Create client connection
-	conn, err := grpc.DialContext(context.Background(), "",
+	// STEP 2: Create client connections BEFORE starting servers
+	// This allows us to create clients before controllers need them
+	workflowConn, err := grpc.DialContext(context.Background(), "",
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
-			return listener.Dial()
+			return workflowListener.Dial()
 		}),
 		grpc.WithInsecure(),
 	)
 	if err != nil {
-		t.Fatalf("Failed to create client connection: %v", err)
+		t.Fatalf("Failed to create workflow client connection: %v", err)
 	}
 
+	workflowInstanceConn, err := grpc.DialContext(context.Background(), "",
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+			return workflowInstanceListener.Dial()
+		}),
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create workflow instance client connection: %v", err)
+	}
+
+	// STEP 3: Create clients from connections
+	workflowClient := workflow.NewClient(workflowConn)
+	workflowInstanceClient := workflowinstance.NewClient(workflowInstanceConn)
+
+	// STEP 4: Create controllers with proper cross-dependencies
+	workflowController := workflowcontroller.NewWorkflowController(store, workflowInstanceClient)
+	workflowInstanceController := NewWorkflowInstanceController(store, workflowClient)
+
+	// STEP 5: Create and start gRPC servers with controllers
+	workflowServer := grpc.NewServer(
+		grpc.UnaryInterceptor(func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+			ctx = contextWithWorkflowKind()
+			return handler(ctx, req)
+		}),
+	)
+	workflowv1.RegisterWorkflowCommandControllerServer(workflowServer, workflowController)
+	workflowv1.RegisterWorkflowQueryControllerServer(workflowServer, workflowController)
+
+	workflowInstanceServer := grpc.NewServer(
+		grpc.UnaryInterceptor(func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+			ctx = contextWithWorkflowInstanceKind()
+			return handler(ctx, req)
+		}),
+	)
+	workflowinstancev1.RegisterWorkflowInstanceCommandControllerServer(workflowInstanceServer, workflowInstanceController)
+	workflowinstancev1.RegisterWorkflowInstanceQueryControllerServer(workflowInstanceServer, workflowInstanceController)
+
+	// STEP 6: Start servers in background
+	go func() {
+		if err := workflowServer.Serve(workflowListener); err != nil {
+			t.Logf("Workflow server exited with error: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := workflowInstanceServer.Serve(workflowInstanceListener); err != nil {
+			t.Logf("WorkflowInstance server exited with error: %v", err)
+		}
+	}()
+
+	// STEP 7: Return clients and cleanup function
 	cleanup := func() {
-		conn.Close()
-		server.Stop()
-		listener.Close()
+		workflowConn.Close()
+		workflowInstanceConn.Close()
+		workflowServer.Stop()
+		workflowInstanceServer.Stop()
+		workflowListener.Close()
+		workflowInstanceListener.Close()
 	}
 
-	return conn, cleanup
+	return workflowClient, workflowInstanceClient, cleanup
 }
 
 // testControllers holds all controllers needed for testing
@@ -92,18 +130,16 @@ func setupTestController(t *testing.T) *testControllers {
 		t.Fatalf("failed to create store: %v", err)
 	}
 
-	// Setup in-process workflow server
-	conn, cleanup := setupInProcessWorkflowServer(t, store)
+	// Setup both gRPC servers with proper cross-dependencies
+	// This handles the circular dependency between Workflow and WorkflowInstance
+	workflowClient, workflowInstanceClient, cleanup := setupInProcessServers(t, store)
 	t.Cleanup(cleanup)
 
-	// Create workflow client using the in-process connection
-	workflowClient := workflow.NewClient(conn)
-
-	// Create workflow instance controller
+	// Create controllers for testing
+	// Note: The ACTUAL controllers used by the gRPC servers are created inside setupInProcessServers
+	// These controllers are just for direct method calls in tests
 	workflowInstanceController := NewWorkflowInstanceController(store, workflowClient)
-
-	// Create workflow controller for test setup
-	workflowController := workflowcontroller.NewWorkflowController(store, nil)
+	workflowController := workflowcontroller.NewWorkflowController(store, workflowInstanceClient)
 
 	return &testControllers{
 		workflowInstance: workflowInstanceController,
