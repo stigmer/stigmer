@@ -83,6 +83,11 @@ tmp/
 *.a
 *.out
 
+# Go service binaries (prevent accidental commits of built binaries in service dirs)
+backend/services/*/stigmer-server
+backend/services/*/workflow-runner
+backend/services/*/agent-runner
+
 # Bazel build outputs
 bazel-*
 /MODULE.bazel.lock
