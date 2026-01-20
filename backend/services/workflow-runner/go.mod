@@ -1,11 +1,11 @@
-module github.com/leftbin/stigmer-cloud/backend/services/workflow-runner
+module github.com/stigmer/stigmer/backend/services/workflow-runner
 
 go 1.24.3
 
 toolchain go1.24.6
 
 // Local development: Use APIs from monorepo
-replace github.com/leftbin/stigmer-cloud/apis/stubs/go => ../../../apis/stubs/go
+replace github.com/stigmer/stigmer/apis/stubs/go => ../../../apis/stubs/go
 
 // Force older version of protocompile to avoid vendored protobuf conflicts
 // See: https://github.com/bazelbuild/rules_go/issues/1877
@@ -28,7 +28,6 @@ require (
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/itchyny/gojq v0.12.18
-	github.com/leftbin/stigmer-cloud/apis/stubs/go v0.0.0-00010101000000-000000000000
 	github.com/mrsimonemms/golang-helpers v0.4.1
 	github.com/mrsimonemms/temporal-codec-server/packages/golang v0.0.0-20250917111850-1e5f24c60fac
 	github.com/posthog/posthog-go v1.8.2
@@ -36,6 +35,7 @@ require (
 	github.com/serverlessworkflow/sdk-go/v3 v3.2.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
+	github.com/stigmer/stigmer/apis/stubs/go v0.0.0-00010101000000-000000000000
 	go.temporal.io/sdk v1.38.0
 	google.golang.org/grpc v1.78.0
 	gopkg.in/yaml.v3 v3.0.1

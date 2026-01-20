@@ -1139,6 +1139,7 @@ deepagents = ">=0.2.4,<0.3.0"
 langchain = ">=1.0.0,<2.0.0"
 langchain-anthropic = ">=1.0.0,<2.0.0"
 langchain-mcp-adapters = ">=0.1.9,<0.2.0"
+langchain-ollama = ">=0.2.0,<1.0.0"
 langchain-openai = ">=1.0.0,<2.0.0"
 langgraph = ">=1.0.0,<2.0.0"
 nest-asyncio = ">=1.6.0,<2.0.0"
@@ -1701,6 +1702,22 @@ files = [
 langchain-core = ">=0.3.36,<2.0.0"
 mcp = ">=1.9.2"
 typing-extensions = ">=4.14.0"
+
+[[package]]
+name = "langchain-ollama"
+version = "0.3.10"
+description = "An integration package connecting Ollama and LangChain"
+optional = false
+python-versions = "<4.0.0,>=3.9.0"
+groups = ["main"]
+files = [
+    {file = "langchain_ollama-0.3.10-py3-none-any.whl", hash = "sha256:7550792872e8f86d362568e9ceb0f8085428bc59946c7b44e726358ba4b280f9"},
+    {file = "langchain_ollama-0.3.10.tar.gz", hash = "sha256:5d942d331c44351bae5c5c5965603ceb20b0ee4d70082290f4b15bc638559756"},
+]
+
+[package.dependencies]
+langchain-core = ">=0.3.76,<2.0.0"
+ollama = ">=0.5.3,<1.0.0"
 
 [[package]]
 name = "langchain-openai"
@@ -2450,6 +2467,22 @@ files = [
 
 [package.dependencies]
 typing-extensions = {version = "*", markers = "python_full_version < \"3.13.0\""}
+
+[[package]]
+name = "ollama"
+version = "0.6.1"
+description = "The official Python client for Ollama."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "ollama-0.6.1-py3-none-any.whl", hash = "sha256:fc4c984b345735c5486faeee67d8a265214a31cbb828167782dc642ce0a2bf8c"},
+    {file = "ollama-0.6.1.tar.gz", hash = "sha256:478c67546836430034b415ed64fa890fd3d1ff91781a9d548b3325274e69d7c6"},
+]
+
+[package.dependencies]
+httpx = ">=0.27"
+pydantic = ">=2.9"
 
 [[package]]
 name = "openai"

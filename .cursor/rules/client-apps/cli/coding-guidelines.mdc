@@ -1,0 +1,177 @@
+---
+description: Engineering standards for Stigmer CLI - mandatory principles for clean, maintainable Go code
+alwaysApply: false
+---
+
+# Stigmer CLI Engineering Standards
+
+**These standards are MANDATORY. Violating them is unacceptable.**
+
+This rule governs ALL code changes under `client-apps/cli/`. Every function, every file, every abstraction MUST adhere to these principles. Cutting corners, rushing implementations, or producing mediocre code is explicitly forbidden.
+
+---
+
+## Core Engineering Mandates
+
+### 1. Single Responsibility Principle - ENFORCED
+
+**Every file MUST have exactly ONE reason to change.**
+
+A file that handles "loading manifests from files AND parsing YAML AND injecting metadata" is a violation. Split it.
+
+\`\`\`
+❌ FORBIDDEN: load_yaml_manifests.go (200+ lines doing 5 things)
+✅ REQUIRED:
+  - load_from_reader.go (reader-based loading)
+  - load_yaml_manifests.go (file path wrapper)
+  - metadata_injection.go (metadata handling)
+\`\`\`
+
+**File size limits:**
+- **50-150 lines**: Ideal
+- **150-250 lines**: Acceptable with justification
+- **250+ lines**: MUST be split - no exceptions
+
+### 2. Interface Segregation - MANDATORY
+
+**Abstract behaviors behind interfaces. No excuses.**
+
+When you see multiple input sources (file, clipboard, URL, stdin), you MUST create an interface:
+
+\`\`\`go
+// REQUIRED pattern for multiple implementations
+type Source interface {
+  Reader() (io.Reader, error)
+  Description() string
+}
+\`\`\`
+
+**Never** inline source-specific logic in handlers. Future sources (stdin, base64, HTTP) MUST be addable without modifying existing code.
+
+### 3. Dependency Injection Over Hard-Coding
+
+**Functions MUST accept dependencies as parameters.**
+
+\`\`\`go
+// ❌ FORBIDDEN - Hard-coded dependency
+func LoadManifests(path string) error {
+  file, _ := os.Open(path) // Hard-coded to os.Open
+  // ...
+}
+
+// ✅ REQUIRED - Injected dependency
+func LoadManifests(reader io.Reader) error {
+  // Works with ANY reader
+}
+\`\`\`
+
+### 4. Error Handling - NO EXCEPTIONS
+
+**Every error MUST be wrapped with context using \`errors.Wrap\`.**
+
+\`\`\`go
+// ❌ FORBIDDEN - Naked error return
+if err != nil {
+  return err
+}
+
+// ❌ FORBIDDEN - Generic message
+if err != nil {
+  return errors.Wrap(err, "error occurred")
+}
+
+// ✅ REQUIRED - Specific, actionable context
+if err != nil {
+  return errors.Wrap(err, "failed to parse workflow manifest")
+}
+\`\`\`
+
+Error messages MUST answer: "What operation failed?"
+
+---
+
+## Package Organization - STRICTLY ENFORCED
+
+### \`pkg/\` - Reusable Utilities
+
+Location: \`client-apps/cli/pkg/\`
+
+**Purpose**: Domain-agnostic, reusable code that could theoretically be extracted to a separate library.
+
+**Rules:**
+- NO Stigmer-specific business logic
+- NO imports from \`internal/\`
+- MUST be usable by external packages
+
+**Examples:**
+\`\`\`
+pkg/manifestsource/ ← Input source abstraction
+pkg/yaml/ ← YAML utilities
+pkg/protobuf/ ← Protobuf helpers
+pkg/ui/ ← Terminal UI components
+\`\`\`
+
+### \`internal/\` - Business Logic
+
+Location: \`client-apps/cli/internal/\`
+
+**Purpose**: Stigmer-specific business logic, domain operations, backend communication.
+
+**Rules:**
+- Contains Stigmer business logic
+- May import from \`pkg/\`
+- MUST NOT be imported by \`pkg/\`
+
+### \`cmd/\` - Command Layer
+
+Location: \`client-apps/cli/cmd/stigmer/root/\`
+
+**Purpose**: Thin command definitions. Parse flags, delegate to domain, handle errors.
+
+**Rules:**
+- Maximum 50-80 lines per handler function
+- NO business logic - ONLY orchestration
+- Parse → Delegate → Handle Error → Print Success
+
+\`\`\`go
+// ✅ CORRECT - Thin handler
+func initHandler(cmd *cobra.Command, args []string) {
+  // 1. Parse flags
+  isLocal, _ := cmd.Flags().GetBool("local")
+  
+  // 2. Delegate to domain
+  err := initWorkspace(isLocal)
+  
+  // 3. Handle error
+  clierr.HandleDefault(err)
+  
+  // 4. Print success
+  cliprint.PrintDefaultSuccess()
+}
+
+// ❌ FORBIDDEN - Fat handler with inline logic
+func initHandler(cmd *cobra.Command, args []string) {
+  // 100+ lines of parsing, validation, API calls, transformations...
+}
+\`\`\`
+
+---
+
+## Quality Checklist - MANDATORY BEFORE COMPLETION
+
+Before declaring ANY implementation complete:
+
+- [ ] Every file under 250 lines
+- [ ] Every function under 50 lines
+- [ ] Every error wrapped with specific context
+- [ ] Abstractions exist for multiple implementations
+- [ ] Imports properly organized with blank line separators
+- [ ] No business logic in command handlers beyond orchestration
+- [ ] No business logic in backend RPC proxies
+- [ ] File names are descriptive (no utils.go, helpers.go)
+- [ ] Function names describe what they do
+- [ ] New functionality can be extended without modifying existing code
+
+---
+
+*"Any fool can write code that a computer can understand. Good programmers write code that humans can understand."* - Martin Fowler

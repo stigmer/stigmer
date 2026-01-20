@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/claimcheck"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/claimcheck"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

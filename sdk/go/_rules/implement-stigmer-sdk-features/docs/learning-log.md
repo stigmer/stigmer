@@ -618,6 +618,282 @@ Header("Authorization", workflow.RuntimeSecret("OPENAI_KEY")) // Placeholder onl
 
 ---
 
+## 2026-01-20: Expression Generation Bugs and Test Migration After Context API Change
+
+### Context
+
+Fixed critical expression generation bugs in `StringRef.Concat()` and `toExpression()` that were causing empty expressions and incorrect value/expression handling. Also migrated all SDK tests to work with the new Context parameter requirement in `agent.New()` and `workflow.New()`.
+
+### Pattern 1: Context Variables vs Resolved Literals in Concat()
+
+**Problem**: `StringRef.Concat()` was generating empty expressions `"${ $context. }"` when concatenating context variables with literals.
+
+**Root Cause**: The `allKnown` logic treated context variables (which have a `name` field set) as "known" values that could be resolved immediately. This was incorrect because context variables are runtime references, not compile-time constants.
+
+**Solution**: Distinguish between context variables and resolved literals based on the `name` field:
+
+```go
+// In stigmer/refs.go - StringRef.Concat()
+
+// OLD (broken):
+allKnown := !s.isComputed  // Context variables treated as "known"
+
+// NEW (fixed):
+allKnown := !s.isComputed && s.name == ""  // Only resolved literals are "known"
+
+// When processing base StringRef:
+if !s.isComputed {
+    if s.name != "" {
+        // Context variable - NOT known at compile time
+        allKnown = false
+        expressions = append(expressions, fmt.Sprintf("$context.%s", s.name))
+    } else {
+        // Resolved literal - known value
+        resolvedParts = append(resolvedParts, s.value)
+        expressions = append(expressions, fmt.Sprintf(`"%s"`, s.value))
+    }
+}
+```
+
+**The Distinction**:
+
+A `StringRef` can represent two different things:
+
+| Type | Has Name? | Has Value? | Behavior |
+|------|-----------|------------|----------|
+| **Context Variable** | ✅ Yes | ✅ Yes (initial) | Generate expression `${ $context.name }` |
+| **Resolved Literal** | ❌ No | ✅ Yes | Can resolve immediately to value |
+
+**Key Insight**: A StringRef with a `name` set is ALWAYS a runtime reference, even if it has an initial value. The initial value is what gets set in the context at synthesis time, but references to it should use expressions.
+
+**Impact**:
+- Before: `apiURL.Concat("/users")` → `"${ $context. }"` (empty name bug)
+- After: `apiURL.Concat("/users")` → `${ $context.apiURL + "/users" }` ✅
+
+**When to Use**: Anytime you're implementing operations on typed references (Concat, Upper, Lower, arithmetic), check if the base has a name (context variable) vs no name (resolved literal).
+
+### Pattern 2: Type Check Ordering in Switch Statements
+
+**Problem**: `toExpression()` function was calling `.Value()` instead of `.Expression()` for context variables, returning literal values instead of JQ expressions.
+
+**Root Cause**: When interfaces overlap (`StringRef` implements both `Ref` and `StringValue`), Go's type switch checks in order. Checking `StringValue` before `Ref` caused all StringRefs to match `StringValue` first.
+
+**Solution**: Reorder type checks - check more specific interface first:
+
+```go
+// In workflow/ref_helpers.go and agent/ref_helpers.go
+
+// OLD (broken):
+func toExpression(value interface{}) string {
+    switch v := value.(type) {
+    case StringValue:
+        return v.Value()  // Matches StringRef first!
+    case Ref:
+        return v.Expression()  // Never reached for StringRef
+    }
+}
+
+// NEW (fixed):
+func toExpression(value interface{}) string {
+    switch v := value.(type) {
+    case Ref:
+        return v.Expression()  // StringRef matches here first ✅
+    case StringValue:
+        return v.Value()  // Fallback for other types
+    }
+}
+```
+
+**Why This Works**:
+- `Ref` is checked first, catches all typed references (StringRef, IntRef, TaskFieldRef, etc.)
+- Context variables get `.Expression()` → `${ $context.name }`
+- Computed expressions get `.Expression()` → `${ complex JQ expression }`
+- Only non-Ref types fall through to `StringValue` check
+
+**Impact**:
+- Before: `workflow.WithURI(apiURL)` → stored `"https://api.example.com"` (literal)
+- After: `workflow.WithURI(apiURL)` → stored `${ $context.apiURL }` (expression) ✅
+
+**Go Language Lesson**: In type switches with overlapping interfaces, order determines which case matches. Always check more specific interfaces first, general interfaces last.
+
+**When to Use**: Anytime you have overlapping interfaces in type switches, design the order carefully to match your semantic requirements.
+
+### Pattern 3: Test Migration for Required Parameter Additions
+
+**Problem**: Added `Context` as first required parameter to `agent.New()` and `workflow.New()`, breaking 30+ test files across the SDK.
+
+**Solution**: Multi-phase approach balancing speed and correctness:
+
+**Phase 1: Make Parameter Optional Where Possible**
+
+```go
+// In agent/agent.go and workflow/workflow.go
+
+// Register with context (if provided)
+if ctx != nil {
+    ctx.RegisterAgent(a)
+}
+```
+
+**Why**: Tests that don't need synthesis can pass `nil`, avoiding mock context overhead.
+
+**Phase 2: Bulk Fix with Automation**
+
+Created Python script to fix common patterns:
+```python
+# Pattern: agent, err := New(\n  WithName...
+# Replace with: agent, err := New(\n  nil, // No context needed for tests\n  WithName...
+
+pattern = r'(\s+)(agent|wf), err := (New|workflow\.New)\('
+replacement = r'\1\2, err := \3(\n\1\tnil, // No context needed for tests'
+```
+
+**Phase 3: Manual Fix for Edge Cases**
+
+Some tests DO need real contexts:
+- Integration tests testing synthesis: Keep `ctx` (not `nil`)
+- Mock context tests: Keep `mockCtx` (not `nil`)  
+- Backward compatibility tests: Keep real context
+
+**Phase 4: Verify Compilation**
+
+Run tests to catch remaining issues, then fix individually.
+
+**Benefits of Multi-Phase Approach**:
+- Fast: Automation handles 90% of mechanical changes
+- Correct: Manual review catches edge cases
+- Safe: Verify compilation before testing correctness
+- Maintainable: Clear pattern for future API changes
+
+**When to Use**: Anytime you add a required parameter to widely-used constructors. Don't manually fix 30+ files - automate the mechanical part, then handle edge cases.
+
+### Pattern 4: Test Context Patterns
+
+**Problem**: Different tests have different context needs - when to use nil, mock, or real context?
+
+**Solution**: Three distinct patterns emerged:
+
+**1. Unit Tests (Builder Logic)**:
+```go
+// Testing validation, options, builder methods
+agent, err := New(
+    nil, // No context needed - just testing construction
+    WithName("test-agent"),
+    WithInstructions("Test instructions"),
+)
+```
+
+**Use when**: Testing construction logic, validation, option handling (no synthesis)
+
+**2. Integration Tests (Mock Context)**:
+```go
+type mockWorkflowContext struct {
+    workflows []*workflow.Workflow
+}
+
+func (m *mockWorkflowContext) RegisterWorkflow(wf *workflow.Workflow) {
+    m.workflows = append(m.workflows, wf)
+}
+
+wf, err := workflow.New(
+    &mockWorkflowContext{},
+    workflow.WithName("test"),
+)
+```
+
+**Use when**: Testing registration behavior without full stigmer.Context overhead
+
+**3. Integration Tests (Real Context)**:
+```go
+ctx := stigmer.NewContext()
+agentName := ctx.SetString("agentName", "code-reviewer")
+
+agent, err := agent.New(
+    ctx,  // Real context for synthesis testing
+    agent.WithName(agentName),
+)
+```
+
+**Use when**: Testing synthesis, context variable handling, actual SDK usage patterns
+
+**Rule of Thumb**:
+- `nil` → Testing construction/validation (no synthesis needed)
+- Mock → Testing registration without synthesis
+- Real → Testing full synthesis pipeline
+
+**When to Use**: Design your test context strategy based on what you're actually testing. Don't create unnecessary mocks.
+
+### Gotcha: Interface Ordering in Go Type Switches
+
+**Discovery**: Go type switches check cases in order. When a type implements multiple interfaces, the **first matching case wins**.
+
+**Implication for SDK**:
+
+```go
+type StringRef struct {
+    baseRef
+    value string
+}
+
+// StringRef implements BOTH interfaces:
+func (s *StringRef) Expression() string { ... }  // Ref interface
+func (s *StringRef) Value() string { ... }       // StringValue interface
+
+// In type switch:
+switch v := value.(type) {
+case StringValue:  // ← StringRef matches HERE (first)
+    return v.Value()
+case Ref:  // ← Never reached for StringRef!
+    return v.Expression()
+}
+```
+
+**Solution**: Always check the interface you actually want to use first:
+
+```go
+switch v := value.(type) {
+case Ref:  // ← Check desired interface first
+    return v.Expression()
+case StringValue:  // ← Fallback
+    return v.Value()
+}
+```
+
+**General Go Rule**: When designing systems with overlapping interfaces, control behavior through type switch ordering. Document the intended priority.
+
+**When to Use**: Any type switch involving interfaces that overlap. Design the order intentionally.
+
+### Testing Insight: Compilation vs Correctness
+
+**Discovery**: When fixing widespread API changes, prioritize compilation over correctness.
+
+**Two-Phase Approach**:
+
+**Phase 1: Fix Compilation**
+- Get everything compiling first
+- Don't worry about test failures yet
+- Bulk fixes are acceptable
+
+**Phase 2: Fix Correctness**  
+- Run tests, identify semantic issues
+- Fix edge cases and logic errors
+- Verify tests actually pass
+
+**Rationale**:
+- Can't test if it doesn't compile
+- Compilation errors are mechanical (parameter counts, types)
+- Test failures reveal semantic issues (value vs expression, nil handling)
+- Easier to debug one issue at a time
+
+**Impact**:
+- Fixed 30+ test files → Got compilation working
+- Then fixed expression logic → Got tests passing
+- Two distinct problem spaces, tackled sequentially
+
+**When to Use**: Large-scale API migrations or refactoring. Get it compiling first, then make it correct.
+
+---
+
 ## Future Patterns to Document
 
 - Environment spec implementation (ctx.Env)

@@ -82,20 +82,28 @@ func TestTemplatesCompile(t *testing.T) {
 				t.Fatalf("failed to write main.go: %v", err)
 			}
 
-			// Initialize go.mod
-			// Note: Replace path assumes tests run from templates/ directory
-			sdkRootPath, err := filepath.Abs("../../..")
-			if err != nil {
-				t.Fatalf("failed to get SDK root path: %v", err)
-			}
-			goModContent := fmt.Sprintf(`module test-project
+		// Initialize go.mod
+		// Note: Replace path assumes tests run from templates/ directory
+		// From templates/, we need to go up one level to reach sdk/go/
+		sdkRootPath, err := filepath.Abs("..")
+		if err != nil {
+			t.Fatalf("failed to get SDK root path: %v", err)
+		}
+		// Also need to replace apis/stubs/go which is a dependency of the SDK
+		apisStubsPath, err := filepath.Abs("../../../apis/stubs/go")
+		if err != nil {
+			t.Fatalf("failed to get apis/stubs/go path: %v", err)
+		}
+		goModContent := fmt.Sprintf(`module test-project
 
 go 1.25.0
 
 require github.com/stigmer/stigmer/sdk/go v0.0.0
 
 replace github.com/stigmer/stigmer/sdk/go => %s
-`, sdkRootPath)
+
+replace github.com/stigmer/stigmer/apis/stubs/go => %s
+`, sdkRootPath, apisStubsPath)
 			goModPath := filepath.Join(tmpDir, "go.mod")
 			if err := os.WriteFile(goModPath, []byte(goModContent), 0644); err != nil {
 				t.Fatalf("failed to write go.mod: %v", err)
@@ -175,18 +183,18 @@ func TestCorrectAPIs(t *testing.T) {
 				"stigmer.Run(",
 			},
 		},
-		{
-			name:     "AgentAndWorkflow",
-			template: templates.AgentAndWorkflow,
-			requiredAPIs: []string{
-				"agent.New(ctx,",
-				"workflow.New(ctx,",
-				"stigmer.Run(",
-				"CallAgent(",           // Verify agent call feature is demonstrated
-				"workflow.Agent(",      // Verify agent reference
-				"ctx.SetString(",       // Verify context variables
-			},
+	{
+		name:     "AgentAndWorkflow",
+		template: templates.AgentAndWorkflow,
+		requiredAPIs: []string{
+			"agent.New(ctx,",
+			"workflow.New(ctx,",
+			"stigmer.Run(",
+			"CallAgent(",       // Verify agent call feature is demonstrated
+			"workflow.Agent(", // Verify agent reference
+			// Note: ctx.SetString() removed - this template demonstrates zero-config approach
 		},
+	},
 	}
 
 	for _, tc := range testCases {

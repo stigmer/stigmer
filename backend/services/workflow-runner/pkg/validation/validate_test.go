@@ -19,9 +19,9 @@ package validation
 import (
 	"testing"
 
-	workflowv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	apiresourcev1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/commons/apiresource"
-	tasksv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -229,7 +229,7 @@ func TestValidateTask(t *testing.T) {
 		
 		// Check that error includes task name and kind
 		assert.Contains(t, err.Error(), "fetchData")
-		assert.Contains(t, err.Error(), "HTTP_CALL")
+		assert.Contains(t, err.Error(), "WORKFLOW_TASK_KIND_HTTP_CALL")
 	})
 
 	t.Run("nil task fails", func(t *testing.T) {

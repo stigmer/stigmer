@@ -12,16 +12,16 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agent"
-	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentexecution"
-	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/agentinstance"
-	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/environment"
-	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/executioncontext"
-	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/session"
-	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/skill"
-	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/workflow"
-	workflowexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/workflowexecution"
-	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/controllers/workflowinstance"
+	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
+	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller"
+	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller"
+	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
+	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
+	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
+	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
+	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
+	workflowexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/controller"
+	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/controller"
 	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	sessionclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
@@ -155,7 +155,7 @@ func main() {
 	}
 
 	// Create and register Agent controller (with AgentInstance client for default instance creation)
-	agentController := agent.NewAgentController(store, agentInstanceClient)
+	agentController := agentcontroller.NewAgentController(store, agentInstanceClient)
 	agentv1.RegisterAgentCommandControllerServer(grpcServer, agentController)
 	agentv1.RegisterAgentQueryControllerServer(grpcServer, agentController)
 

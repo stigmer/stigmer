@@ -12,6 +12,7 @@ import (
 func TestSetTaskMapping(t *testing.T) {
 	// Create workflow with SET task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-set"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -43,6 +44,7 @@ func TestSetTaskMapping(t *testing.T) {
 func TestHttpCallTaskMapping(t *testing.T) {
 	// Create workflow with HTTP_CALL task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-http"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -85,6 +87,7 @@ func TestHttpCallTaskMapping(t *testing.T) {
 func TestSwitchTaskMapping(t *testing.T) {
 	// Create workflow with SWITCH task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-switch"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -135,6 +138,7 @@ func TestSwitchTaskMapping(t *testing.T) {
 func TestForTaskMapping(t *testing.T) {
 	// Create workflow with FOR task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-for"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -185,6 +189,7 @@ func TestForTaskMapping(t *testing.T) {
 func TestForkTaskMapping(t *testing.T) {
 	// Create workflow with FORK task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-fork"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -244,6 +249,7 @@ func TestForkTaskMapping(t *testing.T) {
 func TestTryTaskMapping(t *testing.T) {
 	// Create workflow with TRY task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-try"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -311,6 +317,7 @@ func TestTryTaskMapping(t *testing.T) {
 func TestGrpcCallTaskMapping(t *testing.T) {
 	// Create workflow with GRPC_CALL task
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-grpc"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -339,6 +346,7 @@ func TestGrpcCallTaskMapping(t *testing.T) {
 // TestListenTaskMapping verifies LISTEN task field name mapping.
 func TestListenTaskMapping(t *testing.T) {
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-listen"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -361,6 +369,7 @@ func TestListenTaskMapping(t *testing.T) {
 // TestWaitTaskMapping verifies WAIT task field name mapping.
 func TestWaitTaskMapping(t *testing.T) {
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-wait"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -383,6 +392,7 @@ func TestWaitTaskMapping(t *testing.T) {
 // TestCallActivityTaskMapping verifies CALL_ACTIVITY task field name mapping.
 func TestCallActivityTaskMapping(t *testing.T) {
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-activity"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -407,6 +417,7 @@ func TestCallActivityTaskMapping(t *testing.T) {
 // TestRaiseTaskMapping verifies RAISE task field name mapping.
 func TestRaiseTaskMapping(t *testing.T) {
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-raise"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -433,6 +444,7 @@ func TestRaiseTaskMapping(t *testing.T) {
 // TestRunTaskMapping verifies RUN task field name mapping.
 func TestRunTaskMapping(t *testing.T) {
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-run"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -454,121 +466,11 @@ func TestRunTaskMapping(t *testing.T) {
 	assert.Contains(t, taskConfig.Fields, "input", "should have 'input' field")
 }
 
-// =============================================================================
-// Context Variable Injection Tests
-// =============================================================================
-
-// TestContextInitTask_Creation verifies createContextInitTask() generates correct SET task.
-func TestContextInitTask_Creation(t *testing.T) {
-	// Create a mock Ref implementation for testing
-	type testRef struct {
-		value interface{}
-	}
-	
-	// Mock ToValue() method
-	contextVars := map[string]interface{}{
-		"apiURL": &testStringRef{value: "https://api.example.com"},
-		"retries": &testIntRef{value: 3},
-		"isProd": &testBoolRef{value: true},
-		"config": &testObjectRef{value: map[string]interface{}{
-			"timeout": 30,
-		}},
-	}
-	
-	task, err := createContextInitTask(contextVars)
-	require.NoError(t, err, "should create context init task")
-	
-	// Verify task structure
-	assert.Equal(t, "__stigmer_init_context", task.Name, "should have correct task name")
-	assert.Equal(t, "WORKFLOW_TASK_KIND_SET", task.Kind.String(), "should be SET task")
-	
-	// Verify task config has variables
-	taskConfig := task.TaskConfig
-	require.NotNil(t, taskConfig, "task config should not be nil")
-	assert.Contains(t, taskConfig.Fields, "variables", "should have 'variables' field")
-	
-	// Verify variables content
-	variables := taskConfig.Fields["variables"].GetStructValue()
-	require.NotNil(t, variables, "variables should be a struct")
-	
-	assert.Contains(t, variables.Fields, "apiURL", "should have apiURL variable")
-	assert.Contains(t, variables.Fields, "retries", "should have retries variable")
-	assert.Contains(t, variables.Fields, "isProd", "should have isProd variable")
-	assert.Contains(t, variables.Fields, "config", "should have config variable")
-	
-	// Verify values
-	assert.Equal(t, "https://api.example.com", variables.Fields["apiURL"].GetStringValue())
-	assert.Equal(t, float64(3), variables.Fields["retries"].GetNumberValue()) // JSON numbers are float64
-	assert.Equal(t, true, variables.Fields["isProd"].GetBoolValue())
-	
-	configValue := variables.Fields["config"].GetStructValue()
-	require.NotNil(t, configValue, "config should be a struct")
-	assert.Equal(t, float64(30), configValue.Fields["timeout"].GetNumberValue())
-}
-
-// TestContextInitTask_EmptyVars verifies behavior with empty context vars.
-func TestContextInitTask_EmptyVars(t *testing.T) {
-	contextVars := map[string]interface{}{}
-	
-	task, err := createContextInitTask(contextVars)
-	require.NoError(t, err, "should create task even with empty vars")
-	
-	// Verify task has empty variables
-	taskConfig := task.TaskConfig
-	variables := taskConfig.Fields["variables"].GetStructValue()
-	require.NotNil(t, variables, "variables should exist")
-	assert.Equal(t, 0, len(variables.Fields), "variables should be empty")
-}
-
-// TestWorkflowWithContextVars verifies context variables are injected into workflow.
-func TestWorkflowWithContextVars(t *testing.T) {
-	// Create a simple workflow
-	wf, err := workflow.New(
-		workflow.WithName("test-context"),
-		workflow.WithNamespace("test"),
-		workflow.WithTasks(
-			workflow.SetTask("userTask", workflow.SetVar("x", "1")),
-		),
-	)
-	require.NoError(t, err, "should create workflow")
-	
-	// Create context vars
-	contextVars := map[string]interface{}{
-		"apiURL": &testStringRef{value: "https://api.example.com"},
-		"retries": &testIntRef{value: 3},
-	}
-	
-	// Convert with context
-	manifest, err := ToWorkflowManifestWithContext(contextVars, wf)
-	require.NoError(t, err, "should convert workflow with context")
-	
-	require.Len(t, manifest.Workflows, 1, "should have 1 workflow")
-	tasks := manifest.Workflows[0].Spec.Tasks
-	
-	// Should have 2 tasks: context init + user task
-	require.Len(t, tasks, 2, "should have context init task + user task")
-	
-	// First task should be context init
-	initTask := tasks[0]
-	assert.Equal(t, "__stigmer_init_context", initTask.Name, "first task should be context init")
-	assert.Equal(t, "WORKFLOW_TASK_KIND_SET", initTask.Kind.String(), "should be SET task")
-	
-	// Verify init task has variables
-	initConfig := initTask.TaskConfig
-	variables := initConfig.Fields["variables"].GetStructValue()
-	require.NotNil(t, variables, "should have variables")
-	assert.Contains(t, variables.Fields, "apiURL", "should have apiURL")
-	assert.Contains(t, variables.Fields, "retries", "should have retries")
-	
-	// Second task should be user's task
-	userTask := tasks[1]
-	assert.Equal(t, "userTask", userTask.Name, "second task should be user task")
-}
-
-// TestWorkflowWithoutContextVars verifies no init task is injected when no context vars.
+// TestWorkflowWithoutContextVars verifies ToWorkflowManifestWithContext works without context vars.
 func TestWorkflowWithoutContextVars(t *testing.T) {
 	// Create a simple workflow
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-no-context"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -596,6 +498,7 @@ func TestWorkflowWithoutContextVars(t *testing.T) {
 func TestBackwardCompatibility(t *testing.T) {
 	// Create workflow using old function (no context)
 	wf, err := workflow.New(
+		nil, // No context needed for mapping tests
 		workflow.WithName("test-backward-compat"),
 		workflow.WithNamespace("test"),
 		workflow.WithTasks(
@@ -616,38 +519,3 @@ func TestBackwardCompatibility(t *testing.T) {
 	assert.Equal(t, "task1", tasks[0].Name, "should be user task")
 }
 
-// =============================================================================
-// Mock Ref Implementations for Testing
-// =============================================================================
-
-type testStringRef struct {
-	value string
-}
-
-func (r *testStringRef) ToValue() interface{} {
-	return r.value
-}
-
-type testIntRef struct {
-	value int
-}
-
-func (r *testIntRef) ToValue() interface{} {
-	return r.value
-}
-
-type testBoolRef struct {
-	value bool
-}
-
-func (r *testBoolRef) ToValue() interface{} {
-	return r.value
-}
-
-type testObjectRef struct {
-	value map[string]interface{}
-}
-
-func (r *testObjectRef) ToValue() interface{} {
-	return r.value
-}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 - 2026 Zigflow authors <https://github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/graphs/contributors>
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/stigmer/stigmer/backend/services/workflow-runner/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/utils"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/rs/zerolog/log"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"go.temporal.io/sdk/worker"
@@ -211,7 +211,20 @@ func (t *ForTaskBuilder) iterator(ctx workflow.Context, key, value any, state *u
 	// This works because we don't need workflow registration for inline execution
 	logger.Debug("Executing for iteration inline", "key", key, "task", t.GetTaskName())
 
-	res, err := t.childWorkflowFunc(ctx, state.Input, state)
+	var res any
+	var err error
+
+	// Use inline execution if childWorkflowFunc is set (normal case)
+	// Otherwise fall back to child workflow execution (for backward compatibility with tests)
+	if t.childWorkflowFunc != nil {
+		res, err = t.childWorkflowFunc(ctx, state.Input, state)
+	} else if t.childWorkflowName != "" {
+		// Fallback for tests that register child workflows by name
+		err = workflow.ExecuteChildWorkflow(ctx, t.childWorkflowName, state.Input, state).Get(ctx, &res)
+	} else {
+		return nil, fmt.Errorf("no child workflow function or name configured")
+	}
+
 	if err != nil {
 		logger.Error("Error executing for iteration", "error", err, "key", key, "task", t.GetTaskName())
 		return nil, fmt.Errorf("error executing for iteration: %w", err)

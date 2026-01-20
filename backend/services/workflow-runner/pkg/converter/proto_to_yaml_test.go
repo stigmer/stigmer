@@ -19,10 +19,10 @@ package converter
 import (
 	"testing"
 
-	workflowv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	tasksv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
-	apiresourcev1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/validation"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
+	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/validation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -83,6 +83,7 @@ func TestProtoToYAML_HTTPCallTask(t *testing.T) {
 		Endpoint: &tasksv1.HttpEndpoint{
 			Uri: "https://api.example.com/data",
 		},
+		TimeoutSeconds: 30, // Required field: must be >= 1
 	}
 
 	// Marshal to Struct

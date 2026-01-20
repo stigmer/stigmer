@@ -22,6 +22,7 @@ func TestBuildNewStateStep_Execute(t *testing.T) {
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "Test Agent",
 		},
+		Status: &agentv1.AgentStatus{}, // Pre-initialize status for audit fields
 	}
 
 	step := NewBuildNewStateStep[*agentv1.Agent]()
@@ -34,6 +35,12 @@ func TestBuildNewStateStep_Execute(t *testing.T) {
 	// Verify
 	if err != nil {
 		t.Errorf("Expected success, got error: %v", err)
+	}
+
+	// Get the agent from context (should be the same object)
+	resultAgent := ctx.NewState()
+	if resultAgent != agent {
+		t.Errorf("Context returned different agent object")
 	}
 
 	// Check ID was generated
@@ -52,17 +59,37 @@ func TestBuildNewStateStep_Execute(t *testing.T) {
 		t.Errorf("Expected ID format 'agt-{timestamp}', got %q", agent.Metadata.Id)
 	}
 
-	// Check audit fields were set
-	if agent.Status == nil || agent.Status.Audit == nil {
-		t.Errorf("Expected audit fields to be set")
+	// Check audit fields were set using proto reflection
+	// Get status via typed getter first (same way the step does it)
+	if resultAgent.Status == nil {
+		t.Fatalf("Expected status to be set")
 	}
 
-	if agent.Status.Audit.SpecAudit == nil || agent.Status.Audit.StatusAudit == nil {
-		t.Errorf("Expected both spec_audit and status_audit to be set")
+	statusMsg := resultAgent.Status.ProtoReflect()
+	auditField := statusMsg.Descriptor().Fields().ByName("audit")
+	if !statusMsg.Has(auditField) {
+		t.Fatalf("Expected audit field to be set")
 	}
 
-	if agent.Status.Audit.SpecAudit.Event != "created" {
-		t.Errorf("Expected event='created', got %q", agent.Status.Audit.SpecAudit.Event)
+	auditMsg := statusMsg.Get(auditField).Message()
+	
+	// Check spec_audit
+	specAuditField := auditMsg.Descriptor().Fields().ByName("spec_audit")
+	if !auditMsg.Has(specAuditField) {
+		t.Errorf("Expected spec_audit to be set")
+	}
+	
+	// Check status_audit
+	statusAuditField := auditMsg.Descriptor().Fields().ByName("status_audit")
+	if !auditMsg.Has(statusAuditField) {
+		t.Errorf("Expected status_audit to be set")
+	}
+
+	// Check event field
+	specAuditMsg := auditMsg.Get(specAuditField).Message()
+	eventField := specAuditMsg.Descriptor().Fields().ByName("event")
+	if specAuditMsg.Get(eventField).String() != "created" {
+		t.Errorf("Expected event='created', got %q", specAuditMsg.Get(eventField).String())
 	}
 }
 

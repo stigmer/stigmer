@@ -20,25 +20,40 @@ This orchestrator rule combines multiple action rules into a single streamlined 
 
 **⚠️ CRITICAL**: Stigmer is an open-source project. The `docs/` folder must be comprehensive enough for users to understand and adopt Stigmer.
 
-**Documentation vs Changelogs:**
-- **Changelogs** capture: What was done, why, and implementation details (temporary reference)
-- **Documentation** captures: How to use features, how systems work, stable patterns (permanent reference)
-- **Don't duplicate** - If changelog has it, don't repeat it in docs
+**Documentation vs Changelogs - Different Purposes:**
 
-**When documentation IS needed (beyond changelog):**
-- ✅ User-facing features (how to use it)
-- ✅ New architectural concepts (how the system works)
-- ✅ Stable patterns (reusable approaches)
+**Changelogs:**
+- **Purpose**: Change tracking and version history
+- **Audience**: Developers maintaining the codebase, debugging issues, understanding what changed when
+- **Content**: What was done, why it was done, implementation details, decisions made
+- **Lifetime**: Historical record (reference when debugging or understanding evolution)
+
+**Product Documentation:**
+- **Purpose**: Understanding and using Stigmer
+- **Audience**: Users adopting Stigmer, contributors learning the system, people sharing/explaining Stigmer
+- **Content**: How to use features, how systems work, architectural concepts, stable patterns
+- **Lifetime**: Permanent reference (updated as product evolves)
+
+**⚠️ THESE ARE NOT DUPLICATES - They serve different purposes!**
+
+If something is user-facing or architecturally significant, it should be in **BOTH**:
+- Changelog captures the change (what/when/why)
+- Documentation explains how to use it or how it works
+
+**When product documentation IS needed:**
+- ✅ User-facing features (users need to know how to use it)
+- ✅ New architectural concepts (contributors need to understand how the system works)
+- ✅ Stable patterns (reusable approaches others will follow)
 - ✅ Getting started changes (if usage changed)
 - ✅ Significant design decisions (ADRs for major choices)
 
-**When changelog is sufficient (no separate docs needed):**
-- ✅ Internal refactoring (no user/contributor impact)
-- ✅ Bug fixes (unless reveal architectural insights)
-- ✅ Minor improvements (incremental changes to existing features)
-- ✅ Implementation details already in changelog
+**When changelog alone is sufficient (no product docs needed):**
+- ✅ Internal refactoring with no user/contributor impact
+- ✅ Bug fixes that don't reveal architectural insights
+- ✅ Implementation details that don't affect usage or understanding
+- ✅ Test quality improvements (internal test code only)
 
-**Rule of thumb**: Documentation is for understanding and using Stigmer. Changelogs are for tracking what changed. Avoid duplication.
+**Rule of thumb**: If someone needs to understand or use this feature, it goes in product documentation. Changelog is not a substitute for product documentation - they serve different purposes.
 
 ## Rule Type
 
@@ -105,21 +120,21 @@ This orchestrator rule combines multiple action rules into a single streamlined 
 
 **Success criteria**: Git commit created and verified
 
-### Step 4: Documentation (Smart Evaluation - Avoid Duplication)
+### Step 4: Documentation (Smart Evaluation - Product Documentation)
 
-**⚠️ SMART EVALUATION**: AI evaluates if separate documentation is needed beyond the changelog.
+**⚠️ SMART EVALUATION**: AI evaluates if product documentation is needed for understanding/using Stigmer.
 
 **Documentation Purpose:**
-- Open-source projects need docs for users to understand and use features
-- Changelogs track changes (temporary reference)
-- Documentation explains how to use and how things work (permanent reference)
-- Don't duplicate what's already in the changelog
+- Open-source projects need docs for users to understand and adopt features
+- Changelogs track changes (version history for developers)
+- Product documentation explains how to use Stigmer and how systems work (permanent reference for users)
+- These serve different purposes - both can and should exist for user-facing features
 
 **AI's Responsibility:**
 1. Analyze what was built/changed
-2. Determine if separate documentation is needed (beyond changelog)
-3. If needed: Create or update appropriate documentation
-4. If not needed: Ensure changelog has sufficient detail
+2. Determine if product documentation is needed (would users/contributors need this explained?)
+3. If needed: Create or update appropriate product documentation
+4. If not needed (internal-only changes): Ensure changelog has sufficient detail
 5. Follow `@stigmer-oss-documentation-standards.md`
 6. Update indexes if documentation created
 
@@ -129,68 +144,82 @@ This orchestrator rule combines multiple action rules into a single streamlined 
 1. Is this user-facing? (can users configure/use this?)
 2. Does usage change? (do getting-started docs need updating?)
 3. Will users need examples or guides for this?
+4. If someone asks "how do I use this feature?", would changelog be the right place to look? (NO = needs product docs)
 
 **Architectural Impact:**
 1. Does this introduce new concepts? (new component types, patterns)
 2. Does this change how the system works? (architecture change)
 3. Are there design decisions that affect future work?
+4. If someone asks "how does this system work?", would changelog be the right place to look? (NO = needs product docs)
 
 **Pattern Stability:**
 1. Is this a reusable pattern? (other developers will use this approach)
 2. Is this pattern stable? (or experimental/in-flux)
 
-**Documentation Existing:**
+**Documentation Context:**
 1. Is there existing documentation that needs updating?
 2. Would this be better as a note in existing docs?
-3. Is the changelog sufficient for this change?
+3. Is this purely internal with no user/contributor impact? (YES = changelog sufficient)
 
 **Decision Logic:**
 
 ```
-# High-priority documentation (beyond changelog)
+# Product documentation needed (user-facing or architectural)
 if (new_user_facing_feature):
-    create_getting_started_docs()
-    create_or_update_architecture_docs()
+    create_getting_started_docs()  # How to use it
+    create_or_update_architecture_docs()  # How it works
+    # Changelog also captures the change (what/when/why)
     
 elif (new_architectural_concept):
-    create_architecture_docs()
-    possibly_create_adr()
+    create_architecture_docs()  # System understanding
+    possibly_create_adr()  # Design decisions
+    # Changelog also captures the implementation
     
 elif (stable_reusable_pattern):
-    document_pattern_in_guides_or_references()
+    document_pattern_in_guides_or_references()  # Pattern explanation
+    # Changelog also captures where it was applied
     
 elif (changes_existing_feature_usage):
-    update_existing_getting_started_or_guides()
+    update_existing_getting_started_or_guides()  # Updated usage
+    # Changelog also captures what changed
 
-# Changelog is sufficient (no separate docs)
+# Changelog alone is sufficient (internal only)
 elif (internal_refactoring):
-    changelog_sufficient = True
+    changelog_sufficient = True  # No user/contributor impact
     
 elif (bug_fix):
     if (reveals_architectural_insight):
-        add_note_to_architecture_docs()
+        add_note_to_architecture_docs()  # Clarify architecture
+    else:
+        changelog_sufficient = True  # Just a fix
+        
+elif (test_quality_improvement):
+    changelog_sufficient = True  # Internal test code only
+        
+elif (minor_improvement_to_internal_code):
+    changelog_sufficient = True  # No usage/understanding impact
+
+# If uncertain, ask: "Would a user/contributor need this explained?"
+else:
+    if (affects_understanding_or_usage):
+        create_minimal_documentation()
     else:
         changelog_sufficient = True
-        
-elif (minor_improvement):
-    changelog_sufficient = True
-
-# If uncertain, prefer minimal documentation
-else:
-    consider_adding_brief_implementation_note()
 ```
 
 **Three Outcomes:**
 
-1. **Create/Update Documentation** - User-facing features, new concepts, stable patterns
-2. **Update Existing Documentation** - Changes to documented features
-3. **Changelog Sufficient** - Internal changes, bug fixes, minor improvements
+1. **Create/Update Product Documentation** - User-facing features, architectural concepts, stable patterns that need explanation
+2. **Update Existing Documentation** - Changes to documented features or clarifications needed
+3. **Changelog Sufficient** - Internal-only changes with no impact on understanding/using Stigmer
 
-**⚠️ AVOID DUPLICATION**
+**⚠️ DIFFERENT PURPOSES, NOT DUPLICATION**
 
-Don't copy changelog content into docs. Instead:
-- Changelogs → Detailed "what and why" for this specific change
-- Documentation → Timeless "how to use" and "how it works"
+Changelog and product documentation serve different purposes:
+- **Changelog** → Change tracking: "What changed, when, why" (version history for developers)
+- **Product Documentation** → Understanding and usage: "How to use this, how it works" (permanent reference for users)
+
+Both should exist for user-facing features - they complement each other, not duplicate.
 
 ### Step 5: Improve Rules (AI-Driven - Automatic Evaluation)
 
@@ -247,11 +276,12 @@ Ask yourself (AI) these questions about the conversation:
 **CLI Work** (if CLI files changed):
 1. Did I fix a module import or Go dependency issue?
 2. Did I discover a Cobra command pattern worth documenting?
-3. Did I solve a gRPC client or authentication problem?
-4. Did I create a new agent discovery pattern (Python subprocess)?
-5. Did I enhance context management or config handling?
+3. Did I solve a daemon management or lifecycle issue?
+4. Did I create a new backend communication pattern?
+5. Did I enhance configuration or context handling?
 6. Did I improve output formatting or error messages?
 7. Did I solve a flag handling or argument parsing issue?
+8. Did I fix a Bazel/Gazelle build issue?
 
 **FGA Authorization Work** (if FGA files changed):
 1. Did I create a new FGA model for a resource?
@@ -305,8 +335,9 @@ stigmer-sdk/python/_rules/**/*.mdc → Python SDK rule work (external repo)
 stigmer-sdk/go/_rules/**/*.mdc → Go SDK rule work (external repo)
 
 # Check for CLI changes
-sdk/**/*.go → CLI work
-sdk/**/*.mdc → CLI rule work
+client-apps/cli/**/*.go → CLI work
+client-apps/cli/**/*.mdc → CLI rule work
+.cursor/rules/client-apps/cli/**/*.mdc → CLI rule work
 
 # Check for FGA model changes
 backend/**/fga/**/*.fga → FGA authorization work
@@ -324,7 +355,7 @@ Based on file changes, identify relevant improvement rules:
 | `backend/services/agent-runner/**/*.py` | Agent Runner | `@backend/services/agent-runner/_rules/implement-agent-runner-features/improve-this-rule.mdc` |
 | `backend/services/workflow-runner/**/*.go` | Workflow Runner | `@backend/services/workflow-runner/_rules/implement-workflow-runner-features/improve-this-rule.mdc` |
 | `stigmer-sdk/python/**/*.py` or `stigmer-sdk/go/**/*.go` | SDK | `@stigmer-sdk/_rules/improve-this-rule.mdc` (external repo - orchestrator delegates to language-specific) |
-| `sdk/**/*.go` | CLI | `@sdk/_rules/implement-stigmer-cli-features/improve-this-rule.mdc` |
+| `client-apps/cli/**/*.go` | CLI | `@.cursor/rules/client-apps/cli/improve-this-rule.mdc` |
 | `backend/**/fga/**/*.fga` | FGA Models | `@backend/services/stigmer-server/src/main/resources/fga/_rules/model-stigmer-fga-authorization/improve-this-rule.mdc` |
 
 #### 4.3 Handle Single vs Multiple Areas
@@ -427,21 +458,21 @@ Executing Step 3/5: Committing changes...
 
 ### 5. Execute Step 4: Documentation (Smart Evaluation)
 
-**AI analyzes work and evaluates documentation needs**:
+**AI analyzes work and evaluates product documentation needs**:
 ```
-Analyzing work for documentation requirements beyond changelog...
+Analyzing work for product documentation requirements...
 ```
 
 **Analysis process**:
 1. Review conversation for features/components/changes
 2. Check file changes for what was modified
 3. Ask evaluation questions (see Step 4 criteria)
-4. Determine if separate documentation is needed (beyond changelog)
-5. If needed: Create/update docs; If not: Ensure changelog is comprehensive
+4. Determine if product documentation is needed (would users/contributors need this explained?)
+5. If needed: Create/update product docs; If not: Ensure changelog is comprehensive
 
-**Outcome 1: Documentation Created/Updated (User-facing or architectural changes)**:
+**Outcome 1: Product Documentation Created/Updated (User-facing or architectural changes)**:
 ```
-✅ Documentation needed beyond changelog - creating/updating...
+✅ Product documentation needed - creating/updating...
 ```
 - Determine appropriate category (getting-started, architecture, guides, ADR)
 - Create new documentation OR update existing documentation
@@ -452,21 +483,22 @@ Analyzing work for documentation requirements beyond changelog...
 
 **Example:**
 ```
-✅ Documentation created (user-facing feature):
+✅ Product documentation created (user-facing feature):
    - Added docs/architecture/agent-pipeline-integration.md
    - Updated docs/getting-started/local-mode.md (agent configuration section)
    - Updated docs/README.md index
    - Docs committed: b4c2d3e docs: add agent pipeline integration and usage
    
-   Rationale: New user-facing feature (agent pipeline) needs architecture explanation and usage guide.
+   Rationale: New user-facing feature (agent pipeline) needs architecture explanation and usage guide for users/contributors.
+   Note: Changelog also captures this change (what/when/why) for version history.
 ```
 
-**Outcome 2: Changelog Sufficient (Internal changes, bug fixes)**:
+**Outcome 2: Changelog Sufficient (Internal-only changes)**:
 ```
-ℹ️  Changelog sufficient - no separate documentation needed
+ℹ️  Changelog sufficient - no product documentation needed
 ```
 - Verify changelog has comprehensive details
-- No separate documentation created
+- No product documentation created (internal change only)
 - Report rationale for skipping
 
 **Example:**
@@ -474,28 +506,30 @@ Analyzing work for documentation requirements beyond changelog...
 ℹ️  Changelog sufficient for this work:
    - Internal refactoring (no user/contributor impact)
    - Changelog captures implementation details
-   - No architectural concepts introduced
+   - No features to explain or architectural concepts to document
    - No usage changes
    
    Rationale: Backend controller refactoring is internal. Changelog provides sufficient detail for future reference.
+   Product documentation not needed as it doesn't affect understanding or using Stigmer.
 ```
 
-**Outcome 3: Update Existing Documentation (Changes to documented features)**:
+**Outcome 3: Update Existing Product Documentation (Changes to documented features)**:
 ```
-✅ Updating existing documentation...
+✅ Updating existing product documentation...
 ```
 - Update relevant existing documentation files
-- Keep changes minimal (don't duplicate changelog)
+- Clarify how the feature works or how to use it
 - Update indexes if needed
 - Commit documentation updates
 
 **Example:**
 ```
-✅ Documentation updated (existing feature changed):
+✅ Product documentation updated (existing feature changed):
    - Updated docs/architecture/backend-abstraction.md (refined controller lifecycle)
    - Docs committed: e7d4f1c docs: update backend controller lifecycle details
    
-   Rationale: Backend abstraction architecture changed. Updated existing architecture doc to reflect new lifecycle.
+   Rationale: Backend abstraction architecture changed. Updated existing architecture doc so contributors understand how it works.
+   Note: Changelog also captures this change (what/when/why) for version history.
 ```
 
 ### 6. Execute Step 5: AI-Driven Rule Improvement Evaluation
@@ -532,39 +566,41 @@ Evaluating if rule improvement is needed...
 
 ### 7. Final Summary
 
-**Completion with documentation (user-facing feature)**:
+**Completion with product documentation (user-facing feature)**:
 ```
 🎉 All steps completed successfully!
 
-✅ Changelog: _changelog/2026-01/2026-01-11-181525-description.md
+✅ Changelog: _changelog/2026-01/2026-01-11-181525-description.md (change tracking)
 ✅ Checkpoint: checkpoints/2026-01-11-description.md
 ✅ Commit: 47ee5f8 feat(scope): message
 
-📖 Documentation created:
+📖 Product Documentation created:
 ✅ Added docs/architecture/agent-lifecycle.md
 ✅ Updated docs/getting-started/local-mode.md
 ✅ Updated docs/README.md index
 ✅ Docs committed: b4c2d3e docs: add agent lifecycle and update getting-started
 
-Rationale: New user-facing feature needs architecture explanation and usage guide.
+Rationale: New user-facing feature needs architecture explanation and usage guide for users/contributors.
+Note: Changelog also captures this change for version history.
 
 ℹ️  No rule improvements needed (routine application of existing patterns)
 
-Work is documented, committed, and properly documented. Ready for next task!
+Work is documented (both changelog and product docs), committed, and ready for next task!
 ```
 
-**Completion with changelog only (internal refactoring)**:
+**Completion with changelog only (internal-only change)**:
 ```
 🎉 All steps completed successfully!
 
-✅ Changelog: _changelog/2026-01/2026-01-11-181525-description.md
+✅ Changelog: _changelog/2026-01/2026-01-11-181525-description.md (change tracking)
 ✅ Checkpoint: checkpoints/2026-01-11-description.md
 ✅ Commit: 47ee5f8 refactor(scope): message
 
-📖 Documentation:
-ℹ️  Changelog sufficient - no separate documentation needed
-   Rationale: Internal refactoring with no user/architectural impact.
-   Changelog captures implementation details for future reference.
+📖 Product Documentation:
+ℹ️  Changelog sufficient - no product documentation needed
+   Rationale: Internal refactoring with no user/contributor impact.
+   Changelog captures implementation details for version history.
+   Product documentation not needed as it doesn't affect understanding or using Stigmer.
 
 ℹ️  No rule improvements needed (routine application of existing patterns)
 
@@ -776,7 +812,7 @@ This orchestrator commits **everything created by all steps**:
 
 ## Examples
 
-### Example 1: New User-Facing Feature (Documentation Needed)
+### Example 1: New User-Facing Feature (Product Documentation Needed)
 
 **User conversation context**:
 - Created new AgentConfig proto API
@@ -803,9 +839,9 @@ Step 2/5: Updating project progress...
 Step 3/5: Committing changes...
 ✅ Committed: 47ee5f8 feat(apis/agentconfig): add AgentConfig proto resource
 
-Step 4/5: Evaluating documentation needs...
+Step 4/5: Evaluating product documentation needs...
 Analysis: New user-facing feature (AgentConfig) - users need to know how to use it
-Decision: Documentation needed beyond changelog
+Decision: Product documentation needed
 
 ✅ Created docs/architecture/agent-configuration.md:
    - AgentConfig resource overview
@@ -817,7 +853,8 @@ Decision: Documentation needed beyond changelog
 ✅ Updated docs/README.md index
 ✅ Committed documentation: c8d9e2f docs: add agent configuration docs
 
-Rationale: User-facing feature needs architecture explanation and usage guide.
+Rationale: User-facing feature needs architecture explanation and usage guide for users/contributors.
+Note: Changelog also captures this change (what/when/why) for version history.
 
 Step 5/5: Evaluating if rule improvement is needed...
 ℹ️  No significant learnings detected (standard patterns applied)
@@ -825,10 +862,10 @@ Step 5/5: Evaluating if rule improvement is needed...
 🎉 All steps completed!
 
 Summary:
-- 1 changelog (implementation details)
+- 1 changelog (change tracking for developers)
 - 1 checkpoint created
 - 8 files committed (code changes)
-- 2 documentation files created/updated (user-facing)
+- 2 product documentation files created/updated (understanding/usage for users)
 - 1 documentation commit
 
 Ready for next task!
@@ -862,17 +899,18 @@ Step 2/5: Updating project progress...
 Step 3/5: Committing changes...
 ✅ Committed: b8f4e2a refactor(backend): improve error handling consistency
 
-Step 4/5: Evaluating documentation needs...
-Analysis: Internal refactoring - no user/architectural impact
-Decision: Changelog sufficient (no separate documentation needed)
+Step 4/5: Evaluating product documentation needs...
+Analysis: Internal refactoring - no user/contributor impact
+Decision: Changelog sufficient (no product documentation needed)
 
 ℹ️  Changelog sufficient for this work:
    - Internal refactoring (no user-facing changes)
-   - Changelog captures implementation details
-   - No architectural concepts introduced
-   - No usage changes
+   - Changelog captures implementation details for version history
+   - No architectural concepts that need explanation
+   - No usage changes to document
    
-Rationale: Backend refactoring is internal. Changelog provides sufficient detail.
+Rationale: Backend refactoring is internal. Changelog provides change tracking.
+Product documentation not needed as it doesn't affect understanding or using Stigmer.
 
 Step 5/5: Evaluating if rule improvement is needed...
 ℹ️  No significant learnings detected (standard refactoring)
@@ -880,10 +918,10 @@ Step 5/5: Evaluating if rule improvement is needed...
 🎉 All steps completed!
 
 Summary:
-- 1 changelog (captures refactoring details)
+- 1 changelog (change tracking for developers)
 - 1 checkpoint created
 - 18 files committed (code changes)
-- No separate documentation (changelog sufficient)
+- No product documentation needed (internal-only change)
 
 Ready for next task!
 ```
@@ -944,7 +982,7 @@ Summary:
 Ready for next task!
 ```
 
-### Example 4: Documentation Update (Existing Feature Changed)
+### Example 4: Product Documentation Update (Existing Feature Changed)
 
 **User conversation context**:
 - Implemented new agent lifecycle management
@@ -972,13 +1010,13 @@ Step 2/5: Updating project progress...
 Step 3/5: Committing changes...
 ✅ Committed: d7e3f9a feat(backend/agent): implement agent lifecycle management
 
-Evaluating if documentation is needed...
-✅ Documentation needed:
+Step 4/5: Evaluating product documentation needs...
+✅ Product documentation needed:
    - New user-facing feature (agent lifecycle)
    - Complex state transitions need explanation
    - Users need to understand how agents are managed
 
-Proceeding with documentation creation...
+Proceeding with product documentation creation...
 Category: architecture (system design and behavior)
 File: docs/architecture/agent-lifecycle.md
 
@@ -991,20 +1029,23 @@ File: docs/architecture/agent-lifecycle.md
 ✅ Updated docs/README.md index
 ✅ Committed documentation: a9f2b1c docs: add agent lifecycle architecture documentation
 
-Evaluating if rule improvement is needed...
+Rationale: New user-facing feature needs architectural explanation for users/contributors.
+Note: Changelog also captures this change (what/when/why) for version history.
+
+Step 5/5: Evaluating if rule improvement is needed...
 ℹ️  No significant learnings detected:
    - Applied existing state machine pattern
    - Standard validation approach
    - Skipping rule improvement
 
-🎉 All steps completed with documentation!
+🎉 All steps completed with product documentation!
 
 Summary:
-- 1 changelog created
+- 1 changelog created (change tracking for developers)
 - 1 checkpoint created
 - 1 project file updated
 - 12 files committed (code changes)
-- Documentation created: docs/architecture/agent-lifecycle.md
+- Product documentation created: docs/architecture/agent-lifecycle.md (understanding for users)
 - 1 documentation commit
 
 Ready for next task!
@@ -1091,15 +1132,16 @@ Before completing, verify:
 - [ ] Project references existing documentation where applicable
 - [ ] Commit message follows conventional commits format
 - [ ] All changes are staged and committed
-- [ ] **Documentation evaluation performed** (is separate documentation needed beyond changelog?)
-- [ ] If documentation needed: Created/updated appropriate docs
-- [ ] If documentation needed: No duplication of changelog content
+- [ ] **Product documentation evaluation performed** (is product documentation needed for understanding/using Stigmer?)
+- [ ] If documentation needed: Created/updated appropriate product docs
+- [ ] If documentation needed: Explains how to use features or how systems work (not just change tracking)
 - [ ] If documentation needed: Follows `@stigmer-oss-documentation-standards.md`
 - [ ] If documentation needed: In appropriate category (getting-started, architecture, guides, ADR)
 - [ ] If documentation needed: Indexes updated (`docs/README.md`, root `README.md` if key doc)
 - [ ] If documentation needed: Committed separately with clear message and rationale
-- [ ] If changelog sufficient: Clear rationale provided for why separate docs not needed
-- [ ] Docs folder remains comprehensive for users to understand Stigmer
+- [ ] If changelog sufficient: Clear rationale provided (internal-only change with no user/contributor impact)
+- [ ] Docs folder remains comprehensive for users to understand and adopt Stigmer
+- [ ] Note: Changelog and product docs can both exist for user-facing features (different purposes)
 - [ ] AI evaluation for rule improvement was thorough
 - [ ] If rule improvements made: High-signal learnings only
 - [ ] If rule improvements made: Changes committed separately with clear rationale
@@ -1234,19 +1276,19 @@ This orchestrator succeeds when:
 - Automatic context-aware rule selection
 
 **Smart Documentation Benefits**:
-- ✅ **Documentation is ALWAYS evaluated** (never forgotten)
-- ✅ **Avoids duplication** (changelog captures implementation, docs capture usage/architecture)
-- ✅ Creates documentation when needed (user-facing, architectural, patterns)
-- ✅ Skips documentation when changelog is sufficient (internal changes, bug fixes)
+- ✅ **Product documentation is ALWAYS evaluated** (never forgotten)
+- ✅ **Clear separation of concerns** (changelog = change tracking, product docs = understanding/usage)
+- ✅ Creates product documentation when needed (user-facing features, architectural concepts, patterns)
+- ✅ Skips product documentation when changelog is sufficient (internal-only changes)
 - ✅ Follows standards consistently (`@stigmer-oss-documentation-standards.md`)
-- ✅ Centralized and organized (no redundancy)
-- ✅ **Docs folder stays comprehensive** (users can understand Stigmer)
-- ✅ **AI agents can use docs folder** (drag to answer questions)
+- ✅ Both changelog and product docs can exist (they serve different purposes - not duplication)
+- ✅ **Docs folder stays comprehensive** (users can understand and adopt Stigmer)
+- ✅ **AI agents can use docs folder** (drag to answer questions about features/architecture)
 - ✅ **Open-source adoption enabled** (users understand how to use Stigmer)
-- ✅ Transparent reasoning (AI explains decision - docs created OR changelog sufficient)
+- ✅ Transparent reasoning (AI explains decision - product docs created OR changelog sufficient)
 - ✅ Continuous documentation improvement without manual effort or overhead
 - ✅ Documentation evolves naturally from actual work
-- ✅ **Zero documentation debt, zero duplication** (right level of documentation every time)
+- ✅ **Zero documentation debt** (right level of product documentation every time)
 
 **AI-Driven Rule Improvement Benefits**:
 - ✅ Captures learnings automatically (user doesn't need to remember)
@@ -1259,15 +1301,15 @@ This orchestrator succeeds when:
 - ✅ No documentation debt (learnings captured immediately)
 
 **Smart Documentation Philosophy**:
-- **Documentation evaluation is ALWAYS performed** - never forgotten
-- AI decides **whether** separate documentation is needed (beyond changelog)
-- Changelogs capture "what and why" (implementation details)
-- Documentation captures "how to use" and "how it works" (permanent reference)
-- AI avoids duplication between changelogs and docs
-- AI creates documentation when it enables understanding/usage
-- AI skips documentation when changelog is sufficient (internal changes)
+- **Product documentation evaluation is ALWAYS performed** - never forgotten
+- AI decides **whether** product documentation is needed (would users/contributors need this explained?)
+- **Changelogs** capture "what changed, when, why" (change tracking for developers)
+- **Product documentation** captures "how to use it, how it works" (understanding/usage for users)
+- **These serve different purposes** - both can exist for user-facing features (not duplication)
+- AI creates product documentation when it enables understanding/usage of Stigmer
+- AI skips product documentation when changelog is sufficient (internal-only changes)
 - User doesn't worry about documentation - it's intelligently handled
-- Result: Comprehensive docs folder without duplication or overhead
+- Result: Comprehensive docs folder that helps users understand and adopt Stigmer
 
 ---
 

@@ -8,7 +8,6 @@ require (
 	buf.build/go/protovalidate v1.1.0
 	github.com/dgraph-io/badger/v4 v4.5.0
 	github.com/google/uuid v1.6.0
-	github.com/mattn/go-sqlite3 v1.14.19
 	github.com/rs/zerolog v1.31.0
 	github.com/stigmer/stigmer/apis/stubs/go v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.11.1
@@ -35,7 +34,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.22.0 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/nexus-rpc/sdk-go v0.5.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -47,7 +46,7 @@ require (
 	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sync v0.18.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251029180050-ab9386a59fda // indirect

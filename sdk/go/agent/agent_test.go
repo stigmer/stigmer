@@ -98,7 +98,10 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			agent, err := New(tt.opts...)
+			agent, err := New(
+
+				nil, // No context needed for tests
+		tt.opts...)
 
 			if tt.wantErr {
 				if err == nil {

@@ -1,0 +1,285 @@
+---
+description: Implement and enhance Stigmer CLI features following engineering standards
+alwaysApply: false
+---
+
+# Rule: Implement Stigmer CLI Features (action)
+
+**Purpose**: Implement and enhance Go-based CLI features for the Stigmer CLI. Handles commands, backend communication, configuration, and user experience following established engineering standards.
+
+**Usage**: Invoke this rule when adding new commands, fixing issues, or enhancing CLI capabilities.
+
+**Prerequisites**: 
+- Go 1.24+ environment
+- Proto stubs generated for Stigmer APIs
+- Familiarity with Cobra CLI framework
+- Understanding of Stigmer architecture (local vs backend modes)
+
+---
+
+## 🎯 Critical: Read These First
+
+**Engineering Standards** (MANDATORY):
+- \`@.cursor/rules/client-apps/cli/coding-guidelines.mdc\` - Non-negotiable engineering principles
+
+**Before implementing**, check learning log for solutions to common issues:
+- \`docs/learning-log.md\` - Documented patterns, fixes, real-world solutions
+
+---
+
+## Core Implementation Areas
+
+### 1. CLI Commands (Cobra Framework)
+
+**Location**: \`cmd/stigmer/root/*.go\`
+
+**Patterns**:
+- Use Cobra Command struct with \`Use\`, \`Short\`, \`Long\`, \`Example\`, \`Run\`
+- Subcommands organized by domain (agent, workflow, local, version)
+- Flags on specific commands as needed
+- Use \`clierr.HandleDefault(err)\` for error handling with exit
+- Keep handlers thin (50-80 lines max)
+
+**Example**:
+\`\`\`go
+func NewWorkflowCommand() *cobra.Command {
+    cmd := &cobra.Command{
+        Use:   "workflow",
+        Short: "Manage workflows",
+        Long:  \`Create, execute, and manage CNCF workflows.\`,
+    }
+    
+    cmd.AddCommand(newWorkflowExecuteCommand())
+    cmd.AddCommand(newWorkflowValidateCommand())
+    
+    return cmd
+}
+
+func newWorkflowExecuteCommand() *cobra.Command {
+    return &cobra.Command{
+        Use:   "execute <workflow.yaml>",
+        Short: "Execute a workflow",
+        Long:  \`Execute a CNCF workflow from a YAML file.\`,
+        Example: \`  stigmer workflow execute my-workflow.yaml\`,
+        Args:  cobra.ExactArgs(1),
+        Run: func(cmd *cobra.Command, args []string) {
+            workflowPath := args[0]
+            
+            // Delegate to domain logic
+            result, err := executeWorkflow(workflowPath)
+            clierr.HandleDefault(err)
+            
+            cliprint.PrintSuccessMessage("Workflow executed: %s", result.Id)
+        },
+    }
+}
+\`\`\`
+
+### 2. Local Mode (Stigmer Daemon)
+
+**Location**: \`internal/cli/daemon/*.go\`
+
+**Patterns**:
+- Download and manage Stigmer daemon binary
+- Start/stop daemon in background
+- Health checks and status monitoring
+- Secret management for daemon
+- Auto-download if not present
+
+**Key Responsibilities**:
+- Binary version management
+- Process lifecycle (start, stop, health)
+- Configuration generation
+- Secret injection
+
+### 3. Backend Communication (gRPC)
+
+**Location**: \`internal/cli/backend/*.go\`
+
+**Patterns**:
+- Connection management
+- Health checks
+- Error handling
+- TLS configuration
+
+**Pure RPC proxies** - NO business logic in backend functions.
+
+### 4. Configuration Management
+
+**Location**: \`internal/cli/config/*.go\`
+
+**Patterns**:
+- YAML-based configuration
+- Home directory storage (\`~/.stigmer/config.yaml\`)
+- Environment variable overrides
+- Safe file permissions (0600)
+
+### 5. Output Formatting
+
+**Location**: \`internal/cli/cliprint/*.go\`
+
+**Patterns**:
+- Colored output (green for success, red for errors)
+- Progress indicators
+- Structured output (tables, JSON, YAML)
+- Consistent messaging
+
+### 6. Error Handling
+
+**Location**: \`internal/cli/clierr/*.go\`
+
+**Patterns**:
+- Wrap ALL errors with context
+- Clear, actionable error messages
+- Exit with appropriate codes
+- Debug mode support
+
+---
+
+## Common Patterns
+
+### Command Handler Structure
+
+\`\`\`go
+func commandHandler(cmd *cobra.Command, args []string) {
+  // 1. Parse flags/args
+  inputPath := args[0]
+  
+  // 2. Execute domain logic
+  result, err := domainFunction(inputPath)
+  clierr.HandleDefault(err)
+  
+  // 3. Print success
+  cliprint.PrintSuccessMessage("Operation completed: %s", result.Id)
+}
+\`\`\`
+
+### Error Wrapping
+
+\`\`\`go
+if err != nil {
+  return errors.Wrap(err, "failed to execute workflow")
+}
+\`\`\`
+
+### Success Messages
+
+\`\`\`go
+// Simple success
+cliprint.PrintDefaultSuccess()
+
+// Custom message
+cliprint.PrintSuccessMessage(fmt.Sprintf("Processed %d items", count))
+\`\`\`
+
+---
+
+## Testing Patterns
+
+### Unit Tests
+
+\`\`\`go
+func TestConfigLoad(t *testing.T) {
+    cfg, err := config.Load()
+    assert.NoError(t, err)
+    assert.NotNil(t, cfg)
+}
+\`\`\`
+
+### Integration Tests
+
+\`\`\`go
+func TestWorkflowExecute(t *testing.T) {
+    if testing.Short() {
+        t.Skip("skipping integration test")
+    }
+    
+    // Test actual workflow execution
+}
+\`\`\`
+
+---
+
+## Build Checklist
+
+Before completing CLI work:
+
+- [ ] All commands implemented and tested
+- [ ] Help text comprehensive
+- [ ] Error messages clear and actionable
+- [ ] Code follows engineering standards (\`@coding-guidelines.mdc\`)
+- [ ] Tests pass: \`go test ./...\`
+- [ ] Binary works standalone
+- [ ] Gazelle run to update BUILD.bazel files
+
+---
+
+## Self-Improvement Workflow
+
+After implementing CLI features:
+
+1. **Check learning log first**: \`docs/learning-log.md\`
+2. **Document new learnings**: Add to learning log if discovered something new
+3. **Update reference docs**: If patterns changed
+4. **Improve this rule**: Invoke \`@improve-this-rule.mdc\` if rule needs updating
+
+---
+
+## Key Differences from Other CLIs
+
+Stigmer CLI is unique:
+
+1. **Dual Mode**: Local (daemon-based) AND backend (gRPC API)
+2. **Workflow Execution**: CNCF workflow runtime integration
+3. **Agent Management**: AI agent lifecycle and execution
+4. **Daemon Management**: Auto-download and lifecycle management
+
+---
+
+## Quick Reference
+
+**File Locations**:
+- Root Command: \`cmd/stigmer/root.go\`
+- Commands: \`cmd/stigmer/root/*.go\`
+- Backend: \`internal/cli/backend/*.go\`
+- Config: \`internal/cli/config/config.go\`
+- Daemon: \`internal/cli/daemon/*.go\`
+- Utilities: \`internal/cli/cliprint/\`, \`internal/cli/clierr/\`
+
+**Key Imports**:
+\`\`\`go
+// Cobra
+"github.com/spf13/cobra"
+
+// gRPC
+"google.golang.org/grpc"
+
+// Stigmer protos
+agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agent/v1"
+workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/workflow/v1"
+
+// Internal
+"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
+\`\`\`
+
+**Common Commands**:
+\`\`\`bash
+# Build
+make build
+
+# Test
+make test
+
+# Clean
+make clean
+\`\`\`
+
+---
+
+## Related Rules
+
+- \`@coding-guidelines.mdc\` - Engineering standards (MANDATORY)
+- \`@improve-this-rule.mdc\` - Update this rule based on learnings
+- \`@complete-stigmer-oss-work\` - Finalize and commit work

@@ -29,7 +29,7 @@ func TestLoadTargetStep(t *testing.T) {
 
 	// Save to store
 	ctx := context.Background()
-	err := testStore.SaveResource(ctx, "agent", testAgent.Metadata.Id, testAgent)
+	err := testStore.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, testAgent.Metadata.Id, testAgent)
 	require.NoError(t, err)
 
 	t.Run("loads existing resource successfully", func(t *testing.T) {

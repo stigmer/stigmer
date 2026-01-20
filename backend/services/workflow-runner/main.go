@@ -25,11 +25,11 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/config"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/env"
-	grpcserver "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/grpc"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/worker"
-	workerConfig "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/worker/config"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/config"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/env"
+	grpcserver "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/grpc"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/worker"
+	workerConfig "github.com/stigmer/stigmer/backend/services/workflow-runner/worker/config"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

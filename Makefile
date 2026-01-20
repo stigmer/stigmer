@@ -12,8 +12,8 @@ help: ## Show this help message
 setup: ## Install dependencies and tools
 	@echo "Installing Go dependencies..."
 	go mod download
-	@echo "Installing Python dependencies..."
-	cd sdk/python && pip install -e .[dev]
+	@echo "Installing Agent Runner dependencies..."
+	cd backend/services/agent-runner && poetry install
 	@echo "Setup complete!"
 
 build: protos ## Build the Stigmer CLI
@@ -48,15 +48,49 @@ build-backend: protos ## Build all backend services
 	@echo "============================================"
 
 test: ## Run all tests
-	@echo "Running Go tests..."
+	@echo "============================================"
+	@echo "Running All Tests"
+	@echo "============================================"
+	@echo ""
+	@echo "1/4 Running Root Module Tests..."
+	@echo "--------------------------------------------"
 	go test -v -race -timeout 30s ./...
-	@echo "Running Python tests..."
-	cd sdk/python && pytest
+	@echo ""
+	@echo "2/4 Running SDK Go Tests..."
+	@echo "--------------------------------------------"
+	cd sdk/go && go test -v -race -timeout 30s ./...
+	@echo ""
+	@echo "3/4 Running Workflow Runner Tests..."
+	@echo "--------------------------------------------"
+	cd backend/services/workflow-runner && go test -v -race -timeout 30s ./...
+	@echo ""
+	@echo "4/4 Running Agent Runner Tests (Python)..."
+	@echo "--------------------------------------------"
+	cd backend/services/agent-runner && poetry install --no-interaction --quiet && poetry run pytest
+	@echo ""
+	@echo "============================================"
+	@echo "✓ All Tests Complete!"
+	@echo "============================================"
+
+test-root: ## Run root module tests only
+	@echo "Running root module tests..."
+	go test -v -race -timeout 30s ./...
+
+test-sdk: ## Run SDK Go tests only
+	@echo "Running SDK Go tests..."
+	cd sdk/go && go test -v -race -timeout 30s ./...
+
+test-workflow-runner: ## Run workflow-runner tests only
+	@echo "Running workflow-runner tests..."
+	cd backend/services/workflow-runner && go test -v -race -timeout 30s ./...
+
+test-agent-runner: ## Run agent-runner tests only (Python)
+	@echo "Running agent-runner tests..."
+	cd backend/services/agent-runner && poetry install --no-interaction --quiet && poetry run pytest
 
 coverage: ## Generate test coverage report
 	@echo "Generating coverage report..."
 	go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
-	go tool cover -html=coverage.txt -o coverage.html
 	@echo "Coverage report: coverage.html"
 
 protos: ## Generate protocol buffer stubs
@@ -134,6 +168,71 @@ protos-release: ## Release protos to Buf and create Git tag (usage: make protos-
 	echo "  • Git Tag: $$LATEST_TAG"
 	@echo ""
 
+release: ## Create and push release tag (usage: make release [bump=patch|minor|major])
+	@echo "============================================"
+	@echo "Creating Stigmer CLI Release Tag"
+	@echo "============================================"
+	@echo ""
+	@# Get the latest tag, default to v0.0.0 if none exists
+	@LATEST_TAG=$$(git tag -l "v*" | sort -V | tail -n1); \
+	if [ -z "$$LATEST_TAG" ]; then \
+		LATEST_TAG="v0.0.0"; \
+		echo "No existing tags found. Starting from $$LATEST_TAG"; \
+	else \
+		echo "Latest tag: $$LATEST_TAG"; \
+	fi; \
+	\
+	VERSION=$$(echo $$LATEST_TAG | sed 's/^v//'); \
+	MAJOR=$$(echo $$VERSION | cut -d. -f1); \
+	MINOR=$$(echo $$VERSION | cut -d. -f2); \
+	PATCH=$$(echo $$VERSION | cut -d. -f3); \
+	\
+	echo "Bump type: $(bump)"; \
+	echo ""; \
+	\
+	case $(bump) in \
+		major) \
+			MAJOR=$$((MAJOR + 1)); \
+			MINOR=0; \
+			PATCH=0; \
+			;; \
+		minor) \
+			MINOR=$$((MINOR + 1)); \
+			PATCH=0; \
+			;; \
+		patch) \
+			PATCH=$$((PATCH + 1)); \
+			;; \
+		*) \
+			echo "ERROR: Invalid bump type '$(bump)'. Use: patch, minor, or major"; \
+			exit 1; \
+			;; \
+	esac; \
+	\
+	NEW_TAG="v$$MAJOR.$$MINOR.$$PATCH"; \
+	echo "New tag: $$NEW_TAG"; \
+	echo ""; \
+	\
+	if git rev-parse "$$NEW_TAG" >/dev/null 2>&1; then \
+		echo "ERROR: Tag $$NEW_TAG already exists"; \
+		exit 1; \
+	fi; \
+	\
+	echo "Creating release tag: $$NEW_TAG"; \
+	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
+	git push origin "$$NEW_TAG"; \
+	echo ""
+	@echo "============================================"
+	@echo "✓ Release Tag Created!"
+	@echo "============================================"
+	@echo ""
+	@echo "Summary:"
+	@LATEST_TAG=$$(git tag -l "v*" | sort -V | tail -n1); \
+	echo "  • Git Tag: $$LATEST_TAG pushed to origin"
+	@echo "  • GitHub Actions will now build and publish release"
+	@echo "  • Release URL: https://github.com/stigmer/stigmer/releases/tag/$$LATEST_TAG"
+	@echo ""
+
 lint: ## Run linters
 	@echo "Running Go linters..."
 	go vet ./...
@@ -146,7 +245,6 @@ clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
 	rm -rf bin/
 	rm -rf coverage.txt coverage.html
-	rm -rf sdk/python/build sdk/python/dist sdk/python/*.egg-info
 	rm -rf backend/services/workflow-runner/bin/
 	$(MAKE) -C apis clean
 	@echo "Clean complete!"
@@ -159,25 +257,32 @@ install: build ## Install Stigmer CLI to system
 
 release-local: ## Build and install CLI for local testing (fast rebuild without protos)
 	@echo "============================================"
-	@echo "Building and Installing Stigmer CLI Locally"
+	@echo "Building and Installing Stigmer Locally"
 	@echo "============================================"
 	@echo ""
 	@echo "Step 1: Removing old binaries..."
 	@rm -f $(HOME)/bin/stigmer
+	@rm -f $(HOME)/bin/stigmer-server
 	@rm -f /usr/local/bin/stigmer 2>/dev/null || true
 	@rm -f bin/stigmer
+	@rm -f bin/stigmer-server
 	@echo "✓ Old binaries removed"
 	@echo ""
-	@echo "Step 2: Building fresh CLI binary..."
+	@echo "Step 2: Building fresh binaries..."
 	@mkdir -p bin
 	@cd client-apps/cli && go build -o ../../bin/stigmer .
-	@echo "✓ Build complete: bin/stigmer"
+	@echo "✓ CLI built: bin/stigmer"
+	@go build -o bin/stigmer-server ./backend/services/stigmer-server/cmd/server
+	@echo "✓ Server built: bin/stigmer-server"
 	@echo ""
 	@echo "Step 3: Installing to ~/bin..."
 	@mkdir -p $(HOME)/bin
 	@cp bin/stigmer $(HOME)/bin/stigmer
 	@chmod +x $(HOME)/bin/stigmer
 	@echo "✓ Installed: $(HOME)/bin/stigmer"
+	@cp bin/stigmer-server $(HOME)/bin/stigmer-server
+	@chmod +x $(HOME)/bin/stigmer-server
+	@echo "✓ Installed: $(HOME)/bin/stigmer-server"
 	@echo ""
 	@echo "============================================"
 	@echo "✓ Release Complete!"
@@ -185,6 +290,7 @@ release-local: ## Build and install CLI for local testing (fast rebuild without 
 	@echo ""
 	@if command -v stigmer >/dev/null 2>&1; then \
 		echo "✓ CLI ready! Run: stigmer --help"; \
+		echo "✓ Server ready for 'stigmer local'"; \
 		echo ""; \
 		stigmer --version 2>/dev/null || echo "Version: development"; \
 	else \
