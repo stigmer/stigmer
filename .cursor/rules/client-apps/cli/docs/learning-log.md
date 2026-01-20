@@ -415,3 +415,53 @@ go run test.go
 
 **Key Takeaway**: When building developer tools, trust the language's native tooling. Validate outcomes (resources created) not syntax (imports present). This applies to all language SDKs - Python, TypeScript, Go, etc.
 
+
+---
+
+## Backend & Daemon Management
+
+### 2026-01-20 - Auto-Start Daemon Pattern for Runtime Services
+
+**Problem**: Requiring manual `stigmer server start` before commands creates friction:
+- Users forget to start daemon
+- Error: "cannot connect to server" is confusing on first run  
+- Doesn't match user expectations from Docker, Minikube patterns
+- Mental overhead: "Did I start the server? Do I need to?"
+
+**Root Cause**: Treating daemon startup as manual user action instead of transparent implementation detail. Users don't care about "starting a daemon" - they just want their commands to work.
+
+**Solution**: Auto-start daemon when needed, inspired by industry patterns:
+
+**Industry Research**:
+- **Docker Desktop** ✅: `docker run` auto-starts Docker daemon on first use
+- **Minikube** ✅: `minikube start` starts entire Kubernetes cluster
+- **Podman Machine (macOS)** ✅: Auto-starts VM when running `podman` commands
+- **Temporal CLI** ✅: `temporal server start-dev` for managed runtime
+
+**Key Insight**: Stigmer is a **workflow runtime** (like Docker/Minikube), not just **state management** (like Pulumi). Runtime services justify auto-start.
+
+**Related Docs**:
+- Changelog: `_changelog/2026-01/2026-01-20-090202-cli-auto-start-daemon-local-backend.md`
+- Architecture: `docs/architecture/backend-modes.md`
+- Getting started: `docs/getting-started/local-mode.md`
+- Branch: `fix/stigmer-apply-cmd`
+
+**Key Takeaway**: For workflow runtimes (not just state management), auto-start daemon following Docker/Minikube patterns. Fast path optimization for subsequent runs. Only for local mode (cloud connects to remote API).
+
+---
+
+### 2026-01-20 - Backend Mode Organization Handling (Local vs Cloud)
+
+**Problem**: CLI required organization in ALL modes, failing in local mode:
+```
+Error: organization not set
+```
+
+**Solution**: Backend mode-aware organization handling. Local mode uses constant "local", cloud mode requires user-provided organization.
+
+**Related Docs**:
+- Changelog: `_changelog/2026-01/2026-01-20-090202-cli-auto-start-daemon-local-backend.md`
+- Architecture: `docs/architecture/backend-modes.md`
+- Branch: `fix/stigmer-apply-cmd`
+
+**Key Takeaway**: Follow Pulumi's local-first pattern. Local backend = constant "local" organization (zero config). Cloud backend = user-provided organization (required).
