@@ -631,8 +631,9 @@ func taskConfigToStruct(task *workflow.Task) (*structpb.Struct, error) {
 		
 		// Add scope if specified (not empty)
 		if scope := cfg.Agent.Scope(); scope != "" {
-			// Convert scope string to enum value
-			configMap["scope"] = scopeStringToEnum(scope)
+			// Keep as string - structpb.NewStruct() cannot handle enum types directly
+			// The backend will convert the string to the appropriate enum value
+			configMap["scope"] = scope
 		}
 		
 		// Add execution config if present

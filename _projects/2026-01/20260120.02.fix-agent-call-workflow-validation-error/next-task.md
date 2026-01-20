@@ -1,28 +1,25 @@
-# Next Task: Fix Agent Call Workflow Validation Error
+# Project Status: Complete ✅
 
 **Project**: Fix Agent Call Workflow Validation Error  
 **Location**: `_projects/2026-01/20260120.02.fix-agent-call-workflow-validation-error/`  
-**Status**: ✅ Complete
+**Status**: ✅ Complete (2026-01-21)
 
-## Completion Summary
+## Final Resolution
 
-**Completed**: 2026-01-20 23:52
+**Completed**: 2026-01-21 00:12
 
-Fixed two critical validation errors preventing workflows with agent call tasks from deploying.
+Fixed agent call workflow validation by addressing **enum serialization incompatibility** at two critical points:
 
-**What was fixed**:
-1. ✅ Missing task kind support (WORKFLOW_TASK_KIND_AGENT_CALL)
-2. ✅ Scope enum serialization (string → enum conversion)
-3. ✅ Worker mode support (EXECUTION_MODE=temporal)
+1. ✅ **SDK Fix**: Changed scope from enum to string in `workflow_converter.go` (structpb.Struct requires primitives)
+2. ✅ **Backend Fix**: Changed from `json.Unmarshal` to `protojson.Unmarshal` in `task_builder_call_agent.go` (enum name handling)
 
-**Documentation**: See checkpoint `checkpoints/2026-01-20-validation-fixes-complete.md`
+**Documentation**: 
+- Checkpoint: `checkpoints/2026-01-21-scope-enum-serialization-fixed.md`
+- Changelog: `_changelog/2026-01/2026-01-21-001245-fix-agent-call-scope-enum-serialization.md`
 
-**Critical Issue**: The workflow-runner binary is still throwing the error even after:
-- Code changes added to unmarshal.go, proto_to_yaml.go, task_converters.go
-- Binary was rebuilt
-- Workflow was tested
+**Testing**: Successfully deployed test workflow `review-demo-pr` with agent call task
 
-## Current Task: Task 1 - Verify Code Changes Are in Place
+## No Further Tasks Required
 
 **Objective**: Confirm the code changes actually exist in the source files before investigating further.
 
