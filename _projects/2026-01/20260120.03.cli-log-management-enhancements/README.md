@@ -3,7 +3,8 @@
 **Project**: CLI Log Management Enhancements  
 **Location**: `_projects/2026-01/20260120.03.cli-log-management-enhancements/`  
 **Created**: 2026-01-20  
-**Status**: ⏸️ TODO
+**Status**: 🚧 IN PROGRESS (2/5 tasks complete - 40%)  
+**Latest Checkpoint**: `checkpoints/2026-01-20-tasks-1-2-complete.md`
 
 ## Overview
 
@@ -40,10 +41,10 @@ Improve operational experience with better log viewing options and automatic log
 
 ## Success Criteria
 
-- [ ] `stigmer server logs --all` shows interleaved logs from all components
-- [ ] On restart, old logs are archived with timestamps (not deleted)
-- [ ] Archived logs are kept for N days (configurable, default 7)
-- [ ] Log viewing experience matches Kubernetes/Docker patterns
+- [x] `stigmer server logs --all` shows interleaved logs from all components
+- [x] On restart, old logs are archived with timestamps (not deleted)
+- [x] Archived logs are kept for N days (configurable, default 7)
+- [x] Log viewing experience matches Kubernetes/Docker patterns
 - [ ] Documentation updated with new features
 
 ## Key Features

@@ -109,8 +109,9 @@ func cleanupOldLogs(logDir string, keepDays int) error {
 
 ## Task 2: Add `--all` Flag for Unified Log Viewing
 
-**Status**: ⏸️ TODO  
-**Priority**: Medium
+**Status**: ✅ COMPLETE  
+**Priority**: Medium  
+**Completed**: 2026-01-20
 
 ### Objective
 Add ability to view logs from all components in a single interleaved stream, sorted by timestamp.
@@ -201,12 +202,16 @@ func streamMergedLogs(logFiles []string, tail int) error {
 6. Test with `--follow` and without
 
 ### Success Criteria
-- [ ] `stigmer server logs --all` shows logs from all components
-- [ ] Logs are interleaved by timestamp
-- [ ] Each line shows component name in brackets
-- [ ] Works with `--follow` for real-time streaming
-- [ ] Works with `--tail` to limit output
-- [ ] Works with `--stderr` to show errors
+- [x] `stigmer server logs --all` shows logs from all components
+- [x] Logs are interleaved by timestamp
+- [x] Each line shows component name in brackets
+- [x] Works with `--follow` for real-time streaming
+- [x] Works with `--tail` to limit output
+- [x] Works with `--stderr` to show errors
+- [x] Clean code architecture (new `logs` package)
+- [x] All files under 150 lines
+- [x] Proper error handling
+- [x] Backward compatible (single component viewing still works)
 
 ---
 
@@ -475,9 +480,9 @@ ls -lh ~/.stigmer/data/logs/
 ## Progress Summary
 
 - **Total Tasks**: 5
-- **Completed**: 1 (Task 1: Log Rotation)
+- **Completed**: 2 (Task 1: Log Rotation, Task 2: Unified Viewing)
 - **In Progress**: 0
-- **Remaining**: 4
+- **Remaining**: 3
 
 ## Current Focus
 

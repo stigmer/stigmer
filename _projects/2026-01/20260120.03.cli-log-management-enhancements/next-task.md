@@ -2,13 +2,13 @@
 
 **Project**: CLI Log Management Enhancements  
 **Location**: `_projects/2026-01/20260120.03.cli-log-management-enhancements/`  
-**Status**: 🚧 IN PROGRESS - Task 1 Complete, Ready for Testing
+**Status**: 🚧 IN PROGRESS - Tasks 1 & 2 Complete
 
 ## Quick Context
 
 Enhancing `stigmer server logs` command with three key improvements:
 1. **Log rotation** on server restart (highest priority) ✅ **COMPLETE**
-2. **Unified log viewing** with `--all` flag
+2. **Unified log viewing** with `--all` flag ✅ **COMPLETE**
 3. **Better operational experience** matching Kubernetes/Docker patterns
 
 **Goal**: Make log management feel professional and prevent log bloat.
@@ -39,27 +39,60 @@ ls -lh ~/.stigmer/data/logs/  # Check for .log.TIMESTAMP files
 
 ---
 
+## ✅ Task 2 Complete: Unified Log Viewing
+
+**Status**: Implementation complete and tested  
+**What Was Done**:
+- Created new `internal/cli/logs` package with utilities
+- Implemented timestamp parsing with multiple format support
+- Implemented log merging for non-streaming mode
+- Implemented multi-file streaming for follow mode
+- Added component prefixes (`[server]`, `[agent-runner]`, `[workflow-runner]`)
+- Integrated `--all` flag into command
+
+**Implementation Details**: See `task2-implementation.md`
+
+**Test It Now**:
+```bash
+# View last 20 lines from all components
+stigmer server logs --all --follow=false --tail 20
+
+# Stream all logs in real-time
+stigmer server logs --all -f
+
+# View error logs from all components
+stigmer server logs --all --stderr --follow=false
+```
+
+---
+
 ## Recommended Next Steps
 
-With Task 1 complete, you have two good options:
+With Tasks 1 & 2 complete, you have three good options:
 
-### Option A: Test Task 1 First (Recommended)
-Verify the rotation works before moving on:
+### Option A: Test Both Features (Recommended)
+Verify everything works together:
 ```bash
-make release-local
+# Test log rotation
 stigmer server restart
-ls -lh ~/.stigmer/data/logs/
+ls -lh ~/.stigmer/data/logs/  # Check for archived logs
+
+# Test unified viewing
+stigmer server logs --all --tail 30 --follow=false
+
+# Test streaming
+stigmer server logs --all -f
 ```
-See testing instructions in `task1-implementation.md`
 
 ### Option B: Continue with Task 4 (Documentation)
-Document the rotation feature while it's fresh:
+Document the new features while they're fresh:
 - Update `docs/cli/server-logs.md`
-- Add rotation behavior section
+- Add `--all` flag usage examples
+- Document log rotation behavior
 - Document 7-day cleanup policy
 
-### Option C: Move to Task 2 (Unified Viewing)
-Implement `--all` flag for viewing all component logs together.
+### Option C: Move to Task 3 (Clear Logs Flag)
+Quick addition of `--clear-logs` flag for users who want to delete logs instead of archiving (30 min).
 
 ## What Log Rotation Does
 
