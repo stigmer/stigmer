@@ -2,7 +2,49 @@
 
 Stigmer local mode runs entirely on your machine with a BadgerDB database. No servers, no cloud dependencies, no complexity.
 
-## Installation
+## Quick Start (Recommended)
+
+The fastest way to get started is with `stigmer new`, which scaffolds a complete working project in under 30 seconds:
+
+```bash
+# Create a new project with AI agent + workflow example
+stigmer new my-first-project
+
+# Navigate to the project
+cd my-first-project
+
+# Start the Stigmer server
+stigmer server
+
+# Run the example workflow (analyzes a real GitHub PR)
+stigmer run
+```
+
+**What you get:**
+- ✅ Working AI agent (PR code reviewer)
+- ✅ Working workflow (fetches and analyzes GitHub PRs)
+- ✅ Zero configuration required
+- ✅ Complete documentation in generated `README.md`
+- ✅ Ready to customize and extend
+
+The generated project demonstrates:
+- How to define AI agents with natural language instructions
+- How to create workflows that call agents
+- How to integrate with external APIs (GitHub)
+- How task dependencies work automatically
+
+**Next steps after running the example:**
+1. Read the generated `README.md` to understand what was created
+2. Modify `main.go` to customize the agent or workflow
+3. Explore [customization examples](#customizing-generated-projects) below
+
+---
+
+## Alternative: Manual Setup
+
+If you prefer to start from scratch or install Stigmer without a project:
+
+### Installation
 
 ### macOS/Linux
 
@@ -370,6 +412,83 @@ stigmer init
 
 ```bash
 stigmer --debug agent execute support-bot "test"
+```
+
+## Customizing Generated Projects
+
+If you used `stigmer new`, here's how to customize the generated project:
+
+### Change the Target Repository
+
+Edit `main.go` and modify the GitHub API URL:
+
+```go
+// Before: Analyzes stigmer/hello-stigmer
+fetchPR := pipeline.HttpGet("fetch-pr",
+    "https://api.github.com/repos/stigmer/hello-stigmer/pulls/1",
+    // ...
+)
+
+// After: Analyze your repository
+fetchPR := pipeline.HttpGet("fetch-pr",
+    "https://api.github.com/repos/YOUR_ORG/YOUR_REPO/pulls/1",
+    // ...
+)
+```
+
+### Modify Agent Instructions
+
+Change what the AI focuses on:
+
+```go
+agent.WithInstructions(`You are an expert code reviewer.
+
+Focus on:
+1. Security vulnerabilities
+2. Performance issues
+3. Code style consistency
+
+Be concise and actionable.`)
+```
+
+### Add More Workflow Steps
+
+Workflows are composable - add tasks as needed:
+
+```go
+// Send review to Slack
+notify := pipeline.HttpPost("notify-slack",
+    "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+    workflow.Body(analyze.Field("response")),
+)
+```
+
+### Use Environment Variables
+
+For sensitive data like API keys:
+
+```go
+ctx.SetString("slackWebhook", os.Getenv("SLACK_WEBHOOK_URL"))
+```
+
+### Development Workflow
+
+**For users** (when SDK is published):
+- Running `stigmer new` automatically fetches the latest SDK
+- Just works!
+
+**For developers** (local SDK changes):
+
+After creating a project, add these replace directives to `go.mod`:
+
+```go
+replace github.com/stigmer/stigmer/sdk/go => /path/to/local/sdk/go
+replace github.com/stigmer/stigmer/apis/stubs/go => /path/to/local/apis/stubs/go
+```
+
+Then run:
+```bash
+go mod tidy
 ```
 
 ## Next Steps
