@@ -10,8 +10,13 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 setup: ## Install dependencies and tools
-	@echo "Installing Go dependencies..."
-	go mod download
+	@echo "Installing Go dependencies for all modules..."
+	@cd apis/stubs/go && go mod download
+	@cd backend/libs/go && go mod download
+	@cd backend/services/stigmer-server && go mod download
+	@cd backend/services/workflow-runner && go mod download
+	@cd client-apps/cli && go mod download
+	@cd sdk/go && go mod download
 	@echo "Installing Agent Runner dependencies..."
 	cd backend/services/agent-runner && poetry install
 	@echo "Setup complete!"
@@ -52,19 +57,31 @@ test: ## Run all tests
 	@echo "Running All Tests"
 	@echo "============================================"
 	@echo ""
-	@echo "1/4 Running Root Module Tests..."
+	@echo "1/7 Running API Stubs Tests..."
 	@echo "--------------------------------------------"
-	go test -v -race -timeout 30s ./...
+	cd apis/stubs/go && go test -v -race -timeout 30s ./...
 	@echo ""
-	@echo "2/4 Running SDK Go Tests..."
+	@echo "2/7 Running Backend Libs Tests..."
 	@echo "--------------------------------------------"
-	cd sdk/go && go test -v -race -timeout 30s ./...
+	cd backend/libs/go && go test -v -race -timeout 30s ./...
 	@echo ""
-	@echo "3/4 Running Workflow Runner Tests..."
+	@echo "3/7 Running Stigmer Server Tests..."
+	@echo "--------------------------------------------"
+	cd backend/services/stigmer-server && go test -v -race -timeout 30s ./...
+	@echo ""
+	@echo "4/7 Running Workflow Runner Tests..."
 	@echo "--------------------------------------------"
 	cd backend/services/workflow-runner && go test -v -race -timeout 30s ./...
 	@echo ""
-	@echo "4/4 Running Agent Runner Tests (Python)..."
+	@echo "5/7 Running CLI Tests..."
+	@echo "--------------------------------------------"
+	cd client-apps/cli && go test -v -race -timeout 30s ./...
+	@echo ""
+	@echo "6/7 Running SDK Go Tests..."
+	@echo "--------------------------------------------"
+	cd sdk/go && go test -v -race -timeout 30s ./...
+	@echo ""
+	@echo "7/7 Running Agent Runner Tests (Python)..."
 	@echo "--------------------------------------------"
 	cd backend/services/agent-runner && poetry install --no-interaction --quiet && poetry run pytest
 	@echo ""
@@ -72,9 +89,14 @@ test: ## Run all tests
 	@echo "✓ All Tests Complete!"
 	@echo "============================================"
 
-test-root: ## Run root module tests only
-	@echo "Running root module tests..."
-	go test -v -race -timeout 30s ./...
+test-all-go: ## Run all Go workspace module tests
+	@echo "Running all Go workspace tests..."
+	@cd apis/stubs/go && go test -v -race -timeout 30s ./...
+	@cd backend/libs/go && go test -v -race -timeout 30s ./...
+	@cd backend/services/stigmer-server && go test -v -race -timeout 30s ./...
+	@cd backend/services/workflow-runner && go test -v -race -timeout 30s ./...
+	@cd client-apps/cli && go test -v -race -timeout 30s ./...
+	@cd sdk/go && go test -v -race -timeout 30s ./...
 
 test-sdk: ## Run SDK Go tests only
 	@echo "Running SDK Go tests..."
@@ -89,9 +111,15 @@ test-agent-runner: ## Run agent-runner tests only (Python)
 	cd backend/services/agent-runner && poetry install --no-interaction --quiet && poetry run pytest
 
 coverage: ## Generate test coverage report
-	@echo "Generating coverage report..."
-	go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
-	@echo "Coverage report: coverage.html"
+	@echo "Generating coverage report for all Go modules..."
+	@mkdir -p coverage
+	@cd apis/stubs/go && go test -v -race -coverprofile=../../../coverage/apis.txt -covermode=atomic ./...
+	@cd backend/libs/go && go test -v -race -coverprofile=../../../coverage/libs.txt -covermode=atomic ./...
+	@cd backend/services/stigmer-server && go test -v -race -coverprofile=../../../coverage/server.txt -covermode=atomic ./...
+	@cd backend/services/workflow-runner && go test -v -race -coverprofile=../../../coverage/workflow-runner.txt -covermode=atomic ./...
+	@cd client-apps/cli && go test -v -race -coverprofile=../../coverage/cli.txt -covermode=atomic ./...
+	@cd sdk/go && go test -v -race -coverprofile=../../coverage/sdk.txt -covermode=atomic ./...
+	@echo "Coverage reports generated in coverage/ directory"
 
 protos: ## Generate protocol buffer stubs
 	$(MAKE) -C apis build
@@ -234,8 +262,14 @@ release: ## Create and push release tag (usage: make release [bump=patch|minor|m
 	@echo ""
 
 lint: ## Run linters
-	@echo "Running Go linters..."
-	go vet ./...
+	@echo "Running Go linters on all modules..."
+	@cd apis/stubs/go && go vet ./...
+	@cd backend/libs/go && go vet ./...
+	@cd backend/services/stigmer-server && go vet ./...
+	@cd backend/services/workflow-runner && go vet ./...
+	@cd client-apps/cli && go vet ./...
+	@cd sdk/go && go vet ./...
+	@echo "Running gofmt..."
 	gofmt -s -w .
 	@echo "Running proto linters..."
 	$(MAKE) -C apis lint
@@ -244,6 +278,7 @@ lint: ## Run linters
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
 	rm -rf bin/
+	rm -rf coverage/
 	rm -rf coverage.txt coverage.html
 	rm -rf backend/services/workflow-runner/bin/
 	$(MAKE) -C apis clean

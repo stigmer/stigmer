@@ -9,7 +9,7 @@ go_library(
         "schedules.go",
         "search_attributes.go",
     ],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/zigflow/metadata",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/metadata",
     visibility = ["//visibility:public"],
     deps = [
         "//backend/services/workflow-runner/pkg/utils",
