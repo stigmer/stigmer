@@ -5,17 +5,17 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
-	"google.golang.org/protobuf/proto"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"google.golang.org/protobuf/proto"
 )
 
 // Context keys for inter-step communication
@@ -64,14 +64,14 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowexecutionv1.WorkflowExecution]("workflowexecution-create").
-		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecution]()).                   // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*workflowexecutionv1.WorkflowExecution]()).                     // 2. Resolve slug
-		AddStep(newValidateWorkflowOrInstanceStep()).                                                    // 3. Validate workflow_id OR workflow_instance_id
-		AddStep(newCreateDefaultInstanceIfNeededStep(c.workflowInstanceClient, c.store)).               // 4. Create default instance if needed
-		AddStep(steps.NewCheckDuplicateStep[*workflowexecutionv1.WorkflowExecution](c.store)).           // 5. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).                   // 6. Build new state
-		AddStep(newSetInitialPhaseStep()).                                                               // 7. Set phase to PENDING
-		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).                  // 8. Persist execution
+		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecution]()).         // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*workflowexecutionv1.WorkflowExecution]()).           // 2. Resolve slug
+		AddStep(newValidateWorkflowOrInstanceStep()).                                          // 3. Validate workflow_id OR workflow_instance_id
+		AddStep(newCreateDefaultInstanceIfNeededStep(c.workflowInstanceClient, c.store)).      // 4. Create default instance if needed
+		AddStep(steps.NewCheckDuplicateStep[*workflowexecutionv1.WorkflowExecution](c.store)). // 5. Check duplicate
+		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).         // 6. Build new state
+		AddStep(newSetInitialPhaseStep()).                                                     // 7. Set phase to PENDING
+		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).        // 8. Persist execution
 		Build()
 }
 
@@ -167,7 +167,7 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 			Msg("Workflow instance ID already provided, skipping default instance check")
 		return nil
 	}
-	
+
 	// Get the execution state to modify if needed
 	execution := ctx.NewState()
 
