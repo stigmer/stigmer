@@ -1,17 +1,12 @@
 .PHONY: build test clean golden-tests docker-build tidy run-grpc run-worker
 
-# Build directory outside the repo to avoid accidental commits
-BUILD_DIR := /tmp/stigmer-build
-
 # Build the worker binary
 build:
-	@mkdir -p $(BUILD_DIR)
-	go build -o $(BUILD_DIR)/workflow-runner ./cmd/worker
+	go build -o bin/workflow-runner ./cmd/worker
 
 # Build the gRPC server binary
 build-grpc:
-	@mkdir -p $(BUILD_DIR)
-	go build -o $(BUILD_DIR)/workflow-runner-grpc ./cmd/grpc-server
+	go build -o bin/workflow-runner-grpc ./cmd/grpc-server
 
 # Run unit tests
 test:
@@ -27,7 +22,7 @@ docker-build:
 
 # Clean build artifacts
 clean:
-	rm -rf $(BUILD_DIR)/workflow-runner*
+	rm -rf bin/
 
 # Tidy Go modules
 tidy:
@@ -51,9 +46,8 @@ run-worker:
 
 # Run the built gRPC server binary with environment variables
 run-grpc-server: build-grpc
-	. .env_export && $(BUILD_DIR)/workflow-runner-grpc
+	. .env_export && ./bin/workflow-runner-grpc
 
 # Run the built worker binary with environment variables
 run-worker-server: build
-	. .env_export && $(BUILD_DIR)/workflow-runner
-
+	. .env_export && ./bin/workflow-runner

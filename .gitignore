@@ -90,9 +90,6 @@ backend/services/*/agent-runner
 backend/services/*/cmd/*/server
 backend/services/*/server
 
-# CLI embedded binaries (these should be distributed via releases, not git)
-client-apps/cli/embedded/binaries/
-
 # Bazel build outputs
 bazel-*
 /MODULE.bazel.lock
