@@ -1201,3 +1201,103 @@ internal/cli/logs/
 - Changelog: `_changelog/2026-01/2026-01-20-234758-cli-log-management-enhancements.md`
 
 **Key Takeaway**: Extract complex features into dedicated packages. Single responsibility per file. Keep files under 150 lines.
+
+---
+
+## Build System & Distribution
+
+### 2026-01-21 - Go Embed + Gazelle Integration for Binary Embedding
+
+**Problem**: Need to embed platform-specific binaries (stigmer-server, workflow-runner, agent-runner) into CLI for self-contained distribution, while maintaining Bazel build system compatibility.
+
+**Root Cause**: CLI distribution required separate binaries. Users needed to install stigmer-server, workflow-runner, and agent-runner separately, leading to:
+- Version mismatches when rebuilding only one component
+- Complex binary search paths (~200 lines of fallback logic)
+- Installation complexity (multiple files via Homebrew)
+- Broken installations (users forget to install all components)
+
+**Solution**: Use Go `embed` package with Gazelle auto-detection.
+
+**Key Insight**: Gazelle automatically detects `//go:embed` directives and adds `embedsrcs` field to BUILD.bazel. NO manual BUILD file edits needed.
+
+**Results**:
+- Single binary distribution: 123 MB (vs 2-4 separate binaries)
+- Fast extraction: < 3s first run, < 1s subsequent
+- Version sync guaranteed: All components from same build
+- Simplified installation: One binary via Homebrew
+- Works offline: No downloads after install
+
+**Related Docs**:
+- Implementation: `client-apps/cli/embedded/`
+- Release guide: `client-apps/cli/RELEASE.md`
+- Changelog: `_changelog/2026-01/2026-01-21-011338-cli-embedded-binary-packaging.md`
+
+**Key Takeaway**: Go embed + Gazelle works seamlessly. Gazelle auto-detects embed directives and manages BUILD files. Use platform-specific builds (not universal binary). Extract on first run with version checking.
+
+---
+
+### 2026-01-21 - No Fallbacks Architecture for Production Binary Finding
+
+**Problem**: Binary search logic had 200 lines of fallback paths checking development locations. This created confusion about which binary was actually running and leaked development paths into production.
+
+**Solution**: Remove ALL fallbacks. Production uses ONLY extracted binaries. Dev mode uses ONLY env vars.
+
+**Code Reduction**:
+- Total: 295 lines → 90 lines (70% reduction)
+- findWorkspaceRoot(): 40 lines → DELETED
+
+**Clear Separation**:
+- Production: Uses only `~/.stigmer/data/bin/{binary}` (extracted)
+- Development: Uses only env vars (`STIGMER_*_BIN`, `STIGMER_*_SCRIPT`)
+- No overlap: No implicit fallbacks
+
+**Related Docs**:
+- Implementation: `client-apps/cli/internal/cli/daemon/daemon.go`
+- Changelog: `_changelog/2026-01/2026-01-21-011338-cli-embedded-binary-packaging.md`
+
+**Key Takeaway**: No fallbacks is better than smart fallbacks. Production uses ONLY extracted binaries. Dev mode uses ONLY env vars. Clear separation prevents confusion.
+
+---
+
+### 2026-01-21 - Version Checking Optimization for Binary Extraction
+
+**Problem**: Extracting binaries on every daemon start would add 3+ seconds to startup time.
+
+**Solution**: Version checking with `.version` marker file - Check version before extracting, skip if version matches.
+
+**Performance**:
+- First run: 3s (extract all binaries)
+- Version upgrade: 3s (re-extract on mismatch)
+- Subsequent runs: < 1s (version check only)
+
+**Trade-off**: 3x faster subsequent starts (3s → 1s), worth the ~50 lines of complexity.
+
+**Related Docs**:
+- Implementation: `client-apps/cli/embedded/version.go`
+- Changelog: `_changelog/2026-01/2026-01-21-011338-cli-embedded-binary-packaging.md`
+
+**Key Takeaway**: Version checking optimizes expensive operations. Check before extraction. Fast path for common case. Automatic re-extraction on upgrade.
+
+---
+
+### 2026-01-21 - Source-Only Tarball Distribution for Platform-Portable Code
+
+**Problem**: Agent-runner is Python code. Embedding full venv would be 80+ MB and platform-specific.
+
+**Solution**: Embed source code only as tar.gz, install dependencies on first run via poetry.
+
+**Results**:
+- Tarball size: 25 KB (source code only)
+- vs venv: 80 MB (3200x smaller!)
+- Platform portable: Same tarball works on darwin + linux
+- Fresh dependencies: `poetry install` gets latest compatible versions
+
+**Trade-off**: 5s one-time dependency installation vs 240 MB embedded. Worth it.
+
+**Related Docs**:
+- Implementation: `Makefile` embed-agent-runner target
+- Extraction: `client-apps/cli/embedded/extract.go`
+- Changelog: `_changelog/2026-01/2026-01-21-011338-cli-embedded-binary-packaging.md`
+
+**Key Takeaway**: For Python code, embed source only (not venv). Install dependencies at runtime. 3200x size reduction + platform portability.
+
