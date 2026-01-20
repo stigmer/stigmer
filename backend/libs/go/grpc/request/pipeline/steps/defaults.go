@@ -67,8 +67,6 @@ func (s *BuildNewStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 		return fmt.Errorf("resource metadata is nil")
 	}
 
-	fmt.Printf("[DEBUG BuildNewStateStep] BEFORE processing: metadata.Name=%s, metadata.Slug=%s\n", metadata.Name, metadata.Slug)
-
 	// 1. Clear status field using proto reflection
 	// Status is system-managed and should not contain any client-provided data
 	if hasStatusField(resource) {
@@ -100,9 +98,6 @@ func (s *BuildNewStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 			return fmt.Errorf("failed to set audit fields: %w", err)
 		}
 	}
-
-	fmt.Printf("[DEBUG BuildNewStateStep] AFTER processing: metadata.Name=%s, metadata.Slug=%s, metadata.Id=%s\n", 
-		metadata.Name, metadata.Slug, metadata.Id)
 
 	return nil
 }

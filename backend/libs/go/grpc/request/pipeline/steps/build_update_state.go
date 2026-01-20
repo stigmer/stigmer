@@ -93,10 +93,14 @@ func (s *BuildUpdateStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error
 
 // preserveImmutableFields copies immutable fields from existing to merged resource
 //
-// Immutable fields include:
-// - metadata.id (cannot be changed)
-// - metadata.name (slug - cannot be changed once set)
-// - metadata.created_at (set during creation)
+// Immutable fields (matching Java UpdateOperationPreserveResourceIdentifiersStepV2):
+// - metadata.id (resource ID - cannot be changed)
+// - metadata.slug (URL-safe identifier - cannot be changed once set)
+// - metadata.org (organization - cannot be changed once set)
+//
+// Mutable fields (NOT preserved, can be updated):
+// - metadata.name (display name - CAN be changed)
+// - metadata.title, description, labels, tags, etc.
 func preserveImmutableFields[T proto.Message](merged, existing T) error {
 	// Type assertions to access metadata
 	mergedMetadata, ok := any(merged).(HasMetadata)
@@ -116,12 +120,13 @@ func preserveImmutableFields[T proto.Message](merged, existing T) error {
 		return fmt.Errorf("metadata is nil")
 	}
 
-	// Preserve immutable fields
-	mergedMeta.Id = existingMeta.Id
-	mergedMeta.Name = existingMeta.Name // Slug is immutable
+	// Preserve immutable identifiers (matching Java implementation)
+	mergedMeta.Id = existingMeta.Id     // Resource ID (immutable)
+	mergedMeta.Slug = existingMeta.Slug // Slug (immutable, derived from original name)
+	mergedMeta.Org = existingMeta.Org   // Organization (immutable)
 
-	// Note: Other metadata fields (title, description, labels, tags) are mutable
-	// and can be updated by the client
+	// Note: metadata.name is NOT preserved - it can be updated by the client!
+	// Other metadata fields (title, description, labels, tags) are also mutable
 
 	return nil
 }
