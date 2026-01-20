@@ -20,16 +20,19 @@ type ManifestResult struct {
 
 // ExecuteGoAgentAndGetManifest runs a Go file that uses stigmer.Run() for synthesis.
 //
-// Modern Stigmer SDK Pattern (post-refactor):
-// Users write code with stigmer.Run() which handles context and synthesis automatically:
+// Pulumi-Inspired Execution Model:
+// Users write declarative code that registers resources (agents, workflows).
+// The CLI executes the program and collects the generated manifests.
+//
+// Example user code:
 //
 //	package main
-//	import "github.com/stigmer/stigmer-sdk/go/stigmer"
-//	import "github.com/stigmer/stigmer-sdk/go/agent"
-//	import "github.com/stigmer/stigmer-sdk/go/workflow"
+//	import "github.com/stigmer/stigmer/sdk/go/stigmer"
+//	import "github.com/stigmer/stigmer/sdk/go/agent"
+//	import "github.com/stigmer/stigmer/sdk/go/workflow"
 //	
 //	func main() {
-//	    err := stigmer.Run(func(ctx *stigmer.Context) error {
+//	    stigmer.Run(func(ctx *stigmer.Context) error {
 //	        agent.New(ctx,
 //	            agent.WithName("code-reviewer"),
 //	            agent.WithInstructions("Review code"),
@@ -41,18 +44,19 @@ type ManifestResult struct {
 //	        )
 //	        return nil
 //	    })
-//	    if err != nil {
-//	        log.Fatal(err)
-//	    }
 //	}
 //
-// The CLI execution flow:
-// 1. Run the user's code directly (no AST patching needed!)
+// Execution flow:
+// 1. Run user's code with `go run .` (Go compiler validates everything)
 // 2. Set STIGMER_OUT_DIR environment variable
 // 3. stigmer.Run() calls ctx.Synthesize() which writes manifests
-// 4. Read the generated manifest files (agent-manifest.pb and/or workflow-manifest.pb)
+// 4. Read generated manifest files (agent-manifest.pb and/or workflow-manifest.pb)
+// 5. Validate that resources were created
 //
-// This achieves the Pulumi-like experience without code manipulation.
+// This approach:
+// ✅ Trusts Go's tooling (no custom validation needed)
+// ✅ Provides clear error messages from Go compiler
+// ✅ Validates outcomes (resources created) not syntax (imports)
 func ExecuteGoAgentAndGetManifest(goFile string) (*ManifestResult, error) {
 	// Validate file exists
 	absPath, err := filepath.Abs(goFile)
@@ -154,7 +158,16 @@ func ExecuteGoAgentAndGetManifest(goFile string) (*ManifestResult, error) {
 	
 	// At least one manifest must be present
 	if result.AgentManifest == nil && result.WorkflowManifest == nil {
-		return nil, errors.New("no manifests found - synthesis failed (expected agent-manifest.pb and/or workflow-manifest.pb)")
+		return nil, errors.New("no resources were created - your code must use Stigmer SDK to define agents or workflows\n\n" +
+			"Example:\n" +
+			"  import \"github.com/stigmer/stigmer/sdk/go/stigmer\"\n" +
+			"  import \"github.com/stigmer/stigmer/sdk/go/agent\"\n\n" +
+			"  func main() {\n" +
+			"      stigmer.Run(func(ctx *stigmer.Context) error {\n" +
+			"          agent.New(ctx, agent.WithName(\"my-agent\"), ...)\n" +
+			"          return nil\n" +
+			"      })\n" +
+			"  }")
 	}
 
 	return result, nil

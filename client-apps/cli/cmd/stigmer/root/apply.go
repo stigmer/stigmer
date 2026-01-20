@@ -140,21 +140,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.W
 		return nil, nil, err
 	}
 
-	// Step 3: Validate entry point file exists
-	if !opts.Quiet {
-		cliprint.PrintInfo("Validating entry point: %s", stigmerConfig.Main)
-	}
-	
-	err = agent.ValidateGoFile(mainFilePath)
-	if err != nil {
-		return nil, nil, err
-	}
-	
-	if !opts.Quiet {
-		cliprint.PrintSuccess("✓ Entry point is valid")
-	}
-
-	// Step 4: Execute entry point to get manifests (auto-discovers resources!)
+	// Step 3: Execute entry point to get manifests (auto-discovers resources!)
 	if !opts.Quiet {
 		cliprint.PrintInfo("Executing entry point to discover resources...")
 	}
@@ -201,8 +187,12 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.W
 		if workflowCount > 0 && manifestResult.WorkflowManifest != nil {
 			cliprint.PrintInfo("Workflows discovered: %d", workflowCount)
 			for i, wf := range manifestResult.WorkflowManifest.Workflows {
-				cliprint.PrintInfo("  %d. %s", i+1, wf.Metadata.Name)
-				if wf.Spec != nil && wf.Spec.Description != "" {
+				name := "unnamed"
+				if wf != nil && wf.Spec != nil && wf.Spec.Document != nil && wf.Spec.Document.Name != "" {
+					name = wf.Spec.Document.Name
+				}
+				cliprint.PrintInfo("  %d. %s", i+1, name)
+				if wf != nil && wf.Spec != nil && wf.Spec.Description != "" {
 					cliprint.PrintInfo("     Description: %s", wf.Spec.Description)
 				}
 			}

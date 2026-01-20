@@ -9,15 +9,34 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Validation Philosophy (Pulumi-Inspired)
+//
+// Unlike traditional tools that pre-validate everything, Stigmer follows Pulumi's approach:
+// 1. Trust the language tooling (Go compiler validates imports, syntax, etc.)
+// 2. Execute the program and let natural failures occur
+// 3. Validate outcomes (did resources get registered?)
+//
+// This means:
+// ✅ No string-based import checking (brittle, breaks on path changes)
+// ✅ No AST parsing to validate code structure
+// ✅ Let `go run` fail naturally if imports are missing
+// ✅ Check if manifests were generated after execution
+//
+// Benefits:
+// - Simpler code
+// - Better error messages from Go compiler
+// - More flexible (works with any import path structure)
+// - Less maintenance burden
+
 // ValidateGoModule checks if go.mod exists and is valid.
-// If go.mod doesn't exist, we'll let `go run .` handle the module initialization.
+// If go.mod doesn't exist, we let `go run .` handle module initialization.
 func ValidateGoModule(projectDir string) error {
 	goModPath := filepath.Join(projectDir, "go.mod")
 
 	// Check if go.mod exists
 	if _, err := os.Stat(goModPath); err != nil {
 		if os.IsNotExist(err) {
-			// go.mod doesn't exist - this is actually fine, go run will handle it
+			// go.mod doesn't exist - let Go's tooling handle it
 			return nil
 		}
 		return errors.Wrap(err, "failed to check go.mod")
@@ -33,37 +52,6 @@ func ValidateGoModule(projectDir string) error {
 	content := string(data)
 	if !strings.Contains(content, "module ") {
 		return fmt.Errorf("go.mod is invalid: missing module directive")
-	}
-
-	return nil
-}
-
-// ValidateGoFile checks if a Go file is valid for agent deployment.
-// With the Copy & Patch architecture, users only need to import the agent package.
-func ValidateGoFile(goFile string) error {
-	// Check file exists
-	if _, err := os.Stat(goFile); os.IsNotExist(err) {
-		return errors.Errorf("file not found: %s", goFile)
-	}
-
-	// Check file extension
-	if filepath.Ext(goFile) != ".go" {
-		return errors.Errorf("file must be a Go file (.go): %s", goFile)
-	}
-
-	// Check if file contains SDK imports (basic validation)
-	content, err := os.ReadFile(goFile)
-	if err != nil {
-		return errors.Wrap(err, "failed to read file")
-	}
-
-	contentStr := string(content)
-	hasAgentImport := strings.Contains(contentStr, "github.com/stigmer/stigmer-sdk/go/agent")
-	hasWorkflowImport := strings.Contains(contentStr, "github.com/stigmer/stigmer-sdk/go/workflow")
-	hasStigmerImport := strings.Contains(contentStr, "github.com/stigmer/stigmer-sdk/go/stigmer")
-	
-	if !hasAgentImport && !hasWorkflowImport && !hasStigmerImport {
-		return errors.New("file must import Stigmer SDK (agent, workflow, or stigmer package)")
 	}
 
 	return nil
