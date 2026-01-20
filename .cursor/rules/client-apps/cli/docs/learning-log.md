@@ -15,6 +15,110 @@ After solving a new problem, add it here to help future work.
 
 ## Module & Dependencies
 
+### 2026-01-20 - Go Module Distribution with Generated Protobuf Code
+
+**Problem**: `stigmer new` command was failing during dependency installation with module resolution errors:
+```
+unknown revision apis/stubs/go/v0.0.0
+missing github.com/stigmer/stigmer/apis/stubs/go/go.mod at revision ...
+```
+
+External users couldn't use the `stigmer new` command because Go couldn't resolve the SDK's dependency on generated protobuf stubs.
+
+**Root Cause**: 
+1. Generated protobuf stubs (`apis/stubs/`) were in `.gitignore`, so they didn't exist in GitHub repository
+2. SDK's `go.mod` required `github.com/stigmer/stigmer/apis/stubs/go v0.0.0` with a replace directive pointing to relative path
+3. Replace directive (`replace ... => ../../apis/stubs/go`) only worked for local development, not external users
+4. When external users ran `go get @latest`, Go tried to fetch stubs from GitHub but couldn't find them
+
+**Solution**: Track generated stubs in git and use proper pseudo-versions:
+
+**1. Track Generated Code**:
+```bash
+# Remove stubs/ from .gitignore
+# Commit ~495 generated protobuf files to repository
+git add apis/stubs/
+```
+
+**Why**: Go module dependencies must be resolvable externally. Tracking generated code is standard practice for Go projects with protobuf dependencies (similar to grpc-go, protobuf-go).
+
+**2. Use Pseudo-Versions**:
+```go
+// sdk/go/go.mod - Before
+require (
+    github.com/stigmer/stigmer/apis/stubs/go v0.0.0
+)
+
+// sdk/go/go.mod - After  
+require (
+    github.com/stigmer/stigmer/apis/stubs/go v0.0.0-20260120004624-4578a34f018e
+)
+```
+
+**Pseudo-version format**: `v0.0.0-YYYYMMDDHHMMSS-commithash12chars`
+
+This tells Go exactly where to find the module in the git repository history.
+
+**3. Generate go.mod with Replace Directives**:
+```go
+// client-apps/cli/cmd/stigmer/root/new.go
+func generateGoMod(projectName string) string {
+    return fmt.Sprintf(`module %s
+
+go 1.24
+
+require (
+    github.com/stigmer/stigmer/sdk/go v0.0.0-00010101000000-000000000000
+)
+
+replace github.com/stigmer/stigmer/sdk/go => github.com/stigmer/stigmer/sdk/go v0.0.0-20260120005545-fc443b1640d1
+
+replace github.com/stigmer/stigmer/apis/stubs/go => github.com/stigmer/stigmer/apis/stubs/go v0.0.0-20260120005545-fc443b1640d1
+`, moduleName)
+}
+```
+
+This ensures generated projects use a version that has the stubs tracked in git.
+
+**Prevention**:
+- **Test external usage**: Run `go get github.com/yourmodule@latest` from outside the repository to verify external users can resolve dependencies
+- **Avoid relative path replace directives** in published modules - they only work for local development
+- **Consider semantic versioning**: For production SDKs, use proper releases with semantic versions (v1.0.0, v1.1.0, etc.)
+- **Document distribution strategy**: Explain to contributors how the SDK is distributed and why generated code is tracked
+
+**Alternative Solutions Considered**:
+1. **Separate stubs repository**: More complex, requires CI/CD to publish stubs automatically
+2. **Bundle stubs into SDK**: Code duplication, larger SDK module
+3. **User-generated stubs**: Poor UX, requires users to run code generation tools
+4. **Current solution (track generated code)**: Pragmatic, follows industry standards
+
+**Key Takeaways**:
+- Replace directives with relative paths (`=> ../some/path`) only work inside the repository
+- External users need all dependencies available in the repository or published separately
+- Pseudo-versions work for unversioned modules: `v0.0.0-timestamp-commit`
+- Generated code distribution requires architectural decisions upfront
+
+**Related Docs**: 
+- Changelog: `_changelog/2026-01/2026-01-20-063010-fix-stigmer-new-module-dependencies.md`
+- Fix summary: `_cursor/fix-summary.md`
+- Branch: `fix/stigmer-new-command`
+
+**Example Testing External Usage**:
+```bash
+# Create test outside repository
+cd /tmp
+mkdir test-sdk-external
+cd test-sdk-external
+
+# Try to use SDK
+go mod init test
+go get github.com/stigmer/stigmer/sdk/go@latest
+
+# Should succeed with proper pseudo-versions and tracked stubs
+```
+
+---
+
 ## CLI Commands
 
 
