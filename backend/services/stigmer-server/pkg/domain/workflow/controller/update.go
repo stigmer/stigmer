@@ -24,6 +24,7 @@ import (
 // - TransformResponse step (no response transformations in OSS)
 func (c *WorkflowController) Update(ctx context.Context, workflow *workflowv1.Workflow) (*workflowv1.Workflow, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, workflow)
+	reqCtx.SetNewState(workflow)
 
 	p := c.buildUpdatePipeline()
 

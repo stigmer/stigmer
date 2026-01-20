@@ -40,6 +40,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&debugMode, "debug", "d", false, "enable debug mode with detailed logs")
 	
 	// Add subcommands
+	rootCmd.AddCommand(root.NewCommand())
 	rootCmd.AddCommand(root.NewServerCommand())
 	rootCmd.AddCommand(root.NewBackendCommand())
 }

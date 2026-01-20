@@ -31,6 +31,23 @@ stigmer backend set local
 stigmer backend set cloud
 ```
 
+### Project Scaffolding
+
+```bash
+# Create a new Stigmer project with example code
+stigmer new my-project
+
+# The generated project includes:
+# - AI agent (PR code reviewer)
+# - Workflow (analyzes GitHub PRs)
+# - Zero configuration setup
+# - Complete documentation
+
+# After creation:
+cd my-project
+stigmer run
+```
+
 ## Configuration
 
 ### `~/.stigmer/config.yaml`
@@ -55,6 +72,27 @@ backend:
 | `STIGMER_DATA_DIR` | Data directory for storage and logs | `~/.stigmer` |
 
 ## Quick Start
+
+### Option 1: Start with a New Project (Recommended)
+
+```bash
+# 1. Create a new project with example code
+stigmer new my-first-project
+cd my-first-project
+
+# 2. Start the server
+stigmer server
+
+# 3. Run the example workflow
+stigmer run
+
+# The example demonstrates:
+# - AI agent that reviews code
+# - Workflow that fetches and analyzes a real GitHub PR
+# - Zero configuration required
+```
+
+### Option 2: Manual Setup
 
 ```bash
 # 1. Start the server (auto-initializes everything)
@@ -112,9 +150,6 @@ stigmer delete -f workflow.yaml
 # Direct execution
 stigmer agent execute <id> <prompt>
 stigmer workflow execute <id> --input key=value
-
-# Project scaffolding
-stigmer init my-project
 ```
 
 ## Migration from Old Commands
