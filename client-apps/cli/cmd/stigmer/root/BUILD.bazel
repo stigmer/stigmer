@@ -20,7 +20,7 @@ go_library(
         "//client-apps/cli/internal/cli/config",
         "//client-apps/cli/internal/cli/daemon",
         "//client-apps/cli/internal/cli/deploy",
-        "//sdk/go/templates:go_default_library",
         "@com_github_spf13_cobra//:cobra",
+        "@com_github_stigmer_stigmer_sdk_go//templates",
     ],
 )

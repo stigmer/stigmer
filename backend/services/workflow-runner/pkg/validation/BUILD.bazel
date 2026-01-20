@@ -8,7 +8,7 @@ go_library(
         "unmarshal.go",
         "validate.go",
     ],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/validation",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/validation",
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",

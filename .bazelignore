@@ -1,3 +1,2 @@
 # Temporarily ignore these directories until we properly configure them
-backend/services/workflow-runner
 backend/services/agent-runner
