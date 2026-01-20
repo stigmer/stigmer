@@ -9,9 +9,9 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint",
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
-        "@com_github_charmbracelet_bubbles//spinner:go_default_library",
-        "@com_github_charmbracelet_bubbletea//:go_default_library",
-        "@com_github_charmbracelet_lipgloss//:go_default_library",
-        "@com_github_fatih_color//:go_default_library",
+        "@com_github_charmbracelet_bubbles//spinner",
+        "@com_github_charmbracelet_bubbletea//:bubbletea",
+        "@com_github_charmbracelet_lipgloss//:lipgloss",
+        "@com_github_fatih_color//:color",
     ],
 )
