@@ -3,7 +3,7 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "searchattributes",
     srcs = ["setup.go"],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/temporal/searchattributes",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/temporal/searchattributes",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_rs_zerolog//log",

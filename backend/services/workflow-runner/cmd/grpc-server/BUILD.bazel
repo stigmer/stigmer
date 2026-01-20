@@ -3,7 +3,7 @@ load("@rules_go//go:def.bzl", "go_binary", "go_library")
 go_library(
     name = "grpc-server_lib",
     srcs = ["main.go"],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/cmd/grpc-server",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/cmd/grpc-server",
     visibility = ["//visibility:private"],
     deps = [
         "//backend/services/workflow-runner/pkg/config",
