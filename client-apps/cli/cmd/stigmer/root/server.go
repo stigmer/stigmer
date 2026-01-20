@@ -2,6 +2,7 @@ package root
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
@@ -193,15 +194,16 @@ func handleServerRestart() {
 		return
 	}
 
-	// Stop if running
-	if daemon.IsRunning(dataDir) {
-		cliprint.Info("Stopping server...")
-		if err := daemon.Stop(dataDir); err != nil {
-			cliprint.Error("Failed to stop server")
-			clierr.Handle(err)
-			return
-		}
+	// Always try to stop - even if IsRunning() returns false
+	// This ensures we kill any orphaned servers without PID files
+	cliprint.Info("Stopping server...")
+	if err := daemon.Stop(dataDir); err != nil {
+		// Only warn if stop fails - don't block restart
+		cliprint.Warning("Could not stop server (may not be running): %v", err)
 	}
+
+	// Wait a moment for server to fully stop
+	time.Sleep(1 * time.Second)
 
 	// Start
 	cliprint.Info("Starting server...")
