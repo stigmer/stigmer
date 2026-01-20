@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "stigmer-stubs"
+version = "0.1.0"
+description = "Generated Python stubs for Stigmer APIs"
+authors = ["Stigmer <engineering@stigmer.ai>"]
+packages = [{include = "ai"}, {include = "buf"}, {include = "google"}]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<4.0"
+protobuf = "^6.32.0"
+grpcio = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
