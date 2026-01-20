@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/rs/zerolog/log"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
@@ -96,7 +97,7 @@ func (s *LoadForApplyStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 
 	// Check if slug is set (should be set by ResolveSlugStep)
 	if metadata.Slug == "" {
-		// No slug - create new
+		log.Debug().Msg("LoadForApply: Slug is empty, will create new resource")
 		ctx.Set(ExistsInDatabaseKey, false)
 		ctx.Set(ShouldCreateKey, true)
 		return nil
@@ -107,6 +108,11 @@ func (s *LoadForApplyStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 
+	log.Debug().
+		Str("slug", slug).
+		Str("kind", kind.String()).
+		Msg("LoadForApply: Looking for existing resource")
+
 	// Attempt to find existing resource by slug
 	existing, err := s.findBySlug(ctx.Context(), slug, kind)
 	if err != nil {
@@ -116,12 +122,18 @@ func (s *LoadForApplyStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 
 	if existing == nil {
 		// Resource doesn't exist - CREATE
+		log.Debug().
+			Str("slug", slug).
+			Msg("LoadForApply: Resource not found, will create new")
 		ctx.Set(ExistsInDatabaseKey, false)
 		ctx.Set(ShouldCreateKey, true)
 		return nil
 	}
 
 	// Resource exists - UPDATE
+	log.Debug().
+		Str("slug", slug).
+		Msg("LoadForApply: Resource found, will update")
 	// Store existing resource in context for potential use
 	ctx.Set(ExistingResourceKey, existing)
 	ctx.Set(ExistsInDatabaseKey, true)
