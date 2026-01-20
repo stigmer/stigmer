@@ -1,7 +1,7 @@
 # Default bump type for releases (can be overridden: make protos-release bump=minor)
 bump ?= patch
 
-.PHONY: help setup build build-backend test clean protos protos-release lint coverage release-local install dev
+.PHONY: help setup build build-backend test clean protos protos-release lint coverage embed-stigmer-server embed-workflow-runner embed-agent-runner embed-binaries release-local install dev
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -290,7 +290,61 @@ install: build ## Install Stigmer CLI to system
 	sudo chmod +x /usr/local/bin/stigmer
 	@echo "Installation complete!"
 
-release-local: ## Build and install CLI for local testing (fast rebuild without protos)
+# Platform detection for embedded binaries
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
+
+ifeq ($(UNAME_S),Darwin)
+	ifeq ($(UNAME_M),arm64)
+		PLATFORM := darwin_arm64
+	else
+		PLATFORM := darwin_amd64
+	endif
+else ifeq ($(UNAME_S),Linux)
+	PLATFORM := linux_amd64
+else
+	$(error Unsupported platform: $(UNAME_S) $(UNAME_M))
+endif
+
+EMBED_DIR := client-apps/cli/embedded/binaries/$(PLATFORM)
+
+embed-stigmer-server: ## Build stigmer-server and copy to embedded directory
+	@echo "Building stigmer-server for $(PLATFORM)..."
+	@mkdir -p $(EMBED_DIR)
+	@go build -o $(EMBED_DIR)/stigmer-server ./backend/services/stigmer-server/cmd/server
+	@chmod +x $(EMBED_DIR)/stigmer-server
+	@echo "✓ Built and embedded: $(EMBED_DIR)/stigmer-server"
+
+embed-workflow-runner: ## Build workflow-runner and copy to embedded directory
+	@echo "Building workflow-runner for $(PLATFORM)..."
+	@mkdir -p $(EMBED_DIR)
+	@go build -o $(EMBED_DIR)/workflow-runner ./backend/services/workflow-runner/cmd/worker
+	@chmod +x $(EMBED_DIR)/workflow-runner
+	@echo "✓ Built and embedded: $(EMBED_DIR)/workflow-runner"
+
+embed-agent-runner: ## Package agent-runner as tarball and copy to embedded directory
+	@echo "Packaging agent-runner for $(PLATFORM)..."
+	@mkdir -p $(EMBED_DIR)
+	@cd backend/services/agent-runner && \
+		tar -czf ../../../$(EMBED_DIR)/agent-runner.tar.gz \
+		--exclude='.git*' \
+		--exclude='__pycache__' \
+		--exclude='*.pyc' \
+		--exclude='.pytest_cache' \
+		--exclude='.venv' \
+		--exclude='venv' \
+		grpc_client/ worker/ run.sh
+	@echo "✓ Packaged and embedded: $(EMBED_DIR)/agent-runner.tar.gz"
+
+embed-binaries: embed-stigmer-server embed-workflow-runner embed-agent-runner ## Build and embed all binaries for current platform
+	@echo ""
+	@echo "============================================"
+	@echo "✓ All Binaries Embedded for $(PLATFORM)"
+	@echo "============================================"
+	@ls -lh $(EMBED_DIR)
+	@echo ""
+
+release-local: embed-binaries ## Build and install CLI for local testing (with embedded binaries)
 	@echo "============================================"
 	@echo "Building and Installing Stigmer Locally"
 	@echo "============================================"
@@ -300,24 +354,18 @@ release-local: ## Build and install CLI for local testing (fast rebuild without 
 	@rm -f $(HOME)/bin/stigmer-server
 	@rm -f /usr/local/bin/stigmer 2>/dev/null || true
 	@rm -f bin/stigmer
-	@rm -f bin/stigmer-server
 	@echo "✓ Old binaries removed"
 	@echo ""
-	@echo "Step 2: Building fresh binaries..."
+	@echo "Step 2: Building CLI with embedded binaries..."
 	@mkdir -p bin
 	@cd client-apps/cli && go build -o ../../bin/stigmer .
-	@echo "✓ CLI built: bin/stigmer"
-	@go build -o bin/stigmer-server ./backend/services/stigmer-server/cmd/server
-	@echo "✓ Server built: bin/stigmer-server"
+	@echo "✓ CLI built: bin/stigmer (with embedded binaries for $(PLATFORM))"
 	@echo ""
 	@echo "Step 3: Installing to ~/bin..."
 	@mkdir -p $(HOME)/bin
 	@cp bin/stigmer $(HOME)/bin/stigmer
 	@chmod +x $(HOME)/bin/stigmer
 	@echo "✓ Installed: $(HOME)/bin/stigmer"
-	@cp bin/stigmer-server $(HOME)/bin/stigmer-server
-	@chmod +x $(HOME)/bin/stigmer-server
-	@echo "✓ Installed: $(HOME)/bin/stigmer-server"
 	@echo ""
 	@echo "============================================"
 	@echo "✓ Release Complete!"
@@ -325,7 +373,7 @@ release-local: ## Build and install CLI for local testing (fast rebuild without 
 	@echo ""
 	@if command -v stigmer >/dev/null 2>&1; then \
 		echo "✓ CLI ready! Run: stigmer --help"; \
-		echo "✓ Server ready for 'stigmer local'"; \
+		echo "✓ Embedded binaries ready for 'stigmer local'"; \
 		echo ""; \
 		stigmer --version 2>/dev/null || echo "Version: development"; \
 	else \
