@@ -116,17 +116,20 @@ Every Stigmer project has a minimal `Stigmer.yaml` configuration:
 
 ```yaml
 name: my-project
-runtime: go-sdk
-main: main.go
+runtime: go
 version: 1.0.0
+description: My Stigmer project
 ```
 
 **Fields**:
 - **name** (required) - Project name
-- **runtime** (required) - SDK runtime (currently only `go-sdk`)
-- **main** (optional) - Entry point file (default: `main.go`)
+- **runtime** (required) - SDK runtime (`go` for Go SDK)
 - **version** (optional) - Project version
+- **description** (optional) - Project description  
+- **main** (optional) - Entry point file (default: `main.go`)
 - **organization** (optional) - Override organization ID
+
+**Filename**: Use `Stigmer.yaml` (capital S) following the Pulumi convention. The CLI also accepts `stigmer.yaml` (lowercase) for backwards compatibility.
 
 **What it doesn't contain**: Resource definitions! Those are auto-discovered from your code.
 
