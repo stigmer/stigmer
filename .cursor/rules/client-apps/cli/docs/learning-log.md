@@ -465,3 +465,196 @@ Error: organization not set
 - Branch: `fix/stigmer-apply-cmd`
 
 **Key Takeaway**: Follow Pulumi's local-first pattern. Local backend = constant "local" organization (zero config). Cloud backend = user-provided organization (required).
+
+---
+
+### 2026-01-20 - gRPC Server Initialization Order and Dependency Injection
+
+**Problem**: `stigmer-server` daemon was crashing immediately after startup with fatal error:
+```
+FATAL: [core] grpc: Server.RegisterService after Server.Serve for "ai.stigmer.agentic.agent.v1.AgentCommandController"
+```
+
+**Impact**:
+- Daemon crashed on every startup attempt
+- All CLI commands requiring backend connection failed
+- `stigmer apply` was completely broken
+- Auto-start feature worked but server immediately died
+
+**Root Cause**: The initialization sequence violated gRPC's fundamental requirement that **all services must be registered BEFORE calling `Server.Serve()`**.
+
+**The Circular Dependency Problem**:
+```
+1. Controllers need client dependencies (Agent, AgentInstance, Workflow clients)
+2. Clients need the in-process gRPC server to be started
+3. Starting the in-process server calls Serve() internally
+4. After Serve() is called, no more services can be registered
+5. But some controllers were being registered AFTER Serve() → CRASH
+```
+
+**Broken Sequence**:
+```go
+// ❌ WRONG: This causes fatal gRPC error
+RegisterInitialServices()      // ✅ OK
+server.StartInProcess()         // ← Calls Serve() internally!
+RegisterMoreServices()          // ❌ FATAL - too late!
+```
+
+**Solution**: **Dependency Injection via Setters** - Break the circular dependency by separating registration from dependency injection:
+
+**Fixed Sequence**:
+```go
+// 1. Register ALL services upfront (with nil/placeholder dependencies)
+agentController := NewAgentController(store, nil)  // nil = no client yet
+grpcServer.RegisterAgentCommandController(agentController)
+// ... register all other services ...
+
+// 2. Now it's safe to start the server (all services registered)
+server.StartInProcess()  // ✅ Safe now
+
+// 3. Create client connections (server is running)
+conn := server.NewInProcessConnection()
+agentInstanceClient := NewAgentInstanceClient(conn)
+
+// 4. Inject dependencies via setter methods
+agentController.SetAgentInstanceClient(agentInstanceClient)
+```
+
+**Pattern: Setter Injection for gRPC Controllers**:
+
+```go
+// Controller with setter method
+type AgentController struct {
+    store               *badger.Store
+    agentInstanceClient *agentinstance.Client  // Can be nil initially
+}
+
+func NewAgentController(store *badger.Store, client *agentinstance.Client) *AgentController {
+    return &AgentController{
+        store:               store,
+        agentInstanceClient: client,  // OK to be nil at registration time
+    }
+}
+
+// Setter for late dependency injection
+func (c *AgentController) SetAgentInstanceClient(client *agentinstance.Client) {
+    c.agentInstanceClient = client
+}
+```
+
+**Why This Pattern Works**:
+
+✅ **Satisfies gRPC Requirements**
+- All services registered before `Serve()` is called
+- No more "RegisterService after Serve" errors
+
+✅ **Breaks Circular Dependency**
+- Controllers don't need clients at registration time
+- Clients can be created after server starts
+- Dependencies injected once clients are available
+
+✅ **Maintains In-Process gRPC Benefits**
+- Controllers still use full gRPC stack with interceptors
+- Single source of truth through interceptor chain
+- API resource kind injection still works
+
+✅ **Clean Separation of Concerns**
+- **Registration phase**: Pure service registration
+- **Initialization phase**: Server startup  
+- **Wiring phase**: Dependency injection
+
+**Files Modified**:
+1. `backend/services/stigmer-server/cmd/server/main.go` - Fixed initialization order
+2. `backend/services/stigmer-server/pkg/domain/agent/controller/agent_controller.go` - Added setter
+3. `backend/services/stigmer-server/pkg/domain/agentexecution/controller/agentexecution_controller.go` - Added setter
+4. `backend/services/stigmer-server/pkg/domain/workflow/controller/workflow_controller.go` - Added setter
+5. `backend/services/stigmer-server/pkg/domain/workflowinstance/controller/workflowinstance_controller.go` - Added setter
+6. `backend/services/stigmer-server/pkg/domain/workflowexecution/controller/workflowexecution_controller.go` - Added setter
+
+**Prevention**:
+
+**Critical Rule**: **Register ALL gRPC services BEFORE calling `Serve()` or `StartInProcess()`**
+
+- ❌ **Never** register services after calling `server.Start()`, `server.Serve()`, or `server.StartInProcess()`
+- ❌ **Never** assume you can register services in multiple phases
+- ✅ **Always** register all services upfront, even with nil dependencies
+- ✅ **Use setter injection** when dependencies require runtime server to be started
+- ✅ **Add comments** warning about registration order (`// CRITICAL: All services MUST be registered BEFORE...`)
+
+**When to Use Setter Injection**:
+
+✅ **Use setter injection when:**
+- Dependencies are only available after server starts (in-process clients)
+- Registration must happen before dependencies exist
+- Controllers are already instantiated and registered
+
+❌ **Don't use setter injection when:**
+- Dependencies are available at construction time (store, config)
+- Constructor injection works fine
+- No circular dependency exists
+
+**Alternative Approaches Considered**:
+
+❌ **Lazy Client Creation**: Controllers create clients on-demand → Bypasses interceptor chain, loses single source of truth
+
+❌ **Two-Phase Registration**: "Provisional" registration → gRPC doesn't support this, registration is locked after `Serve()`
+
+❌ **Pass Server to Controllers**: Controllers create their own clients → Violates separation of concerns, tight coupling
+
+✅ **Setter Injection (Chosen)**: Register with nil, start server, inject dependencies → Satisfies all requirements
+
+**Testing**:
+```bash
+# Build verification
+bazel build //backend/services/stigmer-server/cmd/server:server
+
+# Runtime verification
+stigmer server
+# Should start successfully without crashes
+```
+
+**Key Takeaways**:
+
+1. **gRPC is strict about registration order** - All services BEFORE Serve(), no exceptions
+2. **Circular dependencies need design patterns** - Setter injection breaks the cycle
+3. **Comment critical ordering** - Warn future developers about ordering constraints
+4. **Validate with industry patterns** - This pattern is used by gRPC servers in production
+5. **Runtime dependencies are OK in setters** - But registration-time dependencies must be available
+
+**Future Improvements**:
+
+Consider adding validation:
+```go
+func (c *AgentController) validateInitialized() error {
+    if c.agentInstanceClient == nil {
+        return fmt.Errorf("AgentController not fully initialized - client not set")
+    }
+    return nil
+}
+```
+
+**Related Docs**:
+- Changelog: `_changelog/2026-01/2026-01-20-091054-fix-grpc-initialization-crash.md`
+- Technical fix doc: `_cursor/grpc-initialization-fix.md`
+- Error report: `_cursor/error.md`
+- Branch: `fix/stigmer-apply-cmd`
+
+**Example Pattern for Future gRPC Services**:
+```go
+// Step 1: Create controller with nil dependency
+controller := NewMyController(store, nil)
+
+// Step 2: Register immediately
+grpcServer.RegisterMyService(controller)
+
+// Step 3: Start server (after ALL services registered)
+server.StartInProcess()
+
+// Step 4: Create clients
+client := NewMyClient(conn)
+
+// Step 5: Inject dependency
+controller.SetMyClient(client)
+```
+
+**Remember**: In gRPC, registration order matters more than dependency availability. Register everything first, wire dependencies second.
