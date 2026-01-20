@@ -10,14 +10,21 @@ import (
 // RequestContext carries state through the pipeline execution.
 // It contains the original request, the resource being built/modified,
 // metadata for inter-step communication, and telemetry integration.
+//
+// Input vs NewState:
+//   - input: The original, immutable request from the client
+//   - newState: A cloned copy that pipeline steps can safely modify
+//
+// This separation ensures the original request is never mutated,
+// which is critical for debugging, logging, and idempotency.
 type RequestContext[T proto.Message] struct {
 	// ctx is the Go context for cancellation and deadlines
 	ctx context.Context
 
-	// input is the original request message
+	// input is the original, immutable request message
 	input T
 
-	// newState is the resource being built or modified by the pipeline
+	// newState is a cloned copy of input that pipeline steps modify
 	newState T
 
 	// metadata stores arbitrary key-value data for passing information between steps
@@ -27,11 +34,22 @@ type RequestContext[T proto.Message] struct {
 	span telemetry.Span
 }
 
-// NewRequestContext creates a new request context.
+// NewRequestContext creates a new request context with automatic input cloning.
+//
+// The input is automatically cloned using proto.Clone() to create newState,
+// ensuring the original input remains immutable throughout pipeline execution.
+// Pipeline steps should read from and modify newState, never input.
+//
+// Example:
+//
+//	reqCtx := pipeline.NewRequestContext(ctx, agent)
+//	// reqCtx.Input() returns the original request (immutable)
+//	// reqCtx.NewState() returns a clone that steps can modify
 func NewRequestContext[T proto.Message](ctx context.Context, input T) *RequestContext[T] {
 	return &RequestContext[T]{
 		ctx:      ctx,
 		input:    input,
+		newState: proto.Clone(input).(T), // Automatically clone for immutability
 		metadata: make(map[string]interface{}),
 	}
 }

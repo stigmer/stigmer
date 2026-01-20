@@ -18,7 +18,6 @@ import (
 // 5. Persist - Save updated workflow instance to repository
 func (c *WorkflowInstanceController) Update(ctx context.Context, instance *workflowinstancev1.WorkflowInstance) (*workflowinstancev1.WorkflowInstance, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, instance)
-	reqCtx.SetNewState(instance)
 
 	p := c.buildUpdatePipeline()
 

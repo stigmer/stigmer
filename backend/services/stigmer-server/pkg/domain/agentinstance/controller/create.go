@@ -3,9 +3,9 @@ package agentinstance
 import (
 	"context"
 
+	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 )
 
 // Create creates a new agent instance using the pipeline framework
@@ -18,7 +18,6 @@ import (
 // 5. Persist - Save agent instance to repository
 func (c *AgentInstanceController) Create(ctx context.Context, instance *agentinstancev1.AgentInstance) (*agentinstancev1.AgentInstance, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, instance)
-	reqCtx.SetNewState(instance)
 
 	p := c.buildCreatePipeline()
 

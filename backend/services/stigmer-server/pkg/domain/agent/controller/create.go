@@ -38,7 +38,6 @@ const (
 // - TransformResponse step (no response transformations in OSS)
 func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, agent)
-	reqCtx.SetNewState(agent)
 
 	p := c.buildCreatePipeline()
 
