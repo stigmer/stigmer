@@ -6,7 +6,7 @@ go_library(
         "execute_workflow_activity.go",
         "validate_workflow_activity.go",
     ],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/worker/activities",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/worker/activities",
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
@@ -31,9 +31,10 @@ go_test(
     deps = [
         ":activities",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
-        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
+        "@io_temporal_go_sdk//testsuite",
         "@org_golang_google_protobuf//types/known/structpb",
     ],
 )

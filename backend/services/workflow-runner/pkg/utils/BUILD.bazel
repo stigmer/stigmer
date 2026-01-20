@@ -15,7 +15,7 @@ go_library(
         "validation.go",
         "workflow.go",
     ],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/utils",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_go_playground_locales//en",

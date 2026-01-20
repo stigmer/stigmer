@@ -8,7 +8,7 @@ go_library(
         "schedules.go",
         "workflow_builder.go",
     ],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/zigflow",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow",
     visibility = ["//visibility:public"],
     deps = [
         "//backend/services/workflow-runner/pkg/utils",

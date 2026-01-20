@@ -43,6 +43,7 @@ func init() {
 	rootCmd.AddCommand(root.NewCommand())
 	rootCmd.AddCommand(root.NewServerCommand())
 	rootCmd.AddCommand(root.NewBackendCommand())
+	rootCmd.AddCommand(root.NewApplyCommand())
 }
 
 // Execute runs the root command
