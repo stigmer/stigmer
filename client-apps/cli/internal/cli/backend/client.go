@@ -2,7 +2,7 @@ package backend
 
 import (
 	"context"
-	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -51,7 +51,12 @@ func NewConnection() (*grpc.ClientConn, error) {
 		return nil, err
 	}
 
-	if err := client.Connect(context.Background()); err != nil {
+	// Use a reasonable timeout for connection (10 seconds)
+	// This gives the server time to start up if needed, but fails fast if unreachable
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := client.Connect(ctx); err != nil {
 		return nil, err
 	}
 
@@ -117,7 +122,12 @@ func (c *Client) Connect(ctx context.Context) error {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
-	// Establish connection
+	// IMPORTANT: Use WithBlock() to block until connection is established
+	// This ensures the connection is ready before returning, avoiding race conditions
+	// The context timeout controls how long we wait (default 10s in most callers)
+	opts = append(opts, grpc.WithBlock())
+
+	// Establish connection - blocks until ready or context times out
 	conn, err := grpc.DialContext(ctx, c.endpoint, opts...)
 	if err != nil {
 		return errors.Wrapf(err, "failed to connect to %s", c.endpoint)
@@ -130,12 +140,8 @@ func (c *Client) Connect(ctx context.Context) error {
 	c.workflowCommand = workflowv1.NewWorkflowCommandControllerClient(conn)
 	c.workflowQuery = workflowv1.NewWorkflowQueryControllerClient(conn)
 
-	// Verify connection by making a lightweight RPC call
-	// This ensures the server is actually running and reachable
-	if err := c.verifyConnection(ctx); err != nil {
-		conn.Close()
-		return err
-	}
+	// Connection is guaranteed to be ready at this point (thanks to WithBlock)
+	// No need for additional verification - the dial itself proves the server is reachable
 
 	log.Info().
 		Str("endpoint", c.endpoint).
@@ -239,11 +245,16 @@ func (c *Client) DeleteWorkflow(ctx context.Context, id string) error {
 	return err
 }
 
-// verifyConnection makes a lightweight RPC call to verify server connectivity
-func (c *Client) verifyConnection(ctx context.Context) error {
-	// Make a simple RPC call to verify the server is reachable
-	// We use getByReference with an empty reference - the result doesn't matter,
-	// we just want to know if the server responds
+// Ping tests connectivity to the server
+// With grpc.WithBlock(), the connection is already verified during Connect()
+// This method is kept for explicit health checks if needed
+func (c *Client) Ping(ctx context.Context) error {
+	if c.conn == nil {
+		return errors.New("not connected - call Connect() first")
+	}
+	
+	// Make a lightweight RPC call to verify server is still responsive
+	// We use getByReference with an empty reference - the result doesn't matter
 	ref := &apiresource.ApiResourceReference{}
 	_, err := c.agentQuery.GetByReference(ctx, ref)
 	
@@ -259,13 +270,11 @@ func (c *Client) verifyConnection(ctx context.Context) error {
 			return errors.Wrapf(err, "failed to connect to %s", c.endpoint)
 		}
 	}
-	return nil
-}
-
-// Ping tests connectivity to the server
-func (c *Client) Ping(ctx context.Context) error {
-	if err := c.verifyConnection(ctx); err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to connect to %s (%s mode)", c.endpoint, c.mode()))
-	}
+	
+	log.Debug().
+		Str("endpoint", c.endpoint).
+		Str("mode", c.mode()).
+		Msg("Server is responsive")
+	
 	return nil
 }
