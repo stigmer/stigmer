@@ -3,9 +3,9 @@ package session
 import (
 	"context"
 
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 )
 
 // Update updates an existing session using the pipeline framework
@@ -23,7 +23,6 @@ import (
 // - TransformResponse step (no response transformations in OSS)
 func (c *SessionController) Update(ctx context.Context, session *sessionv1.Session) (*sessionv1.Session, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, session)
-	reqCtx.SetNewState(session)
 
 	p := c.buildUpdatePipeline()
 

@@ -3,9 +3,9 @@ package agentexecution
 import (
 	"context"
 
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 )
 
 // Update updates an existing agent execution using the pipeline framework
@@ -26,7 +26,6 @@ import (
 // Status updates from agent-runner use UpdateStatus handler instead.
 func (c *AgentExecutionController) Update(ctx context.Context, execution *agentexecutionv1.AgentExecution) (*agentexecutionv1.AgentExecution, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, execution)
-	reqCtx.SetNewState(execution)
 
 	p := c.buildUpdatePipeline()
 
