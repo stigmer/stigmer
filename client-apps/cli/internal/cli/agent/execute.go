@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -102,7 +103,9 @@ func ExecuteGoAgentAndGetManifest(goFile string) (*ManifestResult, error) {
 	cmd.Env = append(os.Environ(), "STIGMER_OUT_DIR="+outputDir)
 
 	// Capture both stdout and stderr
+	var stdout strings.Builder
 	var stderr strings.Builder
+	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
@@ -114,6 +117,11 @@ func ExecuteGoAgentAndGetManifest(goFile string) (*ManifestResult, error) {
 			errorMsg = err.Error()
 		}
 		return nil, errors.Errorf("failed to execute Go agent:\n%s", errorMsg)
+	}
+
+	// Print stdout for debugging (including debug prints from SDK)
+	if stdoutStr := stdout.String(); stdoutStr != "" {
+		fmt.Println(stdoutStr)
 	}
 
 	// Read agent manifest (agent-manifest.pb) if it exists

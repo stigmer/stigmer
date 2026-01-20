@@ -22,19 +22,19 @@ const (
 
 // Create creates a new workflow using the pipeline framework
 //
-// Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
-// 2. ResolveSlug - Generate slug from metadata.name
-// 3. CheckDuplicate - Verify no duplicate exists
-// 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
-// 5. Persist - Save workflow to repository
-// 6. CreateDefaultInstance - Create default workflow instance
-// 7. UpdateWorkflowStatusWithDefaultInstance - Update workflow status with default_instance_id
+// Pipeline (Stigmer OSS):
+// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate (Layer 1)
+// 2. ValidateWorkflowSpec - Validate workflow via Temporal (Layer 2: Go converts + validates - SSOT)
+// 3. ResolveSlug - Generate slug from metadata.name
+// 4. CheckDuplicate - Verify no duplicate exists
+// 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+// 6. Persist - Save workflow to repository
+// 7. CreateDefaultInstance - Create default workflow instance
+// 8. UpdateWorkflowStatusWithDefaultInstance - Update workflow status with default_instance_id
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
-// - ValidateWorkflowSpec step (workflow spec validation via Temporal - not yet implemented in OSS)
-// - PopulateServerlessValidation step (depends on ValidateWorkflowSpec)
+// - PopulateServerlessValidation step (validation result not stored in workflow status yet)
 // - CreateIamPolicies step (no IAM/FGA in OSS)
 // - Publish step (no event publishing in OSS)
 // - TransformResponse step (no response transformations in OSS)
@@ -55,13 +55,14 @@ func (c *WorkflowController) buildCreatePipeline() *pipeline.Pipeline[*workflowv
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowv1.Workflow]("workflow-create").
-		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).          // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).            // 2. Resolve slug
-		AddStep(steps.NewCheckDuplicateStep[*workflowv1.Workflow](c.store)).  // 3. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*workflowv1.Workflow]()).          // 4. Build new state
-		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).         // 5. Persist workflow
-		AddStep(newCreateDefaultInstanceStep(c.workflowInstanceClient)).      // 6. Create default instance
-		AddStep(newUpdateWorkflowStatusWithDefaultInstanceStep(c.store)).     // 7. Update status
+		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).          // 1. Validate field constraints (Layer 1)
+		AddStep(newValidateWorkflowSpecStep(c.validator)).                    // 2. Validate via Temporal (Layer 2: Go converts + validates - SSOT)
+		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).            // 3. Resolve slug
+		AddStep(steps.NewCheckDuplicateStep[*workflowv1.Workflow](c.store)).  // 4. Check duplicate
+		AddStep(steps.NewBuildNewStateStep[*workflowv1.Workflow]()).          // 5. Build new state
+		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).         // 6. Persist workflow
+		AddStep(newCreateDefaultInstanceStep(c.workflowInstanceClient)).      // 7. Create default instance
+		AddStep(newUpdateWorkflowStatusWithDefaultInstanceStep(c.store)).     // 8. Update status
 		Build()
 }
 

@@ -14,6 +14,8 @@ go_library(
         "//backend/services/workflow-runner/pkg/telemetry",
         "//backend/services/workflow-runner/pkg/utils",
         "//backend/services/workflow-runner/pkg/zigflow",
+        "//backend/services/workflow-runner/worker",
+        "//backend/services/workflow-runner/worker/config",
         "@com_github_mrsimonemms_golang_helpers//:golang-helpers",
         "@com_github_mrsimonemms_golang_helpers//temporal",
         "@com_github_mrsimonemms_temporal_codec_server_packages_golang//algorithms/aes",

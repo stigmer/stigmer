@@ -42,6 +42,7 @@ import (
 // - CALL_ACTIVITY → CallActivityTaskConfig
 // - RAISE → RaiseTaskConfig
 // - RUN → RunTaskConfig
+// - AGENT_CALL → AgentCallTaskConfig
 func UnmarshalTaskConfig(
 	kind apiresourcev1.WorkflowTaskKind,
 	config *structpb.Struct,
@@ -95,6 +96,9 @@ func UnmarshalTaskConfig(
 
 	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_RUN:
 		protoMsg = &tasksv1.RunTaskConfig{}
+
+	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL:
+		protoMsg = &tasksv1.AgentCallTaskConfig{}
 
 	default:
 		return nil, fmt.Errorf("unsupported task kind: %v", kind)

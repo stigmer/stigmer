@@ -148,6 +148,7 @@ func (c *Converter) ProtoToYAML(spec *workflowv1.WorkflowSpec) (string, error) {
 // - CALL_ACTIVITY → callActivity (future)
 // - RAISE → raise
 // - RUN → run
+// - AGENT_CALL → call: agent
 func (c *Converter) convertTask(task *workflowv1.WorkflowTask) (map[string]interface{}, error) {
 	if task.Name == "" {
 		return nil, fmt.Errorf("task name is required")
@@ -196,6 +197,9 @@ func (c *Converter) convertTask(task *workflowv1.WorkflowTask) (map[string]inter
 
 	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_RUN:
 		yamlTask[task.Name] = c.convertRunTask(typedProto.(*tasksv1.RunTaskConfig))
+
+	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL:
+		yamlTask[task.Name] = c.convertAgentCallTask(typedProto.(*tasksv1.AgentCallTaskConfig))
 
 	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_CALL_ACTIVITY:
 		// CALL_ACTIVITY: Future implementation for Temporal activities

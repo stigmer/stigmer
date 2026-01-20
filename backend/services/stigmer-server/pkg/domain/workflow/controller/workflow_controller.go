@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 )
@@ -12,13 +13,15 @@ type WorkflowController struct {
 	workflowv1.UnimplementedWorkflowQueryControllerServer
 	store                    *badger.Store
 	workflowInstanceClient   *workflowinstance.Client
+	validator                *temporal.ServerlessWorkflowValidator
 }
 
 // NewWorkflowController creates a new WorkflowController
-func NewWorkflowController(store *badger.Store, workflowInstanceClient *workflowinstance.Client) *WorkflowController {
+func NewWorkflowController(store *badger.Store, workflowInstanceClient *workflowinstance.Client, validator *temporal.ServerlessWorkflowValidator) *WorkflowController {
 	return &WorkflowController{
 		store:                  store,
 		workflowInstanceClient: workflowInstanceClient,
+		validator:              validator,
 	}
 }
 

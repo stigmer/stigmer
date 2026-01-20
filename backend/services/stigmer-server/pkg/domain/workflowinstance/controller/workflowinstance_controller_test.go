@@ -67,7 +67,7 @@ func setupInProcessServers(t *testing.T, store *badger.Store) (*workflow.Client,
 	workflowInstanceClient := workflowinstance.NewClient(workflowInstanceConn)
 
 	// STEP 4: Create controllers with proper cross-dependencies
-	workflowController := workflowcontroller.NewWorkflowController(store, workflowInstanceClient)
+	workflowController := workflowcontroller.NewWorkflowController(store, workflowInstanceClient, nil)
 	workflowInstanceController := NewWorkflowInstanceController(store, workflowClient)
 
 	// STEP 5: Create and start gRPC servers with controllers
@@ -139,7 +139,7 @@ func setupTestController(t *testing.T) *testControllers {
 	// Note: The ACTUAL controllers used by the gRPC servers are created inside setupInProcessServers
 	// These controllers are just for direct method calls in tests
 	workflowInstanceController := NewWorkflowInstanceController(store, workflowClient)
-	workflowController := workflowcontroller.NewWorkflowController(store, workflowInstanceClient)
+	workflowController := workflowcontroller.NewWorkflowController(store, workflowInstanceClient, nil)
 
 	return &testControllers{
 		workflowInstance: workflowInstanceController,
