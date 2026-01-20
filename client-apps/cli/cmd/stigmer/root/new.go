@@ -112,11 +112,26 @@ func newHandler(cmd *cobra.Command, args []string) {
 	// Create project directory if needed
 	if projectDir != "." {
 		if err := os.MkdirAll(projectDir, 0755); err != nil {
-			cliprint.PrintError("Failed to create project directory")
+			cliprint.PrintError("Failed to create project directory: %v", err)
 			clierr.Handle(err)
 			return
 		}
 	}
+
+	// Verify directory is writable before proceeding
+	testFile := filepath.Join(projectDir, ".stigmer-test")
+	if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+		cliprint.PrintError("Directory is not writable: %v", err)
+		cliprint.PrintInfo("Please check directory permissions")
+		// Cleanup test file if it was created
+		os.Remove(testFile)
+		// Cleanup project directory if we created it
+		if projectDir != "." {
+			os.RemoveAll(projectDir)
+		}
+		return
+	}
+	os.Remove(testFile)
 
 	// Generate all project files
 	steps := []struct {
@@ -132,17 +147,16 @@ func newHandler(cmd *cobra.Command, args []string) {
 	}
 
 	for _, step := range steps {
-		cliprint.PrintSuccess("Creating %s", step.name)
 		filePath := filepath.Join(projectDir, step.filename)
 		if err := os.WriteFile(filePath, []byte(step.content), 0644); err != nil {
-			cliprint.PrintError("Failed to create %s", step.filename)
-			clierr.Handle(err)
+			cliprint.PrintError("Failed to create %s: %v", step.filename, err)
 			// Cleanup on failure (only if we created a new directory)
 			if projectDir != "." {
 				os.RemoveAll(projectDir)
 			}
 			return
 		}
+		cliprint.PrintSuccess("Creating %s", step.name)
 	}
 
 	// Install dependencies
