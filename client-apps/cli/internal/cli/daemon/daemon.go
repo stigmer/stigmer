@@ -724,11 +724,39 @@ func GetStatus(dataDir string) (running bool, pid int) {
 }
 
 // WaitForReady waits for the daemon to be ready to accept connections
+//
+// This polls the gRPC server until it responds to a connection attempt,
+// ensuring it's fully initialized before returning.
 func WaitForReady(ctx context.Context, endpoint string) error {
-	// TODO: Implement health check
-	// For now, just wait a moment
-	time.Sleep(1 * time.Second)
-	return nil
+	// Poll every 500ms until the server responds or context times out
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.Wrap(ctx.Err(), "daemon did not become ready in time")
+		case <-ticker.C:
+			// Try to connect to the gRPC server
+			dialCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			conn, err := grpc.DialContext(dialCtx, endpoint,
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithBlock(),
+			)
+			cancel()
+
+			if err != nil {
+				// Server not ready yet, continue polling
+				log.Debug().Err(err).Msg("Daemon not ready yet, retrying...")
+				continue
+			}
+
+			// Successfully connected - server is ready
+			conn.Close()
+			log.Debug().Msg("Daemon is ready to accept connections")
+			return nil
+		}
+	}
 }
 
 // getPID reads the PID from the PID file

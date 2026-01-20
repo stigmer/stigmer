@@ -91,7 +91,7 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 	// The workflow is invoked with "stigmer/workflow-execution/invoke" but without explicit
 	// registration name, Temporal would use "Run" (the method name), causing "workflow type not found"
 	w.RegisterWorkflowWithOptions(
-		&workflows.InvokeWorkflowExecutionWorkflowImpl{},
+		(&workflows.InvokeWorkflowExecutionWorkflowImpl{}).Run,
 		workflow.RegisterOptions{
 			Name: workflows.InvokeWorkflowExecutionWorkflowName, // "stigmer/workflow-execution/invoke"
 		},
