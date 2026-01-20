@@ -12,9 +12,11 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/controller"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // contextWithWorkflowKind creates a context with the workflow resource kind injected
@@ -28,50 +30,84 @@ func contextWithWorkflowInstanceKind() context.Context {
 	return context.WithValue(context.Background(), apiresourceinterceptor.ApiResourceKindKey, apiresourcekind.ApiResourceKind_workflow_instance)
 }
 
-// setupInProcessWorkflowInstanceServer creates an in-process gRPC server for workflow instance
-func setupInProcessWorkflowInstanceServer(t *testing.T, store *badger.Store) (*grpc.ClientConn, func()) {
-	// Create a listener using bufconn
+// setupInProcessServers sets up both workflow and workflow instance servers with proper circular dependencies
+func setupInProcessServers(t *testing.T, store *badger.Store) (*grpc.ClientConn, *grpc.ClientConn, func()) {
 	buffer := 1024 * 1024
-	listener := bufconn.Listen(buffer)
 
-	// Create gRPC server
-	server := grpc.NewServer(
+	// Create workflow server and listener
+	workflowListener := bufconn.Listen(buffer)
+	workflowServer := grpc.NewServer(
 		grpc.UnaryInterceptor(func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-			// Inject api_resource_kind for workflow instance operations
+			ctx = contextWithWorkflowKind()
+			return handler(ctx, req)
+		}),
+	)
+
+	// Create workflow instance server and listener
+	workflowInstanceListener := bufconn.Listen(buffer)
+	workflowInstanceServer := grpc.NewServer(
+		grpc.UnaryInterceptor(func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 			ctx = contextWithWorkflowInstanceKind()
 			return handler(ctx, req)
 		}),
 	)
 
-	// Register workflow instance controller (without workflow client to avoid circular dependency)
-	workflowInstanceController := workflowinstancecontroller.NewWorkflowInstanceController(store, nil)
-	workflowinstancev1.RegisterWorkflowInstanceCommandControllerServer(server, workflowInstanceController)
-
-	// Start server in background
-	go func() {
-		if err := server.Serve(listener); err != nil {
-			t.Logf("Server exited with error: %v", err)
-		}
-	}()
-
-	// Create client connection
-	conn, err := grpc.DialContext(context.Background(), "",
+	// Create client connections first (before starting servers)
+	workflowConn, err := grpc.DialContext(context.Background(), "",
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
-			return listener.Dial()
+			return workflowListener.Dial()
 		}),
 		grpc.WithInsecure(),
 	)
 	if err != nil {
-		t.Fatalf("Failed to create client connection: %v", err)
+		t.Fatalf("Failed to create workflow client connection: %v", err)
 	}
+
+	workflowInstanceConn, err := grpc.DialContext(context.Background(), "",
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+			return workflowInstanceListener.Dial()
+		}),
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create workflow instance client connection: %v", err)
+	}
+
+	// Create clients
+	workflowClient := workflow.NewClient(workflowConn)
+	workflowInstanceClient := workflowinstance.NewClient(workflowInstanceConn)
+
+	// Create and register controllers BEFORE starting servers
+	workflowController := NewWorkflowController(store, workflowInstanceClient)
+	workflowv1.RegisterWorkflowCommandControllerServer(workflowServer, workflowController)
+	workflowv1.RegisterWorkflowQueryControllerServer(workflowServer, workflowController)
+
+	workflowInstanceController := workflowinstancecontroller.NewWorkflowInstanceController(store, workflowClient)
+	workflowinstancev1.RegisterWorkflowInstanceCommandControllerServer(workflowInstanceServer, workflowInstanceController)
+
+	// Now start both servers in background
+	go func() {
+		if err := workflowServer.Serve(workflowListener); err != nil {
+			t.Logf("Workflow server exited with error: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := workflowInstanceServer.Serve(workflowInstanceListener); err != nil {
+			t.Logf("WorkflowInstance server exited with error: %v", err)
+		}
+	}()
 
 	cleanup := func() {
-		conn.Close()
-		server.Stop()
-		listener.Close()
+		workflowConn.Close()
+		workflowInstanceConn.Close()
+		workflowServer.Stop()
+		workflowInstanceServer.Stop()
+		workflowListener.Close()
+		workflowInstanceListener.Close()
 	}
 
-	return conn, cleanup
+	return workflowConn, workflowInstanceConn, cleanup
 }
 
 // setupTestController creates a test controller with necessary dependencies
@@ -82,17 +118,50 @@ func setupTestController(t *testing.T) (*WorkflowController, *badger.Store) {
 		t.Fatalf("failed to create store: %v", err)
 	}
 
-	// Setup in-process workflow instance server
-	conn, cleanup := setupInProcessWorkflowInstanceServer(t, store)
+	// Setup both in-process servers
+	_, workflowInstanceConn, cleanup := setupInProcessServers(t, store)
 	t.Cleanup(cleanup)
 
-	// Create workflow instance client using the in-process connection
-	workflowInstanceClient := workflowinstance.NewClient(conn)
-
-	// Create workflow controller
+	// Create workflow instance client and controller
+	workflowInstanceClient := workflowinstance.NewClient(workflowInstanceConn)
 	controller := NewWorkflowController(store, workflowInstanceClient)
 
 	return controller, store
+}
+
+// createValidWorkflow creates a workflow with all required fields for validation
+func createValidWorkflow(name, description string) *workflowv1.Workflow {
+	// Create a minimal task_config for a SET task
+	taskConfig, _ := structpb.NewStruct(map[string]interface{}{
+		"set": map[string]interface{}{
+			"test_var": "test_value",
+		},
+	})
+
+	return &workflowv1.Workflow{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name:       name,
+			OwnerScope: apiresource.ApiResourceOwnerScope_platform,
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: description,
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test",
+				Name:      name,
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "test-task",
+					Kind:       apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+					TaskConfig: taskConfig,
+				},
+			},
+		},
+	}
 }
 
 func TestWorkflowController_Create(t *testing.T) {
@@ -100,17 +169,7 @@ func TestWorkflowController_Create(t *testing.T) {
 	defer store.Close()
 
 	t.Run("successful creation with spec fields", func(t *testing.T) {
-		workflow := &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Test Workflow",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-			},
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "Test workflow description",
-			},
-		}
+		workflow := createValidWorkflow("Test Workflow", "Test workflow description")
 
 		created, err := controller.Create(contextWithWorkflowKind(), workflow)
 		if err != nil {
@@ -153,13 +212,8 @@ func TestWorkflowController_Create(t *testing.T) {
 	})
 
 	t.Run("missing metadata", func(t *testing.T) {
-		workflow := &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "Test description",
-			},
-		}
+		workflow := createValidWorkflow("Test Workflow", "Test description")
+		workflow.Metadata = nil // Clear metadata to test validation
 
 		_, err := controller.Create(contextWithWorkflowKind(), workflow)
 		if err == nil {
@@ -168,14 +222,8 @@ func TestWorkflowController_Create(t *testing.T) {
 	})
 
 	t.Run("missing name", func(t *testing.T) {
-		workflow := &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Metadata:   &apiresource.ApiResourceMetadata{},
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "Test description",
-			},
-		}
+		workflow := createValidWorkflow("", "Test description")
+		workflow.Metadata.Name = "" // Clear name to test validation
 
 		_, err := controller.Create(contextWithWorkflowKind(), workflow)
 		if err == nil {
@@ -184,17 +232,7 @@ func TestWorkflowController_Create(t *testing.T) {
 	})
 
 	t.Run("duplicate workflow name", func(t *testing.T) {
-		workflow := &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Duplicate Workflow",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-			},
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "First workflow",
-			},
-		}
+		workflow := createValidWorkflow("Duplicate Workflow", "First workflow")
 
 		// Create first workflow
 		_, err := controller.Create(contextWithWorkflowKind(), workflow)
@@ -203,17 +241,7 @@ func TestWorkflowController_Create(t *testing.T) {
 		}
 
 		// Try to create duplicate
-		duplicateWorkflow := &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Duplicate Workflow",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-			},
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "Second workflow",
-			},
-		}
+		duplicateWorkflow := createValidWorkflow("Duplicate Workflow", "Second workflow")
 
 		_, err = controller.Create(contextWithWorkflowKind(), duplicateWorkflow)
 		if err == nil {
@@ -228,17 +256,7 @@ func TestWorkflowController_Get(t *testing.T) {
 
 	t.Run("successful get", func(t *testing.T) {
 		// Create workflow first
-		workflow := &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Get Test Workflow",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-			},
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "Test description",
-			},
-		}
+		workflow := createValidWorkflow("Get Test Workflow", "Test description")
 
 		created, err := controller.Create(contextWithWorkflowKind(), workflow)
 		if err != nil {
@@ -286,17 +304,7 @@ func TestWorkflowController_GetByReference(t *testing.T) {
 
 	t.Run("successful get by slug", func(t *testing.T) {
 		// Create workflow first
-		workflow := &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Reference Test Workflow",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-			},
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "Test description",
-			},
-		}
+		workflow := createValidWorkflow("Reference Test Workflow", "Test description")
 
 		created, err := controller.Create(contextWithWorkflowKind(), workflow)
 		if err != nil {
@@ -355,17 +363,7 @@ func TestWorkflowController_Update(t *testing.T) {
 
 	t.Run("successful update", func(t *testing.T) {
 		// Create workflow first
-		workflow := &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Update Test Workflow",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-			},
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "Original description",
-			},
-		}
+		workflow := createValidWorkflow("Update Test Workflow", "Original description")
 
 		created, err := controller.Create(contextWithWorkflowKind(), workflow)
 		if err != nil {
@@ -399,18 +397,8 @@ func TestWorkflowController_Update(t *testing.T) {
 	})
 
 	t.Run("update non-existent workflow", func(t *testing.T) {
-		workflow := &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Id:         "non-existent-id",
-				Name:       "Non-existent Workflow",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-			},
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "Test description",
-			},
-		}
+		workflow := createValidWorkflow("Non-existent Workflow", "Test description")
+		workflow.Metadata.Id = "non-existent-id"
 
 		_, err := controller.Update(contextWithWorkflowKind(), workflow)
 		if err == nil {
@@ -419,13 +407,8 @@ func TestWorkflowController_Update(t *testing.T) {
 	})
 
 	t.Run("update without metadata", func(t *testing.T) {
-		workflow := &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "Test description",
-			},
-		}
+		workflow := createValidWorkflow("Test Workflow", "Test description")
+		workflow.Metadata = nil // Clear metadata to test validation
 
 		_, err := controller.Update(contextWithWorkflowKind(), workflow)
 		if err == nil {
@@ -440,17 +423,7 @@ func TestWorkflowController_Delete(t *testing.T) {
 
 	t.Run("successful deletion", func(t *testing.T) {
 		// Create workflow first
-		workflow := &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Test Workflow",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-			},
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "Test description",
-			},
-		}
+		workflow := createValidWorkflow("Delete Test Workflow", "Test description")
 
 		created, err := controller.Create(contextWithWorkflowKind(), workflow)
 		if err != nil {
@@ -490,17 +463,7 @@ func TestWorkflowController_Delete(t *testing.T) {
 
 	t.Run("verify deleted workflow returns correct data", func(t *testing.T) {
 		// Create workflow with specific data
-		workflow := &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Verify Workflow",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-			},
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "Verify deletion data",
-			},
-		}
+		workflow := createValidWorkflow("Delete Verify Workflow", "Verify deletion data")
 
 		created, err := controller.Create(contextWithWorkflowKind(), workflow)
 		if err != nil {
@@ -534,17 +497,7 @@ func TestWorkflowController_CreateWithDefaultInstance(t *testing.T) {
 	defer store.Close()
 
 	t.Run("verify default instance created with workflow", func(t *testing.T) {
-		workflow := &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Instance Test Workflow",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-			},
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "Test workflow for default instance",
-			},
-		}
+		workflow := createValidWorkflow("Instance Test Workflow", "Test workflow for default instance")
 
 		created, err := controller.Create(contextWithWorkflowKind(), workflow)
 		if err != nil {

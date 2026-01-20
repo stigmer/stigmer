@@ -43,6 +43,5 @@ go_test(
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/badger",
         "//backend/libs/go/grpc/interceptors/apiresource",
-        "//backend/services/stigmer-server/pkg/downstream/workflowinstance",
     ],
 )
