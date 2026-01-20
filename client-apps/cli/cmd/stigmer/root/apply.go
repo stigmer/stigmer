@@ -30,7 +30,7 @@ Resources are auto-discovered from your code.
 
 The Stigmer.yaml file only contains metadata:
   name: my-project
-  runtime: go-sdk
+  runtime: go
   main: main.go
 
 Run from your project directory containing Stigmer.yaml.`,
