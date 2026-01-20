@@ -14,6 +14,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Agent Runner: Local Mode](guides/agent-runner-local-mode.md) - Running the agent runner in local vs cloud mode
 
 ### Architecture
+- [Backend Modes](architecture/backend-modes.md) - Local vs cloud backend architecture, auto-start daemon, and organization handling
 - [Backend Abstraction](architecture/backend-abstraction.md) - Backend interface design and abstraction layers
 - [CLI Subprocess Lifecycle](architecture/cli-subprocess-lifecycle.md) - Production-grade subprocess management with lock files, health checks, and auto-restart
 - [Go Module Structure](architecture/go-module-structure.md) - Go workspace and module organization pattern for contributors
