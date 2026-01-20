@@ -56,7 +56,8 @@ help:
 	@echo "    make embed-binaries             - Build all embedded components"
 	@echo "    make embed-stigmer-server       - Build stigmer-server binary"
 	@echo "    make embed-workflow-runner      - Build workflow-runner binary"
-	@echo "    make build-agent-runner-image   - Build agent-runner Docker image"
+	@echo "    make build-agent-runner-image   - Build agent-runner Docker image (skips if exists)"
+	@echo "    make rebuild-agent-runner-image - Force rebuild agent-runner Docker image"
 	@echo ""
 	@echo "  Maintenance:"
 	@echo "    make clean                      - Clean build artifacts"
@@ -100,7 +101,27 @@ embed-workflow-runner:
 
 .PHONY: build-agent-runner-image
 build-agent-runner-image:
-	@echo "🐳 Building agent-runner Docker image..."
+	@if [ -f "$(EMBED_DIR)/agent-runner.tar.gz" ]; then \
+		echo "✓ Agent runner tarball already exists: $(EMBED_DIR)/agent-runner.tar.gz"; \
+		echo "  (Use 'make rebuild-agent-runner-image' to force rebuild)"; \
+	elif docker image inspect ghcr.io/stigmer/agent-runner:$(AGENT_RUNNER_IMAGE_TAG) >/dev/null 2>&1; then \
+		echo "✓ Docker image exists, exporting tarball..."; \
+		mkdir -p $(EMBED_DIR); \
+		mkdir -p embedded/binaries/darwin_amd64; \
+		mkdir -p embedded/binaries/linux_amd64; \
+		docker save ghcr.io/stigmer/agent-runner:$(AGENT_RUNNER_IMAGE_TAG) | gzip > $(EMBED_DIR)/agent-runner.tar.gz; \
+		cp $(EMBED_DIR)/agent-runner.tar.gz embedded/binaries/darwin_amd64/agent-runner.tar.gz; \
+		cp $(EMBED_DIR)/agent-runner.tar.gz embedded/binaries/linux_amd64/agent-runner.tar.gz; \
+		echo "✓ Exported tarball to all platform directories"; \
+	else \
+		echo "🐳 Building agent-runner Docker image and exporting tarball..."; \
+		$(MAKE) -C $(REPO_ROOT)/backend/services/agent-runner export-image-tarball VERSION=$(AGENT_RUNNER_IMAGE_TAG); \
+		echo "✓ Built: ghcr.io/stigmer/agent-runner:$(AGENT_RUNNER_IMAGE_TAG)"; \
+	fi
+
+.PHONY: rebuild-agent-runner-image
+rebuild-agent-runner-image:
+	@echo "🐳 Force rebuilding agent-runner Docker image..."
 	@$(MAKE) -C $(REPO_ROOT)/backend/services/agent-runner export-image-tarball VERSION=$(AGENT_RUNNER_IMAGE_TAG)
 	@echo "✓ Built: ghcr.io/stigmer/agent-runner:$(AGENT_RUNNER_IMAGE_TAG)"
 
