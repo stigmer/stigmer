@@ -3,7 +3,7 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "interceptors",
     srcs = ["progress_interceptor.go"],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/interceptors",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/interceptors",
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",

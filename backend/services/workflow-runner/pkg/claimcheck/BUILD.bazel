@@ -4,6 +4,7 @@ go_library(
     name = "claimcheck",
     srcs = [
         "compressor.go",
+        "filesystem_store.go",
         "global.go",
         "manager.go",
         "metrics.go",
@@ -11,7 +12,7 @@ go_library(
         "reference.go",
         "store.go",
     ],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/claimcheck",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/claimcheck",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_aws_aws_sdk_go_v2//aws",
@@ -28,6 +29,7 @@ go_test(
     name = "claimcheck_test",
     srcs = [
         "compressor_test.go",
+        "filesystem_store_test.go",
         "r2_store_test.go",
         "reference_test.go",
     ],
