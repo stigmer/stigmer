@@ -12,9 +12,11 @@ import (
 //
 // Pipeline (Stigmer OSS):
 // 1. ValidateProto - Validate proto field constraints using buf validate
-// 2. Persist - Save updated workflow instance to repository
+// 2. LoadExisting - Load existing workflow instance from repository to verify it exists
+// 3. Persist - Save updated workflow instance to repository
 func (c *WorkflowInstanceController) Update(ctx context.Context, instance *workflowinstancev1.WorkflowInstance) (*workflowinstancev1.WorkflowInstance, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, instance)
+	reqCtx.SetNewState(instance)
 
 	p := c.buildUpdatePipeline()
 
@@ -28,7 +30,8 @@ func (c *WorkflowInstanceController) Update(ctx context.Context, instance *workf
 // buildUpdatePipeline constructs the pipeline for workflow instance update
 func (c *WorkflowInstanceController) buildUpdatePipeline() *pipeline.Pipeline[*workflowinstancev1.WorkflowInstance] {
 	return pipeline.NewPipeline[*workflowinstancev1.WorkflowInstance]("workflow-instance-update").
-		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()). // 1. Validate field constraints
-		AddStep(steps.NewPersistStep[*workflowinstancev1.WorkflowInstance](c.store)). // 2. Persist workflow instance
+		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()).       // 1. Validate field constraints
+		AddStep(steps.NewLoadExistingStep[*workflowinstancev1.WorkflowInstance](c.store)). // 2. Load existing instance
+		AddStep(steps.NewPersistStep[*workflowinstancev1.WorkflowInstance](c.store)).      // 3. Persist workflow instance
 		Build()
 }
