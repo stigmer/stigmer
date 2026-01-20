@@ -155,8 +155,8 @@ func (s *LoadByReferenceStep[T]) findBySlug(
 			continue
 		}
 
-		// Match by name (slug is stored in metadata.name)
-		if metadata.Name == slug {
+		// Match by slug
+		if metadata.Slug == slug {
 			// Additional org filter check (if org provided)
 			if org != "" && metadata.Org != org {
 				continue
