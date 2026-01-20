@@ -26,17 +26,45 @@ This command scaffolds a complete working example that:
   - Works immediately with zero setup
   - Demonstrates agent-workflow integration
 
-Just run 'stigmer new my-project' and then 'stigmer run'!`,
+Usage patterns:
+  1. Create in current directory (uses directory name as project name):
+     mkdir my-app && cd my-app
+     stigmer new
+
+  2. Create new directory with specified name:
+     stigmer new my-project`,
+		Example: `  # Create project in current directory (directory must be empty)
+  mkdir my-stigmer-app && cd my-stigmer-app
+  stigmer new
+
+  # Create new directory and initialize project
+  stigmer new my-stigmer-app
+  cd my-stigmer-app
+  stigmer run`,
 		Args: cobra.MaximumNArgs(1),
 		Run:  newHandler,
 	}
 }
 
 func newHandler(cmd *cobra.Command, args []string) {
-	// Determine project name
-	projectName := "stigmer-project"
+	// Determine project name and directory
+	var projectName string
+	var projectDir string
+	
 	if len(args) > 0 {
+		// User provided a name - create new directory
 		projectName = args[0]
+		projectDir = projectName
+	} else {
+		// No argument - use current directory name (Pulumi pattern)
+		cwd, err := os.Getwd()
+		if err != nil {
+			cliprint.PrintError("Failed to get current directory")
+			clierr.Handle(err)
+			return
+		}
+		projectName = filepath.Base(cwd)
+		projectDir = "."
 	}
 
 	// Validate project name
@@ -46,20 +74,48 @@ func newHandler(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Check if directory already exists
-	if _, err := os.Stat(projectName); err == nil {
-		cliprint.PrintError("Directory '%s' already exists", projectName)
-		return
+	// Check if directory is empty (when using current directory)
+	if projectDir == "." {
+		entries, err := os.ReadDir(".")
+		if err != nil {
+			cliprint.PrintError("Failed to read current directory")
+			clierr.Handle(err)
+			return
+		}
+		
+		// Filter out hidden files and check if directory is empty
+		hasVisibleFiles := false
+		for _, entry := range entries {
+			if !strings.HasPrefix(entry.Name(), ".") {
+				hasVisibleFiles = true
+				break
+			}
+		}
+		
+		if hasVisibleFiles {
+			cliprint.PrintError("Current directory is not empty")
+			cliprint.PrintInfo("Please run 'stigmer new' in an empty directory or provide a project name:")
+			cliprint.PrintInfo("  stigmer new my-project")
+			return
+		}
+	} else {
+		// Check if directory already exists (when creating new directory)
+		if _, err := os.Stat(projectDir); err == nil {
+			cliprint.PrintError("Directory '%s' already exists", projectDir)
+			return
+		}
 	}
 
 	cliprint.PrintInfo("Creating Stigmer project: %s", projectName)
 	fmt.Println()
 
-	// Create project directory
-	if err := os.MkdirAll(projectName, 0755); err != nil {
-		cliprint.PrintError("Failed to create project directory")
-		clierr.Handle(err)
-		return
+	// Create project directory if needed
+	if projectDir != "." {
+		if err := os.MkdirAll(projectDir, 0755); err != nil {
+			cliprint.PrintError("Failed to create project directory")
+			clierr.Handle(err)
+			return
+		}
 	}
 
 	// Generate all project files
@@ -77,12 +133,14 @@ func newHandler(cmd *cobra.Command, args []string) {
 
 	for _, step := range steps {
 		cliprint.PrintSuccess("Creating %s", step.name)
-		filePath := filepath.Join(projectName, step.filename)
+		filePath := filepath.Join(projectDir, step.filename)
 		if err := os.WriteFile(filePath, []byte(step.content), 0644); err != nil {
 			cliprint.PrintError("Failed to create %s", step.filename)
 			clierr.Handle(err)
-			// Cleanup on failure
-			os.RemoveAll(projectName)
+			// Cleanup on failure (only if we created a new directory)
+			if projectDir != "." {
+				os.RemoveAll(projectDir)
+			}
 			return
 		}
 	}
@@ -92,7 +150,7 @@ func newHandler(cmd *cobra.Command, args []string) {
 	
 	// Get the latest SDK version
 	getCmd := exec.Command("go", "get", "github.com/stigmer/stigmer/sdk/go@latest")
-	getCmd.Dir = projectName
+	getCmd.Dir = projectDir
 	getCmd.Stdout = os.Stdout
 	getCmd.Stderr = os.Stderr
 	if err := getCmd.Run(); err != nil {
@@ -101,7 +159,7 @@ func newHandler(cmd *cobra.Command, args []string) {
 	
 	// Run go mod tidy to resolve all dependencies
 	tidyCmd := exec.Command("go", "mod", "tidy")
-	tidyCmd.Dir = projectName
+	tidyCmd.Dir = projectDir
 	tidyCmd.Stdout = os.Stdout
 	tidyCmd.Stderr = os.Stderr
 	if err := tidyCmd.Run(); err != nil {
@@ -120,7 +178,9 @@ func newHandler(cmd *cobra.Command, args []string) {
 	cliprint.PrintInfo("  • Zero setup: No tokens or config needed!")
 	fmt.Println()
 	fmt.Println("Try it now:")
-	cliprint.InfoColor.Printf("  cd %s\n", projectName)
+	if projectDir != "." {
+		cliprint.InfoColor.Printf("  cd %s\n", projectDir)
+	}
 	cliprint.InfoColor.Printf("  stigmer run\n")
 	fmt.Println()
 }
