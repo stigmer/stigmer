@@ -12,7 +12,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	apiresourcecommons "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // Context keys for query operations
@@ -160,7 +160,7 @@ func (s *loadByWorkflowStep) Execute(ctx *pipeline.RequestContext[*workflowinsta
 	var filteredInstances []*workflowinstancev1.WorkflowInstance
 	for _, d := range data {
 		instance := &workflowinstancev1.WorkflowInstance{}
-		if err := protojson.Unmarshal(d, instance); err != nil {
+		if err := proto.Unmarshal(d, instance); err != nil {
 			log.Warn().
 				Err(err).
 				Msg("Failed to unmarshal workflow instance, skipping")
@@ -202,7 +202,7 @@ func (c *WorkflowInstanceController) findByWorkflowID(ctx context.Context, workf
 	var instances []*workflowinstancev1.WorkflowInstance
 	for _, d := range data {
 		instance := &workflowinstancev1.WorkflowInstance{}
-		if err := protojson.Unmarshal(d, instance); err != nil {
+		if err := proto.Unmarshal(d, instance); err != nil {
 			continue
 		}
 
