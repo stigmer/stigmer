@@ -115,6 +115,11 @@ func (d *Deployer) deployWorkflows(manifest *workflowv1.WorkflowManifest) ([]*wo
 	deployedWorkflows := make([]*workflowv1.Workflow, 0, len(manifest.Workflows))
 
 	for i, workflowBlueprint := range manifest.Workflows {
+		// Ensure metadata is initialized
+		if workflowBlueprint.Metadata == nil {
+			workflowBlueprint.Metadata = &apiresource.ApiResourceMetadata{}
+		}
+
 		if d.opts.ProgressCallback != nil {
 			d.opts.ProgressCallback(fmt.Sprintf("Deploying workflow %d/%d: %s", i+1, len(manifest.Workflows), workflowBlueprint.Metadata.Name))
 		}

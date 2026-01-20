@@ -21,3 +21,9 @@ func NewWorkflowInstanceController(store *badger.Store, workflowClient *workflow
 		workflowClient: workflowClient,
 	}
 }
+
+// SetWorkflowClient sets the Workflow client dependency
+// This is used when the controller is created before the in-process gRPC server is started
+func (c *WorkflowInstanceController) SetWorkflowClient(client *workflow.Client) {
+	c.workflowClient = client
+}

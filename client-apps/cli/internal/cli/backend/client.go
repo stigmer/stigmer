@@ -7,20 +7,23 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 )
 
 // Client is the gRPC client for communicating with stigmer-server
 //
-// Works with both local daemon (localhost:50051) and cloud (api.stigmer.ai:443)
+// Works with both local daemon (localhost:7234) and cloud (api.stigmer.ai:443)
 // The only difference is the endpoint and whether TLS is used.
 //
-// Local:  localhost:50051 (insecure)
+// Local:  localhost:7234 (insecure)
 // Cloud:  api.stigmer.ai:443 (TLS + auth token)
 type Client struct {
 	endpoint string
@@ -63,13 +66,9 @@ func NewClient(cfg *config.Config) (*Client, error) {
 
 	switch cfg.Backend.Type {
 	case config.BackendTypeLocal:
-		if cfg.Backend.Local == nil {
-			return nil, errors.New("local backend config is missing")
-		}
-		endpoint = cfg.Backend.Local.Endpoint
-		if endpoint == "" {
-			endpoint = "localhost:50051" // default from ADR 011
-		}
+		// Local mode: Always use hardcoded port 7234 (daemon manager controls this)
+		// Endpoint is not configurable for local mode - CLI manages the daemon
+		endpoint = "localhost:7234" // Temporal + 1, managed by daemon
 		isCloud = false
 
 	case config.BackendTypeCloud:
@@ -130,6 +129,13 @@ func (c *Client) Connect(ctx context.Context) error {
 	c.agentQuery = agentv1.NewAgentQueryControllerClient(conn)
 	c.workflowCommand = workflowv1.NewWorkflowCommandControllerClient(conn)
 	c.workflowQuery = workflowv1.NewWorkflowQueryControllerClient(conn)
+
+	// Verify connection by making a lightweight RPC call
+	// This ensures the server is actually running and reachable
+	if err := c.verifyConnection(ctx); err != nil {
+		conn.Close()
+		return err
+	}
 
 	log.Info().
 		Str("endpoint", c.endpoint).
@@ -233,11 +239,32 @@ func (c *Client) DeleteWorkflow(ctx context.Context, id string) error {
 	return err
 }
 
+// verifyConnection makes a lightweight RPC call to verify server connectivity
+func (c *Client) verifyConnection(ctx context.Context) error {
+	// Make a simple RPC call to verify the server is reachable
+	// We use getByReference with an empty reference - the result doesn't matter,
+	// we just want to know if the server responds
+	ref := &apiresource.ApiResourceReference{}
+	_, err := c.agentQuery.GetByReference(ctx, ref)
+	
+	// We expect NotFound or InvalidArgument - that's fine, server is reachable
+	// We only care about Unavailable (server not running) or connection errors
+	if err != nil {
+		if st, ok := status.FromError(err); ok {
+			// NotFound and InvalidArgument mean server is up (just didn't find the resource)
+			if st.Code() != codes.NotFound && st.Code() != codes.InvalidArgument {
+				return errors.Wrapf(err, "server not reachable at %s", c.endpoint)
+			}
+		} else {
+			return errors.Wrapf(err, "failed to connect to %s", c.endpoint)
+		}
+	}
+	return nil
+}
+
 // Ping tests connectivity to the server
 func (c *Client) Ping(ctx context.Context) error {
-	// Try to list agents as a simple health check
-	_, err := c.ListAgents(ctx)
-	if err != nil {
+	if err := c.verifyConnection(ctx); err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to connect to %s (%s mode)", c.endpoint, c.mode()))
 	}
 	return nil

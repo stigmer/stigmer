@@ -5,13 +5,13 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 )
 
 // Context keys for inter-step communication
@@ -23,9 +23,9 @@ const (
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
 // 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
-// 2. LoadParentWorkflow - Load and validate workflow template exists
-// 3. ValidateSameOrgBusinessRule - Verify same-org for org-scoped instances
-// 4. ResolveSlug - Generate slug from metadata.name
+// 2. ResolveSlug - Generate slug from metadata.name
+// 3. LoadParentWorkflow - Load and validate workflow template exists
+// 4. ValidateSameOrgBusinessRule - Verify same-org for org-scoped instances
 // 5. CheckDuplicate - Verify no duplicate exists
 // 6. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 7. Persist - Save workflow instance to repository
@@ -46,7 +46,6 @@ const (
 // - Org workflows: Instance must be in same org or user-scoped (no cross-org instances)
 func (c *WorkflowInstanceController) Create(ctx context.Context, instance *workflowinstancev1.WorkflowInstance) (*workflowinstancev1.WorkflowInstance, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, instance)
-	reqCtx.SetNewState(instance)
 
 	p := c.buildCreatePipeline()
 
@@ -63,10 +62,10 @@ func (c *WorkflowInstanceController) buildCreatePipeline() *pipeline.Pipeline[*w
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowinstancev1.WorkflowInstance]("workflow-instance-create").
 		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()).         // 1. Validate field constraints
-		AddStep(newLoadParentWorkflowStep(c.workflowClient)).                                 // 2. Load parent workflow
-		AddStep(newValidateSameOrgBusinessRuleStep()).                                        // 3. Validate same-org business rule
-		AddStep(steps.NewResolveSlugStep[*workflowinstancev1.WorkflowInstance]()).           // 4. Resolve slug (CRITICAL: before checkDuplicate)
-		AddStep(steps.NewCheckDuplicateStep[*workflowinstancev1.WorkflowInstance](c.store)). // 5. Check duplicate (needs resolved slug)
+		AddStep(steps.NewResolveSlugStep[*workflowinstancev1.WorkflowInstance]()).           // 2. Resolve slug
+		AddStep(newLoadParentWorkflowStep(c.workflowClient)).                                 // 3. Load parent workflow
+		AddStep(newValidateSameOrgBusinessRuleStep()).                                        // 4. Validate same-org business rule
+		AddStep(steps.NewCheckDuplicateStep[*workflowinstancev1.WorkflowInstance](c.store)). // 5. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*workflowinstancev1.WorkflowInstance]()).         // 6. Build new state
 		AddStep(steps.NewPersistStep[*workflowinstancev1.WorkflowInstance](c.store)).        // 7. Persist workflow instance
 		Build()
