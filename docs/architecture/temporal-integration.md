@@ -695,6 +695,405 @@ temporal workflow list --namespace default
 
 **Independent Scaling**: Each worker type scales independently based on queue depth.
 
+## Workflow Registration Patterns
+
+### Critical Bug Fix (2026-01-20)
+
+A critical bug in workflow registration was causing server crashes on startup. This section documents the correct patterns to prevent recurrence.
+
+### The Problem
+
+**Symptom**: Server crashed immediately after startup with:
+```
+panic: expected a func as input but was ptr
+
+goroutine 1 [running]:
+go.temporal.io/sdk/internal.(*registry).RegisterWorkflowWithOptions(...)
+```
+
+**Root Cause**: Temporal SDK expects a **function reference**, but we were passing a **struct instance**:
+
+```go
+// ❌ WRONG - Causes panic
+w.RegisterWorkflowWithOptions(
+    &workflows.InvokeWorkflowExecutionWorkflowImpl{},  // Struct pointer
+    workflow.RegisterOptions{Name: "..."},
+)
+```
+
+Temporal tried to call the struct as a function, resulting in the panic.
+
+### The Solution
+
+Pass the workflow **method reference** explicitly:
+
+```go
+// ✅ CORRECT - Passes method
+w.RegisterWorkflowWithOptions(
+    (&workflows.InvokeWorkflowExecutionWorkflowImpl{}).Run,  // Method reference
+    workflow.RegisterOptions{Name: "..."},
+)
+```
+
+### Two Registration Patterns
+
+Temporal SDK supports two workflow patterns:
+
+**Pattern 1: Standalone Functions**
+```go
+// Define workflow as standalone function
+func MyWorkflow(ctx workflow.Context, input *Input) error {
+    // Workflow logic
+    return nil
+}
+
+// Register directly (function reference)
+w.RegisterWorkflowWithOptions(MyWorkflow, workflow.RegisterOptions{
+    Name: "my-workflow",
+})
+```
+
+**Pattern 2: Struct Methods** (More complex, requires explicit method reference)
+```go
+// Define workflow as struct with Run method
+type MyWorkflowImpl struct{}
+
+func (w *MyWorkflowImpl) Run(ctx workflow.Context, input *Input) error {
+    // Workflow logic  
+    return nil
+}
+
+// ✅ CORRECT: Register method reference
+w.RegisterWorkflowWithOptions(
+    (&MyWorkflowImpl{}).Run,  // Get instance, then reference Run method
+    workflow.RegisterOptions{
+        Name: "my-workflow",
+    },
+)
+
+// ❌ WRONG: Register struct instance  
+w.RegisterWorkflowWithOptions(
+    &MyWorkflowImpl{},  // Temporal can't call this as a function
+    workflow.RegisterOptions{
+        Name: "my-workflow",
+    },
+)
+```
+
+### When to Use Each Pattern
+
+**Use Pattern 1 (Standalone Function) when:**
+- ✅ Simple workflow with no state
+- ✅ No helper methods needed
+- ✅ Single workflow per file
+
+**Example**: `ValidateWorkflowWorkflow` - Simple validation, no state
+
+**Use Pattern 2 (Struct Methods) when:**
+- ✅ Workflow needs helper methods
+- ✅ Complex orchestration logic
+- ✅ Multiple related functions
+- ✅ Better code organization
+
+**Example**: `InvokeWorkflowExecutionWorkflow`, `InvokeAgentExecutionWorkflow` - Complex orchestration with helpers
+
+### Registration in Stigmer
+
+**Three Workers, Three Workflows:**
+
+1. **Workflow Execution** (Pattern 2 - Struct Method):
+```go
+// backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/worker_config.go
+w.RegisterWorkflowWithOptions(
+    (&workflows.InvokeWorkflowExecutionWorkflowImpl{}).Run,  // ✅ Method reference
+    workflow.RegisterOptions{
+        Name: workflows.InvokeWorkflowExecutionWorkflowName,
+    },
+)
+```
+
+2. **Agent Execution** (Pattern 2 - Struct Method):
+```go
+// backend/services/stigmer-server/pkg/domain/agentexecution/temporal/worker_config.go
+w.RegisterWorkflowWithOptions(
+    (&workflows.InvokeAgentExecutionWorkflowImpl{}).Run,  // ✅ Method reference
+    workflow.RegisterOptions{
+        Name: workflows.InvokeAgentExecutionWorkflowName,
+    },
+)
+```
+
+3. **Workflow Validation** (Pattern 1 - Standalone Function):
+```go
+// backend/services/stigmer-server/pkg/domain/workflow/temporal/worker.go
+w.RegisterWorkflowWithOptions(
+    ValidateWorkflowWorkflowImpl,  // ✅ Function reference
+    workflow.RegisterOptions{
+        Name: WorkflowValidationWorkflowType,
+    },
+)
+```
+
+### Why This Bug Occurred
+
+When we initially implemented workflow execution and agent execution workers, we copied the registration pattern from the validation worker:
+
+```go
+// Validation worker (Pattern 1 - worked fine)
+w.RegisterWorkflowWithOptions(ValidateWorkflowWorkflowImpl, ...)
+
+// Execution workers (Pattern 2 - copied incorrectly)
+w.RegisterWorkflowWithOptions(&WorkflowImpl{}, ...)  // ❌ Should be (&WorkflowImpl{}).Run
+```
+
+**Key Difference**: Validation uses a standalone function; execution workflows use struct methods.
+
+The registration syntax looks similar, but struct methods require the explicit method reference.
+
+### Testing Workflow Registration
+
+**Verify correct registration**:
+
+1. **Start stigmer-server**:
+```bash
+$ stigmer server start
+✓ Ready! Stigmer server is running
+  PID:  50609
+```
+
+2. **Check server doesn't crash** (wait 5+ seconds):
+```bash
+$ stigmer server status
+  Status: ✓ Running  # ✅ Still running = registration worked
+```
+
+3. **Check logs for successful registration**:
+```bash
+$ tail -50 ~/.stigmer/data/logs/daemon.err | grep "Registered"
+✅ [POLYGLOT] Registered InvokeWorkflowExecutionWorkflow (Go)
+✅ [POLYGLOT] Registered InvokeAgentExecutionWorkflow (Go)  
+✅ [POLYGLOT] Registered ValidateWorkflowWorkflow (Go)
+```
+
+**If registration fails**:
+```bash
+# Server crashes with panic
+panic: expected a func as input but was ptr
+
+# Check registration - likely missing .Run method reference
+```
+
+### Impact
+
+**Before fix**:
+- ❌ Server crashed on startup
+- ❌ No Temporal workflows available
+- ❌ Local mode completely broken
+
+**After fix**:
+- ✅ Server starts successfully
+- ✅ All three workflows register correctly
+- ✅ Workflows execute reliably
+
+## Daemon Health Checks
+
+### Critical Bug Fix (2026-01-20)
+
+CLI connection failures occurred even when the server was starting. This section documents the proper health check implementation.
+
+### The Problem
+
+**Symptom**: CLI reported "Cannot connect to stigmer-server" even though:
+- Server process had started (PID file existed)
+- Server was initializing
+- Server would become ready shortly after
+
+**Root Cause**: Daemon manager had a placeholder health check:
+
+```go
+func WaitForReady(ctx context.Context, endpoint string) error {
+    // TODO: Implement health check
+    // For now, just wait a moment
+    time.Sleep(1 * time.Second)  // ❌ Arbitrary wait
+    return nil
+}
+```
+
+**Race Condition**:
+1. Daemon process starts
+2. CLI waits 1 second (arbitrary)
+3. CLI assumes daemon is ready
+4. CLI tries to connect
+5. gRPC server not yet initialized → failure
+
+### The Solution
+
+Implemented proper health check that polls the gRPC server:
+
+```go
+func WaitForReady(ctx context.Context, endpoint string) error {
+    ticker := time.NewTicker(500 * time.Millisecond)
+    defer ticker.Stop()
+
+    for {
+        select {
+        case <-ctx.Done():
+            return errors.Wrap(ctx.Err(), "daemon did not become ready in time")
+            
+        case <-ticker.C:
+            // Try to connect to the gRPC server
+            dialCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+            conn, err := grpc.DialContext(dialCtx, endpoint,
+                grpc.WithTransportCredentials(insecure.NewCredentials()),
+                grpc.WithBlock(),
+            )
+            cancel()
+
+            if err != nil {
+                // Server not ready yet, continue polling
+                log.Debug().Err(err).Msg("Daemon not ready yet, retrying...")
+                continue
+            }
+
+            // Successfully connected - server is ready
+            conn.Close()
+            log.Debug().Msg("Daemon is ready to accept connections")
+            return nil
+        }
+    }
+}
+```
+
+### Health Check Design Principles
+
+**1. Poll, Don't Assume**
+
+Never assume readiness based on:
+- ❌ Arbitrary time delays
+- ❌ PID file existence
+- ❌ Process start signal
+
+Always verify actual service availability:
+- ✅ Actual connection attempts
+- ✅ Service-specific health endpoints
+- ✅ Real protocol handshakes
+
+**2. Appropriate Polling Frequency**
+
+**Too fast** (< 100ms):
+- Wastes CPU resources
+- Spams logs
+- No practical benefit
+
+**Too slow** (> 1s):
+- User perceives delay
+- Poor UX for fast startups
+
+**Goldilocks zone** (500ms):
+- ✅ Responsive (< 1s latency for fast systems)
+- ✅ Efficient (minimal CPU usage)
+- ✅ Reliable (catches startup issues)
+
+**3. Timeout Protection**
+
+Always set an upper bound:
+```go
+// Caller sets 10-second timeout
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+
+err := WaitForReady(ctx, endpoint)
+// Returns after max 10 seconds, even if server never starts
+```
+
+**4. Clear Error Messages**
+
+**Bad**:
+```go
+return errors.New("timeout")  // What timed out? Why?
+```
+
+**Good**:
+```go
+return errors.Wrap(ctx.Err(), "daemon did not become ready in time")
+// Clear: daemon health check timed out
+```
+
+### When Health Checks Are Needed
+
+**Daemon/Server Management**:
+- ✅ Auto-starting background services
+- ✅ Restart operations
+- ✅ Readiness verification
+
+**Kubernetes Deployments**:
+- ✅ Readiness probes
+- ✅ Liveness probes
+- ✅ Startup probes
+
+**Service-to-Service Communication**:
+- ✅ Service mesh health checks
+- ✅ Load balancer health checks
+- ✅ Circuit breaker integration
+
+### Testing Health Checks
+
+**Test 1: Fast Startup**
+```bash
+# Server starts quickly
+$ time stigmer server start
+✓ Ready! Stigmer server is running
+
+real    0m1.5s  # Health check returns as soon as ready
+```
+
+**Test 2: Slow Startup**
+```bash
+# Simulate slow startup (first boot, database initialization)
+$ rm -rf ~/.stigmer/data/*
+$ time stigmer server start
+✓ Ready! Stigmer server is running
+
+real    0m3.2s  # Health check waits longer, but still succeeds
+```
+
+**Test 3: Startup Failure**
+```bash
+# Server fails to start (port already in use)
+$ stigmer server start & sleep 0.1 && stigmer server start
+Error: daemon did not become ready in time
+
+# Health check times out after 10 seconds, provides clear error
+```
+
+### Impact
+
+**Before fix**:
+- ❌ Connection failures on slow startup
+- ❌ Inconsistent behavior (worked sometimes)
+- ❌ User frustration
+- ❌ Required manual waiting
+
+**After fix**:
+- ✅ Reliable connection every time
+- ✅ CLI waits exactly as long as needed
+- ✅ Works on fast and slow systems
+- ✅ Clear debug logging
+- ✅ Proper error handling
+
+### Related Components
+
+**Daemon Manager** (`client-apps/cli/internal/cli/daemon/daemon.go`):
+- `EnsureRunning()` - Auto-starts daemon if not running
+- `WaitForReady()` - Health check implementation
+- `IsRunning()` - Process check (different from health check)
+
+**Process vs Health Check**:
+- **Process check**: Is the daemon process alive? (PID file + signal check)
+- **Health check**: Is the gRPC server accepting connections? (Connection attempt)
+
+Both are needed - process running ≠ service ready.
+
 ## Future Enhancements
 
 ### Planned
@@ -706,6 +1105,11 @@ temporal workflow list --namespace default
 2. **Saga Pattern**
    - Compensating transactions for failed executions
    - Rollback workflows for cleanup
+
+3. **Structured Health Check Endpoint**
+   - Implement proto-based health check RPC
+   - Include component status (Temporal, database, workers)
+   - Support Kubernetes probes
 
 ### Under Consideration
 
