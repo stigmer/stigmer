@@ -14,6 +14,7 @@ import (
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
+	workflowtemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
@@ -102,6 +103,9 @@ func main() {
 	var agentExecutionWorker worker.Worker
 	var agentExecutionWorkflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
 
+	// Create workflow validation worker (conditional on client success)
+	var workflowValidationWorker worker.Worker
+
 	if temporalClient != nil {
 		// Load Temporal configuration for workflow execution
 		workflowExecutionTemporalConfig := workflowexecutiontemporal.LoadConfig()
@@ -149,6 +153,22 @@ func main() {
 			Str("stigmer_queue", agentExecutionTemporalConfig.StigmerQueue).
 			Str("runner_queue", agentExecutionTemporalConfig.RunnerQueue).
 			Msg("Created agent execution worker and creator")
+
+		// Load Temporal configuration for workflow validation
+		workflowValidationTemporalConfig := workflowtemporal.NewConfig()
+
+		// Create worker configuration
+		workflowValidationWorkerConfig := workflowtemporal.NewWorkerConfig(
+			workflowValidationTemporalConfig,
+		)
+
+		// Create worker (not started yet)
+		workflowValidationWorker = workflowValidationWorkerConfig.CreateWorker(temporalClient)
+
+		log.Info().
+			Str("stigmer_queue", workflowValidationTemporalConfig.StigmerQueue).
+			Str("runner_queue", workflowValidationTemporalConfig.RunnerQueue).
+			Msg("Created workflow validation worker")
 	}
 
 	// Create gRPC server with apiresource interceptor and in-process support
@@ -270,6 +290,16 @@ func main() {
 		}
 		defer agentExecutionWorker.Stop()
 		log.Info().Msg("Agent execution worker started")
+	}
+
+	if workflowValidationWorker != nil {
+		if err := workflowValidationWorker.Start(); err != nil {
+			log.Fatal().
+				Err(err).
+				Msg("Failed to start workflow validation worker")
+		}
+		defer workflowValidationWorker.Stop()
+		log.Info().Msg("Workflow validation worker started")
 	}
 
 	// Create in-process gRPC connection
