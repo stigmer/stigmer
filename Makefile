@@ -1,6 +1,9 @@
 # Default bump type for releases (can be overridden: make protos-release bump=minor)
 bump ?= patch
 
+# Build directory outside the repo to avoid accidental commits
+BUILD_DIR := /tmp/stigmer-build
+
 .PHONY: help setup build build-backend test clean protos protos-release lint coverage embed-binaries embed-stigmer-server embed-workflow-runner build-agent-runner-image release-local install dev release
 
 help: ## Show this help message
@@ -23,24 +26,25 @@ setup: ## Install dependencies and tools
 
 build: protos ## Build the Stigmer CLI
 	@echo "Building Stigmer CLI..."
-	@mkdir -p bin
-	cd client-apps/cli && go build -o ../../bin/stigmer .
-	@echo "Build complete: bin/stigmer"
+	@mkdir -p $(BUILD_DIR)
+	cd client-apps/cli && go build -o $(BUILD_DIR)/stigmer .
+	@echo "Build complete: $(BUILD_DIR)/stigmer"
 
 build-backend: protos ## Build all backend services
 	@echo "Building all backend services..."
+	@mkdir -p $(BUILD_DIR)
 	@echo ""
 	@echo "1/4 Building stigmer-server..."
-	go build -o bin/stigmer-server ./backend/services/stigmer-server/cmd/server
-	@echo "✓ Built: bin/stigmer-server"
+	go build -o $(BUILD_DIR)/stigmer-server ./backend/services/stigmer-server/cmd/server
+	@echo "✓ Built: $(BUILD_DIR)/stigmer-server"
 	@echo ""
 	@echo "2/4 Building workflow-runner worker..."
-	go build -o bin/workflow-runner ./backend/services/workflow-runner/cmd/worker
-	@echo "✓ Built: bin/workflow-runner"
+	go build -o $(BUILD_DIR)/workflow-runner ./backend/services/workflow-runner/cmd/worker
+	@echo "✓ Built: $(BUILD_DIR)/workflow-runner"
 	@echo ""
 	@echo "3/4 Building workflow-runner gRPC server..."
-	go build -o bin/workflow-runner-grpc ./backend/services/workflow-runner/cmd/grpc-server
-	@echo "✓ Built: bin/workflow-runner-grpc"
+	go build -o $(BUILD_DIR)/workflow-runner-grpc ./backend/services/workflow-runner/cmd/grpc-server
+	@echo "✓ Built: $(BUILD_DIR)/workflow-runner-grpc"
 	@echo ""
 	@echo "4/4 Type checking agent-runner (Python)..."
 	@cd backend/services/agent-runner && \
@@ -277,16 +281,15 @@ lint: ## Run linters
 
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
-	rm -rf bin/
+	rm -rf $(BUILD_DIR)
 	rm -rf coverage/
 	rm -rf coverage.txt coverage.html
-	rm -rf backend/services/workflow-runner/bin/
 	$(MAKE) -C apis clean
 	@echo "Clean complete!"
 
 install: build ## Install Stigmer CLI to system
 	@echo "Installing stigmer to /usr/local/bin..."
-	sudo cp bin/stigmer /usr/local/bin/stigmer
+	sudo cp $(BUILD_DIR)/stigmer /usr/local/bin/stigmer
 	sudo chmod +x /usr/local/bin/stigmer
 	@echo "Installation complete!"
 

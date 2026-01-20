@@ -31,7 +31,9 @@ else
 	$(error Unsupported platform: $(UNAME_S) $(UNAME_M))
 endif
 
-EMBED_DIR := embedded/binaries/$(PLATFORM)
+# Build binaries outside the repo to avoid accidental commits
+BUILD_DIR := /tmp/stigmer-build
+EMBED_DIR := $(BUILD_DIR)/embedded/binaries/$(PLATFORM)
 AGENT_RUNNER_IMAGE_TAG := dev-local
 
 .PHONY: help
@@ -87,17 +89,17 @@ install: build
 embed-stigmer-server:
 	@echo "📦 Building stigmer-server for $(PLATFORM)..."
 	@mkdir -p $(EMBED_DIR)
-	@cd $(REPO_ROOT) && go build -o client-apps/cli/$(EMBED_DIR)/stigmer-server ./backend/services/stigmer-server/cmd/server
+	@cd $(REPO_ROOT) && go build -o $(EMBED_DIR)/stigmer-server ./backend/services/stigmer-server/cmd/server
 	@chmod +x $(EMBED_DIR)/stigmer-server
-	@echo "✓ Embedded: $(EMBED_DIR)/stigmer-server"
+	@echo "✓ Built: $(EMBED_DIR)/stigmer-server"
 
 .PHONY: embed-workflow-runner
 embed-workflow-runner:
 	@echo "📦 Building workflow-runner for $(PLATFORM)..."
 	@mkdir -p $(EMBED_DIR)
-	@cd $(REPO_ROOT) && go build -o client-apps/cli/$(EMBED_DIR)/workflow-runner ./backend/services/workflow-runner/cmd/worker
+	@cd $(REPO_ROOT) && go build -o $(EMBED_DIR)/workflow-runner ./backend/services/workflow-runner/cmd/worker
 	@chmod +x $(EMBED_DIR)/workflow-runner
-	@echo "✓ Embedded: $(EMBED_DIR)/workflow-runner"
+	@echo "✓ Built: $(EMBED_DIR)/workflow-runner"
 
 .PHONY: build-agent-runner-image
 build-agent-runner-image:
@@ -107,12 +109,12 @@ build-agent-runner-image:
 	elif docker image inspect ghcr.io/stigmer/agent-runner:$(AGENT_RUNNER_IMAGE_TAG) >/dev/null 2>&1; then \
 		echo "✓ Docker image exists, exporting tarball..."; \
 		mkdir -p $(EMBED_DIR); \
-		mkdir -p embedded/binaries/darwin_amd64; \
-		mkdir -p embedded/binaries/linux_amd64; \
+		mkdir -p $(BUILD_DIR)/embedded/binaries/darwin_amd64; \
+		mkdir -p $(BUILD_DIR)/embedded/binaries/linux_amd64; \
 		docker save ghcr.io/stigmer/agent-runner:$(AGENT_RUNNER_IMAGE_TAG) | gzip > $(EMBED_DIR)/agent-runner.tar.gz; \
-		cp $(EMBED_DIR)/agent-runner.tar.gz embedded/binaries/darwin_amd64/agent-runner.tar.gz; \
-		cp $(EMBED_DIR)/agent-runner.tar.gz embedded/binaries/linux_amd64/agent-runner.tar.gz; \
-		echo "✓ Exported tarball to all platform directories"; \
+		cp $(EMBED_DIR)/agent-runner.tar.gz $(BUILD_DIR)/embedded/binaries/darwin_amd64/agent-runner.tar.gz; \
+		cp $(EMBED_DIR)/agent-runner.tar.gz $(BUILD_DIR)/embedded/binaries/linux_amd64/agent-runner.tar.gz; \
+		echo "✓ Exported tarball to all platform directories in $(BUILD_DIR)"; \
 	else \
 		echo "🐳 Building agent-runner Docker image and exporting tarball..."; \
 		$(MAKE) -C $(REPO_ROOT)/backend/services/agent-runner export-image-tarball VERSION=$(AGENT_RUNNER_IMAGE_TAG); \

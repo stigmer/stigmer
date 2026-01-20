@@ -68,17 +68,20 @@ build-image: build
 	@echo "✅ Built: $(IMAGE_REPO):$(VERSION)"
 	@echo "✅ Tagged: $(IMAGE_REPO):latest"
 
+# Build directory outside the repo to avoid accidental commits
+BUILD_DIR := /tmp/stigmer-build
+
 .PHONY: export-image-tarball
 export-image-tarball: build-image
 	@echo "📦 Exporting Docker image as tarball..."
 	@echo "   Image: $(IMAGE_REPO):$(VERSION)"
-	@mkdir -p $(REPO_ROOT)/client-apps/cli/embedded/binaries/darwin_arm64
-	@mkdir -p $(REPO_ROOT)/client-apps/cli/embedded/binaries/darwin_amd64
-	@mkdir -p $(REPO_ROOT)/client-apps/cli/embedded/binaries/linux_amd64
-	$(CONTAINER_RUNTIME) save $(IMAGE_REPO):$(VERSION) | gzip > $(REPO_ROOT)/client-apps/cli/embedded/binaries/darwin_arm64/agent-runner.tar.gz
-	@cp $(REPO_ROOT)/client-apps/cli/embedded/binaries/darwin_arm64/agent-runner.tar.gz $(REPO_ROOT)/client-apps/cli/embedded/binaries/darwin_amd64/agent-runner.tar.gz
-	@cp $(REPO_ROOT)/client-apps/cli/embedded/binaries/darwin_arm64/agent-runner.tar.gz $(REPO_ROOT)/client-apps/cli/embedded/binaries/linux_amd64/agent-runner.tar.gz
-	@echo "✅ Exported tarballs to all platform directories"
+	@mkdir -p $(BUILD_DIR)/embedded/binaries/darwin_arm64
+	@mkdir -p $(BUILD_DIR)/embedded/binaries/darwin_amd64
+	@mkdir -p $(BUILD_DIR)/embedded/binaries/linux_amd64
+	$(CONTAINER_RUNTIME) save $(IMAGE_REPO):$(VERSION) | gzip > $(BUILD_DIR)/embedded/binaries/darwin_arm64/agent-runner.tar.gz
+	@cp $(BUILD_DIR)/embedded/binaries/darwin_arm64/agent-runner.tar.gz $(BUILD_DIR)/embedded/binaries/darwin_amd64/agent-runner.tar.gz
+	@cp $(BUILD_DIR)/embedded/binaries/darwin_arm64/agent-runner.tar.gz $(BUILD_DIR)/embedded/binaries/linux_amd64/agent-runner.tar.gz
+	@echo "✅ Exported tarballs to: $(BUILD_DIR)/embedded/binaries/"
 
 .PHONY: run-local
 run-local:
