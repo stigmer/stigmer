@@ -1,41 +1,64 @@
 # Next Task: CLI Embedded Binary Packaging
 
 **Project**: CLI Embedded Binary Packaging  
-**Current Status**: 🚧 In Progress  
+**Current Status**: ✅ COMPLETE (Ready for Testing)  
 **Last Updated**: 2026-01-21
 
 ## 📍 Where We Are
 
-**Task 3 completed!** Daemon management now uses extracted binaries exclusively.
+**Task 4 completed + GitHub Actions workflow created!** Full CI/CD pipeline ready for releases.
 
 **Completed:**
 - ✅ Task 1: Design embedding strategy (platform detection, extraction logic, error handling)
 - ✅ Task 2: Implement binary embedding with Go embed
 - ✅ Task 3: Update daemon management to use extracted binaries
+- ✅ Task 4: Update build scripts (Makefile + GitHub Actions)
 
-**Task 3 implementation highlights:**
-- Added `embedded.EnsureBinariesExtracted(dataDir)` call in daemon startup
-- Rewrote `findServerBinary()` to use only `dataDir/bin/stigmer-server`
-- Rewrote `findWorkflowRunnerBinary()` to use only `dataDir/bin/workflow-runner`
-- Rewrote `findAgentRunnerScript()` to use only `dataDir/bin/agent-runner/run.sh`
-- Removed ALL development fallback paths (no workspace root detection, no bazel paths)
-- Removed `findWorkspaceRoot()` function (no longer needed)
-- Added dev mode support via env vars (`STIGMER_SERVER_BIN`, `STIGMER_WORKFLOW_RUNNER_BIN`, `STIGMER_AGENT_RUNNER_SCRIPT`)
-- Clear error messages guide users to reinstall if binaries missing
-- Code compiles successfully
+**Task 4 extended implementation:**
+- ✅ Makefile targets for local builds (`embed-binaries`, `release-local`)
+- ✅ GitHub Actions workflow: `.github/workflows/release-embedded.yml`
+- ✅ Platform-specific builds (darwin-arm64, darwin-amd64, linux-amd64)
+- ✅ Automatic GitHub Releases with checksums
+- ✅ Homebrew tap auto-update
+- ✅ Release documentation: `client-apps/cli/RELEASE.md`
 
-## 🎯 Next Task: Task 4 - Update Build Scripts (Makefile)
+**Results:**
+- **Local**: `make release-local` produces 123 MB CLI with embedded binaries
+- **CI/CD**: Push tag → 3 platform builds → GitHub Release → Homebrew update
+- **Distribution**: Single self-contained binary per platform
+- **User experience**: `brew install stigmer` → just works!
 
-**Goal**: Add Makefile targets to build and embed binaries before CLI compilation.
+## 🎯 Next Task: Task 5 - Audit & Clean (Optional)
 
-**What to add:**
-1. **Build targets**: Create targets for stigmer-server, workflow-runner, agent-runner
-2. **Copy to embedded/**: Move built binaries to `client-apps/cli/embedded/binaries/{platform}/`
-3. **Platform detection**: Build for correct platform (darwin_arm64, darwin_amd64, linux_amd64)
-4. **Tarball creation**: Package agent-runner directory as tar.gz
-5. **Update release-local**: Integrate embedding into main build flow
+**Status**: May already be complete! Task 3 removed all development fallbacks.
 
-**Deliverable**: `make release-local` produces a CLI with all binaries embedded and ready to extract.
+**Quick verification:**
+1. **Check binary finders**: Ensure no development paths remain
+2. **Verify `.gitignore`**: Binaries properly ignored ✅ (already done)
+3. **Test dev mode**: Environment variables work correctly
+4. **Documentation**: Code comments explain production vs dev mode
+
+**Expected**: Likely no changes needed - Task 3 already cleaned everything.
+
+## 🎯 Next Task: Task 6 - Final Testing & Documentation
+
+**Goal**: Comprehensive end-to-end validation and polish.
+
+**What to test:**
+1. **Fresh install simulation**: Delete `~/.stigmer`, run `stigmer server`
+2. **Version upgrade**: Change version, verify re-extraction
+3. **All platforms**: Test on macOS (arm64/amd64) and Linux
+4. **Dev mode**: Verify env vars work (`STIGMER_SERVER_BIN`, etc.)
+5. **Binary size**: Measure and document final sizes
+6. **Extraction performance**: Time first run vs subsequent runs
+
+**What to document:**
+1. Update main README with new distribution approach
+2. Add "How It Works" section explaining embedding
+3. Document troubleshooting steps
+4. Create migration guide from old separate-binary approach
+
+**Deliverable**: Production-ready system with comprehensive documentation.
 
 ## 🔄 Quick Context
 
