@@ -732,9 +732,9 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 			t.Fatalf("GetByWorkflow failed: %v", err)
 		}
 
-		// Verify we got exactly 3 instances (not 4)
-		if len(list.Entries) != 3 {
-			t.Errorf("Expected 3 instances, got %d", len(list.Entries))
+		// Verify we got exactly 4 instances (3 explicit + 1 default instance auto-created with workflow)
+		if len(list.Entries) != 4 {
+			t.Errorf("Expected 4 instances (3 explicit + 1 default), got %d", len(list.Entries))
 		}
 
 		// Verify all instances belong to the parent workflow
@@ -746,7 +746,7 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 	})
 
 	t.Run("get by workflow with no instances", func(t *testing.T) {
-		// Create a workflow with no instances
+		// Create a workflow with no explicit instances (but it will have 1 default instance)
 		emptyWorkflow := createTestWorkflow(t, controllers, "empty-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
 
 		request := &workflowinstancev1.GetWorkflowInstancesByWorkflowRequest{
@@ -757,9 +757,9 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 			t.Fatalf("GetByWorkflow failed: %v", err)
 		}
 
-		// Verify we got an empty list
-		if len(list.Entries) != 0 {
-			t.Errorf("Expected 0 instances, got %d", len(list.Entries))
+		// Verify we got 1 instance (the default instance auto-created with the workflow)
+		if len(list.Entries) != 1 {
+			t.Errorf("Expected 1 instance (default), got %d", len(list.Entries))
 		}
 	})
 
