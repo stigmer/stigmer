@@ -32,6 +32,95 @@ This enables each language to focus on its strengths: Go for efficient orchestra
 
 ## Architecture
 
+### Three Worker Domains
+
+Stigmer implements **three separate Temporal worker domains**, each with its own queue configuration and responsibilities:
+
+| Domain | Purpose | Stigmer Queue | Runner Queue | Status |
+|--------|---------|---------------|--------------|--------|
+| **Workflow Execution** | Execute workflow definitions | `workflow_execution_stigmer` | `workflow_execution_runner` | ✅ Implemented |
+| **Agent Execution** | Execute AI agent invocations | `agent_execution_stigmer` | `agent_execution_runner` | ✅ Implemented |
+| **Workflow Validation** | Validate workflow syntax | `workflow_validation_stigmer` | `workflow_validation_runner` | ⏸️ Planned |
+
+**Design Rationale:**
+- **Separation of concerns**: Each domain has distinct workflows and activities
+- **Independent scaling**: Scale agent execution separately from workflow execution
+- **Resource isolation**: GPU-intensive agent work doesn't impact workflow orchestration
+- **Clear observability**: Task queues map directly to feature domains
+
+### Worker Initialization in stigmer-server
+
+Workers are initialized during `main.go` startup following this sequence:
+
+```go
+// 1. Create Temporal Client (conditional - may be nil)
+temporalClient, err := client.Dial(client.Options{
+    HostPort:  cfg.TemporalHostPort,
+    Namespace: cfg.TemporalNamespace,
+})
+// If connection fails: temporalClient = nil, proceed without Temporal
+
+// 2. Create Workers and Workflow Creators (if client exists)
+if temporalClient != nil {
+    // Workflow Execution Worker
+    workflowExecutionConfig := workflowexecutiontemporal.LoadConfig()
+    workflowExecutionWorker = workflowExecutionWorkerConfig.CreateWorker(temporalClient)
+    workflowExecutionCreator = workflows.NewInvokeWorkflowExecutionWorkflowCreator(...)
+    
+    // Agent Execution Worker
+    agentExecutionConfig := agentexecutiontemporal.NewConfig()
+    agentExecutionWorker = agentExecutionWorkerConfig.CreateWorker(temporalClient)
+    agentExecutionCreator = agentexecutiontemporal.NewInvokeAgentExecutionWorkflowCreator(...)
+    
+    // Workflow Validation Worker (planned)
+    // ...
+}
+
+// 3. Register gRPC Controllers
+
+// 4. Start In-Process gRPC Server
+
+// 5. Start Temporal Workers (if workers exist)
+if workflowExecutionWorker != nil {
+    workflowExecutionWorker.Start()
+    defer workflowExecutionWorker.Stop()  // Graceful shutdown
+}
+if agentExecutionWorker != nil {
+    agentExecutionWorker.Start()
+    defer agentExecutionWorker.Stop()
+}
+
+// 6. Inject Workflow Creators into Controllers
+workflowExecutionController.SetWorkflowCreator(workflowExecutionCreator)
+agentExecutionController.SetWorkflowCreator(agentExecutionCreator)
+```
+
+**Key Design Decisions:**
+- **Early Creation**: Workers created before gRPC services (fail fast on config errors)
+- **Late Start**: Workers started after gRPC services (controllers must be ready)
+- **Graceful Degradation**: Nil-safe injection allows running without Temporal
+- **Deferred Cleanup**: `defer worker.Stop()` ensures clean shutdown
+
+**Implementation Status:**
+- ✅ Workflow Execution worker: Fully implemented
+- ✅ Agent Execution worker: Fully implemented
+- ⏸️ Workflow Validation worker: Planned for next phase
+
+**Graceful Degradation:**
+
+stigmer-server can operate without Temporal:
+- If Temporal server is unavailable, client creation fails silently
+- Workers and workflow creators remain `nil`
+- Controllers receive `nil` workflow creators (nil-safe injection)
+- gRPC endpoints work, but workflow/agent executions won't start
+- Server logs warning: "Failed to connect to Temporal - workflows will not execute"
+
+This allows:
+- Development without Temporal dependency
+- Service startup even if Temporal is down
+- Non-workflow features remain functional
+- Graceful error messages when workflows are attempted
+
 ### Polyglot Workflow Pattern
 
 ```
@@ -228,16 +317,23 @@ worker.RegisterActivity(updateStatusActivityImpl.UpdateExecutionStatus)
 
 ### Environment Variables
 
-**Go Worker** (stigmer-server):
+**Go Worker** (stigmer-server) - **Three Worker Domains**:
 ```bash
-# Go workflow queue (default: agent_execution_stigmer)
-export TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE=agent_execution_stigmer
+# Workflow Execution Domain
+export TEMPORAL_WORKFLOW_EXECUTION_STIGMER_TASK_QUEUE=workflow_execution_stigmer
+export TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE=workflow_execution_runner
 
-# Python activity queue (passed to workflows via memo)
+# Agent Execution Domain
+export TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE=agent_execution_stigmer
 export TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner
+
+# Workflow Validation Domain (planned)
+export TEMPORAL_WORKFLOW_VALIDATION_STIGMER_TASK_QUEUE=workflow_validation_stigmer
+export TEMPORAL_WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE=workflow_validation_runner
 
 # Temporal server connection
 export TEMPORAL_HOST_PORT=localhost:7233
+export TEMPORAL_NAMESPACE=default
 ```
 
 **Python Worker** (agent-runner):
@@ -299,15 +395,34 @@ Access UI: http://localhost:8080
 
 ### Starting Workers
 
-**Go Worker** (stigmer-server):
+**Go Workers** (stigmer-server) - **All Three Domains**:
 ```bash
-# Set environment variables
+# Set environment variables for all three worker domains
 export TEMPORAL_HOST_PORT=localhost:7233
+export TEMPORAL_NAMESPACE=default
+
+# Workflow Execution Domain
+export TEMPORAL_WORKFLOW_EXECUTION_STIGMER_TASK_QUEUE=workflow_execution_stigmer
+export TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE=workflow_execution_runner
+
+# Agent Execution Domain
 export TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE=agent_execution_stigmer
 export TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner
 
-# Start stigmer-server (worker starts automatically)
+# Workflow Validation Domain (when implemented)
+export TEMPORAL_WORKFLOW_VALIDATION_STIGMER_TASK_QUEUE=workflow_validation_stigmer
+export TEMPORAL_WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE=workflow_validation_runner
+
+# Start stigmer-server (all workers start automatically)
 ./bin/stigmer-server
+```
+
+**Expected Log Output:**
+```
+INFO Created workflow execution worker and creator stigmer_queue=workflow_execution_stigmer runner_queue=workflow_execution_runner
+INFO Workflow execution worker started
+INFO Created agent execution worker and creator stigmer_queue=agent_execution_stigmer runner_queue=agent_execution_runner
+INFO Agent execution worker started
 ```
 
 **Python Worker** (agent-runner):
@@ -330,8 +445,12 @@ temporal workflow list --namespace default
 # Or check Temporal UI
 # Navigate to: http://localhost:8080
 # Look for workers on task queues:
-# - agent_execution_stigmer
-# - agent_execution_runner
+# - workflow_execution_stigmer (Go workflows)
+# - workflow_execution_runner (Go activities)
+# - agent_execution_stigmer (Go workflows)
+# - agent_execution_runner (Python activities)
+# - workflow_validation_stigmer (planned)
+# - workflow_validation_runner (planned)
 ```
 
 **Test workflow execution**:
@@ -468,10 +587,17 @@ temporal workflow list --namespace default
 
 ## References
 
-- Code: `backend/services/stigmer-server/pkg/controllers/agentexecution/temporal/`
-- Code: `backend/services/stigmer-server/pkg/controllers/workflowexecution/temporal/`
+**Code Locations:**
+- Worker Infrastructure: `backend/services/stigmer-server/cmd/server/main.go`
+- Workflow Execution: `backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/`
+- Agent Execution: `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/`
+- Workflow Validation: `backend/services/stigmer-server/pkg/domain/workflowvalidation/temporal/` (planned)
+- Agent Runner (Python): `backend/services/agent-runner/worker/`
+
+**External Resources:**
 - Temporal Go SDK: https://docs.temporal.io/dev-guide/go
 - Polyglot Workflows: https://docs.temporal.io/dev-guide/polyglot
+- Worker Configuration: https://docs.temporal.io/dev-guide/go/features#worker-configuration
 
 ---
 
