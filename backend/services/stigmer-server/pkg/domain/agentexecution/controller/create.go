@@ -28,8 +28,8 @@ const (
 // Create creates a new agent execution using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ResolveSlug - Generate slug from metadata.name (must be before validation)
-// 2. ValidateFieldConstraints - Validate proto field constraints using buf validate
+// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
+// 2. ResolveSlug - Generate slug from metadata.name
 // 3. ValidateSessionOrAgent - Ensure session_id OR agent_id is provided
 // 4. CheckDuplicate - Skip (executions don't need duplicate check)
 // 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
@@ -61,8 +61,8 @@ func (c *AgentExecutionController) Create(ctx context.Context, execution *agente
 // buildCreatePipeline constructs the pipeline for agent execution creation
 func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*agentexecutionv1.AgentExecution] {
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecution]("agent-execution-create").
-		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).               // 1. Resolve slug (must be before validation)
-		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).             // 2. Validate field constraints
+		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).             // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).               // 2. Resolve slug
 		AddStep(newValidateSessionOrAgentStep()).                                            // 3. Validate session_id OR agent_id
 		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).             // 4. Build new state
 		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient)). // 5. Create default instance if needed

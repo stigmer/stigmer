@@ -23,8 +23,8 @@ const (
 // Create creates a new workflow using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ResolveSlug - Generate slug from metadata.name (must be before validation)
-// 2. ValidateFieldConstraints - Validate proto field constraints using buf validate
+// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
+// 2. ResolveSlug - Generate slug from metadata.name
 // 3. CheckDuplicate - Verify no duplicate exists
 // 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 5. Persist - Save workflow to repository
@@ -56,8 +56,8 @@ func (c *WorkflowController) buildCreatePipeline() *pipeline.Pipeline[*workflowv
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowv1.Workflow]("workflow-create").
-		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).            // 1. Resolve slug (must be before validation)
-		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).          // 2. Validate field constraints
+		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).          // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).            // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*workflowv1.Workflow](c.store)).  // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*workflowv1.Workflow]()).          // 4. Build new state
 		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).         // 5. Persist workflow

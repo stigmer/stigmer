@@ -11,8 +11,8 @@ import (
 // Create creates a new environment using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ResolveSlug - Generate slug from metadata.name (must be before validation)
-// 2. ValidateFieldConstraints - Validate proto field constraints using buf validate
+// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
+// 2. ResolveSlug - Generate slug from metadata.name
 // 3. CheckDuplicate - Verify no duplicate exists
 // 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 5. Persist - Save environment to repository
@@ -40,8 +40,8 @@ func (c *EnvironmentController) buildCreatePipeline() *pipeline.Pipeline[*enviro
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*environmentv1.Environment]("environment-create").
-		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).           // 1. Resolve slug (must be before validation)
-		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).         // 2. Validate field constraints
+		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).         // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).           // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*environmentv1.Environment](c.store)). // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*environmentv1.Environment]()).         // 4. Build new state
 		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).        // 5. Persist environment
