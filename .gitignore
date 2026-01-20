@@ -15,8 +15,8 @@ dist/
 coverage.txt
 coverage.html
 
-# Go workspace file
-go.work
+# Go workspace sum file (auto-generated, can be ignored)
+go.work.sum
 
 # Dependency directories (Go)
 vendor/
