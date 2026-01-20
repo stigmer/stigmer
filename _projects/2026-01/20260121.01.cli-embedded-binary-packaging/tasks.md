@@ -72,7 +72,7 @@
 ---
 
 ## Task 3: Update Daemon Management to Use Extracted Binaries
-**Status**: ⏸️ TODO
+**Status**: ✅ COMPLETED
 
 ### Goals
 - Modify `daemon.go` to use extracted binaries ONLY
@@ -81,19 +81,31 @@
 - Update `findServerBinary()`, `findWorkflowRunnerBinary()`, `findAgentRunnerScript()`
 
 ### Subtasks
-- [ ] Add `ensureBinariesExtracted(dataDir)` to `Start()` function
-- [ ] Rewrite `findServerBinary()` - use only `~/.stigmer/bin/stigmer-server`
-- [ ] Rewrite `findWorkflowRunnerBinary()` - use only `~/.stigmer/bin/workflow-runner`
-- [ ] Rewrite `findAgentRunnerScript()` - use only `~/.stigmer/bin/agent-runner/run.sh`
-- [ ] Remove ALL development path searches (no fallbacks!)
-- [ ] Add clean error messages if binaries missing
-- [ ] Support dev mode via env vars ONLY (`STIGMER_DEV_MODE=true`)
+- [x] Add `ensureBinariesExtracted(dataDir)` to `Start()` function
+- [x] Rewrite `findServerBinary()` - use only `~/.stigmer/bin/stigmer-server`
+- [x] Rewrite `findWorkflowRunnerBinary()` - use only `~/.stigmer/bin/workflow-runner`
+- [x] Rewrite `findAgentRunnerScript()` - use only `~/.stigmer/bin/agent-runner/run.sh`
+- [x] Remove ALL development path searches (no fallbacks!)
+- [x] Add clean error messages if binaries missing
+- [x] Support dev mode via env vars ONLY (`STIGMER_SERVER_BIN`, `STIGMER_WORKFLOW_RUNNER_BIN`, `STIGMER_AGENT_RUNNER_SCRIPT`)
+- [x] Remove `findWorkspaceRoot()` function (no longer needed)
 
 ### Acceptance Criteria
-- Daemon only uses extracted binaries
-- No fallback paths in production code
-- Clear errors if binaries missing
-- Dev mode optional (env var only)
+- [x] Daemon only uses extracted binaries
+- [x] No fallback paths in production code
+- [x] Clear errors if binaries missing
+- [x] Dev mode optional (env var only)
+- [x] Code compiles successfully
+
+### Implementation Summary
+- Added import for `embedded` package
+- Added extraction call early in `Start()` function (shows progress: "Extracting binaries")
+- Rewrote all three finder functions to ~30 lines each (removed 150+ lines of fallback logic)
+- Production mode: Uses only `dataDir/bin/{binary-name}`
+- Dev mode: Checks env vars (`STIGMER_*_BIN` or `STIGMER_*_SCRIPT`)
+- Error messages include expected location, reinstall instructions, and dev mode guidance
+- Deleted `findWorkspaceRoot()` function (40 lines removed)
+- Net reduction: ~105 lines of code removed (52% smaller binary finding logic)
 
 ---
 
@@ -179,9 +191,9 @@
 ## Summary
 
 **Total Tasks**: 6  
-**Completed**: 2  
+**Completed**: 3  
 **In Progress**: 0  
-**Todo**: 4
+**Todo**: 3
 
 **Estimated Time**: 3-4 hours total  
-**Time Spent**: ~1.5 hours (Tasks 1-2)
+**Time Spent**: ~2 hours (Tasks 1-3)

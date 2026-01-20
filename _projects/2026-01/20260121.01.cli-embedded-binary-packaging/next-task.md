@@ -6,30 +6,36 @@
 
 ## 📍 Where We Are
 
-**Task 2 completed!** Binary embedding infrastructure fully implemented and tested.
+**Task 3 completed!** Daemon management now uses extracted binaries exclusively.
 
 **Completed:**
 - ✅ Task 1: Design embedding strategy (platform detection, extraction logic, error handling)
 - ✅ Task 2: Implement binary embedding with Go embed
+- ✅ Task 3: Update daemon management to use extracted binaries
 
-**Implementation highlights:**
-- Created `client-apps/cli/embedded/` package with 3 core files
-- Added embed directives for all 3 platforms (darwin_arm64, darwin_amd64, linux_amd64)
-- Implemented version checking with `.version` file (prevents unnecessary re-extraction)
-- Built extraction logic for both binaries and tarballs
-- Code compiles successfully with placeholder binaries
+**Task 3 implementation highlights:**
+- Added `embedded.EnsureBinariesExtracted(dataDir)` call in daemon startup
+- Rewrote `findServerBinary()` to use only `dataDir/bin/stigmer-server`
+- Rewrote `findWorkflowRunnerBinary()` to use only `dataDir/bin/workflow-runner`
+- Rewrote `findAgentRunnerScript()` to use only `dataDir/bin/agent-runner/run.sh`
+- Removed ALL development fallback paths (no workspace root detection, no bazel paths)
+- Removed `findWorkspaceRoot()` function (no longer needed)
+- Added dev mode support via env vars (`STIGMER_SERVER_BIN`, `STIGMER_WORKFLOW_RUNNER_BIN`, `STIGMER_AGENT_RUNNER_SCRIPT`)
+- Clear error messages guide users to reinstall if binaries missing
+- Code compiles successfully
 
-## 🎯 Next Task: Task 3 - Update Daemon Management to Use Extracted Binaries
+## 🎯 Next Task: Task 4 - Update Build Scripts (Makefile)
 
-**Goal**: Modify daemon management code to use extracted binaries ONLY (no dev fallbacks).
+**Goal**: Add Makefile targets to build and embed binaries before CLI compilation.
 
-**What to change:**
-1. **Add extraction call**: Call `embedded.EnsureBinariesExtracted()` on daemon start
-2. **Rewrite finders**: Update `findServerBinary()`, `findWorkflowRunnerBinary()`, `findAgentRunnerScript()`
-3. **Remove fallbacks**: Delete all development path searches
-4. **Add dev mode**: Support env vars (`STIGMER_SERVER_BIN`, etc.) for development
+**What to add:**
+1. **Build targets**: Create targets for stigmer-server, workflow-runner, agent-runner
+2. **Copy to embedded/**: Move built binaries to `client-apps/cli/embedded/binaries/{platform}/`
+3. **Platform detection**: Build for correct platform (darwin_arm64, darwin_amd64, linux_amd64)
+4. **Tarball creation**: Package agent-runner directory as tar.gz
+5. **Update release-local**: Integrate embedding into main build flow
 
-**Deliverable**: Daemon uses only extracted binaries, with clean error messages if missing.
+**Deliverable**: `make release-local` produces a CLI with all binaries embedded and ready to extract.
 
 ## 🔄 Quick Context
 
@@ -54,10 +60,10 @@ stigmer (CLI binary ~150 MB)
 ## 📝 How to Resume
 
 Drag this file into any chat and say:
-> "Let's continue with Task 1 - design the embedding strategy"
+> "Let's continue with Task 4 - updating the Makefile"
 
 Or jump to any task:
-> "Let's work on Task 3 - updating daemon management"
+> "Let's work on Task 4 - build script integration"
 
 ## 📂 Project Files
 

@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
@@ -67,6 +68,14 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	}
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return errors.Wrap(err, "failed to create data directory")
+	}
+
+	// Extract embedded binaries if needed
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseInitializing, "Extracting binaries")
+	}
+	if err := embedded.EnsureBinariesExtracted(dataDir); err != nil {
+		return errors.Wrap(err, "failed to extract embedded binaries")
 	}
 
 	// Rotate logs before starting new session
@@ -157,7 +166,7 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	if opts.Progress != nil {
 		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting Stigmer server")
 	}
-	serverBin, err := findServerBinary()
+	serverBin, err := findServerBinary(dataDir)
 	if err != nil {
 		return err
 	}
@@ -248,7 +257,7 @@ func startWorkflowRunner(
 	temporalAddr string,
 ) error {
 	// Find workflow-runner binary
-	runnerBin, err := findWorkflowRunnerBinary()
+	runnerBin, err := findWorkflowRunnerBinary(dataDir)
 	if err != nil {
 		return err
 	}
@@ -337,7 +346,7 @@ func startAgentRunner(
 	secrets map[string]string,
 ) error {
 	// Find agent-runner script
-	runnerScript, err := findAgentRunnerScript()
+	runnerScript, err := findAgentRunnerScript(dataDir)
 	if err != nil {
 		return err
 	}
@@ -810,188 +819,125 @@ func findProcessByPort(port int) (int, error) {
 
 // findServerBinary finds the stigmer-server binary
 //
-// Search order:
-// 1. STIGMER_SERVER_BIN environment variable
-// 2. Same directory as CLI binary
-// 3. Build output directories (for development)
-// 4. Try to auto-build with Go if in development environment
-func findServerBinary() (string, error) {
-	// Check environment variable
+// Production mode (default):
+//   Uses extracted binary from dataDir/bin/stigmer-server
+//
+// Development mode (STIGMER_SERVER_BIN env var set):
+//   Uses custom binary path from environment variable
+func findServerBinary(dataDir string) (string, error) {
+	// Dev mode: environment variable takes precedence
 	if bin := os.Getenv("STIGMER_SERVER_BIN"); bin != "" {
 		if _, err := os.Stat(bin); err == nil {
+			log.Debug().Str("path", bin).Msg("Using stigmer-server from STIGMER_SERVER_BIN")
 			return bin, nil
 		}
-		log.Warn().Str("path", bin).Msg("STIGMER_SERVER_BIN set but file not found")
+		return "", errors.Errorf("STIGMER_SERVER_BIN set but file not found: %s", bin)
 	}
 
-	// Check same directory as CLI
-	cliPath, err := os.Executable()
-	if err == nil {
-		serverBin := filepath.Join(filepath.Dir(cliPath), "stigmer-server")
-		if _, err := os.Stat(serverBin); err == nil {
-			log.Debug().Str("path", serverBin).Msg("Found stigmer-server in same directory as CLI")
-			return serverBin, nil
-		}
+	// Production mode: use extracted binary only
+	binPath := filepath.Join(dataDir, "bin", "stigmer-server")
+	if _, err := os.Stat(binPath); err == nil {
+		log.Debug().Str("path", binPath).Msg("Using extracted stigmer-server binary")
+		return binPath, nil
 	}
 
-	// Check common development paths
-	possiblePaths := []string{
-		"bin/stigmer-server",                                                  // make build-backend
-		"bazel-bin/backend/services/stigmer-server/cmd/server/server_/server", // bazel build
-		"./stigmer-server",                                                    // current directory
-		"backend/services/stigmer-server/stigmer-server",                      // from workspace root
-	}
-
-	for _, path := range possiblePaths {
-		if _, err := os.Stat(path); err == nil {
-			absPath, _ := filepath.Abs(path)
-			log.Debug().Str("path", absPath).Msg("Found stigmer-server")
-			return absPath, nil
-		}
-	}
-
-	// Try to auto-build if we're in a development environment
-	if workspaceRoot := findWorkspaceRoot(); workspaceRoot != "" {
-		log.Info().Msg("stigmer-server not found, attempting to build it...")
-		
-		serverPath := filepath.Join(workspaceRoot, "bin", "stigmer-server")
-		buildCmd := exec.Command("go", "build", "-o", serverPath, "./backend/services/stigmer-server/cmd/server")
-		buildCmd.Dir = workspaceRoot
-		
-		if output, err := buildCmd.CombinedOutput(); err != nil {
-			log.Error().
-				Err(err).
-				Str("output", string(output)).
-				Msg("Failed to auto-build stigmer-server")
-		} else {
-			log.Info().Str("path", serverPath).Msg("Successfully built stigmer-server")
-			return serverPath, nil
-		}
-	}
-
+	// Binary not found - this should not happen if extraction succeeded
 	return "", errors.New(`stigmer-server binary not found
 
-Please build it first:
-  make release-local    (recommended - builds and installs both CLI and server)
-  
-Or:
-  go build -o ~/bin/stigmer-server ./backend/services/stigmer-server/cmd/server
+Expected location: ` + binPath + `
 
-Or set STIGMER_SERVER_BIN environment variable to point to the binary`)
+This usually means the Stigmer CLI installation is corrupted.
+
+To fix this:
+  brew reinstall stigmer    (if installed via Homebrew)
+  
+Or download and install the latest release:
+  https://github.com/stigmer/stigmer/releases
+
+For development, set STIGMER_SERVER_BIN environment variable:
+  export STIGMER_SERVER_BIN=/path/to/stigmer-server`)
 }
 
 // findWorkflowRunnerBinary finds the workflow-runner binary
 //
-// Search order:
-// 1. STIGMER_WORKFLOW_RUNNER_BIN environment variable
-// 2. Same directory as CLI binary
-// 3. Build output directories (for development)
-// 4. Try to auto-build with Go if in development environment
-func findWorkflowRunnerBinary() (string, error) {
-	// Check environment variable
+// Production mode (default):
+//   Uses extracted binary from dataDir/bin/workflow-runner
+//
+// Development mode (STIGMER_WORKFLOW_RUNNER_BIN env var set):
+//   Uses custom binary path from environment variable
+func findWorkflowRunnerBinary(dataDir string) (string, error) {
+	// Dev mode: environment variable takes precedence
 	if bin := os.Getenv("STIGMER_WORKFLOW_RUNNER_BIN"); bin != "" {
 		if _, err := os.Stat(bin); err == nil {
+			log.Debug().Str("path", bin).Msg("Using workflow-runner from STIGMER_WORKFLOW_RUNNER_BIN")
 			return bin, nil
 		}
-		log.Warn().Str("path", bin).Msg("STIGMER_WORKFLOW_RUNNER_BIN set but file not found")
+		return "", errors.Errorf("STIGMER_WORKFLOW_RUNNER_BIN set but file not found: %s", bin)
 	}
 
-	// Check same directory as CLI
-	cliPath, err := os.Executable()
-	if err == nil {
-		runnerBin := filepath.Join(filepath.Dir(cliPath), "workflow-runner")
-		if _, err := os.Stat(runnerBin); err == nil {
-			log.Debug().Str("path", runnerBin).Msg("Found workflow-runner in same directory as CLI")
-			return runnerBin, nil
-		}
+	// Production mode: use extracted binary only
+	binPath := filepath.Join(dataDir, "bin", "workflow-runner")
+	if _, err := os.Stat(binPath); err == nil {
+		log.Debug().Str("path", binPath).Msg("Using extracted workflow-runner binary")
+		return binPath, nil
 	}
 
-	// Check common development paths
-	possiblePaths := []string{
-		"bin/workflow-runner",                                                        // make build output
-		"bazel-bin/backend/services/workflow-runner/workflow-runner_/workflow-runner", // bazel build
-		"./workflow-runner",                                                          // current directory
-		"backend/services/workflow-runner/workflow-runner",                           // from workspace root
-	}
-
-	for _, path := range possiblePaths {
-		if _, err := os.Stat(path); err == nil {
-			absPath, _ := filepath.Abs(path)
-			log.Debug().Str("path", absPath).Msg("Found workflow-runner")
-			return absPath, nil
-		}
-	}
-
-	// Try to auto-build if we're in a development environment
-	if workspaceRoot := findWorkspaceRoot(); workspaceRoot != "" {
-		log.Info().Msg("workflow-runner not found, attempting to build it...")
-		
-		runnerPath := filepath.Join(workspaceRoot, "bin", "workflow-runner")
-		buildCmd := exec.Command("go", "build", "-o", runnerPath, "./backend/services/workflow-runner")
-		buildCmd.Dir = workspaceRoot
-		
-		if output, err := buildCmd.CombinedOutput(); err != nil {
-			log.Error().
-				Err(err).
-				Str("output", string(output)).
-				Msg("Failed to auto-build workflow-runner")
-		} else {
-			log.Info().Str("path", runnerPath).Msg("Successfully built workflow-runner")
-			return runnerPath, nil
-		}
-	}
-
+	// Binary not found - this should not happen if extraction succeeded
 	return "", errors.New(`workflow-runner binary not found
 
-Please build it first:
-  make release-local    (recommended - builds CLI, server, and workflow-runner)
-  
-Or:
-  go build -o ~/bin/workflow-runner ./backend/services/workflow-runner
+Expected location: ` + binPath + `
 
-Or set STIGMER_WORKFLOW_RUNNER_BIN environment variable to point to the binary`)
+This usually means the Stigmer CLI installation is corrupted.
+
+To fix this:
+  brew reinstall stigmer    (if installed via Homebrew)
+  
+Or download and install the latest release:
+  https://github.com/stigmer/stigmer/releases
+
+For development, set STIGMER_WORKFLOW_RUNNER_BIN environment variable:
+  export STIGMER_WORKFLOW_RUNNER_BIN=/path/to/workflow-runner`)
 }
 
 // findAgentRunnerScript finds the agent-runner run script
 //
-// Search order:
-// 1. STIGMER_AGENT_RUNNER_SCRIPT environment variable
-// 2. Default location in workspace: backend/services/agent-runner/run.sh
-func findAgentRunnerScript() (string, error) {
-	// Check environment variable
+// Production mode (default):
+//   Uses extracted script from dataDir/bin/agent-runner/run.sh
+//
+// Development mode (STIGMER_AGENT_RUNNER_SCRIPT env var set):
+//   Uses custom script path from environment variable
+func findAgentRunnerScript(dataDir string) (string, error) {
+	// Dev mode: environment variable takes precedence
 	if script := os.Getenv("STIGMER_AGENT_RUNNER_SCRIPT"); script != "" {
 		if _, err := os.Stat(script); err == nil {
+			log.Debug().Str("path", script).Msg("Using agent-runner script from STIGMER_AGENT_RUNNER_SCRIPT")
 			return script, nil
 		}
-		log.Warn().Str("path", script).Msg("STIGMER_AGENT_RUNNER_SCRIPT set but file not found")
+		return "", errors.Errorf("STIGMER_AGENT_RUNNER_SCRIPT set but file not found: %s", script)
 	}
 
-	// Try to find workspace root first
-	workspaceRoot := findWorkspaceRoot()
-	if workspaceRoot != "" {
-		scriptPath := filepath.Join(workspaceRoot, "backend/services/agent-runner/run.sh")
-		if _, err := os.Stat(scriptPath); err == nil {
-			log.Debug().Str("path", scriptPath).Msg("Found agent-runner script")
-			return scriptPath, nil
-		}
+	// Production mode: use extracted script only
+	scriptPath := filepath.Join(dataDir, "bin", "agent-runner", "run.sh")
+	if _, err := os.Stat(scriptPath); err == nil {
+		log.Debug().Str("path", scriptPath).Msg("Using extracted agent-runner script")
+		return scriptPath, nil
 	}
 
-	// Fallback: Check relative paths
-	possiblePaths := []string{
-		"backend/services/agent-runner/run.sh",
-		"./backend/services/agent-runner/run.sh",
-		"../../../backend/services/agent-runner/run.sh", // if running from cli directory
-	}
+	// Script not found - this should not happen if extraction succeeded
+	return "", errors.New(`agent-runner script not found
 
-	for _, path := range possiblePaths {
-		if _, err := os.Stat(path); err == nil {
-			absPath, _ := filepath.Abs(path)
-			log.Debug().Str("path", absPath).Msg("Found agent-runner script")
-			return absPath, nil
-		}
-	}
+Expected location: ` + scriptPath + `
 
-	return "", errors.New("agent-runner script not found (set STIGMER_AGENT_RUNNER_SCRIPT environment variable)")
+This usually means the Stigmer CLI installation is corrupted.
+
+To fix this:
+  brew reinstall stigmer    (if installed via Homebrew)
+  
+Or download and install the latest release:
+  https://github.com/stigmer/stigmer/releases
+
+For development, set STIGMER_AGENT_RUNNER_SCRIPT environment variable:
+  export STIGMER_AGENT_RUNNER_SCRIPT=/path/to/agent-runner/run.sh`)
 }
 
 // rotateLogsIfNeeded rotates existing log files by renaming them with timestamps
@@ -1120,44 +1066,3 @@ func cleanupOldLogs(logDir string, keepDays int) error {
 	return nil
 }
 
-// findWorkspaceRoot attempts to find the Stigmer workspace root
-// by looking for characteristic files like go.mod, MODULE.bazel, etc.
-func findWorkspaceRoot() string {
-	// Start from current directory
-	dir, err := os.Getwd()
-	if err != nil {
-		return ""
-	}
-
-	// Walk up the directory tree looking for workspace markers
-	for {
-		// Check for Stigmer-specific markers
-		markers := []string{
-			"MODULE.bazel",
-			filepath.Join("backend", "services", "stigmer-server"),
-			filepath.Join("client-apps", "cli"),
-		}
-
-		allFound := true
-		for _, marker := range markers {
-			if _, err := os.Stat(filepath.Join(dir, marker)); err != nil {
-				allFound = false
-				break
-			}
-		}
-
-		if allFound {
-			return dir
-		}
-
-		// Move up one directory
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			// Reached root
-			break
-		}
-		dir = parent
-	}
-
-	return ""
-}
