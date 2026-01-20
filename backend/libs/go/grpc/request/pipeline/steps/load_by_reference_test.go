@@ -24,6 +24,7 @@ func TestLoadByReferenceStep(t *testing.T) {
 		Metadata: &apiresource.ApiResourceMetadata{
 			Id:         "platform-agent-id",
 			Name:       "platform-agent",
+			Slug:       "platform-agent",
 			OwnerScope: apiresource.ApiResourceOwnerScope_platform,
 		},
 	}
@@ -34,6 +35,7 @@ func TestLoadByReferenceStep(t *testing.T) {
 		Metadata: &apiresource.ApiResourceMetadata{
 			Id:         "org-agent-id",
 			Name:       "org-agent",
+			Slug:       "org-agent",
 			Org:        "test-org",
 			OwnerScope: apiresource.ApiResourceOwnerScope_organization,
 		},
