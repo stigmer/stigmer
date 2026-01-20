@@ -16,7 +16,7 @@ func NewBackendCommand() *cobra.Command {
 		Short: "Manage backend configuration",
 		Long: `Manage backend configuration (local vs cloud).
 
-Local:  Uses local daemon on localhost:50051
+Local:  Uses local daemon on localhost:7234
 Cloud:  Uses Stigmer Cloud API`,
 	}
 
@@ -91,7 +91,7 @@ func handleBackendSet(backendType string) {
 		cfg.Backend.Type = config.BackendTypeLocal
 		if cfg.Backend.Local == nil {
 			cfg.Backend.Local = &config.LocalBackendConfig{
-				Endpoint: "localhost:50051",
+				Endpoint: "localhost:7234",
 				DataDir:  dataDir,
 			}
 		}
