@@ -1,0 +1,7 @@
+# Gazelle will automatically generate Go library rules for this directory
+# This BUILD file makes the directory a valid Bazel package
+
+exports_files([
+    "go.mod",
+    "go.sum",
+])

@@ -8,6 +8,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Local Mode](getting-started/local-mode.md) - Running Stigmer locally for development
 
 ### Guides
+- [Deploying with Apply](guides/deploying-with-apply.md) - Deploy agents and workflows from code using `stigmer apply`
 - [Distribution Guide](guides/distribution.md) - Complete guide to packaging and distributing Stigmer
 - [Packaging Quick Start](guides/packaging-quickstart.md) - Quick reference for packaging strategy
 - [Agent Runner: Local Mode](guides/agent-runner-local-mode.md) - Running the agent runner in local vs cloud mode
@@ -15,6 +16,7 @@ Complete documentation index for the Stigmer open-source project.
 ### Architecture
 - [Backend Abstraction](architecture/backend-abstraction.md) - Backend interface design and abstraction layers
 - [CLI Subprocess Lifecycle](architecture/cli-subprocess-lifecycle.md) - Production-grade subprocess management with lock files, health checks, and auto-restart
+- [Go Module Structure](architecture/go-module-structure.md) - Go workspace and module organization pattern for contributors
 - [Open Core Model](architecture/open-core-model.md) - Open source vs enterprise architecture
 - [Packaging Flow](architecture/packaging-flow.md) - How Stigmer is packaged and distributed (with diagrams)
 - [Request Pipeline Context Design](architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis

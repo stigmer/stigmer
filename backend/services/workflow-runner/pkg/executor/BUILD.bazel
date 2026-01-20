@@ -6,7 +6,7 @@ go_library(
         "temporal_workflow.go",
         "workflow_executor.go",
     ],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/executor",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/executor",
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",
