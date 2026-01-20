@@ -20,11 +20,11 @@ import (
 	"context"
 	"fmt"
 
-	workflowv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	serverlessv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/converter"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/zigflow"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/zigflow/tasks"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	serverlessv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/converter"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/tasks"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"go.temporal.io/sdk/activity"
 )

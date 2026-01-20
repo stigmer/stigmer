@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
-	"github.com/stigmer/stigmer/backend/libs/go/sqlite"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
-func setupTestStore(t *testing.T) *sqlite.Store {
-	// Create an in-memory SQLite database for testing
-	store, err := sqlite.NewStore(":memory:")
+func setupTestStore(t *testing.T) *badger.Store {
+	// Create a temporary BadgerDB database for testing
+	tmpDir := t.TempDir()
+	store, err := badger.NewStore(tmpDir)
 	if err != nil {
 		t.Fatalf("Failed to create test store: %v", err)
 	}
@@ -48,7 +49,7 @@ func TestPersistStep_Execute(t *testing.T) {
 
 	// Verify resource was saved to store
 	retrieved := &agentv1.Agent{}
-	err = store.GetResource(context.Background(), "agent", "agent-123", retrieved)
+	err = store.GetResource(context.Background(), apiresourcekind.ApiResourceKind_agent, "agent-123", retrieved)
 	if err != nil {
 		t.Errorf("Failed to retrieve saved resource: %v", err)
 	}
@@ -88,7 +89,7 @@ func TestPersistStep_Update(t *testing.T) {
 
 	// Verify updated version was saved
 	retrieved := &agentv1.Agent{}
-	err := store.GetResource(context.Background(), "agent", "agent-123", retrieved)
+	err := store.GetResource(context.Background(), apiresourcekind.ApiResourceKind_agent, "agent-123", retrieved)
 	if err != nil {
 		t.Errorf("Failed to retrieve updated resource: %v", err)
 	}
@@ -168,7 +169,7 @@ func TestPersistStep_MultipleResources(t *testing.T) {
 	// Verify all agents were saved
 	for i := 1; i <= 5; i++ {
 		retrieved := &agentv1.Agent{}
-		err := store.GetResource(context.Background(), "agent", fmt.Sprintf("agent-%d", i), retrieved)
+		err := store.GetResource(context.Background(), apiresourcekind.ApiResourceKind_agent, fmt.Sprintf("agent-%d", i), retrieved)
 		if err != nil {
 			t.Errorf("Failed to retrieve agent-%d: %v", i, err)
 		}

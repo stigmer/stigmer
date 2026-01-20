@@ -103,19 +103,15 @@ func (s *LoadExistingForDeleteStep[T, R]) Execute(ctx *pipeline.RequestContext[T
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 
-	// Extract kind name from the enum's proto options
-	kindName, err := apiresource.GetKindName(kind)
-	if err != nil {
-		return fmt.Errorf("failed to get kind name: %w", err)
-	}
-
 	// Create a new instance of the resource type for loading
 	var resource R
 	resource = resource.ProtoReflect().New().Interface().(R)
 
 	// Load from database
-	err = s.store.GetResource(ctx.Context(), kindName, id, resource)
+	err := s.store.GetResource(ctx.Context(), kind, id, resource)
 	if err != nil {
+		// Extract kind name for error message
+		kindName, _ := apiresource.GetKindName(kind)
 		return grpclib.NotFoundError(kindName, id)
 	}
 
@@ -160,14 +156,10 @@ func (s *DeleteResourceStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 
-	// Extract kind name from the enum's proto options
-	kindName, err := apiresource.GetKindName(kind)
-	if err != nil {
-		return fmt.Errorf("failed to get kind name: %w", err)
-	}
-
 	// Delete from database
-	if err := s.store.DeleteResource(ctx.Context(), kindName, id); err != nil {
+	if err := s.store.DeleteResource(ctx.Context(), kind, id); err != nil {
+		// Extract kind name for error message
+		kindName, _ := apiresource.GetKindName(kind)
 		return grpclib.InternalError(err, fmt.Sprintf("failed to delete %s", kindName))
 	}
 

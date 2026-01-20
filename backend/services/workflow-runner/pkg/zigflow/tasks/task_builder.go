@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 - 2026 Zigflow authors <https://github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/graphs/contributors>
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/stigmer/stigmer/backend/services/workflow-runner/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@ package tasks
 import (
 	"fmt"
 
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/claimcheck"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/utils"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/zigflow/metadata"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/claimcheck"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/metadata"
 	"github.com/rs/zerolog/log"
 	swUtils "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
@@ -148,8 +148,16 @@ func (d *builder[T]) evaluateTaskArguments(ctx workflow.Context, state *utils.St
 		logger.Debug("gRPC task expressions evaluated successfully", "task", d.name)
 		return any(task).(T), nil
 
+	case *model.RunTask:
+		// Run tasks: evaluate script/shell commands, arguments, environment
+		if err := evaluateRunTaskExpressions(ctx, task, state); err != nil {
+			return d.task, fmt.Errorf("error evaluating Run task expressions: %w", err)
+		}
+		logger.Debug("Run task expressions evaluated successfully", "task", d.name)
+		return any(task).(T), nil
+
 	default:
-		// This should never happen - only CallHTTP and CallGRPC use executeActivity()
+		// This should never happen - only CallHTTP, CallGRPC, and RunTask use executeActivity()
 		// which calls this function. If we get here, it's a programming error.
 		logger.Error("Unexpected task type in evaluateTaskArguments",
 			"task", d.name, "type", fmt.Sprintf("%T", d.task))

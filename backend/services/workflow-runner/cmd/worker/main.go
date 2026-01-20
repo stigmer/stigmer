@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 - 2026 Zigflow authors <https://github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/graphs/contributors>
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/stigmer/stigmer/backend/services/workflow-runner/graphs/contributors>
  * Copyright 2026 Leftbin/Stigmer (monorepo integration)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");

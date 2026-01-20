@@ -290,7 +290,7 @@ pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
 - Error message includes the existing resource ID
 
 **Dependencies:**
-- Requires `sqlite.Store` instance
+- Requires `badger.Store` instance
 - Should run after `ResolveSlugStep` to ensure slug is set
 
 ---
@@ -362,7 +362,7 @@ pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
 
 ### PersistStep
 
-Saves the resource to the SQLite database.
+Saves the resource to the BadgerDB database.
 
 **Usage:**
 
@@ -379,7 +379,7 @@ pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
 - Resource should be fully populated with all required fields
 
 **Dependencies:**
-- Requires `sqlite.Store` instance
+- Requires `badger.Store` instance
 - Uses the resource kind for storage organization
 
 **Error Handling:**

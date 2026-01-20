@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "download.go",
         "manager.go",
+        "supervisor.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal",
     visibility = ["//client-apps/cli:__subpackages__"],

@@ -104,9 +104,9 @@ func handleBackendSet(backendType string) {
 
 		cliprint.Success("Backend set to local")
 		cliprint.Info("")
-		cliprint.Info("Make sure the daemon is running:")
-		cliprint.Info("  stigmer local status")
-		cliprint.Info("  stigmer local start")
+		cliprint.Info("Make sure the server is running:")
+		cliprint.Info("  stigmer server status")
+		cliprint.Info("  stigmer server")
 
 	case "cloud":
 		cfg.Backend.Type = config.BackendTypeCloud

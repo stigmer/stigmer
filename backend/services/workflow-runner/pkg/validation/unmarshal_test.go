@@ -19,8 +19,8 @@ package validation
 import (
 	"testing"
 
-	apiresourcev1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/commons/apiresource"
-	tasksv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
+	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -71,6 +71,7 @@ func TestUnmarshalHttpCallTaskConfig(t *testing.T) {
 			"headers": map[string]interface{}{
 				"Authorization": "Bearer ${TOKEN}",
 			},
+			"timeout_seconds": 30,
 		})
 		require.NoError(t, err)
 
@@ -99,6 +100,7 @@ func TestUnmarshalHttpCallTaskConfig(t *testing.T) {
 				"field1": "value1",
 				"field2": 42,
 			},
+			"timeout_seconds": 60,
 		})
 		require.NoError(t, err)
 

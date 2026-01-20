@@ -215,7 +215,7 @@ func ValidateSearchAttributesSetup(ctx context.Context, temporalClient client.Cl
 		if len(typeMismatchAttrs) > 0 {
 			errMsg += fmt.Sprintf("\n  Type mismatches: %v", typeMismatchAttrs)
 		}
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("%s", errMsg)
 	}
 
 	log.Debug().Msg("Search attributes validation passed")

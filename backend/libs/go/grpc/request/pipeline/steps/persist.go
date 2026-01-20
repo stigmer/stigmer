@@ -3,7 +3,6 @@ package steps
 import (
 	"fmt"
 
-	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
@@ -17,7 +16,7 @@ import (
 //   - metadata.id must be set
 //   - api_resource_kind is extracted from request context (injected by interceptor)
 //
-// The step uses the configured store (SQLite, BadgerDB, etc.) to save the resource.
+// The step uses the configured store (BadgerDB, etc.) to save the resource.
 type PersistStep[T proto.Message] struct {
 	store store.Store
 }
@@ -63,15 +62,9 @@ func (s *PersistStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 
-	// Extract kind name from the enum's proto options
-	kindName, err := apiresource.GetKindName(kind)
-	if err != nil {
-		return fmt.Errorf("failed to get kind name: %w", err)
-	}
-
 	// Save to database
 	// Use the context from the pipeline context
-	err = s.store.SaveResource(ctx.Context(), kindName, metadata.Id, resource)
+	err := s.store.SaveResource(ctx.Context(), kind, metadata.Id, resource)
 	if err != nil {
 		return fmt.Errorf("failed to save resource to store: %w", err)
 	}
