@@ -658,3 +658,100 @@ controller.SetMyClient(client)
 ```
 
 **Remember**: In gRPC, registration order matters more than dependency availability. Register everything first, wire dependencies second.
+
+---
+
+### 2026-01-20 - Daemon Lifecycle: Robust Process Management Without PID Files
+
+**Problem**: `stigmer server restart` was creating orphaned server processes, causing `stigmer apply` to show "Starting daemon" on every run even though the server was already running.
+
+**User Experience**:
+```bash
+$ stigmer apply
+ℹ 🚀 Starting local backend daemon...  # Every single time!
+# ... Temporal port conflicts in logs ...
+```
+
+**Root Cause**: Three bugs creating a vicious cycle:
+1. `IsRunning()` only checked PID file → No fallback for orphaned servers
+2. `Stop()` gave up without PID file → Couldn't kill orphans
+3. `handleServerRestart()` conditionally stopped → Skipped stop when detection failed
+
+Cycle: Missing PID → Can't detect → Don't stop → Port conflict → Orphaned process
+
+**Solution**: Three-tier detection with unconditional restart
+
+**Tier 1 - PID File** (most reliable):
+```go
+pid, err := getPID(dataDir)
+if err == nil && processIsAlive(pid) {
+    return true
+}
+// Clean up stale PID file
+os.Remove(pidFile)
+```
+
+**Tier 2 - Port Discovery** (for cleanup):
+```go
+func findProcessByPort(port int) (int, error) {
+    cmd := exec.Command("lsof", "-t", "-i", fmt.Sprintf(":%d", port), "-sTCP:LISTEN")
+    output, err := cmd.Output()
+    // Parse PID from output
+    return pid, nil
+}
+
+func Stop(dataDir string) error {
+    pid, err := getPID(dataDir)
+    if err != nil {
+        // Fallback: find by port
+        pid, err = findProcessByPort(DaemonPort)
+        log.Info().Msg("Found orphaned process by port")
+    }
+    // Kill it
+    process.Signal(syscall.SIGTERM)
+}
+```
+
+**Tier 3 - gRPC Health** (for detection):
+```go
+func IsRunning(dataDir string) bool {
+    // ... after Tier 1 fails
+    conn, err := grpc.DialContext(ctx, endpoint, ...)
+    if err == nil {
+        log.Warn().Msg("Daemon running but PID file missing")
+        return true
+    }
+    return false
+}
+```
+
+**Fix - Unconditional Restart**:
+```go
+func handleServerRestart() {
+    // Don't check if running - always try to stop
+    daemon.Stop(dataDir)  // Handles orphans via lsof
+    time.Sleep(1 * time.Second)
+    daemon.Start(dataDir)  // Start fresh
+}
+```
+
+**Why All Three Tiers**:
+- PID file alone → Fails on orphans
+- Port check alone → Might kill wrong process
+- gRPC alone → Can detect but can't kill
+- Together → Robust ✅
+
+**Prevention**:
+- ✅ Implement fallback process discovery (lsof, netstat)
+- ✅ Make restart unconditional (always stop first)
+- ✅ Clean stale PID files automatically
+- ✅ Make stop operations idempotent
+- ✅ Handle edge cases (orphans, stale files, port conflicts)
+
+**Testing**: All scenarios passed (stop orphans, start clean, detect without PID, restart reliably)
+
+**Files**: `client-apps/cli/internal/cli/daemon/daemon.go`, `client-apps/cli/cmd/stigmer/root/server.go`
+
+**Changelog**: `_changelog/2026-01/2026-01-20-194409-fix-server-restart-orphaned-processes.md`
+
+**Key Pattern**: For long-running daemons, implement PID file → port discovery → health check tiers with unconditional lifecycle operations.
