@@ -3,9 +3,9 @@ package session
 import (
 	"context"
 
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 )
 
 // Create creates a new session using the pipeline framework
@@ -29,7 +29,6 @@ import (
 // - The agent_instance_id in spec must reference an existing agent instance
 func (c *SessionController) Create(ctx context.Context, session *sessionv1.Session) (*sessionv1.Session, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, session)
-	reqCtx.SetNewState(session)
 
 	p := c.buildCreatePipeline()
 

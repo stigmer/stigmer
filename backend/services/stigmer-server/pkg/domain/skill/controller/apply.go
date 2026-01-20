@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
+	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 )
 
 // Apply creates or updates a skill based on whether it already exists

@@ -17,7 +17,7 @@ type StigmerConfig struct {
 	Name string `yaml:"name"`
 
 	// Runtime specifies the SDK runtime (required)
-	// Currently supported: "go-sdk"
+	// Currently supported: "go"
 	Runtime string `yaml:"runtime"`
 
 	// Version is the project version (optional)
@@ -103,9 +103,9 @@ func (c *StigmerConfig) Validate() error {
 		return errors.New("Stigmer.yaml: 'runtime' is required")
 	}
 
-	// Currently only go-sdk is supported
-	if c.Runtime != "go-sdk" {
-		return fmt.Errorf("Stigmer.yaml: unsupported runtime '%s' (currently supported: go-sdk)", c.Runtime)
+	// Currently only go is supported
+	if c.Runtime != "go" {
+		return fmt.Errorf("Stigmer.yaml: unsupported runtime '%s' (currently supported: go)", c.Runtime)
 	}
 
 	return nil

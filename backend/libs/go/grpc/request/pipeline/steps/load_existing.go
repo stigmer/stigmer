@@ -1,8 +1,10 @@
 package steps
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
@@ -17,10 +19,14 @@ const ExistingResourceKey = "existingResource"
 // LoadExistingStep loads the existing resource from the database
 //
 // This step:
-//  1. Extracts resource ID from input metadata.id
-//  2. Loads existing resource from database
+//  1. Attempts to load by ID (from metadata.id) if provided
+//  2. Falls back to loading by slug (from metadata.slug) if ID is empty
 //  3. Stores existing resource in context for merge step
-//  4. Returns NotFound error if resource doesn't exist
+//  4. Populates ID into metadata if loaded by slug
+//  5. Returns NotFound error if resource doesn't exist
+//
+// The slug fallback enables Apply operations where users provide name/slug
+// instead of ID. Direct update calls with ID continue to work efficiently.
 //
 // The step is typically used in Update and Delete operations.
 type LoadExistingStep[T proto.Message] struct {
@@ -47,7 +53,7 @@ func (s *LoadExistingStep[T]) Name() string {
 
 // Execute loads the existing resource from the database
 func (s *LoadExistingStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
-	input := ctx.Input()
+	input := ctx.NewState()
 
 	// Type assertion to access metadata
 	metadataResource, ok := any(input).(HasMetadata)
@@ -60,29 +66,73 @@ func (s *LoadExistingStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 		return fmt.Errorf("resource metadata is nil")
 	}
 
-	// Verify ID is provided
-	if metadata.Id == "" {
-		return grpclib.InvalidArgumentError("resource id is required for update")
-	}
-
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 
-	// Create a new instance of the same type for loading
 	var existing T
-	existing = proto.Clone(input).(T)
 
-	// Load from database
-	err := s.store.GetResource(ctx.Context(), kind, metadata.Id, existing)
-	if err != nil {
-		// Extract kind name for error message
-		kindName, _ := apiresource.GetKindName(kind)
-		// Convert store error to NotFound gRPC error
-		return grpclib.NotFoundError(kindName, metadata.Id)
+	// Try loading by ID first (faster, direct lookup)
+	if metadata.Id != "" {
+		existing = proto.Clone(input).(T)
+		err := s.store.GetResource(ctx.Context(), kind, metadata.Id, existing)
+		if err != nil {
+			kindName, _ := apiresource.GetKindName(kind)
+			return grpclib.NotFoundError(kindName, metadata.Id)
+		}
+	} else if metadata.Slug != "" {
+		// Fallback to slug-based lookup (for apply operations)
+		found, err := s.findBySlug(ctx.Context(), metadata.Slug, kind)
+		if err != nil {
+			return fmt.Errorf("failed to load resource by slug: %w", err)
+		}
+		if found == nil {
+			kindName, _ := apiresource.GetKindName(kind)
+			return grpclib.NotFoundError(kindName, metadata.Slug)
+		}
+		existing = found.(T)
+
+		// Populate ID from existing resource into input metadata
+		// This ensures subsequent steps (merge, persist) have the ID
+		existingMetadata := any(existing).(HasMetadata).GetMetadata()
+		metadata.Id = existingMetadata.Id
+	} else {
+		return grpclib.InvalidArgumentError("resource id or slug is required for update")
 	}
 
 	// Store existing resource in context metadata for merge step
 	ctx.Set(ExistingResourceKey, existing)
 
 	return nil
+}
+
+// findBySlug searches for a resource by slug
+// Returns the resource if found, nil if not found, error if database operation fails
+func (s *LoadExistingStep[T]) findBySlug(ctx context.Context, slug string, kind apiresourcekind.ApiResourceKind) (proto.Message, error) {
+	resources, err := s.store.ListResources(ctx, kind)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list resources: %w", err)
+	}
+
+	// Scan through resources to find matching slug
+	for _, data := range resources {
+		// Create a new instance of T to unmarshal into
+		var resource T
+		resource = resource.ProtoReflect().New().Interface().(T)
+
+		// Use proto.Unmarshal since stores return proto bytes (not JSON)
+		if err := proto.Unmarshal(data, resource); err != nil {
+			// Skip resources that can't be unmarshaled
+			continue
+		}
+
+		// Check if this resource has the matching slug
+		if metadataResource, ok := any(resource).(HasMetadata); ok {
+			metadata := metadataResource.GetMetadata()
+			if metadata != nil && metadata.Slug == slug {
+				return resource, nil
+			}
+		}
+	}
+
+	return nil, nil
 }

@@ -6,17 +6,17 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 )
 
 // Context keys for inter-step communication
@@ -29,8 +29,8 @@ const (
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
 // 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
-// 2. ValidateSessionOrAgent - Ensure session_id OR agent_id is provided
-// 3. ResolveSlug - Generate slug from metadata.name
+// 2. ResolveSlug - Generate slug from metadata.name
+// 3. ValidateSessionOrAgent - Ensure session_id OR agent_id is provided
 // 4. CheckDuplicate - Skip (executions don't need duplicate check)
 // 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 6. CreateDefaultInstanceIfNeeded - Create default agent instance if missing
@@ -47,7 +47,6 @@ const (
 // - TransformResponse step (no response transformations in OSS)
 func (c *AgentExecutionController) Create(ctx context.Context, execution *agentexecutionv1.AgentExecution) (*agentexecutionv1.AgentExecution, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, execution)
-	reqCtx.SetNewState(execution)
 
 	p := c.buildCreatePipeline()
 
@@ -62,8 +61,8 @@ func (c *AgentExecutionController) Create(ctx context.Context, execution *agente
 func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*agentexecutionv1.AgentExecution] {
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecution]("agent-execution-create").
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).             // 1. Validate field constraints
-		AddStep(newValidateSessionOrAgentStep()).                                            // 2. Validate session_id OR agent_id
-		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).               // 3. Resolve slug
+		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).               // 2. Resolve slug
+		AddStep(newValidateSessionOrAgentStep()).                                            // 3. Validate session_id OR agent_id
 		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).             // 4. Build new state
 		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient)). // 5. Create default instance if needed
 		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).               // 6. Create session if needed
