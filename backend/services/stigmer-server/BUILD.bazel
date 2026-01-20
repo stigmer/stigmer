@@ -1,0 +1,3 @@
+# Stigmer Server Service
+# This is a marker BUILD file to make the stigmer-server directory a Bazel package.
+# The actual service code is defined in subdirectories.
