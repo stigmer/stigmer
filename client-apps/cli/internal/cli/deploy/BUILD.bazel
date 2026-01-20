@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "deploy",
+    srcs = ["deployer.go"],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/deploy",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//client-apps/cli/internal/cli/agent",
+        "@com_github_pkg_errors//:errors",
+        "@org_golang_google_grpc//:grpc",
+    ],
+)
