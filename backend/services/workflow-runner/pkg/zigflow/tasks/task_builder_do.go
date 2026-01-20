@@ -399,7 +399,26 @@ func (t *DoTaskBuilder) processTaskExport(task workflowFunc, taskOutput any, sta
 		return err
 	}
 
-	state.Context = export
+	// Merge export into context under task name instead of replacing entire context
+	// This allows multiple tasks to export their results and reference each other:
+	// Task "fetch-pr" exports to $context["fetch-pr"]
+	// Task "fetch-diff" can then reference $context["fetch-pr"].diff_url
+	if state.Context == nil {
+		state.Context = make(map[string]any)
+	}
+
+	contextMap, ok := state.Context.(map[string]any)
+	if !ok {
+		// Context exists but isn't a map - preserve it under a special key
+		// This maintains backward compatibility if context was used differently
+		contextMap = map[string]any{
+			"__previous_context": state.Context,
+		}
+	}
+
+	// Store this task's export under its name
+	contextMap[task.Name] = export
+	state.Context = contextMap
 
 	return nil
 }
