@@ -146,9 +146,8 @@ func streamLogs(logFile string, tailLines int) error {
 	}
 
 	// Now we're at the end of existing content, start streaming new logs
-	// Get current position (end of file)
-	currentPos, err := file.Seek(0, io.SeekCurrent)
-	if err != nil {
+	// Ensure we're at the end of the file (position reader correctly after scanner)
+	if _, err := file.Seek(0, io.SeekCurrent); err != nil {
 		return fmt.Errorf("failed to get current position: %w", err)
 	}
 
@@ -171,7 +170,6 @@ func streamLogs(logFile string, tailLines int) error {
 						// File was truncated, seek to beginning
 						file.Seek(0, io.SeekStart)
 						reader = bufio.NewReader(file)
-						currentPos = 0
 					}
 				}
 				continue
@@ -181,9 +179,6 @@ func streamLogs(logFile string, tailLines int) error {
 
 		// Print line to stdout
 		fmt.Print(line)
-		
-		// Update current position
-		currentPos, _ = file.Seek(0, io.SeekCurrent)
 	}
 }
 

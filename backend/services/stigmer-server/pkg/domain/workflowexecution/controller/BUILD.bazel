@@ -8,6 +8,7 @@ go_library(
         "get.go",
         "list.go",
         "stream_broker.go",
+        "subscribe.go",
         "update.go",
         "update_status.go",
         "workflowexecution_controller.go",

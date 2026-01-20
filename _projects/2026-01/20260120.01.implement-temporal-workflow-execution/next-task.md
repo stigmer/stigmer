@@ -1,9 +1,23 @@
 # Next Task: Manual Runtime Testing
 
 **Task**: Task 5 - Manual Runtime Testing  
-**Status**: ⏸️ Ready to Start  
+**Status**: ⏸️ Ready to Start (Bug Fix Applied)  
 **Priority**: HIGH  
 **Estimated Time**: 30-45 minutes
+
+---
+
+## Recent Update (2026-01-20)
+
+🔧 **Critical Bug Fixed**: Temporal workflow registration names
+
+**Issue**: All three workflows were failing with "workflow type not found" errors due to mismatch between registration names (implicit) and invocation names (explicit).
+
+**Fix**: Updated all three workers to use `RegisterWorkflowWithOptions` with explicit workflow names matching Java pattern.
+
+**Status**: ✅ Fixed and verified (build successful)
+
+**Details**: See checkpoint `checkpoints/2026-01-20-temporal-workflow-registration-fix.md`
 
 ---
 
@@ -16,6 +30,7 @@ The Temporal infrastructure and controller integrations are now complete:
 - ✅ All 3 controller integrations complete
 - ✅ Code compiles and builds successfully
 - ✅ Full parity with Java Cloud achieved
+- ✅ Workflow registration bug fixed
 
 **What's Next**: Manual runtime testing to verify end-to-end behavior.
 

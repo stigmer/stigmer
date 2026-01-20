@@ -5,6 +5,7 @@ import (
 
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
+	"go.temporal.io/sdk/workflow"
 )
 
 // WorkerConfig configures the Temporal worker for workflow validation workflows.
@@ -64,7 +65,11 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 	w := worker.New(temporalClient, wc.config.StigmerQueue, worker.Options{})
 
 	// Register Go workflow implementations ONLY
-	w.RegisterWorkflow(ValidateWorkflowWorkflowImpl)
+	// CRITICAL: Must register with explicit name to match Java's @WorkflowMethod(name = "ValidateWorkflow")
+	// Without explicit name, Temporal uses function name "ValidateWorkflowWorkflowImpl" which won't match
+	w.RegisterWorkflowWithOptions(ValidateWorkflowWorkflowImpl, workflow.RegisterOptions{
+		Name: WorkflowValidationWorkflowType, // "ValidateWorkflow"
+	})
 
 	log.Printf("✅ [POLYGLOT] Registered ValidateWorkflowWorkflow (Go) on '%s' task queue (type: %s)", wc.config.StigmerQueue, WorkflowValidationWorkflowType)
 	log.Printf("✅ [POLYGLOT] Go activities (ValidateWorkflow) on '%s' queue", wc.config.RunnerQueue)

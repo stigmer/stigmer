@@ -7,6 +7,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
+	"go.temporal.io/sdk/workflow"
 )
 
 // WorkerConfig configures and creates Temporal workers for agent execution.
@@ -88,7 +89,15 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 	w := worker.New(temporalClient, wc.config.StigmerQueue, worker.Options{})
 
 	// Register Go workflow implementations ONLY
-	w.RegisterWorkflow(&workflows.InvokeAgentExecutionWorkflowImpl{})
+	// CRITICAL: Must register with explicit name to match the workflow invocation
+	// The workflow is invoked with "stigmer/agent-execution/invoke" but without explicit
+	// registration name, Temporal would use "Run" (the method name), causing "workflow type not found"
+	w.RegisterWorkflowWithOptions(
+		&workflows.InvokeAgentExecutionWorkflowImpl{},
+		workflow.RegisterOptions{
+			Name: workflows.InvokeAgentExecutionWorkflowName, // "stigmer/agent-execution/invoke"
+		},
+	)
 
 	log.Info().
 		Str("queue", wc.config.StigmerQueue).
