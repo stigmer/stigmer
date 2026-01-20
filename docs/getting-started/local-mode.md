@@ -27,6 +27,13 @@ stigmer run
 - ✅ Complete documentation in generated `README.md`
 - ✅ Ready to customize and extend
 
+**What `stigmer run` does:**
+- Auto-discovers agents and workflows from your project
+- Auto-deploys latest code (keeps everything in sync)
+- Prompts for selection if multiple resources found
+- Streams execution logs in real-time
+- See [Running Agents and Workflows](../cli/running-agents-workflows.md) for complete documentation
+
 The generated project demonstrates:
 - How to define AI agents with natural language instructions
 - How to create workflows that call agents
