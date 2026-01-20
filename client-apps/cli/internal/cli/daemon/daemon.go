@@ -69,6 +69,12 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		return errors.Wrap(err, "failed to create data directory")
 	}
 
+	// Rotate logs before starting new session
+	if err := rotateLogsIfNeeded(dataDir); err != nil {
+		log.Warn().Err(err).Msg("Failed to rotate logs, continuing anyway")
+		// Don't fail daemon startup if log rotation fails
+	}
+
 	// Load configuration
 	if opts.Progress != nil {
 		opts.Progress.SetPhase(cliprint.PhaseInitializing, "Loading configuration")
@@ -986,6 +992,132 @@ func findAgentRunnerScript() (string, error) {
 	}
 
 	return "", errors.New("agent-runner script not found (set STIGMER_AGENT_RUNNER_SCRIPT environment variable)")
+}
+
+// rotateLogsIfNeeded rotates existing log files by renaming them with timestamps
+// This is called on daemon start to archive old logs before starting a fresh session
+func rotateLogsIfNeeded(dataDir string) error {
+	logDir := filepath.Join(dataDir, "logs")
+	
+	// Ensure log directory exists
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return errors.Wrap(err, "failed to create log directory")
+	}
+	
+	// Generate timestamp for this rotation
+	timestamp := time.Now().Format("2006-01-02-150405")
+	
+	// List of log files to rotate
+	logFiles := []string{
+		"daemon.log",
+		"daemon.err",
+		"agent-runner.log",
+		"agent-runner.err",
+		"workflow-runner.log",
+		"workflow-runner.err",
+	}
+	
+	// Rotate each log file if it exists
+	rotatedCount := 0
+	for _, logFile := range logFiles {
+		oldPath := filepath.Join(logDir, logFile)
+		
+		// Check if file exists and has content
+		info, err := os.Stat(oldPath)
+		if err != nil {
+			// File doesn't exist, skip
+			continue
+		}
+		
+		// Only rotate if file has content (size > 0)
+		if info.Size() == 0 {
+			continue
+		}
+		
+		// Create new filename with timestamp
+		newPath := fmt.Sprintf("%s.%s", oldPath, timestamp)
+		
+		// Rename file to archive it
+		if err := os.Rename(oldPath, newPath); err != nil {
+			log.Warn().
+				Str("old_path", oldPath).
+				Str("new_path", newPath).
+				Err(err).
+				Msg("Failed to rotate log file")
+			continue
+		}
+		
+		rotatedCount++
+		log.Debug().
+			Str("old_path", logFile).
+			Str("new_path", filepath.Base(newPath)).
+			Msg("Rotated log file")
+	}
+	
+	if rotatedCount > 0 {
+		log.Info().Int("count", rotatedCount).Msg("Rotated log files")
+	}
+	
+	// Cleanup old archived logs (keep last 7 days)
+	if err := cleanupOldLogs(logDir, 7); err != nil {
+		log.Warn().Err(err).Msg("Failed to cleanup old logs")
+		// Don't return error - cleanup failure shouldn't stop daemon
+	}
+	
+	return nil
+}
+
+// cleanupOldLogs removes archived log files older than keepDays
+func cleanupOldLogs(logDir string, keepDays int) error {
+	cutoff := time.Now().AddDate(0, 0, -keepDays)
+	
+	// Find all archived log files (pattern: *.log.YYYY-MM-DD-HHMMSS)
+	pattern := filepath.Join(logDir, "*.log.*")
+	files, err := filepath.Glob(pattern)
+	if err != nil {
+		return errors.Wrap(err, "failed to glob log files")
+	}
+	
+	// Also check error logs (*.err.*)
+	errPattern := filepath.Join(logDir, "*.err.*")
+	errFiles, err := filepath.Glob(errPattern)
+	if err != nil {
+		return errors.Wrap(err, "failed to glob error log files")
+	}
+	
+	files = append(files, errFiles...)
+	
+	deletedCount := 0
+	for _, file := range files {
+		info, err := os.Stat(file)
+		if err != nil {
+			log.Warn().Str("file", file).Err(err).Msg("Failed to stat log file")
+			continue
+		}
+		
+		// Delete if older than cutoff
+		if info.ModTime().Before(cutoff) {
+			if err := os.Remove(file); err != nil {
+				log.Warn().Str("file", file).Err(err).Msg("Failed to delete old log file")
+				continue
+			}
+			
+			deletedCount++
+			log.Debug().
+				Str("file", filepath.Base(file)).
+				Str("age", time.Since(info.ModTime()).Round(24*time.Hour).String()).
+				Msg("Deleted old log file")
+		}
+	}
+	
+	if deletedCount > 0 {
+		log.Info().
+			Int("count", deletedCount).
+			Int("keep_days", keepDays).
+			Msg("Cleaned up old log files")
+	}
+	
+	return nil
 }
 
 // findWorkspaceRoot attempts to find the Stigmer workspace root
