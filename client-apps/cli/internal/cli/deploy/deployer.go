@@ -114,22 +114,11 @@ func (d *Deployer) deployWorkflows(manifest *workflowv1.WorkflowManifest) ([]*wo
 	client := workflowv1.NewWorkflowCommandControllerClient(d.opts.Conn)
 	deployedWorkflows := make([]*workflowv1.Workflow, 0, len(manifest.Workflows))
 
-	fmt.Printf("[DEBUG deployWorkflows] Number of workflows in manifest: %d\n", len(manifest.Workflows))
-
 	for i, workflowBlueprint := range manifest.Workflows {
 		// Ensure metadata is initialized
 		if workflowBlueprint.Metadata == nil {
 			workflowBlueprint.Metadata = &apiresource.ApiResourceMetadata{}
 		}
-
-		fmt.Printf("[DEBUG deployWorkflows] Workflow %d: metadata.Name=%s, spec.Document.Name=%s\n", 
-			i, workflowBlueprint.Metadata.Name, 
-			func() string {
-				if workflowBlueprint.Spec != nil && workflowBlueprint.Spec.Document != nil {
-					return workflowBlueprint.Spec.Document.Name
-				}
-				return "<spec or document is nil>"
-			}())
 
 		if d.opts.ProgressCallback != nil {
 			d.opts.ProgressCallback(fmt.Sprintf("Deploying workflow %d/%d: %s", i+1, len(manifest.Workflows), workflowBlueprint.Metadata.Name))

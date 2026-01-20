@@ -100,8 +100,6 @@ func workflowToProto(wf *workflow.Workflow) (*workflowv1.Workflow, error) {
 // workflowToProtoWithContext converts a workflow.Workflow to a workflowv1.Workflow proto
 // with automatic context variable injection.
 func workflowToProtoWithContext(wf *workflow.Workflow, contextVars map[string]interface{}) (*workflowv1.Workflow, error) {
-	fmt.Printf("[DEBUG workflowToProtoWithContext] Converting workflow: wf.Document.Name=%s\n", wf.Document.Name)
-	
 	// Create workflow proto
 	protoWorkflow := &workflowv1.Workflow{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -115,8 +113,6 @@ func workflowToProtoWithContext(wf *workflow.Workflow, contextVars map[string]in
 		Name: wf.Document.Name,
 		// Note: Org and OwnerScope are set by the deployer based on backend mode
 	}
-	
-	fmt.Printf("[DEBUG workflowToProtoWithContext] Set protoWorkflow.Metadata.Name=%s\n", protoWorkflow.Metadata.Name)
 
 	// Convert spec with context variable injection
 	spec, err := workflowSpecToProtoWithContext(wf, contextVars)
@@ -124,9 +120,6 @@ func workflowToProtoWithContext(wf *workflow.Workflow, contextVars map[string]in
 		return nil, fmt.Errorf("converting spec: %w", err)
 	}
 	protoWorkflow.Spec = spec
-	
-	fmt.Printf("[DEBUG workflowToProtoWithContext] After setting spec, protoWorkflow.Metadata.Name=%s, protoWorkflow.Spec.Document.Name=%s\n", 
-		protoWorkflow.Metadata.Name, protoWorkflow.Spec.Document.Name)
 
 	return protoWorkflow, nil
 }
