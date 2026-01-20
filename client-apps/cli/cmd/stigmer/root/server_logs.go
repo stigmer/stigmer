@@ -12,6 +12,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/logs"
 )
 
 func newServerLogsCommand() *cobra.Command {
@@ -20,6 +21,7 @@ func newServerLogsCommand() *cobra.Command {
 		lines        int
 		component    string
 		showStderr   bool
+		showAll      bool
 	)
 
 	cmd := &cobra.Command{
@@ -31,7 +33,8 @@ By default, streams logs in real-time (like kubectl logs -f).
 Use --follow=false to disable streaming and only show recent logs.
 Use --tail to limit how many existing lines to show before streaming (default: 50).
 Use --stderr to view error logs instead of stdout.
-Use --component to select which component (server or agent-runner).`,
+Use --component to select which component (server, agent-runner, or workflow-runner).
+Use --all to view logs from all components in a single interleaved stream.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			dataDir, err := config.GetDataDir()
 			if err != nil {
@@ -40,14 +43,45 @@ Use --component to select which component (server or agent-runner).`,
 				return
 			}
 
+			logDir := filepath.Join(dataDir, "logs")
+
+			// Handle --all flag: show logs from all components
+			if showAll {
+				components := getComponentConfigs(logDir)
+				
+				if follow {
+					cliprint.PrintInfo("Streaming logs from all components (interleaved by timestamp)")
+					cliprint.PrintInfo("Press Ctrl+C to stop")
+					fmt.Println()
+					
+					if err := logs.StreamAllLogs(components, showStderr, lines); err != nil {
+						cliprint.PrintError("Failed to stream logs")
+						clierr.Handle(err)
+						return
+					}
+				} else {
+					cliprint.PrintInfo("Showing last %d lines from all components (interleaved by timestamp)", lines)
+					fmt.Println()
+					
+					mergedLines, err := logs.MergeLogFiles(components, showStderr, lines)
+					if err != nil {
+						cliprint.PrintError("Failed to read logs")
+						clierr.Handle(err)
+						return
+					}
+					logs.PrintMergedLogs(mergedLines)
+				}
+				return
+			}
+
+			// Original single-component logic
 			// Validate component
-			if component != "server" && component != "agent-runner" {
-				cliprint.PrintError("Invalid component: %s (must be 'server' or 'agent-runner')", component)
+			if component != "server" && component != "agent-runner" && component != "workflow-runner" {
+				cliprint.PrintError("Invalid component: %s (must be 'server', 'agent-runner', or 'workflow-runner')", component)
 				return
 			}
 
 			// Determine log file
-			logDir := filepath.Join(dataDir, "logs")
 			var logFile string
 			
 			if component == "server" {
@@ -56,11 +90,18 @@ Use --component to select which component (server or agent-runner).`,
 				} else {
 					logFile = filepath.Join(logDir, "daemon.log")
 				}
-			} else {
+			} else if component == "agent-runner" {
 				if showStderr {
 					logFile = filepath.Join(logDir, "agent-runner.err")
 				} else {
 					logFile = filepath.Join(logDir, "agent-runner.log")
+				}
+			} else {
+				// workflow-runner
+				if showStderr {
+					logFile = filepath.Join(logDir, "workflow-runner.err")
+				} else {
+					logFile = filepath.Join(logDir, "workflow-runner.log")
 				}
 			}
 
@@ -90,10 +131,32 @@ Use --component to select which component (server or agent-runner).`,
 
 	cmd.Flags().BoolVarP(&follow, "follow", "f", true, "Stream logs in real-time (like kubectl logs -f)")
 	cmd.Flags().IntVarP(&lines, "tail", "n", 50, "Number of recent lines to show before streaming (0 = all lines)")
-	cmd.Flags().StringVarP(&component, "component", "c", "server", "Component to show logs for (server or agent-runner)")
+	cmd.Flags().StringVarP(&component, "component", "c", "server", "Component to show logs for (server, agent-runner, or workflow-runner)")
 	cmd.Flags().BoolVar(&showStderr, "stderr", false, "Show stderr logs instead of stdout")
+	cmd.Flags().BoolVar(&showAll, "all", false, "Show logs from all components (interleaved by timestamp)")
 
 	return cmd
+}
+
+// getComponentConfigs returns the log file configuration for all components
+func getComponentConfigs(logDir string) []logs.ComponentConfig {
+	return []logs.ComponentConfig{
+		{
+			Name:    "server",
+			LogFile: filepath.Join(logDir, "daemon.log"),
+			ErrFile: filepath.Join(logDir, "daemon.err"),
+		},
+		{
+			Name:    "agent-runner",
+			LogFile: filepath.Join(logDir, "agent-runner.log"),
+			ErrFile: filepath.Join(logDir, "agent-runner.err"),
+		},
+		{
+			Name:    "workflow-runner",
+			LogFile: filepath.Join(logDir, "workflow-runner.log"),
+			ErrFile: filepath.Join(logDir, "workflow-runner.err"),
+		},
+	}
 }
 
 // streamLogs streams a log file in real-time (like kubectl logs -f)
