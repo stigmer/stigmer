@@ -1,18 +1,19 @@
 # Next Task: CLI Embedded Binary Packaging
 
 **Project**: CLI Embedded Binary Packaging  
-**Current Status**: ✅ COMPLETE (Ready for Testing)  
-**Last Updated**: 2026-01-21
+**Current Status**: ✅ COMPLETE (Critical Bug Fixed)  
+**Last Updated**: 2026-01-21 03:42 PST
 
 ## 📍 Where We Are
 
-**Task 4 completed + GitHub Actions workflow created!** Full CI/CD pipeline ready for releases.
+**Critical build blocker resolved!** The build system is now fully functional.
 
 **Completed:**
 - ✅ Task 1: Design embedding strategy (platform detection, extraction logic, error handling)
 - ✅ Task 2: Implement binary embedding with Go embed
 - ✅ Task 3: Update daemon management to use extracted binaries
 - ✅ Task 4: Update build scripts (Makefile + GitHub Actions)
+- ✅ **Critical Fix**: Agent runner embedding now works (Docker export + platform-specific Go build tags)
 
 **Task 4 extended implementation:**
 - ✅ Makefile targets for local builds (`embed-binaries`, `release-local`)
@@ -23,10 +24,17 @@
 - ✅ Release documentation: `client-apps/cli/RELEASE.md`
 
 **Results:**
-- **Local**: `make release-local` produces 123 MB CLI with embedded binaries
-- **CI/CD**: Push tag → 3 platform builds → GitHub Release → Homebrew update
+- **Local**: `make release-local` produces 583 MB CLI with embedded binaries (all components working!)
+- **Build Time**: ~75 seconds for full release (darwin_arm64)
+- **Components**: stigmer-server (40MB), workflow-runner (61MB), agent-runner (456MB tarball)
+- **CI/CD**: Ready - Push tag → 3 platform builds → GitHub Release → Homebrew update
 - **Distribution**: Single self-contained binary per platform
 - **User experience**: `brew install stigmer` → just works!
+
+**Critical Bug Fixed (2026-01-21 03:42 PST):**
+- ❌ **Problem**: `make release-local` failed with "pattern binaries/darwin_arm64/agent-runner.tar.gz: no matching files found"
+- ✅ **Solution**: Added Docker image export step + platform-specific Go build tags
+- 📖 **Details**: See `checkpoints/2026-01-21-critical-build-fix.md`
 
 ## 🎯 Next Task: Task 5 - Audit & Clean (Optional)
 
