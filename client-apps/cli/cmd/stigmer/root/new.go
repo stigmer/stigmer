@@ -124,7 +124,7 @@ func newHandler(cmd *cobra.Command, args []string) {
 		filename string
 		content  string
 	}{
-		{"stigmer.yaml", "stigmer.yaml", generateStigmerYAML(projectName)},
+		{"Stigmer.yaml", "Stigmer.yaml", generateStigmerYAML(projectName)},
 		{"main.go (AI-powered PR reviewer)", "main.go", templates.AgentAndWorkflow()},
 		{"go.mod", "go.mod", generateGoMod(projectName)},
 		{".gitignore", ".gitignore", generateGitignore()},
@@ -200,6 +200,7 @@ func isValidProjectName(name string) bool {
 
 func generateStigmerYAML(projectName string) string {
 	return fmt.Sprintf(`name: %s
+runtime: go
 version: 1.0.0
 description: AI-powered PR review demo
 `, projectName)
