@@ -26,6 +26,7 @@ import (
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // NewCallAgentTaskBuilder creates a new task builder for AGENT_CALL tasks.
@@ -100,9 +101,10 @@ func (t *CallAgentTaskBuilder) parseConfig() error {
 		return fmt.Errorf("failed to marshal task.With: %w", err)
 	}
 
-	// Unmarshal into AgentCallTaskConfig
+	// Unmarshal into AgentCallTaskConfig using protojson
+	// This properly handles string enum values (e.g., "organization", "platform")
 	t.agentConfig = &tasks.AgentCallTaskConfig{}
-	if err := json.Unmarshal(withBytes, t.agentConfig); err != nil {
+	if err := protojson.Unmarshal(withBytes, t.agentConfig); err != nil {
 		return fmt.Errorf("failed to unmarshal agent call config: %w", err)
 	}
 
