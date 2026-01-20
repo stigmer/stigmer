@@ -11,6 +11,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/deploy"
 )
 
@@ -209,36 +210,65 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.W
 		return nil, nil, nil
 	}
 
-	// Step 5: Load organization (from Stigmer.yaml, --org flag, or context)
+	// Step 5: Load backend configuration
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Step 6: Determine organization based on backend mode
 	var orgID string
-	if opts.OrgOverride != "" {
+	
+	switch cfg.Backend.Type {
+	case config.BackendTypeLocal:
+		// Local mode: Use constant organization name
+		// No auth, no cloud features - just local development
+		orgID = "local"
 		if !opts.Quiet {
-			cliprint.PrintInfo("Using organization from flag: %s", opts.OrgOverride)
+			cliprint.PrintInfo("Using local backend (organization: %s)", orgID)
 		}
-		orgID = opts.OrgOverride
-	} else if stigmerConfig.Organization != "" {
-		if !opts.Quiet {
-			cliprint.PrintInfo("Using organization from Stigmer.yaml: %s", stigmerConfig.Organization)
-		}
-		orgID = stigmerConfig.Organization
-	} else {
-		// Try to load from CLI config context
-		cfg, err := config.Load()
-		if err != nil {
-			return nil, nil, err
-		}
-		
-		if cfg.Backend.Type == config.BackendTypeCloud && cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
+
+	case config.BackendTypeCloud:
+		// Cloud mode: Organization is required from multiple sources
+		if opts.OrgOverride != "" {
+			orgID = opts.OrgOverride
+			if !opts.Quiet {
+				cliprint.PrintInfo("Using organization from flag: %s", orgID)
+			}
+		} else if stigmerConfig.Organization != "" {
+			orgID = stigmerConfig.Organization
+			if !opts.Quiet {
+				cliprint.PrintInfo("Using organization from Stigmer.yaml: %s", orgID)
+			}
+		} else if cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
 			orgID = cfg.Backend.Cloud.OrgID
 			if !opts.Quiet {
 				cliprint.PrintInfo("Using organization from context: %s", orgID)
 			}
 		} else {
-			return nil, nil, fmt.Errorf("organization not set. Specify in Stigmer.yaml, use --org flag, or run: stigmer context set --org <org-id>")
+			return nil, nil, fmt.Errorf("organization not set for cloud mode. Specify in Stigmer.yaml, use --org flag, or run: stigmer context set --org <org-id>")
+		}
+
+	default:
+		return nil, nil, fmt.Errorf("unknown backend type: %s", cfg.Backend.Type)
+	}
+
+	// Step 7: Ensure daemon is running (auto-start if needed, local mode only)
+	if cfg.Backend.Type == config.BackendTypeLocal {
+		dataDir := cfg.Backend.Local.DataDir
+		if dataDir == "" {
+			dataDir, err = config.GetDataDir()
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+		
+		if err := daemon.EnsureRunning(dataDir); err != nil {
+			return nil, nil, err
 		}
 	}
 
-	// Step 6: Connect to backend
+	// Step 8: Connect to backend
 	if !opts.Quiet {
 		cliprint.PrintInfo("Connecting to backend...")
 	}
@@ -254,7 +284,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.W
 		fmt.Println()
 	}
 
-	// Step 7: Deploy resources
+	// Step 9: Deploy resources
 	progressCallback := func(msg string) {
 		if !opts.Quiet {
 			cliprint.PrintInfo("%s", msg)
