@@ -1,257 +1,361 @@
-# Next Task: Manual Testing
+# Next Task: Manual Runtime Testing
 
-🚀 **Quick Resume Context**
-
-**Project:** Implement Temporal Workflow Execution  
-**Location:** `_projects/2026-01/20260120.01.implement-temporal-workflow-execution/`  
-**Current Status:** 🎉 ALL 3 WORKERS COMPLETE - Ready for Manual Testing (Task 5)
-
-## Progress Summary
-
-✅ **Task 1 COMPLETE:** Analyzed Java Cloud Temporal configuration (ALL THREE domains)
-✅ **Task 2 COMPLETE:** Compared with Go OSS structure (ALL THREE domains)
-✅ **Task 3 COMPLETE:** Designed complete implementation plan
-✅ **Task 4 COMPLETE:** Implemented **Workflow Execution** worker infrastructure
-✅ **Task 6 COMPLETE:** Implemented **Agent Execution** worker infrastructure
-✅ **Task 7 COMPLETE:** Implemented **Workflow Validation** worker infrastructure
-➡️ **Task 5 NEXT:** Manual testing by user
-
-**Major Discovery:** Java Cloud has **THREE** separate Temporal workflow domains:
-1. ✅ Workflow Execution (COMPLETE)
-2. ✅ Agent Execution (COMPLETE)
-3. ✅ Workflow Validation (COMPLETE)
-
-**🎉 ALL IMPLEMENTATION COMPLETE!** All three workers are now integrated in main.go and ready for testing.
-
-## Current Task: Task 5 - Manual Testing
-
-**Goal:** Verify all three Temporal workers (workflow execution, agent execution, workflow validation) are working correctly in stigmer-server.
-
-**Status:** 🎉 **ALL IMPLEMENTATION COMPLETE** - Ready for manual testing
-
-**Prerequisites:**
-- ✅ All three workers implemented in main.go
-- ✅ Code compiles successfully
-- ✅ Workflow execution worker ready
-- ✅ Agent execution worker ready
-- ✅ Workflow validation worker ready
-
-**What to Test:**
-
-### Test 1: Server Startup
-
-```bash
-# 1. Start Temporal server
-$ temporal server start-dev
-
-# 2. Start stigmer-server
-$ stigmer-server
-```
-
-**Expected Logs:**
-```log
-INFO Connected to Temporal server host_port=localhost:7233 namespace=default
-INFO Created workflow execution worker and creator stigmer_queue=workflow_execution_stigmer runner_queue=workflow_execution_runner
-INFO Created agent execution worker and creator stigmer_queue=agent_execution_stigmer runner_queue=agent_execution_runner
-INFO Created workflow validation worker stigmer_queue=workflow_validation_stigmer runner_queue=workflow_validation_runner
-INFO Workflow execution worker started
-INFO Agent execution worker started
-INFO Workflow validation worker started
-INFO Stigmer Server started successfully port=50051
-```
-
-**Success Criteria:**
-- [ ] No errors during startup
-- [ ] All three "Created ... worker" messages appear
-- [ ] All three "... worker started" messages appear
-- [ ] Server starts and listens on port
-
-### Test 2: Temporal UI Verification
-
-```bash
-# Open Temporal UI
-$ open http://localhost:8233
-```
-
-**Steps:**
-1. Navigate to **Workers** tab
-2. Verify all three task queues visible with active workers:
-   - `workflow_execution_stigmer`
-   - `agent_execution_stigmer`
-   - `workflow_validation_stigmer`
-3. Check worker status (should be "Running")
-
-**Success Criteria:**
-- [ ] All three queues visible in UI
-- [ ] Each queue shows active worker(s)
-- [ ] No error states
-
-### Test 3: Workflow Execution (Original Problem)
-
-```bash
-# Test the original hanging workflow issue
-$ stigmer run [workflow-name]
-```
-
-**Expected Behavior:**
-- ✅ Workflow execution starts
-- ✅ Workflow progresses (no hanging)
-- ✅ Activities execute on runner queue
-- ✅ Workflow completes successfully
-
-**Success Criteria:**
-- [ ] Workflow starts without errors
-- [ ] **Workflow does NOT hang** (original problem fixed)
-- [ ] Workflow completes or progresses as expected
-- [ ] Check Temporal UI for workflow execution details
-
-### Test 4: Agent Execution
-
-```bash
-# Trigger agent execution (command TBD based on your workflow)
-$ stigmer [agent-execution-command]
-```
-
-**Success Criteria:**
-- [ ] Agent execution workflow starts
-- [ ] Activities execute (EnsureThread, ExecuteGraphton, UpdateStatus)
-- [ ] Workflow completes successfully
-- [ ] Check logs for activity execution
-
-### Test 5: Workflow Validation
-
-```bash
-# Trigger workflow validation (mechanism TBD)
-# May happen automatically during workflow creation
-```
-
-**Success Criteria:**
-- [ ] Validation workflow starts when triggered
-- [ ] ValidateWorkflow activity executes on runner queue
-- [ ] Validation completes successfully
-- [ ] Invalid workflows are caught and reported
-
-### Test 6: Graceful Shutdown
-
-```bash
-# In stigmer-server terminal, press Ctrl+C
-```
-
-**Expected Logs:**
-```log
-INFO Received shutdown signal
-INFO Stigmer Server stopped
-```
-
-**Success Criteria:**
-- [ ] Workers stop gracefully (defer calls executed)
-- [ ] No hanging processes
-- [ ] Clean shutdown
-
-**Reference:**
-- See `checkpoints/task-7-workflow-validation-worker-implemented.md` for implementation details
-- See `TEMPORAL_WORKERS_STATUS.md` for queue names and configurations
-
-## Next Steps After Testing
-
-1. **Document Test Results** - Create testing report if issues found
-2. **Performance Testing** - Test with concurrent workflows/agents
-3. **Error Handling** - Test failure scenarios (Temporal down, worker failures)
-4. **Project Completion** - Mark project as complete if all tests pass
-
-## Files
-
-- `README.md` - Project overview and success criteria
-- `tasks.md` - All task details and status  
-- `next-task.md` - This file (current task instructions)
-- `notes.md` - Comprehensive analysis and design (1167 lines)
-- `CURRENT_STATUS.md` - Quick status summary (current state)
-- `TEMPORAL_WORKERS_STATUS.md` - Complete comparison matrix (all three domains)
-- `checkpoints/` - Task completion checkpoints
-  - `task-4-workflow-execution-worker-implemented.md`
-  - `task-6-agent-execution-worker-implemented.md`
-
-## Problem Context (CONFIRMED)
-
-**Symptom:** 
-```bash
-$ stigmer run
-✓ Workflow execution started: wex-176892200405353000
-⏳ Execution pending...
-[Hangs forever - no progress]
-```
-
-**Root Cause (VERIFIED):**
-- Temporal workers not started in stigmer-server
-- Worker infrastructure **exists and is complete** ✅
-- Just needs initialization in main.go ✅
-- Controllers need workflow creator injection ✅
-
-**Status:** 🟢 Implementation Complete - All 3 workers implemented and compiled successfully. Ready for manual testing.
-
-## Quick Reference Documents
-
-For detailed information, see:
-- 📊 **`CURRENT_STATUS.md`** - Quick overview of what's done vs what's remaining
-- 📋 **`TEMPORAL_WORKERS_STATUS.md`** - Complete comparison table (Java vs Go for all 3 domains)
-- ✅ **`checkpoints/task-4-*.md`** - Detailed documentation of what was implemented
-- 📝 **`tasks.md`** - Full task breakdown with objectives and deliverables
-
-## Implementation Architecture (Designed)
-
-```
-main.go Startup Sequence:
-========================
-
-1. Load Config (with Temporal config)
-   ↓
-2. Setup Logging
-   ↓
-3. Initialize BadgerDB
-   ↓
-4. Create Temporal Client ← NEW
-   ├─ Success: temporalClient ready
-   └─ Failure: temporalClient = nil, log warning, continue
-   ↓
-5. Create Worker + Creator ← NEW (conditional)
-   ├─ Load workflow execution config
-   ├─ Create worker (not started)
-   └─ Create workflow creator
-   ↓
-6. Create gRPC Server
-   ↓
-7. Register Controllers (pass nil for creator initially)
-   ↓
-8. Start In-Process gRPC Server
-   ↓
-9. Start Temporal Worker ← NEW (conditional)
-   ├─ worker.Start()
-   └─ Fatal if fails (when client exists)
-   ↓
-10. Create Downstream Clients
-   ↓
-11. Inject Dependencies ← UPDATE (add creator injection)
-   ├─ SetWorkflowInstanceClient()
-   └─ SetWorkflowCreator() ← NEW
-   ↓
-12. Setup Graceful Shutdown
-   ↓
-13. Start Network Server
-   ↓
-14. Wait for SIGTERM
-   ↓
-15. Graceful Shutdown
-   ├─ server.Stop()
-   ├─ worker.Stop() (defer)
-   ├─ temporalClient.Close() (defer)
-   └─ store.Close() (defer)
-```
-
-**Color Legend:**
-- Steps 1-3, 6-8, 10, 12-15: Existing (no changes)
-- Steps 4-5, 9: NEW (Temporal infrastructure)
-- Step 11: UPDATE (add creator injection)
+**Task**: Task 5 - Manual Runtime Testing  
+**Status**: ⏸️ Ready to Start  
+**Priority**: HIGH  
+**Estimated Time**: 30-45 minutes
 
 ---
 
-💡 **To continue:** Say "implement Task 7" or "implement workflow validation worker"
+## Context
+
+🎉 **ALL IMPLEMENTATION COMPLETE!**
+
+The Temporal infrastructure and controller integrations are now complete:
+- ✅ All 3 workers implemented and running
+- ✅ All 3 controller integrations complete
+- ✅ Code compiles and builds successfully
+- ✅ Full parity with Java Cloud achieved
+
+**What's Next**: Manual runtime testing to verify end-to-end behavior.
+
+---
+
+## Task 5: Manual Runtime Testing
+
+### Objective
+
+Verify that all three Temporal integrations work correctly at runtime:
+1. Workflow validation (invalid workflows rejected, valid workflows accepted)
+2. Agent execution triggering (executions transition from PENDING → RUNNING)
+3. Workflow execution triggering (verify still working after recent changes)
+
+### Prerequisites
+
+**Start Temporal Server**:
+```bash
+temporal server start-dev
+```
+
+**Access Temporal UI**:
+- Open browser: http://localhost:8233
+- Verify UI loads
+
+### Test 1: Workflow Validation (NEW)
+
+**Purpose**: Verify workflows are validated via Temporal before persistence
+
+**Test 1a: Invalid Workflow (Should Fail)**
+
+1. Create invalid workflow YAML:
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: invalid-test-workflow
+  owner_scope: platform
+spec:
+  serverless_workflow:
+    # Missing required fields
+    id: test
+    # Missing states, etc.
+```
+
+2. Apply via CLI:
+```bash
+stigmer apply workflow invalid-workflow.yaml
+```
+
+3. **Expected Result**:
+   - ❌ Error: "workflow validation failed: ..."
+   - Error message from Zigflow parser
+   - Workflow NOT created in database
+
+4. **Check Logs**:
+```bash
+# Look for validation logs in stigmer-server output:
+# - "Starting Layer 2: Temporal validation"
+# - "Layer 2: Validation failed (state: INVALID)"
+# - Error details from Zigflow
+```
+
+5. **Check Temporal UI**:
+   - Navigate to Workflows
+   - Search for: `stigmer/workflow-validation/`
+   - Should see completed workflow with validation result
+
+**Test 1b: Valid Workflow (Should Succeed)**
+
+1. Create valid workflow YAML (use example from docs)
+
+2. Apply via CLI:
+```bash
+stigmer apply workflow valid-workflow.yaml
+```
+
+3. **Expected Result**:
+   - ✅ Success: "Workflow created: ..."
+   - Workflow persisted to database
+
+4. **Check Logs**:
+```bash
+# Look for validation logs:
+# - "✓ Layer 2: Validation passed (state: VALID)"
+# - "Workflow validation completed successfully"
+```
+
+5. **Check Temporal UI**:
+   - Should see completed validation workflow
+   - Workflow marked as completed
+   - No errors
+
+**Test 1c: Validation Without Temporal (Graceful Degradation)**
+
+1. Stop Temporal server
+
+2. Try to create workflow:
+```bash
+stigmer apply workflow test-workflow.yaml
+```
+
+3. **Expected Result**:
+   - ⚠️ Warning: "Skipping workflow validation - Temporal validator not available"
+   - Workflow created (no validation)
+   - Success (graceful degradation)
+
+### Test 2: Agent Execution Triggering (NEW)
+
+**Purpose**: Verify agent executions trigger Temporal workflows and transition to RUNNING
+
+**Prerequisites**:
+- Agent created
+- agent-runner service running
+
+**Test 2a: Agent Execution (Should Trigger Workflow)**
+
+1. Start agent-runner:
+```bash
+cd backend/services/agent-runner
+python -m agent_runner.main
+```
+
+2. Create agent execution:
+```bash
+stigmer agent-execution create \
+  --agent-id <agent-id> \
+  --name test-execution
+```
+
+3. **Expected Result**:
+   - ✅ Execution created: execution ID returned
+   - Initial phase: PENDING
+
+4. **Check stigmer-server Logs**:
+```bash
+# Look for:
+# - "Setting execution phase to PENDING"
+# - "Starting Temporal workflow for execution: <id>"
+# - "Temporal workflow started successfully"
+```
+
+5. **Check Temporal UI**:
+   - Navigate to Workflows
+   - Search for: `stigmer/agent-execution/`
+   - Should see RUNNING workflow on `agent_execution_stigmer` queue
+   - Worker: stigmer-server
+
+6. **Check Execution Status**:
+```bash
+stigmer agent-execution get <execution-id>
+# Expected: phase transitions PENDING → RUNNING → COMPLETED/FAILED
+```
+
+**Test 2b: Agent Execution Without Temporal (Graceful Degradation)**
+
+1. Stop Temporal server
+
+2. Create agent execution:
+```bash
+stigmer agent-execution create --agent-id <id>
+```
+
+3. **Expected Result**:
+   - ⚠️ Warning: "Workflow creator not available - execution will remain in PENDING"
+   - Execution created with phase=PENDING
+   - Success (graceful degradation)
+
+4. **Check Status**:
+```bash
+stigmer agent-execution get <execution-id>
+# Expected: phase=PENDING (never transitions)
+```
+
+### Test 3: Workflow Execution (Verification)
+
+**Purpose**: Verify workflow executions still work after recent changes
+
+**Test 3a: Workflow Execution (Should Work)**
+
+1. Ensure workflow and workflow instance exist
+
+2. Create workflow execution:
+```bash
+stigmer workflow-execution create \
+  --workflow-instance-id <instance-id> \
+  --name test-execution
+```
+
+3. **Expected Result**:
+   - ✅ Execution created
+   - Phase: PENDING
+
+4. **Check Temporal UI**:
+   - Should see workflow on `workflow_execution_stigmer` queue
+   - Workflow should progress
+
+5. **Check Subscribe Stream**:
+```bash
+stigmer workflow-execution subscribe <execution-id>
+# Expected: Real-time status updates as execution progresses
+```
+
+### Test 4: All Three Workers in Temporal UI
+
+**Verify All Workers Visible**:
+
+1. Open Temporal UI: http://localhost:8233
+2. Navigate to: Workers
+3. **Expected Workers**:
+   - ✅ `workflow_execution_stigmer` (stigmer-server)
+   - ✅ `workflow_execution_runner` (workflow-runner)
+   - ✅ `agent_execution_stigmer` (stigmer-server)
+   - ✅ `agent_execution_runner` (agent-runner)
+   - ✅ `workflow_validation_stigmer` (stigmer-server)
+   - ✅ `workflow_validation_runner` (workflow-runner)
+
+**Status**: All 6 workers should show as RUNNING
+
+---
+
+## Success Criteria
+
+This task is complete when:
+
+### Workflow Validation
+- [ ] Invalid workflows are rejected with Zigflow errors
+- [ ] Valid workflows are accepted and created
+- [ ] Validation workflows visible in Temporal UI
+- [ ] Graceful degradation works (without Temporal)
+- [ ] Logs show Layer 2 validation executing
+
+### Agent Execution
+- [ ] Agent executions trigger Temporal workflows
+- [ ] Executions transition from PENDING → RUNNING
+- [ ] Workflows visible in Temporal UI on correct queue
+- [ ] Graceful degradation works (stays PENDING without Temporal)
+- [ ] Failed workflow starts mark execution FAILED
+
+### Workflow Execution
+- [ ] Workflow executions still work correctly
+- [ ] Status transitions happen
+- [ ] Subscribe streams work
+- [ ] Temporal UI shows workflows
+
+### Overall
+- [ ] All 6 workers visible in Temporal UI
+- [ ] No errors in stigmer-server logs
+- [ ] No errors in agent-runner/workflow-runner logs
+- [ ] Graceful degradation works for all domains
+
+---
+
+## Troubleshooting
+
+### Workflow Validation Not Running
+
+**Symptom**: Workflows created without validation logs
+
+**Check**:
+```bash
+# 1. Is Temporal running?
+temporal workflow list
+
+# 2. Is workflow validation worker registered?
+# Check stigmer-server logs for:
+# "Created workflow validation worker and validator"
+# "Workflow validation worker started"
+
+# 3. Is workflow-runner running?
+# Check for ValidateWorkflow activity registration
+```
+
+**Fix**: Restart stigmer-server and verify Temporal connection logs
+
+### Agent Execution Stuck in PENDING
+
+**Symptom**: Executions never transition to RUNNING
+
+**Check**:
+```bash
+# 1. Is agent-runner running?
+ps aux | grep agent-runner
+
+# 2. Is Temporal workflow triggered?
+# Check stigmer-server logs for:
+# "Starting Temporal workflow for execution: <id>"
+
+# 3. Check Temporal UI
+# Search for: stigmer/agent-execution/<id>
+```
+
+**Fix**:
+- If workflow not in UI: Temporal not connected (check logs)
+- If workflow in UI but not progressing: Check agent-runner logs
+- If workflow failed: Check error in Temporal UI
+
+### Workflow Validation Timeout
+
+**Symptom**: Validation takes >30 seconds or times out
+
+**Check**:
+```bash
+# 1. Is workflow-runner running?
+ps aux | grep workflow-runner
+
+# 2. Check Temporal UI for workflow
+# Look for activity timeout or failure
+```
+
+**Fix**: Ensure workflow-runner has `ValidateWorkflow` activity registered on `workflow_validation_runner` queue
+
+---
+
+## After Testing
+
+When all tests pass:
+
+1. **Document Results**: Add test results to checkpoint or CURRENT_STATUS.md
+2. **Mark Task Complete**: Update tasks.md
+3. **Update README**: Note that project is complete and tested
+4. **Celebrate**: 🎉 Full Temporal integration complete!
+
+---
+
+## If Issues Found
+
+If testing reveals issues:
+
+1. **Document the issue** in project notes or create a new task
+2. **Debug using logs** (stigmer-server, agent-runner, workflow-runner, Temporal UI)
+3. **Fix and iterate** until tests pass
+4. **Update checkpoint** with findings
+
+---
+
+**Status**: Ready to begin manual testing  
+**Next**: Run Test 1 (Workflow Validation)  
+**Estimated Time**: 30-45 minutes for all tests
+
+---
+
+*Updated: 2026-01-20 22:22*

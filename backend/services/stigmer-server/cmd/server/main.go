@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,6 +18,7 @@ import (
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	workflowtemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
 	"go.temporal.io/sdk/client"
+	temporallog "go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/worker"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
@@ -76,9 +79,12 @@ func main() {
 	// ============================================================================
 
 	// Create Temporal client
+	// Configure with a no-op logger to suppress "No logger configured" warnings
+	// Use slog with discard handler to suppress Temporal SDK log output
 	temporalClient, err := client.Dial(client.Options{
 		HostPort:  cfg.TemporalHostPort,
 		Namespace: cfg.TemporalNamespace,
+		Logger:    temporallog.NewStructuredLogger(slog.New(slog.NewTextHandler(io.Discard, nil))),
 	})
 	if err != nil {
 		log.Warn().
@@ -103,8 +109,9 @@ func main() {
 	var agentExecutionWorker worker.Worker
 	var agentExecutionWorkflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
 
-	// Create workflow validation worker (conditional on client success)
+	// Create workflow validation worker and validator (conditional on client success)
 	var workflowValidationWorker worker.Worker
+	var workflowValidator *workflowtemporal.ServerlessWorkflowValidator
 
 	if temporalClient != nil {
 		// Load Temporal configuration for workflow execution
@@ -154,21 +161,27 @@ func main() {
 			Str("runner_queue", agentExecutionTemporalConfig.RunnerQueue).
 			Msg("Created agent execution worker and creator")
 
-		// Load Temporal configuration for workflow validation
-		workflowValidationTemporalConfig := workflowtemporal.NewConfig()
+	// Load Temporal configuration for workflow validation
+	workflowValidationTemporalConfig := workflowtemporal.NewConfig()
 
-		// Create worker configuration
-		workflowValidationWorkerConfig := workflowtemporal.NewWorkerConfig(
-			workflowValidationTemporalConfig,
-		)
+	// Create worker configuration
+	workflowValidationWorkerConfig := workflowtemporal.NewWorkerConfig(
+		workflowValidationTemporalConfig,
+	)
 
-		// Create worker (not started yet)
-		workflowValidationWorker = workflowValidationWorkerConfig.CreateWorker(temporalClient)
+	// Create worker (not started yet)
+	workflowValidationWorker = workflowValidationWorkerConfig.CreateWorker(temporalClient)
 
-		log.Info().
-			Str("stigmer_queue", workflowValidationTemporalConfig.StigmerQueue).
-			Str("runner_queue", workflowValidationTemporalConfig.RunnerQueue).
-			Msg("Created workflow validation worker")
+	// Create workflow validator (for controller injection)
+	workflowValidator = workflowtemporal.NewServerlessWorkflowValidator(
+		temporalClient,
+		workflowValidationTemporalConfig,
+	)
+
+	log.Info().
+		Str("stigmer_queue", workflowValidationTemporalConfig.StigmerQueue).
+		Str("runner_queue", workflowValidationTemporalConfig.RunnerQueue).
+		Msg("Created workflow validation worker and validator")
 	}
 
 	// Create gRPC server with apiresource interceptor and in-process support
@@ -235,8 +248,8 @@ func main() {
 
 	log.Info().Msg("Registered AgentExecution controllers")
 
-	// Create and register Workflow controller (without dependencies initially)
-	workflowController := workflowcontroller.NewWorkflowController(store, nil)
+	// Create and register Workflow controller (with validator if Temporal available)
+	workflowController := workflowcontroller.NewWorkflowController(store, nil, workflowValidator)
 	workflowv1.RegisterWorkflowCommandControllerServer(grpcServer, workflowController)
 	workflowv1.RegisterWorkflowQueryControllerServer(grpcServer, workflowController)
 
