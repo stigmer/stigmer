@@ -40,15 +40,15 @@ type Config struct {
 
 // BackendConfig represents backend configuration
 type BackendConfig struct {
-	Type  BackendType        `yaml:"type"` // "local" or "cloud"
+	Type  BackendType         `yaml:"type"` // "local" or "cloud"
 	Local *LocalBackendConfig `yaml:"local,omitempty"`
 	Cloud *CloudBackendConfig `yaml:"cloud,omitempty"`
 }
 
 // LocalBackendConfig represents local backend configuration
 type LocalBackendConfig struct {
-	Endpoint string          `yaml:"endpoint"`           // Daemon endpoint (default: localhost:50051)
-	DataDir  string          `yaml:"data_dir"`           // Path to daemon data directory (for init)
+	Endpoint string          `yaml:"endpoint,omitempty"` // DEPRECATED: Not used (daemon always runs on localhost:7234)
+	DataDir  string          `yaml:"data_dir,omitempty"` // DEPRECATED: Not used (always ~/.stigmer/data)
 	LLM      *LLMConfig      `yaml:"llm,omitempty"`      // LLM configuration
 	Temporal *TemporalConfig `yaml:"temporal,omitempty"` // Temporal configuration
 }
@@ -57,23 +57,24 @@ type LocalBackendConfig struct {
 type LLMConfig struct {
 	Provider string `yaml:"provider"`           // "ollama", "anthropic", "openai"
 	Model    string `yaml:"model,omitempty"`    // Model name (e.g., "qwen2.5-coder:7b", "claude-sonnet-4.5")
-	BaseURL  string `yaml:"base_url,omitempty"` // Base URL for API (e.g., "http://localhost:11434")
+	APIKey   string `yaml:"api_key,omitempty"`  // API key (optional - env var takes precedence)
+	BaseURL  string `yaml:"base_url,omitempty"` // Base URL for API (optional - only for custom endpoints)
 }
 
 // TemporalConfig represents Temporal runtime configuration
 type TemporalConfig struct {
 	Managed bool   `yaml:"managed"`           // true = auto-download/start, false = external
-	Version string `yaml:"version,omitempty"` // Version for managed binary (e.g., "1.25.1")
-	Port    int    `yaml:"port,omitempty"`    // Port for managed Temporal (default: 7233)
-	Address string `yaml:"address,omitempty"` // Address for external Temporal
+	Version string `yaml:"version,omitempty"` // DEPRECATED: Not used (always uses tested version)
+	Port    int    `yaml:"port,omitempty"`    // DEPRECATED: Not used (always uses 7233)
+	Address string `yaml:"address,omitempty"` // Address for external Temporal (only if managed: false)
 }
 
 // CloudBackendConfig represents cloud backend configuration
 type CloudBackendConfig struct {
-	Endpoint string `yaml:"endpoint"`           // gRPC endpoint (default: api.stigmer.ai:443)
-	Token    string `yaml:"token,omitempty"`    // Auth token
-	OrgID    string `yaml:"org_id,omitempty"`   // Organization ID
-	EnvID    string `yaml:"env_id,omitempty"`   // Environment ID
+	Endpoint string `yaml:"endpoint"`         // gRPC endpoint (default: api.stigmer.ai:443)
+	Token    string `yaml:"token,omitempty"`  // Auth token
+	OrgID    string `yaml:"org_id,omitempty"` // Organization ID
+	EnvID    string `yaml:"env_id,omitempty"` // Environment ID
 }
 
 // ContextConfig represents CLI context (only used in cloud mode)
@@ -115,6 +116,14 @@ func Save(cfg *Config) error {
 		return errors.Wrap(err, "failed to marshal config to YAML")
 	}
 
+	// Add header comment with documentation link
+	header := `# Stigmer CLI Configuration
+# For configuration options and examples, see:
+# https://github.com/stigmer/stigmer/blob/main/docs/cli/configuration.md
+
+`
+	configWithHeader := []byte(header + string(configBytes))
+
 	configPath, err := GetConfigPath()
 	if err != nil {
 		return errors.Wrap(err, "failed to get config path")
@@ -127,7 +136,7 @@ func Save(cfg *Config) error {
 	}
 
 	// Write config file with restricted permissions
-	if err := os.WriteFile(configPath, configBytes, 0600); err != nil {
+	if err := os.WriteFile(configPath, configWithHeader, 0600); err != nil {
 		return errors.Wrap(err, "failed to write config file")
 	}
 
@@ -136,26 +145,25 @@ func Save(cfg *Config) error {
 
 // GetDefault returns the default configuration
 //
-// Default is local backend connecting to localhost:50051 daemon
+// Default is local backend with daemon on localhost:7234 (hardcoded, not configurable)
+// Data stored at ~/.stigmer/data (hardcoded, not configurable)
 // with Ollama LLM and managed Temporal runtime (zero-config)
 func GetDefault() *Config {
-	dataDir, _ := GetDataDir()
 	return &Config{
 		Backend: BackendConfig{
 			Type: BackendTypeLocal,
 			Local: &LocalBackendConfig{
-				Endpoint: "localhost:50051", // ADR 011: daemon port
-				DataDir:  dataDir,
+				// Endpoint not set - always hardcoded to localhost:7234 in code
+				// DataDir not set - always hardcoded to ~/.stigmer/data in code
 				LLM: &LLMConfig{
 					Provider: "ollama",
 					Model:    "qwen2.5-coder:7b",
 					BaseURL:  "http://localhost:11434",
 				},
-			Temporal: &TemporalConfig{
-				Managed: true,
-				Version: "1.5.1",
-				Port:    7233,
-			},
+				Temporal: &TemporalConfig{
+					Managed: true,
+					// Version and Port not set - always hardcoded to tested defaults
+				},
 			},
 		},
 	}
@@ -210,12 +218,12 @@ func (c *LocalBackendConfig) ResolveLLMProvider() string {
 	if provider := os.Getenv("STIGMER_LLM_PROVIDER"); provider != "" {
 		return provider
 	}
-	
+
 	// 2. Check config file
 	if c.LLM != nil && c.LLM.Provider != "" {
 		return c.LLM.Provider
 	}
-	
+
 	// 3. Default
 	return "ollama"
 }
@@ -226,12 +234,12 @@ func (c *LocalBackendConfig) ResolveLLMModel() string {
 	if model := os.Getenv("STIGMER_LLM_MODEL"); model != "" {
 		return model
 	}
-	
+
 	// 2. Check config file
 	if c.LLM != nil && c.LLM.Model != "" {
 		return c.LLM.Model
 	}
-	
+
 	// 3. Provider-specific defaults
 	provider := c.ResolveLLMProvider()
 	switch provider {
@@ -252,12 +260,12 @@ func (c *LocalBackendConfig) ResolveLLMBaseURL() string {
 	if baseURL := os.Getenv("STIGMER_LLM_BASE_URL"); baseURL != "" {
 		return baseURL
 	}
-	
+
 	// 2. Check config file
 	if c.LLM != nil && c.LLM.BaseURL != "" {
 		return c.LLM.BaseURL
 	}
-	
+
 	// 3. Provider-specific defaults
 	provider := c.ResolveLLMProvider()
 	switch provider {
@@ -279,7 +287,7 @@ func (c *LocalBackendConfig) ResolveTemporalAddress() (string, bool) {
 	if addr := os.Getenv("TEMPORAL_SERVICE_ADDRESS"); addr != "" {
 		return addr, false // external
 	}
-	
+
 	// 2. Check config: managed vs external
 	if c.Temporal != nil {
 		if c.Temporal.Managed {
@@ -292,23 +300,50 @@ func (c *LocalBackendConfig) ResolveTemporalAddress() (string, bool) {
 			return c.Temporal.Address, false // external
 		}
 	}
-	
+
 	// 3. Default: managed Temporal
 	return "localhost:7233", true
 }
 
 // ResolveTemporalVersion resolves the Temporal version for managed runtime
+// Always returns tested version - not configurable for managed mode
 func (c *LocalBackendConfig) ResolveTemporalVersion() string {
-	if c.Temporal != nil && c.Temporal.Version != "" {
-		return c.Temporal.Version
-	}
-	return "1.5.1" // default version
+	// Ignore config value - use hardcoded tested version
+	// Managed infrastructure should not be user-configurable
+	return "1.5.1" // Tested version
 }
 
 // ResolveTemporalPort resolves the Temporal port for managed runtime
+// Always returns standard Temporal port - not configurable for managed mode
 func (c *LocalBackendConfig) ResolveTemporalPort() int {
-	if c.Temporal != nil && c.Temporal.Port != 0 {
-		return c.Temporal.Port
+	// Ignore config value - use standard Temporal port
+	// Managed infrastructure should not be user-configurable
+	return 7233 // Standard Temporal port
+}
+
+// ResolveLLMAPIKey resolves the LLM API key with cascading config
+// Priority: env var > config file
+func (c *LocalBackendConfig) ResolveLLMAPIKey() string {
+	provider := c.ResolveLLMProvider()
+
+	// 1. Check provider-specific environment variable (highest priority)
+	var envKey string
+	switch provider {
+	case "anthropic":
+		envKey = os.Getenv("ANTHROPIC_API_KEY")
+	case "openai":
+		envKey = os.Getenv("OPENAI_API_KEY")
 	}
-	return 7233 // default port
+
+	if envKey != "" {
+		return envKey
+	}
+
+	// 2. Check config file
+	if c.LLM != nil && c.LLM.APIKey != "" {
+		return c.LLM.APIKey
+	}
+
+	// 3. No API key configured
+	return ""
 }

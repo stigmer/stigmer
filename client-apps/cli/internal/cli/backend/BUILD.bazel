@@ -8,11 +8,14 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//client-apps/cli/internal/cli/config",
         "@com_github_pkg_errors//:errors",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//credentials",
         "@org_golang_google_grpc//credentials/insecure",
+        "@org_golang_google_grpc//status",
     ],
 )

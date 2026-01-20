@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
-	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
@@ -26,9 +26,9 @@ const (
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
 // 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
-// 2. ValidateWorkflowOrInstance - Ensure workflow_id OR workflow_instance_id is provided
-// 3. CreateDefaultInstanceIfNeeded - Auto-create default instance if workflow_id is used
-// 4. ResolveSlug - Generate slug from metadata.name
+// 2. ResolveSlug - Generate slug from metadata.name
+// 3. ValidateWorkflowOrInstance - Ensure workflow_id OR workflow_instance_id is provided
+// 4. CreateDefaultInstanceIfNeeded - Auto-create default instance if workflow_id is used
 // 5. CheckDuplicate - Verify no duplicate exists
 // 6. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 7. SetInitialPhase - Set execution phase to PENDING
@@ -48,7 +48,6 @@ const (
 // - Handler enforces: at least one must be provided
 func (c *WorkflowExecutionController) Create(ctx context.Context, execution *workflowexecutionv1.WorkflowExecution) (*workflowexecutionv1.WorkflowExecution, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, execution)
-	reqCtx.SetNewState(execution)
 
 	p := c.buildCreatePipeline()
 
@@ -65,9 +64,9 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowexecutionv1.WorkflowExecution]("workflowexecution-create").
 		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecution]()).                   // 1. Validate field constraints
-		AddStep(newValidateWorkflowOrInstanceStep()).                                                    // 2. Validate workflow_id OR workflow_instance_id
-		AddStep(newCreateDefaultInstanceIfNeededStep(c.workflowInstanceClient, c.store)).               // 3. Create default instance if needed
-		AddStep(steps.NewResolveSlugStep[*workflowexecutionv1.WorkflowExecution]()).                     // 4. Resolve slug
+		AddStep(steps.NewResolveSlugStep[*workflowexecutionv1.WorkflowExecution]()).                     // 2. Resolve slug
+		AddStep(newValidateWorkflowOrInstanceStep()).                                                    // 3. Validate workflow_id OR workflow_instance_id
+		AddStep(newCreateDefaultInstanceIfNeededStep(c.workflowInstanceClient, c.store)).               // 4. Create default instance if needed
 		AddStep(steps.NewCheckDuplicateStep[*workflowexecutionv1.WorkflowExecution](c.store)).           // 5. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).                   // 6. Build new state
 		AddStep(newSetInitialPhaseStep()).                                                               // 7. Set phase to PENDING

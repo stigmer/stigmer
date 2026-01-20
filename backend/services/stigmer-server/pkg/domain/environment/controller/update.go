@@ -12,7 +12,7 @@ import (
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
 // 1. ValidateProto - Validate proto field constraints using buf validate
-// 2. ResolveSlug - Generate slug from metadata.name (for fallback lookup)
+// 2. ResolveSlug - Generate slug from metadata.name
 // 3. LoadExisting - Load existing environment from repository by ID
 // 4. BuildUpdateState - Merge spec, preserve IDs, update timestamps, clear computed fields
 // 5. Persist - Save updated environment to repository
@@ -23,7 +23,6 @@ import (
 // - TransformResponse step (no response transformations in OSS)
 func (c *EnvironmentController) Update(ctx context.Context, environment *environmentv1.Environment) (*environmentv1.Environment, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, environment)
-	reqCtx.SetNewState(environment)
 
 	p := c.buildUpdatePipeline()
 
@@ -40,7 +39,7 @@ func (c *EnvironmentController) buildUpdatePipeline() *pipeline.Pipeline[*enviro
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*environmentv1.Environment]("environment-update").
 		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).       // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).         // 2. Resolve slug (for fallback lookup)
+		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).         // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*environmentv1.Environment](c.store)). // 3. Load existing environment
 		AddStep(steps.NewBuildUpdateStateStep[*environmentv1.Environment]()).    // 4. Build updated state
 		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).      // 5. Persist environment

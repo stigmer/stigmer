@@ -19,11 +19,15 @@ import (
 )
 
 const (
-	// DaemonPort is the port the daemon listens on (from ADR 011)
-	DaemonPort = 50051
+	// DaemonPort is the port the daemon listens on
+	// Using 7234 (Temporal + 1) to indicate relationship with Temporal (7233)
+	DaemonPort = 7234
 
 	// PIDFileName is the name of the PID file for stigmer-server
 	PIDFileName = "daemon.pid"
+	
+	// WorkflowRunnerPIDFileName is the name of the PID file for workflow-runner
+	WorkflowRunnerPIDFileName = "workflow-runner.pid"
 	
 	// AgentRunnerPIDFileName is the name of the PID file for agent-runner
 	AgentRunnerPIDFileName = "agent-runner.pid"
@@ -156,7 +160,7 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	cmd := exec.Command(serverBin)
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("STIGMER_DATA_DIR=%s", dataDir),
-		fmt.Sprintf("STIGMER_PORT=%d", DaemonPort),
+		fmt.Sprintf("GRPC_PORT=%d", DaemonPort),
 	)
 
 	// Redirect output to log files
@@ -206,6 +210,16 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	// Wait a moment for server to start
 	time.Sleep(500 * time.Millisecond)
 
+	// Start workflow-runner subprocess (Temporal worker mode)
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting workflow runner")
+	}
+	if err := startWorkflowRunner(dataDir, logDir, temporalAddr); err != nil {
+		log.Error().Err(err).Msg("Failed to start workflow-runner, continuing without it")
+		// Don't fail the entire daemon startup if workflow-runner fails
+		// Workflows won't execute but the server is still useful
+	}
+
 	// Start agent-runner subprocess with LLM config and injected secrets
 	if opts.Progress != nil {
 		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting agent runner")
@@ -215,6 +229,91 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		// Don't fail the entire daemon startup if agent-runner fails
 		// The server is still useful without the agent-runner
 	}
+
+	return nil
+}
+
+// startWorkflowRunner starts the workflow-runner subprocess in Temporal worker mode
+func startWorkflowRunner(
+	dataDir string,
+	logDir string,
+	temporalAddr string,
+) error {
+	// Find workflow-runner binary
+	runnerBin, err := findWorkflowRunnerBinary()
+	if err != nil {
+		return err
+	}
+
+	log.Debug().Str("binary", runnerBin).Msg("Found workflow-runner binary")
+
+	// Prepare environment for Temporal worker mode
+	env := os.Environ()
+	env = append(env,
+		// Execution mode: temporal worker only (no gRPC server)
+		"EXECUTION_MODE=temporal",
+		
+		// Temporal configuration
+		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", temporalAddr),
+		"TEMPORAL_NAMESPACE=default",
+		"WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE=workflow_execution_runner",
+		"ZIGFLOW_EXECUTION_TASK_QUEUE=zigflow_execution",
+		"WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE=workflow_validation_runner",
+		
+		// Stigmer backend configuration (for callbacks)
+		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=localhost:%d", DaemonPort),
+		"STIGMER_API_KEY=dummy-local-key",
+		"STIGMER_USE_TLS=false",
+		
+		"LOG_LEVEL=DEBUG",
+		"ENV=local",
+	)
+
+	log.Info().
+		Str("temporal_address", temporalAddr).
+		Msg("Starting workflow-runner with configuration")
+
+	// Start workflow-runner process
+	cmd := exec.Command(runnerBin)
+	cmd.Env = env
+
+	// Redirect output to separate log files
+	stdoutLog := filepath.Join(logDir, "workflow-runner.log")
+	stderrLog := filepath.Join(logDir, "workflow-runner.err")
+
+	stdout, err := os.OpenFile(stdoutLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return errors.Wrap(err, "failed to create workflow-runner stdout log file")
+	}
+	defer stdout.Close()
+
+	stderr, err := os.OpenFile(stderrLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return errors.Wrap(err, "failed to create workflow-runner stderr log file")
+	}
+	defer stderr.Close()
+
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+
+	// Start process
+	if err := cmd.Start(); err != nil {
+		return errors.Wrap(err, "failed to start workflow-runner process")
+	}
+
+	// Write PID file
+	pidFile := filepath.Join(dataDir, WorkflowRunnerPIDFileName)
+	pidContent := fmt.Sprintf("%d", cmd.Process.Pid)
+	if err := os.WriteFile(pidFile, []byte(pidContent), 0644); err != nil {
+		// Kill the process if we can't write PID file
+		_ = cmd.Process.Kill()
+		return errors.Wrap(err, "failed to write workflow-runner PID file")
+	}
+
+	log.Info().
+		Int("pid", cmd.Process.Pid).
+		Str("binary", runnerBin).
+		Msg("Workflow-runner started successfully")
 
 	return nil
 }
@@ -317,11 +416,14 @@ func startAgentRunner(
 	return nil
 }
 
-// Stop stops the stigmer daemon, agent-runner, and managed Temporal
+// Stop stops the stigmer daemon, workflow-runner, agent-runner, and managed Temporal
 func Stop(dataDir string) error {
 	log.Debug().Str("data_dir", dataDir).Msg("Stopping daemon")
 
-	// Stop agent-runner first (if running)
+	// Stop workflow-runner first (if running)
+	stopWorkflowRunner(dataDir)
+
+	// Stop agent-runner (if running)
 	stopAgentRunner(dataDir)
 
 	// Stop managed Temporal (if running)
@@ -405,6 +507,58 @@ func stopManagedTemporal(dataDir string) {
 	}
 }
 
+// stopWorkflowRunner stops the workflow-runner subprocess
+func stopWorkflowRunner(dataDir string) {
+	pidFile := filepath.Join(dataDir, WorkflowRunnerPIDFileName)
+	
+	// Read PID file
+	data, err := os.ReadFile(pidFile)
+	if err != nil {
+		// No PID file means workflow-runner is not running
+		return
+	}
+
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		log.Warn().Str("pid_file", pidFile).Msg("Invalid workflow-runner PID file")
+		_ = os.Remove(pidFile)
+		return
+	}
+
+	// Find process
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		log.Warn().Int("pid", pid).Msg("Failed to find workflow-runner process")
+		_ = os.Remove(pidFile)
+		return
+	}
+
+	// Send SIGTERM for graceful shutdown
+	if err := process.Signal(syscall.SIGTERM); err != nil {
+		log.Warn().Int("pid", pid).Err(err).Msg("Failed to send SIGTERM to workflow-runner")
+		_ = os.Remove(pidFile)
+		return
+	}
+
+	log.Info().Int("pid", pid).Msg("Sent SIGTERM to workflow-runner")
+
+	// Wait for process to exit (up to 5 seconds)
+	for i := 0; i < 10; i++ {
+		if err := process.Signal(syscall.Signal(0)); err != nil {
+			// Process is dead
+			_ = os.Remove(pidFile)
+			log.Info().Msg("Workflow-runner stopped successfully")
+			return
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	// Force kill if still running
+	log.Warn().Msg("Workflow-runner did not stop gracefully, force killing")
+	_ = process.Kill()
+	_ = os.Remove(pidFile)
+}
+
 // stopAgentRunner stops the agent-runner subprocess
 func stopAgentRunner(dataDir string) {
 	pidFile := filepath.Join(dataDir, AgentRunnerPIDFileName)
@@ -473,6 +627,50 @@ func IsRunning(dataDir string) bool {
 	// Send signal 0 to check if process is alive
 	err = process.Signal(syscall.Signal(0))
 	return err == nil
+}
+
+// EnsureRunning ensures the daemon is running, starting it if necessary
+//
+// This is the magic function that makes the CLI "just work" - similar to how
+// Docker auto-starts the daemon or Minikube starts the cluster.
+//
+// If the daemon is already running, this returns immediately.
+// If not, it starts the daemon with user-friendly progress messages.
+func EnsureRunning(dataDir string) error {
+	// Already running? We're done!
+	if IsRunning(dataDir) {
+		log.Debug().Msg("Daemon is already running")
+		return nil
+	}
+
+	// Not running - start it with nice UX
+	cliprint.PrintInfo("🚀 Starting local backend daemon...")
+	cliprint.PrintInfo("   This may take a moment on first run")
+	fmt.Println()
+
+	// Create progress display for nice output
+	progress := cliprint.NewProgressDisplay()
+	progress.Start()
+	defer progress.Stop()
+
+	// Start the daemon
+	if err := StartWithOptions(dataDir, StartOptions{Progress: progress}); err != nil {
+		return errors.Wrap(err, "failed to start daemon")
+	}
+
+	cliprint.PrintSuccess("✓ Daemon started successfully")
+	fmt.Println()
+
+	// Wait for daemon to be ready to accept connections
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	endpoint := fmt.Sprintf("localhost:%d", DaemonPort)
+	if err := WaitForReady(ctx, endpoint); err != nil {
+		return errors.Wrap(err, "daemon started but not responding")
+	}
+
+	return nil
 }
 
 // GetStatus returns the daemon status
@@ -586,6 +784,78 @@ Or:
   go build -o ~/bin/stigmer-server ./backend/services/stigmer-server/cmd/server
 
 Or set STIGMER_SERVER_BIN environment variable to point to the binary`)
+}
+
+// findWorkflowRunnerBinary finds the workflow-runner binary
+//
+// Search order:
+// 1. STIGMER_WORKFLOW_RUNNER_BIN environment variable
+// 2. Same directory as CLI binary
+// 3. Build output directories (for development)
+// 4. Try to auto-build with Go if in development environment
+func findWorkflowRunnerBinary() (string, error) {
+	// Check environment variable
+	if bin := os.Getenv("STIGMER_WORKFLOW_RUNNER_BIN"); bin != "" {
+		if _, err := os.Stat(bin); err == nil {
+			return bin, nil
+		}
+		log.Warn().Str("path", bin).Msg("STIGMER_WORKFLOW_RUNNER_BIN set but file not found")
+	}
+
+	// Check same directory as CLI
+	cliPath, err := os.Executable()
+	if err == nil {
+		runnerBin := filepath.Join(filepath.Dir(cliPath), "workflow-runner")
+		if _, err := os.Stat(runnerBin); err == nil {
+			log.Debug().Str("path", runnerBin).Msg("Found workflow-runner in same directory as CLI")
+			return runnerBin, nil
+		}
+	}
+
+	// Check common development paths
+	possiblePaths := []string{
+		"bin/workflow-runner",                                                        // make build output
+		"bazel-bin/backend/services/workflow-runner/workflow-runner_/workflow-runner", // bazel build
+		"./workflow-runner",                                                          // current directory
+		"backend/services/workflow-runner/workflow-runner",                           // from workspace root
+	}
+
+	for _, path := range possiblePaths {
+		if _, err := os.Stat(path); err == nil {
+			absPath, _ := filepath.Abs(path)
+			log.Debug().Str("path", absPath).Msg("Found workflow-runner")
+			return absPath, nil
+		}
+	}
+
+	// Try to auto-build if we're in a development environment
+	if workspaceRoot := findWorkspaceRoot(); workspaceRoot != "" {
+		log.Info().Msg("workflow-runner not found, attempting to build it...")
+		
+		runnerPath := filepath.Join(workspaceRoot, "bin", "workflow-runner")
+		buildCmd := exec.Command("go", "build", "-o", runnerPath, "./backend/services/workflow-runner")
+		buildCmd.Dir = workspaceRoot
+		
+		if output, err := buildCmd.CombinedOutput(); err != nil {
+			log.Error().
+				Err(err).
+				Str("output", string(output)).
+				Msg("Failed to auto-build workflow-runner")
+		} else {
+			log.Info().Str("path", runnerPath).Msg("Successfully built workflow-runner")
+			return runnerPath, nil
+		}
+	}
+
+	return "", errors.New(`workflow-runner binary not found
+
+Please build it first:
+  make release-local    (recommended - builds CLI, server, and workflow-runner)
+  
+Or:
+  go build -o ~/bin/workflow-runner ./backend/services/workflow-runner
+
+Or set STIGMER_WORKFLOW_RUNNER_BIN environment variable to point to the binary`)
 }
 
 // findAgentRunnerScript finds the agent-runner run script
