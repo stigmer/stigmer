@@ -17,8 +17,8 @@ import (
 // - Is only accessible by platform operators
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ValidateProto - Validate proto field constraints (including owner_scope restriction)
-// 2. ResolveSlug - Generate slug from metadata.name
+// 1. ResolveSlug - Generate slug from metadata.name (must be before validation)
+// 2. ValidateProto - Validate proto field constraints (including owner_scope restriction)
 // 3. CheckDuplicate - Verify no duplicate exists by slug
 // 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 5. Persist - Save execution context to repository
@@ -46,8 +46,8 @@ func (c *ExecutionContextController) buildCreatePipeline() *pipeline.Pipeline[*e
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*executioncontextv1.ExecutionContext]("execution-context-create").
-		AddStep(steps.NewValidateProtoStep[*executioncontextv1.ExecutionContext]()).         // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*executioncontextv1.ExecutionContext]()).           // 2. Resolve slug
+		AddStep(steps.NewResolveSlugStep[*executioncontextv1.ExecutionContext]()).           // 1. Resolve slug (must be before validation)
+		AddStep(steps.NewValidateProtoStep[*executioncontextv1.ExecutionContext]()).         // 2. Validate field constraints
 		AddStep(steps.NewCheckDuplicateStep[*executioncontextv1.ExecutionContext](c.store)). // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*executioncontextv1.ExecutionContext]()).         // 4. Build new state
 		AddStep(steps.NewPersistStep[*executioncontextv1.ExecutionContext](c.store)).        // 5. Persist

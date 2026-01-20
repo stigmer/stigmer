@@ -11,8 +11,8 @@ import (
 // Create creates a new skill using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
-// 2. ResolveSlug - Generate slug from metadata.name
+// 1. ResolveSlug - Generate slug from metadata.name (must be before validation)
+// 2. ValidateFieldConstraints - Validate proto field constraints using buf validate
 // 3. CheckDuplicate - Verify no duplicate exists
 // 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 5. Persist - Save skill to repository
@@ -40,8 +40,8 @@ func (c *SkillController) buildCreatePipeline() *pipeline.Pipeline[*skillv1.Skil
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*skillv1.Skill]("skill-create").
-		AddStep(steps.NewValidateProtoStep[*skillv1.Skill]()).         // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*skillv1.Skill]()).           // 2. Resolve slug
+		AddStep(steps.NewResolveSlugStep[*skillv1.Skill]()).           // 1. Resolve slug (must be before validation)
+		AddStep(steps.NewValidateProtoStep[*skillv1.Skill]()).         // 2. Validate field constraints
 		AddStep(steps.NewCheckDuplicateStep[*skillv1.Skill](c.store)). // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*skillv1.Skill]()).         // 4. Build new state
 		AddStep(steps.NewPersistStep[*skillv1.Skill](c.store)).        // 5. Persist skill
