@@ -3,9 +3,9 @@ package skill
 import (
 	"context"
 
+	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 )
 
 // Create creates a new skill using the pipeline framework
@@ -24,7 +24,6 @@ import (
 // - TransformResponse step (no response transformations in OSS)
 func (c *SkillController) Create(ctx context.Context, skill *skillv1.Skill) (*skillv1.Skill, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, skill)
-	reqCtx.SetNewState(skill)
 
 	p := c.buildCreatePipeline()
 

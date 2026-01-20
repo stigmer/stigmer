@@ -24,11 +24,11 @@ alwaysApply: false
 
 | Operation | Pattern | Pipeline Steps |
 |-----------|---------|---------------|
-| **Create** | Pipeline | Validate → ResolveSlug → CheckDuplicate → SetDefaults → Persist |
-| **Update** | Pipeline | Validate → LoadExisting → Merge → Persist |
+| **Create** | Pipeline | **ResolveSlug** → Validate → CheckDuplicate → BuildNewState → Persist |
+| **Update** | Pipeline | **ResolveSlug** → Validate → LoadExisting → BuildUpdateState → Persist |
 | **Delete** | Pipeline | Validate → LoadExisting → Delete |
 | **Get** | Pipeline | Validate → LoadTarget |
-| **Apply** | Pipeline | Validate → ResolveSlug → LoadForApply → Persist |
+| **Apply** | Pipeline | **ResolveSlug** → Validate → LoadForApply → Persist |
 | **List/Find** | Pipeline | Validate → Query → Return |
 
 **Why Pipeline for Everything:**
@@ -40,6 +40,36 @@ alwaysApply: false
 - ✅ **Maintainability**: Clear separation of concerns
 
 **Even "simple" operations use pipelines - this is non-negotiable.**
+
+### ⚠️ CRITICAL: Pipeline Step Ordering
+
+**ResolveSlug MUST Come Before ValidateProto** for Create, Update, and Apply operations.
+
+**Why this order is mandatory:**
+
+1. **Proto validation checks field constraints** including slug field requirement: `[(buf.validate.field).string.min_len = 1]`
+2. **Users provide only the `name` field**, expecting the system to auto-generate the slug
+3. **If ValidateProto runs first**, it sees empty slug and fails validation: `validation error: slug: value length must be at least 1 characters`
+4. **If ResolveSlug runs first**, it populates slug from name before validation runs
+
+**Wrong order** (causes validation errors):
+```go
+❌ .AddStep(steps.NewValidateProtoStep()).  // Fails on empty slug
+   .AddStep(steps.NewResolveSlugStep()).     // Too late - already failed
+```
+
+**Correct order** (works properly):
+```go
+✅ .AddStep(steps.NewResolveSlugStep()).     // Populates slug from name
+   .AddStep(steps.NewValidateProtoStep()).   // Validates with populated slug
+```
+
+**Historical context**: This bug was introduced because the rule documentation originally showed the wrong order. All 19 controllers were implemented following the incorrect pattern, causing validation failures when users didn't provide explicit slug values. Fixed on 2026-01-20 by reordering all controller pipelines to match Java implementation.
+
+**Always use this order for operations that accept name and auto-generate slug**:
+- Create: ResolveSlug → Validate → ...
+- Update: ResolveSlug → Validate → LoadExisting → BuildUpdateState → ...
+- Apply: ResolveSlug → Validate → LoadForApply → ...
 
 ### Key Architectural Decisions
 
@@ -1782,6 +1812,27 @@ func (c *ResourceController) GetByReference(ctx context.Context, ref *apiresourc
 - [ ] Custom steps documented with comments
 - [ ] Metadata keys documented if using context.Set/Get
 - [ ] Any business logic decisions documented
+
+---
+
+## Reference Documentation
+
+### Learning Log
+
+Captured learnings from actual implementations:
+
+**Pipeline Patterns:**
+- **[LEARNING_2026-01-20_pipeline-step-ordering.md](LEARNING_2026-01-20_pipeline-step-ordering.md)** - ResolveSlug must come before ValidateProto (affects all Create/Update/Apply operations)
+- **[LEARNING_2026-01-20_slug-fallback-pattern.md](LEARNING_2026-01-20_slug-fallback-pattern.md)** - Multi-identifier lookup pattern with fallback strategy (ID first, slug fallback for apply operations)
+
+**Migration & Architecture:**
+- **[BADGERDB_MIGRATION.md](BADGERDB_MIGRATION.md)** - Migration from SQLite to BadgerDB for local storage
+- **[CHANGES_SUMMARY.md](CHANGES_SUMMARY.md)** - Summary of architectural changes and improvements
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Overview of implementation progress
+
+### Additional Resources
+
+- **[improve-this-rule.mdc](improve-this-rule.mdc)** - How to capture new learnings and improve this rule
 
 ---
 

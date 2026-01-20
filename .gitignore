@@ -87,6 +87,8 @@ tmp/
 backend/services/*/stigmer-server
 backend/services/*/workflow-runner
 backend/services/*/agent-runner
+backend/services/*/cmd/*/server
+backend/services/*/server
 
 # Bazel build outputs
 bazel-*

@@ -21,3 +21,9 @@ func NewAgentController(store *badger.Store, agentInstanceClient *agentinstance.
 		agentInstanceClient: agentInstanceClient,
 	}
 }
+
+// SetAgentInstanceClient sets the AgentInstance client dependency
+// This is used when the controller is created before the in-process gRPC server is started
+func (c *AgentController) SetAgentInstanceClient(client *agentinstance.Client) {
+	c.agentInstanceClient = client
+}
