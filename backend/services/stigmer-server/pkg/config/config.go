@@ -13,6 +13,10 @@ type Config struct {
 	DBPath   string
 	LogLevel string
 	Env      string
+
+	// Temporal configuration
+	TemporalHostPort  string // Default: "localhost:7233"
+	TemporalNamespace string // Default: "default"
 }
 
 // LoadConfig loads configuration from environment variables
@@ -22,6 +26,10 @@ func LoadConfig() (*Config, error) {
 		DBPath:   getEnvString("DB_PATH", defaultDBPath()),
 		LogLevel: getEnvString("LOG_LEVEL", "info"),
 		Env:      getEnvString("ENV", "local"),
+
+		// Temporal configuration
+		TemporalHostPort:  getEnvString("TEMPORAL_HOST_PORT", "localhost:7233"),
+		TemporalNamespace: getEnvString("TEMPORAL_NAMESPACE", "default"),
 	}
 
 	// Ensure database directory exists
