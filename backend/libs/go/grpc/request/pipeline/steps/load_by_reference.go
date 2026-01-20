@@ -9,7 +9,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"google.golang.org/grpc/codes"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -85,26 +85,18 @@ func (s *LoadByReferenceStep[T]) Execute(ctx *pipeline.RequestContext[*apiresour
 		))
 	}
 
-	// Extract kind name from the enum's proto options
-	kindName, err := apiresource.GetKindName(kind)
-	if err != nil {
-		return fmt.Errorf("failed to get kind name: %w", err)
-	}
-
 	// Find resource by slug
 	// Note: This is not efficient for large datasets (lists all and filters),
 	// but acceptable for local/OSS usage. Production systems should use indexed queries.
-	target, found, err := s.findBySlug(ctx, kindName, ref.Slug, ref.Org)
+	target, found, err := s.findBySlug(ctx, kind, ref.Slug, ref.Org)
 	if err != nil {
 		return err
 	}
 
 	if !found {
-		return grpclib.WrapError(nil, codes.NotFound, fmt.Sprintf(
-			"%s not found with slug: %s",
-			kindName,
-			ref.Slug,
-		))
+		// Extract kind name for error message
+		kindName, _ := apiresource.GetKindName(kind)
+		return grpclib.NotFoundError(kindName, ref.Slug)
 	}
 
 	// Store loaded resource in context for handler to return
@@ -125,15 +117,17 @@ func (s *LoadByReferenceStep[T]) Execute(ctx *pipeline.RequestContext[*apiresour
 //   - error: any error that occurred during search
 func (s *LoadByReferenceStep[T]) findBySlug(
 	ctx *pipeline.RequestContext[*apiresourcepb.ApiResourceReference],
-	kindName string,
+	kind apiresourcekind.ApiResourceKind,
 	slug string,
 	org string,
 ) (T, bool, error) {
 	var zero T
 
 	// List all resources (note: local/OSS doesn't have org-scoped queries)
-	resources, err := s.store.ListResources(ctx.Context(), kindName)
+	resources, err := s.store.ListResources(ctx.Context(), kind)
 	if err != nil {
+		// Extract kind name for error message
+		kindName, _ := apiresource.GetKindName(kind)
 		return zero, false, grpclib.InternalError(err, fmt.Sprintf("failed to list %s resources", kindName))
 	}
 
@@ -161,8 +155,8 @@ func (s *LoadByReferenceStep[T]) findBySlug(
 			continue
 		}
 
-		// Match by name (slug is stored in metadata.name)
-		if metadata.Name == slug {
+		// Match by slug
+		if metadata.Slug == slug {
 			// Additional org filter check (if org provided)
 			if org != "" && metadata.Org != org {
 				continue

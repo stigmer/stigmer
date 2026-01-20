@@ -1,18 +1,19 @@
 # Stigmer CLI
 
-Command-line interface for managing AI agents and workflows in Stigmer.
+Command-line interface for running Stigmer server locally.
 
 ## Architecture
 
 The CLI implements a clean **backend abstraction** inspired by Pulumi:
 
 **Local Mode** (default):
-- Connects to local daemon on `localhost:50051`
-- Daemon manages BadgerDB storage
+- Runs Stigmer server on `localhost:50051`
+- Auto-downloads and starts Temporal
+- Uses BadgerDB for embedded storage
 - Zero infrastructure - just files on disk
 - Perfect for development and personal use
 
-**Cloud Mode**:
+**Cloud Mode** (future):
 - Connects to Stigmer Cloud API at `api.stigmer.ai:443`
 - Multi-user collaboration
 - Production-scale infrastructure
@@ -22,47 +23,33 @@ The CLI implements a clean **backend abstraction** inspired by Pulumi:
 
 ## Quick Start
 
-### Initialize Local Backend
+### Start Stigmer Server
 
 ```bash
-stigmer init
+stigmer server
 ```
 
-This creates `~/.stigmer/` directory, config file, and starts the local daemon.
+That's it! On first run, this command:
+1. Creates `~/.stigmer/` directory
+2. Generates default config
+3. Downloads Temporal (if needed)
+4. Starts stigmer-server
+5. Starts agent-runner
 
-### Create an Agent
+### Manage Server
 
 ```bash
-stigmer agent create \
-  --name support-bot \
-  --instructions "You are a helpful customer support agent"
+# Check server status
+stigmer server status
+
+# Stop server
+stigmer server stop
+
+# Restart server
+stigmer server restart
 ```
 
-### Create a Workflow
-
-```bash
-stigmer workflow create \
-  --name customer-onboarding \
-  --description "Onboard new customers"
-```
-
-### Manage Local Daemon
-
-```bash
-# Check daemon status
-stigmer local status
-
-# Start daemon
-stigmer local start
-
-# Stop daemon
-stigmer local stop
-
-# Restart daemon
-stigmer local restart
-```
-
-### Switch to Cloud Backend
+### Switch to Cloud Backend (Future)
 
 ```bash
 stigmer backend set cloud
@@ -71,45 +58,26 @@ stigmer login
 
 ## Commands
 
-### Daemon Management
+### Server Management
 
 ```bash
-stigmer init                 # Initialize local backend
-stigmer local start          # Start local daemon
-stigmer local stop           # Stop local daemon
-stigmer local status         # Show daemon status
-stigmer local restart        # Restart daemon
+stigmer server              # Start server (auto-initializes)
+stigmer server stop         # Stop server
+stigmer server status       # Show server status
+stigmer server restart      # Restart server
 ```
 
 ### Backend Configuration
 
 ```bash
-stigmer backend status       # Show current backend
-stigmer backend set local    # Switch to local mode
-stigmer backend set cloud    # Switch to cloud mode
-```
-
-### Agent Management
-
-```bash
-stigmer agent create --name <name> --instructions <text>
-stigmer agent list
-stigmer agent get <id>
-stigmer agent delete <id>
-```
-
-### Workflow Management
-
-```bash
-stigmer workflow create --name <name> [--description <text>]
-stigmer workflow list
-stigmer workflow get <id>
-stigmer workflow delete <id>
+stigmer backend status      # Show current backend (local/cloud)
+stigmer backend set local   # Switch to local mode
+stigmer backend set cloud   # Switch to cloud mode
 ```
 
 ## Configuration
 
-Config file: `~/.stigmer/config.yaml`
+Config file: `~/.stigmer/config.yaml` (auto-created on first run)
 
 **Local mode**:
 ```yaml
@@ -120,7 +88,7 @@ backend:
     data_dir: ~/.stigmer/data
 ```
 
-**Cloud mode**:
+**Cloud mode** (future):
 ```yaml
 backend:
   type: cloud
@@ -129,19 +97,21 @@ backend:
     token: <your-token>
 ```
 
-## Local Daemon (ADR 011)
+## Stigmer Server
 
-The local daemon (`stigmer-server`) is a long-running Go process that:
+The Stigmer server is a long-running Go process that includes:
 
-- **API Server**: Serves gRPC on `localhost:50051`
-- **Data Guardian**: Manages exclusive BadgerDB connection
-- **Stream Broker**: Provides real-time updates via Go channels
-- **Supervisor**: Manages workflow and agent runner processes
+- **stigmer-server**: gRPC API server (localhost:50051)
+- **Temporal**: Workflow orchestration (auto-downloaded)
+- **BadgerDB**: Embedded local storage
+- **agent-runner**: AI agent execution runtime
 
 **Data directory**: `~/.stigmer/data/`
 - `daemon.pid` - Process ID
-- `logs/` - Daemon logs
+- `logs/` - Server logs
 - `badger/` - BadgerDB files
+
+**Access Temporal UI**: http://localhost:8233
 
 ## Build
 
@@ -149,8 +119,14 @@ The local daemon (`stigmer-server`) is a long-running Go process that:
 # Build CLI
 make build
 
-# Run directly
-make run ARGS="agent list"
+# Install to GOPATH/bin
+make install
+
+# Build, install, and verify
+make release-local
+
+# Run directly without installing
+make run ARGS="server status"
 
 # Clean build artifacts
 make clean
@@ -161,7 +137,7 @@ make clean
 The CLI is built with:
 - **cobra**: Command framework
 - **gRPC**: Backend communication
-- **BadgerDB**: Local storage (via daemon)
+- **BadgerDB**: Local storage (via server)
 - **YAML**: Configuration files
 
 **Project structure**:
@@ -172,24 +148,33 @@ client-apps/cli/
 ├── internal/cli/
 │   ├── backend/         # gRPC client
 │   ├── config/          # Config management
-│   ├── daemon/          # Daemon lifecycle
+│   ├── daemon/          # Server lifecycle
 │   ├── clierr/          # Error handling
 │   └── cliprint/        # Output formatting
 ├── main.go              # Entry point
 └── BUILD.bazel          # Build configuration
 ```
 
+## Resource Management
+
+Agents and workflows are managed through:
+- **Web UI**: Temporal UI at http://localhost:8233
+- **gRPC API**: Direct API calls to stigmer-server
+- **Future**: YAML-based declarative config (`stigmer apply -f agent.yaml`)
+
+The CLI focuses on server lifecycle management, not CRUD operations.
+
 ## Status
 
-✅ Complete CLI structure
+✅ Server lifecycle management (start/stop/status/restart)
 ✅ Backend abstraction (local + cloud)
 ✅ Configuration management
-✅ Daemon lifecycle management  
-✅ Agent CRUD commands
-✅ Workflow CRUD commands
-⏳ Proto import path fix needed (see KNOWN_ISSUES.md)
+✅ Auto-initialization on first run
+⏳ Cloud backend integration (planned)
+⏳ YAML-based resource management (planned)
 
 ## See Also
 
+- [Commands Reference](./COMMANDS.md)
 - [ADR 011: Local Daemon Architecture](../../docs/adr/20260118-190513-stigmer-local-deamon.md)
 - [Backend Architecture](../../backend/README.md)

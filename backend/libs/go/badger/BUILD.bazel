@@ -6,6 +6,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/libs/go/badger",
     visibility = ["//visibility:public"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "@com_github_dgraph_io_badger_v4//:badger",
         "@org_golang_google_protobuf//proto",
     ],
@@ -18,6 +19,8 @@ go_test(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//backend/libs/go/apiresource",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],

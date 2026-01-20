@@ -3,7 +3,6 @@ package steps
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	commonspb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
@@ -32,8 +31,7 @@ func TestLoadForApplyStep_ResourceExists(t *testing.T) {
 		},
 	}
 
-	kindName, _ := apiresource.GetKindName(apiresourcekind.ApiResourceKind_agent)
-	err := store.SaveResource(ctx, kindName, "existing-id-123", existing)
+	err := store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, "existing-id-123", existing)
 	if err != nil {
 		t.Fatalf("Failed to save test resource: %v", err)
 	}
@@ -241,8 +239,7 @@ func TestLoadForApplyStep_IntegrationWithPipeline(t *testing.T) {
 			Description: "Existing",
 		},
 	}
-	kindName, _ := apiresource.GetKindName(apiresourcekind.ApiResourceKind_agent)
-	store.SaveResource(ctx, kindName, "existing-id", existing)
+	store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, "existing-id", existing)
 
 	// Create input
 	input := &agentv1.Agent{

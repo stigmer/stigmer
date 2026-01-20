@@ -11,100 +11,87 @@ def test_graphton_imports():
     """Test that all Graphton imports work."""
     print("Testing Graphton imports...")
     
-    try:
-        # Main API (as used by agent-runner)
-        from graphton import create_deep_agent, AgentConfig
-        
-        # Template utilities
-        from graphton import extract_template_vars, has_templates, substitute_templates
-        
-        # Middleware
-        from graphton import McpToolsLoader
-        
-        print("✅ All Graphton imports successful")
-        print(f"   - create_deep_agent: {create_deep_agent.__name__}")
-        print(f"   - AgentConfig: {AgentConfig.__name__}")
-        return True
-    except ImportError as e:
-        print(f"❌ Import failed: {e}")
-        return False
+    # Main API (as used by agent-runner)
+    from graphton import create_deep_agent, AgentConfig
+    
+    # Template utilities
+    from graphton import extract_template_vars, has_templates, substitute_templates
+    
+    # Middleware
+    from graphton import McpToolsLoader
+    
+    print("✅ All Graphton imports successful")
+    print(f"   - create_deep_agent: {create_deep_agent.__name__}")
+    print(f"   - AgentConfig: {AgentConfig.__name__}")
 
 def test_agent_config():
     """Test creating a basic agent configuration."""
     print("\nTesting AgentConfig creation...")
     
-    try:
-        from graphton import AgentConfig
-        
-        config = AgentConfig(
-            model="claude-sonnet-4-20250514",
-            system_prompt="You are a helpful assistant.",
-            recursion_limit=100
-        )
-        
-        print(f"✅ AgentConfig created successfully")
-        print(f"   - Model: {config.model}")
-        print(f"   - System prompt: {config.system_prompt[:40]}...")
-        print(f"   - Recursion limit: {config.recursion_limit}")
-        return True
-    except Exception as e:
-        print(f"❌ AgentConfig creation failed: {e}")
-        return False
+    from graphton import AgentConfig
+    
+    config = AgentConfig(
+        model="claude-sonnet-4-20250514",
+        system_prompt="You are a helpful assistant.",
+        recursion_limit=100
+    )
+    
+    assert config.model == "claude-sonnet-4-20250514"
+    assert config.system_prompt == "You are a helpful assistant."
+    assert config.recursion_limit == 100
+    
+    print(f"✅ AgentConfig created successfully")
+    print(f"   - Model: {config.model}")
+    print(f"   - System prompt: {config.system_prompt[:40]}...")
+    print(f"   - Recursion limit: {config.recursion_limit}")
 
 def test_template_utilities():
     """Test template utility functions."""
     print("\nTesting template utilities...")
     
-    try:
-        from graphton import has_templates, extract_template_vars, substitute_templates
-        
-        # Test has_templates
-        assert has_templates("API_KEY={{token}}") == True
-        assert has_templates("no templates here") == False
-        
-        # Test extract_template_vars
-        vars = extract_template_vars({"auth": "Bearer {{token}}", "user": "{{user_id}}"})
-        assert "token" in vars
-        assert "user_id" in vars
-        
-        # Test substitute_templates
-        result = substitute_templates("Hello {{name}}", {"name": "World"})
-        assert result == "Hello World"
-        
-        print(f"✅ Template utilities working correctly")
-        print(f"   - has_templates: ✓")
-        print(f"   - extract_template_vars: ✓")
-        print(f"   - substitute_templates: ✓")
-        return True
-    except Exception as e:
-        print(f"❌ Template utilities failed: {e}")
-        return False
+    from graphton import has_templates, extract_template_vars, substitute_templates
+    
+    # Test has_templates
+    assert has_templates("API_KEY={{token}}") == True
+    assert has_templates("no templates here") == False
+    
+    # Test extract_template_vars
+    vars = extract_template_vars({"auth": "Bearer {{token}}", "user": "{{user_id}}"})
+    assert "token" in vars
+    assert "user_id" in vars
+    
+    # Test substitute_templates
+    result = substitute_templates("Hello {{name}}", {"name": "World"})
+    assert result == "Hello World"
+    
+    print(f"✅ Template utilities working correctly")
+    print(f"   - has_templates: ✓")
+    print(f"   - extract_template_vars: ✓")
+    print(f"   - substitute_templates: ✓")
 
 def test_sandbox_config():
     """Test sandbox configuration in AgentConfig."""
     print("\nTesting sandbox configuration...")
     
-    try:
-        from graphton import AgentConfig
-        import tempfile
+    from graphton import AgentConfig
+    import tempfile
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config = AgentConfig(
+            model="claude-sonnet-4-20250514",
+            system_prompt="Test agent",
+            sandbox_config={
+                "type": "filesystem",
+                "root_dir": tmpdir
+            }
+        )
         
-        with tempfile.TemporaryDirectory() as tmpdir:
-            config = AgentConfig(
-                model="claude-sonnet-4-20250514",
-                system_prompt="Test agent",
-                sandbox_config={
-                    "type": "filesystem",
-                    "root_dir": tmpdir
-                }
-            )
-            
-            print(f"✅ Sandbox config created successfully")
-            print(f"   - Sandbox type: {config.sandbox_config['type']}")
-            print(f"   - Root dir: {config.sandbox_config['root_dir']}")
-            return True
-    except Exception as e:
-        print(f"❌ Sandbox config failed: {e}")
-        return False
+        assert config.sandbox_config["type"] == "filesystem"
+        assert config.sandbox_config["root_dir"] == tmpdir
+        
+        print(f"✅ Sandbox config created successfully")
+        print(f"   - Sandbox type: {config.sandbox_config['type']}")
+        print(f"   - Root dir: {config.sandbox_config['root_dir']}")
 
 def main():
     """Run all tests."""

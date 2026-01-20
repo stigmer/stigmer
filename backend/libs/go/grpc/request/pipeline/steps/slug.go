@@ -3,7 +3,6 @@ package steps
 import (
 	"fmt"
 	"strings"
-	"unicode"
 
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"google.golang.org/protobuf/proto"
@@ -14,12 +13,16 @@ import (
 // The slug is generated according to these rules:
 //   - Convert to lowercase
 //   - Replace spaces with hyphens
-//   - Remove special characters (keep only alphanumeric and hyphens)
+//   - Remove special characters (keep only ASCII alphanumeric and hyphens)
 //   - Collapse multiple consecutive hyphens into one
 //   - Trim leading and trailing hyphens
-//   - Limit to 63 characters (Kubernetes DNS label limit)
+//   - No length truncation (preserves full slug to avoid collisions)
 //
 // If the slug is already set, this step is a no-op (idempotent).
+//
+// Note: Unlike previous versions, this does NOT truncate slugs to avoid
+// silent collisions where two different names generate the same slug.
+// If slug length is a concern, validation should be added at a higher layer.
 //
 // Example: "My Cool Agent" -> "my-cool-agent"
 type ResolveSlugStep[T proto.Message] struct{}
@@ -66,6 +69,10 @@ func (s *ResolveSlugStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 }
 
 // generateSlug converts a name into a URL-friendly slug
+//
+// This implementation matches the Java version (ApiRequestResourceSlugGenerator.generate)
+// by NOT truncating slugs. This prevents silent collisions where two different names
+// would generate the same slug after truncation.
 func generateSlug(name string) string {
 	// 1. Convert to lowercase
 	slug := strings.ToLower(name)
@@ -82,23 +89,21 @@ func generateSlug(name string) string {
 	// 5. Trim leading and trailing hyphens
 	slug = strings.Trim(slug, "-")
 
-	// 6. Limit to 63 characters (Kubernetes DNS label limit)
-	if len(slug) > 63 {
-		slug = slug[:63]
-		// Ensure we don't end with a hyphen after truncation
-		slug = strings.TrimRight(slug, "-")
-	}
+	// Note: No truncation - preserves full slug to avoid collisions
+	// If length validation is needed, it should be done at a higher layer
+	// with a clear error message rather than silent truncation
 
 	return slug
 }
 
-// removeNonAlphanumeric removes all characters except alphanumeric and hyphens
+// removeNonAlphanumeric removes all characters except ASCII alphanumeric, hyphens, and spaces
 func removeNonAlphanumeric(s string) string {
 	var builder strings.Builder
 	builder.Grow(len(s))
 
 	for _, r := range s {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' {
+		// Keep ASCII letters (a-z, A-Z), digits (0-9), hyphens, and spaces
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == ' ' {
 			builder.WriteRune(r)
 		}
 	}

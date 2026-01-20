@@ -22,8 +22,8 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/config"
-	grpcserver "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/grpc"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/config"
+	grpcserver "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/grpc"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

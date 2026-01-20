@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 - 2026 Zigflow authors <https://github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/graphs/contributors>
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/stigmer/stigmer/backend/services/workflow-runner/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,10 +19,10 @@ package tasks
 import (
 	"fmt"
 
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/claimcheck"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/types"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/utils"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/zigflow/metadata"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/claimcheck"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/types"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/metadata"
 	"github.com/rs/zerolog/log"
 	swUtil "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
 	"github.com/serverlessworkflow/sdk-go/v3/model"

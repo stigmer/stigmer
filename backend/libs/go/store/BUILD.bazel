@@ -5,5 +5,8 @@ go_library(
     srcs = ["interface.go"],
     importpath = "github.com/stigmer/stigmer/backend/libs/go/store",
     visibility = ["//visibility:public"],
-    deps = ["@org_golang_google_protobuf//proto"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "@org_golang_google_protobuf//proto",
+    ],
 )

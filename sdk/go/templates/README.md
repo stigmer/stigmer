@@ -45,19 +45,17 @@ Simple HTTP workflow with implicit task dependencies.
 
 ### AgentAndWorkflow()
 
-Combined example showing agent-workflow integration with GitHub repository analysis.
+Combined example showing agent-workflow integration with real GitHub PR analysis.
 
-**Used by**: `stigmer init` (default)
+**Used by**: `stigmer new` (default)
 
 **Demonstrates**:
-- Creating specialized agents (repository analyzer)
+- Creating AI agents with natural language instructions
 - Building workflows that call agents (`workflow.CallAgent()`)
-- Real-world API integration (GitHub API)
-- Context variables for configuration (`ctx.SetString()`)
+- Real-world API integration (GitHub PR from `stigmer/hello-stigmer`)
 - Task chaining with field references
-- Passing API data to AI agent for analysis
-- Environment variables in agent execution
-- Professional data processing pattern
+- Zero configuration - works out of the box!
+- Public API usage (no tokens required)
 
 ## Usage
 

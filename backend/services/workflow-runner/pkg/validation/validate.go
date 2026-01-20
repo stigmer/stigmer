@@ -19,8 +19,8 @@ package validation
 import (
 	"fmt"
 
-	workflowv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"buf.build/go/protovalidate"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -102,13 +102,24 @@ func ValidateTask(task *workflowv1.WorkflowTask) error {
 		return fmt.Errorf("task cannot be nil")
 	}
 
-	// 1. Unmarshal Struct → Typed Proto
+	// 1. Unmarshal Struct → Typed Proto (this also validates)
 	msg, err := UnmarshalTaskConfig(task.Kind, task.TaskConfig)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal task '%s': %w", task.Name, err)
+		// Add task context to validation errors if applicable
+		taskKind := task.Kind.String()
+		if valErrs, ok := err.(*ValidationErrors); ok {
+			// Add task name and kind to each error
+			for i := range valErrs.Errors {
+				valErrs.Errors[i].TaskName = task.Name
+				valErrs.Errors[i].TaskKind = taskKind
+			}
+			return err
+		}
+		// For non-validation errors, wrap with task context
+		return fmt.Errorf("failed to unmarshal task '%s' (%s): %w", task.Name, taskKind, err)
 	}
 
-	// 2. Validate Proto
+	// 2. Validate Proto (redundant now, but kept for backwards compatibility)
 	err = ValidateTaskConfig(msg)
 	if err != nil {
 		// Add task context to validation errors

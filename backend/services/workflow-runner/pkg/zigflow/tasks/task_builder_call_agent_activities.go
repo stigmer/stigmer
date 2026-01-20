@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 - 2026 Zigflow authors <https://github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/graphs/contributors>
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/stigmer/stigmer/backend/services/workflow-runner/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,13 +22,13 @@ import (
 	"sync"
 	"time"
 
-	agentv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	agentexecv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	executioncontextv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
-	workflowtasks "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
-	"github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/config"
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	workflowtasks "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"

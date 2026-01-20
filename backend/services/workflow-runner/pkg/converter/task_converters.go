@@ -17,7 +17,7 @@
 package converter
 
 import (
-	tasksv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
+	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 )
 
 // Type-safe task converters for Phase 3.

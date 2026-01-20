@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
 )
@@ -28,6 +29,11 @@ const (
 	AgentRunnerPIDFileName = "agent-runner.pid"
 )
 
+// StartOptions provides options for starting the daemon
+type StartOptions struct {
+	Progress *cliprint.ProgressDisplay // Optional progress display for UI
+}
+
 // Start starts the stigmer daemon in the background
 //
 // The daemon runs stigmer-server on localhost:50051 as per ADR 011.
@@ -37,6 +43,11 @@ const (
 // - Workflow runner (embedded)
 // - Agent runner (subprocess)
 func Start(dataDir string) error {
+	return StartWithOptions(dataDir, StartOptions{})
+}
+
+// StartWithOptions starts the daemon with custom options
+func StartWithOptions(dataDir string, opts StartOptions) error {
 	log.Debug().Str("data_dir", dataDir).Msg("Starting daemon")
 
 	// Check if already running
@@ -45,11 +56,17 @@ func Start(dataDir string) error {
 	}
 
 	// Ensure data directory exists
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseInitializing, "Setting up data directory")
+	}
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return errors.Wrap(err, "failed to create data directory")
 	}
 
 	// Load configuration
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseInitializing, "Loading configuration")
+	}
 	cfg, err := config.Load()
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to load config, using defaults")
@@ -67,7 +84,19 @@ func Start(dataDir string) error {
 		Str("llm_base_url", llmBaseURL).
 		Msg("Resolved LLM configuration")
 
+	// Show LLM provider message
+	if opts.Progress != nil {
+		if llmProvider == "ollama" {
+			cliprint.PrintSuccess("Using Ollama (no API key required)")
+		} else {
+			cliprint.PrintInfo("Using %s with model %s", llmProvider, llmModel)
+		}
+	}
+
 	// Gather provider-specific secrets
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseInitializing, "Gathering credentials")
+	}
 	secrets, err := GatherRequiredSecrets(llmProvider)
 	if err != nil {
 		return errors.Wrap(err, "failed to gather required secrets")
@@ -84,6 +113,9 @@ func Start(dataDir string) error {
 	// Start managed Temporal if configured
 	var temporalManager *temporal.Manager
 	if isManaged {
+		if opts.Progress != nil {
+			opts.Progress.SetPhase(cliprint.PhaseInstalling, "Setting up Temporal")
+		}
 		log.Info().Msg("Starting managed Temporal server...")
 		
 		temporalManager = temporal.NewManager(
@@ -96,6 +128,9 @@ func Start(dataDir string) error {
 			return errors.Wrap(err, "failed to ensure Temporal installation")
 		}
 		
+		if opts.Progress != nil {
+			opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting Temporal server")
+		}
 		if err := temporalManager.Start(); err != nil {
 			return errors.Wrap(err, "failed to start Temporal")
 		}
@@ -107,6 +142,9 @@ func Start(dataDir string) error {
 	}
 
 	// Find stigmer-server binary
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting Stigmer server")
+	}
 	serverBin, err := findServerBinary()
 	if err != nil {
 		return err
@@ -169,6 +207,9 @@ func Start(dataDir string) error {
 	time.Sleep(500 * time.Millisecond)
 
 	// Start agent-runner subprocess with LLM config and injected secrets
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting agent runner")
+	}
 	if err := startAgentRunner(dataDir, logDir, llmProvider, llmModel, llmBaseURL, temporalAddr, secrets); err != nil {
 		log.Error().Err(err).Msg("Failed to start agent-runner, continuing without it")
 		// Don't fail the entire daemon startup if agent-runner fails
@@ -481,12 +522,14 @@ func getPID(dataDir string) (int, error) {
 // 1. STIGMER_SERVER_BIN environment variable
 // 2. Same directory as CLI binary
 // 3. Build output directories (for development)
+// 4. Try to auto-build with Go if in development environment
 func findServerBinary() (string, error) {
 	// Check environment variable
 	if bin := os.Getenv("STIGMER_SERVER_BIN"); bin != "" {
 		if _, err := os.Stat(bin); err == nil {
 			return bin, nil
 		}
+		log.Warn().Str("path", bin).Msg("STIGMER_SERVER_BIN set but file not found")
 	}
 
 	// Check same directory as CLI
@@ -494,25 +537,55 @@ func findServerBinary() (string, error) {
 	if err == nil {
 		serverBin := filepath.Join(filepath.Dir(cliPath), "stigmer-server")
 		if _, err := os.Stat(serverBin); err == nil {
+			log.Debug().Str("path", serverBin).Msg("Found stigmer-server in same directory as CLI")
 			return serverBin, nil
 		}
 	}
 
-	// Check bazel-bin directory (development)
+	// Check common development paths
 	possiblePaths := []string{
-		"bazel-bin/backend/services/stigmer-server/cmd/server/server_/server",
-		"./server", // if running from backend/services/stigmer-server
-		"../backend/services/stigmer-server/server", // if running from cli
+		"bin/stigmer-server",                                                  // make build-backend
+		"bazel-bin/backend/services/stigmer-server/cmd/server/server_/server", // bazel build
+		"./stigmer-server",                                                    // current directory
+		"backend/services/stigmer-server/stigmer-server",                      // from workspace root
 	}
 
 	for _, path := range possiblePaths {
 		if _, err := os.Stat(path); err == nil {
 			absPath, _ := filepath.Abs(path)
+			log.Debug().Str("path", absPath).Msg("Found stigmer-server")
 			return absPath, nil
 		}
 	}
 
-	return "", errors.New("stigmer-server binary not found (set STIGMER_SERVER_BIN environment variable)")
+	// Try to auto-build if we're in a development environment
+	if workspaceRoot := findWorkspaceRoot(); workspaceRoot != "" {
+		log.Info().Msg("stigmer-server not found, attempting to build it...")
+		
+		serverPath := filepath.Join(workspaceRoot, "bin", "stigmer-server")
+		buildCmd := exec.Command("go", "build", "-o", serverPath, "./backend/services/stigmer-server/cmd/server")
+		buildCmd.Dir = workspaceRoot
+		
+		if output, err := buildCmd.CombinedOutput(); err != nil {
+			log.Error().
+				Err(err).
+				Str("output", string(output)).
+				Msg("Failed to auto-build stigmer-server")
+		} else {
+			log.Info().Str("path", serverPath).Msg("Successfully built stigmer-server")
+			return serverPath, nil
+		}
+	}
+
+	return "", errors.New(`stigmer-server binary not found
+
+Please build it first:
+  make release-local    (recommended - builds and installs both CLI and server)
+  
+Or:
+  go build -o ~/bin/stigmer-server ./backend/services/stigmer-server/cmd/server
+
+Or set STIGMER_SERVER_BIN environment variable to point to the binary`)
 }
 
 // findAgentRunnerScript finds the agent-runner run script
@@ -526,9 +599,20 @@ func findAgentRunnerScript() (string, error) {
 		if _, err := os.Stat(script); err == nil {
 			return script, nil
 		}
+		log.Warn().Str("path", script).Msg("STIGMER_AGENT_RUNNER_SCRIPT set but file not found")
 	}
 
-	// Check default location (from workspace root)
+	// Try to find workspace root first
+	workspaceRoot := findWorkspaceRoot()
+	if workspaceRoot != "" {
+		scriptPath := filepath.Join(workspaceRoot, "backend/services/agent-runner/run.sh")
+		if _, err := os.Stat(scriptPath); err == nil {
+			log.Debug().Str("path", scriptPath).Msg("Found agent-runner script")
+			return scriptPath, nil
+		}
+	}
+
+	// Fallback: Check relative paths
 	possiblePaths := []string{
 		"backend/services/agent-runner/run.sh",
 		"./backend/services/agent-runner/run.sh",
@@ -538,9 +622,52 @@ func findAgentRunnerScript() (string, error) {
 	for _, path := range possiblePaths {
 		if _, err := os.Stat(path); err == nil {
 			absPath, _ := filepath.Abs(path)
+			log.Debug().Str("path", absPath).Msg("Found agent-runner script")
 			return absPath, nil
 		}
 	}
 
 	return "", errors.New("agent-runner script not found (set STIGMER_AGENT_RUNNER_SCRIPT environment variable)")
+}
+
+// findWorkspaceRoot attempts to find the Stigmer workspace root
+// by looking for characteristic files like go.mod, MODULE.bazel, etc.
+func findWorkspaceRoot() string {
+	// Start from current directory
+	dir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	// Walk up the directory tree looking for workspace markers
+	for {
+		// Check for Stigmer-specific markers
+		markers := []string{
+			"MODULE.bazel",
+			filepath.Join("backend", "services", "stigmer-server"),
+			filepath.Join("client-apps", "cli"),
+		}
+
+		allFound := true
+		for _, marker := range markers {
+			if _, err := os.Stat(filepath.Join(dir, marker)); err != nil {
+				allFound = false
+				break
+			}
+		}
+
+		if allFound {
+			return dir
+		}
+
+		// Move up one directory
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached root
+			break
+		}
+		dir = parent
+	}
+
+	return ""
 }

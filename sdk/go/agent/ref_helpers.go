@@ -41,9 +41,10 @@ func toExpression(value interface{}) string {
 		return v
 	case StringValue:
 		// For synthesis, we need the actual value, not an expression
+		// Check StringValue BEFORE Ref because StringRef implements both interfaces
 		return v.Value()
 	case Ref:
-		// Fallback: get the expression (though this is uncommon for agents)
+		// Use Expression() for context variables and computed expressions
 		return v.Expression()
 	default:
 		// Fallback: convert to string

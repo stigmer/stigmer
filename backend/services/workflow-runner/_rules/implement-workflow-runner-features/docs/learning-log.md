@@ -16,6 +16,7 @@ This document captures lessons learned while implementing workflow-runner featur
 - [Claim Check Pattern](#claim-check-pattern)
 - [gRPC Server](#grpc-server)
 - [Bazel Build](#bazel-build)
+- [Go Modules & Dependencies](#go-modules--dependencies)
 - [Protobuf & Code Generation](#protobuf--code-generation)
 - [Testing](#testing)
 - [Error Handling](#error-handling)
@@ -3494,6 +3495,188 @@ deps = [
 - RegisterActivityWithOptions for polyglot activity name matching
 - Temporal SDK dependency management
 - Bazel strict dependency mode
+
+---
+
+## Go Modules & Dependencies
+
+### 2026-01-20 - Module Path Migration Pattern (Stigmer Cloud → Stigmer OSS)
+
+**Problem**: After migrating workflow-runner from `stigmer-cloud` repo to `stigmer` OSS repo, all tests failed with "no required module provides package" errors. Compilation completely broken.
+
+**Symptoms**:
+```bash
+# github.com/leftbin/stigmer-cloud/backend/services/workflow-runner
+../../../apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1/spec.pb.go:10:2: 
+  no required module provides package github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1
+```
+
+All packages failed setup with missing module errors for proto stubs.
+
+**Root Cause**:
+When code was migrated between repos with different module paths:
+1. `go.mod` module declaration wasn't updated (still pointed to `stigmer-cloud`)
+2. Replace directives still referenced old module paths
+3. Import statements in 21+ files still used old module path
+4. Proto-generated files import from `stigmer` but code expected `stigmer-cloud`
+
+**Solution - Complete Module Path Migration**:
+
+**Step 1: Update go.mod Module Declaration**
+```go
+// Before - Wrong (copied from stigmer-cloud)
+module github.com/leftbin/stigmer-cloud/backend/services/workflow-runner
+
+// After - Correct (matches stigmer repo)
+module github.com/stigmer/stigmer/backend/services/workflow-runner
+```
+
+**Step 2: Update Replace Directives**
+```go
+// Before - Wrong (points to non-existent stigmer-cloud APIs)
+replace github.com/leftbin/stigmer-cloud/apis/stubs/go => ../../../apis/stubs/go
+
+// After - Correct (points to stigmer APIs)
+replace github.com/stigmer/stigmer/apis/stubs/go => ../../../apis/stubs/go
+```
+
+**Step 3: Update Proto Stubs Dependency**
+```go
+require (
+    // Before - Wrong
+    github.com/leftbin/stigmer-cloud/apis/stubs/go v0.0.0-00010101000000-000000000000
+    
+    // After - Correct
+    github.com/stigmer/stigmer/apis/stubs/go v0.0.0-00010101000000-000000000000
+)
+```
+
+**Step 4: Update ALL Import Statements**
+
+Need to update TWO types of imports:
+
+**A) External API Imports (Proto Stubs)**:
+```go
+// Before - Wrong
+import (
+    workflowv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+    "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/commons/apiresource"
+)
+
+// After - Correct
+import (
+    workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+    "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+)
+```
+
+**B) Internal Package Imports (Within Workflow-Runner)**:
+```go
+// Before - Wrong
+import (
+    "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/validation"
+    "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/converter"
+)
+
+// After - Correct
+import (
+    "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/validation"
+    "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/converter"
+)
+```
+
+**Step 5: Run go mod tidy**
+```bash
+cd backend/services/workflow-runner
+go mod tidy
+```
+
+This resolves dependencies and verifies module paths are correct.
+
+**Step 6: Verify With Tests**
+```bash
+cd backend/services/workflow-runner
+go test ./...
+```
+
+**Mono-Repo Module Organization Pattern**:
+
+```
+github.com/stigmer/stigmer/          # Root mono-repo
+├── go.mod                           # Root module (rarely used)
+├── apis/stubs/go/                   # Proto stubs (separate module)
+│   └── go.mod                       # module: github.com/stigmer/stigmer/apis/stubs/go
+└── backend/services/
+    └── workflow-runner/             # Service (separate module)
+        └── go.mod                   # module: github.com/stigmer/stigmer/backend/services/workflow-runner
+                                     # replace: github.com/stigmer/stigmer/apis/stubs/go => ../../../apis/stubs/go
+```
+
+**Key Patterns**:
+
+1. **Services have independent modules** - Each service can manage its own dependencies
+2. **Proto stubs are separate module** - Allows version pinning and selective updates
+3. **Replace directives for local development** - Points to local stubs during development
+4. **Module path must match repo** - Critical for proper resolution
+
+**Migration Checklist** (when moving code between repos):
+
+```bash
+# 1. Update go.mod module declaration
+#    Change: github.com/OLD_REPO/... → github.com/NEW_REPO/...
+
+# 2. Update go.mod replace directives  
+#    Change: github.com/OLD_REPO/apis/... → github.com/NEW_REPO/apis/...
+
+# 3. Update go.mod require statements
+#    Change: github.com/OLD_REPO/apis/... → github.com/NEW_REPO/apis/...
+
+# 4. Find and replace ALL import statements (external APIs)
+find . -name "*.go" -type f -exec sed -i '' 's|github.com/OLD_REPO/apis/stubs/go|github.com/NEW_REPO/apis/stubs/go|g' {} +
+
+# 5. Find and replace ALL import statements (internal packages)
+find . -name "*.go" -type f -exec sed -i '' 's|github.com/OLD_REPO/backend/services/SERVICE|github.com/NEW_REPO/backend/services/SERVICE|g' {} +
+
+# 6. Run go mod tidy to verify
+go mod tidy
+
+# 7. Run tests IMMEDIATELY to catch issues
+go test ./...
+```
+
+**Common Gotchas**:
+
+1. **Missing internal imports** - Easy to update external API imports but forget internal package imports
+2. **Nested modules** - If service has nested modules (tests, cmd), update those too
+3. **Proto-generated files** - These import from the module path in proto files, ensure proto generation is correct
+4. **IDE caching** - IDE may cache old module paths, restart IDE or reload workspace
+5. **Test immediately** - Don't wait to run tests, module issues are caught instantly by compilation
+
+**When This Happens**:
+
+- Migrating service from one repo to another
+- Moving code from closed-source to open-source repo
+- Reorganizing mono-repo structure
+- Copying reference implementation from different repo
+
+**Impact**:
+- ✅ All packages compile successfully
+- ✅ Tests run (claimcheck, utils, zigflow, golden tests pass)
+- ✅ Import resolution works correctly
+- ✅ Unblocks development and integration testing
+
+**Files Affected**: 21+ `.go` files, `go.mod`, `go.sum`
+
+**Lessons Learned**:
+1. Module paths are **everywhere** - go.mod is just the start
+2. Both external and internal imports need updating
+3. Test immediately after migration to catch issues early
+4. Sed/find-replace is your friend for bulk import updates
+5. go mod tidy validates module configuration
+
+**Related**:
+- Changelog: `_changelog/2026-01/2026-01-20-025554-fix-workflow-runner-module-dependencies.md`
+- See also: "Protobuf & Code Generation" section for proto module organization
 
 ---
 

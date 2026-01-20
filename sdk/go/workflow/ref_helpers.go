@@ -80,19 +80,23 @@ func toExpression(value interface{}) string {
 	case float64:
 		return fmt.Sprintf("%f", v)
 	
-	// SMART RESOLUTION: Check for known values BEFORE falling back to Expression()
+	// IMPORTANT: Check value interfaces BEFORE Ref interface
+	// This allows resolved StringRef/IntRef/BoolRef to return their values
+	// instead of empty expressions from Expression()
 	case StringValue:
-		// This is a known string value - return it directly
+		// This is a known string value - return it directly (compile-time resolution)
 		return v.Value()
 	case IntValue:
-		// This is a known int value - convert to string
+		// This is a known int value - convert to string (compile-time resolution)
 		return fmt.Sprintf("%d", v.Value())
 	case BoolValue:
-		// This is a known bool value - convert to string
+		// This is a known bool value - convert to string (compile-time resolution)
 		return fmt.Sprintf("%t", v.Value())
 	
-	// Runtime expression (task outputs, computed values)
+	// Check Ref last (for runtime expressions like task field outputs)
 	case Ref:
+		// Use Expression() for context variables and computed expressions
+		// This handles TaskFieldRef and other runtime references
 		return v.Expression()
 	
 	default:

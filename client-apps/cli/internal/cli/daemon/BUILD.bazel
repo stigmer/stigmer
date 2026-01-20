@@ -4,11 +4,13 @@ go_library(
     name = "daemon",
     srcs = [
         "daemon.go",
+        "download.go",
         "secrets.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon",
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
+        "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/internal/cli/config",
         "//client-apps/cli/internal/cli/temporal",
         "@com_github_pkg_errors//:errors",
