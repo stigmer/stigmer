@@ -46,6 +46,7 @@ const (
 // - Org workflows: Instance must be in same org or user-scoped (no cross-org instances)
 func (c *WorkflowInstanceController) Create(ctx context.Context, instance *workflowinstancev1.WorkflowInstance) (*workflowinstancev1.WorkflowInstance, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, instance)
+	reqCtx.SetNewState(instance)
 
 	p := c.buildCreatePipeline()
 

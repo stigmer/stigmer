@@ -40,6 +40,7 @@ const (
 // - TransformResponse step (no response transformations in OSS)
 func (c *WorkflowController) Create(ctx context.Context, workflow *workflowv1.Workflow) (*workflowv1.Workflow, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, workflow)
+	reqCtx.SetNewState(workflow)
 
 	p := c.buildCreatePipeline()
 

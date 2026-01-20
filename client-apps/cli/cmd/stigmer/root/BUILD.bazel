@@ -3,20 +3,13 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "root",
     srcs = [
-        "agent.go",
         "backend.go",
-        "init.go",
-        "local.go",
-        "version.go",
-        "workflow.go",
+        "new.go",
+        "server.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/cmd/stigmer/root",
     visibility = ["//visibility:public"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
-        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
-        "//apis/stubs/go/ai/stigmer/commons/apiresource",
-        "//client-apps/cli/internal/cli/backend",
         "//client-apps/cli/internal/cli/clierr",
         "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/internal/cli/config",
