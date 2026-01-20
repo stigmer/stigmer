@@ -17,10 +17,10 @@ import (
 
 // Client is the gRPC client for communicating with stigmer-server
 //
-// Works with both local daemon (localhost:50051) and cloud (api.stigmer.ai:443)
+// Works with both local daemon (localhost:7234) and cloud (api.stigmer.ai:443)
 // The only difference is the endpoint and whether TLS is used.
 //
-// Local:  localhost:50051 (insecure)
+// Local:  localhost:7234 (insecure)
 // Cloud:  api.stigmer.ai:443 (TLS + auth token)
 type Client struct {
 	endpoint string
@@ -68,7 +68,7 @@ func NewClient(cfg *config.Config) (*Client, error) {
 		}
 		endpoint = cfg.Backend.Local.Endpoint
 		if endpoint == "" {
-			endpoint = "localhost:50051" // default from ADR 011
+			endpoint = "localhost:7234" // default port (Temporal + 1)
 		}
 		isCloud = false
 
