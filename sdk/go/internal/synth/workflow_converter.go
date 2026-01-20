@@ -106,8 +106,13 @@ func workflowToProtoWithContext(wf *workflow.Workflow, contextVars map[string]in
 		Kind:       "Workflow",
 	}
 
-	// Convert metadata (placeholder - would need actual metadata proto structure)
-	// For now, we'll focus on the spec
+	// Initialize metadata with the workflow name
+	// The name is the primary identifier and MUST be set for the backend
+	// to properly resolve slug and store the resource
+	protoWorkflow.Metadata = &apiresource.ApiResourceMetadata{
+		Name: wf.Document.Name,
+		// Note: Org and OwnerScope are set by the deployer based on backend mode
+	}
 
 	// Convert spec with context variable injection
 	spec, err := workflowSpecToProtoWithContext(wf, contextVars)
