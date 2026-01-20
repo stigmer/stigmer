@@ -130,6 +130,24 @@ client-apps/cli/embedded/
 
 **Estimated time**: 45 minutes
 
+### Task 6: Documentation Update (After Completion)
+
+⚠️ **Important**: After Task 6 (end-to-end testing) completes, update product documentation:
+
+**Files to update:**
+- `docs/guides/distribution.md` - Change from two-binary to single-binary distribution model
+- `docs/architecture/packaging-flow.md` - Update diagrams to show embedded binary approach
+- `docs/README.md` - Update links if needed
+
+**Changes needed:**
+- Document single-binary distribution (not two binaries)
+- Explain embedded binary extraction to `~/.stigmer/bin/`
+- Update binary discovery logic (no more "same directory" search)
+- Simplify installation instructions (one binary instead of two)
+- Add architecture diagram for embedding + extraction
+
+**Rationale**: Documentation should reflect WORKING features. Update once when complete (Task 6) rather than incrementally.
+
 ## Documentation References
 
 - Changelog: `_changelog/2026-01/2026-01-21-005000-implement-cli-binary-embedding-infrastructure.md`
