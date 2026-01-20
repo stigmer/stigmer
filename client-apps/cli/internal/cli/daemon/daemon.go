@@ -224,9 +224,6 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		Str("data_dir", dataDir).
 		Msg("Daemon started successfully")
 
-	// Wait a moment for server to start
-	time.Sleep(500 * time.Millisecond)
-
 	// Start workflow-runner subprocess (Temporal worker mode)
 	if opts.Progress != nil {
 		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting workflow runner")
@@ -654,16 +651,18 @@ func IsRunning(dataDir string) bool {
 		_ = os.Remove(filepath.Join(dataDir, PIDFileName))
 	}
 
-	// Fallback: Try to connect and verify it's actually stigmer-server
+	// Fallback: Try to connect with grpc.WithBlock() to verify server is actually ready
 	// This handles cases where the PID file is missing but server is actually running
-	// We do a real gRPC call to ensure it's our server, not just any process on that port
+	// Using WithBlock() ensures we only return true if the server is ready to accept requests
 	endpoint := fmt.Sprintf("localhost:%d", DaemonPort)
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	
+	// Short timeout - we're just checking if it's running, not waiting for startup
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	
 	conn, err := grpc.DialContext(ctx, endpoint,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
+		grpc.WithBlock(), // Block until connection is established or timeout
 	)
 	if err != nil {
 		log.Debug().Err(err).Msg("Daemon is not running (connection failed)")
@@ -671,7 +670,7 @@ func IsRunning(dataDir string) bool {
 	}
 	defer conn.Close()
 
-	// Successfully connected - stigmer-server is running (even without PID file)
+	// Successfully connected with blocking dial - server is definitely running and ready
 	log.Warn().
 		Str("endpoint", endpoint).
 		Msg("Daemon is running but PID file is missing - this may cause issues with 'stigmer server stop'")
@@ -710,14 +709,9 @@ func EnsureRunning(dataDir string) error {
 	cliprint.PrintSuccess("✓ Daemon started successfully")
 	fmt.Println()
 
-	// Wait for daemon to be ready to accept connections
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	endpoint := fmt.Sprintf("localhost:%d", DaemonPort)
-	if err := WaitForReady(ctx, endpoint); err != nil {
-		return errors.Wrap(err, "daemon started but not responding")
-	}
+	// No need to wait here - the gRPC client connection with WithBlock()
+	// will automatically wait until the server is ready when commands try to connect
+	// This is cleaner than polling and works reliably
 
 	return nil
 }
@@ -740,38 +734,25 @@ func GetStatus(dataDir string) (running bool, pid int) {
 
 // WaitForReady waits for the daemon to be ready to accept connections
 //
-// This polls the gRPC server until it responds to a connection attempt,
-// ensuring it's fully initialized before returning.
+// Uses gRPC's built-in blocking dial to wait until the server is ready.
+// This is more reliable than polling and respects the context timeout.
 func WaitForReady(ctx context.Context, endpoint string) error {
-	// Poll every 500ms until the server responds or context times out
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
+	log.Debug().
+		Str("endpoint", endpoint).
+		Msg("Waiting for daemon to be ready")
 
-	for {
-		select {
-		case <-ctx.Done():
-			return errors.Wrap(ctx.Err(), "daemon did not become ready in time")
-		case <-ticker.C:
-			// Try to connect to the gRPC server
-			dialCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			conn, err := grpc.DialContext(dialCtx, endpoint,
-				grpc.WithTransportCredentials(insecure.NewCredentials()),
-				grpc.WithBlock(),
-			)
-			cancel()
-
-			if err != nil {
-				// Server not ready yet, continue polling
-				log.Debug().Err(err).Msg("Daemon not ready yet, retrying...")
-				continue
-			}
-
-			// Successfully connected - server is ready
-			conn.Close()
-			log.Debug().Msg("Daemon is ready to accept connections")
-			return nil
-		}
+	// Use blocking dial - this automatically waits until server is ready or timeout
+	conn, err := grpc.DialContext(ctx, endpoint,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(), // Block until connection is established
+	)
+	if err != nil {
+		return errors.Wrap(err, "daemon did not become ready in time")
 	}
+	conn.Close()
+
+	log.Debug().Msg("Daemon is ready to accept connections")
+	return nil
 }
 
 // getPID reads the PID from the PID file
