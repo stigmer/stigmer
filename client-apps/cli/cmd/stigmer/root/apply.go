@@ -267,7 +267,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.W
 	// Step 7: Deploy resources
 	progressCallback := func(msg string) {
 		if !opts.Quiet {
-			cliprint.PrintInfo(msg)
+			cliprint.PrintInfo("%s", msg)
 		}
 	}
 	
