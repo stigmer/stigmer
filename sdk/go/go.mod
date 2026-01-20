@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/stigmer/stigmer/apis/stubs/go v0.0.0
+	github.com/stigmer/stigmer/apis/stubs/go v0.0.0-20260120004624-4578a34f018e
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/protobuf v1.36.11
 )
