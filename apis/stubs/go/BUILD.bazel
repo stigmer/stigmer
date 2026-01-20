@@ -1,3 +1,0 @@
-# Stigmer API Stubs (Go)
-# This is a marker BUILD file to make the apis/stubs/go directory a Bazel package.
-# The actual stub libraries are defined in subdirectories.
