@@ -1,6 +1,12 @@
 # Stigmer Server Logs
 
-The `stigmer server logs` command provides Kubernetes-like log access for the Stigmer server daemon.
+The `stigmer server logs` command provides Kubernetes-like log access for the Stigmer server daemon with unified log viewing, automatic rotation, and real-time streaming.
+
+**Key Features (as of January 2026)**:
+- **Unified viewing** - View logs from all components in a single stream with `--all`
+- **Automatic rotation** - Logs are archived on restart with 7-day retention
+- **Real-time streaming** - Follow logs as they're written (default behavior)
+- **Component isolation** - View individual component logs with `-c` flag
 
 ## Quick Reference
 
@@ -42,6 +48,22 @@ When you run `stigmer server logs`, it operates in two phases (Kubernetes-style)
 2. **Phase 2 - Live Streaming**: Continuously streams new log lines as they're written
 
 This gives you context (what happened before) while keeping you updated (what's happening now).
+
+```mermaid
+flowchart LR
+    A[stigmer server logs] --> B{--all flag?}
+    B -->|Yes| C[Read all component logs]
+    B -->|No| D[Read single component log]
+    C --> E[Parse timestamps]
+    D --> E
+    E --> F[Sort by timestamp]
+    F --> G[Print last N lines]
+    G --> H{--follow?}
+    H -->|Yes| I[Stream new logs in real-time]
+    H -->|No| J[Exit]
+    I --> K[User presses Ctrl+C]
+    K --> J
+```
 
 ```bash
 # Default: Show last 50 lines + stream new logs
@@ -119,6 +141,32 @@ stigmer server logs --follow --stderr
 ### How It Works
 
 The `--all` flag interleaves logs from all three components (`server`, `agent-runner`, `workflow-runner`) sorted by timestamp, with component prefixes for easy identification:
+
+```mermaid
+flowchart TB
+    subgraph "Log Files"
+        A[daemon.log]
+        B[agent-runner.log]
+        C[workflow-runner.log]
+    end
+    
+    subgraph "Processing"
+        D[Parse timestamps]
+        E[Merge by timestamp]
+        F[Add component prefixes]
+    end
+    
+    subgraph "Output"
+        G[Unified chronological stream]
+    end
+    
+    A --> D
+    B --> D
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+```
 
 ```bash
 $ stigmer server logs --all --tail 20 --follow=false
@@ -427,6 +475,17 @@ tail -f ~/.stigmer/data/logs/daemon.err
 
 When you run `stigmer server restart`, existing logs are automatically archived with timestamps:
 
+```mermaid
+stateDiagram-v2
+    [*] --> ActiveLogs: Server Running
+    ActiveLogs --> Rotation: Server Restart
+    Rotation --> ArchivedLogs: Add timestamp suffix
+    Rotation --> FreshLogs: Create new empty files
+    FreshLogs --> ActiveLogs: Server Running
+    ArchivedLogs --> Cleanup: After 7 days
+    Cleanup --> [*]: Delete old archives
+```
+
 **Before restart:**
 ```bash
 ~/.stigmer/data/logs/
@@ -653,6 +712,33 @@ The CLI can't read the log files.
 # Fix permissions
 chmod 644 ~/.stigmer/data/logs/*.{log,err}
 ```
+
+---
+
+## Recent Enhancements
+
+### January 2026: Log Management Improvements
+
+**Unified Log Viewing**:
+- New `--all` flag to view all components in a single stream
+- Automatic timestamp-based interleaving across components
+- Component prefixes for easy identification
+- Works with both streaming and non-streaming modes
+
+**Automatic Log Rotation**:
+- Logs automatically archived on server restart
+- Timestamp-based naming (`daemon.log.2026-01-20-150405`)
+- 7-day retention policy with automatic cleanup
+- Only non-empty files are rotated
+- Non-fatal errors (server continues even if rotation fails)
+
+**Why These Enhancements?**
+
+**Unified viewing** solves the "three-terminal problem" - you no longer need multiple terminals to see what's happening across all components. Everything is chronologically sorted in one place, making debugging and understanding system behavior significantly easier.
+
+**Log rotation** prevents log bloat from accumulating over time. Without rotation, a long-running server could accumulate gigabytes of logs. With rotation, each restart gives you a fresh start while preserving history for debugging.
+
+Together, these features make Stigmer's log management feel **professional** and **production-ready**, matching the experience of tools like Kubernetes and Docker Compose.
 
 ---
 

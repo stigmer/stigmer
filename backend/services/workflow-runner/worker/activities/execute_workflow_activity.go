@@ -86,7 +86,7 @@ func NewExecuteWorkflowActivity(
 // ExecuteWorkflow executes a Zigflow workflow from WorkflowExecution proto.
 //
 // This method signature matches the Java interface:
-//   @ActivityMethod
+//   @ActivityMethod(name = "ExecuteWorkflow")
 //   WorkflowExecutionStatus executeWorkflow(WorkflowExecution execution);
 //
 // Implementation steps:
