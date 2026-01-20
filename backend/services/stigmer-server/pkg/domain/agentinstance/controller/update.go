@@ -11,8 +11,8 @@ import (
 // Update updates an existing agent instance using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ValidateProto - Validate proto field constraints using buf validate
-// 2. ResolveSlug - Generate slug from metadata.name (for fallback lookup)
+// 1. ResolveSlug - Generate slug from metadata.name (must be before validation, for fallback lookup)
+// 2. ValidateProto - Validate proto field constraints using buf validate
 // 3. LoadExisting - Load existing agent instance from repository by ID
 // 4. BuildUpdateState - Merge spec, preserve IDs, update timestamps, clear computed fields
 // 5. Persist - Save updated agent instance to repository
@@ -39,8 +39,8 @@ func (c *AgentInstanceController) buildUpdatePipeline() *pipeline.Pipeline[*agen
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*agentinstancev1.AgentInstance]("agent-instance-update").
-		AddStep(steps.NewValidateProtoStep[*agentinstancev1.AgentInstance]()).       // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*agentinstancev1.AgentInstance]()).         // 2. Resolve slug (for fallback lookup)
+		AddStep(steps.NewResolveSlugStep[*agentinstancev1.AgentInstance]()).         // 1. Resolve slug (must be before validation, for fallback lookup)
+		AddStep(steps.NewValidateProtoStep[*agentinstancev1.AgentInstance]()).       // 2. Validate field constraints
 		AddStep(steps.NewLoadExistingStep[*agentinstancev1.AgentInstance](c.store)). // 3. Load existing instance
 		AddStep(steps.NewBuildUpdateStateStep[*agentinstancev1.AgentInstance]()).    // 4. Build updated state
 		AddStep(steps.NewPersistStep[*agentinstancev1.AgentInstance](c.store)).      // 5. Persist instance

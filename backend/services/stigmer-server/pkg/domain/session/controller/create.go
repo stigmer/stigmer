@@ -11,8 +11,8 @@ import (
 // Create creates a new session using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
-// 2. ResolveSlug - Generate slug from metadata.name
+// 1. ResolveSlug - Generate slug from metadata.name (must be before validation)
+// 2. ValidateFieldConstraints - Validate proto field constraints using buf validate
 // 3. CheckDuplicate - Verify no duplicate exists
 // 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 5. Persist - Save session to repository
@@ -45,8 +45,8 @@ func (c *SessionController) buildCreatePipeline() *pipeline.Pipeline[*sessionv1.
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*sessionv1.Session]("session-create").
-		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).         // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).           // 2. Resolve slug
+		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).           // 1. Resolve slug (must be before validation)
+		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).         // 2. Validate field constraints
 		AddStep(steps.NewCheckDuplicateStep[*sessionv1.Session](c.store)). // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*sessionv1.Session]()).         // 4. Build new state
 		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).        // 5. Persist session

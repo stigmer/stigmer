@@ -22,10 +22,10 @@ const (
 // Create creates a new workflow instance using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
-// 2. LoadParentWorkflow - Load and validate workflow template exists
-// 3. ValidateSameOrgBusinessRule - Verify same-org for org-scoped instances
-// 4. ResolveSlug - Generate slug from metadata.name
+// 1. ResolveSlug - Generate slug from metadata.name (must be before validation)
+// 2. ValidateFieldConstraints - Validate proto field constraints using buf validate
+// 3. LoadParentWorkflow - Load and validate workflow template exists
+// 4. ValidateSameOrgBusinessRule - Verify same-org for org-scoped instances
 // 5. CheckDuplicate - Verify no duplicate exists
 // 6. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 7. Persist - Save workflow instance to repository
@@ -62,10 +62,10 @@ func (c *WorkflowInstanceController) buildCreatePipeline() *pipeline.Pipeline[*w
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowinstancev1.WorkflowInstance]("workflow-instance-create").
-		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()).         // 1. Validate field constraints
-		AddStep(newLoadParentWorkflowStep(c.workflowClient)).                                 // 2. Load parent workflow
-		AddStep(newValidateSameOrgBusinessRuleStep()).                                        // 3. Validate same-org business rule
-		AddStep(steps.NewResolveSlugStep[*workflowinstancev1.WorkflowInstance]()).           // 4. Resolve slug (CRITICAL: before checkDuplicate)
+		AddStep(steps.NewResolveSlugStep[*workflowinstancev1.WorkflowInstance]()).           // 1. Resolve slug (must be before validation)
+		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()).         // 2. Validate field constraints
+		AddStep(newLoadParentWorkflowStep(c.workflowClient)).                                 // 3. Load parent workflow
+		AddStep(newValidateSameOrgBusinessRuleStep()).                                        // 4. Validate same-org business rule
 		AddStep(steps.NewCheckDuplicateStep[*workflowinstancev1.WorkflowInstance](c.store)). // 5. Check duplicate (needs resolved slug)
 		AddStep(steps.NewBuildNewStateStep[*workflowinstancev1.WorkflowInstance]()).         // 6. Build new state
 		AddStep(steps.NewPersistStep[*workflowinstancev1.WorkflowInstance](c.store)).        // 7. Persist workflow instance

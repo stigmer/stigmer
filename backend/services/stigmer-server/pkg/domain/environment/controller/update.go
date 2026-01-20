@@ -11,8 +11,8 @@ import (
 // Update updates an existing environment using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ValidateProto - Validate proto field constraints using buf validate
-// 2. ResolveSlug - Generate slug from metadata.name (for fallback lookup)
+// 1. ResolveSlug - Generate slug from metadata.name (must be before validation, for fallback lookup)
+// 2. ValidateProto - Validate proto field constraints using buf validate
 // 3. LoadExisting - Load existing environment from repository by ID
 // 4. BuildUpdateState - Merge spec, preserve IDs, update timestamps, clear computed fields
 // 5. Persist - Save updated environment to repository
@@ -39,8 +39,8 @@ func (c *EnvironmentController) buildUpdatePipeline() *pipeline.Pipeline[*enviro
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*environmentv1.Environment]("environment-update").
-		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).       // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).         // 2. Resolve slug (for fallback lookup)
+		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).         // 1. Resolve slug (must be before validation, for fallback lookup)
+		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).       // 2. Validate field constraints
 		AddStep(steps.NewLoadExistingStep[*environmentv1.Environment](c.store)). // 3. Load existing environment
 		AddStep(steps.NewBuildUpdateStateStep[*environmentv1.Environment]()).    // 4. Build updated state
 		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).      // 5. Persist environment
