@@ -139,6 +139,18 @@ func (c *StigmerConfig) GetMainFilePath() (string, error) {
 	return filepath.Join(baseDir, c.Main), nil
 }
 
+// InStigmerProjectDirectory checks if the current directory contains a Stigmer.yaml file
+func InStigmerProjectDirectory() bool {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return false
+	}
+
+	stigmerPath := filepath.Join(cwd, DefaultStigmerConfigFilename)
+	_, err = os.Stat(stigmerPath)
+	return err == nil
+}
+
 // WriteStigmerConfig writes a StigmerConfig to the specified path
 func WriteStigmerConfig(path string, config *StigmerConfig) error {
 	if path == "" {

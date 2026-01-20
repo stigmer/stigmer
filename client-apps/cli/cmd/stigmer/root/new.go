@@ -112,11 +112,26 @@ func newHandler(cmd *cobra.Command, args []string) {
 	// Create project directory if needed
 	if projectDir != "." {
 		if err := os.MkdirAll(projectDir, 0755); err != nil {
-			cliprint.PrintError("Failed to create project directory")
+			cliprint.PrintError("Failed to create project directory: %v", err)
 			clierr.Handle(err)
 			return
 		}
 	}
+
+	// Verify directory is writable before proceeding
+	testFile := filepath.Join(projectDir, ".stigmer-test")
+	if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+		cliprint.PrintError("Directory is not writable: %v", err)
+		cliprint.PrintInfo("Please check directory permissions")
+		// Cleanup test file if it was created
+		os.Remove(testFile)
+		// Cleanup project directory if we created it
+		if projectDir != "." {
+			os.RemoveAll(projectDir)
+		}
+		return
+	}
+	os.Remove(testFile)
 
 	// Generate all project files
 	steps := []struct {
@@ -132,17 +147,16 @@ func newHandler(cmd *cobra.Command, args []string) {
 	}
 
 	for _, step := range steps {
-		cliprint.PrintSuccess("Creating %s", step.name)
 		filePath := filepath.Join(projectDir, step.filename)
 		if err := os.WriteFile(filePath, []byte(step.content), 0644); err != nil {
-			cliprint.PrintError("Failed to create %s", step.filename)
-			clierr.Handle(err)
+			cliprint.PrintError("Failed to create %s: %v", step.filename, err)
 			// Cleanup on failure (only if we created a new directory)
 			if projectDir != "." {
 				os.RemoveAll(projectDir)
 			}
 			return
 		}
+		cliprint.PrintSuccess("Creating %s", step.name)
 	}
 
 	// Install dependencies
@@ -212,7 +226,7 @@ func generateGoMod(projectName string) string {
 	
 	// Generate go.mod with replace directives to ensure both SDK and stubs use the version with tracked stubs
 	// This overrides the SDK's internal replace directives which only work inside the stigmer repo
-	// Using commit fc443b1640d1 which includes the tracked stubs directory
+	// Using commit cfa15f93ba61 (2026-01-21) which includes workflow metadata fix
 	return fmt.Sprintf(`module %s
 
 go 1.24
@@ -221,9 +235,9 @@ require (
 	github.com/stigmer/stigmer/sdk/go v0.0.0-00010101000000-000000000000
 )
 
-replace github.com/stigmer/stigmer/sdk/go => github.com/stigmer/stigmer/sdk/go v0.0.0-20260120005545-fc443b1640d1
+replace github.com/stigmer/stigmer/sdk/go => github.com/stigmer/stigmer/sdk/go v0.0.0-20260120203025-cfa15f93ba61
 
-replace github.com/stigmer/stigmer/apis/stubs/go => github.com/stigmer/stigmer/apis/stubs/go v0.0.0-20260120005545-fc443b1640d1
+replace github.com/stigmer/stigmer/apis/stubs/go => github.com/stigmer/stigmer/apis/stubs/go v0.0.0-20260120203025-cfa15f93ba61
 `, moduleName)
 }
 

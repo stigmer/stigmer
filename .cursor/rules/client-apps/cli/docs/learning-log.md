@@ -755,3 +755,692 @@ func handleServerRestart() {
 **Changelog**: `_changelog/2026-01/2026-01-20-194409-fix-server-restart-orphaned-processes.md`
 
 **Key Pattern**: For long-running daemons, implement PID file → port discovery → health check tiers with unconditional lifecycle operations.
+
+---
+
+### 2026-01-20 - Interactive Prompts with Survey Package
+
+**Problem**: Need to present users with multiple choices when discovering agents/workflows:
+- Multiple resources found during auto-discovery
+- Need clean, user-friendly selection interface
+- Standard CLI prompts look primitive
+
+**Root Cause**: Go's standard input functions (`fmt.Scan`) don't provide interactive selection menus.
+
+**Solution**: Use `github.com/AlecAivazis/survey/v2` for interactive prompts:
+
+```go
+import "github.com/AlecAivazis/survey/v2"
+
+// Create selection prompt
+prompt := &survey.Select{
+    Message: "Select resource to run:",
+    Options: optionLabels, // []string of display names
+}
+
+var selectedIndex int
+err := survey.AskOne(prompt, &selectedIndex)
+if err != nil {
+    // Handle cancellation (Ctrl+C)
+    return
+}
+
+// Use selectedIndex to get the chosen option
+```
+
+**Features**:
+- Arrow keys for navigation
+- Enter to select
+- Ctrl+C to cancel gracefully
+- Clean terminal output
+- Cross-platform support
+
+**Prevention**:
+- Use survey package for any CLI interactive selections
+- Don't implement custom terminal input handling
+- Provides better UX than stdin reading
+- Handles terminal escapes and control characters
+
+**Related Docs**:
+- Implementation: `client-apps/cli/cmd/stigmer/root/run.go`
+- Package: https://github.com/AlecAivazis/survey
+
+---
+
+### 2026-01-20 - Smart Code Synchronization Pattern (Apply-Before-Run)
+
+**Problem**: Users editing code locally but running stale versions:
+- Edit agent/workflow code
+- Run `stigmer run <name>`
+- Old version executes (forgot to run `stigmer apply`)
+- Confusion: "I changed it but it's not working"
+
+**Root Cause**: Separation of deployment (`apply`) and execution (`run`) creates cognitive overhead.
+
+**Solution**: Implement "apply-before-run" pattern with project directory detection:
+
+```go
+func runReferenceMode(reference string, ...) {
+    // Check if we're in a Stigmer project directory
+    inProjectDir := config.InStigmerProjectDirectory()
+    
+    if inProjectDir {
+        // In project: auto-apply latest code first
+        cliprint.PrintInfo("📁 Detected Stigmer project - applying latest code")
+        deployedAgents, deployedWorkflows, err := ApplyCodeMode(...)
+        // Then run the resource
+    } else {
+        // Outside project: run deployed resource directly
+        // No apply needed
+    }
+}
+
+// Helper function
+func InStigmerProjectDirectory() bool {
+    cwd, err := os.Getwd()
+    if err != nil {
+        return false
+    }
+    stigmerPath := filepath.Join(cwd, "Stigmer.yaml")
+    _, err = os.Stat(stigmerPath)
+    return err == nil
+}
+```
+
+**Mental Model**:
+```
+Inside project directory = Development mode → Auto-apply
+Outside project directory = Execution mode → No auto-apply
+```
+
+**Benefits**:
+- Eliminates "stale code" confusion
+- Fast iteration (edit → run → see results)
+- Matches user intent naturally
+- No extra commands to remember
+
+**Prevention**:
+- For dev tools with code-driven resources, auto-sync when in project context
+- Detect project directory presence (Stigmer.yaml, package.json, etc.)
+- Different behavior inside vs outside project makes sense to users
+- Document the mental model clearly
+
+**Related Docs**:
+- Implementation: `client-apps/cli/cmd/stigmer/root/run.go`
+- Documentation: `docs/cli/running-agents-workflows.md`
+- Changelog: `_changelog/2026-01/2026-01-20-implement-stigmer-run-command.md`
+
+**Key Takeaway**: For IaC/code-driven tools, smart context detection (in/out of project) enables better UX than forcing users to remember separate commands.
+
+---
+
+### 2026-01-20 - Dual-Mode Command Design (Auto-Discovery vs Reference)
+
+**Problem**: Need to support different user workflows:
+- Quick testing: "Just run something from my project"
+- Targeted execution: "Run this specific agent"
+- First-time use: "Show me what I have"
+
+**Root Cause**: Single command pattern doesn't cover both exploratory and targeted workflows.
+
+**Solution**: Design command with two modes based on arguments:
+
+**Mode 1 - Auto-Discovery** (no arguments):
+```bash
+stigmer run  # Discovers all resources, prompts if multiple
+```
+
+**Mode 2 - Reference** (with name/ID):
+```bash
+stigmer run my-agent      # Runs specific resource
+stigmer run agt_01abc123  # By ID
+```
+
+**Implementation Pattern**:
+```go
+func NewRunCommand() *cobra.Command {
+    cmd := &cobra.Command{
+        Run: func(cmd *cobra.Command, args []string) {
+            hasReference := len(args) > 0
+            
+            if hasReference {
+                // REFERENCE MODE: Run specific resource
+                reference := args[0]
+                runReferenceMode(reference, ...)
+            } else {
+                // AUTO-DISCOVERY MODE: Discover and prompt
+                runAutoDiscoveryMode(...)
+            }
+        },
+    }
+    return cmd
+}
+```
+
+**Benefits**:
+- Single command covers multiple workflows
+- No separate `stigmer discover` command needed
+- Natural: no args = explore, with args = target
+- Matches Docker pattern: `docker ps` (list) vs `docker ps <container>` (specific)
+
+**Prevention**:
+- Consider dual-mode design for commands with exploratory + targeted use cases
+- Use arg presence/absence to switch modes
+- Provide helpful output in auto-discovery mode
+- Support both names and IDs in reference mode
+
+**Related Docs**:
+- Implementation: `client-apps/cli/cmd/stigmer/root/run.go`
+- Pattern similar to: `docker ps`, `kubectl get`, `terraform apply`
+
+**Key Takeaway**: Dual-mode commands (args-based switching) can replace multiple separate commands while maintaining clear UX.
+
+---
+
+### 2026-01-20 - Workflow-First Resolution Pattern
+
+**Problem**: Users want to run either agents or workflows without remembering which is which.
+
+**Root Cause**: Separate commands for agents vs workflows creates cognitive overhead:
+```bash
+stigmer agent run my-thing      # Is it an agent?
+stigmer workflow run my-thing   # Or a workflow?
+```
+
+**Solution**: Single command that checks both, workflows first:
+
+```go
+func runResourceMode(reference string, ...) {
+    // Try workflow first
+    workflow, workflowErr := resolveWorkflow(reference, orgID, conn)
+    if workflowErr == nil {
+        executeWorkflow(workflow, ...)
+        return
+    }
+    
+    // Workflow not found - try agent
+    agent, agentErr := resolveAgent(reference, orgID, conn)
+    if agentErr == nil {
+        executeAgent(agent, ...)
+        return
+    }
+    
+    // Neither found - helpful error
+    cliprint.PrintError("Agent or Workflow not found: %s", reference)
+}
+```
+
+**Why Workflows First**:
+- Workflows often orchestrate agents (higher-level concept)
+- If both have same name, workflow is usually what user wants
+- Can be changed to user preference if needed
+
+**Benefits**:
+- Single command for both resource types
+- No need to remember which is which
+- Helpful error mentions both types
+- Matches user mental model ("just run it")
+
+**Prevention**:
+- For similar resource types, implement unified execution
+- Provide clear error messages listing all types checked
+- Document resolution order in help text
+- Consider making order configurable if needed
+
+**Related Docs**:
+- Implementation: `client-apps/cli/cmd/stigmer/root/run.go`
+- Similar to: Kubernetes `kubectl get <resource>` (checks all types)
+
+---
+
+### 2026-01-20 - Project Directory Detection Helper
+
+**Problem**: Multiple CLI commands need to know if they're in a Stigmer project directory.
+
+**Root Cause**: Duplicating the same `Stigmer.yaml` check logic across multiple commands.
+
+**Solution**: Create reusable helper function in config package:
+
+```go
+// InStigmerProjectDirectory checks if current directory contains a Stigmer.yaml file
+func InStigmerProjectDirectory() bool {
+    cwd, err := os.Getwd()
+    if err != nil {
+        return false
+    }
+    
+    stigmerPath := filepath.Join(cwd, DefaultStigmerConfigFilename)
+    _, err = os.Stat(stigmerPath)
+    return err == nil
+}
+```
+
+**Usage**:
+```go
+// In any command
+if config.InStigmerProjectDirectory() {
+    // Project-specific behavior
+} else {
+    // Non-project behavior
+}
+```
+
+**Benefits**:
+- Single source of truth for project detection
+- Consistent behavior across commands
+- Easy to extend (check additional files, validate content)
+- No error handling needed at call sites
+
+**Prevention**:
+- Create helper functions for common checks
+- Place in appropriate package (config for project detection)
+- Make it simple boolean return (no error to handle)
+- Document the check criteria
+
+**Related Docs**:
+- Implementation: `client-apps/cli/internal/cli/config/stigmer.go`
+- Used by: `apply`, `run`, future commands
+
+**Key Takeaway**: Common checks deserve helper functions. Boolean return (instead of error) simplifies usage when false is an acceptable answer.
+
+---
+
+### 2026-01-20 - Log Rotation Pattern for Daemon Restarts
+
+**Problem**: Log files grew indefinitely, consuming disk space and making it hard to find recent logs in long-running development environments.
+
+**Root Cause**: No log rotation strategy - logs accumulated from all previous sessions in a single file.
+
+**Solution**: Automatic log rotation on daemon restart with timestamp-based archiving and 7-day cleanup:
+
+**Implementation Pattern**:
+```go
+// In daemon.Start(), before starting services
+func Start(dataDir string) error {
+    // Rotate logs before starting new session
+    if err := rotateLogsIfNeeded(dataDir); err != nil {
+        log.Warn().Err(err).Msg("Failed to rotate logs, continuing anyway")
+        // Don't fail daemon startup if log rotation fails
+    }
+    
+    // Start services (logs written to fresh files)
+    // ...
+}
+
+func rotateLogsIfNeeded(dataDir string) error {
+    logDir := filepath.Join(dataDir, "logs")
+    timestamp := time.Now().Format("2006-01-02-150405") // YYYY-MM-DD-HHMMSS
+    
+    logFiles := []string{
+        "daemon.log", "daemon.err",
+        "agent-runner.log", "agent-runner.err",
+        "workflow-runner.log", "workflow-runner.err",
+    }
+    
+    for _, logFile := range logFiles {
+        oldPath := filepath.Join(logDir, logFile)
+        
+        // Only rotate if file exists and is non-empty
+        if stat, err := os.Stat(oldPath); err == nil && stat.Size() > 0 {
+            newPath := fmt.Sprintf("%s.%s", oldPath, timestamp)
+            os.Rename(oldPath, newPath)
+        }
+    }
+    
+    // Cleanup old archives (7 days retention)
+    return cleanupOldLogs(logDir, 7)
+}
+
+func cleanupOldLogs(logDir string, keepDays int) error {
+    cutoff := time.Now().AddDate(0, 0, -keepDays)
+    
+    files, _ := filepath.Glob(filepath.Join(logDir, "*.log.*"))
+    for _, file := range files {
+        if info, err := os.Stat(file); err == nil {
+            if info.ModTime().Before(cutoff) {
+                os.Remove(file)
+            }
+        }
+    }
+    return nil
+}
+```
+
+**Key Decisions**:
+- **Timestamp-based naming** (`daemon.log.2026-01-20-150405`): Easy to identify when logs are from, natural sorting
+- **Only rotate non-empty files**: Avoids clutter from empty log files
+- **Non-fatal errors**: Log rotation failure doesn't prevent daemon startup (warn but continue)
+- **7-day retention**: Balances disk space with debugging needs (industry standard)
+- **Rotate on restart, not stop**: New session = fresh logs (clearer session boundaries)
+
+**Benefits**:
+- Prevents disk space exhaustion
+- Clear session boundaries (find logs for specific restart)
+- Preserves history for debugging (7 days of archives)
+- Professional UX (matches nginx, syslog, production log management)
+
+**Prevention**:
+- Consider log rotation for any long-running daemon or server
+- Choose between timestamp-based vs sequential naming
+- Decide retention policy based on debugging needs
+- Make rotation errors non-fatal if daemon is more important
+
+**Related Docs**:
+- Implementation: `client-apps/cli/internal/cli/daemon/daemon.go`
+- Documentation: `docs/cli/server-logs.md` (Log Rotation section)
+- Changelog: `_changelog/2026-01/2026-01-20-234758-cli-log-management-enhancements.md`
+
+**Key Takeaway**: Log rotation on daemon restart provides clear session boundaries and prevents disk bloat. Use timestamp-based naming. Make rotation errors non-fatal.
+
+---
+
+### 2026-01-20 - Multi-File Log Streaming with Goroutines
+
+**Problem**: Users had to view logs from each daemon component separately, making it hard to understand system-wide behavior and correlate events.
+
+**Root Cause**: Single-file streaming approach - no way to merge logs from multiple files in real-time.
+
+**Solution**: Goroutine-based multi-file streaming with central channel for merging.
+
+**Key Pattern**: One goroutine per file + central channel for collecting lines.
+
+**Benefits**:
+- System-wide visibility (complete picture)
+- Kubernetes/docker-compose UX (familiar)
+- No manual mental correlation needed
+- Reduces cognitive load
+
+**Key Decisions**:
+- Goroutine per file (concurrent reading)
+- Central channel (merge streams)
+- Buffered channel (100) prevents blocking
+- 100ms poll interval (balance responsiveness/CPU)
+- Handle file rotation (detect size shrink)
+
+**Related Docs**:
+- Implementation: `client-apps/cli/internal/cli/logs/streamer.go`
+- Documentation: `docs/cli/server-logs.md` (Unified Log Viewing section)
+- Changelog: `_changelog/2026-01/2026-01-20-234758-cli-log-management-enhancements.md`
+
+**Key Takeaway**: Use goroutines + central channel for multi-file streaming. Handle file rotation. Parse timestamps flexibly. Buffer channels.
+
+---
+
+### 2026-01-20 - Log Utilities Package Structure Pattern
+
+**Problem**: Adding log features in command handlers created large files (200+ lines) and mixed concerns.
+
+**Root Cause**: Violation of Single Responsibility Principle.
+
+**Solution**: Extract into dedicated `logs` package:
+
+```
+internal/cli/logs/
+├── types.go       (15 lines)  - Data structures
+├── parser.go      (59 lines)  - Timestamp parsing
+├── merger.go      (76 lines)  - Log merging
+└── streamer.go    (103 lines) - Multi-file streaming
+```
+
+**Benefits**:
+- Single responsibility per file
+- All files under 150 lines
+- Reusable by other commands
+- Testable pure functions
+- Thin command handlers
+
+**Prevention**:
+- Create dedicated package for significant features
+- Keep files under 150 lines
+- One responsibility per file
+- Avoid generic names (utils, helpers)
+
+**Related Docs**:
+- Implementation: `client-apps/cli/internal/cli/logs/`
+- Coding guidelines: `.cursor/rules/client-apps/cli/coding-guidelines.mdc`
+- Changelog: `_changelog/2026-01/2026-01-20-234758-cli-log-management-enhancements.md`
+
+**Key Takeaway**: Extract complex features into dedicated packages. Single responsibility per file. Keep files under 150 lines.
+
+---
+
+## Build System & Distribution
+
+### 2026-01-21 - Go Embed + Gazelle Integration for Binary Embedding
+
+**Problem**: Need to embed platform-specific binaries (stigmer-server, workflow-runner, agent-runner) into CLI for self-contained distribution, while maintaining Bazel build system compatibility.
+
+**Root Cause**: CLI distribution required separate binaries. Users needed to install stigmer-server, workflow-runner, and agent-runner separately, leading to:
+- Version mismatches when rebuilding only one component
+- Complex binary search paths (~200 lines of fallback logic)
+- Installation complexity (multiple files via Homebrew)
+- Broken installations (users forget to install all components)
+
+**Solution**: Use Go `embed` package with Gazelle auto-detection.
+
+**Key Insight**: Gazelle automatically detects `//go:embed` directives and adds `embedsrcs` field to BUILD.bazel. NO manual BUILD file edits needed.
+
+**Results**:
+- Single binary distribution: 123 MB (vs 2-4 separate binaries)
+- Fast extraction: < 3s first run, < 1s subsequent
+- Version sync guaranteed: All components from same build
+- Simplified installation: One binary via Homebrew
+- Works offline: No downloads after install
+
+**Related Docs**:
+- Implementation: `client-apps/cli/embedded/`
+- Release guide: `client-apps/cli/RELEASE.md`
+- Changelog: `_changelog/2026-01/2026-01-21-011338-cli-embedded-binary-packaging.md`
+
+**Key Takeaway**: Go embed + Gazelle works seamlessly. Gazelle auto-detects embed directives and manages BUILD files. Use platform-specific builds (not universal binary). Extract on first run with version checking.
+
+---
+
+### 2026-01-21 - No Fallbacks Architecture for Production Binary Finding
+
+**Problem**: Binary search logic had 200 lines of fallback paths checking development locations. This created confusion about which binary was actually running and leaked development paths into production.
+
+**Solution**: Remove ALL fallbacks. Production uses ONLY extracted binaries. Dev mode uses ONLY env vars.
+
+**Code Reduction**:
+- Total: 295 lines → 90 lines (70% reduction)
+- findWorkspaceRoot(): 40 lines → DELETED
+
+**Clear Separation**:
+- Production: Uses only `~/.stigmer/data/bin/{binary}` (extracted)
+- Development: Uses only env vars (`STIGMER_*_BIN`, `STIGMER_*_SCRIPT`)
+- No overlap: No implicit fallbacks
+
+**Related Docs**:
+- Implementation: `client-apps/cli/internal/cli/daemon/daemon.go`
+- Changelog: `_changelog/2026-01/2026-01-21-011338-cli-embedded-binary-packaging.md`
+
+**Key Takeaway**: No fallbacks is better than smart fallbacks. Production uses ONLY extracted binaries. Dev mode uses ONLY env vars. Clear separation prevents confusion.
+
+---
+
+### 2026-01-21 - Version Checking Optimization for Binary Extraction
+
+**Problem**: Extracting binaries on every daemon start would add 3+ seconds to startup time.
+
+**Solution**: Version checking with `.version` marker file - Check version before extracting, skip if version matches.
+
+**Performance**:
+- First run: 3s (extract all binaries)
+- Version upgrade: 3s (re-extract on mismatch)
+- Subsequent runs: < 1s (version check only)
+
+**Trade-off**: 3x faster subsequent starts (3s → 1s), worth the ~50 lines of complexity.
+
+**Related Docs**:
+- Implementation: `client-apps/cli/embedded/version.go`
+- Changelog: `_changelog/2026-01/2026-01-21-011338-cli-embedded-binary-packaging.md`
+
+**Key Takeaway**: Version checking optimizes expensive operations. Check before extraction. Fast path for common case. Automatic re-extraction on upgrade.
+
+---
+
+### 2026-01-21 - Source-Only Tarball Distribution for Platform-Portable Code
+
+**Problem**: Agent-runner is Python code. Embedding full venv would be 80+ MB and platform-specific.
+
+**Solution**: Embed source code only as tar.gz, install dependencies on first run via poetry.
+
+**Results**:
+- Tarball size: 25 KB (source code only)
+- vs venv: 80 MB (3200x smaller!)
+- Platform portable: Same tarball works on darwin + linux
+- Fresh dependencies: `poetry install` gets latest compatible versions
+
+**Trade-off**: 5s one-time dependency installation vs 240 MB embedded. Worth it.
+
+**Related Docs**:
+- Implementation: `Makefile` embed-agent-runner target
+- Extraction: `client-apps/cli/embedded/extract.go`
+- Changelog: `_changelog/2026-01/2026-01-21-011338-cli-embedded-binary-packaging.md`
+
+**Key Takeaway**: For Python code, embed source only (not venv). Install dependencies at runtime. 3200x size reduction + platform portability.
+
+
+### 2026-01-21 - gRPC Blocking Dial Pattern for Reliable Connections
+
+**Problem**: `stigmer apply` would fail with "Cannot connect to stigmer-server" when the server was started in a different terminal or conversation context, even though the server was running and the PID file existed.
+
+**Example User Experience**:
+```bash
+# Terminal 1
+$ stigmer server restart
+✓ Server restarted successfully
+  PID:  41114
+  Port: 7234
+
+# Terminal 2 (immediately after)
+$ stigmer apply
+Error: Cannot connect to stigmer-server
+
+Is the server running?
+  stigmer server
+```
+
+**Root Cause**: Race condition caused by three issues:
+
+1. **Non-Blocking Dial**: `grpc.DialContext()` without `grpc.WithBlock()` returns immediately before the connection is actually established
+2. **Arbitrary Sleep Timing**: 500ms sleep after daemon start assumed server would be ready, but this was unreliable (especially with embedded binary extraction adding startup time)
+3. **Manual Verification Attempts**: Trying to manually verify connection after non-blocking dial created additional race windows
+
+**Technical Details**:
+```go
+// ❌ OLD PATTERN: Non-blocking dial
+conn, err := grpc.DialContext(ctx, endpoint, opts...)
+// Returns immediately - connection not ready!
+
+// Then manually verify with RPC call
+if err := c.verifyConnection(ctx); err != nil {
+    // Race condition: Server might not be ready yet
+    return err
+}
+```
+
+**Solution**: Use industry-standard blocking dial pattern with `grpc.WithBlock()`:
+
+```go
+// ✅ NEW PATTERN: Blocking dial with timeout
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+
+opts = append(opts, grpc.WithBlock())  // Block until connected
+conn, err := grpc.DialContext(ctx, endpoint, opts...)
+// Connection is GUARANTEED ready when this returns (or timeout error)
+```
+
+**Why This Works**:
+- `grpc.WithBlock()` makes `DialContext` wait until the TCP connection is established and server responds
+- Context timeout (10s) provides reasonable wait for server startup
+- No need for manual verification - the dial itself proves the server is ready
+- Eliminates all timing-related race conditions
+
+**Changes Made**:
+
+1. **Client Connection** (`client.go`):
+   - Added `grpc.WithBlock()` to all connection attempts
+   - Added 10s timeout for server startup scenarios
+   - Removed manual `verifyConnection()` RPC call (not needed with blocking dial)
+
+2. **Daemon Management** (`daemon.go`):
+   - Removed 500ms arbitrary sleep after daemon start
+   - Updated `IsRunning()` to use `grpc.WithBlock()` with 1s timeout (short - just checking status)
+   - Simplified `WaitForReady()` from 40 lines of polling to 12 lines with blocking dial
+   - Server doesn't wait - clients block until ready (cleaner separation)
+
+3. **Code Reduction**:
+   - Total: -70 lines (5.2% reduction)
+   - Removed all sleep-based timing
+   - Removed polling loop in `WaitForReady()`
+   - Removed manual verification logic
+
+**Prevention**:
+
+✅ **ALWAYS use `grpc.WithBlock()` for CLI→server connections**
+- CLI tools should block until server is ready
+- Use appropriate timeout based on context:
+  - 10s for commands that might trigger server startup
+  - 1-2s for status checks of already-running servers
+
+❌ **NEVER rely on arbitrary sleep/wait times**
+- `time.Sleep(500ms)` assumptions break as systems change
+- Embedded binaries, slow machines, different platforms all affect timing
+
+❌ **NEVER use non-blocking dials without explicit reason**
+- Non-blocking is for async/streaming scenarios, not CLIs
+- Manual verification after non-blocking dial creates race windows
+
+✅ **Let gRPC handle the waiting**
+- `grpc.WithBlock()` is built for this use case
+- More reliable than manual polling/verification
+- Industry standard (used by kubectl, docker CLI, terraform)
+
+**Context Timeout Strategy**:
+```go
+// Client connections (might need to wait for startup): 10s
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+// Status checks (expect already running): 1s  
+ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+```
+
+**Testing**:
+```bash
+# Scenario 1: Server already running
+$ stigmer apply
+✓ Connected immediately (< 100ms)
+
+# Scenario 2: Server starting
+$ stigmer server &
+$ stigmer apply  # Called immediately
+✓ Blocks until server ready (< 3s)
+✓ Connects successfully
+
+# Scenario 3: Multi-terminal workflow (original bug)
+# Terminal 1
+$ stigmer server restart
+✓ Server restarted
+
+# Terminal 2 (immediately)
+$ stigmer apply
+✓ Blocks until server ready
+✓ Connects successfully
+✓ NO MORE RACE CONDITION!
+```
+
+**Industry Precedent**:
+- **kubectl** (Kubernetes CLI): Uses `grpc.WithBlock()` for API server connections
+- **docker** CLI: Blocks until daemon responds
+- **terraform**: Blocks provider connections with timeouts
+
+**Related Docs**:
+- Implementation: `client-apps/cli/internal/cli/backend/client.go`
+- Implementation: `client-apps/cli/internal/cli/daemon/daemon.go`
+- Changelog: `_changelog/2026-01/2026-01-21-014002-fix-grpc-connection-race-condition.md`
+- gRPC docs: https://grpc.io/docs/languages/go/basics/ (WithBlock pattern)
+
+**Key Takeaway**: For CLI→server gRPC connections, ALWAYS use `grpc.WithBlock()` with appropriate context timeouts. This is the industry-standard pattern that eliminates race conditions and provides reliable connection behavior. Don't use arbitrary sleeps or manual verification - trust gRPC's built-in blocking dial.

@@ -21,6 +21,23 @@ The CLI implements a clean **backend abstraction** inspired by Pulumi:
 
 **Same CLI. Same commands. Different backend.**
 
+## Distribution
+
+The Stigmer CLI is a **single self-contained binary** (~123 MB) that embeds all required components:
+- `stigmer-server` (Go backend)
+- `workflow-runner` (Temporal worker for Zigflow)
+- `agent-runner` (Temporal worker for AI agents)
+
+**On first run**, the CLI automatically extracts these binaries to `~/.stigmer/data/bin/` (< 3 seconds). This happens transparently - you just run `stigmer server` and it works.
+
+**Benefits**:
+- ✅ **Works completely offline** - No downloads after install
+- ✅ **Version sync guaranteed** - All components from same build
+- ✅ **Simple installation** - One binary, no dependencies
+- ✅ **Homebrew-friendly** - Platform-specific bottles
+
+**For developers**: See `RELEASE.md` for build and release process details.
+
 ## Quick Start
 
 ### Start Stigmer Server
@@ -32,9 +49,9 @@ stigmer server
 That's it! On first run, this command:
 1. Creates `~/.stigmer/` directory
 2. Generates default config
-3. Downloads Temporal (if needed)
-4. Starts stigmer-server
-5. Starts agent-runner
+3. **Extracts embedded binaries** (< 3 seconds, one-time)
+4. Downloads Temporal (if needed)
+5. Starts stigmer-server, workflow-runner, agent-runner
 
 ### Manage Server
 
@@ -137,6 +154,7 @@ make clean
 The CLI is built with:
 - **cobra**: Command framework
 - **gRPC**: Backend communication
+- **Go embed**: Binary embedding (stigmer-server, workflow-runner, agent-runner)
 - **BadgerDB**: Local storage (via server)
 - **YAML**: Configuration files
 
@@ -145,6 +163,10 @@ The CLI is built with:
 client-apps/cli/
 ├── cmd/stigmer/          # Command definitions
 │   └── root/            # Individual commands
+├── embedded/            # Binary embedding package
+│   ├── embedded.go     # Platform detection & embed directives
+│   ├── extract.go      # Extraction logic
+│   └── version.go      # Version checking
 ├── internal/cli/
 │   ├── backend/         # gRPC client
 │   ├── config/          # Config management
@@ -154,6 +176,40 @@ client-apps/cli/
 ├── main.go              # Entry point
 └── BUILD.bazel          # Build configuration
 ```
+
+### Building Locally
+
+```bash
+# Build CLI with embedded binaries for your platform
+make release-local
+
+# Result: ~/bin/stigmer (123 MB, self-contained)
+```
+
+### Development Mode
+
+Override extracted binaries with local builds using environment variables:
+
+```bash
+export STIGMER_SERVER_BIN=~/bin/stigmer-server
+export STIGMER_WORKFLOW_RUNNER_BIN=~/bin/workflow-runner
+export STIGMER_AGENT_RUNNER_SCRIPT=~/code/stigmer/backend/services/agent-runner/run.sh
+
+stigmer server  # Uses env vars instead of extracted binaries
+```
+
+**Production**: Uses only extracted binaries from `~/.stigmer/data/bin/`  
+**Development**: Optionally use env vars to point to local builds
+
+#### Agent-Runner Workspace Detection
+
+The agent-runner needs to locate its workspace (where `pyproject.toml` lives). Detection order:
+
+1. **Production**: `STIGMER_AGENT_RUNNER_WORKSPACE` (set automatically by daemon)
+2. **Bazel**: `BUILD_WORKSPACE_DIRECTORY` (set automatically by `bazel run`)
+3. **Development**: Directory tree walking (finds `MODULE.bazel` or `WORKSPACE`)
+
+The daemon automatically sets `STIGMER_AGENT_RUNNER_WORKSPACE` when starting agent-runner, pointing to the extracted agent-runner directory. No manual configuration needed.
 
 ## Resource Management
 
