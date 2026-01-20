@@ -9,6 +9,9 @@ The `stigmer server logs` command provides Kubernetes-like log access for the St
 # Shows last 50 lines + streams new logs
 stigmer server logs
 
+# View logs from ALL components in a single stream (unified view)
+stigmer server logs --all
+
 # Show all existing logs + stream new logs
 stigmer server logs --tail=0
 
@@ -17,6 +20,9 @@ stigmer server logs --follow=false
 
 # View error logs (stderr) with streaming
 stigmer server logs --stderr
+
+# View all components' errors in unified stream
+stigmer server logs --all --stderr
 
 # View agent-runner logs with streaming
 stigmer server logs --component agent-runner
@@ -106,6 +112,174 @@ stigmer server logs --follow
 stigmer server logs --follow --stderr
 ```
 
+## Unified Log Viewing (All Components)
+
+**As of January 2026**, you can view logs from all components in a single unified stream using the `--all` flag. This provides a complete picture of system-wide behavior, making it easier to understand how components interact and correlate events.
+
+### How It Works
+
+The `--all` flag interleaves logs from all three components (`server`, `agent-runner`, `workflow-runner`) sorted by timestamp, with component prefixes for easy identification:
+
+```bash
+$ stigmer server logs --all --tail 20 --follow=false
+
+ℹ Showing last 20 lines from all components (interleaved by timestamp)
+
+[agent-runner   ] 2026-01-20T18:04:48.567271Z  WARN Worker heartbeating configured
+[workflow-runner] 2026/01/20 23:34:45 INFO  Started Worker Namespace default
+[workflow-runner] 2026/01/20 23:34:45 INFO  Started Worker TaskQueue workflow_execution_runner
+[server         ] 2026/01/20 23:34:46 INFO  gRPC server listening on :50051
+[agent-runner   ] 2026/01/20 23:35:20 INFO  Connected to MCP server
+[workflow-runner] 2026/01/20 23:35:21 INFO  Starting workflow validation
+[workflow-runner] 2026/01/20 23:35:21 INFO  Step 1: Generating YAML from WorkflowSpec proto
+[server         ] 2026/01/20 23:35:22 INFO  Workflow validation request received
+```
+
+### Why Use Unified Viewing?
+
+**System-wide visibility**:
+- See the complete picture of what's happening across all components
+- Understand the flow of requests (server → workflow-runner → agent-runner)
+- Correlate events by timestamp (what happened when across the system)
+
+**Easier debugging**:
+- No need to open three terminal windows
+- Instantly see which component is logging what
+- Track workflow execution across component boundaries
+
+**Familiar UX**:
+- Similar to `kubectl logs` with multiple pods
+- Similar to `docker-compose logs` with multiple services
+- Industry-standard log aggregation pattern
+
+### Usage Examples
+
+**View all component logs (last 50 lines + streaming)**:
+```bash
+stigmer server logs --all
+```
+
+**View last 100 lines from all components (no streaming)**:
+```bash
+stigmer server logs --all --tail 100 --follow=false
+```
+
+**Stream all error logs from all components**:
+```bash
+stigmer server logs --all --stderr -f
+```
+
+**Debug workflow execution across all components**:
+```bash
+# Terminal 1: Watch all logs in real-time
+stigmer server logs --all -f
+
+# Terminal 2: Execute workflow
+stigmer apply
+
+# See the complete flow:
+# 1. [server] receives apply request
+# 2. [workflow-runner] validates workflow
+# 3. [agent-runner] executes agents
+# 4. [workflow-runner] completes execution
+# 5. [server] returns result
+```
+
+### Component Prefixes
+
+Each log line shows its source component with a fixed-width prefix (15 characters):
+
+| Prefix | Component | Description |
+|--------|-----------|-------------|
+| `[server         ]` | stigmer-server | Main daemon (gRPC API, database) |
+| `[agent-runner   ]` | agent-runner | Python agent execution runtime |
+| `[workflow-runner]` | workflow-runner | Go workflow execution runtime |
+
+Fixed-width formatting ensures logs are aligned for easy scanning.
+
+### Timestamp Handling
+
+Stigmer automatically parses timestamps from different log formats:
+
+- **Go logs** (workflow-runner): `2026/01/20 23:34:45`
+- **Rust logs** (agent-runner): `2026-01-20T18:04:48.567271Z` (RFC3339)
+- **Other formats**: RFC3339Nano, ISO8601, and more
+
+Logs are sorted chronologically regardless of format. If timestamp parsing fails, the current time is used (shouldn't happen in practice).
+
+### Streaming Mode
+
+With `--all` and `--follow` (default), you get real-time unified log streaming:
+
+```bash
+$ stigmer server logs --all
+
+ℹ Streaming logs from all components (interleaved by timestamp)
+ℹ Press Ctrl+C to stop
+
+[existing logs shown first, sorted by timestamp]
+[then streams new logs from all components as they arrive]
+```
+
+The streaming implementation uses goroutines to tail all log files simultaneously, with a central channel for merging streams. This means you see logs from all components in (mostly) real-time chronological order.
+
+### When to Use Unified vs Single Component
+
+**Use `--all` (unified view) when:**
+- Debugging workflow execution (spans multiple components)
+- Understanding system-wide behavior
+- Monitoring overall system health
+- Investigating performance issues
+- Learning how Stigmer works
+
+**Use `-c component` (single component) when:**
+- Debugging specific component issues
+- Filtering noise from other components
+- Following a specific component's execution
+- Saving logs for a specific component
+
+Both modes support the same flags (`--follow`, `--tail`, `--stderr`).
+
+### Comparison with Multiple Terminals
+
+**Before unified viewing** (3 terminals needed):
+```bash
+# Terminal 1
+stigmer server logs -f
+
+# Terminal 2  
+stigmer server logs -f -c agent-runner
+
+# Terminal 3
+stigmer server logs -f -c workflow-runner
+
+# Manual mental correlation required!
+```
+
+**With unified viewing** (1 terminal):
+```bash
+stigmer server logs --all -f
+
+# Everything in one place, automatically sorted!
+```
+
+### Limitations
+
+**Timestamp precision**:
+- Logs are sorted by their logged timestamp (when the event occurred)
+- For events that happen at the exact same millisecond, order may vary slightly
+- In practice, this is rarely noticeable
+
+**File-based streaming**:
+- Logs must be written to disk first before they appear
+- Very slight delay (100ms polling) compared to direct stdout
+- Trade-off for reliable persistence and log rotation
+
+**Missing timestamps**:
+- If a log line has no parseable timestamp, it's assigned the current time
+- This may cause slight reordering for malformed log lines
+- Standard Stigmer components always include timestamps
+
 ## Command Options
 
 | Flag | Short | Default | Description |
@@ -113,9 +287,12 @@ stigmer server logs --follow --stderr
 | `--follow` | `-f` | `true` | Stream logs in real-time (like `kubectl logs -f`). Use `--follow=false` to disable. |
 | `--tail` | `-n` | `50` | Number of recent lines to show before streaming (`0` = all existing logs) |
 | `--component` | `-c` | `server` | Component to view (`server`, `agent-runner`, or `workflow-runner`) |
+| `--all` | | `false` | Show logs from all components in a single interleaved stream (sorted by timestamp) |
 | `--stderr` | | `false` | Show error logs instead of stdout |
 
-**⚠️ Behavior Change**: As of January 2026, `stigmer server logs` streams by default (Kubernetes-style). This shows existing logs first, then streams new ones continuously. Use `--follow=false` if you only want to view existing logs without streaming.
+**⚠️ Behavior Changes (January 2026)**:
+1. **Streaming by default**: `stigmer server logs` streams by default (Kubernetes-style). Shows existing logs first, then streams new ones continuously. Use `--follow=false` for view-only.
+2. **Unified viewing**: New `--all` flag shows logs from all components in one stream, sorted by timestamp with component prefixes.
 
 ## Components
 
@@ -172,26 +349,34 @@ Output reveals the issue:
 FATAL: [core] grpc: Server.RegisterService after Server.Serve
 ```
 
-### Example 2: Monitoring Agent Execution
+### Example 2: Monitoring Agent Execution (Unified View)
 
 ```bash
-# Terminal 1: Stream agent logs
-stigmer server logs -f -c agent-runner
+# Single terminal: Watch all components
+stigmer server logs --all -f
 
-# Terminal 2: Run a workflow
+# In another terminal: Run a workflow
 stigmer apply
 ```
 
-Watch the agent logs in real-time to see:
-- Which tools are being called
-- LLM requests and responses
-- Execution progress
-- Any errors or warnings
+Watch the unified logs to see the complete flow:
+```
+[server         ] 2026/01/20 23:40:15 Received apply request
+[workflow-runner] 2026/01/20 23:40:15 Starting workflow validation
+[workflow-runner] 2026/01/20 23:40:15 Validation succeeded
+[agent-runner   ] 2026-01-20T23:40:16 Starting agent execution
+[agent-runner   ] 2026-01-20T23:40:17 Tool call: read_file
+[workflow-runner] 2026/01/20 23:40:18 Workflow execution completed
+[server         ] 2026/01/20 23:40:18 Apply succeeded
+```
 
-### Example 3: Finding Recent Errors
+### Example 3: Finding Recent Errors (Unified View)
 
 ```bash
-# Show last 100 lines of errors from all components
+# Show last 100 error lines from all components in one stream
+stigmer server logs --all --stderr --tail 100 --follow=false
+
+# Or per-component if you prefer
 stigmer server logs --stderr --tail 100
 stigmer server logs -c agent-runner --stderr --tail 100
 stigmer server logs -c workflow-runner --stderr --tail 100
@@ -201,13 +386,14 @@ stigmer server logs -c workflow-runner --stderr --tail 100
 
 If you're familiar with these tools, here's how `stigmer server logs` compares:
 
-| Stigmer | Kubernetes | Docker | Description |
+| Stigmer | Kubernetes | Docker Compose | Description |
 |---------|-----------|--------|-------------|
 | `stigmer server logs` | `kubectl logs -f pod-name` | `docker logs -f container` | Stream logs (default) |
+| `stigmer server logs --all` | `kubectl logs -f pod-1 pod-2 pod-3` | `docker-compose logs -f` | All components unified |
 | `stigmer server logs --follow=false` | `kubectl logs pod-name --follow=false` | `docker logs container` | View logs only (no streaming) |
 | `stigmer server logs --tail=100` | `kubectl logs --tail=100 pod-name` | `docker logs --tail=100 container` | Last N lines + streaming |
 | `stigmer server logs --tail=0` | `kubectl logs --tail=-1 pod-name` | `docker logs container` | All logs + streaming |
-| `stigmer server logs -c agent-runner` | `kubectl logs pod -c container` | N/A | Select component |
+| `stigmer server logs -c agent-runner` | `kubectl logs pod -c container` | `docker-compose logs service` | Select component |
 
 **Note**: Stigmer now matches Kubernetes behavior - streaming is the default, showing existing logs first then tailing new ones.
 
@@ -364,13 +550,26 @@ This prevents clutter from empty log files.
 ### Watch for Specific Patterns
 
 ```bash
-# Use grep to filter logs
+# Use grep to filter logs (works with --all too!)
 stigmer server logs --tail 1000 | grep ERROR
 stigmer server logs -f | grep -i "workflow"
+
+# Filter unified logs for errors from any component
+stigmer server logs --all -f | grep ERROR
+
+# Filter unified logs for specific component
+stigmer server logs --all -f | grep "\[agent-runner"
 ```
 
 ### Compare Component Logs
 
+**Option 1: Unified view (recommended)**
+```bash
+# Single terminal: See all components together
+stigmer server logs --all -f
+```
+
+**Option 2: Multiple terminals (old approach)**
 ```bash
 # Terminal 1: Server logs
 stigmer server logs -f --stderr
@@ -384,8 +583,15 @@ stigmer server logs -f -c workflow-runner --stderr
 
 ### Save Logs for Bug Reports
 
+**Option 1: Unified logs (recommended for complete picture)**
 ```bash
-# Capture logs to file
+# Capture all component logs in chronological order
+stigmer server logs --all --tail 1000 --follow=false > all-logs.txt
+stigmer server logs --all --stderr --tail 1000 --follow=false > all-errors.txt
+```
+
+**Option 2: Per-component logs (for focused debugging)**
+```bash
 stigmer server logs --tail 1000 > server-logs.txt
 stigmer server logs --stderr --tail 1000 > server-errors.txt
 stigmer server logs -c agent-runner --stderr > agent-errors.txt
