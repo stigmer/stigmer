@@ -365,12 +365,12 @@ const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
 	"\x04page\x18\x04 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\x12\x1f\n" +
 	"\vpage_number\x18\x05 \x01(\x05R\n" +
 	"pageNumber\x12\x1b\n" +
-	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\"\xf1\x01\n" +
+	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\"\xe8\x01\n" +
 	"\x14ApiResourceReference\x12U\n" +
 	"\x05scope\x18\x01 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05scope\x12\x10\n" +
 	"\x03org\x18\x02 \x01(\tR\x03org\x12S\n" +
-	"\x04kind\x18\x03 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x1b\n" +
-	"\x04slug\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04slugB\x92\x02\n" +
+	"\x04kind\x18\x03 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x12\n" +
+	"\x04slug\x18\x04 \x01(\tR\x04slugB\x92\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\aIoProtoP\x01ZGgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (
