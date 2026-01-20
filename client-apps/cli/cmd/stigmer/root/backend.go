@@ -87,12 +87,11 @@ func handleBackendSet(backendType string) {
 
 	switch backendType {
 	case "local":
-		dataDir, _ := config.GetDataDir()
 		cfg.Backend.Type = config.BackendTypeLocal
 		if cfg.Backend.Local == nil {
 			cfg.Backend.Local = &config.LocalBackendConfig{
-				Endpoint: "localhost:7234",
-				DataDir:  dataDir,
+				// Endpoint not needed - always hardcoded to localhost:7234
+				// DataDir not needed - always hardcoded to ~/.stigmer/data
 			}
 		}
 		
