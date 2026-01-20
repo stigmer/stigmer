@@ -43,3 +43,15 @@ func NewAgentExecutionController(
 		streamBroker:        NewStreamBroker(),
 	}
 }
+
+// SetClients sets the client dependencies
+// This is used when the controller is created before the in-process gRPC server is started
+func (c *AgentExecutionController) SetClients(
+	agentClient *agent.Client,
+	agentInstanceClient *agentinstance.Client,
+	sessionClient *session.Client,
+) {
+	c.agentClient = agentClient
+	c.agentInstanceClient = agentInstanceClient
+	c.sessionClient = sessionClient
+}

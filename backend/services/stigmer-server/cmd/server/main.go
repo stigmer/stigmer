@@ -110,95 +110,85 @@ func main() {
 
 	log.Info().Msg("Registered Skill controllers")
 
-	// Create and register Workflow controller (will be updated after in-process clients are created)
-	// Note: Workflow controller is registered here without dependencies, then re-created below with WorkflowInstance client
-	workflowController := workflowcontroller.NewWorkflowController(store, nil)
-	workflowv1.RegisterWorkflowCommandControllerServer(grpcServer, workflowController)
-	workflowv1.RegisterWorkflowQueryControllerServer(grpcServer, workflowController)
-
-	log.Info().Msg("Registered Workflow controllers (initial registration)")
-	
-	// All services must be registered BEFORE starting the server or creating connections
-
-	// Create downstream clients for in-process gRPC calls
-	// These clients ensure single source of truth through the full interceptor chain
-	var (
-		agentClient            *agentclient.Client
-		agentInstanceClient    *agentinstanceclient.Client
-		sessionClient          *sessionclient.Client
-		workflowClient         *workflowclient.Client
-		workflowInstanceClient *workflowinstanceclient.Client
-	)
-	{
-		// Start in-process gRPC server (must be done before creating connections)
-		if err := server.StartInProcess(); err != nil {
-			log.Fatal().Err(err).Msg("Failed to start in-process gRPC server")
-		}
-
-		// Create in-process gRPC connection
-		// This connection goes through all gRPC interceptors (validation, logging, etc.)
-		// even though it's in-process, ensuring consistent behavior with network calls
-		inProcessConn, err := server.NewInProcessConnection(context.Background())
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to create in-process gRPC connection")
-		}
-		defer inProcessConn.Close()
-
-		// Create downstream clients (all controllers are registered above)
-		agentClient = agentclient.NewClient(inProcessConn)
-		agentInstanceClient = agentinstanceclient.NewClient(inProcessConn)
-		sessionClient = sessionclient.NewClient(inProcessConn)
-		workflowClient = workflowclient.NewClient(inProcessConn)
-		workflowInstanceClient = workflowinstanceclient.NewClient(inProcessConn)
-
-		log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, and WorkflowInstance")
-	}
-
-	// Create and register Agent controller (with AgentInstance client for default instance creation)
-	agentController := agentcontroller.NewAgentController(store, agentInstanceClient)
+	// Create and register Agent controller (without dependencies initially)
+	agentController := agentcontroller.NewAgentController(store, nil)
 	agentv1.RegisterAgentCommandControllerServer(grpcServer, agentController)
 	agentv1.RegisterAgentQueryControllerServer(grpcServer, agentController)
 
 	log.Info().Msg("Registered Agent controllers")
 
-	// Create and register AgentExecution controller
-	// Note: All downstream calls use in-process gRPC clients for single source of truth
+	// Create and register AgentExecution controller (without dependencies initially)
 	agentExecutionController := agentexecutioncontroller.NewAgentExecutionController(
 		store,
-		agentClient,
-		agentInstanceClient,
-		sessionClient,
+		nil, // agentClient - will be set after in-process server starts
+		nil, // agentInstanceClient - will be set after in-process server starts
+		nil, // sessionClient - will be set after in-process server starts
 	)
 	agentexecutionv1.RegisterAgentExecutionCommandControllerServer(grpcServer, agentExecutionController)
 	agentexecutionv1.RegisterAgentExecutionQueryControllerServer(grpcServer, agentExecutionController)
 
 	log.Info().Msg("Registered AgentExecution controllers")
 
-	// Re-create and register Workflow controller with WorkflowInstance client (for default instance creation)
-	// Note: This replaces the initial registration made earlier (before in-process clients were available)
-	workflowController = workflowcontroller.NewWorkflowController(store, workflowInstanceClient)
+	// Create and register Workflow controller (without dependencies initially)
+	workflowController := workflowcontroller.NewWorkflowController(store, nil)
 	workflowv1.RegisterWorkflowCommandControllerServer(grpcServer, workflowController)
 	workflowv1.RegisterWorkflowQueryControllerServer(grpcServer, workflowController)
 
-	log.Info().Msg("Re-registered Workflow controllers with dependencies")
+	log.Info().Msg("Registered Workflow controllers")
 
-	// Create and register WorkflowInstance controller (with Workflow client for parent workflow loading)
-	workflowInstanceController := workflowinstancecontroller.NewWorkflowInstanceController(store, workflowClient)
+	// Create and register WorkflowInstance controller (without dependencies initially)
+	workflowInstanceController := workflowinstancecontroller.NewWorkflowInstanceController(store, nil)
 	workflowinstancev1.RegisterWorkflowInstanceCommandControllerServer(grpcServer, workflowInstanceController)
 	workflowinstancev1.RegisterWorkflowInstanceQueryControllerServer(grpcServer, workflowInstanceController)
 
 	log.Info().Msg("Registered WorkflowInstance controllers")
 
-	// Create and register WorkflowExecution controller
-	// Note: Loads workflows directly from store (same service), uses WorkflowInstance client for default instance creation
+	// Create and register WorkflowExecution controller (without dependencies initially)
 	workflowExecutionController := workflowexecutioncontroller.NewWorkflowExecutionController(
 		store,
-		workflowInstanceClient,
+		nil, // workflowInstanceClient - will be set after in-process server starts
 	)
 	workflowexecutionv1.RegisterWorkflowExecutionCommandControllerServer(grpcServer, workflowExecutionController)
 	workflowexecutionv1.RegisterWorkflowExecutionQueryControllerServer(grpcServer, workflowExecutionController)
 
 	log.Info().Msg("Registered WorkflowExecution controllers")
+
+	// ============================================================================
+	// CRITICAL: All services MUST be registered BEFORE starting the server
+	// ============================================================================
+
+	// Start in-process gRPC server (must be done AFTER all service registrations)
+	if err := server.StartInProcess(); err != nil {
+		log.Fatal().Err(err).Msg("Failed to start in-process gRPC server")
+	}
+
+	// Create in-process gRPC connection
+	// This connection goes through all gRPC interceptors (validation, logging, etc.)
+	// even though it's in-process, ensuring consistent behavior with network calls
+	inProcessConn, err := server.NewInProcessConnection(context.Background())
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create in-process gRPC connection")
+	}
+	defer inProcessConn.Close()
+
+	// Create downstream clients (all controllers are registered above)
+	agentClient := agentclient.NewClient(inProcessConn)
+	agentInstanceClient := agentinstanceclient.NewClient(inProcessConn)
+	sessionClient := sessionclient.NewClient(inProcessConn)
+	workflowClient := workflowclient.NewClient(inProcessConn)
+	workflowInstanceClient := workflowinstanceclient.NewClient(inProcessConn)
+
+	log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, and WorkflowInstance")
+
+	// Now inject dependencies into controllers that need them
+	// Note: Controllers are already registered, we're just updating their internal state
+	agentController.SetAgentInstanceClient(agentInstanceClient)
+	agentExecutionController.SetClients(agentClient, agentInstanceClient, sessionClient)
+	workflowController.SetWorkflowInstanceClient(workflowInstanceClient)
+	workflowInstanceController.SetWorkflowClient(workflowClient)
+	workflowExecutionController.SetWorkflowInstanceClient(workflowInstanceClient)
+
+	log.Info().Msg("Injected dependencies into controllers")
 
 	// Setup graceful shutdown
 	done := make(chan os.Signal, 1)
