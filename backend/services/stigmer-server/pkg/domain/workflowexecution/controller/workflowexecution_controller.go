@@ -49,3 +49,9 @@ func NewWorkflowExecutionController(
 		streamBroker:           NewStreamBroker(),
 	}
 }
+
+// SetWorkflowInstanceClient sets the WorkflowInstance client dependency
+// This is used when the controller is created before the in-process gRPC server is started
+func (c *WorkflowExecutionController) SetWorkflowInstanceClient(client *workflowinstance.Client) {
+	c.workflowInstanceClient = client
+}
