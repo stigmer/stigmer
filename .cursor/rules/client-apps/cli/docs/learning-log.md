@@ -755,3 +755,290 @@ func handleServerRestart() {
 **Changelog**: `_changelog/2026-01/2026-01-20-194409-fix-server-restart-orphaned-processes.md`
 
 **Key Pattern**: For long-running daemons, implement PID file → port discovery → health check tiers with unconditional lifecycle operations.
+
+---
+
+### 2026-01-20 - Interactive Prompts with Survey Package
+
+**Problem**: Need to present users with multiple choices when discovering agents/workflows:
+- Multiple resources found during auto-discovery
+- Need clean, user-friendly selection interface
+- Standard CLI prompts look primitive
+
+**Root Cause**: Go's standard input functions (`fmt.Scan`) don't provide interactive selection menus.
+
+**Solution**: Use `github.com/AlecAivazis/survey/v2` for interactive prompts:
+
+```go
+import "github.com/AlecAivazis/survey/v2"
+
+// Create selection prompt
+prompt := &survey.Select{
+    Message: "Select resource to run:",
+    Options: optionLabels, // []string of display names
+}
+
+var selectedIndex int
+err := survey.AskOne(prompt, &selectedIndex)
+if err != nil {
+    // Handle cancellation (Ctrl+C)
+    return
+}
+
+// Use selectedIndex to get the chosen option
+```
+
+**Features**:
+- Arrow keys for navigation
+- Enter to select
+- Ctrl+C to cancel gracefully
+- Clean terminal output
+- Cross-platform support
+
+**Prevention**:
+- Use survey package for any CLI interactive selections
+- Don't implement custom terminal input handling
+- Provides better UX than stdin reading
+- Handles terminal escapes and control characters
+
+**Related Docs**:
+- Implementation: `client-apps/cli/cmd/stigmer/root/run.go`
+- Package: https://github.com/AlecAivazis/survey
+
+---
+
+### 2026-01-20 - Smart Code Synchronization Pattern (Apply-Before-Run)
+
+**Problem**: Users editing code locally but running stale versions:
+- Edit agent/workflow code
+- Run `stigmer run <name>`
+- Old version executes (forgot to run `stigmer apply`)
+- Confusion: "I changed it but it's not working"
+
+**Root Cause**: Separation of deployment (`apply`) and execution (`run`) creates cognitive overhead.
+
+**Solution**: Implement "apply-before-run" pattern with project directory detection:
+
+```go
+func runReferenceMode(reference string, ...) {
+    // Check if we're in a Stigmer project directory
+    inProjectDir := config.InStigmerProjectDirectory()
+    
+    if inProjectDir {
+        // In project: auto-apply latest code first
+        cliprint.PrintInfo("📁 Detected Stigmer project - applying latest code")
+        deployedAgents, deployedWorkflows, err := ApplyCodeMode(...)
+        // Then run the resource
+    } else {
+        // Outside project: run deployed resource directly
+        // No apply needed
+    }
+}
+
+// Helper function
+func InStigmerProjectDirectory() bool {
+    cwd, err := os.Getwd()
+    if err != nil {
+        return false
+    }
+    stigmerPath := filepath.Join(cwd, "Stigmer.yaml")
+    _, err = os.Stat(stigmerPath)
+    return err == nil
+}
+```
+
+**Mental Model**:
+```
+Inside project directory = Development mode → Auto-apply
+Outside project directory = Execution mode → No auto-apply
+```
+
+**Benefits**:
+- Eliminates "stale code" confusion
+- Fast iteration (edit → run → see results)
+- Matches user intent naturally
+- No extra commands to remember
+
+**Prevention**:
+- For dev tools with code-driven resources, auto-sync when in project context
+- Detect project directory presence (Stigmer.yaml, package.json, etc.)
+- Different behavior inside vs outside project makes sense to users
+- Document the mental model clearly
+
+**Related Docs**:
+- Implementation: `client-apps/cli/cmd/stigmer/root/run.go`
+- Documentation: `docs/cli/running-agents-workflows.md`
+- Changelog: `_changelog/2026-01/2026-01-20-implement-stigmer-run-command.md`
+
+**Key Takeaway**: For IaC/code-driven tools, smart context detection (in/out of project) enables better UX than forcing users to remember separate commands.
+
+---
+
+### 2026-01-20 - Dual-Mode Command Design (Auto-Discovery vs Reference)
+
+**Problem**: Need to support different user workflows:
+- Quick testing: "Just run something from my project"
+- Targeted execution: "Run this specific agent"
+- First-time use: "Show me what I have"
+
+**Root Cause**: Single command pattern doesn't cover both exploratory and targeted workflows.
+
+**Solution**: Design command with two modes based on arguments:
+
+**Mode 1 - Auto-Discovery** (no arguments):
+```bash
+stigmer run  # Discovers all resources, prompts if multiple
+```
+
+**Mode 2 - Reference** (with name/ID):
+```bash
+stigmer run my-agent      # Runs specific resource
+stigmer run agt_01abc123  # By ID
+```
+
+**Implementation Pattern**:
+```go
+func NewRunCommand() *cobra.Command {
+    cmd := &cobra.Command{
+        Run: func(cmd *cobra.Command, args []string) {
+            hasReference := len(args) > 0
+            
+            if hasReference {
+                // REFERENCE MODE: Run specific resource
+                reference := args[0]
+                runReferenceMode(reference, ...)
+            } else {
+                // AUTO-DISCOVERY MODE: Discover and prompt
+                runAutoDiscoveryMode(...)
+            }
+        },
+    }
+    return cmd
+}
+```
+
+**Benefits**:
+- Single command covers multiple workflows
+- No separate `stigmer discover` command needed
+- Natural: no args = explore, with args = target
+- Matches Docker pattern: `docker ps` (list) vs `docker ps <container>` (specific)
+
+**Prevention**:
+- Consider dual-mode design for commands with exploratory + targeted use cases
+- Use arg presence/absence to switch modes
+- Provide helpful output in auto-discovery mode
+- Support both names and IDs in reference mode
+
+**Related Docs**:
+- Implementation: `client-apps/cli/cmd/stigmer/root/run.go`
+- Pattern similar to: `docker ps`, `kubectl get`, `terraform apply`
+
+**Key Takeaway**: Dual-mode commands (args-based switching) can replace multiple separate commands while maintaining clear UX.
+
+---
+
+### 2026-01-20 - Workflow-First Resolution Pattern
+
+**Problem**: Users want to run either agents or workflows without remembering which is which.
+
+**Root Cause**: Separate commands for agents vs workflows creates cognitive overhead:
+```bash
+stigmer agent run my-thing      # Is it an agent?
+stigmer workflow run my-thing   # Or a workflow?
+```
+
+**Solution**: Single command that checks both, workflows first:
+
+```go
+func runResourceMode(reference string, ...) {
+    // Try workflow first
+    workflow, workflowErr := resolveWorkflow(reference, orgID, conn)
+    if workflowErr == nil {
+        executeWorkflow(workflow, ...)
+        return
+    }
+    
+    // Workflow not found - try agent
+    agent, agentErr := resolveAgent(reference, orgID, conn)
+    if agentErr == nil {
+        executeAgent(agent, ...)
+        return
+    }
+    
+    // Neither found - helpful error
+    cliprint.PrintError("Agent or Workflow not found: %s", reference)
+}
+```
+
+**Why Workflows First**:
+- Workflows often orchestrate agents (higher-level concept)
+- If both have same name, workflow is usually what user wants
+- Can be changed to user preference if needed
+
+**Benefits**:
+- Single command for both resource types
+- No need to remember which is which
+- Helpful error mentions both types
+- Matches user mental model ("just run it")
+
+**Prevention**:
+- For similar resource types, implement unified execution
+- Provide clear error messages listing all types checked
+- Document resolution order in help text
+- Consider making order configurable if needed
+
+**Related Docs**:
+- Implementation: `client-apps/cli/cmd/stigmer/root/run.go`
+- Similar to: Kubernetes `kubectl get <resource>` (checks all types)
+
+---
+
+### 2026-01-20 - Project Directory Detection Helper
+
+**Problem**: Multiple CLI commands need to know if they're in a Stigmer project directory.
+
+**Root Cause**: Duplicating the same `Stigmer.yaml` check logic across multiple commands.
+
+**Solution**: Create reusable helper function in config package:
+
+```go
+// InStigmerProjectDirectory checks if current directory contains a Stigmer.yaml file
+func InStigmerProjectDirectory() bool {
+    cwd, err := os.Getwd()
+    if err != nil {
+        return false
+    }
+    
+    stigmerPath := filepath.Join(cwd, DefaultStigmerConfigFilename)
+    _, err = os.Stat(stigmerPath)
+    return err == nil
+}
+```
+
+**Usage**:
+```go
+// In any command
+if config.InStigmerProjectDirectory() {
+    // Project-specific behavior
+} else {
+    // Non-project behavior
+}
+```
+
+**Benefits**:
+- Single source of truth for project detection
+- Consistent behavior across commands
+- Easy to extend (check additional files, validate content)
+- No error handling needed at call sites
+
+**Prevention**:
+- Create helper functions for common checks
+- Place in appropriate package (config for project detection)
+- Make it simple boolean return (no error to handle)
+- Document the check criteria
+
+**Related Docs**:
+- Implementation: `client-apps/cli/internal/cli/config/stigmer.go`
+- Used by: `apply`, `run`, future commands
+
+**Key Takeaway**: Common checks deserve helper functions. Boolean return (instead of error) simplifies usage when false is an acceptable answer.
