@@ -72,8 +72,11 @@ if temporalClient != nil {
     agentExecutionWorker = agentExecutionWorkerConfig.CreateWorker(temporalClient)
     agentExecutionCreator = agentexecutiontemporal.NewInvokeAgentExecutionWorkflowCreator(...)
     
-    // Workflow Validation Worker (planned)
-    // ...
+    // Workflow Validation Worker
+    workflowValidationConfig := workflowtemporal.NewConfig()
+    workflowValidationWorker = workflowValidationWorkerConfig.CreateWorker(temporalClient)
+    workflowValidator = workflowtemporal.NewServerlessWorkflowValidator(...)
+
 }
 
 // 3. Register gRPC Controllers
@@ -102,9 +105,17 @@ agentExecutionController.SetWorkflowCreator(agentExecutionCreator)
 - **Deferred Cleanup**: `defer worker.Stop()` ensures clean shutdown
 
 **Implementation Status:**
-- ✅ Workflow Execution worker: Fully implemented
-- ✅ Agent Execution worker: Fully implemented
-- ⏸️ Workflow Validation worker: Planned for next phase
+- ✅ Workflow Execution worker: Fully implemented and integrated
+- ✅ Agent Execution worker: Fully implemented and integrated
+- ✅ Workflow Validation worker: Fully implemented and integrated
+
+**Critical Integration Fix (2026-01-20)**:
+- Workers were implemented and running
+- Controllers were NOT calling them (validation skipped, executions stuck)
+- **Fix Applied**: All controller integrations now complete
+  - Workflow validation: Controllers call validator before persist
+  - Agent execution: Controllers start workflows after persist
+  - Workflow execution: Already integrated (verified)
 
 **Graceful Degradation:**
 
@@ -287,6 +298,142 @@ err := workflow.ExecuteLocalActivity(localCtx,
 worker.RegisterActivity(updateStatusActivityImpl.UpdateExecutionStatus)
 ```
 
+### Controller Integration Pattern
+
+**How Controllers Trigger Temporal Workflows**
+
+Controllers integrate with Temporal through pipeline steps that call workflow creators or validators. This pattern enables clean separation between business logic (controllers) and workflow orchestration (Temporal).
+
+**Three Integration Patterns**:
+
+**1. Workflow Validation** (Synchronous Validation):
+```go
+// In WorkflowController.Create pipeline:
+AddStep(newValidateWorkflowSpecStep(c.validator))  // Step 2, after proto validation
+
+// The step:
+func (s *validateWorkflowSpecStep) Execute(ctx *pipeline.RequestContext) error {
+    // Skip if Temporal not available (nil-safe)
+    if s.validator == nil {
+        log.Warn().Msg("Skipping validation - Temporal not available")
+        return nil
+    }
+    
+    // Call Temporal workflow synchronously (blocks until validation complete)
+    validation, err := s.validator.Validate(ctx.Context(), spec)
+    if err != nil {
+        return fmt.Errorf("validation failed: %w", err)
+    }
+    
+    // Check validation state
+    if validation.State == INVALID {
+        return fmt.Errorf("invalid workflow: %s", validation.Errors[0])
+    }
+    
+    // Store result in context for later steps
+    ctx.Set("validation_result", validation)
+    return nil
+}
+```
+
+**2. Execution Triggering** (Asynchronous Start):
+```go
+// In WorkflowExecutionController.Create pipeline:
+AddStep(c.newStartWorkflowStep())  // Step 9, after persist
+
+// The step:
+func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext) error {
+    // Skip if Temporal not available (nil-safe)
+    if s.workflowCreator == nil {
+        log.Warn().Msg("Execution will remain PENDING - Temporal not available")
+        return nil
+    }
+    
+    execution := ctx.NewState()
+    
+    // Start Temporal workflow asynchronously (returns immediately)
+    if err := s.workflowCreator.Create(execution); err != nil {
+        // Mark execution as FAILED and persist
+        execution.Status.Phase = FAILED
+        execution.Status.Error = err.Error()
+        s.store.SaveResource(ctx.Context(), kind, executionID, execution)
+        return fmt.Errorf("failed to start workflow: %w", err)
+    }
+    
+    return nil
+}
+```
+
+**3. Agent Execution Triggering** (Same Pattern):
+```go
+// In AgentExecutionController.Create pipeline:
+AddStep(c.newStartWorkflowStep())  // Step 9, after persist
+
+// Implementation identical to WorkflowExecution pattern
+// Uses InvokeAgentExecutionWorkflowCreator instead
+```
+
+**Key Design Principles**:
+- **Nil-Safe**: All steps check if Temporal client available (graceful degradation)
+- **Pipeline Steps**: Integration is a pipeline step (composable with other steps)
+- **Error Handling**: Validation errors abort pipeline, workflow start errors mark execution FAILED
+- **Timing**: Validation BEFORE persist, execution triggering AFTER persist
+
+**Why After Persist?**
+- Temporal activities query database for execution details
+- Prevents race condition (workflow queries before persist completes)
+- Consistent with Java Cloud implementation
+
+### Two-Layer Validation Architecture (Workflows Only)
+
+Workflows use a **two-layer validation pipeline** to catch errors early:
+
+**Layer 1: Proto Validation** (Fast)
+- **What**: Buf Validate rules on proto fields
+- **When**: First pipeline step (before Temporal)
+- **Performance**: <50ms
+- **Catches**: Field constraints, required fields, enum values, string patterns
+- **Example**: `replicas` must be >= 1, `name` must match regex
+
+**Layer 2: Comprehensive Validation** (Temporal)
+- **What**: Deep validation via Temporal workflow
+- **When**: Second pipeline step (after Layer 1 passes)
+- **Performance**: 50-200ms
+- **Catches**:
+  - Proto → YAML conversion errors
+  - Serverless Workflow structure validation (Zigflow parser)
+  - Semantic errors (invalid state references, transition logic, etc.)
+- **Single Source of Truth**: workflow-runner validates (same code that executes)
+
+**Why Two Layers?**
+- **Fast feedback** for simple errors (Layer 1)
+- **Comprehensive validation** for complex errors (Layer 2)
+- **Single source of truth**: workflow-runner validates (consistency guaranteed)
+
+**Validation Flow**:
+```
+User submits workflow
+    ↓
+[Layer 1] Proto Validation (buf validate) - <50ms
+    ↓ (if valid)
+[Layer 2] Temporal Validation (proto → YAML → Zigflow) - 50-200ms
+    ↓ (if valid)
+Persist workflow to database
+    ↓
+Workflow created successfully
+```
+
+**Error Handling**:
+- **Layer 1 Fails**: Immediate error, no Temporal call
+- **Layer 2 INVALID**: User error (bad structure) → `INVALID_ARGUMENT` gRPC error
+- **Layer 2 FAILED**: System error (Temporal/activity failure) → `INTERNAL` gRPC error
+
+**Example Error Messages**:
+```
+Layer 1: "Field validation failed: name must match pattern ^[a-z][a-z0-9-]*$"
+Layer 2: "Workflow validation failed: State 'process_data' not defined in states array"
+```
+
 ### Status Update Strategy
 
 **Two mechanisms for status updates**:
@@ -327,7 +474,7 @@ export TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE=workflow_execution_runner
 export TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE=agent_execution_stigmer
 export TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner
 
-# Workflow Validation Domain (planned)
+# Workflow Validation Domain
 export TEMPORAL_WORKFLOW_VALIDATION_STIGMER_TASK_QUEUE=workflow_validation_stigmer
 export TEMPORAL_WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE=workflow_validation_runner
 
@@ -409,7 +556,7 @@ export TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE=workflow_execution_runner
 export TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE=agent_execution_stigmer
 export TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner
 
-# Workflow Validation Domain (when implemented)
+# Workflow Validation Domain
 export TEMPORAL_WORKFLOW_VALIDATION_STIGMER_TASK_QUEUE=workflow_validation_stigmer
 export TEMPORAL_WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE=workflow_validation_runner
 
@@ -423,6 +570,8 @@ INFO Created workflow execution worker and creator stigmer_queue=workflow_execut
 INFO Workflow execution worker started
 INFO Created agent execution worker and creator stigmer_queue=agent_execution_stigmer runner_queue=agent_execution_runner
 INFO Agent execution worker started
+INFO Created workflow validation worker and validator stigmer_queue=workflow_validation_stigmer runner_queue=workflow_validation_runner
+INFO Workflow validation worker started
 ```
 
 **Python Worker** (agent-runner):
@@ -449,8 +598,8 @@ temporal workflow list --namespace default
 # - workflow_execution_runner (Go activities)
 # - agent_execution_stigmer (Go workflows)
 # - agent_execution_runner (Python activities)
-# - workflow_validation_stigmer (planned)
-# - workflow_validation_runner (planned)
+# - workflow_validation_stigmer (Go workflows)
+# - workflow_validation_runner (Go activities)
 ```
 
 **Test workflow execution**:
@@ -550,15 +699,11 @@ temporal workflow list --namespace default
 
 ### Planned
 
-1. **Workflow Validation**
-   - Validate workflow definitions before execution
-   - Temporal activity for zigflow syntax checking
-
-2. **Child Workflows**
+1. **Child Workflows**
    - Sub-agent executions as child workflows
    - Parallel agent execution orchestration
 
-3. **Saga Pattern**
+2. **Saga Pattern**
    - Compensating transactions for failed executions
    - Rollback workflows for cleanup
 
@@ -591,7 +736,7 @@ temporal workflow list --namespace default
 - Worker Infrastructure: `backend/services/stigmer-server/cmd/server/main.go`
 - Workflow Execution: `backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/`
 - Agent Execution: `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/`
-- Workflow Validation: `backend/services/stigmer-server/pkg/domain/workflowvalidation/temporal/` (planned)
+- Workflow Validation: `backend/services/stigmer-server/pkg/domain/workflow/temporal/`
 - Agent Runner (Python): `backend/services/agent-runner/worker/`
 
 **External Resources:**
