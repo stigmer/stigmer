@@ -15,10 +15,8 @@ stigmer new
 stigmer new my-first-project
 cd my-first-project
 
-# Start the Stigmer server
-stigmer server
-
 # Run the example workflow (analyzes a real GitHub PR)
+# The daemon starts automatically on first run!
 stigmer run
 ```
 
@@ -159,29 +157,65 @@ brew install stigmer/tap/stigmer
 stigmer version
 ```
 
-## Initialize and Start Local Backend
+## Local Backend Auto-Start
 
-### First-Time Setup
+**🎉 No manual setup required!** The local backend daemon starts automatically when you run any command.
 
-```bash
-stigmer init
-```
+### How It Works
 
-This creates `~/.stigmer/local.db` with the initial schema.
+When you run `stigmer apply`, `stigmer run`, or any command requiring the backend:
 
-**Output**:
-```
-✓ Created ~/.stigmer/local.db
-✓ Initialized local backend
-✓ Stigmer is ready to use in local mode
+1. ✅ **Check if daemon is running** - Fast check (< 100ms)
+2. ✅ **If running** - Connect immediately (subsequent runs)
+3. ✅ **If not running** - Auto-start with progress display (first run only)
 
-Next: stigmer local start
-```
-
-### Start Local Daemon
+### First Run Experience
 
 ```bash
-stigmer local start
+$ stigmer apply
+
+ℹ Loading project configuration...
+✓ Loaded Stigmer.yaml
+
+ℹ Using local backend (organization: local)
+ℹ 🚀 Starting local backend daemon...
+ℹ    This may take a moment on first run
+
+✓ Using Ollama (no API key required)
+⚙️  Initializing database...
+🔧 Starting Temporal...
+✓ Daemon started successfully
+
+ℹ Connecting to backend...
+✓ Connected to backend
+✓ Deployed successfully!
+```
+
+**Startup time**: 5-15 seconds on first run (downloads Temporal, initializes database)
+
+### Subsequent Runs
+
+```bash
+$ stigmer apply
+
+ℹ Loading project configuration...
+✓ Loaded Stigmer.yaml
+ℹ Using local backend (organization: local)
+ℹ Connecting to backend...  # ← Immediate, no startup!
+✓ Connected to backend
+✓ Deployed successfully!
+```
+
+**Fast path**: < 1 second (daemon already running)
+
+### Manual Daemon Management (Optional)
+
+**If you prefer explicit control**, you can still start/stop the daemon manually:
+
+**Start daemon explicitly:**
+
+```bash
+stigmer server start
 ```
 
 **Troubleshooting with Debug Mode**:
@@ -577,10 +611,7 @@ ctx.SetString("slackWebhook", os.Getenv("SLACK_WEBHOOK_URL"))
 stigmer new my-agent
 cd my-agent
 
-# Start server
-stigmer server
-
-# Deploy your code
+# Deploy your code (daemon starts automatically!)
 stigmer apply
 
 # Edit your code
@@ -592,6 +623,8 @@ stigmer apply
 # Validate before deploying
 stigmer apply --dry-run
 ```
+
+**No manual server start needed** - The daemon auto-starts on first command and stays running.
 
 See [Deploying with Apply](../guides/deploying-with-apply.md) for complete documentation.
 
