@@ -32,6 +32,13 @@ class AgentRunner:
     def _initialize_redis(self):
         """Initialize Redis connection for cloud mode."""
         try:
+            # Validate Redis config (should not be None in cloud mode)
+            if self.config.redis_host is None or self.config.redis_port is None:
+                raise ValueError(
+                    "Redis host and port are required in cloud mode. "
+                    "Set REDIS_HOST and REDIS_PORT environment variables."
+                )
+            
             redis_config = RedisConfig(
                 host=self.config.redis_host,
                 port=self.config.redis_port,

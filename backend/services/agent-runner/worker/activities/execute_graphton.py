@@ -58,19 +58,23 @@ async def execute_graphton(execution: AgentExecution, thread_id: str) -> AgentEx
         
         # Create minimal failed status for system errors
         # This handles cases where status_builder was never initialized
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import Message
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+        from datetime import datetime
         
         failed_status = AgentExecutionStatus(
             phase=ExecutionPhase.EXECUTION_FAILED,
             error=f"System error: {str(system_error)}",
             messages=[
-                Message(
-                    role="system",
-                    content="Internal system error occurred. Please contact support if this issue persists."
+                AgentMessage(
+                    type=MessageType.MESSAGE_SYSTEM,
+                    content="Internal system error occurred. Please contact support if this issue persists.",
+                    timestamp=datetime.utcnow().isoformat(),
                 ),
-                Message(
-                    role="system",
-                    content=f"Error details: {str(system_error)}"
+                AgentMessage(
+                    type=MessageType.MESSAGE_SYSTEM,
+                    content=f"Error details: {str(system_error)}",
+                    timestamp=datetime.utcnow().isoformat(),
                 )
             ]
         )
@@ -193,7 +197,7 @@ async def _execute_graphton_impl(
                 activity_logger.info(f"Using Daytona snapshot: {snapshot_id}")
         
         # Get session_id from execution (if exists)
-        session_id = execution.spec.session_id if execution.spec.session_id else None
+        resolved_session_id: str | None = execution.spec.session_id if execution.spec.session_id else None
         
         # Handle sandbox based on mode
         sandbox = None
@@ -208,12 +212,15 @@ async def _execute_graphton_impl(
         else:
             # Cloud mode - get or create Daytona sandbox (reuse if session exists)
             activity_logger.info(
-                f"{'Checking for existing sandbox in session' if session_id else 'Creating ephemeral sandbox'}"
+                f"{'Checking for existing sandbox in session' if resolved_session_id else 'Creating ephemeral sandbox'}"
             )
+            
+            if sandbox_manager is None:
+                raise RuntimeError("Sandbox manager not initialized for cloud mode")
             
             sandbox, is_new_sandbox = await sandbox_manager.get_or_create_sandbox(
                 sandbox_config=sandbox_config,
-                session_id=session_id,
+                session_id=resolved_session_id,
                 session_client=session_client,
             )
             
@@ -239,33 +246,34 @@ async def _execute_graphton_impl(
                 )
                 skills = await skill_client.list_by_refs(list(skill_refs))
                 
-                # Write skills to sandbox (Daytona or filesystem based on mode)
+                # Write skills to sandbox (Daytona mode only - local mode not yet supported)
                 if worker_config.is_local_mode():
-                    # Local mode - write to filesystem
-                    activity_logger.info(
-                        f"Writing {len(skills)} skills to filesystem at {sandbox_config.get('root_dir')}/skills"
+                    # Local mode - skills writing to filesystem not yet implemented
+                    activity_logger.warning(
+                        "Skills writing to local filesystem is not yet implemented. "
+                        "Skills will be skipped in local mode."
                     )
-                    skill_writer = SkillWriter(
-                        root_dir=sandbox_config.get('root_dir'),
-                        mode="filesystem"
-                    )
+                    skill_paths = {}
+                    skills_prompt_section = ""
                 else:
                     # Cloud mode - upload to Daytona sandbox
+                    if sandbox is None:
+                        raise RuntimeError("Sandbox not initialized for cloud mode")
+                    
                     activity_logger.info(
                         f"Uploading {len(skills)} skills to Daytona sandbox "
                         f"(sandbox {'newly created' if is_new_sandbox else 'reused, updating skills'})"
                     )
-                    skill_writer = SkillWriter(sandbox=sandbox, mode="daytona")
-                
-                skill_paths = skill_writer.write_skills(skills)
-                
-                # Generate prompt section with skill metadata
-                skills_prompt_section = SkillWriter.generate_prompt_section(skills, skill_paths)
-                
-                activity_logger.info(
-                    f"Successfully {'wrote' if worker_config.is_local_mode() else 'uploaded'} "
-                    f"{len(skills)} skills: {[s.metadata.name for s in skills]}"
-                )
+                    skill_writer = SkillWriter(sandbox=sandbox)
+                    
+                    skill_paths = skill_writer.write_skills(skills)
+                    
+                    # Generate prompt section with skill metadata
+                    skills_prompt_section = SkillWriter.generate_prompt_section(skills, skill_paths)
+                    
+                    activity_logger.info(
+                        f"Successfully uploaded {len(skills)} skills: {[s.metadata.name for s in skills]}"
+                    )
                     
             except RuntimeError as e:
                 # Catch write/upload failures from SkillWriter
@@ -346,6 +354,9 @@ async def _execute_graphton_impl(
             )
         else:
             # Cloud mode - pass Daytona config with sandbox_id to reuse existing sandbox
+            if sandbox is None:
+                raise RuntimeError("Sandbox not initialized for cloud mode")
+            
             sandbox_config_for_agent = {
                 "type": "daytona",
                 "sandbox_id": sandbox.id,  # Reuse existing sandbox with skills

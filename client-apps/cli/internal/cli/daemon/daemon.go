@@ -350,6 +350,10 @@ func startAgentRunner(
 
 	log.Debug().Str("script", runnerScript).Msg("Found agent-runner script")
 
+	// Determine agent-runner workspace directory
+	// This is where pyproject.toml and Python source code live
+	agentRunnerWorkspace := filepath.Dir(runnerScript) // Directory containing run.sh
+	
 	// Prepare environment with LLM and Temporal configuration
 	env := os.Environ()
 	
@@ -371,6 +375,9 @@ func startAgentRunner(
 		fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
 		fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
 		
+		// Agent-runner workspace (explicit path to pyproject.toml directory)
+		fmt.Sprintf("STIGMER_AGENT_RUNNER_WORKSPACE=%s", agentRunnerWorkspace),
+		
 		"LOG_LEVEL=DEBUG",
 	)
 	
@@ -383,6 +390,7 @@ func startAgentRunner(
 		Str("llm_provider", llmProvider).
 		Str("llm_model", llmModel).
 		Str("temporal_address", temporalAddr).
+		Str("workspace", agentRunnerWorkspace).
 		Msg("Starting agent-runner with configuration")
 
 	// Start agent-runner process

@@ -23,6 +23,7 @@ Transform agent-runner from shell script + Poetry architecture to production-rea
 - ✅ `backend/services/agent-runner/.dockerignore` - Build optimization
 - ✅ `backend/services/agent-runner/Makefile` - Complete build/run/test/push targets
 - ✅ `backend/services/agent-runner/docs/docker.md` - Comprehensive documentation
+- ✅ **NEW**: Makefile refactoring for automated Docker image build
 
 **Key improvements**:
 - 🔒 Non-root user execution (UID 1000)
@@ -31,17 +32,36 @@ Transform agent-runner from shell script + Poetry architecture to production-rea
 - 🎯 Version tagging support
 - 📚 Complete documentation
 - 🔧 Easy local testing workflow
+- ⚡ **NEW**: Single command workflow - `make release-local` builds everything automatically
 
 ## What's Next
 
-**Immediate**: Test the implementation
+✅ **BONUS COMPLETE**: Makefile Automation (2026-01-21)
+✅ **BLOCKER FIXED**: MyPy Type Errors Fixed (2026-01-21)
+
+**Recent progress**:
+- ✅ Makefile refactoring complete - automated Docker image build
+- ✅ Fixed 20 mypy type checking errors in agent-runner
+- ✅ Build now progresses through type checking and Docker image creation
+- ⚠️ Revealed next issue: Missing `agent-runner.tar.gz` for CLI embedding
+
+**Immediate**: Investigate CLI embedding issue
 ```bash
-cd backend/services/agent-runner
-make build-image VERSION=test
-make test-image VERSION=test
+# Current status:
+# ✅ stigmer-server binary built
+# ✅ workflow-runner binary built  
+# ✅ agent-runner Docker image built (dev-local)
+# ❌ CLI build fails - missing embedded/binaries/darwin_arm64/agent-runner.tar.gz
+
+# Error message:
+# embedded/embedded.go:39:12: pattern binaries/darwin_arm64/agent-runner.tar.gz: no matching files found
 ```
 
-**Then**: Move to Task 2 (CLI Container Management Integration)
+**Next steps**:
+1. Determine if agent-runner should be embedded as `.tar.gz` or if embedding pattern needs updating
+2. Fix CLI embedding issue
+3. Complete end-to-end testing of automated workflow
+4. Move to Task 2 (CLI Container Management Integration)
 
 ## Project Location
 
