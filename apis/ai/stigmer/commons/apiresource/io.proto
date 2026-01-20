@@ -57,5 +57,5 @@ message ApiResourceReference {
   ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 3;
 
   // Resource slug (user-friendly name, not ID)
-  string slug = 4 [(buf.validate.field).string.min_len = 1];
+  string slug = 4;
 }

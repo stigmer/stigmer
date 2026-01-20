@@ -40,7 +40,7 @@ type Config struct {
 
 // BackendConfig represents backend configuration
 type BackendConfig struct {
-	Type  BackendType        `yaml:"type"` // "local" or "cloud"
+	Type  BackendType         `yaml:"type"` // "local" or "cloud"
 	Local *LocalBackendConfig `yaml:"local,omitempty"`
 	Cloud *CloudBackendConfig `yaml:"cloud,omitempty"`
 }
@@ -55,10 +55,10 @@ type LocalBackendConfig struct {
 
 // LLMConfig represents LLM provider configuration
 type LLMConfig struct {
-	Provider string `yaml:"provider"`            // "ollama", "anthropic", "openai"
-	Model    string `yaml:"model,omitempty"`     // Model name (e.g., "qwen2.5-coder:7b", "claude-sonnet-4.5")
-	APIKey   string `yaml:"api_key,omitempty"`   // API key (optional - env var takes precedence)
-	BaseURL  string `yaml:"base_url,omitempty"`  // Base URL for API (optional - only for custom endpoints)
+	Provider string `yaml:"provider"`           // "ollama", "anthropic", "openai"
+	Model    string `yaml:"model,omitempty"`    // Model name (e.g., "qwen2.5-coder:7b", "claude-sonnet-4.5")
+	APIKey   string `yaml:"api_key,omitempty"`  // API key (optional - env var takes precedence)
+	BaseURL  string `yaml:"base_url,omitempty"` // Base URL for API (optional - only for custom endpoints)
 }
 
 // TemporalConfig represents Temporal runtime configuration
@@ -71,10 +71,10 @@ type TemporalConfig struct {
 
 // CloudBackendConfig represents cloud backend configuration
 type CloudBackendConfig struct {
-	Endpoint string `yaml:"endpoint"`           // gRPC endpoint (default: api.stigmer.ai:443)
-	Token    string `yaml:"token,omitempty"`    // Auth token
-	OrgID    string `yaml:"org_id,omitempty"`   // Organization ID
-	EnvID    string `yaml:"env_id,omitempty"`   // Environment ID
+	Endpoint string `yaml:"endpoint"`         // gRPC endpoint (default: api.stigmer.ai:443)
+	Token    string `yaml:"token,omitempty"`  // Auth token
+	OrgID    string `yaml:"org_id,omitempty"` // Organization ID
+	EnvID    string `yaml:"env_id,omitempty"` // Environment ID
 }
 
 // ContextConfig represents CLI context (only used in cloud mode)
@@ -160,10 +160,10 @@ func GetDefault() *Config {
 					Model:    "qwen2.5-coder:7b",
 					BaseURL:  "http://localhost:11434",
 				},
-			Temporal: &TemporalConfig{
-				Managed: true,
-				// Version and Port not set - always hardcoded to tested defaults
-			},
+				Temporal: &TemporalConfig{
+					Managed: true,
+					// Version and Port not set - always hardcoded to tested defaults
+				},
 			},
 		},
 	}
@@ -218,12 +218,12 @@ func (c *LocalBackendConfig) ResolveLLMProvider() string {
 	if provider := os.Getenv("STIGMER_LLM_PROVIDER"); provider != "" {
 		return provider
 	}
-	
+
 	// 2. Check config file
 	if c.LLM != nil && c.LLM.Provider != "" {
 		return c.LLM.Provider
 	}
-	
+
 	// 3. Default
 	return "ollama"
 }
@@ -234,12 +234,12 @@ func (c *LocalBackendConfig) ResolveLLMModel() string {
 	if model := os.Getenv("STIGMER_LLM_MODEL"); model != "" {
 		return model
 	}
-	
+
 	// 2. Check config file
 	if c.LLM != nil && c.LLM.Model != "" {
 		return c.LLM.Model
 	}
-	
+
 	// 3. Provider-specific defaults
 	provider := c.ResolveLLMProvider()
 	switch provider {
@@ -260,12 +260,12 @@ func (c *LocalBackendConfig) ResolveLLMBaseURL() string {
 	if baseURL := os.Getenv("STIGMER_LLM_BASE_URL"); baseURL != "" {
 		return baseURL
 	}
-	
+
 	// 2. Check config file
 	if c.LLM != nil && c.LLM.BaseURL != "" {
 		return c.LLM.BaseURL
 	}
-	
+
 	// 3. Provider-specific defaults
 	provider := c.ResolveLLMProvider()
 	switch provider {
@@ -287,7 +287,7 @@ func (c *LocalBackendConfig) ResolveTemporalAddress() (string, bool) {
 	if addr := os.Getenv("TEMPORAL_SERVICE_ADDRESS"); addr != "" {
 		return addr, false // external
 	}
-	
+
 	// 2. Check config: managed vs external
 	if c.Temporal != nil {
 		if c.Temporal.Managed {
@@ -300,7 +300,7 @@ func (c *LocalBackendConfig) ResolveTemporalAddress() (string, bool) {
 			return c.Temporal.Address, false // external
 		}
 	}
-	
+
 	// 3. Default: managed Temporal
 	return "localhost:7233", true
 }
@@ -325,7 +325,7 @@ func (c *LocalBackendConfig) ResolveTemporalPort() int {
 // Priority: env var > config file
 func (c *LocalBackendConfig) ResolveLLMAPIKey() string {
 	provider := c.ResolveLLMProvider()
-	
+
 	// 1. Check provider-specific environment variable (highest priority)
 	var envKey string
 	switch provider {
@@ -334,16 +334,16 @@ func (c *LocalBackendConfig) ResolveLLMAPIKey() string {
 	case "openai":
 		envKey = os.Getenv("OPENAI_API_KEY")
 	}
-	
+
 	if envKey != "" {
 		return envKey
 	}
-	
+
 	// 2. Check config file
 	if c.LLM != nil && c.LLM.APIKey != "" {
 		return c.LLM.APIKey
 	}
-	
+
 	// 3. No API key configured
 	return ""
 }

@@ -11,8 +11,8 @@ import (
 // Update updates an existing workflow instance using the pipeline framework
 //
 // Pipeline (Stigmer OSS):
-// 1. ResolveSlug - Generate slug from metadata.name (must be before validation, for fallback lookup)
-// 2. ValidateProto - Validate proto field constraints using buf validate
+// 1. ValidateProto - Validate proto field constraints using buf validate
+// 2. ResolveSlug - Generate slug from metadata.name
 // 3. LoadExisting - Load existing workflow instance from repository to verify it exists
 // 4. BuildUpdateState - Merge spec, preserve IDs and status, update audit timestamps
 // 5. Persist - Save updated workflow instance to repository
@@ -32,8 +32,8 @@ func (c *WorkflowInstanceController) Update(ctx context.Context, instance *workf
 // buildUpdatePipeline constructs the pipeline for workflow instance update
 func (c *WorkflowInstanceController) buildUpdatePipeline() *pipeline.Pipeline[*workflowinstancev1.WorkflowInstance] {
 	return pipeline.NewPipeline[*workflowinstancev1.WorkflowInstance]("workflow-instance-update").
-		AddStep(steps.NewResolveSlugStep[*workflowinstancev1.WorkflowInstance]()).         // 1. Resolve slug (must be before validation, for fallback lookup)
-		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()).       // 2. Validate field constraints
+		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()).       // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*workflowinstancev1.WorkflowInstance]()).         // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*workflowinstancev1.WorkflowInstance](c.store)). // 3. Load existing instance
 		AddStep(steps.NewBuildUpdateStateStep[*workflowinstancev1.WorkflowInstance]()).    // 4. Build updated state (merge spec, preserve status, update audit)
 		AddStep(steps.NewPersistStep[*workflowinstancev1.WorkflowInstance](c.store)).      // 5. Persist workflow instance

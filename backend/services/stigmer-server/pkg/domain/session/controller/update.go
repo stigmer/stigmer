@@ -11,8 +11,8 @@ import (
 // Update updates an existing session using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ResolveSlug - Generate slug from metadata.name (must be before validation, for fallback lookup)
-// 2. ValidateProto - Validate proto field constraints using buf validate
+// 1. ValidateProto - Validate proto field constraints using buf validate
+// 2. ResolveSlug - Generate slug from metadata.name
 // 3. LoadExisting - Load existing session from repository by ID
 // 4. BuildUpdateState - Merge spec, preserve IDs, update timestamps, clear computed fields
 // 5. Persist - Save updated session to repository
@@ -39,8 +39,8 @@ func (c *SessionController) buildUpdatePipeline() *pipeline.Pipeline[*sessionv1.
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*sessionv1.Session]("session-update").
-		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).           // 1. Resolve slug (must be before validation, for fallback lookup)
-		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).         // 2. Validate field constraints
+		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).         // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).           // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*sessionv1.Session](c.store)).   // 3. Load existing session
 		AddStep(steps.NewBuildUpdateStateStep[*sessionv1.Session]()).      // 4. Build updated state
 		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).        // 5. Persist session
