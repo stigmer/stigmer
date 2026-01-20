@@ -1,10 +1,10 @@
-# Next Task: Implement Temporal Workflow Execution
+# Next Task: Manual Testing
 
 🚀 **Quick Resume Context**
 
 **Project:** Implement Temporal Workflow Execution  
 **Location:** `_projects/2026-01/20260120.01.implement-temporal-workflow-execution/`  
-**Current Status:** 2 of 3 Workers Complete - Ready for Task 7 (Workflow Validation)
+**Current Status:** 🎉 ALL 3 WORKERS COMPLETE - Ready for Manual Testing (Task 5)
 
 ## Progress Summary
 
@@ -12,149 +12,152 @@
 ✅ **Task 2 COMPLETE:** Compared with Go OSS structure (ALL THREE domains)
 ✅ **Task 3 COMPLETE:** Designed complete implementation plan
 ✅ **Task 4 COMPLETE:** Implemented **Workflow Execution** worker infrastructure
-⏸️ **Task 5 PENDING:** Manual testing by user (separate session)
 ✅ **Task 6 COMPLETE:** Implemented **Agent Execution** worker infrastructure
-➡️ **Task 7 NEXT:** Implement **Workflow Validation** worker infrastructure
+✅ **Task 7 COMPLETE:** Implemented **Workflow Validation** worker infrastructure
+➡️ **Task 5 NEXT:** Manual testing by user
 
 **Major Discovery:** Java Cloud has **THREE** separate Temporal workflow domains:
-1. ✅ Workflow Execution (IMPLEMENTED - Task 4)
-2. ✅ Agent Execution (IMPLEMENTED - Task 6)
-3. ⏸️ Workflow Validation (TODO - Task 7)
+1. ✅ Workflow Execution (COMPLETE)
+2. ✅ Agent Execution (COMPLETE)
+3. ✅ Workflow Validation (COMPLETE)
 
-**Good News:** All infrastructure code exists for all three domains! Just needs main.go setup.
+**🎉 ALL IMPLEMENTATION COMPLETE!** All three workers are now integrated in main.go and ready for testing.
 
-## Current Task: Task 7 - Implement Workflow Validation Temporal Worker
+## Current Task: Task 5 - Manual Testing
 
-**Goal:** Add Workflow Validation worker initialization to `main.go` following the same pattern as Workflow Execution and Agent Execution
+**Goal:** Verify all three Temporal workers (workflow execution, agent execution, workflow validation) are working correctly in stigmer-server.
+
+**Status:** 🎉 **ALL IMPLEMENTATION COMPLETE** - Ready for manual testing
 
 **Prerequisites:**
-- ✅ All workflow validation temporal code exists and is complete
-- ✅ Worker config file: `pkg/domain/workflowvalidation/temporal/worker_config.go`
-- ✅ Workflow implementation: `workflows/validate_workflow.go`
-- ✅ Activity implementations: `activities/`
-- ✅ Queue names match Java Cloud
-- ✅ Tasks 4 & 6 complete (provide implementation pattern to follow)
+- ✅ All three workers implemented in main.go
+- ✅ Code compiles successfully
+- ✅ Workflow execution worker ready
+- ✅ Agent execution worker ready
+- ✅ Workflow validation worker ready
 
-**What to Implement:**
+**What to Test:**
 
-### Step 1: Add Imports to main.go
-```go
-import (
-    workflowvalidationtemporal "github.com/stigmer/stigmer/.../workflowvalidation/temporal"
-)
-```
+### Test 1: Server Startup
 
-### Step 2: Declare Worker Variables
-Add after agent execution worker variables (~line 106):
-```go
-var workflowValidationWorker worker.Worker
-var workflowValidationWorkflowCreator *workflowvalidationtemporal.InvokeWorkflowValidationWorkflowCreator
-```
-
-### Step 3: Create Worker (Inside `if temporalClient != nil` Block)
-Add after agent execution worker creation (~line 155):
-```go
-// Load Temporal configuration for workflow validation
-workflowValidationTemporalConfig := workflowvalidationtemporal.NewConfig()
-
-// Create worker configuration
-workflowValidationWorkerConfig := workflowvalidationtemporal.NewWorkerConfig(
-    workflowValidationTemporalConfig,
-    store,
-)
-
-// Create worker (not started yet)
-workflowValidationWorker = workflowValidationWorkerConfig.CreateWorker(temporalClient)
-
-// Create workflow creator (for controller injection)
-workflowValidationWorkflowCreator = workflowvalidationtemporal.NewInvokeWorkflowValidationWorkflowCreator(
-    temporalClient,
-    workflowValidationTemporalConfig,
-)
-
-log.Info().
-    Str("stigmer_queue", workflowValidationTemporalConfig.StigmerQueue).
-    Str("runner_queue", workflowValidationTemporalConfig.RunnerQueue).
-    Msg("Created workflow validation worker and creator")
-```
-
-### Step 4: Start Worker (After gRPC Server Ready)
-Add after agent execution worker start (~line 276):
-```go
-if workflowValidationWorker != nil {
-    if err := workflowValidationWorker.Start(); err != nil {
-        log.Fatal().
-            Err(err).
-            Msg("Failed to start workflow validation worker")
-    }
-    defer workflowValidationWorker.Stop()
-    log.Info().Msg("Workflow validation worker started")
-}
-```
-
-### Step 5: Inject Workflow Creator into Controller (if needed)
-Note: Check if workflow controller needs validation creator injection. If yes, add method to controller first, then:
-```go
-// Inject workflow validation workflow creator (nil-safe, if controller has SetValidationCreator)
-workflowController.SetValidationCreator(workflowValidationWorkflowCreator)
-```
-
-**Files to Modify:**
-- `backend/services/stigmer-server/cmd/server/main.go`
-
-**Estimated Changes:**
-- ~5 lines of imports
-- ~30 lines for worker creation and initialization
-- ~10 lines for worker start
-- ~2 lines for controller injection
-- **Total: ~47 lines**
-
-**Success Criteria:**
-- [ ] Code compiles without errors
-- [ ] Server starts successfully
-- [ ] Agent execution worker registers on `agent_execution_stigmer` queue
-- [ ] Worker visible in Temporal UI
-- [ ] No errors in server logs
-- [ ] Graceful shutdown works (worker stops cleanly)
-
-**Testing (After Implementation):**
 ```bash
-# 1. Rebuild stigmer-server
-$ bazel build //backend/services/stigmer-server/cmd/server
-
-# 2. Start Temporal
+# 1. Start Temporal server
 $ temporal server start-dev
 
-# 3. Start stigmer-server
+# 2. Start stigmer-server
 $ stigmer-server
-
-# 4. Check logs for:
-✓ "Created workflow validation worker and creator"
-✓ "Workflow validation worker started"
-✓ Queue names logged (workflow_validation_stigmer, workflow_validation_runner)
-
-# 5. Verify in Temporal UI (http://localhost:8233)
-✓ Navigate to Workers tab
-✓ See "workflow_validation_stigmer" queue with active worker
-✓ All THREE queues should now be visible:
-  - workflow_execution_stigmer
-  - agent_execution_stigmer
-  - workflow_validation_stigmer
 ```
 
+**Expected Logs:**
+```log
+INFO Connected to Temporal server host_port=localhost:7233 namespace=default
+INFO Created workflow execution worker and creator stigmer_queue=workflow_execution_stigmer runner_queue=workflow_execution_runner
+INFO Created agent execution worker and creator stigmer_queue=agent_execution_stigmer runner_queue=agent_execution_runner
+INFO Created workflow validation worker stigmer_queue=workflow_validation_stigmer runner_queue=workflow_validation_runner
+INFO Workflow execution worker started
+INFO Agent execution worker started
+INFO Workflow validation worker started
+INFO Stigmer Server started successfully port=50051
+```
+
+**Success Criteria:**
+- [ ] No errors during startup
+- [ ] All three "Created ... worker" messages appear
+- [ ] All three "... worker started" messages appear
+- [ ] Server starts and listens on port
+
+### Test 2: Temporal UI Verification
+
+```bash
+# Open Temporal UI
+$ open http://localhost:8233
+```
+
+**Steps:**
+1. Navigate to **Workers** tab
+2. Verify all three task queues visible with active workers:
+   - `workflow_execution_stigmer`
+   - `agent_execution_stigmer`
+   - `workflow_validation_stigmer`
+3. Check worker status (should be "Running")
+
+**Success Criteria:**
+- [ ] All three queues visible in UI
+- [ ] Each queue shows active worker(s)
+- [ ] No error states
+
+### Test 3: Workflow Execution (Original Problem)
+
+```bash
+# Test the original hanging workflow issue
+$ stigmer run [workflow-name]
+```
+
+**Expected Behavior:**
+- ✅ Workflow execution starts
+- ✅ Workflow progresses (no hanging)
+- ✅ Activities execute on runner queue
+- ✅ Workflow completes successfully
+
+**Success Criteria:**
+- [ ] Workflow starts without errors
+- [ ] **Workflow does NOT hang** (original problem fixed)
+- [ ] Workflow completes or progresses as expected
+- [ ] Check Temporal UI for workflow execution details
+
+### Test 4: Agent Execution
+
+```bash
+# Trigger agent execution (command TBD based on your workflow)
+$ stigmer [agent-execution-command]
+```
+
+**Success Criteria:**
+- [ ] Agent execution workflow starts
+- [ ] Activities execute (EnsureThread, ExecuteGraphton, UpdateStatus)
+- [ ] Workflow completes successfully
+- [ ] Check logs for activity execution
+
+### Test 5: Workflow Validation
+
+```bash
+# Trigger workflow validation (mechanism TBD)
+# May happen automatically during workflow creation
+```
+
+**Success Criteria:**
+- [ ] Validation workflow starts when triggered
+- [ ] ValidateWorkflow activity executes on runner queue
+- [ ] Validation completes successfully
+- [ ] Invalid workflows are caught and reported
+
+### Test 6: Graceful Shutdown
+
+```bash
+# In stigmer-server terminal, press Ctrl+C
+```
+
+**Expected Logs:**
+```log
+INFO Received shutdown signal
+INFO Stigmer Server stopped
+```
+
+**Success Criteria:**
+- [ ] Workers stop gracefully (defer calls executed)
+- [ ] No hanging processes
+- [ ] Clean shutdown
+
 **Reference:**
-- See `TEMPORAL_WORKERS_STATUS.md` for complete implementation details
-- Copy pattern from workflow execution or agent execution workers
-- See `checkpoints/task-4-workflow-execution-worker-implemented.md` (Task 4)
-- See `checkpoints/task-6-agent-execution-worker-implemented.md` (Task 6)
+- See `checkpoints/task-7-workflow-validation-worker-implemented.md` for implementation details
+- See `TEMPORAL_WORKERS_STATUS.md` for queue names and configurations
 
-**Estimated Time:** 15-20 minutes
+## Next Steps After Testing
 
-## Next Steps After Task 7
-
-1. **ALL THREE WORKERS COMPLETE!** 🎉
-2. **Manual Testing:** User tests all three workers end-to-end in separate session
-3. **End-to-End Verification:** Run actual workflow/agent executions through Temporal
+1. **Document Test Results** - Create testing report if issues found
+2. **Performance Testing** - Test with concurrent workflows/agents
+3. **Error Handling** - Test failure scenarios (Temporal down, worker failures)
+4. **Project Completion** - Mark project as complete if all tests pass
 
 ## Files
 
@@ -184,7 +187,7 @@ $ stigmer run
 - Just needs initialization in main.go ✅
 - Controllers need workflow creator injection ✅
 
-**Status:** 🟢 Almost Complete - 2 of 3 workers implemented. Ready for Task 7 (Workflow Validation - final worker).
+**Status:** 🟢 Implementation Complete - All 3 workers implemented and compiled successfully. Ready for manual testing.
 
 ## Quick Reference Documents
 
