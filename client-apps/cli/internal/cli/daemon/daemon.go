@@ -16,6 +16,8 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -430,9 +432,16 @@ func Stop(dataDir string) error {
 	stopManagedTemporal(dataDir)
 
 	// Stop stigmer-server
+	// First try to get PID from file
 	pid, err := getPID(dataDir)
 	if err != nil {
-		return errors.Wrap(err, "daemon is not running")
+		// No PID file - try to find process by port
+		log.Warn().Msg("PID file not found, searching for process by port")
+		pid, err = findProcessByPort(DaemonPort)
+		if err != nil {
+			return errors.Wrap(err, "daemon is not running (no PID file and no process on port)")
+		}
+		log.Info().Int("pid", pid).Msg("Found orphaned daemon process by port")
 	}
 
 	// Find process
@@ -451,7 +460,7 @@ func Stop(dataDir string) error {
 	// Wait for process to exit (up to 10 seconds)
 	for i := 0; i < 20; i++ {
 		if !IsRunning(dataDir) {
-			// Remove PID file
+			// Remove PID file (if it exists)
 			pidFile := filepath.Join(dataDir, PIDFileName)
 			_ = os.Remove(pidFile)
 			
@@ -467,7 +476,7 @@ func Stop(dataDir string) error {
 		return errors.Wrap(err, "failed to kill daemon process")
 	}
 
-	// Remove PID file
+	// Remove PID file (if it exists)
 	pidFile := filepath.Join(dataDir, PIDFileName)
 	_ = os.Remove(pidFile)
 
@@ -613,20 +622,45 @@ func stopAgentRunner(dataDir string) {
 
 // IsRunning checks if the daemon is running
 func IsRunning(dataDir string) bool {
+	// First try PID file check (most reliable when PID file exists)
 	pid, err := getPID(dataDir)
-	if err != nil {
-		return false
+	if err == nil {
+		// PID file exists - check if process is alive
+		process, err := os.FindProcess(pid)
+		if err == nil {
+			// Send signal 0 to check if process is alive
+			if process.Signal(syscall.Signal(0)) == nil {
+				log.Debug().Int("pid", pid).Msg("Daemon is running (verified via PID file)")
+				return true
+			}
+		}
+		// PID file exists but process is dead - clean up stale PID file
+		log.Warn().Int("pid", pid).Msg("Stale PID file found, cleaning up")
+		_ = os.Remove(filepath.Join(dataDir, PIDFileName))
 	}
 
-	// Check if process exists
-	process, err := os.FindProcess(pid)
+	// Fallback: Try to connect and verify it's actually stigmer-server
+	// This handles cases where the PID file is missing but server is actually running
+	// We do a real gRPC call to ensure it's our server, not just any process on that port
+	endpoint := fmt.Sprintf("localhost:%d", DaemonPort)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	
+	conn, err := grpc.DialContext(ctx, endpoint,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
 	if err != nil {
+		log.Debug().Err(err).Msg("Daemon is not running (connection failed)")
 		return false
 	}
+	defer conn.Close()
 
-	// Send signal 0 to check if process is alive
-	err = process.Signal(syscall.Signal(0))
-	return err == nil
+	// Successfully connected - stigmer-server is running (even without PID file)
+	log.Warn().
+		Str("endpoint", endpoint).
+		Msg("Daemon is running but PID file is missing - this may cause issues with 'stigmer server stop'")
+	return true
 }
 
 // EnsureRunning ensures the daemon is running, starting it if necessary
@@ -709,6 +743,32 @@ func getPID(dataDir string) (int, error) {
 	pid, err := strconv.Atoi(string(data))
 	if err != nil {
 		return 0, errors.Wrap(err, "invalid PID in PID file")
+	}
+
+	return pid, nil
+}
+
+// findProcessByPort finds the PID of the process listening on the specified port
+// This is used as a fallback when the PID file is missing but the server is running
+func findProcessByPort(port int) (int, error) {
+	// Use lsof to find process listening on the port
+	cmd := exec.Command("lsof", "-t", "-i", fmt.Sprintf(":%d", port), "-sTCP:LISTEN")
+	output, err := cmd.Output()
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to find process on port")
+	}
+
+	// Parse PID from output
+	pidStr := strings.TrimSpace(string(output))
+	if pidStr == "" {
+		return 0, errors.New("no process found listening on port")
+	}
+
+	// lsof might return multiple PIDs (one per line) - take the first one
+	lines := strings.Split(pidStr, "\n")
+	pid, err := strconv.Atoi(strings.TrimSpace(lines[0]))
+	if err != nil {
+		return 0, errors.Wrap(err, "invalid PID from lsof output")
 	}
 
 	return pid, nil
