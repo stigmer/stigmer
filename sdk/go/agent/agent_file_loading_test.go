@@ -38,6 +38,8 @@ func TestWithInstructionsFromFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			agent, err := New(
+
+				nil, // No context needed for tests
 				WithName("test-agent"),
 				WithInstructionsFromFile(tt.path),
 			)
@@ -77,6 +79,9 @@ func TestWithInstructionsFromFile_EmptyFile(t *testing.T) {
 	}
 
 	agent, err := New(
+
+
+		nil, // No context needed for tests
 		WithName("test-agent"),
 		WithInstructionsFromFile(emptyFile),
 	)
@@ -101,6 +106,9 @@ func TestWithInstructionsFromFile_TooShort(t *testing.T) {
 	}
 
 	agent, err := New(
+
+
+		nil, // No context needed for tests
 		WithName("test-agent"),
 		WithInstructionsFromFile(shortFile),
 	)
@@ -129,6 +137,9 @@ func TestWithInstructionsFromFile_LargeFile(t *testing.T) {
 	}
 
 	agent, err := New(
+
+
+		nil, // No context needed for tests
 		WithName("test-agent"),
 		WithInstructionsFromFile(largeFile),
 	)

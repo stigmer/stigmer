@@ -106,8 +106,10 @@ func New(ctx Context, opts ...Option) (*Workflow, error) {
 		return nil, err
 	}
 
-	// Register with context
-	ctx.RegisterWorkflow(w)
+	// Register with context (if provided)
+	if ctx != nil {
+		ctx.RegisterWorkflow(w)
+	}
 
 	return w, nil
 }

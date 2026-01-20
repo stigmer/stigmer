@@ -38,11 +38,29 @@ ollama pull qwen2.5-coder:7b
 
 ### 1. Install Stigmer
 
+**Homebrew (macOS/Linux) - Recommended:**
+
+```bash
+brew install stigmer/tap/stigmer
+```
+
+This installs both `stigmer` CLI and `stigmer-server` binaries.
+
+**From Source:**
+
 ```bash
 # Clone and build
 git clone https://github.com/stigmer/stigmer.git
-cd stigmer/client-apps/cli
-make install
+cd stigmer
+
+# Build and install both CLI and server
+make release-local
+```
+
+**Shell Script (Alternative):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/stigmer/stigmer/main/scripts/install.sh | bash
 ```
 
 ### 2. Start Local Mode
@@ -563,7 +581,10 @@ stigmer init
 - [Getting Started](docs/getting-started/) - Detailed guides
 - [Architecture](docs/architecture/) - How Stigmer works
   - [Temporal Integration](docs/architecture/temporal-integration.md) - Workflow orchestration design
+  - [Packaging Flow](docs/architecture/packaging-flow.md) - How Stigmer is packaged and distributed
   - [Request Pipeline Context Design](docs/architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
+- [Guides](docs/guides/) - How-to guides
+  - [Distribution Guide](docs/guides/distribution.md) - Complete packaging and distribution guide
 - [API Reference](docs/api/) - gRPC service interfaces and SDK docs
 - [Examples](examples/) - Sample agents and workflows
 
@@ -649,6 +670,34 @@ Generated stubs are placed in `apis/stubs/` and are excluded from version contro
 - Python stubs: `apis/stubs/python/stigmer/`
 
 See [apis/README.md](apis/README.md) for more details on the proto structure and build process.
+
+### Creating Releases
+
+Stigmer supports separate release processes for protos and CLI/binaries:
+
+**Release CLI and binaries:**
+
+```bash
+# Create and push a release tag (triggers GitHub Actions)
+make release [bump=patch|minor|major]
+
+# Example: Create v0.2.0 release
+make release bump=minor
+```
+
+This creates a git tag and pushes it to GitHub, which triggers GoReleaser to:
+- Build both `stigmer` and `stigmer-server` binaries for all platforms
+- Create GitHub releases with archives
+- Update Homebrew tap automatically
+
+**Release protos separately:**
+
+```bash
+# Publish protos to Buf and create a tag
+make protos-release [bump=patch|minor|major]
+```
+
+See [Distribution Guide](docs/guides/distribution.md) for complete packaging and distribution documentation.
 
 ## Contributing
 

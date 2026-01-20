@@ -19,8 +19,8 @@ package validation
 import (
 	"fmt"
 
-	apiresourcev1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/commons/apiresource"
-	tasksv1 "github.com/leftbin/stigmer-cloud/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
+	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -104,6 +104,11 @@ func UnmarshalTaskConfig(
 	err = protojson.Unmarshal(jsonBytes, protoMsg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal JSON to proto: %w", err)
+	}
+
+	// Validate the unmarshaled proto message
+	if err := ValidateTaskConfig(protoMsg); err != nil {
+		return nil, err
 	}
 
 	return protoMsg, nil

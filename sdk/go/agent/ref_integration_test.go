@@ -38,6 +38,7 @@ func TestAgent_NewWithContext(t *testing.T) {
 func TestAgent_NewWithoutContext(t *testing.T) {
 	// Test that old API still works (backward compatibility)
 	ag, err := agent.New(
+		nil, // No context needed for tests
 		agent.WithName("code-reviewer"),
 		agent.WithInstructions("Review code and suggest improvements"),
 		agent.WithDescription("AI code reviewer"),
@@ -79,6 +80,7 @@ func TestAgentBuilder_WithNameStringRef(t *testing.T) {
 func TestAgentBuilder_WithNameString(t *testing.T) {
 	// Test backward compatibility - plain string should still work
 	ag, err := agent.New(
+		nil, // No context needed for tests
 		agent.WithName("code-reviewer"),
 		agent.WithInstructions("Review code"),
 	)
@@ -115,6 +117,7 @@ func TestAgentBuilder_WithInstructionsStringRef(t *testing.T) {
 func TestAgentBuilder_WithInstructionsString(t *testing.T) {
 	// Test backward compatibility
 	ag, err := agent.New(
+		nil, // No context needed for tests
 		agent.WithName("code-reviewer"),
 		agent.WithInstructions("Review code and suggest improvements"),
 	)
@@ -152,6 +155,7 @@ func TestAgentBuilder_WithDescriptionStringRef(t *testing.T) {
 func TestAgentBuilder_WithDescriptionString(t *testing.T) {
 	// Test backward compatibility
 	ag, err := agent.New(
+		nil, // No context needed for tests
 		agent.WithName("code-reviewer"),
 		agent.WithInstructions("Review code"),
 		agent.WithDescription("AI code reviewer"),
@@ -190,6 +194,7 @@ func TestAgentBuilder_WithIconURLStringRef(t *testing.T) {
 func TestAgentBuilder_WithIconURLString(t *testing.T) {
 	// Test backward compatibility
 	ag, err := agent.New(
+		nil, // No context needed for tests
 		agent.WithName("code-reviewer"),
 		agent.WithInstructions("Review code"),
 		agent.WithIconURL("https://example.com/icon.png"),
@@ -228,6 +233,7 @@ func TestAgentBuilder_WithOrgStringRef(t *testing.T) {
 func TestAgentBuilder_WithOrgString(t *testing.T) {
 	// Test backward compatibility
 	ag, err := agent.New(
+		nil, // No context needed for tests
 		agent.WithName("code-reviewer"),
 		agent.WithInstructions("Review code"),
 		agent.WithOrg("my-org"),

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 - 2026 Zigflow authors <https://github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/graphs/contributors>
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/stigmer/stigmer/backend/services/workflow-runner/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@ import (
 	gh "github.com/mrsimonemms/golang-helpers"
 	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/mrsimonemms/temporal-codec-server/packages/golang/algorithms/aes"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/telemetry"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/utils"
-	"github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/zigflow"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/telemetry"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"

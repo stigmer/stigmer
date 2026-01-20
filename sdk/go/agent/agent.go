@@ -102,8 +102,10 @@ func New(ctx Context, opts ...Option) (*Agent, error) {
 		return nil, err
 	}
 
-	// Register with context
-	ctx.RegisterAgent(a)
+	// Register with context (if provided)
+	if ctx != nil {
+		ctx.RegisterAgent(a)
+	}
 
 	return a, nil
 }

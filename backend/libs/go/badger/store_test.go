@@ -5,10 +5,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourcelib "github.com/stigmer/stigmer/backend/libs/go/apiresource"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStore_SaveAndGetResource(t *testing.T) {
@@ -18,10 +20,14 @@ func TestStore_SaveAndGetResource(t *testing.T) {
 	require.NoError(t, err)
 	defer store.Close()
 
+	// Get kind name from enum for the agent Kind field
+	kindNameStr, err := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	require.NoError(t, err)
+
 	// Create test agent
 	agent := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "Agent",
+		Kind:       kindNameStr,
 		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   "agent-test-123",
 			Name: "test-agent",
@@ -34,13 +40,13 @@ func TestStore_SaveAndGetResource(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Save resource
-	err = store.SaveResource(ctx, "Agent", agent.Metadata.Id, agent)
+	// Save resource using kind string
+	err = store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, agent)
 	require.NoError(t, err)
 
-	// Get resource
+	// Get resource using kind string
 	retrievedAgent := &agentv1.Agent{}
-	err = store.GetResource(ctx, agent.Metadata.Id, retrievedAgent)
+	err = store.GetResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, retrievedAgent)
 	require.NoError(t, err)
 
 	// Verify
@@ -55,9 +61,13 @@ func TestStore_DeleteResource(t *testing.T) {
 	require.NoError(t, err)
 	defer store.Close()
 
+	// Get kind name from enum for the agent Kind field
+	kindNameStr, err := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	require.NoError(t, err)
+
 	agent := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "Agent",
+		Kind:       kindNameStr,
 		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   "agent-delete-test",
 			Name: "delete-test-agent",
@@ -66,17 +76,17 @@ func TestStore_DeleteResource(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Save
-	err = store.SaveResource(ctx, "Agent", agent.Metadata.Id, agent)
+	// Save using kind string
+	err = store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, agent)
 	require.NoError(t, err)
 
-	// Delete
-	err = store.DeleteResource(ctx, agent.Metadata.Id)
+	// Delete using kind string
+	err = store.DeleteResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id)
 	require.NoError(t, err)
 
 	// Verify deleted
 	retrieved := &agentv1.Agent{}
-	err = store.GetResource(ctx, agent.Metadata.Id, retrieved)
+	err = store.GetResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, retrieved)
 	assert.Error(t, err)
 }
 
@@ -86,24 +96,28 @@ func TestStore_ListResources(t *testing.T) {
 	require.NoError(t, err)
 	defer store.Close()
 
+	// Get kind name from enum for the agent Kind field
+	kindNameStr, err := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	require.NoError(t, err)
+
 	ctx := context.Background()
 
 	// Create multiple agents
 	for i := 0; i < 3; i++ {
 		agent := &agentv1.Agent{
 			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Agent",
+			Kind:       kindNameStr,
 			Metadata: &apiresource.ApiResourceMetadata{
 				Id:   "agent-" + string(rune('0'+i)),
 				Name: "agent-" + string(rune('0'+i)),
 			},
 		}
-		err = store.SaveResource(ctx, "Agent", agent.Metadata.Id, agent)
+		err = store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, agent)
 		require.NoError(t, err)
 	}
 
-	// List all agents
-	results, err := store.ListResources(ctx, "Agent")
+	// List all agents using the enum constant
+	results, err := store.ListResources(ctx, apiresourcekind.ApiResourceKind_agent)
 	require.NoError(t, err)
 	assert.Len(t, results, 3)
 }
@@ -114,29 +128,33 @@ func TestStore_DeleteResourcesByKind(t *testing.T) {
 	require.NoError(t, err)
 	defer store.Close()
 
+	// Get kind name from enum for the agent Kind field
+	kindNameStr, err := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	require.NoError(t, err)
+
 	ctx := context.Background()
 
 	// Create multiple agents
 	for i := 0; i < 5; i++ {
 		agent := &agentv1.Agent{
 			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Agent",
+			Kind:       kindNameStr,
 			Metadata: &apiresource.ApiResourceMetadata{
 				Id:   "agent-bulk-" + string(rune('0'+i)),
 				Name: "bulk-agent-" + string(rune('0'+i)),
 			},
 		}
-		err = store.SaveResource(ctx, "Agent", agent.Metadata.Id, agent)
+		err = store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, agent)
 		require.NoError(t, err)
 	}
 
-	// Delete all agents
-	count, err := store.DeleteResourcesByKind(ctx, "Agent")
+	// Delete all agents using the enum constant
+	count, err := store.DeleteResourcesByKind(ctx, apiresourcekind.ApiResourceKind_agent)
 	require.NoError(t, err)
 	assert.Equal(t, int64(5), count)
 
 	// Verify all deleted
-	results, err := store.ListResources(ctx, "Agent")
+	results, err := store.ListResources(ctx, apiresourcekind.ApiResourceKind_agent)
 	require.NoError(t, err)
 	assert.Empty(t, results)
 }
@@ -150,7 +168,7 @@ func TestStore_GetResource_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	agent := &agentv1.Agent{}
-	err = store.GetResource(ctx, "non-existent-id", agent)
+	err = store.GetResource(ctx, apiresourcekind.ApiResourceKind_agent, "non-existent-id", agent)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
