@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
+	"google.golang.org/protobuf/proto"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
@@ -352,7 +353,7 @@ func (s *createDefaultInstanceIfNeededStep) findInstanceBySlug(ctx context.Conte
 	// Search for matching slug
 	for _, data := range instances {
 		instance := &workflowinstancev1.WorkflowInstance{}
-		if err := instance.Unmarshal(data); err != nil {
+		if err := proto.Unmarshal(data, instance); err != nil {
 			// Skip instances that can't be unmarshaled
 			log.Warn().
 				Err(err).
