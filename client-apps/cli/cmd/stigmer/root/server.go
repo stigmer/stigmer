@@ -33,6 +33,7 @@ Just run 'stigmer server' and start building!`,
 	cmd.AddCommand(newServerStopCommand())
 	cmd.AddCommand(newServerStatusCommand())
 	cmd.AddCommand(newServerRestartCommand())
+	cmd.AddCommand(newServerLogsCommand())
 
 	return cmd
 }

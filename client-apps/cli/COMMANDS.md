@@ -16,6 +16,21 @@ stigmer server status
 
 # Restart server
 stigmer server restart
+
+# View server logs (last 50 lines)
+stigmer server logs
+
+# Stream logs in real-time (like kubectl logs -f)
+stigmer server logs --follow
+
+# View agent-runner logs
+stigmer server logs --component agent-runner
+
+# View error logs
+stigmer server logs --stderr
+
+# Custom number of recent lines
+stigmer server logs --tail 100
 ```
 
 ### Backend Configuration
@@ -137,12 +152,18 @@ make test
 
 ## Architecture
 
-The Stigmer CLI manages a local server that includes:
+The Stigmer CLI manages a complete local daemon that includes:
 
-- **stigmer-server**: gRPC API server (localhost:50051)
-- **Temporal**: Workflow orchestration (auto-downloaded and started)
+- **stigmer-server**: gRPC API server (localhost:7234)
+- **Temporal**: Workflow orchestration (localhost:7233, auto-downloaded)
+- **workflow-runner**: Zigflow workflow execution (Temporal worker)
+- **agent-runner**: AI agent execution (Temporal worker)
 - **BadgerDB**: Local embedded storage
-- **agent-runner**: AI agent execution runtime
+
+Port allocation:
+- **7233** - Temporal gRPC
+- **7234** - Stigmer Server (Temporal + 1)
+- **8233** - Temporal UI
 
 Everything runs locally with zero external dependencies.
 
