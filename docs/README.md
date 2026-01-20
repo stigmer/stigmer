@@ -7,6 +7,11 @@ Complete documentation index for the Stigmer open-source project.
 ### Getting Started
 - [Local Mode](getting-started/local-mode.md) - Running Stigmer locally for development
 
+### CLI
+- [Running Agents and Workflows](cli/running-agents-workflows.md) - Execute agents and workflows with `stigmer run`
+- [Configuration](cli/configuration.md) - CLI configuration and context management
+- [Server Logs](cli/server-logs.md) - Viewing and managing server logs
+
 ### Guides
 - [Deploying with Apply](guides/deploying-with-apply.md) - Deploy agents and workflows from code using `stigmer apply`
 - [Distribution Guide](guides/distribution.md) - Complete guide to packaging and distributing Stigmer
@@ -40,8 +45,9 @@ Complete documentation index for the Stigmer open-source project.
 ### Learning Stigmer
 Start here if you're new to Stigmer:
 1. [Local Mode](getting-started/local-mode.md) - Get up and running
-2. [Backend Abstraction](architecture/backend-abstraction.md) - Understand the architecture
-3. [Open Core Model](architecture/open-core-model.md) - Understand OSS vs enterprise split
+2. [Running Agents and Workflows](cli/running-agents-workflows.md) - Execute with `stigmer run`
+3. [Backend Abstraction](architecture/backend-abstraction.md) - Understand the architecture
+4. [Open Core Model](architecture/open-core-model.md) - Understand OSS vs enterprise split
 
 ### Distributing Stigmer
 If you're working on releases or packaging:
