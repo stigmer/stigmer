@@ -5,20 +5,49 @@ The `stigmer server logs` command provides Kubernetes-like log access for the St
 ## Quick Reference
 
 ```bash
-# View recent server logs (last 50 lines)
+# Stream logs in real-time (default, like kubectl logs -f)
+# Shows last 50 lines + streams new logs
 stigmer server logs
 
-# Stream logs in real-time (like tail -f)
-stigmer server logs --follow
+# Show all existing logs + stream new logs
+stigmer server logs --tail=0
 
-# View error logs (stderr)
+# Only show last 50 lines (no streaming)
+stigmer server logs --follow=false
+
+# View error logs (stderr) with streaming
 stigmer server logs --stderr
 
-# View agent-runner logs
+# View agent-runner logs with streaming
 stigmer server logs --component agent-runner
 
 # Combine options
 stigmer server logs -f -c agent-runner --stderr --tail 100
+```
+
+## How It Works
+
+When you run `stigmer server logs`, it operates in two phases (Kubernetes-style):
+
+1. **Phase 1 - Existing Logs**: Shows recent logs (last 50 lines by default, or specify with `--tail`)
+2. **Phase 2 - Live Streaming**: Continuously streams new log lines as they're written
+
+This gives you context (what happened before) while keeping you updated (what's happening now).
+
+```bash
+# Default: Show last 50 lines + stream new logs
+$ stigmer server logs
+ℹ Streaming logs from: ~/.stigmer/data/logs/daemon.log (showing last 50 lines)
+ℹ Press Ctrl+C to stop
+
+[Last 50 lines of existing logs printed here]
+[Then waits and streams new logs as they arrive]
+^C  # Press Ctrl+C to stop
+```
+
+**To disable streaming** and only view existing logs:
+```bash
+stigmer server logs --follow=false
 ```
 
 ## Common Debugging Workflows
@@ -66,10 +95,12 @@ stigmer server logs --follow --stderr
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--follow` | `-f` | `false` | Stream logs in real-time (like `tail -f`) |
-| `--tail` | `-n` | `50` | Number of recent lines to show |
+| `--follow` | `-f` | `true` | Stream logs in real-time (like `kubectl logs -f`). Use `--follow=false` to disable. |
+| `--tail` | `-n` | `50` | Number of recent lines to show before streaming (`0` = all existing logs) |
 | `--component` | `-c` | `server` | Component to view (`server` or `agent-runner`) |
 | `--stderr` | | `false` | Show error logs instead of stdout |
+
+**⚠️ Behavior Change**: As of January 2026, `stigmer server logs` streams by default (Kubernetes-style). This shows existing logs first, then streams new ones continuously. Use `--follow=false` if you only want to view existing logs without streaming.
 
 ## Components
 
@@ -145,10 +176,13 @@ If you're familiar with these tools, here's how `stigmer server logs` compares:
 
 | Stigmer | Kubernetes | Docker | Description |
 |---------|-----------|--------|-------------|
-| `stigmer server logs` | `kubectl logs pod-name` | `docker logs container` | View logs |
-| `stigmer server logs -f` | `kubectl logs -f pod-name` | `docker logs -f container` | Stream logs |
-| `stigmer server logs --tail 100` | `kubectl logs --tail=100 pod-name` | `docker logs --tail 100 container` | Last N lines |
+| `stigmer server logs` | `kubectl logs -f pod-name` | `docker logs -f container` | Stream logs (default) |
+| `stigmer server logs --follow=false` | `kubectl logs pod-name --follow=false` | `docker logs container` | View logs only (no streaming) |
+| `stigmer server logs --tail=100` | `kubectl logs --tail=100 pod-name` | `docker logs --tail=100 container` | Last N lines + streaming |
+| `stigmer server logs --tail=0` | `kubectl logs --tail=-1 pod-name` | `docker logs container` | All logs + streaming |
 | `stigmer server logs -c agent-runner` | `kubectl logs pod -c container` | N/A | Select component |
+
+**Note**: Stigmer now matches Kubernetes behavior - streaming is the default, showing existing logs first then tailing new ones.
 
 ## Log Locations
 
