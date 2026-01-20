@@ -14,6 +14,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	"google.golang.org/protobuf/proto"
 )
@@ -457,18 +458,18 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*workflowexecut
 			execution.Status = &workflowexecutionv1.WorkflowExecutionStatus{}
 		}
 		execution.Status.Phase = workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED
-		execution.Status.Message = fmt.Sprintf("Failed to start Temporal workflow: %v", err)
+		execution.Status.Error = fmt.Sprintf("Failed to start Temporal workflow: %v", err)
 
 		// Persist the failed state
-		if updateErr := s.store.Update(ctx.Context(), execution); updateErr != nil {
+		if updateErr := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_workflow_execution, executionID, execution); updateErr != nil {
 			log.Error().
 				Err(updateErr).
 				Str("execution_id", executionID).
 				Msg("Failed to update execution status after workflow start failure")
-			return grpclib.InternalError(fmt.Sprintf("failed to start workflow and failed to update status: %v", updateErr))
+			return grpclib.InternalError(updateErr, "failed to start workflow and failed to update status")
 		}
 
-		return grpclib.InternalError(fmt.Sprintf("failed to start workflow: %v", err))
+		return grpclib.InternalError(err, "failed to start workflow")
 	}
 
 	log.Info().

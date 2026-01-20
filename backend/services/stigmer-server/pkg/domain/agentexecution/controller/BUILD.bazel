@@ -27,6 +27,7 @@ go_library(
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
+        "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
         "//backend/services/stigmer-server/pkg/downstream/agent",
         "//backend/services/stigmer-server/pkg/downstream/agentinstance",
         "//backend/services/stigmer-server/pkg/downstream/session",
