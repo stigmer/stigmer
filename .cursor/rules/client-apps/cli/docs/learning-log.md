@@ -304,3 +304,114 @@ stigmer apply -f agents/support-bot.yaml  # Future
 - COMMANDS.md (future roadmap)
 - README.md (resource management section)
 
+### 2026-01-20 - Pulumi-Inspired Validation Philosophy: Trust Compiler, Validate Outcomes
+
+**Problem**: String-based import validation was brittle and maintenance-heavy:
+```go
+// Brittle: Checking for specific import paths
+hasAgentImport := strings.Contains(contentStr, "github.com/stigmer/stigmer-sdk/go/agent")
+if !hasAgentImport && !hasWorkflowImport && !hasStigmerImport {
+    return errors.New("file must import Stigmer SDK")
+}
+```
+
+**Issues**:
+1. Broke when import paths changed (monorepo vs separate repo)
+2. Duplicated Go compiler's job
+3. Poor error messages ("must import SDK" vs specific compiler errors)
+4. Maintenance burden (update paths every structure change)
+5. False validation (checking imports doesn't mean code works)
+
+**Root Cause**: Trying to validate syntax/imports pre-execution instead of trusting language tooling and validating outcomes.
+
+**Solution**: Adopt Pulumi's philosophy - trust the compiler, validate results:
+
+**Pulumi's Approach**:
+1. Run user code with native tooling (\`go run\`, \`python\`, \`node\`)
+2. Let compiler/interpreter catch syntax/import errors
+3. Check if resources were registered (validate outcomes)
+4. Provide helpful errors if no resources found
+
+**Implementation**:
+```go
+// ❌ REMOVED: Pre-validation of imports
+err = agent.ValidateGoFile(mainFilePath)
+
+// ✅ NEW: Execute directly, let Go compiler handle imports
+manifestResult, err := agent.ExecuteGoAgentAndGetManifest(mainFilePath)
+if err != nil {
+    // Go compiler provides specific error:
+    // "main.go:10:2: undefined: agent" (much better!)
+    return err
+}
+
+// ✅ Validate outcome: Were resources created?
+if result.AgentManifest == nil && result.WorkflowManifest == nil {
+    return errors.New("no resources were created - your code must use Stigmer SDK\n\n" +
+        "Example:\n" +
+        "  import \"github.com/stigmer/stigmer/sdk/go/stigmer\"\n" +
+        "  ...\n")
+}
+```
+
+**Benefits**:
+- **More robust**: Works with any import path structure
+- **Better errors**: Go compiler errors are specific ("undefined: agent" vs "must import SDK")
+- **Simpler code**: Removed 30+ lines of validation logic
+- **Less maintenance**: No import paths to update
+- **Pulumi-like UX**: Trust language tooling, validate meaningful outcomes
+
+**Prevention**:
+- **Don't duplicate compiler's job**: If the language toolchain validates something, let it
+- **Validate outcomes, not syntax**: Check if resources were created, not how they were imported
+- **Trust language tooling**: Go compiler, Python interpreter, TypeScript compiler - they're better at their job than custom validation
+- **Better error messages**: Specific compiler errors > generic validation errors
+- **Applies to all SDKs**: Python, TypeScript, future languages - same philosophy
+
+**When NOT to pre-validate**:
+- ❌ Imports (compiler handles)
+- ❌ Syntax (compiler handles)
+- ❌ Type correctness (compiler handles)
+- ❌ Module resolution (compiler handles)
+
+**When TO validate**:
+- ✅ Resource registration (did SDK produce outputs?)
+- ✅ Business logic (is organization valid?)
+- ✅ Runtime state (is server running?)
+- ✅ Manifest structure (is SDK-CLI contract honored?)
+
+**Real-World Impact**:
+```bash
+# Before: Generic error when import path changed
+Error: file must import Stigmer SDK (agent, workflow, or stigmer package)
+
+# After: Specific Go compiler error OR successful execution
+✓ Manifest loaded: 2 resource(s) discovered (1 agent(s), 1 workflow(s))
+```
+
+**Example Testing**:
+```bash
+# Test with missing import
+cat > test.go <<'INNER_EOF'
+package main
+
+func main() {
+    // Missing stigmer import
+    stigmer.Run(func(ctx *stigmer.Context) error {
+        return nil
+    })
+}
+INNER_EOF
+
+go run test.go
+# Output: test.go:5:2: undefined: stigmer
+# Clear, actionable, from Go compiler
+```
+
+**Related Docs**:
+- Changelog: \`_changelog/2026-01/2026-01-20-084344-remove-brittle-validation-pulumi-approach.md\`
+- Validation philosophy comments in \`client-apps/cli/internal/cli/agent/validation.go\`
+- Branch: \`fix/stigmer-apply-cmd\`
+
+**Key Takeaway**: When building developer tools, trust the language's native tooling. Validate outcomes (resources created) not syntax (imports present). This applies to all language SDKs - Python, TypeScript, Go, etc.
+
