@@ -1,16 +1,20 @@
-module github.com/stigmer/stigmer
+module github.com/stigmer/stigmer/backend/services/stigmer-server
 
 go 1.24.0
 
 toolchain go1.24.12
 
+// Local development: Use APIs from monorepo
+replace github.com/stigmer/stigmer/apis/stubs/go => ../../../apis/stubs/go
+
+// Local development: Use backend libs from monorepo
+replace github.com/stigmer/stigmer/backend/libs/go => ../../../backend/libs/go
+
 require (
-	buf.build/go/protovalidate v1.1.0
-	github.com/dgraph-io/badger/v4 v4.5.0
 	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.31.0
 	github.com/stigmer/stigmer/apis/stubs/go v0.0.0-00010101000000-000000000000
-	github.com/stretchr/testify v1.11.1
+	github.com/stigmer/stigmer/backend/libs/go v0.0.0-00010101000000-000000000000
 	go.temporal.io/sdk v1.39.0
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
@@ -18,17 +22,19 @@ require (
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20251209175733-2a1774d88802.1 // indirect
+	buf.build/go/protovalidate v0.12.0 // indirect
 	cel.dev/expr v0.24.0 // indirect
-	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
+	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dgraph-io/badger/v4 v4.5.0 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.0.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/google/cel-go v0.26.1 // indirect
+	github.com/google/cel-go v0.25.0 // indirect
 	github.com/google/flatbuffers v24.3.25+incompatible // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.22.0 // indirect
@@ -41,6 +47,7 @@ require (
 	github.com/robfig/cron v1.2.0 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/stretchr/testify v1.11.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.temporal.io/api v1.59.0 // indirect
 	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6 // indirect
@@ -53,5 +60,3 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/stigmer/stigmer/apis/stubs/go => ./apis/stubs/go
