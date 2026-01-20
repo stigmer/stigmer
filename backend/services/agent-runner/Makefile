@@ -68,6 +68,18 @@ build-image: build
 	@echo "✅ Built: $(IMAGE_REPO):$(VERSION)"
 	@echo "✅ Tagged: $(IMAGE_REPO):latest"
 
+.PHONY: export-image-tarball
+export-image-tarball: build-image
+	@echo "📦 Exporting Docker image as tarball..."
+	@echo "   Image: $(IMAGE_REPO):$(VERSION)"
+	@mkdir -p $(REPO_ROOT)/client-apps/cli/embedded/binaries/darwin_arm64
+	@mkdir -p $(REPO_ROOT)/client-apps/cli/embedded/binaries/darwin_amd64
+	@mkdir -p $(REPO_ROOT)/client-apps/cli/embedded/binaries/linux_amd64
+	$(CONTAINER_RUNTIME) save $(IMAGE_REPO):$(VERSION) | gzip > $(REPO_ROOT)/client-apps/cli/embedded/binaries/darwin_arm64/agent-runner.tar.gz
+	@cp $(REPO_ROOT)/client-apps/cli/embedded/binaries/darwin_arm64/agent-runner.tar.gz $(REPO_ROOT)/client-apps/cli/embedded/binaries/darwin_amd64/agent-runner.tar.gz
+	@cp $(REPO_ROOT)/client-apps/cli/embedded/binaries/darwin_arm64/agent-runner.tar.gz $(REPO_ROOT)/client-apps/cli/embedded/binaries/linux_amd64/agent-runner.tar.gz
+	@echo "✅ Exported tarballs to all platform directories"
+
 .PHONY: run-local
 run-local:
 	@echo "🚀 Starting agent-runner container..."

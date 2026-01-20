@@ -201,6 +201,16 @@ stigmer server  # Uses env vars instead of extracted binaries
 **Production**: Uses only extracted binaries from `~/.stigmer/data/bin/`  
 **Development**: Optionally use env vars to point to local builds
 
+#### Agent-Runner Workspace Detection
+
+The agent-runner needs to locate its workspace (where `pyproject.toml` lives). Detection order:
+
+1. **Production**: `STIGMER_AGENT_RUNNER_WORKSPACE` (set automatically by daemon)
+2. **Bazel**: `BUILD_WORKSPACE_DIRECTORY` (set automatically by `bazel run`)
+3. **Development**: Directory tree walking (finds `MODULE.bazel` or `WORKSPACE`)
+
+The daemon automatically sets `STIGMER_AGENT_RUNNER_WORKSPACE` when starting agent-runner, pointing to the extracted agent-runner directory. No manual configuration needed.
+
 ## Resource Management
 
 Agents and workflows are managed through:
