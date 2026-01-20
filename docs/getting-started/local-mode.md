@@ -36,7 +36,10 @@ The generated project demonstrates:
 **Next steps after running the example:**
 1. Read the generated `README.md` to understand what was created
 2. Modify `main.go` to customize the agent or workflow
-3. Explore [customization examples](#customizing-generated-projects) below
+3. Deploy your changes: `stigmer apply`
+4. Explore [customization examples](#customizing-generated-projects) below
+
+**Note**: See [Deploying with Apply](../guides/deploying-with-apply.md) for complete apply command documentation.
 
 ---
 
@@ -472,6 +475,31 @@ ctx.SetString("slackWebhook", os.Getenv("SLACK_WEBHOOK_URL"))
 ```
 
 ### Development Workflow
+
+**Typical workflow** after creating a project:
+
+```bash
+# Create project
+stigmer new my-agent
+cd my-agent
+
+# Start server
+stigmer server
+
+# Deploy your code
+stigmer apply
+
+# Edit your code
+vim main.go
+
+# Redeploy (updates existing resources)
+stigmer apply
+
+# Validate before deploying
+stigmer apply --dry-run
+```
+
+See [Deploying with Apply](../guides/deploying-with-apply.md) for complete documentation.
 
 **For users** (when SDK is published):
 - Running `stigmer new` automatically fetches the latest SDK
