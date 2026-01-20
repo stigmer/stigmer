@@ -53,7 +53,7 @@ func (s *LoadExistingStep[T]) Name() string {
 
 // Execute loads the existing resource from the database
 func (s *LoadExistingStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
-	input := ctx.Input()
+	input := ctx.NewState()
 
 	// Type assertion to access metadata
 	metadataResource, ok := any(input).(HasMetadata)
@@ -93,7 +93,7 @@ func (s *LoadExistingStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 
 		// Populate ID from existing resource into input metadata
 		// This ensures subsequent steps (merge, persist) have the ID
-		existingMetadata := existing.(HasMetadata).GetMetadata()
+		existingMetadata := any(existing).(HasMetadata).GetMetadata()
 		metadata.Id = existingMetadata.Id
 	} else {
 		return grpclib.InvalidArgumentError("resource id or slug is required for update")
