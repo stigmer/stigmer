@@ -8,6 +8,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Local Mode](getting-started/local-mode.md) - Running Stigmer locally for development
 
 ### Guides
+- [Deploying with Apply](guides/deploying-with-apply.md) - Deploy agents and workflows from code using `stigmer apply`
 - [Distribution Guide](guides/distribution.md) - Complete guide to packaging and distributing Stigmer
 - [Packaging Quick Start](guides/packaging-quickstart.md) - Quick reference for packaging strategy
 - [Agent Runner: Local Mode](guides/agent-runner-local-mode.md) - Running the agent runner in local vs cloud mode
