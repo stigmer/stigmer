@@ -25,7 +25,17 @@ func GetBuildVersion() string {
 // - bin directory doesn't exist (first run)
 // - .version file missing
 // - version mismatch between extracted binaries and current CLI
+// - development mode (version == "dev") - always re-extract to ensure latest changes
 func needsExtraction(binDir string) (bool, error) {
+	currentVersion := GetBuildVersion()
+	
+	// CRITICAL: In development mode, always re-extract binaries
+	// This ensures developers get the latest embedded binaries after rebuilding
+	// Production releases with proper version numbers use the efficient version-based check
+	if currentVersion == "dev" {
+		return true, nil
+	}
+	
 	// Check if bin directory exists
 	if _, err := os.Stat(binDir); os.IsNotExist(err) {
 		return true, nil // First run
@@ -37,8 +47,6 @@ func needsExtraction(binDir string) (bool, error) {
 		// Version file missing or unreadable - need to re-extract
 		return true, nil
 	}
-	
-	currentVersion := GetBuildVersion()
 	
 	if extractedVersion != currentVersion {
 		// Version mismatch - need to re-extract
