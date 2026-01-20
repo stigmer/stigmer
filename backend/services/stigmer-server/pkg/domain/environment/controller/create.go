@@ -3,9 +3,9 @@ package environment
 import (
 	"context"
 
+	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 )
 
 // Create creates a new environment using the pipeline framework
@@ -24,7 +24,6 @@ import (
 // - TransformResponse step (no response transformations in OSS)
 func (c *EnvironmentController) Create(ctx context.Context, environment *environmentv1.Environment) (*environmentv1.Environment, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, environment)
-	reqCtx.SetNewState(environment)
 
 	p := c.buildCreatePipeline()
 

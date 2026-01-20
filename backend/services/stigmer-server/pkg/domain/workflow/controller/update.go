@@ -3,9 +3,9 @@ package workflow
 import (
 	"context"
 
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 )
 
 // Update updates an existing workflow using the pipeline framework
@@ -24,7 +24,6 @@ import (
 // - TransformResponse step (no response transformations in OSS)
 func (c *WorkflowController) Update(ctx context.Context, workflow *workflowv1.Workflow) (*workflowv1.Workflow, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, workflow)
-	reqCtx.SetNewState(workflow)
 
 	p := c.buildUpdatePipeline()
 
