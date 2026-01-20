@@ -25,7 +25,7 @@ go_library(
         "task_builder_try.go",
         "task_builder_wait.go",
     ],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/zigflow/tasks",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/tasks",
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
