@@ -1815,6 +1815,27 @@ func (c *ResourceController) GetByReference(ctx context.Context, ref *apiresourc
 
 ---
 
+## Reference Documentation
+
+### Learning Log
+
+Captured learnings from actual implementations:
+
+**Pipeline Patterns:**
+- **[LEARNING_2026-01-20_pipeline-step-ordering.md](LEARNING_2026-01-20_pipeline-step-ordering.md)** - ResolveSlug must come before ValidateProto (affects all Create/Update/Apply operations)
+- **[LEARNING_2026-01-20_slug-fallback-pattern.md](LEARNING_2026-01-20_slug-fallback-pattern.md)** - Multi-identifier lookup pattern with fallback strategy (ID first, slug fallback for apply operations)
+
+**Migration & Architecture:**
+- **[BADGERDB_MIGRATION.md](BADGERDB_MIGRATION.md)** - Migration from SQLite to BadgerDB for local storage
+- **[CHANGES_SUMMARY.md](CHANGES_SUMMARY.md)** - Summary of architectural changes and improvements
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Overview of implementation progress
+
+### Additional Resources
+
+- **[improve-this-rule.mdc](improve-this-rule.mdc)** - How to capture new learnings and improve this rule
+
+---
+
 ## Goal
 
 Implement **composable, pipeline-based** gRPC handlers for Stigmer OSS that:
