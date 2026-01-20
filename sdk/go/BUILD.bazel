@@ -1,0 +1,3 @@
+# Stigmer Go SDK
+# This is a marker BUILD file to make the sdk/go directory a Bazel package.
+# The actual SDK libraries are defined in subdirectories (agent/, workflow/, etc.)
