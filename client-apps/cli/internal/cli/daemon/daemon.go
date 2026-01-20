@@ -475,6 +475,50 @@ func IsRunning(dataDir string) bool {
 	return err == nil
 }
 
+// EnsureRunning ensures the daemon is running, starting it if necessary
+//
+// This is the magic function that makes the CLI "just work" - similar to how
+// Docker auto-starts the daemon or Minikube starts the cluster.
+//
+// If the daemon is already running, this returns immediately.
+// If not, it starts the daemon with user-friendly progress messages.
+func EnsureRunning(dataDir string) error {
+	// Already running? We're done!
+	if IsRunning(dataDir) {
+		log.Debug().Msg("Daemon is already running")
+		return nil
+	}
+
+	// Not running - start it with nice UX
+	cliprint.PrintInfo("🚀 Starting local backend daemon...")
+	cliprint.PrintInfo("   This may take a moment on first run")
+	fmt.Println()
+
+	// Create progress display for nice output
+	progress := cliprint.NewProgressDisplay()
+	progress.Start()
+	defer progress.Stop()
+
+	// Start the daemon
+	if err := StartWithOptions(dataDir, StartOptions{Progress: progress}); err != nil {
+		return errors.Wrap(err, "failed to start daemon")
+	}
+
+	cliprint.PrintSuccess("✓ Daemon started successfully")
+	fmt.Println()
+
+	// Wait for daemon to be ready to accept connections
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	endpoint := fmt.Sprintf("localhost:%d", DaemonPort)
+	if err := WaitForReady(ctx, endpoint); err != nil {
+		return errors.Wrap(err, "daemon started but not responding")
+	}
+
+	return nil
+}
+
 // GetStatus returns the daemon status
 func GetStatus(dataDir string) (running bool, pid int) {
 	pid, err := getPID(dataDir)
