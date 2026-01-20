@@ -11,9 +11,12 @@ import (
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
@@ -37,11 +40,11 @@ const (
 // 7. CreateSessionIfNeeded - Create session if session_id not provided
 // 8. SetInitialPhase - Set execution phase to PENDING
 // 9. Persist - Save execution to repository
+// 10. StartWorkflow - Start Temporal workflow (if Temporal is available)
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
 // - CreateIamPolicies step (no IAM/FGA in OSS)
-// - StartWorkflow step (no Temporal in OSS yet - will be added later)
 // - Publish step (no event publishing in OSS)
 // - PublishToRedis step (no Redis in OSS)
 // - TransformResponse step (no response transformations in OSS)
@@ -68,6 +71,7 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).               // 6. Create session if needed
 		AddStep(newSetInitialPhaseStep()).                                                   // 7. Set phase to PENDING
 		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).            // 8. Persist execution
+		AddStep(c.newStartWorkflowStep()).                                                   // 9. Start Temporal workflow
 		Build()
 }
 
@@ -422,6 +426,79 @@ func (s *setInitialPhaseStep) Execute(ctx *pipeline.RequestContext[*agentexecuti
 	ctx.SetNewState(execution)
 
 	log.Debug().Msg("Execution phase set to EXECUTION_PENDING")
+
+	return nil
+}
+
+// startWorkflowStep starts the Temporal workflow for the execution.
+//
+// This step is executed after the execution is persisted to the database.
+// If no Temporal client is available (workflowCreator is nil), the step logs a warning
+// and continues gracefully - the execution remains in PENDING phase.
+//
+// This matches the Java AgentExecutionCreateHandler.StartWorkflowStep.
+type startWorkflowStep struct {
+	workflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
+	store           *badger.Store
+}
+
+func (c *AgentExecutionController) newStartWorkflowStep() *startWorkflowStep {
+	return &startWorkflowStep{
+		workflowCreator: c.workflowCreator,
+		store:           c.store,
+	}
+}
+
+func (s *startWorkflowStep) Name() string {
+	return "StartWorkflow"
+}
+
+func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution]) error {
+	execution := ctx.NewState()
+	executionID := execution.GetMetadata().GetId()
+
+	// Check if Temporal client is available
+	if s.workflowCreator == nil {
+		log.Warn().
+			Str("execution_id", executionID).
+			Msg("Workflow creator not available - execution will remain in PENDING (Temporal not connected)")
+		return nil
+	}
+
+	log.Debug().
+		Str("execution_id", executionID).
+		Msg("Starting Temporal workflow")
+
+	// Start the Temporal workflow
+	if err := s.workflowCreator.Create(execution); err != nil {
+		log.Error().
+			Err(err).
+			Str("execution_id", executionID).
+			Msg("Failed to start Temporal workflow - marking execution as FAILED")
+
+		// Mark execution as FAILED and persist
+		if execution.Status == nil {
+			execution.Status = &agentexecutionv1.AgentExecutionStatus{}
+		}
+		execution.Status.Phase = agentexecutionv1.ExecutionPhase_EXECUTION_FAILED
+		execution.Status.Error = fmt.Sprintf("Failed to start Temporal workflow: %v", err)
+
+		// Persist the failed state
+		kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
+		if updateErr := s.store.SaveResource(ctx.Context(), kind, executionID, execution); updateErr != nil {
+			log.Error().
+				Err(updateErr).
+				Str("execution_id", executionID).
+				Msg("Failed to update execution status after workflow start failure")
+			return grpclib.InternalError(updateErr, "failed to start workflow and failed to update status")
+		}
+
+		return grpclib.InternalError(err, "failed to start workflow")
+	}
+
+	log.Info().
+		Str("execution_id", executionID).
+		Msg("Temporal workflow started successfully")
 
 	return nil
 }

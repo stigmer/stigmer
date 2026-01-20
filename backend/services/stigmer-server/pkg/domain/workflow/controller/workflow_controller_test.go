@@ -78,7 +78,7 @@ func setupInProcessServers(t *testing.T, store *badger.Store) (*grpc.ClientConn,
 	workflowInstanceClient := workflowinstance.NewClient(workflowInstanceConn)
 
 	// Create and register controllers BEFORE starting servers
-	workflowController := NewWorkflowController(store, workflowInstanceClient)
+	workflowController := NewWorkflowController(store, workflowInstanceClient, nil)
 	workflowv1.RegisterWorkflowCommandControllerServer(workflowServer, workflowController)
 	workflowv1.RegisterWorkflowQueryControllerServer(workflowServer, workflowController)
 

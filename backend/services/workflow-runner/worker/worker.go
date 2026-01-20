@@ -188,13 +188,14 @@ func (w *ZigflowWorker) RegisterWorkflowsAndActivities() {
 	log.Info().Str("queue", w.config.OrchestrationTaskQueue).Msg("Configuring orchestration worker")
 
 	// Register ExecuteWorkflowActivity (polyglot activity called from Java)
-	// IMPORTANT: Activity name must match Java interface method name: "executeWorkflow" (lowercase 'e')
-	// Java: WorkflowExecutionStatus executeWorkflow(WorkflowExecution execution);
-	// Go method is ExecuteWorkflow (uppercase), but we register it as "executeWorkflow" (lowercase)
+	// IMPORTANT: Activity name must match Java @ActivityMethod annotation: "ExecuteWorkflow" (PascalCase)
+	// Java: @ActivityMethod(name = "ExecuteWorkflow") WorkflowExecutionStatus executeWorkflow(WorkflowExecution execution);
+	// Go method is ExecuteWorkflow (uppercase), and we register it as "ExecuteWorkflow" (PascalCase)
+	// This matches the agent execution activity naming convention (ExecuteGraphton, EnsureThread)
 	w.orchestrationWorker.RegisterActivityWithOptions(w.executeWorkflowActivity.ExecuteWorkflow, activity.RegisterOptions{
-		Name: "executeWorkflow", // Match Java interface method name (lowercase 'e')
+		Name: "ExecuteWorkflow", // Match Java @ActivityMethod name (PascalCase)
 	})
-	log.Info().Msg("✅ Registered ExecuteWorkflowActivity as 'executeWorkflow' on orchestration queue")
+	log.Info().Msg("✅ Registered ExecuteWorkflowActivity as 'ExecuteWorkflow' on orchestration queue")
 
 	// ========================================
 	// VALIDATION WORKER (workflow_validation_runner queue)

@@ -8,13 +8,15 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"google.golang.org/protobuf/proto"
 )
 
 // Context keys for inter-step communication
@@ -33,12 +35,12 @@ const (
 // 6. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 7. SetInitialPhase - Set execution phase to PENDING
 // 8. Persist - Save execution to repository
+// 9. StartWorkflow - Start Temporal workflow (if Temporal is available)
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
 // - AuthorizeExecution step (no can_execute permission check in OSS)
 // - CreateIamPolicies step (no IAM/FGA in OSS)
-// - StartWorkflow step (no Temporal workflow engine in OSS - stubbed for now)
 // - Publish step (no event publishing in OSS)
 // - TransformResponse step (no response transformations in OSS)
 //
@@ -63,14 +65,15 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowexecutionv1.WorkflowExecution]("workflowexecution-create").
-		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecution]()).                   // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*workflowexecutionv1.WorkflowExecution]()).                     // 2. Resolve slug
-		AddStep(newValidateWorkflowOrInstanceStep()).                                                    // 3. Validate workflow_id OR workflow_instance_id
-		AddStep(newCreateDefaultInstanceIfNeededStep(c.workflowInstanceClient, c.store)).               // 4. Create default instance if needed
-		AddStep(steps.NewCheckDuplicateStep[*workflowexecutionv1.WorkflowExecution](c.store)).           // 5. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).                   // 6. Build new state
-		AddStep(newSetInitialPhaseStep()).                                                               // 7. Set phase to PENDING
-		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).                  // 8. Persist execution
+		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecution]()).         // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*workflowexecutionv1.WorkflowExecution]()).           // 2. Resolve slug
+		AddStep(newValidateWorkflowOrInstanceStep()).                                          // 3. Validate workflow_id OR workflow_instance_id
+		AddStep(newCreateDefaultInstanceIfNeededStep(c.workflowInstanceClient, c.store)).      // 4. Create default instance if needed
+		AddStep(steps.NewCheckDuplicateStep[*workflowexecutionv1.WorkflowExecution](c.store)). // 5. Check duplicate
+		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).         // 6. Build new state
+		AddStep(newSetInitialPhaseStep()).                                                     // 7. Set phase to PENDING
+		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).        // 8. Persist execution
+		AddStep(c.newStartWorkflowStep()).                                                     // 9. Start Temporal workflow
 		Build()
 }
 
@@ -124,9 +127,14 @@ func (s *validateWorkflowOrInstanceStep) Execute(ctx *pipeline.RequestContext[*w
 // When workflow_instance_id is not provided but workflow_id is:
 // 1. Load workflow by workflow_id
 // 2. Check if workflow has default_instance_id in status
-// 3. If missing, create default instance
-// 4. Update workflow status with default_instance_id
-// 5. Update execution.spec.workflow_instance_id with resolved instance ID
+// 3. If missing, look up instance by slug ({workflow-slug}-default)
+// 4. If found, update workflow status with instance ID and use it (handles recovery from failed status update)
+// 5. If not found, create new default instance
+// 6. Update workflow status with new instance ID
+// 7. Update execution.spec.workflow_instance_id with resolved instance ID
+//
+// This resilient approach handles the edge case where the default instance was created
+// but the workflow status update failed, preventing duplicate instance creation errors.
 //
 // This step matches the Java WorkflowExecutionCreateHandler.CreateDefaultInstanceIfNeededStep.
 type createDefaultInstanceIfNeededStep struct {
@@ -161,7 +169,7 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 			Msg("Workflow instance ID already provided, skipping default instance check")
 		return nil
 	}
-	
+
 	// Get the execution state to modify if needed
 	execution := ctx.NewState()
 
@@ -181,12 +189,12 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 
 	defaultInstanceID := workflow.GetStatus().GetDefaultInstanceId()
 
-	// 2. Check if default instance exists
+	// 2. Check if default instance ID is set in workflow status
 	if defaultInstanceID != "" {
 		log.Debug().
 			Str("default_instance_id", defaultInstanceID).
 			Str("workflow_id", workflowID).
-			Msg("Workflow already has default instance")
+			Msg("Workflow already has default instance in status")
 
 		// Update execution with resolved instance ID
 		execution.Spec.WorkflowInstanceId = defaultInstanceID
@@ -194,16 +202,75 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		return nil
 	}
 
-	// 3. Default instance missing - create it
+	// 3. Default instance ID not set - check if instance exists by slug
+	// This handles the case where instance was created but workflow status update failed
+	workflowSlug := workflow.GetMetadata().GetName()
+	defaultInstanceSlug := workflowSlug + "-default"
+
+	log.Debug().
+		Str("workflow_id", workflowID).
+		Str("default_instance_slug", defaultInstanceSlug).
+		Msg("Default instance ID not set in workflow status, checking if instance exists by slug")
+
+	existingInstance, err := s.findInstanceBySlug(ctx.Context(), defaultInstanceSlug)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("workflow_id", workflowID).
+			Str("slug", defaultInstanceSlug).
+			Msg("Failed to look up existing default instance")
+		return fmt.Errorf("failed to look up existing default instance: %w", err)
+	}
+
+	// 4. If instance exists, update workflow status and use it
+	if existingInstance != nil {
+		existingInstanceID := existingInstance.GetMetadata().GetId()
+		log.Info().
+			Str("instance_id", existingInstanceID).
+			Str("workflow_id", workflowID).
+			Msg("Found existing default instance, updating workflow status")
+
+		// Update workflow status with found instance ID
+		if workflow.Status == nil {
+			workflow.Status = &workflowv1.WorkflowStatus{}
+		}
+		workflow.Status.DefaultInstanceId = existingInstanceID
+
+		// Save workflow with updated status
+		if err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_workflow, workflowID, workflow); err != nil {
+			log.Error().
+				Err(err).
+				Str("workflow_id", workflowID).
+				Msg("Failed to update workflow status with existing default_instance_id")
+			return fmt.Errorf("failed to update workflow with existing default instance: %w", err)
+		}
+
+		log.Debug().
+			Str("workflow_id", workflowID).
+			Str("default_instance_id", existingInstanceID).
+			Msg("Updated workflow status with existing default_instance_id")
+
+		// Update execution with resolved instance ID
+		execution.Spec.WorkflowInstanceId = existingInstanceID
+		ctx.SetNewState(execution)
+
+		log.Info().
+			Str("instance_id", existingInstanceID).
+			Str("workflow_id", workflowID).
+			Msg("Successfully resolved existing default instance")
+
+		return nil
+	}
+
+	// 5. Default instance doesn't exist - create it
 	log.Info().
 		Str("workflow_id", workflowID).
-		Msg("Workflow missing default instance, creating one")
+		Msg("Default instance not found, creating new one")
 
-	workflowSlug := workflow.GetMetadata().GetName()
 	ownerScope := workflow.GetMetadata().GetOwnerScope()
 
 	instanceMetadata := &apiresource.ApiResourceMetadata{
-		Name:       workflowSlug + "-default",
+		Name:       defaultInstanceSlug,
 		OwnerScope: ownerScope,
 	}
 
@@ -227,7 +294,7 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		Str("instance_name", instanceMetadata.Name).
 		Msg("Built default instance request")
 
-	// 4. Create instance via downstream gRPC (system context)
+	// 6. Create instance via downstream gRPC (system context)
 	createdInstance, err := s.workflowInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
 	if err != nil {
 		log.Error().
@@ -244,14 +311,13 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		Str("workflow_id", workflowID).
 		Msg("Successfully created default instance")
 
-	// 5. Update workflow status with default_instance_id
+	// 7. Update workflow status with default_instance_id
 	if workflow.Status == nil {
 		workflow.Status = &workflowv1.WorkflowStatus{}
 	}
 	workflow.Status.DefaultInstanceId = createdInstanceID
 
 	// Save workflow with updated status
-	// Use "Workflow" as the kind (same as the resource type)
 	if err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_workflow, workflowID, workflow); err != nil {
 		log.Error().
 			Err(err).
@@ -265,16 +331,44 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		Str("default_instance_id", createdInstanceID).
 		Msg("Updated workflow status with default_instance_id")
 
-	// 6. Update execution with resolved instance ID
+	// 8. Update execution with resolved instance ID
 	execution.Spec.WorkflowInstanceId = createdInstanceID
 	ctx.SetNewState(execution)
 
 	log.Info().
 		Str("instance_id", createdInstanceID).
 		Str("workflow_id", workflowID).
-		Msg("Successfully ensured default instance exists")
+		Msg("Successfully created and registered default instance")
 
 	return nil
+}
+
+// findInstanceBySlug searches for a workflow instance by slug
+// Returns the instance if found, nil if not found, or error if lookup fails
+func (s *createDefaultInstanceIfNeededStep) findInstanceBySlug(ctx context.Context, slug string) (*workflowinstancev1.WorkflowInstance, error) {
+	// List all workflow instances
+	instances, err := s.store.ListResources(ctx, apiresourcekind.ApiResourceKind_workflow_instance)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list workflow instances: %w", err)
+	}
+
+	// Search for matching slug
+	for _, data := range instances {
+		instance := &workflowinstancev1.WorkflowInstance{}
+		if err := proto.Unmarshal(data, instance); err != nil {
+			// Skip instances that can't be unmarshaled
+			log.Warn().
+				Err(err).
+				Msg("Failed to unmarshal workflow instance during slug lookup")
+			continue
+		}
+
+		if instance.GetMetadata() != nil && instance.GetMetadata().GetSlug() == slug {
+			return instance, nil
+		}
+	}
+
+	return nil, nil
 }
 
 // setInitialPhaseStep sets initial execution phase to PENDING.
@@ -309,6 +403,78 @@ func (s *setInitialPhaseStep) Execute(ctx *pipeline.RequestContext[*workflowexec
 	ctx.SetNewState(execution)
 
 	log.Debug().Msg("Execution phase set to EXECUTION_PENDING")
+
+	return nil
+}
+
+// startWorkflowStep starts the Temporal workflow for the execution.
+//
+// This step is executed after the execution is persisted to the database.
+// If no Temporal client is available (workflowCreator is nil), the step logs a warning
+// and continues gracefully - the execution remains in PENDING phase.
+//
+// This matches the Java WorkflowExecutionCreateHandler.StartWorkflowStep.
+type startWorkflowStep struct {
+	workflowCreator *workflows.InvokeWorkflowExecutionWorkflowCreator
+	store           *badger.Store
+}
+
+func (c *WorkflowExecutionController) newStartWorkflowStep() *startWorkflowStep {
+	return &startWorkflowStep{
+		workflowCreator: c.workflowCreator,
+		store:           c.store,
+	}
+}
+
+func (s *startWorkflowStep) Name() string {
+	return "StartWorkflow"
+}
+
+func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*workflowexecutionv1.WorkflowExecution]) error {
+	execution := ctx.NewState()
+	executionID := execution.GetMetadata().GetId()
+
+	// Check if Temporal client is available
+	if s.workflowCreator == nil {
+		log.Warn().
+			Str("execution_id", executionID).
+			Msg("Workflow creator not available - execution will remain in PENDING (Temporal not connected)")
+		return nil
+	}
+
+	log.Debug().
+		Str("execution_id", executionID).
+		Msg("Starting Temporal workflow")
+
+	// Start the Temporal workflow
+	if err := s.workflowCreator.Create(ctx.Context(), execution); err != nil {
+		log.Error().
+			Err(err).
+			Str("execution_id", executionID).
+			Msg("Failed to start Temporal workflow - marking execution as FAILED")
+
+		// Mark execution as FAILED and persist
+		if execution.Status == nil {
+			execution.Status = &workflowexecutionv1.WorkflowExecutionStatus{}
+		}
+		execution.Status.Phase = workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED
+		execution.Status.Error = fmt.Sprintf("Failed to start Temporal workflow: %v", err)
+
+		// Persist the failed state
+		if updateErr := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_workflow_execution, executionID, execution); updateErr != nil {
+			log.Error().
+				Err(updateErr).
+				Str("execution_id", executionID).
+				Msg("Failed to update execution status after workflow start failure")
+			return grpclib.InternalError(updateErr, "failed to start workflow and failed to update status")
+		}
+
+		return grpclib.InternalError(err, "failed to start workflow")
+	}
+
+	log.Info().
+		Str("execution_id", executionID).
+		Msg("Temporal workflow started successfully")
 
 	return nil
 }

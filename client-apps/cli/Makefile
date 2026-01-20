@@ -79,11 +79,10 @@ release-local: clean install
 
 .PHONY: run
 run: build
-	@$(BAZEL_BIN) $(ARGS)
+	@"$(BAZEL_BIN)" $(ARGS)
 
 .PHONY: test
 test:
-	@echo "Running tests..."
 	@cd ../.. && bazel test //client-apps/cli/...
 
 .PHONY: clean

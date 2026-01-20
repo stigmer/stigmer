@@ -84,9 +84,10 @@ type TaskFieldRef struct {
 // Expression returns the JQ expression for this field reference.
 // Implements the Ref interface.
 func (r TaskFieldRef) Expression() string {
-	// Reference format: ${ $context.taskName.fieldName }
-	// This assumes the task has exported its output to context
-	return fmt.Sprintf("${ $context.%s.%s }", r.taskName, r.fieldName)
+	// Use bracket notation for task name to support hyphens and special characters
+	// Reference format: ${ $context["task-name"].fieldName }
+	// This allows task names to contain hyphens without breaking jq parsing
+	return fmt.Sprintf("${ $context[\"%s\"].%s }", r.taskName, r.fieldName)
 }
 
 // Name returns a human-readable name for this reference.

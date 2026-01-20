@@ -87,27 +87,24 @@ class LLMConfig:
         """
         # Determine mode-aware defaults
         if mode == "local":
-            defaults = {
-                "provider": "ollama",
-                "model_name": "qwen2.5-coder:7b",
-                "base_url": "http://localhost:11434",
-                "max_tokens": 8192,
-                "temperature": 0.0,
-            }
+            default_provider = "ollama"
+            default_model_name = "qwen2.5-coder:7b"
+            default_base_url: Optional[str] = "http://localhost:11434"
+            default_max_tokens: Optional[int] = 8192
+            default_temperature: Optional[float] = 0.0
         else:  # cloud mode
-            defaults = {
-                "provider": "anthropic",
-                "model_name": "claude-sonnet-4.5",
-                "max_tokens": 20000,
-                "temperature": None,
-            }
+            default_provider = "anthropic"
+            default_model_name = "claude-sonnet-4.5"
+            default_base_url = None
+            default_max_tokens = 20000
+            default_temperature = None
         
         # Read from environment (overrides defaults)
-        provider = os.getenv("STIGMER_LLM_PROVIDER", defaults["provider"])
-        model_name = os.getenv("STIGMER_LLM_MODEL", defaults["model_name"])
+        provider = os.getenv("STIGMER_LLM_PROVIDER", default_provider)
+        model_name = os.getenv("STIGMER_LLM_MODEL", default_model_name)
         
         # Provider-specific settings
-        base_url = os.getenv("STIGMER_LLM_BASE_URL", defaults.get("base_url"))
+        base_url = os.getenv("STIGMER_LLM_BASE_URL", default_base_url)
         
         # API key with backward compatibility
         api_key = (
@@ -117,10 +114,10 @@ class LLMConfig:
         
         # Optional overrides
         max_tokens_str = os.getenv("STIGMER_LLM_MAX_TOKENS")
-        max_tokens = int(max_tokens_str) if max_tokens_str else defaults.get("max_tokens")
+        max_tokens = int(max_tokens_str) if max_tokens_str else default_max_tokens
         
         temperature_str = os.getenv("STIGMER_LLM_TEMPERATURE")
-        temperature = float(temperature_str) if temperature_str else defaults.get("temperature")
+        temperature = float(temperature_str) if temperature_str else default_temperature
         
         # Create config
         config = cls(

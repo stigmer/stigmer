@@ -1,0 +1,314 @@
+name: Release with Embedded Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:  # Allow manual trigger for testing
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  # Build for macOS Apple Silicon
+  build-darwin-arm64:
+    runs-on: macos-latest  # macOS 14 (M1)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Generate proto stubs
+        run: make protos
+
+      - name: Build and embed binaries
+        run: make embed-binaries
+
+      - name: Build CLI with embedded binaries
+        run: |
+          cd client-apps/cli
+          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/internal/cli/version.Version=${{ github.ref_name }}" -o ../../bin/stigmer .
+
+      - name: Verify binary
+        run: |
+          file bin/stigmer
+          ls -lh bin/stigmer
+          ./bin/stigmer --version || echo "Version: ${{ github.ref_name }}"
+
+      - name: Package binary
+        run: |
+          cd bin
+          tar -czf stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz stigmer
+          shasum -a 256 stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz > stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stigmer-darwin-arm64
+          path: |
+            bin/stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz
+            bin/stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz.sha256
+
+  # Build for macOS Intel
+  build-darwin-amd64:
+    runs-on: macos-13  # Intel Mac
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Generate proto stubs
+        run: make protos
+
+      - name: Build and embed binaries
+        run: make embed-binaries
+
+      - name: Build CLI with embedded binaries
+        run: |
+          cd client-apps/cli
+          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/internal/cli/version.Version=${{ github.ref_name }}" -o ../../bin/stigmer .
+
+      - name: Verify binary
+        run: |
+          file bin/stigmer
+          ls -lh bin/stigmer
+          ./bin/stigmer --version || echo "Version: ${{ github.ref_name }}"
+
+      - name: Package binary
+        run: |
+          cd bin
+          tar -czf stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz stigmer
+          shasum -a 256 stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz > stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stigmer-darwin-amd64
+          path: |
+            bin/stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz
+            bin/stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz.sha256
+
+  # Build for Linux
+  build-linux-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Generate proto stubs
+        run: make protos
+
+      - name: Build and embed binaries
+        run: make embed-binaries
+
+      - name: Build CLI with embedded binaries
+        run: |
+          cd client-apps/cli
+          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/internal/cli/version.Version=${{ github.ref_name }}" -o ../../bin/stigmer .
+
+      - name: Verify binary
+        run: |
+          file bin/stigmer
+          ls -lh bin/stigmer
+          ./bin/stigmer --version || echo "Version: ${{ github.ref_name }}"
+
+      - name: Package binary
+        run: |
+          cd bin
+          tar -czf stigmer-${{ github.ref_name }}-linux-amd64.tar.gz stigmer
+          sha256sum stigmer-${{ github.ref_name }}-linux-amd64.tar.gz > stigmer-${{ github.ref_name }}-linux-amd64.tar.gz.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stigmer-linux-amd64
+          path: |
+            bin/stigmer-${{ github.ref_name }}-linux-amd64.tar.gz
+            bin/stigmer-${{ github.ref_name }}-linux-amd64.tar.gz.sha256
+
+  # Create GitHub Release
+  release:
+    needs: [build-darwin-arm64, build-darwin-amd64, build-linux-amd64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -name "*.tar.gz" -exec cp {} release-assets/ \;
+          find artifacts -name "*.sha256" -exec cp {} release-assets/ \;
+          ls -lh release-assets/
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get previous tag
+          PREVIOUS_TAG=$(git describe --abbrev=0 --tags ${{ github.ref_name }}^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "First release"
+            CHANGELOG="First release of Stigmer CLI with embedded binaries."
+          else
+            echo "Generating changelog from $PREVIOUS_TAG to ${{ github.ref_name }}"
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..${{ github.ref_name }} | grep -v "^- Merge")
+          fi
+          
+          # Save to file (handle multiline)
+          echo "$CHANGELOG" > /tmp/changelog.txt
+          echo "changelog_file=/tmp/changelog.txt" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ github.ref_name }}
+          body_path: ${{ steps.changelog.outputs.changelog_file }}
+          files: release-assets/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Update Homebrew tap (optional, after release is created)
+  update-homebrew:
+    needs: release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: stigmer/homebrew-tap
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Formula
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION_NO_V=${VERSION#v}
+          
+          # Download checksums
+          curl -sL https://github.com/stigmer/stigmer/releases/download/${VERSION}/stigmer-${VERSION}-darwin-arm64.tar.gz.sha256 -o /tmp/darwin-arm64.sha256
+          curl -sL https://github.com/stigmer/stigmer/releases/download/${VERSION}/stigmer-${VERSION}-darwin-amd64.tar.gz.sha256 -o /tmp/darwin-amd64.sha256
+          curl -sL https://github.com/stigmer/stigmer/releases/download/${VERSION}/stigmer-${VERSION}-linux-amd64.tar.gz.sha256 -o /tmp/linux-amd64.sha256
+          
+          SHA_ARM64=$(cat /tmp/darwin-arm64.sha256 | awk '{print $1}')
+          SHA_AMD64=$(cat /tmp/darwin-amd64.sha256 | awk '{print $1}')
+          SHA_LINUX=$(cat /tmp/linux-amd64.sha256 | awk '{print $1}')
+          
+          # Update Formula/stigmer.rb
+          cat > Formula/stigmer.rb <<EOF
+          class Stigmer < Formula
+            desc "AI-powered workflow automation with local LLMs"
+            homepage "https://github.com/stigmer/stigmer"
+            version "${VERSION_NO_V}"
+            license "Apache-2.0"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/stigmer/stigmer/releases/download/${VERSION}/stigmer-${VERSION}-darwin-arm64.tar.gz"
+                sha256 "${SHA_ARM64}"
+              else
+                url "https://github.com/stigmer/stigmer/releases/download/${VERSION}/stigmer-${VERSION}-darwin-amd64.tar.gz"
+                sha256 "${SHA_AMD64}"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.intel?
+                url "https://github.com/stigmer/stigmer/releases/download/${VERSION}/stigmer-${VERSION}-linux-amd64.tar.gz"
+                sha256 "${SHA_LINUX}"
+              end
+            end
+
+            def install
+              bin.install "stigmer"
+            end
+
+            test do
+              system "#{bin}/stigmer", "--version"
+            end
+          end
+          EOF
+          
+          # Commit and push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/stigmer.rb
+          git commit -m "Update stigmer to ${VERSION}"
+          git push

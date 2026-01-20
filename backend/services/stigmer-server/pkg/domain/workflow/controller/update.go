@@ -10,15 +10,15 @@ import (
 
 // Update updates an existing workflow using the pipeline framework
 //
-// Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
-// 2. ResolveSlug - Generate slug from metadata.name
-// 3. LoadExisting - Load existing workflow from repository to verify it exists
-// 4. BuildUpdateState - Merge spec, preserve IDs and status, update audit timestamps
-// 5. Persist - Save updated workflow to repository
+// Pipeline (Stigmer OSS):
+// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate (Layer 1)
+// 2. ValidateWorkflowSpec - Validate workflow via Temporal (Layer 2: Go converts + validates - SSOT)
+// 3. ResolveSlug - Generate slug from metadata.name
+// 4. LoadExisting - Load existing workflow from repository to verify it exists
+// 5. BuildUpdateState - Merge spec, preserve IDs and status, update audit timestamps
+// 6. Persist - Save updated workflow to repository
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
-// - ValidateWorkflowSpec step (workflow spec validation via Temporal - not yet implemented in OSS)
 // - Authorize step (no multi-tenant auth in OSS)
 // - Publish step (no event publishing in OSS)
 // - TransformResponse step (no response transformations in OSS)
@@ -37,10 +37,11 @@ func (c *WorkflowController) Update(ctx context.Context, workflow *workflowv1.Wo
 // buildUpdatePipeline constructs the pipeline for workflow update
 func (c *WorkflowController) buildUpdatePipeline() *pipeline.Pipeline[*workflowv1.Workflow] {
 	return pipeline.NewPipeline[*workflowv1.Workflow]("workflow-update").
-		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).       // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).         // 2. Resolve slug
-		AddStep(steps.NewLoadExistingStep[*workflowv1.Workflow](c.store)). // 3. Load existing workflow
-		AddStep(steps.NewBuildUpdateStateStep[*workflowv1.Workflow]()).    // 4. Build updated state (merge spec, preserve status, update audit)
-		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).      // 5. Persist workflow
+		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).       // 1. Validate field constraints (Layer 1)
+		AddStep(newValidateWorkflowSpecStep(c.validator)).                 // 2. Validate via Temporal (Layer 2: Go converts + validates - SSOT)
+		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).         // 3. Resolve slug
+		AddStep(steps.NewLoadExistingStep[*workflowv1.Workflow](c.store)). // 4. Load existing workflow
+		AddStep(steps.NewBuildUpdateStateStep[*workflowv1.Workflow]()).    // 5. Build updated state (merge spec, preserve status, update audit)
+		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).      // 6. Persist workflow
 		Build()
 }

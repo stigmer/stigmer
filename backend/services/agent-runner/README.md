@@ -4,6 +4,21 @@ Python Temporal worker service that executes Graphton agents for Stigmer agent e
 
 ## Quick Start
 
+### Docker (Recommended)
+
+```bash
+# Build and run in container (requires Docker or Podman)
+make build-image VERSION=dev-local
+make run-local
+
+# View logs
+make logs
+```
+
+See **[Docker Guide](docs/docker.md)** for complete container documentation.
+
+### Local Python Development
+
 ```bash
 # Install dependencies
 poetry install
@@ -20,6 +35,39 @@ export DAYTONA_API_KEY=your-daytona-api-key
 # Run worker
 python main.py
 ```
+
+## Execution Modes
+
+The agent-runner supports multiple execution modes via the `run.sh` launcher script:
+
+### 1. Production Mode (Extracted Binaries)
+Runs from extracted binaries in `~/.stigmer/data/bin/agent-runner/`
+
+```bash
+# Daemon automatically sets STIGMER_AGENT_RUNNER_WORKSPACE
+STIGMER_AGENT_RUNNER_WORKSPACE=/path/to/extracted/agent-runner ./run.sh
+```
+
+### 2. Bazel Mode
+Runs via Bazel build system:
+
+```bash
+bazel run //backend/services/agent-runner
+# BUILD_WORKSPACE_DIRECTORY is set automatically by Bazel
+```
+
+### 3. Development Mode
+Runs from source tree (detects workspace by finding `MODULE.bazel`):
+
+```bash
+cd backend/services/agent-runner
+./run.sh  # Automatically finds workspace root
+```
+
+The `run.sh` script determines the workspace root (where `pyproject.toml` lives) in this precedence order:
+1. `STIGMER_AGENT_RUNNER_WORKSPACE` (production/explicit)
+2. `BUILD_WORKSPACE_DIRECTORY` (Bazel)
+3. Directory tree walking (development)
 
 ## What It Does
 
@@ -82,6 +130,43 @@ Type checking runs automatically in CI before Docker builds.
 
 ## Deployment
 
+### Docker Container
+
+**Local development**:
+```bash
+# Build image
+make build-image VERSION=dev-$(whoami)
+
+# Run locally (requires Temporal + stigmer-server running)
+export STIGMER_LLM_PROVIDER=openai
+export STIGMER_LLM_MODEL=gpt-4
+export OPENAI_API_KEY=your-key
+make run-local
+
+# View logs
+make logs
+
+# Stop
+make stop
+```
+
+**Publishing**:
+```bash
+# Authenticate once
+make docker-login
+
+# Build and push multi-arch images (production)
+make push-multiarch VERSION=1.2.3
+```
+
+See **[docs/docker.md](docs/docker.md)** for complete guide including:
+- Multi-stage build architecture
+- Security features (non-root user, health checks)
+- Volume mounts and persistence
+- Network configuration
+- Environment variables reference
+- Troubleshooting guide
+
 ### Kubernetes
 
 ```bash
@@ -90,18 +175,6 @@ kubectl apply -k _kustomize/overlays/local
 
 # Production
 kubectl apply -k _kustomize/overlays/prod
-```
-
-### Docker
-
-```bash
-# Build (from repo root)
-docker build -f backend/services/agent-runner/Dockerfile -t agent-runner .
-
-# Run
-docker run -e TEMPORAL_SERVICE_ADDRESS=temporal:7233 \
-           -e STIGMER_BACKEND_ENDPOINT=stigmer-service:8080 \
-           agent-runner
 ```
 
 ## Key Features

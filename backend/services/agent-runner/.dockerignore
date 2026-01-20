@@ -1,0 +1,67 @@
+# Docker build context optimization for agent-runner
+# Reduces build context size and speeds up image builds
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation (except README)
+docs/
+*.md
+!README.md
+
+# Testing
+tests/
+test_*.py
+*_test.py
+.pytest_cache/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Development
+Makefile
+.env
+.env.*
+*.log
+
+# Kubernetes manifests (not needed in image)
+_kustomize/
+
+# Cursor rules (development only)
+_rules/
+
+# Build artifacts
+*.lock
+!poetry.lock
