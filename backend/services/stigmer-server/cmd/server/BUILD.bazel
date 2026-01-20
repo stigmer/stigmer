@@ -22,6 +22,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/config",
         "//backend/services/stigmer-server/pkg/domain/agent/controller",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/controller",
+        "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
         "//backend/services/stigmer-server/pkg/domain/agentinstance/controller",
         "//backend/services/stigmer-server/pkg/domain/environment/controller",
         "//backend/services/stigmer-server/pkg/domain/executioncontext/controller",
@@ -29,6 +30,8 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/skill/controller",
         "//backend/services/stigmer-server/pkg/domain/workflow/controller",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/controller",
+        "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal",
+        "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows",
         "//backend/services/stigmer-server/pkg/domain/workflowinstance/controller",
         "//backend/services/stigmer-server/pkg/downstream/agent",
         "//backend/services/stigmer-server/pkg/downstream/agentinstance",
@@ -37,6 +40,8 @@ go_library(
         "//backend/services/stigmer-server/pkg/downstream/workflowinstance",
         "@com_github_rs_zerolog//:zerolog",
         "@com_github_rs_zerolog//log",
+        "@io_temporal_go_sdk//client",
+        "@io_temporal_go_sdk//worker",
     ],
 )
 

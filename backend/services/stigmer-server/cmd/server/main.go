@@ -11,8 +11,9 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
+	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
+	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
@@ -95,7 +96,11 @@ func main() {
 
 	// Create workflow execution worker and workflow creator (conditional on client success)
 	var workflowExecutionWorker worker.Worker
-	var workflowCreator *workflows.InvokeWorkflowExecutionWorkflowCreator
+	var workflowExecutionWorkflowCreator *workflowexecutionworkflows.InvokeWorkflowExecutionWorkflowCreator
+
+	// Create agent execution worker and workflow creator (conditional on client success)
+	var agentExecutionWorker worker.Worker
+	var agentExecutionWorkflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
 
 	if temporalClient != nil {
 		// Load Temporal configuration for workflow execution
@@ -111,7 +116,7 @@ func main() {
 		workflowExecutionWorker = workerConfig.CreateWorker(temporalClient)
 
 		// Create workflow creator (for controller injection)
-		workflowCreator = workflows.NewInvokeWorkflowExecutionWorkflowCreator(
+		workflowExecutionWorkflowCreator = workflowexecutionworkflows.NewInvokeWorkflowExecutionWorkflowCreator(
 			temporalClient,
 			workflowExecutionTemporalConfig.StigmerQueue,
 			workflowExecutionTemporalConfig.RunnerQueue,
@@ -121,6 +126,29 @@ func main() {
 			Str("stigmer_queue", workflowExecutionTemporalConfig.StigmerQueue).
 			Str("runner_queue", workflowExecutionTemporalConfig.RunnerQueue).
 			Msg("Created workflow execution worker and creator")
+
+		// Load Temporal configuration for agent execution
+		agentExecutionTemporalConfig := agentexecutiontemporal.NewConfig()
+
+		// Create worker configuration
+		agentExecutionWorkerConfig := agentexecutiontemporal.NewWorkerConfig(
+			agentExecutionTemporalConfig,
+			store,
+		)
+
+		// Create worker (not started yet)
+		agentExecutionWorker = agentExecutionWorkerConfig.CreateWorker(temporalClient)
+
+		// Create workflow creator (for controller injection)
+		agentExecutionWorkflowCreator = agentexecutiontemporal.NewInvokeAgentExecutionWorkflowCreator(
+			temporalClient,
+			agentExecutionTemporalConfig,
+		)
+
+		log.Info().
+			Str("stigmer_queue", agentExecutionTemporalConfig.StigmerQueue).
+			Str("runner_queue", agentExecutionTemporalConfig.RunnerQueue).
+			Msg("Created agent execution worker and creator")
 	}
 
 	// Create gRPC server with apiresource interceptor and in-process support
@@ -234,6 +262,16 @@ func main() {
 		log.Info().Msg("Workflow execution worker started")
 	}
 
+	if agentExecutionWorker != nil {
+		if err := agentExecutionWorker.Start(); err != nil {
+			log.Fatal().
+				Err(err).
+				Msg("Failed to start agent execution worker")
+		}
+		defer agentExecutionWorker.Stop()
+		log.Info().Msg("Agent execution worker started")
+	}
+
 	// Create in-process gRPC connection
 	// This connection goes through all gRPC interceptors (validation, logging, etc.)
 	// even though it's in-process, ensuring consistent behavior with network calls
@@ -260,8 +298,9 @@ func main() {
 	workflowInstanceController.SetWorkflowClient(workflowClient)
 	workflowExecutionController.SetWorkflowInstanceClient(workflowInstanceClient)
 
-	// Inject workflow creator (nil-safe, controller handles gracefully)
-	workflowExecutionController.SetWorkflowCreator(workflowCreator)
+	// Inject workflow creators (nil-safe, controllers handle gracefully)
+	workflowExecutionController.SetWorkflowCreator(workflowExecutionWorkflowCreator)
+	agentExecutionController.SetWorkflowCreator(agentExecutionWorkflowCreator)
 
 	log.Info().Msg("Injected dependencies into controllers")
 

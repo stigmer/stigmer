@@ -2,6 +2,7 @@ package agentexecution
 
 import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
@@ -16,6 +17,7 @@ type AgentExecutionController struct {
 	agentClient         *agent.Client
 	agentInstanceClient *agentinstance.Client
 	sessionClient       *session.Client
+	workflowCreator     *temporal.InvokeAgentExecutionWorkflowCreator
 	streamBroker        *StreamBroker
 }
 
@@ -54,4 +56,11 @@ func (c *AgentExecutionController) SetClients(
 	c.agentClient = agentClient
 	c.agentInstanceClient = agentInstanceClient
 	c.sessionClient = sessionClient
+}
+
+// SetWorkflowCreator sets the Temporal workflow creator dependency
+// This is used when the controller is created before the Temporal client is initialized
+// If nil, workflows will not be started (graceful degradation)
+func (c *AgentExecutionController) SetWorkflowCreator(creator *temporal.InvokeAgentExecutionWorkflowCreator) {
+	c.workflowCreator = creator
 }
