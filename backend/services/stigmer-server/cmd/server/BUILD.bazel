@@ -42,6 +42,7 @@ go_library(
         "@com_github_rs_zerolog//:zerolog",
         "@com_github_rs_zerolog//log",
         "@io_temporal_go_sdk//client",
+        "@io_temporal_go_sdk//log",
         "@io_temporal_go_sdk//worker",
     ],
 )
