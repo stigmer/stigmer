@@ -149,8 +149,9 @@ func generateGoMod(projectName string) string {
 	// Use the project name as module name (sanitized)
 	moduleName := strings.ReplaceAll(projectName, "-", "_")
 	
-	// Generate go.mod with replace directives to ensure both SDK and stubs use latest
+	// Generate go.mod with replace directives to ensure both SDK and stubs use the version with tracked stubs
 	// This overrides the SDK's internal replace directives which only work inside the stigmer repo
+	// Using commit fc443b1640d1 which includes the tracked stubs directory
 	return fmt.Sprintf(`module %s
 
 go 1.24
@@ -159,9 +160,9 @@ require (
 	github.com/stigmer/stigmer/sdk/go v0.0.0-00010101000000-000000000000
 )
 
-replace github.com/stigmer/stigmer/sdk/go => github.com/stigmer/stigmer/sdk/go v0.0.0-20260120004624-4578a34f018e
+replace github.com/stigmer/stigmer/sdk/go => github.com/stigmer/stigmer/sdk/go v0.0.0-20260120005545-fc443b1640d1
 
-replace github.com/stigmer/stigmer/apis/stubs/go => github.com/stigmer/stigmer/apis/stubs/go v0.0.0-20260120004624-4578a34f018e
+replace github.com/stigmer/stigmer/apis/stubs/go => github.com/stigmer/stigmer/apis/stubs/go v0.0.0-20260120005545-fc443b1640d1
 `, moduleName)
 }
 
