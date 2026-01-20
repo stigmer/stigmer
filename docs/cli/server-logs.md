@@ -21,6 +21,9 @@ stigmer server logs --stderr
 # View agent-runner logs with streaming
 stigmer server logs --component agent-runner
 
+# View workflow-runner logs with streaming
+stigmer server logs --component workflow-runner
+
 # Combine options
 stigmer server logs -f -c agent-runner --stderr --tail 100
 ```
@@ -79,6 +82,18 @@ stigmer server logs --component agent-runner
 stigmer server logs -f -c agent-runner --stderr
 ```
 
+### Debugging Workflow Execution Issues
+
+When workflows fail during execution:
+
+```bash
+# View workflow-runner logs
+stigmer server logs --component workflow-runner
+
+# Stream workflow errors in real-time
+stigmer server logs -f -c workflow-runner --stderr
+```
+
 ### Monitoring Server Health
 
 Keep an eye on server activity:
@@ -97,14 +112,14 @@ stigmer server logs --follow --stderr
 |------|-------|---------|-------------|
 | `--follow` | `-f` | `true` | Stream logs in real-time (like `kubectl logs -f`). Use `--follow=false` to disable. |
 | `--tail` | `-n` | `50` | Number of recent lines to show before streaming (`0` = all existing logs) |
-| `--component` | `-c` | `server` | Component to view (`server` or `agent-runner`) |
+| `--component` | `-c` | `server` | Component to view (`server`, `agent-runner`, or `workflow-runner`) |
 | `--stderr` | | `false` | Show error logs instead of stdout |
 
 **⚠️ Behavior Change**: As of January 2026, `stigmer server logs` streams by default (Kubernetes-style). This shows existing logs first, then streams new ones continuously. Use `--follow=false` if you only want to view existing logs without streaming.
 
 ## Components
 
-Stigmer server consists of two main components:
+Stigmer server consists of three main components:
 
 ### `server` (default)
 The main stigmer-server daemon that handles:
@@ -127,6 +142,17 @@ The Python agent execution runtime that handles:
 **Log files:**
 - `~/.stigmer/data/logs/agent-runner.log` - Standard output
 - `~/.stigmer/data/logs/agent-runner.err` - Error output
+
+### `workflow-runner`
+The Go workflow execution runtime that handles:
+- Workflow validation
+- Workflow execution
+- Temporal activity workers
+- Task orchestration
+
+**Log files:**
+- `~/.stigmer/data/logs/workflow-runner.log` - Standard output
+- `~/.stigmer/data/logs/workflow-runner.err` - Error output
 
 ## Examples
 
@@ -165,9 +191,10 @@ Watch the agent logs in real-time to see:
 ### Example 3: Finding Recent Errors
 
 ```bash
-# Show last 100 lines of errors from both components
+# Show last 100 lines of errors from all components
 stigmer server logs --stderr --tail 100
 stigmer server logs -c agent-runner --stderr --tail 100
+stigmer server logs -c workflow-runner --stderr --tail 100
 ```
 
 ## Comparison with Other Tools
@@ -194,6 +221,8 @@ daemon.log           # stigmer-server stdout
 daemon.err           # stigmer-server stderr  
 agent-runner.log     # agent-runner stdout
 agent-runner.err     # agent-runner stderr
+workflow-runner.log  # workflow-runner stdout
+workflow-runner.err  # workflow-runner stderr
 temporal.log         # Temporal server logs (if managed)
 ```
 
@@ -203,6 +232,132 @@ You can also access these files directly if needed:
 # Manual log access (before stigmer server logs existed)
 tail -f ~/.stigmer/data/logs/daemon.err
 ```
+
+## Log Rotation
+
+**As of January 2026**, Stigmer automatically rotates logs on server restart to prevent log bloat and provide clear session boundaries.
+
+### How It Works
+
+When you run `stigmer server restart`, existing logs are automatically archived with timestamps:
+
+**Before restart:**
+```bash
+~/.stigmer/data/logs/
+  daemon.log              (10 MB of accumulated logs)
+  agent-runner.log        (5 MB of accumulated logs)
+  workflow-runner.log     (8 MB of accumulated logs)
+```
+
+**After restart:**
+```bash
+~/.stigmer/data/logs/
+  daemon.log              (fresh empty log for new session)
+  agent-runner.log        (fresh empty log for new session)
+  workflow-runner.log     (fresh empty log for new session)
+  daemon.log.2026-01-20-150405          (previous session archived)
+  agent-runner.log.2026-01-20-150405    (previous session archived)
+  workflow-runner.log.2026-01-20-150405 (previous session archived)
+```
+
+### Archived Log Format
+
+Archived logs use timestamp format: `filename.YYYY-MM-DD-HHMMSS`
+
+**Example**: `daemon.log.2026-01-20-150405`
+- **Date**: 2026-01-20 (January 20, 2026)
+- **Time**: 15:04:05 (3:04:05 PM)
+- **Session**: Server restart at this exact time
+
+This makes it easy to:
+- Identify when logs are from
+- Find logs for a specific session
+- Correlate with events or issues
+
+### Retention Policy
+
+**Automatic cleanup**: Archived logs older than **7 days** are automatically deleted on restart.
+
+**Why 7 days?**
+- Balances disk space with debugging needs
+- Industry standard for development environments
+- Sufficient window for investigating recent issues
+
+### Working with Archived Logs
+
+**View archived logs:**
+```bash
+# List archived logs
+ls -lh ~/.stigmer/data/logs/*.log.*
+
+# View specific archived session
+cat ~/.stigmer/data/logs/daemon.log.2026-01-20-150405
+
+# Search across archived logs
+grep "ERROR" ~/.stigmer/data/logs/daemon.log.2026-01-20-*
+
+# View recent archived session
+ls -t ~/.stigmer/data/logs/daemon.log.* | head -1 | xargs cat
+```
+
+**Find logs from specific time period:**
+```bash
+# Find logs from January 20, 2026
+ls ~/.stigmer/data/logs/daemon.log.2026-01-20-*
+
+# Find logs from last restart
+ls -t ~/.stigmer/data/logs/daemon.log.* | head -1
+```
+
+**Manually preserve important logs:**
+```bash
+# Before they're automatically deleted
+cp ~/.stigmer/data/logs/daemon.log.2026-01-15-* ~/important-logs/
+```
+
+### Rotation Behavior
+
+**What gets rotated:**
+- All component logs (daemon, agent-runner, workflow-runner)
+- Both stdout (`.log`) and stderr (`.err`) files
+- Only non-empty files (empty files aren't archived)
+
+**When rotation happens:**
+- On `stigmer server restart` (automatic)
+- On `stigmer server start` after a previous shutdown (automatic)
+
+**What doesn't trigger rotation:**
+- `stigmer server stop` (just stops, doesn't rotate)
+- Normal server operation (logs append)
+- Using `stigmer server logs` (read-only)
+
+### Smart Rotation
+
+Stigmer only rotates log files that have content:
+
+```bash
+# If daemon.log is empty, it stays as daemon.log (not archived)
+# If daemon.log has logs, it becomes daemon.log.2026-01-20-HHMMSS
+```
+
+This prevents clutter from empty log files.
+
+### Troubleshooting Log Rotation
+
+**Archived logs missing:**
+- Check if they're older than 7 days (automatically deleted)
+- Verify server has been restarted (rotation only happens on restart)
+- Check disk space (cleanup may have failed if disk full)
+
+**Old logs not cleaned up:**
+- Check file modification times: `ls -lt ~/.stigmer/data/logs/`
+- Verify server restart actually completed successfully
+- Check for permission issues in logs directory
+
+**Rotation failed:**
+- Check log output: `stigmer server logs | grep -i "rotate"`
+- Rotation failures are non-fatal (server continues)
+- Check permissions: `ls -la ~/.stigmer/data/logs/`
 
 ## Tips and Tricks
 
@@ -214,7 +369,7 @@ stigmer server logs --tail 1000 | grep ERROR
 stigmer server logs -f | grep -i "workflow"
 ```
 
-### Compare Server and Agent Logs
+### Compare Component Logs
 
 ```bash
 # Terminal 1: Server logs
@@ -222,6 +377,9 @@ stigmer server logs -f --stderr
 
 # Terminal 2: Agent logs  
 stigmer server logs -f -c agent-runner --stderr
+
+# Terminal 3: Workflow logs
+stigmer server logs -f -c workflow-runner --stderr
 ```
 
 ### Save Logs for Bug Reports
@@ -231,22 +389,30 @@ stigmer server logs -f -c agent-runner --stderr
 stigmer server logs --tail 1000 > server-logs.txt
 stigmer server logs --stderr --tail 1000 > server-errors.txt
 stigmer server logs -c agent-runner --stderr > agent-errors.txt
+stigmer server logs -c workflow-runner --stderr > workflow-errors.txt
 ```
 
 ### Clear Old Logs
 
-If logs get too large:
+**⚠️ Note**: As of January 2026, logs are automatically rotated on restart with 7-day cleanup. Manual clearing is rarely needed.
+
+If you need to manually clear logs:
 
 ```bash
 # Stop server first
 stigmer server stop
 
-# Clear logs
+# Option 1: Clear current logs only (keep archived)
 rm ~/.stigmer/data/logs/*.{log,err}
 
-# Restart
+# Option 2: Clear all logs including archived (CAREFUL!)
+rm ~/.stigmer/data/logs/daemon.* ~/.stigmer/data/logs/agent-runner.* ~/.stigmer/data/logs/workflow-runner.*
+
+# Restart server
 stigmer server
 ```
+
+**Tip**: Use `stigmer server restart` to archive logs instead of deleting them.
 
 ## Troubleshooting
 
@@ -289,7 +455,7 @@ chmod 644 ~/.stigmer/data/logs/*.{log,err}
 - `stigmer server` - Start the server
 - `stigmer server status` - Check server status
 - `stigmer server stop` - Stop the server
-- `stigmer server restart` - Restart the server
+- `stigmer server restart` - Restart the server (includes automatic log rotation)
 
 ---
 
