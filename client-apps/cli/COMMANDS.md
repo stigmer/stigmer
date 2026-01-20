@@ -34,8 +34,14 @@ stigmer backend set cloud
 ### Project Scaffolding
 
 ```bash
-# Create a new Stigmer project with example code
+# Option 1: Create in current directory (Pulumi-style)
+# Uses directory name as project name
+mkdir my-project && cd my-project
+stigmer new
+
+# Option 2: Create new directory with specified name
 stigmer new my-project
+cd my-project
 
 # The generated project includes:
 # - AI agent (PR code reviewer)
@@ -44,7 +50,6 @@ stigmer new my-project
 # - Complete documentation
 
 # After creation:
-cd my-project
 stigmer run
 ```
 
@@ -77,8 +82,11 @@ backend:
 
 ```bash
 # 1. Create a new project with example code
-stigmer new my-first-project
-cd my-first-project
+mkdir my-first-project && cd my-first-project
+stigmer new
+
+# Or create new directory:
+# stigmer new my-first-project && cd my-first-project
 
 # 2. Start the server
 stigmer server
