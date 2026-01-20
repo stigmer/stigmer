@@ -255,12 +255,11 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.W
 
 	// Step 7: Ensure daemon is running (auto-start if needed, local mode only)
 	if cfg.Backend.Type == config.BackendTypeLocal {
-		dataDir := cfg.Backend.Local.DataDir
-		if dataDir == "" {
-			dataDir, err = config.GetDataDir()
-			if err != nil {
-				return nil, nil, err
-			}
+		// Always use hardcoded data directory - not configurable
+		// CLI manages daemon infrastructure, users shouldn't change this
+		dataDir, err := config.GetDataDir()
+		if err != nil {
+			return nil, nil, err
 		}
 		
 		if err := daemon.EnsureRunning(dataDir); err != nil {
