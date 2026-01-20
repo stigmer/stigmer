@@ -58,6 +58,16 @@ Combined project to achieve zero-config local development:
    - **Checkpoint**: `checkpoints/2026-01-19-cli-ui-improvements.md`
    - **Changelog**: `_changelog/2026-01/2026-01-19-improve-local-command-ui.md`
 
+8. **✅ Task 8**: Fix Server Restart - Eliminate Orphaned Processes (2026-01-20)
+   - Fixed `stigmer server restart` creating orphaned server processes
+   - Enhanced `Stop()` to find orphaned processes using `lsof` (no PID file needed)
+   - Improved `IsRunning()` with gRPC fallback detection
+   - Made `handleServerRestart()` unconditional (always stops before starting)
+   - `stigmer apply` no longer shows "Starting daemon" when server already running
+   - All daemon lifecycle operations now robust and reliable
+   - **Checkpoint**: `checkpoints/2026-01-20-fix-server-restart-orphaned-processes.md`
+   - **Changelog**: `_changelog/2026-01/2026-01-20-194409-fix-server-restart-orphaned-processes.md`
+
 ### Files Created
 
 **New Files**:
@@ -140,7 +150,7 @@ $ stigmer local start
 
 ## Remaining Tasks
 
-### Task 8: Testing (Manual) - Partially Complete
+### Task 9: Testing (Manual) - Partially Complete
 
 Since this is a CLI application with subprocess management, automated testing is complex. Manual testing checklist:
 
@@ -174,7 +184,7 @@ Since this is a CLI application with subprocess management, automated testing is
 - [ ] Shows Temporal status (managed vs external)
 - [ ] Shows correct port information
 
-### Task 9: Documentation
+### Task 10: Documentation
 
 Need to update:
 - [ ] Getting-started guide - Add Temporal Web UI section
