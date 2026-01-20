@@ -27,13 +27,15 @@ import (
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/telemetry"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/worker"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/worker/config"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/converter"
-	"go.temporal.io/sdk/worker"
+	sdkworker "go.temporal.io/sdk/worker"
 )
 
 var rootOpts struct {
@@ -122,6 +124,14 @@ platform.`,
 			}
 		}()
 
+		// Check if running in Temporal worker mode (for stigmer integration)
+		if executionMode := os.Getenv("EXECUTION_MODE"); executionMode == "temporal" {
+			log.Info().Str("mode", "temporal").Msg("Starting workflow-runner")
+			return runTemporalWorkerMode()
+		}
+
+		// Original zigflow mode: load and execute a single workflow file
+		log.Info().Msg("Starting in Temporal-only mode")
 		workflowDefinition, err := zigflow.LoadFromFile(rootOpts.FilePath)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Unable to load workflow file")
@@ -218,8 +228,8 @@ platform.`,
 
 		log.Info().Str("task-queue", taskQueue).Msg("Starting workflow")
 
-		pollerAutoscaler := worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{})
-		temporalWorker := worker.New(client, taskQueue, worker.Options{
+		pollerAutoscaler := sdkworker.NewPollerBehaviorAutoscaling(sdkworker.PollerBehaviorAutoscalingOptions{})
+		temporalWorker := sdkworker.New(client, taskQueue, sdkworker.Options{
 			WorkflowTaskPollerBehavior: pollerAutoscaler,
 			ActivityTaskPollerBehavior: pollerAutoscaler,
 			NexusTaskPollerBehavior:    pollerAutoscaler,
@@ -232,7 +242,7 @@ platform.`,
 			}
 		}
 
-		if err := temporalWorker.Run(worker.InterruptCh()); err != nil {
+		if err := temporalWorker.Run(sdkworker.InterruptCh()); err != nil {
 			return gh.FatalError{
 				Cause: err,
 				Msg:   "Unable to start worker",
@@ -249,6 +259,46 @@ func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(gh.HandleFatalError(err))
 	}
+}
+
+// runTemporalWorkerMode starts the workflow-runner in Temporal worker mode
+// This mode is used by stigmer to run validation and execution activities
+func runTemporalWorkerMode() error {
+	log.Info().Msg("Starting in Temporal-only mode")
+	
+	// Load configuration from environment variables
+	cfg, err := config.LoadFromEnv()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load configuration")
+		return err
+	}
+
+	log.Info().
+		Str("address", cfg.TemporalServiceAddress).
+		Str("namespace", cfg.TemporalNamespace).
+		Str("execution_queue", cfg.ExecutionTaskQueue).
+		Int("max_concurrency", cfg.MaxConcurrency).
+		Str("orchestration_queue", cfg.OrchestrationTaskQueue).
+		Msg("Loaded Temporal configuration")
+
+	// Create Zigflow worker system
+	zigflowWorker, err := worker.NewZigflowWorker(cfg)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create Zigflow worker")
+		return err
+	}
+
+	// Register all workflows and activities
+	zigflowWorker.RegisterWorkflowsAndActivities()
+
+	// Start worker system (blocking call)
+	log.Info().Msg("Temporal worker configured and ready")
+	if err := zigflowWorker.Start(); err != nil {
+		log.Fatal().Err(err).Msg("Temporal worker failed")
+		return err
+	}
+
+	return nil
 }
 
 func init() {

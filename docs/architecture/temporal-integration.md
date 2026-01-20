@@ -32,6 +32,106 @@ This enables each language to focus on its strengths: Go for efficient orchestra
 
 ## Architecture
 
+### Three Worker Domains
+
+Stigmer implements **three separate Temporal worker domains**, each with its own queue configuration and responsibilities:
+
+| Domain | Purpose | Stigmer Queue | Runner Queue | Status |
+|--------|---------|---------------|--------------|--------|
+| **Workflow Execution** | Execute workflow definitions | `workflow_execution_stigmer` | `workflow_execution_runner` | ✅ Implemented |
+| **Agent Execution** | Execute AI agent invocations | `agent_execution_stigmer` | `agent_execution_runner` | ✅ Implemented |
+| **Workflow Validation** | Validate workflow syntax | `workflow_validation_stigmer` | `workflow_validation_runner` | ⏸️ Planned |
+
+**Design Rationale:**
+- **Separation of concerns**: Each domain has distinct workflows and activities
+- **Independent scaling**: Scale agent execution separately from workflow execution
+- **Resource isolation**: GPU-intensive agent work doesn't impact workflow orchestration
+- **Clear observability**: Task queues map directly to feature domains
+
+### Worker Initialization in stigmer-server
+
+Workers are initialized during `main.go` startup following this sequence:
+
+```go
+// 1. Create Temporal Client (conditional - may be nil)
+temporalClient, err := client.Dial(client.Options{
+    HostPort:  cfg.TemporalHostPort,
+    Namespace: cfg.TemporalNamespace,
+})
+// If connection fails: temporalClient = nil, proceed without Temporal
+
+// 2. Create Workers and Workflow Creators (if client exists)
+if temporalClient != nil {
+    // Workflow Execution Worker
+    workflowExecutionConfig := workflowexecutiontemporal.LoadConfig()
+    workflowExecutionWorker = workflowExecutionWorkerConfig.CreateWorker(temporalClient)
+    workflowExecutionCreator = workflows.NewInvokeWorkflowExecutionWorkflowCreator(...)
+    
+    // Agent Execution Worker
+    agentExecutionConfig := agentexecutiontemporal.NewConfig()
+    agentExecutionWorker = agentExecutionWorkerConfig.CreateWorker(temporalClient)
+    agentExecutionCreator = agentexecutiontemporal.NewInvokeAgentExecutionWorkflowCreator(...)
+    
+    // Workflow Validation Worker
+    workflowValidationConfig := workflowtemporal.NewConfig()
+    workflowValidationWorker = workflowValidationWorkerConfig.CreateWorker(temporalClient)
+    workflowValidator = workflowtemporal.NewServerlessWorkflowValidator(...)
+
+}
+
+// 3. Register gRPC Controllers
+
+// 4. Start In-Process gRPC Server
+
+// 5. Start Temporal Workers (if workers exist)
+if workflowExecutionWorker != nil {
+    workflowExecutionWorker.Start()
+    defer workflowExecutionWorker.Stop()  // Graceful shutdown
+}
+if agentExecutionWorker != nil {
+    agentExecutionWorker.Start()
+    defer agentExecutionWorker.Stop()
+}
+
+// 6. Inject Workflow Creators into Controllers
+workflowExecutionController.SetWorkflowCreator(workflowExecutionCreator)
+agentExecutionController.SetWorkflowCreator(agentExecutionCreator)
+```
+
+**Key Design Decisions:**
+- **Early Creation**: Workers created before gRPC services (fail fast on config errors)
+- **Late Start**: Workers started after gRPC services (controllers must be ready)
+- **Graceful Degradation**: Nil-safe injection allows running without Temporal
+- **Deferred Cleanup**: `defer worker.Stop()` ensures clean shutdown
+
+**Implementation Status:**
+- ✅ Workflow Execution worker: Fully implemented and integrated
+- ✅ Agent Execution worker: Fully implemented and integrated
+- ✅ Workflow Validation worker: Fully implemented and integrated
+
+**Critical Integration Fix (2026-01-20)**:
+- Workers were implemented and running
+- Controllers were NOT calling them (validation skipped, executions stuck)
+- **Fix Applied**: All controller integrations now complete
+  - Workflow validation: Controllers call validator before persist
+  - Agent execution: Controllers start workflows after persist
+  - Workflow execution: Already integrated (verified)
+
+**Graceful Degradation:**
+
+stigmer-server can operate without Temporal:
+- If Temporal server is unavailable, client creation fails silently
+- Workers and workflow creators remain `nil`
+- Controllers receive `nil` workflow creators (nil-safe injection)
+- gRPC endpoints work, but workflow/agent executions won't start
+- Server logs warning: "Failed to connect to Temporal - workflows will not execute"
+
+This allows:
+- Development without Temporal dependency
+- Service startup even if Temporal is down
+- Non-workflow features remain functional
+- Graceful error messages when workflows are attempted
+
 ### Polyglot Workflow Pattern
 
 ```
@@ -198,6 +298,142 @@ err := workflow.ExecuteLocalActivity(localCtx,
 worker.RegisterActivity(updateStatusActivityImpl.UpdateExecutionStatus)
 ```
 
+### Controller Integration Pattern
+
+**How Controllers Trigger Temporal Workflows**
+
+Controllers integrate with Temporal through pipeline steps that call workflow creators or validators. This pattern enables clean separation between business logic (controllers) and workflow orchestration (Temporal).
+
+**Three Integration Patterns**:
+
+**1. Workflow Validation** (Synchronous Validation):
+```go
+// In WorkflowController.Create pipeline:
+AddStep(newValidateWorkflowSpecStep(c.validator))  // Step 2, after proto validation
+
+// The step:
+func (s *validateWorkflowSpecStep) Execute(ctx *pipeline.RequestContext) error {
+    // Skip if Temporal not available (nil-safe)
+    if s.validator == nil {
+        log.Warn().Msg("Skipping validation - Temporal not available")
+        return nil
+    }
+    
+    // Call Temporal workflow synchronously (blocks until validation complete)
+    validation, err := s.validator.Validate(ctx.Context(), spec)
+    if err != nil {
+        return fmt.Errorf("validation failed: %w", err)
+    }
+    
+    // Check validation state
+    if validation.State == INVALID {
+        return fmt.Errorf("invalid workflow: %s", validation.Errors[0])
+    }
+    
+    // Store result in context for later steps
+    ctx.Set("validation_result", validation)
+    return nil
+}
+```
+
+**2. Execution Triggering** (Asynchronous Start):
+```go
+// In WorkflowExecutionController.Create pipeline:
+AddStep(c.newStartWorkflowStep())  // Step 9, after persist
+
+// The step:
+func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext) error {
+    // Skip if Temporal not available (nil-safe)
+    if s.workflowCreator == nil {
+        log.Warn().Msg("Execution will remain PENDING - Temporal not available")
+        return nil
+    }
+    
+    execution := ctx.NewState()
+    
+    // Start Temporal workflow asynchronously (returns immediately)
+    if err := s.workflowCreator.Create(execution); err != nil {
+        // Mark execution as FAILED and persist
+        execution.Status.Phase = FAILED
+        execution.Status.Error = err.Error()
+        s.store.SaveResource(ctx.Context(), kind, executionID, execution)
+        return fmt.Errorf("failed to start workflow: %w", err)
+    }
+    
+    return nil
+}
+```
+
+**3. Agent Execution Triggering** (Same Pattern):
+```go
+// In AgentExecutionController.Create pipeline:
+AddStep(c.newStartWorkflowStep())  // Step 9, after persist
+
+// Implementation identical to WorkflowExecution pattern
+// Uses InvokeAgentExecutionWorkflowCreator instead
+```
+
+**Key Design Principles**:
+- **Nil-Safe**: All steps check if Temporal client available (graceful degradation)
+- **Pipeline Steps**: Integration is a pipeline step (composable with other steps)
+- **Error Handling**: Validation errors abort pipeline, workflow start errors mark execution FAILED
+- **Timing**: Validation BEFORE persist, execution triggering AFTER persist
+
+**Why After Persist?**
+- Temporal activities query database for execution details
+- Prevents race condition (workflow queries before persist completes)
+- Consistent with Java Cloud implementation
+
+### Two-Layer Validation Architecture (Workflows Only)
+
+Workflows use a **two-layer validation pipeline** to catch errors early:
+
+**Layer 1: Proto Validation** (Fast)
+- **What**: Buf Validate rules on proto fields
+- **When**: First pipeline step (before Temporal)
+- **Performance**: <50ms
+- **Catches**: Field constraints, required fields, enum values, string patterns
+- **Example**: `replicas` must be >= 1, `name` must match regex
+
+**Layer 2: Comprehensive Validation** (Temporal)
+- **What**: Deep validation via Temporal workflow
+- **When**: Second pipeline step (after Layer 1 passes)
+- **Performance**: 50-200ms
+- **Catches**:
+  - Proto → YAML conversion errors
+  - Serverless Workflow structure validation (Zigflow parser)
+  - Semantic errors (invalid state references, transition logic, etc.)
+- **Single Source of Truth**: workflow-runner validates (same code that executes)
+
+**Why Two Layers?**
+- **Fast feedback** for simple errors (Layer 1)
+- **Comprehensive validation** for complex errors (Layer 2)
+- **Single source of truth**: workflow-runner validates (consistency guaranteed)
+
+**Validation Flow**:
+```
+User submits workflow
+    ↓
+[Layer 1] Proto Validation (buf validate) - <50ms
+    ↓ (if valid)
+[Layer 2] Temporal Validation (proto → YAML → Zigflow) - 50-200ms
+    ↓ (if valid)
+Persist workflow to database
+    ↓
+Workflow created successfully
+```
+
+**Error Handling**:
+- **Layer 1 Fails**: Immediate error, no Temporal call
+- **Layer 2 INVALID**: User error (bad structure) → `INVALID_ARGUMENT` gRPC error
+- **Layer 2 FAILED**: System error (Temporal/activity failure) → `INTERNAL` gRPC error
+
+**Example Error Messages**:
+```
+Layer 1: "Field validation failed: name must match pattern ^[a-z][a-z0-9-]*$"
+Layer 2: "Workflow validation failed: State 'process_data' not defined in states array"
+```
+
 ### Status Update Strategy
 
 **Two mechanisms for status updates**:
@@ -228,16 +464,23 @@ worker.RegisterActivity(updateStatusActivityImpl.UpdateExecutionStatus)
 
 ### Environment Variables
 
-**Go Worker** (stigmer-server):
+**Go Worker** (stigmer-server) - **Three Worker Domains**:
 ```bash
-# Go workflow queue (default: agent_execution_stigmer)
-export TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE=agent_execution_stigmer
+# Workflow Execution Domain
+export TEMPORAL_WORKFLOW_EXECUTION_STIGMER_TASK_QUEUE=workflow_execution_stigmer
+export TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE=workflow_execution_runner
 
-# Python activity queue (passed to workflows via memo)
+# Agent Execution Domain
+export TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE=agent_execution_stigmer
 export TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner
+
+# Workflow Validation Domain
+export TEMPORAL_WORKFLOW_VALIDATION_STIGMER_TASK_QUEUE=workflow_validation_stigmer
+export TEMPORAL_WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE=workflow_validation_runner
 
 # Temporal server connection
 export TEMPORAL_HOST_PORT=localhost:7233
+export TEMPORAL_NAMESPACE=default
 ```
 
 **Python Worker** (agent-runner):
@@ -299,15 +542,36 @@ Access UI: http://localhost:8080
 
 ### Starting Workers
 
-**Go Worker** (stigmer-server):
+**Go Workers** (stigmer-server) - **All Three Domains**:
 ```bash
-# Set environment variables
+# Set environment variables for all three worker domains
 export TEMPORAL_HOST_PORT=localhost:7233
+export TEMPORAL_NAMESPACE=default
+
+# Workflow Execution Domain
+export TEMPORAL_WORKFLOW_EXECUTION_STIGMER_TASK_QUEUE=workflow_execution_stigmer
+export TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE=workflow_execution_runner
+
+# Agent Execution Domain
 export TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE=agent_execution_stigmer
 export TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner
 
-# Start stigmer-server (worker starts automatically)
+# Workflow Validation Domain
+export TEMPORAL_WORKFLOW_VALIDATION_STIGMER_TASK_QUEUE=workflow_validation_stigmer
+export TEMPORAL_WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE=workflow_validation_runner
+
+# Start stigmer-server (all workers start automatically)
 ./bin/stigmer-server
+```
+
+**Expected Log Output:**
+```
+INFO Created workflow execution worker and creator stigmer_queue=workflow_execution_stigmer runner_queue=workflow_execution_runner
+INFO Workflow execution worker started
+INFO Created agent execution worker and creator stigmer_queue=agent_execution_stigmer runner_queue=agent_execution_runner
+INFO Agent execution worker started
+INFO Created workflow validation worker and validator stigmer_queue=workflow_validation_stigmer runner_queue=workflow_validation_runner
+INFO Workflow validation worker started
 ```
 
 **Python Worker** (agent-runner):
@@ -330,8 +594,12 @@ temporal workflow list --namespace default
 # Or check Temporal UI
 # Navigate to: http://localhost:8080
 # Look for workers on task queues:
-# - agent_execution_stigmer
-# - agent_execution_runner
+# - workflow_execution_stigmer (Go workflows)
+# - workflow_execution_runner (Go activities)
+# - agent_execution_stigmer (Go workflows)
+# - agent_execution_runner (Python activities)
+# - workflow_validation_stigmer (Go workflows)
+# - workflow_validation_runner (Go activities)
 ```
 
 **Test workflow execution**:
@@ -427,21 +695,421 @@ temporal workflow list --namespace default
 
 **Independent Scaling**: Each worker type scales independently based on queue depth.
 
+## Workflow Registration Patterns
+
+### Critical Bug Fix (2026-01-20)
+
+A critical bug in workflow registration was causing server crashes on startup. This section documents the correct patterns to prevent recurrence.
+
+### The Problem
+
+**Symptom**: Server crashed immediately after startup with:
+```
+panic: expected a func as input but was ptr
+
+goroutine 1 [running]:
+go.temporal.io/sdk/internal.(*registry).RegisterWorkflowWithOptions(...)
+```
+
+**Root Cause**: Temporal SDK expects a **function reference**, but we were passing a **struct instance**:
+
+```go
+// ❌ WRONG - Causes panic
+w.RegisterWorkflowWithOptions(
+    &workflows.InvokeWorkflowExecutionWorkflowImpl{},  // Struct pointer
+    workflow.RegisterOptions{Name: "..."},
+)
+```
+
+Temporal tried to call the struct as a function, resulting in the panic.
+
+### The Solution
+
+Pass the workflow **method reference** explicitly:
+
+```go
+// ✅ CORRECT - Passes method
+w.RegisterWorkflowWithOptions(
+    (&workflows.InvokeWorkflowExecutionWorkflowImpl{}).Run,  // Method reference
+    workflow.RegisterOptions{Name: "..."},
+)
+```
+
+### Two Registration Patterns
+
+Temporal SDK supports two workflow patterns:
+
+**Pattern 1: Standalone Functions**
+```go
+// Define workflow as standalone function
+func MyWorkflow(ctx workflow.Context, input *Input) error {
+    // Workflow logic
+    return nil
+}
+
+// Register directly (function reference)
+w.RegisterWorkflowWithOptions(MyWorkflow, workflow.RegisterOptions{
+    Name: "my-workflow",
+})
+```
+
+**Pattern 2: Struct Methods** (More complex, requires explicit method reference)
+```go
+// Define workflow as struct with Run method
+type MyWorkflowImpl struct{}
+
+func (w *MyWorkflowImpl) Run(ctx workflow.Context, input *Input) error {
+    // Workflow logic  
+    return nil
+}
+
+// ✅ CORRECT: Register method reference
+w.RegisterWorkflowWithOptions(
+    (&MyWorkflowImpl{}).Run,  // Get instance, then reference Run method
+    workflow.RegisterOptions{
+        Name: "my-workflow",
+    },
+)
+
+// ❌ WRONG: Register struct instance  
+w.RegisterWorkflowWithOptions(
+    &MyWorkflowImpl{},  // Temporal can't call this as a function
+    workflow.RegisterOptions{
+        Name: "my-workflow",
+    },
+)
+```
+
+### When to Use Each Pattern
+
+**Use Pattern 1 (Standalone Function) when:**
+- ✅ Simple workflow with no state
+- ✅ No helper methods needed
+- ✅ Single workflow per file
+
+**Example**: `ValidateWorkflowWorkflow` - Simple validation, no state
+
+**Use Pattern 2 (Struct Methods) when:**
+- ✅ Workflow needs helper methods
+- ✅ Complex orchestration logic
+- ✅ Multiple related functions
+- ✅ Better code organization
+
+**Example**: `InvokeWorkflowExecutionWorkflow`, `InvokeAgentExecutionWorkflow` - Complex orchestration with helpers
+
+### Registration in Stigmer
+
+**Three Workers, Three Workflows:**
+
+1. **Workflow Execution** (Pattern 2 - Struct Method):
+```go
+// backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/worker_config.go
+w.RegisterWorkflowWithOptions(
+    (&workflows.InvokeWorkflowExecutionWorkflowImpl{}).Run,  // ✅ Method reference
+    workflow.RegisterOptions{
+        Name: workflows.InvokeWorkflowExecutionWorkflowName,
+    },
+)
+```
+
+2. **Agent Execution** (Pattern 2 - Struct Method):
+```go
+// backend/services/stigmer-server/pkg/domain/agentexecution/temporal/worker_config.go
+w.RegisterWorkflowWithOptions(
+    (&workflows.InvokeAgentExecutionWorkflowImpl{}).Run,  // ✅ Method reference
+    workflow.RegisterOptions{
+        Name: workflows.InvokeAgentExecutionWorkflowName,
+    },
+)
+```
+
+3. **Workflow Validation** (Pattern 1 - Standalone Function):
+```go
+// backend/services/stigmer-server/pkg/domain/workflow/temporal/worker.go
+w.RegisterWorkflowWithOptions(
+    ValidateWorkflowWorkflowImpl,  // ✅ Function reference
+    workflow.RegisterOptions{
+        Name: WorkflowValidationWorkflowType,
+    },
+)
+```
+
+### Why This Bug Occurred
+
+When we initially implemented workflow execution and agent execution workers, we copied the registration pattern from the validation worker:
+
+```go
+// Validation worker (Pattern 1 - worked fine)
+w.RegisterWorkflowWithOptions(ValidateWorkflowWorkflowImpl, ...)
+
+// Execution workers (Pattern 2 - copied incorrectly)
+w.RegisterWorkflowWithOptions(&WorkflowImpl{}, ...)  // ❌ Should be (&WorkflowImpl{}).Run
+```
+
+**Key Difference**: Validation uses a standalone function; execution workflows use struct methods.
+
+The registration syntax looks similar, but struct methods require the explicit method reference.
+
+### Testing Workflow Registration
+
+**Verify correct registration**:
+
+1. **Start stigmer-server**:
+```bash
+$ stigmer server start
+✓ Ready! Stigmer server is running
+  PID:  50609
+```
+
+2. **Check server doesn't crash** (wait 5+ seconds):
+```bash
+$ stigmer server status
+  Status: ✓ Running  # ✅ Still running = registration worked
+```
+
+3. **Check logs for successful registration**:
+```bash
+$ tail -50 ~/.stigmer/data/logs/daemon.err | grep "Registered"
+✅ [POLYGLOT] Registered InvokeWorkflowExecutionWorkflow (Go)
+✅ [POLYGLOT] Registered InvokeAgentExecutionWorkflow (Go)  
+✅ [POLYGLOT] Registered ValidateWorkflowWorkflow (Go)
+```
+
+**If registration fails**:
+```bash
+# Server crashes with panic
+panic: expected a func as input but was ptr
+
+# Check registration - likely missing .Run method reference
+```
+
+### Impact
+
+**Before fix**:
+- ❌ Server crashed on startup
+- ❌ No Temporal workflows available
+- ❌ Local mode completely broken
+
+**After fix**:
+- ✅ Server starts successfully
+- ✅ All three workflows register correctly
+- ✅ Workflows execute reliably
+
+## Daemon Health Checks
+
+### Critical Bug Fix (2026-01-20)
+
+CLI connection failures occurred even when the server was starting. This section documents the proper health check implementation.
+
+### The Problem
+
+**Symptom**: CLI reported "Cannot connect to stigmer-server" even though:
+- Server process had started (PID file existed)
+- Server was initializing
+- Server would become ready shortly after
+
+**Root Cause**: Daemon manager had a placeholder health check:
+
+```go
+func WaitForReady(ctx context.Context, endpoint string) error {
+    // TODO: Implement health check
+    // For now, just wait a moment
+    time.Sleep(1 * time.Second)  // ❌ Arbitrary wait
+    return nil
+}
+```
+
+**Race Condition**:
+1. Daemon process starts
+2. CLI waits 1 second (arbitrary)
+3. CLI assumes daemon is ready
+4. CLI tries to connect
+5. gRPC server not yet initialized → failure
+
+### The Solution
+
+Implemented proper health check that polls the gRPC server:
+
+```go
+func WaitForReady(ctx context.Context, endpoint string) error {
+    ticker := time.NewTicker(500 * time.Millisecond)
+    defer ticker.Stop()
+
+    for {
+        select {
+        case <-ctx.Done():
+            return errors.Wrap(ctx.Err(), "daemon did not become ready in time")
+            
+        case <-ticker.C:
+            // Try to connect to the gRPC server
+            dialCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+            conn, err := grpc.DialContext(dialCtx, endpoint,
+                grpc.WithTransportCredentials(insecure.NewCredentials()),
+                grpc.WithBlock(),
+            )
+            cancel()
+
+            if err != nil {
+                // Server not ready yet, continue polling
+                log.Debug().Err(err).Msg("Daemon not ready yet, retrying...")
+                continue
+            }
+
+            // Successfully connected - server is ready
+            conn.Close()
+            log.Debug().Msg("Daemon is ready to accept connections")
+            return nil
+        }
+    }
+}
+```
+
+### Health Check Design Principles
+
+**1. Poll, Don't Assume**
+
+Never assume readiness based on:
+- ❌ Arbitrary time delays
+- ❌ PID file existence
+- ❌ Process start signal
+
+Always verify actual service availability:
+- ✅ Actual connection attempts
+- ✅ Service-specific health endpoints
+- ✅ Real protocol handshakes
+
+**2. Appropriate Polling Frequency**
+
+**Too fast** (< 100ms):
+- Wastes CPU resources
+- Spams logs
+- No practical benefit
+
+**Too slow** (> 1s):
+- User perceives delay
+- Poor UX for fast startups
+
+**Goldilocks zone** (500ms):
+- ✅ Responsive (< 1s latency for fast systems)
+- ✅ Efficient (minimal CPU usage)
+- ✅ Reliable (catches startup issues)
+
+**3. Timeout Protection**
+
+Always set an upper bound:
+```go
+// Caller sets 10-second timeout
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+
+err := WaitForReady(ctx, endpoint)
+// Returns after max 10 seconds, even if server never starts
+```
+
+**4. Clear Error Messages**
+
+**Bad**:
+```go
+return errors.New("timeout")  // What timed out? Why?
+```
+
+**Good**:
+```go
+return errors.Wrap(ctx.Err(), "daemon did not become ready in time")
+// Clear: daemon health check timed out
+```
+
+### When Health Checks Are Needed
+
+**Daemon/Server Management**:
+- ✅ Auto-starting background services
+- ✅ Restart operations
+- ✅ Readiness verification
+
+**Kubernetes Deployments**:
+- ✅ Readiness probes
+- ✅ Liveness probes
+- ✅ Startup probes
+
+**Service-to-Service Communication**:
+- ✅ Service mesh health checks
+- ✅ Load balancer health checks
+- ✅ Circuit breaker integration
+
+### Testing Health Checks
+
+**Test 1: Fast Startup**
+```bash
+# Server starts quickly
+$ time stigmer server start
+✓ Ready! Stigmer server is running
+
+real    0m1.5s  # Health check returns as soon as ready
+```
+
+**Test 2: Slow Startup**
+```bash
+# Simulate slow startup (first boot, database initialization)
+$ rm -rf ~/.stigmer/data/*
+$ time stigmer server start
+✓ Ready! Stigmer server is running
+
+real    0m3.2s  # Health check waits longer, but still succeeds
+```
+
+**Test 3: Startup Failure**
+```bash
+# Server fails to start (port already in use)
+$ stigmer server start & sleep 0.1 && stigmer server start
+Error: daemon did not become ready in time
+
+# Health check times out after 10 seconds, provides clear error
+```
+
+### Impact
+
+**Before fix**:
+- ❌ Connection failures on slow startup
+- ❌ Inconsistent behavior (worked sometimes)
+- ❌ User frustration
+- ❌ Required manual waiting
+
+**After fix**:
+- ✅ Reliable connection every time
+- ✅ CLI waits exactly as long as needed
+- ✅ Works on fast and slow systems
+- ✅ Clear debug logging
+- ✅ Proper error handling
+
+### Related Components
+
+**Daemon Manager** (`client-apps/cli/internal/cli/daemon/daemon.go`):
+- `EnsureRunning()` - Auto-starts daemon if not running
+- `WaitForReady()` - Health check implementation
+- `IsRunning()` - Process check (different from health check)
+
+**Process vs Health Check**:
+- **Process check**: Is the daemon process alive? (PID file + signal check)
+- **Health check**: Is the gRPC server accepting connections? (Connection attempt)
+
+Both are needed - process running ≠ service ready.
+
 ## Future Enhancements
 
 ### Planned
 
-1. **Workflow Validation**
-   - Validate workflow definitions before execution
-   - Temporal activity for zigflow syntax checking
-
-2. **Child Workflows**
+1. **Child Workflows**
    - Sub-agent executions as child workflows
    - Parallel agent execution orchestration
 
-3. **Saga Pattern**
+2. **Saga Pattern**
    - Compensating transactions for failed executions
    - Rollback workflows for cleanup
+
+3. **Structured Health Check Endpoint**
+   - Implement proto-based health check RPC
+   - Include component status (Temporal, database, workers)
+   - Support Kubernetes probes
 
 ### Under Consideration
 
@@ -468,10 +1136,17 @@ temporal workflow list --namespace default
 
 ## References
 
-- Code: `backend/services/stigmer-server/pkg/controllers/agentexecution/temporal/`
-- Code: `backend/services/stigmer-server/pkg/controllers/workflowexecution/temporal/`
+**Code Locations:**
+- Worker Infrastructure: `backend/services/stigmer-server/cmd/server/main.go`
+- Workflow Execution: `backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/`
+- Agent Execution: `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/`
+- Workflow Validation: `backend/services/stigmer-server/pkg/domain/workflow/temporal/`
+- Agent Runner (Python): `backend/services/agent-runner/worker/`
+
+**External Resources:**
 - Temporal Go SDK: https://docs.temporal.io/dev-guide/go
 - Polyglot Workflows: https://docs.temporal.io/dev-guide/polyglot
+- Worker Configuration: https://docs.temporal.io/dev-guide/go/features#worker-configuration
 
 ---
 

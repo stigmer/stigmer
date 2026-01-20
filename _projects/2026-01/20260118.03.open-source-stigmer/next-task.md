@@ -71,12 +71,22 @@ When starting a new session:
 
 **Created**: 2026-01-18 03:35
 **Phase**: Phase 3 - CLI Implementation In Progress  
-**Status**: ✅ Build infrastructure complete, ready for feature migration
-**Last Updated**: 2026-01-19 04:04
+**Status**: ✅ Stigmer run command implemented and documented
+**Last Updated**: 2026-01-20 19:30
 
 ## Latest Accomplishment
 
-✅ **CLI Build Infrastructure** (2026-01-19 04:04)
+✅ **Stigmer Run Command Implementation** (2026-01-20 19:30)
+- Implemented `stigmer run` command with two modes (auto-discovery, reference)
+- Smart code synchronization (auto-apply when in project directory)
+- Runtime environment variables and custom messages support
+- Real-time log streaming for agents and workflows
+- Workflow-first resolution (checks workflows, then agents)
+- Interactive resource selection with survey package
+- Comprehensive changelog and documentation created
+- Checkpoint: `checkpoints/2026-01-20-stigmer-run-command-implementation.md`
+
+Previous: ✅ **CLI Build Infrastructure** (2026-01-19 04:04)
 - Fixed proto import paths (`apis/stubs/go/`)
 - Configured module dependencies (SDK, protobuf stubs)
 - Enhanced cliprint with colored output and progress display

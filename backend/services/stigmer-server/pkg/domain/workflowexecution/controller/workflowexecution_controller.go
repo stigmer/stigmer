@@ -2,6 +2,7 @@ package workflowexecution
 
 import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 )
@@ -31,6 +32,7 @@ type WorkflowExecutionController struct {
 	workflowexecutionv1.UnimplementedWorkflowExecutionQueryControllerServer
 	store                  *badger.Store
 	workflowInstanceClient *workflowinstance.Client
+	workflowCreator        *workflows.InvokeWorkflowExecutionWorkflowCreator
 	streamBroker           *StreamBroker
 }
 
@@ -54,4 +56,11 @@ func NewWorkflowExecutionController(
 // This is used when the controller is created before the in-process gRPC server is started
 func (c *WorkflowExecutionController) SetWorkflowInstanceClient(client *workflowinstance.Client) {
 	c.workflowInstanceClient = client
+}
+
+// SetWorkflowCreator sets the Temporal workflow creator dependency
+// This is used when the controller is created before the Temporal client is initialized
+// If nil, workflows will not be started (graceful degradation)
+func (c *WorkflowExecutionController) SetWorkflowCreator(creator *workflows.InvokeWorkflowExecutionWorkflowCreator) {
+	c.workflowCreator = creator
 }

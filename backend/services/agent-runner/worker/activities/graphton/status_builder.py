@@ -274,10 +274,10 @@ class StatusBuilder:
     def _update_todos(self, todos_data: list) -> None:
         """Update todos in local status."""
         status_map = {
-            "pending": TodoStatus.TODO_STATUS_PENDING,
-            "in_progress": TodoStatus.TODO_STATUS_IN_PROGRESS,
-            "completed": TodoStatus.TODO_STATUS_COMPLETED,
-            "cancelled": TodoStatus.TODO_STATUS_CANCELLED,
+            "pending": TodoStatus.TODO_PENDING,
+            "in_progress": TodoStatus.TODO_IN_PROGRESS,
+            "completed": TodoStatus.TODO_COMPLETED,
+            "cancelled": TodoStatus.TODO_CANCELLED,
         }
         
         for todo_dict in todos_data:
@@ -286,7 +286,7 @@ class StatusBuilder:
                 continue
             
             status_str = todo_dict.get("status", "pending").lower()
-            status_enum = status_map.get(status_str, TodoStatus.TODO_STATUS_PENDING)
+            status_enum = status_map.get(status_str, TodoStatus.TODO_PENDING)
             
             todo_item = TodoItem(
                 id=todo_id,

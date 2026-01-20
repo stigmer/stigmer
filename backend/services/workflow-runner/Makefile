@@ -51,4 +51,3 @@ run-grpc-server: build-grpc
 # Run the built worker binary with environment variables
 run-worker-server: build
 	. .env_export && ./bin/workflow-runner
-

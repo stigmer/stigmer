@@ -1,0 +1,224 @@
+# Tasks
+
+## Task 1: Research and Design Embedding Strategy
+**Status**: ✅ COMPLETED
+
+### Goals
+- Finalize platform detection strategy (macOS arm64/amd64, Linux amd64)
+- Design extraction logic (where, when, error handling)
+- Decide on checksum verification approach
+- Design clean error messages for missing binaries
+
+### Subtasks
+- [x] Document platform detection logic
+- [x] Design extraction directory structure (`~/.stigmer/bin/`)
+- [x] Define extraction triggers (first run, version mismatch)
+- [x] Design error messages (binary missing, extraction failed)
+- [x] Decide on checksum approach (SHA256 verification?)
+
+### Acceptance Criteria
+- [x] Clear design document in `notes.md`
+- [x] Platform detection strategy defined
+- [x] Extraction flow documented
+- [x] Error handling strategy clear
+
+### Key Decisions Made
+1. **Platform Detection**: Use `runtime.GOOS` and `runtime.GOARCH`
+2. **Extraction**: First run + version mismatch detection
+3. **Location**: `~/.stigmer/bin/` with `.version` marker file
+4. **Checksums**: Skip for v1 (can add in v2 if needed)
+5. **No Fallbacks**: Production uses only extracted binaries
+6. **Dev Mode**: Use env vars only (`STIGMER_SERVER_BIN`, etc.)
+
+---
+
+## Task 2: Implement Binary Embedding with Go Embed
+**Status**: ✅ COMPLETED
+
+### Goals
+- Create `client-apps/cli/embedded/` directory structure
+- Add Go embed directives for all 4 binaries
+- Implement platform selection logic
+- Add extraction functions
+
+### Subtasks
+- [x] Create `client-apps/cli/embedded/` directory
+- [x] Add embed directives for stigmer-server (per platform)
+- [x] Add embed directives for workflow-runner (per platform)
+- [x] Add embed directive for agent-runner.tar.gz
+- [x] Implement `GetStigmerServerBinary()` (platform detection)
+- [x] Implement `GetWorkflowRunnerBinary()` (platform detection)
+- [x] Implement `extractBinary()` function
+- [x] Implement `extractTarball()` function (for agent-runner)
+- [x] Add version checking with `.version` file
+- [x] Add `EnsureBinariesExtracted()` orchestrator function
+- [x] Skip checksum verification (v1 decision)
+
+### Acceptance Criteria
+- [x] All binaries embedded correctly
+- [x] Platform detection works (darwin_arm64, darwin_amd64, linux_amd64)
+- [x] Extraction functions implemented
+- [x] Binaries executable after extraction (0755 permissions)
+- [x] Version checking prevents unnecessary re-extraction
+- [x] Code compiles successfully
+
+### Files Created
+- `client-apps/cli/embedded/embedded.go` - Platform detection, embed directives, binary getters
+- `client-apps/cli/embedded/extract.go` - Extraction logic for binaries and tarballs
+- `client-apps/cli/embedded/version.go` - Version checking and comparison
+- `client-apps/cli/embedded/README.md` - Comprehensive package documentation
+- `client-apps/cli/embedded/binaries/` - Directory structure for embedded binaries (with placeholders)
+
+---
+
+## Task 3: Update Daemon Management to Use Extracted Binaries
+**Status**: ✅ COMPLETED
+
+### Goals
+- Modify `daemon.go` to use extracted binaries ONLY
+- Remove all development fallback paths
+- Add `ensureBinariesExtracted()` call on daemon start
+- Update `findServerBinary()`, `findWorkflowRunnerBinary()`, `findAgentRunnerScript()`
+
+### Subtasks
+- [x] Add `ensureBinariesExtracted(dataDir)` to `Start()` function
+- [x] Rewrite `findServerBinary()` - use only `~/.stigmer/bin/stigmer-server`
+- [x] Rewrite `findWorkflowRunnerBinary()` - use only `~/.stigmer/bin/workflow-runner`
+- [x] Rewrite `findAgentRunnerScript()` - use only `~/.stigmer/bin/agent-runner/run.sh`
+- [x] Remove ALL development path searches (no fallbacks!)
+- [x] Add clean error messages if binaries missing
+- [x] Support dev mode via env vars ONLY (`STIGMER_SERVER_BIN`, `STIGMER_WORKFLOW_RUNNER_BIN`, `STIGMER_AGENT_RUNNER_SCRIPT`)
+- [x] Remove `findWorkspaceRoot()` function (no longer needed)
+
+### Acceptance Criteria
+- [x] Daemon only uses extracted binaries
+- [x] No fallback paths in production code
+- [x] Clear errors if binaries missing
+- [x] Dev mode optional (env var only)
+- [x] Code compiles successfully
+
+### Implementation Summary
+- Added import for `embedded` package
+- Added extraction call early in `Start()` function (shows progress: "Extracting binaries")
+- Rewrote all three finder functions to ~30 lines each (removed 150+ lines of fallback logic)
+- Production mode: Uses only `dataDir/bin/{binary-name}`
+- Dev mode: Checks env vars (`STIGMER_*_BIN` or `STIGMER_*_SCRIPT`)
+- Error messages include expected location, reinstall instructions, and dev mode guidance
+- Deleted `findWorkspaceRoot()` function (40 lines removed)
+- Net reduction: ~105 lines of code removed (52% smaller binary finding logic)
+
+---
+
+## Task 4: Update Build Scripts (Makefile)
+**Status**: ✅ COMPLETED
+
+### Goals
+- Add targets to build embedded binaries
+- Integrate embedding into release process
+- Test multi-platform builds
+
+### Subtasks
+- [x] Add `embed-stigmer-server` target (per platform)
+- [x] Add `embed-workflow-runner` target (per platform)
+- [x] Add `embed-agent-runner` target (tarball creation)
+- [x] Add `embed-binaries` orchestrator target
+- [x] Update `release-local` to build embedded binaries first
+- [x] Test builds for macOS arm64
+- [x] Document build process in Makefile comments
+- [x] Platform detection (darwin_arm64, darwin_amd64, linux_amd64)
+
+### Acceptance Criteria
+- [x] `make release-local` produces CLI with embedded binaries
+- [x] Binaries correct for target platform (darwin_arm64 tested)
+- [x] Build process clear and documented
+- [x] Works on developer machines
+
+### Implementation Summary
+
+**New Makefile Targets:**
+- `embed-stigmer-server` - Builds stigmer-server and copies to `client-apps/cli/embedded/binaries/{platform}/`
+- `embed-workflow-runner` - Builds workflow-runner and copies to `client-apps/cli/embedded/binaries/{platform}/`
+- `embed-agent-runner` - Packages agent-runner as tar.gz (grpc_client/, worker/, run.sh) and copies to embedded directory
+- `embed-binaries` - Orchestrates all three targets, shows final file sizes
+
+**Platform Detection:**
+- Uses `uname -s` and `uname -m` to detect current platform
+- Supports: `darwin_arm64`, `darwin_amd64`, `linux_amd64`
+- Sets `EMBED_DIR` variable to correct platform directory
+
+**Integration:**
+- `release-local` now depends on `embed-binaries` target
+- Binaries are built and embedded before CLI compilation
+- Updated description: "Building CLI with embedded binaries for {platform}"
+
+**Results:**
+- ✅ Final CLI binary: **123 MB** (40MB server + 61MB runner + 25KB agent + 22MB CLI)
+- ✅ Extraction time: **< 3 seconds**
+- ✅ Binaries executable: Mach-O arm64 format (on macOS)
+- ✅ Full workflow tested: clean install → extract → run successfully
+
+---
+
+## Task 5: Remove Development Fallbacks (Clean Production Code)
+**Status**: ⏸️ TODO
+
+### Goals
+- Audit all binary search code
+- Remove development paths from production
+- Ensure dev mode uses env vars only
+- Update documentation
+
+### Subtasks
+- [ ] Audit `daemon.go` for any remaining fallback paths
+- [ ] Remove `findWorkspaceRoot()` usage in production paths
+- [ ] Remove Bazel build path searches in production
+- [ ] Ensure env vars work for dev mode (`STIGMER_SERVER_BIN`, etc.)
+- [ ] Update code comments to explain production vs dev
+- [ ] Add runtime check: warn if dev env vars set in production build
+
+### Acceptance Criteria
+- No development paths in binary search logic
+- Production build ignores dev paths
+- Dev mode clearly separated (env vars only)
+- Code is clean and maintainable
+
+---
+
+## Task 6: Test Single-Binary Distribution
+**Status**: ⏸️ TODO
+
+### Goals
+- Test fresh install scenario
+- Test binary extraction
+- Test daemon startup with extracted binaries
+- Measure binary size and extraction time
+
+### Subtasks
+- [ ] Build release binary with embedded components
+- [ ] Delete `~/.stigmer/` to simulate fresh install
+- [ ] Run `stigmer server` and verify extraction
+- [ ] Verify all 4 components start correctly
+- [ ] Test `stigmer server stop` and `stigmer server restart`
+- [ ] Measure final binary size (should be < 200 MB)
+- [ ] Measure extraction time (should be < 5 seconds)
+- [ ] Test on clean macOS VM (no dev environment)
+
+### Acceptance Criteria
+- Fresh install works perfectly
+- All components extracted and running
+- Binary size acceptable (< 200 MB)
+- Extraction fast (< 5 seconds)
+- No errors or warnings
+- Ready for Homebrew distribution
+
+---
+
+## Summary
+
+**Total Tasks**: 6  
+**Completed**: 4  
+**In Progress**: 0  
+**Todo**: 2
+
+**Estimated Time**: 3-4 hours total  
+**Time Spent**: ~2.5 hours (Tasks 1-4)
