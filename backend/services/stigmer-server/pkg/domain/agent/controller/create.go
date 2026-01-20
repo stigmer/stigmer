@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 )
 
 // Context keys for inter-step communication
@@ -23,8 +23,8 @@ const (
 // Create creates a new agent using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ResolveSlug - Generate slug from metadata.name (must be before validation)
-// 2. ValidateFieldConstraints - Validate proto field constraints using buf validate
+// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
+// 2. ResolveSlug - Generate slug from metadata.name
 // 3. CheckDuplicate - Verify no duplicate exists
 // 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 5. Persist - Save agent to repository
@@ -54,8 +54,8 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*agentv1.Agent]("agent-create").
-		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).           // 1. Resolve slug (must be before validation)
-		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).         // 2. Validate field constraints
+		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).         // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).           // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)). // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).         // 4. Build new state
 		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).        // 5. Persist agent

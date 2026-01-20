@@ -11,8 +11,8 @@ import (
 // Update updates an existing workflow using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ResolveSlug - Generate slug from metadata.name (must be before validation, for fallback lookup)
-// 2. ValidateFieldConstraints - Validate proto field constraints using buf validate
+// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
+// 2. ResolveSlug - Generate slug from metadata.name
 // 3. LoadExisting - Load existing workflow from repository to verify it exists
 // 4. BuildUpdateState - Merge spec, preserve IDs and status, update audit timestamps
 // 5. Persist - Save updated workflow to repository
@@ -38,8 +38,8 @@ func (c *WorkflowController) Update(ctx context.Context, workflow *workflowv1.Wo
 // buildUpdatePipeline constructs the pipeline for workflow update
 func (c *WorkflowController) buildUpdatePipeline() *pipeline.Pipeline[*workflowv1.Workflow] {
 	return pipeline.NewPipeline[*workflowv1.Workflow]("workflow-update").
-		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).         // 1. Resolve slug (must be before validation, for fallback lookup)
-		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).       // 2. Validate field constraints
+		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).       // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).         // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*workflowv1.Workflow](c.store)). // 3. Load existing workflow
 		AddStep(steps.NewBuildUpdateStateStep[*workflowv1.Workflow]()).    // 4. Build updated state (merge spec, preserve status, update audit)
 		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).      // 5. Persist workflow
