@@ -97,15 +97,18 @@ func (s *LoadForApplyStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	// Check if slug is set (should be set by ResolveSlugStep)
 	if metadata.Slug == "" {
 		// No slug - create new
+		fmt.Printf("[DEBUG LoadForApplyStep] Slug is empty, will create new\n")
 		ctx.Set(ExistsInDatabaseKey, false)
 		ctx.Set(ShouldCreateKey, true)
 		return nil
 	}
 
 	slug := metadata.Slug
+	fmt.Printf("[DEBUG LoadForApplyStep] Looking for existing resource with slug: %s\n", slug)
 
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
+	fmt.Printf("[DEBUG LoadForApplyStep] Resource kind: %v\n", kind)
 
 	// Attempt to find existing resource by slug
 	existing, err := s.findBySlug(ctx.Context(), slug, kind)
@@ -116,12 +119,14 @@ func (s *LoadForApplyStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 
 	if existing == nil {
 		// Resource doesn't exist - CREATE
+		fmt.Printf("[DEBUG LoadForApplyStep] No existing resource found with slug %s, will create new\n", slug)
 		ctx.Set(ExistsInDatabaseKey, false)
 		ctx.Set(ShouldCreateKey, true)
 		return nil
 	}
 
 	// Resource exists - UPDATE
+	fmt.Printf("[DEBUG LoadForApplyStep] Found existing resource with slug %s, will update\n", slug)
 	// Store existing resource in context for potential use
 	ctx.Set(ExistingResourceKey, existing)
 	ctx.Set(ExistsInDatabaseKey, true)
@@ -145,8 +150,10 @@ func (s *LoadForApplyStep[T]) findBySlug(ctx context.Context, slug string, kind 
 		return nil, fmt.Errorf("failed to list resources: %w", err)
 	}
 
+	fmt.Printf("[DEBUG findBySlug] Listed %d resources of kind %v\n", len(resources), kind)
+
 	// Scan through resources to find matching slug
-	for _, data := range resources {
+	for i, data := range resources {
 		// Create a new instance of T to unmarshal into
 		var resource T
 		resource = resource.ProtoReflect().New().Interface().(T)
@@ -154,17 +161,27 @@ func (s *LoadForApplyStep[T]) findBySlug(ctx context.Context, slug string, kind 
 		// Use proto.Unmarshal since stores return proto bytes (not JSON)
 		if err := proto.Unmarshal(data, resource); err != nil {
 			// Skip resources that can't be unmarshaled
+			fmt.Printf("[DEBUG findBySlug] Failed to unmarshal resource %d: %v\n", i, err)
 			continue
 		}
 
 		// Check if this resource has the matching slug
 		if metadataResource, ok := any(resource).(HasMetadata); ok {
 			metadata := metadataResource.GetMetadata()
-			if metadata != nil && metadata.Slug == slug {
-				return resource, nil
+			if metadata != nil {
+				fmt.Printf("[DEBUG findBySlug] Resource %d: slug=%s, looking for=%s, match=%v\n", 
+					i, metadata.Slug, slug, metadata.Slug == slug)
+				if metadata.Slug == slug {
+					return resource, nil
+				}
+			} else {
+				fmt.Printf("[DEBUG findBySlug] Resource %d: metadata is nil\n", i)
 			}
+		} else {
+			fmt.Printf("[DEBUG findBySlug] Resource %d: does not implement HasMetadata\n", i)
 		}
 	}
 
+	fmt.Printf("[DEBUG findBySlug] No matching resource found for slug: %s\n", slug)
 	return nil, nil
 }
