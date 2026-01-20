@@ -35,6 +35,26 @@ type Client struct {
 	workflowQuery   workflowv1.WorkflowQueryControllerClient
 }
 
+// NewConnection creates a new gRPC connection based on current config
+// This is a convenience function for commands that just need a connection
+func NewConnection() (*grpc.ClientConn, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load config")
+	}
+
+	client, err := NewClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := client.Connect(context.Background()); err != nil {
+		return nil, err
+	}
+
+	return client.conn, nil
+}
+
 // NewClient creates a new gRPC client based on config
 func NewClient(cfg *config.Config) (*Client, error) {
 	var endpoint string
