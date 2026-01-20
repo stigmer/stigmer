@@ -18,7 +18,7 @@ type Config struct {
 // LoadConfig loads configuration from environment variables
 func LoadConfig() (*Config, error) {
 	config := &Config{
-		GRPCPort: getEnvInt("GRPC_PORT", 8080),
+		GRPCPort: getEnvInt("GRPC_PORT", 7234), // Port 7234 (Temporal + 1)
 		DBPath:   getEnvString("DB_PATH", defaultDBPath()),
 		LogLevel: getEnvString("LOG_LEVEL", "info"),
 		Env:      getEnvString("ENV", "local"),

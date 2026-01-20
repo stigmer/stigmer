@@ -7,6 +7,7 @@ go_library(
         "backend.go",
         "new.go",
         "server.go",
+        "server_logs.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/cmd/stigmer/root",
     visibility = ["//visibility:public"],
