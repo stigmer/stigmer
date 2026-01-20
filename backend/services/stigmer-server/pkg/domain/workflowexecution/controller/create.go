@@ -34,12 +34,12 @@ const (
 // 6. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 7. SetInitialPhase - Set execution phase to PENDING
 // 8. Persist - Save execution to repository
+// 9. StartWorkflow - Start Temporal workflow (if Temporal is available)
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
 // - AuthorizeExecution step (no can_execute permission check in OSS)
 // - CreateIamPolicies step (no IAM/FGA in OSS)
-// - StartWorkflow step (no Temporal workflow engine in OSS - stubbed for now)
 // - Publish step (no event publishing in OSS)
 // - TransformResponse step (no response transformations in OSS)
 //
@@ -72,6 +72,7 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).         // 6. Build new state
 		AddStep(newSetInitialPhaseStep()).                                                     // 7. Set phase to PENDING
 		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).        // 8. Persist execution
+		AddStep(c.newStartWorkflowStep()).                                                     // 9. Start Temporal workflow
 		Build()
 }
 
@@ -401,6 +402,78 @@ func (s *setInitialPhaseStep) Execute(ctx *pipeline.RequestContext[*workflowexec
 	ctx.SetNewState(execution)
 
 	log.Debug().Msg("Execution phase set to EXECUTION_PENDING")
+
+	return nil
+}
+
+// startWorkflowStep starts the Temporal workflow for the execution.
+//
+// This step is executed after the execution is persisted to the database.
+// If no Temporal client is available (workflowCreator is nil), the step logs a warning
+// and continues gracefully - the execution remains in PENDING phase.
+//
+// This matches the Java WorkflowExecutionCreateHandler.StartWorkflowStep.
+type startWorkflowStep struct {
+	workflowCreator *workflows.InvokeWorkflowExecutionWorkflowCreator
+	store           *badger.Store
+}
+
+func (c *WorkflowExecutionController) newStartWorkflowStep() *startWorkflowStep {
+	return &startWorkflowStep{
+		workflowCreator: c.workflowCreator,
+		store:           c.store,
+	}
+}
+
+func (s *startWorkflowStep) Name() string {
+	return "StartWorkflow"
+}
+
+func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*workflowexecutionv1.WorkflowExecution]) error {
+	execution := ctx.NewState()
+	executionID := execution.GetMetadata().GetId()
+
+	// Check if Temporal client is available
+	if s.workflowCreator == nil {
+		log.Warn().
+			Str("execution_id", executionID).
+			Msg("Workflow creator not available - execution will remain in PENDING (Temporal not connected)")
+		return nil
+	}
+
+	log.Debug().
+		Str("execution_id", executionID).
+		Msg("Starting Temporal workflow")
+
+	// Start the Temporal workflow
+	if err := s.workflowCreator.Create(ctx.Context(), execution); err != nil {
+		log.Error().
+			Err(err).
+			Str("execution_id", executionID).
+			Msg("Failed to start Temporal workflow - marking execution as FAILED")
+
+		// Mark execution as FAILED and persist
+		if execution.Status == nil {
+			execution.Status = &workflowexecutionv1.WorkflowExecutionStatus{}
+		}
+		execution.Status.Phase = workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED
+		execution.Status.Message = fmt.Sprintf("Failed to start Temporal workflow: %v", err)
+
+		// Persist the failed state
+		if updateErr := s.store.Update(ctx.Context(), execution); updateErr != nil {
+			log.Error().
+				Err(updateErr).
+				Str("execution_id", executionID).
+				Msg("Failed to update execution status after workflow start failure")
+			return grpclib.InternalError(fmt.Sprintf("failed to start workflow and failed to update status: %v", updateErr))
+		}
+
+		return grpclib.InternalError(fmt.Sprintf("failed to start workflow: %v", err))
+	}
+
+	log.Info().
+		Str("execution_id", executionID).
+		Msg("Temporal workflow started successfully")
 
 	return nil
 }

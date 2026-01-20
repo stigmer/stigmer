@@ -11,6 +11,10 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
+	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
+	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/worker"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
 	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller"
@@ -64,6 +68,60 @@ func main() {
 	defer store.Close()
 
 	log.Info().Str("db_path", cfg.DBPath).Msg("BadgerDB store initialized")
+
+	// ============================================================================
+	// Initialize Temporal client and workers
+	// ============================================================================
+
+	// Create Temporal client
+	temporalClient, err := client.Dial(client.Options{
+		HostPort:  cfg.TemporalHostPort,
+		Namespace: cfg.TemporalNamespace,
+	})
+	if err != nil {
+		log.Warn().
+			Err(err).
+			Str("host_port", cfg.TemporalHostPort).
+			Str("namespace", cfg.TemporalNamespace).
+			Msg("Failed to connect to Temporal server - workflows will not execute")
+		temporalClient = nil // Set to nil, check before using
+	} else {
+		defer temporalClient.Close()
+		log.Info().
+			Str("host_port", cfg.TemporalHostPort).
+			Str("namespace", cfg.TemporalNamespace).
+			Msg("Connected to Temporal server")
+	}
+
+	// Create workflow execution worker and workflow creator (conditional on client success)
+	var workflowExecutionWorker worker.Worker
+	var workflowCreator *workflows.InvokeWorkflowExecutionWorkflowCreator
+
+	if temporalClient != nil {
+		// Load Temporal configuration for workflow execution
+		workflowExecutionTemporalConfig := workflowexecutiontemporal.LoadConfig()
+
+		// Create worker configuration
+		workerConfig := workflowexecutiontemporal.NewWorkerConfig(
+			workflowExecutionTemporalConfig,
+			store,
+		)
+
+		// Create worker (not started yet)
+		workflowExecutionWorker = workerConfig.CreateWorker(temporalClient)
+
+		// Create workflow creator (for controller injection)
+		workflowCreator = workflows.NewInvokeWorkflowExecutionWorkflowCreator(
+			temporalClient,
+			workflowExecutionTemporalConfig.StigmerQueue,
+			workflowExecutionTemporalConfig.RunnerQueue,
+		)
+
+		log.Info().
+			Str("stigmer_queue", workflowExecutionTemporalConfig.StigmerQueue).
+			Str("runner_queue", workflowExecutionTemporalConfig.RunnerQueue).
+			Msg("Created workflow execution worker and creator")
+	}
 
 	// Create gRPC server with apiresource interceptor and in-process support
 	// The interceptor automatically extracts api_resource_kind from proto service descriptors
@@ -162,6 +220,20 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to start in-process gRPC server")
 	}
 
+	// ============================================================================
+	// Start Temporal workers (after gRPC services ready)
+	// ============================================================================
+
+	if workflowExecutionWorker != nil {
+		if err := workflowExecutionWorker.Start(); err != nil {
+			log.Fatal().
+				Err(err).
+				Msg("Failed to start workflow execution worker")
+		}
+		defer workflowExecutionWorker.Stop()
+		log.Info().Msg("Workflow execution worker started")
+	}
+
 	// Create in-process gRPC connection
 	// This connection goes through all gRPC interceptors (validation, logging, etc.)
 	// even though it's in-process, ensuring consistent behavior with network calls
@@ -187,6 +259,9 @@ func main() {
 	workflowController.SetWorkflowInstanceClient(workflowInstanceClient)
 	workflowInstanceController.SetWorkflowClient(workflowClient)
 	workflowExecutionController.SetWorkflowInstanceClient(workflowInstanceClient)
+
+	// Inject workflow creator (nil-safe, controller handles gracefully)
+	workflowExecutionController.SetWorkflowCreator(workflowCreator)
 
 	log.Info().Msg("Injected dependencies into controllers")
 
