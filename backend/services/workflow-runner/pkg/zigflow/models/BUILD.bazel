@@ -6,6 +6,6 @@ go_library(
         "activity.go",
         "retries.go",
     ],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/zigflow/models",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/models",
     visibility = ["//visibility:public"],
 )

@@ -52,21 +52,37 @@ test: ## Run all tests
 	@echo "Running All Tests"
 	@echo "============================================"
 	@echo ""
-	@echo "1/4 Running Root Module Tests..."
+	@echo "1/8 Running API Stubs Tests..."
 	@echo "--------------------------------------------"
-	go test -v -race -timeout 30s ./...
+	cd apis/stubs/go && go test -v -race -timeout 30s ./...
 	@echo ""
-	@echo "2/4 Running SDK Go Tests..."
+	@echo "2/8 Running Backend Libs Tests..."
 	@echo "--------------------------------------------"
-	cd sdk/go && go test -v -race -timeout 30s ./...
+	cd backend/libs/go && go test -v -race -timeout 30s ./...
 	@echo ""
-	@echo "3/4 Running Workflow Runner Tests..."
+	@echo "3/8 Running Stigmer Server Tests..."
+	@echo "--------------------------------------------"
+	cd backend/services/stigmer-server && go test -v -race -timeout 30s ./...
+	@echo ""
+	@echo "4/8 Running Workflow Runner Tests..."
 	@echo "--------------------------------------------"
 	cd backend/services/workflow-runner && go test -v -race -timeout 30s ./...
 	@echo ""
-	@echo "4/4 Running Agent Runner Tests (Python)..."
+	@echo "5/8 Running CLI Tests..."
+	@echo "--------------------------------------------"
+	cd client-apps/cli && go test -v -race -timeout 30s ./...
+	@echo ""
+	@echo "6/8 Running SDK Go Tests..."
+	@echo "--------------------------------------------"
+	cd sdk/go && go test -v -race -timeout 30s ./...
+	@echo ""
+	@echo "7/8 Running Agent Runner Tests (Python)..."
 	@echo "--------------------------------------------"
 	cd backend/services/agent-runner && poetry install --no-interaction --quiet && poetry run pytest
+	@echo ""
+	@echo "8/8 Running Agent Execution Controller Tests..."
+	@echo "--------------------------------------------"
+	cd backend/services/stigmer-server && go test -v -race -timeout 30s ./pkg/domain/agentexecution/controller/...
 	@echo ""
 	@echo "============================================"
 	@echo "✓ All Tests Complete!"

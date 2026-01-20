@@ -85,6 +85,18 @@ go-stubs-clean:
 .PHONY: go-stubs-init
 go-stubs-init:
 	@mkdir -p $(GO_STUBS_DIR)
+	@# Create go.mod immediately for go.work reference
+	@if [ ! -f "$(GO_STUBS_DIR)/go.mod" ]; then \
+		echo 'module github.com/stigmer/stigmer/apis/stubs/go\n\ngo 1.24\n\nrequire (\n\tbuf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20251209175733-2a1774d88802.1\n\tgoogle.golang.org/grpc v1.78.0\n\tgoogle.golang.org/protobuf v1.36.11\n)' > $(GO_STUBS_DIR)/go.mod; \
+	fi
+	@# Create BUILD.bazel immediately to make it a valid Bazel package
+	@echo '# Gazelle will automatically generate Go library rules for this directory' > $(GO_STUBS_DIR)/BUILD.bazel
+	@echo '# This BUILD file makes the directory a valid Bazel package' >> $(GO_STUBS_DIR)/BUILD.bazel
+	@echo '' >> $(GO_STUBS_DIR)/BUILD.bazel
+	@echo 'exports_files([' >> $(GO_STUBS_DIR)/BUILD.bazel
+	@echo '    "go.mod",' >> $(GO_STUBS_DIR)/BUILD.bazel
+	@echo '    "go.sum",' >> $(GO_STUBS_DIR)/BUILD.bazel
+	@echo '])' >> $(GO_STUBS_DIR)/BUILD.bazel
 
 .PHONY: go-stubs-fix-structure
 go-stubs-fix-structure:

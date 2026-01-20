@@ -3,7 +3,7 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "worker",
     srcs = ["worker.go"],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/worker",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/worker",
     visibility = ["//backend/services/workflow-runner:__subpackages__"],
     deps = [
         "//backend/services/workflow-runner/pkg/claimcheck",

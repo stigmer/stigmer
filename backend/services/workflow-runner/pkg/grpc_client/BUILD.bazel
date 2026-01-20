@@ -7,7 +7,7 @@ go_library(
         "workflow_execution_client.go",
         "workflow_instance_client.go",
     ],
-    importpath = "github.com/leftbin/stigmer-cloud/backend/services/workflow-runner/pkg/grpc_client",
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/grpc_client",
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
