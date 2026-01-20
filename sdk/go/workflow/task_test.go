@@ -26,8 +26,8 @@ func TestField_AutoExport(t *testing.T) {
 		t.Errorf("Expected auto-export to be set to '${.}', got: %s", task.ExportAs)
 	}
 
-	// Verify the field reference is correct
-	expectedExpr := "${ $context.fetchData.title }"
+	// Verify the field reference is correct (using bracket notation)
+	expectedExpr := "${ $context[\"fetchData\"].title }"
 	if ref.Expression() != expectedExpr {
 		t.Errorf("Expected expression %s, got: %s", expectedExpr, ref.Expression())
 	}
@@ -71,11 +71,11 @@ func TestField_MultipleCallsIdempotent(t *testing.T) {
 		t.Errorf("Expected export to be '${.}', got: %s", task.ExportAs)
 	}
 
-	// Verify all references work correctly
+	// Verify all references work correctly (using bracket notation)
 	expectedExprs := []string{
-		"${ $context.fetchData.title }",
-		"${ $context.fetchData.body }",
-		"${ $context.fetchData.status }",
+		"${ $context[\"fetchData\"].title }",
+		"${ $context[\"fetchData\"].body }",
+		"${ $context[\"fetchData\"].status }",
 	}
 
 	refs := []TaskFieldRef{ref1, ref2, ref3}
