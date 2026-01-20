@@ -7,10 +7,12 @@ Stigmer local mode runs entirely on your machine with a BadgerDB database. No se
 The fastest way to get started is with `stigmer new`, which scaffolds a complete working project in under 30 seconds:
 
 ```bash
-# Create a new project with AI agent + workflow example
-stigmer new my-first-project
+# Option 1: Create in current directory (uses directory name as project name)
+mkdir my-first-project && cd my-first-project
+stigmer new
 
-# Navigate to the project
+# Option 2: Create new directory with specified name
+stigmer new my-first-project
 cd my-first-project
 
 # Start the Stigmer server
