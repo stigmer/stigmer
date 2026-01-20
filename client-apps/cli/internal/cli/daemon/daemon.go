@@ -277,7 +277,7 @@ func startWorkflowRunner(
 		// Stigmer backend configuration (for callbacks)
 		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=localhost:%d", DaemonPort),
 		"STIGMER_API_KEY=dummy-local-key",
-		"STIGMER_USE_TLS=false",
+		"STIGMER_SERVICE_USE_TLS=false",
 		
 		"LOG_LEVEL=DEBUG",
 		"ENV=local",
