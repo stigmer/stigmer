@@ -22,6 +22,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Packaging Flow](architecture/packaging-flow.md) - How Stigmer is packaged and distributed (with diagrams)
 - [Request Pipeline Context Design](architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
 - [Temporal Integration](architecture/temporal-integration.md) - Polyglot workflow orchestration with Temporal (Go workflows, Python activities)
+- [Update Pipeline and Immutable Fields](architecture/update-pipeline-and-immutable-fields.md) - How updates preserve identity while allowing modifications
 
 ### Architecture Decision Records (ADR)
 - [Local Backend to Use BadgerDB](adr/20260118-181912-local-backend-to-use-badgerdb.md) - Decision to use BadgerDB for local mode
