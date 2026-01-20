@@ -292,6 +292,20 @@ func stringMapToInterface(m map[string]string) map[string]interface{} {
 	return result
 }
 
+// scopeStringToEnum converts a scope string to the ApiResourceOwnerScope enum value
+func scopeStringToEnum(scope string) apiresource.ApiResourceOwnerScope {
+	switch scope {
+	case "platform":
+		return apiresource.ApiResourceOwnerScope_platform
+	case "organization":
+		return apiresource.ApiResourceOwnerScope_organization
+	case "identity_account":
+		return apiresource.ApiResourceOwnerScope_identity_account
+	default:
+		return apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified
+	}
+}
+
 // mapSliceToInterfaceSlice converts []map[string]interface{} to []interface{}.
 // This is needed because structpb.NewStruct cannot handle []map[string]interface{} directly.
 func mapSliceToInterfaceSlice(slice []map[string]interface{}) []interface{} {
@@ -617,7 +631,8 @@ func taskConfigToStruct(task *workflow.Task) (*structpb.Struct, error) {
 		
 		// Add scope if specified (not empty)
 		if scope := cfg.Agent.Scope(); scope != "" {
-			configMap["scope"] = scope
+			// Convert scope string to enum value
+			configMap["scope"] = scopeStringToEnum(scope)
 		}
 		
 		// Add execution config if present

@@ -1042,3 +1042,162 @@ if config.InStigmerProjectDirectory() {
 - Used by: `apply`, `run`, future commands
 
 **Key Takeaway**: Common checks deserve helper functions. Boolean return (instead of error) simplifies usage when false is an acceptable answer.
+
+---
+
+### 2026-01-20 - Log Rotation Pattern for Daemon Restarts
+
+**Problem**: Log files grew indefinitely, consuming disk space and making it hard to find recent logs in long-running development environments.
+
+**Root Cause**: No log rotation strategy - logs accumulated from all previous sessions in a single file.
+
+**Solution**: Automatic log rotation on daemon restart with timestamp-based archiving and 7-day cleanup:
+
+**Implementation Pattern**:
+```go
+// In daemon.Start(), before starting services
+func Start(dataDir string) error {
+    // Rotate logs before starting new session
+    if err := rotateLogsIfNeeded(dataDir); err != nil {
+        log.Warn().Err(err).Msg("Failed to rotate logs, continuing anyway")
+        // Don't fail daemon startup if log rotation fails
+    }
+    
+    // Start services (logs written to fresh files)
+    // ...
+}
+
+func rotateLogsIfNeeded(dataDir string) error {
+    logDir := filepath.Join(dataDir, "logs")
+    timestamp := time.Now().Format("2006-01-02-150405") // YYYY-MM-DD-HHMMSS
+    
+    logFiles := []string{
+        "daemon.log", "daemon.err",
+        "agent-runner.log", "agent-runner.err",
+        "workflow-runner.log", "workflow-runner.err",
+    }
+    
+    for _, logFile := range logFiles {
+        oldPath := filepath.Join(logDir, logFile)
+        
+        // Only rotate if file exists and is non-empty
+        if stat, err := os.Stat(oldPath); err == nil && stat.Size() > 0 {
+            newPath := fmt.Sprintf("%s.%s", oldPath, timestamp)
+            os.Rename(oldPath, newPath)
+        }
+    }
+    
+    // Cleanup old archives (7 days retention)
+    return cleanupOldLogs(logDir, 7)
+}
+
+func cleanupOldLogs(logDir string, keepDays int) error {
+    cutoff := time.Now().AddDate(0, 0, -keepDays)
+    
+    files, _ := filepath.Glob(filepath.Join(logDir, "*.log.*"))
+    for _, file := range files {
+        if info, err := os.Stat(file); err == nil {
+            if info.ModTime().Before(cutoff) {
+                os.Remove(file)
+            }
+        }
+    }
+    return nil
+}
+```
+
+**Key Decisions**:
+- **Timestamp-based naming** (`daemon.log.2026-01-20-150405`): Easy to identify when logs are from, natural sorting
+- **Only rotate non-empty files**: Avoids clutter from empty log files
+- **Non-fatal errors**: Log rotation failure doesn't prevent daemon startup (warn but continue)
+- **7-day retention**: Balances disk space with debugging needs (industry standard)
+- **Rotate on restart, not stop**: New session = fresh logs (clearer session boundaries)
+
+**Benefits**:
+- Prevents disk space exhaustion
+- Clear session boundaries (find logs for specific restart)
+- Preserves history for debugging (7 days of archives)
+- Professional UX (matches nginx, syslog, production log management)
+
+**Prevention**:
+- Consider log rotation for any long-running daemon or server
+- Choose between timestamp-based vs sequential naming
+- Decide retention policy based on debugging needs
+- Make rotation errors non-fatal if daemon is more important
+
+**Related Docs**:
+- Implementation: `client-apps/cli/internal/cli/daemon/daemon.go`
+- Documentation: `docs/cli/server-logs.md` (Log Rotation section)
+- Changelog: `_changelog/2026-01/2026-01-20-234758-cli-log-management-enhancements.md`
+
+**Key Takeaway**: Log rotation on daemon restart provides clear session boundaries and prevents disk bloat. Use timestamp-based naming. Make rotation errors non-fatal.
+
+---
+
+### 2026-01-20 - Multi-File Log Streaming with Goroutines
+
+**Problem**: Users had to view logs from each daemon component separately, making it hard to understand system-wide behavior and correlate events.
+
+**Root Cause**: Single-file streaming approach - no way to merge logs from multiple files in real-time.
+
+**Solution**: Goroutine-based multi-file streaming with central channel for merging.
+
+**Key Pattern**: One goroutine per file + central channel for collecting lines.
+
+**Benefits**:
+- System-wide visibility (complete picture)
+- Kubernetes/docker-compose UX (familiar)
+- No manual mental correlation needed
+- Reduces cognitive load
+
+**Key Decisions**:
+- Goroutine per file (concurrent reading)
+- Central channel (merge streams)
+- Buffered channel (100) prevents blocking
+- 100ms poll interval (balance responsiveness/CPU)
+- Handle file rotation (detect size shrink)
+
+**Related Docs**:
+- Implementation: `client-apps/cli/internal/cli/logs/streamer.go`
+- Documentation: `docs/cli/server-logs.md` (Unified Log Viewing section)
+- Changelog: `_changelog/2026-01/2026-01-20-234758-cli-log-management-enhancements.md`
+
+**Key Takeaway**: Use goroutines + central channel for multi-file streaming. Handle file rotation. Parse timestamps flexibly. Buffer channels.
+
+---
+
+### 2026-01-20 - Log Utilities Package Structure Pattern
+
+**Problem**: Adding log features in command handlers created large files (200+ lines) and mixed concerns.
+
+**Root Cause**: Violation of Single Responsibility Principle.
+
+**Solution**: Extract into dedicated `logs` package:
+
+```
+internal/cli/logs/
+├── types.go       (15 lines)  - Data structures
+├── parser.go      (59 lines)  - Timestamp parsing
+├── merger.go      (76 lines)  - Log merging
+└── streamer.go    (103 lines) - Multi-file streaming
+```
+
+**Benefits**:
+- Single responsibility per file
+- All files under 150 lines
+- Reusable by other commands
+- Testable pure functions
+- Thin command handlers
+
+**Prevention**:
+- Create dedicated package for significant features
+- Keep files under 150 lines
+- One responsibility per file
+- Avoid generic names (utils, helpers)
+
+**Related Docs**:
+- Implementation: `client-apps/cli/internal/cli/logs/`
+- Coding guidelines: `.cursor/rules/client-apps/cli/coding-guidelines.mdc`
+- Changelog: `_changelog/2026-01/2026-01-20-234758-cli-log-management-enhancements.md`
+
+**Key Takeaway**: Extract complex features into dedicated packages. Single responsibility per file. Keep files under 150 lines.

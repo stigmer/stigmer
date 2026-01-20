@@ -219,3 +219,43 @@ func (c *Converter) convertRunTask(cfg *tasksv1.RunTaskConfig) map[string]interf
 		"run": run,
 	}
 }
+
+// convertAgentCallTask converts AgentCallTaskConfig to YAML structure
+func (c *Converter) convertAgentCallTask(cfg *tasksv1.AgentCallTaskConfig) map[string]interface{} {
+	with := map[string]interface{}{
+		"agent":   cfg.Agent,
+		"message": cfg.Message,
+	}
+
+	// Add scope if specified
+	if cfg.Scope != 0 { // 0 is unspecified
+		with["scope"] = cfg.Scope.String()
+	}
+
+	// Add env variables if present
+	if len(cfg.Env) > 0 {
+		with["env"] = cfg.Env
+	}
+
+	// Add config if present
+	if cfg.Config != nil {
+		config := map[string]interface{}{}
+		if cfg.Config.Model != "" {
+			config["model"] = cfg.Config.Model
+		}
+		if cfg.Config.Timeout > 0 {
+			config["timeout"] = cfg.Config.Timeout
+		}
+		if cfg.Config.Temperature != 0 {
+			config["temperature"] = cfg.Config.Temperature
+		}
+		if len(config) > 0 {
+			with["config"] = config
+		}
+	}
+
+	return map[string]interface{}{
+		"call": "agent",
+		"with": with,
+	}
+}
