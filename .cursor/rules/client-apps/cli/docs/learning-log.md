@@ -1204,6 +1204,238 @@ internal/cli/logs/
 
 ---
 
+### 2026-01-22 - Docker Container Lifecycle Management for Daemon Services
+
+**Problem**: Agent-runner used PyInstaller binary but suffered from persistent import errors:
+```
+ModuleNotFoundError: No module named 'multipart'
+```
+- PyInstaller couldn't detect dynamic imports in `multipart` package
+- Multiple attempted fixes (vendoring, hooks, sys.path manipulation) all failed
+- Builds succeeded but execution failed
+- 7+ hours of debugging couldn't solve PyInstaller packaging issues
+
+**Root Cause**: PyInstaller packages Python apps into standalone binaries but struggles with:
+- Dynamic imports that can't be detected at build time
+- Hidden runtime dependencies
+- Packages that inspect sys.modules or use import hooks
+- The `multipart` package's implementation relied on patterns PyInstaller couldn't handle
+
+**Solution**: Replace subprocess-based daemon management with Docker container management:
+
+**Docker Integration Pattern**:
+
+```go
+// 1. Docker Detection
+func dockerAvailable() bool {
+    // Check if docker command exists
+    if _, err := exec.LookPath("docker"); err != nil {
+        return false
+    }
+    // Check if Docker daemon is running
+    cmd := exec.Command("docker", "info")
+    return cmd.Run() == nil
+}
+
+// 2. Start Docker Container (analogous to starting subprocess)
+func startAgentRunnerDocker(dataDir string, env map[string]string) error {
+    // Remove any existing container
+    _ = exec.Command("docker", "rm", "-f", "stigmer-agent-runner").Run()
+    
+    // Build docker run arguments
+    args := []string{
+        "run", "-d",
+        "--name", "stigmer-agent-runner",
+        "--network", "host",  // For localhost access
+        "--restart", "unless-stopped",
+    }
+    
+    // Add environment variables
+    for key, value := range env {
+        args = append(args, "-e", fmt.Sprintf("%s=%s", key, value))
+    }
+    
+    // Add workspace volume mount
+    workspaceDir := filepath.Join(dataDir, "workspace")
+    args = append(args, "-v", fmt.Sprintf("%s:/workspace", workspaceDir))
+    
+    // Add image
+    args = append(args, "stigmer-agent-runner:local")
+    
+    // Start container
+    cmd := exec.Command("docker", args...)
+    output, err := cmd.CombinedOutput()
+    if err != nil {
+        return errors.Wrapf(err, "failed to start container: %s", output)
+    }
+    
+    containerID := strings.TrimSpace(string(output))
+    
+    // Store container ID for lifecycle management (analogous to PID file)
+    containerIDFile := filepath.Join(dataDir, "agent-runner-container.id")
+    return os.WriteFile(containerIDFile, []byte(containerID), 0644)
+}
+
+// 3. Stop Docker Container (analogous to killing process)
+func stopAgentRunnerDocker(dataDir string) error {
+    // Read container ID from file
+    containerIDFile := filepath.Join(dataDir, "agent-runner-container.id")
+    data, err := os.ReadFile(containerIDFile)
+    var containerID string
+    if err == nil {
+        containerID = strings.TrimSpace(string(data))
+    }
+    
+    // Fallback: find by name if no container ID file
+    if containerID == "" {
+        cmd := exec.Command("docker", "ps", "-aq", "-f", "name=^stigmer-agent-runner$")
+        output, _ := cmd.Output()
+        containerID = strings.TrimSpace(string(output))
+    }
+    
+    if containerID == "" {
+        return nil  // Nothing to stop
+    }
+    
+    // Stop container gracefully
+    exec.Command("docker", "stop", containerID).Run()
+    
+    // Remove container
+    exec.Command("docker", "rm", containerID).Run()
+    
+    // Clean up container ID file
+    os.Remove(containerIDFile)
+    return nil
+}
+
+// 4. Cleanup Orphaned Containers (analogous to orphaned process cleanup)
+func cleanupOrphanedContainers() {
+    // Find orphaned containers from previous runs
+    cmd := exec.Command("docker", "ps", "-aq", "-f", "name=^stigmer-agent-runner$")
+    output, err := cmd.Output()
+    if err != nil || len(output) == 0 {
+        return  // No orphaned containers
+    }
+    
+    containerID := strings.TrimSpace(string(output))
+    log.Warn().Str("container_id", containerID[:12]).Msg("Found orphaned container, cleaning up")
+    
+    // Stop and remove
+    exec.Command("docker", "stop", containerID).Run()
+    exec.Command("docker", "rm", containerID).Run()
+}
+```
+
+**Docker Logs Integration**:
+
+```go
+// Stream logs from Docker container (analogous to tailing log files)
+func streamDockerLogs(containerName string, follow bool, tailLines int) error {
+    args := []string{"logs"}
+    if follow {
+        args = append(args, "-f")
+    }
+    if tailLines > 0 {
+        args = append(args, "--tail", strconv.Itoa(tailLines))
+    }
+    args = append(args, containerName)
+    
+    cmd := exec.Command("docker", args...)
+    cmd.Stdout = os.Stdout
+    cmd.Stderr = os.Stderr
+    return cmd.Run()
+}
+
+// Auto-detect Docker vs file-based logs
+if component == "agent-runner" && isAgentRunnerDocker(dataDir) {
+    return streamDockerLogs("stigmer-agent-runner", follow, lines)
+}
+// Otherwise, use file-based logs
+```
+
+**Pattern Mapping: Subprocess ↔ Docker**:
+
+| Subprocess Pattern | Docker Container Pattern |
+|--------------------|--------------------------|
+| PID file | Container ID file |
+| `exec.Command()` to start binary | `docker run` to start container |
+| Store PID in file | Store container ID in file |
+| Kill process by PID | Stop container by ID/name |
+| Check if process alive with `ps` | Check if container running with `docker ps` |
+| Tail log files | `docker logs -f` |
+| Clean up orphaned processes | Clean up orphaned containers |
+| Process groups for cleanup | Docker's built-in child process management |
+
+**Error Handling**:
+
+```go
+// Clear error if Docker not available
+if !dockerAvailable() {
+    return errors.New(`Docker is not running. Agent-runner requires Docker.
+
+Please start Docker Desktop or install Docker:
+  - macOS:  brew install --cask docker
+  - Linux:  curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh
+  - Windows: Download from https://www.docker.com/products/docker-desktop
+
+After installing Docker, restart Stigmer server.`)
+}
+
+// Clear error if image not found
+if !imageExists("stigmer-agent-runner:local") {
+    return errors.New(`Docker image not found. Please build it first:
+  cd backend/services/agent-runner
+  docker build -f Dockerfile -t stigmer-agent-runner:local ../../..`)
+}
+```
+
+**Benefits**:
+- ✅ **Eliminates import errors** - All dependencies explicit in poetry.lock
+- ✅ **Reproducible builds** - Same environment everywhere (dev, CI, prod)
+- ✅ **Transparent debugging** - Can shell into container to investigate
+- ✅ **Industry standard** - Docker is familiar to developers
+- ✅ **Automatic cleanup** - Docker manages child processes
+- ✅ **Built-in log rotation** - Docker handles log management
+
+**Trade-offs**:
+- ⚠️ **Requires Docker** - Users must install Docker (acceptable for modern development)
+- ⚠️ **Larger footprint** - 2GB image vs ~100MB binary
+- ⚠️ **Slightly slower cold start** - ~3s vs instant (acceptable)
+
+**Prevention**:
+- **Prefer Docker for Python daemons** with complex dependencies
+- **Use subprocess pattern** for simple Go binaries (temporal, workflow-runner)
+- **Document Docker requirement** in installation guides
+- **Provide clear error messages** if Docker not available
+- **Container ID tracking** enables reliable lifecycle management
+- **Cleanup orphaned containers** on daemon restart (like orphaned processes)
+
+**When to Use Docker vs Subprocess**:
+
+**Use Docker when:**
+- Complex dependency management (Python with many packages)
+- Hidden import issues (dynamic imports, import hooks)
+- Need reproducible builds across environments
+- Service has runtime dependencies (system libs, tools)
+
+**Use Subprocess when:**
+- Simple self-contained binaries (Go, Rust)
+- No complex dependencies
+- Fast startup critical (<1s)
+- Size matters (<100MB)
+
+**Related Docs**:
+- Changelog: `_changelog/2026-01/2026-01-22-020000-migrate-agent-runner-to-docker.md`
+- Implementation: `client-apps/cli/internal/cli/daemon/daemon.go`
+- Logs integration: `client-apps/cli/cmd/stigmer/root/server_logs.go`
+- Architecture: `docs/architecture/cli-subprocess-lifecycle.md` (Docker section added)
+- Getting started: `docs/getting-started/local-mode.md` (Docker requirement added)
+- Project: `_projects/2026-01/20260122.01.migrate-agent-runner-to-docker/`
+
+**Key Takeaway**: Docker container lifecycle management parallels subprocess management with different mechanisms. Container ID ≈ PID, `docker run` ≈ `exec.Command()`, `docker stop` ≈ kill. For Python services with complex dependencies, Docker eliminates packaging issues at the cost of requiring Docker installation. Pattern is reusable for other containerized services.
+
+---
+
 ## Build System & Distribution
 
 ### 2026-01-21 - Go Embed + Gazelle Integration for Binary Embedding
