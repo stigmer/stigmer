@@ -116,7 +116,9 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv
 
 	agent := ctx.NewState()
 	agentID := agent.GetMetadata().GetId()
-	agentSlug := agent.GetMetadata().GetName()
+	// Use agent's slug (not name) to build the default instance slug
+	// This ensures we're comparing the same normalized values
+	agentSlug := agent.GetMetadata().GetSlug()
 	ownerScope := agent.GetMetadata().GetOwnerScope()
 
 	log.Info().
@@ -174,10 +176,12 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv
 				return fmt.Errorf("failed to fetch existing instances: %w", fetchErr)
 			}
 
-			// Find the default instance (slug matches expected name)
+			// Find the default instance by slug (not name!)
+			// The duplicate check uses metadata.slug, so we must search by slug too
 			var defaultInstance *agentinstancev1.AgentInstance
 			for _, instance := range instanceList.GetItems() {
-				if instance.GetMetadata().GetName() == defaultInstanceName {
+				// FIXED: Compare against Slug field, not Name field
+				if instance.GetMetadata().GetSlug() == defaultInstanceName {
 					defaultInstance = instance
 					break
 				}
