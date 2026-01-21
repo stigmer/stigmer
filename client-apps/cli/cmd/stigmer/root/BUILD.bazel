@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "apply.go",
         "backend.go",
+        "internal.go",
         "new.go",
         "run.go",
         "server.go",
@@ -20,6 +21,8 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//backend/services/stigmer-server/pkg/server",
+        "//backend/services/workflow-runner/pkg/runner",
         "//client-apps/cli/internal/cli/agent",
         "//client-apps/cli/internal/cli/backend",
         "//client-apps/cli/internal/cli/clierr",

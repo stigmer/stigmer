@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "runner",
+    srcs = ["runner.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/runner",
+    visibility = ["//visibility:public"],
+    deps = ["//backend/services/workflow-runner/cmd/worker:worker_lib"],
+)
