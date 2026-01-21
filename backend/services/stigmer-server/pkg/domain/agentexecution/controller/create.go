@@ -3,6 +3,7 @@ package agentexecution
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -73,6 +74,23 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).            // 8. Persist execution
 		AddStep(c.newStartWorkflowStep()).                                                   // 9. Start Temporal workflow
 		Build()
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+// isAlreadyExistsError checks if an error is due to a duplicate resource
+// by looking for "already exists" in the error message.
+//
+// This is used to handle the case where a default instance exists but the
+// agent status wasn't updated with the instance ID.
+func isAlreadyExistsError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := strings.ToLower(err.Error())
+	return strings.Contains(errMsg, "already exists")
 }
 
 // ============================================================================
@@ -219,18 +237,65 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 	// 4. Create instance via downstream client (in-process, system credentials)
 	createdInstance, err := s.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
 	if err != nil {
-		log.Error().
-			Err(err).
+		// Check if error is due to duplicate slug
+		// If so, fetch existing instance instead of failing
+		if isAlreadyExistsError(err) {
+			log.Warn().
+				Err(err).
+				Str("agent_id", agentID).
+				Str("expected_slug", agentSlug+"-default").
+				Msg("Default instance already exists, fetching existing instance")
+
+			// Fetch all instances for this agent
+			instanceList, fetchErr := s.agentInstanceClient.GetByAgent(ctx.Context(), agentID)
+			if fetchErr != nil {
+				log.Error().
+					Err(fetchErr).
+					Str("agent_id", agentID).
+					Msg("Failed to fetch existing instances after duplicate error")
+				return fmt.Errorf("failed to fetch existing instances: %w", fetchErr)
+			}
+
+			// Find the default instance (slug ends with "-default")
+			var defaultInstance *agentinstancev1.AgentInstance
+			expectedSlug := agentSlug + "-default"
+			for _, instance := range instanceList.GetItems() {
+				if instance.GetMetadata().GetName() == expectedSlug {
+					defaultInstance = instance
+					break
+				}
+			}
+
+			if defaultInstance == nil {
+				log.Error().
+					Str("agent_id", agentID).
+					Str("expected_slug", expectedSlug).
+					Int32("instances_found", instanceList.GetTotalCount()).
+					Msg("Default instance not found despite duplicate error")
+				return fmt.Errorf("default instance '%s' not found despite duplicate error", expectedSlug)
+			}
+
+			createdInstance = defaultInstance
+			log.Info().
+				Str("instance_id", defaultInstance.GetMetadata().GetId()).
+				Str("slug", expectedSlug).
+				Str("agent_id", agentID).
+				Msg("Found existing default instance")
+		} else {
+			log.Error().
+				Err(err).
+				Str("agent_id", agentID).
+				Msg("Failed to create default instance")
+			return fmt.Errorf("failed to create default instance: %w", err)
+		}
+	} else {
+		log.Info().
+			Str("instance_id", createdInstance.GetMetadata().GetId()).
 			Str("agent_id", agentID).
-			Msg("Failed to create default instance")
-		return fmt.Errorf("failed to create default instance: %w", err)
+			Msg("Successfully created default instance")
 	}
 
 	createdInstanceID := createdInstance.GetMetadata().GetId()
-	log.Info().
-		Str("instance_id", createdInstanceID).
-		Str("agent_id", agentID).
-		Msg("Successfully created default instance")
 
 	// 5. Update agent status with default_instance_id
 	if agent.Status == nil {
