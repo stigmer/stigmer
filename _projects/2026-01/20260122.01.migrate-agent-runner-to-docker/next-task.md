@@ -126,13 +126,40 @@ Drag this file into any Cursor chat to instantly resume this project with full c
 **Checkpoint**: `checkpoints/2026-01-22-macos-docker-networking-fixed.md`  
 **Changelog**: `_changelog/2026-01/2026-01-22-022000-fix-agent-runner-docker-networking-macos.md`
 
-**Result**: ✅ Agent-runner works on macOS, all agent executions functional
+**Result**: ✅ Agent-runner connects to Temporal successfully
+
+---
+
+📋 **Critical Bug Fix**: Backend Connection Environment Variable - Status: ✅ COMPLETE
+
+**Issue**: Agent-runner couldn't connect to stigmer-server, status updates failed, CLI hung on "pending"
+
+**Fix Applied**: 2026-01-22 03:03
+
+**Root Cause**: Environment variable name mismatch
+- Go daemon set: `STIGMER_BACKEND_URL`
+- Python read: `STIGMER_BACKEND_ENDPOINT`
+- Result: Python fell back to wrong default (`localhost:50051`)
+
+**Solution**:
+- Changed daemon.go to use `STIGMER_BACKEND_ENDPOINT` (matches Python)
+- Agent-runner now connects to correct address (`host.docker.internal:7234`)
+- Status streaming now works: agent-runner → stigmer-server → StreamBroker → CLI
+
+**Checkpoint**: `checkpoints/2026-01-22-backend-connection-env-var-fixed.md`  
+**Changelog**: `_changelog/2026-01/2026-01-22-030355-fix-agent-runner-backend-connection-env-var.md`
+
+**Result**: ✅ Status streaming works, users see real-time execution progress
 
 ---
 
 ## Project Complete! 🎉
 
-All planned work for the Docker migration, sandbox implementation, and macOS networking fix is now complete.
+All planned work for the Docker migration, sandbox implementation, and networking fixes is now complete.
+
+**Two networking fixes were needed**:
+1. ✅ Temporal connection (`host.docker.internal:7233`)
+2. ✅ Backend connection (`host.docker.internal:7234` + correct env var name)
 
 ---
 

@@ -562,7 +562,7 @@ After installing Docker, restart Stigmer server.`)
 
 		// Environment variables
 		"-e", "MODE=local",
-		"-e", fmt.Sprintf("STIGMER_BACKEND_URL=http://%s", backendAddr),
+		"-e", fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=%s", backendAddr),
 		"-e", fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", hostAddr),
 		"-e", "TEMPORAL_NAMESPACE=default",
 		"-e", "TASK_QUEUE=agent_execution_runner",
