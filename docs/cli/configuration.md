@@ -72,7 +72,7 @@ The CLI supports three LLM providers for running agents.
 
 ---
 
-#### Option 1: Ollama (Default - No API Key Required)
+#### Option 1: Local LLM (Default - No API Key Required)
 
 **Best for**: Local development, privacy, offline usage
 
@@ -81,23 +81,37 @@ The CLI supports three LLM providers for running agents.
 backend:
     local:
         llm:
-            provider: ollama
+            provider: ollama           # Implementation: uses Ollama
             model: qwen2.5-coder:7b
             base_url: http://localhost:11434
 ```
 
-**Setup**:
-1. Install Ollama: https://ollama.ai
-2. Pull a model:
-   ```bash
-   ollama pull qwen2.5-coder:7b
-   ```
-3. Start Ollama (runs automatically on macOS/Linux)
+**✨ Zero Setup Required:**
+When you run `stigmer server`, the CLI automatically:
+1. ✅ Downloads LLM binary to `~/.stigmer/bin/` (~150 MB)
+2. ✅ Starts LLM server in background
+3. ✅ Downloads AI model (~4-7 GB)
+4. ✅ Manages server lifecycle (start/stop/restart)
 
-**Supported Models**:
-- `qwen2.5-coder:7b` (Default - good balance of speed/quality)
-- `qwen2.5-coder:14b` (Better quality, slower)
-- `deepseek-coder:6.7b` (Fast, code-focused)
+**No manual installation needed!** See [Architecture: LLM Automation](../architecture/llm-automation.md) for details.
+
+**Supported Models:**
+- `qwen2.5-coder:7b` (Default - good balance of speed/quality, 4.7 GB)
+- `codellama:7b` (Alternative coding model, 3.8 GB)
+- `deepseek-coder:6.7b` (Fast, code-focused, 3.8 GB)
+- `qwen2.5-coder:14b` (Better quality, slower, 8.5 GB)
+
+**Managing Models:**
+```bash
+# List available models
+stigmer server llm list
+
+# Pull a new model
+stigmer server llm pull codellama:7b
+
+# Update config to use it
+stigmer config set llm.model codellama:7b
+```
 - `codestral:latest` (Mistral's code model)
 - `llama3.1:8b` (General purpose)
 
