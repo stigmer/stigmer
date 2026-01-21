@@ -8,6 +8,7 @@ Transform agent-runner into standalone PyInstaller binary, following Temporal's 
 ## Current Status
 ✅ **Phase 1 Complete** - PyInstaller binary build infrastructure ready  
 ✅ **Phase 2 Complete** - Hybrid PyInstaller embedding implemented  
+✅ **Phase 2.5 Complete** - BusyBox pattern refactoring (24MB size reduction)  
 ⏳ **Phase 3 Next** - Testing and release
 
 ## Quick Links
@@ -37,6 +38,15 @@ Transform agent-runner into standalone PyInstaller binary, following Temporal's 
 ✅ Comprehensive documentation created  
 ✅ **Result**: 100MB CLI with zero Python dependency ✨
 
+### Phase 2.5 (Complete ✅) - BusyBox Pattern Refactoring
+✅ **Eliminated Go runtime duplication** (3 copies → 1 shared)  
+✅ Refactored stigmer-server to importable library (`pkg/server/server.go`)  
+✅ Refactored workflow-runner to importable library (`pkg/runner/runner.go`)  
+✅ Added hidden CLI commands (`internal-server`, `internal-workflow-runner`)  
+✅ Updated daemon to spawn CLI itself (BusyBox pattern)  
+✅ Simplified embedded binaries (only agent-runner Python binary)  
+✅ **Result**: 126MB CLI (24MB smaller, 16% reduction) ✨
+
 ## Context for AI
 This project implements PyInstaller-based standalone binary approach for agent-runner:
 - **Goal**: Architecture consistency with Temporal (both are downloaded binaries)
@@ -48,7 +58,7 @@ This project implements PyInstaller-based standalone binary approach for agent-r
 
 ### Immediate Testing (Local)
 ```bash
-# 1. Build agent-runner binary
+# 1. Build agent-runner binary (Python)
 cd backend/services/agent-runner
 make build-binary
 
@@ -56,21 +66,17 @@ make build-binary
 mkdir -p ../../client-apps/cli/embedded/binaries/darwin_arm64
 cp dist/agent-runner ../../client-apps/cli/embedded/binaries/darwin_arm64/
 
-# 3. Build other binaries
-cd ../..
-GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" \
-  -o client-apps/cli/embedded/binaries/darwin_arm64/stigmer-server \
-  ./backend/services/stigmer-server/cmd/server
-GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" \
-  -o client-apps/cli/embedded/binaries/darwin_arm64/workflow-runner \
-  ./backend/services/workflow-runner/cmd/worker
-
-# 4. Build and test CLI
-cd client-apps/cli
+# 3. Build CLI (includes server + workflow-runner via BusyBox pattern)
+cd ../../client-apps/cli
 go build -o ../../bin/stigmer .
+
+# 4. Test CLI
 ../../bin/stigmer server
 # Should work WITHOUT Python! 🎉
+# CLI now 126MB (includes all Go code in single binary)
 ```
+
+**Note:** With BusyBox pattern, stigmer-server and workflow-runner are compiled INTO the CLI (not as separate binaries). Only agent-runner is embedded as a separate Python binary.
 
 ### CI Testing
 1. Push changes to branch

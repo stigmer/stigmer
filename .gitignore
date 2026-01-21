@@ -90,6 +90,9 @@ backend/services/*/agent-runner
 backend/services/*/cmd/*/server
 backend/services/*/server
 
+# CLI embedded binaries (build artifacts, not committed)
+client-apps/cli/embedded/binaries/
+
 # Bazel build outputs
 bazel-*
 /MODULE.bazel.lock
