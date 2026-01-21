@@ -245,8 +245,24 @@ func handleServerStatus() {
 	fmt.Println("Stigmer Server Status:")
 	fmt.Println("─────────────────────────────────────")
 	if running {
-		cliprint.Info("  Status: ✓ Running")
-		cliprint.Info("  PID:    %d", pid)
+		// Get health summary if monitoring is active
+		healthSummary := daemon.GetHealthSummary()
+		
+		// Stigmer Server
+		showComponentStatus("Stigmer Server", healthSummary["stigmer-server"], pid)
+		
+		// Workflow Runner
+		if wfPID, err := daemon.GetWorkflowRunnerPID(dataDir); err == nil {
+			showComponentStatus("Workflow Runner", healthSummary["workflow-runner"], wfPID)
+		}
+		
+		// Agent Runner
+		if containerID, err := daemon.GetAgentRunnerContainerID(dataDir); err == nil {
+			showAgentRunnerStatus(healthSummary["agent-runner"], containerID)
+		}
+		
+		cliprint.Info("")
+		cliprint.Info("Server Details:")
 		cliprint.Info("  Port:   %d", daemon.DaemonPort)
 		cliprint.Info("  Data:   %s", dataDir)
 		cliprint.Info("")
@@ -257,11 +273,138 @@ func handleServerStatus() {
 		cliprint.Info("")
 		cliprint.Info("Web UI:")
 		cliprint.Info("  Temporal:  http://localhost:8233")
+		
+		// Show health monitoring status
+		if len(healthSummary) > 0 {
+			cliprint.Info("")
+			cliprint.Info("Health Monitoring: ✓ Active")
+		}
 	} else {
 		cliprint.Warning("  Status: ✗ Stopped")
 		cliprint.Info("")
 		cliprint.Info("To start:")
 		cliprint.Info("  stigmer server")
+	}
+}
+
+// showComponentStatus displays status for a process-based component
+func showComponentStatus(name string, health daemon.ComponentHealth, pid int) {
+	fmt.Printf("\n%s:\n", name)
+	
+	// Determine health symbol
+	healthSymbol := getHealthSymbol(health.State)
+	
+	cliprint.Info("  Status:   %s %s", getStateDisplay(health.State), healthSymbol)
+	cliprint.Info("  PID:      %d", pid)
+	
+	// Show uptime if running
+	if !health.StartTime.IsZero() {
+		uptime := time.Since(health.StartTime)
+		cliprint.Info("  Uptime:   %s", formatDuration(uptime))
+	}
+	
+	// Show restart count if any restarts occurred
+	if health.RestartCount > 0 {
+		cliprint.Warning("  Restarts: %d", health.RestartCount)
+		if !health.LastRestart.IsZero() {
+			cliprint.Info("  Last Restart: %s ago", formatDuration(time.Since(health.LastRestart)))
+		}
+	} else {
+		cliprint.Info("  Restarts: 0")
+	}
+	
+	// Show last error if unhealthy
+	if health.State == "unhealthy" && health.LastError != nil {
+		cliprint.Warning("  Last Error: %v", health.LastError)
+	}
+}
+
+// showAgentRunnerStatus displays status for Docker-based agent-runner
+func showAgentRunnerStatus(health daemon.ComponentHealth, containerID string) {
+	fmt.Printf("\nAgent Runner (Docker):\n")
+	
+	healthSymbol := getHealthSymbol(health.State)
+	
+	cliprint.Info("  Status:   %s %s", getStateDisplay(health.State), healthSymbol)
+	
+	if len(containerID) > 12 {
+		cliprint.Info("  Container: %s", containerID[:12])
+	} else {
+		cliprint.Info("  Container: %s", containerID)
+	}
+	
+	if !health.StartTime.IsZero() {
+		uptime := time.Since(health.StartTime)
+		cliprint.Info("  Uptime:   %s", formatDuration(uptime))
+	}
+	
+	if health.RestartCount > 0 {
+		cliprint.Warning("  Restarts: %d", health.RestartCount)
+	} else {
+		cliprint.Info("  Restarts: 0")
+	}
+	
+	if health.State == "unhealthy" && health.LastError != nil {
+		cliprint.Warning("  Last Error: %v", health.LastError)
+	}
+}
+
+// getStateDisplay returns a user-friendly display string for component state
+func getStateDisplay(state daemon.ComponentState) string {
+	switch state {
+	case "running":
+		return "Running"
+	case "starting":
+		return "Starting"
+	case "unhealthy":
+		return "Unhealthy"
+	case "restarting":
+		return "Restarting"
+	case "stopped":
+		return "Stopped"
+	case "failed":
+		return "Failed"
+	default:
+		return string(state)
+	}
+}
+
+// getHealthSymbol returns a visual indicator for health state
+func getHealthSymbol(state daemon.ComponentState) string {
+	switch state {
+	case "running":
+		return "✓"
+	case "starting":
+		return "↻"
+	case "unhealthy":
+		return "✗"
+	case "restarting":
+		return "↻"
+	case "stopped":
+		return "○"
+	case "failed":
+		return "✗✗"
+	default:
+		return "?"
+	}
+}
+
+// formatDuration formats a duration in a human-readable way
+func formatDuration(d time.Duration) string {
+	if d < time.Minute {
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	} else if d < time.Hour {
+		minutes := int(d.Minutes())
+		seconds := int(d.Seconds()) % 60
+		return fmt.Sprintf("%dm %ds", minutes, seconds)
+	} else if d < 24*time.Hour {
+		hours := int(d.Hours())
+		minutes := int(d.Minutes()) % 60
+		return fmt.Sprintf("%dh %dm", hours, minutes)
+	} else {
+		days := int(d.Hours()) / 24
+		hours := int(d.Hours()) % 24
+		return fmt.Sprintf("%dd %dh", days, hours)
 	}
 }
 
