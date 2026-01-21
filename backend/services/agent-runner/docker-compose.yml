@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     environment:
       - MODE=local
-      - STIGMER_BACKEND_URL=http://host.docker.internal:7234
+      - STIGMER_BACKEND_ENDPOINT=host.docker.internal:7234
       - TEMPORAL_SERVICE_ADDRESS=host.docker.internal:7233
       - TEMPORAL_NAMESPACE=default
       - TASK_QUEUE=agent_execution_runner
@@ -17,4 +17,3 @@ services:
       - WORKSPACE_ROOT=/workspace
     volumes:
       - ./workspace:/workspace
-    network_mode: "host"
