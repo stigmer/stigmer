@@ -325,28 +325,27 @@ release-local: ## Build and install CLI for local testing (fast rebuild without 
 dev: ## Run Stigmer in development mode
 	cd client-apps/cli && go run .
 
-build-agent-runner: ## Build agent-runner PyInstaller binary (for development)
-	@echo "Building agent-runner binary..."
-	@cd backend/services/agent-runner && $(MAKE) build-binary
-	@echo "✓ Built: backend/services/agent-runner/dist/agent-runner"
-
-install-agent-runner: build-agent-runner ## Build and install agent-runner to ~/.stigmer/bin
-	@echo "Installing agent-runner to ~/.stigmer/bin..."
-	@mkdir -p $(HOME)/.stigmer/bin
-	@cp backend/services/agent-runner/dist/agent-runner $(HOME)/.stigmer/bin/agent-runner
-	@chmod +x $(HOME)/.stigmer/bin/agent-runner
-	@echo "✓ Installed: $(HOME)/.stigmer/bin/agent-runner"
+build-agent-runner-image: ## Build agent-runner Docker image (for development)
+	@echo "============================================"
+	@echo "Building Agent-Runner Docker Image"
+	@echo "============================================"
 	@echo ""
-	@echo "Agent-runner binary ready for local testing."
-	@echo "Run 'stigmer server' to use the updated binary."
+	@echo "Building stigmer-agent-runner:local from Dockerfile..."
+	@cd backend/services/agent-runner && docker build -f Dockerfile -t stigmer-agent-runner:local ../../..
+	@echo ""
+	@echo "✓ Docker image built: stigmer-agent-runner:local"
+	@echo ""
+	@echo "Verifying image..."
+	@docker images stigmer-agent-runner:local
+	@echo ""
 
-release-local-full: ## Build CLI and agent-runner for complete local testing
+release-local-full: ## Build CLI and agent-runner Docker image for complete local testing
 	@echo "============================================"
 	@echo "Building Complete Local Environment"
 	@echo "============================================"
 	@echo ""
-	@echo "Step 1: Building agent-runner binary..."
-	@$(MAKE) install-agent-runner
+	@echo "Step 1: Building agent-runner Docker image..."
+	@$(MAKE) build-agent-runner-image
 	@echo ""
 	@echo "Step 2: Building and installing CLI..."
 	@$(MAKE) release-local
@@ -357,7 +356,7 @@ release-local-full: ## Build CLI and agent-runner for complete local testing
 	@echo ""
 	@echo "Components installed:"
 	@echo "  • CLI: $(HOME)/bin/stigmer"
-	@echo "  • Agent Runner: $(HOME)/.stigmer/bin/agent-runner"
+	@echo "  • Agent Runner: stigmer-agent-runner:local (Docker image)"
 	@echo ""
 	@echo "Ready to test: stigmer server"
 
