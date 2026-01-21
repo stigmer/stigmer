@@ -1231,6 +1231,8 @@ func rotateLogsIfNeeded(dataDir string) error {
 		"agent-runner.err",
 		"workflow-runner.log",
 		"workflow-runner.err",
+		"temporal.log",
+		"llm.log",
 	}
 
 	// Rotate each log file if it exists
