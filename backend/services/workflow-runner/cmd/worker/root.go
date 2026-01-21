@@ -127,7 +127,7 @@ platform.`,
 		// Check if running in Temporal worker mode (for stigmer integration)
 		if executionMode := os.Getenv("EXECUTION_MODE"); executionMode == "temporal" {
 			log.Info().Str("mode", "temporal").Msg("Starting workflow-runner")
-			return runTemporalWorkerMode()
+			return RunTemporalWorkerMode()
 		}
 
 		// Original zigflow mode: load and execute a single workflow file
@@ -263,7 +263,9 @@ func Execute() {
 
 // runTemporalWorkerMode starts the workflow-runner in Temporal worker mode
 // This mode is used by stigmer to run validation and execution activities
-func runTemporalWorkerMode() error {
+// RunTemporalWorkerMode starts the workflow-runner in Temporal worker mode
+// Exported for use by the runner package (BusyBox pattern)
+func RunTemporalWorkerMode() error {
 	log.Info().Msg("Starting in Temporal-only mode")
 	
 	// Load configuration from environment variables
