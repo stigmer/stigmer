@@ -51,19 +51,7 @@ func EnsureBinariesExtracted(dataDir string) error {
 		return errors.Wrap(err, "failed to create bin directory")
 	}
 	
-	// Extract stigmer-server
-	log.Debug().Msg("Extracting stigmer-server...")
-	if err := extractStigmerServer(binDir); err != nil {
-		return errors.Wrap(err, "failed to extract stigmer-server")
-	}
-	
-	// Extract workflow-runner
-	log.Debug().Msg("Extracting workflow-runner...")
-	if err := extractWorkflowRunner(binDir); err != nil {
-		return errors.Wrap(err, "failed to extract workflow-runner")
-	}
-	
-	// Extract agent-runner
+	// Extract agent-runner only (BusyBox: stigmer-server and workflow-runner compiled into CLI)
 	log.Debug().Msg("Extracting agent-runner...")
 	if err := extractAgentRunner(binDir); err != nil {
 		return errors.Wrap(err, "failed to extract agent-runner")
@@ -82,37 +70,16 @@ func EnsureBinariesExtracted(dataDir string) error {
 	return nil
 }
 
-// extractStigmerServer extracts the stigmer-server binary to the bin directory
-func extractStigmerServer(binDir string) error {
-	data, err := GetStigmerServerBinary()
-	if err != nil {
-		return err
-	}
-	
-	destPath := filepath.Join(binDir, "stigmer-server")
-	return extractBinary(destPath, data)
-}
-
-// extractWorkflowRunner extracts the workflow-runner binary to the bin directory
-func extractWorkflowRunner(binDir string) error {
-	data, err := GetWorkflowRunnerBinary()
-	if err != nil {
-		return err
-	}
-	
-	destPath := filepath.Join(binDir, "workflow-runner")
-	return extractBinary(destPath, data)
-}
-
-// extractAgentRunner extracts the agent-runner tarball to the bin directory
+// extractAgentRunner extracts the agent-runner binary to the bin directory
+// Note: stigmer-server and workflow-runner extraction removed (BusyBox pattern)
 func extractAgentRunner(binDir string) error {
-	data, err := GetAgentRunnerTarball()
+	data, err := GetAgentRunnerBinary()
 	if err != nil {
 		return err
 	}
 	
-	destDir := filepath.Join(binDir, "agent-runner")
-	return extractTarball(destDir, data)
+	destPath := filepath.Join(binDir, "agent-runner")
+	return extractBinary(destPath, data)
 }
 
 // extractBinary writes a binary to disk and makes it executable
