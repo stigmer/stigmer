@@ -30,26 +30,21 @@ build: protos ## Build the Stigmer CLI
 build-backend: protos ## Build all backend services
 	@echo "Building all backend services..."
 	@echo ""
-	@echo "1/4 Building stigmer-server..."
-	go build -o bin/stigmer-server ./backend/services/stigmer-server/cmd/server
-	@echo "✓ Built: bin/stigmer-server"
+	@echo "Note: stigmer-server and workflow-runner are now part of the CLI (BusyBox pattern)"
+	@echo "      Use 'stigmer internal-server' and 'stigmer internal-workflow-runner' instead"
 	@echo ""
-	@echo "2/4 Building workflow-runner worker..."
-	go build -o bin/workflow-runner ./backend/services/workflow-runner/cmd/worker
-	@echo "✓ Built: bin/workflow-runner"
-	@echo ""
-	@echo "3/4 Building workflow-runner gRPC server..."
+	@echo "1/2 Building workflow-runner gRPC server..."
 	go build -o bin/workflow-runner-grpc ./backend/services/workflow-runner/cmd/grpc-server
 	@echo "✓ Built: bin/workflow-runner-grpc"
 	@echo ""
-	@echo "4/4 Type checking agent-runner (Python)..."
+	@echo "2/2 Type checking agent-runner (Python)..."
 	@cd backend/services/agent-runner && \
 		poetry install --no-interaction --quiet && \
 		poetry run mypy grpc_client/ worker/ --show-error-codes
 	@echo "✓ Type checking passed: agent-runner"
 	@echo ""
 	@echo "============================================"
-	@echo "✓ All backend services built successfully!"
+	@echo "✓ All backend services processed!"
 	@echo "============================================"
 
 test: ## Run all tests
@@ -297,27 +292,20 @@ release-local: ## Build and install CLI for local testing (fast rebuild without 
 	@echo ""
 	@echo "Step 1: Removing old binaries..."
 	@rm -f $(HOME)/bin/stigmer
-	@rm -f $(HOME)/bin/stigmer-server
 	@rm -f /usr/local/bin/stigmer 2>/dev/null || true
 	@rm -f bin/stigmer
-	@rm -f bin/stigmer-server
 	@echo "✓ Old binaries removed"
 	@echo ""
 	@echo "Step 2: Building fresh binaries..."
 	@mkdir -p bin
 	@cd client-apps/cli && go build -o ../../bin/stigmer .
 	@echo "✓ CLI built: bin/stigmer"
-	@go build -o bin/stigmer-server ./backend/services/stigmer-server/cmd/server
-	@echo "✓ Server built: bin/stigmer-server"
 	@echo ""
 	@echo "Step 3: Installing to ~/bin..."
 	@mkdir -p $(HOME)/bin
 	@cp bin/stigmer $(HOME)/bin/stigmer
 	@chmod +x $(HOME)/bin/stigmer
 	@echo "✓ Installed: $(HOME)/bin/stigmer"
-	@cp bin/stigmer-server $(HOME)/bin/stigmer-server
-	@chmod +x $(HOME)/bin/stigmer-server
-	@echo "✓ Installed: $(HOME)/bin/stigmer-server"
 	@echo ""
 	@echo "============================================"
 	@echo "✓ Release Complete!"
@@ -325,7 +313,6 @@ release-local: ## Build and install CLI for local testing (fast rebuild without 
 	@echo ""
 	@if command -v stigmer >/dev/null 2>&1; then \
 		echo "✓ CLI ready! Run: stigmer --help"; \
-		echo "✓ Server ready for 'stigmer local'"; \
 		echo ""; \
 		stigmer --version 2>/dev/null || echo "Version: development"; \
 	else \
