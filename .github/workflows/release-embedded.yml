@@ -136,10 +136,11 @@ jobs:
           name: stigmer-darwin-arm64
           path: bin/*
 
-  # Build for macOS Intel (cross-compiled on ARM Mac)
+  # Build CLI for Intel Mac (without embedded agent-runner binary)
+  # Note: Intel Mac users will download agent-runner on first run
   build-darwin-amd64:
     needs: determine-version
-    runs-on: macos-latest  # ARM Mac (cross-compile to Intel)
+    runs-on: macos-latest  # ARM Mac (cross-compile Go CLI to Intel)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -151,39 +152,7 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Generate proto stubs
-        run: make protos
-
-      - name: Install Poetry dependencies
-        run: |
-          cd backend/services/agent-runner
-          poetry install --with dev
-
-      - name: Build agent-runner binary with PyInstaller (cross-compile to Intel)
-        run: |
-          cd backend/services/agent-runner
-          # Update spec file to set target_arch for cross-compilation
-          sed -i '' 's/target_arch=None/target_arch="x86_64"/' agent-runner.spec
-          poetry run pyinstaller agent-runner.spec
-          mkdir -p ../../../client-apps/cli/embedded/binaries/darwin_amd64
-          cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/darwin_amd64/
-
-      - name: Build CLI with embedded binaries (cross-compile to Intel)
+      - name: Build CLI (cross-compile to Intel, no embedded agent-runner)
         env:
           GOARCH: amd64
           GOOS: darwin
@@ -200,26 +169,48 @@ jobs:
           ls -lh bin/stigmer
           # Skip running binary since it's cross-compiled for Intel
           echo "Version: $VERSION (Intel binary, cannot run on ARM Mac)"
+          echo "Note: agent-runner will be downloaded on first daemon start"
 
-      - name: Package binaries
+      - name: Package CLI
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          # Package CLI with embedded binaries
           cd bin
           tar -czf stigmer-$VERSION-darwin-amd64.tar.gz stigmer
           shasum -a 256 stigmer-$VERSION-darwin-amd64.tar.gz > stigmer-$VERSION-darwin-amd64.tar.gz.sha256
-          
-          # Package standalone agent-runner binary (for download fallback)
-          cd ../client-apps/cli/embedded/binaries/darwin_amd64
-          cp agent-runner agent-runner-$VERSION-darwin-amd64
-          shasum -a 256 agent-runner-$VERSION-darwin-amd64 > agent-runner-$VERSION-darwin-amd64.sha256
-          mv agent-runner-$VERSION-darwin-amd64* ../../../../../bin/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: stigmer-darwin-amd64
+          path: bin/*
+
+  # Build standalone agent-runner for Intel Mac (for download fallback)
+  # Note: This job creates a placeholder to satisfy the release job dependency
+  # Intel Mac agent-runner binary must be built manually on an Intel Mac or via alternative method
+  build-agent-runner-darwin-amd64:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create placeholder artifact
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          mkdir -p bin
+          echo "Intel Mac agent-runner binary not built in CI (requires Intel Mac or complex cross-compilation)" > bin/README-intel-mac.txt
+          echo "" >> bin/README-intel-mac.txt
+          echo "To build manually on Intel Mac:" >> bin/README-intel-mac.txt
+          echo "1. Install Python 3.13 and Poetry" >> bin/README-intel-mac.txt
+          echo "2. cd backend/services/agent-runner" >> bin/README-intel-mac.txt
+          echo "3. make protos (from repo root)" >> bin/README-intel-mac.txt
+          echo "4. poetry install --with dev" >> bin/README-intel-mac.txt
+          echo "5. poetry run pyinstaller agent-runner.spec" >> bin/README-intel-mac.txt
+          echo "6. Upload dist/agent-runner to GitHub release as agent-runner-$VERSION-darwin-amd64" >> bin/README-intel-mac.txt
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-runner-darwin-amd64
           path: bin/*
 
   # Build for Linux
@@ -305,7 +296,7 @@ jobs:
 
   # Create GitHub Release (only if requested)
   release:
-    needs: [determine-version, build-darwin-arm64, build-darwin-amd64, build-linux-amd64]
+    needs: [determine-version, build-darwin-arm64, build-darwin-amd64, build-agent-runner-darwin-amd64, build-linux-amd64]
     runs-on: ubuntu-latest
     if: needs.determine-version.outputs.should_release == 'true'
     steps:

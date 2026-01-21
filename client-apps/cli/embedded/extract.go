@@ -78,6 +78,13 @@ func extractAgentRunner(binDir string) error {
 		return err
 	}
 	
+	// If data is nil, it means the binary is not embedded (e.g., Intel Mac download-only mode)
+	// Skip extraction gracefully - the daemon will download it on first use
+	if data == nil || len(data) == 0 {
+		log.Debug().Msg("Agent-runner not embedded, will be downloaded on first daemon start")
+		return nil
+	}
+	
 	destPath := filepath.Join(binDir, "agent-runner")
 	return extractBinary(destPath, data)
 }
