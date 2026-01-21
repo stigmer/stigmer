@@ -1,34 +1,7 @@
 # Agent Runner Makefile
-# Provides Docker build targets for local development
+# Provides PyInstaller binary build targets for local development
 
 repo_root := $(shell git rev-parse --show-toplevel)
-
-# Docker image configuration
-IMAGE_REPO := ghcr.io/leftbin/stigmer-cloud/backend/services/agent-runner
-IMAGE_TAG := $(shell date -u +"%Y%m%d%H%M%S")
-
-.PHONY: build
-build:
-	@echo "Running type checking and linting before Docker build..."
-	cd $(repo_root)/backend/services/agent-runner && \
-		poetry install --no-interaction && \
-		poetry run mypy grpc_client/ worker/ --show-error-codes
-	@echo "✅ Type checking passed"
-
-.PHONY: docker-build
-docker-build:
-	@echo "Building Docker image for Linux AMD64..."
-	docker build --platform linux/amd64 \
-		-f Dockerfile \
-		-t $(IMAGE_REPO):$(IMAGE_TAG) \
-		$(repo_root)
-	@echo "✅ Built: $(IMAGE_REPO):$(IMAGE_TAG)"
-
-.PHONY: docker-push
-docker-push: docker-build
-	@echo "Pushing Docker image..."
-	docker push $(IMAGE_REPO):$(IMAGE_TAG)
-	@echo "✅ Pushed: $(IMAGE_REPO):$(IMAGE_TAG)"
 
 # PyInstaller binary build targets (outputs to dist/ and build/ - ignored by .gitignore)
 .PHONY: build-binary
@@ -61,18 +34,15 @@ rebuild-binary: clean-binary build-binary
 help:
 	@echo "Agent Runner - Build Targets"
 	@echo ""
-	@echo "Docker Targets:"
-	@echo "  build                       Run type checking and linting"
-	@echo "  docker-build                Build Docker image for Linux AMD64"
-	@echo "  docker-push                 Build and push Docker image to registry"
-	@echo ""
-	@echo "Binary Targets (PyInstaller - outputs ignored by .gitignore):"
+	@echo "PyInstaller Binary Targets (outputs to dist/ - ignored by .gitignore):"
 	@echo "  build-binary                Build standalone executable binary"
 	@echo "  clean-binary                Clean PyInstaller build artifacts"
 	@echo "  test-binary                 Build and test binary"
 	@echo "  rebuild-binary              Clean and rebuild binary"
 	@echo ""
-	@echo "Example:"
-	@echo "  make build"
-	@echo "  make docker-build"
-	@echo "  make build-binary"
+	@echo "Example usage:"
+	@echo "  make build-binary           # Build agent-runner binary"
+	@echo "  make rebuild-binary         # Clean and rebuild"
+	@echo ""
+	@echo "For installation to ~/.stigmer/bin:"
+	@echo "  cd ../../../ && make install-agent-runner"
