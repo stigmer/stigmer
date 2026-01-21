@@ -339,28 +339,23 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	)
 
 	// Redirect output to log files
+	// Consolidate stdout and stderr to single .log file for clarity
 	logDir := filepath.Join(dataDir, "logs")
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return errors.Wrap(err, "failed to create log directory")
 	}
 
-	stdoutLog := filepath.Join(logDir, "stigmer-server.log")
-	stderrLog := filepath.Join(logDir, "stigmer-server.err")
+	logFile := filepath.Join(logDir, "stigmer-server.log")
 
-	stdout, err := os.OpenFile(stdoutLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	logOutput, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
-		return errors.Wrap(err, "failed to create stdout log file")
+		return errors.Wrap(err, "failed to create log file")
 	}
-	defer stdout.Close()
+	defer logOutput.Close()
 
-	stderr, err := os.OpenFile(stderrLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return errors.Wrap(err, "failed to create stderr log file")
-	}
-	defer stderr.Close()
-
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
+	// Redirect both stdout and stderr to the same log file
+	cmd.Stdout = logOutput
+	cmd.Stderr = logOutput
 
 	// Start process detached
 	if err := cmd.Start(); err != nil {
@@ -436,6 +431,53 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		// The server is still useful without the agent-runner
 	}
 
+	// Save startup configuration for component restarts
+	startupConfig := &StartupConfig{
+		DataDir:         dataDir,
+		LogDir:          logDir,
+		TemporalAddr:    temporalAddr,
+		LLMProvider:     llmProvider,
+		LLMModel:        llmModel,
+		LLMBaseURL:      llmBaseURL,
+		ExecutionMode:   executionMode,
+		SandboxImage:    sandboxImage,
+		SandboxAutoPull: sandboxAutoPull,
+		SandboxCleanup:  sandboxCleanup,
+		SandboxTTL:      sandboxTTL,
+	}
+
+	// Read and save PIDs
+	if pid, err := getPID(dataDir); err == nil {
+		startupConfig.StigmerServerPID = pid
+	}
+
+	if pid, err := GetWorkflowRunnerPID(dataDir); err == nil {
+		startupConfig.WorkflowRunnerPID = pid
+	}
+
+	if containerID, err := GetAgentRunnerContainerID(dataDir); err == nil {
+		startupConfig.AgentRunnerContainerID = containerID
+	}
+
+	if err := saveStartupConfig(startupConfig); err != nil {
+		log.Warn().Err(err).Msg("Failed to save startup configuration - component restart may not work")
+	}
+
+	// Start health monitoring
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting health monitoring")
+	}
+	
+	// Give components a moment to stabilize before starting health checks
+	time.Sleep(2 * time.Second)
+	
+	if err := startHealthMonitoring(dataDir); err != nil {
+		log.Warn().Err(err).Msg("Failed to start health monitoring - components will not auto-restart on failure")
+		// Don't fail startup if health monitoring fails
+	} else {
+		log.Info().Msg("Health monitoring active - components will auto-restart on failure")
+	}
+
 	return nil
 }
 
@@ -484,24 +526,19 @@ func startWorkflowRunner(
 	cmd := exec.Command(cliBin, "internal-workflow-runner")
 	cmd.Env = env
 
-	// Redirect output to separate log files
-	stdoutLog := filepath.Join(logDir, "workflow-runner.log")
-	stderrLog := filepath.Join(logDir, "workflow-runner.err")
+	// Redirect output to log file
+	// Consolidate stdout and stderr to single .log file for clarity
+	logFile := filepath.Join(logDir, "workflow-runner.log")
 
-	stdout, err := os.OpenFile(stdoutLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	logOutput, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
-		return errors.Wrap(err, "failed to create workflow-runner stdout log file")
+		return errors.Wrap(err, "failed to create workflow-runner log file")
 	}
-	defer stdout.Close()
+	defer logOutput.Close()
 
-	stderr, err := os.OpenFile(stderrLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return errors.Wrap(err, "failed to create workflow-runner stderr log file")
-	}
-	defer stderr.Close()
-
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
+	// Redirect both stdout and stderr to the same log file
+	cmd.Stdout = logOutput
+	cmd.Stderr = logOutput
 
 	// Start process
 	if err := cmd.Start(); err != nil {
@@ -521,6 +558,31 @@ func startWorkflowRunner(
 		Int("pid", cmd.Process.Pid).
 		Str("binary", cliBin).
 		Msg("Workflow-runner started successfully")
+
+	// Wait briefly to ensure the process doesn't crash immediately
+	// Common crash scenarios: Temporal connection failure, config loading errors
+	time.Sleep(2 * time.Second)
+	
+	// Verify the process is still running
+	// On Unix, Process.Signal(0) checks if process exists without sending a signal
+	if err := cmd.Process.Signal(syscall.Signal(0)); err != nil {
+		// Process has already crashed
+		// Read the last few lines of log to provide context
+		logContent, _ := os.ReadFile(filepath.Join(logDir, "workflow-runner.log"))
+		
+		return errors.Errorf(
+			"workflow-runner crashed immediately after startup (PID %d)\n"+
+				"Last log output: %s\n"+
+				"Check logs: %s",
+			cmd.Process.Pid,
+			string(logContent),
+			filepath.Join(logDir, "workflow-runner.log"),
+		)
+	}
+	
+	log.Info().
+		Int("pid", cmd.Process.Pid).
+		Msg("Workflow-runner health check passed")
 
 	return nil
 }
@@ -794,6 +856,9 @@ func cleanupOrphanedProcesses(dataDir string) {
 func Stop(dataDir string) error {
 	log.Debug().Str("data_dir", dataDir).Msg("Stopping daemon")
 
+	// Stop health monitoring first
+	stopHealthMonitoring()
+
 	// Stop workflow-runner first (if running)
 	stopWorkflowRunner(dataDir)
 
@@ -856,6 +921,9 @@ func Stop(dataDir string) error {
 	// Remove PID file (if it exists)
 	pidFile := filepath.Join(dataDir, PIDFileName)
 	_ = os.Remove(pidFile)
+
+	// Remove startup config
+	removeStartupConfig(dataDir)
 
 	return nil
 }
@@ -1141,6 +1209,40 @@ func getPID(dataDir string) (int, error) {
 	}
 
 	return pid, nil
+}
+
+// GetWorkflowRunnerPID reads the workflow-runner PID file
+func GetWorkflowRunnerPID(dataDir string) (int, error) {
+	pidFile := filepath.Join(dataDir, WorkflowRunnerPIDFileName)
+
+	data, err := os.ReadFile(pidFile)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to read workflow-runner PID file")
+	}
+
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		return 0, errors.Wrap(err, "invalid PID in workflow-runner PID file")
+	}
+
+	return pid, nil
+}
+
+// GetAgentRunnerContainerID reads the agent-runner container ID file
+func GetAgentRunnerContainerID(dataDir string) (string, error) {
+	containerIDFile := filepath.Join(dataDir, AgentRunnerContainerIDFileName)
+
+	data, err := os.ReadFile(containerIDFile)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to read agent-runner container ID file")
+	}
+
+	containerID := strings.TrimSpace(string(data))
+	if containerID == "" {
+		return "", errors.New("empty container ID in file")
+	}
+
+	return containerID, nil
 }
 
 // findProcessByPort finds the PID of the process listening on the specified port
