@@ -426,7 +426,7 @@ func handleLLMPull(model string) {
 	// Pull model with progress
 	progress := cliprint.NewProgressDisplay()
 	progress.Start()
-	progress.Update(fmt.Sprintf("Downloading %s...", model))
+	progress.SetPhase(cliprint.PhaseInstalling, fmt.Sprintf("Downloading %s...", model))
 
 	opts := &llm.SetupOptions{
 		Progress: progress,
