@@ -9,7 +9,9 @@
 
 Fixed a critical bug where the agent-runner Docker container could not connect to Ollama running on the host machine, causing all agent executions to fail with "All connection attempts failed" error.
 
-The issue was that `llmBaseURL` was being passed directly to the Docker container without hostname resolution, using `localhost:11434` which from inside a Docker container refers to the container itself, not the host machine.
+**Root Causes:**
+1. **Missing hostname resolution**: `llmBaseURL` was using `localhost:11434` which from inside a Docker container refers to the container itself, not the host machine.
+2. **Missing standard environment variable**: LangChain reads `OLLAMA_BASE_URL` directly from the environment for Ollama connections. We were setting a custom `STIGMER_LLM_BASE_URL` variable that wasn't being used anywhere.
 
 ## Problem
 
@@ -58,17 +60,23 @@ backendAddr := resolveDockerHostAddress(fmt.Sprintf("localhost:%d", DaemonPort))
 llmBaseURLResolved := resolveDockerHostAddress(llmBaseURL)  // ✅ Added
 ```
 
-### Change 2: Use Resolved URL in Docker Args
+### Change 2: Set OLLAMA_BASE_URL (Standard LangChain Variable)
 
-Updated Docker environment variable to use the resolved URL:
+Removed the unused custom `STIGMER_LLM_BASE_URL` and set only the standard `OLLAMA_BASE_URL` that LangChain reads directly:
 
 ```go
 // Before
 "-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
 
 // After  
-"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURLResolved),
+// OLLAMA_BASE_URL is the standard env var expected by LangChain for Ollama
+"-e", fmt.Sprintf("OLLAMA_BASE_URL=%s", llmBaseURLResolved),  // ✅ Set standard variable
 ```
+
+**Why only OLLAMA_BASE_URL?**
+- LangChain's Ollama integration reads `OLLAMA_BASE_URL` directly from the environment
+- Our custom `STIGMER_LLM_BASE_URL` was never being used by the actual code
+- Using standard environment variables follows the principle of least surprise
 
 ### Change 3: Add to Log Output
 
@@ -168,6 +176,12 @@ Starting agent-runner Docker container
   backend_address=host.docker.internal:7234
 ```
 
+**Container environment variables:**
+```bash
+$ docker inspect <container> --format '{{range .Config.Env}}{{println .}}{{end}}' | grep OLLAMA
+OLLAMA_BASE_URL=http://host.docker.internal:11434  ← ✅ Standard LangChain variable
+```
+
 ## Technical Details
 
 ### Docker Networking on macOS/Windows
@@ -178,15 +192,24 @@ Docker Desktop on macOS and Windows runs in a virtual machine. Containers cannot
 
 On Linux, Docker runs natively (no VM). The daemon uses `--network host` mode, which allows containers to use `localhost` directly to reach host services.
 
-### LLM Configuration Cascade
+### LangChain Ollama Integration
 
-The Ollama base URL comes from a configuration cascade (highest priority first):
+LangChain's Ollama ChatModel reads the `OLLAMA_BASE_URL` environment variable directly:
+- **Standard behavior**: If `OLLAMA_BASE_URL` is not set, it defaults to `http://localhost:11434`
+- **In Docker**: `localhost` refers to the container itself, not the host machine
+- **Our fix**: Set `OLLAMA_BASE_URL=http://host.docker.internal:11434` in the container
 
-1. **Environment variable**: `STIGMER_LLM_BASE_URL`
-2. **Config file**: `.stigmer/config.yaml` → `backend.local.llm.base_url`
-3. **Hard-coded default**: `http://localhost:11434` (for Ollama provider)
+### Configuration Simplification
 
-This bug affected all three sources since the resolution step was missing entirely.
+**Before**: We had a custom `STIGMER_LLM_BASE_URL` variable that was read into our config but never actually used. Graphton/LangChain always read `OLLAMA_BASE_URL` directly from the environment.
+
+**After**: Removed the unused abstraction and use only the standard `OLLAMA_BASE_URL` that LangChain expects. This follows standard conventions and reduces confusion.
+
+**Why this is better**:
+- ✅ Uses standard environment variables that developers already know
+- ✅ Eliminates unnecessary abstraction layer
+- ✅ No confusion about which variable actually matters
+- ✅ Follows the principle of least surprise
 
 ## Impact
 
@@ -214,8 +237,14 @@ Users can use either model - the configuration is flexible and no code changes a
 ```
 client-apps/cli/internal/cli/daemon/daemon.go
 - Line 634: Added llmBaseURLResolved = resolveDockerHostAddress(llmBaseURL)
-- Line 666: Changed to use llmBaseURLResolved
-- Line 697: Added llm_base_url to log output
+- Line 666: Removed unused STIGMER_LLM_BASE_URL
+- Line 666: Set OLLAMA_BASE_URL environment variable (standard for LangChain)
+- Line 698: Added llm_base_url to log output
+
+backend/services/agent-runner/worker/config.py
+- Line 90: Updated docs to reference OLLAMA_BASE_URL instead of STIGMER_LLM_BASE_URL
+- Line 120: Changed to read OLLAMA_BASE_URL instead of STIGMER_LLM_BASE_URL
+- Line 169: Updated validation error to mention OLLAMA_BASE_URL
 ```
 
 ## Testing Recommendations
