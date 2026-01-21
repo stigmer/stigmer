@@ -138,6 +138,85 @@ func tailLogFile(logFile, component string, linesChan chan<- LogLine) error {
 	}
 }
 
+// StreamAllLogsWithPreferences streams logs from multiple files using smart stream preferences
+// Each component can specify whether it prefers stderr or stdout
+func StreamAllLogsWithPreferences(components []ComponentConfig, tailLines int) error {
+	// First, show existing logs (merged and sorted)
+	existingLines, err := MergeLogFilesWithPreferences(components, tailLines)
+	if err != nil {
+		return err
+	}
+
+	// Print existing logs
+	PrintMergedLogs(existingLines)
+
+	// Now start streaming new logs from all files
+	return streamNewLogsWithPreferences(components)
+}
+
+// streamNewLogsWithPreferences starts streaming new log lines using stream preferences
+func streamNewLogsWithPreferences(components []ComponentConfig) error {
+	// Channel for receiving new log lines from all components
+	linesChan := make(chan LogLine, 100)
+	errChan := make(chan error, len(components))
+	var wg sync.WaitGroup
+
+	// Start a goroutine for each component to tail its log file or Docker container
+	for _, comp := range components {
+		// Docker container takes precedence
+		if comp.DockerContainer != "" {
+			wg.Add(1)
+			go func(containerName, component string) {
+				defer wg.Done()
+				if err := tailDockerLogs(containerName, component, linesChan); err != nil {
+					errChan <- fmt.Errorf("%s: %w", component, err)
+				}
+			}(comp.DockerContainer, comp.Name)
+			continue
+		}
+
+		// File-based logging - use PreferStderr to choose stream
+		logFile := comp.LogFile
+		if comp.PreferStderr {
+			logFile = comp.ErrFile
+		}
+
+		// Check if file exists before starting goroutine
+		if _, err := os.Stat(logFile); os.IsNotExist(err) {
+			continue // Skip non-existent files
+		}
+
+		wg.Add(1)
+		go func(file, component string) {
+			defer wg.Done()
+			if err := tailLogFile(file, component, linesChan); err != nil {
+				errChan <- fmt.Errorf("%s: %w", component, err)
+			}
+		}(logFile, comp.Name)
+	}
+
+	// Goroutine to close channels when all tailers are done
+	go func() {
+		wg.Wait()
+		close(linesChan)
+		close(errChan)
+	}()
+
+	// Print lines as they arrive
+	go func() {
+		for line := range linesChan {
+			fmt.Println(FormatLogLine(line))
+		}
+	}()
+
+	// Wait for any errors
+	for err := range errChan {
+		return err
+	}
+
+	return nil
+}
+
 // tailDockerLogs tails logs from a Docker container and sends lines to the channel
 func tailDockerLogs(containerName, component string, linesChan chan<- LogLine) error {
 	ctx := context.Background()

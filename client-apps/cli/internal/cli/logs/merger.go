@@ -141,3 +141,53 @@ func PrintMergedLogs(lines []LogLine) {
 		fmt.Println(FormatLogLine(line))
 	}
 }
+
+// MergeLogFilesWithPreferences reads multiple log files using smart stream preferences
+// Each component can specify whether it prefers stderr or stdout
+func MergeLogFilesWithPreferences(components []ComponentConfig, tailLines int) ([]LogLine, error) {
+	var allLines []LogLine
+
+	for _, comp := range components {
+		var lines []LogLine
+		var err error
+
+		// Docker container takes precedence
+		if comp.DockerContainer != "" {
+			lines, err = readDockerLogs(comp.DockerContainer, comp.Name, tailLines)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read %s Docker logs: %w", comp.Name, err)
+			}
+		} else {
+			// File-based logging - use PreferStderr to choose stream
+			logFile := comp.LogFile
+			if comp.PreferStderr {
+				logFile = comp.ErrFile
+			}
+
+			// Check if file exists
+			if _, err := os.Stat(logFile); os.IsNotExist(err) {
+				continue // Skip non-existent files
+			}
+
+			// Read lines from file
+			lines, err = readLogFile(logFile, comp.Name, tailLines)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read %s logs: %w", comp.Name, err)
+			}
+		}
+
+		allLines = append(allLines, lines...)
+	}
+
+	// Sort by timestamp
+	sort.Slice(allLines, func(i, j int) bool {
+		return allLines[i].Timestamp.Before(allLines[j].Timestamp)
+	})
+
+	// Apply tail limit to merged results
+	if tailLines > 0 && len(allLines) > tailLines {
+		allLines = allLines[len(allLines)-tailLines:]
+	}
+
+	return allLines, nil
+}
