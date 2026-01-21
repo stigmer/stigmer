@@ -433,7 +433,8 @@ func handleLLMPull(model string) {
 		Model:    model,
 	}
 
-	if err := llm.PullModel(context.Background(), model, opts); err != nil {
+	// Empty binaryPath means auto-detect from system PATH or local installation
+	if err := llm.PullModel(context.Background(), model, "", opts); err != nil {
 		progress.Stop()
 		cliprint.Error("Failed to pull model")
 		clierr.Handle(err)
