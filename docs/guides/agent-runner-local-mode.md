@@ -351,6 +351,48 @@ export OPENAI_API_KEY="sk-..."  # If using OpenAI
 
 **Solution**: Ensure Temporal is running at `TEMPORAL_SERVICE_ADDRESS`.
 
+**Agent-Runner Docker Container Connection Failed (macOS/Windows)**:
+```
+❌ Failed client connect: Server connection error: 
+tonic::transport::Error(Transport, ConnectError(ConnectError(
+  "tcp connect error", 127.0.0.1:7233, 
+  Os { code: 111, kind: ConnectionRefused, message: "Connection refused" }
+)))
+```
+
+**Root Cause**: Docker Desktop on macOS and Windows runs in a VM. Containers cannot reach the host via `localhost` even with `--network host`.
+
+**Solution**: The CLI daemon automatically handles this by using `host.docker.internal` on macOS/Windows and `localhost` on Linux. If you see this error:
+
+1. **Check Temporal is running**:
+   ```bash
+   lsof -ti:7233  # Should return a PID
+   ```
+
+2. **Check agent-runner logs**:
+   ```bash
+   docker logs stigmer-agent-runner --tail 20
+   ```
+
+3. **Verify daemon is passing correct address**:
+   ```bash
+   docker inspect stigmer-agent-runner | grep TEMPORAL_SERVICE_ADDRESS
+   # Should show: host.docker.internal:7233 (macOS/Windows)
+   # Or: localhost:7233 (Linux)
+   ```
+
+4. **Restart Stigmer server** (fixes 99% of cases):
+   ```bash
+   stigmer server stop
+   stigmer server start
+   ```
+
+**Note**: This issue was fixed in version 0.3.0+ (January 2026). If using older CLI, upgrade:
+```bash
+brew upgrade stigmer  # macOS
+# or download latest from GitHub releases
+```
+
 ### Configuration Errors
 
 **Missing Environment Variable**:
