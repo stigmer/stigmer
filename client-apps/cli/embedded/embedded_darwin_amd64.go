@@ -14,8 +14,8 @@ var stigmerServerBinary []byte
 //go:embed binaries/darwin_amd64/workflow-runner
 var workflowRunnerBinary []byte
 
-//go:embed binaries/darwin_amd64/agent-runner.tar.gz
-var agentRunnerTarball []byte
+//go:embed binaries/darwin_amd64/agent-runner
+var agentRunnerBinary []byte
 
 // GetStigmerServerBinary returns the embedded stigmer-server binary for darwin/amd64
 func GetStigmerServerBinary() ([]byte, error) {
@@ -27,7 +27,7 @@ func GetWorkflowRunnerBinary() ([]byte, error) {
 	return workflowRunnerBinary, nil
 }
 
-// GetAgentRunnerTarball returns the embedded agent-runner tarball for darwin/amd64
-func GetAgentRunnerTarball() ([]byte, error) {
-	return agentRunnerTarball, nil
+// GetAgentRunnerBinary returns the embedded agent-runner binary for darwin/amd64
+func GetAgentRunnerBinary() ([]byte, error) {
+	return agentRunnerBinary, nil
 }
