@@ -128,7 +128,7 @@ jobs:
           cd ../client-apps/cli/embedded/binaries/darwin_arm64
           cp agent-runner agent-runner-$VERSION-darwin-arm64
           shasum -a 256 agent-runner-$VERSION-darwin-arm64 > agent-runner-$VERSION-darwin-arm64.sha256
-          mv agent-runner-$VERSION-darwin-arm64* ../../../../../../bin/
+          mv agent-runner-$VERSION-darwin-arm64* ../../../../../bin/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -214,7 +214,7 @@ jobs:
           cd ../client-apps/cli/embedded/binaries/darwin_amd64
           cp agent-runner agent-runner-$VERSION-darwin-amd64
           shasum -a 256 agent-runner-$VERSION-darwin-amd64 > agent-runner-$VERSION-darwin-amd64.sha256
-          mv agent-runner-$VERSION-darwin-amd64* ../../../../../../bin/
+          mv agent-runner-$VERSION-darwin-amd64* ../../../../../bin/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -295,7 +295,7 @@ jobs:
           cd ../client-apps/cli/embedded/binaries/linux_amd64
           cp agent-runner agent-runner-$VERSION-linux-amd64
           sha256sum agent-runner-$VERSION-linux-amd64 > agent-runner-$VERSION-linux-amd64.sha256
-          mv agent-runner-$VERSION-linux-amd64* ../../../../../../bin/
+          mv agent-runner-$VERSION-linux-amd64* ../../../../../bin/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
