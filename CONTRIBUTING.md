@@ -13,17 +13,44 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 **Prerequisites**:
 - Go 1.21 or later
 - Python 3.11 or later
+- Docker (for agent-runner)
 - Protocol Buffers compiler (`protoc`)
 - `buf` CLI tool
+
+**Install Docker**:
+```bash
+# macOS
+brew install --cask docker
+
+# Linux
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# Windows
+# Download Docker Desktop from https://www.docker.com/products/docker-desktop
+```
 
 **Clone and build**:
 
 ```bash
 git clone https://github.com/stigmer/stigmer.git
 cd stigmer
-make setup    # Install dependencies
-make build    # Build CLI and runners
-make test     # Run tests
+make setup              # Install dependencies
+make release-local-full # Build CLI + Docker image (first time)
+make test               # Run tests
+```
+
+**Development workflow**:
+
+```bash
+# Fast CLI iteration (after Go code changes)
+make release-local
+
+# Rebuild Docker image (after agent-runner changes)
+make build-agent-runner-image
+
+# Complete rebuild (CLI + Docker image)
+make release-local-full
 ```
 
 ### Project Structure
