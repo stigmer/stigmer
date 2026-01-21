@@ -10,7 +10,8 @@ Transform agent-runner into standalone PyInstaller binary, following Temporal's 
 ✅ **Phase 2 Complete** - Hybrid PyInstaller embedding implemented  
 ✅ **Phase 2.5 Complete** - BusyBox pattern refactoring (24MB size reduction)  
 ✅ **Phase 2.75 Complete** - Workflow optimization (env vars, downloads, Makefiles)  
-⏳ **Phase 3 Next** - Testing and release
+✅ **Build Infrastructure Fixed** - Bazel 8.0.0 pinned (was blocking all builds)  
+🚀 **Phase 3 Ready** - Testing and release (unblocked, ready to proceed)
 
 ## Quick Links
 - Project README: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/README.md`
@@ -18,7 +19,9 @@ Transform agent-runner into standalone PyInstaller binary, following Temporal's 
 - Phase 2 Plan: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/tasks/T02_0_plan.md`
 - Phase 2 Testing Guide: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/tasks/T02_TESTING_GUIDE.md`
 - **Phase 2.75 Summary**: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/tasks/IMPLEMENTATION_SUMMARY.md`
+- **Build Fix Checkpoint**: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/checkpoints/2026-01-21-build-infrastructure-fixed.md`
 - ADR Reference: `_cursor/adr-use-python-binary.md`
+- **Build Fix Details**: `_cursor/bazel-fix.md` | `_changelog/2026-01/2026-01-21-085212-fix-bazel-build-pin-version-8.md`
 
 ## What's Done
 
