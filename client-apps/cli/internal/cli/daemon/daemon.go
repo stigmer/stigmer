@@ -17,6 +17,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -245,10 +246,27 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		Str("llm_base_url", llmBaseURL).
 		Msg("Resolved LLM configuration")
 
+	// Setup local LLM if using ollama (auto-download, start server, pull model)
+	if llmProvider == "ollama" {
+		if opts.Progress != nil {
+			opts.Progress.SetPhase(cliprint.PhaseInitializing, "Setting up local LLM")
+		}
+
+		llmOpts := &llm.SetupOptions{
+			Progress: opts.Progress,
+			Model:    llmModel,
+			Provider: llmProvider,
+		}
+
+		if err := llm.Setup(context.Background(), cfg.Backend.Local, llmOpts); err != nil {
+			return errors.Wrap(err, "failed to setup local LLM")
+		}
+	}
+
 	// Show LLM provider message
 	if opts.Progress != nil {
 		if llmProvider == "ollama" {
-			cliprint.PrintSuccess("Using Ollama (no API key required)")
+			cliprint.PrintSuccess("Using local LLM (no API key required)")
 		} else {
 			cliprint.PrintInfo("Using %s with model %s", llmProvider, llmModel)
 		}
@@ -557,8 +575,17 @@ After installing Docker, restart Stigmer server.`)
 		"run",
 		"-d", // Detached mode
 		"--name", AgentRunnerContainerName,
-		"--network", "host", // Use host networking for localhost access
 		"--restart", "unless-stopped",
+	}
+
+	// On Linux, use host networking for better performance with localhost
+	// On macOS/Windows, skip --network host (doesn't work, breaks host.docker.internal)
+	if runtime.GOOS == "linux" {
+		args = append(args, "--network", "host")
+	}
+
+	// Continue building args
+	args = append(args,
 
 		// Environment variables
 		"-e", "MODE=local",
@@ -592,7 +619,7 @@ After installing Docker, restart Stigmer server.`)
 		"--log-driver", "json-file",
 		"--log-opt", "max-size=10m",
 		"--log-opt", "max-file=3",
-	}
+	)
 
 	// Inject provider-specific secrets
 	for key, value := range secrets {
