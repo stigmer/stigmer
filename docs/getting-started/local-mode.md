@@ -146,6 +146,28 @@ description: AI-powered PR review demo
 
 If you prefer to start from scratch or install Stigmer without a project:
 
+### Prerequisites
+
+**Docker is required** for local mode (agent-runner runs in Docker container):
+
+```bash
+# macOS
+brew install --cask docker
+
+# Linux
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# Windows
+# Download Docker Desktop from https://www.docker.com/products/docker-desktop
+```
+
+**Verify Docker is running:**
+
+```bash
+docker info
+```
+
 ### Installation
 
 ### macOS/Linux
@@ -263,11 +285,13 @@ Temporal UI: http://localhost:8233
 
 **What happens:**
 - Stigmer prompts for missing API keys (masked input)
-- Downloads and starts Temporal server (auto-managed, no Docker required)
+- Downloads and starts Temporal server (auto-managed)
 - Starts local stigmer-server on `localhost:50051`
-- Starts agent-runner subprocess with injected secrets
+- Starts agent-runner Docker container with injected secrets
 - All processes run in background
 - Temporal Web UI available at `http://localhost:8233`
+
+**Note:** Agent-runner runs in a Docker container (automatically managed by the CLI). The container is started/stopped transparently when you start/stop the server.
 
 **Subsequent starts:** If you've set `ANTHROPIC_API_KEY` in your environment, no prompt will appear.
 
