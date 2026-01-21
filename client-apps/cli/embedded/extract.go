@@ -104,15 +104,15 @@ func extractWorkflowRunner(binDir string) error {
 	return extractBinary(destPath, data)
 }
 
-// extractAgentRunner extracts the agent-runner tarball to the bin directory
+// extractAgentRunner extracts the agent-runner binary to the bin directory
 func extractAgentRunner(binDir string) error {
-	data, err := GetAgentRunnerTarball()
+	data, err := GetAgentRunnerBinary()
 	if err != nil {
 		return err
 	}
 	
-	destDir := filepath.Join(binDir, "agent-runner")
-	return extractTarball(destDir, data)
+	destPath := filepath.Join(binDir, "agent-runner")
+	return extractBinary(destPath, data)
 }
 
 // extractBinary writes a binary to disk and makes it executable
