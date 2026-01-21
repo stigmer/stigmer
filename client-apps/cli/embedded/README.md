@@ -50,10 +50,14 @@ This package enables single-binary distribution of the Stigmer CLI by:
 ## Files
 
 - **`embedded.go`**: Platform detection, embed directives, binary getters
-- **`embedded_*.go`**: Platform-specific embed directives (darwin_arm64, darwin_amd64, linux_amd64)
+- **`embedded_*.go`**: Platform-specific embed directives
+  - `embedded_darwin_arm64.go` - ARM Mac (embedded binary)
+  - `embedded_darwin_amd64.go` - Intel Mac (download-only mode)
+  - `embedded_linux_amd64.go` - Linux (embedded binary)
 - **`extract.go`**: Extraction logic for binaries (simplified - no tarball handling)
 - **`version.go`**: Version checking and comparison
 - **`binaries/`**: Directory containing binaries to embed (populated at build time)
+  - See `binaries/README.md` for platform-specific embedding strategy
 
 ## Usage
 
