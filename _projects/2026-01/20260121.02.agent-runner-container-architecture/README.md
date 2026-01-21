@@ -1,9 +1,27 @@
 # Agent-Runner Container Architecture
 
 **Created**: 2026-01-21  
-**Status**: 🚧 Planning  
+**Status**: ⛔ OBSOLETE - Wrong Architectural Direction  
 **Type**: Multi-day Project (3 weeks)  
 **Project Path**: `_projects/2026-01/20260121.02.agent-runner-container-architecture/`
+
+---
+
+## ⚠️ PROJECT OBSOLETE - DO NOT PROCEED
+
+**Reason**: This Docker-based approach was the wrong architectural direction.
+
+**Better Solution**: PyInstaller standalone binary approach (like Temporal CLI)
+- See: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/`
+- See: `_cursor/adr-use-python-binary.md`
+
+**Key Insight**: We don't need to manage containers or Python environments. We need to manage **binaries**, following Temporal's pattern: "Download binary → Run".
+
+**Superseded By**: Project `20260121.03.agent-runner-standalone-binary`
+
+---
+
+## Original Plan (For Historical Reference)
 
 ## Overview
 
