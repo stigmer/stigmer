@@ -1931,6 +1931,210 @@ func Run() error {
 
 ---
 
+### 2026-01-22 - Docker Host Networking on macOS Requires host.docker.internal
+
+**Problem**: Agent-runner Docker container was failing to connect to Temporal with "Connection refused" on macOS after Docker migration:
+```
+Failed client connect: Server connection error: 
+tonic::transport::Error(Transport, ConnectError(ConnectError(
+  "tcp connect error", 127.0.0.1:7233, 
+  Os { code: 111, kind: ConnectionRefused, message: "Connection refused" }
+)))
+```
+
+**User Impact**:
+- Container in crash/restart loop
+- All agent executions failed with "No worker available to execute activity"
+- `stigmer run` completely broken on macOS
+
+**Root Cause**: Docker Desktop on macOS runs in a VM. Containers cannot reach the host via `localhost` or `127.0.0.1` **even with `--network host`** because the network stack is virtualized.
+
+**Why `--network host` Doesn't Work on macOS**:
+- On Linux: `--network host` gives container direct access to host's network stack → `localhost` works
+- On macOS/Windows: Docker runs in a VM (HyperKit/WSL2) → `localhost` points to VM, not actual host
+- Must use special DNS name: `host.docker.internal` → resolves to host machine IP
+
+**Solution**: OS-aware Docker host address resolution:
+
+```go
+// Resolve host address for Docker container to reach host services
+// On macOS/Windows, Docker runs in a VM, so containers must use host.docker.internal
+// On Linux, localhost works with --network host
+func resolveDockerHostAddress(addr string) string {
+    // Only convert localhost addresses
+    if !strings.Contains(addr, "localhost") && !strings.Contains(addr, "127.0.0.1") {
+        return addr
+    }
+    
+    // On Linux, localhost works with --network host
+    if runtime.GOOS == "linux" {
+        return addr
+    }
+    
+    // On macOS/Windows (darwin/windows), use host.docker.internal
+    originalAddr := addr
+    addr = strings.ReplaceAll(addr, "localhost", "host.docker.internal")
+    addr = strings.ReplaceAll(addr, "127.0.0.1", "host.docker.internal")
+    
+    log.Debug().
+        Str("original", originalAddr).
+        Str("resolved", addr).
+        Str("os", runtime.GOOS).
+        Msg("Resolved Docker host address for macOS/Windows")
+    
+    return addr
+}
+
+// Apply to Temporal and backend addresses
+hostAddr := resolveDockerHostAddress(temporalAddr)
+backendAddr := resolveDockerHostAddress(fmt.Sprintf("localhost:%d", DaemonPort))
+
+// Pass to container
+"-e", fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", hostAddr),
+"-e", fmt.Sprintf("STIGMER_BACKEND_URL=http://%s", backendAddr),
+```
+
+**Verification**:
+```bash
+# Check container is using correct address
+$ docker inspect stigmer-agent-runner | grep TEMPORAL_SERVICE_ADDRESS
+"TEMPORAL_SERVICE_ADDRESS=host.docker.internal:7233"  # ✅ Correct
+
+# Check container logs
+$ docker logs stigmer-agent-runner
+✅ Connected to Temporal server at host.docker.internal:7233
+✅ Registered Python activities
+🚀 Worker ready, polling for tasks...
+```
+
+**Platform Compatibility**:
+
+| OS | Address Used | Works |
+|----|--------------|-------|
+| macOS | `host.docker.internal` | ✅ |
+| Windows | `host.docker.internal` | ✅ |
+| Linux | `localhost` | ✅ |
+
+**Why Not Always Use `host.docker.internal`**:
+- On Linux, `localhost` is faster (no DNS lookup)
+- Some Linux setups may not support `host.docker.internal`
+- Best practice: Use optimal address for each platform
+
+**Extended Fix: Logs Command Docker Support**
+
+After fixing networking, discovered `stigmer server logs all` wasn't showing agent-runner logs because it only read log files, not Docker containers.
+
+**Solution**: Extended logs package to support both files and Docker containers:
+
+**1. Updated ComponentConfig** (`logs/types.go`):
+```go
+type ComponentConfig struct {
+    Name           string
+    LogFile        string
+    ErrFile        string
+    DockerContainer string // NEW: If set, read from Docker instead of files
+}
+```
+
+**2. Added Docker log readers** (`logs/streamer.go`, `logs/merger.go`):
+```go
+// Streaming logs from Docker container
+func tailDockerLogs(containerName, component string, linesChan chan<- LogLine) error {
+    cmd := exec.CommandContext(ctx, "docker", "logs", "-f", "--tail", "0", containerName)
+    // Read both stdout and stderr via goroutines
+    // Parse and send to channel
+}
+
+// Historical logs from Docker container
+func readDockerLogs(containerName, component string, tailLines int) ([]LogLine, error) {
+    cmd := exec.Command("docker", "logs", "--tail", strconv.Itoa(tailLines), containerName)
+    output, _ := cmd.CombinedOutput()
+    // Parse output into LogLine structs
+}
+```
+
+**3. Updated command to detect Docker** (`server_logs.go`):
+```go
+func getComponentConfigs(dataDir, logDir string) []logs.ComponentConfig {
+    // Check if agent-runner is running in Docker
+    if isAgentRunnerDocker(dataDir) {
+        components = append(components, logs.ComponentConfig{
+            Name:           "agent-runner",
+            DockerContainer: daemon.AgentRunnerContainerName, // Use Docker logs
+        })
+    } else {
+        components = append(components, logs.ComponentConfig{
+            Name:    "agent-runner",
+            LogFile: filepath.Join(logDir, "agent-runner.log"), // Use file logs
+        })
+    }
+}
+```
+
+**Result**: `stigmer server logs all` now works with mixed file-based and Docker-based logging:
+```bash
+$ stigmer server logs all --tail=20
+[stigmer-server ] 2:51AM INF Server started successfully
+[agent-runner   ] ✅ Worker ready, polling for tasks...
+[workflow-runner] Worker registered successfully
+```
+
+**Prevention**:
+
+✅ **Test Docker containers on macOS during development**:
+- Linux behavior differs - always test on macOS
+- Use `docker inspect` to verify environment variables
+- Check container logs for connection errors
+
+✅ **Use OS-aware address resolution for all host services**:
+```go
+// Pattern for any service containers need to reach
+temporalAddr := resolveDockerHostAddress("localhost:7233")
+backendAddr := resolveDockerHostAddress("localhost:7234")
+redisAddr := resolveDockerHostAddress("localhost:6379")
+```
+
+✅ **Support Docker containers in log/diagnostic commands**:
+- Detect if component runs in Docker vs subprocess
+- Use `docker logs` instead of file reading
+- Maintain unified interface (users don't need to know)
+
+✅ **Document platform-specific Docker behavior**:
+- Add to troubleshooting guides
+- Explain why different addresses on different platforms
+- Provide verification commands
+
+❌ **Don't assume `--network host` works the same everywhere**:
+- Works on Linux (container shares host network)
+- Doesn't work on macOS/Windows (VM isolation)
+- Must use `host.docker.internal` on macOS/Windows
+
+**Troubleshooting Pattern**:
+```bash
+# 1. Check if container can reach host
+docker exec stigmer-agent-runner nc -zv host.docker.internal 7233
+
+# 2. Check environment variables passed to container
+docker inspect stigmer-agent-runner | grep TEMPORAL_SERVICE_ADDRESS
+
+# 3. Check container logs for connection errors
+docker logs stigmer-agent-runner --tail 50
+
+# 4. Verify Temporal is listening on host
+lsof -ti:7233  # Should return PID
+```
+
+**Related Docs**:
+- Changelog: `_changelog/2026-01/2026-01-22-022000-fix-agent-runner-docker-networking-macos.md`
+- Troubleshooting: `docs/guides/agent-runner-local-mode.md` (Docker networking section)
+- Implementation: `client-apps/cli/internal/cli/daemon/daemon.go`
+- Logs support: `client-apps/cli/internal/cli/logs/*.go`
+- Docker docs: https://docs.docker.com/desktop/networking/#i-want-to-connect-from-a-container-to-a-service-on-the-host
+
+**Key Takeaway**: Docker containers on macOS cannot reach the host via `localhost`. Always use `host.docker.internal` on macOS/Windows, `localhost` on Linux. Implement OS detection with `runtime.GOOS`. Extend log/diagnostic commands to support Docker containers alongside file-based logging. Test on macOS - Linux behavior is different.
+
+---
+
 ## Configuration & Context
 
 ### 2026-01-22 - Configuration Cascade Pattern (CLI Flags → Env Vars → Config File → Defaults)
