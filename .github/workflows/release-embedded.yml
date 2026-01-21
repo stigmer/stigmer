@@ -43,6 +43,11 @@ jobs:
       - name: Generate proto stubs
         run: make protos
 
+      - name: Install Poetry dependencies
+        run: |
+          cd backend/services/agent-runner
+          poetry install --with dev
+
       - name: Build agent-runner binary with PyInstaller
         run: |
           cd backend/services/agent-runner
@@ -84,9 +89,9 @@ jobs:
             bin/agent-runner-${{ github.ref_name }}-darwin-arm64
             bin/agent-runner-${{ github.ref_name }}-darwin-arm64.sha256
 
-  # Build for macOS Intel
+  # Build for macOS Intel (cross-compiled on ARM Mac)
   build-darwin-amd64:
-    runs-on: macos-13  # Intel Mac
+    runs-on: macos-latest  # ARM Mac (cross-compile to Intel)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -116,14 +121,22 @@ jobs:
       - name: Generate proto stubs
         run: make protos
 
-      - name: Build agent-runner binary with PyInstaller
+      - name: Install Poetry dependencies
         run: |
           cd backend/services/agent-runner
-          poetry run pyinstaller agent-runner.spec
+          poetry install --with dev
+
+      - name: Build agent-runner binary with PyInstaller (cross-compile to Intel)
+        run: |
+          cd backend/services/agent-runner
+          poetry run pyinstaller --target-arch x86_64 agent-runner.spec
           mkdir -p ../../../client-apps/cli/embedded/binaries/darwin_amd64
           cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/darwin_amd64/
 
-      - name: Build CLI with embedded binaries (BusyBox pattern)
+      - name: Build CLI with embedded binaries (cross-compile to Intel)
+        env:
+          GOARCH: amd64
+          GOOS: darwin
         run: |
           cd client-apps/cli
           go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=${{ github.ref_name }}" -o ../../bin/stigmer .
@@ -188,6 +201,11 @@ jobs:
 
       - name: Generate proto stubs
         run: make protos
+
+      - name: Install Poetry dependencies
+        run: |
+          cd backend/services/agent-runner
+          poetry install --with dev
 
       - name: Build agent-runner binary with PyInstaller
         run: |
