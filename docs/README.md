@@ -10,6 +10,7 @@ Complete documentation index for the Stigmer open-source project.
 ### CLI
 - [Running Agents and Workflows](cli/running-agents-workflows.md) - Execute agents and workflows with `stigmer run`
 - [Configuration](cli/configuration.md) - CLI configuration and context management
+- [Configuration Cascade](cli/configuration-cascade.md) - Complete guide to configuration priority (CLI flags, env vars, config file)
 - [Server Logs](cli/server-logs.md) - Viewing and managing server logs
 
 ### Guides
@@ -25,6 +26,8 @@ Complete documentation index for the Stigmer open-source project.
 - [Cloud Build Alignment](implementation/cloud-build-alignment.md) - Complete alignment of Stigmer OSS with Stigmer Cloud build system and development patterns
 - [Task Export Context Fix](implementation/task-export-context-fix.md) - Fix for multi-task workflows with hyphenated names and context merging
 - [Task Export Context Fix - Learnings](implementation/task-export-context-fix-learnings.md) - Detailed learnings from the task export context bug fix for SDK and workflow runner improvements
+- [Sandbox Implementation](implementation/sandbox-implementation.md) - Three-tier sandbox strategy implementation (local, basic, full)
+- [Configuration Cascade Implementation](implementation/configuration-cascade-implementation.md) - Configuration cascade pattern implementation details
 
 ### Architecture
 - [Backend Modes](architecture/backend-modes.md) - Local vs cloud backend architecture, auto-start daemon, and organization handling
