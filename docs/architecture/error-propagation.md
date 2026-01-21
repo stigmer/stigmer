@@ -1,12 +1,12 @@
 # Error Propagation Strategy
 
-**Last Updated:** 2026-01-21
+**Last Updated:** 2026-01-21 (StreamBroker broadcast added)
 
 ## Overview
 
-This document describes how errors are propagated from the agent-runner (Python) to the user through the Temporal workflow and Stigmer server.
+This document describes how errors are propagated from execution runners (agent-runner/workflow-runner in Python/Go) to users through Temporal workflows and Stigmer server real-time streaming.
 
-The error propagation strategy ensures that **all errors—whether they occur during worker startup, activity initialization, or agent execution—are visible to the user**, not just in logs.
+The error propagation strategy ensures that **all errors—whether they occur during worker startup, activity initialization, or execution—are visible to users in real-time through streaming subscriptions**, not just in logs or database.
 
 ## Error Categories
 
@@ -112,21 +112,28 @@ Check agent-runner logs for errors.
 
 ```mermaid
 flowchart TB
-    User[User] -->|Create Execution| API[Stigmer Server API]
+    User[User] -->|1. Create Execution| API[Stigmer Server API]
+    User -->|2. Subscribe Stream| SUB[Subscribe RPC]
+    
     API -->|Start Workflow| TW[Temporal Workflow]
     TW -->|Schedule Activity| TA[Temporal Activity Queue]
     TA -->|Route to Worker| AR[agent-runner]
     
-    AR -->|1. Startup Error?| SE[Startup Error Handler]
+    AR -->|1a. Startup Error?| SE[Startup Error Handler]
     SE -->|Log + Exit| Logs[Agent-runner Logs]
     
-    AR -->|2. Activity Error?| AE[Activity Error Handler]
+    AR -->|1b. Activity Error?| AE[Activity Error Handler]
     AE -->|Create FAILED Status| DB[(Database)]
     AE -->|Return FAILED Status| TW
     
-    TW -->|3. Timeout?| TE[Timeout Error Handler]
+    TW -->|2. Timeout?| TE[Timeout Error Handler]
     TE -->|Helpful Error Message| US[Update Status Activity]
-    US -->|FAILED Status| DB
+    US -->|Save to DB| DB
+    US -->|Broadcast Update| SB[StreamBroker]
+    
+    DB -->|Load Initial State| SUB
+    SB -->|Real-time Updates| SUB
+    SUB -->|Stream Errors| User
     
     TW -->|Final Status| API
     API -->|Error Response| User
@@ -135,6 +142,8 @@ flowchart TB
     style AE fill:#ffa94d
     style TE fill:#ffd93d
     style DB fill:#6bcf7f
+    style SB fill:#4fc3f7
+    style SUB fill:#9575cd
 ```
 
 ## Implementation Details
@@ -296,6 +305,133 @@ async def execute_graphton(execution: AgentExecution, thread_id: str) -> AgentEx
 - Updates database so user sees error immediately
 - Returns failed status to workflow for observability
 
+### 6. StreamBroker Real-Time Broadcast (Critical for User Visibility)
+
+**Context:** The bug fixed on 2026-01-21 evening
+
+When Temporal workflows detect errors and call `UpdateExecutionStatusActivity` to save errors to the database, that's only HALF the story. The database update alone doesn't make errors visible to users watching executions via `Subscribe()` streams.
+
+**The Missing Piece (Bug):** 
+
+Before the fix, `UpdateExecutionStatusActivity` only saved to database:
+```go
+// OLD CODE - Bug! No broadcast to subscribers
+func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(...) error {
+    // 1. Load from DB
+    // 2. Merge status updates
+    // 3. Save to DB
+    // 4. Return
+    // ❌ NO BROADCAST - Users subscribed to this execution never see the error!
+}
+```
+
+**The Fix:**
+
+`UpdateExecutionStatusActivity` now broadcasts to StreamBroker after database save:
+
+**Files:** 
+- `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities/update_status_impl.go`
+- `backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities/update_status_impl.go`
+
+```go
+// NEW CODE - Broadcasts to subscribers!
+type UpdateExecutionStatusActivityImpl struct {
+    store        *badger.Store
+    streamBroker StreamBroker  // NEW: Injected via worker config
+}
+
+func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(...) error {
+    // 1. Load execution from BadgerDB
+    existing := &agentexecutionv1.AgentExecution{}
+    _ = a.store.GetResource(ctx, kind, executionID, existing)
+    
+    // 2. Merge status updates (phase, error, messages, etc.)
+    status := existing.Status
+    status.Phase = statusUpdates.Phase
+    status.Error = statusUpdates.Error
+    status.Messages = statusUpdates.Messages
+    
+    // 3. Save to BadgerDB
+    _ = a.store.SaveResource(ctx, kind, executionID, existing)
+    
+    // 4. Broadcast to active subscribers ← NEW! Critical for user visibility
+    if a.streamBroker != nil {
+        a.streamBroker.Broadcast(existing)
+        log.Debug().Str("execution_id", executionID).Msg("Broadcasted to subscribers")
+    }
+    
+    return nil
+}
+```
+
+**Dependency Injection (Server Startup):**
+
+```go
+// server.go - Create controllers BEFORE Temporal workers
+agentExecutionController := NewAgentExecutionController(store, ...)
+workflowExecutionController := NewWorkflowExecutionController(store, ...)
+
+// Pass StreamBrokers to Temporal worker configs
+agentWorkerConfig := NewWorkerConfig(
+    config, 
+    store, 
+    agentExecutionController.GetStreamBroker(),  // ← Inject StreamBroker
+)
+workflowWorkerConfig := NewWorkerConfig(
+    config, 
+    store, 
+    workflowExecutionController.GetStreamBroker(),  // ← Inject StreamBroker
+)
+```
+
+**Two Code Paths (Now Both Broadcast):**
+
+1. **Normal Execution** (runner sends progressive updates):
+   ```
+   runner → UpdateStatus RPC → BroadcastToStreamsStep → StreamBroker ✅
+   ```
+
+2. **Workflow Error Recovery** (workflow detects failure):
+   ```
+   Workflow → updateStatusOnFailure() → UpdateExecutionStatusActivity → Database + StreamBroker ✅
+   ```
+
+**Impact:**
+
+Before fix:
+- ❌ Database updated with error
+- ❌ StreamBroker NOT notified
+- ❌ Subscribed users never see error
+- ❌ CLI hangs indefinitely
+- ❌ Users must check server logs manually
+
+After fix:
+- ✅ Database updated with error
+- ✅ StreamBroker broadcasts update
+- ✅ All subscribers receive error immediately
+- ✅ CLI displays error and exits cleanly
+- ✅ Users see errors in real-time
+
+**Affected Domains:**
+
+Both execution domains had this bug and both are now fixed:
+- ✅ Agent Execution (agent-runner failures)
+- ✅ Workflow Execution (workflow-runner or workflow failures)
+
+**Architecture Implication:**
+
+Any code path that updates execution status MUST broadcast to StreamBroker:
+- UpdateStatus RPC: ✅ Has BroadcastToStreamsStep
+- UpdateExecutionStatusActivity (local activity): ✅ Now broadcasts (fixed)
+- Future status update paths: ⚠️ Must broadcast or users won't see updates
+
+**Benefits:**
+- Users see ALL errors in real-time (not just in database/logs)
+- Consistent error visibility across normal execution and error recovery
+- Terminal states immediately end subscriptions
+- No more hanging CLIs during failures
+- Complete error propagation: detection → database → broadcast → user
+
 ## Error Flow Diagrams
 
 ### Startup Failure Flow
@@ -381,6 +517,62 @@ sequenceDiagram
     Server-->>User: "Worker crashed, check logs"
 ```
 
+### Complete Error Propagation with Streaming (NEW)
+
+This diagram shows the complete flow including the StreamBroker broadcast that makes errors visible to subscribed users:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI
+    participant API as Stigmer Server API
+    participant Sub as Subscribe Stream
+    participant Broker as StreamBroker
+    participant Temporal
+    participant Activity as UpdateStatusActivity
+    participant DB as BadgerDB
+    participant Worker as agent-runner
+    
+    User->>API: Create Execution
+    API-->>User: execution_id
+    User->>CLI: Watch Execution
+    CLI->>Sub: Subscribe(execution_id)
+    Sub->>DB: Load initial state
+    DB-->>Sub: Current execution
+    Sub-->>CLI: Initial state
+    Sub->>Broker: Register channel
+    
+    API->>Temporal: Start Workflow
+    Temporal->>Worker: Schedule Activity
+    
+    Note over Worker: Worker fails to start
+    Worker->>Worker: Exit(1)
+    
+    Temporal->>Temporal: Wait 1 min (SCHEDULE_TO_START)
+    Temporal-->>Temporal: Timeout!
+    Temporal->>Activity: updateStatusOnFailure()
+    
+    Activity->>DB: Load execution
+    DB-->>Activity: Current state
+    Activity->>Activity: Merge error status
+    Activity->>DB: Save updated status
+    Activity->>Broker: Broadcast(updated execution) ← CRITICAL!
+    
+    Broker->>Sub: Push update via channel
+    Sub-->>CLI: Error update
+    CLI-->>User: ❌ Error: No worker available...
+    
+    Note over User: User sees error immediately!<br/>No need to check logs
+```
+
+**Key Points:**
+
+1. **User subscribes BEFORE error occurs** - CLI calls Subscribe() immediately after creating execution
+2. **StreamBroker manages Go channels** - In-memory pub/sub for real-time updates
+3. **Activity broadcasts after DB save** - Critical step added in the fix (was missing before)
+4. **User sees error immediately** - No polling, no delay, no need to check logs
+5. **Works for ALL error types** - Startup failures, activity errors, heartbeat timeouts, etc.
+
 ## Testing Error Propagation
 
 ### 1. Test Worker Startup Failure
@@ -447,7 +639,7 @@ if events_processed == 10:
 
 ## Comparison: Agent Execution vs Workflow Execution
 
-Both agent execution and workflow execution now have similar error propagation:
+Both agent execution and workflow execution now have complete error propagation:
 
 | Feature | Agent Execution | Workflow Execution |
 |---------|----------------|-------------------|
@@ -457,6 +649,8 @@ Both agent execution and workflow execution now have similar error propagation:
 | Error wrapping | ✅ Detailed | ✅ Detailed |
 | System error handler | ✅ Top-level catch | ✅ Top-level catch |
 | Database updates | ✅ Via gRPC | ✅ Via gRPC |
+| **StreamBroker broadcast** | ✅ **Yes (fixed 2026-01-21)** | ✅ **Yes (fixed 2026-01-21)** |
+| Real-time visibility | ✅ All subscribers | ✅ All subscribers |
 | User-visible errors | ✅ All errors | ✅ All errors |
 
 ## Best Practices
@@ -464,10 +658,11 @@ Both agent execution and workflow execution now have similar error propagation:
 ### For Developers
 
 1. **Always use the error handlers** - Don't add new error paths that bypass the handlers
-2. **Log before exiting** - Always log detailed errors before `sys.exit(1)`
-3. **Send heartbeats** - For long-running activities, send heartbeats regularly
-4. **Test error paths** - Regularly test that errors propagate correctly
-5. **Update this document** - When adding new error types, document them here
+2. **Always broadcast to StreamBroker** - Any code path updating execution status MUST broadcast
+3. **Log before exiting** - Always log detailed errors before `sys.exit(1)`
+4. **Send heartbeats** - For long-running activities, send heartbeats regularly
+5. **Test error paths** - Regularly test that errors propagate correctly (including streaming)
+6. **Update this document** - When adding new error types or status update paths, document them here
 
 ### For Operations
 
