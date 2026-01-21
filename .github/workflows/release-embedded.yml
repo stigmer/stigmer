@@ -2,17 +2,62 @@ name: Release with Embedded Binaries
 
 on:
   push:
-    tags:
-      - 'v*'
-  workflow_dispatch:  # Allow manual trigger for testing
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual trigger
+    inputs:
+      create_release:
+        description: 'Create a release after successful build'
+        required: false
+        type: boolean
+        default: false
+      version:
+        description: 'Version number (e.g., 1.0.0) - only needed if creating release'
+        required: false
+        type: string
 
 permissions:
   contents: write
   packages: write
 
 jobs:
+  # Determine version for this build
+  determine-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_release: ${{ steps.version.outputs.should_release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${{ github.event.inputs.version }}" ]; then
+              VERSION="v${{ github.event.inputs.version }}"
+              SHOULD_RELEASE="${{ github.event.inputs.create_release }}"
+            else
+              # Generate test version from commit hash
+              VERSION="test-$(git rev-parse --short HEAD)"
+              SHOULD_RELEASE="false"
+            fi
+          else
+            # For push to main, generate test version
+            VERSION="test-$(git rev-parse --short HEAD)"
+            SHOULD_RELEASE="false"
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION (release: $SHOULD_RELEASE)"
+
   # Build for macOS Apple Silicon
   build-darwin-arm64:
+    needs: determine-version
     runs-on: macos-latest  # macOS 14 (M1)
     steps:
       - name: Checkout
@@ -56,41 +101,44 @@ jobs:
           cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/darwin_arm64/
 
       - name: Build CLI with embedded binaries (BusyBox pattern)
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd client-apps/cli
-          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=${{ github.ref_name }}" -o ../../bin/stigmer .
+          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
 
       - name: Verify binary
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           file bin/stigmer
           ls -lh bin/stigmer
-          ./bin/stigmer --version || echo "Version: ${{ github.ref_name }}"
+          ./bin/stigmer --version || echo "Version: $VERSION"
 
       - name: Package binaries
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           # Package CLI with embedded binaries
           cd bin
-          tar -czf stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz stigmer
-          shasum -a 256 stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz > stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz.sha256
+          tar -czf stigmer-$VERSION-darwin-arm64.tar.gz stigmer
+          shasum -a 256 stigmer-$VERSION-darwin-arm64.tar.gz > stigmer-$VERSION-darwin-arm64.tar.gz.sha256
           
           # Package standalone agent-runner binary (for download fallback)
           cd ../client-apps/cli/embedded/binaries/darwin_arm64
-          cp agent-runner agent-runner-${{ github.ref_name }}-darwin-arm64
-          shasum -a 256 agent-runner-${{ github.ref_name }}-darwin-arm64 > agent-runner-${{ github.ref_name }}-darwin-arm64.sha256
-          mv agent-runner-${{ github.ref_name }}-darwin-arm64* ../../../../../../bin/
+          cp agent-runner agent-runner-$VERSION-darwin-arm64
+          shasum -a 256 agent-runner-$VERSION-darwin-arm64 > agent-runner-$VERSION-darwin-arm64.sha256
+          mv agent-runner-$VERSION-darwin-arm64* ../../../../../../bin/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: stigmer-darwin-arm64
-          path: |
-            bin/stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz
-            bin/stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz.sha256
-            bin/agent-runner-${{ github.ref_name }}-darwin-arm64
-            bin/agent-runner-${{ github.ref_name }}-darwin-arm64.sha256
+          path: bin/*
 
   # Build for macOS Intel (cross-compiled on ARM Mac)
   build-darwin-amd64:
+    needs: determine-version
     runs-on: macos-latest  # ARM Mac (cross-compile to Intel)
     steps:
       - name: Checkout
@@ -129,7 +177,9 @@ jobs:
       - name: Build agent-runner binary with PyInstaller (cross-compile to Intel)
         run: |
           cd backend/services/agent-runner
-          poetry run pyinstaller --target-arch x86_64 agent-runner.spec
+          # Update spec file to set target_arch for cross-compilation
+          sed -i '' 's/target_arch=None/target_arch="x86_64"/' agent-runner.spec
+          poetry run pyinstaller agent-runner.spec
           mkdir -p ../../../client-apps/cli/embedded/binaries/darwin_amd64
           cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/darwin_amd64/
 
@@ -137,41 +187,44 @@ jobs:
         env:
           GOARCH: amd64
           GOOS: darwin
+          VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd client-apps/cli
-          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=${{ github.ref_name }}" -o ../../bin/stigmer .
+          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
 
       - name: Verify binary
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           file bin/stigmer
           ls -lh bin/stigmer
-          ./bin/stigmer --version || echo "Version: ${{ github.ref_name }}"
+          # Skip running binary since it's cross-compiled for Intel
+          echo "Version: $VERSION (Intel binary, cannot run on ARM Mac)"
 
       - name: Package binaries
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           # Package CLI with embedded binaries
           cd bin
-          tar -czf stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz stigmer
-          shasum -a 256 stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz > stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz.sha256
+          tar -czf stigmer-$VERSION-darwin-amd64.tar.gz stigmer
+          shasum -a 256 stigmer-$VERSION-darwin-amd64.tar.gz > stigmer-$VERSION-darwin-amd64.tar.gz.sha256
           
           # Package standalone agent-runner binary (for download fallback)
           cd ../client-apps/cli/embedded/binaries/darwin_amd64
-          cp agent-runner agent-runner-${{ github.ref_name }}-darwin-amd64
-          shasum -a 256 agent-runner-${{ github.ref_name }}-darwin-amd64 > agent-runner-${{ github.ref_name }}-darwin-amd64.sha256
-          mv agent-runner-${{ github.ref_name }}-darwin-amd64* ../../../../../../bin/
+          cp agent-runner agent-runner-$VERSION-darwin-amd64
+          shasum -a 256 agent-runner-$VERSION-darwin-amd64 > agent-runner-$VERSION-darwin-amd64.sha256
+          mv agent-runner-$VERSION-darwin-amd64* ../../../../../../bin/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: stigmer-darwin-amd64
-          path: |
-            bin/stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz
-            bin/stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz.sha256
-            bin/agent-runner-${{ github.ref_name }}-darwin-amd64
-            bin/agent-runner-${{ github.ref_name }}-darwin-amd64.sha256
+          path: bin/*
 
   # Build for Linux
   build-linux-amd64:
+    needs: determine-version
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -215,48 +268,69 @@ jobs:
           cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/linux_amd64/
 
       - name: Build CLI with embedded binaries (BusyBox pattern)
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd client-apps/cli
-          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=${{ github.ref_name }}" -o ../../bin/stigmer .
+          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
 
       - name: Verify binary
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           file bin/stigmer
           ls -lh bin/stigmer
-          ./bin/stigmer --version || echo "Version: ${{ github.ref_name }}"
+          ./bin/stigmer --version || echo "Version: $VERSION"
 
       - name: Package binaries
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           # Package CLI with embedded binaries
           cd bin
-          tar -czf stigmer-${{ github.ref_name }}-linux-amd64.tar.gz stigmer
-          sha256sum stigmer-${{ github.ref_name }}-linux-amd64.tar.gz > stigmer-${{ github.ref_name }}-linux-amd64.tar.gz.sha256
+          tar -czf stigmer-$VERSION-linux-amd64.tar.gz stigmer
+          sha256sum stigmer-$VERSION-linux-amd64.tar.gz > stigmer-$VERSION-linux-amd64.tar.gz.sha256
           
           # Package standalone agent-runner binary (for download fallback)
           cd ../client-apps/cli/embedded/binaries/linux_amd64
-          cp agent-runner agent-runner-${{ github.ref_name }}-linux-amd64
-          sha256sum agent-runner-${{ github.ref_name }}-linux-amd64 > agent-runner-${{ github.ref_name }}-linux-amd64.sha256
-          mv agent-runner-${{ github.ref_name }}-linux-amd64* ../../../../../../bin/
+          cp agent-runner agent-runner-$VERSION-linux-amd64
+          sha256sum agent-runner-$VERSION-linux-amd64 > agent-runner-$VERSION-linux-amd64.sha256
+          mv agent-runner-$VERSION-linux-amd64* ../../../../../../bin/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: stigmer-linux-amd64
-          path: |
-            bin/stigmer-${{ github.ref_name }}-linux-amd64.tar.gz
-            bin/stigmer-${{ github.ref_name }}-linux-amd64.tar.gz.sha256
-            bin/agent-runner-${{ github.ref_name }}-linux-amd64
-            bin/agent-runner-${{ github.ref_name }}-linux-amd64.sha256
+          path: bin/*
 
-  # Create GitHub Release
+  # Create GitHub Release (only if requested)
   release:
-    needs: [build-darwin-arm64, build-darwin-amd64, build-linux-amd64]
+    needs: [determine-version, build-darwin-arm64, build-darwin-amd64, build-linux-amd64]
     runs-on: ubuntu-latest
+    if: needs.determine-version.outputs.should_release == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Create and push tag
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if tag already exists
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "Tag $VERSION already exists"
+            exit 1
+          fi
+          
+          # Create annotated tag
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "$VERSION"
+          echo "Created and pushed tag: $VERSION"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -279,16 +353,18 @@ jobs:
 
       - name: Generate changelog
         id: changelog
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           # Get previous tag
-          PREVIOUS_TAG=$(git describe --abbrev=0 --tags ${{ github.ref_name }}^ 2>/dev/null || echo "")
+          PREVIOUS_TAG=$(git describe --abbrev=0 --tags "$VERSION^" 2>/dev/null || echo "")
           
           if [ -z "$PREVIOUS_TAG" ]; then
             echo "First release"
             CHANGELOG="First release of Stigmer CLI with embedded binaries."
           else
-            echo "Generating changelog from $PREVIOUS_TAG to ${{ github.ref_name }}"
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..${{ github.ref_name }} | grep -v "^- Merge")
+            echo "Generating changelog from $PREVIOUS_TAG to $VERSION"
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG..$VERSION" | grep -v "^- Merge")
           fi
           
           # Save to file (handle multiline)
@@ -297,20 +373,22 @@ jobs:
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: Release ${{ github.ref_name }}
+          tag_name: ${{ needs.determine-version.outputs.version }}
+          name: Release ${{ needs.determine-version.outputs.version }}
           body_path: ${{ steps.changelog.outputs.changelog_file }}
           files: release-assets/*
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Update Homebrew tap (optional, after release is created)
   update-homebrew:
-    needs: release
+    needs: [determine-version, release]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: needs.determine-version.outputs.should_release == 'true'
     steps:
       - name: Checkout homebrew-tap
         uses: actions/checkout@v4
@@ -319,9 +397,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Formula
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          VERSION=${{ github.ref_name }}
           VERSION_NO_V=${VERSION#v}
+          
+          # Wait a moment for release assets to be available
+          sleep 10
           
           # Download checksums
           curl -sL https://github.com/stigmer/stigmer/releases/download/${VERSION}/stigmer-${VERSION}-darwin-arm64.tar.gz.sha256 -o /tmp/darwin-arm64.sha256
