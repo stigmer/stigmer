@@ -3,7 +3,6 @@ package agentexecution
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -12,6 +11,7 @@ import (
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
@@ -68,29 +68,12 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).               // 2. Resolve slug
 		AddStep(newValidateSessionOrAgentStep()).                                            // 3. Validate session_id OR agent_id
 		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).             // 4. Build new state
-		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient)). // 5. Create default instance if needed
+		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)). // 5. Create default instance if needed
 		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).               // 6. Create session if needed
 		AddStep(newSetInitialPhaseStep()).                                                   // 7. Set phase to PENDING
 		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).            // 8. Persist execution
 		AddStep(c.newStartWorkflowStep()).                                                   // 9. Start Temporal workflow
 		Build()
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-// isAlreadyExistsError checks if an error is due to a duplicate resource
-// by looking for "already exists" in the error message.
-//
-// This is used to handle the case where a default instance exists but the
-// agent status wasn't updated with the instance ID.
-func isAlreadyExistsError(err error) bool {
-	if err == nil {
-		return false
-	}
-	errMsg := strings.ToLower(err.Error())
-	return strings.Contains(errMsg, "already exists")
 }
 
 // ============================================================================
@@ -147,15 +130,18 @@ func (s *validateSessionOrAgentStep) Execute(ctx *pipeline.RequestContext[*agent
 type createDefaultInstanceIfNeededStep struct {
 	agentClient         *agent.Client
 	agentInstanceClient *agentinstance.Client
+	store               *badger.Store
 }
 
 func newCreateDefaultInstanceIfNeededStep(
 	agentClient *agent.Client,
 	agentInstanceClient *agentinstance.Client,
+	store *badger.Store,
 ) *createDefaultInstanceIfNeededStep {
 	return &createDefaultInstanceIfNeededStep{
 		agentClient:         agentClient,
 		agentInstanceClient: agentInstanceClient,
+		store:               store,
 	}
 }
 
@@ -207,9 +193,9 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		Str("agent_id", agentID).
 		Msg("Agent missing default instance, creating one")
 
-	// Use agent's slug (not name) to build the default instance slug
-	// This ensures we're comparing the same normalized values
-	agentSlug := agent.GetMetadata().GetSlug()
+	// Use agent's name (matching Java implementation)
+	// Java: String agentSlug = agent.getMetadata().getName();
+	agentSlug := agent.GetMetadata().GetName()
 	ownerScope := agent.GetMetadata().GetOwnerScope()
 
 	instanceMetadataBuilder := &apiresource.ApiResourceMetadata{
@@ -239,65 +225,17 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 	// 4. Create instance via downstream client (in-process, system credentials)
 	createdInstance, err := s.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
 	if err != nil {
-		// Check if error is due to duplicate slug
-		// If so, fetch existing instance instead of failing
-		if isAlreadyExistsError(err) {
-			log.Warn().
-				Err(err).
-				Str("agent_id", agentID).
-				Str("expected_slug", agentSlug+"-default").
-				Msg("Default instance already exists, fetching existing instance")
-
-			// Fetch all instances for this agent
-			instanceList, fetchErr := s.agentInstanceClient.GetByAgent(ctx.Context(), agentID)
-			if fetchErr != nil {
-				log.Error().
-					Err(fetchErr).
-					Str("agent_id", agentID).
-					Msg("Failed to fetch existing instances after duplicate error")
-				return fmt.Errorf("failed to fetch existing instances: %w", fetchErr)
-			}
-
-			// Find the default instance by slug (not name!)
-			// The duplicate check uses metadata.slug, so we must search by slug too
-			var defaultInstance *agentinstancev1.AgentInstance
-			expectedSlug := agentSlug + "-default"
-			for _, instance := range instanceList.GetItems() {
-				// FIXED: Compare against Slug field, not Name field
-				if instance.GetMetadata().GetSlug() == expectedSlug {
-					defaultInstance = instance
-					break
-				}
-			}
-
-			if defaultInstance == nil {
-				log.Error().
-					Str("agent_id", agentID).
-					Str("expected_slug", expectedSlug).
-					Int32("instances_found", instanceList.GetTotalCount()).
-					Msg("Default instance not found despite duplicate error")
-				return fmt.Errorf("default instance '%s' not found despite duplicate error", expectedSlug)
-			}
-
-			createdInstance = defaultInstance
-			log.Info().
-				Str("instance_id", defaultInstance.GetMetadata().GetId()).
-				Str("slug", expectedSlug).
-				Str("agent_id", agentID).
-				Msg("Found existing default instance")
-		} else {
-			log.Error().
-				Err(err).
-				Str("agent_id", agentID).
-				Msg("Failed to create default instance")
-			return fmt.Errorf("failed to create default instance: %w", err)
-		}
-	} else {
-		log.Info().
-			Str("instance_id", createdInstance.GetMetadata().GetId()).
+		log.Error().
+			Err(err).
 			Str("agent_id", agentID).
-			Msg("Successfully created default instance")
+			Msg("Failed to create default instance")
+		return fmt.Errorf("failed to create default instance: %w", err)
 	}
+
+	log.Info().
+		Str("instance_id", createdInstance.GetMetadata().GetId()).
+		Str("agent_id", agentID).
+		Msg("Successfully created default instance")
 
 	createdInstanceID := createdInstance.GetMetadata().GetId()
 
@@ -307,11 +245,11 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 	}
 	agent.Status.DefaultInstanceId = createdInstanceID
 
-	// Update agent via in-process gRPC (single source of truth)
-	// Note: We use the agent client's Update method which ensures all interceptors
-	// run with the correct api_resource_kind (AGENT), not the current request's kind
-	_, err = s.agentClient.Update(ctx.Context(), agent)
-	if err != nil {
+	// Save agent directly to store (matching Java: agentRepo.save(updatedAgent))
+	// Direct save avoids going through Update handler pipeline
+	// Use AGENT kind explicitly since we're saving an agent, not the current resource
+	agentKind := apiresourcekind.ApiResourceKind_agent
+	if err := s.store.SaveResource(ctx.Context(), agentKind, agentID, agent); err != nil {
 		log.Error().
 			Err(err).
 			Str("agent_id", agentID).

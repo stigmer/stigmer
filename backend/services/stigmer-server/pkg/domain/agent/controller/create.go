@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/rs/zerolog/log"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
@@ -65,23 +64,6 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 }
 
 // ============================================================================
-// Helper Functions
-// ============================================================================
-
-// isAlreadyExistsError checks if an error is due to a duplicate resource
-// by looking for "already exists" in the error message.
-//
-// This handles cases where a default instance was created previously but
-// the agent status update failed, leaving the agent without a default_instance_id.
-func isAlreadyExistsError(err error) bool {
-	if err == nil {
-		return false
-	}
-	errMsg := strings.ToLower(err.Error())
-	return strings.Contains(errMsg, "already exists")
-}
-
-// ============================================================================
 // Pipeline Steps (inline implementations following Java AgentCreateHandler pattern)
 // ============================================================================
 
@@ -116,14 +98,14 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv
 
 	agent := ctx.NewState()
 	agentID := agent.GetMetadata().GetId()
-	// Use agent's slug (not name) to build the default instance slug
-	// This ensures we're comparing the same normalized values
-	agentSlug := agent.GetMetadata().GetSlug()
+	// Use agent's name (matching Java implementation)
+	// Java: String agentSlug = agent.getMetadata().getName();
+	agentSlug := agent.GetMetadata().GetName()
 	ownerScope := agent.GetMetadata().GetOwnerScope()
 
 	log.Info().
 		Str("agent_id", agentID).
-		Str("slug", agentSlug).
+		Str("name", agentSlug).
 		Str("scope", ownerScope.String()).
 		Msg("Creating default instance for agent")
 
@@ -155,62 +137,13 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv
 	// All persistence and validation handled by instance handler
 	createdInstance, err := s.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
 	if err != nil {
-		// Check if error is due to duplicate slug
-		// This can happen if:
-		// 1. Previous create failed after instance was created but before status update
-		// 2. Manual instance creation with same slug
-		if isAlreadyExistsError(err) {
-			log.Warn().
-				Err(err).
-				Str("agent_id", agentID).
-				Str("expected_slug", defaultInstanceName).
-				Msg("Default instance already exists during agent creation, fetching existing instance")
-
-			// Fetch all instances for this agent
-			instanceList, fetchErr := s.agentInstanceClient.GetByAgent(ctx.Context(), agentID)
-			if fetchErr != nil {
-				log.Error().
-					Err(fetchErr).
-					Str("agent_id", agentID).
-					Msg("Failed to fetch existing instances after duplicate error")
-				return fmt.Errorf("failed to fetch existing instances: %w", fetchErr)
-			}
-
-			// Find the default instance by slug (not name!)
-			// The duplicate check uses metadata.slug, so we must search by slug too
-			var defaultInstance *agentinstancev1.AgentInstance
-			for _, instance := range instanceList.GetItems() {
-				// FIXED: Compare against Slug field, not Name field
-				if instance.GetMetadata().GetSlug() == defaultInstanceName {
-					defaultInstance = instance
-					break
-				}
-			}
-
-			if defaultInstance == nil {
-				log.Error().
-					Str("agent_id", agentID).
-					Str("expected_slug", defaultInstanceName).
-					Int32("instances_found", instanceList.GetTotalCount()).
-					Msg("Default instance not found despite duplicate error")
-				return fmt.Errorf("default instance '%s' not found despite duplicate error", defaultInstanceName)
-			}
-
-			createdInstance = defaultInstance
-			log.Info().
-				Str("instance_id", defaultInstance.GetMetadata().GetId()).
-				Str("slug", defaultInstanceName).
-				Str("agent_id", agentID).
-				Msg("Found existing default instance during agent creation")
-		} else {
-			return fmt.Errorf("failed to create default instance: %w", err)
-		}
-	} else {
-		log.Info().
-			Str("instance_id", createdInstance.GetMetadata().GetId()).
-			Str("agent_id", agentID).
-			Msg("Successfully created default instance for agent")
+		return fmt.Errorf("failed to create default instance: %w", err)
 	}
+
+	log.Info().
+		Str("instance_id", createdInstance.GetMetadata().GetId()).
+		Str("agent_id", agentID).
+		Msg("Successfully created default instance for agent")
 
 	defaultInstanceID := createdInstance.GetMetadata().GetId()
 
