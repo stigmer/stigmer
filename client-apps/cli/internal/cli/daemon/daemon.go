@@ -41,14 +41,22 @@ type StartOptions struct {
 	Progress *cliprint.ProgressDisplay // Optional progress display for UI
 }
 
-// Start starts the stigmer daemon in the background
+// Start starts the stigmer daemon in the background.
 //
-// The daemon runs stigmer-server on localhost:50051 as per ADR 011.
-// It's a long-running process that manages:
-// - gRPC API server
-// - SQLite database
-// - Workflow runner (embedded)
+// Lifecycle Management:
+// - Cleans up any orphaned processes from previous runs (kills zombies)
+// - Starts fresh processes with new PIDs
+// - Returns error if server is already running (caller should stop first)
+//
+// The daemon runs stigmer-server on localhost:7234 and manages:
+// - gRPC API server (stigmer-server)
+// - BadgerDB database
+// - Temporal server (if managed)
+// - Workflow runner (subprocess)
 // - Agent runner (subprocess)
+//
+// Note: This function is called by both 'stigmer server start' and automatic
+// daemon startup (EnsureRunning). The cleanup ensures idempotent behavior.
 func Start(dataDir string) error {
 	return StartWithOptions(dataDir, StartOptions{})
 }
@@ -56,6 +64,10 @@ func Start(dataDir string) error {
 // StartWithOptions starts the daemon with custom options
 func StartWithOptions(dataDir string, opts StartOptions) error {
 	log.Debug().Str("data_dir", dataDir).Msg("Starting daemon")
+
+	// CRITICAL: Clean up any orphaned processes from previous runs
+	// This prevents zombie processes when the daemon crashes or is killed -9
+	cleanupOrphanedProcesses(dataDir)
 
 	// Check if already running
 	if IsRunning(dataDir) {
@@ -186,8 +198,8 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		return errors.Wrap(err, "failed to create log directory")
 	}
 
-	stdoutLog := filepath.Join(logDir, "daemon.log")
-	stderrLog := filepath.Join(logDir, "daemon.err")
+	stdoutLog := filepath.Join(logDir, "stigmer-server.log")
+	stderrLog := filepath.Join(logDir, "stigmer-server.err")
 
 	stdout, err := os.OpenFile(stdoutLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
@@ -432,6 +444,109 @@ func startAgentRunner(
 	return nil
 }
 
+// isProcessAlive checks if a process with given PID is actually running.
+//
+// On macOS, os.FindProcess() always succeeds even if the process doesn't exist,
+// so we need to send signal 0 (null signal) to actually verify the process is alive.
+func isProcessAlive(pid int) bool {
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	
+	// Send signal 0 (null signal) to check if process exists
+	// This doesn't actually send a signal, just checks if we CAN send one
+	err = process.Signal(syscall.Signal(0))
+	return err == nil
+}
+
+// cleanupOrphanedProcesses kills any orphaned processes from previous daemon runs.
+//
+// This is critical for preventing zombie processes when:
+// - Daemon crashes
+// - User kills daemon with kill -9
+// - System restarts without proper shutdown
+//
+// Without this cleanup, restarting the daemon would leave old processes running,
+// causing port conflicts, resource leaks, and general chaos.
+func cleanupOrphanedProcesses(dataDir string) {
+	log.Debug().Msg("Checking for orphaned processes from previous runs")
+	
+	// Check each PID file and kill if process is running
+	pidFiles := map[string]string{
+		"stigmer-server":   filepath.Join(dataDir, PIDFileName),
+		"workflow-runner":  filepath.Join(dataDir, WorkflowRunnerPIDFileName),
+		"agent-runner":     filepath.Join(dataDir, AgentRunnerPIDFileName),
+	}
+	
+	orphansFound := false
+	
+	for name, pidFile := range pidFiles {
+		data, err := os.ReadFile(pidFile)
+		if err != nil {
+			continue // No PID file
+		}
+		
+		pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+		if err != nil {
+			log.Warn().
+				Str("component", name).
+				Str("pid_file", pidFile).
+				Msg("Invalid PID file, removing")
+			_ = os.Remove(pidFile)
+			continue
+		}
+		
+		// Check if process is actually running
+		if isProcessAlive(pid) {
+			orphansFound = true
+			log.Warn().
+				Str("component", name).
+				Int("pid", pid).
+				Msg("Found orphaned process from previous run, killing")
+			
+			process, _ := os.FindProcess(pid)
+			
+			// Try graceful kill first
+			_ = process.Signal(syscall.SIGTERM)
+			time.Sleep(500 * time.Millisecond)
+			
+			// Force kill if still alive
+			if isProcessAlive(pid) {
+				log.Warn().Str("component", name).Int("pid", pid).Msg("Process didn't stop gracefully, force killing")
+				_ = process.Kill()
+				time.Sleep(500 * time.Millisecond)
+			}
+		}
+		
+		// Clean up PID file
+		_ = os.Remove(pidFile)
+	}
+	
+	// Also check for orphaned Temporal (if managed)
+	cfg, err := config.Load()
+	if err == nil && (cfg.Backend.Local.Temporal == nil || cfg.Backend.Local.Temporal.Managed) {
+		// Load config, use defaults if it fails
+		temporalManager := temporal.NewManager(
+			dataDir,
+			cfg.Backend.Local.ResolveTemporalVersion(),
+			cfg.Backend.Local.ResolveTemporalPort(),
+		)
+		
+		if temporalManager.IsRunning() {
+			orphansFound = true
+			log.Warn().Msg("Found orphaned Temporal server from previous run, stopping")
+			_ = temporalManager.Stop()
+		}
+	}
+	
+	if orphansFound {
+		log.Info().Msg("Cleaned up orphaned processes from previous run")
+	} else {
+		log.Debug().Msg("No orphaned processes found")
+	}
+}
+
 // Stop stops the stigmer daemon, workflow-runner, agent-runner, and managed Temporal
 func Stop(dataDir string) error {
 	log.Debug().Str("data_dir", dataDir).Msg("Stopping daemon")
@@ -458,11 +573,16 @@ func Stop(dataDir string) error {
 		log.Info().Int("pid", pid).Msg("Found orphaned daemon process by port")
 	}
 
-	// Find process
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		return errors.Wrap(err, "failed to find daemon process")
+	// Check if process is actually alive (fixes macOS issue where os.FindProcess always succeeds)
+	if !isProcessAlive(pid) {
+		log.Debug().Int("pid", pid).Msg("Daemon not running (stale PID file)")
+		pidFile := filepath.Join(dataDir, PIDFileName)
+		_ = os.Remove(pidFile)
+		return errors.New("daemon is not running")
 	}
+
+	// Process exists, try to stop it
+	process, _ := os.FindProcess(pid)
 
 	// Send SIGTERM for graceful shutdown
 	if err := process.Signal(syscall.SIGTERM); err != nil {
@@ -548,13 +668,15 @@ func stopWorkflowRunner(dataDir string) {
 		return
 	}
 
-	// Find process
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		log.Warn().Int("pid", pid).Msg("Failed to find workflow-runner process")
+	// Check if process is actually alive FIRST (fixes macOS issue where os.FindProcess always succeeds)
+	if !isProcessAlive(pid) {
+		log.Debug().Int("pid", pid).Msg("Workflow-runner not running (stale PID file)")
 		_ = os.Remove(pidFile)
 		return
 	}
+
+	// Process exists, try to stop it
+	process, _ := os.FindProcess(pid)
 
 	// Send SIGTERM for graceful shutdown
 	if err := process.Signal(syscall.SIGTERM); err != nil {
@@ -567,7 +689,7 @@ func stopWorkflowRunner(dataDir string) {
 
 	// Wait for process to exit (up to 5 seconds)
 	for i := 0; i < 10; i++ {
-		if err := process.Signal(syscall.Signal(0)); err != nil {
+		if !isProcessAlive(pid) {
 			// Process is dead
 			_ = os.Remove(pidFile)
 			log.Info().Msg("Workflow-runner stopped successfully")
@@ -579,6 +701,9 @@ func stopWorkflowRunner(dataDir string) {
 	// Force kill if still running
 	log.Warn().Msg("Workflow-runner did not stop gracefully, force killing")
 	_ = process.Kill()
+	
+	// Wait a bit for kill to take effect
+	time.Sleep(500 * time.Millisecond)
 	_ = os.Remove(pidFile)
 }
 
@@ -600,13 +725,15 @@ func stopAgentRunner(dataDir string) {
 		return
 	}
 
-	// Find process
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		log.Warn().Int("pid", pid).Msg("Failed to find agent-runner process")
+	// Check if process is actually alive FIRST (fixes macOS issue where os.FindProcess always succeeds)
+	if !isProcessAlive(pid) {
+		log.Debug().Int("pid", pid).Msg("Agent-runner not running (stale PID file)")
 		_ = os.Remove(pidFile)
 		return
 	}
+
+	// Process exists, try to stop it
+	process, _ := os.FindProcess(pid)
 
 	// Send SIGTERM for graceful shutdown
 	if err := process.Signal(syscall.SIGTERM); err != nil {
@@ -619,7 +746,7 @@ func stopAgentRunner(dataDir string) {
 
 	// Wait for process to exit (up to 5 seconds)
 	for i := 0; i < 10; i++ {
-		if err := process.Signal(syscall.Signal(0)); err != nil {
+		if !isProcessAlive(pid) {
 			// Process is dead
 			_ = os.Remove(pidFile)
 			log.Info().Msg("Agent-runner stopped successfully")
@@ -631,6 +758,9 @@ func stopAgentRunner(dataDir string) {
 	// Force kill if still running
 	log.Warn().Msg("Agent-runner did not stop gracefully, force killing")
 	_ = process.Kill()
+	
+	// Wait a bit for kill to take effect
+	time.Sleep(500 * time.Millisecond)
 	_ = os.Remove(pidFile)
 }
 
@@ -857,8 +987,8 @@ func rotateLogsIfNeeded(dataDir string) error {
 	
 	// List of log files to rotate
 	logFiles := []string{
-		"daemon.log",
-		"daemon.err",
+		"stigmer-server.log",
+		"stigmer-server.err",
 		"agent-runner.log",
 		"agent-runner.err",
 		"workflow-runner.log",

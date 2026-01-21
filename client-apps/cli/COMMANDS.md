@@ -14,8 +14,8 @@ stigmer server stop
 # Check server status
 stigmer server status
 
-# Restart server
-stigmer server restart
+# Restart server (start automatically stops if already running)
+stigmer server start
 
 # View server logs (last 50 lines)
 stigmer server logs
@@ -189,7 +189,7 @@ stigmer workflow execute <id> --input key=value
 | `stigmer local start` | `stigmer server` |
 | `stigmer local stop` | `stigmer server stop` |
 | `stigmer local status` | `stigmer server status` |
-| `stigmer local restart` | `stigmer server restart` |
+| `stigmer local restart` | `stigmer server start` (idempotent) |
 | `stigmer agent create` | Use UI or API (removed from CLI) |
 | `stigmer workflow create` | Use UI or API (removed from CLI) |
 | `stigmer version` | Removed (use `--version` flag) |

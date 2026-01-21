@@ -407,7 +407,9 @@ async def _execute_graphton_impl(
         # Step 8: Stream execution and build status from events
         events_processed = 0
         last_update_sent = 0
+        last_heartbeat_sent = 0
         update_interval = 10  # Send status update every N events
+        heartbeat_interval = 5  # Send heartbeat every N events (more frequent than status updates)
         
         activity_logger.info(
             f"🔍 Starting Graphton agent stream for execution {execution_id}"
@@ -422,6 +424,21 @@ async def _execute_graphton_impl(
             await status_builder.process_event(event)
             
             events_processed += 1
+            
+            # Send activity heartbeat to prevent timeout
+            # This tells Temporal the activity is still running and making progress
+            if events_processed - last_heartbeat_sent >= heartbeat_interval:
+                try:
+                    activity.heartbeat({
+                        "events_processed": events_processed,
+                        "messages": len(status_builder.current_status.messages),
+                        "tool_calls": len(status_builder.current_status.tool_calls),
+                        "phase": status_builder.current_status.phase,
+                    })
+                    last_heartbeat_sent = events_processed
+                except Exception as e:
+                    # Heartbeat failure is not critical - log and continue
+                    activity_logger.debug(f"Heartbeat failed (event {events_processed}): {e}")
             
             # Send progressive status update via gRPC (every N events)
             if events_processed - last_update_sent >= update_interval:

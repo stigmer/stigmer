@@ -29,12 +29,12 @@ func newServerLogsCommand() *cobra.Command {
 		Short: "View Stigmer server logs",
 		Long: `View logs from the Stigmer server daemon.
 
-By default, streams logs in real-time (like kubectl logs -f).
+By default, streams logs in real-time from all components (like kubectl logs -f).
 Use --follow=false to disable streaming and only show recent logs.
 Use --tail to limit how many existing lines to show before streaming (default: 50).
-Use --stderr to view error logs instead of stdout.
-Use --component to select which component (server, agent-runner, or workflow-runner).
-Use --all to view logs from all components in a single interleaved stream.`,
+Use --stderr to view error logs (note: stigmer-server logs go to stderr by default).
+Use --component to select a specific component (stigmer-server, agent-runner, or workflow-runner).
+Use --all to view logs from all components in a single interleaved stream (defaults to stderr).`,
 		Run: func(cmd *cobra.Command, args []string) {
 			dataDir, err := config.GetDataDir()
 			if err != nil {
@@ -47,10 +47,21 @@ Use --all to view logs from all components in a single interleaved stream.`,
 
 			// Handle --all flag: show logs from all components
 			if showAll {
+				// Default to stderr for --all since stigmer-server logs go there
+				// (unless user explicitly set --stderr=false)
+				if !cmd.Flags().Changed("stderr") {
+					showStderr = true
+				}
+				
 				components := getComponentConfigs(logDir)
 				
+				streamType := "stdout"
+				if showStderr {
+					streamType = "stderr"
+				}
+				
 				if follow {
-					cliprint.PrintInfo("Streaming logs from all components (interleaved by timestamp)")
+					cliprint.PrintInfo("Streaming logs from all components (%s, interleaved by timestamp)", streamType)
 					cliprint.PrintInfo("Press Ctrl+C to stop")
 					fmt.Println()
 					
@@ -60,7 +71,7 @@ Use --all to view logs from all components in a single interleaved stream.`,
 						return
 					}
 				} else {
-					cliprint.PrintInfo("Showing last %d lines from all components (interleaved by timestamp)", lines)
+					cliprint.PrintInfo("Showing last %d lines from all components (%s, interleaved by timestamp)", lines, streamType)
 					fmt.Println()
 					
 					mergedLines, err := logs.MergeLogFiles(components, showStderr, lines)
@@ -76,19 +87,19 @@ Use --all to view logs from all components in a single interleaved stream.`,
 
 			// Original single-component logic
 			// Validate component
-			if component != "server" && component != "agent-runner" && component != "workflow-runner" {
-				cliprint.PrintError("Invalid component: %s (must be 'server', 'agent-runner', or 'workflow-runner')", component)
+			if component != "stigmer-server" && component != "agent-runner" && component != "workflow-runner" {
+				cliprint.PrintError("Invalid component: %s (must be 'stigmer-server', 'agent-runner', or 'workflow-runner')", component)
 				return
 			}
 
 			// Determine log file
 			var logFile string
 			
-			if component == "server" {
+			if component == "stigmer-server" {
 				if showStderr {
-					logFile = filepath.Join(logDir, "daemon.err")
+					logFile = filepath.Join(logDir, "stigmer-server.err")
 				} else {
-					logFile = filepath.Join(logDir, "daemon.log")
+					logFile = filepath.Join(logDir, "stigmer-server.log")
 				}
 			} else if component == "agent-runner" {
 				if showStderr {
@@ -131,9 +142,9 @@ Use --all to view logs from all components in a single interleaved stream.`,
 
 	cmd.Flags().BoolVarP(&follow, "follow", "f", true, "Stream logs in real-time (like kubectl logs -f)")
 	cmd.Flags().IntVarP(&lines, "tail", "n", 50, "Number of recent lines to show before streaming (0 = all lines)")
-	cmd.Flags().StringVarP(&component, "component", "c", "server", "Component to show logs for (server, agent-runner, or workflow-runner)")
-	cmd.Flags().BoolVar(&showStderr, "stderr", false, "Show stderr logs instead of stdout")
-	cmd.Flags().BoolVar(&showAll, "all", false, "Show logs from all components (interleaved by timestamp)")
+	cmd.Flags().StringVarP(&component, "component", "c", "stigmer-server", "Component to show logs for (stigmer-server, agent-runner, or workflow-runner)")
+	cmd.Flags().BoolVar(&showStderr, "stderr", false, "Show stderr logs instead of stdout (note: stigmer-server logs go to stderr)")
+	cmd.Flags().BoolVar(&showAll, "all", true, "Show logs from all components (interleaved by timestamp, defaults to stderr)")
 
 	return cmd
 }
@@ -142,9 +153,9 @@ Use --all to view logs from all components in a single interleaved stream.`,
 func getComponentConfigs(logDir string) []logs.ComponentConfig {
 	return []logs.ComponentConfig{
 		{
-			Name:    "server",
-			LogFile: filepath.Join(logDir, "daemon.log"),
-			ErrFile: filepath.Join(logDir, "daemon.err"),
+			Name:    "stigmer-server",
+			LogFile: filepath.Join(logDir, "stigmer-server.log"),
+			ErrFile: filepath.Join(logDir, "stigmer-server.err"),
 		},
 		{
 			Name:    "agent-runner",
