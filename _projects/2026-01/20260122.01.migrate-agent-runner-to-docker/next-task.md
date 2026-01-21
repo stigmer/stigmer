@@ -72,47 +72,46 @@ Drag this file into any Cursor chat to instantly resume this project with full c
   - `_cursor/gemini-response.md`
   - `_cursor/adr-how-to-handle-multipart-package.md`
 
+## Current Status: Extended Scope
+
+**Previous work complete**, now adding **sandbox Docker image support**.
+
+---
+
+📋 **T02: Three-Tier Sandbox Strategy (Like Cursor)** - Status: ✅ COMPLETE
+
+**Plan Location**: `tasks/T02_0_plan.md`  
+**Strategy Document**: `THREE_TIER_SANDBOX_STRATEGY.md`  
+**Implementation Summary**: `SANDBOX_IMPLEMENTATION_SUMMARY.md`
+
+**Objective:** ✅ Implemented
+- ✅ Cursor-like execution: **Local by default, sandbox optional**
+- ✅ Lightweight basic sandbox (~300MB) for optional isolation
+- ✅ Full sandbox Dockerfile as reference (for Daytona/enterprise)
+- ✅ Updated agent-runner for dual-mode execution (local + sandbox + auto)
+
+**Three Tiers Implemented:**
+1. **Tier 1 (Default)**: Local execution - uses user's installed tools ✅
+2. **Tier 2 (Optional)**: Basic sandbox - lightweight (~300MB), Python+Node+Git ✅
+3. **Tier 3 (Power users)**: Full sandbox - reference Dockerfile (~1-2GB) ✅
+
+**Key Decision Implemented**: NO heavy images shipped to all users (like Cursor) ✅
+
+**Actual Time**: ~2.5 hours (as estimated)
+
+**Completion Date**: 2026-01-22
+
+---
+
+### All Tasks Complete
+
+- ✅ T01: Docker Migration complete
+- ✅ Docker Workflow & CI/CD Integration complete
+- ✅ T02: Three-Tier Sandbox Strategy complete
+
 ## Project Complete! 🎉
 
-**All work is complete and ready for production use.**
-
-### What to Do Next
-
-1. **Test Locally** (optional verification)
-   ```bash
-   make release-local-full
-   stigmer server start
-   stigmer server logs --component agent-runner
-   ```
-
-2. **Commit and Push** (when ready)
-   ```bash
-   git add -A
-   git commit -m "feat(build): complete Docker workflow integration with registry auto-pull"
-   git push
-   ```
-
-3. **Test CI/CD** (after merge)
-   - Verify GitHub Actions builds Docker image
-   - Verify image pushed to ghcr.io
-   - Test registry auto-pull with fresh install
-
-4. **Create Release** (when ready for production)
-   ```bash
-   make release bump=minor
-   ```
-   - Docker image will be pushed to ghcr.io with version tag
-   - CLI binaries will be built for all platforms
-   - Users will auto-pull image on first run
-
-### No Blockers
-
-All previous blockers resolved:
-- ✅ Docker migration complete
-- ✅ Workflow integration complete
-- ✅ Documentation complete
-- ✅ PyInstaller artifacts removed
-- ✅ Code compiles successfully
+All planned work for the Docker migration and sandbox implementation is now complete.
 
 ---
 
