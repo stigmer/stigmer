@@ -210,13 +210,13 @@ func getComponentConfigsWithStreamPreferences(dataDir, logDir string, useSmartDe
 			Name:           "stigmer-server",
 			LogFile:        filepath.Join(logDir, "stigmer-server.log"),
 			ErrFile:        filepath.Join(logDir, "stigmer-server.err"),
-			PreferStderr:   useSmartDefaults, // stigmer-server logs to stderr by default
+			PreferStderr:   false, // Both stdout and stderr are redirected to .log file in daemon.go
 		},
 		{
 			Name:           "workflow-runner",
 			LogFile:        filepath.Join(logDir, "workflow-runner.log"),
 			ErrFile:        filepath.Join(logDir, "workflow-runner.err"),
-			PreferStderr:   false, // workflow-runner logs to stdout (Go log package default)
+			PreferStderr:   false, // Both stdout and stderr are redirected to .log file in daemon.go
 		},
 	}
 	
