@@ -248,6 +248,12 @@ func handleServerStatus() {
 		// Get health summary if monitoring is active
 		healthSummary := daemon.GetHealthSummary()
 		
+		// If health summary is empty (health monitor not accessible from this process),
+		// create basic status based on process existence
+		if len(healthSummary) == 0 {
+			healthSummary = createBasicHealthStatus(dataDir, pid)
+		}
+		
 		// Stigmer Server
 		showComponentStatus("Stigmer Server", healthSummary["stigmer-server"], pid)
 		
@@ -285,6 +291,33 @@ func handleServerStatus() {
 		cliprint.Info("To start:")
 		cliprint.Info("  stigmer server")
 	}
+}
+
+// createBasicHealthStatus creates a basic health status map when health monitor isn't accessible
+func createBasicHealthStatus(dataDir string, stigmerPID int) map[string]daemon.ComponentHealth {
+	healthMap := make(map[string]daemon.ComponentHealth)
+	
+	// Stigmer Server - running if we got here
+	healthMap["stigmer-server"] = daemon.ComponentHealth{
+		State: daemon.ComponentState("running"),
+	}
+	
+	// Workflow Runner - check if PID file exists and process is alive
+	if wfPID, err := daemon.GetWorkflowRunnerPID(dataDir); err == nil {
+		healthMap["workflow-runner"] = daemon.ComponentHealth{
+			State: daemon.ComponentState("running"),
+		}
+		_ = wfPID // Use the PID to avoid unused variable warning
+	}
+	
+	// Agent Runner - check if container ID exists
+	if _, err := daemon.GetAgentRunnerContainerID(dataDir); err == nil {
+		healthMap["agent-runner"] = daemon.ComponentHealth{
+			State: daemon.ComponentState("running"),
+		}
+	}
+	
+	return healthMap
 }
 
 // showComponentStatus displays status for a process-based component
