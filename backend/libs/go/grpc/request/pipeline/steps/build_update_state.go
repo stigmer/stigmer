@@ -3,8 +3,8 @@ package steps
 import (
 	"fmt"
 
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	commonspb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -73,7 +73,7 @@ func (s *BuildUpdateStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error
 			return fmt.Errorf("failed to clear status field: %w", err)
 		}
 	}
-	
+
 	// 5. Preserve entire status from existing resource (matching Java ApiResourcePreviousStatusReplacer.replace)
 	// This preserves ALL system-managed status fields (default_instance_id, phase, etc.)
 	if err := copyStatusFromExisting(merged, existing); err != nil {
@@ -148,33 +148,33 @@ func copyStatusFromExisting[T proto.Message](merged, existing T) error {
 	// Get status field from existing resource
 	existingMsg := existing.ProtoReflect()
 	existingStatusField := existingMsg.Descriptor().Fields().ByName("status")
-	
+
 	if existingStatusField == nil {
 		// Resource doesn't have a status field - this is ok
 		return nil
 	}
-	
+
 	// Check if existing has status set
 	if !existingMsg.Has(existingStatusField) {
 		// Existing doesn't have status - nothing to copy
 		return nil
 	}
-	
+
 	// Get the status value from existing
 	existingStatus := existingMsg.Get(existingStatusField)
-	
+
 	// Set it on merged
 	mergedMsg := merged.ProtoReflect()
 	mergedStatusField := mergedMsg.Descriptor().Fields().ByName("status")
-	
+
 	if mergedStatusField == nil {
 		// Merged doesn't have status field - this shouldn't happen but handle gracefully
 		return nil
 	}
-	
+
 	// Copy the entire status field (matching Java: builder.setField(statusFieldDescriptor, previousStatus))
 	mergedMsg.Set(mergedStatusField, existingStatus)
-	
+
 	return nil
 }
 
