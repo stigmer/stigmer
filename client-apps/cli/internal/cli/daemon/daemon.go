@@ -663,8 +663,9 @@ After installing Docker, restart Stigmer server.`)
 		// LLM configuration
 		"-e", fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", llmProvider),
 		"-e", fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
-		// OLLAMA_BASE_URL is the standard env var expected by LangChain for Ollama
-		"-e", fmt.Sprintf("OLLAMA_BASE_URL=%s", llmBaseURLResolved),
+		// Set both for backward compatibility (container may have old code)
+		"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURLResolved),  // Legacy (old container code)
+		"-e", fmt.Sprintf("OLLAMA_BASE_URL=%s", llmBaseURLResolved),       // Standard LangChain variable
 
 		// Execution configuration (NEW - full cascade support)
 		"-e", fmt.Sprintf("STIGMER_EXECUTION_MODE=%s", executionMode),
