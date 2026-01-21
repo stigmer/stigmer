@@ -68,28 +68,70 @@ func dockerAvailable() bool {
 
 // ensureDockerImage ensures the agent-runner Docker image is available
 func ensureDockerImage(dataDir string) error {
-	// Check if image exists
+	// Check if image exists locally
 	cmd := exec.Command("docker", "images", "-q", AgentRunnerDockerImage)
 	output, err := cmd.Output()
 	if err != nil {
 		return errors.Wrap(err, "failed to check for Docker image")
 	}
 	
-	// Image exists
+	// Image exists locally
 	if len(strings.TrimSpace(string(output))) > 0 {
 		log.Debug().Str("image", AgentRunnerDockerImage).Msg("Docker image already exists")
 		return nil
 	}
 	
-	// Image doesn't exist - try to build it
-	log.Info().Str("image", AgentRunnerDockerImage).Msg("Building Docker image...")
+	// Image doesn't exist locally - try to pull from GitHub Container Registry
+	log.Info().Str("image", AgentRunnerDockerImage).Msg("Docker image not found locally, trying to pull from GitHub registry...")
 	
-	// Find repository root (go up from data dir to find backend/services/agent-runner)
-	// For now, assume we're in development and can build from source
-	// In production, this would pull from a registry
-	return errors.New("Docker image not found. Please build it first:\n" +
-		"  cd backend/services/agent-runner\n" +
-		"  docker build -f Dockerfile -t stigmer-agent-runner:local ../../..")
+	// Get current CLI version to determine which image tag to pull
+	version := embedded.GetBuildVersion()
+	if version == "" || version == "dev" {
+		version = "latest"
+	}
+	
+	// Try to pull from GitHub Container Registry
+	registryImage := fmt.Sprintf("ghcr.io/stigmer/agent-runner:%s", version)
+	log.Info().
+		Str("registry_image", registryImage).
+		Str("local_tag", AgentRunnerDockerImage).
+		Msg("Pulling agent-runner image from registry")
+	
+	pullCmd := exec.Command("docker", "pull", registryImage)
+	pullOutput, pullErr := pullCmd.CombinedOutput()
+	
+	if pullErr == nil {
+		// Successfully pulled - tag it as local image
+		tagCmd := exec.Command("docker", "tag", registryImage, AgentRunnerDockerImage)
+		if tagErr := tagCmd.Run(); tagErr != nil {
+			log.Warn().Err(tagErr).Msg("Failed to tag pulled image, but it should still work")
+		}
+		
+		log.Info().
+			Str("image", AgentRunnerDockerImage).
+			Msg("Successfully pulled and tagged agent-runner image")
+		return nil
+	}
+	
+	// Pull failed - provide helpful error message
+	log.Warn().
+		Err(pullErr).
+		Str("output", string(pullOutput)).
+		Msg("Failed to pull image from registry")
+	
+	return errors.New(fmt.Sprintf(`Docker image not found locally and pull from registry failed.
+
+Registry pull attempted: %s
+Error: %v
+
+To fix this, build the image locally:
+  make build-agent-runner-image
+
+Or if you have the repository:
+  cd backend/services/agent-runner
+  docker build -f Dockerfile -t stigmer-agent-runner:local ../../..
+
+After building, restart Stigmer server.`, registryImage, pullErr))
 }
 
 // Start starts the stigmer daemon in the background.
