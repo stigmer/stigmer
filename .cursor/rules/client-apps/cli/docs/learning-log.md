@@ -2425,3 +2425,266 @@ For Stigmer (internal use): **Struct pattern is simpler and sufficient**.
 **Key Takeaway**: Options struct pattern enables clean extension of function parameters without breaking backward compatibility. Use for configuration that grows. Name fields clearly. Make optional fields use pointer or zero value defaults.
 
 ---
+
+## Daemon Management
+
+### 2026-01-22 - Cross-Process Health Monitoring State Access
+
+**Problem**: `stigmer server status` command showed "?" instead of "Running" for all components (stigmer-server, workflow-runner, agent-runner). Health state was inaccessible.
+
+**Root Cause**: Architectural mismatch between where health monitor runs and where status is queried:
+1. Health monitor (`healthMonitor` variable) runs INSIDE daemon process (PID 87700)
+2. Status command runs in SEPARATE CLI process (different PID)
+3. Go variables are process-local - cannot be shared across processes
+4. `daemon.GetHealthSummary()` returned empty map because `healthMonitor == nil` in status process
+5. Empty health map led to zero-value ComponentHealth structs with empty State
+6. Empty state triggered default case in `getHealthSymbol()` returning "?"
+
+**Process Flow**:
+```
+CLI Process (PID 87800): stigmer server status
+  ↓
+daemon.GetHealthSummary() called
+  ↓
+healthMonitor == nil (not in this process - runs in daemon PID 87700)
+  ↓
+Returns empty map: make(map[string]ComponentHealth)
+  ↓
+healthSummary["stigmer-server"] = ComponentHealth{State: ""} (zero value)
+  ↓
+getStateDisplay("") → returns "" → default case
+  ↓
+getHealthSymbol("") → "?" ✗
+```
+
+**Solution**: Fallback mechanism when health monitor unavailable
+
+```go
+// server.go - Status command handler
+func statusHandler(cmd *cobra.Command, args []string) {
+    running, pid := daemon.GetStatus(dataDir)
+    
+    if running {
+        // Try to get health summary from monitor
+        healthSummary := daemon.GetHealthSummary()
+        
+        // If health summary is empty (monitor not accessible from this process),
+        // create basic status based on process existence
+        if len(healthSummary) == 0 {
+            healthSummary = createBasicHealthStatus(dataDir, pid)
+        }
+        
+        // Use healthSummary for display
+        showComponentStatus("Stigmer Server", healthSummary["stigmer-server"], pid)
+    }
+}
+
+// Fallback: Check if processes/containers exist
+func createBasicHealthStatus(dataDir string, stigmerPID int) map[string]daemon.ComponentHealth {
+    healthMap := make(map[string]daemon.ComponentHealth)
+    
+    // Stigmer Server - running if we got here
+    healthMap["stigmer-server"] = daemon.ComponentHealth{
+        State: daemon.ComponentState("running"),
+    }
+    
+    // Workflow Runner - check if PID file exists and process is alive
+    if wfPID, err := daemon.GetWorkflowRunnerPID(dataDir); err == nil {
+        healthMap["workflow-runner"] = daemon.ComponentHealth{
+            State: daemon.ComponentState("running"),
+        }
+    }
+    
+    // Agent Runner - check if container ID exists
+    if _, err := daemon.GetAgentRunnerContainerID(dataDir); err == nil {
+        healthMap["agent-runner"] = daemon.ComponentHealth{
+            State: daemon.ComponentState("running"),
+        }
+    }
+    
+    return healthMap
+}
+```
+
+**Why This Works**:
+- Health monitor provides rich metrics (uptime, restarts, errors) when accessible
+- Status command only needs basic "is it running?" info
+- Checking PID files and process existence is sufficient for status display
+- Degraded gracefully when full health data unavailable
+
+**Cross-Process Communication Options**:
+
+| Method | Pros | Cons | When to Use |
+|--------|------|------|-------------|
+| **Fallback (PID files)** | Simple, no dependencies | Basic info only | Status display |
+| **gRPC endpoint** | Rich data, structured | Complexity, port management | Detailed metrics |
+| **Unix sockets** | Local IPC, fast | Unix-only, cleanup needed | Real-time monitoring |
+| **Shared files** | Cross-platform | File I/O overhead | Configuration |
+| **HTTP endpoint** | Standard, tooling | More overhead | External monitoring |
+
+For status command: **Fallback pattern is sufficient** (basic info, simple, no overhead)
+
+**Prevention**:
+- Don't assume in-memory variables are accessible across processes
+- Document which process owns which state
+- Test commands that query state from separate process
+- Consider degraded modes for non-critical features
+- Use IPC mechanisms (gRPC, files, sockets) for cross-process data sharing
+
+**Related Docs**:
+- Implementation: `server.go` (createBasicHealthStatus), `health_integration.go` (health monitor setup)
+- Changelog: `_changelog/2026-01/2026-01-22-050000-fix-status-display-and-log-streaming.md`
+
+**Key Takeaway**: Health monitor provides rich metrics within daemon process, but status command runs in separate process. Fallback to basic process existence checks when detailed health unavailable. Don't rely on in-memory state across process boundaries - use files, sockets, or gRPC for cross-process communication.
+
+---
+
+### 2026-01-22 - Log Writer/Reader Configuration Consistency
+
+**Problem**: `stigmer server logs --all` showed agent-runner logs but NOT stigmer-server or workflow-runner logs. Logs were being written but not visible when streaming.
+
+**Root Cause**: Mismatch between where logs are WRITTEN vs where they're READ from:
+
+**Writing** (daemon.go - startup):
+```go
+// Start stigmer-server process
+cmd := exec.Command(cliBin, "internal-server")
+
+// Redirect both stdout and stderr to SAME .log file
+logFile := filepath.Join(logDir, "stigmer-server.log")
+logOutput, _ := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+
+cmd.Stdout = logOutput  // Both streams → .log file
+cmd.Stderr = logOutput
+
+cmd.Start()
+
+// Result: All logs written to stigmer-server.log
+```
+
+**Reading** (server_logs.go):
+```go
+func getComponentConfigsWithStreamPreferences(...) []logs.ComponentConfig {
+    components := []logs.ComponentConfig{
+        {
+            Name:           "stigmer-server",
+            LogFile:        filepath.Join(logDir, "stigmer-server.log"),
+            ErrFile:        filepath.Join(logDir, "stigmer-server.err"),
+            PreferStderr:   useSmartDefaults, // true when --stderr not specified
+        },
+    }
+}
+
+// When useSmartDefaults = true (no --stderr flag):
+// PreferStderr = true → reads from stigmer-server.err ✗
+// But logs are in stigmer-server.log! ✓
+```
+
+**Evidence**:
+```bash
+$ ls -lh ~/.stigmer/data/logs/stigmer-server.*
+-rw-r--r--  1 user  staff     0B  stigmer-server.err     # Empty! ✗
+-rw-r--r--  1 user  staff   4.1K  stigmer-server.log     # Actual logs ✓
+```
+
+**Why It Happened**:
+1. Originally, maybe stderr and stdout were split (or this was planned)
+2. Daemon startup code was simplified to redirect both streams to `.log`
+3. Log streaming code wasn't updated to match
+4. "Smart defaults" assumed stigmer-server logs to stderr (zerolog default)
+5. Reality: Both streams go to stdout `.log` file
+
+**Solution**: Align reader configuration to match actual writer behavior
+
+```go
+func getComponentConfigsWithStreamPreferences(...) []logs.ComponentConfig {
+    components := []logs.ComponentConfig{
+        {
+            Name:           "stigmer-server",
+            LogFile:        filepath.Join(logDir, "stigmer-server.log"),
+            ErrFile:        filepath.Join(logDir, "stigmer-server.err"),
+            PreferStderr:   false, // Both streams redirected to .log file ✓
+        },
+        {
+            Name:           "workflow-runner",
+            LogFile:        filepath.Join(logDir, "workflow-runner.log"),
+            ErrFile:        filepath.Join(logDir, "workflow-runner.err"),
+            PreferStderr:   false, // Both streams redirected to .log file ✓
+        },
+    }
+}
+```
+
+**Why This Matters**:
+- Configuration consistency prevents silent failures
+- Logs exist but are invisible = bad debugging experience
+- Writer and reader must agree on file locations
+- "Smart defaults" become "hidden bugs" when assumptions wrong
+
+**Prevention**:
+1. **Centralize log file configuration**:
+   ```go
+   // daemon/logs_config.go
+   type LogConfig struct {
+       StdoutFile string
+       StderrFile string
+       CombineStreams bool  // If true, both go to StdoutFile
+   }
+   
+   func GetLogConfig(component string) LogConfig {
+       return LogConfig{
+           StdoutFile: fmt.Sprintf("%s.log", component),
+           StderrFile: fmt.Sprintf("%s.err", component),
+           CombineStreams: true,  // Document decision
+       }
+   }
+   
+   // Used by both writer (daemon.go) AND reader (server_logs.go)
+   ```
+
+2. **Test both writing AND reading**:
+   ```bash
+   # Integration test
+   stigmer server start
+   sleep 5  # Let logs accumulate
+   stigmer server logs --all | grep "stigmer-server"
+   # Should see stigmer-server logs! ✓
+   ```
+
+3. **Document log file layout**:
+   ```markdown
+   ## Log File Structure
+   
+   All components write stdout + stderr to `.log` file:
+   - `stigmer-server.log` - Combined stdout/stderr
+   - `workflow-runner.log` - Combined stdout/stderr
+   - `agent-runner.log` - Combined stdout/stderr (binary mode)
+   
+   `.err` files exist but are unused (future: error-only streams)
+   ```
+
+4. **Add validation**:
+   ```go
+   // During startup, verify log files are actually being written
+   func validateLogSetup() error {
+       logFile := filepath.Join(logDir, "stigmer-server.log")
+       time.Sleep(1 * time.Second)
+       
+       info, err := os.Stat(logFile)
+       if err != nil {
+           return errors.Wrap(err, "log file not created")
+       }
+       if info.Size() == 0 {
+           return errors.New("log file created but no content written")
+       }
+       return nil
+   }
+   ```
+
+**Related Docs**:
+- Implementation: `daemon.go` (log file redirection), `server_logs.go` (log reading)
+- Changelog: `_changelog/2026-01/2026-01-22-050000-fix-status-display-and-log-streaming.md`
+
+**Key Takeaway**: When components write and read files, they MUST agree on file locations. Centralize configuration to prevent mismatches. Test both writing and reading. Document file layout. "Smart defaults" can hide bugs when assumptions diverge from reality.
+
+---
