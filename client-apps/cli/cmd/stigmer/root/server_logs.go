@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/logs"
 )
 
@@ -89,6 +92,17 @@ Use --all to view logs from all components in a single interleaved stream (defau
 			// Validate component
 			if component != "stigmer-server" && component != "agent-runner" && component != "workflow-runner" {
 				cliprint.PrintError("Invalid component: %s (must be 'stigmer-server', 'agent-runner', or 'workflow-runner')", component)
+				return
+			}
+
+			// Special handling for agent-runner: check if running in Docker
+			if component == "agent-runner" && isAgentRunnerDocker(dataDir) {
+				cliprint.PrintInfo("Agent-runner is running in Docker, streaming from container")
+				if err := streamDockerLogs(daemon.AgentRunnerContainerName, follow, lines); err != nil {
+					cliprint.PrintError("Failed to stream Docker logs")
+					clierr.Handle(err)
+					return
+				}
 				return
 			}
 
@@ -294,4 +308,45 @@ func showLastNLines(logFile string, n int) error {
 	}
 
 	return nil
+}
+
+// isAgentRunnerDocker checks if agent-runner is running in Docker
+func isAgentRunnerDocker(dataDir string) bool {
+	// Check if container ID file exists
+	containerIDFile := filepath.Join(dataDir, daemon.AgentRunnerContainerIDFileName)
+	if _, err := os.Stat(containerIDFile); err == nil {
+		return true
+	}
+	
+	// Fallback: check if container exists by name
+	cmd := exec.Command("docker", "ps", "-q", "-f", fmt.Sprintf("name=^%s$", daemon.AgentRunnerContainerName))
+	output, err := cmd.Output()
+	return err == nil && len(output) > 0
+}
+
+// streamDockerLogs streams logs from a Docker container
+func streamDockerLogs(containerName string, follow bool, tailLines int) error {
+	args := []string{"logs"}
+	
+	if follow {
+		args = append(args, "-f")
+	}
+	
+	if tailLines > 0 {
+		args = append(args, "--tail", strconv.Itoa(tailLines))
+	}
+	
+	args = append(args, containerName)
+	
+	cliprint.PrintInfo("Streaming logs from Docker container: %s", containerName)
+	if follow {
+		cliprint.PrintInfo("Press Ctrl+C to stop")
+	}
+	fmt.Println()
+	
+	cmd := exec.Command("docker", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	
+	return cmd.Run()
 }
