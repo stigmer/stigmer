@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "zigflow_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/cmd/zigflow",
+    visibility = ["//visibility:private"],
+    deps = ["//backend/services/workflow-runner/cmd/worker:worker_lib"],
+)
+
+go_binary(
+    name = "zigflow",
+    embed = [":zigflow_lib"],
+    visibility = ["//visibility:public"],
+)

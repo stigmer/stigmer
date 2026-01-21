@@ -4,20 +4,21 @@ go_library(
     name = "embedded",
     srcs = [
         "embedded.go",
+        "embedded_darwin_amd64.go",
+        "embedded_darwin_arm64.go",
+        "embedded_linux_amd64.go",
         "extract.go",
         "version.go",
     ],
-    embedsrcs = [
-        "binaries/darwin_amd64/agent-runner.tar.gz",
-        "binaries/darwin_amd64/stigmer-server",
-        "binaries/darwin_amd64/workflow-runner",
-        "binaries/darwin_arm64/agent-runner.tar.gz",
-        "binaries/darwin_arm64/stigmer-server",
-        "binaries/darwin_arm64/workflow-runner",
-        "binaries/linux_amd64/agent-runner.tar.gz",
-        "binaries/linux_amd64/stigmer-server",
-        "binaries/linux_amd64/workflow-runner",
-    ],
+    embedsrcs = select({
+        "@rules_go//go/platform:darwin_arm64": [
+            "binaries/darwin_arm64/agent-runner",
+        ],
+        "@rules_go//go/platform:ios_arm64": [
+            "binaries/darwin_arm64/agent-runner",
+        ],
+        "//conditions:default": [],
+    }),
     importpath = "github.com/stigmer/stigmer/client-apps/cli/embedded",
     visibility = ["//visibility:public"],
     deps = [
