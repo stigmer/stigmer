@@ -35,6 +35,7 @@ Just run 'stigmer server' and start building!`,
 	cmd.AddCommand(newServerStatusCommand())
 	cmd.AddCommand(newServerRestartCommand())
 	cmd.AddCommand(newServerLogsCommand())
+	cmd.AddCommand(newServerDbDumpCommand())
 
 	return cmd
 }
