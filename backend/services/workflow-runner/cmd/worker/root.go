@@ -87,11 +87,14 @@ platform.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Fprintln(os.Stderr, "DEBUG: PersistentPreRunE called")
 		level, err := zerolog.ParseLevel(rootOpts.LogLevel)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "DEBUG: Failed to parse log level '%s': %v\n", rootOpts.LogLevel, err)
 			return err
 		}
 		zerolog.SetGlobalLevel(level)
+		fmt.Fprintln(os.Stderr, "DEBUG: PersistentPreRunE completed successfully")
 
 		return nil
 	},
@@ -105,6 +108,7 @@ platform.`,
 		}
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Fprintln(os.Stderr, "DEBUG: RunE called")
 		defer func() {
 			if r := recover(); r != nil {
 				var panicMsg string
@@ -125,9 +129,12 @@ platform.`,
 		}()
 
 		// Check if running in Temporal worker mode (for stigmer integration)
-		if executionMode := os.Getenv("EXECUTION_MODE"); executionMode == "temporal" {
+		executionMode := os.Getenv("EXECUTION_MODE")
+		fmt.Fprintf(os.Stderr, "DEBUG: EXECUTION_MODE=%s\n", executionMode)
+		if executionMode == "temporal" {
+			fmt.Fprintln(os.Stderr, "DEBUG: Calling RunTemporalWorkerMode()")
 			log.Info().Str("mode", "temporal").Msg("Starting workflow-runner")
-			return runTemporalWorkerMode()
+			return RunTemporalWorkerMode()
 		}
 
 		// Original zigflow mode: load and execute a single workflow file
@@ -256,14 +263,26 @@ platform.`,
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "PANIC in Execute(): %v\n", r)
+			os.Exit(1)
+		}
+	}()
+	
+	fmt.Fprintln(os.Stderr, "DEBUG: About to call rootCmd.Execute()")
 	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "DEBUG: rootCmd.Execute() returned error: %v\n", err)
 		os.Exit(gh.HandleFatalError(err))
 	}
+	fmt.Fprintln(os.Stderr, "DEBUG: rootCmd.Execute() completed successfully")
 }
 
 // runTemporalWorkerMode starts the workflow-runner in Temporal worker mode
 // This mode is used by stigmer to run validation and execution activities
-func runTemporalWorkerMode() error {
+// RunTemporalWorkerMode starts the workflow-runner in Temporal worker mode
+// Exported for use by the runner package (BusyBox pattern)
+func RunTemporalWorkerMode() error {
 	log.Info().Msg("Starting in Temporal-only mode")
 	
 	// Load configuration from environment variables
