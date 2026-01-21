@@ -11,15 +11,19 @@ This package enables single-binary distribution of the Stigmer CLI by:
 
 ## Architecture
 
+**Hybrid "Fat Binary" / "Matryoshka Doll" Pattern**
+
 ```
 ┌─────────────────────────────────────────┐
-│   Stigmer CLI (~150 MB)                 │
+│   Stigmer CLI (~100 MB)                 │
 │                                         │
 │  ┌───────────────────────────────────┐ │
 │  │  Embedded Binaries (Go embed)     │ │
 │  │  - stigmer-server (~25 MB)        │ │
 │  │  - workflow-runner (~20 MB)       │ │
-│  │  - agent-runner.tar.gz (~80 MB)   │ │
+│  │  - agent-runner (~60 MB) ✨       │ │
+│  │    PyInstaller binary with        │ │
+│  │    Python bundled inside!         │ │
 │  └───────────────────────────────────┘ │
 │                                         │
 │  EnsureBinariesExtracted()             │
@@ -35,19 +39,19 @@ This package enables single-binary distribution of the Stigmer CLI by:
 ┌─────────────────────────────────────────┐
 │   ~/.stigmer/bin/                       │
 │   ├── .version                          │
-│   ├── stigmer-server                    │
-│   ├── workflow-runner                   │
-│   └── agent-runner/                     │
-│       ├── run.sh                        │
-│       ├── src/                          │
-│       └── .venv/                        │
+│   ├── stigmer-server (Go binary)       │
+│   ├── workflow-runner (Go binary)      │
+│   └── agent-runner (PyInstaller) ✨    │
+│       Standalone executable             │
+│       NO Python installation required!  │
 └─────────────────────────────────────────┘
 ```
 
 ## Files
 
 - **`embedded.go`**: Platform detection, embed directives, binary getters
-- **`extract.go`**: Extraction logic for binaries and tarballs
+- **`embedded_*.go`**: Platform-specific embed directives (darwin_arm64, darwin_amd64, linux_amd64)
+- **`extract.go`**: Extraction logic for binaries (simplified - no tarball handling)
 - **`version.go`**: Version checking and comparison
 - **`binaries/`**: Directory containing binaries to embed (populated at build time)
 
@@ -98,8 +102,8 @@ if err != nil {
     return err
 }
 
-// Get agent-runner tarball for current platform
-agentData, err := embedded.GetAgentRunnerTarball()
+// Get agent-runner binary for current platform
+agentData, err := embedded.GetAgentRunnerBinary()
 if err != nil {
     return err
 }
@@ -149,28 +153,42 @@ Extraction time: ~3-5 seconds
 
 ## Build Integration
 
-### Makefile Targets (Future Task 4)
+### Build Integration (GitHub Actions)
 
-```makefile
-# Build stigmer-server for target platform
-build-embedded-stigmer-server:
-	cd backend/services/stigmer-server && \
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o ../../../client-apps/cli/embedded/binaries/$(GOOS)_$(GOARCH)/stigmer-server
+**Implemented in**: `.github/workflows/release-embedded.yml`
 
-# Build workflow-runner for target platform
-build-embedded-workflow-runner:
-	cd backend/services/workflow-runner && \
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o ../../../client-apps/cli/embedded/binaries/$(GOOS)_$(GOARCH)/workflow-runner
+For each platform (darwin-arm64, darwin-amd64, linux-amd64):
 
-# Package agent-runner as tarball
-build-embedded-agent-runner:
-	cd backend/services/agent-runner && \
-	tar czf ../../../client-apps/cli/embedded/binaries/$(GOOS)_$(GOARCH)/agent-runner.tar.gz .
+```yaml
+# Build agent-runner with PyInstaller
+- name: Build agent-runner binary
+  run: |
+    cd backend/services/agent-runner
+    poetry run pyinstaller agent-runner.spec
+    cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/darwin_arm64/
+
+# Build stigmer-server
+- name: Build stigmer-server binary
+  run: |
+    GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" \
+      -o client-apps/cli/embedded/binaries/darwin_arm64/stigmer-server \
+      ./backend/services/stigmer-server/cmd/server
+
+# Build workflow-runner
+- name: Build workflow-runner binary
+  run: |
+    GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" \
+      -o client-apps/cli/embedded/binaries/darwin_arm64/workflow-runner \
+      ./backend/services/workflow-runner/cmd/worker
 
 # Build CLI with embedded binaries
-release-local: build-embedded-stigmer-server build-embedded-workflow-runner build-embedded-agent-runner
-	cd client-apps/cli && go build -ldflags "-X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$(VERSION)"
+- name: Build CLI
+  run: |
+    cd client-apps/cli
+    go build -o ../../bin/stigmer .
 ```
+
+**Key Change**: Agent-runner is built with PyInstaller (single executable) instead of packaged as tarball (Python files).
 
 ## Error Handling
 
@@ -301,14 +319,25 @@ cat ~/.stigmer/bin/.version
 
 ## Binary Size Analysis
 
+**Hybrid Approach (PyInstaller Binary)**:
+
 | Component | Size | Description |
 |-----------|------|-------------|
 | stigmer-server | ~25 MB | Go binary (gRPC API server) |
 | workflow-runner | ~20 MB | Go binary (Temporal worker) |
-| agent-runner.tar.gz | ~80 MB | Python + venv (compressed) |
-| **Total Embedded** | **~125 MB** | All components |
-| CLI Overhead | ~10 MB | CLI logic + embed overhead |
-| **Final CLI Binary** | **~135-150 MB** | Single distributable |
+| agent-runner | ~60 MB | **PyInstaller binary (Python bundled!)** ✨ |
+| **Total Embedded** | **~105 MB** | All components |
+| CLI Overhead | ~5 MB | CLI logic + embed overhead |
+| **Final CLI Binary** | **~100 MB** | Single distributable |
+
+**Comparison to OLD Approach**:
+
+| Approach | Agent-Runner | Python Required | CLI Size |
+|----------|--------------|-----------------|----------|
+| OLD (tarball) | tar.gz (~80MB) | Yes ❌ | ~150MB |
+| NEW (PyInstaller) | Binary (~60MB) | No ✅ | ~100MB |
+
+**Improvement**: 50MB smaller CLI + zero Python dependency!
 
 ## Comparison to Industry Tools
 
@@ -318,7 +347,7 @@ cat ~/.stigmer/bin/.version
 | Pulumi CLI | ~100 MB | Plugin downloads |
 | Terraform | ~50 MB | Provider downloads |
 | kubectl | ~50 MB | Separate components |
-| **Stigmer CLI** | **~150 MB** | **Single binary** |
+| **Stigmer (Hybrid)** | **~100 MB** | **Single binary, zero deps ✨** |
 
 ## Design Decisions
 
@@ -336,6 +365,7 @@ cat ~/.stigmer/bin/.version
 - ✅ No version mismatches
 - ✅ Fast first run (< 5s extraction)
 - ✅ Standard Go approach (1.16+ embed)
+- ✅ **Zero Python dependency** (PyInstaller bundles Python) ✨
 
 ### Why Platform-Specific Builds?
 

@@ -7,27 +7,13 @@ import (
 )
 
 // Linux AMD64 embedded binaries
+// Note: Only agent-runner is embedded (Python binary)
+// stigmer-server and workflow-runner are compiled into the CLI (BusyBox pattern)
 //
-//go:embed binaries/linux_amd64/stigmer-server
-var stigmerServerBinary []byte
+//go:embed binaries/linux_amd64/agent-runner
+var agentRunnerBinary []byte
 
-//go:embed binaries/linux_amd64/workflow-runner
-var workflowRunnerBinary []byte
-
-//go:embed binaries/linux_amd64/agent-runner.tar.gz
-var agentRunnerTarball []byte
-
-// GetStigmerServerBinary returns the embedded stigmer-server binary for linux/amd64
-func GetStigmerServerBinary() ([]byte, error) {
-	return stigmerServerBinary, nil
-}
-
-// GetWorkflowRunnerBinary returns the embedded workflow-runner binary for linux/amd64
-func GetWorkflowRunnerBinary() ([]byte, error) {
-	return workflowRunnerBinary, nil
-}
-
-// GetAgentRunnerTarball returns the embedded agent-runner tarball for linux/amd64
-func GetAgentRunnerTarball() ([]byte, error) {
-	return agentRunnerTarball, nil
+// GetAgentRunnerBinary returns the embedded agent-runner binary for linux/amd64
+func GetAgentRunnerBinary() ([]byte, error) {
+	return agentRunnerBinary, nil
 }
