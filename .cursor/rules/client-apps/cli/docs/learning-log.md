@@ -1928,3 +1928,296 @@ func Run() error {
 ```
 
 **Remember**: BusyBox pattern = multiple tools in one binary. Internal commands are **routing**, not **parsing**. Route to implementations, don't parse through embedded CLIs.
+
+---
+
+## Configuration & Context
+
+### 2026-01-22 - Configuration Cascade Pattern (CLI Flags → Env Vars → Config File → Defaults)
+
+**Problem**: Users needed flexible ways to configure agent execution mode (local/sandbox/auto), but only environment variables were supported:
+```bash
+export STIGMER_EXECUTION_MODE=sandbox  # Only method
+```
+
+This created issues:
+- CI/CD needed env vars (good) ✅
+- Daily dev wanted persistent config (bad - had to re-export every session) ❌
+- Quick testing needed temporary overrides (bad - had to unset env var after) ❌
+
+**Root Cause**: Single configuration method doesn't serve all use cases. Different workflows need different configuration approaches.
+
+**Solution**: Implement industry-standard **configuration cascade pattern** following Docker, kubectl, AWS CLI, Terraform:
+
+```
+Priority Order (highest to lowest):
+1. CLI Flags        → stigmer server start --execution-mode=sandbox
+2. Environment Variables → export STIGMER_EXECUTION_MODE=sandbox
+3. Config File      → execution.mode in ~/.stigmer/config.yaml
+4. Defaults         → local mode
+```
+
+**Implementation Pattern**:
+
+**1. Add Config Struct** (`config.go`):
+```go
+type ExecutionConfig struct {
+    Mode          string `yaml:"mode"`
+    SandboxImage  string `yaml:"sandbox_image,omitempty"`
+    AutoPull      bool   `yaml:"auto_pull"`
+    Cleanup       bool   `yaml:"cleanup"`
+    TTL           int    `yaml:"ttl,omitempty"`
+}
+
+type LocalBackendConfig struct {
+    // ... existing fields
+    Execution *ExecutionConfig `yaml:"execution,omitempty"`
+}
+```
+
+**2. Add Resolve Methods** (following existing LLM pattern):
+```go
+// Priority: env var > config file > default
+func (c *LocalBackendConfig) ResolveExecutionMode() string {
+    // 1. Check environment variable (highest priority)
+    if mode := os.Getenv("STIGMER_EXECUTION_MODE"); mode != "" {
+        return mode
+    }
+    
+    // 2. Check config file
+    if c.Execution != nil && c.Execution.Mode != "" {
+        return c.Execution.Mode
+    }
+    
+    // 3. Default
+    return "local"
+}
+```
+
+**3. Add CLI Flags** (`server.go`):
+```go
+cmd.Flags().String("execution-mode", "", "Agent execution mode: local, sandbox, or auto")
+cmd.Flags().String("sandbox-image", "", "Docker image for sandbox mode")
+cmd.Flags().Bool("sandbox-auto-pull", true, "Auto-pull sandbox image if missing")
+cmd.Flags().Bool("sandbox-cleanup", true, "Cleanup sandbox containers")
+cmd.Flags().Int("sandbox-ttl", 3600, "Container reuse TTL in seconds")
+```
+
+**4. StartOptions Pass-Through** (`daemon.go`):
+```go
+type StartOptions struct {
+    Progress        *cliprint.ProgressDisplay
+    ExecutionMode   string  // CLI flag override
+    SandboxImage    string  // CLI flag override
+    SandboxAutoPull bool    // CLI flag override
+    SandboxCleanup  bool    // CLI flag override
+    SandboxTTL      int     // CLI flag override
+}
+
+// Resolution logic (CLI flags > Resolve methods)
+executionMode := opts.ExecutionMode
+if executionMode == "" {
+    executionMode = cfg.Backend.Local.ResolveExecutionMode()
+}
+```
+
+**5. Config Helper Commands** (`config.go`):
+```go
+stigmer config get execution.mode
+stigmer config set execution.mode sandbox
+stigmer config list
+stigmer config path
+```
+
+**Usage Examples**:
+
+```bash
+# Method 1: CLI Flag (one-off override)
+stigmer server start --execution-mode=sandbox
+
+# Method 2: Environment Variable (session/CI)
+export STIGMER_EXECUTION_MODE=sandbox
+stigmer server start
+
+# Method 3: Config File (persistent)
+stigmer config set execution.mode sandbox
+stigmer server start
+
+# Priority Test (CLI flag wins)
+stigmer config set execution.mode local     # Config file: local
+export STIGMER_EXECUTION_MODE=sandbox       # Env var: sandbox
+stigmer server start --execution-mode=auto  # CLI flag: auto
+# Result: Uses auto (highest priority)
+```
+
+**Why This Pattern**:
+
+✅ **Flexibility** - Users choose method that fits their workflow:
+- Daily dev: Config file (set once, forget)
+- CI/CD: Env vars (standard for pipelines)
+- Testing: CLI flags (quick temporary overrides)
+
+✅ **Industry Standard** - Matches familiar tools:
+- Docker: `docker run --memory=512m` (flag) + `DOCKER_HOST` (env) + `config.json`
+- kubectl: `--namespace` (flag) + `KUBECTL_NAMESPACE` (env) + `kubeconfig`
+- AWS CLI: `--region` (flag) + `AWS_REGION` (env) + `~/.aws/config`
+
+✅ **Predictable** - Clear priority order, no ambiguity
+
+✅ **Discoverable** - `stigmer config list` shows all options
+
+**Prevention**:
+
+- ✅ **New config features should follow this cascade pattern**
+- ✅ **Add Resolve*() method** for env var + config file resolution
+- ✅ **Add CLI flag** for command-level overrides
+- ✅ **Add to StartOptions** if needs to pass to daemon
+- ✅ **Update config helper commands** (get/set support)
+- ✅ **Document all three methods** in user docs
+
+**Pattern Template for New Config Features**:
+
+```go
+// 1. Add to config struct
+type LocalBackendConfig struct {
+    NewFeature *NewFeatureConfig `yaml:"new_feature,omitempty"`
+}
+
+type NewFeatureConfig struct {
+    Setting string `yaml:"setting"`
+}
+
+// 2. Add Resolve method
+func (c *LocalBackendConfig) ResolveNewFeatureSetting() string {
+    // Priority: env var > config file > default
+    if val := os.Getenv("STIGMER_NEW_FEATURE_SETTING"); val != "" {
+        return val
+    }
+    if c.NewFeature != nil && c.NewFeature.Setting != "" {
+        return c.NewFeature.Setting
+    }
+    return "default_value"
+}
+
+// 3. Add CLI flag
+cmd.Flags().String("new-feature-setting", "", "Description")
+
+// 4. Add to StartOptions (if needed)
+type StartOptions struct {
+    NewFeatureSetting string
+}
+
+// 5. Update config commands (get/set)
+case "new_feature.setting":
+    return config.NewFeature.Setting
+```
+
+**Benefits Over Single-Method Approach**:
+
+| Scenario | Before (Env Var Only) | After (Cascade) |
+|----------|----------------------|-----------------|
+| Daily dev | Export every session ❌ | Config file once ✅ |
+| CI/CD | Env vars ✅ | Env vars ✅ |
+| Quick test | Unset env after ❌ | CLI flag ✅ |
+| Team standard | Share env vars ❌ | Share config file ✅ |
+
+**Related Docs**:
+- Implementation: `config.go`, `server.go`, `daemon.go`, `config.go` (helper commands)
+- User guide: `docs/cli/configuration-cascade.md`
+- Implementation: `docs/implementation/configuration-cascade-implementation.md`
+- Changelog: `_changelog/2026-01/2026-01-22-implement-configuration-cascade-pattern.md`
+
+**Key Takeaway**: Configuration cascade (CLI → Env → Config → Defaults) serves all user workflows. Follow the pattern for any user-configurable setting. Reuse Resolve*() method pattern. Add CLI flags for overrides. Provide helper commands for config file management. Document all three methods. This is the industry standard for good reason.
+
+---
+
+### 2026-01-22 - StartOptions Struct Pattern for CLI Flag Pass-Through
+
+**Problem**: CLI flags parsed in command handler need to flow through daemon startup to Docker container environment variables. Direct parameter passing would require changing function signatures across multiple layers:
+```go
+daemon.Start(dataDir, executionMode, sandboxImage, autoPull, cleanup, ttl)  // 6+ parameters
+```
+
+**Root Cause**: Function signatures become unwieldy when adding new configuration options. Every new flag requires updating multiple function signatures.
+
+**Solution**: Use options struct pattern for extensible configuration:
+
+```go
+// Before: Function signature with many parameters
+func StartWithOptions(dataDir string, progress *cliprint.ProgressDisplay, 
+    executionMode string, sandboxImage string, ...) error
+
+// After: Options struct (extensible, clean)
+type StartOptions struct {
+    Progress        *cliprint.ProgressDisplay
+    ExecutionMode   string
+    SandboxImage    string
+    SandboxAutoPull bool
+    SandboxCleanup  bool
+    SandboxTTL      int
+}
+
+func StartWithOptions(dataDir string, opts StartOptions) error {
+    // Access via opts.ExecutionMode, opts.SandboxImage, etc.
+}
+```
+
+**Usage in Command Handler**:
+```go
+func handleServerStart(cmd *cobra.Command) {
+    // Parse CLI flags
+    executionMode, _ := cmd.Flags().GetString("execution-mode")
+    sandboxImage, _ := cmd.Flags().GetString("sandbox-image")
+    // ... parse other flags
+    
+    // Pass through options struct
+    daemon.StartWithOptions(dataDir, daemon.StartOptions{
+        Progress:        progress,
+        ExecutionMode:   executionMode,
+        SandboxImage:    sandboxImage,
+        SandboxAutoPull: sandboxAutoPull,
+        SandboxCleanup:  sandboxCleanup,
+        SandboxTTL:      sandboxTTL,
+    })
+}
+```
+
+**Benefits**:
+- ✅ **Extensible** - Add new options without changing signatures
+- ✅ **Self-documenting** - Field names show purpose
+- ✅ **Optional** - Can omit fields (zero values)
+- ✅ **Backward compatible** - Add fields without breaking existing calls
+- ✅ **Type-safe** - Compiler catches field typos
+
+**Prevention**:
+- Use options struct when function needs 4+ parameters
+- Use options struct for configuration that grows over time
+- Don't create options struct for simple 1-2 parameter functions
+- Name clearly: `StartOptions`, `ExecuteOptions`, `DeployOptions`
+
+**Related Pattern**: Functional options (Google style guide alternative):
+```go
+type StartOption func(*StartOptions)
+
+func WithProgress(p *cliprint.ProgressDisplay) StartOption {
+    return func(opts *StartOptions) { opts.Progress = p }
+}
+
+// Usage
+daemon.Start(dataDir, WithProgress(p), WithExecutionMode("sandbox"))
+```
+
+Both patterns work. Choose based on:
+- **Struct pattern**: When you control all call sites, simpler
+- **Functional options**: When library needs extensibility, more flexible
+
+For Stigmer (internal use): **Struct pattern is simpler and sufficient**.
+
+**Related Docs**:
+- Implementation: `daemon.go` (StartOptions), `server.go` (flag parsing)
+- Changelog: `_changelog/2026-01/2026-01-22-implement-configuration-cascade-pattern.md`
+- Pattern source: Google Go Style Guide (Options pattern)
+
+**Key Takeaway**: Options struct pattern enables clean extension of function parameters without breaking backward compatibility. Use for configuration that grows. Name fields clearly. Make optional fields use pointer or zero value defaults.
+
+---
