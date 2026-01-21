@@ -42,6 +42,15 @@ a = Analysis(
         
         # Daytona sandbox support
         'daytona',
+        'daytona._async',
+        'daytona._async.filesystem',
+        'daytona._sync',
+        'daytona._sync.filesystem',
+        
+        # multipart package (required by daytona SDK)
+        'multipart',
+        'multipart.multipart',  # Contains MultipartSegment, PushMultipartParser
+        
         'deepagents_cli',
         
         # Authentication
@@ -62,7 +71,7 @@ a = Analysis(
         'signal',
         'multiprocessing',
     ],
-    hookspath=[],
+    hookspath=['hooks'],  # Custom PyInstaller hooks directory
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
