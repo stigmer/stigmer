@@ -467,10 +467,10 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	if opts.Progress != nil {
 		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting health monitoring")
 	}
-	
+
 	// Give components a moment to stabilize before starting health checks
 	time.Sleep(2 * time.Second)
-	
+
 	if err := startHealthMonitoring(dataDir); err != nil {
 		log.Warn().Err(err).Msg("Failed to start health monitoring - components will not auto-restart on failure")
 		// Don't fail startup if health monitoring fails
@@ -562,14 +562,14 @@ func startWorkflowRunner(
 	// Wait briefly to ensure the process doesn't crash immediately
 	// Common crash scenarios: Temporal connection failure, config loading errors
 	time.Sleep(2 * time.Second)
-	
+
 	// Verify the process is still running
 	// On Unix, Process.Signal(0) checks if process exists without sending a signal
 	if err := cmd.Process.Signal(syscall.Signal(0)); err != nil {
 		// Process has already crashed
 		// Read the last few lines of log to provide context
 		logContent, _ := os.ReadFile(filepath.Join(logDir, "workflow-runner.log"))
-		
+
 		return errors.Errorf(
 			"workflow-runner crashed immediately after startup (PID %d)\n"+
 				"Last log output: %s\n"+
@@ -579,7 +579,7 @@ func startWorkflowRunner(
 			filepath.Join(logDir, "workflow-runner.log"),
 		)
 	}
-	
+
 	log.Info().
 		Int("pid", cmd.Process.Pid).
 		Msg("Workflow-runner health check passed")
@@ -663,7 +663,8 @@ After installing Docker, restart Stigmer server.`)
 		// LLM configuration
 		"-e", fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", llmProvider),
 		"-e", fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
-		"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURLResolved),
+		// OLLAMA_BASE_URL is the standard env var expected by LangChain for Ollama
+		"-e", fmt.Sprintf("OLLAMA_BASE_URL=%s", llmBaseURLResolved),
 
 		// Execution configuration (NEW - full cascade support)
 		"-e", fmt.Sprintf("STIGMER_EXECUTION_MODE=%s", executionMode),
