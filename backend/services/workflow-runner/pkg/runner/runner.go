@@ -4,10 +4,13 @@ import (
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/cmd/worker"
 )
 
-// Run starts the workflow-runner (extracted for BusyBox pattern)
-// This allows the CLI to call this function directly instead of running a separate binary
+// Run starts the workflow-runner in Temporal worker mode (BusyBox pattern)
+// This allows the CLI to call this function directly without spawning a separate binary
+//
+// Note: This bypasses the cobra command structure and directly calls the worker mode
+// because the zigflow CLI root command doesn't have an "internal-workflow-runner" subcommand.
 func Run() error {
-	// Call the existing Execute function which handles the cobra command
-	worker.Execute()
-	return nil
+	// Directly run in Temporal worker mode (stigmer integration)
+	// Don't go through worker.Execute() which would try to parse cobra commands
+	return worker.RunTemporalWorkerMode()
 }
