@@ -11,7 +11,8 @@ Transform agent-runner into standalone PyInstaller binary, following Temporal's 
 ✅ **Phase 2.5 Complete** - BusyBox pattern refactoring (24MB size reduction)  
 ✅ **Phase 2.75 Complete** - Workflow optimization (env vars, downloads, Makefiles)  
 ✅ **Build Infrastructure Fixed** - Bazel 8.0.0 pinned (was blocking all builds)  
-🚀 **Phase 3 Ready** - Testing and release (unblocked, ready to proceed)
+✅ **GitHub Actions Fixed** - PyInstaller installation + macOS runner cross-compilation  
+🚀 **Phase 3 Ready** - Testing and release (fully unblocked, CI working)
 
 ## Quick Links
 - Project README: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/README.md`
@@ -20,6 +21,7 @@ Transform agent-runner into standalone PyInstaller binary, following Temporal's 
 - Phase 2 Testing Guide: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/tasks/T02_TESTING_GUIDE.md`
 - **Phase 2.75 Summary**: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/tasks/IMPLEMENTATION_SUMMARY.md`
 - **Build Fix Checkpoint**: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/checkpoints/2026-01-21-build-infrastructure-fixed.md`
+- **GitHub Actions Fix Checkpoint**: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/checkpoints/2026-01-21-github-actions-workflow-fixes.md`
 - ADR Reference: `_cursor/adr-use-python-binary.md`
 - **Build Fix Details**: `_cursor/bazel-fix.md` | `_changelog/2026-01/2026-01-21-085212-fix-bazel-build-pin-version-8.md`
 
@@ -67,6 +69,26 @@ This project implements PyInstaller-based standalone binary approach for agent-r
 - **Key Insight**: Don't manage Python environments, manage binaries
 - **User Benefit**: Zero Python installation required
 - **Timeline**: 2 weeks, 5 phases (Phase 2 of 5 in progress)
+
+## Latest Updates (2026-01-21)
+
+### GitHub Actions Workflow Fixed ✅
+**Problem**: Release workflow completely blocked by two CI failures:
+1. **PyInstaller not found** - `poetry install --with dev` step was missing
+2. **macOS-13 retired** - Needed migration to macos-latest with cross-compilation
+
+**Solution**: 
+- Added "Install Poetry dependencies" step to all three build jobs
+- Migrated `build-darwin-amd64` to `macos-latest` with `--target-arch x86_64` (PyInstaller) and `GOARCH=amd64` (Go)
+- Result: All three platforms (darwin-arm64, darwin-amd64, linux-amd64) now build successfully
+
+**Impact**: Release pipeline fully unblocked! Phase 3 testing can proceed.
+
+**Files Changed**: `.github/workflows/release-embedded.yml`
+
+**Documentation**:
+- Checkpoint: `checkpoints/2026-01-21-github-actions-workflow-fixes.md`
+- Changelog: `_changelog/2026-01/2026-01-21-090633-fix-github-actions-workflow-ci-failures.md`
 
 ## Next Actions (Phase 3: Testing & Release)
 
