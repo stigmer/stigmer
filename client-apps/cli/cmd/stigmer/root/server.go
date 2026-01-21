@@ -27,9 +27,16 @@ This command starts the Stigmer server with zero configuration:
 Just run 'stigmer server' and start building!`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// Default action: start the server
-			handleServerStart()
+			handleServerStart(cmd)
 		},
 	}
+
+	// Add execution mode flags (cascades: CLI flag > env var > config file > default)
+	cmd.Flags().String("execution-mode", "", "Agent execution mode: local, sandbox, or auto (default: local)")
+	cmd.Flags().String("sandbox-image", "", "Docker image for sandbox mode (default: ghcr.io/stigmer/agent-sandbox-basic:latest)")
+	cmd.Flags().Bool("sandbox-auto-pull", true, "Auto-pull sandbox image if missing")
+	cmd.Flags().Bool("sandbox-cleanup", true, "Cleanup sandbox containers after execution")
+	cmd.Flags().Int("sandbox-ttl", 3600, "Sandbox container reuse TTL in seconds")
 
 	cmd.AddCommand(newServerStopCommand())
 	cmd.AddCommand(newServerStatusCommand())
@@ -58,7 +65,7 @@ func newServerStatusCommand() *cobra.Command {
 	}
 }
 
-func handleServerStart() {
+func handleServerStart(cmd *cobra.Command) {
 	// Auto-initialize config if needed
 	if !config.IsInitialized() {
 		cliprint.PrintInfo("First-time setup: Initializing Stigmer...")
@@ -102,8 +109,22 @@ func handleServerStart() {
 	progress.Start()
 	progress.SetPhase(cliprint.PhaseStarting, "Preparing environment")
 	
-	// Start daemon with progress tracking
-	if err := daemon.StartWithOptions(dataDir, daemon.StartOptions{Progress: progress}); err != nil {
+	// Parse CLI flags for execution configuration
+	executionMode, _ := cmd.Flags().GetString("execution-mode")
+	sandboxImage, _ := cmd.Flags().GetString("sandbox-image")
+	sandboxAutoPull, _ := cmd.Flags().GetBool("sandbox-auto-pull")
+	sandboxCleanup, _ := cmd.Flags().GetBool("sandbox-cleanup")
+	sandboxTTL, _ := cmd.Flags().GetInt("sandbox-ttl")
+	
+	// Start daemon with progress tracking and execution options
+	if err := daemon.StartWithOptions(dataDir, daemon.StartOptions{
+		Progress:        progress,
+		ExecutionMode:   executionMode,
+		SandboxImage:    sandboxImage,
+		SandboxAutoPull: sandboxAutoPull,
+		SandboxCleanup:  sandboxCleanup,
+		SandboxTTL:      sandboxTTL,
+	}); err != nil {
 		progress.Stop()
 		cliprint.PrintError("Failed to start server")
 		clierr.Handle(err)

@@ -1,0 +1,18 @@
+# Basic Python packages for sandbox execution
+# Keep this minimal - users can add more via layered builds
+
+# YAML processing
+pyyaml==6.0.1
+
+# HTTP requests
+requests==2.31.0
+
+# CLI utilities
+click==8.1.7
+
+# JSON/data processing
+jsonschema==4.21.1
+
+# Testing utilities
+pytest==8.0.2
+pytest-asyncio==0.23.5

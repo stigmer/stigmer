@@ -1,0 +1,57 @@
+# Lightweight Basic Sandbox (~300MB)
+# Python + Node + Git only - No cloud CLIs
+#
+# Use this for:
+# - Basic isolation without bloat
+# - CI/CD pipelines
+# - Users without local tools
+# - Quick testing in clean environment
+
+FROM python:3.11-slim
+
+# Install base utilities and development tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Core utilities
+    git \
+    curl \
+    wget \
+    ca-certificates \
+    jq \
+    bash \
+    # Build tools for Python packages
+    build-essential \
+    # Node.js and npm
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Verify Node.js installation
+RUN node --version && npm --version
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy and install Python requirements
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
+    rm /tmp/requirements.txt
+
+# Create non-root user for security
+RUN groupadd -g 1000 sandbox && \
+    useradd -r -u 1000 -g sandbox sandbox && \
+    chown -R sandbox:sandbox /workspace
+
+# Switch to non-root user
+USER sandbox
+
+# Verify installations
+RUN python --version && \
+    pip --version && \
+    node --version && \
+    npm --version && \
+    git --version && \
+    curl --version && \
+    jq --version
+
+# Default command
+CMD ["/bin/bash"]
