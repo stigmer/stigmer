@@ -270,9 +270,10 @@ func startWorkflowRunner(
 		// Temporal configuration
 		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", temporalAddr),
 		"TEMPORAL_NAMESPACE=default",
-		"WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE=workflow_execution_runner",
-		"ZIGFLOW_EXECUTION_TASK_QUEUE=zigflow_execution",
-		"WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE=workflow_validation_runner",
+		// CRITICAL: Must use TEMPORAL_ prefix to match workflow-runner config expectations
+		"TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE=workflow_execution_runner",
+		"TEMPORAL_ZIGFLOW_EXECUTION_TASK_QUEUE=zigflow_execution",
+		"TEMPORAL_WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE=workflow_validation_runner",
 		
 		// Stigmer backend configuration (for callbacks)
 		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=localhost:%d", DaemonPort),
