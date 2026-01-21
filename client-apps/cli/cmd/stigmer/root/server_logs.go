@@ -50,17 +50,22 @@ Use --all to view logs from all components in a single interleaved stream (defau
 
 			// Handle --all flag: show logs from all components
 			if showAll {
-				// Default to stderr for --all since stigmer-server logs go there
-				// (unless user explicitly set --stderr=false)
-				if !cmd.Flags().Changed("stderr") {
-					showStderr = true
-				}
+				// Smart defaults: use the stream that actually has logs for each component
+				// - stigmer-server: stderr (zerolog defaults to stderr)
+				// - workflow-runner: stdout (Go's log package defaults to stdout)
+				// - agent-runner: both stdout and stderr from Docker
+				// If user explicitly set --stderr, respect that for all components
+				useSmartDefaults := !cmd.Flags().Changed("stderr")
 				
-				components := getComponentConfigs(dataDir, logDir)
+				components := getComponentConfigsWithStreamPreferences(dataDir, logDir, useSmartDefaults)
 				
-				streamType := "stdout"
-				if showStderr {
-					streamType = "stderr"
+				streamType := "mixed (smart defaults)"
+				if !useSmartDefaults {
+					if showStderr {
+						streamType = "stderr"
+					} else {
+						streamType = "stdout"
+					}
 				}
 				
 				if follow {
@@ -68,7 +73,7 @@ Use --all to view logs from all components in a single interleaved stream (defau
 					cliprint.PrintInfo("Press Ctrl+C to stop")
 					fmt.Println()
 					
-					if err := logs.StreamAllLogs(components, showStderr, lines); err != nil {
+					if err := logs.StreamAllLogsWithPreferences(components, lines); err != nil {
 						cliprint.PrintError("Failed to stream logs")
 						clierr.Handle(err)
 						return
@@ -77,7 +82,7 @@ Use --all to view logs from all components in a single interleaved stream (defau
 					cliprint.PrintInfo("Showing last %d lines from all components (%s, interleaved by timestamp)", lines, streamType)
 					fmt.Println()
 					
-					mergedLines, err := logs.MergeLogFiles(components, showStderr, lines)
+					mergedLines, err := logs.MergeLogFilesWithPreferences(components, lines)
 					if err != nil {
 						cliprint.PrintError("Failed to read logs")
 						clierr.Handle(err)
@@ -189,6 +194,45 @@ func getComponentConfigs(dataDir, logDir string) []logs.ComponentConfig {
 			Name:    "agent-runner",
 			LogFile: filepath.Join(logDir, "agent-runner.log"),
 			ErrFile: filepath.Join(logDir, "agent-runner.err"),
+		})
+	}
+	
+	return components
+}
+
+// getComponentConfigsWithStreamPreferences returns component configs with smart stream preferences
+// stigmer-server: prefers stderr (zerolog defaults to stderr)
+// workflow-runner: prefers stdout (Go's log package defaults to stdout)
+// agent-runner: reads from Docker (both streams)
+func getComponentConfigsWithStreamPreferences(dataDir, logDir string, useSmartDefaults bool) []logs.ComponentConfig {
+	components := []logs.ComponentConfig{
+		{
+			Name:           "stigmer-server",
+			LogFile:        filepath.Join(logDir, "stigmer-server.log"),
+			ErrFile:        filepath.Join(logDir, "stigmer-server.err"),
+			PreferStderr:   useSmartDefaults, // stigmer-server logs to stderr by default
+		},
+		{
+			Name:           "workflow-runner",
+			LogFile:        filepath.Join(logDir, "workflow-runner.log"),
+			ErrFile:        filepath.Join(logDir, "workflow-runner.err"),
+			PreferStderr:   false, // workflow-runner logs to stdout (Go log package default)
+		},
+	}
+	
+	// Check if agent-runner is running in Docker
+	if isAgentRunnerDocker(dataDir) {
+		components = append(components, logs.ComponentConfig{
+			Name:           "agent-runner",
+			DockerContainer: daemon.AgentRunnerContainerName,
+			PreferStderr:   false, // Docker logs include both streams
+		})
+	} else {
+		components = append(components, logs.ComponentConfig{
+			Name:           "agent-runner",
+			LogFile:        filepath.Join(logDir, "agent-runner.log"),
+			ErrFile:        filepath.Join(logDir, "agent-runner.err"),
+			PreferStderr:   false, // agent-runner logs to stdout
 		})
 	}
 	
