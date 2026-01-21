@@ -2135,6 +2135,146 @@ lsof -ti:7233  # Should return PID
 
 ---
 
+### 2026-01-22 - Use Standard Library Environment Variables (No Custom Abstractions)
+
+**Problem**: Agent-runner Docker container failed to connect to Ollama with "All connection attempts failed" error, even after hostname was correctly resolved to `host.docker.internal:11434`.
+
+```bash
+# Container environment variables (before fix):
+STIGMER_LLM_BASE_URL=http://host.docker.internal:11434  # ✓ Resolved, but unused!
+STIGMER_LLM_PROVIDER=ollama
+STIGMER_LLM_MODEL=qwen2.5-coder:14b
+
+# Agent execution error:
+ERROR - ExecuteGraphton failed: All connection attempts failed
+```
+
+**Root Cause**: Created custom environment variable (`STIGMER_LLM_BASE_URL`) instead of using the standard variable (`OLLAMA_BASE_URL`) that LangChain reads directly.
+
+**Investigation Process**:
+1. Verified hostname resolution was correct (`host.docker.internal` ✅)
+2. Tested Ollama API reachable from container (worked ✅)
+3. Manual test of Graphton agent creation (worked ✅)
+4. Discovered: LangChain reads `OLLAMA_BASE_URL` environment variable directly, not our custom variable
+5. Our custom `STIGMER_LLM_BASE_URL` was being set but **never used** by the actual code
+
+**The Mistake**: 
+Unnecessary abstraction layer - created `STIGMER_LLM_BASE_URL` thinking we needed provider-agnostic configuration, but:
+- LangChain's Ollama integration expects `OLLAMA_BASE_URL` (industry standard)
+- Our config code read `STIGMER_LLM_BASE_URL` into a struct but never passed it to Graphton
+- Graphton always read `OLLAMA_BASE_URL` from environment directly
+- **Result**: Two variables with same value, only one actually works
+
+**Solution**: Remove custom variable, use only the standard `OLLAMA_BASE_URL`:
+
+**daemon.go** (Go - CLI):
+```go
+// Before (wrong):
+"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURLResolved),
+
+// After (correct):
+// OLLAMA_BASE_URL is the standard env var expected by LangChain for Ollama
+"-e", fmt.Sprintf("OLLAMA_BASE_URL=%s", llmBaseURLResolved),
+```
+
+**config.py** (Python - agent-runner):
+```python
+# Before (wrong):
+base_url = os.getenv("STIGMER_LLM_BASE_URL", default_base_url)
+
+# After (correct):
+# Note: For Ollama, LangChain reads OLLAMA_BASE_URL directly from environment
+# We just store it here for validation purposes
+base_url = os.getenv("OLLAMA_BASE_URL", default_base_url)
+```
+
+**Why Standard Variables Matter**:
+
+✅ **Follow the Principle of Least Surprise**:
+- Developers already know `OLLAMA_BASE_URL` from LangChain docs
+- Standard variables work out-of-the-box with examples
+- No need to remember custom naming schemes
+
+✅ **Eliminate Unnecessary Abstractions**:
+- Our custom variable wasn't providing any value
+- It was just a wrapper that confused things
+- Simpler is better
+
+✅ **Libraries Read Environment Directly**:
+- LangChain, boto3, requests, etc. all read standard env vars
+- Don't create custom variables that need to be "bridged" to standard ones
+- Set the standard variable directly in your configuration
+
+❌ **Common Mistake Pattern**:
+```python
+# Wrong: Create custom variable that's never used
+MYAPP_OLLAMA_URL = "http://localhost:11434"  # Custom, unused
+# Library reads: OLLAMA_BASE_URL (missing!)
+
+# Right: Set the standard variable
+OLLAMA_BASE_URL = "http://localhost:11434"  # Standard, works
+```
+
+**Testing Pattern**:
+
+```bash
+# Test if library is reading your variable:
+docker exec container python3 -c "
+import os
+print(f'Custom var: {os.getenv(\"STIGMER_LLM_BASE_URL\")}')
+print(f'Standard var: {os.getenv(\"OLLAMA_BASE_URL\")}')
+
+from langchain_community.chat_models import ChatOllama
+llm = ChatOllama(model='model-name')
+print(f'LLM will connect to: {llm._get_client().base_url}')
+"
+```
+
+If the library doesn't see your custom variable, it's using the standard one!
+
+**Prevention**:
+
+✅ **Research standard environment variables BEFORE creating custom ones**:
+- Check library documentation: What env vars does it expect?
+- Search library source: `grep -r "os.getenv" | grep -i base_url`
+- Test: Does setting standard var work? If yes, use it!
+
+✅ **Only create custom variables when needed for YOUR logic**:
+- Configuration cascade (CLI → Env → File → Defaults) - needs custom vars ✅
+- Library integration - use standard vars ❌
+
+✅ **If you must bridge, do it explicitly**:
+```python
+# If you must have custom config for some reason:
+custom_url = os.getenv("MYAPP_LLM_URL")
+if custom_url:
+    os.environ["OLLAMA_BASE_URL"] = custom_url  # Bridge to standard
+```
+
+But better: Just use the standard variable.
+
+**Impact**:
+
+Before Fix:
+- ❌ Agent execution failed (all connection attempts failed)
+- ❌ Confusing configuration (two variables, which one matters?)
+- ❌ Debugging took longer (checked STIGMER_LLM_BASE_URL, which was correct but irrelevant!)
+
+After Fix:
+- ✅ Agent execution works (connects to Ollama successfully)
+- ✅ Clear configuration (one standard variable)
+- ✅ Follows principle of least surprise
+- ✅ Easier debugging (check the variable that matters)
+
+**Related Docs**:
+- Changelog: `_changelog/2026-01/2026-01-22-042455-fix-ollama-connection-from-agent-runner-docker.md`
+- Implementation: `daemon.go` (line 666), `config.py` (line 122)
+- LangChain docs: https://python.langchain.com/docs/integrations/chat/ollama
+
+**Key Takeaway**: Use standard environment variables that libraries expect. Don't create custom variables that need to be "bridged." Research library docs/source before inventing your own naming. Unnecessary abstractions cause confusion and bugs. When library reads env var X directly, set X in your config - don't set Y and hope it somehow reaches X.
+
+---
+
 ## Configuration & Context
 
 ### 2026-01-22 - Configuration Cascade Pattern (CLI Flags → Env Vars → Config File → Defaults)
