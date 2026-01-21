@@ -201,99 +201,142 @@ When you run `stigmer apply`, `stigmer run`, or any command requiring the backen
 ### First Run Experience
 
 ```bash
-$ stigmer apply
+$ stigmer server
 
-ℹ Loading project configuration...
-✓ Loaded Stigmer.yaml
+✓ First-time setup: Initializing Stigmer...
+  Starting Stigmer server...
+   ⣷ Initializing: Setting up local LLM
+   ⣷ Installing: Downloading local LLM: 50% (75 MB / 150 MB)
+   ⣷ Starting: Starting local LLM server
+   ⣷ Installing: Downloading model qwen2.5-coder:7b (3-10 minutes)
+   ⣷ Installing: Setting up Temporal
+   ⣷ Deploying: Starting Temporal server
+   ⣷ Deploying: Starting workflow runner
+   ⣷ Deploying: Starting agent runner
+✓ Ready! Stigmer server is running
 
-ℹ Using local backend (organization: local)
-ℹ 🚀 Starting local backend daemon...
-ℹ    This may take a moment on first run
+LLM Configuration:
+  Provider: Local ✓ Running
+  Model:    qwen2.5-coder:7b
 
-✓ Using Ollama (no API key required)
-⚙️  Initializing database...
-🔧 Starting Temporal...
-✓ Daemon started successfully
-
-ℹ Connecting to backend...
-✓ Connected to backend
-✓ Deployed successfully!
+Web UI:
+  Temporal:  http://localhost:8233
 ```
 
-**Startup time**: 5-15 seconds on first run (downloads Temporal, initializes database)
+**Startup time**: 5-10 minutes on first run (downloads LLM binary ~150 MB + model ~4-7 GB, initializes database, starts services)
+
+**What happens automatically:**
+- ✅ Downloads local LLM binary to `~/.stigmer/bin/`
+- ✅ Starts LLM server in background
+- ✅ Downloads AI model (happens once)
+- ✅ Starts Temporal workflow engine
+- ✅ Starts agent runner
+- ✅ Everything managed by the CLI—no manual steps!
+
+**Local LLM:** By default, Stigmer uses a local AI model that runs on your machine. No API keys required, fully private, works offline. See [Architecture: LLM Automation](../architecture/llm-automation.md) for details.
 
 ### Subsequent Runs
 
 ```bash
-$ stigmer apply
+$ stigmer server
 
-ℹ Loading project configuration...
-✓ Loaded Stigmer.yaml
-ℹ Using local backend (organization: local)
-ℹ Connecting to backend...  # ← Immediate, no startup!
-✓ Connected to backend
-✓ Deployed successfully!
+✓ Using local LLM (no API key required)
+  Starting Stigmer server...
+   ⣷ Starting: Starting Temporal server
+   ⣷ Deploying: Starting workflow runner
+   ⣷ Deploying: Starting agent runner
+✓ Ready! Stigmer server is running
 ```
 
-**Fast path**: < 1 second (daemon already running)
+**Fast path**: < 30 seconds (LLM and model already installed, just starting services)
+
+### Managing Local LLM
+
+**Check LLM status:**
+
+```bash
+stigmer server llm status
+
+# Output:
+LLM Configuration:
+  Provider: Local ✓ Running
+  PID:      12346
+  Model:    qwen2.5-coder:7b
+  Available: qwen2.5-coder:7b
+```
+
+**List available models:**
+
+```bash
+stigmer server llm list
+
+# Output:
+Available Models:
+─────────────────────────────────────
+  qwen2.5-coder:7b (current)
+
+To pull a new model:
+  stigmer server llm pull <model-name>
+```
+
+**Pull additional models:**
+
+```bash
+stigmer server llm pull codellama:7b
+
+# Downloads the model (~3.8 GB)
+# Then update config to use it:
+stigmer config set llm.model codellama:7b
+```
+
+**Recommended models for coding:**
+- `qwen2.5-coder:7b` (Default - good balance, 4.7 GB)
+- `codellama:7b` (Alternative coding model, 3.8 GB)
+- `deepseek-coder:6.7b` (Fast, 3.8 GB)
+
+For complete LLM documentation, see:
+- [Architecture: LLM Automation](../architecture/llm-automation.md) - How automated setup works
+- [CLI Configuration: LLM Options](../cli/configuration.md#llm-provider-configuration) - All configuration options
 
 ### Manual Daemon Management (Optional)
 
-**If you prefer explicit control**, you can still start/stop the daemon manually:
-
-**Start daemon explicitly:**
+**Stop the server:**
 
 ```bash
-stigmer server start
+stigmer server stop
 ```
 
-**Troubleshooting with Debug Mode**:
+This gracefully shuts down the LLM server, Temporal, and all services.
 
-If you encounter issues, enable debug mode to see detailed logs:
+**Check server status:**
 
 ```bash
-stigmer local start --debug
-# or
-stigmer local -d
+stigmer server status
+
+# Shows:
+# - Server status (running/stopped)
+# - LLM status and model
+# - Temporal UI link
+```
+
+**Troubleshooting with Debug Mode:**
+
+If you encounter issues, enable debug mode:
+
+```bash
+stigmer server --debug
 ```
 
 Debug mode shows:
 - Configuration loading details
-- LLM provider resolution
+- LLM provider resolution and setup
 - Temporal startup logs
 - Agent runner initialization
 - All internal process information
 
-**Normal vs Debug Output**:
+**Normal vs Debug Output:**
 - **Normal mode**: Clean UI with progress indicators (recommended)
 - **Debug mode**: Human-readable debug logs + progress UI (troubleshooting)
-
-On first start, you'll be prompted for required API keys:
-
-```
-Enter Anthropic API key: ********
-✓ Anthropic API key configured
-✓ Starting managed Temporal server...
-✓ Temporal started successfully
-✓ Ready! Stigmer is running
-  PID:  12345
-  Port: 50051
-  Data: /Users/you/.stigmer/data
-
-Temporal UI: http://localhost:8233
-```
-
-**What happens:**
-- Stigmer prompts for missing API keys (masked input)
-- Downloads and starts Temporal server (auto-managed)
-- Starts local stigmer-server on `localhost:50051`
-- Starts agent-runner Docker container with injected secrets
-- All processes run in background
-- Temporal Web UI available at `http://localhost:8233`
-
-**Note:** Agent-runner runs in a Docker container (automatically managed by the CLI). The container is started/stopped transparently when you start/stop the server.
-
-**Subsequent starts:** If you've set `ANTHROPIC_API_KEY` in your environment, no prompt will appear.
 
 ### Temporal Web UI (Workflow Debugging)
 

@@ -33,6 +33,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Backend Modes](architecture/backend-modes.md) - Local vs cloud backend architecture, auto-start daemon, and organization handling
 - [Backend Abstraction](architecture/backend-abstraction.md) - Backend interface design and abstraction layers
 - [CLI Subprocess Lifecycle](architecture/cli-subprocess-lifecycle.md) - Production-grade subprocess management with lock files, health checks, and auto-restart
+- [LLM Automation](architecture/llm-automation.md) - Zero-config local LLM setup, automatic binary downloads, and lifecycle management
 - [Go Module Structure](architecture/go-module-structure.md) - Go workspace and module organization pattern for contributors
 - [Open Core Model](architecture/open-core-model.md) - Open source vs enterprise architecture
 - [Packaging Flow](architecture/packaging-flow.md) - How Stigmer is packaged and distributed (with diagrams)
