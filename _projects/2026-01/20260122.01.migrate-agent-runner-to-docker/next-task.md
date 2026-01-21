@@ -1,10 +1,10 @@
 # Quick Resume: Migrate Agent-Runner to Docker
 
 **Project**: `_projects/2026-01/20260122.01.migrate-agent-runner-to-docker`  
-**Status**: ✅ COMPLETE (Including Workflow Integration)  
+**Status**: ✅ COMPLETE (Including macOS Networking Fix)  
 **Created**: 2026-01-22  
 **Completed**: 2026-01-22  
-**Final Update**: 2026-01-22 02:05
+**Final Update**: 2026-01-22 02:52
 
 ## How to Resume
 
@@ -109,9 +109,30 @@ Drag this file into any Cursor chat to instantly resume this project with full c
 - ✅ Docker Workflow & CI/CD Integration complete
 - ✅ T02: Three-Tier Sandbox Strategy complete
 
+---
+
+📋 **Critical Bug Fix**: macOS Docker Networking - Status: ✅ COMPLETE
+
+**Issue**: Agent-runner container couldn't connect to Temporal on macOS
+
+**Fix Applied**: 2026-01-22 02:52
+
+**Solution**:
+- Added OS-aware Docker address resolution
+- macOS/Windows: uses `host.docker.internal`
+- Linux: uses `localhost` (faster, works with `--network host`)
+- Enhanced logs command to support Docker containers
+
+**Checkpoint**: `checkpoints/2026-01-22-macos-docker-networking-fixed.md`  
+**Changelog**: `_changelog/2026-01/2026-01-22-022000-fix-agent-runner-docker-networking-macos.md`
+
+**Result**: ✅ Agent-runner works on macOS, all agent executions functional
+
+---
+
 ## Project Complete! 🎉
 
-All planned work for the Docker migration and sandbox implementation is now complete.
+All planned work for the Docker migration, sandbox implementation, and macOS networking fix is now complete.
 
 ---
 
