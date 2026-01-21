@@ -47,7 +47,12 @@ const (
 
 // StartOptions provides options for starting the daemon
 type StartOptions struct {
-	Progress *cliprint.ProgressDisplay // Optional progress display for UI
+	Progress        *cliprint.ProgressDisplay // Optional progress display for UI
+	ExecutionMode   string                    // Agent execution mode (local, sandbox, auto) - overrides config
+	SandboxImage    string                    // Docker image for sandbox mode - overrides config
+	SandboxAutoPull bool                      // Auto-pull sandbox image if missing - overrides config
+	SandboxCleanup  bool                      // Cleanup sandbox containers after execution - overrides config
+	SandboxTTL      int                       // Sandbox container reuse TTL in seconds - overrides config
 }
 
 // dockerAvailable checks if Docker is installed and running
@@ -339,11 +344,45 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		// Workflows won't execute but the server is still useful
 	}
 
+	// Resolve execution configuration (CLI flags > env vars > config file > defaults)
+	executionMode := opts.ExecutionMode
+	if executionMode == "" {
+		executionMode = cfg.Backend.Local.ResolveExecutionMode()
+	}
+	
+	sandboxImage := opts.SandboxImage
+	if sandboxImage == "" {
+		sandboxImage = cfg.Backend.Local.ResolveSandboxImage()
+	}
+	
+	sandboxAutoPull := cfg.Backend.Local.ResolveSandboxAutoPull()
+	sandboxCleanup := cfg.Backend.Local.ResolveSandboxCleanup()
+	sandboxTTL := cfg.Backend.Local.ResolveSandboxTTL()
+	
+	// Override with CLI flags if explicitly set (checking changed vs default)
+	if opts.SandboxAutoPull != true { // If explicitly set to false
+		sandboxAutoPull = opts.SandboxAutoPull
+	}
+	if opts.SandboxCleanup != true { // If explicitly set to false
+		sandboxCleanup = opts.SandboxCleanup
+	}
+	if opts.SandboxTTL != 3600 && opts.SandboxTTL != 0 { // If explicitly set to non-default
+		sandboxTTL = opts.SandboxTTL
+	}
+	
+	log.Debug().
+		Str("execution_mode", executionMode).
+		Str("sandbox_image", sandboxImage).
+		Bool("sandbox_auto_pull", sandboxAutoPull).
+		Bool("sandbox_cleanup", sandboxCleanup).
+		Int("sandbox_ttl", sandboxTTL).
+		Msg("Resolved execution configuration")
+	
 	// Start agent-runner subprocess with LLM config and injected secrets
 	if opts.Progress != nil {
 		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting agent runner")
 	}
-	if err := startAgentRunner(dataDir, logDir, llmProvider, llmModel, llmBaseURL, temporalAddr, secrets); err != nil {
+	if err := startAgentRunner(dataDir, logDir, llmProvider, llmModel, llmBaseURL, temporalAddr, secrets, executionMode, sandboxImage, sandboxAutoPull, sandboxCleanup, sandboxTTL); err != nil {
 		log.Error().Err(err).Msg("Failed to start agent-runner, continuing without it")
 		// Don't fail the entire daemon startup if agent-runner fails
 		// The server is still useful without the agent-runner
@@ -447,6 +486,11 @@ func startAgentRunner(
 	llmBaseURL string,
 	temporalAddr string,
 	secrets map[string]string,
+	executionMode string,
+	sandboxImage string,
+	sandboxAutoPull bool,
+	sandboxCleanup bool,
+	sandboxTTL int,
 ) error {
 	// Check if Docker is available
 	if !dockerAvailable() {
@@ -495,8 +539,18 @@ After installing Docker, restart Stigmer server.`)
 		"-e", fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
 		"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
 		
+		// Execution configuration (NEW - full cascade support)
+		"-e", fmt.Sprintf("STIGMER_EXECUTION_MODE=%s", executionMode),
+		"-e", fmt.Sprintf("STIGMER_SANDBOX_IMAGE=%s", sandboxImage),
+		"-e", fmt.Sprintf("STIGMER_SANDBOX_AUTO_PULL=%t", sandboxAutoPull),
+		"-e", fmt.Sprintf("STIGMER_SANDBOX_CLEANUP=%t", sandboxCleanup),
+		"-e", fmt.Sprintf("STIGMER_SANDBOX_TTL=%d", sandboxTTL),
+		
 		// Volume mount for workspace
 		"-v", fmt.Sprintf("%s:/workspace", workspaceDir),
+		
+		// Volume mount for Docker socket (needed for sandbox mode)
+		"-v", "/var/run/docker.sock:/var/run/docker.sock",
 		
 		// Log driver for better log access
 		"--log-driver", "json-file",
@@ -516,6 +570,8 @@ After installing Docker, restart Stigmer server.`)
 		Str("llm_provider", llmProvider).
 		Str("llm_model", llmModel).
 		Str("temporal_address", temporalAddr).
+		Str("execution_mode", executionMode).
+		Str("sandbox_image", sandboxImage).
 		Str("image", AgentRunnerDockerImage).
 		Msg("Starting agent-runner Docker container")
 	
