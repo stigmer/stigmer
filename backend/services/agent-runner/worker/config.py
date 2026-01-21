@@ -87,7 +87,7 @@ class LLMConfig:
         Environment Variables:
             STIGMER_LLM_PROVIDER: LLM provider (anthropic|ollama|openai)
             STIGMER_LLM_MODEL: Model name (provider-specific)
-            STIGMER_LLM_BASE_URL: Base URL for Ollama (http://localhost:11434)
+            OLLAMA_BASE_URL: Base URL for Ollama (standard LangChain variable)
             STIGMER_LLM_API_KEY: API key for Anthropic/OpenAI
             STIGMER_LLM_MAX_TOKENS: Override default max_tokens
             STIGMER_LLM_TEMPERATURE: Override default temperature
@@ -117,7 +117,9 @@ class LLMConfig:
         model_name = os.getenv("STIGMER_LLM_MODEL", default_model_name)
         
         # Provider-specific settings
-        base_url = os.getenv("STIGMER_LLM_BASE_URL", default_base_url)
+        # Note: For Ollama, LangChain reads OLLAMA_BASE_URL directly from environment
+        # We just store it here for validation purposes
+        base_url = os.getenv("OLLAMA_BASE_URL", default_base_url)
         
         # API key with backward compatibility
         api_key = (
@@ -166,7 +168,7 @@ class LLMConfig:
             if not self.base_url:
                 raise ValueError(
                     "base_url is required for Ollama provider. "
-                    "Set STIGMER_LLM_BASE_URL (default: http://localhost:11434)"
+                    "Set OLLAMA_BASE_URL environment variable (default: http://localhost:11434)"
                 )
         
         if self.provider in {"anthropic", "openai"}:
