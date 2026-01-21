@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
@@ -61,6 +62,23 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(newCreateDefaultInstanceStep(c.agentInstanceClient)).  // 6. Create default instance
 		AddStep(newUpdateAgentStatusWithDefaultInstanceStep(c.store)). // 7. Update status
 		Build()
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+// isAlreadyExistsError checks if an error is due to a duplicate resource
+// by looking for "already exists" in the error message.
+//
+// This handles cases where a default instance was created previously but
+// the agent status update failed, leaving the agent without a default_instance_id.
+func isAlreadyExistsError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := strings.ToLower(err.Error())
+	return strings.Contains(errMsg, "already exists")
 }
 
 // ============================================================================
@@ -135,14 +153,62 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv
 	// All persistence and validation handled by instance handler
 	createdInstance, err := s.agentInstanceClient.CreateAsSystem(ctx.Context(), instanceRequest)
 	if err != nil {
-		return fmt.Errorf("failed to create default instance: %w", err)
+		// Check if error is due to duplicate slug
+		// This can happen if:
+		// 1. Previous create failed after instance was created but before status update
+		// 2. Manual instance creation with same slug
+		if isAlreadyExistsError(err) {
+			log.Warn().
+				Err(err).
+				Str("agent_id", agentID).
+				Str("expected_slug", defaultInstanceName).
+				Msg("Default instance already exists during agent creation, fetching existing instance")
+
+			// Fetch all instances for this agent
+			instanceList, fetchErr := s.agentInstanceClient.GetByAgent(ctx.Context(), agentID)
+			if fetchErr != nil {
+				log.Error().
+					Err(fetchErr).
+					Str("agent_id", agentID).
+					Msg("Failed to fetch existing instances after duplicate error")
+				return fmt.Errorf("failed to fetch existing instances: %w", fetchErr)
+			}
+
+			// Find the default instance (slug matches expected name)
+			var defaultInstance *agentinstancev1.AgentInstance
+			for _, instance := range instanceList.GetItems() {
+				if instance.GetMetadata().GetName() == defaultInstanceName {
+					defaultInstance = instance
+					break
+				}
+			}
+
+			if defaultInstance == nil {
+				log.Error().
+					Str("agent_id", agentID).
+					Str("expected_slug", defaultInstanceName).
+					Int32("instances_found", instanceList.GetTotalCount()).
+					Msg("Default instance not found despite duplicate error")
+				return fmt.Errorf("default instance '%s' not found despite duplicate error", defaultInstanceName)
+			}
+
+			createdInstance = defaultInstance
+			log.Info().
+				Str("instance_id", defaultInstance.GetMetadata().GetId()).
+				Str("slug", defaultInstanceName).
+				Str("agent_id", agentID).
+				Msg("Found existing default instance during agent creation")
+		} else {
+			return fmt.Errorf("failed to create default instance: %w", err)
+		}
+	} else {
+		log.Info().
+			Str("instance_id", createdInstance.GetMetadata().GetId()).
+			Str("agent_id", agentID).
+			Msg("Successfully created default instance for agent")
 	}
 
 	defaultInstanceID := createdInstance.GetMetadata().GetId()
-	log.Info().
-		Str("instance_id", defaultInstanceID).
-		Str("agent_id", agentID).
-		Msg("Successfully created default instance for agent")
 
 	// 3. Store instance ID in context for next step
 	ctx.Set(DefaultInstanceIDKey, defaultInstanceID)
