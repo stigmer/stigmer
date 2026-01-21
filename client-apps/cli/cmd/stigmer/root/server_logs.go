@@ -56,7 +56,7 @@ Use --all to view logs from all components in a single interleaved stream (defau
 					showStderr = true
 				}
 				
-				components := getComponentConfigs(logDir)
+				components := getComponentConfigs(dataDir, logDir)
 				
 				streamType := "stdout"
 				if showStderr {
@@ -164,17 +164,12 @@ Use --all to view logs from all components in a single interleaved stream (defau
 }
 
 // getComponentConfigs returns the log file configuration for all components
-func getComponentConfigs(logDir string) []logs.ComponentConfig {
-	return []logs.ComponentConfig{
+func getComponentConfigs(dataDir, logDir string) []logs.ComponentConfig {
+	components := []logs.ComponentConfig{
 		{
 			Name:    "stigmer-server",
 			LogFile: filepath.Join(logDir, "stigmer-server.log"),
 			ErrFile: filepath.Join(logDir, "stigmer-server.err"),
-		},
-		{
-			Name:    "agent-runner",
-			LogFile: filepath.Join(logDir, "agent-runner.log"),
-			ErrFile: filepath.Join(logDir, "agent-runner.err"),
 		},
 		{
 			Name:    "workflow-runner",
@@ -182,6 +177,22 @@ func getComponentConfigs(logDir string) []logs.ComponentConfig {
 			ErrFile: filepath.Join(logDir, "workflow-runner.err"),
 		},
 	}
+	
+	// Check if agent-runner is running in Docker
+	if isAgentRunnerDocker(dataDir) {
+		components = append(components, logs.ComponentConfig{
+			Name:           "agent-runner",
+			DockerContainer: daemon.AgentRunnerContainerName,
+		})
+	} else {
+		components = append(components, logs.ComponentConfig{
+			Name:    "agent-runner",
+			LogFile: filepath.Join(logDir, "agent-runner.log"),
+			ErrFile: filepath.Join(logDir, "agent-runner.err"),
+		})
+	}
+	
+	return components
 }
 
 // streamLogs streams a log file in real-time (like kubectl logs -f)
