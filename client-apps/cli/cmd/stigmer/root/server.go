@@ -35,7 +35,6 @@ Just run 'stigmer server' and start building!`,
 	cmd.AddCommand(newServerStatusCommand())
 	cmd.AddCommand(newServerRestartCommand())
 	cmd.AddCommand(newServerLogsCommand())
-	cmd.AddCommand(newServerDbDumpCommand())
 
 	return cmd
 }
@@ -132,7 +131,8 @@ func handleServerStart() {
 		cliprint.PrintInfo("  Port: %d", daemon.DaemonPort)
 		cliprint.PrintInfo("  Data: %s", dataDir)
 		cliprint.PrintInfo("")
-		cliprint.PrintInfo("Temporal UI: http://localhost:8233")
+		cliprint.PrintInfo("Web UI:")
+		cliprint.PrintInfo("  Temporal:  http://localhost:8233")
 	}
 }
 
@@ -178,7 +178,8 @@ func handleServerStatus() {
 		cliprint.Info("  Port:   %d", daemon.DaemonPort)
 		cliprint.Info("  Data:   %s", dataDir)
 		cliprint.Info("")
-		cliprint.Info("Temporal UI: http://localhost:8233")
+		cliprint.Info("Web UI:")
+		cliprint.Info("  Temporal:  http://localhost:8233")
 	} else {
 		cliprint.Warning("  Status: ✗ Stopped")
 		cliprint.Info("")

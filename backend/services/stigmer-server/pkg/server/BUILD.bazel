@@ -20,6 +20,7 @@ go_library(
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/services/stigmer-server/pkg/config",
+        "//backend/services/stigmer-server/pkg/debug",
         "//backend/services/stigmer-server/pkg/domain/agent/controller",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/controller",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",

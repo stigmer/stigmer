@@ -21,6 +21,7 @@ import (
 	temporallog "go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/worker"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/debug"
 	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
 	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller"
 	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller"
@@ -75,6 +76,23 @@ func Run() error {
 	defer store.Close()
 
 	log.Info().Str("db_path", cfg.DBPath).Msg("BadgerDB store initialized")
+
+	// ============================================================================
+	// Start debug HTTP server (for inspecting BadgerDB in browser)
+	// ============================================================================
+	
+	// Start debug HTTP server on port 8234 (gRPC port + 1000, matching Temporal's pattern)
+	// Temporal: gRPC=7233, UI=8233 | Stigmer: gRPC=7234, UI=8234
+	// This provides a web UI at http://localhost:8234/debug/db for viewing database contents
+	// Only runs in local/dev mode for security
+	if cfg.Env == "local" || cfg.Env == "dev" {
+		const debugPort = 8234 // Fixed port: gRPC (7234) + 1000
+		startDebugServer(debugPort, store)
+		log.Info().
+			Int("port", debugPort).
+			Str("url", "http://localhost:8234/debug/db").
+			Msg("Debug HTTP server started - view database at http://localhost:8234/debug/db")
+	}
 
 	// ============================================================================
 	// Initialize Temporal client and workers
@@ -390,4 +408,9 @@ func setupLogging(cfg *config.Config) {
 
 	// Set timestamp format
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+}
+
+// startDebugServer starts the debug HTTP server
+func startDebugServer(port int, store *badger.Store) {
+	debug.StartHTTPServer(port, store)
 }
