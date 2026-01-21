@@ -95,6 +95,31 @@ func Run() error {
 	}
 
 	// ============================================================================
+	// Create controllers early (needed for Temporal worker setup)
+	// ============================================================================
+	// We create these before Temporal workers so we can inject their StreamBrokers
+	// into the UpdateExecutionStatusActivities. This ensures workflow error recovery
+	// broadcasts status updates to active subscribers.
+	
+	// Create AgentExecutionController
+	agentExecutionController := agentexecutioncontroller.NewAgentExecutionController(
+		store,
+		nil, // agentClient - will be set after in-process server starts
+		nil, // agentInstanceClient - will be set after in-process server starts
+		nil, // sessionClient - will be set after in-process server starts
+	)
+
+	log.Info().Msg("Created AgentExecution controller (for Temporal worker dependency)")
+
+	// Create WorkflowExecutionController
+	workflowExecutionController := workflowexecutioncontroller.NewWorkflowExecutionController(
+		store,
+		nil, // workflowInstanceClient - will be set after in-process server starts
+	)
+
+	log.Info().Msg("Created WorkflowExecution controller (for Temporal worker dependency)")
+
+	// ============================================================================
 	// Initialize Temporal client and workers
 	// ============================================================================
 
@@ -138,9 +163,12 @@ func Run() error {
 		workflowExecutionTemporalConfig := workflowexecutiontemporal.LoadConfig()
 
 		// Create worker configuration
+		// NOTE: Must pass workflowExecutionController's StreamBroker so workflow errors
+		// can be broadcast to active subscribers (fixes error visibility issue)
 		workerConfig := workflowexecutiontemporal.NewWorkerConfig(
 			workflowExecutionTemporalConfig,
 			store,
+			workflowExecutionController.GetStreamBroker(),
 		)
 
 		// Create worker (not started yet)
@@ -162,9 +190,12 @@ func Run() error {
 		agentExecutionTemporalConfig := agentexecutiontemporal.NewConfig()
 
 		// Create worker configuration
+		// NOTE: Must pass agentExecutionController's StreamBroker so workflow errors
+		// can be broadcast to active subscribers (fixes error visibility issue)
 		agentExecutionWorkerConfig := agentexecutiontemporal.NewWorkerConfig(
 			agentExecutionTemporalConfig,
 			store,
+			agentExecutionController.GetStreamBroker(),
 		)
 
 		// Create worker (not started yet)
@@ -256,13 +287,7 @@ func Run() error {
 
 	log.Info().Msg("Registered Agent controllers")
 
-	// Create and register AgentExecution controller (without dependencies initially)
-	agentExecutionController := agentexecutioncontroller.NewAgentExecutionController(
-		store,
-		nil, // agentClient - will be set after in-process server starts
-		nil, // agentInstanceClient - will be set after in-process server starts
-		nil, // sessionClient - will be set after in-process server starts
-	)
+	// Register AgentExecution controller (created earlier for Temporal worker dependency)
 	agentexecutionv1.RegisterAgentExecutionCommandControllerServer(grpcServer, agentExecutionController)
 	agentexecutionv1.RegisterAgentExecutionQueryControllerServer(grpcServer, agentExecutionController)
 
@@ -282,11 +307,7 @@ func Run() error {
 
 	log.Info().Msg("Registered WorkflowInstance controllers")
 
-	// Create and register WorkflowExecution controller (without dependencies initially)
-	workflowExecutionController := workflowexecutioncontroller.NewWorkflowExecutionController(
-		store,
-		nil, // workflowInstanceClient - will be set after in-process server starts
-	)
+	// Register WorkflowExecution controller (created earlier for Temporal worker dependency)
 	workflowexecutionv1.RegisterWorkflowExecutionCommandControllerServer(grpcServer, workflowExecutionController)
 	workflowexecutionv1.RegisterWorkflowExecutionQueryControllerServer(grpcServer, workflowExecutionController)
 

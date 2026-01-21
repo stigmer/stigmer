@@ -64,3 +64,9 @@ func (c *AgentExecutionController) SetClients(
 func (c *AgentExecutionController) SetWorkflowCreator(creator *temporal.InvokeAgentExecutionWorkflowCreator) {
 	c.workflowCreator = creator
 }
+
+// GetStreamBroker returns the stream broker for use by Temporal activities
+// This allows workflow error recovery to broadcast status updates to subscribers
+func (c *AgentExecutionController) GetStreamBroker() *StreamBroker {
+	return c.streamBroker
+}
