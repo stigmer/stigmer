@@ -33,7 +33,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install Poetry
         run: |
@@ -43,8 +43,24 @@ jobs:
       - name: Generate proto stubs
         run: make protos
 
-      - name: Build and embed binaries
-        run: make embed-binaries
+      - name: Build agent-runner binary with PyInstaller
+        run: |
+          cd backend/services/agent-runner
+          poetry run pyinstaller agent-runner.spec
+          mkdir -p ../../../client-apps/cli/embedded/binaries/darwin_arm64
+          cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/darwin_arm64/
+
+      - name: Build stigmer-server binary
+        run: |
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" \
+            -o client-apps/cli/embedded/binaries/darwin_arm64/stigmer-server \
+            ./backend/services/stigmer-server/cmd/server
+
+      - name: Build workflow-runner binary
+        run: |
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" \
+            -o client-apps/cli/embedded/binaries/darwin_arm64/workflow-runner \
+            ./backend/services/workflow-runner/cmd/worker
 
       - name: Build CLI with embedded binaries
         run: |
@@ -93,7 +109,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install Poetry
         run: |
@@ -103,8 +119,24 @@ jobs:
       - name: Generate proto stubs
         run: make protos
 
-      - name: Build and embed binaries
-        run: make embed-binaries
+      - name: Build agent-runner binary with PyInstaller
+        run: |
+          cd backend/services/agent-runner
+          poetry run pyinstaller agent-runner.spec
+          mkdir -p ../../../client-apps/cli/embedded/binaries/darwin_amd64
+          cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/darwin_amd64/
+
+      - name: Build stigmer-server binary
+        run: |
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" \
+            -o client-apps/cli/embedded/binaries/darwin_amd64/stigmer-server \
+            ./backend/services/stigmer-server/cmd/server
+
+      - name: Build workflow-runner binary
+        run: |
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" \
+            -o client-apps/cli/embedded/binaries/darwin_amd64/workflow-runner \
+            ./backend/services/workflow-runner/cmd/worker
 
       - name: Build CLI with embedded binaries
         run: |
@@ -153,7 +185,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install Poetry
         run: |
@@ -163,8 +195,24 @@ jobs:
       - name: Generate proto stubs
         run: make protos
 
-      - name: Build and embed binaries
-        run: make embed-binaries
+      - name: Build agent-runner binary with PyInstaller
+        run: |
+          cd backend/services/agent-runner
+          poetry run pyinstaller agent-runner.spec
+          mkdir -p ../../../client-apps/cli/embedded/binaries/linux_amd64
+          cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/linux_amd64/
+
+      - name: Build stigmer-server binary
+        run: |
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" \
+            -o client-apps/cli/embedded/binaries/linux_amd64/stigmer-server \
+            ./backend/services/stigmer-server/cmd/server
+
+      - name: Build workflow-runner binary
+        run: |
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" \
+            -o client-apps/cli/embedded/binaries/linux_amd64/workflow-runner \
+            ./backend/services/workflow-runner/cmd/worker
 
       - name: Build CLI with embedded binaries
         run: |
