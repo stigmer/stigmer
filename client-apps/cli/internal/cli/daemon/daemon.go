@@ -631,6 +631,7 @@ After installing Docker, restart Stigmer server.`)
 	// On Linux, localhost works with --network host
 	hostAddr := resolveDockerHostAddress(temporalAddr)
 	backendAddr := resolveDockerHostAddress(fmt.Sprintf("localhost:%d", DaemonPort))
+	llmBaseURLResolved := resolveDockerHostAddress(llmBaseURL)
 
 	// Build docker run arguments
 	args := []string{
@@ -662,7 +663,7 @@ After installing Docker, restart Stigmer server.`)
 		// LLM configuration
 		"-e", fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", llmProvider),
 		"-e", fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
-		"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
+		"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURLResolved),
 
 		// Execution configuration (NEW - full cascade support)
 		"-e", fmt.Sprintf("STIGMER_EXECUTION_MODE=%s", executionMode),
@@ -694,6 +695,7 @@ After installing Docker, restart Stigmer server.`)
 	log.Info().
 		Str("llm_provider", llmProvider).
 		Str("llm_model", llmModel).
+		Str("llm_base_url", llmBaseURLResolved).
 		Str("temporal_address", hostAddr).
 		Str("backend_address", backendAddr).
 		Str("execution_mode", executionMode).
