@@ -2,18 +2,19 @@
 
 package embedded
 
-import (
-	_ "embed"
-)
-
-// Darwin AMD64 (Intel Mac) embedded binaries
-// Note: Only agent-runner is embedded (Python binary)
-// stigmer-server and workflow-runner are compiled into the CLI (BusyBox pattern)
+// Darwin AMD64 (Intel Mac) - Download-only mode
 //
-//go:embed binaries/darwin_amd64/agent-runner
-var agentRunnerBinary []byte
+// Intel Mac binaries cannot be cross-compiled from ARM Mac runners (GitHub Actions limitation).
+// Since GitHub retired macos-13 (Intel) runners, we cannot build Intel binaries natively.
+//
+// Strategy: Return empty binary to trigger download fallback on first daemon start.
+// The daemon will automatically download the agent-runner binary from GitHub releases.
+//
+// User impact: Intel Mac users need internet connectivity on first run only.
 
-// GetAgentRunnerBinary returns the embedded agent-runner binary for darwin/amd64
+// GetAgentRunnerBinary returns nil to trigger download fallback for Intel Macs
 func GetAgentRunnerBinary() ([]byte, error) {
-	return agentRunnerBinary, nil
+	// Return nil to signal that binary is not embedded
+	// This triggers the download fallback in daemon.go:findAgentRunnerBinary()
+	return nil, nil
 }
