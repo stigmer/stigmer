@@ -33,7 +33,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install Poetry
         run: |
@@ -43,13 +43,17 @@ jobs:
       - name: Generate proto stubs
         run: make protos
 
-      - name: Build and embed binaries
-        run: make embed-binaries
+      - name: Build agent-runner binary with PyInstaller
+        run: |
+          cd backend/services/agent-runner
+          poetry run pyinstaller agent-runner.spec
+          mkdir -p ../../../client-apps/cli/embedded/binaries/darwin_arm64
+          cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/darwin_arm64/
 
-      - name: Build CLI with embedded binaries
+      - name: Build CLI with embedded binaries (BusyBox pattern)
         run: |
           cd client-apps/cli
-          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/internal/cli/version.Version=${{ github.ref_name }}" -o ../../bin/stigmer .
+          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=${{ github.ref_name }}" -o ../../bin/stigmer .
 
       - name: Verify binary
         run: |
@@ -57,19 +61,28 @@ jobs:
           ls -lh bin/stigmer
           ./bin/stigmer --version || echo "Version: ${{ github.ref_name }}"
 
-      - name: Package binary
+      - name: Package binaries
         run: |
+          # Package CLI with embedded binaries
           cd bin
           tar -czf stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz stigmer
           shasum -a 256 stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz > stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz.sha256
+          
+          # Package standalone agent-runner binary (for download fallback)
+          cd ../client-apps/cli/embedded/binaries/darwin_arm64
+          cp agent-runner agent-runner-${{ github.ref_name }}-darwin-arm64
+          shasum -a 256 agent-runner-${{ github.ref_name }}-darwin-arm64 > agent-runner-${{ github.ref_name }}-darwin-arm64.sha256
+          mv agent-runner-${{ github.ref_name }}-darwin-arm64* ../../../../../../bin/
 
-      - name: Upload artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: stigmer-darwin-arm64
           path: |
             bin/stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz
             bin/stigmer-${{ github.ref_name }}-darwin-arm64.tar.gz.sha256
+            bin/agent-runner-${{ github.ref_name }}-darwin-arm64
+            bin/agent-runner-${{ github.ref_name }}-darwin-arm64.sha256
 
   # Build for macOS Intel
   build-darwin-amd64:
@@ -93,7 +106,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install Poetry
         run: |
@@ -103,13 +116,17 @@ jobs:
       - name: Generate proto stubs
         run: make protos
 
-      - name: Build and embed binaries
-        run: make embed-binaries
+      - name: Build agent-runner binary with PyInstaller
+        run: |
+          cd backend/services/agent-runner
+          poetry run pyinstaller agent-runner.spec
+          mkdir -p ../../../client-apps/cli/embedded/binaries/darwin_amd64
+          cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/darwin_amd64/
 
-      - name: Build CLI with embedded binaries
+      - name: Build CLI with embedded binaries (BusyBox pattern)
         run: |
           cd client-apps/cli
-          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/internal/cli/version.Version=${{ github.ref_name }}" -o ../../bin/stigmer .
+          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=${{ github.ref_name }}" -o ../../bin/stigmer .
 
       - name: Verify binary
         run: |
@@ -117,19 +134,28 @@ jobs:
           ls -lh bin/stigmer
           ./bin/stigmer --version || echo "Version: ${{ github.ref_name }}"
 
-      - name: Package binary
+      - name: Package binaries
         run: |
+          # Package CLI with embedded binaries
           cd bin
           tar -czf stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz stigmer
           shasum -a 256 stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz > stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz.sha256
+          
+          # Package standalone agent-runner binary (for download fallback)
+          cd ../client-apps/cli/embedded/binaries/darwin_amd64
+          cp agent-runner agent-runner-${{ github.ref_name }}-darwin-amd64
+          shasum -a 256 agent-runner-${{ github.ref_name }}-darwin-amd64 > agent-runner-${{ github.ref_name }}-darwin-amd64.sha256
+          mv agent-runner-${{ github.ref_name }}-darwin-amd64* ../../../../../../bin/
 
-      - name: Upload artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: stigmer-darwin-amd64
           path: |
             bin/stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz
             bin/stigmer-${{ github.ref_name }}-darwin-amd64.tar.gz.sha256
+            bin/agent-runner-${{ github.ref_name }}-darwin-amd64
+            bin/agent-runner-${{ github.ref_name }}-darwin-amd64.sha256
 
   # Build for Linux
   build-linux-amd64:
@@ -153,7 +179,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install Poetry
         run: |
@@ -163,13 +189,17 @@ jobs:
       - name: Generate proto stubs
         run: make protos
 
-      - name: Build and embed binaries
-        run: make embed-binaries
+      - name: Build agent-runner binary with PyInstaller
+        run: |
+          cd backend/services/agent-runner
+          poetry run pyinstaller agent-runner.spec
+          mkdir -p ../../../client-apps/cli/embedded/binaries/linux_amd64
+          cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/linux_amd64/
 
-      - name: Build CLI with embedded binaries
+      - name: Build CLI with embedded binaries (BusyBox pattern)
         run: |
           cd client-apps/cli
-          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/internal/cli/version.Version=${{ github.ref_name }}" -o ../../bin/stigmer .
+          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=${{ github.ref_name }}" -o ../../bin/stigmer .
 
       - name: Verify binary
         run: |
@@ -177,19 +207,28 @@ jobs:
           ls -lh bin/stigmer
           ./bin/stigmer --version || echo "Version: ${{ github.ref_name }}"
 
-      - name: Package binary
+      - name: Package binaries
         run: |
+          # Package CLI with embedded binaries
           cd bin
           tar -czf stigmer-${{ github.ref_name }}-linux-amd64.tar.gz stigmer
           sha256sum stigmer-${{ github.ref_name }}-linux-amd64.tar.gz > stigmer-${{ github.ref_name }}-linux-amd64.tar.gz.sha256
+          
+          # Package standalone agent-runner binary (for download fallback)
+          cd ../client-apps/cli/embedded/binaries/linux_amd64
+          cp agent-runner agent-runner-${{ github.ref_name }}-linux-amd64
+          sha256sum agent-runner-${{ github.ref_name }}-linux-amd64 > agent-runner-${{ github.ref_name }}-linux-amd64.sha256
+          mv agent-runner-${{ github.ref_name }}-linux-amd64* ../../../../../../bin/
 
-      - name: Upload artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: stigmer-linux-amd64
           path: |
             bin/stigmer-${{ github.ref_name }}-linux-amd64.tar.gz
             bin/stigmer-${{ github.ref_name }}-linux-amd64.tar.gz.sha256
+            bin/agent-runner-${{ github.ref_name }}-linux-amd64
+            bin/agent-runner-${{ github.ref_name }}-linux-amd64.sha256
 
   # Create GitHub Release
   release:
@@ -212,8 +251,12 @@ jobs:
       - name: Prepare release assets
         run: |
           mkdir -p release-assets
+          # Copy CLI tarballs
           find artifacts -name "*.tar.gz" -exec cp {} release-assets/ \;
+          # Copy all checksums
           find artifacts -name "*.sha256" -exec cp {} release-assets/ \;
+          # Copy agent-runner binaries
+          find artifacts -name "agent-runner-*" -type f ! -name "*.sha256" -exec cp {} release-assets/ \;
           ls -lh release-assets/
 
       - name: Generate changelog

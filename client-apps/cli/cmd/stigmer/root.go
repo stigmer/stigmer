@@ -45,6 +45,10 @@ func init() {
 	rootCmd.AddCommand(root.NewBackendCommand())
 	rootCmd.AddCommand(root.NewApplyCommand())
 	rootCmd.AddCommand(root.NewRunCommand())
+	
+	// Add hidden internal commands (used by daemon for BusyBox pattern)
+	rootCmd.AddCommand(root.NewInternalServerCommand())
+	rootCmd.AddCommand(root.NewInternalWorkflowRunnerCommand())
 }
 
 // Execute runs the root command

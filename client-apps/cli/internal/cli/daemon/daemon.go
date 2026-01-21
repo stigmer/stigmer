@@ -162,19 +162,19 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		log.Info().Str("address", temporalAddr).Msg("Using external Temporal")
 	}
 
-	// Find stigmer-server binary
+	// Find CLI binary (BusyBox pattern - CLI contains server code)
 	if opts.Progress != nil {
 		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting Stigmer server")
 	}
-	serverBin, err := findServerBinary(dataDir)
+	cliBin, err := os.Executable()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to get CLI executable path")
 	}
 
-	log.Debug().Str("binary", serverBin).Msg("Found stigmer-server binary")
+	log.Debug().Str("binary", cliBin).Msg("Starting stigmer-server via CLI")
 
-	// Start daemon process
-	cmd := exec.Command(serverBin)
+	// Start daemon process (spawn CLI with hidden internal-server command)
+	cmd := exec.Command(cliBin, "internal-server")
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("STIGMER_DATA_DIR=%s", dataDir),
 		fmt.Sprintf("GRPC_PORT=%d", DaemonPort),
@@ -253,13 +253,13 @@ func startWorkflowRunner(
 	logDir string,
 	temporalAddr string,
 ) error {
-	// Find workflow-runner binary
-	runnerBin, err := findWorkflowRunnerBinary(dataDir)
+	// Find CLI binary (BusyBox pattern - CLI contains workflow-runner code)
+	cliBin, err := os.Executable()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to get CLI executable path")
 	}
 
-	log.Debug().Str("binary", runnerBin).Msg("Found workflow-runner binary")
+	log.Debug().Str("binary", cliBin).Msg("Starting workflow-runner via CLI")
 
 	// Prepare environment for Temporal worker mode
 	env := os.Environ()
@@ -287,8 +287,8 @@ func startWorkflowRunner(
 		Str("temporal_address", temporalAddr).
 		Msg("Starting workflow-runner with configuration")
 
-	// Start workflow-runner process
-	cmd := exec.Command(runnerBin)
+	// Start workflow-runner process (spawn CLI with hidden internal-workflow-runner command)
+	cmd := exec.Command(cliBin, "internal-workflow-runner")
 	cmd.Env = env
 
 	// Redirect output to separate log files
@@ -326,7 +326,7 @@ func startWorkflowRunner(
 
 	log.Info().
 		Int("pid", cmd.Process.Pid).
-		Str("binary", runnerBin).
+		Str("binary", cliBin).
 		Msg("Workflow-runner started successfully")
 
 	return nil
@@ -342,17 +342,13 @@ func startAgentRunner(
 	temporalAddr string,
 	secrets map[string]string,
 ) error {
-	// Find agent-runner script
-	runnerScript, err := findAgentRunnerScript(dataDir)
+	// Find agent-runner binary (extracted from embedded PyInstaller binary)
+	runnerBinary, err := findAgentRunnerBinary(dataDir)
 	if err != nil {
 		return err
 	}
 
-	log.Debug().Str("script", runnerScript).Msg("Found agent-runner script")
-
-	// Determine agent-runner workspace directory
-	// This is where pyproject.toml and Python source code live
-	agentRunnerWorkspace := filepath.Dir(runnerScript) // Directory containing run.sh
+	log.Debug().Str("binary", runnerBinary).Msg("Found agent-runner binary")
 	
 	// Prepare environment with LLM and Temporal configuration
 	env := os.Environ()
@@ -375,9 +371,6 @@ func startAgentRunner(
 		fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
 		fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
 		
-		// Agent-runner workspace (explicit path to pyproject.toml directory)
-		fmt.Sprintf("STIGMER_AGENT_RUNNER_WORKSPACE=%s", agentRunnerWorkspace),
-		
 		"LOG_LEVEL=DEBUG",
 	)
 	
@@ -390,11 +383,11 @@ func startAgentRunner(
 		Str("llm_provider", llmProvider).
 		Str("llm_model", llmModel).
 		Str("temporal_address", temporalAddr).
-		Str("workspace", agentRunnerWorkspace).
+		Str("binary", runnerBinary).
 		Msg("Starting agent-runner with configuration")
 
-	// Start agent-runner process
-	cmd := exec.Command(runnerScript)
+	// Start agent-runner process (PyInstaller binary)
+	cmd := exec.Command(runnerBinary)
 	cmd.Env = env
 
 	// Redirect output to separate log files
@@ -432,7 +425,7 @@ func startAgentRunner(
 
 	log.Info().
 		Int("pid", cmd.Process.Pid).
-		Str("script", runnerScript).
+		Str("binary", runnerBinary).
 		Msg("Agent-runner started successfully")
 
 	return nil
@@ -806,128 +799,47 @@ func findProcessByPort(port int) (int, error) {
 	return pid, nil
 }
 
-// findServerBinary finds the stigmer-server binary
-//
-// Production mode (default):
-//   Uses extracted binary from dataDir/bin/stigmer-server
-//
-// Development mode (STIGMER_SERVER_BIN env var set):
-//   Uses custom binary path from environment variable
-func findServerBinary(dataDir string) (string, error) {
-	// Dev mode: environment variable takes precedence
-	if bin := os.Getenv("STIGMER_SERVER_BIN"); bin != "" {
-		if _, err := os.Stat(bin); err == nil {
-			log.Debug().Str("path", bin).Msg("Using stigmer-server from STIGMER_SERVER_BIN")
-			return bin, nil
-		}
-		return "", errors.Errorf("STIGMER_SERVER_BIN set but file not found: %s", bin)
-	}
+// Note: findServerBinary and findWorkflowRunnerBinary removed
+// BusyBox pattern: CLI contains server and workflow-runner code
+// They are started via hidden commands: stigmer internal-server, stigmer internal-workflow-runner
 
-	// Production mode: use extracted binary only
-	binPath := filepath.Join(dataDir, "bin", "stigmer-server")
+// findAgentRunnerBinary finds the agent-runner binary (PyInstaller)
+//
+// Lookup order:
+//   1. Extracted binary from dataDir/bin/agent-runner (embedded in CLI)
+//   2. Download from GitHub releases if missing (fallback for corrupted installations)
+func findAgentRunnerBinary(dataDir string) (string, error) {
+	// Check for extracted binary first
+	binPath := filepath.Join(dataDir, "bin", "agent-runner")
 	if _, err := os.Stat(binPath); err == nil {
-		log.Debug().Str("path", binPath).Msg("Using extracted stigmer-server binary")
+		log.Debug().Str("path", binPath).Msg("Using extracted agent-runner binary")
 		return binPath, nil
 	}
 
-	// Binary not found - this should not happen if extraction succeeded
-	return "", errors.New(`stigmer-server binary not found
+	// Binary not found - download from GitHub releases as fallback
+	log.Info().Msg("Agent-runner binary not found, downloading from GitHub releases...")
+	
+	version := embedded.GetBuildVersion()
+	downloadedPath, err := downloadAgentRunnerBinary(dataDir, version)
+	if err != nil {
+		return "", errors.Wrap(err, `failed to download agent-runner binary
 
-Expected location: ` + binPath + `
-
-This usually means the Stigmer CLI installation is corrupted.
-
-To fix this:
-  brew reinstall stigmer    (if installed via Homebrew)
-  
-Or download and install the latest release:
-  https://github.com/stigmer/stigmer/releases
-
-For development, set STIGMER_SERVER_BIN environment variable:
-  export STIGMER_SERVER_BIN=/path/to/stigmer-server`)
-}
-
-// findWorkflowRunnerBinary finds the workflow-runner binary
-//
-// Production mode (default):
-//   Uses extracted binary from dataDir/bin/workflow-runner
-//
-// Development mode (STIGMER_WORKFLOW_RUNNER_BIN env var set):
-//   Uses custom binary path from environment variable
-func findWorkflowRunnerBinary(dataDir string) (string, error) {
-	// Dev mode: environment variable takes precedence
-	if bin := os.Getenv("STIGMER_WORKFLOW_RUNNER_BIN"); bin != "" {
-		if _, err := os.Stat(bin); err == nil {
-			log.Debug().Str("path", bin).Msg("Using workflow-runner from STIGMER_WORKFLOW_RUNNER_BIN")
-			return bin, nil
-		}
-		return "", errors.Errorf("STIGMER_WORKFLOW_RUNNER_BIN set but file not found: %s", bin)
-	}
-
-	// Production mode: use extracted binary only
-	binPath := filepath.Join(dataDir, "bin", "workflow-runner")
-	if _, err := os.Stat(binPath); err == nil {
-		log.Debug().Str("path", binPath).Msg("Using extracted workflow-runner binary")
-		return binPath, nil
-	}
-
-	// Binary not found - this should not happen if extraction succeeded
-	return "", errors.New(`workflow-runner binary not found
-
-Expected location: ` + binPath + `
-
-This usually means the Stigmer CLI installation is corrupted.
+This usually means either:
+  1. Your Stigmer CLI installation is corrupted
+  2. The GitHub release does not include agent-runner binaries
+  3. Network connectivity issues
 
 To fix this:
   brew reinstall stigmer    (if installed via Homebrew)
   
 Or download and install the latest release:
-  https://github.com/stigmer/stigmer/releases
-
-For development, set STIGMER_WORKFLOW_RUNNER_BIN environment variable:
-  export STIGMER_WORKFLOW_RUNNER_BIN=/path/to/workflow-runner`)
-}
-
-// findAgentRunnerScript finds the agent-runner run script
-//
-// Production mode (default):
-//   Uses extracted script from dataDir/bin/agent-runner/run.sh
-//
-// Development mode (STIGMER_AGENT_RUNNER_SCRIPT env var set):
-//   Uses custom script path from environment variable
-func findAgentRunnerScript(dataDir string) (string, error) {
-	// Dev mode: environment variable takes precedence
-	if script := os.Getenv("STIGMER_AGENT_RUNNER_SCRIPT"); script != "" {
-		if _, err := os.Stat(script); err == nil {
-			log.Debug().Str("path", script).Msg("Using agent-runner script from STIGMER_AGENT_RUNNER_SCRIPT")
-			return script, nil
-		}
-		return "", errors.Errorf("STIGMER_AGENT_RUNNER_SCRIPT set but file not found: %s", script)
+  https://github.com/stigmer/stigmer/releases`)
 	}
 
-	// Production mode: use extracted script only
-	scriptPath := filepath.Join(dataDir, "bin", "agent-runner", "run.sh")
-	if _, err := os.Stat(scriptPath); err == nil {
-		log.Debug().Str("path", scriptPath).Msg("Using extracted agent-runner script")
-		return scriptPath, nil
-	}
-
-	// Script not found - this should not happen if extraction succeeded
-	return "", errors.New(`agent-runner script not found
-
-Expected location: ` + scriptPath + `
-
-This usually means the Stigmer CLI installation is corrupted.
-
-To fix this:
-  brew reinstall stigmer    (if installed via Homebrew)
-  
-Or download and install the latest release:
-  https://github.com/stigmer/stigmer/releases
-
-For development, set STIGMER_AGENT_RUNNER_SCRIPT environment variable:
-  export STIGMER_AGENT_RUNNER_SCRIPT=/path/to/agent-runner/run.sh`)
+	log.Info().Str("path", downloadedPath).Msg("Successfully downloaded agent-runner binary")
+	return downloadedPath, nil
 }
+
 
 // rotateLogsIfNeeded rotates existing log files by renaming them with timestamps
 // This is called on daemon start to archive old logs before starting a fresh session

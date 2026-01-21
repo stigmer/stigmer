@@ -7,7 +7,7 @@ help: ## Show this help message
 	@echo 'Usage: make [target]'
 	@echo ''
 	@echo 'Available targets:'
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 setup: ## Install dependencies and tools
 	@echo "Installing Go dependencies for all modules..."
@@ -30,26 +30,21 @@ build: protos ## Build the Stigmer CLI
 build-backend: protos ## Build all backend services
 	@echo "Building all backend services..."
 	@echo ""
-	@echo "1/4 Building stigmer-server..."
-	go build -o bin/stigmer-server ./backend/services/stigmer-server/cmd/server
-	@echo "✓ Built: bin/stigmer-server"
+	@echo "Note: stigmer-server and workflow-runner are now part of the CLI (BusyBox pattern)"
+	@echo "      Use 'stigmer internal-server' and 'stigmer internal-workflow-runner' instead"
 	@echo ""
-	@echo "2/4 Building workflow-runner worker..."
-	go build -o bin/workflow-runner ./backend/services/workflow-runner/cmd/worker
-	@echo "✓ Built: bin/workflow-runner"
-	@echo ""
-	@echo "3/4 Building workflow-runner gRPC server..."
+	@echo "1/2 Building workflow-runner gRPC server..."
 	go build -o bin/workflow-runner-grpc ./backend/services/workflow-runner/cmd/grpc-server
 	@echo "✓ Built: bin/workflow-runner-grpc"
 	@echo ""
-	@echo "4/4 Type checking agent-runner (Python)..."
+	@echo "2/2 Type checking agent-runner (Python)..."
 	@cd backend/services/agent-runner && \
 		poetry install --no-interaction --quiet && \
 		poetry run mypy grpc_client/ worker/ --show-error-codes
 	@echo "✓ Type checking passed: agent-runner"
 	@echo ""
 	@echo "============================================"
-	@echo "✓ All backend services built successfully!"
+	@echo "✓ All backend services processed!"
 	@echo "============================================"
 
 test: ## Run all tests
@@ -297,27 +292,20 @@ release-local: ## Build and install CLI for local testing (fast rebuild without 
 	@echo ""
 	@echo "Step 1: Removing old binaries..."
 	@rm -f $(HOME)/bin/stigmer
-	@rm -f $(HOME)/bin/stigmer-server
 	@rm -f /usr/local/bin/stigmer 2>/dev/null || true
 	@rm -f bin/stigmer
-	@rm -f bin/stigmer-server
 	@echo "✓ Old binaries removed"
 	@echo ""
 	@echo "Step 2: Building fresh binaries..."
 	@mkdir -p bin
 	@cd client-apps/cli && go build -o ../../bin/stigmer .
 	@echo "✓ CLI built: bin/stigmer"
-	@go build -o bin/stigmer-server ./backend/services/stigmer-server/cmd/server
-	@echo "✓ Server built: bin/stigmer-server"
 	@echo ""
 	@echo "Step 3: Installing to ~/bin..."
 	@mkdir -p $(HOME)/bin
 	@cp bin/stigmer $(HOME)/bin/stigmer
 	@chmod +x $(HOME)/bin/stigmer
 	@echo "✓ Installed: $(HOME)/bin/stigmer"
-	@cp bin/stigmer-server $(HOME)/bin/stigmer-server
-	@chmod +x $(HOME)/bin/stigmer-server
-	@echo "✓ Installed: $(HOME)/bin/stigmer-server"
 	@echo ""
 	@echo "============================================"
 	@echo "✓ Release Complete!"
@@ -325,7 +313,6 @@ release-local: ## Build and install CLI for local testing (fast rebuild without 
 	@echo ""
 	@if command -v stigmer >/dev/null 2>&1; then \
 		echo "✓ CLI ready! Run: stigmer --help"; \
-		echo "✓ Server ready for 'stigmer local'"; \
 		echo ""; \
 		stigmer --version 2>/dev/null || echo "Version: development"; \
 	else \
@@ -337,5 +324,41 @@ release-local: ## Build and install CLI for local testing (fast rebuild without 
 
 dev: ## Run Stigmer in development mode
 	cd client-apps/cli && go run .
+
+build-agent-runner: ## Build agent-runner PyInstaller binary (for development)
+	@echo "Building agent-runner binary..."
+	@cd backend/services/agent-runner && $(MAKE) build-binary
+	@echo "✓ Built: backend/services/agent-runner/dist/agent-runner"
+
+install-agent-runner: build-agent-runner ## Build and install agent-runner to ~/.stigmer/bin
+	@echo "Installing agent-runner to ~/.stigmer/bin..."
+	@mkdir -p $(HOME)/.stigmer/bin
+	@cp backend/services/agent-runner/dist/agent-runner $(HOME)/.stigmer/bin/agent-runner
+	@chmod +x $(HOME)/.stigmer/bin/agent-runner
+	@echo "✓ Installed: $(HOME)/.stigmer/bin/agent-runner"
+	@echo ""
+	@echo "Agent-runner binary ready for local testing."
+	@echo "Run 'stigmer server' to use the updated binary."
+
+release-local-full: ## Build CLI and agent-runner for complete local testing
+	@echo "============================================"
+	@echo "Building Complete Local Environment"
+	@echo "============================================"
+	@echo ""
+	@echo "Step 1: Building agent-runner binary..."
+	@$(MAKE) install-agent-runner
+	@echo ""
+	@echo "Step 2: Building and installing CLI..."
+	@$(MAKE) release-local
+	@echo ""
+	@echo "============================================"
+	@echo "✓ Complete Local Release Ready!"
+	@echo "============================================"
+	@echo ""
+	@echo "Components installed:"
+	@echo "  • CLI: $(HOME)/bin/stigmer"
+	@echo "  • Agent Runner: $(HOME)/.stigmer/bin/agent-runner"
+	@echo ""
+	@echo "Ready to test: stigmer server"
 
 .DEFAULT_GOAL := help

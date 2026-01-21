@@ -17,7 +17,11 @@
 
 package main
 
+import (
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/cmd/worker"
+)
+
 func main() {
-	Execute()
+	worker.Execute()
 }
 
