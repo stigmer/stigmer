@@ -14,7 +14,8 @@ type LogLine struct {
 
 // ComponentConfig describes a log component
 type ComponentConfig struct {
-	Name    string
-	LogFile string
-	ErrFile string
+	Name           string
+	LogFile        string
+	ErrFile        string
+	DockerContainer string // If set, read logs from Docker container instead of files
 }

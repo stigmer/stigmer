@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -28,19 +29,19 @@ const (
 
 	// PIDFileName is the name of the PID file for stigmer-server
 	PIDFileName = "daemon.pid"
-	
+
 	// WorkflowRunnerPIDFileName is the name of the PID file for workflow-runner
 	WorkflowRunnerPIDFileName = "workflow-runner.pid"
-	
+
 	// AgentRunnerPIDFileName is the name of the PID file for agent-runner (binary mode)
 	AgentRunnerPIDFileName = "agent-runner.pid"
-	
+
 	// AgentRunnerContainerIDFileName is the name of the file storing Docker container ID
 	AgentRunnerContainerIDFileName = "agent-runner-container.id"
-	
+
 	// AgentRunnerContainerName is the name of the Docker container
 	AgentRunnerContainerName = "stigmer-agent-runner"
-	
+
 	// AgentRunnerDockerImage is the Docker image name and tag
 	AgentRunnerDockerImage = "stigmer-agent-runner:local"
 )
@@ -61,14 +62,43 @@ func dockerAvailable() bool {
 	if _, err := exec.LookPath("docker"); err != nil {
 		return false
 	}
-	
+
 	// Check if Docker daemon is running
 	cmd := exec.Command("docker", "info")
 	if err := cmd.Run(); err != nil {
 		return false
 	}
-	
+
 	return true
+}
+
+// resolveDockerHostAddress converts localhost addresses to host.docker.internal on macOS/Windows
+// Docker Desktop on macOS/Windows runs in a VM, so containers cannot reach the host via localhost.
+// On Linux with --network host, localhost works fine.
+func resolveDockerHostAddress(addr string) string {
+	// Only convert localhost addresses
+	if !strings.Contains(addr, "localhost") && !strings.Contains(addr, "127.0.0.1") {
+		return addr
+	}
+
+	// On Linux, localhost works with --network host
+	if runtime.GOOS == "linux" {
+		return addr
+	}
+
+	// On macOS/Windows (darwin/windows), use host.docker.internal
+	// Replace localhost or 127.0.0.1 with host.docker.internal
+	originalAddr := addr
+	addr = strings.ReplaceAll(addr, "localhost", "host.docker.internal")
+	addr = strings.ReplaceAll(addr, "127.0.0.1", "host.docker.internal")
+
+	log.Debug().
+		Str("original", originalAddr).
+		Str("resolved", addr).
+		Str("os", runtime.GOOS).
+		Msg("Resolved Docker host address for macOS/Windows")
+
+	return addr
 }
 
 // ensureDockerImage ensures the agent-runner Docker image is available
@@ -79,51 +109,51 @@ func ensureDockerImage(dataDir string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to check for Docker image")
 	}
-	
+
 	// Image exists locally
 	if len(strings.TrimSpace(string(output))) > 0 {
 		log.Debug().Str("image", AgentRunnerDockerImage).Msg("Docker image already exists")
 		return nil
 	}
-	
+
 	// Image doesn't exist locally - try to pull from GitHub Container Registry
 	log.Info().Str("image", AgentRunnerDockerImage).Msg("Docker image not found locally, trying to pull from GitHub registry...")
-	
+
 	// Get current CLI version to determine which image tag to pull
 	version := embedded.GetBuildVersion()
 	if version == "" || version == "dev" {
 		version = "latest"
 	}
-	
+
 	// Try to pull from GitHub Container Registry
 	registryImage := fmt.Sprintf("ghcr.io/stigmer/agent-runner:%s", version)
 	log.Info().
 		Str("registry_image", registryImage).
 		Str("local_tag", AgentRunnerDockerImage).
 		Msg("Pulling agent-runner image from registry")
-	
+
 	pullCmd := exec.Command("docker", "pull", registryImage)
 	pullOutput, pullErr := pullCmd.CombinedOutput()
-	
+
 	if pullErr == nil {
 		// Successfully pulled - tag it as local image
 		tagCmd := exec.Command("docker", "tag", registryImage, AgentRunnerDockerImage)
 		if tagErr := tagCmd.Run(); tagErr != nil {
 			log.Warn().Err(tagErr).Msg("Failed to tag pulled image, but it should still work")
 		}
-		
+
 		log.Info().
 			Str("image", AgentRunnerDockerImage).
 			Msg("Successfully pulled and tagged agent-runner image")
 		return nil
 	}
-	
+
 	// Pull failed - provide helpful error message
 	log.Warn().
 		Err(pullErr).
 		Str("output", string(pullOutput)).
 		Msg("Failed to pull image from registry")
-	
+
 	return errors.New(fmt.Sprintf(`Docker image not found locally and pull from registry failed.
 
 Registry pull attempted: %s
@@ -235,7 +265,7 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 
 	// Resolve Temporal configuration
 	temporalAddr, isManaged := cfg.Backend.Local.ResolveTemporalAddress()
-	
+
 	log.Debug().
 		Str("temporal_address", temporalAddr).
 		Bool("temporal_managed", isManaged).
@@ -248,24 +278,24 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 			opts.Progress.SetPhase(cliprint.PhaseInstalling, "Setting up Temporal")
 		}
 		log.Info().Msg("Starting managed Temporal server...")
-		
+
 		temporalManager = temporal.NewManager(
 			dataDir,
 			cfg.Backend.Local.ResolveTemporalVersion(),
 			cfg.Backend.Local.ResolveTemporalPort(),
 		)
-		
+
 		if err := temporalManager.EnsureInstalled(); err != nil {
 			return errors.Wrap(err, "failed to ensure Temporal installation")
 		}
-		
+
 		if opts.Progress != nil {
 			opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting Temporal server")
 		}
 		if err := temporalManager.Start(); err != nil {
 			return errors.Wrap(err, "failed to start Temporal")
 		}
-		
+
 		temporalAddr = temporalManager.GetAddress()
 		log.Info().Str("address", temporalAddr).Msg("Temporal started successfully")
 	} else {
@@ -349,16 +379,16 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	if executionMode == "" {
 		executionMode = cfg.Backend.Local.ResolveExecutionMode()
 	}
-	
+
 	sandboxImage := opts.SandboxImage
 	if sandboxImage == "" {
 		sandboxImage = cfg.Backend.Local.ResolveSandboxImage()
 	}
-	
+
 	sandboxAutoPull := cfg.Backend.Local.ResolveSandboxAutoPull()
 	sandboxCleanup := cfg.Backend.Local.ResolveSandboxCleanup()
 	sandboxTTL := cfg.Backend.Local.ResolveSandboxTTL()
-	
+
 	// Override with CLI flags if explicitly set (checking changed vs default)
 	if opts.SandboxAutoPull != true { // If explicitly set to false
 		sandboxAutoPull = opts.SandboxAutoPull
@@ -369,7 +399,7 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	if opts.SandboxTTL != 3600 && opts.SandboxTTL != 0 { // If explicitly set to non-default
 		sandboxTTL = opts.SandboxTTL
 	}
-	
+
 	log.Debug().
 		Str("execution_mode", executionMode).
 		Str("sandbox_image", sandboxImage).
@@ -377,7 +407,7 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		Bool("sandbox_cleanup", sandboxCleanup).
 		Int("sandbox_ttl", sandboxTTL).
 		Msg("Resolved execution configuration")
-	
+
 	// Start agent-runner subprocess with LLM config and injected secrets
 	if opts.Progress != nil {
 		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting agent runner")
@@ -410,7 +440,7 @@ func startWorkflowRunner(
 	env = append(env,
 		// Execution mode: temporal worker only (no gRPC server)
 		"EXECUTION_MODE=temporal",
-		
+
 		// Temporal configuration
 		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", temporalAddr),
 		"TEMPORAL_NAMESPACE=default",
@@ -418,12 +448,12 @@ func startWorkflowRunner(
 		"TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE=workflow_execution_runner",
 		"TEMPORAL_ZIGFLOW_EXECUTION_TASK_QUEUE=zigflow_execution",
 		"TEMPORAL_WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE=workflow_validation_runner",
-		
+
 		// Stigmer backend configuration (for callbacks)
 		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=localhost:%d", DaemonPort),
 		"STIGMER_API_KEY=dummy-local-key",
 		"STIGMER_SERVICE_USE_TLS=false",
-		
+
 		"LOG_LEVEL=DEBUG",
 		"ENV=local",
 	)
@@ -504,18 +534,24 @@ Please start Docker Desktop or install Docker:
 
 After installing Docker, restart Stigmer server.`)
 	}
-	
+
 	// Ensure Docker image exists
 	if err := ensureDockerImage(dataDir); err != nil {
 		return errors.Wrap(err, "failed to ensure Docker image")
 	}
-	
+
 	// Prepare workspace directory
 	workspaceDir := filepath.Join(dataDir, "workspace")
 	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
 		return errors.Wrap(err, "failed to create workspace directory")
 	}
-	
+
+	// Resolve host address for Docker container to reach host services
+	// On macOS/Windows, Docker runs in a VM, so containers must use host.docker.internal
+	// On Linux, localhost works with --network host
+	hostAddr := resolveDockerHostAddress(temporalAddr)
+	backendAddr := resolveDockerHostAddress(fmt.Sprintf("localhost:%d", DaemonPort))
+
 	// Build docker run arguments
 	args := []string{
 		"run",
@@ -523,70 +559,71 @@ After installing Docker, restart Stigmer server.`)
 		"--name", AgentRunnerContainerName,
 		"--network", "host", // Use host networking for localhost access
 		"--restart", "unless-stopped",
-		
+
 		// Environment variables
 		"-e", "MODE=local",
-		"-e", fmt.Sprintf("STIGMER_BACKEND_URL=http://localhost:%d", DaemonPort),
-		"-e", fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", temporalAddr),
+		"-e", fmt.Sprintf("STIGMER_BACKEND_URL=http://%s", backendAddr),
+		"-e", fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", hostAddr),
 		"-e", "TEMPORAL_NAMESPACE=default",
 		"-e", "TASK_QUEUE=agent_execution_runner",
 		"-e", "SANDBOX_TYPE=filesystem",
 		"-e", "WORKSPACE_ROOT=/workspace",
 		"-e", "LOG_LEVEL=DEBUG",
-		
+
 		// LLM configuration
 		"-e", fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", llmProvider),
 		"-e", fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
 		"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
-		
+
 		// Execution configuration (NEW - full cascade support)
 		"-e", fmt.Sprintf("STIGMER_EXECUTION_MODE=%s", executionMode),
 		"-e", fmt.Sprintf("STIGMER_SANDBOX_IMAGE=%s", sandboxImage),
 		"-e", fmt.Sprintf("STIGMER_SANDBOX_AUTO_PULL=%t", sandboxAutoPull),
 		"-e", fmt.Sprintf("STIGMER_SANDBOX_CLEANUP=%t", sandboxCleanup),
 		"-e", fmt.Sprintf("STIGMER_SANDBOX_TTL=%d", sandboxTTL),
-		
+
 		// Volume mount for workspace
 		"-v", fmt.Sprintf("%s:/workspace", workspaceDir),
-		
+
 		// Volume mount for Docker socket (needed for sandbox mode)
 		"-v", "/var/run/docker.sock:/var/run/docker.sock",
-		
+
 		// Log driver for better log access
 		"--log-driver", "json-file",
 		"--log-opt", "max-size=10m",
 		"--log-opt", "max-file=3",
 	}
-	
+
 	// Inject provider-specific secrets
 	for key, value := range secrets {
 		args = append(args, "-e", fmt.Sprintf("%s=%s", key, value))
 	}
-	
+
 	// Add image name
 	args = append(args, AgentRunnerDockerImage)
-	
+
 	log.Info().
 		Str("llm_provider", llmProvider).
 		Str("llm_model", llmModel).
-		Str("temporal_address", temporalAddr).
+		Str("temporal_address", hostAddr).
+		Str("backend_address", backendAddr).
 		Str("execution_mode", executionMode).
 		Str("sandbox_image", sandboxImage).
 		Str("image", AgentRunnerDockerImage).
 		Msg("Starting agent-runner Docker container")
-	
+
 	// Remove any existing container with the same name
 	_ = exec.Command("docker", "rm", "-f", AgentRunnerContainerName).Run()
-	
+
 	// Start container
 	cmd := exec.Command("docker", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return errors.Wrapf(err, "failed to start agent-runner container: %s", string(output))
 	}
-	
+
 	containerID := strings.TrimSpace(string(output))
-	
+
 	// Store container ID for management
 	containerIDFile := filepath.Join(dataDir, AgentRunnerContainerIDFileName)
 	if err := os.WriteFile(containerIDFile, []byte(containerID), 0644); err != nil {
@@ -595,12 +632,12 @@ After installing Docker, restart Stigmer server.`)
 		_ = exec.Command("docker", "rm", containerID).Run()
 		return errors.Wrap(err, "failed to write container ID file")
 	}
-	
+
 	log.Info().
 		Str("container_id", containerID[:12]).
 		Str("container_name", AgentRunnerContainerName).
 		Msg("Agent-runner container started successfully")
-	
+
 	return nil
 }
 
@@ -613,7 +650,7 @@ func isProcessAlive(pid int) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	// Send signal 0 (null signal) to check if process exists
 	// This doesn't actually send a signal, just checks if we CAN send one
 	err = process.Signal(syscall.Signal(0))
@@ -631,21 +668,21 @@ func isProcessAlive(pid int) bool {
 // causing port conflicts, resource leaks, and general chaos.
 func cleanupOrphanedProcesses(dataDir string) {
 	log.Debug().Msg("Checking for orphaned processes and containers from previous runs")
-	
+
 	// Check each PID file and kill if process is running
 	pidFiles := map[string]string{
-		"stigmer-server":   filepath.Join(dataDir, PIDFileName),
-		"workflow-runner":  filepath.Join(dataDir, WorkflowRunnerPIDFileName),
+		"stigmer-server":  filepath.Join(dataDir, PIDFileName),
+		"workflow-runner": filepath.Join(dataDir, WorkflowRunnerPIDFileName),
 	}
-	
+
 	orphansFound := false
-	
+
 	for name, pidFile := range pidFiles {
 		data, err := os.ReadFile(pidFile)
 		if err != nil {
 			continue // No PID file
 		}
-		
+
 		pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
 		if err != nil {
 			log.Warn().
@@ -655,7 +692,7 @@ func cleanupOrphanedProcesses(dataDir string) {
 			_ = os.Remove(pidFile)
 			continue
 		}
-		
+
 		// Check if process is actually running
 		if isProcessAlive(pid) {
 			orphansFound = true
@@ -663,13 +700,13 @@ func cleanupOrphanedProcesses(dataDir string) {
 				Str("component", name).
 				Int("pid", pid).
 				Msg("Found orphaned process from previous run, killing")
-			
+
 			process, _ := os.FindProcess(pid)
-			
+
 			// Try graceful kill first
 			_ = process.Signal(syscall.SIGTERM)
 			time.Sleep(500 * time.Millisecond)
-			
+
 			// Force kill if still alive
 			if isProcessAlive(pid) {
 				log.Warn().Str("component", name).Int("pid", pid).Msg("Process didn't stop gracefully, force killing")
@@ -677,11 +714,11 @@ func cleanupOrphanedProcesses(dataDir string) {
 				time.Sleep(500 * time.Millisecond)
 			}
 		}
-		
+
 		// Clean up PID file
 		_ = os.Remove(pidFile)
 	}
-	
+
 	// Check for orphaned agent-runner Docker container
 	cmd := exec.Command("docker", "ps", "-aq", "-f", fmt.Sprintf("name=^%s$", AgentRunnerContainerName))
 	output, err := cmd.Output()
@@ -692,16 +729,16 @@ func cleanupOrphanedProcesses(dataDir string) {
 			Str("container_id", containerID[:12]).
 			Str("container_name", AgentRunnerContainerName).
 			Msg("Found orphaned agent-runner container from previous run, removing")
-		
+
 		// Stop and remove container
 		_ = exec.Command("docker", "stop", containerID).Run()
 		_ = exec.Command("docker", "rm", containerID).Run()
-		
+
 		// Clean up container ID file
 		containerIDFile := filepath.Join(dataDir, AgentRunnerContainerIDFileName)
 		_ = os.Remove(containerIDFile)
 	}
-	
+
 	// Also check for orphaned Temporal (if managed)
 	cfg, err := config.Load()
 	if err == nil && (cfg.Backend.Local.Temporal == nil || cfg.Backend.Local.Temporal.Managed) {
@@ -711,14 +748,14 @@ func cleanupOrphanedProcesses(dataDir string) {
 			cfg.Backend.Local.ResolveTemporalVersion(),
 			cfg.Backend.Local.ResolveTemporalPort(),
 		)
-		
+
 		if temporalManager.IsRunning() {
 			orphansFound = true
 			log.Warn().Msg("Found orphaned Temporal server from previous run, stopping")
 			_ = temporalManager.Stop()
 		}
 	}
-	
+
 	if orphansFound {
 		log.Info().Msg("Cleaned up orphaned processes and containers from previous run")
 	} else {
@@ -776,7 +813,7 @@ func Stop(dataDir string) error {
 			// Remove PID file (if it exists)
 			pidFile := filepath.Join(dataDir, PIDFileName)
 			_ = os.Remove(pidFile)
-			
+
 			log.Info().Msg("Daemon stopped successfully")
 			return nil
 		}
@@ -804,23 +841,23 @@ func stopManagedTemporal(dataDir string) {
 		log.Debug().Err(err).Msg("Failed to load config, using defaults for Temporal stop")
 		cfg = config.GetDefault()
 	}
-	
+
 	// Skip if explicitly configured as external Temporal
 	if cfg.Backend.Local.Temporal != nil && !cfg.Backend.Local.Temporal.Managed {
 		return // Using external Temporal, don't stop it
 	}
-	
+
 	// Create manager with config (or defaults)
 	tm := temporal.NewManager(
 		dataDir,
 		cfg.Backend.Local.ResolveTemporalVersion(),
 		cfg.Backend.Local.ResolveTemporalPort(),
 	)
-	
+
 	if !tm.IsRunning() {
 		return // Not running
 	}
-	
+
 	log.Info().Msg("Stopping managed Temporal...")
 	if err := tm.Stop(); err != nil {
 		log.Error().Err(err).Msg("Failed to stop Temporal")
@@ -832,7 +869,7 @@ func stopManagedTemporal(dataDir string) {
 // stopWorkflowRunner stops the workflow-runner subprocess
 func stopWorkflowRunner(dataDir string) {
 	pidFile := filepath.Join(dataDir, WorkflowRunnerPIDFileName)
-	
+
 	// Read PID file
 	data, err := os.ReadFile(pidFile)
 	if err != nil {
@@ -880,7 +917,7 @@ func stopWorkflowRunner(dataDir string) {
 	// Force kill if still running
 	log.Warn().Msg("Workflow-runner did not stop gracefully, force killing")
 	_ = process.Kill()
-	
+
 	// Wait a bit for kill to take effect
 	time.Sleep(500 * time.Millisecond)
 	_ = os.Remove(pidFile)
@@ -891,12 +928,12 @@ func stopAgentRunner(dataDir string) {
 	// Try to read container ID from file
 	containerIDFile := filepath.Join(dataDir, AgentRunnerContainerIDFileName)
 	data, err := os.ReadFile(containerIDFile)
-	
+
 	var containerID string
 	if err == nil {
 		containerID = strings.TrimSpace(string(data))
 	}
-	
+
 	// If no container ID file, try to find container by name
 	if containerID == "" {
 		log.Debug().Msg("No container ID file found, trying to find container by name")
@@ -908,34 +945,34 @@ func stopAgentRunner(dataDir string) {
 		}
 		containerID = strings.TrimSpace(string(output))
 	}
-	
+
 	if containerID == "" {
 		return
 	}
-	
+
 	log.Info().Str("container_id", containerID[:12]).Msg("Stopping agent-runner container")
-	
+
 	// Stop container (graceful)
 	stopCmd := exec.Command("docker", "stop", containerID)
 	if err := stopCmd.Run(); err != nil {
 		log.Warn().Str("container_id", containerID[:12]).Err(err).Msg("Failed to stop container gracefully")
-		
+
 		// Try force kill
 		killCmd := exec.Command("docker", "kill", containerID)
 		if err := killCmd.Run(); err != nil {
 			log.Error().Str("container_id", containerID[:12]).Err(err).Msg("Failed to kill container")
 		}
 	}
-	
+
 	// Remove container
 	rmCmd := exec.Command("docker", "rm", containerID)
 	if err := rmCmd.Run(); err != nil {
 		log.Warn().Str("container_id", containerID[:12]).Err(err).Msg("Failed to remove container")
 	}
-	
+
 	// Clean up container ID file
 	_ = os.Remove(containerIDFile)
-	
+
 	log.Info().Msg("Agent-runner container stopped successfully")
 }
 
@@ -962,11 +999,11 @@ func IsRunning(dataDir string) bool {
 	// This handles cases where the PID file is missing but server is actually running
 	// Using WithBlock() ensures we only return true if the server is ready to accept requests
 	endpoint := fmt.Sprintf("localhost:%d", DaemonPort)
-	
+
 	// Short timeout - we're just checking if it's running, not waiting for startup
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	
+
 	conn, err := grpc.DialContext(ctx, endpoint,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(), // Block until connection is established or timeout
@@ -1065,7 +1102,7 @@ func WaitForReady(ctx context.Context, endpoint string) error {
 // getPID reads the PID from the PID file
 func getPID(dataDir string) (int, error) {
 	pidFile := filepath.Join(dataDir, PIDFileName)
-	
+
 	data, err := os.ReadFile(pidFile)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to read PID file")
@@ -1112,8 +1149,8 @@ func findProcessByPort(port int) (int, error) {
 // findAgentRunnerBinary finds the agent-runner binary (PyInstaller)
 //
 // Lookup order:
-//   1. Extracted binary from dataDir/bin/agent-runner (embedded in CLI)
-//   2. Download from GitHub releases if missing (fallback for corrupted installations)
+//  1. Extracted binary from dataDir/bin/agent-runner (embedded in CLI)
+//  2. Download from GitHub releases if missing (fallback for corrupted installations)
 func findAgentRunnerBinary(dataDir string) (string, error) {
 	// Check for extracted binary first
 	binPath := filepath.Join(dataDir, "bin", "agent-runner")
@@ -1124,7 +1161,7 @@ func findAgentRunnerBinary(dataDir string) (string, error) {
 
 	// Binary not found - download from GitHub releases as fallback
 	log.Info().Msg("Agent-runner binary not found, downloading from GitHub releases...")
-	
+
 	version := embedded.GetBuildVersion()
 	downloadedPath, err := downloadAgentRunnerBinary(dataDir, version)
 	if err != nil {
@@ -1146,20 +1183,19 @@ Or download and install the latest release:
 	return downloadedPath, nil
 }
 
-
 // rotateLogsIfNeeded rotates existing log files by renaming them with timestamps
 // This is called on daemon start to archive old logs before starting a fresh session
 func rotateLogsIfNeeded(dataDir string) error {
 	logDir := filepath.Join(dataDir, "logs")
-	
+
 	// Ensure log directory exists
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return errors.Wrap(err, "failed to create log directory")
 	}
-	
+
 	// Generate timestamp for this rotation
 	timestamp := time.Now().Format("2006-01-02-150405")
-	
+
 	// List of log files to rotate
 	logFiles := []string{
 		"stigmer-server.log",
@@ -1169,27 +1205,27 @@ func rotateLogsIfNeeded(dataDir string) error {
 		"workflow-runner.log",
 		"workflow-runner.err",
 	}
-	
+
 	// Rotate each log file if it exists
 	rotatedCount := 0
 	for _, logFile := range logFiles {
 		oldPath := filepath.Join(logDir, logFile)
-		
+
 		// Check if file exists and has content
 		info, err := os.Stat(oldPath)
 		if err != nil {
 			// File doesn't exist, skip
 			continue
 		}
-		
+
 		// Only rotate if file has content (size > 0)
 		if info.Size() == 0 {
 			continue
 		}
-		
+
 		// Create new filename with timestamp
 		newPath := fmt.Sprintf("%s.%s", oldPath, timestamp)
-		
+
 		// Rename file to archive it
 		if err := os.Rename(oldPath, newPath); err != nil {
 			log.Warn().
@@ -1199,47 +1235,47 @@ func rotateLogsIfNeeded(dataDir string) error {
 				Msg("Failed to rotate log file")
 			continue
 		}
-		
+
 		rotatedCount++
 		log.Debug().
 			Str("old_path", logFile).
 			Str("new_path", filepath.Base(newPath)).
 			Msg("Rotated log file")
 	}
-	
+
 	if rotatedCount > 0 {
 		log.Info().Int("count", rotatedCount).Msg("Rotated log files")
 	}
-	
+
 	// Cleanup old archived logs (keep last 7 days)
 	if err := cleanupOldLogs(logDir, 7); err != nil {
 		log.Warn().Err(err).Msg("Failed to cleanup old logs")
 		// Don't return error - cleanup failure shouldn't stop daemon
 	}
-	
+
 	return nil
 }
 
 // cleanupOldLogs removes archived log files older than keepDays
 func cleanupOldLogs(logDir string, keepDays int) error {
 	cutoff := time.Now().AddDate(0, 0, -keepDays)
-	
+
 	// Find all archived log files (pattern: *.log.YYYY-MM-DD-HHMMSS)
 	pattern := filepath.Join(logDir, "*.log.*")
 	files, err := filepath.Glob(pattern)
 	if err != nil {
 		return errors.Wrap(err, "failed to glob log files")
 	}
-	
+
 	// Also check error logs (*.err.*)
 	errPattern := filepath.Join(logDir, "*.err.*")
 	errFiles, err := filepath.Glob(errPattern)
 	if err != nil {
 		return errors.Wrap(err, "failed to glob error log files")
 	}
-	
+
 	files = append(files, errFiles...)
-	
+
 	deletedCount := 0
 	for _, file := range files {
 		info, err := os.Stat(file)
@@ -1247,14 +1283,14 @@ func cleanupOldLogs(logDir string, keepDays int) error {
 			log.Warn().Str("file", file).Err(err).Msg("Failed to stat log file")
 			continue
 		}
-		
+
 		// Delete if older than cutoff
 		if info.ModTime().Before(cutoff) {
 			if err := os.Remove(file); err != nil {
 				log.Warn().Str("file", file).Err(err).Msg("Failed to delete old log file")
 				continue
 			}
-			
+
 			deletedCount++
 			log.Debug().
 				Str("file", filepath.Base(file)).
@@ -1262,14 +1298,13 @@ func cleanupOldLogs(logDir string, keepDays int) error {
 				Msg("Deleted old log file")
 		}
 	}
-	
+
 	if deletedCount > 0 {
 		log.Info().
 			Int("count", deletedCount).
 			Int("keep_days", keepDays).
 			Msg("Cleaned up old log files")
 	}
-	
+
 	return nil
 }
-
