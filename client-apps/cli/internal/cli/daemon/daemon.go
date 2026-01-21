@@ -805,85 +805,41 @@ func findProcessByPort(port int) (int, error) {
 
 // findAgentRunnerBinary finds the agent-runner binary (PyInstaller)
 //
-// Production mode (default):
-//   Uses extracted binary from dataDir/bin/agent-runner
-//
-// Development mode (STIGMER_AGENT_RUNNER_BIN env var set):
-//   Uses custom binary path from environment variable
+// Lookup order:
+//   1. Extracted binary from dataDir/bin/agent-runner (embedded in CLI)
+//   2. Download from GitHub releases if missing (fallback for corrupted installations)
 func findAgentRunnerBinary(dataDir string) (string, error) {
-	// Dev mode: environment variable takes precedence
-	if bin := os.Getenv("STIGMER_AGENT_RUNNER_BIN"); bin != "" {
-		if _, err := os.Stat(bin); err == nil {
-			log.Debug().Str("path", bin).Msg("Using agent-runner from STIGMER_AGENT_RUNNER_BIN")
-			return bin, nil
-		}
-		return "", errors.Errorf("STIGMER_AGENT_RUNNER_BIN set but file not found: %s", bin)
-	}
-
-	// Production mode: use extracted binary only
+	// Check for extracted binary first
 	binPath := filepath.Join(dataDir, "bin", "agent-runner")
 	if _, err := os.Stat(binPath); err == nil {
 		log.Debug().Str("path", binPath).Msg("Using extracted agent-runner binary")
 		return binPath, nil
 	}
 
-	// Binary not found - this should not happen if extraction succeeded
-	return "", errors.New(`agent-runner binary not found
+	// Binary not found - download from GitHub releases as fallback
+	log.Info().Msg("Agent-runner binary not found, downloading from GitHub releases...")
+	
+	version := embedded.GetBuildVersion()
+	downloadedPath, err := downloadAgentRunnerBinary(dataDir, version)
+	if err != nil {
+		return "", errors.Wrap(err, `failed to download agent-runner binary
 
-Expected location: ` + binPath + `
-
-This usually means the Stigmer CLI installation is corrupted.
-
-To fix this:
-  brew reinstall stigmer    (if installed via Homebrew)
-  
-Or download and install the latest release:
-  https://github.com/stigmer/stigmer/releases
-
-For development, set STIGMER_AGENT_RUNNER_BIN environment variable:
-  export STIGMER_AGENT_RUNNER_BIN=/path/to/agent-runner`)
-}
-
-// findAgentRunnerScript finds the agent-runner run script
-//
-// Production mode (default):
-//   Uses extracted script from dataDir/bin/agent-runner/run.sh
-//
-// Development mode (STIGMER_AGENT_RUNNER_SCRIPT env var set):
-//   Uses custom script path from environment variable
-func findAgentRunnerScript(dataDir string) (string, error) {
-	// Dev mode: environment variable takes precedence
-	if script := os.Getenv("STIGMER_AGENT_RUNNER_SCRIPT"); script != "" {
-		if _, err := os.Stat(script); err == nil {
-			log.Debug().Str("path", script).Msg("Using agent-runner script from STIGMER_AGENT_RUNNER_SCRIPT")
-			return script, nil
-		}
-		return "", errors.Errorf("STIGMER_AGENT_RUNNER_SCRIPT set but file not found: %s", script)
-	}
-
-	// Production mode: use extracted script only
-	scriptPath := filepath.Join(dataDir, "bin", "agent-runner", "run.sh")
-	if _, err := os.Stat(scriptPath); err == nil {
-		log.Debug().Str("path", scriptPath).Msg("Using extracted agent-runner script")
-		return scriptPath, nil
-	}
-
-	// Script not found - this should not happen if extraction succeeded
-	return "", errors.New(`agent-runner script not found
-
-Expected location: ` + scriptPath + `
-
-This usually means the Stigmer CLI installation is corrupted.
+This usually means either:
+  1. Your Stigmer CLI installation is corrupted
+  2. The GitHub release does not include agent-runner binaries
+  3. Network connectivity issues
 
 To fix this:
   brew reinstall stigmer    (if installed via Homebrew)
   
 Or download and install the latest release:
-  https://github.com/stigmer/stigmer/releases
+  https://github.com/stigmer/stigmer/releases`)
+	}
 
-For development, set STIGMER_AGENT_RUNNER_SCRIPT environment variable:
-  export STIGMER_AGENT_RUNNER_SCRIPT=/path/to/agent-runner/run.sh`)
+	log.Info().Str("path", downloadedPath).Msg("Successfully downloaded agent-runner binary")
+	return downloadedPath, nil
 }
+
 
 // rotateLogsIfNeeded rotates existing log files by renaming them with timestamps
 // This is called on daemon start to archive old logs before starting a fresh session

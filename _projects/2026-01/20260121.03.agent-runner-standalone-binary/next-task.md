@@ -9,6 +9,7 @@ Transform agent-runner into standalone PyInstaller binary, following Temporal's 
 ✅ **Phase 1 Complete** - PyInstaller binary build infrastructure ready  
 ✅ **Phase 2 Complete** - Hybrid PyInstaller embedding implemented  
 ✅ **Phase 2.5 Complete** - BusyBox pattern refactoring (24MB size reduction)  
+✅ **Phase 2.75 Complete** - Workflow optimization (env vars, downloads, Makefiles)  
 ⏳ **Phase 3 Next** - Testing and release
 
 ## Quick Links
@@ -16,6 +17,7 @@ Transform agent-runner into standalone PyInstaller binary, following Temporal's 
 - Phase 1 Validation: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/tasks/T01_VALIDATION_REPORT.md`
 - Phase 2 Plan: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/tasks/T02_0_plan.md`
 - Phase 2 Testing Guide: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/tasks/T02_TESTING_GUIDE.md`
+- **Phase 2.75 Summary**: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/tasks/IMPLEMENTATION_SUMMARY.md`
 - ADR Reference: `_cursor/adr-use-python-binary.md`
 
 ## What's Done
@@ -46,6 +48,15 @@ Transform agent-runner into standalone PyInstaller binary, following Temporal's 
 ✅ Updated daemon to spawn CLI itself (BusyBox pattern)  
 ✅ Simplified embedded binaries (only agent-runner Python binary)  
 ✅ **Result**: 126MB CLI (24MB smaller, 16% reduction) ✨
+
+### Phase 2.75 (Complete ✅) - Workflow Optimization
+✅ **Removed env var complexity** (`STIGMER_AGENT_RUNNER_BIN`)  
+✅ **Version-based download fallback** (uses CLI version for compatibility)  
+✅ **Enhanced developer workflow** (Makefile targets: `install-agent-runner`, `release-local-full`)  
+✅ **Cleaned GitHub workflow** (removed obsolete stigmer-server/workflow-runner builds)  
+✅ **Removed Docker logic** from agent-runner Makefile  
+✅ **Standalone agent-runner binaries** published to GitHub releases  
+✅ **Result**: Clean, maintainable workflow with automatic recovery ✨
 
 ## Context for AI
 This project implements PyInstaller-based standalone binary approach for agent-runner:

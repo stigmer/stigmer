@@ -7,7 +7,7 @@ help: ## Show this help message
 	@echo 'Usage: make [target]'
 	@echo ''
 	@echo 'Available targets:'
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 setup: ## Install dependencies and tools
 	@echo "Installing Go dependencies for all modules..."
@@ -337,5 +337,41 @@ release-local: ## Build and install CLI for local testing (fast rebuild without 
 
 dev: ## Run Stigmer in development mode
 	cd client-apps/cli && go run .
+
+build-agent-runner: ## Build agent-runner PyInstaller binary (for development)
+	@echo "Building agent-runner binary..."
+	@cd backend/services/agent-runner && $(MAKE) build-binary
+	@echo "✓ Built: backend/services/agent-runner/dist/agent-runner"
+
+install-agent-runner: build-agent-runner ## Build and install agent-runner to ~/.stigmer/bin
+	@echo "Installing agent-runner to ~/.stigmer/bin..."
+	@mkdir -p $(HOME)/.stigmer/bin
+	@cp backend/services/agent-runner/dist/agent-runner $(HOME)/.stigmer/bin/agent-runner
+	@chmod +x $(HOME)/.stigmer/bin/agent-runner
+	@echo "✓ Installed: $(HOME)/.stigmer/bin/agent-runner"
+	@echo ""
+	@echo "Agent-runner binary ready for local testing."
+	@echo "Run 'stigmer server' to use the updated binary."
+
+release-local-full: ## Build CLI and agent-runner for complete local testing
+	@echo "============================================"
+	@echo "Building Complete Local Environment"
+	@echo "============================================"
+	@echo ""
+	@echo "Step 1: Building agent-runner binary..."
+	@$(MAKE) install-agent-runner
+	@echo ""
+	@echo "Step 2: Building and installing CLI..."
+	@$(MAKE) release-local
+	@echo ""
+	@echo "============================================"
+	@echo "✓ Complete Local Release Ready!"
+	@echo "============================================"
+	@echo ""
+	@echo "Components installed:"
+	@echo "  • CLI: $(HOME)/bin/stigmer"
+	@echo "  • Agent Runner: $(HOME)/.stigmer/bin/agent-runner"
+	@echo ""
+	@echo "Ready to test: stigmer server"
 
 .DEFAULT_GOAL := help

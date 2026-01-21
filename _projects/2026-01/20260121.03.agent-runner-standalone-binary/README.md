@@ -1,9 +1,9 @@
 # Agent-Runner Standalone Binary
 
 **Created**: 2026-01-21  
-**Completed**: 2026-01-21 (Phase 1)  
-**Status**: ✅ Binary Build Infrastructure Ready  
-**Type**: Multi-day Project (2 weeks, Phase 1 of 5 complete)  
+**Completed**: 2026-01-21 (Phase 2.75)  
+**Status**: ✅ Workflow Optimization Complete  
+**Type**: Multi-day Project (2 weeks, Phase 2.75 of 5 complete)  
 **Project Path**: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/`
 
 ## Overview
@@ -211,29 +211,36 @@ User Machine:
 - ✅ Document binary size (59MB) and startup time
 - **Validation Report**: `tasks/T01_VALIDATION_REPORT.md`
 
-### Phase 2: Multi-Platform Build System (Days 3-4)
-- GitHub Actions workflow for matrix builds
-- Build for: linux-amd64, linux-arm64, darwin-amd64, darwin-arm64, windows-amd64
-- Test artifacts locally
-- Makefile targets for local cross-platform builds (if possible)
+### Phase 2: Hybrid PyInstaller Embedding (Days 3-4) ✅ COMPLETE
+- ✅ Embed PyInstaller binary in CLI (Go embed directive)
+- ✅ Extract binary to `~/.stigmer/bin/` on first run
+- ✅ Update GitHub workflow to build agent-runner binary
+- ✅ Delete obsolete workflows (release.yml, build-agent-runner-binaries.yml)
+- ✅ Update Python version to 3.13
+- ✅ Create comprehensive documentation
+- **Result**: 100MB CLI with zero Python dependency ✨
 
-### Phase 3: Binary Distribution (Days 5-6)
-- Set up R2/S3 bucket for binary hosting
-- Upload workflow in GitHub Actions
-- Versioning strategy (semver tags)
-- Download URL pattern: `releases.stigmer.ai/{version}/{platform}-{arch}/agent-runner`
-- Test downloads work from all platforms
+### Phase 2.5: BusyBox Pattern Refactoring (Days 5-6) ✅ COMPLETE
+- ✅ Refactored stigmer-server to importable library (`pkg/server/server.go`)
+- ✅ Refactored workflow-runner to importable library (`pkg/runner/runner.go`)
+- ✅ Added hidden CLI commands (`internal-server`, `internal-workflow-runner`)
+- ✅ Updated daemon to spawn CLI itself (BusyBox pattern)
+- ✅ Eliminated Go runtime duplication (3 copies → 1 shared)
+- ✅ Simplified embedded binaries (only agent-runner Python binary)
+- **Result**: 126MB CLI (24MB smaller, 16% reduction) ✨
 
-### Phase 4: Daemon Integration (Days 7-9)
-- Binary download logic in Go daemon
-- Platform/arch detection
-- Version checking (use embedded version in CLI)
-- Binary lifecycle: download → verify → execute → monitor
-- Environment variable passing
-- Graceful shutdown handling
-- Update `stigmer server` commands to work with binary
+### Phase 2.75: Workflow Optimization (Day 7) ✅ COMPLETE
+- ✅ Removed `STIGMER_AGENT_RUNNER_BIN` environment variable complexity
+- ✅ Added version-based download fallback (uses CLI version for compatibility)
+- ✅ Enhanced developer workflow (Makefile targets: `install-agent-runner`, `release-local-full`)
+- ✅ Cleaned GitHub workflow (removed obsolete stigmer-server/workflow-runner builds)
+- ✅ Removed Docker logic from agent-runner Makefile
+- ✅ Standalone agent-runner binaries published to GitHub releases
+- **Checkpoint**: `checkpoints/2026-01-21-workflow-optimization-complete.md`
+- **Documentation**: `tasks/IMPLEMENTATION_SUMMARY.md`, `tasks/TESTING_CHECKLIST.md`
+- **Result**: Clean, maintainable workflow with automatic recovery ✨
 
-### Phase 5: Testing & Documentation (Days 10-14)
+### Phase 3: Testing & Release (Days 8-14)
 - End-to-end testing on all platforms
 - Fresh machine testing (no Python installed)
 - Brew formula update and testing
