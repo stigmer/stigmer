@@ -1444,3 +1444,255 @@ $ stigmer apply
 - gRPC docs: https://grpc.io/docs/languages/go/basics/ (WithBlock pattern)
 
 **Key Takeaway**: For CLI→server gRPC connections, ALWAYS use `grpc.WithBlock()` with appropriate context timeouts. This is the industry-standard pattern that eliminates race conditions and provides reliable connection behavior. Don't use arbitrary sleeps or manual verification - trust gRPC's built-in blocking dial.
+
+---
+
+### 2026-01-21 - BusyBox Internal Command Routing (Bypass Embedded CLI Parsers)
+
+**Problem**: Workflow validation consistently timed out with 30-second `StartToClose` timeout when running `stigmer run` in local mode, even after server was fully started:
+
+```
+Failed to deploy: pipeline step ValidateWorkflowSpec failed: 
+workflow validation system error: failed to execute validation workflow: 
+Workflow timeout (type: StartToClose)
+```
+
+**User Experience**:
+- ❌ Validation timed out on **every run** (not just first run)
+- ❌ Restarting sometimes appeared to help but issue persisted  
+- ❌ No obvious pattern (seemed sporadic)
+- ❌ Happened consistently across all commands
+- ❌ Workflow-runner subprocess wasn't running (`ps aux` showed no process)
+- ❌ PID file existed but process was dead
+- ❌ Log files completely empty (process died before logging)
+
+**Initial Hypothesis** ❌ (WRONG):
+"Race condition during worker initialization" → Considered adding 2-second delays
+
+**User Feedback**: "Let's not add this 2-second thing. I want to build a state-of-the-art solution."
+
+This feedback was critical - it forced investigation of the real issue instead of accepting a workaround.
+
+**Investigation Breakthrough**:
+
+Added debug output to trace execution:
+```go
+fmt.Fprintln(os.Stderr, "DEBUG: workflow-runner Run() called")
+fmt.Fprintln(os.Stderr, "DEBUG: About to call rootCmd.Execute()")
+```
+
+Result:
+```
+DEBUG: workflow-runner Run() called
+DEBUG: About to call rootCmd.Execute()
+DEBUG: rootCmd.Execute() returned error: unknown command "internal-workflow-runner" for "zigflow"
+```
+
+**Root Cause**: Architectural mismatch in BusyBox pattern implementation.
+
+The workflow-runner is actually the **zigflow CLI** (separate tool embedded in Stigmer):
+1. Daemon spawns: `stigmer internal-workflow-runner`
+2. This routes to: `runner.Run()` in workflow-runner package  
+3. **Which was calling**: `worker.Execute()` (executes the **zigflow** CLI root command)
+4. **Zigflow CLI tried to parse**: "internal-workflow-runner" as a zigflow subcommand
+5. **But zigflow doesn't have that subcommand** → Error
+6. Process exits **immediately** (before logging is set up)
+7. PID file created but process dead
+8. Validation workflows wait for activity that will never execute
+9. Timeout after 30 seconds
+
+**The Architecture**:
+```
+Stigmer CLI (BusyBox)
+├── internal-server → server.Run() ✅ (direct function call)
+└── internal-workflow-runner → runner.Run() ❌ (was going through zigflow CLI parser)
+                                   ↓
+                         worker.Execute() (zigflow CLI)
+                                   ↓
+                         "unknown command: internal-workflow-runner"
+```
+
+**Solution**: Bypass cobra command parsing for internal commands - call worker mode directly.
+
+**Before** (`backend/services/workflow-runner/pkg/runner/runner.go`):
+```go
+func Run() error {
+    // Call the existing Execute function which handles the cobra command
+    worker.Execute()  // ← Tries to parse "internal-workflow-runner" as zigflow subcommand
+    return nil
+}
+```
+
+**After**:
+```go
+func Run() error {
+    // Directly run in Temporal worker mode (stigmer integration)
+    // Don't go through worker.Execute() which would try to parse cobra commands
+    return worker.RunTemporalWorkerMode()  // ← Direct call, no command parsing
+}
+```
+
+**Supporting Changes**:
+
+1. **Exported function** (`backend/services/workflow-runner/cmd/worker/root.go`):
+```go
+// runTemporalWorkerMode() → RunTemporalWorkerMode()
+// Exported for use by the runner package (BusyBox pattern)
+func RunTemporalWorkerMode() error {
+    // ... worker initialization
+}
+```
+
+2. **Fixed env var names** (`client-apps/cli/internal/cli/daemon/daemon.go`):
+```go
+// Added TEMPORAL_ prefix to match config expectations
+"TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE=workflow_execution_runner",
+"TEMPORAL_ZIGFLOW_EXECUTION_TASK_QUEUE=zigflow_execution",
+"TEMPORAL_WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE=workflow_validation_runner",
+```
+
+**Verification**:
+```bash
+$ stigmer run
+✓ Deployed: 1 agent(s) and 1 workflow(s)  # ← NO TIMEOUT!
+
+$ ps aux | grep internal-workflow-runner
+suresh  24803  /Users/suresh/bin/stigmer internal-workflow-runner  # ← RUNNING!
+
+$ cat ~/.stigmer/data/logs/workflow-runner.log
+INFO  Started Worker Namespace default TaskQueue workflow_validation_runner
+INFO  Starting complete workflow validation
+INFO  Workflow validation completed successfully  # ← ACTUALLY EXECUTES!
+```
+
+**Impact**:
+
+Before Fix:
+- ❌ Validation always timed out (30 seconds)
+- ❌ Workflows could not be deployed in local mode
+- ❌ Silent subprocess failure (no logs)
+- ❌ Frustrating user experience
+
+After Fix:
+- ✅ Validation completes in <200ms (expected latency)
+- ✅ Workflows deploy successfully
+- ✅ Workflow-runner subprocess starts and polls correctly
+- ✅ All three Temporal task queues operational
+
+**Prevention & Best Practices**:
+
+✅ **BusyBox Internal Commands MUST bypass embedded CLI parsers**:
+```go
+// ✅ CORRECT: Direct function call
+func Run() error {
+    return actualImplementation()  // Call code directly
+}
+
+// ❌ WRONG: Goes through embedded CLI parser
+func Run() error {
+    embeddedCLI.Execute()  // Will try to parse command
+}
+```
+
+✅ **Design internal commands for direct invocation**:
+- Internal commands are **code paths**, not **user commands**
+- They should call implementation functions directly
+- Don't route through cobra/CLI frameworks
+- The CLI parser is for **user commands**, not **internal routing**
+
+✅ **Debug subprocess failures with stderr output**:
+```go
+// Add debug output at entry point
+func Run() error {
+    fmt.Fprintln(os.Stderr, "DEBUG: Function called")
+    // ... rest of code
+}
+```
+
+This traces execution even before logging is configured.
+
+✅ **Check subprocess logs immediately**:
+- Empty logs = crash before logging setup
+- Check PID file vs running process
+- Manual test: Run command directly with env vars
+
+❌ **Don't assume timeouts are always race conditions**:
+- Timeout might mean "worker not running at all"
+- Check if subprocess is actually alive first
+- Sporadic can mean "startup fails sometimes" OR "component missing entirely"
+
+**Why This Was Hard to Debug**:
+
+1. **Silent failure**: Process exited before logging configured
+2. **Empty logs**: Both stdout and stderr empty
+3. **PID file existed**: Daemon thought it started successfully  
+4. **Misleading symptoms**: Looked like timing/race condition
+5. **Deep in call stack**: Bug was in routing layer, not worker code
+
+**Debugging Approach That Worked**:
+
+1. Verify subprocess is actually running (`ps aux`)
+2. Check PID file vs running processes (mismatch = crash)
+3. Add debug output at function entry points
+4. Test command manually with env vars
+5. Trace through routing layers
+6. Question assumptions ("Is this really a race condition?")
+
+**Related Issues**:
+
+This bug was introduced by commit `504c10c` ("refactor(cli): implement BusyBox pattern") which consolidated binaries but created this routing mismatch. The BusyBox pattern itself is correct, but internal command routing needed adjustment.
+
+**Architecture Insight**:
+
+The stigmer CLI is actually a **container** for multiple tools:
+- Stigmer Server (Java backend)
+- Workflow-Runner (Zigflow - Go Temporal worker)
+- Agent-Runner (Python agent executor)
+
+Each has its own CLI/entry point, but they're all embedded in one binary. Internal commands need to route to **implementations**, not **CLI parsers**.
+
+**Related Docs**:
+- Changelog: `_changelog/2026-01/2026-01-21-185839-fix-workflow-validation-timeout.md`
+- Root cause analysis: `_cursor/REAL-ROOT-CAUSE.md`
+- Error report: `_cursor/error.md`
+- Commit: `34a1f36` fix(cli/workflow-runner): fix validation timeout
+
+**Files Changed**:
+- `client-apps/cli/internal/cli/daemon/daemon.go` (env var names)
+- `backend/services/workflow-runner/pkg/runner/runner.go` (direct call)
+- `backend/services/workflow-runner/cmd/worker/root.go` (export function)
+
+**Key Takeaways**:
+
+1. **BusyBox internal commands must bypass embedded CLI parsers** - Route to implementation functions directly
+2. **Debug subprocess failures at the earliest entry point** - Before logging, before frameworks
+3. **Empty logs + dead process = crash during initialization** - Check command parsing first
+4. **User feedback drives investigation** - "This happens consistently" changed the direction
+5. **Reject workarounds** - Delays/sleeps mask real issues
+6. **Architectural understanding matters** - Know what each component is (zigflow = separate tool)
+
+**Testing Pattern**:
+```bash
+# Test internal command works
+EXECUTION_MODE=temporal \
+TEMPORAL_SERVICE_ADDRESS=localhost:7233 \
+STIGMER_BACKEND_ENDPOINT=localhost:9090 \
+stigmer internal-workflow-runner &
+
+sleep 2
+ps aux | grep internal-workflow-runner  # Should be running
+
+cat ~/.stigmer/data/logs/workflow-runner.log  # Should have output
+```
+
+**Example for Future Internal Commands**:
+```go
+// ✅ CORRECT PATTERN for BusyBox internal commands
+func Run() error {
+    // Don't call embeddedCLI.Execute()
+    // Call implementation directly
+    return implementation.StartInMode(os.Getenv("EXECUTION_MODE"))
+}
+```
+
+**Remember**: BusyBox pattern = multiple tools in one binary. Internal commands are **routing**, not **parsing**. Route to implementations, don't parse through embedded CLIs.

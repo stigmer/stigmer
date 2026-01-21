@@ -92,6 +92,55 @@ func newWorkflowExecuteCommand() *cobra.Command {
 - Configuration generation
 - Secret injection
 
+**⚠️ CRITICAL: BusyBox Internal Command Routing**
+
+Stigmer uses the BusyBox pattern - one binary contains multiple tools (stigmer-server, workflow-runner, agent-runner). Internal commands spawn embedded components as subprocesses.
+
+**MANDATORY Pattern for Internal Commands**:
+
+Internal commands (like `internal-server`, `internal-workflow-runner`) MUST route directly to implementation functions, NOT through embedded CLI parsers.
+
+```go
+// ✅ CORRECT: Direct function call
+func Run() error {
+    return worker.RunTemporalWorkerMode()  // Call implementation directly
+}
+
+// ❌ WRONG: Goes through embedded CLI parser
+func Run() error {
+    worker.Execute()  // Tries to parse "internal-workflow-runner" as zigflow subcommand
+}
+```
+
+**Why This Matters**:
+- workflow-runner is actually the **zigflow CLI** (separate tool)
+- zigflow doesn't know about stigmer's internal commands
+- Routing through zigflow's cobra parser causes "unknown command" errors
+- Process exits immediately with no logs (before logging setup)
+- Symptoms look like timeout/race conditions but root cause is routing
+
+**Debugging Subprocess Failures**:
+
+When a subprocess isn't running:
+1. Check if process is alive: `ps aux | grep internal-{name}`
+2. Check PID file vs running process (mismatch = crash)
+3. Check logs (empty = crash before logging)
+4. Add debug to stderr at function entry (traces before logging):
+   ```go
+   fmt.Fprintln(os.Stderr, "DEBUG: Function called")
+   ```
+5. Test manually with env vars
+6. Trace routing through call stack
+
+**Internal Command Checklist**:
+- [ ] Does NOT call embedded CLI's Execute()
+- [ ] Calls implementation function directly
+- [ ] Handles EXECUTION_MODE or similar env var
+- [ ] Has stderr debug output at entry
+- [ ] Tested manually with full env vars
+
+**Related Learning**: `docs/learning-log.md` - "BusyBox Internal Command Routing (Bypass Embedded CLI Parsers)"
+
 ### 3. Backend Communication (gRPC)
 
 **Location**: \`internal/cli/backend/*.go\`
