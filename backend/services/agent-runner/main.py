@@ -68,6 +68,12 @@ async def main():
         config = Config.load_from_env()
     except Exception as e:
         logger.error(f"❌ Failed to load configuration: {e}", exc_info=True)
+        logger.error("=" * 80)
+        logger.error("STARTUP FAILURE: Configuration Error")
+        logger.error("=" * 80)
+        logger.error(f"Error: {e}")
+        logger.error("This error will prevent the worker from processing any activities.")
+        logger.error("=" * 80)
         sys.exit(1)
     
     # Log startup banner
@@ -93,11 +99,23 @@ async def main():
         worker = AgentRunner(config)
     except Exception as e:
         logger.error(f"❌ Failed to initialize worker: {e}", exc_info=True)
+        logger.error("=" * 80)
+        logger.error("STARTUP FAILURE: Worker Initialization Error")
+        logger.error("=" * 80)
+        logger.error(f"Error: {e}")
+        logger.error("Common causes:")
+        logger.error("  - Redis connection failure (in cloud mode)")
+        logger.error("  - Invalid configuration values")
+        logger.error("  - Missing required environment variables")
+        logger.error("This error will prevent the worker from processing any activities.")
+        logger.error("=" * 80)
         sys.exit(1)
     
     try:
         # Register activities and connect to Temporal
+        logger.info("Registering activities and connecting to Temporal...")
         await worker.register_activities()
+        logger.info("✅ Activities registered successfully")
         
         # Setup signal handlers for graceful shutdown
         loop = asyncio.get_running_loop()
@@ -120,6 +138,17 @@ async def main():
         logger.info("Interrupted by user")
     except Exception as e:
         logger.error(f"❌ Fatal error in worker: {e}", exc_info=True)
+        logger.error("=" * 80)
+        logger.error("STARTUP FAILURE: Activity Registration Error")
+        logger.error("=" * 80)
+        logger.error(f"Error: {e}")
+        logger.error("Common causes:")
+        logger.error("  - Missing Python dependencies (import errors)")
+        logger.error("  - Temporal connection failure")
+        logger.error("  - Activity implementation errors")
+        logger.error("This error will prevent the worker from processing any activities.")
+        logger.error("Check the stack trace above for the exact import or initialization error.")
+        logger.error("=" * 80)
         sys.exit(1)
     finally:
         logger.info("Worker process exiting")

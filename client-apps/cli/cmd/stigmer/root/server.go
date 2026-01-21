@@ -33,7 +33,6 @@ Just run 'stigmer server' and start building!`,
 
 	cmd.AddCommand(newServerStopCommand())
 	cmd.AddCommand(newServerStatusCommand())
-	cmd.AddCommand(newServerRestartCommand())
 	cmd.AddCommand(newServerLogsCommand())
 
 	return cmd
@@ -55,16 +54,6 @@ func newServerStatusCommand() *cobra.Command {
 		Short: "Show server status",
 		Run: func(cmd *cobra.Command, args []string) {
 			handleServerStatus()
-		},
-	}
-}
-
-func newServerRestartCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "restart",
-		Short: "Restart the Stigmer server",
-		Run: func(cmd *cobra.Command, args []string) {
-			handleServerRestart()
 		},
 	}
 }
@@ -93,15 +82,17 @@ func handleServerStart() {
 		return
 	}
 
-	// Check if already running
+	// If already running, stop it first (makes 'start' idempotent)
+	// This eliminates the need for a separate 'restart' command
 	if daemon.IsRunning(dataDir) {
-		cliprint.PrintInfo("Server is already running")
-		running, pid := daemon.GetStatus(dataDir)
-		if running {
-			cliprint.PrintInfo("  PID:  %d", pid)
-			cliprint.PrintInfo("  Port: %d", daemon.DaemonPort)
+		cliprint.PrintInfo("Server is already running, restarting...")
+		if err := daemon.Stop(dataDir); err != nil {
+			cliprint.PrintWarning("Failed to stop existing server: %v", err)
+			cliprint.PrintInfo("Will attempt to start anyway (cleanup will handle orphans)")
 		}
-		return
+		
+		// Brief pause to let processes fully terminate
+		time.Sleep(1 * time.Second)
 	}
 
 	cliprint.PrintInfo("Starting Stigmer server...")
@@ -188,37 +179,3 @@ func handleServerStatus() {
 	}
 }
 
-func handleServerRestart() {
-	dataDir, err := config.GetDataDir()
-	if err != nil {
-		cliprint.Error("Failed to determine data directory")
-		clierr.Handle(err)
-		return
-	}
-
-	// Always try to stop - even if IsRunning() returns false
-	// This ensures we kill any orphaned servers without PID files
-	cliprint.Info("Stopping server...")
-	if err := daemon.Stop(dataDir); err != nil {
-		// Only warn if stop fails - don't block restart
-		cliprint.Warning("Could not stop server (may not be running): %v", err)
-	}
-
-	// Wait a moment for server to fully stop
-	time.Sleep(1 * time.Second)
-
-	// Start
-	cliprint.Info("Starting server...")
-	if err := daemon.Start(dataDir); err != nil {
-		cliprint.Error("Failed to start server")
-		clierr.Handle(err)
-		return
-	}
-
-	cliprint.Success("Server restarted successfully")
-	running, pid := daemon.GetStatus(dataDir)
-	if running {
-		cliprint.Info("  PID:  %d", pid)
-		cliprint.Info("  Port: %d", daemon.DaemonPort)
-	}
-}
