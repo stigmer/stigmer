@@ -2828,3 +2828,175 @@ func getComponentConfigsWithStreamPreferences(...) []logs.ComponentConfig {
 **Key Takeaway**: When components write and read files, they MUST agree on file locations. Centralize configuration to prevent mismatches. Test both writing and reading. Document file layout. "Smart defaults" can hide bugs when assumptions diverge from reality.
 
 ---
+
+## Docker Networking & LangChain Integration
+
+### 2026-01-22 - Docker Container Cannot Connect to Host Ollama (Multi-Layered Issue)
+
+**Problem**: Agent-runner Docker container consistently failed to connect to Ollama running on host machine with "All connection attempts failed" error, even after multiple fix attempts.
+
+**Root Causes** (required ALL four fixes):
+
+1. **Hostname Resolution**: Using `localhost:11434` in Docker container refers to container itself, not host
+2. **Network Binding**: Ollama listening on `127.0.0.1` only (can't accept connections from Docker bridge network)
+3. **Environment Variable Compatibility**: Container image version mismatch (old code vs new code)
+4. **LangChain Library Quirk**: ChatOllama doesn't read `OLLAMA_BASE_URL` from environment during async operations
+
+**Solutions**:
+
+**Fix 1 - Hostname Resolution** (`daemon.go`):
+```go
+// Resolve hostname for Docker containers
+// macOS/Windows: localhost → host.docker.internal
+// Linux: localhost stays localhost (using --network host)
+llmBaseURLResolved := resolveDockerHostAddress(llmBaseURL)
+
+func resolveDockerHostAddress(addr string) string {
+    if !strings.Contains(addr, "localhost") && !strings.Contains(addr, "127.0.0.1") {
+        return addr
+    }
+    
+    if runtime.GOOS == "linux" {
+        return addr  // Keep localhost (--network host works)
+    }
+    
+    // macOS/Windows: use host.docker.internal
+    addr = strings.ReplaceAll(addr, "localhost", "host.docker.internal")
+    addr = strings.ReplaceAll(addr, "127.0.0.1", "host.docker.internal")
+    
+    return addr
+}
+```
+
+**Fix 2 - Ollama Network Binding** (`~/Library/LaunchAgents/homebrew.mxcl.ollama.plist`):
+```xml
+<key>EnvironmentVariables</key>
+<dict>
+    <key>OLLAMA_HOST</key>
+    <string>0.0.0.0:11434</string>  <!-- Listen on ALL interfaces, not just 127.0.0.1 -->
+    ...
+</dict>
+```
+
+**Verification**:
+```bash
+$ lsof -iTCP:11434 -sTCP:LISTEN -n -P
+COMMAND  PID   USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+ollama  6574 suresh  3u  IPv6  ...  TCP *:11434 (LISTEN)
+                                      ^^^^^^^^ Must be *, not 127.0.0.1
+```
+
+**Fix 3 - Environment Variable Compatibility** (`daemon.go`):
+```go
+// Set BOTH variables for backward compatibility
+"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURLResolved),  // Legacy (old container code)
+"-e", fmt.Sprintf("OLLAMA_BASE_URL=%s", llmBaseURLResolved),       // Standard LangChain variable
+```
+
+**Why both**: Old container images read `STIGMER_LLM_BASE_URL`, new images should use `OLLAMA_BASE_URL` (standard). Setting both ensures compatibility during image updates.
+
+**Fix 4 - LangChain Explicit Configuration** (`execute_graphton.py`):
+```python
+# LangChain's ChatOllama doesn't read OLLAMA_BASE_URL properly in async contexts
+# Solution: Create instance explicitly with base_url parameter
+
+if worker_config.llm.provider == "ollama":
+    from langchain_ollama import ChatOllama
+    llm_model = ChatOllama(
+        model=model_name,
+        base_url=worker_config.llm.base_url,  # Explicitly pass base_url
+    )
+elif worker_config.llm.provider == "anthropic":
+    from langchain_anthropic import ChatAnthropic
+    llm_model = ChatAnthropic(model=model_name, api_key=worker_config.llm.api_key)
+# ... other providers
+
+agent_graph = create_deep_agent(
+    model=llm_model,  # Pass LLM instance, not string
+    ...
+)
+```
+
+**Why this matters**:
+```python
+# ❌ FAILS - LangChain doesn't read env var in async
+os.environ['OLLAMA_BASE_URL'] = "http://host.docker.internal:11434"
+model = ChatOllama(model="qwen2.5-coder:14b")
+await model.ainvoke("hello")  # ConnectError: All connection attempts failed
+
+# ✅ WORKS - Explicit base_url parameter
+model = ChatOllama(model="qwen2.5-coder:14b", base_url="http://host.docker.internal:11434")
+await model.ainvoke("hello")  # Success!
+```
+
+**Prevention**:
+
+1. **Always resolve hostnames for Docker containers**:
+   ```go
+   // For EVERY host service the container needs to reach
+   temporalAddr := resolveDockerHostAddress(originalAddr)
+   backendAddr := resolveDockerHostAddress(fmt.Sprintf("localhost:%d", port))
+   llmBaseURL := resolveDockerHostAddress(config.LLM.BaseURL)
+   ```
+
+2. **Verify network binding for host services**:
+   ```bash
+   # Service MUST listen on 0.0.0.0 or * to accept Docker connections
+   lsof -iTCP:PORT -sTCP:LISTEN -n -P
+   # Should show: TCP *:PORT (LISTEN)
+   # NOT: TCP 127.0.0.1:PORT (LISTEN)
+   ```
+
+3. **Test at multiple layers**:
+   ```python
+   # Layer 1: Simple HTTP (urllib/curl)
+   urllib.request.urlopen(url)  # ✓
+   
+   # Layer 2: HTTP library (httpx sync)
+   httpx.get(url)  # ✓
+   
+   # Layer 3: Async HTTP (httpx async)
+   await httpx.AsyncClient().get(url)  # ✓
+   
+   # Layer 4: Library integration (LangChain async)
+   await ChatOllama(...).ainvoke(...)  # ? Must test!
+   ```
+   
+   Each layer can fail independently - test the actual library behavior, not just network connectivity.
+
+4. **Don't trust library environment variable handling**:
+   - Prefer explicit configuration parameters over environment variable auto-detection
+   - Especially for async operations where initialization may differ
+   - Log actual URLs being used (not just what's in env vars)
+
+5. **Set both legacy and standard variables during transitions**:
+   ```go
+   // During migration period, set both
+   "-e", fmt.Sprintf("OLD_VAR_NAME=%s", value),  // Backward compat
+   "-e", fmt.Sprintf("NEW_STANDARD_VAR=%s", value),  // Future-proof
+   ```
+
+6. **Add debugging logs**:
+   ```go
+   log.Info().
+       Str("llm_base_url", llmBaseURLResolved).
+       Str("temporal_address", hostAddr).
+       Str("backend_address", backendAddr).
+       Msg("Starting agent-runner Docker container")
+   ```
+
+**Related Docs**:
+- Implementation: `daemon.go` (startAgentRunner), `execute_graphton.py` (LLM initialization)
+- Changelogs:
+  - `_changelog/2026-01/2026-01-22-042455-fix-ollama-connection-from-agent-runner-docker.md` (hostname resolution)
+  - `_changelog/2026-01/2026-01-22-044741-fix-ollama-network-interface-binding.md` (network binding)
+  - `_changelog/2026-01/2026-01-22-051454-fix-ollama-langchain-explicit-base-url.md` (LangChain fix)
+
+**Key Takeaways**:
+- **Docker networking on macOS is not intuitive**: Containers run in a VM, `localhost` doesn't work, need `host.docker.internal`
+- **Network connectivity ≠ library connectivity**: Just because curl/httpx works doesn't mean LangChain will work
+- **Libraries have quirks**: LangChain's environment variable handling differs between sync/async - explicit params are safer
+- **Complex issues require multiple fixes**: All four layers (hostname, binding, env vars, explicit config) were necessary
+- **Test with actual code, not just network tools**: `ping` and `curl` working doesn't guarantee Python library will work
+
+---
