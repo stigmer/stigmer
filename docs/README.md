@@ -16,6 +16,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Deploying with Apply](guides/deploying-with-apply.md) - Deploy agents and workflows from code using `stigmer apply`
 - [Distribution Guide](guides/distribution.md) - Complete guide to packaging and distributing Stigmer
 - [Packaging Quick Start](guides/packaging-quickstart.md) - Quick reference for packaging strategy
+- [Release Workflow](../.github/workflows/RELEASE-WORKFLOW.md) - How to create releases using the build-first pattern
 - [Agent Runner: Local Mode](guides/agent-runner-local-mode.md) - Running the agent runner in local vs cloud mode
 
 ### Architecture
@@ -54,6 +55,7 @@ If you're working on releases or packaging:
 1. [Packaging Quick Start](guides/packaging-quickstart.md) - Quick reference for packaging strategy
 2. [Packaging Flow](architecture/packaging-flow.md) - Visual guide to how packaging works
 3. [Distribution Guide](guides/distribution.md) - Complete distribution documentation
+4. [Release Workflow](../.github/workflows/RELEASE-WORKFLOW.md) - How to create releases using the build-first pattern
 
 ### Understanding Design Decisions
 When you wonder "why was it built this way?":
