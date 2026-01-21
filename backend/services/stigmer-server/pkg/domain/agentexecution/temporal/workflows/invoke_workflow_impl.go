@@ -77,7 +77,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 	ensureThreadActivity := activities.NewEnsureThreadActivityStub(ctx, activityTaskQueue)
 	threadID, err := ensureThreadActivity.EnsureThread(sessionID, agentID)
 	if err != nil {
-		return fmt.Errorf("failed to ensure thread: %w", err)
+		return w.wrapActivityError("EnsureThread", err)
 	}
 
 	logger.Info("✅ Thread ensured", "thread_id", threadID)
@@ -93,7 +93,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 	executeGraphtonActivity := activities.NewExecuteGraphtonActivityStub(ctx, activityTaskQueue)
 	finalStatus, err := executeGraphtonActivity.ExecuteGraphton(execution, threadID)
 	if err != nil {
-		return fmt.Errorf("failed to execute graphton: %w", err)
+		return w.wrapActivityError("ExecuteGraphton", err)
 	}
 
 	// Defensive null check
@@ -108,6 +108,70 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		"phase", finalStatus.GetPhase().String())
 
 	return nil
+}
+
+// wrapActivityError wraps activity errors with helpful context for troubleshooting.
+//
+// This helps distinguish between different failure types:
+// - Worker not available (SCHEDULE_TO_START timeout)
+// - Worker startup failure (SCHEDULE_TO_START timeout with no heartbeat)
+// - Activity execution timeout (START_TO_CLOSE timeout)
+// - Activity heartbeat timeout (worker died mid-execution)
+// - Activity failure (application error from Python)
+func (w *InvokeAgentExecutionWorkflowImpl) wrapActivityError(activityName string, err error) error {
+	// Check error type to provide helpful context
+	errorMsg := err.Error()
+
+	// SCHEDULE_TO_START timeout: Worker not available or failed to start
+	if workflow.IsScheduleToStartTimeoutError(err) {
+		return fmt.Errorf(
+			"activity '%s' failed: No worker available to execute activity. "+
+				"This usually means:\n"+
+				"1. agent-runner service is not running\n"+
+				"2. agent-runner failed to start (check agent-runner logs for startup errors like import failures)\n"+
+				"3. agent-runner is not connected to Temporal\n"+
+				"Original error: %w",
+			activityName, err,
+		)
+	}
+
+	// HEARTBEAT timeout: Worker died or stopped sending progress
+	if workflow.IsHeartbeatTimeoutError(err) {
+		return fmt.Errorf(
+			"activity '%s' failed: Activity stopped sending heartbeat (worker may have crashed). "+
+				"Check agent-runner logs for errors. "+
+				"Original error: %w",
+			activityName, err,
+		)
+	}
+
+	// START_TO_CLOSE timeout: Activity took too long
+	if workflow.IsStartToCloseTimeoutError(err) {
+		return fmt.Errorf(
+			"activity '%s' failed: Activity execution timed out. "+
+				"The activity started but did not complete within the timeout period. "+
+				"Check agent-runner logs for details. "+
+				"Original error: %w",
+			activityName, err,
+		)
+	}
+
+	// Application error: Activity failed with an error from Python
+	if workflow.IsApplicationError(err) {
+		return fmt.Errorf(
+			"activity '%s' failed with application error: %w. "+
+				"Check agent-runner logs for detailed error information.",
+			activityName, err,
+		)
+	}
+
+	// Generic error (includes retryable errors, canceled errors, etc.)
+	return fmt.Errorf(
+		"activity '%s' failed: %s. "+
+			"Check agent-runner logs for details. "+
+			"Original error: %w",
+		activityName, errorMsg, err,
+	)
 }
 
 // getActivityTaskQueue retrieves the activity task queue from workflow memo.

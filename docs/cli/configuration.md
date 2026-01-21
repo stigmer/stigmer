@@ -430,9 +430,9 @@ To switch providers, update the config and set required API keys:
    export ANTHROPIC_API_KEY="sk-ant-..."
    ```
 
-3. Restart daemon:
+3. Restart daemon (start automatically stops if already running):
    ```bash
-   stigmer server restart
+   stigmer server start
    ```
 
 ### From Anthropic → OpenAI
@@ -449,9 +449,9 @@ To switch providers, update the config and set required API keys:
    export OPENAI_API_KEY="sk-..."
    ```
 
-3. Restart daemon:
+3. Restart daemon (start automatically stops if already running):
    ```bash
-   stigmer server restart
+   stigmer server start
    ```
 
 ---

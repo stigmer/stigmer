@@ -68,7 +68,7 @@ flowchart LR
 ```bash
 # Default: Show last 50 lines + stream new logs
 $ stigmer server logs
-ℹ Streaming logs from: ~/.stigmer/data/logs/daemon.log (showing last 50 lines)
+ℹ Streaming logs from: ~/.stigmer/data/logs/stigmer-server.log (showing last 50 lines)
 ℹ Press Ctrl+C to stop
 
 [Last 50 lines of existing logs printed here]
@@ -145,7 +145,7 @@ The `--all` flag interleaves logs from all three components (`server`, `agent-ru
 ```mermaid
 flowchart TB
     subgraph "Log Files"
-        A[daemon.log]
+        A[stigmer-server.log]
         B[agent-runner.log]
         C[workflow-runner.log]
     end
@@ -354,8 +354,8 @@ The main stigmer-server daemon that handles:
 - Session handling
 
 **Log files:**
-- `~/.stigmer/data/logs/daemon.log` - Standard output
-- `~/.stigmer/data/logs/daemon.err` - Error output
+- `~/.stigmer/data/logs/stigmer-server.log` - Standard output
+- `~/.stigmer/data/logs/stigmer-server.err` - Error output
 
 ### `agent-runner`
 The Python agent execution runtime that handles:
@@ -451,8 +451,8 @@ All logs are stored in: `~/.stigmer/data/logs/`
 
 ```bash
 $ ls -l ~/.stigmer/data/logs/
-daemon.log           # stigmer-server stdout
-daemon.err           # stigmer-server stderr  
+stigmer-server.log   # stigmer-server stdout
+stigmer-server.err   # stigmer-server stderr  
 agent-runner.log     # agent-runner stdout
 agent-runner.err     # agent-runner stderr
 workflow-runner.log  # workflow-runner stdout
@@ -464,7 +464,7 @@ You can also access these files directly if needed:
 
 ```bash
 # Manual log access (before stigmer server logs existed)
-tail -f ~/.stigmer/data/logs/daemon.err
+tail -f ~/.stigmer/data/logs/stigmer-server.err
 ```
 
 ## Log Rotation
@@ -473,7 +473,7 @@ tail -f ~/.stigmer/data/logs/daemon.err
 
 ### How It Works
 
-When you run `stigmer server restart`, existing logs are automatically archived with timestamps:
+When you run `stigmer server start`, existing logs are automatically archived with timestamps:
 
 ```mermaid
 stateDiagram-v2
@@ -489,7 +489,7 @@ stateDiagram-v2
 **Before restart:**
 ```bash
 ~/.stigmer/data/logs/
-  daemon.log              (10 MB of accumulated logs)
+  stigmer-server.log      (10 MB of accumulated logs)
   agent-runner.log        (5 MB of accumulated logs)
   workflow-runner.log     (8 MB of accumulated logs)
 ```
@@ -497,10 +497,10 @@ stateDiagram-v2
 **After restart:**
 ```bash
 ~/.stigmer/data/logs/
-  daemon.log              (fresh empty log for new session)
+  stigmer-server.log      (fresh empty log for new session)
   agent-runner.log        (fresh empty log for new session)
   workflow-runner.log     (fresh empty log for new session)
-  daemon.log.2026-01-20-150405          (previous session archived)
+  stigmer-server.log.2026-01-20-150405  (previous session archived)
   agent-runner.log.2026-01-20-150405    (previous session archived)
   workflow-runner.log.2026-01-20-150405 (previous session archived)
 ```
@@ -509,7 +509,7 @@ stateDiagram-v2
 
 Archived logs use timestamp format: `filename.YYYY-MM-DD-HHMMSS`
 
-**Example**: `daemon.log.2026-01-20-150405`
+**Example**: `stigmer-server.log.2026-01-20-150405`
 - **Date**: 2026-01-20 (January 20, 2026)
 - **Time**: 15:04:05 (3:04:05 PM)
 - **Session**: Server restart at this exact time
@@ -536,28 +536,28 @@ This makes it easy to:
 ls -lh ~/.stigmer/data/logs/*.log.*
 
 # View specific archived session
-cat ~/.stigmer/data/logs/daemon.log.2026-01-20-150405
+cat ~/.stigmer/data/logs/stigmer-server.log.2026-01-20-150405
 
 # Search across archived logs
-grep "ERROR" ~/.stigmer/data/logs/daemon.log.2026-01-20-*
+grep "ERROR" ~/.stigmer/data/logs/stigmer-server.log.2026-01-20-*
 
 # View recent archived session
-ls -t ~/.stigmer/data/logs/daemon.log.* | head -1 | xargs cat
+ls -t ~/.stigmer/data/logs/stigmer-server.log.* | head -1 | xargs cat
 ```
 
 **Find logs from specific time period:**
 ```bash
 # Find logs from January 20, 2026
-ls ~/.stigmer/data/logs/daemon.log.2026-01-20-*
+ls ~/.stigmer/data/logs/stigmer-server.log.2026-01-20-*
 
 # Find logs from last restart
-ls -t ~/.stigmer/data/logs/daemon.log.* | head -1
+ls -t ~/.stigmer/data/logs/stigmer-server.log.* | head -1
 ```
 
 **Manually preserve important logs:**
 ```bash
 # Before they're automatically deleted
-cp ~/.stigmer/data/logs/daemon.log.2026-01-15-* ~/important-logs/
+cp ~/.stigmer/data/logs/stigmer-server.log.2026-01-15-* ~/important-logs/
 ```
 
 ### Rotation Behavior
@@ -568,8 +568,8 @@ cp ~/.stigmer/data/logs/daemon.log.2026-01-15-* ~/important-logs/
 - Only non-empty files (empty files aren't archived)
 
 **When rotation happens:**
-- On `stigmer server restart` (automatic)
-- On `stigmer server start` after a previous shutdown (automatic)
+- On `stigmer server start` (automatic, every time)
+- Includes automatic cleanup of orphaned processes from previous runs
 
 **What doesn't trigger rotation:**
 - `stigmer server stop` (just stops, doesn't rotate)
@@ -581,8 +581,8 @@ cp ~/.stigmer/data/logs/daemon.log.2026-01-15-* ~/important-logs/
 Stigmer only rotates log files that have content:
 
 ```bash
-# If daemon.log is empty, it stays as daemon.log (not archived)
-# If daemon.log has logs, it becomes daemon.log.2026-01-20-HHMMSS
+# If stigmer-server.log is empty, it stays as stigmer-server.log (not archived)
+# If stigmer-server.log has logs, it becomes stigmer-server.log.2026-01-20-HHMMSS
 ```
 
 This prevents clutter from empty log files.
@@ -677,7 +677,7 @@ rm ~/.stigmer/data/logs/daemon.* ~/.stigmer/data/logs/agent-runner.* ~/.stigmer/
 stigmer server
 ```
 
-**Tip**: Use `stigmer server restart` to archive logs instead of deleting them.
+**Tip**: Logs are automatically archived when you run `stigmer server start` (even if server is already running).
 
 ## Troubleshooting
 
@@ -727,7 +727,7 @@ chmod 644 ~/.stigmer/data/logs/*.{log,err}
 
 **Automatic Log Rotation**:
 - Logs automatically archived on server restart
-- Timestamp-based naming (`daemon.log.2026-01-20-150405`)
+- Timestamp-based naming (`stigmer-server.log.2026-01-20-150405`)
 - 7-day retention policy with automatic cleanup
 - Only non-empty files are rotated
 - Non-fatal errors (server continues even if rotation fails)

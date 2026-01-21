@@ -62,8 +62,8 @@ stigmer server status
 # Stop server
 stigmer server stop
 
-# Restart server
-stigmer server restart
+# Restart server (start is idempotent - stops if running, then starts)
+stigmer server start
 ```
 
 ### Switch to Cloud Backend (Future)
@@ -81,7 +81,7 @@ stigmer login
 stigmer server              # Start server (auto-initializes)
 stigmer server stop         # Stop server
 stigmer server status       # Show server status
-stigmer server restart      # Restart server
+stigmer server start        # Start (idempotent - restarts if already running)
 ```
 
 ### Backend Configuration
@@ -222,7 +222,7 @@ The CLI focuses on server lifecycle management, not CRUD operations.
 
 ## Status
 
-✅ Server lifecycle management (start/stop/status/restart)
+✅ Server lifecycle management (start/stop/status - start is idempotent)
 ✅ Backend abstraction (local + cloud)
 ✅ Configuration management
 ✅ Auto-initialization on first run

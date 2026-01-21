@@ -869,7 +869,7 @@ $ stigmer server status
 
 3. **Check logs for successful registration**:
 ```bash
-$ tail -50 ~/.stigmer/data/logs/daemon.err | grep "Registered"
+$ tail -50 ~/.stigmer/data/logs/stigmer-server.err | grep "Registered"
 ✅ [POLYGLOT] Registered InvokeWorkflowExecutionWorkflow (Go)
 ✅ [POLYGLOT] Registered InvokeAgentExecutionWorkflow (Go)  
 ✅ [POLYGLOT] Registered ValidateWorkflowWorkflow (Go)
