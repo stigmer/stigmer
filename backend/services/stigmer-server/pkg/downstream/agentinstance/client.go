@@ -33,16 +33,18 @@ import (
 // with a network gRPC connection pointing to the agent instance service endpoint.
 // No changes to this client code are needed - just the connection configuration.
 type Client struct {
-	conn   *grpc.ClientConn
-	client agentinstancev1.AgentInstanceCommandControllerClient
+	conn        *grpc.ClientConn
+	client      agentinstancev1.AgentInstanceCommandControllerClient
+	queryClient agentinstancev1.AgentInstanceQueryServiceClient
 }
 
 // NewClient creates a new in-process AgentInstance client using a gRPC connection.
 // The connection should be an in-process gRPC connection created via NewInProcessConnection.
 func NewClient(conn *grpc.ClientConn) *Client {
 	return &Client{
-		conn:   conn,
-		client: agentinstancev1.NewAgentInstanceCommandControllerClient(conn),
+		conn:        conn,
+		client:      agentinstancev1.NewAgentInstanceCommandControllerClient(conn),
+		queryClient: agentinstancev1.NewAgentInstanceQueryServiceClient(conn),
 	}
 }
 
@@ -80,6 +82,40 @@ func (c *Client) CreateAsSystem(ctx context.Context, instance *agentinstancev1.A
 		Msg("Successfully created agent instance (as system)")
 
 	return created, nil
+}
+
+// GetByAgent retrieves all agent instances for a specific agent.
+//
+// This makes an in-process gRPC call to AgentInstanceQueryService.GetByAgent()
+// using the provided context. This ensures all gRPC interceptors run before
+// reaching the handler.
+//
+// Use case: When creating an agent execution, check if default instance already
+// exists for the agent before attempting to create a new one.
+func (c *Client) GetByAgent(ctx context.Context, agentID string) (*agentinstancev1.AgentInstanceList, error) {
+	log.Debug().
+		Str("agent_id", agentID).
+		Msg("Getting agent instances by agent ID via in-process gRPC")
+
+	req := &agentinstancev1.GetAgentInstancesByAgentRequest{
+		AgentId: agentID,
+	}
+
+	list, err := c.queryClient.GetByAgent(ctx, req)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("agent_id", agentID).
+			Msg("Failed to get agent instances by agent ID")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("agent_id", agentID).
+		Int32("count", list.GetTotalCount()).
+		Msg("Successfully retrieved agent instances")
+
+	return list, nil
 }
 
 // Close closes the underlying gRPC connection

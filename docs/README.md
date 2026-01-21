@@ -18,6 +18,13 @@ Complete documentation index for the Stigmer open-source project.
 - [Packaging Quick Start](guides/packaging-quickstart.md) - Quick reference for packaging strategy
 - [Release Workflow](../.github/workflows/RELEASE-WORKFLOW.md) - How to create releases using the build-first pattern
 - [Agent Runner: Local Mode](guides/agent-runner-local-mode.md) - Running the agent runner in local vs cloud mode
+- [Stigmer New Command](guides/stigmer-new-command.md) - Complete setup for the `stigmer new` command, demo repository, and zero-config quickstart
+
+### Implementation
+- [Phase 1 Foundation](implementation/phase-1-foundation.md) - Phase 1 implementation summary: repository structure, gRPC architecture, and database design
+- [Cloud Build Alignment](implementation/cloud-build-alignment.md) - Complete alignment of Stigmer OSS with Stigmer Cloud build system and development patterns
+- [Task Export Context Fix](implementation/task-export-context-fix.md) - Fix for multi-task workflows with hyphenated names and context merging
+- [Task Export Context Fix - Learnings](implementation/task-export-context-fix-learnings.md) - Detailed learnings from the task export context bug fix for SDK and workflow runner improvements
 
 ### Architecture
 - [Backend Modes](architecture/backend-modes.md) - Local vs cloud backend architecture, auto-start daemon, and organization handling
