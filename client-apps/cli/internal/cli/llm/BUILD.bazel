@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "llm",
+    srcs = [
+        "download.go",
+        "process_unix.go",
+        "process_windows.go",
+        "setup.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//client-apps/cli/internal/cli/cliprint",
+        "//client-apps/cli/internal/cli/config",
+        "@com_github_pkg_errors//:errors",
+        "@com_github_rs_zerolog//log",
+    ],
+)

@@ -13,6 +13,7 @@ go_library(
         "//client-apps/cli/embedded",
         "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/internal/cli/config",
+        "//client-apps/cli/internal/cli/llm",
         "//client-apps/cli/internal/cli/temporal",
         "@com_github_pkg_errors//:errors",
         "@com_github_rs_zerolog//log",
