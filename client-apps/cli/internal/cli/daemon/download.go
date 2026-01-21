@@ -201,3 +201,41 @@ func getLatestVersion() (string, error) {
 	// In production, this should query GitHub API
 	return "v0.1.0", nil
 }
+
+// downloadAgentRunnerBinary downloads the agent-runner binary from GitHub releases
+// matching the CLI version for compatibility
+func downloadAgentRunnerBinary(dataDir string, version string) (string, error) {
+	log.Info().Str("version", version).Msg("Downloading agent-runner from GitHub releases")
+
+	// Determine platform
+	goos := runtime.GOOS
+	goarch := runtime.GOARCH
+
+	// Construct download URL for agent-runner binary
+	// Format: https://github.com/stigmer/stigmer/releases/download/v1.0.0/agent-runner-v1.0.0-darwin-arm64
+	filename := fmt.Sprintf("agent-runner-%s-%s-%s", version, goos, goarch)
+	url := fmt.Sprintf("%s/%s/releases/download/%s/%s", githubBaseURL, githubRepo, version, filename)
+
+	log.Debug().Str("url", url).Msg("Downloading agent-runner from GitHub")
+
+	// Ensure bin directory exists
+	binDir := filepath.Join(dataDir, "bin")
+	if err := os.MkdirAll(binDir, 0755); err != nil {
+		return "", errors.Wrap(err, "failed to create bin directory")
+	}
+
+	// Download directly to destination
+	destPath := filepath.Join(binDir, "agent-runner")
+
+	if err := downloadFile(url, destPath); err != nil {
+		return "", errors.Wrap(err, "failed to download agent-runner binary")
+	}
+
+	// Make executable
+	if err := os.Chmod(destPath, 0755); err != nil {
+		return "", errors.Wrap(err, "failed to make binary executable")
+	}
+
+	log.Info().Str("path", destPath).Msg("Successfully downloaded and installed agent-runner")
+	return destPath, nil
+}
