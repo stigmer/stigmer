@@ -64,3 +64,9 @@ func (c *WorkflowExecutionController) SetWorkflowInstanceClient(client *workflow
 func (c *WorkflowExecutionController) SetWorkflowCreator(creator *workflows.InvokeWorkflowExecutionWorkflowCreator) {
 	c.workflowCreator = creator
 }
+
+// GetStreamBroker returns the stream broker for use by Temporal activities
+// This allows workflow error recovery to broadcast status updates to subscribers
+func (c *WorkflowExecutionController) GetStreamBroker() *StreamBroker {
+	return c.streamBroker
+}

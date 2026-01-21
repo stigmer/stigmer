@@ -19,20 +19,25 @@ import (
 // - Apply status updates (merge or replace based on field)
 // - Update audit timestamps
 // - Save to BadgerDB
-//
-// Note: Event publishing to NATS is handled by the main update handler (gRPC pipeline),
-// not by this activity. This activity focuses solely on persistence.
+// - Broadcast to StreamBroker (for real-time updates to subscribers)
 //
 // This is called by the workflow-runner worker via polyglot Temporal workflow.
 // Language-agnostic design: works regardless of which service implements the activity.
 type UpdateWorkflowExecutionStatusActivityImpl struct {
-	store *badger.Store
+	store        *badger.Store
+	streamBroker StreamBroker
+}
+
+// StreamBroker interface for broadcasting execution updates
+type StreamBroker interface {
+	Broadcast(execution *workflowexecutionv1.WorkflowExecution)
 }
 
 // NewUpdateWorkflowExecutionStatusActivityImpl creates a new activity implementation.
-func NewUpdateWorkflowExecutionStatusActivityImpl(store *badger.Store) *UpdateWorkflowExecutionStatusActivityImpl {
+func NewUpdateWorkflowExecutionStatusActivityImpl(store *badger.Store, streamBroker StreamBroker) *UpdateWorkflowExecutionStatusActivityImpl {
 	return &UpdateWorkflowExecutionStatusActivityImpl{
-		store: store,
+		store:        store,
+		streamBroker: streamBroker,
 	}
 }
 
@@ -135,6 +140,15 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 		Int("tasks", len(updated.Status.Tasks)).
 		Str("phase", updated.Status.Phase.String()).
 		Msg("✅ Activity completed - Updated workflow execution status")
+
+	// Broadcast to active subscribers (ADR 011: real-time streaming)
+	// This ensures that errors from workflow failures are immediately visible to users
+	if a.streamBroker != nil {
+		a.streamBroker.Broadcast(&updated)
+		log.Debug().
+			Str("execution_id", executionID).
+			Msg("Broadcasted status update to subscribers")
+	}
 
 	return nil
 }
