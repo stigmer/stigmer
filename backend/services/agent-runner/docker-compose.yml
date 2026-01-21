@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  agent-runner:
+    build:
+      context: ../../..
+      dockerfile: backend/services/agent-runner/Dockerfile
+    container_name: stigmer-agent-runner
+    restart: unless-stopped
+    environment:
+      - MODE=local
+      - STIGMER_BACKEND_URL=http://host.docker.internal:7234
+      - TEMPORAL_SERVICE_ADDRESS=host.docker.internal:7233
+      - TEMPORAL_NAMESPACE=default
+      - TASK_QUEUE=agent_execution_runner
+      - SANDBOX_TYPE=filesystem
+      - WORKSPACE_ROOT=/workspace
+    volumes:
+      - ./workspace:/workspace
+    network_mode: "host"

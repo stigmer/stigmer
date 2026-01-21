@@ -32,13 +32,64 @@ const (
 	// WorkflowRunnerPIDFileName is the name of the PID file for workflow-runner
 	WorkflowRunnerPIDFileName = "workflow-runner.pid"
 	
-	// AgentRunnerPIDFileName is the name of the PID file for agent-runner
+	// AgentRunnerPIDFileName is the name of the PID file for agent-runner (binary mode)
 	AgentRunnerPIDFileName = "agent-runner.pid"
+	
+	// AgentRunnerContainerIDFileName is the name of the file storing Docker container ID
+	AgentRunnerContainerIDFileName = "agent-runner-container.id"
+	
+	// AgentRunnerContainerName is the name of the Docker container
+	AgentRunnerContainerName = "stigmer-agent-runner"
+	
+	// AgentRunnerDockerImage is the Docker image name and tag
+	AgentRunnerDockerImage = "stigmer-agent-runner:local"
 )
 
 // StartOptions provides options for starting the daemon
 type StartOptions struct {
 	Progress *cliprint.ProgressDisplay // Optional progress display for UI
+}
+
+// dockerAvailable checks if Docker is installed and running
+func dockerAvailable() bool {
+	// Check if docker command exists
+	if _, err := exec.LookPath("docker"); err != nil {
+		return false
+	}
+	
+	// Check if Docker daemon is running
+	cmd := exec.Command("docker", "info")
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	
+	return true
+}
+
+// ensureDockerImage ensures the agent-runner Docker image is available
+func ensureDockerImage(dataDir string) error {
+	// Check if image exists
+	cmd := exec.Command("docker", "images", "-q", AgentRunnerDockerImage)
+	output, err := cmd.Output()
+	if err != nil {
+		return errors.Wrap(err, "failed to check for Docker image")
+	}
+	
+	// Image exists
+	if len(strings.TrimSpace(string(output))) > 0 {
+		log.Debug().Str("image", AgentRunnerDockerImage).Msg("Docker image already exists")
+		return nil
+	}
+	
+	// Image doesn't exist - try to build it
+	log.Info().Str("image", AgentRunnerDockerImage).Msg("Building Docker image...")
+	
+	// Find repository root (go up from data dir to find backend/services/agent-runner)
+	// For now, assume we're in development and can build from source
+	// In production, this would pull from a registry
+	return errors.New("Docker image not found. Please build it first:\n" +
+		"  cd backend/services/agent-runner\n" +
+		"  docker build -f Dockerfile -t stigmer-agent-runner:local ../../..")
 }
 
 // Start starts the stigmer daemon in the background.
@@ -345,7 +396,7 @@ func startWorkflowRunner(
 	return nil
 }
 
-// startAgentRunner starts the agent-runner subprocess with LLM config and injected secrets
+// startAgentRunner starts the agent-runner in Docker container
 func startAgentRunner(
 	dataDir string,
 	logDir string,
@@ -355,92 +406,103 @@ func startAgentRunner(
 	temporalAddr string,
 	secrets map[string]string,
 ) error {
-	// Find agent-runner binary (extracted from embedded PyInstaller binary)
-	runnerBinary, err := findAgentRunnerBinary(dataDir)
-	if err != nil {
-		return err
-	}
+	// Check if Docker is available
+	if !dockerAvailable() {
+		log.Warn().Msg("Docker is not available, skipping agent-runner startup")
+		return errors.New(`Docker is not running. Agent-runner requires Docker.
 
-	log.Debug().Str("binary", runnerBinary).Msg("Found agent-runner binary")
+Please start Docker Desktop or install Docker:
+  - macOS:  brew install --cask docker
+  - Linux:  curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh
+  - Windows: Download from https://www.docker.com/products/docker-desktop
+
+After installing Docker, restart Stigmer server.`)
+	}
 	
-	// Prepare environment with LLM and Temporal configuration
-	env := os.Environ()
+	// Ensure Docker image exists
+	if err := ensureDockerImage(dataDir); err != nil {
+		return errors.Wrap(err, "failed to ensure Docker image")
+	}
 	
-	// Add local mode configuration
-	env = append(env,
-		"MODE=local",
-		"SANDBOX_TYPE=filesystem",
-		"SANDBOX_ROOT_DIR=./workspace",
-		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=localhost:%d", DaemonPort),
-		"STIGMER_API_KEY=dummy-local-key",
+	// Prepare workspace directory
+	workspaceDir := filepath.Join(dataDir, "workspace")
+	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+		return errors.Wrap(err, "failed to create workspace directory")
+	}
+	
+	// Build docker run arguments
+	args := []string{
+		"run",
+		"-d", // Detached mode
+		"--name", AgentRunnerContainerName,
+		"--network", "host", // Use host networking for localhost access
+		"--restart", "unless-stopped",
 		
-		// Temporal configuration
-		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", temporalAddr),
-		"TEMPORAL_NAMESPACE=default",
-		"TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner",
+		// Environment variables
+		"-e", "MODE=local",
+		"-e", fmt.Sprintf("STIGMER_BACKEND_URL=http://localhost:%d", DaemonPort),
+		"-e", fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", temporalAddr),
+		"-e", "TEMPORAL_NAMESPACE=default",
+		"-e", "TASK_QUEUE=agent_execution_runner",
+		"-e", "SANDBOX_TYPE=filesystem",
+		"-e", "WORKSPACE_ROOT=/workspace",
+		"-e", "LOG_LEVEL=DEBUG",
 		
-		// LLM configuration (matches agent-runner expectations)
-		fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", llmProvider),
-		fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
-		fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
+		// LLM configuration
+		"-e", fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", llmProvider),
+		"-e", fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
+		"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
 		
-		"LOG_LEVEL=DEBUG",
-	)
+		// Volume mount for workspace
+		"-v", fmt.Sprintf("%s:/workspace", workspaceDir),
+		
+		// Log driver for better log access
+		"--log-driver", "json-file",
+		"--log-opt", "max-size=10m",
+		"--log-opt", "max-file=3",
+	}
 	
 	// Inject provider-specific secrets
 	for key, value := range secrets {
-		env = append(env, fmt.Sprintf("%s=%s", key, value))
+		args = append(args, "-e", fmt.Sprintf("%s=%s", key, value))
 	}
+	
+	// Add image name
+	args = append(args, AgentRunnerDockerImage)
 	
 	log.Info().
 		Str("llm_provider", llmProvider).
 		Str("llm_model", llmModel).
 		Str("temporal_address", temporalAddr).
-		Str("binary", runnerBinary).
-		Msg("Starting agent-runner with configuration")
-
-	// Start agent-runner process (PyInstaller binary)
-	cmd := exec.Command(runnerBinary)
-	cmd.Env = env
-
-	// Redirect output to separate log files
-	stdoutLog := filepath.Join(logDir, "agent-runner.log")
-	stderrLog := filepath.Join(logDir, "agent-runner.err")
-
-	stdout, err := os.OpenFile(stdoutLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		Str("image", AgentRunnerDockerImage).
+		Msg("Starting agent-runner Docker container")
+	
+	// Remove any existing container with the same name
+	_ = exec.Command("docker", "rm", "-f", AgentRunnerContainerName).Run()
+	
+	// Start container
+	cmd := exec.Command("docker", args...)
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrap(err, "failed to create agent-runner stdout log file")
+		return errors.Wrapf(err, "failed to start agent-runner container: %s", string(output))
 	}
-	defer stdout.Close()
-
-	stderr, err := os.OpenFile(stderrLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return errors.Wrap(err, "failed to create agent-runner stderr log file")
+	
+	containerID := strings.TrimSpace(string(output))
+	
+	// Store container ID for management
+	containerIDFile := filepath.Join(dataDir, AgentRunnerContainerIDFileName)
+	if err := os.WriteFile(containerIDFile, []byte(containerID), 0644); err != nil {
+		// Try to stop the container if we can't write the ID file
+		_ = exec.Command("docker", "stop", containerID).Run()
+		_ = exec.Command("docker", "rm", containerID).Run()
+		return errors.Wrap(err, "failed to write container ID file")
 	}
-	defer stderr.Close()
-
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-
-	// Start process
-	if err := cmd.Start(); err != nil {
-		return errors.Wrap(err, "failed to start agent-runner process")
-	}
-
-	// Write PID file
-	pidFile := filepath.Join(dataDir, AgentRunnerPIDFileName)
-	pidContent := fmt.Sprintf("%d", cmd.Process.Pid)
-	if err := os.WriteFile(pidFile, []byte(pidContent), 0644); err != nil {
-		// Kill the process if we can't write PID file
-		_ = cmd.Process.Kill()
-		return errors.Wrap(err, "failed to write agent-runner PID file")
-	}
-
+	
 	log.Info().
-		Int("pid", cmd.Process.Pid).
-		Str("binary", runnerBinary).
-		Msg("Agent-runner started successfully")
-
+		Str("container_id", containerID[:12]).
+		Str("container_name", AgentRunnerContainerName).
+		Msg("Agent-runner container started successfully")
+	
 	return nil
 }
 
@@ -460,7 +522,7 @@ func isProcessAlive(pid int) bool {
 	return err == nil
 }
 
-// cleanupOrphanedProcesses kills any orphaned processes from previous daemon runs.
+// cleanupOrphanedProcesses kills any orphaned processes and containers from previous daemon runs.
 //
 // This is critical for preventing zombie processes when:
 // - Daemon crashes
@@ -470,13 +532,12 @@ func isProcessAlive(pid int) bool {
 // Without this cleanup, restarting the daemon would leave old processes running,
 // causing port conflicts, resource leaks, and general chaos.
 func cleanupOrphanedProcesses(dataDir string) {
-	log.Debug().Msg("Checking for orphaned processes from previous runs")
+	log.Debug().Msg("Checking for orphaned processes and containers from previous runs")
 	
 	// Check each PID file and kill if process is running
 	pidFiles := map[string]string{
 		"stigmer-server":   filepath.Join(dataDir, PIDFileName),
 		"workflow-runner":  filepath.Join(dataDir, WorkflowRunnerPIDFileName),
-		"agent-runner":     filepath.Join(dataDir, AgentRunnerPIDFileName),
 	}
 	
 	orphansFound := false
@@ -523,6 +584,26 @@ func cleanupOrphanedProcesses(dataDir string) {
 		_ = os.Remove(pidFile)
 	}
 	
+	// Check for orphaned agent-runner Docker container
+	cmd := exec.Command("docker", "ps", "-aq", "-f", fmt.Sprintf("name=^%s$", AgentRunnerContainerName))
+	output, err := cmd.Output()
+	if err == nil && len(output) > 0 {
+		containerID := strings.TrimSpace(string(output))
+		orphansFound = true
+		log.Warn().
+			Str("container_id", containerID[:12]).
+			Str("container_name", AgentRunnerContainerName).
+			Msg("Found orphaned agent-runner container from previous run, removing")
+		
+		// Stop and remove container
+		_ = exec.Command("docker", "stop", containerID).Run()
+		_ = exec.Command("docker", "rm", containerID).Run()
+		
+		// Clean up container ID file
+		containerIDFile := filepath.Join(dataDir, AgentRunnerContainerIDFileName)
+		_ = os.Remove(containerIDFile)
+	}
+	
 	// Also check for orphaned Temporal (if managed)
 	cfg, err := config.Load()
 	if err == nil && (cfg.Backend.Local.Temporal == nil || cfg.Backend.Local.Temporal.Managed) {
@@ -541,9 +622,9 @@ func cleanupOrphanedProcesses(dataDir string) {
 	}
 	
 	if orphansFound {
-		log.Info().Msg("Cleaned up orphaned processes from previous run")
+		log.Info().Msg("Cleaned up orphaned processes and containers from previous run")
 	} else {
-		log.Debug().Msg("No orphaned processes found")
+		log.Debug().Msg("No orphaned processes or containers found")
 	}
 }
 
@@ -707,61 +788,57 @@ func stopWorkflowRunner(dataDir string) {
 	_ = os.Remove(pidFile)
 }
 
-// stopAgentRunner stops the agent-runner subprocess
+// stopAgentRunner stops the agent-runner Docker container
 func stopAgentRunner(dataDir string) {
-	pidFile := filepath.Join(dataDir, AgentRunnerPIDFileName)
+	// Try to read container ID from file
+	containerIDFile := filepath.Join(dataDir, AgentRunnerContainerIDFileName)
+	data, err := os.ReadFile(containerIDFile)
 	
-	// Read PID file
-	data, err := os.ReadFile(pidFile)
-	if err != nil {
-		// No PID file means agent-runner is not running
-		return
+	var containerID string
+	if err == nil {
+		containerID = strings.TrimSpace(string(data))
 	}
-
-	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
-	if err != nil {
-		log.Warn().Str("pid_file", pidFile).Msg("Invalid agent-runner PID file")
-		_ = os.Remove(pidFile)
-		return
-	}
-
-	// Check if process is actually alive FIRST (fixes macOS issue where os.FindProcess always succeeds)
-	if !isProcessAlive(pid) {
-		log.Debug().Int("pid", pid).Msg("Agent-runner not running (stale PID file)")
-		_ = os.Remove(pidFile)
-		return
-	}
-
-	// Process exists, try to stop it
-	process, _ := os.FindProcess(pid)
-
-	// Send SIGTERM for graceful shutdown
-	if err := process.Signal(syscall.SIGTERM); err != nil {
-		log.Warn().Int("pid", pid).Err(err).Msg("Failed to send SIGTERM to agent-runner")
-		_ = os.Remove(pidFile)
-		return
-	}
-
-	log.Info().Int("pid", pid).Msg("Sent SIGTERM to agent-runner")
-
-	// Wait for process to exit (up to 5 seconds)
-	for i := 0; i < 10; i++ {
-		if !isProcessAlive(pid) {
-			// Process is dead
-			_ = os.Remove(pidFile)
-			log.Info().Msg("Agent-runner stopped successfully")
+	
+	// If no container ID file, try to find container by name
+	if containerID == "" {
+		log.Debug().Msg("No container ID file found, trying to find container by name")
+		cmd := exec.Command("docker", "ps", "-aq", "-f", fmt.Sprintf("name=^%s$", AgentRunnerContainerName))
+		output, err := cmd.Output()
+		if err != nil || len(output) == 0 {
+			log.Debug().Msg("No agent-runner container found")
 			return
 		}
-		time.Sleep(500 * time.Millisecond)
+		containerID = strings.TrimSpace(string(output))
 	}
-
-	// Force kill if still running
-	log.Warn().Msg("Agent-runner did not stop gracefully, force killing")
-	_ = process.Kill()
 	
-	// Wait a bit for kill to take effect
-	time.Sleep(500 * time.Millisecond)
-	_ = os.Remove(pidFile)
+	if containerID == "" {
+		return
+	}
+	
+	log.Info().Str("container_id", containerID[:12]).Msg("Stopping agent-runner container")
+	
+	// Stop container (graceful)
+	stopCmd := exec.Command("docker", "stop", containerID)
+	if err := stopCmd.Run(); err != nil {
+		log.Warn().Str("container_id", containerID[:12]).Err(err).Msg("Failed to stop container gracefully")
+		
+		// Try force kill
+		killCmd := exec.Command("docker", "kill", containerID)
+		if err := killCmd.Run(); err != nil {
+			log.Error().Str("container_id", containerID[:12]).Err(err).Msg("Failed to kill container")
+		}
+	}
+	
+	// Remove container
+	rmCmd := exec.Command("docker", "rm", containerID)
+	if err := rmCmd.Run(); err != nil {
+		log.Warn().Str("container_id", containerID[:12]).Err(err).Msg("Failed to remove container")
+	}
+	
+	// Clean up container ID file
+	_ = os.Remove(containerIDFile)
+	
+	log.Info().Msg("Agent-runner container stopped successfully")
 }
 
 // IsRunning checks if the daemon is running
