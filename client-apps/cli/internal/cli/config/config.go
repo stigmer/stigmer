@@ -47,10 +47,11 @@ type BackendConfig struct {
 
 // LocalBackendConfig represents local backend configuration
 type LocalBackendConfig struct {
-	Endpoint string          `yaml:"endpoint,omitempty"` // DEPRECATED: Not used (daemon always runs on localhost:7234)
-	DataDir  string          `yaml:"data_dir,omitempty"` // DEPRECATED: Not used (always ~/.stigmer/data)
-	LLM      *LLMConfig      `yaml:"llm,omitempty"`      // LLM configuration
-	Temporal *TemporalConfig `yaml:"temporal,omitempty"` // Temporal configuration
+	Endpoint  string           `yaml:"endpoint,omitempty"`  // DEPRECATED: Not used (daemon always runs on localhost:7234)
+	DataDir   string           `yaml:"data_dir,omitempty"`  // DEPRECATED: Not used (always ~/.stigmer/data)
+	LLM       *LLMConfig       `yaml:"llm,omitempty"`       // LLM configuration
+	Temporal  *TemporalConfig  `yaml:"temporal,omitempty"`  // Temporal configuration
+	Execution *ExecutionConfig `yaml:"execution,omitempty"` // Agent execution configuration
 }
 
 // LLMConfig represents LLM provider configuration
@@ -67,6 +68,15 @@ type TemporalConfig struct {
 	Version string `yaml:"version,omitempty"` // DEPRECATED: Not used (always uses tested version)
 	Port    int    `yaml:"port,omitempty"`    // DEPRECATED: Not used (always uses 7233)
 	Address string `yaml:"address,omitempty"` // Address for external Temporal (only if managed: false)
+}
+
+// ExecutionConfig represents agent execution configuration
+type ExecutionConfig struct {
+	Mode          string `yaml:"mode"`                      // "local", "sandbox", or "auto" (default: local)
+	SandboxImage  string `yaml:"sandbox_image,omitempty"`  // Docker image for sandbox mode
+	AutoPull      bool   `yaml:"auto_pull"`                // Auto-pull sandbox image if missing (default: true)
+	Cleanup       bool   `yaml:"cleanup"`                  // Cleanup containers after execution (default: true)
+	TTL           int    `yaml:"ttl,omitempty"`            // Container reuse TTL in seconds (default: 3600)
 }
 
 // CloudBackendConfig represents cloud backend configuration
@@ -163,6 +173,12 @@ func GetDefault() *Config {
 				Temporal: &TemporalConfig{
 					Managed: true,
 					// Version and Port not set - always hardcoded to tested defaults
+				},
+				Execution: &ExecutionConfig{
+					Mode:     "local",
+					AutoPull: true,
+					Cleanup:  true,
+					TTL:      3600, // 1 hour
 				},
 			},
 		},
@@ -346,4 +362,93 @@ func (c *LocalBackendConfig) ResolveLLMAPIKey() string {
 
 	// 3. No API key configured
 	return ""
+}
+
+// ResolveExecutionMode resolves the execution mode with cascading config
+// Priority: env var > config file > default
+func (c *LocalBackendConfig) ResolveExecutionMode() string {
+	// 1. Check environment variable (highest priority)
+	if mode := os.Getenv("STIGMER_EXECUTION_MODE"); mode != "" {
+		return mode
+	}
+
+	// 2. Check config file
+	if c.Execution != nil && c.Execution.Mode != "" {
+		return c.Execution.Mode
+	}
+
+	// 3. Default
+	return "local"
+}
+
+// ResolveSandboxImage resolves the sandbox Docker image with cascading config
+// Priority: env var > config file > default
+func (c *LocalBackendConfig) ResolveSandboxImage() string {
+	// 1. Check environment variable
+	if image := os.Getenv("STIGMER_SANDBOX_IMAGE"); image != "" {
+		return image
+	}
+
+	// 2. Check config file
+	if c.Execution != nil && c.Execution.SandboxImage != "" {
+		return c.Execution.SandboxImage
+	}
+
+	// 3. Default
+	return "ghcr.io/stigmer/agent-sandbox-basic:latest"
+}
+
+// ResolveSandboxAutoPull resolves the auto-pull setting with cascading config
+// Priority: env var > config file > default
+func (c *LocalBackendConfig) ResolveSandboxAutoPull() bool {
+	// 1. Check environment variable
+	if autoPull := os.Getenv("STIGMER_SANDBOX_AUTO_PULL"); autoPull != "" {
+		return autoPull == "true"
+	}
+
+	// 2. Check config file
+	if c.Execution != nil {
+		return c.Execution.AutoPull
+	}
+
+	// 3. Default
+	return true
+}
+
+// ResolveSandboxCleanup resolves the cleanup setting with cascading config
+// Priority: env var > config file > default
+func (c *LocalBackendConfig) ResolveSandboxCleanup() bool {
+	// 1. Check environment variable
+	if cleanup := os.Getenv("STIGMER_SANDBOX_CLEANUP"); cleanup != "" {
+		return cleanup == "true"
+	}
+
+	// 2. Check config file
+	if c.Execution != nil {
+		return c.Execution.Cleanup
+	}
+
+	// 3. Default
+	return true
+}
+
+// ResolveSandboxTTL resolves the container TTL with cascading config
+// Priority: env var > config file > default
+func (c *LocalBackendConfig) ResolveSandboxTTL() int {
+	// 1. Check environment variable
+	if ttl := os.Getenv("STIGMER_SANDBOX_TTL"); ttl != "" {
+		// Parse as int
+		var ttlInt int
+		if _, err := fmt.Sscanf(ttl, "%d", &ttlInt); err == nil {
+			return ttlInt
+		}
+	}
+
+	// 2. Check config file
+	if c.Execution != nil && c.Execution.TTL > 0 {
+		return c.Execution.TTL
+	}
+
+	// 3. Default (1 hour)
+	return 3600
 }

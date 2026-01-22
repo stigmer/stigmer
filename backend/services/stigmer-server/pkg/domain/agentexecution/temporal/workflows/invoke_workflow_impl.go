@@ -1,11 +1,13 @@
 package workflows
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
+	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
@@ -20,9 +22,9 @@ import (
 // The workflow:
 // 1. Ensures thread exists for conversation state (Python activity)
 // 2. Executes Graphton agent (Python activity)
-//    - During execution, agent-runner sends progressive status updates via gRPC
-//    - Updates are processed by AgentExecutionUpdateHandler (custom status merge logic)
-//    - Final status is returned to workflow for observability
+//   - During execution, agent-runner sends progressive status updates via gRPC
+//   - Updates are processed by AgentExecutionUpdateHandler (custom status merge logic)
+//   - Final status is returned to workflow for observability
 //
 // Status Update Strategy:
 // - Real-time updates: gRPC calls from Python activity to stigmer-server
@@ -59,8 +61,8 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, execution *
 // Orchestrates:
 // 1. Python activity: Ensure thread (on "execution" queue)
 // 2. Python activity: Execute agent (on "execution" queue)
-//    - During execution, agent-runner sends progressive status updates via gRPC
-//    - Final status is returned for Temporal observability
+//   - During execution, agent-runner sends progressive status updates via gRPC
+//   - Final status is returned for Temporal observability
 func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Context, execution *agentexecutionv1.AgentExecution) error {
 	logger := workflow.GetLogger(ctx)
 
@@ -77,7 +79,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 	ensureThreadActivity := activities.NewEnsureThreadActivityStub(ctx, activityTaskQueue)
 	threadID, err := ensureThreadActivity.EnsureThread(sessionID, agentID)
 	if err != nil {
-		return fmt.Errorf("failed to ensure thread: %w", err)
+		return w.wrapActivityError("EnsureThread", err)
 	}
 
 	logger.Info("✅ Thread ensured", "thread_id", threadID)
@@ -93,7 +95,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 	executeGraphtonActivity := activities.NewExecuteGraphtonActivityStub(ctx, activityTaskQueue)
 	finalStatus, err := executeGraphtonActivity.ExecuteGraphton(execution, threadID)
 	if err != nil {
-		return fmt.Errorf("failed to execute graphton: %w", err)
+		return w.wrapActivityError("ExecuteGraphton", err)
 	}
 
 	// Defensive null check
@@ -108,6 +110,79 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		"phase", finalStatus.GetPhase().String())
 
 	return nil
+}
+
+// wrapActivityError wraps activity errors with helpful context for troubleshooting.
+//
+// This helps distinguish between different failure types:
+// - Worker not available (SCHEDULE_TO_START timeout)
+// - Worker startup failure (SCHEDULE_TO_START timeout with no heartbeat)
+// - Activity execution timeout (START_TO_CLOSE timeout)
+// - Activity heartbeat timeout (worker died mid-execution)
+// - Activity failure (application error from Python)
+func (w *InvokeAgentExecutionWorkflowImpl) wrapActivityError(activityName string, err error) error {
+	// Check error type to provide helpful context
+	errorMsg := err.Error()
+
+	// Check for TimeoutError and examine timeout type
+	var timeoutErr *temporal.TimeoutError
+	if errors.As(err, &timeoutErr) {
+		switch timeoutErr.TimeoutType() {
+		case enums.TIMEOUT_TYPE_SCHEDULE_TO_START:
+			// SCHEDULE_TO_START timeout: Worker not available or failed to start
+			return fmt.Errorf(
+				"activity '%s' failed: No worker available to execute activity. "+
+					"This usually means:\n"+
+					"1. agent-runner service is not running\n"+
+					"2. agent-runner failed to start (check agent-runner logs for startup errors like import failures)\n"+
+					"3. agent-runner is not connected to Temporal\n"+
+					"Original error: %w",
+				activityName, err,
+			)
+		case enums.TIMEOUT_TYPE_HEARTBEAT:
+			// HEARTBEAT timeout: Worker died or stopped sending progress
+			return fmt.Errorf(
+				"activity '%s' failed: Activity stopped sending heartbeat (worker may have crashed). "+
+					"Check agent-runner logs for errors. "+
+					"Original error: %w",
+				activityName, err,
+			)
+		case enums.TIMEOUT_TYPE_START_TO_CLOSE:
+			// START_TO_CLOSE timeout: Activity took too long
+			return fmt.Errorf(
+				"activity '%s' failed: Activity execution timed out. "+
+					"The activity started but did not complete within the timeout period. "+
+					"Check agent-runner logs for details. "+
+					"Original error: %w",
+				activityName, err,
+			)
+		default:
+			// Other timeout types
+			return fmt.Errorf(
+				"activity '%s' failed with timeout (type: %s). "+
+					"Check agent-runner logs for details. "+
+					"Original error: %w",
+				activityName, timeoutErr.TimeoutType().String(), err,
+			)
+		}
+	}
+
+	// Application error: Activity failed with an error from Python
+	if temporal.IsApplicationError(err) {
+		return fmt.Errorf(
+			"activity '%s' failed with application error: %w. "+
+				"Check agent-runner logs for detailed error information.",
+			activityName, err,
+		)
+	}
+
+	// Generic error (includes retryable errors, canceled errors, etc.)
+	return fmt.Errorf(
+		"activity '%s' failed: %s. "+
+			"Check agent-runner logs for details. "+
+			"Original error: %w",
+		activityName, errorMsg, err,
+	)
 }
 
 // getActivityTaskQueue retrieves the activity task queue from workflow memo.

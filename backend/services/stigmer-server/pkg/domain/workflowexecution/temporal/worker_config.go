@@ -64,11 +64,12 @@ type WorkerConfig struct {
 func NewWorkerConfig(
 	config *Config,
 	store *badger.Store,
+	streamBroker activities.StreamBroker,
 ) *WorkerConfig {
 	return &WorkerConfig{
 		config:                   config,
 		store:                    store,
-		updateStatusActivityImpl: activities.NewUpdateWorkflowExecutionStatusActivityImpl(store),
+		updateStatusActivityImpl: activities.NewUpdateWorkflowExecutionStatusActivityImpl(store, streamBroker),
 	}
 }
 
