@@ -15,10 +15,12 @@
 
 ## Current Status
 
-📋 **Phase**: Phase 3 - Stigmer Service (Java)  
-📝 **Current Task**: T01.3 - Java Backend Integration (Phase 3 ready to start)  
+📋 **Phase**: Phase 4 - Stigma Workflow Completion Logic  
+📝 **Current Task**: T01.4 - Workflow Completion (Phase 4 ready to start)  
 ✅ **Phase 1 Complete**: Proto definition with callback_token field  
-✅ **Phase 2 Complete**: Zigflow (Go) Activity - Async completion implemented
+✅ **Phase 2 Complete**: Zigflow (Go) Activity - Async completion implemented  
+✅ **Phase 3 Complete**: Stigmer Service (Go OSS) - Backend integration with logging  
+⏳ **Phase 3 Java**: TODO created for stigmer-cloud replication
 
 ---
 
@@ -69,18 +71,28 @@ Temporal async activity completion pattern (token handshake) that:
 - Code compiles successfully
 - Checkpoint created: `checkpoints/CP02_phase2_complete.md`
 
-**Phase 3 Goals** (Java Backend - stigmer-cloud repo):
-1. Regenerate Java proto stubs (proto file already updated)
-2. Update AgentExecution command handler to accept `callback_token`
-3. Store token in AgentExecutionStatus for agent workflow access
-4. Add logging for token receipt and storage
-5. No business logic changes (pass-through only)
-6. Handle null/empty token gracefully (backward compatibility)
+**Phase 3 Status (Go OSS)**: ✅ COMPLETED
+- Added callback token logging in AgentExecutionCreateHandler (Go)
+- Token logged as Base64, truncated for security
+- Token automatically persisted and passed to workflow
+- No workflow changes needed (token flows naturally via execution object)
+- Code compiles successfully
+- Checkpoint created: `checkpoints/CP03_phase3_complete_go.md`
 
-**Current Investigation**:
-- Need to locate AgentExecution command handler in Java
-- Java proto generation failed during `make protos` (server issue)
-- May need to regenerate Java stubs manually or fix server
+**Phase 3 Status (Java Cloud)**: ⏳ TODO DOCUMENTED
+- Comprehensive implementation guide created
+- File: `TODO-JAVA-IMPLEMENTATION.md`
+- Includes step-by-step instructions for Java team
+- Covers proto regeneration + logging + testing
+- Blocked on: Proto generation server timeout
+- Will be replicated in stigmer-cloud after server fix
+
+**Phase 4 Goals** (Workflow Completion Logic - Go then Java):
+1. Add completion logic at end of workflow (success path)
+2. Add failure logic in exception handler (failure path)
+3. Create system activity for ActivityCompletionClient (determinism)
+4. Handle null/empty token (backward compatibility)
+5. Add comprehensive logging
 
 ---
 
@@ -89,17 +101,19 @@ Temporal async activity completion pattern (token handshake) that:
 ```
 Phase 1: Proto Definition              (Days 1-2)    ✅ COMPLETED (Day 1 - 1.5 hours)
 Phase 2: Zigflow (Go) Activity         (Days 3-4)    ✅ COMPLETED (Day 1 - 1.7 hours)
-Phase 3: Stigma Service (Java)         (Days 5-6)    🚧 READY TO START
-Phase 4: Stigma Workflow (Java)        (Days 7-9)    ⏳ NOT STARTED
-Phase 5: System Activity (Java)        (Days 10-11)  ⏳ NOT STARTED
+Phase 3: Stigmer Service (Go OSS)      (Days 5-6)    ✅ COMPLETED (Day 1 - 1.0 hour)
+Phase 3: Stigmer Service (Java Cloud)  (Days 5-6)    ⏳ TODO DOCUMENTED
+Phase 4: Stigma Workflow (Go/Java)     (Days 7-9)    🚧 READY TO START
+Phase 5: System Activity (Go/Java)     (Days 10-11)  ⏳ NOT STARTED
 Phase 6: Testing                       (Days 12-15)  ⏳ NOT STARTED
 Phase 7: Observability                 (Days 16-18)  ⏳ NOT STARTED
 Phase 8: Documentation & Handoff       (Days 19-21)  ⏳ NOT STARTED
 ```
 
-**Overall Progress**: 25% (2/8 phases complete)  
-**Time Spent**: 3.2 hours  
-**Ahead of Schedule**: Completed Phase 1 and 2 in 3.2 hours (estimated 4 days / ~32 hours)
+**Overall Progress**: 31% (3/8 phases complete for Go OSS)  
+**Time Spent**: 4.2 hours (Go OSS path)  
+**Ahead of Schedule**: Completed Phase 1-3 (Go) in 4.2 hours (estimated 6 days / ~48 hours)  
+**Java Status**: Phase 3 documented in TODO (pending proto regeneration)
 
 ---
 
@@ -156,6 +170,7 @@ Simply drag this file (`next-task.md`) into the chat, and I'll:
 
 ---
 
-**Current Status**: 🟢 Ready - Phase 3 (Java Backend Integration)  
-**Last Checkpoint**: `checkpoints/CP02_phase2_complete.md`  
-**Next Milestone**: Complete Phase 3 (Accept and store callback_token in Java)
+**Current Status**: 🟢 Ready - Phase 4 (Workflow Completion Logic)  
+**Last Checkpoint**: `checkpoints/CP03_phase3_complete_go.md`  
+**Next Milestone**: Complete Phase 4 (Workflow completion logic for Go, TODO for Java)  
+**Java TODO**: See `TODO-JAVA-IMPLEMENTATION.md` for replication guide
