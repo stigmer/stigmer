@@ -319,55 +319,62 @@ jobs:
           
           if [ -z "$PREVIOUS_TAG" ]; then
             echo "First release"
-            CHANGELOG="First release of Stigmer CLI.
+            CHANGELOG=$(cat <<EOF
+          First release of Stigmer CLI.
 
-## Installation
+          ## Installation
 
-### Homebrew (macOS/Linux)
-\`\`\`bash
-brew install stigmer/tap/stigmer
-\`\`\`
+          ### Homebrew (macOS/Linux)
+          \`\`\`bash
+          brew install stigmer/tap/stigmer
+          \`\`\`
 
-### Manual Installation
-Download the appropriate binary for your platform:
-- macOS (Apple Silicon): stigmer-$VERSION-darwin-arm64.tar.gz
-- macOS (Intel): stigmer-$VERSION-darwin-amd64.tar.gz
-- Linux (AMD64): stigmer-$VERSION-linux-amd64.tar.gz
+          ### Manual Installation
+          Download the appropriate binary for your platform:
+          - macOS (Apple Silicon): stigmer-$VERSION-darwin-arm64.tar.gz
+          - macOS (Intel): stigmer-$VERSION-darwin-amd64.tar.gz
+          - Linux (AMD64): stigmer-$VERSION-linux-amd64.tar.gz
 
-Extract and install:
-\`\`\`bash
-tar -xzf stigmer-$VERSION-<platform>.tar.gz
-sudo mv stigmer /usr/local/bin/
-\`\`\`
+          Extract and install:
+          \`\`\`bash
+          tar -xzf stigmer-$VERSION-<platform>.tar.gz
+          sudo mv stigmer /usr/local/bin/
+          \`\`\`
 
-## Requirements
+          ## Requirements
 
-- Docker (for agent-runner)
-- Agent-runner Docker image will be automatically pulled from ghcr.io/stigmer/agent-runner:$VERSION on first run
+          - Docker (for agent-runner)
+          - Agent-runner Docker image will be automatically pulled from ghcr.io/stigmer/agent-runner:$VERSION on first run
 
-## What's New
+          ## What's New
 
-First release with Docker-based agent-runner architecture."
+          First release with Docker-based agent-runner architecture.
+          EOF
+          )
           else
             echo "Generating changelog from $PREVIOUS_TAG to $VERSION"
-            CHANGELOG="## Installation
+            CHANGES=$(git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG..$VERSION" | grep -v "^- Merge")
+            CHANGELOG=$(cat <<EOF
+          ## Installation
 
-### Homebrew (macOS/Linux)
-\`\`\`bash
-brew upgrade stigmer
-\`\`\`
+          ### Homebrew (macOS/Linux)
+          \`\`\`bash
+          brew upgrade stigmer
+          \`\`\`
 
-### Manual Installation
-Download the appropriate binary for your platform from the assets below.
+          ### Manual Installation
+          Download the appropriate binary for your platform from the assets below.
 
-## Requirements
+          ## Requirements
 
-- Docker (for agent-runner)
-- Agent-runner Docker image: ghcr.io/stigmer/agent-runner:$VERSION
+          - Docker (for agent-runner)
+          - Agent-runner Docker image: ghcr.io/stigmer/agent-runner:$VERSION
 
-## Changes
+          ## Changes
 
-$(git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG..$VERSION" | grep -v "^- Merge")"
+          $CHANGES
+          EOF
+          )
           fi
           
           # Save to file (handle multiline)
