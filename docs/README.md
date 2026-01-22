@@ -13,6 +13,9 @@ Complete documentation index for the Stigmer open-source project.
 - [Configuration Cascade](cli/configuration-cascade.md) - Complete guide to configuration priority (CLI flags, env vars, config file)
 - [Server Logs](cli/server-logs.md) - Viewing and managing server logs
 
+### SDK
+- [Go SDK Proto Integration](sdk/go-sdk-proto-integration.md) - Convert SDK resources to platform protos (Skill ready, Agent in progress)
+
 ### Guides
 - [Deploying with Apply](guides/deploying-with-apply.md) - Deploy agents and workflows from code using `stigmer apply`
 - [Distribution Guide](guides/distribution.md) - Complete guide to packaging and distributing Stigmer
