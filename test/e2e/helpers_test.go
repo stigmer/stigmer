@@ -205,6 +205,7 @@ func GetAgentExecutionViaAPI(serverPort int, executionID string) (*agentexecutio
 // Returns the execution object when target phase is reached, or error on timeout
 func WaitForExecutionPhase(serverPort int, executionID string, targetPhase agentexecutionv1.ExecutionPhase, timeout time.Duration) (*agentexecutionv1.AgentExecution, error) {
 	deadline := time.Now().Add(timeout)
+	var lastExecution *agentexecutionv1.AgentExecution
 	
 	for time.Now().Before(deadline) {
 		execution, err := GetAgentExecutionViaAPI(serverPort, executionID)
@@ -213,6 +214,8 @@ func WaitForExecutionPhase(serverPort int, executionID string, targetPhase agent
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}
+
+		lastExecution = execution
 
 		// Check if we've reached the target phase
 		if execution.Status != nil && execution.Status.Phase == targetPhase {
@@ -228,8 +231,12 @@ func WaitForExecutionPhase(serverPort int, executionID string, targetPhase agent
 		time.Sleep(500 * time.Millisecond)
 	}
 
-	// Timeout reached
-	return nil, fmt.Errorf("timeout waiting for execution to reach phase %s after %v", targetPhase.String(), timeout)
+	// Timeout reached - include current phase for debugging
+	currentPhase := "UNKNOWN"
+	if lastExecution != nil && lastExecution.Status != nil {
+		currentPhase = lastExecution.Status.Phase.String()
+	}
+	return nil, fmt.Errorf("timeout waiting for execution to reach phase %s after %v (stuck at phase: %s)", targetPhase.String(), timeout, currentPhase)
 }
 
 // GetExecutionMessages retrieves all messages from an execution
