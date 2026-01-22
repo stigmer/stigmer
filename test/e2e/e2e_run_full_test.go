@@ -26,7 +26,16 @@ type FullExecutionSuite struct {
 func (s *FullExecutionSuite) SetupSuite() {
 	s.T().Log("=== Setting up Phase 2 test suite ===")
 
-	// Ensure stigmer server is running (starts it automatically if not)
+	// STEP 1: Copy SDK examples to testdata
+	// This ensures that the examples we promise in SDK are what we actually test
+	s.T().Log("Step 1: Copying SDK examples to testdata...")
+	if err := CopyAllSDKExamples(); err != nil {
+		s.T().Fatalf("Failed to copy SDK examples: %v", err)
+	}
+	s.T().Log("✓ SDK examples copied successfully")
+
+	// STEP 2: Ensure stigmer server is running (starts it automatically if not)
+	s.T().Log("Step 2: Ensuring stigmer server is running...")
 	manager, err := EnsureStigmerServerRunning(s.T())
 	if err != nil {
 		s.T().Skipf("Failed to start stigmer server, skipping Phase 2 tests:\n%v", err)
@@ -93,7 +102,7 @@ func (s *FullExecutionSuite) TestRunWithFullExecution() {
 	applyOutput, err := RunCLIWithServerAddr(
 		s.ServerPort,
 		"apply",
-		"--config", "testdata/Stigmer.yaml",
+		"--config", "testdata/agents/basic-agent/Stigmer.yaml",
 	)
 	s.Require().NoError(err, "Apply command should succeed")
 	s.T().Logf("Apply output:\n%s", applyOutput)
@@ -110,7 +119,7 @@ func (s *FullExecutionSuite) TestRunWithFullExecution() {
 
 	// Step 2: Run the agent (use agent name, not ID)
 	s.T().Log("Step 2: Running agent with test message...")
-	agentName := "test-agent" // Use the agent name from testdata
+	agentName := "code-reviewer" // Use the agent name from SDK example (01_basic_agent.go)
 	runOutput, err := RunCLIWithServerAddr(
 		s.ServerPort,
 		"run", agentName,
@@ -284,7 +293,7 @@ func (s *FullExecutionSuite) TestRunWithSpecificBehavior() {
 	applyOutput, err := RunCLIWithServerAddr(
 		s.ServerPort,
 		"apply",
-		"--config", "testdata/Stigmer.yaml",
+		"--config", "testdata/agents/basic-agent/Stigmer.yaml",
 	)
 	s.Require().NoError(err, "Apply should succeed")
 
@@ -296,7 +305,7 @@ func (s *FullExecutionSuite) TestRunWithSpecificBehavior() {
 	s.T().Log("\nTest Case 1: Greeting behavior")
 	runOutput, err := RunCLIWithServerAddr(
 		s.ServerPort,
-		"run", "test-agent",
+		"run", "code-reviewer", // Use the agent name from SDK example (01_basic_agent.go)
 		"--message", "Hello! Please greet me back.",
 		"--follow=false",
 	)

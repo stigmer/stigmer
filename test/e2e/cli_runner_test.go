@@ -22,14 +22,14 @@ import (
 // in future iterations.
 //
 // Args:
-//   - args: CLI arguments (e.g., "apply", "--config", "testdata/basic_agent.go")
+//   - args: CLI arguments (e.g., "apply", "--config", "testdata/agents/basic-agent/Stigmer.yaml")
 //
 // Returns:
 //   - output: Combined stdout/stderr output
 //   - err: Error if command failed
 //
 // Example:
-//   output, err := RunCLI("apply", "--config", "testdata/basic_agent.go")
+//   output, err := RunCLI("apply", "--config", "testdata/agents/basic-agent/Stigmer.yaml")
 func RunCLI(args ...string) (string, error) {
 	// TODO: Implement true in-process execution
 	// Currently blocked by cobra command state not resetting between calls
