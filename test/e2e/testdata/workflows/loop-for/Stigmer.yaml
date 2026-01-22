@@ -1,5 +1,0 @@
-name: loop-for-test
-runtime: go
-main: main.go
-version: 0.1.0
-description: Loop iteration workflow test for E2E testing
