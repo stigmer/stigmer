@@ -2,7 +2,7 @@
 
 **Project ID**: 20260122.05.e2e-integration-testing  
 **Started**: January 22, 2026  
-**Status**: ✅ **Phase 2 Complete** - Full Execution Tests Working with Real LLM!
+**Status**: ⚠️ **Tests Fixed** - Critical Temporal Connection Issue Identified!
 
 ## Overview
 
@@ -115,6 +115,45 @@ ok      github.com/stigmer/stigmer/test/e2e    6.195s
 
 **Checkpoint**: `checkpoints/09-phase-2-full-execution-tests-complete.md`  
 **Changelog**: `_changelog/2026-01/2026-01-22-232840-implement-e2e-phase2-full-execution-tests.md`
+
+### ⚠️ Latest: E2E Test Fixes + Critical Production Issue Discovered! (2026-01-23)
+
+**Test fixes + root cause analysis that revealed a critical production bug!**
+
+**What Was Fixed**:
+- ✅ 2 compilation errors (Description field access)
+- ✅ Agent ID extraction regex (numeric → alphanumeric)
+- ✅ Timeout error messages (shows stuck phase)
+
+**CRITICAL DISCOVERY**:
+- 🚨 **Stigmer server loses Temporal connection and never reconnects**
+- 🚨 **All executions silently fail forever until manual restart**
+- 🚨 **Production-impacting bug discovered via E2E tests**
+
+**Investigation**:
+1. Tests timing out → checked logs
+2. Found "Workflow creator not available" warnings
+3. Verified workflows never started in Temporal
+4. Traced code: connection established once, never retried
+5. Root cause: One-time init at startup, no health monitoring
+
+**Solution Designed**:
+- Health monitoring goroutine (every 30s)
+- Auto-reconnection on failure
+- Workflow creator reinitialization
+- Production-grade resilience
+- 464-line fix document with implementation
+
+**Files**:
+- Tests: `test/e2e/basic_agent_apply_test.go`, `basic_agent_run_test.go`, `e2e_run_full_test.go`, `helpers_test.go`
+- Docs: `backend/services/stigmer-server/docs/FIX_TEMPORAL_CONNECTION_RESILIENCE.md`
+
+**Checkpoint**: `checkpoints/2026-01-23-e2e-tests-temporal-connection-root-cause.md`  
+**Changelog**: `_changelog/2026-01/2026-01-23-013735-fix-e2e-tests-temporal-connection-root-cause.md`
+
+**Impact**: HIGH - E2E tests now debuggable, production issue identified with solution
+
+---
 
 ### ⏩ Next: Optional Enhancements
 

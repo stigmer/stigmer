@@ -242,21 +242,21 @@ func (s *FullExecutionSuite) TestRunWithInvalidMessage() {
 // extractAgentID extracts the agent ID from apply command output
 func extractAgentID(output string) string {
 	// Look for pattern like "ID: agt-xxxxx" or "(ID: agt-xxxxx)"
-	re := regexp.MustCompile(`\(ID:\s+(agt-[0-9]+)\)`)
+	re := regexp.MustCompile(`\(ID:\s+(agt-[0-9a-z]+)\)`)
 	matches := re.FindStringSubmatch(output)
 	if len(matches) > 1 {
 		return matches[1]
 	}
 
 	// Alternative: look for "ID: agt-" pattern
-	re = regexp.MustCompile(`ID:\s+(agt-[0-9]+)`)
+	re = regexp.MustCompile(`ID:\s+(agt-[0-9a-z]+)`)
 	matches = re.FindStringSubmatch(output)
 	if len(matches) > 1 {
 		return matches[1]
 	}
 
 	// Fallback: look for just the ID pattern
-	re = regexp.MustCompile(`agt-[0-9]+`)
+	re = regexp.MustCompile(`agt-[0-9a-z]+`)
 	matches = re.FindStringSubmatch(output)
 	if len(matches) > 0 {
 		return matches[0]
