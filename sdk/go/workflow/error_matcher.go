@@ -193,19 +193,19 @@ func CatchMultiple(errorTypes ...string) *ErrorMatcher {
 //
 // Example:
 //
-//	workflow.TryTask("attemptOperation",
+//	workflow.Try("attemptOperation",
 //	    workflow.WithTry(/* ... */),
 //	    workflow.WithCatchTyped(
 //	        workflow.CatchHTTPErrors(),  // Type-safe!
 //	        "httpErr",
-//	        workflow.SetTask("handleHTTPError", ...),
+//	        workflow.Set("handleHTTPError", ...),
 //	    ),
 //	    workflow.WithCatchTyped(
 //	        workflow.CatchAny(),  // Catch-all fallback
 //	        "err",
-//	        workflow.SetTask("handleUnknownError", ...),
+//	        workflow.Set("handleUnknownError", ...),
 //	    ),
 //	)
-func WithCatchTyped(matcher *ErrorMatcher, as string, tasks ...*Task) TryTaskOption {
+func WithCatchTyped(matcher *ErrorMatcher, as string, tasks ...*Task) TryOption {
 	return WithCatch(matcher.Types(), as, tasks...)
 }

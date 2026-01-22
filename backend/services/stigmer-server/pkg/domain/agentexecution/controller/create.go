@@ -2,6 +2,7 @@ package agentexecution
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -470,6 +471,24 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 			Str("execution_id", executionID).
 			Msg("Workflow creator not available - execution will remain in PENDING (Temporal not connected)")
 		return nil
+	}
+
+	// Log callback token if present (for async activity completion pattern)
+	// See: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
+	callbackToken := execution.GetSpec().GetCallbackToken()
+	if len(callbackToken) > 0 {
+		// Log token for debugging (Base64 encoded, truncated for security)
+		tokenBase64 := base64.StdEncoding.EncodeToString(callbackToken)
+		tokenPreview := tokenBase64
+		if len(tokenPreview) > 20 {
+			tokenPreview = tokenPreview[:20] + "..."
+		}
+		
+		log.Info().
+			Str("execution_id", executionID).
+			Str("token_preview", tokenPreview).
+			Int("token_length", len(callbackToken)).
+			Msg("📝 Callback token present - workflow will complete external activity on finish")
 	}
 
 	log.Debug().

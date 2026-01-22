@@ -55,7 +55,6 @@ type Workflow struct {
 // Option is a functional option for configuring a Workflow.
 type Option func(*Workflow) error
 
-
 // New creates a new Workflow with a typed context for variable management.
 //
 // The workflow is automatically registered with the provided context for synthesis.
@@ -226,8 +225,8 @@ func WithTask(task *Task) Option {
 // Example:
 //
 //	workflow.WithTasks(
-//	    workflow.SetTask("init", workflow.SetVar("x", "1")),
-//	    workflow.HttpCallTask("fetch", workflow.WithHTTPGet(), workflow.WithURI("${.url}")),
+//	    workflow.Set("init", workflow.SetVar("x", "1")),
+//	    workflow.HttpGet("fetch", "https://api.example.com"),
 //	)
 func WithTasks(tasks ...*Task) Option {
 	return func(w *Workflow) error {
@@ -275,7 +274,7 @@ func WithEnvironmentVariables(variables ...environment.Variable) Option {
 // Example:
 //
 //	wf, _ := workflow.New(workflow.WithNamespace("ns"), workflow.WithName("wf"), workflow.WithVersion("1.0.0"))
-//	wf.AddTask(workflow.SetTask("init", workflow.SetVar("x", "1")))
+//	wf.AddTask(workflow.Set("init", workflow.SetVar("x", "1")))
 func (w *Workflow) AddTask(task *Task) *Workflow {
 	w.Tasks = append(w.Tasks, task)
 	return w
@@ -287,8 +286,8 @@ func (w *Workflow) AddTask(task *Task) *Workflow {
 //
 //	wf, _ := workflow.New(...)
 //	wf.AddTasks(
-//	    workflow.SetTask("init", workflow.SetVar("x", "1")),
-//	    workflow.HttpCallTask("fetch", workflow.WithHTTPGet(), workflow.WithURI("${.url}")),
+//	    workflow.Set("init", workflow.SetVar("x", "1")),
+//	    workflow.HttpGet("fetch", "https://api.example.com"),
 //	)
 func (w *Workflow) AddTasks(tasks ...*Task) *Workflow {
 	w.Tasks = append(w.Tasks, tasks...)
@@ -331,27 +330,26 @@ func (w *Workflow) AddEnvironmentVariables(variables ...environment.Variable) *W
 // Example:
 //
 //	wf := workflow.New(ctx, ...)
-//	endpoint := ctx.String("apiBase", "https://api.example.com")
 //	
 //	// Clean, one-line GET request
-//	fetchTask := wf.HttpGet("fetch", endpoint.Concat("/posts/1"),
-//	    workflow.Header("Content-Type", "application/json"),
-//	    workflow.Timeout(30),
+//	fetchTask := wf.HttpGet("fetch", "https://api.example.com/posts/1",
+//	    Header("Content-Type", "application/json"),
+//	    Timeout(30),
 //	)
 //	
 //	// Use task outputs with clear origin
-//	processTask := wf.SetVars("process",
-//	    "title", fetchTask.Field("title"),  // Implicit dependency!
+//	processTask := wf.Set("process",
+//	    SetVar("title", fetchTask.Field("title")),  // Implicit dependency!
 //	)
-func (w *Workflow) HttpGet(name string, uri interface{}, opts ...HttpCallTaskOption) *Task {
+func (w *Workflow) HttpGet(name string, uri interface{}, opts ...HttpCallOption) *Task {
 	// Prepend GET method and URI to options
-	allOpts := []HttpCallTaskOption{
-		WithHTTPGet(),
-		WithURI(uri),
+	allOpts := []HttpCallOption{
+		HTTPMethod("GET"),
+		URI(uri),
 	}
 	allOpts = append(allOpts, opts...)
 	
-	task := HttpCallTask(name, allOpts...)
+	task := HttpCall(name, allOpts...)
 	w.AddTask(task)
 	return task
 }
@@ -362,21 +360,21 @@ func (w *Workflow) HttpGet(name string, uri interface{}, opts ...HttpCallTaskOpt
 // Example:
 //
 //	wf := workflow.New(ctx, ...)
-//	createTask := wf.HttpPost("createUser", apiURL.Concat("/users"),
-//	    workflow.WithBody(map[string]any{
+//	createTask := wf.HttpPost("createUser", "https://api.example.com/users",
+//	    Body(map[string]any{
 //	        "name": "John Doe",
 //	        "email": "john@example.com",
 //	    }),
-//	    workflow.Header("Authorization", token),
+//	    Header("Authorization", "Bearer token"),
 //	)
-func (w *Workflow) HttpPost(name string, uri interface{}, opts ...HttpCallTaskOption) *Task {
-	allOpts := []HttpCallTaskOption{
-		WithHTTPPost(),
-		WithURI(uri),
+func (w *Workflow) HttpPost(name string, uri interface{}, opts ...HttpCallOption) *Task {
+	allOpts := []HttpCallOption{
+		HTTPMethod("POST"),
+		URI(uri),
 	}
 	allOpts = append(allOpts, opts...)
 	
-	task := HttpCallTask(name, allOpts...)
+	task := HttpCall(name, allOpts...)
 	w.AddTask(task)
 	return task
 }
@@ -386,17 +384,17 @@ func (w *Workflow) HttpPost(name string, uri interface{}, opts ...HttpCallTaskOp
 //
 // Example:
 //
-//	updateTask := wf.HttpPut("updateUser", userURL,
-//	    workflow.WithBody(map[string]any{"status": "active"}),
+//	updateTask := wf.HttpPut("updateUser", "https://api.example.com/users/123",
+//	    Body(map[string]any{"status": "active"}),
 //	)
-func (w *Workflow) HttpPut(name string, uri interface{}, opts ...HttpCallTaskOption) *Task {
-	allOpts := []HttpCallTaskOption{
-		WithHTTPPut(),
-		WithURI(uri),
+func (w *Workflow) HttpPut(name string, uri interface{}, opts ...HttpCallOption) *Task {
+	allOpts := []HttpCallOption{
+		HTTPMethod("PUT"),
+		URI(uri),
 	}
 	allOpts = append(allOpts, opts...)
 	
-	task := HttpCallTask(name, allOpts...)
+	task := HttpCall(name, allOpts...)
 	w.AddTask(task)
 	return task
 }
@@ -406,17 +404,17 @@ func (w *Workflow) HttpPut(name string, uri interface{}, opts ...HttpCallTaskOpt
 //
 // Example:
 //
-//	patchTask := wf.HttpPatch("patchUser", userURL,
-//	    workflow.WithBody(map[string]any{"email": "newemail@example.com"}),
+//	patchTask := wf.HttpPatch("patchUser", "https://api.example.com/users/123",
+//	    Body(map[string]any{"email": "newemail@example.com"}),
 //	)
-func (w *Workflow) HttpPatch(name string, uri interface{}, opts ...HttpCallTaskOption) *Task {
-	allOpts := []HttpCallTaskOption{
-		WithHTTPPatch(),
-		WithURI(uri),
+func (w *Workflow) HttpPatch(name string, uri interface{}, opts ...HttpCallOption) *Task {
+	allOpts := []HttpCallOption{
+		HTTPMethod("PATCH"),
+		URI(uri),
 	}
 	allOpts = append(allOpts, opts...)
 	
-	task := HttpCallTask(name, allOpts...)
+	task := HttpCall(name, allOpts...)
 	w.AddTask(task)
 	return task
 }
@@ -426,59 +424,37 @@ func (w *Workflow) HttpPatch(name string, uri interface{}, opts ...HttpCallTaskO
 //
 // Example:
 //
-//	deleteTask := wf.HttpDelete("deleteUser", userURL,
-//	    workflow.Header("Authorization", token),
+//	deleteTask := wf.HttpDelete("deleteUser", "https://api.example.com/users/123",
+//	    Header("Authorization", "Bearer token"),
 //	)
-func (w *Workflow) HttpDelete(name string, uri interface{}, opts ...HttpCallTaskOption) *Task {
-	allOpts := []HttpCallTaskOption{
-		WithHTTPDelete(),
-		WithURI(uri),
+func (w *Workflow) HttpDelete(name string, uri interface{}, opts ...HttpCallOption) *Task {
+	allOpts := []HttpCallOption{
+		HTTPMethod("DELETE"),
+		URI(uri),
 	}
 	allOpts = append(allOpts, opts...)
 	
-	task := HttpCallTask(name, allOpts...)
+	task := HttpCall(name, allOpts...)
 	w.AddTask(task)
 	return task
 }
 
-// SetVars creates a SET task for setting multiple variables and adds it to the workflow.
-// This is a clean, Pulumi-style builder that accepts key-value pairs.
-//
-// Arguments are provided as alternating key-value pairs:
-//
-//	wf.SetVars("taskName", "key1", value1, "key2", value2, ...)
-//
-// When using TaskFieldRef values, dependencies are automatically tracked.
+// Set creates a SET task for setting variables and adds it to the workflow.
+// This is a clean, Pulumi-style builder.
 //
 // Example:
 //
 //	wf := workflow.New(ctx, ...)
 //	fetchTask := wf.HttpGet("fetch", endpoint)
 //	
-//	// Clean, concise variable setting with implicit dependencies
-//	processTask := wf.SetVars("process",
-//	    "title", fetchTask.Field("title"),  // Implicit dependency!
-//	    "body", fetchTask.Field("body"),    // Clear origin!
-//	    "status", "success",
+//	// Clean variable setting with implicit dependencies
+//	processTask := wf.Set("process",
+//	    SetVar("title", fetchTask.Field("title")),  // Implicit dependency!
+//	    SetVar("body", fetchTask.Field("body")),
+//	    SetVar("status", "success"),
 //	)
-func (w *Workflow) SetVars(name string, keyValuePairs ...interface{}) *Task {
-	// Validate even number of arguments
-	if len(keyValuePairs)%2 != 0 {
-		panic("SetVars requires an even number of arguments (key-value pairs)")
-	}
-	
-	// Build SetVar options from pairs
-	opts := make([]SetTaskOption, 0, len(keyValuePairs)/2)
-	for i := 0; i < len(keyValuePairs); i += 2 {
-		key, ok := keyValuePairs[i].(string)
-		if !ok {
-			panic(fmt.Sprintf("SetVars key at index %d must be a string, got %T", i, keyValuePairs[i]))
-		}
-		value := keyValuePairs[i+1]
-		opts = append(opts, SetVar(key, value))
-	}
-	
-	task := SetTask(name, opts...)
+func (w *Workflow) Set(name string, opts ...SetOption) *Task {
+	task := Set(name, opts...)
 	w.AddTask(task)
 	return task
 }
@@ -491,17 +467,16 @@ func (w *Workflow) SetVars(name string, keyValuePairs ...interface{}) *Task {
 // Example:
 //
 //	wf := workflow.New(ctx, ...)
-//	reviewTask := wf.CallAgent(
-//	    "review",
-//	    workflow.AgentOption(workflow.AgentBySlug("code-reviewer")),
-//	    workflow.Message("Review PR: ${.input.prUrl}"),
-//	    workflow.WithEnv(map[string]string{
+//	reviewTask := wf.CallAgent("review",
+//	    AgentOption(AgentBySlug("code-reviewer")),
+//	    Message("Review PR: ${.input.prUrl}"),
+//	    WithAgentEnv(map[string]string{
 //	        "GITHUB_TOKEN": "${.secrets.GITHUB_TOKEN}",
 //	    }),
 //	)
-//	reviewTask.ExportAs("reviewResult")
+//	reviewTask.ExportAll()
 func (w *Workflow) CallAgent(name string, opts ...AgentCallOption) *Task {
-	task := AgentCallTask(name, opts...)
+	task := AgentCall(name, opts...)
 	w.AddTask(task)
 	return task
 }

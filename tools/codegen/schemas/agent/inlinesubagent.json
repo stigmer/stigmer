@@ -1,0 +1,83 @@
+{
+  "name": "InlineSubAgentSpec",
+  "kind": "INLINE_SUB_AGENT_SPEC",
+  "description": "InlineSubAgentSpec defines a sub-agent inline without creating a separate resource.",
+  "protoType": "ai.stigmer.agentic.agent.v1.InlineSubAgentSpec",
+  "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Name of the sub-agent.",
+      "required": false
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Description of what this sub-agent does.",
+      "required": false
+    },
+    {
+      "name": "Instructions",
+      "jsonName": "instructions",
+      "protoField": "instructions",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Behavior instructions for this sub-agent.",
+      "required": false
+    },
+    {
+      "name": "McpServers",
+      "jsonName": "mcpServers",
+      "protoField": "mcp_servers",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "MCP server names this sub-agent can use (references McpServerDefinition.name).",
+      "required": false
+    },
+    {
+      "name": "McpToolSelections",
+      "jsonName": "mcpToolSelections",
+      "protoField": "mcp_tool_selections",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "McpToolSelection"
+        }
+      },
+      "description": "Tool selections for each MCP server.",
+      "required": false
+    },
+    {
+      "name": "SkillRefs",
+      "jsonName": "skillRefs",
+      "protoField": "skill_refs",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "References to Skill resources for this sub-agent's knowledge.",
+      "required": false
+    }
+  ]
+}

@@ -16,6 +16,11 @@ The Stigmer SDK provides language-specific SDKs for defining Agent blueprints. T
 - **Go SDK README**: [../go/README.md](../go/README.md) - Go SDK documentation
 - **Python SDK README**: [../python/README.md](../python/README.md) - Python SDK documentation
 
+## Guides
+
+### Workflow SDK
+- [Workflow Fluent API Guide](./guides/workflow-fluent-api.md) - Comprehensive guide to using the Pulumi-style fluent API with functional options pattern for building workflows (2026-01-22)
+
 ## Implementation Reports
 
 ### Template System

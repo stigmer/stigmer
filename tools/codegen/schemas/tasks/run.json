@@ -1,0 +1,32 @@
+{
+  "name": "RunTaskConfig",
+  "kind": "RUN",
+  "description": "RUN tasks execute sub-workflows.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/run.proto",
+  "fields": [
+    {
+      "name": "WorkflowName",
+      "jsonName": "workflow_name",
+      "protoField": "workflow_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Sub-workflow name",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Input",
+      "jsonName": "input",
+      "protoField": "input",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "Sub-workflow input",
+      "required": false
+    }
+  ]
+}
