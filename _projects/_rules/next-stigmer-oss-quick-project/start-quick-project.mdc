@@ -112,7 +112,7 @@ How will you know this is complete? (Optional - I can infer from the goal)
 
 2. **If approved, create the project** using the bootstrap script:
    ```bash
-   python3 tools/projects/bootstrap_quick_project.py \
+   python3 _projects/tools/projects/bootstrap_quick_project.py \
      --name "[name]" \
      --description "[description]" \
      --goal "[goal]" \
