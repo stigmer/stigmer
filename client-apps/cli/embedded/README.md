@@ -1,63 +1,61 @@
 # Embedded Package
 
-The `embedded` package handles compile-time embedding and runtime extraction of Stigmer binaries.
+The `embedded` package manages binary distribution for the Stigmer CLI.
 
 ## Purpose
 
-This package enables single-binary distribution of the Stigmer CLI by:
-1. **Embedding** all required binaries at compile time (stigmer-server, workflow-runner, agent-runner)
-2. **Extracting** them to `~/.stigmer/bin/` on first run or version upgrade
-3. **Validating** version compatibility and re-extracting when needed
+This package handles:
+1. **Version tracking** of the CLI build
+2. **Binary extraction** logic (legacy support for graceful migration)
+3. **Docker integration** for agent-runner distribution
 
 ## Architecture
 
-**Hybrid "Fat Binary" / "Matryoshka Doll" Pattern**
+**Docker-Based Distribution (Current - Jan 2026)**
 
 ```
 ┌─────────────────────────────────────────┐
-│   Stigmer CLI (~100 MB)                 │
+│   Stigmer CLI (~15 MB)                  │
+│   Lightweight Go binary                 │
 │                                         │
-│  ┌───────────────────────────────────┐ │
-│  │  Embedded Binaries (Go embed)     │ │
-│  │  - stigmer-server (~25 MB)        │ │
-│  │  - workflow-runner (~20 MB)       │ │
-│  │  - agent-runner (~60 MB) ✨       │ │
-│  │    PyInstaller binary with        │ │
-│  │    Python bundled inside!         │ │
-│  └───────────────────────────────────┘ │
+│   ├─ stigmer-server (BusyBox pattern)  │
+│   ├─ workflow-runner (BusyBox pattern) │
+│   └─ No embedded binaries! 🎉          │
 │                                         │
-│  EnsureBinariesExtracted()             │
+│   EnsureBinariesExtracted()             │
 │         │                               │
-│         ├─ Check ~/.stigmer/bin/.version
-│         ├─ Extract if needed            │
-│         └─ Set executable permissions   │
+│         └─ Returns nil (no extraction)  │
 └─────────────────────────────────────────┘
-         │
-         ├─ Extract to ~/.stigmer/bin/
          │
          v
 ┌─────────────────────────────────────────┐
-│   ~/.stigmer/bin/                       │
-│   ├── .version                          │
-│   ├── stigmer-server (Go binary)       │
-│   ├── workflow-runner (Go binary)      │
-│   └── agent-runner (PyInstaller) ✨    │
-│       Standalone executable             │
-│       NO Python installation required!  │
+│   Docker Pull on First Run              │
+│   $ docker pull ghcr.io/stigmer/        │
+│     agent-runner:v1.0.0                 │
+│                                         │
+│   ✓ Multi-arch support (amd64/arm64)   │
+│   ✓ Standard Docker workflows          │
+│   ✓ Smaller CLI binary                 │
+│   ✓ Easier updates                     │
 └─────────────────────────────────────────┘
 ```
 
+**Previous Architecture (Pre-Jan 2026)**
+
+The CLI previously embedded binaries using Go's `//go:embed` directive.
+This increased binary size to ~100MB and required platform-specific builds.
+See git history for the embedded binary implementation.
+
 ## Files
 
-- **`embedded.go`**: Platform detection, embed directives, binary getters
-- **`embedded_*.go`**: Platform-specific embed directives
-  - `embedded_darwin_arm64.go` - ARM Mac (embedded binary)
-  - `embedded_darwin_amd64.go` - Intel Mac (download-only mode)
-  - `embedded_linux_amd64.go` - Linux (embedded binary)
-- **`extract.go`**: Extraction logic for binaries (simplified - no tarball handling)
-- **`version.go`**: Version checking and comparison
-- **`binaries/`**: Directory containing binaries to embed (populated at build time)
-  - See `binaries/README.md` for platform-specific embedding strategy
+- **`embedded.go`**: Platform detection and core interfaces
+- **`embedded_*.go`**: Platform-specific implementations (all return nil for Docker-based architecture)
+  - `embedded_darwin_arm64.go` - ARM Mac (returns nil → Docker pull)
+  - `embedded_darwin_amd64.go` - Intel Mac (returns nil → Docker pull)
+  - `embedded_linux_amd64.go` - Linux (returns nil → Docker pull)
+- **`extract.go`**: Binary extraction logic (now a no-op, kept for backward compatibility)
+- **`version.go`**: Version tracking for CLI builds
+- **`binaries/`**: ⚠️ No longer used (Docker-based distribution)
 
 ## Usage
 
@@ -69,15 +67,15 @@ import "github.com/stigmer/stigmer/client-apps/cli/embedded"
 func Start() error {
     dataDir := getDataDir() // ~/.stigmer
     
-    // Ensure binaries are extracted
+    // Check for binary extraction (no-op in Docker-based architecture)
+    // Kept for graceful migration from embedded binary versions
     if err := embedded.EnsureBinariesExtracted(dataDir); err != nil {
-        return errors.Wrap(err, "failed to extract embedded binaries")
+        return errors.Wrap(err, "failed to check binaries")
     }
     
-    // Now binaries are guaranteed to exist in ~/.stigmer/bin/
-    serverBinary := filepath.Join(dataDir, "bin", "stigmer-server")
-    // ...
-}
+    // Agent-runner now runs as Docker container
+    // The daemon automatically pulls ghcr.io/stigmer/agent-runner:<version>
+    // stigmer-server and workflow-runner are compiled into CLI (BusyBox pattern)
 ```
 
 ### Platform Detection
