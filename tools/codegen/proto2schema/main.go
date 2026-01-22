@@ -23,10 +23,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"google.golang.org/protobuf/compiler/protogen"
+	"github.com/jhump/protoreflect/desc"
+	"github.com/jhump/protoreflect/desc/protoparse"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
@@ -91,10 +90,11 @@ type Validation struct {
 func main() {
 	protoDir := flag.String("proto-dir", "", "Directory containing .proto files")
 	outputDir := flag.String("output-dir", "", "Output directory for JSON schemas")
+	includeDir := flag.String("include-dir", "apis", "Directory containing proto imports")
 	flag.Parse()
 
 	if *protoDir == "" || *outputDir == "" {
-		fmt.Println("Usage: proto2schema --proto-dir <dir> --output-dir <dir>")
+		fmt.Println("Usage: proto2schema --proto-dir <dir> --output-dir <dir> [--include-dir <dir>]")
 		os.Exit(1)
 	}
 
@@ -115,18 +115,55 @@ func main() {
 
 	fmt.Printf("Found %d proto files\n", len(protoFiles))
 
-	// TODO: Parse proto files and generate schemas
-	// For now, let's create a simple test output
+	// Parse proto files
+	parser := &protoparse.Parser{
+		ImportPaths: []string{*includeDir},
+	}
+
+	// Convert paths to relative paths from include dir
+	var relativeProtoFiles []string
 	for _, protoFile := range protoFiles {
-		fmt.Printf("  - %s\n", protoFile)
+		relPath, err := filepath.Rel(*includeDir, protoFile)
+		if err != nil {
+			fmt.Printf("Error getting relative path for %s: %v\n", protoFile, err)
+			os.Exit(1)
+		}
+		relativeProtoFiles = append(relativeProtoFiles, relPath)
+	}
+
+	fileDescriptors, err := parser.ParseFiles(relativeProtoFiles...)
+	if err != nil {
+		fmt.Printf("Error parsing proto files: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Process each file descriptor
+	for _, fd := range fileDescriptors {
+		fmt.Printf("\nProcessing %s...\n", fd.GetName())
 		
-		// Extract base name for schema file
-		baseName := strings.TrimSuffix(filepath.Base(protoFile), ".proto")
-		schemaFile := filepath.Join(*outputDir, baseName+".json")
-		
-		// TODO: Parse proto and generate schema
-		// For now, create a placeholder
-		fmt.Printf("    → %s\n", schemaFile)
+		// Find *TaskConfig messages in this file
+		for _, msg := range fd.GetMessageTypes() {
+			if strings.HasSuffix(msg.GetName(), "TaskConfig") {
+				fmt.Printf("  Found task config: %s\n", msg.GetName())
+				
+				schema, err := parseTaskConfig(msg, fd)
+				if err != nil {
+					fmt.Printf("  Error parsing task config: %v\n", err)
+					continue
+				}
+				
+				// Write schema to file
+				baseName := strings.ToLower(strings.TrimSuffix(msg.GetName(), "TaskConfig"))
+				schemaFile := filepath.Join(*outputDir, baseName+".json")
+				
+				if err := writeSchemaFile(schema, schemaFile); err != nil {
+					fmt.Printf("  Error writing schema: %v\n", err)
+					continue
+				}
+				
+				fmt.Printf("  → %s\n", schemaFile)
+			}
+		}
 	}
 
 	fmt.Println("\n✅ Schema generation complete!")
