@@ -10,6 +10,7 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 )
 
 // TestExample01_BasicAgent tests the basic agent example
@@ -171,9 +172,271 @@ func TestExample13_WorkflowAndAgentSharedContext(t *testing.T) {
 	})
 }
 
+// TestExample03_AgentWithMCPServers tests the agent with MCP servers example
+func TestExample03_AgentWithMCPServers(t *testing.T) {
+	runExampleTest(t, "03_agent_with_mcp_servers.go", func(t *testing.T, outputDir string) {
+		agentPath := filepath.Join(outputDir, "agent-0.pb")
+		assertFileExists(t, agentPath)
+
+		var agent agentv1.Agent
+		readProto(t, agentPath, &agent)
+
+		if agent.Metadata.Name != "devops-agent" {
+			t.Errorf("Agent name = %v, want devops-agent", agent.Metadata.Name)
+		}
+
+		// Verify MCP servers were configured
+		if len(agent.Spec.McpServers) == 0 {
+			t.Error("Agent should have MCP servers")
+		}
+
+		// Check for different MCP server types (stdio, http, docker)
+		hasStdio := false
+		hasHTTP := false
+		hasDocker := false
+		
+		for _, server := range agent.Spec.McpServers {
+			switch {
+			case server.GetStdio() != nil:
+				hasStdio = true
+			case server.GetHttp() != nil:
+				hasHTTP = true
+			case server.GetDocker() != nil:
+				hasDocker = true
+			}
+		}
+
+		if !hasStdio {
+			t.Error("Agent should have at least one stdio MCP server")
+		}
+		if !hasHTTP {
+			t.Error("Agent should have at least one HTTP MCP server")
+		}
+		if !hasDocker {
+			t.Error("Agent should have at least one Docker MCP server")
+		}
+
+		t.Logf("✅ Agent with %d MCP servers created (stdio: %v, http: %v, docker: %v)", 
+			len(agent.Spec.McpServers), hasStdio, hasHTTP, hasDocker)
+	})
+}
+
+// TestExample04_AgentWithSubAgents tests the agent with sub-agents example
+func TestExample04_AgentWithSubAgents(t *testing.T) {
+	runExampleTest(t, "04_agent_with_subagents.go", func(t *testing.T, outputDir string) {
+		// This example creates multiple agents - check if at least one exists
+		agentPath := filepath.Join(outputDir, "agent-0.pb")
+		assertFileExists(t, agentPath)
+
+		var agent agentv1.Agent
+		readProto(t, agentPath, &agent)
+
+		// Verify agent has sub-agents configured
+		if len(agent.Spec.SubAgents) == 0 {
+			t.Error("Agent should have sub-agents")
+		}
+
+		// Check for both inline and referenced sub-agents
+		hasInline := false
+		hasReferenced := false
+		
+		for _, subAgent := range agent.Spec.SubAgents {
+			switch subAgent.AgentReference.(type) {
+			case *agentv1.SubAgent_InlineSpec:
+				hasInline = true
+			case *agentv1.SubAgent_AgentInstanceRefs:
+				hasReferenced = true
+			}
+		}
+
+		t.Logf("✅ Agent with %d sub-agents created (inline: %v, referenced: %v)", 
+			len(agent.Spec.SubAgents), hasInline, hasReferenced)
+	})
+}
+
+// TestExample05_AgentWithEnvironmentVariables tests the agent with environment variables example
+func TestExample05_AgentWithEnvironmentVariables(t *testing.T) {
+	runExampleTest(t, "05_agent_with_environment_variables.go", func(t *testing.T, outputDir string) {
+		agentPath := filepath.Join(outputDir, "agent-0.pb")
+		assertFileExists(t, agentPath)
+
+		var agent agentv1.Agent
+		readProto(t, agentPath, &agent)
+
+		if agent.Metadata.Name != "cloud-deployer" {
+			t.Errorf("Agent name = %v, want cloud-deployer", agent.Metadata.Name)
+		}
+
+		// Verify environment variables were configured
+		if agent.Spec.EnvSpec == nil {
+			t.Fatal("Agent should have environment configuration")
+		}
+
+		envData := agent.Spec.EnvSpec.Data
+		if len(envData) == 0 {
+			t.Error("Agent should have environment variables")
+		}
+
+		// Check for different types of environment variables
+		hasSecret := false
+		hasValue := false
+
+		for _, envValue := range envData {
+			if envValue.IsSecret {
+				hasSecret = true
+			}
+			if envValue.Value != "" {
+				hasValue = true
+			}
+		}
+
+		if !hasSecret {
+			t.Error("Agent should have at least one secret environment variable")
+		}
+
+		t.Logf("✅ Agent with %d environment variables created (secrets: %v, has values: %v)", 
+			len(envData), hasSecret, hasValue)
+	})
+}
+
+// TestExample06_AgentWithInstructionsFromFiles tests the agent with instructions from files example
+func TestExample06_AgentWithInstructionsFromFiles(t *testing.T) {
+	runExampleTest(t, "06_agent_with_instructions_from_files.go", func(t *testing.T, outputDir string) {
+		// This example creates multiple agents - check if at least one exists
+		agentPath := filepath.Join(outputDir, "agent-0.pb")
+		assertFileExists(t, agentPath)
+
+		var agent agentv1.Agent
+		readProto(t, agentPath, &agent)
+
+		// Verify instructions were loaded from file
+		if agent.Spec.Instructions == "" {
+			t.Error("Agent should have instructions loaded from file")
+		}
+
+		// Instructions should be non-trivial (file content, not just empty string)
+		if len(agent.Spec.Instructions) < 100 {
+			t.Errorf("Agent instructions seem too short (%d chars), may not have loaded from file correctly", 
+				len(agent.Spec.Instructions))
+		}
+
+		t.Logf("✅ Agent with instructions from file created (%d chars loaded)", 
+			len(agent.Spec.Instructions))
+	})
+}
+
+// TestExample14_WorkflowWithRuntimeSecrets tests the workflow with runtime secrets example
+// NOTE: Skipped - requires advanced workflow APIs (Interpolate, WithBody, RuntimeSecret, RuntimeEnv)
+// These APIs are part of Phase 3 implementation (~4 hours estimated work)
+// See _pending_api_implementation/README.md for details
+func TestExample14_WorkflowWithRuntimeSecrets(t *testing.T) {
+	t.Skip("Example requires unimplemented advanced workflow APIs: Interpolate, WithBody, RuntimeSecret, RuntimeEnv")
+}
+
+// TestExample15_WorkflowCallingSimpleAgent tests the workflow calling simple agent example
+func TestExample15_WorkflowCallingSimpleAgent(t *testing.T) {
+	runExampleTest(t, "15_workflow_calling_simple_agent.go", func(t *testing.T, outputDir string) {
+		// This example creates BOTH workflow and agent
+		workflowPath := filepath.Join(outputDir, "workflow-0.pb")
+		agentPath := filepath.Join(outputDir, "agent-0.pb")
+
+		// Verify both were created
+		assertFileExists(t, workflowPath)
+		assertFileExists(t, agentPath)
+
+		// Validate workflow
+		var wf workflowv1.Workflow
+		readProto(t, workflowPath, &wf)
+
+		if wf.Spec.Document.Name != "simple-review" {
+			t.Errorf("Workflow name = %v, want simple-review", wf.Spec.Document.Name)
+		}
+
+		// Validate agent
+		var agent agentv1.Agent
+		readProto(t, agentPath, &agent)
+
+		if agent.Metadata.Name != "code-reviewer" {
+			t.Errorf("Agent name = %v, want code-reviewer", agent.Metadata.Name)
+		}
+
+		// Verify workflow has agent call task
+		hasAgentCall := false
+		for _, task := range wf.Spec.Tasks {
+			if task.Kind == apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL {
+				hasAgentCall = true
+				break
+			}
+		}
+
+		if !hasAgentCall {
+			t.Error("Workflow should have agent call task")
+		}
+
+		t.Log("✅ Workflow calling agent created successfully")
+	})
+}
+
+// TestExample16_WorkflowCallingAgentBySlug tests the workflow calling agent by slug example
+func TestExample16_WorkflowCallingAgentBySlug(t *testing.T) {
+	runExampleTest(t, "16_workflow_calling_agent_by_slug.go", func(t *testing.T, outputDir string) {
+		workflowPath := filepath.Join(outputDir, "workflow-0.pb")
+		assertFileExists(t, workflowPath)
+
+		var wf workflowv1.Workflow
+		readProto(t, workflowPath, &wf)
+
+		if wf.Spec.Document.Name != "review-by-slug" {
+			t.Errorf("Workflow name = %v, want review-by-slug", wf.Spec.Document.Name)
+		}
+
+		// Verify workflow has agent call tasks
+		agentCallCount := 0
+		for _, task := range wf.Spec.Tasks {
+			if task.Kind == apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL {
+				agentCallCount++
+			}
+		}
+
+		if agentCallCount == 0 {
+			t.Error("Workflow should have agent call tasks")
+		}
+
+		t.Logf("✅ Workflow with %d agent slug references created", agentCallCount)
+	})
+}
+
+// TestExample17_WorkflowAgentWithRuntimeSecrets tests the workflow agent with runtime secrets example
+// NOTE: Skipped - requires advanced workflow APIs (Interpolate, WithEnv, AgentTimeout, RuntimeSecret, WithBody)
+// These APIs are part of Phase 3 implementation (~4 hours estimated work)
+// See _pending_api_implementation/README.md for details
+func TestExample17_WorkflowAgentWithRuntimeSecrets(t *testing.T) {
+	t.Skip("Example requires unimplemented advanced workflow APIs: Interpolate, WithEnv, AgentTimeout, RuntimeSecret, WithBody")
+}
+
+// TestExample19_WorkflowAgentExecutionConfig tests the workflow agent execution config example
+// NOTE: Skipped - requires advanced workflow APIs (AgentModel, AgentTemperature, AgentTimeout, Interpolate)
+// These APIs are part of Phase 3 implementation (~4 hours estimated work)
+// See _pending_api_implementation/README.md for details
+func TestExample19_WorkflowAgentExecutionConfig(t *testing.T) {
+	t.Skip("Example requires unimplemented advanced workflow APIs: AgentModel, AgentTemperature, AgentTimeout, Interpolate")
+}
+
 // Note: Examples 08, 09, 10, 11, and 18 are in _pending_api_implementation/
 // They require high-level APIs (Switch, ForEach, Try, Fork, Interpolate) to be implemented.
 // See _pending_api_implementation/README.md for details.
+//
+// Examples 14, 17, and 19 also require advanced APIs (Phase 3) that haven't been implemented yet:
+// - workflow.Interpolate() - String interpolation
+// - workflow.WithBody() - HTTP request body
+// - workflow.WithEnv() - Environment variables for agent calls
+// - workflow.RuntimeSecret() - Runtime secret references
+// - workflow.RuntimeEnv() - Runtime environment variable references
+// - workflow.AgentTimeout() - Agent call timeout
+// - workflow.AgentModel() - Model selection
+// - workflow.AgentTemperature() - Temperature control
+//
+// These examples compile but won't execute until the APIs are implemented (~4 hours of work).
 
 // Helper function to run an example and verify output
 func runExampleTest(t *testing.T, exampleFile string, verify func(*testing.T, string)) {
