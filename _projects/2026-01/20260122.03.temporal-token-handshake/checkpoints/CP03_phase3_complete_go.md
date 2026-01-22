@@ -333,6 +333,29 @@ Phase 3 Success Criteria:
 
 ---
 
+## Addendum: Architectural Consistency Fix
+
+**Date**: 2026-01-22 (same day)
+
+After completing Phase 3, we identified an architectural inconsistency:
+- AgentExecution: `callback_token` in **Spec** ✅
+- WorkflowExecution: `callback_token` in **Status** ❌
+
+**Decision**: Move to Spec for both resources (follow Kubernetes philosophy)
+
+**Implementation**:
+- Moved `callback_token` from `WorkflowExecutionStatus` to `WorkflowExecutionSpec`
+- Updated field number from 11 to 7
+- Regenerated Go and Python proto stubs
+- Updated cross-references
+
+**Rationale**: callback_token is an **input** (configures where to report completion), not an output (result). Inputs belong in spec, regardless of being system-generated.
+
+**See**: `design-decisions/DD01-callback-token-in-spec-not-status.md` for comprehensive analysis
+
+---
+
 **Checkpoint Created**: 2026-01-22  
+**Updated**: 2026-01-22 (architectural consistency fix)  
 **Ready for**: Phase 4 Implementation (Go workflow completion)  
 **Blocked on**: Java proto regeneration (server timeout issue)

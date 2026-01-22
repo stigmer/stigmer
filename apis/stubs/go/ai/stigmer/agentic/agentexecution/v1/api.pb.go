@@ -172,7 +172,7 @@ type AgentExecutionStatus struct {
 	//
 	// ## References
 	//
-	// - WorkflowExecution.status.callback_token (field 11) - Same pattern
+	// - WorkflowExecution.spec.callback_token (field 7) - Same pattern
 	// - [ADR](docs/adr/20260122-async-agent-execution-temporal-token-handshake.md)
 	CallbackToken []byte `protobuf:"bytes,10,opt,name=callback_token,json=callbackToken,proto3" json:"callback_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
