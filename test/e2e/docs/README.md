@@ -14,10 +14,15 @@ Complete documentation for Stigmer E2E integration tests.
 ## Implementation Guides
 
 - **[sdk-sync-strategy.md](sdk-sync-strategy.md)** - SDK example synchronization
+- **[testdata-migration-2026-01.md](testdata-migration-2026-01.md)** - Test fixture reorganization (Jan 2026)
 - **[phase-2-guide.md](phase-2-guide.md)** - Full execution tests (Phase 2)
 - **[validation-framework.md](validation-framework.md)** - Execution validation
 - **[implementation-summary.md](implementation-summary.md)** - Implementation details
 
+## Enhancement History
+
+- **[test-coverage-enhancement-2026-01-23.md](test-coverage-enhancement-2026-01-23.md)** - Basic agent test coverage enhancement
+
 ## Quick Links
 
-- [Test Fixtures](../testdata/) - Agent/workflow code used in tests
+- [Test Fixtures](../testdata/) - SDK examples used in tests
