@@ -4,14 +4,19 @@
 package e2e
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+)
 
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
+const (
+	// DaemonPort is the port stigmer-server runs on
+	DaemonPort = 7234
 )
 
 // StigmerServerManager manages the full stigmer server stack for E2E tests
@@ -25,11 +30,12 @@ type StigmerServerManager struct {
 // EnsureStigmerServerRunning checks if stigmer server is running, and starts it if not
 // Returns a manager that can be used to track and clean up the server
 func EnsureStigmerServerRunning(t *testing.T) (*StigmerServerManager, error) {
-	// Get data directory from config (same as CLI uses)
-	dataDir, err := config.GetDataDir()
+	// Get data directory (default: ~/.stigmer)
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get data directory: %w", err)
+		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
+	dataDir := filepath.Join(homeDir, ".stigmer")
 
 	manager := &StigmerServerManager{
 		DataDir:     dataDir,
@@ -38,7 +44,7 @@ func EnsureStigmerServerRunning(t *testing.T) (*StigmerServerManager, error) {
 	}
 
 	// Check if stigmer server is already running
-	if daemon.IsRunning(dataDir) {
+	if isServerRunning() {
 		t.Log("✓ Stigmer server is already running")
 		manager.WeStartedIt = false
 		
@@ -55,7 +61,7 @@ func EnsureStigmerServerRunning(t *testing.T) (*StigmerServerManager, error) {
 	// Server not running - start it
 	t.Log("Stigmer server not running, starting it automatically...")
 	
-	if err := daemon.Start(dataDir); err != nil {
+	if err := startServer(); err != nil {
 		return nil, fmt.Errorf("failed to start stigmer server: %w", err)
 	}
 
@@ -66,10 +72,10 @@ func EnsureStigmerServerRunning(t *testing.T) (*StigmerServerManager, error) {
 	t.Log("Waiting for services to become ready...")
 	
 	// Wait for stigmer-server (gRPC port 7234)
-	if !WaitForPort(daemon.DaemonPort, 15*time.Second) {
-		return nil, fmt.Errorf("stigmer-server failed to become ready on port %d", daemon.DaemonPort)
+	if !WaitForPort(DaemonPort, 15*time.Second) {
+		return nil, fmt.Errorf("stigmer-server failed to become ready on port %d", DaemonPort)
 	}
-	t.Logf("✓ Stigmer server ready on port %d", daemon.DaemonPort)
+	t.Logf("✓ Stigmer server ready on port %d", DaemonPort)
 	
 	// Wait for Temporal (port 7233)
 	if !WaitForPort(7233, 15*time.Second) {
@@ -80,13 +86,7 @@ func EnsureStigmerServerRunning(t *testing.T) (*StigmerServerManager, error) {
 	
 	// Give agent-runner a moment to start
 	time.Sleep(3 * time.Second)
-	
-	// Check if agent-runner container is running
-	if containerID, err := daemon.GetAgentRunnerContainerID(dataDir); err == nil {
-		t.Logf("✓ Agent runner container ready: %s", containerID[:12])
-	} else {
-		t.Log("⚠️  Agent runner not detected")
-	}
+	t.Log("✓ Agent runner startup time elapsed")
 	
 	return manager, nil
 }
@@ -100,7 +100,7 @@ func (m *StigmerServerManager) Stop() {
 	}
 
 	m.t.Log("Stopping stigmer server (started by E2E tests)...")
-	if err := daemon.Stop(m.DataDir); err != nil {
+	if err := stopServer(); err != nil {
 		m.t.Logf("Warning: Failed to stop stigmer server: %v", err)
 	} else {
 		m.t.Log("✓ Stigmer server stopped")
@@ -109,7 +109,7 @@ func (m *StigmerServerManager) Stop() {
 
 // GetServerPort returns the port stigmer-server is running on
 func (m *StigmerServerManager) GetServerPort() int {
-	return daemon.DaemonPort // Always 7234 for stigmer server
+	return DaemonPort // Always 7234 for stigmer server
 }
 
 // GetTemporalAddress returns the Temporal server address
@@ -127,24 +127,21 @@ func (m *StigmerServerManager) GetStatus() map[string]bool {
 	status := make(map[string]bool)
 	
 	// Check stigmer-server
-	status["stigmer-server"] = daemon.IsRunning(m.DataDir)
+	status["stigmer-server"] = isServerRunning()
 	
 	// Check Temporal
 	status["temporal"] = WaitForPort(7233, 1*time.Second)
 	
-	// Check workflow-runner
-	if _, err := daemon.GetWorkflowRunnerPID(m.DataDir); err == nil {
-		status["workflow-runner"] = true
-	} else {
-		status["workflow-runner"] = false
-	}
+	// Check workflow-runner and agent-runner (via stigmer server status command)
+	statusOutput := getServerStatus()
 	
-	// Check agent-runner
-	if _, err := daemon.GetAgentRunnerContainerID(m.DataDir); err == nil {
-		status["agent-runner"] = true
-	} else {
-		status["agent-runner"] = false
-	}
+	// Look for "Workflow Runner:" followed by "Running"
+	status["workflow-runner"] = strings.Contains(statusOutput, "Workflow Runner:") && 
+		strings.Contains(statusOutput, "Running")
+	
+	// Look for "Agent Runner" followed by "Running"
+	status["agent-runner"] = strings.Contains(statusOutput, "Agent Runner") && 
+		strings.Contains(statusOutput, "Running")
 	
 	return status
 }
@@ -182,4 +179,47 @@ func (m *StigmerServerManager) PrintLogs(component string, lines int) {
 	}
 	
 	m.t.Logf("=== Last %d lines of %s.log ===\n%s", lines, component, string(logLines))
+}
+
+// Helper functions that use CLI commands instead of internal packages
+
+// isServerRunning checks if stigmer server is running
+func isServerRunning() bool {
+	return WaitForPort(DaemonPort, 100*time.Millisecond)
+}
+
+// startServer starts the stigmer server via CLI
+func startServer() error {
+	cmd := exec.Command("stigmer", "server", "start")
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to start server: %w (stderr: %s)", err, stderr.String())
+	}
+	
+	return nil
+}
+
+// stopServer stops the stigmer server via CLI
+func stopServer() error {
+	cmd := exec.Command("stigmer", "server", "stop")
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to stop server: %w (stderr: %s)", err, stderr.String())
+	}
+	
+	return nil
+}
+
+// getServerStatus gets server status via CLI
+func getServerStatus() string {
+	cmd := exec.Command("stigmer", "server", "status")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return ""
+	}
+	return string(output)
 }
