@@ -108,7 +108,7 @@ message AgentExecutionStatus {
   //
   // ## References
   //
-  // - WorkflowExecution.status.callback_token (field 11) - Same pattern
+  // - WorkflowExecution.spec.callback_token (field 7) - Same pattern
   // - [ADR](docs/adr/20260122-async-agent-execution-temporal-token-handshake.md)
   bytes callback_token = 10;
 }
