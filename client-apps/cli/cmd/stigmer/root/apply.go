@@ -14,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/deploy"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
 // NewApplyCommand creates the apply command for deploying resources
@@ -60,51 +61,68 @@ Run from your project directory containing Stigmer.yaml.`,
 			})
 			clierr.Handle(err)
 
-			// If dry run or no resources deployed, return
-			if dryRun || (len(deployedSkills) == 0 && len(deployedAgents) == 0 && len(deployedWorkflows) == 0) {
+			// If no resources deployed, return
+			if len(deployedSkills) == 0 && len(deployedAgents) == 0 && len(deployedWorkflows) == 0 {
 				return
 			}
 
-			// Success summary
-			cliprint.PrintSuccess("🚀 Deployment successful!")
-			fmt.Println()
+			// Create and populate results table
+			resultTable := display.NewApplyResultTable()
 
-			if len(deployedSkills) > 0 {
-				cliprint.PrintInfo("Deployed skills:")
-				for _, deployed := range deployedSkills {
-					cliprint.PrintInfo("  • %s (ID: %s)", deployed.Metadata.Name, deployed.Metadata.Id)
+			// Add skills to table
+			for _, deployed := range deployedSkills {
+				resultTable.AddResource(
+					display.ResourceTypeSkill,
+					deployed.Metadata.Name,
+					display.ApplyStatusCreated,
+					deployed.Metadata.Id,
+					nil,
+				)
+			}
+
+			// Add agents to table
+			for _, deployed := range deployedAgents {
+				resultTable.AddResource(
+					display.ResourceTypeAgent,
+					deployed.Metadata.Name,
+					display.ApplyStatusCreated,
+					deployed.Metadata.Id,
+					nil,
+				)
+			}
+
+			// Add workflows to table
+			for _, deployed := range deployedWorkflows {
+				resultTable.AddResource(
+					display.ResourceTypeWorkflow,
+					deployed.Metadata.Name,
+					display.ApplyStatusCreated,
+					deployed.Metadata.Id,
+					nil,
+				)
+			}
+
+			// Render appropriate output
+			if dryRun {
+				resultTable.RenderDryRun()
+			} else {
+				cliprint.PrintSuccess("🚀 Deployment successful!")
+				resultTable.Render()
+
+				// Print next steps
+				cliprint.PrintInfo("Next steps:")
+				if len(deployedSkills) > 0 {
+					cliprint.PrintInfo("  - View skills: stigmer skill list")
 				}
+				if len(deployedAgents) > 0 {
+					cliprint.PrintInfo("  - View agents: stigmer agent list")
+				}
+				if len(deployedWorkflows) > 0 {
+					cliprint.PrintInfo("  - View workflows: stigmer workflow list")
+				}
+				cliprint.PrintInfo("  - Update and redeploy: edit code and run 'stigmer apply' again")
 				fmt.Println()
 			}
-
-			if len(deployedAgents) > 0 {
-				cliprint.PrintInfo("Deployed agents:")
-				for _, deployed := range deployedAgents {
-					cliprint.PrintInfo("  • %s (ID: %s)", deployed.Metadata.Name, deployed.Metadata.Id)
-				}
-				fmt.Println()
-			}
-
-			if len(deployedWorkflows) > 0 {
-				cliprint.PrintInfo("Deployed workflows:")
-				for _, deployed := range deployedWorkflows {
-					cliprint.PrintInfo("  • %s (ID: %s)", deployed.Metadata.Name, deployed.Metadata.Id)
-				}
-				fmt.Println()
-			}
-
-			cliprint.PrintInfo("Next steps:")
-			if len(deployedSkills) > 0 {
-				cliprint.PrintInfo("  - View skills: stigmer skill list")
-			}
-			if len(deployedAgents) > 0 {
-				cliprint.PrintInfo("  - View agents: stigmer agent list")
-			}
-			if len(deployedWorkflows) > 0 {
-				cliprint.PrintInfo("  - View workflows: stigmer workflow list")
-			}
-			cliprint.PrintInfo("  - Update and redeploy: edit code and run 'stigmer apply' again")
-			fmt.Println()
 		},
 	}
 
@@ -223,8 +241,48 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 	// Dry run mode - stop here
 	if opts.DryRun {
 		if !opts.Quiet {
-			cliprint.PrintSuccess("✓ Dry run successful - all resources are valid")
-			cliprint.PrintInfo("Run without --dry-run to deploy %d resource(s)", totalResources)
+			// Create table for dry-run display
+			resultTable := display.NewApplyResultTable()
+			
+			// Add skills to table
+			for _, skill := range synthesisResult.Skills {
+				resultTable.AddResource(
+					display.ResourceTypeSkill,
+					skill.Metadata.Name,
+					display.ApplyStatusCreated,
+					"",
+					nil,
+				)
+			}
+			
+			// Add agents to table
+			for _, agent := range synthesisResult.Agents {
+				resultTable.AddResource(
+					display.ResourceTypeAgent,
+					agent.Metadata.Name,
+					display.ApplyStatusCreated,
+					"",
+					nil,
+				)
+			}
+			
+			// Add workflows to table
+			for _, wf := range synthesisResult.Workflows {
+				name := "unnamed"
+				if wf != nil && wf.Spec != nil && wf.Spec.Document != nil && wf.Spec.Document.Name != "" {
+					name = wf.Spec.Document.Name
+				}
+				resultTable.AddResource(
+					display.ResourceTypeWorkflow,
+					name,
+					display.ApplyStatusCreated,
+					"",
+					nil,
+				)
+			}
+			
+			// Render dry-run table
+			resultTable.RenderDryRun()
 		}
 		return nil, nil, nil, nil
 	}
