@@ -22,11 +22,14 @@ test/e2e/
 ├── helpers_test.go                 ← Helper functions
 ├── prereqs_test.go                 ← Prerequisites checking
 └── testdata/
-    └── agents/
-        └── basic-agent/             ← Test fixtures (NON-test code)
-            ├── main.go              ← Agent code (copied from SDK)
-            ├── Stigmer.yaml         ← Agent config
-            └── README.md
+    └── examples/                    ← SDK examples (copied from sdk/go/examples/)
+        ├── 01-basic-agent/          ← Test fixtures (NON-test code)
+        │   ├── main.go              ← Agent code (copied from SDK)
+        │   ├── Stigmer.yaml         ← Agent config
+        │   └── README.md
+        ├── 02-agent-with-skills/
+        ├── 07-basic-workflow/
+        └── ... (all 19 SDK examples)
 ```
 
 ## Key Points
@@ -71,7 +74,9 @@ func (s *E2ESuite) SetupSuite() {
 ```
 
 **Example mapping:**
-- `sdk/go/examples/01_basic_agent.go` → `test/e2e/testdata/agents/basic-agent/main.go`
+- `sdk/go/examples/01_basic_agent.go` → `test/e2e/testdata/examples/01-basic-agent/main.go`
+- `sdk/go/examples/02_agent_with_skills.go` → `test/e2e/testdata/examples/02-agent-with-skills/main.go`
+- ... (all 19 SDK examples)
 
 This ensures tests validate the **exact code** that SDK users see in examples.
 
@@ -87,13 +92,13 @@ func CopyAllSDKExamples() error {
         // Existing
         {
             SDKFileName:    "01_basic_agent.go",
-            TestDataDir:    "agents/basic-agent",
+            TestDataDir:    "examples/01-basic-agent",
             TargetFileName: "main.go",
         },
         // NEW: Add your example
         {
             SDKFileName:    "02_agent_with_skills.go",
-            TestDataDir:    "agents/agent-with-skills",
+            TestDataDir:    "examples/02-agent-with-skills",
             TargetFileName: "main.go",
         },
     }
@@ -104,10 +109,10 @@ func CopyAllSDKExamples() error {
 ### Step 2: Create Test Fixture Directory
 
 ```bash
-mkdir -p test/e2e/testdata/agents/agent-with-skills
+mkdir -p test/e2e/testdata/examples/02-agent-with-skills
 ```
 
-Add `Stigmer.yaml`:
+Add `Stigmer.yaml` (only if the example needs configuration):
 
 ```yaml
 name: agent-with-skills-test
@@ -136,9 +141,9 @@ import (
 // TestApplyAgentWithSkills tests applying an agent with skills
 //
 // Example: sdk/go/examples/02_agent_with_skills.go
-// Test Fixture: test/e2e/testdata/agents/agent-with-skills/
+// Test Fixture: test/e2e/testdata/examples/02-agent-with-skills/
 func (s *E2ESuite) TestApplyAgentWithSkills() {
-    testdataDir := filepath.Join("testdata", "agents", "agent-with-skills")
+    testdataDir := filepath.Join("testdata", "examples", "02-agent-with-skills")
     absTestdataDir, err := filepath.Abs(testdataDir)
     s.Require().NoError(err)
     

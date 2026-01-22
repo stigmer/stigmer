@@ -13,7 +13,7 @@ Maintain **parity between SDK examples and E2E tests** to ensure that what we pr
 ## 🧠 The Problem We Solved
 
 **Before**: 
-- E2E test fixtures (`test/e2e/testdata/agents/basic-agent/main.go`) were manually created
+- E2E test fixtures (`test/e2e/testdata/examples/01-basic-agent/main.go`) were manually created
 - SDK examples (`sdk/go/examples/01_basic_agent.go`) were separate
 - Risk of drift: Examples could break without us knowing
 
@@ -43,9 +43,10 @@ flowchart LR
 examples := []SDKExample{
     {
         SDKFileName:    "01_basic_agent.go",
-        TestDataDir:    "agents/basic-agent",
+        TestDataDir:    "examples/01-basic-agent",
         TargetFileName: "main.go",
     },
+    // ... all 19 SDK examples
 }
 ```
 
@@ -73,15 +74,20 @@ All tests updated to reference agent names from SDK examples:
 ```
 stigmer/
 ├── sdk/go/examples/
-│   └── 01_basic_agent.go          ← SOURCE OF TRUTH
+│   ├── 01_basic_agent.go          ← SOURCE OF TRUTH
+│   ├── 02_agent_with_skills.go
+│   └── ... (19 examples total)
 │
 └── test/e2e/
     ├── sdk_fixtures_test.go        ← Copy mechanism
     ├── testdata/
-    │   └── agents/
-    │       └── basic-agent/
-    │           ├── main.go         ← COPIED (do not edit!)
-    │           └── Stigmer.yaml    ← Config (maintained manually)
+    │   └── examples/
+    │       ├── 01-basic-agent/
+    │       │   ├── main.go         ← COPIED (do not edit!)
+    │       │   └── Stigmer.yaml    ← Config (maintained manually)
+    │       ├── 02-agent-with-skills/
+    │       │   └── main.go
+    │       └── ... (all 19 examples)
     │
     └── e2e_run_full_test.go        ← Uses copied examples
 ```
@@ -123,7 +129,7 @@ examples := []SDKExample{
     // ... existing examples
     {
         SDKFileName:    "02_agent_with_skills.go",
-        TestDataDir:    "agents/agent-with-skills",
+        TestDataDir:    "examples/02-agent-with-skills",
         TargetFileName: "main.go",
     },
 }
@@ -131,8 +137,8 @@ examples := []SDKExample{
 
 ### Step 3: Create Stigmer.yaml
 ```bash
-$ mkdir -p test/e2e/testdata/agents/agent-with-skills
-$ cat > test/e2e/testdata/agents/agent-with-skills/Stigmer.yaml <<'EOF'
+$ mkdir -p test/e2e/testdata/examples/02-agent-with-skills
+$ cat > test/e2e/testdata/examples/02-agent-with-skills/Stigmer.yaml <<'EOF'
 name: agent-with-skills-test
 runtime: go
 main: main.go
@@ -148,7 +154,7 @@ func (s *FullExecutionSuite) TestAgentWithSkills() {
     applyOutput, err := RunCLIWithServerAddr(
         s.ServerPort,
         "apply",
-        "--config", "testdata/agents/agent-with-skills/Stigmer.yaml",
+        "--config", "testdata/examples/02-agent-with-skills/Stigmer.yaml",
     )
     // ... test logic using "skilled-agent" name from SDK
 }
@@ -156,28 +162,29 @@ func (s *FullExecutionSuite) TestAgentWithSkills() {
 
 **⚠️ IMPORTANT**: The `main.go` is copied automatically. DO NOT create it manually!
 
-## 🔄 Workflow Examples (Future)
+## 🔄 Workflow Examples (Implemented!)
 
-The same pattern will be applied to workflows:
+✅ **All 19 SDK examples are now copied automatically**:
 
 ```go
 examples := []SDKExample{
-    // Workflows (planned):
+    // Agent examples (01-06, 12)
+    {
+        SDKFileName:    "01_basic_agent.go",
+        TestDataDir:    "examples/01-basic-agent",
+        TargetFileName: "main.go",
+    },
+    // Workflow examples (07-11, 13-19)
     {
         SDKFileName:    "07_basic_workflow.go",
-        TestDataDir:    "workflows/basic-workflow",
+        TestDataDir:    "examples/07-basic-workflow",
         TargetFileName: "main.go",
     },
-    {
-        SDKFileName:    "08_workflow_with_conditionals.go",
-        TestDataDir:    "workflows/conditional-switch",
-        TargetFileName: "main.go",
-    },
-    // ... more workflows
+    // ... all 19 examples
 }
 ```
 
-**Current Status**: Workflow test fixtures are manually maintained. Will migrate in a future iteration.
+**Status**: All SDK examples (agents and workflows) are now automatically synchronized.
 
 ## ✅ Benefits
 
@@ -202,14 +209,14 @@ examples := []SDKExample{
 ### Verify Copy Works
 ```bash
 # Before test run, delete copied files
-rm test/e2e/testdata/agents/basic-agent/main.go
+rm test/e2e/testdata/examples/01-basic-agent/main.go
 
 # Run tests (should copy and pass)
 cd test/e2e
 go test -v -tags=e2e -run TestFullExecution
 
 # Verify file was copied
-ls -la test/e2e/testdata/agents/basic-agent/main.go
+ls -la test/e2e/testdata/examples/01-basic-agent/main.go
 # Should exist and match sdk/go/examples/01_basic_agent.go
 ```
 
@@ -230,11 +237,15 @@ go test -v -tags=e2e -run TestFullExecution
 ## 📝 Documentation Updates
 
 All affected documentation updated:
-- ✅ `test/e2e/testdata/agents/README.md` - Explains copy mechanism
+- ✅ `test/e2e/testdata/README.md` - Overview of test fixture organization
+- ✅ `test/e2e/testdata/examples/01-basic-agent/README.md` - Explains copy mechanism for basic agent
+- ✅ `test/e2e/testdata/agents/README.md` - Deprecated notice with migration info
 - ✅ `test/e2e/basic_agent_apply_test.go` - Comprehensive tests for both agents
 - ✅ `test/e2e/basic_agent_run_test.go` - Tests for both basic and full agents
 - ✅ `test/e2e/helpers_test.go` - Added GetAgentViaAPI helper
 - ✅ `test/e2e/docs/test-coverage-enhancement-2026-01-23.md` - Enhancement summary
+- ✅ `test/e2e/docs/test-organization.md` - Updated to reflect new structure
+- ✅ `test/e2e/sdk_fixtures_test.go` - Now copies all 19 SDK examples
 
 ## 🎓 Lessons Learned
 
@@ -246,7 +257,7 @@ All affected documentation updated:
 5. **Helper function reuse** - `GetAgentViaAPI` serves multiple test cases
 
 ### What to Improve
-1. **Workflow migration** - Apply same pattern to workflows
+1. ✅ **Workflow migration** - **DONE**: All 19 SDK examples now copied to unified `examples/` directory
 2. **Validation** - Verify SDK file exists before copying
 3. **Error messages** - Clear feedback if SDK example missing
 
@@ -291,12 +302,15 @@ See: `test/e2e/docs/test-coverage-enhancement-2026-01-23.md`
   - `TestRunBasicAgent` - Basic agent execution
   - `TestRunFullAgent` - Full agent execution
 
-### Workflows
-- **Status**: ⏳ **Pending** - Will migrate in future iteration
-- **Current**: Manual test fixtures
+### Workflows & All Examples
+- **Status**: ✅ **Complete** - All 19 SDK examples automatically copied
+- **Agent Examples**: 01-06, 12 (7 examples)
+- **Workflow Examples**: 07-11, 13-19 (12 examples)
+- **Current**: Unified `examples/` directory structure
 
 ---
 
-**Overall Status**: ✅ **Agents complete with comprehensive coverage**, workflows planned  
-**Confidence**: **100%** - SDK examples and tests are in complete sync  
-**Impact**: **HIGH** - Users can trust our documentation with full confidence
+**Overall Status**: ✅ **All SDK examples synchronized and ready for testing**  
+**Confidence**: **100%** - SDK examples and test fixtures are in complete sync  
+**Impact**: **HIGH** - Users can trust our documentation with full confidence  
+**Test Coverage**: Ready to expand - all 19 examples available as fixtures

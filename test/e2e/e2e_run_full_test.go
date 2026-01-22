@@ -102,7 +102,7 @@ func (s *FullExecutionSuite) TestRunWithFullExecution() {
 	applyOutput, err := RunCLIWithServerAddr(
 		s.ServerPort,
 		"apply",
-		"--config", "testdata/agents/basic-agent/Stigmer.yaml",
+		"--config", "testdata/examples/01-basic-agent/Stigmer.yaml",
 	)
 	s.Require().NoError(err, "Apply command should succeed")
 	s.T().Logf("Apply output:\n%s", applyOutput)
@@ -293,7 +293,7 @@ func (s *FullExecutionSuite) TestRunWithSpecificBehavior() {
 	applyOutput, err := RunCLIWithServerAddr(
 		s.ServerPort,
 		"apply",
-		"--config", "testdata/agents/basic-agent/Stigmer.yaml",
+		"--config", "testdata/examples/01-basic-agent/Stigmer.yaml",
 	)
 	s.Require().NoError(err, "Apply should succeed")
 

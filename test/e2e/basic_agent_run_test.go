@@ -15,10 +15,10 @@ import (
 // 4. Does NOT wait for actual execution (requires Temporal + agent-runner)
 //
 // Example: sdk/go/examples/01_basic_agent.go
-// Test Fixture: test/e2e/testdata/agents/basic-agent/
+// Test Fixture: test/e2e/testdata/examples/01-basic-agent/
 func (s *E2ESuite) TestRunBasicAgent() {
 	// Step 1: Apply an agent first
-	testdataDir := filepath.Join("testdata", "agents", "basic-agent")
+	testdataDir := filepath.Join("testdata", "examples", "01-basic-agent")
 	absTestdataDir, err := filepath.Abs(testdataDir)
 	s.Require().NoError(err, "Failed to get absolute path to basic-agent directory")
 
@@ -110,10 +110,10 @@ func (s *E2ESuite) TestRunBasicAgent() {
 // This verifies that agents with description, iconURL, and org work correctly
 //
 // Example: sdk/go/examples/01_basic_agent.go (code-reviewer-pro agent)
-// Test Fixture: test/e2e/testdata/agents/basic-agent/
+// Test Fixture: test/e2e/testdata/examples/01-basic-agent/
 func (s *E2ESuite) TestRunFullAgent() {
 	// Step 1: Apply agents (both code-reviewer and code-reviewer-pro)
-	testdataDir := filepath.Join("testdata", "agents", "basic-agent")
+	testdataDir := filepath.Join("testdata", "examples", "01-basic-agent")
 	absTestdataDir, err := filepath.Abs(testdataDir)
 	s.Require().NoError(err, "Failed to get absolute path to basic-agent directory")
 
@@ -147,7 +147,7 @@ func (s *E2ESuite) TestRunFullAgent() {
 	// Verify optional fields are present
 	fullAgent, err := GetAgentViaAPI(s.Harness.ServerPort, proAgentID)
 	s.Require().NoError(err, "Should be able to query full agent via API")
-	s.Equal("Professional code reviewer with security focus", fullAgent.Metadata.Description)
+	s.Equal("Professional code reviewer with security focus", fullAgent.Spec.Description)
 	s.Equal("https://example.com/icons/code-reviewer.png", fullAgent.Spec.IconUrl)
 	s.Equal("my-org", fullAgent.Metadata.Org)
 	
@@ -207,12 +207,12 @@ func (s *E2ESuite) TestRunFullAgent() {
 // TestRunWithAutoDiscovery tests the auto-discovery mode (no agent reference provided)
 //
 // Example: sdk/go/examples/01_basic_agent.go
-// Test Fixture: test/e2e/testdata/agents/basic-agent/
+// Test Fixture: test/e2e/testdata/examples/01-basic-agent/
 func (s *E2ESuite) TestRunWithAutoDiscovery() {
 	// This test runs 'stigmer run' from the basic-agent directory
 	// It should auto-discover the agent and run it
 
-	testdataDir := filepath.Join("testdata", "agents", "basic-agent")
+	testdataDir := filepath.Join("testdata", "examples", "01-basic-agent")
 	absTestdataDir, err := filepath.Abs(testdataDir)
 	s.Require().NoError(err, "Failed to get absolute path to basic-agent directory")
 
