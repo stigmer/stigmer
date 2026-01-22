@@ -535,15 +535,37 @@ func (c *Context) synthesizeAgents(outputDir string) error {
 
 // synthesizeWorkflows converts workflows to protobuf and writes to disk
 func (c *Context) synthesizeWorkflows(outputDir string) error {
-	// TODO: Implement workflow ToProto() similar to agent
-	// For now, workflows still use the old synthesis approach
-	// This is out of scope for the current Agent/Skill SDK work
-	return fmt.Errorf("workflow synthesis not yet migrated to new ToProto() approach - see https://github.com/stigmer/stigmer/issues/XXX")
+	// Convert each workflow to proto and write individually
+	for i, wf := range c.workflows {
+		// Convert workflow to proto using ToProto() method
+		workflowProto, err := wf.ToProto()
+		if err != nil {
+			return fmt.Errorf("failed to convert workflow %q to proto: %w", wf.Document.Name, err)
+		}
+
+		// Serialize to binary protobuf
+		data, err := proto.Marshal(workflowProto)
+		if err != nil {
+			return fmt.Errorf("failed to serialize workflow %q: %w", wf.Document.Name, err)
+		}
+
+		// Write to workflow-{index}.pb (use index to maintain order)
+		filename := fmt.Sprintf("workflow-%d.pb", i)
+		workflowPath := filepath.Join(outputDir, filename)
+		if err := os.WriteFile(workflowPath, data, 0644); err != nil {
+			return fmt.Errorf("failed to write workflow %q: %w", wf.Document.Name, err)
+		}
+	}
+
+	return nil
 }
 
 // synthesizeDependencies writes the dependency graph to dependencies.json
+// NOTE: This method assumes the caller already holds c.mu lock
 func (c *Context) synthesizeDependencies(outputDir string) error {
-	deps := c.Dependencies()
+	// Access dependencies directly (caller holds lock)
+	// Don't call c.Dependencies() which would try to acquire lock again (deadlock!)
+	deps := c.dependencies
 
 	// Convert to JSON
 	data, err := json.MarshalIndent(deps, "", "  ")
