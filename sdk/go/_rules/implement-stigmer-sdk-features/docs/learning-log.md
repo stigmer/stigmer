@@ -1435,6 +1435,252 @@ valueField.GetMessageType()       // Actual message type (EnvironmentValue)
 
 ---
 
+## 2026-01-22: Nested Task Serialization in Builder Functions
+
+### Context
+
+Fixed 7 skipped examples that were failing due to improper task serialization in builder functions (`WithLoopBody()`, `TryBlock()`, `CatchBlock()`, `FinallyBlock()`, `ParallelBranches()`). All builders were creating simplified maps with raw struct pointers that `structpb.NewStruct()` couldn't handle.
+
+### Pattern 1: taskToMap() Helper for Nested Task Serialization
+
+**Problem**: Builder functions that accept task builder callbacks (loops, try/catch, fork) were creating task maps with raw struct configs:
+
+```go
+// ❌ Wrong - raw struct pointer in map
+func WithLoopBody(builder func(item LoopVar) *Task) ForOption {
+    return func(c *ForTaskConfig) {
+        task := builder(item)
+        taskMap := map[string]interface{}{
+            "name": task.Name,
+            "kind": string(task.Kind),
+            "config": task.Config,  // *HttpCallTaskConfig - FAILS!
+        }
+        c.Do = []map[string]interface{}{taskMap}
+    }
+}
+```
+
+**Error**: `proto: invalid type: *workflow.HttpCallTaskConfig`
+
+**Solution**: Create helper that properly converts Task struct to map:
+
+```go
+// In workflow/proto.go
+func taskToMap(task *Task) (map[string]interface{}, error) {
+    m := map[string]interface{}{
+        "name": task.Name,
+        "kind": string(task.Kind),
+    }
+    
+    // Convert config properly
+    if task.Config != nil {
+        configMap, err := taskConfigToMap(task.Config)
+        if err != nil {
+            return nil, fmt.Errorf("failed to convert task config: %w", err)
+        }
+        m["config"] = configMap
+    }
+    
+    // Include export and flow control
+    if task.ExportAs != "" {
+        m["export"] = map[string]interface{}{"as": task.ExportAs}
+    }
+    if task.ThenTask != "" {
+        m["then"] = task.ThenTask
+    }
+    
+    return m, nil
+}
+
+// Use in builders
+func WithLoopBody(builder func(item LoopVar) *Task) ForOption {
+    return func(c *ForTaskConfig) {
+        task := builder(item)
+        taskMap, err := taskToMap(task)  // ✅ Proper conversion
+        if err != nil {
+            // Graceful fallback
+            taskMap = map[string]interface{}{
+                "name": task.Name,
+                "kind": string(task.Kind),
+            }
+        }
+        c.Do = []map[string]interface{}{taskMap}
+    }
+}
+```
+
+**Why This Matters**:
+- **Correctness**: Task configs properly serialized to maps before protobuf conversion
+- **Reusability**: Single helper used by all builders (WithLoopBody, TryBlock, CatchBlock, FinallyBlock, ParallelBranches)
+- **Consistency**: All nested tasks follow same conversion pattern
+- **Error handling**: Graceful fallback if conversion fails
+
+**Impact**: Fixed Examples 09, 10, 11 - loop bodies, try/catch blocks, and fork branches now work with any task type.
+
+**When to Use**: Any builder function that accepts task callbacks must use `taskToMap()` for proper serialization.
+
+### Pattern 2: Recursive Normalization for Protobuf Compatibility
+
+**Problem**: Request bodies with nested arrays of maps (`[]map[string]any`) failed protobuf conversion:
+
+```go
+// ❌ Wrong - typed slice fails
+workflow.WithBody(map[string]any{
+    "messages": []map[string]any{  // structpb can't handle this!
+        {"role": "user", "content": "Hello"},
+    },
+})
+```
+
+**Error**: `proto: invalid type: []map[string]interface{}`
+
+**Root Cause**: `structpb.NewStruct()` requires `[]interface{}` not typed slices like `[]map[string]any` or `[]map[string]interface{}`.
+
+**Solution**: Create recursive normalizer that converts typed slices:
+
+```go
+// In workflow/proto.go
+func normalizeMapForProto(m map[string]interface{}) map[string]interface{} {
+    if m == nil {
+        return nil
+    }
+    result := make(map[string]interface{})
+    for k, v := range m {
+        result[k] = normalizeValueForProto(v)
+    }
+    return result
+}
+
+func normalizeValueForProto(v interface{}) interface{} {
+    // Check for Ref types first (TaskFieldRef, StringRef, etc.)
+    if ref, ok := v.(Ref); ok {
+        return ref.Expression()  // Convert to string expression
+    }
+    
+    switch val := v.(type) {
+    case map[string]interface{}:
+        return normalizeMapForProto(val)  // Recurse into nested maps
+    case []map[string]interface{}:
+        // Convert typed slice to []interface{}
+        result := make([]interface{}, len(val))
+        for i, item := range val {
+            result[i] = normalizeMapForProto(item)
+        }
+        return result
+    case []interface{}:
+        // Recursively normalize array elements
+        result := make([]interface{}, len(val))
+        for i, item := range val {
+            result[i] = normalizeValueForProto(item)
+        }
+        return result
+    default:
+        return v  // Primitives pass through unchanged
+    }
+}
+
+// Apply in config converters
+func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
+    m := make(map[string]interface{})
+    // ...
+    if c.Body != nil && len(c.Body) > 0 {
+        m["body"] = normalizeMapForProto(c.Body)  // ✅ Normalized
+    }
+    return m
+}
+```
+
+**Why This Works**:
+- **Recursive**: Handles arbitrary nesting depth (arrays in arrays, maps in arrays, etc.)
+- **Type-safe**: Interface checks ensure correct conversion
+- **Comprehensive**: Handles all problematic types (typed slices, maps, Refs)
+- **Performance**: Only normalizes when needed, minimal overhead
+
+**Impact**: Fixed Examples 14, 17, 18 - real-world API payloads now work:
+- OpenAI ChatGPT API with nested message arrays ✅
+- Slack webhook blocks with deeply nested structures ✅
+- Stripe payments with complex metadata ✅
+
+**When to Use**: Any time you're converting complex Go data structures to protobuf Struct - normalize first.
+
+### Pattern 3: Ref Interface Check for TaskFieldRef Conversion
+
+**Problem**: TaskFieldRef structs in body fields weren't being converted to expressions:
+
+```go
+// ❌ Wrong - TaskFieldRef struct passed directly
+workflow.WithBody(map[string]any{
+    "content": githubStatus.Field("conclusion"),  // TaskFieldRef struct - FAILS!
+})
+```
+
+**Error**: `proto: invalid type: workflow.TaskFieldRef`
+
+**Root Cause**: TaskFieldRef is a struct, but protobuf needs string expressions.
+
+**Solution**: Check if value implements `Ref` interface and convert to expression:
+
+```go
+func normalizeValueForProto(v interface{}) interface{} {
+    // Check Ref interface FIRST (before type switch)
+    if ref, ok := v.(Ref); ok {
+        return ref.Expression()  // TaskFieldRef → "${ $context.taskName.field }"
+    }
+    
+    // Then handle other types
+    switch val := v.(type) {
+    // ...
+    }
+}
+```
+
+**Why Ref Check Comes First**:
+- TaskFieldRef implements Ref interface: `Expression() string`
+- Type assertion succeeds for all Ref types (TaskFieldRef, StringRef, IntRef, etc.)
+- Must check before type switch (type switch doesn't check interfaces first)
+- Applies to any Ref type, not just TaskFieldRef
+
+**Impact**:
+- TaskFieldRef in body: `task.Field("data")` → `"${ $context.task.data }"` ✅
+- StringRef in body: `ctx.SetString("x", "y")` → `"${ $context.x }"` ✅
+- IntRef in body: `ctx.SetInt("count", 5)` → `"${ $context.count }"` ✅
+
+**Go Pattern Lesson**: When handling multiple types, check interfaces with type assertion BEFORE type switch. Type switches check concrete types, not interfaces.
+
+**When to Use**: Anytime you need to handle types implementing common interfaces - use interface check before type switch.
+
+### Pattern 4: Go Type System: Interface vs any in Maps
+
+**Problem**: Map literals with `map[string]any` type don't automatically convert to `map[string]interface{}`.
+
+**Discovery**: 
+- `any` is an alias for `interface{}` (same underlying type)
+- `[]map[string]any` and `[]map[string]interface{}` are DIFFERENT types (not aliases!)
+- Type switch can't have both cases (duplicate)
+
+**Solution**: Only handle `[]map[string]interface{}` case (covers `[]map[string]any` at runtime):
+
+```go
+// In normalizeValueForProto()
+switch val := v.(type) {
+case []map[string]interface{}:  // Handles both []map[string]interface{} and []map[string]any
+    result := make([]interface{}, len(val))
+    for i, item := range val {
+        result[i] = normalizeMapForProto(item)
+    }
+    return result
+// case []map[string]any:  // ❌ Would be duplicate - compiler error!
+}
+```
+
+**Go Type System Insight**:
+- `any` = `interface{}` at type level
+- `[]any` ≠ `[]interface{}` at type level (slice types are distinct)
+- Type switch sees both as `[]map[string]interface{}` due to type identity
+- Can't have separate cases for aliases
+
+**When to Use**: When handling slices of maps in type switches, use `[]map[string]interface{}` case only - it covers the `any` alias naturally.
+
 ## Future Patterns to Document
 
 - Environment spec implementation (ctx.Env)
