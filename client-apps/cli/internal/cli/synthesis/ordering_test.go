@@ -9,6 +9,28 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 )
 
+// Test helper functions
+func createTestSkill(slug string) *skillv1.Skill {
+	return &skillv1.Skill{
+		Metadata: &apiresource.ApiResourceMetadata{Slug: slug},
+	}
+}
+
+func createTestAgent(slug string) *agentv1.Agent {
+	return &agentv1.Agent{
+		Metadata: &apiresource.ApiResourceMetadata{Slug: slug},
+	}
+}
+
+func createTestWorkflow(name string) *workflowv1.Workflow {
+	return &workflowv1.Workflow{
+		Metadata: &apiresource.ApiResourceMetadata{Slug: name},
+		Spec: &workflowv1.WorkflowSpec{
+			Document: &workflowv1.WorkflowDocument{Name: name},
+		},
+	}
+}
+
 // TestTopologicalSort_NoDependen cies tests sorting when there are no dependencies.
 func TestTopologicalSort_NoDependencies(t *testing.T) {
 	result := &Result{
@@ -351,5 +373,303 @@ func TestIsExternalReference(t *testing.T) {
 		if result != tt.expected {
 			t.Errorf("isExternalReference(%s) = %v, want %v", tt.id, result, tt.expected)
 		}
+	}
+}
+
+func TestGetResourcesByDepth_NoDependencies(t *testing.T) {
+	// All resources at depth 0 (can be created in parallel)
+	skill1 := createTestSkill("skill1")
+	skill2 := createTestSkill("skill2")
+	agent1 := createTestAgent("agent1")
+
+	result := &Result{
+		Skills:       []*skillv1.Skill{skill1, skill2},
+		Agents:       []*agentv1.Agent{agent1},
+		Dependencies: map[string][]string{},
+	}
+
+	groups, err := result.GetResourcesByDepth()
+	if err != nil {
+		t.Fatalf("GetResourcesByDepth failed: %v", err)
+	}
+
+	// Should have 1 group with all resources
+	if len(groups) != 1 {
+		t.Fatalf("expected 1 depth group, got %d", len(groups))
+	}
+
+	// All resources should be at depth 0
+	if len(groups[0]) != 3 {
+		t.Errorf("expected 3 resources at depth 0, got %d", len(groups[0]))
+	}
+}
+
+func TestGetResourcesByDepth_LinearChain(t *testing.T) {
+	// skill → agent → workflow (linear dependency chain)
+	skill := createTestSkill("coding")
+	agent := createTestAgent("reviewer")
+	workflow := createTestWorkflow("pr-review")
+
+	result := &Result{
+		Skills:    []*skillv1.Skill{skill},
+		Agents:    []*agentv1.Agent{agent},
+		Workflows: []*workflowv1.Workflow{workflow},
+		Dependencies: map[string][]string{
+			"agent:reviewer":     {"skill:coding"},
+			"workflow:pr-review": {"agent:reviewer"},
+		},
+	}
+
+	groups, err := result.GetResourcesByDepth()
+	if err != nil {
+		t.Fatalf("GetResourcesByDepth failed: %v", err)
+	}
+
+	// Should have 3 depth levels
+	if len(groups) != 3 {
+		t.Fatalf("expected 3 depth groups, got %d", len(groups))
+	}
+
+	// Depth 0: skill
+	if len(groups[0]) != 1 {
+		t.Errorf("expected 1 resource at depth 0, got %d", len(groups[0]))
+	}
+	if groups[0][0].ID != "skill:coding" {
+		t.Errorf("expected skill:coding at depth 0, got %s", groups[0][0].ID)
+	}
+
+	// Depth 1: agent
+	if len(groups[1]) != 1 {
+		t.Errorf("expected 1 resource at depth 1, got %d", len(groups[1]))
+	}
+	if groups[1][0].ID != "agent:reviewer" {
+		t.Errorf("expected agent:reviewer at depth 1, got %s", groups[1][0].ID)
+	}
+
+	// Depth 2: workflow
+	if len(groups[2]) != 1 {
+		t.Errorf("expected 1 resource at depth 2, got %d", len(groups[2]))
+	}
+	if groups[2][0].ID != "workflow:pr-review" {
+		t.Errorf("expected workflow:pr-review at depth 2, got %s", groups[2][0].ID)
+	}
+}
+
+func TestGetResourcesByDepth_ParallelBranches(t *testing.T) {
+	// Two parallel branches that can be created simultaneously
+	// skill1, skill2 (depth 0)
+	//   ↓       ↓
+	// agent1, agent2 (depth 1)
+	//   ↓       ↓
+	//    workflow  (depth 2)
+
+	skill1 := createTestSkill("coding")
+	skill2 := createTestSkill("security")
+	agent1 := createTestAgent("code-reviewer")
+	agent2 := createTestAgent("sec-reviewer")
+	workflow := createTestWorkflow("pr-review")
+
+	result := &Result{
+		Skills:    []*skillv1.Skill{skill1, skill2},
+		Agents:    []*agentv1.Agent{agent1, agent2},
+		Workflows: []*workflowv1.Workflow{workflow},
+		Dependencies: map[string][]string{
+			"agent:code-reviewer": {"skill:coding"},
+			"agent:sec-reviewer":  {"skill:security"},
+			"workflow:pr-review":  {"agent:code-reviewer", "agent:sec-reviewer"},
+		},
+	}
+
+	groups, err := result.GetResourcesByDepth()
+	if err != nil {
+		t.Fatalf("GetResourcesByDepth failed: %v", err)
+	}
+
+	// Should have 3 depth levels
+	if len(groups) != 3 {
+		t.Fatalf("expected 3 depth groups, got %d", len(groups))
+	}
+
+	// Depth 0: 2 skills (can be created in parallel)
+	if len(groups[0]) != 2 {
+		t.Errorf("expected 2 resources at depth 0, got %d", len(groups[0]))
+	}
+
+	// Depth 1: 2 agents (can be created in parallel)
+	if len(groups[1]) != 2 {
+		t.Errorf("expected 2 resources at depth 1, got %d", len(groups[1]))
+	}
+
+	// Depth 2: 1 workflow
+	if len(groups[2]) != 1 {
+		t.Errorf("expected 1 resource at depth 2, got %d", len(groups[2]))
+	}
+}
+
+func TestGetResourcesByDepth_DiamondDependency(t *testing.T) {
+	// Diamond pattern with shared dependency
+	//     skill
+	//    ↙    ↘
+	// agent1  agent2
+	//    ↘    ↙
+	//   workflow
+
+	skill := createTestSkill("shared")
+	agent1 := createTestAgent("reviewer1")
+	agent2 := createTestAgent("reviewer2")
+	workflow := createTestWorkflow("pr-review")
+
+	result := &Result{
+		Skills:    []*skillv1.Skill{skill},
+		Agents:    []*agentv1.Agent{agent1, agent2},
+		Workflows: []*workflowv1.Workflow{workflow},
+		Dependencies: map[string][]string{
+			"agent:reviewer1":    {"skill:shared"},
+			"agent:reviewer2":    {"skill:shared"},
+			"workflow:pr-review": {"agent:reviewer1", "agent:reviewer2"},
+		},
+	}
+
+	groups, err := result.GetResourcesByDepth()
+	if err != nil {
+		t.Fatalf("GetResourcesByDepth failed: %v", err)
+	}
+
+	// Should have 3 depth levels
+	if len(groups) != 3 {
+		t.Fatalf("expected 3 depth groups, got %d", len(groups))
+	}
+
+	// Depth 0: skill
+	if len(groups[0]) != 1 {
+		t.Errorf("expected 1 resource at depth 0, got %d", len(groups[0]))
+	}
+
+	// Depth 1: 2 agents (can be created in parallel)
+	if len(groups[1]) != 2 {
+		t.Errorf("expected 2 resources at depth 1, got %d", len(groups[1]))
+	}
+
+	// Depth 2: workflow
+	if len(groups[2]) != 1 {
+		t.Errorf("expected 1 resource at depth 2, got %d", len(groups[2]))
+	}
+}
+
+func TestGetResourcesByDepth_ComplexGraph(t *testing.T) {
+	// Complex dependency graph with multiple depths
+	// s1, s2, s3 (depth 0)
+	//  ↓   ↓   ↓
+	// a1  a2  a3 (depth 1, a2 depends on both s1 and s2)
+	//  ↓   ↓   ↓
+	// w1  w2     (depth 2, w1 depends on a1 and a3)
+
+	s1 := createTestSkill("skill1")
+	s2 := createTestSkill("skill2")
+	s3 := createTestSkill("skill3")
+	a1 := createTestAgent("agent1")
+	a2 := createTestAgent("agent2")
+	a3 := createTestAgent("agent3")
+	w1 := createTestWorkflow("workflow1")
+	w2 := createTestWorkflow("workflow2")
+
+	result := &Result{
+		Skills:    []*skillv1.Skill{s1, s2, s3},
+		Agents:    []*agentv1.Agent{a1, a2, a3},
+		Workflows: []*workflowv1.Workflow{w1, w2},
+		Dependencies: map[string][]string{
+			"agent:agent1":       {"skill:skill1"},
+			"agent:agent2":       {"skill:skill1", "skill:skill2"},
+			"agent:agent3":       {"skill:skill3"},
+			"workflow:workflow1": {"agent:agent1", "agent:agent3"},
+			"workflow:workflow2": {"agent:agent2"},
+		},
+	}
+
+	groups, err := result.GetResourcesByDepth()
+	if err != nil {
+		t.Fatalf("GetResourcesByDepth failed: %v", err)
+	}
+
+	// Should have 3 depth levels
+	if len(groups) != 3 {
+		t.Fatalf("expected 3 depth groups, got %d", len(groups))
+	}
+
+	// Depth 0: 3 skills
+	if len(groups[0]) != 3 {
+		t.Errorf("expected 3 resources at depth 0, got %d", len(groups[0]))
+	}
+
+	// Depth 1: 3 agents
+	if len(groups[1]) != 3 {
+		t.Errorf("expected 3 resources at depth 1, got %d", len(groups[1]))
+	}
+
+	// Depth 2: 2 workflows
+	if len(groups[2]) != 2 {
+		t.Errorf("expected 2 resources at depth 2, got %d", len(groups[2]))
+	}
+}
+
+func TestGetResourcesByDepth_WithExternalReferences(t *testing.T) {
+	// Resources with external dependencies should not affect depth calculation
+	skill := createTestSkill("internal")
+	agent := createTestAgent("reviewer")
+	workflow := createTestWorkflow("pr-review")
+
+	result := &Result{
+		Skills:    []*skillv1.Skill{skill},
+		Agents:    []*agentv1.Agent{agent},
+		Workflows: []*workflowv1.Workflow{workflow},
+		Dependencies: map[string][]string{
+			"agent:reviewer":     {"skill:internal", "skill:external:platform-skill"},
+			"workflow:pr-review": {"agent:reviewer", "agent:external:platform-agent"},
+		},
+	}
+
+	groups, err := result.GetResourcesByDepth()
+	if err != nil {
+		t.Fatalf("GetResourcesByDepth failed: %v", err)
+	}
+
+	// External references should be ignored in depth calculation
+	// Should have 3 depth levels
+	if len(groups) != 3 {
+		t.Fatalf("expected 3 depth groups, got %d", len(groups))
+	}
+
+	// Depth 0: skill
+	if len(groups[0]) != 1 {
+		t.Errorf("expected 1 resource at depth 0, got %d", len(groups[0]))
+	}
+
+	// Depth 1: agent
+	if len(groups[1]) != 1 {
+		t.Errorf("expected 1 resource at depth 1, got %d", len(groups[1]))
+	}
+
+	// Depth 2: workflow
+	if len(groups[2]) != 1 {
+		t.Errorf("expected 1 resource at depth 2, got %d", len(groups[2]))
+	}
+}
+
+func TestGetResourcesByDepth_Empty(t *testing.T) {
+	result := &Result{
+		Skills:       []*skillv1.Skill{},
+		Agents:       []*agentv1.Agent{},
+		Workflows:    []*workflowv1.Workflow{},
+		Dependencies: map[string][]string{},
+	}
+
+	groups, err := result.GetResourcesByDepth()
+	if err != nil {
+		t.Fatalf("GetResourcesByDepth failed: %v", err)
+	}
+
+	// Should return empty slice
+	if len(groups) != 0 {
+		t.Errorf("expected 0 depth groups, got %d", len(groups))
 	}
 }

@@ -269,3 +269,89 @@ func countDependencies(deps map[string][]string) int {
 	}
 	return count
 }
+
+// GetResourcesByDepth groups resources by their dependency depth level.
+//
+// Depth 0: Resources with no dependencies
+// Depth 1: Resources that only depend on depth 0 resources
+// Depth 2: Resources that depend on depth 0 or 1 resources
+// ...
+//
+// Resources at the same depth can be created in parallel since they don't depend on each other.
+//
+// Returns an ordered list of resource groups where each group can be created concurrently.
+func (r *Result) GetResourcesByDepth() ([][]*ResourceWithID, error) {
+	// First get all resources in topological order
+	ordered, err := r.GetOrderedResources()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ordered) == 0 {
+		return [][]*ResourceWithID{}, nil
+	}
+
+	// Build a map of resource ID to resource
+	resourceMap := make(map[string]*ResourceWithID)
+	for _, res := range ordered {
+		resourceMap[res.ID] = res
+	}
+
+	// Calculate depth for each resource
+	depths := make(map[string]int)
+	
+	// Use BFS-like approach to calculate depths
+	// Start with resources that have no dependencies (depth 0)
+	for _, res := range ordered {
+		if len(r.Dependencies[res.ID]) == 0 {
+			depths[res.ID] = 0
+		}
+	}
+
+	// Calculate depths iteratively
+	// Process resources in topological order to ensure dependencies are processed first
+	for _, res := range ordered {
+		if _, exists := depths[res.ID]; exists {
+			// Already processed (no dependencies)
+			continue
+		}
+
+		// Find maximum depth of dependencies
+		maxDepth := -1
+		for _, depID := range r.Dependencies[res.ID] {
+			// Skip external references
+			if isExternalReference(depID) {
+				continue
+			}
+			
+			if depDepth, exists := depths[depID]; exists {
+				if depDepth > maxDepth {
+					maxDepth = depDepth
+				}
+			}
+		}
+
+		// This resource is one level deeper than its deepest dependency
+		depths[res.ID] = maxDepth + 1
+	}
+
+	// Group resources by depth
+	depthGroups := make(map[int][]*ResourceWithID)
+	maxDepthFound := 0
+	
+	for _, res := range ordered {
+		depth := depths[res.ID]
+		if depth > maxDepthFound {
+			maxDepthFound = depth
+		}
+		depthGroups[depth] = append(depthGroups[depth], res)
+	}
+
+	// Convert map to ordered slice
+	result := make([][]*ResourceWithID, maxDepthFound+1)
+	for depth := 0; depth <= maxDepthFound; depth++ {
+		result[depth] = depthGroups[depth]
+	}
+
+	return result, nil
+}
