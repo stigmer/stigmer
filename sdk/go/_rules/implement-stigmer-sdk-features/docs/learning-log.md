@@ -1691,4 +1691,103 @@ case []map[string]interface{}:  // Handles both []map[string]interface{} and []m
 
 ---
 
+## 2026-01-23: StringRef Value Resolution in Workflow Parameters
+
+### Context
+
+Fixed critical bug where workflow HTTP tasks had empty endpoint URLs causing validation failures. All 8 workflow E2E tests were failing with "field 'endpoint' value is required".
+
+### Pattern: Check for StringValue Interface to Extract Resolved Values
+
+**Problem**: `coerceToString()` helper was calling `Expression()` on all `Ref` types, which returned empty strings for resolved `StringRef` values (from `Concat()`).
+
+**Bad Practice**:
+```go
+// ❌ Wrong - returns empty string for resolved values
+func coerceToString(value interface{}) string {
+    switch v := value.(type) {
+    case Ref:
+        return v.Expression()  // Returns "" when name field is empty!
+    // ...
+    }
+}
+
+// SDK code that failed:
+endpoint := apiBase.Concat("/posts/1")  // Resolved to actual URL
+fetchTask := wf.HttpGet("fetchData", endpoint, ...)
+// But endpoint became "" in proto because Expression() returned ""
+```
+
+**Correct Practice**:
+```go
+// ✅ Correct - check for StringValue interface first
+func coerceToString(value interface{}) string {
+    switch v := value.(type) {
+    case string:
+        return v
+    case TaskFieldRef:
+        return v.Expression()
+    case Ref:
+        // Check if this Ref has a resolved value (StringValue interface)
+        // During synthesis, we should use the actual value instead of expressions
+        if stringVal, ok := v.(interface{ Value() string }); ok {
+            // Has a Value() method - use the resolved value for synthesis
+            return stringVal.Value()
+        }
+        // Fallback to expression (for runtime-only refs)
+        return v.Expression()
+    // ...
+    }
+}
+```
+
+**Why This Works**:
+
+The SDK's `StringRef` architecture distinguishes between:
+1. **Synthesis-time values** - Known when building workflow (context variables, literals, concatenated strings)
+2. **Runtime-only values** - Only available during execution (task outputs, dynamic expressions)
+
+When `Concat()` detects all parts are synthesis-time values, it computes the result immediately and stores it:
+- Sets `value` field to the actual concatenated string
+- Sets `name` field to empty (not a context variable reference)
+- Returns a `StringRef` with the resolved value
+
+This is "SMART RESOLUTION" - it optimizes away unnecessary runtime expression evaluation.
+
+**The Bug**: Calling `Expression()` on a resolved `StringRef` checks `if r.name == ""` and returns `""` instead of the actual value.
+
+**The Fix**: Check if the `Ref` implements `StringValue` interface (has `Value()` method) and use that to extract the actual resolved value.
+
+**Why This Matters**:
+- **Correctness**: Workflow HTTP tasks get actual URLs, not empty strings
+- **Synthesis**: Properly handles values known at workflow build time
+- **Runtime**: Still generates expressions for task output references
+- **Performance**: Leverages SMART RESOLUTION optimization
+
+**Prevention**:
+1. When working with `Ref` types in conversion code, always check for `Value()` method first
+2. Use `Expression()` only as fallback for runtime-only references
+3. Understand synthesis-time vs runtime-time value distinction
+4. Test with actual workflows that use context variables and `Concat()`
+
+**Cross-Language Note**: 
+- **Go approach**: Interface-based detection with type assertion `v.(interface{ Value() string })`
+- **Python equivalent**: Would use `hasattr(v, 'value')` or duck typing
+- **Conceptual similarity**: Both check if value is resolved vs runtime-only
+- **Key insight**: Synthesis requires actual values, not JQ expressions
+
+**Impact**: CRITICAL - Blocked all workflow operations until fixed. All 8 workflow E2E tests now passing.
+
+**Files Changed**:
+- `sdk/go/workflow/set_options.go` (coerceToString function)
+- Also fixed CLI consistency and error handling issues discovered during testing
+
+**Related Concepts**:
+- StringRef architecture (`stigmer/refs.go`)
+- Synthesis vs runtime value handling
+- Smart resolution in `Concat()` method
+- Proto field population during workflow synthesis
+
+---
+
 *This log grows with each feature implementation. Add entries as you discover new patterns!*
