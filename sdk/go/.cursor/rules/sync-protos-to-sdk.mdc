@@ -1,0 +1,1045 @@
+# Sync Proto Changes to SDK
+
+**Type**: Action Rule  
+**Purpose**: Automatically update SDK when proto definitions change  
+**Scope**: Handles both incremental changes and new resource types
+
+---
+
+## When to Use This Rule
+
+Drag this rule into chat whenever:
+- Proto files are modified (new fields, changed types, updated comments)
+- New proto resources are added (new task types, new resource types)
+- Proto structure changes (nested messages, enums, repeated fields)
+
+**Example Usage**:
+> "Hey, I just changed the AgentSpec proto to add a new field `max_retries`. Can you sync the SDK?"
+> 
+> "I added a new task type `SqlQueryTask`. Update the SDK to support it."
+
+---
+
+## What This Rule Does
+
+1. **Analyzes Proto Changes**: Identifies what changed (fields, messages, new resources)
+2. **Regenerates Schemas**: Runs proto2schema tool to update JSON schemas
+3. **Regenerates Go Code**: Runs code generator to create/update structs and conversions
+4. **Updates Functional Options**: Creates/updates option files for new/changed fields
+5. **Updates Builder APIs**: Adds/updates builder methods on Workflow/Agent/Skill types
+6. **Validates Changes**: Runs tests and checks compilation
+7. **Documents Changes**: Creates checkpoint with summary of updates
+
+---
+
+## Step-by-Step Process
+
+### Phase 1: Analyze Proto Changes (5-10 minutes)
+
+**Goal**: Understand what changed and what needs updating
+
+**Actions**:
+1. Read the proto file(s) that changed
+2. Identify the type of change:
+   - **Field Addition**: New field in existing message
+   - **Field Modification**: Type or name change
+   - **New Message**: Entirely new proto message
+   - **New Resource Type**: New workflow task, agent type, etc.
+3. Check if this is a TaskConfig, Spec, or other pattern
+4. List all affected schema files and generated files
+
+**Output**: Clear summary of changes and impact
+
+**Example Analysis**:
+```markdown
+## Proto Change Analysis
+
+**File**: `apis/ai/stigmer/agentic/workflow/v1/tasks/http_call.proto`
+
+**Changes Detected**:
+- Added field: `retry_policy` (RetryPolicy message type)
+- Added nested message: `RetryPolicy` with fields:
+  - `max_attempts` (int32)
+  - `backoff_seconds` (int32)
+  - `retry_on_status_codes` (repeated int32)
+
+**Impact**:
+- Schema: `tools/codegen/schemas/workflow/tasks/httpcalltaskconfig.json`
+- Generated: `sdk/go/workflow/gen/httpcalltaskconfig_task.go`
+- Options: `sdk/go/workflow/httpcall_options.go` (new options needed)
+- Type: `tools/codegen/schemas/types/retrypolicy.json` (new schema)
+```
+
+---
+
+### Phase 2: Regenerate Schemas (5 minutes)
+
+**Goal**: Update JSON schemas from proto files
+
+**Actions**:
+
+1. **For Existing Resources** (field changes):
+   ```bash
+   cd tools/codegen/proto2schema
+   
+   # For workflow tasks
+   go run main.go \
+     --proto-dir ../../../apis/ai/stigmer/agentic/workflow/v1/tasks \
+     --proto-file <task_name>.proto \
+     --message-suffix TaskConfig \
+     --output-dir ../schemas/workflow/tasks \
+     --types-output-dir ../schemas/types
+   
+   # For agent specs
+   go run main.go \
+     --proto-dir ../../../apis/ai/stigmer/agentic/agent/v1 \
+     --proto-file spec.proto \
+     --message-suffix Spec \
+     --output-dir ../schemas/agent \
+     --types-output-dir ../schemas/types
+   
+   # For skill specs
+   go run main.go \
+     --proto-dir ../../../apis/ai/stigmer/agentic/skill/v1 \
+     --proto-file spec.proto \
+     --message-suffix Spec \
+     --output-dir ../schemas/skill \
+     --types-output-dir ../schemas/types
+   ```
+
+2. **For New Resources** (entirely new task/resource):
+   ```bash
+   # Same as above, but creates new schema file
+   go run main.go \
+     --proto-dir ../../../apis/ai/stigmer/agentic/workflow/v1/tasks \
+     --proto-file <new_task>.proto \
+     --message-suffix TaskConfig \
+     --output-dir ../schemas/workflow/tasks \
+     --types-output-dir ../schemas/types
+   ```
+
+3. **Verify Schema Generation**:
+   - Check that JSON schemas were created/updated
+   - Verify nested types were extracted to `schemas/types/`
+   - Confirm field types and documentation are correct
+
+**Output**: Updated JSON schema files
+
+---
+
+### Phase 3: Regenerate Go Code (5 minutes)
+
+**Goal**: Generate/update Go structs and proto conversion methods
+
+**Actions**:
+
+1. **For Workflow Tasks**:
+   ```bash
+   cd tools/codegen/generator
+   
+   # Generate for all workflow tasks
+   go run main.go \
+     --schema-dir ../schemas/workflow \
+     --output-dir ../../../sdk/go/workflow/gen \
+     --package-name gen
+   ```
+
+2. **For Agent Specs**:
+   ```bash
+   go run main.go \
+     --schema-dir ../schemas/agent \
+     --output-dir ../../../sdk/go/agent/gen \
+     --package-name gen
+   ```
+
+3. **For Skill Specs**:
+   ```bash
+   go run main.go \
+     --schema-dir ../schemas/skill \
+     --output-dir ../../../sdk/go/skill/gen \
+     --package-name gen
+   ```
+
+4. **Verify Generation**:
+   - Check that generated files compile
+   - Verify ToProto() and FromProto() methods exist
+   - Confirm new fields are included
+   - Run: `cd sdk/go && go build ./...`
+
+**Output**: Generated Go code that compiles successfully
+
+---
+
+### Phase 4: Update Functional Options (15-30 minutes)
+
+**Goal**: Create/update functional option files for ergonomic API
+
+**Actions**:
+
+1. **Identify Fields Needing Options**:
+   - Look at the generated struct
+   - Identify user-facing fields (skip output-only fields)
+   - Group related fields (e.g., all HTTP headers together)
+
+2. **For New Resources**:
+   - Create new options file: `sdk/go/<type>/<resource>_options.go`
+   - Follow pattern from existing options (e.g., `httpcall_options.go`)
+
+3. **For Modified Resources**:
+   - Add new option functions to existing file
+   - Update existing options if field types changed
+
+**Option Function Pattern**:
+```go
+// For simple fields
+func FieldName(value Type) TaskOption {
+    return func(cfg *Config) error {
+        cfg.FieldName = value
+        return nil
+    }
+}
+
+// For repeated fields
+func AddItem(item ItemType) TaskOption {
+    return func(cfg *Config) error {
+        cfg.Items = append(cfg.Items, item)
+        return nil
+    }
+}
+
+// For complex nested types
+func WithNestedConfig(opts ...NestedOption) TaskOption {
+    return func(cfg *Config) error {
+        nested := &NestedConfig{}
+        for _, opt := range opts {
+            if err := opt(nested); err != nil {
+                return err
+            }
+        }
+        cfg.Nested = nested
+        return nil
+    }
+}
+```
+
+**Guidelines**:
+- Use clear, descriptive names (not just field names)
+- Provide sensible defaults where appropriate
+- Group related options (e.g., `Header(key, val)` instead of separate functions)
+- Add validation where needed
+- Include doc comments with examples
+
+**Example** (for HTTP retry policy):
+```go
+// Retry configures the retry policy for the HTTP request.
+//
+// Example:
+//   Retry(3, 2) // 3 attempts, 2 second backoff
+func Retry(maxAttempts int, backoffSeconds int) HttpCallOption {
+    return func(cfg *gen.HttpCallTaskConfig) error {
+        if maxAttempts < 1 {
+            return fmt.Errorf("maxAttempts must be at least 1, got %d", maxAttempts)
+        }
+        cfg.RetryPolicy = &gen.RetryPolicy{
+            MaxAttempts:     int32(maxAttempts),
+            BackoffSeconds:  int32(backoffSeconds),
+        }
+        return nil
+    }
+}
+
+// RetryOnStatusCodes specifies which HTTP status codes should trigger a retry.
+//
+// Example:
+//   RetryOnStatusCodes(500, 502, 503, 504) // Retry on server errors
+func RetryOnStatusCodes(codes ...int) HttpCallOption {
+    return func(cfg *gen.HttpCallTaskConfig) error {
+        if cfg.RetryPolicy == nil {
+            cfg.RetryPolicy = &gen.RetryPolicy{}
+        }
+        for _, code := range codes {
+            cfg.RetryPolicy.RetryOnStatusCodes = append(
+                cfg.RetryPolicy.RetryOnStatusCodes,
+                int32(code),
+            )
+        }
+        return nil
+    }
+}
+```
+
+**Output**: Updated or new option files with ergonomic functions
+
+---
+
+### Phase 5: Update Builder Methods (10-20 minutes)
+
+**Goal**: Add/update builder methods on Workflow/Agent/Skill types
+
+**Actions**:
+
+1. **For New Workflow Tasks**:
+   - Open `sdk/go/workflow/workflow.go`
+   - Add builder method following existing pattern
+   - Use descriptive name (e.g., `HttpGet` not `HttpCall`)
+
+**Builder Method Pattern**:
+```go
+// TaskName creates and adds a new TASK_TYPE task to the workflow.
+//
+// Example:
+//   task := wf.TaskName("my-task", arg1, arg2,
+//       Option1(val1),
+//       Option2(val2),
+//   )
+func (w *Workflow) TaskName(name string, requiredArg Type, opts ...TaskOption) *Task {
+    // 1. Create base config
+    cfg := &gen.TaskConfig{
+        RequiredField: requiredArg,
+    }
+    
+    // 2. Apply options
+    for _, opt := range opts {
+        if err := opt(cfg); err != nil {
+            // Handle error appropriately
+            panic(fmt.Sprintf("failed to apply option: %v", err))
+        }
+    }
+    
+    // 3. Create and register task
+    task := &Task{
+        Name:   name,
+        Kind:   TaskKindTaskType,
+        Config: cfg,
+    }
+    w.tasks = append(w.tasks, task)
+    
+    return task
+}
+```
+
+**Guidelines**:
+- Required parameters come first (positional)
+- Optional parameters use functional options
+- Return *Task for dependency tracking
+- Add to w.tasks slice
+- Include doc comment with example
+
+**Example** (for new SQL query task):
+```go
+// SqlQuery creates and adds a SQL query task to the workflow.
+//
+// Example:
+//   results := wf.SqlQuery("fetch-users", "SELECT * FROM users WHERE active = true",
+//       Database("postgres"),
+//       Timeout(30),
+//   )
+func (w *Workflow) SqlQuery(name string, query string, opts ...SqlQueryOption) *Task {
+    cfg := &gen.SqlQueryTaskConfig{
+        Query: query,
+    }
+    
+    for _, opt := range opts {
+        if err := opt(cfg); err != nil {
+            panic(fmt.Sprintf("SqlQuery option error: %v", err))
+        }
+    }
+    
+    task := &Task{
+        Name:   name,
+        Kind:   TaskKindSqlQuery,
+        Config: cfg,
+    }
+    w.tasks = append(w.tasks, task)
+    
+    return task
+}
+```
+
+2. **For Modified Tasks**:
+   - Review existing builder method
+   - Add new parameters if required fields were added
+   - Document breaking changes if any
+
+3. **For Agent/Skill Changes**:
+   - Update `sdk/go/agent/agent.go` or `sdk/go/skill/skill.go`
+   - Add new With* option functions
+   - Update New() constructor if needed
+
+**Output**: Updated builder APIs with new/modified methods
+
+---
+
+### Phase 6: Update Validation (10 minutes)
+
+**Goal**: Ensure validation logic handles new/changed fields
+
+**Actions**:
+
+1. **Check Validation Files**:
+   - Workflow: `sdk/go/workflow/validation.go`
+   - Agent: `sdk/go/agent/gen/` (generated validation)
+   - Skill: `sdk/go/skill/gen/` (generated validation)
+
+2. **Add Validation for New Fields**:
+   ```go
+   // Example: Validate retry policy
+   if cfg.RetryPolicy != nil {
+       if cfg.RetryPolicy.MaxAttempts < 1 {
+           return fmt.Errorf("retry max_attempts must be at least 1")
+       }
+       if cfg.RetryPolicy.BackoffSeconds < 0 {
+           return fmt.Errorf("retry backoff_seconds cannot be negative")
+       }
+   }
+   ```
+
+3. **Update Existing Validation**:
+   - If field types changed, update validation logic
+   - If required fields added, add presence checks
+   - If constraints changed, update validation rules
+
+**Output**: Updated validation that catches errors early
+
+---
+
+### Phase 7: Run Tests and Verify (10 minutes)
+
+**Goal**: Ensure all changes work correctly
+
+**Actions**:
+
+1. **Build SDK**:
+   ```bash
+   cd sdk/go
+   go build ./...
+   ```
+   - Must compile without errors
+   - Fix any compilation issues
+
+2. **Run Unit Tests**:
+   ```bash
+   go test ./...
+   ```
+   - All existing tests should pass
+   - Fix any broken tests due to API changes
+
+3. **Run Integration Tests**:
+   ```bash
+   cd ../../test/integration
+   go test -v
+   ```
+   - Verify end-to-end workflows still work
+
+4. **Manual Smoke Test** (if major changes):
+   - Create small test program using new API
+   - Verify proto conversion works
+   - Check that generated protos are valid
+
+**Example Smoke Test**:
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    
+    "github.com/stigmer/stigmer/sdk/go/stigmer"
+    "github.com/stigmer/stigmer/sdk/go/workflow"
+)
+
+func main() {
+    stigmer.Run(func(ctx *stigmer.Context) error {
+        wf := workflow.New(ctx,
+            workflow.WithName("test-new-feature"),
+            workflow.WithVersion("1.0.0"),
+        )
+        
+        // Use new/modified API
+        task := wf.NewTaskType("test", arg,
+            NewOption(value),
+        )
+        
+        // Verify proto conversion
+        proto := wf.ToProto()
+        fmt.Printf("Generated proto: %+v\n", proto)
+        
+        return nil
+    })
+}
+```
+
+5. **Check Examples**:
+   - If examples exist, verify they still work
+   - Update examples if API changed
+   - Located in: `sdk/go/examples/`
+
+**Output**: All tests passing, code compiles, examples work
+
+---
+
+### Phase 8: Document Changes (5-10 minutes)
+
+**Goal**: Create record of what changed for future reference
+
+**Actions**:
+
+1. **Create Checkpoint Document**:
+   - Location: `_projects/2026-01/20260122.01.sdk-code-generators-go/checkpoints/`
+   - Name: `<number>-proto-sync-<resource>-<date>.md`
+
+**Checkpoint Template**:
+```markdown
+# Proto Sync - <Resource Name>
+
+**Date**: YYYY-MM-DD
+**Proto Changed**: <path to proto file>
+**Scope**: <Incremental | New Resource>
+
+## Summary
+
+Brief description of what changed and why.
+
+## Proto Changes
+
+### Modified Messages
+- `MessageName`: Added fields X, Y, Z
+- `OtherMessage`: Changed field type from A to B
+
+### New Messages
+- `NewMessage`: Description and purpose
+
+### Field Changes
+| Message | Field | Change | Type |
+|---------|-------|--------|------|
+| HttpCallTaskConfig | retry_policy | Added | RetryPolicy |
+| RetryPolicy | max_attempts | New | int32 |
+
+## SDK Updates
+
+### Generated Code
+- ✅ Updated: `sdk/go/workflow/gen/httpcalltaskconfig_task.go`
+- ✅ Added: `sdk/go/workflow/gen/retrypolicy_task.go`
+
+### Functional Options
+- ✅ Added: `Retry(maxAttempts, backoffSeconds)` in `httpcall_options.go`
+- ✅ Added: `RetryOnStatusCodes(codes...)` in `httpcall_options.go`
+
+### Builder Methods
+- ✅ Updated: `Workflow.HttpGet()` - no changes needed
+- ✅ Updated: `Workflow.HttpPost()` - no changes needed
+
+### Validation
+- ✅ Added retry policy validation in `validation.go`
+
+## Testing
+
+- ✅ All unit tests pass (47 tests)
+- ✅ Integration tests pass (14 tests)
+- ✅ Manual smoke test with retry options
+- ✅ Example updated: `examples/06-http-with-retry/`
+
+## API Examples
+
+### Before
+```go
+wf.HttpGet("fetch", url,
+    Timeout(30),
+)
+```
+
+### After
+```go
+wf.HttpGet("fetch", url,
+    Timeout(30),
+    Retry(3, 2), // NEW: 3 attempts, 2s backoff
+    RetryOnStatusCodes(500, 502, 503),
+)
+```
+
+## Breaking Changes
+
+- None (backward compatible)
+
+## Notes
+
+- Retry policy is optional, nil by default
+- Status codes default to empty (no filtering)
+- Consider adding exponential backoff in future
+```
+
+2. **Update Project README** (if needed):
+   - If new resource type added, update README
+   - Add to list of supported task types
+   - Include example usage
+
+**Output**: Complete documentation of changes
+
+---
+
+## Resource-Specific Patterns
+
+### Workflow Tasks
+
+**Proto Location**: `apis/ai/stigmer/agentic/workflow/v1/tasks/<task>.proto`
+**Message Pattern**: `<Task>TaskConfig`
+**Schema Output**: `tools/codegen/schemas/workflow/tasks/`
+**Generated Code**: `sdk/go/workflow/gen/`
+**Options File**: `sdk/go/workflow/<task>_options.go`
+**Builder Location**: `sdk/go/workflow/workflow.go`
+
+**Example Command Sequence**:
+```bash
+# 1. Generate schema
+cd tools/codegen/proto2schema
+go run main.go \
+  --proto-dir ../../../apis/ai/stigmer/agentic/workflow/v1/tasks \
+  --proto-file http_call.proto \
+  --message-suffix TaskConfig \
+  --output-dir ../schemas/workflow/tasks \
+  --types-output-dir ../schemas/types
+
+# 2. Generate Go code
+cd ../generator
+go run main.go \
+  --schema-dir ../schemas/workflow \
+  --output-dir ../../../sdk/go/workflow/gen \
+  --package-name gen
+
+# 3. Update options
+# Edit: sdk/go/workflow/httpcall_options.go
+
+# 4. Update builder (if needed)
+# Edit: sdk/go/workflow/workflow.go
+
+# 5. Test
+cd ../../../sdk/go
+go test ./workflow/...
+```
+
+---
+
+### Agent Specs
+
+**Proto Location**: `apis/ai/stigmer/agentic/agent/v1/spec.proto`
+**Message Pattern**: `AgentSpec`, `InlineSubAgentSpec`
+**Schema Output**: `tools/codegen/schemas/agent/`
+**Generated Code**: `sdk/go/agent/gen/`
+**Options File**: `sdk/go/agent/agent.go` (With* functions)
+**Builder Location**: `sdk/go/agent/agent.go` (New constructor)
+
+**Example Command Sequence**:
+```bash
+# 1. Generate schema
+cd tools/codegen/proto2schema
+go run main.go \
+  --proto-dir ../../../apis/ai/stigmer/agentic/agent/v1 \
+  --proto-file spec.proto \
+  --message-suffix Spec \
+  --output-dir ../schemas/agent \
+  --types-output-dir ../schemas/types
+
+# 2. Generate Go code
+cd ../generator
+go run main.go \
+  --schema-dir ../schemas/agent \
+  --output-dir ../../../sdk/go/agent/gen \
+  --package-name gen
+
+# 3. Update agent.go
+# Edit: sdk/go/agent/agent.go
+# - Add new With* option functions
+# - Update New() if needed
+# - Update ToProto() if new nested conversions needed
+
+# 4. Update proto conversion (if needed)
+# Edit: sdk/go/agent/proto.go
+
+# 5. Test
+cd ../../../sdk/go
+go test ./agent/...
+```
+
+---
+
+### Skill Specs
+
+**Proto Location**: `apis/ai/stigmer/agentic/skill/v1/spec.proto`
+**Message Pattern**: `SkillSpec`
+**Schema Output**: `tools/codegen/schemas/skill/`
+**Generated Code**: `sdk/go/skill/gen/`
+**Options File**: `sdk/go/skill/skill.go` (With* functions)
+**Builder Location**: `sdk/go/skill/skill.go` (New constructor)
+
+**Example Command Sequence**:
+```bash
+# 1. Generate schema
+cd tools/codegen/proto2schema
+go run main.go \
+  --proto-dir ../../../apis/ai/stigmer/agentic/skill/v1 \
+  --proto-file spec.proto \
+  --message-suffix Spec \
+  --output-dir ../schemas/skill \
+  --types-output-dir ../schemas/types
+
+# 2. Generate Go code
+cd ../generator
+go run main.go \
+  --schema-dir ../schemas/skill \
+  --output-dir ../../../sdk/go/skill/gen \
+  --package-name gen
+
+# 3. Update skill.go (if needed)
+# Edit: sdk/go/skill/skill.go
+
+# 4. Test
+cd ../../../sdk/go
+go test ./skill/...
+```
+
+---
+
+## Common Scenarios
+
+### Scenario 1: New Field Added to Existing Task
+
+**Example**: Added `timeout_seconds` to `GrpcCallTaskConfig`
+
+**Steps**:
+1. Regenerate schema (Phase 2)
+2. Regenerate Go code (Phase 3)
+3. Add option function (Phase 4):
+   ```go
+   func Timeout(seconds int) GrpcCallOption {
+       return func(cfg *gen.GrpcCallTaskConfig) error {
+           cfg.TimeoutSeconds = int32(seconds)
+           return nil
+       }
+   }
+   ```
+4. Test (Phase 7)
+5. Document (Phase 8)
+
+**Time**: ~15 minutes
+
+---
+
+### Scenario 2: New Workflow Task Type
+
+**Example**: Added `SqlQueryTaskConfig`
+
+**Steps**:
+1. Create proto file: `apis/ai/stigmer/agentic/workflow/v1/tasks/sql_query.proto`
+2. Generate schema (Phase 2) - creates new JSON file
+3. Generate Go code (Phase 3) - creates `sqlquerytaskconfig_task.go`
+4. Create options file: `sdk/go/workflow/sqlquery_options.go`
+5. Add builder method to `workflow.go`:
+   ```go
+   func (w *Workflow) SqlQuery(name, query string, opts ...SqlQueryOption) *Task
+   ```
+6. Add task kind constant to `sdk/go/workflow/task.go`:
+   ```go
+   TaskKindSqlQuery TaskKind = "SQL_QUERY"
+   ```
+7. Add to proto conversion in `workflow.go` ToProto()
+8. Add validation in `validation.go`
+9. Create example: `sdk/go/examples/sql-query/`
+10. Test everything
+11. Document
+
+**Time**: ~45-60 minutes
+
+---
+
+### Scenario 3: Modified Agent Spec
+
+**Example**: Added `reasoning_model` field to `AgentSpec`
+
+**Steps**:
+1. Regenerate schema (Phase 2)
+2. Regenerate Go code (Phase 3)
+3. Add option function to `agent/agent.go`:
+   ```go
+   func WithReasoningModel(model string) AgentOption {
+       return func(a *Agent) error {
+           a.spec.ReasoningModel = model
+           return nil
+       }
+   }
+   ```
+4. Update `proto.go` if conversion logic needed
+5. Test
+6. Document
+
+**Time**: ~20 minutes
+
+---
+
+### Scenario 4: New Nested Message Type
+
+**Example**: Added `AuthConfig` message used by multiple tasks
+
+**Steps**:
+1. Regenerate schemas - will extract to `schemas/types/authconfig.json`
+2. Regenerate Go code - creates `authconfig_task.go` in `workflow/gen/`
+3. Create helper functions for constructing AuthConfig:
+   ```go
+   // In workflow/auth.go (new file)
+   func BasicAuth(username, password string) *gen.AuthConfig {
+       return &gen.AuthConfig{
+           Type: "basic",
+           Username: username,
+           Password: password,
+       }
+   }
+   
+   func BearerToken(token string) *gen.AuthConfig {
+       return &gen.AuthConfig{
+           Type: "bearer",
+           Token: token,
+       }
+   }
+   ```
+4. Update task options to accept AuthConfig:
+   ```go
+   func Auth(cfg *gen.AuthConfig) HttpCallOption {
+       return func(taskCfg *gen.HttpCallTaskConfig) error {
+           taskCfg.Auth = cfg
+           return nil
+       }
+   }
+   ```
+5. Test and document
+
+**Time**: ~30 minutes
+
+---
+
+## Validation Checklist
+
+Before completing the sync, verify:
+
+**Code Quality**:
+- [ ] All generated code compiles without errors
+- [ ] No unused imports or variables
+- [ ] Consistent naming conventions followed
+- [ ] Doc comments added for public APIs
+
+**Functionality**:
+- [ ] ToProto() includes new fields
+- [ ] FromProto() includes new fields (if needed)
+- [ ] Validation covers new constraints
+- [ ] Options provide ergonomic API
+- [ ] Builder methods are intuitive
+
+**Testing**:
+- [ ] Unit tests pass
+- [ ] Integration tests pass
+- [ ] Manual smoke test performed
+- [ ] Examples updated/created
+
+**Documentation**:
+- [ ] Checkpoint document created
+- [ ] API changes documented
+- [ ] Breaking changes noted
+- [ ] Examples include new features
+
+**Integration**:
+- [ ] Changes work with CLI
+- [ ] Dependency tracking updated if needed
+- [ ] Annotations preserved
+- [ ] No regressions in existing functionality
+
+---
+
+## Troubleshooting
+
+### Problem: Schema generation fails
+
+**Symptoms**: proto2schema errors or empty schemas
+
+**Solutions**:
+1. Check proto file syntax: `buf lint`
+2. Verify proto imports are available
+3. Check message suffix matches: `--message-suffix TaskConfig`
+4. Look for unsupported field types (log shows warnings)
+
+---
+
+### Problem: Generated code doesn't compile
+
+**Symptoms**: Go compilation errors in `gen/` directory
+
+**Solutions**:
+1. Check schema JSON is valid
+2. Verify type mappings in generator code
+3. Look for missing imports in generated file
+4. Re-run generation with `--force` if needed
+5. Check for name conflicts with Go keywords
+
+---
+
+### Problem: Options don't work as expected
+
+**Symptoms**: Runtime errors or unexpected behavior
+
+**Solutions**:
+1. Verify option modifies correct struct field
+2. Check for nil pointer issues with nested types
+3. Add validation to option function
+4. Test option in isolation
+5. Check generated ToProto() includes field
+
+---
+
+### Problem: Tests fail after changes
+
+**Symptoms**: Unit or integration test failures
+
+**Solutions**:
+1. Check if API changed in breaking way
+2. Update test expectations for new behavior
+3. Verify test data includes required fields
+4. Check for race conditions with new fields
+5. Review error messages for clues
+
+---
+
+## Best Practices
+
+### DO:
+✅ Regenerate schemas AND code (don't skip steps)  
+✅ Add validation for new fields  
+✅ Create ergonomic options (not just pass-through)  
+✅ Write doc comments with examples  
+✅ Test both unit and integration  
+✅ Document breaking changes clearly  
+✅ Update examples when API changes  
+✅ Use descriptive builder method names  
+
+### DON'T:
+❌ Manually edit generated files (they'll be overwritten)  
+❌ Skip testing after changes  
+❌ Add required positional params to existing methods (breaks API)  
+❌ Create options that violate proto constraints  
+❌ Forget to update validation logic  
+❌ Mix manual and generated code in same file  
+❌ Skip documentation step  
+
+---
+
+## File Organization Reference
+
+```
+stigmer/
+├── apis/
+│   └── ai/stigmer/agentic/
+│       ├── workflow/v1/tasks/          # Workflow task protos
+│       ├── agent/v1/                   # Agent protos
+│       └── skill/v1/                   # Skill protos
+│
+├── tools/codegen/
+│   ├── proto2schema/                   # Proto → JSON schema tool
+│   │   └── main.go
+│   ├── generator/                      # JSON schema → Go code tool
+│   │   └── main.go
+│   └── schemas/                        # Generated JSON schemas
+│       ├── workflow/tasks/
+│       ├── agent/
+│       ├── skill/
+│       └── types/                      # Shared types
+│
+├── sdk/go/
+│   ├── workflow/
+│   │   ├── gen/                        # Generated code (don't edit!)
+│   │   ├── workflow.go                 # Builder methods
+│   │   ├── task.go                     # Task types
+│   │   ├── validation.go               # Validation logic
+│   │   └── *_options.go                # Functional options (hand-written)
+│   │
+│   ├── agent/
+│   │   ├── gen/                        # Generated code
+│   │   ├── agent.go                    # Constructor + options
+│   │   ├── proto.go                    # Proto conversion
+│   │   └── annotations.go              # SDK metadata
+│   │
+│   └── skill/
+│       ├── gen/                        # Generated code
+│       ├── skill.go                    # Constructor + options
+│       ├── proto.go                    # Proto conversion
+│       └── annotations.go              # SDK metadata
+│
+└── _projects/2026-01/20260122.01.sdk-code-generators-go/
+    └── checkpoints/                    # Documentation
+```
+
+---
+
+## Quick Reference Commands
+
+```bash
+# Full workflow task sync
+cd tools/codegen/proto2schema
+go run main.go --proto-dir ../../../apis/ai/stigmer/agentic/workflow/v1/tasks \
+  --proto-file <task>.proto --message-suffix TaskConfig \
+  --output-dir ../schemas/workflow/tasks --types-output-dir ../schemas/types
+cd ../generator
+go run main.go --schema-dir ../schemas/workflow \
+  --output-dir ../../../sdk/go/workflow/gen --package-name gen
+cd ../../../sdk/go
+go test ./workflow/...
+
+# Agent spec sync
+cd tools/codegen/proto2schema
+go run main.go --proto-dir ../../../apis/ai/stigmer/agentic/agent/v1 \
+  --proto-file spec.proto --message-suffix Spec \
+  --output-dir ../schemas/agent --types-output-dir ../schemas/types
+cd ../generator
+go run main.go --schema-dir ../schemas/agent \
+  --output-dir ../../../sdk/go/agent/gen --package-name gen
+cd ../../../sdk/go
+go test ./agent/...
+
+# Skill spec sync
+cd tools/codegen/proto2schema
+go run main.go --proto-dir ../../../apis/ai/stigmer/agentic/skill/v1 \
+  --proto-file spec.proto --message-suffix Spec \
+  --output-dir ../schemas/skill --types-output-dir ../schemas/types
+cd ../generator
+go run main.go --schema-dir ../schemas/skill \
+  --output-dir ../../../sdk/go/skill/gen --package-name gen
+cd ../../../sdk/go
+go test ./skill/...
+
+# Run all tests
+cd sdk/go
+go test ./...
+
+# Build everything
+go build ./...
+```
+
+---
+
+## Summary
+
+This rule automates the SDK update process when protos change:
+
+1. **Analyze** proto changes
+2. **Regenerate** schemas from protos
+3. **Generate** Go code from schemas
+4. **Update** functional options
+5. **Enhance** builder APIs
+6. **Validate** with tests
+7. **Document** changes
+
+**Typical Time**:
+- Field addition: 15-20 minutes
+- New task type: 45-60 minutes
+- Complex changes: 1-2 hours
+
+**Key Principle**: Generate low-level code, hand-craft ergonomic APIs.
+
+---
+
+**Ready to sync? Drag this rule and tell me what proto changed!**

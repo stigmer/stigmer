@@ -90,7 +90,8 @@ func ExecuteGoAndGetSynthesis(goFile string) (*synthesis.Result, error) {
 
 	// Execute the user's code directly with STIGMER_OUT_DIR set
 	// stigmer.Run() will handle synthesis automatically
-	cmd := exec.Command("go", "run", ".")
+	// Use the specific file instead of "." to support //go:build ignore files
+	cmd := exec.Command("go", "run", filepath.Base(goFile))
 	cmd.Dir = projectDir
 	cmd.Env = append(os.Environ(), "STIGMER_OUT_DIR="+outputDir)
 

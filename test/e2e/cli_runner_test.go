@@ -69,6 +69,11 @@ func RunCLIInProcess(args ...string) (string, error) {
 // RunCLISubprocess executes CLI commands as a subprocess
 // This provides full isolation and is the current recommended approach
 func RunCLISubprocess(args ...string) (string, error) {
+	return RunCLISubprocessWithServerAddr(0, args...)
+}
+
+// RunCLISubprocessWithServerAddr executes CLI commands with server address override
+func RunCLISubprocessWithServerAddr(serverPort int, args ...string) (string, error) {
 	// Find the stigmer binary
 	// We're in test/e2e, CLI main is at ../../client-apps/cli/cmd/stigmer/main.go
 	cwd, err := os.Getwd()
@@ -81,6 +86,12 @@ func RunCLISubprocess(args ...string) (string, error) {
 	// Use 'go run' to execute the CLI
 	cmdArgs := append([]string{"run", cliMainPath}, args...)
 	cmd := exec.Command("go", cmdArgs...)
+
+	// Set environment variables
+	cmd.Env = os.Environ()
+	if serverPort > 0 {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("STIGMER_SERVER_ADDR=localhost:%d", serverPort))
+	}
 
 	// Capture output
 	var stdout, stderr bytes.Buffer
@@ -103,8 +114,7 @@ func RunCLISubprocess(args ...string) (string, error) {
 	return output, nil
 }
 
-// RunCLIWithServerAddr is a convenience wrapper that adds the --server flag
+// RunCLIWithServerAddr is a convenience wrapper that sets STIGMER_SERVER_ADDR env var
 func RunCLIWithServerAddr(serverPort int, args ...string) (string, error) {
-	fullArgs := append(args, "--server", fmt.Sprintf("localhost:%d", serverPort))
-	return RunCLI(fullArgs...)
+	return RunCLISubprocessWithServerAddr(serverPort, args...)
 }
