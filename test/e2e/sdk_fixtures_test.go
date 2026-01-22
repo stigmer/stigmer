@@ -15,7 +15,7 @@ type SDKExample struct {
 	// SDK example file name (e.g., "01_basic_agent.go")
 	SDKFileName string
 	
-	// Target directory in testdata (e.g., "agents/basic-agent")
+	// Target directory in testdata (e.g., "examples/01-basic-agent")
 	TestDataDir string
 	
 	// Target file name in testdata (usually "main.go")
@@ -106,21 +106,100 @@ func CopyAllSDKExamples() error {
 		// Agent examples
 		{
 			SDKFileName:    "01_basic_agent.go",
-			TestDataDir:    "agents/basic-agent",
+			TestDataDir:    "examples/01-basic-agent",
 			TargetFileName: "main.go",
 		},
-		// Add more examples as needed:
-		// {
-		//     SDKFileName:    "02_agent_with_skills.go",
-		//     TestDataDir:    "agents/agent-with-skills",
-		//     TargetFileName: "main.go",
-		// },
-		// Workflow examples (for future):
-		// {
-		//     SDKFileName:    "07_basic_workflow.go",
-		//     TestDataDir:    "workflows/basic-workflow",
-		//     TargetFileName: "main.go",
-		// },
+		{
+			SDKFileName:    "02_agent_with_skills.go",
+			TestDataDir:    "examples/02-agent-with-skills",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "03_agent_with_mcp_servers.go",
+			TestDataDir:    "examples/03-agent-with-mcp-servers",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "04_agent_with_subagents.go",
+			TestDataDir:    "examples/04-agent-with-subagents",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "05_agent_with_environment_variables.go",
+			TestDataDir:    "examples/05-agent-with-environment-variables",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "06_agent_with_instructions_from_files.go",
+			TestDataDir:    "examples/06-agent-with-instructions-from-files",
+			TargetFileName: "main.go",
+		},
+		// Workflow examples
+		{
+			SDKFileName:    "07_basic_workflow.go",
+			TestDataDir:    "examples/07-basic-workflow",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "08_workflow_with_conditionals.go",
+			TestDataDir:    "examples/08-workflow-with-conditionals",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "09_workflow_with_loops.go",
+			TestDataDir:    "examples/09-workflow-with-loops",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "10_workflow_with_error_handling.go",
+			TestDataDir:    "examples/10-workflow-with-error-handling",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "11_workflow_with_parallel_execution.go",
+			TestDataDir:    "examples/11-workflow-with-parallel-execution",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "12_agent_with_typed_context.go",
+			TestDataDir:    "examples/12-agent-with-typed-context",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "13_workflow_and_agent_shared_context.go",
+			TestDataDir:    "examples/13-workflow-and-agent-shared-context",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "14_workflow_with_runtime_secrets.go",
+			TestDataDir:    "examples/14-workflow-with-runtime-secrets",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "15_workflow_calling_simple_agent.go",
+			TestDataDir:    "examples/15-workflow-calling-simple-agent",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "16_workflow_calling_agent_by_slug.go",
+			TestDataDir:    "examples/16-workflow-calling-agent-by-slug",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "17_workflow_agent_with_runtime_secrets.go",
+			TestDataDir:    "examples/17-workflow-agent-with-runtime-secrets",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "18_workflow_multi_agent_orchestration.go",
+			TestDataDir:    "examples/18-workflow-multi-agent-orchestration",
+			TargetFileName: "main.go",
+		},
+		{
+			SDKFileName:    "19_workflow_agent_execution_config.go",
+			TestDataDir:    "examples/19-workflow-agent-execution-config",
+			TargetFileName: "main.go",
+		},
 	}
 	
 	for _, example := range examples {
