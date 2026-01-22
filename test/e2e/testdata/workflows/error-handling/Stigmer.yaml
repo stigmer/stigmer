@@ -1,0 +1,5 @@
+name: error-handling-test
+runtime: go
+main: main.go
+version: 0.1.0
+description: Error handling workflow test for E2E testing
