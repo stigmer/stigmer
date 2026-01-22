@@ -3,6 +3,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
@@ -11,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 // DeployOptions contains options for deploying resources
@@ -54,12 +56,6 @@ func NewDeployer(opts *DeployOptions) *Deployer {
 //   - Resources are deployed sequentially in dependency order
 //   - Legacy behavior for compatibility
 func (d *Deployer) Deploy(synthesisResult *synthesis.Result) (*DeployResult, error) {
-	result := &DeployResult{
-		DeployedSkills:    make([]*skillv1.Skill, 0),
-		DeployedAgents:    make([]*agentv1.Agent, 0),
-		DeployedWorkflows: make([]*workflowv1.Workflow, 0),
-	}
-
 	// Choose deployment strategy based on options
 	if d.opts.EnableParallelDeployment {
 		return d.deployParallel(synthesisResult)
@@ -155,6 +151,164 @@ func (d *Deployer) deployParallel(synthesisResult *synthesis.Result) (*DeployRes
 	}
 
 	return result, nil
+}
+
+// deployResourceGroup deploys a group of resources in parallel.
+// All resources in the group are at the same dependency depth and can be deployed concurrently.
+//
+// Returns the deployed resources or an error if any deployment fails.
+func (d *Deployer) deployResourceGroup(resources []*synthesis.ResourceWithID) ([]proto.Message, error) {
+	if len(resources) == 0 {
+		return []proto.Message{}, nil
+	}
+
+	// Use channels to collect results and errors
+	type deployResult struct {
+		resource proto.Message
+		err      error
+	}
+	
+	results := make(chan deployResult, len(resources))
+	var wg sync.WaitGroup
+
+	// Deploy each resource in a goroutine
+	for _, res := range resources {
+		wg.Add(1)
+		
+		// Capture loop variable
+		resource := res
+		
+		go func() {
+			defer wg.Done()
+			
+			deployed, err := d.deployResource(resource)
+			results <- deployResult{
+				resource: deployed,
+				err:      err,
+			}
+		}()
+	}
+
+	// Wait for all deployments to complete
+	wg.Wait()
+	close(results)
+
+	// Collect results and check for errors
+	deployed := make([]proto.Message, 0, len(resources))
+	var firstError error
+	
+	for result := range results {
+		if result.err != nil && firstError == nil {
+			firstError = result.err
+		}
+		if result.resource != nil {
+			deployed = append(deployed, result.resource)
+		}
+	}
+
+	if firstError != nil {
+		return nil, firstError
+	}
+
+	return deployed, nil
+}
+
+// deployResource deploys a single resource based on its type.
+func (d *Deployer) deployResource(res *synthesis.ResourceWithID) (proto.Message, error) {
+	switch r := res.Resource.(type) {
+	case *skillv1.Skill:
+		return d.deploySkill(r)
+	case *agentv1.Agent:
+		return d.deployAgent(r)
+	case *workflowv1.Workflow:
+		return d.deployWorkflow(r)
+	default:
+		return nil, errors.Errorf("unknown resource type: %T", res.Resource)
+	}
+}
+
+// deploySkill deploys a single skill.
+func (d *Deployer) deploySkill(skill *skillv1.Skill) (*skillv1.Skill, error) {
+	// Ensure metadata is initialized and org is set
+	if skill.Metadata == nil {
+		skill.Metadata = &apiresource.ApiResourceMetadata{}
+	}
+	skill.Metadata.Org = d.opts.OrgID
+	if skill.Metadata.OwnerScope == apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified {
+		skill.Metadata.OwnerScope = apiresource.ApiResourceOwnerScope_organization
+	}
+
+	if d.opts.ProgressCallback != nil {
+		d.opts.ProgressCallback(fmt.Sprintf("Deploying skill: %s", skill.Metadata.Name))
+	}
+
+	client := skillv1.NewSkillCommandControllerClient(d.opts.Conn)
+	deployed, err := client.Apply(context.Background(), skill)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to deploy skill '%s'", skill.Metadata.Name)
+	}
+
+	if d.opts.ProgressCallback != nil {
+		d.opts.ProgressCallback(fmt.Sprintf("✓ Skill deployed: %s (ID: %s)", deployed.Metadata.Name, deployed.Metadata.Id))
+	}
+
+	return deployed, nil
+}
+
+// deployAgent deploys a single agent.
+func (d *Deployer) deployAgent(agent *agentv1.Agent) (*agentv1.Agent, error) {
+	// Ensure metadata is initialized and org is set
+	if agent.Metadata == nil {
+		agent.Metadata = &apiresource.ApiResourceMetadata{}
+	}
+	agent.Metadata.Org = d.opts.OrgID
+	if agent.Metadata.OwnerScope == apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified {
+		agent.Metadata.OwnerScope = apiresource.ApiResourceOwnerScope_organization
+	}
+
+	if d.opts.ProgressCallback != nil {
+		d.opts.ProgressCallback(fmt.Sprintf("Deploying agent: %s", agent.Metadata.Name))
+	}
+
+	client := agentv1.NewAgentCommandControllerClient(d.opts.Conn)
+	deployed, err := client.Apply(context.Background(), agent)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to deploy agent '%s'", agent.Metadata.Name)
+	}
+
+	if d.opts.ProgressCallback != nil {
+		d.opts.ProgressCallback(fmt.Sprintf("✓ Agent deployed: %s (ID: %s)", deployed.Metadata.Name, deployed.Metadata.Id))
+	}
+
+	return deployed, nil
+}
+
+// deployWorkflow deploys a single workflow.
+func (d *Deployer) deployWorkflow(workflow *workflowv1.Workflow) (*workflowv1.Workflow, error) {
+	// Ensure metadata is initialized
+	if workflow.Metadata == nil {
+		workflow.Metadata = &apiresource.ApiResourceMetadata{}
+	}
+	workflow.Metadata.Org = d.opts.OrgID
+	if workflow.Metadata.OwnerScope == apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified {
+		workflow.Metadata.OwnerScope = apiresource.ApiResourceOwnerScope_organization
+	}
+
+	if d.opts.ProgressCallback != nil {
+		d.opts.ProgressCallback(fmt.Sprintf("Deploying workflow: %s", workflow.Metadata.Name))
+	}
+
+	client := workflowv1.NewWorkflowCommandControllerClient(d.opts.Conn)
+	deployed, err := client.Apply(context.Background(), workflow)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to deploy workflow '%s'", workflow.Metadata.Name)
+	}
+
+	if d.opts.ProgressCallback != nil {
+		d.opts.ProgressCallback(fmt.Sprintf("✓ Workflow deployed: %s (ID: %s)", deployed.Metadata.Name, deployed.Metadata.Id))
+	}
+
+	return deployed, nil
 }
 
 // deploySkills deploys all skills

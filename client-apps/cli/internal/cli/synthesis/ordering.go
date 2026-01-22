@@ -261,6 +261,215 @@ func (r *Result) GetDependencyGraph() string {
 	return result
 }
 
+// GetDependencyGraphMermaid returns a Mermaid diagram representation of the dependency graph.
+//
+// The generated diagram uses a left-to-right flowchart format with:
+// - Different shapes for different resource types (skills, agents, workflows)
+// - Arrows showing dependency relationships
+// - Color coding by resource type
+//
+// Example output:
+//
+//	```mermaid
+//	flowchart LR
+//	  skill_coding[skill:coding]:::skill
+//	  agent_reviewer[agent:reviewer]:::agent
+//	  workflow_pr[workflow:pr-review]:::workflow
+//	  skill_coding --> agent_reviewer
+//	  agent_reviewer --> workflow_pr
+//	  classDef skill fill:#e1f5e1,stroke:#4caf50
+//	  classDef agent fill:#e3f2fd,stroke:#2196f3
+//	  classDef workflow fill:#fff3e0,stroke:#ff9800
+//	```
+func (r *Result) GetDependencyGraphMermaid() string {
+	// Collect all resource IDs
+	allResources := make(map[string]bool)
+	
+	// Add resources from skills, agents, workflows
+	for _, skill := range r.Skills {
+		allResources[GetResourceID(skill)] = true
+	}
+	for _, agent := range r.Agents {
+		allResources[GetResourceID(agent)] = true
+	}
+	for _, workflow := range r.Workflows {
+		allResources[GetResourceID(workflow)] = true
+	}
+
+	if len(allResources) == 0 {
+		return "```mermaid\nflowchart LR\n  empty[No resources]\n```"
+	}
+
+	var result string
+	result += "```mermaid\nflowchart LR\n"
+
+	// Sort resource IDs for consistent output
+	sortedIDs := make([]string, 0, len(allResources))
+	for id := range allResources {
+		sortedIDs = append(sortedIDs, id)
+	}
+	sort.Strings(sortedIDs)
+
+	// Define nodes with shapes and labels
+	for _, resourceID := range sortedIDs {
+		// Generate Mermaid-safe node ID (replace colons with underscores)
+		nodeID := sanitizeMermaidID(resourceID)
+		
+		// Determine resource type for styling
+		resourceType := getResourceType(resourceID)
+		
+		// Add node definition
+		result += fmt.Sprintf("  %s[%s]:::%s\n", nodeID, resourceID, resourceType)
+	}
+
+	// Add edges (dependencies)
+	depIDs := make([]string, 0, len(r.Dependencies))
+	for id := range r.Dependencies {
+		depIDs = append(depIDs, id)
+	}
+	sort.Strings(depIDs)
+
+	for _, resourceID := range depIDs {
+		deps := r.Dependencies[resourceID]
+		if len(deps) == 0 {
+			continue
+		}
+		
+		sourceNode := sanitizeMermaidID(resourceID)
+		
+		// Sort dependencies for consistent output
+		sortedDeps := make([]string, len(deps))
+		copy(sortedDeps, deps)
+		sort.Strings(sortedDeps)
+		
+		for _, depID := range sortedDeps {
+			// Skip external references in visualization
+			if isExternalReference(depID) {
+				continue
+			}
+			
+			targetNode := sanitizeMermaidID(depID)
+			result += fmt.Sprintf("  %s --> %s\n", targetNode, sourceNode)
+		}
+	}
+
+	// Add styling
+	result += "  classDef skill fill:#e1f5e1,stroke:#4caf50,stroke-width:2px\n"
+	result += "  classDef agent fill:#e3f2fd,stroke:#2196f3,stroke-width:2px\n"
+	result += "  classDef workflow fill:#fff3e0,stroke:#ff9800,stroke-width:2px\n"
+	result += "```"
+
+	return result
+}
+
+// GetDependencyGraphDot returns a Graphviz DOT representation of the dependency graph.
+//
+// The generated diagram uses:
+// - Different shapes for different resource types (box, ellipse, hexagon)
+// - Color coding by resource type
+// - Left-to-right layout (rankdir=LR)
+//
+// Example output:
+//
+//	digraph dependencies {
+//	  rankdir=LR;
+//	  node [style=filled];
+//	  
+//	  "skill:coding" [shape=box, fillcolor="#e1f5e1"];
+//	  "agent:reviewer" [shape=ellipse, fillcolor="#e3f2fd"];
+//	  "workflow:pr-review" [shape=hexagon, fillcolor="#fff3e0"];
+//	  
+//	  "skill:coding" -> "agent:reviewer";
+//	  "agent:reviewer" -> "workflow:pr-review";
+//	}
+func (r *Result) GetDependencyGraphDot() string {
+	// Collect all resource IDs
+	allResources := make(map[string]bool)
+	
+	// Add resources from skills, agents, workflows
+	for _, skill := range r.Skills {
+		allResources[GetResourceID(skill)] = true
+	}
+	for _, agent := range r.Agents {
+		allResources[GetResourceID(agent)] = true
+	}
+	for _, workflow := range r.Workflows {
+		allResources[GetResourceID(workflow)] = true
+	}
+
+	if len(allResources) == 0 {
+		return "digraph dependencies {\n  empty [label=\"No resources\"];\n}"
+	}
+
+	var result string
+	result += "digraph dependencies {\n"
+	result += "  rankdir=LR;\n"
+	result += "  node [style=filled];\n\n"
+
+	// Sort resource IDs for consistent output
+	sortedIDs := make([]string, 0, len(allResources))
+	for id := range allResources {
+		sortedIDs = append(sortedIDs, id)
+	}
+	sort.Strings(sortedIDs)
+
+	// Define nodes with shapes and colors
+	for _, resourceID := range sortedIDs {
+		shape, color := getNodeStyle(resourceID)
+		result += fmt.Sprintf("  \"%s\" [shape=%s, fillcolor=\"%s\"];\n", resourceID, shape, color)
+	}
+
+	result += "\n"
+
+	// Add edges (dependencies)
+	depIDs := make([]string, 0, len(r.Dependencies))
+	for id := range r.Dependencies {
+		depIDs = append(depIDs, id)
+	}
+	sort.Strings(depIDs)
+
+	for _, resourceID := range depIDs {
+		deps := r.Dependencies[resourceID]
+		if len(deps) == 0 {
+			continue
+		}
+		
+		// Sort dependencies for consistent output
+		sortedDeps := make([]string, len(deps))
+		copy(sortedDeps, deps)
+		sort.Strings(sortedDeps)
+		
+		for _, depID := range sortedDeps {
+			// Skip external references in visualization
+			if isExternalReference(depID) {
+				continue
+			}
+			
+			result += fmt.Sprintf("  \"%s\" -> \"%s\";\n", depID, resourceID)
+		}
+	}
+
+	result += "}"
+
+	return result
+}
+
+// getNodeStyle returns the shape and color for a resource type in Graphviz DOT format.
+func getNodeStyle(resourceID string) (shape string, color string) {
+	resourceType := getResourceType(resourceID)
+	
+	switch resourceType {
+	case "skill":
+		return "box", "#e1f5e1"
+	case "agent":
+		return "ellipse", "#e3f2fd"
+	case "workflow":
+		return "hexagon", "#fff3e0"
+	default:
+		return "ellipse", "#f5f5f5"
+	}
+}
+
 // countDependencies counts the total number of dependency edges.
 func countDependencies(deps map[string][]string) int {
 	count := 0
@@ -268,6 +477,35 @@ func countDependencies(deps map[string][]string) int {
 		count += len(depList)
 	}
 	return count
+}
+
+// sanitizeMermaidID converts a resource ID to a Mermaid-safe node identifier.
+// Replaces colons and other special characters with underscores.
+func sanitizeMermaidID(resourceID string) string {
+	result := ""
+	for _, char := range resourceID {
+		if char == ':' || char == '-' || char == '/' {
+			result += "_"
+		} else {
+			result += string(char)
+		}
+	}
+	return result
+}
+
+// getResourceType determines the resource type from a resource ID.
+// Returns "skill", "agent", or "workflow" for styling purposes.
+func getResourceType(resourceID string) string {
+	if len(resourceID) >= 6 && resourceID[:6] == "skill:" {
+		return "skill"
+	}
+	if len(resourceID) >= 6 && resourceID[:6] == "agent:" {
+		return "agent"
+	}
+	if len(resourceID) >= 9 && resourceID[:9] == "workflow:" {
+		return "workflow"
+	}
+	return "unknown"
 }
 
 // GetResourcesByDepth groups resources by their dependency depth level.
