@@ -20,6 +20,10 @@ type DeployOptions struct {
 	Quiet            bool
 	DryRun           bool
 	ProgressCallback func(string)
+	// EnableParallelDeployment enables parallel resource creation within each depth level.
+	// When true, resources at the same dependency depth are created concurrently.
+	// When false, all resources are created sequentially (legacy behavior).
+	EnableParallelDeployment bool
 }
 
 // DeployResult contains the results of a deployment
@@ -41,14 +45,31 @@ func NewDeployer(opts *DeployOptions) *Deployer {
 
 // Deploy deploys all resources from the synthesis result in dependency order.
 //
-// Deployment order:
-//  1. Skills (agents depend on them)
-//  2. Agents (workflows might depend on them)
-//  3. Workflows
+// When EnableParallelDeployment is true:
+//   - Resources are grouped by dependency depth
+//   - Resources at the same depth are deployed concurrently
+//   - Waits for all resources at one depth before moving to the next
 //
-// The dependencies map is currently informational - topological sorting
-// will be implemented in a future iteration.
+// When EnableParallelDeployment is false:
+//   - Resources are deployed sequentially in dependency order
+//   - Legacy behavior for compatibility
 func (d *Deployer) Deploy(synthesisResult *synthesis.Result) (*DeployResult, error) {
+	result := &DeployResult{
+		DeployedSkills:    make([]*skillv1.Skill, 0),
+		DeployedAgents:    make([]*agentv1.Agent, 0),
+		DeployedWorkflows: make([]*workflowv1.Workflow, 0),
+	}
+
+	// Choose deployment strategy based on options
+	if d.opts.EnableParallelDeployment {
+		return d.deployParallel(synthesisResult)
+	}
+
+	return d.deploySequential(synthesisResult)
+}
+
+// deploySequential deploys resources sequentially (legacy behavior).
+func (d *Deployer) deploySequential(synthesisResult *synthesis.Result) (*DeployResult, error) {
 	result := &DeployResult{
 		DeployedSkills:    make([]*skillv1.Skill, 0),
 		DeployedAgents:    make([]*agentv1.Agent, 0),
@@ -80,6 +101,57 @@ func (d *Deployer) Deploy(synthesisResult *synthesis.Result) (*DeployResult, err
 			return nil, err
 		}
 		result.DeployedWorkflows = workflows
+	}
+
+	return result, nil
+}
+
+// deployParallel deploys resources in parallel by dependency depth.
+func (d *Deployer) deployParallel(synthesisResult *synthesis.Result) (*DeployResult, error) {
+	result := &DeployResult{
+		DeployedSkills:    make([]*skillv1.Skill, 0),
+		DeployedAgents:    make([]*agentv1.Agent, 0),
+		DeployedWorkflows: make([]*workflowv1.Workflow, 0),
+	}
+
+	// Validate dependencies first
+	if err := synthesisResult.ValidateDependencies(); err != nil {
+		return nil, errors.Wrap(err, "dependency validation failed")
+	}
+
+	// Group resources by dependency depth
+	depthGroups, err := synthesisResult.GetResourcesByDepth()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to group resources by depth")
+	}
+
+	// Deploy each depth level sequentially, but resources within each level in parallel
+	for depthLevel, resources := range depthGroups {
+		if len(resources) == 0 {
+			continue
+		}
+
+		if d.opts.ProgressCallback != nil {
+			d.opts.ProgressCallback(fmt.Sprintf("Deploying depth level %d: %d resource(s)", depthLevel, len(resources)))
+		}
+
+		// Deploy all resources at this depth level in parallel
+		deployed, err := d.deployResourceGroup(resources)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to deploy depth level %d", depthLevel)
+		}
+
+		// Categorize deployed resources
+		for _, res := range deployed {
+			switch r := res.(type) {
+			case *skillv1.Skill:
+				result.DeployedSkills = append(result.DeployedSkills, r)
+			case *agentv1.Agent:
+				result.DeployedAgents = append(result.DeployedAgents, r)
+			case *workflowv1.Workflow:
+				result.DeployedWorkflows = append(result.DeployedWorkflows, r)
+			}
+		}
 	}
 
 	return result, nil
