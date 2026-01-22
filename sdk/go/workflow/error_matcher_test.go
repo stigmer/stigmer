@@ -91,12 +91,12 @@ func TestErrorMatcherOr(t *testing.T) {
 
 func TestWithCatchTyped(t *testing.T) {
 	// Test that WithCatchTyped works with error matchers
-	task := TryTask("test",
-		WithTry(SetTask("risky", SetVar("x", "1"))),
+	task := Try("test",
+		WithTry(Set("risky", SetVar("x", "1"))),
 		WithCatchTyped(
 			CatchHTTPErrors(),
 			"err",
-			SetTask("handler", SetVar("handled", "true")),
+			Set("handler", SetVar("handled", "true")),
 		),
 	)
 
@@ -109,34 +109,45 @@ func TestWithCatchTyped(t *testing.T) {
 		t.Fatalf("Expected 1 catch block, got %d", len(cfg.Catch))
 	}
 
-	expectedErrors := []string{ErrorTypeHTTPCall}
-	if !reflect.DeepEqual(cfg.Catch[0].Errors, expectedErrors) {
-		t.Errorf("Catch block errors = %v, want %v", cfg.Catch[0].Errors, expectedErrors)
+	catchBlock := cfg.Catch[0]
+	errors, ok := catchBlock["errors"].([]string)
+	if !ok {
+		t.Fatal("Catch block errors field is not []string")
 	}
 
-	if cfg.Catch[0].As != "err" {
-		t.Errorf("Catch block 'as' = %q, want %q", cfg.Catch[0].As, "err")
+	expectedErrors := []string{ErrorTypeHTTPCall}
+	if !reflect.DeepEqual(errors, expectedErrors) {
+		t.Errorf("Catch block errors = %v, want %v", errors, expectedErrors)
+	}
+
+	as, ok := catchBlock["as"].(string)
+	if !ok {
+		t.Fatal("Catch block 'as' field is not string")
+	}
+
+	if as != "err" {
+		t.Errorf("Catch block 'as' = %q, want %q", as, "err")
 	}
 }
 
 func TestWithCatchTypedMultiple(t *testing.T) {
 	// Test using multiple WithCatchTyped options
-	task := TryTask("test",
-		WithTry(SetTask("risky", SetVar("x", "1"))),
+	task := Try("test",
+		WithTry(Set("risky", SetVar("x", "1"))),
 		WithCatchTyped(
 			CatchHTTPErrors(),
 			"httpErr",
-			SetTask("handleHTTP", SetVar("handled", "true")),
+			Set("handleHTTP", SetVar("handled", "true")),
 		),
 		WithCatchTyped(
 			CatchGRPCErrors(),
 			"grpcErr",
-			SetTask("handleGRPC", SetVar("handled", "true")),
+			Set("handleGRPC", SetVar("handled", "true")),
 		),
 		WithCatchTyped(
 			CatchAny(),
 			"err",
-			SetTask("handleAny", SetVar("handled", "true")),
+			Set("handleAny", SetVar("handled", "true")),
 		),
 	)
 
@@ -150,29 +161,32 @@ func TestWithCatchTypedMultiple(t *testing.T) {
 	}
 
 	// Verify first catch block (HTTP)
-	if !reflect.DeepEqual(cfg.Catch[0].Errors, []string{ErrorTypeHTTPCall}) {
-		t.Errorf("Catch block 0 errors = %v, want [%s]", cfg.Catch[0].Errors, ErrorTypeHTTPCall)
+	errors0, _ := cfg.Catch[0]["errors"].([]string)
+	if !reflect.DeepEqual(errors0, []string{ErrorTypeHTTPCall}) {
+		t.Errorf("Catch block 0 errors = %v, want [%s]", errors0, ErrorTypeHTTPCall)
 	}
 
 	// Verify second catch block (gRPC)
-	if !reflect.DeepEqual(cfg.Catch[1].Errors, []string{ErrorTypeGRPCCall}) {
-		t.Errorf("Catch block 1 errors = %v, want [%s]", cfg.Catch[1].Errors, ErrorTypeGRPCCall)
+	errors1, _ := cfg.Catch[1]["errors"].([]string)
+	if !reflect.DeepEqual(errors1, []string{ErrorTypeGRPCCall}) {
+		t.Errorf("Catch block 1 errors = %v, want [%s]", errors1, ErrorTypeGRPCCall)
 	}
 
 	// Verify third catch block (Any)
-	if !reflect.DeepEqual(cfg.Catch[2].Errors, []string{ErrorTypeAny}) {
-		t.Errorf("Catch block 2 errors = %v, want [%s]", cfg.Catch[2].Errors, ErrorTypeAny)
+	errors2, _ := cfg.Catch[2]["errors"].([]string)
+	if !reflect.DeepEqual(errors2, []string{ErrorTypeAny}) {
+		t.Errorf("Catch block 2 errors = %v, want [%s]", errors2, ErrorTypeAny)
 	}
 }
 
 func TestWithCatchTypedComposition(t *testing.T) {
 	// Test using Or() composition in WithCatchTyped
-	task := TryTask("test",
-		WithTry(SetTask("risky", SetVar("x", "1"))),
+	task := Try("test",
+		WithTry(Set("risky", SetVar("x", "1"))),
 		WithCatchTyped(
 			CatchHTTPErrors().Or(CatchGRPCErrors()),
 			"networkErr",
-			SetTask("handleNetwork", SetVar("handled", "true")),
+			Set("handleNetwork", SetVar("handled", "true")),
 		),
 	)
 
@@ -185,8 +199,9 @@ func TestWithCatchTypedComposition(t *testing.T) {
 		t.Fatalf("Expected 1 catch block, got %d", len(cfg.Catch))
 	}
 
+	errors, _ := cfg.Catch[0]["errors"].([]string)
 	expectedErrors := []string{ErrorTypeHTTPCall, ErrorTypeGRPCCall}
-	if !reflect.DeepEqual(cfg.Catch[0].Errors, expectedErrors) {
-		t.Errorf("Catch block errors = %v, want %v", cfg.Catch[0].Errors, expectedErrors)
+	if !reflect.DeepEqual(errors, expectedErrors) {
+		t.Errorf("Catch block errors = %v, want %v", errors, expectedErrors)
 	}
 }
