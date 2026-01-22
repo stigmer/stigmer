@@ -106,17 +106,17 @@ Does this address your need? Any adjustments?
 
 ## What This Rule Can Modify
 
-### Scripts (`tools/projects/`)
+### Scripts (`_projects/tools/projects/`)
 - `bootstrap_quick_project.py` - The main bootstrap script
 - `start-quick-project.sh` - Shell wrapper
-- Template files in `tools/projects/templates/quick/`
+- Template files in `_projects/tools/projects/templates/quick/`
 
 ### Documentation
 - `_projects/_rules/next-stigmer-quick-project/README.md` - Framework overview
 - Template files (readme, tasks, notes)
 - Rule files in `_projects/_rules/next-stigmer-quick-project/`
 
-### Templates (`tools/projects/templates/quick/`)
+### Templates (`_projects/tools/projects/templates/quick/`)
 - `quick_project_readme.md`
 - `quick_tasks.md`
 - `quick_notes.md`
@@ -208,7 +208,7 @@ All improvements must:
 After implementing changes:
 1. **For Script Changes**: Test bootstrap flow
    ```bash
-   python3 tools/projects/bootstrap_quick_project.py \
+   python3 _projects/tools/projects/bootstrap_quick_project.py \
      --name "test-project" \
      --description "Test" \
      --goal "Test" \
@@ -268,7 +268,7 @@ Created:
 - Updated documentation
 
 Try it:
-python3 tools/projects/bootstrap_quick_project.py \
+python3 _projects/tools/projects/bootstrap_quick_project.py \
   --name "add-user-field" \
   --type proto-api
 

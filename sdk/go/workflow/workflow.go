@@ -530,6 +530,106 @@ func (w *Workflow) CallAgent(name string, opts ...AgentCallOption) *Task {
 	return task
 }
 
+// Switch creates a SWITCH task for conditional logic and adds it to the workflow.
+// This is a clean, Pulumi-style builder for conditional branching.
+//
+// The switch task evaluates conditions and routes execution to different tasks
+// based on the results.
+//
+// Example:
+//
+//	wf := workflow.New(ctx, ...)
+//	checkTask := wf.HttpGet("check", endpoint)
+//	
+//	// Route based on status code
+//	switchTask := wf.Switch("route",
+//	    SwitchOn(checkTask.Field("statusCode")),
+//	    Case(Equals(200), "success"),
+//	    Case(Equals(404), "notFound"),
+//	    DefaultCase("error"),
+//	)
+func (w *Workflow) Switch(name string, opts ...SwitchOption) *Task {
+	task := Switch(name, opts...)
+	w.AddTask(task)
+	return task
+}
+
+// ForEach creates a FOR task for iteration and adds it to the workflow.
+// This is a clean, Pulumi-style builder for looping over collections.
+//
+// The for-each task iterates over a collection and executes a set of tasks
+// for each item.
+//
+// Example:
+//
+//	wf := workflow.New(ctx, ...)
+//	fetchTask := wf.HttpGet("fetch", apiBase.Concat("/items"))
+//	
+//	// Process each item
+//	loopTask := wf.ForEach("processItems",
+//	    IterateOver(fetchTask.Field("items")),
+//	    DoTasks([]map[string]interface{}{
+//	        {"httpCall": map[string]interface{}{"uri": "${.api}/process"}},
+//	    }),
+//	)
+func (w *Workflow) ForEach(name string, opts ...ForOption) *Task {
+	task := For(name, opts...)
+	w.AddTask(task)
+	return task
+}
+
+// Try creates a TRY task for error handling and adds it to the workflow.
+// This is a clean, Pulumi-style builder for try/catch error handling.
+//
+// The try task executes a set of tasks and handles any errors that occur.
+//
+// Example:
+//
+//	wf := workflow.New(ctx, ...)
+//	
+//	// Try to make API call with error handling
+//	tryTask := wf.Try("attemptAPICall",
+//	    TryTasks([]map[string]interface{}{
+//	        {"httpCall": map[string]interface{}{"uri": endpoint}},
+//	    }),
+//	    Catch(map[string]interface{}{
+//	        "errors": []string{"NetworkError"},
+//	        "as": "error",
+//	        "tasks": []interface{}{...},
+//	    }),
+//	)
+func (w *Workflow) Try(name string, opts ...TryOption) *Task {
+	task := Try(name, opts...)
+	w.AddTask(task)
+	return task
+}
+
+// Fork creates a FORK task for parallel execution and adds it to the workflow.
+// This is a clean, Pulumi-style builder for parallel branches.
+//
+// The fork task executes multiple branches in parallel.
+//
+// Example:
+//
+//	wf := workflow.New(ctx, ...)
+//	
+//	// Execute multiple API calls in parallel
+//	forkTask := wf.Fork("fetchAll",
+//	    Branch(map[string]interface{}{
+//	        "name": "fetchUsers",
+//	        "tasks": []interface{}{...},
+//	    }),
+//	    Branch(map[string]interface{}{
+//	        "name": "fetchProducts",
+//	        "tasks": []interface{}{...},
+//	    }),
+//	)
+func (w *Workflow) Fork(name string, opts ...ForkOption) *Task {
+	task := Fork(name, opts...)
+	w.AddTask(task)
+	return task
+}
+
 // String returns a string representation of the Workflow.
 func (w *Workflow) String() string {
 	return "Workflow(namespace=" + w.Document.Namespace + ", name=" + w.Document.Name + ", version=" + w.Document.Version + ")"
