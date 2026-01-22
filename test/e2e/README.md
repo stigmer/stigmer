@@ -1,582 +1,312 @@
 # Stigmer E2E Integration Tests
 
-End-to-end integration tests for the Stigmer platform using the **Ephemeral Harness** pattern.
+End-to-end integration tests for the Stigmer platform. These tests verify the complete workflow from CLI commands to agent execution.
 
-## Overview
+## Test Strategy
 
-This test suite validates Stigmer's core functionality by:
-- Starting a real `stigmer-server` instance with isolated storage
-- Running CLI commands in-process (grey-box testing)
-- Verifying database state and API responses
-- Automatically cleaning up after each test
+These tests use **build tags** to separate them from unit tests:
+- **Unit tests**: Fast, no external dependencies, run in CI
+- **E2E tests**: Require infrastructure (Temporal, Ollama), run locally
 
-**Key Features:**
-- ✅ **Full Isolation**: Each test gets a fresh temp directory and server instance
-- ✅ **Fast Execution**: In-process CLI calls, no subprocess overhead
-- ✅ **Automatic Cleanup**: Temp files and processes cleaned up automatically
-- ✅ **Parallel-Safe**: Random ports prevent conflicts between test runs
+## Prerequisites
 
-## Architecture
+### Required (Must be running)
 
-### The Ephemeral Harness Pattern
-
-```
-┌─────────────────────────────────────────────────────┐
-│                  Test Suite (testify)                │
-│  ┌───────────────────────────────────────────────┐  │
-│  │              SetupTest()                      │  │
-│  │  1. Create temp dir                           │  │
-│  │  2. Start stigmer-server (random port)        │  │
-│  │  3. Wait for health check                     │  │
-│  └───────────────────────────────────────────────┘  │
-│                                                       │
-│  ┌───────────────────────────────────────────────┐  │
-│  │              Test Method                      │  │
-│  │  - Run CLI commands                           │  │
-│  │  - Verify database state                      │  │
-│  │  - Assert API responses                       │  │
-│  └───────────────────────────────────────────────┘  │
-│                                                       │
-│  ┌───────────────────────────────────────────────┐  │
-│  │             TearDownTest()                    │  │
-│  │  1. Stop stigmer-server                       │  │
-│  │  2. Remove temp directory                     │  │
-│  └───────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────┘
-```
-
-### Components
-
-#### 1. `helpers_test.go` - Utilities
-- `GetFreePort()` - Finds available TCP port
-- `WaitForPort()` - Health check with timeout
-
-#### 2. `harness_test.go` - Server Management
-- `TestHarness` - Manages stigmer-server lifecycle
-- `StartHarness()` - Spawns server with isolated storage
-- `Stop()` - Graceful shutdown with cleanup
-
-#### 3. `suite_test.go` - Test Framework
-- `E2ESuite` - Base test suite using testify
-- `SetupTest()` - Per-test initialization
-- `TearDownTest()` - Per-test cleanup
-
-#### 4. `smoke_test.go` - Tests
-- `TestServerStarts()` - Validates basic harness functionality
-
-## Running Tests
-
-### Run All Tests
-
-```bash
-cd test/e2e
-go test -v
-```
-
-### Run Specific Test
-
-```bash
-go test -v -run TestServerStarts
-```
-
-### Run with Timeout
-
-```bash
-go test -v -timeout 30s
-```
-
-### Run with Race Detection
-
-```bash
-go test -v -race
-```
-
-## Current Status
-
-### ✅ Iteration 5 - Phase 1: Run Command Tests Complete! 🎉
-
-**ALL TESTS PASS CONSISTENTLY (6 tests)**
-
-```bash
-$ go test -v -timeout 60s
---- PASS: TestE2E (12.17s)
-    --- PASS: TestE2E/TestApplyBasicAgent (1.30s)
-    --- PASS: TestE2E/TestApplyDryRun (1.37s)
-    --- PASS: TestE2E/TestRunBasicAgent (2.12s)        ← NEW ✨
-    --- SKIP: TestE2E/TestRunWithAutoDiscovery (5.54s)
-    --- PASS: TestE2E/TestRunWithInvalidAgent (1.10s)  ← NEW ✨
-    --- PASS: TestE2E/TestServerStarts (0.73s)
-PASS
-ok      github.com/stigmer/stigmer/test/e2e     13.311s
-```
-
-**What's Working:**
-- ✅ Full apply workflow (CLI → Server → Deployment)
-- ✅ **Run command smoke tests** (execution creation, no Temporal required) ← NEW!
-- ✅ **Agent execution verification via API** ← NEW!
-- ✅ **Error handling tests** (missing agents) ← NEW!
-- ✅ Dry-run mode validation
-- ✅ API-based verification (no database lock conflicts)
-- ✅ Error messages from CLI (no more silent failures)
-- ✅ Test fixture dependency resolution
-- ✅ Environment variable server override
-- ✅ Comprehensive test coverage
-- ✅ Fast execution (~13 seconds for 6 tests)
-- ✅ Full isolation (random ports + temp dirs)
-
-**Phase 1 Run Command Tests (Iteration 5):**
-- [x] `TestRunBasicAgent` - Full run workflow (agent execution creation)
-- [x] `TestRunWithInvalidAgent` - Error handling for missing agents
-- [x] `AgentExecutionExistsViaAPI()` helper - Verify execution via gRPC
-- [x] Tests work without Temporal/agent-runner (smoke tests only)
-- [x] Foundation for Phase 2 (full integration with LLM)
-- [x] All tests passing (6 total: 5 pass, 1 skip)
-
-**What Phase 1 Tests:**
-- ✅ CLI run command works
-- ✅ Execution creation (record in database)
-- ✅ API verification (gRPC queries)
-- ✅ Error handling (graceful errors)
-
-**What Phase 1 Does NOT Test** (Phase 2):
-- ❌ Actual agent execution (requires Temporal + agent-runner + Ollama)
-- ❌ LLM responses
-- ❌ Log streaming
-
-**Key Improvements in Iteration 4:**
-- [x] Fixed CLI silent failures (error printing in main.go)
-- [x] Added test fixture go.mod with replace directives
-- [x] Fixed `//go:build ignore` file execution
-- [x] Added `STIGMER_SERVER_ADDR` environment variable override
-- [x] Switched to API verification (no BadgerDB lock conflicts)
-- [x] All tests passing consistently
-
-### ✅ Iteration 3: Suite Hanging Issue Fixed
-- [x] Debug HTTP server port conflict resolved (use `ENV=test`)
-- [x] Process group management implemented
-- [x] Graceful shutdown with SIGINT (~8x faster)
-- [x] CLI path corrected
-- [x] Server address properly passed to CLI commands
-
-### ✅ Iteration 2: Infrastructure Complete
-- [x] Database helpers (now used for verification)
-- [x] CLI runner framework (subprocess with env vars)
-- [x] Test fixtures with proper Go modules
-- [x] Apply workflow tests working
-
-### ✅ Iteration 1: Foundation
-- [x] Directory structure
-- [x] Helper utilities
-- [x] Server harness
-- [x] Test suite framework
-- [x] Smoke test
-
-## Iteration 2 Achievements
-
-### ✅ Database Verification Implemented
-
-Two helpers for BadgerDB inspection (`helpers_test.go`):
-
-```go
-// GetFromDB reads a value from BadgerDB by key
-func GetFromDB(dbPath string, key string) ([]byte, error)
-
-// ListKeysFromDB lists all keys matching a prefix
-func ListKeysFromDB(dbPath string, prefix string) ([]string, error)
-```
-
-**Verified working** via `TestDatabaseReadWrite` ✅
-
-### ✅ CLI Runner Implemented
-
-Three execution modes (`cli_runner_test.go`):
-
-```go
-// RunCLI - Main entry point (uses subprocess by default)
-func RunCLI(args ...string) (string, error)
-
-// RunCLIInProcess - Experimental in-process execution
-func RunCLIInProcess(args ...string) (string, error)
-
-// RunCLISubprocess - Subprocess execution via go run
-func RunCLISubprocess(args ...string) (string, error)
-```
-
-### ✅ Test Cases Written
-
-**Apply Tests** (`e2e_apply_test.go`):
-
-```go
-// TestApplyBasicAgent - Full apply workflow
-func (s *E2ESuite) TestApplyBasicAgent() {
-    // Apply agent configuration
-    output, err := RunCLI("apply", "--config", absTestdataDir)
-    s.Require().NoError(err)
-    s.Contains(output, "Deployment successful")
-    
-    // Verify via API
-    exists, err := AgentExistsViaAPI(s.Harness.ServerPort, agentID)
-    s.NoError(err)
-    s.True(exists)
-}
-
-// TestApplyDryRun - Dry-run mode verification
-func (s *E2ESuite) TestApplyDryRun()
-```
-
-**Run Tests** (`e2e_run_test.go`):
-
-```go
-// TestRunBasicAgent - Full run workflow (execution creation)
-func (s *E2ESuite) TestRunBasicAgent() {
-    // Apply agent
-    applyOutput, _ := RunCLIWithServerAddr(s.Harness.ServerPort, "apply", ...)
-    agentID := extractAgentID(applyOutput)
-    
-    // Run agent
-    runOutput, _ := RunCLIWithServerAddr(
-        s.Harness.ServerPort,
-        "run", "test-agent",
-        "--message", "Hello, test agent!",
-        "--follow=false",
-    )
-    
-    // Verify execution created
-    executionID := extractExecutionID(runOutput)
-    exists, _ := AgentExecutionExistsViaAPI(s.Harness.ServerPort, executionID)
-    s.True(exists)
-}
-
-// TestRunWithInvalidAgent - Error handling
-func (s *E2ESuite) TestRunWithInvalidAgent()
-```
-
-**Status**: ✅ All tests working and verified
-
-## Iteration 5 - Phase 2: Full Agent Execution Testing
-
-**Phase 1 Complete:** Run command smoke tests working ✅
-
-**Phase 2 Status:** Infrastructure implemented, ready for testing! ✨
-
-### Phase 2 Architecture
-
-Phase 2 adds Docker-based services for complete agent execution testing:
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                  Full Execution Test                     │
-│                                                          │
-│  ┌────────────┐    ┌──────────────┐    ┌────────────┐  │
-│  │   Ollama   │    │    Temporal   │    │Agent-Runner│  │
-│  │  (Host)    │◄───┤  (Container)  │◄───┤(Container) │  │
-│  └────────────┘    └──────────────┘    └────────────┘  │
-│        ▲                                       ▲         │
-│        │                                       │         │
-│        │           ┌──────────────┐           │         │
-│        └───────────┤Stigmer-Server├───────────┘         │
-│                    │   (Test)     │                     │
-│                    └──────┬───────┘                     │
-│                           │                             │
-│                    ┌──────▼───────┐                     │
-│                    │     CLI      │                     │
-│                    │    (Test)    │                     │
-│                    └──────────────┘                     │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Prerequisites
-
-Before running Phase 2 tests, ensure you have:
-
-1. **Docker** - For running Temporal and agent-runner containers
-   - macOS: https://docs.docker.com/desktop/install/mac-install/
-   - Linux: https://docs.docker.com/engine/install/
-
-2. **Ollama** - For LLM inference
+1. **Stigmer Server** (includes Temporal):
    ```bash
-   # Install Ollama
-   curl -fsSL https://ollama.com/install.sh | sh
-   
-   # Start Ollama server
+   stigmer server
+   ```
+   This starts:
+   - Temporal Lite on `localhost:7233`
+   - stigmer-server on `localhost:50051` (or custom port)
+   - Agent-runner worker (connects to Temporal)
+
+2. **Ollama** (for LLM):
+   ```bash
+   # Install: https://ollama.com/
    ollama serve
    
-   # Pull a small model (recommended for tests)
+   # Pull a model (any model works):
+   ollama pull qwen2.5-coder:7b
+   # or
    ollama pull llama3.2:1b
    ```
 
-### Running Phase 2 Tests
+### Optional
 
-**Phase 2 tests will automatically skip if prerequisites are not met.**
+3. **Docker** (only for Phase 2 full execution tests - not yet required):
+   ```bash
+   # macOS: https://www.docker.com/products/docker-desktop/
+   docker --version
+   ```
+
+## Running Tests
+
+### Quick Commands
 
 ```bash
-# Run Phase 1 tests only (no Docker/Ollama required)
-go test -v -run TestE2E
+# Run E2E tests (requires stigmer server running)
+make test-e2e
 
-# Run Phase 2 tests (requires Docker + Ollama)
-go test -v -run TestFullExecution
+# Run ALL tests including unit tests
+make test-all
 
-# Run all tests (Phase 1 + Phase 2)
-go test -v
+# Run only unit tests (no infrastructure needed, runs in CI)
+make test
 ```
 
-### Phase 2 Components
+### Detailed Workflow
 
-**New Files:**
-- `prereqs_test.go` - Checks Docker and Ollama availability
-- `docker-compose.e2e.yml` - Temporal + agent-runner setup
-- `e2e_run_full_test.go` - Full execution integration tests
-
-**Enhanced Files:**
-- `harness_test.go` - Now manages Docker services
-- `helpers_test.go` - Added execution monitoring helpers
-
-**New Helper Functions:**
-- `CheckPrerequisites()` - Verifies Docker and Ollama
-- `StartHarnessWithDocker()` - Starts server + Docker services
-- `WaitForExecutionPhase()` - Polls execution until target phase
-- `GetExecutionMessages()` - Retrieves agent output
-
-### Phase 2 Test Cases
-
-**Implemented:**
-- [x] `TestRunWithFullExecution` - Complete agent execution lifecycle
-- [x] `TestRunWithInvalidMessage` - Error handling for full execution
-
-**Future Tests:**
-- [ ] `TestRunWithLogStreaming` - Test --follow flag
-- [ ] `TestRunWithRuntimeEnv` - Test environment variables
-- [ ] `TestRunWithSkills` - Agent with skills execution
-- [ ] `TestRunWithMcpServers` - Agent with MCP servers
-
-### Docker Services
-
-The test harness manages these containers:
-
-| Service | Port | Purpose |
-|---------|------|---------|
-| Temporal | 7233 | Workflow orchestration |
-| Temporal UI | 8233 | Web interface (optional) |
-| agent-runner | - | Executes agent workflows |
-
-**Automatic Cleanup:** Containers are stopped and removed after each test.
-
-### Troubleshooting Phase 2
-
-**Prerequisites Check Failed:**
+**Step 1: Start infrastructure** (Terminal 1)
 ```bash
-# Verify Docker is running
-docker ps
+# This starts Temporal + stigmer-server + agent-runner
+stigmer server
+```
 
-# Verify Ollama is running
+**Step 2: Run tests** (Terminal 2)
+```bash
+# Navigate to test directory
+cd test/e2e
+
+# Run E2E tests with build tag
+go test -v -tags=e2e -timeout 60s
+
+# Or run specific test
+go test -v -tags=e2e -run TestE2E/TestApplyBasicAgent
+```
+
+## Test Phases
+
+### Phase 1: Smoke Tests (Current)
+
+Basic integration testing without full agent execution:
+
+- ✅ **TestServerStarts** - Server lifecycle
+- ✅ **TestApplyBasicAgent** - Deploy agent via CLI
+- ✅ **TestApplyDryRun** - Validation mode
+- ✅ **TestRunBasicAgent** - Execution creation
+- ✅ **TestRunWithInvalidAgent** - Error handling
+
+**Runtime**: ~10-15 seconds  
+**Coverage**: CLI → stigmer-server → Database
+
+### Phase 2: Full Execution (Planned)
+
+Complete agent execution with LLM calls:
+
+- ⏳ **TestRunWithFullExecution** - End-to-end agent execution
+- ⏳ **TestRunWithLogStreaming** - Log streaming via `--follow`
+- ⏳ **TestRunWithRuntimeEnv** - Environment variable passing
+
+**Runtime**: ~30-60 seconds (includes LLM calls)  
+**Coverage**: CLI → Server → Temporal → Agent Runner → LLM → Response
+
+## Debugging
+
+### View Test Data in Temporal UI
+
+1. **Start Temporal UI** (if using `stigmer server`, it's already running):
+   ```bash
+   # Temporal UI runs on http://localhost:8233
+   open http://localhost:8233
+   ```
+
+2. **Test workflows are prefixed**: `e2e-test-{timestamp}-`
+   - Easy to identify test executions
+   - Won't conflict with development workflows
+
+### Common Issues
+
+**"No tests to run"**
+```bash
+# Missing build tag - tests are skipped
+go test -v  # ❌ Won't run E2E tests
+
+# Correct:
+go test -v -tags=e2e  # ✅ Runs E2E tests
+```
+
+**"Connection refused" or "Server not available"**
+```bash
+# Start stigmer server first
+stigmer server
+
+# Verify it's running
+stigmer server status
+```
+
+**"Ollama not running"**
+```bash
+# Start Ollama
+ollama serve
+
+# Verify
 curl http://localhost:11434/api/version
-
-# Check which prerequisite failed
-go test -v -run TestFullExecution
 ```
 
-**Docker Containers Won't Start:**
+**Tests hang or timeout**
 ```bash
-# Check for conflicting containers
-docker ps -a | grep stigmer-e2e
+# Check if Temporal is healthy
+curl http://localhost:7233/api/v1/namespaces
 
-# Clean up manually if needed
-docker-compose -f docker-compose.e2e.yml -p stigmer-e2e down -v
-
-# Check Docker daemon logs
-docker logs stigmer-e2e-temporal
-docker logs stigmer-e2e-agent-runner
+# Check stigmer-server logs
+stigmer server logs
 ```
 
-**Tests Timeout:**
-- Increase timeout in test code (default: 60 seconds)
-- Check Ollama model is downloaded: `ollama list`
-- Verify agent-runner can reach Ollama: `docker logs stigmer-e2e-agent-runner`
+## CI/CD Integration
 
-**Agent Not Responding:**
-- Check Temporal is healthy: `docker exec stigmer-e2e-temporal tctl cluster health`
-- Verify agent-runner is connected to Temporal
-- Check Ollama model availability
+**Current**: E2E tests are **excluded from CI** (by design).
 
-### Future Scenarios
+**Why?**
+- Require running infrastructure (Temporal, Ollama)
+- Slower than unit tests
+- Best run locally or in dedicated E2E environment
 
-**Planned Test Coverage:**
-- Agent with skills, subagents, MCP servers
-- Error cases (invalid YAML, bad Go code)
-- Workflow deployment and execution
-- Update/delete operations
-- Concurrent executions
-- Long-running agents
-
-## Test Data
-
-Test fixtures go in `testdata/`:
-
-```
-testdata/
-├── basic_agent.go       # Minimal agent definition
-├── complex_workflow.go  # Multi-step workflow
-└── invalid_config.go    # Error case testing
+**Future**: When we set up dedicated E2E infrastructure:
+```yaml
+# .github/workflows/e2e.yml
+name: E2E Tests
+on: [push]
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Start Stigmer Server
+        run: |
+          stigmer server &
+          sleep 10  # Wait for startup
+      - name: Run E2E Tests
+        run: make test-e2e
 ```
 
-## Configuration
+## Test Architecture
 
-The test harness uses these environment variables:
+### Harness Pattern
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `DB_PATH` | BadgerDB storage location | `{tempDir}/stigmer.db` |
-| `GRPC_PORT` | Server gRPC port | Random free port |
-| `ENV` | Environment mode | `test` (disables debug server) |
-| `LOG_LEVEL` | Logging verbosity | `info` |
-
-**Note**: Tests use `ENV=test` to disable the debug HTTP server (port 8234), preventing port conflicts between tests.
-
-## Troubleshooting
-
-### Port Already in Use
-
-The harness automatically finds free ports. If you see port conflicts, it's likely from a previous test that didn't clean up properly.
-
-**Fix:** Ensure tests call `TearDownTest()` or use `defer` in standalone tests.
-
-### Server Won't Start
-
-Check the server logs in test output. Common issues:
-- Missing dependencies (Go modules not synced)
-- File permissions on temp directory
-- Port exhaustion (very rare)
-
-### Tests Hang
-
-The harness has a 10-second health check timeout. If tests hang:
-- Check if server is starting (logs should appear)
-- Verify `stigmer-server` compiles: `go build backend/services/stigmer-server/cmd/server/main.go`
-
-### Database Lock Errors
-
-Each test gets a fresh database. If you see lock errors, it means:
-- Previous test didn't clean up
-- Multiple tests accessing same temp directory (shouldn't happen with testify suite)
-
-### Suite-Based Tests (Previously Hung - Now Fixed!)
-
-**Problem (RESOLVED)**: Tests using `testify/suite` were hanging indefinitely.
-
-**Root Causes Identified**:
-1. Debug HTTP server binding to fixed port 8234 → port conflicts
-2. Improper process shutdown (SIGKILL instead of SIGINT)
-3. Signals not propagating from `go run` parent to child Go binary
-
-**Solutions Implemented**:
-- ✅ Use `ENV=test` to disable debug server (prevents port conflicts)
-- ✅ Process group management (`Setpgid: true`) for signal propagation
-- ✅ Graceful shutdown with SIGINT to entire process group
-- ✅ Corrected CLI path and server address handling
-
-**Result**: All tests now run without hanging! ✨
-
-**Performance**: Server shutdown improved from 5+ seconds (force-kill) to ~0.6 seconds (graceful).
-
-See `../../_projects/2026-01/20260122.05.e2e-integration-testing/checkpoints/03-iteration-3-suite-hanging-fixed.md` for full details.
-
-## Design Decisions
-
-### Why testify/suite?
-
-- **Lifecycle hooks**: `SetupTest()` and `TearDownTest()` for automatic cleanup
-- **Rich assertions**: `s.Equal()`, `s.Contains()`, `s.NoError()` etc.
-- **Test organization**: Group related tests in suites
-- **Standard library**: Widely used in Go ecosystem
-
-### Why Ephemeral Harness?
-
-- **True isolation**: No shared state between tests
-- **Parallel safety**: Each test gets unique port and storage
-- **Reproducibility**: Fresh environment every time
-- **No mocking**: Tests use real components (stigmer-server, BadgerDB)
-
-### Why In-Process CLI?
-
-- **Speed**: No subprocess overhead (10-100ms saved per call)
-- **Debugging**: Stack traces show full execution path
-- **Coverage**: `go test -cover` captures CLI code
-- **Simplicity**: Direct function calls instead of subprocess management
-
-## Success Criteria
-
-Before marking a test complete:
-
-- [ ] Test is self-contained (no external dependencies)
-- [ ] Test cleans up all resources (temp dirs, processes)
-- [ ] Test passes reliably (no flakiness)
-- [ ] Test completes in < 10 seconds
-- [ ] Test is well-documented (comments explain what/why)
-
-## Coding Standards
-
-### Test Naming
+Tests use a `TestHarness` that manages lifecycle:
 
 ```go
-func (s *E2ESuite) TestApplyBasicAgent()       // ✅ Action + Subject
-func (s *E2ESuite) TestRunWorkflowWithParams() // ✅ Clear intent
-func (s *E2ESuite) TestStuff()                 // ❌ Too vague
-```
-
-### Assertion Style
-
-```go
-// ✅ Descriptive messages
-s.NoError(err, "Failed to apply agent configuration")
-s.Equal(expected, actual, "Agent name should match")
-
-// ❌ No messages
-s.NoError(err)
-s.Equal(expected, actual)
-```
-
-### Test Structure
-
-Follow the **Arrange-Act-Assert** pattern:
-
-```go
-func (s *E2ESuite) TestExample() {
-    // ARRANGE: Set up test data
-    config := loadTestConfig()
+type TestHarness struct {
+    ServerCmd  *exec.Cmd  // stigmer-server process
+    ServerPort int        // Random port (isolation)
+    TempDir    string     // Isolated database
     
-    // ACT: Execute the operation
-    result, err := performOperation(config)
-    
-    // ASSERT: Verify expectations
-    s.NoError(err)
-    s.Equal(expectedResult, result)
+    // Phase 2 additions:
+    TemporalAddr      string  // localhost:7233
+    AgentRunnerReady  bool    // Worker is connected
 }
 ```
 
-## Related Documentation
+### Test Isolation
 
-- [Gemini Research Report](../../_projects/2026-01/20260122.05.e2e-integration-testing/gemini-response.md)
-- [Implementation Plan](../../_projects/2026-01/20260122.05.e2e-integration-testing/next-task.md)
-- [Stigmer CLI Architecture](../../client-apps/cli/README.md)
-- [Stigmer Server Architecture](../../backend/services/stigmer-server/README.md)
+Each test gets:
+- ✅ **Fresh temp directory** for database
+- ✅ **Random port** for stigmer-server
+- ✅ **Unique workflow IDs** (`e2e-test-{timestamp}`)
+- ✅ **Clean shutdown** after each test
+
+Shared across tests:
+- ✅ **Temporal instance** (localhost:7233)
+- ✅ **Ollama instance** (localhost:11434)
+
+### API Verification Pattern
+
+Tests verify via **gRPC API** (not direct DB access):
+
+```go
+// ✅ Proper API verification
+exists, err := AgentExistsViaAPI(serverPort, agentID)
+
+// ❌ Direct DB access (breaks abstraction)
+value, err := GetFromDB(dbPath, key)  // Only for debugging
+```
+
+## File Structure
+
+```
+test/e2e/
+├── README.md                  # This file
+├── suite_test.go             # Testify suite setup
+├── harness_test.go           # Test harness (server lifecycle)
+├── helpers_test.go           # API helpers (verification)
+├── cli_runner_test.go        # CLI command execution
+├── prereqs_test.go           # Prerequisites checking
+│
+├── e2e_apply_test.go         # Apply command tests (Phase 1)
+├── e2e_run_test.go           # Run command tests (Phase 1)
+├── e2e_run_full_test.go      # Full execution tests (Phase 2)
+│
+└── testdata/
+    ├── Stigmer.yaml          # Test configuration
+    └── basic_agent.go        # Test agent definition
+```
+
+## Contributing
+
+### Adding New Tests
+
+1. **Create test file** with build tag:
+```go
+//go:build e2e
+// +build e2e
+
+package e2e
+
+func (s *E2ESuite) TestMyNewFeature() {
+    // Test code...
+}
+```
+
+2. **Use the harness pattern**:
+```go
+// Server is already running (from suite setup)
+output, err := RunCLIWithServerAddr(
+    s.Harness.ServerPort,
+    "your-command", "args",
+)
+```
+
+3. **Verify via API**:
+```go
+exists, err := AgentExistsViaAPI(s.Harness.ServerPort, agentID)
+s.Require().NoError(err)
+s.Require().True(exists)
+```
+
+4. **Run and verify**:
+```bash
+go test -v -tags=e2e -run TestMyNewFeature
+```
+
+### Test Naming Convention
+
+- `TestServerXxx` - Infrastructure tests
+- `TestApplyXxx` - Apply command tests
+- `TestRunXxx` - Run command tests
+- `TestXxxError` - Error case tests
+
+## Performance
+
+**Current metrics** (Phase 1):
+- **Test suite runtime**: ~12-15 seconds (6 tests)
+- **Server startup**: ~1 second
+- **Server shutdown**: ~0.5 seconds
+- **Per-test overhead**: ~1-2 seconds
+
+**Expected metrics** (Phase 2 with LLM):
+- **Test suite runtime**: ~60-90 seconds
+- **LLM call overhead**: ~5-10 seconds per execution
+
+## Future Enhancements
+
+- [ ] Add more agent scenarios (skills, subagents, MCP servers)
+- [ ] Test workflow execution
+- [ ] Add performance benchmarks
+- [ ] Structured CLI output (`--output json`)
+- [ ] Parallel test execution
+- [ ] CI/CD integration with dedicated infrastructure
 
 ---
 
-**Status:** ✅ **Phase 2 Infrastructure Complete!**  
-**Last Updated:** 2026-01-22  
-
-**Phase 1:** ✅ Run Command Tests Working (6 tests: 5 pass, 1 skip)  
-**Phase 2:** ✅ Infrastructure Implemented - Ready for Testing!
-
-**New Phase 2 Capabilities:**
-- ✅ Docker Compose setup (Temporal + agent-runner)
-- ✅ Prerequisites checking (Docker, Ollama)
-- ✅ Enhanced test harness with Docker management
-- ✅ Execution monitoring helpers
-- ✅ Full execution test suite (`FullExecutionSuite`)
-- ✅ Automatic cleanup of Docker services
-
-**Test Suite Time (Phase 1):** ~13.3 seconds  
-**Confidence:** HIGH - Ready for Phase 2 testing with real LLM execution
-
-**Next:** Run Phase 2 tests with Ollama to validate full agent execution lifecycle
+**Questions?** Check the [main project README](../../README.md) or open an issue.

@@ -673,3 +673,309 @@ func TestGetResourcesByDepth_Empty(t *testing.T) {
 		t.Errorf("expected 0 depth groups, got %d", len(groups))
 	}
 }
+
+// Visualization Tests
+
+func TestGetDependencyGraphMermaid_Empty(t *testing.T) {
+	result := &Result{
+		Skills:       []*skillv1.Skill{},
+		Agents:       []*agentv1.Agent{},
+		Workflows:    []*workflowv1.Workflow{},
+		Dependencies: map[string][]string{},
+	}
+
+	mermaid := result.GetDependencyGraphMermaid()
+	if mermaid == "" {
+		t.Error("expected non-empty Mermaid diagram")
+	}
+	
+	// Should contain empty state
+	if !containsString(mermaid, "empty") {
+		t.Error("expected Mermaid diagram to indicate empty state")
+	}
+}
+
+func TestGetDependencyGraphMermaid_SimpleChain(t *testing.T) {
+	skill := createTestSkill("coding")
+	agent := createTestAgent("reviewer")
+	workflow := createTestWorkflow("pr-review")
+
+	result := &Result{
+		Skills:    []*skillv1.Skill{skill},
+		Agents:    []*agentv1.Agent{agent},
+		Workflows: []*workflowv1.Workflow{workflow},
+		Dependencies: map[string][]string{
+			"agent:reviewer":     {"skill:coding"},
+			"workflow:pr-review": {"agent:reviewer"},
+		},
+	}
+
+	mermaid := result.GetDependencyGraphMermaid()
+	
+	// Should contain Mermaid header
+	if !containsString(mermaid, "```mermaid") {
+		t.Error("expected Mermaid code block opening")
+	}
+	
+	if !containsString(mermaid, "flowchart LR") {
+		t.Error("expected flowchart LR directive")
+	}
+	
+	// Should contain all resources
+	if !containsString(mermaid, "skill:coding") {
+		t.Error("expected skill:coding in diagram")
+	}
+	if !containsString(mermaid, "agent:reviewer") {
+		t.Error("expected agent:reviewer in diagram")
+	}
+	if !containsString(mermaid, "workflow:pr-review") {
+		t.Error("expected workflow:pr-review in diagram")
+	}
+	
+	// Should contain arrows
+	if !containsString(mermaid, "-->") {
+		t.Error("expected --> arrows in diagram")
+	}
+	
+	// Should contain styling
+	if !containsString(mermaid, "classDef skill") {
+		t.Error("expected skill styling")
+	}
+	if !containsString(mermaid, "classDef agent") {
+		t.Error("expected agent styling")
+	}
+	if !containsString(mermaid, "classDef workflow") {
+		t.Error("expected workflow styling")
+	}
+}
+
+func TestGetDependencyGraphMermaid_ParallelBranches(t *testing.T) {
+	skill1 := createTestSkill("coding")
+	skill2 := createTestSkill("security")
+	agent1 := createTestAgent("code-reviewer")
+	agent2 := createTestAgent("sec-reviewer")
+	workflow := createTestWorkflow("pr-review")
+
+	result := &Result{
+		Skills:    []*skillv1.Skill{skill1, skill2},
+		Agents:    []*agentv1.Agent{agent1, agent2},
+		Workflows: []*workflowv1.Workflow{workflow},
+		Dependencies: map[string][]string{
+			"agent:code-reviewer": {"skill:coding"},
+			"agent:sec-reviewer":  {"skill:security"},
+			"workflow:pr-review":  {"agent:code-reviewer", "agent:sec-reviewer"},
+		},
+	}
+
+	mermaid := result.GetDependencyGraphMermaid()
+	
+	// Should contain all resources
+	if !containsString(mermaid, "skill:coding") {
+		t.Error("expected skill:coding in diagram")
+	}
+	if !containsString(mermaid, "skill:security") {
+		t.Error("expected skill:security in diagram")
+	}
+	if !containsString(mermaid, "agent:code-reviewer") {
+		t.Error("expected agent:code-reviewer in diagram")
+	}
+	if !containsString(mermaid, "agent:sec-reviewer") {
+		t.Error("expected agent:sec-reviewer in diagram")
+	}
+	if !containsString(mermaid, "workflow:pr-review") {
+		t.Error("expected workflow:pr-review in diagram")
+	}
+}
+
+func TestGetDependencyGraphDot_Empty(t *testing.T) {
+	result := &Result{
+		Skills:       []*skillv1.Skill{},
+		Agents:       []*agentv1.Agent{},
+		Workflows:    []*workflowv1.Workflow{},
+		Dependencies: map[string][]string{},
+	}
+
+	dot := result.GetDependencyGraphDot()
+	if dot == "" {
+		t.Error("expected non-empty DOT diagram")
+	}
+	
+	// Should contain DOT header
+	if !containsString(dot, "digraph dependencies") {
+		t.Error("expected digraph dependencies directive")
+	}
+	
+	// Should contain empty state
+	if !containsString(dot, "empty") {
+		t.Error("expected DOT diagram to indicate empty state")
+	}
+}
+
+func TestGetDependencyGraphDot_SimpleChain(t *testing.T) {
+	skill := createTestSkill("coding")
+	agent := createTestAgent("reviewer")
+	workflow := createTestWorkflow("pr-review")
+
+	result := &Result{
+		Skills:    []*skillv1.Skill{skill},
+		Agents:    []*agentv1.Agent{agent},
+		Workflows: []*workflowv1.Workflow{workflow},
+		Dependencies: map[string][]string{
+			"agent:reviewer":     {"skill:coding"},
+			"workflow:pr-review": {"agent:reviewer"},
+		},
+	}
+
+	dot := result.GetDependencyGraphDot()
+	
+	// Should contain DOT header
+	if !containsString(dot, "digraph dependencies") {
+		t.Error("expected digraph dependencies directive")
+	}
+	
+	if !containsString(dot, "rankdir=LR") {
+		t.Error("expected left-to-right layout")
+	}
+	
+	// Should contain all resources
+	if !containsString(dot, "\"skill:coding\"") {
+		t.Error("expected skill:coding in diagram")
+	}
+	if !containsString(dot, "\"agent:reviewer\"") {
+		t.Error("expected agent:reviewer in diagram")
+	}
+	if !containsString(dot, "\"workflow:pr-review\"") {
+		t.Error("expected workflow:pr-review in diagram")
+	}
+	
+	// Should contain arrows
+	if !containsString(dot, "->") {
+		t.Error("expected -> arrows in diagram")
+	}
+	
+	// Should contain shapes
+	if !containsString(dot, "shape=") {
+		t.Error("expected shape definitions")
+	}
+	
+	// Should contain colors
+	if !containsString(dot, "fillcolor=") {
+		t.Error("expected fillcolor definitions")
+	}
+}
+
+func TestGetDependencyGraphDot_ParallelBranches(t *testing.T) {
+	skill1 := createTestSkill("coding")
+	skill2 := createTestSkill("security")
+	agent1 := createTestAgent("code-reviewer")
+	agent2 := createTestAgent("sec-reviewer")
+	workflow := createTestWorkflow("pr-review")
+
+	result := &Result{
+		Skills:    []*skillv1.Skill{skill1, skill2},
+		Agents:    []*agentv1.Agent{agent1, agent2},
+		Workflows: []*workflowv1.Workflow{workflow},
+		Dependencies: map[string][]string{
+			"agent:code-reviewer": {"skill:coding"},
+			"agent:sec-reviewer":  {"skill:security"},
+			"workflow:pr-review":  {"agent:code-reviewer", "agent:sec-reviewer"},
+		},
+	}
+
+	dot := result.GetDependencyGraphDot()
+	
+	// Should contain all resources
+	if !containsString(dot, "\"skill:coding\"") {
+		t.Error("expected skill:coding in diagram")
+	}
+	if !containsString(dot, "\"skill:security\"") {
+		t.Error("expected skill:security in diagram")
+	}
+	if !containsString(dot, "\"agent:code-reviewer\"") {
+		t.Error("expected agent:code-reviewer in diagram")
+	}
+	if !containsString(dot, "\"agent:sec-reviewer\"") {
+		t.Error("expected agent:sec-reviewer in diagram")
+	}
+	if !containsString(dot, "\"workflow:pr-review\"") {
+		t.Error("expected workflow:pr-review in diagram")
+	}
+}
+
+func TestSanitizeMermaidID(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"skill:coding", "skill_coding"},
+		{"agent:code-reviewer", "agent_code_reviewer"},
+		{"workflow:pr-review", "workflow_pr_review"},
+		{"test-name", "test_name"},
+		{"normal", "normal"},
+	}
+
+	for _, tt := range tests {
+		result := sanitizeMermaidID(tt.input)
+		if result != tt.expected {
+			t.Errorf("sanitizeMermaidID(%s) = %s, want %s", tt.input, result, tt.expected)
+		}
+	}
+}
+
+func TestGetResourceType(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"skill:coding", "skill"},
+		{"agent:reviewer", "agent"},
+		{"workflow:pr-review", "workflow"},
+		{"invalid", "unknown"},
+		{"", "unknown"},
+	}
+
+	for _, tt := range tests {
+		result := getResourceType(tt.input)
+		if result != tt.expected {
+			t.Errorf("getResourceType(%s) = %s, want %s", tt.input, result, tt.expected)
+		}
+	}
+}
+
+func TestGetNodeStyle(t *testing.T) {
+	tests := []struct {
+		input         string
+		expectedShape string
+		expectedColor string
+	}{
+		{"skill:coding", "box", "#e1f5e1"},
+		{"agent:reviewer", "ellipse", "#e3f2fd"},
+		{"workflow:pr-review", "hexagon", "#fff3e0"},
+		{"unknown:test", "ellipse", "#f5f5f5"},
+	}
+
+	for _, tt := range tests {
+		shape, color := getNodeStyle(tt.input)
+		if shape != tt.expectedShape || color != tt.expectedColor {
+			t.Errorf("getNodeStyle(%s) = (%s, %s), want (%s, %s)", 
+				tt.input, shape, color, tt.expectedShape, tt.expectedColor)
+		}
+	}
+}
+
+// Helper function to check if string contains substring
+func containsString(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || findSubstring(s, substr))
+}
+
+func findSubstring(s, substr string) bool {
+	if len(substr) == 0 {
+		return true
+	}
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
