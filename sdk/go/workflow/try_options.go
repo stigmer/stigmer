@@ -120,15 +120,14 @@ func TryBlock(builder func() *Task) TryOption {
 		// Call the builder to get the task
 		task := builder()
 		
-		// Convert task to map representation
-		taskMap := map[string]interface{}{
-			"name": task.Name,
-			"kind": string(task.Kind),
-		}
-		
-		// Add config if present
-		if task.Config != nil {
-			taskMap["config"] = task.Config
+		// Convert task to map representation using the helper
+		taskMap, err := taskToMap(task)
+		if err != nil {
+			// If conversion fails, create a minimal task map
+			taskMap = map[string]interface{}{
+				"name": task.Name,
+				"kind": string(task.Kind),
+			}
 		}
 		
 		c.Tasks = []map[string]interface{}{taskMap}
@@ -154,15 +153,14 @@ func CatchBlock(builder func(err ErrorRef) *Task) TryOption {
 		// Call the builder to get the error handling task
 		task := builder(errRef)
 		
-		// Convert task to map representation
-		taskMap := map[string]interface{}{
-			"name": task.Name,
-			"kind": string(task.Kind),
-		}
-		
-		// Add config if present
-		if task.Config != nil {
-			taskMap["config"] = task.Config
+		// Convert task to map representation using the helper
+		taskMap, err := taskToMap(task)
+		if err != nil {
+			// If conversion fails, create a minimal task map
+			taskMap = map[string]interface{}{
+				"name": task.Name,
+				"kind": string(task.Kind),
+			}
 		}
 		
 		// Create catch entry
@@ -192,15 +190,14 @@ func CatchErrors(errorTypes []string, as string, builder func(err ErrorRef) *Tas
 		// Call the builder to get the error handling task
 		task := builder(errRef)
 		
-		// Convert task to map representation
-		taskMap := map[string]interface{}{
-			"name": task.Name,
-			"kind": string(task.Kind),
-		}
-		
-		// Add config if present
-		if task.Config != nil {
-			taskMap["config"] = task.Config
+		// Convert task to map representation using the helper
+		taskMap, err := taskToMap(task)
+		if err != nil {
+			// If conversion fails, create a minimal task map
+			taskMap = map[string]interface{}{
+				"name": task.Name,
+				"kind": string(task.Kind),
+			}
 		}
 		
 		// Create catch entry
@@ -229,15 +226,14 @@ func FinallyBlock(builder func() *Task) TryOption {
 		// Call the builder to get the cleanup task
 		task := builder()
 		
-		// Convert task to map representation
-		taskMap := map[string]interface{}{
-			"name": task.Name,
-			"kind": string(task.Kind),
-		}
-		
-		// Add config if present
-		if task.Config != nil {
-			taskMap["config"] = task.Config
+		// Convert task to map representation using the helper
+		taskMap, err := taskToMap(task)
+		if err != nil {
+			// If conversion fails, create a minimal task map
+			taskMap = map[string]interface{}{
+				"name": task.Name,
+				"kind": string(task.Kind),
+			}
 		}
 		
 		// Add as a catch-all handler (executes regardless of error)

@@ -8,6 +8,7 @@ import (
 
 	badger "github.com/dgraph-io/badger/v3"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -132,6 +133,33 @@ func AgentExistsViaAPI(serverPort int, agentID string) (bool, error) {
 	if err != nil {
 		// Check if it's a NotFound error (agent doesn't exist) or another error
 		return false, fmt.Errorf("failed to get agent: %w", err)
+	}
+
+	return true, nil
+}
+
+// AgentExecutionExistsViaAPI checks if an agent execution exists by querying the gRPC API
+// This is the proper way to verify executions in tests (not direct DB access)
+func AgentExecutionExistsViaAPI(serverPort int, executionID string) (bool, error) {
+	// Connect to the server
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return false, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	// Create agent execution query client
+	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
+
+	// Query the execution
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = client.Get(ctx, &agentexecutionv1.AgentExecutionId{Value: executionID})
+	if err != nil {
+		// Check if it's a NotFound error (execution doesn't exist) or another error
+		return false, fmt.Errorf("failed to get execution: %w", err)
 	}
 
 	return true, nil
