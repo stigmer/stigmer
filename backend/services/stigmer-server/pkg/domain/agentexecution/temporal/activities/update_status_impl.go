@@ -21,17 +21,25 @@ import (
 // - Apply status updates (merge or replace based on field)
 // - Update audit timestamps
 // - Save to BadgerDB
+// - Broadcast to StreamBroker (for real-time updates to subscribers)
 //
 // This is called by the agent-runner worker via polyglot Temporal workflow.
 // Language-agnostic design: works regardless of which service implements the activity.
 type UpdateExecutionStatusActivityImpl struct {
-	store *badger.Store
+	store        *badger.Store
+	streamBroker StreamBroker
+}
+
+// StreamBroker interface for broadcasting execution updates
+type StreamBroker interface {
+	Broadcast(execution *agentexecutionv1.AgentExecution)
 }
 
 // NewUpdateExecutionStatusActivityImpl creates a new UpdateExecutionStatusActivityImpl.
-func NewUpdateExecutionStatusActivityImpl(store *badger.Store) *UpdateExecutionStatusActivityImpl {
+func NewUpdateExecutionStatusActivityImpl(store *badger.Store, streamBroker StreamBroker) *UpdateExecutionStatusActivityImpl {
 	return &UpdateExecutionStatusActivityImpl{
-		store: store,
+		store:        store,
+		streamBroker: streamBroker,
 	}
 }
 
@@ -168,6 +176,15 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		Int("todos", len(existing.GetStatus().GetTodos())).
 		Str("phase", existing.GetStatus().GetPhase().String()).
 		Msg("✅ Activity completed - Updated execution status")
+
+	// Broadcast to active subscribers (ADR 011: real-time streaming)
+	// This ensures that errors from workflow failures are immediately visible to users
+	if a.streamBroker != nil {
+		a.streamBroker.Broadcast(existing)
+		log.Debug().
+			Str("execution_id", executionID).
+			Msg("Broadcasted status update to subscribers")
+	}
 
 	return nil
 }

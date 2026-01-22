@@ -325,28 +325,27 @@ release-local: ## Build and install CLI for local testing (fast rebuild without 
 dev: ## Run Stigmer in development mode
 	cd client-apps/cli && go run .
 
-build-agent-runner: ## Build agent-runner PyInstaller binary (for development)
-	@echo "Building agent-runner binary..."
-	@cd backend/services/agent-runner && $(MAKE) build-binary
-	@echo "✓ Built: backend/services/agent-runner/dist/agent-runner"
-
-install-agent-runner: build-agent-runner ## Build and install agent-runner to ~/.stigmer/bin
-	@echo "Installing agent-runner to ~/.stigmer/bin..."
-	@mkdir -p $(HOME)/.stigmer/bin
-	@cp backend/services/agent-runner/dist/agent-runner $(HOME)/.stigmer/bin/agent-runner
-	@chmod +x $(HOME)/.stigmer/bin/agent-runner
-	@echo "✓ Installed: $(HOME)/.stigmer/bin/agent-runner"
+build-agent-runner-image: ## Build agent-runner Docker image (for development)
+	@echo "============================================"
+	@echo "Building Agent-Runner Docker Image"
+	@echo "============================================"
 	@echo ""
-	@echo "Agent-runner binary ready for local testing."
-	@echo "Run 'stigmer server' to use the updated binary."
+	@echo "Building stigmer-agent-runner:local from Dockerfile..."
+	@cd backend/services/agent-runner && docker build -f Dockerfile -t stigmer-agent-runner:local ../../..
+	@echo ""
+	@echo "✓ Docker image built: stigmer-agent-runner:local"
+	@echo ""
+	@echo "Verifying image..."
+	@docker images stigmer-agent-runner:local
+	@echo ""
 
-release-local-full: ## Build CLI and agent-runner for complete local testing
+release-local-full: ## Build CLI and agent-runner Docker image for complete local testing
 	@echo "============================================"
 	@echo "Building Complete Local Environment"
 	@echo "============================================"
 	@echo ""
-	@echo "Step 1: Building agent-runner binary..."
-	@$(MAKE) install-agent-runner
+	@echo "Step 1: Building agent-runner Docker image..."
+	@$(MAKE) build-agent-runner-image
 	@echo ""
 	@echo "Step 2: Building and installing CLI..."
 	@$(MAKE) release-local
@@ -357,8 +356,140 @@ release-local-full: ## Build CLI and agent-runner for complete local testing
 	@echo ""
 	@echo "Components installed:"
 	@echo "  • CLI: $(HOME)/bin/stigmer"
-	@echo "  • Agent Runner: $(HOME)/.stigmer/bin/agent-runner"
+	@echo "  • Agent Runner: stigmer-agent-runner:local (Docker image)"
 	@echo ""
 	@echo "Ready to test: stigmer server"
+
+# ==================== Sandbox Targets ====================
+
+sandbox-build-basic: ## Build basic sandbox Docker image (~300MB, lightweight)
+	@echo "============================================"
+	@echo "Building Basic Sandbox Image"
+	@echo "============================================"
+	@echo ""
+	@echo "Building stigmer-sandbox-basic:local..."
+	@cd backend/services/agent-runner/sandbox && \
+		docker build -f Dockerfile.sandbox.basic -t stigmer-sandbox-basic:local .
+	@echo ""
+	@echo "✓ Built: stigmer-sandbox-basic:local (~300MB)"
+	@echo ""
+	@echo "Verifying image..."
+	@docker images stigmer-sandbox-basic:local
+	@echo ""
+	@echo "Test with:"
+	@echo "  docker run --rm -it stigmer-sandbox-basic:local bash"
+	@echo ""
+
+sandbox-build-full: ## Build full sandbox Docker image (~1-2GB, all tools)
+	@echo "============================================"
+	@echo "Building Full Sandbox Image"
+	@echo "============================================"
+	@echo ""
+	@echo "⚠️  This will take 10-15 minutes and create a ~1-2GB image"
+	@echo ""
+	@echo "Building stigmer-sandbox-full:local..."
+	@cd backend/services/agent-runner/sandbox && \
+		docker build -f Dockerfile.sandbox.full -t stigmer-sandbox-full:local .
+	@echo ""
+	@echo "✓ Built: stigmer-sandbox-full:local (~1-2GB)"
+	@echo ""
+	@echo "Verifying image..."
+	@docker images stigmer-sandbox-full:local
+	@echo ""
+	@echo "Test with:"
+	@echo "  docker run --rm -it stigmer-sandbox-full:local bash"
+	@echo ""
+
+sandbox-test: ## Test sandbox images (verify tools work)
+	@echo "============================================"
+	@echo "Testing Sandbox Images"
+	@echo "============================================"
+	@echo ""
+	@if docker images -q stigmer-sandbox-basic:local 2>/dev/null | grep -q .; then \
+		echo "Testing basic sandbox..."; \
+		docker run --rm stigmer-sandbox-basic:local python --version; \
+		docker run --rm stigmer-sandbox-basic:local node --version; \
+		docker run --rm stigmer-sandbox-basic:local git --version; \
+		echo "✓ Basic sandbox tests passed"; \
+	else \
+		echo "⚠️  Basic sandbox not built. Run: make sandbox-build-basic"; \
+	fi
+	@echo ""
+	@if docker images -q stigmer-sandbox-full:local 2>/dev/null | grep -q .; then \
+		echo "Testing full sandbox..."; \
+		docker run --rm stigmer-sandbox-full:local aws --version; \
+		docker run --rm stigmer-sandbox-full:local kubectl version --client; \
+		docker run --rm stigmer-sandbox-full:local terraform version; \
+		echo "✓ Full sandbox tests passed"; \
+	else \
+		echo "⚠️  Full sandbox not built. Run: make sandbox-build-full"; \
+	fi
+	@echo ""
+	@echo "============================================"
+	@echo "✓ Sandbox Tests Complete!"
+	@echo "============================================"
+
+sandbox-clean: ## Remove sandbox Docker images
+	@echo "Removing sandbox images..."
+	@docker rmi stigmer-sandbox-basic:local 2>/dev/null || echo "Basic sandbox not found"
+	@docker rmi stigmer-sandbox-full:local 2>/dev/null || echo "Full sandbox not found"
+	@echo "✓ Sandbox images removed"
+
+test-local-mode: ## Test agent-runner in local execution mode
+	@echo "============================================"
+	@echo "Testing Local Execution Mode"
+	@echo "============================================"
+	@echo ""
+	@echo "Setting STIGMER_EXECUTION_MODE=local..."
+	@cd backend/services/agent-runner && \
+		STIGMER_EXECUTION_MODE=local poetry run python -c "from worker.config import Config; c = Config.load_from_env(); print(f'✓ Execution mode: {c.execution_mode.value}')"
+	@echo ""
+	@echo "✓ Local mode ready"
+	@echo ""
+	@echo "Start server with:"
+	@echo "  export STIGMER_EXECUTION_MODE=local"
+	@echo "  stigmer server start"
+	@echo ""
+
+test-sandbox-mode: sandbox-build-basic ## Test agent-runner in sandbox execution mode
+	@echo "============================================"
+	@echo "Testing Sandbox Execution Mode"
+	@echo "============================================"
+	@echo ""
+	@echo "Setting STIGMER_EXECUTION_MODE=sandbox..."
+	@cd backend/services/agent-runner && \
+		STIGMER_EXECUTION_MODE=sandbox \
+		STIGMER_SANDBOX_IMAGE=stigmer-sandbox-basic:local \
+		poetry run python -c "from worker.config import Config; c = Config.load_from_env(); print(f'✓ Execution mode: {c.execution_mode.value}'); print(f'✓ Sandbox image: {c.sandbox_image}')"
+	@echo ""
+	@echo "✓ Sandbox mode ready"
+	@echo ""
+	@echo "Start server with:"
+	@echo "  export STIGMER_EXECUTION_MODE=sandbox"
+	@echo "  export STIGMER_SANDBOX_IMAGE=stigmer-sandbox-basic:local"
+	@echo "  stigmer server start"
+	@echo ""
+
+dev-full: release-local-full sandbox-build-basic ## Build complete dev environment (CLI + agent-runner + sandbox)
+	@echo ""
+	@echo "============================================"
+	@echo "✓ Full Development Environment Ready!"
+	@echo "============================================"
+	@echo ""
+	@echo "Components installed:"
+	@echo "  • CLI: $(HOME)/bin/stigmer"
+	@echo "  • Agent Runner: stigmer-agent-runner:local"
+	@echo "  • Basic Sandbox: stigmer-sandbox-basic:local"
+	@echo ""
+	@echo "Usage:"
+	@echo ""
+	@echo "  Local mode (default, fast):"
+	@echo "    stigmer server start"
+	@echo ""
+	@echo "  Sandbox mode (isolated):"
+	@echo "    export STIGMER_EXECUTION_MODE=sandbox"
+	@echo "    export STIGMER_SANDBOX_IMAGE=stigmer-sandbox-basic:local"
+	@echo "    stigmer server start"
+	@echo ""
 
 .DEFAULT_GOAL := help

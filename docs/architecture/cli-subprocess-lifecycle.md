@@ -485,23 +485,64 @@ stigmer local  # Should start without cleanup
 
 See `_projects/.../task5-testing-guide.md` for comprehensive test scenarios.
 
+## Agent-Runner: Docker Container Approach
+
+**Note**: As of 2026-01-22, agent-runner uses Docker containers instead of subprocesses.
+
+### Why Docker vs Subprocess Pattern?
+
+Agent-runner previously used PyInstaller binaries but suffered from persistent import errors (multipart module). Docker provides:
+
+- ✅ **No Hidden Imports** - All dependencies explicit in poetry.lock
+- ✅ **Reproducible Builds** - Same environment everywhere
+- ✅ **Easy Debugging** - Shell into container to investigate
+- ✅ **Industry Standard** - Familiar to developers
+
+### Docker Lifecycle Management
+
+**Similar patterns, different mechanism:**
+
+```go
+// Start Docker container
+cmd := exec.Command("docker", "run", "-d",
+    "--name", "stigmer-agent-runner",
+    "--network", "host",
+    "-e", "MODE=local",
+    "-v", workspaceDir+":/workspace",
+    "stigmer-agent-runner:local",
+)
+containerID := cmd.Output()
+// Store container ID in ~/.stigmer/data/agent-runner-container.id
+
+// Stop container
+exec.Command("docker", "stop", containerID).Run()
+exec.Command("docker", "rm", containerID).Run()
+```
+
+**Lifecycle parallels:**
+- Container ID file ≈ PID file (identifies running instance)
+- Docker's built-in lifecycle ≈ Process groups (child process management)
+- `docker ps` health check ≈ Process health checks
+- Orphan cleanup with `docker ps -a` ≈ Process cleanup
+
+**See:** `_changelog/2026-01/2026-01-22-020000-migrate-agent-runner-to-docker.md` for migration details.
+
 ## Future Enhancements
 
 ### Planned
 
-1. **Multiple process management**
-   - Extend pattern to agent-runner
-   - Unified supervisor for all subprocesses
-   - Coordinated health checks
-
-2. **Metrics and observability**
+1. **Metrics and observability**
    - Health check timing metrics
    - Restart count tracking
    - Crash pattern analysis
 
-3. **Configurable health intervals**
+2. **Configurable health intervals**
    - User-configurable via env var
    - Adaptive intervals based on load
+
+3. **Docker image optimization**
+   - Reduce agent-runner image size (currently 2GB)
+   - Registry integration for auto-pull
 
 ### Under Consideration
 

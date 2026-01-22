@@ -27,7 +27,20 @@ How Polyglot Works:
 
 from dataclasses import dataclass
 from typing import Optional
+from enum import Enum
 import os
+
+
+class ExecutionMode(Enum):
+    """Execution mode for agent commands.
+    
+    LOCAL: Execute directly on host machine (default, fast)
+    SANDBOX: Execute in isolated Docker container (isolated)
+    AUTO: Automatically detect based on command (smart)
+    """
+    LOCAL = "local"
+    SANDBOX = "sandbox"
+    AUTO = "auto"
 
 
 @dataclass
@@ -74,7 +87,7 @@ class LLMConfig:
         Environment Variables:
             STIGMER_LLM_PROVIDER: LLM provider (anthropic|ollama|openai)
             STIGMER_LLM_MODEL: Model name (provider-specific)
-            STIGMER_LLM_BASE_URL: Base URL for Ollama (http://localhost:11434)
+            OLLAMA_BASE_URL: Base URL for Ollama (standard LangChain variable)
             STIGMER_LLM_API_KEY: API key for Anthropic/OpenAI
             STIGMER_LLM_MAX_TOKENS: Override default max_tokens
             STIGMER_LLM_TEMPERATURE: Override default temperature
@@ -104,7 +117,9 @@ class LLMConfig:
         model_name = os.getenv("STIGMER_LLM_MODEL", default_model_name)
         
         # Provider-specific settings
-        base_url = os.getenv("STIGMER_LLM_BASE_URL", default_base_url)
+        # Note: For Ollama, LangChain reads OLLAMA_BASE_URL directly from environment
+        # We just store it here for validation purposes
+        base_url = os.getenv("OLLAMA_BASE_URL", default_base_url)
         
         # API key with backward compatibility
         api_key = (
@@ -153,7 +168,7 @@ class LLMConfig:
             if not self.base_url:
                 raise ValueError(
                     "base_url is required for Ollama provider. "
-                    "Set STIGMER_LLM_BASE_URL (default: http://localhost:11434)"
+                    "Set OLLAMA_BASE_URL environment variable (default: http://localhost:11434)"
                 )
         
         if self.provider in {"anthropic", "openai"}:
@@ -217,6 +232,13 @@ class Config:
     
     # LLM configuration
     llm: LLMConfig
+    
+    # Execution mode configuration (local/sandbox/auto)
+    execution_mode: ExecutionMode
+    sandbox_image: str  # Docker image for sandbox mode
+    sandbox_auto_pull: bool  # Auto-pull image if missing
+    sandbox_cleanup: bool  # Cleanup containers after execution
+    sandbox_ttl: int  # Container reuse TTL in seconds
 
     @classmethod
     def load_from_env(cls):
@@ -227,6 +249,25 @@ class Config:
         
         # Load LLM configuration (mode-aware)
         llm_config = LLMConfig.load_from_env(mode)
+        
+        # Load execution mode configuration
+        execution_mode_str = os.getenv("STIGMER_EXECUTION_MODE", "local")
+        try:
+            execution_mode = ExecutionMode(execution_mode_str)
+        except ValueError:
+            raise ValueError(
+                f"Invalid STIGMER_EXECUTION_MODE: {execution_mode_str}. "
+                f"Must be one of: local, sandbox, auto"
+            )
+        
+        # Sandbox configuration
+        sandbox_image = os.getenv(
+            "STIGMER_SANDBOX_IMAGE",
+            "ghcr.io/stigmer/agent-sandbox-basic:latest"
+        )
+        sandbox_auto_pull = os.getenv("STIGMER_SANDBOX_AUTO_PULL", "true").lower() == "true"
+        sandbox_cleanup = os.getenv("STIGMER_SANDBOX_CLEANUP", "true").lower() == "true"
+        sandbox_ttl = int(os.getenv("STIGMER_SANDBOX_TTL", "3600"))  # 1 hour default
         
         # Load Stigmer API configuration
         stigmer_api_key = os.getenv("STIGMER_API_KEY", "")
@@ -279,6 +320,11 @@ class Config:
             redis_port=redis_port,
             redis_password=redis_password if redis_password else None,
             llm=llm_config,
+            execution_mode=execution_mode,
+            sandbox_image=sandbox_image,
+            sandbox_auto_pull=sandbox_auto_pull,
+            sandbox_cleanup=sandbox_cleanup,
+            sandbox_ttl=sandbox_ttl,
         )
     
     def get_sandbox_config(self) -> dict:

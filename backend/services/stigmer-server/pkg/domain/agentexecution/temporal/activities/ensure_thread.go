@@ -34,9 +34,10 @@ func NewEnsureThreadActivityStub(ctx workflow.Context, taskQueue string) EnsureT
 	// Create activity options with explicit task queue routing to Python worker
 	options := workflow.ActivityOptions{
 		TaskQueue:              taskQueue, // Route to Python worker (from memo)
-		StartToCloseTimeout:    30 * time.Second,
+		StartToCloseTimeout:    30 * time.Second, // Fast operation
+		ScheduleToStartTimeout: 1 * time.Minute,  // Max wait for worker to pick up task
 		RetryPolicy: &temporal.RetryPolicy{
-			MaximumAttempts:    3,
+			MaximumAttempts:    3, // Retry up to 3 times (idempotent operation)
 			InitialInterval:    5 * time.Second,
 			BackoffCoefficient: 2.0,
 		},

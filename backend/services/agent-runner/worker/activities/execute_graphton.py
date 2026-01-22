@@ -363,11 +363,36 @@ async def _execute_graphton_impl(
             }
             activity_logger.info(f"Configuring agent to use existing sandbox {sandbox.id}")
         
+        # Create LLM instance with explicit configuration
+        # This ensures base_url is properly set for Ollama connections from Docker
+        if worker_config.llm.provider == "ollama":
+            from langchain_ollama import ChatOllama
+            llm_model = ChatOllama(
+                model=model_name,
+                base_url=worker_config.llm.base_url,  # Explicitly pass base_url
+            )
+            activity_logger.info(f"Created ChatOllama with base_url={worker_config.llm.base_url}")
+        elif worker_config.llm.provider == "anthropic":
+            from langchain_anthropic import ChatAnthropic
+            llm_model = ChatAnthropic(
+                model=model_name,
+                api_key=worker_config.llm.api_key,
+            )
+        elif worker_config.llm.provider == "openai":
+            from langchain_openai import ChatOpenAI
+            llm_model = ChatOpenAI(
+                model=model_name,
+                api_key=worker_config.llm.api_key,
+            )
+        else:
+            # Fallback: pass model name as string and let Graphton handle it
+            llm_model = model_name
+        
         # Create Graphton agent
         # Recursion limit set to 1000 for maximum autonomy
         # Graphton's loop detection middleware prevents infinite loops
         agent_graph = create_deep_agent(
-            model=model_name,
+            model=llm_model,  # Pass LLM instance instead of string
             system_prompt=enhanced_system_prompt,
             mcp_servers={},  # MCP support will be added later
             mcp_tools=None,
@@ -407,7 +432,9 @@ async def _execute_graphton_impl(
         # Step 8: Stream execution and build status from events
         events_processed = 0
         last_update_sent = 0
+        last_heartbeat_sent = 0
         update_interval = 10  # Send status update every N events
+        heartbeat_interval = 5  # Send heartbeat every N events (more frequent than status updates)
         
         activity_logger.info(
             f"🔍 Starting Graphton agent stream for execution {execution_id}"
@@ -422,6 +449,21 @@ async def _execute_graphton_impl(
             await status_builder.process_event(event)
             
             events_processed += 1
+            
+            # Send activity heartbeat to prevent timeout
+            # This tells Temporal the activity is still running and making progress
+            if events_processed - last_heartbeat_sent >= heartbeat_interval:
+                try:
+                    activity.heartbeat({
+                        "events_processed": events_processed,
+                        "messages": len(status_builder.current_status.messages),
+                        "tool_calls": len(status_builder.current_status.tool_calls),
+                        "phase": status_builder.current_status.phase,
+                    })
+                    last_heartbeat_sent = events_processed
+                except Exception as e:
+                    # Heartbeat failure is not critical - log and continue
+                    activity_logger.debug(f"Heartbeat failed (event {events_processed}): {e}")
             
             # Send progressive status update via gRPC (every N events)
             if events_processed - last_update_sent >= update_interval:
