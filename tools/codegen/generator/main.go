@@ -315,10 +315,9 @@ func (g *Generator) generateTaskFile(taskConfig *TaskConfigSchema) error {
 		return err
 	}
 
-	// Generate builder function
-	if err := ctx.genBuilderFunc(&buf, taskConfig); err != nil {
-		return err
-	}
+	// Note: Builder functions are NOT generated here.
+	// They belong in the ergonomic API layer (workflow.go and *_options.go),
+	// not in generated code, because they reference manual SDK types like *Task.
 
 	// Generate ToProto method
 	if err := ctx.genToProtoMethod(&buf, taskConfig); err != nil {
@@ -475,7 +474,13 @@ func (c *genContext) genTypeStruct(w *bytes.Buffer, typeSchema *TypeSchema) erro
 	return nil
 }
 
-// genBuilderFunc generates a builder function for a task config
+// genBuilderFunc generates a builder function for a task config.
+// 
+// DEPRECATED: This method is no longer used. Builder functions are now
+// part of the manual ergonomic API layer (workflow.go and *_options.go),
+// not generated code, because they reference manual SDK types like *Task.
+// 
+// This method is kept for reference but should not be called.
 func (c *genContext) genBuilderFunc(w *bytes.Buffer, config *TaskConfigSchema) error {
 	// Function documentation
 	kindTitle := strings.Title(strings.ToLower(strings.ReplaceAll(config.Kind, "_", " ")))
@@ -615,6 +620,17 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 		fmt.Fprintf(w, "\t\tif err := c.%s.FromProto(val.GetStructValue()); err != nil {\n", field.Name)
 		fmt.Fprintf(w, "\t\t\treturn err\n")
 		fmt.Fprintf(w, "\t\t}\n")
+
+	case "array":
+		// TODO: Implement array FromProto conversion based on element type
+		// For now, skip array fields in FromProto (they're typically output-only)
+		fmt.Fprintf(w, "\t\t// TODO: Implement FromProto for array field %s\n", field.Name)
+		fmt.Fprintf(w, "\t\t_ = val // suppress unused variable warning\n")
+
+	default:
+		// For unknown types, suppress unused variable warning
+		fmt.Fprintf(w, "\t\t// TODO: Implement FromProto for %s field %s\n", field.Type.Kind, field.Name)
+		fmt.Fprintf(w, "\t\t_ = val // suppress unused variable warning\n")
 	}
 
 	fmt.Fprintf(w, "\t}\n\n")
