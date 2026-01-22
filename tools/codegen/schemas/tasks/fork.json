@@ -1,0 +1,25 @@
+{
+  "name": "ForkTaskConfig",
+  "kind": "FORK",
+  "description": "FORK tasks execute parallel branches.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/fork.proto",
+  "fields": [
+    {
+      "name": "Branches",
+      "jsonName": "branches",
+      "protoField": "branches",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "struct"
+        }
+      },
+      "description": "Parallel branches to execute (array of {name, tasks})",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "ListenTaskConfig",
+  "kind": "LISTEN",
+  "description": "LISTEN tasks wait for events.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/listen.proto",
+  "fields": [
+    {
+      "name": "Event",
+      "jsonName": "event",
+      "protoField": "event",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Event name to listen for",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

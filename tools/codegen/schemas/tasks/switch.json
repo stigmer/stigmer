@@ -1,0 +1,35 @@
+{
+  "name": "SwitchTaskConfig",
+  "kind": "SWITCH",
+  "description": "SWITCH tasks provide conditional branching in workflows.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/switch.proto",
+  "fields": [
+    {
+      "name": "Cases",
+      "jsonName": "cases",
+      "protoField": "cases",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "struct"
+        }
+      },
+      "description": "Conditional cases (array of {condition, then})",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "DefaultTask",
+      "jsonName": "default_task",
+      "protoField": "default_task",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Default task if no cases match",
+      "required": false
+    }
+  ]
+}
