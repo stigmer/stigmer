@@ -104,7 +104,9 @@ Self-contained Go program that generates code from schemas.
 
 **Inspiration**: Pulumi's code generator (direct generation with `fmt.Fprintf`, not templates)
 
-### 3. Generated Code (`sdk/go/workflow/*_task.go`)
+### 3. Generated Code
+
+#### Workflow Tasks (`sdk/go/workflow/*_task.go`)
 
 One file per task type, containing:
 
@@ -125,12 +127,147 @@ func (c *SetTaskConfig) ToProto() (*structpb.Struct, error) { ... }
 func (c *SetTaskConfig) FromProto(s *structpb.Struct) error { ... }
 ```
 
+#### Agent & Skill Types (`sdk/go/agent/gen/`, `sdk/go/skill/gen/`)
+
+Generated structs for agent and skill specs:
+
+```go
+// Generated AgentSpec struct with all fields
+type AgentSpec struct {
+    Description  string
+    IconURL      string
+    Instructions string
+    // ... all spec fields
+}
+
+// Generated conversion methods (for reference)
+func (a *AgentSpec) ToProto() (*agentv1.AgentSpec, error) { ... }
+```
+
+**Note**: Agent/Skill use manual `ToProto()` methods (not generated) for flexibility with SDK annotations and direct proto conversion.
+
 **Code Quality**:
 - ✅ Properly formatted (gofmt)
 - ✅ Type-safe
 - ✅ Idiomatic Go
 - ✅ Well-documented
 - ✅ Generation metadata included
+
+---
+
+## Agent & Skill ToProto() Pattern
+
+The Agent and Skill SDKs use a manual ToProto() approach (not generated code) for direct platform proto conversion.
+
+### Why Manual ToProto()?
+
+**Generated code works with low-level types:**
+- `gen.AgentSpec` (generated from proto)
+- Good for struct definitions and field mapping
+
+**SDK uses high-level types:**
+- `agent.Agent` (ergonomic SDK API)
+- Needs custom conversion logic
+- Requires SDK annotation injection
+
+**Solution**: Manual ToProto() methods that convert directly to platform protos.
+
+### Agent ToProto() Implementation
+
+```go
+// In sdk/go/agent/proto.go
+func (a *Agent) ToProto() (*agentv1.Agent, error) {
+    // Convert nested types using helper functions
+    skillRefs, _ := convertSkillsToRefs(a.Skills)
+    mcpServers, _ := convertMCPServers(a.MCPServers)
+    subAgents, _ := convertSubAgents(a.SubAgents)
+    envSpec, _ := convertEnvironmentVariables(a.EnvironmentVariables)
+    
+    // Build complete proto with SDK annotations
+    return &agentv1.Agent{
+        ApiVersion: "agentic.stigmer.ai/v1",
+        Kind:       "Agent",
+        Metadata: &apiresource.ApiResourceMetadata{
+            Name: a.Name,
+            Annotations: SDKAnnotations(), // Auto-injected
+        },
+        Spec: &agentv1.AgentSpec{
+            Description:  a.Description,
+            Instructions: a.Instructions,
+            SkillRefs:    skillRefs,
+            McpServers:   mcpServers,
+            SubAgents:    subAgents,
+            EnvSpec:      envSpec,
+        },
+    }, nil
+}
+```
+
+### Nested Type Conversions
+
+**Skills** → `ApiResourceReference`:
+```go
+ref := &apiresource.ApiResourceReference{
+    Slug:  skill.NameOrSlug(),
+    Kind:  apiresourcekind.ApiResourceKind_skill,  // Enum constant
+    Scope: apiresource.ApiResourceOwnerScope_platform, // or organization
+    Org:   skill.Org, // if org-scoped
+}
+```
+
+**MCP Servers** → `McpServerDefinition`:
+```go
+// Type assertion based on server type
+switch server.Type() {
+case mcpserver.TypeStdio:
+    stdioServer, _ := server.(*mcpserver.StdioServer)
+    def.ServerType = &agentv1.McpServerDefinition_Stdio{
+        Stdio: &agentv1.StdioServer{
+            Command: stdioServer.Command(),
+            Args:    stdioServer.Args(),
+            // ... complete field mapping
+        },
+    }
+// ... HTTP and Docker types similarly handled
+}
+```
+
+**Sub-Agents** → `SubAgent` (inline or referenced):
+```go
+if subAgent.IsInline() {
+    return &agentv1.SubAgent{
+        AgentReference: &agentv1.SubAgent_InlineSpec{
+            InlineSpec: &agentv1.InlineSubAgentSpec{
+                Name: subAgent.Name(),
+                Instructions: subAgent.Instructions(),
+                // ... complete fields
+            },
+        },
+    }
+}
+```
+
+### Best Practices
+
+**Always use enum constants**:
+```go
+// ✅ Correct - type-safe, self-documenting
+Kind: apiresourcekind.ApiResourceKind_skill
+
+// ❌ Wrong - magic number
+Kind: 43
+```
+
+**Always inject SDK annotations**:
+```go
+Annotations: SDKAnnotations() // Language, version, timestamp
+```
+
+**Handle all nested types completely**:
+- Skills: Platform vs organization scope
+- MCP Servers: Stdio vs HTTP vs Docker
+- Sub-Agents: Inline vs referenced
+- Environment: All fields mapped
 
 ---
 
@@ -453,13 +590,29 @@ task := workflow.SetTask("init",
 
 **Status**: Deferred - direct constructors work fine
 
-### Agent SDK Generation
+### Agent & Skill SDK Generation ✅
 
 **Goal**: Apply same pattern to agent, skill, MCP server types
 
-**Benefit**: Consistent code generation across entire SDK
+**Status**: ✅ **Complete** - Agent and Skill SDKs now production-ready!
 
-**Status**: Not started - workflow SDK proves the concept
+**What Was Built**:
+- Proto2schema tool completed with `--message-suffix` flag support
+- Generated schemas for Agent (2) and Skill (1) from proto files
+- Generated Go code for agent/skill structs with ToProto() methods
+- Implemented complete Agent ToProto() with all nested type conversions
+- Implemented complete Skill ToProto() with SDK annotation injection
+
+**Time**: ~6 hours total (Option C)
+
+**Result**: 
+- Both Agent and Skill SDKs fully functional
+- Direct proto conversion (no manifest layer)
+- SDK annotations automatically injected
+- All conversions use proper enum constants (not magic numbers)
+- Production-ready for immediate use
+
+**See**: [_projects/2026-01/20260122.01.sdk-code-generators-go/](../../_projects/2026-01/20260122.01.sdk-code-generators-go/) for complete implementation details
 
 ---
 
