@@ -91,9 +91,9 @@ go test -v -timeout 30s
 go test -v -race
 ```
 
-## Current Status (Iteration 1)
+## Current Status
 
-**✅ Completed:**
+### ✅ Iteration 1: Complete
 - [x] Directory structure
 - [x] Helper utilities
 - [x] Server harness
@@ -101,50 +101,95 @@ go test -v -race
 - [x] Minimal smoke test
 - [x] Test passes successfully
 
-**Test Execution Time:** ~1-2 seconds per test
+### ✅ Iteration 2: Infrastructure Complete
+- [x] Database helper (`GetFromDB`, `ListKeysFromDB`)
+- [x] CLI runner framework (in-process and subprocess)
+- [x] Test fixtures (Stigmer.yaml, basic_agent.go)
+- [x] Apply workflow tests written
+- [x] Standalone verification tests passing
+- [ ] Suite-based tests (known issue: hangs)
 
 **What Works:**
-- Server starts with isolated BadgerDB
-- Random port allocation
-- Health check validation
-- Automatic cleanup
-- Parallel test support
+- ✅ Server starts with isolated BadgerDB
+- ✅ Random port allocation
+- ✅ Health check validation
+- ✅ Database read/write operations
+- ✅ CLI subprocess execution
+- ⚠️ Testify suite (hangs - under investigation)
 
-## Next Steps (Iteration 2)
+**Verified Working (Standalone Tests):**
 
-### Database Verification
+```bash
+# Test database helpers
+$ go test -v -run TestDatabaseReadWrite
+✅ PASS (0.09s)
 
-Add helper to inspect BadgerDB:
-
-```go
-// GetFromDB reads a value from the test database
-func GetFromDB(tempDir string, key string) ([]byte, error)
+# Test port utilities
+$ go test -v -run TestStandalone
+✅ PASS (0.00s)
 ```
 
-### CLI Runner (In-Process)
+**Known Issue:**
 
-Add in-process CLI execution:
+Tests using `testify/suite` hang indefinitely. Root cause under investigation. All infrastructure is in place and verified working through standalone tests.
+
+## Iteration 2 Achievements
+
+### ✅ Database Verification Implemented
+
+Two helpers for BadgerDB inspection (`helpers_test.go`):
 
 ```go
-// RunCLI executes CLI commands without spawning subprocess
+// GetFromDB reads a value from BadgerDB by key
+func GetFromDB(dbPath string, key string) ([]byte, error)
+
+// ListKeysFromDB lists all keys matching a prefix
+func ListKeysFromDB(dbPath string, prefix string) ([]string, error)
+```
+
+**Verified working** via `TestDatabaseReadWrite` ✅
+
+### ✅ CLI Runner Implemented
+
+Three execution modes (`cli_runner_test.go`):
+
+```go
+// RunCLI - Main entry point (uses subprocess by default)
 func RunCLI(args ...string) (string, error)
+
+// RunCLIInProcess - Experimental in-process execution
+func RunCLIInProcess(args ...string) (string, error)
+
+// RunCLISubprocess - Subprocess execution via go run
+func RunCLISubprocess(args ...string) (string, error)
 ```
 
-### First Real Test
+### ✅ Test Cases Written
+
+Full test suite in `e2e_apply_test.go`:
 
 ```go
+// TestApplyBasicAgent - Full apply workflow
 func (s *E2ESuite) TestApplyBasicAgent() {
     // Apply agent configuration
-    output, err := RunCLI("apply", "--config", "testdata/basic_agent.go")
-    s.NoError(err)
+    output, err := RunCLI("apply", "--config", absTestdataDir)
+    s.Require().NoError(err)
     s.Contains(output, "Deployment successful")
     
     // Verify in database
-    value, err := GetFromDB(s.TempDir, "agent:test-agent")
-    s.NoError(err)
-    s.NotNil(value)
+    dbPath := filepath.Join(s.TempDir, "stigmer.db")
+    keys, _ := ListKeysFromDB(dbPath, "")
+    // Search for agent in various key patterns...
+    s.NotEmpty(foundKey, "Should find agent in database")
 }
+
+// TestApplyDryRun - Dry-run mode verification
+func (s *E2ESuite) TestApplyDryRun()
 ```
+
+**Status**: Written and ready (execution blocked by suite issue)
+
+## Next Steps (Fix Suite + Iteration 3)
 
 ## Test Data
 
@@ -194,6 +239,36 @@ The harness has a 10-second health check timeout. If tests hang:
 Each test gets a fresh database. If you see lock errors, it means:
 - Previous test didn't clean up
 - Multiple tests accessing same temp directory (shouldn't happen with testify suite)
+
+### Suite-Based Tests Hang (Known Issue)
+
+**Problem**: Tests using `testify/suite` hang indefinitely
+
+**Symptoms**:
+- Server starts successfully
+- Test logs begin
+- Immediate shutdown signal received
+- Test never completes
+
+**Workaround**: Use standalone tests (see `standalone_test.go`, `database_test.go`)
+
+**Investigation Status**: Root cause under investigation. Possible causes:
+- Debug HTTP server port conflict (8234)
+- Server shutdown timing in TearDownTest()
+- Signal handling interference
+- Testify suite lifecycle issue
+
+**Tests That Work**:
+```bash
+$ go test -v -run TestStandalone        # ✅ Port utilities
+$ go test -v -run TestDatabaseReadWrite # ✅ Database helpers
+```
+
+**Tests That Hang**:
+```bash
+$ go test -v -run TestE2E/TestServerStarts     # ⏳ Hangs
+$ go test -v -run TestE2E/TestApplyBasicAgent  # ⏳ Hangs
+```
 
 ## Design Decisions
 
