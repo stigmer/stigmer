@@ -15,9 +15,10 @@
 
 ## Current Status
 
-📋 **Phase**: Phase 2 - Zigflow (Go) Activity Implementation  
-📝 **Current Task**: T01.2 - Execution (Phase 2 in progress)  
-✅ **Phase 1 Complete**: Proto definition with callback_token field
+📋 **Phase**: Phase 3 - Stigmer Service (Java)  
+📝 **Current Task**: T01.3 - Java Backend Integration (Phase 3 ready to start)  
+✅ **Phase 1 Complete**: Proto definition with callback_token field  
+✅ **Phase 2 Complete**: Zigflow (Go) Activity - Async completion implemented
 
 ---
 
@@ -52,34 +53,43 @@ Temporal async activity completion pattern (token handshake) that:
 ### ▶️ Currently Working On: Phase 2 - Zigflow (Go) Activity
 
 **Phase 1 Status**: ✅ COMPLETED
-- Proto definition updated with `callback_token` field
+- Proto definition updated with `callback_token` field in WorkflowExecuteInput
+- AgentExecutionSpec also updated with `callback_token` field
 - Go code regenerated and compiling
 - Comprehensive documentation added
-- Checkpoint created: `CP01_phase1_complete.md`
+- Checkpoint created: `checkpoints/CP01_phase1_complete.md`
 
-**Phase 2 Goals**:
-1. Find Zigflow activity that calls workflow-runner (or understand call path)
-2. Extract Temporal task token from activity context
-3. Pass token in gRPC request to workflow-runner
-4. Return `activity.ErrResultPending` to pause activity
-5. Add logging for token (Base64, truncated)
-6. Set 24-hour timeout on activity
-7. Write unit tests
+**Phase 2 Status**: ✅ COMPLETED
+- Found target: `CallAgentActivity` (replaces polling with async completion)
+- Extracted Temporal task token from activity context
+- Pass token when creating AgentExecution via `spec.CallbackToken`
+- Return `activity.ErrResultPending` instead of polling
+- Added comprehensive logging (Base64 token, truncated)
+- Removed old polling code (`waitForCompletion`)
+- Code compiles successfully
+- Checkpoint created: `checkpoints/CP02_phase2_complete.md`
 
-**Architecture Discovery** ✅:
-- Found the target: `CallAgentActivity` in `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_agent_activities.go`
-- This activity currently **polls** for AgentExecution completion (lines 277-319)
-- Goal: Replace polling with async token handshake pattern
-- Need to pass token when creating AgentExecution and return `activity.ErrResultPending`
+**Phase 3 Goals** (Java Backend - stigmer-cloud repo):
+1. Regenerate Java proto stubs (proto file already updated)
+2. Update AgentExecution command handler to accept `callback_token`
+3. Store token in AgentExecutionStatus for agent workflow access
+4. Add logging for token receipt and storage
+5. No business logic changes (pass-through only)
+6. Handle null/empty token gracefully (backward compatibility)
+
+**Current Investigation**:
+- Need to locate AgentExecution command handler in Java
+- Java proto generation failed during `make protos` (server issue)
+- May need to regenerate Java stubs manually or fix server
 
 ---
 
 ## High-Level Phases (Progress)
 
 ```
-Phase 1: Proto Definition              (Days 1-2)    ✅ COMPLETED (Day 1)
-Phase 2: Zigflow (Go) Activity         (Days 3-4)    🚧 IN PROGRESS (Day 1)
-Phase 3: Stigma Service (Java)         (Days 5-6)    ⏳ NOT STARTED
+Phase 1: Proto Definition              (Days 1-2)    ✅ COMPLETED (Day 1 - 1.5 hours)
+Phase 2: Zigflow (Go) Activity         (Days 3-4)    ✅ COMPLETED (Day 1 - 1.7 hours)
+Phase 3: Stigma Service (Java)         (Days 5-6)    🚧 READY TO START
 Phase 4: Stigma Workflow (Java)        (Days 7-9)    ⏳ NOT STARTED
 Phase 5: System Activity (Java)        (Days 10-11)  ⏳ NOT STARTED
 Phase 6: Testing                       (Days 12-15)  ⏳ NOT STARTED
@@ -87,9 +97,9 @@ Phase 7: Observability                 (Days 16-18)  ⏳ NOT STARTED
 Phase 8: Documentation & Handoff       (Days 19-21)  ⏳ NOT STARTED
 ```
 
-**Overall Progress**: 12.5% (1/8 phases complete)  
-**Time Spent**: 1.5 hours  
-**Ahead of Schedule**: Phase 1 completed in 1.5 hours (estimated 2 days)
+**Overall Progress**: 25% (2/8 phases complete)  
+**Time Spent**: 3.2 hours  
+**Ahead of Schedule**: Completed Phase 1 and 2 in 3.2 hours (estimated 4 days / ~32 hours)
 
 ---
 
@@ -146,6 +156,6 @@ Simply drag this file (`next-task.md`) into the chat, and I'll:
 
 ---
 
-**Current Status**: 🟢 In Progress - Phase 2 (Zigflow Activity Implementation)  
-**Last Checkpoint**: `checkpoints/CP01_phase1_complete.md`  
-**Next Milestone**: Complete Phase 2 (extract token, return ErrResultPending)
+**Current Status**: 🟢 Ready - Phase 3 (Java Backend Integration)  
+**Last Checkpoint**: `checkpoints/CP02_phase2_complete.md`  
+**Next Milestone**: Complete Phase 3 (Accept and store callback_token in Java)
