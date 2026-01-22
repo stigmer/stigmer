@@ -32,72 +32,40 @@ func (s *E2ESuite) TestApplyBasicAgent() {
 	// Verify success message in output
 	s.Contains(output, "Deployment successful", "Output should contain success message")
 	s.Contains(output, "test-agent", "Output should mention the deployed agent")
-
-	// Verify agent was stored in database
-	// The database path is {tempDir}/stigmer.db (set in harness)
-	dbPath := filepath.Join(s.TempDir, "stigmer.db")
-	s.T().Logf("Checking database at: %s", dbPath)
-
-	// List all keys to see what's in the database (for debugging)
-	keys, err := ListKeysFromDB(dbPath, "")
-	if err == nil {
-		s.T().Logf("Database keys found: %v", keys)
-	} else {
-		s.T().Logf("Failed to list database keys: %v", err)
-	}
-
-	// Try to find agent by various possible key patterns
-	// Common patterns in stigmer could be:
-	// - "agent:test-agent"
-	// - "agents/test-agent"
-	// - "local/agents/test-agent"
-	// - or other patterns
-	possibleKeys := []string{
-		"agent:test-agent",
-		"agents/test-agent",
-		"local/agents/test-agent",
-		"/agent/test-agent",
-		"/agents/test-agent",
-		"test-agent",
-	}
-
-	var foundKey string
-	var agentData []byte
 	
-	// Try each possible key pattern
-	for _, key := range possibleKeys {
-		data, err := GetFromDB(dbPath, key)
-		if err == nil && len(data) > 0 {
-			foundKey = key
-			agentData = data
-			s.T().Logf("✅ Found agent data with key: %s", key)
-			break
-		}
-	}
-
-	// If we couldn't find it with specific keys, search through all keys
-	if foundKey == "" && keys != nil {
-		for _, key := range keys {
-			if strings.Contains(key, "test-agent") || strings.Contains(key, "agent") {
-				data, err := GetFromDB(dbPath, key)
-				if err == nil && len(data) > 0 {
-					foundKey = key
-					agentData = data
-					s.T().Logf("✅ Found agent data by searching keys: %s", key)
+	// Extract agent ID from output
+	// Output format: "• test-agent (ID: agt-1234567890)"
+	var agentID string
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "test-agent") && strings.Contains(line, "ID:") {
+			// Extract ID from line like: "  • test-agent (ID: agt-1234567890)"
+			start := strings.Index(line, "ID: ")
+			if start != -1 {
+				start += 4 // Skip "ID: "
+				end := strings.Index(line[start:], ")")
+				if end != -1 {
+					agentID = line[start : start+end]
 					break
 				}
 			}
 		}
 	}
-
-	// Assert we found the agent
-	s.NotEmpty(foundKey, "Should find agent in database with one of the expected keys")
-	s.NotNil(agentData, "Agent data should not be nil")
-	s.Greater(len(agentData), 0, "Agent data should not be empty")
-
-	s.T().Logf("✅ Test passed: Agent was successfully applied and stored in database")
-	s.T().Logf("   Database key: %s", foundKey)
-	s.T().Logf("   Data size: %d bytes", len(agentData))
+	
+	s.NotEmpty(agentID, "Should be able to extract agent ID from output")
+	s.T().Logf("Extracted agent ID: %s", agentID)
+	
+	// Verify agent exists by querying via gRPC API
+	// This is the proper way to verify - not by directly reading the database
+	// (BadgerDB only allows one process at a time, and the server is still running)
+	s.T().Logf("Querying agent via gRPC API...")
+	
+	agentExists, err := AgentExistsViaAPI(s.Harness.ServerPort, agentID)
+	s.NoError(err, "Should be able to query agent via API")
+	s.True(agentExists, "Agent should exist when queried via API")
+	
+	s.T().Logf("✅ Test passed: Agent was successfully applied and can be queried via API")
+	s.T().Logf("   Agent ID: %s", agentID)
 }
 
 // TestApplyDryRun tests the dry-run mode of apply command

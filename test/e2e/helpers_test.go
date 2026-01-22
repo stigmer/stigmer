@@ -1,11 +1,15 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"time"
 
 	badger "github.com/dgraph-io/badger/v3"
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // GetFreePort finds an available port on localhost
@@ -104,4 +108,31 @@ func ListKeysFromDB(dbPath string, prefix string) ([]string, error) {
 	}
 
 	return keys, nil
+}
+
+// AgentExistsViaAPI checks if an agent exists by querying the gRPC API
+// This is the proper way to verify agents in tests (not direct DB access)
+func AgentExistsViaAPI(serverPort int, agentID string) (bool, error) {
+	// Connect to the server
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return false, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	// Create agent query client
+	client := agentv1.NewAgentQueryControllerClient(conn)
+
+	// Query the agent
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = client.Get(ctx, &agentv1.AgentId{Value: agentID})
+	if err != nil {
+		// Check if it's a NotFound error (agent doesn't exist) or another error
+		return false, fmt.Errorf("failed to get agent: %w", err)
+	}
+
+	return true, nil
 }

@@ -637,9 +637,7 @@ func TestExample18_WorkflowMultiAgentOrchestration(t *testing.T) {
 }
 
 // TestExample19_WorkflowAgentExecutionConfig tests the workflow agent execution config example
-// NOTE: Skipped - example uses wrong API names (AgentModel/AgentTemperature instead of Model/Temperature)
 func TestExample19_WorkflowAgentExecutionConfig(t *testing.T) {
-	t.Skip("Example uses wrong API names - needs to be fixed to use Model/Temperature instead of AgentModel/AgentTemperature")
 	runExampleTest(t, "19_workflow_agent_execution_config.go", func(t *testing.T, outputDir string) {
 		// This example creates workflow and agent
 		workflowPath := filepath.Join(outputDir, "workflow-0.pb")

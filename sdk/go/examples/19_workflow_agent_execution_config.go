@@ -14,11 +14,11 @@ import (
 // - Timeout control (task-specific execution limits)
 // - Temperature tuning (control randomness/creativity)
 //
-// Key learning points:
-// - Using workflow.AgentModel() to override agent's default model
-// - Using workflow.AgentTimeout() for time-sensitive tasks
-// - Using workflow.AgentTemperature() for creativity control
-// - Different configs for different use cases
+		// Key learning points:
+		// - Using workflow.Model() to override agent's default model
+		// - Using workflow.AgentTimeout() for time-sensitive tasks
+		// - Using workflow.Temperature() for creativity control
+		// - Different configs for different use cases
 //
 // Real-world scenarios:
 // - Fast model for simple tasks, powerful model for complex tasks
@@ -45,9 +45,9 @@ func main() {
 			workflow.AgentOption(workflow.AgentBySlug("support-categorizer")),
 			workflow.Message("Categorize this support ticket: 'My login is not working'"),
 			// Fast model for simple categorization
-			workflow.AgentModel("claude-3-haiku"),
+			workflow.Model("claude-3-haiku"),
 			// Low temperature for consistent categorization
-			workflow.AgentTemperature(0.1),
+			workflow.Temperature(0.1),
 			// Short timeout - categorization should be quick
 			workflow.AgentTimeout(30), // 30 seconds
 		)
@@ -68,9 +68,9 @@ func main() {
 				categorizeTicket.Field("system_info"), // Uses output from previous task
 			)),
 			// Powerful model for complex reasoning
-			workflow.AgentModel("claude-3-5-sonnet"),
+			workflow.Model("claude-3-5-sonnet"),
 			// Medium temperature for balanced analysis
-			workflow.AgentTemperature(0.5),
+			workflow.Temperature(0.5),
 			// Long timeout for thorough analysis
 			workflow.AgentTimeout(600), // 10 minutes
 		)
@@ -89,9 +89,9 @@ func main() {
 			workflow.AgentOption(workflow.AgentBySlug("content-writer")),
 			workflow.Message("Write engaging marketing copy for a new AI code review tool"),
 			// Creative model
-			workflow.AgentModel("claude-3-5-sonnet"),
+			workflow.Model("claude-3-5-sonnet"),
 			// High temperature for creative output
-			workflow.AgentTemperature(0.9),
+			workflow.Temperature(0.9),
 			// Moderate timeout
 			workflow.AgentTimeout(120), // 2 minutes
 		)
@@ -112,9 +112,9 @@ func main() {
 				generateCopy.Field("content"), // Use output from creative task
 			)),
 			// Fast model sufficient for extraction
-			workflow.AgentModel("claude-3-haiku"),
+			workflow.Model("claude-3-haiku"),
 			// Very low temperature for consistent extraction
-			workflow.AgentTemperature(0.0), // Maximum determinism
+			workflow.Temperature(0.0), // Maximum determinism
 			// Quick extraction
 			workflow.AgentTimeout(45),
 		)
@@ -135,9 +135,9 @@ func main() {
 				extractData.Field("requirements"),
 			)),
 			// Powerful model for code generation
-			workflow.AgentModel("claude-3-5-sonnet"),
+			workflow.Model("claude-3-5-sonnet"),
 			// Low-medium temperature for good patterns
-			workflow.AgentTemperature(0.3),
+			workflow.Temperature(0.3),
 			// Longer timeout for code generation
 			workflow.AgentTimeout(300), // 5 minutes
 		)
@@ -156,9 +156,9 @@ func main() {
 			workflow.AgentOption(workflow.AgentBySlug("support-agent")),
 			workflow.Message(workflow.RuntimeEnv("CUSTOMER_QUESTION")),
 			// Fast model for quick response
-			workflow.AgentModel("claude-3-haiku"),
+			workflow.Model("claude-3-haiku"),
 			// Medium temperature for helpful but consistent answers
-			workflow.AgentTemperature(0.4),
+			workflow.Temperature(0.4),
 			// Very short timeout - customer is waiting!
 			workflow.AgentTimeout(15), // 15 seconds max
 		)

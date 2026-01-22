@@ -1,579 +1,337 @@
-# Next Task: Iteration 4 - Full Integration Testing
+# Next Task: Iteration 5 - Expand Test Coverage
 
 **Project**: E2E Integration Testing Framework  
 **Location**: `_projects/2026-01/20260122.05.e2e-integration-testing/`  
-**Current Status**: ✅ Iteration 3 Complete (Suite Hanging Fixed) - Ready for Iteration 4  
+**Current Status**: ✅ Iteration 4 Complete - Ready for Iteration 5  
 **Updated**: 2026-01-22
 
 ---
 
-## 🎯 Current Focus: Verify Full Apply Workflow
-
-**Iteration 3 is complete** - suite hanging issue is completely fixed! All tests can now run without hanging.
-
-**What's Working**:
-- ✅ Server starts/stops gracefully in <1 second
-- ✅ No port conflicts (debug server disabled in tests)
-- ✅ Smoke test passes consistently
-- ✅ CLI path corrected
-- ✅ Server address passed to CLI
-
-**Next Steps**:
-1. Run full test suite and verify apply workflow
-2. Debug any remaining issues in `TestApplyBasicAgent`
-3. Verify database persistence (check if agents are stored correctly)
-4. Add more test scenarios (error cases, edge cases)
-
-**See**: `checkpoints/03-iteration-3-suite-hanging-fixed.md` for full details.
-
----
-
-## ✅ Completed: Iteration 3 (Suite Hanging Issue Fixed)
-
-**What We Fixed:**
-- ✅ Debug HTTP server port conflict (disabled in test mode via `ENV=test`)
-- ✅ Process group management (proper signal propagation to `go run` children)
-- ✅ Graceful shutdown (SIGINT instead of SIGKILL, ~8x faster)
-- ✅ Corrected CLI path (`client-apps/cli/main.go`)
-- ✅ Pass server address to CLI commands
-
-**Test Results:**
-```bash
-$ go test -v -run TestE2E/TestServerStarts
-✅ PASS (0.73s) - was hanging indefinitely before
-
-Server logs show graceful shutdown:
-{"level":"info","message":"Received shutdown signal"}
-{"level":"info","message":"Stopping gRPC server"}
-{"level":"info","message":"Stigmer Server stopped"}
-```
-
-**Performance**: Server shutdown improved from 5+ seconds (force-kill) to ~0.6 seconds (graceful)
-
-**Documentation**:
-- [Checkpoint Document](checkpoints/03-iteration-3-suite-hanging-fixed.md)
-
----
-
-## ✅ Completed: Iteration 2 (Database & CLI Infrastructure)
-
-**What We Built:**
-- ✅ Database helpers (GetFromDB, ListKeysFromDB) - verified working
-- ✅ CLI runner framework (subprocess execution) - verified working
-- ✅ Test fixtures (Stigmer.yaml, basic_agent.go) - created
-- ✅ Comprehensive test cases (TestApplyBasicAgent, TestApplyDryRun) - written
-- ✅ Standalone verification tests - passing
-
-**Test Results:**
-```bash
-$ cd test/e2e
-
-# Infrastructure tests - WORKING ✅
-$ go test -v -run TestStandalone
-✅ PASS (0.00s)
-
-$ go test -v -run TestDatabaseReadWrite
-✅ PASS (0.09s)
-
-# Suite tests - HANGING ⏳
-$ go test -v -run TestE2E/TestServerStarts
-⏳ TIMEOUT (hangs indefinitely)
-```
-
-**Known Issue**: Testify suite lifecycle causes tests to hang. All infrastructure verified working through standalone tests.
-
-**Documentation**:
-- [Checkpoint Document](checkpoints/02-iteration-2-infrastructure-complete.md)
-- [Test README (Updated)](../../test/e2e/README.md)
-
----
-
-## ✅ Completed: Iteration 1 (Minimal POC)
-
-**What We Built:**
-- `test/e2e/` directory structure
-- Helper utilities (`GetFreePort`, `WaitForPort`)
-- Test harness (server lifecycle management)
-- Testify suite framework
-- Smoke test that validates server startup
-
-**Test Results:**
-```bash
-$ cd test/e2e && go test -v
-✅ PASS: TestE2E/TestServerStarts (1.24s)
-ok      github.com/stigmer/stigmer/test/e2e     2.030s
-```
-
-**Documentation:**
-- [Checkpoint Document](checkpoints/01-iteration-1-complete.md)
-- [Test README](../../test/e2e/README.md)
-
-See `checkpoints/01-iteration-1-complete.md` for detailed analysis.
-
----
-
-## ✅ Completed: Research Phase
-
-Gemini research is complete! We have a comprehensive recommendation:
-
-- **Framework**: `testify/suite` + `testcontainers-go`
-- **Architecture**: "Ephemeral Harness" pattern
-- **Database Isolation**: Directory-based with temp directories
-- **CLI Testing**: Grey-box in-process execution
-
-See `research-summary.md` for full analysis.
-
----
-
-## 🎯 Next: Implementation Phase
-
-### What We're Building
-
-A POC (Proof of Concept) test that demonstrates the full pattern:
-
-```go
-func (s *E2ESuite) TestApplyBasicAgent() {
-    // 1. Fresh temp dir created by SetupTest
-    // 2. stigmer-server running on random port
-    // 3. Run: stigmer apply --config testdata/basic_agent.go
-    // 4. Verify: Agent exists in BadgerDB
-    // 5. Cleanup: Automatic via TearDownTest
-}
-```
-
-### Implementation Phases
-
-#### Phase 1: Infrastructure Setup (START HERE)
-
-**Create directory structure:**
-```
-test/e2e/
-├── README.md                  # Test documentation
-├── suite_test.go             # Testify suite definition
-├── harness_test.go           # Process management
-├── cli_runner_test.go        # In-process CLI executor
-├── helpers_test.go           # Utilities (ports, health, DB)
-└── testdata/
-    └── basic_agent.go        # Test fixture
-```
-
-**Key files to implement:**
-
-1. **`helpers_test.go`**
-   - `GetFreePort()` - Find available port
-   - `WaitForPort()` - Health check with timeout
-   - `GetFromDB()` - BadgerDB inspector
-
-2. **`harness_test.go`**
-   - `TestHarness` struct
-   - `StartHarness()` - Spawn stigmer-server
-   - `Stop()` - Clean shutdown
-
-3. **`suite_test.go`**
-   - `E2ESuite` struct with testify
-   - `SetupTest()` - Create temp dir, start services
-   - `TearDownTest()` - Stop services, cleanup
-   - `TestE2E()` - Entry point
-
-4. **`cli_runner_test.go`**
-   - `RunCLI()` - Execute CLI commands in-process
-
-#### Phase 2: First Test (POC)
-
-**Create `e2e_apply_test.go`:**
-
-```go
-func (s *E2ESuite) TestApplyBasicAgent() {
-    // Apply basic agent
-    serverAddr := fmt.Sprintf("localhost:%d", s.Harness.ServerPort)
-    output, err := RunCLI("apply", 
-        "--config", "testdata/basic_agent.go",
-        "--server", serverAddr)
-    
-    s.Require().NoError(err)
-    s.Contains(output, "Deployment successful")
-    
-    // Verify in database
-    value, err := GetFromDB(s.TempDir, "agent:test-agent")
-    s.NoError(err)
-    s.NotNil(value)
-}
-```
-
-#### Phase 3: Validate & Document
-
-1. Test runs successfully
-2. Add README with usage guide
-3. Document patterns for adding more tests
-4. Create coding guidelines
-
----
-
-## 📋 Detailed Implementation Plan
-
-### Step 1: Create Test Directory
+## 🎉 Iteration 4 Complete! ALL TESTS PASS!
 
 ```bash
-mkdir -p test/e2e/testdata
+$ go test -v -timeout 60s
+--- PASS: TestE2E (8.17s)
+    --- PASS: TestE2E/TestApplyBasicAgent (1.29s)
+    --- PASS: TestE2E/TestApplyDryRun (1.26s)
+    --- PASS: TestE2E/TestServerStarts (5.62s)
+PASS
+ok      github.com/stigmer/stigmer/test/e2e     8.991s
 ```
 
-### Step 2: Implement Utilities (`helpers_test.go`)
+**See**: `checkpoints/04-iteration-4-full-integration-complete.md` for full details
 
-Based on Gemini's recommendations:
+---
+
+## ✅ What's Working Now
+
+- ✅ **Isolated Test Environment**: Each test gets fresh temp dir + random port
+- ✅ **Server Lifecycle**: Start/stop gracefully in ~1.5 seconds
+- ✅ **CLI Integration**: Execute commands with proper server address override
+- ✅ **Agent Deployment**: Deploy agents from Go code and verify via API
+- ✅ **Dry-Run Mode**: Test validation without actual deployment
+- ✅ **Clean Architecture**: Testify suite + harness pattern + API verification
+
+---
+
+## 🎯 Next: Iteration 5 - Expand Test Coverage
+
+Now that the foundation is solid, we can add more test scenarios:
+
+### Priority 1: More Agent Scenarios
+
+1. **TestApplyAgentWithSkills**
+   - Agent that references skills
+   - Verify both agent and skills are deployed
+   - Query via API to confirm relationship
+
+2. **TestApplyAgentWithSubagents**
+   - Agent with subagents
+   - Verify hierarchical structure
+   - Test agent references
+
+3. **TestApplyAgentWithMcpServers**
+   - Agent with MCP server configurations
+   - Verify server configuration stored
+   - Check different MCP server types (stdio, http, docker)
+
+### Priority 2: Error Cases
+
+4. **TestApplyInvalidYaml**
+   - Malformed Stigmer.yaml
+   - Verify proper error messages
+   - No partial deployments
+
+5. **TestApplyInvalidGoCode**
+   - Go code that doesn't compile
+   - Runtime errors in synthesis
+   - Proper error propagation
+
+6. **TestApplyMissingDependencies**
+   - Invalid imports
+   - Missing replace directives
+   - Dependency resolution failures
+
+### Priority 3: Workflow Testing
+
+7. **TestApplyBasicWorkflow**
+   - Simple workflow deployment
+   - Verify workflow stored
+   - Query workflow via API
+
+8. **TestApplyWorkflowWithTasks**
+   - Workflow with multiple tasks
+   - Verify task structure
+   - Check workflow validation
+
+### Priority 4: Update/Delete Operations
+
+9. **TestUpdateExistingAgent**
+   - Deploy agent
+   - Modify and redeploy
+   - Verify updates applied
+
+10. **TestDeleteAgent**
+    - Deploy agent
+    - Delete via CLI (when implemented)
+    - Verify removal
+
+---
+
+## 📋 Implementation Plan for Iteration 5
+
+### Step 1: Add Test Fixtures
+
+Create additional test fixtures in `test/e2e/testdata/`:
+
+```
+testdata/
+├── Stigmer.yaml              (existing)
+├── basic_agent.go            (existing)
+├── agent_with_skills.go      (new)
+├── agent_with_subagents.go   (new)
+├── agent_with_mcp.go         (new)
+├── basic_workflow.go         (new)
+└── invalid/
+    ├── malformed.yaml        (new)
+    └── bad_syntax.go         (new)
+```
+
+### Step 2: Create Test File
+
+Create `test/e2e/e2e_agent_scenarios_test.go`:
 
 ```go
 package e2e
 
-import (
-    "fmt"
-    "net"
-    "time"
-    "path/filepath"
-    "github.com/dgraph-io/badger/v3"
-)
-
-// GetFreePort finds an available port
-func GetFreePort() int {
-    addr, _ := net.ResolveTCPAddr("tcp", "localhost:0")
-    l, _ := net.ListenTCP("tcp", addr)
-    defer l.Close()
-    return l.Addr().(*net.TCPAddr).Port
+func (s *E2ESuite) TestApplyAgentWithSkills() {
+    // Similar structure to TestApplyBasicAgent
+    // but with agent_with_skills.go fixture
 }
 
-// WaitForPort checks if a port is accepting connections
-func WaitForPort(port int, timeout time.Duration) bool {
-    deadline := time.Now().Add(timeout)
-    for time.Now().Before(deadline) {
-        conn, err := net.DialTimeout("tcp", 
-            fmt.Sprintf("localhost:%d", port), 
-            100*time.Millisecond)
-        if err == nil {
-            conn.Close()
-            return true
-        }
-        time.Sleep(100 * time.Millisecond)
-    }
-    return false
+func (s *E2ESuite) TestApplyAgentWithSubagents() {
+    // ...
 }
 
-// GetFromDB reads a value from BadgerDB
-func GetFromDB(tempDir string, key string) ([]byte, error) {
-    opts := badger.DefaultOptions(filepath.Join(tempDir, "data"))
-    opts.Logger = nil
-    db, err := badger.Open(opts)
-    if err != nil {
-        return nil, err
-    }
-    defer db.Close()
-    
-    var value []byte
-    err = db.View(func(txn *badger.Txn) error {
-        item, err := txn.Get([]byte(key))
-        if err != nil {
-            return err
-        }
-        value, err = item.ValueCopy(nil)
-        return err
-    })
-    return value, err
-}
+// etc.
 ```
 
-### Step 3: Implement Harness (`harness_test.go`)
+### Step 3: Update Stigmer.yaml for Each Test
+
+Each test should have its own Stigmer.yaml or specify which entry point to use.
+
+**Option A**: Multiple Stigmer.yaml files
+```
+testdata/
+├── basic_agent/
+│   ├── Stigmer.yaml
+│   └── main.go
+├── agent_with_skills/
+│   ├── Stigmer.yaml
+│   └── main.go
+```
+
+**Option B**: Single Stigmer.yaml with different main files
+```yaml
+# Just change which file the test points to
+main: agent_with_skills.go
+```
+
+**Recommendation**: Start with Option B for simplicity
+
+### Step 4: Add Error Case Tests
+
+Create `test/e2e/e2e_error_cases_test.go`:
 
 ```go
-package e2e
-
-import (
-    "fmt"
-    "os"
-    "os/exec"
-    "testing"
-    "time"
-    "github.com/stretchr/testify/require"
-)
-
-type TestHarness struct {
-    ServerCmd   *exec.Cmd
-    ServerPort  int
-    TempDir     string
-}
-
-func StartHarness(t *testing.T, tempDir string) *TestHarness {
-    // Get free port
-    port := GetFreePort()
-    
-    // Start stigmer-server
-    serverCmd := exec.Command("go", "run", 
-        "../../backend/services/stigmer-server/main.go")
-    serverCmd.Env = append(os.Environ(),
-        fmt.Sprintf("STIGMER_HOME=%s", tempDir),
-        fmt.Sprintf("STIGMER_PORT=%d", port),
+func (s *E2ESuite) TestApplyInvalidYaml() {
+    output, err := RunCLIWithServerAddr(
+        s.Harness.ServerPort,
+        "apply",
+        "--config", "testdata/invalid/malformed.yaml",
     )
     
-    err := serverCmd.Start()
-    require.NoError(t, err, "Failed to start stigmer-server")
-    
-    // Wait for healthy
-    healthy := WaitForPort(port, 5*time.Second)
-    require.True(t, healthy, "Server failed to become healthy")
-    
-    return &TestHarness{
-        ServerCmd:  serverCmd,
-        ServerPort: port,
-        TempDir:    tempDir,
-    }
-}
-
-func (h *TestHarness) Stop() {
-    if h.ServerCmd != nil && h.ServerCmd.Process != nil {
-        h.ServerCmd.Process.Kill()
-        h.ServerCmd.Wait() // Reap zombie
-    }
-}
-```
-
-### Step 4: Implement Suite (`suite_test.go`)
-
-```go
-package e2e
-
-import (
-    "os"
-    "testing"
-    "github.com/stretchr/testify/suite"
-)
-
-type E2ESuite struct {
-    suite.Suite
-    Harness *TestHarness
-    TempDir string
-}
-
-// SetupTest runs before each test
-func (s *E2ESuite) SetupTest() {
-    // Create fresh temp directory
-    var err error
-    s.TempDir, err = os.MkdirTemp("", "stigmer-e2e-*")
-    s.Require().NoError(err)
-    
-    // Start services
-    s.Harness = StartHarness(s.T(), s.TempDir)
-}
-
-// TearDownTest runs after each test
-func (s *E2ESuite) TearDownTest() {
-    if s.Harness != nil {
-        s.Harness.Stop()
-    }
-    if s.TempDir != "" {
-        os.RemoveAll(s.TempDir)
-    }
-}
-
-// TestE2E is the entry point
-func TestE2E(t *testing.T) {
-    suite.Run(t, new(E2ESuite))
-}
-```
-
-### Step 5: Implement CLI Runner (`cli_runner_test.go`)
-
-```go
-package e2e
-
-import (
-    "bytes"
-    // Import your CLI root command
-    // "github.com/stigmer/stigmer/client-apps/cli/cmd"
-)
-
-func RunCLI(args ...string) (string, error) {
-    var stdout, stderr bytes.Buffer
-    
-    // Get root command
-    rootCmd := cmd.GetRootCommand() // You'll need to expose this
-    rootCmd.SetOut(&stdout)
-    rootCmd.SetErr(&stderr)
-    rootCmd.SetArgs(args)
-    
-    err := rootCmd.Execute()
-    
-    output := stdout.String()
-    if err != nil {
-        output += "\nSTDERR:\n" + stderr.String()
-    }
-    
-    return output, err
-}
-```
-
-### Step 6: Create Test Fixture (`testdata/basic_agent.go`)
-
-```go
-package main
-
-import (
-    "github.com/stigmer/stigmer/sdk/go/stigmer"
-)
-
-func main() {
-    agent := stigmer.DefineAgent("test-agent", func(config *stigmer.AgentConfig) {
-        config.Instructions = "You are a test agent"
-        config.Model = "openai:gpt-4"
-    })
-    
-    stigmer.Apply(agent)
-}
-```
-
-### Step 7: Write First Test (`e2e_apply_test.go`)
-
-```go
-package e2e
-
-import "fmt"
-
-func (s *E2ESuite) TestApplyBasicAgent() {
-    // Execute apply
-    serverAddr := fmt.Sprintf("localhost:%d", s.Harness.ServerPort)
-    output, err := RunCLI("apply", 
-        "--config", "testdata/basic_agent.go",
-        "--server", serverAddr)
-    
-    // Verify success
-    s.Require().NoError(err)
-    s.Contains(output, "Deployment successful")
-    
-    // Verify database state
-    value, err := GetFromDB(s.TempDir, "agent:test-agent")
-    s.NoError(err, "Agent should exist in database")
-    s.NotNil(value)
+    // Should fail with clear error message
+    s.Error(err)
+    s.Contains(output, "failed to parse Stigmer.yaml")
 }
 ```
 
 ---
 
-## 🎯 Success Criteria
+## 🎓 Lessons from Iteration 4
 
-Before marking this complete:
+### What Went Well
 
-- [ ] Test directory structure created
-- [ ] All helper utilities implemented
-- [ ] Harness can start/stop stigmer-server
-- [ ] CLI runner works in-process
-- [ ] First test (`TestApplyBasicAgent`) passes
-- [ ] Test completes in < 10 seconds
-- [ ] README documents how to run tests
-- [ ] Code follows Stigmer coding standards
+1. **Systematic Debugging**
+   - Fixed CLI error printing first
+   - Resolved dependency issues methodically
+   - Each fix brought us closer to passing tests
 
----
+2. **Good Architecture Decisions**
+   - Environment variable for server address (clean, simple)
+   - API verification instead of database access (proper integration testing)
+   - Replace directives in go.mod (standard Go practice)
 
-## 🚨 Known Challenges
+3. **Documentation**
+   - Checkpoint documents capture knowledge
+   - Easy to understand what changed and why
 
-### Challenge 1: CLI Root Command Access
+### What to Keep Doing
 
-**Problem**: Need to call CLI in-process  
-**Solution**: Expose `GetRootCommand()` in CLI package
+1. **One Issue at a Time**
+   - Don't try to fix everything at once
+   - Verify each fix before moving to next
 
-```go
-// In client-apps/cli/cmd/root.go
-func GetRootCommand() *cobra.Command {
-    return rootCmd
-}
-```
+2. **Test the Tests**
+   - Run manually to understand failures
+   - Use logging liberally during development
 
-### Challenge 2: Server Path
-
-**Problem**: Finding stigmer-server binary  
-**Options**:
-1. Use `go run` (slower but simple)
-2. Build binary first with `go build`
-3. Use relative path to source
-
-**Recommendation**: Start with `go run`, optimize later
-
-### Challenge 3: Python Runner
-
-**Problem**: agent-runner needs to be started  
-**Decision**: Start with just stigmer-server POC, add runners in Phase 2
+3. **Document Decisions**
+   - Why we chose API verification over DB access
+   - Why we use env vars instead of flags
+   - These decisions help future maintainers
 
 ---
 
-## 📚 Documentation Needs
+## 🚧 Known Limitations
 
-After POC works, create:
+### Current Constraints
 
-1. **`test/e2e/README.md`**
-   - How to run tests
-   - How to add new tests
-   - Troubleshooting guide
+1. **No Temporal Integration Yet**
+   - Workflows won't execute (need Temporal server)
+   - Acceptable for now (server logs warning)
+   - Future iteration: Start Temporal in harness
 
-2. **Coding Guidelines**
-   - Test naming conventions
-   - Test structure patterns
-   - Common assertions
+2. **Single Test at a Time**
+   - Tests run serially (testify default)
+   - Good for now (faster than parallel anyway)
+   - Can optimize later with `t.Parallel()`
 
-3. **CI/CD Integration**
-   - GitHub Actions workflow
-   - Required dependencies
+3. **No Performance Benchmarks**
+   - We know tests are fast (~9 seconds)
+   - Don't have systematic benchmarks yet
+   - Add `_test.go` with benchmarks later
 
----
+### Technical Debt
 
-## 🔄 Iterative Approach
+1. **Server Exit Code**
+   - Server exits with status 1 (should be 0)
+   - Doesn't affect tests but should fix
+   - Check shutdown signal handling
 
-### Iteration 1: Minimal POC
-- Just harness + suite
-- Start server successfully
-- One simple test that verifies server started
+2. **Error Extraction**
+   - Parsing CLI output for agent ID (fragile)
+   - Should have structured output option
+   - Add `--output json` flag to CLI
 
-### Iteration 2: Database Verification
-- Add DB helper
-- Test that applies agent
-- Verify in database
-
-### Iteration 3: Full CLI Integration
-- In-process CLI execution
-- Full apply test with output verification
-- Multiple test cases
-
----
-
-## Questions Before Starting
-
-1. **Should we start implementation now?**
-   - Or do you want to review research first?
-
-2. **Any modifications to Gemini's recommendations?**
-   - Different framework?
-   - Different architecture?
-
-3. **Which test scenario to implement first?**
-   - Apply? Run? Both?
-
-4. **Time budget for this POC?**
-   - Quick prototype (2-3 hours)?
-   - Production-ready (full day)?
+3. **Test Fixtures Organization**
+   - All in one directory (will get messy)
+   - Should organize by type/scenario
+   - Refactor in Iteration 6
 
 ---
 
-## Quick Start Command
+## 📊 Success Metrics
 
-When you're ready to begin:
+### Current Performance
+
+- **Test Suite Runtime**: 8.9 seconds (3 tests)
+- **Server Startup**: ~1 second
+- **Server Shutdown**: ~0.6 seconds
+- **Per-Test Overhead**: ~1.3 seconds
+- **Test Isolation**: 100% (fresh env each time)
+
+### Goals for Iteration 5
+
+- **Test Count**: 10+ tests (currently 3)
+- **Test Suite Runtime**: < 30 seconds (acceptable for local dev)
+- **Coverage**: Agent scenarios + error cases + basic workflow
+- **Reliability**: 100% pass rate (no flaky tests)
+
+---
+
+## 🎯 Quick Start Commands
 
 ```bash
-# Create directory
-mkdir -p test/e2e/testdata
+# Run all E2E tests
+cd test/e2e && go test -v -timeout 60s
 
-# Start with helpers
-cursor test/e2e/helpers_test.go
+# Run specific test
+go test -v -run TestE2E/TestApplyBasicAgent
+
+# Run with race detection
+go test -v -race -timeout 60s
+
+# Run and save output
+go test -v 2>&1 | tee test-output.txt
 ```
-
-Or just say: **"Start Phase 1"** and I'll begin implementing!
 
 ---
 
-**Status**: 🟢 Ready to implement  
-**Next Action**: Create test infrastructure (Phase 1)  
-**Estimated Time**: 2-4 hours for full POC  
-**Confidence**: HIGH - Clear path forward
+## 🔗 Reference Documents
+
+### Completed Iterations
+- [Iteration 1 - Minimal POC](checkpoints/01-iteration-1-complete.md)
+- [Iteration 2 - Database & CLI Infrastructure](checkpoints/02-iteration-2-infrastructure-complete.md)
+- [Iteration 3 - Suite Hanging Fixed](checkpoints/03-iteration-3-suite-hanging-fixed.md)
+- [Iteration 4 - Full Integration](checkpoints/04-iteration-4-full-integration-complete.md)
+
+### Research & Planning
+- [Research Summary](research-summary.md) - Gemini recommendations
+- [Gemini Response](gemini-response.md) - Full analysis
+- [Task Planning](tasks/T01_0_plan.md) - Original plan
+
+### Test Documentation
+- [Test README](../../test/e2e/README.md) - How to run tests
+
+---
+
+## ❓ Questions Before Starting Iteration 5
+
+1. **Which scenarios to prioritize?**
+   - Agent scenarios? Error cases? Workflows?
+   - User preference?
+
+2. **Temporal integration?**
+   - Add in Iteration 5 or wait?
+   - Required for workflow execution tests
+
+3. **Test organization?**
+   - Keep adding to existing files or split by category?
+   - One file per feature area?
+
+4. **CI/CD integration?**
+   - Add GitHub Actions workflow now or later?
+   - Need to ensure tests run on push
+
+---
+
+**Status**: 🟢 Foundation Complete - Ready for Test Expansion  
+**Next Action**: Choose scenarios for Iteration 5 and implement  
+**Estimated Time**: 2-4 hours for 5-7 new tests  
+**Confidence**: HIGH - Foundation is solid, adding tests is straightforward
+
+---
+
+**Ready to proceed with Iteration 5! What scenarios should we prioritize?**

@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -71,9 +72,12 @@ func NewClient(cfg *config.Config) (*Client, error) {
 
 	switch cfg.Backend.Type {
 	case config.BackendTypeLocal:
-		// Local mode: Always use hardcoded port 7234 (daemon manager controls this)
-		// Endpoint is not configurable for local mode - CLI manages the daemon
+		// Local mode: Use hardcoded port 7234 by default
+		// Allow override via STIGMER_SERVER_ADDR for testing
 		endpoint = "localhost:7234" // Temporal + 1, managed by daemon
+		if testAddr := os.Getenv("STIGMER_SERVER_ADDR"); testAddr != "" {
+			endpoint = testAddr
+		}
 		isCloud = false
 
 	case config.BackendTypeCloud:
