@@ -1,0 +1,61 @@
+{
+  "name": "AgentCallTaskConfig",
+  "kind": "AGENT_CALL",
+  "description": "AGENT_CALL tasks invoke Stigmer agents.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto",
+  "fields": [
+    {
+      "name": "Agent",
+      "jsonName": "agent",
+      "protoField": "agent",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Agent slug or reference",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Message",
+      "jsonName": "message",
+      "protoField": "message",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Message/instructions to the agent (supports expressions)",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Env",
+      "jsonName": "env",
+      "protoField": "env",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "Environment variables (supports expressions)",
+      "required": false
+    },
+    {
+      "name": "Config",
+      "jsonName": "config",
+      "protoField": "config",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "Optional execution configuration (model, timeout, temperature)",
+      "required": false
+    }
+  ]
+}
