@@ -45,6 +45,14 @@ func (s *E2ESuite) TestApplyBasicAgent() {
 	// Verify BOTH agents are mentioned in output (from SDK example 01_basic_agent.go)
 	s.Contains(output, "code-reviewer", "Output should mention the basic agent")
 	s.Contains(output, "code-reviewer-pro", "Output should mention the full agent with optional fields")
+	
+	// Verify table format is present
+	s.Contains(output, "TYPE", "Output should contain table header")
+	s.Contains(output, "NAME", "Output should contain table header")
+	s.Contains(output, "STATUS", "Output should contain table header")
+	s.Contains(output, "ID", "Output should contain table header")
+	s.Contains(output, "Agent", "Output should contain resource type")
+	s.Contains(output, "✓ Created", "Output should show creation status")
 
 	// Verify both agents exist by querying via gRPC API using their slugs
 	// No need to extract IDs from output - query directly by slug
@@ -150,6 +158,13 @@ func (s *E2ESuite) TestApplyDryRun() {
 
 	// Verify dry-run output
 	s.Contains(output, "Dry run successful", "Output should indicate dry run")
+	
+	// Verify dry-run table format
+	s.Contains(output, "TYPE", "Dry-run output should contain table header")
+	s.Contains(output, "NAME", "Dry-run output should contain table header")
+	s.Contains(output, "ACTION", "Dry-run output should contain table header")
+	s.Contains(output, "Agent", "Dry-run output should contain resource type")
+	s.Contains(output, "Create", "Dry-run output should show action")
 
 	// Verify nothing was actually deployed to database
 	dbPath := filepath.Join(s.TempDir, "stigmer.db")
