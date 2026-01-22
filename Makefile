@@ -107,41 +107,15 @@ test-agent-runner: ## Run agent-runner tests only (Python)
 	@echo "Running agent-runner tests..."
 	cd backend/services/agent-runner && poetry install --no-interaction --quiet && poetry run pytest
 
-test-e2e: ## Run E2E integration tests (requires: stigmer server running)
+test-e2e: ## Run E2E integration tests (requires: stigmer server + ollama running)
 	@echo "============================================"
 	@echo "Running E2E Integration Tests"
 	@echo "============================================"
 	@echo ""
-	@echo "Prerequisites:"
-	@echo "  1. Stigmer server must be running: stigmer server"
-	@echo "  2. Ollama must be running: ollama serve"
+	@echo "Prerequisites (checked by tests):"
+	@echo "  1. Stigmer server: stigmer server"
+	@echo "  2. Ollama: ollama serve"
 	@echo ""
-	@echo "Checking prerequisites..."
-	@# Check if Temporal is running
-	@if ! curl -s http://localhost:7233 >/dev/null 2>&1; then \
-		echo ""; \
-		echo "❌ ERROR: Temporal not detected on localhost:7233"; \
-		echo ""; \
-		echo "Please start stigmer server first:"; \
-		echo "  stigmer server"; \
-		echo ""; \
-		exit 1; \
-	fi
-	@echo "✓ Temporal detected"
-	@# Check if Ollama is running
-	@if ! curl -s http://localhost:11434/api/version >/dev/null 2>&1; then \
-		echo ""; \
-		echo "❌ ERROR: Ollama not detected on localhost:11434"; \
-		echo ""; \
-		echo "Please start Ollama first:"; \
-		echo "  ollama serve"; \
-		echo ""; \
-		exit 1; \
-	fi
-	@echo "✓ Ollama detected"
-	@echo ""
-	@echo "Running E2E tests..."
-	@echo "--------------------------------------------"
 	cd test/e2e && go test -v -tags=e2e -timeout 60s ./...
 	@echo ""
 	@echo "============================================"
