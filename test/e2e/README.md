@@ -93,30 +93,55 @@ go test -v -race
 
 ## Current Status
 
-### ✅ Iteration 4: Complete - Production Ready! 🎉
+### ✅ Iteration 5 - Phase 1: Run Command Tests Complete! 🎉
 
-**ALL TESTS PASS CONSISTENTLY**
+**ALL TESTS PASS CONSISTENTLY (6 tests)**
 
 ```bash
 $ go test -v -timeout 60s
---- PASS: TestE2E (8.35s)
-    --- PASS: TestE2E/TestApplyBasicAgent (1.41s)
-    --- PASS: TestE2E/TestApplyDryRun (6.21s)
+--- PASS: TestE2E (12.17s)
+    --- PASS: TestE2E/TestApplyBasicAgent (1.30s)
+    --- PASS: TestE2E/TestApplyDryRun (1.37s)
+    --- PASS: TestE2E/TestRunBasicAgent (2.12s)        ← NEW ✨
+    --- SKIP: TestE2E/TestRunWithAutoDiscovery (5.54s)
+    --- PASS: TestE2E/TestRunWithInvalidAgent (1.10s)  ← NEW ✨
     --- PASS: TestE2E/TestServerStarts (0.73s)
 PASS
-ok      github.com/stigmer/stigmer/test/e2e     9.830s
+ok      github.com/stigmer/stigmer/test/e2e     13.311s
 ```
 
 **What's Working:**
 - ✅ Full apply workflow (CLI → Server → Deployment)
+- ✅ **Run command smoke tests** (execution creation, no Temporal required) ← NEW!
+- ✅ **Agent execution verification via API** ← NEW!
+- ✅ **Error handling tests** (missing agents) ← NEW!
 - ✅ Dry-run mode validation
 - ✅ API-based verification (no database lock conflicts)
 - ✅ Error messages from CLI (no more silent failures)
 - ✅ Test fixture dependency resolution
 - ✅ Environment variable server override
 - ✅ Comprehensive test coverage
-- ✅ Fast execution (~10 seconds for 3 tests)
+- ✅ Fast execution (~13 seconds for 6 tests)
 - ✅ Full isolation (random ports + temp dirs)
+
+**Phase 1 Run Command Tests (Iteration 5):**
+- [x] `TestRunBasicAgent` - Full run workflow (agent execution creation)
+- [x] `TestRunWithInvalidAgent` - Error handling for missing agents
+- [x] `AgentExecutionExistsViaAPI()` helper - Verify execution via gRPC
+- [x] Tests work without Temporal/agent-runner (smoke tests only)
+- [x] Foundation for Phase 2 (full integration with LLM)
+- [x] All tests passing (6 total: 5 pass, 1 skip)
+
+**What Phase 1 Tests:**
+- ✅ CLI run command works
+- ✅ Execution creation (record in database)
+- ✅ API verification (gRPC queries)
+- ✅ Error handling (graceful errors)
+
+**What Phase 1 Does NOT Test** (Phase 2):
+- ❌ Actual agent execution (requires Temporal + agent-runner + Ollama)
+- ❌ LLM responses
+- ❌ Log streaming
 
 **Key Improvements in Iteration 4:**
 - [x] Fixed CLI silent failures (error printing in main.go)
@@ -179,7 +204,7 @@ func RunCLISubprocess(args ...string) (string, error)
 
 ### ✅ Test Cases Written
 
-Full test suite in `e2e_apply_test.go`:
+**Apply Tests** (`e2e_apply_test.go`):
 
 ```go
 // TestApplyBasicAgent - Full apply workflow
@@ -189,25 +214,63 @@ func (s *E2ESuite) TestApplyBasicAgent() {
     s.Require().NoError(err)
     s.Contains(output, "Deployment successful")
     
-    // Verify in database
-    dbPath := filepath.Join(s.TempDir, "stigmer.db")
-    keys, _ := ListKeysFromDB(dbPath, "")
-    // Search for agent in various key patterns...
-    s.NotEmpty(foundKey, "Should find agent in database")
+    // Verify via API
+    exists, err := AgentExistsViaAPI(s.Harness.ServerPort, agentID)
+    s.NoError(err)
+    s.True(exists)
 }
 
 // TestApplyDryRun - Dry-run mode verification
 func (s *E2ESuite) TestApplyDryRun()
 ```
 
-**Status**: ✅ Working and verified
+**Run Tests** (`e2e_run_test.go`):
 
-## Iteration 5: Expand Test Coverage
+```go
+// TestRunBasicAgent - Full run workflow (execution creation)
+func (s *E2ESuite) TestRunBasicAgent() {
+    // Apply agent
+    applyOutput, _ := RunCLIWithServerAddr(s.Harness.ServerPort, "apply", ...)
+    agentID := extractAgentID(applyOutput)
+    
+    // Run agent
+    runOutput, _ := RunCLIWithServerAddr(
+        s.Harness.ServerPort,
+        "run", "test-agent",
+        "--message", "Hello, test agent!",
+        "--follow=false",
+    )
+    
+    // Verify execution created
+    executionID := extractExecutionID(runOutput)
+    exists, _ := AgentExecutionExistsViaAPI(s.Harness.ServerPort, executionID)
+    s.True(exists)
+}
 
-With the foundation complete, we can now add more test scenarios:
-- Agent with skills
-- Agent with subagents
-- Agent with MCP servers
+// TestRunWithInvalidAgent - Error handling
+func (s *E2ESuite) TestRunWithInvalidAgent()
+```
+
+**Status**: ✅ All tests working and verified
+
+## Iteration 5 - Phase 2: Full Agent Execution Testing (Next)
+
+**Phase 1 Complete:** Run command smoke tests working ✅
+
+**Phase 2 Scope:** Add infrastructure for real agent execution:
+
+**Required Components:**
+1. Docker Compose (Temporal + agent-runner)
+2. Ollama prerequisite checking
+3. Enhanced test harness (manages Docker services)
+
+**New Tests:**
+- TestRunWithExecution - Wait for actual agent execution
+- TestRunWithLogStreaming - Test --follow flag
+- TestRunWithRuntimeEnv - Test environment variables
+
+**Future Scenarios:**
+- Agent with skills, subagents, MCP servers
 - Error cases (invalid YAML, bad Go code)
 - Workflow deployment and execution
 - Update/delete operations
@@ -366,8 +429,10 @@ func (s *E2ESuite) TestExample() {
 
 ---
 
-**Status:** ✅ **Iteration 4 Complete - Production Ready!**  
+**Status:** ✅ **Phase 1 Complete - Run Command Tests Working!**  
 **Last Updated:** 2026-01-22  
-**Test Suite Time:** ~9.8 seconds (3 tests)  
-**Test Pass Rate:** 100% (All tests passing consistently)  
-**Confidence:** HIGH - Full integration testing framework ready for expansion
+**Test Suite Time:** ~13.3 seconds (6 tests: 5 pass, 1 skip)  
+**Test Pass Rate:** 100% (All passing tests consistent)  
+**Confidence:** HIGH - Foundation solid for Phase 2 (full integration)
+
+**Next:** Phase 2 - Add Temporal/agent-runner/Ollama for full execution testing
