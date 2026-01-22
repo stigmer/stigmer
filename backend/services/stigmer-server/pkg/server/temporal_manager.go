@@ -492,7 +492,8 @@ func (tm *TemporalManager) Close() {
 	if currentClient != nil {
 		log.Debug().Msg("Closing Temporal client")
 		currentClient.Close()
-		tm.temporalClient.Store(nil)
+		// Note: No need to clear atomic.Value during shutdown
+		// (storing nil in atomic.Value causes panic)
 	}
 
 	log.Info().Msg("Temporal manager closed")
