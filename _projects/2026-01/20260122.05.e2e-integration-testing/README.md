@@ -2,11 +2,50 @@
 
 **Project ID**: 20260122.05.e2e-integration-testing  
 **Started**: January 22, 2026  
-**Status**: 🟡 Planning
+**Status**: 🟢 In Progress - Iteration 3 Complete
 
 ## Overview
 
 End-to-end integration testing framework for Stigmer CLI, SDK, and backend services. Tests the full flow from SDK code generation through `stigmer apply`/`stigmer run` commands to backend execution and streaming output.
+
+## Progress
+
+### ✅ Iteration 1: Minimal POC (Complete)
+- Test directory structure (`test/e2e/`)
+- Helper utilities (`GetFreePort`, `WaitForPort`)
+- Test harness (server lifecycle management)
+- Testify suite framework
+- Smoke test (`TestServerStarts`) - verified server startup
+
+**Checkpoint**: `checkpoints/01-iteration-1-complete.md`
+
+### ✅ Iteration 2: Database & CLI Infrastructure (Complete)
+- Database helpers (`GetFromDB`, `ListKeysFromDB`)
+- CLI runner framework (subprocess execution)
+- Test fixtures (`Stigmer.yaml`, `basic_agent.go`)
+- Comprehensive test cases (`TestApplyBasicAgent`, `TestApplyDryRun`)
+- Standalone verification tests
+
+**Checkpoint**: `checkpoints/02-iteration-2-infrastructure-complete.md`
+
+### ✅ Iteration 3: Suite Hanging Issue Fixed (Complete)
+- **Critical Fix**: Resolved suite hanging issue that blocked all testing
+- Debug HTTP server port conflict fixed (use `ENV=test`)
+- Process group management for proper signal propagation
+- Graceful shutdown with SIGINT (~8x faster: 0.6s vs 5s+)
+- Corrected CLI path and server address handling
+- All tests run without hanging ✅
+
+**Checkpoint**: `checkpoints/03-iteration-3-suite-hanging-fixed.md`  
+**Fixes Summary**: `FIXES_SUMMARY.md`
+
+### ⏩ Next: Iteration 4 - Full Integration Testing
+- Run full test suite and verify apply workflow
+- Debug any remaining issues in `TestApplyBasicAgent`
+- Verify database persistence
+- Add more test scenarios (error cases, edge cases)
+
+**Status**: `next-task.md`
 
 ## Primary Goal
 

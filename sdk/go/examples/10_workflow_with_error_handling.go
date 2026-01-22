@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example 10: Workflow with Error Handling
 //
 // This example demonstrates error handling using TRY/CATCH tasks.

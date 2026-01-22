@@ -76,7 +76,7 @@ func RunCLISubprocess(args ...string) (string, error) {
 		return "", fmt.Errorf("failed to get working directory: %w", err)
 	}
 
-	cliMainPath := filepath.Join(cwd, "..", "..", "client-apps", "cli", "cmd", "stigmer", "main.go")
+	cliMainPath := filepath.Join(cwd, "..", "..", "client-apps", "cli", "main.go")
 
 	// Use 'go run' to execute the CLI
 	cmdArgs := append([]string{"run", cliMainPath}, args...)
