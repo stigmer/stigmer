@@ -46,9 +46,11 @@ func NewExecuteGraphtonActivityStub(ctx workflow.Context, taskQueue string) Exec
 	// Create activity options with explicit task queue routing to Python worker
 	options := workflow.ActivityOptions{
 		TaskQueue:              taskQueue, // Route to Python worker (from memo)
-		StartToCloseTimeout:    10 * time.Minute, // 10 minutes
+		StartToCloseTimeout:    10 * time.Minute, // 10 minutes for agent execution
+		ScheduleToStartTimeout: 1 * time.Minute,  // Max wait for worker to pick up task
+		HeartbeatTimeout:       30 * time.Second,  // Activity must send heartbeat every 30s
 		RetryPolicy: &temporal.RetryPolicy{
-			MaximumAttempts:    1, // No retries for agent execution
+			MaximumAttempts:    1, // No retries for agent execution (not idempotent)
 			InitialInterval:    10 * time.Second,
 			BackoffCoefficient: 2.0,
 		},

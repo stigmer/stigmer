@@ -1,0 +1,62 @@
+version: '3.8'
+
+# Docker Compose configuration for local sandbox testing
+# 
+# Usage:
+#   docker-compose -f docker-compose.sandbox.yml up -d
+#   docker-compose -f docker-compose.sandbox.yml exec sandbox bash
+#   docker-compose -f docker-compose.sandbox.yml down
+
+services:
+  # Basic sandbox (lightweight ~300MB)
+  sandbox-basic:
+    image: stigmer-sandbox-basic:local
+    container_name: stigmer-sandbox-basic
+    
+    # Volume mounts
+    volumes:
+      - ./workspace:/workspace
+      - ./logs:/logs
+    
+    # Environment variables
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NODE_ENV=development
+    
+    # Working directory
+    working_dir: /workspace
+    
+    # Keep container running
+    command: tail -f /dev/null
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Networking
+    network_mode: bridge
+  
+  # Full sandbox (all tools ~1-2GB)
+  # Uncomment to use instead of basic
+  # sandbox-full:
+  #   image: stigmer-sandbox-full:local
+  #   container_name: stigmer-sandbox-full
+  #   
+  #   volumes:
+  #     - ./workspace:/workspace
+  #     - ./logs:/logs
+  #     - ~/.aws:/home/sandbox/.aws:ro  # AWS credentials (read-only)
+  #     - ~/.kube:/home/sandbox/.kube:ro  # Kubernetes config (read-only)
+  #   
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - NODE_ENV=development
+  #   
+  #   working_dir: /workspace
+  #   command: tail -f /dev/null
+  #   restart: unless-stopped
+  #   network_mode: bridge
+
+# Optional: Custom network for container communication
+# networks:
+#   stigmer-network:
+#     driver: bridge

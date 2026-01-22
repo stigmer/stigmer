@@ -135,8 +135,10 @@ If something is user-facing or architecturally significant, it should be in **BO
 2. Determine if product documentation is needed (would users/contributors need this explained?)
 3. If needed: Create or update appropriate product documentation
 4. If not needed (internal-only changes): Ensure changelog has sufficient detail
-5. Follow `@stigmer-oss-documentation-standards.md`
-6. Update indexes if documentation created
+5. **Review any documentation created during the conversation** (ADRs, summaries, design docs)
+6. **Validate against `@stigmer-oss-documentation-standards.md`** (proper categorization, naming, location)
+7. **Move/reorganize documentation** if it doesn't follow standards (e.g., move from code directory to `docs/`)
+8. Update indexes if documentation created or moved
 
 **Evaluation Questions (AI asks these):**
 
@@ -466,15 +468,18 @@ Analyzing work for product documentation requirements...
 **Analysis process**:
 1. Review conversation for features/components/changes
 2. Check file changes for what was modified
-3. Ask evaluation questions (see Step 4 criteria)
-4. Determine if product documentation is needed (would users/contributors need this explained?)
-5. If needed: Create/update product docs; If not: Ensure changelog is comprehensive
+3. **Scan for any documentation created during conversation** (ADRs, design docs, summaries)
+4. **Validate existing documentation against standards** (`@stigmer-oss-documentation-standards.md`)
+5. Ask evaluation questions (see Step 4 criteria)
+6. Determine if product documentation is needed (would users/contributors need this explained?)
+7. If needed: Create/update product docs; If not: Ensure changelog is comprehensive
+8. **If documentation found that violates standards**: Reorganize and move to proper location
 
 **Outcome 1: Product Documentation Created/Updated (User-facing or architectural changes)**:
 ```
 ✅ Product documentation needed - creating/updating...
 ```
-- Determine appropriate category (getting-started, architecture, guides, ADR)
+- Determine appropriate category (getting-started, architecture, guides, ADR, implementation)
 - Create new documentation OR update existing documentation
 - Follow `@stigmer-oss-documentation-standards.md`
 - Update indexes (`docs/README.md`, root `README.md` if key doc)
@@ -491,6 +496,35 @@ Analyzing work for product documentation requirements...
    
    Rationale: New user-facing feature (agent pipeline) needs architecture explanation and usage guide for users/contributors.
    Note: Changelog also captures this change (what/when/why) for version history.
+```
+
+**Outcome 1a: Documentation Reorganized (Existing documentation violates standards)**:
+```
+✅ Documentation found in conversation - reorganizing to follow standards...
+```
+- Detect documentation created during conversation (ADRs, summaries, design docs)
+- Check against `@stigmer-oss-documentation-standards.md`
+- If violations found:
+  - Determine proper category (getting-started, architecture, guides, ADR, implementation)
+  - Check filename follows lowercase-with-hyphens convention
+  - Move from code directory to appropriate `docs/` folder
+  - Update any references/links
+  - Update indexes (`docs/README.md`)
+- Commit documentation reorganization
+- Confirm: "✅ Documentation reorganized: {moved files and rationale}"
+
+**Example:**
+```
+✅ Documentation reorganized to follow standards:
+   - Found: backend/services/stigmer-server/pkg/domain/agentexecution/controller/ADR_ALIGNMENT_SUMMARY.md
+   - Violation: Documentation in code directory (should be in docs/)
+   - Violation: Uppercase filename (should be lowercase-with-hyphens)
+   - Action: Moved to docs/implementation/adr-011-alignment-summary.md
+   - Updated docs/README.md index
+   - Docs committed: f7e2a1c docs: reorganize ADR alignment summary per standards
+   
+   Rationale: Documentation created during conversation must follow standards.
+   Implementation report belongs in docs/implementation/ with proper naming.
 ```
 
 **Outcome 2: Changelog Sufficient (Internal-only changes)**:
@@ -1051,7 +1085,75 @@ Summary:
 Ready for next task!
 ```
 
-### Example 5: Multiple Areas with Learnings (AI Selects Most Valuable)
+### Example 5: Documentation Reorganization (Standards Violation Detected)
+
+**User conversation context**:
+- Implemented ADR 011 alignment changes
+- Created ADR_ALIGNMENT_SUMMARY.md in code directory during conversation
+- Summary document violates documentation standards (location and naming)
+
+**User action**:
+```
+@_projects/2026-01/20260119.02.adr-011-alignment
+@complete-stigmer-oss-work
+```
+
+**AI execution**:
+```
+Executing Stigmer OSS work completion workflow...
+
+Step 1/5: Creating changelog...
+✅ Changelog created: _changelog/2026-01/2026-01-19-143520-align-agentexecution-with-adr-011.md
+
+Step 2/5: Updating project progress...
+✅ Checkpoint created: checkpoints/2026-01-19-adr-011-alignment-complete.md
+✅ Updated: next-task.md
+
+Step 3/5: Committing changes...
+✅ Committed: d8f2e7a feat(backend/agentexecution): align with ADR 011 streaming architecture
+
+Step 4/5: Evaluating product documentation needs...
+
+🔍 Scanning for documentation created during conversation...
+✅ Found: backend/services/stigmer-server/pkg/domain/agentexecution/controller/ADR_ALIGNMENT_SUMMARY.md
+
+Validating against documentation standards...
+❌ Violation: Documentation in code directory (should be in docs/)
+❌ Violation: Uppercase filename (should be lowercase-with-hyphens)
+
+Decision: Reorganize documentation to follow standards
+
+Determining proper category: implementation (implementation report/summary)
+New location: docs/implementation/adr-011-alignment-summary.md
+
+✅ Moving documentation:
+   - From: backend/services/stigmer-server/pkg/domain/agentexecution/controller/ADR_ALIGNMENT_SUMMARY.md
+   - To: docs/implementation/adr-011-alignment-summary.md
+   - Renamed to follow lowercase-with-hyphens convention
+✅ Updated docs/README.md index:
+   - Added link in Implementation section
+✅ Committed documentation reorganization: a9f2b1c docs: reorganize ADR 011 alignment summary per standards
+
+Rationale: Implementation summary belongs in docs/implementation/ with proper naming convention.
+Documentation created during conversation must follow Stigmer OSS documentation standards.
+
+Step 5/5: Evaluating if rule improvement is needed...
+ℹ️  No significant learnings detected (applied existing patterns from ADR)
+
+🎉 All steps completed with documentation reorganization!
+
+Summary:
+- 1 changelog created (change tracking for developers)
+- 1 checkpoint created
+- 1 project file updated
+- 15 files committed (code changes)
+- Documentation reorganized: ADR 011 alignment summary moved to proper location
+- 1 documentation commit
+
+Ready for next task!
+```
+
+### Example 6: Multiple Areas with Learnings (AI Selects Most Valuable)
 
 **User conversation context**:
 - Created proto APIs (standard pattern - no new learnings)
@@ -1133,10 +1235,15 @@ Before completing, verify:
 - [ ] Commit message follows conventional commits format
 - [ ] All changes are staged and committed
 - [ ] **Product documentation evaluation performed** (is product documentation needed for understanding/using Stigmer?)
+- [ ] **Conversation scanned for documentation created** (ADRs, summaries, design docs)
+- [ ] **All documentation validated against standards** (`@stigmer-oss-documentation-standards.md`)
+- [ ] If documentation violations found: Reorganized and moved to proper location
 - [ ] If documentation needed: Created/updated appropriate product docs
 - [ ] If documentation needed: Explains how to use features or how systems work (not just change tracking)
 - [ ] If documentation needed: Follows `@stigmer-oss-documentation-standards.md`
-- [ ] If documentation needed: In appropriate category (getting-started, architecture, guides, ADR)
+- [ ] If documentation needed: In appropriate category (getting-started, architecture, guides, implementation, ADR)
+- [ ] If documentation needed: Uses lowercase-with-hyphens filename convention
+- [ ] If documentation needed: In `docs/` folder (not in code directories)
 - [ ] If documentation needed: Indexes updated (`docs/README.md`, root `README.md` if key doc)
 - [ ] If documentation needed: Committed separately with clear message and rationale
 - [ ] If changelog sufficient: Clear rationale provided (internal-only change with no user/contributor impact)
@@ -1236,9 +1343,14 @@ This orchestrator succeeds when:
 - ✅ Project next-task.md updated with documentation references
 - ✅ Git commit created with all changes
 - ✅ **Documentation evaluation performed** (smart decision made)
+- ✅ **Conversation scanned for documentation** (ADRs, summaries, design docs detected)
+- ✅ **All documentation validated against standards** (location, naming, categorization)
+- ✅ If violations found: Documentation reorganized and moved to proper location
 - ✅ If docs needed: Created/updated appropriate documentation
 - ✅ If docs needed: Follows `@stigmer-oss-documentation-standards.md`
-- ✅ If docs needed: In appropriate category
+- ✅ If docs needed: In appropriate category (getting-started, architecture, guides, implementation, ADR)
+- ✅ If docs needed: Uses lowercase-with-hyphens filename
+- ✅ If docs needed: In `docs/` folder (not code directories)
 - ✅ If docs needed: Indexes updated
 - ✅ If docs needed: Committed with clear message and rationale
 - ✅ If docs needed: No duplication of changelog content
@@ -1277,18 +1389,23 @@ This orchestrator succeeds when:
 
 **Smart Documentation Benefits**:
 - ✅ **Product documentation is ALWAYS evaluated** (never forgotten)
+- ✅ **Documentation created during conversation is ALWAYS validated** (standards enforced)
+- ✅ **Documentation standards automatically applied** (location, naming, categorization)
+- ✅ **Documentation violations automatically fixed** (moved to proper location)
 - ✅ **Clear separation of concerns** (changelog = change tracking, product docs = understanding/usage)
 - ✅ Creates product documentation when needed (user-facing features, architectural concepts, patterns)
 - ✅ Skips product documentation when changelog is sufficient (internal-only changes)
 - ✅ Follows standards consistently (`@stigmer-oss-documentation-standards.md`)
 - ✅ Both changelog and product docs can exist (they serve different purposes - not duplication)
 - ✅ **Docs folder stays comprehensive** (users can understand and adopt Stigmer)
+- ✅ **Docs folder stays organized** (proper categorization, lowercase-with-hyphens naming)
 - ✅ **AI agents can use docs folder** (drag to answer questions about features/architecture)
 - ✅ **Open-source adoption enabled** (users understand how to use Stigmer)
 - ✅ Transparent reasoning (AI explains decision - product docs created OR changelog sufficient)
 - ✅ Continuous documentation improvement without manual effort or overhead
 - ✅ Documentation evolves naturally from actual work
 - ✅ **Zero documentation debt** (right level of product documentation every time)
+- ✅ **Zero documentation chaos** (standards enforced automatically)
 
 **AI-Driven Rule Improvement Benefits**:
 - ✅ Captures learnings automatically (user doesn't need to remember)
@@ -1302,6 +1419,10 @@ This orchestrator succeeds when:
 
 **Smart Documentation Philosophy**:
 - **Product documentation evaluation is ALWAYS performed** - never forgotten
+- **Documentation created during conversation is ALWAYS validated** - standards enforced
+- AI scans conversation for any documentation created (ADRs, summaries, design docs)
+- AI validates all documentation against `@stigmer-oss-documentation-standards.md`
+- AI reorganizes documentation that violates standards (location, naming, categorization)
 - AI decides **whether** product documentation is needed (would users/contributors need this explained?)
 - **Changelogs** capture "what changed, when, why" (change tracking for developers)
 - **Product documentation** captures "how to use it, how it works" (understanding/usage for users)
@@ -1309,7 +1430,7 @@ This orchestrator succeeds when:
 - AI creates product documentation when it enables understanding/usage of Stigmer
 - AI skips product documentation when changelog is sufficient (internal-only changes)
 - User doesn't worry about documentation - it's intelligently handled
-- Result: Comprehensive docs folder that helps users understand and adopt Stigmer
+- Result: Comprehensive, organized docs folder that helps users understand and adopt Stigmer
 
 ---
 

@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "apply.go",
         "backend.go",
+        "config.go",
         "internal.go",
         "new.go",
         "run.go",
@@ -30,6 +31,7 @@ go_library(
         "//client-apps/cli/internal/cli/config",
         "//client-apps/cli/internal/cli/daemon",
         "//client-apps/cli/internal/cli/deploy",
+        "//client-apps/cli/internal/cli/llm",
         "//client-apps/cli/internal/cli/logs",
         "@com_github_alecaivazis_survey_v2//:survey",
         "@com_github_spf13_cobra//:cobra",

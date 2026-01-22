@@ -3,8 +3,8 @@ package steps
 import (
 	"fmt"
 
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	commonspb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -16,15 +16,13 @@ import (
 //  1. Load existing resource from context (set by LoadExistingStep)
 //  2. Merge spec from input to existing resource
 //  3. Preserve metadata.id and other immutable fields
-//  4. Clear status field (status is system-managed, not client-modifiable)
-//  5. Clear computed fields (TODO: when needed)
-//  6. Update audit fields in status.audit:
+//  4. Clear status field from INPUT (status is system-managed, not client-modifiable)
+//  5. Preserve ENTIRE status from existing resource (all system state: default_instance_id, phase, conditions, etc.)
+//  6. Update ONLY audit fields within the preserved status:
 //     - Preserve created_by and created_at from existing
 //     - Update updated_by (actor)
 //     - Update updated_at (timestamp)
 //     - Set event to "updated"
-//     - spec_audit.updated_by and spec_audit.updated_at are updated
-//     - status_audit is reset (status was cleared)
 //
 // The api_resource_kind is extracted from request context (injected by interceptor).
 type BuildUpdateStateStep[T proto.Message] struct {
@@ -69,16 +67,21 @@ func (s *BuildUpdateStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error
 	}
 
 	// 4. Clear status field using proto reflection
-	// Status is system-managed and should not contain any client-provided data
+	// Status is system-managed and should not contain any client-provided data from request
 	if hasStatusField(merged) {
 		if err := clearStatusFieldReflect(merged); err != nil {
 			return fmt.Errorf("failed to clear status field: %w", err)
 		}
 	}
 
-	// 5. TODO: Clear computed fields (when we have computed fields)
+	// 5. Preserve entire status from existing resource (matching Java ApiResourcePreviousStatusReplacer.replace)
+	// This preserves ALL system-managed status fields (default_instance_id, phase, etc.)
+	if err := copyStatusFromExisting(merged, existing); err != nil {
+		return fmt.Errorf("failed to copy status from existing: %w", err)
+	}
 
 	// 6. Update audit fields in status using proto reflection
+	// This updates ONLY audit info within the preserved status
 	if hasStatusField(merged) {
 		if err := updateAuditFieldsReflect(merged, existing); err != nil {
 			return fmt.Errorf("failed to update audit fields: %w", err)
@@ -127,6 +130,50 @@ func preserveImmutableFields[T proto.Message](merged, existing T) error {
 
 	// Note: metadata.name is NOT preserved - it can be updated by the client!
 	// Other metadata fields (title, description, labels, tags) are also mutable
+
+	return nil
+}
+
+// copyStatusFromExisting copies the entire status field from existing to merged resource
+// This matches Java's ApiResourcePreviousStatusReplacer.replace() behavior.
+//
+// The status field is system-managed and contains all platform state:
+// - default_instance_id (for Agent)
+// - phase (for executions)
+// - conditions (for resources)
+// - etc.
+//
+// During update, we preserve ALL of this state and only update audit fields.
+func copyStatusFromExisting[T proto.Message](merged, existing T) error {
+	// Get status field from existing resource
+	existingMsg := existing.ProtoReflect()
+	existingStatusField := existingMsg.Descriptor().Fields().ByName("status")
+
+	if existingStatusField == nil {
+		// Resource doesn't have a status field - this is ok
+		return nil
+	}
+
+	// Check if existing has status set
+	if !existingMsg.Has(existingStatusField) {
+		// Existing doesn't have status - nothing to copy
+		return nil
+	}
+
+	// Get the status value from existing
+	existingStatus := existingMsg.Get(existingStatusField)
+
+	// Set it on merged
+	mergedMsg := merged.ProtoReflect()
+	mergedStatusField := mergedMsg.Descriptor().Fields().ByName("status")
+
+	if mergedStatusField == nil {
+		// Merged doesn't have status field - this shouldn't happen but handle gracefully
+		return nil
+	}
+
+	// Copy the entire status field (matching Java: builder.setField(statusFieldDescriptor, previousStatus))
+	mergedMsg.Set(mergedStatusField, existingStatus)
 
 	return nil
 }

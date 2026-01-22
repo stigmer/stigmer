@@ -1103,6 +1103,120 @@ async for event in agent_graph.astream_events(
 
 ## Deployment
 
+### 2026-01-21 - PyInstaller: Single-File Module Dependencies
+
+**Problem**: Binary fails at runtime with `ImportError: cannot import name 'MultipartSegment' from 'multipart'`
+
+**Root Cause**: 
+- Daytona SDK depends on `multipart` package (v1.3.0)
+- `multipart` is a single-file Python module (`multipart.py`), not a package
+- PyInstaller's static analysis sees `from multipart import MultipartSegment` and incorrectly assumes `MultipartSegment` is a submodule
+- The complete `multipart.py` file wasn't being bundled properly
+
+**Solution**: Create custom PyInstaller hook for single-file modules:
+
+**1. Add explicit hidden imports** to `agent-runner.spec`:
+```python
+hiddenimports=[
+    # ...existing imports...
+    
+    # Daytona sandbox support
+    'daytona',
+    'daytona._async',
+    'daytona._async.filesystem',
+    'daytona._sync',
+    'daytona._sync.filesystem',
+    
+    # multipart package (required by daytona SDK)
+    'multipart',
+    'multipart.multipart',  # Contains MultipartSegment, PushMultipartParser
+    
+    'deepagents_cli',
+],
+```
+
+**2. Create custom hook** at `hooks/hook-multipart.py`:
+```python
+# PyInstaller hook for multipart package
+# 
+# The multipart package is a single-file module (multipart.py), NOT a package.
+# PyInstaller sometimes incorrectly treats it as a package, creating multipart/__init__.py
+# which breaks imports. This hook ensures it's collected as a py_module.
+
+from PyInstaller.utils.hooks import collect_submodules, get_module_file_attribute
+
+# Tell PyInstaller to collect multipart as a single module
+hiddenimports = []
+
+# Verify it's a single-file module
+try:
+    import multipart
+    module_file = get_module_file_attribute('multipart')
+    # If it's multipart.py (not multipart/__init__.py), we're good
+    if module_file and not module_file.endswith('__init__.py'):
+        # Force PyInstaller to treat it correctly by not adding submodules
+        pass
+except ImportError:
+    pass
+```
+
+**3. Configure hookspath** in `agent-runner.spec`:
+```python
+a = Analysis(
+    ['main.py'],
+    pathex=[],
+    binaries=[],
+    datas=[],
+    hiddenimports=[...],
+    hookspath=['hooks'],  # Custom PyInstaller hooks directory
+    ...
+)
+```
+
+**4. Create test script** (`test_multipart_import.py`):
+```python
+#!/usr/bin/env python3
+"""Test script to verify multipart imports work correctly."""
+
+def test_multipart_imports():
+    try:
+        import multipart
+        from multipart import MultipartSegment
+        from multipart import PushMultipartParser
+        from multipart import parse_options_header
+        from daytona._async import filesystem
+        print("✅ All multipart imports successful!")
+        return True
+    except ImportError as e:
+        print(f"❌ Import failed: {e}")
+        return False
+
+if __name__ == "__main__":
+    import sys
+    success = test_multipart_imports()
+    sys.exit(0 if success else 1)
+```
+
+**Pattern for any single-file module**:
+1. Identify if dependency is single-file module (one `.py` file, not a package with `__init__.py`)
+2. Add explicit hidden import in spec file
+3. Create custom hook if PyInstaller warnings persist
+4. Test imports work in bundled binary
+
+**Prevention**:
+1. Check PyInstaller warnings for "missing module named X.Y" (false positives for single-file modules)
+2. Test binary startup immediately after rebuilding
+3. Use test scripts to validate critical imports
+4. Document all custom hooks with clear comments
+
+**Related Docs**: 
+- Checkpoint: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/checkpoints/2026-01-21-multipart-import-fix.md`
+- Changelog: `_changelog/2026-01/2026-01-21-221005-fix-multipart-import-error-in-agent-runner-binary.md`
+
+**Impact**: HIGH - Prevents binary from starting if single-file dependencies aren't properly bundled
+
+---
+
 ### 2026-01-12 - Docker Build Context
 
 **Problem**: Docker build needs repo root as context for path deps

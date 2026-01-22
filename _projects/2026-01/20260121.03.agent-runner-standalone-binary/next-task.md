@@ -72,6 +72,31 @@ This project implements PyInstaller-based standalone binary approach for agent-r
 
 ## Latest Updates (2026-01-21)
 
+### Multipart Import Error Fixed ✅
+**Problem**: Agent-runner binary failed to start with `ImportError: cannot import name 'MultipartSegment' from 'multipart'`
+
+**Root Cause**: 
+- Daytona SDK depends on `multipart` package (v1.3.0)
+- PyInstaller wasn't properly bundling the single-file `multipart.py` module
+- Static analysis missed the import path through Daytona's async filesystem module
+
+**Solution**:
+- Added explicit hidden imports to `agent-runner.spec` (multipart + Daytona modules)
+- Created custom PyInstaller hook (`hooks/hook-multipart.py`) for single-file module handling
+- Created test script to validate imports (`test_multipart_import.py`)
+- Binary rebuilt successfully (59MB)
+
+**Impact**: Binary now starts successfully with full Daytona sandbox support!
+
+**Files Changed**:
+- `backend/services/agent-runner/agent-runner.spec`
+- `backend/services/agent-runner/hooks/hook-multipart.py` (new)
+- `backend/services/agent-runner/test_multipart_import.py` (new)
+
+**Documentation**:
+- Checkpoint: `checkpoints/2026-01-21-multipart-import-fix.md`
+- Changelog: `_changelog/2026-01/2026-01-21-221005-fix-multipart-import-error-in-agent-runner-binary.md`
+
 ### GitHub Actions Workflow Fixed ✅
 **Problem**: Release workflow completely blocked by two CI failures:
 1. **PyInstaller not found** - `poetry install --with dev` step was missing
