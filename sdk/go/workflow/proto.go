@@ -205,6 +205,82 @@ func convertTaskConfig(config TaskConfig) (*structpb.Struct, error) {
 	return protoStruct, nil
 }
 
+// normalizeMapForProto normalizes a map[string]interface{} for protobuf compatibility.
+// This handles converting typed slices (like []map[string]any) to []interface{}.
+func normalizeMapForProto(m map[string]interface{}) map[string]interface{} {
+	if m == nil {
+		return nil
+	}
+	
+	result := make(map[string]interface{})
+	for k, v := range m {
+		result[k] = normalizeValueForProto(v)
+	}
+	return result
+}
+
+// normalizeValueForProto normalizes a value for protobuf compatibility.
+func normalizeValueForProto(v interface{}) interface{} {
+	// Check if it's a Ref type (TaskFieldRef, StringRef, etc.)
+	// These need to be converted to their expression string
+	if ref, ok := v.(Ref); ok {
+		return ref.Expression()
+	}
+	
+	switch val := v.(type) {
+	case map[string]interface{}:
+		return normalizeMapForProto(val)
+	case []map[string]interface{}:
+		// Convert []map[string]interface{} (same as []map[string]any) to []interface{}
+		result := make([]interface{}, len(val))
+		for i, item := range val {
+			result[i] = normalizeMapForProto(item)
+		}
+		return result
+	case []interface{}:
+		// Recursively normalize array elements
+		result := make([]interface{}, len(val))
+		for i, item := range val {
+			result[i] = normalizeValueForProto(item)
+		}
+		return result
+	default:
+		return v
+	}
+}
+
+// taskToMap converts a Task to a map[string]interface{} for nested task serialization.
+// This is used by builders like WithLoopBody, TryBlock, etc. that need to serialize tasks.
+func taskToMap(task *Task) (map[string]interface{}, error) {
+	m := map[string]interface{}{
+		"name": task.Name,
+		"kind": string(task.Kind),
+	}
+	
+	// Convert config if present
+	if task.Config != nil {
+		configMap, err := taskConfigToMap(task.Config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert task config: %w", err)
+		}
+		m["config"] = configMap
+	}
+	
+	// Add export if set
+	if task.ExportAs != "" {
+		m["export"] = map[string]interface{}{
+			"as": task.ExportAs,
+		}
+	}
+	
+	// Add flow control if set
+	if task.ThenTask != "" {
+		m["then"] = task.ThenTask
+	}
+	
+	return m, nil
+}
+
 // taskConfigToMap converts a TaskConfig to a map[string]interface{}.
 //
 // This handles all the different task config types and extracts their fields
@@ -282,7 +358,7 @@ func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
 	}
 	
 	if c.Body != nil && len(c.Body) > 0 {
-		m["body"] = c.Body
+		m["body"] = normalizeMapForProto(c.Body)
 	}
 	
 	if c.TimeoutSeconds > 0 {
@@ -305,7 +381,7 @@ func grpcCallTaskConfigToMap(c *GrpcCallTaskConfig) map[string]interface{} {
 	}
 	
 	if c.Body != nil && len(c.Body) > 0 {
-		m["body"] = c.Body
+		m["body"] = normalizeMapForProto(c.Body)
 	}
 	
 	return m

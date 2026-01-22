@@ -85,15 +85,14 @@ func BranchBuilder(name string, builder func() *Task) BranchDef {
 func ParallelBranches(branches ...BranchDef) ForkOption {
 	return func(c *ForkTaskConfig) {
 		for _, branch := range branches {
-			// Convert task to map representation
-			taskMap := map[string]interface{}{
-				"name": branch.Task.Name,
-				"kind": string(branch.Task.Kind),
-			}
-			
-			// Add config if present
-			if branch.Task.Config != nil {
-				taskMap["config"] = branch.Task.Config
+			// Convert task to map representation using the helper
+			taskMap, err := taskToMap(branch.Task)
+			if err != nil {
+				// If conversion fails, create a minimal task map
+				taskMap = map[string]interface{}{
+					"name": branch.Task.Name,
+					"kind": string(branch.Task.Kind),
+				}
 			}
 			
 			// Create branch entry
