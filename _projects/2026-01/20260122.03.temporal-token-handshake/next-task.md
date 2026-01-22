@@ -66,10 +66,11 @@ Temporal async activity completion pattern (token handshake) that:
 6. Set 24-hour timeout on activity
 7. Write unit tests
 
-**Current Investigation**:
-- Need to find where Zigflow calls workflow-runner service
-- Looking for Temporal activity that invokes `ExecuteAsync` RPC
-- May be in stigmer-cloud repo (Java-based Zigflow orchestrator)
+**Architecture Discovery** ✅:
+- Found the target: `CallAgentActivity` in `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_agent_activities.go`
+- This activity currently **polls** for AgentExecution completion (lines 277-319)
+- Goal: Replace polling with async token handshake pattern
+- Need to pass token when creating AgentExecution and return `activity.ErrResultPending`
 
 ---
 
