@@ -196,18 +196,18 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 	)
 	log.Println("  ✅ Step 4: Performance analysis agent")
 
-		// ============================================================================
-		// Step 5: Aggregate results
-		// ============================================================================
-		aggregateResults := wf.SetVars(
-			"aggregateResults",
-			"security_status", securityScan.Field("recommendation"),
-			"code_quality_score", codeReview.Field("quality_score"),
-			"performance_score", performanceAnalysis.Field("performance_score"),
-			"security_risk", securityScan.Field("risk_level"),
-			"performance_concerns", performanceAnalysis.Field("concerns"),
-		)
-		log.Println("  ✅ Step 5: Aggregate review results")
+	// ============================================================================
+	// Step 5: Aggregate results
+	// ============================================================================
+	aggregateResults := wf.Set(
+		"aggregateResults",
+		workflow.SetVar("security_status", securityScan.Field("recommendation")),
+		workflow.SetVar("code_quality_score", codeReview.Field("quality_score")),
+		workflow.SetVar("performance_score", performanceAnalysis.Field("performance_score")),
+		workflow.SetVar("security_risk", securityScan.Field("risk_level")),
+		workflow.SetVar("performance_concerns", performanceAnalysis.Field("concerns")),
+	)
+	log.Println("  ✅ Step 5: Aggregate review results")
 
 		// ============================================================================
 		// Step 6: Generate deployment plan (Agent 4)

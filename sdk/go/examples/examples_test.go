@@ -171,6 +171,10 @@ func TestExample13_WorkflowAndAgentSharedContext(t *testing.T) {
 	})
 }
 
+// Note: Examples 08, 09, 10, 11, and 18 are in _pending_api_implementation/
+// They require high-level APIs (Switch, ForEach, Try, Fork, Interpolate) to be implemented.
+// See _pending_api_implementation/README.md for details.
+
 // Helper function to run an example and verify output
 func runExampleTest(t *testing.T, exampleFile string, verify func(*testing.T, string)) {
 	t.Helper()
