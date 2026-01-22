@@ -6,6 +6,7 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
@@ -35,6 +36,9 @@ type Context interface {
 type Agent struct {
 	// Name is the agent name (lowercase alphanumeric with hyphens, max 63 chars).
 	Name string
+
+	// Slug is the URL-friendly identifier (auto-generated from name if not provided).
+	Slug string
 
 	// Instructions define the agent's behavior and personality (min 10, max 10000 chars).
 	Instructions string
@@ -73,8 +77,11 @@ type Option func(*Agent) error
 // The agent is automatically registered with the provided context for synthesis.
 //
 // Required options:
-//   - WithName: agent name
+//   - WithName: agent name (or WithSlug for custom slug)
 //   - WithInstructions: behavior instructions
+//
+// Optional:
+//   - WithSlug: custom slug (overrides auto-generation from name)
 //
 // Example:
 //
@@ -85,6 +92,14 @@ type Option func(*Agent) error
 //	    )
 //	    return err
 //	})
+//
+// Example with custom slug:
+//
+//	ag, err := agent.New(ctx,
+//	    agent.WithName("Code Review Agent"),
+//	    agent.WithSlug("code-reviewer"),  // Custom slug
+//	    agent.WithInstructions("Review code..."),
+//	)
 func New(ctx Context, opts ...Option) (*Agent, error) {
 	a := &Agent{
 		ctx: ctx,
@@ -97,9 +112,26 @@ func New(ctx Context, opts ...Option) (*Agent, error) {
 		}
 	}
 
+	// Auto-generate slug from name if not provided
+	if a.Slug == "" && a.Name != "" {
+		a.Slug = naming.GenerateSlug(a.Name)
+	}
+
+	// If name not provided but slug is, use slug as name
+	if a.Name == "" && a.Slug != "" {
+		a.Name = a.Slug
+	}
+
 	// Validate the agent
 	if err := validate(a); err != nil {
 		return nil, err
+	}
+
+	// Validate slug format
+	if a.Slug != "" {
+		if err := naming.ValidateSlug(a.Slug); err != nil {
+			return nil, err
+		}
 	}
 
 	// Register with context (if provided)
@@ -214,6 +246,24 @@ func WithIconURL(url interface{}) Option {
 func WithOrg(org interface{}) Option {
 	return func(a *Agent) error {
 		a.Org = toExpression(org)
+		return nil
+	}
+}
+
+// WithSlug sets a custom slug for the agent.
+//
+// By default, slugs are auto-generated from the name by converting to lowercase
+// and replacing spaces with hyphens. Use this option to override the auto-generation.
+//
+// The slug must contain only lowercase letters, numbers, and hyphens.
+// It cannot start or end with a hyphen.
+//
+// Example:
+//
+//	agent.WithSlug("my-custom-agent")
+func WithSlug(slug string) Option {
+	return func(a *Agent) error {
+		a.Slug = slug
 		return nil
 	}
 }

@@ -55,6 +55,7 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 	// Build metadata
 	metadata := &apiresource.ApiResourceMetadata{
 		Name:        a.Name,
+		Slug:        a.Slug,  // Include slug for backend resolution
 		Annotations: SDKAnnotations(),
 	}
 

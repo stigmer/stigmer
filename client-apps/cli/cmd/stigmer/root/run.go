@@ -9,6 +9,7 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
@@ -120,12 +121,14 @@ func runReferenceMode(reference string, message string, orgOverride string, runt
 		fmt.Println()
 
 		var err error
-		deployedAgents, deployedWorkflows, err = ApplyCodeMode(ApplyCodeModeOptions{
+		var deployedSkills []*skillv1.Skill
+		deployedSkills, deployedAgents, deployedWorkflows, err = ApplyCodeMode(ApplyCodeModeOptions{
 			ConfigFile:  "",
 			OrgOverride: orgOverride,
 			DryRun:      false,
 			Quiet:       true,
 		})
+		_ = deployedSkills // Suppress unused variable warning
 		if err != nil {
 			cliprint.PrintError("Failed to apply: %s", err)
 			return
@@ -192,12 +195,13 @@ func runAutoDiscoveryMode(message string, orgOverride string, runtimeEnv []strin
 	}
 
 	// Apply changes with progress display (deploy/update agents and workflows)
-	deployedAgents, deployedWorkflows, err := ApplyCodeMode(ApplyCodeModeOptions{
+	deployedSkills, deployedAgents, deployedWorkflows, err := ApplyCodeMode(ApplyCodeModeOptions{
 		ConfigFile:  "",
 		OrgOverride: orgOverride,
 		DryRun:      false,
 		Quiet:       true,
 	})
+	_ = deployedSkills // Suppress unused variable warning
 	if err != nil {
 		cliprint.PrintError("Failed to deploy: %s", err)
 		return

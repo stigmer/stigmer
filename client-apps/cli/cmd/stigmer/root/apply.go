@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
@@ -51,7 +52,7 @@ Run from your project directory containing Stigmer.yaml.`,
   stigmer apply --org my-org-id`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// Use the reusable apply function
-			deployedAgents, deployedWorkflows, err := ApplyCodeMode(ApplyCodeModeOptions{
+			deployedSkills, deployedAgents, deployedWorkflows, err := ApplyCodeMode(ApplyCodeModeOptions{
 				ConfigFile:  configFile,
 				OrgOverride: orgOverride,
 				DryRun:      dryRun,
@@ -60,13 +61,21 @@ Run from your project directory containing Stigmer.yaml.`,
 			clierr.Handle(err)
 
 			// If dry run or no resources deployed, return
-			if dryRun || (len(deployedAgents) == 0 && len(deployedWorkflows) == 0) {
+			if dryRun || (len(deployedSkills) == 0 && len(deployedAgents) == 0 && len(deployedWorkflows) == 0) {
 				return
 			}
 
 			// Success summary
 			cliprint.PrintSuccess("🚀 Deployment successful!")
 			fmt.Println()
+
+			if len(deployedSkills) > 0 {
+				cliprint.PrintInfo("Deployed skills:")
+				for _, deployed := range deployedSkills {
+					cliprint.PrintInfo("  • %s (ID: %s)", deployed.Metadata.Name, deployed.Metadata.Id)
+				}
+				fmt.Println()
+			}
 
 			if len(deployedAgents) > 0 {
 				cliprint.PrintInfo("Deployed agents:")
@@ -85,6 +94,9 @@ Run from your project directory containing Stigmer.yaml.`,
 			}
 
 			cliprint.PrintInfo("Next steps:")
+			if len(deployedSkills) > 0 {
+				cliprint.PrintInfo("  - View skills: stigmer skill list")
+			}
 			if len(deployedAgents) > 0 {
 				cliprint.PrintInfo("  - View agents: stigmer agent list")
 			}
@@ -111,9 +123,9 @@ type ApplyCodeModeOptions struct {
 	Quiet       bool // If true, suppress detailed output
 }
 
-// ApplyCodeMode applies agents and workflows from code (Stigmer.yaml + entry point execution)
-// Returns the list of deployed agents and workflows or error
-func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.Workflow, error) {
+// ApplyCodeMode applies skills, agents, and workflows from code (Stigmer.yaml + entry point execution)
+// Returns the list of deployed skills, agents, and workflows or error
+func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agent, []*workflowv1.Workflow, error) {
 	// Step 1: Load Stigmer.yaml (minimal metadata)
 	if !opts.Quiet {
 		cliprint.PrintInfo("Loading project configuration...")
@@ -121,7 +133,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.W
 	
 	stigmerConfig, err := config.LoadStigmerConfig(opts.ConfigFile)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if !opts.Quiet {
@@ -138,56 +150,63 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.W
 	// Step 2: Get absolute path to entry point
 	mainFilePath, err := stigmerConfig.GetMainFilePath()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	// Step 3: Execute entry point to get manifests (auto-discovers resources!)
+	// Step 3: Execute entry point to get synthesis result (auto-discovers resources!)
 	if !opts.Quiet {
 		cliprint.PrintInfo("Executing entry point to discover resources...")
 	}
 	
-	manifestResult, err := agent.ExecuteGoAgentAndGetManifest(mainFilePath)
+	synthesisResult, err := agent.ExecuteGoAndGetSynthesis(mainFilePath)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Count resources
-	agentCount := 0
-	workflowCount := 0
-	if manifestResult.AgentManifest != nil {
-		agentCount = len(manifestResult.AgentManifest.Agents)
-	}
-	if manifestResult.WorkflowManifest != nil {
-		workflowCount = len(manifestResult.WorkflowManifest.Workflows)
-	}
-	totalResources := agentCount + workflowCount
+	skillCount := synthesisResult.SkillCount()
+	agentCount := synthesisResult.AgentCount()
+	workflowCount := synthesisResult.WorkflowCount()
+	totalResources := synthesisResult.TotalResources()
 
 	if totalResources == 0 {
 		if !opts.Quiet {
-			cliprint.PrintWarning("⚠️  No resources found in manifest")
+			cliprint.PrintWarning("⚠️  No resources found in synthesis output")
 		}
-		return nil, nil, fmt.Errorf("no resources found in manifest")
+		return nil, nil, nil, fmt.Errorf("no resources found in synthesis output")
 	}
 
 	if !opts.Quiet {
-		cliprint.PrintSuccess("✓ Manifest loaded: %d resource(s) discovered (%d agent(s), %d workflow(s))", totalResources, agentCount, workflowCount)
+		cliprint.PrintSuccess("✓ Synthesis complete: %d resource(s) discovered (%d skill(s), %d agent(s), %d workflow(s))", 
+			totalResources, skillCount, agentCount, workflowCount)
 		fmt.Println()
 
 		// Show preview of discovered resources
-		if agentCount > 0 && manifestResult.AgentManifest != nil {
+		if skillCount > 0 {
+			cliprint.PrintInfo("Skills discovered: %d", skillCount)
+			for i, skill := range synthesisResult.Skills {
+				cliprint.PrintInfo("  %d. %s", i+1, skill.Metadata.Name)
+				if skill.Spec.Description != "" {
+					cliprint.PrintInfo("     Description: %s", skill.Spec.Description)
+				}
+			}
+			fmt.Println()
+		}
+
+		if agentCount > 0 {
 			cliprint.PrintInfo("Agents discovered: %d", agentCount)
-			for i, blueprint := range manifestResult.AgentManifest.Agents {
-				cliprint.PrintInfo("  %d. %s", i+1, blueprint.Name)
-				if blueprint.Description != "" {
-					cliprint.PrintInfo("     Description: %s", blueprint.Description)
+			for i, agent := range synthesisResult.Agents {
+				cliprint.PrintInfo("  %d. %s", i+1, agent.Metadata.Name)
+				if agent.Spec.Description != "" {
+					cliprint.PrintInfo("     Description: %s", agent.Spec.Description)
 				}
 			}
 			fmt.Println()
 		}
 		
-		if workflowCount > 0 && manifestResult.WorkflowManifest != nil {
+		if workflowCount > 0 {
 			cliprint.PrintInfo("Workflows discovered: %d", workflowCount)
-			for i, wf := range manifestResult.WorkflowManifest.Workflows {
+			for i, wf := range synthesisResult.Workflows {
 				name := "unnamed"
 				if wf != nil && wf.Spec != nil && wf.Spec.Document != nil && wf.Spec.Document.Name != "" {
 					name = wf.Spec.Document.Name
@@ -207,13 +226,13 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.W
 			cliprint.PrintSuccess("✓ Dry run successful - all resources are valid")
 			cliprint.PrintInfo("Run without --dry-run to deploy %d resource(s)", totalResources)
 		}
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	// Step 5: Load backend configuration
 	cfg, err := config.Load()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Step 6: Determine organization based on backend mode
@@ -246,11 +265,11 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.W
 				cliprint.PrintInfo("Using organization from context: %s", orgID)
 			}
 		} else {
-			return nil, nil, fmt.Errorf("organization not set for cloud mode. Specify in Stigmer.yaml, use --org flag, or run: stigmer context set --org <org-id>")
+			return nil, nil, nil, fmt.Errorf("organization not set for cloud mode. Specify in Stigmer.yaml, use --org flag, or run: stigmer context set --org <org-id>")
 		}
 
 	default:
-		return nil, nil, fmt.Errorf("unknown backend type: %s", cfg.Backend.Type)
+		return nil, nil, nil, fmt.Errorf("unknown backend type: %s", cfg.Backend.Type)
 	}
 
 	// Step 7: Ensure daemon is running (auto-start if needed, local mode only)
@@ -259,11 +278,11 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.W
 		// CLI manages daemon infrastructure, users shouldn't change this
 		dataDir, err := config.GetDataDir()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		
 		if err := daemon.EnsureRunning(dataDir); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 	}
 
@@ -274,7 +293,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.W
 	
 	conn, err := backend.NewConnection()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	defer conn.Close()
 
@@ -300,14 +319,14 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*agentv1.Agent, []*workflowv1.W
 	})
 	
 	// Deploy all resources
-	deployResult, err := deployer.Deploy(manifestResult)
+	deployResult, err := deployer.Deploy(synthesisResult)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	
 	if !opts.Quiet && !opts.DryRun {
 		fmt.Println()
 	}
 	
-	return deployResult.DeployedAgents, deployResult.DeployedWorkflows, nil
+	return deployResult.DeployedSkills, deployResult.DeployedAgents, deployResult.DeployedWorkflows, nil
 }
