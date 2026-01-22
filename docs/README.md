@@ -51,6 +51,7 @@ Complete documentation index for the Stigmer open-source project.
 - [In-Process gRPC Calls and Agent Instance Creation](adr/20260118-214000-in-process-grpc-calls-and-agent-instance-creation.md) - In-process gRPC architecture
 - [Fix Go In-Process gRPC Implementation](adr/20260118-fix-go-inprocess-grpc-implementation.md) - Technical fixes for in-process gRPC
 - [Workflow Runner Config](adr/20260119-011111-workflow-runner-config.md) - Workflow runner configuration architecture
+- [Async Agent Execution - Temporal Token Handshake](adr/20260122-async-agent-execution-temporal-token-handshake.md) - Async activity completion pattern for non-blocking agent execution
 
 **Note**: See `_cursor/adr-doc` for ADR 016: Local Agent Runner Runtime Strategy (implementation guide)
 
