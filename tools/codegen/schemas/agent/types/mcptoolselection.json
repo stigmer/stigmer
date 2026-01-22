@@ -1,0 +1,21 @@
+{
+  "name": "McpToolSelection",
+  "description": "McpToolSelection defines which tools from an MCP server are enabled.",
+  "protoType": "ai.stigmer.agentic.agent.v1.McpToolSelection",
+  "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
+  "fields": [
+    {
+      "name": "EnabledTools",
+      "jsonName": "enabledTools",
+      "protoField": "enabled_tools",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Tool names to enable from the MCP server (empty = all tools).",
+      "required": false
+    }
+  ]
+}

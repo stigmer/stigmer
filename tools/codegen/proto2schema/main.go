@@ -91,10 +91,11 @@ func main() {
 	outputDir := flag.String("output-dir", "", "Output directory for JSON schemas")
 	includeDir := flag.String("include-dir", "apis", "Directory containing proto imports")
 	stubDir := flag.String("stub-dir", "/tmp/proto-stubs", "Directory containing proto stubs (like buf/validate)")
+	messageSuffix := flag.String("message-suffix", "TaskConfig", "Suffix of messages to extract (TaskConfig, Spec, etc)")
 	flag.Parse()
 
 	if *protoDir == "" || *outputDir == "" {
-		fmt.Println("Usage: proto2schema --proto-dir <dir> --output-dir <dir> [--include-dir <dir>] [--stub-dir <dir>]")
+		fmt.Println("Usage: proto2schema --proto-dir <dir> --output-dir <dir> [--include-dir <dir>] [--stub-dir <dir>] [--message-suffix <suffix>]")
 		os.Exit(1)
 	}
 
@@ -145,33 +146,33 @@ func main() {
 	taskConfigs := make(map[string]*TaskConfigSchema)
 	sharedTypes := make(map[string]*TypeSchema)
 	
-	// First pass: Extract all TaskConfig messages
+	// First pass: Extract all messages with the specified suffix
 	for _, fd := range fileDescriptors {
 		fmt.Printf("\nProcessing %s...\n", fd.GetName())
 		
-		// Find *TaskConfig messages in this file
+		// Find messages with the specified suffix in this file
 		for _, msg := range fd.GetMessageTypes() {
-			if strings.HasSuffix(msg.GetName(), "TaskConfig") {
-				fmt.Printf("  Found task config: %s\n", msg.GetName())
+			if strings.HasSuffix(msg.GetName(), *messageSuffix) {
+				fmt.Printf("  Found message: %s\n", msg.GetName())
 				
 				schema, err := parseTaskConfig(msg, fd)
 				if err != nil {
-					fmt.Printf("  Error parsing task config: %v\n", err)
+					fmt.Printf("  Error parsing message: %v\n", err)
 					continue
 				}
 				
 				taskConfigs[msg.GetName()] = schema
 				
-				// Also collect any nested message types referenced by this config
+				// Also collect any nested message types referenced by this message
 				collectNestedTypes(msg, fd, sharedTypes)
 			}
 		}
 	}
 	
-	// Write task config schemas
-	fmt.Printf("\nWriting task config schemas...\n")
+	// Write message schemas
+	fmt.Printf("\nWriting message schemas...\n")
 	for name, schema := range taskConfigs {
-		baseName := strings.ToLower(strings.TrimSuffix(name, "TaskConfig"))
+		baseName := strings.ToLower(strings.TrimSuffix(name, *messageSuffix))
 		schemaFile := filepath.Join(*outputDir, baseName+".json")
 		
 		if err := writeSchemaFile(schema, schemaFile); err != nil {
@@ -227,7 +228,26 @@ func findProtoFiles(dir string) ([]string, error) {
 // collectNestedTypes recursively collects all nested message types referenced by a message
 func collectNestedTypes(msg *desc.MessageDescriptor, fd *desc.FileDescriptor, sharedTypes map[string]*TypeSchema) {
 	for _, field := range msg.GetFields() {
-		if field.GetType() == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
+		// Handle map fields specially - check the value type
+		if field.IsMap() {
+			mapEntry := field.GetMessageType()
+			if mapEntry != nil {
+				// Map entry has two fields: key (index 0) and value (index 1)
+				valueField := mapEntry.GetFields()[1]
+				if valueField.GetType() == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
+					msgType := valueField.GetMessageType()
+					if msgType != nil && !strings.HasPrefix(msgType.GetFullyQualifiedName(), "google.protobuf") {
+						typeName := msgType.GetName()
+						if _, exists := sharedTypes[typeName]; !exists {
+							msgFd := msgType.GetFile()
+							sharedTypes[typeName] = parseSharedType(msgType, msgFd)
+							fmt.Printf("    Found shared type (map value): %s\n", typeName)
+							collectNestedTypes(msgType, msgFd, sharedTypes)
+						}
+					}
+				}
+			}
+		} else if field.GetType() == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
 			msgType := field.GetMessageType()
 			// Skip google.protobuf types and map entry types
 			if msgType != nil && 
