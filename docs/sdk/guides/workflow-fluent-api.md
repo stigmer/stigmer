@@ -349,6 +349,173 @@ waitTask := workflow.Wait("pause",
 wf.AddTask(waitTask)
 ```
 
+### Switch Tasks - Conditional Logic
+
+**Workflow Builder Method**:
+- `wf.Switch(name, opts...)` - Conditional branching
+
+**Available Options**:
+- `SwitchOn(condition)` - Set switch condition
+- `Case(matcher, target)` - Add conditional case
+- `DefaultCase(target)` - Set default branch
+
+**Condition Matchers**:
+- `Equals(value)` - Equality check
+- `GreaterThan(value)` - Greater than check
+- `LessThan(value)` - Less than check
+- `CustomCondition(expr)` - Custom expression
+
+**Examples**:
+
+```go
+// Simple conditional routing
+checkTask := wf.HttpGet("check", endpoint)
+
+switchTask := wf.Switch("route",
+    workflow.SwitchOn(checkTask.Field("statusCode")),
+    workflow.Case(workflow.Equals(200), "success"),
+    workflow.Case(workflow.Equals(404), "notFound"),
+    workflow.DefaultCase("error"),
+)
+```
+
+### ForEach Tasks - Iteration
+
+**Workflow Builder Method**:
+- `wf.ForEach(name, opts...)` - Loop over collection
+
+**Available Options**:
+- `IterateOver(collection)` - Set collection to iterate
+- `WithLoopBody(builder)` - Functional loop body
+- `DoTasks(tasks)` - Set tasks (low-level)
+
+**Loop Variable**:
+- `LoopVar` - Type-safe loop variable
+- `item.Field(name)` - Access item fields
+- `item.Value()` - Get entire item
+
+**Examples**:
+
+```go
+// Functional loop body
+fetchTask := wf.HttpGet("fetch", apiBase.Concat("/items"))
+
+loopTask := wf.ForEach("processEachItem",
+    workflow.IterateOver(fetchTask.Field("items")),
+    workflow.WithLoopBody(func(item workflow.LoopVar) *workflow.Task {
+        return wf.HttpPost("processItem",
+            apiBase.Concat("/process"),
+            workflow.Body(map[string]interface{}{
+                "itemId": item.Field("id"),
+                "data":   item.Field("data"),
+            }),
+        )
+    }),
+)
+```
+
+### Try/Catch Tasks - Error Handling
+
+**Workflow Builder Method**:
+- `wf.Try(name, opts...)` - Try/catch error handling
+
+**Available Options**:
+- `TryBlock(builder)` - Functional try block
+- `CatchBlock(builder)` - Functional catch block
+- `CatchErrors(types, as, builder)` - Type-specific catch
+- `FinallyBlock(builder)` - Cleanup block
+- `TryTasks(tasks)` - Set tasks (low-level)
+- `Catch(map)` - Add catch (low-level)
+
+**Error Reference**:
+- `ErrorRef` - Type-safe error access
+- `err.Message()` - Error message
+- `err.Type()` - Error type
+- `err.Timestamp()` - When error occurred
+- `err.StackTrace()` - Stack trace
+- `err.Field(name)` - Custom error fields
+
+**Examples**:
+
+```go
+// Try/catch with functional builders
+tryTask := wf.Try("attemptAPICall",
+    workflow.TryBlock(func() *workflow.Task {
+        return wf.HttpGet("callAPI", endpoint, workflow.Timeout(30))
+    }),
+    workflow.CatchBlock(func(err workflow.ErrorRef) *workflow.Task {
+        return wf.Set("handleError",
+            workflow.SetVar("error", err.Message()),
+            workflow.SetVar("timestamp", err.Timestamp()),
+        )
+    }),
+    workflow.FinallyBlock(func() *workflow.Task {
+        return wf.Set("cleanup",
+            workflow.SetVar("status", "attempted"),
+        )
+    }),
+)
+
+// Catch specific error types
+tryTask := wf.Try("attempt",
+    workflow.TryBlock(func() *workflow.Task {
+        return wf.HttpGet("call", endpoint)
+    }),
+    workflow.CatchErrors([]string{"NetworkError", "TimeoutError"}, "netErr",
+        func(err workflow.ErrorRef) *workflow.Task {
+            return wf.Set("handleNetworkError",
+                workflow.SetVar("error", err.Message()),
+            )
+        },
+    ),
+)
+```
+
+### Fork Tasks - Parallel Execution
+
+**Workflow Builder Method**:
+- `wf.Fork(name, opts...)` - Parallel branches
+
+**Available Options**:
+- `ParallelBranches(branches...)` - Define branches
+- `BranchBuilder(name, builder)` - Functional branch
+- `WaitForAll()` - Wait for all branches
+- `WaitForAny()` - Wait for any branch
+- `WaitForCount(n)` - Wait for N branches
+- `Branch(map)` - Add branch (low-level)
+
+**Branch Result**:
+- `task.Branch(name)` - Access branch result
+- `branch.Field(name)` - Access branch field
+- `branch.Value()` - Get entire result
+
+**Examples**:
+
+```go
+// Parallel API calls
+forkTask := wf.Fork("fetchAllData",
+    workflow.ParallelBranches(
+        workflow.BranchBuilder("fetchUsers", func() *workflow.Task {
+            return wf.HttpGet("getUsers", usersEndpoint)
+        }),
+        workflow.BranchBuilder("fetchProducts", func() *workflow.Task {
+            return wf.HttpGet("getProducts", productsEndpoint)
+        }),
+        workflow.BranchBuilder("fetchOrders", func() *workflow.Task {
+            return wf.HttpGet("getOrders", ordersEndpoint)
+        }),
+    ),
+    workflow.WaitForAll(),
+)
+
+// Merge results from all branches
+wf.Set("mergeResults",
+    workflow.SetVar("users", forkTask.Branch("fetchUsers").Field("data")),
+    workflow.SetVar("products", forkTask.Branch("fetchProducts").Field("data")),
+    workflow.SetVar("orders", forkTask.Branch("fetchOrders").Field("data")),
+)
+```
+
 ### Other Task Types
 
 See full API reference for:
@@ -356,10 +523,6 @@ See full API reference for:
 - **Call Activity Tasks**: `workflow.CallActivity(name, workflow.Activity(...), workflow.ActivityInput(...))`
 - **Raise Tasks**: `workflow.Raise(name, workflow.ErrorType(...), workflow.ErrorMessage(...))`
 - **Run Tasks**: `workflow.Run(name, workflow.SubWorkflow(...), workflow.WorkflowInput(...))`
-- **Switch Tasks**: `workflow.Switch(name, workflow.Case(...), workflow.DefaultCase(...))`
-- **For Tasks**: `workflow.For(name, workflow.IterateOver(...), workflow.DoTasks(...))`
-- **Fork Tasks**: `workflow.Fork(name, workflow.Branch(...))`
-- **Try Tasks**: `workflow.Try(name, workflow.WithTry(...), workflow.WithCatch(...))`
 
 ---
 
@@ -449,6 +612,169 @@ fetchTask.Field("user.name")
 ```
 
 **Benefit**: Works with task names containing hyphens or special characters.
+
+---
+
+## Expression Helpers
+
+The SDK provides 20+ helper functions for building dynamic expressions.
+
+### String Interpolation
+
+**Concatenate Multiple Values**:
+```go
+// Interpolate any values
+workflow.Interpolate("Hello ", userName, " from ", location)
+
+// Concat is an alias
+workflow.Concat(apiBase, "/users/", userId, "/profile")
+
+// Use in HTTP calls
+wf.HttpGet("fetch",
+    workflow.Concat(apiBase, "/repos/", repoName, "/pulls/", prNumber),
+)
+
+// Use in headers
+workflow.Header("Authorization",
+    workflow.Concat("Bearer ", workflow.RuntimeSecret("API_TOKEN")),
+)
+```
+
+### Runtime Values
+
+**Runtime Secrets** (resolved JIT, never in history):
+```go
+// Reference secrets at runtime
+workflow.RuntimeSecret("API_TOKEN")        // ${.secrets.API_TOKEN}
+workflow.RuntimeSecret("DATABASE_PASSWORD")
+
+// Use in HTTP headers
+wf.HttpPost("call", endpoint,
+    workflow.Header("Authorization",
+        workflow.Concat("Bearer ", workflow.RuntimeSecret("OPENAI_KEY")),
+    ),
+)
+```
+
+**Runtime Environment Variables**:
+```go
+// Reference env vars at runtime
+workflow.RuntimeEnv("DEPLOY_ENV")      // ${.env.DEPLOY_ENV}
+workflow.RuntimeEnv("PR_NUMBER")
+
+// Dynamic endpoint based on environment
+wf.HttpGet("fetch",
+    workflow.Concat("https://api-", workflow.RuntimeEnv("ENVIRONMENT"), ".example.com/data"),
+)
+```
+
+**Runtime Configuration**:
+```go
+// Reference runtime config
+workflow.RuntimeConfig("timeout")      // ${.config.timeout}
+workflow.RuntimeConfig("max_retries")
+```
+
+### Built-in Functions
+
+```go
+// Timestamp
+workflow.Now()                         // Current timestamp
+
+// UUID
+workflow.UUID()                        // Generate UUID
+
+// JSON Path queries
+workflow.JSONPath("$.users[0].name")
+workflow.JSONPath("$.data.items[*].id")
+
+// Custom expressions
+workflow.Expr("${.status == 'active' && .count > 10}")
+```
+
+### Type Conversions
+
+```go
+// Convert types in expressions
+workflow.ToString(statusCode)      // Convert to string
+workflow.ToInt(count)             // Convert to integer
+workflow.ToFloat(price)           // Convert to float
+workflow.ToBool(isActive)         // Convert to boolean
+
+// Example usage
+wf.Set("convert",
+    workflow.SetVar("countStr", workflow.ToString(fetchTask.Field("count"))),
+    workflow.SetVar("priceNum", workflow.ToFloat(fetchTask.Field("price"))),
+)
+```
+
+### Conditional Expressions
+
+```go
+// If-then-else
+workflow.IfThenElse("${.status == 200}", "success", "error")
+
+// Example usage
+wf.Set("result",
+    workflow.SetVar("outcome",
+        workflow.IfThenElse(
+            checkTask.Field("statusCode"),
+            "success",
+            "failure",
+        ),
+    ),
+)
+```
+
+### Collection Helpers
+
+```go
+// Length
+workflow.Length(items)                 // ${length(.items)}
+
+// Contains
+workflow.Contains(tags, "production")  // ${contains(.tags, 'production')}
+
+// Join
+workflow.Join(tags, ", ")             // ${join(.tags, ', ')}
+
+// Example usage
+wf.Set("info",
+    workflow.SetVar("itemCount", workflow.Length(fetchTask.Field("items"))),
+    workflow.SetVar("isProd", workflow.Contains(fetchTask.Field("tags"), "production")),
+    workflow.SetVar("tagList", workflow.Join(fetchTask.Field("tags"), ", ")),
+)
+```
+
+### Math Operations
+
+```go
+// Math expressions
+workflow.Add(count, 1)                 // ${.count + 1}
+workflow.Subtract(total, discount)     // ${.total - .discount}
+workflow.Multiply(price, quantity)     // ${.price * .quantity}
+workflow.Divide(total, count)          // ${.total / .count}
+
+// Multiple values
+workflow.Add(a, b, c, d)              // ${.a + .b + .c + .d}
+workflow.Multiply(x, y, z)            // ${.x * .y * .z}
+
+// Example usage
+wf.Set("calculations",
+    workflow.SetVar("total",
+        workflow.Multiply(
+            fetchTask.Field("price"),
+            fetchTask.Field("quantity"),
+        ),
+    ),
+    workflow.SetVar("average",
+        workflow.Divide(
+            fetchTask.Field("sum"),
+            fetchTask.Field("count"),
+        ),
+    ),
+)
+```
 
 ---
 
@@ -725,8 +1051,9 @@ wf.Set("process", workflow.SetVar("data", fetchTask.Field("result")))
 
 ## Changelog
 
+- **2026-01-22**: Added advanced workflow APIs (Switch, ForEach, Try/Catch, Fork) and expression helpers
 - **2026-01-22**: Initial version - Fluent API with functional options pattern
-- See `_changelog/2026-01/2026-01-22-090657-restore-sdk-workflow-high-level-api.md` for implementation details
+- See `_changelog/2026-01/` for detailed implementation history
 
 ---
 
