@@ -435,25 +435,38 @@ processTask := wf.SetVars("process",
 
 See the [examples/](examples/) directory for complete examples:
 
-### Agent Examples
+### Agent Examples (Core Patterns)
 1. **Basic Agent** (`01_basic_agent.go`) - Simple agent with name and instructions
 2. **Agent with Skills** (`02_agent_with_skills.go`) - Platform, organization, and inline skills
 3. **Agent with MCP Servers** (`03_agent_with_mcp_servers.go`) - Full MCP server configuration (stdio, http, docker)
 4. **Agent with Sub-Agents** (`04_agent_with_subagents.go`) - Inline and referenced sub-agents
 5. **Agent with Environment Variables** (`05_agent_with_environment_variables.go`) - Secrets, configs, and validation
-6. **Agent with Instructions from Files** (`06_agent_with_instructions_from_files.go`) - **Recommended pattern** - Load all content from files
-7. **Agent with Typed Context** (`08_agent_with_typed_context.go`) - Typed context variables for configuration
+6. **Agent with Instructions from Files** (`06_agent_with_instructions_from_files.go`) - **⭐ Recommended pattern** - Load all content from files
 
-### Workflow Examples
-8. **Basic Workflow** (`07_basic_workflow.go`) - ⭐ **START HERE** - Complete workflow with Pulumi-aligned patterns
-9. **Workflow with Conditionals** (`08_workflow_with_conditionals.go`) - Conditional task execution
-10. **Workflow with Loops** (`09_workflow_with_loops.go`) - Looping and iteration
-11. **Workflow with Error Handling** (`10_workflow_with_error_handling.go`) - Error handling patterns
-12. **Workflow with Parallel Execution** (`11_workflow_with_parallel_execution.go`) - Parallel task execution
-13. **Workflow and Agent Shared Context** (`09_workflow_and_agent_shared_context.go`) - Sharing configuration between workflows and agents
+### Workflow Examples (Basic)
+7. **Basic Workflow** (`07_workflow_with_runtime_secrets.go`) - **⭐ START HERE** - Complete workflow with Pulumi-aligned patterns
+8. **Agent with Typed Context** (`12_agent_with_typed_context.go`) - Typed context variables for configuration
+9. **Workflow and Agent Shared Context** (`13_workflow_and_agent_shared_context.go`) - Sharing configuration between workflows and agents
 
-**🌟 For agents**: Start with Example 06 - recommended pattern for file-based content  
-**🌟 For workflows**: Start with Example 07 - complete Pulumi-aligned workflow
+### Workflow Examples (Advanced Features)
+10. **Workflow with Conditionals** (`08_workflow_with_conditionals.go`) - Switch tasks for conditional logic (✅ test passing!)
+11. **Workflow with Loops** (`09_workflow_with_loops.go`) - ForEach tasks for iteration
+12. **Workflow with Error Handling** (`10_workflow_with_error_handling.go`) - Try/Catch/Finally for resilience
+13. **Workflow with Parallel Execution** (`11_workflow_with_parallel_execution.go`) - Fork tasks for parallel branches
+14. **Workflow with Runtime Secrets** (`14_workflow_with_runtime_secrets.go`) - Runtime secret and environment variable references
+15. **Workflow Calling Simple Agent** (`15_workflow_calling_simple_agent.go`) - Basic agent call from workflow
+16. **Workflow Calling Agent by Slug** (`16_workflow_calling_agent_by_slug.go`) - Reference agents by slug
+17. **Workflow Agent with Runtime Secrets** (`17_workflow_agent_with_runtime_secrets.go`) - Agent calls with runtime configuration
+18. **Workflow Multi-Agent Orchestration** (`18_workflow_multi_agent_orchestration.go`) - Complex CI/CD pipeline with 5 specialized agents
+19. **Workflow Agent Execution Config** (`19_workflow_agent_execution_config.go`) - Agent execution parameters (model, temperature, timeout)
+
+**Total**: 19 comprehensive examples covering all SDK features
+
+**🌟 Recommended Starting Points**:
+- **For agents**: Example 06 (file-based content - production pattern)
+- **For workflows**: Example 07 (basic workflow - Pulumi-aligned)
+- **For advanced workflows**: Example 08 (conditionals - proven working!)
+- **For agent orchestration**: Example 18 (real-world CI/CD pipeline)
 
 ## Development
 
