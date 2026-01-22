@@ -4,6 +4,104 @@ This log captures patterns, solutions, and gotchas discovered while implementing
 
 ---
 
+## 2026-01-22: Enum Constants vs Magic Numbers in Proto Conversions
+
+### Context
+
+Completed Agent SDK ToProto() implementation with all nested type conversions (skills, MCP servers, sub-agents, environment variables). Fixed hardcoded enum values to use proper constants.
+
+### Pattern: Always Use Proto-Generated Enum Constants
+
+**Problem**: Using magic numbers for proto enum values makes code brittle and unclear.
+
+**Bad Practice**:
+```go
+// ❌ Wrong - magic number
+ref := &apiresource.ApiResourceReference{
+    Slug: "my-skill",
+    Kind: 43, // What is 43? Have to look it up in proto!
+}
+```
+
+**Correct Practice**:
+```go
+// ✅ Correct - enum constant from generated code
+import "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+
+ref := &apiresource.ApiResourceReference{
+    Slug: "my-skill",
+    Kind: apiresourcekind.ApiResourceKind_skill, // Self-documenting!
+}
+```
+
+**Why This Matters**:
+- **Type safety**: Compiler catches invalid values
+- **Self-documenting**: Clear what the value represents (no mental lookup)
+- **Maintainable**: If proto enum values change, code updates automatically via imports
+- **Consistent**: Matches pattern used for scope enums throughout codebase
+
+**Common Proto Enums**:
+```go
+// ApiResourceKind enums
+apiresourcekind.ApiResourceKind_skill           // = 43
+apiresourcekind.ApiResourceKind_agent_instance  // = 45
+apiresourcekind.ApiResourceKind_workflow        // = 20
+
+// ApiResourceOwnerScope enums
+apiresource.ApiResourceOwnerScope_platform       // = 1
+apiresource.ApiResourceOwnerScope_organization   // = 2
+apiresource.ApiResourceOwnerScope_identity_account // = 3
+```
+
+**Where to Find Enum Constants**:
+```bash
+# Search for enum constant names in generated stubs
+grep -r "ApiResourceKind_" apis/stubs/go/ai/stigmer/commons/apiresource/
+```
+
+**When to Use**: **Every time** you set a proto enum field - never use literal numbers.
+
+### Pattern: Clean Up Obsolete Feature Logic
+
+**Context**: Platform removed inline skills support, but SDK still had conversion logic for inline skills.
+
+**Problem**: Obsolete code creates confusion and potential bugs.
+
+**Solution**: Proactively remove logic for deprecated features:
+
+```go
+// ❌ Before - handling obsolete inline skills
+if s.IsInline {
+    // Logic for inline skills (no longer supported by platform!)
+    ref.Scope = apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified
+} else if s.Org != "" {
+    ref.Scope = apiresource.ApiResourceOwnerScope_organization
+    ref.Org = s.Org
+} else {
+    ref.Scope = apiresource.ApiResourceOwnerScope_platform
+}
+
+// ✅ After - only supported feature paths
+if s.Org != "" {
+    // Organization-scoped skill
+    ref.Scope = apiresource.ApiResourceOwnerScope_organization
+    ref.Org = s.Org
+} else {
+    // Platform-scoped skill
+    ref.Scope = apiresource.ApiResourceOwnerScope_platform
+}
+```
+
+**Why This Matters**:
+- Prevents users from using removed features
+- Eliminates confusion about what's supported
+- Reduces code branches (simpler logic)
+- Faster compilation (less code to analyze)
+
+**When to Apply**: When platform removes features, immediately clean up SDK code.
+
+---
+
 ## 2026-01-17: Automatic Context Variable Injection
 
 ### Context
