@@ -11,16 +11,83 @@
 
 ---
 
-# Next Task: Workflow Testing - Phase 2 Execution Tests
+# Next Task: SDK Example Synchronization Complete! 🎉
 
 **Project**: E2E Integration Testing Framework  
 **Location**: `_projects/2026-01/20260122.05.e2e-integration-testing/`  
-**Current Status**: ✅ Workflow Testing Framework Complete  
+**Current Status**: ✅ SDK-Test Parity Achieved for Agents  
 **Updated**: 2026-01-23
 
 ---
 
-## 🎉 Latest: Comprehensive Workflow Testing Framework! (2026-01-23)
+## 🎉 Latest: SDK Example Synchronization! (2026-01-23)
+
+**E2E tests now automatically copy and validate SDK examples!**
+
+### What Was Built
+
+✅ **SDK Copy Mechanism** (`test/e2e/sdk_fixtures_test.go`)
+- Automatic copying of SDK examples to testdata before test run
+- `CopyAllSDKExamples()` function in `SetupSuite()`
+- Configurable mapping: SDK file → testdata directory
+
+✅ **Test Suite Integration**
+- Updated `e2e_run_full_test.go` to copy examples in `SetupSuite()`
+- Updated all agent tests to use SDK example agent names
+- Changed "test-agent" → "code-reviewer" (from `01_basic_agent.go`)
+
+✅ **Documentation**
+- `SDK_SYNC_STRATEGY.md` - Complete strategy and implementation guide
+- Updated `testdata/agents/README.md` - Explains copy mechanism
+- Added "do not edit manually" warnings for copied files
+
+✅ **File Cleanup**
+- Deleted manually created `testdata/agents/basic-agent/main.go`
+- Now copied from `sdk/go/examples/01_basic_agent.go` automatically
+
+### Why This Matters
+
+**Single Source of Truth**: SDK examples are what we promise users. Tests now validate those exact examples.
+
+**Before**:
+```
+SDK examples ─┐
+              ├─ Could drift apart ❌
+Test fixtures ┘
+```
+
+**After**:
+```
+SDK examples ──copy──> Test fixtures ──test──> ✅ Confidence!
+```
+
+### Benefits
+
+1. **Consistency** - No drift between examples and tests
+2. **Confidence** - SDK examples proven to work
+3. **Maintenance** - Update once, tests use it automatically
+4. **Quality** - Bad examples fail tests immediately
+
+### Files Changed
+
+**New Files:**
+- `test/e2e/sdk_fixtures_test.go` (162 lines) - Copy mechanism
+- `test/e2e/SDK_SYNC_STRATEGY.md` (374 lines) - Complete documentation
+
+**Updated Files:**
+- `test/e2e/e2e_run_full_test.go` - Calls `CopyAllSDKExamples()` in setup
+- `test/e2e/e2e_apply_test.go` - Updated to use "code-reviewer"
+- `test/e2e/e2e_run_test.go` - Updated to use "code-reviewer"
+- `test/e2e/testdata/agents/README.md` - Explains sync mechanism
+
+**Deleted Files:**
+- `test/e2e/testdata/agents/basic-agent/main.go` (manually created, now copied from SDK)
+
+See new document: `test/e2e/SDK_SYNC_STRATEGY.md`
+
+---
+
+## 🎉 Previous: Comprehensive Workflow Testing Framework! (2026-01-23)
 
 **Complete E2E testing for the critical serverless workflow spec → Temporal conversion!**
 
