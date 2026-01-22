@@ -6,6 +6,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -72,27 +73,20 @@ func checkDocker() error {
 	return nil
 }
 
-// checkTemporal verifies Temporal server is running (checks Web UI on port 8233)
+// checkTemporal verifies Temporal server is running (checks gRPC port 7233)
 func checkTemporal() error {
+	// Temporal gRPC server runs on port 7233 (not the Web UI port 8233)
+	// Use TCP dial to check if the gRPC server is listening
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	// Check Temporal Web UI (port 8233) instead of gRPC port (7233)
-	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8233", nil)
+	// Use 127.0.0.1 (IPv4) instead of localhost to avoid IPv6 timeout issues
+	var d net.Dialer
+	conn, err := d.DialContext(ctx, "tcp", "127.0.0.1:7233")
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return fmt.Errorf("failed to connect to Temporal gRPC server (is stigmer server running?): %w", err)
 	}
-
-	client := &http.Client{Timeout: 3 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to connect to Temporal (is stigmer server running?): %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Temporal returned status %d (expected 200)", resp.StatusCode)
-	}
+	conn.Close()
 
 	return nil
 }
@@ -102,7 +96,8 @@ func checkOllama() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:11434/api/version", nil)
+	// Use 127.0.0.1 (IPv4) instead of localhost to avoid IPv6 timeout issues
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://127.0.0.1:11434/api/version", nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

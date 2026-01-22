@@ -22,7 +22,14 @@ type E2ESuite struct {
 func (s *E2ESuite) SetupSuite() {
 	s.T().Log("Checking E2E test prerequisites...")
 	
-	// Check Temporal (via Web UI on port 8233)
+	// Copy SDK examples to testdata before running tests
+	s.T().Log("Copying SDK examples to testdata...")
+	if err := CopyAllSDKExamples(); err != nil {
+		s.T().Fatalf("Failed to copy SDK examples: %v", err)
+	}
+	s.T().Log("✓ SDK examples copied successfully")
+	
+	// Check Temporal (gRPC server on port 7233)
 	if err := checkTemporal(); err != nil {
 		s.T().Fatalf(`Temporal is not running or not accessible.
 
@@ -32,11 +39,8 @@ Setup:
   Start stigmer server (includes Temporal):
     stigmer server
 
-  Or manually start Temporal:
-    temporal server start-dev --port 7233 --ui-port 8233
-
-To verify Temporal is running:
-  curl http://localhost:8233
+  Or verify Temporal is running:
+    stigmer server status
 
 Error: %v`, err)
 	}
