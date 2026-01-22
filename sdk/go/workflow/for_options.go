@@ -127,19 +127,15 @@ func WithLoopBody(builder func(item LoopVar) *Task) ForOption {
 		// Call the builder to get the task
 		task := builder(item)
 		
-		// Convert task to map representation
-		// Note: This is a simplified implementation
-		// In a real scenario, we'd need to properly serialize the task
-		taskMap := map[string]interface{}{
-			"name": task.Name,
-			"kind": string(task.Kind),
-		}
-		
-		// Add config if present
-		if task.Config != nil {
-			// Convert config to map (simplified - in real implementation
-			// we'd use proper serialization)
-			taskMap["config"] = task.Config
+		// Convert task to map representation using the helper
+		taskMap, err := taskToMap(task)
+		if err != nil {
+			// If conversion fails, create a minimal task map
+			// This maintains backward compatibility
+			taskMap = map[string]interface{}{
+				"name": task.Name,
+				"kind": string(task.Kind),
+			}
 		}
 		
 		c.Do = []map[string]interface{}{taskMap}

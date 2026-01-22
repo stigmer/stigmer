@@ -37,7 +37,7 @@ func main() {
 				workflow.BranchBuilder("fetchUsers", func() *workflow.Task {
 					return wf.HttpGet("getUsers",
 						apiBase.Concat("/users"),
-						workflow.Timeout(timeout),
+						workflow.Timeout(int32(timeout.Value())),
 					)
 				}),
 				
@@ -45,7 +45,7 @@ func main() {
 				workflow.BranchBuilder("fetchProducts", func() *workflow.Task {
 					return wf.HttpGet("getProducts",
 						apiBase.Concat("/products"),
-						workflow.Timeout(timeout),
+						workflow.Timeout(int32(timeout.Value())),
 					)
 				}),
 				
@@ -53,7 +53,7 @@ func main() {
 				workflow.BranchBuilder("fetchOrders", func() *workflow.Task {
 					return wf.HttpGet("getOrders",
 						apiBase.Concat("/orders"),
-						workflow.Timeout(timeout),
+						workflow.Timeout(int32(timeout.Value())),
 					)
 				}),
 			),

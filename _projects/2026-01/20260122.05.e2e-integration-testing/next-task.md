@@ -1,9 +1,33 @@
-# Next Task: Iteration 5 - Expand Test Coverage
+# Next Task: Iteration 5 - Phase 2 - Full Agent Execution Testing
 
 **Project**: E2E Integration Testing Framework  
 **Location**: `_projects/2026-01/20260122.05.e2e-integration-testing/`  
-**Current Status**: ✅ Iteration 4 Complete - Ready for Iteration 5  
+**Current Status**: ✅ Phase 1 Complete - Ready for Phase 2  
 **Updated**: 2026-01-22
+
+---
+
+## 🎉 Phase 1 Complete! Run Command Smoke Tests Working!
+
+```bash
+$ go test -v -timeout 60s
+--- PASS: TestE2E (12.17s)
+    --- PASS: TestE2E/TestApplyBasicAgent (1.30s)
+    --- PASS: TestE2E/TestApplyDryRun (1.37s)
+    --- PASS: TestE2E/TestRunBasicAgent (2.12s)  ← NEW! ✨
+    --- SKIP: TestE2E/TestRunWithAutoDiscovery (5.54s)
+    --- PASS: TestE2E/TestRunWithInvalidAgent (1.10s)  ← NEW! ✨
+    --- PASS: TestE2E/TestServerStarts (0.73s)
+PASS
+ok      github.com/stigmer/stigmer/test/e2e     13.311s
+```
+
+**New in Phase 1:**
+- ✅ `TestRunBasicAgent` - Verifies execution creation
+- ✅ `TestRunWithInvalidAgent` - Error handling
+- ✅ `AgentExecutionExistsViaAPI()` helper function
+
+**See**: `checkpoints/05-phase-1-run-command-tests-complete.md` for full details
 
 ---
 
@@ -334,4 +358,189 @@ go test -v 2>&1 | tee test-output.txt
 
 ---
 
-**Ready to proceed with Iteration 5! What scenarios should we prioritize?**
+## 🎯 Phase 2: Full Agent Execution Testing
+
+### Overview
+
+Phase 1 tested execution *creation* (smoke tests). Phase 2 will test actual agent *execution* with real LLM calls.
+
+### Required Infrastructure
+
+**Docker Services** (`docker-compose.e2e.yml`):
+```yaml
+version: '3.8'
+services:
+  temporal:
+    image: temporalio/auto-setup:latest
+    ports:
+      - "7233:7233"
+    
+  agent-runner:
+    build: ../../backend/services/agent-runner
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - STIGMER_SERVER_ADDR=host.docker.internal:PORT
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    depends_on:
+      - temporal
+```
+
+**Prerequisites Check** (`test/e2e/prereqs.go`):
+```go
+func CheckPrerequisites() error {
+    // Check Ollama running
+    resp, err := http.Get("http://localhost:11434/api/version")
+    if err != nil {
+        return fmt.Errorf(`
+Ollama not running. Please start:
+  1. Install: https://ollama.com/
+  2. Start: ollama serve
+  3. Pull model: ollama pull llama3.2:1b
+`)
+    }
+    
+    // Check Docker available
+    if err := checkDocker(); err != nil {
+        return fmt.Errorf("Docker not available: %w", err)
+    }
+    
+    return nil
+}
+```
+
+**Enhanced Harness** (`test/e2e/harness_test.go`):
+```go
+type TestHarness struct {
+    // Existing fields
+    ServerCmd  *exec.Cmd
+    ServerPort int
+    TempDir    string
+    
+    // New fields for Phase 2
+    DockerComposeCmd *exec.Cmd
+    TemporalReady    bool
+    AgentRunnerReady bool
+}
+
+func (h *TestHarness) Setup() error {
+    // 1. Check prerequisites (Ollama)
+    if err := CheckPrerequisites(); err != nil {
+        return err
+    }
+    
+    // 2. Start Docker services
+    if err := h.startDockerServices(); err != nil {
+        return err
+    }
+    
+    // 3. Start stigmer-server (existing)
+    // ...
+}
+```
+
+### New Tests
+
+**1. TestRunWithFullExecution** (Priority: HIGH)
+
+```go
+func (s *E2ESuite) TestRunWithFullExecution() {
+    // Apply agent
+    applyOutput, _ := RunCLIWithServerAddr(s.Harness.ServerPort, "apply", ...)
+    
+    // Run agent and wait for completion
+    runOutput, err := RunCLIWithServerAddr(
+        s.Harness.ServerPort,
+        "run", "test-agent",
+        "--message", "Say hello",
+        "--follow=false",
+    )
+    s.NoError(err)
+    
+    executionID := extractExecutionID(runOutput)
+    
+    // Wait for execution to complete (with timeout)
+    execution := s.waitForExecutionPhase(
+        executionID,
+        agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+        30*time.Second,
+    )
+    
+    // Verify execution completed successfully
+    s.Equal(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, execution.Status.Phase)
+    
+    // Verify agent produced output
+    s.NotEmpty(execution.Status.Messages)
+    s.Contains(execution.Status.Messages[len(execution.Status.Messages)-1].Content, "hello")
+}
+```
+
+**2. TestRunWithLogStreaming** (Priority: MEDIUM)
+
+Test the `--follow` flag for real-time log streaming.
+
+**3. TestRunWithRuntimeEnv** (Priority: MEDIUM)
+
+Test passing environment variables to agent execution.
+
+### Implementation Steps
+
+**Step 1: Prerequisites Check** (30 mins)
+- [ ] Create `test/e2e/prereqs.go`
+- [ ] Implement `CheckOllama()`
+- [ ] Implement `CheckDocker()`
+- [ ] Add helpful error messages
+
+**Step 2: Docker Compose** (1 hour)
+- [ ] Create `test/e2e/docker-compose.e2e.yml`
+- [ ] Configure Temporal server
+- [ ] Configure agent-runner
+- [ ] Test manual startup: `docker-compose -f docker-compose.e2e.yml up`
+
+**Step 3: Enhanced Harness** (1 hour)
+- [ ] Add Docker management to harness
+- [ ] Implement `startDockerServices()`
+- [ ] Implement `stopDockerServices()`
+- [ ] Wait for services to be healthy
+
+**Step 4: Helper Functions** (30 mins)
+- [ ] `waitForExecutionPhase()` - Poll execution until target phase
+- [ ] `getExecutionMessages()` - Retrieve execution messages
+- [ ] `TemporalHealthy()` - Check Temporal connectivity
+
+**Step 5: First Integration Test** (1 hour)
+- [ ] Implement `TestRunWithFullExecution`
+- [ ] Debug any issues
+- [ ] Verify LLM response
+
+**Step 6: Cleanup & Documentation** (30 mins)
+- [ ] Update README with Phase 2 setup instructions
+- [ ] Document Ollama requirements
+- [ ] Add troubleshooting guide
+
+### Success Criteria
+
+- [ ] All Phase 1 tests still pass
+- [ ] `TestRunWithFullExecution` passes consistently
+- [ ] Test suite runs in < 60 seconds
+- [ ] Clear error messages when dependencies missing
+- [ ] Docker services clean up properly
+
+### Risk Mitigation
+
+**Risk**: Docker not available
+- **Mitigation**: Skip Phase 2 tests if Docker not found
+
+**Risk**: Ollama not running
+- **Mitigation**: Clear error message with setup instructions
+
+**Risk**: LLM responses non-deterministic
+- **Mitigation**: Test for presence of response, not exact content
+
+**Risk**: Temporal startup slow
+- **Mitigation**: Increase health check timeout to 30 seconds
+
+---
+
+**Next Action**: Start Phase 2 implementation with prerequisites check  
+**Estimated Time**: 4-6 hours total  
+**Confidence**: HIGH - Phase 1 foundation is solid

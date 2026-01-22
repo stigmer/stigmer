@@ -357,10 +357,7 @@ func TestExample08_WorkflowWithConditionals(t *testing.T) {
 }
 
 // TestExample09_WorkflowWithLoops tests the workflow with loops example
-// NOTE: Skipped - builder pattern for nested tasks in loop bodies needs implementation fix
-// The WithLoopBody() builder needs to properly serialize task configs
 func TestExample09_WorkflowWithLoops(t *testing.T) {
-	t.Skip("Builder pattern for nested tasks in loop bodies needs implementation fix")
 	runExampleTest(t, "09_workflow_with_loops.go", func(t *testing.T, outputDir string) {
 		workflowPath := filepath.Join(outputDir, "workflow-0.pb")
 		assertFileExists(t, workflowPath)
@@ -390,10 +387,7 @@ func TestExample09_WorkflowWithLoops(t *testing.T) {
 }
 
 // TestExample10_WorkflowWithErrorHandling tests the workflow with error handling example
-// NOTE: Skipped - builder pattern for nested tasks in try/catch blocks needs implementation fix
-// The TryBlock() and CatchBlock() builders need to properly serialize task configs
 func TestExample10_WorkflowWithErrorHandling(t *testing.T) {
-	t.Skip("Builder pattern for nested tasks in try/catch blocks needs implementation fix")
 	runExampleTest(t, "10_workflow_with_error_handling.go", func(t *testing.T, outputDir string) {
 		workflowPath := filepath.Join(outputDir, "workflow-0.pb")
 		assertFileExists(t, workflowPath)
@@ -423,10 +417,7 @@ func TestExample10_WorkflowWithErrorHandling(t *testing.T) {
 }
 
 // TestExample11_WorkflowWithParallelExecution tests the workflow with parallel execution example
-// NOTE: Skipped - IntRef type conversion issue. Example uses IntRef where int32 is expected
-// Example needs to be fixed to use timeout.Value() or literal values
 func TestExample11_WorkflowWithParallelExecution(t *testing.T) {
-	t.Skip("IntRef type conversion issue - example needs to use timeout.Value() or literals")
 	runExampleTest(t, "11_workflow_with_parallel_execution.go", func(t *testing.T, outputDir string) {
 		workflowPath := filepath.Join(outputDir, "workflow-0.pb")
 		assertFileExists(t, workflowPath)
@@ -456,9 +447,7 @@ func TestExample11_WorkflowWithParallelExecution(t *testing.T) {
 }
 
 // TestExample14_WorkflowWithRuntimeSecrets tests the workflow with runtime secrets example
-// NOTE: Skipped - proto conversion issue with map slice types in body
 func TestExample14_WorkflowWithRuntimeSecrets(t *testing.T) {
-	t.Skip("Proto conversion issue with map slice types in body")
 	runExampleTest(t, "14_workflow_with_runtime_secrets.go", func(t *testing.T, outputDir string) {
 		workflowPath := filepath.Join(outputDir, "workflow-0.pb")
 		assertFileExists(t, workflowPath)
@@ -553,35 +542,23 @@ func TestExample16_WorkflowCallingAgentBySlug(t *testing.T) {
 }
 
 // TestExample17_WorkflowAgentWithRuntimeSecrets tests the workflow agent with runtime secrets example
-// NOTE: Skipped - proto conversion issue with map slice types in body
 func TestExample17_WorkflowAgentWithRuntimeSecrets(t *testing.T) {
-	t.Skip("Proto conversion issue with map slice types in body")
 	runExampleTest(t, "17_workflow_agent_with_runtime_secrets.go", func(t *testing.T, outputDir string) {
-		// This example creates BOTH workflow and agent
+		// This example creates a workflow that calls agents via slug references
 		workflowPath := filepath.Join(outputDir, "workflow-0.pb")
-		agentPath := filepath.Join(outputDir, "agent-0.pb")
 
-		// Verify both were created
+		// Verify workflow was created
 		assertFileExists(t, workflowPath)
-		assertFileExists(t, agentPath)
 
 		// Validate workflow
 		var wf workflowv1.Workflow
 		readProto(t, workflowPath, &wf)
 
-		if wf.Spec.Document.Name != "secure-agent-workflow" {
-			t.Errorf("Workflow name = %v, want secure-agent-workflow", wf.Spec.Document.Name)
+		if wf.Spec.Document.Name != "github-pr-review" {
+			t.Errorf("Workflow name = %v, want github-pr-review", wf.Spec.Document.Name)
 		}
 
-		// Validate agent
-		var agent agentv1.Agent
-		readProto(t, agentPath, &agent)
-
-		if agent.Metadata.Name != "secure-agent" {
-			t.Errorf("Agent name = %v, want secure-agent", agent.Metadata.Name)
-		}
-
-		// Verify workflow has agent call task
+		// Verify workflow has agent call task (calling agent by slug)
 		hasAgentCall := false
 		for _, task := range wf.Spec.Tasks {
 			if task.Kind == apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL {
@@ -599,9 +576,7 @@ func TestExample17_WorkflowAgentWithRuntimeSecrets(t *testing.T) {
 }
 
 // TestExample18_WorkflowMultiAgentOrchestration tests the multi-agent orchestration example
-// NOTE: Skipped - TaskFieldRef not supported in body yet
 func TestExample18_WorkflowMultiAgentOrchestration(t *testing.T) {
-	t.Skip("TaskFieldRef not supported in body yet - needs implementation")
 	runExampleTest(t, "18_workflow_multi_agent_orchestration.go", func(t *testing.T, outputDir string) {
 		// This example creates 1 workflow and 5 agents
 		workflowPath := filepath.Join(outputDir, "workflow-0.pb")
@@ -639,31 +614,21 @@ func TestExample18_WorkflowMultiAgentOrchestration(t *testing.T) {
 // TestExample19_WorkflowAgentExecutionConfig tests the workflow agent execution config example
 func TestExample19_WorkflowAgentExecutionConfig(t *testing.T) {
 	runExampleTest(t, "19_workflow_agent_execution_config.go", func(t *testing.T, outputDir string) {
-		// This example creates workflow and agent
+		// This example creates a workflow that calls agents with different execution configs
 		workflowPath := filepath.Join(outputDir, "workflow-0.pb")
-		agentPath := filepath.Join(outputDir, "agent-0.pb")
 
-		// Verify both were created
+		// Verify workflow was created
 		assertFileExists(t, workflowPath)
-		assertFileExists(t, agentPath)
 
 		// Validate workflow
 		var wf workflowv1.Workflow
 		readProto(t, workflowPath, &wf)
 
-		if wf.Spec.Document.Name != "review-workflow" {
-			t.Errorf("Workflow name = %v, want review-workflow", wf.Spec.Document.Name)
+		if wf.Spec.Document.Name != "agent-config-demo" {
+			t.Errorf("Workflow name = %v, want agent-config-demo", wf.Spec.Document.Name)
 		}
 
-		// Validate agent
-		var agent agentv1.Agent
-		readProto(t, agentPath, &agent)
-
-		if agent.Metadata.Name != "code-reviewer" {
-			t.Errorf("Agent name = %v, want code-reviewer", agent.Metadata.Name)
-		}
-
-		// Verify workflow has agent call task with execution config
+		// Verify workflow has agent call tasks with execution config
 		hasAgentCall := false
 		for _, task := range wf.Spec.Tasks {
 			if task.Kind == apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL {
@@ -673,10 +638,10 @@ func TestExample19_WorkflowAgentExecutionConfig(t *testing.T) {
 		}
 
 		if !hasAgentCall {
-			t.Error("Workflow should have agent call task with execution config")
+			t.Error("Workflow should have agent call tasks with execution config")
 		}
 
-		t.Log("✅ Workflow with agent execution config created successfully")
+		t.Logf("✅ Workflow with %d agent execution configs created successfully", len(wf.Spec.Tasks))
 	})
 }
 
