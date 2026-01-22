@@ -2,12 +2,53 @@
 
 **Project**: E2E Integration Testing Framework  
 **Location**: `_projects/2026-01/20260122.05.e2e-integration-testing/`  
-**Current Status**: ✅ Deterministic Validation Framework Complete  
+**Current Status**: ✅ Prerequisite Checking Fixed  
 **Updated**: 2026-01-22
 
 ---
 
-## 🎉 Latest: Deterministic Validation Framework Implemented! (2026-01-22)
+## 🎉 Latest: Fixed E2E Test Prerequisite Checking! (2026-01-22)
+
+**Tests now properly validate infrastructure using Go testing patterns!**
+
+### What Was Fixed
+
+✅ **Moved prerequisite checks to test suite** (`test/e2e/suite_test.go`)
+- Added `SetupSuite()` method that runs once before all tests
+- Checks Temporal via Web UI (port 8233 HTTP) - correct endpoint!
+- Checks Ollama via API (port 11434 HTTP)
+- Provides clear error messages with setup instructions
+
+✅ **Added checkTemporal() function** (`test/e2e/prereqs_test.go`)
+- Checks Temporal **Web UI on port 8233** (not gRPC port 7233)
+- Uses HTTP (not gRPC) - proper protocol for validation
+- 3-second timeout with clear error messages
+
+✅ **Simplified Makefile**
+- Removed prerequisite checking logic (proper separation of concerns)
+- Delegates validation to tests (standard Go testing practice)
+
+### The Problem
+
+Makefile was checking port 7233 via HTTP, but that's Temporal's **gRPC port**, not HTTP:
+```bash
+❌ curl -s http://localhost:7233  # Fails - gRPC port!
+✅ curl -s http://localhost:8233  # Works - Web UI HTTP port!
+```
+
+### Why This Is Better
+
+- ✅ Standard Go testing practice (checks in `SetupSuite`, not Makefile)
+- ✅ Better error messages with setup instructions
+- ✅ Works with any test runner (`go test`, IDEs, Make)
+- ✅ Correct port/protocol check (8233 HTTP, not 7233 gRPC)
+- ✅ Single source of truth (`prereqs_test.go`)
+
+See checkpoint: `checkpoints/2026-01-22-fix-e2e-prerequisite-checking.md`
+
+---
+
+## 🎉 Previous: Deterministic Validation Framework Implemented! (2026-01-22)
 
 **Comprehensive three-tier validation framework for non-deterministic AI agent outputs!**
 
