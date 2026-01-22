@@ -111,12 +111,12 @@ processTask := wf.Set("process",
 )
 ```
 
-## 🟡 Option C - Agent/Skill SDK: 60% COMPLETE (IN PROGRESS)
+## 🟢 Option C - Agent/Skill SDK: 75% COMPLETE (IN PROGRESS)
 
-**Status**: Schemas generated, code compiles! Integration with manual SDK pending.
+**Status**: Phase 1 integration complete! Skill SDK fully functional. Agent skeleton ready. Code compiles!
 
 **Date Started**: 2026-01-22  
-**Time Spent**: ~2 hours
+**Time Spent**: ~4 hours
 
 ### What's Done ✅
 
@@ -149,29 +149,66 @@ processTask := wf.Set("process",
 - ✅ `sdk/go/skill/gen/helpers.go` - Utility functions
 - ✅ **Compiles successfully!**
 
+**7. Resource Dependency Design** (NEW!):
+- ✅ Researched Pulumi's dependency model (implicit + explicit)
+- ✅ Analyzed current workflow task dependency tracking
+- ✅ Designed cross-resource dependency solution
+- ✅ Created comprehensive design document (DD06)
+- ✅ Defined implementation phases (SDK registry → CLI ordering)
+
+**8. SDK Annotation Helpers** (NEW! ✅ COMPLETE):
+- ✅ Created `agent/annotations.go` with SDK metadata constants
+- ✅ Created `skill/annotations.go` with SDK metadata constants
+- ✅ Implemented SDKAnnotations() and MergeAnnotations() helpers
+- ✅ Automatically inject SDK language, version, and timestamp
+
+**9. Skill ToProto() Integration** (NEW! ✅ COMPLETE):
+- ✅ Created `skill/proto.go` with ToProto() method
+- ✅ Fully functional Skill-to-proto conversion
+- ✅ SDK annotations automatically injected
+- ✅ Ready for platform submission
+
+**10. Agent ToProto() Skeleton** (NEW! ✅ PATTERN ESTABLISHED):
+- ✅ Created `agent/proto.go` with ToProto() method
+- ✅ Basic field conversion working
+- ✅ Skeleton for nested type conversions (with TODOs)
+- ✅ Code compiles successfully
+
 ### What's Remaining ✏️
 
-**1. Integration with Manual SDK** (~45 min):
-- Use generated types internally in existing Agent/Skill SDK
-- Update ToProto() methods to leverage generated code
-- Keep existing builder API unchanged
+**Future Work (Next Session):**
 
-**2. SDK Annotation Helpers** (~30 min):
-- Create `agent/annotations.go` with SDK metadata constants
-- Create `skill/annotations.go` with SDK metadata constants
-- Helpers to inject SDK metadata into annotations map
+**1. Complete Agent Nested Type Conversions** (~2 hours):
+- Implement convertSkillsToRefs() - Convert SDK skills to API resource references
+- Implement convertMCPServers() - Handle Stdio/HTTP/Docker server conversion
+- Implement convertSubAgents() - Handle inline vs referenced sub-agents
+- Implement convertEnvironmentVariables() - Map SDK env vars to EnvironmentSpec
+- See: `checkpoints/04-option-c-integration-phase1.md` for detailed TODOs
 
-**3. Testing** (~30 min):
-- Verify all existing Agent/Skill examples compile
-- Verify all tests pass
-- Smoke test Agent/Skill creation
+**2. Testing** (~1 hour):
+- Unit tests for Skill ToProto()
+- Unit tests for Agent ToProto() (basic fields)
+- Unit tests for conversion helpers (once implemented)
+- Integration tests for end-to-end SDK usage
+- Verify existing examples still work
 
-**4. Documentation** (~30 min):
-- Update project README
-- Update next-task.md
+**3. Documentation** (~30 min):
+- Update project README with usage examples
+- Add API reference for ToProto() methods
+- Create migration guide for SDK users
 - Final checkpoint document
 
-**Total Remaining**: ~2 hours
+**Total Remaining**: ~3.5 hours
+
+**Future Session (Separate - Deferred):**
+
+**4. Dependency Tracking Foundation** (~45 min):
+- Add workflow registration to context (like agent)
+- Add dependency map to context
+- Implement dependency tracking for inline skills in agents
+- Extract agent references from workflow tasks
+- See: `design-decisions/DD06-resource-dependency-management.md`
+- **Note**: Deferred to separate conversation for focused implementation
 
 ### Key Achievements 🎉
 
@@ -194,6 +231,18 @@ processTask := wf.Set("process",
 **Generated Code** (6 new files, all compile!):
 - `sdk/go/agent/gen/` - 4 files (AgentSpec, types, helpers)
 - `sdk/go/skill/gen/` - 2 files (SkillSpec, helpers)
+
+**Design Documents**:
+- `design-decisions/DD06-resource-dependency-management.md` - Comprehensive dependency design
+
+**SDK Integration Files** (NEW):
+- `sdk/go/agent/annotations.go` - SDK metadata injection (62 lines) ✅
+- `sdk/go/skill/annotations.go` - SDK metadata injection (58 lines) ✅
+- `sdk/go/skill/proto.go` - Skill ToProto() method (38 lines) ✅
+- `sdk/go/agent/proto.go` - Agent ToProto() skeleton (157 lines) ⚠️
+
+**Checkpoints**:
+- `checkpoints/04-option-c-integration-phase1.md` - Phase 1 completion summary
 
 ---
 
