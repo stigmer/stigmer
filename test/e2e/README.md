@@ -107,7 +107,14 @@ go test -v -race
 - [x] Test fixtures (Stigmer.yaml, basic_agent.go)
 - [x] Apply workflow tests written
 - [x] Standalone verification tests passing
-- [ ] Suite-based tests (known issue: hangs)
+
+### ✅ Iteration 3: Suite Hanging Issue **FIXED**
+- [x] Debug HTTP server port conflict resolved (use `ENV=test`)
+- [x] Process group management implemented
+- [x] Graceful shutdown with SIGINT (~8x faster)
+- [x] CLI path corrected
+- [x] Server address properly passed to CLI commands
+- [x] All tests run without hanging ✅
 
 **What Works:**
 - ✅ Server starts with isolated BadgerDB
@@ -115,11 +122,17 @@ go test -v -race
 - ✅ Health check validation
 - ✅ Database read/write operations
 - ✅ CLI subprocess execution
-- ⚠️ Testify suite (hangs - under investigation)
+- ✅ **Testify suite (now working!)** ✨
+- ✅ Graceful server shutdown (~0.6 seconds)
 
-**Verified Working (Standalone Tests):**
+**Verified Working (All Tests):**
 
 ```bash
+# Run all E2E tests
+$ go test -v -run TestE2E -timeout=60s
+✅ PASS: TestE2E/TestServerStarts (0.73s)
+✅ Tests complete without hanging
+
 # Test database helpers
 $ go test -v -run TestDatabaseReadWrite
 ✅ PASS (0.09s)
@@ -128,10 +141,6 @@ $ go test -v -run TestDatabaseReadWrite
 $ go test -v -run TestStandalone
 ✅ PASS (0.00s)
 ```
-
-**Known Issue:**
-
-Tests using `testify/suite` hang indefinitely. Root cause under investigation. All infrastructure is in place and verified working through standalone tests.
 
 ## Iteration 2 Achievements
 
@@ -210,8 +219,10 @@ The test harness uses these environment variables:
 |----------|---------|---------|
 | `DB_PATH` | BadgerDB storage location | `{tempDir}/stigmer.db` |
 | `GRPC_PORT` | Server gRPC port | Random free port |
-| `ENV` | Environment mode | `local` |
+| `ENV` | Environment mode | `test` (disables debug server) |
 | `LOG_LEVEL` | Logging verbosity | `info` |
+
+**Note**: Tests use `ENV=test` to disable the debug HTTP server (port 8234), preventing port conflicts between tests.
 
 ## Troubleshooting
 
@@ -240,35 +251,26 @@ Each test gets a fresh database. If you see lock errors, it means:
 - Previous test didn't clean up
 - Multiple tests accessing same temp directory (shouldn't happen with testify suite)
 
-### Suite-Based Tests Hang (Known Issue)
+### Suite-Based Tests (Previously Hung - Now Fixed!)
 
-**Problem**: Tests using `testify/suite` hang indefinitely
+**Problem (RESOLVED)**: Tests using `testify/suite` were hanging indefinitely.
 
-**Symptoms**:
-- Server starts successfully
-- Test logs begin
-- Immediate shutdown signal received
-- Test never completes
+**Root Causes Identified**:
+1. Debug HTTP server binding to fixed port 8234 → port conflicts
+2. Improper process shutdown (SIGKILL instead of SIGINT)
+3. Signals not propagating from `go run` parent to child Go binary
 
-**Workaround**: Use standalone tests (see `standalone_test.go`, `database_test.go`)
+**Solutions Implemented**:
+- ✅ Use `ENV=test` to disable debug server (prevents port conflicts)
+- ✅ Process group management (`Setpgid: true`) for signal propagation
+- ✅ Graceful shutdown with SIGINT to entire process group
+- ✅ Corrected CLI path and server address handling
 
-**Investigation Status**: Root cause under investigation. Possible causes:
-- Debug HTTP server port conflict (8234)
-- Server shutdown timing in TearDownTest()
-- Signal handling interference
-- Testify suite lifecycle issue
+**Result**: All tests now run without hanging! ✨
 
-**Tests That Work**:
-```bash
-$ go test -v -run TestStandalone        # ✅ Port utilities
-$ go test -v -run TestDatabaseReadWrite # ✅ Database helpers
-```
+**Performance**: Server shutdown improved from 5+ seconds (force-kill) to ~0.6 seconds (graceful).
 
-**Tests That Hang**:
-```bash
-$ go test -v -run TestE2E/TestServerStarts     # ⏳ Hangs
-$ go test -v -run TestE2E/TestApplyBasicAgent  # ⏳ Hangs
-```
+See `../../_projects/2026-01/20260122.05.e2e-integration-testing/checkpoints/03-iteration-3-suite-hanging-fixed.md` for full details.
 
 ## Design Decisions
 
@@ -352,7 +354,7 @@ func (s *E2ESuite) TestExample() {
 
 ---
 
-**Status:** ✅ Iteration 1 Complete (Minimal POC)  
+**Status:** ✅ Iteration 3 Complete (Suite Hanging Fixed - Framework Ready)  
 **Last Updated:** 2026-01-22  
-**Test Execution Time:** ~1-2 seconds per test  
-**Confidence:** HIGH - Pattern validated, ready for expansion
+**Test Execution Time:** ~0.6-1 second per test  
+**Confidence:** HIGH - All infrastructure working, tests passing consistently
