@@ -1204,6 +1204,238 @@ internal/cli/logs/
 
 ---
 
+### 2026-01-22 - Docker Container Lifecycle Management for Daemon Services
+
+**Problem**: Agent-runner used PyInstaller binary but suffered from persistent import errors:
+```
+ModuleNotFoundError: No module named 'multipart'
+```
+- PyInstaller couldn't detect dynamic imports in `multipart` package
+- Multiple attempted fixes (vendoring, hooks, sys.path manipulation) all failed
+- Builds succeeded but execution failed
+- 7+ hours of debugging couldn't solve PyInstaller packaging issues
+
+**Root Cause**: PyInstaller packages Python apps into standalone binaries but struggles with:
+- Dynamic imports that can't be detected at build time
+- Hidden runtime dependencies
+- Packages that inspect sys.modules or use import hooks
+- The `multipart` package's implementation relied on patterns PyInstaller couldn't handle
+
+**Solution**: Replace subprocess-based daemon management with Docker container management:
+
+**Docker Integration Pattern**:
+
+```go
+// 1. Docker Detection
+func dockerAvailable() bool {
+    // Check if docker command exists
+    if _, err := exec.LookPath("docker"); err != nil {
+        return false
+    }
+    // Check if Docker daemon is running
+    cmd := exec.Command("docker", "info")
+    return cmd.Run() == nil
+}
+
+// 2. Start Docker Container (analogous to starting subprocess)
+func startAgentRunnerDocker(dataDir string, env map[string]string) error {
+    // Remove any existing container
+    _ = exec.Command("docker", "rm", "-f", "stigmer-agent-runner").Run()
+    
+    // Build docker run arguments
+    args := []string{
+        "run", "-d",
+        "--name", "stigmer-agent-runner",
+        "--network", "host",  // For localhost access
+        "--restart", "unless-stopped",
+    }
+    
+    // Add environment variables
+    for key, value := range env {
+        args = append(args, "-e", fmt.Sprintf("%s=%s", key, value))
+    }
+    
+    // Add workspace volume mount
+    workspaceDir := filepath.Join(dataDir, "workspace")
+    args = append(args, "-v", fmt.Sprintf("%s:/workspace", workspaceDir))
+    
+    // Add image
+    args = append(args, "stigmer-agent-runner:local")
+    
+    // Start container
+    cmd := exec.Command("docker", args...)
+    output, err := cmd.CombinedOutput()
+    if err != nil {
+        return errors.Wrapf(err, "failed to start container: %s", output)
+    }
+    
+    containerID := strings.TrimSpace(string(output))
+    
+    // Store container ID for lifecycle management (analogous to PID file)
+    containerIDFile := filepath.Join(dataDir, "agent-runner-container.id")
+    return os.WriteFile(containerIDFile, []byte(containerID), 0644)
+}
+
+// 3. Stop Docker Container (analogous to killing process)
+func stopAgentRunnerDocker(dataDir string) error {
+    // Read container ID from file
+    containerIDFile := filepath.Join(dataDir, "agent-runner-container.id")
+    data, err := os.ReadFile(containerIDFile)
+    var containerID string
+    if err == nil {
+        containerID = strings.TrimSpace(string(data))
+    }
+    
+    // Fallback: find by name if no container ID file
+    if containerID == "" {
+        cmd := exec.Command("docker", "ps", "-aq", "-f", "name=^stigmer-agent-runner$")
+        output, _ := cmd.Output()
+        containerID = strings.TrimSpace(string(output))
+    }
+    
+    if containerID == "" {
+        return nil  // Nothing to stop
+    }
+    
+    // Stop container gracefully
+    exec.Command("docker", "stop", containerID).Run()
+    
+    // Remove container
+    exec.Command("docker", "rm", containerID).Run()
+    
+    // Clean up container ID file
+    os.Remove(containerIDFile)
+    return nil
+}
+
+// 4. Cleanup Orphaned Containers (analogous to orphaned process cleanup)
+func cleanupOrphanedContainers() {
+    // Find orphaned containers from previous runs
+    cmd := exec.Command("docker", "ps", "-aq", "-f", "name=^stigmer-agent-runner$")
+    output, err := cmd.Output()
+    if err != nil || len(output) == 0 {
+        return  // No orphaned containers
+    }
+    
+    containerID := strings.TrimSpace(string(output))
+    log.Warn().Str("container_id", containerID[:12]).Msg("Found orphaned container, cleaning up")
+    
+    // Stop and remove
+    exec.Command("docker", "stop", containerID).Run()
+    exec.Command("docker", "rm", containerID).Run()
+}
+```
+
+**Docker Logs Integration**:
+
+```go
+// Stream logs from Docker container (analogous to tailing log files)
+func streamDockerLogs(containerName string, follow bool, tailLines int) error {
+    args := []string{"logs"}
+    if follow {
+        args = append(args, "-f")
+    }
+    if tailLines > 0 {
+        args = append(args, "--tail", strconv.Itoa(tailLines))
+    }
+    args = append(args, containerName)
+    
+    cmd := exec.Command("docker", args...)
+    cmd.Stdout = os.Stdout
+    cmd.Stderr = os.Stderr
+    return cmd.Run()
+}
+
+// Auto-detect Docker vs file-based logs
+if component == "agent-runner" && isAgentRunnerDocker(dataDir) {
+    return streamDockerLogs("stigmer-agent-runner", follow, lines)
+}
+// Otherwise, use file-based logs
+```
+
+**Pattern Mapping: Subprocess ↔ Docker**:
+
+| Subprocess Pattern | Docker Container Pattern |
+|--------------------|--------------------------|
+| PID file | Container ID file |
+| `exec.Command()` to start binary | `docker run` to start container |
+| Store PID in file | Store container ID in file |
+| Kill process by PID | Stop container by ID/name |
+| Check if process alive with `ps` | Check if container running with `docker ps` |
+| Tail log files | `docker logs -f` |
+| Clean up orphaned processes | Clean up orphaned containers |
+| Process groups for cleanup | Docker's built-in child process management |
+
+**Error Handling**:
+
+```go
+// Clear error if Docker not available
+if !dockerAvailable() {
+    return errors.New(`Docker is not running. Agent-runner requires Docker.
+
+Please start Docker Desktop or install Docker:
+  - macOS:  brew install --cask docker
+  - Linux:  curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh
+  - Windows: Download from https://www.docker.com/products/docker-desktop
+
+After installing Docker, restart Stigmer server.`)
+}
+
+// Clear error if image not found
+if !imageExists("stigmer-agent-runner:local") {
+    return errors.New(`Docker image not found. Please build it first:
+  cd backend/services/agent-runner
+  docker build -f Dockerfile -t stigmer-agent-runner:local ../../..`)
+}
+```
+
+**Benefits**:
+- ✅ **Eliminates import errors** - All dependencies explicit in poetry.lock
+- ✅ **Reproducible builds** - Same environment everywhere (dev, CI, prod)
+- ✅ **Transparent debugging** - Can shell into container to investigate
+- ✅ **Industry standard** - Docker is familiar to developers
+- ✅ **Automatic cleanup** - Docker manages child processes
+- ✅ **Built-in log rotation** - Docker handles log management
+
+**Trade-offs**:
+- ⚠️ **Requires Docker** - Users must install Docker (acceptable for modern development)
+- ⚠️ **Larger footprint** - 2GB image vs ~100MB binary
+- ⚠️ **Slightly slower cold start** - ~3s vs instant (acceptable)
+
+**Prevention**:
+- **Prefer Docker for Python daemons** with complex dependencies
+- **Use subprocess pattern** for simple Go binaries (temporal, workflow-runner)
+- **Document Docker requirement** in installation guides
+- **Provide clear error messages** if Docker not available
+- **Container ID tracking** enables reliable lifecycle management
+- **Cleanup orphaned containers** on daemon restart (like orphaned processes)
+
+**When to Use Docker vs Subprocess**:
+
+**Use Docker when:**
+- Complex dependency management (Python with many packages)
+- Hidden import issues (dynamic imports, import hooks)
+- Need reproducible builds across environments
+- Service has runtime dependencies (system libs, tools)
+
+**Use Subprocess when:**
+- Simple self-contained binaries (Go, Rust)
+- No complex dependencies
+- Fast startup critical (<1s)
+- Size matters (<100MB)
+
+**Related Docs**:
+- Changelog: `_changelog/2026-01/2026-01-22-020000-migrate-agent-runner-to-docker.md`
+- Implementation: `client-apps/cli/internal/cli/daemon/daemon.go`
+- Logs integration: `client-apps/cli/cmd/stigmer/root/server_logs.go`
+- Architecture: `docs/architecture/cli-subprocess-lifecycle.md` (Docker section added)
+- Getting started: `docs/getting-started/local-mode.md` (Docker requirement added)
+- Project: `_projects/2026-01/20260122.01.migrate-agent-runner-to-docker/`
+
+**Key Takeaway**: Docker container lifecycle management parallels subprocess management with different mechanisms. Container ID ≈ PID, `docker run` ≈ `exec.Command()`, `docker stop` ≈ kill. For Python services with complex dependencies, Docker eliminates packaging issues at the cost of requiring Docker installation. Pattern is reusable for other containerized services.
+
+---
+
 ## Build System & Distribution
 
 ### 2026-01-21 - Go Embed + Gazelle Integration for Binary Embedding
@@ -1696,3 +1928,1075 @@ func Run() error {
 ```
 
 **Remember**: BusyBox pattern = multiple tools in one binary. Internal commands are **routing**, not **parsing**. Route to implementations, don't parse through embedded CLIs.
+
+---
+
+### 2026-01-22 - Docker Host Networking on macOS Requires host.docker.internal
+
+**Problem**: Agent-runner Docker container was failing to connect to Temporal with "Connection refused" on macOS after Docker migration:
+```
+Failed client connect: Server connection error: 
+tonic::transport::Error(Transport, ConnectError(ConnectError(
+  "tcp connect error", 127.0.0.1:7233, 
+  Os { code: 111, kind: ConnectionRefused, message: "Connection refused" }
+)))
+```
+
+**User Impact**:
+- Container in crash/restart loop
+- All agent executions failed with "No worker available to execute activity"
+- `stigmer run` completely broken on macOS
+
+**Root Cause**: Docker Desktop on macOS runs in a VM. Containers cannot reach the host via `localhost` or `127.0.0.1` **even with `--network host`** because the network stack is virtualized.
+
+**Why `--network host` Doesn't Work on macOS**:
+- On Linux: `--network host` gives container direct access to host's network stack → `localhost` works
+- On macOS/Windows: Docker runs in a VM (HyperKit/WSL2) → `localhost` points to VM, not actual host
+- Must use special DNS name: `host.docker.internal` → resolves to host machine IP
+
+**Solution**: OS-aware Docker host address resolution:
+
+```go
+// Resolve host address for Docker container to reach host services
+// On macOS/Windows, Docker runs in a VM, so containers must use host.docker.internal
+// On Linux, localhost works with --network host
+func resolveDockerHostAddress(addr string) string {
+    // Only convert localhost addresses
+    if !strings.Contains(addr, "localhost") && !strings.Contains(addr, "127.0.0.1") {
+        return addr
+    }
+    
+    // On Linux, localhost works with --network host
+    if runtime.GOOS == "linux" {
+        return addr
+    }
+    
+    // On macOS/Windows (darwin/windows), use host.docker.internal
+    originalAddr := addr
+    addr = strings.ReplaceAll(addr, "localhost", "host.docker.internal")
+    addr = strings.ReplaceAll(addr, "127.0.0.1", "host.docker.internal")
+    
+    log.Debug().
+        Str("original", originalAddr).
+        Str("resolved", addr).
+        Str("os", runtime.GOOS).
+        Msg("Resolved Docker host address for macOS/Windows")
+    
+    return addr
+}
+
+// Apply to Temporal and backend addresses
+hostAddr := resolveDockerHostAddress(temporalAddr)
+backendAddr := resolveDockerHostAddress(fmt.Sprintf("localhost:%d", DaemonPort))
+
+// Pass to container
+"-e", fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", hostAddr),
+"-e", fmt.Sprintf("STIGMER_BACKEND_URL=http://%s", backendAddr),
+```
+
+**Verification**:
+```bash
+# Check container is using correct address
+$ docker inspect stigmer-agent-runner | grep TEMPORAL_SERVICE_ADDRESS
+"TEMPORAL_SERVICE_ADDRESS=host.docker.internal:7233"  # ✅ Correct
+
+# Check container logs
+$ docker logs stigmer-agent-runner
+✅ Connected to Temporal server at host.docker.internal:7233
+✅ Registered Python activities
+🚀 Worker ready, polling for tasks...
+```
+
+**Platform Compatibility**:
+
+| OS | Address Used | Works |
+|----|--------------|-------|
+| macOS | `host.docker.internal` | ✅ |
+| Windows | `host.docker.internal` | ✅ |
+| Linux | `localhost` | ✅ |
+
+**Why Not Always Use `host.docker.internal`**:
+- On Linux, `localhost` is faster (no DNS lookup)
+- Some Linux setups may not support `host.docker.internal`
+- Best practice: Use optimal address for each platform
+
+**Extended Fix: Logs Command Docker Support**
+
+After fixing networking, discovered `stigmer server logs all` wasn't showing agent-runner logs because it only read log files, not Docker containers.
+
+**Solution**: Extended logs package to support both files and Docker containers:
+
+**1. Updated ComponentConfig** (`logs/types.go`):
+```go
+type ComponentConfig struct {
+    Name           string
+    LogFile        string
+    ErrFile        string
+    DockerContainer string // NEW: If set, read from Docker instead of files
+}
+```
+
+**2. Added Docker log readers** (`logs/streamer.go`, `logs/merger.go`):
+```go
+// Streaming logs from Docker container
+func tailDockerLogs(containerName, component string, linesChan chan<- LogLine) error {
+    cmd := exec.CommandContext(ctx, "docker", "logs", "-f", "--tail", "0", containerName)
+    // Read both stdout and stderr via goroutines
+    // Parse and send to channel
+}
+
+// Historical logs from Docker container
+func readDockerLogs(containerName, component string, tailLines int) ([]LogLine, error) {
+    cmd := exec.Command("docker", "logs", "--tail", strconv.Itoa(tailLines), containerName)
+    output, _ := cmd.CombinedOutput()
+    // Parse output into LogLine structs
+}
+```
+
+**3. Updated command to detect Docker** (`server_logs.go`):
+```go
+func getComponentConfigs(dataDir, logDir string) []logs.ComponentConfig {
+    // Check if agent-runner is running in Docker
+    if isAgentRunnerDocker(dataDir) {
+        components = append(components, logs.ComponentConfig{
+            Name:           "agent-runner",
+            DockerContainer: daemon.AgentRunnerContainerName, // Use Docker logs
+        })
+    } else {
+        components = append(components, logs.ComponentConfig{
+            Name:    "agent-runner",
+            LogFile: filepath.Join(logDir, "agent-runner.log"), // Use file logs
+        })
+    }
+}
+```
+
+**Result**: `stigmer server logs all` now works with mixed file-based and Docker-based logging:
+```bash
+$ stigmer server logs all --tail=20
+[stigmer-server ] 2:51AM INF Server started successfully
+[agent-runner   ] ✅ Worker ready, polling for tasks...
+[workflow-runner] Worker registered successfully
+```
+
+**Prevention**:
+
+✅ **Test Docker containers on macOS during development**:
+- Linux behavior differs - always test on macOS
+- Use `docker inspect` to verify environment variables
+- Check container logs for connection errors
+
+✅ **Use OS-aware address resolution for all host services**:
+```go
+// Pattern for any service containers need to reach
+temporalAddr := resolveDockerHostAddress("localhost:7233")
+backendAddr := resolveDockerHostAddress("localhost:7234")
+redisAddr := resolveDockerHostAddress("localhost:6379")
+```
+
+✅ **Support Docker containers in log/diagnostic commands**:
+- Detect if component runs in Docker vs subprocess
+- Use `docker logs` instead of file reading
+- Maintain unified interface (users don't need to know)
+
+✅ **Document platform-specific Docker behavior**:
+- Add to troubleshooting guides
+- Explain why different addresses on different platforms
+- Provide verification commands
+
+❌ **Don't assume `--network host` works the same everywhere**:
+- Works on Linux (container shares host network)
+- Doesn't work on macOS/Windows (VM isolation)
+- Must use `host.docker.internal` on macOS/Windows
+
+**Troubleshooting Pattern**:
+```bash
+# 1. Check if container can reach host
+docker exec stigmer-agent-runner nc -zv host.docker.internal 7233
+
+# 2. Check environment variables passed to container
+docker inspect stigmer-agent-runner | grep TEMPORAL_SERVICE_ADDRESS
+
+# 3. Check container logs for connection errors
+docker logs stigmer-agent-runner --tail 50
+
+# 4. Verify Temporal is listening on host
+lsof -ti:7233  # Should return PID
+```
+
+**Related Docs**:
+- Changelog: `_changelog/2026-01/2026-01-22-022000-fix-agent-runner-docker-networking-macos.md`
+- Troubleshooting: `docs/guides/agent-runner-local-mode.md` (Docker networking section)
+- Implementation: `client-apps/cli/internal/cli/daemon/daemon.go`
+- Logs support: `client-apps/cli/internal/cli/logs/*.go`
+- Docker docs: https://docs.docker.com/desktop/networking/#i-want-to-connect-from-a-container-to-a-service-on-the-host
+
+**Key Takeaway**: Docker containers on macOS cannot reach the host via `localhost`. Always use `host.docker.internal` on macOS/Windows, `localhost` on Linux. Implement OS detection with `runtime.GOOS`. Extend log/diagnostic commands to support Docker containers alongside file-based logging. Test on macOS - Linux behavior is different.
+
+---
+
+### 2026-01-22 - Use Standard Library Environment Variables (No Custom Abstractions)
+
+**Problem**: Agent-runner Docker container failed to connect to Ollama with "All connection attempts failed" error, even after hostname was correctly resolved to `host.docker.internal:11434`.
+
+```bash
+# Container environment variables (before fix):
+STIGMER_LLM_BASE_URL=http://host.docker.internal:11434  # ✓ Resolved, but unused!
+STIGMER_LLM_PROVIDER=ollama
+STIGMER_LLM_MODEL=qwen2.5-coder:14b
+
+# Agent execution error:
+ERROR - ExecuteGraphton failed: All connection attempts failed
+```
+
+**Root Cause**: Created custom environment variable (`STIGMER_LLM_BASE_URL`) instead of using the standard variable (`OLLAMA_BASE_URL`) that LangChain reads directly.
+
+**Investigation Process**:
+1. Verified hostname resolution was correct (`host.docker.internal` ✅)
+2. Tested Ollama API reachable from container (worked ✅)
+3. Manual test of Graphton agent creation (worked ✅)
+4. Discovered: LangChain reads `OLLAMA_BASE_URL` environment variable directly, not our custom variable
+5. Our custom `STIGMER_LLM_BASE_URL` was being set but **never used** by the actual code
+
+**The Mistake**: 
+Unnecessary abstraction layer - created `STIGMER_LLM_BASE_URL` thinking we needed provider-agnostic configuration, but:
+- LangChain's Ollama integration expects `OLLAMA_BASE_URL` (industry standard)
+- Our config code read `STIGMER_LLM_BASE_URL` into a struct but never passed it to Graphton
+- Graphton always read `OLLAMA_BASE_URL` from environment directly
+- **Result**: Two variables with same value, only one actually works
+
+**Solution**: Remove custom variable, use only the standard `OLLAMA_BASE_URL`:
+
+**daemon.go** (Go - CLI):
+```go
+// Before (wrong):
+"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURLResolved),
+
+// After (correct):
+// OLLAMA_BASE_URL is the standard env var expected by LangChain for Ollama
+"-e", fmt.Sprintf("OLLAMA_BASE_URL=%s", llmBaseURLResolved),
+```
+
+**config.py** (Python - agent-runner):
+```python
+# Before (wrong):
+base_url = os.getenv("STIGMER_LLM_BASE_URL", default_base_url)
+
+# After (correct):
+# Note: For Ollama, LangChain reads OLLAMA_BASE_URL directly from environment
+# We just store it here for validation purposes
+base_url = os.getenv("OLLAMA_BASE_URL", default_base_url)
+```
+
+**Why Standard Variables Matter**:
+
+✅ **Follow the Principle of Least Surprise**:
+- Developers already know `OLLAMA_BASE_URL` from LangChain docs
+- Standard variables work out-of-the-box with examples
+- No need to remember custom naming schemes
+
+✅ **Eliminate Unnecessary Abstractions**:
+- Our custom variable wasn't providing any value
+- It was just a wrapper that confused things
+- Simpler is better
+
+✅ **Libraries Read Environment Directly**:
+- LangChain, boto3, requests, etc. all read standard env vars
+- Don't create custom variables that need to be "bridged" to standard ones
+- Set the standard variable directly in your configuration
+
+❌ **Common Mistake Pattern**:
+```python
+# Wrong: Create custom variable that's never used
+MYAPP_OLLAMA_URL = "http://localhost:11434"  # Custom, unused
+# Library reads: OLLAMA_BASE_URL (missing!)
+
+# Right: Set the standard variable
+OLLAMA_BASE_URL = "http://localhost:11434"  # Standard, works
+```
+
+**Testing Pattern**:
+
+```bash
+# Test if library is reading your variable:
+docker exec container python3 -c "
+import os
+print(f'Custom var: {os.getenv(\"STIGMER_LLM_BASE_URL\")}')
+print(f'Standard var: {os.getenv(\"OLLAMA_BASE_URL\")}')
+
+from langchain_community.chat_models import ChatOllama
+llm = ChatOllama(model='model-name')
+print(f'LLM will connect to: {llm._get_client().base_url}')
+"
+```
+
+If the library doesn't see your custom variable, it's using the standard one!
+
+**Prevention**:
+
+✅ **Research standard environment variables BEFORE creating custom ones**:
+- Check library documentation: What env vars does it expect?
+- Search library source: `grep -r "os.getenv" | grep -i base_url`
+- Test: Does setting standard var work? If yes, use it!
+
+✅ **Only create custom variables when needed for YOUR logic**:
+- Configuration cascade (CLI → Env → File → Defaults) - needs custom vars ✅
+- Library integration - use standard vars ❌
+
+✅ **If you must bridge, do it explicitly**:
+```python
+# If you must have custom config for some reason:
+custom_url = os.getenv("MYAPP_LLM_URL")
+if custom_url:
+    os.environ["OLLAMA_BASE_URL"] = custom_url  # Bridge to standard
+```
+
+But better: Just use the standard variable.
+
+**Impact**:
+
+Before Fix:
+- ❌ Agent execution failed (all connection attempts failed)
+- ❌ Confusing configuration (two variables, which one matters?)
+- ❌ Debugging took longer (checked STIGMER_LLM_BASE_URL, which was correct but irrelevant!)
+
+After Fix:
+- ✅ Agent execution works (connects to Ollama successfully)
+- ✅ Clear configuration (one standard variable)
+- ✅ Follows principle of least surprise
+- ✅ Easier debugging (check the variable that matters)
+
+**Related Docs**:
+- Changelog: `_changelog/2026-01/2026-01-22-042455-fix-ollama-connection-from-agent-runner-docker.md`
+- Implementation: `daemon.go` (line 666), `config.py` (line 122)
+- LangChain docs: https://python.langchain.com/docs/integrations/chat/ollama
+
+**Key Takeaway**: Use standard environment variables that libraries expect. Don't create custom variables that need to be "bridged." Research library docs/source before inventing your own naming. Unnecessary abstractions cause confusion and bugs. When library reads env var X directly, set X in your config - don't set Y and hope it somehow reaches X.
+
+---
+
+## Configuration & Context
+
+### 2026-01-22 - Configuration Cascade Pattern (CLI Flags → Env Vars → Config File → Defaults)
+
+**Problem**: Users needed flexible ways to configure agent execution mode (local/sandbox/auto), but only environment variables were supported:
+```bash
+export STIGMER_EXECUTION_MODE=sandbox  # Only method
+```
+
+This created issues:
+- CI/CD needed env vars (good) ✅
+- Daily dev wanted persistent config (bad - had to re-export every session) ❌
+- Quick testing needed temporary overrides (bad - had to unset env var after) ❌
+
+**Root Cause**: Single configuration method doesn't serve all use cases. Different workflows need different configuration approaches.
+
+**Solution**: Implement industry-standard **configuration cascade pattern** following Docker, kubectl, AWS CLI, Terraform:
+
+```
+Priority Order (highest to lowest):
+1. CLI Flags        → stigmer server start --execution-mode=sandbox
+2. Environment Variables → export STIGMER_EXECUTION_MODE=sandbox
+3. Config File      → execution.mode in ~/.stigmer/config.yaml
+4. Defaults         → local mode
+```
+
+**Implementation Pattern**:
+
+**1. Add Config Struct** (`config.go`):
+```go
+type ExecutionConfig struct {
+    Mode          string `yaml:"mode"`
+    SandboxImage  string `yaml:"sandbox_image,omitempty"`
+    AutoPull      bool   `yaml:"auto_pull"`
+    Cleanup       bool   `yaml:"cleanup"`
+    TTL           int    `yaml:"ttl,omitempty"`
+}
+
+type LocalBackendConfig struct {
+    // ... existing fields
+    Execution *ExecutionConfig `yaml:"execution,omitempty"`
+}
+```
+
+**2. Add Resolve Methods** (following existing LLM pattern):
+```go
+// Priority: env var > config file > default
+func (c *LocalBackendConfig) ResolveExecutionMode() string {
+    // 1. Check environment variable (highest priority)
+    if mode := os.Getenv("STIGMER_EXECUTION_MODE"); mode != "" {
+        return mode
+    }
+    
+    // 2. Check config file
+    if c.Execution != nil && c.Execution.Mode != "" {
+        return c.Execution.Mode
+    }
+    
+    // 3. Default
+    return "local"
+}
+```
+
+**3. Add CLI Flags** (`server.go`):
+```go
+cmd.Flags().String("execution-mode", "", "Agent execution mode: local, sandbox, or auto")
+cmd.Flags().String("sandbox-image", "", "Docker image for sandbox mode")
+cmd.Flags().Bool("sandbox-auto-pull", true, "Auto-pull sandbox image if missing")
+cmd.Flags().Bool("sandbox-cleanup", true, "Cleanup sandbox containers")
+cmd.Flags().Int("sandbox-ttl", 3600, "Container reuse TTL in seconds")
+```
+
+**4. StartOptions Pass-Through** (`daemon.go`):
+```go
+type StartOptions struct {
+    Progress        *cliprint.ProgressDisplay
+    ExecutionMode   string  // CLI flag override
+    SandboxImage    string  // CLI flag override
+    SandboxAutoPull bool    // CLI flag override
+    SandboxCleanup  bool    // CLI flag override
+    SandboxTTL      int     // CLI flag override
+}
+
+// Resolution logic (CLI flags > Resolve methods)
+executionMode := opts.ExecutionMode
+if executionMode == "" {
+    executionMode = cfg.Backend.Local.ResolveExecutionMode()
+}
+```
+
+**5. Config Helper Commands** (`config.go`):
+```go
+stigmer config get execution.mode
+stigmer config set execution.mode sandbox
+stigmer config list
+stigmer config path
+```
+
+**Usage Examples**:
+
+```bash
+# Method 1: CLI Flag (one-off override)
+stigmer server start --execution-mode=sandbox
+
+# Method 2: Environment Variable (session/CI)
+export STIGMER_EXECUTION_MODE=sandbox
+stigmer server start
+
+# Method 3: Config File (persistent)
+stigmer config set execution.mode sandbox
+stigmer server start
+
+# Priority Test (CLI flag wins)
+stigmer config set execution.mode local     # Config file: local
+export STIGMER_EXECUTION_MODE=sandbox       # Env var: sandbox
+stigmer server start --execution-mode=auto  # CLI flag: auto
+# Result: Uses auto (highest priority)
+```
+
+**Why This Pattern**:
+
+✅ **Flexibility** - Users choose method that fits their workflow:
+- Daily dev: Config file (set once, forget)
+- CI/CD: Env vars (standard for pipelines)
+- Testing: CLI flags (quick temporary overrides)
+
+✅ **Industry Standard** - Matches familiar tools:
+- Docker: `docker run --memory=512m` (flag) + `DOCKER_HOST` (env) + `config.json`
+- kubectl: `--namespace` (flag) + `KUBECTL_NAMESPACE` (env) + `kubeconfig`
+- AWS CLI: `--region` (flag) + `AWS_REGION` (env) + `~/.aws/config`
+
+✅ **Predictable** - Clear priority order, no ambiguity
+
+✅ **Discoverable** - `stigmer config list` shows all options
+
+**Prevention**:
+
+- ✅ **New config features should follow this cascade pattern**
+- ✅ **Add Resolve*() method** for env var + config file resolution
+- ✅ **Add CLI flag** for command-level overrides
+- ✅ **Add to StartOptions** if needs to pass to daemon
+- ✅ **Update config helper commands** (get/set support)
+- ✅ **Document all three methods** in user docs
+
+**Pattern Template for New Config Features**:
+
+```go
+// 1. Add to config struct
+type LocalBackendConfig struct {
+    NewFeature *NewFeatureConfig `yaml:"new_feature,omitempty"`
+}
+
+type NewFeatureConfig struct {
+    Setting string `yaml:"setting"`
+}
+
+// 2. Add Resolve method
+func (c *LocalBackendConfig) ResolveNewFeatureSetting() string {
+    // Priority: env var > config file > default
+    if val := os.Getenv("STIGMER_NEW_FEATURE_SETTING"); val != "" {
+        return val
+    }
+    if c.NewFeature != nil && c.NewFeature.Setting != "" {
+        return c.NewFeature.Setting
+    }
+    return "default_value"
+}
+
+// 3. Add CLI flag
+cmd.Flags().String("new-feature-setting", "", "Description")
+
+// 4. Add to StartOptions (if needed)
+type StartOptions struct {
+    NewFeatureSetting string
+}
+
+// 5. Update config commands (get/set)
+case "new_feature.setting":
+    return config.NewFeature.Setting
+```
+
+**Benefits Over Single-Method Approach**:
+
+| Scenario | Before (Env Var Only) | After (Cascade) |
+|----------|----------------------|-----------------|
+| Daily dev | Export every session ❌ | Config file once ✅ |
+| CI/CD | Env vars ✅ | Env vars ✅ |
+| Quick test | Unset env after ❌ | CLI flag ✅ |
+| Team standard | Share env vars ❌ | Share config file ✅ |
+
+**Related Docs**:
+- Implementation: `config.go`, `server.go`, `daemon.go`, `config.go` (helper commands)
+- User guide: `docs/cli/configuration-cascade.md`
+- Implementation: `docs/implementation/configuration-cascade-implementation.md`
+- Changelog: `_changelog/2026-01/2026-01-22-implement-configuration-cascade-pattern.md`
+
+**Key Takeaway**: Configuration cascade (CLI → Env → Config → Defaults) serves all user workflows. Follow the pattern for any user-configurable setting. Reuse Resolve*() method pattern. Add CLI flags for overrides. Provide helper commands for config file management. Document all three methods. This is the industry standard for good reason.
+
+---
+
+### 2026-01-22 - StartOptions Struct Pattern for CLI Flag Pass-Through
+
+**Problem**: CLI flags parsed in command handler need to flow through daemon startup to Docker container environment variables. Direct parameter passing would require changing function signatures across multiple layers:
+```go
+daemon.Start(dataDir, executionMode, sandboxImage, autoPull, cleanup, ttl)  // 6+ parameters
+```
+
+**Root Cause**: Function signatures become unwieldy when adding new configuration options. Every new flag requires updating multiple function signatures.
+
+**Solution**: Use options struct pattern for extensible configuration:
+
+```go
+// Before: Function signature with many parameters
+func StartWithOptions(dataDir string, progress *cliprint.ProgressDisplay, 
+    executionMode string, sandboxImage string, ...) error
+
+// After: Options struct (extensible, clean)
+type StartOptions struct {
+    Progress        *cliprint.ProgressDisplay
+    ExecutionMode   string
+    SandboxImage    string
+    SandboxAutoPull bool
+    SandboxCleanup  bool
+    SandboxTTL      int
+}
+
+func StartWithOptions(dataDir string, opts StartOptions) error {
+    // Access via opts.ExecutionMode, opts.SandboxImage, etc.
+}
+```
+
+**Usage in Command Handler**:
+```go
+func handleServerStart(cmd *cobra.Command) {
+    // Parse CLI flags
+    executionMode, _ := cmd.Flags().GetString("execution-mode")
+    sandboxImage, _ := cmd.Flags().GetString("sandbox-image")
+    // ... parse other flags
+    
+    // Pass through options struct
+    daemon.StartWithOptions(dataDir, daemon.StartOptions{
+        Progress:        progress,
+        ExecutionMode:   executionMode,
+        SandboxImage:    sandboxImage,
+        SandboxAutoPull: sandboxAutoPull,
+        SandboxCleanup:  sandboxCleanup,
+        SandboxTTL:      sandboxTTL,
+    })
+}
+```
+
+**Benefits**:
+- ✅ **Extensible** - Add new options without changing signatures
+- ✅ **Self-documenting** - Field names show purpose
+- ✅ **Optional** - Can omit fields (zero values)
+- ✅ **Backward compatible** - Add fields without breaking existing calls
+- ✅ **Type-safe** - Compiler catches field typos
+
+**Prevention**:
+- Use options struct when function needs 4+ parameters
+- Use options struct for configuration that grows over time
+- Don't create options struct for simple 1-2 parameter functions
+- Name clearly: `StartOptions`, `ExecuteOptions`, `DeployOptions`
+
+**Related Pattern**: Functional options (Google style guide alternative):
+```go
+type StartOption func(*StartOptions)
+
+func WithProgress(p *cliprint.ProgressDisplay) StartOption {
+    return func(opts *StartOptions) { opts.Progress = p }
+}
+
+// Usage
+daemon.Start(dataDir, WithProgress(p), WithExecutionMode("sandbox"))
+```
+
+Both patterns work. Choose based on:
+- **Struct pattern**: When you control all call sites, simpler
+- **Functional options**: When library needs extensibility, more flexible
+
+For Stigmer (internal use): **Struct pattern is simpler and sufficient**.
+
+**Related Docs**:
+- Implementation: `daemon.go` (StartOptions), `server.go` (flag parsing)
+- Changelog: `_changelog/2026-01/2026-01-22-implement-configuration-cascade-pattern.md`
+- Pattern source: Google Go Style Guide (Options pattern)
+
+**Key Takeaway**: Options struct pattern enables clean extension of function parameters without breaking backward compatibility. Use for configuration that grows. Name fields clearly. Make optional fields use pointer or zero value defaults.
+
+---
+
+## Daemon Management
+
+### 2026-01-22 - Cross-Process Health Monitoring State Access
+
+**Problem**: `stigmer server status` command showed "?" instead of "Running" for all components (stigmer-server, workflow-runner, agent-runner). Health state was inaccessible.
+
+**Root Cause**: Architectural mismatch between where health monitor runs and where status is queried:
+1. Health monitor (`healthMonitor` variable) runs INSIDE daemon process (PID 87700)
+2. Status command runs in SEPARATE CLI process (different PID)
+3. Go variables are process-local - cannot be shared across processes
+4. `daemon.GetHealthSummary()` returned empty map because `healthMonitor == nil` in status process
+5. Empty health map led to zero-value ComponentHealth structs with empty State
+6. Empty state triggered default case in `getHealthSymbol()` returning "?"
+
+**Process Flow**:
+```
+CLI Process (PID 87800): stigmer server status
+  ↓
+daemon.GetHealthSummary() called
+  ↓
+healthMonitor == nil (not in this process - runs in daemon PID 87700)
+  ↓
+Returns empty map: make(map[string]ComponentHealth)
+  ↓
+healthSummary["stigmer-server"] = ComponentHealth{State: ""} (zero value)
+  ↓
+getStateDisplay("") → returns "" → default case
+  ↓
+getHealthSymbol("") → "?" ✗
+```
+
+**Solution**: Fallback mechanism when health monitor unavailable
+
+```go
+// server.go - Status command handler
+func statusHandler(cmd *cobra.Command, args []string) {
+    running, pid := daemon.GetStatus(dataDir)
+    
+    if running {
+        // Try to get health summary from monitor
+        healthSummary := daemon.GetHealthSummary()
+        
+        // If health summary is empty (monitor not accessible from this process),
+        // create basic status based on process existence
+        if len(healthSummary) == 0 {
+            healthSummary = createBasicHealthStatus(dataDir, pid)
+        }
+        
+        // Use healthSummary for display
+        showComponentStatus("Stigmer Server", healthSummary["stigmer-server"], pid)
+    }
+}
+
+// Fallback: Check if processes/containers exist
+func createBasicHealthStatus(dataDir string, stigmerPID int) map[string]daemon.ComponentHealth {
+    healthMap := make(map[string]daemon.ComponentHealth)
+    
+    // Stigmer Server - running if we got here
+    healthMap["stigmer-server"] = daemon.ComponentHealth{
+        State: daemon.ComponentState("running"),
+    }
+    
+    // Workflow Runner - check if PID file exists and process is alive
+    if wfPID, err := daemon.GetWorkflowRunnerPID(dataDir); err == nil {
+        healthMap["workflow-runner"] = daemon.ComponentHealth{
+            State: daemon.ComponentState("running"),
+        }
+    }
+    
+    // Agent Runner - check if container ID exists
+    if _, err := daemon.GetAgentRunnerContainerID(dataDir); err == nil {
+        healthMap["agent-runner"] = daemon.ComponentHealth{
+            State: daemon.ComponentState("running"),
+        }
+    }
+    
+    return healthMap
+}
+```
+
+**Why This Works**:
+- Health monitor provides rich metrics (uptime, restarts, errors) when accessible
+- Status command only needs basic "is it running?" info
+- Checking PID files and process existence is sufficient for status display
+- Degraded gracefully when full health data unavailable
+
+**Cross-Process Communication Options**:
+
+| Method | Pros | Cons | When to Use |
+|--------|------|------|-------------|
+| **Fallback (PID files)** | Simple, no dependencies | Basic info only | Status display |
+| **gRPC endpoint** | Rich data, structured | Complexity, port management | Detailed metrics |
+| **Unix sockets** | Local IPC, fast | Unix-only, cleanup needed | Real-time monitoring |
+| **Shared files** | Cross-platform | File I/O overhead | Configuration |
+| **HTTP endpoint** | Standard, tooling | More overhead | External monitoring |
+
+For status command: **Fallback pattern is sufficient** (basic info, simple, no overhead)
+
+**Prevention**:
+- Don't assume in-memory variables are accessible across processes
+- Document which process owns which state
+- Test commands that query state from separate process
+- Consider degraded modes for non-critical features
+- Use IPC mechanisms (gRPC, files, sockets) for cross-process data sharing
+
+**Related Docs**:
+- Implementation: `server.go` (createBasicHealthStatus), `health_integration.go` (health monitor setup)
+- Changelog: `_changelog/2026-01/2026-01-22-050000-fix-status-display-and-log-streaming.md`
+
+**Key Takeaway**: Health monitor provides rich metrics within daemon process, but status command runs in separate process. Fallback to basic process existence checks when detailed health unavailable. Don't rely on in-memory state across process boundaries - use files, sockets, or gRPC for cross-process communication.
+
+---
+
+### 2026-01-22 - Log Writer/Reader Configuration Consistency
+
+**Problem**: `stigmer server logs --all` showed agent-runner logs but NOT stigmer-server or workflow-runner logs. Logs were being written but not visible when streaming.
+
+**Root Cause**: Mismatch between where logs are WRITTEN vs where they're READ from:
+
+**Writing** (daemon.go - startup):
+```go
+// Start stigmer-server process
+cmd := exec.Command(cliBin, "internal-server")
+
+// Redirect both stdout and stderr to SAME .log file
+logFile := filepath.Join(logDir, "stigmer-server.log")
+logOutput, _ := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+
+cmd.Stdout = logOutput  // Both streams → .log file
+cmd.Stderr = logOutput
+
+cmd.Start()
+
+// Result: All logs written to stigmer-server.log
+```
+
+**Reading** (server_logs.go):
+```go
+func getComponentConfigsWithStreamPreferences(...) []logs.ComponentConfig {
+    components := []logs.ComponentConfig{
+        {
+            Name:           "stigmer-server",
+            LogFile:        filepath.Join(logDir, "stigmer-server.log"),
+            ErrFile:        filepath.Join(logDir, "stigmer-server.err"),
+            PreferStderr:   useSmartDefaults, // true when --stderr not specified
+        },
+    }
+}
+
+// When useSmartDefaults = true (no --stderr flag):
+// PreferStderr = true → reads from stigmer-server.err ✗
+// But logs are in stigmer-server.log! ✓
+```
+
+**Evidence**:
+```bash
+$ ls -lh ~/.stigmer/data/logs/stigmer-server.*
+-rw-r--r--  1 user  staff     0B  stigmer-server.err     # Empty! ✗
+-rw-r--r--  1 user  staff   4.1K  stigmer-server.log     # Actual logs ✓
+```
+
+**Why It Happened**:
+1. Originally, maybe stderr and stdout were split (or this was planned)
+2. Daemon startup code was simplified to redirect both streams to `.log`
+3. Log streaming code wasn't updated to match
+4. "Smart defaults" assumed stigmer-server logs to stderr (zerolog default)
+5. Reality: Both streams go to stdout `.log` file
+
+**Solution**: Align reader configuration to match actual writer behavior
+
+```go
+func getComponentConfigsWithStreamPreferences(...) []logs.ComponentConfig {
+    components := []logs.ComponentConfig{
+        {
+            Name:           "stigmer-server",
+            LogFile:        filepath.Join(logDir, "stigmer-server.log"),
+            ErrFile:        filepath.Join(logDir, "stigmer-server.err"),
+            PreferStderr:   false, // Both streams redirected to .log file ✓
+        },
+        {
+            Name:           "workflow-runner",
+            LogFile:        filepath.Join(logDir, "workflow-runner.log"),
+            ErrFile:        filepath.Join(logDir, "workflow-runner.err"),
+            PreferStderr:   false, // Both streams redirected to .log file ✓
+        },
+    }
+}
+```
+
+**Why This Matters**:
+- Configuration consistency prevents silent failures
+- Logs exist but are invisible = bad debugging experience
+- Writer and reader must agree on file locations
+- "Smart defaults" become "hidden bugs" when assumptions wrong
+
+**Prevention**:
+1. **Centralize log file configuration**:
+   ```go
+   // daemon/logs_config.go
+   type LogConfig struct {
+       StdoutFile string
+       StderrFile string
+       CombineStreams bool  // If true, both go to StdoutFile
+   }
+   
+   func GetLogConfig(component string) LogConfig {
+       return LogConfig{
+           StdoutFile: fmt.Sprintf("%s.log", component),
+           StderrFile: fmt.Sprintf("%s.err", component),
+           CombineStreams: true,  // Document decision
+       }
+   }
+   
+   // Used by both writer (daemon.go) AND reader (server_logs.go)
+   ```
+
+2. **Test both writing AND reading**:
+   ```bash
+   # Integration test
+   stigmer server start
+   sleep 5  # Let logs accumulate
+   stigmer server logs --all | grep "stigmer-server"
+   # Should see stigmer-server logs! ✓
+   ```
+
+3. **Document log file layout**:
+   ```markdown
+   ## Log File Structure
+   
+   All components write stdout + stderr to `.log` file:
+   - `stigmer-server.log` - Combined stdout/stderr
+   - `workflow-runner.log` - Combined stdout/stderr
+   - `agent-runner.log` - Combined stdout/stderr (binary mode)
+   
+   `.err` files exist but are unused (future: error-only streams)
+   ```
+
+4. **Add validation**:
+   ```go
+   // During startup, verify log files are actually being written
+   func validateLogSetup() error {
+       logFile := filepath.Join(logDir, "stigmer-server.log")
+       time.Sleep(1 * time.Second)
+       
+       info, err := os.Stat(logFile)
+       if err != nil {
+           return errors.Wrap(err, "log file not created")
+       }
+       if info.Size() == 0 {
+           return errors.New("log file created but no content written")
+       }
+       return nil
+   }
+   ```
+
+**Related Docs**:
+- Implementation: `daemon.go` (log file redirection), `server_logs.go` (log reading)
+- Changelog: `_changelog/2026-01/2026-01-22-050000-fix-status-display-and-log-streaming.md`
+
+**Key Takeaway**: When components write and read files, they MUST agree on file locations. Centralize configuration to prevent mismatches. Test both writing and reading. Document file layout. "Smart defaults" can hide bugs when assumptions diverge from reality.
+
+---
+
+## Docker Networking & LangChain Integration
+
+### 2026-01-22 - Docker Container Cannot Connect to Host Ollama (Multi-Layered Issue)
+
+**Problem**: Agent-runner Docker container consistently failed to connect to Ollama running on host machine with "All connection attempts failed" error, even after multiple fix attempts.
+
+**Root Causes** (required ALL four fixes):
+
+1. **Hostname Resolution**: Using `localhost:11434` in Docker container refers to container itself, not host
+2. **Network Binding**: Ollama listening on `127.0.0.1` only (can't accept connections from Docker bridge network)
+3. **Environment Variable Compatibility**: Container image version mismatch (old code vs new code)
+4. **LangChain Library Quirk**: ChatOllama doesn't read `OLLAMA_BASE_URL` from environment during async operations
+
+**Solutions**:
+
+**Fix 1 - Hostname Resolution** (`daemon.go`):
+```go
+// Resolve hostname for Docker containers
+// macOS/Windows: localhost → host.docker.internal
+// Linux: localhost stays localhost (using --network host)
+llmBaseURLResolved := resolveDockerHostAddress(llmBaseURL)
+
+func resolveDockerHostAddress(addr string) string {
+    if !strings.Contains(addr, "localhost") && !strings.Contains(addr, "127.0.0.1") {
+        return addr
+    }
+    
+    if runtime.GOOS == "linux" {
+        return addr  // Keep localhost (--network host works)
+    }
+    
+    // macOS/Windows: use host.docker.internal
+    addr = strings.ReplaceAll(addr, "localhost", "host.docker.internal")
+    addr = strings.ReplaceAll(addr, "127.0.0.1", "host.docker.internal")
+    
+    return addr
+}
+```
+
+**Fix 2 - Ollama Network Binding** (`~/Library/LaunchAgents/homebrew.mxcl.ollama.plist`):
+```xml
+<key>EnvironmentVariables</key>
+<dict>
+    <key>OLLAMA_HOST</key>
+    <string>0.0.0.0:11434</string>  <!-- Listen on ALL interfaces, not just 127.0.0.1 -->
+    ...
+</dict>
+```
+
+**Verification**:
+```bash
+$ lsof -iTCP:11434 -sTCP:LISTEN -n -P
+COMMAND  PID   USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+ollama  6574 suresh  3u  IPv6  ...  TCP *:11434 (LISTEN)
+                                      ^^^^^^^^ Must be *, not 127.0.0.1
+```
+
+**Fix 3 - Environment Variable Compatibility** (`daemon.go`):
+```go
+// Set BOTH variables for backward compatibility
+"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURLResolved),  // Legacy (old container code)
+"-e", fmt.Sprintf("OLLAMA_BASE_URL=%s", llmBaseURLResolved),       // Standard LangChain variable
+```
+
+**Why both**: Old container images read `STIGMER_LLM_BASE_URL`, new images should use `OLLAMA_BASE_URL` (standard). Setting both ensures compatibility during image updates.
+
+**Fix 4 - LangChain Explicit Configuration** (`execute_graphton.py`):
+```python
+# LangChain's ChatOllama doesn't read OLLAMA_BASE_URL properly in async contexts
+# Solution: Create instance explicitly with base_url parameter
+
+if worker_config.llm.provider == "ollama":
+    from langchain_ollama import ChatOllama
+    llm_model = ChatOllama(
+        model=model_name,
+        base_url=worker_config.llm.base_url,  # Explicitly pass base_url
+    )
+elif worker_config.llm.provider == "anthropic":
+    from langchain_anthropic import ChatAnthropic
+    llm_model = ChatAnthropic(model=model_name, api_key=worker_config.llm.api_key)
+# ... other providers
+
+agent_graph = create_deep_agent(
+    model=llm_model,  # Pass LLM instance, not string
+    ...
+)
+```
+
+**Why this matters**:
+```python
+# ❌ FAILS - LangChain doesn't read env var in async
+os.environ['OLLAMA_BASE_URL'] = "http://host.docker.internal:11434"
+model = ChatOllama(model="qwen2.5-coder:14b")
+await model.ainvoke("hello")  # ConnectError: All connection attempts failed
+
+# ✅ WORKS - Explicit base_url parameter
+model = ChatOllama(model="qwen2.5-coder:14b", base_url="http://host.docker.internal:11434")
+await model.ainvoke("hello")  # Success!
+```
+
+**Prevention**:
+
+1. **Always resolve hostnames for Docker containers**:
+   ```go
+   // For EVERY host service the container needs to reach
+   temporalAddr := resolveDockerHostAddress(originalAddr)
+   backendAddr := resolveDockerHostAddress(fmt.Sprintf("localhost:%d", port))
+   llmBaseURL := resolveDockerHostAddress(config.LLM.BaseURL)
+   ```
+
+2. **Verify network binding for host services**:
+   ```bash
+   # Service MUST listen on 0.0.0.0 or * to accept Docker connections
+   lsof -iTCP:PORT -sTCP:LISTEN -n -P
+   # Should show: TCP *:PORT (LISTEN)
+   # NOT: TCP 127.0.0.1:PORT (LISTEN)
+   ```
+
+3. **Test at multiple layers**:
+   ```python
+   # Layer 1: Simple HTTP (urllib/curl)
+   urllib.request.urlopen(url)  # ✓
+   
+   # Layer 2: HTTP library (httpx sync)
+   httpx.get(url)  # ✓
+   
+   # Layer 3: Async HTTP (httpx async)
+   await httpx.AsyncClient().get(url)  # ✓
+   
+   # Layer 4: Library integration (LangChain async)
+   await ChatOllama(...).ainvoke(...)  # ? Must test!
+   ```
+   
+   Each layer can fail independently - test the actual library behavior, not just network connectivity.
+
+4. **Don't trust library environment variable handling**:
+   - Prefer explicit configuration parameters over environment variable auto-detection
+   - Especially for async operations where initialization may differ
+   - Log actual URLs being used (not just what's in env vars)
+
+5. **Set both legacy and standard variables during transitions**:
+   ```go
+   // During migration period, set both
+   "-e", fmt.Sprintf("OLD_VAR_NAME=%s", value),  // Backward compat
+   "-e", fmt.Sprintf("NEW_STANDARD_VAR=%s", value),  // Future-proof
+   ```
+
+6. **Add debugging logs**:
+   ```go
+   log.Info().
+       Str("llm_base_url", llmBaseURLResolved).
+       Str("temporal_address", hostAddr).
+       Str("backend_address", backendAddr).
+       Msg("Starting agent-runner Docker container")
+   ```
+
+**Related Docs**:
+- Implementation: `daemon.go` (startAgentRunner), `execute_graphton.py` (LLM initialization)
+- Changelogs:
+  - `_changelog/2026-01/2026-01-22-042455-fix-ollama-connection-from-agent-runner-docker.md` (hostname resolution)
+  - `_changelog/2026-01/2026-01-22-044741-fix-ollama-network-interface-binding.md` (network binding)
+  - `_changelog/2026-01/2026-01-22-051454-fix-ollama-langchain-explicit-base-url.md` (LangChain fix)
+
+**Key Takeaways**:
+- **Docker networking on macOS is not intuitive**: Containers run in a VM, `localhost` doesn't work, need `host.docker.internal`
+- **Network connectivity ≠ library connectivity**: Just because curl/httpx works doesn't mean LangChain will work
+- **Libraries have quirks**: LangChain's environment variable handling differs between sync/async - explicit params are safer
+- **Complex issues require multiple fixes**: All four layers (hostname, binding, env vars, explicit config) were necessary
+- **Test with actual code, not just network tools**: `ping` and `curl` working doesn't guarantee Python library will work
+
+---

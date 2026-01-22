@@ -161,3 +161,9 @@ func (s *Store) DeleteResourcesByKind(ctx context.Context, kind apiresourcekind.
 func (s *Store) Close() error {
 	return s.db.Close()
 }
+
+// DB returns the underlying BadgerDB instance for advanced operations
+// This is primarily used by debug/admin tools that need direct access
+func (s *Store) DB() *badger.DB {
+	return s.db
+}

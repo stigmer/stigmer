@@ -470,7 +470,7 @@ stigmer server start
 stigmer apply
 
 # Check logs for field preservation
-tail -f ~/.stigmer/data/logs/daemon.log | grep "LoadForApply\|preserveImmutable"
+tail -f ~/.stigmer/data/logs/stigmer-server.log | grep "LoadForApply\|preserveImmutable"
 ```
 
 **What to look for**:

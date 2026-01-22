@@ -55,6 +55,53 @@ jobs:
           echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION (release: $SHOULD_RELEASE)"
 
+  # Build Docker image for agent-runner (multi-arch)
+  build-agent-runner-image:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate proto stubs
+        run: make protos
+
+      - name: Build and push Docker image
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          cd backend/services/agent-runner
+          
+          # Build multi-arch image and push to registry
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --file Dockerfile \
+            --tag ghcr.io/stigmer/agent-runner:$VERSION \
+            --tag ghcr.io/stigmer/agent-runner:latest \
+            --push \
+            ../../..
+          
+          echo "✓ Docker image built and pushed:"
+          echo "  - ghcr.io/stigmer/agent-runner:$VERSION"
+          echo "  - ghcr.io/stigmer/agent-runner:latest"
+
   # Build for macOS Apple Silicon
   build-darwin-arm64:
     needs: determine-version
@@ -75,32 +122,10 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
       - name: Generate proto stubs
         run: make protos
 
-      - name: Install Poetry dependencies
-        run: |
-          cd backend/services/agent-runner
-          poetry install --with dev
-
-      - name: Build agent-runner binary with PyInstaller
-        run: |
-          cd backend/services/agent-runner
-          poetry run pyinstaller agent-runner.spec
-          mkdir -p ../../../client-apps/cli/embedded/binaries/darwin_arm64
-          cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/darwin_arm64/
-
-      - name: Build CLI with embedded binaries (BusyBox pattern)
+      - name: Build CLI (BusyBox pattern - no embedded agent-runner)
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
@@ -115,20 +140,13 @@ jobs:
           ls -lh bin/stigmer
           ./bin/stigmer --version || echo "Version: $VERSION"
 
-      - name: Package binaries
+      - name: Package CLI
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          # Package CLI with embedded binaries
           cd bin
           tar -czf stigmer-$VERSION-darwin-arm64.tar.gz stigmer
           shasum -a 256 stigmer-$VERSION-darwin-arm64.tar.gz > stigmer-$VERSION-darwin-arm64.tar.gz.sha256
-          
-          # Package standalone agent-runner binary (for download fallback)
-          cd ../client-apps/cli/embedded/binaries/darwin_arm64
-          cp agent-runner agent-runner-$VERSION-darwin-arm64
-          shasum -a 256 agent-runner-$VERSION-darwin-arm64 > agent-runner-$VERSION-darwin-arm64.sha256
-          mv agent-runner-$VERSION-darwin-arm64* ../../../../../bin/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -136,10 +154,11 @@ jobs:
           name: stigmer-darwin-arm64
           path: bin/*
 
-  # Build for macOS Intel (cross-compiled on ARM Mac)
+  # Build CLI for Intel Mac
+  # Note: Agent-runner will be pulled from Docker registry on first run
   build-darwin-amd64:
     needs: determine-version
-    runs-on: macos-latest  # ARM Mac (cross-compile to Intel)
+    runs-on: macos-latest  # ARM Mac (cross-compile Go CLI to Intel)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -156,34 +175,10 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
       - name: Generate proto stubs
         run: make protos
 
-      - name: Install Poetry dependencies
-        run: |
-          cd backend/services/agent-runner
-          poetry install --with dev
-
-      - name: Build agent-runner binary with PyInstaller (cross-compile to Intel)
-        run: |
-          cd backend/services/agent-runner
-          # Update spec file to set target_arch for cross-compilation
-          sed -i '' 's/target_arch=None/target_arch="x86_64"/' agent-runner.spec
-          poetry run pyinstaller agent-runner.spec
-          mkdir -p ../../../client-apps/cli/embedded/binaries/darwin_amd64
-          cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/darwin_amd64/
-
-      - name: Build CLI with embedded binaries (cross-compile to Intel)
+      - name: Build CLI (cross-compile to Intel)
         env:
           GOARCH: amd64
           GOOS: darwin
@@ -200,21 +195,15 @@ jobs:
           ls -lh bin/stigmer
           # Skip running binary since it's cross-compiled for Intel
           echo "Version: $VERSION (Intel binary, cannot run on ARM Mac)"
+          echo "Note: Agent-runner Docker image will be pulled from ghcr.io on first daemon start"
 
-      - name: Package binaries
+      - name: Package CLI
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          # Package CLI with embedded binaries
           cd bin
           tar -czf stigmer-$VERSION-darwin-amd64.tar.gz stigmer
           shasum -a 256 stigmer-$VERSION-darwin-amd64.tar.gz > stigmer-$VERSION-darwin-amd64.tar.gz.sha256
-          
-          # Package standalone agent-runner binary (for download fallback)
-          cd ../client-apps/cli/embedded/binaries/darwin_amd64
-          cp agent-runner agent-runner-$VERSION-darwin-amd64
-          shasum -a 256 agent-runner-$VERSION-darwin-amd64 > agent-runner-$VERSION-darwin-amd64.sha256
-          mv agent-runner-$VERSION-darwin-amd64* ../../../../../bin/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -242,32 +231,10 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
       - name: Generate proto stubs
         run: make protos
 
-      - name: Install Poetry dependencies
-        run: |
-          cd backend/services/agent-runner
-          poetry install --with dev
-
-      - name: Build agent-runner binary with PyInstaller
-        run: |
-          cd backend/services/agent-runner
-          poetry run pyinstaller agent-runner.spec
-          mkdir -p ../../../client-apps/cli/embedded/binaries/linux_amd64
-          cp dist/agent-runner ../../../client-apps/cli/embedded/binaries/linux_amd64/
-
-      - name: Build CLI with embedded binaries (BusyBox pattern)
+      - name: Build CLI (BusyBox pattern - no embedded agent-runner)
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
@@ -282,20 +249,13 @@ jobs:
           ls -lh bin/stigmer
           ./bin/stigmer --version || echo "Version: $VERSION"
 
-      - name: Package binaries
+      - name: Package CLI
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          # Package CLI with embedded binaries
           cd bin
           tar -czf stigmer-$VERSION-linux-amd64.tar.gz stigmer
           sha256sum stigmer-$VERSION-linux-amd64.tar.gz > stigmer-$VERSION-linux-amd64.tar.gz.sha256
-          
-          # Package standalone agent-runner binary (for download fallback)
-          cd ../client-apps/cli/embedded/binaries/linux_amd64
-          cp agent-runner agent-runner-$VERSION-linux-amd64
-          sha256sum agent-runner-$VERSION-linux-amd64 > agent-runner-$VERSION-linux-amd64.sha256
-          mv agent-runner-$VERSION-linux-amd64* ../../../../../bin/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -305,7 +265,7 @@ jobs:
 
   # Create GitHub Release (only if requested)
   release:
-    needs: [determine-version, build-darwin-arm64, build-darwin-amd64, build-linux-amd64]
+    needs: [determine-version, build-agent-runner-image, build-darwin-arm64, build-darwin-amd64, build-linux-amd64]
     runs-on: ubuntu-latest
     if: needs.determine-version.outputs.should_release == 'true'
     steps:
@@ -347,8 +307,6 @@ jobs:
           find artifacts -name "*.tar.gz" -exec cp {} release-assets/ \;
           # Copy all checksums
           find artifacts -name "*.sha256" -exec cp {} release-assets/ \;
-          # Copy agent-runner binaries
-          find artifacts -name "agent-runner-*" -type f ! -name "*.sha256" -exec cp {} release-assets/ \;
           ls -lh release-assets/
 
       - name: Generate changelog
@@ -361,10 +319,55 @@ jobs:
           
           if [ -z "$PREVIOUS_TAG" ]; then
             echo "First release"
-            CHANGELOG="First release of Stigmer CLI with embedded binaries."
+            CHANGELOG="First release of Stigmer CLI.
+
+## Installation
+
+### Homebrew (macOS/Linux)
+\`\`\`bash
+brew install stigmer/tap/stigmer
+\`\`\`
+
+### Manual Installation
+Download the appropriate binary for your platform:
+- macOS (Apple Silicon): stigmer-$VERSION-darwin-arm64.tar.gz
+- macOS (Intel): stigmer-$VERSION-darwin-amd64.tar.gz
+- Linux (AMD64): stigmer-$VERSION-linux-amd64.tar.gz
+
+Extract and install:
+\`\`\`bash
+tar -xzf stigmer-$VERSION-<platform>.tar.gz
+sudo mv stigmer /usr/local/bin/
+\`\`\`
+
+## Requirements
+
+- Docker (for agent-runner)
+- Agent-runner Docker image will be automatically pulled from ghcr.io/stigmer/agent-runner:$VERSION on first run
+
+## What's New
+
+First release with Docker-based agent-runner architecture."
           else
             echo "Generating changelog from $PREVIOUS_TAG to $VERSION"
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG..$VERSION" | grep -v "^- Merge")
+            CHANGELOG="## Installation
+
+### Homebrew (macOS/Linux)
+\`\`\`bash
+brew upgrade stigmer
+\`\`\`
+
+### Manual Installation
+Download the appropriate binary for your platform from the assets below.
+
+## Requirements
+
+- Docker (for agent-runner)
+- Agent-runner Docker image: ghcr.io/stigmer/agent-runner:$VERSION
+
+## Changes
+
+$(git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG..$VERSION" | grep -v "^- Merge")"
           fi
           
           # Save to file (handle multiline)
