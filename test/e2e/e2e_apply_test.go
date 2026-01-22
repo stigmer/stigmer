@@ -20,7 +20,8 @@ func (s *E2ESuite) TestApplyBasicAgent() {
 
 	// Execute apply command with the testdata directory
 	// The CLI will look for Stigmer.yaml in this directory
-	output, err := RunCLI("apply", "--config", absTestdataDir)
+	// Pass the server address so CLI connects to our test server
+	output, err := RunCLIWithServerAddr(s.Harness.ServerPort, "apply", "--config", absTestdataDir)
 	
 	// Log output for debugging
 	s.T().Logf("Apply command output:\n%s", output)
@@ -106,7 +107,8 @@ func (s *E2ESuite) TestApplyDryRun() {
 	s.Require().NoError(err, "Failed to get absolute path to testdata")
 
 	// Execute apply with --dry-run flag
-	output, err := RunCLI("apply", "--config", absTestdataDir, "--dry-run")
+	// Pass the server address so CLI connects to our test server
+	output, err := RunCLIWithServerAddr(s.Harness.ServerPort, "apply", "--config", absTestdataDir, "--dry-run")
 	
 	s.T().Logf("Dry-run output:\n%s", output)
 	
