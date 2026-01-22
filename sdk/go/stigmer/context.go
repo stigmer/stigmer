@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
+	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -39,6 +40,14 @@ type Context struct {
 	// agents tracks all agents created in this context
 	agents []*agent.Agent
 
+	// skills tracks all inline skills created in this context
+	skills []*skill.Skill
+
+	// dependencies tracks resource dependencies for creation order
+	// Map format: resourceID -> []dependencyIDs
+	// Example: "agent:code-reviewer" -> ["skill:code-analysis"]
+	dependencies map[string][]string
+
 	// mu protects concurrent access to context state
 	mu sync.RWMutex
 
@@ -50,9 +59,11 @@ type Context struct {
 // This is internal - users should use Run() instead.
 func newContext() *Context {
 	return &Context{
-		variables: make(map[string]Ref),
-		workflows: make([]*workflow.Workflow, 0),
-		agents:    make([]*agent.Agent, 0),
+		variables:    make(map[string]Ref),
+		workflows:    make([]*workflow.Workflow, 0),
+		agents:       make([]*agent.Agent, 0),
+		skills:       make([]*skill.Skill, 0),
+		dependencies: make(map[string][]string),
 	}
 }
 
@@ -276,20 +287,126 @@ func (c *Context) ExportVariables() map[string]interface{} {
 
 // RegisterWorkflow registers a workflow with this context.
 // This is typically called automatically by workflow.New() when passed a context.
+//
+// Dependency tracking: Scans workflow tasks for agent references and tracks
+// dependencies automatically.
 func (c *Context) RegisterWorkflow(wf *workflow.Workflow) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.workflows = append(c.workflows, wf)
+
+	// Track agent dependencies from workflow tasks
+	workflowID := workflowResourceID(wf)
+	c.trackWorkflowAgentDependencies(workflowID, wf)
 }
 
 // RegisterAgent registers an agent with this context.
 // This is typically called automatically by agent.New() when passed a context.
+//
+// Dependency tracking: Automatically tracks inline skill dependencies.
 func (c *Context) RegisterAgent(ag *agent.Agent) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.agents = append(c.agents, ag)
+
+	// Track inline skill dependencies
+	agentID := agentResourceID(ag)
+	for i := range ag.Skills {
+		if ag.Skills[i].IsInline {
+			skillID := skillResourceID(&ag.Skills[i])
+			c.addDependency(agentID, skillID)
+		}
+		// External/platform skills: no dependency (already exist)
+	}
+}
+
+// RegisterSkill registers an inline skill with this context.
+// This is typically called automatically when a skill is created and used by an agent.
+//
+// Only inline skills need registration - platform/org skills are references to
+// existing resources and don't need creation.
+func (c *Context) RegisterSkill(s *skill.Skill) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Only register inline skills
+	if !s.IsInline {
+		return
+	}
+
+	c.skills = append(c.skills, s)
+	// Skills have no dependencies (they're always created first)
+}
+
+// =============================================================================
+// Dependency Tracking (Internal)
+// =============================================================================
+
+// addDependency records that one resource depends on another.
+// This is used internally during resource registration to build the dependency graph.
+//
+// Example: addDependency("agent:reviewer", "skill:code-analysis")
+// means agent:reviewer must be created after skill:code-analysis
+func (c *Context) addDependency(resourceID, dependsOnID string) {
+	// Note: caller must hold c.mu.Lock()
+	if c.dependencies[resourceID] == nil {
+		c.dependencies[resourceID] = make([]string, 0)
+	}
+	c.dependencies[resourceID] = append(c.dependencies[resourceID], dependsOnID)
+}
+
+// trackWorkflowAgentDependencies scans workflow tasks for agent references
+// and records dependencies.
+func (c *Context) trackWorkflowAgentDependencies(workflowID string, wf *workflow.Workflow) {
+	// Note: caller must hold c.mu.Lock()
+	
+	// Scan all tasks for agent_call task type
+	for _, task := range wf.Tasks {
+		if task.Kind == workflow.TaskKindAgentCall {
+			// Extract agent reference from task config
+			// TODO: This requires accessing the AgentCallTaskConfig
+			// For now, we'll implement a helper method to extract agent refs
+			agentRefs := extractAgentRefsFromTask(task)
+			for _, agentRef := range agentRefs {
+				// Only track dependencies for inline agents (not platform refs)
+				if agentRef != "" {
+					agentID := fmt.Sprintf("agent:%s", agentRef)
+					c.addDependency(workflowID, agentID)
+				}
+			}
+		}
+	}
+}
+
+// extractAgentRefsFromTask extracts agent references from a workflow task.
+// Returns agent names/slugs that this task depends on.
+func extractAgentRefsFromTask(task *workflow.Task) []string {
+	// TODO: Implement proper extraction from task config
+	// This requires accessing AgentCallTaskConfig.Agent field
+	// For now, return empty - this will be implemented when we have
+	// better access to task configs
+	return []string{}
+}
+
+// workflowResourceID generates a resource ID for a workflow.
+func workflowResourceID(wf *workflow.Workflow) string {
+	return fmt.Sprintf("workflow:%s", wf.Document.Name)
+}
+
+// agentResourceID generates a resource ID for an agent.
+func agentResourceID(ag *agent.Agent) string {
+	return fmt.Sprintf("agent:%s", ag.Name)
+}
+
+// skillResourceID generates a resource ID for a skill.
+func skillResourceID(s *skill.Skill) string {
+	if s.IsInline {
+		return fmt.Sprintf("skill:%s", s.Name)
+	}
+	// External skills (platform/org) get different IDs to avoid tracking
+	return fmt.Sprintf("skill:external:%s", s.Slug)
 }
 
 // =============================================================================
@@ -491,5 +608,63 @@ func (c *Context) Agents() []*agent.Agent {
 	// Return a copy to prevent external modification
 	result := make([]*agent.Agent, len(c.agents))
 	copy(result, c.agents)
+	return result
+}
+
+// Skills returns a copy of all inline skills registered in the context.
+// This is primarily useful for testing and debugging.
+func (c *Context) Skills() []*skill.Skill {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	// Return a copy to prevent external modification
+	result := make([]*skill.Skill, len(c.skills))
+	copy(result, c.skills)
+	return result
+}
+
+// Dependencies returns a copy of the dependency graph.
+// The map format is: resourceID -> []dependencyIDs
+//
+// Example:
+//
+//	deps := ctx.Dependencies()
+//	// deps["agent:code-reviewer"] = ["skill:code-analysis"]
+//	// deps["workflow:pr-review"] = ["agent:code-reviewer"]
+//
+// This is primarily useful for testing, debugging, and CLI implementation.
+func (c *Context) Dependencies() map[string][]string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	// Return a deep copy to prevent external modification
+	result := make(map[string][]string, len(c.dependencies))
+	for k, v := range c.dependencies {
+		deps := make([]string, len(v))
+		copy(deps, v)
+		result[k] = deps
+	}
+	return result
+}
+
+// GetDependencies returns the direct dependencies for a specific resource.
+// Returns nil if the resource has no dependencies or doesn't exist.
+//
+// Example:
+//
+//	deps := ctx.GetDependencies("agent:code-reviewer")
+//	// deps = ["skill:code-analysis"]
+func (c *Context) GetDependencies(resourceID string) []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	deps := c.dependencies[resourceID]
+	if deps == nil {
+		return nil
+	}
+
+	// Return a copy to prevent external modification
+	result := make([]string, len(deps))
+	copy(result, deps)
 	return result
 }
