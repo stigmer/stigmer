@@ -257,6 +257,31 @@ The Java implementation is fully documented and ready to be replicated when the 
 
 ---
 
-**Last Updated**: 2026-01-22  
+## Addendum: Architectural Consistency Improvement
+
+**Date**: 2026-01-22 (same day as Phase 3 completion)
+
+### Additional Work: callback_token Location Standardization
+
+After completing Phase 3, we identified and fixed an architectural inconsistency:
+
+**Problem**: `callback_token` was in different locations:
+- AgentExecution: Spec ✅
+- WorkflowExecution: Status ❌
+
+**Solution**: Moved to Spec for both (follows Kubernetes philosophy)
+
+**Changes**:
+- Moved field from `WorkflowExecutionStatus` (field 11) to `WorkflowExecutionSpec` (field 7)
+- Regenerated Go and Python proto stubs
+- Updated cross-references
+
+**Rationale**: callback_token is an input (configures behavior), not an output (reports results)
+
+**See**: `design-decisions/DD01-callback-token-in-spec-not-status.md`
+
+---
+
+**Last Updated**: 2026-01-22 (including architectural consistency fix)  
 **Status**: ✅ Phase 3 (Go) Complete | 📋 Phase 3 (Java) TODO Ready  
 **Next**: Phase 4 - Workflow Completion Logic

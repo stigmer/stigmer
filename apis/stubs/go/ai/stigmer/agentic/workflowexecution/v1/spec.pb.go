@@ -254,7 +254,70 @@ type WorkflowExecutionSpec struct {
 	//	}
 	//
 	// Tasks can access these values using: {{env.VARIABLE_NAME}}
-	RuntimeEnv    map[string]*v1.ExecutionValue `protobuf:"bytes,5,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	RuntimeEnv map[string]*v1.ExecutionValue `protobuf:"bytes,5,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Temporal task token for async activity completion (optional).
+	//
+	// **Purpose**: Enables async activity completion pattern where the caller
+	// (typically a parent workflow or orchestrator) waits for actual workflow completion
+	// without blocking worker threads.
+	//
+	// **Flow**:
+	// 1. Caller (Temporal activity) extracts its task token
+	// 2. Passes token in this field when creating WorkflowExecution
+	// 3. Returns activity.ErrResultPending (activity paused, thread released)
+	// 4. Workflow executes (minutes/hours later)
+	// 5. Workflow calls ActivityCompletionClient.complete(token, result)
+	// 6. Temporal resumes the paused activity with the result
+	//
+	// **Benefits**:
+	// - Correctness: Caller waits for actual completion, not just ACK
+	// - Scalability: Worker threads not blocked during long-running execution
+	// - Resilience: Token is durable in Temporal; survives restarts
+	// - Decoupling: Caller doesn't poll or manage workflow lifecycle
+	//
+	// **When Empty**:
+	// - Empty/null = fire-and-forget or direct API call (backward compatible)
+	// - Workflow execution proceeds normally, no callback performed
+	// - Use case: CLI commands, API requests, non-workflow triggers
+	//
+	// **When Provided**:
+	// - Workflow MUST complete the external activity using this token
+	// - Both success and failure paths must call completion
+	// - Token uniquely identifies the external activity execution
+	//
+	// **Token Format**:
+	// - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
+	// - Contains: namespace, workflow ID, run ID, activity ID, attempt
+	// - DO NOT parse or modify - treat as opaque handle
+	//
+	// **Security**:
+	// - Token grants ability to complete the activity (bearer token)
+	// - Should only be passed through trusted internal services
+	// - Logged as Base64-encoded string (truncated for security)
+	//
+	// **Timeout**:
+	// - Caller should set StartToCloseTimeout (e.g., 24 hours)
+	// - If token callback never arrives, activity times out
+	// - Prevents infinite hangs if workflow crashes
+	//
+	// **Observability**:
+	// - Token is logged at creation time (Base64, first 20 chars)
+	// - Activity appears as "Running" in Temporal UI until completed
+	// - Both caller workflow and this workflow visible in Temporal
+	//
+	// **Consistency with AgentExecution**:
+	// - Same pattern as AgentExecution.spec.callback_token
+	// - Enables workflow-calling-workflow scenarios
+	// - Future: WorkflowExecution calling WorkflowExecution
+	//
+	// **References**:
+	// - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
+	// - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
+	// - Go SDK: https://pkg.go.dev/go.temporal.io/sdk/activity#ErrResultPending
+	// - Java SDK: https://www.javadoc.io/doc/io.temporal/temporal-sdk/latest/io/temporal/client/ActivityCompletionClient.html
+	//
+	// @since 2026-01-22 (Phase 3: Workflow Async Completion)
+	CallbackToken []byte `protobuf:"bytes,7,opt,name=callback_token,json=callbackToken,proto3" json:"callback_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -324,11 +387,18 @@ func (x *WorkflowExecutionSpec) GetRuntimeEnv() map[string]*v1.ExecutionValue {
 	return nil
 }
 
+func (x *WorkflowExecutionSpec) GetCallbackToken() []byte {
+	if x != nil {
+		return x.CallbackToken
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_workflowexecution_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflowexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\"\xbf\x04\n" +
+	"2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\"\xe6\x04\n" +
 	"\x15WorkflowExecutionSpec\x120\n" +
 	"\x14workflow_instance_id\x18\x01 \x01(\tR\x12workflowInstanceId\x12\x1f\n" +
 	"\vworkflow_id\x18\x06 \x01(\tR\n" +
@@ -336,7 +406,8 @@ const file_ai_stigmer_agentic_workflowexecution_v1_spec_proto_rawDesc = "" +
 	"\x0ftrigger_message\x18\x03 \x01(\tR\x0etriggerMessage\x12~\n" +
 	"\x10trigger_metadata\x18\x04 \x03(\v2S.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.TriggerMetadataEntryR\x0ftriggerMetadata\x12o\n" +
 	"\vruntime_env\x18\x05 \x03(\v2N.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.RuntimeEnvEntryR\n" +
-	"runtimeEnv\x1aB\n" +
+	"runtimeEnv\x12%\n" +
+	"\x0ecallback_token\x18\a \x01(\fR\rcallbackToken\x1aB\n" +
 	"\x14TriggerMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1au\n" +
