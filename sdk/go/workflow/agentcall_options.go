@@ -159,3 +159,25 @@ func Temperature(temp float64) AgentCallOption {
 func MaxTokens(tokens int) AgentCallOption {
 	return AgentConfigValue("max_tokens", tokens)
 }
+
+// AgentTimeout sets the execution timeout for the agent call (in seconds).
+//
+// Example:
+//
+//	workflow.AgentTimeout(300)  // 5 minutes
+//	workflow.AgentTimeout(600)  // 10 minutes
+func AgentTimeout(seconds int) AgentCallOption {
+	return AgentConfigValue("timeout", seconds)
+}
+
+// WithEnv is an alias for WithAgentEnv for more concise API.
+//
+// Example:
+//
+//	workflow.WithEnv(map[string]string{
+//	    "API_KEY": workflow.RuntimeSecret("API_KEY"),
+//	    "MODEL": "gpt-4",
+//	})
+func WithEnv(env map[string]string) AgentCallOption {
+	return WithAgentEnv(env)
+}
