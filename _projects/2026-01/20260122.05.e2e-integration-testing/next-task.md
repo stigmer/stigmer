@@ -11,6 +11,10 @@
 
 **Phase 2 tests now pass with real LLM execution in ~6 seconds!**
 
+### Infrastructure Improvement: ULID ID Generation (2026-01-22)
+
+✅ **Migrated to ULID for resource ID generation** - Switched from Unix nanosecond timestamps to lowercase ULID format for consistency with Stigmer Cloud. This improves cross-environment testing capabilities and maintains industry-standard ID generation. See checkpoint: `checkpoints/2026-01-22-ulid-id-generation-consistency.md`
+
 ### Test Results
 
 ```bash
