@@ -12,6 +12,8 @@ import (
 	badger "github.com/dgraph-io/badger/v3"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -134,6 +136,37 @@ func GetAgentViaAPI(serverPort int, agentID string) (*agentv1.Agent, error) {
 	agent, err := client.Get(ctx, &agentv1.AgentId{Value: agentID})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get agent: %w", err)
+	}
+
+	return agent, nil
+}
+
+// GetAgentBySlug queries an agent by slug and organization via gRPC API
+// This is the proper way to verify agents by slug in tests
+func GetAgentBySlug(serverPort int, slug string, org string) (*agentv1.Agent, error) {
+	// Connect to the server
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	// Create agent query client
+	client := agentv1.NewAgentQueryControllerClient(conn)
+
+	// Query the agent by reference (slug + org)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	agent, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
+		Scope: apiresource.ApiResourceOwnerScope_organization,
+		Org:   org,
+		Kind:  apiresourcekind.ApiResourceKind_agent,
+		Slug:  slug,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get agent by slug: %w", err)
 	}
 
 	return agent, nil

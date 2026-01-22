@@ -107,15 +107,12 @@ func (s *FullExecutionSuite) TestRunWithFullExecution() {
 	s.Require().NoError(err, "Apply command should succeed")
 	s.T().Logf("Apply output:\n%s", applyOutput)
 
-	// Extract agent ID from output
-	agentID := extractAgentID(applyOutput)
-	s.Require().NotEmpty(agentID, "Should extract agent ID from apply output")
-	s.T().Logf("✓ Agent deployed: %s", agentID)
-
-	// Verify agent exists
-	exists, err := AgentExistsViaAPI(s.ServerPort, agentID)
-	s.Require().NoError(err, "Should be able to query agent")
-	s.Require().True(exists, "Agent should exist after apply")
+	// Query agent by slug instead of extracting ID from output
+	org := "local" // Using local backend in tests
+	agent, err := GetAgentBySlug(s.ServerPort, "code-reviewer", org)
+	s.Require().NoError(err, "Should be able to query agent by slug")
+	s.Require().NotNil(agent, "Agent should exist after apply")
+	s.T().Logf("✓ Agent deployed: %s", agent.Metadata.Id)
 
 	// Step 2: Run the agent (use agent name, not ID)
 	s.T().Log("Step 2: Running agent with test message...")
@@ -239,32 +236,6 @@ func (s *FullExecutionSuite) TestRunWithInvalidMessage() {
 	s.T().Log("✓ Error handling works correctly")
 }
 
-// extractAgentID extracts the agent ID from apply command output
-func extractAgentID(output string) string {
-	// Look for pattern like "ID: agt-xxxxx" or "(ID: agt-xxxxx)"
-	re := regexp.MustCompile(`\(ID:\s+(agt-[0-9a-z]+)\)`)
-	matches := re.FindStringSubmatch(output)
-	if len(matches) > 1 {
-		return matches[1]
-	}
-
-	// Alternative: look for "ID: agt-" pattern
-	re = regexp.MustCompile(`ID:\s+(agt-[0-9a-z]+)`)
-	matches = re.FindStringSubmatch(output)
-	if len(matches) > 1 {
-		return matches[1]
-	}
-
-	// Fallback: look for just the ID pattern
-	re = regexp.MustCompile(`agt-[0-9a-z]+`)
-	matches = re.FindStringSubmatch(output)
-	if len(matches) > 0 {
-		return matches[0]
-	}
-
-	return ""
-}
-
 // extractExecutionID extracts the execution ID from run command output
 func extractExecutionID(output string) string {
 	// Look for pattern like "Execution ID: execution-xxxxx"
@@ -290,16 +261,19 @@ func (s *FullExecutionSuite) TestRunWithSpecificBehavior() {
 
 	// Apply agent
 	s.T().Log("Step 1: Applying agent...")
-	applyOutput, err := RunCLIWithServerAddr(
+	_, err := RunCLIWithServerAddr(
 		s.ServerPort,
 		"apply",
 		"--config", "testdata/examples/01-basic-agent/Stigmer.yaml",
 	)
 	s.Require().NoError(err, "Apply should succeed")
 
-	agentID := extractAgentID(applyOutput)
-	s.Require().NotEmpty(agentID, "Should extract agent ID")
-	s.T().Logf("✓ Agent deployed: %s", agentID)
+	// Query agent by slug instead of extracting ID from output
+	org := "local" // Using local backend in tests
+	agent, err := GetAgentBySlug(s.ServerPort, "code-reviewer", org)
+	s.Require().NoError(err, "Should be able to query agent by slug")
+	s.Require().NotNil(agent, "Agent should exist after apply")
+	s.T().Logf("✓ Agent deployed: %s", agent.Metadata.Id)
 
 	// Test Case 1: Agent should respond to a greeting
 	s.T().Log("\nTest Case 1: Greeting behavior")
