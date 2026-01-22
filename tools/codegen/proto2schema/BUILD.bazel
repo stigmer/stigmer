@@ -8,7 +8,6 @@ go_library(
     deps = [
         "@com_github_jhump_protoreflect//desc",
         "@com_github_jhump_protoreflect//desc/protoparse",
-        "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//types/descriptorpb",
     ],
 )
