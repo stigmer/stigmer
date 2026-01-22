@@ -1,0 +1,41 @@
+{
+  "name": "TryTaskConfig",
+  "kind": "TRY",
+  "description": "TRY tasks provide error handling in workflows.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/try.proto",
+  "fields": [
+    {
+      "name": "Tasks",
+      "jsonName": "tasks",
+      "protoField": "tasks",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "struct"
+        }
+      },
+      "description": "Tasks to try",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Catch",
+      "jsonName": "catch",
+      "protoField": "catch",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "struct"
+        }
+      },
+      "description": "Error handlers (array of {errors, as, tasks})",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

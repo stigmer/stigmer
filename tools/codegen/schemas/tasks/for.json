@@ -1,0 +1,38 @@
+{
+  "name": "ForTaskConfig",
+  "kind": "FOR",
+  "description": "FOR tasks iterate over collections.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/for.proto",
+  "fields": [
+    {
+      "name": "In",
+      "jsonName": "in",
+      "protoField": "in",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Collection expression to iterate over",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Do",
+      "jsonName": "do",
+      "protoField": "do",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "struct"
+        }
+      },
+      "description": "Tasks to execute for each item",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

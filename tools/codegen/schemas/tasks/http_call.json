@@ -1,7 +1,7 @@
 {
   "name": "HttpCallTaskConfig",
   "kind": "HTTP_CALL",
-  "description": "HTTP_CALL tasks make HTTP requests (GET, POST, PUT, DELETE, PATCH).\n\nYAML Example:\n  - taskName:\n      call: http\n      with:\n        method: POST\n        endpoint:\n          uri: https://api.example.com/data\n        headers:\n          Authorization: \"Bearer ${TOKEN}\"\n        body:\n          field1: value",
+  "description": "HTTP_CALL tasks make HTTP requests (GET, POST, PUT, DELETE, PATCH).",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/http_call.proto",
   "fields": [
@@ -20,14 +20,13 @@
       }
     },
     {
-      "name": "Endpoint",
-      "jsonName": "endpoint",
-      "protoField": "endpoint",
+      "name": "URI",
+      "jsonName": "uri",
+      "protoField": "uri",
       "type": {
-        "kind": "message",
-        "messageType": "HttpEndpoint"
+        "kind": "string"
       },
-      "description": "HTTP endpoint configuration",
+      "description": "HTTP endpoint URI",
       "required": true,
       "validation": {
         "required": true
