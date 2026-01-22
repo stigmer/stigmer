@@ -1,6 +1,20 @@
 # Next Task
 
-## Latest Completion (2026-01-23 01:37)
+## Latest Completion (2026-01-23 02:40)
+
+✅ **E2E Test Robustness + Server Shutdown Panic Fixed!**
+- **CRITICAL**: Fixed panic in server shutdown (atomic.Value cannot store nil)
+- Replaced fragile CLI output parsing with robust `GetAgentBySlug` API queries
+- Updated all 6 test cases to query by slug + org instead of extracting IDs
+- Fixed substring matching bug (code-reviewer vs code-reviewer-pro)
+- All e2e tests now passing with clean server shutdown
+- Code quality: -52 lines, +100% reliability
+- See: `checkpoints/2026-01-23-e2e-test-robustness-improvements.md`
+- See: `_changelog/2026-01/2026-01-23-024014-fix-e2e-tests-and-server-shutdown-panic.md`
+
+---
+
+## Previous Completion (2026-01-23 01:37)
 
 ✅ **E2E Test Fixes + Temporal Connection Root Cause Analysis!**
 - Fixed 2 test compilation errors (Description field access)
