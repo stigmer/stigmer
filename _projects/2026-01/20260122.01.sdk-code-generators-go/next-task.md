@@ -177,17 +177,78 @@ processTask := wf.Set("process",
 
 ---
 
+## 🎯 MAJOR SIMPLIFICATION - Manifest Protos Removed!
+
+**Date**: 2026-01-22  
+**Impact**: Architecture Simplification
+
+### What Happened
+
+Eliminated manifest proto layer entirely (~400 lines of duplication removed):
+
+- ❌ Deleted `apis/ai/stigmer/agentic/agent/v1/manifest.proto`
+- ❌ Deleted `apis/ai/stigmer/agentic/workflow/v1/manifest.proto`
+- ❌ Deleted `apis/ai/stigmer/commons/sdk/metadata.proto`
+- ✅ SDK now writes platform protos directly (Agent, Workflow, Skill)
+- ✅ SDK metadata goes in `metadata.annotations` (Kubernetes-style)
+
+### New Architecture
+
+**Before (Manifest Pattern)**:
+```
+SDK → AgentManifest.pb → CLI Converts → Agent.pb → Platform
+      ↑ Wrapper          ↑ Conversion
+```
+
+**After (Direct Pattern)**:
+```
+SDK → Agent.pb → CLI Enriches → Platform
+      ↑ Platform proto (no conversion!)
+```
+
+### SDK Metadata in Annotations
+
+```protobuf
+Agent {
+  metadata: {
+    name: "my-agent"
+    annotations: {
+      "stigmer.ai/sdk.language": "go"
+      "stigmer.ai/sdk.version": "0.1.0"
+      "stigmer.ai/sdk.generated-at": "1706789123"
+    }
+  }
+  spec: { ... }
+}
+```
+
+### Documentation
+
+- 📘 **SDK Contract**: `apis/ai/stigmer/agentic/SDK-CONTRACT.md`
+- 📋 **Changelog**: `_changelog/20260122-simplify-sdk-contract-remove-manifest-protos.md`
+
+---
+
 ## Next Options (After Option B Complete)
 
-### Option C: Move to Agent SDK
-- Apply same pattern to agent types
-- Generate agent, skill, MCP server code
-- Prove pattern works across resource types
+### Option C: Apply to Agent/Skill SDK (UPDATED)
+- Generate code for Agent and Skill resources
+- Use platform protos directly (no manifest wrapper!)
+- Add SDK annotation helpers
+- Create ergonomic builder API like workflow
+- Prove pattern works across all resource types
+
+**New Approach**:
+- SDK creates `Agent` proto directly (not `AgentManifest`)
+- SDK creates `Skill` proto directly (not manifest wrapper)
+- SDK helpers add annotations for metadata
+- CLI reads platform protos without conversion
 
 ### Option D: Create Examples
 - Create comprehensive examples using new API
 - Show common patterns and best practices
 - Demonstrate TaskFieldRef and dependency tracking
+- Show Agent/Workflow/Skill creation with annotations
 
 ---
 
