@@ -15,9 +15,9 @@
 
 ## Current Status
 
-📋 **Phase**: Option B - Proto Parser Complete  
-📝 **Current Task**: ✅ COMPLETE - All fixes applied, documentation created, pipeline tested!  
-🎉 **Status**: 100% COMPLETE - PRODUCTION READY - READY TO SHIP! 🚀
+📋 **Phase**: Option C - Agent/Skill SDK Code Generation  
+📝 **Current Task**: 🟡 IN PROGRESS - Schemas generated, code compiles, integration pending  
+🎉 **Status**: 60% COMPLETE - Foundation ready, integration needed
 
 ---
 
@@ -110,6 +110,92 @@ processTask := wf.Set("process",
     SetVar("body", fetchTask.Field("body")),
 )
 ```
+
+## 🟡 Option C - Agent/Skill SDK: 60% COMPLETE (IN PROGRESS)
+
+**Status**: Schemas generated, code compiles! Integration with manual SDK pending.
+
+**Date Started**: 2026-01-22  
+**Time Spent**: ~2 hours
+
+### What's Done ✅
+
+**1. Extended Proto2Schema Tool**:
+- ✅ Added `--message-suffix` flag to support extracting messages with any suffix
+- ✅ Can now generate schemas for `TaskConfig`, `Spec`, or any pattern
+- ✅ Updated schema file naming to be generic
+
+**2. Generated Agent Schemas**:
+- ✅ 2 main Agent schemas (AgentSpec, InlineSubAgentSpec)
+- ✅ 10 shared type schemas (MCP servers, environment, etc.)
+- ✅ Manually created 2 missing nested types (EnvironmentValue, McpToolSelection)
+
+**3. Generated Skill Schemas**:
+- ✅ 1 Skill schema (SkillSpec - very simple!)
+
+**4. Extended Code Generator**:
+- ✅ Updated to support both `tasks/` subdirectory and root directory
+- ✅ Can generate code for workflow tasks, agent specs, skill specs
+
+**5. Generated Agent Go Code**:
+- ✅ `sdk/go/agent/gen/agentspec_task.go` - AgentSpec struct + ToProto/FromProto
+- ✅ `sdk/go/agent/gen/inlinesubagentspec_task.go` - InlineSubAgentSpec
+- ✅ `sdk/go/agent/gen/types.go` - All shared types
+- ✅ `sdk/go/agent/gen/helpers.go` - Utility functions
+- ✅ **Compiles successfully!**
+
+**6. Generated Skill Go Code**:
+- ✅ `sdk/go/skill/gen/skillspec_task.go` - SkillSpec struct + methods
+- ✅ `sdk/go/skill/gen/helpers.go` - Utility functions
+- ✅ **Compiles successfully!**
+
+### What's Remaining ✏️
+
+**1. Integration with Manual SDK** (~45 min):
+- Use generated types internally in existing Agent/Skill SDK
+- Update ToProto() methods to leverage generated code
+- Keep existing builder API unchanged
+
+**2. SDK Annotation Helpers** (~30 min):
+- Create `agent/annotations.go` with SDK metadata constants
+- Create `skill/annotations.go` with SDK metadata constants
+- Helpers to inject SDK metadata into annotations map
+
+**3. Testing** (~30 min):
+- Verify all existing Agent/Skill examples compile
+- Verify all tests pass
+- Smoke test Agent/Skill creation
+
+**4. Documentation** (~30 min):
+- Update project README
+- Update next-task.md
+- Final checkpoint document
+
+**Total Remaining**: ~2 hours
+
+### Key Achievements 🎉
+
+- **Proved pattern works across resource types**: Workflow ✅, Agent ✅, Skill ✅
+- **Generated code compiles out of the box**: No manual fixes needed!
+- **Tools are generic and reusable**: Can generate for any proto pattern
+- **Foundation is solid**: Struct definitions + proto conversion working
+
+### Files Created/Modified
+
+**Tools Extended**:
+- `tools/codegen/proto2schema/main.go` - Added message suffix support
+- `tools/codegen/generator/main.go` - Added root directory fallback
+
+**Schemas Generated** (13 new schemas):
+- `tools/codegen/schemas/agent/*.json` - 2 agent schemas
+- `tools/codegen/schemas/skill/*.json` - 1 skill schema
+- `tools/codegen/schemas/types/*.json` - 10 shared type schemas
+
+**Generated Code** (6 new files, all compile!):
+- `sdk/go/agent/gen/` - 4 files (AgentSpec, types, helpers)
+- `sdk/go/skill/gen/` - 2 files (SkillSpec, helpers)
+
+---
 
 ## ✅ Option B - PROTO PARSER: 100% COMPLETE!
 
@@ -332,6 +418,9 @@ Simply drag this file (`next-task.md`) into the chat, and I'll:
 
 ---
 
-**Current Status**: ✅ COMPLETE - Options A & B Done! Production Ready! 🎉
+**Current Status**: 🟡 IN PROGRESS - Option C 60% Complete (Schemas + Code Generation Done)
 
-**Next Options**: Option C (Agent SDK), Option D (Examples), or ship it!
+**Next Steps**: 
+- Complete Option C integration (~2 hours: SDK integration, testing, docs)
+- Or proceed to Option D (Examples)
+- Or ship current state (Workflow SDK is production-ready)

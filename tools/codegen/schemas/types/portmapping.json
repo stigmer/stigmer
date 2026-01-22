@@ -1,0 +1,38 @@
+{
+  "name": "PortMapping",
+  "description": "PortMapping defines a Docker port mapping.",
+  "protoType": "ai.stigmer.agentic.agent.v1.PortMapping",
+  "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
+  "fields": [
+    {
+      "name": "HostPort",
+      "jsonName": "hostPort",
+      "protoField": "host_port",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Host port to bind to.",
+      "required": false
+    },
+    {
+      "name": "ContainerPort",
+      "jsonName": "containerPort",
+      "protoField": "container_port",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Container port to expose.",
+      "required": false
+    },
+    {
+      "name": "Protocol",
+      "jsonName": "protocol",
+      "protoField": "protocol",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Protocol (default: \"tcp\"). Can be \"tcp\" or \"udp\".",
+      "required": false
+    }
+  ]
+}
