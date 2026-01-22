@@ -2,7 +2,7 @@
 
 **Project ID**: 20260122.05.e2e-integration-testing  
 **Started**: January 22, 2026  
-**Status**: 🟢 In Progress - Iteration 3 Complete
+**Status**: 🟢 In Progress - Phase 1 Complete (Run Command Tests)
 
 ## Overview
 
@@ -39,11 +39,31 @@ End-to-end integration testing framework for Stigmer CLI, SDK, and backend servi
 **Checkpoint**: `checkpoints/03-iteration-3-suite-hanging-fixed.md`  
 **Fixes Summary**: `FIXES_SUMMARY.md`
 
-### ⏩ Next: Iteration 4 - Full Integration Testing
-- Run full test suite and verify apply workflow
-- Debug any remaining issues in `TestApplyBasicAgent`
-- Verify database persistence
-- Add more test scenarios (error cases, edge cases)
+### ✅ Iteration 4: Full Integration Testing (Complete)
+- ✅ All tests passing (3 tests)
+- ✅ API verification pattern (gRPC instead of direct DB access)
+- ✅ Apply workflow fully tested
+- ✅ Database persistence verified
+- ✅ Dry-run mode tested
+
+**Checkpoint**: `checkpoints/04-iteration-4-full-integration-complete.md`
+
+### ✅ Iteration 5 - Phase 1: Run Command Smoke Tests (Complete)
+- ✅ **`TestRunBasicAgent`** - Verifies execution creation
+- ✅ **`TestRunWithInvalidAgent`** - Tests error handling
+- ✅ **`AgentExecutionExistsViaAPI()`** - Helper function added
+- ✅ All tests passing (6 tests: 5 pass, 1 skip)
+- ✅ Run command tested without Temporal/agent-runner dependencies
+- ✅ Foundation solid for Phase 2
+
+**Checkpoint**: `checkpoints/05-phase-1-run-command-tests-complete.md`  
+**Summary**: `PHASE_1_SUMMARY.md`
+
+### ⏩ Next: Iteration 5 - Phase 2 - Full Agent Execution Testing
+- Add Docker Compose (Temporal + agent-runner)
+- Implement Ollama prerequisite checking
+- Test actual agent execution end-to-end
+- Verify LLM responses
 
 **Status**: `next-task.md`
 
