@@ -25,16 +25,16 @@ type FullExecutionSuite struct {
 // Ensures stigmer server is running (starts it if needed)
 func (s *FullExecutionSuite) SetupSuite() {
 	s.T().Log("=== Setting up Phase 2 test suite ===")
-	
+
 	// Ensure stigmer server is running (starts it automatically if not)
 	manager, err := EnsureStigmerServerRunning(s.T())
 	if err != nil {
 		s.T().Skipf("Failed to start stigmer server, skipping Phase 2 tests:\n%v", err)
 	}
-	
+
 	s.ServerManager = manager
 	s.ServerPort = manager.GetServerPort()
-	
+
 	// Check component status
 	status := manager.GetStatus()
 	s.T().Logf("Component status: stigmer-server=%v temporal=%v workflow-runner=%v agent-runner=%v",
@@ -43,20 +43,20 @@ func (s *FullExecutionSuite) SetupSuite() {
 		status["workflow-runner"],
 		status["agent-runner"],
 	)
-	
+
 	// Skip suite if critical components are not ready
 	if !status["stigmer-server"] {
 		s.T().Skip("Stigmer server not ready")
 	}
-	
+
 	if !status["temporal"] {
 		s.T().Skip("Temporal not available - required for Phase 2 tests")
 	}
-	
+
 	if !status["agent-runner"] {
 		s.T().Skip("Agent runner not available - required for Phase 2 tests")
 	}
-	
+
 	s.T().Log("✓ All components ready for Phase 2 tests")
 }
 
@@ -74,7 +74,7 @@ func (s *FullExecutionSuite) SetupTest() {
 	// Nothing needed - using shared server
 }
 
-// TearDownTest runs after each test - no cleanup needed now  
+// TearDownTest runs after each test - no cleanup needed now
 // Tests share the same stigmer server, so no per-test cleanup
 func (s *FullExecutionSuite) TearDownTest() {
 	// Nothing needed - server stays running for next test
@@ -138,25 +138,68 @@ func (s *FullExecutionSuite) TestRunWithFullExecution() {
 	s.Require().NotNil(execution.Status, "Execution should have status")
 	s.T().Logf("✓ Execution completed: %s", execution.Status.Phase.String())
 
-	// Step 4: Verify agent produced output
+	// Step 4: Verify agent produced output with deterministic checks
 	s.T().Log("Step 4: Verifying agent output...")
-	messages, err := GetExecutionMessages(s.ServerPort, executionID)
-	s.Require().NoError(err, "Should be able to get execution messages")
-	s.Require().NotEmpty(messages, "Execution should have at least one message")
 
-	// Check that the agent produced some response
-	lastMessage := messages[len(messages)-1]
+	// Create validator for this execution
+	validator := NewExecutionValidator(execution)
+	lastMessage := validator.GetLastMessage()
 	s.T().Logf("Agent response: %s", lastMessage)
-	
-	// Verify response is non-empty and contains meaningful content
-	s.Require().NotEmpty(lastMessage, "Agent should produce a response")
-	s.Require().Greater(len(lastMessage), 10, "Agent response should be substantive (>10 chars)")
-	
-	// Verify the response is valid (either contains text or JSON structure)
-	hasText := len(strings.TrimSpace(lastMessage)) > 0
-	s.True(hasText, "Agent response should contain meaningful content")
-	
-	s.T().Log("✓ Agent produced valid response")
+
+	// TIER 1: Execution Status Checks (MUST PASS)
+	s.T().Log("  Running Tier 1 validation (execution status)...")
+
+	result := validator.ValidateCompleted()
+	s.Require().True(result.Passed, result.Reason)
+	s.T().Logf("  ✓ %s", result.Reason)
+
+	result = validator.ValidateNotFailed()
+	s.Require().True(result.Passed, result.Reason)
+	s.T().Logf("  ✓ %s", result.Reason)
+
+	result = validator.ValidateHasMessages()
+	s.Require().True(result.Passed, result.Reason)
+	s.T().Logf("  ✓ %s", result.Reason)
+
+	// TIER 2: Output Quality Checks (MUST PASS)
+	s.T().Log("  Running Tier 2 validation (output quality)...")
+
+	result = validator.ValidateOutputNotEmpty()
+	s.Require().True(result.Passed, result.Reason)
+	s.T().Logf("  ✓ %s", result.Reason)
+
+	result = validator.ValidateOutputMinLength(10)
+	s.Require().True(result.Passed, result.Reason)
+	s.T().Logf("  ✓ %s", result.Reason)
+
+	result = validator.ValidateNotGibberish()
+	s.Require().True(result.Passed, result.Reason)
+	s.T().Logf("  ✓ %s", result.Reason)
+
+	result = validator.ValidateNotErrorMessage()
+	s.Require().True(result.Passed, result.Reason)
+	s.T().Logf("  ✓ %s", result.Reason)
+
+	result = validator.ValidateHasSentenceStructure()
+	s.Require().True(result.Passed, result.Reason)
+	s.T().Logf("  ✓ %s", result.Reason)
+
+	// TIER 3: Behavioral Checks (SHOULD PASS - for this specific test)
+	s.T().Log("  Running Tier 3 validation (behavioral)...")
+
+	// For a greeting test, we expect greeting-related words
+	result = validator.ValidateContainsKeywords(
+		[]string{"hello", "hi", "greetings", "hey", "respond", "confirm", "yes", "can"},
+		"any", // At least one of these should be present
+	)
+	if result.Passed {
+		s.T().Logf("  ✓ %s", result.Reason)
+	} else {
+		// This is a soft check - log warning but don't fail
+		s.T().Logf("  ⚠️  Warning: %s", result.Reason)
+	}
+
+	s.T().Log("✓ All validation tiers passed")
 	s.T().Log("✅ Full execution test passed")
 }
 
@@ -171,19 +214,19 @@ func (s *FullExecutionSuite) TestRunWithInvalidMessage() {
 		"--message", "test",
 		"--follow=false",
 	)
-	
+
 	s.T().Logf("Output: %s", output)
 	s.T().Logf("Error: %v", err)
 
 	// Should either fail with error or output should contain error message
 	hasError := err != nil || strings.Contains(output, "not found") || strings.Contains(output, "Not found")
 	s.True(hasError, "Running non-existent agent should produce an error")
-	
+
 	// Verify error message mentions the issue
 	if err == nil {
 		s.Contains(output, "not found", "Error message should mention agent not found")
 	}
-	
+
 	s.T().Log("✓ Error handling works correctly")
 }
 
@@ -230,6 +273,68 @@ func extractExecutionID(output string) string {
 	}
 
 	return ""
+}
+
+// TestRunWithSpecificBehavior demonstrates how to validate specific agent behaviors
+func (s *FullExecutionSuite) TestRunWithSpecificBehavior() {
+	s.T().Log("=== Testing specific agent behavior validation ===")
+
+	// Apply agent
+	s.T().Log("Step 1: Applying agent...")
+	applyOutput, err := RunCLIWithServerAddr(
+		s.ServerPort,
+		"apply",
+		"--config", "testdata/Stigmer.yaml",
+	)
+	s.Require().NoError(err, "Apply should succeed")
+
+	agentID := extractAgentID(applyOutput)
+	s.Require().NotEmpty(agentID, "Should extract agent ID")
+	s.T().Logf("✓ Agent deployed: %s", agentID)
+
+	// Test Case 1: Agent should respond to a greeting
+	s.T().Log("\nTest Case 1: Greeting behavior")
+	runOutput, err := RunCLIWithServerAddr(
+		s.ServerPort,
+		"run", "test-agent",
+		"--message", "Hello! Please greet me back.",
+		"--follow=false",
+	)
+	s.Require().NoError(err, "Run should succeed")
+
+	executionID := extractExecutionID(runOutput)
+	s.Require().NotEmpty(executionID, "Should extract execution ID")
+
+	execution, err := WaitForExecutionPhase(
+		s.ServerPort,
+		executionID,
+		agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+		60*time.Second,
+	)
+	s.Require().NoError(err, "Execution should complete")
+
+	// Validate greeting-specific behavior
+	validator := NewExecutionValidator(execution)
+
+	// Must pass: Basic quality checks
+	s.Require().True(validator.ValidateCompleted().Passed, "Must complete successfully")
+	s.Require().True(validator.ValidateNotGibberish().Passed, "Must not be gibberish")
+	s.Require().True(validator.ValidateHasSentenceStructure().Passed, "Must have sentence structure")
+
+	// Should pass: Greeting-specific behavior
+	greetingResult := validator.ValidateContainsKeywords(
+		[]string{"hello", "hi", "greetings", "hey"},
+		"any",
+	)
+
+	if greetingResult.Passed {
+		s.T().Logf("  ✓ Agent responded with greeting: %s", greetingResult.Reason)
+	} else {
+		s.T().Logf("  ⚠️  Warning: %s", greetingResult.Reason)
+		s.T().Logf("     Response: %s", validator.GetLastMessage())
+	}
+
+	s.T().Log("✅ Greeting test completed")
 }
 
 // TestFullExecution is the entry point that runs all Phase 2 tests
