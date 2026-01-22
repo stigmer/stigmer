@@ -73,10 +73,10 @@ func main() {
 		// Task 2: Process response using DIRECT task references
 		// Dependencies are implicit - no ThenRef needed!
 		// Clear origin: title and body come from fetchTask
-		processTask := wf.SetVars("processResponse",
-			"postTitle", fetchTask.Field("title"), // ✅ Clear: from fetchTask!
-			"postBody", fetchTask.Field("body"), // ✅ Clear: from fetchTask!
-			"status", "success",
+		processTask := wf.Set("processResponse",
+			workflow.SetVar("postTitle", fetchTask.Field("title")), // ✅ Clear: from fetchTask!
+			workflow.SetVar("postBody", fetchTask.Field("body")),  // ✅ Clear: from fetchTask!
+			workflow.SetVar("status", "success"),
 		)
 
 		// No manual dependency management needed!

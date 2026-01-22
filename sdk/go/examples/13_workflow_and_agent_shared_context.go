@@ -56,22 +56,17 @@ func main() {
 	// Add workflow tasks using shared context variables
 	endpoint := apiURL.Concat("/data")
 	
-	fetchTask := workflow.HttpCallTask("fetchData",
-		workflow.WithHTTPGet(),
-		workflow.WithURI(endpoint),  // Uses shared apiURL
-		workflow.WithHeader("Content-Type", "application/json"),
-		workflow.WithTimeout(30),
+	// Task 1: Fetch data using HTTP GET
+	_ = wf.HttpGet("fetchData", endpoint,
+		workflow.Header("Content-Type", "application/json"),
+		workflow.Timeout(30),
 	)
-	// Note: No need to call .ExportAll() manually!
-	// If you reference fetchTask.Field(...) later, it auto-exports.
 	
-	processTask := workflow.SetTask("processData",
+	// Task 2: Process data
+	_ = wf.Set("processData",
 		workflow.SetVar("status", "processing"),
 		workflow.SetVar("retries", retryCount),  // Uses shared retryCount
 	)
-	
-	fetchTask.ThenRef(processTask)
-	wf.AddTasks(fetchTask, processTask)
 
 		// Create an agent that uses the SAME shared context
 		ag, err := agent.New(ctx,
