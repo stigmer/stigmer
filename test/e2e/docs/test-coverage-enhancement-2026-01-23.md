@@ -3,7 +3,7 @@
 **Date**: 2026-01-23  
 **Status**: ✅ Completed  
 **SDK Example**: `sdk/go/examples/01_basic_agent.go`  
-**Test Fixtures**: `test/e2e/testdata/agents/basic-agent/`
+**Test Fixtures**: `test/e2e/testdata/examples/01-basic-agent/`
 
 ---
 

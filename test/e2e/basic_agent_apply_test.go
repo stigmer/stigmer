@@ -19,10 +19,10 @@ import (
 // - code-reviewer-pro: Full agent with optional fields (description, iconURL, org)
 //
 // Example: sdk/go/examples/01_basic_agent.go
-// Test Fixture: test/e2e/testdata/agents/basic-agent/
+// Test Fixture: test/e2e/testdata/examples/01-basic-agent/
 func (s *E2ESuite) TestApplyBasicAgent() {
 	// Get path to basic-agent test fixture
-	testdataDir := filepath.Join("testdata", "agents", "basic-agent")
+	testdataDir := filepath.Join("testdata", "examples", "01-basic-agent")
 	absTestdataDir, err := filepath.Abs(testdataDir)
 	s.Require().NoError(err, "Failed to get absolute path to basic-agent directory")
 
@@ -91,7 +91,7 @@ func (s *E2ESuite) TestApplyBasicAgent() {
 	s.NotEmpty(fullAgent.Spec.Instructions, "Agent should have instructions")
 	
 	// Verify optional fields are present on full agent
-	s.Equal("Professional code reviewer with security focus", fullAgent.Metadata.Description,
+	s.Equal("Professional code reviewer with security focus", fullAgent.Spec.Description,
 		"Full agent should have description")
 	s.Equal("https://example.com/icons/code-reviewer.png", fullAgent.Spec.IconUrl,
 		"Full agent should have icon URL")
@@ -110,9 +110,9 @@ func (s *E2ESuite) TestApplyBasicAgent() {
 // 2. code-reviewer-pro (full agent with optional fields)
 // 3. Validation error example (invalid name) - caught and logged, not deployed
 //
-// Test Fixture: test/e2e/testdata/agents/basic-agent/
+// Test Fixture: test/e2e/testdata/examples/01-basic-agent/
 func (s *E2ESuite) TestApplyAgentCount() {
-	testdataDir := filepath.Join("testdata", "agents", "basic-agent")
+	testdataDir := filepath.Join("testdata", "examples", "01-basic-agent")
 	absTestdataDir, err := filepath.Abs(testdataDir)
 	s.Require().NoError(err, "Failed to get absolute path to basic-agent directory")
 
@@ -137,10 +137,10 @@ func (s *E2ESuite) TestApplyAgentCount() {
 // TestApplyDryRun tests the dry-run mode of apply command
 //
 // Example: sdk/go/examples/01_basic_agent.go
-// Test Fixture: test/e2e/testdata/agents/basic-agent/
+// Test Fixture: test/e2e/testdata/examples/01-basic-agent/
 func (s *E2ESuite) TestApplyDryRun() {
 	// Get path to basic-agent test fixture
-	testdataDir := filepath.Join("testdata", "agents", "basic-agent")
+	testdataDir := filepath.Join("testdata", "examples", "01-basic-agent")
 	absTestdataDir, err := filepath.Abs(testdataDir)
 	s.Require().NoError(err, "Failed to get absolute path to basic-agent directory")
 
