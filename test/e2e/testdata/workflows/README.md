@@ -2,9 +2,92 @@
 
 This directory contains workflow test fixtures for end-to-end testing of the Stigmer workflow engine and the **critical serverless workflow spec → Temporal conversion**.
 
+## Directory Structure
+
+Each test case has its own folder with:
+- `main.go` - The workflow implementation following latest SDK patterns
+- `Stigmer.yaml` - Configuration file that specifies the entry point
+
+```
+workflows/
+├── simple-sequential/
+│   ├── main.go
+│   └── Stigmer.yaml
+├── conditional-switch/
+│   ├── main.go
+│   └── Stigmer.yaml
+├── error-handling/
+│   ├── main.go
+│   └── Stigmer.yaml
+├── loop-for/
+│   ├── main.go
+│   └── Stigmer.yaml
+└── parallel-fork/
+    ├── main.go
+    └── Stigmer.yaml
+```
+
+## Latest SDK Patterns
+
+All workflows follow the latest Stigmer SDK patterns:
+
+### ✅ Direct Field References
+Use `task.Field("fieldName")` instead of `"${.fieldName}"` expressions:
+
+```go
+// ✅ Good - Direct field reference
+processTask := wf.Set("process",
+    workflow.SetVar("title", fetchTask.Field("title")),
+)
+
+// ❌ Old - Expression syntax
+processTask := workflow.SetTask("process", map[string]string{
+    "title": "${.title}",
+})
+```
+
+### ✅ No ExportAll Required
+Outputs are automatically available - no need for `.ExportAll()`:
+
+```go
+// ✅ Good - Outputs automatically available
+fetchTask := wf.HttpGet("fetch", url, workflow.Timeout(10))
+
+// ❌ Old - Explicit ExportAll
+fetchTask := workflow.HttpCall("fetch",
+    workflow.HTTPMethod("GET"),
+    workflow.URI(url),
+).ExportAll()
+```
+
+### ✅ Implicit Dependencies
+Dependencies are tracked automatically through field references:
+
+```go
+// ✅ Good - Implicit dependency through field reference
+initTask := wf.Set("init", workflow.SetVar("url", "..."))
+fetchTask := wf.HttpGet("fetch", initTask.Field("url"))
+// fetchTask automatically depends on initTask
+
+// ❌ Old - Manual dependency management
+wf.AddTask(initTask)
+wf.AddTask(fetchTask)
+```
+
+### ✅ Clean Builders
+Use workflow-scoped builders for cleaner code:
+
+```go
+// ✅ Good - Workflow-scoped builder
+task := wf.Set("myTask", workflow.SetVar("key", "value"))
+
+// ❌ Old - Module-level builder
+task := workflow.SetTask("myTask", map[string]string{"key": "value"})
+```
+
 ## Test Coverage
 
-### 1. simple_sequential.go
+### 1. simple-sequential/
 **Tests**: Basic task chaining (Set → HTTP Call → Set)
 
 **What it validates**:
@@ -20,7 +103,7 @@ This directory contains workflow test fixtures for end-to-end testing of the Sti
 - Task 3 (`process`) uses fields from Task 2's HTTP response
 - Dependencies are automatically tracked through field references
 
-### 2. conditional_switch.go
+### 2. conditional-switch/
 **Tests**: Conditional branching with Switch task
 
 **What it validates**:
@@ -34,7 +117,7 @@ This directory contains workflow test fixtures for end-to-end testing of the Sti
 - Task 2 (`check-status`) evaluates status and routes to appropriate handler
 - Different handlers for: pending, approved, rejected, unknown
 
-### 3. parallel_fork.go
+### 3. parallel-fork/
 **Tests**: Parallel execution with Fork task
 
 **What it validates**:
@@ -51,7 +134,7 @@ This directory contains workflow test fixtures for end-to-end testing of the Sti
   - Fetch albums
 - Task 3 (`merge-results`) combines results from all branches
 
-### 4. loop_for.go
+### 4. loop-for/
 **Tests**: Loop execution with For task
 
 **What it validates**:
@@ -65,7 +148,7 @@ This directory contains workflow test fixtures for end-to-end testing of the Sti
 - Task 2 (`process-items`) iterates over items and processes each
 - Task 3 (`calculate-result`) aggregates loop results
 
-### 5. error_handling.go
+### 5. error-handling/
 **Tests**: Error handling with Try/Catch
 
 **What it validates**:
@@ -99,9 +182,9 @@ These tests focus on the **serverless workflow spec → Temporal conversion**, w
 
 ### 3. Data Flow & Context
 - Variable scoping across tasks
-- Field reference resolution (`${.taskName.field}`)
+- Field reference resolution
 - Context propagation between tasks
-- Export directives (`ExportAs`)
+- Automatic export handling
 
 ### 4. Task Configuration Serialization
 - Converting Go SDK calls to protocol buffers
@@ -149,7 +232,7 @@ Workflows are executed and results are validated:
 ### Check Workflow Structure
 ```bash
 # Apply workflow and inspect output
-stigmer apply --config testdata/workflows/Stigmer.yaml
+stigmer apply --config testdata/workflows/simple-sequential/Stigmer.yaml
 
 # Query workflow details
 stigmer workflow get <workflow-id> --output json
@@ -167,7 +250,7 @@ Look for logs in:
 
 ### Common Failure Patterns
 1. **Dependency Resolution**: Tasks execute out of order
-2. **Field References**: `${.field}` not resolving correctly
+2. **Field References**: Field references not resolving correctly
 3. **Control Flow**: Switch/Fork/For not routing correctly
 4. **Error Handling**: Try/Catch not catching errors
 5. **Data Marshaling**: Complex types not serializing properly
@@ -193,6 +276,6 @@ Look for logs in:
 ## Notes
 
 - All workflow fixtures use `//go:build ignore` to prevent inclusion in main build
-- Fixtures are compiled and executed by the `stigmer apply` command
-- `Stigmer.yaml` specifies which fixture to execute (updated per test)
+- Each test case has its own folder with `Stigmer.yaml` pointing to `main.go`
 - Tests use real HTTP endpoints (jsonplaceholder.typicode.com) for realistic scenarios
+- All workflows follow latest SDK patterns with direct field references and automatic exports

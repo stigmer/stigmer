@@ -1,4 +1,0 @@
-# Stigmer configuration for workflow E2E tests
-# This file is shared by all workflow test fixtures
-
-main: simple_sequential.go

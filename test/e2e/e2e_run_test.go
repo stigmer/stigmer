@@ -27,11 +27,11 @@ func (s *E2ESuite) TestRunBasicAgent() {
 	s.T().Logf("Apply output:\n%s", applyOutput)
 
 	// Extract agent ID from apply output
-	// Output format: "• test-agent (ID: agt-1234567890)"
+	// Output format: "• code-reviewer (ID: agt-1234567890)"
 	var agentID string
 	lines := strings.Split(applyOutput, "\n")
 	for _, line := range lines {
-		if strings.Contains(line, "test-agent") && strings.Contains(line, "ID:") {
+		if strings.Contains(line, "code-reviewer") && strings.Contains(line, "ID:") {
 			start := strings.Index(line, "ID: ")
 			if start != -1 {
 				start += 4 // Skip "ID: "
@@ -53,7 +53,7 @@ func (s *E2ESuite) TestRunBasicAgent() {
 
 	runOutput, err := RunCLIWithServerAddr(
 		s.Harness.ServerPort,
-		"run", "test-agent", // Use agent name, not ID
+		"run", "code-reviewer", // Use agent name from SDK example (01_basic_agent.go)
 		"--message", "Hello, test agent!",
 		"--follow=false", // Don't stream logs (Phase 2 will test this)
 	)
@@ -63,7 +63,7 @@ func (s *E2ESuite) TestRunBasicAgent() {
 
 	// Step 3: Verify execution was created
 	s.Contains(runOutput, "Agent execution started", "Output should indicate execution started")
-	s.Contains(runOutput, "test-agent", "Output should mention the agent name")
+	s.Contains(runOutput, "code-reviewer", "Output should mention the agent name (from SDK example)")
 
 	// Extract execution ID from output
 	// Output format: "Execution ID: agex_1234567890"
