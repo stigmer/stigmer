@@ -1,5 +1,3 @@
-//go:build ignore
-
 // Example 08: Workflow with Conditionals
 //
 // This example demonstrates conditional logic using SWITCH tasks.
