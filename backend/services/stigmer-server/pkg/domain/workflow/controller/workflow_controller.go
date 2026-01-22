@@ -30,3 +30,10 @@ func NewWorkflowController(store *badger.Store, workflowInstanceClient *workflow
 func (c *WorkflowController) SetWorkflowInstanceClient(client *workflowinstance.Client) {
 	c.workflowInstanceClient = client
 }
+
+// SetValidator sets the Temporal workflow validator dependency
+// This is used when the controller is created before the Temporal client is initialized
+// or when the Temporal client is reconnected
+func (c *WorkflowController) SetValidator(validator *temporal.ServerlessWorkflowValidator) {
+	c.validator = validator
+}
