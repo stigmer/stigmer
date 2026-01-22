@@ -1,6 +1,23 @@
 # Next Task
 
-## Latest Completion (2026-01-23 03:00)
+## Latest Completion (2026-01-23 04:43)
+
+✅ **Workflow Calling Agent E2E Tests - Complete Coverage!**
+- Created comprehensive e2e test coverage for workflow calling simple agent (Example 15)
+- **10 test cases**: 5 apply tests + 5 run tests (1,006 lines total)
+- Established testing patterns for agent-workflow integration scenarios
+- Query by slug pattern (robust, not fragile to CLI output changes)
+- Task kind verification using correct enum (`WORKFLOW_TASK_KIND_AGENT_CALL`)
+- Foundation for Phase 2 tests (actual execution with Temporal)
+- Complete documentation with running instructions and design decisions
+- All tests compile successfully (0 errors)
+- See: `checkpoints/2026-01-23-workflow-calling-agent-tests.md`
+- See: `_changelog/2026-01/2026-01-23-044349-add-e2e-tests-workflow-calling-agent.md`
+- See: `test/e2e/docs/workflow-calling-agent-tests.md` (347 lines documentation)
+
+---
+
+## Previous Completion (2026-01-23 03:00)
 
 ✅ **E2E Test Flakiness Eliminated with Temporal Retry Logic!**
 - **CRITICAL**: Fixed 10% flake rate (1 in 10 test runs failed intermittently)
