@@ -87,13 +87,14 @@ func StartHarnessWithDocker(t *testing.T, tempDir string, enableWorker bool) *Te
 	t.Logf("Started stigmer-server on port %d with DB_PATH=%s", port, dbPath)
 
 	// Wait for server to become healthy
-	healthy := WaitForPort(port, 10*time.Second)
+	// Allow up to 30 seconds for server startup + Temporal connection retries
+	healthy := WaitForPort(port, 30*time.Second)
 	if !healthy {
 		// Clean up if server failed to start
 		if serverCmd.Process != nil {
 			serverCmd.Process.Kill()
 		}
-		require.True(t, healthy, "Server failed to become healthy within 10 seconds")
+		require.True(t, healthy, "Server failed to become healthy within 30 seconds")
 	}
 
 	t.Logf("stigmer-server is healthy and accepting connections")
