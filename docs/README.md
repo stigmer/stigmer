@@ -39,6 +39,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Open Core Model](architecture/open-core-model.md) - Open source vs enterprise architecture
 - [Packaging Flow](architecture/packaging-flow.md) - How Stigmer is packaged and distributed (with diagrams)
 - [Request Pipeline Context Design](architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
+- [SDK Code Generation](architecture/sdk-code-generation.md) - Schema-driven code generation for workflow tasks (adds new task in 5 minutes vs 30-60)
 - [Temporal Integration](architecture/temporal-integration.md) - Polyglot workflow orchestration with Temporal (Go workflows, Python activities)
 - [Update Pipeline and Immutable Fields](architecture/update-pipeline-and-immutable-fields.md) - How updates preserve identity while allowing modifications
 
