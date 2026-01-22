@@ -1,10 +1,14 @@
 # Next Task: CLI Apply Tabular Output
 
 **Project**: 20260123.01.standardize-cli-apply-output
-**Status**: ✅ COMPLETED
-**Last Updated**: 2026-01-23 03:50
-**Changelog**: `_changelog/2026-01/2026-01-23-031802-add-cli-apply-tabular-output.md`
-**Checkpoint**: `checkpoints/2026-01-23-cli-apply-tabular-output-complete.md`
+**Status**: ✅ COMPLETED (+ Critical Bug Fix)
+**Last Updated**: 2026-01-23 04:32
+**Changelogs**: 
+  - `_changelog/2026-01/2026-01-23-031802-add-cli-apply-tabular-output.md`
+  - `_changelog/2026-01/2026-01-23-043227-fix-workflow-e2e-tests.md` (Bug fix discovered during testing)
+**Checkpoints**: 
+  - `checkpoints/2026-01-23-cli-apply-tabular-output-complete.md`
+  - `checkpoints/2026-01-23-workflow-e2e-tests-fixed.md` (Critical bug fix)
 
 ## 🎯 Current Objective
 
