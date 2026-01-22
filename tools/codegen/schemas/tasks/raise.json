@@ -1,0 +1,45 @@
+{
+  "name": "RaiseTaskConfig",
+  "kind": "RAISE",
+  "description": "RAISE tasks throw errors in workflows.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/raise.proto",
+  "fields": [
+    {
+      "name": "Error",
+      "jsonName": "error",
+      "protoField": "error",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Error type/name",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Message",
+      "jsonName": "message",
+      "protoField": "message",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Error message",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Data",
+      "jsonName": "data",
+      "protoField": "data",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "Additional error data",
+      "required": false
+    }
+  ]
+}

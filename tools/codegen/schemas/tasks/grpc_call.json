@@ -1,0 +1,45 @@
+{
+  "name": "GrpcCallTaskConfig",
+  "kind": "GRPC_CALL",
+  "description": "GRPC_CALL tasks make gRPC service calls.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/grpc_call.proto",
+  "fields": [
+    {
+      "name": "Service",
+      "jsonName": "service",
+      "protoField": "service",
+      "type": {
+        "kind": "string"
+      },
+      "description": "gRPC service name",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Method",
+      "jsonName": "method",
+      "protoField": "method",
+      "type": {
+        "kind": "string"
+      },
+      "description": "gRPC method name",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Body",
+      "jsonName": "body",
+      "protoField": "body",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "Request body (proto message as JSON)",
+      "required": false
+    }
+  ]
+}

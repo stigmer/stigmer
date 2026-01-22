@@ -1,0 +1,92 @@
+{
+  "name": "AgentSpec",
+  "kind": "AGENT_SPEC",
+  "description": "AgentSpec defines the configurable properties of an AI agent.\n This is the \"Template\" layer - immutable logic that declares requirements.",
+  "protoType": "ai.stigmer.agentic.agent.v1.AgentSpec",
+  "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description for UI and marketplace display.",
+      "required": false
+    },
+    {
+      "name": "IconUrl",
+      "jsonName": "iconUrl",
+      "protoField": "icon_url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Icon URL for marketplace and UI display.",
+      "required": false
+    },
+    {
+      "name": "Instructions",
+      "jsonName": "instructions",
+      "protoField": "instructions",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Instructions defining the agent's behavior and personality (min 10 characters).",
+      "required": false
+    },
+    {
+      "name": "McpServers",
+      "jsonName": "mcpServers",
+      "protoField": "mcp_servers",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "McpServerDefinition"
+        }
+      },
+      "description": "MCP server definitions declaring required servers (not configured instances).\n Actual configuration with secrets happens at AgentInstance level.",
+      "required": false
+    },
+    {
+      "name": "SkillRefs",
+      "jsonName": "skillRefs",
+      "protoField": "skill_refs",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "References to Skill resources providing agent knowledge.",
+      "required": false
+    },
+    {
+      "name": "SubAgents",
+      "jsonName": "subAgents",
+      "protoField": "sub_agents",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "SubAgent"
+        }
+      },
+      "description": "Sub-agents that can be delegated to (inline or referenced).",
+      "required": false
+    },
+    {
+      "name": "EnvSpec",
+      "jsonName": "envSpec",
+      "protoField": "env_spec",
+      "type": {
+        "kind": "message",
+        "messageType": "EnvironmentSpec"
+      },
+      "description": "Environment variables required by the agent.\n Uses the shared EnvironmentSpec for consistent env var handling.",
+      "required": false
+    }
+  ]
+}

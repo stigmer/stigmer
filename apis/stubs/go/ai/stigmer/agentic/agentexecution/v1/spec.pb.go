@@ -49,7 +49,104 @@ type AgentExecutionSpec struct {
 	// Use case: B2B integrations where secrets are injected at runtime (e.g., Plant & Cloud).
 	// These values are stored in ExecutionContext and deleted when execution completes.
 	// Merge priority: Agent defaults < Environment < runtime_env (highest)
-	RuntimeEnv    map[string]*v1.ExecutionValue `protobuf:"bytes,5,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	RuntimeEnv map[string]*v1.ExecutionValue `protobuf:"bytes,5,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Temporal task token for async activity completion (optional).
+	//
+	// **Purpose**: Enables async activity completion pattern where the caller
+	// (typically a Zigflow workflow activity) waits for actual agent completion
+	// without blocking worker threads.
+	//
+	// **Flow**:
+	// 1. Caller (Go Temporal activity) extracts its task token
+	// 2. Passes token in this field when creating AgentExecution
+	// 3. Returns activity.ErrResultPending (activity paused, thread released)
+	// 4. Agent workflow completes (minutes/hours later)
+	// 5. Agent workflow calls ActivityCompletionClient.complete(token, result)
+	// 6. Temporal resumes the paused activity with the result
+	//
+	// **Benefits**:
+	// - Correctness: Caller waits for actual completion, not just ACK
+	// - Scalability: Worker threads not blocked during long-running execution
+	// - Resilience: Token is durable in Temporal; survives restarts
+	// - Decoupling: Caller doesn't poll or manage agent lifecycle
+	//
+	// **When Empty**:
+	// - Empty/null = fire-and-forget or direct API call (backward compatible)
+	// - Agent execution proceeds normally, no callback performed
+	// - Use case: CLI commands, API requests, non-workflow triggers
+	//
+	// **When Provided**:
+	// - Agent workflow MUST complete the external activity using this token
+	// - Both success and failure paths must call completion
+	// - Token uniquely identifies the external activity execution
+	//
+	// **Token Format**:
+	// - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
+	// - Contains: namespace, workflow ID, run ID, activity ID, attempt
+	// - DO NOT parse or modify - treat as opaque handle
+	//
+	// **Security**:
+	// - Token grants ability to complete the activity (bearer token)
+	// - Should only be passed through trusted internal services
+	// - Logged as Base64-encoded string (truncated for security)
+	//
+	// **Timeout**:
+	// - Caller should set StartToCloseTimeout (e.g., 24 hours)
+	// - If token callback never arrives, activity times out
+	// - Prevents infinite hangs if agent workflow crashes
+	//
+	// **Observability**:
+	// - Token is logged at creation time (Base64, first 20 chars)
+	// - Activity appears as "Running" in Temporal UI until completed
+	// - Both caller workflow and agent workflow visible in Temporal
+	//
+	// **Example Usage (Go)**:
+	// ```go
+	// // In Zigflow workflow activity
+	//
+	//	func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) {
+	//	    // Extract task token
+	//	    taskToken := activity.GetInfo(ctx).TaskToken
+	//
+	//	    // Create agent execution with token
+	//	    execution := &AgentExecution{
+	//	        Spec: &AgentExecutionSpec{
+	//	            AgentId: config.Agent,
+	//	            Message: config.Message,
+	//	            CallbackToken: taskToken,  // 👈 Pass token here
+	//	        },
+	//	    }
+	//
+	//	    client.Create(ctx, execution)
+	//
+	//	    // Return pending - activity paused, thread released
+	//	    return nil, activity.ErrResultPending
+	//	}
+	//
+	// ```
+	//
+	// **Example Usage (Java Completion)**:
+	// ```java
+	// // In agent workflow (after completion)
+	//
+	//	if (spec.getCallbackToken() != null && !spec.getCallbackToken().isEmpty()) {
+	//	    // Complete the external activity
+	//	    systemActivities.completeZigflowToken(
+	//	        spec.getCallbackToken(),
+	//	        result
+	//	    );
+	//	}
+	//
+	// ```
+	//
+	// **References**:
+	// - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
+	// - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
+	// - Go SDK: https://pkg.go.dev/go.temporal.io/sdk/activity#ErrResultPending
+	// - Java SDK: https://www.javadoc.io/doc/io.temporal/temporal-sdk/latest/io/temporal/client/ActivityCompletionClient.html
+	//
+	// @since 2026-01-22 (Phase 2: Async Agent Execution Integration)
+	CallbackToken []byte `protobuf:"bytes,6,opt,name=callback_token,json=callbackToken,proto3" json:"callback_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -119,6 +216,13 @@ func (x *AgentExecutionSpec) GetRuntimeEnv() map[string]*v1.ExecutionValue {
 	return nil
 }
 
+func (x *AgentExecutionSpec) GetCallbackToken() []byte {
+	if x != nil {
+		return x.CallbackToken
+	}
+	return nil
+}
+
 // Configuration that can be applied at execution time.
 type ExecutionConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -170,7 +274,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xb5\x03\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xdc\x03\n" +
 	"\x12AgentExecutionSpec\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
@@ -178,7 +282,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\amessage\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\amessage\x12`\n" +
 	"\x10execution_config\x18\x04 \x01(\v25.ai.stigmer.agentic.agentexecution.v1.ExecutionConfigR\x0fexecutionConfig\x12i\n" +
 	"\vruntime_env\x18\x05 \x03(\v2H.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntryR\n" +
-	"runtimeEnv\x1au\n" +
+	"runtimeEnv\x12%\n" +
+	"\x0ecallback_token\x18\x06 \x01(\fR\rcallbackToken\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"0\n" +

@@ -1,0 +1,29 @@
+{
+  "name": "SkillSpec",
+  "kind": "SKILL_SPEC",
+  "description": "SkillSpec defines the configurable properties of a skill.",
+  "protoType": "ai.stigmer.agentic.skill.v1.SkillSpec",
+  "protoFile": "apis/ai/stigmer/agentic/skill/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Brief description for UI display.",
+      "required": false
+    },
+    {
+      "name": "MarkdownContent",
+      "jsonName": "markdownContent",
+      "protoField": "markdown_content",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Markdown content containing the skill documentation/knowledge.",
+      "required": false
+    }
+  ]
+}

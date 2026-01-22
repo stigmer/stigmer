@@ -18,6 +18,7 @@ package tasks
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"sync"
 	"time"
@@ -42,16 +43,33 @@ func init() {
 // CallAgentActivities implements the activity for executing agent calls from workflows.
 type CallAgentActivities struct{}
 
-// CallAgentActivity executes an agent call as part of a workflow.
-// It handles:
-// 1. JIT secret resolution (${.secrets.KEY} → actual secret value)
-// 2. Agent slug resolution (agent name → agent ID)
-// 3. Agent execution creation
-// 4. Waiting for execution to complete
-// 5. Returning the agent's response
+// CallAgentActivity executes an agent call as part of a workflow using async completion.
 //
-// SECURITY CRITICAL: Secrets are resolved HERE (in activity), never in workflow context.
+// **Async Activity Completion Pattern** (Token Handshake):
+// This activity uses Temporal's async completion pattern to avoid blocking worker
+// threads during long-running agent execution (which can take minutes to hours).
+//
+// **Flow**:
+// 1. Extract Temporal task token (unique identifier for this activity execution)
+// 2. Resolve JIT secrets (${.secrets.KEY} → actual values)
+// 3. Resolve agent slug to agent ID
+// 4. Create AgentExecution with callback_token
+// 5. Return activity.ErrResultPending (activity paused, thread released)
+// 6. [Agent executes asynchronously in Java/Python]
+// 7. [Agent workflow completes and calls back using the token]
+// 8. [Temporal resumes this activity with the result]
+//
+// **Key Points**:
+// - Worker thread is NOT blocked during agent execution
+// - Activity remains in "Running" state until callback
+// - Token is durable in Temporal; survives restarts
+// - Timeout configured via StartToCloseTimeout (should be 24+ hours)
+//
+// **SECURITY CRITICAL**: Secrets are resolved HERE (in activity), never in workflow context.
 // This ensures secrets don't appear in Temporal workflow history.
+//
+// @see ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
+// @see Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
 func (a *CallAgentActivities) CallAgentActivity(
 	ctx context.Context,
 	taskConfig *workflowtasks.AgentCallTaskConfig,
@@ -59,9 +77,29 @@ func (a *CallAgentActivities) CallAgentActivity(
 	runtimeEnv map[string]any,
 ) (any, error) {
 	logger := activity.GetLogger(ctx)
-	logger.Debug("Running call agent activity",
+	logger.Info("⏳ Starting agent call activity (async completion pattern)",
 		"agent", taskConfig.Agent,
 		"scope", taskConfig.Scope)
+
+	// **STEP 0: Extract Temporal Task Token** (for async completion)
+	// This token uniquely identifies this activity execution and allows the agent
+	// workflow to complete it asynchronously after agent execution finishes.
+	activityInfo := activity.GetInfo(ctx)
+	taskToken := activityInfo.TaskToken
+	
+	// Log token for debugging (Base64, truncated for security)
+	// The full token is ~100-200 bytes; we log first 20 chars of Base64 encoding
+	tokenBase64 := base64.StdEncoding.EncodeToString(taskToken)
+	tokenPreview := tokenBase64
+	if len(tokenPreview) > 20 {
+		tokenPreview = tokenPreview[:20] + "..."
+	}
+	
+	logger.Info("📝 Extracted Temporal task token for async completion",
+		"token_preview", tokenPreview,
+		"token_length", len(taskToken),
+		"activity_id", activityInfo.ActivityID,
+		"workflow_id", activityInfo.WorkflowExecution.ID)
 
 	// **STEP 1: JIT Secret Resolution**
 	// Resolve runtime placeholders just-in-time to prevent secret leakage.
@@ -100,33 +138,37 @@ func (a *CallAgentActivities) CallAgentActivity(
 	}
 	logger.Debug("Agent resolved", "agent", resolvedConfig.Agent, "agent_id", agentId)
 
-	// **STEP 3: Create Agent Execution**
-	execution, err := a.createAgentExecution(ctx, agentId, resolvedConfig)
+	// **STEP 3: Create Agent Execution** (with callback token)
+	execution, err := a.createAgentExecution(ctx, agentId, resolvedConfig, taskToken)
 	if err != nil {
-		logger.Error("Failed to create agent execution", "error", err)
+		logger.Error("❌ Failed to create agent execution", "error", err)
 		return nil, fmt.Errorf("failed to create agent execution: %w", err)
 	}
 	executionId := execution.Metadata.Id
-	logger.Info("Agent execution created", "execution_id", executionId)
+	logger.Info("✅ Agent execution created with callback token",
+		"execution_id", executionId,
+		"token_preview", tokenPreview)
 
-	// **STEP 4: Wait for Completion**
-	result, err := a.waitForCompletion(ctx, executionId)
-	if err != nil {
-		logger.Error("Agent execution failed", "execution_id", executionId, "error", err)
-		return nil, fmt.Errorf("agent execution failed: %w", err)
-	}
-	logger.Info("Agent execution completed", "execution_id", executionId)
+	// **STEP 4: Return Pending** (async completion - activity paused, thread released)
+	// The agent workflow will complete this activity asynchronously when it finishes.
+	// Until then:
+	// - This activity appears as "Running" in Temporal UI
+	// - The worker thread is released (not blocked)
+	// - The workflow is paused at this point
+	// - Timeout is controlled by StartToCloseTimeout (should be 24+ hours)
+	logger.Info("⏸️ Returning activity.ErrResultPending - activity paused for async completion",
+		"execution_id", executionId,
+		"activity_id", activityInfo.ActivityID,
+		"workflow_id", activityInfo.WorkflowExecution.ID)
+	
+	return nil, activity.ErrResultPending
 
-	// **STEP 5: Sanitize Output** (Security Check)
-	// Detect if agent response accidentally contains secret values
-	if runtimeEnv != nil && len(runtimeEnv) > 0 {
-		warnings := SanitizeOutput(result, runtimeEnv)
-		for _, warning := range warnings {
-			logger.Warn("Potential secret leakage detected in agent response", "warning", warning)
-		}
-	}
-
-	return result, nil
+	// NOTE: The old polling logic (waitForCompletion) has been removed.
+	// The agent workflow will now complete this activity asynchronously using
+	// ActivityCompletionClient.complete(token, result) when it finishes.
+	//
+	// Output sanitization (secret leakage detection) will be handled by the
+	// agent workflow before calling the completion callback.
 }
 
 // resolveRuntimePlaceholders resolves JIT placeholders in the agent config.
@@ -205,10 +247,12 @@ func (a *CallAgentActivities) resolveAgent(
 }
 
 // createAgentExecution creates a new agent execution through the AgentExecution command service.
+// The callbackToken enables async activity completion pattern.
 func (a *CallAgentActivities) createAgentExecution(
 	ctx context.Context,
 	agentId string,
 	config *workflowtasks.AgentCallTaskConfig,
+	callbackToken []byte,
 ) (*agentexecv1.AgentExecution, error) {
 	logger := activity.GetLogger(ctx)
 
@@ -223,11 +267,12 @@ func (a *CallAgentActivities) createAgentExecution(
 		}
 	}
 
-	// Build execution spec
+	// Build execution spec with callback token for async completion
 	spec := &agentexecv1.AgentExecutionSpec{
-		AgentId:    agentId,
-		Message:    config.Message,
-		RuntimeEnv: runtimeEnv,
+		AgentId:       agentId,
+		Message:       config.Message,
+		RuntimeEnv:    runtimeEnv,
+		CallbackToken: callbackToken, // 👈 Pass token for async completion
 	}
 
 	// Add execution config if provided
