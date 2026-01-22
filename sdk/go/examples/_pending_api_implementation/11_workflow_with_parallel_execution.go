@@ -60,19 +60,19 @@ func main() {
 			workflow.WaitForAll(), // Wait for all branches to complete
 		)
 
-		// Task 2: Merge results from all parallel branches
-		wf.SetVars("mergeResults",
-			"users", forkTask.Branch("fetchUsers").Field("data"),
-			"products", forkTask.Branch("fetchProducts").Field("data"),
-			"orders", forkTask.Branch("fetchOrders").Field("data"),
-			"status", "merged",
-		)
+	// Task 2: Merge results from all parallel branches
+	wf.Set("mergeResults",
+		workflow.SetVar("users", forkTask.Branch("fetchUsers").Field("data")),
+		workflow.SetVar("products", forkTask.Branch("fetchProducts").Field("data")),
+		workflow.SetVar("orders", forkTask.Branch("fetchOrders").Field("data")),
+		workflow.SetVar("status", "merged"),
+	)
 
-		// Task 3: Process merged data
-		wf.SetVars("processMerged",
-			"totalRecords", "${users.length + products.length + orders.length}",
-			"completedAt", "${now()}",
-		)
+	// Task 3: Process merged data
+	wf.Set("processMerged",
+		workflow.SetVar("totalRecords", "${users.length + products.length + orders.length}"),
+		workflow.SetVar("completedAt", "${now()}"),
+	)
 
 		log.Printf("Created workflow with parallel execution: %s", wf)
 		return nil
