@@ -167,9 +167,12 @@ func TestInlineSkill_Fields(t *testing.T) {
 		t.Error("IsInline = false, want true")
 	}
 
-	// For inline skills, these should be empty
-	if skill.Slug != "" {
-		t.Errorf("Slug = %q, want empty string", skill.Slug)
+	// For inline skills, slug is auto-generated from name (if not provided), org is empty
+	if skill.Slug == "" {
+		t.Error("Slug should be auto-generated from name, got empty string")
+	}
+	if skill.Slug != "test-skill" {
+		t.Errorf("Slug = %q, want %q (auto-generated from name)", skill.Slug, "test-skill")
 	}
 	if skill.Org != "" {
 		t.Errorf("Org = %q, want empty string", skill.Org)

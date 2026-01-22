@@ -2,9 +2,9 @@
 
 **Project**: SDK Code Generators (Go) - Workflows & Agents  
 **Location**: `_projects/2026-01/20260122.01.sdk-code-generators-go/`  
-**Status**: ✅ 100% COMPLETE - ALL 4 PHASES DONE! 🚀  
+**Status**: ✅ 100% COMPLETE + CLEANUP DONE! 🎉  
 **Completed**: 2026-01-22  
-**Total Time**: 7 hours
+**Total Time**: 8 hours (includes cleanup phase)
 
 ---
 
@@ -675,6 +675,14 @@ Simply drag this file (`next-task.md`) into the chat, and I'll:
 - ✅ Ready to ship!
 
 **Optional Future Work**:  
-- 🔲 Migrate remaining 14 examples (~4-6 hours)
-- 🔲 Usage documentation and migration guide (~1 hour)
+- ✅ Examples cleanup complete! (1 hour)
+  - 14 working examples ready
+  - 5 advanced examples moved to _pending_api_implementation/
+  - Legacy code deleted
+- 🔲 Implement advanced workflow APIs (~14 hours)
+  - Switch, ForEach, Try/Catch, Fork builders
+  - Enable pending examples (08-11, 18)
+- 🔲 Expand test coverage (~2 hours)
+  - Add tests for examples 03-06, 14-17, 19
+- 🔲 Usage documentation and migration guide (~2 hours)
 - 🔲 Advanced CLI features (parallel creation, visualization)

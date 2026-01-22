@@ -50,12 +50,12 @@ func main() {
 			}),
 		)
 
-		// Task 3: Collect results
-		wf.SetVars("collectResults",
-			"processed", loopTask.Field("results"),
-			"count", loopTask.Field("count"),
-			"status", "completed",
-		)
+	// Task 3: Collect results
+	wf.Set("collectResults",
+		workflow.SetVar("processed", loopTask.Field("results")),
+		workflow.SetVar("count", loopTask.Field("count")),
+		workflow.SetVar("status", "completed"),
+	)
 
 		log.Printf("Created workflow with loops: %s", wf)
 		log.Printf("Batch size: %v", batchSize)

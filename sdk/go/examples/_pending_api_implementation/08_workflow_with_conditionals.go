@@ -42,23 +42,23 @@ func main() {
 			workflow.DefaultCase("handleError"),
 		)
 
-		// Task 3a: Production deployment
-		wf.SetVars("deployProduction",
-			"environment", "production",
-			"replicas", "5",
-		).DependsOn(switchTask)
+	// Task 3a: Production deployment
+	wf.Set("deployProduction",
+		workflow.SetVar("environment", "production"),
+		workflow.SetVar("replicas", "5"),
+	).DependsOn(switchTask)
 
-		// Task 3b: Staging deployment
-		wf.SetVars("deployStaging",
-			"environment", "staging",
-			"replicas", "2",
-		).DependsOn(switchTask)
+	// Task 3b: Staging deployment
+	wf.Set("deployStaging",
+		workflow.SetVar("environment", "staging"),
+		workflow.SetVar("replicas", "2"),
+	).DependsOn(switchTask)
 
-		// Task 3c: Error handler
-		wf.SetVars("handleError",
-			"status", "failed",
-			"reason", "Invalid status code",
-		).DependsOn(switchTask)
+	// Task 3c: Error handler
+	wf.Set("handleError",
+		workflow.SetVar("status", "failed"),
+		workflow.SetVar("reason", "Invalid status code"),
+	).DependsOn(switchTask)
 
 		log.Printf("Created workflow with conditional logic: %s", wf)
 		return nil

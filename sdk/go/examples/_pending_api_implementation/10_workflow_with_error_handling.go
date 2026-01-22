@@ -39,21 +39,21 @@ func main() {
 					workflow.Timeout(30),
 				)
 			}),
-			workflow.CatchBlock(func(err workflow.ErrorRef) *workflow.Task {
-				// Error handler
-				return wf.SetVars("handleError",
-					"error", err.Message(),
-					"timestamp", err.Timestamp(),
-					"retryable", "true",
-				)
-			}),
-			workflow.FinallyBlock(func() *workflow.Task {
-				// Always executed (cleanup)
-				return wf.SetVars("cleanup",
-					"status", "attempted",
-					"maxRetries", maxRetries,
-				)
-			}),
+		workflow.CatchBlock(func(err workflow.ErrorRef) *workflow.Task {
+			// Error handler
+			return wf.Set("handleError",
+				workflow.SetVar("error", err.Message()),
+				workflow.SetVar("timestamp", err.Timestamp()),
+				workflow.SetVar("retryable", "true"),
+			)
+		}),
+		workflow.FinallyBlock(func() *workflow.Task {
+			// Always executed (cleanup)
+			return wf.Set("cleanup",
+				workflow.SetVar("status", "attempted"),
+				workflow.SetVar("maxRetries", maxRetries),
+			)
+		}),
 		)
 
 		// Task 2: Check if retry is needed
@@ -63,17 +63,17 @@ func main() {
 			workflow.Case(workflow.Equals(false), "logFailure"),
 		)
 
-		// Task 3a: Process successful result
-		wf.SetVars("processSuccess",
-			"result", tryTask.Field("data"),
-			"status", "completed",
-		)
+	// Task 3a: Process successful result
+	wf.Set("processSuccess",
+		workflow.SetVar("result", tryTask.Field("data")),
+		workflow.SetVar("status", "completed"),
+	)
 
-		// Task 3b: Log failure
-		wf.SetVars("logFailure",
-			"status", "failed",
-			"reason", tryTask.Field("error"),
-		)
+	// Task 3b: Log failure
+	wf.Set("logFailure",
+		workflow.SetVar("status", "failed"),
+		workflow.SetVar("reason", tryTask.Field("error")),
+	)
 
 		log.Printf("Created workflow with error handling: %s", wf)
 		return nil
