@@ -5,6 +5,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows"
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
@@ -80,6 +81,7 @@ func NewWorkerConfig(
 // Registered Components:
 // - Workflows: InvokeAgentExecutionWorkflow (Go)
 // - Activities: UpdateExecutionStatusActivity (Go - for error recovery, LOCAL activity)
+// - Activities: CompleteExternalActivity (Go - for async activity completion pattern)
 //
 // NOT Registered (handled by agent-runner on "agent_execution_runner" queue):
 // - ExecuteGraphton (Python)
@@ -107,6 +109,22 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 	log.Info().
 		Str("queue", wc.config.RunnerQueue).
 		Msg("✅ [POLYGLOT] Python activities (ExecuteGraphton, EnsureThread, CleanupSandbox) on Python worker")
+
+	// Initialize CompleteExternalActivity with Temporal client
+	// This enables the async activity completion pattern (token handshake)
+	// See: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
+	activities.InitializeCompleteExternalActivity(temporalClient)
+
+	// Register system activity for completing external activities
+	// This is a regular activity (not local) because it needs to call Temporal API
+	w.RegisterActivityWithOptions(
+		activities.CompleteExternalActivity,
+		activity.RegisterOptions{
+			Name: activities.CompleteExternalActivityName, // "stigmer/system/complete-external-activity"
+		},
+	)
+
+	log.Info().Msg("✅ [ASYNC-PATTERN] Registered CompleteExternalActivity (for token handshake)")
 
 	// Register local activities (run in-process, don't participate in task queue routing)
 	// This avoids need for separate task queue configuration
