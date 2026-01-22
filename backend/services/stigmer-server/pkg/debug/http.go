@@ -15,6 +15,9 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 )
 
@@ -65,7 +68,7 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
     <div class="endpoint">
         <a href="/debug/db/api">/debug/db/api</a>
         <p>JSON API for programmatic access</p>
-        <p>Query params: <code>?filter=agent|agent-instance|agent-execution|session</code></p>
+        <p>Query params: <code>?filter=agent|agent-instance|agent-execution|workflow|workflow-instance|workflow-execution|session</code></p>
     </div>
 </body>
 </html>`
@@ -157,6 +160,9 @@ func handleDebugDB(w http.ResponseWriter, r *http.Request, store *badger.Store) 
             <a href="/debug/db?filter=agent" class="filter-btn ` + activeClass(filter, "agent") + `">Agents</a>
             <a href="/debug/db?filter=agent-instance" class="filter-btn ` + activeClass(filter, "agent-instance") + `">Agent Instances</a>
             <a href="/debug/db?filter=agent-execution" class="filter-btn ` + activeClass(filter, "agent-execution") + `">Agent Executions</a>
+            <a href="/debug/db?filter=workflow" class="filter-btn ` + activeClass(filter, "workflow") + `">Workflows</a>
+            <a href="/debug/db?filter=workflow-instance" class="filter-btn ` + activeClass(filter, "workflow-instance") + `">Workflow Instances</a>
+            <a href="/debug/db?filter=workflow-execution" class="filter-btn ` + activeClass(filter, "workflow-execution") + `">Workflow Executions</a>
             <a href="/debug/db?filter=session" class="filter-btn ` + activeClass(filter, "session") + `">Sessions</a>
         </div>
     </div>
@@ -309,6 +315,12 @@ func matchesFilter(key, filter string) bool {
 		return strings.HasPrefix(key, "agent_instance/")
 	case "agent-execution":
 		return strings.HasPrefix(key, "agent_execution/")
+	case "workflow":
+		return strings.HasPrefix(key, "workflow/") && !strings.HasPrefix(key, "workflow_")
+	case "workflow-instance":
+		return strings.HasPrefix(key, "workflow_instance/")
+	case "workflow-execution":
+		return strings.HasPrefix(key, "workflow_execution/")
 	case "session":
 		return strings.HasPrefix(key, "session/")
 	default:
@@ -326,6 +338,12 @@ func unmarshalProto(key string, val []byte) (interface{}, error) {
 		msg = &agentinstancev1.AgentInstance{}
 	} else if strings.HasPrefix(key, "agent_execution/") {
 		msg = &agentexecutionv1.AgentExecution{}
+	} else if strings.HasPrefix(key, "workflow/") && !strings.HasPrefix(key, "workflow_") {
+		msg = &workflowv1.Workflow{}
+	} else if strings.HasPrefix(key, "workflow_instance/") {
+		msg = &workflowinstancev1.WorkflowInstance{}
+	} else if strings.HasPrefix(key, "workflow_execution/") {
+		msg = &workflowexecutionv1.WorkflowExecution{}
 	} else if strings.HasPrefix(key, "session/") {
 		msg = &sessionv1.Session{}
 	} else {
