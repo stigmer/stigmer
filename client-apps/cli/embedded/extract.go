@@ -14,6 +14,10 @@ import (
 
 // EnsureBinariesExtracted ensures all embedded binaries are extracted to the bin directory
 // This should be called on daemon start before attempting to use any binaries
+//
+// NOTE: As of Docker-based architecture, no binaries are embedded anymore.
+// All platforms (darwin/arm64, darwin/amd64, linux/amd64) use Docker images for agent-runner.
+// This function is kept for backward compatibility and graceful migration.
 func EnsureBinariesExtracted(dataDir string) error {
 	binDir := filepath.Join(dataDir, "bin")
 	
@@ -38,7 +42,7 @@ func EnsureBinariesExtracted(dataDir string) error {
 	} else {
 		log.Info().
 			Str("version", currentVersion).
-			Msg("First run detected, extracting embedded binaries")
+			Msg("First run detected - agent-runner will be pulled from Docker registry")
 	}
 	
 	// Clean slate: remove old binaries if they exist
@@ -51,8 +55,8 @@ func EnsureBinariesExtracted(dataDir string) error {
 		return errors.Wrap(err, "failed to create bin directory")
 	}
 	
-	// Extract agent-runner only (BusyBox: stigmer-server and workflow-runner compiled into CLI)
-	log.Debug().Msg("Extracting agent-runner...")
+	// Extract agent-runner (will be nil for all platforms now - Docker-based)
+	log.Debug().Msg("Checking for embedded agent-runner (Docker-based architecture)...")
 	if err := extractAgentRunner(binDir); err != nil {
 		return errors.Wrap(err, "failed to extract agent-runner")
 	}
@@ -65,23 +69,24 @@ func EnsureBinariesExtracted(dataDir string) error {
 	log.Info().
 		Str("version", currentVersion).
 		Str("location", binDir).
-		Msg("Successfully extracted all embedded binaries")
+		Msg("Binary extraction check complete - using Docker-based agent-runner")
 	
 	return nil
 }
 
 // extractAgentRunner extracts the agent-runner binary to the bin directory
-// Note: stigmer-server and workflow-runner extraction removed (BusyBox pattern)
+// Note: As of Docker-based architecture, this always returns nil (no embedded binaries).
+// The daemon will pull the agent-runner Docker image from ghcr.io/stigmer/agent-runner on first start.
 func extractAgentRunner(binDir string) error {
 	data, err := GetAgentRunnerBinary()
 	if err != nil {
 		return err
 	}
 	
-	// If data is nil, it means the binary is not embedded (e.g., Intel Mac download-only mode)
-	// Skip extraction gracefully - the daemon will download it on first use
+	// If data is nil, it means the binary is not embedded (Docker-based architecture for all platforms)
+	// Skip extraction gracefully - the daemon will pull the Docker image on first use
 	if data == nil || len(data) == 0 {
-		log.Debug().Msg("Agent-runner not embedded, will be downloaded on first daemon start")
+		log.Debug().Msg("Agent-runner not embedded (Docker-based), will be pulled from ghcr.io on daemon start")
 		return nil
 	}
 	
