@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "proto2schema_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/stigmer/stigmer/tools/codegen/proto2schema",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@com_github_jhump_protoreflect//desc",
+        "@com_github_jhump_protoreflect//desc/protoparse",
+        "@org_golang_google_protobuf//types/descriptorpb",
+    ],
+)
+
+go_binary(
+    name = "proto2schema",
+    embed = [":proto2schema_lib"],
+    visibility = ["//visibility:public"],
+)

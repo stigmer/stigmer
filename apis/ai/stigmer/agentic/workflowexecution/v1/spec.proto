@@ -232,4 +232,72 @@ message WorkflowExecutionSpec {
   //
   // Tasks can access these values using: {{env.VARIABLE_NAME}}
   map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 5;
+
+  // ============================================================================
+  // Temporal Async Activity Completion Token (Token Handshake Pattern)
+  // ============================================================================
+
+  // Temporal task token for async activity completion (optional).
+  //
+  // **Purpose**: Enables async activity completion pattern where the caller
+  // (typically a parent workflow or orchestrator) waits for actual workflow completion
+  // without blocking worker threads.
+  //
+  // **Flow**:
+  // 1. Caller (Temporal activity) extracts its task token
+  // 2. Passes token in this field when creating WorkflowExecution
+  // 3. Returns activity.ErrResultPending (activity paused, thread released)
+  // 4. Workflow executes (minutes/hours later)
+  // 5. Workflow calls ActivityCompletionClient.complete(token, result)
+  // 6. Temporal resumes the paused activity with the result
+  //
+  // **Benefits**:
+  // - Correctness: Caller waits for actual completion, not just ACK
+  // - Scalability: Worker threads not blocked during long-running execution
+  // - Resilience: Token is durable in Temporal; survives restarts
+  // - Decoupling: Caller doesn't poll or manage workflow lifecycle
+  //
+  // **When Empty**:
+  // - Empty/null = fire-and-forget or direct API call (backward compatible)
+  // - Workflow execution proceeds normally, no callback performed
+  // - Use case: CLI commands, API requests, non-workflow triggers
+  //
+  // **When Provided**:
+  // - Workflow MUST complete the external activity using this token
+  // - Both success and failure paths must call completion
+  // - Token uniquely identifies the external activity execution
+  //
+  // **Token Format**:
+  // - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
+  // - Contains: namespace, workflow ID, run ID, activity ID, attempt
+  // - DO NOT parse or modify - treat as opaque handle
+  //
+  // **Security**:
+  // - Token grants ability to complete the activity (bearer token)
+  // - Should only be passed through trusted internal services
+  // - Logged as Base64-encoded string (truncated for security)
+  //
+  // **Timeout**:
+  // - Caller should set StartToCloseTimeout (e.g., 24 hours)
+  // - If token callback never arrives, activity times out
+  // - Prevents infinite hangs if workflow crashes
+  //
+  // **Observability**:
+  // - Token is logged at creation time (Base64, first 20 chars)
+  // - Activity appears as "Running" in Temporal UI until completed
+  // - Both caller workflow and this workflow visible in Temporal
+  //
+  // **Consistency with AgentExecution**:
+  // - Same pattern as AgentExecution.spec.callback_token
+  // - Enables workflow-calling-workflow scenarios
+  // - Future: WorkflowExecution calling WorkflowExecution
+  //
+  // **References**:
+  // - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
+  // - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
+  // - Go SDK: https://pkg.go.dev/go.temporal.io/sdk/activity#ErrResultPending
+  // - Java SDK: https://www.javadoc.io/doc/io.temporal/temporal-sdk/latest/io/temporal/client/ActivityCompletionClient.html
+  //
+  // @since 2026-01-22 (Phase 3: Workflow Async Completion)
+  bytes callback_token = 7;
 }

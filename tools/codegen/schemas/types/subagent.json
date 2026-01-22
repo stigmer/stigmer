@@ -1,0 +1,30 @@
+{
+  "name": "SubAgent",
+  "description": "SubAgent represents a sub-agent that can be delegated to.",
+  "protoType": "ai.stigmer.agentic.agent.v1.SubAgent",
+  "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
+  "fields": [
+    {
+      "name": "InlineSpec",
+      "jsonName": "inlineSpec",
+      "protoField": "inline_spec",
+      "type": {
+        "kind": "message",
+        "messageType": "InlineSubAgentSpec"
+      },
+      "description": "Inline sub-agent definition.",
+      "required": false
+    },
+    {
+      "name": "AgentInstanceRefs",
+      "jsonName": "agentInstanceRefs",
+      "protoField": "agent_instance_refs",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "Reference to existing Agent resource.",
+      "required": false
+    }
+  ]
+}

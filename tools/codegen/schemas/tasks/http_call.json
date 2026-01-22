@@ -1,0 +1,76 @@
+{
+  "name": "HttpCallTaskConfig",
+  "kind": "HTTP_CALL",
+  "description": "HTTP_CALL tasks make HTTP requests (GET, POST, PUT, DELETE, PATCH).",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/http_call.proto",
+  "fields": [
+    {
+      "name": "Method",
+      "jsonName": "method",
+      "protoField": "method",
+      "type": {
+        "kind": "string"
+      },
+      "description": "HTTP method (GET, POST, PUT, DELETE, PATCH)",
+      "required": true,
+      "validation": {
+        "required": true,
+        "enum": ["GET", "POST", "PUT", "DELETE", "PATCH"]
+      }
+    },
+    {
+      "name": "URI",
+      "jsonName": "uri",
+      "protoField": "uri",
+      "type": {
+        "kind": "string"
+      },
+      "description": "HTTP endpoint URI",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Headers",
+      "jsonName": "headers",
+      "protoField": "headers",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "HTTP headers (optional). Values can contain expressions: \"Bearer ${TOKEN}\"",
+      "required": false
+    },
+    {
+      "name": "Body",
+      "jsonName": "body",
+      "protoField": "body",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "Request body (optional). Can be any JSON structure. Supports expressions in string values.",
+      "required": false
+    },
+    {
+      "name": "TimeoutSeconds",
+      "jsonName": "timeout_seconds",
+      "protoField": "timeout_seconds",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Request timeout in seconds (optional, default: 30)",
+      "required": false,
+      "validation": {
+        "min": 1,
+        "max": 300
+      }
+    }
+  ]
+}

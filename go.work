@@ -7,4 +7,5 @@ use (
 	./backend/services/workflow-runner
 	./client-apps/cli
 	./sdk/go
+	./tools
 )
