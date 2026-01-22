@@ -894,12 +894,186 @@ case StringValue:  // ← Fallback
 
 ---
 
+---
+
+## 2026-01-22: Code Generation - Map Value Type Extraction
+
+### Context
+
+Extended proto2schema tool to support Agent and Skill resources. Discovered that map value types (like `map<string, EnvironmentValue>`) weren't being automatically extracted from proto files.
+
+### Pattern 1: Extracting Message Types from Map Values
+
+**Problem**: Proto reflection's `collectNestedTypes()` only checked direct message fields, missing types embedded in map value positions.
+
+**Root Cause**: Map fields are synthetic `MapEntry` messages with `key` and `value` fields. The tool only checked `field.GetType() == TYPE_MESSAGE`, which returns true for the MapEntry itself, not the value field inside it.
+
+**Solution**: Special handling for map fields to check the value field's type:
+
+```go
+// In tools/codegen/proto2schema/main.go
+func collectNestedTypes(msg *desc.MessageDescriptor, fd *desc.FileDescriptor, sharedTypes map[string]*TypeSchema) {
+    for _, field := range msg.GetFields() {
+        // Handle map fields specially - check the value type
+        if field.IsMap() {
+            mapEntry := field.GetMessageType()
+            if mapEntry != nil {
+                // Map entry has two fields: key (index 0) and value (index 1)
+                valueField := mapEntry.GetFields()[1]
+                if valueField.GetType() == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
+                    msgType := valueField.GetMessageType()
+                    if msgType != nil && !strings.HasPrefix(msgType.GetFullyQualifiedName(), "google.protobuf") {
+                        typeName := msgType.GetName()
+                        if _, exists := sharedTypes[typeName]; !exists {
+                            msgFd := msgType.GetFile()
+                            sharedTypes[typeName] = parseSharedType(msgType, msgFd)
+                            fmt.Printf("    Found shared type (map value): %s\n", typeName)
+                            collectNestedTypes(msgType, msgFd, sharedTypes)
+                        }
+                    }
+                }
+            }
+        } else if field.GetType() == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
+            // Handle regular message fields
+            // ... existing logic
+        }
+    }
+}
+```
+
+**Why This Works**:
+- Map fields have synthetic MapEntry message type
+- MapEntry always has exactly 2 fields: key at index 0, value at index 1
+- Value field can be a message type reference
+- Recursive extraction continues for value type dependencies
+
+**Impact**:
+- Before: `EnvironmentValue` and `McpToolSelection` required manual schema creation
+- After: Both automatically extracted with "(map value)" label ✅
+
+**When to Use**: Anytime you're using protoreflect to extract nested types - maps need special handling separate from direct message fields.
+
+### Pattern 2: Tool Generalization via Configuration Flags
+
+**Problem**: Proto2schema and code generator were hardcoded for workflow tasks only (`TaskConfig` suffix, `_task.go` files, `isTaskConfig()` methods).
+
+**Solution**: Replace hardcoded assumptions with configuration flags:
+
+**Proto2Schema Tool**:
+```go
+// Added flag for flexible message extraction
+messageSuffix := flag.String("message-suffix", "TaskConfig", 
+    "Suffix of messages to extract (TaskConfig, Spec, etc)")
+
+// Use flag instead of hardcoded "TaskConfig"
+if strings.HasSuffix(msg.GetName(), *messageSuffix) {
+    // Extract this message
+}
+```
+
+**Code Generator Tool**:
+```go
+// Added flag for flexible file naming
+fileSuffix := flag.String("file-suffix", "", 
+    "Suffix for generated files (e.g., '_task', '_spec', or empty)")
+
+// Use flag in file naming
+filename := fmt.Sprintf("%s%s.go", toSnakeCase(baseName), g.fileSuffix)
+```
+
+**Benefits**:
+- Single tool handles multiple patterns
+- No code duplication for different resource types
+- Easy to extend to future patterns (Config, Instance, etc.)
+- Backwards compatible (defaults work for existing usage)
+
+**Usage**:
+```bash
+# Workflow tasks (original)
+--message-suffix TaskConfig --file-suffix _task
+
+# Agent/Skill specs (new)
+--message-suffix Spec --file-suffix ""
+
+# Future patterns
+--message-suffix Config --file-suffix _config
+```
+
+**When to Use**: When building tools that could apply to multiple patterns - use flags instead of hardcoding assumptions. Makes tools reusable.
+
+### Pattern 3: Conditional Code Generation Based on Type
+
+**Problem**: Generated code had incorrect interface methods (`isTaskConfig()`) for non-task types like AgentSpec and SkillSpec.
+
+**Solution**: Make code generation conditional based on type suffix:
+
+```go
+// In tools/codegen/generator/main.go
+
+// Generate isTaskConfig() method only for TaskConfig types
+if strings.HasSuffix(config.Name, "TaskConfig") {
+    fmt.Fprintf(w, "// isTaskConfig marks %s as a TaskConfig implementation.\n", config.Name)
+    fmt.Fprintf(w, "func (c *%s) isTaskConfig() {}\n\n", config.Name)
+}
+```
+
+**Why This Works**:
+- Different resource types have different interface requirements
+- TaskConfig types need `isTaskConfig()` marker (type safety)
+- AgentSpec/SkillSpec don't implement TaskConfig interface
+- Conditional generation keeps code clean
+
+**Result**:
+- `SetTaskConfig` → has `isTaskConfig()` method ✅
+- `AgentSpec` → no interface method ✅
+- `SkillSpec` → no interface method ✅
+
+**When to Use**: Anytime you're generating interface implementations - check if the type actually implements that interface before generating the method.
+
+### Architectural Learning: Proto Reflection Structure
+
+**Key Insight**: Understanding proto reflection's internal representation is critical for correct extraction.
+
+**Proto Reflection Map Representation**:
+```
+Proto Definition:
+  map<string, EnvironmentValue> data = 2;
+
+Internal Representation:
+  synthetic MapEntry message {
+    string key = 1;
+    EnvironmentValue value = 2;
+  }
+  repeated MapEntry data = 2;  // Field is repeated MapEntry!
+```
+
+**How to Navigate**:
+```go
+field.IsMap()                     // true for map fields
+field.GetMessageType()            // Returns MapEntry message
+mapEntry.GetFields()[0]           // Key field
+mapEntry.GetFields()[1]           // Value field
+valueField.GetType()              // Type of value (could be MESSAGE)
+valueField.GetMessageType()       // Actual message type (EnvironmentValue)
+```
+
+**Why This Matters**:
+- Maps look like repeated message fields internally
+- Can't treat them the same as direct message fields
+- Must navigate through MapEntry structure
+- Value extraction is two-level (field → entry → value)
+
+**When to Use**: Any proto reflection work involving maps - understand the synthetic MapEntry representation.
+
+---
+
 ## Future Patterns to Document
 
 - Environment spec implementation (ctx.Env)
 - Secret variants for all types (SetSecretInt, SetSecretBool)
 - Agent synthesis patterns
 - Skill integration patterns
+- Multi-language SDK generation (Python, TypeScript)
 
 ---
 
