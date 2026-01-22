@@ -1,6 +1,7 @@
 package stigmer
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -442,36 +443,63 @@ func (c *Context) Synthesize() error {
 	return nil
 }
 
-// synthesizeManifests writes agent and workflow manifests to disk
+// synthesizeManifests writes agent, skill, and workflow manifests to disk
 func (c *Context) synthesizeManifests(outputDir string) error {
 	// Ensure output directory exists
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Convert agents to interfaces for the converter
-	var agentInterfaces []interface{}
-	for _, ag := range c.agents {
-		agentInterfaces = append(agentInterfaces, ag)
-	}
-
-	// Convert workflows to interfaces for the converter
-	var workflowInterfaces []interface{}
-	for _, wf := range c.workflows {
-		workflowInterfaces = append(workflowInterfaces, wf)
-	}
-
-	// Synthesize agents if any exist
-	if len(agentInterfaces) > 0 {
-		if err := c.synthesizeAgents(outputDir, agentInterfaces); err != nil {
+	// Synthesize skills first (agents depend on them)
+	if len(c.skills) > 0 {
+		if err := c.synthesizeSkills(outputDir); err != nil {
 			return err
 		}
 	}
 
-	// Synthesize workflows if any exist
-	if len(workflowInterfaces) > 0 {
-		if err := c.synthesizeWorkflows(outputDir, workflowInterfaces); err != nil {
+	// Synthesize agents
+	if len(c.agents) > 0 {
+		if err := c.synthesizeAgents(outputDir); err != nil {
 			return err
+		}
+	}
+
+	// Synthesize workflows
+	if len(c.workflows) > 0 {
+		if err := c.synthesizeWorkflows(outputDir); err != nil {
+			return err
+		}
+	}
+
+	// Write dependency graph
+	if err := c.synthesizeDependencies(outputDir); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// synthesizeSkills converts skills to protobuf and writes to disk
+func (c *Context) synthesizeSkills(outputDir string) error {
+	// Convert each skill to proto and write individually
+	for i, sk := range c.skills {
+		// Convert skill to proto using ToProto() method
+		skillProto, err := sk.ToProto()
+		if err != nil {
+			return fmt.Errorf("failed to convert skill %q to proto: %w", sk.Name, err)
+		}
+
+		// Serialize to binary protobuf
+		data, err := proto.Marshal(skillProto)
+		if err != nil {
+			return fmt.Errorf("failed to serialize skill %q: %w", sk.Name, err)
+		}
+
+		// Write to skill-{index}.pb (use index to maintain order)
+		filename := fmt.Sprintf("skill-%d.pb", i)
+		skillPath := filepath.Join(outputDir, filename)
+		if err := os.WriteFile(skillPath, data, 0644); err != nil {
+			return fmt.Errorf("failed to write skill %q: %w", sk.Name, err)
 		}
 	}
 
@@ -479,15 +507,10 @@ func (c *Context) synthesizeManifests(outputDir string) error {
 }
 
 // synthesizeAgents converts agents to protobuf and writes to disk
-func (c *Context) synthesizeAgents(outputDir string, agentInterfaces []interface{}) error {
+func (c *Context) synthesizeAgents(outputDir string) error {
 	// Convert each agent to proto and write individually
-	for i, agentInterface := range agentInterfaces {
-		ag, ok := agentInterface.(*agent.Agent)
-		if !ok {
-			return fmt.Errorf("agent[%d]: invalid type %T, expected *agent.Agent", i, agentInterface)
-		}
-
-		// Convert agent to proto using new ToProto() method
+	for i, ag := range c.agents {
+		// Convert agent to proto using ToProto() method
 		agentProto, err := ag.ToProto()
 		if err != nil {
 			return fmt.Errorf("failed to convert agent %q to proto: %w", ag.Name, err)
@@ -499,8 +522,8 @@ func (c *Context) synthesizeAgents(outputDir string, agentInterfaces []interface
 			return fmt.Errorf("failed to serialize agent %q: %w", ag.Name, err)
 		}
 
-		// Write to agent-{name}.pb
-		filename := fmt.Sprintf("agent-%s.pb", ag.Name)
+		// Write to agent-{index}.pb (use index to maintain order)
+		filename := fmt.Sprintf("agent-%d.pb", i)
 		agentPath := filepath.Join(outputDir, filename)
 		if err := os.WriteFile(agentPath, data, 0644); err != nil {
 			return fmt.Errorf("failed to write agent %q: %w", ag.Name, err)
@@ -511,11 +534,30 @@ func (c *Context) synthesizeAgents(outputDir string, agentInterfaces []interface
 }
 
 // synthesizeWorkflows converts workflows to protobuf and writes to disk
-func (c *Context) synthesizeWorkflows(outputDir string, workflowInterfaces []interface{}) error {
+func (c *Context) synthesizeWorkflows(outputDir string) error {
 	// TODO: Implement workflow ToProto() similar to agent
 	// For now, workflows still use the old synthesis approach
 	// This is out of scope for the current Agent/Skill SDK work
 	return fmt.Errorf("workflow synthesis not yet migrated to new ToProto() approach - see https://github.com/stigmer/stigmer/issues/XXX")
+}
+
+// synthesizeDependencies writes the dependency graph to dependencies.json
+func (c *Context) synthesizeDependencies(outputDir string) error {
+	deps := c.Dependencies()
+
+	// Convert to JSON
+	data, err := json.MarshalIndent(deps, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal dependencies: %w", err)
+	}
+
+	// Write to dependencies.json
+	depsPath := filepath.Join(outputDir, "dependencies.json")
+	if err := os.WriteFile(depsPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write dependencies.json: %w", err)
+	}
+
+	return nil
 }
 
 // =============================================================================
