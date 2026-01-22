@@ -4,6 +4,276 @@ This log captures patterns, solutions, and gotchas discovered while implementing
 
 ---
 
+## 2026-01-22: Context Lock Deadlock Prevention
+
+### Context
+
+Completed ToProto() pipeline and discovered critical deadlock bug during example testing. All examples hung with "fatal error: all goroutines are asleep - deadlock!" when calling Context.Synthesize().
+
+### Pattern: Direct Field Access When Lock is Already Held
+
+**Problem**: Method holding a lock called another public method that tried to acquire the same lock, causing deadlock.
+
+**Bad Practice**:
+```go
+// ❌ Wrong - deadlock!
+func (c *Context) Synthesize() error {
+    c.mu.Lock()  // Acquire lock
+    defer c.mu.Unlock()
+    
+    // ... other synthesis work ...
+    
+    // Calls public method that tries to acquire lock again
+    if err := c.synthesizeDependencies(outputDir); err != nil {
+        return err
+    }
+    
+    return nil
+}
+
+func (c *Context) synthesizeDependencies(outputDir string) error {
+    deps := c.Dependencies()  // ❌ Tries to acquire c.mu.RLock() → DEADLOCK!
+    // ...
+}
+```
+
+**Correct Practice**:
+```go
+// ✅ Correct - direct field access
+func (c *Context) Synthesize() error {
+    c.mu.Lock()
+    defer c.mu.Unlock()
+    
+    // ... other synthesis work ...
+    
+    if err := c.synthesizeDependencies(outputDir); err != nil {
+        return err
+    }
+    
+    return nil
+}
+
+// NOTE: This method assumes the caller already holds c.mu lock
+func (c *Context) synthesizeDependencies(outputDir string) error {
+    // Access dependencies directly (caller holds lock)
+    deps := c.dependencies  // ✅ Direct access, no lock needed
+    
+    data, _ := json.MarshalIndent(deps, "", "  ")
+    os.WriteFile(filepath.Join(outputDir, "dependencies.json"), data, 0644)
+    return nil
+}
+```
+
+**Why This Matters**:
+- **Correctness**: Prevents deadlocks that block all execution
+- **Performance**: No unnecessary lock contention
+- **Clarity**: Internal helpers that assume lock is held are clearly documented
+
+**Prevention**:
+1. Document which methods assume caller holds lock
+2. Never call public methods (that acquire locks) from within locked sections
+3. Use direct field access for internal helpers called while locked
+4. Add tests that run examples end-to-end (would catch deadlocks)
+
+**Impact**: CRITICAL - Blocked all synthesis until fixed.
+
+---
+
+## 2026-01-22: structpb Type Conversion Requirements
+
+### Context
+
+Implemented Workflow ToProto() with all 13 task types. Discovered that google.protobuf.Struct has strict type requirements that cause runtime errors if violated.
+
+### Pattern: Convert to interface{} Types for structpb
+
+**Problem**: `structpb.NewStruct()` doesn't accept `map[string]string` or `[]map[string]interface{}` - requires `map[string]interface{}` and `[]interface{}`.
+
+**Bad Practice**:
+```go
+// ❌ Wrong - runtime error
+func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
+    m := make(map[string]interface{})
+    m["headers"] = c.Headers  // map[string]string - FAILS!
+    return m
+}
+
+protoStruct, err := structpb.NewStruct(m)
+// Error: proto: invalid type: map[string]string
+```
+
+**Correct Practice**:
+```go
+// ✅ Correct - convert to map[string]interface{}
+func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
+    m := make(map[string]interface{})
+    
+    if c.Headers != nil && len(c.Headers) > 0 {
+        // Convert map[string]string → map[string]interface{}
+        headers := make(map[string]interface{})
+        for k, v := range c.Headers {
+            headers[k] = v
+        }
+        m["headers"] = headers
+    }
+    
+    return m
+}
+
+protoStruct, err := structpb.NewStruct(m)  // ✅ Works!
+```
+
+**Array Conversion**:
+```go
+// ❌ Wrong - runtime error
+func switchTaskConfigToMap(c *SwitchTaskConfig) map[string]interface{} {
+    m := make(map[string]interface{})
+    m["cases"] = c.Cases  // []map[string]interface{} - FAILS!
+    return m
+}
+
+// ✅ Correct - convert to []interface{}
+func switchTaskConfigToMap(c *SwitchTaskConfig) map[string]interface{} {
+    m := make(map[string]interface{})
+    
+    if c.Cases != nil && len(c.Cases) > 0 {
+        // Convert []map[string]interface{} → []interface{}
+        cases := make([]interface{}, len(c.Cases))
+        for i, caseMap := range c.Cases {
+            cases[i] = caseMap
+        }
+        m["cases"] = cases
+    }
+    
+    return m
+}
+```
+
+**Why This Matters**:
+- **Runtime Safety**: Catches type errors at proto conversion time
+- **Required**: structpb package enforces these types strictly
+- **Applies to All Conversions**: Any SDK → proto.Struct conversion needs this
+
+**Prevention**:
+1. Always convert map[string]string to map[string]interface{} before structpb
+2. Always convert []T to []interface{} before structpb
+3. Add integration tests that call ToProto() to catch these early
+4. Remember: structpb.NewStruct() signature is `func NewStruct(map[string]interface{})`
+
+**Impact**: MEDIUM - Required for all 13 workflow task types. Integration tests caught this immediately.
+
+---
+
+## 2026-01-22: Integration Test Pattern for ToProto() Methods
+
+### Context
+
+Created comprehensive integration tests for Agent, Skill, and Workflow ToProto() methods. Established reusable pattern for testing proto conversions.
+
+### Pattern: Package-Level Proto Integration Tests
+
+**Best Practice**: Create `proto_integration_test.go` in each package that has ToProto() methods.
+
+**File Structure**:
+```
+sdk/go/agent/
+├── agent.go              # Agent type and New()
+├── proto.go              # ToProto() implementation
+└── proto_integration_test.go  # Integration tests
+```
+
+**Test Pattern**:
+```go
+package agent
+
+import (
+    "testing"
+)
+
+// Test complete resource with all optional fields
+func TestAgentToProto_Complete(t *testing.T) {
+    agent, _ := New(nil,
+        WithName("test-agent"),
+        WithDescription("Full agent with all fields"),
+        WithInstructions("Do something"),
+        WithIconURL("https://example.com/icon.png"),
+    )
+    
+    proto, err := agent.ToProto()
+    if err != nil {
+        t.Fatalf("ToProto() failed: %v", err)
+    }
+    
+    // Verify metadata
+    if proto.Metadata.Name != "test-agent" {
+        t.Errorf("Name mismatch")
+    }
+    
+    // Verify API version and kind
+    if proto.ApiVersion != "agentic.stigmer.ai/v1" {
+        t.Errorf("ApiVersion mismatch")
+    }
+    
+    // Verify SDK annotations
+    if proto.Metadata.Annotations[AnnotationSDKLanguage] != "go" {
+        t.Error("Expected SDK language annotation")
+    }
+    
+    // Verify spec fields
+    if proto.Spec.Description != "Full agent with all fields" {
+        t.Errorf("Description mismatch")
+    }
+}
+
+// Test minimal resource (required fields only)
+func TestAgentToProto_Minimal(t *testing.T) {
+    agent, _ := New(nil,
+        WithName("simple-agent"),
+        WithInstructions("Simple task"),
+    )
+    
+    proto, err := agent.ToProto()
+    if err != nil {
+        t.Fatalf("ToProto() failed: %v", err)
+    }
+    
+    // Verify required fields
+    if proto.Metadata.Name != "simple-agent" {
+        t.Errorf("Name mismatch")
+    }
+    
+    // Verify optional fields are empty
+    if proto.Spec.Description != "" {
+        t.Error("Expected empty description")
+    }
+}
+
+// Test specific features (custom slug, multiple skills, etc.)
+func TestAgentToProto_CustomSlug(t *testing.T) { ... }
+func TestAgentToProto_MultipleSkills(t *testing.T) { ... }
+```
+
+**Test Coverage Areas**:
+1. Complete resource (all optional fields)
+2. Minimal resource (required fields only)
+3. Field-specific tests (custom slug, arrays, nested objects)
+4. SDK annotations verification
+5. Proto structure validation (ApiVersion, Kind, Metadata)
+
+**Benefits**:
+- ✅ Catches structpb type conversion errors early
+- ✅ Validates proto structure correctness
+- ✅ Ensures SDK annotations are injected
+- ✅ Documents expected proto format
+- ✅ Close to implementation (easy to maintain)
+- ✅ Reusable pattern for future resource types
+
+**When to Use**: Create `proto_integration_test.go` for every package that implements ToProto().
+
+**Naming Convention**: `Test{TypeName}ToProto_{Aspect}` - e.g., `TestAgentToProto_Complete`, `TestWorkflowToProto_AllTaskTypes`
+
+---
+
 ## 2026-01-22: Enum Constants vs Magic Numbers in Proto Conversions
 
 ### Context
