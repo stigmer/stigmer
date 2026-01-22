@@ -324,10 +324,10 @@ jobs:
 
           ## Installation
 
-          ### Homebrew (macOS/Linux)
-          \`\`\`bash
-          brew install stigmer/tap/stigmer
-          \`\`\`
+### Homebrew (macOS/Linux)
+\\\`\\\`\\\`bash
+brew install stigmer/tap/stigmer
+\\\`\\\`\\\`
 
           ### Manual Installation
           Download the appropriate binary for your platform:
@@ -335,11 +335,11 @@ jobs:
           - macOS (Intel): stigmer-$VERSION-darwin-amd64.tar.gz
           - Linux (AMD64): stigmer-$VERSION-linux-amd64.tar.gz
 
-          Extract and install:
-          \`\`\`bash
-          tar -xzf stigmer-$VERSION-<platform>.tar.gz
-          sudo mv stigmer /usr/local/bin/
-          \`\`\`
+Extract and install:
+\\\`\\\`\\\`bash
+tar -xzf stigmer-$VERSION-<platform>.tar.gz
+sudo mv stigmer /usr/local/bin/
+\\\`\\\`\\\`
 
           ## Requirements
 
@@ -357,10 +357,10 @@ jobs:
             CHANGELOG=$(cat <<EOF
           ## Installation
 
-          ### Homebrew (macOS/Linux)
-          \`\`\`bash
-          brew upgrade stigmer
-          \`\`\`
+### Homebrew (macOS/Linux)
+\\\`\\\`\\\`bash
+brew upgrade stigmer
+\\\`\\\`\\\`
 
           ### Manual Installation
           Download the appropriate binary for your platform from the assets below.
