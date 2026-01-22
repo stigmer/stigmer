@@ -82,6 +82,13 @@ func coerceToString(value interface{}) string {
 	case TaskFieldRef:
 		return v.Expression()
 	case Ref:
+		// Check if this Ref has a resolved value (StringValue interface)
+		// During synthesis, we should use the actual value instead of expressions
+		if stringVal, ok := v.(interface{ Value() string }); ok {
+			// Has a Value() method - use the resolved value for synthesis
+			return stringVal.Value()
+		}
+		// Fallback to expression (for runtime-only refs)
 		return v.Expression()
 	case int:
 		return fmt.Sprintf("%d", v)
