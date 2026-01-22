@@ -1,0 +1,60 @@
+{
+  "name": "HttpServer",
+  "description": "HttpServer defines an MCP server accessible via HTTP + SSE.\n Used for remote/managed MCP services.",
+  "protoType": "ai.stigmer.agentic.agent.v1.HttpServer",
+  "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Url",
+      "jsonName": "url",
+      "protoField": "url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Base URL of the MCP server.\n Example: \"http://localhost:3000/mcp\" or \"https://mcp.example.com\"",
+      "required": false
+    },
+    {
+      "name": "Headers",
+      "jsonName": "headers",
+      "protoField": "headers",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "HTTP headers for authentication/configuration.\n Example: {\"Authorization\": \"Bearer ${API_TOKEN}\"}\n Placeholders like ${API_TOKEN} reference secrets in ConfigSchema.",
+      "required": false
+    },
+    {
+      "name": "QueryParams",
+      "jsonName": "queryParams",
+      "protoField": "query_params",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "Query parameters for the MCP endpoint (optional).\n Example: {\"version\": \"v1\", \"region\": \"${AWS_REGION}\"}",
+      "required": false
+    },
+    {
+      "name": "TimeoutSeconds",
+      "jsonName": "timeoutSeconds",
+      "protoField": "timeout_seconds",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Timeout for HTTP requests in seconds (default: 30).",
+      "required": false
+    }
+  ]
+}
