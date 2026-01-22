@@ -27,7 +27,7 @@ class WorkflowExecution(_message.Message):
     def __init__(self, api_version: _Optional[str] = ..., kind: _Optional[str] = ..., metadata: _Optional[_Union[_metadata_pb2.ApiResourceMetadata, _Mapping]] = ..., spec: _Optional[_Union[_spec_pb2.WorkflowExecutionSpec, _Mapping]] = ..., status: _Optional[_Union[WorkflowExecutionStatus, _Mapping]] = ...) -> None: ...
 
 class WorkflowExecutionStatus(_message.Message):
-    __slots__ = ("audit", "phase", "tasks", "output", "error", "started_at", "completed_at", "temporal_workflow_id")
+    __slots__ = ("audit", "phase", "tasks", "output", "error", "started_at", "completed_at", "temporal_workflow_id", "callback_token")
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     PHASE_FIELD_NUMBER: _ClassVar[int]
     TASKS_FIELD_NUMBER: _ClassVar[int]
@@ -36,6 +36,7 @@ class WorkflowExecutionStatus(_message.Message):
     STARTED_AT_FIELD_NUMBER: _ClassVar[int]
     COMPLETED_AT_FIELD_NUMBER: _ClassVar[int]
     TEMPORAL_WORKFLOW_ID_FIELD_NUMBER: _ClassVar[int]
+    CALLBACK_TOKEN_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     phase: _enum_pb2.ExecutionPhase
     tasks: _containers.RepeatedCompositeFieldContainer[WorkflowTask]
@@ -44,7 +45,8 @@ class WorkflowExecutionStatus(_message.Message):
     started_at: str
     completed_at: str
     temporal_workflow_id: str
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., temporal_workflow_id: _Optional[str] = ...) -> None: ...
+    callback_token: bytes
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., temporal_workflow_id: _Optional[str] = ..., callback_token: _Optional[bytes] = ...) -> None: ...
 
 class WorkflowTask(_message.Message):
     __slots__ = ("task_id", "task_name", "task_type", "input", "output", "status", "started_at", "completed_at", "error", "metadata")
