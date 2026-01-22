@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"testing"
 	"time"
 
@@ -41,13 +42,19 @@ func StartHarness(t *testing.T, tempDir string) *TestHarness {
 	serverCmd.Env = append(os.Environ(),
 		fmt.Sprintf("DB_PATH=%s", dbPath),
 		fmt.Sprintf("GRPC_PORT=%d", port),
-		"ENV=local",
+		"ENV=test", // Use "test" instead of "local" to disable debug HTTP server
 		"LOG_LEVEL=info",
 	)
 	
 	// Capture output for debugging
 	serverCmd.Stdout = os.Stdout
 	serverCmd.Stderr = os.Stderr
+	
+	// Set process group so we can kill all child processes
+	// This ensures signals propagate to the actual Go server process
+	serverCmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
 
 	err = serverCmd.Start()
 	require.NoError(t, err, "Failed to start stigmer-server")
@@ -79,8 +86,25 @@ func (h *TestHarness) Stop() {
 	if h.ServerCmd != nil && h.ServerCmd.Process != nil {
 		h.t.Logf("Stopping stigmer-server (PID: %d)", h.ServerCmd.Process.Pid)
 		
-		// Try graceful termination first
-		h.ServerCmd.Process.Kill()
+		// Send SIGINT to the entire process group
+		// This ensures both 'go run' and the actual Go binary receive the signal
+		pgid, err := syscall.Getpgid(h.ServerCmd.Process.Pid)
+		if err != nil {
+			h.t.Logf("Failed to get process group: %v, falling back to direct kill", err)
+			h.ServerCmd.Process.Kill()
+			h.ServerCmd.Wait()
+			return
+		}
+		
+		// Send SIGINT to process group (negative PID means process group)
+		if err := syscall.Kill(-pgid, syscall.SIGINT); err != nil {
+			h.t.Logf("Failed to send interrupt to process group: %v, forcing kill", err)
+			h.ServerCmd.Process.Kill()
+			h.ServerCmd.Wait()
+			return
+		}
+		
+		h.t.Logf("Sent SIGINT to process group %d", pgid)
 		
 		// Wait for process to exit (with timeout)
 		done := make(chan error, 1)
@@ -89,12 +113,17 @@ func (h *TestHarness) Stop() {
 		}()
 
 		select {
-		case <-done:
-			h.t.Logf("stigmer-server stopped successfully")
+		case err := <-done:
+			if err != nil {
+				h.t.Logf("stigmer-server exited with error: %v", err)
+			} else {
+				h.t.Logf("stigmer-server stopped gracefully")
+			}
 		case <-time.After(5 * time.Second):
-			h.t.Logf("stigmer-server did not stop gracefully, forcing kill")
-			// Force kill if it doesn't stop
-			h.ServerCmd.Process.Kill()
+			h.t.Logf("stigmer-server did not stop gracefully within 5 seconds, forcing kill")
+			// Force kill entire process group
+			syscall.Kill(-pgid, syscall.SIGKILL)
+			h.ServerCmd.Wait() // Wait for zombie process cleanup
 		}
 	}
 }

@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Example 09: Workflow with Loops
 //
 // This example demonstrates iteration using FOR tasks.
