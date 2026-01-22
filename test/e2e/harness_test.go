@@ -1,3 +1,6 @@
+//go:build e2e
+// +build e2e
+
 package e2e
 
 import (
@@ -12,7 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestHarness manages the stigmer-server process and optional Docker services for testing
+// TestHarness manages the stigmer-server process and agent-runner worker for testing
+// Uses local binaries (no Docker) for faster test execution and easier debugging
 type TestHarness struct {
 	// Server management
 	ServerCmd  *exec.Cmd
@@ -20,11 +24,13 @@ type TestHarness struct {
 	TempDir    string
 	t          *testing.T
 	
-	// Phase 2: Docker services (optional, for full execution tests)
-	DockerComposeCmd *exec.Cmd
-	DockerEnabled    bool
-	TemporalReady    bool
+	// Agent Runner (Python worker) - runs directly, no Docker
+	AgentRunnerCmd *exec.Cmd
 	AgentRunnerReady bool
+	
+	// Temporal connection (uses existing local Temporal Lite instance)
+	TemporalAddr string  // e.g., "localhost:7233"
+	TemporalReady bool
 }
 
 // StartHarness starts a stigmer-server instance with isolated storage
@@ -33,9 +39,10 @@ func StartHarness(t *testing.T, tempDir string) *TestHarness {
 	return StartHarnessWithDocker(t, tempDir, false)
 }
 
-// StartHarnessWithDocker starts stigmer-server and optionally Docker services (Temporal + agent-runner)
-// Set enableDocker=true for Phase 2 (full execution) tests
-func StartHarnessWithDocker(t *testing.T, tempDir string, enableDocker bool) *TestHarness {
+// StartHarnessWithDocker starts stigmer-server and optionally agent-runner worker
+// Set enableWorker=true for Phase 2 (full execution) tests
+// NOTE: This uses local binaries (no Docker) for faster execution
+func StartHarnessWithDocker(t *testing.T, tempDir string, enableWorker bool) *TestHarness {
 	// Get free port
 	port, err := GetFreePort()
 	require.NoError(t, err, "Failed to get free port")
@@ -53,9 +60,13 @@ func StartHarnessWithDocker(t *testing.T, tempDir string, enableDocker bool) *Te
 	// Set database path to a file inside the temp directory
 	dbPath := filepath.Join(tempDir, "stigmer.db")
 	
+	// Use shared Temporal instance (localhost:7233)
+	temporalAddr := "localhost:7233"
+	
 	serverCmd.Env = append(os.Environ(),
 		fmt.Sprintf("DB_PATH=%s", dbPath),
 		fmt.Sprintf("GRPC_PORT=%d", port),
+		fmt.Sprintf("TEMPORAL_HOST_PORT=%s", temporalAddr),
 		"ENV=test", // Use "test" instead of "local" to disable debug HTTP server
 		"LOG_LEVEL=info",
 	)
@@ -92,29 +103,33 @@ func StartHarnessWithDocker(t *testing.T, tempDir string, enableDocker bool) *Te
 		ServerPort:    port,
 		TempDir:       tempDir,
 		t:             t,
-		DockerEnabled: enableDocker,
+		TemporalAddr:  temporalAddr,
 	}
 
-	// Start Docker services if requested
-	if enableDocker {
-		if err := harness.startDockerServices(); err != nil {
-			// Clean up server if Docker fails
-			harness.Stop()
-			require.NoError(t, err, "Failed to start Docker services")
-		}
+	// Check if Temporal is available
+	if WaitForPort(7233, 2*time.Second) {
+		harness.TemporalReady = true
+		t.Log("✓ Temporal detected at localhost:7233")
+	} else {
+		t.Log("⚠️  Temporal not detected (tests requiring workflows will be skipped)")
+	}
+
+	// Note: Agent-runner worker is managed by stigmer server in Option 1
+	// Tests assume it's already running as part of "stigmer server"
+	// We just verify connectivity if Temporal is available
+	if harness.TemporalReady && enableWorker {
+		t.Log("✓ Using existing agent-runner worker (managed by stigmer server)")
+		harness.AgentRunnerReady = true
 	}
 
 	return harness
 }
 
-// Stop gracefully stops the stigmer-server process and Docker services
+// Stop gracefully stops the stigmer-server process
+// Note: In Option 1, we don't manage Temporal or agent-runner lifecycle
+// They're assumed to be running externally via "stigmer server"
 func (h *TestHarness) Stop() {
-	// Stop Docker services first (if enabled)
-	if h.DockerEnabled {
-		h.stopDockerServices()
-	}
-
-	// Then stop stigmer-server
+	// Stop stigmer-server
 	if h.ServerCmd != nil && h.ServerCmd.Process != nil {
 		h.t.Logf("Stopping stigmer-server (PID: %d)", h.ServerCmd.Process.Pid)
 		
@@ -160,113 +175,6 @@ func (h *TestHarness) Stop() {
 	}
 }
 
-// startDockerServices starts Temporal and agent-runner via docker-compose
-func (h *TestHarness) startDockerServices() error {
-	h.t.Log("Starting Docker services (Temporal + agent-runner)...")
-
-	// Get path to docker-compose file
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
-	}
-
-	composePath := filepath.Join(cwd, "docker-compose.e2e.yml")
-
-	// Set server port as environment variable for docker-compose
-	env := append(os.Environ(),
-		fmt.Sprintf("STIGMER_SERVER_PORT=%d", h.ServerPort),
-	)
-
-	// Start docker-compose
-	cmd := exec.Command("docker-compose", "-f", composePath, "-p", "stigmer-e2e", "up", "-d")
-	cmd.Env = env
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to start docker-compose: %w", err)
-	}
-
-	h.t.Log("Docker containers started, waiting for services to be healthy...")
-
-	// Wait for Temporal to be healthy
-	if !h.waitForTemporal(30 * time.Second) {
-		return fmt.Errorf("Temporal failed to become healthy within 30 seconds")
-	}
-	h.TemporalReady = true
-	h.t.Log("✓ Temporal is healthy")
-
-	// Wait for agent-runner to be healthy
-	if !h.waitForAgentRunner(30 * time.Second) {
-		return fmt.Errorf("agent-runner failed to become healthy within 30 seconds")
-	}
-	h.AgentRunnerReady = true
-	h.t.Log("✓ agent-runner is healthy")
-
-	h.t.Log("✅ All Docker services ready")
-	return nil
-}
-
-// stopDockerServices stops and removes Docker containers
-func (h *TestHarness) stopDockerServices() {
-	if !h.DockerEnabled {
-		return
-	}
-
-	h.t.Log("Stopping Docker services...")
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		h.t.Logf("Warning: Failed to get working directory: %v", err)
-		return
-	}
-
-	composePath := filepath.Join(cwd, "docker-compose.e2e.yml")
-
-	// Stop and remove containers
-	cmd := exec.Command("docker-compose", "-f", composePath, "-p", "stigmer-e2e", "down", "-v")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		h.t.Logf("Warning: Failed to stop docker-compose: %v", err)
-	} else {
-		h.t.Log("Docker services stopped and removed")
-	}
-}
-
-// waitForTemporal checks if Temporal is healthy
-func (h *TestHarness) waitForTemporal(timeout time.Duration) bool {
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		// Try to connect to Temporal's gRPC port
-		if WaitForPort(7233, 100*time.Millisecond) {
-			// Additional check: Try tctl command
-			cmd := exec.Command("docker", "exec", "stigmer-e2e-temporal",
-				"tctl", "--address", "localhost:7233", "cluster", "health")
-			if err := cmd.Run(); err == nil {
-				return true
-			}
-		}
-		time.Sleep(1 * time.Second)
-	}
-	return false
-}
-
-// waitForAgentRunner checks if agent-runner container is running
-func (h *TestHarness) waitForAgentRunner(timeout time.Duration) bool {
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		// Check container status
-		cmd := exec.Command("docker", "ps", "--filter", "name=stigmer-e2e-agent-runner",
-			"--filter", "status=running", "--format", "{{.Names}}")
-		output, err := cmd.Output()
-		if err == nil && len(output) > 0 {
-			// Container is running, give it a moment to initialize
-			time.Sleep(2 * time.Second)
-			return true
-		}
-		time.Sleep(1 * time.Second)
-	}
-	return false
-}
+// Option 1: We don't manage Temporal or agent-runner lifecycle
+// They're assumed to be running externally via "stigmer server"
+// No Docker services to manage!

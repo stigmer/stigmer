@@ -223,7 +223,7 @@ func runAutoDiscoveryMode(message string, orgOverride string, runtimeEnv []strin
 	} else {
 		deploymentMsg = fmt.Sprintf("Deployed: %d workflow(s)", len(deployedWorkflows))
 	}
-	cliprint.PrintSuccess(deploymentMsg)
+	cliprint.PrintSuccess("%s", deploymentMsg)
 	fmt.Println()
 
 	// Build selection options for both agents and workflows
