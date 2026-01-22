@@ -27,7 +27,7 @@ class AgentExecution(_message.Message):
     def __init__(self, api_version: _Optional[str] = ..., kind: _Optional[str] = ..., metadata: _Optional[_Union[_metadata_pb2.ApiResourceMetadata, _Mapping]] = ..., spec: _Optional[_Union[_spec_pb2.AgentExecutionSpec, _Mapping]] = ..., status: _Optional[_Union[AgentExecutionStatus, _Mapping]] = ...) -> None: ...
 
 class AgentExecutionStatus(_message.Message):
-    __slots__ = ("audit", "messages", "phase", "tool_calls", "sub_agent_executions", "error", "started_at", "completed_at", "todos")
+    __slots__ = ("audit", "messages", "phase", "tool_calls", "sub_agent_executions", "error", "started_at", "completed_at", "todos", "callback_token")
     class TodosEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -44,6 +44,7 @@ class AgentExecutionStatus(_message.Message):
     STARTED_AT_FIELD_NUMBER: _ClassVar[int]
     COMPLETED_AT_FIELD_NUMBER: _ClassVar[int]
     TODOS_FIELD_NUMBER: _ClassVar[int]
+    CALLBACK_TOKEN_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     messages: _containers.RepeatedCompositeFieldContainer[AgentMessage]
     phase: _enum_pb2.ExecutionPhase
@@ -53,7 +54,8 @@ class AgentExecutionStatus(_message.Message):
     started_at: str
     completed_at: str
     todos: _containers.MessageMap[str, TodoItem]
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., messages: _Optional[_Iterable[_Union[AgentMessage, _Mapping]]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., sub_agent_executions: _Optional[_Iterable[_Union[SubAgentExecution, _Mapping]]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., todos: _Optional[_Mapping[str, TodoItem]] = ...) -> None: ...
+    callback_token: bytes
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., messages: _Optional[_Iterable[_Union[AgentMessage, _Mapping]]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., sub_agent_executions: _Optional[_Iterable[_Union[SubAgentExecution, _Mapping]]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., todos: _Optional[_Mapping[str, TodoItem]] = ..., callback_token: _Optional[bytes] = ...) -> None: ...
 
 class TodoItem(_message.Message):
     __slots__ = ("id", "content", "status", "created_at", "updated_at")
