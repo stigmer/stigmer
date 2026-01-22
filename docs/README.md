@@ -23,6 +23,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Release Workflow](../.github/workflows/RELEASE-WORKFLOW.md) - How to create releases using the build-first pattern
 - [Agent Runner: Local Mode](guides/agent-runner-local-mode.md) - Running the agent runner in local vs cloud mode
 - [Stigmer New Command](guides/stigmer-new-command.md) - Complete setup for the `stigmer new` command, demo repository, and zero-config quickstart
+- [Temporal Connection Resilience - Quick Start](guides/temporal-connection-resilience-quick-start.md) - Quick guide to understanding and using automatic Temporal reconnection
 
 ### Implementation
 - [Phase 1 Foundation](implementation/phase-1-foundation.md) - Phase 1 implementation summary: repository structure, gRPC architecture, and database design
@@ -31,6 +32,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Task Export Context Fix - Learnings](implementation/task-export-context-fix-learnings.md) - Detailed learnings from the task export context bug fix for SDK and workflow runner improvements
 - [Sandbox Implementation](implementation/sandbox-implementation.md) - Three-tier sandbox strategy implementation (local, basic, full)
 - [Configuration Cascade Implementation](implementation/configuration-cascade-implementation.md) - Configuration cascade pattern implementation details
+- [Temporal Connection Resilience](implementation/temporal-connection-resilience.md) - Production-grade Temporal connection management with automatic reconnection, worker lifecycle, and fail-fast error handling
 
 ### Architecture
 - [Backend Modes](architecture/backend-modes.md) - Local vs cloud backend architecture, auto-start daemon, and organization handling
@@ -46,6 +48,7 @@ Complete documentation index for the Stigmer open-source project.
 - [SDK-CLI Contract](architecture/sdk-cli-contract.md) - Direct proto pattern: SDKs write platform protos with SDK metadata in annotations (eliminates manifest wrapper layer)
 - [Spec vs Status Philosophy](architecture/spec-status-philosophy.md) - Kubernetes-inspired philosophy for field placement: inputs in spec, outputs in status
 - [Temporal Integration](architecture/temporal-integration.md) - Polyglot workflow orchestration with Temporal (Go workflows, Python activities)
+- [Temporal Connection Resilience](implementation/temporal-connection-resilience.md) - Self-healing Temporal connection with automatic reconnection and zero-downtime recovery
 - [Update Pipeline and Immutable Fields](architecture/update-pipeline-and-immutable-fields.md) - How updates preserve identity while allowing modifications
 
 ### Architecture Decision Records (ADR)
