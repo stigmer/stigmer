@@ -15,9 +15,9 @@
 
 ## Current Status
 
-📋 **Phase**: Initial Planning  
-📝 **Current Task**: T01 - Task Plan Review  
-⏳ **Waiting For**: Developer approval of initial plan
+📋 **Phase**: Phase 2 - Proto → Schema Converter  
+📝 **Current Task**: Building proto2schema tool  
+🟢 **Status**: IMPLEMENTING
 
 ---
 
@@ -48,32 +48,30 @@ A Pulumi-inspired code generation framework that:
 
 ## Next Actions
 
-### ⏸️ Currently Paused - Awaiting Review
+### 🟢 Currently Working - Phase 2
 
-**Before proceeding**, I need your review of the initial task plan:
+**Building the proto2schema converter**:
 
-1. **Review**: Read `tasks/T01_0_plan.md`
-2. **Provide Feedback**: Any changes, concerns, or suggestions?
-3. **Questions to Address**:
-   - Does the task breakdown look complete?
-   - Are the timelines realistic (1-2 weeks total)?
-   - Should we prioritize workflows or agents first, or parallel?
-   - Should we build proto2schema converter first, or start with manual schemas?
+1. ✅ Phase 1 complete - Design documents created
+2. 🔄 Create `tools/codegen/proto2schema/` tool
+3. 🔄 Parse proto files using `protoreflect`
+4. 🔄 Extract field metadata (names, types, validations, comments)
+5. 🔄 Convert to JSON schema format
+6. 🔄 Generate schemas for all 13 workflow tasks
 
-### ▶️ After Approval
-
-Once you approve (or provide feedback):
-1. I'll create `tasks/T01_1_review.md` with your feedback
-2. Create `tasks/T01_2_revised_plan.md` if changes needed
-3. Create `tasks/T01_3_execution.md` and begin implementation
+**What's Being Built**:
+- CLI tool: `tools/codegen/proto2schema/main.go`
+- Proto parser using Go's `protoreflect` package
+- Schema generator that outputs JSON files
+- Validation logic to ensure schemas are complete
 
 ---
 
-## High-Level Phases (Planned)
+## High-Level Phases (Progress)
 
 ```
-Phase 1: Research & Design          (1-2 days)   ⏸️ AWAITING APPROVAL
-Phase 2: Proto → Schema Converter   (2-3 days)   ⏳ NOT STARTED
+Phase 1: Research & Design          (2 hours)    ✅ COMPLETE
+Phase 2: Proto → Schema Converter   (2-3 days)   🟢 IN PROGRESS
 Phase 3: Code Generator Engine      (3-4 days)   ⏳ NOT STARTED
 Phase 4: Workflow Integration       (2-3 days)   ⏳ NOT STARTED
 Phase 5: Agent Integration          (2-3 days)   ⏳ NOT STARTED

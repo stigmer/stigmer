@@ -1,0 +1,22 @@
+{
+  "name": "HttpEndpoint",
+  "description": "HTTP endpoint configuration",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.HttpEndpoint",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/http_call.proto",
+  "fields": [
+    {
+      "name": "Uri",
+      "jsonName": "uri",
+      "protoField": "uri",
+      "type": {
+        "kind": "string"
+      },
+      "description": "URI of the endpoint. Can contain expressions: \"https://api.example.com/${.resource}\"",
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
+    }
+  ]
+}

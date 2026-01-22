@@ -1,8 +1,25 @@
 # SDK Code Generators (Go) - Workflows & Agents
 
 **Created**: 2026-01-22  
-**Status**: 🚧 In Progress  
-**Timeline**: 1-2 weeks
+**Status**: 🟢 Phase 2 - Code Generator Engine  
+**Timeline**: 1-2 weeks (ahead of schedule)
+
+## Progress
+
+### Completed Phases
+
+- ✅ **Phase 1: Research & Design** (2 hours, completed 2026-01-22)
+  - See: `checkpoints/01-phase1-complete.md`
+  - See: `design-decisions/01-pulumi-analysis.md`
+  - See: `design-decisions/02-schema-format.md`
+  - See: `design-decisions/03-codegen-strategy.md`
+
+### Current Phase
+
+- 🟢 **Phase 2: Code Generator Engine** (in progress)
+  - Goal: Build tool to generate Go code from JSON schemas
+  - Using manual schemas for testing
+  - Proto parser deferred to Phase 3
 
 ## Overview
 
