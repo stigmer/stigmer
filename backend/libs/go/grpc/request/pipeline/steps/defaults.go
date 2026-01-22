@@ -1,13 +1,16 @@
 package steps
 
 import (
+	"crypto/rand"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/oklog/ulid/v2"
+	commonspb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
-	commonspb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -16,17 +19,17 @@ import (
 // BuildNewStateStep builds the new state for a resource during creation
 //
 // This step performs the following operations (aligned with Java's CreateOperationBuildNewStateStepV2):
-//   1. Clear status field (status is system-managed, not client-modifiable)
-//   2. Clear computed fields (TODO: when needed)
-//   3. Set metadata.id: Generated from kind prefix + timestamp (if not set)
-//   4. Set version (TODO: when versioning is implemented)
-//   5. Set audit fields in status.audit:
-//      - created_by (actor)
-//      - created_at (timestamp)
-//      - updated_by (actor)
-//      - updated_at (timestamp)
-//      - event (ApiResourceEventType.created)
-//      - Both spec_audit and status_audit are set identically for create operations
+//  1. Clear status field (status is system-managed, not client-modifiable)
+//  2. Clear computed fields (TODO: when needed)
+//  3. Set metadata.id: Generated from kind prefix + ULID (if not set)
+//  4. Set version (TODO: when versioning is implemented)
+//  5. Set audit fields in status.audit:
+//     - created_by (actor)
+//     - created_at (timestamp)
+//     - updated_by (actor)
+//     - updated_at (timestamp)
+//     - event (ApiResourceEventType.created)
+//     - Both spec_audit and status_audit are set identically for create operations
 //
 // The step is idempotent - if ID is already set, it will not override it.
 //
@@ -35,7 +38,7 @@ import (
 // Example:
 //
 //	For kind=ApiResourceKind_agent
-//	Generated ID: "agt-1705678901234567890"
+//	Generated ID: "agt-01arz3ndektsv4rrffq69g5fav"
 type BuildNewStateStep[T proto.Message] struct {
 }
 
@@ -195,13 +198,19 @@ func setAuditFieldsReflect(resource proto.Message, event string) error {
 	return nil
 }
 
-// generateID generates a unique ID for a resource
+// generateID generates a unique ID for a resource using ULID
 //
-// Format: {prefix}-{unix-nano-timestamp}
-// Example: agt-1705678901234567890
+// Format: {prefix}-{lowercase-ulid}
+// Example: agt-01arz3ndektsv4rrffq69g5fav
+//
+// ULID (Universally Unique Lexicographically Sortable Identifier) provides:
+// - Lexicographic sorting (time-ordered)
+// - 128-bit compatibility with UUID
+// - Monotonicity within the same millisecond
+// - URL-safe encoding (lowercase for consistency)
 func generateID(prefix string) string {
-	// Use Unix nanoseconds for uniqueness
-	timestamp := time.Now().UnixNano()
+	// Generate ULID using current timestamp and crypto random entropy
+	id := ulid.MustNew(ulid.Timestamp(time.Now()), rand.Reader)
 
-	return fmt.Sprintf("%s-%d", prefix, timestamp)
+	return fmt.Sprintf("%s-%s", prefix, strings.ToLower(id.String()))
 }
