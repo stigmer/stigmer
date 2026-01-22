@@ -225,12 +225,8 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 		if workflowCount > 0 {
 			cliprint.PrintInfo("Workflows discovered: %d", workflowCount)
 			for i, wf := range synthesisResult.Workflows {
-				name := "unnamed"
-				if wf != nil && wf.Spec != nil && wf.Spec.Document != nil && wf.Spec.Document.Name != "" {
-					name = wf.Spec.Document.Name
-				}
-				cliprint.PrintInfo("  %d. %s", i+1, name)
-				if wf != nil && wf.Spec != nil && wf.Spec.Description != "" {
+				cliprint.PrintInfo("  %d. %s", i+1, wf.Metadata.Name)
+				if wf.Spec.Description != "" {
 					cliprint.PrintInfo("     Description: %s", wf.Spec.Description)
 				}
 			}
@@ -268,13 +264,9 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 			
 			// Add workflows to table
 			for _, wf := range synthesisResult.Workflows {
-				name := "unnamed"
-				if wf != nil && wf.Spec != nil && wf.Spec.Document != nil && wf.Spec.Document.Name != "" {
-					name = wf.Spec.Document.Name
-				}
 				resultTable.AddResource(
 					display.ResourceTypeWorkflow,
-					name,
+					wf.Metadata.Name,
 					display.ApplyStatusCreated,
 					"",
 					nil,

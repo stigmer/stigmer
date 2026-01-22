@@ -3,6 +3,7 @@ package root
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -179,6 +180,9 @@ func runReferenceMode(reference string, message string, orgOverride string, runt
 	cliprint.PrintInfo("  • Resource hasn't been deployed yet (run: stigmer apply)")
 	cliprint.PrintInfo("  • Wrong organization context")
 	fmt.Println()
+	
+	// Exit with error code
+	os.Exit(1)
 }
 
 // runAutoDiscoveryMode discovers agents and workflows from Stigmer.yaml and prompts user to select one to run
