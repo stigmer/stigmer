@@ -3,7 +3,10 @@ package root
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -293,27 +296,67 @@ func handleServerStatus() {
 	}
 }
 
+// isProcessAlive checks if a process with given PID is actually running
+func isProcessAlive(pid int) bool {
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	
+	// Send signal 0 (null signal) to check if process exists
+	// This doesn't actually send a signal, just checks if we CAN send one
+	err = process.Signal(syscall.Signal(0))
+	return err == nil
+}
+
+// isDockerContainerRunning checks if a Docker container is actually running
+func isDockerContainerRunning(containerID string) bool {
+	cmd := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerID)
+	output, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+	
+	return strings.TrimSpace(string(output)) == "true"
+}
+
 // createBasicHealthStatus creates a basic health status map when health monitor isn't accessible
+// This happens when the status command runs in a separate process from the daemon
 func createBasicHealthStatus(dataDir string, stigmerPID int) map[string]daemon.ComponentHealth {
 	healthMap := make(map[string]daemon.ComponentHealth)
 	
-	// Stigmer Server - running if we got here
+	// Stigmer Server - running if we got here (verified by daemon.GetStatus)
 	healthMap["stigmer-server"] = daemon.ComponentHealth{
 		State: daemon.ComponentState("running"),
 	}
 	
-	// Workflow Runner - check if PID file exists and process is alive
+	// Workflow Runner - check if PID file exists AND process is actually alive
 	if wfPID, err := daemon.GetWorkflowRunnerPID(dataDir); err == nil {
-		healthMap["workflow-runner"] = daemon.ComponentHealth{
-			State: daemon.ComponentState("running"),
+		// CRITICAL: Actually verify the process is alive, not just that PID file exists
+		if isProcessAlive(wfPID) {
+			healthMap["workflow-runner"] = daemon.ComponentHealth{
+				State: daemon.ComponentState("running"),
+			}
+		} else {
+			// Process is dead but PID file exists (stale)
+			healthMap["workflow-runner"] = daemon.ComponentHealth{
+				State: daemon.ComponentState("unhealthy"),
+			}
 		}
-		_ = wfPID // Use the PID to avoid unused variable warning
 	}
 	
-	// Agent Runner - check if container ID exists
-	if _, err := daemon.GetAgentRunnerContainerID(dataDir); err == nil {
-		healthMap["agent-runner"] = daemon.ComponentHealth{
-			State: daemon.ComponentState("running"),
+	// Agent Runner - check if container exists AND is actually running
+	if containerID, err := daemon.GetAgentRunnerContainerID(dataDir); err == nil {
+		// CRITICAL: Actually verify the container is running, not just that ID file exists
+		if isDockerContainerRunning(containerID) {
+			healthMap["agent-runner"] = daemon.ComponentHealth{
+				State: daemon.ComponentState("running"),
+			}
+		} else {
+			// Container is stopped but ID file exists (stale)
+			healthMap["agent-runner"] = daemon.ComponentHealth{
+				State: daemon.ComponentState("unhealthy"),
+			}
 		}
 	}
 	
