@@ -34,15 +34,15 @@ func (s *E2ESuite) TestApplyBasicAgent() {
 	
 	// Verify success message in output
 	s.Contains(output, "Deployment successful", "Output should contain success message")
-	s.Contains(output, "test-agent", "Output should mention the deployed agent")
+	s.Contains(output, "code-reviewer", "Output should mention the deployed agent (from SDK example 01_basic_agent.go)")
 	
 	// Extract agent ID from output
-	// Output format: "• test-agent (ID: agt-1234567890)"
+	// Output format: "• code-reviewer (ID: agt-1234567890)"
 	var agentID string
 	lines := strings.Split(output, "\n")
 	for _, line := range lines {
-		if strings.Contains(line, "test-agent") && strings.Contains(line, "ID:") {
-			// Extract ID from line like: "  • test-agent (ID: agt-1234567890)"
+		if strings.Contains(line, "code-reviewer") && strings.Contains(line, "ID:") {
+			// Extract ID from line like: "  • code-reviewer (ID: agt-1234567890)"
 			start := strings.Index(line, "ID: ")
 			if start != -1 {
 				start += 4 // Skip "ID: "

@@ -278,13 +278,15 @@ func (s *E2ESuite) TestExecuteSimpleSequential() {
 
 // PrepareWorkflowFixture prepares a workflow test fixture.
 // Returns the path to the Stigmer.yaml configured for the given workflow file.
-func (s *E2ESuite) PrepareWorkflowFixture(workflowFile string) string {
-	// Update Stigmer.yaml to point to the workflow file
-	fixtureDir := "testdata/workflows"
+func (s *E2ESuite) PrepareWorkflowFixture(workflowName string) string {
+	// Each workflow now has its own folder with Stigmer.yaml
+	// Convert workflow filename to folder name (e.g., "simple_sequential.go" -> "simple-sequential")
+	folderName := strings.TrimSuffix(workflowName, ".go")
+	folderName = strings.ReplaceAll(folderName, "_", "-")
+	
+	fixtureDir := fmt.Sprintf("testdata/workflows/%s", folderName)
 	stigmerYaml := fmt.Sprintf("%s/Stigmer.yaml", fixtureDir)
-
-	// For now, we'll use the existing Stigmer.yaml and assume it's configured correctly
-	// In a more robust implementation, we could dynamically update it
+	
 	return stigmerYaml
 }
 

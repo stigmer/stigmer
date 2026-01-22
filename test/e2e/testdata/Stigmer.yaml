@@ -1,5 +1,0 @@
-name: test-project
-runtime: go
-main: basic_agent.go
-version: 0.1.0
-description: Test project for E2E testing
