@@ -34,7 +34,7 @@ func main() {
 		forkTask := wf.Fork("fetchAllData",
 			workflow.ParallelBranches(
 				// Branch 1: Fetch user data
-				workflow.Branch("fetchUsers", func() *workflow.Task {
+				workflow.BranchBuilder("fetchUsers", func() *workflow.Task {
 					return wf.HttpGet("getUsers",
 						apiBase.Concat("/users"),
 						workflow.Timeout(timeout),
@@ -42,7 +42,7 @@ func main() {
 				}),
 				
 				// Branch 2: Fetch product data
-				workflow.Branch("fetchProducts", func() *workflow.Task {
+				workflow.BranchBuilder("fetchProducts", func() *workflow.Task {
 					return wf.HttpGet("getProducts",
 						apiBase.Concat("/products"),
 						workflow.Timeout(timeout),
@@ -50,7 +50,7 @@ func main() {
 				}),
 				
 				// Branch 3: Fetch orders data
-				workflow.Branch("fetchOrders", func() *workflow.Task {
+				workflow.BranchBuilder("fetchOrders", func() *workflow.Task {
 					return wf.HttpGet("getOrders",
 						apiBase.Concat("/orders"),
 						workflow.Timeout(timeout),
