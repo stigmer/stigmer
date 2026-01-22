@@ -164,3 +164,78 @@ func AgentExecutionExistsViaAPI(serverPort int, executionID string) (bool, error
 
 	return true, nil
 }
+
+// GetAgentExecutionViaAPI retrieves an agent execution by ID
+func GetAgentExecutionViaAPI(serverPort int, executionID string) (*agentexecutionv1.AgentExecution, error) {
+	// Connect to the server
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	// Create agent execution query client
+	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
+
+	// Query the execution
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	execution, err := client.Get(ctx, &agentexecutionv1.AgentExecutionId{Value: executionID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get execution: %w", err)
+	}
+
+	return execution, nil
+}
+
+// WaitForExecutionPhase polls the execution until it reaches the target phase or times out
+// Returns the execution object when target phase is reached, or error on timeout
+func WaitForExecutionPhase(serverPort int, executionID string, targetPhase agentexecutionv1.ExecutionPhase, timeout time.Duration) (*agentexecutionv1.AgentExecution, error) {
+	deadline := time.Now().Add(timeout)
+	
+	for time.Now().Before(deadline) {
+		execution, err := GetAgentExecutionViaAPI(serverPort, executionID)
+		if err != nil {
+			// Execution might not exist yet, keep waiting
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+
+		// Check if we've reached the target phase
+		if execution.Status != nil && execution.Status.Phase == targetPhase {
+			return execution, nil
+		}
+
+		// Check if execution is in a terminal failed state
+		if execution.Status != nil && execution.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED {
+			return execution, fmt.Errorf("execution failed (target phase was %s)", targetPhase.String())
+		}
+
+		// Not there yet, wait and retry
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	// Timeout reached
+	return nil, fmt.Errorf("timeout waiting for execution to reach phase %s after %v", targetPhase.String(), timeout)
+}
+
+// GetExecutionMessages retrieves all messages from an execution
+func GetExecutionMessages(serverPort int, executionID string) ([]string, error) {
+	execution, err := GetAgentExecutionViaAPI(serverPort, executionID)
+	if err != nil {
+		return nil, err
+	}
+
+	if execution.Status == nil || len(execution.Status.Messages) == 0 {
+		return []string{}, nil
+	}
+
+	messages := make([]string, len(execution.Status.Messages))
+	for i, msg := range execution.Status.Messages {
+		messages[i] = msg.Content
+	}
+
+	return messages, nil
+}

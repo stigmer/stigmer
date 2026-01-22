@@ -253,27 +253,160 @@ func (s *E2ESuite) TestRunWithInvalidAgent()
 
 **Status**: ✅ All tests working and verified
 
-## Iteration 5 - Phase 2: Full Agent Execution Testing (Next)
+## Iteration 5 - Phase 2: Full Agent Execution Testing
 
 **Phase 1 Complete:** Run command smoke tests working ✅
 
-**Phase 2 Scope:** Add infrastructure for real agent execution:
+**Phase 2 Status:** Infrastructure implemented, ready for testing! ✨
 
-**Required Components:**
-1. Docker Compose (Temporal + agent-runner)
-2. Ollama prerequisite checking
-3. Enhanced test harness (manages Docker services)
+### Phase 2 Architecture
 
-**New Tests:**
-- TestRunWithExecution - Wait for actual agent execution
-- TestRunWithLogStreaming - Test --follow flag
-- TestRunWithRuntimeEnv - Test environment variables
+Phase 2 adds Docker-based services for complete agent execution testing:
 
-**Future Scenarios:**
+```
+┌─────────────────────────────────────────────────────────┐
+│                  Full Execution Test                     │
+│                                                          │
+│  ┌────────────┐    ┌──────────────┐    ┌────────────┐  │
+│  │   Ollama   │    │    Temporal   │    │Agent-Runner│  │
+│  │  (Host)    │◄───┤  (Container)  │◄───┤(Container) │  │
+│  └────────────┘    └──────────────┘    └────────────┘  │
+│        ▲                                       ▲         │
+│        │                                       │         │
+│        │           ┌──────────────┐           │         │
+│        └───────────┤Stigmer-Server├───────────┘         │
+│                    │   (Test)     │                     │
+│                    └──────┬───────┘                     │
+│                           │                             │
+│                    ┌──────▼───────┐                     │
+│                    │     CLI      │                     │
+│                    │    (Test)    │                     │
+│                    └──────────────┘                     │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Prerequisites
+
+Before running Phase 2 tests, ensure you have:
+
+1. **Docker** - For running Temporal and agent-runner containers
+   - macOS: https://docs.docker.com/desktop/install/mac-install/
+   - Linux: https://docs.docker.com/engine/install/
+
+2. **Ollama** - For LLM inference
+   ```bash
+   # Install Ollama
+   curl -fsSL https://ollama.com/install.sh | sh
+   
+   # Start Ollama server
+   ollama serve
+   
+   # Pull a small model (recommended for tests)
+   ollama pull llama3.2:1b
+   ```
+
+### Running Phase 2 Tests
+
+**Phase 2 tests will automatically skip if prerequisites are not met.**
+
+```bash
+# Run Phase 1 tests only (no Docker/Ollama required)
+go test -v -run TestE2E
+
+# Run Phase 2 tests (requires Docker + Ollama)
+go test -v -run TestFullExecution
+
+# Run all tests (Phase 1 + Phase 2)
+go test -v
+```
+
+### Phase 2 Components
+
+**New Files:**
+- `prereqs_test.go` - Checks Docker and Ollama availability
+- `docker-compose.e2e.yml` - Temporal + agent-runner setup
+- `e2e_run_full_test.go` - Full execution integration tests
+
+**Enhanced Files:**
+- `harness_test.go` - Now manages Docker services
+- `helpers_test.go` - Added execution monitoring helpers
+
+**New Helper Functions:**
+- `CheckPrerequisites()` - Verifies Docker and Ollama
+- `StartHarnessWithDocker()` - Starts server + Docker services
+- `WaitForExecutionPhase()` - Polls execution until target phase
+- `GetExecutionMessages()` - Retrieves agent output
+
+### Phase 2 Test Cases
+
+**Implemented:**
+- [x] `TestRunWithFullExecution` - Complete agent execution lifecycle
+- [x] `TestRunWithInvalidMessage` - Error handling for full execution
+
+**Future Tests:**
+- [ ] `TestRunWithLogStreaming` - Test --follow flag
+- [ ] `TestRunWithRuntimeEnv` - Test environment variables
+- [ ] `TestRunWithSkills` - Agent with skills execution
+- [ ] `TestRunWithMcpServers` - Agent with MCP servers
+
+### Docker Services
+
+The test harness manages these containers:
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| Temporal | 7233 | Workflow orchestration |
+| Temporal UI | 8233 | Web interface (optional) |
+| agent-runner | - | Executes agent workflows |
+
+**Automatic Cleanup:** Containers are stopped and removed after each test.
+
+### Troubleshooting Phase 2
+
+**Prerequisites Check Failed:**
+```bash
+# Verify Docker is running
+docker ps
+
+# Verify Ollama is running
+curl http://localhost:11434/api/version
+
+# Check which prerequisite failed
+go test -v -run TestFullExecution
+```
+
+**Docker Containers Won't Start:**
+```bash
+# Check for conflicting containers
+docker ps -a | grep stigmer-e2e
+
+# Clean up manually if needed
+docker-compose -f docker-compose.e2e.yml -p stigmer-e2e down -v
+
+# Check Docker daemon logs
+docker logs stigmer-e2e-temporal
+docker logs stigmer-e2e-agent-runner
+```
+
+**Tests Timeout:**
+- Increase timeout in test code (default: 60 seconds)
+- Check Ollama model is downloaded: `ollama list`
+- Verify agent-runner can reach Ollama: `docker logs stigmer-e2e-agent-runner`
+
+**Agent Not Responding:**
+- Check Temporal is healthy: `docker exec stigmer-e2e-temporal tctl cluster health`
+- Verify agent-runner is connected to Temporal
+- Check Ollama model availability
+
+### Future Scenarios
+
+**Planned Test Coverage:**
 - Agent with skills, subagents, MCP servers
 - Error cases (invalid YAML, bad Go code)
 - Workflow deployment and execution
 - Update/delete operations
+- Concurrent executions
+- Long-running agents
 
 ## Test Data
 
@@ -429,10 +562,21 @@ func (s *E2ESuite) TestExample() {
 
 ---
 
-**Status:** ✅ **Phase 1 Complete - Run Command Tests Working!**  
+**Status:** ✅ **Phase 2 Infrastructure Complete!**  
 **Last Updated:** 2026-01-22  
-**Test Suite Time:** ~13.3 seconds (6 tests: 5 pass, 1 skip)  
-**Test Pass Rate:** 100% (All passing tests consistent)  
-**Confidence:** HIGH - Foundation solid for Phase 2 (full integration)
 
-**Next:** Phase 2 - Add Temporal/agent-runner/Ollama for full execution testing
+**Phase 1:** ✅ Run Command Tests Working (6 tests: 5 pass, 1 skip)  
+**Phase 2:** ✅ Infrastructure Implemented - Ready for Testing!
+
+**New Phase 2 Capabilities:**
+- ✅ Docker Compose setup (Temporal + agent-runner)
+- ✅ Prerequisites checking (Docker, Ollama)
+- ✅ Enhanced test harness with Docker management
+- ✅ Execution monitoring helpers
+- ✅ Full execution test suite (`FullExecutionSuite`)
+- ✅ Automatic cleanup of Docker services
+
+**Test Suite Time (Phase 1):** ~13.3 seconds  
+**Confidence:** HIGH - Ready for Phase 2 testing with real LLM execution
+
+**Next:** Run Phase 2 tests with Ollama to validate full agent execution lifecycle
