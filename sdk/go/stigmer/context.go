@@ -9,7 +9,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/internal/synth"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -364,22 +363,31 @@ func (c *Context) synthesizeManifests(outputDir string) error {
 
 // synthesizeAgents converts agents to protobuf and writes to disk
 func (c *Context) synthesizeAgents(outputDir string, agentInterfaces []interface{}) error {
-	// Convert agents to manifest proto
-	manifest, err := synth.ToManifest(agentInterfaces...)
-	if err != nil {
-		return fmt.Errorf("failed to convert agents to manifest: %w", err)
-	}
+	// Convert each agent to proto and write individually
+	for i, agentInterface := range agentInterfaces {
+		ag, ok := agentInterface.(*agent.Agent)
+		if !ok {
+			return fmt.Errorf("agent[%d]: invalid type %T, expected *agent.Agent", i, agentInterface)
+		}
 
-	// Serialize to binary protobuf
-	data, err := proto.Marshal(manifest)
-	if err != nil {
-		return fmt.Errorf("failed to serialize agent manifest: %w", err)
-	}
+		// Convert agent to proto using new ToProto() method
+		agentProto, err := ag.ToProto()
+		if err != nil {
+			return fmt.Errorf("failed to convert agent %q to proto: %w", ag.Name, err)
+		}
 
-	// Write to agent-manifest.pb
-	manifestPath := filepath.Join(outputDir, "agent-manifest.pb")
-	if err := os.WriteFile(manifestPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write agent manifest: %w", err)
+		// Serialize to binary protobuf
+		data, err := proto.Marshal(agentProto)
+		if err != nil {
+			return fmt.Errorf("failed to serialize agent %q: %w", ag.Name, err)
+		}
+
+		// Write to agent-{name}.pb
+		filename := fmt.Sprintf("agent-%s.pb", ag.Name)
+		agentPath := filepath.Join(outputDir, filename)
+		if err := os.WriteFile(agentPath, data, 0644); err != nil {
+			return fmt.Errorf("failed to write agent %q: %w", ag.Name, err)
+		}
 	}
 
 	return nil
@@ -387,31 +395,10 @@ func (c *Context) synthesizeAgents(outputDir string, agentInterfaces []interface
 
 // synthesizeWorkflows converts workflows to protobuf and writes to disk
 func (c *Context) synthesizeWorkflows(outputDir string, workflowInterfaces []interface{}) error {
-	// Convert context variables (map[string]Ref) to map[string]interface{} for synthesis
-	contextVars := make(map[string]interface{}, len(c.variables))
-	for name, ref := range c.variables {
-		contextVars[name] = ref
-	}
-
-	// Convert workflows to manifest proto, passing context variables for injection
-	manifest, err := synth.ToWorkflowManifestWithContext(contextVars, workflowInterfaces...)
-	if err != nil {
-		return fmt.Errorf("failed to convert workflows to manifest: %w", err)
-	}
-
-	// Serialize to binary protobuf
-	data, err := proto.Marshal(manifest)
-	if err != nil {
-		return fmt.Errorf("failed to serialize workflow manifest: %w", err)
-	}
-
-	// Write to workflow-manifest.pb
-	manifestPath := filepath.Join(outputDir, "workflow-manifest.pb")
-	if err := os.WriteFile(manifestPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write workflow manifest: %w", err)
-	}
-
-	return nil
+	// TODO: Implement workflow ToProto() similar to agent
+	// For now, workflows still use the old synthesis approach
+	// This is out of scope for the current Agent/Skill SDK work
+	return fmt.Errorf("workflow synthesis not yet migrated to new ToProto() approach - see https://github.com/stigmer/stigmer/issues/XXX")
 }
 
 // =============================================================================
