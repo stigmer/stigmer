@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_spec__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x12\'ai.stigmer.agentic.workflowexecution.v1\x1a\x31\x61i/stigmer/agentic/executioncontext/v1/spec.proto\"\xbf\x04\n\x15WorkflowExecutionSpec\x12\x30\n\x14workflow_instance_id\x18\x01 \x01(\tR\x12workflowInstanceId\x12\x1f\n\x0bworkflow_id\x18\x06 \x01(\tR\nworkflowId\x12\'\n\x0ftrigger_message\x18\x03 \x01(\tR\x0etriggerMessage\x12~\n\x10trigger_metadata\x18\x04 \x03(\x0b\x32S.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.TriggerMetadataEntryR\x0ftriggerMetadata\x12o\n\x0bruntime_env\x18\x05 \x03(\x0b\x32N.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.RuntimeEnvEntryR\nruntimeEnv\x1a\x42\n\x14TriggerMetadataEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x1au\n\x0fRuntimeEnvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12L\n\x05value\x18\x02 \x01(\x0b\x32\x36.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x02\x38\x01\x42\xf9\x01\n+com.ai.stigmer.agentic.workflowexecution.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02\'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x02\x33\x41i\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x12\'ai.stigmer.agentic.workflowexecution.v1\x1a\x31\x61i/stigmer/agentic/executioncontext/v1/spec.proto\"\xe6\x04\n\x15WorkflowExecutionSpec\x12\x30\n\x14workflow_instance_id\x18\x01 \x01(\tR\x12workflowInstanceId\x12\x1f\n\x0bworkflow_id\x18\x06 \x01(\tR\nworkflowId\x12\'\n\x0ftrigger_message\x18\x03 \x01(\tR\x0etriggerMessage\x12~\n\x10trigger_metadata\x18\x04 \x03(\x0b\x32S.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.TriggerMetadataEntryR\x0ftriggerMetadata\x12o\n\x0bruntime_env\x18\x05 \x03(\x0b\x32N.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec.RuntimeEnvEntryR\nruntimeEnv\x12%\n\x0e\x63\x61llback_token\x18\x07 \x01(\x0cR\rcallbackToken\x1a\x42\n\x14TriggerMetadataEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x1au\n\x0fRuntimeEnvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12L\n\x05value\x18\x02 \x01(\x0b\x32\x36.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x02\x38\x01\x42\xf9\x01\n+com.ai.stigmer.agentic.workflowexecution.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02\'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x02\x33\x41i\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,9 +38,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_WORKFLOWEXECUTIONSPEC_RUNTIMEENVENTRY']._loaded_options = None
   _globals['_WORKFLOWEXECUTIONSPEC_RUNTIMEENVENTRY']._serialized_options = b'8\001'
   _globals['_WORKFLOWEXECUTIONSPEC']._serialized_start=147
-  _globals['_WORKFLOWEXECUTIONSPEC']._serialized_end=722
-  _globals['_WORKFLOWEXECUTIONSPEC_TRIGGERMETADATAENTRY']._serialized_start=537
-  _globals['_WORKFLOWEXECUTIONSPEC_TRIGGERMETADATAENTRY']._serialized_end=603
-  _globals['_WORKFLOWEXECUTIONSPEC_RUNTIMEENVENTRY']._serialized_start=605
-  _globals['_WORKFLOWEXECUTIONSPEC_RUNTIMEENVENTRY']._serialized_end=722
+  _globals['_WORKFLOWEXECUTIONSPEC']._serialized_end=761
+  _globals['_WORKFLOWEXECUTIONSPEC_TRIGGERMETADATAENTRY']._serialized_start=576
+  _globals['_WORKFLOWEXECUTIONSPEC_TRIGGERMETADATAENTRY']._serialized_end=642
+  _globals['_WORKFLOWEXECUTIONSPEC_RUNTIMEENVENTRY']._serialized_start=644
+  _globals['_WORKFLOWEXECUTIONSPEC_RUNTIMEENVENTRY']._serialized_end=761
 # @@protoc_insertion_point(module_scope)

@@ -13,6 +13,9 @@ Complete documentation index for the Stigmer open-source project.
 - [Configuration Cascade](cli/configuration-cascade.md) - Complete guide to configuration priority (CLI flags, env vars, config file)
 - [Server Logs](cli/server-logs.md) - Viewing and managing server logs
 
+### SDK
+- [Go SDK Proto Integration](sdk/go-sdk-proto-integration.md) - Convert SDK resources to platform protos (Skill ready, Agent in progress)
+
 ### Guides
 - [Deploying with Apply](guides/deploying-with-apply.md) - Deploy agents and workflows from code using `stigmer apply`
 - [Distribution Guide](guides/distribution.md) - Complete guide to packaging and distributing Stigmer
@@ -39,6 +42,9 @@ Complete documentation index for the Stigmer open-source project.
 - [Open Core Model](architecture/open-core-model.md) - Open source vs enterprise architecture
 - [Packaging Flow](architecture/packaging-flow.md) - How Stigmer is packaged and distributed (with diagrams)
 - [Request Pipeline Context Design](architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
+- [SDK Code Generation](architecture/sdk-code-generation.md) - Schema-driven code generation for workflow tasks (adds new task in 5 minutes vs 30-60)
+- [SDK-CLI Contract](architecture/sdk-cli-contract.md) - Direct proto pattern: SDKs write platform protos with SDK metadata in annotations (eliminates manifest wrapper layer)
+- [Spec vs Status Philosophy](architecture/spec-status-philosophy.md) - Kubernetes-inspired philosophy for field placement: inputs in spec, outputs in status
 - [Temporal Integration](architecture/temporal-integration.md) - Polyglot workflow orchestration with Temporal (Go workflows, Python activities)
 - [Update Pipeline and Immutable Fields](architecture/update-pipeline-and-immutable-fields.md) - How updates preserve identity while allowing modifications
 
@@ -50,6 +56,7 @@ Complete documentation index for the Stigmer open-source project.
 - [In-Process gRPC Calls and Agent Instance Creation](adr/20260118-214000-in-process-grpc-calls-and-agent-instance-creation.md) - In-process gRPC architecture
 - [Fix Go In-Process gRPC Implementation](adr/20260118-fix-go-inprocess-grpc-implementation.md) - Technical fixes for in-process gRPC
 - [Workflow Runner Config](adr/20260119-011111-workflow-runner-config.md) - Workflow runner configuration architecture
+- [Async Agent Execution - Temporal Token Handshake](adr/20260122-async-agent-execution-temporal-token-handshake.md) - Async activity completion pattern for non-blocking agent execution
 
 **Note**: See `_cursor/adr-doc` for ADR 016: Local Agent Runner Runtime Strategy (implementation guide)
 

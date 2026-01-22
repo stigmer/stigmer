@@ -1,0 +1,22 @@
+{
+  "name": "WaitTaskConfig",
+  "kind": "WAIT",
+  "description": "WAIT tasks pause workflow execution for a specified duration.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/wait.proto",
+  "fields": [
+    {
+      "name": "Duration",
+      "jsonName": "duration",
+      "protoField": "duration",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Duration to wait (e.g., \"5s\", \"1m\", \"1h\", \"1d\")",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

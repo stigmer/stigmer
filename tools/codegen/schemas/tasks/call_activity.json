@@ -1,0 +1,32 @@
+{
+  "name": "CallActivityTaskConfig",
+  "kind": "CALL_ACTIVITY",
+  "description": "CALL_ACTIVITY tasks invoke external activities.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/call_activity.proto",
+  "fields": [
+    {
+      "name": "Activity",
+      "jsonName": "activity",
+      "protoField": "activity",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Activity name",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Input",
+      "jsonName": "input",
+      "protoField": "input",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "Activity input",
+      "required": false
+    }
+  ]
+}

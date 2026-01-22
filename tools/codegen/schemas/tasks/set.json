@@ -1,0 +1,28 @@
+{
+  "name": "SetTaskConfig",
+  "kind": "SET",
+  "description": "SET tasks assign variables in workflow state.\n\nYAML Example:\n  - taskName:\n      set:\n        variable1: value\n        variable2: ${ expression }\n        computed: ${ .a + .b }",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/set.proto",
+  "fields": [
+    {
+      "name": "Variables",
+      "jsonName": "variables",
+      "protoField": "variables",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "Variables to set in workflow state. Keys are variable names, values can be literals or expressions. Expressions use ${...} syntax, e.g., \"${.a + .b}\" or \"${now}\"",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

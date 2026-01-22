@@ -38,6 +38,15 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, execution *
 
 	logger.Info("Starting workflow for execution", "execution_id", executionID)
 
+	// Log callback token presence (for async activity completion pattern)
+	// See: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
+	callbackToken := execution.GetSpec().GetCallbackToken()
+	if len(callbackToken) > 0 {
+		logger.Info("📝 Callback token detected - will complete external activity on finish",
+			"execution_id", executionID,
+			"token_length", len(callbackToken))
+	}
+
 	// Execute the Graphton flow
 	if err := w.executeGraphtonFlow(ctx, execution); err != nil {
 		logger.Error("❌ Workflow execution failed", "execution_id", executionID, "error", err.Error())
@@ -49,10 +58,28 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, execution *
 			// Continue to return original error even if status update fails
 		}
 
+		// Complete external activity with error (if token provided)
+		if len(callbackToken) > 0 {
+			if err := w.completeExternalActivity(ctx, callbackToken, nil, err); err != nil {
+				logger.Error("❌ Failed to complete external activity with error", "error", err.Error())
+				// Continue to return original error even if completion fails
+			}
+		}
+
 		return temporal.NewApplicationError("Workflow execution failed", "", err)
 	}
 
 	logger.Info("✅ Workflow completed for execution (status updates were sent progressively via gRPC)", "execution_id", executionID)
+
+	// Complete external activity with success (if token provided)
+	if len(callbackToken) > 0 {
+		// Return the execution as the result
+		if err := w.completeExternalActivity(ctx, callbackToken, execution, nil); err != nil {
+			logger.Error("❌ Failed to complete external activity with success", "error", err.Error())
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -245,5 +272,64 @@ func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow.Co
 	}
 
 	logger.Info("✅ Updated execution status to FAILED", "execution_id", executionID)
+	return nil
+}
+
+// completeExternalActivity completes an external Temporal activity using the callback token.
+//
+// This implements the async activity completion pattern where an external workflow
+// (e.g., Zigflow) passes its activity token to this workflow and waits for completion.
+//
+// See: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
+//
+// Parameters:
+// - callbackToken: The Temporal task token from the external activity
+// - result: The result to return (nil if error is provided)
+// - err: The error to return (nil if result is provided)
+//
+// This method delegates to a system activity (CompleteExternalActivity) because
+// workflow code must be deterministic and cannot make external API calls directly.
+func (w *InvokeAgentExecutionWorkflowImpl) completeExternalActivity(
+	ctx workflow.Context,
+	callbackToken []byte,
+	result interface{},
+	err error,
+) error {
+	logger := workflow.GetLogger(ctx)
+
+	if len(callbackToken) == 0 {
+		logger.Warn("⚠️ completeExternalActivity called with empty token - skipping")
+		return nil
+	}
+
+	logger.Info("📞 Completing external activity via system activity",
+		"token_length", len(callbackToken),
+		"has_result", result != nil,
+		"has_error", err != nil)
+
+	// Create activity options with appropriate timeouts
+	activityCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+		StartToCloseTimeout: 1 * time.Minute, // System activity should be fast
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 3,
+			InitialInterval: 1 * time.Second,
+		},
+	})
+
+	// Call the system activity to complete the external activity
+	input := &activities.CompleteExternalActivityInput{
+		CallbackToken: callbackToken,
+		Result:        result,
+		Error:         err,
+	}
+
+	completionErr := workflow.ExecuteActivity(activityCtx, activities.CompleteExternalActivityName, input).Get(activityCtx, nil)
+	if completionErr != nil {
+		logger.Error("❌ System activity failed to complete external activity",
+			"error", completionErr.Error())
+		return completionErr
+	}
+
+	logger.Info("✅ External activity completed successfully")
 	return nil
 }
