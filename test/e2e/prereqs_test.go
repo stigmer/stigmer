@@ -72,6 +72,31 @@ func checkDocker() error {
 	return nil
 }
 
+// checkTemporal verifies Temporal server is running (checks Web UI on port 8233)
+func checkTemporal() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// Check Temporal Web UI (port 8233) instead of gRPC port (7233)
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8233", nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to connect to Temporal (is stigmer server running?): %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Temporal returned status %d (expected 200)", resp.StatusCode)
+	}
+
+	return nil
+}
+
 // checkOllama verifies Ollama server is running and accessible
 func checkOllama() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

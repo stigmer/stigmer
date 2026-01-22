@@ -17,6 +17,52 @@ type E2ESuite struct {
 	TempDir string
 }
 
+// SetupSuite runs once before all tests in the suite
+// Checks that required infrastructure is running
+func (s *E2ESuite) SetupSuite() {
+	s.T().Log("Checking E2E test prerequisites...")
+	
+	// Check Temporal (via Web UI on port 8233)
+	if err := checkTemporal(); err != nil {
+		s.T().Fatalf(`Temporal is not running or not accessible.
+
+Required for: Workflow orchestration
+
+Setup:
+  Start stigmer server (includes Temporal):
+    stigmer server
+
+  Or manually start Temporal:
+    temporal server start-dev --port 7233 --ui-port 8233
+
+To verify Temporal is running:
+  curl http://localhost:8233
+
+Error: %v`, err)
+	}
+	s.T().Log("✓ Temporal detected at localhost:7233")
+	
+	// Check Ollama
+	if err := checkOllama(); err != nil {
+		s.T().Fatalf(`Ollama is not running or not accessible.
+
+Required for: LLM-powered agent execution
+
+Setup Ollama:
+  1. Install: https://ollama.com/
+  2. Start server: ollama serve
+  3. Pull model: ollama pull qwen2.5-coder:7b
+
+To verify Ollama is running:
+  curl http://localhost:11434/api/version
+
+Error: %v`, err)
+	}
+	s.T().Log("✓ Ollama detected at localhost:11434")
+	
+	s.T().Log("All prerequisites met, starting E2E tests...")
+}
+
 // SetupTest runs before each test method
 // Creates a fresh temporary directory and starts a stigmer-server instance
 func (s *E2ESuite) SetupTest() {
