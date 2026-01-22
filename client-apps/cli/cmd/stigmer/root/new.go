@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/sdk/go/templates"
@@ -141,7 +142,7 @@ func newHandler(cmd *cobra.Command, args []string) {
 	}{
 		{"Stigmer.yaml", "Stigmer.yaml", generateStigmerYAML(projectName)},
 		{"main.go (AI-powered PR reviewer)", "main.go", templates.AgentAndWorkflow()},
-		{"go.mod", "go.mod", generateGoMod(projectName)},
+		{"go.mod", "go.mod", embedded.GenerateGoModContent(projectName)},
 		{".gitignore", ".gitignore", generateGitignore()},
 		{"README.md", "README.md", generateReadme(projectName)},
 	}
@@ -218,27 +219,6 @@ runtime: go
 version: 1.0.0
 description: AI-powered PR review demo
 `, projectName)
-}
-
-func generateGoMod(projectName string) string {
-	// Use the project name as module name (sanitized)
-	moduleName := strings.ReplaceAll(projectName, "-", "_")
-	
-	// Generate go.mod with replace directives to ensure both SDK and stubs use the version with tracked stubs
-	// This overrides the SDK's internal replace directives which only work inside the stigmer repo
-	// Using commit cfa15f93ba61 (2026-01-21) which includes workflow metadata fix
-	return fmt.Sprintf(`module %s
-
-go 1.24
-
-require (
-	github.com/stigmer/stigmer/sdk/go v0.0.0-00010101000000-000000000000
-)
-
-replace github.com/stigmer/stigmer/sdk/go => github.com/stigmer/stigmer/sdk/go v0.0.0-20260120203025-cfa15f93ba61
-
-replace github.com/stigmer/stigmer/apis/stubs/go => github.com/stigmer/stigmer/apis/stubs/go v0.0.0-20260120203025-cfa15f93ba61
-`, moduleName)
 }
 
 func generateGitignore() string {
