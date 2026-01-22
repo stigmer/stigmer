@@ -4,8 +4,6 @@
 package e2e
 
 import (
-	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -15,57 +13,71 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// FullExecutionSuite runs Phase 2 tests that require Docker services (Temporal + agent-runner)
+// FullExecutionSuite runs Phase 2 tests that require full stigmer server stack
+// Uses the production stigmer server (with Temporal, workflow-runner, agent-runner)
 type FullExecutionSuite struct {
 	suite.Suite
-	Harness *TestHarness
-	TempDir string
+	ServerManager *StigmerServerManager // Manages full stigmer server stack
+	ServerPort    int                   // Port stigmer-server is running on
 }
 
 // SetupSuite runs once before all tests in this suite
-// Checks prerequisites and prepares the environment
+// Ensures stigmer server is running (starts it if needed)
 func (s *FullExecutionSuite) SetupSuite() {
-	// Check prerequisites (Docker, Ollama)
-	if err := CheckPrerequisites(); err != nil {
-		s.T().Skip(fmt.Sprintf("Prerequisites not met, skipping Phase 2 tests:\n%v", err))
-	}
-}
-
-// SetupTest runs before each test method
-// Creates a fresh temporary directory and starts stigmer-server + Docker services
-func (s *FullExecutionSuite) SetupTest() {
-	// Create fresh temp directory for this test
-	var err error
-	s.TempDir, err = os.MkdirTemp("", "stigmer-e2e-full-*")
-	s.Require().NoError(err, "Failed to create temp directory")
-
-	s.T().Logf("Test temp directory: %s", s.TempDir)
-
-	// Start stigmer-server with Docker services enabled
-	s.Harness = StartHarnessWithDocker(s.T(), s.TempDir, true)
+	s.T().Log("=== Setting up Phase 2 test suite ===")
 	
-	// Verify Docker services are ready
-	s.Require().True(s.Harness.TemporalReady, "Temporal should be ready")
-	s.Require().True(s.Harness.AgentRunnerReady, "Agent runner should be ready")
+	// Ensure stigmer server is running (starts it automatically if not)
+	manager, err := EnsureStigmerServerRunning(s.T())
+	if err != nil {
+		s.T().Skipf("Failed to start stigmer server, skipping Phase 2 tests:\n%v", err)
+	}
+	
+	s.ServerManager = manager
+	s.ServerPort = manager.GetServerPort()
+	
+	// Check component status
+	status := manager.GetStatus()
+	s.T().Logf("Component status: stigmer-server=%v temporal=%v workflow-runner=%v agent-runner=%v",
+		status["stigmer-server"],
+		status["temporal"],
+		status["workflow-runner"],
+		status["agent-runner"],
+	)
+	
+	// Skip suite if critical components are not ready
+	if !status["stigmer-server"] {
+		s.T().Skip("Stigmer server not ready")
+	}
+	
+	if !status["temporal"] {
+		s.T().Skip("Temporal not available - required for Phase 2 tests")
+	}
+	
+	if !status["agent-runner"] {
+		s.T().Skip("Agent runner not available - required for Phase 2 tests")
+	}
+	
+	s.T().Log("✓ All components ready for Phase 2 tests")
 }
 
-// TearDownTest runs after each test method
-// Stops services and cleans up temporary files
-func (s *FullExecutionSuite) TearDownTest() {
-	// Stop services
-	if s.Harness != nil {
-		s.Harness.Stop()
+// TearDownSuite runs once after all tests in this suite
+// Stops stigmer server if we started it
+func (s *FullExecutionSuite) TearDownSuite() {
+	if s.ServerManager != nil {
+		s.ServerManager.Stop()
 	}
+}
 
-	// Clean up temp directory
-	if s.TempDir != "" {
-		err := os.RemoveAll(s.TempDir)
-		if err != nil {
-			s.T().Logf("Warning: Failed to remove temp directory: %v", err)
-		} else {
-			s.T().Logf("Cleaned up temp directory: %s", s.TempDir)
-		}
-	}
+// SetupTest runs before each test - no setup needed now
+// Tests share the same stigmer server instance
+func (s *FullExecutionSuite) SetupTest() {
+	// Nothing needed - using shared server
+}
+
+// TearDownTest runs after each test - no cleanup needed now  
+// Tests share the same stigmer server, so no per-test cleanup
+func (s *FullExecutionSuite) TearDownTest() {
+	// Nothing needed - server stays running for next test
 }
 
 // TestRunWithFullExecution tests a complete agent execution lifecycle:
@@ -79,7 +91,7 @@ func (s *FullExecutionSuite) TestRunWithFullExecution() {
 	// Step 1: Apply the agent
 	s.T().Log("Step 1: Applying basic agent...")
 	applyOutput, err := RunCLIWithServerAddr(
-		s.Harness.ServerPort,
+		s.ServerPort,
 		"apply",
 		"--config", "testdata/Stigmer.yaml",
 	)
@@ -92,14 +104,14 @@ func (s *FullExecutionSuite) TestRunWithFullExecution() {
 	s.T().Logf("✓ Agent deployed: %s", agentID)
 
 	// Verify agent exists
-	exists, err := AgentExistsViaAPI(s.Harness.ServerPort, agentID)
+	exists, err := AgentExistsViaAPI(s.ServerPort, agentID)
 	s.Require().NoError(err, "Should be able to query agent")
 	s.Require().True(exists, "Agent should exist after apply")
 
 	// Step 2: Run the agent
 	s.T().Log("Step 2: Running agent with test message...")
 	runOutput, err := RunCLIWithServerAddr(
-		s.Harness.ServerPort,
+		s.ServerPort,
 		"run", agentID,
 		"--message", "Say hello and confirm you can respond",
 		"--no-follow", // Don't stream logs, just create execution
@@ -115,7 +127,7 @@ func (s *FullExecutionSuite) TestRunWithFullExecution() {
 	// Step 3: Wait for execution to complete
 	s.T().Log("Step 3: Waiting for execution to complete...")
 	execution, err := WaitForExecutionPhase(
-		s.Harness.ServerPort,
+		s.ServerPort,
 		executionID,
 		agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
 		60*time.Second, // 60 seconds should be enough for a simple response
@@ -127,7 +139,7 @@ func (s *FullExecutionSuite) TestRunWithFullExecution() {
 
 	// Step 4: Verify agent produced output
 	s.T().Log("Step 4: Verifying agent output...")
-	messages, err := GetExecutionMessages(s.Harness.ServerPort, executionID)
+	messages, err := GetExecutionMessages(s.ServerPort, executionID)
 	s.Require().NoError(err, "Should be able to get execution messages")
 	s.Require().NotEmpty(messages, "Execution should have at least one message")
 
@@ -156,7 +168,7 @@ func (s *FullExecutionSuite) TestRunWithInvalidMessage() {
 
 	// Try to run without deploying agent first
 	output, err := RunCLIWithServerAddr(
-		s.Harness.ServerPort,
+		s.ServerPort,
 		"run", "non-existent-agent-id",
 		"--message", "test",
 		"--no-follow",
