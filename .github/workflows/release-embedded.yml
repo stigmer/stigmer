@@ -324,9 +324,9 @@ jobs:
 ## Installation
 
 ### Homebrew (macOS/Linux)
-\`\`\`bash
+\\\`\\\`\\\`bash
 brew install stigmer/tap/stigmer
-\`\`\`
+\\\`\\\`\\\`
 
 ### Manual Installation
 Download the appropriate binary for your platform:
@@ -335,10 +335,10 @@ Download the appropriate binary for your platform:
 - Linux (AMD64): stigmer-$VERSION-linux-amd64.tar.gz
 
 Extract and install:
-\`\`\`bash
+\\\`\\\`\\\`bash
 tar -xzf stigmer-$VERSION-<platform>.tar.gz
 sudo mv stigmer /usr/local/bin/
-\`\`\`
+\\\`\\\`\\\`
 
 ## Requirements
 
@@ -353,9 +353,9 @@ First release with Docker-based agent-runner architecture."
             CHANGELOG="## Installation
 
 ### Homebrew (macOS/Linux)
-\`\`\`bash
+\\\`\\\`\\\`bash
 brew upgrade stigmer
-\`\`\`
+\\\`\\\`\\\`
 
 ### Manual Installation
 Download the appropriate binary for your platform from the assets below.
