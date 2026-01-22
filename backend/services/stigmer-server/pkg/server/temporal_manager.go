@@ -102,43 +102,83 @@ func (tm *TemporalManager) IsConnected() bool {
 	return tm.connected
 }
 
-// InitialConnect attempts the initial connection to Temporal
-// Returns the client if successful, nil if failed (non-fatal)
+// InitialConnect attempts the initial connection to Temporal with retries
+// Returns the client if successful, nil if failed after all retries (non-fatal)
 func (tm *TemporalManager) InitialConnect(ctx context.Context) client.Client {
+	maxRetries := 3
+	baseDelay := 1 * time.Second
+
 	log.Info().
 		Str("host_port", tm.cfg.TemporalHostPort).
 		Str("namespace", tm.namespace).
-		Msg("Attempting initial Temporal connection")
+		Int("max_retries", maxRetries).
+		Msg("Attempting initial Temporal connection with retry")
 
-	temporalClient, err := tm.dialTemporal(ctx)
-	if err != nil {
-		log.Warn().
-			Err(err).
-			Str("host_port", tm.cfg.TemporalHostPort).
-			Str("namespace", tm.namespace).
-			Msg("Failed initial Temporal connection - will retry automatically")
-		
-		tm.reconnectMu.Lock()
-		tm.connected = false
-		tm.consecutiveFails = 1
-		tm.lastAttempt = time.Now()
-		tm.reconnectMu.Unlock()
-		
-		return nil
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		// Try to connect
+		temporalClient, err := tm.dialTemporal(ctx)
+		if err == nil {
+			// Success!
+			tm.temporalClient.Store(temporalClient)
+			tm.reconnectMu.Lock()
+			tm.connected = true
+			tm.consecutiveFails = 0
+			tm.reconnectMu.Unlock()
+
+			log.Info().
+				Str("host_port", tm.cfg.TemporalHostPort).
+				Str("namespace", tm.namespace).
+				Int("attempt", attempt).
+				Msg("✅ Initial Temporal connection successful")
+
+			return temporalClient
+		}
+
+		// Connection failed
+		if attempt < maxRetries {
+			// Calculate exponential backoff: 1s, 2s, 4s, 8s, 16s
+			delay := time.Duration(1<<uint(attempt-1)) * baseDelay
+			log.Warn().
+				Err(err).
+				Str("host_port", tm.cfg.TemporalHostPort).
+				Str("namespace", tm.namespace).
+				Int("attempt", attempt).
+				Int("max_retries", maxRetries).
+				Dur("retry_in", delay).
+				Msg("Temporal connection failed, retrying...")
+
+			// Wait before retry
+			select {
+			case <-time.After(delay):
+				// Continue to next attempt
+			case <-ctx.Done():
+				// Context cancelled
+				log.Warn().Msg("Context cancelled during Temporal connection retry")
+				tm.reconnectMu.Lock()
+				tm.connected = false
+				tm.consecutiveFails = attempt
+				tm.lastAttempt = time.Now()
+				tm.reconnectMu.Unlock()
+				return nil
+			}
+		} else {
+			// Final attempt failed
+			log.Warn().
+				Err(err).
+				Str("host_port", tm.cfg.TemporalHostPort).
+				Str("namespace", tm.namespace).
+				Int("attempts", maxRetries).
+				Msg("Failed initial Temporal connection after all retries - will retry via health monitor")
+
+			tm.reconnectMu.Lock()
+			tm.connected = false
+			tm.consecutiveFails = maxRetries
+			tm.lastAttempt = time.Now()
+			tm.reconnectMu.Unlock()
+		}
 	}
 
-	tm.temporalClient.Store(temporalClient)
-	tm.reconnectMu.Lock()
-	tm.connected = true
-	tm.consecutiveFails = 0
-	tm.reconnectMu.Unlock()
-
-	log.Info().
-		Str("host_port", tm.cfg.TemporalHostPort).
-		Str("namespace", tm.namespace).
-		Msg("✅ Initial Temporal connection successful")
-
-	return temporalClient
+	return nil
 }
 
 // StartHealthMonitor starts the background health check and reconnection goroutine
