@@ -38,7 +38,7 @@ func TestAgentExecutionController_Create(t *testing.T) {
 
 	t.Run("successful creation with session_id", func(t *testing.T) {
 		t.Skip("Skipping test that requires Temporal workflow engine")
-		
+
 		execution := &agentexecutionv1.AgentExecution{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentExecution",
@@ -152,7 +152,7 @@ func TestAgentExecutionController_Get(t *testing.T) {
 
 	t.Run("successful get", func(t *testing.T) {
 		t.Skip("Skipping test that requires Temporal workflow engine")
-		
+
 		// Create execution first
 		execution := &agentexecutionv1.AgentExecution{
 			ApiVersion: "agentic.stigmer.ai/v1",
@@ -201,7 +201,7 @@ func TestAgentExecutionController_Update(t *testing.T) {
 
 	t.Run("successful update", func(t *testing.T) {
 		t.Skip("Skipping test that requires Temporal workflow engine")
-		
+
 		// Create execution first
 		execution := &agentexecutionv1.AgentExecution{
 			ApiVersion: "agentic.stigmer.ai/v1",
@@ -261,7 +261,7 @@ func TestAgentExecutionController_Delete(t *testing.T) {
 
 	t.Run("successful deletion", func(t *testing.T) {
 		t.Skip("Skipping test that requires Temporal workflow engine")
-		
+
 		// Create execution first
 		execution := &agentexecutionv1.AgentExecution{
 			ApiVersion: "agentic.stigmer.ai/v1",

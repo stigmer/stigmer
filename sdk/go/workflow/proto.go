@@ -8,9 +8,9 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
+	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
-	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 )
@@ -303,7 +303,7 @@ func normalizeMapForProto(m map[string]interface{}) map[string]interface{} {
 	if m == nil {
 		return nil
 	}
-	
+
 	result := make(map[string]interface{})
 	for k, v := range m {
 		result[k] = normalizeValueForProto(v)
@@ -318,7 +318,7 @@ func normalizeValueForProto(v interface{}) interface{} {
 	if ref, ok := v.(Ref); ok {
 		return ref.Expression()
 	}
-	
+
 	switch val := v.(type) {
 	case map[string]interface{}:
 		return normalizeMapForProto(val)
@@ -348,7 +348,7 @@ func taskToMap(task *Task) (map[string]interface{}, error) {
 		"name": task.Name,
 		"kind": string(task.Kind),
 	}
-	
+
 	// Convert config if present
 	if task.Config != nil {
 		configMap, err := taskConfigToMap(task.Config)
@@ -357,19 +357,19 @@ func taskToMap(task *Task) (map[string]interface{}, error) {
 		}
 		m["config"] = configMap
 	}
-	
+
 	// Add export if set
 	if task.ExportAs != "" {
 		m["export"] = map[string]interface{}{
 			"as": task.ExportAs,
 		}
 	}
-	
+
 	// Add flow control if set
 	if task.ThenTask != "" {
 		m["then"] = task.ThenTask
 	}
-	
+
 	return m, nil
 }
 
@@ -427,11 +427,11 @@ func setTaskConfigToMap(c *SetTaskConfig) map[string]interface{} {
 // httpCallTaskConfigToMap converts HttpCallTaskConfig to map.
 func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	
+
 	if c.Method != "" {
 		m["method"] = c.Method
 	}
-	
+
 	// Build endpoint struct
 	if c.URI != "" {
 		endpoint := map[string]interface{}{
@@ -439,7 +439,7 @@ func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
 		}
 		m["endpoint"] = endpoint
 	}
-	
+
 	if c.Headers != nil && len(c.Headers) > 0 {
 		// Convert map[string]string to map[string]interface{}
 		headers := make(map[string]interface{})
@@ -448,49 +448,49 @@ func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
 		}
 		m["headers"] = headers
 	}
-	
+
 	if c.Body != nil && len(c.Body) > 0 {
 		m["body"] = normalizeMapForProto(c.Body)
 	}
-	
+
 	if c.TimeoutSeconds > 0 {
 		m["timeout_seconds"] = c.TimeoutSeconds
 	}
-	
+
 	return m
 }
 
 // grpcCallTaskConfigToMap converts GrpcCallTaskConfig to map.
 func grpcCallTaskConfigToMap(c *GrpcCallTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	
+
 	if c.Service != "" {
 		m["service"] = c.Service
 	}
-	
+
 	if c.Method != "" {
 		m["method"] = c.Method
 	}
-	
+
 	if c.Body != nil && len(c.Body) > 0 {
 		m["body"] = normalizeMapForProto(c.Body)
 	}
-	
+
 	return m
 }
 
 // agentCallTaskConfigToMap converts AgentCallTaskConfig to map.
 func agentCallTaskConfigToMap(c *AgentCallTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	
+
 	if c.Agent != "" {
 		m["agent"] = c.Agent
 	}
-	
+
 	if c.Message != "" {
 		m["message"] = c.Message
 	}
-	
+
 	if c.Env != nil && len(c.Env) > 0 {
 		// Convert map[string]string to map[string]interface{}
 		env := make(map[string]interface{})
@@ -499,11 +499,11 @@ func agentCallTaskConfigToMap(c *AgentCallTaskConfig) map[string]interface{} {
 		}
 		m["env"] = env
 	}
-	
+
 	if c.Config != nil && len(c.Config) > 0 {
 		m["config"] = c.Config
 	}
-	
+
 	return m
 }
 
