@@ -162,9 +162,10 @@ func (g *Generator) Generate() error {
 
 // extractDomainFromProtoType extracts domain from proto type namespace
 // Examples:
-//   "ai.stigmer.commons.apiresource.ApiResourceReference" -> "commons"
-//   "ai.stigmer.agentic.agent.v1.McpServerDefinition" -> "agentic"
-//   "ai.stigmer.agentic.skill.v1.SkillSpec" -> "agentic"
+//
+//	"ai.stigmer.commons.apiresource.ApiResourceReference" -> "commons"
+//	"ai.stigmer.agentic.agent.v1.McpServerDefinition" -> "agentic"
+//	"ai.stigmer.agentic.skill.v1.SkillSpec" -> "agentic"
 func extractDomainFromProtoType(protoType string) string {
 	// Split proto namespace: ai.stigmer.<domain>.<rest>
 	parts := strings.Split(protoType, ".")
@@ -176,9 +177,10 @@ func extractDomainFromProtoType(protoType string) string {
 
 // extractSubdomainFromProtoFile extracts subdomain from proto file path
 // Examples:
-//   "apis/ai/stigmer/agentic/agent/v1/spec.proto" -> "agent"
-//   "apis/ai/stigmer/agentic/skill/v1/spec.proto" -> "skill"
-//   "apis/ai/stigmer/commons/apiresource/io.proto" -> ""
+//
+//	"apis/ai/stigmer/agentic/agent/v1/spec.proto" -> "agent"
+//	"apis/ai/stigmer/agentic/skill/v1/spec.proto" -> "skill"
+//	"apis/ai/stigmer/commons/apiresource/io.proto" -> ""
 func extractSubdomainFromProtoFile(protoFile string) string {
 	// Pattern: apis/ai/stigmer/<domain>/<subdomain>/...
 	parts := strings.Split(protoFile, "/")
@@ -198,7 +200,7 @@ func extractSubdomainFromProtoFile(protoFile string) string {
 func (g *Generator) getOutputDir(schema *TaskConfigSchema) string {
 	// Extract subdomain from proto file path (data-driven)
 	subdomain := extractSubdomainFromProtoFile(schema.ProtoFile)
-	
+
 	if subdomain != "" {
 		// Generate to sdk/go/<subdomain>/ (e.g., sdk/go/agent/, sdk/go/skill/)
 		return filepath.Join("sdk", "go", subdomain)
@@ -212,13 +214,13 @@ func (g *Generator) getOutputDir(schema *TaskConfigSchema) string {
 func (g *Generator) getPackageName(schema *TaskConfigSchema) string {
 	// Determine package name from output directory
 	outputDir := g.getOutputDir(schema)
-	
+
 	// Extract last path component as package name
 	parts := strings.Split(outputDir, "/")
 	if len(parts) > 0 {
 		return parts[len(parts)-1]
 	}
-	
+
 	return g.packageName
 }
 
@@ -292,7 +294,7 @@ func (g *Generator) loadSchemas() error {
 			// Extract domain from proto namespace (data-driven, no hard-coding)
 			schema.Domain = extractDomainFromProtoType(schema.ProtoType)
 			fmt.Printf("  Loaded type: %s (domain: %s)\n", schema.Name, schema.Domain)
-			
+
 			g.sharedTypes = append(g.sharedTypes, schema)
 		}
 	}
@@ -541,7 +543,7 @@ func (g *Generator) generateTypesForDomain(domain string, types []*TypeSchema) e
 	}
 
 	outputPath := filepath.Join(typesOutputDir, filename)
-	
+
 	// Format code
 	formatted, err := format.Source(finalBuf.Bytes())
 	if err != nil {
@@ -564,7 +566,7 @@ func (g *Generator) generateTaskFile(taskConfig *TaskConfigSchema) error {
 	for _, t := range g.sharedTypes {
 		sharedTypeNames = append(sharedTypeNames, t.Name)
 	}
-	
+
 	ctx := newGenContextWithSharedTypes(g.packageName, sharedTypeNames)
 
 	var buf bytes.Buffer
@@ -619,10 +621,10 @@ func (g *Generator) generateResourceArgsFile(resourceSpec *TaskConfigSchema) err
 	for _, t := range g.sharedTypes {
 		sharedTypeNames = append(sharedTypeNames, t.Name)
 	}
-	
+
 	// Determine package name dynamically from proto file path
 	packageName := g.getPackageName(resourceSpec)
-	
+
 	// Create context aware of shared types
 	ctx := newGenContextWithSharedTypes(packageName, sharedTypeNames)
 
@@ -812,7 +814,7 @@ func (c *genContext) genArgsStruct(w *bytes.Buffer, config *TaskConfigSchema) er
 	// Determine the Args struct name
 	// "AgentSpec" -> "AgentArgs"
 	argsName := strings.TrimSuffix(config.Name, "Spec") + "Args"
-	
+
 	// Generate documentation comment
 	resourceName := strings.TrimSuffix(config.Name, "Spec")
 	fmt.Fprintf(w, "// %s contains the configuration arguments for creating a %s.\n", argsName, resourceName)
@@ -835,7 +837,7 @@ func (c *genContext) genArgsStruct(w *bytes.Buffer, config *TaskConfigSchema) er
 
 		// Field declaration - use goType which keeps message types unqualified
 		goType := c.goType(field.Type)
-		
+
 		// Use plain struct tags (no omitempty for required fields)
 		var jsonTag string
 		if field.Required {
@@ -843,7 +845,7 @@ func (c *genContext) genArgsStruct(w *bytes.Buffer, config *TaskConfigSchema) er
 		} else {
 			jsonTag = fmt.Sprintf("`json:\"%s,omitempty\"`", field.JsonName)
 		}
-		
+
 		fmt.Fprintf(w, "\t%s %s %s\n", field.Name, goType, jsonTag)
 	}
 
