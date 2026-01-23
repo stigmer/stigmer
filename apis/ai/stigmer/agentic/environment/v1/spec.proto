@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.environment.v1;
 
-import "buf/validate/validate.proto";
-
 // EnvironmentSpec defines a collection of configuration and secrets.
 // Created before AgentInstance or WorkflowInstance, referenced during instance creation.
 message EnvironmentSpec {
@@ -23,7 +21,9 @@ message EnvironmentValue {
   // The actual value.
   // - If is_secret=true: This value is encrypted at rest and redacted in logs
   // - If is_secret=false: This value is stored as plaintext
-  string value = 1 [(buf.validate.field).string.min_len = 1];
+  // Note: Value can be empty when defining environment variables in specs.
+  //       Actual values are typically provided at runtime during execution.
+  string value = 1;
 
   // Whether this value should be treated as a secret.
   // When true:

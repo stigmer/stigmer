@@ -43,7 +43,7 @@ Setup:
 
 Error: %v`, err)
 	}
-	s.T().Log("✓ Stigmer server detected at localhost:8234")
+	s.T().Log("✓ Stigmer server detected at localhost:7234")
 	
 	// Check Temporal (gRPC server on port 7233)
 	if err := checkTemporal(); err != nil {
