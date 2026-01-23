@@ -1,6 +1,23 @@
 # Next Task
 
-## Latest Completion (2026-01-23 07:12)
+## Latest Completion (2026-01-23 08:44)
+
+✅ **Workflow Runner Agent Call Integration - 4 Critical Bugs Fixed!**
+- **CRITICAL**: Fixed cascade of 4 bugs blocking workflow-to-agent integration
+- **Bug #1**: Missing `*model.CallFunction` case in expression evaluation type switch
+- **Bug #2**: `state.Env` never set - organization ID not available to activities  
+- **Bug #3**: Wrong parameter type passed to `CallAgentActivity` (DSL task instead of parsed config)
+- **Bug #4**: Missing agent execution name for slug generation
+- **Debugging approach**: Systematic cascade debugging (fix → rebuild → restart → test → discover next)
+- **Temporal caching**: Required killing old workflow-runner processes to pick up new code
+- **Impact**: Workflow calling agent tests can now execute (previously failed at expression evaluation)
+- All 4 workflow-calling-agent E2E tests ready to pass after server restart
+- See: `checkpoints/2026-01-23-fix-workflow-runner-agent-call-cascade.md`
+- See: `_changelog/2026-01/2026-01-23-084455-fix-workflow-calling-agent-expression-evaluation.md`
+
+---
+
+## Previous Completion (2026-01-23 07:12)
 
 ✅ **Agent Run Tests Enhanced with Completion Validation!**
 - **ENHANCED**: Tests now wait for execution completion (not just creation)
