@@ -3,6 +3,8 @@ package skill
 import (
 	"errors"
 	"os"
+
+	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 )
 
 var (
@@ -63,8 +65,11 @@ type Option func(*Skill) error
 // The CLI will create these skills on the platform before creating the agent.
 //
 // Required options:
-//   - WithName: skill name
+//   - WithName: skill name (or WithSlug for custom slug)
 //   - WithMarkdown or WithMarkdownFromFile: skill content
+//
+// Optional:
+//   - WithSlug: custom slug (overrides auto-generation from name)
 //
 // Example:
 //
@@ -72,6 +77,14 @@ type Option func(*Skill) error
 //	    skill.WithName("code-analyzer"),
 //	    skill.WithDescription("Analyzes code quality"),
 //	    skill.WithMarkdownFromFile("skills/analyzer.md"),
+//	)
+//
+// Example with custom slug:
+//
+//	skill, _ := skill.New(
+//	    skill.WithName("Code Analysis Tool"),
+//	    skill.WithSlug("code-analyzer"),  // Custom slug
+//	    skill.WithMarkdown("# Analysis guide..."),
 //	)
 func New(opts ...Option) (*Skill, error) {
 	s := &Skill{
@@ -85,12 +98,30 @@ func New(opts ...Option) (*Skill, error) {
 		}
 	}
 
+	// Auto-generate slug from name if not provided
+	if s.Slug == "" {
+		if s.Name == "" {
+			return nil, ErrSkillNameRequired
+		}
+		s.Slug = naming.GenerateSlug(s.Name)
+	}
+
+	// If name not provided but slug is, use slug as name
+	if s.Name == "" && s.Slug != "" {
+		s.Name = s.Slug
+	}
+
 	// Validation
 	if s.Name == "" {
 		return nil, ErrSkillNameRequired
 	}
 	if s.MarkdownContent == "" {
 		return nil, ErrSkillMarkdownRequired
+	}
+
+	// Validate slug format
+	if err := naming.ValidateSlug(s.Slug); err != nil {
+		return nil, err
 	}
 
 	return s, nil
@@ -154,6 +185,24 @@ func WithMarkdownFromFile(path string) Option {
 			return err
 		}
 		s.MarkdownContent = string(content)
+		return nil
+	}
+}
+
+// WithSlug sets a custom slug for the inline skill.
+//
+// By default, slugs are auto-generated from the name by converting to lowercase
+// and replacing spaces with hyphens. Use this option to override the auto-generation.
+//
+// The slug must contain only lowercase letters, numbers, and hyphens.
+// It cannot start or end with a hyphen.
+//
+// Example:
+//
+//	skill.WithSlug("my-custom-slug")
+func WithSlug(slug string) Option {
+	return func(s *Skill) error {
+		s.Slug = slug
 		return nil
 	}
 }

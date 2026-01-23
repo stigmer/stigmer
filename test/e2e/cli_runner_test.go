@@ -1,0 +1,101 @@
+//go:build e2e
+// +build e2e
+
+package e2e
+
+import (
+	"bytes"
+	"fmt"
+	"os/exec"
+
+	"github.com/stigmer/stigmer/client-apps/cli/cmd/stigmer"
+)
+
+// RunCLI executes CLI commands in-process without spawning a subprocess
+// This is faster than exec.Command and allows for better debugging
+//
+// Note: This currently uses subprocess execution instead of in-process
+// because the CLI root command has global state that doesn't reset properly
+// between test invocations. This is a known limitation and will be improved
+// in future iterations.
+//
+// Args:
+//   - args: CLI arguments (e.g., "apply", "--config", "testdata/examples/01-basic-agent/Stigmer.yaml")
+//
+// Returns:
+//   - output: Combined stdout/stderr output
+//   - err: Error if command failed
+//
+// Example:
+//   output, err := RunCLI("apply", "--config", "testdata/examples/01-basic-agent/Stigmer.yaml")
+func RunCLI(args ...string) (string, error) {
+	// TODO: Implement true in-process execution
+	// Currently blocked by cobra command state not resetting between calls
+	// For now, we'll document this limitation and use it for simpler commands
+	
+	// For apply command specifically, we need subprocess execution
+	// because the Go SDK execution environment needs isolation
+	return RunCLISubprocess(args...)
+}
+
+// RunCLIInProcess executes CLI commands truly in-process (experimental)
+// Currently has limitations with command state management
+func RunCLIInProcess(args ...string) (string, error) {
+	var stdout, stderr bytes.Buffer
+
+	// Get root command (exposed for testing)
+	rootCmd := stigmer.GetRootCommand()
+
+	// Configure output capture
+	rootCmd.SetOut(&stdout)
+	rootCmd.SetErr(&stderr)
+	rootCmd.SetArgs(args)
+
+	// Execute command
+	err := rootCmd.Execute()
+
+	// Combine output
+	output := stdout.String()
+	if stderr.Len() > 0 {
+		output += "\n--- STDERR ---\n" + stderr.String()
+	}
+
+	if err != nil {
+		return output, fmt.Errorf("CLI command failed: %w\nOutput: %s", err, output)
+	}
+
+	return output, nil
+}
+
+// RunCLISubprocess executes CLI commands as a subprocess
+// This provides full isolation and is the current recommended approach
+func RunCLISubprocess(args ...string) (string, error) {
+	// Use the installed stigmer binary directly
+	cmd := exec.Command("stigmer", args...)
+
+	// Capture output
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	// Run command
+	err := cmd.Run()
+
+	// Combine output
+	output := stdout.String()
+	if stderr.Len() > 0 {
+		output += "\n--- STDERR ---\n" + stderr.String()
+	}
+
+	if err != nil {
+		return output, fmt.Errorf("CLI subprocess failed: %w\nOutput: %s", err, output)
+	}
+
+	return output, nil
+}
+
+// RunCLIWithServerAddr is a convenience wrapper for backwards compatibility
+// Just calls RunCLISubprocess - server address is auto-detected by stigmer CLI
+func RunCLIWithServerAddr(serverPort int, args ...string) (string, error) {
+	return RunCLISubprocess(args...)
+}

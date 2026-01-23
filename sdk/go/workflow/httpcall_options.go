@@ -106,6 +106,18 @@ func Body(body map[string]interface{}) HttpCallOption {
 	}
 }
 
+// WithBody is an alias for Body for more concise API.
+//
+// Example:
+//
+//	workflow.WithBody(map[string]any{
+//	    "name": "John Doe",
+//	    "email": "john@example.com",
+//	})
+func WithBody(body map[string]interface{}) HttpCallOption {
+	return Body(body)
+}
+
 // Timeout sets the request timeout in seconds.
 //
 // Example:

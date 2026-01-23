@@ -5,10 +5,10 @@ import (
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 )
 
-// AgentInstanceController implements AgentInstanceCommandController and AgentInstanceQueryService
+// AgentInstanceController implements AgentInstanceCommandController and AgentInstanceQueryController
 type AgentInstanceController struct {
 	agentinstancev1.UnimplementedAgentInstanceCommandControllerServer
-	agentinstancev1.UnimplementedAgentInstanceQueryServiceServer
+	agentinstancev1.UnimplementedAgentInstanceQueryControllerServer
 	store *badger.Store
 }
 

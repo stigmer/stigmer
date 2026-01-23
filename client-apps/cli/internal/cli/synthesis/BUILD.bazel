@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "synthesis",
+    srcs = [
+        "ordering.go",
+        "reader.go",
+        "result.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
+        "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
+        "@com_github_pkg_errors//:errors",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "synthesis_test",
+    srcs = ["ordering_test.go"],
+    embed = [":synthesis"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
+        "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+    ],
+)
