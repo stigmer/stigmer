@@ -83,8 +83,51 @@ docs/
 ├── README.md (this file)          # Documentation index
 ├── GETTING_STARTED.md             # Beginner's guide
 ├── USAGE.md                       # Comprehensive usage guide
-└── API_REFERENCE.md               # Complete API reference
+├── API_REFERENCE.md               # Complete API reference
+├── guides/                        # Migration and how-to guides
+├── architecture/                  # Architecture documentation
+├── implementation/                # Implementation reports
+└── references/                    # Reference documentation
 ```
+
+---
+
+## 🔄 Migration Guides
+
+### Struct Args Migration (v0.2.0+)
+
+**Guide**: [Struct Args Migration](guides/struct-args-migration.md)
+
+Migrate from functional options to Pulumi-style struct-based args:
+- ✅ Agent, Skill, Workflow task migrations
+- ✅ Before/after examples for all patterns
+- ✅ Helper types and convenience methods
+- ✅ Complete troubleshooting guide
+- ✅ Migration checklist
+
+**Status**: Current migration path
+
+### Other Migrations
+
+- [Proto-Agnostic Migration](guides/migration-guide.md) - Legacy proto-coupled architecture
+- [Typed Context Migration](guides/typed-context-migration.md) - Expression syntax updates
+
+---
+
+## 🏗️ Architecture
+
+### Core Patterns
+
+- **[Struct Args Pattern](architecture/struct-args-pattern.md)** ⭐ - Resource constructor pattern
+  - Why struct args vs functional options
+  - Type aliases and nil-safety
+  - Helper types and convenience methods
+  - Code generation architecture
+  - Migration story and metrics
+
+- **[Pulumi Aligned Patterns](architecture/pulumi-aligned-patterns.md)** - Overall Pulumi alignment
+- **[Synthesis Architecture](architecture/synthesis-architecture.md)** - Resource synthesis system
+- **[Multi-Agent Support](architecture/multi-agent-support.md)** - Multi-agent orchestration
 
 ---
 
