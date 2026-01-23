@@ -24,6 +24,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/rs/zerolog/log"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -88,7 +89,28 @@ func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 			"scope", t.agentConfig.Scope,
 			"task", t.GetTaskName())
 
-		return t.executeActivity(ctx, (*CallAgentActivities).CallAgentActivity, input, state)
+		// Call agent activity directly with parsed config (not via executeActivity base method)
+		// We pass: agentConfig (parsed task config), input (workflow input), state.Env (runtime environment)
+		var res any
+		future := workflow.ExecuteActivity(ctx, (*CallAgentActivities).CallAgentActivity, 
+			t.agentConfig, input, state.Env)
+		
+		if err := future.Get(ctx, &res); err != nil {
+			// Handle workflow cancellation gracefully
+			if temporal.IsCanceledError(err) {
+				logger.Debug("Agent call activity cancelled")
+				return nil, nil
+			}
+			logger.Error("Agent call activity failed", "error", err)
+			return nil, fmt.Errorf("agent call activity failed: %w", err)
+		}
+
+		// Store result in state
+		state.AddData(map[string]any{
+			t.GetTaskName(): res,
+		})
+
+		return res, nil
 	}, nil
 }
 
