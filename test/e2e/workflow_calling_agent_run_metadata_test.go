@@ -10,7 +10,7 @@ import (
 )
 
 // TestRunWorkflowCallingAgentVerifyMetadata tests that execution metadata is properly set
-// and execution completes successfully
+// and execution completes successfully using STREAMING RPC
 //
 // Example: sdk/go/examples/15_workflow_calling_simple_agent.go
 // Test Fixture: test/e2e/testdata/examples/15-workflow-calling-simple-agent/
@@ -47,9 +47,9 @@ func (s *E2ESuite) TestRunWorkflowCallingAgentVerifyMetadata() {
 	s.NotNil(initialExecution.Status, "Execution should have status")
 	s.T().Logf("✓ Initial execution phase: %s", initialExecution.Status.Phase.String())
 
-	// STEP 4: Wait for execution to complete
-	s.T().Logf("Step 3: Waiting for execution to complete (timeout: 30s)...")
-	completedExecution, err := WaitForWorkflowExecutionPhase(
+	// STEP 4: Subscribe to execution stream and wait for completion
+	s.T().Logf("Step 3: Subscribing to execution stream (timeout: 30s)...")
+	completedExecution, err := WaitForWorkflowExecutionPhaseViaStream(
 		s.Harness.ServerPort,
 		runResult.ExecutionID,
 		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
@@ -77,7 +77,7 @@ func (s *E2ESuite) TestRunWorkflowCallingAgentVerifyMetadata() {
 	s.Equal(workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, completedExecution.Status.Phase,
 		"Execution should be in COMPLETED phase")
 
-	s.T().Logf("✅ Metadata Verification Test Passed!")
+	s.T().Logf("✅ Metadata Verification Test Passed (via streaming)!")
 	s.T().Logf("   Workflow ID: %s", result.Workflow.Metadata.Id)
 	s.T().Logf("   Execution ID: %s", completedExecution.Metadata.Id)
 	s.T().Logf("   Execution references workflow: %s", completedExecution.Spec.WorkflowId)
