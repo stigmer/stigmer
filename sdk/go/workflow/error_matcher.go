@@ -188,24 +188,18 @@ func CatchMultiple(errorTypes ...string) *ErrorMatcher {
 	return &ErrorMatcher{types: errorTypes}
 }
 
-// WithCatchTyped adds a type-safe error handler using ErrorMatcher.
-// This is an alternative to WithCatch that provides better UX with error matchers.
+// Note: WithCatchTyped has been removed in favor of struct-based args.
+// Use ErrorMatcher.Types() to get error type strings for TryArgs.Catch field.
 //
 // Example:
 //
-//	workflow.Try("attemptOperation",
-//	    workflow.WithTry(/* ... */),
-//	    workflow.WithCatchTyped(
-//	        workflow.CatchHTTPErrors(),  // Type-safe!
-//	        "httpErr",
-//	        workflow.Set("handleHTTPError", ...),
-//	    ),
-//	    workflow.WithCatchTyped(
-//	        workflow.CatchAny(),  // Catch-all fallback
-//	        "err",
-//	        workflow.Set("handleUnknownError", ...),
-//	    ),
-//	)
-func WithCatchTyped(matcher *ErrorMatcher, as string, tasks ...*Task) TryOption {
-	return WithCatch(matcher.Types(), as, tasks...)
-}
+//	workflow.Try("attemptOperation", &workflow.TryArgs{
+//	    Tasks: []map[string]interface{}{...},
+//	    Catch: []map[string]interface{}{
+//	        {
+//	            "errors": workflow.CatchHTTPErrors().Types(),  // Type-safe!
+//	            "as":     "httpErr",
+//	            "tasks":  []interface{}{...},
+//	        },
+//	    },
+//	})

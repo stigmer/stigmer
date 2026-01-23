@@ -1,42 +1,30 @@
 package workflow
 
-// RunOption is a functional option for configuring a RUN task.
-type RunOption func(*RunTaskConfig)
+// RunArgs is an alias for RunTaskConfig (Pulumi-style args pattern).
+type RunArgs = RunTaskConfig
 
-// Run creates a RUN task with functional options.
+// Run creates a RUN task using struct-based args.
+// This follows the Pulumi Args pattern for resource configuration.
 //
 // Example:
 //
-//	task := workflow.Run("subWorkflow",
-//	    workflow.SubWorkflow("data-processor"),
-//	    workflow.WorkflowInput(map[string]interface{}{"data": "${.input}"}),
-//	)
-func Run(name string, opts ...RunOption) *Task {
-	config := &RunTaskConfig{
-		Input: make(map[string]interface{}),
+//	task := workflow.Run("subWorkflow", &workflow.RunArgs{
+//	    WorkflowName: "data-processor",
+//	    Input:        map[string]interface{}{"data": "${.input}"},
+//	})
+func Run(name string, args *RunArgs) *Task {
+	if args == nil {
+		args = &RunArgs{}
 	}
 
-	for _, opt := range opts {
-		opt(config)
+	// Initialize maps if nil
+	if args.Input == nil {
+		args.Input = make(map[string]interface{})
 	}
 
 	return &Task{
 		Name:   name,
 		Kind:   TaskKindRun,
-		Config: config,
-	}
-}
-
-// SubWorkflow sets the sub-workflow name.
-func SubWorkflow(workflowName string) RunOption {
-	return func(c *RunTaskConfig) {
-		c.WorkflowName = workflowName
-	}
-}
-
-// WorkflowInput sets the sub-workflow input.
-func WorkflowInput(input map[string]interface{}) RunOption {
-	return func(c *RunTaskConfig) {
-		c.Input = input
+		Config: args,
 	}
 }

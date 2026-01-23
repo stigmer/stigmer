@@ -68,10 +68,10 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-23 21:27
-**Current Task**: T06 (Struct-Based Args) - Phase 2 Complete ✅, Phase 4 Complete ✅
-**Status**: READY FOR PHASE 5 - Update workflow task constructors
-**Last Updated**: 2026-01-24 04:22
-**Latest Achievement**: All SDK examples updated to struct-based args pattern and verified working
+**Current Task**: T06 (Struct-Based Args) - Phase 2 Complete ✅, Phase 4 Complete ✅, Phase 5 Complete ✅
+**Status**: PHASE 5 COMPLETE - Workflow tasks migrated to struct args (examples pending)
+**Last Updated**: 2026-01-24 05:15
+**Latest Achievement**: All 13 workflow task types converted to struct-based args, SDK compiles successfully
 
 **CONVERSATION 2 PROGRESS** (2026-01-24):
 - ✅ **ARCHITECTURE FIX COMPLETE**
@@ -122,11 +122,24 @@ When starting a new session:
    - ✅ Removed outdated generated files
    - ✅ Moved `InlineSubAgentSpec` to shared types
 
-**Key Achievement**: All SDK examples successfully migrated to struct-based args pattern. 7 core examples now demonstrate proper API usage with agent.New(ctx, name, &AgentArgs{}).
+**CONVERSATION 4 PROGRESS** (2026-01-24):
+- ✅ **PHASE 5 COMPLETE - Workflow Task Args**
+- ✅ Updated all 13 task option files to struct-based args
+  - HttpCallArgs, AgentCallArgs, GrpcCallArgs, CallActivityArgs
+  - ForArgs, ForkArgs, ListenArgs, RaiseArgs, RunArgs
+  - SetArgs, SwitchArgs, TryArgs, WaitArgs
+- ✅ Removed functional options (HttpCallOption, etc.)
+- ✅ Preserved helper types (ErrorRef, LoopVar, BranchResult, ConditionMatcher)
+- ✅ Updated workflow builder methods (wf.HttpGet(), wf.Set(), etc.)
+- ✅ Workflow package compiles successfully
+- ✅ Entire SDK compiles successfully
+- 📝 12 workflow examples need updating (follow-up work)
 
-**Next Action**: Move to T06 Phase 5 (Workflow Task Args) or document & commit Phase 4 completion
-**Estimated Duration**: Phase 5: 3-4 hours (13 task types)
-**Priority**: MEDIUM - Examples complete, can proceed to workflow tasks or pause for documentation
+**Key Achievement**: All 13 workflow task types successfully migrated to Pulumi-style struct args. Workflow package and entire SDK compile without errors.
+
+**Next Action**: Update workflow examples or move to Phase 6 (Documentation & Cleanup)
+**Estimated Duration**: Workflow examples: 2-3 hours | Phase 6: 1 hour
+**Priority**: MEDIUM - Core migration complete, examples can be updated incrementally
 
 **Technical Debt to Address Later**:
 - 11 agent test files using old pattern (pre-dating this project)
