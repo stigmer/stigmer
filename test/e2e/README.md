@@ -1,8 +1,15 @@
 # E2E Integration Tests
 
-End-to-end tests for Stigmer CLI and server using real infrastructure.
+End-to-end integration tests for Stigmer CLI and server using real infrastructure.
 
-## Running Tests
+**Status**: ✅ Phase 1 Complete (Deployment + Execution Creation Tests)  
+**Coverage**: Agents (6 tests), Workflows (9 tests), Validation Framework
+
+---
+
+## Quick Start
+
+### Running Tests
 
 ```bash
 # Start stigmer server first
@@ -10,83 +17,323 @@ stigmer server
 
 # Run all E2E tests
 cd test/e2e
-go test -tags=e2e -v
+go test -tags=e2e -v -timeout 120s
 
 # Run specific test
 go test -tags=e2e -v -run TestApplyBasicAgent
+
+# Run agent tests only
+go test -tags=e2e -v -run "TestApply.*Agent|TestRun.*Agent"
+
+# Run workflow tests only
+go test -tags=e2e -v -run "TestApply.*Workflow|TestRun.*Workflow"
 ```
 
-## Test Organization
-
-Tests are organized by SDK example for easy discovery:
-
-```
-test/e2e/
-├── basic_agent_apply_test.go    # Tests for stigmer apply (basic agent)
-├── basic_agent_run_test.go      # Tests for stigmer run (basic agent)
-├── e2e_run_test.go               # Generic run tests
-├── e2e_run_full_test.go          # Full execution tests (Phase 2)
-├── suite_test.go                 # Test suite setup
-├── harness_test.go               # Test harness (isolated servers)
-├── stigmer_server_manager_test.go # Server manager (production mode)
-├── prereqs_test.go               # Prerequisites checking
-├── helpers_test.go               # Helper functions
-├── cli_runner_test.go            # CLI execution
-├── sdk_fixtures_test.go          # SDK example copying
-├── validation_test.go            # Execution validation
-└── testdata/                     # Test fixtures (not test code)
-    └── agents/
-        └── basic-agent/
-            ├── main.go           # Copied from SDK example
-            └── Stigmer.yaml
-```
-
-## Prerequisites
+### Prerequisites
 
 **Required:**
-- Stigmer server running (`stigmer server`)
-- Ollama running with model installed
+- **Stigmer server** running (`stigmer server`)
+- **Ollama** running with model installed (for Phase 2 execution tests)
 
 **Check status:**
 ```bash
+# Check server
 stigmer server status
+
+# Check Ollama
 curl http://localhost:11434/api/version
 ```
 
+The test suite will automatically check prerequisites and provide clear error messages if something is missing.
+
+---
+
+## Test Structure
+
+### Test Files
+
+Tests are organized by resource type and operation:
+
+```
+test/e2e/
+├── suite_test.go                    # Test suite setup (testify/suite)
+├── harness_test.go                  # Test harness (isolated servers)
+├── helpers_test.go                  # Helper functions (API queries)
+│
+├── basic_agent_apply_test.go       # Agent deployment tests (3 tests)
+├── basic_agent_run_test.go         # Agent execution tests (3 tests)
+├── basic_workflow_apply_test.go    # Workflow deployment tests (5 tests)
+├── basic_workflow_run_test.go      # Workflow execution tests (4 tests)
+│
+├── e2e_run_test.go                  # Generic run tests
+├── e2e_run_full_test.go             # Full execution tests (Phase 2)
+│
+├── cli_runner_test.go               # CLI command execution
+├── prereqs_test.go                  # Prerequisites checking
+├── validation_test.go               # Validation framework
+├── sdk_fixtures_test.go             # SDK example synchronization
+└── stigmer_server_manager_test.go   # Server lifecycle management
+```
+
+### Test Fixtures
+
+Test fixtures are automatically synced from SDK examples:
+
+```
+test/e2e/testdata/examples/
+├── 01-basic-agent/                 # Basic agent (2 agents)
+├── 02-agent-with-skills/           # Agent with skills
+├── 07-basic-workflow/              # Basic workflow (HTTP GET + SET)
+├── 08-workflow-with-conditionals/  # Conditional workflow
+└── ... (19 SDK examples total)
+```
+
+See [SDK Sync Strategy](docs/guides/sdk-sync-strategy.md) for how these are maintained.
+
+---
+
+## Test Database Isolation
+
+**Important**: E2E tests use **isolated temporary databases** for each test suite.
+
+### Why Isolation?
+
+✅ **Reproducibility** - Same result every time  
+✅ **Parallelization** - Run tests simultaneously  
+✅ **Safety** - Tests can't corrupt development data  
+✅ **Determinism** - Known starting state  
+
+### Database Locations
+
+| Environment | Database Path | Type |
+|------------|---------------|------|
+| **E2E Tests** | `/tmp/stigmer-e2e-*/stigmer.db` | Temporary, isolated |
+| **Manual Development** | `~/.stigmer/stigmer.db` | Persistent, shared |
+
+### Debug UI Indicator
+
+The BadgerDB debug UI (`localhost:8234/debug/db`) now shows which database you're inspecting:
+
+- 🗄️ **Production Database** (green) - Your development data
+- 🧪 **Test Database** (yellow) - Temporary test data
+
+**See [Test Database Strategy](docs/references/test-database-strategy.md) for complete explanation.**
+
+---
+
+## Test Coverage
+
+### Current Coverage (Phase 1)
+
+| Resource Type | Apply Tests | Run Tests | Total | Status |
+|--------------|-------------|-----------|-------|--------|
+| Basic Agent | 3 | 3 | 6 | ✅ 100% |
+| Basic Workflow | 5 | 4 | 9 | ✅ 100% |
+| **Total** | **8** | **7** | **15** | ✅ |
+
+### What's Tested
+
+**Agent Tests**:
+- ✅ Deployment (apply command)
+- ✅ Agent count verification
+- ✅ Dry-run mode
+- ✅ Optional fields (description, iconURL, org)
+- ✅ Execution creation (run command)
+- ✅ Error handling
+
+**Workflow Tests**:
+- ✅ Deployment (apply command)
+- ✅ Workflow count verification
+- ✅ Dry-run mode
+- ✅ Context variables
+- ✅ Task dependencies
+- ✅ Environment variables
+- ✅ Execution creation (run command)
+- ✅ Execution phases
+- ✅ Error handling
+
+---
+
 ## Test Phases
 
-**Phase 1: Deployment Tests**
-- Verify `stigmer apply` deploys agents/workflows
-- Check resources are stored correctly
-- Validate dry-run mode
+### Phase 1: Deployment + Execution Creation ✅
 
-**Phase 2: Execution Creation Tests**
-- Verify `stigmer run` creates execution records
-- Check execution metadata
+**What's tested:**
+- `stigmer apply` deploys resources correctly
+- Resources stored in database with correct properties
+- Dry-run mode works (validation without deployment)
+- `stigmer run` creates execution records
+- Execution metadata is correct
 
-**Phase 3: Full Execution Tests**
-- Wait for actual LLM execution
-- Validate execution results
-- Requires full server stack (Temporal, runners)
+**Requirements:**
+- Stigmer server running
+- No Temporal required
+- Fast (< 2 seconds per test)
+
+### Phase 2: Full Execution ⏳
+
+**What will be tested:**
+- Actual agent/workflow execution
+- Phase progression (PENDING → RUNNING → COMPLETED)
+- Execution outputs and results
+- Log streaming
+- Error handling during execution
+
+**Requirements:**
+- Temporal server
+- Agent/workflow runners
+- Ollama with model
+- Longer execution time (~30 seconds per test)
+
+---
 
 ## Documentation
 
-See `docs/` for detailed documentation:
-- `test-organization.md` - How tests are structured
-- More docs as needed
+📚 **[Complete Documentation](docs/README.md)** - Comprehensive documentation index
 
-## Adding Tests for New Examples
+### Quick Links
 
-1. Add to `sdk_fixtures_test.go` copy mapping
-2. Create testdata directory with `Stigmer.yaml`
-3. Create test file: `{example_name}_apply_test.go`
-4. Tests automatically use latest SDK code
+**Getting Started:**
+- [File Guide](docs/getting-started/file-guide.md) - What each test file does
+- [Test Organization](docs/getting-started/test-organization.md) - How tests are structured
 
-Example:
+**Guides:**
+- [SDK Sync Strategy](docs/guides/sdk-sync-strategy.md) - How SDK examples are synced
+- [Phase 2 Guide](docs/guides/phase-2-guide.md) - Implementing full execution tests
+- [Validation Framework](docs/guides/validation-framework.md) - Validating execution outputs
+
+**Implementation:**
+- [Basic Workflow Tests](docs/implementation/basic-workflow-tests.md) - Workflow test coverage
+- [Flakiness Fix](docs/implementation/flakiness-fix-2026-01-23.md) - Test robustness improvements
+- [Test Coverage Enhancement](docs/implementation/test-coverage-enhancement-2026-01-23.md) - Agent test improvements
+
+---
+
+## Tools
+
+### Test Utilities
+
+```
+test/e2e/tools/
+└── run-flakiness-test.sh    # Script to detect flaky tests
+```
+
+**Run flakiness test:**
+```bash
+cd test/e2e
+./tools/run-flakiness-test.sh
+```
+
+This runs tests multiple times to detect intermittent failures.
+
+---
+
+## Adding Tests for New SDK Examples
+
+### Step-by-Step
+
+1. **Add to SDK sync mapping** (`sdk_fixtures_test.go`):
+   ```go
+   {
+       sdkFile:  "06_agent_with_instructions_from_files.go",
+       testDir:  "06-agent-with-instructions-from-files",
+       category: "examples",
+   },
+   ```
+
+2. **Create test file**: `{resource}_apply_test.go` and `{resource}_run_test.go`
+
+3. **Follow established patterns**:
+   - Query by slug (not CLI parsing)
+   - Comprehensive property verification
+   - Clear test phases with logging
+
+4. **Tests automatically use latest SDK code** (no manual copying needed)
+
+### Example Test
+
 ```go
 // agent_with_skills_apply_test.go
 func (s *E2ESuite) TestApplyAgentWithSkills() {
-    testdataDir := filepath.Join("testdata", "agents", "agent-with-skills")
-    // ... test implementation
+    testdataDir := filepath.Join("testdata", "examples", "02-agent-with-skills")
+    absTestdataDir, err := filepath.Abs(testdataDir)
+    s.Require().NoError(err)
+
+    output, err := RunCLIWithServerAddr(s.Harness.ServerPort, "apply", "--config", absTestdataDir)
+    s.Require().NoError(err, "Apply command should succeed")
+
+    // Query by slug (preferred over CLI parsing)
+    org := "local"
+    agent, err := GetAgentBySlug(s.Harness.ServerPort, "skilled-agent", org)
+    s.Require().NoError(err)
+    s.Require().NotNil(agent)
+    
+    // Verify properties
+    s.Equal("skilled-agent", agent.Metadata.Name)
+    s.NotEmpty(agent.Spec.Skills)
 }
 ```
+
+---
+
+## Best Practices
+
+### Test Patterns
+
+✅ **DO**:
+- Query by slug via API (robust, direct verification)
+- Use comprehensive property verification
+- Follow Phase 1/Phase 2 distinction
+- Include clear logging with `s.T().Logf()`
+- Test error handling
+
+❌ **DON'T**:
+- Parse CLI output for IDs (fragile)
+- Access database directly (use API)
+- Mix Phase 1 and Phase 2 concerns
+- Create manual test fixtures (sync from SDK)
+
+### Documentation
+
+When adding new tests:
+1. Update [File Guide](docs/getting-started/file-guide.md)
+2. Document patterns in implementation docs
+3. Link to related SDK examples
+4. Follow [Documentation Standards](../../.cursor/rules/stigmer-oss-documentation-standards.md)
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Tests fail with "connection refused"**:
+- Ensure `stigmer server` is running
+- Check server port (default: random free port in tests)
+
+**SDK example not found**:
+- Run `go test` which auto-copies SDK examples
+- Check `sdk_fixtures_test.go` mapping
+
+**Test timeout**:
+- Increase timeout: `go test -timeout 180s`
+- Check for deadlocks in server
+
+### Getting Help
+
+- Check [troubleshooting section](docs/guides/phase-2-guide.md#troubleshooting) in guides
+- Review test logs for detailed error messages
+- See [flakiness fix](docs/implementation/flakiness-fix-2026-01-23.md) for recent improvements
+
+---
+
+## Related Documentation
+
+- **[SDK Examples](../../sdk/go/examples/)** - Source examples that tests verify
+- **[Stigmer Server](../../backend/services/stigmer-server/)** - Server being tested
+- **[E2E Project](../../_projects/2026-01/20260122.05.e2e-integration-testing/)** - Project tracking
+
+---
+
+**Status**: ✅ **Phase 1 Complete** - Deployment and execution creation tests working!  
+**Next**: Phase 2 full execution tests (requires Temporal integration)
