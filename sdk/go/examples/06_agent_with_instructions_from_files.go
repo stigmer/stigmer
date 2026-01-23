@@ -28,7 +28,6 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/agent/gen"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
@@ -77,12 +76,16 @@ func main() {
 
 // Example 1: Basic agent with instructions from file
 func createBasicAgentFromFile(ctx *stigmer.Context) (*agent.Agent, error) {
-	ag, err := agent.New(ctx, "code-reviewer",
-		// Load instructions from external file instead of inline string
-		// InstructionsFromFile is an ergonomic helper (not generated)
-		agent.InstructionsFromFile("instructions/code-reviewer.md"),
-		gen.AgentDescription("AI code reviewer with comprehensive guidelines"),
-	)
+	// Load instructions from external file instead of inline string
+	instructions, err := agent.LoadInstructionsFromFile("instructions/code-reviewer.md")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load instructions: %w", err)
+	}
+
+	ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+		Instructions: instructions,
+		Description:  "AI code reviewer with comprehensive guidelines",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
@@ -91,34 +94,48 @@ func createBasicAgentFromFile(ctx *stigmer.Context) (*agent.Agent, error) {
 
 // Example 2: Agent with inline skills loading markdown from files
 func createAgentWithFileSkills(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create inline skills with content loaded from files
-	securitySkill, err := skill.New(
-		skill.WithName("security-guidelines"),
-		skill.WithDescription("Comprehensive security review guidelines"),
-		// Load skill markdown from external file
-		skill.WithMarkdownFromFile("instructions/security-guidelines.md"),
-	)
+	// Load skill markdown content from files
+	securityMarkdown, err := skill.LoadMarkdownFromFile("instructions/security-guidelines.md")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load security markdown: %w", err)
+	}
+
+	testingMarkdown, err := skill.LoadMarkdownFromFile("instructions/testing-best-practices.md")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load testing markdown: %w", err)
+	}
+
+	// Create inline skills with loaded content
+	securitySkill, err := skill.New("security-guidelines", &skill.SkillArgs{
+		Description:     "Comprehensive security review guidelines",
+		MarkdownContent: securityMarkdown,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create security skill: %w", err)
 	}
 
-	testingSkill, err := skill.New(
-		skill.WithName("testing-best-practices"),
-		skill.WithDescription("Testing standards and best practices"),
-		// Load skill markdown from external file
-		skill.WithMarkdownFromFile("instructions/testing-best-practices.md"),
-	)
+	testingSkill, err := skill.New("testing-best-practices", &skill.SkillArgs{
+		Description:     "Testing standards and best practices",
+		MarkdownContent: testingMarkdown,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create testing skill: %w", err)
 	}
 
-	ag, err := agent.New(ctx, "senior-reviewer",
-		agent.InstructionsFromFile("instructions/code-reviewer.md"),
-		gen.AgentDescription("Senior code reviewer with security and testing expertise"),
-	)
+	// Load agent instructions from file
+	instructions, err := agent.LoadInstructionsFromFile("instructions/code-reviewer.md")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load instructions: %w", err)
+	}
+
+	ag, err := agent.New(ctx, "senior-reviewer", &agent.AgentArgs{
+		Instructions: instructions,
+		Description:  "Senior code reviewer with security and testing expertise",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
+
 	// Add skills using builder method
 	ag.AddSkills(*securitySkill, *testingSkill)
 	return ag, nil
@@ -137,30 +154,45 @@ func createComplexAgentFromFiles(ctx *stigmer.Context) (*agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create GitHub MCP server: %w", err)
 	}
 
-	// Create skills from files
-	securitySkill, err := skill.New(
-		skill.WithName("security-guidelines"),
-		skill.WithDescription("Security review guidelines"),
-		skill.WithMarkdownFromFile("instructions/security-guidelines.md"),
-	)
+	// Load skill markdown from files
+	securityMarkdown, err := skill.LoadMarkdownFromFile("instructions/security-guidelines.md")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load security markdown: %w", err)
+	}
+
+	testingMarkdown, err := skill.LoadMarkdownFromFile("instructions/testing-best-practices.md")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load testing markdown: %w", err)
+	}
+
+	// Create skills with loaded content
+	securitySkill, err := skill.New("security-guidelines", &skill.SkillArgs{
+		Description:     "Security review guidelines",
+		MarkdownContent: securityMarkdown,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create security skill: %w", err)
 	}
 
-	testingSkill, err := skill.New(
-		skill.WithName("testing-best-practices"),
-		skill.WithDescription("Testing best practices"),
-		skill.WithMarkdownFromFile("instructions/testing-best-practices.md"),
-	)
+	testingSkill, err := skill.New("testing-best-practices", &skill.SkillArgs{
+		Description:     "Testing best practices",
+		MarkdownContent: testingMarkdown,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create testing skill: %w", err)
 	}
 
+	// Load agent instructions from file
+	instructions, err := agent.LoadInstructionsFromFile("instructions/code-reviewer.md")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load instructions: %w", err)
+	}
+
 	// Create agent with everything from files
-	ag, err := agent.New(ctx, "github-reviewer",
-		agent.InstructionsFromFile("instructions/code-reviewer.md"),
-		gen.AgentDescription("GitHub PR reviewer with comprehensive guidelines"),
-	)
+	ag, err := agent.New(ctx, "github-reviewer", &agent.AgentArgs{
+		Instructions: instructions,
+		Description:  "GitHub PR reviewer with comprehensive guidelines",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
@@ -186,13 +218,20 @@ func createAgentWithFileSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create security specialist: %w", err)
 	}
 
-	ag, err := agent.New(ctx, "orchestrator",
-		agent.InstructionsFromFile("instructions/code-reviewer.md"),
-		gen.AgentDescription("Main orchestrator with specialized sub-agents"),
-	)
+	// Load agent instructions from file
+	instructions, err := agent.LoadInstructionsFromFile("instructions/code-reviewer.md")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load instructions: %w", err)
+	}
+
+	ag, err := agent.New(ctx, "orchestrator", &agent.AgentArgs{
+		Instructions: instructions,
+		Description:  "Main orchestrator with specialized sub-agents",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
+
 	// Add sub-agent using builder method
 	ag.AddSubAgent(securitySpecialist)
 	return ag, nil

@@ -8,14 +8,14 @@ import (
 
 func TestNew(t *testing.T) {
 	tests := []struct {
-		name    string
+		name      string
 		skillName string
-		args    *SkillArgs
-		wantErr bool
-		errType error
+		args      *SkillArgs
+		wantErr   bool
+		errType   error
 	}{
 		{
-			name: "valid inline skill",
+			name:      "valid inline skill",
 			skillName: "code-analyzer",
 			args: &SkillArgs{
 				MarkdownContent: "# Code Analysis\n\nThis skill analyzes code quality.",
@@ -23,7 +23,7 @@ func TestNew(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "valid inline skill with description",
+			name:      "valid inline skill with description",
 			skillName: "security-checker",
 			args: &SkillArgs{
 				Description:     "Security analysis skill",
@@ -32,7 +32,7 @@ func TestNew(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "missing name",
+			name:      "missing name",
 			skillName: "",
 			args: &SkillArgs{
 				MarkdownContent: "# Content\n\nSome content.",
@@ -41,18 +41,18 @@ func TestNew(t *testing.T) {
 			errType: ErrSkillNameRequired,
 		},
 		{
-			name: "missing markdown",
+			name:      "missing markdown",
 			skillName: "test-skill",
-			args: &SkillArgs{},
-			wantErr: true,
-			errType: ErrSkillMarkdownRequired,
+			args:      &SkillArgs{},
+			wantErr:   true,
+			errType:   ErrSkillMarkdownRequired,
 		},
 		{
-			name: "nil args",
+			name:      "nil args",
 			skillName: "test-skill",
-			args: nil,
-			wantErr: true,
-			errType: ErrSkillMarkdownRequired,
+			args:      nil,
+			wantErr:   true,
+			errType:   ErrSkillMarkdownRequired,
 		},
 	}
 
