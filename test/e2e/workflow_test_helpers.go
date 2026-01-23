@@ -4,10 +4,14 @@
 package e2e
 
 import (
+	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stretchr/testify/require"
 )
 
@@ -165,4 +169,134 @@ func VerifyDryRunOutput(t *testing.T, output string) {
 		"Dry-run output should show Create action")
 
 	t.Logf("✓ Dry-run output verified: table format correct")
+}
+
+// ============================================================================
+// WORKFLOW RUN HELPERS
+// ============================================================================
+
+// WorkflowRunResult contains the result of running a workflow
+type WorkflowRunResult struct {
+	ExecutionID string
+	Output      string
+}
+
+// RunWorkflowByName runs a workflow by name and returns execution information
+func RunWorkflowByName(t *testing.T, serverPort int, workflowName string) *WorkflowRunResult {
+	t.Logf("Running workflow: %s", workflowName)
+
+	// Execute run command (without --follow=false to allow proper execution)
+	output, err := RunCLIWithServerAddr(serverPort, "run", workflowName)
+	require.NoError(t, err, "Run command should succeed")
+
+	t.Logf("Run command output:\n%s", output)
+
+	// Extract execution ID from output
+	// Output format: "Execution ID: wfex_1234567890"
+	executionID := extractExecutionIDFromOutput(t, output)
+	require.NotEmpty(t, executionID, "Should be able to extract execution ID from output")
+
+	t.Logf("✓ Workflow execution created: %s", executionID)
+
+	return &WorkflowRunResult{
+		ExecutionID: executionID,
+		Output:      output,
+	}
+}
+
+// extractExecutionIDFromOutput parses execution ID from CLI output
+func extractExecutionIDFromOutput(t *testing.T, output string) string {
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "Execution ID:") {
+			parts := strings.Fields(line)
+			for i, part := range parts {
+				if part == "ID:" && i+1 < len(parts) {
+					return strings.TrimSpace(parts[i+1])
+				}
+			}
+		}
+	}
+	return ""
+}
+
+// WaitForWorkflowExecutionCompletion polls the workflow execution status until it reaches a terminal state
+// Returns the final execution state or fails the test if timeout or execution failed
+func WaitForWorkflowExecutionCompletion(t *testing.T, serverPort int, executionID string, timeoutSeconds int) *workflowexecutionv1.WorkflowExecution {
+	t.Logf("Waiting for workflow execution to complete (timeout: %ds)...", timeoutSeconds)
+
+	timeout := time.After(time.Duration(timeoutSeconds) * time.Second)
+	ticker := time.NewTicker(1 * time.Second) // Poll every second
+	defer ticker.Stop()
+
+	var lastPhase workflowexecutionv1.ExecutionPhase
+	pollCount := 0
+
+	for {
+		select {
+		case <-timeout:
+			require.FailNow(t, fmt.Sprintf("timeout waiting for workflow execution to complete after %d seconds (last phase: %s)",
+				timeoutSeconds, lastPhase.String()))
+
+		case <-ticker.C:
+			pollCount++
+			execution, err := GetWorkflowExecutionViaAPI(serverPort, executionID)
+			require.NoError(t, err, "Failed to query workflow execution")
+
+			if execution.Status == nil {
+				continue // Wait for status to be populated
+			}
+
+			currentPhase := execution.Status.Phase
+
+			// Log phase changes
+			if currentPhase != lastPhase {
+				t.Logf("   [Poll %d] Phase transition: %s → %s",
+					pollCount, lastPhase.String(), currentPhase.String())
+				lastPhase = currentPhase
+			}
+
+			// Check for terminal states
+			switch currentPhase {
+			case workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
+				t.Logf("   ✓ Workflow execution completed successfully after %d polls", pollCount)
+				return execution
+
+			case workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED:
+				// Log failure
+				t.Logf("   ❌ Workflow execution FAILED after %d polls", pollCount)
+				require.FailNow(t, fmt.Sprintf("workflow execution failed (phase: %s)", currentPhase.String()))
+
+			case workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
+				t.Logf("   ⚠️  Workflow execution was cancelled after %d polls", pollCount)
+				require.FailNow(t, "workflow execution was cancelled")
+
+			default:
+				// Still in progress (PENDING or IN_PROGRESS), continue polling
+				continue
+			}
+		}
+	}
+}
+
+// VerifyWorkflowExecutionCompleted verifies that a workflow execution completed successfully
+func VerifyWorkflowExecutionCompleted(t *testing.T, execution *workflowexecutionv1.WorkflowExecution) {
+	require.NotNil(t, execution, "Workflow execution should exist")
+	require.NotNil(t, execution.Status, "Workflow execution should have status")
+	require.Equal(t, workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, execution.Status.Phase,
+		"Workflow execution should complete successfully")
+
+	t.Logf("✓ Workflow execution phase verified: %s", execution.Status.Phase)
+}
+
+// VerifyWorkflowRunOutputSuccess verifies workflow run command output contains success indicators
+func VerifyWorkflowRunOutputSuccess(t *testing.T, output string, workflowName string) {
+	require.Contains(t, output, "Workflow execution started",
+		"Output should indicate execution started")
+	require.Contains(t, output, workflowName,
+		"Output should mention the workflow name from SDK example")
+	require.Contains(t, output, "Execution ID:",
+		"Output should contain execution ID")
+
+	t.Logf("✓ Run output verified: execution started successfully")
 }
