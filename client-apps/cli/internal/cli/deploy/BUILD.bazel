@@ -7,10 +7,12 @@ go_library(
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
+        "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
-        "//client-apps/cli/internal/cli/agent",
+        "//client-apps/cli/internal/cli/synthesis",
         "@com_github_pkg_errors//:errors",
         "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_protobuf//proto",
     ],
 )

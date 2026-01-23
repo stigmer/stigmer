@@ -1,0 +1,976 @@
+# Rule: Refactor or Create E2E Test Suite
+
+**Purpose**: Create new E2E test suites for SDK examples OR refactor existing test suites to follow engineering standards and SDK sync strategy.
+
+**Use Cases**:
+1. Creating test suite for new SDK example
+2. Refactoring existing test suite that violates engineering standards
+3. Migrating monolithic test files to modular structure
+
+---
+
+## When to Use This Rule
+
+**Trigger this rule when:**
+- ✅ Adding tests for a new SDK example
+- ✅ Existing test file exceeds 250 lines
+- ✅ Test methods exceed 50 lines
+- ✅ Code duplication across tests
+- ✅ Magic strings instead of constants
+- ✅ Inconsistent error handling
+
+**Example prompt:**
+```
+@refactor-or-create-e2e-test-suite Create test suite for SDK example 08_workflow_with_conditionals.go
+```
+
+or
+
+```
+@refactor-or-create-e2e-test-suite Refactor test/e2e/basic_agent_run_test.go to follow standards
+```
+
+---
+
+## Core Principles
+
+### 1. SDK Sync Strategy (MANDATORY)
+
+**SDK Example = Source of Truth**
+
+- SDK examples live in `sdk/go/examples/`
+- Tests use fixtures copied from SDK examples
+- Never manually create test fixtures
+- Reference exact names/values from SDK examples
+
+**Example:**
+```go
+// ✅ CORRECT - Constants match SDK example
+const (
+    BasicWorkflowName = "basic-data-fetch"  // From 07_basic_workflow.go
+    BasicWorkflowFetchTask = "fetchData"    // From 07_basic_workflow.go
+)
+
+// ❌ WRONG - Made-up test names
+const (
+    TestWorkflowName = "test-workflow"
+    TestTaskName = "task1"
+)
+```
+
+### 2. Engineering Standards (MANDATORY)
+
+- **File size**: Max 250 lines (ideal: 50-150)
+- **Function size**: Max 50 lines (ideal: 20-40)
+- **No magic strings**: Define constants
+- **No duplication**: Extract helpers
+- **Single responsibility**: One file, one purpose
+
+### 3. Layered Architecture
+
+```
+Constants Layer    → SDK example values (names, paths, counts)
+Helpers Layer      → Reusable apply/verify functions
+Test Layer         → Individual focused test files
+```
+
+---
+
+## Implementation Pattern
+
+### Step 1: Analyze SDK Example
+
+**Before writing ANY code, analyze the SDK example:**
+
+1. **Read the SDK example file**
+   ```bash
+   # Example: sdk/go/examples/07_basic_workflow.go
+   ```
+
+2. **Extract key information:**
+   - Resource names (workflow, agent, skill names)
+   - Configuration values (namespace, version, description)
+   - Expected counts (how many resources created)
+   - Task/skill/subagent names
+   - Environment variable names
+   - Any special features demonstrated
+
+3. **Document findings:**
+   ```markdown
+   SDK Example: 07_basic_workflow.go
+   Creates:
+   - 1 workflow named "basic-data-fetch"
+   - Namespace: "data-processing"
+   - Version: "1.0.0"
+   - Tasks: "fetchData", "processResponse"
+   - Environment variables: "API_TOKEN" (secret)
+   ```
+
+### Step 2: Create Constants File
+
+**File**: `test/e2e/<category>_test_constants.go`
+
+**Naming Convention**:
+- `workflow_test_constants.go` for workflow tests
+- `agent_test_constants.go` for agent tests
+- `skill_test_constants.go` for skill tests
+
+**Template**:
+```go
+//go:build e2e
+// +build e2e
+
+package e2e
+
+// <Category> test constants - matches SDK example <NN>_<example_name>.go
+const (
+	// Resource names from SDK examples (source of truth)
+	<Category><Name>Name      = "<value-from-sdk>"
+	<Category><Name>Namespace = "<value-from-sdk>"
+	<Category><Name>Version   = "<value-from-sdk>"
+	
+	// Test fixture paths
+	<Category><Name>TestDataDir = "testdata/examples/<NN>-<example-name>"
+	
+	// Expected values from SDK example
+	<Category><Name>TaskCount = <N>
+	<Category><Name>EnvVarCount = <N>
+	
+	// Backend configuration
+	LocalOrg = "local"
+)
+```
+
+**Real Example**:
+```go
+//go:build e2e
+// +build e2e
+
+package e2e
+
+// Workflow test constants - matches SDK example 07_basic_workflow.go
+const (
+	// Workflow names from SDK examples (source of truth)
+	BasicWorkflowName      = "basic-data-fetch"
+	BasicWorkflowNamespace = "data-processing"
+	BasicWorkflowVersion   = "1.0.0"
+	
+	// Test fixture paths
+	BasicWorkflowTestDataDir = "testdata/examples/07-basic-workflow"
+	
+	// Environment variables from SDK example
+	BasicWorkflowEnvVarName = "API_TOKEN"
+	
+	// Task names from SDK example
+	BasicWorkflowFetchTask   = "fetchData"
+	BasicWorkflowProcessTask = "processResponse"
+	
+	// Expected values
+	BasicWorkflowTaskCount = 2
+	BasicWorkflowEnvVarCount = 1
+	
+	// Backend configuration
+	LocalOrg = "local"
+)
+```
+
+**Guidelines**:
+- ✅ Every constant references SDK example in comment
+- ✅ Use descriptive, consistent naming (prefix with category)
+- ✅ Group related constants together
+- ✅ Include expected counts for verification
+- ✅ Document which SDK file is the source
+
+### Step 3: Create Helpers File
+
+**File**: `test/e2e/<category>_test_helpers.go`
+
+**Purpose**: Reusable functions for apply, verify, and common operations
+
+**Structure**:
+```go
+//go:build e2e
+// +build e2e
+
+package e2e
+
+import (
+	"path/filepath"
+	"testing"
+	
+	// Import proto stubs
+	// Import testify/require
+)
+
+// 1. RESULT TYPES (if needed)
+type <Category>ApplyResult struct {
+	Resource *protov1.Resource
+	Output   string
+}
+
+// 2. APPLY HELPERS
+func Apply<Name>(t *testing.T, serverPort int) *<Category>ApplyResult
+func Apply<Name>DryRun(t *testing.T, serverPort int) string
+
+// 3. VERIFICATION HELPERS
+func Verify<Name>BasicProperties(t *testing.T, resource *protov1.Resource)
+func Verify<Name>Tasks(t *testing.T, resource *protov1.Resource)
+func Verify<Name>EnvironmentVariables(t *testing.T, resource *protov1.Resource)
+// ... more specific verifications
+
+// 4. OUTPUT VERIFICATION HELPERS
+func VerifyApplyOutputSuccess(t *testing.T, output string)
+func VerifyDryRunOutput(t *testing.T, output string)
+```
+
+**Apply Helper Template**:
+```go
+// Apply<Name> applies the <category> from SDK example <NN>_<example_name>.go
+// Returns the deployed resource and CLI output
+func Apply<Name>(t *testing.T, serverPort int) *<Category>ApplyResult {
+	// Get absolute path to test fixture
+	absTestdataDir, err := filepath.Abs(<Name>TestDataDir)
+	require.NoError(t, err, "Failed to get absolute path to test directory")
+
+	t.Logf("Applying %s from: %s", "<category>", absTestdataDir)
+
+	// Execute apply command
+	output, err := RunCLIWithServerAddr(serverPort, "apply", "--config", absTestdataDir)
+	require.NoError(t, err, "Apply command should succeed")
+
+	t.Logf("Apply command output:\n%s", output)
+
+	// Verify resource exists by querying via API
+	resource, err := Get<Resource>BySlug(serverPort, <Name>Name, LocalOrg)
+	require.NoError(t, err, "Should be able to query %s by slug via API", "<category>")
+	require.NotNil(t, resource, "<Category> should exist")
+
+	return &<Category>ApplyResult{
+		Resource: resource,
+		Output:   output,
+	}
+}
+```
+
+**Verification Helper Template**:
+```go
+// Verify<Name>BasicProperties verifies core properties from SDK example
+func Verify<Name>BasicProperties(t *testing.T, resource *protov1.Resource) {
+	require.Equal(t, <Name>Name, resource.Metadata.Name, 
+		"<Category> name should match SDK example")
+	require.Equal(t, <Name>Namespace, resource.Spec.Document.Namespace, 
+		"<Category> namespace should match SDK example")
+	require.Equal(t, <Name>Version, resource.Spec.Document.Version, 
+		"<Category> version should match SDK example")
+	require.Equal(t, LocalOrg, resource.Metadata.Org, 
+		"<Category> org should be 'local' in local backend mode")
+	require.NotEmpty(t, resource.Spec.Description, 
+		"<Category> should have description from SDK example")
+
+	t.Logf("✓ Basic properties verified: name=%s, namespace=%s, version=%s", 
+		resource.Metadata.Name, resource.Spec.Document.Namespace, resource.Spec.Document.Version)
+}
+```
+
+**Guidelines**:
+- ✅ Each helper has single responsibility
+- ✅ Use `require.*` for assertions (fails fast)
+- ✅ Include descriptive error messages
+- ✅ Log verification steps for debugging
+- ✅ Accept `*testing.T` as first parameter
+- ✅ Keep functions under 40 lines
+
+### Step 4: Create Individual Test Files
+
+**Naming Convention**: `<category>_<test_aspect>_test.go`
+
+**Examples**:
+- `basic_workflow_apply_core_test.go` - Main apply lifecycle
+- `basic_workflow_apply_count_test.go` - Count verification
+- `basic_workflow_apply_dryrun_test.go` - Dry-run mode
+- `basic_workflow_apply_context_test.go` - Context management
+- `basic_workflow_apply_dependencies_test.go` - Task dependencies
+
+**Test File Template**:
+```go
+//go:build e2e
+// +build e2e
+
+package e2e
+
+// Test<Name><Aspect> tests <description>
+//
+// Example: sdk/go/examples/<NN>_<example_name>.go
+// Test Fixture: test/e2e/testdata/examples/<NN>-<example-name>/
+//
+// This test validates <specific aspect being tested>.
+func (s *E2ESuite) Test<Name><Aspect>() {
+	s.T().Logf("=== Testing <Aspect> ===")
+
+	// STEP 1: Apply resource from SDK example
+	result := Apply<Name>(s.T(), s.Harness.ServerPort)
+
+	// STEP 2: Verify specific aspect
+	Verify<Aspect>(s.T(), result.Resource)
+
+	// STEP 3: Log success
+	s.T().Logf("✅ Test passed: <aspect description>")
+}
+```
+
+**Core Test Template** (most comprehensive test):
+```go
+//go:build e2e
+// +build e2e
+
+package e2e
+
+// Test<Name>Apply tests the full <category> apply workflow:
+// 1. Server is running with isolated storage
+// 2. Apply command deploys <category> from code (from SDK example <NN>_<example_name>.go)
+// 3. <Category> is stored in BadgerDB
+// 4. Can retrieve and verify <category> data
+//
+// The SDK example creates <N> <category>(s):
+// - <resource-name>: <description>
+//
+// Example: sdk/go/examples/<NN>_<example_name>.go
+// Test Fixture: test/e2e/testdata/examples/<NN>-<example-name>/
+//
+// This test validates the COMPLETE <category> lifecycle.
+func (s *E2ESuite) Test<Name>Apply() {
+	s.T().Logf("=== Testing <Category> Apply (from SDK example <NN>_<example_name>.go) ===")
+
+	// STEP 1: Apply from SDK example
+	result := Apply<Name>(s.T(), s.Harness.ServerPort)
+
+	// STEP 2: Verify CLI output
+	VerifyApplyOutputSuccess(s.T(), result.Output)
+
+	// STEP 3: Verify basic properties
+	Verify<Name>BasicProperties(s.T(), result.Resource)
+
+	// STEP 4: Verify specific features (tasks, skills, etc.)
+	Verify<Name>Tasks(s.T(), result.Resource)
+	Verify<Name>EnvironmentVariables(s.T(), result.Resource)
+
+	// STEP 5: Summary
+	s.T().Logf("✅ Test passed: <Category> successfully created and verified")
+	s.T().Logf("   Resource ID: %s", result.Resource.Metadata.Id)
+}
+```
+
+**Guidelines**:
+- ✅ One test per file for complex scenarios
+- ✅ File size under 100 lines (ideally 30-50)
+- ✅ Clear documentation header
+- ✅ Step-by-step logging
+- ✅ Descriptive test names
+- ✅ Use helpers for all operations
+
+### Step 5: Verify SDK Example is Copied
+
+**Check `test/e2e/sdk_fixtures_test.go`**:
+
+Ensure the SDK example is in the copy list:
+
+```go
+examples := []SDKExample{
+	// ... existing examples
+	{
+		SDKFileName:    "<NN>_<example_name>.go",
+		TestDataDir:    "examples/<NN>-<example-name>",
+		TargetFileName: "main.go",
+	},
+}
+```
+
+If missing, add it!
+
+**Create Stigmer.yaml** (if not exists):
+
+```yaml
+# test/e2e/testdata/examples/<NN>-<example-name>/Stigmer.yaml
+name: <example-name>-test
+runtime: go
+main: main.go
+version: 0.1.0
+description: <Description of what is being tested>
+```
+
+### Step 6: Run Tests and Verify
+
+```bash
+# Run specific test
+cd test/e2e
+go test -v -tags=e2e -run "TestE2E/Test<Name>Apply"
+
+# Run all related tests
+go test -v -tags=e2e -run "TestE2E/Test<Name>"
+
+# Verify all E2E tests still pass
+go test -v -tags=e2e -run "^TestE2E$"
+```
+
+**Expected output**:
+```
+=== RUN   TestE2E/Test<Name>Apply
+    test_file.go:20: === Testing <Category> Apply ===
+    test_file.go:45: ✅ Test passed: <Category> successfully created
+    --- PASS: TestE2E/Test<Name>Apply (0.3s)
+```
+
+---
+
+## Common Test Scenarios
+
+### Scenario 1: Apply Tests
+
+**What to test**:
+- Core apply workflow (create resource)
+- Resource count (verify SDK creates expected number)
+- Dry-run mode (preview without deploying)
+- Properties verification (name, namespace, version, etc.)
+
+**Files to create**:
+```
+<category>_apply_core_test.go        ← Main apply test
+<category>_apply_count_test.go       ← Count verification
+<category>_apply_dryrun_test.go      ← Dry-run test
+<category>_apply_properties_test.go  ← Additional property checks
+```
+
+### Scenario 2: Run Tests
+
+**What to test**:
+- Execution workflow (run agent/workflow)
+- Output verification
+- Multiple runs
+- Invalid inputs
+- Execution phases
+
+**Files to create**:
+```
+<category>_run_basic_test.go         ← Basic execution
+<category>_run_output_test.go        ← Output verification
+<category>_run_multiple_test.go      ← Multiple executions
+<category>_run_invalid_test.go       ← Error handling
+```
+
+### Scenario 3: Complex Feature Tests
+
+**What to test**:
+- Skills/subagents/tasks
+- Dependencies
+- Context management
+- Environment variables
+- Configuration options
+
+**Files to create**:
+```
+<category>_<feature>_test.go         ← One file per major feature
+<category>_dependencies_test.go      ← Dependency verification
+<category>_context_test.go           ← Context management
+```
+
+---
+
+## Refactoring Existing Tests
+
+### Phase 1: Audit Current State
+
+1. **Identify violations**:
+   ```bash
+   # Check file size
+   wc -l test/e2e/<file>.go
+   
+   # Check function sizes
+   grep -n "^func" test/e2e/<file>.go
+   ```
+
+2. **Document findings**:
+   - File size (lines)
+   - Largest function size
+   - Magic strings count
+   - Code duplication (common patterns)
+
+3. **Create refactoring plan**:
+   ```markdown
+   File: basic_agent_run_test.go (279 lines)
+   
+   Violations:
+   - File too long: 279 lines (limit: 250)
+   - Function too long: TestRunBasicAgent 120 lines
+   - Magic strings: "code-reviewer", "local", etc.
+   - Duplication: Apply setup repeated 5 times
+   
+   Plan:
+   1. Extract constants
+   2. Create helpers for apply/verify
+   3. Split into 5 test files
+   ```
+
+### Phase 2: Extract Constants
+
+**Create constants file first** - establishes contract:
+
+```go
+// agent_test_constants.go
+const (
+	BasicAgentName = "code-reviewer"  // From SDK example
+	FullAgentName = "code-reviewer-pro"
+	LocalOrg = "local"
+	// ... all magic strings
+)
+```
+
+**Replace in existing tests** (temporarily):
+```go
+// Before
+agent, err := GetAgentViaAPI(serverPort, "code-reviewer", "local")
+
+// After
+agent, err := GetAgentViaAPI(serverPort, BasicAgentName, LocalOrg)
+```
+
+**Verify tests still pass** before proceeding!
+
+### Phase 3: Extract Helpers
+
+**Identify common patterns**:
+```go
+// Pattern 1: Apply agent
+absTestdataDir, err := filepath.Abs(testdataDir)
+output, err := RunCLIWithServerAddr(...)
+agent, err := GetAgentBySlug(...)
+
+// Pattern 2: Verify properties
+s.Equal(expected, actual, "message")
+s.NotEmpty(value, "message")
+```
+
+**Create helper functions**:
+```go
+// agent_test_helpers.go
+
+func ApplyBasicAgent(t *testing.T, serverPort int) *AgentApplyResult {
+	// Common apply logic
+}
+
+func VerifyAgentBasicProperties(t *testing.T, agent *agentv1.Agent) {
+	// Common verification logic
+}
+```
+
+**Replace duplicated code with helper calls**:
+```go
+// Before: 15 lines of duplicated code
+absTestdataDir, err := filepath.Abs(testdataDir)
+s.Require().NoError(err)
+output, err := RunCLIWithServerAddr(...)
+s.Require().NoError(err)
+agent, err := GetAgentBySlug(...)
+s.Require().NoError(err)
+s.Equal("code-reviewer", agent.Metadata.Name)
+s.NotEmpty(agent.Spec.Instructions)
+
+// After: 2 lines using helpers
+result := ApplyBasicAgent(s.T(), s.Harness.ServerPort)
+VerifyAgentBasicProperties(s.T(), result.Agent)
+```
+
+### Phase 4: Split into Focused Files
+
+**Group related tests**:
+```go
+// Original file has 5 tests:
+TestRunBasicAgent           → basic_agent_run_basic_test.go
+TestRunFullAgent            → basic_agent_run_full_test.go
+TestRunWithInvalidAgent     → basic_agent_run_invalid_test.go
+TestRunMultipleTimes        → basic_agent_run_multiple_test.go
+TestRunVerifyOutput         → basic_agent_run_output_test.go
+```
+
+**Create new files**:
+```go
+// basic_agent_run_basic_test.go
+func (s *E2ESuite) TestRunBasicAgent() {
+	result := ApplyBasicAgent(s.T(), s.Harness.ServerPort)
+	execution := RunAgent(s.T(), s.Harness.ServerPort, result.Agent)
+	VerifyAgentExecution(s.T(), execution)
+}
+```
+
+**Delete old file** only after all new tests pass!
+
+### Phase 5: Verify and Document
+
+**Run all tests**:
+```bash
+go test -v -tags=e2e -run "^TestE2E$"
+```
+
+**Compare metrics**:
+```markdown
+Before Refactoring:
+- 1 file, 279 lines
+- Largest function: 120 lines
+- Magic strings: 20+
+- Duplication: ~150 lines
+
+After Refactoring:
+- 7 files, largest 169 lines
+- Largest function: 46 lines
+- Magic strings: 0
+- Duplication: 0
+```
+
+**Document changes**:
+Create `test/e2e/docs/implementation/<category>-refactoring-YYYY-MM-DD.md`
+
+---
+
+## Quality Checklist
+
+Before considering refactoring complete:
+
+### File Structure
+- [ ] Constants file created with SDK example references
+- [ ] Helpers file created with reusable functions
+- [ ] Individual test files for each test case
+- [ ] All files under 250 lines (ideally under 150)
+
+### Code Quality
+- [ ] No magic strings (all constants defined)
+- [ ] No code duplication (helpers extract common code)
+- [ ] Functions under 50 lines (ideally 20-40)
+- [ ] Consistent error handling (`require.*` with messages)
+- [ ] Meaningful, descriptive names
+
+### SDK Sync
+- [ ] Constants match SDK example exactly
+- [ ] SDK example in copy list (`sdk_fixtures_test.go`)
+- [ ] Stigmer.yaml exists for fixture
+- [ ] Tests reference SDK names, not made-up test names
+
+### Testing
+- [ ] All existing tests still pass
+- [ ] No performance regression
+- [ ] Test output is clear and informative
+- [ ] Each test has single, clear purpose
+
+### Documentation
+- [ ] File headers explain purpose
+- [ ] Test functions have doc comments
+- [ ] SDK example reference in comments
+- [ ] Refactoring summary document created
+
+---
+
+## Examples
+
+### Example 1: Creating Test Suite for New SDK Example
+
+**SDK Example**: `sdk/go/examples/08_workflow_with_conditionals.go`
+
+Creates workflow with switch/case logic.
+
+**Step-by-step**:
+
+1. **Analyze SDK**:
+   ```go
+   // From 08_workflow_with_conditionals.go
+   workflow.New(ctx,
+       workflow.WithName("conditional-processor"),
+       workflow.WithNamespace("logic"),
+       // Tasks: checkStatus, processSuccess, processError
+   )
+   ```
+
+2. **Create constants**:
+   ```go
+   // workflow_conditional_test_constants.go
+   const (
+       ConditionalWorkflowName = "conditional-processor"
+       ConditionalWorkflowNamespace = "logic"
+       ConditionalWorkflowCheckTask = "checkStatus"
+       ConditionalWorkflowSuccessTask = "processSuccess"
+       ConditionalWorkflowErrorTask = "processError"
+       ConditionalWorkflowTestDataDir = "testdata/examples/08-workflow-with-conditionals"
+   )
+   ```
+
+3. **Create helpers**:
+   ```go
+   // workflow_conditional_test_helpers.go
+   func ApplyConditionalWorkflow(t *testing.T, serverPort int) *WorkflowApplyResult
+   func VerifyConditionalTasks(t *testing.T, workflow *workflowv1.Workflow)
+   ```
+
+4. **Create tests**:
+   ```go
+   // workflow_conditional_apply_core_test.go
+   func (s *E2ESuite) TestApplyConditionalWorkflow()
+   
+   // workflow_conditional_apply_tasks_test.go
+   func (s *E2ESuite) TestApplyConditionalWorkflowTasks()
+   ```
+
+5. **Add to copy list**:
+   ```go
+   // sdk_fixtures_test.go
+   {
+       SDKFileName:    "08_workflow_with_conditionals.go",
+       TestDataDir:    "examples/08-workflow-with-conditionals",
+       TargetFileName: "main.go",
+   }
+   ```
+
+### Example 2: Refactoring Existing Test
+
+**Existing**: `basic_agent_run_test.go` (279 lines, multiple violations)
+
+**Refactoring steps**:
+
+1. **Create constants** (23 lines):
+   ```go
+   // agent_test_constants.go
+   const BasicAgentName = "code-reviewer"
+   const FullAgentName = "code-reviewer-pro"
+   ```
+
+2. **Create helpers** (156 lines):
+   ```go
+   // agent_test_helpers.go
+   func ApplyBasicAgent(t *testing.T, serverPort int) *AgentApplyResult
+   func RunAgent(t *testing.T, serverPort int, agent *agentv1.Agent) *AgentExecution
+   func VerifyAgentExecution(t *testing.T, execution *AgentExecution)
+   ```
+
+3. **Split tests** (5 files, ~40 lines each):
+   ```go
+   basic_agent_run_basic_test.go     // TestRunBasicAgent
+   basic_agent_run_full_test.go      // TestRunFullAgent
+   basic_agent_run_invalid_test.go   // TestRunWithInvalidAgent
+   basic_agent_run_multiple_test.go  // TestRunMultipleTimes
+   basic_agent_run_output_test.go    // TestRunVerifyOutput
+   ```
+
+4. **Delete old file**:
+   ```bash
+   rm test/e2e/basic_agent_run_test.go
+   ```
+
+5. **Verify**:
+   ```bash
+   go test -v -tags=e2e -run "TestE2E/TestRun"
+   # All 5 tests pass with identical behavior
+   ```
+
+---
+
+## Anti-Patterns to Avoid
+
+### ❌ Anti-Pattern 1: Made-Up Test Names
+
+**Wrong**:
+```go
+const TestAgentName = "test-agent"
+const TestWorkflowName = "my-workflow"
+```
+
+**Right**:
+```go
+const BasicAgentName = "code-reviewer"  // From SDK example 01_basic_agent.go
+const BasicWorkflowName = "basic-data-fetch"  // From SDK example 07_basic_workflow.go
+```
+
+### ❌ Anti-Pattern 2: God Helper Function
+
+**Wrong**:
+```go
+func DoEverything(t *testing.T, serverPort int) {
+    // 200 lines of mixed apply, verify, run logic
+}
+```
+
+**Right**:
+```go
+func ApplyBasicAgent(t *testing.T, serverPort int) *AgentApplyResult
+func VerifyAgentProperties(t *testing.T, agent *agentv1.Agent)
+func RunAgent(t *testing.T, serverPort int, agent *agentv1.Agent) *Execution
+```
+
+### ❌ Anti-Pattern 3: Generic Helper Names
+
+**Wrong**:
+```go
+func Apply(t *testing.T) {}
+func Verify(t *testing.T) {}
+func Run(t *testing.T) {}
+```
+
+**Right**:
+```go
+func ApplyBasicWorkflow(t *testing.T, serverPort int) *WorkflowApplyResult
+func VerifyWorkflowTasks(t *testing.T, workflow *workflowv1.Workflow)
+func RunWorkflow(t *testing.T, serverPort int, workflow *workflowv1.Workflow) *Execution
+```
+
+### ❌ Anti-Pattern 4: Monolithic Test File
+
+**Wrong**:
+```go
+// all_agent_tests.go (500+ lines)
+func TestApplyAgent() { /* 100 lines */ }
+func TestRunAgent() { /* 120 lines */ }
+func TestAgentWithSkills() { /* 90 lines */ }
+// ... 8 more tests
+```
+
+**Right**:
+```go
+// agent_apply_core_test.go (45 lines)
+func TestApplyAgent() { /* uses helpers */ }
+
+// agent_run_basic_test.go (38 lines)
+func TestRunAgent() { /* uses helpers */ }
+
+// agent_skills_test.go (42 lines)
+func TestAgentWithSkills() { /* uses helpers */ }
+```
+
+### ❌ Anti-Pattern 5: Ignoring SDK Sync
+
+**Wrong**:
+```go
+// Manually created test fixture
+// test/e2e/testdata/custom-agents/my-test-agent/main.go
+func main() {
+    // Manually written agent code that doesn't match any SDK example
+}
+```
+
+**Right**:
+```go
+// SDK example is copied automatically
+// test/e2e/testdata/examples/01-basic-agent/main.go
+// ← Copied from sdk/go/examples/01_basic_agent.go by sdk_fixtures_test.go
+```
+
+---
+
+## Troubleshooting
+
+### Problem: Tests fail after refactoring
+
+**Solution**:
+1. Compare old vs new test output
+2. Check constants match SDK example exactly
+3. Verify helpers preserve same logic
+4. Run tests individually to isolate issue
+
+### Problem: Helper function too long
+
+**Solution**:
+1. Extract sub-helpers for specific operations
+2. Use result types to group related data
+3. Consider if helper is doing too much (violates SRP)
+
+### Problem: Too many test files
+
+**Solution**:
+1. Group related tests (e.g., all apply tests together)
+2. Use descriptive names to make organization clear
+3. Consider if tests are testing distinct aspects
+
+### Problem: Can't decide what to extract
+
+**Solution**:
+1. Look for repeated code (3+ occurrences = extract)
+2. Look for related operations (e.g., apply + verify together)
+3. Ask: "Would this helper be useful for other tests?"
+
+---
+
+## Success Metrics
+
+**After refactoring, you should have**:
+
+✅ All files under 250 lines (ideally under 150)
+✅ All functions under 50 lines (ideally 20-40)
+✅ Zero magic strings (all constants)
+✅ Zero code duplication
+✅ Clear, descriptive names
+✅ Tests still passing with same behavior
+✅ SDK sync strategy maintained
+✅ Documentation updated
+
+**If you achieve these metrics**:
+- 🎉 Congratulations! You've successfully refactored to engineering standards
+- 📚 Your tests are now maintainable documentation
+- 🚀 Future tests will be easier to write using established helpers
+- ✅ SDK examples are proven to work
+
+---
+
+## Related Documentation
+
+- `test/e2e/docs/guides/sdk-sync-strategy.md` - SDK synchronization approach
+- `test/e2e/docs/implementation/workflow-apply-tests-refactoring-2026-01-23.md` - Workflow refactoring example
+- `.cursor/rules/client-apps/cli/coding-guidelines.mdc` - Engineering standards
+
+---
+
+## Template Checklist
+
+Use this checklist when creating or refactoring a test suite:
+
+### Planning Phase
+- [ ] Analyzed SDK example thoroughly
+- [ ] Extracted key values (names, counts, features)
+- [ ] Identified test scenarios needed
+- [ ] Planned file structure
+
+### Constants File
+- [ ] Created `<category>_test_constants.go`
+- [ ] All values match SDK example exactly
+- [ ] SDK example referenced in comments
+- [ ] Grouped logically (names, paths, counts)
+- [ ] File under 100 lines
+
+### Helpers File
+- [ ] Created `<category>_test_helpers.go`
+- [ ] Apply helper(s) created
+- [ ] Verification helpers created
+- [ ] Each helper under 40 lines
+- [ ] All helpers have clear names
+- [ ] File under 250 lines
+
+### Test Files
+- [ ] One file per test (or small group of related tests)
+- [ ] Each file under 100 lines
+- [ ] Test methods under 50 lines
+- [ ] Clear documentation headers
+- [ ] SDK example referenced
+
+### SDK Integration
+- [ ] SDK example in copy list
+- [ ] Stigmer.yaml created for fixture
+- [ ] Tests reference SDK names
+- [ ] No manually created test fixtures
+
+### Verification
+- [ ] All tests passing
+- [ ] No performance regression
+- [ ] Clear, informative output
+- [ ] No linter errors
+
+### Documentation
+- [ ] Refactoring summary created (if refactoring)
+- [ ] Code comments explain SDK connection
+- [ ] Test documentation is clear
+
+---
+
+**Remember**: Good tests are documentation. Make them readable, maintainable, and trustworthy. 🎯
