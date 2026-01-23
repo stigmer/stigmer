@@ -124,7 +124,8 @@ func setupTestController(t *testing.T) (*WorkflowController, *badger.Store) {
 
 	// Create workflow instance client and controller
 	workflowInstanceClient := workflowinstance.NewClient(workflowInstanceConn)
-	controller := NewWorkflowController(store, workflowInstanceClient)
+	// Pass nil for validator in tests since validation can be skipped for testing
+	controller := NewWorkflowController(store, workflowInstanceClient, nil)
 
 	return controller, store
 }
