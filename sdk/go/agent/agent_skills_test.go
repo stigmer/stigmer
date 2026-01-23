@@ -6,84 +6,42 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/skill"
 )
 
-func TestWithSkill(t *testing.T) {
-	tests := []struct {
-		name          string
-		skills        []skill.Skill
-		expectedCount int
-	}{
-		{
-			name: "single skill",
-			skills: []skill.Skill{
-				skill.Platform("coding-best-practices"),
-			},
-			expectedCount: 1,
-		},
-		{
-			name: "multiple skills",
-			skills: []skill.Skill{
-				skill.Platform("coding-best-practices"),
-				skill.Organization("my-org", "internal-docs"),
-			},
-			expectedCount: 2,
-		},
+func TestAgentWithSingleSkill(t *testing.T) {
+	agent, err := New(nil, "test-agent", &AgentArgs{
+		Instructions: "Test instructions for agent",
+	})
+	if err != nil {
+		t.Fatalf("New() unexpected error = %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			opts := []Option{
-				WithName("test-agent"),
-				WithInstructions("Test instructions for agent"),
-			}
+	// Add skill using builder method
+	agent.AddSkill(skill.Platform("coding-best-practices"))
 
-			for _, s := range tt.skills {
-				opts = append(opts, WithSkill(s))
-			}
+	if len(agent.Skills) != 1 {
+		t.Errorf("New() skills count = %d, want 1", len(agent.Skills))
+	}
 
-			agent, err := New(
-
-
-				nil, // No context needed for tests
-		opts...)
-			if err != nil {
-				t.Fatalf("New() unexpected error = %v", err)
-			}
-
-			if len(agent.Skills) != tt.expectedCount {
-				t.Errorf("New() skills count = %d, want %d", len(agent.Skills), tt.expectedCount)
-			}
-
-			// Verify skills match
-			for i, expectedSkill := range tt.skills {
-				if agent.Skills[i].Slug != expectedSkill.Slug {
-					t.Errorf("New() skill[%d].Slug = %v, want %v", i, agent.Skills[i].Slug, expectedSkill.Slug)
-				}
-				if agent.Skills[i].Org != expectedSkill.Org {
-					t.Errorf("New() skill[%d].Org = %v, want %v", i, agent.Skills[i].Org, expectedSkill.Org)
-				}
-			}
-		})
+	if agent.Skills[0].Slug != "coding-best-practices" {
+		t.Errorf("New() skill[0].Slug = %v, want coding-best-practices", agent.Skills[0].Slug)
 	}
 }
 
-func TestWithSkills(t *testing.T) {
+func TestAgentWithMultipleSkills(t *testing.T) {
 	skills := []skill.Skill{
 		skill.Platform("coding-best-practices"),
 		skill.Platform("security-analysis"),
 		skill.Organization("my-org", "internal-docs"),
 	}
 
-	agent, err := New(
-
-
-		nil, // No context needed for tests
-		WithName("test-agent"),
-		WithInstructions("Test instructions for agent"),
-		WithSkills(skills...),
-	)
+	agent, err := New(nil, "test-agent", &AgentArgs{
+		Instructions: "Test instructions for agent",
+	})
 	if err != nil {
 		t.Fatalf("New() unexpected error = %v", err)
 	}
+
+	// Add skills using builder method
+	agent.AddSkills(skills...)
 
 	if len(agent.Skills) != 3 {
 		t.Errorf("New() skills count = %d, want 3", len(agent.Skills))
@@ -98,4 +56,9 @@ func TestWithSkills(t *testing.T) {
 			t.Errorf("New() skill[%d].Org = %v, want %v", i, agent.Skills[i].Org, expectedSkill.Org)
 		}
 	}
+}
+
+// Helper function for test (shared with agent_test.go)
+func stringPtr(s string) *string {
+	return &s
 }

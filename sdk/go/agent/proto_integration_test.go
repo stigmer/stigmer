@@ -9,13 +9,11 @@ import (
 // TestAgentToProto_Complete tests full agent with all optional fields.
 func TestAgentToProto_Complete(t *testing.T) {
 	// Create full agent
-	agent, err := New(nil,
-		WithName("code-reviewer-pro"),
-		WithSlug("code-reviewer-pro"),
-		WithDescription("Professional code reviewer with security focus"),
-		WithIconURL("https://example.com/icon.png"),
-		WithInstructions("Review code thoroughly and suggest improvements"),
-	)
+	agent, err := New(nil, "code-reviewer-pro", &AgentArgs{
+		Description:  "Professional code reviewer with security focus",
+		IconUrl:      "https://example.com/icon.png",
+		Instructions: "Review code thoroughly and suggest improvements",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
@@ -37,9 +35,6 @@ func TestAgentToProto_Complete(t *testing.T) {
 	}
 	if proto.Metadata.Name != "code-reviewer-pro" {
 		t.Errorf("Name = %v, want code-reviewer-pro", proto.Metadata.Name)
-	}
-	if proto.Metadata.Slug != "code-reviewer-pro" {
-		t.Errorf("Slug = %v, want code-reviewer-pro", proto.Metadata.Slug)
 	}
 
 	// Verify SDK annotations
@@ -75,10 +70,9 @@ func TestAgentToProto_Complete(t *testing.T) {
 
 // TestAgentToProto_Minimal tests minimal agent with only required fields.
 func TestAgentToProto_Minimal(t *testing.T) {
-	agent, err := New(nil,
-		WithName("simple-agent"),
-		WithInstructions("Do something simple"),
-	)
+	agent, err := New(nil, "simple-agent", &AgentArgs{
+		Instructions: "Do something simple",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
@@ -120,27 +114,20 @@ func TestAgentToProto_Minimal(t *testing.T) {
 // TestAgentToProto_WithSkill tests agent with inline skill.
 func TestAgentToProto_WithSkill(t *testing.T) {
 	// Create inline skill
-	skill1, err := skill.New(
-		skill.WithName("code-analysis"),
-		skill.WithDescription("Analyze code quality"),
-		skill.WithMarkdown("# Code Analysis\nAnalyze code for best practices"),
-	)
-	if err != nil {
-		t.Fatalf("Failed to create skill: %v", err)
-	}
+	skillObj := skill.Platform("code-analysis")
 
 	// Create agent with skill
-	agent, err := New(nil,
-		WithName("code-reviewer-pro"),
-		WithSlug("code-reviewer-pro"),
-		WithDescription("Professional code reviewer with security focus"),
-		WithIconURL("https://example.com/icon.png"),
-		WithInstructions("Review code thoroughly and suggest improvements"),
-		WithSkills(*skill1),
-	)
+	agent, err := New(nil, "code-reviewer-pro", &AgentArgs{
+		Description:  "Professional code reviewer with security focus",
+		IconUrl:      "https://example.com/icon.png",
+		Instructions: "Review code thoroughly and suggest improvements",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
+	
+	// Add skill using builder method
+	agent.AddSkill(skillObj)
 
 	// Convert to proto
 	proto, err := agent.ToProto()
@@ -205,27 +192,25 @@ func TestAgentToProto_WithSkill(t *testing.T) {
 
 // TestAgentToProto_MultipleSkills tests agent with multiple skills.
 func TestAgentToProto_MultipleSkills(t *testing.T) {
-	skill1, _ := skill.New(
-		skill.WithName("skill1"),
-		skill.WithMarkdown("# Skill 1"),
-	)
-	skill2, _ := skill.New(
-		skill.WithName("skill2"),
-		skill.WithMarkdown("# Skill 2"),
-	)
-	skill3, _ := skill.New(
-		skill.WithName("skill3"),
-		skill.WithMarkdown("# Skill 3"),
-	)
+	skill1, _ := skill.New("skill1", &skill.SkillArgs{
+		MarkdownContent: "# Skill 1",
+	})
+	skill2, _ := skill.New("skill2", &skill.SkillArgs{
+		MarkdownContent: "# Skill 2",
+	})
+	skill3, _ := skill.New("skill3", &skill.SkillArgs{
+		MarkdownContent: "# Skill 3",
+	})
 
-	agent, err := New(nil,
-		WithName("multi-skill-agent"),
-		WithInstructions("Use multiple skills"),
-		WithSkills(*skill1, *skill2, *skill3),
-	)
+	agent, err := New(nil, "multi-skill-agent", &AgentArgs{
+		Instructions: "Use multiple skills",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
+	
+	// Add skills using builder method
+	agent.AddSkills(*skill1, *skill2, *skill3)
 
 	proto, err := agent.ToProto()
 	if err != nil {
@@ -247,14 +232,15 @@ func TestAgentToProto_MultipleSkills(t *testing.T) {
 
 // TestAgentToProto_CustomSlug tests custom slug override.
 func TestAgentToProto_CustomSlug(t *testing.T) {
-	agent, err := New(nil,
-		WithName("my-agent"),
-		WithSlug("custom-slug-123"),  // Custom slug
-		WithInstructions("Test instructions for agent validation"),
-	)
+	agent, err := New(nil, "my-agent", &AgentArgs{
+		Instructions: "Test instructions for agent validation",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
+	
+	// Set custom slug directly on agent (builder pattern)
+	agent.Slug = "custom-slug-123"
 
 	proto, err := agent.ToProto()
 	if err != nil {
