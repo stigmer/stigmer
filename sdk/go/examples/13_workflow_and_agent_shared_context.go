@@ -29,7 +29,7 @@ func main() {
 		apiURL := ctx.SetString("apiURL", "https://api.example.com")
 		orgName := ctx.SetString("orgName", "data-processing-team")
 		retryCount := ctx.SetInt("retryCount", 3)
-		
+
 		// Create shared environment variable
 		apiToken, err := environment.New(
 			environment.WithName("API_TOKEN"),
@@ -46,27 +46,27 @@ func main() {
 			workflow.WithName("fetch-and-analyze"),
 			workflow.WithVersion("1.0.0"),
 			workflow.WithDescription("Fetch data from API and analyze with agent"),
-			workflow.WithOrg(orgName),  // Shared typed reference
+			workflow.WithOrg(orgName), // Shared typed reference
 			workflow.WithEnvironmentVariable(apiToken),
 		)
 		if err != nil {
 			return err
 		}
 
-	// Add workflow tasks using shared context variables
-	endpoint := apiURL.Concat("/data")
-	
-	// Task 1: Fetch data using HTTP GET
-	_ = wf.HttpGet("fetchData", endpoint,
-		workflow.Header("Content-Type", "application/json"),
-		workflow.Timeout(30),
-	)
-	
-	// Task 2: Process data
-	_ = wf.Set("processData",
-		workflow.SetVar("status", "processing"),
-		workflow.SetVar("retries", retryCount),  // Uses shared retryCount
-	)
+		// Add workflow tasks using shared context variables
+		endpoint := apiURL.Concat("/data")
+
+		// Task 1: Fetch data using HTTP GET
+		_ = wf.HttpGet("fetchData", endpoint,
+			workflow.Header("Content-Type", "application/json"),
+			workflow.Timeout(30),
+		)
+
+		// Task 2: Process data
+		_ = wf.Set("processData",
+			workflow.SetVar("status", "processing"),
+			workflow.SetVar("retries", retryCount), // Uses shared retryCount
+		)
 
 		// Create an agent that uses the SAME shared context
 		ag, err := agent.New(ctx, "data-analyzer", &agent.AgentArgs{
@@ -89,10 +89,10 @@ func main() {
 		log.Println("Variables like 'apiURL', 'orgName', and 'retryCount' are type-safe and shared")
 		return nil
 	})
-	
+
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	log.Println("✅ Workflow and agent created with shared context!")
 }
