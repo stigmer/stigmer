@@ -4,15 +4,19 @@
 package e2e
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
+
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 )
 
-// TestRunBasicAgent tests the run command workflow (Phase 1 - smoke test):
+// TestRunBasicAgent tests the complete agent execution workflow:
 // 1. Apply a basic agent (from SDK example 01_basic_agent.go)
 // 2. Execute 'stigmer run' command
-// 3. Verify execution record is created
-// 4. Does NOT wait for actual execution (requires Temporal + agent-runner)
+// 3. Wait for execution to complete
+// 4. Verify execution completed successfully
 //
 // Example: sdk/go/examples/01_basic_agent.go
 // Test Fixture: test/e2e/testdata/examples/01-basic-agent/
@@ -37,14 +41,13 @@ func (s *E2ESuite) TestRunBasicAgent() {
 	s.T().Logf("✓ Agent deployed with ID: %s", agent.Metadata.Id)
 
 	// Step 2: Run the agent by name (not ID)
-	// This creates an execution but doesn't wait for it to complete
-	s.T().Logf("Step 2: Running agent (execution creation only)...")
+	s.T().Logf("Step 2: Running agent and creating execution...")
 
 	runOutput, err := RunCLIWithServerAddr(
 		s.Harness.ServerPort,
 		"run", "code-reviewer", // Use agent name from SDK example (01_basic_agent.go)
 		"--message", "Hello, test agent!",
-		"--follow=false", // Don't stream logs (Phase 2 will test this)
+		"--follow=false", // Don't stream logs in CLI, we'll poll via API
 	)
 
 	s.T().Logf("Run command output:\n%s", runOutput)
@@ -76,24 +79,28 @@ func (s *E2ESuite) TestRunBasicAgent() {
 	s.NotEmpty(executionID, "Should be able to extract execution ID from output")
 	s.T().Logf("✓ Execution created with ID: %s", executionID)
 
-	// Step 4: Verify execution exists via API
-	s.T().Logf("Step 3: Verifying execution exists via API...")
+	// Step 3: Wait for execution to complete
+	s.T().Logf("Step 3: Waiting for execution to complete (timeout: 60s)...")
 
-	executionExists, err := AgentExecutionExistsViaAPI(s.Harness.ServerPort, executionID)
-	s.NoError(err, "Should be able to query execution via API")
-	s.True(executionExists, "Execution should exist when queried via API")
+	execution, err := s.waitForAgentExecutionCompletion(executionID, 60)
+	s.Require().NoError(err, "Execution should complete successfully")
 
-	s.T().Logf("✅ Phase 1 Test Passed!")
+	// Step 4: Verify execution completed successfully
+	s.T().Logf("Step 4: Verifying execution completed successfully...")
+	s.NotNil(execution, "Execution should exist")
+	s.NotNil(execution.Status, "Execution should have status")
+
+	s.Equal(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, execution.Status.Phase,
+		"Execution should complete successfully")
+
+	s.T().Logf("✅ Test Passed!")
 	s.T().Logf("   Agent ID: %s", agent.Metadata.Id)
 	s.T().Logf("   Execution ID: %s", executionID)
-	s.T().Logf("   Execution record created successfully")
-	s.T().Logf("")
-	s.T().Logf("Note: This test only verifies execution creation.")
-	s.T().Logf("      Actual execution requires Temporal + agent-runner (Phase 2)")
+	s.T().Logf("   Final phase: %s", execution.Status.Phase)
 }
 
-// TestRunFullAgent tests running the full agent with optional fields
-// This verifies that agents with description, iconURL, and org work correctly
+// TestRunFullAgent tests the complete execution workflow for agents with optional fields
+// This verifies that agents with description, iconURL, and org execute correctly
 //
 // Example: sdk/go/examples/01_basic_agent.go (code-reviewer-pro agent)
 // Test Fixture: test/e2e/testdata/examples/01-basic-agent/
@@ -126,13 +133,13 @@ func (s *E2ESuite) TestRunFullAgent() {
 	s.T().Logf("✓ Verified optional fields on code-reviewer-pro agent")
 
 	// Step 2: Run the full agent by name
-	s.T().Logf("Step 2: Running code-reviewer-pro agent (execution creation only)...")
+	s.T().Logf("Step 2: Running code-reviewer-pro agent and creating execution...")
 
 	runOutput, err := RunCLIWithServerAddr(
 		s.Harness.ServerPort,
 		"run", "code-reviewer-pro", // Use full agent name from SDK example
 		"--message", "Hello, this is testing the full agent!",
-		"--follow=false", // Don't stream logs (Phase 2 will test this)
+		"--follow=false", // Don't stream logs in CLI, we'll poll via API
 	)
 
 	s.T().Logf("Run command output:\n%s", runOutput)
@@ -163,17 +170,25 @@ func (s *E2ESuite) TestRunFullAgent() {
 	s.NotEmpty(executionID, "Should be able to extract execution ID from output")
 	s.T().Logf("✓ Execution created with ID: %s", executionID)
 
-	// Step 4: Verify execution exists via API
-	s.T().Logf("Step 3: Verifying execution exists via API...")
+	// Step 3: Wait for execution to complete
+	s.T().Logf("Step 3: Waiting for execution to complete (timeout: 60s)...")
 
-	executionExists, err := AgentExecutionExistsViaAPI(s.Harness.ServerPort, executionID)
-	s.NoError(err, "Should be able to query execution via API")
-	s.True(executionExists, "Execution should exist when queried via API")
+	execution, err := s.waitForAgentExecutionCompletion(executionID, 60)
+	s.Require().NoError(err, "Execution should complete successfully")
+
+	// Step 4: Verify execution completed successfully
+	s.T().Logf("Step 4: Verifying execution completed successfully...")
+	s.NotNil(execution, "Execution should exist")
+	s.NotNil(execution.Status, "Execution should have status")
+
+	s.Equal(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, execution.Status.Phase,
+		"Execution should complete successfully")
 
 	s.T().Logf("✅ Full Agent Run Test Passed!")
 	s.T().Logf("   Agent ID: %s", fullAgent.Metadata.Id)
 	s.T().Logf("   Execution ID: %s", executionID)
-	s.T().Logf("   Verified: Agent with optional fields (description, iconURL, org) works correctly")
+	s.T().Logf("   Final phase: %s", execution.Status.Phase)
+	s.T().Logf("   Verified: Agent with optional fields (description, iconURL, org) executes successfully")
 }
 
 // TestRunWithAutoDiscovery tests the auto-discovery mode (no agent reference provided)
@@ -196,4 +211,68 @@ func (s *E2ESuite) TestRunWithAutoDiscovery() {
 	// TODO: Implement in future iteration
 
 	s.T().Skip("Auto-discovery mode requires changing working directory - implement in Phase 2")
+}
+
+// waitForAgentExecutionCompletion polls the agent execution status until it reaches a terminal state
+// Returns the final execution state or an error if timeout or execution failed
+func (s *E2ESuite) waitForAgentExecutionCompletion(executionID string, timeoutSeconds int) (*agentexecutionv1.AgentExecution, error) {
+	timeout := time.After(time.Duration(timeoutSeconds) * time.Second)
+	ticker := time.NewTicker(1 * time.Second) // Poll every second
+	defer ticker.Stop()
+
+	var lastPhase agentexecutionv1.ExecutionPhase
+	pollCount := 0
+
+	for {
+		select {
+		case <-timeout:
+			return nil, fmt.Errorf("timeout waiting for execution to complete after %d seconds (last phase: %s)",
+				timeoutSeconds, lastPhase.String())
+
+		case <-ticker.C:
+			pollCount++
+			execution, err := GetAgentExecutionViaAPI(s.Harness.ServerPort, executionID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to query execution: %w", err)
+			}
+
+			if execution.Status == nil {
+				continue // Wait for status to be populated
+			}
+
+			currentPhase := execution.Status.Phase
+
+			// Log phase changes
+			if currentPhase != lastPhase {
+				s.T().Logf("   [Poll %d] Phase transition: %s → %s",
+					pollCount, lastPhase.String(), currentPhase.String())
+				lastPhase = currentPhase
+			}
+
+			// Check for terminal states
+			switch currentPhase {
+			case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
+				s.T().Logf("   ✓ Execution completed successfully after %d polls", pollCount)
+				return execution, nil
+
+			case agentexecutionv1.ExecutionPhase_EXECUTION_FAILED:
+				// Log error messages
+				s.T().Logf("   ❌ Execution FAILED after %d polls", pollCount)
+				if len(execution.Status.Messages) > 0 {
+					for _, msg := range execution.Status.Messages {
+						s.T().Logf("      Error: %s", msg.Content)
+					}
+				}
+				return execution, fmt.Errorf("execution failed (phase: %s)", currentPhase.String())
+
+			case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
+				s.T().Logf("   ⚠️  Execution was cancelled after %d polls", pollCount)
+				return execution, fmt.Errorf("execution was cancelled")
+
+			default:
+				// Still in progress (PENDING or IN_PROGRESS), continue polling
+				continue
+			}
+		}
+	}
 }

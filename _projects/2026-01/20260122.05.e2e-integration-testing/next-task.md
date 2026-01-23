@@ -1,6 +1,22 @@
 # Next Task
 
-## Latest Completion (2026-01-23 05:41)
+## Latest Completion (2026-01-23 07:12)
+
+✅ **Agent Run Tests Enhanced with Completion Validation!**
+- **ENHANCED**: Tests now wait for execution completion (not just creation)
+- Changed from negative assertions (not FAILED) to positive (EXECUTION_COMPLETED)
+- Added industry-standard polling logic with timeout (60s) and phase transition logging
+- TestRunBasicAgent: Waits ~22s for completion, validates success
+- TestRunFullAgent: Brought to same validation level as basic test
+- Created `waitForAgentExecutionCompletion()` helper method
+- **FIXED**: Service registration issue (Agent Runner docker restart required)
+- **Impact**: Tests now validate actual E2E execution success, not just smoke tests
+- See: `checkpoints/2026-01-23-agent-run-tests-completion-validation.md`
+- See: `_changelog/2026-01/2026-01-23-071153-enhance-agent-run-tests-with-completion-validation.md`
+
+---
+
+## Previous Completion (2026-01-23 05:41)
 
 ✅ **Proto Naming Standardization + E2E Test Fixes!**
 - **FIXED**: Renamed `AgentInstanceQueryService` → `AgentInstanceQueryController` for consistency
