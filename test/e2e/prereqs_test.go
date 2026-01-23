@@ -73,6 +73,22 @@ func checkDocker() error {
 	return nil
 }
 
+// checkStigmerServer verifies stigmer server is running (checks gRPC port 8234)
+func checkStigmerServer() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// Use 127.0.0.1 (IPv4) instead of localhost to avoid IPv6 timeout issues
+	var d net.Dialer
+	conn, err := d.DialContext(ctx, "tcp", "127.0.0.1:8234")
+	if err != nil {
+		return fmt.Errorf("failed to connect to stigmer server on port 8234: %w", err)
+	}
+	conn.Close()
+
+	return nil
+}
+
 // checkTemporal verifies Temporal server is running (checks gRPC port 7233)
 func checkTemporal() error {
 	// Temporal gRPC server runs on port 7233 (not the Web UI port 8233)
