@@ -107,6 +107,7 @@ func (a *Agent) Validate() error {
 - Use proto getters (e.g., `GetSpec()`)
 - Repeated fields use `append()`
 - Nested messages need careful construction
+- **ALWAYS validate proto messages** using proto-validate before returning
 
 **Example**:
 ```go
@@ -116,9 +117,18 @@ import (
 	agentpb "github.com/leftbin/stigmer/apis/ai/stigmer/agentic/agent/v1"
 )
 
-// ToProto converts Agent to proto message
-func (a *Agent) ToProto() *agentpb.Agent {
-	proto := &agentpb.Agent{}
+// ToProto converts Agent to proto message with validation
+func (a *Agent) ToProto() (*agentpb.Agent, error) {
+	proto := &agentpb.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Agent",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name:        a.Name,
+			Slug:        a.Slug,
+			Annotations: SDKAnnotations(),
+			OwnerScope:  apiresource.ApiResourceOwnerScope_organization, // Default scope
+		},
+	}
 	
 	// Basic fields
 	proto.Spec = &agentpb.AgentSpec{
@@ -137,7 +147,23 @@ func (a *Agent) ToProto() *agentpb.Agent {
 		proto.Spec.McpServers = append(proto.Spec.McpServers, mcpProto)
 	}
 	
-	return proto
+	// IMPORTANT: Validate proto against buf.validate rules
+	if err := validator.Validate(proto); err != nil {
+		return nil, fmt.Errorf("agent validation failed: %w", err)
+	}
+	
+	return proto, nil
+}
+
+// Global validator (initialized once at package load)
+var validator protovalidate.Validator
+
+func init() {
+	var err error
+	validator, err = protovalidate.New()
+	if err != nil {
+		panic(fmt.Sprintf("failed to initialize protovalidate: %v", err))
+	}
 }
 
 // FromProto converts proto message to Agent
