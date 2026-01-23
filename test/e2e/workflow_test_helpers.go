@@ -10,8 +10,10 @@ import (
 	"testing"
 	"time"
 
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stretchr/testify/require"
 )
 
@@ -299,4 +301,143 @@ func VerifyWorkflowRunOutputSuccess(t *testing.T, output string, workflowName st
 		"Output should contain execution ID")
 
 	t.Logf("✓ Run output verified: execution started successfully")
+}
+
+// ============================================================================
+// WORKFLOW-CALLING-AGENT HELPERS (SDK Example 15)
+// ============================================================================
+
+// WorkflowCallingAgentApplyResult contains the result of applying workflow-calling-agent example
+type WorkflowCallingAgentApplyResult struct {
+	Agent    *agentv1.Agent
+	Workflow *workflowv1.Workflow
+	Output   string
+}
+
+// ApplyWorkflowCallingAgent applies the workflow-calling-agent from SDK example 15_workflow_calling_simple_agent.go
+// Returns the deployed agent, workflow, and CLI output
+func ApplyWorkflowCallingAgent(t *testing.T, serverPort int) *WorkflowCallingAgentApplyResult {
+	// Get absolute path to workflow-calling-simple-agent test fixture
+	absTestdataDir, err := filepath.Abs(WorkflowCallingAgentTestDataDir)
+	require.NoError(t, err, "Failed to get absolute path to workflow-calling-agent directory")
+
+	t.Logf("Applying workflow-calling-agent from: %s", absTestdataDir)
+
+	// Execute apply command
+	output, err := RunCLIWithServerAddr(serverPort, "apply", "--config", absTestdataDir)
+	require.NoError(t, err, "Apply command should succeed")
+
+	t.Logf("Apply command output:\n%s", output)
+
+	// Verify agent exists by querying via API
+	agent, err := GetAgentBySlug(serverPort, WorkflowCallingAgentName, LocalOrg)
+	require.NoError(t, err, "Should be able to query agent by slug via API")
+	require.NotNil(t, agent, "Agent should exist")
+
+	// Verify workflow exists by querying via API
+	workflow, err := GetWorkflowBySlug(serverPort, WorkflowCallingWorkflowName, LocalOrg)
+	require.NoError(t, err, "Should be able to query workflow by slug via API")
+	require.NotNil(t, workflow, "Workflow should exist")
+
+	return &WorkflowCallingAgentApplyResult{
+		Agent:    agent,
+		Workflow: workflow,
+		Output:   output,
+	}
+}
+
+// ApplyWorkflowCallingAgentDryRun executes dry-run mode for workflow-calling-agent
+// Returns CLI output without deploying
+func ApplyWorkflowCallingAgentDryRun(t *testing.T, serverPort int) string {
+	absTestdataDir, err := filepath.Abs(WorkflowCallingAgentTestDataDir)
+	require.NoError(t, err, "Failed to get absolute path to workflow-calling-agent directory")
+
+	t.Logf("Running dry-run for workflow-calling-agent from: %s", absTestdataDir)
+
+	output, err := RunCLIWithServerAddr(serverPort, "apply", "--config", absTestdataDir, "--dry-run")
+	require.NoError(t, err, "Dry-run should succeed")
+
+	t.Logf("Dry-run output:\n%s", output)
+
+	return output
+}
+
+// VerifyWorkflowCallingAgentProperties verifies agent properties from SDK example 15
+func VerifyWorkflowCallingAgentProperties(t *testing.T, agent *agentv1.Agent) {
+	require.Equal(t, WorkflowCallingAgentName, agent.Metadata.Name,
+		"Agent name should match SDK example")
+	require.Equal(t, WorkflowCallingAgentDescription, agent.Spec.Description,
+		"Agent description should match SDK example")
+	require.NotEmpty(t, agent.Spec.Instructions,
+		"Agent should have instructions from SDK example")
+	require.Contains(t, agent.Spec.Instructions, "You are a code reviewer",
+		"Agent instructions should contain code reviewer prompt from SDK")
+	require.Contains(t, agent.Spec.Instructions, "Best practices",
+		"Agent instructions should mention best practices from SDK")
+	require.Contains(t, agent.Spec.Instructions, "Potential bugs",
+		"Agent instructions should mention bugs from SDK")
+
+	t.Logf("✓ Agent properties verified: name=%s", agent.Metadata.Name)
+}
+
+// VerifyWorkflowCallingWorkflowProperties verifies workflow properties from SDK example 15
+func VerifyWorkflowCallingWorkflowProperties(t *testing.T, workflow *workflowv1.Workflow) {
+	require.Equal(t, WorkflowCallingWorkflowName, workflow.Metadata.Name,
+		"Workflow name should match SDK example")
+	require.Equal(t, WorkflowCallingWorkflowNamespace, workflow.Spec.Document.Namespace,
+		"Workflow namespace should match SDK example")
+	require.Equal(t, WorkflowCallingWorkflowVersion, workflow.Spec.Document.Version,
+		"Workflow version should match SDK example")
+	require.Equal(t, WorkflowCallingWorkflowDescription, workflow.Spec.Description,
+		"Workflow description should match SDK example")
+	require.Equal(t, LocalOrg, workflow.Metadata.Org,
+		"Workflow org should be 'local' in local backend mode")
+
+	t.Logf("✓ Workflow properties verified: name=%s, namespace=%s, version=%s",
+		workflow.Metadata.Name, workflow.Spec.Document.Namespace, workflow.Spec.Document.Version)
+}
+
+// VerifyWorkflowCallingAgentTask verifies the workflow has an agent call task
+func VerifyWorkflowCallingAgentTask(t *testing.T, workflow *workflowv1.Workflow) {
+	require.NotNil(t, workflow.Spec.Tasks, "Workflow should have tasks")
+	require.Len(t, workflow.Spec.Tasks, WorkflowCallingWorkflowTaskCount,
+		"Workflow should have exactly 1 task from SDK example")
+
+	task := workflow.Spec.Tasks[0]
+	require.Equal(t, WorkflowCallingTaskName, task.Name,
+		"Task should be named 'reviewCode' from SDK example")
+	require.Equal(t, apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL, task.Kind,
+		"Task should be of type AGENT_CALL")
+	require.NotNil(t, task.TaskConfig,
+		"Agent call task should have configuration")
+
+	t.Logf("✓ Agent call task verified: name=%s, kind=%s", task.Name, task.Kind)
+}
+
+// VerifyWorkflowCallingAgentApplyOutputSuccess verifies apply output for workflow-calling-agent
+func VerifyWorkflowCallingAgentApplyOutputSuccess(t *testing.T, output string) {
+	require.Contains(t, output, "Deployment successful",
+		"Output should contain deployment success message")
+	require.Contains(t, output, WorkflowCallingAgentName,
+		"Output should mention the agent name from SDK example")
+	require.Contains(t, output, WorkflowCallingWorkflowName,
+		"Output should mention the workflow name from SDK example")
+
+	t.Logf("✓ Apply output verified: deployment successful")
+}
+
+// VerifyWorkflowCallingAgentDryRunOutput verifies dry-run output for workflow-calling-agent
+func VerifyWorkflowCallingAgentDryRunOutput(t *testing.T, output string) {
+	require.Contains(t, output, "Dry run successful",
+		"Output should indicate dry run completion")
+	require.Contains(t, output, "TYPE",
+		"Dry-run output should contain table header: TYPE")
+	require.Contains(t, output, "NAME",
+		"Dry-run output should contain table header: NAME")
+	require.Contains(t, output, "ACTION",
+		"Dry-run output should contain table header: ACTION")
+	require.Contains(t, output, "Create",
+		"Dry-run output should show Create action")
+
+	t.Logf("✓ Dry-run output verified: table format correct")
 }
