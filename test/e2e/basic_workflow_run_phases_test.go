@@ -7,10 +7,10 @@ import (
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 )
 
-// TestRunWorkflowExecutionPhases tests workflow execution phase progression:
-// 1. Execution starts in PENDING phase
-// 2. Transitions to IN_PROGRESS during execution
-// 3. Completes in COMPLETED phase
+// TestRunWorkflowExecutionPhases tests workflow execution phase progression using STREAMING RPC:
+// 1. Query initial execution state
+// 2. Subscribe to execution stream for real-time phase transitions
+// 3. Verify execution completes successfully
 //
 // Example: sdk/go/examples/07_basic_workflow.go
 // Test Fixture: test/e2e/testdata/examples/07-basic-workflow/
@@ -37,16 +37,21 @@ func (s *E2ESuite) TestRunWorkflowExecutionPhases() {
 	initialPhase := execution.Status.Phase
 	s.T().Logf("✓ Initial phase observed: %s", initialPhase)
 
-	// STEP 4: Wait for execution to complete
-	s.T().Logf("Step 4: Waiting for execution to complete (observing phase transitions)...")
-	finalExecution := WaitForWorkflowExecutionCompletion(s.T(), s.Harness.ServerPort, runResult.ExecutionID, WorkflowExecutionTimeoutSeconds)
+	// STEP 4: Subscribe to execution stream and wait for completion
+	s.T().Logf("Step 4: Subscribing to execution stream (observing phase transitions)...")
+	finalExecution := WaitForWorkflowExecutionCompletionViaStream(
+		s.T(),
+		s.Harness.ServerPort,
+		runResult.ExecutionID,
+		WorkflowExecutionTimeoutSeconds,
+	)
 
 	// STEP 5: Verify final phase is COMPLETED
 	s.T().Logf("Step 5: Verifying final execution phase...")
 	VerifyWorkflowExecutionCompleted(s.T(), finalExecution)
 
 	// STEP 6: Summary
-	s.T().Logf("✅ Execution Phase Test Passed!")
+	s.T().Logf("✅ Execution Phase Test Passed (via streaming)!")
 	s.T().Logf("   Workflow ID: %s", applyResult.Workflow.Metadata.Id)
 	s.T().Logf("   Execution ID: %s", runResult.ExecutionID)
 	s.T().Logf("   Initial Phase Observed: %s", initialPhase)

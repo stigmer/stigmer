@@ -3,16 +3,19 @@
 
 package e2e
 
-// TestRunBasicWorkflow tests the complete workflow execution workflow using STREAMING RPC:
-// 1. Apply a basic workflow (from SDK example 07_basic_workflow.go)
-// 2. Execute 'stigmer run' command
-// 3. Subscribe to execution stream for real-time updates
-// 4. Verify execution completed successfully
+// TestRunBasicWorkflowViaStream tests the complete workflow execution using STREAMING RPC
+// instead of polling. This is more efficient and provides real-time updates.
+//
+// Benefits over polling version:
+// - Real-time phase updates (no 500ms-1s polling delay)
+// - More efficient (single stream vs repeated API calls)
+// - Observes all phase transitions in real-time
+// - Stream automatically closes when execution completes
 //
 // Example: sdk/go/examples/07_basic_workflow.go
 // Test Fixture: test/e2e/testdata/examples/07-basic-workflow/
-func (s *E2ESuite) TestRunBasicWorkflow() {
-	s.T().Logf("=== Testing Basic Workflow Run (from SDK example 07_basic_workflow.go) ===")
+func (s *E2ESuite) TestRunBasicWorkflowViaStream() {
+	s.T().Logf("=== Testing Basic Workflow Run via STREAMING RPC ===")
 
 	// STEP 1: Apply workflow from SDK example
 	s.T().Logf("Step 1: Applying workflow...")

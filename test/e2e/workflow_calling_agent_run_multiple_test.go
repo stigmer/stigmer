@@ -10,7 +10,8 @@ import (
 )
 
 // TestRunWorkflowCallingAgentMultipleTimes tests running the same workflow multiple times
-// This verifies that multiple executions can be created and completed for the same workflow
+// using STREAMING RPC. This verifies that multiple executions can be created and completed
+// for the same workflow.
 //
 // Example: sdk/go/examples/15_workflow_calling_simple_agent.go
 // Test Fixture: test/e2e/testdata/examples/15-workflow-calling-simple-agent/
@@ -37,10 +38,10 @@ func (s *E2ESuite) TestRunWorkflowCallingAgentMultipleTimes() {
 	s.NotEqual(runResult1.ExecutionID, runResult2.ExecutionID,
 		"Each run should create a unique execution ID")
 
-	// STEP 5: Wait for both executions to complete
-	s.T().Logf("Step 4: Waiting for both executions to complete...")
+	// STEP 5: Subscribe to both execution streams and wait for completion
+	s.T().Logf("Step 4: Subscribing to both execution streams...")
 
-	execution1, err := WaitForWorkflowExecutionPhase(
+	execution1, err := WaitForWorkflowExecutionPhaseViaStream(
 		s.Harness.ServerPort,
 		runResult1.ExecutionID,
 		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
@@ -52,7 +53,7 @@ func (s *E2ESuite) TestRunWorkflowCallingAgentMultipleTimes() {
 	}
 	s.T().Logf("✓ First execution completed: %s", runResult1.ExecutionID)
 
-	execution2, err := WaitForWorkflowExecutionPhase(
+	execution2, err := WaitForWorkflowExecutionPhaseViaStream(
 		s.Harness.ServerPort,
 		runResult2.ExecutionID,
 		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
@@ -68,7 +69,7 @@ func (s *E2ESuite) TestRunWorkflowCallingAgentMultipleTimes() {
 	s.Equal(workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, execution1.Status.Phase)
 	s.Equal(workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, execution2.Status.Phase)
 
-	s.T().Logf("✅ Multiple Execution Test Passed!")
+	s.T().Logf("✅ Multiple Execution Test Passed (via streaming)!")
 	s.T().Logf("   Workflow ID: %s", result.Workflow.Metadata.Id)
 	s.T().Logf("   First Execution ID: %s (Phase: %s)", runResult1.ExecutionID, execution1.Status.Phase.String())
 	s.T().Logf("   Second Execution ID: %s (Phase: %s)", runResult2.ExecutionID, execution2.Status.Phase.String())
