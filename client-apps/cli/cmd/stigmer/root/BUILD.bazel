@@ -25,6 +25,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/services/stigmer-server/pkg/server",
         "//backend/services/workflow-runner/pkg/runner",
+        "//client-apps/cli/embedded",
         "//client-apps/cli/internal/cli/agent",
         "//client-apps/cli/internal/cli/backend",
         "//client-apps/cli/internal/cli/clierr",

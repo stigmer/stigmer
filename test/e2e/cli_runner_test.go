@@ -6,9 +6,7 @@ package e2e
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/stigmer/stigmer/client-apps/cli/cmd/stigmer"
 )
@@ -72,29 +70,8 @@ func RunCLIInProcess(args ...string) (string, error) {
 // RunCLISubprocess executes CLI commands as a subprocess
 // This provides full isolation and is the current recommended approach
 func RunCLISubprocess(args ...string) (string, error) {
-	return RunCLISubprocessWithServerAddr(0, args...)
-}
-
-// RunCLISubprocessWithServerAddr executes CLI commands with server address override
-func RunCLISubprocessWithServerAddr(serverPort int, args ...string) (string, error) {
-	// Find the stigmer binary
-	// We're in test/e2e, CLI main is at ../../client-apps/cli/cmd/stigmer/main.go
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("failed to get working directory: %w", err)
-	}
-
-	cliMainPath := filepath.Join(cwd, "..", "..", "client-apps", "cli", "main.go")
-
-	// Use 'go run' to execute the CLI
-	cmdArgs := append([]string{"run", cliMainPath}, args...)
-	cmd := exec.Command("go", cmdArgs...)
-
-	// Set environment variables
-	cmd.Env = os.Environ()
-	if serverPort > 0 {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("STIGMER_SERVER_ADDR=localhost:%d", serverPort))
-	}
+	// Use the installed stigmer binary directly
+	cmd := exec.Command("stigmer", args...)
 
 	// Capture output
 	var stdout, stderr bytes.Buffer
@@ -102,7 +79,7 @@ func RunCLISubprocessWithServerAddr(serverPort int, args ...string) (string, err
 	cmd.Stderr = &stderr
 
 	// Run command
-	err = cmd.Run()
+	err := cmd.Run()
 
 	// Combine output
 	output := stdout.String()
@@ -117,7 +94,8 @@ func RunCLISubprocessWithServerAddr(serverPort int, args ...string) (string, err
 	return output, nil
 }
 
-// RunCLIWithServerAddr is a convenience wrapper that sets STIGMER_SERVER_ADDR env var
+// RunCLIWithServerAddr is a convenience wrapper for backwards compatibility
+// Just calls RunCLISubprocess - server address is auto-detected by stigmer CLI
 func RunCLIWithServerAddr(serverPort int, args ...string) (string, error) {
-	return RunCLISubprocessWithServerAddr(serverPort, args...)
+	return RunCLISubprocess(args...)
 }
