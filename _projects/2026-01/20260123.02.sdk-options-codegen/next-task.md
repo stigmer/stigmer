@@ -68,10 +68,10 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-23 21:27
-**Current Task**: T06 (Struct-Based Args) - Phase 2 Complete ✅, Phase 4 Partial (3/7)
-**Status**: READY FOR CLEANUP - Complete remaining examples or move to Phase 5  
-**Last Updated**: 2026-01-24 04:09
-**Latest Achievement**: Completely data-driven generator with no circular imports, all documented and committed
+**Current Task**: T06 (Struct-Based Args) - Phase 2 Complete ✅, Phase 4 Complete ✅
+**Status**: READY FOR PHASE 5 - Update workflow task constructors
+**Last Updated**: 2026-01-24 04:22
+**Latest Achievement**: All SDK examples updated to struct-based args pattern and verified working
 
 **CONVERSATION 2 PROGRESS** (2026-01-24):
 - ✅ **ARCHITECTURE FIX COMPLETE**
@@ -93,16 +93,15 @@ When starting a new session:
 - ✅ Skill package compiles successfully
 - 📝 Noted agent test cleanup as technical debt for later
 
-- ✅ **PHASE 4 STARTED - Update Examples (3/7 complete)**
+- ✅ **PHASE 4 COMPLETE - Update Examples (7/7 complete)**
 - ✅ Example 01 (01_basic_agent.go) - Already correct, runs ✓
 - ✅ Example 02 (02_agent_with_skills.go) - Updated and runs ✓
 - ✅ Example 03 (03_agent_with_mcp_servers.go) - Updated and runs ✓
-- ⏳ Examples 04-06, 12-13 need updating (5 remaining)
-  - Example 04: Complex with syntax errors
-  - Example 05: Syntax errors, old pattern
-  - Example 06: Uses helper that may not exist
-  - Example 12: Uses gen package
-  - Example 13: Uses gen package
+- ✅ Example 04 (04_agent_with_subagents.go) - Fixed duplicate imports, updated all 6 functions ✓
+- ✅ Example 05 (05_agent_with_environment_variables.go) - Updated to struct args ✓
+- ✅ Example 06 (06_agent_with_instructions_from_files.go) - Fixed file loading, all 4 functions ✓
+- ✅ Example 12 (12_agent_with_typed_context.go) - Fixed StringRef handling ✓
+- ✅ Example 13 (13_workflow_and_agent_shared_context.go) - Fixed syntax error, struct args ✓
 
 **WHAT WAS ACCOMPLISHED**:
 1. **Data-Driven Generator**: No hard-coded "agent", "skill", "commons"
@@ -123,11 +122,11 @@ When starting a new session:
    - ✅ Removed outdated generated files
    - ✅ Moved `InlineSubAgentSpec` to shared types
 
-**Key Achievement**: Generator is now **truly schema-driven** with zero domain-specific code.
+**Key Achievement**: All SDK examples successfully migrated to struct-based args pattern. 7 core examples now demonstrate proper API usage with agent.New(ctx, name, &AgentArgs{}).
 
-**Next Action**: Continue with T06 Phase 4 (Update Examples 02-19)
-**Estimated Duration**: 1.5 hours
-**Priority**: HIGH - Examples currently broken, need to use struct args
+**Next Action**: Move to T06 Phase 5 (Workflow Task Args) or document & commit Phase 4 completion
+**Estimated Duration**: Phase 5: 3-4 hours (13 task types)
+**Priority**: MEDIUM - Examples complete, can proceed to workflow tasks or pause for documentation
 
 **Technical Debt to Address Later**:
 - 11 agent test files using old pattern (pre-dating this project)
