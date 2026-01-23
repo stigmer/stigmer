@@ -3,10 +3,10 @@ package steps
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -50,7 +50,7 @@ func TestBuildUpdateStateStep_Execute(t *testing.T) {
 	// Create input agent with updates
 	input := &agentv1.Agent{
 		Metadata: &apiresource.ApiResourceMetadata{
-			Id:   "agent-999", // Different ID - should be preserved from existing
+			Id:   "agent-999",     // Different ID - should be preserved from existing
 			Name: "updated-agent", // Different name - should be updated (name is mutable)
 		},
 		Spec: &agentv1.AgentSpec{
