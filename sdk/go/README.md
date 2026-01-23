@@ -9,13 +9,21 @@ A Go SDK for defining AI agents and workflows for the Stigmer platform.
 
 ### Core Features
 - **Agents & Workflows**: Define both AI agents and workflow orchestrations
+- **Struct-based Args**: Pulumi-style configuration with excellent IDE support (v0.2.0+)
 - **Proto-agnostic SDK**: Pure Go library with no proto dependencies
 - **File-based content**: Load instructions and skills from markdown files
 - **Inline resources**: Define skills and sub-agents directly in your repository
 - **Type-safe**: Leverage Go's type system for compile-time safety
 - **Well-tested**: Comprehensive unit and integration tests
 
-### Workflow Features (NEW!)
+### Developer Experience
+- **IDE Autocomplete**: Full field discovery and type information
+- **Nil-Safe**: All args optional with sensible defaults
+- **Convenience Methods**: Shortcuts for common patterns (HttpGet, SetVars)
+- **Helper Types**: Ergonomic runtime value access (ErrorRef, LoopVar)
+- **Industry Standard**: Matches Pulumi, Terraform, and AWS SDK patterns
+
+### Workflow Features
 - **Pulumi-aligned API**: Professional infrastructure-as-code patterns
 - **Typed Context System**: Compile-time checked configuration with IDE autocomplete
 - **Implicit Dependencies**: Automatic dependency tracking through field references
@@ -27,6 +35,34 @@ A Go SDK for defining AI agents and workflows for the Stigmer platform.
 
 ```bash
 go get github.com/leftbin/stigmer-sdk/go
+```
+
+## 🔄 Migrating to v0.2.0+
+
+**v0.2.0 introduces struct-based args** (Pulumi pattern) replacing functional options.
+
+**Benefits**:
+- ✅ Better IDE autocomplete and field discovery
+- ✅ Clearer, more maintainable code
+- ✅ Industry-standard patterns
+- ✅ Nil-safe with sensible defaults
+
+**Migration guide**: See [Struct Args Migration Guide](docs/guides/struct-args-migration.md) for complete before/after examples and troubleshooting.
+
+**Quick comparison**:
+```go
+// OLD (v0.1.x): Functional options
+agent.New(ctx,
+    agent.WithName("my-agent"),
+    agent.WithInstructions("..."),
+    agent.WithSkills(skill),
+)
+
+// NEW (v0.2.0+): Struct args
+agent.New(ctx, "my-agent", &agent.AgentArgs{
+    Instructions: "...",
+    Skills:       []*skill.Skill{skill},
+})
 ```
 
 ## Quick Start
@@ -47,11 +83,10 @@ import (
 func main() {
     err := stigmer.Run(func(ctx *stigmer.Context) error {
         // Create inline skill from markdown file
-        securitySkill, err := skill.New(
-            skill.WithName("security-guidelines"),
-            skill.WithDescription("Security review guidelines"),
-            skill.WithMarkdownFromFile("skills/security.md"),
-        )
+        securitySkill, err := skill.New("security-guidelines", &skill.SkillArgs{
+            Description: "Security review guidelines",
+            Markdown:    skill.LoadMarkdownFromFile("skills/security.md"),
+        })
         if err != nil {
             return err
         }
@@ -67,22 +102,17 @@ func main() {
             return err
         }
 
-        // Create agent with instructions from file
-        myAgent, err := agent.New(ctx,
-            agent.WithName("code-reviewer"),
-            agent.WithInstructionsFromFile("instructions/reviewer.md"),
-            agent.WithDescription("AI code reviewer with security expertise"),
-            agent.WithIconURL("https://example.com/icon.png"),
-        )
+        // Create agent with struct-based args (v0.2.0+)
+        myAgent, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+            Instructions: agent.LoadInstructionsFromFile("instructions/reviewer.md"),
+            Description:  "AI code reviewer with security expertise",
+            IconURL:      "https://example.com/icon.png",
+            Skills:       []*skill.Skill{securitySkill},
+            MCPServers:   []*mcpserver.MCPServer{githubMCP},
+        })
         if err != nil {
             return err
         }
-        
-        // Use builder methods to add components
-        myAgent.
-            AddSkill(*securitySkill).                    // Inline skill
-            AddSkill(skill.Platform("coding-standards")). // Platform skill
-            AddMCPServer(githubMCP)
         
         fmt.Printf("Agent created: %s\n", myAgent.Name)
         
