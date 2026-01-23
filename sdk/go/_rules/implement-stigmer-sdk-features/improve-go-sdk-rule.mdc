@@ -1,179 +1,55 @@
 # Rule: Improve Go SDK Rule (action)
 
-## Purpose
+**Purpose**: Autonomously improve the `implement-go-sdk-features.mdc` rule based on lessons learned during Go SDK implementation and code generation work.
 
-Autonomously improve the `implement-go-sdk-features.mdc` rule based on lessons learned during Go SDK implementation. Updates patterns, adds missing documentation, and refines guidance to prevent future issues.
+**Usage**: This rule is invoked when:
+- New patterns emerge from SDK implementation work
+- Code generation templates need improvements
+- Test patterns evolve
+- Proto conversion issues are discovered and solved
 
-## When This Rule is Invoked
-
-This rule is automatically triggered by `@complete-stigmer-work.mdc` when:
-1. Go SDK files were modified (`sdk/go/**/*.go`)
-2. New Go patterns were discovered or issues were solved
-3. Genuine learning occurred (not routine work)
-
-It can also be manually invoked when:
-- You notice the rule has incorrect/outdated Go guidance
-- You want to add a new Go pattern discovered during work
-- Documentation is missing for a common Go task
+---
 
 ## What This Rule Does
 
-1. **Analyzes Recent Work**: Reviews conversation history and git changes
-2. **Identifies Go-Specific Learnings**: Extracts new patterns, fixes, or discoveries
-3. **Updates Documentation**: 
-   - Adds entries to `docs/learning-log.md`
-   - Updates reference docs in `docs/`
-   - Refines main rule guidance
+1. **Analyzes Recent Work**: Reviews SDK implementations and code generation improvements
+2. **Identifies Learnings**: Extracts new patterns, fixes, or discoveries
+3. **Updates Rule**: Enhances the main rule with better patterns and examples
 4. **Validates Changes**: Ensures updates are accurate and helpful
 
-## How AI Should Execute This
+---
 
-### Step 1: Identify Go SDK Learnings
-
-Review the conversation for:
-
-**Proto Converter Issues**:
-- Nil pointer dereference errors
-- Proto getter usage (GetSpec(), GetInstructions())
-- Repeated field handling with append()
-- Nested message construction
-- Missing nil checks
-
-**Agent Configuration Issues**:
-- Builder pattern problems
-- Functional options implementation
-- Validation errors in constructors
-- Struct composition issues
-- Exported vs unexported fields
-
-**Error Handling Issues**:
-- Error wrapping with fmt.Errorf("%w", err)
-- Custom error type creation
-- Sentinel errors
-- Error propagation patterns
-
-**Testing Issues**:
-- Table-driven test patterns
-- Test fixture setup
-- Mock interfaces
-- Proto roundtrip tests
-- Coverage patterns
-
-**Go Module Issues**:
-- go.mod dependency problems
-- Proto stub imports
-- Module path setup
-- Version constraints
-
-**Interface Design Issues**:
-- Interface composition
-- Method receiver choices (pointer vs value)
-- Interface satisfaction patterns
-
-### Step 2: Categorize Go Learnings
-
-For each learning, determine:
-
-- **Topic**: Proto Converters, Agent Config, Error Handling, Testing, etc.
-- **Type**: Bug fix, new pattern, best practice, gotcha
-- **Go-Specific**: Is this Go-specific or applies to other languages?
-- **Impact**: Critical (blocks work), Important (saves time), Nice-to-have
-- **Reusability**: Applies broadly vs specific case
-
-### Step 3: Update Documentation
-
-#### Update `docs/learning-log.md`
-
-Add entry under appropriate topic:
-
-```markdown
-## [Topic Name]
-
-### [Date] - [Brief Title]
-
-**Problem**: [What went wrong or what needed solving in Go]
-
-**Root Cause**: [Why it happened - Go-specific context]
-
-**Solution**: [How to fix it - Go code]
-
-**Prevention**: [How to avoid in future]
-
-**Cross-Reference**: [Link to Python SDK if applicable]
-
-**Example**:
-```go
-// Go code example showing the fix
-```
-```
-
-#### Update Reference Docs
-
-If the learning affects a specific doc:
-- Create or update `docs/proto-converters.md` for proto issues
-- Create or update `docs/agent-configuration.md` for config issues
-- Create or update `docs/testing-patterns.md` for test issues
-- Create or update `docs/error-handling.md` for error issues
-
-#### Update Main Rule
-
-If patterns in `implement-stigmer-sdk-features.mdc` need refinement:
-- Add new Go examples to relevant sections
-- Update troubleshooting guide
-- Add common pitfalls
-- Refine implementation guidance
-
-### Step 4: Add Cross-Language References
-
-If the learning has a Python SDK equivalent:
-
-```markdown
-**Cross-Language Note**: 
-- **Python approach**: Uses `.extend()` for repeated fields (see Python SDK learning log)
-- **Go approach**: Uses `append()` with slice expansion
-- **Conceptual similarity**: Both add items to repeated proto fields
-- **Syntax difference**: Go uses variadic syntax with `...`
-```
-
-### Step 5: Validate Changes
-
-Before finalizing:
-
-- [ ] Learning is genuinely new (not already documented)
-- [ ] Solution is tested and works in Go
-- [ ] Documentation is clear and actionable
-- [ ] Go code examples are correct and idiomatic
-- [ ] Links between docs are correct
-- [ ] Cross-language references are accurate
-
-## Improvement Criteria
+## When to Invoke
 
 ### Trigger Improvement If:
 
-✅ **New Error Patterns**:
-- Fixed nil pointer dereference error
-- Solved proto conversion issue
-- Discovered missing validation
+✅ **Code Generation Improvements**:
+- Discovered better template patterns
+- Improved schema extraction from protos
+- Enhanced generated code quality
+- Fixed code generation bugs
 
-✅ **New Go Patterns**:
-- Created builder pattern
-- Implemented functional options
-- Added interface design
-- Enhanced error wrapping
+✅ **SDK Pattern Improvements**:
+- Created better functional options
+- Improved builder patterns
+- Enhanced error handling
+- Better validation approaches
 
-✅ **Go Module Issues**:
-- Solved import problems
-- Fixed dependency issues
-- Discovered module path patterns
+✅ **Testing Improvements**:
+- New test patterns (unit, integration, e2e)
+- Better proto roundtrip testing
+- Improved test coverage strategies
+- Fixed flaky tests
 
-✅ **Testing Discoveries**:
-- Created table-driven test pattern
-- Improved test fixtures
-- Enhanced coverage approach
+✅ **Proto Conversion Issues**:
+- Solved structpb type conversion problems
+- Fixed nested proto handling
+- Improved nil pointer safety
+- Better repeated field handling
 
 ### Skip Improvement If:
 
-❌ **Routine Application**:
+❌ **Routine Work**:
 - Used existing patterns correctly
 - No issues encountered
 - Straightforward implementation
@@ -183,137 +59,410 @@ Before finalizing:
 - Comment updates
 - Minor refactoring
 
-❌ **Already Documented**:
-- Pattern exists in learning log
-- Solution in reference docs
-- No new discovery
+---
 
-## Example Improvement
+## Improvement Areas
 
-### Scenario: Proto Nil Pointer Dereference
+### 1. Code Generation Patterns
 
-**Learning Discovered**:
-- Accessing proto nested messages without nil check causes panic
-- Must use Get methods (GetSpec(), GetInstructions())
-- Proto getters return zero values safely
+**What to capture**:
+- Template improvements
+- Schema format enhancements
+- Better proto parsing
+- Improved code formatting
 
-**Documentation Updates**:
-
-1. **Add to `docs/learning-log.md`**:
+**Example entry**:
 ```markdown
-### 2026-01-13 - Proto Nil Pointer Safety
+### Pattern: Generate Validation Helpers
 
-**Problem**: `panic: runtime error: invalid memory address or nil pointer dereference` when accessing proto fields
-
-**Root Cause**: Proto nested messages can be nil. Direct field access (`proto.Spec.Instructions`) panics if Spec is nil.
-
-**Solution**: Always use proto Get methods which handle nil safely:
+When generating config structs, also generate validation:
 
 ```go
-// ❌ WRONG - Can panic
-instructions := proto.Spec.Instructions
-
-// ✅ CORRECT - Safe with nil check
-spec := proto.GetSpec()
-if spec == nil {
-	return fmt.Errorf("spec is nil")
+// Generated validation method
+func (c *SetTaskConfig) Validate() error {
+    if len(c.Variables) == 0 {
+        return fmt.Errorf("variables cannot be empty")
+    }
+    return nil
 }
-instructions := spec.GetInstructions()
-
-// ✅ ALSO CORRECT - Direct getter (returns zero value if nil)
-instructions := proto.GetSpec().GetInstructions()  // Returns "" if spec is nil
 ```
 
-**Prevention**: 
-- Always use Get methods for proto field access
-- Add nil checks for nested messages
-- Use proto getters in converters
-
-**Cross-Reference**: Python doesn't have this issue - proto fields are always initialized
+**Benefits**:
+- Catches errors early
+- Consistent validation across task types
+- Auto-generated from proto constraints
 ```
 
-2. **Update `implement-stigmer-sdk-features.mdc`**:
+### 2. Functional Options Patterns
 
-Add to Proto Converters section:
+**What to capture**:
+- New option types
+- Chainable option patterns
+- Type-safe option implementations
+- Option composition
+
+**Example entry**:
+```markdown
+### Pattern: Nested Options
+
+For complex configurations, use nested options:
+
 ```go
-// IMPORTANT: Use Get methods for safe proto access
-spec := proto.GetSpec()  // Returns nil if not set
-if spec == nil {
-	return fmt.Errorf("spec is required")
+func HttpAuth(opts ...AuthOption) TaskOption {
+    return func(cfg map[string]interface{}) {
+        auth := make(map[string]interface{})
+        for _, opt := range opts {
+            opt(auth)
+        }
+        cfg["auth"] = auth
+    }
 }
-instructions := spec.GetInstructions()  // Safe - returns "" if not set
+
+func BearerToken(token string) AuthOption {
+    return func(auth map[string]interface{}) {
+        auth["type"] = "bearer"
+        auth["token"] = token
+    }
+}
+
+// Usage
+wf.HttpGet("task", uri,
+    workflow.HttpAuth(
+        workflow.BearerToken("abc123"),
+    ),
+)
 ```
+```
+
+### 3. Testing Strategies
+
+**What to capture**:
+- Test organization patterns
+- Coverage strategies
+- Roundtrip test improvements
+- E2E test patterns
+
+**Example entry**:
+```markdown
+### Pattern: Roundtrip Tests for All Task Types
+
+Create consistent roundtrip tests:
+
+```go
+func TestAllTaskTypes_ProtoRoundtrip(t *testing.T) {
+    tests := []struct {
+        name string
+        task func(*workflow.Workflow)
+    }{
+        {"HttpGet", func(wf *workflow.Workflow) {
+            wf.HttpGet("task", "https://api.example.com")
+        }},
+        {"Set", func(wf *workflow.Workflow) {
+            wf.Set("task", workflow.SetVar("key", "value"))
+        }},
+        // ... all 13 task types
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            ctx := stigmer.NewContext()
+            wf, _ := workflow.New(ctx,
+                workflow.WithNamespace("test"),
+                workflow.WithName("test"),
+                workflow.WithVersion("1.0.0"),
+            )
+            
+            tt.task(wf)
+            
+            proto, err := wf.ToProto()
+            require.NoError(t, err)
+            assert.NotNil(t, proto)
+        })
+    }
+}
+```
+
+**Benefits**:
+- Tests all task types consistently
+- Easy to add new task types
+- Catches proto conversion bugs early
+```
+
+### 4. Proto Conversion Patterns
+
+**What to capture**:
+- structpb conversion issues
+- Nil pointer safety
+- Repeated field handling
+- Nested proto construction
+
+**Example entry**:
+```markdown
+### Issue: structpb Type Requirements
+
+**Problem**: `structpb.NewStruct()` requires `map[string]interface{}`, not `map[string]string`
+
+**Solution**:
+```go
+// Convert map[string]string to map[string]interface{}
+func convertHeaders(headers map[string]string) map[string]interface{} {
+    result := make(map[string]interface{})
+    for k, v := range headers {
+        result[k] = v
+    }
+    return result
+}
+
+// Use in proto conversion
+cfg := make(map[string]interface{})
+cfg["headers"] = convertHeaders(task.Headers)
+```
+
+**Prevention**: Always use `map[string]interface{}` for structpb configs
+```
+
+### 5. Dependency Tracking Patterns
+
+**What to capture**:
+- Dependency graph improvements
+- Circular dependency detection
+- Topological sort enhancements
+- External reference handling
+
+**Example entry**:
+```markdown
+### Pattern: Extract Dependencies from Configs
+
+Auto-extract agent dependencies from AGENT_CALL tasks:
+
+```go
+func extractAgentDependencies(task *Task) []string {
+    if task.Kind != "AGENT_CALL" {
+        return nil
+    }
+    
+    agentSlug, ok := task.Config["agent_slug"].(string)
+    if !ok {
+        return nil
+    }
+    
+    return []string{"agent:" + agentSlug}
+}
+```
+
+**Benefits**:
+- No manual dependency tracking
+- Auto-builds dependency graph
+- Ensures correct creation order
+```
+
+---
+
+## How to Update the Rule
+
+### Step 1: Identify Learning Category
+
+Determine which section of `implement-go-sdk-features.mdc` to update:
+- **Core Workflow** - Proto changes → Code generation → Implementation → Testing
+- **Code Generation Principles** - Template patterns, schema design
+- **Common Patterns** - Functional options, proto conversion, annotations
+- **Testing Strategy** - Unit, integration, e2e tests
+- **Troubleshooting** - Common issues and fixes
+
+### Step 2: Add Concrete Examples
+
+When adding patterns, include:
+- ✅ Working Go code examples
+- ✅ Before/after comparisons
+- ✅ Benefits and trade-offs
+- ✅ Prevention strategies
+
+Avoid:
+- ❌ Vague descriptions
+- ❌ Incomplete code snippets
+- ❌ Untested examples
+- ❌ Language-agnostic advice (be Go-specific)
+
+### Step 3: Update Troubleshooting Section
+
+If you solved a bug or issue:
+1. Add to Troubleshooting section
+2. Include symptoms, root cause, and fix
+3. Show working code
+4. Explain prevention
+
+**Format**:
+```markdown
+### Issue N: [Brief Title]
+
+**Symptoms**: [What the error looks like]
+
+**Root Cause**: [Why it happens]
+
+**Fix**:
+```go
+// ❌ WRONG
+[broken code]
+
+// ✅ CORRECT
+[working code]
+```
+
+**Prevention**: [How to avoid this in future]
+```
+
+### Step 4: Keep Examples Minimal but Complete
+
+Examples should be:
+- Short enough to read quickly (< 30 lines)
+- Complete enough to understand context
+- Runnable (or clearly marked as pseudocode)
+- Idiomatic Go
+
+### Step 5: Cross-Reference Project Documentation
+
+Link to detailed documentation in the SDK code generators project:
+```markdown
+**See also**: 
+- Code generation principles: `_projects/2026-01/20260122.01.sdk-code-generators-go/coding-guidelines/go-codegen-principles.md`
+- Final summary: `_projects/2026-01/20260122.01.sdk-code-generators-go/FINAL-SUMMARY.md`
+```
+
+---
+
+## Quality Checklist
+
+Before finalizing improvements:
+
+- [ ] Learning is genuinely new (not already documented)
+- [ ] Code examples are tested and work
+- [ ] Patterns are Go-idiomatic
+- [ ] Documentation is clear and actionable
+- [ ] Examples are minimal but complete
+- [ ] Troubleshooting includes prevention
+- [ ] Cross-references are accurate
+
+---
+
+## Execution Flow
+
+```mermaid
+graph TB
+    A[SDK Work Completed] --> B{New Patterns<br/>Discovered?}
+    B -->|Yes| C[Analyze Learnings]
+    B -->|No| D[Skip Improvement]
+    
+    C --> E[Categorize by Type]
+    E --> F{Update Area}
+    
+    F -->|Code Gen| G[Update Code Generation Section]
+    F -->|Patterns| H[Update Common Patterns Section]
+    F -->|Testing| I[Update Testing Strategy Section]
+    F -->|Troubleshooting| J[Add to Troubleshooting Section]
+    
+    G --> K[Validate Changes]
+    H --> K
+    I --> K
+    J --> K
+    
+    K --> L{Changes Valid?}
+    L -->|Yes| M[Update Rule]
+    L -->|No| N[Refine Examples]
+    N --> K
+    
+    M --> O[Done]
+```
+
+---
+
+## Example Improvement Flow
+
+### Scenario: Discovered Better Functional Option Pattern
+
+**Learning**: Options can return errors for validation
+
+**Before** (in rule):
+```go
+func Timeout(seconds int32) TaskOption {
+    return func(cfg map[string]interface{}) {
+        cfg["timeout"] = seconds
+    }
+}
+```
+
+**After** (improved):
+```go
+// Update rule to show error-returning options
+func Timeout(seconds int32) TaskOption {
+    return func(cfg map[string]interface{}) error {
+        if seconds < 1 {
+            return fmt.Errorf("timeout must be >= 1 second, got %d", seconds)
+        }
+        cfg["timeout"] = seconds
+        return nil
+    }
+}
+
+// Update builder to handle errors
+func (w *Workflow) HttpGet(taskID, uri string, opts ...TaskOption) (*Task, error) {
+    cfg := map[string]interface{}{
+        "method": "GET",
+        "uri":    uri,
+    }
+    
+    for _, opt := range opts {
+        if err := opt(cfg); err != nil {
+            return nil, fmt.Errorf("applying option: %w", err)
+        }
+    }
+    
+    return w.addTask(taskID, "HTTP_CALL", cfg), nil
+}
+```
+
+**Add to rule**:
+- Update "Functional Options" pattern section
+- Add to "Validation" subsection
+- Include example in "Common Patterns"
+- Update troubleshooting if error handling was an issue
+
+---
 
 ## Output Format
 
 After making improvements, summarize:
 
 ```
-📚 Stigmer Go SDK Rule Improvements
+✅ Go SDK Rule Improvements
 
-Updated Documentation:
-✅ docs/learning-log.md - Added [X] new entries
-✅ docs/[topic].md - Updated [specific section]
-✅ implement-stigmer-sdk-features.mdc - Enhanced [area]
+Updated Sections:
+• Code Generation Principles - Added template validation pattern
+• Common Patterns - Enhanced functional options with error handling
+• Testing Strategy - Added roundtrip test pattern for all task types
+• Troubleshooting - Added structpb type conversion issue
 
-Key Learnings Captured:
-• [Learning 1]: [Brief description with Go specifics]
-• [Learning 2]: [Brief description with Go specifics]
-• [Learning 3]: [Brief description with Go specifics]
+Key Patterns Added:
+• Error-returning functional options for validation
+• Consistent roundtrip testing for all task types
+• structpb type conversion helpers
+• Dependency extraction from task configs
 
-Prevention Added:
-• [Pitfall 1]: [How to avoid in Go]
-• [Pitfall 2]: [How to avoid in Go]
-
-Cross-Language References:
-• [Pattern 1]: Python uses X, Go uses Y (see both logs)
+Prevention Strategies:
+• Validate option inputs early
+• Use map[string]interface{} for structpb
+• Test all task types consistently
+• Extract dependencies automatically
 ```
-
-## Evaluation Questions for AI
-
-When `@complete-stigmer-work` evaluates if this rule should be invoked, ask:
-
-**Go SDK Work Detection**:
-1. Did I modify files in `sdk/go/**/*.go`?
-2. Did I modify Go SDK test files in `sdk/go/**/*_test.go`?
-3. Did I work on Go SDK features (agent, skill, environment, etc.)?
-
-**Go-Specific Learning Detection** (if Go files changed):
-1. Did I fix a proto conversion error (nil pointers, getters)?
-2. Did I discover a validation pattern worth capturing?
-3. Did I solve a struct/interface implementation problem?
-4. Did I create a new builder pattern or functional option?
-5. Did I fix Go module or dependency issues?
-6. Did I enhance error handling with Go error wrapping?
-7. Did I discover testing patterns (table-driven tests)?
-8. Did I solve a concurrency or context management issue?
-
-**If YES to any learning question** → Trigger this improvement rule
-
-## Integration with Orchestrator
-
-This rule is invoked by `@sdk/_rules/improve-this-rule.mdc` (orchestrator) when:
-- Orchestrator detects Go SDK work
-- Orchestrator evaluates learning as valuable
-- Orchestrator delegates to this Go-specific improvement rule
-
-Flow:
-```
-@complete-stigmer-work
-  └─> Detects SDK work
-      └─> Invokes @sdk/_rules/improve-this-rule.mdc (orchestrator)
-          └─> Orchestrator detects Go work
-              └─> Delegates to @sdk/go/.../improve-this-rule.mdc (this rule)
-                  └─> Updates Go SDK docs
-```
-
-## Related Rules
-
-- `@implement-go-sdk-features` - Main Go SDK rule being improved
-- `@sdk/_rules/improve-this-rule.mdc` - Orchestrator that invokes this rule
-- `@sdk/python/_rules/.../improve-python-sdk-rule.mdc` - Python SDK equivalent
-- `@complete-stigmer-work` - Triggers improvement flow
 
 ---
 
-**Remember**: This rule improves Go-specific SDK patterns. Python-specific patterns go to Python SDK improvement rule. The orchestrator coordinates both.
+## Related Documentation
+
+- **Main Rule**: `implement-go-sdk-features.mdc` (the rule being improved)
+- **Project Summary**: `/_projects/2026-01/20260122.01.sdk-code-generators-go/FINAL-SUMMARY.md`
+- **Code Gen Principles**: `/_projects/2026-01/20260122.01.sdk-code-generators-go/coding-guidelines/go-codegen-principles.md`
+- **Design Decisions**: `/_projects/2026-01/20260122.01.sdk-code-generators-go/design-decisions/`
+
+---
+
+*This rule continuously improves the Go SDK implementation guide based on real-world experience.*

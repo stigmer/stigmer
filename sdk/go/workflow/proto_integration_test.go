@@ -217,8 +217,9 @@ func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
 			Name: "httpTask",
 			Kind: TaskKindHttpCall,
 			Config: &HttpCallTaskConfig{
-				Method: "GET",
-				URI:    "https://api.example.com",
+				Method:         "GET",
+				URI:            "https://api.example.com",
+				TimeoutSeconds: 30,
 			},
 		},
 		// GRPC_CALL
@@ -373,8 +374,9 @@ func TestWorkflowToProto_TaskExport(t *testing.T) {
 				Name: "task1",
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
-					Method: "GET",
-					URI:    "https://api.example.com",
+					Method:         "GET",
+					URI:            "https://api.example.com",
+					TimeoutSeconds: 30,
 				},
 				ExportAs: "${.}",  // Export entire output
 			},
