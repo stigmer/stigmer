@@ -24,6 +24,9 @@ const (
 	BasicWorkflowTaskCount = 2
 	BasicWorkflowEnvVarCount = 1
 	
+	// Execution timeouts
+	WorkflowExecutionTimeoutSeconds = 60
+	
 	// Backend configuration
 	LocalOrg = "local"
 )
