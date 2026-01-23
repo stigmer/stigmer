@@ -1,6 +1,20 @@
 # Next Task
 
-## Latest Completion (2026-01-23 05:08)
+## Latest Completion (2026-01-23 05:41)
+
+✅ **Proto Naming Standardization + E2E Test Fixes!**
+- **FIXED**: Renamed `AgentInstanceQueryService` → `AgentInstanceQueryController` for consistency
+- Updated 10+ references across backend, agent-runner, and E2E tests
+- Regenerated all proto stubs (Go, Python, Java, TypeScript)
+- **VERIFIED**: E2E tests pass - both agent and workflow instance verification working
+- Achieved 100% naming consistency (CommandController + QueryController pattern)
+- **Impact**: Improved developer experience, searchability, and architecture clarity
+- See: `checkpoints/2026-01-23-proto-naming-standardization.md`
+- See: `_changelog/2026-01/2026-01-23-054155-standardize-proto-service-naming-agentinstance-query.md`
+
+---
+
+## Previous Completion (2026-01-23 05:08)
 
 ✅ **Critical Test Quality Fix + BadgerDB Workflow Support!**
 - **FIXED**: Workflow calling agent tests now properly detect failures (no more false positives!)
