@@ -1,4 +1,5 @@
 //go:build ignore
+
 // Example 04: Agent with Sub-Agents
 //
 // This example demonstrates how to create agents with sub-agents.

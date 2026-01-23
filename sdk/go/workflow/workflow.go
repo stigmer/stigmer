@@ -390,15 +390,8 @@ func (w *Workflow) AddEnvironmentVariables(variables ...environment.Variable) *W
 //	processTask := wf.Set("process",
 //	    SetVar("title", fetchTask.Field("title")),  // Implicit dependency!
 //	)
-func (w *Workflow) HttpGet(name string, uri interface{}, opts ...HttpCallOption) *Task {
-	// Prepend GET method and URI to options
-	allOpts := []HttpCallOption{
-		HTTPMethod("GET"),
-		URI(uri),
-	}
-	allOpts = append(allOpts, opts...)
-	
-	task := HttpCall(name, allOpts...)
+func (w *Workflow) HttpGet(name string, uri string, headers map[string]string) *Task {
+	task := HttpGet(name, uri, headers)
 	w.AddTask(task)
 	return task
 }
@@ -416,14 +409,8 @@ func (w *Workflow) HttpGet(name string, uri interface{}, opts ...HttpCallOption)
 //	    }),
 //	    Header("Authorization", "Bearer token"),
 //	)
-func (w *Workflow) HttpPost(name string, uri interface{}, opts ...HttpCallOption) *Task {
-	allOpts := []HttpCallOption{
-		HTTPMethod("POST"),
-		URI(uri),
-	}
-	allOpts = append(allOpts, opts...)
-	
-	task := HttpCall(name, allOpts...)
+func (w *Workflow) HttpPost(name string, uri string, headers map[string]string, body map[string]interface{}) *Task {
+	task := HttpPost(name, uri, headers, body)
 	w.AddTask(task)
 	return task
 }
@@ -436,14 +423,8 @@ func (w *Workflow) HttpPost(name string, uri interface{}, opts ...HttpCallOption
 //	updateTask := wf.HttpPut("updateUser", "https://api.example.com/users/123",
 //	    Body(map[string]any{"status": "active"}),
 //	)
-func (w *Workflow) HttpPut(name string, uri interface{}, opts ...HttpCallOption) *Task {
-	allOpts := []HttpCallOption{
-		HTTPMethod("PUT"),
-		URI(uri),
-	}
-	allOpts = append(allOpts, opts...)
-	
-	task := HttpCall(name, allOpts...)
+func (w *Workflow) HttpPut(name string, uri string, headers map[string]string, body map[string]interface{}) *Task {
+	task := HttpPut(name, uri, headers, body)
 	w.AddTask(task)
 	return task
 }
@@ -456,14 +437,8 @@ func (w *Workflow) HttpPut(name string, uri interface{}, opts ...HttpCallOption)
 //	patchTask := wf.HttpPatch("patchUser", "https://api.example.com/users/123",
 //	    Body(map[string]any{"email": "newemail@example.com"}),
 //	)
-func (w *Workflow) HttpPatch(name string, uri interface{}, opts ...HttpCallOption) *Task {
-	allOpts := []HttpCallOption{
-		HTTPMethod("PATCH"),
-		URI(uri),
-	}
-	allOpts = append(allOpts, opts...)
-	
-	task := HttpCall(name, allOpts...)
+func (w *Workflow) HttpPatch(name string, uri string, headers map[string]string, body map[string]interface{}) *Task {
+	task := HttpPatch(name, uri, headers, body)
 	w.AddTask(task)
 	return task
 }
@@ -476,14 +451,8 @@ func (w *Workflow) HttpPatch(name string, uri interface{}, opts ...HttpCallOptio
 //	deleteTask := wf.HttpDelete("deleteUser", "https://api.example.com/users/123",
 //	    Header("Authorization", "Bearer token"),
 //	)
-func (w *Workflow) HttpDelete(name string, uri interface{}, opts ...HttpCallOption) *Task {
-	allOpts := []HttpCallOption{
-		HTTPMethod("DELETE"),
-		URI(uri),
-	}
-	allOpts = append(allOpts, opts...)
-	
-	task := HttpCall(name, allOpts...)
+func (w *Workflow) HttpDelete(name string, uri string, headers map[string]string) *Task {
+	task := HttpDelete(name, uri, headers)
 	w.AddTask(task)
 	return task
 }
@@ -502,8 +471,8 @@ func (w *Workflow) HttpDelete(name string, uri interface{}, opts ...HttpCallOpti
 //	    SetVar("body", fetchTask.Field("body")),
 //	    SetVar("status", "success"),
 //	)
-func (w *Workflow) Set(name string, opts ...SetOption) *Task {
-	task := Set(name, opts...)
+func (w *Workflow) Set(name string, args *SetArgs) *Task {
+	task := Set(name, args)
 	w.AddTask(task)
 	return task
 }
@@ -524,8 +493,8 @@ func (w *Workflow) Set(name string, opts ...SetOption) *Task {
 //	    }),
 //	)
 //	reviewTask.ExportAll()
-func (w *Workflow) CallAgent(name string, opts ...AgentCallOption) *Task {
-	task := AgentCall(name, opts...)
+func (w *Workflow) CallAgent(name string, args *AgentCallArgs) *Task {
+	task := AgentCall(name, args)
 	w.AddTask(task)
 	return task
 }
@@ -548,8 +517,8 @@ func (w *Workflow) CallAgent(name string, opts ...AgentCallOption) *Task {
 //	    Case(Equals(404), "notFound"),
 //	    DefaultCase("error"),
 //	)
-func (w *Workflow) Switch(name string, opts ...SwitchOption) *Task {
-	task := Switch(name, opts...)
+func (w *Workflow) Switch(name string, args *SwitchArgs) *Task {
+	task := Switch(name, args)
 	w.AddTask(task)
 	return task
 }
@@ -572,8 +541,8 @@ func (w *Workflow) Switch(name string, opts ...SwitchOption) *Task {
 //	        {"httpCall": map[string]interface{}{"uri": "${.api}/process"}},
 //	    }),
 //	)
-func (w *Workflow) ForEach(name string, opts ...ForOption) *Task {
-	task := For(name, opts...)
+func (w *Workflow) ForEach(name string, args *ForArgs) *Task {
+	task := For(name, args)
 	w.AddTask(task)
 	return task
 }
@@ -598,8 +567,8 @@ func (w *Workflow) ForEach(name string, opts ...ForOption) *Task {
 //	        "tasks": []interface{}{...},
 //	    }),
 //	)
-func (w *Workflow) Try(name string, opts ...TryOption) *Task {
-	task := Try(name, opts...)
+func (w *Workflow) Try(name string, args *TryArgs) *Task {
+	task := Try(name, args)
 	w.AddTask(task)
 	return task
 }
@@ -624,8 +593,8 @@ func (w *Workflow) Try(name string, opts ...TryOption) *Task {
 //	        "tasks": []interface{}{...},
 //	    }),
 //	)
-func (w *Workflow) Fork(name string, opts ...ForkOption) *Task {
-	task := Fork(name, opts...)
+func (w *Workflow) Fork(name string, args *ForkArgs) *Task {
+	task := Fork(name, args)
 	w.AddTask(task)
 	return task
 }
