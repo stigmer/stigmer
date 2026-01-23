@@ -81,7 +81,8 @@ See [checkpoints/](checkpoints/) for the most recent project state.
 - [x] Core implementation (T02 ✅ - Simple field types)
 - [x] Complex field types (T03 ✅ - maps, arrays)
 - [x] Agent/Skill resources (T04 ✅ - SDK resources)
-- [ ] Migration and testing (T05)
+- [x] T05 Phase 1-2 ✅ - Generator fixed, Pulumi patterns applied, code compiles
+- [ ] T05 Phase 3-8 - SDK integration, testing, documentation (~2.5 hours)
 - [ ] Ergonomic layer (T06)
 - [ ] Project completed
 
