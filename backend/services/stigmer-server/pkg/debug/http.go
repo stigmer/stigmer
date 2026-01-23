@@ -79,6 +79,24 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 func handleDebugDB(w http.ResponseWriter, r *http.Request, store *badger.Store) {
 	filter := r.URL.Query().Get("filter")
 
+	// Get database path from store
+	dbPath := "unknown"
+	isTestDB := false
+	if store != nil && store.DB() != nil {
+		dbPath = store.DB().Opts().Dir
+		// Check if this is a test database
+		isTestDB = strings.Contains(dbPath, "stigmer-e2e-") || strings.Contains(dbPath, "/tmp/")
+	}
+	
+	dbTypeLabel := "Production Database"
+	dbTypeColor := "#4ec9b0"
+	dbTypeIcon := "🗄️"
+	if isTestDB {
+		dbTypeLabel = "⚠️ Test Database (Temporary)"
+		dbTypeColor = "#dcdcaa"
+		dbTypeIcon = "🧪"
+	}
+	
 	html := `<!DOCTYPE html>
 <html>
 <head>
@@ -98,6 +116,22 @@ func handleDebugDB(w http.ResponseWriter, r *http.Request, store *badger.Store) 
             border-bottom: 2px solid #007acc;
         }
         h1 { margin: 0 0 10px 0; color: #007acc; }
+        .db-path { 
+            background: #252526; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 3px; 
+            font-size: 12px; 
+            color: #858585;
+            border-left: 3px solid ` + dbTypeColor + `;
+        }
+        .db-path strong { color: ` + dbTypeColor + `; }
+        .db-type { 
+            font-weight: bold; 
+            color: ` + dbTypeColor + `; 
+            font-size: 14px; 
+            margin-bottom: 5px;
+        }
         .filters { margin: 15px 0; }
         .filter-btn { 
             background: #3c3c3c; 
@@ -155,6 +189,10 @@ func handleDebugDB(w http.ResponseWriter, r *http.Request, store *badger.Store) 
     <div class="header">
         <h1>📂 BadgerDB Inspector</h1>
         <p>Live view of embedded database contents</p>
+        <div class="db-path">
+            <div class="db-type">` + dbTypeIcon + ` ` + dbTypeLabel + `</div>
+            <strong>Location:</strong> ` + dbPath + `
+        </div>
         <div class="filters">
             <a href="/debug/db" class="filter-btn ` + activeClass(filter, "") + `">All</a>
             <a href="/debug/db?filter=agent" class="filter-btn ` + activeClass(filter, "agent") + `">Agents</a>
@@ -299,7 +337,17 @@ func handleDebugDBAPI(w http.ResponseWriter, r *http.Request, store *badger.Stor
 	})
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		// Return JSON error response (frontend expects JSON)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(Response{
+			Count: 0,
+			Records: []Record{{
+				Key:   "error",
+				Size:  0,
+				Error: fmt.Sprintf("Database error: %v", err),
+			}},
+		})
 		return
 	}
 
