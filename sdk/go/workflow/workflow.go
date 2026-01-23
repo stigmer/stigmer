@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
+	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 )
 
 // Context is a minimal interface that represents a stigmer context.
@@ -36,6 +37,9 @@ type Workflow struct {
 	// Workflow metadata (namespace, name, version, description)
 	Document Document
 
+	// Slug is the URL-friendly identifier (auto-generated from name if not provided)
+	Slug string
+
 	// Human-readable description for UI and marketplace display
 	Description string
 
@@ -61,12 +65,13 @@ type Option func(*Workflow) error
 //
 // Required options:
 //   - WithNamespace: workflow namespace
-//   - WithName: workflow name
+//   - WithName: workflow name (or WithSlug for custom slug)
 //
 // Optional (with defaults):
 //   - WithVersion: workflow version (defaults to "0.1.0" if not provided)
 //   - WithDescription: human-readable description
 //   - WithOrg: organization identifier
+//   - WithSlug: custom slug (overrides auto-generation from name)
 //
 // Example:
 //
@@ -78,6 +83,15 @@ type Option func(*Workflow) error
 //	    )
 //	    return err
 //	})
+//
+// Example with custom slug:
+//
+//	wf, err := workflow.New(ctx,
+//	    workflow.WithNamespace("data-processing"),
+//	    workflow.WithName("Daily Data Sync"),
+//	    workflow.WithSlug("daily-sync"),  // Custom slug
+//	    workflow.WithVersion("1.0.0"),
+//	)
 func New(ctx Context, opts ...Option) (*Workflow, error) {
 	w := &Workflow{
 		Document: Document{
@@ -95,6 +109,16 @@ func New(ctx Context, opts ...Option) (*Workflow, error) {
 		}
 	}
 
+	// Auto-generate slug from name if not provided
+	if w.Slug == "" && w.Document.Name != "" {
+		w.Slug = naming.GenerateSlug(w.Document.Name)
+	}
+
+	// If name not provided but slug is, use slug as name
+	if w.Document.Name == "" && w.Slug != "" {
+		w.Document.Name = w.Slug
+	}
+
 	// Auto-generate version if not provided
 	if w.Document.Version == "" {
 		w.Document.Version = "0.1.0" // Default version for development
@@ -103,6 +127,13 @@ func New(ctx Context, opts ...Option) (*Workflow, error) {
 	// Validate the workflow
 	if err := validate(w); err != nil {
 		return nil, err
+	}
+
+	// Validate slug format
+	if w.Slug != "" {
+		if err := naming.ValidateSlug(w.Slug); err != nil {
+			return nil, err
+		}
 	}
 
 	// Register with context (if provided)
@@ -263,6 +294,24 @@ func WithEnvironmentVariable(variable environment.Variable) Option {
 func WithEnvironmentVariables(variables ...environment.Variable) Option {
 	return func(w *Workflow) error {
 		w.EnvironmentVariables = append(w.EnvironmentVariables, variables...)
+		return nil
+	}
+}
+
+// WithSlug sets a custom slug for the workflow.
+//
+// By default, slugs are auto-generated from the name by converting to lowercase
+// and replacing spaces with hyphens. Use this option to override the auto-generation.
+//
+// The slug must contain only lowercase letters, numbers, and hyphens.
+// It cannot start or end with a hyphen.
+//
+// Example:
+//
+//	workflow.WithSlug("my-custom-workflow")
+func WithSlug(slug string) Option {
+	return func(w *Workflow) error {
+		w.Slug = slug
 		return nil
 	}
 }
@@ -477,6 +526,106 @@ func (w *Workflow) Set(name string, opts ...SetOption) *Task {
 //	reviewTask.ExportAll()
 func (w *Workflow) CallAgent(name string, opts ...AgentCallOption) *Task {
 	task := AgentCall(name, opts...)
+	w.AddTask(task)
+	return task
+}
+
+// Switch creates a SWITCH task for conditional logic and adds it to the workflow.
+// This is a clean, Pulumi-style builder for conditional branching.
+//
+// The switch task evaluates conditions and routes execution to different tasks
+// based on the results.
+//
+// Example:
+//
+//	wf := workflow.New(ctx, ...)
+//	checkTask := wf.HttpGet("check", endpoint)
+//	
+//	// Route based on status code
+//	switchTask := wf.Switch("route",
+//	    SwitchOn(checkTask.Field("statusCode")),
+//	    Case(Equals(200), "success"),
+//	    Case(Equals(404), "notFound"),
+//	    DefaultCase("error"),
+//	)
+func (w *Workflow) Switch(name string, opts ...SwitchOption) *Task {
+	task := Switch(name, opts...)
+	w.AddTask(task)
+	return task
+}
+
+// ForEach creates a FOR task for iteration and adds it to the workflow.
+// This is a clean, Pulumi-style builder for looping over collections.
+//
+// The for-each task iterates over a collection and executes a set of tasks
+// for each item.
+//
+// Example:
+//
+//	wf := workflow.New(ctx, ...)
+//	fetchTask := wf.HttpGet("fetch", apiBase.Concat("/items"))
+//	
+//	// Process each item
+//	loopTask := wf.ForEach("processItems",
+//	    IterateOver(fetchTask.Field("items")),
+//	    DoTasks([]map[string]interface{}{
+//	        {"httpCall": map[string]interface{}{"uri": "${.api}/process"}},
+//	    }),
+//	)
+func (w *Workflow) ForEach(name string, opts ...ForOption) *Task {
+	task := For(name, opts...)
+	w.AddTask(task)
+	return task
+}
+
+// Try creates a TRY task for error handling and adds it to the workflow.
+// This is a clean, Pulumi-style builder for try/catch error handling.
+//
+// The try task executes a set of tasks and handles any errors that occur.
+//
+// Example:
+//
+//	wf := workflow.New(ctx, ...)
+//	
+//	// Try to make API call with error handling
+//	tryTask := wf.Try("attemptAPICall",
+//	    TryTasks([]map[string]interface{}{
+//	        {"httpCall": map[string]interface{}{"uri": endpoint}},
+//	    }),
+//	    Catch(map[string]interface{}{
+//	        "errors": []string{"NetworkError"},
+//	        "as": "error",
+//	        "tasks": []interface{}{...},
+//	    }),
+//	)
+func (w *Workflow) Try(name string, opts ...TryOption) *Task {
+	task := Try(name, opts...)
+	w.AddTask(task)
+	return task
+}
+
+// Fork creates a FORK task for parallel execution and adds it to the workflow.
+// This is a clean, Pulumi-style builder for parallel branches.
+//
+// The fork task executes multiple branches in parallel.
+//
+// Example:
+//
+//	wf := workflow.New(ctx, ...)
+//	
+//	// Execute multiple API calls in parallel
+//	forkTask := wf.Fork("fetchAll",
+//	    Branch(map[string]interface{}{
+//	        "name": "fetchUsers",
+//	        "tasks": []interface{}{...},
+//	    }),
+//	    Branch(map[string]interface{}{
+//	        "name": "fetchProducts",
+//	        "tasks": []interface{}{...},
+//	    }),
+//	)
+func (w *Workflow) Fork(name string, opts ...ForkOption) *Task {
+	task := Fork(name, opts...)
 	w.AddTask(task)
 	return task
 }

@@ -8,17 +8,9 @@ go_library(
         "embedded_darwin_arm64.go",
         "embedded_linux_amd64.go",
         "extract.go",
+        "sdk_version.go",
         "version.go",
     ],
-    embedsrcs = select({
-        "@rules_go//go/platform:darwin_arm64": [
-            "binaries/darwin_arm64/agent-runner",
-        ],
-        "@rules_go//go/platform:ios_arm64": [
-            "binaries/darwin_arm64/agent-runner",
-        ],
-        "//conditions:default": [],
-    }),
     importpath = "github.com/stigmer/stigmer/client-apps/cli/embedded",
     visibility = ["//visibility:public"],
     deps = [

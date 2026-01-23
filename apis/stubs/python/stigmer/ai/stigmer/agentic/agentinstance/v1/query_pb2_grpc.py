@@ -7,8 +7,8 @@ from ai.stigmer.agentic.agentinstance.v1 import io_pb2 as ai_dot_stigmer_dot_age
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
-class AgentInstanceQueryServiceStub(object):
-    """AgentInstanceQueryService provides queries for retrieving agent instances.
+class AgentInstanceQueryControllerStub(object):
+    """AgentInstanceQueryController provides queries for retrieving agent instances.
     """
 
     def __init__(self, channel):
@@ -18,24 +18,24 @@ class AgentInstanceQueryServiceStub(object):
             channel: A grpc.Channel.
         """
         self.get = channel.unary_unary(
-                '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService/get',
+                '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/get',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2.AgentInstanceId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.FromString,
                 _registered_method=True)
         self.getByAgent = channel.unary_unary(
-                '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService/getByAgent',
+                '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/getByAgent',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2.GetAgentInstancesByAgentRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2.AgentInstanceList.FromString,
                 _registered_method=True)
         self.getByReference = channel.unary_unary(
-                '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService/getByReference',
+                '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/getByReference',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.FromString,
                 _registered_method=True)
 
 
-class AgentInstanceQueryServiceServicer(object):
-    """AgentInstanceQueryService provides queries for retrieving agent instances.
+class AgentInstanceQueryControllerServicer(object):
+    """AgentInstanceQueryController provides queries for retrieving agent instances.
     """
 
     def get(self, request, context):
@@ -63,7 +63,7 @@ class AgentInstanceQueryServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
 
-def add_AgentInstanceQueryServiceServicer_to_server(servicer, server):
+def add_AgentInstanceQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'get': grpc.unary_unary_rpc_method_handler(
                     servicer.get,
@@ -82,14 +82,14 @@ def add_AgentInstanceQueryServiceServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService', rpc_method_handlers)
+            'ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService', rpc_method_handlers)
+    server.add_registered_method_handlers('ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class AgentInstanceQueryService(object):
-    """AgentInstanceQueryService provides queries for retrieving agent instances.
+class AgentInstanceQueryController(object):
+    """AgentInstanceQueryController provides queries for retrieving agent instances.
     """
 
     @staticmethod
@@ -106,7 +106,7 @@ class AgentInstanceQueryService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService/get',
+            '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/get',
             ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2.AgentInstanceId.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.FromString,
             options,
@@ -133,7 +133,7 @@ class AgentInstanceQueryService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService/getByAgent',
+            '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/getByAgent',
             ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2.GetAgentInstancesByAgentRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2.AgentInstanceList.FromString,
             options,
@@ -160,7 +160,7 @@ class AgentInstanceQueryService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService/getByReference',
+            '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/getByReference',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.FromString,
             options,

@@ -26,6 +26,7 @@ func (s *Skill) ToProto() (*skillv1.Skill, error) {
 	// Build metadata
 	metadata := &apiresource.ApiResourceMetadata{
 		Name:        s.Name,
+		Slug:        s.Slug,  // Include slug for backend resolution
 		Annotations: SDKAnnotations(),
 	}
 

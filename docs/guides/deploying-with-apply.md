@@ -78,36 +78,36 @@ stigmer apply
 
 **Output**:
 ```
-Loading project configuration...
-✓ Loaded Stigmer.yaml
-  Project:  my-agent
-  Runtime:  go-sdk
-  Main:     main.go
+ℹ Loading project configuration...
+✓ ✓ Loaded Stigmer.yaml
+ℹ   Project:  my-agent
+ℹ   Runtime:  go
+ℹ   Main:     main.go
 
-Validating entry point: main.go
-✓ Entry point is valid
-Executing entry point to discover resources...
-✓ Manifest loaded: 1 resource(s) discovered (1 agent(s), 0 workflow(s))
+ℹ Executing entry point to discover resources...
+✓ ✓ Synthesis complete: 1 resource(s) discovered (0 skill(s), 1 agent(s), 0 workflow(s))
 
-Agents discovered: 1
-  1. my-agent
-     Description: A helpful assistant
+ℹ Agents discovered: 1
+ℹ   1. my-agent
+ℹ      Description: A helpful assistant
 
-Using organization from context: org-abc123
-Connecting to backend...
-✓ Connected to backend
+ℹ Using organization from context: org-abc123
+ℹ Connecting to backend...
+✓ ✓ Connected to backend
 
-Deploying agent 1/1: my-agent
-✓ Agent deployed: my-agent (ID: agent-xyz789)
+✓ 🚀 Deployment successful!
 
-🚀 Deployment successful!
+┌───────┬──────────┬────────────┬─────────────────────────┐
+│ TYPE  │   NAME   │   STATUS   │           ID            │
+├───────┼──────────┼────────────┼─────────────────────────┤
+│ Agent │ my-agent │ ✓ Created  │ agent_xyz789            │
+└───────┴──────────┴────────────┴─────────────────────────┘
 
-Deployed agents:
-  • my-agent (ID: agent-xyz789)
+✅ Successfully applied 1 resource(s)
 
-Next steps:
-  - View agents: stigmer agent list
-  - Update and redeploy: edit code and run 'stigmer apply' again
+ℹ Next steps:
+ℹ   - View agents: stigmer agent list
+ℹ   - Update and redeploy: edit code and run 'stigmer apply' again
 ```
 
 ## The Stigmer.yaml File
@@ -161,17 +161,27 @@ stigmer apply --dry-run
 
 Output shows discovered resources but doesn't deploy:
 ```
-✓ Manifest loaded: 3 resource(s) discovered (2 agent(s), 1 workflow(s))
+✓ ✓ Synthesis complete: 3 resource(s) discovered (0 skill(s), 2 agent(s), 1 workflow(s))
 
-Agents discovered: 2
-  1. code-reviewer
-  2. security-scanner
+ℹ Agents discovered: 2
+ℹ   1. code-reviewer
+ℹ   2. security-scanner
 
-Workflows discovered: 1
-  1. pr-analysis
+ℹ Workflows discovered: 1
+ℹ   1. pr-analysis
 
-✓ Dry run successful - all resources are valid
-Run without --dry-run to deploy 3 resource(s)
+
+Dry run: The following resources would be applied:
+
+┌──────────┬──────────────────┬────────┐
+│   TYPE   │       NAME       │ ACTION │
+├──────────┼──────────────────┼────────┤
+│ Agent    │ code-reviewer    │ Create │
+│ Agent    │ security-scanner │ Create │
+│ Workflow │ pr-analysis      │ Create │
+└──────────┴──────────────────┴────────┘
+
+💡 Dry run successful - no resources were deployed
 ```
 
 **`--org <org-id>`** - Override organization

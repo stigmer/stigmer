@@ -56,3 +56,8 @@ func init() {
 func Execute() error {
 	return rootCmd.Execute()
 }
+
+// GetRootCommand returns the root command for testing purposes
+func GetRootCommand() *cobra.Command {
+	return rootCmd
+}

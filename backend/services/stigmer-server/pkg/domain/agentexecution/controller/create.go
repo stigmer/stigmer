@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc/codes"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
@@ -465,12 +466,17 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 	execution := ctx.NewState()
 	executionID := execution.GetMetadata().GetId()
 
-	// Check if Temporal client is available
+	// FAIL FAST: If Temporal is not available, reject the request immediately
+	// This is better than creating a "zombie" execution that will never process
 	if s.workflowCreator == nil {
-		log.Warn().
+		log.Error().
 			Str("execution_id", executionID).
-			Msg("Workflow creator not available - execution will remain in PENDING (Temporal not connected)")
-		return nil
+			Msg("Temporal workflow engine is unavailable - cannot create execution")
+		return grpclib.WrapError(
+			fmt.Errorf("temporal workflow engine is currently unavailable"),
+			codes.Unavailable,
+			"Temporal workflow engine is unavailable. Please try again later",
+		)
 	}
 
 	// Log callback token if present (for async activity completion pattern)

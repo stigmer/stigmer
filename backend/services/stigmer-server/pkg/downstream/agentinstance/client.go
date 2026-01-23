@@ -35,7 +35,7 @@ import (
 type Client struct {
 	conn        *grpc.ClientConn
 	client      agentinstancev1.AgentInstanceCommandControllerClient
-	queryClient agentinstancev1.AgentInstanceQueryServiceClient
+	queryClient agentinstancev1.AgentInstanceQueryControllerClient
 }
 
 // NewClient creates a new in-process AgentInstance client using a gRPC connection.
@@ -44,7 +44,7 @@ func NewClient(conn *grpc.ClientConn) *Client {
 	return &Client{
 		conn:        conn,
 		client:      agentinstancev1.NewAgentInstanceCommandControllerClient(conn),
-		queryClient: agentinstancev1.NewAgentInstanceQueryServiceClient(conn),
+		queryClient: agentinstancev1.NewAgentInstanceQueryControllerClient(conn),
 	}
 }
 
@@ -86,7 +86,7 @@ func (c *Client) CreateAsSystem(ctx context.Context, instance *agentinstancev1.A
 
 // GetByAgent retrieves all agent instances for a specific agent.
 //
-// This makes an in-process gRPC call to AgentInstanceQueryService.GetByAgent()
+// This makes an in-process gRPC call to AgentInstanceQueryController.GetByAgent()
 // using the provided context. This ensures all gRPC interceptors run before
 // reaching the handler.
 //

@@ -7,7 +7,6 @@
 package environmentv1
 
 import (
-	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -89,6 +88,9 @@ type EnvironmentValue struct {
 	// The actual value.
 	// - If is_secret=true: This value is encrypted at rest and redacted in logs
 	// - If is_secret=false: This value is stored as plaintext
+	// Note: Value can be empty when defining environment variables in specs.
+	//
+	//	Actual values are typically provided at runtime during execution.
 	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	// Whether this value should be treated as a secret.
 	// When true:
@@ -161,15 +163,15 @@ var File_ai_stigmer_agentic_environment_v1_spec_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_agentic_environment_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/agentic/environment/v1/spec.proto\x12!ai.stigmer.agentic.environment.v1\x1a\x1bbuf/validate/validate.proto\"\xf3\x01\n" +
+	",ai/stigmer/agentic/environment/v1/spec.proto\x12!ai.stigmer.agentic.environment.v1\"\xf3\x01\n" +
 	"\x0fEnvironmentSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12P\n" +
 	"\x04data\x18\x02 \x03(\v2<.ai.stigmer.agentic.environment.v1.EnvironmentSpec.DataEntryR\x04data\x1al\n" +
 	"\tDataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12I\n" +
-	"\x05value\x18\x02 \x01(\v23.ai.stigmer.agentic.environment.v1.EnvironmentValueR\x05value:\x028\x01\"p\n" +
-	"\x10EnvironmentValue\x12\x1d\n" +
-	"\x05value\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05value\x12\x1b\n" +
+	"\x05value\x18\x02 \x01(\v23.ai.stigmer.agentic.environment.v1.EnvironmentValueR\x05value:\x028\x01\"g\n" +
+	"\x10EnvironmentValue\x12\x14\n" +
+	"\x05value\x18\x01 \x01(\tR\x05value\x12\x1b\n" +
 	"\tis_secret\x18\x02 \x01(\bR\bisSecret\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescriptionB\xb5\x02\n" +
 	"%com.ai.stigmer.agentic.environment.v1B\tSpecProtoP\x01ZXgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"
