@@ -14,6 +14,8 @@ Complete documentation index for the Stigmer open-source project.
 - [Server Logs](cli/server-logs.md) - Viewing and managing server logs
 
 ### SDK
+- [Agent and Skill Struct-Based Args API](sdk/guides/agent-skill-struct-args-api.md) - Complete guide to creating agents and skills using Pulumi-style struct args pattern
+- [Workflow Fluent API Guide](sdk/guides/workflow-fluent-api.md) - Comprehensive guide to building workflows with fluent API
 - [Go SDK Proto Integration](sdk/go-sdk-proto-integration.md) - Convert SDK resources to platform protos (Skill ready, Agent in progress)
 
 ### Guides
