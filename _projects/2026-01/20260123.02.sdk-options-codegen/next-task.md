@@ -68,11 +68,24 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-23 21:27
-**Current Task**: T05 (Migration & Testing) - Ready to Plan
-**Status**: Ready for Next Task
-**Last Updated**: 2026-01-23 22:30
-**Latest Completion**: T04 - SDK Resource Options ✅
-**Next Action**: Plan T05 migration strategy
+**Current Task**: T05 (Migration & Testing) - IN PROGRESS 🔄
+**Status**: Major Milestone Achieved - Generator Fixed! ✅
+**Last Updated**: 2026-01-24 00:30
+**Latest Completion**: T05 Generator Fixes ✅
+**Major Achievement**: 
+- ✅ All naming conflicts resolved with prefixing
+- ✅ Helpers generated for SDK resource directories
+- ✅ Map types fixed to use correct value types
+- ✅ `sdk/go/agent/gen` package compiles successfully!
+
+**Key Decisions Made**:
+- ✅ Follow Pulumi patterns (bare names, no error returns)
+- ✅ Direct integration (breaking changes OK, pre-launch)
+- ✅ Resource-based prefixing for disambiguation (AgentDescription, InlineSubAgentDescription)
+
+**Next Action**: Clean up manual agent.go file and update examples (~2.5 hours remaining)
+**Latest Checkpoint**: `checkpoints/2026-01-24-t05-generator-fixed-pulumi-patterns.md`
+**Latest Changelog**: `_changelog/2026-01/2026-01-24-023203-fix-sdk-options-generator-pulumi-patterns.md`
 
 ## Quick Commands
 
