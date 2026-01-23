@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'  # Trigger on version tags (v1.0.0, v1.2.3, etc.)
   workflow_dispatch:  # Allow manual trigger
     inputs:
       create_release:
@@ -36,7 +38,12 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            # Tag push: use tag name as version and create release
+            VERSION="${{ github.ref_name }}"
+            SHOULD_RELEASE="true"
+            echo "Triggered by tag: $VERSION"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             if [ -n "${{ github.event.inputs.version }}" ]; then
               VERSION="v${{ github.event.inputs.version }}"
               SHOULD_RELEASE="${{ github.event.inputs.create_release }}"
@@ -274,23 +281,29 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Create and push tag
+      - name: Verify tag exists
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Check if tag already exists
-          if git rev-parse "$VERSION" >/dev/null 2>&1; then
-            echo "Tag $VERSION already exists"
-            exit 1
+          # If triggered by tag push, tag already exists
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "Tag $VERSION already exists (triggered by tag push)"
+          else
+            # If triggered by workflow_dispatch, create and push tag
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            
+            # Check if tag already exists
+            if git rev-parse "$VERSION" >/dev/null 2>&1; then
+              echo "Tag $VERSION already exists"
+              exit 1
+            fi
+            
+            # Create annotated tag
+            git tag -a "$VERSION" -m "Release $VERSION"
+            git push origin "$VERSION"
+            echo "Created and pushed tag: $VERSION"
           fi
-          
-          # Create annotated tag
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin "$VERSION"
-          echo "Created and pushed tag: $VERSION"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4

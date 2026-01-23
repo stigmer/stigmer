@@ -1,8 +1,13 @@
 name: Publish Agent Sandbox Image (Basic)
 
-# Manual trigger only - sandbox is OPTIONAL
-# Most users don't need it (local mode is default)
+# Triggers:
+# - Automatically on version tags (v*)
+# - Manual trigger for custom versions
+# Note: sandbox is OPTIONAL - most users don't need it (local mode is default)
 on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags (v1.0.0, v1.2.3, etc.)
   workflow_dispatch:
     inputs:
       version_tag:
@@ -34,10 +39,16 @@ jobs:
       - name: Determine version tag
         id: version
         run: |
-          if [ -n "${{ github.event.inputs.version_tag }}" ]; then
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            # Tag push: use tag name as version
+            VERSION="${{ github.ref_name }}"
+            echo "Triggered by tag: $VERSION"
+          elif [ -n "${{ github.event.inputs.version_tag }}" ]; then
             VERSION="${{ github.event.inputs.version_tag }}"
+            echo "Manual trigger with version: $VERSION"
           else
             VERSION="$(git rev-parse --short HEAD)"
+            echo "Using commit hash as version: $VERSION"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION"
