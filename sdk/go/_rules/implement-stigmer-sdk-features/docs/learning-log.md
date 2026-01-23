@@ -4,6 +4,276 @@ This log captures patterns, solutions, and gotchas discovered while implementing
 
 ---
 
+## 2026-01-22: Context Lock Deadlock Prevention
+
+### Context
+
+Completed ToProto() pipeline and discovered critical deadlock bug during example testing. All examples hung with "fatal error: all goroutines are asleep - deadlock!" when calling Context.Synthesize().
+
+### Pattern: Direct Field Access When Lock is Already Held
+
+**Problem**: Method holding a lock called another public method that tried to acquire the same lock, causing deadlock.
+
+**Bad Practice**:
+```go
+// ❌ Wrong - deadlock!
+func (c *Context) Synthesize() error {
+    c.mu.Lock()  // Acquire lock
+    defer c.mu.Unlock()
+    
+    // ... other synthesis work ...
+    
+    // Calls public method that tries to acquire lock again
+    if err := c.synthesizeDependencies(outputDir); err != nil {
+        return err
+    }
+    
+    return nil
+}
+
+func (c *Context) synthesizeDependencies(outputDir string) error {
+    deps := c.Dependencies()  // ❌ Tries to acquire c.mu.RLock() → DEADLOCK!
+    // ...
+}
+```
+
+**Correct Practice**:
+```go
+// ✅ Correct - direct field access
+func (c *Context) Synthesize() error {
+    c.mu.Lock()
+    defer c.mu.Unlock()
+    
+    // ... other synthesis work ...
+    
+    if err := c.synthesizeDependencies(outputDir); err != nil {
+        return err
+    }
+    
+    return nil
+}
+
+// NOTE: This method assumes the caller already holds c.mu lock
+func (c *Context) synthesizeDependencies(outputDir string) error {
+    // Access dependencies directly (caller holds lock)
+    deps := c.dependencies  // ✅ Direct access, no lock needed
+    
+    data, _ := json.MarshalIndent(deps, "", "  ")
+    os.WriteFile(filepath.Join(outputDir, "dependencies.json"), data, 0644)
+    return nil
+}
+```
+
+**Why This Matters**:
+- **Correctness**: Prevents deadlocks that block all execution
+- **Performance**: No unnecessary lock contention
+- **Clarity**: Internal helpers that assume lock is held are clearly documented
+
+**Prevention**:
+1. Document which methods assume caller holds lock
+2. Never call public methods (that acquire locks) from within locked sections
+3. Use direct field access for internal helpers called while locked
+4. Add tests that run examples end-to-end (would catch deadlocks)
+
+**Impact**: CRITICAL - Blocked all synthesis until fixed.
+
+---
+
+## 2026-01-22: structpb Type Conversion Requirements
+
+### Context
+
+Implemented Workflow ToProto() with all 13 task types. Discovered that google.protobuf.Struct has strict type requirements that cause runtime errors if violated.
+
+### Pattern: Convert to interface{} Types for structpb
+
+**Problem**: `structpb.NewStruct()` doesn't accept `map[string]string` or `[]map[string]interface{}` - requires `map[string]interface{}` and `[]interface{}`.
+
+**Bad Practice**:
+```go
+// ❌ Wrong - runtime error
+func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
+    m := make(map[string]interface{})
+    m["headers"] = c.Headers  // map[string]string - FAILS!
+    return m
+}
+
+protoStruct, err := structpb.NewStruct(m)
+// Error: proto: invalid type: map[string]string
+```
+
+**Correct Practice**:
+```go
+// ✅ Correct - convert to map[string]interface{}
+func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
+    m := make(map[string]interface{})
+    
+    if c.Headers != nil && len(c.Headers) > 0 {
+        // Convert map[string]string → map[string]interface{}
+        headers := make(map[string]interface{})
+        for k, v := range c.Headers {
+            headers[k] = v
+        }
+        m["headers"] = headers
+    }
+    
+    return m
+}
+
+protoStruct, err := structpb.NewStruct(m)  // ✅ Works!
+```
+
+**Array Conversion**:
+```go
+// ❌ Wrong - runtime error
+func switchTaskConfigToMap(c *SwitchTaskConfig) map[string]interface{} {
+    m := make(map[string]interface{})
+    m["cases"] = c.Cases  // []map[string]interface{} - FAILS!
+    return m
+}
+
+// ✅ Correct - convert to []interface{}
+func switchTaskConfigToMap(c *SwitchTaskConfig) map[string]interface{} {
+    m := make(map[string]interface{})
+    
+    if c.Cases != nil && len(c.Cases) > 0 {
+        // Convert []map[string]interface{} → []interface{}
+        cases := make([]interface{}, len(c.Cases))
+        for i, caseMap := range c.Cases {
+            cases[i] = caseMap
+        }
+        m["cases"] = cases
+    }
+    
+    return m
+}
+```
+
+**Why This Matters**:
+- **Runtime Safety**: Catches type errors at proto conversion time
+- **Required**: structpb package enforces these types strictly
+- **Applies to All Conversions**: Any SDK → proto.Struct conversion needs this
+
+**Prevention**:
+1. Always convert map[string]string to map[string]interface{} before structpb
+2. Always convert []T to []interface{} before structpb
+3. Add integration tests that call ToProto() to catch these early
+4. Remember: structpb.NewStruct() signature is `func NewStruct(map[string]interface{})`
+
+**Impact**: MEDIUM - Required for all 13 workflow task types. Integration tests caught this immediately.
+
+---
+
+## 2026-01-22: Integration Test Pattern for ToProto() Methods
+
+### Context
+
+Created comprehensive integration tests for Agent, Skill, and Workflow ToProto() methods. Established reusable pattern for testing proto conversions.
+
+### Pattern: Package-Level Proto Integration Tests
+
+**Best Practice**: Create `proto_integration_test.go` in each package that has ToProto() methods.
+
+**File Structure**:
+```
+sdk/go/agent/
+├── agent.go              # Agent type and New()
+├── proto.go              # ToProto() implementation
+└── proto_integration_test.go  # Integration tests
+```
+
+**Test Pattern**:
+```go
+package agent
+
+import (
+    "testing"
+)
+
+// Test complete resource with all optional fields
+func TestAgentToProto_Complete(t *testing.T) {
+    agent, _ := New(nil,
+        WithName("test-agent"),
+        WithDescription("Full agent with all fields"),
+        WithInstructions("Do something"),
+        WithIconURL("https://example.com/icon.png"),
+    )
+    
+    proto, err := agent.ToProto()
+    if err != nil {
+        t.Fatalf("ToProto() failed: %v", err)
+    }
+    
+    // Verify metadata
+    if proto.Metadata.Name != "test-agent" {
+        t.Errorf("Name mismatch")
+    }
+    
+    // Verify API version and kind
+    if proto.ApiVersion != "agentic.stigmer.ai/v1" {
+        t.Errorf("ApiVersion mismatch")
+    }
+    
+    // Verify SDK annotations
+    if proto.Metadata.Annotations[AnnotationSDKLanguage] != "go" {
+        t.Error("Expected SDK language annotation")
+    }
+    
+    // Verify spec fields
+    if proto.Spec.Description != "Full agent with all fields" {
+        t.Errorf("Description mismatch")
+    }
+}
+
+// Test minimal resource (required fields only)
+func TestAgentToProto_Minimal(t *testing.T) {
+    agent, _ := New(nil,
+        WithName("simple-agent"),
+        WithInstructions("Simple task"),
+    )
+    
+    proto, err := agent.ToProto()
+    if err != nil {
+        t.Fatalf("ToProto() failed: %v", err)
+    }
+    
+    // Verify required fields
+    if proto.Metadata.Name != "simple-agent" {
+        t.Errorf("Name mismatch")
+    }
+    
+    // Verify optional fields are empty
+    if proto.Spec.Description != "" {
+        t.Error("Expected empty description")
+    }
+}
+
+// Test specific features (custom slug, multiple skills, etc.)
+func TestAgentToProto_CustomSlug(t *testing.T) { ... }
+func TestAgentToProto_MultipleSkills(t *testing.T) { ... }
+```
+
+**Test Coverage Areas**:
+1. Complete resource (all optional fields)
+2. Minimal resource (required fields only)
+3. Field-specific tests (custom slug, arrays, nested objects)
+4. SDK annotations verification
+5. Proto structure validation (ApiVersion, Kind, Metadata)
+
+**Benefits**:
+- ✅ Catches structpb type conversion errors early
+- ✅ Validates proto structure correctness
+- ✅ Ensures SDK annotations are injected
+- ✅ Documents expected proto format
+- ✅ Close to implementation (easy to maintain)
+- ✅ Reusable pattern for future resource types
+
+**When to Use**: Create `proto_integration_test.go` for every package that implements ToProto().
+
+**Naming Convention**: `Test{TypeName}ToProto_{Aspect}` - e.g., `TestAgentToProto_Complete`, `TestWorkflowToProto_AllTaskTypes`
+
+---
+
 ## 2026-01-22: Enum Constants vs Magic Numbers in Proto Conversions
 
 ### Context
@@ -1165,6 +1435,252 @@ valueField.GetMessageType()       // Actual message type (EnvironmentValue)
 
 ---
 
+## 2026-01-22: Nested Task Serialization in Builder Functions
+
+### Context
+
+Fixed 7 skipped examples that were failing due to improper task serialization in builder functions (`WithLoopBody()`, `TryBlock()`, `CatchBlock()`, `FinallyBlock()`, `ParallelBranches()`). All builders were creating simplified maps with raw struct pointers that `structpb.NewStruct()` couldn't handle.
+
+### Pattern 1: taskToMap() Helper for Nested Task Serialization
+
+**Problem**: Builder functions that accept task builder callbacks (loops, try/catch, fork) were creating task maps with raw struct configs:
+
+```go
+// ❌ Wrong - raw struct pointer in map
+func WithLoopBody(builder func(item LoopVar) *Task) ForOption {
+    return func(c *ForTaskConfig) {
+        task := builder(item)
+        taskMap := map[string]interface{}{
+            "name": task.Name,
+            "kind": string(task.Kind),
+            "config": task.Config,  // *HttpCallTaskConfig - FAILS!
+        }
+        c.Do = []map[string]interface{}{taskMap}
+    }
+}
+```
+
+**Error**: `proto: invalid type: *workflow.HttpCallTaskConfig`
+
+**Solution**: Create helper that properly converts Task struct to map:
+
+```go
+// In workflow/proto.go
+func taskToMap(task *Task) (map[string]interface{}, error) {
+    m := map[string]interface{}{
+        "name": task.Name,
+        "kind": string(task.Kind),
+    }
+    
+    // Convert config properly
+    if task.Config != nil {
+        configMap, err := taskConfigToMap(task.Config)
+        if err != nil {
+            return nil, fmt.Errorf("failed to convert task config: %w", err)
+        }
+        m["config"] = configMap
+    }
+    
+    // Include export and flow control
+    if task.ExportAs != "" {
+        m["export"] = map[string]interface{}{"as": task.ExportAs}
+    }
+    if task.ThenTask != "" {
+        m["then"] = task.ThenTask
+    }
+    
+    return m, nil
+}
+
+// Use in builders
+func WithLoopBody(builder func(item LoopVar) *Task) ForOption {
+    return func(c *ForTaskConfig) {
+        task := builder(item)
+        taskMap, err := taskToMap(task)  // ✅ Proper conversion
+        if err != nil {
+            // Graceful fallback
+            taskMap = map[string]interface{}{
+                "name": task.Name,
+                "kind": string(task.Kind),
+            }
+        }
+        c.Do = []map[string]interface{}{taskMap}
+    }
+}
+```
+
+**Why This Matters**:
+- **Correctness**: Task configs properly serialized to maps before protobuf conversion
+- **Reusability**: Single helper used by all builders (WithLoopBody, TryBlock, CatchBlock, FinallyBlock, ParallelBranches)
+- **Consistency**: All nested tasks follow same conversion pattern
+- **Error handling**: Graceful fallback if conversion fails
+
+**Impact**: Fixed Examples 09, 10, 11 - loop bodies, try/catch blocks, and fork branches now work with any task type.
+
+**When to Use**: Any builder function that accepts task callbacks must use `taskToMap()` for proper serialization.
+
+### Pattern 2: Recursive Normalization for Protobuf Compatibility
+
+**Problem**: Request bodies with nested arrays of maps (`[]map[string]any`) failed protobuf conversion:
+
+```go
+// ❌ Wrong - typed slice fails
+workflow.WithBody(map[string]any{
+    "messages": []map[string]any{  // structpb can't handle this!
+        {"role": "user", "content": "Hello"},
+    },
+})
+```
+
+**Error**: `proto: invalid type: []map[string]interface{}`
+
+**Root Cause**: `structpb.NewStruct()` requires `[]interface{}` not typed slices like `[]map[string]any` or `[]map[string]interface{}`.
+
+**Solution**: Create recursive normalizer that converts typed slices:
+
+```go
+// In workflow/proto.go
+func normalizeMapForProto(m map[string]interface{}) map[string]interface{} {
+    if m == nil {
+        return nil
+    }
+    result := make(map[string]interface{})
+    for k, v := range m {
+        result[k] = normalizeValueForProto(v)
+    }
+    return result
+}
+
+func normalizeValueForProto(v interface{}) interface{} {
+    // Check for Ref types first (TaskFieldRef, StringRef, etc.)
+    if ref, ok := v.(Ref); ok {
+        return ref.Expression()  // Convert to string expression
+    }
+    
+    switch val := v.(type) {
+    case map[string]interface{}:
+        return normalizeMapForProto(val)  // Recurse into nested maps
+    case []map[string]interface{}:
+        // Convert typed slice to []interface{}
+        result := make([]interface{}, len(val))
+        for i, item := range val {
+            result[i] = normalizeMapForProto(item)
+        }
+        return result
+    case []interface{}:
+        // Recursively normalize array elements
+        result := make([]interface{}, len(val))
+        for i, item := range val {
+            result[i] = normalizeValueForProto(item)
+        }
+        return result
+    default:
+        return v  // Primitives pass through unchanged
+    }
+}
+
+// Apply in config converters
+func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
+    m := make(map[string]interface{})
+    // ...
+    if c.Body != nil && len(c.Body) > 0 {
+        m["body"] = normalizeMapForProto(c.Body)  // ✅ Normalized
+    }
+    return m
+}
+```
+
+**Why This Works**:
+- **Recursive**: Handles arbitrary nesting depth (arrays in arrays, maps in arrays, etc.)
+- **Type-safe**: Interface checks ensure correct conversion
+- **Comprehensive**: Handles all problematic types (typed slices, maps, Refs)
+- **Performance**: Only normalizes when needed, minimal overhead
+
+**Impact**: Fixed Examples 14, 17, 18 - real-world API payloads now work:
+- OpenAI ChatGPT API with nested message arrays ✅
+- Slack webhook blocks with deeply nested structures ✅
+- Stripe payments with complex metadata ✅
+
+**When to Use**: Any time you're converting complex Go data structures to protobuf Struct - normalize first.
+
+### Pattern 3: Ref Interface Check for TaskFieldRef Conversion
+
+**Problem**: TaskFieldRef structs in body fields weren't being converted to expressions:
+
+```go
+// ❌ Wrong - TaskFieldRef struct passed directly
+workflow.WithBody(map[string]any{
+    "content": githubStatus.Field("conclusion"),  // TaskFieldRef struct - FAILS!
+})
+```
+
+**Error**: `proto: invalid type: workflow.TaskFieldRef`
+
+**Root Cause**: TaskFieldRef is a struct, but protobuf needs string expressions.
+
+**Solution**: Check if value implements `Ref` interface and convert to expression:
+
+```go
+func normalizeValueForProto(v interface{}) interface{} {
+    // Check Ref interface FIRST (before type switch)
+    if ref, ok := v.(Ref); ok {
+        return ref.Expression()  // TaskFieldRef → "${ $context.taskName.field }"
+    }
+    
+    // Then handle other types
+    switch val := v.(type) {
+    // ...
+    }
+}
+```
+
+**Why Ref Check Comes First**:
+- TaskFieldRef implements Ref interface: `Expression() string`
+- Type assertion succeeds for all Ref types (TaskFieldRef, StringRef, IntRef, etc.)
+- Must check before type switch (type switch doesn't check interfaces first)
+- Applies to any Ref type, not just TaskFieldRef
+
+**Impact**:
+- TaskFieldRef in body: `task.Field("data")` → `"${ $context.task.data }"` ✅
+- StringRef in body: `ctx.SetString("x", "y")` → `"${ $context.x }"` ✅
+- IntRef in body: `ctx.SetInt("count", 5)` → `"${ $context.count }"` ✅
+
+**Go Pattern Lesson**: When handling multiple types, check interfaces with type assertion BEFORE type switch. Type switches check concrete types, not interfaces.
+
+**When to Use**: Anytime you need to handle types implementing common interfaces - use interface check before type switch.
+
+### Pattern 4: Go Type System: Interface vs any in Maps
+
+**Problem**: Map literals with `map[string]any` type don't automatically convert to `map[string]interface{}`.
+
+**Discovery**: 
+- `any` is an alias for `interface{}` (same underlying type)
+- `[]map[string]any` and `[]map[string]interface{}` are DIFFERENT types (not aliases!)
+- Type switch can't have both cases (duplicate)
+
+**Solution**: Only handle `[]map[string]interface{}` case (covers `[]map[string]any` at runtime):
+
+```go
+// In normalizeValueForProto()
+switch val := v.(type) {
+case []map[string]interface{}:  // Handles both []map[string]interface{} and []map[string]any
+    result := make([]interface{}, len(val))
+    for i, item := range val {
+        result[i] = normalizeMapForProto(item)
+    }
+    return result
+// case []map[string]any:  // ❌ Would be duplicate - compiler error!
+}
+```
+
+**Go Type System Insight**:
+- `any` = `interface{}` at type level
+- `[]any` ≠ `[]interface{}` at type level (slice types are distinct)
+- Type switch sees both as `[]map[string]interface{}` due to type identity
+- Can't have separate cases for aliases
+
+**When to Use**: When handling slices of maps in type switches, use `[]map[string]interface{}` case only - it covers the `any` alias naturally.
+
 ## Future Patterns to Document
 
 - Environment spec implementation (ctx.Env)
@@ -1172,6 +1688,105 @@ valueField.GetMessageType()       // Actual message type (EnvironmentValue)
 - Agent synthesis patterns
 - Skill integration patterns
 - Multi-language SDK generation (Python, TypeScript)
+
+---
+
+## 2026-01-23: StringRef Value Resolution in Workflow Parameters
+
+### Context
+
+Fixed critical bug where workflow HTTP tasks had empty endpoint URLs causing validation failures. All 8 workflow E2E tests were failing with "field 'endpoint' value is required".
+
+### Pattern: Check for StringValue Interface to Extract Resolved Values
+
+**Problem**: `coerceToString()` helper was calling `Expression()` on all `Ref` types, which returned empty strings for resolved `StringRef` values (from `Concat()`).
+
+**Bad Practice**:
+```go
+// ❌ Wrong - returns empty string for resolved values
+func coerceToString(value interface{}) string {
+    switch v := value.(type) {
+    case Ref:
+        return v.Expression()  // Returns "" when name field is empty!
+    // ...
+    }
+}
+
+// SDK code that failed:
+endpoint := apiBase.Concat("/posts/1")  // Resolved to actual URL
+fetchTask := wf.HttpGet("fetchData", endpoint, ...)
+// But endpoint became "" in proto because Expression() returned ""
+```
+
+**Correct Practice**:
+```go
+// ✅ Correct - check for StringValue interface first
+func coerceToString(value interface{}) string {
+    switch v := value.(type) {
+    case string:
+        return v
+    case TaskFieldRef:
+        return v.Expression()
+    case Ref:
+        // Check if this Ref has a resolved value (StringValue interface)
+        // During synthesis, we should use the actual value instead of expressions
+        if stringVal, ok := v.(interface{ Value() string }); ok {
+            // Has a Value() method - use the resolved value for synthesis
+            return stringVal.Value()
+        }
+        // Fallback to expression (for runtime-only refs)
+        return v.Expression()
+    // ...
+    }
+}
+```
+
+**Why This Works**:
+
+The SDK's `StringRef` architecture distinguishes between:
+1. **Synthesis-time values** - Known when building workflow (context variables, literals, concatenated strings)
+2. **Runtime-only values** - Only available during execution (task outputs, dynamic expressions)
+
+When `Concat()` detects all parts are synthesis-time values, it computes the result immediately and stores it:
+- Sets `value` field to the actual concatenated string
+- Sets `name` field to empty (not a context variable reference)
+- Returns a `StringRef` with the resolved value
+
+This is "SMART RESOLUTION" - it optimizes away unnecessary runtime expression evaluation.
+
+**The Bug**: Calling `Expression()` on a resolved `StringRef` checks `if r.name == ""` and returns `""` instead of the actual value.
+
+**The Fix**: Check if the `Ref` implements `StringValue` interface (has `Value()` method) and use that to extract the actual resolved value.
+
+**Why This Matters**:
+- **Correctness**: Workflow HTTP tasks get actual URLs, not empty strings
+- **Synthesis**: Properly handles values known at workflow build time
+- **Runtime**: Still generates expressions for task output references
+- **Performance**: Leverages SMART RESOLUTION optimization
+
+**Prevention**:
+1. When working with `Ref` types in conversion code, always check for `Value()` method first
+2. Use `Expression()` only as fallback for runtime-only references
+3. Understand synthesis-time vs runtime-time value distinction
+4. Test with actual workflows that use context variables and `Concat()`
+
+**Cross-Language Note**: 
+- **Go approach**: Interface-based detection with type assertion `v.(interface{ Value() string })`
+- **Python equivalent**: Would use `hasattr(v, 'value')` or duck typing
+- **Conceptual similarity**: Both check if value is resolved vs runtime-only
+- **Key insight**: Synthesis requires actual values, not JQ expressions
+
+**Impact**: CRITICAL - Blocked all workflow operations until fixed. All 8 workflow E2E tests now passing.
+
+**Files Changed**:
+- `sdk/go/workflow/set_options.go` (coerceToString function)
+- Also fixed CLI consistency and error handling issues discovered during testing
+
+**Related Concepts**:
+- StringRef architecture (`stigmer/refs.go`)
+- Synthesis vs runtime value handling
+- Smart resolution in `Concat()` method
+- Proto field population during workflow synthesis
 
 ---
 

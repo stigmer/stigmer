@@ -127,6 +127,9 @@ func ExecuteServerlessWorkflow(ctx workflow.Context, input *types.TemporalWorkfl
 	}
 	// Add org ID as a special env var (prefixed with __ to avoid conflicts with user-defined env vars)
 	envVars["__stigmer_org_id"] = input.OrgId
+	
+	// Set state.Env so activities can access runtime environment (including org ID)
+	state.Env = envVars
 
 	// Build task executor from workflow definition using Zigflow
 	taskBuilder, err := tasks.NewDoTaskBuilder(
