@@ -9,11 +9,11 @@ import (
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 )
 
-// TestRunWorkflowCallingAgent tests the core run command workflow:
+// TestRunWorkflowCallingAgent tests the core run command workflow using STREAMING RPC:
 // 1. Apply a workflow that calls an agent (from SDK example 15_workflow_calling_simple_agent.go)
 // 2. Execute 'stigmer run' command for the workflow
 // 3. Verify execution record is created
-// 4. Wait for execution to complete (or fail)
+// 4. Subscribe to execution stream for real-time updates
 // 5. Verify execution reached a terminal state without errors
 //
 // Example: sdk/go/examples/15_workflow_calling_simple_agent.go
@@ -42,9 +42,9 @@ func (s *E2ESuite) TestRunWorkflowCallingAgent() {
 	s.Require().NoError(err, "Should be able to query execution via API")
 	s.Require().NotNil(execution, "Execution should exist")
 
-	// STEP 5: Wait for execution to complete
-	s.T().Logf("Step 4: Waiting for execution to complete (timeout: 30s)...")
-	completedExecution, err := WaitForWorkflowExecutionPhase(
+	// STEP 5: Subscribe to execution stream and wait for completion
+	s.T().Logf("Step 4: Subscribing to execution stream (timeout: 30s)...")
+	completedExecution, err := WaitForWorkflowExecutionPhaseViaStream(
 		s.Harness.ServerPort,
 		runResult.ExecutionID,
 		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
@@ -60,7 +60,7 @@ func (s *E2ESuite) TestRunWorkflowCallingAgent() {
 	s.Equal(workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, completedExecution.Status.Phase,
 		"Execution should be in COMPLETED phase")
 
-	s.T().Logf("✅ Test Passed!")
+	s.T().Logf("✅ Test Passed (via streaming)!")
 	s.T().Logf("   Agent ID: %s", result.Agent.Metadata.Id)
 	s.T().Logf("   Workflow ID: %s", result.Workflow.Metadata.Id)
 	s.T().Logf("   Execution ID: %s", runResult.ExecutionID)
