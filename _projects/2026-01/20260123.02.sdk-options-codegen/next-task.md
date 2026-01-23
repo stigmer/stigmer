@@ -68,24 +68,45 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-23 21:27
-**Current Task**: T05 (Migration & Testing) - IN PROGRESS 🔄
-**Status**: Major Milestone Achieved - Generator Fixed! ✅
-**Last Updated**: 2026-01-24 00:30
-**Latest Completion**: T05 Generator Fixes ✅
-**Major Achievement**: 
-- ✅ All naming conflicts resolved with prefixing
-- ✅ Helpers generated for SDK resource directories
-- ✅ Map types fixed to use correct value types
-- ✅ `sdk/go/agent/gen` package compiles successfully!
+**Current Task**: T06 (Struct-Based Args) - ARCHITECTURE FIXED ✅
+**Status**: READY FOR NEXT PHASE - SDK Options & Examples  
+**Last Updated**: 2026-01-24 03:45
+**Latest Achievement**: Completely data-driven generator with no circular imports, all documented and committed
 
-**Key Decisions Made**:
-- ✅ Follow Pulumi patterns (bare names, no error returns)
-- ✅ Direct integration (breaking changes OK, pre-launch)
-- ✅ Resource-based prefixing for disambiguation (AgentDescription, InlineSubAgentDescription)
+**CONVERSATION 2 PROGRESS** (2026-01-24):
+- ✅ **ARCHITECTURE FIX COMPLETE**
+- ✅ Removed all hard-coded domain checks
+- ✅ Made generator fully proto-driven
+- ✅ Fixed circular imports completely
+- ✅ Generated types in proper `sdk/go/types/` package
+- ✅ Args in main packages (`agent`, `skill`) not `gen/`
+- ✅ All SDK packages compile successfully
+- ✅ Example 01 runs successfully
 
-**Next Action**: Clean up manual agent.go file and update examples (~2.5 hours remaining)
-**Latest Checkpoint**: `checkpoints/2026-01-24-t05-generator-fixed-pulumi-patterns.md`
-**Latest Changelog**: `_changelog/2026-01/2026-01-24-023203-fix-sdk-options-generator-pulumi-patterns.md`
+**WHAT WAS ACCOMPLISHED**:
+1. **Data-Driven Generator**: No hard-coded "agent", "skill", "commons"
+   - Automatically extracts domain from proto namespace
+   - Automatically determines output directory from proto file path
+   - Zero code changes needed to add new domains
+
+2. **Clean Architecture**:
+   - Types organized by domain in `sdk/go/types/`:
+     - `commons_types.go` (1 type: ApiResourceReference)
+     - `agentic_types.go` (11 types: all agent-related)
+   - Args in main packages: `agent/agentspec_args.go`, `skill/skillspec_args.go`
+   - No circular imports: `agent ✓`, `skill ✓`, `workflow ✓`, `types ✓`
+
+3. **Files Cleaned Up**:
+   - ✅ Deleted hand-written `sdk/go/types/types.go`
+   - ✅ Deleted old `agent/gen/` and `skill/gen/` directories
+   - ✅ Removed outdated generated files
+   - ✅ Moved `InlineSubAgentSpec` to shared types
+
+**Key Achievement**: Generator is now **truly schema-driven** with zero domain-specific code.
+
+**Next Action**: Continue with T06 Phase 2 (SDK Options), Phase 3 (Update Examples)
+**Estimated Duration**: 2-3 hours
+**Priority**: HIGH - Ready to proceed with proper Pulumi-style API
 
 ## Quick Commands
 

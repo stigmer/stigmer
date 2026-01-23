@@ -1,4 +1,5 @@
 //go:build ignore
+
 // Example 06: Agent with Instructions from Files
 //
 // This example demonstrates:
@@ -20,7 +21,6 @@
 //	    ├── code-reviewer.md          (agent instructions)
 //	    ├── security-guidelines.md    (skill content)
 //	    └── testing-best-practices.md (skill content)
-//
 package main
 
 import (
@@ -28,6 +28,7 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
+	"github.com/stigmer/stigmer/sdk/go/agent/gen"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
@@ -76,11 +77,11 @@ func main() {
 
 // Example 1: Basic agent with instructions from file
 func createBasicAgentFromFile(ctx *stigmer.Context) (*agent.Agent, error) {
-	ag, err := agent.New(ctx,
-		agent.WithName("code-reviewer"),
+	ag, err := agent.New(ctx, "code-reviewer",
 		// Load instructions from external file instead of inline string
-		agent.WithInstructionsFromFile("instructions/code-reviewer.md"),
-		agent.WithDescription("AI code reviewer with comprehensive guidelines"),
+		// InstructionsFromFile is an ergonomic helper (not generated)
+		agent.InstructionsFromFile("instructions/code-reviewer.md"),
+		gen.AgentDescription("AI code reviewer with comprehensive guidelines"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
@@ -111,15 +112,15 @@ func createAgentWithFileSkills(ctx *stigmer.Context) (*agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create testing skill: %w", err)
 	}
 
-	ag, err := agent.New(ctx,
-		agent.WithName("senior-reviewer"),
-		agent.WithInstructionsFromFile("instructions/code-reviewer.md"),
-		agent.WithDescription("Senior code reviewer with security and testing expertise"),
-		agent.WithSkills(*securitySkill, *testingSkill),
+	ag, err := agent.New(ctx, "senior-reviewer",
+		agent.InstructionsFromFile("instructions/code-reviewer.md"),
+		gen.AgentDescription("Senior code reviewer with security and testing expertise"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
+	// Add skills using builder method
+	ag.AddSkills(*securitySkill, *testingSkill)
 	return ag, nil
 }
 
@@ -156,18 +157,20 @@ func createComplexAgentFromFiles(ctx *stigmer.Context) (*agent.Agent, error) {
 	}
 
 	// Create agent with everything from files
-	ag, err := agent.New(ctx,
-		agent.WithName("github-reviewer"),
-		agent.WithInstructionsFromFile("instructions/code-reviewer.md"),
-		agent.WithDescription("GitHub PR reviewer with comprehensive guidelines"),
-		agent.WithMCPServer(github),
-		agent.WithSkills(*securitySkill, *testingSkill),
-		// Also reference platform skills
-		agent.WithSkill(skill.Platform("coding-best-practices")),
+	ag, err := agent.New(ctx, "github-reviewer",
+		agent.InstructionsFromFile("instructions/code-reviewer.md"),
+		gen.AgentDescription("GitHub PR reviewer with comprehensive guidelines"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
+
+	// Add MCP server and skills using builder methods
+	ag.AddMCPServer(github)
+	ag.AddSkills(*securitySkill, *testingSkill)
+	// Also reference platform skills
+	ag.AddSkill(skill.Platform("coding-best-practices"))
+
 	return ag, nil
 }
 
@@ -183,15 +186,15 @@ func createAgentWithFileSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create security specialist: %w", err)
 	}
 
-	ag, err := agent.New(ctx,
-		agent.WithName("orchestrator"),
-		agent.WithInstructionsFromFile("instructions/code-reviewer.md"),
-		agent.WithDescription("Main orchestrator with specialized sub-agents"),
-		agent.WithSubAgent(securitySpecialist),
+	ag, err := agent.New(ctx, "orchestrator",
+		agent.InstructionsFromFile("instructions/code-reviewer.md"),
+		gen.AgentDescription("Main orchestrator with specialized sub-agents"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
+	// Add sub-agent using builder method
+	ag.AddSubAgent(securitySpecialist)
 	return ag, nil
 }
 

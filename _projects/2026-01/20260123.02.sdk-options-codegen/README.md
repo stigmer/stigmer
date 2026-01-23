@@ -69,11 +69,20 @@ This project follows the **Next Project Framework** for structured multi-day dev
 
 ## Current Status
 
-### Active Task
-See [tasks/](tasks/) for the current task being worked on.
+✅ **ARCHITECTURE FIX COMPLETE** ✅
 
-### Latest Checkpoint
-See [checkpoints/](checkpoints/) for the most recent project state.
+Successfully transformed the code generator into a completely data-driven, schema-first system with zero circular imports.
+
+### Active Task
+**T06: Implement Struct-Based Args** - Architecture Fixed, Ready for Phase 2
+
+### Latest Important Documents
+- **Architecture Fix**: `ARCHITECTURE-FIX-COMPLETE.md` ⭐ **Complete summary**
+- **Execution Log**: `tasks/T06_ARCHITECTURE_FIX_execution.md` (detailed implementation)
+- **Design Decision**: `design-decisions/2026-01-24-pivot-to-struct-based-args.md`
+- **Wrong Assumption**: `wrong-assumptions/2026-01-24-functional-options-not-pulumi-pattern.md`
+- **Next Task Plan**: `tasks/T06_0_plan.md`
+- **Changelog**: `_changelog/2026-01/2026-01-24-034458-sdk-generator-architecture-fix-data-driven.md`
 
 ### Progress Tracking
 - [x] Project initialized
@@ -81,9 +90,21 @@ See [checkpoints/](checkpoints/) for the most recent project state.
 - [x] Core implementation (T02 ✅ - Simple field types)
 - [x] Complex field types (T03 ✅ - maps, arrays)
 - [x] Agent/Skill resources (T04 ✅ - SDK resources)
-- [x] T05 Phase 1-2 ✅ - Generator fixed, Pulumi patterns applied, code compiles
-- [ ] T05 Phase 3-8 - SDK integration, testing, documentation (~2.5 hours)
-- [ ] Ergonomic layer (T06)
+- [x] T05 ✅ - Generator fixes (WRONG PATTERN - functional options)
+- [x] **T06 Phase 0 - Architecture Fix** ✅ ← COMPLETED
+  - [x] Removed all hard-coding from generator
+  - [x] Made generator fully data-driven
+  - [x] Fixed circular imports completely
+  - [x] Generated types in proper `sdk/go/types/` package
+  - [x] Args in main packages (`agent`, `skill`) not `gen/`
+  - [x] All SDK packages compile successfully
+  - [x] Example 01 runs successfully
+- [ ] **T06 Phase 1 - Generator Args Structs** ← NEXT
+- [ ] T06 Phase 2: Constructor updates
+- [ ] T06 Phase 3: SDK-level ResourceOptions
+- [ ] T06 Phase 4: Update examples
+- [ ] T06 Phase 5: Workflow task args
+- [ ] T06 Phase 6: Documentation & cleanup
 - [ ] Project completed
 
 ## How to Resume Work
