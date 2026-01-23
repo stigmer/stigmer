@@ -8,8 +8,8 @@ import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
 
-// AgentInstanceQueryService provides queries for retrieving agent instances.
-service AgentInstanceQueryService {
+// AgentInstanceQueryController provides queries for retrieving agent instances.
+service AgentInstanceQueryController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_instance;
 
   // Get a single agent instance by ID.

@@ -9,7 +9,7 @@ from grpc_client.auth.client_interceptor import AuthClientInterceptor
 
 
 class AgentInstanceClient:
-    """Client for interacting with AgentInstanceQueryService."""
+    """Client for interacting with AgentInstanceQueryController."""
     
     def __init__(self, api_key: str):
         """
@@ -37,7 +37,7 @@ class AgentInstanceClient:
                 interceptors=[interceptor]
             )
         
-        self.stub = query_pb2_grpc.AgentInstanceQueryServiceStub(self.channel)
+        self.stub = query_pb2_grpc.AgentInstanceQueryControllerStub(self.channel)
     
     async def get(self, agent_instance_id: str) -> AgentInstance:
         """Fetch agent instance by ID."""

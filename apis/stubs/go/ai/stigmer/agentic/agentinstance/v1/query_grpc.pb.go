@@ -20,17 +20,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AgentInstanceQueryService_Get_FullMethodName            = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService/get"
-	AgentInstanceQueryService_GetByAgent_FullMethodName     = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService/getByAgent"
-	AgentInstanceQueryService_GetByReference_FullMethodName = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService/getByReference"
+	AgentInstanceQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/get"
+	AgentInstanceQueryController_GetByAgent_FullMethodName     = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/getByAgent"
+	AgentInstanceQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/getByReference"
 )
 
-// AgentInstanceQueryServiceClient is the client API for AgentInstanceQueryService service.
+// AgentInstanceQueryControllerClient is the client API for AgentInstanceQueryController service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// AgentInstanceQueryService provides queries for retrieving agent instances.
-type AgentInstanceQueryServiceClient interface {
+// AgentInstanceQueryController provides queries for retrieving agent instances.
+type AgentInstanceQueryControllerClient interface {
 	// Get a single agent instance by ID.
 	Get(ctx context.Context, in *AgentInstanceId, opts ...grpc.CallOption) (*AgentInstance, error)
 	// Get all instances of a specific agent template.
@@ -42,50 +42,50 @@ type AgentInstanceQueryServiceClient interface {
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*AgentInstance, error)
 }
 
-type agentInstanceQueryServiceClient struct {
+type agentInstanceQueryControllerClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewAgentInstanceQueryServiceClient(cc grpc.ClientConnInterface) AgentInstanceQueryServiceClient {
-	return &agentInstanceQueryServiceClient{cc}
+func NewAgentInstanceQueryControllerClient(cc grpc.ClientConnInterface) AgentInstanceQueryControllerClient {
+	return &agentInstanceQueryControllerClient{cc}
 }
 
-func (c *agentInstanceQueryServiceClient) Get(ctx context.Context, in *AgentInstanceId, opts ...grpc.CallOption) (*AgentInstance, error) {
+func (c *agentInstanceQueryControllerClient) Get(ctx context.Context, in *AgentInstanceId, opts ...grpc.CallOption) (*AgentInstance, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AgentInstance)
-	err := c.cc.Invoke(ctx, AgentInstanceQueryService_Get_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AgentInstanceQueryController_Get_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *agentInstanceQueryServiceClient) GetByAgent(ctx context.Context, in *GetAgentInstancesByAgentRequest, opts ...grpc.CallOption) (*AgentInstanceList, error) {
+func (c *agentInstanceQueryControllerClient) GetByAgent(ctx context.Context, in *GetAgentInstancesByAgentRequest, opts ...grpc.CallOption) (*AgentInstanceList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AgentInstanceList)
-	err := c.cc.Invoke(ctx, AgentInstanceQueryService_GetByAgent_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AgentInstanceQueryController_GetByAgent_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *agentInstanceQueryServiceClient) GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*AgentInstance, error) {
+func (c *agentInstanceQueryControllerClient) GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*AgentInstance, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AgentInstance)
-	err := c.cc.Invoke(ctx, AgentInstanceQueryService_GetByReference_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AgentInstanceQueryController_GetByReference_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// AgentInstanceQueryServiceServer is the server API for AgentInstanceQueryService service.
-// All implementations should embed UnimplementedAgentInstanceQueryServiceServer
+// AgentInstanceQueryControllerServer is the server API for AgentInstanceQueryController service.
+// All implementations should embed UnimplementedAgentInstanceQueryControllerServer
 // for forward compatibility.
 //
-// AgentInstanceQueryService provides queries for retrieving agent instances.
-type AgentInstanceQueryServiceServer interface {
+// AgentInstanceQueryController provides queries for retrieving agent instances.
+type AgentInstanceQueryControllerServer interface {
 	// Get a single agent instance by ID.
 	Get(context.Context, *AgentInstanceId) (*AgentInstance, error)
 	// Get all instances of a specific agent template.
@@ -97,114 +97,114 @@ type AgentInstanceQueryServiceServer interface {
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*AgentInstance, error)
 }
 
-// UnimplementedAgentInstanceQueryServiceServer should be embedded to have
+// UnimplementedAgentInstanceQueryControllerServer should be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedAgentInstanceQueryServiceServer struct{}
+type UnimplementedAgentInstanceQueryControllerServer struct{}
 
-func (UnimplementedAgentInstanceQueryServiceServer) Get(context.Context, *AgentInstanceId) (*AgentInstance, error) {
+func (UnimplementedAgentInstanceQueryControllerServer) Get(context.Context, *AgentInstanceId) (*AgentInstance, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (UnimplementedAgentInstanceQueryServiceServer) GetByAgent(context.Context, *GetAgentInstancesByAgentRequest) (*AgentInstanceList, error) {
+func (UnimplementedAgentInstanceQueryControllerServer) GetByAgent(context.Context, *GetAgentInstancesByAgentRequest) (*AgentInstanceList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByAgent not implemented")
 }
-func (UnimplementedAgentInstanceQueryServiceServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*AgentInstance, error) {
+func (UnimplementedAgentInstanceQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*AgentInstance, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
 }
-func (UnimplementedAgentInstanceQueryServiceServer) testEmbeddedByValue() {}
+func (UnimplementedAgentInstanceQueryControllerServer) testEmbeddedByValue() {}
 
-// UnsafeAgentInstanceQueryServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to AgentInstanceQueryServiceServer will
+// UnsafeAgentInstanceQueryControllerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to AgentInstanceQueryControllerServer will
 // result in compilation errors.
-type UnsafeAgentInstanceQueryServiceServer interface {
-	mustEmbedUnimplementedAgentInstanceQueryServiceServer()
+type UnsafeAgentInstanceQueryControllerServer interface {
+	mustEmbedUnimplementedAgentInstanceQueryControllerServer()
 }
 
-func RegisterAgentInstanceQueryServiceServer(s grpc.ServiceRegistrar, srv AgentInstanceQueryServiceServer) {
-	// If the following call pancis, it indicates UnimplementedAgentInstanceQueryServiceServer was
+func RegisterAgentInstanceQueryControllerServer(s grpc.ServiceRegistrar, srv AgentInstanceQueryControllerServer) {
+	// If the following call pancis, it indicates UnimplementedAgentInstanceQueryControllerServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&AgentInstanceQueryService_ServiceDesc, srv)
+	s.RegisterService(&AgentInstanceQueryController_ServiceDesc, srv)
 }
 
-func _AgentInstanceQueryService_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AgentInstanceQueryController_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AgentInstanceId)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AgentInstanceQueryServiceServer).Get(ctx, in)
+		return srv.(AgentInstanceQueryControllerServer).Get(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AgentInstanceQueryService_Get_FullMethodName,
+		FullMethod: AgentInstanceQueryController_Get_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentInstanceQueryServiceServer).Get(ctx, req.(*AgentInstanceId))
+		return srv.(AgentInstanceQueryControllerServer).Get(ctx, req.(*AgentInstanceId))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AgentInstanceQueryService_GetByAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AgentInstanceQueryController_GetByAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetAgentInstancesByAgentRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AgentInstanceQueryServiceServer).GetByAgent(ctx, in)
+		return srv.(AgentInstanceQueryControllerServer).GetByAgent(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AgentInstanceQueryService_GetByAgent_FullMethodName,
+		FullMethod: AgentInstanceQueryController_GetByAgent_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentInstanceQueryServiceServer).GetByAgent(ctx, req.(*GetAgentInstancesByAgentRequest))
+		return srv.(AgentInstanceQueryControllerServer).GetByAgent(ctx, req.(*GetAgentInstancesByAgentRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AgentInstanceQueryService_GetByReference_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _AgentInstanceQueryController_GetByReference_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(apiresource.ApiResourceReference)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AgentInstanceQueryServiceServer).GetByReference(ctx, in)
+		return srv.(AgentInstanceQueryControllerServer).GetByReference(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AgentInstanceQueryService_GetByReference_FullMethodName,
+		FullMethod: AgentInstanceQueryController_GetByReference_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentInstanceQueryServiceServer).GetByReference(ctx, req.(*apiresource.ApiResourceReference))
+		return srv.(AgentInstanceQueryControllerServer).GetByReference(ctx, req.(*apiresource.ApiResourceReference))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// AgentInstanceQueryService_ServiceDesc is the grpc.ServiceDesc for AgentInstanceQueryService service.
+// AgentInstanceQueryController_ServiceDesc is the grpc.ServiceDesc for AgentInstanceQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var AgentInstanceQueryService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService",
-	HandlerType: (*AgentInstanceQueryServiceServer)(nil),
+var AgentInstanceQueryController_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController",
+	HandlerType: (*AgentInstanceQueryControllerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "get",
-			Handler:    _AgentInstanceQueryService_Get_Handler,
+			Handler:    _AgentInstanceQueryController_Get_Handler,
 		},
 		{
 			MethodName: "getByAgent",
-			Handler:    _AgentInstanceQueryService_GetByAgent_Handler,
+			Handler:    _AgentInstanceQueryController_GetByAgent_Handler,
 		},
 		{
 			MethodName: "getByReference",
-			Handler:    _AgentInstanceQueryService_GetByReference_Handler,
+			Handler:    _AgentInstanceQueryController_GetByReference_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

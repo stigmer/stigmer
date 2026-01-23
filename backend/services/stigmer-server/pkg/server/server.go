@@ -192,7 +192,7 @@ func Run() error {
 	// Create and register AgentInstance controller
 	agentInstanceController := agentinstancecontroller.NewAgentInstanceController(store)
 	agentinstancev1.RegisterAgentInstanceCommandControllerServer(grpcServer, agentInstanceController)
-	agentinstancev1.RegisterAgentInstanceQueryServiceServer(grpcServer, agentInstanceController)
+	agentinstancev1.RegisterAgentInstanceQueryControllerServer(grpcServer, agentInstanceController)
 
 	log.Info().Msg("Registered AgentInstance controllers")
 
