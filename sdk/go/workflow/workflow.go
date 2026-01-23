@@ -379,13 +379,13 @@ func (w *Workflow) AddEnvironmentVariables(variables ...environment.Variable) *W
 // Example:
 //
 //	wf := workflow.New(ctx, ...)
-//	
+//
 //	// Clean, one-line GET request
 //	fetchTask := wf.HttpGet("fetch", "https://api.example.com/posts/1",
 //	    Header("Content-Type", "application/json"),
 //	    Timeout(30),
 //	)
-//	
+//
 //	// Use task outputs with clear origin
 //	processTask := wf.Set("process",
 //	    SetVar("title", fetchTask.Field("title")),  // Implicit dependency!
@@ -464,7 +464,7 @@ func (w *Workflow) HttpDelete(name string, uri string, headers map[string]string
 //
 //	wf := workflow.New(ctx, ...)
 //	fetchTask := wf.HttpGet("fetch", endpoint)
-//	
+//
 //	// Clean variable setting with implicit dependencies
 //	processTask := wf.Set("process",
 //	    SetVar("title", fetchTask.Field("title")),  // Implicit dependency!
@@ -509,7 +509,7 @@ func (w *Workflow) CallAgent(name string, args *AgentCallArgs) *Task {
 //
 //	wf := workflow.New(ctx, ...)
 //	checkTask := wf.HttpGet("check", endpoint)
-//	
+//
 //	// Route based on status code
 //	switchTask := wf.Switch("route",
 //	    SwitchOn(checkTask.Field("statusCode")),
@@ -533,7 +533,7 @@ func (w *Workflow) Switch(name string, args *SwitchArgs) *Task {
 //
 //	wf := workflow.New(ctx, ...)
 //	fetchTask := wf.HttpGet("fetch", apiBase.Concat("/items"))
-//	
+//
 //	// Process each item
 //	loopTask := wf.ForEach("processItems",
 //	    IterateOver(fetchTask.Field("items")),
@@ -555,7 +555,7 @@ func (w *Workflow) ForEach(name string, args *ForArgs) *Task {
 // Example:
 //
 //	wf := workflow.New(ctx, ...)
-//	
+//
 //	// Try to make API call with error handling
 //	tryTask := wf.Try("attemptAPICall",
 //	    TryTasks([]map[string]interface{}{
@@ -581,7 +581,7 @@ func (w *Workflow) Try(name string, args *TryArgs) *Task {
 // Example:
 //
 //	wf := workflow.New(ctx, ...)
-//	
+//
 //	// Execute multiple API calls in parallel
 //	forkTask := wf.Fork("fetchAll",
 //	    Branch(map[string]interface{}{
