@@ -6,12 +6,10 @@ import (
 
 // TestSkillToProto_Complete tests full skill with all fields.
 func TestSkillToProto_Complete(t *testing.T) {
-	skill, err := New(
-		WithName("code-analysis"),
-		WithSlug("code-analysis"),
-		WithDescription("Analyze code for best practices"),
-		WithMarkdown("# Code Analysis\n\nAnalyze code quality and suggest improvements."),
-	)
+	skill, err := New("code-analysis", &SkillArgs{
+		Description:     "Analyze code for best practices",
+		MarkdownContent: "# Code Analysis\n\nAnalyze code quality and suggest improvements.",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create skill: %v", err)
 	}
@@ -66,10 +64,9 @@ func TestSkillToProto_Complete(t *testing.T) {
 
 // TestSkillToProto_Minimal tests minimal skill with only required fields.
 func TestSkillToProto_Minimal(t *testing.T) {
-	skill, err := New(
-		WithName("simple-skill"),
-		WithMarkdown("# Simple Skill"),
-	)
+	skill, err := New("simple-skill", &SkillArgs{
+		MarkdownContent: "# Simple Skill",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create skill: %v", err)
 	}
@@ -99,13 +96,11 @@ func TestSkillToProto_Minimal(t *testing.T) {
 	}
 }
 
-// TestSkillToProto_CustomSlug tests custom slug override.
-func TestSkillToProto_CustomSlug(t *testing.T) {
-	skill, err := New(
-		WithName("my-skill"),
-		WithSlug("custom-skill-123"),  // Custom slug
-		WithMarkdown("# Test"),
-	)
+// TestSkillToProto_AutoSlug tests auto-generated slug from name.
+func TestSkillToProto_AutoSlug(t *testing.T) {
+	skill, err := New("my-skill", &SkillArgs{
+		MarkdownContent: "# Test",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create skill: %v", err)
 	}
@@ -115,9 +110,9 @@ func TestSkillToProto_CustomSlug(t *testing.T) {
 		t.Fatalf("ToProto() failed: %v", err)
 	}
 
-	// Verify custom slug is used
-	if proto.Metadata.Slug != "custom-skill-123" {
-		t.Errorf("Slug = %v, want custom-slug-123", proto.Metadata.Slug)
+	// Verify slug is auto-generated from name
+	if proto.Metadata.Slug != "my-skill" {
+		t.Errorf("Slug = %v, want my-skill (auto-generated)", proto.Metadata.Slug)
 	}
 }
 
@@ -139,11 +134,10 @@ This skill provides comprehensive security analysis.
 Always follow OWASP guidelines...
 `
 
-	skill, err := New(
-		WithName("security-analyzer"),
-		WithDescription("Comprehensive security analysis"),
-		WithMarkdown(longContent),
-	)
+	skill, err := New("security-analyzer", &SkillArgs{
+		Description:     "Comprehensive security analysis",
+		MarkdownContent: longContent,
+	})
 	if err != nil {
 		t.Fatalf("Failed to create skill: %v", err)
 	}

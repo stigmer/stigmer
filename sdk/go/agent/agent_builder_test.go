@@ -12,8 +12,10 @@ import (
 func TestAddSkill(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
-		WithName("test-agent"),
-		WithInstructions("Test instructions for agent"),
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -38,8 +40,10 @@ func TestAddSkill(t *testing.T) {
 func TestAddSkills(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
-		WithName("test-agent"),
-		WithInstructions("Test instructions for agent"),
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -60,8 +64,10 @@ func TestAddSkills(t *testing.T) {
 func TestAddSkill_Chaining(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
-		WithName("test-agent"),
-		WithInstructions("Test instructions for agent"),
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -81,8 +87,10 @@ func TestAddSkill_Chaining(t *testing.T) {
 func TestAddMCPServer(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
-		WithName("test-agent"),
-		WithInstructions("Test instructions for agent"),
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -111,8 +119,10 @@ func TestAddMCPServer(t *testing.T) {
 func TestAddMCPServers(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
-		WithName("test-agent"),
-		WithInstructions("Test instructions for agent"),
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -141,8 +151,10 @@ func TestAddMCPServers(t *testing.T) {
 func TestAddMCPServer_Chaining(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
-		WithName("test-agent"),
-		WithInstructions("Test instructions for agent"),
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -173,8 +185,10 @@ func TestAddMCPServer_Chaining(t *testing.T) {
 func TestAddSubAgent(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
-		WithName("test-agent"),
-		WithInstructions("Test instructions for agent"),
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -202,8 +216,10 @@ func TestAddSubAgent(t *testing.T) {
 func TestAddSubAgents(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
-		WithName("test-agent"),
-		WithInstructions("Test instructions for agent"),
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -230,8 +246,10 @@ func TestAddSubAgents(t *testing.T) {
 func TestAddSubAgent_Chaining(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
-		WithName("test-agent"),
-		WithInstructions("Test instructions for agent"),
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -260,8 +278,10 @@ func TestAddSubAgent_Chaining(t *testing.T) {
 func TestAddEnvironmentVariable(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
-		WithName("test-agent"),
-		WithInstructions("Test instructions for agent"),
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -289,8 +309,10 @@ func TestAddEnvironmentVariable(t *testing.T) {
 func TestAddEnvironmentVariables(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
-		WithName("test-agent"),
-		WithInstructions("Test instructions for agent"),
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -317,8 +339,10 @@ func TestAddEnvironmentVariables(t *testing.T) {
 func TestAddEnvironmentVariable_Chaining(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
-		WithName("test-agent"),
-		WithInstructions("Test instructions for agent"),
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -364,8 +388,10 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 
 	agent, err := New(
 		nil, // No context needed for builder tests
-		WithName("complex-agent"),
-		WithInstructions("Complex agent with all features"),
+		"complex-agent",
+		&AgentArgs{
+			Instructions: "Complex agent with all features",
+		},
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -391,27 +417,5 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 	}
 	if len(agent.EnvironmentVariables) != 1 {
 		t.Errorf("EnvironmentVariables count = %d, want 1", len(agent.EnvironmentVariables))
-	}
-}
-
-func TestBuilder_MixWithOptions(t *testing.T) {
-	// Test mixing WithXxx options and AddXxx builder methods
-	platformSkill := skill.Platform("initial-skill")
-
-	agent, err := New(
-		nil, // No context needed for builder tests
-		WithName("mixed-agent"),
-		WithInstructions("Agent using both patterns"),
-		WithSkill(platformSkill),
-	)
-	if err != nil {
-		t.Fatalf("New() error = %v", err)
-	}
-
-	// Add more skills using builder method
-	agent.AddSkill(skill.Platform("additional-skill"))
-
-	if len(agent.Skills) != 2 {
-		t.Errorf("Skills count = %d, want 2", len(agent.Skills))
 	}
 }

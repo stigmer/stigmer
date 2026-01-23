@@ -11,15 +11,15 @@ import (
 // Re-export shared types from types package for backward compatibility.
 // These type aliases allow existing code to continue working without changes.
 type (
-	ApiResourceReference  = types.ApiResourceReference
-	McpServerDefinition   = types.McpServerDefinition
-	EnvironmentSpec       = types.EnvironmentSpec
-	EnvironmentValue      = types.EnvironmentValue
-	DockerServer          = types.DockerServer
-	HttpServer            = types.HttpServer
-	StdioServer           = types.StdioServer
-	McpToolSelection      = types.McpToolSelection
-	PortMapping           = types.PortMapping
-	VolumeMount           = types.VolumeMount
-	SubAgent              = types.SubAgent
+	ApiResourceReference = types.ApiResourceReference
+	McpServerDefinition  = types.McpServerDefinition
+	EnvironmentSpec      = types.EnvironmentSpec
+	EnvironmentValue     = types.EnvironmentValue
+	DockerServer         = types.DockerServer
+	HttpServer           = types.HttpServer
+	StdioServer          = types.StdioServer
+	McpToolSelection     = types.McpToolSelection
+	PortMapping          = types.PortMapping
+	VolumeMount          = types.VolumeMount
+	SubAgent             = types.SubAgent
 )
