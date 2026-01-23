@@ -8,6 +8,7 @@ import (
 
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/agent"
+	"github.com/stigmer/stigmer/sdk/go/agent/gen"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/skill"
@@ -63,10 +64,10 @@ func main() {
 		ag, err := agent.New(ctx,
 			// Required fields with typed context
 			agent.WithName(agentName), // Use typed reference - compile-time checked!
-			agent.WithInstructions("Review code and suggest improvements based on best practices, security considerations, and coding standards"),
+			gen.AgentInstructions("Review code and suggest improvements based on best practices, security considerations, and coding standards"),
 
 			// Optional fields with typed context
-			agent.WithDescription("Professional code reviewer with security focus"),
+			gen.AgentDescription("Professional code reviewer with security focus"),
 			agent.WithIconURL(iconURL), // Use the concatenated StringRef
 			agent.WithOrg(orgName),     // Use typed reference
 
