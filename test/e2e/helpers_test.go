@@ -12,6 +12,10 @@ import (
 	badger "github.com/dgraph-io/badger/v3"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
@@ -289,4 +293,210 @@ func GetExecutionMessages(serverPort int, executionID string) ([]string, error) 
 	}
 
 	return messages, nil
+}
+
+// GetWorkflowViaAPI retrieves a workflow by ID
+func GetWorkflowViaAPI(serverPort int, workflowID string) (*workflowv1.Workflow, error) {
+	// Connect to the server
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	// Create workflow query client
+	client := workflowv1.NewWorkflowQueryControllerClient(conn)
+
+	// Query the workflow
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	workflow, err := client.Get(ctx, &workflowv1.WorkflowId{Value: workflowID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workflow: %w", err)
+	}
+
+	return workflow, nil
+}
+
+// GetWorkflowBySlug queries a workflow by slug and organization via gRPC API
+// This is the proper way to verify workflows by slug in tests
+func GetWorkflowBySlug(serverPort int, slug string, org string) (*workflowv1.Workflow, error) {
+	// Connect to the server
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	// Create workflow query client
+	client := workflowv1.NewWorkflowQueryControllerClient(conn)
+
+	// Query the workflow by reference (slug + org)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	workflow, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
+		Scope: apiresource.ApiResourceOwnerScope_organization,
+		Org:   org,
+		Kind:  apiresourcekind.ApiResourceKind_workflow,
+		Slug:  slug,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workflow by slug: %w", err)
+	}
+
+	return workflow, nil
+}
+
+// WorkflowExistsViaAPI checks if a workflow exists by querying the gRPC API
+// This is the proper way to verify workflows in tests (not direct DB access)
+func WorkflowExistsViaAPI(serverPort int, workflowID string) (bool, error) {
+	workflow, err := GetWorkflowViaAPI(serverPort, workflowID)
+	if err != nil {
+		return false, err
+	}
+	return workflow != nil, nil
+}
+
+// WorkflowExecutionExistsViaAPI checks if a workflow execution exists by querying the gRPC API
+// This is the proper way to verify executions in tests (not direct DB access)
+func WorkflowExecutionExistsViaAPI(serverPort int, executionID string) (bool, error) {
+	// Connect to the server
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return false, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	// Create workflow execution query client
+	client := workflowexecutionv1.NewWorkflowExecutionQueryControllerClient(conn)
+
+	// Query the execution
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = client.Get(ctx, &workflowexecutionv1.WorkflowExecutionId{Value: executionID})
+	if err != nil {
+		// Check if it's a NotFound error (execution doesn't exist) or another error
+		return false, fmt.Errorf("failed to get execution: %w", err)
+	}
+
+	return true, nil
+}
+
+// GetWorkflowExecutionViaAPI retrieves a workflow execution by ID
+func GetWorkflowExecutionViaAPI(serverPort int, executionID string) (*workflowexecutionv1.WorkflowExecution, error) {
+	// Connect to the server
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	// Create workflow execution query client
+	client := workflowexecutionv1.NewWorkflowExecutionQueryControllerClient(conn)
+
+	// Query the execution
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	execution, err := client.Get(ctx, &workflowexecutionv1.WorkflowExecutionId{Value: executionID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get execution: %w", err)
+	}
+
+	return execution, nil
+}
+
+// WaitForWorkflowExecutionPhase polls the execution until it reaches the target phase or times out
+// Returns the execution object when target phase is reached, or error on timeout
+func WaitForWorkflowExecutionPhase(serverPort int, executionID string, targetPhase workflowexecutionv1.ExecutionPhase, timeout time.Duration) (*workflowexecutionv1.WorkflowExecution, error) {
+	deadline := time.Now().Add(timeout)
+	var lastExecution *workflowexecutionv1.WorkflowExecution
+	
+	for time.Now().Before(deadline) {
+		execution, err := GetWorkflowExecutionViaAPI(serverPort, executionID)
+		if err != nil {
+			// Execution might not exist yet, keep waiting
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+
+		lastExecution = execution
+
+		// Check if we've reached the target phase
+		if execution.Status != nil && execution.Status.Phase == targetPhase {
+			return execution, nil
+		}
+
+		// Check if execution is in a terminal failed state
+		if execution.Status != nil && execution.Status.Phase == workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED {
+			return execution, fmt.Errorf("execution failed (target phase was %s)", targetPhase.String())
+		}
+
+		// Not there yet, wait and retry
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	// Timeout reached - include current phase for debugging
+	currentPhase := "UNKNOWN"
+	if lastExecution != nil && lastExecution.Status != nil {
+		currentPhase = lastExecution.Status.Phase.String()
+	}
+	return nil, fmt.Errorf("timeout waiting for execution to reach phase %s after %v (stuck at phase: %s)", targetPhase.String(), timeout, currentPhase)
+}
+
+// GetAgentInstanceViaAPI queries an agent instance by ID via gRPC API
+func GetAgentInstanceViaAPI(serverPort int, instanceID string) (*agentinstancev1.AgentInstance, error) {
+	// Connect to the server
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	// Create agent instance query client
+	client := agentinstancev1.NewAgentInstanceQueryControllerClient(conn)
+
+	// Query the agent instance
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	instance, err := client.Get(ctx, &agentinstancev1.AgentInstanceId{Value: instanceID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get agent instance: %w", err)
+	}
+
+	return instance, nil
+}
+
+// GetWorkflowInstanceViaAPI queries a workflow instance by ID via gRPC API
+func GetWorkflowInstanceViaAPI(serverPort int, instanceID string) (*workflowinstancev1.WorkflowInstance, error) {
+	// Connect to the server
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	// Create workflow instance query client
+	client := workflowinstancev1.NewWorkflowInstanceQueryControllerClient(conn)
+
+	// Query the workflow instance
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	instance, err := client.Get(ctx, &workflowinstancev1.WorkflowInstanceId{Value: instanceID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workflow instance: %w", err)
+	}
+
+	return instance, nil
 }
