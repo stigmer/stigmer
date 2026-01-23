@@ -417,7 +417,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: stigmer/homebrew-tap
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
       - name: Update Formula
         env:
