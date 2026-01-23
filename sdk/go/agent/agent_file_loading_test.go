@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestWithInstructionsFromFile(t *testing.T) {
+func TestLoadInstructionsFromFile(t *testing.T) {
 	// Create temporary directory for test files
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test-instructions.md")
@@ -17,58 +17,39 @@ func TestWithInstructionsFromFile(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	tests := []struct {
-		name    string
-		path    string
-		wantErr bool
-		errType error
-	}{
-		{
-			name:    "valid instructions file",
-			path:    testFile,
-			wantErr: false,
-		},
-		{
-			name:    "non-existent file",
-			path:    filepath.Join(tmpDir, "non-existent.md"),
-			wantErr: true,
-		},
-	}
+	t.Run("valid instructions file", func(t *testing.T) {
+		instructions, err := LoadInstructionsFromFile(testFile)
+		if err != nil {
+			t.Fatalf("LoadInstructionsFromFile() error = %v", err)
+		}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			agent, err := New(
-
-				nil, // No context needed for tests
-				WithName("test-agent"),
-				WithInstructionsFromFile(tt.path),
-			)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("New() expected error but got none")
-					return
-				}
-			} else {
-				if err != nil {
-					t.Errorf("New() unexpected error = %v", err)
-					return
-				}
-				if agent == nil {
-					t.Error("New() returned nil agent")
-					return
-				}
-
-				// Verify instructions were loaded
-				if agent.Instructions != testContent {
-					t.Errorf("Instructions = %q, want %q", agent.Instructions, testContent)
-				}
-			}
+		agent, err := New(nil, "test-agent", &AgentArgs{
+			Instructions: instructions,
 		})
-	}
+		if err != nil {
+			t.Errorf("New() unexpected error = %v", err)
+			return
+		}
+		if agent == nil {
+			t.Error("New() returned nil agent")
+			return
+		}
+
+		// Verify instructions were loaded
+		if agent.Instructions != testContent {
+			t.Errorf("Instructions = %q, want %q", agent.Instructions, testContent)
+		}
+	})
+
+	t.Run("non-existent file", func(t *testing.T) {
+		_, err := LoadInstructionsFromFile(filepath.Join(tmpDir, "non-existent.md"))
+		if err == nil {
+			t.Error("LoadInstructionsFromFile() expected error but got none")
+		}
+	})
 }
 
-func TestWithInstructionsFromFile_EmptyFile(t *testing.T) {
+func TestLoadInstructionsFromFile_EmptyFile(t *testing.T) {
 	// Create temporary directory for test files
 	tmpDir := t.TempDir()
 	emptyFile := filepath.Join(tmpDir, "empty.md")
@@ -78,13 +59,14 @@ func TestWithInstructionsFromFile_EmptyFile(t *testing.T) {
 		t.Fatalf("Failed to create empty file: %v", err)
 	}
 
-	agent, err := New(
+	instructions, err := LoadInstructionsFromFile(emptyFile)
+	if err != nil {
+		t.Fatalf("LoadInstructionsFromFile() error = %v", err)
+	}
 
-
-		nil, // No context needed for tests
-		WithName("test-agent"),
-		WithInstructionsFromFile(emptyFile),
-	)
+	agent, err := New(nil, "test-agent", &AgentArgs{
+		Instructions: instructions,
+	})
 
 	// Should fail validation because instructions are empty
 	if err == nil {
@@ -95,7 +77,7 @@ func TestWithInstructionsFromFile_EmptyFile(t *testing.T) {
 	}
 }
 
-func TestWithInstructionsFromFile_TooShort(t *testing.T) {
+func TestLoadInstructionsFromFile_TooShort(t *testing.T) {
 	// Create temporary directory for test files
 	tmpDir := t.TempDir()
 	shortFile := filepath.Join(tmpDir, "short.md")
@@ -105,13 +87,14 @@ func TestWithInstructionsFromFile_TooShort(t *testing.T) {
 		t.Fatalf("Failed to create short file: %v", err)
 	}
 
-	agent, err := New(
+	instructions, err := LoadInstructionsFromFile(shortFile)
+	if err != nil {
+		t.Fatalf("LoadInstructionsFromFile() error = %v", err)
+	}
 
-
-		nil, // No context needed for tests
-		WithName("test-agent"),
-		WithInstructionsFromFile(shortFile),
-	)
+	agent, err := New(nil, "test-agent", &AgentArgs{
+		Instructions: instructions,
+	})
 
 	// Should fail validation because instructions are too short
 	if err == nil {
@@ -122,7 +105,7 @@ func TestWithInstructionsFromFile_TooShort(t *testing.T) {
 	}
 }
 
-func TestWithInstructionsFromFile_LargeFile(t *testing.T) {
+func TestLoadInstructionsFromFile_LargeFile(t *testing.T) {
 	// Create temporary directory for test files
 	tmpDir := t.TempDir()
 	largeFile := filepath.Join(tmpDir, "large.md")
@@ -136,13 +119,14 @@ func TestWithInstructionsFromFile_LargeFile(t *testing.T) {
 		t.Fatalf("Failed to create large file: %v", err)
 	}
 
-	agent, err := New(
+	instructions, err := LoadInstructionsFromFile(largeFile)
+	if err != nil {
+		t.Fatalf("LoadInstructionsFromFile() error = %v", err)
+	}
 
-
-		nil, // No context needed for tests
-		WithName("test-agent"),
-		WithInstructionsFromFile(largeFile),
-	)
+	agent, err := New(nil, "test-agent", &AgentArgs{
+		Instructions: instructions,
+	})
 
 	if err != nil {
 		t.Errorf("New() unexpected error for large file = %v", err)
