@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"io"
-	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,9 +15,6 @@ import (
 	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	workflowtemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
-	"go.temporal.io/sdk/client"
-	temporallog "go.temporal.io/sdk/log"
-	"go.temporal.io/sdk/worker"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/debug"
 	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
@@ -120,61 +115,34 @@ func Run() error {
 	log.Info().Msg("Created WorkflowExecution controller (for Temporal worker dependency)")
 
 	// ============================================================================
-	// Initialize Temporal client and workers
+	// Initialize Temporal connection manager
 	// ============================================================================
 
-	// Create Temporal client
-	// Configure with a no-op logger to suppress "No logger configured" warnings
-	// Use slog with discard handler to suppress Temporal SDK log output
-	temporalClient, err := client.Dial(client.Options{
-		HostPort:  cfg.TemporalHostPort,
-		Namespace: cfg.TemporalNamespace,
-		Logger:    temporallog.NewStructuredLogger(slog.New(slog.NewTextHandler(io.Discard, nil))),
-	})
-	if err != nil {
-		log.Warn().
-			Err(err).
-			Str("host_port", cfg.TemporalHostPort).
-			Str("namespace", cfg.TemporalNamespace).
-			Msg("Failed to connect to Temporal server - workflows will not execute")
-		temporalClient = nil // Set to nil, check before using
-	} else {
-		defer temporalClient.Close()
-		log.Info().
-			Str("host_port", cfg.TemporalHostPort).
-			Str("namespace", cfg.TemporalNamespace).
-			Msg("Connected to Temporal server")
-	}
+	// Create Temporal manager for connection lifecycle and health monitoring
+	temporalManager := NewTemporalManager(cfg)
 
-	// Create workflow execution worker and workflow creator (conditional on client success)
-	var workflowExecutionWorker worker.Worker
+	// Set dependencies for worker creation and workflow creator injection
+	temporalManager.SetDependencies(
+		store,
+		agentExecutionController,
+		workflowExecutionController,
+		nil, // workflowController - will be set later
+		agentExecutionController.GetStreamBroker(),
+		workflowExecutionController.GetStreamBroker(),
+	)
+
+	// Attempt initial connection (non-fatal if fails)
+	temporalClient := temporalManager.InitialConnect(context.Background())
+	defer temporalManager.Close()
+
+	// Create workflow creators if initial connection succeeded
 	var workflowExecutionWorkflowCreator *workflowexecutionworkflows.InvokeWorkflowExecutionWorkflowCreator
-
-	// Create agent execution worker and workflow creator (conditional on client success)
-	var agentExecutionWorker worker.Worker
 	var agentExecutionWorkflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
-
-	// Create workflow validation worker and validator (conditional on client success)
-	var workflowValidationWorker worker.Worker
 	var workflowValidator *workflowtemporal.ServerlessWorkflowValidator
 
 	if temporalClient != nil {
-		// Load Temporal configuration for workflow execution
+		// Create workflow execution workflow creator
 		workflowExecutionTemporalConfig := workflowexecutiontemporal.LoadConfig()
-
-		// Create worker configuration
-		// NOTE: Must pass workflowExecutionController's StreamBroker so workflow errors
-		// can be broadcast to active subscribers (fixes error visibility issue)
-		workerConfig := workflowexecutiontemporal.NewWorkerConfig(
-			workflowExecutionTemporalConfig,
-			store,
-			workflowExecutionController.GetStreamBroker(),
-		)
-
-		// Create worker (not started yet)
-		workflowExecutionWorker = workerConfig.CreateWorker(temporalClient)
-
-		// Create workflow creator (for controller injection)
 		workflowExecutionWorkflowCreator = workflowexecutionworkflows.NewInvokeWorkflowExecutionWorkflowCreator(
 			temporalClient,
 			workflowExecutionTemporalConfig.StigmerQueue,
@@ -184,24 +152,10 @@ func Run() error {
 		log.Info().
 			Str("stigmer_queue", workflowExecutionTemporalConfig.StigmerQueue).
 			Str("runner_queue", workflowExecutionTemporalConfig.RunnerQueue).
-			Msg("Created workflow execution worker and creator")
+			Msg("Created workflow execution workflow creator")
 
-		// Load Temporal configuration for agent execution
+		// Create agent execution workflow creator
 		agentExecutionTemporalConfig := agentexecutiontemporal.NewConfig()
-
-		// Create worker configuration
-		// NOTE: Must pass agentExecutionController's StreamBroker so workflow errors
-		// can be broadcast to active subscribers (fixes error visibility issue)
-		agentExecutionWorkerConfig := agentexecutiontemporal.NewWorkerConfig(
-			agentExecutionTemporalConfig,
-			store,
-			agentExecutionController.GetStreamBroker(),
-		)
-
-		// Create worker (not started yet)
-		agentExecutionWorker = agentExecutionWorkerConfig.CreateWorker(temporalClient)
-
-		// Create workflow creator (for controller injection)
 		agentExecutionWorkflowCreator = agentexecutiontemporal.NewInvokeAgentExecutionWorkflowCreator(
 			temporalClient,
 			agentExecutionTemporalConfig,
@@ -210,20 +164,10 @@ func Run() error {
 		log.Info().
 			Str("stigmer_queue", agentExecutionTemporalConfig.StigmerQueue).
 			Str("runner_queue", agentExecutionTemporalConfig.RunnerQueue).
-			Msg("Created agent execution worker and creator")
+			Msg("Created agent execution workflow creator")
 
-		// Load Temporal configuration for workflow validation
+		// Create workflow validator
 		workflowValidationTemporalConfig := workflowtemporal.NewConfig()
-
-		// Create worker configuration
-		workflowValidationWorkerConfig := workflowtemporal.NewWorkerConfig(
-			workflowValidationTemporalConfig,
-		)
-
-		// Create worker (not started yet)
-		workflowValidationWorker = workflowValidationWorkerConfig.CreateWorker(temporalClient)
-
-		// Create workflow validator (for controller injection)
 		workflowValidator = workflowtemporal.NewServerlessWorkflowValidator(
 			temporalClient,
 			workflowValidationTemporalConfig,
@@ -232,7 +176,7 @@ func Run() error {
 		log.Info().
 			Str("stigmer_queue", workflowValidationTemporalConfig.StigmerQueue).
 			Str("runner_queue", workflowValidationTemporalConfig.RunnerQueue).
-			Msg("Created workflow validation worker and validator")
+			Msg("Created workflow validator")
 	}
 
 	// Create gRPC server with apiresource interceptor and in-process support
@@ -248,7 +192,7 @@ func Run() error {
 	// Create and register AgentInstance controller
 	agentInstanceController := agentinstancecontroller.NewAgentInstanceController(store)
 	agentinstancev1.RegisterAgentInstanceCommandControllerServer(grpcServer, agentInstanceController)
-	agentinstancev1.RegisterAgentInstanceQueryServiceServer(grpcServer, agentInstanceController)
+	agentinstancev1.RegisterAgentInstanceQueryControllerServer(grpcServer, agentInstanceController)
 
 	log.Info().Msg("Registered AgentInstance controllers")
 
@@ -298,6 +242,9 @@ func Run() error {
 	workflowv1.RegisterWorkflowCommandControllerServer(grpcServer, workflowController)
 	workflowv1.RegisterWorkflowQueryControllerServer(grpcServer, workflowController)
 
+	// Update Temporal manager with workflow controller dependency (for validator reinjection)
+	temporalManager.serverDeps.workflowController = workflowController
+
 	log.Info().Msg("Registered Workflow controllers")
 
 	// Create and register WorkflowInstance controller (without dependencies initially)
@@ -326,34 +273,10 @@ func Run() error {
 	// Start Temporal workers (after gRPC services ready)
 	// ============================================================================
 
-	if workflowExecutionWorker != nil {
-		if err := workflowExecutionWorker.Start(); err != nil {
-			log.Fatal().
-				Err(err).
-				Msg("Failed to start workflow execution worker")
-		}
-		defer workflowExecutionWorker.Stop()
-		log.Info().Msg("Workflow execution worker started")
-	}
-
-	if agentExecutionWorker != nil {
-		if err := agentExecutionWorker.Start(); err != nil {
-			log.Fatal().
-				Err(err).
-				Msg("Failed to start agent execution worker")
-		}
-		defer agentExecutionWorker.Stop()
-		log.Info().Msg("Agent execution worker started")
-	}
-
-	if workflowValidationWorker != nil {
-		if err := workflowValidationWorker.Start(); err != nil {
-			log.Fatal().
-				Err(err).
-				Msg("Failed to start workflow validation worker")
-		}
-		defer workflowValidationWorker.Stop()
-		log.Info().Msg("Workflow validation worker started")
+	if err := temporalManager.StartWorkers(temporalClient); err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Failed to start Temporal workers")
 	}
 
 	// Create in-process gRPC connection
@@ -387,6 +310,17 @@ func Run() error {
 	agentExecutionController.SetWorkflowCreator(agentExecutionWorkflowCreator)
 
 	log.Info().Msg("Injected dependencies into controllers")
+
+	// ============================================================================
+	// Start Temporal health monitor (after all controllers are ready)
+	// ============================================================================
+
+	// Create context for health monitor lifecycle
+	monitorCtx, monitorCancel := context.WithCancel(context.Background())
+	defer monitorCancel()
+
+	// Start health monitor for automatic reconnection
+	temporalManager.StartHealthMonitor(monitorCtx)
 
 	// Setup graceful shutdown
 	done := make(chan os.Signal, 1)

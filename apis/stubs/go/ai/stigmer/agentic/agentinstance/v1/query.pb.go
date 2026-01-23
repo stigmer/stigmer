@@ -26,8 +26,8 @@ var File_ai_stigmer_agentic_agentinstance_v1_query_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentinstance_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentinstance/v1/query.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a-ai/stigmer/agentic/agentinstance/v1/api.proto\x1a,ai/stigmer/agentic/agentinstance/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xd7\x03\n" +
-	"\x19AgentInstanceQueryService\x12\xa4\x01\n" +
+	"/ai/stigmer/agentic/agentinstance/v1/query.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a-ai/stigmer/agentic/agentinstance/v1/api.proto\x1a,ai/stigmer/agentic/agentinstance/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xda\x03\n" +
+	"\x1cAgentInstanceQueryController\x12\xa4\x01\n" +
 	"\x03get\x124.ai.stigmer.agentic.agentinstance.v1.AgentInstanceId\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"3¸\x18/\b\x03\x10-\"\x05value*\"unauthorized to get Agent Instance\x12\x90\x01\n" +
 	"\n" +
 	"getByAgent\x12D.ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest\x1a6.ai.stigmer.agentic.agentinstance.v1.AgentInstanceList\"\x04и\x18\x01\x12z\n" +
@@ -43,12 +43,12 @@ var file_ai_stigmer_agentic_agentinstance_v1_query_proto_goTypes = []any{
 	(*AgentInstanceList)(nil),                // 4: ai.stigmer.agentic.agentinstance.v1.AgentInstanceList
 }
 var file_ai_stigmer_agentic_agentinstance_v1_query_proto_depIdxs = []int32{
-	0, // 0: ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService.get:input_type -> ai.stigmer.agentic.agentinstance.v1.AgentInstanceId
-	1, // 1: ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService.getByAgent:input_type -> ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest
-	2, // 2: ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	3, // 3: ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService.get:output_type -> ai.stigmer.agentic.agentinstance.v1.AgentInstance
-	4, // 4: ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService.getByAgent:output_type -> ai.stigmer.agentic.agentinstance.v1.AgentInstanceList
-	3, // 5: ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryService.getByReference:output_type -> ai.stigmer.agentic.agentinstance.v1.AgentInstance
+	0, // 0: ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController.get:input_type -> ai.stigmer.agentic.agentinstance.v1.AgentInstanceId
+	1, // 1: ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController.getByAgent:input_type -> ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest
+	2, // 2: ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3, // 3: ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController.get:output_type -> ai.stigmer.agentic.agentinstance.v1.AgentInstance
+	4, // 4: ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController.getByAgent:output_type -> ai.stigmer.agentic.agentinstance.v1.AgentInstanceList
+	3, // 5: ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController.getByReference:output_type -> ai.stigmer.agentic.agentinstance.v1.AgentInstance
 	3, // [3:6] is the sub-list for method output_type
 	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

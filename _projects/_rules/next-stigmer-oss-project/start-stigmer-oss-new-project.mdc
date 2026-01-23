@@ -12,7 +12,7 @@ This is an action rule. Execute project setup non-interactively after gathering 
 
 Usage: Invoke explicitly as `@start-stigmer-oss-new-project` or when user expresses intent to start a new multi-day project.
 
-References: `@README.md`, `tools/_projects/bootstrap_project.py`, `tools/_projects/templates/`
+References: `@README.md`, `_projects/tools/projects/bootstrap_project.py`, `_projects/tools/projects/templates/`
 
 ## High-level Flow
 
@@ -75,7 +75,7 @@ mkdir -p _projects
 
 # Run bootstrap script with gathered information
 # The script automatically creates the month folder and date-prefixed project
-python3 tools/_projects/bootstrap_project.py \
+python3 _projects/tools/projects/bootstrap_project.py \
   --name "$PROJECT_NAME" \
   --description "$PROJECT_DESC" \
   --goal "$PROJECT_GOAL" \
@@ -172,9 +172,9 @@ And so on, with the sequence number automatically incrementing.
 
 ## Notes
 
-- This rule depends on `tools/_projects/bootstrap_project.py` being present
-- Templates are stored in `tools/_projects/templates/`
-- Projects are automatically organized by month in `__projects/YYYY-MM/` folders
+- This rule depends on `_projects/tools/projects/bootstrap_project.py` being present
+- Templates are stored in `_projects/tools/projects/templates/`
+- Projects are automatically organized by month in `_projects/YYYY-MM/` folders
 - Project names are automatically prefixed with the date (YYYYMMDD) and sequence number (NN)
 - Sequence numbers ensure proper ordering when multiple projects are created on the same day
 - The interview should feel conversational but efficient

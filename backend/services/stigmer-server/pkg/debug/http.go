@@ -15,6 +15,9 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 )
 
@@ -65,7 +68,7 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
     <div class="endpoint">
         <a href="/debug/db/api">/debug/db/api</a>
         <p>JSON API for programmatic access</p>
-        <p>Query params: <code>?filter=agent|agent-instance|agent-execution|session</code></p>
+        <p>Query params: <code>?filter=agent|agent-instance|agent-execution|workflow|workflow-instance|workflow-execution|session</code></p>
     </div>
 </body>
 </html>`
@@ -76,6 +79,24 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 func handleDebugDB(w http.ResponseWriter, r *http.Request, store *badger.Store) {
 	filter := r.URL.Query().Get("filter")
 
+	// Get database path from store
+	dbPath := "unknown"
+	isTestDB := false
+	if store != nil && store.DB() != nil {
+		dbPath = store.DB().Opts().Dir
+		// Check if this is a test database
+		isTestDB = strings.Contains(dbPath, "stigmer-e2e-") || strings.Contains(dbPath, "/tmp/")
+	}
+	
+	dbTypeLabel := "Production Database"
+	dbTypeColor := "#4ec9b0"
+	dbTypeIcon := "🗄️"
+	if isTestDB {
+		dbTypeLabel = "⚠️ Test Database (Temporary)"
+		dbTypeColor = "#dcdcaa"
+		dbTypeIcon = "🧪"
+	}
+	
 	html := `<!DOCTYPE html>
 <html>
 <head>
@@ -95,6 +116,22 @@ func handleDebugDB(w http.ResponseWriter, r *http.Request, store *badger.Store) 
             border-bottom: 2px solid #007acc;
         }
         h1 { margin: 0 0 10px 0; color: #007acc; }
+        .db-path { 
+            background: #252526; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 3px; 
+            font-size: 12px; 
+            color: #858585;
+            border-left: 3px solid ` + dbTypeColor + `;
+        }
+        .db-path strong { color: ` + dbTypeColor + `; }
+        .db-type { 
+            font-weight: bold; 
+            color: ` + dbTypeColor + `; 
+            font-size: 14px; 
+            margin-bottom: 5px;
+        }
         .filters { margin: 15px 0; }
         .filter-btn { 
             background: #3c3c3c; 
@@ -152,11 +189,18 @@ func handleDebugDB(w http.ResponseWriter, r *http.Request, store *badger.Store) 
     <div class="header">
         <h1>📂 BadgerDB Inspector</h1>
         <p>Live view of embedded database contents</p>
+        <div class="db-path">
+            <div class="db-type">` + dbTypeIcon + ` ` + dbTypeLabel + `</div>
+            <strong>Location:</strong> ` + dbPath + `
+        </div>
         <div class="filters">
             <a href="/debug/db" class="filter-btn ` + activeClass(filter, "") + `">All</a>
             <a href="/debug/db?filter=agent" class="filter-btn ` + activeClass(filter, "agent") + `">Agents</a>
             <a href="/debug/db?filter=agent-instance" class="filter-btn ` + activeClass(filter, "agent-instance") + `">Agent Instances</a>
             <a href="/debug/db?filter=agent-execution" class="filter-btn ` + activeClass(filter, "agent-execution") + `">Agent Executions</a>
+            <a href="/debug/db?filter=workflow" class="filter-btn ` + activeClass(filter, "workflow") + `">Workflows</a>
+            <a href="/debug/db?filter=workflow-instance" class="filter-btn ` + activeClass(filter, "workflow-instance") + `">Workflow Instances</a>
+            <a href="/debug/db?filter=workflow-execution" class="filter-btn ` + activeClass(filter, "workflow-execution") + `">Workflow Executions</a>
             <a href="/debug/db?filter=session" class="filter-btn ` + activeClass(filter, "session") + `">Sessions</a>
         </div>
     </div>
@@ -293,7 +337,17 @@ func handleDebugDBAPI(w http.ResponseWriter, r *http.Request, store *badger.Stor
 	})
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		// Return JSON error response (frontend expects JSON)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(Response{
+			Count: 0,
+			Records: []Record{{
+				Key:   "error",
+				Size:  0,
+				Error: fmt.Sprintf("Database error: %v", err),
+			}},
+		})
 		return
 	}
 
@@ -309,6 +363,12 @@ func matchesFilter(key, filter string) bool {
 		return strings.HasPrefix(key, "agent_instance/")
 	case "agent-execution":
 		return strings.HasPrefix(key, "agent_execution/")
+	case "workflow":
+		return strings.HasPrefix(key, "workflow/") && !strings.HasPrefix(key, "workflow_")
+	case "workflow-instance":
+		return strings.HasPrefix(key, "workflow_instance/")
+	case "workflow-execution":
+		return strings.HasPrefix(key, "workflow_execution/")
 	case "session":
 		return strings.HasPrefix(key, "session/")
 	default:
@@ -326,6 +386,12 @@ func unmarshalProto(key string, val []byte) (interface{}, error) {
 		msg = &agentinstancev1.AgentInstance{}
 	} else if strings.HasPrefix(key, "agent_execution/") {
 		msg = &agentexecutionv1.AgentExecution{}
+	} else if strings.HasPrefix(key, "workflow/") && !strings.HasPrefix(key, "workflow_") {
+		msg = &workflowv1.Workflow{}
+	} else if strings.HasPrefix(key, "workflow_instance/") {
+		msg = &workflowinstancev1.WorkflowInstance{}
+	} else if strings.HasPrefix(key, "workflow_execution/") {
+		msg = &workflowexecutionv1.WorkflowExecution{}
 	} else if strings.HasPrefix(key, "session/") {
 		msg = &sessionv1.Session{}
 	} else {

@@ -33,6 +33,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/downstream/agentinstance",
         "//backend/services/stigmer-server/pkg/downstream/session",
         "@com_github_rs_zerolog//log",
+        "@org_golang_google_grpc//codes",
         "@org_golang_google_protobuf//encoding/protojson",
         "@org_golang_google_protobuf//proto",
     ],

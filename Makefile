@@ -47,10 +47,12 @@ build-backend: protos ## Build all backend services
 	@echo "✓ All backend services processed!"
 	@echo "============================================"
 
-test: ## Run all tests
+test: ## Run unit tests (no infrastructure required, runs in CI)
 	@echo "============================================"
-	@echo "Running All Tests"
+	@echo "Running Unit Tests"
 	@echo "============================================"
+	@echo ""
+	@echo "Note: E2E tests are excluded (use 'make test-e2e' to run them)"
 	@echo ""
 	@echo "1/7 Running API Stubs Tests..."
 	@echo "--------------------------------------------"
@@ -81,7 +83,7 @@ test: ## Run all tests
 	cd backend/services/agent-runner && poetry install --no-interaction --quiet && poetry run pytest
 	@echo ""
 	@echo "============================================"
-	@echo "✓ All Tests Complete!"
+	@echo "✓ Unit Tests Complete!"
 	@echo "============================================"
 
 test-all-go: ## Run all Go workspace module tests
@@ -104,6 +106,23 @@ test-workflow-runner: ## Run workflow-runner tests only
 test-agent-runner: ## Run agent-runner tests only (Python)
 	@echo "Running agent-runner tests..."
 	cd backend/services/agent-runner && poetry install --no-interaction --quiet && poetry run pytest
+
+test-e2e: ## Run E2E integration tests (requires: stigmer server + ollama running)
+	@echo "============================================"
+	@echo "Running E2E Integration Tests"
+	@echo "============================================"
+	@echo ""
+	@echo "Prerequisites (checked by tests):"
+	@echo "  1. Stigmer server: stigmer server"
+	@echo "  2. Ollama: ollama serve"
+	@echo ""
+	cd test/e2e && go test -v -tags=e2e -timeout 60s ./...
+	@echo ""
+	@echo "============================================"
+	@echo "✓ E2E Tests Complete!"
+	@echo "============================================"
+
+test-all: test test-e2e ## Run ALL tests (unit + E2E, requires infrastructure)
 
 coverage: ## Generate test coverage report
 	@echo "Generating coverage report for all Go modules..."
