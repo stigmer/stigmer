@@ -80,7 +80,7 @@ See [checkpoints/](checkpoints/) for the most recent project state.
 - [x] Initial analysis complete (T01 ✅)
 - [x] Core implementation (T02 ✅ - Simple field types)
 - [x] Complex field types (T03 ✅ - maps, arrays)
-- [ ] Agent/Skill resources (T04)
+- [x] Agent/Skill resources (T04 ✅ - SDK resources)
 - [ ] Migration and testing (T05)
 - [ ] Ergonomic layer (T06)
 - [ ] Project completed

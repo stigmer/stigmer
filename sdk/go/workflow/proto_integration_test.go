@@ -378,7 +378,7 @@ func TestWorkflowToProto_TaskExport(t *testing.T) {
 					URI:            "https://api.example.com",
 					TimeoutSeconds: 30,
 				},
-				ExportAs: "${.}",  // Export entire output
+				ExportAs: "${.}", // Export entire output
 			},
 		},
 	}
@@ -413,7 +413,7 @@ func TestWorkflowToProto_TaskFlow(t *testing.T) {
 				Config: &SetTaskConfig{
 					Variables: map[string]string{"x": "y"},
 				},
-				ThenTask: "task2",  // Jump to task2
+				ThenTask: "task2", // Jump to task2
 			},
 			{
 				Name: "task2",
@@ -445,7 +445,7 @@ func TestWorkflowToProto_SlugAutoGeneration(t *testing.T) {
 		Document: Document{
 			DSL:       "1.0.0",
 			Namespace: "test",
-			Name:      "Daily Data Sync",  // Name with spaces
+			Name:      "Daily Data Sync", // Name with spaces
 			Version:   "1.0.0",
 		},
 		Tasks: []*Task{
@@ -555,7 +555,7 @@ func TestWorkflowToProto_EmptyTasks(t *testing.T) {
 			Name:      "empty-workflow",
 			Version:   "1.0.0",
 		},
-		Tasks: []*Task{},  // Empty task list
+		Tasks: []*Task{}, // Empty task list
 	}
 
 	// Note: Currently ToProto() doesn't validate empty tasks
