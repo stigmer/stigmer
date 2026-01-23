@@ -51,7 +51,7 @@ func TestBuildUpdateStateStep_Execute(t *testing.T) {
 	input := &agentv1.Agent{
 		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   "agent-999", // Different ID - should be preserved from existing
-			Name: "updated-agent", // Different name - should be preserved from existing
+			Name: "updated-agent", // Different name - should be updated (name is mutable)
 		},
 		Spec: &agentv1.AgentSpec{
 			Description:  "Updated description",
@@ -80,9 +80,9 @@ func TestBuildUpdateStateStep_Execute(t *testing.T) {
 		t.Errorf("Expected ID to be preserved as %q, got %q", "agent-123", updated.Metadata.Id)
 	}
 
-	// Check that name was preserved from existing (not from input)
-	if updated.Metadata.Name != "existing-agent" {
-		t.Errorf("Expected name to be preserved as %q, got %q", "existing-agent", updated.Metadata.Name)
+	// Check that name was updated from input (name is mutable, not preserved)
+	if updated.Metadata.Name != "updated-agent" {
+		t.Errorf("Expected name to be updated to %q, got %q", "updated-agent", updated.Metadata.Name)
 	}
 
 	// Check that spec was updated from input
