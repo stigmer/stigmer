@@ -264,8 +264,11 @@ func (g *Generator) generateHelpers() error {
 	fmt.Fprintf(&buf, "// Generated: %s\n\n", time.Now().Format(time.RFC3339))
 	fmt.Fprintf(&buf, "package %s\n\n", g.packageName)
 
-	// Import reflect for isEmpty
-	fmt.Fprintf(&buf, "import \"reflect\"\n\n")
+	// Import reflect and fmt
+	fmt.Fprintf(&buf, "import (\n")
+	fmt.Fprintf(&buf, "\t\"fmt\"\n")
+	fmt.Fprintf(&buf, "\t\"reflect\"\n")
+	fmt.Fprintf(&buf, ")\n\n")
 
 	// isEmpty function
 	fmt.Fprintf(&buf, "// isEmpty checks if a value is empty/zero.\n")
@@ -276,6 +279,20 @@ func (g *Generator) generateHelpers() error {
 	fmt.Fprintf(&buf, "\t}\n")
 	fmt.Fprintf(&buf, "\tval := reflect.ValueOf(v)\n")
 	fmt.Fprintf(&buf, "\treturn val.IsZero()\n")
+	fmt.Fprintf(&buf, "}\n\n")
+
+	// coerceToString function for expression support
+	fmt.Fprintf(&buf, "// coerceToString converts various types to strings for expression support.\n")
+	fmt.Fprintf(&buf, "// Used by option functions to accept both string literals and expressions.\n")
+	fmt.Fprintf(&buf, "func coerceToString(value interface{}) string {\n")
+	fmt.Fprintf(&buf, "\tif s, ok := value.(string); ok {\n")
+	fmt.Fprintf(&buf, "\t\treturn s\n")
+	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\t// Handle TaskFieldRef and other expression types\n")
+	fmt.Fprintf(&buf, "\tif expr, ok := value.(interface{ Expression() string }); ok {\n")
+	fmt.Fprintf(&buf, "\t\treturn expr.Expression()\n")
+	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\treturn fmt.Sprintf(\"%%v\", value)\n")
 	fmt.Fprintf(&buf, "}\n")
 
 	// Format and write
@@ -338,10 +355,6 @@ func (g *Generator) generateTaskFile(taskConfig *TaskConfigSchema) error {
 		return err
 	}
 
-	// Note: Builder functions are NOT generated here.
-	// They belong in the ergonomic API layer (workflow.go and *_options.go),
-	// not in generated code, because they reference manual SDK types like *Task.
-
 	// Generate ToProto method
 	if err := ctx.genToProtoMethod(&buf, taskConfig); err != nil {
 		return err
@@ -349,6 +362,11 @@ func (g *Generator) generateTaskFile(taskConfig *TaskConfigSchema) error {
 
 	// Generate FromProto method
 	if err := ctx.genFromProtoMethod(&buf, taskConfig); err != nil {
+		return err
+	}
+
+	// Generate functional options (NEW)
+	if err := ctx.genOptions(&buf, taskConfig); err != nil {
 		return err
 	}
 
@@ -666,6 +684,271 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 
 	fmt.Fprintf(w, "\t}\n\n")
 }
+
+// ============================================================================
+// Options Generation
+// ============================================================================
+
+// genOptions generates functional options for a task config
+func (c *genContext) genOptions(w *bytes.Buffer, config *TaskConfigSchema) error {
+	// Only generate options for task configs (not shared types)
+	if !strings.HasSuffix(config.Name, "TaskConfig") {
+		return nil
+	}
+
+	// Generate option type
+	if err := c.genOptionType(w, config); err != nil {
+		return err
+	}
+
+	// Generate builder function
+	if err := c.genBuilderFunction(w, config); err != nil {
+		return err
+	}
+
+	// Generate field setter functions
+	if err := c.genFieldSetters(w, config); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// genOptionType generates the option function type declaration
+func (c *genContext) genOptionType(w *bytes.Buffer, config *TaskConfigSchema) error {
+	optionTypeName := c.getOptionTypeName(config)
+	
+	fmt.Fprintf(w, "// %s is a functional option for configuring a %s task.\n", 
+		optionTypeName, config.Kind)
+	fmt.Fprintf(w, "type %s func(*%s)\n\n", optionTypeName, config.Name)
+	
+	return nil
+}
+
+// genBuilderFunction generates the main builder function
+func (c *genContext) genBuilderFunction(w *bytes.Buffer, config *TaskConfigSchema) error {
+	optionTypeName := c.getOptionTypeName(config)
+	builderName := c.getBuilderName(config)
+	
+	// Function documentation
+	fmt.Fprintf(w, "// %s creates a %s task with functional options.\n", builderName, config.Kind)
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "// Example:\n")
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "//\ttask := %s(\"my-task\",\n", builderName)
+	
+	// Add example options for first few fields
+	exampleCount := 0
+	for _, field := range config.Fields {
+		if exampleCount >= 2 {
+			break
+		}
+		if field.Type.Kind == "string" || field.Type.Kind == "int32" {
+			fmt.Fprintf(w, "//\t    %s(...),\n", field.Name)
+			exampleCount++
+		}
+	}
+	fmt.Fprintf(w, "//\t)\n")
+	
+	// Function signature
+	fmt.Fprintf(w, "func %s(name string, opts ...%s) *Task {\n", builderName, optionTypeName)
+	
+	// Initialize config with empty maps
+	fmt.Fprintf(w, "\tconfig := &%s{\n", config.Name)
+	for _, field := range config.Fields {
+		if field.Type.Kind == "map" {
+			keyType := c.goType(*field.Type.KeyType)
+			valueType := c.goType(*field.Type.ValueType)
+			fmt.Fprintf(w, "\t\t%s: make(map[%s]%s),\n", field.Name, keyType, valueType)
+		}
+	}
+	fmt.Fprintf(w, "\t}\n\n")
+	
+	// Apply options
+	fmt.Fprintf(w, "\t// Apply all options\n")
+	fmt.Fprintf(w, "\tfor _, opt := range opts {\n")
+	fmt.Fprintf(w, "\t\topt(config)\n")
+	fmt.Fprintf(w, "\t}\n\n")
+	
+	// Return Task
+	fmt.Fprintf(w, "\treturn &Task{\n")
+	fmt.Fprintf(w, "\t\tName:   name,\n")
+	fmt.Fprintf(w, "\t\tKind:   TaskKind%s,\n", c.getTaskKindSuffix(config))
+	fmt.Fprintf(w, "\t\tConfig: config,\n")
+	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "}\n\n")
+	
+	return nil
+}
+
+// genFieldSetters generates option functions for all fields
+func (c *genContext) genFieldSetters(w *bytes.Buffer, config *TaskConfigSchema) error {
+	for _, field := range config.Fields {
+		// Skip maps and arrays for now - that's T03
+		if field.Type.Kind == "map" || field.Type.Kind == "array" {
+			continue
+		}
+		
+		if err := c.genFieldSetter(w, field, config); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// genFieldSetter generates a single field setter function
+func (c *genContext) genFieldSetter(w *bytes.Buffer, field *FieldSchema, config *TaskConfigSchema) error {
+	optionTypeName := c.getOptionTypeName(config)
+	
+	switch field.Type.Kind {
+	case "string":
+		return c.genStringFieldSetter(w, field, config, optionTypeName)
+	case "int32", "int64":
+		return c.genIntFieldSetter(w, field, config, optionTypeName)
+	case "bool":
+		return c.genBoolFieldSetter(w, field, config, optionTypeName)
+	case "struct":
+		return c.genStructFieldSetter(w, field, config, optionTypeName)
+	default:
+		// Skip unknown types
+		return nil
+	}
+}
+
+// genStringFieldSetter generates a setter for string fields
+func (c *genContext) genStringFieldSetter(w *bytes.Buffer, field *FieldSchema, config *TaskConfigSchema, optionTypeName string) error {
+	// Generate documentation
+	if field.Description != "" {
+		fmt.Fprintf(w, "// %s sets the %s.\n", field.Name, strings.ToLower(field.Description))
+		fmt.Fprintf(w, "//\n")
+	} else {
+		fmt.Fprintf(w, "// %s sets the %s field.\n", field.Name, field.JsonName)
+		fmt.Fprintf(w, "//\n")
+	}
+	
+	fmt.Fprintf(w, "// Accepts:\n")
+	fmt.Fprintf(w, "//   - String literal: \"value\"\n")
+	fmt.Fprintf(w, "//   - Expression: \"${.variable}\"\n")
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "// Example:\n")
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "//\t%s(\"example-value\")\n", field.Name)
+	fmt.Fprintf(w, "//\t%s(\"${.config.value}\")\n", field.Name)
+	
+	// Function signature - use interface{} to support expressions
+	fmt.Fprintf(w, "func %s(value interface{}) %s {\n", field.Name, optionTypeName)
+	fmt.Fprintf(w, "\treturn func(c *%s) {\n", config.Name)
+	fmt.Fprintf(w, "\t\tc.%s = coerceToString(value)\n", field.Name)
+	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "}\n\n")
+	
+	return nil
+}
+
+// genIntFieldSetter generates a setter for int32/int64 fields
+func (c *genContext) genIntFieldSetter(w *bytes.Buffer, field *FieldSchema, config *TaskConfigSchema, optionTypeName string) error {
+	goType := c.goType(field.Type)
+	
+	// Generate documentation
+	if field.Description != "" {
+		fmt.Fprintf(w, "// %s sets the %s.\n", field.Name, strings.ToLower(field.Description))
+		fmt.Fprintf(w, "//\n")
+	} else {
+		fmt.Fprintf(w, "// %s sets the %s field.\n", field.Name, field.JsonName)
+		fmt.Fprintf(w, "//\n")
+	}
+	
+	fmt.Fprintf(w, "// Example:\n")
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "//\t%s(30)\n", field.Name)
+	
+	// Function signature
+	fmt.Fprintf(w, "func %s(value %s) %s {\n", field.Name, goType, optionTypeName)
+	fmt.Fprintf(w, "\treturn func(c *%s) {\n", config.Name)
+	fmt.Fprintf(w, "\t\tc.%s = value\n", field.Name)
+	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "}\n\n")
+	
+	return nil
+}
+
+// genBoolFieldSetter generates a setter for bool fields
+func (c *genContext) genBoolFieldSetter(w *bytes.Buffer, field *FieldSchema, config *TaskConfigSchema, optionTypeName string) error {
+	// Generate documentation
+	if field.Description != "" {
+		fmt.Fprintf(w, "// %s sets the %s.\n", field.Name, strings.ToLower(field.Description))
+		fmt.Fprintf(w, "//\n")
+	} else {
+		fmt.Fprintf(w, "// %s sets the %s field.\n", field.Name, field.JsonName)
+		fmt.Fprintf(w, "//\n")
+	}
+	
+	fmt.Fprintf(w, "// Example:\n")
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "//\t%s(true)\n", field.Name)
+	
+	// Function signature
+	fmt.Fprintf(w, "func %s(value bool) %s {\n", field.Name, optionTypeName)
+	fmt.Fprintf(w, "\treturn func(c *%s) {\n", config.Name)
+	fmt.Fprintf(w, "\t\tc.%s = value\n", field.Name)
+	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "}\n\n")
+	
+	return nil
+}
+
+// genStructFieldSetter generates a setter for struct fields (google.protobuf.Struct)
+func (c *genContext) genStructFieldSetter(w *bytes.Buffer, field *FieldSchema, config *TaskConfigSchema, optionTypeName string) error {
+	// Generate documentation
+	if field.Description != "" {
+		fmt.Fprintf(w, "// %s sets the %s.\n", field.Name, strings.ToLower(field.Description))
+		fmt.Fprintf(w, "//\n")
+	} else {
+		fmt.Fprintf(w, "// %s sets the %s field.\n", field.Name, field.JsonName)
+		fmt.Fprintf(w, "//\n")
+	}
+	
+	fmt.Fprintf(w, "// Example:\n")
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "//\t%s(map[string]interface{}{\n", field.Name)
+	fmt.Fprintf(w, "//\t    \"key\": \"value\",\n")
+	fmt.Fprintf(w, "//\t})\n")
+	
+	// Function signature
+	fmt.Fprintf(w, "func %s(value map[string]interface{}) %s {\n", field.Name, optionTypeName)
+	fmt.Fprintf(w, "\treturn func(c *%s) {\n", config.Name)
+	fmt.Fprintf(w, "\t\tc.%s = value\n", field.Name)
+	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "}\n\n")
+	
+	return nil
+}
+
+// getOptionTypeName returns the option type name for a config
+func (c *genContext) getOptionTypeName(config *TaskConfigSchema) string {
+	// "HttpCallTaskConfig" -> "HttpCallOption"
+	name := strings.TrimSuffix(config.Name, "TaskConfig")
+	return name + "Option"
+}
+
+// getBuilderName returns the builder function name for a config
+func (c *genContext) getBuilderName(config *TaskConfigSchema) string {
+	// "HttpCallTaskConfig" -> "HttpCall"
+	return strings.TrimSuffix(config.Name, "TaskConfig")
+}
+
+// getTaskKindSuffix returns the TaskKind enum suffix
+func (c *genContext) getTaskKindSuffix(config *TaskConfigSchema) string {
+	// "HTTP_CALL" -> "HttpCall"
+	if config.Kind == "" {
+		return strings.TrimSuffix(config.Name, "TaskConfig")
+	}
+	return titleCase(config.Kind)
+}
+
+// ============================================================================
+// Type Conversion
+// ============================================================================
 
 // goType converts a TypeSpec to a Go type string
 func (c *genContext) goType(typeSpec TypeSpec) string {
