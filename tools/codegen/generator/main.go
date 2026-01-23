@@ -783,13 +783,25 @@ func (c *genContext) genBuilderFunction(w *bytes.Buffer, config *TaskConfigSchem
 
 // genFieldSetters generates option functions for all fields
 func (c *genContext) genFieldSetters(w *bytes.Buffer, config *TaskConfigSchema) error {
+	optionTypeName := c.getOptionTypeName(config)
+	
 	for _, field := range config.Fields {
-		// Skip maps and arrays for now - that's T03
-		if field.Type.Kind == "map" || field.Type.Kind == "array" {
-			continue
+		var err error
+		
+		// Handle different field types
+		switch field.Type.Kind {
+		case "map":
+			// Generate singular + plural map options (e.g., Header/Headers)
+			err = c.genMapFieldSetters(w, field, config, optionTypeName)
+		case "array":
+			// Generate singular + plural array options (e.g., Skill/Skills)
+			err = c.genArrayFieldSetters(w, field, config, optionTypeName)
+		default:
+			// Handle simple field types (string, int, bool, struct)
+			err = c.genFieldSetter(w, field, config)
 		}
 		
-		if err := c.genFieldSetter(w, field, config); err != nil {
+		if err != nil {
 			return err
 		}
 	}
@@ -924,6 +936,239 @@ func (c *genContext) genStructFieldSetter(w *bytes.Buffer, field *FieldSchema, c
 	return nil
 }
 
+// genMapFieldSetters generates both singular and plural option functions for map fields.
+// For a field like "Headers", generates:
+//   - Header(key, value) - adds a single entry
+//   - Headers(map) - adds multiple entries
+// For fields already singular like "Env", only generates the plural form.
+func (c *genContext) genMapFieldSetters(w *bytes.Buffer, field *FieldSchema, config *TaskConfigSchema, optionTypeName string) error {
+	singularName := c.singularize(field.Name)
+	pluralName := field.Name
+	
+	// If field name is already singular (singularize returns same name),
+	// only generate singular version (it takes key/value like a singular function)
+	if singularName == pluralName {
+		// Field is already singular (e.g., "Env" not "Envs")
+		// Generate only singular option that adds one entry
+		return c.genSingularMapSetter(w, singularName, field, config, optionTypeName)
+	}
+	
+	// Field is plural (e.g., "Headers")
+	// Generate both singular (Header) and plural (Headers) options
+	if err := c.genSingularMapSetter(w, singularName, field, config, optionTypeName); err != nil {
+		return err
+	}
+	
+	if err := c.genPluralMapSetter(w, pluralName, field, config, optionTypeName); err != nil {
+		return err
+	}
+	
+	return nil
+}
+
+// genSingularMapSetter generates a singular map option function.
+// Example: Header(key, value interface{}) HttpCallOption
+func (c *genContext) genSingularMapSetter(w *bytes.Buffer, funcName string, field *FieldSchema, config *TaskConfigSchema, optionTypeName string) error {
+	// Determine if values need coercion
+	needsValueCoercion := c.needsCoercion(field.Type.ValueType)
+	
+	// Generate documentation
+	if field.Description != "" {
+		fmt.Fprintf(w, "// %s adds a single entry to %s.\n", funcName, strings.ToLower(field.Description))
+	} else {
+		fmt.Fprintf(w, "// %s adds a single entry to the %s map.\n", funcName, field.JsonName)
+	}
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "// Accepts:\n")
+	fmt.Fprintf(w, "//   - key: Map key (supports expressions)\n")
+	fmt.Fprintf(w, "//   - value: Map value")
+	if needsValueCoercion {
+		fmt.Fprintf(w, " (supports expressions)")
+	}
+	fmt.Fprintf(w, "\n")
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "// Example:\n")
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "//\t%s(\"key-name\", \"value\")\n", funcName)
+	if needsValueCoercion {
+		fmt.Fprintf(w, "//\t%s(\"dynamic-key\", \"${.variable}\")\n", funcName)
+	}
+	
+	// Function signature - both key and value are interface{} for expression support
+	fmt.Fprintf(w, "func %s(key, value interface{}) %s {\n", funcName, optionTypeName)
+	fmt.Fprintf(w, "\treturn func(c *%s) {\n", config.Name)
+	
+	// Generate map assignment with appropriate coercion
+	if needsValueCoercion {
+		// Both key and value support expressions
+		fmt.Fprintf(w, "\t\tc.%s[coerceToString(key)] = coerceToString(value)\n", field.Name)
+	} else {
+		// Only key needs coercion, value is used as-is
+		fmt.Fprintf(w, "\t\tc.%s[coerceToString(key)] = value\n", field.Name)
+	}
+	
+	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "}\n\n")
+	
+	return nil
+}
+
+// genPluralMapSetter generates a plural map option function.
+// Example: Headers(headers map[string]interface{}) HttpCallOption
+func (c *genContext) genPluralMapSetter(w *bytes.Buffer, funcName string, field *FieldSchema, config *TaskConfigSchema, optionTypeName string) error {
+	// Determine if values need coercion
+	needsValueCoercion := c.needsCoercion(field.Type.ValueType)
+	
+	// Generate documentation
+	if field.Description != "" {
+		fmt.Fprintf(w, "// %s adds multiple entries to %s.\n", funcName, strings.ToLower(field.Description))
+	} else {
+		fmt.Fprintf(w, "// %s adds multiple entries to the %s map.\n", funcName, field.JsonName)
+	}
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "// Example:\n")
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "//\t%s(map[string]interface{}{\n", funcName)
+	fmt.Fprintf(w, "//\t    \"key1\": \"value1\",\n")
+	if needsValueCoercion {
+		fmt.Fprintf(w, "//\t    \"key2\": \"${.dynamicValue}\",\n")
+	} else {
+		fmt.Fprintf(w, "//\t    \"key2\": \"value2\",\n")
+	}
+	fmt.Fprintf(w, "//\t})\n")
+	
+	// Function signature - accept map[string]interface{} for flexibility
+	fmt.Fprintf(w, "func %s(entries map[string]interface{}) %s {\n", funcName, optionTypeName)
+	fmt.Fprintf(w, "\treturn func(c *%s) {\n", config.Name)
+	fmt.Fprintf(w, "\t\tfor key, value := range entries {\n")
+	
+	// Generate map assignment with appropriate coercion
+	if needsValueCoercion {
+		fmt.Fprintf(w, "\t\t\tc.%s[coerceToString(key)] = coerceToString(value)\n", field.Name)
+	} else {
+		fmt.Fprintf(w, "\t\t\tc.%s[coerceToString(key)] = value\n", field.Name)
+	}
+	
+	fmt.Fprintf(w, "\t\t}\n")
+	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "}\n\n")
+	
+	return nil
+}
+
+// genArrayFieldSetters generates both singular and plural option functions for array fields.
+// For a field like "Skills", generates:
+//   - Skill(item) - adds a single item
+//   - Skills(items) - adds multiple items
+// For fields already singular, only generates the singular form.
+func (c *genContext) genArrayFieldSetters(w *bytes.Buffer, field *FieldSchema, config *TaskConfigSchema, optionTypeName string) error {
+	singularName := c.singularize(field.Name)
+	pluralName := field.Name
+	
+	// If field name is already singular (singularize returns same name),
+	// only generate singular version
+	if singularName == pluralName {
+		// Field is already singular (e.g., "Data" not "Datas")
+		// Generate only singular option that adds one item
+		return c.genSingularArraySetter(w, singularName, field, config, optionTypeName)
+	}
+	
+	// Field is plural (e.g., "Skills")
+	// Generate both singular (Skill) and plural (Skills) options
+	if err := c.genSingularArraySetter(w, singularName, field, config, optionTypeName); err != nil {
+		return err
+	}
+	
+	if err := c.genPluralArraySetter(w, pluralName, field, config, optionTypeName); err != nil {
+		return err
+	}
+	
+	return nil
+}
+
+// genSingularArraySetter generates a singular array option function.
+// Example: Skill(skill *SkillReference) AgentOption
+func (c *genContext) genSingularArraySetter(w *bytes.Buffer, funcName string, field *FieldSchema, config *TaskConfigSchema, optionTypeName string) error {
+	// Get the element type
+	elementType := c.goType(*field.Type.ElementType)
+	
+	// Generate documentation
+	if field.Description != "" {
+		fmt.Fprintf(w, "// %s adds a single item to %s.\n", funcName, strings.ToLower(field.Description))
+	} else {
+		fmt.Fprintf(w, "// %s adds a single item to the %s array.\n", funcName, field.JsonName)
+	}
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "// Example:\n")
+	fmt.Fprintf(w, "//\n")
+	
+	// Generate example based on element type
+	if field.Type.ElementType.Kind == "string" {
+		fmt.Fprintf(w, "//\t%s(\"item-value\")\n", funcName)
+		fmt.Fprintf(w, "//\t%s(\"${.dynamicValue}\")\n", funcName)
+	} else if field.Type.ElementType.Kind == "message" {
+		fmt.Fprintf(w, "//\t%s(&%s{...})\n", funcName, field.Type.ElementType.MessageType)
+	} else {
+		fmt.Fprintf(w, "//\t%s(value)\n", funcName)
+	}
+	
+	// Function signature - use the actual element type
+	fmt.Fprintf(w, "func %s(item %s) %s {\n", funcName, elementType, optionTypeName)
+	fmt.Fprintf(w, "\treturn func(c *%s) {\n", config.Name)
+	
+	// Append to slice
+	fmt.Fprintf(w, "\t\tc.%s = append(c.%s, item)\n", field.Name, field.Name)
+	
+	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "}\n\n")
+	
+	return nil
+}
+
+// genPluralArraySetter generates a plural array option function.
+// Example: Skills(skills []*SkillReference) AgentOption
+func (c *genContext) genPluralArraySetter(w *bytes.Buffer, funcName string, field *FieldSchema, config *TaskConfigSchema, optionTypeName string) error {
+	// Get the slice type (e.g., "[]*SkillReference" or "[]string")
+	sliceType := c.goType(field.Type)
+	
+	// Generate documentation
+	if field.Description != "" {
+		fmt.Fprintf(w, "// %s adds multiple items to %s.\n", funcName, strings.ToLower(field.Description))
+	} else {
+		fmt.Fprintf(w, "// %s adds multiple items to the %s array.\n", funcName, field.JsonName)
+	}
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "// Example:\n")
+	fmt.Fprintf(w, "//\n")
+	
+	// Generate example based on element type
+	if field.Type.ElementType.Kind == "string" {
+		fmt.Fprintf(w, "//\t%s([]string{\n", funcName)
+		fmt.Fprintf(w, "//\t    \"item1\",\n")
+		fmt.Fprintf(w, "//\t    \"item2\",\n")
+		fmt.Fprintf(w, "//\t})\n")
+	} else if field.Type.ElementType.Kind == "message" {
+		fmt.Fprintf(w, "//\t%s(%s{\n", funcName, sliceType)
+		fmt.Fprintf(w, "//\t    {...},\n")
+		fmt.Fprintf(w, "//\t    {...},\n")
+		fmt.Fprintf(w, "//\t})\n")
+	} else {
+		fmt.Fprintf(w, "//\t%s(items)\n", funcName)
+	}
+	
+	// Function signature - accept slice of elements
+	fmt.Fprintf(w, "func %s(items %s) %s {\n", funcName, sliceType, optionTypeName)
+	fmt.Fprintf(w, "\treturn func(c *%s) {\n", config.Name)
+	
+	// Append all items using spread operator
+	fmt.Fprintf(w, "\t\tc.%s = append(c.%s, items...)\n", field.Name, field.Name)
+	
+	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "}\n\n")
+	
+	return nil
+}
+
 // getOptionTypeName returns the option type name for a config
 func (c *genContext) getOptionTypeName(config *TaskConfigSchema) string {
 	// "HttpCallTaskConfig" -> "HttpCallOption"
@@ -944,6 +1189,94 @@ func (c *genContext) getTaskKindSuffix(config *TaskConfigSchema) string {
 		return strings.TrimSuffix(config.Name, "TaskConfig")
 	}
 	return titleCase(config.Kind)
+}
+
+// singularize converts plural field names to singular form for option functions.
+// Examples: "Headers" -> "Header", "Skills" -> "Skill", "Environments" -> "Environment"
+func (c *genContext) singularize(plural string) string {
+	// Handle common irregular plurals
+	irregulars := map[string]string{
+		"Children": "Child",
+		"People":   "Person",
+		"Men":      "Man",
+		"Women":    "Woman",
+	}
+	
+	if singular, ok := irregulars[plural]; ok {
+		return singular
+	}
+	
+	// Simple rule: remove trailing 's' for most cases
+	if strings.HasSuffix(plural, "ies") {
+		// "Entries" -> "Entry"
+		return plural[:len(plural)-3] + "y"
+	}
+	if strings.HasSuffix(plural, "ses") {
+		// "Addresses" -> "Address"
+		return plural[:len(plural)-2]
+	}
+	if strings.HasSuffix(plural, "s") && !strings.HasSuffix(plural, "ss") {
+		// "Headers" -> "Header", but not "Address" -> "Addres"
+		return plural[:len(plural)-1]
+	}
+	
+	// If no rule matches, return as-is (might already be singular)
+	return plural
+}
+
+// pluralize ensures consistent plural form for bulk option functions.
+// Examples: "Header" -> "Headers", "Skill" -> "Skills"
+func (c *genContext) pluralize(singular string) string {
+	// Handle common irregular plurals
+	irregulars := map[string]string{
+		"Child":  "Children",
+		"Person": "People",
+		"Man":    "Men",
+		"Woman":  "Women",
+	}
+	
+	if plural, ok := irregulars[singular]; ok {
+		return plural
+	}
+	
+	// Simple rule: add 's' for most cases
+	if strings.HasSuffix(singular, "y") && len(singular) > 1 {
+		// "Entry" -> "Entries" (if preceded by consonant)
+		prevChar := singular[len(singular)-2]
+		if prevChar != 'a' && prevChar != 'e' && prevChar != 'i' && prevChar != 'o' && prevChar != 'u' {
+			return singular[:len(singular)-1] + "ies"
+		}
+	}
+	if strings.HasSuffix(singular, "s") || strings.HasSuffix(singular, "x") || 
+	   strings.HasSuffix(singular, "z") || strings.HasSuffix(singular, "ch") || 
+	   strings.HasSuffix(singular, "sh") {
+		// "Address" -> "Addresses"
+		return singular + "es"
+	}
+	
+	// Default: add 's'
+	return singular + "s"
+}
+
+// needsCoercion determines if a value type needs coerceToString() conversion.
+// Returns true for string types (which support expressions), false for structured types.
+func (c *genContext) needsCoercion(typeSpec *TypeSpec) bool {
+	if typeSpec == nil {
+		return false
+	}
+	
+	switch typeSpec.Kind {
+	case "string":
+		return true
+	case "map":
+		// For maps, check if value type is string
+		if typeSpec.ValueType != nil && typeSpec.ValueType.Kind == "string" {
+			return true
+		}
+		return false
+	default:
+		return false
+	}
 }
 
 // ============================================================================
