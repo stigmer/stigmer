@@ -33,6 +33,8 @@ go test -tags=e2e -v -run "TestApply.*Workflow|TestRun.*Workflow"
 
 **Required:**
 - **Stigmer server** running (`stigmer server`)
+  - Tests connect to the existing server (default port 8234)
+  - Uses the same database as manual development (`~/.stigmer/stigmer.db`)
 - **Ollama** running with model installed (for Phase 2 execution tests)
 
 **Check status:**
@@ -44,7 +46,7 @@ stigmer server status
 curl http://localhost:11434/api/version
 ```
 
-The test suite will automatically check prerequisites and provide clear error messages if something is missing.
+**Important**: Tests will modify your local database. You may want to back up `~/.stigmer/stigmer.db` before running tests.
 
 ---
 
@@ -92,32 +94,26 @@ See [SDK Sync Strategy](docs/guides/sdk-sync-strategy.md) for how these are main
 
 ---
 
-## Test Database Isolation
+## Test Database Approach
 
-**Important**: E2E tests use **isolated temporary databases** for each test suite.
+**Simplified for MVP**: E2E tests use the **same local daemon** as manual development.
 
-### Why Isolation?
+### Single Daemon Approach
 
-✅ **Reproducibility** - Same result every time  
-✅ **Parallelization** - Run tests simultaneously  
-✅ **Safety** - Tests can't corrupt development data  
-✅ **Determinism** - Known starting state  
+✅ **Simple** - One server instance for everything  
+✅ **Fast** - No server startup/teardown per test  
+✅ **Practical** - Matches real development workflow  
+✅ **Debuggable** - Same database you inspect manually  
 
-### Database Locations
+### Database Location
 
-| Environment | Database Path | Type |
-|------------|---------------|------|
-| **E2E Tests** | `/tmp/stigmer-e2e-*/stigmer.db` | Temporary, isolated |
-| **Manual Development** | `~/.stigmer/stigmer.db` | Persistent, shared |
+All tests use the same database as your manual development:
 
-### Debug UI Indicator
+```
+~/.stigmer/stigmer.db  (or custom path via DB_PATH env var)
+```
 
-The BadgerDB debug UI (`localhost:8234/debug/db`) now shows which database you're inspecting:
-
-- 🗄️ **Production Database** (green) - Your development data
-- 🧪 **Test Database** (yellow) - Temporary test data
-
-**See [Test Database Strategy](docs/references/test-database-strategy.md) for complete explanation.**
+**Note**: Tests may modify this database. You may need to clean up test data periodically.
 
 ---
 
