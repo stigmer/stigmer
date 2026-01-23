@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/agent/gen"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
@@ -87,9 +86,8 @@ func main() {
 		}
 
 		// Create agent with environment variables
-		deployAgent, err := agent.New(ctx,
-			agent.New(ctx, "cloud-deployer",
-			gen.AgentInstructions(`You are a cloud deployment agent that manages infrastructure across AWS and GitHub.
+		deployAgent, err := agent.New(ctx, "cloud-deployer", &agent.AgentArgs{
+			Instructions: `You are a cloud deployment agent that manages infrastructure across AWS and GitHub.
 
 Your capabilities:
 - Deploy applications to AWS using the specified region
@@ -97,21 +95,23 @@ Your capabilities:
 - Send notifications to Slack
 - Use OpenAI for intelligent deployment suggestions
 
-Always check environment configurations before deployment.`),
-			gen.AgentDescription("Multi-cloud deployment agent with GitHub integration"),
-			agent.WithIconURL("https://example.com/deployer-icon.png"),
-			agent.WithMCPServer(githubMCP),
-			agent.WithEnvironmentVariables(
-				githubToken,
-				awsRegion,
-				logLevel,
-				slackToken,
-				openaiKey,
-			),
-		)
+Always check environment configurations before deployment.`,
+			Description: "Multi-cloud deployment agent with GitHub integration",
+			IconUrl:     "https://example.com/deployer-icon.png",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create agent: %w", err)
 		}
+
+		// Add MCP server and environment variables using builder methods
+		deployAgent.AddMCPServer(githubMCP)
+		deployAgent.AddEnvironmentVariables(
+			githubToken,
+			awsRegion,
+			logLevel,
+			slackToken,
+			openaiKey,
+		)
 
 		fmt.Printf("✓ Created agent: %s\n", deployAgent.Name)
 		fmt.Printf("  - Instructions: %d characters\n", len(deployAgent.Instructions))

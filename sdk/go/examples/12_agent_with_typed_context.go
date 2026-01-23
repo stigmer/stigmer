@@ -6,12 +6,11 @@ package main
 import (
 	"log"
 
-	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/agent/gen"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
 
 // This example demonstrates creating an agent with typed context variables.
@@ -60,32 +59,29 @@ func main() {
 		}
 
 		// Create the agent with typed context
-		// Note: We're using the typed references directly!
-		ag, err := agent.New(ctx,
-			// Required fields with typed context
-			agent.WithName(agentName), // Use typed reference - compile-time checked!
-			gen.AgentInstructions("Review code and suggest improvements based on best practices, security considerations, and coding standards"),
+		// Note: We're using the typed references via .Value() to get string values
+		ag, err := agent.New(ctx, agentName.Value(), &agent.AgentArgs{
+			// Required field
+			Instructions: "Review code and suggest improvements based on best practices, security considerations, and coding standards",
 
 			// Optional fields with typed context
-			gen.AgentDescription("Professional code reviewer with security focus"),
-			agent.WithIconURL(iconURL), // Use the concatenated StringRef
-			agent.WithOrg(orgName),     // Use typed reference
-
-			// Add skills
-			agent.WithSkills(
-				skill.Platform("coding-best-practices"),
-				skill.Platform("security-review"),
-			),
-
-			// Add MCP servers
-			agent.WithMCPServer(githubMCP),
-
-			// Add environment variables
-			agent.WithEnvironmentVariable(githubToken),
-		)
+			Description: "Professional code reviewer with security focus",
+			IconUrl:     iconURL.Value(), // Convert StringRef to string
+		})
 		if err != nil {
 			return err
 		}
+
+		// Set Org field directly (not in AgentArgs)
+		ag.Org = orgName.Value()
+
+		// Add skills, MCP servers, and environment variables using builder methods
+		ag.AddSkills(
+			skill.Platform("coding-best-practices"),
+			skill.Platform("security-review"),
+		)
+		ag.AddMCPServer(githubMCP)
+		ag.AddEnvironmentVariable(githubToken)
 
 		log.Printf("Created agent: %s", ag)
 		log.Println("Agent will be synthesized automatically on completion")
