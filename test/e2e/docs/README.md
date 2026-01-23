@@ -120,24 +120,13 @@ See the [Main E2E README](../README.md) for:
 
 ### Testing Infrastructure
 
-- **[Test Database Strategy](references/test-database-strategy.md)** - Why E2E tests use isolated databases
-  - Benefits of test isolation (reproducibility, parallelization, safety)
-  - Test database vs development database comparison
-  - How to inspect test databases
-  - Best practices for test design
-  - Common questions answered
-
-- **[Test Database Quick Reference](references/test-database-quick-reference.md)** - Quick answers about test vs dev databases
-  - TL;DR summary
-  - Visual guide to database indicators
-  - Common questions
-  - Troubleshooting tips
-
 - **[Diagnostic Test Guide](references/diagnostic-test-guide.md)** - Running diagnostic tests
   - How to run debug tests
   - What diagnostic tests show
   - Inspecting databases
   - Manual inspection tools
+
+**Note**: E2E tests use a simplified single-daemon approach (no database isolation) for MVP development. See [Main README](../README.md#test-database-approach) for details.
 
 ---
 

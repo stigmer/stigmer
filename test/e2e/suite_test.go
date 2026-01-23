@@ -4,17 +4,16 @@
 package e2e
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
 )
 
 // E2ESuite is the base test suite for E2E integration tests
+// Uses a single running stigmer server instance for all tests
 type E2ESuite struct {
 	suite.Suite
 	Harness *TestHarness
-	TempDir string
 }
 
 // SetupSuite runs once before all tests in the suite
@@ -29,6 +28,23 @@ func (s *E2ESuite) SetupSuite() {
 	}
 	s.T().Log("✓ SDK examples copied successfully")
 	
+	// Check that stigmer server is running
+	if err := checkStigmerServer(); err != nil {
+		s.T().Fatalf(`Stigmer server is not running or not accessible.
+
+Required for: All E2E tests
+
+Setup:
+  Start stigmer server:
+    stigmer server
+
+  Or verify server is running:
+    stigmer server status
+
+Error: %v`, err)
+	}
+	s.T().Log("✓ Stigmer server detected at localhost:8234")
+	
 	// Check Temporal (gRPC server on port 7233)
 	if err := checkTemporal(); err != nil {
 		s.T().Fatalf(`Temporal is not running or not accessible.
@@ -36,9 +52,8 @@ func (s *E2ESuite) SetupSuite() {
 Required for: Workflow orchestration
 
 Setup:
-  Start stigmer server (includes Temporal):
-    stigmer server
-
+  Temporal is started automatically by 'stigmer server'
+  
   Or verify Temporal is running:
     stigmer server status
 
@@ -65,39 +80,22 @@ Error: %v`, err)
 	s.T().Log("✓ Ollama detected at localhost:11434")
 	
 	s.T().Log("All prerequisites met, starting E2E tests...")
+	
+	// Create harness that connects to existing server
+	s.Harness = ConnectToRunningServer(s.T())
+	s.T().Logf("Connected to stigmer server on port %d", s.Harness.ServerPort)
 }
 
 // SetupTest runs before each test method
-// Creates a fresh temporary directory and starts a stigmer-server instance
+// No-op in simplified approach (no per-test isolation)
 func (s *E2ESuite) SetupTest() {
-	// Create fresh temp directory for this test
-	var err error
-	s.TempDir, err = os.MkdirTemp("", "stigmer-e2e-*")
-	s.Require().NoError(err, "Failed to create temp directory")
-
-	s.T().Logf("Test temp directory: %s", s.TempDir)
-
-	// Start stigmer-server with isolated storage
-	s.Harness = StartHarness(s.T(), s.TempDir)
+	s.T().Log("Running test against shared stigmer server...")
 }
 
 // TearDownTest runs after each test method
-// Stops the server and cleans up temporary files
+// No-op in simplified approach (no cleanup needed)
 func (s *E2ESuite) TearDownTest() {
-	// Stop server
-	if s.Harness != nil {
-		s.Harness.Stop()
-	}
-
-	// Clean up temp directory
-	if s.TempDir != "" {
-		err := os.RemoveAll(s.TempDir)
-		if err != nil {
-			s.T().Logf("Warning: Failed to remove temp directory: %v", err)
-		} else {
-			s.T().Logf("Cleaned up temp directory: %s", s.TempDir)
-		}
-	}
+	// Nothing to clean up - server keeps running
 }
 
 // TestE2E is the entry point that runs all E2E tests
