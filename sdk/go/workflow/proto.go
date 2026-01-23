@@ -3,13 +3,29 @@ package workflow
 import (
 	"fmt"
 
+	"buf.build/go/protovalidate"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 )
+
+// validator is the global protovalidate validator instance.
+var validator protovalidate.Validator
+
+func init() {
+	// Initialize validator once at package load time
+	var err error
+	validator, err = protovalidate.New()
+	if err != nil {
+		panic(fmt.Sprintf("failed to initialize protovalidate: %v", err))
+	}
+}
 
 // ToProto converts the SDK Workflow to a platform Workflow proto message.
 //
@@ -44,6 +60,9 @@ func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
 		Name:        w.Document.Name,
 		Slug:        w.Slug, // Include slug for backend resolution
 		Annotations: SDKAnnotations(),
+		// Default to organization scope for SDK-created workflows
+		// This satisfies the CEL validation: owner_scope must be platform (1) or organization (2)
+		OwnerScope: apiresource.ApiResourceOwnerScope_organization,
 	}
 
 	// Build WorkflowDocument
@@ -56,7 +75,7 @@ func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
 	}
 
 	// Build complete Workflow proto
-	return &workflowv1.Workflow{
+	workflow := &workflowv1.Workflow{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
 		Metadata:   metadata,
@@ -66,7 +85,14 @@ func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
 			Tasks:       tasks,
 			EnvSpec:     envSpec,
 		},
-	}, nil
+	}
+
+	// Validate the proto message against buf.validate rules
+	if err := validator.Validate(workflow); err != nil {
+		return nil, fmt.Errorf("workflow validation failed: %w", err)
+	}
+
+	return workflow, nil
 }
 
 // convertEnvironmentVariables converts SDK environment variables to proto EnvironmentSpec.
@@ -109,6 +135,67 @@ func convertTasks(tasks []*Task) ([]*workflowv1.WorkflowTask, error) {
 	return protoTasks, nil
 }
 
+// validateTaskConfigStruct validates a task config by unmarshaling it back to typed proto.
+// This enables buf.validate rules on the typed proto messages to be applied.
+func validateTaskConfigStruct(kind apiresource.WorkflowTaskKind, config *structpb.Struct) error {
+	if config == nil {
+		return fmt.Errorf("task_config cannot be nil")
+	}
+
+	// Convert Struct to JSON bytes
+	jsonBytes, err := config.MarshalJSON()
+	if err != nil {
+		return fmt.Errorf("failed to marshal Struct to JSON: %w", err)
+	}
+
+	// Create appropriate proto message based on kind
+	var protoMsg proto.Message
+
+	switch kind {
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET:
+		protoMsg = &tasksv1.SetTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL:
+		protoMsg = &tasksv1.HttpCallTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_GRPC_CALL:
+		protoMsg = &tasksv1.GrpcCallTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SWITCH:
+		protoMsg = &tasksv1.SwitchTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_FOR:
+		protoMsg = &tasksv1.ForTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_FORK:
+		protoMsg = &tasksv1.ForkTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_TRY:
+		protoMsg = &tasksv1.TryTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_LISTEN:
+		protoMsg = &tasksv1.ListenTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_WAIT:
+		protoMsg = &tasksv1.WaitTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_CALL_ACTIVITY:
+		protoMsg = &tasksv1.CallActivityTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_RAISE:
+		protoMsg = &tasksv1.RaiseTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_RUN:
+		protoMsg = &tasksv1.RunTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL:
+		protoMsg = &tasksv1.AgentCallTaskConfig{}
+	default:
+		return fmt.Errorf("unsupported task kind: %v", kind)
+	}
+
+	// Unmarshal JSON to proto message
+	err = protojson.Unmarshal(jsonBytes, protoMsg)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal JSON to proto: %w", err)
+	}
+
+	// Validate the unmarshaled proto message
+	if err := validator.Validate(protoMsg); err != nil {
+		return fmt.Errorf("task config validation failed: %w", err)
+	}
+
+	return nil
+}
+
 // convertTask converts a single SDK Task to a proto WorkflowTask.
 func convertTask(task *Task) (*workflowv1.WorkflowTask, error) {
 	// Convert task kind to proto enum
@@ -121,6 +208,11 @@ func convertTask(task *Task) (*workflowv1.WorkflowTask, error) {
 	taskConfig, err := convertTaskConfig(task.Config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert task config: %w", err)
+	}
+
+	// Validate task config by unmarshaling to typed proto and running buf.validate rules
+	if err := validateTaskConfigStruct(kind, taskConfig); err != nil {
+		return nil, err
 	}
 
 	// Build proto task
