@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "server",
-    srcs = ["server.go"],
+    srcs = [
+        "server.go",
+        "temporal_manager.go",
+    ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/server",
     visibility = ["//visibility:public"],
     deps = [
@@ -24,6 +27,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/agent/controller",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/controller",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
+        "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities",
         "//backend/services/stigmer-server/pkg/domain/agentinstance/controller",
         "//backend/services/stigmer-server/pkg/domain/environment/controller",
         "//backend/services/stigmer-server/pkg/domain/executioncontext/controller",
@@ -33,6 +37,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/workflow/temporal",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/controller",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal",
+        "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows",
         "//backend/services/stigmer-server/pkg/domain/workflowinstance/controller",
         "//backend/services/stigmer-server/pkg/downstream/agent",

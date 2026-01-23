@@ -12,7 +12,7 @@ import (
 // Simplified approach: connects to existing server instead of starting/stopping per test
 type TestHarness struct {
 	// Server connection
-	ServerPort int // Port where stigmer server is listening (default: 8234)
+	ServerPort int // Port where stigmer server is listening (default: 7234 for gRPC)
 	t          *testing.T
 
 	// Infrastructure status
@@ -23,10 +23,10 @@ type TestHarness struct {
 }
 
 // ConnectToRunningServer creates a harness that connects to an already-running stigmer server
-// Assumes server is running on default port 8234 (or PORT env var)
+// Assumes server is running on default gRPC port 7234
 func ConnectToRunningServer(t *testing.T) *TestHarness {
-	// Default stigmer server port
-	port := 8234
+	// Default stigmer server gRPC port
+	port := 7234
 
 	// Verify server is accessible
 	if !WaitForPort(port, 5*time.Second) {

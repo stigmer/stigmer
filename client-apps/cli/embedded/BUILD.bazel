@@ -8,6 +8,7 @@ go_library(
         "embedded_darwin_arm64.go",
         "embedded_linux_amd64.go",
         "extract.go",
+        "sdk_version.go",
         "version.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/embedded",
