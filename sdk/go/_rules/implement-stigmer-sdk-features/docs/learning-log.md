@@ -1790,4 +1790,375 @@ This is "SMART RESOLUTION" - it optimizes away unnecessary runtime expression ev
 
 ---
 
+## 2026-01-23: Proto-Validate Integration for SDK Validation
+
+### Context
+
+Fixed 11 failing workflow validation tests by integrating buf.build/go/protovalidate into the SDK. Discovered that SDK was not validating proto messages against buf.validate rules defined in proto files, even though backend validation was working correctly.
+
+### Pattern 1: Proto-Validate Integration in Go SDK
+
+**Problem**: SDK's `ToProto()` methods were converting to proto but never validating, allowing invalid workflows through until they hit backend validation.
+
+**Discovery**: Validation rules already existed in proto files but weren't being enforced:
+- Workflow proto: `spec.document.dsl` pattern, required fields (namespace, name, version)
+- Task protos: `agent` required, `endpoint.uri` required, `service`/`method` required, etc.
+- Backend already validates using `buf.build/go/protovalidate`
+
+**Solution**: Add proto-validate to SDK following backend pattern:
+
+```go
+// In sdk/go/workflow/proto.go
+
+import "buf.build/go/protovalidate"
+
+// Global validator instance
+var validator protovalidate.Validator
+
+func init() {
+    var err error
+    validator, err = protovalidate.New()
+    if err != nil {
+        panic(fmt.Sprintf("failed to initialize protovalidate: %v", err))
+    }
+}
+
+func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
+    // ... build workflow proto ...
+    
+    workflow := &workflowv1.Workflow{
+        ApiVersion: "agentic.stigmer.ai/v1",
+        Kind:       "Workflow",
+        Metadata:   metadata,
+        Spec:       spec,
+    }
+    
+    // Validate against buf.validate rules
+    if err := validator.Validate(workflow); err != nil {
+        return nil, fmt.Errorf("workflow validation failed: %w", err)
+    }
+    
+    return workflow, nil
+}
+```
+
+**Why This Works**:
+- **Reuses proto validation rules**: No custom validation logic needed
+- **Consistent with backend**: Same rules, same error messages
+- **Fail-fast principle**: Catches errors at SDK construction time
+- **Better DX**: Clear error messages at development time
+
+**Impact**:
+- Before: Invalid workflows passed SDK, failed at backend
+- After: Invalid workflows caught immediately at SDK level with descriptive errors
+- All 11 validation tests now passing
+
+**When to Use**: **Every** SDK `ToProto()` method should validate the generated proto before returning it.
+
+### Pattern 2: Validating Untyped Struct Fields (Critical for Task Configs)
+
+**Problem**: Task configs are stored as `google.protobuf.Struct` (untyped), so buf.validate rules on typed proto messages (like `HttpCallTaskConfig`) don't automatically apply during workflow validation.
+
+**Root Cause**: 
+```go
+// In workflow spec proto
+message WorkflowTask {
+    string name = 1;
+    WorkflowTaskKind kind = 2;
+    google.protobuf.Struct task_config = 3;  // ← Untyped!
+}
+```
+
+Buf.validate rules on `HttpCallTaskConfig.endpoint` don't apply to the Struct field - they only apply when the Struct is unmarshaled to the typed message.
+
+**Solution**: Unmarshal Struct back to typed proto and validate:
+
+```go
+// In sdk/go/workflow/proto.go
+
+func validateTaskConfigStruct(kind apiresource.WorkflowTaskKind, config *structpb.Struct) error {
+    // Convert Struct to JSON
+    jsonBytes, err := config.MarshalJSON()
+    if err != nil {
+        return fmt.Errorf("failed to marshal Struct to JSON: %w", err)
+    }
+    
+    // Create typed proto based on kind
+    var protoMsg proto.Message
+    switch kind {
+    case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL:
+        protoMsg = &tasksv1.HttpCallTaskConfig{}
+    case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL:
+        protoMsg = &tasksv1.AgentCallTaskConfig{}
+    // ... all task types ...
+    }
+    
+    // Unmarshal JSON to typed proto
+    if err := protojson.Unmarshal(jsonBytes, protoMsg); err != nil {
+        return fmt.Errorf("failed to unmarshal JSON to proto: %w", err)
+    }
+    
+    // Validate the typed proto (buf.validate rules apply here!)
+    if err := validator.Validate(protoMsg); err != nil {
+        return fmt.Errorf("task config validation failed: %w", err)
+    }
+    
+    return nil
+}
+
+// Call from convertTask()
+func convertTask(task *Task) (*workflowv1.WorkflowTask, error) {
+    // ... convert task config to Struct ...
+    
+    // Validate by unmarshaling to typed proto
+    if err := validateTaskConfigStruct(kind, taskConfig); err != nil {
+        return nil, err
+    }
+    
+    // ... build proto task ...
+}
+```
+
+**Why This Approach**:
+- **Struct is untyped**: Validation rules don't apply to google.protobuf.Struct
+- **Typed protos have rules**: Buf.validate rules are on typed messages (HttpCallTaskConfig, etc.)
+- **Round-trip validation**: Struct → JSON → Typed Proto → Validate
+- **Matches backend**: Same approach used in backend validation package
+
+**Performance Consideration**: 
+- Extra marshaling/unmarshaling adds overhead
+- But validation happens once at workflow construction (not runtime)
+- Trade-off: Better validation > performance for SDK operations
+- Backend does the same (validated approach)
+
+**Impact**:
+- Empty URIs: Caught by `endpoint: value is required`
+- Empty agent names: Caught by `agent: value is required`
+- Empty service/method: Caught by required field validation
+- Invalid enum values: Caught by enum validation
+- Out-of-range values: Caught by constraint validation (timeout 1-300s)
+
+**When to Use**: When validating proto messages that contain `google.protobuf.Struct` fields with typed schemas - unmarshal to typed proto and validate.
+
+### Pattern 3: Satisfying CEL Validation Constraints
+
+**Problem**: Workflow validation was failing with "Workflow resources can only have platform or organization scope" even though document and task validations were working.
+
+**Root Cause**: Workflow proto has CEL validation on metadata:
+
+```proto
+message Workflow {
+  ApiResourceMetadata metadata = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "workflow.owner_scope.platform_or_org_only"
+      message: "Workflow resources can only have platform or organization scope"
+      expression: "this.owner_scope == 1 || this.owner_scope == 2"
+    }
+  ];
+}
+```
+
+SDK was leaving `owner_scope` as default (0 = unspecified), which failed the CEL constraint.
+
+**Solution**: Set default owner_scope when building metadata:
+
+```go
+metadata := &apiresource.ApiResourceMetadata{
+    Name:        w.Document.Name,
+    Slug:        w.Slug,
+    Annotations: SDKAnnotations(),
+    // Default to organization scope for SDK-created workflows
+    // Satisfies CEL validation: owner_scope must be platform (1) or organization (2)
+    OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+}
+```
+
+**Why This Works**:
+- **Sensible default**: SDK workflows are typically organization-scoped
+- **Satisfies constraint**: Value 2 passes CEL expression check
+- **Can be overridden**: Backend middleware can change scope if needed
+- **Prevents validation errors**: SDK workflows are always valid
+
+**CEL Validation Insight**:
+- CEL (Common Expression Language) enables custom validation logic in proto files
+- More powerful than simple required/min/max constraints
+- Can check relationships between fields, conditional requirements, complex business rules
+- SDK must satisfy these constraints, not just field-level validations
+
+**When to Use**: When proto files have CEL validation constraints, ensure SDK sets fields to satisfy those constraints. Default to values that make sense for SDK usage patterns.
+
+### Pattern 4: Import Organization for Proto-Validate Integration
+
+**Problem**: Adding proto-validate and proto conversion imports needs proper organization.
+
+**Solution**: Import organization follows Go conventions with grouping:
+
+```go
+import (
+    "fmt"
+    
+    // Proto-validate and encoding
+    "buf.build/go/protovalidate"
+    "google.golang.org/protobuf/encoding/protojson"
+    "google.golang.org/protobuf/proto"
+    "google.golang.org/protobuf/types/known/structpb"
+    
+    // Generated stubs
+    workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+    tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
+    environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
+    "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+    
+    // Internal SDK packages
+    "github.com/stigmer/stigmer/sdk/go/environment"
+)
+```
+
+**Import Groups**:
+1. Standard library (fmt, context, etc.)
+2. Proto-related (protovalidate, protojson, structpb)
+3. Generated stubs (workflowv1, tasksv1, etc.)
+4. Internal SDK packages
+
+**When to Use**: Maintain this import organization when adding proto-validate to other SDK packages (agent, skill, etc.).
+
+### Testing Impact: Stricter Validation Reveals Pre-Existing Issues
+
+**Discovery**: Adding validation exposed legitimate bugs in other tests:
+
+**Examples of issues caught**:
+```
+- HTTP tasks without timeouts → validation error: timeout_seconds required (1-300)
+- Wait tasks using wrong field name → "duration" vs "seconds" in proto
+- Empty maps where required → validation error: variables required
+- Agent calls missing message → validation error: message required
+```
+
+**This is GOOD**:
+- ✅ Validation is working correctly
+- ✅ Tests were written with invalid data
+- ✅ Now we know the issues exist
+- ✅ Can fix tests to use valid data
+
+**Philosophy**: Stricter validation revealing bugs is a feature, not a problem. Fix the issues, don't weaken validation.
+
+**When to Use**: When adding validation catches existing issues, fix the issues rather than skipping validation.
+
+### Validation Error Messages Quality
+
+**Observation**: Proto-validate generates excellent error messages:
+
+```
+workflow validation failed: validation error: spec.document.dsl: value does not match regex pattern `^1\.0\.0$`
+workflow validation failed: validation error: spec.document.namespace: value is required
+failed to convert task httpTask: task config validation failed: validation error: endpoint: value is required
+failed to convert task agentTask: task config validation failed: validation error: agent: value is required
+```
+
+**Why These Are Good**:
+- Field path clearly identified (`spec.document.dsl`, `endpoint`)
+- Constraint explained ("value does not match regex", "value is required")
+- Task name included in error context
+- No need for custom error message formatting
+
+**When to Use**: Let proto-validate generate error messages - they're already well-formatted and informative.
+
+### Go Package Dependencies: Direct vs Indirect
+
+**Discovery**: Proto stubs depend on protovalidate proto definitions, but SDK needs protovalidate runtime:
+
+**Before**:
+```go
+// In sdk/go/go.mod
+require (
+    // ... other deps ...
+)
+
+require (
+    buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11... // indirect
+    // This is only the proto DEFINITIONS (code generated from .proto files)
+)
+```
+
+**After**:
+```go
+require (
+    buf.build/go/protovalidate v1.1.0  // Direct - validation RUNTIME library
+    // ... other deps ...
+)
+
+require (
+    buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11... // indirect
+    // ... other indirect deps ...
+)
+```
+
+**The Distinction**:
+- `buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go`: Proto DEFINITIONS (generated from .proto)
+- `buf.build/go/protovalidate`: Validation RUNTIME (actual validation engine with CEL evaluator)
+
+**Why This Matters**:
+- Proto stubs include validation annotations (indirect dependency via stubs)
+- To actually VALIDATE, need the runtime library (direct dependency)
+- Both packages work together: definitions + runtime = validation
+
+**When to Use**: When adding proto-validate to any Go module, add `buf.build/go/protovalidate` as direct dependency (not just the proto definitions).
+
+### Architectural Decision: Validation in SDK vs Backend
+
+**Design Choice**: Validate in BOTH SDK and backend (defense in depth).
+
+**Rationale**:
+1. **SDK validation** (client-side):
+   - Fail-fast: Catch errors at construction time
+   - Better DX: Clear errors during development
+   - Prevents invalid API calls
+   
+2. **Backend validation** (server-side):
+   - Security: Never trust client input
+   - Catch manipulation attempts
+   - Validate external/third-party workflows
+
+**Not Duplication**: Different validation responsibilities:
+- SDK: Help developers catch mistakes early
+- Backend: Enforce security and correctness
+
+**Trade-off Accepted**: Small performance cost for validation in SDK, but:
+- Happens once at workflow construction (not runtime)
+- Prevents wasted API calls with invalid workflows
+- Better than debugging backend errors
+
+**When to Use**: Always validate at SDK level AND backend level for defense in depth.
+
+### Cross-Reference: Backend Validation Implementation
+
+**Backend Location**: `backend/services/workflow-runner/pkg/validation/validate.go`
+
+**Backend Approach** (same as SDK now):
+```go
+// Backend validator
+var validator protovalidate.Validator
+
+func ValidateTaskConfig(msg proto.Message) error {
+    return validator.Validate(msg)
+}
+
+// Unmarshal and validate
+func UnmarshalTaskConfig(kind WorkflowTaskKind, config *structpb.Struct) (proto.Message, error) {
+    // Convert Struct to typed proto
+    jsonBytes, _ := config.MarshalJSON()
+    var protoMsg proto.Message
+    // ... switch on kind to create appropriate type ...
+    protojson.Unmarshal(jsonBytes, protoMsg)
+    
+    // Validate typed proto
+    return protoMsg, ValidateTaskConfig(protoMsg)
+}
+```
+
+**Consistency Achieved**: SDK now follows the exact same validation pattern as backend.
+
+---
+
 *This log grows with each feature implementation. Add entries as you discover new patterns!*
