@@ -22,13 +22,12 @@ var (
 // 1. Inline: Created in your repository with name, description, and markdown content
 // 2. Referenced: Point to platform-wide or organization-specific skills
 //
-// Inline skills:
+// Inline skills (Pulumi-style struct args):
 //
-//	mySkill, _ := skill.New(
-//	    skill.WithName("code-analyzer"),
-//	    skill.WithDescription("Analyzes code quality"),
-//	    skill.WithMarkdownFromFile("skills/analyzer.md"),
-//	)
+//	mySkill, _ := skill.New("code-analyzer", &skill.SkillArgs{
+//	    Description:     "Analyzes code quality",
+//	    MarkdownContent: skill.LoadMarkdownFromFile("skills/analyzer.md"),
+//	})
 //
 // Referenced skills:
 //
@@ -56,60 +55,58 @@ type Skill struct {
 	IsInline bool
 }
 
-// Option is a functional option for configuring an inline Skill.
-type Option func(*Skill) error
-
-// New creates an inline skill definition.
+// New creates an inline skill definition with struct-based args (Pulumi pattern).
 //
 // Inline skills are created in your repository with name, description, and markdown content.
 // The CLI will create these skills on the platform before creating the agent.
 //
-// Required options:
-//   - WithName: skill name (or WithSlug for custom slug)
-//   - WithMarkdown or WithMarkdownFromFile: skill content
+// Follows Pulumi's Args pattern: name as parameter, struct args for configuration.
 //
-// Optional:
-//   - WithSlug: custom slug (overrides auto-generation from name)
+// Required:
+//   - name: skill name (lowercase alphanumeric with hyphens)
+//   - args.MarkdownContent: skill documentation/knowledge
+//
+// Optional args fields:
+//   - Description: brief description for UI display
 //
 // Example:
 //
-//	skill, _ := skill.New(
-//	    skill.WithName("code-analyzer"),
-//	    skill.WithDescription("Analyzes code quality"),
-//	    skill.WithMarkdownFromFile("skills/analyzer.md"),
-//	)
+//	skill, _ := skill.New("code-analyzer", &skill.SkillArgs{
+//	    Description:     "Analyzes code quality and suggests improvements",
+//	    MarkdownContent: "# Code Analysis\n\nThis skill analyzes code...",
+//	})
 //
-// Example with custom slug:
+// Example loading from file:
 //
-//	skill, _ := skill.New(
-//	    skill.WithName("Code Analysis Tool"),
-//	    skill.WithSlug("code-analyzer"),  // Custom slug
-//	    skill.WithMarkdown("# Analysis guide..."),
-//	)
-func New(opts ...Option) (*Skill, error) {
+//	content, _ := skill.LoadMarkdownFromFile("skills/analyzer.md")
+//	skill, _ := skill.New("code-analyzer", &skill.SkillArgs{
+//	    Description:     "Analyzes code quality",
+//	    MarkdownContent: content,
+//	})
+//
+// Example with nil args (validation will fail without markdown):
+//
+//	skill, err := skill.New("code-analyzer", nil)
+//	// Returns ErrSkillMarkdownRequired
+func New(name string, args *SkillArgs) (*Skill, error) {
+	// Nil-safety: if args is nil, create empty args
+	if args == nil {
+		args = &SkillArgs{}
+	}
+
+	// Create Skill from args
 	s := &Skill{
-		IsInline: true,
+		Name:            name,
+		Description:     args.Description,
+		MarkdownContent: args.MarkdownContent,
+		IsInline:        true,
 	}
 
-	// Apply all options
-	for _, opt := range opts {
-		if err := opt(s); err != nil {
-			return nil, err
-		}
+	// Auto-generate slug from name
+	if s.Name == "" {
+		return nil, ErrSkillNameRequired
 	}
-
-	// Auto-generate slug from name if not provided
-	if s.Slug == "" {
-		if s.Name == "" {
-			return nil, ErrSkillNameRequired
-		}
-		s.Slug = naming.GenerateSlug(s.Name)
-	}
-
-	// If name not provided but slug is, use slug as name
-	if s.Name == "" && s.Slug != "" {
-		s.Name = s.Slug
-	}
+	s.Slug = naming.GenerateSlug(s.Name)
 
 	// Validation
 	if s.Name == "" {
@@ -127,84 +124,26 @@ func New(opts ...Option) (*Skill, error) {
 	return s, nil
 }
 
-// WithName sets the inline skill's name.
+// LoadMarkdownFromFile is a helper that loads markdown content from a file.
 //
-// The name must be lowercase alphanumeric with hyphens, max 63 characters.
-// This is a required field for inline skills.
-//
-// Example:
-//
-//	skill.WithName("code-analyzer")
-func WithName(name string) Option {
-	return func(s *Skill) error {
-		s.Name = name
-		return nil
-	}
-}
-
-// WithDescription sets the inline skill's description.
-//
-// Description is optional and is used for UI display.
+// Use this to load skill content from a file when creating an inline skill.
 //
 // Example:
 //
-//	skill.WithDescription("Analyzes code quality and suggests improvements")
-func WithDescription(description string) Option {
-	return func(s *Skill) error {
-		s.Description = description
-		return nil
+//	content, err := skill.LoadMarkdownFromFile("skills/code-analyzer.md")
+//	if err != nil {
+//	    return err
+//	}
+//	mySkill, err := skill.New("code-analyzer", &skill.SkillArgs{
+//	    Description:     "Analyzes code quality",
+//	    MarkdownContent: content,
+//	})
+func LoadMarkdownFromFile(path string) (string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
 	}
-}
-
-// WithMarkdown sets the inline skill's markdown content from a string.
-//
-// This is a required field for inline skills.
-//
-// Example:
-//
-//	skill.WithMarkdown("# Code Analysis\n\nAnalyze code for best practices...")
-func WithMarkdown(markdown string) Option {
-	return func(s *Skill) error {
-		s.MarkdownContent = markdown
-		return nil
-	}
-}
-
-// WithMarkdownFromFile sets the inline skill's markdown content from a file.
-//
-// Reads the file content and sets it as the skill's markdown content.
-// This is a required field (alternative to WithMarkdown).
-//
-// Example:
-//
-//	skill.WithMarkdownFromFile("skills/code-analyzer.md")
-func WithMarkdownFromFile(path string) Option {
-	return func(s *Skill) error {
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		s.MarkdownContent = string(content)
-		return nil
-	}
-}
-
-// WithSlug sets a custom slug for the inline skill.
-//
-// By default, slugs are auto-generated from the name by converting to lowercase
-// and replacing spaces with hyphens. Use this option to override the auto-generation.
-//
-// The slug must contain only lowercase letters, numbers, and hyphens.
-// It cannot start or end with a hyphen.
-//
-// Example:
-//
-//	skill.WithSlug("my-custom-slug")
-func WithSlug(slug string) Option {
-	return func(s *Skill) error {
-		s.Slug = slug
-		return nil
-	}
+	return string(content), nil
 }
 
 // Platform creates a reference to a platform-wide skill.

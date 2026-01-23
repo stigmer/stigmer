@@ -2,7 +2,7 @@
 
 // Example 02: Agent with Skills
 //
-// This example demonstrates how to add skills to an agent using the new generated options API.
+// This example demonstrates how to add skills to an agent.
 // Skills provide knowledge and capabilities to agents.
 // There are three types:
 // 1. Inline: Created in your repository with name, description, and markdown content
@@ -17,7 +17,6 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/agent/gen"
 	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
@@ -28,20 +27,19 @@ func main() {
 
 		// Example 1: Inline skill (created in your repository)
 		// The CLI will create this skill on the platform before creating the agent
-		inlineSkill, err := skill.New(
-			skill.WithName("code-analyzer"),
-			skill.WithDescription("Analyzes code quality and suggests improvements"),
-			skill.WithMarkdown("# Code Analysis\n\nThis skill analyzes code for best practices..."),
-		)
+		inlineSkill, err := skill.New("code-analyzer", &skill.SkillArgs{
+			Description:     "Analyzes code quality and suggests improvements",
+			MarkdownContent: "# Code Analysis\n\nThis skill analyzes code for best practices...",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create inline skill: %w", err)
 		}
 
-		// Example 2: Create agent with inline skill using builder pattern
-		agentWithInline, err := agent.New(ctx, "code-reviewer",
-			gen.AgentInstructions("Review code and suggest improvements based on best practices"),
-			gen.AgentDescription("AI code reviewer with custom inline skill"),
-		)
+		// Example 2: Create agent with inline skill using struct args
+		agentWithInline, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+			Instructions: "Review code and suggest improvements based on best practices",
+			Description:  "AI code reviewer with custom inline skill",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create agent with inline skill: %w", err)
 		}
@@ -55,10 +53,10 @@ func main() {
 		}
 
 		// Example 3: Agent with platform skills (referenced)
-		platformAgent, err := agent.New(ctx, "security-reviewer",
-			gen.AgentInstructions("Review code for security vulnerabilities"),
-			gen.AgentDescription("AI security reviewer with platform skills"),
-		)
+		platformAgent, err := agent.New(ctx, "security-reviewer", &agent.AgentArgs{
+			Instructions: "Review code for security vulnerabilities",
+			Description:  "AI security reviewer with platform skills",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create platform agent: %w", err)
 		}
@@ -75,10 +73,10 @@ func main() {
 		}
 
 		// Example 4: Agent with organization skills (referenced)
-		orgAgent, err := agent.New(ctx, "internal-reviewer",
-			gen.AgentInstructions("Review code according to internal guidelines"),
-			gen.AgentDescription("Internal code reviewer with org-specific skills"),
-		)
+		orgAgent, err := agent.New(ctx, "internal-reviewer", &agent.AgentArgs{
+			Instructions: "Review code according to internal guidelines",
+			Description:  "Internal code reviewer with org-specific skills",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create org agent: %w", err)
 		}
@@ -96,10 +94,10 @@ func main() {
 
 		// Example 5: Agent with mixed skills (inline + platform + org)
 		// Demonstrates builder pattern with AddSkill()
-		mixedAgent, err := agent.New(ctx, "enterprise-reviewer",
-			gen.AgentInstructions("Review code using all available knowledge"),
-			gen.AgentDescription("Enterprise code reviewer with mixed skills"),
-		)
+		mixedAgent, err := agent.New(ctx, "enterprise-reviewer", &agent.AgentArgs{
+			Instructions: "Review code using all available knowledge",
+			Description:  "Enterprise code reviewer with mixed skills",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create mixed agent: %w", err)
 		}
@@ -118,9 +116,9 @@ func main() {
 		}
 
 		// Example 6: Bulk add skills using AddSkills()
-		bulkAgent, err := agent.New(ctx, "bulk-reviewer",
-			gen.AgentInstructions("Review code with many skills"),
-		)
+		bulkAgent, err := agent.New(ctx, "bulk-reviewer", &agent.AgentArgs{
+			Instructions: "Review code with many skills",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create bulk agent: %w", err)
 		}

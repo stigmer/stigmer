@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-23 21:27
-**Current Task**: T06 (Struct-Based Args) - ARCHITECTURE FIXED ✅
-**Status**: READY FOR NEXT PHASE - SDK Options & Examples  
-**Last Updated**: 2026-01-24 03:45
+**Current Task**: T06 (Struct-Based Args) - Phase 2 Complete ✅, Phase 4 Partial (3/7)
+**Status**: READY FOR CLEANUP - Complete remaining examples or move to Phase 5  
+**Last Updated**: 2026-01-24 04:09
 **Latest Achievement**: Completely data-driven generator with no circular imports, all documented and committed
 
 **CONVERSATION 2 PROGRESS** (2026-01-24):
@@ -82,6 +82,27 @@ When starting a new session:
 - ✅ Args in main packages (`agent`, `skill`) not `gen/`
 - ✅ All SDK packages compile successfully
 - ✅ Example 01 runs successfully
+
+**CONVERSATION 3 PROGRESS** (2026-01-24):
+- ✅ **PHASE 2 COMPLETE - Skill Constructor Updated**
+- ✅ Updated `skill.New()` to use struct-based args `(name, *SkillArgs)`
+- ✅ Removed all functional options (WithName, WithDescription, etc.)
+- ✅ Added `LoadMarkdownFromFile()` helper function
+- ✅ Updated all 3 skill test files to new pattern
+- ✅ All skill tests pass (18/18)
+- ✅ Skill package compiles successfully
+- 📝 Noted agent test cleanup as technical debt for later
+
+- ✅ **PHASE 4 STARTED - Update Examples (3/7 complete)**
+- ✅ Example 01 (01_basic_agent.go) - Already correct, runs ✓
+- ✅ Example 02 (02_agent_with_skills.go) - Updated and runs ✓
+- ✅ Example 03 (03_agent_with_mcp_servers.go) - Updated and runs ✓
+- ⏳ Examples 04-06, 12-13 need updating (5 remaining)
+  - Example 04: Complex with syntax errors
+  - Example 05: Syntax errors, old pattern
+  - Example 06: Uses helper that may not exist
+  - Example 12: Uses gen package
+  - Example 13: Uses gen package
 
 **WHAT WAS ACCOMPLISHED**:
 1. **Data-Driven Generator**: No hard-coded "agent", "skill", "commons"
@@ -104,9 +125,16 @@ When starting a new session:
 
 **Key Achievement**: Generator is now **truly schema-driven** with zero domain-specific code.
 
-**Next Action**: Continue with T06 Phase 2 (SDK Options), Phase 3 (Update Examples)
-**Estimated Duration**: 2-3 hours
-**Priority**: HIGH - Ready to proceed with proper Pulumi-style API
+**Next Action**: Continue with T06 Phase 4 (Update Examples 02-19)
+**Estimated Duration**: 1.5 hours
+**Priority**: HIGH - Examples currently broken, need to use struct args
+
+**Technical Debt to Address Later**:
+- 11 agent test files using old pattern (pre-dating this project)
+  - Files: agent/*_test.go (agent_environment_test.go, agent_file_loading_test.go, etc.)
+  - Issue: Reference old WithName(), WithInstructions() functions
+  - Fix: Update to use struct-based args pattern
+  - When: During agent package cleanup phase
 
 ## Quick Commands
 

@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/agent/gen"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
@@ -82,9 +81,9 @@ func main() {
 			return fmt.Errorf("failed to create AWS MCP server: %w", err)
 		}
 
-		// Create agent with all MCP servers using new generated options API
-		a, err := agent.New(ctx, "devops-agent",
-			gen.AgentInstructions(`You are a DevOps automation agent with access to multiple tools.
+		// Create agent with all MCP servers using struct args
+		a, err := agent.New(ctx, "devops-agent", &agent.AgentArgs{
+			Instructions: `You are a DevOps automation agent with access to multiple tools.
 
 You have access to:
 - GitHub (create issues, PRs, list repos)
@@ -92,10 +91,10 @@ You have access to:
 - API service (search, fetch, analyze data)
 - Custom MCP server (process data, generate reports)
 
-Use these tools to help with infrastructure automation, deployments, and DevOps workflows.`),
-			gen.AgentDescription("DevOps automation agent with GitHub, AWS, API, and custom MCP servers"),
-			gen.AgentIconUrl("https://example.com/devops-agent.png"),
-		)
+Use these tools to help with infrastructure automation, deployments, and DevOps workflows.`,
+			Description: "DevOps automation agent with GitHub, AWS, API, and custom MCP servers",
+			IconUrl:     "https://example.com/devops-agent.png",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create agent: %w", err)
 		}

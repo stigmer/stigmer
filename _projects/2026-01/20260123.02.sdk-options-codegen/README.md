@@ -91,7 +91,7 @@ Successfully transformed the code generator into a completely data-driven, schem
 - [x] Complex field types (T03 ✅ - maps, arrays)
 - [x] Agent/Skill resources (T04 ✅ - SDK resources)
 - [x] T05 ✅ - Generator fixes (WRONG PATTERN - functional options)
-- [x] **T06 Phase 0 - Architecture Fix** ✅ ← COMPLETED
+- [x] **T06 Phase 0 - Architecture Fix** ✅
   - [x] Removed all hard-coding from generator
   - [x] Made generator fully data-driven
   - [x] Fixed circular imports completely
@@ -99,10 +99,22 @@ Successfully transformed the code generator into a completely data-driven, schem
   - [x] Args in main packages (`agent`, `skill`) not `gen/`
   - [x] All SDK packages compile successfully
   - [x] Example 01 runs successfully
-- [ ] **T06 Phase 1 - Generator Args Structs** ← NEXT
-- [ ] T06 Phase 2: Constructor updates
-- [ ] T06 Phase 3: SDK-level ResourceOptions
-- [ ] T06 Phase 4: Update examples
+- [x] **T06 Phase 2 - Skill Constructor** ✅ ← COMPLETED (2026-01-24)
+  - [x] Updated skill.New() to struct-based args
+  - [x] Removed functional options (WithName, WithDescription, etc.)
+  - [x] Added LoadMarkdownFromFile() helper
+  - [x] Updated 3 skill test files (18/18 tests passing)
+  - [x] Skill package compiles successfully
+- [ ] **T06 Phase 4 - Update Examples** ⏳ IN PROGRESS (43% - 3/7)
+  - [x] Example 01 - Basic agent (verified working)
+  - [x] Example 02 - Agent with skills (updated & tested)
+  - [x] Example 03 - Agent with MCP servers (updated & tested)
+  - [ ] Example 04 - Agent with subagents (needs update)
+  - [ ] Example 05 - Agent with environment variables (needs update)
+  - [ ] Example 06 - Agent with instructions from files (needs update)
+  - [ ] Example 12 - Agent with typed context (needs update)
+  - [ ] Example 13 - Workflow and agent shared context (needs update)
+- [ ] T06 Phase 3: SDK-level ResourceOptions (Optional)
 - [ ] T06 Phase 5: Workflow task args
 - [ ] T06 Phase 6: Documentation & cleanup
 - [ ] Project completed
