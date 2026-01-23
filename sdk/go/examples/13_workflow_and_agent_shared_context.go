@@ -8,6 +8,7 @@ import (
 
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/agent"
+	"github.com/stigmer/stigmer/sdk/go/agent/gen"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
@@ -70,9 +71,9 @@ func main() {
 
 		// Create an agent that uses the SAME shared context
 		ag, err := agent.New(ctx,
-			agent.WithName("data-analyzer"),
-			agent.WithInstructions("Analyze data from the API and provide insights"),
-			agent.WithDescription("AI data analyst"),
+			agent.New(ctx, "data-analyzer",
+			gen.AgentInstructions("Analyze data from the API and provide insights"),
+			gen.AgentDescription("AI data analyst"),
 			agent.WithOrg(orgName),  // Same shared typed reference as workflow!
 			agent.WithEnvironmentVariable(apiToken),  // Same environment variable
 		)
