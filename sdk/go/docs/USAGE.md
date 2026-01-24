@@ -338,16 +338,25 @@ processTask := wf.Set("process", &workflow.SetArgs{
 
 **Expression fields automatically accept both strings and references** - no manual `.Expression()` calls needed!
 
-```go
-// ✅ NEW: Clean syntax (automatic conversion)
-wf.ForEach("process", &workflow.ForArgs{
-    In: fetchTask.Field("items"),  // TaskFieldRef - auto-converted!
-})
+This feature combines with **LoopBody** to create the cleanest possible loop syntax:
 
-wf.HttpGet("fetch",
-    apiBase.Concat("/data"),  // StringRef - auto-converted!
-    nil,
-)
+```go
+// ✅ NEW: Clean syntax (automatic conversion + LoopBody)
+wf.ForEach("process", &workflow.ForArgs{
+    In: fetchTask.Field("items"),  // ✅ No .Expression() needed!
+    Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.HttpPost("process",
+                apiBase.Concat("/process"),  // ✅ No .Expression() needed!
+                nil,
+                map[string]interface{}{
+                    "id":   item.Field("id"),    // ✅ Type-safe!
+                    "data": item.Field("data"),  // ✅ Clean!
+                },
+            ),
+        }
+    }),
+})
 
 // ✅ STILL WORKS: Explicit conversion (backward compatible)
 wf.ForEach("process", &workflow.ForArgs{
@@ -361,20 +370,44 @@ wf.ForEach("process", &workflow.ForArgs{
 ```
 
 **Fields with smart conversion**:
-- `ForTaskConfig.In` - Loop input collection
-- `HttpEndpoint.Uri` - HTTP request URI
-- `AgentCallTaskConfig.Message` - Agent prompt/message
-- `RaiseTaskConfig.Error` - Error type
-- `RaiseTaskConfig.Message` - Error message
+- ✅ `ForTaskConfig.In` - Loop input collection
+- ✅ `HttpCallTaskConfig.Uri` - HTTP request URI (via HttpGet/Post/etc)
+- ✅ `AgentCallTaskConfig.Message` - Agent prompt/message
+- ✅ `RaiseTaskConfig.Error` - Error type
+- ✅ `RaiseTaskConfig.Message` - Error message
 
-**How it works**: These fields are marked with `is_expression` proto option. The SDK generator creates them as `interface{}` and automatically converts TaskFieldRef/StringRef to expressions at runtime.
+**How it works**: These fields are marked with `is_expression = 90203` proto option. The SDK generator creates them as `interface{}` and automatically converts TaskFieldRef/StringRef to expressions at runtime using the `coerceToString()` helper.
 
-**Map/array string values**: Still need `.Expression()` for values inside maps or arrays:
-```go
-Body: map[string]interface{}{
-    "userId": userTask.Field("id").Expression(),  // ✅ Still needed for map values
-},
-```
+**Where you still need .Expression()**:
+
+1. **Map values** - Values inside maps aren't expression fields:
+   ```go
+   Body: map[string]interface{}{
+       "userId": userTask.Field("id").Expression(),  // ✅ Required for map values
+   },
+   ```
+
+2. **SetArgs.Variables** - Variable values are regular strings:
+   ```go
+   wf.Set("vars", &workflow.SetArgs{
+       Variables: map[string]string{
+           "title": fetchTask.Field("title").Expression(),  // ✅ Required
+       },
+   })
+   ```
+
+3. **LoopBody field references** - Already return strings:
+   ```go
+   Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+       return []*workflow.Task{
+           wf.Set("process", &workflow.SetArgs{
+               Variables: map[string]string{
+                   "itemId": item.Field("id"),  // ✅ Already a string, no .Expression()
+               },
+           }),
+       }
+   }),
+   ```
 
 ### Agent Call Tasks
 
@@ -697,6 +730,48 @@ forkTask := wf.Fork("parallel-fetch", &workflow.ForkArgs{
 ---
 
 ## Helper Functions
+
+### Loop Variable Helpers
+
+#### LoopBody (v0.2.1+)
+
+Create type-safe loop bodies with automatic variable scoping:
+
+```go
+// LoopBody creates a typed loop closure
+wf.ForEach("processItems", &workflow.ForArgs{
+    In: fetchTask.Field("items"),
+    Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.HttpPost("process", apiEndpoint, nil, map[string]interface{}{
+                "id": item.Field("id"),      // Type-safe field access
+                "data": item.Field("data"),  // No magic strings!
+            }),
+        }
+    }),
+})
+```
+
+**LoopVar Methods**:
+- `.Field(name)` - Access item field: `item.Field("id")` → `"${.item.id}"`
+- `.Value()` - Access entire item: `item.Value()` → `"${.item}"`
+
+**Custom variable names**:
+```go
+wf.ForEach("processUsers", &workflow.ForArgs{
+    Each: "user",  // Custom name
+    In: fetchTask.Field("users"),
+    Do: workflow.LoopBody(func(user workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.Set("greet", &workflow.SetArgs{
+                Variables: map[string]string{
+                    "message": "Hello " + user.Field("name"),  // ${.user.name}
+                },
+            }),
+        }
+    }),
+})
+```
 
 ### Expression Helpers
 
@@ -1256,6 +1331,113 @@ jobs:
 
 ---
 
+## Migration Guide
+
+### Migrating to v0.2.1+ Loop Ergonomics
+
+If you're upgrading from an earlier version, here's how to modernize your loop code:
+
+#### Before (v0.2.0 and earlier)
+
+```go
+// Old pattern: Raw map with magic strings
+forEachTask := wf.ForEach("process-users", &workflow.ForArgs{
+    In: fetchTask.Field("users").Expression(),  // Manual .Expression()
+    Do: []*types.WorkflowTask{
+        {
+            Name: "processUser",
+            Kind: "HTTP_POST",
+            TaskConfig: map[string]interface{}{
+                "uri": "https://api.example.com/process",
+                "body": map[string]interface{}{
+                    "userId": "${.item.id}",    // ❌ Magic string
+                    "email":  "${.item.email}", // ❌ Magic string
+                },
+            },
+        },
+    },
+})
+```
+
+#### After (v0.2.1+)
+
+```go
+// New pattern: LoopBody with type safety
+forEachTask := wf.ForEach("process-users", &workflow.ForArgs{
+    In: fetchTask.Field("users"),  // ✅ No .Expression() needed!
+    Do: workflow.LoopBody(func(user workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.HttpPost("processUser",
+                "https://api.example.com/process",
+                nil,  // Headers
+                map[string]interface{}{
+                    "userId": user.Field("id"),    // ✅ Type-safe!
+                    "email":  user.Field("email"), // ✅ Type-safe!
+                },
+            ),
+        }
+    }),
+})
+```
+
+#### Migration Checklist
+
+1. ✅ **Remove `.Expression()` from expression fields**:
+   - `ForArgs.In`
+   - `HttpGet/Post/Put/Delete` URI parameters
+   - `AgentCallArgs.Message`
+   - Keep `.Expression()` for map values and SetArgs.Variables
+
+2. ✅ **Replace raw task maps with LoopBody**:
+   ```go
+   // Before:
+   Do: []*types.WorkflowTask{...}
+   
+   // After:
+   Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+       return []*workflow.Task{...}
+   })
+   ```
+
+3. ✅ **Replace magic strings with LoopVar methods**:
+   ```go
+   // Before:
+   "userId": "${.item.id}"
+   
+   // After:
+   "userId": item.Field("id")
+   ```
+
+4. ✅ **Update custom variable names**:
+   ```go
+   // Before:
+   Each: "user",  // ItemVar in older versions
+   
+   // After:
+   Each: "user",  // Still Each in v0.2.1+
+   ```
+
+#### Backward Compatibility
+
+All old patterns continue to work! Migration is optional but recommended:
+
+```go
+// ✅ Both patterns work side-by-side
+wf.ForEach("process1", &workflow.ForArgs{
+    In: fetchTask.Field("items").Expression(),  // Old style
+    Do: []*types.WorkflowTask{...},             // Old style
+})
+
+wf.ForEach("process2", &workflow.ForArgs{
+    In: fetchTask.Field("items"),               // New style
+    Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{...}
+    }),
+})
+```
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
@@ -1308,6 +1490,87 @@ agent, _ := agent.New(ctx, "My Agent", &agent.AgentArgs{
 agent, _ := agent.New(ctx, "my-agent", &agent.AgentArgs{
     Instructions: "...",
 })
+```
+
+#### "cannot use item.Field("id") (type string) as type TaskFieldRef"
+
+**Problem**: Trying to use LoopVar field reference where TaskFieldRef is expected
+
+```go
+// ❌ Wrong - item.Field() returns a string
+wf.Set("vars", &workflow.SetArgs{
+    Variables: map[string]string{
+        "itemId": item.Field("id"),  // ✅ This is correct! item.Field() returns string
+    },
+})
+```
+
+**Solution**: LoopVar methods already return strings - use them directly in map values and SetArgs.Variables. No `.Expression()` needed!
+
+#### "In must be string or TaskFieldRef"
+
+**Problem**: Invalid type passed to expression field
+
+```go
+// ❌ Wrong - passing int where string/TaskFieldRef expected
+wf.ForEach("process", &workflow.ForArgs{
+    In: 123,  // Invalid type
+})
+```
+
+**Solution**: Use string literal, TaskFieldRef, or StringRef
+
+```go
+// ✅ Correct options
+In: "${.items}"                    // String literal
+In: fetchTask.Field("items")       // TaskFieldRef (smart conversion)
+In: apiBase.Concat("/items")       // StringRef (smart conversion)
+```
+
+#### LoopBody tasks not executing
+
+**Problem**: LoopBody closure not being called or returns empty task list
+
+```go
+// ❌ Wrong - returns nil
+Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+    return nil  // No tasks!
+}),
+```
+
+**Solution**: Ensure LoopBody returns at least one task
+
+```go
+// ✅ Correct
+Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+    return []*workflow.Task{
+        wf.Set("process", &workflow.SetArgs{
+            Variables: map[string]string{"id": item.Field("id")},
+        }),
+    }
+}),
+```
+
+#### "cannot use wf.HttpGet(...) (type *Task) in return statement"
+
+**Problem**: HttpGet/HttpPost methods return `*Task`, but LoopBody expects `[]*Task` (slice)
+
+```go
+// ❌ Wrong - returning single task instead of slice
+Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+    return wf.HttpGet("fetch", item.Field("url"), nil)  // Type mismatch
+}),
+```
+
+**Solution**: Wrap task in a slice
+
+```go
+// ✅ Correct - return slice of tasks
+Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+    return []*workflow.Task{
+        wf.HttpGet("fetch", item.Field("url"), nil),  // Wrapped in slice
+    }
+}),
 ```
 
 ---
