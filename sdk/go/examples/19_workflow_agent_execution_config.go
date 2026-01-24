@@ -40,17 +40,15 @@ func main() {
 		// Scenario 1: Fast, deterministic task
 		// Use case: Categorize support tickets
 		// ============================================================================
-		categorizeTicket := wf.CallAgent(
-			"categorizeTicket",
-			workflow.AgentOption(workflow.AgentBySlug("support-categorizer")),
-			workflow.Message("Categorize this support ticket: 'My login is not working'"),
-			// Fast model for simple categorization
-			workflow.Model("claude-3-haiku"),
-			// Low temperature for consistent categorization
-			workflow.Temperature(0.1),
-			// Short timeout - categorization should be quick
-			workflow.AgentTimeout(30), // 30 seconds
-		)
+		categorizeTicket := wf.CallAgent("categorizeTicket", &workflow.AgentCallArgs{
+			Agent:   workflow.AgentBySlug("support-categorizer").Slug(),
+			Message: "Categorize this support ticket: 'My login is not working'",
+			Config: map[string]interface{}{
+				"model":       "claude-3-haiku", // Fast model for simple categorization
+				"temperature": 0.1,               // Low temperature for consistent categorization
+				"timeout":     30,                // Short timeout - categorization should be quick (30 seconds)
+			},
+		})
 		log.Println("✅ Fast deterministic task: categorizeTicket")
 		log.Println("   Model: claude-3-haiku (fast)")
 		log.Println("   Temperature: 0.1 (deterministic)")
@@ -60,41 +58,37 @@ func main() {
 		// Scenario 2: Deep analysis task
 		// Use case: Architectural review of complex system
 		// ============================================================================
-		architectureReview := wf.CallAgent(
-			"architectureReview",
-			workflow.AgentOption(workflow.AgentBySlug("senior-architect")),
-			workflow.Message(workflow.Interpolate(
+		architectureReview := wf.CallAgent("architectureReview", &workflow.AgentCallArgs{
+			Agent: workflow.AgentBySlug("senior-architect").Slug(),
+			Message: workflow.Interpolate(
 				"Review the architecture of this microservices system:\n",
 				categorizeTicket.Field("system_info"), // Uses output from previous task
-			)),
-			// Powerful model for complex reasoning
-			workflow.Model("claude-3-5-sonnet"),
-			// Medium temperature for balanced analysis
-			workflow.Temperature(0.5),
-			// Long timeout for thorough analysis
-			workflow.AgentTimeout(600), // 10 minutes
-		)
-	log.Println("✅ Deep analysis task: architectureReview")
-	log.Println("   Model: claude-3-5-sonnet (powerful)")
-	log.Println("   Temperature: 0.5 (balanced)")
-	log.Println("   Timeout: 600s (thorough)")
-	_ = architectureReview // Used for demonstration purposes
+			),
+			Config: map[string]interface{}{
+				"model":       "claude-3-5-sonnet", // Powerful model for complex reasoning
+				"temperature": 0.5,                  // Medium temperature for balanced analysis
+				"timeout":     600,                  // Long timeout for thorough analysis (10 minutes)
+			},
+		})
+		log.Println("✅ Deep analysis task: architectureReview")
+		log.Println("   Model: claude-3-5-sonnet (powerful)")
+		log.Println("   Temperature: 0.5 (balanced)")
+		log.Println("   Timeout: 600s (thorough)")
+		_ = architectureReview // Used for demonstration purposes
 
-	// ============================================================================
-	// Scenario 3: Creative content generation
+		// ============================================================================
+		// Scenario 3: Creative content generation
 		// Use case: Write marketing copy
 		// ============================================================================
-		generateCopy := wf.CallAgent(
-			"generateCopy",
-			workflow.AgentOption(workflow.AgentBySlug("content-writer")),
-			workflow.Message("Write engaging marketing copy for a new AI code review tool"),
-			// Creative model
-			workflow.Model("claude-3-5-sonnet"),
-			// High temperature for creative output
-			workflow.Temperature(0.9),
-			// Moderate timeout
-			workflow.AgentTimeout(120), // 2 minutes
-		)
+		generateCopy := wf.CallAgent("generateCopy", &workflow.AgentCallArgs{
+			Agent:   workflow.AgentBySlug("content-writer").Slug(),
+			Message: "Write engaging marketing copy for a new AI code review tool",
+			Config: map[string]interface{}{
+				"model":       "claude-3-5-sonnet", // Creative model
+				"temperature": 0.9,                  // High temperature for creative output
+				"timeout":     120,                  // Moderate timeout (2 minutes)
+			},
+		})
 		log.Println("✅ Creative task: generateCopy")
 		log.Println("   Model: claude-3-5-sonnet")
 		log.Println("   Temperature: 0.9 (creative)")
@@ -104,20 +98,18 @@ func main() {
 		// Scenario 4: Structured data extraction (deterministic)
 		// Use case: Extract fields from unstructured text
 		// ============================================================================
-		extractData := wf.CallAgent(
-			"extractData",
-			workflow.AgentOption(workflow.AgentBySlug("data-extractor")),
-			workflow.Message(workflow.Interpolate(
+		extractData := wf.CallAgent("extractData", &workflow.AgentCallArgs{
+			Agent: workflow.AgentBySlug("data-extractor").Slug(),
+			Message: workflow.Interpolate(
 				"Extract structured data from this marketing copy:\n",
 				generateCopy.Field("content"), // Use output from creative task
-			)),
-			// Fast model sufficient for extraction
-			workflow.Model("claude-3-haiku"),
-			// Very low temperature for consistent extraction
-			workflow.Temperature(0.0), // Maximum determinism
-			// Quick extraction
-			workflow.AgentTimeout(45),
-		)
+			),
+			Config: map[string]interface{}{
+				"model":       "claude-3-haiku", // Fast model sufficient for extraction
+				"temperature": 0.0,              // Very low temperature for consistent extraction (Maximum determinism)
+				"timeout":     45,               // Quick extraction
+			},
+		})
 		log.Println("✅ Structured extraction task: extractData")
 		log.Println("   Model: claude-3-haiku (fast)")
 		log.Println("   Temperature: 0.0 (maximum determinism)")
@@ -127,46 +119,42 @@ func main() {
 		// Scenario 5: Code generation with best practices
 		// Use case: Generate implementation from spec
 		// ============================================================================
-		generateCode := wf.CallAgent(
-			"generateCode",
-			workflow.AgentOption(workflow.AgentBySlug("code-generator")),
-			workflow.Message(workflow.Interpolate(
+		generateCode := wf.CallAgent("generateCode", &workflow.AgentCallArgs{
+			Agent: workflow.AgentBySlug("code-generator").Slug(),
+			Message: workflow.Interpolate(
 				"Generate Go code implementation for these requirements:\n",
 				extractData.Field("requirements"),
-			)),
-			// Powerful model for code generation
-			workflow.Model("claude-3-5-sonnet"),
-			// Low-medium temperature for good patterns
-			workflow.Temperature(0.3),
-			// Longer timeout for code generation
-			workflow.AgentTimeout(300), // 5 minutes
-		)
-	log.Println("✅ Code generation task: generateCode")
-	log.Println("   Model: claude-3-5-sonnet (powerful)")
-	log.Println("   Temperature: 0.3 (good patterns)")
-	log.Println("   Timeout: 300s")
-	_ = generateCode // Used for demonstration purposes
+			),
+			Config: map[string]interface{}{
+				"model":       "claude-3-5-sonnet", // Powerful model for code generation
+				"temperature": 0.3,                  // Low-medium temperature for good patterns
+				"timeout":     300,                  // Longer timeout for code generation (5 minutes)
+			},
+		})
+		log.Println("✅ Code generation task: generateCode")
+		log.Println("   Model: claude-3-5-sonnet (powerful)")
+		log.Println("   Temperature: 0.3 (good patterns)")
+		log.Println("   Timeout: 300s")
+		_ = generateCode // Used for demonstration purposes
 
-	// ============================================================================
-	// Scenario 6: Real-time customer support (fast response required)
+		// ============================================================================
+		// Scenario 6: Real-time customer support (fast response required)
 		// Use case: Answer customer question in real-time
 		// ============================================================================
-		customerSupport := wf.CallAgent(
-			"customerSupport",
-			workflow.AgentOption(workflow.AgentBySlug("support-agent")),
-			workflow.Message(workflow.RuntimeEnv("CUSTOMER_QUESTION")),
-			// Fast model for quick response
-			workflow.Model("claude-3-haiku"),
-			// Medium temperature for helpful but consistent answers
-			workflow.Temperature(0.4),
-			// Very short timeout - customer is waiting!
-			workflow.AgentTimeout(15), // 15 seconds max
-		)
-	log.Println("✅ Real-time support task: customerSupport")
-	log.Println("   Model: claude-3-haiku (fastest)")
-	log.Println("   Temperature: 0.4 (helpful)")
-	log.Println("   Timeout: 15s (customer waiting!)")
-	_ = customerSupport // Used for demonstration purposes
+		customerSupport := wf.CallAgent("customerSupport", &workflow.AgentCallArgs{
+			Agent:   workflow.AgentBySlug("support-agent").Slug(),
+			Message: workflow.RuntimeEnv("CUSTOMER_QUESTION"),
+			Config: map[string]interface{}{
+				"model":       "claude-3-haiku", // Fast model for quick response
+				"temperature": 0.4,              // Medium temperature for helpful but consistent answers
+				"timeout":     15,               // Very short timeout - customer is waiting! (15 seconds max)
+			},
+		})
+		log.Println("✅ Real-time support task: customerSupport")
+		log.Println("   Model: claude-3-haiku (fastest)")
+		log.Println("   Temperature: 0.4 (helpful)")
+		log.Println("   Timeout: 15s (customer waiting!)")
+		_ = customerSupport // Used for demonstration purposes
 
 	// ============================================================================
 	// Summary
