@@ -502,12 +502,12 @@ agent.New(ctx, "agent", &agent.AgentArgs{
    - Priority: LOW (technical debt cleanup)
 
 3. **API Reference Updates**
-   - Update API_REFERENCE.md with Args types
+   - Update api-reference.md with Args types
    - Document all struct args patterns
    - Priority: MEDIUM
 
 4. **Usage Guide Updates**
-   - Update USAGE.md examples to struct args
+   - Update usage.md examples to struct args
    - Replace functional options examples
    - Priority: MEDIUM
 

@@ -344,7 +344,7 @@ stigmer apply main.go --org my-org --env dev
 
 ### Learn More
 
-1. **Full Usage Guide**: [USAGE.md](USAGE.md) - Comprehensive API documentation
+1. **Full Usage Guide**: [usage.md](usage.md) - Comprehensive API documentation
 2. **Examples**: `sdk/go/examples/` - 19 working examples
 3. **API Reference**: [pkg.go.dev](https://pkg.go.dev/github.com/stigmer/stigmer/sdk/go)
 
@@ -487,7 +487,7 @@ You now know:
 - ✅ How to deploy resources
 - ✅ Common patterns and best practices
 
-**Ready to build?** Check out the [examples](../examples/) or dive into the [full usage guide](USAGE.md)!
+**Ready to build?** Check out the [examples](../examples/) or dive into the [full usage guide](usage.md)!
 
 ---
 
