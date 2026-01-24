@@ -191,6 +191,162 @@ Generated code should be indistinguishable from hand-written code:
 - Include unit tests for generated helpers
 - Test proto round-trip (SDK → proto → SDK)
 
+### 5. Nested Message Type Detection
+
+**Pattern**: When protos have `repeated MessageType` fields, ensure both stages detect them properly.
+
+**proto2schema Stage**:
+```go
+// collectNestedTypes() must detect message types in repeated fields
+func collectNestedTypes(msg *desc.MessageDescriptor, fd *desc.FileDescriptor, sharedTypes map[string]*TypeSchema) {
+    for _, field := range msg.GetFields() {
+        if field.GetType() == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
+            msgType := field.GetMessageType()
+            // Collect even if field is repeated!
+            if msgType != nil && !strings.HasPrefix(msgType.GetFullyQualifiedName(), "google.protobuf") {
+                typeName := msgType.GetName()
+                if _, exists := sharedTypes[typeName]; !exists {
+                    sharedTypes[typeName] = parseSharedType(msgType, msgType.GetFile())
+                    // Recursively collect nested types
+                    collectNestedTypes(msgType, msgType.GetFile(), sharedTypes)
+                }
+            }
+        }
+    }
+}
+```
+
+**Schema Output**:
+```json
+{
+  "type": {
+    "kind": "array",
+    "elementType": {
+      "kind": "message",
+      "messageType": "SwitchCase"  // ← Proper type reference
+    }
+  }
+}
+```
+
+**Generator Stage**:
+```go
+// goType() must handle "message" kind in array elements
+case "array":
+    elementType := c.goType(*typeSpec.ElementType)
+    return fmt.Sprintf("[]%s", elementType)
+
+case "message":
+    // Check if shared type - add proper package reference
+    if _, isShared := c.sharedTypes[typeSpec.MessageType]; isShared {
+        if c.packageName != "types" {
+            return "*types." + typeSpec.MessageType
+        }
+        return "*" + typeSpec.MessageType
+    }
+    return "*" + typeSpec.MessageType
+```
+
+**Result**:
+```go
+// Generated properly typed field:
+Cases []*types.SwitchCase `json:"cases,omitempty"`
+```
+
+**Benefits**:
+- Type safety (no `[]map[string]interface{}`)
+- IDE autocomplete on nested structures
+- Compile-time checking for field access
+
+**Learnings**: 2026-01-24 - Fixed SwitchCase generation
+
+### 6. Type Loading and Deduplication
+
+**Pattern**: Load shared types from multiple directories without duplicates.
+
+**Problem**: Types can exist in both `types/` (workflow tasks) and `agent/types/` (agent-specific), causing duplicate generation.
+
+**Solution**:
+```go
+// loadSchemas() must deduplicate across directories
+func (g *Generator) loadSchemas() error {
+    loadedTypes := make(map[string]bool)
+    
+    // Load from types/ first (workflow task types)
+    typesDir := filepath.Join(g.schemaDir, "types")
+    if _, err := os.Stat(typesDir); err == nil {
+        for _, entry := range readDir(typesDir) {
+            schema := loadTypeSchema(entry)
+            if loadedTypes[schema.Name] {
+                continue  // Skip duplicate
+            }
+            loadedTypes[schema.Name] = true
+            g.sharedTypes = append(g.sharedTypes, schema)
+        }
+    }
+    
+    // Load from agent/types/ (skip duplicates)
+    agentTypesDir := filepath.Join(g.schemaDir, "agent", "types")
+    if _, err := os.Stat(agentTypesDir); err == nil {
+        for _, entry := range readDir(agentTypesDir) {
+            schema := loadTypeSchema(entry)
+            if loadedTypes[schema.Name] {
+                continue  // Already loaded
+            }
+            loadedTypes[schema.Name] = true
+            g.sharedTypes = append(g.sharedTypes, schema)
+        }
+    }
+}
+```
+
+**Benefits**:
+- No duplicate type definitions
+- Clean compilation
+- First occurrence wins (deterministic)
+
+**Learnings**: 2026-01-24 - Fixed duplicate type generation
+
+### 7. Makefile Automation
+
+**Pattern**: Automate code generation with Make targets.
+
+**Implementation** (`sdk/go/Makefile`):
+```makefile
+.PHONY: codegen-schemas
+codegen-schemas: ## Generate JSON schemas from proto files (Stage 1)
+	@cd ../.. && go run tools/codegen/proto2schema/main.go \
+		--proto-dir apis/ai/stigmer/agentic/workflow/v1/tasks \
+		--output-dir tools/codegen/schemas/tasks \
+		--include-dir apis \
+		--stub-dir /tmp/proto-stubs
+
+.PHONY: codegen-go
+codegen-go: ## Generate Go SDK code from JSON schemas (Stage 2)
+	@cd ../.. && go run tools/codegen/generator/main.go \
+		--schema-dir tools/codegen/schemas \
+		--output-dir sdk/go/workflow \
+		--package workflow \
+		--file-suffix _task
+
+.PHONY: codegen
+codegen: codegen-schemas codegen-go ## Run full code generation pipeline
+```
+
+**Usage**:
+```bash
+cd sdk/go
+make codegen  # Full pipeline: proto → schemas → Go
+```
+
+**Benefits**:
+- Single command for full regeneration
+- Clear separation of stages
+- Easy to debug (can run stages independently)
+- Documented in `make help`
+
+**Learnings**: 2026-01-24 - Added Makefile automation
+
 ---
 
 ## Common Patterns
@@ -434,6 +590,114 @@ go mod tidy
 # Regenerate proto stubs if needed
 make protos
 ```
+
+### Issue 5: buf/validate Dependency During Schema Generation
+
+**Symptoms**: `proto2schema` fails with error:
+```
+Error parsing proto files: ai/stigmer/agentic/workflow/v1/tasks/*.proto:
+open apis/buf/validate/validate.proto: no such file or directory
+```
+
+**Root Cause**: Proto files use `buf.validate.field` extension but validator proto isn't available during parsing.
+
+**Current Solution** (Temporary):
+Create minimal buf/validate stub at `/tmp/proto-stubs/buf/validate/validate.proto`:
+
+```proto
+syntax = "proto3";
+package buf.validate;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions {
+  optional FieldConstraints field = 1071;
+}
+
+message FieldConstraints {
+  optional StringRules string = 2;
+  optional Int32Rules int32 = 3;
+  optional FloatRules float = 5;
+  optional RepeatedRules repeated = 8;
+}
+
+message StringRules {
+  optional uint64 min_len = 1;
+  optional uint64 max_len = 2;
+  optional string pattern = 3;
+  repeated string in = 4;
+}
+
+message Int32Rules {
+  optional int32 gte = 1;
+  optional int32 lte = 2;
+  repeated int32 in = 5;
+}
+
+message FloatRules {
+  optional float gte = 1;
+  optional float lte = 2;
+}
+
+message RepeatedRules {
+  optional uint64 min_items = 1;
+  optional uint64 max_items = 2;
+}
+```
+
+Then run with `--stub-dir` flag:
+```bash
+make codegen-schemas  # Uses --stub-dir /tmp/proto-stubs
+```
+
+**Better Solution** (Future - Task T07 Phase 2):
+1. Bundle buf/validate.proto in `tools/codegen/stubs/`
+2. Update Makefile to reference bundled version
+3. OR download from buf.build during generation
+4. OR use go module for buf.validate protos
+
+**Prevention**: Ensure stub-dir is always specified in Makefile targets.
+
+**Learnings**: 2026-01-24 - buf/validate dependency requirement
+
+### Issue 6: Type Redeclared Errors
+
+**Symptoms**: Compilation fails with:
+```
+types/agentic_types.go:670:6: DockerServer redeclared in this block
+types/agentic_types.go:68:6: other declaration of DockerServer
+```
+
+**Root Cause**: Same type schema exists in multiple directories (`types/` and `agent/types/`), loaded twice without deduplication.
+
+**Fix**: Generator must deduplicate when loading from multiple directories:
+
+```go
+// In loadSchemas()
+loadedTypes := make(map[string]bool)
+
+// Load from first directory
+for _, schema := range loadFromDir("types/") {
+    if loadedTypes[schema.Name] {
+        continue  // Skip duplicate
+    }
+    loadedTypes[schema.Name] = true
+    g.sharedTypes = append(g.sharedTypes, schema)
+}
+
+// Load from second directory (skips duplicates)
+for _, schema := range loadFromDir("agent/types/") {
+    if loadedTypes[schema.Name] {
+        continue  // Already loaded
+    }
+    loadedTypes[schema.Name] = true
+    g.sharedTypes = append(g.sharedTypes, schema)
+}
+```
+
+**Prevention**: Always deduplicate when loading from multiple schema directories.
+
+**Learnings**: 2026-01-24 - Type deduplication requirement
 
 ---
 
