@@ -1,11 +1,13 @@
 package workflow
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
 // =============================================================================
@@ -29,7 +31,7 @@ func TestWorkflowToProto_NilFields(t *testing.T) {
 					Version:   "1.0.0",
 				},
 				Tasks:                []*Task{{Name: "t1", Kind: TaskKindSet, Config: &SetTaskConfig{Variables: map[string]string{"x": "y"}}}},
-				EnvironmentVariables: nil, // nil slice
+				EnvironmentVariables: nil, // nil slice - this is valid
 			},
 			wantErr: false,
 		},
@@ -42,9 +44,9 @@ func TestWorkflowToProto_NilFields(t *testing.T) {
 					Name:      "test-workflow",
 					Version:   "1.0.0",
 				},
-				Tasks: []*Task{}, // empty slice
+				Tasks: []*Task{}, // empty slice - validation requires at least 1 task
 			},
-			wantErr: false,
+			wantErr: true, // Changed: validation requires at least 1 task
 		},
 		{
 			name: "nil task config",
@@ -56,17 +58,17 @@ func TestWorkflowToProto_NilFields(t *testing.T) {
 					Version:   "1.0.0",
 				},
 				Tasks: []*Task{
-					{Name: "nilConfig", Kind: TaskKindSet, Config: nil}, // nil config
+					{Name: "nilConfig", Kind: TaskKindSet, Config: nil}, // nil config - not allowed
 				},
 			},
-			wantErr: false,
+			wantErr: true, // Changed: nil config is explicitly rejected
 		},
 		{
 			name: "empty string fields",
 			wf: &Workflow{
 				Document: Document{
 					DSL:       "1.0.0",
-					Namespace: "",      // empty
+					Namespace: "", // empty - validation requires namespace
 					Name:      "test",
 					Version:   "1.0.0",
 				},
@@ -74,7 +76,7 @@ func TestWorkflowToProto_NilFields(t *testing.T) {
 				Slug:        "", // empty
 				Tasks:       []*Task{{Name: "t1", Kind: TaskKindSet, Config: &SetTaskConfig{Variables: map[string]string{"x": "y"}}}},
 			},
-			wantErr: false,
+			wantErr: true, // Changed: validation requires namespace
 		},
 	}
 
@@ -106,22 +108,22 @@ func TestWorkflowToProto_MaximumFields(t *testing.T) {
 	tasks := make([]*Task, 100)
 	for i := 0; i < 100; i++ {
 		tasks[i] = &Task{
-			Name: "task" + string(rune('0'+i%10)),
+			Name: fmt.Sprintf("task%d", i), // Use unique names
 			Kind: TaskKindSet,
 			Config: &SetTaskConfig{
 				Variables: map[string]string{
-					"var" + string(rune('0'+i%10)): "value" + string(rune('0'+i%10)),
+					fmt.Sprintf("var%d", i): fmt.Sprintf("value%d", i),
 				},
 			},
 		}
 	}
 
-	// Create many environment variables (50)
+	// Create many environment variables (50) with unique names
 	envVars := make([]environment.Variable, 50)
 	for i := 0; i < 50; i++ {
 		env, _ := environment.New(
-			environment.WithName("ENV_VAR_"+string(rune('0'+i%10))),
-			environment.WithDefaultValue("value"+string(rune('0'+i%10))),
+			environment.WithName(fmt.Sprintf("ENV_VAR_%d", i)), // Use unique names
+			environment.WithDefaultValue(fmt.Sprintf("value%d", i)),
 		)
 		envVars[i] = env
 	}
@@ -204,27 +206,11 @@ func TestWorkflowToProto_DeepTaskNesting(t *testing.T) {
 				Name: "level1",
 				Kind: TaskKindSwitch,
 				Config: &SwitchTaskConfig{
-					Cases: []map[string]interface{}{
+					Cases: []*types.SwitchCase{
 						{
-							"condition": "true",
-							"then": map[string]interface{}{
-								"name": "level2",
-								"kind": "FOR",
-								"config": map[string]interface{}{
-									"in": "${items}",
-									"do": []map[string]interface{}{
-										{
-											"name": "level3",
-											"kind": "TRY",
-											"config": map[string]interface{}{
-												"tasks": []map[string]interface{}{
-													{"name": "deepTask"},
-												},
-											},
-										},
-									},
-								},
-							},
+							Name: "trueCase",
+							When: "true",
+							Then: "level2",
 						},
 					},
 				},
@@ -302,7 +288,7 @@ func TestWorkflow_ConcurrentTaskAddition(t *testing.T) {
 		Tasks: []*Task{},
 	}
 
-	// Concurrently add 50 tasks
+	// Concurrently add 50 tasks using thread-safe AddTask method
 	var wg sync.WaitGroup
 	for i := 0; i < 50; i++ {
 		wg.Add(1)
@@ -315,15 +301,22 @@ func TestWorkflow_ConcurrentTaskAddition(t *testing.T) {
 					Variables: map[string]string{"idx": string(rune('0' + idx%10))},
 				},
 			}
-			wf.Tasks = append(wf.Tasks, task)
+			wf.AddTask(task)
 		}(i)
 	}
 
 	wg.Wait()
 
-	// Verify tasks were added (may not be exactly 50 due to race conditions)
-	// This test documents current behavior - not necessarily safe
-	t.Logf("Tasks added concurrently: %d (expected ~50, actual count varies due to race)", len(wf.Tasks))
+	// Verify all 50 tasks were added successfully
+	// With thread-safe implementation, we should get exactly 50 tasks
+	wf.mu.Lock()
+	taskCount := len(wf.Tasks)
+	wf.mu.Unlock()
+
+	if taskCount != 50 {
+		t.Errorf("Expected 50 tasks, got %d", taskCount)
+	}
+	t.Logf("Tasks added concurrently: %d (expected 50)", taskCount)
 }
 
 // =============================================================================
@@ -332,40 +325,67 @@ func TestWorkflow_ConcurrentTaskAddition(t *testing.T) {
 
 // TestWorkflowToProto_EmptyMaps tests tasks with empty map configurations.
 func TestWorkflowToProto_EmptyMaps(t *testing.T) {
-	wf := &Workflow{
-		Document: Document{
-			DSL:       "1.0.0",
-			Namespace: "test",
-			Name:      "empty-maps",
-			Version:   "1.0.0",
-		},
-		Tasks: []*Task{
-			{
+	tests := []struct {
+		name    string
+		task    *Task
+		wantErr bool
+	}{
+		{
+			name: "empty variables in SET task",
+			task: &Task{
 				Name: "emptyVars",
 				Kind: TaskKindSet,
 				Config: &SetTaskConfig{
-					Variables: map[string]string{}, // empty map
+					Variables: map[string]string{}, // empty map - validation requires at least 1
 				},
 			},
-			{
+			wantErr: true, // SET task must have at least one variable
+		},
+		{
+			name: "empty headers in HTTP task",
+			task: &Task{
 				Name: "emptyHeaders",
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
-					Method:  "GET",
-					URI:     "https://example.com",
-					Headers: map[string]string{}, // empty map
+					Method:         "GET",
+					Endpoint:       &types.HttpEndpoint{Uri: "https://example.com"},
+					Headers:        map[string]string{}, // empty map - this is valid (headers are optional)
+					TimeoutSeconds: 30,                  // Set valid timeout
 				},
 			},
+			wantErr: false, // Empty headers are valid
 		},
 	}
 
-	proto, err := wf.ToProto()
-	if err != nil {
-		t.Fatalf("ToProto() failed with empty maps: %v", err)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wf := &Workflow{
+				Document: Document{
+					DSL:       "1.0.0",
+					Namespace: "test",
+					Name:      "empty-maps",
+					Version:   "1.0.0",
+				},
+				Tasks: []*Task{tt.task},
+			}
 
-	if proto == nil {
-		t.Fatal("Proto should not be nil")
+			proto, err := wf.ToProto()
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
+			if proto == nil {
+				t.Fatal("Proto should not be nil")
+			}
+		})
 	}
 }
 
@@ -376,30 +396,52 @@ func TestWorkflowToProto_EmptyMaps(t *testing.T) {
 // TestWorkflowToProto_HttpCallEdgeCases tests HTTP call edge cases.
 func TestWorkflowToProto_HttpCallEdgeCases(t *testing.T) {
 	tests := []struct {
-		name   string
-		config *HttpCallTaskConfig
+		name    string
+		config  *HttpCallTaskConfig
+		wantErr bool
 	}{
 		{
 			name: "zero timeout",
 			config: &HttpCallTaskConfig{
 				Method:         "GET",
-				URI:            "https://example.com",
-				TimeoutSeconds: 0, // zero timeout
+				Endpoint:       &types.HttpEndpoint{Uri: "https://example.com"},
+				TimeoutSeconds: 0, // zero timeout - proto validation requires >= 1
 			},
+			wantErr: true, // Proto validation requires timeout_seconds >= 1
+		},
+		{
+			name: "minimum valid timeout",
+			config: &HttpCallTaskConfig{
+				Method:         "GET",
+				Endpoint:       &types.HttpEndpoint{Uri: "https://example.com"},
+				TimeoutSeconds: 1, // minimum valid timeout
+			},
+			wantErr: false,
+		},
+		{
+			name: "maximum valid timeout",
+			config: &HttpCallTaskConfig{
+				Method:         "GET",
+				Endpoint:       &types.HttpEndpoint{Uri: "https://example.com"},
+				TimeoutSeconds: 300, // 5 minutes - maximum allowed
+			},
+			wantErr: false,
 		},
 		{
 			name: "very large timeout",
 			config: &HttpCallTaskConfig{
 				Method:         "GET",
-				URI:            "https://example.com",
-				TimeoutSeconds: 86400, // 24 hours
+				Endpoint:       &types.HttpEndpoint{Uri: "https://example.com"},
+				TimeoutSeconds: 86400, // 24 hours - exceeds maximum of 300
 			},
+			wantErr: true, // Proto validation requires timeout_seconds <= 300
 		},
 		{
 			name: "many headers",
 			config: &HttpCallTaskConfig{
-				Method: "POST",
-				URI:    "https://example.com",
+				Method:         "POST",
+				Endpoint:       &types.HttpEndpoint{Uri: "https://example.com"},
+				TimeoutSeconds: 30, // Set valid timeout
 				Headers: map[string]string{
 					"Header1":  "value1",
 					"Header2":  "value2",
@@ -413,13 +455,16 @@ func TestWorkflowToProto_HttpCallEdgeCases(t *testing.T) {
 					"Header10": "value10",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "very long URI",
 			config: &HttpCallTaskConfig{
-				Method: "GET",
-				URI:    "https://example.com/very/long/path/" + strings.Repeat("segment/", 50),
+				Method:         "GET",
+				Endpoint:       &types.HttpEndpoint{Uri: "https://example.com/very/long/path/" + strings.Repeat("segment/", 50)},
+				TimeoutSeconds: 30, // Set valid timeout
 			},
+			wantErr: false,
 		},
 	}
 
@@ -442,6 +487,14 @@ func TestWorkflowToProto_HttpCallEdgeCases(t *testing.T) {
 			}
 
 			proto, err := wf.ToProto()
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error for %s but got none", tt.name)
+				}
+				return
+			}
+
 			if err != nil {
 				t.Fatalf("ToProto() failed for %s: %v", tt.name, err)
 			}
@@ -456,8 +509,9 @@ func TestWorkflowToProto_HttpCallEdgeCases(t *testing.T) {
 // TestWorkflowToProto_AgentCallEdgeCases tests agent call edge cases.
 func TestWorkflowToProto_AgentCallEdgeCases(t *testing.T) {
 	tests := []struct {
-		name   string
-		config *AgentCallTaskConfig
+		name    string
+		config  *AgentCallTaskConfig
+		wantErr bool
 	}{
 		{
 			name: "very long message",
@@ -465,6 +519,7 @@ func TestWorkflowToProto_AgentCallEdgeCases(t *testing.T) {
 				Agent:   "agent1",
 				Message: strings.Repeat("Long message ", 100), // ~1400 chars
 			},
+			wantErr: false,
 		},
 		{
 			name: "agent with special characters",
@@ -472,13 +527,15 @@ func TestWorkflowToProto_AgentCallEdgeCases(t *testing.T) {
 				Agent:   "agent-with-dash_and_underscore",
 				Message: "Test message",
 			},
+			wantErr: false,
 		},
 		{
 			name: "empty message",
 			config: &AgentCallTaskConfig{
 				Agent:   "agent1",
-				Message: "", // empty message
+				Message: "", // empty message - validation requires non-empty
 			},
+			wantErr: true, // Message is required
 		},
 	}
 
@@ -501,6 +558,14 @@ func TestWorkflowToProto_AgentCallEdgeCases(t *testing.T) {
 			}
 
 			proto, err := wf.ToProto()
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error for %s but got none", tt.name)
+				}
+				return
+			}
+
 			if err != nil {
 				t.Fatalf("ToProto() failed for %s: %v", tt.name, err)
 			}
@@ -515,16 +580,16 @@ func TestWorkflowToProto_AgentCallEdgeCases(t *testing.T) {
 // TestWorkflowToProto_WaitEdgeCases tests wait task edge cases.
 func TestWorkflowToProto_WaitEdgeCases(t *testing.T) {
 	tests := []struct {
-		name     string
-		duration string
+		name    string
+		seconds int32
 	}{
-		{name: "1 millisecond", duration: "1ms"},
-		{name: "1 second", duration: "1s"},
-		{name: "1 minute", duration: "1m"},
-		{name: "1 hour", duration: "1h"},
-		{name: "24 hours", duration: "24h"},
-		{name: "complex duration", duration: "1h30m45s"},
-		{name: "very precise", duration: "1h2m3s4ms5us6ns"},
+		{name: "1 second", seconds: 1},
+		{name: "5 seconds", seconds: 5},
+		{name: "1 minute", seconds: 60},
+		{name: "1 hour", seconds: 3600},
+		{name: "24 hours", seconds: 86400},
+		{name: "complex duration", seconds: 5445}, // 1h30m45s = 5445 seconds
+		{name: "very long wait", seconds: 7200},   // 2 hours
 	}
 
 	for _, tt := range tests {
@@ -541,7 +606,7 @@ func TestWorkflowToProto_WaitEdgeCases(t *testing.T) {
 						Name: "waitTask",
 						Kind: TaskKindWait,
 						Config: &WaitTaskConfig{
-							Duration: tt.duration,
+							Seconds: tt.seconds,
 						},
 					},
 				},

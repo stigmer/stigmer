@@ -55,7 +55,7 @@ type Task struct {
 
 // TaskConfig is a marker interface for task configurations.
 type TaskConfig interface {
-	isTaskConfig()
+	IsTaskConfig()
 }
 
 // ============================================================================
@@ -104,6 +104,127 @@ func (r TaskFieldRef) TaskName() string {
 // FieldName returns the name of the field being referenced.
 func (r TaskFieldRef) FieldName() string {
 	return r.fieldName
+}
+
+// ============================================================================
+// TaskFieldRef Condition Helpers - Fluent API for building conditions
+// ============================================================================
+
+// Equals creates a condition expression checking if this field equals the given value.
+// Returns a string expression suitable for use in SWITCH cases or other conditional logic.
+//
+// Example:
+//
+//	statusCode := fetchTask.Field("statusCode")
+//	condition := statusCode.Equals(200)  // "${ $context["fetchTask"].statusCode == 200 }"
+func (r TaskFieldRef) Equals(value interface{}) string {
+	return fmt.Sprintf("%s == %v", r.Expression(), formatValue(value))
+}
+
+// NotEquals creates a condition expression checking if this field does not equal the given value.
+//
+// Example:
+//
+//	status := checkTask.Field("status")
+//	condition := status.NotEquals("failed")  // "${ $context["checkTask"].status != \"failed\" }"
+func (r TaskFieldRef) NotEquals(value interface{}) string {
+	return fmt.Sprintf("%s != %v", r.Expression(), formatValue(value))
+}
+
+// GreaterThan creates a condition expression checking if this field is greater than the given value.
+//
+// Example:
+//
+//	count := fetchTask.Field("count")
+//	condition := count.GreaterThan(100)  // "${ $context["fetchTask"].count > 100 }"
+func (r TaskFieldRef) GreaterThan(value interface{}) string {
+	return fmt.Sprintf("%s > %v", r.Expression(), formatValue(value))
+}
+
+// GreaterThanOrEqual creates a condition expression checking if this field is greater than or equal to the given value.
+//
+// Example:
+//
+//	score := gameTask.Field("score")
+//	condition := score.GreaterThanOrEqual(50)  // "${ $context["gameTask"].score >= 50 }"
+func (r TaskFieldRef) GreaterThanOrEqual(value interface{}) string {
+	return fmt.Sprintf("%s >= %v", r.Expression(), formatValue(value))
+}
+
+// LessThan creates a condition expression checking if this field is less than the given value.
+//
+// Example:
+//
+//	age := userTask.Field("age")
+//	condition := age.LessThan(18)  // "${ $context["userTask"].age < 18 }"
+func (r TaskFieldRef) LessThan(value interface{}) string {
+	return fmt.Sprintf("%s < %v", r.Expression(), formatValue(value))
+}
+
+// LessThanOrEqual creates a condition expression checking if this field is less than or equal to the given value.
+//
+// Example:
+//
+//	retries := checkTask.Field("retries")
+//	condition := retries.LessThanOrEqual(3)  // "${ $context["checkTask"].retries <= 3 }"
+func (r TaskFieldRef) LessThanOrEqual(value interface{}) string {
+	return fmt.Sprintf("%s <= %v", r.Expression(), formatValue(value))
+}
+
+// Contains creates a condition expression checking if this string field contains the given substring.
+//
+// Example:
+//
+//	message := fetchTask.Field("message")
+//	condition := message.Contains("error")  // "${ $context["fetchTask"].message | contains(\"error\") }"
+func (r TaskFieldRef) Contains(substring string) string {
+	return fmt.Sprintf("%s | contains(%s)", r.Expression(), formatValue(substring))
+}
+
+// StartsWith creates a condition expression checking if this string field starts with the given prefix.
+//
+// Example:
+//
+//	url := fetchTask.Field("url")
+//	condition := url.StartsWith("https://")  // "${ $context["fetchTask"].url | startswith(\"https://\") }"
+func (r TaskFieldRef) StartsWith(prefix string) string {
+	return fmt.Sprintf("%s | startswith(%s)", r.Expression(), formatValue(prefix))
+}
+
+// EndsWith creates a condition expression checking if this string field ends with the given suffix.
+//
+// Example:
+//
+//	filename := fetchTask.Field("filename")
+//	condition := filename.EndsWith(".json")  // "${ $context["fetchTask"].filename | endswith(\".json\") }"
+func (r TaskFieldRef) EndsWith(suffix string) string {
+	return fmt.Sprintf("%s | endswith(%s)", r.Expression(), formatValue(suffix))
+}
+
+// In creates a condition expression checking if this field's value is in the given array.
+//
+// Example:
+//
+//	status := checkTask.Field("status")
+//	condition := status.In([]string{"active", "pending", "running"})
+func (r TaskFieldRef) In(values interface{}) string {
+	return fmt.Sprintf("%s | IN(%v)", r.Expression(), values)
+}
+
+// formatValue formats a value for use in JQ expressions.
+// Strings are quoted, numbers and booleans are passed through.
+func formatValue(value interface{}) string {
+	switch v := value.(type) {
+	case string:
+		return fmt.Sprintf("%q", v)
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		return fmt.Sprintf("%v", v)
+	case bool:
+		return fmt.Sprintf("%v", v)
+	default:
+		// For complex types, use fmt.Sprintf with quotes
+		return fmt.Sprintf("%q", fmt.Sprintf("%v", v))
+	}
 }
 
 // Field creates a typed reference to an output field of this task.

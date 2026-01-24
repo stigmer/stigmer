@@ -222,12 +222,11 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto protoreflect.File
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\n" +
-	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x8e\x03\n" +
+	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"\x92\x03\n" +
 	"\x13AgentCallTaskConfig\x12\"\n" +
 	"\x05agent\x18\x01 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18?R\x05agent\x12K\n" +
-	"\x05scope\x18\x02 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeR\x05scope\x12$\n" +
-	"\amessage\x18\x03 \x01(\tB\n" +
-	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\amessage\x12T\n" +
+	"\x05scope\x18\x02 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeR\x05scope\x12(\n" +
+	"\amessage\x18\x03 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\amessage\x12T\n" +
 	"\x03env\x18\x04 \x03(\v2B.ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntryR\x03env\x12R\n" +
 	"\x06config\x18\x05 \x01(\v2:.ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfigR\x06config\x1a6\n" +
 	"\bEnvEntry\x12\x10\n" +

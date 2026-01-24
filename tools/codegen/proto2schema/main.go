@@ -57,17 +57,18 @@ type TypeSchema struct {
 }
 
 type FieldSchema struct {
-	Name        string         `json:"name"`
-	JsonName    string         `json:"jsonName"`
-	ProtoField  string         `json:"protoField"`
-	Type        TypeSpec       `json:"type"`
-	Description string         `json:"description"`
-	Required    bool           `json:"required"`
-	Validation  *Validation    `json:"validation,omitempty"`
+	Name         string      `json:"name"`
+	JsonName     string      `json:"jsonName"`
+	ProtoField   string      `json:"protoField"`
+	Type         TypeSpec    `json:"type"`
+	Description  string      `json:"description"`
+	Required     bool        `json:"required"`
+	IsExpression bool        `json:"isExpression,omitempty"`
+	Validation   *Validation `json:"validation,omitempty"`
 }
 
 type TypeSpec struct {
-	Kind        string    `json:"kind"` // string, int32, bool, map, array, message, struct
+	Kind        string    `json:"kind"`                  // string, int32, bool, map, array, message, struct
 	KeyType     *TypeSpec `json:"keyType,omitempty"`     // for map
 	ValueType   *TypeSpec `json:"valueType,omitempty"`   // for map
 	ElementType *TypeSpec `json:"elementType,omitempty"` // for array
@@ -90,13 +91,25 @@ func main() {
 	protoDir := flag.String("proto-dir", "", "Directory containing .proto files")
 	outputDir := flag.String("output-dir", "", "Output directory for JSON schemas")
 	includeDir := flag.String("include-dir", "apis", "Directory containing proto imports")
-	stubDir := flag.String("stub-dir", "/tmp/proto-stubs", "Directory containing proto stubs (like buf/validate)")
+	useBufCache := flag.Bool("use-buf-cache", true, "Use buf's module cache for dependencies")
 	messageSuffix := flag.String("message-suffix", "TaskConfig", "Suffix of messages to extract (TaskConfig, Spec, etc)")
+	comprehensive := flag.Bool("comprehensive", false, "Generate schemas for ALL proto namespaces under agentic/")
 	flag.Parse()
 
-	if *protoDir == "" || *outputDir == "" {
-		fmt.Println("Usage: proto2schema --proto-dir <dir> --output-dir <dir> [--include-dir <dir>] [--stub-dir <dir>] [--message-suffix <suffix>]")
+	if !*comprehensive && (*protoDir == "" || *outputDir == "") {
+		fmt.Println("Usage: proto2schema --proto-dir <dir> --output-dir <dir> [--include-dir <dir>] [--use-buf-cache] [--message-suffix <suffix>]")
+		fmt.Println("   OR: proto2schema --comprehensive [--include-dir <dir>] [--output-dir <dir>]")
 		os.Exit(1)
+	}
+
+	if *comprehensive {
+		// Comprehensive mode: scan all agentic namespaces
+		fmt.Println("🚀 Comprehensive schema generation mode")
+		if err := runComprehensiveGeneration(*includeDir, *outputDir, *useBufCache); err != nil {
+			fmt.Printf("Error in comprehensive generation: %v\n", err)
+			os.Exit(1)
+		}
+		return
 	}
 
 	fmt.Printf("Converting proto files from %s to JSON schemas in %s\n", *protoDir, *outputDir)
@@ -116,9 +129,33 @@ func main() {
 
 	fmt.Printf("Found %d proto files\n", len(protoFiles))
 
-	// Build import paths (stub-dir first for external deps, then include-dir for local)
-	importPaths := []string{*stubDir, *includeDir}
-	
+	// Build import paths
+	importPaths := []string{*includeDir}
+
+	// Add buf module cache if enabled (for dependencies like buf/validate)
+	if *useBufCache {
+		// Buf v3 cache structure: ~/.cache/buf/v3/modules/<digest>/<org>/<repo>/<commit>/files/
+		// We need to find the protovalidate module
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			bufCachePath := filepath.Join(homeDir, ".cache", "buf", "v3", "modules", "b5", "buf.build", "bufbuild", "protovalidate")
+			// Find the latest commit directory
+			if entries, err := os.ReadDir(bufCachePath); err == nil && len(entries) > 0 {
+				// Use the first (most recent) commit hash directory
+				for _, entry := range entries {
+					if entry.IsDir() {
+						filesPath := filepath.Join(bufCachePath, entry.Name(), "files")
+						if _, err := os.Stat(filesPath); err == nil {
+							importPaths = append([]string{filesPath}, importPaths...)
+							fmt.Printf("Using buf cache: %s\n", filesPath)
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// Parse proto files
 	parser := &protoparse.Parser{
 		ImportPaths:           importPaths,
@@ -145,44 +182,44 @@ func main() {
 	// Track all message types we've seen
 	taskConfigs := make(map[string]*TaskConfigSchema)
 	sharedTypes := make(map[string]*TypeSchema)
-	
+
 	// First pass: Extract all messages with the specified suffix
 	for _, fd := range fileDescriptors {
 		fmt.Printf("\nProcessing %s...\n", fd.GetName())
-		
+
 		// Find messages with the specified suffix in this file
 		for _, msg := range fd.GetMessageTypes() {
 			if strings.HasSuffix(msg.GetName(), *messageSuffix) {
 				fmt.Printf("  Found message: %s\n", msg.GetName())
-				
+
 				schema, err := parseTaskConfig(msg, fd)
 				if err != nil {
 					fmt.Printf("  Error parsing message: %v\n", err)
 					continue
 				}
-				
+
 				taskConfigs[msg.GetName()] = schema
-				
+
 				// Also collect any nested message types referenced by this message
 				collectNestedTypes(msg, fd, sharedTypes)
 			}
 		}
 	}
-	
+
 	// Write message schemas
 	fmt.Printf("\nWriting message schemas...\n")
 	for name, schema := range taskConfigs {
 		baseName := strings.ToLower(strings.TrimSuffix(name, *messageSuffix))
 		schemaFile := filepath.Join(*outputDir, baseName+".json")
-		
+
 		if err := writeSchemaFile(schema, schemaFile); err != nil {
 			fmt.Printf("  Error writing %s: %v\n", baseName, err)
 			continue
 		}
-		
+
 		fmt.Printf("  → %s\n", schemaFile)
 	}
-	
+
 	// Write shared type schemas to a types subdirectory
 	if len(sharedTypes) > 0 {
 		typesDir := filepath.Join(filepath.Dir(*outputDir), "types")
@@ -193,18 +230,190 @@ func main() {
 			for name, typeSchema := range sharedTypes {
 				baseName := strings.ToLower(name)
 				schemaFile := filepath.Join(typesDir, baseName+".json")
-				
+
 				if err := writeSchemaFile(typeSchema, schemaFile); err != nil {
 					fmt.Printf("  Error writing %s: %v\n", baseName, err)
 					continue
 				}
-				
+
 				fmt.Printf("  → %s\n", schemaFile)
 			}
 		}
 	}
 
 	fmt.Println("\n✅ Schema generation complete!")
+}
+
+// runComprehensiveGeneration scans all proto namespaces and generates schemas
+func runComprehensiveGeneration(includeDir, baseOutputDir string, useBufCache bool) error {
+	// Default output directory
+	if baseOutputDir == "" {
+		baseOutputDir = "tools/codegen/schemas"
+	}
+
+	// Find all agentic namespaces
+	agenticDir := filepath.Join(includeDir, "ai", "stigmer", "agentic")
+	namespaces, err := os.ReadDir(agenticDir)
+	if err != nil {
+		return fmt.Errorf("failed to read agentic directory: %w", err)
+	}
+
+	fmt.Printf("📁 Scanning namespaces in %s\n\n", agenticDir)
+
+	// Process each namespace
+	for _, ns := range namespaces {
+		if !ns.IsDir() {
+			continue
+		}
+
+		namespaceName := ns.Name()
+
+		// Skip certain directories
+		if namespaceName == "session" {
+			fmt.Printf("⏭️  Skipping %s (internal only)\n", namespaceName)
+			continue
+		}
+
+		fmt.Printf("📦 Processing namespace: %s\n", namespaceName)
+
+		// Path to proto files for this namespace
+		protoDir := filepath.Join(agenticDir, namespaceName, "v1")
+		if _, err := os.Stat(protoDir); os.IsNotExist(err) {
+			fmt.Printf("   ⚠️  No v1 directory found, skipping\n")
+			continue
+		}
+
+		// Output directory for this namespace
+		outputDir := filepath.Join(baseOutputDir, namespaceName)
+
+		// Generate schemas for Spec messages
+		if err := generateNamespaceSchemas(protoDir, outputDir, includeDir, useBufCache, "Spec"); err != nil {
+			fmt.Printf("   ❌ Error: %v\n", err)
+			continue
+		}
+
+		fmt.Printf("   ✅ Generated schemas for %s\n\n", namespaceName)
+	}
+
+	// Also process workflow tasks (special case)
+	fmt.Printf("📦 Processing workflow tasks\n")
+	workflowTasksDir := filepath.Join(agenticDir, "workflow", "v1", "tasks")
+	tasksOutputDir := filepath.Join(baseOutputDir, "tasks")
+	if err := generateNamespaceSchemas(workflowTasksDir, tasksOutputDir, includeDir, useBufCache, "TaskConfig"); err != nil {
+		fmt.Printf("   ❌ Error: %v\n", err)
+	} else {
+		fmt.Printf("   ✅ Generated workflow task schemas\n\n")
+	}
+
+	fmt.Println("🎉 Comprehensive schema generation complete!")
+	return nil
+}
+
+// generateNamespaceSchemas generates schemas for a specific namespace
+func generateNamespaceSchemas(protoDir, outputDir, includeDir string, useBufCache bool, messageSuffix string) error {
+	// Create output directory
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	// Find all .proto files
+	protoFiles, err := findProtoFiles(protoDir)
+	if err != nil {
+		return fmt.Errorf("failed to find proto files: %w", err)
+	}
+
+	if len(protoFiles) == 0 {
+		return nil // No proto files, skip
+	}
+
+	// Build import paths
+	importPaths := []string{includeDir}
+
+	// Add buf module cache if enabled
+	if useBufCache {
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			bufCachePath := filepath.Join(homeDir, ".cache", "buf", "v3", "modules", "b5", "buf.build", "bufbuild", "protovalidate")
+			if entries, err := os.ReadDir(bufCachePath); err == nil && len(entries) > 0 {
+				for _, entry := range entries {
+					if entry.IsDir() {
+						filesPath := filepath.Join(bufCachePath, entry.Name(), "files")
+						if _, err := os.Stat(filesPath); err == nil {
+							importPaths = append([]string{filesPath}, importPaths...)
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Parse proto files
+	parser := &protoparse.Parser{
+		ImportPaths:           importPaths,
+		IncludeSourceCodeInfo: true,
+	}
+
+	// Convert paths to relative paths from include dir
+	var relativeProtoFiles []string
+	for _, protoFile := range protoFiles {
+		relPath, err := filepath.Rel(includeDir, protoFile)
+		if err != nil {
+			return fmt.Errorf("failed to get relative path for %s: %w", protoFile, err)
+		}
+		relativeProtoFiles = append(relativeProtoFiles, relPath)
+	}
+
+	fileDescriptors, err := parser.ParseFiles(relativeProtoFiles...)
+	if err != nil {
+		return fmt.Errorf("failed to parse proto files: %w", err)
+	}
+
+	// Track all message types
+	taskConfigs := make(map[string]*TaskConfigSchema)
+	sharedTypes := make(map[string]*TypeSchema)
+
+	// Extract all messages with the specified suffix
+	for _, fd := range fileDescriptors {
+		for _, msg := range fd.GetMessageTypes() {
+			if strings.HasSuffix(msg.GetName(), messageSuffix) {
+				schema, err := parseTaskConfig(msg, fd)
+				if err != nil {
+					continue
+				}
+				taskConfigs[msg.GetName()] = schema
+				collectNestedTypes(msg, fd, sharedTypes)
+			}
+		}
+	}
+
+	// Write message schemas
+	for name, schema := range taskConfigs {
+		baseName := strings.ToLower(strings.TrimSuffix(name, messageSuffix))
+		schemaFile := filepath.Join(outputDir, baseName+".json")
+
+		if err := writeSchemaFile(schema, schemaFile); err != nil {
+			continue
+		}
+		fmt.Printf("   → %s\n", filepath.Base(schemaFile))
+	}
+
+	// Write shared type schemas to a types subdirectory
+	if len(sharedTypes) > 0 {
+		typesDir := filepath.Join(outputDir, "types")
+		if err := os.MkdirAll(typesDir, 0755); err == nil {
+			for name, typeSchema := range sharedTypes {
+				baseName := strings.ToLower(name)
+				schemaFile := filepath.Join(typesDir, baseName+".json")
+				if err := writeSchemaFile(typeSchema, schemaFile); err != nil {
+					continue
+				}
+				fmt.Printf("   → types/%s\n", filepath.Base(schemaFile))
+			}
+		}
+	}
+
+	return nil
 }
 
 func findProtoFiles(dir string) ([]string, error) {
@@ -250,16 +459,16 @@ func collectNestedTypes(msg *desc.MessageDescriptor, fd *desc.FileDescriptor, sh
 		} else if field.GetType() == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
 			msgType := field.GetMessageType()
 			// Skip google.protobuf types and map entry types
-			if msgType != nil && 
-			   !strings.HasPrefix(msgType.GetFullyQualifiedName(), "google.protobuf") &&
-			   !msgType.IsMapEntry() {
+			if msgType != nil &&
+				!strings.HasPrefix(msgType.GetFullyQualifiedName(), "google.protobuf") &&
+				!msgType.IsMapEntry() {
 				typeName := msgType.GetName()
 				if _, exists := sharedTypes[typeName]; !exists {
 					// Get the file descriptor for this message type
 					msgFd := msgType.GetFile()
 					sharedTypes[typeName] = parseSharedType(msgType, msgFd)
 					fmt.Printf("    Found shared type: %s\n", typeName)
-					
+
 					// Recursively collect types referenced by this type
 					collectNestedTypes(msgType, msgFd, sharedTypes)
 				}
@@ -272,13 +481,13 @@ func collectNestedTypes(msg *desc.MessageDescriptor, fd *desc.FileDescriptor, sh
 func parseSharedType(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) *TypeSchema {
 	// Extract description from message comments
 	description := extractComments(msg)
-	
+
 	// Build proto type name
 	protoType := fmt.Sprintf("%s.%s", fd.GetPackage(), msg.GetName())
-	
+
 	// Build proto file path relative to apis/
 	protoFile := fd.GetName()
-	
+
 	schema := &TypeSchema{
 		Name:        msg.GetName(),
 		Description: description,
@@ -286,7 +495,7 @@ func parseSharedType(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) *Type
 		ProtoFile:   filepath.Join("apis", protoFile),
 		Fields:      make([]*FieldSchema, 0),
 	}
-	
+
 	// Parse fields
 	for _, field := range msg.GetFields() {
 		fieldSchema, err := extractFieldSchema(field)
@@ -296,7 +505,7 @@ func parseSharedType(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) *Type
 		}
 		schema.Fields = append(schema.Fields, fieldSchema)
 	}
-	
+
 	return schema
 }
 
@@ -304,16 +513,16 @@ func parseSharedType(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) *Type
 func parseTaskConfig(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) (*TaskConfigSchema, error) {
 	// Extract task kind from message name (e.g., SetTaskConfig → SET)
 	kind := extractTaskKind(msg.GetName())
-	
+
 	// Extract description from message comments
 	description := extractComments(msg)
-	
+
 	// Build proto type name
 	protoType := fmt.Sprintf("%s.%s", fd.GetPackage(), msg.GetName())
-	
+
 	// Build proto file path relative to apis/
 	protoFile := fd.GetName()
-	
+
 	schema := &TaskConfigSchema{
 		Name:        msg.GetName(),
 		Kind:        kind,
@@ -322,7 +531,7 @@ func parseTaskConfig(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) (*Tas
 		ProtoFile:   filepath.Join("apis", protoFile),
 		Fields:      make([]*FieldSchema, 0),
 	}
-	
+
 	// Parse fields
 	for _, field := range msg.GetFields() {
 		fieldSchema, err := extractFieldSchema(field)
@@ -331,7 +540,7 @@ func parseTaskConfig(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) (*Tas
 		}
 		schema.Fields = append(schema.Fields, fieldSchema)
 	}
-	
+
 	return schema, nil
 }
 
@@ -339,26 +548,27 @@ func parseTaskConfig(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) (*Tas
 func extractFieldSchema(field *desc.FieldDescriptor) (*FieldSchema, error) {
 	// Extract field description from comments
 	description := extractFieldComments(field)
-	
+
 	// Build field schema
 	fieldSchema := &FieldSchema{
-		Name:        strings.Title(strings.ReplaceAll(field.GetName(), "_", " ")),
-		JsonName:    field.GetJSONName(),
-		ProtoField:  field.GetName(),
-		Type:        extractTypeSpec(field),
-		Description: description,
-		Required:    false,
-		Validation:  extractValidation(field),
+		Name:         strings.Title(strings.ReplaceAll(field.GetName(), "_", " ")),
+		JsonName:     field.GetJSONName(),
+		ProtoField:   field.GetName(),
+		Type:         extractTypeSpec(field),
+		Description:  description,
+		Required:     false,
+		IsExpression: extractIsExpression(field),
+		Validation:   extractValidation(field),
 	}
-	
+
 	// Capitalize field name properly
 	fieldSchema.Name = toCamelCase(field.GetName(), true)
-	
+
 	// Check if field is required from buf.validate
 	if fieldSchema.Validation != nil && fieldSchema.Validation.Required {
 		fieldSchema.Required = true
 	}
-	
+
 	return fieldSchema, nil
 }
 
@@ -368,17 +578,17 @@ func extractTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 	if field.IsMap() {
 		keyField := field.GetMapKeyType()
 		valueField := field.GetMapValueType()
-		
+
 		keyType := extractScalarTypeSpec(keyField)
 		valueType := extractScalarTypeSpec(valueField)
-		
+
 		return TypeSpec{
 			Kind:      "map",
 			KeyType:   &keyType,
 			ValueType: &valueType,
 		}
 	}
-	
+
 	// Handle repeated fields (arrays)
 	if field.IsRepeated() {
 		elementType := extractScalarTypeSpec(field)
@@ -387,7 +597,7 @@ func extractTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 			ElementType: &elementType,
 		}
 	}
-	
+
 	// Handle scalar or message fields
 	return extractScalarTypeSpec(field)
 }
@@ -411,12 +621,12 @@ func extractScalarTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 		return TypeSpec{Kind: "bytes"}
 	case descriptorpb.FieldDescriptorProto_TYPE_MESSAGE:
 		msgType := field.GetMessageType()
-		
+
 		// Special handling for google.protobuf.Struct
 		if msgType.GetFullyQualifiedName() == "google.protobuf.Struct" {
 			return TypeSpec{Kind: "struct"}
 		}
-		
+
 		// Regular message type
 		return TypeSpec{
 			Kind:        "message",
@@ -436,34 +646,34 @@ func extractValidation(field *desc.FieldDescriptor) *Validation {
 	if opts == nil {
 		return nil
 	}
-	
+
 	validation := &Validation{}
 	hasValidation := false
-	
+
 	// Get the full proto text representation of the field
 	// This includes all options and extensions
 	protoText := field.AsProto().String()
 	optsStr := opts.String()
-	
+
 	// Combine both to have maximum coverage
 	fullText := protoText + " " + optsStr
-	
+
 	// Check for buf.validate.field extension
 	// Multiple patterns to catch different representations
 	if strings.Contains(fullText, "[buf.validate.field]") ||
 		strings.Contains(fullText, "buf.validate.field") ||
 		strings.Contains(fullText, "1071") {
 		hasValidation = true
-		
+
 		// Check for required constraint
 		// Various patterns: "required = true", "required:true", "required: true"
 		if strings.Contains(fullText, "required") &&
-			(strings.Contains(fullText, "= true") || 
-			 strings.Contains(fullText, ":true") ||
-			 strings.Contains(fullText, ": true")) {
+			(strings.Contains(fullText, "= true") ||
+				strings.Contains(fullText, ":true") ||
+				strings.Contains(fullText, ": true")) {
 			validation.Required = true
 		}
-		
+
 		// Check for string validation (min_len, max_len)
 		if strings.Contains(fullText, "min_len") {
 			validation.MinLength = extractIntFromOptions(fullText, "min_len")
@@ -471,7 +681,7 @@ func extractValidation(field *desc.FieldDescriptor) *Validation {
 		if strings.Contains(fullText, "max_len") {
 			validation.MaxLength = extractIntFromOptions(fullText, "max_len")
 		}
-		
+
 		// Check for numeric validation (gte, lte)
 		if strings.Contains(fullText, "gte") {
 			validation.Min = extractIntFromOptions(fullText, "gte")
@@ -479,7 +689,7 @@ func extractValidation(field *desc.FieldDescriptor) *Validation {
 		if strings.Contains(fullText, "lte") {
 			validation.Max = extractIntFromOptions(fullText, "lte")
 		}
-		
+
 		// Check for array validation (min_items, max_items)
 		if strings.Contains(fullText, "min_items") {
 			validation.MinItems = extractIntFromOptions(fullText, "min_items")
@@ -488,12 +698,45 @@ func extractValidation(field *desc.FieldDescriptor) *Validation {
 			validation.MaxItems = extractIntFromOptions(fullText, "max_items")
 		}
 	}
-	
+
 	if !hasValidation {
 		return nil
 	}
-	
+
 	return validation
+}
+
+// extractIsExpression extracts the is_expression field option
+func extractIsExpression(field *desc.FieldDescriptor) bool {
+	opts := field.GetFieldOptions()
+	if opts == nil {
+		return false
+	}
+
+	// Get the full proto text representation
+	protoText := field.AsProto().String()
+	optsStr := opts.String()
+	fullText := protoText + " " + optsStr
+
+	// Check for is_expression option
+	// Patterns: "is_expression = true", "is_expression:true", "90203"
+	if strings.Contains(fullText, "is_expression") &&
+		(strings.Contains(fullText, "= true") ||
+			strings.Contains(fullText, ":true") ||
+			strings.Contains(fullText, ": true")) {
+		return true
+	}
+
+	// Also check by field number (90203)
+	// In protobuf binary format, boolean true is represented as 1
+	if strings.Contains(fullText, "90203") &&
+		(strings.Contains(fullText, ":1") ||
+			strings.Contains(fullText, " 1") ||
+			strings.Contains(fullText, "=1")) {
+		return true
+	}
+
+	return false
 }
 
 // extractIntFromOptions extracts an integer value from options string
@@ -503,29 +746,29 @@ func extractIntFromOptions(optsStr, key string) int {
 	if idx == -1 {
 		return 0
 	}
-	
+
 	// Start after the key
 	start := idx + len(key)
-	
+
 	// Skip whitespace, ":", "=", and more whitespace
 	for start < len(optsStr) && (optsStr[start] == ' ' || optsStr[start] == ':' || optsStr[start] == '=') {
 		start++
 	}
-	
+
 	end := start
-	
+
 	// Find the end of the number
 	for end < len(optsStr) && optsStr[end] >= '0' && optsStr[end] <= '9' {
 		end++
 	}
-	
+
 	if end > start {
 		numStr := optsStr[start:end]
 		var num int
 		fmt.Sscanf(numStr, "%d", &num)
 		return num
 	}
-	
+
 	return 0
 }
 
@@ -535,13 +778,13 @@ func extractComments(msg *desc.MessageDescriptor) string {
 	if sourceInfo == nil {
 		return ""
 	}
-	
+
 	comments := sourceInfo.GetLeadingComments()
 	if comments != "" {
 		// Clean up comments (remove leading/trailing whitespace)
 		comments = strings.TrimSpace(comments)
 	}
-	
+
 	return comments
 }
 
@@ -551,13 +794,13 @@ func extractFieldComments(field *desc.FieldDescriptor) string {
 	if sourceInfo == nil {
 		return ""
 	}
-	
+
 	comments := sourceInfo.GetLeadingComments()
 	if comments != "" {
 		// Clean up comments (remove leading/trailing whitespace)
 		comments = strings.TrimSpace(comments)
 	}
-	
+
 	return comments
 }
 
@@ -566,7 +809,7 @@ func extractFieldComments(field *desc.FieldDescriptor) string {
 func extractTaskKind(messageName string) string {
 	// Remove "TaskConfig" suffix
 	name := strings.TrimSuffix(messageName, "TaskConfig")
-	
+
 	// Convert camelCase to UPPER_SNAKE_CASE
 	var result []rune
 	for i, r := range name {
@@ -575,7 +818,7 @@ func extractTaskKind(messageName string) string {
 		}
 		result = append(result, r)
 	}
-	
+
 	return strings.ToUpper(string(result))
 }
 

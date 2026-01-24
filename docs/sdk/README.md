@@ -18,6 +18,9 @@ The Stigmer SDK provides language-specific SDKs for defining Agent blueprints. T
 
 ## Guides
 
+### Agent and Skill SDK
+- [Agent and Skill Struct-Based Args API](./guides/agent-skill-struct-args-api.md) - Complete guide to creating agents and skills using Pulumi-style struct args pattern (2026-01-24)
+
 ### Workflow SDK
 - [Workflow Fluent API Guide](./guides/workflow-fluent-api.md) - Comprehensive guide to using the Pulumi-style fluent API with functional options pattern for building workflows (2026-01-22)
 

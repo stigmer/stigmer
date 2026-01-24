@@ -92,6 +92,75 @@ update-deps: ## Update buf proto dependencies to latest
 	@echo "Updated versions:"
 	@grep "buf.build/gen/go" ../go.mod
 
+.PHONY: codegen-schemas
+codegen-schemas: ## Generate JSON schemas from ALL proto files (Stage 1: proto → schema)
+	@echo "============================================"
+	@echo "Stage 1: Generating JSON Schemas from Protos"
+	@echo "============================================"
+	@echo ""
+	@echo "Input:  ALL proto files (apis/ai/stigmer/agentic/**/*)"
+	@echo "Output: JSON schemas (tools/codegen/schemas/)"
+	@echo "Mode:   Comprehensive (all namespaces)"
+	@echo ""
+	@cd ../.. && go run tools/codegen/proto2schema/main.go \
+		--comprehensive \
+		--include-dir apis \
+		--output-dir tools/codegen/schemas
+	@echo ""
+	@echo "✓ JSON schemas generated for all namespaces!"
+	@echo ""
+
+.PHONY: codegen-go
+codegen-go: ## Generate Go SDK code from JSON schemas (Stage 2: schema → Go)
+	@echo "============================================"
+	@echo "Stage 2: Generating Go Code from Schemas"
+	@echo "============================================"
+	@echo ""
+	@echo "Input:  JSON schemas (tools/codegen/schemas/)"
+	@echo "Output: Go SDK files (sdk/go/gen/*/)"
+	@echo ""
+	@cd ../.. && go run tools/codegen/generator/main.go \
+		--schema-dir tools/codegen/schemas \
+		--output-dir sdk/go/gen/workflow \
+		--package workflow
+	@echo ""
+	@echo "✓ Go SDK code generated!"
+	@echo ""
+
+.PHONY: codegen
+codegen: codegen-schemas codegen-go ## Run full code generation pipeline (proto → schema → Go)
+	@echo ""
+	@echo "============================================"
+	@echo "✓ Full SDK Code Generation Complete!"
+	@echo "============================================"
+	@echo ""
+	@echo "Generated schemas for all namespaces:"
+	@echo "  • agent, agentinstance, agentexecution"
+	@echo "  • skill"
+	@echo "  • workflow, workflowinstance, workflowexecution"
+	@echo "  • environment, executioncontext"
+	@echo "  • + shared types"
+	@echo ""
+	@echo "Generated Go Args structs:"
+	@echo "  • sdk/go/gen/agent/*.go"
+	@echo "  • sdk/go/gen/agentinstance/*.go"
+	@echo "  • sdk/go/gen/agentexecution/*.go"
+	@echo "  • sdk/go/gen/skill/*.go"
+	@echo "  • sdk/go/gen/workflow/*.go"
+	@echo "  • sdk/go/gen/workflowinstance/*.go"
+	@echo "  • sdk/go/gen/workflowexecution/*.go"
+	@echo "  • sdk/go/gen/environment/*.go"
+	@echo "  • sdk/go/gen/types/*.go"
+	@echo ""
+	@echo "Next: Run 'make test' to verify generation"
+	@echo ""
+
+.PHONY: codegen-verify
+codegen-verify: codegen test ## Generate code and run tests to verify
+	@echo ""
+	@echo "✓ Code generation verified successfully!"
+	@echo ""
+
 .PHONY: release
 release: ## Create and push a release tag (usage: make release [bump=patch|minor|major])
 	@echo "🏷️  Auto-incrementing version tag..."

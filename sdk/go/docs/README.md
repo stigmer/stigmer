@@ -1,15 +1,18 @@
 # Stigmer Go SDK Documentation
 
-**Version**: 0.1.0  
+**Version**: 0.2.0  
 **Status**: ✅ Production Ready
 
-Complete documentation for the Stigmer Go SDK.
+Complete documentation for the Stigmer Go SDK using struct-based args (Pulumi pattern).
+
+> **Migration Notice**: Version 0.2.0 uses struct-based args instead of functional options.  
+> See [Migration Guide](migration-from-functional-options.md) for upgrading from v0.1.0.
 
 ## Quick Navigation
 
 ### 🚀 New to Stigmer?
 
-**Start here**: [Getting Started Guide](GETTING_STARTED.md)
+**Start here**: [Getting Started Guide](getting-started.md)
 
 Learn how to:
 - Install the SDK and CLI
@@ -19,7 +22,7 @@ Learn how to:
 
 ### 📖 Building with Stigmer
 
-**Comprehensive guide**: [Usage Guide](USAGE.md)
+**Comprehensive guide**: [Usage Guide](usage.md)
 
 Covers:
 - Workflow SDK (HTTP tasks, conditionals, loops, error handling, parallel execution)
@@ -31,7 +34,7 @@ Covers:
 
 ### 📚 API Reference
 
-**Complete API docs**: [API Reference](API_REFERENCE.md)
+**Complete API docs**: [API Reference](api-reference.md)
 
 Detailed documentation for:
 - `stigmer` - Context and resource management
@@ -81,10 +84,76 @@ Detailed documentation for:
 ```
 docs/
 ├── README.md (this file)          # Documentation index
-├── GETTING_STARTED.md             # Beginner's guide
-├── USAGE.md                       # Comprehensive usage guide
-└── API_REFERENCE.md               # Complete API reference
+├── getting-started.md             # Beginner's guide
+├── usage.md                       # Comprehensive usage guide
+├── api-reference.md               # Complete API reference
+├── guides/                        # Migration and how-to guides
+├── architecture/                  # Architecture documentation
+├── implementation/                # Implementation reports
+└── references/                    # Reference documentation
 ```
+
+---
+
+## 🔄 Migration Guides
+
+### Generated Code Structure Migration (v0.3.0+)
+
+**Guide**: [Gen Structure Migration](guides/gen-structure-migration.md) ⚠️ **Breaking Change**
+
+Migrate import paths for generated types:
+- ✅ Import path updates (`sdk/go/types` → `sdk/go/gen/types`)
+- ✅ Automated migration script
+- ✅ Before/after examples
+- ✅ Troubleshooting guide
+- ✅ 5-10 minute migration time
+
+**Status**: Latest migration (v0.3.0)  
+**Impact**: Breaking change - all SDK users must update imports
+
+### Struct Args Migration (v0.2.0+)
+
+**Guide**: [Struct Args Migration](guides/struct-args-migration.md)
+
+Migrate from functional options to Pulumi-style struct-based args:
+- ✅ Agent, Skill, Workflow task migrations
+- ✅ Before/after examples for all patterns
+- ✅ Helper types and convenience methods
+- ✅ Complete troubleshooting guide
+- ✅ Migration checklist
+
+**Status**: Previous migration path (v0.2.0)
+
+### Other Migrations
+
+- [Proto-Agnostic Migration](guides/migration-guide.md) - Legacy proto-coupled architecture
+- [Typed Context Migration](guides/typed-context-migration.md) - Expression syntax updates
+
+### Workflow Guides
+
+- **[Nested Task Helpers](guides/nested-task-helpers.md)** ⭐ - Type-safe helpers for control flow
+  - TryBody() and CatchBody() for error handling
+  - ForkBranch() and ForkBranches() for parallel execution
+  - LoopBody() for iteration (with LoopVar)
+  - Complete examples and migration patterns
+  - Consistent API across all control flow types
+
+---
+
+## 🏗️ Architecture
+
+### Core Patterns
+
+- **[Struct Args Pattern](architecture/struct-args-pattern.md)** ⭐ - Resource constructor pattern
+  - Why struct args vs functional options
+  - Type aliases and nil-safety
+  - Helper types and convenience methods
+  - Code generation architecture
+  - Migration story and metrics
+
+- **[Pulumi Aligned Patterns](architecture/pulumi-aligned-patterns.md)** - Overall Pulumi alignment
+- **[Synthesis Architecture](architecture/synthesis-architecture.md)** - Resource synthesis system
+- **[Multi-Agent Support](architecture/multi-agent-support.md)** - Multi-agent orchestration
 
 ---
 
@@ -94,7 +163,7 @@ docs/
 
 Never used Stigmer before?
 
-1. **Read**: [Getting Started Guide](GETTING_STARTED.md) (10 minutes)
+1. **Read**: [Getting Started Guide](getting-started.md) (10 minutes)
 2. **Try**: Example 01 (Basic Agent) and Example 07 (Basic Workflow)
 3. **Build**: Your first agent or workflow
 4. **Deploy**: `stigmer apply main.go`
@@ -103,19 +172,19 @@ Never used Stigmer before?
 
 Ready to build real applications?
 
-1. **Read**: [Usage Guide](USAGE.md) - Focus on your needs:
+1. **Read**: [Usage Guide](usage.md) - Focus on your needs:
    - Building agents → Agent SDK section
    - Building workflows → Workflow SDK section
    - Advanced workflows → Advanced Features section
 2. **Study**: Examples 06 (file-based agent) and 18 (multi-agent orchestration)
-3. **Reference**: [API Reference](API_REFERENCE.md) as needed
+3. **Reference**: [API Reference](api-reference.md) as needed
 4. **Build**: Your production system
 
 ### 3. Advanced User
 
 Need specific APIs or patterns?
 
-1. **Jump to**: [API Reference](API_REFERENCE.md)
+1. **Jump to**: [API Reference](api-reference.md)
 2. **Search**: Package-specific documentation
 3. **Check**: [pkg.go.dev](https://pkg.go.dev/github.com/stigmer/stigmer/sdk/go)
 
@@ -149,13 +218,17 @@ Dependencies are tracked through references:
 
 ```go
 // Create skill
-skill, _ := skill.New(skill.WithName("coding"))
+skill, _ := skill.New("coding", &skill.SkillArgs{
+    MarkdownContent: "...",
+})
 
-// Agent automatically depends on skill
-agent, _ := agent.New(ctx,
-    agent.WithName("reviewer"),
-    agent.WithSkills(skill),
-)
+// Create agent
+agent, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{
+    Instructions: "...",
+})
+
+// Add skill (dependency tracked automatically)
+agent.AddSkill(skill)
 // → Dependency tracked: "agent:reviewer" → "skill:coding"
 ```
 
@@ -165,15 +238,15 @@ Load content from files, not inline strings:
 
 ```go
 // ✅ Recommended
-agent, _ := agent.New(ctx,
-    agent.WithName("reviewer"),
-    agent.WithInstructionsFromFile("instructions/reviewer.md"),
-)
+instructions, _ := os.ReadFile("instructions/reviewer.md")
+agent, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{
+    Instructions: string(instructions),
+})
 
-skill, _ := skill.New(
-    skill.WithName("guidelines"),
-    skill.WithMarkdownFromFile("skills/guidelines.md"),
-)
+skillContent, _ := os.ReadFile("skills/guidelines.md")
+skill, _ := skill.New("guidelines", &skill.SkillArgs{
+    MarkdownContent: string(skillContent),
+})
 ```
 
 **Why**:
@@ -181,6 +254,7 @@ skill, _ := skill.New(
 - Easy to edit
 - Separate concerns
 - Better collaboration
+- Clear content loading
 
 ### Type-Safe Task References
 
@@ -210,7 +284,7 @@ processTask := wf.SetVars("process",
 
 **Example**: See [examples/06_agent_with_instructions_from_files.go](../examples/06_agent_with_instructions_from_files.go)
 
-**Documentation**: [Agent SDK in Usage Guide](USAGE.md#agent-sdk)
+**Documentation**: [Agent SDK in Usage Guide](usage.md#agent-sdk)
 
 ### Use Case 2: API Data Pipeline
 
@@ -224,7 +298,7 @@ processTask := wf.SetVars("process",
 
 **Example**: See [examples/07_workflow_with_runtime_secrets.go](../examples/07_workflow_with_runtime_secrets.go)
 
-**Documentation**: [Workflow SDK in Usage Guide](USAGE.md#workflow-sdk)
+**Documentation**: [Workflow SDK in Usage Guide](usage.md#workflow-sdk)
 
 ### Use Case 3: Multi-Agent CI/CD
 
@@ -238,20 +312,25 @@ processTask := wf.SetVars("process",
 
 **Example**: See [examples/18_workflow_multi_agent_orchestration.go](../examples/18_workflow_multi_agent_orchestration.go)
 
-**Documentation**: [Advanced Features in Usage Guide](USAGE.md#advanced-features)
+**Documentation**: [Advanced Features in Usage Guide](usage.md#advanced-features)
 
 ---
 
 ## Quick Reference
 
-### Agent Creation
+### Agent Creation (Struct Args)
 
 ```go
-agent, err := agent.New(ctx,
-    agent.WithName("my-agent"),
-    agent.WithInstructionsFromFile("instructions/agent.md"),
-    agent.WithSkills(skill),
-)
+// Load instructions from file
+instructions, _ := os.ReadFile("instructions/agent.md")
+
+// Create agent with struct-based args
+agent, err := agent.New(ctx, "my-agent", &agent.AgentArgs{
+    Instructions: string(instructions),
+})
+
+// Add skills using builder methods
+agent.AddSkill(skill)
 ```
 
 ### Workflow Creation
@@ -264,65 +343,87 @@ wf, err := workflow.New(ctx,
 )
 ```
 
-### HTTP Task
+### HTTP Task (Convenience Method)
 
 ```go
-task := wf.HttpGet("fetch", "https://api.example.com/data",
-    workflow.Header("Content-Type", "application/json"),
-    workflow.Timeout(30),
-)
+task := wf.HttpGet("fetch", "https://api.example.com/data", map[string]string{
+    "Content-Type": "application/json",
+})
+```
+
+### HTTP Task (Full Control)
+
+```go
+task := wf.HttpCall("fetch", &workflow.HttpCallArgs{
+    Method:  "GET",
+    URI:     "https://api.example.com/data",
+    Headers: map[string]string{"Content-Type": "application/json"},
+    TimeoutSeconds: 30,
+})
 ```
 
 ### SET Task
 
 ```go
-wf.SetVars("process",
-    "key1", "value1",
-    "key2", fetchTask.Field("output"),
-)
+wf.Set("process", &workflow.SetArgs{
+    Variables: map[string]string{
+        "key1": "value1",
+        "key2": fetchTask.Field("output").Expression(),
+    },
+})
 ```
 
 ### Conditionals (Switch)
 
 ```go
-wf.Switch("check",
-    workflow.SwitchCase(
-        workflow.ConditionEquals("status", "success"),
-        workflow.Then(successTask),
-    ),
-    workflow.SwitchDefault(defaultTask),
-)
+wf.Switch("check", &workflow.SwitchArgs{
+    Cases: []*workflow.SwitchCase{
+        {
+            Condition: &workflow.Condition{
+                Operator: "equals",
+                Key:      "status",
+                Value:    "success",
+            },
+            Tasks: []*workflow.Task{successTask},
+        },
+    },
+    Default: []*workflow.Task{defaultTask},
+})
 ```
 
 ### Loops (ForEach)
 
 ```go
-wf.ForEach("process-items",
-    workflow.ForEachOver(fetchTask.Field("items")),
-    workflow.ForEachItem("item"),
-    workflow.ForEachDo(processTask),
-)
+wf.ForEach("process-items", &workflow.ForArgs{
+    Array:   fetchTask.Field("items").Expression(),
+    ItemVar: "item",
+    Tasks:   []*workflow.Task{processTask},
+})
 ```
 
 ### Error Handling (Try/Catch)
 
 ```go
-wf.Try("safe-operation",
-    workflow.TryDo(riskyTask),
-    workflow.CatchError(
-        workflow.ErrorMatcher(workflow.ErrorAny()),
-        workflow.CatchDo(handleErrorTask),
-    ),
-)
+wf.Try("safe-operation", &workflow.TryArgs{
+    Tasks: []*workflow.Task{riskyTask},
+    Catches: []*workflow.CatchBlock{
+        {
+            ErrorMatcher: &workflow.ErrorMatcher{MatchAny: true},
+            Tasks:        []*workflow.Task{handleErrorTask},
+        },
+    },
+})
 ```
 
 ### Parallel Execution (Fork)
 
 ```go
-wf.Fork("parallel",
-    workflow.ForkBranch("branch1", task1),
-    workflow.ForkBranch("branch2", task2),
-)
+wf.Fork("parallel", &workflow.ForkArgs{
+    Branches: []*workflow.ForkBranch{
+        {Name: "branch1", Tasks: []*workflow.Task{task1}},
+        {Name: "branch2", Tasks: []*workflow.Task{task2}},
+    },
+})
 ```
 
 ---
@@ -397,6 +498,28 @@ Contributions to documentation are welcome!
 
 ## Version History
 
+### v0.3.0 (2026-01-24)
+
+**Generated Code Structure Refactoring**:
+- ✅ Separated generated code into `sdk/go/gen/` directories
+- ✅ Removed `_task` suffix from generated filenames
+- ⚠️ **Breaking Change**: Import paths changed (`sdk/go/types` → `sdk/go/gen/types`)
+- ✅ Clear visual separation of generated vs hand-written code
+- ✅ Follows Go ecosystem conventions
+- ✅ See [Gen Structure Migration Guide](guides/gen-structure-migration.md)
+
+### v0.2.0 (2026-01-24)
+
+**Struct Args Migration**:
+- ✅ Migrated to struct-based args (Pulumi pattern)
+- ✅ Updated all constructors: `agent.New(ctx, name, *AgentArgs)`
+- ✅ All 19 examples migrated to struct args
+- ✅ Complete API Reference update
+- ✅ Complete Usage Guide update
+- ✅ Migration guide with before/after examples
+- ✅ Architecture documentation
+- ✅ Backward incompatible with v0.1.0 (see migration guide)
+
 ### v0.1.0 (2026-01-22)
 
 **Initial Release**:
@@ -405,6 +528,7 @@ Contributions to documentation are welcome!
 - ✅ Full API Reference
 - ✅ 19 Working Examples
 - ✅ Production Ready
+- ✅ Functional options pattern
 
 ---
 
@@ -436,10 +560,11 @@ You have access to:
 - ✅ **Best practices** (file-based content, error handling, organization)
 - ✅ **Production-ready SDK** (tested, validated, deployed)
 
-**Ready to build?** Start with the [Getting Started Guide](GETTING_STARTED.md)!
+**Ready to build?** Start with the [Getting Started Guide](getting-started.md)!
 
 ---
 
-**Version**: 0.1.0  
-**Last Updated**: 2026-01-22  
-**Status**: ✅ Complete
+**Version**: 0.2.0  
+**Last Updated**: 2026-01-24  
+**Status**: ✅ Complete  
+**Migration**: See [Migration Guide](migration-from-functional-options.md) for upgrading from v0.1.0

@@ -1,74 +1,44 @@
 package workflow
 
-// ForOption is a functional option for configuring a FOR task.
-type ForOption func(*ForTaskConfig)
+import (
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
+)
 
-// For creates a FOR task with functional options.
+// ForArgs is an alias for ForTaskConfig (Pulumi-style args pattern).
+type ForArgs = ForTaskConfig
+
+// For creates a FOR task using struct-based args.
+// This follows the Pulumi Args pattern for resource configuration.
 //
-// Example (low-level map API):
+// Example:
 //
-//	task := workflow.For("processItems",
-//	    workflow.IterateOver("${.items}"),
-//	    workflow.DoTasks([]map[string]interface{}{
-//	        {"set": map[string]interface{}{"current": "${.item}"}},
-//	        {"httpCall": map[string]interface{}{"uri": "${.api}/process"}},
-//	    }),
-//	)
-//
-// Example (high-level builder API):
-//
-//	loopTask := wf.ForEach("processEachItem",
-//	    workflow.IterateOver(fetchTask.Field("items")),
-//	    workflow.WithLoopBody(func(item workflow.LoopVar) *workflow.Task {
-//	        return wf.HttpPost("processItem",
-//	            apiBase.Concat("/process"),
-//	            workflow.Body(map[string]interface{}{
-//	                "itemId": item.Field("id"),
-//	                "data":   item.Field("data"),
-//	            }),
-//	        )
-//	    }),
-//	)
-func For(name string, opts ...ForOption) *Task {
-	config := &ForTaskConfig{
-		Do: []map[string]interface{}{},
+//	task := workflow.For("processItems", &workflow.ForArgs{
+//	    Each: "item",
+//	    In: "${.items}",
+//	    Do: []*types.WorkflowTask{
+//	        {Name: "process", Kind: "HTTP_CALL"},
+//	    },
+//	})
+func For(name string, args *ForArgs) *Task {
+	if args == nil {
+		args = &ForArgs{}
 	}
 
-	for _, opt := range opts {
-		opt(config)
+	// Initialize slices if nil
+	if args.Do == nil {
+		args.Do = []*types.WorkflowTask{}
+	}
+
+	// Set default Each variable name if not provided
+	// This matches the default used by LoopBody
+	if args.Each == "" {
+		args.Each = "item"
 	}
 
 	return &Task{
 		Name:   name,
 		Kind:   TaskKindFor,
-		Config: config,
-	}
-}
-
-// IterateOver sets the collection expression to iterate over.
-// Accepts TaskFieldRef, expression string, or any value that can be coerced to string.
-//
-// Example:
-//
-//	workflow.IterateOver(fetchTask.Field("items"))
-//	workflow.IterateOver("${.items}")
-//	workflow.IterateOver("[1, 2, 3]")
-func IterateOver(expr interface{}) ForOption {
-	return func(c *ForTaskConfig) {
-		c.In = coerceToString(expr)
-	}
-}
-
-// DoTasks sets the tasks to execute for each item (low-level API).
-//
-// Example:
-//
-//	workflow.DoTasks([]map[string]interface{}{
-//	    {"httpCall": map[string]interface{}{"uri": "${.api}/process"}},
-//	})
-func DoTasks(tasks []map[string]interface{}) ForOption {
-	return func(c *ForTaskConfig) {
-		c.Do = tasks
+		Config: args,
 	}
 }
 
@@ -104,40 +74,98 @@ func (v LoopVar) Value() string {
 	return "${." + v.varName + "}"
 }
 
-// WithLoopBody sets the tasks to execute for each item using a builder function.
-// This provides a high-level, type-safe way to define loop bodies.
+// LoopBody creates a typed loop body using a closure that receives the loop variable.
+// This provides type-safe access to the current item without magic strings.
 //
-// Note: This is a simplified implementation that captures the builder function result.
-// For full support, this would require workflow context to be passed through.
+// The function creates a LoopVar representing the current iteration item (default: "item")
+// and passes it to your closure. You build tasks using this LoopVar for field references.
 //
 // Example:
 //
-//	workflow.WithLoopBody(func(item workflow.LoopVar) *workflow.Task {
-//	    return wf.HttpPost("processItem",
-//	        workflow.Body(map[string]interface{}{
-//	            "itemId": item.Field("id"),
-//	        }),
-//	    )
+//	wf.ForEach("processItems", &workflow.ForArgs{
+//	    In: fetchTask.Field("items"),
+//	    Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+//	        return []*workflow.Task{
+//	            wf.HttpPost("processItem",
+//	                apiBase.Concat("/process").Expression(),
+//	                map[string]interface{}{
+//	                    "itemId": item.Field("id"),      // ✅ Type-safe reference!
+//	                    "data":   item.Field("data"),    // ✅ No magic strings!
+//	                },
+//	            ),
+//	        }
+//	    }),
 //	})
-func WithLoopBody(builder func(item LoopVar) *Task) ForOption {
-	return func(c *ForTaskConfig) {
-		// Create a LoopVar instance
-		item := LoopVar{varName: "item"}
-		
-		// Call the builder to get the task
-		task := builder(item)
-		
-		// Convert task to map representation using the helper
+//
+// This replaces the old pattern:
+//
+//	Do: []map[string]interface{}{
+//	    {
+//	        "httpCall": map[string]interface{}{
+//	            "body": map[string]interface{}{
+//	                "itemId": "${.item.id}",  // ❌ Magic string!
+//	            },
+//	        },
+//	    },
+//	}
+//
+// Custom variable names (via Each field):
+//
+//	wf.ForEach("processUsers", &workflow.ForArgs{
+//	    Each: "user",  // Custom variable name
+//	    In: fetchTask.Field("users"),
+//	    Do: workflow.LoopBody(func(user workflow.LoopVar) []*workflow.Task {
+//	        return []*workflow.Task{
+//	            wf.Set("processUser", &workflow.SetArgs{
+//	                Variables: map[string]string{
+//	                    "userId": user.Field("id"),  // References ${.user.id}
+//	                },
+//	            }),
+//	        }
+//	    }),
+//	})
+func LoopBody(fn func(LoopVar) []*Task) []*types.WorkflowTask {
+	// Create default loop variable (will use "item" unless Each field overrides)
+	loopVar := LoopVar{varName: "item"}
+
+	// Call user's function to get typed tasks
+	tasks := fn(loopVar)
+
+	// Convert SDK tasks to types.WorkflowTask format
+	workflowTasks := make([]*types.WorkflowTask, 0, len(tasks))
+	for _, task := range tasks {
 		taskMap, err := taskToMap(task)
 		if err != nil {
-			// If conversion fails, create a minimal task map
-			// This maintains backward compatibility
-			taskMap = map[string]interface{}{
-				"name": task.Name,
-				"kind": string(task.Kind),
+			// In production code, we might want to handle this differently
+			// For now, we'll panic to surface the error during development
+			panic(err)
+		}
+
+		// Convert map to types.WorkflowTask
+		wfTask := &types.WorkflowTask{
+			Name: task.Name,
+			Kind: string(task.Kind),
+		}
+
+		// Extract task config from the map
+		if config, ok := taskMap["config"].(map[string]interface{}); ok {
+			wfTask.TaskConfig = config
+		}
+
+		// Extract export if present
+		if exportMap, ok := taskMap["export"].(map[string]interface{}); ok {
+			if asVal, ok := exportMap["as"].(string); ok {
+				wfTask.Export = &types.Export{As: asVal}
 			}
 		}
-		
-		c.Do = []map[string]interface{}{taskMap}
+
+		// Extract flow control if present
+		if thenVal, ok := taskMap["then"].(string); ok {
+			wfTask.Flow = &types.FlowControl{Then: thenVal}
+		}
+
+		workflowTasks = append(workflowTasks, wfTask)
 	}
+
+	return workflowTasks
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/environment"
 )
 
-func TestWithEnvironmentVariable(t *testing.T) {
+func TestAgentWithEnvironmentVariable(t *testing.T) {
 	githubToken, err := environment.New(
 		environment.WithName("GITHUB_TOKEN"),
 		environment.WithSecret(true),
@@ -16,15 +16,15 @@ func TestWithEnvironmentVariable(t *testing.T) {
 		t.Fatalf("failed to create environment variable: %v", err)
 	}
 
-	agent, err := New(
-		nil, // No context needed for tests
-		WithName("github-bot"),
-		WithInstructions("Manage GitHub repositories"),
-		WithEnvironmentVariable(githubToken),
-	)
+	agent, err := New(nil, "github-bot", &AgentArgs{
+		Instructions: "Manage GitHub repositories",
+	})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
+
+	// Add environment variable using builder method
+	agent.AddEnvironmentVariable(githubToken)
 
 	if len(agent.EnvironmentVariables) != 1 {
 		t.Errorf("len(agent.EnvironmentVariables) = %d, want 1", len(agent.EnvironmentVariables))
@@ -39,7 +39,7 @@ func TestWithEnvironmentVariable(t *testing.T) {
 	}
 }
 
-func TestWithEnvironmentVariables(t *testing.T) {
+func TestAgentWithMultipleEnvironmentVariables(t *testing.T) {
 	githubToken, _ := environment.New(
 		environment.WithName("GITHUB_TOKEN"),
 		environment.WithSecret(true),
@@ -55,15 +55,15 @@ func TestWithEnvironmentVariables(t *testing.T) {
 		environment.WithDefaultValue("info"),
 	)
 
-	agent, err := New(
-		nil, // No context needed for tests
-		WithName("cloud-deployer"),
-		WithInstructions("Deploy applications to cloud"),
-		WithEnvironmentVariables(githubToken, awsRegion, logLevel),
-	)
+	agent, err := New(nil, "cloud-deployer", &AgentArgs{
+		Instructions: "Deploy applications to cloud",
+	})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
+
+	// Add environment variables using builder method
+	agent.AddEnvironmentVariables(githubToken, awsRegion, logLevel)
 
 	if len(agent.EnvironmentVariables) != 3 {
 		t.Errorf("len(agent.EnvironmentVariables) = %d, want 3", len(agent.EnvironmentVariables))
@@ -80,32 +80,5 @@ func TestWithEnvironmentVariables(t *testing.T) {
 		if !names[name] {
 			t.Errorf("environment variable %s not found", name)
 		}
-	}
-}
-
-func TestWithMultipleEnvironmentVariableCalls(t *testing.T) {
-	githubToken, _ := environment.New(
-		environment.WithName("GITHUB_TOKEN"),
-		environment.WithSecret(true),
-	)
-
-	awsRegion, _ := environment.New(
-		environment.WithName("AWS_REGION"),
-		environment.WithDefaultValue("us-east-1"),
-	)
-
-	agent, err := New(
-		nil, // No context needed for tests
-		WithName("multi-cloud"),
-		WithInstructions("Manage multi-cloud deployments"),
-		WithEnvironmentVariable(githubToken),
-		WithEnvironmentVariable(awsRegion),
-	)
-	if err != nil {
-		t.Fatalf("New() error = %v", err)
-	}
-
-	if len(agent.EnvironmentVariables) != 2 {
-		t.Errorf("len(agent.EnvironmentVariables) = %d, want 2", len(agent.EnvironmentVariables))
 	}
 }

@@ -22,10 +22,11 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_field__options__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n0ai/stigmer/agentic/workflow/v1/tasks/raise.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x1b\x62uf/validate/validate.proto\"Y\n\x0fRaiseTaskConfig\x12 \n\x05\x65rror\x18\x01 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x05\x65rror\x12$\n\x07message\x18\x02 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x07messageB\xee\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\nRaiseProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n0ai/stigmer/agentic/workflow/v1/tasks/raise.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\"a\n\x0fRaiseTaskConfig\x12$\n\x05\x65rror\x18\x01 \x01(\tB\x0e\xbaH\x07r\x02\x10\x01\xc8\x01\x01\xd8\x85,\x01R\x05\x65rror\x12(\n\x07message\x18\x02 \x01(\tB\x0e\xbaH\x07r\x02\x10\x01\xc8\x01\x01\xd8\x85,\x01R\x07messageB\xee\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\nRaiseProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,9 +35,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n(com.ai.stigmer.agentic.workflow.v1.tasksB\nRaiseProtoP\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Agentic.Workflow.V1.Tasks\312\002$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\342\0020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\352\002)Ai::Stigmer::Agentic::Workflow::V1::Tasks'
   _globals['_RAISETASKCONFIG'].fields_by_name['error']._loaded_options = None
-  _globals['_RAISETASKCONFIG'].fields_by_name['error']._serialized_options = b'\272H\007r\002\020\001\310\001\001'
+  _globals['_RAISETASKCONFIG'].fields_by_name['error']._serialized_options = b'\272H\007r\002\020\001\310\001\001\330\205,\001'
   _globals['_RAISETASKCONFIG'].fields_by_name['message']._loaded_options = None
-  _globals['_RAISETASKCONFIG'].fields_by_name['message']._serialized_options = b'\272H\007r\002\020\001\310\001\001'
-  _globals['_RAISETASKCONFIG']._serialized_start=119
-  _globals['_RAISETASKCONFIG']._serialized_end=208
+  _globals['_RAISETASKCONFIG'].fields_by_name['message']._serialized_options = b'\272H\007r\002\020\001\310\001\001\330\205,\001'
+  _globals['_RAISETASKCONFIG']._serialized_start=171
+  _globals['_RAISETASKCONFIG']._serialized_end=268
 # @@protoc_insertion_point(module_scope)

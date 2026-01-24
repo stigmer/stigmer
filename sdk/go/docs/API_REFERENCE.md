@@ -1,9 +1,12 @@
 # Stigmer Go SDK - API Reference
 
-**Version**: 0.1.0  
+**Version**: 0.2.0  
 **Package**: `github.com/stigmer/stigmer/sdk/go`
 
-Complete API reference for the Stigmer Go SDK.
+Complete API reference for the Stigmer Go SDK using struct-based args (Pulumi pattern).
+
+> **Migration Notice**: Version 0.2.0+ uses struct-based args instead of functional options.  
+> See [Migration Guide](migration-from-functional-options.md) for upgrading from v0.1.0.
 
 ## Table of Contents
 
@@ -149,14 +152,15 @@ Represents an AI agent with instructions, skills, tools, and configuration.
 #### func New
 
 ```go
-func New(ctx *stigmer.Context, opts ...Option) (*Agent, error)
+func New(ctx *stigmer.Context, name string, args *AgentArgs) (*Agent, error)
 ```
 
-Creates a new Agent.
+Creates a new Agent using struct-based args (Pulumi pattern).
 
 **Parameters**:
 - `ctx` - Stigmer context (required)
-- `opts` - Configuration options
+- `name` - Agent identifier (lowercase alphanumeric + hyphens)
+- `args` - Configuration struct (required)
 
 **Returns**:
 - `*Agent` - Created agent
@@ -164,31 +168,74 @@ Creates a new Agent.
 
 **Example**:
 ```go
-agent, err := agent.New(ctx,
-    agent.WithName("code-reviewer"),
-    agent.WithInstructionsFromFile("instructions/reviewer.md"),
-)
+agent, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+    Instructions: "Review code and suggest improvements",
+    Description:  "AI code reviewer",
+    IconUrl:      "https://example.com/icon.png",
+})
 ```
+
+### type AgentArgs
+
+```go
+type AgentArgs struct {
+    Description  string                        // Human-readable description
+    IconUrl      string                        // Icon URL for UI display
+    Instructions string                        // Agent behavior definition (min 10 chars)
+    McpServers   []*types.McpServerDefinition  // MCP server definitions
+    SkillRefs    []*types.ApiResourceReference // Skill references
+    SubAgents    []*types.SubAgent             // Sub-agent definitions
+    EnvSpec      *types.EnvironmentSpec        // Environment variables
+}
+```
+
+Configuration struct for agent creation (Pulumi Args pattern).
+
+**Required Fields**:
+- `Instructions` - Agent instructions (10-10,000 characters)
+
+**Optional Fields**:
+- `Description` - Human-readable description (max 500 chars)
+- `IconUrl` - Display icon URL
+- Complex fields (use builder methods instead):
+  - `McpServers` - Use `agent.AddMCPServer()`
+  - `SkillRefs` - Use `agent.AddSkill()`
+  - `SubAgents` - Use `agent.AddSubAgent()`
+  - `EnvSpec` - Use `agent.AddEnvironmentVariable()`
 
 #### func (*Agent) AddSkill
 
 ```go
-func (a *Agent) AddSkill(skill skill.Skill) *Agent
+func (a *Agent) AddSkill(s *skill.Skill) *Agent
 ```
 
-Adds a skill to the agent.
+Adds a skill to the agent (builder method for complex fields).
 
 **Parameters**:
-- `skill` - Skill to add (inline, platform, or organization)
+- `s` - Skill to add (inline, platform, or organization)
 
 **Returns**:
 - `*Agent` - Agent (for chaining)
 
 **Example**:
 ```go
-agent.AddSkill(*codingSkill).
+agent.AddSkill(codingSkill).
       AddSkill(skill.Platform("security"))
 ```
+
+#### func (*Agent) AddSkills
+
+```go
+func (a *Agent) AddSkills(skills ...*skill.Skill) *Agent
+```
+
+Adds multiple skills to the agent.
+
+**Parameters**:
+- `skills` - One or more skills
+
+**Returns**:
+- `*Agent` - Agent (for chaining)
 
 #### func (*Agent) AddMCPServer
 
@@ -196,7 +243,7 @@ agent.AddSkill(*codingSkill).
 func (a *Agent) AddMCPServer(server *mcpserver.MCPServer) *Agent
 ```
 
-Adds an MCP server to the agent.
+Adds an MCP server to the agent (builder method).
 
 **Parameters**:
 - `server` - MCP server configuration
@@ -204,13 +251,21 @@ Adds an MCP server to the agent.
 **Returns**:
 - `*Agent` - Agent (for chaining)
 
+#### func (*Agent) AddMCPServers
+
+```go
+func (a *Agent) AddMCPServers(servers ...*mcpserver.MCPServer) *Agent
+```
+
+Adds multiple MCP servers to the agent.
+
 #### func (*Agent) AddSubAgent
 
 ```go
 func (a *Agent) AddSubAgent(sub *subagent.SubAgent) *Agent
 ```
 
-Adds a sub-agent for delegation.
+Adds a sub-agent for delegation (builder method).
 
 **Parameters**:
 - `sub` - Sub-agent configuration
@@ -218,13 +273,21 @@ Adds a sub-agent for delegation.
 **Returns**:
 - `*Agent` - Agent (for chaining)
 
+#### func (*Agent) AddSubAgents
+
+```go
+func (a *Agent) AddSubAgents(subs ...*subagent.SubAgent) *Agent
+```
+
+Adds multiple sub-agents to the agent.
+
 #### func (*Agent) AddEnvironmentVariable
 
 ```go
 func (a *Agent) AddEnvironmentVariable(env *environment.Variable) *Agent
 ```
 
-Adds an environment variable requirement.
+Adds an environment variable requirement (builder method).
 
 **Parameters**:
 - `env` - Environment variable configuration
@@ -232,78 +295,13 @@ Adds an environment variable requirement.
 **Returns**:
 - `*Agent` - Agent (for chaining)
 
-### type Option
-
-Configuration option for Agent.
-
-#### func WithName
+#### func (*Agent) AddEnvironmentVariables
 
 ```go
-func WithName(name string) Option
+func (a *Agent) AddEnvironmentVariables(vars ...*environment.Variable) *Agent
 ```
 
-Sets the agent name (required).
-
-**Validation**:
-- Lowercase alphanumeric + hyphens
-- Max 63 characters
-- Must match: `^[a-z0-9-]+$`
-
-#### func WithInstructions
-
-```go
-func WithInstructions(instructions string) Option
-```
-
-Sets agent instructions from string (required).
-
-**Validation**:
-- Min 10 characters
-- Max 10,000 characters
-
-#### func WithInstructionsFromFile
-
-```go
-func WithInstructionsFromFile(path string) Option
-```
-
-Loads agent instructions from file (required, recommended).
-
-**Parameters**:
-- `path` - Path to Markdown file (relative to project root)
-
-#### func WithDescription
-
-```go
-func WithDescription(desc string) Option
-```
-
-Sets agent description (optional).
-
-**Validation**:
-- Max 500 characters
-
-#### func WithIconURL
-
-```go
-func WithIconURL(url string) Option
-```
-
-Sets agent icon URL (optional).
-
-**Validation**:
-- Must be valid URL
-
-#### func WithSkills
-
-```go
-func WithSkills(skills ...skill.Skill) Option
-```
-
-Sets initial skills (optional).
-
-**Parameters**:
-- `skills` - One or more skills
+Adds multiple environment variables to the agent.
 
 ---
 
@@ -317,6 +315,9 @@ Skill definitions and references.
 
 ```go
 type Skill struct {
+    Name        string
+    Description string
+    Content     string
     // contains filtered or unexported fields
 }
 ```
@@ -326,13 +327,14 @@ Represents knowledge that can be attached to agents.
 #### func New
 
 ```go
-func New(opts ...Option) (*Skill, error)
+func New(name string, args *SkillArgs) (*Skill, error)
 ```
 
-Creates a new inline skill.
+Creates a new inline skill using struct-based args (Pulumi pattern).
 
 **Parameters**:
-- `opts` - Configuration options
+- `name` - Skill identifier (lowercase alphanumeric + hyphens)
+- `args` - Configuration struct (required)
 
 **Returns**:
 - `*Skill` - Created skill
@@ -340,16 +342,42 @@ Creates a new inline skill.
 
 **Example**:
 ```go
-skill, err := skill.New(
-    skill.WithName("coding-standards"),
-    skill.WithMarkdownFromFile("skills/coding.md"),
-)
+skill, err := skill.New("coding-standards", &skill.SkillArgs{
+    MarkdownContent: "# Coding Standards\n\n...",
+    Description:     "Company coding guidelines",
+})
+```
+
+### type SkillArgs
+
+```go
+type SkillArgs struct {
+    Description     string // Brief description for UI display
+    MarkdownContent string // Markdown content (skill knowledge)
+}
+```
+
+Configuration struct for skill creation (Pulumi Args pattern).
+
+**Required Fields**:
+- `MarkdownContent` - Skill content (10-50,000 characters)
+
+**Optional Fields**:
+- `Description` - Human-readable description (max 500 chars)
+
+**Note**: For file-based content, read the file and pass to `MarkdownContent`:
+
+```go
+content, _ := os.ReadFile("skills/coding.md")
+skill, _ := skill.New("coding-standards", &skill.SkillArgs{
+    MarkdownContent: string(content),
+})
 ```
 
 #### func Platform
 
 ```go
-func Platform(slug string) Skill
+func Platform(slug string) *Skill
 ```
 
 References a platform-wide skill.
@@ -358,7 +386,7 @@ References a platform-wide skill.
 - `slug` - Skill slug (e.g., "coding-best-practices")
 
 **Returns**:
-- `Skill` - Skill reference
+- `*Skill` - Skill reference
 
 **Example**:
 ```go
@@ -368,7 +396,7 @@ agent.AddSkill(skill.Platform("coding-best-practices"))
 #### func Organization
 
 ```go
-func Organization(orgSlug, skillSlug string) Skill
+func Organization(orgSlug, skillSlug string) *Skill
 ```
 
 References an organization-private skill.
@@ -378,57 +406,12 @@ References an organization-private skill.
 - `skillSlug` - Skill slug
 
 **Returns**:
-- `Skill` - Skill reference
+- `*Skill` - Skill reference
 
 **Example**:
 ```go
 agent.AddSkill(skill.Organization("my-org", "internal-standards"))
 ```
-
-### type Option
-
-Configuration option for Skill.
-
-#### func WithName
-
-```go
-func WithName(name string) Option
-```
-
-Sets skill name (required).
-
-**Validation**: Same as agent name
-
-#### func WithMarkdown
-
-```go
-func WithMarkdown(content string) Option
-```
-
-Sets skill content from string (required).
-
-**Validation**:
-- Min 10 characters
-- Max 50,000 characters
-
-#### func WithMarkdownFromFile
-
-```go
-func WithMarkdownFromFile(path string) Option
-```
-
-Loads skill content from file (required, recommended).
-
-**Parameters**:
-- `path` - Path to Markdown file
-
-#### func WithDescription
-
-```go
-func WithDescription(desc string) Option
-```
-
-Sets skill description (optional).
 
 ---
 
@@ -477,219 +460,343 @@ wf, err := workflow.New(ctx,
 )
 ```
 
-#### func (*Workflow) HttpGet
+#### func (*Workflow) HttpCall
 
 ```go
-func (w *Workflow) HttpGet(name, uri string, opts ...TaskOption) *Task
+func (w *Workflow) HttpCall(name string, args *HttpCallArgs) *Task
 ```
 
-Creates an HTTP GET task.
+Creates an HTTP_CALL task using struct-based args.
 
 **Parameters**:
 - `name` - Task name
-- `uri` - Request URI
-- `opts` - HTTP options
+- `args` - HTTP configuration struct
 
 **Returns**:
 - `*Task` - Created task
 
 **Example**:
 ```go
-task := wf.HttpGet("fetch", "https://api.example.com/data",
-    workflow.Header("Content-Type", "application/json"),
-    workflow.Timeout(30),
-)
+task := wf.HttpCall("fetch", &workflow.HttpCallArgs{
+    Method:  "GET",
+    URI:     "https://api.example.com/data",
+    Headers: map[string]string{
+        "Authorization": "Bearer ${.token}",
+    },
+    TimeoutSeconds: 30,
+})
+```
+
+#### func (*Workflow) HttpGet
+
+```go
+func (w *Workflow) HttpGet(name string, uri interface{}, headers map[string]string) *Task
+```
+
+Creates an HTTP GET task (convenience method).
+
+**Parameters**:
+- `name` - Task name
+- `uri` - Request URI (supports smart conversion)
+  - Accepts: `string`, `TaskFieldRef`, `StringRef`
+  - No `.Expression()` needed in v0.2.1+
+- `headers` - HTTP headers (optional, can be nil)
+
+**Returns**:
+- `*Task` - Created task
+
+**Example (with smart conversion)**:
+```go
+// String literal
+task := wf.HttpGet("fetch", "https://api.example.com/data", map[string]string{
+    "Content-Type": "application/json",
+})
+
+// TaskFieldRef - auto-converted!
+task := wf.HttpGet("fetch", configTask.Field("endpoint"), nil)
+
+// StringRef - auto-converted!
+task := wf.HttpGet("fetch", apiBase.Concat("/users"), nil)
 ```
 
 #### func (*Workflow) HttpPost
 
 ```go
-func (w *Workflow) HttpPost(name, uri string, opts ...TaskOption) *Task
+func (w *Workflow) HttpPost(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task
 ```
 
-Creates an HTTP POST task.
+Creates an HTTP POST task (convenience method).
+
+**Parameters**:
+- `name` - Task name
+- `uri` - Request URI (supports smart conversion: `string`, `TaskFieldRef`, `StringRef`)
+- `headers` - HTTP headers (can be nil)
+- `body` - Request body (can be nil)
+
+**Example**:
+```go
+// String literal
+task := wf.HttpPost("create", "https://api.example.com/users",
+    map[string]string{"Content-Type": "application/json"},
+    map[string]interface{}{"name": "John", "email": "john@example.com"},
+)
+
+// With smart conversion
+task := wf.HttpPost("create", 
+    apiBase.Concat("/users"),  // StringRef - auto-converted!
+    nil,
+    map[string]interface{}{
+        "name": userTask.Field("name").Expression(),  // Map value - needs .Expression()
+    },
+)
+```
 
 #### func (*Workflow) HttpPut
 
 ```go
-func (w *Workflow) HttpPut(name, uri string, opts ...TaskOption) *Task
+func (w *Workflow) HttpPut(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task
 ```
 
-Creates an HTTP PUT task.
+Creates an HTTP PUT task (convenience method).
+
+**Parameters**: Same as HttpPost (uri supports smart conversion)
+
+#### func (*Workflow) HttpPatch
+
+```go
+func (w *Workflow) HttpPatch(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task
+```
+
+Creates an HTTP PATCH task (convenience method).
+
+**Parameters**: Same as HttpPost (uri supports smart conversion)
 
 #### func (*Workflow) HttpDelete
 
 ```go
-func (w *Workflow) HttpDelete(name, uri string, opts ...TaskOption) *Task
+func (w *Workflow) HttpDelete(name string, uri interface{}, headers map[string]string) *Task
 ```
 
-Creates an HTTP DELETE task.
+Creates an HTTP DELETE task (convenience method).
+
+**Parameters**:
+- `name` - Task name
+- `uri` - Request URI (supports smart conversion: `string`, `TaskFieldRef`, `StringRef`)
+- `headers` - HTTP headers (can be nil)
 
 #### func (*Workflow) Set
 
 ```go
-func (w *Workflow) Set(name, key string, value interface{}) *Task
+func (w *Workflow) Set(name string, args *SetArgs) *Task
 ```
 
-Creates a SET task for single variable.
+Creates a SET task using struct-based args.
 
 **Parameters**:
 - `name` - Task name
-- `key` - Variable name
-- `value` - Variable value
-
-**Returns**:
-- `*Task` - Created task
-
-#### func (*Workflow) SetVars
-
-```go
-func (w *Workflow) SetVars(name string, pairs ...interface{}) *Task
-```
-
-Creates a SET task for multiple variables.
-
-**Parameters**:
-- `name` - Task name
-- `pairs` - Key-value pairs (alternating)
+- `args` - Variable configuration struct
 
 **Returns**:
 - `*Task` - Created task
 
 **Example**:
 ```go
-wf.SetVars("process",
-    "title", fetchTask.Field("title"),
-    "body", fetchTask.Field("body"),
-    "status", "complete",
-)
+task := wf.Set("process", &workflow.SetArgs{
+    Variables: map[string]string{
+        "title":  fetchTask.Field("title").Expression(),
+        "body":   fetchTask.Field("body").Expression(),
+        "status": "complete",
+    },
+})
 ```
 
 #### func (*Workflow) AgentCall
 
 ```go
-func (w *Workflow) AgentCall(name string, agent *agent.Agent, opts ...TaskOption) *Task
+func (w *Workflow) AgentCall(name string, args *AgentCallArgs) *Task
 ```
 
-Creates an AGENT_CALL task.
+Creates an AGENT_CALL task using struct-based args.
 
 **Parameters**:
 - `name` - Task name
-- `agent` - Agent to call
-- `opts` - Agent call options
+- `args` - Agent call configuration struct
 
 **Returns**:
 - `*Task` - Created task
 
-#### func (*Workflow) AgentCallBySlug
-
+**Example**:
 ```go
-func (w *Workflow) AgentCallBySlug(name, slug string, opts ...TaskOption) *Task
+task := wf.AgentCall("review", &workflow.AgentCallArgs{
+    Agent:   "code-reviewer",
+    Message: "Review this code: ${.input.code}",
+    Env: map[string]string{
+        "GITHUB_TOKEN": "${.secrets.GITHUB_TOKEN}",
+    },
+})
 ```
-
-Creates an AGENT_CALL task by slug.
 
 #### func (*Workflow) Wait
 
 ```go
-func (w *Workflow) Wait(name string, opts ...TaskOption) *Task
+func (w *Workflow) Wait(name string, args *WaitArgs) *Task
 ```
 
-Creates a WAIT task.
+Creates a WAIT task using struct-based args.
 
 **Parameters**:
 - `name` - Task name
-- `opts` - Wait options (duration or until)
+- `args` - Wait configuration struct
 
 **Returns**:
 - `*Task` - Created task
 
+**Example**:
+```go
+// Wait for duration
+task := wf.Wait("pause", &workflow.WaitArgs{
+    Duration: "30s",
+})
+
+// Wait until timestamp
+task := wf.Wait("schedule", &workflow.WaitArgs{
+    Until: "2024-12-31T23:59:59Z",
+})
+```
+
 #### func (*Workflow) Listen
 
 ```go
-func (w *Workflow) Listen(name string, opts ...TaskOption) *Task
+func (w *Workflow) Listen(name string, args *ListenArgs) *Task
 ```
 
-Creates a LISTEN task.
+Creates a LISTEN task using struct-based args.
+
+**Example**:
+```go
+task := wf.Listen("wait-approval", &workflow.ListenArgs{
+    SignalName:     "approval-signal",
+    TimeoutSeconds: 3600,
+})
+```
 
 #### func (*Workflow) Raise
 
 ```go
-func (w *Workflow) Raise(name string, opts ...TaskOption) *Task
+func (w *Workflow) Raise(name string, args *RaiseArgs) *Task
 ```
 
-Creates a RAISE task.
+Creates a RAISE task using struct-based args.
+
+**Example**:
+```go
+task := wf.Raise("notify", &workflow.RaiseArgs{
+    SignalName: "workflow-complete",
+    Payload: map[string]interface{}{
+        "status":   "success",
+        "duration": "45s",
+    },
+})
+```
 
 #### func (*Workflow) Switch
 
 ```go
-func (w *Workflow) Switch(name string, opts ...TaskOption) *Task
+func (w *Workflow) Switch(name string, args *SwitchArgs) *Task
 ```
 
-Creates a SWITCH task for conditional logic.
+Creates a SWITCH task for conditional logic using struct-based args.
 
 **Example**:
 ```go
-wf.Switch("check-status",
-    workflow.SwitchCase(
-        workflow.ConditionEquals("status", "success"),
-        workflow.Then(successTask),
-    ),
-    workflow.SwitchDefault(defaultTask),
-)
+task := wf.Switch("check-status", &workflow.SwitchArgs{
+    Cases: []*workflow.SwitchCase{
+        {
+            Condition: &workflow.Condition{
+                Operator: "equals",
+                Key:      "status",
+                Value:    "success",
+            },
+            Tasks: []*workflow.Task{successTask},
+        },
+    },
+    Default: []*workflow.Task{defaultTask},
+})
 ```
 
 #### func (*Workflow) ForEach
 
 ```go
-func (w *Workflow) ForEach(name string, opts ...TaskOption) *Task
+func (w *Workflow) ForEach(name string, args *ForArgs) *Task
 ```
 
-Creates a FOR task for iteration.
+Creates a FOR task for iteration using struct-based args.
 
-**Example**:
+**Recommended**: Use with `workflow.LoopBody()` for type-safe loop variables.
+
+**Example (Modern - Recommended)**:
 ```go
-wf.ForEach("process-items",
-    workflow.ForEachOver(fetchTask.Field("items")),
-    workflow.ForEachItem("item"),
-    workflow.ForEachDo(processTask),
-)
+task := wf.ForEach("process-items", &workflow.ForArgs{
+    In: fetchTask.Field("items"),  // Smart conversion - no .Expression() needed
+    Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.HttpPost("process", apiEndpoint, nil, map[string]interface{}{
+                "id":   item.Field("id"),    // Type-safe field access
+                "data": item.Field("data"),  // No magic strings!
+            }),
+        }
+    }),
+})
+```
+
+**Example (Legacy - Still Supported)**:
+```go
+task := wf.ForEach("process-items", &workflow.ForArgs{
+    In: fetchTask.Field("items").Expression(),  // Old style with .Expression()
+    Do: []*types.WorkflowTask{/* manual task definitions */},
+})
 ```
 
 #### func (*Workflow) Try
 
 ```go
-func (w *Workflow) Try(name string, opts ...TaskOption) *Task
+func (w *Workflow) Try(name string, args *TryArgs) *Task
 ```
 
-Creates a TRY task for error handling.
+Creates a TRY task for error handling using struct-based args.
 
 **Example**:
 ```go
-wf.Try("safe-operation",
-    workflow.TryDo(riskyTask),
-    workflow.CatchError(
-        workflow.ErrorMatcher(workflow.ErrorCode("TIMEOUT")),
-        workflow.CatchDo(handleTimeoutTask),
-    ),
-)
+task := wf.Try("safe-operation", &workflow.TryArgs{
+    Tasks: []*workflow.Task{riskyTask},
+    Catches: []*workflow.CatchBlock{
+        {
+            ErrorMatcher: &workflow.ErrorMatcher{
+                Code: "TIMEOUT",
+            },
+            Tasks: []*workflow.Task{handleTimeoutTask},
+        },
+    },
+})
 ```
 
 #### func (*Workflow) Fork
 
 ```go
-func (w *Workflow) Fork(name string, opts ...TaskOption) *Task
+func (w *Workflow) Fork(name string, args *ForkArgs) *Task
 ```
 
-Creates a FORK task for parallel execution.
+Creates a FORK task for parallel execution using struct-based args.
 
 **Example**:
 ```go
-wf.Fork("parallel-fetch",
-    workflow.ForkBranch("branch1", task1),
-    workflow.ForkBranch("branch2", task2),
-    workflow.ForkBranch("branch3", task3),
-)
+task := wf.Fork("parallel-fetch", &workflow.ForkArgs{
+    Branches: []*workflow.ForkBranch{
+        {Name: "branch1", Tasks: []*workflow.Task{task1}},
+        {Name: "branch2", Tasks: []*workflow.Task{task2}},
+        {Name: "branch3", Tasks: []*workflow.Task{task3}},
+    },
+})
 ```
 
 ### type Task
@@ -723,331 +830,404 @@ Creates a reference to a task output field.
 title := fetchTask.Field("title")
 ```
 
-### Workflow Options
+### Workflow Task Args Types
 
-#### func WithNamespace
+All workflow tasks use struct-based args for configuration (Pulumi Args pattern).
 
-```go
-func WithNamespace(ns string) Option
-```
-
-Sets workflow namespace (required).
-
-#### func WithName
+#### type HttpCallArgs
 
 ```go
-func WithName(name string) Option
+type HttpCallArgs struct {
+    Method         string                 // HTTP method (GET, POST, PUT, PATCH, DELETE)
+    Uri            interface{}            // Request URI (supports smart conversion)
+    Headers        map[string]string      // HTTP headers
+    Body           map[string]interface{} // Request body (for POST/PUT/PATCH)
+    TimeoutSeconds int                    // Request timeout (default: 30)
+    QueryParams    map[string]string      // Query parameters
+}
 ```
 
-Sets workflow name (required).
+**Fields**:
+- `Method` - HTTP method (required)
+- `Uri` - Request URI (required, supports smart conversion in v0.2.1+)
+  - Accepts: `string`, `TaskFieldRef`, `StringRef`
+  - No `.Expression()` needed
+- `Headers` - HTTP headers (optional)
+- `Body` - Request body (optional, for POST/PUT/PATCH)
+- `TimeoutSeconds` - Request timeout (optional, default: 30)
+- `QueryParams` - Query parameters (optional)
 
-#### func WithVersion
+**Example**:
+```go
+task := wf.HttpCall("fetch", &workflow.HttpCallArgs{
+    Method: "GET",
+    Uri:    apiBase.Concat("/users"),  // Smart conversion - no .Expression()!
+    Headers: map[string]string{
+        "Authorization": "Bearer ${.token}",
+    },
+    TimeoutSeconds: 30,
+})
+```
+
+#### type AgentCallArgs
 
 ```go
-func WithVersion(version string) Option
+type AgentCallArgs struct {
+    Agent   string                      // Agent slug or reference
+    Message interface{}                 // Message to agent (supports smart conversion)
+    Env     map[string]string           // Environment variables
+    Config  *types.AgentExecutionConfig // Agent execution configuration
+}
 ```
 
-Sets workflow version (required, semantic version).
+**Fields**:
+- `Agent` - Agent slug or reference (required)
+- `Message` - Message/prompt to agent (required, supports smart conversion in v0.2.1+)
+  - Accepts: `string`, `TaskFieldRef`, `StringRef`
+  - No `.Expression()` needed
+- `Env` - Environment variables (optional)
+- `Config` - Agent execution config (optional)
+  - Model, temperature, timeout, etc.
 
-#### func WithDescription
+**Example**:
+```go
+// With string literal
+task := wf.AgentCall("review", &workflow.AgentCallArgs{
+    Agent:   "code-reviewer",
+    Message: "Review this code: ${.input.code}",
+})
+
+// With smart conversion
+task := wf.AgentCall("review", &workflow.AgentCallArgs{
+    Agent:   "code-reviewer",
+    Message: fetchCode.Field("content"),  // TaskFieldRef - auto-converted!
+    Config: &types.AgentExecutionConfig{
+        Model:   "claude-3-5-sonnet",
+        Timeout: 300,
+    },
+})
+```
+
+#### type SetArgs
 
 ```go
-func WithDescription(desc string) Option
+type SetArgs struct {
+    Variables map[string]string // Variable key-value pairs
+}
 ```
 
-Sets workflow description (optional).
-
-### HTTP Task Options
-
-#### func Header
+#### type WaitArgs
 
 ```go
-func Header(key, value string) TaskOption
+type WaitArgs struct {
+    Duration string // Wait duration (e.g., "30s", "5m", "1h")
+    Until    string // Wait until timestamp (ISO 8601)
+}
 ```
 
-Adds HTTP header.
-
-#### func Body
+#### type ListenArgs
 
 ```go
-func Body(data interface{}) TaskOption
+type ListenArgs struct {
+    SignalName     string // Signal name to listen for
+    TimeoutSeconds int    // Timeout in seconds
+}
 ```
 
-Sets HTTP request body.
-
-#### func Timeout
+#### type RaiseArgs
 
 ```go
-func Timeout(seconds int) TaskOption
+type RaiseArgs struct {
+    SignalName string                 // Signal name to emit
+    Error      interface{}            // Error type (supports smart conversion)
+    Message    interface{}            // Error message (supports smart conversion)
+    Payload    map[string]interface{} // Signal payload data
+}
 ```
 
-Sets request timeout.
+**Fields**:
+- `SignalName` - Signal name (required for signal events)
+- `Error` - Error type (optional, supports smart conversion in v0.2.1+)
+  - Accepts: `string`, `TaskFieldRef`, `StringRef`
+- `Message` - Error message (optional, supports smart conversion in v0.2.1+)
+  - Accepts: `string`, `TaskFieldRef`, `StringRef`
+- `Payload` - Signal payload (optional)
 
-#### func Query
+**Example**:
+```go
+// Emit signal
+task := wf.Raise("notify", &workflow.RaiseArgs{
+    SignalName: "workflow-complete",
+    Payload: map[string]interface{}{
+        "status": "success",
+    },
+})
+
+// Raise error with smart conversion
+task := wf.Raise("error", &workflow.RaiseArgs{
+    Error:   errorTask.Field("type"),     // TaskFieldRef - auto-converted!
+    Message: errorTask.Field("message"),  // TaskFieldRef - auto-converted!
+})
+```
+
+#### type SwitchArgs
 
 ```go
-func Query(key, value string) TaskOption
+type SwitchArgs struct {
+    Cases   []*SwitchCase // Conditional cases
+    Default []*Task       // Default case tasks
+}
+
+type SwitchCase struct {
+    Condition *Condition // Condition to match
+    Tasks     []*Task    // Tasks to execute when matched
+}
+
+type Condition struct {
+    Operator string      // Comparison operator (equals, notEquals, greaterThan, etc.)
+    Key      string      // Variable key
+    Value    interface{} // Comparison value
+}
 ```
 
-Adds query parameter.
-
-### Agent Call Options
-
-#### func AgentInput
+#### type ForArgs
 
 ```go
-func AgentInput(key string, value interface{}) TaskOption
+type ForArgs struct {
+    In   interface{}             // Collection to iterate over (string or TaskFieldRef)
+    Each string                  // Loop variable name (optional, default: "item")
+    Do   []*types.WorkflowTask   // Tasks to execute per iteration
+}
 ```
 
-Sets agent input variable.
+**Fields**:
+- `In` - Collection expression to iterate over (required)
+  - Accepts: `string`, `TaskFieldRef`, `StringRef` (smart conversion)
+  - No `.Expression()` needed in v0.2.1+
+- `Each` - Custom loop variable name (optional)
+  - Default: `"item"`
+  - Example: `"user"`, `"order"`, `"record"`
+- `Do` - Tasks to execute for each iteration (required)
+  - Recommended: Use `workflow.LoopBody()` for type safety
+  - Legacy: Manual `[]*types.WorkflowTask` definitions
 
-#### func AgentModel
+**Example**:
+```go
+wf.ForEach("process-users", &workflow.ForArgs{
+    In: fetchTask.Field("users"),  // Smart conversion
+    Each: "user",                  // Custom variable name
+    Do: workflow.LoopBody(func(user workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.Set("processUser", &workflow.SetArgs{
+                Variables: map[string]string{
+                    "userId": user.Field("id"),
+                },
+            }),
+        }
+    }),
+})
+```
+
+#### func LoopBody
 
 ```go
-func AgentModel(model string) TaskOption
+func LoopBody(fn func(LoopVar) []*Task) []*types.WorkflowTask
 ```
 
-Overrides agent LLM model.
+Creates a type-safe loop body using a closure that receives the loop variable.
+This eliminates magic strings and provides compile-time field reference checking.
 
-#### func AgentTemperature
+**Parameters**:
+- `fn` - Closure that receives a `LoopVar` and returns tasks to execute
+
+**Returns**:
+- `[]*types.WorkflowTask` - Tasks for the loop body
+
+**Benefits**:
+- ✅ Type-safe field access via `LoopVar`
+- ✅ No magic strings like `"${.item.id}"`
+- ✅ IDE autocomplete and refactoring support
+- ✅ Compile-time checking of task definitions
+- ✅ Clear, readable code structure
+
+**Example**:
+```go
+wf.ForEach("processItems", &workflow.ForArgs{
+    In: fetchTask.Field("items"),
+    Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.HttpPost("processItem", 
+                apiBase.Concat("/process"),
+                nil,
+                map[string]interface{}{
+                    "itemId": item.Field("id"),      // Type-safe!
+                    "data":   item.Field("data"),    // No magic strings!
+                    "status": item.Field("status"),
+                },
+            ),
+        }
+    }),
+})
+```
+
+**With custom variable name**:
+```go
+wf.ForEach("processOrders", &workflow.ForArgs{
+    Each: "order",  // Custom variable name
+    In: fetchTask.Field("orders"),
+    Do: workflow.LoopBody(func(order workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.Set("processOrder", &workflow.SetArgs{
+                Variables: map[string]string{
+                    "orderId": order.Field("id"),        // References ${.order.id}
+                    "total":   order.Field("total"),     // References ${.order.total}
+                },
+            }),
+        }
+    }),
+})
+```
+
+**Nested loops**:
+```go
+wf.ForEach("processDepartments", &workflow.ForArgs{
+    In: fetchDepts.Field("departments"),
+    Do: workflow.LoopBody(func(dept workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.ForEach("processEmployees", &workflow.ForArgs{
+                In: dept.Field("employees"),
+                Do: workflow.LoopBody(func(emp workflow.LoopVar) []*workflow.Task {
+                    return []*workflow.Task{
+                        wf.Set("processEmployee", &workflow.SetArgs{
+                            Variables: map[string]string{
+                                "deptId": dept.Field("id"),
+                                "empId":  emp.Field("id"),
+                            },
+                        }),
+                    }
+                }),
+            }),
+        }
+    }),
+})
+```
+
+#### type LoopVar
 
 ```go
-func AgentTemperature(temp float64) TaskOption
+type LoopVar struct {
+    // contains filtered or unexported fields
+}
 ```
 
-Sets agent temperature (0.0-1.0).
+Represents the current iteration item in a loop body.
+Provides type-safe methods for accessing item fields and values.
 
-#### func AgentMaxTokens
+**Methods**:
+
+##### func (LoopVar) Field
 
 ```go
-func AgentMaxTokens(tokens int) TaskOption
+func (v LoopVar) Field(fieldName string) string
 ```
 
-Limits agent response tokens.
+Returns a reference to a field of the current loop item.
 
-#### func AgentTimeout
+**Parameters**:
+- `fieldName` - Name of the field to access
+
+**Returns**:
+- `string` - Expression string for the field (e.g., `"${.item.id}"`)
+
+**Example**:
+```go
+Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+    // Access fields of the current item
+    id := item.Field("id")          // → "${.item.id}"
+    name := item.Field("name")      // → "${.item.name}"
+    email := item.Field("email")    // → "${.item.email}"
+    
+    return []*workflow.Task{
+        wf.Set("process", &workflow.SetArgs{
+            Variables: map[string]string{
+                "userId":    id,
+                "userName":  name,
+                "userEmail": email,
+            },
+        }),
+    }
+}),
+```
+
+**With custom variable name**:
+```go
+wf.ForEach("processUsers", &workflow.ForArgs{
+    Each: "user",
+    In: fetchTask.Field("users"),
+    Do: workflow.LoopBody(func(user workflow.LoopVar) []*workflow.Task {
+        id := user.Field("id")  // → "${.user.id}"
+        // ...
+    }),
+})
+```
+
+##### func (LoopVar) Value
 
 ```go
-func AgentTimeout(seconds int) TaskOption
+func (v LoopVar) Value() string
 ```
 
-Sets agent execution timeout.
+Returns a reference to the entire current item.
 
-### Wait Task Options
+**Returns**:
+- `string` - Expression string for the entire item (e.g., `"${.item}"`)
 
-#### func WaitDuration
+**Example**:
+```go
+Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+    // Access the entire item
+    itemValue := item.Value()  // → "${.item}"
+    
+    return []*workflow.Task{
+        wf.HttpPost("process", endpoint, nil, map[string]interface{}{
+            "data": itemValue,  // Pass entire item to API
+        }),
+    }
+}),
+```
+
+#### type TryArgs
 
 ```go
-func WaitDuration(duration string) TaskOption
+type TryArgs struct {
+    Tasks   []*Task       // Tasks in try block
+    Catches []*CatchBlock // Error catch handlers
+}
+
+type CatchBlock struct {
+    ErrorMatcher *ErrorMatcher // Error matcher configuration
+    Tasks        []*Task       // Tasks to execute on error
+}
+
+type ErrorMatcher struct {
+    Code      string // Error code to match (e.g., "TIMEOUT")
+    Type      string // Error type to match
+    MatchAny  bool   // Match any error
+}
 ```
 
-Waits for duration (e.g., "30s", "5m", "1h").
-
-#### func WaitUntil
+#### type ForkArgs
 
 ```go
-func WaitUntil(timestamp string) TaskOption
+type ForkArgs struct {
+    Branches []*ForkBranch // Parallel branches
+}
+
+type ForkBranch struct {
+    Name  string  // Branch name
+    Tasks []*Task // Tasks to execute in parallel
+}
 ```
-
-Waits until timestamp (ISO 8601 format).
-
-### Signal Task Options
-
-#### func SignalName
-
-```go
-func SignalName(name string) TaskOption
-```
-
-Sets signal name for LISTEN/RAISE tasks.
-
-#### func SignalPayload
-
-```go
-func SignalPayload(data interface{}) TaskOption
-```
-
-Sets signal payload for RAISE tasks.
-
-#### func ListenTimeout
-
-```go
-func ListenTimeout(seconds int) TaskOption
-```
-
-Sets timeout for LISTEN tasks.
-
-### Switch Task Options
-
-#### func SwitchCase
-
-```go
-func SwitchCase(condition Condition, opts ...TaskOption) TaskOption
-```
-
-Adds conditional case to SWITCH task.
-
-#### func SwitchDefault
-
-```go
-func SwitchDefault(tasks ...*Task) TaskOption
-```
-
-Sets default case for SWITCH task.
-
-#### func Then
-
-```go
-func Then(tasks ...*Task) TaskOption
-```
-
-Sets tasks to execute when condition matches.
-
-### Condition Helpers
-
-#### func ConditionEquals
-
-```go
-func ConditionEquals(key string, value interface{}) Condition
-```
-
-Creates equality condition.
-
-#### func ConditionNotEquals
-
-```go
-func ConditionNotEquals(key string, value interface{}) Condition
-```
-
-Creates inequality condition.
-
-#### func ConditionGreaterThan
-
-```go
-func ConditionGreaterThan(key string, value interface{}) Condition
-```
-
-Creates greater-than condition.
-
-#### func ConditionLessThan
-
-```go
-func ConditionLessThan(key string, value interface{}) Condition
-```
-
-Creates less-than condition.
-
-#### func ConditionContains
-
-```go
-func ConditionContains(key, substring string) Condition
-```
-
-Creates string-contains condition.
-
-### ForEach Task Options
-
-#### func ForEachOver
-
-```go
-func ForEachOver(array interface{}) TaskOption
-```
-
-Sets array to iterate over.
-
-#### func ForEachItem
-
-```go
-func ForEachItem(varName string) TaskOption
-```
-
-Sets loop item variable name.
-
-#### func ForEachIndex
-
-```go
-func ForEachIndex(varName string) TaskOption
-```
-
-Sets loop index variable name.
-
-#### func ForEachDo
-
-```go
-func ForEachDo(tasks ...*Task) TaskOption
-```
-
-Sets tasks to execute per iteration.
-
-### Try Task Options
-
-#### func TryDo
-
-```go
-func TryDo(tasks ...*Task) TaskOption
-```
-
-Sets tasks for try block.
-
-#### func CatchError
-
-```go
-func CatchError(matcher ErrorMatcher, opts ...TaskOption) TaskOption
-```
-
-Adds error catch handler.
-
-#### func CatchDo
-
-```go
-func CatchDo(tasks ...*Task) TaskOption
-```
-
-Sets tasks for catch block.
-
-### Error Matchers
-
-#### func ErrorMatcher
-
-```go
-func ErrorMatcher(match ErrorMatch) ErrorMatcher
-```
-
-Creates error matcher.
-
-#### func ErrorCode
-
-```go
-func ErrorCode(code string) ErrorMatch
-```
-
-Matches specific error code.
-
-#### func ErrorType
-
-```go
-func ErrorType(errorType string) ErrorMatch
-```
-
-Matches error type.
-
-#### func ErrorAny
-
-```go
-func ErrorAny() ErrorMatch
-```
-
-Matches any error.
-
-### Fork Task Options
-
-#### func ForkBranch
-
-```go
-func ForkBranch(name string, tasks ...*Task) TaskOption
-```
-
-Adds parallel branch to FORK task.
 
 ---
 
@@ -1418,10 +1598,142 @@ func Map(array interface{}, varName string, fn interface{}) interface{}
 func Filter(array interface{}, varName string, condition Condition) interface{}
 ```
 
-### Loop Variables
+### Loop Variables (v0.2.1+)
+
+#### func LoopBody
 
 ```go
-func LoopVar(path string) interface{}
+func LoopBody(fn func(LoopVar) []*Task) []*types.WorkflowTask
+```
+
+Creates a type-safe loop body for ForEach tasks. See detailed documentation in the [workflow package section](#func-loopbody).
+
+**Quick Example**:
+```go
+wf.ForEach("processItems", &workflow.ForArgs{
+    In: fetchTask.Field("items"),
+    Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.Set("process", &workflow.SetArgs{
+                Variables: map[string]string{
+                    "id": item.Field("id"),  // Type-safe!
+                },
+            }),
+        }
+    }),
+})
+```
+
+#### type LoopVar
+
+Represents the current iteration item in a loop. See detailed documentation in the [workflow package section](#type-loopvar).
+
+**Methods**:
+- `.Field(name)` - Access item field: `item.Field("id")` → `"${.item.id}"`
+- `.Value()` - Access entire item: `item.Value()` → `"${.item}"`
+
+---
+
+## Smart Expression Conversion (v0.2.1+)
+
+Certain fields automatically convert TaskFieldRef and StringRef to expression strings, eliminating the need for manual `.Expression()` calls.
+
+### Fields with Smart Conversion
+
+**Expression fields** (marked with `is_expression` proto option):
+
+| Field | Type | Example |
+|-------|------|---------|
+| `ForTaskConfig.In` | `interface{}` | `In: fetchTask.Field("items")` |
+| `HttpCallTaskConfig.Uri` | `interface{}` | `Uri: apiBase.Concat("/api")` |
+| `AgentCallTaskConfig.Message` | `interface{}` | `Message: codeTask.Field("content")` |
+| `RaiseTaskConfig.Error` | `interface{}` | `Error: errorTask.Field("type")` |
+| `RaiseTaskConfig.Message` | `interface{}` | `Message: errorTask.Field("msg")` |
+
+### How It Works
+
+1. **Field is declared as `interface{}`** instead of `string`
+2. **Runtime type checking** determines if value is string, TaskFieldRef, or StringRef
+3. **Automatic conversion** calls `.Expression()` on TaskFieldRef/StringRef
+4. **Backward compatible** - string literals still work
+
+### Examples
+
+**Before (v0.2.0 and earlier)**:
+```go
+wf.ForEach("process", &workflow.ForArgs{
+    In: fetchTask.Field("items").Expression(),  // ❌ Manual conversion
+})
+
+wf.HttpGet("fetch", 
+    apiBase.Concat("/users").Expression(),  // ❌ Manual conversion
+    nil,
+)
+
+wf.AgentCall("review", &workflow.AgentCallArgs{
+    Agent:   "reviewer",
+    Message: codeTask.Field("content").Expression(),  // ❌ Manual conversion
+})
+```
+
+**After (v0.2.1+)**:
+```go
+wf.ForEach("process", &workflow.ForArgs{
+    In: fetchTask.Field("items"),  // ✅ Auto-converted!
+})
+
+wf.HttpGet("fetch", 
+    apiBase.Concat("/users"),  // ✅ Auto-converted!
+    nil,
+)
+
+wf.AgentCall("review", &workflow.AgentCallArgs{
+    Agent:   "reviewer",
+    Message: codeTask.Field("content"),  // ✅ Auto-converted!
+})
+```
+
+### Where .Expression() Is Still Needed
+
+Smart conversion ONLY applies to direct expression fields. You still need `.Expression()` for:
+
+1. **Map values**:
+   ```go
+   Body: map[string]interface{}{
+       "userId": userTask.Field("id").Expression(),  // ✅ Required
+   }
+   ```
+
+2. **SetArgs.Variables values**:
+   ```go
+   wf.Set("vars", &workflow.SetArgs{
+       Variables: map[string]string{
+           "title": fetchTask.Field("title").Expression(),  // ✅ Required
+       },
+   })
+   ```
+
+3. **Array elements**:
+   ```go
+   items := []string{
+       fetchTask.Field("name").Expression(),  // ✅ Required
+   }
+   ```
+
+### LoopVar Exception
+
+`LoopVar` methods (`.Field()`, `.Value()`) already return strings, so they never need `.Expression()`:
+
+```go
+Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+    return []*workflow.Task{
+        wf.Set("process", &workflow.SetArgs{
+            Variables: map[string]string{
+                "id": item.Field("id"),  // ✅ Already a string!
+            },
+        }),
+    }
+}),
 ```
 
 ---
@@ -1492,5 +1804,6 @@ if err != nil {
 
 ---
 
-**Version**: 0.1.0  
-**Last Updated**: 2026-01-22
+**Version**: 0.2.0  
+**Last Updated**: 2026-01-24  
+**Migration**: See [Migration Guide](migration-from-functional-options.md) for upgrading from v0.1.0

@@ -9,13 +9,20 @@ A Go SDK for defining AI agents and workflows for the Stigmer platform.
 
 ### Core Features
 - **Agents & Workflows**: Define both AI agents and workflow orchestrations
+- **Struct-based Args**: Pulumi-style configuration with excellent IDE support (v0.2.0+)
 - **Proto-agnostic SDK**: Pure Go library with no proto dependencies
-- **File-based content**: Load instructions and skills from markdown files
 - **Inline resources**: Define skills and sub-agents directly in your repository
 - **Type-safe**: Leverage Go's type system for compile-time safety
 - **Well-tested**: Comprehensive unit and integration tests
 
-### Workflow Features (NEW!)
+### Developer Experience
+- **IDE Autocomplete**: Full field discovery and type information
+- **Nil-Safe**: All args optional with sensible defaults
+- **Convenience Methods**: Shortcuts for common patterns (HttpGet, SetVars)
+- **Helper Types**: Ergonomic runtime value access (ErrorRef, LoopVar)
+- **Industry Standard**: Matches Pulumi, Terraform, and AWS SDK patterns
+
+### Workflow Features
 - **Pulumi-aligned API**: Professional infrastructure-as-code patterns
 - **Typed Context System**: Compile-time checked configuration with IDE autocomplete
 - **Implicit Dependencies**: Automatic dependency tracking through field references
@@ -27,6 +34,34 @@ A Go SDK for defining AI agents and workflows for the Stigmer platform.
 
 ```bash
 go get github.com/leftbin/stigmer-sdk/go
+```
+
+## 🔄 Migrating to v0.2.0+
+
+**v0.2.0 introduces struct-based args** (Pulumi pattern) replacing functional options.
+
+**Benefits**:
+- ✅ Better IDE autocomplete and field discovery
+- ✅ Clearer, more maintainable code
+- ✅ Industry-standard patterns
+- ✅ Nil-safe with sensible defaults
+
+**Migration guide**: See [Struct Args Migration Guide](docs/guides/struct-args-migration.md) for complete before/after examples and troubleshooting.
+
+**Quick comparison**:
+```go
+// OLD (v0.1.x): Functional options
+agent.New(ctx,
+    agent.WithName("my-agent"),
+    agent.WithInstructions("..."),
+    agent.WithSkills(skill),
+)
+
+// NEW (v0.2.0+): Struct args
+agent.New(ctx, "my-agent", &agent.AgentArgs{
+    Instructions: "...",
+})
+agent.AddSkill(skill)
 ```
 
 ## Quick Start
@@ -46,12 +81,11 @@ import (
 
 func main() {
     err := stigmer.Run(func(ctx *stigmer.Context) error {
-        // Create inline skill from markdown file
-        securitySkill, err := skill.New(
-            skill.WithName("security-guidelines"),
-            skill.WithDescription("Security review guidelines"),
-            skill.WithMarkdownFromFile("skills/security.md"),
-        )
+        // Create inline skill with markdown content
+        securitySkill, err := skill.New("security-guidelines", &skill.SkillArgs{
+            Description:     "Security review guidelines",
+            MarkdownContent: "# Security Guidelines\n\nCheck for SQL injection, XSS...",
+        })
         if err != nil {
             return err
         }
@@ -67,22 +101,19 @@ func main() {
             return err
         }
 
-        // Create agent with instructions from file
-        myAgent, err := agent.New(ctx,
-            agent.WithName("code-reviewer"),
-            agent.WithInstructionsFromFile("instructions/reviewer.md"),
-            agent.WithDescription("AI code reviewer with security expertise"),
-            agent.WithIconURL("https://example.com/icon.png"),
-        )
+        // Create agent with struct-based args (v0.2.0+)
+        myAgent, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+            Instructions: "Review code for security, performance, and best practices.",
+            Description:  "AI code reviewer with security expertise",
+            IconUrl:      "https://example.com/icon.png",
+        })
         if err != nil {
             return err
         }
         
-        // Use builder methods to add components
-        myAgent.
-            AddSkill(*securitySkill).                    // Inline skill
-            AddSkill(skill.Platform("coding-standards")). // Platform skill
-            AddMCPServer(githubMCP)
+        // Add skills and MCP servers using builder methods
+        myAgent.AddSkill(*securitySkill)
+        myAgent.AddMCPServer(githubMCP)
         
         fmt.Printf("Agent created: %s\n", myAgent.Name)
         
@@ -305,7 +336,7 @@ func main() {
     // Use stigmer.Run() for automatic context and synthesis management
     err := stigmer.Run(func(ctx *stigmer.Context) error {
         // Context: ONLY for shared configuration (like Pulumi's Config)
-        apiBase := ctx.SetString("apiBase", "https://jsonplaceholder.typicode.com")
+        apiBase := ctx.SetString("apiBase", "https://api.github.com")
         orgName := ctx.SetString("org", "my-org")
         
         // Create workflow with context
@@ -319,20 +350,22 @@ func main() {
             return err
         }
         
-        // Build endpoint URL using context config
-        endpoint := apiBase.Concat("/posts/1")
+        // Build endpoint URL using context config - real GitHub API!
+        endpoint := apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1")
         
-        // Task 1: Fetch data from API (clean, one-liner!)
-        fetchTask := wf.HttpGet("fetchData", endpoint,
-            workflow.Header("Content-Type", "application/json"),
+        // Task 1: Fetch pull request from GitHub API (clean, one-liner!)
+        fetchTask := wf.HttpGet("fetchPullRequest", endpoint,
+            workflow.Header("Accept", "application/vnd.github.v3+json"),
+            workflow.Header("User-Agent", "Stigmer-SDK-Example"),
             workflow.Timeout(30),
         )
         
         // Task 2: Process response using DIRECT task references
         // Dependencies are implicit - no manual wiring needed!
         processTask := wf.SetVars("processResponse",
-            "postTitle", fetchTask.Field("title"),  // ✅ Clear: from fetchTask!
-            "postBody", fetchTask.Field("body"),    // ✅ Clear: from fetchTask!
+            "prTitle", fetchTask.Field("title"),      // ✅ Clear: from fetchTask!
+            "prBody", fetchTask.Field("body"),        // ✅ Clear: from fetchTask!
+            "prAuthor", fetchTask.Field("user.login"), // ✅ GitHub username
             "status", "success",
         )
         
@@ -444,7 +477,7 @@ See the [examples/](examples/) directory for complete examples:
 6. **Agent with Instructions from Files** (`06_agent_with_instructions_from_files.go`) - **⭐ Recommended pattern** - Load all content from files
 
 ### Workflow Examples (Basic)
-7. **Basic Workflow** (`07_workflow_with_runtime_secrets.go`) - **⭐ START HERE** - Complete workflow with Pulumi-aligned patterns
+7. **Basic Workflow** (`07_basic_workflow.go`) - **⭐ START HERE** - Complete workflow with Pulumi-aligned patterns and real GitHub API
 8. **Agent with Typed Context** (`12_agent_with_typed_context.go`) - Typed context variables for configuration
 9. **Workflow and Agent Shared Context** (`13_workflow_and_agent_shared_context.go`) - Sharing configuration between workflows and agents
 
@@ -462,9 +495,16 @@ See the [examples/](examples/) directory for complete examples:
 
 **Total**: 19 comprehensive examples covering all SDK features
 
+**🚀 Real GitHub API Integration**:
+- Examples 07-11 use **real GitHub API** endpoints from the public `stigmer/hello-stigmer` repository
+- ✅ No authentication required - work as E2E tests
+- ✅ Demonstrate realistic integration patterns
+- ✅ Production-ready code with actual API responses
+- See [examples/URL_MIGRATION_ANALYSIS.md](examples/URL_MIGRATION_ANALYSIS.md) for details
+
 **🌟 Recommended Starting Points**:
 - **For agents**: Example 06 (file-based content - production pattern)
-- **For workflows**: Example 07 (basic workflow - Pulumi-aligned)
+- **For workflows**: Example 07 (basic workflow - Pulumi-aligned, real GitHub API)
 - **For advanced workflows**: Example 08 (conditionals - proven working!)
 - **For agent orchestration**: Example 18 (real-world CI/CD pipeline)
 

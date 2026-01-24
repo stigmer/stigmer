@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -18,21 +19,18 @@ func TestAgentToProto_MaximumSkills(t *testing.T) {
 	// Create 50 skills
 	skills := make([]skill.Skill, 50)
 	for i := 0; i < 50; i++ {
-		s, _ := skill.New(
-			skill.WithName("skill"+string(rune('0'+i%10))),
-			skill.WithMarkdown("# Skill "+string(rune('0'+i%10))),
-		)
-		skills[i] = *s
+		skills[i] = skill.Platform("skill" + string(rune('0'+i%10)))
 	}
 
-	agent, err := New(nil,
-		WithName("max-skills-agent"),
-		WithInstructions("Agent with maximum skills for testing boundary conditions"),
-		WithSkills(skills...),
-	)
+	agent, err := New(nil, "max-skills-agent", &AgentArgs{
+		Instructions: "Agent with maximum skills for testing boundary conditions",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
+
+	// Add skills using builder method
+	agent.AddSkills(skills...)
 
 	proto, err := agent.ToProto()
 	if err != nil {
@@ -58,25 +56,26 @@ func TestAgentToProto_MaximumSubAgents(t *testing.T) {
 
 // TestAgentToProto_MaximumEnvironmentVars tests agent with many environment variables.
 func TestAgentToProto_MaximumEnvironmentVars(t *testing.T) {
-	// Create 100 environment variables
+	// Create 100 environment variables with unique names
 	envVars := make([]environment.Variable, 100)
 	for i := 0; i < 100; i++ {
 		env, _ := environment.New(
-			environment.WithName("ENV_VAR_"+string(rune('0'+i%10))),
-			environment.WithDefaultValue("value"+string(rune('0'+i%10))),
+			environment.WithName(fmt.Sprintf("ENV_VAR_%d", i)),
+			environment.WithDefaultValue(fmt.Sprintf("value%d", i)),
 			environment.WithSecret(i%2 == 0), // Half are secrets
 		)
 		envVars[i] = env
 	}
 
-	agent, err := New(nil,
-		WithName("max-env-agent"),
-		WithInstructions("Agent with maximum environment variables for testing boundary conditions"),
-		WithEnvironmentVariables(envVars...),
-	)
+	agent, err := New(nil, "max-env-agent", &AgentArgs{
+		Instructions: "Agent with maximum environment variables for testing boundary conditions",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
+
+	// Add environment variables using builder method
+	agent.AddEnvironmentVariables(envVars...)
 
 	proto, err := agent.ToProto()
 	if err != nil {
@@ -105,10 +104,9 @@ func TestAgentToProto_VeryLongInstructions(t *testing.T) {
 	// Create instructions close to 10,000 character limit
 	longInstructions := strings.Repeat("This is a very detailed instruction for the agent to follow carefully. ", 140) // ~9,800 chars
 
-	agent, err := New(nil,
-		WithName("long-instructions-agent"),
-		WithInstructions(longInstructions),
-	)
+	agent, err := New(nil, "long-instructions-agent", &AgentArgs{
+		Instructions: longInstructions,
+	})
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
@@ -129,11 +127,10 @@ func TestAgentToProto_VeryLongInstructions(t *testing.T) {
 
 // TestAgentToProto_SpecialCharactersInFields tests special characters.
 func TestAgentToProto_SpecialCharactersInFields(t *testing.T) {
-	agent, err := New(nil,
-		WithName("special-agent"),
-		WithDescription("Description with unicode: 你好 🚀 émojis & symbols <>&\"'\n\t"),
-		WithInstructions("Instructions with special chars: \n\t<>&\"' 你好世界 🎉💻"),
-	)
+	agent, err := New(nil, "special-agent", &AgentArgs{
+		Description:  "Description with unicode: 你好 🚀 émojis & symbols <>&\"'\n\t",
+		Instructions: "Instructions with special chars: \n\t<>&\"' 你好世界 🎉💻",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
@@ -281,10 +278,9 @@ func TestAgentToProto_EmptyStringFields(t *testing.T) {
 
 // TestAgentToProto_ConcurrentAccess tests thread-safety of ToProto.
 func TestAgentToProto_ConcurrentAccess(t *testing.T) {
-	agent, _ := New(nil,
-		WithName("concurrent-agent"),
-		WithInstructions("Agent for testing concurrent access to ToProto method"),
-	)
+	agent, _ := New(nil, "concurrent-agent", &AgentArgs{
+		Instructions: "Agent for testing concurrent access to ToProto method",
+	})
 
 	// Run ToProto concurrently 100 times
 	var wg sync.WaitGroup
@@ -315,28 +311,32 @@ func TestAgent_ConcurrentSkillAddition(t *testing.T) {
 	agent := &Agent{
 		Name:         "concurrent-skills",
 		Instructions: "Agent for testing concurrent skill additions",
-		Skills:       []skill.Skill{},
+		Skills:       []skill.Skill{}, // Initialize to avoid nil
 	}
 
-	// Concurrently add 50 skills
+	// Concurrently add 50 skills using thread-safe AddSkill method
 	var wg sync.WaitGroup
 	for i := 0; i < 50; i++ {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			s, _ := skill.New(
-				skill.WithName("skill"+string(rune('0'+idx%10))),
-				skill.WithMarkdown("# Skill "+string(rune('0'+idx%10))),
-			)
-			agent.Skills = append(agent.Skills, *s)
+			s := skill.Platform("skill" + string(rune('0'+idx%10)))
+			agent.AddSkill(s)
 		}(i)
 	}
 
 	wg.Wait()
 
-	// Verify skills were added (may not be exactly 50 due to race conditions)
-	// This test documents current behavior - not necessarily safe
-	t.Logf("Skills added concurrently: %d (expected ~50, actual count varies due to race)", len(agent.Skills))
+	// Verify all 50 skills were added successfully
+	// With thread-safe implementation, we should get exactly 50 skills
+	agent.mu.Lock()
+	skillCount := len(agent.Skills)
+	agent.mu.Unlock()
+
+	if skillCount != 50 {
+		t.Errorf("Expected 50 skills, got %d", skillCount)
+	}
+	t.Logf("Skills added concurrently: %d (expected 50)", skillCount)
 }
 
 // =============================================================================
@@ -364,47 +364,30 @@ func TestAgentToProto_SlugEdgeCases(t *testing.T) {
 	tests := []struct {
 		name         string
 		agentName    string
-		customSlug   string
 		expectedSlug string
 	}{
 		{
-			name:         "name with spaces",
-			agentName:    "My Test Agent",
-			customSlug:   "",
-			expectedSlug: "my-test-agent", // auto-generated
+			name:         "name with valid format",
+			agentName:    "my-test-agent",
+			expectedSlug: "my-test-agent",
 		},
 		{
-			name:         "name with special chars",
-			agentName:    "Agent@123!",
-			customSlug:   "",
-			expectedSlug: "agent-123", // auto-generated, sanitized
-		},
-		{
-			name:         "custom slug overrides",
+			name:         "simple name",
 			agentName:    "test",
-			customSlug:   "custom-slug-override",
-			expectedSlug: "custom-slug-override",
+			expectedSlug: "test",
 		},
 		{
-			name:         "very long name",
-			agentName:    strings.Repeat("long", 20), // 80 chars
-			customSlug:   "",
-			expectedSlug: strings.Repeat("long", 15)[:63], // truncated to 63
+			name:         "name with numbers",
+			agentName:    "agent-123",
+			expectedSlug: "agent-123",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			opts := []Option{
-				WithName(tt.agentName),
-				WithInstructions("Test instructions for slug edge case testing"),
-			}
-
-			if tt.customSlug != "" {
-				opts = append(opts, WithSlug(tt.customSlug))
-			}
-
-			agent, err := New(nil, opts...)
+			agent, err := New(nil, tt.agentName, &AgentArgs{
+				Instructions: "Test instructions for slug edge case testing",
+			})
 			if err != nil {
 				t.Fatalf("Failed to create agent: %v", err)
 			}

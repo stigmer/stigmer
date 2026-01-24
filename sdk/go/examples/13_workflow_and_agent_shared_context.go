@@ -6,9 +6,9 @@ package main
 import (
 	"log"
 
-	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/environment"
+	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -29,7 +29,7 @@ func main() {
 		apiURL := ctx.SetString("apiURL", "https://api.example.com")
 		orgName := ctx.SetString("orgName", "data-processing-team")
 		retryCount := ctx.SetInt("retryCount", 3)
-		
+
 		// Create shared environment variable
 		apiToken, err := environment.New(
 			environment.WithName("API_TOKEN"),
@@ -46,7 +46,7 @@ func main() {
 			workflow.WithName("fetch-and-analyze"),
 			workflow.WithVersion("1.0.0"),
 			workflow.WithDescription("Fetch data from API and analyze with agent"),
-			workflow.WithOrg(orgName),  // Shared typed reference
+			workflow.WithOrg(orgName), // Shared typed reference
 			workflow.WithEnvironmentVariable(apiToken),
 		)
 		if err != nil {
@@ -54,31 +54,36 @@ func main() {
 		}
 
 	// Add workflow tasks using shared context variables
-	endpoint := apiURL.Concat("/data")
-	
+	// Use workflow.Interpolate() to build URL from context variable and literal path
+	endpoint := workflow.Interpolate(apiURL, "/data")
+
 	// Task 1: Fetch data using HTTP GET
-	_ = wf.HttpGet("fetchData", endpoint,
-		workflow.Header("Content-Type", "application/json"),
-		workflow.Timeout(30),
-	)
-	
-	// Task 2: Process data
-	_ = wf.Set("processData",
-		workflow.SetVar("status", "processing"),
-		workflow.SetVar("retries", retryCount),  // Uses shared retryCount
-	)
+	_ = wf.HttpGet("fetchData", endpoint, map[string]string{
+		"Content-Type": "application/json",
+	})
+
+		// Task 2: Process data
+		_ = wf.Set("processData", &workflow.SetArgs{
+			Variables: map[string]string{
+				"status":  "processing",
+				"retries": retryCount.Expression(), // Uses shared retryCount
+			},
+		})
 
 		// Create an agent that uses the SAME shared context
-		ag, err := agent.New(ctx,
-			agent.WithName("data-analyzer"),
-			agent.WithInstructions("Analyze data from the API and provide insights"),
-			agent.WithDescription("AI data analyst"),
-			agent.WithOrg(orgName),  // Same shared typed reference as workflow!
-			agent.WithEnvironmentVariable(apiToken),  // Same environment variable
-		)
+		ag, err := agent.New(ctx, "data-analyzer", &agent.AgentArgs{
+			Instructions: "Analyze data from the API and provide insights",
+			Description:  "AI data analyst",
+		})
 		if err != nil {
 			return err
 		}
+
+		// Set Org field directly (same shared typed reference as workflow!)
+		ag.Org = orgName.Value()
+
+		// Add environment variable using builder method
+		ag.AddEnvironmentVariable(apiToken) // Same environment variable
 
 		log.Printf("Created workflow: %s", wf)
 		log.Printf("Created agent: %s", ag)
@@ -86,10 +91,10 @@ func main() {
 		log.Println("Variables like 'apiURL', 'orgName', and 'retryCount' are type-safe and shared")
 		return nil
 	})
-	
+
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	log.Println("✅ Workflow and agent created with shared context!")
 }

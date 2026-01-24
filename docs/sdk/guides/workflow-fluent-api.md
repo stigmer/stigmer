@@ -1,6 +1,6 @@
 # Workflow SDK: Fluent API Guide
 
-**Last Updated**: 2026-01-22  
+**Last Updated**: 2026-01-24  
 **Status**: Production Ready  
 **SDK Version**: Go SDK v1.x+
 
@@ -359,18 +359,43 @@ wf.AddTask(waitTask)
 - `Case(matcher, target)` - Add conditional case
 - `DefaultCase(target)` - Set default branch
 
-**Condition Matchers**:
+**Condition Matchers** (legacy - still supported):
 - `Equals(value)` - Equality check
 - `GreaterThan(value)` - Greater than check
 - `LessThan(value)` - Less than check
 - `CustomCondition(expr)` - Custom expression
 
+**TaskFieldRef Helpers** (recommended - added 2026-01-24):
+- Use TaskFieldRef helper methods directly on field references
+- See [TaskFieldRef: Fluent Condition Building](#fluent-condition-building-new-in-2026-01-24) for full details
+
 **Examples**:
 
 ```go
-// Simple conditional routing
+// Recommended: Using TaskFieldRef helpers (type-safe, cleaner)
 checkTask := wf.HttpGet("check", endpoint)
+statusCode := checkTask.Field("statusCode")
 
+switchTask := wf.Switch("route", &workflow.SwitchArgs{
+    Cases: []*types.SwitchCase{
+        {
+            Name: "success",
+            When: statusCode.Equals(200),  // ✅ TaskFieldRef helper
+            Then: "handleSuccess",
+        },
+        {
+            Name: "notFound",
+            When: statusCode.Equals(404),  // ✅ TaskFieldRef helper
+            Then: "handleNotFound",
+        },
+        {
+            Name: "default",
+            Then: "handleError",  // Default case
+        },
+    },
+})
+
+// Legacy: Using workflow-level matchers (still works)
 switchTask := wf.Switch("route",
     workflow.SwitchOn(checkTask.Field("statusCode")),
     workflow.Case(workflow.Equals(200), "success"),
@@ -612,6 +637,107 @@ fetchTask.Field("user.name")
 ```
 
 **Benefit**: Works with task names containing hyphens or special characters.
+
+### Fluent Condition Building (New in 2026-01-24)
+
+`TaskFieldRef` now provides fluent helper methods for building conditions intuitively, eliminating error-prone string concatenation.
+
+**Comparison Operators**:
+- `Equals(value)` - Equality check
+- `NotEquals(value)` - Inequality check
+- `GreaterThan(value)` - Greater than check
+- `GreaterThanOrEqual(value)` - Greater than or equal check
+- `LessThan(value)` - Less than check
+- `LessThanOrEqual(value)` - Less than or equal check
+
+**String Operators**:
+- `Contains(substring)` - String contains check
+- `StartsWith(prefix)` - String starts with check
+- `EndsWith(suffix)` - String ends with check
+
+**Array Membership**:
+- `In(values)` - Value in array check
+
+#### Examples
+
+**Basic Equality**:
+```go
+fetchTask := wf.HttpGet("fetch", apiURL)
+statusCode := fetchTask.Field("statusCode")
+
+// Old way (error-prone string concatenation)
+condition := statusCode.Expression() + " == 200"  // ❌
+
+// New way (fluent, type-safe)
+condition := statusCode.Equals(200)  // ✅
+```
+
+**Numeric Comparisons**:
+```go
+metricsTask := wf.HttpGet("metrics", metricsURL)
+errorRate := metricsTask.Field("errorRate")
+latency := metricsTask.Field("latency")
+
+wf.Switch("checkHealth", &workflow.SwitchArgs{
+    Cases: []*types.SwitchCase{
+        {
+            Name: "critical",
+            When: errorRate.GreaterThan(0.1),  // ✅ Error rate > 10%
+            Then: "alertCritical",
+        },
+        {
+            Name: "degraded",
+            When: latency.GreaterThanOrEqual(500),  // ✅ Latency >= 500ms
+            Then: "alertWarning",
+        },
+    },
+})
+```
+
+**String Matching**:
+```go
+statusTask := wf.HttpGet("status", statusURL)
+message := statusTask.Field("message")
+
+wf.Switch("routeByMessage", &workflow.SwitchArgs{
+    Cases: []*types.SwitchCase{
+        {
+            Name: "error",
+            When: message.Contains("error"),  // ✅ String contains
+            Then: "handleError",
+        },
+        {
+            Name: "rollback",
+            When: message.StartsWith("ROLLBACK:"),  // ✅ Prefix match
+            Then: "initiateRollback",
+        },
+        {
+            Name: "success",
+            When: message.EndsWith("completed"),  // ✅ Suffix match
+            Then: "markSuccess",
+        },
+    },
+})
+```
+
+**Benefits**:
+- ✅ Type-safe condition building
+- ✅ Proper value formatting (automatic quoting for strings)
+- ✅ Better code readability
+- ✅ Reduces errors from manual JQ expression construction
+- ✅ IDE autocomplete support
+
+**Generated Expressions**:
+```go
+statusCode.Equals(200)
+// → "${ $context["fetchTask"].statusCode } == 200"
+
+errorRate.GreaterThan(0.1)
+// → "${ $context["metricsTask"].errorRate } > 0.1"
+
+message.Contains("error")
+// → "${ $context["statusTask"].message } | contains(\"error\")"
+```
 
 ---
 
@@ -1051,6 +1177,7 @@ wf.Set("process", workflow.SetVar("data", fetchTask.Field("result")))
 
 ## Changelog
 
+- **2026-01-24**: Added TaskFieldRef fluent helper methods for condition building (Equals, GreaterThan, Contains, etc.)
 - **2026-01-22**: Added advanced workflow APIs (Switch, ForEach, Try/Catch, Fork) and expression helpers
 - **2026-01-22**: Initial version - Fluent API with functional options pattern
 - See `_changelog/2026-01/` for detailed implementation history

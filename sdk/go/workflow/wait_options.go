@@ -1,30 +1,24 @@
 package workflow
 
-// WaitOption is a functional option for configuring a WAIT task.
-type WaitOption func(*WaitTaskConfig)
+// WaitArgs is an alias for WaitTaskConfig (Pulumi-style args pattern).
+type WaitArgs = WaitTaskConfig
 
-// Wait creates a WAIT task with functional options.
+// Wait creates a WAIT task using struct-based args.
+// This follows the Pulumi Args pattern for resource configuration.
 //
 // Example:
 //
-//	task := workflow.Wait("pause", workflow.Duration("5s"))
-func Wait(name string, opts ...WaitOption) *Task {
-	config := &WaitTaskConfig{}
-
-	for _, opt := range opts {
-		opt(config)
+//	task := workflow.Wait("pause", &workflow.WaitArgs{
+//	    Seconds: 5,
+//	})
+func Wait(name string, args *WaitArgs) *Task {
+	if args == nil {
+		args = &WaitArgs{}
 	}
 
 	return &Task{
 		Name:   name,
 		Kind:   TaskKindWait,
-		Config: config,
-	}
-}
-
-// Duration sets the wait duration (e.g., "5s", "1m", "1h", "1d").
-func Duration(duration string) WaitOption {
-	return func(c *WaitTaskConfig) {
-		c.Duration = duration
+		Config: args,
 	}
 }

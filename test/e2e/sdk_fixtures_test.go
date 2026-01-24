@@ -130,8 +130,8 @@ func CopyAllSDKExamples() error {
 			TargetFileName: "main.go",
 		},
 		{
-			SDKFileName:    "06_agent_with_instructions_from_files.go",
-			TestDataDir:    "examples/06-agent-with-instructions-from-files",
+			SDKFileName:    "06_agent_with_inline_content.go",
+			TestDataDir:    "examples/06-agent-with-inline-content",
 			TargetFileName: "main.go",
 		},
 		// Workflow examples

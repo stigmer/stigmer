@@ -1,14 +1,18 @@
 package agent
 
 import (
-	"os"
+	"sync"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
+	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
+
+// AgentArgs is an alias for the generated AgentArgs from gen/agent
+type AgentArgs = genAgent.AgentArgs
 
 // Context is a minimal interface that represents a stigmer context.
 // This allows the agent package to work with contexts without importing
@@ -17,6 +21,8 @@ import (
 // The stigmer.Context type implements this interface.
 type Context interface {
 	RegisterAgent(*Agent)
+	RegisterSkill(s interface{})
+	TrackDependency(resourceID, dependsOnID string)
 }
 
 // Agent represents an AI agent template with skills, MCP servers, and configuration.
@@ -27,9 +33,8 @@ type Context interface {
 // Use agent.New() with stigmer.Run() to create an Agent:
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
-//	    ag, err := agent.New(ctx,
-//	        agent.WithName("code-reviewer"),
-//	        agent.WithInstructions("Review code and suggest improvements"),
+//	    ag, err := agent.New(ctx, "code-reviewer",
+//	        gen.AgentInstructions("Review code and suggest improvements"),
 //	    )
 //	    return err
 //	})
@@ -66,51 +71,73 @@ type Agent struct {
 
 	// Context reference (optional, used for typed variable management)
 	ctx Context
+
+	// mu protects concurrent access to Skills, MCPServers, SubAgents, and EnvironmentVariables slices
+	mu sync.Mutex
 }
 
-// Option is a functional option for configuring an Agent.
-type Option func(*Agent) error
-
-
-// New creates a new Agent with a typed context for variable management.
+// New creates a new Agent with struct-based args (Pulumi pattern).
 //
 // The agent is automatically registered with the provided context for synthesis.
+// Follows Pulumi's Args pattern: name as parameter, args struct for configuration.
 //
-// Required options:
-//   - WithName: agent name (or WithSlug for custom slug)
-//   - WithInstructions: behavior instructions
+// Required:
+//   - name: agent name (lowercase alphanumeric with hyphens)
+//   - args.Instructions: behavior instructions (min 10 characters)
 //
-// Optional:
-//   - WithSlug: custom slug (overrides auto-generation from name)
+// Optional args fields:
+//   - Description: human-readable description
+//   - IconUrl: icon URL for UI display
+//   - SkillRefs: skill references
+//   - McpServers: MCP server definitions
+//   - SubAgents: sub-agents
+//   - EnvSpec: environment variables
 //
-// Example:
+// Example (clean single-package import):
+//
+//	import "github.com/stigmer/stigmer/sdk/go/agent"
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
-//	    ag, err := agent.New(ctx,
-//	        agent.WithName("code-reviewer"),
-//	        agent.WithInstructions("Review code and suggest improvements"),
-//	    )
+//	    ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+//	        Instructions: "Review code and suggest improvements",
+//	        Description:  "Professional code reviewer",
+//	    })
 //	    return err
 //	})
 //
-// Example with custom slug:
+// Example with nil args (creates empty agent):
 //
-//	ag, err := agent.New(ctx,
-//	    agent.WithName("Code Review Agent"),
-//	    agent.WithSlug("code-reviewer"),  // Custom slug
-//	    agent.WithInstructions("Review code..."),
-//	)
-func New(ctx Context, opts ...Option) (*Agent, error) {
-	a := &Agent{
-		ctx: ctx,
+//	ag, err := agent.New(ctx, "code-reviewer", nil)
+//	ag.Instructions = "Review code..."  // Set fields directly
+//
+// Example with builder methods:
+//
+//	ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+//	    Instructions: "Review code...",
+//	})
+//	ag.AddSkill(skill.Platform("coding-best-practices"))
+func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
+	// Nil-safety: if args is nil, create empty args
+	if args == nil {
+		args = &AgentArgs{}
 	}
 
-	// Apply all options
-	for _, opt := range opts {
-		if err := opt(a); err != nil {
-			return nil, err
-		}
+	// Create Agent from args
+	a := &Agent{
+		Name:         name,
+		Instructions: args.Instructions,
+		Description:  args.Description,
+		IconURL:      args.IconUrl,
+		ctx:          ctx,
 	}
+
+	// Convert proto types to SDK types
+	// Note: Full conversion will be implemented as we add support for these fields
+	// For now, we initialize empty slices to avoid nil pointer issues
+	a.Skills = []skill.Skill{}
+	a.MCPServers = []mcpserver.MCPServer{}
+	a.SubAgents = []subagent.SubAgent{}
+	a.EnvironmentVariables = []environment.Variable{}
 
 	// Auto-generate slug from name if not provided
 	if a.Slug == "" && a.Name != "" {
@@ -142,288 +169,41 @@ func New(ctx Context, opts ...Option) (*Agent, error) {
 	return a, nil
 }
 
-// WithName sets the agent name.
-//
-// The name must be lowercase alphanumeric with hyphens, max 63 characters.
-// This is a required field.
-//
-// Accepts either a string or a StringRef from context.
-//
-// Examples:
-//
-//	agent.WithName("code-reviewer")                           // Legacy string
-//	agent.WithName(ctx.SetString("agentName", "reviewer"))    // Typed context
-func WithName(name interface{}) Option {
-	return func(a *Agent) error {
-		a.Name = toExpression(name)
-		return nil
-	}
-}
-
-// WithInstructions sets the agent's behavior instructions from a string.
-//
-// Instructions must be between 10 and 10,000 characters.
-// This is a required field.
-//
-// Accepts either a string or a StringRef from context.
-//
-// Examples:
-//
-//	agent.WithInstructions("Review code and suggest improvements")                    // Legacy string
-//	agent.WithInstructions(ctx.SetString("instructions", "Review code..."))          // Typed context
-func WithInstructions(instructions interface{}) Option {
-	return func(a *Agent) error {
-		a.Instructions = toExpression(instructions)
-		return nil
-	}
-}
-
-// WithInstructionsFromFile sets the agent's behavior instructions from a file.
-//
-// Reads the file content and sets it as the agent's instructions.
-// The file content must be between 10 and 10,000 characters.
-// This is a required field (alternative to WithInstructions).
-//
-// Example:
-//
-//	agent.WithInstructionsFromFile("instructions/code-reviewer.md")
-func WithInstructionsFromFile(path string) Option {
-	return func(a *Agent) error {
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		a.Instructions = string(content)
-		return nil
-	}
-}
-
-// WithDescription sets the agent's human-readable description.
-//
-// Description is optional and must be max 500 characters.
-//
-// Accepts either a string or a StringRef from context.
-//
-// Examples:
-//
-//	agent.WithDescription("AI code reviewer")                                  // Legacy string
-//	agent.WithDescription(ctx.SetString("description", "AI reviewer"))         // Typed context
-func WithDescription(description interface{}) Option {
-	return func(a *Agent) error {
-		a.Description = toExpression(description)
-		return nil
-	}
-}
-
-// WithIconURL sets the agent's icon URL for UI display.
-//
-// The URL must be a valid HTTP/HTTPS URL.
-// This is an optional field.
-//
-// Accepts either a string or a StringRef from context.
-//
-// Examples:
-//
-//	agent.WithIconURL("https://example.com/icon.png")                      // Legacy string
-//	agent.WithIconURL(ctx.SetString("iconURL", "https://..."))             // Typed context
-func WithIconURL(url interface{}) Option {
-	return func(a *Agent) error {
-		a.IconURL = toExpression(url)
-		return nil
-	}
-}
-
-// WithOrg sets the organization that owns this agent.
-//
-// This is an optional field.
-//
-// Accepts either a string or a StringRef from context.
-//
-// Examples:
-//
-//	agent.WithOrg("my-org")                                    // Legacy string
-//	agent.WithOrg(ctx.SetString("org", "my-org"))              // Typed context
-func WithOrg(org interface{}) Option {
-	return func(a *Agent) error {
-		a.Org = toExpression(org)
-		return nil
-	}
-}
-
-// WithSlug sets a custom slug for the agent.
-//
-// By default, slugs are auto-generated from the name by converting to lowercase
-// and replacing spaces with hyphens. Use this option to override the auto-generation.
-//
-// The slug must contain only lowercase letters, numbers, and hyphens.
-// It cannot start or end with a hyphen.
-//
-// Example:
-//
-//	agent.WithSlug("my-custom-agent")
-func WithSlug(slug string) Option {
-	return func(a *Agent) error {
-		a.Slug = slug
-		return nil
-	}
-}
-
-// WithSkill adds a skill reference to the agent.
-//
-// Skills provide knowledge and capabilities to agents.
-// Multiple skills can be added by calling this option multiple times
-// or by using WithSkills() for bulk addition.
-//
-// Example:
-//
-//	agent.WithSkill(skill.Platform("coding-best-practices"))
-//	agent.WithSkill(skill.Organization("my-org", "internal-docs"))
-func WithSkill(s skill.Skill) Option {
-	return func(a *Agent) error {
-		a.Skills = append(a.Skills, s)
-		return nil
-	}
-}
-
-// WithSkills adds multiple skill references to the agent.
-//
-// This is a convenience function for adding multiple skills at once.
-//
-// Example:
-//
-//	agent.WithSkills(
-//	    skill.Platform("coding-best-practices"),
-//	    skill.Organization("my-org", "internal-docs"),
-//	)
-func WithSkills(skills ...skill.Skill) Option {
-	return func(a *Agent) error {
-		a.Skills = append(a.Skills, skills...)
-		return nil
-	}
-}
-
-// WithMCPServer adds an MCP server definition to the agent.
-//
-// MCP servers provide tools and capabilities to agents.
-// Multiple MCP servers can be added by calling this option multiple times
-// or by using WithMCPServers() for bulk addition.
-//
-// Example:
-//
-//	github, _ := mcpserver.Stdio(
-//	    mcpserver.WithName("github"),
-//	    mcpserver.WithCommand("npx"),
-//	    mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-//	)
-//	agent.WithMCPServer(github)
-func WithMCPServer(server mcpserver.MCPServer) Option {
-	return func(a *Agent) error {
-		a.MCPServers = append(a.MCPServers, server)
-		return nil
-	}
-}
-
-// WithMCPServers adds multiple MCP server definitions to the agent.
-//
-// This is a convenience function for adding multiple MCP servers at once.
-//
-// Example:
-//
-//	github, _ := mcpserver.Stdio(...)
-//	aws, _ := mcpserver.HTTP(...)
-//	agent.WithMCPServers(github, aws)
-func WithMCPServers(servers ...mcpserver.MCPServer) Option {
-	return func(a *Agent) error {
-		a.MCPServers = append(a.MCPServers, servers...)
-		return nil
-	}
-}
-
-// WithSubAgent adds a sub-agent to the agent.
-//
-// Sub-agents can be delegated to for specific tasks.
-// They can be either inline definitions or references to existing AgentInstance resources.
-//
-// Example:
-//
-//	agent.WithSubAgent(subagent.Inline(
-//	    subagent.WithName("code-analyzer"),
-//	    subagent.WithInstructions("Analyze code for bugs"),
-//	))
-//	agent.WithSubAgent(subagent.Reference("security", "sec-checker-prod"))
-func WithSubAgent(sub subagent.SubAgent) Option {
-	return func(a *Agent) error {
-		a.SubAgents = append(a.SubAgents, sub)
-		return nil
-	}
-}
-
-// WithSubAgents adds multiple sub-agents to the agent.
-//
-// This is a convenience function for adding multiple sub-agents at once.
-//
-// Example:
-//
-//	agent.WithSubAgents(
-//	    subagent.Inline(...),
-//	    subagent.Reference("security", "sec-prod"),
-//	)
-func WithSubAgents(subs ...subagent.SubAgent) Option {
-	return func(a *Agent) error {
-		a.SubAgents = append(a.SubAgents, subs...)
-		return nil
-	}
-}
-
-// WithEnvironmentVariable adds an environment variable to the agent.
-//
-// Environment variables define what external configuration the agent needs to run.
-// They can be configuration values or secrets.
-//
-// Example:
-//
-//	githubToken, _ := environment.New(
-//	    environment.WithName("GITHUB_TOKEN"),
-//	    environment.WithSecret(true),
-//	)
-//	agent.WithEnvironmentVariable(githubToken)
-func WithEnvironmentVariable(variable environment.Variable) Option {
-	return func(a *Agent) error {
-		a.EnvironmentVariables = append(a.EnvironmentVariables, variable)
-		return nil
-	}
-}
-
-// WithEnvironmentVariables adds multiple environment variables to the agent.
-//
-// This is a convenience function for adding multiple environment variables at once.
-//
-// Example:
-//
-//	githubToken, _ := environment.New(...)
-//	awsRegion, _ := environment.New(...)
-//	agent.WithEnvironmentVariables(githubToken, awsRegion)
-func WithEnvironmentVariables(variables ...environment.Variable) Option {
-	return func(a *Agent) error {
-		a.EnvironmentVariables = append(a.EnvironmentVariables, variables...)
-		return nil
-	}
-}
+// ============================================================================
+// Builder Methods - Modify agent after construction
+// ============================================================================
 
 // AddSkill adds a skill to the agent after creation.
 //
 // This is a builder method that allows adding skills after the agent is created.
+// If the skill is inline and the agent has a context, it automatically registers
+// the skill and tracks the dependency.
 //
 // Example:
 //
 //	agent, _ := agent.New(agent.WithName("reviewer"))
 //	agent.AddSkill(skill.Platform("coding-best-practices"))
 func (a *Agent) AddSkill(s skill.Skill) *Agent {
+	a.mu.Lock()
 	a.Skills = append(a.Skills, s)
+	a.mu.Unlock()
+	
+	// Register inline skill with context and track dependency
+	if a.ctx != nil && s.IsInline {
+		// Make a copy of the skill to get a pointer
+		skillCopy := s
+		a.ctx.RegisterSkill(&skillCopy)
+		// Track dependency: this agent depends on this skill
+		agentID := "agent:" + a.Name
+		skillID := "skill:" + s.Name
+		a.ctx.TrackDependency(agentID, skillID)
+	}
+	
 	return a
 }
 
 // AddSkills adds multiple skills to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
@@ -433,11 +213,14 @@ func (a *Agent) AddSkill(s skill.Skill) *Agent {
 //	    skill.Organization("my-org", "internal-docs"),
 //	)
 func (a *Agent) AddSkills(skills ...skill.Skill) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.Skills = append(a.Skills, skills...)
 	return a
 }
 
 // AddMCPServer adds an MCP server to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
@@ -445,44 +228,56 @@ func (a *Agent) AddSkills(skills ...skill.Skill) *Agent {
 //	github, _ := mcpserver.Stdio(mcpserver.WithName("github"))
 //	agent.AddMCPServer(github)
 func (a *Agent) AddMCPServer(server mcpserver.MCPServer) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.MCPServers = append(a.MCPServers, server)
 	return a
 }
 
 // AddMCPServers adds multiple MCP servers to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
 //	agent, _ := agent.New(agent.WithName("reviewer"))
 //	agent.AddMCPServers(github, aws)
 func (a *Agent) AddMCPServers(servers ...mcpserver.MCPServer) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.MCPServers = append(a.MCPServers, servers...)
 	return a
 }
 
 // AddSubAgent adds a sub-agent to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
 //	agent, _ := agent.New(agent.WithName("reviewer"))
 //	agent.AddSubAgent(subagent.Reference("security", "sec-prod"))
 func (a *Agent) AddSubAgent(sub subagent.SubAgent) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.SubAgents = append(a.SubAgents, sub)
 	return a
 }
 
 // AddSubAgents adds multiple sub-agents to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
 //	agent, _ := agent.New(agent.WithName("reviewer"))
 //	agent.AddSubAgents(sub1, sub2)
 func (a *Agent) AddSubAgents(subs ...subagent.SubAgent) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.SubAgents = append(a.SubAgents, subs...)
 	return a
 }
 
 // AddEnvironmentVariable adds an environment variable to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
@@ -490,17 +285,22 @@ func (a *Agent) AddSubAgents(subs ...subagent.SubAgent) *Agent {
 //	githubToken, _ := environment.New(environment.WithName("GITHUB_TOKEN"))
 //	agent.AddEnvironmentVariable(githubToken)
 func (a *Agent) AddEnvironmentVariable(variable environment.Variable) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.EnvironmentVariables = append(a.EnvironmentVariables, variable)
 	return a
 }
 
 // AddEnvironmentVariables adds multiple environment variables to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
 //	agent, _ := agent.New(agent.WithName("reviewer"))
 //	agent.AddEnvironmentVariables(githubToken, awsRegion)
 func (a *Agent) AddEnvironmentVariables(variables ...environment.Variable) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.EnvironmentVariables = append(a.EnvironmentVariables, variables...)
 	return a
 }

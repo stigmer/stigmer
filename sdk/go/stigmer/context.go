@@ -25,10 +25,10 @@ import (
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
 //	    apiURL := ctx.SetString("apiURL", "https://api.example.com")
-//	    
+//
 //	    wf, _ := workflow.New(ctx, ...)
 //	    ag, _ := agent.New(ctx, ...)
-//	    
+//
 //	    return nil
 //	})
 type Context struct {
@@ -312,12 +312,16 @@ func (c *Context) RegisterAgent(ag *agent.Agent) {
 
 	c.agents = append(c.agents, ag)
 
-	// Track inline skill dependencies
+	// Track inline skill dependencies and register inline skills
 	agentID := agentResourceID(ag)
 	for i := range ag.Skills {
 		if ag.Skills[i].IsInline {
 			skillID := skillResourceID(&ag.Skills[i])
 			c.addDependency(agentID, skillID)
+			// Register the inline skill if not already registered
+			if !c.isSkillRegistered(&ag.Skills[i]) {
+				c.skills = append(c.skills, &ag.Skills[i])
+			}
 		}
 		// External/platform skills: no dependency (already exist)
 	}
@@ -328,16 +332,27 @@ func (c *Context) RegisterAgent(ag *agent.Agent) {
 //
 // Only inline skills need registration - platform/org skills are references to
 // existing resources and don't need creation.
-func (c *Context) RegisterSkill(s *skill.Skill) {
+func (c *Context) RegisterSkill(s interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// Only register inline skills
-	if !s.IsInline {
+	// Type assert to *skill.Skill
+	skillPtr, ok := s.(*skill.Skill)
+	if !ok {
 		return
 	}
 
-	c.skills = append(c.skills, s)
+	// Only register inline skills
+	if !skillPtr.IsInline {
+		return
+	}
+
+	// Don't register if already registered
+	if c.isSkillRegistered(skillPtr) {
+		return
+	}
+
+	c.skills = append(c.skills, skillPtr)
 	// Skills have no dependencies (they're always created first)
 }
 
@@ -358,11 +373,32 @@ func (c *Context) addDependency(resourceID, dependsOnID string) {
 	c.dependencies[resourceID] = append(c.dependencies[resourceID], dependsOnID)
 }
 
+// TrackDependency is the public method for tracking dependencies.
+// It is thread-safe and can be called from other packages.
+//
+// Example: ctx.TrackDependency("agent:reviewer", "skill:code-analysis")
+func (c *Context) TrackDependency(resourceID, dependsOnID string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.addDependency(resourceID, dependsOnID)
+}
+
+// isSkillRegistered checks if a skill is already registered in the context.
+// Note: caller must hold c.mu.Lock()
+func (c *Context) isSkillRegistered(s *skill.Skill) bool {
+	for _, existingSkill := range c.skills {
+		if existingSkill.Name == s.Name && existingSkill.IsInline {
+			return true
+		}
+	}
+	return false
+}
+
 // trackWorkflowAgentDependencies scans workflow tasks for agent references
 // and records dependencies.
 func (c *Context) trackWorkflowAgentDependencies(workflowID string, wf *workflow.Workflow) {
 	// Note: caller must hold c.mu.Lock()
-	
+
 	// Scan all tasks for agent_call task type
 	for _, task := range wf.Tasks {
 		if task.Kind == workflow.TaskKindAgentCall {
@@ -598,7 +634,7 @@ func (c *Context) synthesizeDependencies(outputDir string) error {
 //	func main() {
 //	    err := stigmer.Run(func(ctx *stigmer.Context) error {
 //	        apiURL := ctx.SetString("apiURL", "https://api.example.com")
-//	        
+//
 //	        wf, err := workflow.New(ctx,
 //	            workflow.WithName("data-pipeline"),
 //	            workflow.WithNamespace("my-org"),
@@ -606,11 +642,11 @@ func (c *Context) synthesizeDependencies(outputDir string) error {
 //	        if err != nil {
 //	            return err
 //	        }
-//	        
+//
 //	        task, _ := wf.AddHTTPTask(
 //	            workflow.WithURI(apiURL.Append("/users")),
 //	        )
-//	        
+//
 //	        return nil
 //	    })
 //	    if err != nil {

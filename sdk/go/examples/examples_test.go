@@ -63,7 +63,7 @@ func TestExample02_AgentWithSkills(t *testing.T) {
 		if len(agent.Spec.SkillRefs) == 0 {
 			t.Error("Agent should have skills")
 		}
-		
+
 		t.Logf("✅ Agent with skills created: %s", agent.Metadata.Name)
 	})
 }
@@ -195,7 +195,7 @@ func TestExample03_AgentWithMCPServers(t *testing.T) {
 		hasStdio := false
 		hasHTTP := false
 		hasDocker := false
-		
+
 		for _, server := range agent.Spec.McpServers {
 			switch {
 			case server.GetStdio() != nil:
@@ -217,7 +217,7 @@ func TestExample03_AgentWithMCPServers(t *testing.T) {
 			t.Error("Agent should have at least one Docker MCP server")
 		}
 
-		t.Logf("✅ Agent with %d MCP servers created (stdio: %v, http: %v, docker: %v)", 
+		t.Logf("✅ Agent with %d MCP servers created (stdio: %v, http: %v, docker: %v)",
 			len(agent.Spec.McpServers), hasStdio, hasHTTP, hasDocker)
 	})
 }
@@ -240,7 +240,7 @@ func TestExample04_AgentWithSubAgents(t *testing.T) {
 		// Check for both inline and referenced sub-agents
 		hasInline := false
 		hasReferenced := false
-		
+
 		for _, subAgent := range agent.Spec.SubAgents {
 			switch subAgent.AgentReference.(type) {
 			case *agentv1.SubAgent_InlineSpec:
@@ -250,7 +250,7 @@ func TestExample04_AgentWithSubAgents(t *testing.T) {
 			}
 		}
 
-		t.Logf("✅ Agent with %d sub-agents created (inline: %v, referenced: %v)", 
+		t.Logf("✅ Agent with %d sub-agents created (inline: %v, referenced: %v)",
 			len(agent.Spec.SubAgents), hasInline, hasReferenced)
 	})
 }
@@ -295,34 +295,8 @@ func TestExample05_AgentWithEnvironmentVariables(t *testing.T) {
 			t.Error("Agent should have at least one secret environment variable")
 		}
 
-		t.Logf("✅ Agent with %d environment variables created (secrets: %v, has values: %v)", 
+		t.Logf("✅ Agent with %d environment variables created (secrets: %v, has values: %v)",
 			len(envData), hasSecret, hasValue)
-	})
-}
-
-// TestExample06_AgentWithInstructionsFromFiles tests the agent with instructions from files example
-func TestExample06_AgentWithInstructionsFromFiles(t *testing.T) {
-	runExampleTest(t, "06_agent_with_instructions_from_files.go", func(t *testing.T, outputDir string) {
-		// This example creates multiple agents - check if at least one exists
-		agentPath := filepath.Join(outputDir, "agent-0.pb")
-		assertFileExists(t, agentPath)
-
-		var agent agentv1.Agent
-		readProto(t, agentPath, &agent)
-
-		// Verify instructions were loaded from file
-		if agent.Spec.Instructions == "" {
-			t.Error("Agent should have instructions loaded from file")
-		}
-
-		// Instructions should be non-trivial (file content, not just empty string)
-		if len(agent.Spec.Instructions) < 100 {
-			t.Errorf("Agent instructions seem too short (%d chars), may not have loaded from file correctly", 
-				len(agent.Spec.Instructions))
-		}
-
-		t.Logf("✅ Agent with instructions from file created (%d chars loaded)", 
-			len(agent.Spec.Instructions))
 	})
 }
 

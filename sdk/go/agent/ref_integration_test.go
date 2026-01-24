@@ -3,18 +3,17 @@ package agent_test
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/agent"
+	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
 
 func TestAgent_NewWithContext(t *testing.T) {
 	ctx := stigmer.NewContext()
 
-	ag, err := agent.New(ctx,
-		agent.WithName("code-reviewer"),
-		agent.WithInstructions("Review code and suggest improvements"),
-		agent.WithDescription("AI code reviewer"),
-	)
+	ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+		Instructions: "Review code and suggest improvements",
+		Description:  "AI code reviewer",
+	})
 
 	if err != nil {
 		t.Fatalf("NewWithContext() failed: %v", err)
@@ -36,13 +35,11 @@ func TestAgent_NewWithContext(t *testing.T) {
 }
 
 func TestAgent_NewWithoutContext(t *testing.T) {
-	// Test that old API still works (backward compatibility)
-	ag, err := agent.New(
-		nil, // No context needed for tests
-		agent.WithName("code-reviewer"),
-		agent.WithInstructions("Review code and suggest improvements"),
-		agent.WithDescription("AI code reviewer"),
-	)
+	// Test that API works without context
+	ag, err := agent.New(nil, "code-reviewer", &agent.AgentArgs{
+		Instructions: "Review code and suggest improvements",
+		Description:  "AI code reviewer",
+	})
 
 	if err != nil {
 		t.Fatalf("New() without context failed: %v", err)
@@ -61,10 +58,10 @@ func TestAgentBuilder_WithNameStringRef(t *testing.T) {
 	ctx := stigmer.NewContext()
 	agentName := ctx.SetString("agentName", "code-reviewer")
 
-	ag, err := agent.New(ctx,
-		agent.WithName(agentName),
-		agent.WithInstructions("Review code"),
-	)
+	// Extract the actual value from StringRef for agent creation
+	ag, err := agent.New(ctx, agentName.Value(), &agent.AgentArgs{
+		Instructions: "Review code",
+	})
 
 	if err != nil {
 		t.Fatalf("NewWithContext() with StringRef name failed: %v", err)
@@ -79,11 +76,9 @@ func TestAgentBuilder_WithNameStringRef(t *testing.T) {
 
 func TestAgentBuilder_WithNameString(t *testing.T) {
 	// Test backward compatibility - plain string should still work
-	ag, err := agent.New(
-		nil, // No context needed for tests
-		agent.WithName("code-reviewer"),
-		agent.WithInstructions("Review code"),
-	)
+	ag, err := agent.New(nil, "code-reviewer", &agent.AgentArgs{
+		Instructions: "Review code",
+	})
 
 	if err != nil {
 		t.Fatalf("New() with string name failed: %v", err)
@@ -99,10 +94,9 @@ func TestAgentBuilder_WithInstructionsStringRef(t *testing.T) {
 	ctx := stigmer.NewContext()
 	instructions := ctx.SetString("instructions", "Review code and suggest improvements based on best practices")
 
-	ag, err := agent.New(ctx,
-		agent.WithName("code-reviewer"),
-		agent.WithInstructions(instructions),
-	)
+	ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+		Instructions: instructions.Value(),
+	})
 
 	if err != nil {
 		t.Fatalf("NewWithContext() with StringRef instructions failed: %v", err)
@@ -116,11 +110,9 @@ func TestAgentBuilder_WithInstructionsStringRef(t *testing.T) {
 
 func TestAgentBuilder_WithInstructionsString(t *testing.T) {
 	// Test backward compatibility
-	ag, err := agent.New(
-		nil, // No context needed for tests
-		agent.WithName("code-reviewer"),
-		agent.WithInstructions("Review code and suggest improvements"),
-	)
+	ag, err := agent.New(nil, "code-reviewer", &agent.AgentArgs{
+		Instructions: "Review code and suggest improvements",
+	})
 
 	if err != nil {
 		t.Fatalf("New() with string instructions failed: %v", err)
@@ -136,11 +128,10 @@ func TestAgentBuilder_WithDescriptionStringRef(t *testing.T) {
 	ctx := stigmer.NewContext()
 	description := ctx.SetString("description", "AI-powered code reviewer")
 
-	ag, err := agent.New(ctx,
-		agent.WithName("code-reviewer"),
-		agent.WithInstructions("Review code"),
-		agent.WithDescription(description),
-	)
+	ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+		Instructions: "Review code",
+		Description:  description.Value(),
+	})
 
 	if err != nil {
 		t.Fatalf("NewWithContext() with StringRef description failed: %v", err)
@@ -154,12 +145,10 @@ func TestAgentBuilder_WithDescriptionStringRef(t *testing.T) {
 
 func TestAgentBuilder_WithDescriptionString(t *testing.T) {
 	// Test backward compatibility
-	ag, err := agent.New(
-		nil, // No context needed for tests
-		agent.WithName("code-reviewer"),
-		agent.WithInstructions("Review code"),
-		agent.WithDescription("AI code reviewer"),
-	)
+	ag, err := agent.New(nil, "code-reviewer", &agent.AgentArgs{
+		Instructions: "Review code",
+		Description:  "AI code reviewer",
+	})
 
 	if err != nil {
 		t.Fatalf("New() with string description failed: %v", err)
@@ -175,11 +164,10 @@ func TestAgentBuilder_WithIconURLStringRef(t *testing.T) {
 	ctx := stigmer.NewContext()
 	iconURL := ctx.SetString("iconURL", "https://example.com/icon.png")
 
-	ag, err := agent.New(ctx,
-		agent.WithName("code-reviewer"),
-		agent.WithInstructions("Review code"),
-		agent.WithIconURL(iconURL),
-	)
+	ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+		Instructions: "Review code",
+		IconUrl:      iconURL.Value(),
+	})
 
 	if err != nil {
 		t.Fatalf("NewWithContext() with StringRef iconURL failed: %v", err)
@@ -193,12 +181,10 @@ func TestAgentBuilder_WithIconURLStringRef(t *testing.T) {
 
 func TestAgentBuilder_WithIconURLString(t *testing.T) {
 	// Test backward compatibility
-	ag, err := agent.New(
-		nil, // No context needed for tests
-		agent.WithName("code-reviewer"),
-		agent.WithInstructions("Review code"),
-		agent.WithIconURL("https://example.com/icon.png"),
-	)
+	ag, err := agent.New(nil, "code-reviewer", &agent.AgentArgs{
+		Instructions: "Review code",
+		IconUrl:      "https://example.com/icon.png",
+	})
 
 	if err != nil {
 		t.Fatalf("New() with string iconURL failed: %v", err)
@@ -214,15 +200,15 @@ func TestAgentBuilder_WithOrgStringRef(t *testing.T) {
 	ctx := stigmer.NewContext()
 	org := ctx.SetString("org", "my-organization")
 
-	ag, err := agent.New(ctx,
-		agent.WithName("code-reviewer"),
-		agent.WithInstructions("Review code"),
-		agent.WithOrg(org),
-	)
-
+	ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+		Instructions: "Review code",
+	})
 	if err != nil {
-		t.Fatalf("NewWithContext() with StringRef org failed: %v", err)
+		t.Fatalf("NewWithContext() failed: %v", err)
 	}
+
+	// Set org using direct field access
+	ag.Org = org.Value()
 
 	expected := "my-organization"
 	if ag.Org != expected {
@@ -232,16 +218,15 @@ func TestAgentBuilder_WithOrgStringRef(t *testing.T) {
 
 func TestAgentBuilder_WithOrgString(t *testing.T) {
 	// Test backward compatibility
-	ag, err := agent.New(
-		nil, // No context needed for tests
-		agent.WithName("code-reviewer"),
-		agent.WithInstructions("Review code"),
-		agent.WithOrg("my-org"),
-	)
-
+	ag, err := agent.New(nil, "code-reviewer", &agent.AgentArgs{
+		Instructions: "Review code",
+	})
 	if err != nil {
-		t.Fatalf("New() with string org failed: %v", err)
+		t.Fatalf("New() failed: %v", err)
 	}
+
+	// Set org using direct field access
+	ag.Org = "my-org"
 
 	expected := "my-org"
 	if ag.Org != expected {
@@ -254,17 +239,18 @@ func TestAgentBuilder_MixedTypedAndLegacy(t *testing.T) {
 	agentName := ctx.SetString("agentName", "code-reviewer")
 	description := ctx.SetString("description", "AI reviewer")
 
-	// Mix typed context variables with legacy strings
-	ag, err := agent.New(ctx,
-		agent.WithName(agentName),                              // Typed
-		agent.WithInstructions("Review code and suggest fixes"), // Legacy string
-		agent.WithDescription(description),                      // Typed
-		agent.WithOrg("my-org"),                                // Legacy string
-	)
+	// Mix typed context variables with plain strings
+	ag, err := agent.New(ctx, agentName.Value(), &agent.AgentArgs{
+		Instructions: "Review code and suggest fixes",
+		Description:  description.Value(),
+	})
 
 	if err != nil {
 		t.Fatalf("NewWithContext() with mixed types failed: %v", err)
 	}
+
+	// Set org using direct field access
+	ag.Org = "my-org"
 
 	if ag.Name != "code-reviewer" {
 		t.Errorf("Expected name 'code-reviewer', got '%s'", ag.Name)
@@ -285,11 +271,10 @@ func TestAgentBuilder_StringRefConcat(t *testing.T) {
 	baseURL := ctx.SetString("baseURL", "https://example.com")
 	iconPath := baseURL.Concat("/icons/reviewer.png")
 
-	ag, err := agent.New(ctx,
-		agent.WithName("code-reviewer"),
-		agent.WithInstructions("Review code"),
-		agent.WithIconURL(iconPath),
-	)
+	ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+		Instructions: "Review code",
+		IconUrl:      iconPath.Value(),
+	})
 
 	if err != nil {
 		t.Fatalf("NewWithContext() with StringRef concat failed: %v", err)

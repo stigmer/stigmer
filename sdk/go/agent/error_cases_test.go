@@ -16,162 +16,154 @@ import (
 // TestNew_ValidationErrors tests agent creation with invalid inputs.
 func TestNew_ValidationErrors(t *testing.T) {
 	tests := []struct {
-		name    string
-		opts    []Option
-		wantErr bool
-		errType error
+		name      string
+		agentName string
+		args      *AgentArgs
+		wantErr   bool
+		errType   error
 	}{
 		{
-			name: "missing name",
-			opts: []Option{
-				WithInstructions("Valid instructions for testing missing name"),
+			name:      "missing name",
+			agentName: "",
+			args: &AgentArgs{
+				Instructions: "Valid instructions for testing missing name",
 			},
 			wantErr: true,
 			errType: ErrInvalidName,
 		},
 		{
-			name: "empty name",
-			opts: []Option{
-				WithName(""),
-				WithInstructions("Valid instructions for testing empty name"),
+			name:      "invalid name format - uppercase",
+			agentName: "InvalidName",
+			args: &AgentArgs{
+				Instructions: "Valid instructions for testing invalid name format",
 			},
 			wantErr: true,
 			errType: ErrInvalidName,
 		},
 		{
-			name: "invalid name format - uppercase",
-			opts: []Option{
-				WithName("InvalidName"),
-				WithInstructions("Valid instructions for testing invalid name format"),
+			name:      "invalid name format - spaces",
+			agentName: "invalid name",
+			args: &AgentArgs{
+				Instructions: "Valid instructions for testing invalid name with spaces",
 			},
 			wantErr: true,
 			errType: ErrInvalidName,
 		},
 		{
-			name: "invalid name format - spaces",
-			opts: []Option{
-				WithName("invalid name"),
-				WithInstructions("Valid instructions for testing invalid name with spaces"),
+			name:      "invalid name format - special chars",
+			agentName: "invalid@name#123",
+			args: &AgentArgs{
+				Instructions: "Valid instructions for testing invalid name with special characters",
 			},
 			wantErr: true,
 			errType: ErrInvalidName,
 		},
 		{
-			name: "invalid name format - special chars",
-			opts: []Option{
-				WithName("invalid@name#123"),
-				WithInstructions("Valid instructions for testing invalid name with special characters"),
+			name:      "invalid name - starts with hyphen",
+			agentName: "-invalid",
+			args: &AgentArgs{
+				Instructions: "Valid instructions for testing name starting with hyphen",
 			},
 			wantErr: true,
 			errType: ErrInvalidName,
 		},
 		{
-			name: "invalid name - starts with hyphen",
-			opts: []Option{
-				WithName("-invalid"),
-				WithInstructions("Valid instructions for testing name starting with hyphen"),
+			name:      "invalid name - ends with hyphen",
+			agentName: "invalid-",
+			args: &AgentArgs{
+				Instructions: "Valid instructions for testing name ending with hyphen",
 			},
 			wantErr: true,
 			errType: ErrInvalidName,
 		},
 		{
-			name: "invalid name - ends with hyphen",
-			opts: []Option{
-				WithName("invalid-"),
-				WithInstructions("Valid instructions for testing name ending with hyphen"),
+			name:      "name too long",
+			agentName: strings.Repeat("a", 64), // 64 chars, max is 63
+			args: &AgentArgs{
+				Instructions: "Valid instructions for testing name that is too long",
 			},
 			wantErr: true,
 			errType: ErrInvalidName,
 		},
 		{
-			name: "name too long",
-			opts: []Option{
-				WithName(strings.Repeat("a", 64)), // 64 chars, max is 63
-				WithInstructions("Valid instructions for testing name that is too long"),
-			},
-			wantErr: true,
-			errType: ErrInvalidName,
+			name:      "missing instructions",
+			agentName: "test-agent",
+			args:      &AgentArgs{},
+			wantErr:   true,
+			errType:   ErrInvalidInstructions,
 		},
 		{
-			name: "missing instructions",
-			opts: []Option{
-				WithName("test-agent"),
+			name:      "empty instructions",
+			agentName: "test-agent",
+			args: &AgentArgs{
+				Instructions: "",
 			},
 			wantErr: true,
 			errType: ErrInvalidInstructions,
 		},
 		{
-			name: "empty instructions",
-			opts: []Option{
-				WithName("test-agent"),
-				WithInstructions(""),
+			name:      "instructions too short",
+			agentName: "test-agent",
+			args: &AgentArgs{
+				Instructions: "short", // less than 10 chars
 			},
 			wantErr: true,
 			errType: ErrInvalidInstructions,
 		},
 		{
-			name: "instructions too short",
-			opts: []Option{
-				WithName("test-agent"),
-				WithInstructions("short"), // less than 10 chars
+			name:      "instructions too long",
+			agentName: "test-agent",
+			args: &AgentArgs{
+				Instructions: strings.Repeat("a", 10001), // over 10,000 chars
 			},
 			wantErr: true,
 			errType: ErrInvalidInstructions,
 		},
 		{
-			name: "instructions too long",
-			opts: []Option{
-				WithName("test-agent"),
-				WithInstructions(strings.Repeat("a", 10001)), // over 10,000 chars
+			name:      "instructions only whitespace",
+			agentName: "test-agent",
+			args: &AgentArgs{
+				Instructions: "          ", // only spaces
 			},
 			wantErr: true,
 			errType: ErrInvalidInstructions,
 		},
 		{
-			name: "instructions only whitespace",
-			opts: []Option{
-				WithName("test-agent"),
-				WithInstructions("          "), // only spaces
-			},
-			wantErr: true,
-			errType: ErrInvalidInstructions,
-		},
-		{
-			name: "description too long",
-			opts: []Option{
-				WithName("test-agent"),
-				WithInstructions("Valid instructions for testing description length"),
-				WithDescription(strings.Repeat("a", 501)), // over 500 chars
+			name:      "description too long",
+			agentName: "test-agent",
+			args: &AgentArgs{
+				Instructions: "Valid instructions for testing description length",
+				Description:  strings.Repeat("a", 501), // over 500 chars
 			},
 			wantErr: true,
 			errType: ErrInvalidDescription,
 		},
 		{
-			name: "invalid icon URL",
-			opts: []Option{
-				WithName("test-agent"),
-				WithInstructions("Valid instructions for testing invalid icon URL"),
-				WithIconURL("not-a-valid-url"),
+			name:      "invalid icon URL",
+			agentName: "test-agent",
+			args: &AgentArgs{
+				Instructions: "Valid instructions for testing invalid icon URL",
+				IconUrl:      "not-a-valid-url",
 			},
 			wantErr: true,
 			errType: ErrInvalidIconURL,
 		},
 		{
-			name: "invalid icon URL - missing scheme",
-			opts: []Option{
-				WithName("test-agent"),
-				WithInstructions("Valid instructions for testing icon URL missing scheme"),
-				WithIconURL("example.com/icon.png"),
+			name:      "invalid icon URL - missing scheme",
+			agentName: "test-agent",
+			args: &AgentArgs{
+				Instructions: "Valid instructions for testing icon URL missing scheme",
+				IconUrl:      "example.com/icon.png",
 			},
 			wantErr: true,
 			errType: ErrInvalidIconURL,
 		},
 		{
-			name: "invalid icon URL - wrong scheme",
-			opts: []Option{
-				WithName("test-agent"),
-				WithInstructions("Valid instructions for testing icon URL with wrong scheme"),
-				WithIconURL("ftp://example.com/icon.png"),
+			name:      "invalid icon URL - wrong scheme",
+			agentName: "test-agent",
+			args: &AgentArgs{
+				Instructions: "Valid instructions for testing icon URL with wrong scheme",
+				IconUrl:      "ftp://example.com/icon.png",
 			},
 			wantErr: true,
 			errType: ErrInvalidIconURL,
@@ -180,7 +172,7 @@ func TestNew_ValidationErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := New(nil, tt.opts...)
+			_, err := New(nil, tt.agentName, tt.args)
 
 			if tt.wantErr {
 				if err == nil {
@@ -217,9 +209,7 @@ func TestNew_ValidationErrors(t *testing.T) {
 // TestNew_InvalidSkills tests agent creation with invalid skills.
 func TestNew_InvalidSkills(t *testing.T) {
 	// Create an invalid skill using skill.New (will catch validation)
-	_, skillErr := skill.New(
-		skill.WithName(""), // Invalid empty name
-	)
+	_, skillErr := skill.New("", nil) // Invalid empty name
 
 	if skillErr != nil {
 		t.Logf("Skill validation caught empty name at creation: %v", skillErr)
@@ -253,11 +243,15 @@ func TestNew_InvalidEnvironmentVariables(t *testing.T) {
 		return
 	}
 
-	_, err = New(nil,
-		WithName("test-agent"),
-		WithInstructions("Valid instructions for testing invalid environment variable"),
-		WithEnvironmentVariables(invalidEnv),
-	)
+	agent, err := New(nil, "test-agent", &AgentArgs{
+		Instructions: "Valid instructions for testing invalid environment variable",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create agent: %v", err)
+	}
+
+	// Add invalid environment variable using builder method
+	agent.AddEnvironmentVariable(invalidEnv)
 
 	if err != nil {
 		t.Logf("Got error with invalid environment variable: %v", err)
@@ -273,19 +267,17 @@ func TestNew_InvalidEnvironmentVariables(t *testing.T) {
 // TestAgentToProto_ErrorPropagation tests error propagation from nested conversions.
 func TestAgentToProto_ErrorPropagation(t *testing.T) {
 	// Create agent with skill (simplified version without MCP servers)
-	skill1, _ := skill.New(
-		skill.WithName("skill1"),
-		skill.WithMarkdown("# Skill 1"),
-	)
+	skill1 := skill.Platform("skill1")
 
-	agent, err := New(nil,
-		WithName("error-prop-agent"),
-		WithInstructions("Agent for testing error propagation in proto conversion"),
-		WithSkills(*skill1),
-	)
+	agent, err := New(nil, "error-prop-agent", &AgentArgs{
+		Instructions: "Agent for testing error propagation in proto conversion",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
+
+	// Add skill using builder method
+	agent.AddSkill(skill1)
 
 	proto, err := agent.ToProto()
 
@@ -308,11 +300,7 @@ func TestAgentToProto_MultipleErrorSources(t *testing.T) {
 	// Create agent with multiple complex nested resources
 	skills := []skill.Skill{}
 	for i := 0; i < 10; i++ {
-		s, _ := skill.New(
-			skill.WithName("skill"+string(rune('0'+i))),
-			skill.WithMarkdown("# Skill "+string(rune('0'+i))),
-		)
-		skills = append(skills, *s)
+		skills = append(skills, skill.Platform("skill"+string(rune('0'+i))))
 	}
 
 	envVars := []environment.Variable{}
@@ -324,15 +312,16 @@ func TestAgentToProto_MultipleErrorSources(t *testing.T) {
 		envVars = append(envVars, env)
 	}
 
-	agent, err := New(nil,
-		WithName("multi-error-agent"),
-		WithInstructions("Agent with multiple nested resources for error testing"),
-		WithSkills(skills...),
-		WithEnvironmentVariables(envVars...),
-	)
+	agent, err := New(nil, "multi-error-agent", &AgentArgs{
+		Instructions: "Agent with multiple nested resources for error testing",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
+
+	// Add skills and environment variables using builder methods
+	agent.AddSkills(skills...)
+	agent.AddEnvironmentVariables(envVars...)
 
 	proto, err := agent.ToProto()
 
@@ -360,26 +349,20 @@ func TestNew_ExcessiveSkills(t *testing.T) {
 	// Create 1000 skills
 	skills := make([]skill.Skill, 1000)
 	for i := 0; i < 1000; i++ {
-		s, err := skill.New(
-			skill.WithName("skill-"+strings.Repeat("x", i%10)),
-			skill.WithMarkdown("# Skill "+string(rune('0'+i%10))),
-		)
-		if err != nil {
-			t.Fatalf("Failed to create skill %d: %v", i, err)
-		}
-		skills[i] = *s
+		skills[i] = skill.Platform("skill-" + strings.Repeat("x", i%10))
 	}
 
-	agent, err := New(nil,
-		WithName("excessive-skills"),
-		WithInstructions("Agent with 1000 skills for stress testing resource exhaustion"),
-		WithSkills(skills...),
-	)
+	agent, err := New(nil, "excessive-skills", &AgentArgs{
+		Instructions: "Agent with 1000 skills for stress testing resource exhaustion",
+	})
 
 	if err != nil {
 		t.Logf("Agent creation failed with 1000 skills: %v", err)
 		return
 	}
+
+	// Add skills using builder method
+	agent.AddSkills(skills...)
 
 	proto, err := agent.ToProto()
 
@@ -395,10 +378,9 @@ func TestNew_VeryLargeInstructions(t *testing.T) {
 	// Create instructions at the 10,000 character limit
 	largeInstructions := strings.Repeat("This is a detailed instruction for the agent. ", 200) // ~9,400 chars
 
-	agent, err := New(nil,
-		WithName("large-instructions"),
-		WithInstructions(largeInstructions),
-	)
+	agent, err := New(nil, "large-instructions", &AgentArgs{
+		Instructions: largeInstructions,
+	})
 
 	if err != nil {
 		t.Logf("Agent creation failed with large instructions: %v", err)
@@ -422,34 +404,35 @@ func TestNew_VeryLargeInstructions(t *testing.T) {
 func TestValidationError_ErrorMessage(t *testing.T) {
 	tests := []struct {
 		name           string
-		opts           []Option
+		agentName      string
+		args           *AgentArgs
 		expectedInMsg  []string
 		notExpectedMsg []string
 	}{
 		{
-			name: "name validation error",
-			opts: []Option{
-				WithName("Invalid Name"),
-				WithInstructions("Valid instructions for testing name validation error message"),
+			name:      "name validation error",
+			agentName: "Invalid Name",
+			args: &AgentArgs{
+				Instructions: "Valid instructions for testing name validation error message",
 			},
 			expectedInMsg:  []string{"name", "invalid"},
 			notExpectedMsg: []string{"instructions"},
 		},
 		{
-			name: "instructions validation error",
-			opts: []Option{
-				WithName("valid-agent"),
-				WithInstructions("short"),
+			name:      "instructions validation error",
+			agentName: "valid-agent",
+			args: &AgentArgs{
+				Instructions: "short",
 			},
 			expectedInMsg:  []string{"instructions"},
 			notExpectedMsg: []string{"name"},
 		},
 		{
-			name: "description validation error",
-			opts: []Option{
-				WithName("valid-agent"),
-				WithInstructions("Valid instructions for testing description validation error message"),
-				WithDescription(strings.Repeat("a", 501)),
+			name:      "description validation error",
+			agentName: "valid-agent",
+			args: &AgentArgs{
+				Instructions: "Valid instructions for testing description validation error message",
+				Description:  strings.Repeat("a", 501),
 			},
 			expectedInMsg:  []string{"description"},
 			notExpectedMsg: []string{"name", "instructions"},
@@ -458,7 +441,7 @@ func TestValidationError_ErrorMessage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := New(nil, tt.opts...)
+			_, err := New(nil, tt.agentName, tt.args)
 
 			if err == nil {
 				t.Error("Expected validation error but got none")
@@ -487,10 +470,9 @@ func TestValidationError_ErrorMessage(t *testing.T) {
 
 // TestValidationError_Unwrap_Detailed tests error unwrapping in detail.
 func TestValidationError_Unwrap_Detailed(t *testing.T) {
-	_, err := New(nil,
-		WithName("Invalid Name"),
-		WithInstructions("Valid instructions for testing error unwrapping"),
-	)
+	_, err := New(nil, "Invalid Name", &AgentArgs{
+		Instructions: "Valid instructions for testing error unwrapping",
+	})
 
 	if err == nil {
 		t.Fatal("Expected error but got none")

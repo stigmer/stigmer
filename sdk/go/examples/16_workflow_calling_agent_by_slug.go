@@ -39,11 +39,10 @@ func main() {
 		// Pattern 1: Reference organization-scoped agent (default)
 		// ============================================================================
 		// This looks for "code-reviewer" in the current organization
-		orgReviewTask := wf.CallAgent(
-			"orgReview",
-			workflow.AgentOption(workflow.AgentBySlug("code-reviewer")), // Organization scope (default)
-			workflow.Message("Review this code for my organization's standards"),
-		)
+		orgReviewTask := wf.CallAgent("orgReview", &workflow.AgentCallArgs{
+			Agent:   workflow.AgentBySlug("code-reviewer").Slug(), // Organization scope (default)
+			Message: "Review this code for my organization's standards",
+		})
 
 		log.Printf("✅ Created org-scoped agent call: %s", orgReviewTask.Name)
 
@@ -51,11 +50,10 @@ func main() {
 		// Pattern 2: Reference platform-scoped agent (public)
 		// ============================================================================
 		// This looks for "security-scanner" in platform-provided agents
-		platformReviewTask := wf.CallAgent(
-			"platformReview",
-			workflow.AgentOption(workflow.AgentBySlug("security-scanner", "platform")), // Explicit platform scope
-			workflow.Message("Run security scan using platform-provided agent"),
-		)
+		platformReviewTask := wf.CallAgent("platformReview", &workflow.AgentCallArgs{
+			Agent:   workflow.AgentBySlug("security-scanner", "platform").Slug(), // Explicit platform scope
+			Message: "Run security scan using platform-provided agent",
+		})
 
 		log.Printf("✅ Created platform-scoped agent call: %s", platformReviewTask.Name)
 
@@ -63,11 +61,10 @@ func main() {
 		// Pattern 3: Chaining agent calls (sequential execution)
 		// ============================================================================
 		// Second task automatically depends on first when using output
-		finalReviewTask := wf.CallAgent(
-			"finalReview",
-			workflow.AgentOption(workflow.AgentBySlug("senior-reviewer")),
-			workflow.Message("Final review completed. Org review and platform scan done."),
-		)
+		finalReviewTask := wf.CallAgent("finalReview", &workflow.AgentCallArgs{
+			Agent:   workflow.AgentBySlug("senior-reviewer").Slug(),
+			Message: "Final review completed. Org review and platform scan done.",
+		})
 
 		log.Printf("✅ Created final review task: %s", finalReviewTask.Name)
 		log.Printf("📊 Total tasks: %d", len(wf.Tasks))

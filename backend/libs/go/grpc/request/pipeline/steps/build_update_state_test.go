@@ -3,10 +3,10 @@ package steps
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -50,8 +50,8 @@ func TestBuildUpdateStateStep_Execute(t *testing.T) {
 	// Create input agent with updates
 	input := &agentv1.Agent{
 		Metadata: &apiresource.ApiResourceMetadata{
-			Id:   "agent-999", // Different ID - should be preserved from existing
-			Name: "updated-agent", // Different name - should be preserved from existing
+			Id:   "agent-999",     // Different ID - should be preserved from existing
+			Name: "updated-agent", // Different name - should be updated (name is mutable)
 		},
 		Spec: &agentv1.AgentSpec{
 			Description:  "Updated description",
@@ -80,9 +80,9 @@ func TestBuildUpdateStateStep_Execute(t *testing.T) {
 		t.Errorf("Expected ID to be preserved as %q, got %q", "agent-123", updated.Metadata.Id)
 	}
 
-	// Check that name was preserved from existing (not from input)
-	if updated.Metadata.Name != "existing-agent" {
-		t.Errorf("Expected name to be preserved as %q, got %q", "existing-agent", updated.Metadata.Name)
+	// Check that name was updated from input (name is mutable, not preserved)
+	if updated.Metadata.Name != "updated-agent" {
+		t.Errorf("Expected name to be updated to %q, got %q", "updated-agent", updated.Metadata.Name)
 	}
 
 	// Check that spec was updated from input

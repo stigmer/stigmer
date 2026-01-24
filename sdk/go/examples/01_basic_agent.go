@@ -3,6 +3,7 @@
 // Example 01: Basic Agent
 //
 // This example demonstrates creating a simple agent with just the required fields.
+// Uses struct-based args (Pulumi pattern) - clean and discoverable!
 package main
 
 import (
@@ -18,10 +19,11 @@ func main() {
 		fmt.Println("=== Basic Agent Example ===\n")
 
 		// Create a basic agent with required fields only
-		basicAgent, err := agent.New(ctx,
-			agent.WithName("code-reviewer"),
-			agent.WithInstructions("Review code and suggest improvements based on best practices"),
-		)
+		// Pulumi-style API: name as parameter, struct args for configuration
+		// Clean single-package import - no gen package needed!
+		basicAgent, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+			Instructions: "Review code and suggest improvements based on best practices",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create basic agent: %w", err)
 		}
@@ -31,13 +33,11 @@ func main() {
 		fmt.Printf("   Instructions: %s\n", basicAgent.Instructions)
 
 		// Create an agent with optional fields
-		fullAgent, err := agent.New(ctx,
-			agent.WithName("code-reviewer-pro"),
-			agent.WithInstructions("Review code and suggest improvements based on best practices and security considerations"),
-			agent.WithDescription("Professional code reviewer with security focus"),
-			agent.WithIconURL("https://example.com/icons/code-reviewer.png"),
-			agent.WithOrg("my-org"),
-		)
+		fullAgent, err := agent.New(ctx, "code-reviewer-pro", &agent.AgentArgs{
+			Instructions: "Review code and suggest improvements based on best practices and security considerations",
+			Description:  "Professional code reviewer with security focus",
+			IconUrl:      "https://example.com/icons/code-reviewer.png",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create full agent: %w", err)
 		}
@@ -47,14 +47,12 @@ func main() {
 		fmt.Printf("   Instructions: %s\n", fullAgent.Instructions)
 		fmt.Printf("   Description: %s\n", fullAgent.Description)
 		fmt.Printf("   IconURL: %s\n", fullAgent.IconURL)
-		fmt.Printf("   Org: %s\n", fullAgent.Org)
 
 		// Example of validation error
 		fmt.Println("\n❌ Attempting to create invalid agent:")
-		_, err = agent.New(ctx,
-			agent.WithName("Invalid Name!"),
-			agent.WithInstructions("Test"),
-		)
+		_, err = agent.New(ctx, "Invalid Name!", &agent.AgentArgs{
+			Instructions: "Test",
+		})
 		if err != nil {
 			fmt.Printf("   Error: %v\n", err)
 		}

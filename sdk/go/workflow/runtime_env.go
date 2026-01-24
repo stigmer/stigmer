@@ -144,3 +144,42 @@ func ExtractRuntimeRefs(s string) []string {
 	pattern := regexp.MustCompile(`\$\{\.(?:secrets|env_vars)\.[A-Z_][A-Z0-9_]*\}`)
 	return pattern.FindAllString(s, -1)
 }
+
+// Interpolate concatenates multiple string parts into a single string.
+// This is useful for building dynamic strings from static text, runtime values,
+// and field references.
+//
+// Supports various input types:
+//   - string literals
+//   - Runtime placeholders from RuntimeSecret() or RuntimeEnv()
+//   - Field references from task outputs (e.g., task.Field("fieldName"))
+//   - Any type that can be converted to string via fmt.Sprint
+//
+// Example:
+//
+//	// Build URL with runtime environment
+//	url := workflow.Interpolate(
+//	    "https://api-",
+//	    workflow.RuntimeEnv("ENVIRONMENT"),
+//	    ".example.com/data",
+//	)
+//	// Result: "https://api-${.env_vars.ENVIRONMENT}.example.com/data"
+//
+//	// Build authorization header with runtime secret
+//	auth := workflow.Interpolate("Bearer ", workflow.RuntimeSecret("API_KEY"))
+//	// Result: "Bearer ${.secrets.API_KEY}"
+//
+//	// Build message with task output
+//	msg := workflow.Interpolate(
+//	    "Processing completed for ",
+//	    fetchTask.Field("resource_id"),
+//	    " with status: ",
+//	    fetchTask.Field("status"),
+//	)
+func Interpolate(parts ...interface{}) string {
+	result := ""
+	for _, part := range parts {
+		result += fmt.Sprint(part)
+	}
+	return result
+}

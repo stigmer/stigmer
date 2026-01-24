@@ -1,11 +1,12 @@
 package stigmer_test
 
 import (
-	"strings"
+	"fmt"
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/environment"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
@@ -22,23 +23,21 @@ func TestIntegration_CompleteWorkflowWithAgent(t *testing.T) {
 
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Create a skill for the agent
-		codeSkill, err := skill.New(
-			skill.WithName("code-analysis"),
-			skill.WithMarkdown("# Code Analysis\nAnalyze code quality"),
-		)
+		codeSkill, err := skill.New("code-analysis", &skill.SkillArgs{
+			MarkdownContent: "# Code Analysis\nAnalyze code quality",
+		})
 		if err != nil {
 			return err
 		}
 
 		// Create agent
-		codeReviewer, err := agent.New(ctx,
-			agent.WithName("code-reviewer"),
-			agent.WithInstructions("Review code and provide detailed feedback on quality and best practices"),
-			agent.WithSkills(*codeSkill),
-		)
+		codeReviewer, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+			Instructions: "Review code and provide detailed feedback on quality and best practices",
+		})
 		if err != nil {
 			return err
 		}
+		codeReviewer.AddSkill(*codeSkill)
 		capturedAgent = codeReviewer
 
 		// Create workflow that uses the agent
@@ -52,11 +51,18 @@ func TestIntegration_CompleteWorkflowWithAgent(t *testing.T) {
 			return err
 		}
 
-		// Add HTTP task using basic API
-		fetchPR := wf.HttpGet("fetchPR", "https://api.github.com/pulls/123",
-			workflow.Header("Authorization", "Bearer ${GITHUB_TOKEN}"),
-			workflow.Timeout(30),
-		)
+		// Add HTTP task with timeout using HttpCall
+		fetchPR := workflow.HttpCall("fetchPR", &workflow.HttpCallArgs{
+			Method: "GET",
+			Endpoint: &types.HttpEndpoint{
+				Uri: "https://api.github.com/pulls/123",
+			},
+			Headers: map[string]string{
+				"Authorization": "Bearer ${GITHUB_TOKEN}",
+			},
+			TimeoutSeconds: 30,
+		})
+		wf.Tasks = append(wf.Tasks, fetchPR)
 
 		// Add agent call task (using low-level API since high-level not yet implemented)
 		wf.Tasks = append(wf.Tasks, &workflow.Task{
@@ -69,13 +75,19 @@ func TestIntegration_CompleteWorkflowWithAgent(t *testing.T) {
 			ExportAs: "${.}",
 		})
 
-		// Add comment posting task
-		wf.HttpPost("postComment", "https://api.github.com/pulls/123/comments",
-			workflow.Header("Content-Type", "application/json"),
-			workflow.Timeout(15),
-		)
+		// Add comment posting task with timeout
+		postComment := workflow.HttpCall("postComment", &workflow.HttpCallArgs{
+			Method: "POST",
+			Endpoint: &types.HttpEndpoint{
+				Uri: "https://api.github.com/pulls/123/comments",
+			},
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+			TimeoutSeconds: 15,
+		})
+		wf.Tasks = append(wf.Tasks, postComment)
 
-		_ = fetchPR
 		capturedWorkflow = wf
 		return nil
 	})
@@ -119,26 +131,23 @@ func TestIntegration_MultiAgentWorkflow(t *testing.T) {
 
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Create specialized agents
-		securityAgent, err := agent.New(ctx,
-			agent.WithName("security-reviewer"),
-			agent.WithInstructions("Review code for security vulnerabilities and provide mitigation recommendations"),
-		)
+		securityAgent, err := agent.New(ctx, "security-reviewer", &agent.AgentArgs{
+			Instructions: "Review code for security vulnerabilities and provide mitigation recommendations",
+		})
 		if err != nil {
 			return err
 		}
 
-		performanceAgent, err := agent.New(ctx,
-			agent.WithName("performance-analyzer"),
-			agent.WithInstructions("Analyze code performance and suggest optimizations"),
-		)
+		performanceAgent, err := agent.New(ctx, "performance-analyzer", &agent.AgentArgs{
+			Instructions: "Analyze code performance and suggest optimizations",
+		})
 		if err != nil {
 			return err
 		}
 
-		docsAgent, err := agent.New(ctx,
-			agent.WithName("documentation-writer"),
-			agent.WithInstructions("Generate comprehensive documentation for code changes"),
-		)
+		docsAgent, err := agent.New(ctx, "documentation-writer", &agent.AgentArgs{
+			Instructions: "Generate comprehensive documentation for code changes",
+		})
 		if err != nil {
 			return err
 		}
@@ -154,7 +163,8 @@ func TestIntegration_MultiAgentWorkflow(t *testing.T) {
 		}
 
 		// Fetch code
-		fetchCode := wf.HttpGet("fetchCode", "https://api.example.com/code")
+		fetchCode := workflow.HttpGet("fetchCode", "https://api.example.com/code", nil)
+		wf.Tasks = append(wf.Tasks, fetchCode)
 
 		// Add agent call tasks using low-level API
 		wf.Tasks = append(wf.Tasks, &workflow.Task{
@@ -186,7 +196,6 @@ func TestIntegration_MultiAgentWorkflow(t *testing.T) {
 			},
 		})
 
-		_ = fetchCode
 		_ = securityAgent
 		_ = performanceAgent
 		_ = docsAgent
@@ -222,15 +231,13 @@ func TestIntegration_AgentWithAllFeatures(t *testing.T) {
 
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Create multiple skills
-		skill1, _ := skill.New(
-			skill.WithName("skill1"),
-			skill.WithMarkdown("# Skill 1\nFirst skill"),
-		)
+		skill1, _ := skill.New("skill1", &skill.SkillArgs{
+			MarkdownContent: "# Skill 1\nFirst skill",
+		})
 
-		skill2, _ := skill.New(
-			skill.WithName("skill2"),
-			skill.WithMarkdown("# Skill 2\nSecond skill"),
-		)
+		skill2, _ := skill.New("skill2", &skill.SkillArgs{
+			MarkdownContent: "# Skill 2\nSecond skill",
+		})
 
 		// Create environment variables
 		env1, _ := environment.New(
@@ -244,18 +251,16 @@ func TestIntegration_AgentWithAllFeatures(t *testing.T) {
 		)
 
 		// Create comprehensive agent (simplified - without MCP servers and sub-agents)
-		comprehensiveAgent, err := agent.New(ctx,
-			agent.WithName("comprehensive-agent"),
-			agent.WithSlug("comprehensive-agent"),
-			agent.WithDescription("Agent with all features for integration testing"),
-			agent.WithIconURL("https://example.com/icon.png"),
-			agent.WithInstructions("Comprehensive agent with skills and environment variables for integration testing"),
-			agent.WithSkills(*skill1, *skill2),
-			agent.WithEnvironmentVariables(env1, env2),
-		)
+		comprehensiveAgent, err := agent.New(ctx, "comprehensive-agent", &agent.AgentArgs{
+			Description:  "Agent with all features for integration testing",
+			IconUrl:      "https://example.com/icon.png",
+			Instructions: "Comprehensive agent with skills and environment variables for integration testing",
+		})
 		if err != nil {
 			return err
 		}
+		comprehensiveAgent.AddSkills(*skill1, *skill2)
+		comprehensiveAgent.AddEnvironmentVariables(env1, env2)
 
 		capturedAgent = comprehensiveAgent
 		return nil
@@ -296,34 +301,30 @@ func TestIntegration_DependencyTracking(t *testing.T) {
 		ctx = c
 
 		// Create inline skills
-		skill1, _ := skill.New(
-			skill.WithName("coding"),
-			skill.WithMarkdown("# Coding\nCoding guidelines"),
-		)
+		skill1, _ := skill.New("coding", &skill.SkillArgs{
+			MarkdownContent: "# Coding\nCoding guidelines",
+		})
 
-		skill2, _ := skill.New(
-			skill.WithName("security"),
-			skill.WithMarkdown("# Security\nSecurity best practices"),
-		)
+		skill2, _ := skill.New("security", &skill.SkillArgs{
+			MarkdownContent: "# Security\nSecurity best practices",
+		})
 
 		// Create agents with inline skills
-		agent1, err := agent.New(ctx,
-			agent.WithName("code-reviewer"),
-			agent.WithInstructions("Review code for best practices"),
-			agent.WithSkills(*skill1),
-		)
+		agent1, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+			Instructions: "Review code for best practices",
+		})
 		if err != nil {
 			return err
 		}
+		agent1.AddSkill(*skill1)
 
-		agent2, err := agent.New(ctx,
-			agent.WithName("security-reviewer"),
-			agent.WithInstructions("Review code for security issues"),
-			agent.WithSkills(*skill2),
-		)
+		agent2, err := agent.New(ctx, "security-reviewer", &agent.AgentArgs{
+			Instructions: "Review code for security issues",
+		})
 		if err != nil {
 			return err
 		}
+		agent2.AddSkill(*skill2)
 
 		// Create workflow using agents
 		_, err = workflow.New(ctx,
@@ -378,38 +379,39 @@ func TestIntegration_ManyResourcesStressTest(t *testing.T) {
 	}
 
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
-		// Create 50 skills
-		skills := make([]skill.Skill, 50)
+		// Create 50 skills with unique names
+		skills := make([]*skill.Skill, 50)
 		for i := 0; i < 50; i++ {
-			s, err := skill.New(
-				skill.WithName("stress-skill-"+strings.Repeat("x", i%10)),
-				skill.WithMarkdown("# Stress Skill "+string(rune('0'+i%10))),
-			)
+			s, err := skill.New(fmt.Sprintf("stress-skill-%d", i), &skill.SkillArgs{
+				MarkdownContent: fmt.Sprintf("# Stress Skill %d", i),
+			})
 			if err != nil {
 				return err
 			}
-			skills[i] = *s
+			skills[i] = s
 		}
 
-		// Create 20 agents
+		// Create 20 agents with unique names
 		for i := 0; i < 20; i++ {
 			// Each agent gets 2-3 skills
 			agentSkills := skills[i*2 : min(i*2+3, len(skills))]
 
-			_, err := agent.New(ctx,
-				agent.WithName("stress-agent-"+strings.Repeat("x", i%10)),
-				agent.WithInstructions("Stress test agent "+string(rune('0'+i%10))+" for testing system capacity"),
-				agent.WithSkills(agentSkills...),
-			)
+			ag, err := agent.New(ctx, fmt.Sprintf("stress-agent-%d", i), &agent.AgentArgs{
+				Instructions: fmt.Sprintf("Stress test agent %d for testing system capacity", i),
+			})
 			if err != nil {
 				return err
 			}
+			// Add skills to agent
+			for _, s := range agentSkills {
+				ag.AddSkill(*s)
+			}
 		}
 
-		// Create 10 workflows
+		// Create 10 workflows with unique names
 		for i := 0; i < 10; i++ {
 			wf, err := workflow.New(ctx,
-				workflow.WithName("stress-workflow-"+strings.Repeat("x", i%10)),
+				workflow.WithName(fmt.Sprintf("stress-workflow-%d", i)),
 				workflow.WithNamespace("stress-test"),
 				workflow.WithVersion("1.0.0"),
 			)
@@ -417,11 +419,14 @@ func TestIntegration_ManyResourcesStressTest(t *testing.T) {
 				return err
 			}
 
-			// Add 10 tasks per workflow
+			// Add 10 tasks per workflow with unique names
 			for j := 0; j < 10; j++ {
-				wf.Set("task-"+string(rune('0'+j)),
-					workflow.SetVar("key"+string(rune('0'+j)), "value"+string(rune('0'+j))),
-				)
+				setTask := workflow.Set(fmt.Sprintf("task-%d", j), &workflow.SetArgs{
+					Variables: map[string]string{
+						fmt.Sprintf("key%d", j): fmt.Sprintf("value%d", j),
+					},
+				})
+				wf.Tasks = append(wf.Tasks, setTask)
 			}
 		}
 
@@ -452,19 +457,17 @@ func TestIntegration_RealWorld_DataPipeline(t *testing.T) {
 
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Create data transformation agent
-		dataTransformer, err := agent.New(ctx,
-			agent.WithName("data-transformer"),
-			agent.WithInstructions("Transform and validate data records according to schema rules"),
-		)
+		dataTransformer, err := agent.New(ctx, "data-transformer", &agent.AgentArgs{
+			Instructions: "Transform and validate data records according to schema rules",
+		})
 		if err != nil {
 			return err
 		}
 
 		// Create data quality agent
-		dataQuality, err := agent.New(ctx,
-			agent.WithName("data-quality-checker"),
-			agent.WithInstructions("Check data quality and identify anomalies or inconsistencies"),
-		)
+		dataQuality, err := agent.New(ctx, "data-quality-checker", &agent.AgentArgs{
+			Instructions: "Check data quality and identify anomalies or inconsistencies",
+		})
 		if err != nil {
 			return err
 		}
@@ -480,11 +483,18 @@ func TestIntegration_RealWorld_DataPipeline(t *testing.T) {
 			return err
 		}
 
-		// Fetch data from source
-		fetchData := wf.HttpGet("fetchSourceData", "https://api.datasource.com/daily-export",
-			workflow.Header("Authorization", "Bearer ${API_TOKEN}"),
-			workflow.Timeout(120),
-		)
+		// Fetch data from source with timeout
+		fetchData := workflow.HttpCall("fetchSourceData", &workflow.HttpCallArgs{
+			Method: "GET",
+			Endpoint: &types.HttpEndpoint{
+				Uri: "https://api.datasource.com/daily-export",
+			},
+			Headers: map[string]string{
+				"Authorization": "Bearer ${API_TOKEN}",
+			},
+			TimeoutSeconds: 120,
+		})
+		wf.Tasks = append(wf.Tasks, fetchData)
 
 		// Transform data (low-level API)
 		wf.Tasks = append(wf.Tasks, &workflow.Task{
@@ -508,13 +518,19 @@ func TestIntegration_RealWorld_DataPipeline(t *testing.T) {
 			ExportAs: "${.}",
 		})
 
-		// Load to destination
-		wf.HttpPost("loadData", "https://api.datawarehouse.com/load",
-			workflow.Header("Content-Type", "application/json"),
-			workflow.Timeout(60),
-		)
+		// Load to destination with timeout
+		loadData := workflow.HttpCall("loadData", &workflow.HttpCallArgs{
+			Method: "POST",
+			Endpoint: &types.HttpEndpoint{
+				Uri: "https://api.datawarehouse.com/load",
+			},
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+			TimeoutSeconds: 60,
+		})
+		wf.Tasks = append(wf.Tasks, loadData)
 
-		_ = fetchData
 		_ = dataTransformer
 		_ = dataQuality
 		capturedWorkflow = wf
@@ -547,15 +563,13 @@ func TestIntegration_RealWorld_CustomerSupport(t *testing.T) {
 
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Create support agents
-		ticketClassifier, _ := agent.New(ctx,
-			agent.WithName("ticket-classifier"),
-			agent.WithInstructions("Classify support tickets by urgency, category, and required expertise"),
-		)
+		ticketClassifier, _ := agent.New(ctx, "ticket-classifier", &agent.AgentArgs{
+			Instructions: "Classify support tickets by urgency, category, and required expertise",
+		})
 
-		responseGenerator, _ := agent.New(ctx,
-			agent.WithName("response-generator"),
-			agent.WithInstructions("Generate helpful and empathetic customer support responses"),
-		)
+		responseGenerator, _ := agent.New(ctx, "response-generator", &agent.AgentArgs{
+			Instructions: "Generate helpful and empathetic customer support responses",
+		})
 
 		// Create workflow
 		wf, err := workflow.New(ctx,
@@ -568,7 +582,8 @@ func TestIntegration_RealWorld_CustomerSupport(t *testing.T) {
 		}
 
 		// Receive ticket
-		receiveTicket := wf.HttpGet("receiveTicket", "https://api.support.com/tickets/next")
+		receiveTicket := workflow.HttpGet("receiveTicket", "https://api.support.com/tickets/next", nil)
+		wf.Tasks = append(wf.Tasks, receiveTicket)
 
 		// Classify ticket (low-level API)
 		wf.Tasks = append(wf.Tasks, &workflow.Task{
@@ -593,11 +608,12 @@ func TestIntegration_RealWorld_CustomerSupport(t *testing.T) {
 		})
 
 		// Send response
-		wf.HttpPost("sendResponse", "https://api.support.com/tickets/respond",
-			workflow.Header("Content-Type", "application/json"),
+		sendResponse := workflow.HttpPost("sendResponse", "https://api.support.com/tickets/respond",
+			map[string]string{"Content-Type": "application/json"},
+			nil,
 		)
+		wf.Tasks = append(wf.Tasks, sendResponse)
 
-		_ = receiveTicket
 		_ = ticketClassifier
 		_ = responseGenerator
 		capturedWorkflow = wf
@@ -634,10 +650,9 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Create fallback agent
-		fallbackAgent, _ := agent.New(ctx,
-			agent.WithName("fallback-handler"),
-			agent.WithInstructions("Handle errors and provide fallback responses"),
-		)
+		fallbackAgent, _ := agent.New(ctx, "fallback-handler", &agent.AgentArgs{
+			Instructions: "Handle errors and provide fallback responses",
+		})
 
 		// Create workflow with error handling
 		wf, err := workflow.New(ctx,
@@ -649,10 +664,15 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 			return err
 		}
 
-		// Risky API call
-		riskyCall := wf.HttpGet("riskyAPICall", "https://api.unreliable.com/data",
-			workflow.Timeout(10),
-		)
+		// Risky API call with timeout
+		riskyCall := workflow.HttpCall("riskyAPICall", &workflow.HttpCallArgs{
+			Method: "GET",
+			Endpoint: &types.HttpEndpoint{
+				Uri: "https://api.unreliable.com/data",
+			},
+			TimeoutSeconds: 10,
+		})
+		wf.Tasks = append(wf.Tasks, riskyCall)
 
 		// Fallback agent call on error (low-level API)
 		wf.Tasks = append(wf.Tasks, &workflow.Task{
@@ -664,7 +684,6 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 			},
 		})
 
-		_ = riskyCall
 		_ = fallbackAgent
 
 		capturedWorkflow = wf

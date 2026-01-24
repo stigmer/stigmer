@@ -47,22 +47,24 @@ type TypeSchema struct {
 	ProtoType   string         `json:"protoType"`
 	ProtoFile   string         `json:"protoFile"`
 	Fields      []*FieldSchema `json:"fields"`
+	Domain      string         // Extracted from proto namespace (e.g., "commons", "agentic")
 }
 
 // FieldSchema represents a field in a config or type
 type FieldSchema struct {
-	Name        string      `json:"name"`
-	JsonName    string      `json:"jsonName"`
-	ProtoField  string      `json:"protoField"`
-	Type        TypeSpec    `json:"type"`
-	Description string      `json:"description"`
-	Required    bool        `json:"required"`
-	Validation  *Validation `json:"validation,omitempty"`
+	Name         string      `json:"name"`
+	JsonName     string      `json:"jsonName"`
+	ProtoField   string      `json:"protoField"`
+	Type         TypeSpec    `json:"type"`
+	Description  string      `json:"description"`
+	Required     bool        `json:"required"`
+	IsExpression bool        `json:"isExpression,omitempty"`
+	Validation   *Validation `json:"validation,omitempty"`
 }
 
 // TypeSpec describes the type of a field
 type TypeSpec struct {
-	Kind        string    `json:"kind"` // string, int32, int64, bool, float, double, bytes, map, array, message, struct
+	Kind        string    `json:"kind"`                  // string, int32, int64, bool, float, double, bytes, map, array, message, struct
 	KeyType     *TypeSpec `json:"keyType,omitempty"`     // for map
 	ValueType   *TypeSpec `json:"valueType,omitempty"`   // for map
 	ElementType *TypeSpec `json:"elementType,omitempty"` // for array
@@ -94,8 +96,9 @@ type Generator struct {
 	fileSuffix  string
 
 	// Loaded schemas
-	taskConfigs []*TaskConfigSchema
-	sharedTypes []*TypeSchema
+	taskConfigs   []*TaskConfigSchema
+	sharedTypes   []*TypeSchema
+	resourceSpecs []*TaskConfigSchema // SDK resource specs (Agent, Skill, etc.) - reuses TaskConfigSchema
 }
 
 // NewGenerator creates a new code generator
@@ -144,7 +147,82 @@ func (g *Generator) Generate() error {
 		}
 	}
 
+	// Generate SDK resource args structs (Agent, Skill, etc.)
+	if len(g.resourceSpecs) > 0 {
+		fmt.Printf("\nGenerating SDK resource args structs...\n")
+
+		for _, resourceSpec := range g.resourceSpecs {
+			if err := g.generateResourceArgsFile(resourceSpec); err != nil {
+				return fmt.Errorf("failed to generate resource args for %s: %w", resourceSpec.Name, err)
+			}
+		}
+	}
+
 	return nil
+}
+
+// extractDomainFromProtoType extracts domain from proto type namespace
+// Examples:
+//
+//	"ai.stigmer.commons.apiresource.ApiResourceReference" -> "commons"
+//	"ai.stigmer.agentic.agent.v1.McpServerDefinition" -> "agentic"
+//	"ai.stigmer.agentic.skill.v1.SkillSpec" -> "agentic"
+func extractDomainFromProtoType(protoType string) string {
+	// Split proto namespace: ai.stigmer.<domain>.<rest>
+	parts := strings.Split(protoType, ".")
+	if len(parts) >= 3 && parts[0] == "ai" && parts[1] == "stigmer" {
+		return parts[2] // "commons", "agentic", etc.
+	}
+	return "unknown"
+}
+
+// extractSubdomainFromProtoFile extracts subdomain from proto file path
+// Examples:
+//
+//	"apis/ai/stigmer/agentic/agent/v1/spec.proto" -> "agent"
+//	"apis/ai/stigmer/agentic/skill/v1/spec.proto" -> "skill"
+//	"apis/ai/stigmer/commons/apiresource/io.proto" -> ""
+func extractSubdomainFromProtoFile(protoFile string) string {
+	// Pattern: apis/ai/stigmer/<domain>/<subdomain>/...
+	parts := strings.Split(protoFile, "/")
+	if len(parts) >= 6 && parts[0] == "apis" && parts[1] == "ai" && parts[2] == "stigmer" {
+		// parts[3] is domain (e.g., "agentic", "commons")
+		// parts[4] is subdomain (e.g., "agent", "skill") or version for commons
+		if parts[3] == "agentic" {
+			return parts[4] // "agent", "skill", "workflow", etc.
+		}
+		// For commons, there's no subdomain, just the module name
+		return ""
+	}
+	return ""
+}
+
+// getOutputDir returns the appropriate output directory for a given schema
+func (g *Generator) getOutputDir(schema *TaskConfigSchema) string {
+	// Extract subdomain from proto file path (data-driven)
+	subdomain := extractSubdomainFromProtoFile(schema.ProtoFile)
+
+	if subdomain != "" {
+		// Generate to sdk/go/gen/<subdomain>/ (e.g., sdk/go/gen/agent/, sdk/go/gen/skill/)
+		return filepath.Join("sdk", "go", "gen", subdomain)
+	}
+
+	// Default: use configured output directory (gen/workflow for tasks)
+	return g.outputDir
+}
+
+// getPackageName returns the appropriate package name for a given schema
+func (g *Generator) getPackageName(schema *TaskConfigSchema) string {
+	// Determine package name from output directory
+	outputDir := g.getOutputDir(schema)
+
+	// Extract last path component as package name
+	parts := strings.Split(outputDir, "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+
+	return g.packageName
 }
 
 // loadSchemas loads all JSON schemas from the schema directory
@@ -194,7 +272,10 @@ func (g *Generator) loadSchemas() error {
 		}
 	}
 
-	// Load shared types
+	// Track loaded types to avoid duplicates
+	loadedTypes := make(map[string]bool)
+
+	// Load shared types from types/ directory (workflow task types)
 	typesDir := filepath.Join(g.schemaDir, "types")
 	if _, err := os.Stat(typesDir); err == nil {
 		entries, err := os.ReadDir(typesDir)
@@ -213,12 +294,132 @@ func (g *Generator) loadSchemas() error {
 				return fmt.Errorf("failed to load type %s: %w", entry.Name(), err)
 			}
 
+			// Skip duplicates
+			if loadedTypes[schema.Name] {
+				continue
+			}
+			loadedTypes[schema.Name] = true
+
+			// Extract domain from proto namespace (data-driven, no hard-coding)
+			schema.Domain = extractDomainFromProtoType(schema.ProtoType)
+			fmt.Printf("  Loaded type: %s (domain: %s)\n", schema.Name, schema.Domain)
+
 			g.sharedTypes = append(g.sharedTypes, schema)
-			fmt.Printf("  Loaded type: %s\n", schema.Name)
 		}
 	}
 
-	if len(g.taskConfigs) == 0 && len(g.sharedTypes) == 0 {
+	// Load shared types from agent/types/ (agent-specific types)
+	agentTypesDir := filepath.Join(g.schemaDir, "agent", "types")
+	if _, err := os.Stat(agentTypesDir); err == nil {
+		entries, err := os.ReadDir(agentTypesDir)
+		if err != nil {
+			return fmt.Errorf("failed to read agent types directory: %w", err)
+		}
+
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+				continue
+			}
+
+			path := filepath.Join(agentTypesDir, entry.Name())
+			schema, err := loadTypeSchema(path)
+			if err != nil {
+				return fmt.Errorf("failed to load type %s: %w", entry.Name(), err)
+			}
+
+			// Skip duplicates
+			if loadedTypes[schema.Name] {
+				continue
+			}
+			loadedTypes[schema.Name] = true
+
+			// Extract domain from proto namespace (data-driven, no hard-coding)
+			schema.Domain = extractDomainFromProtoType(schema.ProtoType)
+			fmt.Printf("  Loaded type: %s (domain: %s)\n", schema.Name, schema.Domain)
+
+			g.sharedTypes = append(g.sharedTypes, schema)
+		}
+	}
+
+	// Load SDK resource specs from ALL namespace subdirectories
+	// Scan schema directory for all subdirectories (agent/, skill/, workflow/, etc.)
+	if schemaEntries, err := os.ReadDir(g.schemaDir); err == nil {
+		for _, schemaEntry := range schemaEntries {
+			// Skip non-directories and special directories
+			if !schemaEntry.IsDir() {
+				continue
+			}
+
+			dirName := schemaEntry.Name()
+
+			// Skip known non-resource directories
+			if dirName == "tasks" || dirName == "types" {
+				continue
+			}
+
+			// Load specs from this namespace directory
+			namespaceDir := filepath.Join(g.schemaDir, dirName)
+			entries, err := os.ReadDir(namespaceDir)
+			if err != nil {
+				continue // Skip directories we can't read
+			}
+
+			for _, entry := range entries {
+				// Check if this is a types/ subdirectory
+				if entry.IsDir() && entry.Name() == "types" {
+					// Load types from <namespace>/types/ directory
+					namespaceTypesDir := filepath.Join(namespaceDir, "types")
+					typeEntries, err := os.ReadDir(namespaceTypesDir)
+					if err != nil {
+						continue
+					}
+
+					for _, typeEntry := range typeEntries {
+						if typeEntry.IsDir() || !strings.HasSuffix(typeEntry.Name(), ".json") {
+							continue
+						}
+
+						path := filepath.Join(namespaceTypesDir, typeEntry.Name())
+						schema, err := loadTypeSchema(path)
+						if err != nil {
+							fmt.Printf("  Warning: failed to load type %s: %v\n", typeEntry.Name(), err)
+							continue
+						}
+
+						// Skip duplicates
+						if loadedTypes[schema.Name] {
+							continue
+						}
+						loadedTypes[schema.Name] = true
+
+						// Extract domain from proto namespace (data-driven, no hard-coding)
+						schema.Domain = extractDomainFromProtoType(schema.ProtoType)
+						fmt.Printf("  Loaded type: %s (domain: %s, from %s/types/)\n", schema.Name, schema.Domain, dirName)
+
+						g.sharedTypes = append(g.sharedTypes, schema)
+					}
+					continue
+				}
+
+				// Skip other subdirectories and non-JSON files
+				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+					continue
+				}
+
+				path := filepath.Join(namespaceDir, entry.Name())
+				schema, err := loadTaskConfigSchema(path)
+				if err != nil {
+					fmt.Printf("  Warning: failed to load spec %s: %v\n", entry.Name(), err)
+					continue
+				}
+
+				g.resourceSpecs = append(g.resourceSpecs, schema)
+				fmt.Printf("  Loaded spec: %s (from %s/)\n", schema.Name, dirName)
+			}
+		}
+	}
+
+	if len(g.taskConfigs) == 0 && len(g.sharedTypes) == 0 && len(g.resourceSpecs) == 0 {
 		return fmt.Errorf("no schemas found in %s", g.schemaDir)
 	}
 
@@ -264,8 +465,11 @@ func (g *Generator) generateHelpers() error {
 	fmt.Fprintf(&buf, "// Generated: %s\n\n", time.Now().Format(time.RFC3339))
 	fmt.Fprintf(&buf, "package %s\n\n", g.packageName)
 
-	// Import reflect for isEmpty
-	fmt.Fprintf(&buf, "import \"reflect\"\n\n")
+	// Import reflect and fmt
+	fmt.Fprintf(&buf, "import (\n")
+	fmt.Fprintf(&buf, "\t\"fmt\"\n")
+	fmt.Fprintf(&buf, "\t\"reflect\"\n")
+	fmt.Fprintf(&buf, ")\n\n")
 
 	// isEmpty function
 	fmt.Fprintf(&buf, "// isEmpty checks if a value is empty/zero.\n")
@@ -276,6 +480,31 @@ func (g *Generator) generateHelpers() error {
 	fmt.Fprintf(&buf, "\t}\n")
 	fmt.Fprintf(&buf, "\tval := reflect.ValueOf(v)\n")
 	fmt.Fprintf(&buf, "\treturn val.IsZero()\n")
+	fmt.Fprintf(&buf, "}\n\n")
+
+	// coerceToString function for expression support
+	fmt.Fprintf(&buf, "// coerceToString converts various types to strings for expression support.\n")
+	fmt.Fprintf(&buf, "// Used by option functions to accept both string literals and expressions.\n")
+	fmt.Fprintf(&buf, "func coerceToString(value interface{}) string {\n")
+	fmt.Fprintf(&buf, "\tif s, ok := value.(string); ok {\n")
+	fmt.Fprintf(&buf, "\t\treturn s\n")
+	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\t// NOTE: *Task handling omitted to avoid circular dependency between gen/workflow and workflow packages.\n")
+	fmt.Fprintf(&buf, "\t// Task-to-expression conversion is handled in the hand-written workflow package helpers.\n")
+	fmt.Fprintf(&buf, "\t// Handle StringRef - use Value() for resolved literals, Expression() for computed\n")
+	fmt.Fprintf(&buf, "\tif sr, ok := value.(interface{ Value() string; Expression() string }); ok {\n")
+	fmt.Fprintf(&buf, "\t\t// Try Value() first (for resolved StringRef from Concat, etc.)\n")
+	fmt.Fprintf(&buf, "\t\tif v := sr.Value(); v != \"\" {\n")
+	fmt.Fprintf(&buf, "\t\t\treturn v\n")
+	fmt.Fprintf(&buf, "\t\t}\n")
+	fmt.Fprintf(&buf, "\t\t// Fall back to Expression() for computed/context refs\n")
+	fmt.Fprintf(&buf, "\t\treturn sr.Expression()\n")
+	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\t// Handle TaskFieldRef and other expression types\n")
+	fmt.Fprintf(&buf, "\tif expr, ok := value.(interface{ Expression() string }); ok {\n")
+	fmt.Fprintf(&buf, "\t\treturn expr.Expression()\n")
+	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\treturn fmt.Sprintf(\"%%v\", value)\n")
 	fmt.Fprintf(&buf, "}\n")
 
 	// Format and write
@@ -283,17 +512,95 @@ func (g *Generator) generateHelpers() error {
 	return g.writeFormattedFile("helpers.go", buf.Bytes())
 }
 
+// generateHelpersFile generates a helpers.go file in the specified directory
+func (g *Generator) generateHelpersFile(outputDir string) error {
+	var buf bytes.Buffer
+
+	// File header
+	fmt.Fprintf(&buf, "// Code generated by stigmer-codegen. DO NOT EDIT.\n")
+	fmt.Fprintf(&buf, "// Generated: %s\n\n", time.Now().Format(time.RFC3339))
+	fmt.Fprintf(&buf, "package %s\n\n", g.packageName)
+
+	// Import reflect and fmt
+	fmt.Fprintf(&buf, "import (\n")
+	fmt.Fprintf(&buf, "\t\"fmt\"\n")
+	fmt.Fprintf(&buf, "\t\"reflect\"\n")
+	fmt.Fprintf(&buf, ")\n\n")
+
+	// isEmpty function
+	fmt.Fprintf(&buf, "// isEmpty checks if a value is empty/zero.\n")
+	fmt.Fprintf(&buf, "// Used by ToProto methods to skip optional fields.\n")
+	fmt.Fprintf(&buf, "func isEmpty(v interface{}) bool {\n")
+	fmt.Fprintf(&buf, "\tif v == nil {\n")
+	fmt.Fprintf(&buf, "\t\treturn true\n")
+	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\tval := reflect.ValueOf(v)\n")
+	fmt.Fprintf(&buf, "\treturn val.IsZero()\n")
+	fmt.Fprintf(&buf, "}\n\n")
+
+	// coerceToString function for expression support
+	fmt.Fprintf(&buf, "// coerceToString converts various types to strings for expression support.\n")
+	fmt.Fprintf(&buf, "// Used by option functions to accept both string literals and expressions.\n")
+	fmt.Fprintf(&buf, "func coerceToString(value interface{}) string {\n")
+	fmt.Fprintf(&buf, "\tif s, ok := value.(string); ok {\n")
+	fmt.Fprintf(&buf, "\t\treturn s\n")
+	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\t// NOTE: *Task handling omitted to avoid circular dependency between gen/workflow and workflow packages.\n")
+	fmt.Fprintf(&buf, "\t// Task-to-expression conversion is handled in the hand-written workflow package helpers.\n")
+	fmt.Fprintf(&buf, "\t// Handle StringRef - use Value() for resolved literals, Expression() for computed\n")
+	fmt.Fprintf(&buf, "\tif sr, ok := value.(interface{ Value() string; Expression() string }); ok {\n")
+	fmt.Fprintf(&buf, "\t\t// Try Value() first (for resolved StringRef from Concat, etc.)\n")
+	fmt.Fprintf(&buf, "\t\tif v := sr.Value(); v != \"\" {\n")
+	fmt.Fprintf(&buf, "\t\t\treturn v\n")
+	fmt.Fprintf(&buf, "\t\t}\n")
+	fmt.Fprintf(&buf, "\t\t// Fall back to Expression() for computed/context refs\n")
+	fmt.Fprintf(&buf, "\t\treturn sr.Expression()\n")
+	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\t// Handle TaskFieldRef and other expression types\n")
+	fmt.Fprintf(&buf, "\tif expr, ok := value.(interface{ Expression() string }); ok {\n")
+	fmt.Fprintf(&buf, "\t\treturn expr.Expression()\n")
+	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\treturn fmt.Sprintf(\"%%v\", value)\n")
+	fmt.Fprintf(&buf, "}\n")
+
+	// Format and write to specified directory
+	fmt.Printf("  Generating %s/helpers.go...\n", outputDir)
+	return g.writeFormattedFileToDir(outputDir, "helpers.go", buf.Bytes())
+}
+
 // generateSharedTypes generates a types.go file with all shared types
 func (g *Generator) generateSharedTypes() error {
-	ctx := newGenContext(g.packageName)
+	// Group types by domain
+	typesByDomain := make(map[string][]*TypeSchema)
+	for _, typeSchema := range g.sharedTypes {
+		domain := typeSchema.Domain
+		if domain == "" {
+			domain = "commons" // default
+		}
+		typesByDomain[domain] = append(typesByDomain[domain], typeSchema)
+	}
+
+	// Generate a separate file for each domain
+	for domain, types := range typesByDomain {
+		if err := g.generateTypesForDomain(domain, types); err != nil {
+			return fmt.Errorf("failed to generate %s types: %w", domain, err)
+		}
+	}
+
+	return nil
+}
+
+// generateTypesForDomain generates types for a specific domain
+func (g *Generator) generateTypesForDomain(domain string, types []*TypeSchema) error {
+	ctx := newGenContext("types") // Always use "types" package
 
 	var buf bytes.Buffer
 
 	// Generate package declaration
-	fmt.Fprintf(&buf, "package %s\n\n", g.packageName)
+	fmt.Fprintf(&buf, "package types\n\n")
 
-	// Generate each shared type
-	for _, typeSchema := range g.sharedTypes {
+	// Generate each type in this domain
+	for _, typeSchema := range types {
 		if err := ctx.genTypeStruct(&buf, typeSchema); err != nil {
 			return err
 		}
@@ -306,10 +613,11 @@ func (g *Generator) generateSharedTypes() error {
 
 	// Add imports at the beginning
 	var finalBuf bytes.Buffer
+	filename := fmt.Sprintf("%s_types.go", domain)
 	finalBuf.WriteString(fmt.Sprintf("// Code generated by stigmer-codegen. DO NOT EDIT.\n"))
-	finalBuf.WriteString(fmt.Sprintf("// Source: types.go\n"))
+	finalBuf.WriteString(fmt.Sprintf("// Source: %s\n", filename))
 	finalBuf.WriteString(fmt.Sprintf("// Generated: %s\n\n", time.Now().Format(time.RFC3339)))
-	finalBuf.WriteString(fmt.Sprintf("package %s\n\n", g.packageName))
+	finalBuf.WriteString(fmt.Sprintf("package types\n\n"))
 
 	// Add imports if any were used
 	if len(ctx.imports) > 0 {
@@ -317,16 +625,40 @@ func (g *Generator) generateSharedTypes() error {
 	}
 
 	// Add generated code
-	finalBuf.Write(buf.Bytes()[len("package "+g.packageName+"\n\n"):])
+	finalBuf.Write(buf.Bytes()[len("package types\n\n"):])
 
-	// Format and write
-	fmt.Printf("  Generating types.go...\n")
-	return g.writeFormattedFile("types.go", finalBuf.Bytes())
+	// Write to sdk/go/gen/types/ directory
+	typesOutputDir := "sdk/go/gen/types"
+	if err := os.MkdirAll(typesOutputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create types directory: %w", err)
+	}
+
+	outputPath := filepath.Join(typesOutputDir, filename)
+
+	// Format code
+	formatted, err := format.Source(finalBuf.Bytes())
+	if err != nil {
+		return fmt.Errorf("failed to format %s: %w", filename, err)
+	}
+
+	// Write file
+	if err := os.WriteFile(outputPath, formatted, 0644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", filename, err)
+	}
+
+	fmt.Printf("  Generated %s (%d types)\n", filename, len(types))
+	return nil
 }
 
 // generateTaskFile generates a single file for a task config
 func (g *Generator) generateTaskFile(taskConfig *TaskConfigSchema) error {
-	ctx := newGenContext(g.packageName)
+	// Collect shared type names
+	sharedTypeNames := make([]string, 0, len(g.sharedTypes))
+	for _, t := range g.sharedTypes {
+		sharedTypeNames = append(sharedTypeNames, t.Name)
+	}
+
+	ctx := newGenContextWithSharedTypes(g.packageName, sharedTypeNames)
 
 	var buf bytes.Buffer
 
@@ -338,10 +670,6 @@ func (g *Generator) generateTaskFile(taskConfig *TaskConfigSchema) error {
 		return err
 	}
 
-	// Note: Builder functions are NOT generated here.
-	// They belong in the ergonomic API layer (workflow.go and *_options.go),
-	// not in generated code, because they reference manual SDK types like *Task.
-
 	// Generate ToProto method
 	if err := ctx.genToProtoMethod(&buf, taskConfig); err != nil {
 		return err
@@ -351,6 +679,8 @@ func (g *Generator) generateTaskFile(taskConfig *TaskConfigSchema) error {
 	if err := ctx.genFromProtoMethod(&buf, taskConfig); err != nil {
 		return err
 	}
+
+	// TODO: Generate Args structs for workflow tasks (after SDK resources are stable)
 
 	// Add imports at the beginning (after package declaration)
 	var finalBuf bytes.Buffer
@@ -375,8 +705,60 @@ func (g *Generator) generateTaskFile(taskConfig *TaskConfigSchema) error {
 	return g.writeFormattedFile(filename, finalBuf.Bytes())
 }
 
+// generateResourceArgsFile generates Args struct for an SDK resource spec (Pulumi pattern)
+func (g *Generator) generateResourceArgsFile(resourceSpec *TaskConfigSchema) error {
+	// Collect shared type names
+	sharedTypeNames := make([]string, 0, len(g.sharedTypes))
+	for _, t := range g.sharedTypes {
+		sharedTypeNames = append(sharedTypeNames, t.Name)
+	}
+
+	// Determine package name dynamically from proto file path
+	packageName := g.getPackageName(resourceSpec)
+
+	// Create context aware of shared types
+	ctx := newGenContextWithSharedTypes(packageName, sharedTypeNames)
+
+	var buf bytes.Buffer
+
+	// Generate package declaration
+	fmt.Fprintf(&buf, "package %s\n\n", packageName)
+
+	// Generate Args struct (Pulumi pattern)
+	if err := ctx.genArgsStruct(&buf, resourceSpec); err != nil {
+		return err
+	}
+
+	// Add imports at the beginning (after package declaration)
+	var finalBuf bytes.Buffer
+	baseName := strings.ToLower(strings.ReplaceAll(resourceSpec.Name, "Spec", "spec"))
+	filename := fmt.Sprintf("%s_args.go", toSnakeCase(baseName))
+	finalBuf.WriteString(fmt.Sprintf("// Code generated by stigmer-codegen. DO NOT EDIT.\n"))
+	finalBuf.WriteString(fmt.Sprintf("// Source: %s\n", filename))
+	finalBuf.WriteString(fmt.Sprintf("// Generated: %s\n\n", time.Now().Format(time.RFC3339)))
+	finalBuf.WriteString(fmt.Sprintf("package %s\n\n", packageName))
+
+	// Add imports if any were used
+	if len(ctx.imports) > 0 {
+		ctx.genImports(&finalBuf)
+	}
+
+	// Add generated code
+	finalBuf.Write(buf.Bytes()[len("package "+packageName+"\n\n"):])
+
+	// Format and write
+	outputDir := g.getOutputDir(resourceSpec)
+	fmt.Printf("  Generating %s/%s...\n", outputDir, filename)
+	return g.writeFormattedFileToDir(outputDir, filename, finalBuf.Bytes())
+}
+
 // writeFormattedFile formats Go code and writes it to a file
 func (g *Generator) writeFormattedFile(filename string, code []byte) error {
+	return g.writeFormattedFileToDir(g.outputDir, filename, code)
+}
+
+// writeFormattedFileToDir formats Go code and writes it to a file in a specific directory
+func (g *Generator) writeFormattedFileToDir(outputDir, filename string, code []byte) error {
 	// Format with gofmt
 	formatted, err := format.Source(code)
 	if err != nil {
@@ -385,8 +767,13 @@ func (g *Generator) writeFormattedFile(filename string, code []byte) error {
 		return fmt.Errorf("failed to format %s: %w", filename, err)
 	}
 
+	// Create output directory if it doesn't exist
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", outputDir, err)
+	}
+
 	// Write to file
-	outputPath := filepath.Join(g.outputDir, filename)
+	outputPath := filepath.Join(outputDir, filename)
 	if err := os.WriteFile(outputPath, formatted, 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", filename, err)
 	}
@@ -403,6 +790,7 @@ type genContext struct {
 	packageName string
 	imports     map[string]struct{}
 	generated   map[string]struct{}
+	sharedTypes map[string]struct{} // Set of shared type names (from types package)
 }
 
 // newGenContext creates a new generation context
@@ -411,7 +799,17 @@ func newGenContext(packageName string) *genContext {
 		packageName: packageName,
 		imports:     make(map[string]struct{}),
 		generated:   make(map[string]struct{}),
+		sharedTypes: make(map[string]struct{}),
 	}
+}
+
+// newGenContextWithSharedTypes creates a context aware of shared types
+func newGenContextWithSharedTypes(packageName string, sharedTypeNames []string) *genContext {
+	ctx := newGenContext(packageName)
+	for _, typeName := range sharedTypeNames {
+		ctx.sharedTypes[typeName] = struct{}{}
+	}
+	return ctx
 }
 
 // addImport adds an import to the context
@@ -459,16 +857,22 @@ func (c *genContext) genConfigStruct(w *bytes.Buffer, config *TaskConfigSchema) 
 
 		// Field declaration
 		goType := c.goType(field.Type)
+
+		// Use interface{} for expression fields (smart type conversion)
+		if field.IsExpression && field.Type.Kind == "string" {
+			goType = "interface{}"
+		}
+
 		jsonTag := fmt.Sprintf("`json:\"%s,omitempty\"`", field.JsonName)
 		fmt.Fprintf(w, "\t%s %s %s\n", field.Name, goType, jsonTag)
 	}
 
 	fmt.Fprintf(w, "}\n\n")
 
-	// Generate isTaskConfig() method only for TaskConfig types (backwards compatibility)
+	// Generate IsTaskConfig() method only for TaskConfig types (exported for cross-package use)
 	if strings.HasSuffix(config.Name, "TaskConfig") {
-		fmt.Fprintf(w, "// isTaskConfig marks %s as a TaskConfig implementation.\n", config.Name)
-		fmt.Fprintf(w, "func (c *%s) isTaskConfig() {}\n\n", config.Name)
+		fmt.Fprintf(w, "// IsTaskConfig marks %s as a TaskConfig implementation.\n", config.Name)
+		fmt.Fprintf(w, "func (c *%s) IsTaskConfig() {}\n\n", config.Name)
 	}
 
 	return nil
@@ -493,6 +897,12 @@ func (c *genContext) genTypeStruct(w *bytes.Buffer, typeSchema *TypeSchema) erro
 
 		// Field declaration
 		goType := c.goType(field.Type)
+
+		// Use interface{} for expression fields (smart type conversion)
+		if field.IsExpression && field.Type.Kind == "string" {
+			goType = "interface{}"
+		}
+
 		jsonTag := fmt.Sprintf("`json:\"%s,omitempty\"`", field.JsonName)
 		fmt.Fprintf(w, "\t%s %s %s\n", field.Name, goType, jsonTag)
 	}
@@ -501,12 +911,57 @@ func (c *genContext) genTypeStruct(w *bytes.Buffer, typeSchema *TypeSchema) erro
 	return nil
 }
 
+// genArgsStruct generates an Args struct for SDK resources (Pulumi pattern)
+// Example: AgentSpec -> AgentArgs
+func (c *genContext) genArgsStruct(w *bytes.Buffer, config *TaskConfigSchema) error {
+	// Determine the Args struct name
+	// "AgentSpec" -> "AgentArgs"
+	argsName := strings.TrimSuffix(config.Name, "Spec") + "Args"
+
+	// Generate documentation comment
+	resourceName := strings.TrimSuffix(config.Name, "Spec")
+	fmt.Fprintf(w, "// %s contains the configuration arguments for creating a %s.\n", argsName, resourceName)
+	fmt.Fprintf(w, "//\n")
+	fmt.Fprintf(w, "// This struct follows the Pulumi Args pattern for resource configuration.\n")
+	if config.Description != "" {
+		fmt.Fprintf(w, "//\n")
+		c.writeComment(w, config.Description)
+	}
+
+	// Struct declaration
+	fmt.Fprintf(w, "type %s struct {\n", argsName)
+
+	// Fields - use plain Go types (simple types from same gen/ package)
+	for _, field := range config.Fields {
+		// Field comment
+		if field.Description != "" {
+			c.writeFieldComment(w, field.Description)
+		}
+
+		// Field declaration - use goType which keeps message types unqualified
+		goType := c.goType(field.Type)
+
+		// Use plain struct tags (no omitempty for required fields)
+		var jsonTag string
+		if field.Required {
+			jsonTag = fmt.Sprintf("`json:\"%s\"`", field.JsonName)
+		} else {
+			jsonTag = fmt.Sprintf("`json:\"%s,omitempty\"`", field.JsonName)
+		}
+
+		fmt.Fprintf(w, "\t%s %s %s\n", field.Name, goType, jsonTag)
+	}
+
+	fmt.Fprintf(w, "}\n\n")
+	return nil
+}
+
 // genBuilderFunc generates a builder function for a task config.
-// 
+//
 // DEPRECATED: This method is no longer used. Builder functions are now
 // part of the manual ergonomic API layer (workflow.go and *_options.go),
 // not generated code, because they reference manual SDK types like *Task.
-// 
+//
 // This method is kept for reference but should not be called.
 func (c *genContext) genBuilderFunc(w *bytes.Buffer, config *TaskConfigSchema) error {
 	// Function documentation
@@ -517,7 +972,7 @@ func (c *genContext) genBuilderFunc(w *bytes.Buffer, config *TaskConfigSchema) e
 	fmt.Fprintf(w, "//   - name: Task name (must be unique within workflow)\n")
 	for _, field := range config.Fields {
 		paramName := c.paramName(field.Name)
-		desc := strings.ReplaceAll(field.Description, "\n", " ")
+		desc := sanitizeDescription(field.Description)
 		fmt.Fprintf(w, "//   - %s: %s\n", paramName, desc)
 	}
 	fmt.Fprintf(w, "func %sTask(name string", titleCase(config.Kind))
@@ -560,12 +1015,96 @@ func (c *genContext) genToProtoMethod(w *bytes.Buffer, config *TaskConfigSchema)
 
 	// Marshal each field
 	for _, field := range config.Fields {
+		// Determine if we need smart conversion for expression fields
+		needsConversion := field.IsExpression && field.Type.Kind == "string"
+
+		// Special handling for array of message types (e.g., []*types.WorkflowTask)
+		if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
+			c.addImport("encoding/json")
+			c.addImport("fmt")
+			if field.Required {
+				fmt.Fprintf(w, "\t// Convert %s array to proto-compatible format using JSON marshaling\n", field.Name)
+				fmt.Fprintf(w, "\tif c.%s != nil {\n", field.Name)
+				fmt.Fprintf(w, "\t\tjsonBytes, err := json.Marshal(c.%s)\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err != nil {\n")
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\tfmt.Printf(\"DEBUG %s JSON: %%s\\n\", string(jsonBytes))\n", field.Name)
+				fmt.Fprintf(w, "\t\tvar %sArray []interface{}\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err := json.Unmarshal(jsonBytes, &%sArray); err != nil {\n", field.Name)
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\tdata[\"%s\"] = %sArray\n", field.JsonName, field.Name)
+				fmt.Fprintf(w, "\t}\n")
+			} else {
+				fmt.Fprintf(w, "\tif !isEmpty(c.%s) {\n", field.Name)
+				fmt.Fprintf(w, "\t\t// Convert %s array to proto-compatible format using JSON marshaling\n", field.Name)
+				fmt.Fprintf(w, "\t\tjsonBytes, err := json.Marshal(c.%s)\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err != nil {\n")
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\tfmt.Printf(\"DEBUG %s JSON: %%s\\n\", string(jsonBytes))\n", field.Name)
+				fmt.Fprintf(w, "\t\tvar %sArray []interface{}\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err := json.Unmarshal(jsonBytes, &%sArray); err != nil {\n", field.Name)
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\tdata[\"%s\"] = %sArray\n", field.JsonName, field.Name)
+				fmt.Fprintf(w, "\t}\n")
+			}
+			continue
+		}
+
+		// Special handling for message types (e.g., *types.HttpEndpoint)
+		if field.Type.Kind == "message" {
+			c.addImport("encoding/json")
+			if field.Required {
+				fmt.Fprintf(w, "\t// Convert %s to proto-compatible format using JSON marshaling\n", field.Name)
+				fmt.Fprintf(w, "\tif c.%s != nil {\n", field.Name)
+				fmt.Fprintf(w, "\t\tjsonBytes, err := json.Marshal(c.%s)\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err != nil {\n")
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\tvar %sMap map[string]interface{}\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err := json.Unmarshal(jsonBytes, &%sMap); err != nil {\n", field.Name)
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\t// Apply smart conversion to expression fields within the message\n")
+				c.generateMessageFieldConversion(w, field, field.Name+"Map")
+				fmt.Fprintf(w, "\t\tdata[\"%s\"] = %sMap\n", field.JsonName, field.Name)
+				fmt.Fprintf(w, "\t}\n")
+			} else {
+				fmt.Fprintf(w, "\tif !isEmpty(c.%s) && c.%s != nil {\n", field.Name, field.Name)
+				fmt.Fprintf(w, "\t\t// Convert %s to proto-compatible format using JSON marshaling\n", field.Name)
+				fmt.Fprintf(w, "\t\tjsonBytes, err := json.Marshal(c.%s)\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err != nil {\n")
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\tvar %sMap map[string]interface{}\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err := json.Unmarshal(jsonBytes, &%sMap); err != nil {\n", field.Name)
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\t// Apply smart conversion to expression fields within the message\n")
+				c.generateMessageFieldConversion(w, field, field.Name+"Map")
+				fmt.Fprintf(w, "\t\tdata[\"%s\"] = %sMap\n", field.JsonName, field.Name)
+				fmt.Fprintf(w, "\t}\n")
+			}
+			continue
+		}
+
+		valueExpr := "c." + field.Name
+		if needsConversion {
+			valueExpr = "coerceToString(c." + field.Name + ")"
+		}
+
 		if field.Required {
-			fmt.Fprintf(w, "\tdata[\"%s\"] = c.%s\n", field.JsonName, field.Name)
+			fmt.Fprintf(w, "\tdata[\"%s\"] = %s\n", field.JsonName, valueExpr)
 		} else {
 			// Optional field - only include if not zero value
 			fmt.Fprintf(w, "\tif !isEmpty(c.%s) {\n", field.Name)
-			fmt.Fprintf(w, "\t\tdata[\"%s\"] = c.%s\n", field.JsonName, field.Name)
+			if needsConversion {
+				fmt.Fprintf(w, "\t\t// Smart conversion: accepts string or TaskFieldRef\n")
+			}
+			fmt.Fprintf(w, "\t\tdata[\"%s\"] = %s\n", field.JsonName, valueExpr)
 			fmt.Fprintf(w, "\t}\n")
 		}
 	}
@@ -574,6 +1113,17 @@ func (c *genContext) genToProtoMethod(w *bytes.Buffer, config *TaskConfigSchema)
 	fmt.Fprintf(w, "}\n\n")
 
 	return nil
+}
+
+// generateMessageFieldConversion generates code to apply smart conversion to expression fields within a message
+func (c *genContext) generateMessageFieldConversion(w *bytes.Buffer, field *FieldSchema, mapVarName string) {
+	// Check if this is HttpEndpoint which has Uri as an expression field
+	if field.Type.MessageType == "HttpEndpoint" {
+		fmt.Fprintf(w, "\t\tif uri, ok := %s[\"uri\"]; ok {\n", mapVarName)
+		fmt.Fprintf(w, "\t\t\t%s[\"uri\"] = coerceToString(uri)\n", mapVarName)
+		fmt.Fprintf(w, "\t\t}\n")
+	}
+	// Add more message types here as needed
 }
 
 // genTypeFromProtoMethod generates FromProto() method for a shared type
@@ -647,7 +1197,12 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 		fmt.Fprintf(w, "\t\tc.%s = val.GetStructValue().AsMap()\n", field.Name)
 
 	case "message":
-		fmt.Fprintf(w, "\t\tc.%s = &%s{}\n", field.Name, field.Type.MessageType)
+		// Check if this is a shared type that needs types. prefix
+		typeName := field.Type.MessageType
+		if _, isShared := c.sharedTypes[typeName]; isShared && c.packageName != "types" {
+			typeName = "types." + typeName
+		}
+		fmt.Fprintf(w, "\t\tc.%s = &%s{}\n", field.Name, typeName)
 		fmt.Fprintf(w, "\t\tif err := c.%s.FromProto(val.GetStructValue()); err != nil {\n", field.Name)
 		fmt.Fprintf(w, "\t\t\treturn err\n")
 		fmt.Fprintf(w, "\t\t}\n")
@@ -666,6 +1221,108 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 
 	fmt.Fprintf(w, "\t}\n\n")
 }
+
+// ============================================================================
+// Args Struct Generation (Pulumi Pattern)
+// ============================================================================
+
+// NOTE: Functional options generation has been removed in favor of Args structs.
+// See genArgsStruct() above for the Pulumi-style pattern.
+
+// NOTE: All functional options generation methods removed.
+// Args structs are now generated by genArgsStruct() above.
+
+// singularize converts plural field names to singular form for option functions.
+// Examples: "Headers" -> "Header", "Skills" -> "Skill", "Environments" -> "Environment"
+func (c *genContext) singularize(plural string) string {
+	// Handle common irregular plurals
+	irregulars := map[string]string{
+		"Children": "Child",
+		"People":   "Person",
+		"Men":      "Man",
+		"Women":    "Woman",
+	}
+
+	if singular, ok := irregulars[plural]; ok {
+		return singular
+	}
+
+	// Simple rule: remove trailing 's' for most cases
+	if strings.HasSuffix(plural, "ies") {
+		// "Entries" -> "Entry"
+		return plural[:len(plural)-3] + "y"
+	}
+	if strings.HasSuffix(plural, "ses") {
+		// "Addresses" -> "Address"
+		return plural[:len(plural)-2]
+	}
+	if strings.HasSuffix(plural, "s") && !strings.HasSuffix(plural, "ss") {
+		// "Headers" -> "Header", but not "Address" -> "Addres"
+		return plural[:len(plural)-1]
+	}
+
+	// If no rule matches, return as-is (might already be singular)
+	return plural
+}
+
+// pluralize ensures consistent plural form for bulk option functions.
+// Examples: "Header" -> "Headers", "Skill" -> "Skills"
+func (c *genContext) pluralize(singular string) string {
+	// Handle common irregular plurals
+	irregulars := map[string]string{
+		"Child":  "Children",
+		"Person": "People",
+		"Man":    "Men",
+		"Woman":  "Women",
+	}
+
+	if plural, ok := irregulars[singular]; ok {
+		return plural
+	}
+
+	// Simple rule: add 's' for most cases
+	if strings.HasSuffix(singular, "y") && len(singular) > 1 {
+		// "Entry" -> "Entries" (if preceded by consonant)
+		prevChar := singular[len(singular)-2]
+		if prevChar != 'a' && prevChar != 'e' && prevChar != 'i' && prevChar != 'o' && prevChar != 'u' {
+			return singular[:len(singular)-1] + "ies"
+		}
+	}
+	if strings.HasSuffix(singular, "s") || strings.HasSuffix(singular, "x") ||
+		strings.HasSuffix(singular, "z") || strings.HasSuffix(singular, "ch") ||
+		strings.HasSuffix(singular, "sh") {
+		// "Address" -> "Addresses"
+		return singular + "es"
+	}
+
+	// Default: add 's'
+	return singular + "s"
+}
+
+// needsCoercion determines if a value type needs coerceToString() conversion.
+// Returns true for string types (which support expressions), false for structured types.
+func (c *genContext) needsCoercion(typeSpec *TypeSpec) bool {
+	if typeSpec == nil {
+		return false
+	}
+
+	switch typeSpec.Kind {
+	case "string":
+		return true
+	case "map":
+		// For maps, check if value type is string
+		if typeSpec.ValueType != nil && typeSpec.ValueType.Kind == "string" {
+			return true
+		}
+		return false
+	default:
+		return false
+	}
+}
+
+// ============================================================================
+// Type Conversion
+// ============================================================================
 
 // goType converts a TypeSpec to a Go type string
 func (c *genContext) goType(typeSpec TypeSpec) string {
@@ -695,6 +1352,18 @@ func (c *genContext) goType(typeSpec TypeSpec) string {
 		return fmt.Sprintf("[]%s", elementType)
 
 	case "message":
+		// Check if this is a shared type from types package
+		if _, isShared := c.sharedTypes[typeSpec.MessageType]; isShared {
+			// Add types package import if we're not already in types package
+			if c.packageName != "types" {
+				c.addImport("github.com/stigmer/stigmer/sdk/go/gen/types")
+			}
+			// Reference shared type from types package
+			if c.packageName == "types" {
+				return "*" + typeSpec.MessageType
+			}
+			return "*types." + typeSpec.MessageType
+		}
 		// Pointer for proto compatibility
 		return "*" + typeSpec.MessageType
 
@@ -746,6 +1415,22 @@ func titleCase(s string) string {
 }
 
 // toSnakeCase converts CamelCase to snake_case
+// sanitizeDescription sanitizes a description string for use in Go comments
+// by replacing newlines with spaces and collapsing multiple spaces
+func sanitizeDescription(desc string) string {
+	// Replace newlines and carriage returns with spaces
+	desc = strings.ReplaceAll(desc, "\n", " ")
+	desc = strings.ReplaceAll(desc, "\r", " ")
+
+	// Collapse multiple spaces into one
+	for strings.Contains(desc, "  ") {
+		desc = strings.ReplaceAll(desc, "  ", " ")
+	}
+
+	// Trim leading and trailing whitespace
+	return strings.TrimSpace(desc)
+}
+
 func toSnakeCase(s string) string {
 	var result []rune
 	for i, r := range s {
