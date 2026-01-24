@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -43,11 +44,12 @@ func main() {
 		// Step 1: Fetch PR details from GitHub API
 		// ============================================================================
 		// Use runtime secret for GitHub authentication
-		fetchPR := wf.HttpGet(
-			"fetchPR",
+		fetchPR := wf.HttpGet("fetchPR",
 			workflow.Interpolate("https://api.github.com/repos/myorg/myrepo/pulls/", workflow.RuntimeEnv("PR_NUMBER")),
-			workflow.Header("Authorization", workflow.Interpolate("token ", workflow.RuntimeSecret("GITHUB_TOKEN"))),
-			workflow.Header("Accept", "application/vnd.github.v3+json"),
+			map[string]string{
+				"Authorization": workflow.Interpolate("token ", workflow.RuntimeSecret("GITHUB_TOKEN")),
+				"Accept":        "application/vnd.github.v3+json",
+			},
 		)
 
 		log.Printf("✅ Created fetchPR task")
@@ -57,59 +59,60 @@ func main() {
 		// ============================================================================
 		// Pass GitHub token to agent via environment variable
 		// Agent can use it to fetch additional context or post comments
-		reviewTask := wf.CallAgent(
-			"reviewPR",
-			workflow.AgentOption(workflow.AgentBySlug("code-reviewer")),
+		reviewTask := wf.CallAgent("reviewPR", &workflow.AgentCallArgs{
+			Agent: workflow.AgentBySlug("code-reviewer").Slug(),
 			// Message uses PR data from previous task
-			workflow.Message(workflow.Interpolate(
+			Message: workflow.Interpolate(
 				"Review this PR:\n",
 				"Title: ", fetchPR.Field("title"), "\n",
 				"Description: ", fetchPR.Field("body"), "\n",
 				"Changed files: ", fetchPR.Field("changed_files"), "\n",
-			)),
-		// Pass runtime secrets to agent environment
-		workflow.WithEnv(map[string]string{
-			"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"), // Agent can fetch more context
-			"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER"),       // Pass PR number
-			"REPO_OWNER":   "myorg",                                // Static config
-			"REPO_NAME":    "myrepo",                               // Static config
-		}),
-			workflow.AgentTimeout(600), // 10 minutes for thorough review
-		)
+			),
+			// Pass runtime secrets to agent environment
+			Env: map[string]string{
+				"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"), // Agent can fetch more context
+				"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER"),       // Pass PR number
+				"REPO_OWNER":   "myorg",                                // Static config
+				"REPO_NAME":    "myrepo",                               // Static config
+			},
+			Config: &types.AgentExecutionConfig{
+				Timeout: 600, // 10 minutes for thorough review
+			},
+		})
 
 		log.Printf("✅ Created reviewPR agent task with environment variables")
 
 		// ============================================================================
 		// Step 3: Post review to Slack
 		// ============================================================================
-	// Use agent output and another runtime secret
-	_ = wf.HttpPost(
-		"notifySlack",
-		workflow.RuntimeSecret("SLACK_WEBHOOK"), // Webhook URL from runtime
-		workflow.WithBody(map[string]any{
-			"text": workflow.Interpolate(
-				"PR #", workflow.RuntimeEnv("PR_NUMBER"),
-				" Review Complete!\n\n",
-				reviewTask.Field("summary"), // Agent's review summary
-			),
+		// Use agent output and another runtime secret
+		_ = wf.HttpPost("notifySlack",
+			workflow.RuntimeSecret("SLACK_WEBHOOK"), // Webhook URL from runtime
+			nil,                                     // No custom headers
+			map[string]any{
+				"text": workflow.Interpolate(
+					"PR #", workflow.RuntimeEnv("PR_NUMBER"),
+					" Review Complete!\n\n",
+					reviewTask.Field("summary"), // Agent's review summary
+				),
 				"attachments": []map[string]any{
 					{
 						"color": "good",
 						"fields": []map[string]any{
 							{
 								"title": "Review Status",
-								"value": reviewTask.Field("status").Expression(),
+								"value": reviewTask.Field("status"), // Smart conversion handles TaskFieldRef automatically
 								"short": true,
 							},
 							{
 								"title": "Issues Found",
-								"value": reviewTask.Field("issues_count").Expression(),
+								"value": reviewTask.Field("issues_count"), // Smart conversion handles TaskFieldRef automatically
 								"short": true,
 							},
 						},
 					},
 				},
-			}),
+			},
 		)
 
 		log.Printf("✅ Created notifySlack task")

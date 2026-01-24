@@ -3,7 +3,7 @@ module github.com/stigmer/stigmer/sdk/go
 go 1.25.0
 
 require (
-	github.com/google/uuid v1.6.0
+	buf.build/go/protovalidate v1.1.0
 	github.com/stigmer/stigmer/apis/stubs/go v0.0.0-20260120004624-4578a34f018e
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/protobuf v1.36.11
@@ -11,7 +11,6 @@ require (
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20251209175733-2a1774d88802.1 // indirect
-	buf.build/go/protovalidate v1.1.0 // indirect
 	cel.dev/expr v0.24.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
