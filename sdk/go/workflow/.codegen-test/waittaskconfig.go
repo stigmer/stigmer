@@ -10,8 +10,9 @@ import (
 
 // WAIT tasks pause workflow execution for a specified duration.
 type WaitTaskConfig struct {
-	// Duration to wait (e.g., "5s", "1m", "1h", "1d")
-	Duration string `json:"duration,omitempty"`
+	// Number of seconds to wait.
+	// Must be at least 1 second.
+	Seconds int32 `json:"seconds,omitempty"`
 }
 
 // isTaskConfig marks WaitTaskConfig as a TaskConfig implementation.
@@ -21,7 +22,7 @@ func (c *WaitTaskConfig) isTaskConfig() {}
 func (c *WaitTaskConfig) ToProto() (*structpb.Struct, error) {
 	data := make(map[string]interface{})
 
-	data["duration"] = c.Duration
+	data["seconds"] = c.Seconds
 
 	return structpb.NewStruct(data)
 }
@@ -30,8 +31,8 @@ func (c *WaitTaskConfig) ToProto() (*structpb.Struct, error) {
 func (c *WaitTaskConfig) FromProto(s *structpb.Struct) error {
 	fields := s.GetFields()
 
-	if val, ok := fields["duration"]; ok {
-		c.Duration = val.GetStringValue()
+	if val, ok := fields["seconds"]; ok {
+		c.Seconds = int32(val.GetNumberValue())
 	}
 
 	return nil

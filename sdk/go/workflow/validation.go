@@ -411,12 +411,12 @@ func validateWaitTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.Duration == "" {
+	if cfg.Seconds < 1 {
 		return NewValidationErrorWithCause(
-			"config.duration",
+			"config.seconds",
 			"",
 			"required",
-			"WAIT task must have a duration",
+			"WAIT task must have seconds >= 1",
 			ErrInvalidTaskConfig,
 		)
 	}

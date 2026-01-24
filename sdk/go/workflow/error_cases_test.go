@@ -188,10 +188,10 @@ func TestWorkflowToProto_InvalidTaskConfigurations(t *testing.T) {
 				Name: "waitTask",
 				Kind: TaskKindWait,
 				Config: &WaitTaskConfig{
-					Duration: "invalid-duration",
+					Seconds: 0, // Invalid: must be >= 1
 				},
 			},
-			wantErr: false, // May not validate duration format
+			wantErr: false, // May not validate seconds value in SDK
 		},
 		{
 			name: "Listen task with empty event",
@@ -573,7 +573,7 @@ func TestWorkflowToProto_PartiallyValidWorkflow(t *testing.T) {
 				Name: "anotherValidTask",
 				Kind: TaskKindWait,
 				Config: &WaitTaskConfig{
-					Duration: "5s",
+					Seconds: 5,
 				},
 			},
 		},

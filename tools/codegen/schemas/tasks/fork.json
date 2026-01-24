@@ -1,7 +1,7 @@
 {
   "name": "ForkTaskConfig",
   "kind": "FORK",
-  "description": "FORK tasks execute parallel branches.",
+  "description": "ForkTaskConfig defines the configuration for FORK tasks.\n\n FORK tasks execute multiple branches in parallel.\n\n YAML Example:\n   - taskName:\n       fork:\n         branches:\n           - branch1:\n               do:\n                 - task1:\n                     call: http\n                     with:\n                       method: POST\n                       endpoint:\n                         uri: https://api.example.com/branch1\n           - branch2:\n               do:\n                 - task2:\n                     call: http\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 5",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/fork.proto",
   "fields": [
@@ -12,14 +12,23 @@
       "type": {
         "kind": "array",
         "elementType": {
-          "kind": "struct"
+          "kind": "message",
+          "messageType": "ForkBranch"
         }
       },
-      "description": "Parallel branches to execute (array of {name, tasks})",
-      "required": true,
-      "validation": {
-        "required": true
-      }
+      "description": "Branches to execute in parallel (at least 2 required).",
+      "required": false,
+      "validation": {}
+    },
+    {
+      "name": "Compete",
+      "jsonName": "compete",
+      "protoField": "compete",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "If true, first branch to complete wins (race mode).\n If false, all branches must complete (default).",
+      "required": false
     }
   ]
 }

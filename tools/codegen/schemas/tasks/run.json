@@ -1,22 +1,20 @@
 {
   "name": "RunTaskConfig",
   "kind": "RUN",
-  "description": "RUN tasks execute sub-workflows.",
+  "description": "RunTaskConfig defines the configuration for RUN tasks.\n\n RUN tasks execute sub-workflows (Temporal child workflows).\n\n YAML Example:\n   - taskName:\n       run:\n         workflow: \"sub-workflow-name\"\n         input:\n           data: ${ .data }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 12",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/run.proto",
   "fields": [
     {
-      "name": "WorkflowName",
-      "jsonName": "workflow_name",
-      "protoField": "workflow_name",
+      "name": "Workflow",
+      "jsonName": "workflow",
+      "protoField": "workflow",
       "type": {
         "kind": "string"
       },
-      "description": "Sub-workflow name",
-      "required": true,
-      "validation": {
-        "required": true
-      }
+      "description": "Sub-workflow name/identifier to execute.",
+      "required": false,
+      "validation": {}
     },
     {
       "name": "Input",
@@ -25,7 +23,7 @@
       "type": {
         "kind": "struct"
       },
-      "description": "Sub-workflow input",
+      "description": "Sub-workflow input (optional).\n Can be any JSON structure.\n Supports expressions in string values.",
       "required": false
     }
   ]

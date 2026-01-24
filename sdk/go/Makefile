@@ -92,6 +92,64 @@ update-deps: ## Update buf proto dependencies to latest
 	@echo "Updated versions:"
 	@grep "buf.build/gen/go" ../go.mod
 
+.PHONY: codegen-schemas
+codegen-schemas: ## Generate JSON schemas from proto files (Stage 1: proto → schema)
+	@echo "============================================"
+	@echo "Stage 1: Generating JSON Schemas from Protos"
+	@echo "============================================"
+	@echo ""
+	@echo "Input:  Proto files (apis/ai/stigmer/agentic/...)"
+	@echo "Output: JSON schemas (tools/codegen/schemas/)"
+	@echo ""
+	@cd ../.. && go run tools/codegen/proto2schema/main.go \
+		--proto-dir apis/ai/stigmer/agentic/workflow/v1/tasks \
+		--output-dir tools/codegen/schemas/tasks \
+		--include-dir apis \
+		--stub-dir /tmp/proto-stubs
+	@echo ""
+	@echo "✓ JSON schemas generated!"
+	@echo ""
+
+.PHONY: codegen-go
+codegen-go: ## Generate Go SDK code from JSON schemas (Stage 2: schema → Go)
+	@echo "============================================"
+	@echo "Stage 2: Generating Go Code from Schemas"
+	@echo "============================================"
+	@echo ""
+	@echo "Input:  JSON schemas (tools/codegen/schemas/)"
+	@echo "Output: Go SDK files (sdk/go/workflow/*_task.go)"
+	@echo ""
+	@cd ../.. && go run tools/codegen/generator/main.go \
+		--schema-dir tools/codegen/schemas \
+		--output-dir sdk/go/workflow \
+		--package workflow \
+		--file-suffix _task
+	@echo ""
+	@echo "✓ Go SDK code generated!"
+	@echo ""
+
+.PHONY: codegen
+codegen: codegen-schemas codegen-go ## Run full code generation pipeline (proto → schema → Go)
+	@echo ""
+	@echo "============================================"
+	@echo "✓ Full SDK Code Generation Complete!"
+	@echo "============================================"
+	@echo ""
+	@echo "Generated files:"
+	@echo "  • Schemas: tools/codegen/schemas/tasks/*.json"
+	@echo "  • Schemas: tools/codegen/schemas/types/*.json"
+	@echo "  • Go code: sdk/go/workflow/*_task.go"
+	@echo "  • Go code: sdk/go/types/*_types.go"
+	@echo ""
+	@echo "Next: Run 'make test' to verify generation"
+	@echo ""
+
+.PHONY: codegen-verify
+codegen-verify: codegen test ## Generate code and run tests to verify
+	@echo ""
+	@echo "✓ Code generation verified successfully!"
+	@echo ""
+
 .PHONY: release
 release: ## Create and push a release tag (usage: make release [bump=patch|minor|major])
 	@echo "🏷️  Auto-incrementing version tag..."

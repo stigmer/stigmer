@@ -515,16 +515,16 @@ func TestWorkflowToProto_AgentCallEdgeCases(t *testing.T) {
 // TestWorkflowToProto_WaitEdgeCases tests wait task edge cases.
 func TestWorkflowToProto_WaitEdgeCases(t *testing.T) {
 	tests := []struct {
-		name     string
-		duration string
+		name    string
+		seconds int32
 	}{
-		{name: "1 millisecond", duration: "1ms"},
-		{name: "1 second", duration: "1s"},
-		{name: "1 minute", duration: "1m"},
-		{name: "1 hour", duration: "1h"},
-		{name: "24 hours", duration: "24h"},
-		{name: "complex duration", duration: "1h30m45s"},
-		{name: "very precise", duration: "1h2m3s4ms5us6ns"},
+		{name: "1 second", seconds: 1},
+		{name: "5 seconds", seconds: 5},
+		{name: "1 minute", seconds: 60},
+		{name: "1 hour", seconds: 3600},
+		{name: "24 hours", seconds: 86400},
+		{name: "complex duration", seconds: 5445}, // 1h30m45s = 5445 seconds
+		{name: "very long wait", seconds: 7200},   // 2 hours
 	}
 
 	for _, tt := range tests {
@@ -541,7 +541,7 @@ func TestWorkflowToProto_WaitEdgeCases(t *testing.T) {
 						Name: "waitTask",
 						Kind: TaskKindWait,
 						Config: &WaitTaskConfig{
-							Duration: tt.duration,
+							Seconds: tt.seconds,
 						},
 					},
 				},

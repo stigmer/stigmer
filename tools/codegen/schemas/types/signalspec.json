@@ -1,0 +1,30 @@
+{
+  "name": "SignalSpec",
+  "description": "SignalSpec defines a signal/event to listen for.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.SignalSpec",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/listen.proto",
+  "fields": [
+    {
+      "name": "Id",
+      "jsonName": "id",
+      "protoField": "id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Signal identifier.",
+      "required": false,
+      "validation": {}
+    },
+    {
+      "name": "Type",
+      "jsonName": "type",
+      "protoField": "type",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Signal type:\n - \"signal\": Temporal signal\n - \"query\": Temporal query\n - \"update\": Temporal update",
+      "required": false,
+      "validation": {}
+    }
+  ]
+}

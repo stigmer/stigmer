@@ -1,0 +1,63 @@
+{
+  "name": "WorkflowTask",
+  "description": "WorkflowTask represents a single task in the workflow.\n Uses the \"kind + Struct\" pattern (like CloudResource in Planton Cloud):\n - `kind` determines the task type (SET, HTTP_CALL, SWITCH, etc.)\n - `task_config` contains task-specific configuration as dynamic JSON\n - Backend unmarshals `task_config` to the appropriate Go struct based on `kind`\n\n Example (HTTP Call):\n {\n   \"name\": \"fetchData\",\n   \"kind\": \"HTTP_CALL\",\n   \"task_config\": {\n     \"method\": \"GET\",\n     \"endpoint\": {\"uri\": \"https://api.example.com/data\"},\n     \"headers\": {\"Authorization\": \"Bearer ${TOKEN}\"}\n   },\n   \"export\": {\"as\": \"${.}\"},\n   \"flow\": {\"then\": \"processData\"}\n }",
+  "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowTask",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Task name/identifier (must be unique within workflow).",
+      "required": false,
+      "validation": {}
+    },
+    {
+      "name": "Kind",
+      "jsonName": "kind",
+      "protoField": "kind",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Task type (determines how to interpret task_config).",
+      "required": false,
+      "validation": {}
+    },
+    {
+      "name": "TaskConfig",
+      "jsonName": "taskConfig",
+      "protoField": "task_config",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "Task-specific configuration (dynamic typed).\n Structure depends on `kind` value.\n\n Backend unmarshals this Struct to the appropriate proto message:\n - SET: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig\n - HTTP_CALL: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig\n - GRPC_CALL: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig\n - SWITCH: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig\n - FOR: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig\n - FORK: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig\n - TRY: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig\n - LISTEN: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig\n - WAIT: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig\n - CALL_ACTIVITY: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig\n - RAISE: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig\n - RUN: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig\n\n See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.",
+      "required": false,
+      "validation": {}
+    },
+    {
+      "name": "Export",
+      "jsonName": "export",
+      "protoField": "export",
+      "type": {
+        "kind": "message",
+        "messageType": "Export"
+      },
+      "description": "Export configuration (how to save task output to context).\n Optional - if not set, output is not saved.",
+      "required": false
+    },
+    {
+      "name": "Flow",
+      "jsonName": "flow",
+      "protoField": "flow",
+      "type": {
+        "kind": "message",
+        "messageType": "FlowControl"
+      },
+      "description": "Flow control (which task executes next).\n Optional - if not set, continues to next task in sequence.",
+      "required": false
+    }
+  ]
+}

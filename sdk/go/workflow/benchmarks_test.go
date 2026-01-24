@@ -104,7 +104,7 @@ func BenchmarkWorkflowToProto_SingleTask(b *testing.B) {
 				Name: "waitTask",
 				Kind: TaskKindWait,
 				Config: &WaitTaskConfig{
-					Duration: "5s",
+					Seconds: 5,
 				},
 			},
 		},

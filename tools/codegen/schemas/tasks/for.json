@@ -1,10 +1,21 @@
 {
   "name": "ForTaskConfig",
   "kind": "FOR",
-  "description": "FOR tasks iterate over collections.",
+  "description": "ForTaskConfig defines the configuration for FOR tasks.\n\n FOR tasks iterate over collections, executing tasks for each item.\n\n YAML Example:\n   - taskName:\n       for:\n         each: item\n         in: ${ $data.items }\n       do:\n         - processItem:\n             call: http\n             with:\n               method: POST\n               body:\n                 item: ${ $data.item }\n                 index: ${ $data.index }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 4",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/for.proto",
   "fields": [
+    {
+      "name": "Each",
+      "jsonName": "each",
+      "protoField": "each",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Variable name for each item in the iteration.\n Accessible via ${ $data.item } in expressions.",
+      "required": false,
+      "validation": {}
+    },
     {
       "name": "In",
       "jsonName": "in",
@@ -12,11 +23,9 @@
       "type": {
         "kind": "string"
       },
-      "description": "Collection expression to iterate over",
-      "required": true,
-      "validation": {
-        "required": true
-      }
+      "description": "Expression evaluating to the collection to iterate over.\n Example: \"${ $data.items }\" or \"${ [1, 2, 3] }\"",
+      "required": false,
+      "validation": {}
     },
     {
       "name": "Do",
@@ -25,14 +34,13 @@
       "type": {
         "kind": "array",
         "elementType": {
-          "kind": "struct"
+          "kind": "message",
+          "messageType": "WorkflowTask"
         }
       },
-      "description": "Tasks to execute for each item",
-      "required": true,
-      "validation": {
-        "required": true
-      }
+      "description": "Tasks to execute for each iteration.\n Loop variables available: ${ $data.item }, ${ $data.index }",
+      "required": false,
+      "validation": {}
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "name": "RaiseTaskConfig",
   "kind": "RAISE",
-  "description": "RAISE tasks throw errors in workflows.",
+  "description": "RaiseTaskConfig defines the configuration for RAISE tasks.\n\n RAISE tasks raise errors/exceptions, terminating workflow execution.\n\n YAML Example:\n   - taskName:\n       raise:\n         error: ValidationError\n         message: ${ .errorMessage }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 11",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/raise.proto",
   "fields": [
@@ -12,11 +12,9 @@
       "type": {
         "kind": "string"
       },
-      "description": "Error type/name",
-      "required": true,
-      "validation": {
-        "required": true
-      }
+      "description": "Error type/name.",
+      "required": false,
+      "validation": {}
     },
     {
       "name": "Message",
@@ -25,21 +23,9 @@
       "type": {
         "kind": "string"
       },
-      "description": "Error message",
-      "required": true,
-      "validation": {
-        "required": true
-      }
-    },
-    {
-      "name": "Data",
-      "jsonName": "data",
-      "protoField": "data",
-      "type": {
-        "kind": "struct"
-      },
-      "description": "Additional error data",
-      "required": false
+      "description": "Error message.\n Can contain expressions: \"${ .errorMessage }\"",
+      "required": false,
+      "validation": {}
     }
   ]
 }

@@ -271,8 +271,43 @@ func (g *Generator) loadSchemas() error {
 		}
 	}
 
-	// Load shared types from agent/types/ (authoritative source)
-	// Determine domain from proto namespace, not directory structure
+	// Track loaded types to avoid duplicates
+	loadedTypes := make(map[string]bool)
+	
+	// Load shared types from types/ directory (workflow task types)
+	typesDir := filepath.Join(g.schemaDir, "types")
+	if _, err := os.Stat(typesDir); err == nil {
+		entries, err := os.ReadDir(typesDir)
+		if err != nil {
+			return fmt.Errorf("failed to read types directory: %w", err)
+		}
+
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+				continue
+			}
+
+			path := filepath.Join(typesDir, entry.Name())
+			schema, err := loadTypeSchema(path)
+			if err != nil {
+				return fmt.Errorf("failed to load type %s: %w", entry.Name(), err)
+			}
+
+			// Skip duplicates
+			if loadedTypes[schema.Name] {
+				continue
+			}
+			loadedTypes[schema.Name] = true
+
+			// Extract domain from proto namespace (data-driven, no hard-coding)
+			schema.Domain = extractDomainFromProtoType(schema.ProtoType)
+			fmt.Printf("  Loaded type: %s (domain: %s)\n", schema.Name, schema.Domain)
+
+			g.sharedTypes = append(g.sharedTypes, schema)
+		}
+	}
+
+	// Load shared types from agent/types/ (agent-specific types)
 	agentTypesDir := filepath.Join(g.schemaDir, "agent", "types")
 	if _, err := os.Stat(agentTypesDir); err == nil {
 		entries, err := os.ReadDir(agentTypesDir)
@@ -290,6 +325,12 @@ func (g *Generator) loadSchemas() error {
 			if err != nil {
 				return fmt.Errorf("failed to load type %s: %w", entry.Name(), err)
 			}
+
+			// Skip duplicates
+			if loadedTypes[schema.Name] {
+				continue
+			}
+			loadedTypes[schema.Name] = true
 
 			// Extract domain from proto namespace (data-driven, no hard-coding)
 			schema.Domain = extractDomainFromProtoType(schema.ProtoType)
