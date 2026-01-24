@@ -38,6 +38,14 @@ var file_ai_stigmer_commons_apiresource_field_options_proto_extTypes = []protoim
 		Tag:           "varint,90202,opt,name=immutable",
 		Filename:      "ai/stigmer/commons/apiresource/field_options.proto",
 	},
+	{
+		ExtendedType:  (*descriptorpb.FieldOptions)(nil),
+		ExtensionType: (*bool)(nil),
+		Field:         90203,
+		Name:          "ai.stigmer.commons.apiresource.is_expression",
+		Tag:           "varint,90203,opt,name=is_expression",
+		Filename:      "ai/stigmer/commons/apiresource/field_options.proto",
+	},
 }
 
 // Extension fields to descriptorpb.FieldOptions.
@@ -50,6 +58,10 @@ var (
 	//
 	// optional bool immutable = 90202;
 	E_Immutable = &file_ai_stigmer_commons_apiresource_field_options_proto_extTypes[1]
+	// Marks a field as accepting JQ expressions (enables smart type conversion in SDK)
+	//
+	// optional bool is_expression = 90203;
+	E_IsExpression = &file_ai_stigmer_commons_apiresource_field_options_proto_extTypes[2]
 )
 
 var File_ai_stigmer_commons_apiresource_field_options_proto protoreflect.FileDescriptor
@@ -58,7 +70,8 @@ const file_ai_stigmer_commons_apiresource_field_options_proto_rawDesc = "" +
 	"\n" +
 	"2ai/stigmer/commons/apiresource/field_options.proto\x12\x1eai.stigmer.commons.apiresource\x1a google/protobuf/descriptor.proto:;\n" +
 	"\bcomputed\x12\x1d.google.protobuf.FieldOptions\x18\xd9\xc0\x05 \x01(\bR\bcomputed:=\n" +
-	"\timmutable\x12\x1d.google.protobuf.FieldOptions\x18\xda\xc0\x05 \x01(\bR\timmutableB\x9c\x02\n" +
+	"\timmutable\x12\x1d.google.protobuf.FieldOptions\x18\xda\xc0\x05 \x01(\bR\timmutable:D\n" +
+	"\ris_expression\x12\x1d.google.protobuf.FieldOptions\x18\xdb\xc0\x05 \x01(\bR\fisExpressionB\x9c\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\x11FieldOptionsProtoP\x01ZGgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var file_ai_stigmer_commons_apiresource_field_options_proto_goTypes = []any{
@@ -67,10 +80,11 @@ var file_ai_stigmer_commons_apiresource_field_options_proto_goTypes = []any{
 var file_ai_stigmer_commons_apiresource_field_options_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.commons.apiresource.computed:extendee -> google.protobuf.FieldOptions
 	0, // 1: ai.stigmer.commons.apiresource.immutable:extendee -> google.protobuf.FieldOptions
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	0, // [0:2] is the sub-list for extension extendee
+	0, // 2: ai.stigmer.commons.apiresource.is_expression:extendee -> google.protobuf.FieldOptions
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	0, // [0:3] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
 }
 
@@ -86,7 +100,7 @@ func file_ai_stigmer_commons_apiresource_field_options_proto_init() {
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_commons_apiresource_field_options_proto_rawDesc), len(file_ai_stigmer_commons_apiresource_field_options_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   0,
-			NumExtensions: 2,
+			NumExtensions: 3,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_commons_apiresource_field_options_proto_goTypes,

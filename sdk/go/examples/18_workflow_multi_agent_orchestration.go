@@ -7,6 +7,7 @@ import (
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
+	"github.com/stigmer/stigmer/sdk/go/types"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -149,8 +150,8 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 				"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"),
 				"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER"),
 			},
-			Config: map[string]interface{}{
-				"timeout": 300, // 5 minutes
+			Config: &types.AgentExecutionConfig{
+				Timeout: 300, // 5 minutes
 			},
 		})
 		log.Println("  ✅ Step 2: Security scan agent")
@@ -170,8 +171,8 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 				"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"),
 				"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER"),
 			},
-			Config: map[string]interface{}{
-				"timeout": 300,
+			Config: &types.AgentExecutionConfig{
+				Timeout: 300,
 			},
 		})
 		log.Println("  ✅ Step 3: Code quality review agent")
@@ -189,8 +190,8 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 			Env: map[string]string{
 				"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"),
 			},
-			Config: map[string]interface{}{
-				"timeout": 300,
+			Config: &types.AgentExecutionConfig{
+				Timeout: 300,
 			},
 		})
 		log.Println("  ✅ Step 4: Performance analysis agent")
@@ -224,8 +225,8 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 			Env: map[string]string{
 				"ENVIRONMENT": workflow.RuntimeEnv("DEPLOY_ENV"), // staging/production
 			},
-			Config: map[string]interface{}{
-				"timeout": 180,
+			Config: &types.AgentExecutionConfig{
+				Timeout: 180,
 			},
 		})
 		log.Println("  ✅ Step 6: Generate deployment plan")
@@ -261,8 +262,8 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 				"MONITORING_API_KEY": workflow.RuntimeSecret("MONITORING_API_KEY"),
 				"ENVIRONMENT":        workflow.RuntimeEnv("DEPLOY_ENV"),
 			},
-			Config: map[string]interface{}{
-				"timeout": 600, // 10 minutes for full verification
+			Config: &types.AgentExecutionConfig{
+				Timeout: 600, // 10 minutes for full verification
 			},
 		})
 		log.Println("  ✅ Step 8: Post-deployment verification")

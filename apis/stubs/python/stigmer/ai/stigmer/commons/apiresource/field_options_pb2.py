@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import descriptor_pb2 as google_dot_protobuf_dot_descriptor__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n2ai/stigmer/commons/apiresource/field_options.proto\x12\x1e\x61i.stigmer.commons.apiresource\x1a google/protobuf/descriptor.proto:;\n\x08\x63omputed\x12\x1d.google.protobuf.FieldOptions\x18\xd9\xc0\x05 \x01(\x08R\x08\x63omputed:=\n\timmutable\x12\x1d.google.protobuf.FieldOptions\x18\xda\xc0\x05 \x01(\x08R\timmutableB\xd3\x01\n\"com.ai.stigmer.commons.apiresourceB\x11\x46ieldOptionsProtoP\x01\xa2\x02\x04\x41SCA\xaa\x02\x1e\x41i.Stigmer.Commons.Apiresource\xca\x02\x1e\x41i\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n2ai/stigmer/commons/apiresource/field_options.proto\x12\x1e\x61i.stigmer.commons.apiresource\x1a google/protobuf/descriptor.proto:;\n\x08\x63omputed\x12\x1d.google.protobuf.FieldOptions\x18\xd9\xc0\x05 \x01(\x08R\x08\x63omputed:=\n\timmutable\x12\x1d.google.protobuf.FieldOptions\x18\xda\xc0\x05 \x01(\x08R\timmutable:D\n\ris_expression\x12\x1d.google.protobuf.FieldOptions\x18\xdb\xc0\x05 \x01(\x08R\x0cisExpressionB\xd3\x01\n\"com.ai.stigmer.commons.apiresourceB\x11\x46ieldOptionsProtoP\x01\xa2\x02\x04\x41SCA\xaa\x02\x1e\x41i.Stigmer.Commons.Apiresource\xca\x02\x1e\x41i\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)

@@ -23,7 +23,8 @@
         "kind": "string"
       },
       "description": "Expression evaluating to the collection to iterate over.\n Example: \"${ $data.items }\" or \"${ [1, 2, 3] }\"",
-      "required": false
+      "required": false,
+      "isExpression": true
     },
     {
       "name": "Do",

@@ -145,6 +145,7 @@ import (
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
+	"github.com/stigmer/stigmer/sdk/go/types"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -213,9 +214,9 @@ Be concise and helpful.` + "`" + `,
 			Message: "PR Title: " + fetchPR.Field("title").Expression() + "\n" +
 				"PR Description: " + fetchPR.Field("body").Expression() + "\n" +
 				"Code Changes:\n" + fetchDiff.Field("body").Expression(),
-			Config: map[string]interface{}{
-				"model":   "claude-3-5-sonnet",
-				"timeout": 60,
+			Config: &types.AgentExecutionConfig{
+				Model:   "claude-3-5-sonnet",
+				Timeout: 60,
 			},
 		})
 
