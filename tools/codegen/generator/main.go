@@ -203,11 +203,11 @@ func (g *Generator) getOutputDir(schema *TaskConfigSchema) string {
 	subdomain := extractSubdomainFromProtoFile(schema.ProtoFile)
 
 	if subdomain != "" {
-		// Generate to sdk/go/<subdomain>/ (e.g., sdk/go/agent/, sdk/go/skill/)
-		return filepath.Join("sdk", "go", subdomain)
+		// Generate to sdk/go/gen/<subdomain>/ (e.g., sdk/go/gen/agent/, sdk/go/gen/skill/)
+		return filepath.Join("sdk", "go", "gen", subdomain)
 	}
 
-	// Default: use configured output directory (workflow/gen for tasks)
+	// Default: use configured output directory (gen/workflow for tasks)
 	return g.outputDir
 }
 
@@ -462,10 +462,8 @@ func (g *Generator) generateHelpers() error {
 	fmt.Fprintf(&buf, "\tif s, ok := value.(string); ok {\n")
 	fmt.Fprintf(&buf, "\t\treturn s\n")
 	fmt.Fprintf(&buf, "\t}\n")
-	fmt.Fprintf(&buf, "\t// Handle *Task - convert to task reference expression\n")
-	fmt.Fprintf(&buf, "\tif task, ok := value.(*Task); ok {\n")
-	fmt.Fprintf(&buf, "\t\treturn fmt.Sprintf(\"${ $context[\\\"%%s\\\"] }\", task.Name)\n")
-	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\t// NOTE: *Task handling omitted to avoid circular dependency between gen/workflow and workflow packages.\n")
+	fmt.Fprintf(&buf, "\t// Task-to-expression conversion is handled in the hand-written workflow package helpers.\n")
 	fmt.Fprintf(&buf, "\t// Handle StringRef - use Value() for resolved literals, Expression() for computed\n")
 	fmt.Fprintf(&buf, "\tif sr, ok := value.(interface{ Value() string; Expression() string }); ok {\n")
 	fmt.Fprintf(&buf, "\t\t// Try Value() first (for resolved StringRef from Concat, etc.)\n")
@@ -520,10 +518,8 @@ func (g *Generator) generateHelpersFile(outputDir string) error {
 	fmt.Fprintf(&buf, "\tif s, ok := value.(string); ok {\n")
 	fmt.Fprintf(&buf, "\t\treturn s\n")
 	fmt.Fprintf(&buf, "\t}\n")
-	fmt.Fprintf(&buf, "\t// Handle *Task - convert to task reference expression\n")
-	fmt.Fprintf(&buf, "\tif task, ok := value.(*Task); ok {\n")
-	fmt.Fprintf(&buf, "\t\treturn fmt.Sprintf(\"${ $context[\\\"%%s\\\"] }\", task.Name)\n")
-	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\t// NOTE: *Task handling omitted to avoid circular dependency between gen/workflow and workflow packages.\n")
+	fmt.Fprintf(&buf, "\t// Task-to-expression conversion is handled in the hand-written workflow package helpers.\n")
 	fmt.Fprintf(&buf, "\t// Handle StringRef - use Value() for resolved literals, Expression() for computed\n")
 	fmt.Fprintf(&buf, "\tif sr, ok := value.(interface{ Value() string; Expression() string }); ok {\n")
 	fmt.Fprintf(&buf, "\t\t// Try Value() first (for resolved StringRef from Concat, etc.)\n")
@@ -604,8 +600,8 @@ func (g *Generator) generateTypesForDomain(domain string, types []*TypeSchema) e
 	// Add generated code
 	finalBuf.Write(buf.Bytes()[len("package types\n\n"):])
 
-	// Write to sdk/go/types/ directory
-	typesOutputDir := "sdk/go/types"
+	// Write to sdk/go/gen/types/ directory
+	typesOutputDir := "sdk/go/gen/types"
 	if err := os.MkdirAll(typesOutputDir, 0755); err != nil {
 		return fmt.Errorf("failed to create types directory: %w", err)
 	}
@@ -846,10 +842,10 @@ func (c *genContext) genConfigStruct(w *bytes.Buffer, config *TaskConfigSchema) 
 
 	fmt.Fprintf(w, "}\n\n")
 
-	// Generate isTaskConfig() method only for TaskConfig types (backwards compatibility)
+	// Generate IsTaskConfig() method only for TaskConfig types (exported for cross-package use)
 	if strings.HasSuffix(config.Name, "TaskConfig") {
-		fmt.Fprintf(w, "// isTaskConfig marks %s as a TaskConfig implementation.\n", config.Name)
-		fmt.Fprintf(w, "func (c *%s) isTaskConfig() {}\n\n", config.Name)
+		fmt.Fprintf(w, "// IsTaskConfig marks %s as a TaskConfig implementation.\n", config.Name)
+		fmt.Fprintf(w, "func (c *%s) IsTaskConfig() {}\n\n", config.Name)
 	}
 
 	return nil
@@ -1333,7 +1329,7 @@ func (c *genContext) goType(typeSpec TypeSpec) string {
 		if _, isShared := c.sharedTypes[typeSpec.MessageType]; isShared {
 			// Add types package import if we're not already in types package
 			if c.packageName != "types" {
-				c.addImport("github.com/stigmer/stigmer/sdk/go/types")
+				c.addImport("github.com/stigmer/stigmer/sdk/go/gen/types")
 			}
 			// Reference shared type from types package
 			if c.packageName == "types" {

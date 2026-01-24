@@ -3,7 +3,7 @@ package workflow
 import (
 	"fmt"
 
-	"github.com/stigmer/stigmer/sdk/go/types"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
 // SwitchArgs is an alias for SwitchTaskConfig (Pulumi-style args pattern).

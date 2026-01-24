@@ -1,7 +1,7 @@
 package workflow
 
 import (
-	"github.com/stigmer/stigmer/sdk/go/types"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
 // HttpCallArgs is an alias for HttpCallTaskConfig (Pulumi-style args pattern).
@@ -57,7 +57,7 @@ func HttpCall(name string, args *HttpCallArgs) *Task {
 func HttpGet(name string, uri interface{}, headers map[string]string) *Task {
 	return HttpCall(name, &HttpCallArgs{
 		Method:         "GET",
-		Endpoint:       &types.HttpEndpoint{Uri: coerceToString(uri)},
+		Endpoint:       &types.HttpEndpoint{Uri: CoerceToString(uri)},
 		Headers:        headers,
 		TimeoutSeconds: 30,
 	})
@@ -77,7 +77,7 @@ func HttpGet(name string, uri interface{}, headers map[string]string) *Task {
 func HttpPost(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task {
 	return HttpCall(name, &HttpCallArgs{
 		Method:         "POST",
-		Endpoint:       &types.HttpEndpoint{Uri: coerceToString(uri)},
+		Endpoint:       &types.HttpEndpoint{Uri: CoerceToString(uri)},
 		Headers:        headers,
 		Body:           body,
 		TimeoutSeconds: 30,
@@ -88,7 +88,7 @@ func HttpPost(name string, uri interface{}, headers map[string]string, body map[
 func HttpPut(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task {
 	return HttpCall(name, &HttpCallArgs{
 		Method:         "PUT",
-		Endpoint:       &types.HttpEndpoint{Uri: coerceToString(uri)},
+		Endpoint:       &types.HttpEndpoint{Uri: CoerceToString(uri)},
 		Headers:        headers,
 		Body:           body,
 		TimeoutSeconds: 30,
@@ -99,7 +99,7 @@ func HttpPut(name string, uri interface{}, headers map[string]string, body map[s
 func HttpPatch(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task {
 	return HttpCall(name, &HttpCallArgs{
 		Method:         "PATCH",
-		Endpoint:       &types.HttpEndpoint{Uri: coerceToString(uri)},
+		Endpoint:       &types.HttpEndpoint{Uri: CoerceToString(uri)},
 		Headers:        headers,
 		Body:           body,
 		TimeoutSeconds: 30,
@@ -110,7 +110,7 @@ func HttpPatch(name string, uri interface{}, headers map[string]string, body map
 func HttpDelete(name string, uri interface{}, headers map[string]string) *Task {
 	return HttpCall(name, &HttpCallArgs{
 		Method:         "DELETE",
-		Endpoint:       &types.HttpEndpoint{Uri: coerceToString(uri)},
+		Endpoint:       &types.HttpEndpoint{Uri: CoerceToString(uri)},
 		Headers:        headers,
 		TimeoutSeconds: 30,
 	})

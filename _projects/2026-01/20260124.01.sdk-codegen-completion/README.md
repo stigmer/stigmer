@@ -47,6 +47,11 @@ SDK Go workflow package, code generation tools (proto2schema, generator), TaskFi
 
 **✅ ALL TASKS COMPLETE - Project successfully finished!**
 
+**Post-Completion Improvement** (2026-01-24):
+- Refactored SDK codegen structure to separate generated code into `sdk/go/gen/` directories
+- See: `checkpoints/2026-01-24-gen-structure-refactoring.md`
+- Impact: Clear visual separation of generated vs hand-written code
+
 **Deliverables**:
 1. Automated buf/validate dependency resolution via buf module cache
 2. Type-safe SDK with all options files aligned to generated types

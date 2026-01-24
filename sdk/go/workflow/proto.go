@@ -434,7 +434,7 @@ func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
 
 	// Build endpoint struct
 	if c.Endpoint != nil && c.Endpoint.Uri != nil {
-		uriStr := coerceToString(c.Endpoint.Uri)
+		uriStr := CoerceToString(c.Endpoint.Uri)
 		if uriStr != "" {
 			endpoint := map[string]interface{}{
 				"uri": uriStr,

@@ -1,7 +1,7 @@
 package workflow
 
 import (
-	"github.com/stigmer/stigmer/sdk/go/types"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
 // ForArgs is an alias for ForTaskConfig (Pulumi-style args pattern).
