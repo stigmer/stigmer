@@ -31,57 +31,37 @@ func main() {
 		}
 
 		// Task 1: Fork to execute multiple GitHub API calls in parallel
-		// Note: For inline task definitions in Fork branches, we use map[string]interface{}
-		// This is the current pattern for defining tasks within Fork/Try blocks.
-		// When using raw maps, .Expression() is needed to convert StringRef to JQ expression.
+		// Using type-safe ForkBranch helper for clean, compile-time checked parallel execution
 		_ = wf.Fork("fetchAllGitHubData", &workflow.ForkArgs{
-			Branches: []map[string]interface{}{
-				{
-					"name": "fetchPullRequests",
-					"tasks": []interface{}{
-						map[string]interface{}{
-							"httpCall": map[string]interface{}{
-								"method": "GET",
-								"uri":    apiBase.Concat("/pulls").Expression(), // Raw maps need .Expression()
-								"headers": map[string]string{
-									"Accept":     "application/vnd.github.v3+json",
-									"User-Agent": "Stigmer-SDK-Example",
-								},
-							},
+			Branches: workflow.ForkBranches(
+				workflow.ForkBranch("fetchPullRequests",
+					wf.HttpGet("getPulls",
+						apiBase.Concat("/pulls"),
+						map[string]string{
+							"Accept":     "application/vnd.github.v3+json",
+							"User-Agent": "Stigmer-SDK-Example",
 						},
-					},
-				},
-				{
-					"name": "fetchIssues",
-					"tasks": []interface{}{
-						map[string]interface{}{
-							"httpCall": map[string]interface{}{
-								"method": "GET",
-								"uri":    apiBase.Concat("/issues").Expression(), // Raw maps need .Expression()
-								"headers": map[string]string{
-									"Accept":     "application/vnd.github.v3+json",
-									"User-Agent": "Stigmer-SDK-Example",
-								},
-							},
+					),
+				),
+				workflow.ForkBranch("fetchIssues",
+					wf.HttpGet("getIssues",
+						apiBase.Concat("/issues"),
+						map[string]string{
+							"Accept":     "application/vnd.github.v3+json",
+							"User-Agent": "Stigmer-SDK-Example",
 						},
-					},
-				},
-				{
-					"name": "fetchCommits",
-					"tasks": []interface{}{
-						map[string]interface{}{
-							"httpCall": map[string]interface{}{
-								"method": "GET",
-								"uri":    apiBase.Concat("/commits").Expression(), // Raw maps need .Expression()
-								"headers": map[string]string{
-									"Accept":     "application/vnd.github.v3+json",
-									"User-Agent": "Stigmer-SDK-Example",
-								},
-							},
+					),
+				),
+				workflow.ForkBranch("fetchCommits",
+					wf.HttpGet("getCommits",
+						apiBase.Concat("/commits"),
+						map[string]string{
+							"Accept":     "application/vnd.github.v3+json",
+							"User-Agent": "Stigmer-SDK-Example",
 						},
-					},
-				},
-			},
+					),
+				),
+			),
 		})
 
 		// Task 2: Merge results from all parallel GitHub API calls
