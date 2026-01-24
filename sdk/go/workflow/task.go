@@ -55,7 +55,7 @@ type Task struct {
 
 // TaskConfig is a marker interface for task configurations.
 type TaskConfig interface {
-	isTaskConfig()
+	IsTaskConfig()
 }
 
 // ============================================================================

@@ -1,12 +1,16 @@
 package agent
 
 import (
+	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
+
+// AgentArgs is an alias for the generated AgentArgs from gen/agent
+type AgentArgs = genAgent.AgentArgs
 
 // Context is a minimal interface that represents a stigmer context.
 // This allows the agent package to work with contexts without importing

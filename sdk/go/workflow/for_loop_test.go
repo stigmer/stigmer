@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/types"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
 // =============================================================================
@@ -309,8 +309,8 @@ func TestSmartTypeConversion_ForTaskConfig_String(t *testing.T) {
 		t.Fatal("In field should not be nil")
 	}
 
-	// Verify coerceToString handles it correctly
-	result := coerceToString(config.In)
+	// Verify CoerceToString handles it correctly
+	result := CoerceToString(config.In)
 	if result != "$.data.items" {
 		t.Errorf("Expected '$.data.items', got %q", result)
 	}
@@ -333,8 +333,8 @@ func TestSmartTypeConversion_ForTaskConfig_TaskFieldRef(t *testing.T) {
 		t.Fatal("In field should not be nil")
 	}
 
-	// Verify coerceToString handles it correctly
-	result := coerceToString(config.In)
+	// Verify CoerceToString handles it correctly
+	result := CoerceToString(config.In)
 	expected := `${ $context["fetchTask"].items }`
 	if result != expected {
 		t.Errorf("Expected %q, got %q", expected, result)
@@ -375,8 +375,8 @@ func TestSmartTypeConversion_HttpCallTaskConfig(t *testing.T) {
 				t.Fatal("URI should not be nil")
 			}
 
-			// Verify coerceToString handles conversion correctly
-			result := coerceToString(endpoint.Uri)
+			// Verify CoerceToString handles conversion correctly
+			result := CoerceToString(endpoint.Uri)
 			if result != tt.expected {
 				t.Errorf("Expected %q, got %q", tt.expected, result)
 			}
@@ -523,7 +523,7 @@ func TestLoopBody_NilTasks(t *testing.T) {
 	}
 }
 
-// TestCoerceToString_VariousTypes tests the coerceToString helper with different types.
+// TestCoerceToString_VariousTypes tests the CoerceToString helper with different types.
 func TestCoerceToString_VariousTypes(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -562,7 +562,7 @@ func TestCoerceToString_VariousTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := coerceToString(tt.input)
+			result := CoerceToString(tt.input)
 			if result != tt.expected {
 				t.Errorf("Expected %q, got %q", tt.expected, result)
 			}
@@ -581,10 +581,10 @@ func TestForTaskConfig_NilIn(t *testing.T) {
 		t.Error("In field should be nil")
 	}
 
-	// Verify coerceToString handles nil (though this shouldn't happen in practice)
-	result := coerceToString(config.In)
+	// Verify CoerceToString handles nil (though this shouldn't happen in practice)
+	result := CoerceToString(config.In)
 	if result != "<nil>" {
-		t.Logf("coerceToString(nil) returned: %q", result)
+		t.Logf("CoerceToString(nil) returned: %q", result)
 	}
 }
 
@@ -599,8 +599,8 @@ func TestForTaskConfig_EmptyString(t *testing.T) {
 		t.Error("In field should be empty string")
 	}
 
-	// Verify coerceToString handles empty string
-	result := coerceToString(config.In)
+	// Verify CoerceToString handles empty string
+	result := CoerceToString(config.In)
 	if result != "" {
 		t.Errorf("Expected empty string, got %q", result)
 	}
@@ -652,7 +652,7 @@ func TestForTaskIntegration(t *testing.T) {
 		t.Fatal("In field should not be nil")
 	}
 	expectedIn := `${ $context["fetchItems"].data }`
-	actualIn := coerceToString(forConfig.In)
+	actualIn := CoerceToString(forConfig.In)
 	if actualIn != expectedIn {
 		t.Errorf("Expected in=%q, got %q", expectedIn, actualIn)
 	}
@@ -719,7 +719,7 @@ func TestBackwardCompatibility_ExpressionStillWorks(t *testing.T) {
 
 	// Verify the expression is correct
 	expected := `${ $context["fetchTask"].items }`
-	actual := coerceToString(config.In)
+	actual := CoerceToString(config.In)
 	if actual != expected {
 		t.Errorf("Expected %q, got %q", expected, actual)
 	}
@@ -729,8 +729,8 @@ func TestBackwardCompatibility_ExpressionStillWorks(t *testing.T) {
 		In: taskRef, // New way: without .Expression()
 	}
 
-	result1 := coerceToString(config.In)  // Old way (string)
-	result2 := coerceToString(config2.In) // New way (TaskFieldRef)
+	result1 := CoerceToString(config.In)  // Old way (string)
+	result2 := CoerceToString(config2.In) // New way (TaskFieldRef)
 
 	if result1 != result2 {
 		t.Errorf("Old and new approaches should produce same result. Got %q vs %q", result1, result2)

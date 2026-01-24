@@ -1,7 +1,7 @@
 package workflow
 
 import (
-	"github.com/stigmer/stigmer/sdk/go/types"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
 // TryArgs is an alias for TryTaskConfig (Pulumi-style args pattern).
