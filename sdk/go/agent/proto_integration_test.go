@@ -125,7 +125,7 @@ func TestAgentToProto_WithSkill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
-	
+
 	// Add skill using builder method
 	agent.AddSkill(skillObj)
 
@@ -208,7 +208,7 @@ func TestAgentToProto_MultipleSkills(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
-	
+
 	// Add skills using builder method
 	agent.AddSkills(*skill1, *skill2, *skill3)
 
@@ -238,7 +238,7 @@ func TestAgentToProto_CustomSlug(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
-	
+
 	// Set custom slug directly on agent (builder pattern)
 	agent.Slug = "custom-slug-123"
 

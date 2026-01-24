@@ -27,7 +27,7 @@ func TestAgentToProto_MaximumSkills(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
-	
+
 	// Add skills using builder method
 	agent.AddSkills(skills...)
 
@@ -72,7 +72,7 @@ func TestAgentToProto_MaximumEnvironmentVars(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
-	
+
 	// Add environment variables using builder method
 	agent.AddEnvironmentVariables(envVars...)
 

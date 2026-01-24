@@ -65,19 +65,20 @@ func main() {
 
 		// Task 1: Fetch data from API (clean, one-liner!)
 		// No ExportAll() needed - outputs are always available
-		fetchTask := wf.HttpGet("fetchData", endpoint,
-			workflow.Header("Content-Type", "application/json"),
-			workflow.Timeout(30),
-		)
+		fetchTask := wf.HttpGet("fetchData", endpoint.Expression(), map[string]string{
+			"Content-Type": "application/json",
+		})
 
 		// Task 2: Process response using DIRECT task references
 		// Dependencies are implicit - no ThenRef needed!
 		// Clear origin: title and body come from fetchTask
-		processTask := wf.Set("processResponse",
-			workflow.SetVar("postTitle", fetchTask.Field("title")), // ✅ Clear: from fetchTask!
-			workflow.SetVar("postBody", fetchTask.Field("body")),  // ✅ Clear: from fetchTask!
-			workflow.SetVar("status", "success"),
-		)
+		processTask := wf.Set("processResponse", &workflow.SetArgs{
+			Variables: map[string]string{
+				"postTitle": fetchTask.Field("title").Expression(), // ✅ Clear: from fetchTask!
+				"postBody":  fetchTask.Field("body").Expression(),  // ✅ Clear: from fetchTask!
+				"status":    "success",
+			},
+		})
 
 		// No manual dependency management needed!
 		// processTask automatically depends on fetchTask because it uses fetchTask.Field()

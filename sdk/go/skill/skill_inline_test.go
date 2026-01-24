@@ -1,8 +1,6 @@
 package skill
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 )
 
@@ -79,70 +77,6 @@ func TestNew(t *testing.T) {
 				}
 				if !skill.IsInline {
 					t.Error("New() skill.IsInline = false, want true")
-				}
-			}
-		})
-	}
-}
-
-func TestLoadMarkdownFromFile(t *testing.T) {
-	// Create temporary directory for test files
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test-skill.md")
-
-	// Write test content to file
-	testContent := "# Test Skill\n\nThis is a test skill with markdown content."
-	if err := os.WriteFile(testFile, []byte(testContent), 0644); err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
-
-	tests := []struct {
-		name    string
-		path    string
-		wantErr bool
-	}{
-		{
-			name:    "valid markdown file",
-			path:    testFile,
-			wantErr: false,
-		},
-		{
-			name:    "non-existent file",
-			path:    filepath.Join(tmpDir, "non-existent.md"),
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			content, err := LoadMarkdownFromFile(tt.path)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("LoadMarkdownFromFile() expected error but got none")
-					return
-				}
-			} else {
-				if err != nil {
-					t.Errorf("LoadMarkdownFromFile() unexpected error = %v", err)
-					return
-				}
-
-				// Verify markdown was loaded
-				if content != testContent {
-					t.Errorf("LoadMarkdownFromFile() content = %q, want %q", content, testContent)
-				}
-
-				// Now create a skill with loaded content
-				skill, err := New("test-skill", &SkillArgs{
-					MarkdownContent: content,
-				})
-				if err != nil {
-					t.Errorf("New() with loaded markdown failed: %v", err)
-					return
-				}
-				if skill.MarkdownContent != testContent {
-					t.Errorf("skill.MarkdownContent = %q, want %q", skill.MarkdownContent, testContent)
 				}
 			}
 		})

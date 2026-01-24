@@ -3,8 +3,8 @@ package agent_test
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/agent"
+	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
 
 func TestAgent_NewWithContext(t *testing.T) {
@@ -206,7 +206,7 @@ func TestAgentBuilder_WithOrgStringRef(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWithContext() failed: %v", err)
 	}
-	
+
 	// Set org using direct field access
 	ag.Org = org.Value()
 
@@ -224,7 +224,7 @@ func TestAgentBuilder_WithOrgString(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New() failed: %v", err)
 	}
-	
+
 	// Set org using direct field access
 	ag.Org = "my-org"
 
@@ -248,7 +248,7 @@ func TestAgentBuilder_MixedTypedAndLegacy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWithContext() with mixed types failed: %v", err)
 	}
-	
+
 	// Set org using direct field access
 	ag.Org = "my-org"
 

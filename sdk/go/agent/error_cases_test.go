@@ -249,7 +249,7 @@ func TestNew_InvalidEnvironmentVariables(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
-	
+
 	// Add invalid environment variable using builder method
 	agent.AddEnvironmentVariable(invalidEnv)
 
@@ -275,7 +275,7 @@ func TestAgentToProto_ErrorPropagation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
-	
+
 	// Add skill using builder method
 	agent.AddSkill(skill1)
 
@@ -360,7 +360,7 @@ func TestNew_ExcessiveSkills(t *testing.T) {
 		t.Logf("Agent creation failed with 1000 skills: %v", err)
 		return
 	}
-	
+
 	// Add skills using builder method
 	agent.AddSkills(skills...)
 

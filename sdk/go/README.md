@@ -11,7 +11,6 @@ A Go SDK for defining AI agents and workflows for the Stigmer platform.
 - **Agents & Workflows**: Define both AI agents and workflow orchestrations
 - **Struct-based Args**: Pulumi-style configuration with excellent IDE support (v0.2.0+)
 - **Proto-agnostic SDK**: Pure Go library with no proto dependencies
-- **File-based content**: Load instructions and skills from markdown files
 - **Inline resources**: Define skills and sub-agents directly in your repository
 - **Type-safe**: Leverage Go's type system for compile-time safety
 - **Well-tested**: Comprehensive unit and integration tests
@@ -61,8 +60,8 @@ agent.New(ctx,
 // NEW (v0.2.0+): Struct args
 agent.New(ctx, "my-agent", &agent.AgentArgs{
     Instructions: "...",
-    Skills:       []*skill.Skill{skill},
 })
+agent.AddSkill(skill)
 ```
 
 ## Quick Start
@@ -82,10 +81,10 @@ import (
 
 func main() {
     err := stigmer.Run(func(ctx *stigmer.Context) error {
-        // Create inline skill from markdown file
+        // Create inline skill with markdown content
         securitySkill, err := skill.New("security-guidelines", &skill.SkillArgs{
-            Description: "Security review guidelines",
-            Markdown:    skill.LoadMarkdownFromFile("skills/security.md"),
+            Description:     "Security review guidelines",
+            MarkdownContent: "# Security Guidelines\n\nCheck for SQL injection, XSS...",
         })
         if err != nil {
             return err
@@ -104,15 +103,17 @@ func main() {
 
         // Create agent with struct-based args (v0.2.0+)
         myAgent, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
-            Instructions: agent.LoadInstructionsFromFile("instructions/reviewer.md"),
+            Instructions: "Review code for security, performance, and best practices.",
             Description:  "AI code reviewer with security expertise",
-            IconURL:      "https://example.com/icon.png",
-            Skills:       []*skill.Skill{securitySkill},
-            MCPServers:   []*mcpserver.MCPServer{githubMCP},
+            IconUrl:      "https://example.com/icon.png",
         })
         if err != nil {
             return err
         }
+        
+        // Add skills and MCP servers using builder methods
+        myAgent.AddSkill(*securitySkill)
+        myAgent.AddMCPServer(githubMCP)
         
         fmt.Printf("Agent created: %s\n", myAgent.Name)
         

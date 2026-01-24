@@ -1,8 +1,6 @@
 package agent
 
 import (
-	"os"
-
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/skill"
@@ -158,32 +156,6 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 	}
 
 	return a, nil
-}
-
-// ============================================================================
-// Ergonomic Helpers - Convenience functions for loading content
-// ============================================================================
-
-// LoadInstructionsFromFile loads agent instructions from a file.
-//
-// This is a convenience helper for loading instructions when creating AgentArgs.
-// The file content must be between 10 and 10,000 characters.
-//
-// Example:
-//
-//	instructions, err := agent.LoadInstructionsFromFile("instructions/code-reviewer.md")
-//	if err != nil {
-//	    return err
-//	}
-//	agent.New(ctx, "code-reviewer", &gen.AgentArgs{
-//	    Instructions: instructions,
-//	})
-func LoadInstructionsFromFile(path string) (string, error) {
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-	return string(content), nil
 }
 
 // ============================================================================
