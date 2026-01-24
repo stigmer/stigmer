@@ -1,0 +1,48 @@
+{
+  "name": "ApiResourceReference",
+  "description": "Generic reference to any API resource by scope, org, and name.\n Used across resources to reference other resources (e.g., Environment, Agent, etc.)",
+  "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+  "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+  "fields": [
+    {
+      "name": "Scope",
+      "jsonName": "scope",
+      "protoField": "scope",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Owner scope of the referenced resource",
+      "required": false
+    },
+    {
+      "name": "Org",
+      "jsonName": "org",
+      "protoField": "org",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Organization ID (required if scope = organization)",
+      "required": false
+    },
+    {
+      "name": "Kind",
+      "jsonName": "kind",
+      "protoField": "kind",
+      "type": {
+        "kind": "string"
+      },
+      "description": "",
+      "required": false
+    },
+    {
+      "name": "Slug",
+      "jsonName": "slug",
+      "protoField": "slug",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Resource slug (user-friendly name, not ID)",
+      "required": false
+    }
+  ]
+}

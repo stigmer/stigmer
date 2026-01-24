@@ -33,16 +33,16 @@ func main() {
 		// Task 1: Try to fetch pull request with error handling
 		tryTask := wf.Try("attemptGitHubCall", &workflow.TryArgs{
 			Tasks: []map[string]interface{}{
-					{
-						"httpCall": map[string]interface{}{
-							"method": "GET",
-							"uri":    apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1"),
-							"headers": map[string]string{
-								"Accept":     "application/vnd.github.v3+json",
-								"User-Agent": "Stigmer-SDK-Example",
-							},
+				{
+					"httpCall": map[string]interface{}{
+						"method": "GET",
+						"uri":    apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1"),
+						"headers": map[string]string{
+							"Accept":     "application/vnd.github.v3+json",
+							"User-Agent": "Stigmer-SDK-Example",
 						},
 					},
+				},
 			},
 			Catch: []map[string]interface{}{
 				{
@@ -61,39 +61,39 @@ func main() {
 			},
 		})
 
-	// Task 2: Check if retry is needed
-	success := tryTask.Field("success")
-	wf.Switch("checkRetry", &workflow.SwitchArgs{
-		Cases: []map[string]interface{}{
-			{
-				"condition": success.Expression() + " == true",
-				"then":      "processSuccess",
+		// Task 2: Check if retry is needed
+		success := tryTask.Field("success")
+		wf.Switch("checkRetry", &workflow.SwitchArgs{
+			Cases: []map[string]interface{}{
+				{
+					"condition": success.Expression() + " == true",
+					"then":      "processSuccess",
+				},
+				{
+					"condition": success.Expression() + " == false",
+					"then":      "logFailure",
+				},
 			},
-			{
-				"condition": success.Expression() + " == false",
-				"then":      "logFailure",
+		})
+
+		// Task 3a: Process successful result from GitHub API
+		// Note: Map values require .Expression() (smart conversion only works for top-level fields)
+		wf.Set("processSuccess", &workflow.SetArgs{
+			Variables: map[string]string{
+				"pr_title":  tryTask.Field("title").Expression(),
+				"pr_state":  tryTask.Field("state").Expression(),
+				"pr_author": tryTask.Field("user.login").Expression(),
+				"status":    "completed",
 			},
-		},
-	})
+		})
 
-	// Task 3a: Process successful result from GitHub API
-	// Note: Map values require .Expression() (smart conversion only works for top-level fields)
-	wf.Set("processSuccess", &workflow.SetArgs{
-		Variables: map[string]string{
-			"pr_title":  tryTask.Field("title").Expression(),
-			"pr_state":  tryTask.Field("state").Expression(),
-			"pr_author": tryTask.Field("user.login").Expression(),
-			"status":    "completed",
-		},
-	})
-
-	// Task 3b: Log failure
-	wf.Set("logFailure", &workflow.SetArgs{
-		Variables: map[string]string{
-			"status": "failed",
-			"reason": tryTask.Field("error").Expression(),
-		},
-	})
+		// Task 3b: Log failure
+		wf.Set("logFailure", &workflow.SetArgs{
+			Variables: map[string]string{
+				"status": "failed",
+				"reason": tryTask.Field("error").Expression(),
+			},
+		})
 
 		log.Printf("Created workflow with error handling: %s", wf)
 		log.Println("\nNote: This example demonstrates error handling with real GitHub API")

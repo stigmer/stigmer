@@ -1,0 +1,32 @@
+{
+  "name": "ForkBranch",
+  "description": "ForkBranch defines a single branch in parallel execution.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ForkBranch",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/fork.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Branch name/identifier.",
+      "required": false
+    },
+    {
+      "name": "Do",
+      "jsonName": "do",
+      "protoField": "do",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "WorkflowTask"
+        }
+      },
+      "description": "Tasks to execute in this branch.",
+      "required": false
+    }
+  ]
+}
