@@ -1173,41 +1173,15 @@ a = Analysis(
 )
 ```
 
-**4. Create test script** (`test_multipart_import.py`):
-```python
-#!/usr/bin/env python3
-"""Test script to verify multipart imports work correctly."""
-
-def test_multipart_imports():
-    try:
-        import multipart
-        from multipart import MultipartSegment
-        from multipart import PushMultipartParser
-        from multipart import parse_options_header
-        from daytona._async import filesystem
-        print("✅ All multipart imports successful!")
-        return True
-    except ImportError as e:
-        print(f"❌ Import failed: {e}")
-        return False
-
-if __name__ == "__main__":
-    import sys
-    success = test_multipart_imports()
-    sys.exit(0 if success else 1)
-```
-
 **Pattern for any single-file module**:
 1. Identify if dependency is single-file module (one `.py` file, not a package with `__init__.py`)
 2. Add explicit hidden import in spec file
 3. Create custom hook if PyInstaller warnings persist
-4. Test imports work in bundled binary
 
 **Prevention**:
 1. Check PyInstaller warnings for "missing module named X.Y" (false positives for single-file modules)
 2. Test binary startup immediately after rebuilding
-3. Use test scripts to validate critical imports
-4. Document all custom hooks with clear comments
+3. Document all custom hooks with clear comments
 
 **Related Docs**: 
 - Checkpoint: `_projects/2026-01/20260121.03.agent-runner-standalone-binary/checkpoints/2026-01-21-multipart-import-fix.md`

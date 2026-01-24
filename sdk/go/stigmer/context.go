@@ -25,10 +25,10 @@ import (
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
 //	    apiURL := ctx.SetString("apiURL", "https://api.example.com")
-//	    
+//
 //	    wf, _ := workflow.New(ctx, ...)
 //	    ag, _ := agent.New(ctx, ...)
-//	    
+//
 //	    return nil
 //	})
 type Context struct {
@@ -398,7 +398,7 @@ func (c *Context) isSkillRegistered(s *skill.Skill) bool {
 // and records dependencies.
 func (c *Context) trackWorkflowAgentDependencies(workflowID string, wf *workflow.Workflow) {
 	// Note: caller must hold c.mu.Lock()
-	
+
 	// Scan all tasks for agent_call task type
 	for _, task := range wf.Tasks {
 		if task.Kind == workflow.TaskKindAgentCall {
@@ -634,7 +634,7 @@ func (c *Context) synthesizeDependencies(outputDir string) error {
 //	func main() {
 //	    err := stigmer.Run(func(ctx *stigmer.Context) error {
 //	        apiURL := ctx.SetString("apiURL", "https://api.example.com")
-//	        
+//
 //	        wf, err := workflow.New(ctx,
 //	            workflow.WithName("data-pipeline"),
 //	            workflow.WithNamespace("my-org"),
@@ -642,11 +642,11 @@ func (c *Context) synthesizeDependencies(outputDir string) error {
 //	        if err != nil {
 //	            return err
 //	        }
-//	        
+//
 //	        task, _ := wf.AddHTTPTask(
 //	            workflow.WithURI(apiURL.Append("/users")),
 //	        )
-//	        
+//
 //	        return nil
 //	    })
 //	    if err != nil {
