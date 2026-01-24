@@ -24,38 +24,42 @@ import (
 func main() {
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Context for configuration
-		apiBase := ctx.SetString("apiBase", "https://api.example.com")
+		apiBase := ctx.SetString("apiBase", "https://api.github.com")
 
 		// Create workflow
 		wf, err := workflow.New(ctx,
 			workflow.WithNamespace("deployments"),
 			workflow.WithName("conditional-deployment"),
 			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Deploy based on environment conditions"),
+			workflow.WithDescription("Deploy based on pull request status from GitHub"),
 		)
 		if err != nil {
 			return err
 		}
 
-		// Task 1: Check deployment environment
-		checkTask := wf.HttpGet("checkEnvironment",
-			apiBase.Concat("/status").Expression(),
-			nil, // No custom headers
+		// Task 1: Check pull request status from hello-stigmer repository
+		checkTask := wf.HttpGet("checkPullRequest",
+			apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1").Expression(),
+			map[string]string{
+				"Accept":     "application/vnd.github.v3+json",
+				"User-Agent": "Stigmer-SDK-Example",
+			},
 		)
 
-		// Task 2: Switch based on status code
+		// Task 2: Switch based on PR state and mergeable status
 		// Using the new fluent API for building conditions
-		statusCode := checkTask.Field("statusCode")
-		switchTask := wf.Switch("routeByStatus", &workflow.SwitchArgs{
+		state := checkTask.Field("state")
+		mergeable := checkTask.Field("mergeable")
+		switchTask := wf.Switch("deploymentDecision", &workflow.SwitchArgs{
 			Cases: []*types.SwitchCase{
 				{
 					Name: "production",
-					When: statusCode.Equals(200), // ✅ Fluent API - Clear and type-safe!
+					When: state.Equals("closed"), // ✅ Fluent API - PR is merged/closed
 					Then: "deployProduction",
 				},
 				{
 					Name: "staging",
-					When: statusCode.Equals(202), // Much better than string concatenation!
+					When: state.Equals("open"), // PR is still open
 					Then: "deployStaging",
 				},
 				{
@@ -66,19 +70,23 @@ func main() {
 			},
 		})
 
-		// Task 3a: Production deployment
+		// Task 3a: Production deployment (PR is closed/merged)
 		wf.Set("deployProduction", &workflow.SetArgs{
 			Variables: map[string]string{
 				"environment": "production",
 				"replicas":    "5",
+				"pr_title":    checkTask.Field("title").Expression(),
+				"pr_merged":   checkTask.Field("merged").Expression(),
 			},
 		}).DependsOn(switchTask)
 
-		// Task 3b: Staging deployment
+		// Task 3b: Staging deployment (PR is open)
 		wf.Set("deployStaging", &workflow.SetArgs{
 			Variables: map[string]string{
 				"environment": "staging",
 				"replicas":    "2",
+				"pr_title":    checkTask.Field("title").Expression(),
+				"pr_state":    checkTask.Field("state").Expression(),
 			},
 		}).DependsOn(switchTask)
 
@@ -86,7 +94,7 @@ func main() {
 		wf.Set("handleError", &workflow.SetArgs{
 			Variables: map[string]string{
 				"status": "failed",
-				"reason": "Invalid status code",
+				"reason": "Unable to determine deployment status",
 			},
 		}).DependsOn(switchTask)
 
@@ -95,71 +103,77 @@ func main() {
 		// ============================================================================
 
 		// Example 2: Numeric comparisons
-		// Fetch some metrics
-		metricsTask := wf.HttpGet("fetchMetrics",
-			apiBase.Concat("/metrics").Expression(),
-			nil,
+		// Fetch repository statistics from GitHub
+		metricsTask := wf.HttpGet("fetchRepoStats",
+			apiBase.Concat("/repos/stigmer/hello-stigmer").Expression(),
+			map[string]string{
+				"Accept":     "application/vnd.github.v3+json",
+				"User-Agent": "Stigmer-SDK-Example",
+			},
 		)
 
-		// Use GreaterThan, LessThan for numeric comparisons
-		errorRate := metricsTask.Field("errorRate")
-		latency := metricsTask.Field("latency")
+		// Use GreaterThan for numeric comparisons on real GitHub data
+		openIssues := metricsTask.Field("open_issues_count")
+		stargazers := metricsTask.Field("stargazers_count")
 
-		wf.Switch("checkHealthMetrics", &workflow.SwitchArgs{
+		wf.Switch("checkRepoHealth", &workflow.SwitchArgs{
 			Cases: []*types.SwitchCase{
 				{
-					Name: "critical",
+					Name: "needsAttention",
 					// ✅ Clean numeric comparison - much better than string concatenation!
-					When: errorRate.GreaterThan(0.1), // Error rate > 10%
+					When: openIssues.GreaterThan(10), // Too many open issues
 					Then: "alertCritical",
 				},
 				{
-					Name: "degraded",
-					// ✅ Shows LessThanOrEqual
-					When: latency.GreaterThanOrEqual(500), // Latency >= 500ms
+					Name: "popular",
+					// ✅ Shows GreaterThanOrEqual
+					When: stargazers.GreaterThanOrEqual(100), // Popular repo
 					Then: "alertWarning",
 				},
 				{
 					Name: "healthy",
-					// Default case - all metrics good
+					// Default case - repo is healthy
 					Then: "continueNormal",
 				},
 			},
 		})
 
 		// Example 3: String operations
-		// Fetch deployment status message
-		statusTask := wf.HttpGet("fetchStatus",
-			apiBase.Concat("/deployment/status").Expression(),
-			nil,
+		// Fetch pull request for string matching demonstrations
+		statusTask := wf.HttpGet("fetchPRForStringMatch",
+			apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1").Expression(),
+			map[string]string{
+				"Accept":     "application/vnd.github.v3+json",
+				"User-Agent": "Stigmer-SDK-Example",
+			},
 		)
 
-		// Use Contains, StartsWith for string matching
-		message := statusTask.Field("message")
-		deploymentType := statusTask.Field("type")
+		// Use Contains, StartsWith for string matching on PR title and body
+		prTitle := statusTask.Field("title")
+		prBody := statusTask.Field("body")
 
-		wf.Switch("routeByMessage", &workflow.SwitchArgs{
+		wf.Switch("routeByPRContent", &workflow.SwitchArgs{
 			Cases: []*types.SwitchCase{
 				{
-					Name: "errorDetected",
+					Name: "bugFix",
 					// ✅ String matching with Contains - no manual JQ syntax!
-					When: message.Contains("error"),
+					When: prTitle.Contains("fix"),
 					Then: "handleDeploymentError",
 				},
 				{
-					Name: "rollbackNeeded",
+					Name: "feature",
 					// ✅ String prefix matching
-					When: message.StartsWith("ROLLBACK:"),
+					When: prTitle.StartsWith("feat:"),
 					Then: "initiateRollback",
 				},
 				{
-					Name: "successMessage",
-					// ✅ String suffix matching
-					When: message.EndsWith("completed successfully"),
+					Name: "hotfix",
+					// ✅ String matching in body
+					When: prBody.Contains("urgent"),
 					Then: "markSuccess",
 				},
 				{
-					Name: "unknownStatus",
+					Name: "regularPR",
 					// Default case
 					Then: "investigateStatus",
 				},
@@ -199,8 +213,10 @@ func main() {
 
 	log.Println("✅ Workflow with conditionals created successfully!")
 	log.Println("   Demonstrated helper methods:")
-	log.Println("   - Equals() for exact matching")
-	log.Println("   - GreaterThan() and GreaterThanOrEqual() for numeric comparisons")
-	log.Println("   - Contains(), StartsWith(), EndsWith() for string operations")
+	log.Println("   - Equals() for exact matching (PR state)")
+	log.Println("   - GreaterThan() and GreaterThanOrEqual() for numeric comparisons (issues, stars)")
+	log.Println("   - Contains(), StartsWith() for string operations (PR title/body)")
 	log.Println("   All without error-prone string concatenation!")
+	log.Println("\nNote: This example uses real GitHub API data from stigmer/hello-stigmer")
+	log.Println("      No authentication required - works as an E2E test!")
 }

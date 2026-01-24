@@ -16,7 +16,7 @@ import (
 func main() {
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Context for configuration
-		apiBase := ctx.SetString("apiBase", "https://api.example.com")
+		apiBase := ctx.SetString("apiBase", "https://api.github.com")
 		_ = ctx.SetInt("maxRetries", 3) // Define max retries in context
 
 		// Create workflow
@@ -24,19 +24,23 @@ func main() {
 			workflow.WithNamespace("resilient-workflows"),
 			workflow.WithName("resilient-api-call"),
 			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Make API calls with error handling and retries"),
+			workflow.WithDescription("Make GitHub API calls with error handling and retries"),
 		)
 		if err != nil {
 			return err
 		}
 
-		// Task 1: Try to make API call with error handling
-		tryTask := wf.Try("attemptAPICall", &workflow.TryArgs{
+		// Task 1: Try to fetch pull request with error handling
+		tryTask := wf.Try("attemptGitHubCall", &workflow.TryArgs{
 			Tasks: []map[string]interface{}{
 				{
 					"httpCall": map[string]interface{}{
 						"method": "GET",
-						"uri":    apiBase.Concat("/data").Expression(),
+						"uri":    apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1").Expression(),
+						"headers": map[string]string{
+							"Accept":     "application/vnd.github.v3+json",
+							"User-Agent": "Stigmer-SDK-Example",
+						},
 					},
 				},
 			},
@@ -72,11 +76,13 @@ func main() {
 			},
 		})
 
-		// Task 3a: Process successful result
+		// Task 3a: Process successful result from GitHub API
 		wf.Set("processSuccess", &workflow.SetArgs{
 			Variables: map[string]string{
-				"result": tryTask.Field("data").Expression(),
-				"status": "completed",
+				"pr_title":  tryTask.Field("title").Expression(),
+				"pr_state":  tryTask.Field("state").Expression(),
+				"pr_author": tryTask.Field("user.login").Expression(),
+				"status":    "completed",
 			},
 		})
 
@@ -89,6 +95,9 @@ func main() {
 		})
 
 		log.Printf("Created workflow with error handling: %s", wf)
+		log.Println("\nNote: This example demonstrates error handling with real GitHub API")
+		log.Println("      Try/catch handles network errors, 404s, and timeouts")
+		log.Println("      No authentication required - works as an E2E test!")
 		return nil
 	})
 
@@ -97,4 +106,5 @@ func main() {
 	}
 
 	log.Println("✅ Workflow with error handling created successfully!")
+	log.Println("   Demonstrates resilient API calls with try/catch blocks")
 }

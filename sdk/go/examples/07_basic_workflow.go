@@ -31,7 +31,7 @@ func main() {
 	// Use stigmer.Run() for automatic context and synthesis management
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Context: ONLY for shared configuration (like Pulumi's Config)
-		apiBase := ctx.SetString("apiBase", "https://jsonplaceholder.typicode.com")
+		apiBase := ctx.SetString("apiBase", "https://api.github.com")
 		orgName := ctx.SetString("org", "my-org")
 
 		// Create environment variable for API token
@@ -52,7 +52,7 @@ func main() {
 
 			// Optional fields
 			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Fetch data from an external API using Pulumi-aligned patterns"),
+			workflow.WithDescription("Fetch pull request data from GitHub API using Pulumi-aligned patterns"),
 			workflow.WithOrg(orgName), // Use context config
 			workflow.WithEnvironmentVariable(apiToken),
 		)
@@ -60,23 +60,27 @@ func main() {
 			return err
 		}
 
-		// Task 1: Fetch data from API (clean, one-liner!)
+		// Task 1: Fetch pull request from GitHub API (clean, one-liner!)
 		// No ExportAll() needed - outputs are always available  
 		// Using Interpolate for dynamic URL construction
-		fetchTask := wf.HttpGet("fetchData", 
-			workflow.Interpolate(apiBase, "/posts/1"),
+		// Using public hello-stigmer repository - no auth required
+		fetchTask := wf.HttpGet("fetchPullRequest", 
+			workflow.Interpolate(apiBase, "/repos/stigmer/hello-stigmer/pulls/1"),
 			map[string]string{
-				"Content-Type": "application/json",
+				"Accept":     "application/vnd.github.v3+json",
+				"User-Agent": "Stigmer-SDK-Example",
 			})
 
 		// Task 2: Process response using DIRECT task references
 		// Dependencies are implicit - no ThenRef needed!
-		// Clear origin: title and body come from fetchTask
+		// Clear origin: title, body, state, and author come from fetchTask
 		processTask := wf.Set("processResponse", &workflow.SetArgs{
 			Variables: map[string]string{
-				"postTitle": fetchTask.Field("title").Expression(), // ✅ Clear: from fetchTask!
-				"postBody":  fetchTask.Field("body").Expression(),  // ✅ Clear: from fetchTask!
-				"status":    "success",
+				"prTitle":  fetchTask.Field("title").Expression(),      // ✅ Clear: PR title from fetchTask!
+				"prBody":   fetchTask.Field("body").Expression(),       // ✅ Clear: PR description from fetchTask!
+				"prState":  fetchTask.Field("state").Expression(),      // ✅ PR state (open/closed)
+				"prAuthor": fetchTask.Field("user.login").Expression(), // ✅ GitHub username
+				"status":   "success",
 			},
 		})
 
@@ -85,9 +89,11 @@ func main() {
 
 		log.Printf("Created workflow: %s", wf)
 		log.Printf("Tasks: %d", len(wf.Tasks))
-		log.Printf("  - %s (HTTP GET)", fetchTask.Name)
+		log.Printf("  - %s (HTTP GET from GitHub API)", fetchTask.Name)
 		log.Printf("  - %s (depends on %s implicitly)", processTask.Name, fetchTask.Name)
 		log.Println("Workflow will be synthesized automatically on completion")
+		log.Println("\nNote: This example uses the public stigmer/hello-stigmer repository")
+		log.Println("      No authentication required - works as an E2E test!")
 		return nil
 	})
 

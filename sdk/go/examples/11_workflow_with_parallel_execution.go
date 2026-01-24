@@ -16,7 +16,7 @@ import (
 func main() {
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Context for configuration
-		apiBase := ctx.SetString("apiBase", "https://api.example.com")
+		apiBase := ctx.SetString("apiBase", "https://api.github.com/repos/stigmer/hello-stigmer")
 		_ = ctx.SetInt("timeout", 60) // Define timeout in context
 
 		// Create workflow
@@ -24,44 +24,56 @@ func main() {
 			workflow.WithNamespace("parallel-processing"),
 			workflow.WithName("parallel-data-fetch"),
 			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Fetch data from multiple sources in parallel"),
+			workflow.WithDescription("Fetch GitHub data from multiple endpoints in parallel"),
 		)
 		if err != nil {
 			return err
 		}
 
-		// Task 1: Fork to execute multiple tasks in parallel
-		_ = wf.Fork("fetchAllData", &workflow.ForkArgs{
+		// Task 1: Fork to execute multiple GitHub API calls in parallel
+		_ = wf.Fork("fetchAllGitHubData", &workflow.ForkArgs{
 			Branches: []map[string]interface{}{
 				{
-					"name": "fetchUsers",
+					"name": "fetchPullRequests",
 					"tasks": []interface{}{
 						map[string]interface{}{
 							"httpCall": map[string]interface{}{
 								"method": "GET",
-								"uri":    apiBase.Concat("/users").Expression(),
+								"uri":    apiBase.Concat("/pulls").Expression(),
+								"headers": map[string]string{
+									"Accept":     "application/vnd.github.v3+json",
+									"User-Agent": "Stigmer-SDK-Example",
+								},
 							},
 						},
 					},
 				},
 				{
-					"name": "fetchProducts",
+					"name": "fetchIssues",
 					"tasks": []interface{}{
 						map[string]interface{}{
 							"httpCall": map[string]interface{}{
 								"method": "GET",
-								"uri":    apiBase.Concat("/products").Expression(),
+								"uri":    apiBase.Concat("/issues").Expression(),
+								"headers": map[string]string{
+									"Accept":     "application/vnd.github.v3+json",
+									"User-Agent": "Stigmer-SDK-Example",
+								},
 							},
 						},
 					},
 				},
 				{
-					"name": "fetchOrders",
+					"name": "fetchCommits",
 					"tasks": []interface{}{
 						map[string]interface{}{
 							"httpCall": map[string]interface{}{
 								"method": "GET",
-								"uri":    apiBase.Concat("/orders").Expression(),
+								"uri":    apiBase.Concat("/commits").Expression(),
+								"headers": map[string]string{
+									"Accept":     "application/vnd.github.v3+json",
+									"User-Agent": "Stigmer-SDK-Example",
+								},
 							},
 						},
 					},
@@ -69,25 +81,29 @@ func main() {
 			},
 		})
 
-		// Task 2: Merge results from all parallel branches
+		// Task 2: Merge results from all parallel GitHub API calls
 		wf.Set("mergeResults", &workflow.SetArgs{
 			Variables: map[string]string{
-				"users":    "${ $context[\"fetchAllData\"].branches.fetchUsers.data }",
-				"products": "${ $context[\"fetchAllData\"].branches.fetchProducts.data }",
-				"orders":   "${ $context[\"fetchAllData\"].branches.fetchOrders.data }",
-				"status":   "merged",
+				"pulls":   "${ $context[\"fetchAllGitHubData\"].branches.fetchPullRequests.data }",
+				"issues":  "${ $context[\"fetchAllGitHubData\"].branches.fetchIssues.data }",
+				"commits": "${ $context[\"fetchAllGitHubData\"].branches.fetchCommits.data }",
+				"status":  "merged",
 			},
 		})
 
-		// Task 3: Process merged data
+		// Task 3: Process merged GitHub data
 		wf.Set("processMerged", &workflow.SetArgs{
 			Variables: map[string]string{
-				"totalRecords": "${users.length + products.length + orders.length}",
+				"totalRecords": "${pulls.length + issues.length + commits.length}",
 				"completedAt":  "${now()}",
+				"repository":   "stigmer/hello-stigmer",
 			},
 		})
 
 		log.Printf("Created workflow with parallel execution: %s", wf)
+		log.Println("\nNote: This example fetches PRs, issues, and commits in parallel")
+		log.Println("      from the stigmer/hello-stigmer repository")
+		log.Println("      No authentication required - works as an E2E test!")
 		return nil
 	})
 
@@ -96,4 +112,5 @@ func main() {
 	}
 
 	log.Println("✅ Workflow with parallel execution created successfully!")
+	log.Println("   Demonstrates real-world parallel API calls to GitHub")
 }
