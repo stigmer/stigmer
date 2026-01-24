@@ -52,13 +52,14 @@ type TypeSchema struct {
 
 // FieldSchema represents a field in a config or type
 type FieldSchema struct {
-	Name        string      `json:"name"`
-	JsonName    string      `json:"jsonName"`
-	ProtoField  string      `json:"protoField"`
-	Type        TypeSpec    `json:"type"`
-	Description string      `json:"description"`
-	Required    bool        `json:"required"`
-	Validation  *Validation `json:"validation,omitempty"`
+	Name         string      `json:"name"`
+	JsonName     string      `json:"jsonName"`
+	ProtoField   string      `json:"protoField"`
+	Type         TypeSpec    `json:"type"`
+	Description  string      `json:"description"`
+	Required     bool        `json:"required"`
+	IsExpression bool        `json:"isExpression,omitempty"`
+	Validation   *Validation `json:"validation,omitempty"`
 }
 
 // TypeSpec describes the type of a field
@@ -807,6 +808,12 @@ func (c *genContext) genConfigStruct(w *bytes.Buffer, config *TaskConfigSchema) 
 
 		// Field declaration
 		goType := c.goType(field.Type)
+		
+		// Use interface{} for expression fields (smart type conversion)
+		if field.IsExpression && field.Type.Kind == "string" {
+			goType = "interface{}"
+		}
+		
 		jsonTag := fmt.Sprintf("`json:\"%s,omitempty\"`", field.JsonName)
 		fmt.Fprintf(w, "\t%s %s %s\n", field.Name, goType, jsonTag)
 	}
@@ -841,6 +848,12 @@ func (c *genContext) genTypeStruct(w *bytes.Buffer, typeSchema *TypeSchema) erro
 
 		// Field declaration
 		goType := c.goType(field.Type)
+		
+		// Use interface{} for expression fields (smart type conversion)
+		if field.IsExpression && field.Type.Kind == "string" {
+			goType = "interface{}"
+		}
+		
 		jsonTag := fmt.Sprintf("`json:\"%s,omitempty\"`", field.JsonName)
 		fmt.Fprintf(w, "\t%s %s %s\n", field.Name, goType, jsonTag)
 	}
@@ -953,12 +966,22 @@ func (c *genContext) genToProtoMethod(w *bytes.Buffer, config *TaskConfigSchema)
 
 	// Marshal each field
 	for _, field := range config.Fields {
+		// Determine if we need smart conversion for expression fields
+		needsConversion := field.IsExpression && field.Type.Kind == "string"
+		valueExpr := "c." + field.Name
+		if needsConversion {
+			valueExpr = "coerceToString(c." + field.Name + ")"
+		}
+		
 		if field.Required {
-			fmt.Fprintf(w, "\tdata[\"%s\"] = c.%s\n", field.JsonName, field.Name)
+			fmt.Fprintf(w, "\tdata[\"%s\"] = %s\n", field.JsonName, valueExpr)
 		} else {
 			// Optional field - only include if not zero value
 			fmt.Fprintf(w, "\tif !isEmpty(c.%s) {\n", field.Name)
-			fmt.Fprintf(w, "\t\tdata[\"%s\"] = c.%s\n", field.JsonName, field.Name)
+			if needsConversion {
+				fmt.Fprintf(w, "\t\t// Smart conversion: accepts string or TaskFieldRef\n")
+			}
+			fmt.Fprintf(w, "\t\tdata[\"%s\"] = %s\n", field.JsonName, valueExpr)
 			fmt.Fprintf(w, "\t}\n")
 		}
 	}
@@ -1040,7 +1063,12 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 		fmt.Fprintf(w, "\t\tc.%s = val.GetStructValue().AsMap()\n", field.Name)
 
 	case "message":
-		fmt.Fprintf(w, "\t\tc.%s = &%s{}\n", field.Name, field.Type.MessageType)
+		// Check if this is a shared type that needs types. prefix
+		typeName := field.Type.MessageType
+		if _, isShared := c.sharedTypes[typeName]; isShared && c.packageName != "types" {
+			typeName = "types." + typeName
+		}
+		fmt.Fprintf(w, "\t\tc.%s = &%s{}\n", field.Name, typeName)
 		fmt.Fprintf(w, "\t\tif err := c.%s.FromProto(val.GetStructValue()); err != nil {\n", field.Name)
 		fmt.Fprintf(w, "\t\t\treturn err\n")
 		fmt.Fprintf(w, "\t\t}\n")

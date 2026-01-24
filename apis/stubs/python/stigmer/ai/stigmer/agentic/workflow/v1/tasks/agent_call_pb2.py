@@ -23,10 +23,11 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.commons.apiresource import enum_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_enum__pb2
+from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_field__options__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\x8e\x03\n\x13\x41gentCallTaskConfig\x12\"\n\x05\x61gent\x18\x01 \x01(\tB\x0c\xbaH\tr\x04\x10\x01\x18?\xc8\x01\x01R\x05\x61gent\x12K\n\x05scope\x18\x02 \x01(\x0e\x32\x35.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeR\x05scope\x12$\n\x07message\x18\x03 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x07message\x12T\n\x03\x65nv\x18\x04 \x03(\x0b\x32\x42.ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntryR\x03\x65nv\x12R\n\x06\x63onfig\x18\x05 \x01(\x0b\x32:.ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfigR\x06\x63onfig\x1a\x36\n\x08\x45nvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"\x85\x01\n\x14\x41gentExecutionConfig\x12\x14\n\x05model\x18\x01 \x01(\tR\x05model\x12$\n\x07timeout\x18\x02 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\x90\x1c(\x01R\x07timeout\x12\x31\n\x0btemperature\x18\x03 \x01(\x02\x42\x0f\xbaH\x0c\n\n\x1d\x00\x00\x80?-\x00\x00\x00\x00R\x0btemperatureB\xf2\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\x0e\x41gentCallProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\"\x92\x03\n\x13\x41gentCallTaskConfig\x12\"\n\x05\x61gent\x18\x01 \x01(\tB\x0c\xbaH\tr\x04\x10\x01\x18?\xc8\x01\x01R\x05\x61gent\x12K\n\x05scope\x18\x02 \x01(\x0e\x32\x35.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeR\x05scope\x12(\n\x07message\x18\x03 \x01(\tB\x0e\xbaH\x07r\x02\x10\x01\xc8\x01\x01\xd8\x85,\x01R\x07message\x12T\n\x03\x65nv\x18\x04 \x03(\x0b\x32\x42.ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntryR\x03\x65nv\x12R\n\x06\x63onfig\x18\x05 \x01(\x0b\x32:.ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfigR\x06\x63onfig\x1a\x36\n\x08\x45nvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"\x85\x01\n\x14\x41gentExecutionConfig\x12\x14\n\x05model\x18\x01 \x01(\tR\x05model\x12$\n\x07timeout\x18\x02 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\x90\x1c(\x01R\x07timeout\x12\x31\n\x0btemperature\x18\x03 \x01(\x02\x42\x0f\xbaH\x0c\n\n\x1d\x00\x00\x80?-\x00\x00\x00\x00R\x0btemperatureB\xf2\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\x0e\x41gentCallProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,15 +40,15 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_AGENTCALLTASKCONFIG'].fields_by_name['agent']._loaded_options = None
   _globals['_AGENTCALLTASKCONFIG'].fields_by_name['agent']._serialized_options = b'\272H\tr\004\020\001\030?\310\001\001'
   _globals['_AGENTCALLTASKCONFIG'].fields_by_name['message']._loaded_options = None
-  _globals['_AGENTCALLTASKCONFIG'].fields_by_name['message']._serialized_options = b'\272H\007r\002\020\001\310\001\001'
+  _globals['_AGENTCALLTASKCONFIG'].fields_by_name['message']._serialized_options = b'\272H\007r\002\020\001\310\001\001\330\205,\001'
   _globals['_AGENTEXECUTIONCONFIG'].fields_by_name['timeout']._loaded_options = None
   _globals['_AGENTEXECUTIONCONFIG'].fields_by_name['timeout']._serialized_options = b'\272H\007\032\005\030\220\034(\001'
   _globals['_AGENTEXECUTIONCONFIG'].fields_by_name['temperature']._loaded_options = None
   _globals['_AGENTEXECUTIONCONFIG'].fields_by_name['temperature']._serialized_options = b'\272H\014\n\n\035\000\000\200?-\000\000\000\000'
-  _globals['_AGENTCALLTASKCONFIG']._serialized_start=168
-  _globals['_AGENTCALLTASKCONFIG']._serialized_end=566
-  _globals['_AGENTCALLTASKCONFIG_ENVENTRY']._serialized_start=512
-  _globals['_AGENTCALLTASKCONFIG_ENVENTRY']._serialized_end=566
-  _globals['_AGENTEXECUTIONCONFIG']._serialized_start=569
-  _globals['_AGENTEXECUTIONCONFIG']._serialized_end=702
+  _globals['_AGENTCALLTASKCONFIG']._serialized_start=220
+  _globals['_AGENTCALLTASKCONFIG']._serialized_end=622
+  _globals['_AGENTCALLTASKCONFIG_ENVENTRY']._serialized_start=568
+  _globals['_AGENTCALLTASKCONFIG_ENVENTRY']._serialized_end=622
+  _globals['_AGENTEXECUTIONCONFIG']._serialized_start=625
+  _globals['_AGENTEXECUTIONCONFIG']._serialized_end=758
 # @@protoc_insertion_point(module_scope)

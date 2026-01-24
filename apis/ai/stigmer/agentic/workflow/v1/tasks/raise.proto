@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.workflow.v1.tasks;
 
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
 // RaiseTaskConfig defines the configuration for RAISE tasks.
@@ -18,6 +19,7 @@ import "buf/validate/validate.proto";
 message RaiseTaskConfig {
   // Error type/name.
   string error = 1 [
+    (ai.stigmer.commons.apiresource.is_expression) = true,
     (buf.validate.field).required = true,
     (buf.validate.field).string.min_len = 1
   ];
@@ -25,6 +27,7 @@ message RaiseTaskConfig {
   // Error message.
   // Can contain expressions: "${ .errorMessage }"
   string message = 2 [
+    (ai.stigmer.commons.apiresource.is_expression) = true,
     (buf.validate.field).required = true,
     (buf.validate.field).string.min_len = 1
   ];

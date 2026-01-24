@@ -51,7 +51,10 @@ func HttpCall(name string, args *HttpCallArgs) *Task {
 //	task := workflow.HttpGet("fetch", "https://api.example.com/data", map[string]string{
 //	    "Authorization": "Bearer ${.token}",
 //	})
-func HttpGet(name string, uri string, headers map[string]string) *Task {
+//
+//	// Or with TaskFieldRef:
+//	task := workflow.HttpGet("fetch", apiBase.Concat("/data"), nil)
+func HttpGet(name string, uri interface{}, headers map[string]string) *Task {
 	return HttpCall(name, &HttpCallArgs{
 		Method:   "GET",
 		Endpoint: &types.HttpEndpoint{Uri: uri},
@@ -67,7 +70,10 @@ func HttpGet(name string, uri string, headers map[string]string) *Task {
 //	    map[string]string{"Content-Type": "application/json"},
 //	    map[string]interface{}{"name": "John", "email": "john@example.com"},
 //	)
-func HttpPost(name string, uri string, headers map[string]string, body map[string]interface{}) *Task {
+//
+//	// Or with TaskFieldRef:
+//	task := workflow.HttpPost("create", apiBase.Concat("/users"), nil, body)
+func HttpPost(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task {
 	return HttpCall(name, &HttpCallArgs{
 		Method:   "POST",
 		Endpoint: &types.HttpEndpoint{Uri: uri},
@@ -77,7 +83,7 @@ func HttpPost(name string, uri string, headers map[string]string, body map[strin
 }
 
 // HttpPut creates an HTTP PUT task.
-func HttpPut(name string, uri string, headers map[string]string, body map[string]interface{}) *Task {
+func HttpPut(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task {
 	return HttpCall(name, &HttpCallArgs{
 		Method:   "PUT",
 		Endpoint: &types.HttpEndpoint{Uri: uri},
@@ -87,7 +93,7 @@ func HttpPut(name string, uri string, headers map[string]string, body map[string
 }
 
 // HttpPatch creates an HTTP PATCH task.
-func HttpPatch(name string, uri string, headers map[string]string, body map[string]interface{}) *Task {
+func HttpPatch(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task {
 	return HttpCall(name, &HttpCallArgs{
 		Method:   "PATCH",
 		Endpoint: &types.HttpEndpoint{Uri: uri},
@@ -97,7 +103,7 @@ func HttpPatch(name string, uri string, headers map[string]string, body map[stri
 }
 
 // HttpDelete creates an HTTP DELETE task.
-func HttpDelete(name string, uri string, headers map[string]string) *Task {
+func HttpDelete(name string, uri interface{}, headers map[string]string) *Task {
 	return HttpCall(name, &HttpCallArgs{
 		Method:   "DELETE",
 		Endpoint: &types.HttpEndpoint{Uri: uri},

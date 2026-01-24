@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.workflow.v1.tasks;
 
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
@@ -60,6 +61,7 @@ message HttpEndpoint {
   // URI of the endpoint.
   // Can contain expressions: "https://api.example.com/${.resource}"
   string uri = 1 [
+    (ai.stigmer.commons.apiresource.is_expression) = true,
     (buf.validate.field).required = true,
     (buf.validate.field).string.min_len = 1
   ];

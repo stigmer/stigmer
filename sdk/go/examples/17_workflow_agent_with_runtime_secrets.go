@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
+	"github.com/stigmer/stigmer/sdk/go/types"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -74,8 +75,8 @@ func main() {
 				"REPO_OWNER":   "myorg",                                // Static config
 				"REPO_NAME":    "myrepo",                               // Static config
 			},
-			Config: map[string]interface{}{
-				"timeout": 600, // 10 minutes for thorough review
+			Config: &types.AgentExecutionConfig{
+				Timeout: 600, // 10 minutes for thorough review
 			},
 		})
 

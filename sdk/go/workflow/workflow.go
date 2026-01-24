@@ -390,7 +390,7 @@ func (w *Workflow) AddEnvironmentVariables(variables ...environment.Variable) *W
 //	processTask := wf.Set("process",
 //	    SetVar("title", fetchTask.Field("title")),  // Implicit dependency!
 //	)
-func (w *Workflow) HttpGet(name string, uri string, headers map[string]string) *Task {
+func (w *Workflow) HttpGet(name string, uri interface{}, headers map[string]string) *Task {
 	task := HttpGet(name, uri, headers)
 	w.AddTask(task)
 	return task
@@ -409,7 +409,7 @@ func (w *Workflow) HttpGet(name string, uri string, headers map[string]string) *
 //	    }),
 //	    Header("Authorization", "Bearer token"),
 //	)
-func (w *Workflow) HttpPost(name string, uri string, headers map[string]string, body map[string]interface{}) *Task {
+func (w *Workflow) HttpPost(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task {
 	task := HttpPost(name, uri, headers, body)
 	w.AddTask(task)
 	return task
@@ -437,7 +437,7 @@ func (w *Workflow) HttpPut(name string, uri string, headers map[string]string, b
 //	patchTask := wf.HttpPatch("patchUser", "https://api.example.com/users/123",
 //	    Body(map[string]any{"email": "newemail@example.com"}),
 //	)
-func (w *Workflow) HttpPatch(name string, uri string, headers map[string]string, body map[string]interface{}) *Task {
+func (w *Workflow) HttpPatch(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task {
 	task := HttpPatch(name, uri, headers, body)
 	w.AddTask(task)
 	return task
@@ -451,7 +451,7 @@ func (w *Workflow) HttpPatch(name string, uri string, headers map[string]string,
 //	deleteTask := wf.HttpDelete("deleteUser", "https://api.example.com/users/123",
 //	    Header("Authorization", "Bearer token"),
 //	)
-func (w *Workflow) HttpDelete(name string, uri string, headers map[string]string) *Task {
+func (w *Workflow) HttpDelete(name string, uri interface{}, headers map[string]string) *Task {
 	task := HttpDelete(name, uri, headers)
 	w.AddTask(task)
 	return task

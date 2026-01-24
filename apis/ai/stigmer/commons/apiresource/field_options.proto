@@ -10,4 +10,6 @@ extend google.protobuf.FieldOptions {
   bool computed = 90201;
   // Marks a field as immutable (can be set on create, but not updated)
   bool immutable = 90202;
+  // Marks a field as accepting JQ expressions (enables smart type conversion in SDK)
+  bool is_expression = 90203;
 }

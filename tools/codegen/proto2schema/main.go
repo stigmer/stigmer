@@ -57,13 +57,14 @@ type TypeSchema struct {
 }
 
 type FieldSchema struct {
-	Name        string      `json:"name"`
-	JsonName    string      `json:"jsonName"`
-	ProtoField  string      `json:"protoField"`
-	Type        TypeSpec    `json:"type"`
-	Description string      `json:"description"`
-	Required    bool        `json:"required"`
-	Validation  *Validation `json:"validation,omitempty"`
+	Name         string      `json:"name"`
+	JsonName     string      `json:"jsonName"`
+	ProtoField   string      `json:"protoField"`
+	Type         TypeSpec    `json:"type"`
+	Description  string      `json:"description"`
+	Required     bool        `json:"required"`
+	IsExpression bool        `json:"isExpression,omitempty"`
+	Validation   *Validation `json:"validation,omitempty"`
 }
 
 type TypeSpec struct {
@@ -366,13 +367,14 @@ func extractFieldSchema(field *desc.FieldDescriptor) (*FieldSchema, error) {
 
 	// Build field schema
 	fieldSchema := &FieldSchema{
-		Name:        strings.Title(strings.ReplaceAll(field.GetName(), "_", " ")),
-		JsonName:    field.GetJSONName(),
-		ProtoField:  field.GetName(),
-		Type:        extractTypeSpec(field),
-		Description: description,
-		Required:    false,
-		Validation:  extractValidation(field),
+		Name:         strings.Title(strings.ReplaceAll(field.GetName(), "_", " ")),
+		JsonName:     field.GetJSONName(),
+		ProtoField:   field.GetName(),
+		Type:         extractTypeSpec(field),
+		Description:  description,
+		Required:     false,
+		IsExpression: extractIsExpression(field),
+		Validation:   extractValidation(field),
 	}
 
 	// Capitalize field name properly
@@ -518,6 +520,39 @@ func extractValidation(field *desc.FieldDescriptor) *Validation {
 	}
 
 	return validation
+}
+
+// extractIsExpression extracts the is_expression field option
+func extractIsExpression(field *desc.FieldDescriptor) bool {
+	opts := field.GetFieldOptions()
+	if opts == nil {
+		return false
+	}
+
+	// Get the full proto text representation
+	protoText := field.AsProto().String()
+	optsStr := opts.String()
+	fullText := protoText + " " + optsStr
+
+	// Check for is_expression option
+	// Patterns: "is_expression = true", "is_expression:true", "90203"
+	if strings.Contains(fullText, "is_expression") &&
+		(strings.Contains(fullText, "= true") ||
+			strings.Contains(fullText, ":true") ||
+			strings.Contains(fullText, ": true")) {
+		return true
+	}
+
+	// Also check by field number (90203)
+	// In protobuf binary format, boolean true is represented as 1
+	if strings.Contains(fullText, "90203") &&
+		(strings.Contains(fullText, ":1") ||
+			strings.Contains(fullText, " 1") ||
+			strings.Contains(fullText, "=1")) {
+		return true
+	}
+
+	return false
 }
 
 // extractIntFromOptions extracts an integer value from options string

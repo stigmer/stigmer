@@ -8,6 +8,7 @@ package tasks
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -174,7 +175,7 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_http_call_proto protoreflect.FileD
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_http_call_proto_rawDesc = "" +
 	"\n" +
-	"4ai/stigmer/agentic/workflow/v1/tasks/http_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xac\x03\n" +
+	"4ai/stigmer/agentic/workflow/v1/tasks/http_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xac\x03\n" +
 	"\x12HttpCallTaskConfig\x12?\n" +
 	"\x06method\x18\x01 \x01(\tB'\xbaH$\xc8\x01\x01r\x1fR\x03GETR\x04POSTR\x03PUTR\x06DELETER\x05PATCHR\x06method\x12V\n" +
 	"\bendpoint\x18\x02 \x01(\v22.ai.stigmer.agentic.workflow.v1.tasks.HttpEndpointB\x06\xbaH\x03\xc8\x01\x01R\bendpoint\x12_\n" +
@@ -184,10 +185,9 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_http_call_proto_rawDesc = "" +
 	"\xbaH\a\x1a\x05\x18\xac\x02(\x01R\x0etimeoutSeconds\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\",\n" +
-	"\fHttpEndpoint\x12\x1c\n" +
-	"\x03uri\x18\x01 \x01(\tB\n" +
-	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x03uriB\xc0\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"0\n" +
+	"\fHttpEndpoint\x12 \n" +
+	"\x03uri\x18\x01 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\x03uriB\xc0\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\rHttpCallProtoP\x01ZMgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (

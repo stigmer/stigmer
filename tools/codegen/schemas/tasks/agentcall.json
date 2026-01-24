@@ -33,7 +33,8 @@
         "kind": "string"
       },
       "description": "Instructions/prompt to send to the agent.\n Supports interpolation of workflow variables using JQ expressions.\n Example: \"Analyze this code: ${ $context.fetchCode.body }\"\n Required field.",
-      "required": false
+      "required": false,
+      "isExpression": true
     },
     {
       "name": "Env",

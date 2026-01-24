@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
+	"github.com/stigmer/stigmer/sdk/go/types"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -43,10 +44,10 @@ func main() {
 		categorizeTicket := wf.CallAgent("categorizeTicket", &workflow.AgentCallArgs{
 			Agent:   workflow.AgentBySlug("support-categorizer").Slug(),
 			Message: "Categorize this support ticket: 'My login is not working'",
-			Config: map[string]interface{}{
-				"model":       "claude-3-haiku", // Fast model for simple categorization
-				"temperature": 0.1,              // Low temperature for consistent categorization
-				"timeout":     30,               // Short timeout - categorization should be quick (30 seconds)
+			Config: &types.AgentExecutionConfig{
+				Model:       "claude-3-haiku", // Fast model for simple categorization
+				Temperature: 0.1,              // Low temperature for consistent categorization
+				Timeout:     30,               // Short timeout - categorization should be quick (30 seconds)
 			},
 		})
 		log.Println("✅ Fast deterministic task: categorizeTicket")
@@ -64,10 +65,10 @@ func main() {
 				"Review the architecture of this microservices system:\n",
 				categorizeTicket.Field("system_info"), // Uses output from previous task
 			),
-			Config: map[string]interface{}{
-				"model":       "claude-3-5-sonnet", // Powerful model for complex reasoning
-				"temperature": 0.5,                 // Medium temperature for balanced analysis
-				"timeout":     600,                 // Long timeout for thorough analysis (10 minutes)
+			Config: &types.AgentExecutionConfig{
+				Model:       "claude-3-5-sonnet", // Powerful model for complex reasoning
+				Temperature: 0.5,                 // Medium temperature for balanced analysis
+				Timeout:     600,                 // Long timeout for thorough analysis (10 minutes)
 			},
 		})
 		log.Println("✅ Deep analysis task: architectureReview")
@@ -83,10 +84,10 @@ func main() {
 		generateCopy := wf.CallAgent("generateCopy", &workflow.AgentCallArgs{
 			Agent:   workflow.AgentBySlug("content-writer").Slug(),
 			Message: "Write engaging marketing copy for a new AI code review tool",
-			Config: map[string]interface{}{
-				"model":       "claude-3-5-sonnet", // Creative model
-				"temperature": 0.9,                 // High temperature for creative output
-				"timeout":     120,                 // Moderate timeout (2 minutes)
+			Config: &types.AgentExecutionConfig{
+				Model:       "claude-3-5-sonnet", // Creative model
+				Temperature: 0.9,                 // High temperature for creative output
+				Timeout:     120,                 // Moderate timeout (2 minutes)
 			},
 		})
 		log.Println("✅ Creative task: generateCopy")
@@ -104,10 +105,10 @@ func main() {
 				"Extract structured data from this marketing copy:\n",
 				generateCopy.Field("content"), // Use output from creative task
 			),
-			Config: map[string]interface{}{
-				"model":       "claude-3-haiku", // Fast model sufficient for extraction
-				"temperature": 0.0,              // Very low temperature for consistent extraction (Maximum determinism)
-				"timeout":     45,               // Quick extraction
+			Config: &types.AgentExecutionConfig{
+				Model:       "claude-3-haiku", // Fast model sufficient for extraction
+				Temperature: 0.0,              // Very low temperature for consistent extraction (Maximum determinism)
+				Timeout:     45,               // Quick extraction
 			},
 		})
 		log.Println("✅ Structured extraction task: extractData")
@@ -125,10 +126,10 @@ func main() {
 				"Generate Go code implementation for these requirements:\n",
 				extractData.Field("requirements"),
 			),
-			Config: map[string]interface{}{
-				"model":       "claude-3-5-sonnet", // Powerful model for code generation
-				"temperature": 0.3,                 // Low-medium temperature for good patterns
-				"timeout":     300,                 // Longer timeout for code generation (5 minutes)
+			Config: &types.AgentExecutionConfig{
+				Model:       "claude-3-5-sonnet", // Powerful model for code generation
+				Temperature: 0.3,                 // Low-medium temperature for good patterns
+				Timeout:     300,                 // Longer timeout for code generation (5 minutes)
 			},
 		})
 		log.Println("✅ Code generation task: generateCode")
@@ -144,10 +145,10 @@ func main() {
 		customerSupport := wf.CallAgent("customerSupport", &workflow.AgentCallArgs{
 			Agent:   workflow.AgentBySlug("support-agent").Slug(),
 			Message: workflow.RuntimeEnv("CUSTOMER_QUESTION"),
-			Config: map[string]interface{}{
-				"model":       "claude-3-haiku", // Fast model for quick response
-				"temperature": 0.4,              // Medium temperature for helpful but consistent answers
-				"timeout":     15,               // Very short timeout - customer is waiting! (15 seconds max)
+			Config: &types.AgentExecutionConfig{
+				Model:       "claude-3-haiku", // Fast model for quick response
+				Temperature: 0.4,              // Medium temperature for helpful but consistent answers
+				Timeout:     15,               // Very short timeout - customer is waiting! (15 seconds max)
 			},
 		})
 		log.Println("✅ Real-time support task: customerSupport")
