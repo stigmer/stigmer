@@ -1,7 +1,7 @@
 package stigmer_test
 
 import (
-	"strings"
+	"fmt"
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
@@ -379,11 +379,11 @@ func TestIntegration_ManyResourcesStressTest(t *testing.T) {
 	}
 
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
-		// Create 50 skills
+		// Create 50 skills with unique names
 		skills := make([]*skill.Skill, 50)
 		for i := 0; i < 50; i++ {
-			s, err := skill.New("stress-skill-"+strings.Repeat("x", i%10), &skill.SkillArgs{
-				MarkdownContent: "# Stress Skill " + string(rune('0'+i%10)),
+			s, err := skill.New(fmt.Sprintf("stress-skill-%d", i), &skill.SkillArgs{
+				MarkdownContent: fmt.Sprintf("# Stress Skill %d", i),
 			})
 			if err != nil {
 				return err
@@ -391,13 +391,13 @@ func TestIntegration_ManyResourcesStressTest(t *testing.T) {
 			skills[i] = s
 		}
 
-		// Create 20 agents
+		// Create 20 agents with unique names
 		for i := 0; i < 20; i++ {
 			// Each agent gets 2-3 skills
 			agentSkills := skills[i*2 : min(i*2+3, len(skills))]
 
-			ag, err := agent.New(ctx, "stress-agent-"+strings.Repeat("x", i%10), &agent.AgentArgs{
-				Instructions: "Stress test agent " + string(rune('0'+i%10)) + " for testing system capacity",
+			ag, err := agent.New(ctx, fmt.Sprintf("stress-agent-%d", i), &agent.AgentArgs{
+				Instructions: fmt.Sprintf("Stress test agent %d for testing system capacity", i),
 			})
 			if err != nil {
 				return err
@@ -408,10 +408,10 @@ func TestIntegration_ManyResourcesStressTest(t *testing.T) {
 			}
 		}
 
-		// Create 10 workflows
+		// Create 10 workflows with unique names
 		for i := 0; i < 10; i++ {
 			wf, err := workflow.New(ctx,
-				workflow.WithName("stress-workflow-"+strings.Repeat("x", i%10)),
+				workflow.WithName(fmt.Sprintf("stress-workflow-%d", i)),
 				workflow.WithNamespace("stress-test"),
 				workflow.WithVersion("1.0.0"),
 			)
@@ -419,11 +419,11 @@ func TestIntegration_ManyResourcesStressTest(t *testing.T) {
 				return err
 			}
 
-			// Add 10 tasks per workflow
+			// Add 10 tasks per workflow with unique names
 			for j := 0; j < 10; j++ {
-				setTask := workflow.Set("task-"+string(rune('0'+j)), &workflow.SetArgs{
+				setTask := workflow.Set(fmt.Sprintf("task-%d", j), &workflow.SetArgs{
 					Variables: map[string]string{
-						"key" + string(rune('0'+j)): "value" + string(rune('0'+j)),
+						fmt.Sprintf("key%d", j): fmt.Sprintf("value%d", j),
 					},
 				})
 				wf.Tasks = append(wf.Tasks, setTask)
