@@ -233,12 +233,12 @@ func convertSubAgents(subAgents []subagent.SubAgent) ([]*agentv1.SubAgent, error
 			protoSubAgents = append(protoSubAgents, &agentv1.SubAgent{
 				AgentReference: &agentv1.SubAgent_InlineSpec{
 					InlineSpec: &agentv1.InlineSubAgentSpec{
-						Name:                sa.Name(),
-						Description:         sa.Description(),
-						Instructions:        sa.Instructions(),
-						McpServers:          sa.MCPServerNames(),
-						McpToolSelections:   toolSelections,
-						SkillRefs:           skillRefs,
+						Name:              sa.Name(),
+						Description:       sa.Description(),
+						Instructions:      sa.Instructions(),
+						McpServers:        sa.MCPServerNames(),
+						McpToolSelections: toolSelections,
+						SkillRefs:         skillRefs,
 					},
 				},
 			})

@@ -336,9 +336,9 @@ func TestWorkflowToProto_EmptyMaps(t *testing.T) {
 				Name: "emptyHeaders",
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
-					Method:  "GET",
+					Method:   "GET",
 					Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
-					Headers: map[string]string{}, // empty map
+					Headers:  map[string]string{}, // empty map
 				},
 			},
 		},
@@ -368,7 +368,7 @@ func TestWorkflowToProto_HttpCallEdgeCases(t *testing.T) {
 			name: "zero timeout",
 			config: &HttpCallTaskConfig{
 				Method:         "GET",
-				Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
+				Endpoint:       &types.HttpEndpoint{Uri: "https://example.com"},
 				TimeoutSeconds: 0, // zero timeout
 			},
 		},
@@ -376,14 +376,14 @@ func TestWorkflowToProto_HttpCallEdgeCases(t *testing.T) {
 			name: "very large timeout",
 			config: &HttpCallTaskConfig{
 				Method:         "GET",
-				Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
+				Endpoint:       &types.HttpEndpoint{Uri: "https://example.com"},
 				TimeoutSeconds: 86400, // 24 hours
 			},
 		},
 		{
 			name: "many headers",
 			config: &HttpCallTaskConfig{
-				Method: "POST",
+				Method:   "POST",
 				Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
 				Headers: map[string]string{
 					"Header1":  "value1",
@@ -402,7 +402,7 @@ func TestWorkflowToProto_HttpCallEdgeCases(t *testing.T) {
 		{
 			name: "very long URI",
 			config: &HttpCallTaskConfig{
-				Method: "GET",
+				Method:   "GET",
 				Endpoint: &types.HttpEndpoint{Uri: "https://example.com/very/long/path/" + strings.Repeat("segment/", 50)},
 			},
 		},

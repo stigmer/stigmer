@@ -125,7 +125,7 @@ func TestWorkflowToProto_InvalidTaskConfigurations(t *testing.T) {
 				Name: "httpTask",
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
-					Method: "GET",
+					Method:   "GET",
 					Endpoint: &types.HttpEndpoint{Uri: ""}, // empty URI
 				},
 			},
@@ -138,7 +138,7 @@ func TestWorkflowToProto_InvalidTaskConfigurations(t *testing.T) {
 				Name: "httpTask",
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
-					Method: "INVALID_METHOD",
+					Method:   "INVALID_METHOD",
 					Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
 				},
 			},
@@ -341,7 +341,7 @@ func TestWorkflowToProto_TaskKindConfigMismatch(t *testing.T) {
 				Name: "mismatch2",
 				Kind: TaskKindSet,
 				Config: &HttpCallTaskConfig{ // wrong config type
-					Method: "GET",
+					Method:   "GET",
 					Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
 				},
 			},
@@ -567,7 +567,7 @@ func TestWorkflowToProto_PartiallyValidWorkflow(t *testing.T) {
 				Name: "maybeInvalidTask",
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
-					Method: "GET",
+					Method:   "GET",
 					Endpoint: &types.HttpEndpoint{Uri: ""}, // empty URI - may be invalid
 				},
 			},
