@@ -74,9 +74,11 @@ func runWorkflow(ctx *stigmer.Context) error {
 	// Activity resolves JIT to: "Authorization": "Bearer sk-proj-abc123"
 	callOpenAI := wf.HttpPost("callOpenAI",
 		"https://api.openai.com/v1/chat/completions",
-		workflow.Header("Authorization", workflow.Interpolate("Bearer ", workflow.RuntimeSecret("OPENAI_API_KEY"))),
-		workflow.Header("Content-Type", "application/json"),
-		workflow.WithBody(map[string]any{
+		map[string]string{
+			"Authorization": workflow.Interpolate("Bearer ", workflow.RuntimeSecret("OPENAI_API_KEY")),
+			"Content-Type":  "application/json",
+		},
+		map[string]any{
 			"model": "gpt-4",
 			// ✅ REAL OpenAI API structure with nested array!
 			"messages": []map[string]any{
@@ -86,7 +88,7 @@ func runWorkflow(ctx *stigmer.Context) error {
 				},
 			},
 			"max_tokens": 100,
-		}),
+		},
 	)
 
 	// ============================================================================
@@ -97,16 +99,20 @@ func runWorkflow(ctx *stigmer.Context) error {
 	// Simulate getting an error from GitHub API
 	githubStatus := wf.HttpGet("checkPipeline",
 		"https://api.github.com/repos/myorg/myrepo/actions/runs/latest",
-		workflow.Header("Authorization", workflow.Interpolate("token ", workflow.RuntimeSecret("GITHUB_TOKEN"))),
+		map[string]string{
+			"Authorization": workflow.Interpolate("token ", workflow.RuntimeSecret("GITHUB_TOKEN")),
+		},
 	)
 
 	// ✅ Pass the error message to ChatGPT for analysis
 	// This demonstrates field references in BODY (not just headers!)
 	analyzeError := wf.HttpPost("analyzeError",
 		"https://api.openai.com/v1/chat/completions",
-		workflow.Header("Authorization", workflow.Interpolate("Bearer ", workflow.RuntimeSecret("OPENAI_API_KEY"))),
-		workflow.Header("Content-Type", "application/json"),
-		workflow.WithBody(map[string]any{
+		map[string]string{
+			"Authorization": workflow.Interpolate("Bearer ", workflow.RuntimeSecret("OPENAI_API_KEY")),
+			"Content-Type":  "application/json",
+		},
+		map[string]any{
 			"model": "gpt-4",
 			// ✅ TaskFieldRef in nested array - REAL use case!
 			"messages": []map[string]any{
@@ -120,7 +126,7 @@ func runWorkflow(ctx *stigmer.Context) error {
 					"content": githubStatus.Field("conclusion"),
 				},
 			},
-		}),
+		},
 	)
 
 	// ============================================================================
@@ -138,14 +144,16 @@ func runWorkflow(ctx *stigmer.Context) error {
 			workflow.RuntimeEnv("ENVIRONMENT"),
 			".example.com/process",
 		),
-		workflow.Header("X-Region", workflow.RuntimeEnv("AWS_REGION")),
-		workflow.Header("X-Log-Level", workflow.RuntimeEnv("LOG_LEVEL")),
-		workflow.WithBody(map[string]any{
+		map[string]string{
+			"X-Region":    workflow.RuntimeEnv("AWS_REGION"),
+			"X-Log-Level": workflow.RuntimeEnv("LOG_LEVEL"),
+		},
+		map[string]any{
 			"environment": workflow.RuntimeEnv("ENVIRONMENT"),
 			"log_level":   workflow.RuntimeEnv("LOG_LEVEL"),
 			// ✅ Field reference in body - the analysis result
 			"ai_analysis": analyzeError.Field("choices[0].message.content"),
-		}),
+		},
 	)
 
 	// ============================================================================
@@ -156,10 +164,12 @@ func runWorkflow(ctx *stigmer.Context) error {
 	chargePayment := wf.HttpPost("chargePayment",
 		"https://api.stripe.com/v1/charges",
 		// Multiple authentication mechanisms
-		workflow.Header("Authorization", workflow.Interpolate("Bearer ", workflow.RuntimeSecret("STRIPE_API_KEY"))),
-		workflow.Header("Idempotency-Key", workflow.RuntimeSecret("STRIPE_IDEMPOTENCY_KEY")),
-		workflow.Header("Content-Type", "application/x-www-form-urlencoded"),
-		workflow.WithBody(map[string]any{
+		map[string]string{
+			"Authorization":   workflow.Interpolate("Bearer ", workflow.RuntimeSecret("STRIPE_API_KEY")),
+			"Idempotency-Key": workflow.RuntimeSecret("STRIPE_IDEMPOTENCY_KEY"),
+			"Content-Type":    "application/x-www-form-urlencoded",
+		},
+		map[string]any{
 			"amount":   2000,
 			"currency": "usd",
 			"source":   "tok_visa",
@@ -170,7 +180,7 @@ func runWorkflow(ctx *stigmer.Context) error {
 				"request_id":    processData.Field("id"),
 				"ai_conclusion": analyzeError.Field("choices[0].message.content"),
 			},
-		}),
+		},
 	)
 
 	// ============================================================================
@@ -180,13 +190,14 @@ func runWorkflow(ctx *stigmer.Context) error {
 
 	storeResults := wf.HttpPost("storeResults",
 		"https://database-api.example.com/v1/records",
-		workflow.Header("X-DB-Host", "postgres.internal"),
-		workflow.Header("X-DB-Port", "5432"),
-		workflow.Header("X-DB-User", "app_user"),
-		// Password as runtime secret - NEVER in manifest!
-		workflow.Header("X-DB-Password", workflow.RuntimeSecret("DATABASE_PASSWORD")),
-		workflow.Header("Content-Type", "application/json"),
-		workflow.WithBody(map[string]any{
+		map[string]string{
+			"X-DB-Host":     "postgres.internal",
+			"X-DB-Port":     "5432",
+			"X-DB-User":     "app_user",
+			"X-DB-Password": workflow.RuntimeSecret("DATABASE_PASSWORD"), // Password as runtime secret - NEVER in manifest!
+			"Content-Type":  "application/json",
+		},
+		map[string]any{
 			"table":       "api_responses",
 			"environment": workflow.RuntimeEnv("ENVIRONMENT"),
 			// ✅ Field references in body - store all the data
@@ -197,7 +208,7 @@ func runWorkflow(ctx *stigmer.Context) error {
 				"payment_status":    chargePayment.Field("status"),
 				"github_conclusion": githubStatus.Field("conclusion"),
 			},
-		}),
+		},
 	)
 
 	// ============================================================================
@@ -207,9 +218,11 @@ func runWorkflow(ctx *stigmer.Context) error {
 
 	wf.HttpPost("registerWebhook",
 		"https://api.external-service.com/v1/webhooks",
-		workflow.Header("Authorization", workflow.Interpolate("Bearer ", workflow.RuntimeSecret("EXTERNAL_API_KEY"))),
-		workflow.Header("Content-Type", "application/json"),
-		workflow.WithBody(map[string]any{
+		map[string]string{
+			"Authorization": workflow.Interpolate("Bearer ", workflow.RuntimeSecret("EXTERNAL_API_KEY")),
+			"Content-Type":  "application/json",
+		},
+		map[string]any{
 			"url": workflow.Interpolate(
 				"https://webhook-",
 				workflow.RuntimeEnv("ENVIRONMENT"),
@@ -218,7 +231,7 @@ func runWorkflow(ctx *stigmer.Context) error {
 			// Webhook signing secret - runtime only!
 			"secret":      workflow.RuntimeSecret("WEBHOOK_SIGNING_SECRET"),
 			"event_types": "payment.success,payment.failed",
-		}),
+		},
 	)
 
 	// ============================================================================
@@ -228,8 +241,10 @@ func runWorkflow(ctx *stigmer.Context) error {
 
 	wf.HttpPost("notifySlack",
 		"https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXX",
-		workflow.Header("Content-Type", "application/json"),
-		workflow.WithBody(map[string]any{
+		map[string]string{
+			"Content-Type": "application/json",
+		},
+		map[string]any{
 			"text": "Deployment Pipeline Completed!",
 			// ✅ REAL Slack blocks structure - nested arrays!
 			"blocks": []map[string]any{
@@ -279,7 +294,7 @@ func runWorkflow(ctx *stigmer.Context) error {
 			},
 			"username":   "Deploy Bot",
 			"icon_emoji": ":rocket:",
-		}),
+		},
 	)
 
 	return nil
