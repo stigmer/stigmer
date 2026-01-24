@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
@@ -54,6 +55,9 @@ type Workflow struct {
 
 	// Context reference (optional, used for typed variable management)
 	ctx Context
+
+	// mu protects concurrent access to Tasks and EnvironmentVariables slices
+	mu sync.Mutex
 }
 
 // Option is a functional option for configuring a Workflow.
@@ -319,17 +323,21 @@ func WithSlug(slug string) Option {
 // AddTask adds a task to the workflow after creation.
 //
 // This is a builder method that allows adding tasks after the workflow is created.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
 //	wf, _ := workflow.New(workflow.WithNamespace("ns"), workflow.WithName("wf"), workflow.WithVersion("1.0.0"))
 //	wf.AddTask(workflow.Set("init", workflow.SetVar("x", "1")))
 func (w *Workflow) AddTask(task *Task) *Workflow {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.Tasks = append(w.Tasks, task)
 	return w
 }
 
 // AddTasks adds multiple tasks to the workflow after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
@@ -339,11 +347,14 @@ func (w *Workflow) AddTask(task *Task) *Workflow {
 //	    workflow.HttpGet("fetch", "https://api.example.com"),
 //	)
 func (w *Workflow) AddTasks(tasks ...*Task) *Workflow {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.Tasks = append(w.Tasks, tasks...)
 	return w
 }
 
 // AddEnvironmentVariable adds an environment variable to the workflow after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
@@ -351,17 +362,22 @@ func (w *Workflow) AddTasks(tasks ...*Task) *Workflow {
 //	apiToken, _ := environment.New(environment.WithName("API_TOKEN"))
 //	wf.AddEnvironmentVariable(apiToken)
 func (w *Workflow) AddEnvironmentVariable(variable environment.Variable) *Workflow {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.EnvironmentVariables = append(w.EnvironmentVariables, variable)
 	return w
 }
 
 // AddEnvironmentVariables adds multiple environment variables to the workflow after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
 //	wf, _ := workflow.New(...)
 //	wf.AddEnvironmentVariables(apiToken, apiURL)
 func (w *Workflow) AddEnvironmentVariables(variables ...environment.Variable) *Workflow {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.EnvironmentVariables = append(w.EnvironmentVariables, variables...)
 	return w
 }
