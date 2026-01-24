@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -55,12 +56,12 @@ func TestAgentToProto_MaximumSubAgents(t *testing.T) {
 
 // TestAgentToProto_MaximumEnvironmentVars tests agent with many environment variables.
 func TestAgentToProto_MaximumEnvironmentVars(t *testing.T) {
-	// Create 100 environment variables
+	// Create 100 environment variables with unique names
 	envVars := make([]environment.Variable, 100)
 	for i := 0; i < 100; i++ {
 		env, _ := environment.New(
-			environment.WithName("ENV_VAR_"+string(rune('0'+i%10))),
-			environment.WithDefaultValue("value"+string(rune('0'+i%10))),
+			environment.WithName(fmt.Sprintf("ENV_VAR_%d", i)),
+			environment.WithDefaultValue(fmt.Sprintf("value%d", i)),
 			environment.WithSecret(i%2 == 0), // Half are secrets
 		)
 		envVars[i] = env

@@ -29,6 +29,12 @@ func For(name string, args *ForArgs) *Task {
 		args.Do = []*types.WorkflowTask{}
 	}
 
+	// Set default Each variable name if not provided
+	// This matches the default used by LoopBody
+	if args.Each == "" {
+		args.Each = "item"
+	}
+
 	return &Task{
 		Name:   name,
 		Kind:   TaskKindFor,
