@@ -68,35 +68,82 @@ Add timestamps and notes to track your progress.
 
 ## Task 3: Add TaskFieldRef helper methods (.Equals(), .GreaterThan(), .LessThan(), etc.)
 
-**Status**: 🚧 IN PROGRESS  
+**Status**: ✅ DONE
 **Created**: 2026-01-24 06:50
+**Completed**: 2026-01-24 07:30
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Added comparison operators: Equals, NotEquals, GreaterThan, GreaterThanOrEqual, LessThan, LessThanOrEqual
+- [x] Added string operators: Contains, StartsWith, EndsWith
+- [x] Added In() operator for array membership
+- [x] Implemented formatValue() helper for proper value quoting
+- [x] Created comprehensive tests in task_field_ref_test.go
+- [x] Verified all tests pass
 
 ### Notes
-- [Add notes about this task here]
+**Helper methods added to TaskFieldRef:**
+- Comparison: `Equals()`, `NotEquals()`, `GreaterThan()`, `GreaterThanOrEqual()`, `LessThan()`, `LessThanOrEqual()`
+- String operations: `Contains()`, `StartsWith()`, `EndsWith()`
+- Array membership: `In()`
+
+**Implementation details:**
+- All methods return string expressions compatible with JQ syntax
+- Proper value formatting (strings are quoted, numbers/booleans are not)
+- Clear, fluent API that replaces string concatenation
+
+**Example usage:**
+```go
+statusCode := fetchTask.Field("statusCode")
+condition := statusCode.Equals(200)  // "${ $context["fetchTask"].statusCode } == 200"
+```
+
+This enables much cleaner condition building compared to:
+```go
+condition := statusCode.Expression() + " == 200"  // Old way
+```
 
 ## Task 4: Update example 08_workflow_with_conditionals.go to demonstrate new API
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-01-24 06:50
+**Completed**: 2026-01-24 07:45
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Updated example header with detailed description of features
+- [x] Enhanced Example 1: Basic equality with Equals()
+- [x] Added Example 2: Numeric comparisons (GreaterThan, GreaterThanOrEqual)
+- [x] Added Example 3: String operations (Contains, StartsWith, EndsWith)
+- [x] Added comprehensive comments explaining the fluent API
+- [x] Added output message listing all demonstrated helper methods
 
 ### Notes
-- [Add notes about this task here]
+**Enhancements made:**
+- Example now demonstrates 6+ different TaskFieldRef helper methods
+- Clear before/after comparisons showing benefits of fluent API
+- Three distinct switch examples showing different use cases
+- Inline comments highlighting the clean, type-safe syntax
+
+**Demonstrated helpers:**
+1. `Equals()` - Exact value matching
+2. `GreaterThan()` - Numeric greater than
+3. `GreaterThanOrEqual()` - Numeric greater than or equal
+4. `Contains()` - String substring matching
+5. `StartsWith()` - String prefix matching
+6. `EndsWith()` - String suffix matching
+
+The example now serves as a comprehensive guide for developers learning the fluent condition building API.
 
 
 ## Project Completion Checklist
 
 When all tasks are done:
-- [ ] All tasks marked ✅ DONE
-- [ ] Final testing completed
-- [ ] Documentation updated (if applicable)
-- [ ] Code reviewed/validated
-- [ ] Ready for use/deployment
+- [x] All tasks marked ✅ DONE (4/4 complete!)
+- [x] Final testing completed (task_field_ref_test.go - all tests passing)
+- [x] Documentation updated (example 08 enhanced, inline comments added)
+- [x] Code reviewed/validated (workflow package compiles, tests pass)
+- [x] Ready for use/deployment
+
+**✅ PROJECT COMPLETE - 2026-01-24**
 
 ---
 

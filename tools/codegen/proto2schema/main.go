@@ -57,17 +57,17 @@ type TypeSchema struct {
 }
 
 type FieldSchema struct {
-	Name        string         `json:"name"`
-	JsonName    string         `json:"jsonName"`
-	ProtoField  string         `json:"protoField"`
-	Type        TypeSpec       `json:"type"`
-	Description string         `json:"description"`
-	Required    bool           `json:"required"`
-	Validation  *Validation    `json:"validation,omitempty"`
+	Name        string      `json:"name"`
+	JsonName    string      `json:"jsonName"`
+	ProtoField  string      `json:"protoField"`
+	Type        TypeSpec    `json:"type"`
+	Description string      `json:"description"`
+	Required    bool        `json:"required"`
+	Validation  *Validation `json:"validation,omitempty"`
 }
 
 type TypeSpec struct {
-	Kind        string    `json:"kind"` // string, int32, bool, map, array, message, struct
+	Kind        string    `json:"kind"`                  // string, int32, bool, map, array, message, struct
 	KeyType     *TypeSpec `json:"keyType,omitempty"`     // for map
 	ValueType   *TypeSpec `json:"valueType,omitempty"`   // for map
 	ElementType *TypeSpec `json:"elementType,omitempty"` // for array
@@ -118,7 +118,7 @@ func main() {
 
 	// Build import paths
 	importPaths := []string{*includeDir}
-	
+
 	// Add buf module cache if enabled (for dependencies like buf/validate)
 	if *useBufCache {
 		// Buf v3 cache structure: ~/.cache/buf/v3/modules/<digest>/<org>/<repo>/<commit>/files/
@@ -142,7 +142,7 @@ func main() {
 			}
 		}
 	}
-	
+
 	// Parse proto files
 	parser := &protoparse.Parser{
 		ImportPaths:           importPaths,
@@ -169,44 +169,44 @@ func main() {
 	// Track all message types we've seen
 	taskConfigs := make(map[string]*TaskConfigSchema)
 	sharedTypes := make(map[string]*TypeSchema)
-	
+
 	// First pass: Extract all messages with the specified suffix
 	for _, fd := range fileDescriptors {
 		fmt.Printf("\nProcessing %s...\n", fd.GetName())
-		
+
 		// Find messages with the specified suffix in this file
 		for _, msg := range fd.GetMessageTypes() {
 			if strings.HasSuffix(msg.GetName(), *messageSuffix) {
 				fmt.Printf("  Found message: %s\n", msg.GetName())
-				
+
 				schema, err := parseTaskConfig(msg, fd)
 				if err != nil {
 					fmt.Printf("  Error parsing message: %v\n", err)
 					continue
 				}
-				
+
 				taskConfigs[msg.GetName()] = schema
-				
+
 				// Also collect any nested message types referenced by this message
 				collectNestedTypes(msg, fd, sharedTypes)
 			}
 		}
 	}
-	
+
 	// Write message schemas
 	fmt.Printf("\nWriting message schemas...\n")
 	for name, schema := range taskConfigs {
 		baseName := strings.ToLower(strings.TrimSuffix(name, *messageSuffix))
 		schemaFile := filepath.Join(*outputDir, baseName+".json")
-		
+
 		if err := writeSchemaFile(schema, schemaFile); err != nil {
 			fmt.Printf("  Error writing %s: %v\n", baseName, err)
 			continue
 		}
-		
+
 		fmt.Printf("  → %s\n", schemaFile)
 	}
-	
+
 	// Write shared type schemas to a types subdirectory
 	if len(sharedTypes) > 0 {
 		typesDir := filepath.Join(filepath.Dir(*outputDir), "types")
@@ -217,12 +217,12 @@ func main() {
 			for name, typeSchema := range sharedTypes {
 				baseName := strings.ToLower(name)
 				schemaFile := filepath.Join(typesDir, baseName+".json")
-				
+
 				if err := writeSchemaFile(typeSchema, schemaFile); err != nil {
 					fmt.Printf("  Error writing %s: %v\n", baseName, err)
 					continue
 				}
-				
+
 				fmt.Printf("  → %s\n", schemaFile)
 			}
 		}
@@ -274,16 +274,16 @@ func collectNestedTypes(msg *desc.MessageDescriptor, fd *desc.FileDescriptor, sh
 		} else if field.GetType() == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE {
 			msgType := field.GetMessageType()
 			// Skip google.protobuf types and map entry types
-			if msgType != nil && 
-			   !strings.HasPrefix(msgType.GetFullyQualifiedName(), "google.protobuf") &&
-			   !msgType.IsMapEntry() {
+			if msgType != nil &&
+				!strings.HasPrefix(msgType.GetFullyQualifiedName(), "google.protobuf") &&
+				!msgType.IsMapEntry() {
 				typeName := msgType.GetName()
 				if _, exists := sharedTypes[typeName]; !exists {
 					// Get the file descriptor for this message type
 					msgFd := msgType.GetFile()
 					sharedTypes[typeName] = parseSharedType(msgType, msgFd)
 					fmt.Printf("    Found shared type: %s\n", typeName)
-					
+
 					// Recursively collect types referenced by this type
 					collectNestedTypes(msgType, msgFd, sharedTypes)
 				}
@@ -296,13 +296,13 @@ func collectNestedTypes(msg *desc.MessageDescriptor, fd *desc.FileDescriptor, sh
 func parseSharedType(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) *TypeSchema {
 	// Extract description from message comments
 	description := extractComments(msg)
-	
+
 	// Build proto type name
 	protoType := fmt.Sprintf("%s.%s", fd.GetPackage(), msg.GetName())
-	
+
 	// Build proto file path relative to apis/
 	protoFile := fd.GetName()
-	
+
 	schema := &TypeSchema{
 		Name:        msg.GetName(),
 		Description: description,
@@ -310,7 +310,7 @@ func parseSharedType(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) *Type
 		ProtoFile:   filepath.Join("apis", protoFile),
 		Fields:      make([]*FieldSchema, 0),
 	}
-	
+
 	// Parse fields
 	for _, field := range msg.GetFields() {
 		fieldSchema, err := extractFieldSchema(field)
@@ -320,7 +320,7 @@ func parseSharedType(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) *Type
 		}
 		schema.Fields = append(schema.Fields, fieldSchema)
 	}
-	
+
 	return schema
 }
 
@@ -328,16 +328,16 @@ func parseSharedType(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) *Type
 func parseTaskConfig(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) (*TaskConfigSchema, error) {
 	// Extract task kind from message name (e.g., SetTaskConfig → SET)
 	kind := extractTaskKind(msg.GetName())
-	
+
 	// Extract description from message comments
 	description := extractComments(msg)
-	
+
 	// Build proto type name
 	protoType := fmt.Sprintf("%s.%s", fd.GetPackage(), msg.GetName())
-	
+
 	// Build proto file path relative to apis/
 	protoFile := fd.GetName()
-	
+
 	schema := &TaskConfigSchema{
 		Name:        msg.GetName(),
 		Kind:        kind,
@@ -346,7 +346,7 @@ func parseTaskConfig(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) (*Tas
 		ProtoFile:   filepath.Join("apis", protoFile),
 		Fields:      make([]*FieldSchema, 0),
 	}
-	
+
 	// Parse fields
 	for _, field := range msg.GetFields() {
 		fieldSchema, err := extractFieldSchema(field)
@@ -355,7 +355,7 @@ func parseTaskConfig(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) (*Tas
 		}
 		schema.Fields = append(schema.Fields, fieldSchema)
 	}
-	
+
 	return schema, nil
 }
 
@@ -363,7 +363,7 @@ func parseTaskConfig(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) (*Tas
 func extractFieldSchema(field *desc.FieldDescriptor) (*FieldSchema, error) {
 	// Extract field description from comments
 	description := extractFieldComments(field)
-	
+
 	// Build field schema
 	fieldSchema := &FieldSchema{
 		Name:        strings.Title(strings.ReplaceAll(field.GetName(), "_", " ")),
@@ -374,15 +374,15 @@ func extractFieldSchema(field *desc.FieldDescriptor) (*FieldSchema, error) {
 		Required:    false,
 		Validation:  extractValidation(field),
 	}
-	
+
 	// Capitalize field name properly
 	fieldSchema.Name = toCamelCase(field.GetName(), true)
-	
+
 	// Check if field is required from buf.validate
 	if fieldSchema.Validation != nil && fieldSchema.Validation.Required {
 		fieldSchema.Required = true
 	}
-	
+
 	return fieldSchema, nil
 }
 
@@ -392,17 +392,17 @@ func extractTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 	if field.IsMap() {
 		keyField := field.GetMapKeyType()
 		valueField := field.GetMapValueType()
-		
+
 		keyType := extractScalarTypeSpec(keyField)
 		valueType := extractScalarTypeSpec(valueField)
-		
+
 		return TypeSpec{
 			Kind:      "map",
 			KeyType:   &keyType,
 			ValueType: &valueType,
 		}
 	}
-	
+
 	// Handle repeated fields (arrays)
 	if field.IsRepeated() {
 		elementType := extractScalarTypeSpec(field)
@@ -411,7 +411,7 @@ func extractTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 			ElementType: &elementType,
 		}
 	}
-	
+
 	// Handle scalar or message fields
 	return extractScalarTypeSpec(field)
 }
@@ -435,12 +435,12 @@ func extractScalarTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 		return TypeSpec{Kind: "bytes"}
 	case descriptorpb.FieldDescriptorProto_TYPE_MESSAGE:
 		msgType := field.GetMessageType()
-		
+
 		// Special handling for google.protobuf.Struct
 		if msgType.GetFullyQualifiedName() == "google.protobuf.Struct" {
 			return TypeSpec{Kind: "struct"}
 		}
-		
+
 		// Regular message type
 		return TypeSpec{
 			Kind:        "message",
@@ -460,34 +460,34 @@ func extractValidation(field *desc.FieldDescriptor) *Validation {
 	if opts == nil {
 		return nil
 	}
-	
+
 	validation := &Validation{}
 	hasValidation := false
-	
+
 	// Get the full proto text representation of the field
 	// This includes all options and extensions
 	protoText := field.AsProto().String()
 	optsStr := opts.String()
-	
+
 	// Combine both to have maximum coverage
 	fullText := protoText + " " + optsStr
-	
+
 	// Check for buf.validate.field extension
 	// Multiple patterns to catch different representations
 	if strings.Contains(fullText, "[buf.validate.field]") ||
 		strings.Contains(fullText, "buf.validate.field") ||
 		strings.Contains(fullText, "1071") {
 		hasValidation = true
-		
+
 		// Check for required constraint
 		// Various patterns: "required = true", "required:true", "required: true"
 		if strings.Contains(fullText, "required") &&
-			(strings.Contains(fullText, "= true") || 
-			 strings.Contains(fullText, ":true") ||
-			 strings.Contains(fullText, ": true")) {
+			(strings.Contains(fullText, "= true") ||
+				strings.Contains(fullText, ":true") ||
+				strings.Contains(fullText, ": true")) {
 			validation.Required = true
 		}
-		
+
 		// Check for string validation (min_len, max_len)
 		if strings.Contains(fullText, "min_len") {
 			validation.MinLength = extractIntFromOptions(fullText, "min_len")
@@ -495,7 +495,7 @@ func extractValidation(field *desc.FieldDescriptor) *Validation {
 		if strings.Contains(fullText, "max_len") {
 			validation.MaxLength = extractIntFromOptions(fullText, "max_len")
 		}
-		
+
 		// Check for numeric validation (gte, lte)
 		if strings.Contains(fullText, "gte") {
 			validation.Min = extractIntFromOptions(fullText, "gte")
@@ -503,7 +503,7 @@ func extractValidation(field *desc.FieldDescriptor) *Validation {
 		if strings.Contains(fullText, "lte") {
 			validation.Max = extractIntFromOptions(fullText, "lte")
 		}
-		
+
 		// Check for array validation (min_items, max_items)
 		if strings.Contains(fullText, "min_items") {
 			validation.MinItems = extractIntFromOptions(fullText, "min_items")
@@ -512,11 +512,11 @@ func extractValidation(field *desc.FieldDescriptor) *Validation {
 			validation.MaxItems = extractIntFromOptions(fullText, "max_items")
 		}
 	}
-	
+
 	if !hasValidation {
 		return nil
 	}
-	
+
 	return validation
 }
 
@@ -527,29 +527,29 @@ func extractIntFromOptions(optsStr, key string) int {
 	if idx == -1 {
 		return 0
 	}
-	
+
 	// Start after the key
 	start := idx + len(key)
-	
+
 	// Skip whitespace, ":", "=", and more whitespace
 	for start < len(optsStr) && (optsStr[start] == ' ' || optsStr[start] == ':' || optsStr[start] == '=') {
 		start++
 	}
-	
+
 	end := start
-	
+
 	// Find the end of the number
 	for end < len(optsStr) && optsStr[end] >= '0' && optsStr[end] <= '9' {
 		end++
 	}
-	
+
 	if end > start {
 		numStr := optsStr[start:end]
 		var num int
 		fmt.Sscanf(numStr, "%d", &num)
 		return num
 	}
-	
+
 	return 0
 }
 
@@ -559,13 +559,13 @@ func extractComments(msg *desc.MessageDescriptor) string {
 	if sourceInfo == nil {
 		return ""
 	}
-	
+
 	comments := sourceInfo.GetLeadingComments()
 	if comments != "" {
 		// Clean up comments (remove leading/trailing whitespace)
 		comments = strings.TrimSpace(comments)
 	}
-	
+
 	return comments
 }
 
@@ -575,13 +575,13 @@ func extractFieldComments(field *desc.FieldDescriptor) string {
 	if sourceInfo == nil {
 		return ""
 	}
-	
+
 	comments := sourceInfo.GetLeadingComments()
 	if comments != "" {
 		// Clean up comments (remove leading/trailing whitespace)
 		comments = strings.TrimSpace(comments)
 	}
-	
+
 	return comments
 }
 
@@ -590,7 +590,7 @@ func extractFieldComments(field *desc.FieldDescriptor) string {
 func extractTaskKind(messageName string) string {
 	// Remove "TaskConfig" suffix
 	name := strings.TrimSuffix(messageName, "TaskConfig")
-	
+
 	// Convert camelCase to UPPER_SNAKE_CASE
 	var result []rune
 	for i, r := range name {
@@ -599,7 +599,7 @@ func extractTaskKind(messageName string) string {
 		}
 		result = append(result, r)
 	}
-	
+
 	return strings.ToUpper(string(result))
 }
 
