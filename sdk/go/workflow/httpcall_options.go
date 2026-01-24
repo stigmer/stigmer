@@ -44,7 +44,7 @@ func HttpCall(name string, args *HttpCallArgs) *Task {
 // Convenience Constructors for Common HTTP Methods
 // ============================================================================
 
-// HttpGet creates an HTTP GET task.
+// HttpGet creates an HTTP GET task with a default 30-second timeout.
 //
 // Example:
 //
@@ -56,13 +56,14 @@ func HttpCall(name string, args *HttpCallArgs) *Task {
 //	task := workflow.HttpGet("fetch", apiBase.Concat("/data"), nil)
 func HttpGet(name string, uri interface{}, headers map[string]string) *Task {
 	return HttpCall(name, &HttpCallArgs{
-		Method:   "GET",
-		Endpoint: &types.HttpEndpoint{Uri: uri},
-		Headers:  headers,
+		Method:         "GET",
+		Endpoint:       &types.HttpEndpoint{Uri: coerceToString(uri)},
+		Headers:        headers,
+		TimeoutSeconds: 30,
 	})
 }
 
-// HttpPost creates an HTTP POST task.
+// HttpPost creates an HTTP POST task with a default 30-second timeout.
 //
 // Example:
 //
@@ -75,38 +76,42 @@ func HttpGet(name string, uri interface{}, headers map[string]string) *Task {
 //	task := workflow.HttpPost("create", apiBase.Concat("/users"), nil, body)
 func HttpPost(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task {
 	return HttpCall(name, &HttpCallArgs{
-		Method:   "POST",
-		Endpoint: &types.HttpEndpoint{Uri: uri},
-		Headers:  headers,
-		Body:     body,
+		Method:         "POST",
+		Endpoint:       &types.HttpEndpoint{Uri: coerceToString(uri)},
+		Headers:        headers,
+		Body:           body,
+		TimeoutSeconds: 30,
 	})
 }
 
-// HttpPut creates an HTTP PUT task.
+// HttpPut creates an HTTP PUT task with a default 30-second timeout.
 func HttpPut(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task {
 	return HttpCall(name, &HttpCallArgs{
-		Method:   "PUT",
-		Endpoint: &types.HttpEndpoint{Uri: uri},
-		Headers:  headers,
-		Body:     body,
+		Method:         "PUT",
+		Endpoint:       &types.HttpEndpoint{Uri: coerceToString(uri)},
+		Headers:        headers,
+		Body:           body,
+		TimeoutSeconds: 30,
 	})
 }
 
-// HttpPatch creates an HTTP PATCH task.
+// HttpPatch creates an HTTP PATCH task with a default 30-second timeout.
 func HttpPatch(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task {
 	return HttpCall(name, &HttpCallArgs{
-		Method:   "PATCH",
-		Endpoint: &types.HttpEndpoint{Uri: uri},
-		Headers:  headers,
-		Body:     body,
+		Method:         "PATCH",
+		Endpoint:       &types.HttpEndpoint{Uri: coerceToString(uri)},
+		Headers:        headers,
+		Body:           body,
+		TimeoutSeconds: 30,
 	})
 }
 
-// HttpDelete creates an HTTP DELETE task.
+// HttpDelete creates an HTTP DELETE task with a default 30-second timeout.
 func HttpDelete(name string, uri interface{}, headers map[string]string) *Task {
 	return HttpCall(name, &HttpCallArgs{
-		Method:   "DELETE",
-		Endpoint: &types.HttpEndpoint{Uri: uri},
-		Headers:  headers,
+		Method:         "DELETE",
+		Endpoint:       &types.HttpEndpoint{Uri: coerceToString(uri)},
+		Headers:        headers,
+		TimeoutSeconds: 30,
 	})
 }
