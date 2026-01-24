@@ -68,10 +68,10 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-23 21:27
-**Current Task**: T06 (Struct-Based Args) - ALL PHASES COMPLETE ✅
-**Status**: ✅ **PROJECT COMPLETE** - Core migration and documentation finished
-**Last Updated**: 2026-01-24 07:30
-**Latest Achievement**: Comprehensive documentation created following Stigmer OSS standards - Phase 6 complete!
+**Current Task**: T06 (Struct-Based Args) - Phase 7 Complete ✅
+**Status**: 🚧 **IN PROGRESS** - Cleanup + workflow examples (6/11) complete
+**Last Updated**: 2026-01-24 17:40
+**Latest Achievement**: Removed file-loading helpers + updated examples 07-11, 13 to struct args!
 
 **CONVERSATION 2 PROGRESS** (2026-01-24):
 - ✅ **ARCHITECTURE FIX COMPLETE**
@@ -227,30 +227,58 @@ When starting a new session:
   - `TestValidationError_ErrorMessage` - Error message wording expectations
 - ⏭️ Skipped: 4 tests (features not yet implemented: MCP servers, sub-agents)
 
+**CONVERSATION 7 PROGRESS** (2026-01-24 17:00-17:40):
+- ✅ **CLEANUP COMPLETE - File Loading Helpers Removed**
+- ✅ Removed `agent.LoadInstructionsFromFile()` helper
+- ✅ Removed `skill.LoadMarkdownFromFile()` helper  
+- ✅ Deleted `agent/agent_file_loading_test.go`
+- ✅ Updated Example 06 to inline content pattern
+- ✅ Updated SDK README to remove helper references
+- ✅ All packages compile successfully
+
+- ✅ **WORKFLOW EXAMPLES UPDATE - 6/11 Complete**
+- ✅ Example 07 (07_basic_workflow.go) - HttpGet, Set ✓
+- ✅ Example 08 (08_workflow_with_conditionals.go) - Switch ✓
+- ✅ Example 09 (09_workflow_with_loops.go) - ForEach ✓
+- ✅ Example 10 (10_workflow_with_error_handling.go) - Try ✓
+- ✅ Example 11 (11_workflow_with_parallel_execution.go) - Fork ✓
+- ✅ Example 13 (13_workflow_and_agent_shared_context.go) - Updated ✓
+- ✅ All updated examples compile successfully
+
 **Remaining Follow-Up Work**:
 
-1. **Agent Test Files** - ✅ COMPLETE
+1. **Agent Test Files** - ✅ COMPLETE (Conversation 6)
    - All 13 test files updated to struct-based args
    - All tests compile successfully
    - 110/114 tests passing (4 pre-existing failures)
 
-2. **Workflow Examples** (11 examples) - Priority: HIGH
-   - Files: sdk/go/examples/07-11, 14-19
-   - Update: Struct args pattern for workflow tasks
-   - Effort: 2-3 hours
-   - When: After agent tests pass
+2. **SDK Cleanup** - ✅ COMPLETE (This conversation)
+   - File loading helpers removed
+   - Example 06 simplified
+   - Documentation updated
 
-3. **API Reference Updates** - Priority: MEDIUM
+3. **Workflow Examples** (11 examples) - 🚧 **IN PROGRESS (6/11 done)**
+   - ✅ Examples 07-11, 13 - Complete (this conversation)
+   - ⏳ Example 14: Runtime secrets - Pending
+   - ⏳ Example 15: Simple agent call - Pending
+   - ⏳ Example 16: Agent by slug - Pending
+   - ⏳ Example 17: Agent + runtime secrets - Pending
+   - ⏳ Example 18: Multi-agent orchestration - Pending
+   - ⏳ Example 19: Agent execution config - Pending
+   - Priority: HIGH
+   - When: Next conversation (user will handle)
+
+4. **API Reference Updates** - Priority: MEDIUM
    - File: sdk/go/docs/API_REFERENCE.md
    - Update: Document Args types and struct args constructors
    - Effort: 1 hour
-   - When: After examples updated
+   - When: After all examples updated
 
-4. **Usage Guide Updates** - Priority: MEDIUM
+5. **Usage Guide Updates** - Priority: MEDIUM
    - File: sdk/go/docs/USAGE.md
    - Update: Replace functional options examples with struct args
    - Effort: 1 hour
-   - When: After examples updated
+   - When: After all examples updated
 
 ## Quick Commands
 

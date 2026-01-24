@@ -2,7 +2,6 @@ package skill
 
 import (
 	"errors"
-	"os"
 
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 )
@@ -26,7 +25,7 @@ var (
 //
 //	mySkill, _ := skill.New("code-analyzer", &skill.SkillArgs{
 //	    Description:     "Analyzes code quality",
-//	    MarkdownContent: skill.LoadMarkdownFromFile("skills/analyzer.md"),
+//	    MarkdownContent: "# Code Analysis\n\nThis skill analyzes code...",
 //	})
 //
 // Referenced skills:
@@ -76,14 +75,6 @@ type Skill struct {
 //	    MarkdownContent: "# Code Analysis\n\nThis skill analyzes code...",
 //	})
 //
-// Example loading from file:
-//
-//	content, _ := skill.LoadMarkdownFromFile("skills/analyzer.md")
-//	skill, _ := skill.New("code-analyzer", &skill.SkillArgs{
-//	    Description:     "Analyzes code quality",
-//	    MarkdownContent: content,
-//	})
-//
 // Example with nil args (validation will fail without markdown):
 //
 //	skill, err := skill.New("code-analyzer", nil)
@@ -122,28 +113,6 @@ func New(name string, args *SkillArgs) (*Skill, error) {
 	}
 
 	return s, nil
-}
-
-// LoadMarkdownFromFile is a helper that loads markdown content from a file.
-//
-// Use this to load skill content from a file when creating an inline skill.
-//
-// Example:
-//
-//	content, err := skill.LoadMarkdownFromFile("skills/code-analyzer.md")
-//	if err != nil {
-//	    return err
-//	}
-//	mySkill, err := skill.New("code-analyzer", &skill.SkillArgs{
-//	    Description:     "Analyzes code quality",
-//	    MarkdownContent: content,
-//	})
-func LoadMarkdownFromFile(path string) (string, error) {
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-	return string(content), nil
 }
 
 // Platform creates a reference to a platform-wide skill.

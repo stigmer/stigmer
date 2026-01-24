@@ -17,7 +17,7 @@ func main() {
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Context for configuration
 		apiBase := ctx.SetString("apiBase", "https://api.example.com")
-		timeout := ctx.SetInt("timeout", 60)
+		_ = ctx.SetInt("timeout", 60) // Define timeout in context
 		
 		// Create workflow
 		wf, err := workflow.New(ctx,
@@ -31,48 +31,61 @@ func main() {
 		}
 
 		// Task 1: Fork to execute multiple tasks in parallel
-		forkTask := wf.Fork("fetchAllData",
-			workflow.ParallelBranches(
-				// Branch 1: Fetch user data
-				workflow.BranchBuilder("fetchUsers", func() *workflow.Task {
-					return wf.HttpGet("getUsers",
-						apiBase.Concat("/users"),
-						workflow.Timeout(int32(timeout.Value())),
-					)
-				}),
-				
-				// Branch 2: Fetch product data
-				workflow.BranchBuilder("fetchProducts", func() *workflow.Task {
-					return wf.HttpGet("getProducts",
-						apiBase.Concat("/products"),
-						workflow.Timeout(int32(timeout.Value())),
-					)
-				}),
-				
-				// Branch 3: Fetch orders data
-				workflow.BranchBuilder("fetchOrders", func() *workflow.Task {
-					return wf.HttpGet("getOrders",
-						apiBase.Concat("/orders"),
-						workflow.Timeout(int32(timeout.Value())),
-					)
-				}),
-			),
-			workflow.WaitForAll(), // Wait for all branches to complete
-		)
+		_ = wf.Fork("fetchAllData", &workflow.ForkArgs{
+			Branches: []map[string]interface{}{
+				{
+					"name": "fetchUsers",
+					"tasks": []interface{}{
+						map[string]interface{}{
+							"httpCall": map[string]interface{}{
+								"method": "GET",
+								"uri":    apiBase.Concat("/users").Expression(),
+							},
+						},
+					},
+				},
+				{
+					"name": "fetchProducts",
+					"tasks": []interface{}{
+						map[string]interface{}{
+							"httpCall": map[string]interface{}{
+								"method": "GET",
+								"uri":    apiBase.Concat("/products").Expression(),
+							},
+						},
+					},
+				},
+				{
+					"name": "fetchOrders",
+					"tasks": []interface{}{
+						map[string]interface{}{
+							"httpCall": map[string]interface{}{
+								"method": "GET",
+								"uri":    apiBase.Concat("/orders").Expression(),
+							},
+						},
+					},
+				},
+			},
+		})
 
-	// Task 2: Merge results from all parallel branches
-	wf.Set("mergeResults",
-		workflow.SetVar("users", forkTask.Branch("fetchUsers").Field("data")),
-		workflow.SetVar("products", forkTask.Branch("fetchProducts").Field("data")),
-		workflow.SetVar("orders", forkTask.Branch("fetchOrders").Field("data")),
-		workflow.SetVar("status", "merged"),
-	)
+		// Task 2: Merge results from all parallel branches
+		wf.Set("mergeResults", &workflow.SetArgs{
+			Variables: map[string]string{
+				"users":    "${ $context[\"fetchAllData\"].branches.fetchUsers.data }",
+				"products": "${ $context[\"fetchAllData\"].branches.fetchProducts.data }",
+				"orders":   "${ $context[\"fetchAllData\"].branches.fetchOrders.data }",
+				"status":   "merged",
+			},
+		})
 
-	// Task 3: Process merged data
-	wf.Set("processMerged",
-		workflow.SetVar("totalRecords", "${users.length + products.length + orders.length}"),
-		workflow.SetVar("completedAt", "${now()}"),
-	)
+		// Task 3: Process merged data
+		wf.Set("processMerged", &workflow.SetArgs{
+			Variables: map[string]string{
+				"totalRecords": "${users.length + products.length + orders.length}",
+				"completedAt":  "${now()}",
+			},
+		})
 
 		log.Printf("Created workflow with parallel execution: %s", wf)
 		return nil

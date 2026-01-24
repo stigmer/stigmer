@@ -31,34 +31,49 @@ func main() {
 
 		// Task 1: Check deployment environment
 		checkTask := wf.HttpGet("checkEnvironment",
-			apiBase.Concat("/status"),
+			apiBase.Concat("/status").Expression(),
+			nil, // No custom headers
 		)
 
 		// Task 2: Switch based on status code
-		switchTask := wf.Switch("routeByStatus",
-			workflow.SwitchOn(checkTask.Field("statusCode")),
-			workflow.Case(workflow.Equals(200), "deployProduction"),
-			workflow.Case(workflow.Equals(202), "deployStaging"),
-			workflow.DefaultCase("handleError"),
-		)
+		statusCode := checkTask.Field("statusCode")
+		switchTask := wf.Switch("routeByStatus", &workflow.SwitchArgs{
+			Cases: []map[string]interface{}{
+				{
+					"condition": statusCode.Expression() + " == 200",
+					"then":      "deployProduction",
+				},
+				{
+					"condition": statusCode.Expression() + " == 202",
+					"then":      "deployStaging",
+				},
+			},
+			DefaultTask: "handleError",
+		})
 
-	// Task 3a: Production deployment
-	wf.Set("deployProduction",
-		workflow.SetVar("environment", "production"),
-		workflow.SetVar("replicas", "5"),
-	).DependsOn(switchTask)
+		// Task 3a: Production deployment
+		wf.Set("deployProduction", &workflow.SetArgs{
+			Variables: map[string]string{
+				"environment": "production",
+				"replicas":    "5",
+			},
+		}).DependsOn(switchTask)
 
-	// Task 3b: Staging deployment
-	wf.Set("deployStaging",
-		workflow.SetVar("environment", "staging"),
-		workflow.SetVar("replicas", "2"),
-	).DependsOn(switchTask)
+		// Task 3b: Staging deployment
+		wf.Set("deployStaging", &workflow.SetArgs{
+			Variables: map[string]string{
+				"environment": "staging",
+				"replicas":    "2",
+			},
+		}).DependsOn(switchTask)
 
-	// Task 3c: Error handler
-	wf.Set("handleError",
-		workflow.SetVar("status", "failed"),
-		workflow.SetVar("reason", "Invalid status code"),
-	).DependsOn(switchTask)
+		// Task 3c: Error handler
+		wf.Set("handleError", &workflow.SetArgs{
+			Variables: map[string]string{
+				"status": "failed",
+				"reason": "Invalid status code",
+			},
+		}).DependsOn(switchTask)
 
 		log.Printf("Created workflow with conditional logic: %s", wf)
 		return nil

@@ -32,30 +32,36 @@ func main() {
 
 		// Task 1: Get list of items to process
 		fetchTask := wf.HttpGet("fetchItems",
-			apiBase.Concat("/items"),
+			apiBase.Concat("/items").Expression(),
+			nil, // No custom headers
 		)
 
 		// Task 2: Loop over items
-		loopTask := wf.ForEach("processEachItem",
-			workflow.IterateOver(fetchTask.Field("items")),
-			workflow.WithLoopBody(func(item workflow.LoopVar) *workflow.Task {
-				// Process each item
-				return wf.HttpPost("processItem",
-					apiBase.Concat("/process"),
-					workflow.Body(map[string]interface{}{
-						"itemId": item.Field("id"),
-						"data":   item.Field("data"),
-					}),
-				)
-			}),
-		)
+		// For each item in the collection, execute the tasks defined in the Do array
+		loopTask := wf.ForEach("processEachItem", &workflow.ForArgs{
+			In: fetchTask.Field("items").Expression(),
+			Do: []map[string]interface{}{
+				{
+					"httpCall": map[string]interface{}{
+						"method": "POST",
+						"uri":    apiBase.Concat("/process").Expression(),
+						"body": map[string]interface{}{
+							"itemId": "${.item.id}",   // Reference current loop item
+							"data":   "${.item.data}", // Reference current loop item
+						},
+					},
+				},
+			},
+		})
 
-	// Task 3: Collect results
-	wf.Set("collectResults",
-		workflow.SetVar("processed", loopTask.Field("results")),
-		workflow.SetVar("count", loopTask.Field("count")),
-		workflow.SetVar("status", "completed"),
-	)
+		// Task 3: Collect results
+		wf.Set("collectResults", &workflow.SetArgs{
+			Variables: map[string]string{
+				"processed": loopTask.Field("results").Expression(),
+				"count":     loopTask.Field("count").Expression(),
+				"status":    "completed",
+			},
+		})
 
 		log.Printf("Created workflow with loops: %s", wf)
 		log.Printf("Batch size: %v", batchSize)

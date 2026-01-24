@@ -30,7 +30,7 @@ func TestAgentWithInlineSubAgent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	
+
 	// Add sub-agent using builder method
 	agent.AddSubAgent(helper)
 
@@ -44,14 +44,14 @@ func TestAgentWithInlineSubAgent(t *testing.T) {
 
 func TestAgentWithReferencedSubAgent(t *testing.T) {
 	refAgent := subagent.Reference("helper", "prod")
-	
+
 	agent, err := New(nil, "main-agent", &AgentArgs{
 		Instructions: "Main agent instructions",
 	})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	
+
 	// Add referenced sub-agent using builder method
 	agent.AddSubAgent(refAgent)
 
@@ -82,7 +82,7 @@ func TestAgentWithMultipleSubAgents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	
+
 	// Add all sub-agents using builder method
 	agent.AddSubAgents(analyzer, reviewer, securityRef)
 
@@ -122,7 +122,7 @@ func TestAgentWithSubAgentUsingMCPServers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	
+
 	// Add MCP server and sub-agent using builder methods
 	agent.AddMCPServer(github)
 	agent.AddSubAgent(githubHelper)
@@ -151,7 +151,7 @@ func TestAgentWithSubAgentUsingSkills(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	
+
 	// Add sub-agent using builder method
 	agent.AddSubAgent(skilledHelper)
 
@@ -183,7 +183,7 @@ func TestAgentWithSubAgentUsingToolSelections(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	
+
 	// Add MCP server and sub-agent using builder methods
 	agent.AddMCPServer(github)
 	agent.AddSubAgent(selectiveHelper)
