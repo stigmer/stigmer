@@ -93,11 +93,23 @@ func main() {
 	includeDir := flag.String("include-dir", "apis", "Directory containing proto imports")
 	useBufCache := flag.Bool("use-buf-cache", true, "Use buf's module cache for dependencies")
 	messageSuffix := flag.String("message-suffix", "TaskConfig", "Suffix of messages to extract (TaskConfig, Spec, etc)")
+	comprehensive := flag.Bool("comprehensive", false, "Generate schemas for ALL proto namespaces under agentic/")
 	flag.Parse()
 
-	if *protoDir == "" || *outputDir == "" {
+	if !*comprehensive && (*protoDir == "" || *outputDir == "") {
 		fmt.Println("Usage: proto2schema --proto-dir <dir> --output-dir <dir> [--include-dir <dir>] [--use-buf-cache] [--message-suffix <suffix>]")
+		fmt.Println("   OR: proto2schema --comprehensive [--include-dir <dir>] [--output-dir <dir>]")
 		os.Exit(1)
+	}
+
+	if *comprehensive {
+		// Comprehensive mode: scan all agentic namespaces
+		fmt.Println("🚀 Comprehensive schema generation mode")
+		if err := runComprehensiveGeneration(*includeDir, *outputDir, *useBufCache); err != nil {
+			fmt.Printf("Error in comprehensive generation: %v\n", err)
+			os.Exit(1)
+		}
+		return
 	}
 
 	fmt.Printf("Converting proto files from %s to JSON schemas in %s\n", *protoDir, *outputDir)
@@ -230,6 +242,178 @@ func main() {
 	}
 
 	fmt.Println("\n✅ Schema generation complete!")
+}
+
+// runComprehensiveGeneration scans all proto namespaces and generates schemas
+func runComprehensiveGeneration(includeDir, baseOutputDir string, useBufCache bool) error {
+	// Default output directory
+	if baseOutputDir == "" {
+		baseOutputDir = "tools/codegen/schemas"
+	}
+
+	// Find all agentic namespaces
+	agenticDir := filepath.Join(includeDir, "ai", "stigmer", "agentic")
+	namespaces, err := os.ReadDir(agenticDir)
+	if err != nil {
+		return fmt.Errorf("failed to read agentic directory: %w", err)
+	}
+
+	fmt.Printf("📁 Scanning namespaces in %s\n\n", agenticDir)
+
+	// Process each namespace
+	for _, ns := range namespaces {
+		if !ns.IsDir() {
+			continue
+		}
+
+		namespaceName := ns.Name()
+		
+		// Skip certain directories
+		if namespaceName == "session" {
+			fmt.Printf("⏭️  Skipping %s (internal only)\n", namespaceName)
+			continue
+		}
+
+		fmt.Printf("📦 Processing namespace: %s\n", namespaceName)
+
+		// Path to proto files for this namespace
+		protoDir := filepath.Join(agenticDir, namespaceName, "v1")
+		if _, err := os.Stat(protoDir); os.IsNotExist(err) {
+			fmt.Printf("   ⚠️  No v1 directory found, skipping\n")
+			continue
+		}
+
+		// Output directory for this namespace
+		outputDir := filepath.Join(baseOutputDir, namespaceName)
+
+		// Generate schemas for Spec messages
+		if err := generateNamespaceSchemas(protoDir, outputDir, includeDir, useBufCache, "Spec"); err != nil {
+			fmt.Printf("   ❌ Error: %v\n", err)
+			continue
+		}
+
+		fmt.Printf("   ✅ Generated schemas for %s\n\n", namespaceName)
+	}
+
+	// Also process workflow tasks (special case)
+	fmt.Printf("📦 Processing workflow tasks\n")
+	workflowTasksDir := filepath.Join(agenticDir, "workflow", "v1", "tasks")
+	tasksOutputDir := filepath.Join(baseOutputDir, "tasks")
+	if err := generateNamespaceSchemas(workflowTasksDir, tasksOutputDir, includeDir, useBufCache, "TaskConfig"); err != nil {
+		fmt.Printf("   ❌ Error: %v\n", err)
+	} else {
+		fmt.Printf("   ✅ Generated workflow task schemas\n\n")
+	}
+
+	fmt.Println("🎉 Comprehensive schema generation complete!")
+	return nil
+}
+
+// generateNamespaceSchemas generates schemas for a specific namespace
+func generateNamespaceSchemas(protoDir, outputDir, includeDir string, useBufCache bool, messageSuffix string) error {
+	// Create output directory
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	// Find all .proto files
+	protoFiles, err := findProtoFiles(protoDir)
+	if err != nil {
+		return fmt.Errorf("failed to find proto files: %w", err)
+	}
+
+	if len(protoFiles) == 0 {
+		return nil // No proto files, skip
+	}
+
+	// Build import paths
+	importPaths := []string{includeDir}
+
+	// Add buf module cache if enabled
+	if useBufCache {
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			bufCachePath := filepath.Join(homeDir, ".cache", "buf", "v3", "modules", "b5", "buf.build", "bufbuild", "protovalidate")
+			if entries, err := os.ReadDir(bufCachePath); err == nil && len(entries) > 0 {
+				for _, entry := range entries {
+					if entry.IsDir() {
+						filesPath := filepath.Join(bufCachePath, entry.Name(), "files")
+						if _, err := os.Stat(filesPath); err == nil {
+							importPaths = append([]string{filesPath}, importPaths...)
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Parse proto files
+	parser := &protoparse.Parser{
+		ImportPaths:           importPaths,
+		IncludeSourceCodeInfo: true,
+	}
+
+	// Convert paths to relative paths from include dir
+	var relativeProtoFiles []string
+	for _, protoFile := range protoFiles {
+		relPath, err := filepath.Rel(includeDir, protoFile)
+		if err != nil {
+			return fmt.Errorf("failed to get relative path for %s: %w", protoFile, err)
+		}
+		relativeProtoFiles = append(relativeProtoFiles, relPath)
+	}
+
+	fileDescriptors, err := parser.ParseFiles(relativeProtoFiles...)
+	if err != nil {
+		return fmt.Errorf("failed to parse proto files: %w", err)
+	}
+
+	// Track all message types
+	taskConfigs := make(map[string]*TaskConfigSchema)
+	sharedTypes := make(map[string]*TypeSchema)
+
+	// Extract all messages with the specified suffix
+	for _, fd := range fileDescriptors {
+		for _, msg := range fd.GetMessageTypes() {
+			if strings.HasSuffix(msg.GetName(), messageSuffix) {
+				schema, err := parseTaskConfig(msg, fd)
+				if err != nil {
+					continue
+				}
+				taskConfigs[msg.GetName()] = schema
+				collectNestedTypes(msg, fd, sharedTypes)
+			}
+		}
+	}
+
+	// Write message schemas
+	for name, schema := range taskConfigs {
+		baseName := strings.ToLower(strings.TrimSuffix(name, messageSuffix))
+		schemaFile := filepath.Join(outputDir, baseName+".json")
+
+		if err := writeSchemaFile(schema, schemaFile); err != nil {
+			continue
+		}
+		fmt.Printf("   → %s\n", filepath.Base(schemaFile))
+	}
+
+	// Write shared type schemas to a types subdirectory
+	if len(sharedTypes) > 0 {
+		typesDir := filepath.Join(outputDir, "types")
+		if err := os.MkdirAll(typesDir, 0755); err == nil {
+			for name, typeSchema := range sharedTypes {
+				baseName := strings.ToLower(name)
+				schemaFile := filepath.Join(typesDir, baseName+".json")
+				if err := writeSchemaFile(typeSchema, schemaFile); err != nil {
+					continue
+				}
+				fmt.Printf("   → types/%s\n", filepath.Base(schemaFile))
+			}
+		}
+	}
+
+	return nil
 }
 
 func findProtoFiles(dir string) ([]string, error) {

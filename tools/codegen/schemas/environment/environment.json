@@ -1,0 +1,36 @@
+{
+  "name": "EnvironmentSpec",
+  "kind": "ENVIRONMENT_SPEC",
+  "description": "EnvironmentSpec defines a collection of configuration and secrets.\n Created before AgentInstance or WorkflowInstance, referenced during instance creation.",
+  "protoType": "ai.stigmer.agentic.environment.v1.EnvironmentSpec",
+  "protoFile": "apis/ai/stigmer/agentic/environment/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description of this environment.\n Example: \"Production AWS credentials for deployment\"",
+      "required": false
+    },
+    {
+      "name": "Data",
+      "jsonName": "data",
+      "protoField": "data",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "EnvironmentValue"
+        }
+      },
+      "description": "Key-value pairs containing both configuration and secrets.\n Each value includes a flag indicating whether it's a secret.\n Example: {\"AWS_REGION\": {value: \"us-west-2\", is_secret: false},\n           \"AWS_ACCESS_KEY_ID\": {value: \"AKIA...\", is_secret: true}}",
+      "required": false
+    }
+  ]
+}

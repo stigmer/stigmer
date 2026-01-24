@@ -1,0 +1,58 @@
+{
+  "name": "WorkflowDocument",
+  "description": "WorkflowDocument contains workflow metadata.\n Maps to the `document:` block in Zigflow DSL YAML.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowDocument",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Dsl",
+      "jsonName": "dsl",
+      "protoField": "dsl",
+      "type": {
+        "kind": "string"
+      },
+      "description": "DSL version (semver). Must be \"1.0.0\" for current Zigflow.",
+      "required": false
+    },
+    {
+      "name": "Namespace",
+      "jsonName": "namespace",
+      "protoField": "namespace",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Workflow namespace (organization/categorization).",
+      "required": false
+    },
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Workflow name (unique identifier within namespace).",
+      "required": false
+    },
+    {
+      "name": "Version",
+      "jsonName": "version",
+      "protoField": "version",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Workflow version (semver).",
+      "required": false
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description.",
+      "required": false
+    }
+  ]
+}
