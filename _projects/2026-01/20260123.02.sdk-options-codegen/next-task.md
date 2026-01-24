@@ -70,8 +70,8 @@ When starting a new session:
 **Created**: 2026-01-23 21:27
 **Current Task**: T06 (Struct-Based Args) - ✅ **PROJECT COMPLETE**
 **Status**: ✅ **ALL PHASES COMPLETE** - SDK migration + documentation complete!
-**Last Updated**: 2026-01-24 06:11
-**Latest Achievement**: Fixed all SDK build failures - integration tests updated to new API patterns
+**Last Updated**: 2026-01-24 16:17
+**Latest Achievement**: Fixed SDK templates to use new options-based API - all template tests passing
 
 **CONVERSATION 2 PROGRESS** (2026-01-24):
 - ✅ **ARCHITECTURE FIX COMPLETE**
@@ -247,6 +247,45 @@ When starting a new session:
   - `TestAgentToProto_NilFields` (5 sub-tests) - Proto serialization: nil vs empty slices
   - `TestAgentToProto_EmptyStringFields` - Slug auto-generation behavior
   - `TestValidationError_ErrorMessage` - Error message wording expectations
+
+**CONVERSATION 7 PROGRESS** (2026-01-24 16:00-17:00):
+- ✅ **SDK TEMPLATES FIXED - ALL TESTS PASSING**
+  - ✅ Updated all 3 template functions in `sdk/go/templates/templates.go`:
+    - `BasicAgent()` - Uses `agent.New(ctx, name, &agent.AgentArgs{...})`
+    - `BasicWorkflow()` - Uses `wf.HttpGet()`, `wf.Set(&workflow.SetArgs{...})`
+    - `AgentAndWorkflow()` - Uses both patterns + `CallAgent(&workflow.AgentCallArgs{...})`
+  - ✅ Updated test expectations in `templates_test.go`:
+    - Fixed `TestCorrectAPIs` to check for `&workflow.AgentCallArgs{` instead of `workflow.Agent(`
+    - Verified `reviewer.Name` pattern for agent references
+  - ✅ All template tests passing (6/6, 100%):
+    - `TestBasicAgent` ✓
+    - `TestBasicWorkflow` ✓
+    - `TestAgentAndWorkflow` ✓
+    - `TestTemplatesCompile` ✓ (all 3 subtests)
+    - `TestNoDeprecatedAPIs` ✓
+    - `TestCorrectAPIs` ✓
+  - ✅ Templates now demonstrate correct API usage for users
+  - ✅ `stigmer init` command will generate working code
+
+**Key Template API Patterns Fixed**:
+1. **Agent Creation**: `agent.New(ctx, "name", &agent.AgentArgs{Instructions, Description})`
+2. **HTTP Requests**: `wf.HttpGet("name", url, map[string]string{"Header": "value"})`
+3. **Set Variables**: `wf.Set("name", &workflow.SetArgs{Variables: map[string]string{...}})`
+4. **Agent Calls**: `wf.CallAgent("name", &workflow.AgentCallArgs{Agent: agent.Name, Message: "...", Config: {...}})`
+5. **Field References**: `task.Field("field").Expression()` (explicit expression rendering)
+6. **Agent Reference**: Use `agent.Name` (string), not `agent` object
+
+**Impact**:
+- Templates are now production-ready for user-facing code generation
+- `stigmer init` unblocked - generates correct, compilable code
+- Users see current best practices from the start
+- No confusion from deprecated examples
+
+**Test Package Status** (`sdk/go/templates`):
+- ✅ PASS - All 6 tests passing
+- Template compilation verified
+- API correctness enforced
+- Zero deprecated patterns
 - ⏭️ Skipped: 4 tests (features not yet implemented: MCP servers, sub-agents)
 
 **CONVERSATION 7 PROGRESS** (2026-01-24 17:00-17:40):
