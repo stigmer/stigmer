@@ -297,7 +297,7 @@ func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
 			Name: "waitTask",
 			Kind: TaskKindWait,
 			Config: &WaitTaskConfig{
-				Duration: "5s",
+				Seconds: 5,
 			},
 		},
 		// CALL_ACTIVITY

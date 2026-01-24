@@ -510,8 +510,8 @@ func agentCallTaskConfigToMap(c *AgentCallTaskConfig) map[string]interface{} {
 // waitTaskConfigToMap converts WaitTaskConfig to map.
 func waitTaskConfigToMap(c *WaitTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	if c.Duration != "" {
-		m["duration"] = c.Duration
+	if c.Seconds > 0 {
+		m["seconds"] = c.Seconds
 	}
 	return m
 }
