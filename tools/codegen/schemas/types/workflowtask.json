@@ -12,8 +12,7 @@
         "kind": "string"
       },
       "description": "Task name/identifier (must be unique within workflow).",
-      "required": false,
-      "validation": {}
+      "required": false
     },
     {
       "name": "Kind",
@@ -23,8 +22,7 @@
         "kind": "string"
       },
       "description": "Task type (determines how to interpret task_config).",
-      "required": false,
-      "validation": {}
+      "required": false
     },
     {
       "name": "TaskConfig",
@@ -34,8 +32,7 @@
         "kind": "struct"
       },
       "description": "Task-specific configuration (dynamic typed).\n Structure depends on `kind` value.\n\n Backend unmarshals this Struct to the appropriate proto message:\n - SET: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig\n - HTTP_CALL: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig\n - GRPC_CALL: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig\n - SWITCH: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig\n - FOR: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig\n - FORK: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig\n - TRY: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig\n - LISTEN: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig\n - WAIT: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig\n - CALL_ACTIVITY: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig\n - RAISE: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig\n - RUN: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig\n\n See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.",
-      "required": false,
-      "validation": {}
+      "required": false
     },
     {
       "name": "Export",

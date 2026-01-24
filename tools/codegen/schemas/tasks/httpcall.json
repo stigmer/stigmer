@@ -13,8 +13,7 @@
         "kind": "string"
       },
       "description": "HTTP method (GET, POST, PUT, DELETE, PATCH).",
-      "required": false,
-      "validation": {}
+      "required": false
     },
     {
       "name": "Endpoint",
@@ -25,8 +24,7 @@
         "messageType": "HttpEndpoint"
       },
       "description": "HTTP endpoint configuration.",
-      "required": false,
-      "validation": {}
+      "required": false
     },
     {
       "name": "Headers",
@@ -62,8 +60,7 @@
         "kind": "int32"
       },
       "description": "Request timeout in seconds (optional, default: 30).",
-      "required": false,
-      "validation": {}
+      "required": false
     }
   ]
 }

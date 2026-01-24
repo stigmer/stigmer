@@ -101,7 +101,7 @@ func (c *AgentCallTaskConfig) FromProto(s *structpb.Struct) error {
 	}
 
 	if val, ok := fields["config"]; ok {
-		c.Config = &AgentExecutionConfig{}
+		c.Config = &types.AgentExecutionConfig{}
 		if err := c.Config.FromProto(val.GetStructValue()); err != nil {
 			return err
 		}

@@ -11,7 +11,7 @@ type GrpcCallArgs = GrpcCallTaskConfig
 //	task := workflow.GrpcCall("callService", &workflow.GrpcCallArgs{
 //	    Service: "userservice",
 //	    Method:  "GetUser",
-//	    Body:    map[string]interface{}{"id": "123"},
+//	    Request: map[string]interface{}{"id": "123"},
 //	})
 func GrpcCall(name string, args *GrpcCallArgs) *Task {
 	if args == nil {
@@ -19,8 +19,8 @@ func GrpcCall(name string, args *GrpcCallArgs) *Task {
 	}
 
 	// Initialize maps if nil
-	if args.Body == nil {
-		args.Body = make(map[string]interface{})
+	if args.Request == nil {
+		args.Request = make(map[string]interface{})
 	}
 
 	return &Task{

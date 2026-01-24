@@ -19,8 +19,7 @@
         }
       },
       "description": "Variables to set in workflow state.\n Keys are variable names, values can be literals or expressions.\n Expressions use ${...} syntax, e.g., \"${.a + .b}\" or \"${now}\"",
-      "required": false,
-      "validation": {}
+      "required": false
     }
   ]
 }

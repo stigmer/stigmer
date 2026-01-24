@@ -104,8 +104,7 @@ codegen-schemas: ## Generate JSON schemas from proto files (Stage 1: proto → s
 	@cd ../.. && go run tools/codegen/proto2schema/main.go \
 		--proto-dir apis/ai/stigmer/agentic/workflow/v1/tasks \
 		--output-dir tools/codegen/schemas/tasks \
-		--include-dir apis \
-		--stub-dir /tmp/proto-stubs
+		--include-dir apis
 	@echo ""
 	@echo "✓ JSON schemas generated!"
 	@echo ""

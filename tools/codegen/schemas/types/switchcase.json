@@ -12,8 +12,7 @@
         "kind": "string"
       },
       "description": "Case name/identifier.",
-      "required": false,
-      "validation": {}
+      "required": false
     },
     {
       "name": "When",
@@ -33,8 +32,7 @@
         "kind": "string"
       },
       "description": "Target task name to execute if condition matches.",
-      "required": false,
-      "validation": {}
+      "required": false
     }
   ]
 }

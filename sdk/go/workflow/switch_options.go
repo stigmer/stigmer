@@ -1,6 +1,10 @@
 package workflow
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/stigmer/stigmer/sdk/go/types"
+)
 
 // SwitchArgs is an alias for SwitchTaskConfig (Pulumi-style args pattern).
 type SwitchArgs = SwitchTaskConfig
@@ -11,16 +15,16 @@ type SwitchArgs = SwitchTaskConfig
 // Example:
 //
 //	task := workflow.Switch("routeByType", &workflow.SwitchArgs{
-//	    Cases: []map[string]interface{}{
+//	    Cases: []*types.SwitchCase{
 //	        {
-//	            "name": "caseA",
-//	            "when": "${.type == 'A'}",
-//	            "then": "handleA",
+//	            Name: "caseA",
+//	            When: "${.type == 'A'}",
+//	            Then: "handleA",
 //	        },
 //	        {
-//	            "name": "caseB",
-//	            "when": "${.type == 'B'}",
-//	            "then": "handleB",
+//	            Name: "caseB",
+//	            When: "${.type == 'B'}",
+//	            Then: "handleB",
 //	        },
 //	    },
 //	})
@@ -31,7 +35,7 @@ func Switch(name string, args *SwitchArgs) *Task {
 
 	// Initialize slices if nil
 	if args.Cases == nil {
-		args.Cases = []map[string]interface{}{}
+		args.Cases = []*types.SwitchCase{}
 	}
 
 	return &Task{

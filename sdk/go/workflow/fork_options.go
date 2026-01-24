@@ -1,5 +1,9 @@
 package workflow
 
+import (
+	"github.com/stigmer/stigmer/sdk/go/types"
+)
+
 // ForkArgs is an alias for ForkTaskConfig (Pulumi-style args pattern).
 type ForkArgs = ForkTaskConfig
 
@@ -9,14 +13,14 @@ type ForkArgs = ForkTaskConfig
 // Example:
 //
 //	task := workflow.Fork("parallel", &workflow.ForkArgs{
-//	    Branches: []map[string]interface{}{
+//	    Branches: []*types.ForkBranch{
 //	        {
-//	            "name": "branchA",
-//	            "tasks": []interface{}{...},
+//	            Name: "branchA",
+//	            Do: []*types.WorkflowTask{{Name: "task1", Kind: "HTTP_CALL"}},
 //	        },
 //	        {
-//	            "name": "branchB",
-//	            "tasks": []interface{}{...},
+//	            Name: "branchB",
+//	            Do: []*types.WorkflowTask{{Name: "task2", Kind: "HTTP_CALL"}},
 //	        },
 //	    },
 //	})
@@ -27,7 +31,7 @@ func Fork(name string, args *ForkArgs) *Task {
 
 	// Initialize slices if nil
 	if args.Branches == nil {
-		args.Branches = []map[string]interface{}{}
+		args.Branches = []*types.ForkBranch{}
 	}
 
 	return &Task{

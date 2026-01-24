@@ -14,6 +14,9 @@ type AgentCallArgs = AgentCallTaskConfig
 //	    Env: map[string]string{
 //	        "GITHUB_TOKEN": "${.secrets.GITHUB_TOKEN}",
 //	    },
+//	    Config: &types.AgentExecutionConfig{
+//	        Model: "claude-3-5-sonnet",
+//	    },
 //	})
 func AgentCall(name string, args *AgentCallArgs) *Task {
 	if args == nil {
@@ -24,9 +27,7 @@ func AgentCall(name string, args *AgentCallArgs) *Task {
 	if args.Env == nil {
 		args.Env = make(map[string]string)
 	}
-	if args.Config == nil {
-		args.Config = make(map[string]interface{})
-	}
+	// Config is optional and can be nil
 
 	return &Task{
 		Name:   name,

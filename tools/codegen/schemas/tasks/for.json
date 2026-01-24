@@ -13,8 +13,7 @@
         "kind": "string"
       },
       "description": "Variable name for each item in the iteration.\n Accessible via ${ $data.item } in expressions.",
-      "required": false,
-      "validation": {}
+      "required": false
     },
     {
       "name": "In",
@@ -24,8 +23,7 @@
         "kind": "string"
       },
       "description": "Expression evaluating to the collection to iterate over.\n Example: \"${ $data.items }\" or \"${ [1, 2, 3] }\"",
-      "required": false,
-      "validation": {}
+      "required": false
     },
     {
       "name": "Do",
@@ -39,8 +37,7 @@
         }
       },
       "description": "Tasks to execute for each iteration.\n Loop variables available: ${ $data.item }, ${ $data.index }",
-      "required": false,
-      "validation": {}
+      "required": false
     }
   ]
 }
