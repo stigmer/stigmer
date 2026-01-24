@@ -1,4 +1,5 @@
 from ai.stigmer.agentic.workflow.v1 import spec_pb2 as _spec_pb2
+from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor

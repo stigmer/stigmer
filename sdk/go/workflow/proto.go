@@ -3,13 +3,30 @@ package workflow
 import (
 	"fmt"
 
+	"buf.build/go/protovalidate"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/sdk/go/environment"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
+
+// validator is the global protovalidate validator instance.
+var validator protovalidate.Validator
+
+func init() {
+	// Initialize validator once at package load time
+	var err error
+	validator, err = protovalidate.New()
+	if err != nil {
+		panic(fmt.Sprintf("failed to initialize protovalidate: %v", err))
+	}
+}
 
 // ToProto converts the SDK Workflow to a platform Workflow proto message.
 //
@@ -44,6 +61,9 @@ func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
 		Name:        w.Document.Name,
 		Slug:        w.Slug, // Include slug for backend resolution
 		Annotations: SDKAnnotations(),
+		// Default to organization scope for SDK-created workflows
+		// This satisfies the CEL validation: owner_scope must be platform (1) or organization (2)
+		OwnerScope: apiresource.ApiResourceOwnerScope_organization,
 	}
 
 	// Build WorkflowDocument
@@ -56,7 +76,7 @@ func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
 	}
 
 	// Build complete Workflow proto
-	return &workflowv1.Workflow{
+	workflow := &workflowv1.Workflow{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
 		Metadata:   metadata,
@@ -66,7 +86,14 @@ func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
 			Tasks:       tasks,
 			EnvSpec:     envSpec,
 		},
-	}, nil
+	}
+
+	// Validate the proto message against buf.validate rules
+	if err := validator.Validate(workflow); err != nil {
+		return nil, fmt.Errorf("workflow validation failed: %w", err)
+	}
+
+	return workflow, nil
 }
 
 // convertEnvironmentVariables converts SDK environment variables to proto EnvironmentSpec.
@@ -109,6 +136,67 @@ func convertTasks(tasks []*Task) ([]*workflowv1.WorkflowTask, error) {
 	return protoTasks, nil
 }
 
+// validateTaskConfigStruct validates a task config by unmarshaling it back to typed proto.
+// This enables buf.validate rules on the typed proto messages to be applied.
+func validateTaskConfigStruct(kind apiresource.WorkflowTaskKind, config *structpb.Struct) error {
+	if config == nil {
+		return fmt.Errorf("task_config cannot be nil")
+	}
+
+	// Convert Struct to JSON bytes
+	jsonBytes, err := config.MarshalJSON()
+	if err != nil {
+		return fmt.Errorf("failed to marshal Struct to JSON: %w", err)
+	}
+
+	// Create appropriate proto message based on kind
+	var protoMsg proto.Message
+
+	switch kind {
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET:
+		protoMsg = &tasksv1.SetTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL:
+		protoMsg = &tasksv1.HttpCallTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_GRPC_CALL:
+		protoMsg = &tasksv1.GrpcCallTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SWITCH:
+		protoMsg = &tasksv1.SwitchTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_FOR:
+		protoMsg = &tasksv1.ForTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_FORK:
+		protoMsg = &tasksv1.ForkTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_TRY:
+		protoMsg = &tasksv1.TryTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_LISTEN:
+		protoMsg = &tasksv1.ListenTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_WAIT:
+		protoMsg = &tasksv1.WaitTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_CALL_ACTIVITY:
+		protoMsg = &tasksv1.CallActivityTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_RAISE:
+		protoMsg = &tasksv1.RaiseTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_RUN:
+		protoMsg = &tasksv1.RunTaskConfig{}
+	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL:
+		protoMsg = &tasksv1.AgentCallTaskConfig{}
+	default:
+		return fmt.Errorf("unsupported task kind: %v", kind)
+	}
+
+	// Unmarshal JSON to proto message
+	err = protojson.Unmarshal(jsonBytes, protoMsg)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal JSON to proto: %w", err)
+	}
+
+	// Validate the unmarshaled proto message
+	if err := validator.Validate(protoMsg); err != nil {
+		return fmt.Errorf("task config validation failed: %w", err)
+	}
+
+	return nil
+}
+
 // convertTask converts a single SDK Task to a proto WorkflowTask.
 func convertTask(task *Task) (*workflowv1.WorkflowTask, error) {
 	// Convert task kind to proto enum
@@ -121,6 +209,11 @@ func convertTask(task *Task) (*workflowv1.WorkflowTask, error) {
 	taskConfig, err := convertTaskConfig(task.Config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert task config: %w", err)
+	}
+
+	// Validate task config by unmarshaling to typed proto and running buf.validate rules
+	if err := validateTaskConfigStruct(kind, taskConfig); err != nil {
+		return nil, err
 	}
 
 	// Build proto task
@@ -211,7 +304,7 @@ func normalizeMapForProto(m map[string]interface{}) map[string]interface{} {
 	if m == nil {
 		return nil
 	}
-	
+
 	result := make(map[string]interface{})
 	for k, v := range m {
 		result[k] = normalizeValueForProto(v)
@@ -226,7 +319,7 @@ func normalizeValueForProto(v interface{}) interface{} {
 	if ref, ok := v.(Ref); ok {
 		return ref.Expression()
 	}
-	
+
 	switch val := v.(type) {
 	case map[string]interface{}:
 		return normalizeMapForProto(val)
@@ -256,7 +349,7 @@ func taskToMap(task *Task) (map[string]interface{}, error) {
 		"name": task.Name,
 		"kind": string(task.Kind),
 	}
-	
+
 	// Convert config if present
 	if task.Config != nil {
 		configMap, err := taskConfigToMap(task.Config)
@@ -265,19 +358,19 @@ func taskToMap(task *Task) (map[string]interface{}, error) {
 		}
 		m["config"] = configMap
 	}
-	
+
 	// Add export if set
 	if task.ExportAs != "" {
 		m["export"] = map[string]interface{}{
 			"as": task.ExportAs,
 		}
 	}
-	
+
 	// Add flow control if set
 	if task.ThenTask != "" {
 		m["then"] = task.ThenTask
 	}
-	
+
 	return m, nil
 }
 
@@ -335,19 +428,22 @@ func setTaskConfigToMap(c *SetTaskConfig) map[string]interface{} {
 // httpCallTaskConfigToMap converts HttpCallTaskConfig to map.
 func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	
+
 	if c.Method != "" {
 		m["method"] = c.Method
 	}
-	
+
 	// Build endpoint struct
-	if c.URI != "" {
-		endpoint := map[string]interface{}{
-			"uri": c.URI,
+	if c.Endpoint != nil && c.Endpoint.Uri != nil {
+		uriStr := CoerceToString(c.Endpoint.Uri)
+		if uriStr != "" {
+			endpoint := map[string]interface{}{
+				"uri": uriStr,
+			}
+			m["endpoint"] = endpoint
 		}
-		m["endpoint"] = endpoint
 	}
-	
+
 	if c.Headers != nil && len(c.Headers) > 0 {
 		// Convert map[string]string to map[string]interface{}
 		headers := make(map[string]interface{})
@@ -356,49 +452,49 @@ func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
 		}
 		m["headers"] = headers
 	}
-	
+
 	if c.Body != nil && len(c.Body) > 0 {
 		m["body"] = normalizeMapForProto(c.Body)
 	}
-	
+
 	if c.TimeoutSeconds > 0 {
 		m["timeout_seconds"] = c.TimeoutSeconds
 	}
-	
+
 	return m
 }
 
 // grpcCallTaskConfigToMap converts GrpcCallTaskConfig to map.
 func grpcCallTaskConfigToMap(c *GrpcCallTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	
+
 	if c.Service != "" {
 		m["service"] = c.Service
 	}
-	
+
 	if c.Method != "" {
 		m["method"] = c.Method
 	}
-	
-	if c.Body != nil && len(c.Body) > 0 {
-		m["body"] = normalizeMapForProto(c.Body)
+
+	if c.Request != nil && len(c.Request) > 0 {
+		m["request"] = normalizeMapForProto(c.Request)
 	}
-	
+
 	return m
 }
 
 // agentCallTaskConfigToMap converts AgentCallTaskConfig to map.
 func agentCallTaskConfigToMap(c *AgentCallTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	
+
 	if c.Agent != "" {
 		m["agent"] = c.Agent
 	}
-	
+
 	if c.Message != "" {
 		m["message"] = c.Message
 	}
-	
+
 	if c.Env != nil && len(c.Env) > 0 {
 		// Convert map[string]string to map[string]interface{}
 		env := make(map[string]interface{})
@@ -407,19 +503,32 @@ func agentCallTaskConfigToMap(c *AgentCallTaskConfig) map[string]interface{} {
 		}
 		m["env"] = env
 	}
-	
-	if c.Config != nil && len(c.Config) > 0 {
-		m["config"] = c.Config
+
+	if c.Config != nil {
+		// Config is *types.AgentExecutionConfig, convert to map
+		configMap := make(map[string]interface{})
+		if c.Config.Model != "" {
+			configMap["model"] = c.Config.Model
+		}
+		if c.Config.Timeout > 0 {
+			configMap["timeout"] = c.Config.Timeout
+		}
+		if c.Config.Temperature > 0 {
+			configMap["temperature"] = c.Config.Temperature
+		}
+		if len(configMap) > 0 {
+			m["config"] = configMap
+		}
 	}
-	
+
 	return m
 }
 
 // waitTaskConfigToMap converts WaitTaskConfig to map.
 func waitTaskConfigToMap(c *WaitTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	if c.Duration != "" {
-		m["duration"] = c.Duration
+	if c.Seconds > 0 {
+		m["seconds"] = c.Seconds
 	}
 	return m
 }
@@ -427,8 +536,27 @@ func waitTaskConfigToMap(c *WaitTaskConfig) map[string]interface{} {
 // listenTaskConfigToMap converts ListenTaskConfig to map.
 func listenTaskConfigToMap(c *ListenTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	if c.Event != "" {
-		m["event"] = c.Event
+	if c.To != nil {
+		// Convert ListenTo to map
+		toMap := make(map[string]interface{})
+		if c.To.Mode != "" {
+			toMap["mode"] = c.To.Mode
+		}
+		if c.To.Signals != nil && len(c.To.Signals) > 0 {
+			signals := make([]interface{}, len(c.To.Signals))
+			for i, sig := range c.To.Signals {
+				sigMap := make(map[string]interface{})
+				if sig.Id != "" {
+					sigMap["id"] = sig.Id
+				}
+				if sig.Type != "" {
+					sigMap["type"] = sig.Type
+				}
+				signals[i] = sigMap
+			}
+			toMap["signals"] = signals
+		}
+		m["to"] = toMap
 	}
 	return m
 }
@@ -457,8 +585,8 @@ func raiseTaskConfigToMap(c *RaiseTaskConfig) map[string]interface{} {
 // runTaskConfigToMap converts RunTaskConfig to map.
 func runTaskConfigToMap(c *RunTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	if c.WorkflowName != "" {
-		m["workflow_name"] = c.WorkflowName
+	if c.Workflow != "" {
+		m["workflow"] = c.Workflow
 	}
 	if c.Input != nil && len(c.Input) > 0 {
 		m["input"] = c.Input
@@ -470,15 +598,73 @@ func runTaskConfigToMap(c *RunTaskConfig) map[string]interface{} {
 func switchTaskConfigToMap(c *SwitchTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
 	if c.Cases != nil && len(c.Cases) > 0 {
-		// Convert array of maps to []interface{} for structpb
+		// Convert []*types.SwitchCase to []interface{} for structpb
 		cases := make([]interface{}, len(c.Cases))
-		for i, caseMap := range c.Cases {
+		for i, switchCase := range c.Cases {
+			caseMap := make(map[string]interface{})
+			if switchCase.Name != "" {
+				caseMap["name"] = switchCase.Name
+			}
+			if switchCase.When != "" {
+				caseMap["when"] = switchCase.When
+			}
+			if switchCase.Then != "" {
+				caseMap["then"] = switchCase.Then
+			}
 			cases[i] = caseMap
 		}
 		m["cases"] = cases
 	}
-	if c.DefaultTask != "" {
-		m["default_task"] = c.DefaultTask
+	return m
+}
+
+// workflowTaskToMap converts types.WorkflowTask to map[string]interface{}.
+func workflowTaskToMap(task *types.WorkflowTask) map[string]interface{} {
+	m := make(map[string]interface{})
+	if task.Name != "" {
+		m["name"] = task.Name
+	}
+	if task.Kind != "" {
+		// Convert SDK TaskKind string to proto enum constant name
+		// e.g., "SET" -> "WORKFLOW_TASK_KIND_SET"
+		m["kind"] = convertTaskKindStringToProtoEnumName(task.Kind)
+	}
+	if task.TaskConfig != nil && len(task.TaskConfig) > 0 {
+		m["taskConfig"] = task.TaskConfig
+	}
+	if task.Export != nil && task.Export.As != "" {
+		m["export"] = map[string]interface{}{
+			"as": task.Export.As,
+		}
+	}
+	if task.Flow != nil && task.Flow.Then != "" {
+		m["flow"] = map[string]interface{}{
+			"then": task.Flow.Then,
+		}
+	}
+	return m
+}
+
+// convertTaskKindStringToProtoEnumName converts SDK TaskKind string to proto enum constant name.
+// Example: "SET" -> "WORKFLOW_TASK_KIND_SET"
+func convertTaskKindStringToProtoEnumName(kind string) string {
+	// The SDK uses short names like "SET", "HTTP_CALL"
+	// The proto expects full enum names like "WORKFLOW_TASK_KIND_SET", "WORKFLOW_TASK_KIND_HTTP_CALL"
+	return "WORKFLOW_TASK_KIND_" + kind
+}
+
+// forkBranchToMap converts types.ForkBranch to map[string]interface{}.
+func forkBranchToMap(branch *types.ForkBranch) map[string]interface{} {
+	m := make(map[string]interface{})
+	if branch.Name != "" {
+		m["name"] = branch.Name
+	}
+	if branch.Do != nil && len(branch.Do) > 0 {
+		do := make([]interface{}, len(branch.Do))
+		for i, task := range branch.Do {
+			do[i] = workflowTaskToMap(task)
+		}
+		m["do"] = do
 	}
 	return m
 }
@@ -486,14 +672,21 @@ func switchTaskConfigToMap(c *SwitchTaskConfig) map[string]interface{} {
 // forTaskConfigToMap converts ForTaskConfig to map.
 func forTaskConfigToMap(c *ForTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	if c.In != "" {
-		m["in"] = c.In
+	if c.Each != "" {
+		m["each"] = c.Each
+	}
+	if c.In != nil {
+		// Use CoerceToString to handle Task references, strings, and expressions
+		inStr := CoerceToString(c.In)
+		if inStr != "" {
+			m["in"] = inStr
+		}
 	}
 	if c.Do != nil && len(c.Do) > 0 {
-		// Convert array of maps to []interface{} for structpb
+		// Convert []*types.WorkflowTask to []interface{} for structpb
 		do := make([]interface{}, len(c.Do))
-		for i, doMap := range c.Do {
-			do[i] = doMap
+		for i, task := range c.Do {
+			do[i] = workflowTaskToMap(task)
 		}
 		m["do"] = do
 	}
@@ -504,10 +697,10 @@ func forTaskConfigToMap(c *ForTaskConfig) map[string]interface{} {
 func forkTaskConfigToMap(c *ForkTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
 	if c.Branches != nil && len(c.Branches) > 0 {
-		// Convert array of maps to []interface{} for structpb
+		// Convert []*types.ForkBranch to []interface{} for structpb
 		branches := make([]interface{}, len(c.Branches))
 		for i, branch := range c.Branches {
-			branches[i] = branch
+			branches[i] = forkBranchToMap(branch)
 		}
 		m["branches"] = branches
 	}
@@ -517,21 +710,28 @@ func forkTaskConfigToMap(c *ForkTaskConfig) map[string]interface{} {
 // tryTaskConfigToMap converts TryTaskConfig to map.
 func tryTaskConfigToMap(c *TryTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	if c.Tasks != nil && len(c.Tasks) > 0 {
-		// Convert array of maps to []interface{} for structpb
-		tasks := make([]interface{}, len(c.Tasks))
-		for i, task := range c.Tasks {
-			tasks[i] = task
+	if c.Try != nil && len(c.Try) > 0 {
+		// Convert []*types.WorkflowTask to []interface{} for structpb
+		tryTasks := make([]interface{}, len(c.Try))
+		for i, task := range c.Try {
+			tryTasks[i] = workflowTaskToMap(task)
 		}
-		m["tasks"] = tasks
+		m["try"] = tryTasks
 	}
-	if c.Catch != nil && len(c.Catch) > 0 {
-		// Convert array of maps to []interface{} for structpb
-		catch := make([]interface{}, len(c.Catch))
-		for i, catchMap := range c.Catch {
-			catch[i] = catchMap
+	if c.Catch != nil {
+		// Convert *types.CatchBlock to map
+		catchMap := make(map[string]interface{})
+		if c.Catch.As != "" {
+			catchMap["as"] = c.Catch.As
 		}
-		m["catch"] = catch
+		if c.Catch.Do != nil && len(c.Catch.Do) > 0 {
+			doTasks := make([]interface{}, len(c.Catch.Do))
+			for i, task := range c.Catch.Do {
+				doTasks[i] = workflowTaskToMap(task)
+			}
+			catchMap["do"] = doTasks
+		}
+		m["catch"] = catchMap
 	}
 	return m
 }

@@ -86,7 +86,7 @@ func validateName(name string) error {
 			"name",
 			name,
 			"format",
-			"name must be lowercase alphanumeric with hyphens, starting and ending with alphanumeric",
+			"invalid name format: must be lowercase alphanumeric with hyphens, starting and ending with alphanumeric",
 			ErrInvalidName,
 		)
 	}

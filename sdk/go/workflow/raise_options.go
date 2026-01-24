@@ -1,50 +1,25 @@
 package workflow
 
-// RaiseOption is a functional option for configuring a RAISE task.
-type RaiseOption func(*RaiseTaskConfig)
+// RaiseArgs is an alias for RaiseTaskConfig (Pulumi-style args pattern).
+type RaiseArgs = RaiseTaskConfig
 
-// Raise creates a RAISE task with functional options.
+// Raise creates a RAISE task using struct-based args.
+// This follows the Pulumi Args pattern for resource configuration.
 //
 // Example:
 //
-//	task := workflow.Raise("throwError",
-//	    workflow.ErrorType("ValidationError"),
-//	    workflow.ErrorMessage("Invalid input"),
-//	    workflow.ErrorData(map[string]interface{}{"field": "email"}),
-//	)
-func Raise(name string, opts ...RaiseOption) *Task {
-	config := &RaiseTaskConfig{
-		Data: make(map[string]interface{}),
-	}
-
-	for _, opt := range opts {
-		opt(config)
+//	task := workflow.Raise("throwError", &workflow.RaiseArgs{
+//	    Error:   "ValidationError",
+//	    Message: "Invalid input",
+//	})
+func Raise(name string, args *RaiseArgs) *Task {
+	if args == nil {
+		args = &RaiseArgs{}
 	}
 
 	return &Task{
 		Name:   name,
 		Kind:   TaskKindRaise,
-		Config: config,
-	}
-}
-
-// ErrorType sets the error type/name.
-func ErrorType(errorType string) RaiseOption {
-	return func(c *RaiseTaskConfig) {
-		c.Error = errorType
-	}
-}
-
-// ErrorMessage sets the error message.
-func ErrorMessage(message string) RaiseOption {
-	return func(c *RaiseTaskConfig) {
-		c.Message = message
-	}
-}
-
-// ErrorData sets additional error data.
-func ErrorData(data map[string]interface{}) RaiseOption {
-	return func(c *RaiseTaskConfig) {
-		c.Data = data
+		Config: args,
 	}
 }

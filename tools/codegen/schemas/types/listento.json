@@ -1,0 +1,32 @@
+{
+  "name": "ListenTo",
+  "description": "ListenTo defines what signals to listen for.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ListenTo",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/listen.proto",
+  "fields": [
+    {
+      "name": "Mode",
+      "jsonName": "mode",
+      "protoField": "mode",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Listening mode:\n - \"one\": Wait for any one signal\n - \"all\": Wait for all signals",
+      "required": false
+    },
+    {
+      "name": "Signals",
+      "jsonName": "signals",
+      "protoField": "signals",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "SignalSpec"
+        }
+      },
+      "description": "Signals to listen for.",
+      "required": false
+    }
+  ]
+}

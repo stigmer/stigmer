@@ -1,0 +1,67 @@
+{
+  "name": "AgentCallTaskConfig",
+  "kind": "AGENT_CALL",
+  "description": "AgentCallTaskConfig defines the configuration for AGENT_CALL tasks.\n\n This enables workflows to invoke AI agents as tasks, delegating complex\n operations to specialized agents with their own skills and context.\n\n The agent is referenced by slug (name) and scope. The runtime resolves\n the (slug, scope) pair to an actual agent:\n 1. If scope is PLATFORM: look only in platform-scoped agents (public)\n 2. If scope is ORGANIZATION: look only in org agents\n 3. If scope is UNSPECIFIED: defaults to ORGANIZATION scope\n 4. Before explicit scope lookup, check manifest (current deployment)\n\n The workflow's execution context (environment variables, secrets) is\n passed to the agent invocation, allowing agents to access workflow state.\n\n YAML Example:\n   - analyze:\n       call: agent\n       with:\n         agent: \"code-reviewer\"\n         scope: organization\n         message: \"Review this code: ${ $context.fetchCode.body }\"\n         env:\n           GITHUB_TOKEN: \"${ .secrets.GH_TOKEN }\"\n         config:\n           model: \"claude-3-5-sonnet\"\n           timeout: 300\n\n Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto",
+  "fields": [
+    {
+      "name": "Agent",
+      "jsonName": "agent",
+      "protoField": "agent",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Agent slug/name to invoke (e.g., \"code-reviewer\", \"data-analyst\").\n The runtime resolves this to an actual agent considering the scope.\n Required field.",
+      "required": false
+    },
+    {
+      "name": "Scope",
+      "jsonName": "scope",
+      "protoField": "scope",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Agent owner scope (platform or organization).\n Determines where to resolve the agent slug.\n Default (UNSPECIFIED) = ORGANIZATION scope.\n Optional (defaults to organization if not specified).",
+      "required": false
+    },
+    {
+      "name": "Message",
+      "jsonName": "message",
+      "protoField": "message",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Instructions/prompt to send to the agent.\n Supports interpolation of workflow variables using JQ expressions.\n Example: \"Analyze this code: ${ $context.fetchCode.body }\"\n Required field.",
+      "required": false,
+      "isExpression": true
+    },
+    {
+      "name": "Env",
+      "jsonName": "env",
+      "protoField": "env",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "Runtime environment variables to pass to the agent.\n Values can be literal strings or JQ expressions that reference\n workflow context or secrets.\n Example: {\"GITHUB_TOKEN\": \"${ .secrets.GH_TOKEN }\"}\n Optional.",
+      "required": false
+    },
+    {
+      "name": "Config",
+      "jsonName": "config",
+      "protoField": "config",
+      "type": {
+        "kind": "message",
+        "messageType": "AgentExecutionConfig"
+      },
+      "description": "Execution configuration for the agent invocation.\n Optional - defaults are applied if not specified.",
+      "required": false
+    }
+  ]
+}

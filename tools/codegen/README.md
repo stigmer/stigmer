@@ -26,8 +26,7 @@ Together, they eliminate manual proto-to-Go conversion logic and reduce developm
 go run tools/codegen/proto2schema/main.go \
   --proto-dir apis/ai/stigmer/agentic/workflow/v1/tasks \
   --output-dir tools/codegen/schemas/tasks \
-  --include-dir apis \
-  --stub-dir /tmp/proto-stubs
+  --include-dir apis
 
 # Stage 2: Generate Go code from schemas
 go run tools/codegen/generator/main.go \
@@ -38,6 +37,34 @@ go run tools/codegen/generator/main.go \
 # Verify compilation
 cd sdk/go/workflow && go build .
 ```
+
+---
+
+## Dependency Management
+
+**How proto dependencies (like `buf/validate`) are handled:**
+
+1. **Dependencies declared in `apis/buf.yaml`**:
+   ```yaml
+   deps:
+     - buf.build/bufbuild/protovalidate
+   ```
+
+2. **Version-locked in `apis/buf.lock`**:
+   - Ensures reproducible builds
+   - Updated via `cd apis && buf dep update`
+
+3. **Buf CLI manages the cache**:
+   - When you run `make protos` (or any buf command), buf downloads dependencies to `~/.cache/buf/v3/modules/`
+   - The proto2schema tool automatically finds and uses this cache
+
+4. **No manual dependency management needed**:
+   - ✅ No stub files to maintain
+   - ✅ No version drift
+   - ✅ Automatic updates when buf.lock changes
+   - ✅ Integrates with existing `make protos` workflow
+
+**TL;DR:** Just run `make protos` once, and all dependencies are handled automatically by buf!
 
 ---
 
@@ -71,7 +98,7 @@ go run tools/codegen/proto2schema/main.go \
 - `--proto-dir`: Directory containing `.proto` files to parse (required)
 - `--output-dir`: Output directory for JSON schemas (required)
 - `--include-dir`: Directory containing proto imports (default: `apis`)
-- `--stub-dir`: Directory containing proto stubs for external deps (default: `/tmp/proto-stubs`)
+- `--use-buf-cache`: Use buf's module cache for dependencies (default: `true`)
 
 #### Example Output
 
@@ -452,8 +479,10 @@ tools/codegen/
 - Ensure proto syntax is valid (`protoc --lint`)
 
 **Error: "import not found"**
-- Create stub proto files for external dependencies in `--stub-dir`
-- Example: `/tmp/proto-stubs/buf/validate/validate.proto` (minimal stub)
+- Ensure `make protos` has been run at least once (this populates buf's cache)
+- The tool automatically uses buf's module cache at `~/.cache/buf/v3/modules/`
+- Dependencies are defined in `apis/buf.yaml` and locked via `apis/buf.lock`
+- If issues persist, run `cd apis && buf dep update` to refresh dependencies
 
 **Missing validation rules in schemas**
 - This is expected - `buf.validate` extension parsing is partial

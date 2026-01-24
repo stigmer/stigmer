@@ -1,7 +1,7 @@
 {
   "name": "SetTaskConfig",
   "kind": "SET",
-  "description": "SET tasks assign variables in workflow state.\n\nYAML Example:\n  - taskName:\n      set:\n        variable1: value\n        variable2: ${ expression }\n        computed: ${ .a + .b }",
+  "description": "SetTaskConfig defines the configuration for SET tasks.\n\n SET tasks assign variables in workflow state.\n\n YAML Example:\n   - taskName:\n       set:\n         variable1: value\n         variable2: ${ expression }\n         computed: ${ .a + .b }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 1",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/set.proto",
   "fields": [
@@ -18,11 +18,8 @@
           "kind": "string"
         }
       },
-      "description": "Variables to set in workflow state. Keys are variable names, values can be literals or expressions. Expressions use ${...} syntax, e.g., \"${.a + .b}\" or \"${now}\"",
-      "required": true,
-      "validation": {
-        "required": true
-      }
+      "description": "Variables to set in workflow state.\n Keys are variable names, values can be literals or expressions.\n Expressions use ${...} syntax, e.g., \"${.a + .b}\" or \"${now}\"",
+      "required": false
     }
   ]
 }

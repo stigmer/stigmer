@@ -1,62 +1,62 @@
 package skill
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 )
 
 func TestNew(t *testing.T) {
 	tests := []struct {
-		name    string
-		opts    []Option
-		wantErr bool
-		errType error
+		name      string
+		skillName string
+		args      *SkillArgs
+		wantErr   bool
+		errType   error
 	}{
 		{
-			name: "valid inline skill",
-			opts: []Option{
-				WithName("code-analyzer"),
-				WithMarkdown("# Code Analysis\n\nThis skill analyzes code quality."),
+			name:      "valid inline skill",
+			skillName: "code-analyzer",
+			args: &SkillArgs{
+				MarkdownContent: "# Code Analysis\n\nThis skill analyzes code quality.",
 			},
 			wantErr: false,
 		},
 		{
-			name: "valid inline skill with description",
-			opts: []Option{
-				WithName("security-checker"),
-				WithDescription("Security analysis skill"),
-				WithMarkdown("# Security\n\nCheck code for security vulnerabilities."),
+			name:      "valid inline skill with description",
+			skillName: "security-checker",
+			args: &SkillArgs{
+				Description:     "Security analysis skill",
+				MarkdownContent: "# Security\n\nCheck code for security vulnerabilities.",
 			},
 			wantErr: false,
 		},
 		{
-			name: "missing name",
-			opts: []Option{
-				WithMarkdown("# Content\n\nSome content."),
+			name:      "missing name",
+			skillName: "",
+			args: &SkillArgs{
+				MarkdownContent: "# Content\n\nSome content.",
 			},
 			wantErr: true,
 			errType: ErrSkillNameRequired,
 		},
 		{
-			name: "missing markdown",
-			opts: []Option{
-				WithName("test-skill"),
-			},
-			wantErr: true,
-			errType: ErrSkillMarkdownRequired,
+			name:      "missing markdown",
+			skillName: "test-skill",
+			args:      &SkillArgs{},
+			wantErr:   true,
+			errType:   ErrSkillMarkdownRequired,
 		},
 		{
-			name:    "no options",
-			opts:    []Option{},
-			wantErr: true,
-			errType: ErrSkillNameRequired,
+			name:      "nil args",
+			skillName: "test-skill",
+			args:      nil,
+			wantErr:   true,
+			errType:   ErrSkillMarkdownRequired,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			skill, err := New(tt.opts...)
+			skill, err := New(tt.skillName, tt.args)
 
 			if tt.wantErr {
 				if err == nil {
@@ -83,71 +83,11 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestWithMarkdownFromFile(t *testing.T) {
-	// Create temporary directory for test files
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test-skill.md")
-
-	// Write test content to file
-	testContent := "# Test Skill\n\nThis is a test skill with markdown content."
-	if err := os.WriteFile(testFile, []byte(testContent), 0644); err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
-
-	tests := []struct {
-		name    string
-		path    string
-		wantErr bool
-	}{
-		{
-			name:    "valid markdown file",
-			path:    testFile,
-			wantErr: false,
-		},
-		{
-			name:    "non-existent file",
-			path:    filepath.Join(tmpDir, "non-existent.md"),
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			skill, err := New(
-				WithName("test-skill"),
-				WithMarkdownFromFile(tt.path),
-			)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("New() expected error but got none")
-					return
-				}
-			} else {
-				if err != nil {
-					t.Errorf("New() unexpected error = %v", err)
-					return
-				}
-				if skill == nil {
-					t.Error("New() returned nil skill")
-					return
-				}
-
-				// Verify markdown was loaded
-				if skill.MarkdownContent != testContent {
-					t.Errorf("MarkdownContent = %q, want %q", skill.MarkdownContent, testContent)
-				}
-			}
-		})
-	}
-}
-
 func TestInlineSkill_Fields(t *testing.T) {
-	skill, err := New(
-		WithName("test-skill"),
-		WithDescription("Test skill description"),
-		WithMarkdown("# Test\n\nTest content."),
-	)
+	skill, err := New("test-skill", &SkillArgs{
+		Description:     "Test skill description",
+		MarkdownContent: "# Test\n\nTest content.",
+	})
 
 	if err != nil {
 		t.Fatalf("New() unexpected error = %v", err)
@@ -167,7 +107,7 @@ func TestInlineSkill_Fields(t *testing.T) {
 		t.Error("IsInline = false, want true")
 	}
 
-	// For inline skills, slug is auto-generated from name (if not provided), org is empty
+	// For inline skills, slug is auto-generated from name, org is empty
 	if skill.Slug == "" {
 		t.Error("Slug should be auto-generated from name, got empty string")
 	}
@@ -180,10 +120,9 @@ func TestInlineSkill_Fields(t *testing.T) {
 }
 
 func TestInlineSkill_IsPlatformReference_IsOrganizationReference(t *testing.T) {
-	inlineSkill, _ := New(
-		WithName("test-skill"),
-		WithMarkdown("# Test\n\nTest content."),
-	)
+	inlineSkill, _ := New("test-skill", &SkillArgs{
+		MarkdownContent: "# Test\n\nTest content.",
+	})
 
 	// Inline skills are neither platform nor organization references
 	if inlineSkill.IsPlatformReference() {
@@ -195,11 +134,10 @@ func TestInlineSkill_IsPlatformReference_IsOrganizationReference(t *testing.T) {
 }
 
 func TestInlineSkill_String(t *testing.T) {
-	skill, _ := New(
-		WithName("code-analyzer"),
-		WithDescription("Analyzes code"),
-		WithMarkdown("# Code Analysis\n\nContent."),
-	)
+	skill, _ := New("code-analyzer", &SkillArgs{
+		Description:     "Analyzes code",
+		MarkdownContent: "# Code Analysis\n\nContent.",
+	})
 
 	result := skill.String()
 	expected := "Skill(inline:code-analyzer)"
@@ -211,10 +149,9 @@ func TestInlineSkill_String(t *testing.T) {
 
 func TestInlineVsReferencedSkills(t *testing.T) {
 	// Create inline skill
-	inlineSkill, err := New(
-		WithName("my-inline-skill"),
-		WithMarkdown("# Inline\n\nInline content."),
-	)
+	inlineSkill, err := New("my-inline-skill", &SkillArgs{
+		MarkdownContent: "# Inline\n\nInline content.",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create inline skill: %v", err)
 	}

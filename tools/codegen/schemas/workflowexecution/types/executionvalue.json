@@ -1,0 +1,28 @@
+{
+  "name": "ExecutionValue",
+  "description": "ExecutionValue represents a single runtime configuration or secret value.",
+  "protoType": "ai.stigmer.agentic.executioncontext.v1.ExecutionValue",
+  "protoFile": "apis/ai/stigmer/agentic/executioncontext/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Value",
+      "jsonName": "value",
+      "protoField": "value",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The actual value.\n - If is_secret=true: This value is encrypted at rest and redacted in logs\n - If is_secret=false: This value is stored as plaintext",
+      "required": false
+    },
+    {
+      "name": "IsSecret",
+      "jsonName": "isSecret",
+      "protoField": "is_secret",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether this value should be treated as a secret.\n When true:\n - Value is encrypted at rest\n - Value is redacted in logs\n - Value is deleted when execution completes\n When false:\n - Value is stored as plaintext\n - Value is visible in audit logs",
+      "required": false
+    }
+  ]
+}

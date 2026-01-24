@@ -1,50 +1,31 @@
 package workflow
 
-// GrpcCallOption is a functional option for configuring a GRPC_CALL task.
-type GrpcCallOption func(*GrpcCallTaskConfig)
+// GrpcCallArgs is an alias for GrpcCallTaskConfig (Pulumi-style args pattern).
+type GrpcCallArgs = GrpcCallTaskConfig
 
-// GrpcCall creates a GRPC_CALL task with functional options.
+// GrpcCall creates a GRPC_CALL task using struct-based args.
+// This follows the Pulumi Args pattern for resource configuration.
 //
 // Example:
 //
-//	task := workflow.GrpcCall("callService",
-//	    workflow.Service("userservice"),
-//	    workflow.GrpcMethod("GetUser"),
-//	    workflow.GrpcBody(map[string]interface{}{"id": "123"}),
-//	)
-func GrpcCall(name string, opts ...GrpcCallOption) *Task {
-	config := &GrpcCallTaskConfig{
-		Body: make(map[string]interface{}),
+//	task := workflow.GrpcCall("callService", &workflow.GrpcCallArgs{
+//	    Service: "userservice",
+//	    Method:  "GetUser",
+//	    Request: map[string]interface{}{"id": "123"},
+//	})
+func GrpcCall(name string, args *GrpcCallArgs) *Task {
+	if args == nil {
+		args = &GrpcCallArgs{}
 	}
 
-	for _, opt := range opts {
-		opt(config)
+	// Initialize maps if nil
+	if args.Request == nil {
+		args.Request = make(map[string]interface{})
 	}
 
 	return &Task{
 		Name:   name,
 		Kind:   TaskKindGrpcCall,
-		Config: config,
-	}
-}
-
-// Service sets the gRPC service name.
-func Service(service string) GrpcCallOption {
-	return func(c *GrpcCallTaskConfig) {
-		c.Service = service
-	}
-}
-
-// GrpcMethod sets the gRPC method name.
-func GrpcMethod(method string) GrpcCallOption {
-	return func(c *GrpcCallTaskConfig) {
-		c.Method = method
-	}
-}
-
-// GrpcBody sets the request body (proto message as JSON).
-func GrpcBody(body map[string]interface{}) GrpcCallOption {
-	return func(c *GrpcCallTaskConfig) {
-		c.Body = body
+		Config: args,
 	}
 }

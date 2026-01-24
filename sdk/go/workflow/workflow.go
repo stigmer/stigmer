@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
@@ -54,6 +55,9 @@ type Workflow struct {
 
 	// Context reference (optional, used for typed variable management)
 	ctx Context
+
+	// mu protects concurrent access to Tasks and EnvironmentVariables slices
+	mu sync.Mutex
 }
 
 // Option is a functional option for configuring a Workflow.
@@ -319,17 +323,21 @@ func WithSlug(slug string) Option {
 // AddTask adds a task to the workflow after creation.
 //
 // This is a builder method that allows adding tasks after the workflow is created.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
 //	wf, _ := workflow.New(workflow.WithNamespace("ns"), workflow.WithName("wf"), workflow.WithVersion("1.0.0"))
 //	wf.AddTask(workflow.Set("init", workflow.SetVar("x", "1")))
 func (w *Workflow) AddTask(task *Task) *Workflow {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.Tasks = append(w.Tasks, task)
 	return w
 }
 
 // AddTasks adds multiple tasks to the workflow after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
@@ -339,11 +347,14 @@ func (w *Workflow) AddTask(task *Task) *Workflow {
 //	    workflow.HttpGet("fetch", "https://api.example.com"),
 //	)
 func (w *Workflow) AddTasks(tasks ...*Task) *Workflow {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.Tasks = append(w.Tasks, tasks...)
 	return w
 }
 
 // AddEnvironmentVariable adds an environment variable to the workflow after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
@@ -351,17 +362,22 @@ func (w *Workflow) AddTasks(tasks ...*Task) *Workflow {
 //	apiToken, _ := environment.New(environment.WithName("API_TOKEN"))
 //	wf.AddEnvironmentVariable(apiToken)
 func (w *Workflow) AddEnvironmentVariable(variable environment.Variable) *Workflow {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.EnvironmentVariables = append(w.EnvironmentVariables, variable)
 	return w
 }
 
 // AddEnvironmentVariables adds multiple environment variables to the workflow after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
 //	wf, _ := workflow.New(...)
 //	wf.AddEnvironmentVariables(apiToken, apiURL)
 func (w *Workflow) AddEnvironmentVariables(variables ...environment.Variable) *Workflow {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.EnvironmentVariables = append(w.EnvironmentVariables, variables...)
 	return w
 }
@@ -379,26 +395,19 @@ func (w *Workflow) AddEnvironmentVariables(variables ...environment.Variable) *W
 // Example:
 //
 //	wf := workflow.New(ctx, ...)
-//	
+//
 //	// Clean, one-line GET request
 //	fetchTask := wf.HttpGet("fetch", "https://api.example.com/posts/1",
 //	    Header("Content-Type", "application/json"),
 //	    Timeout(30),
 //	)
-//	
+//
 //	// Use task outputs with clear origin
 //	processTask := wf.Set("process",
 //	    SetVar("title", fetchTask.Field("title")),  // Implicit dependency!
 //	)
-func (w *Workflow) HttpGet(name string, uri interface{}, opts ...HttpCallOption) *Task {
-	// Prepend GET method and URI to options
-	allOpts := []HttpCallOption{
-		HTTPMethod("GET"),
-		URI(uri),
-	}
-	allOpts = append(allOpts, opts...)
-	
-	task := HttpCall(name, allOpts...)
+func (w *Workflow) HttpGet(name string, uri interface{}, headers map[string]string) *Task {
+	task := HttpGet(name, uri, headers)
 	w.AddTask(task)
 	return task
 }
@@ -416,14 +425,8 @@ func (w *Workflow) HttpGet(name string, uri interface{}, opts ...HttpCallOption)
 //	    }),
 //	    Header("Authorization", "Bearer token"),
 //	)
-func (w *Workflow) HttpPost(name string, uri interface{}, opts ...HttpCallOption) *Task {
-	allOpts := []HttpCallOption{
-		HTTPMethod("POST"),
-		URI(uri),
-	}
-	allOpts = append(allOpts, opts...)
-	
-	task := HttpCall(name, allOpts...)
+func (w *Workflow) HttpPost(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task {
+	task := HttpPost(name, uri, headers, body)
 	w.AddTask(task)
 	return task
 }
@@ -436,14 +439,8 @@ func (w *Workflow) HttpPost(name string, uri interface{}, opts ...HttpCallOption
 //	updateTask := wf.HttpPut("updateUser", "https://api.example.com/users/123",
 //	    Body(map[string]any{"status": "active"}),
 //	)
-func (w *Workflow) HttpPut(name string, uri interface{}, opts ...HttpCallOption) *Task {
-	allOpts := []HttpCallOption{
-		HTTPMethod("PUT"),
-		URI(uri),
-	}
-	allOpts = append(allOpts, opts...)
-	
-	task := HttpCall(name, allOpts...)
+func (w *Workflow) HttpPut(name string, uri string, headers map[string]string, body map[string]interface{}) *Task {
+	task := HttpPut(name, uri, headers, body)
 	w.AddTask(task)
 	return task
 }
@@ -456,14 +453,8 @@ func (w *Workflow) HttpPut(name string, uri interface{}, opts ...HttpCallOption)
 //	patchTask := wf.HttpPatch("patchUser", "https://api.example.com/users/123",
 //	    Body(map[string]any{"email": "newemail@example.com"}),
 //	)
-func (w *Workflow) HttpPatch(name string, uri interface{}, opts ...HttpCallOption) *Task {
-	allOpts := []HttpCallOption{
-		HTTPMethod("PATCH"),
-		URI(uri),
-	}
-	allOpts = append(allOpts, opts...)
-	
-	task := HttpCall(name, allOpts...)
+func (w *Workflow) HttpPatch(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task {
+	task := HttpPatch(name, uri, headers, body)
 	w.AddTask(task)
 	return task
 }
@@ -476,14 +467,8 @@ func (w *Workflow) HttpPatch(name string, uri interface{}, opts ...HttpCallOptio
 //	deleteTask := wf.HttpDelete("deleteUser", "https://api.example.com/users/123",
 //	    Header("Authorization", "Bearer token"),
 //	)
-func (w *Workflow) HttpDelete(name string, uri interface{}, opts ...HttpCallOption) *Task {
-	allOpts := []HttpCallOption{
-		HTTPMethod("DELETE"),
-		URI(uri),
-	}
-	allOpts = append(allOpts, opts...)
-	
-	task := HttpCall(name, allOpts...)
+func (w *Workflow) HttpDelete(name string, uri interface{}, headers map[string]string) *Task {
+	task := HttpDelete(name, uri, headers)
 	w.AddTask(task)
 	return task
 }
@@ -495,15 +480,15 @@ func (w *Workflow) HttpDelete(name string, uri interface{}, opts ...HttpCallOpti
 //
 //	wf := workflow.New(ctx, ...)
 //	fetchTask := wf.HttpGet("fetch", endpoint)
-//	
+//
 //	// Clean variable setting with implicit dependencies
 //	processTask := wf.Set("process",
 //	    SetVar("title", fetchTask.Field("title")),  // Implicit dependency!
 //	    SetVar("body", fetchTask.Field("body")),
 //	    SetVar("status", "success"),
 //	)
-func (w *Workflow) Set(name string, opts ...SetOption) *Task {
-	task := Set(name, opts...)
+func (w *Workflow) Set(name string, args *SetArgs) *Task {
+	task := Set(name, args)
 	w.AddTask(task)
 	return task
 }
@@ -524,8 +509,8 @@ func (w *Workflow) Set(name string, opts ...SetOption) *Task {
 //	    }),
 //	)
 //	reviewTask.ExportAll()
-func (w *Workflow) CallAgent(name string, opts ...AgentCallOption) *Task {
-	task := AgentCall(name, opts...)
+func (w *Workflow) CallAgent(name string, args *AgentCallArgs) *Task {
+	task := AgentCall(name, args)
 	w.AddTask(task)
 	return task
 }
@@ -540,7 +525,7 @@ func (w *Workflow) CallAgent(name string, opts ...AgentCallOption) *Task {
 //
 //	wf := workflow.New(ctx, ...)
 //	checkTask := wf.HttpGet("check", endpoint)
-//	
+//
 //	// Route based on status code
 //	switchTask := wf.Switch("route",
 //	    SwitchOn(checkTask.Field("statusCode")),
@@ -548,8 +533,8 @@ func (w *Workflow) CallAgent(name string, opts ...AgentCallOption) *Task {
 //	    Case(Equals(404), "notFound"),
 //	    DefaultCase("error"),
 //	)
-func (w *Workflow) Switch(name string, opts ...SwitchOption) *Task {
-	task := Switch(name, opts...)
+func (w *Workflow) Switch(name string, args *SwitchArgs) *Task {
+	task := Switch(name, args)
 	w.AddTask(task)
 	return task
 }
@@ -564,7 +549,7 @@ func (w *Workflow) Switch(name string, opts ...SwitchOption) *Task {
 //
 //	wf := workflow.New(ctx, ...)
 //	fetchTask := wf.HttpGet("fetch", apiBase.Concat("/items"))
-//	
+//
 //	// Process each item
 //	loopTask := wf.ForEach("processItems",
 //	    IterateOver(fetchTask.Field("items")),
@@ -572,8 +557,8 @@ func (w *Workflow) Switch(name string, opts ...SwitchOption) *Task {
 //	        {"httpCall": map[string]interface{}{"uri": "${.api}/process"}},
 //	    }),
 //	)
-func (w *Workflow) ForEach(name string, opts ...ForOption) *Task {
-	task := For(name, opts...)
+func (w *Workflow) ForEach(name string, args *ForArgs) *Task {
+	task := For(name, args)
 	w.AddTask(task)
 	return task
 }
@@ -586,7 +571,7 @@ func (w *Workflow) ForEach(name string, opts ...ForOption) *Task {
 // Example:
 //
 //	wf := workflow.New(ctx, ...)
-//	
+//
 //	// Try to make API call with error handling
 //	tryTask := wf.Try("attemptAPICall",
 //	    TryTasks([]map[string]interface{}{
@@ -598,8 +583,8 @@ func (w *Workflow) ForEach(name string, opts ...ForOption) *Task {
 //	        "tasks": []interface{}{...},
 //	    }),
 //	)
-func (w *Workflow) Try(name string, opts ...TryOption) *Task {
-	task := Try(name, opts...)
+func (w *Workflow) Try(name string, args *TryArgs) *Task {
+	task := Try(name, args)
 	w.AddTask(task)
 	return task
 }
@@ -612,7 +597,7 @@ func (w *Workflow) Try(name string, opts ...TryOption) *Task {
 // Example:
 //
 //	wf := workflow.New(ctx, ...)
-//	
+//
 //	// Execute multiple API calls in parallel
 //	forkTask := wf.Fork("fetchAll",
 //	    Branch(map[string]interface{}{
@@ -624,8 +609,8 @@ func (w *Workflow) Try(name string, opts ...TryOption) *Task {
 //	        "tasks": []interface{}{...},
 //	    }),
 //	)
-func (w *Workflow) Fork(name string, opts ...ForkOption) *Task {
-	task := Fork(name, opts...)
+func (w *Workflow) Fork(name string, args *ForkArgs) *Task {
+	task := Fork(name, args)
 	w.AddTask(task)
 	return task
 }

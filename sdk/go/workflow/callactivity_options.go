@@ -1,42 +1,30 @@
 package workflow
 
-// CallActivityOption is a functional option for configuring a CALL_ACTIVITY task.
-type CallActivityOption func(*CallActivityTaskConfig)
+// CallActivityArgs is an alias for CallActivityTaskConfig (Pulumi-style args pattern).
+type CallActivityArgs = CallActivityTaskConfig
 
-// CallActivity creates a CALL_ACTIVITY task with functional options.
+// CallActivity creates a CALL_ACTIVITY task using struct-based args.
+// This follows the Pulumi Args pattern for resource configuration.
 //
 // Example:
 //
-//	task := workflow.CallActivity("processData",
-//	    workflow.Activity("dataProcessor"),
-//	    workflow.ActivityInput(map[string]interface{}{"data": "${.input}"}),
-//	)
-func CallActivity(name string, opts ...CallActivityOption) *Task {
-	config := &CallActivityTaskConfig{
-		Input: make(map[string]interface{}),
+//	task := workflow.CallActivity("processData", &workflow.CallActivityArgs{
+//	    Activity: "dataProcessor",
+//	    Input:    map[string]interface{}{"data": "${.input}"},
+//	})
+func CallActivity(name string, args *CallActivityArgs) *Task {
+	if args == nil {
+		args = &CallActivityArgs{}
 	}
 
-	for _, opt := range opts {
-		opt(config)
+	// Initialize maps if nil
+	if args.Input == nil {
+		args.Input = make(map[string]interface{})
 	}
 
 	return &Task{
 		Name:   name,
 		Kind:   TaskKindCallActivity,
-		Config: config,
-	}
-}
-
-// Activity sets the activity name.
-func Activity(activity string) CallActivityOption {
-	return func(c *CallActivityTaskConfig) {
-		c.Activity = activity
-	}
-}
-
-// ActivityInput sets the activity input.
-func ActivityInput(input map[string]interface{}) CallActivityOption {
-	return func(c *CallActivityTaskConfig) {
-		c.Input = input
+		Config: args,
 	}
 }

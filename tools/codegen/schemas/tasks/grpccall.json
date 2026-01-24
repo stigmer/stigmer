@@ -1,0 +1,39 @@
+{
+  "name": "GrpcCallTaskConfig",
+  "kind": "GRPC_CALL",
+  "description": "GrpcCallTaskConfig defines the configuration for GRPC_CALL tasks.\n\n GRPC_CALL tasks make gRPC requests to external services.\n\n YAML Example:\n   - taskName:\n       call: grpc\n       with:\n         service: \"com.example.UserService\"\n         method: \"GetUser\"\n         request:\n           userId: ${ .userId }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 9",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/grpc_call.proto",
+  "fields": [
+    {
+      "name": "Service",
+      "jsonName": "service",
+      "protoField": "service",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Fully qualified service name.\n Example: \"com.example.UserService\"",
+      "required": false
+    },
+    {
+      "name": "Method",
+      "jsonName": "method",
+      "protoField": "method",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Method name to call.\n Example: \"GetUser\"",
+      "required": false
+    },
+    {
+      "name": "Request",
+      "jsonName": "request",
+      "protoField": "request",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "Request message (optional).\n Can be any JSON structure matching the proto schema.\n Supports expressions in string values.",
+      "required": false
+    }
+  ]
+}

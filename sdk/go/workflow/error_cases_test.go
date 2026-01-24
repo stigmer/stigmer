@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
 // =============================================================================
@@ -124,8 +125,8 @@ func TestWorkflowToProto_InvalidTaskConfigurations(t *testing.T) {
 				Name: "httpTask",
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
-					Method: "GET",
-					URI:    "", // empty URI
+					Method:   "GET",
+					Endpoint: &types.HttpEndpoint{Uri: ""}, // empty URI
 				},
 			},
 			wantErr: true,
@@ -137,8 +138,8 @@ func TestWorkflowToProto_InvalidTaskConfigurations(t *testing.T) {
 				Name: "httpTask",
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
-					Method: "INVALID_METHOD",
-					URI:    "https://example.com",
+					Method:   "INVALID_METHOD",
+					Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
 				},
 			},
 			wantErr: false, // May not validate method
@@ -188,10 +189,10 @@ func TestWorkflowToProto_InvalidTaskConfigurations(t *testing.T) {
 				Name: "waitTask",
 				Kind: TaskKindWait,
 				Config: &WaitTaskConfig{
-					Duration: "invalid-duration",
+					Seconds: 0, // Invalid: must be >= 1
 				},
 			},
-			wantErr: false, // May not validate duration format
+			wantErr: false, // May not validate seconds value in SDK
 		},
 		{
 			name: "Listen task with empty event",
@@ -199,7 +200,9 @@ func TestWorkflowToProto_InvalidTaskConfigurations(t *testing.T) {
 				Name: "listenTask",
 				Kind: TaskKindListen,
 				Config: &ListenTaskConfig{
-					Event: "", // empty event
+					To: &types.ListenTo{
+						Mode: "",
+					},
 				},
 			},
 			wantErr: true,
@@ -338,8 +341,8 @@ func TestWorkflowToProto_TaskKindConfigMismatch(t *testing.T) {
 				Name: "mismatch2",
 				Kind: TaskKindSet,
 				Config: &HttpCallTaskConfig{ // wrong config type
-					Method: "GET",
-					URI:    "https://example.com",
+					Method:   "GET",
+					Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
 				},
 			},
 			errMsg: "type mismatch",
@@ -564,8 +567,8 @@ func TestWorkflowToProto_PartiallyValidWorkflow(t *testing.T) {
 				Name: "maybeInvalidTask",
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
-					Method: "GET",
-					URI:    "", // empty URI - may be invalid
+					Method:   "GET",
+					Endpoint: &types.HttpEndpoint{Uri: ""}, // empty URI - may be invalid
 				},
 			},
 			// Another valid task
@@ -573,7 +576,7 @@ func TestWorkflowToProto_PartiallyValidWorkflow(t *testing.T) {
 				Name: "anotherValidTask",
 				Kind: TaskKindWait,
 				Config: &WaitTaskConfig{
-					Duration: "5s",
+					Seconds: 5,
 				},
 			},
 		},
@@ -684,10 +687,11 @@ func TestWorkflowToProto_DeeplyNestedStructures(t *testing.T) {
 				Name: "root",
 				Kind: TaskKindSwitch,
 				Config: &SwitchTaskConfig{
-					Cases: []map[string]interface{}{
+					Cases: []*types.SwitchCase{
 						{
-							"condition": "true",
-							"then":      buildNestedSwitch(9),
+							Name: "rootCase",
+							When: "true",
+							Then: "nested",
 						},
 					},
 				},

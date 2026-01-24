@@ -1,0 +1,36 @@
+{
+  "name": "ExecutionContextSpec",
+  "kind": "EXECUTION_CONTEXT_SPEC",
+  "description": "ExecutionContextSpec defines ephemeral runtime configuration and secrets.\n This is created during execution and deleted when execution completes.",
+  "protoType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec",
+  "protoFile": "apis/ai/stigmer/agentic/executioncontext/v1/spec.proto",
+  "fields": [
+    {
+      "name": "ExecutionId",
+      "jsonName": "executionId",
+      "protoField": "execution_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The execution ID this context belongs to.\n This is typically a WorkflowExecution ID or AgentExecution ID.",
+      "required": false
+    },
+    {
+      "name": "Data",
+      "jsonName": "data",
+      "protoField": "data",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "ExecutionValue"
+        }
+      },
+      "description": "Key-value pairs containing both configuration and secrets.\n These are provided at runtime and only exist for the duration of the execution.\n Example: {\"AWS_ACCESS_KEY_ID\": {value: \"AKIA...\", is_secret: true}}",
+      "required": false
+    }
+  ]
+}

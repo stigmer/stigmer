@@ -10,6 +10,7 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
@@ -52,10 +53,16 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 		return nil, fmt.Errorf("failed to convert environment variables: %w", err)
 	}
 
+	// Auto-generate slug if empty
+	slug := a.Slug
+	if slug == "" {
+		slug = naming.GenerateSlug(a.Name)
+	}
+
 	// Build metadata
 	metadata := &apiresource.ApiResourceMetadata{
 		Name:        a.Name,
-		Slug:        a.Slug,  // Include slug for backend resolution
+		Slug:        slug,
 		Annotations: SDKAnnotations(),
 	}
 
@@ -79,7 +86,7 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 // convertSkillsToRefs converts SDK skills to API resource references.
 func convertSkillsToRefs(skills []skill.Skill) ([]*apiresource.ApiResourceReference, error) {
 	if len(skills) == 0 {
-		return nil, nil
+		return []*apiresource.ApiResourceReference{}, nil
 	}
 
 	refs := make([]*apiresource.ApiResourceReference, 0, len(skills))
@@ -111,7 +118,7 @@ func convertSkillsToRefs(skills []skill.Skill) ([]*apiresource.ApiResourceRefere
 // convertMCPServers converts SDK MCP servers to proto MCP server definitions.
 func convertMCPServers(servers []mcpserver.MCPServer) ([]*agentv1.McpServerDefinition, error) {
 	if len(servers) == 0 {
-		return nil, nil
+		return []*agentv1.McpServerDefinition{}, nil
 	}
 
 	defs := make([]*agentv1.McpServerDefinition, 0, len(servers))
@@ -202,7 +209,7 @@ func convertMCPServers(servers []mcpserver.MCPServer) ([]*agentv1.McpServerDefin
 // convertSubAgents converts SDK sub-agents to proto sub-agents.
 func convertSubAgents(subAgents []subagent.SubAgent) ([]*agentv1.SubAgent, error) {
 	if len(subAgents) == 0 {
-		return nil, nil
+		return []*agentv1.SubAgent{}, nil
 	}
 
 	protoSubAgents := make([]*agentv1.SubAgent, 0, len(subAgents))
@@ -226,12 +233,12 @@ func convertSubAgents(subAgents []subagent.SubAgent) ([]*agentv1.SubAgent, error
 			protoSubAgents = append(protoSubAgents, &agentv1.SubAgent{
 				AgentReference: &agentv1.SubAgent_InlineSpec{
 					InlineSpec: &agentv1.InlineSubAgentSpec{
-						Name:                sa.Name(),
-						Description:         sa.Description(),
-						Instructions:        sa.Instructions(),
-						McpServers:          sa.MCPServerNames(),
-						McpToolSelections:   toolSelections,
-						SkillRefs:           skillRefs,
+						Name:              sa.Name(),
+						Description:       sa.Description(),
+						Instructions:      sa.Instructions(),
+						McpServers:        sa.MCPServerNames(),
+						McpToolSelections: toolSelections,
+						SkillRefs:         skillRefs,
 					},
 				},
 			})

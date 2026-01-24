@@ -56,9 +56,14 @@ func TestContextState(t *testing.T) {
 	input := &emptypb.Empty{}
 	ctx := NewRequestContext(context.Background(), input)
 
-	// Initially NewState should be nil
-	if ctx.NewState() != nil {
-		t.Error("NewState should initially be nil")
+	// NewState should be automatically initialized with a clone of input
+	if ctx.NewState() == nil {
+		t.Error("NewState should be automatically initialized, not nil")
+	}
+
+	// NewState should be a different instance from input (cloned for immutability)
+	if ctx.NewState() == ctx.Input() {
+		t.Error("NewState should be a clone, not the same instance as Input")
 	}
 
 	// Set new state

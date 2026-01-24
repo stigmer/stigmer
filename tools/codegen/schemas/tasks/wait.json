@@ -1,22 +1,19 @@
 {
   "name": "WaitTaskConfig",
   "kind": "WAIT",
-  "description": "WAIT tasks pause workflow execution for a specified duration.",
+  "description": "WaitTaskConfig defines the configuration for WAIT tasks.\n\n WAIT tasks pause workflow execution (Temporal timer).\n\n YAML Example:\n   - taskName:\n       wait:\n         seconds: 5\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 8",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/wait.proto",
   "fields": [
     {
-      "name": "Duration",
-      "jsonName": "duration",
-      "protoField": "duration",
+      "name": "Seconds",
+      "jsonName": "seconds",
+      "protoField": "seconds",
       "type": {
-        "kind": "string"
+        "kind": "int32"
       },
-      "description": "Duration to wait (e.g., \"5s\", \"1m\", \"1h\", \"1d\")",
-      "required": true,
-      "validation": {
-        "required": true
-      }
+      "description": "Number of seconds to wait.\n Must be at least 1 second.",
+      "required": false
     }
   ]
 }

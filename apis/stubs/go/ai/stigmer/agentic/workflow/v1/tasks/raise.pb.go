@@ -8,6 +8,7 @@ package tasks
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -92,12 +93,10 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_raise_proto protoreflect.FileDescr
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_raise_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/agentic/workflow/v1/tasks/raise.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x1bbuf/validate/validate.proto\"Y\n" +
-	"\x0fRaiseTaskConfig\x12 \n" +
-	"\x05error\x18\x01 \x01(\tB\n" +
-	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x05error\x12$\n" +
-	"\amessage\x18\x02 \x01(\tB\n" +
-	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\amessageB\xbd\x02\n" +
+	"0ai/stigmer/agentic/workflow/v1/tasks/raise.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"a\n" +
+	"\x0fRaiseTaskConfig\x12$\n" +
+	"\x05error\x18\x01 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\x05error\x12(\n" +
+	"\amessage\x18\x02 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\amessageB\xbd\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\n" +
 	"RaiseProtoP\x01ZMgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 

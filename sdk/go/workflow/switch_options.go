@@ -1,64 +1,47 @@
 package workflow
 
-import "fmt"
+import (
+	"fmt"
 
-// SwitchOption is a functional option for configuring a SWITCH task.
-type SwitchOption func(*SwitchTaskConfig)
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
+)
 
-// Switch creates a SWITCH task with functional options.
+// SwitchArgs is an alias for SwitchTaskConfig (Pulumi-style args pattern).
+type SwitchArgs = SwitchTaskConfig
+
+// Switch creates a SWITCH task using struct-based args.
+// This follows the Pulumi Args pattern for resource configuration.
 //
-// Example (low-level map API):
+// Example:
 //
-//	task := workflow.Switch("routeByType",
-//	    workflow.Case(map[string]interface{}{
-//	        "condition": "${.type == 'A'}",
-//	        "then": "handleA",
-//	    }),
-//	    workflow.Case(map[string]interface{}{
-//	        "condition": "${.type == 'B'}",
-//	        "then": "handleB",
-//	    }),
-//	    workflow.DefaultCase("handleDefault"),
-//	)
-//
-// Example (high-level typed API):
-//
-//	checkTask := wf.HttpGet("check", endpoint)
-//	switchTask := workflow.Switch("route",
-//	    workflow.SwitchOn(checkTask.Field("statusCode")),
-//	    workflow.Case(workflow.Equals(200), "success"),
-//	    workflow.Case(workflow.Equals(404), "notFound"),
-//	    workflow.DefaultCase("error"),
-//	)
-func Switch(name string, opts ...SwitchOption) *Task {
-	config := &SwitchTaskConfig{
-		Cases: []map[string]interface{}{},
+//	task := workflow.Switch("routeByType", &workflow.SwitchArgs{
+//	    Cases: []*types.SwitchCase{
+//	        {
+//	            Name: "caseA",
+//	            When: "${.type == 'A'}",
+//	            Then: "handleA",
+//	        },
+//	        {
+//	            Name: "caseB",
+//	            When: "${.type == 'B'}",
+//	            Then: "handleB",
+//	        },
+//	    },
+//	})
+func Switch(name string, args *SwitchArgs) *Task {
+	if args == nil {
+		args = &SwitchArgs{}
 	}
 
-	for _, opt := range opts {
-		opt(config)
+	// Initialize slices if nil
+	if args.Cases == nil {
+		args.Cases = []*types.SwitchCase{}
 	}
 
 	return &Task{
 		Name:   name,
 		Kind:   TaskKindSwitch,
-		Config: config,
-	}
-}
-
-// SwitchOn sets the value to switch on (the condition expression).
-// This is typically a TaskFieldRef or expression string.
-//
-// Example:
-//
-//	workflow.SwitchOn(checkTask.Field("status"))
-//	workflow.SwitchOn("${.userType}")
-func SwitchOn(condition interface{}) SwitchOption {
-	return func(c *SwitchTaskConfig) {
-		// Store the switch condition as a special marker in the first case
-		// or as a separate field if needed. For now, we'll handle this in Case()
-		// by storing the condition for matching.
-		// This is a no-op for now since we handle it in Case()
+		Config: args,
 	}
 }
 
@@ -81,8 +64,8 @@ func (m *equalsMatcher) Expression() string {
 //
 // Example:
 //
-//	workflow.Case(workflow.Equals(200), "success")
-//	workflow.Case(workflow.Equals("active"), "processActive")
+//	workflow.Equals(200) // Use in case conditions
+//	workflow.Equals("active")
 func Equals(value interface{}) ConditionMatcher {
 	return &equalsMatcher{value: value}
 }
@@ -100,7 +83,7 @@ func (m *greaterThanMatcher) Expression() string {
 //
 // Example:
 //
-//	workflow.Case(workflow.GreaterThan(100), "highValue")
+//	workflow.GreaterThan(100)
 func GreaterThan(value interface{}) ConditionMatcher {
 	return &greaterThanMatcher{value: value}
 }
@@ -118,7 +101,7 @@ func (m *lessThanMatcher) Expression() string {
 //
 // Example:
 //
-//	workflow.Case(workflow.LessThan(10), "lowValue")
+//	workflow.LessThan(10)
 func LessThan(value interface{}) ConditionMatcher {
 	return &lessThanMatcher{value: value}
 }
@@ -136,64 +119,7 @@ func (m *customMatcher) Expression() string {
 //
 // Example:
 //
-//	workflow.Case(workflow.CustomCondition("${.status == 'active' && .count > 10}"), "process")
+//	workflow.CustomCondition("${.status == 'active' && .count > 10}")
 func CustomCondition(expr string) ConditionMatcher {
 	return &customMatcher{expr: expr}
-}
-
-// Case adds a conditional case to the switch.
-// Supports both low-level map API and high-level typed API.
-//
-// Low-level example:
-//
-//	workflow.Case(map[string]interface{}{
-//	    "condition": "${.type == 'A'}",
-//	    "then": "handleA",
-//	})
-//
-// High-level example:
-//
-//	workflow.Case(workflow.Equals(200), "success")
-func Case(conditionOrMap interface{}, target ...string) SwitchOption {
-	return func(c *SwitchTaskConfig) {
-		// Support two patterns:
-		// 1. Case(map[string]interface{}) - low-level
-		// 2. Case(ConditionMatcher, "target") - high-level
-		
-		if caseMap, ok := conditionOrMap.(map[string]interface{}); ok {
-			// Low-level map API
-			c.Cases = append(c.Cases, caseMap)
-		} else if matcher, ok := conditionOrMap.(ConditionMatcher); ok {
-			// High-level typed API
-			if len(target) == 0 {
-				panic("Case with ConditionMatcher requires target task name")
-			}
-			caseMap := map[string]interface{}{
-				"condition": matcher.Expression(),
-				"then":      target[0],
-			}
-			c.Cases = append(c.Cases, caseMap)
-		} else {
-			// Treat as expression string
-			if len(target) == 0 {
-				panic("Case requires target task name")
-			}
-			caseMap := map[string]interface{}{
-				"condition": coerceToString(conditionOrMap),
-				"then":      target[0],
-			}
-			c.Cases = append(c.Cases, caseMap)
-		}
-	}
-}
-
-// DefaultCase sets the default task if no cases match.
-//
-// Example:
-//
-//	workflow.DefaultCase("handleDefault")
-func DefaultCase(taskName string) SwitchOption {
-	return func(c *SwitchTaskConfig) {
-		c.DefaultTask = taskName
-	}
 }

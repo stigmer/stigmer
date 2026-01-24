@@ -14,6 +14,8 @@ Complete documentation index for the Stigmer open-source project.
 - [Server Logs](cli/server-logs.md) - Viewing and managing server logs
 
 ### SDK
+- [Agent and Skill Struct-Based Args API](sdk/guides/agent-skill-struct-args-api.md) - Complete guide to creating agents and skills using Pulumi-style struct args pattern
+- [Workflow Fluent API Guide](sdk/guides/workflow-fluent-api.md) - Comprehensive guide to building workflows with fluent API
 - [Go SDK Proto Integration](sdk/go-sdk-proto-integration.md) - Convert SDK resources to platform protos (Skill ready, Agent in progress)
 
 ### Guides
@@ -33,6 +35,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Sandbox Implementation](implementation/sandbox-implementation.md) - Three-tier sandbox strategy implementation (local, basic, full)
 - [Configuration Cascade Implementation](implementation/configuration-cascade-implementation.md) - Configuration cascade pattern implementation details
 - [Temporal Connection Resilience](implementation/temporal-connection-resilience.md) - Production-grade Temporal connection management with automatic reconnection, worker lifecycle, and fail-fast error handling
+- [SDK Code Generation](implementation/sdk-code-generation.md) - Two-stage code generation pipeline for SDK workflow tasks (proto → schemas → Go code)
 
 ### Architecture
 - [Backend Modes](architecture/backend-modes.md) - Local vs cloud backend architecture, auto-start daemon, and organization handling

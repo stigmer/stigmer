@@ -1,22 +1,20 @@
 {
   "name": "ListenTaskConfig",
   "kind": "LISTEN",
-  "description": "LISTEN tasks wait for events.",
+  "description": "ListenTaskConfig defines the configuration for LISTEN tasks.\n\n LISTEN tasks wait for external signals/events (Temporal signals).\n\n YAML Example:\n   - taskName:\n       listen:\n         to:\n           one:\n             with:\n               id: approval_signal\n               type: signal\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 7",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/listen.proto",
   "fields": [
     {
-      "name": "Event",
-      "jsonName": "event",
-      "protoField": "event",
+      "name": "To",
+      "jsonName": "to",
+      "protoField": "to",
       "type": {
-        "kind": "string"
+        "kind": "message",
+        "messageType": "ListenTo"
       },
-      "description": "Event name to listen for",
-      "required": true,
-      "validation": {
-        "required": true
-      }
+      "description": "Signal listening configuration.",
+      "required": false
     }
   ]
 }

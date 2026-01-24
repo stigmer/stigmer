@@ -1,4 +1,5 @@
 //go:build ignore
+
 // Example 02: Agent with Skills
 //
 // This example demonstrates how to add skills to an agent.
@@ -7,6 +8,8 @@
 // 1. Inline: Created in your repository with name, description, and markdown content
 // 2. Platform: Shared across all users (referenced by slug)
 // 3. Organization: Private to your org (referenced by org + slug)
+//
+// Note: Skills are added using builder methods (AddSkill, AddSkills) after agent creation.
 package main
 
 import (
@@ -24,25 +27,23 @@ func main() {
 
 		// Example 1: Inline skill (created in your repository)
 		// The CLI will create this skill on the platform before creating the agent
-		inlineSkill, err := skill.New(
-			skill.WithName("code-analyzer"),
-			skill.WithDescription("Analyzes code quality and suggests improvements"),
-			skill.WithMarkdown("# Code Analysis\n\nThis skill analyzes code for best practices..."),
-		)
+		inlineSkill, err := skill.New("code-analyzer", &skill.SkillArgs{
+			Description:     "Analyzes code quality and suggests improvements",
+			MarkdownContent: "# Code Analysis\n\nThis skill analyzes code for best practices...",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create inline skill: %w", err)
 		}
 
-		// Example 2: Create agent with inline skill
-		agentWithInline, err := agent.New(ctx,
-			agent.WithName("code-reviewer"),
-			agent.WithInstructions("Review code and suggest improvements based on best practices"),
-			agent.WithDescription("AI code reviewer with custom inline skill"),
-			agent.WithSkill(*inlineSkill),
-		)
+		// Example 2: Create agent with inline skill using struct args
+		agentWithInline, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+			Instructions: "Review code and suggest improvements based on best practices",
+			Description:  "AI code reviewer with custom inline skill",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create agent with inline skill: %w", err)
 		}
+		agentWithInline.AddSkill(*inlineSkill)
 
 		fmt.Println("✅ Created agent with inline skill:")
 		fmt.Printf("   Name: %s\n", agentWithInline.Name)
@@ -52,17 +53,17 @@ func main() {
 		}
 
 		// Example 3: Agent with platform skills (referenced)
-		platformAgent, err := agent.New(ctx,
-			agent.WithName("security-reviewer"),
-			agent.WithInstructions("Review code for security vulnerabilities"),
-			agent.WithDescription("AI security reviewer with platform skills"),
-			// Add platform skills (shared across all users)
-			agent.WithSkill(skill.Platform("coding-best-practices")),
-			agent.WithSkill(skill.Platform("security-analysis")),
-		)
+		platformAgent, err := agent.New(ctx, "security-reviewer", &agent.AgentArgs{
+			Instructions: "Review code for security vulnerabilities",
+			Description:  "AI security reviewer with platform skills",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create platform agent: %w", err)
 		}
+		// Add platform skills (shared across all users) using builder pattern
+		platformAgent.
+			AddSkill(skill.Platform("coding-best-practices")).
+			AddSkill(skill.Platform("security-analysis"))
 
 		fmt.Println("\n✅ Created agent with platform skills:")
 		fmt.Printf("   Name: %s\n", platformAgent.Name)
@@ -72,17 +73,17 @@ func main() {
 		}
 
 		// Example 4: Agent with organization skills (referenced)
-		orgAgent, err := agent.New(ctx,
-			agent.WithName("internal-reviewer"),
-			agent.WithInstructions("Review code according to internal guidelines"),
-			agent.WithDescription("Internal code reviewer with org-specific skills"),
-			// Add organization-specific skills (private to your org)
-			agent.WithSkill(skill.Organization("my-org", "internal-coding-standards")),
-			agent.WithSkill(skill.Organization("my-org", "proprietary-frameworks")),
-		)
+		orgAgent, err := agent.New(ctx, "internal-reviewer", &agent.AgentArgs{
+			Instructions: "Review code according to internal guidelines",
+			Description:  "Internal code reviewer with org-specific skills",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create org agent: %w", err)
 		}
+		// Add organization-specific skills (private to your org)
+		orgAgent.
+			AddSkill(skill.Organization("my-org", "internal-coding-standards")).
+			AddSkill(skill.Organization("my-org", "proprietary-frameworks"))
 
 		fmt.Println("\n✅ Created agent with organization skills:")
 		fmt.Printf("   Name: %s\n", orgAgent.Name)
@@ -92,12 +93,11 @@ func main() {
 		}
 
 		// Example 5: Agent with mixed skills (inline + platform + org)
-		// Also demonstrates builder pattern with AddSkill()
-		mixedAgent, err := agent.New(ctx,
-			agent.WithName("enterprise-reviewer"),
-			agent.WithInstructions("Review code using all available knowledge"),
-			agent.WithDescription("Enterprise code reviewer with mixed skills"),
-		)
+		// Demonstrates builder pattern with AddSkill()
+		mixedAgent, err := agent.New(ctx, "enterprise-reviewer", &agent.AgentArgs{
+			Instructions: "Review code using all available knowledge",
+			Description:  "Enterprise code reviewer with mixed skills",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create mixed agent: %w", err)
 		}
@@ -116,10 +116,9 @@ func main() {
 		}
 
 		// Example 6: Bulk add skills using AddSkills()
-		bulkAgent, err := agent.New(ctx,
-			agent.WithName("bulk-reviewer"),
-			agent.WithInstructions("Review code with many skills"),
-		)
+		bulkAgent, err := agent.New(ctx, "bulk-reviewer", &agent.AgentArgs{
+			Instructions: "Review code with many skills",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create bulk agent: %w", err)
 		}

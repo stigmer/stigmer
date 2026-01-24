@@ -195,28 +195,32 @@ func TestEnvironmentController_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("validation error - empty environment value", func(t *testing.T) {
+	t.Run("successful creation with empty environment value", func(t *testing.T) {
 		environment := &environmentv1.Environment{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Data Environment",
+				Name:       "Empty Value Environment",
 				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
 			},
 			Spec: &environmentv1.EnvironmentSpec{
-				Description: "Environment with invalid data",
+				Description: "Environment with empty value",
 				Data: map[string]*environmentv1.EnvironmentValue{
 					"EMPTY_VALUE": {
-						Value:    "", // Invalid - min_len = 1
+						Value:    "", // Empty values are allowed per proto spec comments
 						IsSecret: false,
 					},
 				},
 			},
 		}
 
-		_, err := controller.Create(contextWithEnvironmentKind(), environment)
-		if err == nil {
-			t.Error("Expected error for empty environment value")
+		created, err := controller.Create(contextWithEnvironmentKind(), environment)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		if created.Spec.Data["EMPTY_VALUE"].Value != "" {
+			t.Error("Expected empty value to be preserved")
 		}
 	})
 }
