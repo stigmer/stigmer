@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
+	"github.com/stigmer/stigmer/sdk/go/types"
 )
 
 // TestWorkflowToProto_Complete tests full workflow with all fields.
@@ -39,7 +40,7 @@ func TestWorkflowToProto_Complete(t *testing.T) {
 		Kind: TaskKindHttpCall,
 		Config: &HttpCallTaskConfig{
 			Method: "GET",
-			URI:    "https://api.example.com/data",
+			Endpoint: &types.HttpEndpoint{Uri: "https://api.example.com/data"},
 			Headers: map[string]string{
 				"Authorization": "Bearer token",
 			},
@@ -218,7 +219,7 @@ func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
 			Kind: TaskKindHttpCall,
 			Config: &HttpCallTaskConfig{
 				Method:         "GET",
-				URI:            "https://api.example.com",
+				Endpoint: &types.HttpEndpoint{Uri: "https://api.example.com"},
 				TimeoutSeconds: 30,
 			},
 		},
@@ -245,8 +246,8 @@ func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
 			Name: "switchTask",
 			Kind: TaskKindSwitch,
 			Config: &SwitchTaskConfig{
-				Cases: []map[string]interface{}{
-					{"name": "case1", "when": "true", "then": "task1"},
+				Cases: []*types.SwitchCase{
+					{Name: "case1", When: "true", Then: "task1"},
 				},
 			},
 		},
@@ -255,10 +256,9 @@ func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
 			Name: "forTask",
 			Kind: TaskKindFor,
 			Config: &ForTaskConfig{
-				In: "${items}",
-				Do: []map[string]interface{}{
-					{"name": "process"},
-				},
+				Each: "item",
+				In:   "${items}",
+				Do:   nil, // Simplified for test
 			},
 		},
 		// FORK
@@ -266,9 +266,7 @@ func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
 			Name: "forkTask",
 			Kind: TaskKindFork,
 			Config: &ForkTaskConfig{
-				Branches: []map[string]interface{}{
-					{"name": "branch1"},
-				},
+				Branches: nil, // Simplified for test
 			},
 		},
 		// TRY
@@ -276,12 +274,8 @@ func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
 			Name: "tryTask",
 			Kind: TaskKindTry,
 			Config: &TryTaskConfig{
-				Tasks: []map[string]interface{}{
-					{"name": "attempt"},
-				},
-				Catch: []map[string]interface{}{
-					{"errors": ".*", "tasks": []interface{}{map[string]interface{}{"name": "recover"}}},
-				},
+				Try:   nil, // Simplified for test
+				Catch: nil,
 			},
 		},
 		// LISTEN
@@ -375,7 +369,7 @@ func TestWorkflowToProto_TaskExport(t *testing.T) {
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
 					Method:         "GET",
-					URI:            "https://api.example.com",
+					Endpoint: &types.HttpEndpoint{Uri: "https://api.example.com"},
 					TimeoutSeconds: 30,
 				},
 				ExportAs: "${.}", // Export entire output

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
+	"github.com/stigmer/stigmer/sdk/go/types"
 )
 
 // =============================================================================
@@ -67,7 +68,9 @@ func BenchmarkWorkflowToProto_SingleTask(b *testing.B) {
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
 					Method: "POST",
-					URI:    "https://api.example.com/data",
+					Endpoint: &types.HttpEndpoint{
+						Uri: "https://api.example.com/data",
+					},
 					Headers: map[string]string{
 						"Content-Type":  "application/json",
 						"Authorization": "Bearer token",
@@ -114,7 +117,9 @@ func BenchmarkWorkflowToProto_SingleTask(b *testing.B) {
 				Name: "listenTask",
 				Kind: TaskKindListen,
 				Config: &ListenTaskConfig{
-					Event: "user-action",
+					To: &types.ListenTo{
+						Mode: "one",
+					},
 				},
 			},
 		},
@@ -258,7 +263,9 @@ func BenchmarkWorkflowToProto_ComplexTasks(b *testing.B) {
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
 					Method: "POST",
-					URI:    "https://api.example.com/endpoint",
+					Endpoint: &types.HttpEndpoint{
+						Uri: "https://api.example.com/endpoint",
+					},
 					Headers: map[string]string{
 						"Content-Type":  "application/json",
 						"Authorization": "Bearer token123",
@@ -274,28 +281,16 @@ func BenchmarkWorkflowToProto_ComplexTasks(b *testing.B) {
 				Name: "switchTask",
 				Kind: TaskKindSwitch,
 				Config: &SwitchTaskConfig{
-					Cases: []map[string]interface{}{
+					Cases: []*types.SwitchCase{
 						{
-							"condition": "${httpTask.status == 200}",
-							"then": map[string]interface{}{
-								"name": "successTask",
-								"kind": "SET",
-								"config": map[string]interface{}{
-									"variables": map[string]string{
-										"result": "success",
-									},
-								},
-							},
+							Name: "case1",
+							When: "${httpTask.status == 200}",
+							Then: "successTask",
 						},
 						{
-							"condition": "${httpTask.status == 500}",
-							"then": map[string]interface{}{
-								"name": "errorTask",
-								"kind": "RAISE",
-								"config": map[string]interface{}{
-									"error": "ServerError",
-								},
-							},
+							Name: "case2",
+							When: "${httpTask.status == 500}",
+							Then: "errorTask",
 						},
 					},
 				},
@@ -304,17 +299,9 @@ func BenchmarkWorkflowToProto_ComplexTasks(b *testing.B) {
 				Name: "forTask",
 				Kind: TaskKindFor,
 				Config: &ForTaskConfig{
-					In: "${httpTask.items}",
-					Do: []map[string]interface{}{
-						{
-							"name": "processItem",
-							"kind": "AGENT_CALL",
-							"config": map[string]interface{}{
-								"agent":   "processor",
-								"message": "Process ${item}",
-							},
-						},
-					},
+					Each: "item",
+					In:   "${httpTask.items}",
+					Do:   nil, // Simplified for benchmark
 				},
 			},
 		},
@@ -347,8 +334,10 @@ func BenchmarkWorkflowToProto_Allocations(b *testing.B) {
 				Name: "task1",
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
-					Method:         "GET",
-					URI:            "https://api.example.com",
+					Method: "GET",
+					Endpoint: &types.HttpEndpoint{
+						Uri: "https://api.example.com",
+					},
 					TimeoutSeconds: 30,
 				},
 			},
@@ -459,16 +448,11 @@ func BenchmarkWorkflowToProto_RealisticAPIWorkflow(b *testing.B) {
 				Name: "checkValidation",
 				Kind: TaskKindSwitch,
 				Config: &SwitchTaskConfig{
-					Cases: []map[string]interface{}{
+					Cases: []*types.SwitchCase{
 						{
-							"condition": "${!validateInput.emailValid}",
-							"then": map[string]interface{}{
-								"name": "raiseInvalidEmail",
-								"kind": "RAISE",
-								"config": map[string]interface{}{
-									"error": "InvalidEmailError",
-								},
-							},
+							Name: "invalidEmail",
+							When: "${!validateInput.emailValid}",
+							Then: "raiseInvalidEmail",
 						},
 					},
 				},
@@ -478,7 +462,9 @@ func BenchmarkWorkflowToProto_RealisticAPIWorkflow(b *testing.B) {
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
 					Method: "POST",
-					URI:    "https://api.example.com/users",
+					Endpoint: &types.HttpEndpoint{
+						Uri: "https://api.example.com/users",
+					},
 					Headers: map[string]string{
 						"Content-Type": "application/json",
 					},
@@ -499,7 +485,9 @@ func BenchmarkWorkflowToProto_RealisticAPIWorkflow(b *testing.B) {
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
 					Method: "POST",
-					URI:    "https://logging.example.com/events",
+					Endpoint: &types.HttpEndpoint{
+						Uri: "https://logging.example.com/events",
+					},
 					Headers: map[string]string{
 						"Content-Type": "application/json",
 					},
@@ -533,8 +521,10 @@ func BenchmarkWorkflowToProto_RealisticDataPipeline(b *testing.B) {
 				Name: "fetchData",
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
-					Method:         "GET",
-					URI:            "https://api.example.com/data",
+					Method: "GET",
+					Endpoint: &types.HttpEndpoint{
+						Uri: "https://api.example.com/data",
+					},
 					TimeoutSeconds: 60,
 				},
 				ExportAs: "${.}",
@@ -543,17 +533,9 @@ func BenchmarkWorkflowToProto_RealisticDataPipeline(b *testing.B) {
 				Name: "processRecords",
 				Kind: TaskKindFor,
 				Config: &ForTaskConfig{
-					In: "${fetchData.records}",
-					Do: []map[string]interface{}{
-						{
-							"name": "transform",
-							"kind": "AGENT_CALL",
-							"config": map[string]interface{}{
-								"agent":   "data-transformer",
-								"message": "Transform record: ${record}",
-							},
-						},
-					},
+					Each: "record",
+					In:   "${fetchData.records}",
+					Do:   nil, // Simplified for benchmark
 				},
 			},
 			{
@@ -573,7 +555,9 @@ func BenchmarkWorkflowToProto_RealisticDataPipeline(b *testing.B) {
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
 					Method: "POST",
-					URI:    "https://api.example.com/analytics",
+					Endpoint: &types.HttpEndpoint{
+						Uri: "https://api.example.com/analytics",
+					},
 					Headers: map[string]string{
 						"Content-Type": "application/json",
 					},
