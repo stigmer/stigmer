@@ -18,7 +18,7 @@ func main() {
 		// Context for configuration
 		apiBase := ctx.SetString("apiBase", "https://api.example.com")
 		batchSize := ctx.SetInt("batchSize", 10)
-		
+
 		// Create workflow
 		wf, err := workflow.New(ctx,
 			workflow.WithNamespace("batch-processing"),

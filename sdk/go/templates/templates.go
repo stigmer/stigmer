@@ -26,18 +26,17 @@ func main() {
 	// Use stigmer.Run() for automatic context and synthesis management
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Create a basic agent with required fields only
-		jokeAgent, err := agent.New(ctx,
-			agent.WithName("joke-buddy"),
-			agent.WithInstructions(` + "`" + `You are a friendly AI that tells programming jokes and puns.
+		jokeAgent, err := agent.New(ctx, "joke-buddy", &agent.AgentArgs{
+			Instructions: ` + "`" + `You are a friendly AI that tells programming jokes and puns.
 When someone interacts with you, respond with a light-hearted programming joke or pun.
 Keep it fun, simple, and appropriate for all audiences.
 
 Examples:
 - Why do programmers prefer dark mode? Because light attracts bugs!
 - How many programmers does it take to change a light bulb? None, that's a hardware problem.
-- A SQL query walks into a bar, walks up to two tables and asks: "Can I join you?"` + "`" + `),
-			agent.WithDescription("A friendly AI that tells programming jokes"),
-		)
+- A SQL query walks into a bar, walks up to two tables and asks: "Can I join you?"` + "`" + `,
+			Description: "A friendly AI that tells programming jokes",
+		})
 		if err != nil {
 			return err
 		}

@@ -1,9 +1,12 @@
 # Stigmer Go SDK Documentation
 
-**Version**: 0.1.0  
+**Version**: 0.2.0  
 **Status**: ✅ Production Ready
 
-Complete documentation for the Stigmer Go SDK.
+Complete documentation for the Stigmer Go SDK using struct-based args (Pulumi pattern).
+
+> **Migration Notice**: Version 0.2.0 uses struct-based args instead of functional options.  
+> See [Migration Guide](migration-from-functional-options.md) for upgrading from v0.1.0.
 
 ## Quick Navigation
 
@@ -192,13 +195,17 @@ Dependencies are tracked through references:
 
 ```go
 // Create skill
-skill, _ := skill.New(skill.WithName("coding"))
+skill, _ := skill.New("coding", &skill.SkillArgs{
+    MarkdownContent: "...",
+})
 
-// Agent automatically depends on skill
-agent, _ := agent.New(ctx,
-    agent.WithName("reviewer"),
-    agent.WithSkills(skill),
-)
+// Create agent
+agent, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{
+    Instructions: "...",
+})
+
+// Add skill (dependency tracked automatically)
+agent.AddSkill(skill)
 // → Dependency tracked: "agent:reviewer" → "skill:coding"
 ```
 
@@ -208,15 +215,15 @@ Load content from files, not inline strings:
 
 ```go
 // ✅ Recommended
-agent, _ := agent.New(ctx,
-    agent.WithName("reviewer"),
-    agent.WithInstructionsFromFile("instructions/reviewer.md"),
-)
+instructions, _ := os.ReadFile("instructions/reviewer.md")
+agent, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{
+    Instructions: string(instructions),
+})
 
-skill, _ := skill.New(
-    skill.WithName("guidelines"),
-    skill.WithMarkdownFromFile("skills/guidelines.md"),
-)
+skillContent, _ := os.ReadFile("skills/guidelines.md")
+skill, _ := skill.New("guidelines", &skill.SkillArgs{
+    MarkdownContent: string(skillContent),
+})
 ```
 
 **Why**:
@@ -224,6 +231,7 @@ skill, _ := skill.New(
 - Easy to edit
 - Separate concerns
 - Better collaboration
+- Clear content loading
 
 ### Type-Safe Task References
 
@@ -287,14 +295,19 @@ processTask := wf.SetVars("process",
 
 ## Quick Reference
 
-### Agent Creation
+### Agent Creation (Struct Args)
 
 ```go
-agent, err := agent.New(ctx,
-    agent.WithName("my-agent"),
-    agent.WithInstructionsFromFile("instructions/agent.md"),
-    agent.WithSkills(skill),
-)
+// Load instructions from file
+instructions, _ := os.ReadFile("instructions/agent.md")
+
+// Create agent with struct-based args
+agent, err := agent.New(ctx, "my-agent", &agent.AgentArgs{
+    Instructions: string(instructions),
+})
+
+// Add skills using builder methods
+agent.AddSkill(skill)
 ```
 
 ### Workflow Creation
@@ -307,65 +320,87 @@ wf, err := workflow.New(ctx,
 )
 ```
 
-### HTTP Task
+### HTTP Task (Convenience Method)
 
 ```go
-task := wf.HttpGet("fetch", "https://api.example.com/data",
-    workflow.Header("Content-Type", "application/json"),
-    workflow.Timeout(30),
-)
+task := wf.HttpGet("fetch", "https://api.example.com/data", map[string]string{
+    "Content-Type": "application/json",
+})
+```
+
+### HTTP Task (Full Control)
+
+```go
+task := wf.HttpCall("fetch", &workflow.HttpCallArgs{
+    Method:  "GET",
+    URI:     "https://api.example.com/data",
+    Headers: map[string]string{"Content-Type": "application/json"},
+    TimeoutSeconds: 30,
+})
 ```
 
 ### SET Task
 
 ```go
-wf.SetVars("process",
-    "key1", "value1",
-    "key2", fetchTask.Field("output"),
-)
+wf.Set("process", &workflow.SetArgs{
+    Variables: map[string]string{
+        "key1": "value1",
+        "key2": fetchTask.Field("output").Expression(),
+    },
+})
 ```
 
 ### Conditionals (Switch)
 
 ```go
-wf.Switch("check",
-    workflow.SwitchCase(
-        workflow.ConditionEquals("status", "success"),
-        workflow.Then(successTask),
-    ),
-    workflow.SwitchDefault(defaultTask),
-)
+wf.Switch("check", &workflow.SwitchArgs{
+    Cases: []*workflow.SwitchCase{
+        {
+            Condition: &workflow.Condition{
+                Operator: "equals",
+                Key:      "status",
+                Value:    "success",
+            },
+            Tasks: []*workflow.Task{successTask},
+        },
+    },
+    Default: []*workflow.Task{defaultTask},
+})
 ```
 
 ### Loops (ForEach)
 
 ```go
-wf.ForEach("process-items",
-    workflow.ForEachOver(fetchTask.Field("items")),
-    workflow.ForEachItem("item"),
-    workflow.ForEachDo(processTask),
-)
+wf.ForEach("process-items", &workflow.ForArgs{
+    Array:   fetchTask.Field("items").Expression(),
+    ItemVar: "item",
+    Tasks:   []*workflow.Task{processTask},
+})
 ```
 
 ### Error Handling (Try/Catch)
 
 ```go
-wf.Try("safe-operation",
-    workflow.TryDo(riskyTask),
-    workflow.CatchError(
-        workflow.ErrorMatcher(workflow.ErrorAny()),
-        workflow.CatchDo(handleErrorTask),
-    ),
-)
+wf.Try("safe-operation", &workflow.TryArgs{
+    Tasks: []*workflow.Task{riskyTask},
+    Catches: []*workflow.CatchBlock{
+        {
+            ErrorMatcher: &workflow.ErrorMatcher{MatchAny: true},
+            Tasks:        []*workflow.Task{handleErrorTask},
+        },
+    },
+})
 ```
 
 ### Parallel Execution (Fork)
 
 ```go
-wf.Fork("parallel",
-    workflow.ForkBranch("branch1", task1),
-    workflow.ForkBranch("branch2", task2),
-)
+wf.Fork("parallel", &workflow.ForkArgs{
+    Branches: []*workflow.ForkBranch{
+        {Name: "branch1", Tasks: []*workflow.Task{task1}},
+        {Name: "branch2", Tasks: []*workflow.Task{task2}},
+    },
+})
 ```
 
 ---
@@ -440,6 +475,18 @@ Contributions to documentation are welcome!
 
 ## Version History
 
+### v0.2.0 (2026-01-24)
+
+**Struct Args Migration**:
+- ✅ Migrated to struct-based args (Pulumi pattern)
+- ✅ Updated all constructors: `agent.New(ctx, name, *AgentArgs)`
+- ✅ All 19 examples migrated to struct args
+- ✅ Complete API Reference update
+- ✅ Complete Usage Guide update
+- ✅ Migration guide with before/after examples
+- ✅ Architecture documentation
+- ✅ Backward incompatible with v0.1.0 (see migration guide)
+
 ### v0.1.0 (2026-01-22)
 
 **Initial Release**:
@@ -448,6 +495,7 @@ Contributions to documentation are welcome!
 - ✅ Full API Reference
 - ✅ 19 Working Examples
 - ✅ Production Ready
+- ✅ Functional options pattern
 
 ---
 
@@ -483,6 +531,7 @@ You have access to:
 
 ---
 
-**Version**: 0.1.0  
-**Last Updated**: 2026-01-22  
-**Status**: ✅ Complete
+**Version**: 0.2.0  
+**Last Updated**: 2026-01-24  
+**Status**: ✅ Complete  
+**Migration**: See [Migration Guide](migration-from-functional-options.md) for upgrading from v0.1.0

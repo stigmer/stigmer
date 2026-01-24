@@ -140,10 +140,10 @@ func createAgentWithSkills(ctx *stigmer.Context) (*agent.Agent, error) {
 
 	// Add skills using builder method
 	ag.AddSkills(*securitySkill, *testingSkill)
-	
+
 	// Also add platform skills
 	ag.AddSkill(skill.Platform("coding-best-practices"))
-	
+
 	return ag, nil
 }
 
