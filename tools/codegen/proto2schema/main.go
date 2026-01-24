@@ -267,7 +267,7 @@ func runComprehensiveGeneration(includeDir, baseOutputDir string, useBufCache bo
 		}
 
 		namespaceName := ns.Name()
-		
+
 		// Skip certain directories
 		if namespaceName == "session" {
 			fmt.Printf("⏭️  Skipping %s (internal only)\n", namespaceName)

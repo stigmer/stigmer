@@ -365,7 +365,43 @@ func (g *Generator) loadSchemas() error {
 			}
 
 			for _, entry := range entries {
-				// Skip subdirectories (like types/) and non-JSON files
+				// Check if this is a types/ subdirectory
+				if entry.IsDir() && entry.Name() == "types" {
+					// Load types from <namespace>/types/ directory
+					namespaceTypesDir := filepath.Join(namespaceDir, "types")
+					typeEntries, err := os.ReadDir(namespaceTypesDir)
+					if err != nil {
+						continue
+					}
+
+					for _, typeEntry := range typeEntries {
+						if typeEntry.IsDir() || !strings.HasSuffix(typeEntry.Name(), ".json") {
+							continue
+						}
+
+						path := filepath.Join(namespaceTypesDir, typeEntry.Name())
+						schema, err := loadTypeSchema(path)
+						if err != nil {
+							fmt.Printf("  Warning: failed to load type %s: %v\n", typeEntry.Name(), err)
+							continue
+						}
+
+						// Skip duplicates
+						if loadedTypes[schema.Name] {
+							continue
+						}
+						loadedTypes[schema.Name] = true
+
+						// Extract domain from proto namespace (data-driven, no hard-coding)
+						schema.Domain = extractDomainFromProtoType(schema.ProtoType)
+						fmt.Printf("  Loaded type: %s (domain: %s, from %s/types/)\n", schema.Name, schema.Domain, dirName)
+
+						g.sharedTypes = append(g.sharedTypes, schema)
+					}
+					continue
+				}
+
+				// Skip other subdirectories and non-JSON files
 				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
 					continue
 				}
