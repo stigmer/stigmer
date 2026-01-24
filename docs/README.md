@@ -35,6 +35,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Sandbox Implementation](implementation/sandbox-implementation.md) - Three-tier sandbox strategy implementation (local, basic, full)
 - [Configuration Cascade Implementation](implementation/configuration-cascade-implementation.md) - Configuration cascade pattern implementation details
 - [Temporal Connection Resilience](implementation/temporal-connection-resilience.md) - Production-grade Temporal connection management with automatic reconnection, worker lifecycle, and fail-fast error handling
+- [SDK Code Generation](implementation/sdk-code-generation.md) - Two-stage code generation pipeline for SDK workflow tasks (proto → schemas → Go code)
 
 ### Architecture
 - [Backend Modes](architecture/backend-modes.md) - Local vs cloud backend architecture, auto-start daemon, and organization handling
