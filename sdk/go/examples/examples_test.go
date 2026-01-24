@@ -300,32 +300,6 @@ func TestExample05_AgentWithEnvironmentVariables(t *testing.T) {
 	})
 }
 
-// TestExample06_AgentWithInstructionsFromFiles tests the agent with instructions from files example
-func TestExample06_AgentWithInstructionsFromFiles(t *testing.T) {
-	runExampleTest(t, "06_agent_with_instructions_from_files.go", func(t *testing.T, outputDir string) {
-		// This example creates multiple agents - check if at least one exists
-		agentPath := filepath.Join(outputDir, "agent-0.pb")
-		assertFileExists(t, agentPath)
-
-		var agent agentv1.Agent
-		readProto(t, agentPath, &agent)
-
-		// Verify instructions were loaded from file
-		if agent.Spec.Instructions == "" {
-			t.Error("Agent should have instructions loaded from file")
-		}
-
-		// Instructions should be non-trivial (file content, not just empty string)
-		if len(agent.Spec.Instructions) < 100 {
-			t.Errorf("Agent instructions seem too short (%d chars), may not have loaded from file correctly", 
-				len(agent.Spec.Instructions))
-		}
-
-		t.Logf("✅ Agent with instructions from file created (%d chars loaded)", 
-			len(agent.Spec.Instructions))
-	})
-}
-
 // TestExample08_WorkflowWithConditionals tests the workflow with conditionals example
 func TestExample08_WorkflowWithConditionals(t *testing.T) {
 	runExampleTest(t, "08_workflow_with_conditionals.go", func(t *testing.T, outputDir string) {

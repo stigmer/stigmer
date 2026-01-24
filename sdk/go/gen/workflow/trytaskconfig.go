@@ -7,6 +7,7 @@ package workflow
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 	"google.golang.org/protobuf/types/known/structpb"
 )

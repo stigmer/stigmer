@@ -24,20 +24,20 @@ func TryBody(tasks ...*Task) []*types.WorkflowTask {
 		if err != nil {
 			panic(err)
 		}
-		
+
 		wfTask := &types.WorkflowTask{
 			Name:       task.Name,
 			Kind:       string(task.Kind),
 			TaskConfig: taskMap["config"].(map[string]interface{}),
 		}
-		
+
 		// Extract export if present
 		if exportMap, ok := taskMap["export"].(map[string]interface{}); ok {
 			if asStr, ok := exportMap["as"].(string); ok {
 				wfTask.Export = &types.Export{As: asStr}
 			}
 		}
-		
+
 		workflowTasks = append(workflowTasks, wfTask)
 	}
 	return workflowTasks

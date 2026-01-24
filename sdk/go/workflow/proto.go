@@ -625,7 +625,9 @@ func workflowTaskToMap(task *types.WorkflowTask) map[string]interface{} {
 		m["name"] = task.Name
 	}
 	if task.Kind != "" {
-		m["kind"] = task.Kind
+		// Convert SDK TaskKind string to proto enum constant name
+		// e.g., "SET" -> "WORKFLOW_TASK_KIND_SET"
+		m["kind"] = convertTaskKindStringToProtoEnumName(task.Kind)
 	}
 	if task.TaskConfig != nil && len(task.TaskConfig) > 0 {
 		m["taskConfig"] = task.TaskConfig
@@ -641,6 +643,14 @@ func workflowTaskToMap(task *types.WorkflowTask) map[string]interface{} {
 		}
 	}
 	return m
+}
+
+// convertTaskKindStringToProtoEnumName converts SDK TaskKind string to proto enum constant name.
+// Example: "SET" -> "WORKFLOW_TASK_KIND_SET"
+func convertTaskKindStringToProtoEnumName(kind string) string {
+	// The SDK uses short names like "SET", "HTTP_CALL"
+	// The proto expects full enum names like "WORKFLOW_TASK_KIND_SET", "WORKFLOW_TASK_KIND_HTTP_CALL"
+	return "WORKFLOW_TASK_KIND_" + kind
 }
 
 // forkBranchToMap converts types.ForkBranch to map[string]interface{}.
@@ -662,8 +672,15 @@ func forkBranchToMap(branch *types.ForkBranch) map[string]interface{} {
 // forTaskConfigToMap converts ForTaskConfig to map.
 func forTaskConfigToMap(c *ForTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	if c.In != "" {
-		m["in"] = c.In
+	if c.Each != "" {
+		m["each"] = c.Each
+	}
+	if c.In != nil {
+		// Use CoerceToString to handle Task references, strings, and expressions
+		inStr := CoerceToString(c.In)
+		if inStr != "" {
+			m["in"] = inStr
+		}
 	}
 	if c.Do != nil && len(c.Do) > 0 {
 		// Convert []*types.WorkflowTask to []interface{} for structpb
