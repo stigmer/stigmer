@@ -96,18 +96,19 @@ func main() {
 
 		// Task 1: Fetch data from API (clean, one-liner!)
 		// Dependencies are implicit - no ThenRef needed!
-		fetchTask := wf.HttpGet("fetchData", endpoint,
-			workflow.Header("Content-Type", "application/json"),
-			workflow.Timeout(30),
-		)
+		fetchTask := wf.HttpGet("fetchData", endpoint.Expression(), map[string]string{
+			"Content-Type": "application/json",
+		})
 
 		// Task 2: Process response using direct task references
 		// Dependencies are automatic through field references!
-		processTask := wf.SetVars("processResponse",
-			"postTitle", fetchTask.Field("title"),
-			"postBody", fetchTask.Field("body"),
-			"status", "completed",
-		)
+		processTask := wf.Set("processResponse", &workflow.SetArgs{
+			Variables: map[string]string{
+				"postTitle": fetchTask.Field("title").Expression(),
+				"postBody":  fetchTask.Field("body").Expression(),
+				"status":    "completed",
+			},
+		})
 
 		log.Println("✅ Created data-fetching workflow:")
 		log.Printf("   Name: %s\n", wf.Document.Name)
@@ -155,18 +156,17 @@ func main() {
 		// ============================================
 		// This agent analyzes pull requests - just describe what you want in plain English!
 
-		reviewer, err := agent.New(ctx,
-			agent.WithName("pr-reviewer"),
-			agent.WithDescription("AI code reviewer that analyzes pull requests"),
-			agent.WithInstructions(` + "`" + `You are an expert code reviewer.
+		reviewer, err := agent.New(ctx, "pr-reviewer", &agent.AgentArgs{
+			Instructions: ` + "`" + `You are an expert code reviewer.
 
 Analyze the provided pull request and give:
 1. Overall assessment (looks good / needs work / has issues)
 2. Key findings (bugs, improvements, security concerns)
 3. Actionable suggestions
 
-Be concise and helpful.` + "`" + `),
-		)
+Be concise and helpful.` + "`" + `,
+			Description: "AI code reviewer that analyzes pull requests",
+		})
 		if err != nil {
 			return err
 		}
@@ -193,36 +193,41 @@ Be concise and helpful.` + "`" + `),
 		// No authentication needed - it's a public repo!
 		fetchPR := pipeline.HttpGet("fetch-pr",
 			"https://api.github.com/repos/stigmer/hello-stigmer/pulls/1",
-			workflow.Header("Accept", "application/vnd.github.v3+json"),
-			workflow.Header("User-Agent", "Stigmer-Demo"),
+			map[string]string{
+				"Accept":     "application/vnd.github.v3+json",
+				"User-Agent": "Stigmer-Demo",
+			},
 		)
 
 		// Step 2: Get the PR diff to analyze the actual code changes
 		fetchDiff := pipeline.HttpGet("fetch-diff",
 			fetchPR.Field("diff_url").Expression(),
-			workflow.Header("Accept", "application/vnd.github.v3.diff"),
+			map[string]string{
+				"Accept": "application/vnd.github.v3.diff",
+			},
 		)
 
 		// Step 3: Send to AI agent for review
-		analyze := pipeline.CallAgent(
-			"analyze-pr",
-			workflow.AgentOption(workflow.Agent(reviewer)),
-			workflow.Message(
-				"PR Title: "+fetchPR.Field("title").Expression()+"\n"+
-					"PR Description: "+fetchPR.Field("body").Expression()+"\n"+
-					"Code Changes:\n"+fetchDiff.Field("body").Expression(),
-			),
-			workflow.AgentModel("claude-3-5-sonnet"),
-			workflow.AgentTimeout(60),
-		)
+		analyze := pipeline.CallAgent("analyze-pr", &workflow.AgentCallArgs{
+			Agent: reviewer.Name,
+			Message: "PR Title: " + fetchPR.Field("title").Expression() + "\n" +
+				"PR Description: " + fetchPR.Field("body").Expression() + "\n" +
+				"Code Changes:\n" + fetchDiff.Field("body").Expression(),
+			Config: map[string]interface{}{
+				"model":   "claude-3-5-sonnet",
+				"timeout": 60,
+			},
+		})
 
 		// Step 4: Store the results
-		results := pipeline.SetVars("store-results",
-			"prTitle", fetchPR.Field("title"),
-			"prNumber", fetchPR.Field("number"),
-			"review", analyze.Field("response"),
-			"reviewedAt", "${.context.timestamp}",
-		)
+		results := pipeline.Set("store-results", &workflow.SetArgs{
+			Variables: map[string]string{
+				"prTitle":    fetchPR.Field("title").Expression(),
+				"prNumber":   fetchPR.Field("number").Expression(),
+				"review":     analyze.Field("response").Expression(),
+				"reviewedAt": "${.context.timestamp}",
+			},
+		})
 		results.ExportAs = "pr-review-result"
 
 		// ============================================

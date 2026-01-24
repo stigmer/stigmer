@@ -246,7 +246,7 @@ func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
 			Kind: TaskKindSwitch,
 			Config: &SwitchTaskConfig{
 				Cases: []map[string]interface{}{
-					{"condition": "true", "then": "task1"},
+					{"name": "case1", "when": "true", "then": "task1"},
 				},
 			},
 		},
