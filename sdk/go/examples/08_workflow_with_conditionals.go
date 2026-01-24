@@ -17,7 +17,7 @@ func main() {
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Context for configuration
 		apiBase := ctx.SetString("apiBase", "https://api.example.com")
-		
+
 		// Create workflow
 		wf, err := workflow.New(ctx,
 			workflow.WithNamespace("deployments"),
