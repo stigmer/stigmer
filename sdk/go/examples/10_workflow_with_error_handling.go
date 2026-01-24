@@ -33,16 +33,16 @@ func main() {
 		// Task 1: Try to fetch pull request with error handling
 		tryTask := wf.Try("attemptGitHubCall", &workflow.TryArgs{
 			Tasks: []map[string]interface{}{
-				{
-					"httpCall": map[string]interface{}{
-						"method": "GET",
-						"uri":    apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1").Expression(),
-						"headers": map[string]string{
-							"Accept":     "application/vnd.github.v3+json",
-							"User-Agent": "Stigmer-SDK-Example",
+					{
+						"httpCall": map[string]interface{}{
+							"method": "GET",
+							"uri":    apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1"),
+							"headers": map[string]string{
+								"Accept":     "application/vnd.github.v3+json",
+								"User-Agent": "Stigmer-SDK-Example",
+							},
 						},
 					},
-				},
 			},
 			Catch: []map[string]interface{}{
 				{
