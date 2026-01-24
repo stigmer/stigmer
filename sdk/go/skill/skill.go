@@ -3,8 +3,12 @@ package skill
 import (
 	"errors"
 
+	genSkill "github.com/stigmer/stigmer/sdk/go/gen/skill"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 )
+
+// SkillArgs is an alias for the generated SkillArgs from gen/skill
+type SkillArgs = genSkill.SkillArgs
 
 var (
 	// ErrSkillNameRequired is returned when inline skill name is missing.

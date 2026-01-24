@@ -116,13 +116,12 @@ codegen-go: ## Generate Go SDK code from JSON schemas (Stage 2: schema → Go)
 	@echo "============================================"
 	@echo ""
 	@echo "Input:  JSON schemas (tools/codegen/schemas/)"
-	@echo "Output: Go SDK files (sdk/go/workflow/*_task.go)"
+	@echo "Output: Go SDK files (sdk/go/gen/*/)"
 	@echo ""
 	@cd ../.. && go run tools/codegen/generator/main.go \
 		--schema-dir tools/codegen/schemas \
-		--output-dir sdk/go/workflow \
-		--package workflow \
-		--file-suffix _task
+		--output-dir sdk/go/gen/workflow \
+		--package workflow
 	@echo ""
 	@echo "✓ Go SDK code generated!"
 	@echo ""
@@ -137,8 +136,10 @@ codegen: codegen-schemas codegen-go ## Run full code generation pipeline (proto 
 	@echo "Generated files:"
 	@echo "  • Schemas: tools/codegen/schemas/tasks/*.json"
 	@echo "  • Schemas: tools/codegen/schemas/types/*.json"
-	@echo "  • Go code: sdk/go/workflow/*_task.go"
-	@echo "  • Go code: sdk/go/types/*_types.go"
+	@echo "  • Go code: sdk/go/gen/workflow/*.go"
+	@echo "  • Go code: sdk/go/gen/agent/*.go"
+	@echo "  • Go code: sdk/go/gen/skill/*.go"
+	@echo "  • Go code: sdk/go/gen/types/*.go"
 	@echo ""
 	@echo "Next: Run 'make test' to verify generation"
 	@echo ""
