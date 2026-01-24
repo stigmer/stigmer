@@ -8,6 +8,7 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
+	"github.com/stigmer/stigmer/sdk/go/types"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -53,7 +54,9 @@ func TestIntegration_CompleteWorkflowWithAgent(t *testing.T) {
 		// Add HTTP task with timeout using HttpCall
 		fetchPR := workflow.HttpCall("fetchPR", &workflow.HttpCallArgs{
 			Method: "GET",
-			URI:    "https://api.github.com/pulls/123",
+			Endpoint: &types.HttpEndpoint{
+				Uri: "https://api.github.com/pulls/123",
+			},
 			Headers: map[string]string{
 				"Authorization": "Bearer ${GITHUB_TOKEN}",
 			},
@@ -75,7 +78,9 @@ func TestIntegration_CompleteWorkflowWithAgent(t *testing.T) {
 		// Add comment posting task with timeout
 		postComment := workflow.HttpCall("postComment", &workflow.HttpCallArgs{
 			Method: "POST",
-			URI:    "https://api.github.com/pulls/123/comments",
+			Endpoint: &types.HttpEndpoint{
+				Uri: "https://api.github.com/pulls/123/comments",
+			},
 			Headers: map[string]string{
 				"Content-Type": "application/json",
 			},
@@ -481,7 +486,9 @@ func TestIntegration_RealWorld_DataPipeline(t *testing.T) {
 		// Fetch data from source with timeout
 		fetchData := workflow.HttpCall("fetchSourceData", &workflow.HttpCallArgs{
 			Method: "GET",
-			URI:    "https://api.datasource.com/daily-export",
+			Endpoint: &types.HttpEndpoint{
+				Uri: "https://api.datasource.com/daily-export",
+			},
 			Headers: map[string]string{
 				"Authorization": "Bearer ${API_TOKEN}",
 			},
@@ -514,7 +521,9 @@ func TestIntegration_RealWorld_DataPipeline(t *testing.T) {
 		// Load to destination with timeout
 		loadData := workflow.HttpCall("loadData", &workflow.HttpCallArgs{
 			Method: "POST",
-			URI:    "https://api.datawarehouse.com/load",
+			Endpoint: &types.HttpEndpoint{
+				Uri: "https://api.datawarehouse.com/load",
+			},
 			Headers: map[string]string{
 				"Content-Type": "application/json",
 			},
@@ -657,8 +666,10 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 
 		// Risky API call with timeout
 		riskyCall := workflow.HttpCall("riskyAPICall", &workflow.HttpCallArgs{
-			Method:         "GET",
-			URI:            "https://api.unreliable.com/data",
+			Method: "GET",
+			Endpoint: &types.HttpEndpoint{
+				Uri: "https://api.unreliable.com/data",
+			},
 			TimeoutSeconds: 10,
 		})
 		wf.Tasks = append(wf.Tasks, riskyCall)

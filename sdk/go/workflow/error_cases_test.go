@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
+	"github.com/stigmer/stigmer/sdk/go/types"
 )
 
 // =============================================================================
@@ -125,7 +126,7 @@ func TestWorkflowToProto_InvalidTaskConfigurations(t *testing.T) {
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
 					Method: "GET",
-					URI:    "", // empty URI
+					Endpoint: &types.HttpEndpoint{Uri: ""}, // empty URI
 				},
 			},
 			wantErr: true,
@@ -138,7 +139,7 @@ func TestWorkflowToProto_InvalidTaskConfigurations(t *testing.T) {
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
 					Method: "INVALID_METHOD",
-					URI:    "https://example.com",
+					Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
 				},
 			},
 			wantErr: false, // May not validate method
@@ -199,7 +200,9 @@ func TestWorkflowToProto_InvalidTaskConfigurations(t *testing.T) {
 				Name: "listenTask",
 				Kind: TaskKindListen,
 				Config: &ListenTaskConfig{
-					Event: "", // empty event
+					To: &types.ListenTo{
+						Mode: "",
+					},
 				},
 			},
 			wantErr: true,
@@ -339,7 +342,7 @@ func TestWorkflowToProto_TaskKindConfigMismatch(t *testing.T) {
 				Kind: TaskKindSet,
 				Config: &HttpCallTaskConfig{ // wrong config type
 					Method: "GET",
-					URI:    "https://example.com",
+					Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
 				},
 			},
 			errMsg: "type mismatch",
@@ -565,7 +568,7 @@ func TestWorkflowToProto_PartiallyValidWorkflow(t *testing.T) {
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
 					Method: "GET",
-					URI:    "", // empty URI - may be invalid
+					Endpoint: &types.HttpEndpoint{Uri: ""}, // empty URI - may be invalid
 				},
 			},
 			// Another valid task
@@ -684,10 +687,11 @@ func TestWorkflowToProto_DeeplyNestedStructures(t *testing.T) {
 				Name: "root",
 				Kind: TaskKindSwitch,
 				Config: &SwitchTaskConfig{
-					Cases: []map[string]interface{}{
+					Cases: []*types.SwitchCase{
 						{
-							"condition": "true",
-							"then":      buildNestedSwitch(9),
+							Name: "rootCase",
+							When: "true",
+							Then: "nested",
 						},
 					},
 				},
