@@ -336,7 +336,7 @@ func main() {
     // Use stigmer.Run() for automatic context and synthesis management
     err := stigmer.Run(func(ctx *stigmer.Context) error {
         // Context: ONLY for shared configuration (like Pulumi's Config)
-        apiBase := ctx.SetString("apiBase", "https://jsonplaceholder.typicode.com")
+        apiBase := ctx.SetString("apiBase", "https://api.github.com")
         orgName := ctx.SetString("org", "my-org")
         
         // Create workflow with context
@@ -350,20 +350,22 @@ func main() {
             return err
         }
         
-        // Build endpoint URL using context config
-        endpoint := apiBase.Concat("/posts/1")
+        // Build endpoint URL using context config - real GitHub API!
+        endpoint := apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1")
         
-        // Task 1: Fetch data from API (clean, one-liner!)
-        fetchTask := wf.HttpGet("fetchData", endpoint,
-            workflow.Header("Content-Type", "application/json"),
+        // Task 1: Fetch pull request from GitHub API (clean, one-liner!)
+        fetchTask := wf.HttpGet("fetchPullRequest", endpoint,
+            workflow.Header("Accept", "application/vnd.github.v3+json"),
+            workflow.Header("User-Agent", "Stigmer-SDK-Example"),
             workflow.Timeout(30),
         )
         
         // Task 2: Process response using DIRECT task references
         // Dependencies are implicit - no manual wiring needed!
         processTask := wf.SetVars("processResponse",
-            "postTitle", fetchTask.Field("title"),  // ✅ Clear: from fetchTask!
-            "postBody", fetchTask.Field("body"),    // ✅ Clear: from fetchTask!
+            "prTitle", fetchTask.Field("title"),      // ✅ Clear: from fetchTask!
+            "prBody", fetchTask.Field("body"),        // ✅ Clear: from fetchTask!
+            "prAuthor", fetchTask.Field("user.login"), // ✅ GitHub username
             "status", "success",
         )
         
@@ -475,7 +477,7 @@ See the [examples/](examples/) directory for complete examples:
 6. **Agent with Instructions from Files** (`06_agent_with_instructions_from_files.go`) - **⭐ Recommended pattern** - Load all content from files
 
 ### Workflow Examples (Basic)
-7. **Basic Workflow** (`07_workflow_with_runtime_secrets.go`) - **⭐ START HERE** - Complete workflow with Pulumi-aligned patterns
+7. **Basic Workflow** (`07_basic_workflow.go`) - **⭐ START HERE** - Complete workflow with Pulumi-aligned patterns and real GitHub API
 8. **Agent with Typed Context** (`12_agent_with_typed_context.go`) - Typed context variables for configuration
 9. **Workflow and Agent Shared Context** (`13_workflow_and_agent_shared_context.go`) - Sharing configuration between workflows and agents
 
@@ -493,9 +495,16 @@ See the [examples/](examples/) directory for complete examples:
 
 **Total**: 19 comprehensive examples covering all SDK features
 
+**🚀 Real GitHub API Integration**:
+- Examples 07-11 use **real GitHub API** endpoints from the public `stigmer/hello-stigmer` repository
+- ✅ No authentication required - work as E2E tests
+- ✅ Demonstrate realistic integration patterns
+- ✅ Production-ready code with actual API responses
+- See [examples/URL_MIGRATION_ANALYSIS.md](examples/URL_MIGRATION_ANALYSIS.md) for details
+
 **🌟 Recommended Starting Points**:
 - **For agents**: Example 06 (file-based content - production pattern)
-- **For workflows**: Example 07 (basic workflow - Pulumi-aligned)
+- **For workflows**: Example 07 (basic workflow - Pulumi-aligned, real GitHub API)
 - **For advanced workflows**: Example 08 (conditionals - proven working!)
 - **For agent orchestration**: Example 18 (real-world CI/CD pipeline)
 
