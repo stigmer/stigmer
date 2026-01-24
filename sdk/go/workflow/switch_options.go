@@ -13,15 +13,16 @@ type SwitchArgs = SwitchTaskConfig
 //	task := workflow.Switch("routeByType", &workflow.SwitchArgs{
 //	    Cases: []map[string]interface{}{
 //	        {
-//	            "condition": "${.type == 'A'}",
+//	            "name": "caseA",
+//	            "when": "${.type == 'A'}",
 //	            "then": "handleA",
 //	        },
 //	        {
-//	            "condition": "${.type == 'B'}",
+//	            "name": "caseB",
+//	            "when": "${.type == 'B'}",
 //	            "then": "handleB",
 //	        },
 //	    },
-//	    DefaultTask: "handleDefault",
 //	})
 func Switch(name string, args *SwitchArgs) *Task {
 	if args == nil {
