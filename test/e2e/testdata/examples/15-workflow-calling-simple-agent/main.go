@@ -25,17 +25,16 @@ func main() {
 		// ============================================================================
 		// Step 1: Create a simple agent
 		// ============================================================================
-		codeReviewer, err := agent.New(ctx,
-			agent.WithName("code-reviewer"),
-			agent.WithInstructions(`You are a code reviewer. Analyze code for:
+		codeReviewer, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+			Instructions: `You are a code reviewer. Analyze code for:
 - Best practices
 - Potential bugs
 - Security vulnerabilities
 - Performance issues
 
-Provide constructive feedback in a friendly tone.`),
-			agent.WithDescription("AI code reviewer for pull requests"),
-		)
+Provide constructive feedback in a friendly tone.`,
+			Description: "AI code reviewer for pull requests",
+		})
 		if err != nil {
 			return err
 		}
@@ -57,11 +56,10 @@ Provide constructive feedback in a friendly tone.`),
 		// Step 3: Call the agent with a static message
 		// ============================================================================
 		// Using workflow.Agent() to reference the agent instance
-		reviewTask := wf.CallAgent(
-			"reviewCode",
-			workflow.AgentOption(workflow.Agent(codeReviewer)), // Direct instance reference
-			workflow.Message("Please review this function:\n\n```go\nfunc divide(a, b int) int {\n    return a / b\n}\n```"),
-		)
+		reviewTask := wf.CallAgent("reviewCode", &workflow.AgentCallArgs{
+			Agent:   workflow.Agent(codeReviewer).Slug(), // Direct instance reference
+			Message: "Please review this function:\n\n```go\nfunc divide(a, b int) int {\n    return a / b\n}\n```",
+		})
 
 		log.Printf("✅ Created workflow: %s", wf.Document.Name)
 		log.Printf("✅ Created agent call task: %s", reviewTask.Name)

@@ -1,4 +1,5 @@
 //go:build ignore
+
 // Example 04: Agent with Sub-Agents
 //
 // This example demonstrates how to create agents with sub-agents.
@@ -86,32 +87,34 @@ func createSimpleAgentWithSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create sub-agent: %w", err)
 	}
 
-	ag, err := agent.New(ctx,
-		agent.WithName("code-reviewer"),
-		agent.WithInstructions("Review code changes and coordinate with specialized sub-agents for deeper analysis"),
-		agent.WithDescription("Main code review orchestrator"),
-		agent.WithSubAgent(securityScanner),
-	)
+	ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+		Instructions: "Review code changes and coordinate with specialized sub-agents for deeper analysis",
+		Description:  "Main code review orchestrator",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
+
+	// Add sub-agent using builder method
+	ag.AddSubAgent(securityScanner)
 	return ag, nil
 }
 
 // Example 2: Referenced sub-agent
 func createAgentWithReferencedSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	ag, err := agent.New(ctx,
-		agent.WithName("deployment-orchestrator"),
-		agent.WithInstructions("Orchestrate deployment process by delegating to specialized agents"),
-		agent.WithDescription("Main deployment coordinator"),
-		agent.WithSubAgent(subagent.Reference(
-			"security-checker",
-			"sec-checker-prod", // References an existing AgentInstance
-		)),
-	)
+	ag, err := agent.New(ctx, "deployment-orchestrator", &agent.AgentArgs{
+		Instructions: "Orchestrate deployment process by delegating to specialized agents",
+		Description:  "Main deployment coordinator",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
+
+	// Add referenced sub-agent using builder method
+	ag.AddSubAgent(subagent.Reference(
+		"security-checker",
+		"sec-checker-prod", // References an existing AgentInstance
+	))
 	return ag, nil
 }
 
@@ -136,22 +139,23 @@ func createComplexAgentWithMultipleSubAgents(ctx *stigmer.Context) (*agent.Agent
 		return nil, fmt.Errorf("failed to create test runner: %w", err)
 	}
 
-	ag, err := agent.New(ctx,
-		agent.WithName("ci-cd-orchestrator"),
-		agent.WithInstructions("Manage the entire CI/CD pipeline by delegating to specialized agents"),
-		agent.WithDescription("Complete CI/CD pipeline orchestrator"),
-		agent.WithSubAgents(
-			// Inline sub-agents
-			codeQualityChecker,
-			testRunner,
-			// Referenced sub-agents
-			subagent.Reference("security-scanner", "sec-scanner-prod"),
-			subagent.Reference("deployer", "deployer-prod"),
-		),
-	)
+	ag, err := agent.New(ctx, "ci-cd-orchestrator", &agent.AgentArgs{
+		Instructions: "Manage the entire CI/CD pipeline by delegating to specialized agents",
+		Description:  "Complete CI/CD pipeline orchestrator",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
+
+	// Add sub-agents using builder method
+	ag.AddSubAgents(
+		// Inline sub-agents
+		codeQualityChecker,
+		testRunner,
+		// Referenced sub-agents
+		subagent.Reference("security-scanner", "sec-scanner-prod"),
+		subagent.Reference("deployer", "deployer-prod"),
+	)
 	return ag, nil
 }
 
@@ -199,17 +203,18 @@ func createAgentWithMCPSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create cross-platform sync: %w", err)
 	}
 
-	// Create agent with sub-agent that uses the MCP servers
-	ag, err := agent.New(ctx,
-		agent.WithName("multi-repo-manager"),
-		agent.WithInstructions("Manage repositories across multiple platforms"),
-		agent.WithDescription("Multi-platform repository manager"),
-		agent.WithMCPServers(github, gitlab),
-		agent.WithSubAgents(githubSpecialist, crossPlatformSync),
-	)
+	// Create agent with sub-agents that use the MCP servers
+	ag, err := agent.New(ctx, "multi-repo-manager", &agent.AgentArgs{
+		Instructions: "Manage repositories across multiple platforms",
+		Description:  "Multi-platform repository manager",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
+
+	// Add MCP servers and sub-agents using builder methods
+	ag.AddMCPServers(github, gitlab)
+	ag.AddSubAgents(githubSpecialist, crossPlatformSync)
 	return ag, nil
 }
 
@@ -231,15 +236,16 @@ func createAgentWithSkilledSubAgent(ctx *stigmer.Context) (*agent.Agent, error) 
 		return nil, fmt.Errorf("failed to create coding expert: %w", err)
 	}
 
-	ag, err := agent.New(ctx,
-		agent.WithName("development-assistant"),
-		agent.WithInstructions("Assist with software development tasks by leveraging specialized knowledge"),
-		agent.WithDescription("Intelligent development assistant"),
-		agent.WithSubAgent(codingExpert),
-	)
+	ag, err := agent.New(ctx, "development-assistant", &agent.AgentArgs{
+		Instructions: "Assist with software development tasks by leveraging specialized knowledge",
+		Description:  "Intelligent development assistant",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
+
+	// Add sub-agent using builder method
+	ag.AddSubAgent(codingExpert)
 	return ag, nil
 }
 
@@ -278,16 +284,17 @@ func createAgentWithSelectiveSubAgent(ctx *stigmer.Context) (*agent.Agent, error
 		return nil, fmt.Errorf("failed to create PR reviewer: %w", err)
 	}
 
-	ag, err := agent.New(ctx,
-		agent.WithName("selective-github-bot"),
-		agent.WithInstructions("Manage GitHub operations with specialized sub-agents"),
-		agent.WithDescription("GitHub bot with selective tool access"),
-		agent.WithMCPServer(github),
-		agent.WithSubAgents(issueManager, prReviewer),
-	)
+	ag, err := agent.New(ctx, "selective-github-bot", &agent.AgentArgs{
+		Instructions: "Manage GitHub operations with specialized sub-agents",
+		Description:  "GitHub bot with selective tool access",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
+
+	// Add MCP server and sub-agents using builder methods
+	ag.AddMCPServer(github)
+	ag.AddSubAgents(issueManager, prReviewer)
 	return ag, nil
 }
 
