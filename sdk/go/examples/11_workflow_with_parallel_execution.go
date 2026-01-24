@@ -31,6 +31,9 @@ func main() {
 		}
 
 		// Task 1: Fork to execute multiple GitHub API calls in parallel
+		// Note: For inline task definitions in Fork branches, we use map[string]interface{}
+		// This is the current pattern for defining tasks within Fork/Try blocks.
+		// When using raw maps, .Expression() is needed to convert StringRef to JQ expression.
 		_ = wf.Fork("fetchAllGitHubData", &workflow.ForkArgs{
 			Branches: []map[string]interface{}{
 				{
@@ -39,7 +42,7 @@ func main() {
 						map[string]interface{}{
 							"httpCall": map[string]interface{}{
 								"method": "GET",
-								"uri":    apiBase.Concat("/pulls").Expression(),
+								"uri":    apiBase.Concat("/pulls").Expression(), // Raw maps need .Expression()
 								"headers": map[string]string{
 									"Accept":     "application/vnd.github.v3+json",
 									"User-Agent": "Stigmer-SDK-Example",
@@ -54,7 +57,7 @@ func main() {
 						map[string]interface{}{
 							"httpCall": map[string]interface{}{
 								"method": "GET",
-								"uri":    apiBase.Concat("/issues").Expression(),
+								"uri":    apiBase.Concat("/issues").Expression(), // Raw maps need .Expression()
 								"headers": map[string]string{
 									"Accept":     "application/vnd.github.v3+json",
 									"User-Agent": "Stigmer-SDK-Example",
@@ -69,7 +72,7 @@ func main() {
 						map[string]interface{}{
 							"httpCall": map[string]interface{}{
 								"method": "GET",
-								"uri":    apiBase.Concat("/commits").Expression(),
+								"uri":    apiBase.Concat("/commits").Expression(), // Raw maps need .Expression()
 								"headers": map[string]string{
 									"Accept":     "application/vnd.github.v3+json",
 									"User-Agent": "Stigmer-SDK-Example",

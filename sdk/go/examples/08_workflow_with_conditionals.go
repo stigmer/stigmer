@@ -69,25 +69,26 @@ func main() {
 			},
 		})
 
-		// Task 3a: Production deployment (PR is closed/merged)
-		wf.Set("deployProduction", &workflow.SetArgs{
-			Variables: map[string]string{
-				"environment": "production",
-				"replicas":    "5",
-				"pr_title":    checkTask.Field("title").Expression(),
-				"pr_merged":   checkTask.Field("merged").Expression(),
-			},
-		}).DependsOn(switchTask)
+	// Task 3a: Production deployment (PR is closed/merged)
+	// Smart conversion: TaskFieldRef automatically converts to string
+	wf.Set("deployProduction", &workflow.SetArgs{
+		Variables: map[string]string{
+			"environment": "production",
+			"replicas":    "5",
+			"pr_title":    checkTask.Field("title"),
+			"pr_merged":   checkTask.Field("merged"),
+		},
+	}).DependsOn(switchTask)
 
-		// Task 3b: Staging deployment (PR is open)
-		wf.Set("deployStaging", &workflow.SetArgs{
-			Variables: map[string]string{
-				"environment": "staging",
-				"replicas":    "2",
-				"pr_title":    checkTask.Field("title").Expression(),
-				"pr_state":    checkTask.Field("state").Expression(),
-			},
-		}).DependsOn(switchTask)
+	// Task 3b: Staging deployment (PR is open)
+	wf.Set("deployStaging", &workflow.SetArgs{
+		Variables: map[string]string{
+			"environment": "staging",
+			"replicas":    "2",
+			"pr_title":    checkTask.Field("title"),
+			"pr_state":    checkTask.Field("state"),
+		},
+	}).DependsOn(switchTask)
 
 		// Task 3c: Error handler
 		wf.Set("handleError", &workflow.SetArgs{
