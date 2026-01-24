@@ -66,7 +66,7 @@ func TestWorkflowToProto_NilFields(t *testing.T) {
 			wf: &Workflow{
 				Document: Document{
 					DSL:       "1.0.0",
-					Namespace: "",      // empty
+					Namespace: "", // empty
 					Name:      "test",
 					Version:   "1.0.0",
 				},

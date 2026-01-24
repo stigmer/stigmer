@@ -1,5 +1,9 @@
 package workflow
 
+import (
+	"github.com/stigmer/stigmer/sdk/go/types"
+)
+
 // HttpCallArgs is an alias for HttpCallTaskConfig (Pulumi-style args pattern).
 type HttpCallArgs = HttpCallTaskConfig
 
@@ -10,7 +14,7 @@ type HttpCallArgs = HttpCallTaskConfig
 //
 //	task := workflow.HttpCall("fetch", &workflow.HttpCallArgs{
 //	    Method: "GET",
-//	    URI:    "https://api.example.com/data",
+//	    Endpoint: &types.HttpEndpoint{Uri: "https://api.example.com/data"},
 //	    Headers: map[string]string{
 //	        "Authorization": "Bearer ${.token}",
 //	    },
@@ -49,9 +53,9 @@ func HttpCall(name string, args *HttpCallArgs) *Task {
 //	})
 func HttpGet(name string, uri string, headers map[string]string) *Task {
 	return HttpCall(name, &HttpCallArgs{
-		Method:  "GET",
-		URI:     uri,
-		Headers: headers,
+		Method:   "GET",
+		Endpoint: &types.HttpEndpoint{Uri: uri},
+		Headers:  headers,
 	})
 }
 
@@ -65,38 +69,38 @@ func HttpGet(name string, uri string, headers map[string]string) *Task {
 //	)
 func HttpPost(name string, uri string, headers map[string]string, body map[string]interface{}) *Task {
 	return HttpCall(name, &HttpCallArgs{
-		Method:  "POST",
-		URI:     uri,
-		Headers: headers,
-		Body:    body,
+		Method:   "POST",
+		Endpoint: &types.HttpEndpoint{Uri: uri},
+		Headers:  headers,
+		Body:     body,
 	})
 }
 
 // HttpPut creates an HTTP PUT task.
 func HttpPut(name string, uri string, headers map[string]string, body map[string]interface{}) *Task {
 	return HttpCall(name, &HttpCallArgs{
-		Method:  "PUT",
-		URI:     uri,
-		Headers: headers,
-		Body:    body,
+		Method:   "PUT",
+		Endpoint: &types.HttpEndpoint{Uri: uri},
+		Headers:  headers,
+		Body:     body,
 	})
 }
 
 // HttpPatch creates an HTTP PATCH task.
 func HttpPatch(name string, uri string, headers map[string]string, body map[string]interface{}) *Task {
 	return HttpCall(name, &HttpCallArgs{
-		Method:  "PATCH",
-		URI:     uri,
-		Headers: headers,
-		Body:    body,
+		Method:   "PATCH",
+		Endpoint: &types.HttpEndpoint{Uri: uri},
+		Headers:  headers,
+		Body:     body,
 	})
 }
 
 // HttpDelete creates an HTTP DELETE task.
 func HttpDelete(name string, uri string, headers map[string]string) *Task {
 	return HttpCall(name, &HttpCallArgs{
-		Method:  "DELETE",
-		URI:     uri,
-		Headers: headers,
+		Method:   "DELETE",
+		Endpoint: &types.HttpEndpoint{Uri: uri},
+		Headers:  headers,
 	})
 }

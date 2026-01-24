@@ -12,8 +12,7 @@
         "kind": "string"
       },
       "description": "Signal identifier.",
-      "required": false,
-      "validation": {}
+      "required": false
     },
     {
       "name": "Type",
@@ -23,8 +22,7 @@
         "kind": "string"
       },
       "description": "Signal type:\n - \"signal\": Temporal signal\n - \"query\": Temporal query\n - \"update\": Temporal update",
-      "required": false,
-      "validation": {}
+      "required": false
     }
   ]
 }

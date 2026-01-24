@@ -90,12 +90,12 @@ func main() {
 	protoDir := flag.String("proto-dir", "", "Directory containing .proto files")
 	outputDir := flag.String("output-dir", "", "Output directory for JSON schemas")
 	includeDir := flag.String("include-dir", "apis", "Directory containing proto imports")
-	stubDir := flag.String("stub-dir", "/tmp/proto-stubs", "Directory containing proto stubs (like buf/validate)")
+	useBufCache := flag.Bool("use-buf-cache", true, "Use buf's module cache for dependencies")
 	messageSuffix := flag.String("message-suffix", "TaskConfig", "Suffix of messages to extract (TaskConfig, Spec, etc)")
 	flag.Parse()
 
 	if *protoDir == "" || *outputDir == "" {
-		fmt.Println("Usage: proto2schema --proto-dir <dir> --output-dir <dir> [--include-dir <dir>] [--stub-dir <dir>] [--message-suffix <suffix>]")
+		fmt.Println("Usage: proto2schema --proto-dir <dir> --output-dir <dir> [--include-dir <dir>] [--use-buf-cache] [--message-suffix <suffix>]")
 		os.Exit(1)
 	}
 
@@ -116,8 +116,32 @@ func main() {
 
 	fmt.Printf("Found %d proto files\n", len(protoFiles))
 
-	// Build import paths (stub-dir first for external deps, then include-dir for local)
-	importPaths := []string{*stubDir, *includeDir}
+	// Build import paths
+	importPaths := []string{*includeDir}
+	
+	// Add buf module cache if enabled (for dependencies like buf/validate)
+	if *useBufCache {
+		// Buf v3 cache structure: ~/.cache/buf/v3/modules/<digest>/<org>/<repo>/<commit>/files/
+		// We need to find the protovalidate module
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			bufCachePath := filepath.Join(homeDir, ".cache", "buf", "v3", "modules", "b5", "buf.build", "bufbuild", "protovalidate")
+			// Find the latest commit directory
+			if entries, err := os.ReadDir(bufCachePath); err == nil && len(entries) > 0 {
+				// Use the first (most recent) commit hash directory
+				for _, entry := range entries {
+					if entry.IsDir() {
+						filesPath := filepath.Join(bufCachePath, entry.Name(), "files")
+						if _, err := os.Stat(filesPath); err == nil {
+							importPaths = append([]string{filesPath}, importPaths...)
+							fmt.Printf("Using buf cache: %s\n", filesPath)
+							break
+						}
+					}
+				}
+			}
+		}
+	}
 	
 	// Parse proto files
 	parser := &protoparse.Parser{

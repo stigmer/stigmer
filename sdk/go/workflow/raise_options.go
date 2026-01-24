@@ -11,16 +11,10 @@ type RaiseArgs = RaiseTaskConfig
 //	task := workflow.Raise("throwError", &workflow.RaiseArgs{
 //	    Error:   "ValidationError",
 //	    Message: "Invalid input",
-//	    Data:    map[string]interface{}{"field": "email"},
 //	})
 func Raise(name string, args *RaiseArgs) *Task {
 	if args == nil {
 		args = &RaiseArgs{}
-	}
-
-	// Initialize maps if nil
-	if args.Data == nil {
-		args.Data = make(map[string]interface{})
 	}
 
 	return &Task{

@@ -14,8 +14,7 @@
         "messageType": "ListenTo"
       },
       "description": "Signal listening configuration.",
-      "required": false,
-      "validation": {}
+      "required": false
     }
   ]
 }

@@ -273,7 +273,7 @@ func (g *Generator) loadSchemas() error {
 
 	// Track loaded types to avoid duplicates
 	loadedTypes := make(map[string]bool)
-	
+
 	// Load shared types from types/ directory (workflow task types)
 	typesDir := filepath.Join(g.schemaDir, "types")
 	if _, err := os.Stat(typesDir); err == nil {

@@ -47,7 +47,7 @@ func (c *ListenTaskConfig) FromProto(s *structpb.Struct) error {
 	fields := s.GetFields()
 
 	if val, ok := fields["to"]; ok {
-		c.To = &ListenTo{}
+		c.To = &types.ListenTo{}
 		if err := c.To.FromProto(val.GetStructValue()); err != nil {
 			return err
 		}
