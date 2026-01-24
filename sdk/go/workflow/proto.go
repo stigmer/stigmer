@@ -13,6 +13,7 @@ import (
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/sdk/go/environment"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
 // validator is the global protovalidate validator instance.
@@ -617,6 +618,47 @@ func switchTaskConfigToMap(c *SwitchTaskConfig) map[string]interface{} {
 	return m
 }
 
+// workflowTaskToMap converts types.WorkflowTask to map[string]interface{}.
+func workflowTaskToMap(task *types.WorkflowTask) map[string]interface{} {
+	m := make(map[string]interface{})
+	if task.Name != "" {
+		m["name"] = task.Name
+	}
+	if task.Kind != "" {
+		m["kind"] = task.Kind
+	}
+	if task.TaskConfig != nil && len(task.TaskConfig) > 0 {
+		m["taskConfig"] = task.TaskConfig
+	}
+	if task.Export != nil && task.Export.As != "" {
+		m["export"] = map[string]interface{}{
+			"as": task.Export.As,
+		}
+	}
+	if task.Flow != nil && task.Flow.Then != "" {
+		m["flow"] = map[string]interface{}{
+			"then": task.Flow.Then,
+		}
+	}
+	return m
+}
+
+// forkBranchToMap converts types.ForkBranch to map[string]interface{}.
+func forkBranchToMap(branch *types.ForkBranch) map[string]interface{} {
+	m := make(map[string]interface{})
+	if branch.Name != "" {
+		m["name"] = branch.Name
+	}
+	if branch.Do != nil && len(branch.Do) > 0 {
+		do := make([]interface{}, len(branch.Do))
+		for i, task := range branch.Do {
+			do[i] = workflowTaskToMap(task)
+		}
+		m["do"] = do
+	}
+	return m
+}
+
 // forTaskConfigToMap converts ForTaskConfig to map.
 func forTaskConfigToMap(c *ForTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
@@ -624,10 +666,10 @@ func forTaskConfigToMap(c *ForTaskConfig) map[string]interface{} {
 		m["in"] = c.In
 	}
 	if c.Do != nil && len(c.Do) > 0 {
-		// Convert array of maps to []interface{} for structpb
+		// Convert []*types.WorkflowTask to []interface{} for structpb
 		do := make([]interface{}, len(c.Do))
-		for i, doMap := range c.Do {
-			do[i] = doMap
+		for i, task := range c.Do {
+			do[i] = workflowTaskToMap(task)
 		}
 		m["do"] = do
 	}
@@ -638,10 +680,10 @@ func forTaskConfigToMap(c *ForTaskConfig) map[string]interface{} {
 func forkTaskConfigToMap(c *ForkTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
 	if c.Branches != nil && len(c.Branches) > 0 {
-		// Convert array of maps to []interface{} for structpb
+		// Convert []*types.ForkBranch to []interface{} for structpb
 		branches := make([]interface{}, len(c.Branches))
 		for i, branch := range c.Branches {
-			branches[i] = branch
+			branches[i] = forkBranchToMap(branch)
 		}
 		m["branches"] = branches
 	}
@@ -655,7 +697,7 @@ func tryTaskConfigToMap(c *TryTaskConfig) map[string]interface{} {
 		// Convert []*types.WorkflowTask to []interface{} for structpb
 		tryTasks := make([]interface{}, len(c.Try))
 		for i, task := range c.Try {
-			tryTasks[i] = task
+			tryTasks[i] = workflowTaskToMap(task)
 		}
 		m["try"] = tryTasks
 	}
@@ -668,7 +710,7 @@ func tryTaskConfigToMap(c *TryTaskConfig) map[string]interface{} {
 		if c.Catch.Do != nil && len(c.Catch.Do) > 0 {
 			doTasks := make([]interface{}, len(c.Catch.Do))
 			for i, task := range c.Catch.Do {
-				doTasks[i] = task
+				doTasks[i] = workflowTaskToMap(task)
 			}
 			catchMap["do"] = doTasks
 		}
