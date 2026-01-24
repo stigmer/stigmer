@@ -39,7 +39,7 @@ func TestWorkflowToProto_Complete(t *testing.T) {
 		Name: "fetchData",
 		Kind: TaskKindHttpCall,
 		Config: &HttpCallTaskConfig{
-			Method: "GET",
+			Method:   "GET",
 			Endpoint: &types.HttpEndpoint{Uri: "https://api.example.com/data"},
 			Headers: map[string]string{
 				"Authorization": "Bearer token",
@@ -219,7 +219,7 @@ func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
 			Kind: TaskKindHttpCall,
 			Config: &HttpCallTaskConfig{
 				Method:         "GET",
-				Endpoint: &types.HttpEndpoint{Uri: "https://api.example.com"},
+				Endpoint:       &types.HttpEndpoint{Uri: "https://api.example.com"},
 				TimeoutSeconds: 30,
 			},
 		},
@@ -278,14 +278,19 @@ func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
 				Catch: nil,
 			},
 		},
-		// LISTEN
-		{
-			Name: "listenTask",
-			Kind: TaskKindListen,
-			Config: &ListenTaskConfig{
-				Event: "user-action",
+	// LISTEN
+	{
+		Name: "listenTask",
+		Kind: TaskKindListen,
+		Config: &ListenTaskConfig{
+			To: &types.ListenTo{
+				Mode: "one",
+				Signals: []*types.SignalSpec{
+					{Id: "user-action", Type: "signal"},
+				},
 			},
 		},
+	},
 		// WAIT
 		{
 			Name: "waitTask",
@@ -310,14 +315,14 @@ func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
 				Error: "CustomError",
 			},
 		},
-		// RUN
-		{
-			Name: "runTask",
-			Kind: TaskKindRun,
-			Config: &RunTaskConfig{
-				WorkflowName: "sub-workflow",
-			},
+	// RUN
+	{
+		Name: "runTask",
+		Kind: TaskKindRun,
+		Config: &RunTaskConfig{
+			Workflow: "sub-workflow",
 		},
+	},
 	}
 
 	wf := &Workflow{
@@ -369,7 +374,7 @@ func TestWorkflowToProto_TaskExport(t *testing.T) {
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
 					Method:         "GET",
-					Endpoint: &types.HttpEndpoint{Uri: "https://api.example.com"},
+					Endpoint:       &types.HttpEndpoint{Uri: "https://api.example.com"},
 					TimeoutSeconds: 30,
 				},
 				ExportAs: "${.}", // Export entire output
