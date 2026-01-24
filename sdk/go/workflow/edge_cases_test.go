@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
+	"github.com/stigmer/stigmer/sdk/go/types"
 )
 
 // =============================================================================
@@ -204,27 +205,11 @@ func TestWorkflowToProto_DeepTaskNesting(t *testing.T) {
 				Name: "level1",
 				Kind: TaskKindSwitch,
 				Config: &SwitchTaskConfig{
-					Cases: []map[string]interface{}{
+					Cases: []*types.SwitchCase{
 						{
-							"condition": "true",
-							"then": map[string]interface{}{
-								"name": "level2",
-								"kind": "FOR",
-								"config": map[string]interface{}{
-									"in": "${items}",
-									"do": []map[string]interface{}{
-										{
-											"name": "level3",
-											"kind": "TRY",
-											"config": map[string]interface{}{
-												"tasks": []map[string]interface{}{
-													{"name": "deepTask"},
-												},
-											},
-										},
-									},
-								},
-							},
+							Name: "trueCase",
+							When: "true",
+							Then: "level2",
 						},
 					},
 				},
@@ -352,7 +337,7 @@ func TestWorkflowToProto_EmptyMaps(t *testing.T) {
 				Kind: TaskKindHttpCall,
 				Config: &HttpCallTaskConfig{
 					Method:  "GET",
-					URI:     "https://example.com",
+					Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
 					Headers: map[string]string{}, // empty map
 				},
 			},
@@ -383,7 +368,7 @@ func TestWorkflowToProto_HttpCallEdgeCases(t *testing.T) {
 			name: "zero timeout",
 			config: &HttpCallTaskConfig{
 				Method:         "GET",
-				URI:            "https://example.com",
+				Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
 				TimeoutSeconds: 0, // zero timeout
 			},
 		},
@@ -391,7 +376,7 @@ func TestWorkflowToProto_HttpCallEdgeCases(t *testing.T) {
 			name: "very large timeout",
 			config: &HttpCallTaskConfig{
 				Method:         "GET",
-				URI:            "https://example.com",
+				Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
 				TimeoutSeconds: 86400, // 24 hours
 			},
 		},
@@ -399,7 +384,7 @@ func TestWorkflowToProto_HttpCallEdgeCases(t *testing.T) {
 			name: "many headers",
 			config: &HttpCallTaskConfig{
 				Method: "POST",
-				URI:    "https://example.com",
+				Endpoint: &types.HttpEndpoint{Uri: "https://example.com"},
 				Headers: map[string]string{
 					"Header1":  "value1",
 					"Header2":  "value2",
@@ -418,7 +403,7 @@ func TestWorkflowToProto_HttpCallEdgeCases(t *testing.T) {
 			name: "very long URI",
 			config: &HttpCallTaskConfig{
 				Method: "GET",
-				URI:    "https://example.com/very/long/path/" + strings.Repeat("segment/", 50),
+				Endpoint: &types.HttpEndpoint{Uri: "https://example.com/very/long/path/" + strings.Repeat("segment/", 50)},
 			},
 		},
 	}
