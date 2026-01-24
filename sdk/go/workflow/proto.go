@@ -433,9 +433,9 @@ func httpCallTaskConfigToMap(c *HttpCallTaskConfig) map[string]interface{} {
 	}
 
 	// Build endpoint struct
-	if c.URI != "" {
+	if c.Endpoint != nil && c.Endpoint.Uri != "" {
 		endpoint := map[string]interface{}{
-			"uri": c.URI,
+			"uri": c.Endpoint.Uri,
 		}
 		m["endpoint"] = endpoint
 	}
@@ -472,8 +472,8 @@ func grpcCallTaskConfigToMap(c *GrpcCallTaskConfig) map[string]interface{} {
 		m["method"] = c.Method
 	}
 
-	if c.Body != nil && len(c.Body) > 0 {
-		m["body"] = normalizeMapForProto(c.Body)
+	if c.Request != nil && len(c.Request) > 0 {
+		m["request"] = normalizeMapForProto(c.Request)
 	}
 
 	return m
@@ -500,8 +500,21 @@ func agentCallTaskConfigToMap(c *AgentCallTaskConfig) map[string]interface{} {
 		m["env"] = env
 	}
 
-	if c.Config != nil && len(c.Config) > 0 {
-		m["config"] = c.Config
+	if c.Config != nil {
+		// Config is *types.AgentExecutionConfig, convert to map
+		configMap := make(map[string]interface{})
+		if c.Config.Model != "" {
+			configMap["model"] = c.Config.Model
+		}
+		if c.Config.Timeout > 0 {
+			configMap["timeout"] = c.Config.Timeout
+		}
+		if c.Config.Temperature > 0 {
+			configMap["temperature"] = c.Config.Temperature
+		}
+		if len(configMap) > 0 {
+			m["config"] = configMap
+		}
 	}
 
 	return m
@@ -519,8 +532,27 @@ func waitTaskConfigToMap(c *WaitTaskConfig) map[string]interface{} {
 // listenTaskConfigToMap converts ListenTaskConfig to map.
 func listenTaskConfigToMap(c *ListenTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	if c.Event != "" {
-		m["event"] = c.Event
+	if c.To != nil {
+		// Convert ListenTo to map
+		toMap := make(map[string]interface{})
+		if c.To.Mode != "" {
+			toMap["mode"] = c.To.Mode
+		}
+		if c.To.Signals != nil && len(c.To.Signals) > 0 {
+			signals := make([]interface{}, len(c.To.Signals))
+			for i, sig := range c.To.Signals {
+				sigMap := make(map[string]interface{})
+				if sig.Id != "" {
+					sigMap["id"] = sig.Id
+				}
+				if sig.Type != "" {
+					sigMap["type"] = sig.Type
+				}
+				signals[i] = sigMap
+			}
+			toMap["signals"] = signals
+		}
+		m["to"] = toMap
 	}
 	return m
 }
@@ -549,8 +581,8 @@ func raiseTaskConfigToMap(c *RaiseTaskConfig) map[string]interface{} {
 // runTaskConfigToMap converts RunTaskConfig to map.
 func runTaskConfigToMap(c *RunTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	if c.WorkflowName != "" {
-		m["workflow_name"] = c.WorkflowName
+	if c.Workflow != "" {
+		m["workflow"] = c.Workflow
 	}
 	if c.Input != nil && len(c.Input) > 0 {
 		m["input"] = c.Input
@@ -562,15 +594,22 @@ func runTaskConfigToMap(c *RunTaskConfig) map[string]interface{} {
 func switchTaskConfigToMap(c *SwitchTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
 	if c.Cases != nil && len(c.Cases) > 0 {
-		// Convert array of maps to []interface{} for structpb
+		// Convert []*types.SwitchCase to []interface{} for structpb
 		cases := make([]interface{}, len(c.Cases))
-		for i, caseMap := range c.Cases {
+		for i, switchCase := range c.Cases {
+			caseMap := make(map[string]interface{})
+			if switchCase.Name != "" {
+				caseMap["name"] = switchCase.Name
+			}
+			if switchCase.When != "" {
+				caseMap["when"] = switchCase.When
+			}
+			if switchCase.Then != "" {
+				caseMap["then"] = switchCase.Then
+			}
 			cases[i] = caseMap
 		}
 		m["cases"] = cases
-	}
-	if c.DefaultTask != "" {
-		m["default_task"] = c.DefaultTask
 	}
 	return m
 }
@@ -609,21 +648,28 @@ func forkTaskConfigToMap(c *ForkTaskConfig) map[string]interface{} {
 // tryTaskConfigToMap converts TryTaskConfig to map.
 func tryTaskConfigToMap(c *TryTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
-	if c.Tasks != nil && len(c.Tasks) > 0 {
-		// Convert array of maps to []interface{} for structpb
-		tasks := make([]interface{}, len(c.Tasks))
-		for i, task := range c.Tasks {
-			tasks[i] = task
+	if c.Try != nil && len(c.Try) > 0 {
+		// Convert []*types.WorkflowTask to []interface{} for structpb
+		tryTasks := make([]interface{}, len(c.Try))
+		for i, task := range c.Try {
+			tryTasks[i] = task
 		}
-		m["tasks"] = tasks
+		m["try"] = tryTasks
 	}
-	if c.Catch != nil && len(c.Catch) > 0 {
-		// Convert array of maps to []interface{} for structpb
-		catch := make([]interface{}, len(c.Catch))
-		for i, catchMap := range c.Catch {
-			catch[i] = catchMap
+	if c.Catch != nil {
+		// Convert *types.CatchBlock to map
+		catchMap := make(map[string]interface{})
+		if c.Catch.As != "" {
+			catchMap["as"] = c.Catch.As
 		}
-		m["catch"] = catch
+		if c.Catch.Do != nil && len(c.Catch.Do) > 0 {
+			doTasks := make([]interface{}, len(c.Catch.Do))
+			for i, task := range c.Catch.Do {
+				doTasks[i] = task
+			}
+			catchMap["do"] = doTasks
+		}
+		m["catch"] = catchMap
 	}
 	return m
 }

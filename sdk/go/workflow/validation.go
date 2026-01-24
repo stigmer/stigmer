@@ -223,12 +223,12 @@ func validateHttpCallTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.URI == "" {
+	if cfg.Endpoint == nil || cfg.Endpoint.Uri == "" {
 		return NewValidationErrorWithCause(
-			"config.uri",
+			"config.endpoint.uri",
 			"",
 			"required",
-			"HTTP_CALL task must have a URI",
+			"HTTP_CALL task must have an endpoint URI",
 			ErrInvalidTaskConfig,
 		)
 	}
@@ -365,12 +365,12 @@ func validateTryTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if len(cfg.Tasks) == 0 {
+	if len(cfg.Try) == 0 {
 		return NewValidationErrorWithCause(
-			"config.tasks",
+			"config.try",
 			"",
 			"required",
-			"TRY task must have at least one task",
+			"TRY task must have at least one task in try block",
 			ErrInvalidTaskConfig,
 		)
 	}
@@ -388,12 +388,12 @@ func validateListenTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.Event == "" {
+	if cfg.To == nil {
 		return NewValidationErrorWithCause(
-			"config.event",
+			"config.to",
 			"",
 			"required",
-			"LISTEN task must have an event",
+			"LISTEN task must have a listen target",
 			ErrInvalidTaskConfig,
 		)
 	}
@@ -480,7 +480,7 @@ func validateRunTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.WorkflowName == "" {
+	if cfg.Workflow == "" {
 		return NewValidationErrorWithCause(
 			"config.workflow",
 			"",

@@ -1,5 +1,9 @@
 package workflow
 
+import (
+	"github.com/stigmer/stigmer/sdk/go/types"
+)
+
 // TryArgs is an alias for TryTaskConfig (Pulumi-style args pattern).
 type TryArgs = TryTaskConfig
 
@@ -9,14 +13,13 @@ type TryArgs = TryTaskConfig
 // Example:
 //
 //	task := workflow.Try("handleErrors", &workflow.TryArgs{
-//	    Tasks: []map[string]interface{}{
-//	        {"httpCall": map[string]interface{}{"uri": "${.api}/data"}},
+//	    Try: []*types.WorkflowTask{
+//	        {Name: "httpCall", Kind: "HTTP_CALL"},
 //	    },
-//	    Catch: []map[string]interface{}{
-//	        {
-//	            "errors": []string{"NetworkError"},
-//	            "as": "error",
-//	            "tasks": []interface{}{...},
+//	    Catch: &types.CatchBlock{
+//	        As: "error",
+//	        Do: []*types.WorkflowTask{
+//	            {Name: "logError", Kind: "SET"},
 //	        },
 //	    },
 //	})
@@ -26,12 +29,10 @@ func Try(name string, args *TryArgs) *Task {
 	}
 
 	// Initialize slices if nil
-	if args.Tasks == nil {
-		args.Tasks = []map[string]interface{}{}
+	if args.Try == nil {
+		args.Try = []*types.WorkflowTask{}
 	}
-	if args.Catch == nil {
-		args.Catch = []map[string]interface{}{}
-	}
+	// Catch is optional and can be nil
 
 	return &Task{
 		Name:   name,

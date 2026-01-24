@@ -74,7 +74,7 @@ func (c *HttpCallTaskConfig) FromProto(s *structpb.Struct) error {
 	}
 
 	if val, ok := fields["endpoint"]; ok {
-		c.Endpoint = &HttpEndpoint{}
+		c.Endpoint = &types.HttpEndpoint{}
 		if err := c.Endpoint.FromProto(val.GetStructValue()); err != nil {
 			return err
 		}

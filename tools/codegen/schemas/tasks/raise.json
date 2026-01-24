@@ -13,8 +13,7 @@
         "kind": "string"
       },
       "description": "Error type/name.",
-      "required": false,
-      "validation": {}
+      "required": false
     },
     {
       "name": "Message",
@@ -24,8 +23,7 @@
         "kind": "string"
       },
       "description": "Error message.\n Can contain expressions: \"${ .errorMessage }\"",
-      "required": false,
-      "validation": {}
+      "required": false
     }
   ]
 }

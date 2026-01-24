@@ -1,5 +1,9 @@
 package workflow
 
+import (
+	"github.com/stigmer/stigmer/sdk/go/types"
+)
+
 // ForArgs is an alias for ForTaskConfig (Pulumi-style args pattern).
 type ForArgs = ForTaskConfig
 
@@ -9,10 +13,10 @@ type ForArgs = ForTaskConfig
 // Example:
 //
 //	task := workflow.For("processItems", &workflow.ForArgs{
+//	    Each: "item",
 //	    In: "${.items}",
-//	    Do: []map[string]interface{}{
-//	        {"set": map[string]interface{}{"current": "${.item}"}},
-//	        {"httpCall": map[string]interface{}{"uri": "${.api}/process"}},
+//	    Do: []*types.WorkflowTask{
+//	        {Name: "process", Kind: "HTTP_CALL"},
 //	    },
 //	})
 func For(name string, args *ForArgs) *Task {
@@ -22,7 +26,7 @@ func For(name string, args *ForArgs) *Task {
 
 	// Initialize slices if nil
 	if args.Do == nil {
-		args.Do = []map[string]interface{}{}
+		args.Do = []*types.WorkflowTask{}
 	}
 
 	return &Task{

@@ -66,7 +66,7 @@ func (c *TryTaskConfig) FromProto(s *structpb.Struct) error {
 	}
 
 	if val, ok := fields["catch"]; ok {
-		c.Catch = &CatchBlock{}
+		c.Catch = &types.CatchBlock{}
 		if err := c.Catch.FromProto(val.GetStructValue()); err != nil {
 			return err
 		}
