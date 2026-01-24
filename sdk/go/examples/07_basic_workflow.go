@@ -74,13 +74,13 @@ func main() {
 	// Task 2: Process response using DIRECT task references
 	// Dependencies are implicit - no ThenRef needed!
 	// Clear origin: title, body, state, and author come from fetchTask
-	// Smart conversion: TaskFieldRef automatically converts to string (no .Expression() needed!)
+	// Note: Map values require .Expression() (smart conversion only works for top-level fields)
 	processTask := wf.Set("processResponse", &workflow.SetArgs{
 		Variables: map[string]string{
-			"prTitle":  fetchTask.Field("title"),      // ✅ Clear: PR title from fetchTask!
-			"prBody":   fetchTask.Field("body"),       // ✅ Clear: PR description from fetchTask!
-			"prState":  fetchTask.Field("state"),      // ✅ PR state (open/closed)
-			"prAuthor": fetchTask.Field("user.login"), // ✅ GitHub username
+			"prTitle":  fetchTask.Field("title").Expression(),      // ✅ Clear: PR title from fetchTask!
+			"prBody":   fetchTask.Field("body").Expression(),       // ✅ Clear: PR description from fetchTask!
+			"prState":  fetchTask.Field("state").Expression(),      // ✅ PR state (open/closed)
+			"prAuthor": fetchTask.Field("user.login").Expression(), // ✅ GitHub username
 			"status":   "success",
 		},
 	})
