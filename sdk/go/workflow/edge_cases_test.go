@@ -312,7 +312,7 @@ func TestWorkflow_ConcurrentTaskAddition(t *testing.T) {
 	wf.mu.Lock()
 	taskCount := len(wf.Tasks)
 	wf.mu.Unlock()
-	
+
 	if taskCount != 50 {
 		t.Errorf("Expected 50 tasks, got %d", taskCount)
 	}
