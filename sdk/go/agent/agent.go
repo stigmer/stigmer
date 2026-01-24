@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"sync"
+
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
@@ -67,6 +69,9 @@ type Agent struct {
 
 	// Context reference (optional, used for typed variable management)
 	ctx Context
+
+	// mu protects concurrent access to Skills, MCPServers, SubAgents, and EnvironmentVariables slices
+	mu sync.Mutex
 }
 
 // New creates a new Agent with struct-based args (Pulumi pattern).
@@ -175,11 +180,14 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 //	agent, _ := agent.New(agent.WithName("reviewer"))
 //	agent.AddSkill(skill.Platform("coding-best-practices"))
 func (a *Agent) AddSkill(s skill.Skill) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.Skills = append(a.Skills, s)
 	return a
 }
 
 // AddSkills adds multiple skills to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
@@ -189,11 +197,14 @@ func (a *Agent) AddSkill(s skill.Skill) *Agent {
 //	    skill.Organization("my-org", "internal-docs"),
 //	)
 func (a *Agent) AddSkills(skills ...skill.Skill) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.Skills = append(a.Skills, skills...)
 	return a
 }
 
 // AddMCPServer adds an MCP server to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
@@ -201,44 +212,56 @@ func (a *Agent) AddSkills(skills ...skill.Skill) *Agent {
 //	github, _ := mcpserver.Stdio(mcpserver.WithName("github"))
 //	agent.AddMCPServer(github)
 func (a *Agent) AddMCPServer(server mcpserver.MCPServer) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.MCPServers = append(a.MCPServers, server)
 	return a
 }
 
 // AddMCPServers adds multiple MCP servers to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
 //	agent, _ := agent.New(agent.WithName("reviewer"))
 //	agent.AddMCPServers(github, aws)
 func (a *Agent) AddMCPServers(servers ...mcpserver.MCPServer) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.MCPServers = append(a.MCPServers, servers...)
 	return a
 }
 
 // AddSubAgent adds a sub-agent to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
 //	agent, _ := agent.New(agent.WithName("reviewer"))
 //	agent.AddSubAgent(subagent.Reference("security", "sec-prod"))
 func (a *Agent) AddSubAgent(sub subagent.SubAgent) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.SubAgents = append(a.SubAgents, sub)
 	return a
 }
 
 // AddSubAgents adds multiple sub-agents to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
 //	agent, _ := agent.New(agent.WithName("reviewer"))
 //	agent.AddSubAgents(sub1, sub2)
 func (a *Agent) AddSubAgents(subs ...subagent.SubAgent) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.SubAgents = append(a.SubAgents, subs...)
 	return a
 }
 
 // AddEnvironmentVariable adds an environment variable to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
@@ -246,17 +269,22 @@ func (a *Agent) AddSubAgents(subs ...subagent.SubAgent) *Agent {
 //	githubToken, _ := environment.New(environment.WithName("GITHUB_TOKEN"))
 //	agent.AddEnvironmentVariable(githubToken)
 func (a *Agent) AddEnvironmentVariable(variable environment.Variable) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.EnvironmentVariables = append(a.EnvironmentVariables, variable)
 	return a
 }
 
 // AddEnvironmentVariables adds multiple environment variables to the agent after creation.
+// This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
 //	agent, _ := agent.New(agent.WithName("reviewer"))
 //	agent.AddEnvironmentVariables(githubToken, awsRegion)
 func (a *Agent) AddEnvironmentVariables(variables ...environment.Variable) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.EnvironmentVariables = append(a.EnvironmentVariables, variables...)
 	return a
 }

@@ -288,7 +288,7 @@ func TestWorkflow_ConcurrentTaskAddition(t *testing.T) {
 		Tasks: []*Task{},
 	}
 
-	// Concurrently add 50 tasks
+	// Concurrently add 50 tasks using thread-safe AddTask method
 	var wg sync.WaitGroup
 	for i := 0; i < 50; i++ {
 		wg.Add(1)
@@ -301,15 +301,22 @@ func TestWorkflow_ConcurrentTaskAddition(t *testing.T) {
 					Variables: map[string]string{"idx": string(rune('0' + idx%10))},
 				},
 			}
-			wf.Tasks = append(wf.Tasks, task)
+			wf.AddTask(task)
 		}(i)
 	}
 
 	wg.Wait()
 
-	// Verify tasks were added (may not be exactly 50 due to race conditions)
-	// This test documents current behavior - not necessarily safe
-	t.Logf("Tasks added concurrently: %d (expected ~50, actual count varies due to race)", len(wf.Tasks))
+	// Verify all 50 tasks were added successfully
+	// With thread-safe implementation, we should get exactly 50 tasks
+	wf.mu.Lock()
+	taskCount := len(wf.Tasks)
+	wf.mu.Unlock()
+	
+	if taskCount != 50 {
+		t.Errorf("Expected 50 tasks, got %d", taskCount)
+	}
+	t.Logf("Tasks added concurrently: %d (expected 50)", taskCount)
 }
 
 // =============================================================================

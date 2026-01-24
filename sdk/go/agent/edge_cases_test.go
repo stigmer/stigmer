@@ -311,24 +311,32 @@ func TestAgent_ConcurrentSkillAddition(t *testing.T) {
 	agent := &Agent{
 		Name:         "concurrent-skills",
 		Instructions: "Agent for testing concurrent skill additions",
+		Skills:       []skill.Skill{}, // Initialize to avoid nil
 	}
 
-	// Concurrently add 50 skills
+	// Concurrently add 50 skills using thread-safe AddSkill method
 	var wg sync.WaitGroup
 	for i := 0; i < 50; i++ {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
 			s := skill.Platform("skill" + string(rune('0'+idx%10)))
-			agent.Skills = append(agent.Skills, s)
+			agent.AddSkill(s)
 		}(i)
 	}
 
 	wg.Wait()
 
-	// Verify skills were added (may not be exactly 50 due to race conditions)
-	// This test documents current behavior - not necessarily safe
-	t.Logf("Skills added concurrently: %d (expected ~50, actual count varies due to race)", len(agent.Skills))
+	// Verify all 50 skills were added successfully
+	// With thread-safe implementation, we should get exactly 50 skills
+	agent.mu.Lock()
+	skillCount := len(agent.Skills)
+	agent.mu.Unlock()
+	
+	if skillCount != 50 {
+		t.Errorf("Expected 50 skills, got %d", skillCount)
+	}
+	t.Logf("Skills added concurrently: %d (expected 50)", skillCount)
 }
 
 // =============================================================================
