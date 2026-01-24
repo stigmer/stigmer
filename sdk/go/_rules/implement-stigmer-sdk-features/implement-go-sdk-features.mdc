@@ -1150,6 +1150,149 @@ Before completing any SDK feature implementation:
 
 ---
 
+## Learnings & Patterns
+
+### Pattern: Type-Safe Helpers for Nested Tasks
+
+**When**: Implementing control flow with nested tasks (Try/Catch, Fork, For loops)
+
+**Problem**: Raw `[]map[string]interface{}` for nested tasks is error-prone and lacks type safety.
+
+**Solution**: Create helper functions that convert SDK tasks to proto-compatible types:
+
+```go
+// Helper function pattern (similar to LoopBody)
+func TryBody(tasks ...*Task) []*types.WorkflowTask {
+    workflowTasks := make([]*types.WorkflowTask, 0, len(tasks))
+    for _, task := range tasks {
+        taskMap, err := taskToMap(task)
+        if err != nil {
+            panic(err)
+        }
+        
+        wfTask := &types.WorkflowTask{
+            Name:       task.Name,
+            Kind:       string(task.Kind),
+            TaskConfig: taskMap["config"].(map[string]interface{}),
+        }
+        
+        if exportMap, ok := taskMap["export"].(map[string]interface{}); ok {
+            if asStr, ok := exportMap["as"].(string); ok {
+                wfTask.Export = &types.Export{As: asStr}
+            }
+        }
+        
+        workflowTasks = append(workflowTasks, wfTask)
+    }
+    return workflowTasks
+}
+```
+
+**Usage**:
+```go
+wf.Try("attemptAPICall", &workflow.TryArgs{
+    Try: workflow.TryBody(
+        wf.HttpGet("fetchData", url, headers),
+    ),
+    Catch: workflow.CatchBody("error",
+        wf.Set("handleError", &workflow.SetArgs{...}),
+    ),
+})
+```
+
+**Benefits**:
+- ✅ Type safety: Compile-time checking for nested tasks
+- ✅ IDE support: Autocomplete and refactoring
+- ✅ Consistency: Same pattern across For/Try/Fork/Catch
+- ✅ Maintainability: Changes to SDK types caught at compile time
+
+**Applied in**:
+- `sdk/go/workflow/try_helpers.go` - TryBody(), CatchBody()
+- `sdk/go/workflow/fork_helpers.go` - ForkBranch(), ForkBranches()
+- `sdk/go/workflow/for_options.go` - LoopBody() (existing)
+
+**Documentation**: `sdk/go/docs/guides/nested-task-helpers.md`
+
+### Lesson: Never Modify Generated Code
+
+**When**: Encountering bugs in generated code (e.g., `gen/workflow/*.go`)
+
+**Problem**: Generated ToProto() methods use JSON marshaling which fails on enum fields.
+
+**Wrong Approach**: ❌ Manually editing generated files to fix the issue
+
+**Right Approach**: ✅ Fix the code generator and regenerate
+
+**Key Insight**: Generated files have `// DO NOT EDIT` headers for a reason:
+- Manual edits get overwritten on next code generation
+- Fixes belong in templates/generator logic, not generated output
+- Document the issue and fix the root cause
+
+**Proper Fix Location**:
+- For ToProto method issues: `tools/codegen/generator/main.go`
+- For schema parsing issues: `tools/codegen/proto2schema/main.go`
+- For template issues: Generator template code
+
+**This Conversation**:
+- Identified ToProto JSON marshaling issue with enum fields
+- Documented in changelog instead of manually editing generated code
+- Created helper functions in hand-written files only
+- Fixed conversion logic in hand-written `proto.go` only
+
+### Pattern: Proper Nested Task Conversion in proto.go
+
+**When**: Converting config structs with nested `[]*types.WorkflowTask` or `[]*types.ForkBranch` fields
+
+**Problem**: Conversion functions were storing struct pointers directly instead of converting to maps:
+
+```go
+// ❌ Wrong - stores pointers directly
+func tryTaskConfigToMap(c *TryTaskConfig) map[string]interface{} {
+    tryTasks := make([]interface{}, len(c.Try))
+    for i, task := range c.Try {
+        tryTasks[i] = task  // Pointer stored directly!
+    }
+    m["try"] = tryTasks
+    return m
+}
+```
+
+**Solution**: Convert each nested type to map before storing:
+
+```go
+// ✅ Correct - converts to map first
+func tryTaskConfigToMap(c *TryTaskConfig) map[string]interface{} {
+    tryTasks := make([]interface{}, len(c.Try))
+    for i, task := range c.Try {
+        tryTasks[i] = workflowTaskToMap(task)  // Proper conversion!
+    }
+    m["try"] = tryTasks
+    return m
+}
+
+// Helper converter
+func workflowTaskToMap(task *types.WorkflowTask) map[string]interface{} {
+    m := make(map[string]interface{})
+    m["name"] = task.Name
+    m["kind"] = task.Kind
+    m["taskConfig"] = task.TaskConfig
+    // ... handle export, flow, etc.
+    return m
+}
+```
+
+**Applied in**:
+- `tryTaskConfigToMap()` - Uses `workflowTaskToMap()`
+- `forkTaskConfigToMap()` - Uses `forkBranchToMap()`
+- `forTaskConfigToMap()` - Uses `workflowTaskToMap()`
+
+**Why This Matters**:
+- Protobuf's `structpb.NewStruct()` can't handle custom Go struct pointers
+- Must convert all data to primitive types (string, int, bool, map, slice)
+- Nested structures need recursive conversion
+
+---
+
 ## Related Documentation
 
 - **Project Summary**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-01/20260122.01.sdk-code-generators-go/FINAL-SUMMARY.md`
