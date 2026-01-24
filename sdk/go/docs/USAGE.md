@@ -507,35 +507,124 @@ switchTask := wf.Switch("check-status", &workflow.SwitchArgs{
 
 ### Loops (ForEach)
 
-Iterate over collections using struct-based args:
+Iterate over collections using struct-based args with the type-safe **LoopBody** helper.
+
+#### Modern Pattern: Using LoopBody (Recommended) ⭐
+
+The `LoopBody` helper provides type-safe access to loop variables without magic strings:
 
 ```go
 // Fetch list of items
 fetchTask := wf.HttpGet("fetch-users", usersEndpoint, nil)
 
-// Define task to execute per item
+// Create ForEach with LoopBody - clean and type-safe!
+forEachTask := wf.ForEach("process-users", &workflow.ForArgs{
+    In: fetchTask.Field("items"),  // ✅ No .Expression() needed!
+    Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.HttpPost("process", processEndpoint,
+                nil,  // Headers
+                map[string]interface{}{
+                    "userId": item.Field("id"),    // ✅ Type-safe reference!
+                    "name":   item.Field("name"),  // ✅ No magic strings!
+                },
+            ),
+        }
+    }),
+})
+```
+
+**LoopBody Benefits**:
+- ✅ **Type-safe**: Field references are validated at compile time
+- ✅ **No magic strings**: `item.Field("id")` instead of `"${.item.id}"`
+- ✅ **IDE support**: Autocomplete and refactoring work properly
+- ✅ **Clear structure**: Loop body is a proper Go function
+
+#### Custom Variable Names
+
+The loop variable name defaults to "item" but can be customized with the `Each` field:
+
+```go
+wf.ForEach("process-users", &workflow.ForArgs{
+    Each: "user",  // Custom variable name
+    In: fetchTask.Field("users"),
+    Do: workflow.LoopBody(func(user workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.Set("processUser", &workflow.SetArgs{
+                Variables: map[string]string{
+                    "userId": user.Field("id"),  // References ${.user.id}
+                    "email":  user.Field("email"),
+                },
+            }),
+        }
+    }),
+})
+```
+
+#### LoopVar Methods
+
+The `LoopVar` provides two methods for referencing loop data:
+
+```go
+// .Field(name) - Access a field of the current item
+item.Field("id")    // → "${.item.id}"
+item.Field("name")  // → "${.item.name}"
+
+// .Value() - Access the entire current item
+item.Value()        // → "${.item}"
+```
+
+#### Nested Loops
+
+LoopBody works seamlessly with nested loops:
+
+```go
+wf.ForEach("process-departments", &workflow.ForArgs{
+    In: fetchDepts.Field("departments"),
+    Do: workflow.LoopBody(func(dept workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.ForEach("process-employees", &workflow.ForArgs{
+                In: dept.Field("employees"),
+                Do: workflow.LoopBody(func(emp workflow.LoopVar) []*workflow.Task {
+                    return []*workflow.Task{
+                        wf.Set("processEmployee", &workflow.SetArgs{
+                            Variables: map[string]string{
+                                "deptId": dept.Field("id"),
+                                "empId":  emp.Field("id"),
+                            },
+                        }),
+                    }
+                }),
+            }),
+        }
+    }),
+})
+```
+
+#### Legacy Pattern (Still Supported)
+
+For backward compatibility, the old pattern still works:
+
+```go
+// Old pattern with magic strings
 processTask := wf.HttpPost("process", processEndpoint,
     map[string]string{"Content-Type": "application/json"},
     map[string]interface{}{
-        "userId": "${.user.id}",
-        "name":   "${.user.name}",
+        "userId": "${.item.id}",   // ❌ Magic string
+        "name":   "${.item.name}", // ❌ Magic string
     },
 )
 
-// Create ForEach task
 forEachTask := wf.ForEach("process-users", &workflow.ForArgs{
-    Array:    fetchTask.Field("users").Expression(),
-    ItemVar:  "user",
-    IndexVar: "idx", // Optional
-    Tasks:    []*workflow.Task{processTask},
+    In:    fetchTask.Field("users").Expression(),  // Old style
+    Do:    []*types.WorkflowTask{/* manual task definitions */},
 })
 ```
 
 **ForArgs Fields**:
-- `Array` - Array expression to iterate over (required)
-- `ItemVar` - Loop variable name for current item (required)
-- `IndexVar` - Loop variable name for index (optional)
-- `Tasks` - Tasks to execute per iteration (required)
+- `In` - Collection to iterate over (required, supports smart conversion)
+- `Each` - Loop variable name for current item (optional, default: "item")
+- `Do` - Tasks to execute per iteration (required, use `LoopBody` helper)
 
 ### Error Handling (Try/Catch)
 

@@ -260,7 +260,130 @@ Cases []*types.SwitchCase `json:"cases,omitempty"`
 
 **Learnings**: 2026-01-24 - Fixed SwitchCase generation
 
-### 6. Type Loading and Deduplication
+### 6. Proto Field Options for Smart Type Conversion
+
+**Pattern**: Use proto field options to mark expression-accepting fields, enabling automatic type conversion in generated code.
+
+**Proto Definition** (`field_options.proto`):
+```protobuf
+extend google.protobuf.FieldOptions {
+  bool is_expression = 90203;  // Marks fields that accept JQ expressions
+}
+```
+
+**Proto Usage**:
+```protobuf
+message ForTaskConfig {
+  string in = 2 [(ai.stigmer.commons.apiresource.is_expression) = true];
+}
+```
+
+**proto2schema Extraction**:
+```go
+func extractIsExpression(field *desc.FieldDescriptor) bool {
+    opts := field.GetFieldOptions()
+    if opts == nil {
+        return false
+    }
+    
+    // Get proto text representation
+    protoText := field.AsProto().String()
+    optsStr := opts.String()
+    fullText := protoText + " " + optsStr
+    
+    // Proto boolean true is represented as 1 in binary format
+    // Check for "90203:1" (not "90203:true")
+    if strings.Contains(fullText, "90203") &&
+        (strings.Contains(fullText, ":1") ||
+            strings.Contains(fullText, " 1") ||
+            strings.Contains(fullText, "=1")) {
+        return true
+    }
+    
+    return false
+}
+```
+
+**Schema Output**:
+```json
+{
+  "name": "In",
+  "type": { "kind": "string" },
+  "isExpression": true
+}
+```
+
+**Generator Code**:
+```go
+// Generate interface{} for expression fields
+for _, field := range config.Fields {
+    goType := c.goType(field.Type)
+    
+    // Smart conversion: string → interface{} for expression fields
+    if field.IsExpression && field.Type.Kind == "string" {
+        goType = "interface{}"
+    }
+    
+    fmt.Fprintf(w, "\t%s %s %s\n", field.Name, goType, jsonTag)
+}
+
+// Generate smart conversion in ToProto
+if field.IsExpression && field.Type.Kind == "string" {
+    fmt.Fprintf(w, "\t\tdata[\"%s\"] = coerceToString(c.%s)\n",
+        field.JsonName, field.Name)
+}
+```
+
+**Generated Result**:
+```go
+type ForTaskConfig struct {
+    In interface{} `json:"in,omitempty"`  // Accepts string OR TaskFieldRef
+}
+
+func (c *ForTaskConfig) ToProto() (*structpb.Struct, error) {
+    data := make(map[string]interface{})
+    if !isEmpty(c.In) {
+        data["in"] = coerceToString(c.In)  // Smart conversion!
+    }
+    return structpb.NewStruct(data)
+}
+```
+
+**Helper Function** (in generated `helpers.go`):
+```go
+func coerceToString(value interface{}) string {
+    if s, ok := value.(string); ok {
+        return s
+    }
+    // Handle TaskFieldRef and other expression types
+    if expr, ok := value.(interface{ Expression() string }); ok {
+        return expr.Expression()
+    }
+    return fmt.Sprintf("%v", value)
+}
+```
+
+**User Experience**:
+```go
+// Before: Manual .Expression() calls
+In: fetchTask.Field("items").Expression(),  // ❌ Verbose
+
+// After: Automatic conversion
+In: fetchTask.Field("items"),  // ✅ Clean!
+```
+
+**Benefits**:
+- **Explicit over implicit**: Proto clearly marks expression fields
+- **Self-documenting**: Reading proto shows which fields accept expressions
+- **Maintainable**: No pattern matching fragility
+- **Extensible**: Can add more field options (is_sensitive, is_deprecated, etc.)
+- **Backward compatible**: `interface{}` accepts both string and TaskFieldRef
+
+**Critical Discovery**: Proto boolean `true` is represented as `1` in binary format, so option detection must check for `90203:1` not `90203:true`.
+
+**Learnings**: 2026-01-24 - Implemented proto field options for smart expression conversion
+
+### 7. Type Loading and Deduplication
 
 **Pattern**: Load shared types from multiple directories without duplicates.
 
@@ -591,7 +714,58 @@ go mod tidy
 make protos
 ```
 
-### Issue 5: buf/validate Dependency During Schema Generation
+### Issue 5: FromProto Missing types. Prefix for Shared Types
+
+**Symptoms**: Compilation errors like:
+```
+undefined: HttpEndpoint
+undefined: AgentExecutionConfig
+undefined: ListenTo
+```
+
+**Root Cause**: Generator's `genFromProtoField()` creates instances of shared types without package prefix.
+
+**Problem Code**:
+```go
+// Generated FromProto - WRONG
+func (c *HttpCallTaskConfig) FromProto(s *structpb.Struct) error {
+    if val, ok := fields["endpoint"]; ok {
+        c.Endpoint = &HttpEndpoint{}  // ❌ Missing types. prefix
+    }
+}
+```
+
+**Fix** (in `generator/main.go`):
+```go
+case "message":
+    // Check if this is a shared type that needs types. prefix
+    typeName := field.Type.MessageType
+    if _, isShared := c.sharedTypes[typeName]; isShared && c.packageName != "types" {
+        typeName = "types." + typeName  // ✅ Add prefix
+    }
+    fmt.Fprintf(w, "\t\tc.%s = &%s{}\n", field.Name, typeName)
+    fmt.Fprintf(w, "\t\tif err := c.%s.FromProto(val.GetStructValue()); err != nil {\n", field.Name)
+    fmt.Fprintf(w, "\t\t\treturn err\n")
+    fmt.Fprintf(w, "\t\t}\n")
+```
+
+**Generated Code - CORRECT**:
+```go
+func (c *HttpCallTaskConfig) FromProto(s *structpb.Struct) error {
+    if val, ok := fields["endpoint"]; ok {
+        c.Endpoint = &types.HttpEndpoint{}  // ✅ Correct!
+    }
+}
+```
+
+**Prevention**:
+- Always check if type is in `sharedTypes` map
+- Add package prefix if shared and not in types package
+- Test generated code compilation after generator changes
+
+**Learnings**: 2026-01-24 - Fixed FromProto shared type instantiation
+
+### Issue 6: buf/validate Dependency During Schema Generation
 
 **Symptoms**: `proto2schema` fails with error:
 ```
