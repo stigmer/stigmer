@@ -493,7 +493,7 @@ task := wf.HttpCall("fetch", &workflow.HttpCallArgs{
 func (w *Workflow) HttpGet(name string, uri interface{}, headers map[string]string) *Task
 ```
 
-Creates an HTTP GET task (convenience method).
+Creates an HTTP GET task with a default 30-second timeout (convenience method).
 
 **Parameters**:
 - `name` - Task name
@@ -501,6 +501,9 @@ Creates an HTTP GET task (convenience method).
   - Accepts: `string`, `TaskFieldRef`, `StringRef`
   - No `.Expression()` needed in v0.2.1+
 - `headers` - HTTP headers (optional, can be nil)
+
+**Default Settings**:
+- Timeout: 30 seconds (override via `workflow.HttpCall()` if needed)
 
 **Returns**:
 - `*Task` - Created task
@@ -525,13 +528,16 @@ task := wf.HttpGet("fetch", apiBase.Concat("/users"), nil)
 func (w *Workflow) HttpPost(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task
 ```
 
-Creates an HTTP POST task (convenience method).
+Creates an HTTP POST task with a default 30-second timeout (convenience method).
 
 **Parameters**:
 - `name` - Task name
 - `uri` - Request URI (supports smart conversion: `string`, `TaskFieldRef`, `StringRef`)
 - `headers` - HTTP headers (can be nil)
 - `body` - Request body (can be nil)
+
+**Default Settings**:
+- Timeout: 30 seconds (override via `workflow.HttpCall()` if needed)
 
 **Example**:
 ```go
@@ -557,9 +563,10 @@ task := wf.HttpPost("create",
 func (w *Workflow) HttpPut(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task
 ```
 
-Creates an HTTP PUT task (convenience method).
+Creates an HTTP PUT task with a default 30-second timeout (convenience method).
 
-**Parameters**: Same as HttpPost (uri supports smart conversion)
+**Parameters**: Same as HttpPost (uri supports smart conversion)  
+**Default Settings**: Timeout: 30 seconds
 
 #### func (*Workflow) HttpPatch
 
@@ -567,9 +574,10 @@ Creates an HTTP PUT task (convenience method).
 func (w *Workflow) HttpPatch(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task
 ```
 
-Creates an HTTP PATCH task (convenience method).
+Creates an HTTP PATCH task with a default 30-second timeout (convenience method).
 
-**Parameters**: Same as HttpPost (uri supports smart conversion)
+**Parameters**: Same as HttpPost (uri supports smart conversion)  
+**Default Settings**: Timeout: 30 seconds
 
 #### func (*Workflow) HttpDelete
 
@@ -577,12 +585,25 @@ Creates an HTTP PATCH task (convenience method).
 func (w *Workflow) HttpDelete(name string, uri interface{}, headers map[string]string) *Task
 ```
 
-Creates an HTTP DELETE task (convenience method).
+Creates an HTTP DELETE task with a default 30-second timeout (convenience method).
 
 **Parameters**:
 - `name` - Task name
 - `uri` - Request URI (supports smart conversion: `string`, `TaskFieldRef`, `StringRef`)
 - `headers` - HTTP headers (can be nil)
+
+**Default Settings**:
+- Timeout: 30 seconds (override via `workflow.HttpCall()` if needed)
+
+**Custom Timeout Example**:
+```go
+// For longer-running API calls, use HttpCall() directly
+wf.AddTask(workflow.HttpCall("longRunning", &workflow.HttpCallArgs{
+    Method:         "GET",
+    Endpoint:       &types.HttpEndpoint{Uri: "https://api.example.com/data"},
+    TimeoutSeconds: 120,  // Custom 2-minute timeout
+}))
+```
 
 #### func (*Workflow) Set
 
