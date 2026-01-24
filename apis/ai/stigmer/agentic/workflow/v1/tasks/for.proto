@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.workflow.v1.tasks;
 
 import "ai/stigmer/agentic/workflow/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
 // ForTaskConfig defines the configuration for FOR tasks.
@@ -35,6 +36,7 @@ message ForTaskConfig {
   // Expression evaluating to the collection to iterate over.
   // Example: "${ $data.items }" or "${ [1, 2, 3] }"
   string in = 2 [
+    (ai.stigmer.commons.apiresource.is_expression) = true,
     (buf.validate.field).required = true,
     (buf.validate.field).string.min_len = 1
   ];

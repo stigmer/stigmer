@@ -7,3 +7,5 @@ COMPUTED_FIELD_NUMBER: _ClassVar[int]
 computed: _descriptor.FieldDescriptor
 IMMUTABLE_FIELD_NUMBER: _ClassVar[int]
 immutable: _descriptor.FieldDescriptor
+IS_EXPRESSION_FIELD_NUMBER: _ClassVar[int]
+is_expression: _descriptor.FieldDescriptor

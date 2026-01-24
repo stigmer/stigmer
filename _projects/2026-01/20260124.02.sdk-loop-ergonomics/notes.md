@@ -324,3 +324,42 @@ expressionFieldPatterns = ["uri", "url", "in", "input", "message", "error", "eve
 
 ---
 
+## 2026-01-24 08:44 - Task 5 Complete: Smart Type Conversion via Proto Options
+
+**Summary**: Successfully implemented smart expression type conversion using proto field options approach.
+
+**Approach Chosen**: Proto Field Options (NOT pattern matching)
+
+**Why Proto Options Won**:
+- ✅ **Explicit over implicit**: Each field clearly annotated in source of truth
+- ✅ **Self-documenting**: Reading proto shows which fields accept expressions
+- ✅ **Maintainable**: Won't miss fields or make false matches
+- ✅ **Extensible**: Can add more field options in future
+- ✅ **Single source of truth**: Proto defines behavior, generator follows
+
+**Implementation Path**:
+1. Added `is_expression = 90203` to `field_options.proto`
+2. Annotated 5 fields in 4 proto files (for, http_call, agent_call, raise)
+3. Updated `proto2schema` to extract option (detects `90203:1` in field options)
+4. Updated `generator` to generate `interface{}` + `coerceToString()` for marked fields
+5. Fixed generator bug: FromProto now properly prefixes shared types with `types.`
+6. Updated convenience functions: HttpGet/Post/Put/Patch/Delete accept `interface{}`
+7. Updated Workflow method receivers to match
+8. Fixed examples and template to use new patterns
+
+**Key Technical Discovery**: Proto boolean `true` is represented as `1` in binary format, so detection must check for `90203:1` not `90203:true`.
+
+**Validation**: ✅ Example 09 runs successfully without any `.Expression()` calls!
+
+**Files Changed**: 53 files (protos, stubs, tools, schemas, generated code, examples)
+
+**Impact**:
+- **Before**: `In: fetchTask.Field("items").Expression()`
+- **After**: `In: fetchTask.Field("items")` ✅
+
+**Backward Compatibility**: Perfect - `interface{}` accepts both string and TaskFieldRef.
+
+**Next Steps**: Tasks 7-8 are optional (functionality is complete and working)
+
+---
+

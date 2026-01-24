@@ -22,11 +22,12 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_field__options__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n4ai/stigmer/agentic/workflow/v1/tasks/http_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x1b\x62uf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xac\x03\n\x12HttpCallTaskConfig\x12?\n\x06method\x18\x01 \x01(\tB\'\xbaH$r\x1fR\x03GETR\x04POSTR\x03PUTR\x06\x44\x45LETER\x05PATCH\xc8\x01\x01R\x06method\x12V\n\x08\x65ndpoint\x18\x02 \x01(\x0b\x32\x32.ai.stigmer.agentic.workflow.v1.tasks.HttpEndpointB\x06\xbaH\x03\xc8\x01\x01R\x08\x65ndpoint\x12_\n\x07headers\x18\x03 \x03(\x0b\x32\x45.ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig.HeadersEntryR\x07headers\x12+\n\x04\x62ody\x18\x04 \x01(\x0b\x32\x17.google.protobuf.StructR\x04\x62ody\x12\x33\n\x0ftimeout_seconds\x18\x05 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\xac\x02(\x01R\x0etimeoutSeconds\x1a:\n\x0cHeadersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\",\n\x0cHttpEndpoint\x12\x1c\n\x03uri\x18\x01 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x03uriB\xf1\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\rHttpCallProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n4ai/stigmer/agentic/workflow/v1/tasks/http_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xac\x03\n\x12HttpCallTaskConfig\x12?\n\x06method\x18\x01 \x01(\tB\'\xbaH$r\x1fR\x03GETR\x04POSTR\x03PUTR\x06\x44\x45LETER\x05PATCH\xc8\x01\x01R\x06method\x12V\n\x08\x65ndpoint\x18\x02 \x01(\x0b\x32\x32.ai.stigmer.agentic.workflow.v1.tasks.HttpEndpointB\x06\xbaH\x03\xc8\x01\x01R\x08\x65ndpoint\x12_\n\x07headers\x18\x03 \x03(\x0b\x32\x45.ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig.HeadersEntryR\x07headers\x12+\n\x04\x62ody\x18\x04 \x01(\x0b\x32\x17.google.protobuf.StructR\x04\x62ody\x12\x33\n\x0ftimeout_seconds\x18\x05 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\xac\x02(\x01R\x0etimeoutSeconds\x1a:\n\x0cHeadersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"0\n\x0cHttpEndpoint\x12 \n\x03uri\x18\x01 \x01(\tB\x0e\xbaH\x07r\x02\x10\x01\xc8\x01\x01\xd8\x85,\x01R\x03uriB\xf1\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\rHttpCallProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -43,11 +44,11 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_HTTPCALLTASKCONFIG'].fields_by_name['timeout_seconds']._loaded_options = None
   _globals['_HTTPCALLTASKCONFIG'].fields_by_name['timeout_seconds']._serialized_options = b'\272H\007\032\005\030\254\002(\001'
   _globals['_HTTPENDPOINT'].fields_by_name['uri']._loaded_options = None
-  _globals['_HTTPENDPOINT'].fields_by_name['uri']._serialized_options = b'\272H\007r\002\020\001\310\001\001'
-  _globals['_HTTPCALLTASKCONFIG']._serialized_start=154
-  _globals['_HTTPCALLTASKCONFIG']._serialized_end=582
-  _globals['_HTTPCALLTASKCONFIG_HEADERSENTRY']._serialized_start=524
-  _globals['_HTTPCALLTASKCONFIG_HEADERSENTRY']._serialized_end=582
-  _globals['_HTTPENDPOINT']._serialized_start=584
-  _globals['_HTTPENDPOINT']._serialized_end=628
+  _globals['_HTTPENDPOINT'].fields_by_name['uri']._serialized_options = b'\272H\007r\002\020\001\310\001\001\330\205,\001'
+  _globals['_HTTPCALLTASKCONFIG']._serialized_start=206
+  _globals['_HTTPCALLTASKCONFIG']._serialized_end=634
+  _globals['_HTTPCALLTASKCONFIG_HEADERSENTRY']._serialized_start=576
+  _globals['_HTTPCALLTASKCONFIG_HEADERSENTRY']._serialized_end=634
+  _globals['_HTTPENDPOINT']._serialized_start=636
+  _globals['_HTTPENDPOINT']._serialized_end=684
 # @@protoc_insertion_point(module_scope)

@@ -32,37 +32,37 @@ func main() {
 
 		// Task 1: Get list of items to process
 		fetchTask := wf.HttpGet("fetchItems",
-			apiBase.Concat("/items").Expression(),
-			nil, // No custom headers
+			apiBase.Concat("/items"), // ✅ No .Expression() needed - smart conversion!
+			nil,                      // No custom headers
 		)
 
-	// Task 2: Loop over items
-	// For each item in the collection, execute the tasks defined in the Do array
-	// Using LoopBody for type-safe access to loop variables
-	loopTask := wf.ForEach("processEachItem", &workflow.ForArgs{
-		In: fetchTask.Field("items").Expression(),
-		Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
-			return []*workflow.Task{
-				wf.HttpPost("processItem",
-					apiBase.Concat("/process").Expression(),
-					nil, // No custom headers
-					map[string]interface{}{
-						"itemId": item.Field("id"),   // ✅ Type-safe reference!
-						"data":   item.Field("data"), // ✅ No magic strings!
-					},
-				),
-			}
-		}),
-	})
+		// Task 2: Loop over items
+		// For each item in the collection, execute the tasks defined in the Do array
+		// Using LoopBody for type-safe access to loop variables
+		loopTask := wf.ForEach("processEachItem", &workflow.ForArgs{
+			In: fetchTask.Field("items"), // ✅ No .Expression() needed - smart conversion!
+			Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+				return []*workflow.Task{
+					wf.HttpPost("processItem",
+						apiBase.Concat("/process"), // ✅ No .Expression() needed!
+						nil,                        // No custom headers
+						map[string]interface{}{
+							"itemId": item.Field("id"),   // ✅ Type-safe reference!
+							"data":   item.Field("data"), // ✅ No magic strings!
+						},
+					),
+				}
+			}),
+		})
 
-	// Task 3: Collect results
-	// The loopTask itself represents the completion of the loop
-	wf.Set("collectResults", &workflow.SetArgs{
-		Variables: map[string]string{
-			"loopCompleted": "true",
-			"status":        "completed",
-		},
-	}).DependsOn(loopTask) // Explicit dependency to ensure loop completes first
+		// Task 3: Collect results
+		// The loopTask itself represents the completion of the loop
+		wf.Set("collectResults", &workflow.SetArgs{
+			Variables: map[string]string{
+				"loopCompleted": "true",
+				"status":        "completed",
+			},
+		}).DependsOn(loopTask) // Explicit dependency to ensure loop completes first
 
 		log.Printf("Created workflow with loops: %s", wf)
 		log.Printf("Batch size: %v", batchSize)
