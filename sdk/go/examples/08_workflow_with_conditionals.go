@@ -39,17 +39,16 @@ func main() {
 
 		// Task 1: Check pull request status from hello-stigmer repository
 		checkTask := wf.HttpGet("checkPullRequest",
-			apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1").Expression(),
+			apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1"),
 			map[string]string{
 				"Accept":     "application/vnd.github.v3+json",
 				"User-Agent": "Stigmer-SDK-Example",
 			},
 		)
 
-		// Task 2: Switch based on PR state and mergeable status
+		// Task 2: Switch based on PR state
 		// Using the new fluent API for building conditions
 		state := checkTask.Field("state")
-		mergeable := checkTask.Field("mergeable")
 		switchTask := wf.Switch("deploymentDecision", &workflow.SwitchArgs{
 			Cases: []*types.SwitchCase{
 				{
@@ -105,7 +104,7 @@ func main() {
 		// Example 2: Numeric comparisons
 		// Fetch repository statistics from GitHub
 		metricsTask := wf.HttpGet("fetchRepoStats",
-			apiBase.Concat("/repos/stigmer/hello-stigmer").Expression(),
+			apiBase.Concat("/repos/stigmer/hello-stigmer"),
 			map[string]string{
 				"Accept":     "application/vnd.github.v3+json",
 				"User-Agent": "Stigmer-SDK-Example",
@@ -141,7 +140,7 @@ func main() {
 		// Example 3: String operations
 		// Fetch pull request for string matching demonstrations
 		statusTask := wf.HttpGet("fetchPRForStringMatch",
-			apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1").Expression(),
+			apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1"),
 			map[string]string{
 				"Accept":     "application/vnd.github.v3+json",
 				"User-Agent": "Stigmer-SDK-Example",

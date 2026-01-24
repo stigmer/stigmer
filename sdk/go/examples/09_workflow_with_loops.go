@@ -32,7 +32,7 @@ func main() {
 
 		// Task 1: Get list of commits from hello-stigmer repository
 		fetchTask := wf.HttpGet("fetchCommits",
-			apiBase.Concat("/repos/stigmer/hello-stigmer/commits"), // ✅ No .Expression() needed - smart conversion!
+			apiBase.Concat("/repos/stigmer/hello-stigmer/commits"),
 			map[string]string{
 				"Accept":     "application/vnd.github.v3+json",
 				"User-Agent": "Stigmer-SDK-Example",
@@ -49,11 +49,11 @@ func main() {
 					wf.Set("analyzeCommit",
 						&workflow.SetArgs{
 							Variables: map[string]string{
-								"sha":     commit.Field("sha").Expression(),                   // ✅ Type-safe reference!
-								"message": commit.Field("commit.message").Expression(),        // ✅ Commit message
-								"author":  commit.Field("commit.author.name").Expression(),    // ✅ Author name
-								"date":    commit.Field("commit.author.date").Expression(),    // ✅ Commit date
-								"url":     commit.Field("html_url").Expression(),              // ✅ GitHub URL
+								"sha":     commit.Field("sha"),                   // ✅ Type-safe reference!
+								"message": commit.Field("commit.message"),        // ✅ Commit message
+								"author":  commit.Field("commit.author.name"),    // ✅ Author name
+								"date":    commit.Field("commit.author.date"),    // ✅ Commit date
+								"url":     commit.Field("html_url"),              // ✅ GitHub URL
 							},
 						},
 					),
