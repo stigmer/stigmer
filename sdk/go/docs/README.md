@@ -129,6 +129,15 @@ Migrate from functional options to Pulumi-style struct-based args:
 - [Proto-Agnostic Migration](guides/migration-guide.md) - Legacy proto-coupled architecture
 - [Typed Context Migration](guides/typed-context-migration.md) - Expression syntax updates
 
+### Workflow Guides
+
+- **[Nested Task Helpers](guides/nested-task-helpers.md)** ⭐ - Type-safe helpers for control flow
+  - TryBody() and CatchBody() for error handling
+  - ForkBranch() and ForkBranches() for parallel execution
+  - LoopBody() for iteration (with LoopVar)
+  - Complete examples and migration patterns
+  - Consistent API across all control flow types
+
 ---
 
 ## 🏗️ Architecture
