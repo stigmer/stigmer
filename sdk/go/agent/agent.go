@@ -21,6 +21,8 @@ type AgentArgs = genAgent.AgentArgs
 // The stigmer.Context type implements this interface.
 type Context interface {
 	RegisterAgent(*Agent)
+	RegisterSkill(s interface{})
+	TrackDependency(resourceID, dependsOnID string)
 }
 
 // Agent represents an AI agent template with skills, MCP servers, and configuration.
@@ -174,6 +176,8 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 // AddSkill adds a skill to the agent after creation.
 //
 // This is a builder method that allows adding skills after the agent is created.
+// If the skill is inline and the agent has a context, it automatically registers
+// the skill and tracks the dependency.
 //
 // Example:
 //
@@ -181,8 +185,20 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 //	agent.AddSkill(skill.Platform("coding-best-practices"))
 func (a *Agent) AddSkill(s skill.Skill) *Agent {
 	a.mu.Lock()
-	defer a.mu.Unlock()
 	a.Skills = append(a.Skills, s)
+	a.mu.Unlock()
+	
+	// Register inline skill with context and track dependency
+	if a.ctx != nil && s.IsInline {
+		// Make a copy of the skill to get a pointer
+		skillCopy := s
+		a.ctx.RegisterSkill(&skillCopy)
+		// Track dependency: this agent depends on this skill
+		agentID := "agent:" + a.Name
+		skillID := "skill:" + s.Name
+		a.ctx.TrackDependency(agentID, skillID)
+	}
+	
 	return a
 }
 
