@@ -49,8 +49,11 @@ func (c *HttpCallTaskConfig) ToProto() (*structpb.Struct, error) {
 	if !isEmpty(c.Method) {
 		data["method"] = c.Method
 	}
-	if !isEmpty(c.Endpoint) {
-		data["endpoint"] = c.Endpoint
+	if !isEmpty(c.Endpoint) && c.Endpoint != nil {
+		// Convert HttpEndpoint to a map for proper serialization
+		data["endpoint"] = map[string]interface{}{
+			"uri": c.Endpoint.Uri,
+		}
 	}
 	if !isEmpty(c.Headers) {
 		data["headers"] = c.Headers

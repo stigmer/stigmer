@@ -60,14 +60,14 @@ func main() {
 			return err
 		}
 
-		// Build endpoint URL using context config
-		endpoint := apiBase.Concat("/posts/1")
-
 		// Task 1: Fetch data from API (clean, one-liner!)
-		// No ExportAll() needed - outputs are always available
-		fetchTask := wf.HttpGet("fetchData", endpoint.Expression(), map[string]string{
-			"Content-Type": "application/json",
-		})
+		// No ExportAll() needed - outputs are always available  
+		// Using Interpolate for dynamic URL construction
+		fetchTask := wf.HttpGet("fetchData", 
+			workflow.Interpolate(apiBase, "/posts/1"),
+			map[string]string{
+				"Content-Type": "application/json",
+			})
 
 		// Task 2: Process response using DIRECT task references
 		// Dependencies are implicit - no ThenRef needed!
