@@ -231,8 +231,8 @@ This runs tests multiple times to detect intermittent failures.
 1. **Add to SDK sync mapping** (`sdk_fixtures_test.go`):
    ```go
    {
-       sdkFile:  "06_agent_with_instructions_from_files.go",
-       testDir:  "06-agent-with-instructions-from-files",
+       sdkFile:  "06_agent_with_inline_content.go",
+       testDir:  "06-agent-with-inline-content",
        category: "examples",
    },
    ```
