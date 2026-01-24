@@ -1,4 +1,5 @@
 //go:build ignore
+
 package main
 
 import (
@@ -80,10 +81,9 @@ func main() {
 			return fmt.Errorf("failed to create AWS MCP server: %w", err)
 		}
 
-		// Create agent with all MCP servers
-		a, err := agent.New(ctx,
-			agent.WithName("devops-agent"),
-			agent.WithInstructions(`You are a DevOps automation agent with access to multiple tools.
+		// Create agent with all MCP servers using struct args
+		a, err := agent.New(ctx, "devops-agent", &agent.AgentArgs{
+			Instructions: `You are a DevOps automation agent with access to multiple tools.
 
 You have access to:
 - GitHub (create issues, PRs, list repos)
@@ -91,24 +91,25 @@ You have access to:
 - API service (search, fetch, analyze data)
 - Custom MCP server (process data, generate reports)
 
-Use these tools to help with infrastructure automation, deployments, and DevOps workflows.`),
-			agent.WithDescription("DevOps automation agent with GitHub, AWS, API, and custom MCP servers"),
-			agent.WithIconURL("https://example.com/devops-agent.png"),
-			agent.WithSkills(
-				skill.Platform("devops-best-practices"),
-				skill.Platform("cloud-infrastructure"),
-			),
-			// Add all MCP servers
-			agent.WithMCPServers(
-				githubServer,
-				apiServer,
-				customServer,
-				awsServer,
-			),
-		)
+Use these tools to help with infrastructure automation, deployments, and DevOps workflows.`,
+			Description: "DevOps automation agent with GitHub, AWS, API, and custom MCP servers",
+			IconUrl:     "https://example.com/devops-agent.png",
+		})
 		if err != nil {
 			return fmt.Errorf("failed to create agent: %w", err)
 		}
+
+		// Add skills and MCP servers using builder methods
+		a.AddSkills(
+			skill.Platform("devops-best-practices"),
+			skill.Platform("cloud-infrastructure"),
+		)
+		a.AddMCPServers(
+			githubServer,
+			apiServer,
+			customServer,
+			awsServer,
+		)
 
 		// Display agent configuration
 		fmt.Println("=== Agent Configuration ===")

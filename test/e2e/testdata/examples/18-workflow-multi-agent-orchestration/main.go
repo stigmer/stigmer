@@ -7,6 +7,7 @@ import (
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -36,77 +37,72 @@ func main() {
 		// ============================================================================
 		// Create specialized agents
 		// ============================================================================
-		securityAgent, err := agent.New(ctx,
-			agent.WithName("security-scanner"),
-			agent.WithInstructions(`You are a security expert. Scan code for:
+		securityAgent, err := agent.New(ctx, "security-scanner", &agent.AgentArgs{
+			Instructions: `You are a security expert. Scan code for:
 - SQL injection vulnerabilities
 - XSS vulnerabilities
 - Authentication/authorization issues
 - Hardcoded secrets
 - Dependency vulnerabilities
 
-Return JSON: {"risk_level": "low|medium|high", "issues": [...], "recommendation": "approve|reject"}`),
-		)
+Return JSON: {"risk_level": "low|medium|high", "issues": [...], "recommendation": "approve|reject"}`,
+		})
 		if err != nil {
 			return err
 		}
 
-		codeReviewAgent, err := agent.New(ctx,
-			agent.WithName("code-reviewer"),
-			agent.WithInstructions(`You are a senior code reviewer. Analyze:
+		codeReviewAgent, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+			Instructions: `You are a senior code reviewer. Analyze:
 - Code quality and maintainability
 - Test coverage
 - Documentation
 - Best practices
 - Design patterns
 
-Return JSON: {"quality_score": 0-100, "issues": [...], "recommendation": "approve|request_changes"}`),
-		)
+Return JSON: {"quality_score": 0-100, "issues": [...], "recommendation": "approve|request_changes"}`,
+		})
 		if err != nil {
 			return err
 		}
 
-		performanceAgent, err := agent.New(ctx,
-			agent.WithName("performance-analyzer"),
-			agent.WithInstructions(`You are a performance expert. Analyze:
+		performanceAgent, err := agent.New(ctx, "performance-analyzer", &agent.AgentArgs{
+			Instructions: `You are a performance expert. Analyze:
 - Algorithm complexity
 - Database query efficiency
 - Memory usage patterns
 - Potential bottlenecks
 - Caching opportunities
 
-Return JSON: {"performance_score": 0-100, "concerns": [...], "recommendation": "approve|optimize"}`),
-		)
+Return JSON: {"performance_score": 0-100, "concerns": [...], "recommendation": "approve|optimize"}`,
+		})
 		if err != nil {
 			return err
 		}
 
-		devopsAgent, err := agent.New(ctx,
-			agent.WithName("devops-planner"),
-			agent.WithInstructions(`You are a DevOps expert. Create deployment plans:
+		devopsAgent, err := agent.New(ctx, "devops-planner", &agent.AgentArgs{
+			Instructions: `You are a DevOps expert. Create deployment plans:
 - Infrastructure changes required
 - Migration scripts needed
 - Rollback strategy
 - Monitoring setup
 - Feature flags
 
-Return JSON: {"plan": {...}, "estimated_duration": "...", "risk_level": "low|medium|high"}`),
-		)
+Return JSON: {"plan": {...}, "estimated_duration": "...", "risk_level": "low|medium|high"}`,
+		})
 		if err != nil {
 			return err
 		}
 
-		qaAgent, err := agent.New(ctx,
-			agent.WithName("qa-verifier"),
-			agent.WithInstructions(`You are a QA specialist. Verify deployments:
+		qaAgent, err := agent.New(ctx, "qa-verifier", &agent.AgentArgs{
+			Instructions: `You are a QA specialist. Verify deployments:
 - Health check results
 - API response times
 - Error rates
 - User impact
 - Rollback needed?
 
-Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "continue|rollback"}`),
-		)
+Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "continue|rollback"}`,
+		})
 		if err != nil {
 			return err
 		}
@@ -129,159 +125,167 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 		// ============================================================================
 		// Step 1: Fetch PR details
 		// ============================================================================
-		fetchPR := wf.HttpGet(
-			"fetchPR",
+		fetchPR := wf.HttpGet("fetchPR",
 			workflow.Interpolate("https://api.github.com/repos/myorg/myrepo/pulls/", workflow.RuntimeEnv("PR_NUMBER")),
-			workflow.Header("Authorization", workflow.Interpolate("token ", workflow.RuntimeSecret("GITHUB_TOKEN"))),
-			workflow.Header("Accept", "application/vnd.github.v3+json"),
+			map[string]string{
+				"Authorization": workflow.Interpolate("token ", workflow.RuntimeSecret("GITHUB_TOKEN")),
+				"Accept":        "application/vnd.github.v3+json",
+			},
 		)
 		log.Println("  ✅ Step 1: Fetch PR details")
 
 		// ============================================================================
 		// Step 2: Security scan (Agent 1)
 		// ============================================================================
-		securityScan := wf.CallAgent(
-			"securityScan",
-			workflow.AgentOption(workflow.Agent(securityAgent)),
-			workflow.Message(workflow.Interpolate(
+		securityScan := wf.CallAgent("securityScan", &workflow.AgentCallArgs{
+			Agent: workflow.Agent(securityAgent).Slug(),
+			Message: workflow.Interpolate(
 				"Scan this PR for security vulnerabilities:\n",
 				"Title: ", fetchPR.Field("title"), "\n",
 				"Files changed: ", fetchPR.Field("changed_files"), "\n",
 				"Additions: ", fetchPR.Field("additions"), "\n",
 				"Deletions: ", fetchPR.Field("deletions"), "\n",
-			)),
-		workflow.WithEnv(map[string]string{
-			"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"),
-			"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER"),
-		}),
-		workflow.AgentTimeout(300), // 5 minutes
-	)
-	log.Println("  ✅ Step 2: Security scan agent")
+			),
+			Env: map[string]string{
+				"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"),
+				"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER"),
+			},
+			Config: &types.AgentExecutionConfig{
+				Timeout: 300, // 5 minutes
+			},
+		})
+		log.Println("  ✅ Step 2: Security scan agent")
 
 		// ============================================================================
 		// Step 3: Code quality review (Agent 2)
 		// ============================================================================
-		codeReview := wf.CallAgent(
-			"codeReview",
-			workflow.AgentOption(workflow.Agent(codeReviewAgent)),
-			workflow.Message(workflow.Interpolate(
+		codeReview := wf.CallAgent("codeReview", &workflow.AgentCallArgs{
+			Agent: workflow.Agent(codeReviewAgent).Slug(),
+			Message: workflow.Interpolate(
 				"Review code quality for this PR:\n",
 				"Title: ", fetchPR.Field("title"), "\n",
 				"Description: ", fetchPR.Field("body"), "\n",
 				"Changed files: ", fetchPR.Field("changed_files"), "\n",
-			)),
-		workflow.WithEnv(map[string]string{
-			"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"),
-			"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER"),
-		}),
-		workflow.AgentTimeout(300),
-	)
-	log.Println("  ✅ Step 3: Code quality review agent")
+			),
+			Env: map[string]string{
+				"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"),
+				"PR_NUMBER":    workflow.RuntimeEnv("PR_NUMBER"),
+			},
+			Config: &types.AgentExecutionConfig{
+				Timeout: 300,
+			},
+		})
+		log.Println("  ✅ Step 3: Code quality review agent")
 
 		// ============================================================================
 		// Step 4: Performance analysis (Agent 3)
 		// ============================================================================
-		performanceAnalysis := wf.CallAgent(
-			"performanceAnalysis",
-			workflow.AgentOption(workflow.Agent(performanceAgent)),
-			workflow.Message(workflow.Interpolate(
+		performanceAnalysis := wf.CallAgent("performanceAnalysis", &workflow.AgentCallArgs{
+			Agent: workflow.Agent(performanceAgent).Slug(),
+			Message: workflow.Interpolate(
 				"Analyze performance impact of this PR:\n",
 				"Changed files: ", fetchPR.Field("changed_files"), "\n",
 				"Code changes: ", fetchPR.Field("additions"), " additions, ", fetchPR.Field("deletions"), " deletions\n",
-			)),
-		workflow.WithEnv(map[string]string{
-			"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"),
-		}),
-		workflow.AgentTimeout(300),
-	)
-	log.Println("  ✅ Step 4: Performance analysis agent")
+			),
+			Env: map[string]string{
+				"GITHUB_TOKEN": workflow.RuntimeSecret("GITHUB_TOKEN"),
+			},
+			Config: &types.AgentExecutionConfig{
+				Timeout: 300,
+			},
+		})
+		log.Println("  ✅ Step 4: Performance analysis agent")
 
-	// ============================================================================
-	// Step 5: Aggregate results
-	// ============================================================================
-	aggregateResults := wf.Set(
-		"aggregateResults",
-		workflow.SetVar("security_status", securityScan.Field("recommendation")),
-		workflow.SetVar("code_quality_score", codeReview.Field("quality_score")),
-		workflow.SetVar("performance_score", performanceAnalysis.Field("performance_score")),
-		workflow.SetVar("security_risk", securityScan.Field("risk_level")),
-		workflow.SetVar("performance_concerns", performanceAnalysis.Field("concerns")),
-	)
-	log.Println("  ✅ Step 5: Aggregate review results")
+		// ============================================================================
+		// Step 5: Aggregate results
+		// ============================================================================
+		aggregateResults := wf.Set("aggregateResults", &workflow.SetArgs{
+			Variables: map[string]string{
+				"security_status":      securityScan.Field("recommendation").Expression(),
+				"code_quality_score":   codeReview.Field("quality_score").Expression(),
+				"performance_score":    performanceAnalysis.Field("performance_score").Expression(),
+				"security_risk":        securityScan.Field("risk_level").Expression(),
+				"performance_concerns": performanceAnalysis.Field("concerns").Expression(),
+			},
+		})
+		log.Println("  ✅ Step 5: Aggregate review results")
 
 		// ============================================================================
 		// Step 6: Generate deployment plan (Agent 4)
 		// ============================================================================
-		deploymentPlan := wf.CallAgent(
-			"generateDeploymentPlan",
-			workflow.AgentOption(workflow.Agent(devopsAgent)),
-			workflow.Message(workflow.Interpolate(
+		deploymentPlan := wf.CallAgent("generateDeploymentPlan", &workflow.AgentCallArgs{
+			Agent: workflow.Agent(devopsAgent).Slug(),
+			Message: workflow.Interpolate(
 				"Create deployment plan based on review results:\n",
 				"Security: ", aggregateResults.Field("security_status"), " (Risk: ", aggregateResults.Field("security_risk"), ")\n",
 				"Code Quality: ", aggregateResults.Field("code_quality_score"), "/100\n",
 				"Performance: ", aggregateResults.Field("performance_score"), "/100\n",
 				"PR: ", fetchPR.Field("title"), "\n",
-			)),
-		workflow.WithEnv(map[string]string{
-			"ENVIRONMENT": workflow.RuntimeEnv("DEPLOY_ENV"), // staging/production
-		}),
-		workflow.AgentTimeout(180),
-	)
-	log.Println("  ✅ Step 6: Generate deployment plan")
+			),
+			Env: map[string]string{
+				"ENVIRONMENT": workflow.RuntimeEnv("DEPLOY_ENV"), // staging/production
+			},
+			Config: &types.AgentExecutionConfig{
+				Timeout: 180,
+			},
+		})
+		log.Println("  ✅ Step 6: Generate deployment plan")
 
 		// ============================================================================
 		// Step 7: Execute deployment
 		// ============================================================================
-		executeDeploy := wf.HttpPost(
-			"executeDeploy",
+		executeDeploy := wf.HttpPost("executeDeploy",
 			workflow.RuntimeEnv("DEPLOYMENT_API_URL"),
-		workflow.Header("Authorization", workflow.Interpolate("Bearer ", workflow.RuntimeSecret("DEPLOY_API_TOKEN"))),
-		workflow.WithBody(map[string]any{
-			"pr_number":   workflow.RuntimeEnv("PR_NUMBER"),
-			"plan":        deploymentPlan.Field("plan"),
-			"environment": workflow.RuntimeEnv("DEPLOY_ENV"),
-		}),
-	)
-	log.Println("  ✅ Step 7: Execute deployment")
+			map[string]string{
+				"Authorization": workflow.Interpolate("Bearer ", workflow.RuntimeSecret("DEPLOY_API_TOKEN")),
+			},
+			map[string]any{
+				"pr_number":   workflow.RuntimeEnv("PR_NUMBER"),
+				"plan":        deploymentPlan.Field("plan"),
+				"environment": workflow.RuntimeEnv("DEPLOY_ENV"),
+			},
+		)
+		log.Println("  ✅ Step 7: Execute deployment")
 
 		// ============================================================================
 		// Step 8: Post-deployment verification (Agent 5)
 		// ============================================================================
-		verifyDeployment := wf.CallAgent(
-			"verifyDeployment",
-			workflow.AgentOption(workflow.Agent(qaAgent)),
-			workflow.Message(workflow.Interpolate(
+		verifyDeployment := wf.CallAgent("verifyDeployment", &workflow.AgentCallArgs{
+			Agent: workflow.Agent(qaAgent).Slug(),
+			Message: workflow.Interpolate(
 				"Verify deployment health:\n",
 				"Deployment ID: ", executeDeploy.Field("deployment_id"), "\n",
 				"Environment: ", workflow.RuntimeEnv("DEPLOY_ENV"), "\n",
 				"Expected behavior: ", deploymentPlan.Field("expected_metrics"), "\n",
-			)),
-		workflow.WithEnv(map[string]string{
-			"MONITORING_API_KEY": workflow.RuntimeSecret("MONITORING_API_KEY"),
-			"ENVIRONMENT":        workflow.RuntimeEnv("DEPLOY_ENV"),
-		}),
-		workflow.AgentTimeout(600), // 10 minutes for full verification
-	)
+			),
+			Env: map[string]string{
+				"MONITORING_API_KEY": workflow.RuntimeSecret("MONITORING_API_KEY"),
+				"ENVIRONMENT":        workflow.RuntimeEnv("DEPLOY_ENV"),
+			},
+			Config: &types.AgentExecutionConfig{
+				Timeout: 600, // 10 minutes for full verification
+			},
+		})
 		log.Println("  ✅ Step 8: Post-deployment verification")
 
 		// ============================================================================
 		// Step 9: Post results to Slack
 		// ============================================================================
-		notifyTeam := wf.HttpPost(
-			"notifyTeam",
+		notifyTeam := wf.HttpPost("notifyTeam",
 			workflow.RuntimeSecret("SLACK_WEBHOOK"),
-		workflow.WithBody(map[string]any{
-			"text": workflow.Interpolate(
-				"🚀 Deployment Pipeline Complete for PR #", workflow.RuntimeEnv("PR_NUMBER"), "\n",
-				"Security: ", aggregateResults.Field("security_status"), "\n",
-				"Quality: ", aggregateResults.Field("code_quality_score"), "/100\n",
-				"Performance: ", aggregateResults.Field("performance_score"), "/100\n",
-				"Deployment: ", executeDeploy.Field("status"), "\n",
-				"Verification: ", verifyDeployment.Field("status"), "\n",
-			),
-		}),
-	)
-	log.Println("  ✅ Step 9: Notify team on Slack")
+			nil, // No custom headers
+			map[string]any{
+				"text": workflow.Interpolate(
+					"🚀 Deployment Pipeline Complete for PR #", workflow.RuntimeEnv("PR_NUMBER"), "\n",
+					"Security: ", aggregateResults.Field("security_status"), "\n",
+					"Quality: ", aggregateResults.Field("code_quality_score"), "/100\n",
+					"Performance: ", aggregateResults.Field("performance_score"), "/100\n",
+					"Deployment: ", executeDeploy.Field("status"), "\n",
+					"Verification: ", verifyDeployment.Field("status"), "\n",
+				),
+			},
+		)
+		log.Println("  ✅ Step 9: Notify team on Slack")
 
 		// ============================================================================
 		// Pipeline Summary

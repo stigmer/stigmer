@@ -16,65 +16,77 @@ import (
 func main() {
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Context for configuration
-		apiBase := ctx.SetString("apiBase", "https://api.example.com")
-		timeout := ctx.SetInt("timeout", 60)
-		
+		apiBase := ctx.SetString("apiBase", "https://api.github.com/repos/stigmer/hello-stigmer")
+		_ = ctx.SetInt("timeout", 60) // Define timeout in context
+
 		// Create workflow
 		wf, err := workflow.New(ctx,
 			workflow.WithNamespace("parallel-processing"),
 			workflow.WithName("parallel-data-fetch"),
 			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Fetch data from multiple sources in parallel"),
+			workflow.WithDescription("Fetch GitHub data from multiple endpoints in parallel"),
 		)
 		if err != nil {
 			return err
 		}
 
-		// Task 1: Fork to execute multiple tasks in parallel
-		forkTask := wf.Fork("fetchAllData",
-			workflow.ParallelBranches(
-				// Branch 1: Fetch user data
-				workflow.BranchBuilder("fetchUsers", func() *workflow.Task {
-					return wf.HttpGet("getUsers",
-						apiBase.Concat("/users"),
-						workflow.Timeout(int32(timeout.Value())),
-					)
-				}),
-				
-				// Branch 2: Fetch product data
-				workflow.BranchBuilder("fetchProducts", func() *workflow.Task {
-					return wf.HttpGet("getProducts",
-						apiBase.Concat("/products"),
-						workflow.Timeout(int32(timeout.Value())),
-					)
-				}),
-				
-				// Branch 3: Fetch orders data
-				workflow.BranchBuilder("fetchOrders", func() *workflow.Task {
-					return wf.HttpGet("getOrders",
-						apiBase.Concat("/orders"),
-						workflow.Timeout(int32(timeout.Value())),
-					)
-				}),
+		// Task 1: Fork to execute multiple GitHub API calls in parallel
+		// Using type-safe ForkBranch helper for clean, compile-time checked parallel execution
+		_ = wf.Fork("fetchAllGitHubData", &workflow.ForkArgs{
+			Branches: workflow.ForkBranches(
+				workflow.ForkBranch("fetchPullRequests",
+					wf.HttpGet("getPulls",
+						apiBase.Concat("/pulls"),
+						map[string]string{
+							"Accept":     "application/vnd.github.v3+json",
+							"User-Agent": "Stigmer-SDK-Example",
+						},
+					),
+				),
+				workflow.ForkBranch("fetchIssues",
+					wf.HttpGet("getIssues",
+						apiBase.Concat("/issues"),
+						map[string]string{
+							"Accept":     "application/vnd.github.v3+json",
+							"User-Agent": "Stigmer-SDK-Example",
+						},
+					),
+				),
+				workflow.ForkBranch("fetchCommits",
+					wf.HttpGet("getCommits",
+						apiBase.Concat("/commits"),
+						map[string]string{
+							"Accept":     "application/vnd.github.v3+json",
+							"User-Agent": "Stigmer-SDK-Example",
+						},
+					),
+				),
 			),
-			workflow.WaitForAll(), // Wait for all branches to complete
-		)
+		})
 
-	// Task 2: Merge results from all parallel branches
-	wf.Set("mergeResults",
-		workflow.SetVar("users", forkTask.Branch("fetchUsers").Field("data")),
-		workflow.SetVar("products", forkTask.Branch("fetchProducts").Field("data")),
-		workflow.SetVar("orders", forkTask.Branch("fetchOrders").Field("data")),
-		workflow.SetVar("status", "merged"),
-	)
+		// Task 2: Merge results from all parallel GitHub API calls
+		wf.Set("mergeResults", &workflow.SetArgs{
+			Variables: map[string]string{
+				"pulls":   "${ $context[\"fetchAllGitHubData\"].branches.fetchPullRequests.data }",
+				"issues":  "${ $context[\"fetchAllGitHubData\"].branches.fetchIssues.data }",
+				"commits": "${ $context[\"fetchAllGitHubData\"].branches.fetchCommits.data }",
+				"status":  "merged",
+			},
+		})
 
-	// Task 3: Process merged data
-	wf.Set("processMerged",
-		workflow.SetVar("totalRecords", "${users.length + products.length + orders.length}"),
-		workflow.SetVar("completedAt", "${now()}"),
-	)
+		// Task 3: Process merged GitHub data
+		wf.Set("processMerged", &workflow.SetArgs{
+			Variables: map[string]string{
+				"totalRecords": "${pulls.length + issues.length + commits.length}",
+				"completedAt":  "${now()}",
+				"repository":   "stigmer/hello-stigmer",
+			},
+		})
 
 		log.Printf("Created workflow with parallel execution: %s", wf)
+		log.Println("\nNote: This example fetches PRs, issues, and commits in parallel")
+		log.Println("      from the stigmer/hello-stigmer repository")
+		log.Println("      No authentication required - works as an E2E test!")
 		return nil
 	})
 
@@ -83,4 +95,5 @@ func main() {
 	}
 
 	log.Println("✅ Workflow with parallel execution created successfully!")
+	log.Println("   Demonstrates real-world parallel API calls to GitHub")
 }
