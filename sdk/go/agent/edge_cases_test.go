@@ -332,7 +332,7 @@ func TestAgent_ConcurrentSkillAddition(t *testing.T) {
 	agent.mu.Lock()
 	skillCount := len(agent.Skills)
 	agent.mu.Unlock()
-	
+
 	if skillCount != 50 {
 		t.Errorf("Expected 50 skills, got %d", skillCount)
 	}
