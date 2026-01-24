@@ -349,14 +349,14 @@ func (g *Generator) loadSchemas() error {
 			if !schemaEntry.IsDir() {
 				continue
 			}
-			
+
 			dirName := schemaEntry.Name()
-			
+
 			// Skip known non-resource directories
 			if dirName == "tasks" || dirName == "types" {
 				continue
 			}
-			
+
 			// Load specs from this namespace directory
 			namespaceDir := filepath.Join(g.schemaDir, dirName)
 			entries, err := os.ReadDir(namespaceDir)
@@ -1017,7 +1017,7 @@ func (c *genContext) genToProtoMethod(w *bytes.Buffer, config *TaskConfigSchema)
 	for _, field := range config.Fields {
 		// Determine if we need smart conversion for expression fields
 		needsConversion := field.IsExpression && field.Type.Kind == "string"
-		
+
 		// Special handling for array of message types (e.g., []*types.WorkflowTask)
 		if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
 			c.addImport("encoding/json")
@@ -1053,7 +1053,7 @@ func (c *genContext) genToProtoMethod(w *bytes.Buffer, config *TaskConfigSchema)
 			}
 			continue
 		}
-		
+
 		// Special handling for message types (e.g., *types.HttpEndpoint)
 		if field.Type.Kind == "message" {
 			c.addImport("encoding/json")
@@ -1090,7 +1090,7 @@ func (c *genContext) genToProtoMethod(w *bytes.Buffer, config *TaskConfigSchema)
 			}
 			continue
 		}
-		
+
 		valueExpr := "c." + field.Name
 		if needsConversion {
 			valueExpr = "coerceToString(c." + field.Name + ")"

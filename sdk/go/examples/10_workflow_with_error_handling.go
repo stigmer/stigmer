@@ -9,6 +9,7 @@ package main
 import (
 	"log"
 
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
@@ -32,46 +33,39 @@ func main() {
 
 		// Task 1: Try to fetch pull request with error handling
 		tryTask := wf.Try("attemptGitHubCall", &workflow.TryArgs{
-			Tasks: []map[string]interface{}{
-				{
-					"httpCall": map[string]interface{}{
-						"method": "GET",
-						"uri":    apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1"),
-						"headers": map[string]string{
-							"Accept":     "application/vnd.github.v3+json",
-							"User-Agent": "Stigmer-SDK-Example",
-						},
+			Try: workflow.TryBody(
+				wf.HttpGet("fetchPullRequest",
+					apiBase.Concat("/repos/stigmer/hello-stigmer/pulls/1"),
+					map[string]string{
+						"Accept":     "application/vnd.github.v3+json",
+						"User-Agent": "Stigmer-SDK-Example",
 					},
-				},
-			},
-			Catch: []map[string]interface{}{
-				{
-					"errors": []string{"NetworkError", "TimeoutError"},
-					"as":     "error",
-					"tasks": []interface{}{
-						map[string]interface{}{
-							"set": map[string]interface{}{
-								"error":     "${.error.message}",
-								"timestamp": "${.error.timestamp}",
-								"retryable": "true",
-							},
-						},
+				),
+			),
+			Catch: workflow.CatchBody("error",
+				wf.Set("handleError", &workflow.SetArgs{
+					Variables: map[string]string{
+						"error":     "${.error.message}",
+						"timestamp": "${.error.timestamp}",
+						"retryable": "true",
 					},
-				},
-			},
+				}),
+			),
 		})
 
 		// Task 2: Check if retry is needed
 		success := tryTask.Field("success")
 		wf.Switch("checkRetry", &workflow.SwitchArgs{
-			Cases: []map[string]interface{}{
+			Cases: []*types.SwitchCase{
 				{
-					"condition": success.Expression() + " == true",
-					"then":      "processSuccess",
+					Name: "success",
+					When: success.Equals(true),
+					Then: "processSuccess",
 				},
 				{
-					"condition": success.Expression() + " == false",
-					"then":      "logFailure",
+					Name: "failure",
+					When: success.Equals(false),
+					Then: "logFailure",
 				},
 			},
 		})
