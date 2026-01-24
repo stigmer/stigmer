@@ -111,8 +111,8 @@ func main() {
         // Process the response (struct-based args)
         wf.Set("process", &workflow.SetArgs{
             Variables: map[string]string{
-                "title": fetchTask.Field("title").Expression(),
-                "body":  fetchTask.Field("body").Expression(),
+                "title": fetchTask.Field("title").Expression(),  // Map values still need .Expression()
+                "body":  fetchTask.Field("body").Expression(),   // (not a direct expression field)
             },
         })
         
@@ -331,36 +331,86 @@ processTask := wf.Set("process", &workflow.SetArgs{
 
 **Key Points**:
 - `task.Field("name")` creates a typed field reference
-- `.Expression()` converts to string expression for workflow engine
 - Dependencies are tracked automatically
 - No manual dependency wiring needed
+
+#### Smart Expression Conversion (v0.2.1+)
+
+**Expression fields automatically accept both strings and references** - no manual `.Expression()` calls needed!
+
+```go
+// ✅ NEW: Clean syntax (automatic conversion)
+wf.ForEach("process", &workflow.ForArgs{
+    In: fetchTask.Field("items"),  // TaskFieldRef - auto-converted!
+})
+
+wf.HttpGet("fetch",
+    apiBase.Concat("/data"),  // StringRef - auto-converted!
+    nil,
+)
+
+// ✅ STILL WORKS: Explicit conversion (backward compatible)
+wf.ForEach("process", &workflow.ForArgs{
+    In: fetchTask.Field("items").Expression(),  // Still valid
+})
+
+// ✅ ALWAYS WORKED: Literal strings
+wf.ForEach("process", &workflow.ForArgs{
+    In: "${.items}",  // String literal
+})
+```
+
+**Fields with smart conversion**:
+- `ForTaskConfig.In` - Loop input collection
+- `HttpEndpoint.Uri` - HTTP request URI
+- `AgentCallTaskConfig.Message` - Agent prompt/message
+- `RaiseTaskConfig.Error` - Error type
+- `RaiseTaskConfig.Message` - Error message
+
+**How it works**: These fields are marked with `is_expression` proto option. The SDK generator creates them as `interface{}` and automatically converts TaskFieldRef/StringRef to expressions at runtime.
+
+**Map/array string values**: Still need `.Expression()` for values inside maps or arrays:
+```go
+Body: map[string]interface{}{
+    "userId": userTask.Field("id").Expression(),  // ✅ Still needed for map values
+},
+```
 
 ### Agent Call Tasks
 
 Call AI agents from workflows using struct-based args:
 
 ```go
-// Call agent with full configuration
+// Call agent with typed configuration
 reviewTask := wf.AgentCall("review", &workflow.AgentCallArgs{
     Agent:   "code-reviewer",
-    Message: "Review this code: ${.input.code}",
+    Message: "Review this code: ${.input.code}",  // ✅ Smart conversion - string or TaskFieldRef
     Env: map[string]string{
         "GITHUB_TOKEN": "${.secrets.GITHUB_TOKEN}",
     },
-    Config: map[string]interface{}{
-        "model":       "gpt-4",
-        "temperature": 0.7,
-        "maxTokens":   2000,
-        "timeout":     300,
+    Config: &types.AgentExecutionConfig{
+        Model:       "claude-3-5-sonnet",
+        Temperature: 0.7,
+        Timeout:     300,
+    },
+})
+
+// With TaskFieldRef (automatic conversion)
+reviewTask := wf.AgentCall("review", &workflow.AgentCallArgs{
+    Agent:   "code-reviewer",
+    Message: fetchCode.Field("content"),  // ✅ No .Expression() needed!
+    Config: &types.AgentExecutionConfig{
+        Model:   "claude-3-5-sonnet",
+        Timeout: 300,
     },
 })
 ```
 
 **AgentCallArgs Fields**:
 - `Agent` - Agent slug or reference (required)
-- `Message` - Message/prompt to agent (required)
+- `Message` - Message/prompt to agent (required, supports smart conversion)
 - `Env` - Environment variables (map[string]string)
-- `Config` - Agent execution config (model, temperature, maxTokens, timeout)
+- `Config` - Agent execution config (*types.AgentExecutionConfig)
 
 ### WAIT Tasks
 
