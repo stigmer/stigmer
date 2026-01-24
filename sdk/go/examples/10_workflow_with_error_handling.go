@@ -61,38 +61,39 @@ func main() {
 			},
 		})
 
-		// Task 2: Check if retry is needed
-		success := tryTask.Field("success")
-		wf.Switch("checkRetry", &workflow.SwitchArgs{
-			Cases: []map[string]interface{}{
-				{
-					"condition": success.Expression() + " == true",
-					"then":      "processSuccess",
-				},
-				{
-					"condition": success.Expression() + " == false",
-					"then":      "logFailure",
-				},
+	// Task 2: Check if retry is needed
+	success := tryTask.Field("success")
+	wf.Switch("checkRetry", &workflow.SwitchArgs{
+		Cases: []map[string]interface{}{
+			{
+				"condition": success.Expression() + " == true",
+				"then":      "processSuccess",
 			},
-		})
+			{
+				"condition": success.Expression() + " == false",
+				"then":      "logFailure",
+			},
+		},
+	})
 
-		// Task 3a: Process successful result from GitHub API
-		wf.Set("processSuccess", &workflow.SetArgs{
-			Variables: map[string]string{
-				"pr_title":  tryTask.Field("title").Expression(),
-				"pr_state":  tryTask.Field("state").Expression(),
-				"pr_author": tryTask.Field("user.login").Expression(),
-				"status":    "completed",
-			},
-		})
+	// Task 3a: Process successful result from GitHub API
+	// Smart conversion: TaskFieldRef automatically converts to string
+	wf.Set("processSuccess", &workflow.SetArgs{
+		Variables: map[string]string{
+			"pr_title":  tryTask.Field("title"),
+			"pr_state":  tryTask.Field("state"),
+			"pr_author": tryTask.Field("user.login"),
+			"status":    "completed",
+		},
+	})
 
-		// Task 3b: Log failure
-		wf.Set("logFailure", &workflow.SetArgs{
-			Variables: map[string]string{
-				"status": "failed",
-				"reason": tryTask.Field("error").Expression(),
-			},
-		})
+	// Task 3b: Log failure
+	wf.Set("logFailure", &workflow.SetArgs{
+		Variables: map[string]string{
+			"status": "failed",
+			"reason": tryTask.Field("error"),
+		},
+	})
 
 		log.Printf("Created workflow with error handling: %s", wf)
 		log.Println("\nNote: This example demonstrates error handling with real GitHub API")

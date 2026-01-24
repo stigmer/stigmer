@@ -61,28 +61,29 @@ func main() {
 		}
 
 		// Task 1: Fetch pull request from GitHub API (clean, one-liner!)
-		// No ExportAll() needed - outputs are always available  
+		// No ExportAll() needed - outputs are always available
 		// Using Interpolate for dynamic URL construction
 		// Using public hello-stigmer repository - no auth required
-		fetchTask := wf.HttpGet("fetchPullRequest", 
+		fetchTask := wf.HttpGet("fetchPullRequest",
 			workflow.Interpolate(apiBase, "/repos/stigmer/hello-stigmer/pulls/1"),
 			map[string]string{
 				"Accept":     "application/vnd.github.v3+json",
 				"User-Agent": "Stigmer-SDK-Example",
 			})
 
-		// Task 2: Process response using DIRECT task references
-		// Dependencies are implicit - no ThenRef needed!
-		// Clear origin: title, body, state, and author come from fetchTask
-		processTask := wf.Set("processResponse", &workflow.SetArgs{
-			Variables: map[string]string{
-				"prTitle":  fetchTask.Field("title").Expression(),      // ✅ Clear: PR title from fetchTask!
-				"prBody":   fetchTask.Field("body").Expression(),       // ✅ Clear: PR description from fetchTask!
-				"prState":  fetchTask.Field("state").Expression(),      // ✅ PR state (open/closed)
-				"prAuthor": fetchTask.Field("user.login").Expression(), // ✅ GitHub username
-				"status":   "success",
-			},
-		})
+	// Task 2: Process response using DIRECT task references
+	// Dependencies are implicit - no ThenRef needed!
+	// Clear origin: title, body, state, and author come from fetchTask
+	// Smart conversion: TaskFieldRef automatically converts to string (no .Expression() needed!)
+	processTask := wf.Set("processResponse", &workflow.SetArgs{
+		Variables: map[string]string{
+			"prTitle":  fetchTask.Field("title"),      // ✅ Clear: PR title from fetchTask!
+			"prBody":   fetchTask.Field("body"),       // ✅ Clear: PR description from fetchTask!
+			"prState":  fetchTask.Field("state"),      // ✅ PR state (open/closed)
+			"prAuthor": fetchTask.Field("user.login"), // ✅ GitHub username
+			"status":   "success",
+		},
+	})
 
 		// No manual dependency management needed!
 		// processTask automatically depends on fetchTask because it uses fetchTask.Field()
