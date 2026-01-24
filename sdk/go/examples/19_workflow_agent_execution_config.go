@@ -14,11 +14,11 @@ import (
 // - Timeout control (task-specific execution limits)
 // - Temperature tuning (control randomness/creativity)
 //
-		// Key learning points:
-		// - Using workflow.Model() to override agent's default model
-		// - Using workflow.AgentTimeout() for time-sensitive tasks
-		// - Using workflow.Temperature() for creativity control
-		// - Different configs for different use cases
+// Key learning points:
+// - Using workflow.Model() to override agent's default model
+// - Using workflow.AgentTimeout() for time-sensitive tasks
+// - Using workflow.Temperature() for creativity control
+// - Different configs for different use cases
 //
 // Real-world scenarios:
 // - Fast model for simple tasks, powerful model for complex tasks
@@ -45,8 +45,8 @@ func main() {
 			Message: "Categorize this support ticket: 'My login is not working'",
 			Config: map[string]interface{}{
 				"model":       "claude-3-haiku", // Fast model for simple categorization
-				"temperature": 0.1,               // Low temperature for consistent categorization
-				"timeout":     30,                // Short timeout - categorization should be quick (30 seconds)
+				"temperature": 0.1,              // Low temperature for consistent categorization
+				"timeout":     30,               // Short timeout - categorization should be quick (30 seconds)
 			},
 		})
 		log.Println("✅ Fast deterministic task: categorizeTicket")
@@ -66,8 +66,8 @@ func main() {
 			),
 			Config: map[string]interface{}{
 				"model":       "claude-3-5-sonnet", // Powerful model for complex reasoning
-				"temperature": 0.5,                  // Medium temperature for balanced analysis
-				"timeout":     600,                  // Long timeout for thorough analysis (10 minutes)
+				"temperature": 0.5,                 // Medium temperature for balanced analysis
+				"timeout":     600,                 // Long timeout for thorough analysis (10 minutes)
 			},
 		})
 		log.Println("✅ Deep analysis task: architectureReview")
@@ -85,8 +85,8 @@ func main() {
 			Message: "Write engaging marketing copy for a new AI code review tool",
 			Config: map[string]interface{}{
 				"model":       "claude-3-5-sonnet", // Creative model
-				"temperature": 0.9,                  // High temperature for creative output
-				"timeout":     120,                  // Moderate timeout (2 minutes)
+				"temperature": 0.9,                 // High temperature for creative output
+				"timeout":     120,                 // Moderate timeout (2 minutes)
 			},
 		})
 		log.Println("✅ Creative task: generateCopy")
@@ -127,8 +127,8 @@ func main() {
 			),
 			Config: map[string]interface{}{
 				"model":       "claude-3-5-sonnet", // Powerful model for code generation
-				"temperature": 0.3,                  // Low-medium temperature for good patterns
-				"timeout":     300,                  // Longer timeout for code generation (5 minutes)
+				"temperature": 0.3,                 // Low-medium temperature for good patterns
+				"timeout":     300,                 // Longer timeout for code generation (5 minutes)
 			},
 		})
 		log.Println("✅ Code generation task: generateCode")
@@ -156,8 +156,8 @@ func main() {
 		log.Println("   Timeout: 15s (customer waiting!)")
 		_ = customerSupport // Used for demonstration purposes
 
-	// ============================================================================
-	// Summary
+		// ============================================================================
+		// Summary
 		// ============================================================================
 		log.Println("\n📊 Execution Configuration Summary:")
 		log.Printf("   Total tasks: %d\n", len(wf.Tasks))

@@ -1,9 +1,12 @@
 # Stigmer Go SDK - Usage Guide
 
-**Version**: 0.1.0  
+**Version**: 0.2.0  
 **Status**: Production Ready ✅
 
-A comprehensive guide to building AI agents and workflows with the Stigmer Go SDK.
+A comprehensive guide to building AI agents and workflows with the Stigmer Go SDK using struct-based args (Pulumi pattern).
+
+> **Migration Notice**: Version 0.2.0+ uses struct-based args instead of functional options.  
+> See [Migration Guide](migration-from-functional-options.md) for upgrading from v0.1.0.
 
 ## Table of Contents
 
@@ -41,6 +44,7 @@ package main
 
 import (
     "log"
+    "os"
     "github.com/stigmer/stigmer/sdk/go/stigmer"
     "github.com/stigmer/stigmer/sdk/go/agent"
     "github.com/stigmer/stigmer/sdk/go/skill"
@@ -48,18 +52,26 @@ import (
 
 func main() {
     err := stigmer.Run(func(ctx *stigmer.Context) error {
-        // Create a skill
-        codingSkill, _ := skill.New(
-            skill.WithName("coding-guidelines"),
-            skill.WithMarkdownFromFile("skills/coding.md"),
-        )
+        // Load skill content from file
+        skillContent, _ := os.ReadFile("skills/coding.md")
         
-        // Create an agent
-        codeReviewer, _ := agent.New(ctx,
-            agent.WithName("code-reviewer"),
-            agent.WithInstructionsFromFile("instructions/reviewer.md"),
-            agent.WithSkills(codingSkill),
-        )
+        // Create a skill with struct-based args
+        codingSkill, _ := skill.New("coding-guidelines", &skill.SkillArgs{
+            MarkdownContent: string(skillContent),
+            Description:     "Coding best practices",
+        })
+        
+        // Load instructions from file
+        instructions, _ := os.ReadFile("instructions/reviewer.md")
+        
+        // Create an agent with struct-based args
+        codeReviewer, _ := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+            Instructions: string(instructions),
+            Description:  "AI code reviewer",
+        })
+        
+        // Add skills using builder method
+        codeReviewer.AddSkill(codingSkill)
         
         log.Printf("✅ Created agent: %s", codeReviewer.Name)
         return nil
@@ -91,17 +103,18 @@ func main() {
             workflow.WithVersion("1.0.0"),
         )
         
-        // Fetch data from API
-        fetchTask := wf.HttpGet("fetch", "https://api.example.com/data",
-            workflow.Header("Content-Type", "application/json"),
-            workflow.Timeout(30),
-        )
+        // Fetch data from API (convenience method)
+        fetchTask := wf.HttpGet("fetch", "https://api.example.com/data", map[string]string{
+            "Content-Type": "application/json",
+        })
         
-        // Process the response
-        wf.SetVars("process",
-            "title", fetchTask.Field("title"),
-            "body", fetchTask.Field("body"),
-        )
+        // Process the response (struct-based args)
+        wf.Set("process", &workflow.SetArgs{
+            Variables: map[string]string{
+                "title": fetchTask.Field("title").Expression(),
+                "body":  fetchTask.Field("body").Expression(),
+            },
+        })
         
         log.Printf("✅ Created workflow with %d tasks", len(wf.Tasks))
         return nil
@@ -146,15 +159,23 @@ Resources register themselves automatically:
 
 ```go
 // Agent registers with context
-agent, _ := agent.New(ctx, agent.WithName("my-agent"))
+agent, _ := agent.New(ctx, "my-agent", &agent.AgentArgs{
+    Instructions: "...",
+})
 // → Registered as "agent:my-agent"
 
 // Workflow registers with context
-wf, _ := workflow.New(ctx, workflow.WithName("my-workflow"))
+wf, _ := workflow.New(ctx,
+    workflow.WithNamespace("default"),
+    workflow.WithName("my-workflow"),
+    workflow.WithVersion("1.0.0"),
+)
 // → Registered as "workflow:my-workflow"
 
 // Skills register when used inline
-skill, _ := skill.New(skill.WithName("my-skill"))
+skill, _ := skill.New("my-skill", &skill.SkillArgs{
+    MarkdownContent: "...",
+})
 // → Registered as "skill:my-skill" when added to agent
 ```
 
@@ -164,13 +185,17 @@ The SDK tracks dependencies automatically:
 
 ```go
 // Create skill
-skill, _ := skill.New(skill.WithName("coding"))
+codingSkill, _ := skill.New("coding", &skill.SkillArgs{
+    MarkdownContent: "# Coding Standards\n...",
+})
 
-// Create agent with skill (dependency tracked automatically)
-agent, _ := agent.New(ctx,
-    agent.WithName("reviewer"),
-    agent.WithSkills(skill),
-)
+// Create agent
+reviewer, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{
+    Instructions: "Review code",
+})
+
+// Add skill (dependency tracked automatically)
+reviewer.AddSkill(codingSkill)
 // → Dependency: "agent:reviewer" → "skill:coding"
 
 // Inspect dependency graph
@@ -211,66 +236,79 @@ wf, err := workflow.New(ctx,
 
 ### HTTP Tasks
 
-Clean, intuitive HTTP builders:
+Two ways to create HTTP tasks: **convenience methods** (simple) or **struct-based args** (full control).
 
-#### GET Request
-
-```go
-fetchTask := wf.HttpGet("fetch", "https://api.example.com/users",
-    workflow.Header("Authorization", "Bearer ${API_TOKEN}"),
-    workflow.Header("Content-Type", "application/json"),
-    workflow.Timeout(30),
-)
-```
-
-#### POST Request
+#### Convenience Methods (Recommended for Simple Cases)
 
 ```go
+// GET Request
+fetchTask := wf.HttpGet("fetch", "https://api.example.com/users", map[string]string{
+    "Authorization": "Bearer ${API_TOKEN}",
+    "Content-Type":  "application/json",
+})
+
+// POST Request
 createTask := wf.HttpPost("create", "https://api.example.com/users",
-    workflow.Body(map[string]interface{}{
-        "name": "John Doe",
+    map[string]string{"Content-Type": "application/json"},
+    map[string]interface{}{
+        "name":  "John Doe",
         "email": "john@example.com",
-    }),
-    workflow.Header("Content-Type", "application/json"),
-    workflow.Timeout(30),
+    },
 )
-```
 
-#### PUT Request
-
-```go
+// PUT Request
 updateTask := wf.HttpPut("update", "https://api.example.com/users/123",
-    workflow.Body(userData),
-    workflow.Header("Content-Type", "application/json"),
+    map[string]string{"Content-Type": "application/json"},
+    userData,
+)
+
+// DELETE Request
+deleteTask := wf.HttpDelete("delete", "https://api.example.com/users/123",
+    map[string]string{"Authorization": "Bearer ${API_TOKEN}"},
 )
 ```
 
-#### DELETE Request
+#### Struct-Based Args (Full Control)
 
 ```go
-deleteTask := wf.HttpDelete("delete", "https://api.example.com/users/123",
-    workflow.Header("Authorization", "Bearer ${API_TOKEN}"),
-)
+// Full control with HttpCallArgs
+task := wf.HttpCall("fetch", &workflow.HttpCallArgs{
+    Method:  "GET",
+    URI:     "https://api.example.com/users",
+    Headers: map[string]string{
+        "Authorization": "Bearer ${API_TOKEN}",
+        "Content-Type":  "application/json",
+    },
+    QueryParams: map[string]string{
+        "page":  "1",
+        "limit": "10",
+    },
+    TimeoutSeconds: 30,
+})
 ```
 
-**Available Options**:
-- `Header(key, value)` - Add HTTP headers
-- `Body(data)` - Set request body (map or struct)
-- `Timeout(seconds)` - Request timeout
-- `Query(key, value)` - Add query parameters
+**HttpCallArgs Fields**:
+- `Method` - HTTP method (GET, POST, PUT, PATCH, DELETE)
+- `URI` - Request URI
+- `Headers` - HTTP headers (map[string]string)
+- `Body` - Request body (map[string]interface{})
+- `QueryParams` - Query parameters (map[string]string)
+- `TimeoutSeconds` - Request timeout (default: 30)
 
 ### SET Tasks (Variable Assignment)
 
-```go
-// Single variable
-wf.Set("status", "value", "success")
+Use struct-based args to set variables:
 
-// Multiple variables (recommended)
-wf.SetVars("process",
-    "userId", fetchTask.Field("id"),
-    "userName", fetchTask.Field("name"),
-    "timestamp", workflow.Now(),
-)
+```go
+// Set variables using SetArgs
+processTask := wf.Set("process", &workflow.SetArgs{
+    Variables: map[string]string{
+        "userId":    fetchTask.Field("id").Expression(),
+        "userName":  fetchTask.Field("name").Expression(),
+        "timestamp": workflow.Now(),
+        "status":    "success",
+    },
+})
 ```
 
 ### Task Field References
@@ -279,83 +317,90 @@ Reference task outputs to create dependencies:
 
 ```go
 // Task produces outputs
-fetchTask := wf.HttpGet("fetch", endpoint)
+fetchTask := wf.HttpGet("fetch", "https://api.example.com/data", nil)
 
-// Other tasks reference fields (creates implicit dependency)
-processTask := wf.SetVars("process",
-    "title", fetchTask.Field("title"),      // From fetchTask
-    "body", fetchTask.Field("body"),        // From fetchTask
-    "status", "complete",                    // Static value
-)
+// Reference task fields (creates implicit dependency)
+processTask := wf.Set("process", &workflow.SetArgs{
+    Variables: map[string]string{
+        "title":  fetchTask.Field("title").Expression(),  // From fetchTask
+        "body":   fetchTask.Field("body").Expression(),   // From fetchTask
+        "status": "complete",                             // Static value
+    },
+})
 ```
 
 **Key Points**:
-- `task.Field("name")` creates a typed reference
+- `task.Field("name")` creates a typed field reference
+- `.Expression()` converts to string expression for workflow engine
 - Dependencies are tracked automatically
 - No manual dependency wiring needed
-- Compile-time type safety
 
 ### Agent Call Tasks
 
-Call AI agents from workflows:
+Call AI agents from workflows using struct-based args:
 
 ```go
-// Call agent by reference
-reviewTask := wf.AgentCall("review", codeReviewAgent,
-    workflow.AgentInput("code", fetchTask.Field("content")),
-    workflow.AgentModel("gpt-4"),
-    workflow.AgentTemperature(0.7),
-    workflow.AgentTimeout(300),
-)
-
-// Call agent by slug
-reviewTask := wf.AgentCallBySlug("review", "code-reviewer",
-    workflow.AgentInput("pr_number", "123"),
-)
+// Call agent with full configuration
+reviewTask := wf.AgentCall("review", &workflow.AgentCallArgs{
+    Agent:   "code-reviewer",
+    Message: "Review this code: ${.input.code}",
+    Env: map[string]string{
+        "GITHUB_TOKEN": "${.secrets.GITHUB_TOKEN}",
+    },
+    Config: map[string]interface{}{
+        "model":       "gpt-4",
+        "temperature": 0.7,
+        "maxTokens":   2000,
+        "timeout":     300,
+    },
+})
 ```
 
-**Options**:
-- `AgentInput(key, value)` - Pass input to agent
-- `AgentModel(name)` - Override LLM model
-- `AgentTemperature(value)` - Set creativity (0.0-1.0)
-- `AgentMaxTokens(count)` - Limit response length
-- `AgentTimeout(seconds)` - Execution timeout
+**AgentCallArgs Fields**:
+- `Agent` - Agent slug or reference (required)
+- `Message` - Message/prompt to agent (required)
+- `Env` - Environment variables (map[string]string)
+- `Config` - Agent execution config (model, temperature, maxTokens, timeout)
 
 ### WAIT Tasks
 
-Pause workflow execution:
+Pause workflow execution using struct-based args:
 
 ```go
 // Wait for duration
-wf.Wait("pause", workflow.WaitDuration("30s"))
+wf.Wait("pause", &workflow.WaitArgs{
+    Duration: "30s",
+})
 
 // Wait until timestamp
-wf.Wait("schedule", workflow.WaitUntil("2024-12-31T23:59:59Z"))
+wf.Wait("schedule", &workflow.WaitArgs{
+    Until: "2024-12-31T23:59:59Z",
+})
 ```
 
 ### LISTEN Tasks
 
-Wait for external events:
+Wait for external events using struct-based args:
 
 ```go
-listenTask := wf.Listen("wait-for-approval",
-    workflow.SignalName("approval-signal"),
-    workflow.ListenTimeout(3600),  // 1 hour timeout
-)
+listenTask := wf.Listen("wait-for-approval", &workflow.ListenArgs{
+    SignalName:     "approval-signal",
+    TimeoutSeconds: 3600, // 1 hour timeout
+})
 ```
 
 ### RAISE Tasks
 
-Emit events from workflow:
+Emit events from workflow using struct-based args:
 
 ```go
-wf.Raise("notify",
-    workflow.SignalName("workflow-complete"),
-    workflow.SignalPayload(map[string]interface{}{
-        "status": "success",
+wf.Raise("notify", &workflow.RaiseArgs{
+    SignalName: "workflow-complete",
+    Payload: map[string]interface{}{
+        "status":   "success",
         "duration": "45s",
-    }),
-)
+    },
+})
 ```
 
 ---
@@ -364,125 +409,147 @@ wf.Raise("notify",
 
 ### Conditional Logic (Switch)
 
-Branch execution based on conditions:
+Branch execution based on conditions using struct-based args:
 
 ```go
+// Define tasks for different cases
+successTask := wf.HttpPost("notify-success", successWebhook, nil, nil)
+errorTask := wf.HttpPost("notify-error", errorWebhook, nil, nil)
+defaultTask := wf.Set("unknown", &workflow.SetArgs{
+    Variables: map[string]string{"message": "Unknown status"},
+})
+
 // Create switch task
-switchTask := wf.Switch("check-status",
-    // Condition cases
-    workflow.SwitchCase(
-        workflow.ConditionEquals("status", "success"),
-        workflow.Then(
-            wf.HttpPost("notify-success", successWebhook),
-        ),
-    ),
-    workflow.SwitchCase(
-        workflow.ConditionEquals("status", "error"),
-        workflow.Then(
-            wf.HttpPost("notify-error", errorWebhook),
-        ),
-    ),
-    // Default case
-    workflow.SwitchDefault(
-        wf.Set("unknown", "message", "Unknown status"),
-    ),
-)
+switchTask := wf.Switch("check-status", &workflow.SwitchArgs{
+    Cases: []*workflow.SwitchCase{
+        {
+            Condition: &workflow.Condition{
+                Operator: "equals",
+                Key:      "status",
+                Value:    "success",
+            },
+            Tasks: []*workflow.Task{successTask},
+        },
+        {
+            Condition: &workflow.Condition{
+                Operator: "equals",
+                Key:      "status",
+                Value:    "error",
+            },
+            Tasks: []*workflow.Task{errorTask},
+        },
+    },
+    Default: []*workflow.Task{defaultTask},
+})
 ```
 
-**Condition Helpers**:
-- `ConditionEquals(key, value)` - Equality check
-- `ConditionNotEquals(key, value)` - Inequality check
-- `ConditionGreaterThan(key, value)` - Greater than
-- `ConditionLessThan(key, value)` - Less than
-- `ConditionContains(key, substring)` - String contains
-- `ConditionStartsWith(key, prefix)` - String starts with
-- `ConditionEndsWith(key, suffix)` - String ends with
-- `ConditionMatchesRegex(key, pattern)` - Regex match
+**Condition Operators**:
+- `"equals"` - Equality check
+- `"notEquals"` - Inequality check
+- `"greaterThan"` - Greater than
+- `"lessThan"` - Less than
+- `"greaterOrEqual"` - Greater than or equal
+- `"lessOrEqual"` - Less than or equal
+- `"contains"` - String contains
+- `"startsWith"` - String starts with
+- `"endsWith"` - String ends with
+- `"matches"` - Regex match
 
 ### Loops (ForEach)
 
-Iterate over collections:
+Iterate over collections using struct-based args:
 
 ```go
 // Fetch list of items
-fetchTask := wf.HttpGet("fetch-users", usersEndpoint)
+fetchTask := wf.HttpGet("fetch-users", usersEndpoint, nil)
 
-// Process each item
-forEachTask := wf.ForEach("process-users",
-    workflow.ForEachOver(fetchTask.Field("users")),
-    workflow.ForEachItem("user"),
-    workflow.ForEachDo(
-        wf.HttpPost("process", processEndpoint,
-            workflow.Body(map[string]interface{}{
-                "userId": workflow.LoopVar("user.id"),
-                "name": workflow.LoopVar("user.name"),
-            }),
-        ),
-    ),
+// Define task to execute per item
+processTask := wf.HttpPost("process", processEndpoint,
+    map[string]string{"Content-Type": "application/json"},
+    map[string]interface{}{
+        "userId": "${.user.id}",
+        "name":   "${.user.name}",
+    },
 )
+
+// Create ForEach task
+forEachTask := wf.ForEach("process-users", &workflow.ForArgs{
+    Array:    fetchTask.Field("users").Expression(),
+    ItemVar:  "user",
+    IndexVar: "idx", // Optional
+    Tasks:    []*workflow.Task{processTask},
+})
 ```
 
-**Options**:
-- `ForEachOver(array)` - Array to iterate
-- `ForEachItem(varName)` - Loop variable name
-- `ForEachIndex(varName)` - Index variable name (optional)
-- `ForEachDo(...tasks)` - Tasks to execute per item
+**ForArgs Fields**:
+- `Array` - Array expression to iterate over (required)
+- `ItemVar` - Loop variable name for current item (required)
+- `IndexVar` - Loop variable name for index (optional)
+- `Tasks` - Tasks to execute per iteration (required)
 
 ### Error Handling (Try/Catch)
 
-Handle errors gracefully:
+Handle errors gracefully using struct-based args:
 
 ```go
-tryTask := wf.Try("safe-operation",
-    // Try block
-    workflow.TryDo(
-        wf.HttpPost("risky-operation", endpoint,
-            workflow.Body(data),
-        ),
-    ),
-    // Catch block
-    workflow.CatchError(
-        workflow.ErrorMatcher(workflow.ErrorCode("TIMEOUT")),
-        workflow.CatchDo(
-            wf.SetVars("handle-timeout",
-                "status", "timeout",
-                "retry", "true",
-            ),
-        ),
-    ),
-    workflow.CatchError(
-        workflow.ErrorMatcher(workflow.ErrorAny()),
-        workflow.CatchDo(
-            wf.SetVars("handle-error",
-                "status", "error",
-                "retry", "false",
-            ),
-        ),
-    ),
-)
+// Define tasks
+riskyTask := wf.HttpPost("risky-operation", endpoint, nil, data)
+timeoutHandler := wf.Set("handle-timeout", &workflow.SetArgs{
+    Variables: map[string]string{
+        "status": "timeout",
+        "retry":  "true",
+    },
+})
+errorHandler := wf.Set("handle-error", &workflow.SetArgs{
+    Variables: map[string]string{
+        "status": "error",
+        "retry":  "false",
+    },
+})
+
+// Create Try task
+tryTask := wf.Try("safe-operation", &workflow.TryArgs{
+    Tasks: []*workflow.Task{riskyTask},
+    Catches: []*workflow.CatchBlock{
+        {
+            ErrorMatcher: &workflow.ErrorMatcher{
+                Code: "TIMEOUT",
+            },
+            Tasks: []*workflow.Task{timeoutHandler},
+        },
+        {
+            ErrorMatcher: &workflow.ErrorMatcher{
+                MatchAny: true, // Catch all errors
+            },
+            Tasks: []*workflow.Task{errorHandler},
+        },
+    },
+})
 ```
 
-**Error Matchers**:
-- `ErrorCode(code)` - Match specific error code
-- `ErrorType(type)` - Match error type
-- `ErrorAny()` - Match any error (catch-all)
+**ErrorMatcher Fields**:
+- `Code` - Match specific error code (e.g., "TIMEOUT", "NOT_FOUND")
+- `Type` - Match error type (e.g., "NetworkError", "ValidationError")
+- `MatchAny` - Match any error (catch-all)
 
 ### Parallel Execution (Fork)
 
-Run tasks concurrently:
+Run tasks concurrently using struct-based args:
 
 ```go
-forkTask := wf.Fork("parallel-fetch",
-    workflow.ForkBranch("branch1",
-        wf.HttpGet("fetch1", endpoint1),
-    ),
-    workflow.ForkBranch("branch2",
-        wf.HttpGet("fetch2", endpoint2),
-    ),
-    workflow.ForkBranch("branch3",
-        wf.HttpGet("fetch3", endpoint3),
-    ),
-)
+// Define tasks for each branch
+task1 := wf.HttpGet("fetch1", endpoint1, nil)
+task2 := wf.HttpGet("fetch2", endpoint2, nil)
+task3 := wf.HttpGet("fetch3", endpoint3, nil)
+
+// Create Fork task
+forkTask := wf.Fork("parallel-fetch", &workflow.ForkArgs{
+    Branches: []*workflow.ForkBranch{
+        {Name: "branch1", Tasks: []*workflow.Task{task1}},
+        {Name: "branch2", Tasks: []*workflow.Task{task2}},
+        {Name: "branch3", Tasks: []*workflow.Task{task3}},
+    },
+})
 
 // All branches run in parallel
 // Workflow continues when ALL branches complete
@@ -618,37 +685,47 @@ filtered := workflow.Filter(arrayVar, "item",
 
 ### Creating an Agent
 
+Use struct-based args (Pulumi pattern) for agent creation:
+
 ```go
-agent, err := agent.New(ctx,
-    agent.WithName("code-reviewer"),
-    agent.WithInstructionsFromFile("instructions/reviewer.md"),
-    agent.WithDescription("AI code reviewer with security expertise"),
-    agent.WithIconURL("https://example.com/icon.png"),
-)
+// Load instructions from file
+instructions, _ := os.ReadFile("instructions/reviewer.md")
+
+// Create agent with struct-based args
+agent, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+    Instructions: string(instructions),
+    Description:  "AI code reviewer with security expertise",
+    IconUrl:      "https://example.com/icon.png",
+})
 ```
 
-**Required Options**:
-- `WithName()` - Agent identifier
-- `WithInstructionsFromFile()` or `WithInstructions()` - Agent instructions
+**AgentArgs Fields**:
+- `Instructions` - Agent behavior definition (required, 10-10,000 chars)
+- `Description` - Human-readable description (optional, max 500 chars)
+- `IconUrl` - Display icon URL (optional)
 
-**Optional Options**:
-- `WithDescription()` - Human-readable description
-- `WithIconURL()` - Display icon URL
+**Complex Fields** (use builder methods):
+- Skills - Use `agent.AddSkill()` or `agent.AddSkills()`
+- MCP Servers - Use `agent.AddMCPServer()` or `agent.AddMCPServers()`
+- Sub-Agents - Use `agent.AddSubAgent()` or `agent.AddSubAgents()`
+- Environment Variables - Use `agent.AddEnvironmentVariable()` or `agent.AddEnvironmentVariables()`
 
 ### Adding Skills
 
 #### Inline Skills (Defined in Repository)
 
 ```go
-// Create skill from file
-skill, _ := skill.New(
-    skill.WithName("security-guidelines"),
-    skill.WithDescription("Security review guidelines"),
-    skill.WithMarkdownFromFile("skills/security.md"),
-)
+// Load skill content from file
+skillContent, _ := os.ReadFile("skills/security.md")
 
-// Add to agent
-agent.AddSkill(*skill)
+// Create skill with struct-based args
+securitySkill, _ := skill.New("security-guidelines", &skill.SkillArgs{
+    MarkdownContent: string(skillContent),
+    Description:     "Security review guidelines",
+})
+
+// Add to agent using builder method
+agent.AddSkill(securitySkill)
 ```
 
 #### Platform Skills (Shared)
@@ -663,6 +740,16 @@ agent.AddSkill(skill.Platform("coding-best-practices"))
 ```go
 // Reference organization-private skill
 agent.AddSkill(skill.Organization("my-org", "internal-standards"))
+```
+
+#### Multiple Skills at Once
+
+```go
+agent.AddSkills(
+    securitySkill,
+    skill.Platform("coding-best-practices"),
+    skill.Organization("my-org", "internal-standards"),
+)
 ```
 
 ### Adding MCP Servers
@@ -758,32 +845,33 @@ agent.AddEnvironmentVariable(region)
 
 ### Creating Skills
 
+Use struct-based args (Pulumi pattern) for skill creation:
+
 #### From Markdown File
 
 ```go
-skill, err := skill.New(
-    skill.WithName("coding-guidelines"),
-    skill.WithDescription("Coding best practices"),
-    skill.WithMarkdownFromFile("skills/coding.md"),
-)
+// Load skill content from file
+content, _ := os.ReadFile("skills/coding.md")
+
+// Create skill with struct-based args
+skill, err := skill.New("coding-guidelines", &skill.SkillArgs{
+    MarkdownContent: string(content),
+    Description:     "Coding best practices",
+})
 ```
 
 #### From Markdown String
 
 ```go
-skill, err := skill.New(
-    skill.WithName("security-checklist"),
-    skill.WithDescription("Security review checklist"),
-    skill.WithMarkdown("# Security Review\n\n- Check authentication\n- Validate inputs"),
-)
+skill, err := skill.New("security-checklist", &skill.SkillArgs{
+    MarkdownContent: "# Security Review\n\n- Check authentication\n- Validate inputs",
+    Description:     "Security review checklist",
+})
 ```
 
-**Required Options**:
-- `WithName()` - Skill identifier
-- `WithMarkdown()` or `WithMarkdownFromFile()` - Skill content
-
-**Optional Options**:
-- `WithDescription()` - Human-readable description
+**SkillArgs Fields**:
+- `MarkdownContent` - Skill content (required, 10-50,000 chars)
+- `Description` - Human-readable description (optional, max 500 chars)
 
 ---
 
@@ -794,15 +882,18 @@ skill, err := skill.New(
 **✅ Recommended**: Load instructions and skills from files
 
 ```go
-agent, _ := agent.New(ctx,
-    agent.WithName("reviewer"),
-    agent.WithInstructionsFromFile("instructions/reviewer.md"),
-)
+// Load content from files
+instructions, _ := os.ReadFile("instructions/reviewer.md")
+skillContent, _ := os.ReadFile("skills/guidelines.md")
 
-skill, _ := skill.New(
-    skill.WithName("guidelines"),
-    skill.WithMarkdownFromFile("skills/guidelines.md"),
-)
+// Create resources with struct-based args
+agent, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{
+    Instructions: string(instructions),
+})
+
+skill, _ := skill.New("guidelines", &skill.SkillArgs{
+    MarkdownContent: string(skillContent),
+})
 ```
 
 **Why**:
@@ -810,6 +901,7 @@ skill, _ := skill.New(
 - Easy to edit and review
 - Separate content from code
 - Supports Markdown editors
+- Clear what's loaded from where
 
 ### 2. Descriptive Names
 
@@ -817,12 +909,16 @@ skill, _ := skill.New(
 
 ```go
 // Good
-codeReviewAgent := agent.New(ctx, agent.WithName("code-reviewer"))
-securityCheckTask := wf.HttpGet("security-check", endpoint)
+codeReviewAgent, _ := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+    Instructions: "...",
+})
+securityCheckTask := wf.HttpGet("security-check", endpoint, nil)
 
 // Avoid
-agent1 := agent.New(ctx, agent.WithName("agent1"))
-task := wf.HttpGet("task", endpoint)
+agent1, _ := agent.New(ctx, "agent1", &agent.AgentArgs{
+    Instructions: "...",
+})
+task := wf.HttpGet("task", endpoint, nil)
 ```
 
 ### 3. Task Field References
@@ -830,11 +926,11 @@ task := wf.HttpGet("task", endpoint)
 **✅ Recommended**: Use direct field references for clarity
 
 ```go
-// Good - clear origin
-title := fetchTask.Field("title")
+// Good - clear origin, use .Expression() for workflow engine
+title := fetchTask.Field("title").Expression()
 
 // Avoid - unclear origin
-title := workflow.FieldRef("title")
+title := "${.title}"
 ```
 
 ### 4. Error Handling
@@ -842,10 +938,33 @@ title := workflow.FieldRef("title")
 **✅ Recommended**: Always check errors
 
 ```go
-agent, err := agent.New(ctx, agent.WithName("my-agent"))
+agent, err := agent.New(ctx, "my-agent", &agent.AgentArgs{
+    Instructions: "...",
+})
 if err != nil {
     return fmt.Errorf("failed to create agent: %w", err)
 }
+```
+
+### 5. Use Struct-Based Args for Complex Configuration
+
+**✅ Recommended**: Use struct args for full control
+
+```go
+// Full control with HttpCallArgs
+task := wf.HttpCall("fetch", &workflow.HttpCallArgs{
+    Method:  "GET",
+    URI:     "https://api.example.com/data",
+    Headers: map[string]string{
+        "Authorization": "Bearer ${.token}",
+    },
+    TimeoutSeconds: 30,
+})
+
+// Or use convenience methods for simple cases
+task := wf.HttpGet("fetch", "https://api.example.com/data", map[string]string{
+    "Authorization": "Bearer ${.token}",
+})
 ```
 
 ### 5. Organize Resources
@@ -1008,14 +1127,18 @@ jobs:
 
 ```go
 // ❌ Wrong
-agent, _ := agent.New(agent.WithName("my-agent"))
+agent, _ := agent.New("my-agent", &agent.AgentArgs{
+    Instructions: "...",
+})
 ```
 
 **Solution**: Pass context as first parameter
 
 ```go
 // ✅ Correct
-agent, _ := agent.New(ctx, agent.WithName("my-agent"))
+agent, _ := agent.New(ctx, "my-agent", &agent.AgentArgs{
+    Instructions: "...",
+})
 ```
 
 #### "circular dependency detected"
@@ -1034,14 +1157,18 @@ stigmer apply main.go --dry-run  # Check dependencies
 
 ```go
 // ❌ Wrong
-agent.WithName("My Agent")
+agent, _ := agent.New(ctx, "My Agent", &agent.AgentArgs{
+    Instructions: "...",
+})
 ```
 
 **Solution**: Use lowercase alphanumeric + hyphens
 
 ```go
 // ✅ Correct
-agent.WithName("my-agent")
+agent, _ := agent.New(ctx, "my-agent", &agent.AgentArgs{
+    Instructions: "...",
+})
 ```
 
 ---
@@ -1076,6 +1203,7 @@ Apache 2.0 - see [LICENSE](../../../LICENSE) for details.
 
 ---
 
-**Version**: 0.1.0  
-**Last Updated**: 2026-01-22  
-**Status**: Production Ready ✅
+**Version**: 0.2.0  
+**Last Updated**: 2026-01-24  
+**Status**: Production Ready ✅  
+**Migration**: See [Migration Guide](migration-from-functional-options.md) for upgrading from v0.1.0

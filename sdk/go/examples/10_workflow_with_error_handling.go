@@ -18,7 +18,7 @@ func main() {
 		// Context for configuration
 		apiBase := ctx.SetString("apiBase", "https://api.example.com")
 		_ = ctx.SetInt("maxRetries", 3) // Define max retries in context
-		
+
 		// Create workflow
 		wf, err := workflow.New(ctx,
 			workflow.WithNamespace("resilient-workflows"),

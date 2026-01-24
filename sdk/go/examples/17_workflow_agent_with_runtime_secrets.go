@@ -87,7 +87,7 @@ func main() {
 		// Use agent output and another runtime secret
 		_ = wf.HttpPost("notifySlack",
 			workflow.RuntimeSecret("SLACK_WEBHOOK"), // Webhook URL from runtime
-			nil, // No custom headers
+			nil,                                     // No custom headers
 			map[string]any{
 				"text": workflow.Interpolate(
 					"PR #", workflow.RuntimeEnv("PR_NUMBER"),
