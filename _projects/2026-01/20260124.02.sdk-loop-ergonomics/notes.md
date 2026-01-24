@@ -385,9 +385,7 @@ expressionFieldPatterns = ["uri", "url", "in", "input", "message", "error", "eve
 - Comprehensive LoopBody function documentation
 - LoopVar methods reference
 - Custom variable name examples
-- Integrated into Helper Functions section
-
-**3. Enhanced "Smart Expression Conversion" Section** (lines 337-415):
+- Integrated into Helper Functions section**3. Enhanced "Smart Expression Conversion" Section** (lines 337-415):
 - Combined smart conversion with LoopBody examples
 - Clear explanation of where .Expression() is still needed
 - LoopVar exception documented (already returns strings)
