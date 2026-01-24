@@ -1,41 +1,35 @@
 {
   "name": "TryTaskConfig",
   "kind": "TRY",
-  "description": "TRY tasks provide error handling in workflows.",
+  "description": "TryTaskConfig defines the configuration for TRY tasks.\n\n TRY tasks provide try/catch error handling.\n\n YAML Example:\n   - taskName:\n       try:\n         - attemptTask:\n             call: http\n             with:\n               method: POST\n               endpoint:\n                 uri: https://api.example.com/flaky\n       catch:\n         as: error\n         do:\n           - errorHandler:\n               call: http\n               with:\n                 body:\n                   error: ${ .error }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 6",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/try.proto",
   "fields": [
     {
-      "name": "Tasks",
-      "jsonName": "tasks",
-      "protoField": "tasks",
+      "name": "Try",
+      "jsonName": "try",
+      "protoField": "try",
       "type": {
         "kind": "array",
         "elementType": {
-          "kind": "struct"
+          "kind": "message",
+          "messageType": "WorkflowTask"
         }
       },
-      "description": "Tasks to try",
-      "required": true,
-      "validation": {
-        "required": true
-      }
+      "description": "Tasks to attempt (at least one required).\n If any task fails, execution jumps to catch block.",
+      "required": false,
+      "validation": {}
     },
     {
       "name": "Catch",
       "jsonName": "catch",
       "protoField": "catch",
       "type": {
-        "kind": "array",
-        "elementType": {
-          "kind": "struct"
-        }
+        "kind": "message",
+        "messageType": "CatchBlock"
       },
-      "description": "Error handlers (array of {errors, as, tasks})",
-      "required": true,
-      "validation": {
-        "required": true
-      }
+      "description": "Catch block for error handling (optional).\n If not provided, errors propagate to parent.",
+      "required": false
     }
   ]
 }

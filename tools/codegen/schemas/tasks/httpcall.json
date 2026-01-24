@@ -1,0 +1,69 @@
+{
+  "name": "HttpCallTaskConfig",
+  "kind": "HTTP_CALL",
+  "description": "HttpCallTaskConfig defines the configuration for HTTP_CALL tasks.\n\n HTTP_CALL tasks make HTTP requests (GET, POST, PUT, DELETE, PATCH).\n\n YAML Example:\n   - taskName:\n       call: http\n       with:\n         method: POST\n         endpoint:\n           uri: https://api.example.com/data\n         headers:\n           Authorization: \"Bearer ${TOKEN}\"\n         body:\n           field1: value\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 2",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/http_call.proto",
+  "fields": [
+    {
+      "name": "Method",
+      "jsonName": "method",
+      "protoField": "method",
+      "type": {
+        "kind": "string"
+      },
+      "description": "HTTP method (GET, POST, PUT, DELETE, PATCH).",
+      "required": false,
+      "validation": {}
+    },
+    {
+      "name": "Endpoint",
+      "jsonName": "endpoint",
+      "protoField": "endpoint",
+      "type": {
+        "kind": "message",
+        "messageType": "HttpEndpoint"
+      },
+      "description": "HTTP endpoint configuration.",
+      "required": false,
+      "validation": {}
+    },
+    {
+      "name": "Headers",
+      "jsonName": "headers",
+      "protoField": "headers",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "HTTP headers (optional).\n Values can contain expressions: \"Bearer ${TOKEN}\"",
+      "required": false
+    },
+    {
+      "name": "Body",
+      "jsonName": "body",
+      "protoField": "body",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "Request body (optional).\n Can be any JSON structure. Supports expressions in string values.",
+      "required": false
+    },
+    {
+      "name": "TimeoutSeconds",
+      "jsonName": "timeoutSeconds",
+      "protoField": "timeout_seconds",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Request timeout in seconds (optional, default: 30).",
+      "required": false,
+      "validation": {}
+    }
+  ]
+}

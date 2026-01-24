@@ -68,10 +68,10 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-23 21:27
-**Current Task**: T06 (Struct-Based Args) - ✅ **PROJECT COMPLETE**
-**Status**: ✅ **ALL PHASES COMPLETE** - SDK migration + documentation complete!
-**Last Updated**: 2026-01-24 16:17
-**Latest Achievement**: Fixed SDK templates to use new options-based API - all template tests passing
+**Current Task**: T07 (Code Generation Improvements) - 🚧 **IN PROGRESS**
+**Status**: ⏳ **Phase 1 Complete** - Switch case type generation fixed, remaining phases pending
+**Last Updated**: 2026-01-24 18:45
+**Latest Achievement**: Fixed switch case code generation - SwitchTaskConfig now uses typed []*types.SwitchCase
 
 **CONVERSATION 2 PROGRESS** (2026-01-24):
 - ✅ **ARCHITECTURE FIX COMPLETE**
@@ -102,6 +102,21 @@ When starting a new session:
 - ✅ Example 06 (06_agent_with_instructions_from_files.go) - Fixed file loading, all 4 functions ✓
 - ✅ Example 12 (12_agent_with_typed_context.go) - Fixed StringRef handling ✓
 - ✅ Example 13 (13_workflow_and_agent_shared_context.go) - Fixed syntax error, struct args ✓
+
+**CONVERSATION 4 PROGRESS** (2026-01-24):
+- ✅ **TASK 07 - PHASE 1 COMPLETE - Code Generation Improvements**
+- ✅ Added Makefile targets for SDK codegen (`make codegen-schemas`, `make codegen-go`, `make codegen`)
+- ✅ Created buf/validate proto stub (temporary solution for proto parsing)
+- ✅ Fixed proto2schema to detect nested message types (`SwitchCase` from `repeated SwitchCase`)
+- ✅ Fixed generator to load types from both `types/` and `agent/types/` directories
+- ✅ Added type deduplication to prevent duplicate generation
+- ✅ Generated proper `SwitchCase` type with typed fields (`Name`, `When`, `Then`)
+- ✅ Updated `SwitchTaskConfig` to use `[]*types.SwitchCase` instead of `[]map[string]interface{}`
+- ✅ Cleaned up old conflicting `*_task.go` files
+- 📝 **PENDING**: Phase 2 - Automate buf/validate dependency (not manual /tmp stub)
+- 📝 **PENDING**: Phase 3 - Update hand-written `*_options.go` files to match generated types
+- 📝 **PENDING**: Phase 4 - Add TaskFieldRef helper methods (.Equals(), .GreaterThan(), etc.)
+- 📝 **PENDING**: Phase 4 - Update example 08 to use new helper methods
 
 **WHAT WAS ACCOMPLISHED**:
 1. **Data-Driven Generator**: No hard-coded "agent", "skill", "commons"

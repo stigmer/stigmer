@@ -1,0 +1,40 @@
+{
+  "name": "AgentExecutionConfig",
+  "description": "AgentExecutionConfig defines optional execution parameters for agent calls.\n These settings override the agent's default configuration for this specific invocation.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto",
+  "fields": [
+    {
+      "name": "Model",
+      "jsonName": "model",
+      "protoField": "model",
+      "type": {
+        "kind": "string"
+      },
+      "description": "LLM model to use for this invocation.\n Example: \"claude-3-5-sonnet\", \"gpt-4\", \"claude-3-opus\"\n Optional - uses agent's default model if not specified.",
+      "required": false
+    },
+    {
+      "name": "Timeout",
+      "jsonName": "timeout",
+      "protoField": "timeout",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Timeout for agent execution in seconds.\n Default: 300 (5 minutes)\n Optional.",
+      "required": false,
+      "validation": {}
+    },
+    {
+      "name": "Temperature",
+      "jsonName": "temperature",
+      "protoField": "temperature",
+      "type": {
+        "kind": "float"
+      },
+      "description": "Temperature for LLM sampling (0.0 to 1.0).\n Lower = more deterministic, Higher = more creative\n Default: 0.7\n Optional.",
+      "required": false,
+      "validation": {}
+    }
+  ]
+}

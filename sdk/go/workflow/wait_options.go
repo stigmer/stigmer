@@ -9,7 +9,7 @@ type WaitArgs = WaitTaskConfig
 // Example:
 //
 //	task := workflow.Wait("pause", &workflow.WaitArgs{
-//	    Duration: "5s",
+//	    Seconds: 5,
 //	})
 func Wait(name string, args *WaitArgs) *Task {
 	if args == nil {
