@@ -12,7 +12,7 @@ Complete documentation for the Stigmer Go SDK using struct-based args (Pulumi pa
 
 ### 🚀 New to Stigmer?
 
-**Start here**: [Getting Started Guide](GETTING_STARTED.md)
+**Start here**: [Getting Started Guide](getting-started.md)
 
 Learn how to:
 - Install the SDK and CLI
@@ -22,7 +22,7 @@ Learn how to:
 
 ### 📖 Building with Stigmer
 
-**Comprehensive guide**: [Usage Guide](USAGE.md)
+**Comprehensive guide**: [Usage Guide](usage.md)
 
 Covers:
 - Workflow SDK (HTTP tasks, conditionals, loops, error handling, parallel execution)
@@ -34,7 +34,7 @@ Covers:
 
 ### 📚 API Reference
 
-**Complete API docs**: [API Reference](API_REFERENCE.md)
+**Complete API docs**: [API Reference](api-reference.md)
 
 Detailed documentation for:
 - `stigmer` - Context and resource management
@@ -84,9 +84,9 @@ Detailed documentation for:
 ```
 docs/
 ├── README.md (this file)          # Documentation index
-├── GETTING_STARTED.md             # Beginner's guide
-├── USAGE.md                       # Comprehensive usage guide
-├── API_REFERENCE.md               # Complete API reference
+├── getting-started.md             # Beginner's guide
+├── usage.md                       # Comprehensive usage guide
+├── api-reference.md               # Complete API reference
 ├── guides/                        # Migration and how-to guides
 ├── architecture/                  # Architecture documentation
 ├── implementation/                # Implementation reports
@@ -140,7 +140,7 @@ Migrate from functional options to Pulumi-style struct-based args:
 
 Never used Stigmer before?
 
-1. **Read**: [Getting Started Guide](GETTING_STARTED.md) (10 minutes)
+1. **Read**: [Getting Started Guide](getting-started.md) (10 minutes)
 2. **Try**: Example 01 (Basic Agent) and Example 07 (Basic Workflow)
 3. **Build**: Your first agent or workflow
 4. **Deploy**: `stigmer apply main.go`
@@ -149,19 +149,19 @@ Never used Stigmer before?
 
 Ready to build real applications?
 
-1. **Read**: [Usage Guide](USAGE.md) - Focus on your needs:
+1. **Read**: [Usage Guide](usage.md) - Focus on your needs:
    - Building agents → Agent SDK section
    - Building workflows → Workflow SDK section
    - Advanced workflows → Advanced Features section
 2. **Study**: Examples 06 (file-based agent) and 18 (multi-agent orchestration)
-3. **Reference**: [API Reference](API_REFERENCE.md) as needed
+3. **Reference**: [API Reference](api-reference.md) as needed
 4. **Build**: Your production system
 
 ### 3. Advanced User
 
 Need specific APIs or patterns?
 
-1. **Jump to**: [API Reference](API_REFERENCE.md)
+1. **Jump to**: [API Reference](api-reference.md)
 2. **Search**: Package-specific documentation
 3. **Check**: [pkg.go.dev](https://pkg.go.dev/github.com/stigmer/stigmer/sdk/go)
 
@@ -261,7 +261,7 @@ processTask := wf.SetVars("process",
 
 **Example**: See [examples/06_agent_with_instructions_from_files.go](../examples/06_agent_with_instructions_from_files.go)
 
-**Documentation**: [Agent SDK in Usage Guide](USAGE.md#agent-sdk)
+**Documentation**: [Agent SDK in Usage Guide](usage.md#agent-sdk)
 
 ### Use Case 2: API Data Pipeline
 
@@ -275,7 +275,7 @@ processTask := wf.SetVars("process",
 
 **Example**: See [examples/07_workflow_with_runtime_secrets.go](../examples/07_workflow_with_runtime_secrets.go)
 
-**Documentation**: [Workflow SDK in Usage Guide](USAGE.md#workflow-sdk)
+**Documentation**: [Workflow SDK in Usage Guide](usage.md#workflow-sdk)
 
 ### Use Case 3: Multi-Agent CI/CD
 
@@ -289,7 +289,7 @@ processTask := wf.SetVars("process",
 
 **Example**: See [examples/18_workflow_multi_agent_orchestration.go](../examples/18_workflow_multi_agent_orchestration.go)
 
-**Documentation**: [Advanced Features in Usage Guide](USAGE.md#advanced-features)
+**Documentation**: [Advanced Features in Usage Guide](usage.md#advanced-features)
 
 ---
 
@@ -527,7 +527,7 @@ You have access to:
 - ✅ **Best practices** (file-based content, error handling, organization)
 - ✅ **Production-ready SDK** (tested, validated, deployed)
 
-**Ready to build?** Start with the [Getting Started Guide](GETTING_STARTED.md)!
+**Ready to build?** Start with the [Getting Started Guide](getting-started.md)!
 
 ---
 

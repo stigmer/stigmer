@@ -808,12 +808,12 @@ func (c *genContext) genConfigStruct(w *bytes.Buffer, config *TaskConfigSchema) 
 
 		// Field declaration
 		goType := c.goType(field.Type)
-		
+
 		// Use interface{} for expression fields (smart type conversion)
 		if field.IsExpression && field.Type.Kind == "string" {
 			goType = "interface{}"
 		}
-		
+
 		jsonTag := fmt.Sprintf("`json:\"%s,omitempty\"`", field.JsonName)
 		fmt.Fprintf(w, "\t%s %s %s\n", field.Name, goType, jsonTag)
 	}
@@ -848,12 +848,12 @@ func (c *genContext) genTypeStruct(w *bytes.Buffer, typeSchema *TypeSchema) erro
 
 		// Field declaration
 		goType := c.goType(field.Type)
-		
+
 		// Use interface{} for expression fields (smart type conversion)
 		if field.IsExpression && field.Type.Kind == "string" {
 			goType = "interface{}"
 		}
-		
+
 		jsonTag := fmt.Sprintf("`json:\"%s,omitempty\"`", field.JsonName)
 		fmt.Fprintf(w, "\t%s %s %s\n", field.Name, goType, jsonTag)
 	}
@@ -972,7 +972,7 @@ func (c *genContext) genToProtoMethod(w *bytes.Buffer, config *TaskConfigSchema)
 		if needsConversion {
 			valueExpr = "coerceToString(c." + field.Name + ")"
 		}
-		
+
 		if field.Required {
 			fmt.Fprintf(w, "\tdata[\"%s\"] = %s\n", field.JsonName, valueExpr)
 		} else {

@@ -490,65 +490,99 @@ task := wf.HttpCall("fetch", &workflow.HttpCallArgs{
 #### func (*Workflow) HttpGet
 
 ```go
-func (w *Workflow) HttpGet(name string, uri string, headers map[string]string) *Task
+func (w *Workflow) HttpGet(name string, uri interface{}, headers map[string]string) *Task
 ```
 
 Creates an HTTP GET task (convenience method).
 
 **Parameters**:
 - `name` - Task name
-- `uri` - Request URI
+- `uri` - Request URI (supports smart conversion)
+  - Accepts: `string`, `TaskFieldRef`, `StringRef`
+  - No `.Expression()` needed in v0.2.1+
 - `headers` - HTTP headers (optional, can be nil)
 
 **Returns**:
 - `*Task` - Created task
 
-**Example**:
+**Example (with smart conversion)**:
 ```go
+// String literal
 task := wf.HttpGet("fetch", "https://api.example.com/data", map[string]string{
     "Content-Type": "application/json",
 })
+
+// TaskFieldRef - auto-converted!
+task := wf.HttpGet("fetch", configTask.Field("endpoint"), nil)
+
+// StringRef - auto-converted!
+task := wf.HttpGet("fetch", apiBase.Concat("/users"), nil)
 ```
 
 #### func (*Workflow) HttpPost
 
 ```go
-func (w *Workflow) HttpPost(name string, uri string, headers map[string]string, body map[string]interface{}) *Task
+func (w *Workflow) HttpPost(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task
 ```
 
 Creates an HTTP POST task (convenience method).
 
+**Parameters**:
+- `name` - Task name
+- `uri` - Request URI (supports smart conversion: `string`, `TaskFieldRef`, `StringRef`)
+- `headers` - HTTP headers (can be nil)
+- `body` - Request body (can be nil)
+
 **Example**:
 ```go
+// String literal
 task := wf.HttpPost("create", "https://api.example.com/users",
     map[string]string{"Content-Type": "application/json"},
     map[string]interface{}{"name": "John", "email": "john@example.com"},
+)
+
+// With smart conversion
+task := wf.HttpPost("create", 
+    apiBase.Concat("/users"),  // StringRef - auto-converted!
+    nil,
+    map[string]interface{}{
+        "name": userTask.Field("name").Expression(),  // Map value - needs .Expression()
+    },
 )
 ```
 
 #### func (*Workflow) HttpPut
 
 ```go
-func (w *Workflow) HttpPut(name string, uri string, headers map[string]string, body map[string]interface{}) *Task
+func (w *Workflow) HttpPut(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task
 ```
 
 Creates an HTTP PUT task (convenience method).
 
+**Parameters**: Same as HttpPost (uri supports smart conversion)
+
 #### func (*Workflow) HttpPatch
 
 ```go
-func (w *Workflow) HttpPatch(name string, uri string, headers map[string]string, body map[string]interface{}) *Task
+func (w *Workflow) HttpPatch(name string, uri interface{}, headers map[string]string, body map[string]interface{}) *Task
 ```
 
 Creates an HTTP PATCH task (convenience method).
 
+**Parameters**: Same as HttpPost (uri supports smart conversion)
+
 #### func (*Workflow) HttpDelete
 
 ```go
-func (w *Workflow) HttpDelete(name string, uri string, headers map[string]string) *Task
+func (w *Workflow) HttpDelete(name string, uri interface{}, headers map[string]string) *Task
 ```
 
 Creates an HTTP DELETE task (convenience method).
+
+**Parameters**:
+- `name` - Task name
+- `uri` - Request URI (supports smart conversion: `string`, `TaskFieldRef`, `StringRef`)
+- `headers` - HTTP headers (can be nil)
 
 #### func (*Workflow) Set
 
@@ -698,13 +732,28 @@ func (w *Workflow) ForEach(name string, args *ForArgs) *Task
 
 Creates a FOR task for iteration using struct-based args.
 
-**Example**:
+**Recommended**: Use with `workflow.LoopBody()` for type-safe loop variables.
+
+**Example (Modern - Recommended)**:
 ```go
 task := wf.ForEach("process-items", &workflow.ForArgs{
-    Array:    fetchTask.Field("items").Expression(),
-    ItemVar:  "item",
-    IndexVar: "idx",
-    Tasks:    []*workflow.Task{processTask},
+    In: fetchTask.Field("items"),  // Smart conversion - no .Expression() needed
+    Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.HttpPost("process", apiEndpoint, nil, map[string]interface{}{
+                "id":   item.Field("id"),    // Type-safe field access
+                "data": item.Field("data"),  // No magic strings!
+            }),
+        }
+    }),
+})
+```
+
+**Example (Legacy - Still Supported)**:
+```go
+task := wf.ForEach("process-items", &workflow.ForArgs{
+    In: fetchTask.Field("items").Expression(),  // Old style with .Expression()
+    Do: []*types.WorkflowTask{/* manual task definitions */},
 })
 ```
 
@@ -790,7 +839,7 @@ All workflow tasks use struct-based args for configuration (Pulumi Args pattern)
 ```go
 type HttpCallArgs struct {
     Method         string                 // HTTP method (GET, POST, PUT, PATCH, DELETE)
-    URI            string                 // Request URI
+    Uri            interface{}            // Request URI (supports smart conversion)
     Headers        map[string]string      // HTTP headers
     Body           map[string]interface{} // Request body (for POST/PUT/PATCH)
     TimeoutSeconds int                    // Request timeout (default: 30)
@@ -798,15 +847,65 @@ type HttpCallArgs struct {
 }
 ```
 
+**Fields**:
+- `Method` - HTTP method (required)
+- `Uri` - Request URI (required, supports smart conversion in v0.2.1+)
+  - Accepts: `string`, `TaskFieldRef`, `StringRef`
+  - No `.Expression()` needed
+- `Headers` - HTTP headers (optional)
+- `Body` - Request body (optional, for POST/PUT/PATCH)
+- `TimeoutSeconds` - Request timeout (optional, default: 30)
+- `QueryParams` - Query parameters (optional)
+
+**Example**:
+```go
+task := wf.HttpCall("fetch", &workflow.HttpCallArgs{
+    Method: "GET",
+    Uri:    apiBase.Concat("/users"),  // Smart conversion - no .Expression()!
+    Headers: map[string]string{
+        "Authorization": "Bearer ${.token}",
+    },
+    TimeoutSeconds: 30,
+})
+```
+
 #### type AgentCallArgs
 
 ```go
 type AgentCallArgs struct {
-    Agent   string                 // Agent slug or reference
-    Message string                 // Message to agent
-    Env     map[string]string      // Environment variables
-    Config  map[string]interface{} // Agent configuration (model, temperature, etc.)
+    Agent   string                      // Agent slug or reference
+    Message interface{}                 // Message to agent (supports smart conversion)
+    Env     map[string]string           // Environment variables
+    Config  *types.AgentExecutionConfig // Agent execution configuration
 }
+```
+
+**Fields**:
+- `Agent` - Agent slug or reference (required)
+- `Message` - Message/prompt to agent (required, supports smart conversion in v0.2.1+)
+  - Accepts: `string`, `TaskFieldRef`, `StringRef`
+  - No `.Expression()` needed
+- `Env` - Environment variables (optional)
+- `Config` - Agent execution config (optional)
+  - Model, temperature, timeout, etc.
+
+**Example**:
+```go
+// With string literal
+task := wf.AgentCall("review", &workflow.AgentCallArgs{
+    Agent:   "code-reviewer",
+    Message: "Review this code: ${.input.code}",
+})
+
+// With smart conversion
+task := wf.AgentCall("review", &workflow.AgentCallArgs{
+    Agent:   "code-reviewer",
+    Message: fetchCode.Field("content"),  // TaskFieldRef - auto-converted!
+    Config: &types.AgentExecutionConfig{
+        Model:   "claude-3-5-sonnet",
+        Timeout: 300,
+    },
+})
 ```
 
 #### type SetArgs
@@ -840,8 +939,35 @@ type ListenArgs struct {
 ```go
 type RaiseArgs struct {
     SignalName string                 // Signal name to emit
+    Error      interface{}            // Error type (supports smart conversion)
+    Message    interface{}            // Error message (supports smart conversion)
     Payload    map[string]interface{} // Signal payload data
 }
+```
+
+**Fields**:
+- `SignalName` - Signal name (required for signal events)
+- `Error` - Error type (optional, supports smart conversion in v0.2.1+)
+  - Accepts: `string`, `TaskFieldRef`, `StringRef`
+- `Message` - Error message (optional, supports smart conversion in v0.2.1+)
+  - Accepts: `string`, `TaskFieldRef`, `StringRef`
+- `Payload` - Signal payload (optional)
+
+**Example**:
+```go
+// Emit signal
+task := wf.Raise("notify", &workflow.RaiseArgs{
+    SignalName: "workflow-complete",
+    Payload: map[string]interface{}{
+        "status": "success",
+    },
+})
+
+// Raise error with smart conversion
+task := wf.Raise("error", &workflow.RaiseArgs{
+    Error:   errorTask.Field("type"),     // TaskFieldRef - auto-converted!
+    Message: errorTask.Field("message"),  // TaskFieldRef - auto-converted!
+})
 ```
 
 #### type SwitchArgs
@@ -868,11 +994,206 @@ type Condition struct {
 
 ```go
 type ForArgs struct {
-    Array    string  // Array expression to iterate over
-    ItemVar  string  // Loop item variable name
-    IndexVar string  // Loop index variable name (optional)
-    Tasks    []*Task // Tasks to execute per iteration
+    In   interface{}             // Collection to iterate over (string or TaskFieldRef)
+    Each string                  // Loop variable name (optional, default: "item")
+    Do   []*types.WorkflowTask   // Tasks to execute per iteration
 }
+```
+
+**Fields**:
+- `In` - Collection expression to iterate over (required)
+  - Accepts: `string`, `TaskFieldRef`, `StringRef` (smart conversion)
+  - No `.Expression()` needed in v0.2.1+
+- `Each` - Custom loop variable name (optional)
+  - Default: `"item"`
+  - Example: `"user"`, `"order"`, `"record"`
+- `Do` - Tasks to execute for each iteration (required)
+  - Recommended: Use `workflow.LoopBody()` for type safety
+  - Legacy: Manual `[]*types.WorkflowTask` definitions
+
+**Example**:
+```go
+wf.ForEach("process-users", &workflow.ForArgs{
+    In: fetchTask.Field("users"),  // Smart conversion
+    Each: "user",                  // Custom variable name
+    Do: workflow.LoopBody(func(user workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.Set("processUser", &workflow.SetArgs{
+                Variables: map[string]string{
+                    "userId": user.Field("id"),
+                },
+            }),
+        }
+    }),
+})
+```
+
+#### func LoopBody
+
+```go
+func LoopBody(fn func(LoopVar) []*Task) []*types.WorkflowTask
+```
+
+Creates a type-safe loop body using a closure that receives the loop variable.
+This eliminates magic strings and provides compile-time field reference checking.
+
+**Parameters**:
+- `fn` - Closure that receives a `LoopVar` and returns tasks to execute
+
+**Returns**:
+- `[]*types.WorkflowTask` - Tasks for the loop body
+
+**Benefits**:
+- ✅ Type-safe field access via `LoopVar`
+- ✅ No magic strings like `"${.item.id}"`
+- ✅ IDE autocomplete and refactoring support
+- ✅ Compile-time checking of task definitions
+- ✅ Clear, readable code structure
+
+**Example**:
+```go
+wf.ForEach("processItems", &workflow.ForArgs{
+    In: fetchTask.Field("items"),
+    Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.HttpPost("processItem", 
+                apiBase.Concat("/process"),
+                nil,
+                map[string]interface{}{
+                    "itemId": item.Field("id"),      // Type-safe!
+                    "data":   item.Field("data"),    // No magic strings!
+                    "status": item.Field("status"),
+                },
+            ),
+        }
+    }),
+})
+```
+
+**With custom variable name**:
+```go
+wf.ForEach("processOrders", &workflow.ForArgs{
+    Each: "order",  // Custom variable name
+    In: fetchTask.Field("orders"),
+    Do: workflow.LoopBody(func(order workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.Set("processOrder", &workflow.SetArgs{
+                Variables: map[string]string{
+                    "orderId": order.Field("id"),        // References ${.order.id}
+                    "total":   order.Field("total"),     // References ${.order.total}
+                },
+            }),
+        }
+    }),
+})
+```
+
+**Nested loops**:
+```go
+wf.ForEach("processDepartments", &workflow.ForArgs{
+    In: fetchDepts.Field("departments"),
+    Do: workflow.LoopBody(func(dept workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.ForEach("processEmployees", &workflow.ForArgs{
+                In: dept.Field("employees"),
+                Do: workflow.LoopBody(func(emp workflow.LoopVar) []*workflow.Task {
+                    return []*workflow.Task{
+                        wf.Set("processEmployee", &workflow.SetArgs{
+                            Variables: map[string]string{
+                                "deptId": dept.Field("id"),
+                                "empId":  emp.Field("id"),
+                            },
+                        }),
+                    }
+                }),
+            }),
+        }
+    }),
+})
+```
+
+#### type LoopVar
+
+```go
+type LoopVar struct {
+    // contains filtered or unexported fields
+}
+```
+
+Represents the current iteration item in a loop body.
+Provides type-safe methods for accessing item fields and values.
+
+**Methods**:
+
+##### func (LoopVar) Field
+
+```go
+func (v LoopVar) Field(fieldName string) string
+```
+
+Returns a reference to a field of the current loop item.
+
+**Parameters**:
+- `fieldName` - Name of the field to access
+
+**Returns**:
+- `string` - Expression string for the field (e.g., `"${.item.id}"`)
+
+**Example**:
+```go
+Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+    // Access fields of the current item
+    id := item.Field("id")          // → "${.item.id}"
+    name := item.Field("name")      // → "${.item.name}"
+    email := item.Field("email")    // → "${.item.email}"
+    
+    return []*workflow.Task{
+        wf.Set("process", &workflow.SetArgs{
+            Variables: map[string]string{
+                "userId":    id,
+                "userName":  name,
+                "userEmail": email,
+            },
+        }),
+    }
+}),
+```
+
+**With custom variable name**:
+```go
+wf.ForEach("processUsers", &workflow.ForArgs{
+    Each: "user",
+    In: fetchTask.Field("users"),
+    Do: workflow.LoopBody(func(user workflow.LoopVar) []*workflow.Task {
+        id := user.Field("id")  // → "${.user.id}"
+        // ...
+    }),
+})
+```
+
+##### func (LoopVar) Value
+
+```go
+func (v LoopVar) Value() string
+```
+
+Returns a reference to the entire current item.
+
+**Returns**:
+- `string` - Expression string for the entire item (e.g., `"${.item}"`)
+
+**Example**:
+```go
+Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+    // Access the entire item
+    itemValue := item.Value()  // → "${.item}"
+    
+    return []*workflow.Task{
+        wf.HttpPost("process", endpoint, nil, map[string]interface{}{
+            "data": itemValue,  // Pass entire item to API
+        }),
+    }
+}),
 ```
 
 #### type TryArgs
@@ -1277,10 +1598,142 @@ func Map(array interface{}, varName string, fn interface{}) interface{}
 func Filter(array interface{}, varName string, condition Condition) interface{}
 ```
 
-### Loop Variables
+### Loop Variables (v0.2.1+)
+
+#### func LoopBody
 
 ```go
-func LoopVar(path string) interface{}
+func LoopBody(fn func(LoopVar) []*Task) []*types.WorkflowTask
+```
+
+Creates a type-safe loop body for ForEach tasks. See detailed documentation in the [workflow package section](#func-loopbody).
+
+**Quick Example**:
+```go
+wf.ForEach("processItems", &workflow.ForArgs{
+    In: fetchTask.Field("items"),
+    Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+        return []*workflow.Task{
+            wf.Set("process", &workflow.SetArgs{
+                Variables: map[string]string{
+                    "id": item.Field("id"),  // Type-safe!
+                },
+            }),
+        }
+    }),
+})
+```
+
+#### type LoopVar
+
+Represents the current iteration item in a loop. See detailed documentation in the [workflow package section](#type-loopvar).
+
+**Methods**:
+- `.Field(name)` - Access item field: `item.Field("id")` → `"${.item.id}"`
+- `.Value()` - Access entire item: `item.Value()` → `"${.item}"`
+
+---
+
+## Smart Expression Conversion (v0.2.1+)
+
+Certain fields automatically convert TaskFieldRef and StringRef to expression strings, eliminating the need for manual `.Expression()` calls.
+
+### Fields with Smart Conversion
+
+**Expression fields** (marked with `is_expression` proto option):
+
+| Field | Type | Example |
+|-------|------|---------|
+| `ForTaskConfig.In` | `interface{}` | `In: fetchTask.Field("items")` |
+| `HttpCallTaskConfig.Uri` | `interface{}` | `Uri: apiBase.Concat("/api")` |
+| `AgentCallTaskConfig.Message` | `interface{}` | `Message: codeTask.Field("content")` |
+| `RaiseTaskConfig.Error` | `interface{}` | `Error: errorTask.Field("type")` |
+| `RaiseTaskConfig.Message` | `interface{}` | `Message: errorTask.Field("msg")` |
+
+### How It Works
+
+1. **Field is declared as `interface{}`** instead of `string`
+2. **Runtime type checking** determines if value is string, TaskFieldRef, or StringRef
+3. **Automatic conversion** calls `.Expression()` on TaskFieldRef/StringRef
+4. **Backward compatible** - string literals still work
+
+### Examples
+
+**Before (v0.2.0 and earlier)**:
+```go
+wf.ForEach("process", &workflow.ForArgs{
+    In: fetchTask.Field("items").Expression(),  // ❌ Manual conversion
+})
+
+wf.HttpGet("fetch", 
+    apiBase.Concat("/users").Expression(),  // ❌ Manual conversion
+    nil,
+)
+
+wf.AgentCall("review", &workflow.AgentCallArgs{
+    Agent:   "reviewer",
+    Message: codeTask.Field("content").Expression(),  // ❌ Manual conversion
+})
+```
+
+**After (v0.2.1+)**:
+```go
+wf.ForEach("process", &workflow.ForArgs{
+    In: fetchTask.Field("items"),  // ✅ Auto-converted!
+})
+
+wf.HttpGet("fetch", 
+    apiBase.Concat("/users"),  // ✅ Auto-converted!
+    nil,
+)
+
+wf.AgentCall("review", &workflow.AgentCallArgs{
+    Agent:   "reviewer",
+    Message: codeTask.Field("content"),  // ✅ Auto-converted!
+})
+```
+
+### Where .Expression() Is Still Needed
+
+Smart conversion ONLY applies to direct expression fields. You still need `.Expression()` for:
+
+1. **Map values**:
+   ```go
+   Body: map[string]interface{}{
+       "userId": userTask.Field("id").Expression(),  // ✅ Required
+   }
+   ```
+
+2. **SetArgs.Variables values**:
+   ```go
+   wf.Set("vars", &workflow.SetArgs{
+       Variables: map[string]string{
+           "title": fetchTask.Field("title").Expression(),  // ✅ Required
+       },
+   })
+   ```
+
+3. **Array elements**:
+   ```go
+   items := []string{
+       fetchTask.Field("name").Expression(),  // ✅ Required
+   }
+   ```
+
+### LoopVar Exception
+
+`LoopVar` methods (`.Field()`, `.Value()`) already return strings, so they never need `.Expression()`:
+
+```go
+Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+    return []*workflow.Task{
+        wf.Set("process", &workflow.SetArgs{
+            Variables: map[string]string{
+                "id": item.Field("id"),  // ✅ Already a string!
+            },
+        }),
+    }
+}),
 ```
 
 ---
@@ -1344,8 +1797,8 @@ if err != nil {
 
 ## Full Documentation
 
-- **Getting Started**: [GETTING_STARTED.md](GETTING_STARTED.md)
-- **Usage Guide**: [USAGE.md](USAGE.md)
+- **Getting Started**: [getting-started.md](getting-started.md)
+- **Usage Guide**: [usage.md](usage.md)
 - **Examples**: `sdk/go/examples/`
 - **pkg.go.dev**: [https://pkg.go.dev/github.com/stigmer/stigmer/sdk/go](https://pkg.go.dev/github.com/stigmer/stigmer/sdk/go)
 
