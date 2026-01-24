@@ -430,7 +430,104 @@ func (g *Generator) loadSchemas() error {
 
 **Learnings**: 2026-01-24 - Fixed duplicate type generation
 
-### 7. Makefile Automation
+### 7. Generated Code Organization and Circular Dependency Prevention
+
+**Principle**: Separate generated code from hand-written code using dedicated `gen/` directories to provide visual clarity and prevent accidental edits.
+
+**Directory Structure**:
+```
+sdk/go/
+├── gen/                          # ALL generated code
+│   ├── workflow/                 # Generated workflow task configs (package: workflow)
+│   ├── agent/                    # Generated agent args (package: agent)
+│   ├── skill/                    # Generated skill args (package: skill)
+│   └── types/                    # Generated shared types (package: types)
+├── workflow/                     # Hand-written workflow code (package: workflow)
+├── agent/                        # Hand-written agent code (package: agent)
+└── skill/                        # Hand-written skill code (package: skill)
+```
+
+**Generator Configuration**:
+```bash
+# Generate to gen/workflow with package name "workflow" (not "gen")
+go run tools/codegen/generator/main.go \
+  --schema-dir tools/codegen/schemas \
+  --output-dir sdk/go/gen/workflow \  # ← gen/ directory
+  --package workflow                   # ← Package name (same as hand-written)
+```
+
+**Benefits**:
+- ✅ Visual clarity: If it's in `gen/`, it's generated
+- ✅ Developer confidence: Immediately know what's safe to edit
+- ✅ Follows Go conventions: Many tools use `gen/` or `generated/`
+- ✅ Easy to exclude from coverage metrics and git diffs
+- ✅ Can add to .gitignore if treating as build artifacts
+- ✅ Clean file names: No suffix needed (was `_task`, now removed)
+
+**Circular Dependency Prevention**:
+
+**Problem**: Generated code in `gen/workflow` (package `workflow`) needs helpers, but helpers reference `*Task` from hand-written `workflow` package (also package `workflow`). This creates a circular import.
+
+**Solution 1 - Omit Cross-Package References**:
+```go
+// ❌ WRONG: Generated helpers referencing hand-written types
+// tools/codegen/generator/main.go
+fmt.Fprintf(&buf, "\tif task, ok := value.(*Task); ok {\n")  
+fmt.Fprintf(&buf, "\t\treturn fmt.Sprintf(..., task.Name)\n")
+// → Causes circular dependency!
+
+// ✅ CORRECT: Remove cross-package references from generated code  
+fmt.Fprintf(&buf, "\t// NOTE: *Task handling omitted to avoid circular dependency\n")
+fmt.Fprintf(&buf, "\t// Task conversion handled in hand-written workflow/helpers.go\n")
+```
+
+**Solution 2 - Use Type Aliases**:
+```go
+// workflow/gen_types.go (hand-written bridge file)
+import genWorkflow "github.com/stigmer/stigmer/sdk/go/gen/workflow"
+
+type ForkTaskConfig = genWorkflow.ForkTaskConfig
+type ForTaskConfig = genWorkflow.ForTaskConfig
+// ... all task configs
+```
+
+This allows hand-written code to use generated types as if they're in the same package.
+
+**Solution 3 - Export Interface Methods**:
+```go
+// ❌ WRONG: Unexported method breaks type aliases across packages
+func (c *ForkTaskConfig) isTaskConfig() {}
+
+// ✅ CORRECT: Exported method works with type aliases
+func (c *ForkTaskConfig) IsTaskConfig() {}
+```
+
+When a type implements an interface via type alias in another package, the interface methods must be exported.
+
+**Implementation in Generator**:
+```go
+// tools/codegen/generator/main.go - genConfigStruct()
+
+// Generate IsTaskConfig() method (exported for cross-package use)
+if strings.HasSuffix(config.Name, "TaskConfig") {
+    fmt.Fprintf(w, "// IsTaskConfig marks %s as a TaskConfig implementation.\n", config.Name)
+    fmt.Fprintf(w, "func (c *%s) IsTaskConfig() {}\n\n", config.Name)
+}
+```
+
+**Hand-Written Interface**:
+```go
+// workflow/task.go
+type TaskConfig interface {
+    IsTaskConfig()  // Exported method
+}
+```
+
+**Result**: Type aliases work seamlessly across gen/ and hand-written packages.
+
+**Learnings**: 2026-01-24 - Implemented gen/ separation, fixed circular dependencies
+
+### 8. Makefile Automation
 
 **Pattern**: Automate code generation with Make targets.
 
@@ -448,9 +545,8 @@ codegen-schemas: ## Generate JSON schemas from proto files (Stage 1)
 codegen-go: ## Generate Go SDK code from JSON schemas (Stage 2)
 	@cd ../.. && go run tools/codegen/generator/main.go \
 		--schema-dir tools/codegen/schemas \
-		--output-dir sdk/go/workflow \
-		--package workflow \
-		--file-suffix _task
+		--output-dir sdk/go/gen/workflow \
+		--package workflow
 
 .PHONY: codegen
 codegen: codegen-schemas codegen-go ## Run full code generation pipeline
@@ -882,11 +978,21 @@ for _, schema := range loadFromDir("agent/types/") {
 - `apis/ai/stigmer/agentic/agent/v1/`
 - `apis/ai/stigmer/agentic/skill/v1/`
 
-**SDK Packages**:
-- `sdk/go/workflow/` - Workflow SDK
-- `sdk/go/agent/` - Agent SDK
-- `sdk/go/skill/` - Skill SDK
+**Generated Code** (do not edit):
+- `sdk/go/gen/workflow/` - Generated workflow task configs
+- `sdk/go/gen/agent/` - Generated agent args
+- `sdk/go/gen/skill/` - Generated skill args
+- `sdk/go/gen/types/` - Generated shared types
+
+**Hand-Written SDK Packages**:
+- `sdk/go/workflow/` - Workflow SDK (hand-written)
+- `sdk/go/agent/` - Agent SDK (hand-written)
+- `sdk/go/skill/` - Skill SDK (hand-written)
 - `sdk/go/stigmer/` - Context and orchestration
+
+**Bridge Files** (type aliases):
+- `sdk/go/workflow/gen_types.go` - Aliases for generated task configs
+- `sdk/go/workflow/helpers.go` - Exported helpers for cross-package use
 
 **Tests**:
 - `sdk/go/workflow/proto_integration_test.go` - Workflow tests
@@ -898,8 +1004,8 @@ for _, schema := range loadFromDir("agent/types/") {
 - `sdk/go/examples/` - SDK usage examples
 
 **Code Generator**:
-- `tools/codegen/` - Code generation tool
-- `tools/codegen/templates/` - Generation templates
+- `tools/codegen/generator/main.go` - Code generation tool
+- `tools/codegen/proto2schema/main.go` - Proto to schema converter
 
 ---
 
