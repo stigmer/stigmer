@@ -57,16 +57,17 @@ func main() {
 		endpoint := apiURL.Concat("/data")
 
 		// Task 1: Fetch data using HTTP GET
-		_ = wf.HttpGet("fetchData", endpoint,
-			workflow.Header("Content-Type", "application/json"),
-			workflow.Timeout(30),
-		)
+		_ = wf.HttpGet("fetchData", endpoint.Expression(), map[string]string{
+			"Content-Type": "application/json",
+		})
 
 		// Task 2: Process data
-		_ = wf.Set("processData",
-			workflow.SetVar("status", "processing"),
-			workflow.SetVar("retries", retryCount), // Uses shared retryCount
-		)
+		_ = wf.Set("processData", &workflow.SetArgs{
+			Variables: map[string]string{
+				"status":  "processing",
+				"retries": retryCount.Expression(), // Uses shared retryCount
+			},
+		})
 
 		// Create an agent that uses the SAME shared context
 		ag, err := agent.New(ctx, "data-analyzer", &agent.AgentArgs{
