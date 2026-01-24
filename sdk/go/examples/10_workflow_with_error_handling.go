@@ -77,12 +77,12 @@ func main() {
 	})
 
 	// Task 3a: Process successful result from GitHub API
-	// Smart conversion: TaskFieldRef automatically converts to string
+	// Note: Map values require .Expression() (smart conversion only works for top-level fields)
 	wf.Set("processSuccess", &workflow.SetArgs{
 		Variables: map[string]string{
-			"pr_title":  tryTask.Field("title"),
-			"pr_state":  tryTask.Field("state"),
-			"pr_author": tryTask.Field("user.login"),
+			"pr_title":  tryTask.Field("title").Expression(),
+			"pr_state":  tryTask.Field("state").Expression(),
+			"pr_author": tryTask.Field("user.login").Expression(),
 			"status":    "completed",
 		},
 	})
@@ -91,7 +91,7 @@ func main() {
 	wf.Set("logFailure", &workflow.SetArgs{
 		Variables: map[string]string{
 			"status": "failed",
-			"reason": tryTask.Field("error"),
+			"reason": tryTask.Field("error").Expression(),
 		},
 	})
 

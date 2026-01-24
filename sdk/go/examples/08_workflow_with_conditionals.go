@@ -70,13 +70,13 @@ func main() {
 		})
 
 	// Task 3a: Production deployment (PR is closed/merged)
-	// Smart conversion: TaskFieldRef automatically converts to string
+	// Note: Map values require .Expression() (smart conversion only works for top-level fields)
 	wf.Set("deployProduction", &workflow.SetArgs{
 		Variables: map[string]string{
 			"environment": "production",
 			"replicas":    "5",
-			"pr_title":    checkTask.Field("title"),
-			"pr_merged":   checkTask.Field("merged"),
+			"pr_title":    checkTask.Field("title").Expression(),
+			"pr_merged":   checkTask.Field("merged").Expression(),
 		},
 	}).DependsOn(switchTask)
 
@@ -85,8 +85,8 @@ func main() {
 		Variables: map[string]string{
 			"environment": "staging",
 			"replicas":    "2",
-			"pr_title":    checkTask.Field("title"),
-			"pr_state":    checkTask.Field("state"),
+			"pr_title":    checkTask.Field("title").Expression(),
+			"pr_state":    checkTask.Field("state").Expression(),
 		},
 	}).DependsOn(switchTask)
 
