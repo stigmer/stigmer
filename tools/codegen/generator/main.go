@@ -462,6 +462,19 @@ func (g *Generator) generateHelpers() error {
 	fmt.Fprintf(&buf, "\tif s, ok := value.(string); ok {\n")
 	fmt.Fprintf(&buf, "\t\treturn s\n")
 	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\t// Handle *Task - convert to task reference expression\n")
+	fmt.Fprintf(&buf, "\tif task, ok := value.(*Task); ok {\n")
+	fmt.Fprintf(&buf, "\t\treturn fmt.Sprintf(\"${ $context[\\\"%%s\\\"] }\", task.Name)\n")
+	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\t// Handle StringRef - use Value() for resolved literals, Expression() for computed\n")
+	fmt.Fprintf(&buf, "\tif sr, ok := value.(interface{ Value() string; Expression() string }); ok {\n")
+	fmt.Fprintf(&buf, "\t\t// Try Value() first (for resolved StringRef from Concat, etc.)\n")
+	fmt.Fprintf(&buf, "\t\tif v := sr.Value(); v != \"\" {\n")
+	fmt.Fprintf(&buf, "\t\t\treturn v\n")
+	fmt.Fprintf(&buf, "\t\t}\n")
+	fmt.Fprintf(&buf, "\t\t// Fall back to Expression() for computed/context refs\n")
+	fmt.Fprintf(&buf, "\t\treturn sr.Expression()\n")
+	fmt.Fprintf(&buf, "\t}\n")
 	fmt.Fprintf(&buf, "\t// Handle TaskFieldRef and other expression types\n")
 	fmt.Fprintf(&buf, "\tif expr, ok := value.(interface{ Expression() string }); ok {\n")
 	fmt.Fprintf(&buf, "\t\treturn expr.Expression()\n")
@@ -506,6 +519,19 @@ func (g *Generator) generateHelpersFile(outputDir string) error {
 	fmt.Fprintf(&buf, "func coerceToString(value interface{}) string {\n")
 	fmt.Fprintf(&buf, "\tif s, ok := value.(string); ok {\n")
 	fmt.Fprintf(&buf, "\t\treturn s\n")
+	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\t// Handle *Task - convert to task reference expression\n")
+	fmt.Fprintf(&buf, "\tif task, ok := value.(*Task); ok {\n")
+	fmt.Fprintf(&buf, "\t\treturn fmt.Sprintf(\"${ $context[\\\"%%s\\\"] }\", task.Name)\n")
+	fmt.Fprintf(&buf, "\t}\n")
+	fmt.Fprintf(&buf, "\t// Handle StringRef - use Value() for resolved literals, Expression() for computed\n")
+	fmt.Fprintf(&buf, "\tif sr, ok := value.(interface{ Value() string; Expression() string }); ok {\n")
+	fmt.Fprintf(&buf, "\t\t// Try Value() first (for resolved StringRef from Concat, etc.)\n")
+	fmt.Fprintf(&buf, "\t\tif v := sr.Value(); v != \"\" {\n")
+	fmt.Fprintf(&buf, "\t\t\treturn v\n")
+	fmt.Fprintf(&buf, "\t\t}\n")
+	fmt.Fprintf(&buf, "\t\t// Fall back to Expression() for computed/context refs\n")
+	fmt.Fprintf(&buf, "\t\treturn sr.Expression()\n")
 	fmt.Fprintf(&buf, "\t}\n")
 	fmt.Fprintf(&buf, "\t// Handle TaskFieldRef and other expression types\n")
 	fmt.Fprintf(&buf, "\tif expr, ok := value.(interface{ Expression() string }); ok {\n")
@@ -968,6 +994,80 @@ func (c *genContext) genToProtoMethod(w *bytes.Buffer, config *TaskConfigSchema)
 	for _, field := range config.Fields {
 		// Determine if we need smart conversion for expression fields
 		needsConversion := field.IsExpression && field.Type.Kind == "string"
+		
+		// Special handling for array of message types (e.g., []*types.WorkflowTask)
+		if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
+			c.addImport("encoding/json")
+			c.addImport("fmt")
+			if field.Required {
+				fmt.Fprintf(w, "\t// Convert %s array to proto-compatible format using JSON marshaling\n", field.Name)
+				fmt.Fprintf(w, "\tif c.%s != nil {\n", field.Name)
+				fmt.Fprintf(w, "\t\tjsonBytes, err := json.Marshal(c.%s)\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err != nil {\n")
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\tfmt.Printf(\"DEBUG %s JSON: %%s\\n\", string(jsonBytes))\n", field.Name)
+				fmt.Fprintf(w, "\t\tvar %sArray []interface{}\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err := json.Unmarshal(jsonBytes, &%sArray); err != nil {\n", field.Name)
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\tdata[\"%s\"] = %sArray\n", field.JsonName, field.Name)
+				fmt.Fprintf(w, "\t}\n")
+			} else {
+				fmt.Fprintf(w, "\tif !isEmpty(c.%s) {\n", field.Name)
+				fmt.Fprintf(w, "\t\t// Convert %s array to proto-compatible format using JSON marshaling\n", field.Name)
+				fmt.Fprintf(w, "\t\tjsonBytes, err := json.Marshal(c.%s)\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err != nil {\n")
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\tfmt.Printf(\"DEBUG %s JSON: %%s\\n\", string(jsonBytes))\n", field.Name)
+				fmt.Fprintf(w, "\t\tvar %sArray []interface{}\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err := json.Unmarshal(jsonBytes, &%sArray); err != nil {\n", field.Name)
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\tdata[\"%s\"] = %sArray\n", field.JsonName, field.Name)
+				fmt.Fprintf(w, "\t}\n")
+			}
+			continue
+		}
+		
+		// Special handling for message types (e.g., *types.HttpEndpoint)
+		if field.Type.Kind == "message" {
+			c.addImport("encoding/json")
+			if field.Required {
+				fmt.Fprintf(w, "\t// Convert %s to proto-compatible format using JSON marshaling\n", field.Name)
+				fmt.Fprintf(w, "\tif c.%s != nil {\n", field.Name)
+				fmt.Fprintf(w, "\t\tjsonBytes, err := json.Marshal(c.%s)\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err != nil {\n")
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\tvar %sMap map[string]interface{}\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err := json.Unmarshal(jsonBytes, &%sMap); err != nil {\n", field.Name)
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\t// Apply smart conversion to expression fields within the message\n")
+				c.generateMessageFieldConversion(w, field, field.Name+"Map")
+				fmt.Fprintf(w, "\t\tdata[\"%s\"] = %sMap\n", field.JsonName, field.Name)
+				fmt.Fprintf(w, "\t}\n")
+			} else {
+				fmt.Fprintf(w, "\tif !isEmpty(c.%s) && c.%s != nil {\n", field.Name, field.Name)
+				fmt.Fprintf(w, "\t\t// Convert %s to proto-compatible format using JSON marshaling\n", field.Name)
+				fmt.Fprintf(w, "\t\tjsonBytes, err := json.Marshal(c.%s)\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err != nil {\n")
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\tvar %sMap map[string]interface{}\n", field.Name)
+				fmt.Fprintf(w, "\t\tif err := json.Unmarshal(jsonBytes, &%sMap); err != nil {\n", field.Name)
+				fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+				fmt.Fprintf(w, "\t\t}\n")
+				fmt.Fprintf(w, "\t\t// Apply smart conversion to expression fields within the message\n")
+				c.generateMessageFieldConversion(w, field, field.Name+"Map")
+				fmt.Fprintf(w, "\t\tdata[\"%s\"] = %sMap\n", field.JsonName, field.Name)
+				fmt.Fprintf(w, "\t}\n")
+			}
+			continue
+		}
+		
 		valueExpr := "c." + field.Name
 		if needsConversion {
 			valueExpr = "coerceToString(c." + field.Name + ")"
@@ -990,6 +1090,17 @@ func (c *genContext) genToProtoMethod(w *bytes.Buffer, config *TaskConfigSchema)
 	fmt.Fprintf(w, "}\n\n")
 
 	return nil
+}
+
+// generateMessageFieldConversion generates code to apply smart conversion to expression fields within a message
+func (c *genContext) generateMessageFieldConversion(w *bytes.Buffer, field *FieldSchema, mapVarName string) {
+	// Check if this is HttpEndpoint which has Uri as an expression field
+	if field.Type.MessageType == "HttpEndpoint" {
+		fmt.Fprintf(w, "\t\tif uri, ok := %s[\"uri\"]; ok {\n", mapVarName)
+		fmt.Fprintf(w, "\t\t\t%s[\"uri\"] = coerceToString(uri)\n", mapVarName)
+		fmt.Fprintf(w, "\t\t}\n")
+	}
+	// Add more message types here as needed
 }
 
 // genTypeFromProtoMethod generates FromProto() method for a shared type

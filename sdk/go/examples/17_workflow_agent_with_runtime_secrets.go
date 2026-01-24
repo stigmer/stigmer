@@ -101,12 +101,12 @@ func main() {
 						"fields": []map[string]any{
 							{
 								"title": "Review Status",
-								"value": reviewTask.Field("status").Expression(),
+								"value": reviewTask.Field("status"), // Smart conversion handles TaskFieldRef automatically
 								"short": true,
 							},
 							{
 								"title": "Issues Found",
-								"value": reviewTask.Field("issues_count").Expression(),
+								"value": reviewTask.Field("issues_count"), // Smart conversion handles TaskFieldRef automatically
 								"short": true,
 							},
 						},
