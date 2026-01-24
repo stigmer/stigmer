@@ -179,6 +179,8 @@ func ExtractRuntimeRefs(s string) []string {
 func Interpolate(parts ...interface{}) string {
 	result := ""
 	for _, part := range parts {
+		// fmt.Sprint will automatically call String() method on types that implement fmt.Stringer
+		// StringRef now implements String(), so it will be properly converted to its string value
 		result += fmt.Sprint(part)
 	}
 	return result
