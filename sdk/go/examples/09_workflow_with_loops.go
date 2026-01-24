@@ -49,11 +49,11 @@ func main() {
 					wf.Set("analyzeCommit",
 						&workflow.SetArgs{
 							Variables: map[string]string{
-								"sha":     commit.Field("sha"),                   // ✅ Type-safe reference!
-								"message": commit.Field("commit.message"),        // ✅ Commit message
-								"author":  commit.Field("commit.author.name"),    // ✅ Author name
-								"date":    commit.Field("commit.author.date"),    // ✅ Commit date
-								"url":     commit.Field("html_url"),              // ✅ GitHub URL
+								"sha":     commit.Field("sha"),                // ✅ Type-safe reference!
+								"message": commit.Field("commit.message"),     // ✅ Commit message
+								"author":  commit.Field("commit.author.name"), // ✅ Author name
+								"date":    commit.Field("commit.author.date"), // ✅ Commit date
+								"url":     commit.Field("html_url"),           // ✅ GitHub URL
 							},
 						},
 					),

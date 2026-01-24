@@ -93,20 +93,21 @@ update-deps: ## Update buf proto dependencies to latest
 	@grep "buf.build/gen/go" ../go.mod
 
 .PHONY: codegen-schemas
-codegen-schemas: ## Generate JSON schemas from proto files (Stage 1: proto → schema)
+codegen-schemas: ## Generate JSON schemas from ALL proto files (Stage 1: proto → schema)
 	@echo "============================================"
 	@echo "Stage 1: Generating JSON Schemas from Protos"
 	@echo "============================================"
 	@echo ""
-	@echo "Input:  Proto files (apis/ai/stigmer/agentic/...)"
+	@echo "Input:  ALL proto files (apis/ai/stigmer/agentic/**/*)"
 	@echo "Output: JSON schemas (tools/codegen/schemas/)"
+	@echo "Mode:   Comprehensive (all namespaces)"
 	@echo ""
 	@cd ../.. && go run tools/codegen/proto2schema/main.go \
-		--proto-dir apis/ai/stigmer/agentic/workflow/v1/tasks \
-		--output-dir tools/codegen/schemas/tasks \
-		--include-dir apis
+		--comprehensive \
+		--include-dir apis \
+		--output-dir tools/codegen/schemas
 	@echo ""
-	@echo "✓ JSON schemas generated!"
+	@echo "✓ JSON schemas generated for all namespaces!"
 	@echo ""
 
 .PHONY: codegen-go
@@ -133,13 +134,23 @@ codegen: codegen-schemas codegen-go ## Run full code generation pipeline (proto 
 	@echo "✓ Full SDK Code Generation Complete!"
 	@echo "============================================"
 	@echo ""
-	@echo "Generated files:"
-	@echo "  • Schemas: tools/codegen/schemas/tasks/*.json"
-	@echo "  • Schemas: tools/codegen/schemas/types/*.json"
-	@echo "  • Go code: sdk/go/gen/workflow/*.go"
-	@echo "  • Go code: sdk/go/gen/agent/*.go"
-	@echo "  • Go code: sdk/go/gen/skill/*.go"
-	@echo "  • Go code: sdk/go/gen/types/*.go"
+	@echo "Generated schemas for all namespaces:"
+	@echo "  • agent, agentinstance, agentexecution"
+	@echo "  • skill"
+	@echo "  • workflow, workflowinstance, workflowexecution"
+	@echo "  • environment, executioncontext"
+	@echo "  • + shared types"
+	@echo ""
+	@echo "Generated Go Args structs:"
+	@echo "  • sdk/go/gen/agent/*.go"
+	@echo "  • sdk/go/gen/agentinstance/*.go"
+	@echo "  • sdk/go/gen/agentexecution/*.go"
+	@echo "  • sdk/go/gen/skill/*.go"
+	@echo "  • sdk/go/gen/workflow/*.go"
+	@echo "  • sdk/go/gen/workflowinstance/*.go"
+	@echo "  • sdk/go/gen/workflowexecution/*.go"
+	@echo "  • sdk/go/gen/environment/*.go"
+	@echo "  • sdk/go/gen/types/*.go"
 	@echo ""
 	@echo "Next: Run 'make test' to verify generation"
 	@echo ""

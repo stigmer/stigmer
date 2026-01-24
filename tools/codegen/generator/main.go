@@ -341,54 +341,45 @@ func (g *Generator) loadSchemas() error {
 		}
 	}
 
-	// Load SDK resource specs (Agent, Skill, etc.)
-	// Try agent/ subdirectory
-	agentDir := filepath.Join(g.schemaDir, "agent")
-	if _, err := os.Stat(agentDir); err == nil {
-		entries, err := os.ReadDir(agentDir)
-		if err != nil {
-			return fmt.Errorf("failed to read agent directory: %w", err)
-		}
-
-		for _, entry := range entries {
-			// Skip subdirectories and non-JSON files
-			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+	// Load SDK resource specs from ALL namespace subdirectories
+	// Scan schema directory for all subdirectories (agent/, skill/, workflow/, etc.)
+	if schemaEntries, err := os.ReadDir(g.schemaDir); err == nil {
+		for _, schemaEntry := range schemaEntries {
+			// Skip non-directories and special directories
+			if !schemaEntry.IsDir() {
 				continue
 			}
-
-			path := filepath.Join(agentDir, entry.Name())
-			schema, err := loadTaskConfigSchema(path)
-			if err != nil {
-				return fmt.Errorf("failed to load agent spec %s: %w", entry.Name(), err)
-			}
-
-			g.resourceSpecs = append(g.resourceSpecs, schema)
-			fmt.Printf("  Loaded spec: %s\n", schema.Name)
-		}
-	}
-
-	// Try skill/ subdirectory
-	skillDir := filepath.Join(g.schemaDir, "skill")
-	if _, err := os.Stat(skillDir); err == nil {
-		entries, err := os.ReadDir(skillDir)
-		if err != nil {
-			return fmt.Errorf("failed to read skill directory: %w", err)
-		}
-
-		for _, entry := range entries {
-			// Skip subdirectories and non-JSON files
-			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+			
+			dirName := schemaEntry.Name()
+			
+			// Skip known non-resource directories
+			if dirName == "tasks" || dirName == "types" {
 				continue
 			}
-
-			path := filepath.Join(skillDir, entry.Name())
-			schema, err := loadTaskConfigSchema(path)
+			
+			// Load specs from this namespace directory
+			namespaceDir := filepath.Join(g.schemaDir, dirName)
+			entries, err := os.ReadDir(namespaceDir)
 			if err != nil {
-				return fmt.Errorf("failed to load skill spec %s: %w", entry.Name(), err)
+				continue // Skip directories we can't read
 			}
 
-			g.resourceSpecs = append(g.resourceSpecs, schema)
-			fmt.Printf("  Loaded spec: %s\n", schema.Name)
+			for _, entry := range entries {
+				// Skip subdirectories (like types/) and non-JSON files
+				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+					continue
+				}
+
+				path := filepath.Join(namespaceDir, entry.Name())
+				schema, err := loadTaskConfigSchema(path)
+				if err != nil {
+					fmt.Printf("  Warning: failed to load spec %s: %v\n", entry.Name(), err)
+					continue
+				}
+
+				g.resourceSpecs = append(g.resourceSpecs, schema)
+				fmt.Printf("  Loaded spec: %s (from %s/)\n", schema.Name, dirName)
+			}
 		}
 	}
 

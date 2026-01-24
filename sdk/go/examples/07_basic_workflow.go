@@ -71,19 +71,19 @@ func main() {
 				"User-Agent": "Stigmer-SDK-Example",
 			})
 
-	// Task 2: Process response using DIRECT task references
-	// Dependencies are implicit - no ThenRef needed!
-	// Clear origin: title, body, state, and author come from fetchTask
-	// Note: Map values require .Expression() (smart conversion only works for top-level fields)
-	processTask := wf.Set("processResponse", &workflow.SetArgs{
-		Variables: map[string]string{
-			"prTitle":  fetchTask.Field("title").Expression(),      // ✅ Clear: PR title from fetchTask!
-			"prBody":   fetchTask.Field("body").Expression(),       // ✅ Clear: PR description from fetchTask!
-			"prState":  fetchTask.Field("state").Expression(),      // ✅ PR state (open/closed)
-			"prAuthor": fetchTask.Field("user.login").Expression(), // ✅ GitHub username
-			"status":   "success",
-		},
-	})
+		// Task 2: Process response using DIRECT task references
+		// Dependencies are implicit - no ThenRef needed!
+		// Clear origin: title, body, state, and author come from fetchTask
+		// Note: Map values require .Expression() (smart conversion only works for top-level fields)
+		processTask := wf.Set("processResponse", &workflow.SetArgs{
+			Variables: map[string]string{
+				"prTitle":  fetchTask.Field("title").Expression(),      // ✅ Clear: PR title from fetchTask!
+				"prBody":   fetchTask.Field("body").Expression(),       // ✅ Clear: PR description from fetchTask!
+				"prState":  fetchTask.Field("state").Expression(),      // ✅ PR state (open/closed)
+				"prAuthor": fetchTask.Field("user.login").Expression(), // ✅ GitHub username
+				"status":   "success",
+			},
+		})
 
 		// No manual dependency management needed!
 		// processTask automatically depends on fetchTask because it uses fetchTask.Field()

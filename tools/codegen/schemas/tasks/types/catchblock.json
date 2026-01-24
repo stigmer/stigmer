@@ -1,0 +1,32 @@
+{
+  "name": "CatchBlock",
+  "description": "CatchBlock defines error handling logic.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.CatchBlock",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/try.proto",
+  "fields": [
+    {
+      "name": "As",
+      "jsonName": "as",
+      "protoField": "as",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Variable name to store the error (optional).\n Accessible via ${ .error } in catch tasks.",
+      "required": false
+    },
+    {
+      "name": "Do",
+      "jsonName": "do",
+      "protoField": "do",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "WorkflowTask"
+        }
+      },
+      "description": "Tasks to execute when error is caught.",
+      "required": false
+    }
+  ]
+}

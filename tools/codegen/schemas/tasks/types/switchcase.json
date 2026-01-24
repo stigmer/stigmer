@@ -1,0 +1,38 @@
+{
+  "name": "SwitchCase",
+  "description": "SwitchCase defines a single case in a switch statement.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.SwitchCase",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/switch.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Case name/identifier.",
+      "required": false
+    },
+    {
+      "name": "When",
+      "jsonName": "when",
+      "protoField": "when",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Condition expression (optional).\n If empty, this is the default case.\n Example: \"${ $context.value \u003e 5 }\"",
+      "required": false
+    },
+    {
+      "name": "Then",
+      "jsonName": "then",
+      "protoField": "then",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Target task name to execute if condition matches.",
+      "required": false
+    }
+  ]
+}

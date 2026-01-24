@@ -16,8 +16,8 @@ package main
 import (
 	"log"
 
-	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
+	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -69,26 +69,26 @@ func main() {
 			},
 		})
 
-	// Task 3a: Production deployment (PR is closed/merged)
-	// Note: Map values require .Expression() (smart conversion only works for top-level fields)
-	wf.Set("deployProduction", &workflow.SetArgs{
-		Variables: map[string]string{
-			"environment": "production",
-			"replicas":    "5",
-			"pr_title":    checkTask.Field("title").Expression(),
-			"pr_merged":   checkTask.Field("merged").Expression(),
-		},
-	}).DependsOn(switchTask)
+		// Task 3a: Production deployment (PR is closed/merged)
+		// Note: Map values require .Expression() (smart conversion only works for top-level fields)
+		wf.Set("deployProduction", &workflow.SetArgs{
+			Variables: map[string]string{
+				"environment": "production",
+				"replicas":    "5",
+				"pr_title":    checkTask.Field("title").Expression(),
+				"pr_merged":   checkTask.Field("merged").Expression(),
+			},
+		}).DependsOn(switchTask)
 
-	// Task 3b: Staging deployment (PR is open)
-	wf.Set("deployStaging", &workflow.SetArgs{
-		Variables: map[string]string{
-			"environment": "staging",
-			"replicas":    "2",
-			"pr_title":    checkTask.Field("title").Expression(),
-			"pr_state":    checkTask.Field("state").Expression(),
-		},
-	}).DependsOn(switchTask)
+		// Task 3b: Staging deployment (PR is open)
+		wf.Set("deployStaging", &workflow.SetArgs{
+			Variables: map[string]string{
+				"environment": "staging",
+				"replicas":    "2",
+				"pr_title":    checkTask.Field("title").Expression(),
+				"pr_state":    checkTask.Field("state").Expression(),
+			},
+		}).DependsOn(switchTask)
 
 		// Task 3c: Error handler
 		wf.Set("handleError", &workflow.SetArgs{
