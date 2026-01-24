@@ -97,6 +97,20 @@ docs/
 
 ## 🔄 Migration Guides
 
+### Generated Code Structure Migration (v0.3.0+)
+
+**Guide**: [Gen Structure Migration](guides/gen-structure-migration.md) ⚠️ **Breaking Change**
+
+Migrate import paths for generated types:
+- ✅ Import path updates (`sdk/go/types` → `sdk/go/gen/types`)
+- ✅ Automated migration script
+- ✅ Before/after examples
+- ✅ Troubleshooting guide
+- ✅ 5-10 minute migration time
+
+**Status**: Latest migration (v0.3.0)  
+**Impact**: Breaking change - all SDK users must update imports
+
 ### Struct Args Migration (v0.2.0+)
 
 **Guide**: [Struct Args Migration](guides/struct-args-migration.md)
@@ -108,7 +122,7 @@ Migrate from functional options to Pulumi-style struct-based args:
 - ✅ Complete troubleshooting guide
 - ✅ Migration checklist
 
-**Status**: Current migration path
+**Status**: Previous migration path (v0.2.0)
 
 ### Other Migrations
 
@@ -474,6 +488,16 @@ Contributions to documentation are welcome!
 ---
 
 ## Version History
+
+### v0.3.0 (2026-01-24)
+
+**Generated Code Structure Refactoring**:
+- ✅ Separated generated code into `sdk/go/gen/` directories
+- ✅ Removed `_task` suffix from generated filenames
+- ⚠️ **Breaking Change**: Import paths changed (`sdk/go/types` → `sdk/go/gen/types`)
+- ✅ Clear visual separation of generated vs hand-written code
+- ✅ Follows Go ecosystem conventions
+- ✅ See [Gen Structure Migration Guide](guides/gen-structure-migration.md)
 
 ### v0.2.0 (2026-01-24)
 
