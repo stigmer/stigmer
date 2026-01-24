@@ -36,32 +36,33 @@ func main() {
 			nil, // No custom headers
 		)
 
-		// Task 2: Loop over items
-		// For each item in the collection, execute the tasks defined in the Do array
-		loopTask := wf.ForEach("processEachItem", &workflow.ForArgs{
-			In: fetchTask.Field("items").Expression(),
-			Do: []map[string]interface{}{
-				{
-					"httpCall": map[string]interface{}{
-						"method": "POST",
-						"uri":    apiBase.Concat("/process").Expression(),
-						"body": map[string]interface{}{
-							"itemId": "${.item.id}",   // Reference current loop item
-							"data":   "${.item.data}", // Reference current loop item
-						},
+	// Task 2: Loop over items
+	// For each item in the collection, execute the tasks defined in the Do array
+	// Using LoopBody for type-safe access to loop variables
+	loopTask := wf.ForEach("processEachItem", &workflow.ForArgs{
+		In: fetchTask.Field("items").Expression(),
+		Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
+			return []*workflow.Task{
+				wf.HttpPost("processItem",
+					apiBase.Concat("/process").Expression(),
+					nil, // No custom headers
+					map[string]interface{}{
+						"itemId": item.Field("id"),   // ✅ Type-safe reference!
+						"data":   item.Field("data"), // ✅ No magic strings!
 					},
-				},
-			},
-		})
+				),
+			}
+		}),
+	})
 
-		// Task 3: Collect results
-		wf.Set("collectResults", &workflow.SetArgs{
-			Variables: map[string]string{
-				"processed": loopTask.Field("results").Expression(),
-				"count":     loopTask.Field("count").Expression(),
-				"status":    "completed",
-			},
-		})
+	// Task 3: Collect results
+	// The loopTask itself represents the completion of the loop
+	wf.Set("collectResults", &workflow.SetArgs{
+		Variables: map[string]string{
+			"loopCompleted": "true",
+			"status":        "completed",
+		},
+	}).DependsOn(loopTask) // Explicit dependency to ensure loop completes first
 
 		log.Printf("Created workflow with loops: %s", wf)
 		log.Printf("Batch size: %v", batchSize)
