@@ -68,12 +68,73 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-25 12:14
-**Current Task**: T01.6 Artifact Download & Extraction ✅
-**Status**: Artifact Download & Extraction Complete
-**Last Session**: 2026-01-25 - Artifact Download & Extraction Implementation
-**Last Completed**: Complete artifact download pipeline (proto → Java → Python) ✅ 2026-01-25
+**Current Task**: T01.7 OSS GetArtifact Handler ✅
+**Status**: OSS GetArtifact Handler Complete
+**Last Session**: 2026-01-25 - OSS GetArtifact Implementation
+**Last Completed**: Implemented GetArtifact handler in stigmer OSS (Go) ✅ 2026-01-25
 
-## Session Progress (2026-01-25 - Latest Session)
+## Session Progress (2026-01-25 - OSS GetArtifact Implementation)
+
+### What Was Accomplished - OSS GetArtifact Handler
+
+**Implemented `GetArtifact` handler in stigmer OSS (Go) matching the Cloud version (Java):**
+
+1. **New file: `get_artifact.go`**
+   - Implements `GetArtifact(ctx, *GetArtifactRequest) (*GetArtifactResponse, error)`
+   - Uses the same pipeline pattern as other handlers:
+     - `ValidateProtoStep` - Validates `artifact_storage_key` field
+     - `loadArtifactStep` - Loads artifact from storage
+   - Proper gRPC status codes (NotFound, Internal)
+   - Uses existing `ArtifactStorage` interface (local file storage)
+
+2. **Updated `BUILD.bazel`**
+   - Added `get_artifact.go` to sources
+   - Added grpc/codes and grpc/status dependencies
+
+### Comparison: Cloud (Java) vs OSS (Go)
+
+| Aspect | Cloud (Java) | OSS (Go) |
+|--------|--------------|----------|
+| Storage | R2 (CloudFlare) | Local filesystem |
+| Pipeline | `RequestPipelineV2` | `pipeline.Pipeline` |
+| Validation | `commonSteps.validateFieldConstraints` | `steps.NewValidateProtoStep` |
+| Load step | `LoadArtifact` inner class | `loadArtifactStep` struct |
+| Response | `TransformResponse` + `SendResponse` | Direct return |
+
+### Files Modified (This Session)
+
+**stigmer OSS repo:**
+```
+backend/services/stigmer-server/pkg/domain/skill/controller/
+├── get_artifact.go   # NEW - 93 lines (GetArtifact handler)
+└── BUILD.bazel       # +3 lines (new source + deps)
+```
+
+---
+
+## Previous Session Progress (2026-01-25 - Code Review Session)
+
+### What Was Accomplished - Code Review
+
+**Verified handler patterns in stigmer-cloud:**
+- Reviewed `SkillGetArtifactHandler.java` vs `SkillGetByReferenceHandler.java`
+- Confirmed handler follows established static inner class pattern:
+  - `LoadArtifact` is a `@Component` static inner class
+  - Implements `RequestPipelineStepV2` interface
+  - Uses `RequestPipelineStepResultV2.success(getName())` / `failure()` pattern
+  - Dependency injection via `@RequiredArgsConstructor`
+- Pattern consistency verified across skill handlers
+
+### Files Reviewed
+- `SkillGetArtifactHandler.java` - Static inner class pattern ✅
+- `SkillGetByReferenceHandler.java` - Reference pattern for handlers
+
+### Key Observation
+The `SkillGetArtifactHandler` was already correctly implemented with the static inner class pattern in commit `841c7921`. No changes were necessary.
+
+---
+
+## Previous Session Progress (2026-01-25 - Artifact Download Implementation)
 
 ### What Was Accomplished - Artifact Download & Extraction
 
@@ -174,21 +235,24 @@ Before testing:
 ## Next Steps (when resuming)
 
 1. ✅ ~~**Artifact Download & Extraction**~~ - COMPLETED
-2. **Unit Tests**: Add tests for skill_writer.py, SkillClient.get_artifact(), SkillGetArtifactHandler
-3. **Integration Test**: End-to-end test of skill push → download → extract → inject flow
-4. **MongoDB Migration**: Add indices to `skill_audit` collection
-5. **CLI Enhancement**: Add `stigmer skill push` command
-6. **Documentation**: Update agent-runner docs with complete skill architecture
+2. ✅ ~~**OSS GetArtifact Handler**~~ - COMPLETED (Go implementation)
+3. **Unit Tests**: Add tests for skill_writer.py, SkillClient.get_artifact(), SkillGetArtifactHandler (Go + Java)
+4. **Integration Test**: End-to-end test of skill push → download → extract → inject flow
+5. **MongoDB Migration**: Add indices to `skill_audit` collection
+6. **CLI Enhancement**: Add `stigmer skill push` command
+7. **Documentation**: Update agent-runner docs with complete skill architecture
 
 ## Context for Resume
 
 - **Artifact download & extraction COMPLETE**: Full pipeline implemented per ADR 001
+- **OSS GetArtifact handler COMPLETE**: Go implementation matching Java/Cloud version
 - **Skill injection complete**: Full SKILL.md content injected into prompts
 - **Both local and cloud modes supported**: Works with filesystem and Daytona
 - **Graceful degradation**: Falls back to SKILL.md-only if artifact download fails
 - **Backward compatible**: Works with skills that don't have artifacts
 - **R2 bucket not yet created**: Placeholders in stigmer-cloud secrets (pending user action)
 - **No unit tests yet**: Added to next steps
+- **Build issue note**: `bazel build` has pre-existing issue with missing `com_github_google_safearchive` repo (not related to GetArtifact changes)
 
 ## What's Complete (ADR 001)
 
@@ -201,13 +265,9 @@ Per ADR 001, the complete skill injection and mounting architecture is now imple
 
 ## Uncommitted Changes
 
-**stigmer OSS repo (13 files modified):**
-- `apis/ai/stigmer/agentic/skill/v1/io.proto` - GetArtifact messages
-- `apis/ai/stigmer/agentic/skill/v1/query.proto` - getArtifact RPC
-- `apis/stubs/` - Proto stubs (auto-generated)
-- `backend/services/agent-runner/grpc_client/skill_client.py` - get_artifact()
-- `backend/services/agent-runner/worker/activities/execute_graphton.py` - artifact download
-- `backend/services/agent-runner/worker/activities/graphton/skill_writer.py` - extraction
+**stigmer OSS repo (current session):**
+- `backend/services/stigmer-server/pkg/domain/skill/controller/get_artifact.go` - NEW GetArtifact handler (Go)
+- `backend/services/stigmer-server/pkg/domain/skill/controller/BUILD.bazel` - Updated deps
 - `_projects/2026-01/20260125.01.skill-api-enhancement/next-task.md` - this file
 
 **stigmer-cloud repo (new file + stubs):**
