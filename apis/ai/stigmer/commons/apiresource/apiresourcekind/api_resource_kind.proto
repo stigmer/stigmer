@@ -180,7 +180,7 @@ enum ApiResourceKind {
     name: "Skill"
     display_name: "Skill"
     id_prefix: "skl"
-    is_versioned: false
+    is_versioned: true
     not_search_indexed: false
     tier: TIER_OPEN_SOURCE
   }];

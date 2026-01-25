@@ -22,6 +22,8 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	SkillQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.skill.v1.SkillQueryController/get"
 	SkillQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getByReference"
+	SkillQueryController_GetByTag_FullMethodName       = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getByTag"
+	SkillQueryController_GetByHash_FullMethodName      = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getByHash"
 )
 
 // SkillQueryControllerClient is the client API for SkillQueryController service.
@@ -36,6 +38,14 @@ type SkillQueryControllerClient interface {
 	// Authorization is handled in the handler after resolving the reference to a skill ID.
 	// (Input doesn't contain skill ID, so proto-level auth cannot work)
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Skill, error)
+	// Get a skill by tag name.
+	// Resolves the tag to the most recent version with that tag.
+	// Authorization is handled in the handler after resolving to a skill ID.
+	GetByTag(ctx context.Context, in *GetSkillByTagRequest, opts ...grpc.CallOption) (*Skill, error)
+	// Get a skill by exact version hash.
+	// Returns the specific version identified by the hash (immutable reference).
+	// Authorization is handled in the handler after resolving to a skill ID.
+	GetByHash(ctx context.Context, in *GetSkillByHashRequest, opts ...grpc.CallOption) (*Skill, error)
 }
 
 type skillQueryControllerClient struct {
@@ -66,6 +76,26 @@ func (c *skillQueryControllerClient) GetByReference(ctx context.Context, in *api
 	return out, nil
 }
 
+func (c *skillQueryControllerClient) GetByTag(ctx context.Context, in *GetSkillByTagRequest, opts ...grpc.CallOption) (*Skill, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Skill)
+	err := c.cc.Invoke(ctx, SkillQueryController_GetByTag_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *skillQueryControllerClient) GetByHash(ctx context.Context, in *GetSkillByHashRequest, opts ...grpc.CallOption) (*Skill, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Skill)
+	err := c.cc.Invoke(ctx, SkillQueryController_GetByHash_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SkillQueryControllerServer is the server API for SkillQueryController service.
 // All implementations should embed UnimplementedSkillQueryControllerServer
 // for forward compatibility.
@@ -78,6 +108,14 @@ type SkillQueryControllerServer interface {
 	// Authorization is handled in the handler after resolving the reference to a skill ID.
 	// (Input doesn't contain skill ID, so proto-level auth cannot work)
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Skill, error)
+	// Get a skill by tag name.
+	// Resolves the tag to the most recent version with that tag.
+	// Authorization is handled in the handler after resolving to a skill ID.
+	GetByTag(context.Context, *GetSkillByTagRequest) (*Skill, error)
+	// Get a skill by exact version hash.
+	// Returns the specific version identified by the hash (immutable reference).
+	// Authorization is handled in the handler after resolving to a skill ID.
+	GetByHash(context.Context, *GetSkillByHashRequest) (*Skill, error)
 }
 
 // UnimplementedSkillQueryControllerServer should be embedded to have
@@ -92,6 +130,12 @@ func (UnimplementedSkillQueryControllerServer) Get(context.Context, *SkillId) (*
 }
 func (UnimplementedSkillQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*Skill, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
+}
+func (UnimplementedSkillQueryControllerServer) GetByTag(context.Context, *GetSkillByTagRequest) (*Skill, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetByTag not implemented")
+}
+func (UnimplementedSkillQueryControllerServer) GetByHash(context.Context, *GetSkillByHashRequest) (*Skill, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetByHash not implemented")
 }
 func (UnimplementedSkillQueryControllerServer) testEmbeddedByValue() {}
 
@@ -149,6 +193,42 @@ func _SkillQueryController_GetByReference_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SkillQueryController_GetByTag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSkillByTagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SkillQueryControllerServer).GetByTag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SkillQueryController_GetByTag_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SkillQueryControllerServer).GetByTag(ctx, req.(*GetSkillByTagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SkillQueryController_GetByHash_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSkillByHashRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SkillQueryControllerServer).GetByHash(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SkillQueryController_GetByHash_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SkillQueryControllerServer).GetByHash(ctx, req.(*GetSkillByHashRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SkillQueryController_ServiceDesc is the grpc.ServiceDesc for SkillQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -163,6 +243,14 @@ var SkillQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByReference",
 			Handler:    _SkillQueryController_GetByReference_Handler,
+		},
+		{
+			MethodName: "getByTag",
+			Handler:    _SkillQueryController_GetByTag_Handler,
+		},
+		{
+			MethodName: "getByHash",
+			Handler:    _SkillQueryController_GetByHash_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

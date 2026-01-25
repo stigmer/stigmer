@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/skill/v1/spec.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a\x1b\x62uf/validate/validate.proto\"a\n\tSkillSpec\x12 \n\x0b\x64\x65scription\x18\x01 \x01(\tR\x0b\x64\x65scription\x12\x32\n\x10markdown_content\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0fmarkdownContentB\xbd\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/skill/v1/spec.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a\x1b\x62uf/validate/validate.proto\"^\n\tSkillSpec\x12\"\n\x08skill_md\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07skillMd\x12-\n\x03tag\x18\x02 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tagB\xbd\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,8 +33,10 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.agentic.skill.v1
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\037com.ai.stigmer.agentic.skill.v1B\tSpecProtoP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Skill.V1\312\002\033Ai\\Stigmer\\Agentic\\Skill\\V1\342\002\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Skill::V1'
-  _globals['_SKILLSPEC'].fields_by_name['markdown_content']._loaded_options = None
-  _globals['_SKILLSPEC'].fields_by_name['markdown_content']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_SKILLSPEC'].fields_by_name['skill_md']._loaded_options = None
+  _globals['_SKILLSPEC'].fields_by_name['skill_md']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_SKILLSPEC'].fields_by_name['tag']._loaded_options = None
+  _globals['_SKILLSPEC'].fields_by_name['tag']._serialized_options = b'\272H\030r\0262\024^$|^[a-zA-Z0-9._-]+$'
   _globals['_SKILLSPEC']._serialized_start=100
-  _globals['_SKILLSPEC']._serialized_end=197
+  _globals['_SKILLSPEC']._serialized_end=194
 # @@protoc_insertion_point(module_scope)

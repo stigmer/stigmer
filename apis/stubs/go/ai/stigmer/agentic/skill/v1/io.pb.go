@@ -8,6 +8,7 @@ package skillv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -67,13 +68,295 @@ func (x *SkillId) GetValue() string {
 	return ""
 }
 
+// PushSkillRequest contains the skill artifact and metadata for upload.
+// This operation creates a new skill if it doesn't exist, or creates a new version
+// of an existing skill.
+type PushSkillRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Skill name (will be normalized to slug by backend).
+	// Examples: "Math Utils" → "math-utils", "Calculator" → "calculator"
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Owner scope of the skill (platform or organization).
+	Scope apiresource.ApiResourceOwnerScope `protobuf:"varint,2,opt,name=scope,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceOwnerScope" json:"scope,omitempty"`
+	// Organization ID (required if scope = organization).
+	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
+	// Skill artifact as a Zip file (binary content).
+	// The Zip must contain:
+	// - SKILL.md (required): Interface definition and documentation
+	// - Tool executables/scripts (optional)
+	// - Additional files referenced in SKILL.md
+	Artifact []byte `protobuf:"bytes,4,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	// Optional tag to associate with this version.
+	// If provided, this tag will point to the new version.
+	// If empty/not provided, the version will only be accessible via its hash.
+	// Examples: "stable", "v1.0", "latest"
+	Tag           string `protobuf:"bytes,5,opt,name=tag,proto3" json:"tag,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PushSkillRequest) Reset() {
+	*x = PushSkillRequest{}
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PushSkillRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PushSkillRequest) ProtoMessage() {}
+
+func (x *PushSkillRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PushSkillRequest.ProtoReflect.Descriptor instead.
+func (*PushSkillRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *PushSkillRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *PushSkillRequest) GetScope() apiresource.ApiResourceOwnerScope {
+	if x != nil {
+		return x.Scope
+	}
+	return apiresource.ApiResourceOwnerScope(0)
+}
+
+func (x *PushSkillRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *PushSkillRequest) GetArtifact() []byte {
+	if x != nil {
+		return x.Artifact
+	}
+	return nil
+}
+
+func (x *PushSkillRequest) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+// PushSkillResponse returns the version information after successful upload.
+type PushSkillResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SHA256 hash of the uploaded artifact (immutable version identifier).
+	VersionHash string `protobuf:"bytes,1,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
+	// Storage key where the artifact was saved.
+	ArtifactStorageKey string `protobuf:"bytes,2,opt,name=artifact_storage_key,json=artifactStorageKey,proto3" json:"artifact_storage_key,omitempty"`
+	// Tag that now points to this version (if provided in request).
+	Tag           string `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PushSkillResponse) Reset() {
+	*x = PushSkillResponse{}
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PushSkillResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PushSkillResponse) ProtoMessage() {}
+
+func (x *PushSkillResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PushSkillResponse.ProtoReflect.Descriptor instead.
+func (*PushSkillResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PushSkillResponse) GetVersionHash() string {
+	if x != nil {
+		return x.VersionHash
+	}
+	return ""
+}
+
+func (x *PushSkillResponse) GetArtifactStorageKey() string {
+	if x != nil {
+		return x.ArtifactStorageKey
+	}
+	return ""
+}
+
+func (x *PushSkillResponse) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+// GetSkillByTagRequest retrieves a skill by tag name.
+type GetSkillByTagRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Skill slug (normalized name, e.g., "calculator", "math-utils")
+	Slug string `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	// Tag to resolve (e.g., "stable", "v1.0", "latest")
+	Tag           string `protobuf:"bytes,2,opt,name=tag,proto3" json:"tag,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSkillByTagRequest) Reset() {
+	*x = GetSkillByTagRequest{}
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSkillByTagRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSkillByTagRequest) ProtoMessage() {}
+
+func (x *GetSkillByTagRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSkillByTagRequest.ProtoReflect.Descriptor instead.
+func (*GetSkillByTagRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetSkillByTagRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *GetSkillByTagRequest) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+// GetSkillByHashRequest retrieves a skill by exact version hash.
+type GetSkillByHashRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Skill slug (normalized name, e.g., "calculator", "math-utils")
+	Slug string `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	// Exact SHA256 hash (64 hex characters)
+	VersionHash   string `protobuf:"bytes,2,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSkillByHashRequest) Reset() {
+	*x = GetSkillByHashRequest{}
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSkillByHashRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSkillByHashRequest) ProtoMessage() {}
+
+func (x *GetSkillByHashRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSkillByHashRequest.ProtoReflect.Descriptor instead.
+func (*GetSkillByHashRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetSkillByHashRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *GetSkillByHashRequest) GetVersionHash() string {
+	if x != nil {
+		return x.VersionHash
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_skill_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/skill/v1/io.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a\x1bbuf/validate/validate.proto\"'\n" +
+	"$ai/stigmer/agentic/skill/v1/io.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"'\n" +
 	"\aSkillId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\x89\x02\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xea\x01\n" +
+	"\x10PushSkillRequest\x12\x1a\n" +
+	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12U\n" +
+	"\x05scope\x18\x02 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05scope\x12\x10\n" +
+	"\x03org\x18\x03 \x01(\tR\x03org\x12\"\n" +
+	"\bartifact\x18\x04 \x01(\fB\x06\xbaH\x03\xc8\x01\x01R\bartifact\x12-\n" +
+	"\x03tag\x18\x05 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\"z\n" +
+	"\x11PushSkillResponse\x12!\n" +
+	"\fversion_hash\x18\x01 \x01(\tR\vversionHash\x120\n" +
+	"\x14artifact_storage_key\x18\x02 \x01(\tR\x12artifactStorageKey\x12\x10\n" +
+	"\x03tag\x18\x03 \x01(\tR\x03tag\"L\n" +
+	"\x14GetSkillByTagRequest\x12\x1a\n" +
+	"\x04slug\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\x18\n" +
+	"\x03tag\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03tag\"m\n" +
+	"\x15GetSkillByHashRequest\x12\x1a\n" +
+	"\x04slug\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x128\n" +
+	"\fversion_hash\x18\x02 \x01(\tB\x15\xbaH\x12r\x102\x0e^[a-f0-9]{64}$R\vversionHashB\x89\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.skill.v1B\aIoProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var (
@@ -88,16 +371,22 @@ func file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_agentic_skill_v1_io_proto_goTypes = []any{
-	(*SkillId)(nil), // 0: ai.stigmer.agentic.skill.v1.SkillId
+	(*SkillId)(nil),                        // 0: ai.stigmer.agentic.skill.v1.SkillId
+	(*PushSkillRequest)(nil),               // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest
+	(*PushSkillResponse)(nil),              // 2: ai.stigmer.agentic.skill.v1.PushSkillResponse
+	(*GetSkillByTagRequest)(nil),           // 3: ai.stigmer.agentic.skill.v1.GetSkillByTagRequest
+	(*GetSkillByHashRequest)(nil),          // 4: ai.stigmer.agentic.skill.v1.GetSkillByHashRequest
+	(apiresource.ApiResourceOwnerScope)(0), // 5: ai.stigmer.commons.apiresource.ApiResourceOwnerScope
 }
 var file_ai_stigmer_agentic_skill_v1_io_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	5, // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest.scope:type_name -> ai.stigmer.commons.apiresource.ApiResourceOwnerScope
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_skill_v1_io_proto_init() }
@@ -111,7 +400,7 @@ func file_ai_stigmer_agentic_skill_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

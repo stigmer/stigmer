@@ -6,9 +6,9 @@ from typing import ClassVar as _ClassVar, Optional as _Optional
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SkillSpec(_message.Message):
-    __slots__ = ("description", "markdown_content")
-    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
-    MARKDOWN_CONTENT_FIELD_NUMBER: _ClassVar[int]
-    description: str
-    markdown_content: str
-    def __init__(self, description: _Optional[str] = ..., markdown_content: _Optional[str] = ...) -> None: ...
+    __slots__ = ("skill_md", "tag")
+    SKILL_MD_FIELD_NUMBER: _ClassVar[int]
+    TAG_FIELD_NUMBER: _ClassVar[int]
+    skill_md: str
+    tag: str
+    def __init__(self, skill_md: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...

@@ -23,12 +23,12 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.agentic.skill.v1 import spec_pb2 as ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_spec__pb2
+from ai.stigmer.agentic.skill.v1 import status_pb2 as ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_status__pb2
 from ai.stigmer.commons.apiresource import metadata_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_metadata__pb2
-from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/agentic/skill/v1/api.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\"\xea\x03\n\x05Skill\x12=\n\x0b\x61pi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n\x15\x61gentic.stigmer.ai/v1R\napiVersion\x12 \n\x04kind\x18\x02 \x01(\tB\x0c\xbaH\tr\x07\n\x05SkillR\x04kind\x12\xf3\x01\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xa1\x01\xbaH\x9d\x01\xba\x01\x96\x01\n&skill.owner_scope.platform_or_org_only\x12<Skill resources can only have platform or organization scope\x1a.this.owner_scope == 1 || this.owner_scope == 2\xc8\x01\x01R\x08metadata\x12:\n\x04spec\x18\x04 \x01(\x0b\x32&.ai.stigmer.agentic.skill.v1.SkillSpecR\x04spec\x12N\n\x06status\x18\x05 \x01(\x0b\x32\x36.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\xbc\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/agentic/skill/v1/api.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a\x1b\x62uf/validate/validate.proto\"\xdc\x03\n\x05Skill\x12=\n\x0b\x61pi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n\x15\x61gentic.stigmer.ai/v1R\napiVersion\x12 \n\x04kind\x18\x02 \x01(\tB\x0c\xbaH\tr\x07\n\x05SkillR\x04kind\x12\xf3\x01\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xa1\x01\xbaH\x9d\x01\xba\x01\x96\x01\n&skill.owner_scope.platform_or_org_only\x12<Skill resources can only have platform or organization scope\x1a.this.owner_scope == 1 || this.owner_scope == 2\xc8\x01\x01R\x08metadata\x12:\n\x04spec\x18\x04 \x01(\x0b\x32&.ai.stigmer.agentic.skill.v1.SkillSpecR\x04spec\x12@\n\x06status\x18\x05 \x01(\x0b\x32(.ai.stigmer.agentic.skill.v1.SkillStatusR\x06status\"z\n\tSkillList\x12\x1f\n\x0b\x61pi_version\x18\x01 \x01(\tR\napiVersion\x12\x12\n\x04kind\x18\x02 \x01(\tR\x04kind\x12\x38\n\x05items\x18\x03 \x03(\x0b\x32\".ai.stigmer.agentic.skill.v1.SkillR\x05itemsB\xbc\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,6 +42,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SKILL'].fields_by_name['kind']._serialized_options = b'\272H\tr\007\n\005Skill'
   _globals['_SKILL'].fields_by_name['metadata']._loaded_options = None
   _globals['_SKILL'].fields_by_name['metadata']._serialized_options = b'\272H\235\001\272\001\226\001\n&skill.owner_scope.platform_or_org_only\022<Skill resources can only have platform or organization scope\032.this.owner_scope == 1 || this.owner_scope == 2\310\001\001'
-  _globals['_SKILL']._serialized_start=232
-  _globals['_SKILL']._serialized_end=722
+  _globals['_SKILL']._serialized_start=229
+  _globals['_SKILL']._serialized_end=705
+  _globals['_SKILLLIST']._serialized_start=707
+  _globals['_SKILLLIST']._serialized_end=829
 # @@protoc_insertion_point(module_scope)

@@ -3,11 +3,13 @@ syntax = "proto3";
 package ai.stigmer.agentic.skill.v1;
 
 import "ai/stigmer/agentic/skill/v1/spec.proto";
+import "ai/stigmer/agentic/skill/v1/status.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
-import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 
-// Skill represents reusable agent knowledge/documentation.
+// Skill represents a versioned, reusable unit of agent capability.
+// Skills contain tools, scripts, and documentation that agents can use.
+// Each skill version is immutably identified by a content hash.
 message Skill {
   // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
@@ -16,6 +18,7 @@ message Skill {
   string kind = 2 [(buf.validate.field).string.const = 'Skill'];
 
   // Standard resource metadata including name, id, labels, and tags.
+  // Skill names are normalized to slugs (e.g., "Calculator" → "calculator")
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
     (buf.validate.field).required = true,
     (buf.validate.field).cel = {
@@ -25,9 +28,21 @@ message Skill {
     }
   ];
 
-  // Skill-specific configuration.
+  // User-provided skill configuration (desired state).
   SkillSpec spec = 4;
 
-  // System-managed status containing audit information.
-  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+  // System-managed skill state (observed state).
+  SkillStatus status = 5;
+}
+
+// SkillList represents a paginated list of skills.
+message SkillList {
+  // API version for this list type.
+  string api_version = 1;
+
+  // Resource kind identifier for the list.
+  string kind = 2;
+
+  // List of skill resources.
+  repeated Skill items = 3;
 }

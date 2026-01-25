@@ -45,6 +45,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/downstream/session",
         "//backend/services/stigmer-server/pkg/downstream/workflow",
         "//backend/services/stigmer-server/pkg/downstream/workflowinstance",
+        "//backend/services/stigmer-server/pkg/supervisor",
         "@com_github_rs_zerolog//:zerolog",
         "@com_github_rs_zerolog//log",
         "@io_temporal_go_sdk//client",
