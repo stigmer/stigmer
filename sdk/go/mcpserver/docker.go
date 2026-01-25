@@ -28,9 +28,9 @@ type DockerServer struct {
 	image           string
 	args            []string
 	envPlaceholders map[string]string
-	volumes         []VolumeMount
+	volumes         []*types.VolumeMount
 	network         string
-	ports           []PortMapping
+	ports           []*types.PortMapping
 	containerName   string
 }
 
@@ -87,29 +87,6 @@ func Docker(ctx Context, name string, args *DockerArgs) (*DockerServer, error) {
 		envPlaceholders = make(map[string]string)
 	}
 
-	// Convert generated types to internal types
-	var volumes []VolumeMount
-	for _, v := range args.Volumes {
-		if v != nil {
-			volumes = append(volumes, VolumeMount{
-				HostPath:      v.HostPath,
-				ContainerPath: v.ContainerPath,
-				ReadOnly:      v.ReadOnly,
-			})
-		}
-	}
-
-	var ports []PortMapping
-	for _, p := range args.Ports {
-		if p != nil {
-			ports = append(ports, PortMapping{
-				HostPort:      p.HostPort,
-				ContainerPort: p.ContainerPort,
-				Protocol:      p.Protocol,
-			})
-		}
-	}
-
 	server := &DockerServer{
 		baseServer: baseServer{
 			name: name,
@@ -117,9 +94,9 @@ func Docker(ctx Context, name string, args *DockerArgs) (*DockerServer, error) {
 		image:           args.Image,
 		args:            args.Args,
 		envPlaceholders: envPlaceholders,
-		volumes:         volumes,
+		volumes:         args.Volumes,
 		network:         args.Network,
-		ports:           ports,
+		ports:           args.Ports,
 		containerName:   args.ContainerName,
 	}
 
@@ -153,7 +130,7 @@ func (d *DockerServer) EnvPlaceholders() map[string]string {
 }
 
 // Volumes returns the volume mounts.
-func (d *DockerServer) Volumes() []VolumeMount {
+func (d *DockerServer) Volumes() []*types.VolumeMount {
 	return d.volumes
 }
 
@@ -163,7 +140,7 @@ func (d *DockerServer) Network() string {
 }
 
 // Ports returns the port mappings.
-func (d *DockerServer) Ports() []PortMapping {
+func (d *DockerServer) Ports() []*types.PortMapping {
 	return d.ports
 }
 
@@ -188,6 +165,9 @@ func (d *DockerServer) Validate() error {
 
 	// Validate volume mounts
 	for i, vol := range d.volumes {
+		if vol == nil {
+			return fmt.Errorf("docker server %q: volume[%d]: volume is nil", d.name, i)
+		}
 		if vol.HostPath == "" {
 			return fmt.Errorf("docker server %q: volume[%d]: host_path is required", d.name, i)
 		}
@@ -198,6 +178,9 @@ func (d *DockerServer) Validate() error {
 
 	// Validate port mappings
 	for i, port := range d.ports {
+		if port == nil {
+			return fmt.Errorf("docker server %q: port[%d]: port is nil", d.name, i)
+		}
 		if port.HostPort <= 0 {
 			return fmt.Errorf("docker server %q: port[%d]: host_port must be > 0", d.name, i)
 		}

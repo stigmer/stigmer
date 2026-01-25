@@ -126,24 +126,28 @@ func convertMCPServers(servers []mcpserver.MCPServer) ([]*agentv1.McpServerDefin
 				return nil, fmt.Errorf("server %q: type mismatch - expected DockerServer", server.Name())
 			}
 
-			// Convert volume mounts
+			// Convert volume mounts (types.VolumeMount has same fields as agentv1.VolumeMount)
 			volumes := make([]*agentv1.VolumeMount, 0, len(dockerServer.Volumes()))
 			for _, vol := range dockerServer.Volumes() {
-				volumes = append(volumes, &agentv1.VolumeMount{
-					HostPath:      vol.HostPath,
-					ContainerPath: vol.ContainerPath,
-					ReadOnly:      vol.ReadOnly,
-				})
+				if vol != nil {
+					volumes = append(volumes, &agentv1.VolumeMount{
+						HostPath:      vol.HostPath,
+						ContainerPath: vol.ContainerPath,
+						ReadOnly:      vol.ReadOnly,
+					})
+				}
 			}
 
-			// Convert port mappings
+			// Convert port mappings (types.PortMapping has same fields as agentv1.PortMapping)
 			ports := make([]*agentv1.PortMapping, 0, len(dockerServer.Ports()))
 			for _, port := range dockerServer.Ports() {
-				ports = append(ports, &agentv1.PortMapping{
-					HostPort:      port.HostPort,
-					ContainerPort: port.ContainerPort,
-					Protocol:      port.Protocol,
-				})
+				if port != nil {
+					ports = append(ports, &agentv1.PortMapping{
+						HostPort:      port.HostPort,
+						ContainerPort: port.ContainerPort,
+						Protocol:      port.Protocol,
+					})
+				}
 			}
 
 			def.ServerType = &agentv1.McpServerDefinition_Docker{
@@ -179,9 +183,11 @@ func convertSubAgents(subAgents []subagent.SubAgent) ([]*agentv1.SubAgent, error
 		if sa.IsInline() {
 			// Convert tool selections map to proto format
 			toolSelections := make(map[string]*agentv1.McpToolSelection)
-			for serverName, tools := range sa.ToolSelections() {
-				toolSelections[serverName] = &agentv1.McpToolSelection{
-					EnabledTools: tools,
+			for serverName, selection := range sa.ToolSelections() {
+				if selection != nil {
+					toolSelections[serverName] = &agentv1.McpToolSelection{
+						EnabledTools: selection.EnabledTools,
+					}
 				}
 			}
 

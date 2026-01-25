@@ -54,20 +54,6 @@ func (st ServerType) String() string {
 	}
 }
 
-// VolumeMount represents a Docker volume mount configuration.
-type VolumeMount struct {
-	HostPath      string // Host path to mount
-	ContainerPath string // Container path where the volume is mounted
-	ReadOnly      bool   // Whether the mount is read-only
-}
-
-// PortMapping represents a Docker port mapping configuration.
-type PortMapping struct {
-	HostPort      int32  // Host port to bind to
-	ContainerPort int32  // Container port to expose
-	Protocol      string // Protocol (tcp or udp)
-}
-
 // baseServer contains common fields for all MCP server types.
 type baseServer struct {
 	name         string
