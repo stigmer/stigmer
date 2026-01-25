@@ -13,7 +13,11 @@
         "kind": "string"
       },
       "description": "Sub-workflow name/identifier to execute.",
-      "required": false
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
     },
     {
       "name": "Input",

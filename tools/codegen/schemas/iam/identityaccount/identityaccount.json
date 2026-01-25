@@ -1,0 +1,72 @@
+{
+  "name": "IdentityAccountSpec",
+  "kind": "IDENTITY_ACCOUNT_SPEC",
+  "description": "identity-account spec",
+  "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec",
+  "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/spec.proto",
+  "fields": [
+    {
+      "name": "IdpId",
+      "jsonName": "idpId",
+      "protoField": "idp_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "idp id of the identity account.\n this is the id assigned by auth0 to the identity account.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Email",
+      "jsonName": "email",
+      "protoField": "email",
+      "type": {
+        "kind": "string"
+      },
+      "description": "email of the identity account.\n (ignored for create) this value is assigned by backend.\n email is based on the email used to signup to the application.",
+      "required": false
+    },
+    {
+      "name": "FirstName",
+      "jsonName": "firstName",
+      "protoField": "first_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "first name of the identity account.",
+      "required": false
+    },
+    {
+      "name": "LastName",
+      "jsonName": "lastName",
+      "protoField": "last_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "last name of the identity account.",
+      "required": false
+    },
+    {
+      "name": "PictureUrl",
+      "jsonName": "pictureUrl",
+      "protoField": "picture_url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "url of the profile picture for the user on auth0",
+      "required": false
+    },
+    {
+      "name": "IsMachineAccount",
+      "jsonName": "isMachineAccount",
+      "protoField": "is_machine_account",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "indicates if this is a machine account used for inter-service communication.\n machine accounts have idp_id values ending with \"@clients\" suffix.\n (ignored for create) this value is assigned by backend based on idp_id.",
+      "required": false
+    }
+  ]
+}

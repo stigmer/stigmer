@@ -1,0 +1,35 @@
+{
+  "name": "OrganizationSpec",
+  "kind": "ORGANIZATION_SPEC",
+  "description": "OrganizationSpec defines the configuration for an organization.\n Organizations are the top-level container for all Stigmer resources.\n Similar to GitHub organizations, all agents, workflows, and other resources\n are scoped under an organization.",
+  "protoType": "ai.stigmer.tenancy.organization.v1.OrganizationSpec",
+  "protoFile": "apis/ai/stigmer/tenancy/organization/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "description for the organization",
+      "required": false,
+      "validation": {
+        "maxLength": 500
+      }
+    },
+    {
+      "name": "LogoUrl",
+      "jsonName": "logoUrl",
+      "protoField": "logo_url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "public url for the organization logo (optional)",
+      "required": false,
+      "validation": {
+        "maxLength": 2048
+      }
+    }
+  ]
+}

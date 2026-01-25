@@ -1,0 +1,46 @@
+{
+  "name": "AgentInstanceSpec",
+  "kind": "AGENT_INSTANCE_SPEC",
+  "description": "AgentInstanceSpec defines a configured deployment of an Agent template.\n This is the \"Instance\" layer - stateful configuration with secrets.",
+  "protoType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec",
+  "protoFile": "apis/ai/stigmer/agentic/agentinstance/v1/spec.proto",
+  "fields": [
+    {
+      "name": "AgentId",
+      "jsonName": "agentId",
+      "protoField": "agent_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Reference to the Agent template this instance deploys.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description for this instance.\n Example: \"Production GitHub bot for main repo\"",
+      "required": false
+    },
+    {
+      "name": "EnvironmentRefs",
+      "jsonName": "environmentRefs",
+      "protoField": "environment_refs",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "References to Environment resources (can be multiple).\n Environments are merged in order: later environments override earlier ones.\n Example: [base-env, aws-prod-env, github-team-env]\n This allows layering of configurations (base → specific overrides).",
+      "required": false
+    }
+  ]
+}

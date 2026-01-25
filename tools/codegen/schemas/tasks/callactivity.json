@@ -13,7 +13,11 @@
         "kind": "string"
       },
       "description": "Activity name to execute.\n Must match registered Temporal activity.",
-      "required": false
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
     },
     {
       "name": "Input",

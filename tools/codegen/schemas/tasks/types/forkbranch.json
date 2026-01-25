@@ -12,7 +12,11 @@
         "kind": "string"
       },
       "description": "Branch name/identifier.",
-      "required": false
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
     },
     {
       "name": "Do",
@@ -26,7 +30,10 @@
         }
       },
       "description": "Tasks to execute in this branch.",
-      "required": false
+      "required": false,
+      "validation": {
+        "minItems": 1
+      }
     }
   ]
 }

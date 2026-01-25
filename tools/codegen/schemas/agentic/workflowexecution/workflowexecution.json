@@ -1,0 +1,82 @@
+{
+  "name": "WorkflowExecutionSpec",
+  "kind": "WORKFLOW_EXECUTION_SPEC",
+  "description": "WorkflowExecutionSpec defines the user-provided inputs for a workflow execution.\n\n This is the \"Execution\" layer in the Template→Instance→Execution pattern.\n WorkflowExecutionSpec is ephemeral - it defines the inputs for a single runtime invocation.\n\n Following Stigmer proto standards:\n - Spec contains ONLY user inputs (what the user controls)\n - Status contains execution state (what the system manages)\n\n The spec is immutable after creation. To retry with different inputs, create a new\n WorkflowExecution with updated spec values.\n\n Spec vs Status Separation:\n ✅ Spec: workflow_instance_id, workflow_id, trigger_message, trigger_metadata, runtime_env\n ✅ Status: phase, tasks, output, error, timestamps\n\n Instance Resolution (matches AgentExecution pattern):\n - Either workflow_instance_id OR workflow_id must be provided\n - If workflow_instance_id: Use the specified instance directly\n - If workflow_id: Resolve to workflow's default instance (auto-create if missing)\n - Handler enforces: at least one must be provided\n\n Example Use Case 1 (Direct Instance Reference):\n spec {\n   workflow_instance_id: \"wfi-customer-onboarding-prod\"\n   trigger_message: \"New signup: john.doe@example.com\"\n   trigger_metadata: {\n     \"source\": \"web_signup_form\"\n     \"ip_address\": \"203.0.113.42\"\n     \"referrer\": \"https://marketing.example.com/campaign\"\n     \"timestamp\": \"2025-01-11T14:30:22Z\"\n   }\n   runtime_env: {\n     \"CUSTOMER_EMAIL\": { value: \"john.doe@example.com\" }\n     \"CUSTOMER_PLAN\": { value: \"pro\" }\n     \"STRIPE_API_KEY\": { secret_ref: \"sec-stripe-prod\" }\n   }\n }\n\n Example Use Case 2 (Default Instance Resolution):\n spec {\n   workflow_id: \"wf-customer-onboarding\"  // System resolves to default instance\n   trigger_message: \"New signup: john.doe@example.com\"\n   runtime_env: {\n     \"CUSTOMER_EMAIL\": { value: \"john.doe@example.com\" }\n   }\n }",
+  "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec",
+  "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/spec.proto",
+  "fields": [
+    {
+      "name": "WorkflowInstanceId",
+      "jsonName": "workflowInstanceId",
+      "protoField": "workflow_instance_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the WorkflowInstance to execute (optional).\n\n The WorkflowInstance contains:\n - Reference to the Workflow template (orchestration definition)\n - Environment bindings (configuration and secrets)\n - Default configuration values\n\n Format: \"wfi-{slug}\" (e.g., \"wfi-customer-onboarding-prod\")\n\n Relationship:\n Workflow (template) → WorkflowInstance (config + secrets) → WorkflowExecution (runtime)\n\n Example:\n workflow_instance_id: \"wfi-customer-onboarding-prod\"\n\n The workflow_instance_id determines:\n - Which Workflow template to execute (the orchestration blueprint)\n - Which Environments provide configuration and secrets\n - What default values apply (if runtime_env doesn't override)\n\n Authorization:\n User must have \"execute\" permission on the referenced WorkflowInstance.\n\n Note: Either workflow_instance_id OR workflow_id must be provided.\n Handler enforces this validation.",
+      "required": false
+    },
+    {
+      "name": "WorkflowId",
+      "jsonName": "workflowId",
+      "protoField": "workflow_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the Workflow template to execute (optional).\n\n When workflow_id is provided without workflow_instance_id, the system:\n 1. Checks if the Workflow has a default_instance_id in its status\n 2. If exists: Uses the default instance\n 3. If missing: Auto-creates a default instance (name: \"{workflow_slug}-default\")\n 4. Updates the Workflow status with the default_instance_id\n 5. Executes using the resolved instance\n\n Format: \"wf-{slug}\" (e.g., \"wf-customer-onboarding\")\n\n This provides a simpler UX for common cases where users want to\n \"just execute a workflow\" without manually managing instances.\n\n Use Cases:\n - Quick workflow execution without instance setup\n - Development and testing (use default instance)\n - Simple workflows that don't need custom configuration\n\n For advanced use cases requiring custom environment bindings or\n multiple instances with different configurations, use workflow_instance_id.\n\n Authorization:\n User must have \"execute\" permission on the resolved WorkflowInstance.\n\n Note: Either workflow_instance_id OR workflow_id must be provided.\n Handler enforces this validation.",
+      "required": false
+    },
+    {
+      "name": "TriggerMessage",
+      "jsonName": "triggerMessage",
+      "protoField": "trigger_message",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Input message or payload for the workflow.\n\n This is the primary input to the workflow - the \"trigger event\" or \"request payload\".\n It can be:\n - A human-readable message (for conversational workflows)\n - A JSON payload (for API-triggered workflows)\n - An event description (for webhook/event-driven workflows)\n\n The workflow can access this value using: {{workflow.input.trigger_message}}\n Tasks can reference it in their input configurations.\n\n Examples:\n\n Conversational workflow:\n trigger_message: \"Analyze sentiment of recent customer feedback\"\n\n API workflow:\n trigger_message: '{\"customer_id\": \"cus-abc123\", \"action\": \"upgrade_plan\"}'\n\n Event-driven workflow:\n trigger_message: \"Payment received: $99.00 for order #12345\"\n\n The trigger_message is optional - some workflows don't need input (scheduled jobs,\n workflows that fetch data from APIs, etc.).",
+      "required": false
+    },
+    {
+      "name": "TriggerMetadata",
+      "jsonName": "triggerMetadata",
+      "protoField": "trigger_metadata",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "Trigger context metadata.\n\n Contains contextual information about who/what triggered this execution and how.\n This metadata is NOT used by the workflow logic itself - it's for audit, debugging,\n and analytics.\n\n Common metadata keys:\n - \"source\": How was this triggered? (api, webhook, schedule, manual, ui)\n - \"caller_id\": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)\n - \"ip_address\": Client IP address (for API/UI triggers)\n - \"user_agent\": Client user agent (for API/UI triggers)\n - \"referrer\": HTTP referrer (for UI triggers)\n - \"webhook_id\": Webhook ID (for webhook triggers)\n - \"schedule_id\": Schedule ID (for scheduled triggers)\n - \"timestamp\": When was it triggered? (ISO 8601)\n\n Example (API trigger):\n trigger_metadata: {\n   \"source\": \"api\"\n   \"caller_id\": \"usr-john-doe\"\n   \"ip_address\": \"203.0.113.42\"\n   \"user_agent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)\"\n   \"timestamp\": \"2025-01-11T14:30:22Z\"\n }\n\n Example (webhook trigger):\n trigger_metadata: {\n   \"source\": \"webhook\"\n   \"webhook_id\": \"whk-stripe-payment-received\"\n   \"webhook_source\": \"stripe.com\"\n   \"event_type\": \"payment_intent.succeeded\"\n   \"timestamp\": \"2025-01-11T14:30:22Z\"\n }\n\n Use Cases:\n - Audit trail: Who triggered this execution and when?\n - Analytics: Which trigger sources are most common?\n - Debugging: Was this triggered by a webhook or manually?\n - Rate limiting: Limit executions per user/source",
+      "required": false
+    },
+    {
+      "name": "RuntimeEnv",
+      "jsonName": "runtimeEnv",
+      "protoField": "runtime_env",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "ExecutionValue"
+        }
+      },
+      "description": "Runtime environment variables and secrets (execution-scoped).\n\n These values are only available for this specific execution and override values\n from Environments and Workflow defaults.\n\n Merge Priority (highest to lowest):\n 1. runtime_env (this field) - Execution-specific overrides\n 2. Environment values (from WorkflowInstance.environment_ids)\n 3. Workflow defaults (from Workflow.default_env)\n\n Use Cases:\n\n 1. B2B SaaS Integrations (e.g., Plant \u0026 Cloud):\n runtime_env: {\n   \"CUSTOMER_API_KEY\": { secret_ref: \"sec-customer-abc-api-key\" }\n   \"CUSTOMER_WORKSPACE_ID\": { value: \"ws-customer-abc\" }\n }\n\n 2. Dynamic Configuration:\n runtime_env: {\n   \"DEPLOYMENT_REGION\": { value: \"us-west-2\" }\n   \"ENABLE_BETA_FEATURES\": { value: \"true\" }\n }\n\n 3. Temporary Overrides (testing, debugging):\n runtime_env: {\n   \"LOG_LEVEL\": { value: \"debug\" }\n   \"DRY_RUN\": { value: \"true\" }\n }\n\n Value Types:\n - value: Plain text value (not encrypted, use for non-sensitive config)\n - secret_ref: Reference to a Secret resource (encrypted, use for API keys, passwords)\n\n Security:\n - runtime_env values are stored in ExecutionContext\n - ExecutionContext is deleted when execution completes (ephemeral secrets)\n - Secret references are resolved at runtime (never exposed in logs)\n\n Example:\n runtime_env: {\n   \"CUSTOMER_EMAIL\": {\n     value: \"john.doe@example.com\"\n   }\n   \"STRIPE_API_KEY\": {\n     secret_ref: \"sec-stripe-prod\"\n   }\n   \"WEBHOOK_URL\": {\n     secret_ref: \"sec-webhook-callback-url\"\n   }\n   \"ENABLE_NOTIFICATIONS\": {\n     value: \"true\"\n   }\n }\n\n Tasks can access these values using: {{env.VARIABLE_NAME}}",
+      "required": false
+    },
+    {
+      "name": "CallbackToken",
+      "jsonName": "callbackToken",
+      "protoField": "callback_token",
+      "type": {
+        "kind": "bytes"
+      },
+      "description": "Temporal task token for async activity completion (optional).\n\n **Purpose**: Enables async activity completion pattern where the caller\n (typically a parent workflow or orchestrator) waits for actual workflow completion\n without blocking worker threads.\n\n **Flow**:\n 1. Caller (Temporal activity) extracts its task token\n 2. Passes token in this field when creating WorkflowExecution\n 3. Returns activity.ErrResultPending (activity paused, thread released)\n 4. Workflow executes (minutes/hours later)\n 5. Workflow calls ActivityCompletionClient.complete(token, result)\n 6. Temporal resumes the paused activity with the result\n\n **Benefits**:\n - Correctness: Caller waits for actual completion, not just ACK\n - Scalability: Worker threads not blocked during long-running execution\n - Resilience: Token is durable in Temporal; survives restarts\n - Decoupling: Caller doesn't poll or manage workflow lifecycle\n\n **When Empty**:\n - Empty/null = fire-and-forget or direct API call (backward compatible)\n - Workflow execution proceeds normally, no callback performed\n - Use case: CLI commands, API requests, non-workflow triggers\n\n **When Provided**:\n - Workflow MUST complete the external activity using this token\n - Both success and failure paths must call completion\n - Token uniquely identifies the external activity execution\n\n **Token Format**:\n - Opaque binary blob from Temporal SDK (typically 100-200 bytes)\n - Contains: namespace, workflow ID, run ID, activity ID, attempt\n - DO NOT parse or modify - treat as opaque handle\n\n **Security**:\n - Token grants ability to complete the activity (bearer token)\n - Should only be passed through trusted internal services\n - Logged as Base64-encoded string (truncated for security)\n\n **Timeout**:\n - Caller should set StartToCloseTimeout (e.g., 24 hours)\n - If token callback never arrives, activity times out\n - Prevents infinite hangs if workflow crashes\n\n **Observability**:\n - Token is logged at creation time (Base64, first 20 chars)\n - Activity appears as \"Running\" in Temporal UI until completed\n - Both caller workflow and this workflow visible in Temporal\n\n **Consistency with AgentExecution**:\n - Same pattern as AgentExecution.spec.callback_token\n - Enables workflow-calling-workflow scenarios\n - Future: WorkflowExecution calling WorkflowExecution\n\n **References**:\n - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md\n - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion\n - Go SDK: https://pkg.go.dev/go.temporal.io/sdk/activity#ErrResultPending\n - Java SDK: https://www.javadoc.io/doc/io.temporal/temporal-sdk/latest/io/temporal/client/ActivityCompletionClient.html\n\n @since 2026-01-22 (Phase 3: Workflow Async Completion)",
+      "required": false
+    }
+  ]
+}
