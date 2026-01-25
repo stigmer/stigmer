@@ -27,6 +27,7 @@ go_library(
         "//backend/services/workflow-runner/pkg/runner",
         "//client-apps/cli/embedded",
         "//client-apps/cli/internal/cli/agent",
+        "//client-apps/cli/internal/cli/artifact",
         "//client-apps/cli/internal/cli/backend",
         "//client-apps/cli/internal/cli/clierr",
         "//client-apps/cli/internal/cli/cliprint",

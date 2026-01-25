@@ -71,10 +71,13 @@ See [design-decisions/](design-decisions/) for complete architectural documentat
 See [tasks/T01_0_plan.md](tasks/T01_0_plan.md) for the detailed implementation plan.
 
 ### Latest Checkpoint
-**2026-01-25**: T01.1 Proto API Definitions Complete ([checkpoint](checkpoints/2026-01-25-t01-1-proto-definitions-complete.md))
-- All proto definitions implemented with simplified push-based workflow
-- No backward compatibility (clean slate as requested)
-- Ready for T01.2 CLI Enhancement
+**2026-01-25**: T01.2 CLI Enhancement Complete ([checkpoint](checkpoints/2026-01-25-t01-2-cli-enhancement-complete.md))
+- Artifact Mode implemented with automatic SKILL.md detection
+- Intelligent zip creation with exclusions
+- SHA256 hash calculation for content-addressable storage
+- Folder name as skill name (backend normalizes)
+- Organization scope hardcoded (platform scope deferred)
+- Ready for T01.3 Backend Implementation
 
 ### Progress Tracking
 - [x] Project initialized
@@ -82,8 +85,8 @@ See [tasks/T01_0_plan.md](tasks/T01_0_plan.md) for the detailed implementation p
 - [x] Architecture designed (2026-01-25)
 - [x] Design decisions documented (2026-01-25)
 - [x] Proto API implementation (2026-01-25) ✅ T01.1 Complete
-- [ ] CLI enhancement (Next: T01.2)
-- [ ] Backend implementation
+- [x] CLI enhancement (2026-01-25) ✅ T01.2 Complete
+- [ ] Backend implementation (Next: T01.3)
 - [ ] Agent integration
 - [ ] Testing and validation
 - [ ] Documentation finalized
