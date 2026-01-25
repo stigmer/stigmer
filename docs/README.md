@@ -28,6 +28,8 @@ Complete documentation index for the Stigmer open-source project.
 - [Agent Runner: Local Mode](guides/agent-runner-local-mode.md) - Running the agent runner in local vs cloud mode
 - [Stigmer New Command](guides/stigmer-new-command.md) - Complete setup for the `stigmer new` command, demo repository, and zero-config quickstart
 - [Temporal Connection Resilience - Quick Start](guides/temporal-connection-resilience-quick-start.md) - Quick guide to understanding and using automatic Temporal reconnection
+- [Temporal Async Activity Completion](guides/temporal-async-activity-completion.md) - **NEW**: Developer guide for integrating with async activity completion (token handshake) pattern for long-running operations
+- [Temporal Token Handshake Operations](guides/temporal-token-handshake-operations.md) - **NEW**: Operator runbook for monitoring, troubleshooting, and maintaining the token handshake pattern in production
 
 ### Implementation
 - [Phase 1 Foundation](implementation/phase-1-foundation.md) - Phase 1 implementation summary: repository structure, gRPC architecture, and database design
@@ -66,7 +68,7 @@ Complete documentation index for the Stigmer open-source project.
 - [In-Process gRPC Calls and Agent Instance Creation](adr/20260118-214000-in-process-grpc-calls-and-agent-instance-creation.md) - In-process gRPC architecture
 - [Fix Go In-Process gRPC Implementation](adr/20260118-fix-go-inprocess-grpc-implementation.md) - Technical fixes for in-process gRPC
 - [Workflow Runner Config](adr/20260119-011111-workflow-runner-config.md) - Workflow runner configuration architecture
-- [Async Agent Execution - Temporal Token Handshake](adr/20260122-async-agent-execution-temporal-token-handshake.md) - Async activity completion pattern for non-blocking agent execution
+- [Async Agent Execution - Temporal Token Handshake](adr/20260122-async-agent-execution-temporal-token-handshake.md) - **✅ IMPLEMENTED**: Async activity completion pattern for non-blocking agent execution (Go + Java)
 
 **Note**: See `_cursor/adr-doc` for ADR 016: Local Agent Runner Runtime Strategy (implementation guide)
 
