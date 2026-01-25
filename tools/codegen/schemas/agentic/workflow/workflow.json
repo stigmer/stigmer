@@ -1,0 +1,61 @@
+{
+  "name": "WorkflowSpec",
+  "kind": "WORKFLOW_SPEC",
+  "description": "WorkflowSpec defines the complete specification of a workflow.\n Follows the \"kind + Struct\" pattern from CloudResource (Planton Cloud).\n\n This replaces the old `synthesized_yaml` field with structured proto definitions.\n Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,\n providing maximum flexibility and extensibility.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowSpec",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description for UI and marketplace display.",
+      "required": false
+    },
+    {
+      "name": "Document",
+      "jsonName": "document",
+      "protoField": "document",
+      "type": {
+        "kind": "message",
+        "messageType": "WorkflowDocument"
+      },
+      "description": "Workflow document metadata (DSL version, namespace, name, version).",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Tasks",
+      "jsonName": "tasks",
+      "protoField": "tasks",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "WorkflowTask"
+        }
+      },
+      "description": "Ordered list of tasks that make up this workflow.\n Tasks execute sequentially unless fork/parallel is used.",
+      "required": false,
+      "validation": {
+        "minItems": 1
+      }
+    },
+    {
+      "name": "EnvSpec",
+      "jsonName": "envSpec",
+      "protoField": "env_spec",
+      "type": {
+        "kind": "message",
+        "messageType": "EnvironmentSpec"
+      },
+      "description": "Environment variables required by the workflow.\n Uses the shared EnvironmentSpec for consistent env var handling.",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "name": "ApiResourceRef",
+  "description": "ApiResourceRef represents a reference to ANY API resource in the system.\n It is intentionally generic and reusable for both principals and resources\n to maintain symmetry and flexibility in the authorization model.\n\n This message contains ONLY identification fields (kind, id, relation).\n For view/query responses that need display information, use ApiResourceRefView in io.proto.",
+  "protoType": "ai.stigmer.iam.iampolicy.v1.ApiResourceRef",
+  "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Kind",
+      "jsonName": "kind",
+      "protoField": "kind",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Type of the API resource being referenced\n This should be the resource kind as defined in ApiResourceKind enum.\n Examples: \"identity_account\", \"team\", \"organization\", \"environment\",\n \"cloud_resource\", \"service\", etc.",
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1,
+        "maxLength": 256
+      }
+    },
+    {
+      "name": "Id",
+      "jsonName": "id",
+      "protoField": "id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Unique identifier of the resource\n This is the resource's ID field (e.g., ia-01HQUSER123, tm-01HQTEAM456)",
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1,
+        "maxLength": 256
+      }
+    },
+    {
+      "name": "Relation",
+      "jsonName": "relation",
+      "protoField": "relation",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Optional relation qualifier for the resource reference\n Used when the reference needs additional context about the relationship.\n\n Primary use case: For team principals, this specifies the relation of the\n user to the team (e.g., \"member\", \"admin\").\n Example: principal { kind: \"team\", id: \"tm-123\", relation: \"member\" }\n means \"members of team tm-123\"\n\n In OpenFGA tuple notation, this becomes:\n team:tm-123#member (as the subject of the tuple)\n\n This field qualifies HOW the principal relates to this resource reference,\n NOT the permission being granted (that's IamPolicySpec.relation).",
+      "required": false,
+      "validation": {
+        "maxLength": 256
+      }
+    }
+  ]
+}

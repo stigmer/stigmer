@@ -1,0 +1,35 @@
+{
+  "name": "SkillSpec",
+  "kind": "SKILL_SPEC",
+  "description": "SkillSpec defines the user-provided configuration of a skill.\n This represents user intent (desired state).",
+  "protoType": "ai.stigmer.agentic.skill.v1.SkillSpec",
+  "protoFile": "apis/ai/stigmer/agentic/skill/v1/spec.proto",
+  "fields": [
+    {
+      "name": "SkillMd",
+      "jsonName": "skillMd",
+      "protoField": "skill_md",
+      "type": {
+        "kind": "string"
+      },
+      "description": "SKILL.md content containing the skill's interface definition,\n documentation, usage examples, and tool descriptions.\n This content is injected into agent prompts.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Tag",
+      "jsonName": "tag",
+      "protoField": "tag",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Optional user-provided tag for this skill version.\n Tags are mutable pointers that can be updated to reference new versions.\n Examples: \"stable\", \"v1.0\", \"beta\", \"latest\"\n If not provided, the version will only be accessible via its immutable hash.",
+      "required": false,
+      "validation": {
+        "pattern": "^$|^[a-zA-Z0-9._-]+$"
+      }
+    }
+  ]
+}

@@ -12,8 +12,12 @@
         "kind": "string"
       },
       "description": "URI of the endpoint.\n Can contain expressions: \"https://api.example.com/${.resource}\"",
-      "required": false,
-      "isExpression": true
+      "required": true,
+      "isExpression": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
     }
   ]
 }

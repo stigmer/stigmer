@@ -12,7 +12,14 @@
         "kind": "string"
       },
       "description": "Listening mode:\n - \"one\": Wait for any one signal\n - \"all\": Wait for all signals",
-      "required": false
+      "required": true,
+      "validation": {
+        "required": true,
+        "enum": [
+          "one",
+          "all"
+        ]
+      }
     },
     {
       "name": "Signals",
@@ -26,7 +33,10 @@
         }
       },
       "description": "Signals to listen for.",
-      "required": false
+      "required": false,
+      "validation": {
+        "minItems": 1
+      }
     }
   ]
 }

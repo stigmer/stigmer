@@ -23,8 +23,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
@@ -244,59 +246,93 @@ func main() {
 	fmt.Println("\n✅ Schema generation complete!")
 }
 
-// runComprehensiveGeneration scans all proto namespaces and generates schemas
+// runComprehensiveGeneration scans all proto namespaces and generates schemas.
+// This includes agentic, iam, and tenancy namespaces.
 func runComprehensiveGeneration(includeDir, baseOutputDir string, useBufCache bool) error {
 	// Default output directory
 	if baseOutputDir == "" {
 		baseOutputDir = "tools/codegen/schemas"
 	}
 
-	// Find all agentic namespaces
-	agenticDir := filepath.Join(includeDir, "ai", "stigmer", "agentic")
-	namespaces, err := os.ReadDir(agenticDir)
-	if err != nil {
-		return fmt.Errorf("failed to read agentic directory: %w", err)
+	stigmerDir := filepath.Join(includeDir, "ai", "stigmer")
+
+	// Define all top-level namespaces to scan
+	// Each namespace has its own directory structure under apis/ai/stigmer/
+	topLevelNamespaces := []struct {
+		name     string   // Directory name (e.g., "agentic", "iam", "tenancy")
+		skip     []string // Subdirectories to skip
+		flatScan bool     // If true, scan subdirectories (iam/apikey), if false, scan direct children (agentic/agent)
+	}{
+		{name: "agentic", skip: []string{"session"}, flatScan: false},
+		{name: "iam", skip: nil, flatScan: true},
+		{name: "tenancy", skip: nil, flatScan: true},
 	}
 
-	fmt.Printf("📁 Scanning namespaces in %s\n\n", agenticDir)
+	fmt.Printf("📁 Scanning namespaces in %s\n\n", stigmerDir)
 
-	// Process each namespace
-	for _, ns := range namespaces {
-		if !ns.IsDir() {
+	for _, ns := range topLevelNamespaces {
+		namespaceDir := filepath.Join(stigmerDir, ns.name)
+		if _, err := os.Stat(namespaceDir); os.IsNotExist(err) {
+			fmt.Printf("⏭️  Skipping %s (directory not found)\n", ns.name)
 			continue
 		}
 
-		namespaceName := ns.Name()
+		fmt.Printf("📦 Processing top-level namespace: %s\n", ns.name)
 
-		// Skip certain directories
-		if namespaceName == "session" {
-			fmt.Printf("⏭️  Skipping %s (internal only)\n", namespaceName)
+		// Read subdirectories
+		subDirs, err := os.ReadDir(namespaceDir)
+		if err != nil {
+			fmt.Printf("   ❌ Error reading directory: %v\n", err)
 			continue
 		}
 
-		fmt.Printf("📦 Processing namespace: %s\n", namespaceName)
+		for _, subDir := range subDirs {
+			if !subDir.IsDir() {
+				continue
+			}
 
-		// Path to proto files for this namespace
-		protoDir := filepath.Join(agenticDir, namespaceName, "v1")
-		if _, err := os.Stat(protoDir); os.IsNotExist(err) {
-			fmt.Printf("   ⚠️  No v1 directory found, skipping\n")
-			continue
+			subDirName := subDir.Name()
+
+			// Check if this subdirectory should be skipped
+			shouldSkip := false
+			for _, skipName := range ns.skip {
+				if subDirName == skipName {
+					shouldSkip = true
+					break
+				}
+			}
+			if shouldSkip {
+				fmt.Printf("   ⏭️  Skipping %s/%s (internal only)\n", ns.name, subDirName)
+				continue
+			}
+
+			fmt.Printf("   📄 Processing %s/%s\n", ns.name, subDirName)
+
+			// Path to proto files - structure is <namespace>/<subdomain>/v1/
+			protoDir := filepath.Join(namespaceDir, subDirName, "v1")
+			if _, err := os.Stat(protoDir); os.IsNotExist(err) {
+				fmt.Printf("      ⚠️  No v1 directory found, skipping\n")
+				continue
+			}
+
+			// Output directory preserves the namespace hierarchy
+			outputDir := filepath.Join(baseOutputDir, ns.name, subDirName)
+
+			// Generate schemas for Spec messages
+			if err := generateNamespaceSchemas(protoDir, outputDir, includeDir, useBufCache, "Spec"); err != nil {
+				fmt.Printf("      ❌ Error: %v\n", err)
+				continue
+			}
+
+			fmt.Printf("      ✅ Generated schemas\n")
 		}
 
-		// Output directory for this namespace
-		outputDir := filepath.Join(baseOutputDir, namespaceName)
-
-		// Generate schemas for Spec messages
-		if err := generateNamespaceSchemas(protoDir, outputDir, includeDir, useBufCache, "Spec"); err != nil {
-			fmt.Printf("   ❌ Error: %v\n", err)
-			continue
-		}
-
-		fmt.Printf("   ✅ Generated schemas for %s\n\n", namespaceName)
+		fmt.Println()
 	}
 
-	// Also process workflow tasks (special case)
+	// Process workflow tasks (special case - nested under agentic/workflow/v1/tasks/)
 	fmt.Printf("📦 Processing workflow tasks\n")
+	agenticDir := filepath.Join(stigmerDir, "agentic")
 	workflowTasksDir := filepath.Join(agenticDir, "workflow", "v1", "tasks")
 	tasksOutputDir := filepath.Join(baseOutputDir, "tasks")
 	if err := generateNamespaceSchemas(workflowTasksDir, tasksOutputDir, includeDir, useBufCache, "TaskConfig"); err != nil {
@@ -640,62 +676,156 @@ func extractScalarTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 	}
 }
 
-// extractValidation extracts buf.validate validation rules from field options
+// extractValidation extracts buf.validate validation rules from field options using protoreflect APIs.
+// This properly parses the buf.validate.field extension instead of relying on brittle string matching.
 func extractValidation(field *desc.FieldDescriptor) *Validation {
 	opts := field.GetFieldOptions()
 	if opts == nil {
 		return nil
 	}
 
+	// Use proto.GetExtension to properly extract buf.validate.field rules
+	ext := proto.GetExtension(opts, validate.E_Field)
+	if ext == nil {
+		return nil
+	}
+
+	fieldRules, ok := ext.(*validate.FieldRules)
+	if !ok || fieldRules == nil {
+		return nil
+	}
+
 	validation := &Validation{}
 	hasValidation := false
 
-	// Get the full proto text representation of the field
-	// This includes all options and extensions
-	protoText := field.AsProto().String()
-	optsStr := opts.String()
-
-	// Combine both to have maximum coverage
-	fullText := protoText + " " + optsStr
-
-	// Check for buf.validate.field extension
-	// Multiple patterns to catch different representations
-	if strings.Contains(fullText, "[buf.validate.field]") ||
-		strings.Contains(fullText, "buf.validate.field") ||
-		strings.Contains(fullText, "1071") {
+	// Required constraint
+	if fieldRules.GetRequired() {
+		validation.Required = true
 		hasValidation = true
+	}
 
-		// Check for required constraint
-		// Various patterns: "required = true", "required:true", "required: true"
-		if strings.Contains(fullText, "required") &&
-			(strings.Contains(fullText, "= true") ||
-				strings.Contains(fullText, ":true") ||
-				strings.Contains(fullText, ": true")) {
-			validation.Required = true
+	// String constraints
+	if strRules := fieldRules.GetString(); strRules != nil {
+		if strRules.HasMinLen() {
+			validation.MinLength = int(strRules.GetMinLen())
+			hasValidation = true
 		}
+		if strRules.HasMaxLen() {
+			validation.MaxLength = int(strRules.GetMaxLen())
+			hasValidation = true
+		}
+		if strRules.HasPattern() {
+			validation.Pattern = strRules.GetPattern()
+			hasValidation = true
+		}
+		// String enum constraints (string.in)
+		if len(strRules.GetIn()) > 0 {
+			validation.Enum = strRules.GetIn()
+			hasValidation = true
+		}
+	}
 
-		// Check for string validation (min_len, max_len)
-		if strings.Contains(fullText, "min_len") {
-			validation.MinLength = extractIntFromOptions(fullText, "min_len")
+	// Int32 constraints
+	if int32Rules := fieldRules.GetInt32(); int32Rules != nil {
+		if gte := int32Rules.GetGte(); gte != 0 {
+			validation.Min = int(gte)
+			hasValidation = true
 		}
-		if strings.Contains(fullText, "max_len") {
-			validation.MaxLength = extractIntFromOptions(fullText, "max_len")
+		if lte := int32Rules.GetLte(); lte != 0 {
+			validation.Max = int(lte)
+			hasValidation = true
 		}
+		if gt := int32Rules.GetGt(); gt != 0 {
+			validation.Min = int(gt) + 1
+			hasValidation = true
+		}
+		if lt := int32Rules.GetLt(); lt != 0 {
+			validation.Max = int(lt) - 1
+			hasValidation = true
+		}
+	}
 
-		// Check for numeric validation (gte, lte)
-		if strings.Contains(fullText, "gte") {
-			validation.Min = extractIntFromOptions(fullText, "gte")
+	// Int64 constraints
+	if int64Rules := fieldRules.GetInt64(); int64Rules != nil {
+		if gte := int64Rules.GetGte(); gte != 0 {
+			validation.Min = int(gte)
+			hasValidation = true
 		}
-		if strings.Contains(fullText, "lte") {
-			validation.Max = extractIntFromOptions(fullText, "lte")
+		if lte := int64Rules.GetLte(); lte != 0 {
+			validation.Max = int(lte)
+			hasValidation = true
 		}
+		if gt := int64Rules.GetGt(); gt != 0 {
+			validation.Min = int(gt) + 1
+			hasValidation = true
+		}
+		if lt := int64Rules.GetLt(); lt != 0 {
+			validation.Max = int(lt) - 1
+			hasValidation = true
+		}
+	}
 
-		// Check for array validation (min_items, max_items)
-		if strings.Contains(fullText, "min_items") {
-			validation.MinItems = extractIntFromOptions(fullText, "min_items")
+	// Float constraints
+	if floatRules := fieldRules.GetFloat(); floatRules != nil {
+		if gte := floatRules.GetGte(); gte != 0 {
+			validation.Min = int(gte)
+			hasValidation = true
 		}
-		if strings.Contains(fullText, "max_items") {
-			validation.MaxItems = extractIntFromOptions(fullText, "max_items")
+		if lte := floatRules.GetLte(); lte != 0 {
+			validation.Max = int(lte)
+			hasValidation = true
+		}
+	}
+
+	// Double constraints
+	if doubleRules := fieldRules.GetDouble(); doubleRules != nil {
+		if gte := doubleRules.GetGte(); gte != 0 {
+			validation.Min = int(gte)
+			hasValidation = true
+		}
+		if lte := doubleRules.GetLte(); lte != 0 {
+			validation.Max = int(lte)
+			hasValidation = true
+		}
+	}
+
+	// Repeated (array) constraints
+	if repeatedRules := fieldRules.GetRepeated(); repeatedRules != nil {
+		if minItems := repeatedRules.GetMinItems(); minItems != 0 {
+			validation.MinItems = int(minItems)
+			hasValidation = true
+		}
+		if maxItems := repeatedRules.GetMaxItems(); maxItems != 0 {
+			validation.MaxItems = int(maxItems)
+			hasValidation = true
+		}
+	}
+
+	// Map constraints
+	if mapRules := fieldRules.GetMap(); mapRules != nil {
+		if minPairs := mapRules.GetMinPairs(); minPairs != 0 {
+			validation.MinItems = int(minPairs)
+			hasValidation = true
+		}
+		if maxPairs := mapRules.GetMaxPairs(); maxPairs != 0 {
+			validation.MaxItems = int(maxPairs)
+			hasValidation = true
+		}
+	}
+
+	// Bytes constraints (similar to string)
+	if bytesRules := fieldRules.GetBytes(); bytesRules != nil {
+		if bytesRules.HasMinLen() {
+			validation.MinLength = int(bytesRules.GetMinLen())
+			hasValidation = true
+		}
+		if bytesRules.HasMaxLen() {
+			validation.MaxLength = int(bytesRules.GetMaxLen())
+			hasValidation = true
+		}
+		if bytesRules.HasPattern() {
+			validation.Pattern = bytesRules.GetPattern()
+			hasValidation = true
 		}
 	}
 
@@ -737,39 +867,6 @@ func extractIsExpression(field *desc.FieldDescriptor) bool {
 	}
 
 	return false
-}
-
-// extractIntFromOptions extracts an integer value from options string
-// Example: "min_len:1" or "min_len = 1" returns 1
-func extractIntFromOptions(optsStr, key string) int {
-	idx := strings.Index(optsStr, key)
-	if idx == -1 {
-		return 0
-	}
-
-	// Start after the key
-	start := idx + len(key)
-
-	// Skip whitespace, ":", "=", and more whitespace
-	for start < len(optsStr) && (optsStr[start] == ' ' || optsStr[start] == ':' || optsStr[start] == '=') {
-		start++
-	}
-
-	end := start
-
-	// Find the end of the number
-	for end < len(optsStr) && optsStr[end] >= '0' && optsStr[end] <= '9' {
-		end++
-	}
-
-	if end > start {
-		numStr := optsStr[start:end]
-		var num int
-		fmt.Sscanf(numStr, "%d", &num)
-		return num
-	}
-
-	return 0
 }
 
 // extractComments extracts documentation from a message descriptor

@@ -17,7 +17,10 @@
         }
       },
       "description": "Tasks to attempt (at least one required).\n If any task fails, execution jumps to catch block.",
-      "required": false
+      "required": false,
+      "validation": {
+        "minItems": 1
+      }
     },
     {
       "name": "Catch",

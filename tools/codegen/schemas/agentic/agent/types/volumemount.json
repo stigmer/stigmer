@@ -1,0 +1,44 @@
+{
+  "name": "VolumeMount",
+  "description": "VolumeMount defines a Docker volume mount.",
+  "protoType": "ai.stigmer.agentic.agent.v1.VolumeMount",
+  "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
+  "fields": [
+    {
+      "name": "HostPath",
+      "jsonName": "hostPath",
+      "protoField": "host_path",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Host path to mount.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "ContainerPath",
+      "jsonName": "containerPath",
+      "protoField": "container_path",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Container path where the volume is mounted.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "ReadOnly",
+      "jsonName": "readOnly",
+      "protoField": "read_only",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether the mount is read-only (default: false).",
+      "required": false
+    }
+  ]
+}
