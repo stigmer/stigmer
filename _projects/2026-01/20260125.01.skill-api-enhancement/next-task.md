@@ -68,12 +68,120 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-25 12:14
-**Current Task**: T01.10 Go Unit & Integration Tests ✅
-**Status**: Go Tests Complete
-**Last Session**: 2026-01-25 - Go Test Implementation
-**Last Completed**: Implemented comprehensive Go tests for skill domain (65 tests) ✅ 2026-01-25
+**Current Task**: T01.12 CLI Skill Command ✅
+**Status**: CLI Refactor Complete
+**Last Session**: 2026-01-25 - CLI Skill Command Refactor
+**Last Completed**: Refactored CLI with dedicated `stigmer skill push` command, removed artifact mode from apply ✅ 2026-01-25
 
-## Session Progress (2026-01-25 - Go Test Implementation)
+## Session Progress (2026-01-25 - CLI Skill Command Refactor)
+
+### What Was Accomplished - CLI Command Hierarchy Refactor
+
+**Implemented dedicated `stigmer skill` command group following industry best practices (kubectl, docker, gh):**
+
+**Design Decision - Hierarchical Hybrid Model:**
+```
+VERB-FIRST (Primary workflows)     NOUN-FIRST (Resource management)
+├── apply                          ├── skill    [push]
+├── run                            ├── server   [start, stop, status, logs]
+├── new                            ├── backend  [set, status]
+                                   └── config   [set, get]
+```
+
+**Key Changes:**
+
+| Change | Description |
+|--------|-------------|
+| **Created** `skill.go` | New skill command group with `push` subcommand (~230 lines) |
+| **Refactored** `apply.go` | Removed artifact mode detection (~130 lines removed) |
+| **Updated** `root.go` | Registered `NewSkillCommand()` |
+| **Updated** `COMMANDS.md` | Added skill management documentation |
+
+**New CLI Commands:**
+```bash
+stigmer skill push              # Push from current directory
+stigmer skill push ./my-skill/  # Push from specific directory
+stigmer skill push --tag v1.0   # Push with specific tag
+stigmer skill push --org acme   # Push to specific organization
+stigmer skill push --dry-run    # Validate without pushing
+```
+
+**Bug Fixes (Pre-existing):**
+1. `internal/cli/artifact/skill.go` - Fixed incorrect field access on Skill response
+   - `response.VersionHash` → `response.Status.VersionHash`
+   - `response.Tag` → `response.Spec.Tag`
+   - `response.ArtifactStorageKey` → `response.Status.ArtifactStorageKey`
+2. `backend/.../get_artifact.go` - Fixed `ctx.Request()` → `ctx.Input()`
+
+### Files Created (This Session)
+
+**stigmer OSS repo:**
+```
+client-apps/cli/cmd/stigmer/root/
+└── skill.go   # NEW - ~230 lines (skill command group + push subcommand)
+```
+
+### Files Modified (This Session)
+
+**stigmer OSS repo:**
+```
+client-apps/cli/
+├── cmd/stigmer/root.go           # +1 line (register skill command)
+├── cmd/stigmer/root/apply.go     # -204 lines (removed artifact mode)
+├── internal/cli/artifact/skill.go # +6/-6 (fix field access)
+├── COMMANDS.md                    # +24 lines (skill docs)
+backend/services/stigmer-server/pkg/domain/skill/controller/
+└── get_artifact.go               # +1/-1 (fix ctx.Input())
+```
+
+### Build Verification
+```
+✅ CLI builds successfully
+✅ `stigmer skill --help` works
+✅ `stigmer skill push --help` shows correct usage
+✅ `stigmer apply --help` shows updated message
+```
+
+---
+
+## Previous Session Progress (2026-01-25 - MongoDB Index Migration)
+
+### What Was Accomplished - MongoDB skill_audit Indexes
+
+**Created production-grade Mongock migration for skill_audit collection indexes:**
+
+**Migration File Created:**
+- `U20260125_SkillAuditIndexes.java` - 7 compound indexes following ESR rule
+
+**Indexes Implemented:**
+
+| Index | Fields | Query Methods Covered |
+|-------|--------|----------------------|
+| 1 | `skillId` + `archivedAt` DESC | `findAllBySkillId`, `deleteBySkillId` |
+| 2 | `skillId` + `status.versionHash` | `findBySkillIdAndVersionHash` |
+| 3 | `skillId` + `spec.tag` + `archivedAt` DESC | `findMostRecentBySkillIdAndTag` |
+| 4 | `metadata.org` + `metadata.slug` + `status.versionHash` | `findByOrgAndSlugAndVersionHash` |
+| 5 | `metadata.org` + `metadata.slug` + `spec.tag` + `archivedAt` DESC | `findMostRecentByOrgAndSlugAndTag` |
+| 6 | `metadata.ownerScope` + `metadata.slug` + `status.versionHash` | `findByOwnerScopeAndSlugAndVersionHash` |
+| 7 | `metadata.ownerScope` + `metadata.slug` + `spec.tag` + `archivedAt` DESC | `findMostRecentByOwnerScopeAndSlugAndTag` |
+
+**Key Design Decisions:**
+- **ESR Rule**: All compound indexes follow MongoDB's Equality-Sort-Range optimization
+- **Idempotent Rollback**: `dropIndexSafely()` helper for graceful rollbacks
+- **Comprehensive Javadoc**: Documents schema, index purposes, query coverage
+- **Consistent Patterns**: Follows established codebase patterns from `U20250101_IamPolicyIndexes.java`
+
+### File Created (This Session)
+
+**stigmer-cloud repo:**
+```
+backend/services/stigmer-service/src/main/java/ai/stigmer/migrations/
+└── U20260125_SkillAuditIndexes.java   # NEW - 7 compound indexes, ~190 lines
+```
+
+---
+
+## Previous Session Progress (2026-01-25 - Go Test Implementation)
 
 ### What Was Accomplished - Go Unit & Integration Tests
 
@@ -393,17 +501,20 @@ Before testing:
 3. ✅ ~~**Unit Tests (Python/Java)**~~ - COMPLETED (Python: 29 tests, Java: 11 tests)
 4. ✅ ~~**Integration Tests (Python/Java)**~~ - COMPLETED (Python: 21 tests, Java: 18 tests)
 5. ✅ ~~**Go Unit & Integration Tests**~~ - COMPLETED (65 tests for skill domain)
-6. **MongoDB Migration**: Add indices to `skill_audit` collection
-7. **CLI Enhancement**: Add `stigmer skill push` command
+6. ✅ ~~**MongoDB Migration**~~ - COMPLETED (7 compound indexes for skill_audit)
+7. ✅ ~~**CLI Enhancement**~~ - COMPLETED (`stigmer skill push` command)
 8. **Documentation**: Update agent-runner docs with complete skill architecture
+9. **Commit Changes**: Commit CLI refactor changes (uncommitted)
 
 ## Context for Resume
 
+- **CLI refactor COMPLETE**: Dedicated `stigmer skill push` command implemented
 - **Artifact download & extraction COMPLETE**: Full pipeline implemented per ADR 001
 - **OSS GetArtifact handler COMPLETE**: Go implementation matching Java/Cloud version
 - **Unit tests COMPLETE**: Python (29 tests) + Java (11 tests) for artifact pipeline
 - **Integration tests COMPLETE**: Python (21 tests) + Java (18 tests) for full pipeline
 - **Go tests COMPLETE**: 65 tests for skill domain (storage + controller + integration)
+- **MongoDB indexes COMPLETE**: 7 compound indexes for skill_audit collection
 - **Skill injection complete**: Full SKILL.md content injected into prompts
 - **Both local and cloud modes supported**: Works with filesystem and Daytona
 - **Graceful degradation**: Falls back to SKILL.md-only if artifact download fails
@@ -411,6 +522,7 @@ Before testing:
 - **ADR 001 compliance verified**: All ADR validation requirements tested
 - **R2 bucket not yet created**: Placeholders in stigmer-cloud secrets (pending user action)
 - **Build issue note**: `bazel build` has pre-existing issue with missing `com_github_google_safearchive` repo (not related to changes)
+- **CLI command hierarchy**: Now follows industry best practices (verb-first + noun-first hybrid)
 
 ## What's Complete (ADR 001)
 
@@ -423,19 +535,24 @@ Per ADR 001, the complete skill injection and mounting architecture is now imple
 
 ## Uncommitted Changes
 
-**stigmer OSS repo (Go test session):**
-- `backend/services/stigmer-server/pkg/domain/skill/storage/testutil.go` - NEW test utilities
-- `backend/services/stigmer-server/pkg/domain/skill/storage/artifact_storage_test.go` - NEW 11 tests
-- `backend/services/stigmer-server/pkg/domain/skill/storage/zip_extractor_test.go` - NEW 18 tests
-- `backend/services/stigmer-server/pkg/domain/skill/controller/get_artifact_test.go` - NEW 5 tests
-- `backend/services/stigmer-server/pkg/domain/skill/controller/push_test.go` - NEW 20 tests
-- `backend/services/stigmer-server/pkg/domain/skill/controller/integration_test.go` - NEW 11 tests
-- `backend/services/stigmer-server/pkg/domain/skill/storage/BUILD.bazel` - MODIFIED (+16 lines)
-- `backend/services/stigmer-server/pkg/domain/skill/controller/BUILD.bazel` - MODIFIED (+9 lines)
-- `_projects/2026-01/20260125.01.skill-api-enhancement/next-task.md` - this file (updated)
+**stigmer OSS repo (CLI Refactor Session):**
+```
+Modified files:
+- client-apps/cli/cmd/stigmer/root.go              # +1 line (register skill command)
+- client-apps/cli/cmd/stigmer/root/apply.go        # -204 lines (removed artifact mode)
+- client-apps/cli/internal/cli/artifact/skill.go   # Fixed field access bugs
+- client-apps/cli/COMMANDS.md                      # +24 lines (skill docs)
+- backend/.../skill/controller/get_artifact.go     # Fixed ctx.Input() bug
+- _projects/.../next-task.md                       # This file
 
-**stigmer-cloud repo (from previous sessions):**
-- `backend/services/stigmer-service/src/test/java/ai/stigmer/domain/agentic/skill/request/handler/SkillVersionResolutionIntegrationTest.java` - NEW 18 tests
+New files:
+- client-apps/cli/cmd/stigmer/root/skill.go        # NEW (~230 lines)
+- _projects/.../checkpoints/2026-01-25-mongodb-index-migration.md  # NEW checkpoint
+```
+
+**stigmer-cloud repo:**
+- All changes committed (clean working tree)
+- Latest commit: `302b8180` feat(backend/skill): add MongoDB indexes for skill_audit collection
 
 ## Architecture Summary
 

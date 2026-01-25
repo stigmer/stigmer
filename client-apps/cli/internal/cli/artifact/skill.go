@@ -124,17 +124,17 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 
 	if !opts.Quiet {
 		cliprint.PrintSuccess("✓ Skill artifact uploaded successfully")
-		cliprint.PrintInfo("  Version hash: %s", response.VersionHash)
-		if response.Tag != "" {
-			cliprint.PrintInfo("  Tag: %s", response.Tag)
+		cliprint.PrintInfo("  Version hash: %s", response.Status.VersionHash)
+		if response.Spec.Tag != "" {
+			cliprint.PrintInfo("  Tag: %s", response.Spec.Tag)
 		}
 	}
 
 	return &SkillArtifactResult{
 		SkillName:    skillName,
-		VersionHash:  response.VersionHash,
-		StorageKey:   response.ArtifactStorageKey,
-		Tag:          response.Tag,
+		VersionHash:  response.Status.VersionHash,
+		StorageKey:   response.Status.ArtifactStorageKey,
+		Tag:          response.Spec.Tag,
 		ArtifactSize: artifactSize,
 	}, nil
 }
