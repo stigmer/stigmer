@@ -8,7 +8,6 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
@@ -197,6 +196,7 @@ func convertMCPServers(servers []mcpserver.MCPServer) ([]*agentv1.McpServerDefin
 }
 
 // convertSubAgents converts SDK sub-agents to proto sub-agents.
+// SubAgent fields are now directly on the proto message (no InlineSpec wrapper).
 func convertSubAgents(subAgents []subagent.SubAgent) ([]*agentv1.SubAgent, error) {
 	if len(subAgents) == 0 {
 		return []*agentv1.SubAgent{}, nil
@@ -204,43 +204,25 @@ func convertSubAgents(subAgents []subagent.SubAgent) ([]*agentv1.SubAgent, error
 
 	protoSubAgents := make([]*agentv1.SubAgent, 0, len(subAgents))
 	for _, sa := range subAgents {
-		if sa.IsInline() {
-			// Convert tool selections map to proto format
-			toolSelections := make(map[string]*agentv1.McpToolSelection)
-			for serverName, selection := range sa.ToolSelections() {
-				if selection != nil {
-					toolSelections[serverName] = &agentv1.McpToolSelection{
-						EnabledTools: selection.EnabledTools,
-					}
+		// Convert tool selections map to proto format
+		toolSelections := make(map[string]*agentv1.McpToolSelection)
+		for serverName, selection := range sa.ToolSelections() {
+			if selection != nil {
+				toolSelections[serverName] = &agentv1.McpToolSelection{
+					EnabledTools: selection.EnabledTools,
 				}
 			}
-
-			protoSubAgents = append(protoSubAgents, &agentv1.SubAgent{
-				AgentReference: &agentv1.SubAgent_InlineSpec{
-					InlineSpec: &agentv1.InlineSubAgentSpec{
-						Name:              sa.Name(),
-						Description:       sa.Description(),
-						Instructions:      sa.Instructions(),
-						McpServers:        sa.MCPServerNames(),
-						McpToolSelections: toolSelections,
-						SkillRefs:         sa.SkillRefs(), // Already proto types - no conversion needed
-					},
-				},
-			})
-		} else if sa.IsReference() {
-			// Convert referenced sub-agent
-			protoSubAgents = append(protoSubAgents, &agentv1.SubAgent{
-				AgentReference: &agentv1.SubAgent_AgentInstanceRefs{
-					AgentInstanceRefs: &apiresource.ApiResourceReference{
-						Slug:  sa.AgentInstanceID(),
-						Kind:  apiresourcekind.ApiResourceKind_agent_instance,
-						Scope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-					},
-				},
-			})
-		} else {
-			return nil, fmt.Errorf("sub-agent %q: unknown type (neither inline nor reference)", sa.Name())
 		}
+
+		// SubAgent fields are directly on the proto message
+		protoSubAgents = append(protoSubAgents, &agentv1.SubAgent{
+			Name:              sa.Name(),
+			Description:       sa.Description(),
+			Instructions:      sa.Instructions(),
+			McpServers:        sa.MCPServerNames(),
+			McpToolSelections: toolSelections,
+			SkillRefs:         sa.SkillRefs(),
+		})
 	}
 
 	return protoSubAgents, nil

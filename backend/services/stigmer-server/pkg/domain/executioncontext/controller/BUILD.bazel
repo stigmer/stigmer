@@ -15,10 +15,10 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/executioncontext/v1:executioncontext",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
-        "//backend/libs/go/store",
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
+        "//backend/libs/go/store",
         "@com_github_rs_zerolog//log",
     ],
 )
@@ -31,7 +31,8 @@ go_test(
         "//apis/stubs/go/ai/stigmer/agentic/executioncontext/v1:executioncontext",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
-        "//backend/libs/go/store/sqlite",
         "//backend/libs/go/grpc/interceptors/apiresource",
+        "//backend/libs/go/store",
+        "//backend/libs/go/store/sqlite",
     ],
 )

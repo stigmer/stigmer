@@ -39,7 +39,7 @@ type AgentSpec struct {
 	McpServers []*McpServerDefinition `protobuf:"bytes,4,rep,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty"`
 	// References to Skill resources providing agent knowledge.
 	SkillRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
-	// Sub-agents that can be delegated to (inline or referenced).
+	// Sub-agents that can be delegated to.
 	SubAgents []*SubAgent `protobuf:"bytes,6,rep,name=sub_agents,json=subAgents,proto3" json:"sub_agents,omitempty"`
 	// Environment variables required by the agent.
 	// Uses the shared EnvironmentSpec for consistent env var handling.
@@ -127,16 +127,24 @@ func (x *AgentSpec) GetEnvSpec() *v1.EnvironmentSpec {
 	return nil
 }
 
-// SubAgent represents a sub-agent that can be delegated to.
+// SubAgent defines a sub-agent that can be delegated to.
+// Sub-agents are defined inline within the parent agent spec.
 type SubAgent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to AgentReference:
-	//
-	//	*SubAgent_InlineSpec
-	//	*SubAgent_AgentInstanceRefs
-	AgentReference isSubAgent_AgentReference `protobuf_oneof:"agent_reference"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Name of the sub-agent.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Description of what this sub-agent does.
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// Behavior instructions for this sub-agent.
+	Instructions string `protobuf:"bytes,3,opt,name=instructions,proto3" json:"instructions,omitempty"`
+	// MCP server names this sub-agent can use (references McpServerDefinition.name).
+	McpServers []string `protobuf:"bytes,4,rep,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty"`
+	// Tool selections for each MCP server.
+	McpToolSelections map[string]*McpToolSelection `protobuf:"bytes,5,rep,name=mcp_tool_selections,json=mcpToolSelections,proto3" json:"mcp_tool_selections,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// References to Skill resources for this sub-agent's knowledge.
+	SkillRefs     []*apiresource.ApiResourceReference `protobuf:"bytes,6,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SubAgent) Reset() {
@@ -169,134 +177,42 @@ func (*SubAgent) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *SubAgent) GetAgentReference() isSubAgent_AgentReference {
-	if x != nil {
-		return x.AgentReference
-	}
-	return nil
-}
-
-func (x *SubAgent) GetInlineSpec() *InlineSubAgentSpec {
-	if x != nil {
-		if x, ok := x.AgentReference.(*SubAgent_InlineSpec); ok {
-			return x.InlineSpec
-		}
-	}
-	return nil
-}
-
-func (x *SubAgent) GetAgentInstanceRefs() *apiresource.ApiResourceReference {
-	if x != nil {
-		if x, ok := x.AgentReference.(*SubAgent_AgentInstanceRefs); ok {
-			return x.AgentInstanceRefs
-		}
-	}
-	return nil
-}
-
-type isSubAgent_AgentReference interface {
-	isSubAgent_AgentReference()
-}
-
-type SubAgent_InlineSpec struct {
-	// Inline sub-agent definition.
-	InlineSpec *InlineSubAgentSpec `protobuf:"bytes,1,opt,name=inline_spec,json=inlineSpec,proto3,oneof"`
-}
-
-type SubAgent_AgentInstanceRefs struct {
-	// Reference to existing Agent resource.
-	AgentInstanceRefs *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=agent_instance_refs,json=agentInstanceRefs,proto3,oneof"`
-}
-
-func (*SubAgent_InlineSpec) isSubAgent_AgentReference() {}
-
-func (*SubAgent_AgentInstanceRefs) isSubAgent_AgentReference() {}
-
-// InlineSubAgentSpec defines a sub-agent inline without creating a separate resource.
-type InlineSubAgentSpec struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Name of the sub-agent.
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// Description of what this sub-agent does.
-	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	// Behavior instructions for this sub-agent.
-	Instructions string `protobuf:"bytes,3,opt,name=instructions,proto3" json:"instructions,omitempty"`
-	// MCP server names this sub-agent can use (references McpServerDefinition.name).
-	McpServers []string `protobuf:"bytes,4,rep,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty"`
-	// Tool selections for each MCP server.
-	McpToolSelections map[string]*McpToolSelection `protobuf:"bytes,5,rep,name=mcp_tool_selections,json=mcpToolSelections,proto3" json:"mcp_tool_selections,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// References to Skill resources for this sub-agent's knowledge.
-	SkillRefs     []*apiresource.ApiResourceReference `protobuf:"bytes,6,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *InlineSubAgentSpec) Reset() {
-	*x = InlineSubAgentSpec{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *InlineSubAgentSpec) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*InlineSubAgentSpec) ProtoMessage() {}
-
-func (x *InlineSubAgentSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use InlineSubAgentSpec.ProtoReflect.Descriptor instead.
-func (*InlineSubAgentSpec) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *InlineSubAgentSpec) GetName() string {
+func (x *SubAgent) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *InlineSubAgentSpec) GetDescription() string {
+func (x *SubAgent) GetDescription() string {
 	if x != nil {
 		return x.Description
 	}
 	return ""
 }
 
-func (x *InlineSubAgentSpec) GetInstructions() string {
+func (x *SubAgent) GetInstructions() string {
 	if x != nil {
 		return x.Instructions
 	}
 	return ""
 }
 
-func (x *InlineSubAgentSpec) GetMcpServers() []string {
+func (x *SubAgent) GetMcpServers() []string {
 	if x != nil {
 		return x.McpServers
 	}
 	return nil
 }
 
-func (x *InlineSubAgentSpec) GetMcpToolSelections() map[string]*McpToolSelection {
+func (x *SubAgent) GetMcpToolSelections() map[string]*McpToolSelection {
 	if x != nil {
 		return x.McpToolSelections
 	}
 	return nil
 }
 
-func (x *InlineSubAgentSpec) GetSkillRefs() []*apiresource.ApiResourceReference {
+func (x *SubAgent) GetSkillRefs() []*apiresource.ApiResourceReference {
 	if x != nil {
 		return x.SkillRefs
 	}
@@ -314,7 +230,7 @@ type McpToolSelection struct {
 
 func (x *McpToolSelection) Reset() {
 	*x = McpToolSelection{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -326,7 +242,7 @@ func (x *McpToolSelection) String() string {
 func (*McpToolSelection) ProtoMessage() {}
 
 func (x *McpToolSelection) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -339,7 +255,7 @@ func (x *McpToolSelection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use McpToolSelection.ProtoReflect.Descriptor instead.
 func (*McpToolSelection) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *McpToolSelection) GetEnabledTools() []string {
@@ -387,7 +303,7 @@ type McpServerDefinition struct {
 
 func (x *McpServerDefinition) Reset() {
 	*x = McpServerDefinition{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -399,7 +315,7 @@ func (x *McpServerDefinition) String() string {
 func (*McpServerDefinition) ProtoMessage() {}
 
 func (x *McpServerDefinition) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -412,7 +328,7 @@ func (x *McpServerDefinition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use McpServerDefinition.ProtoReflect.Descriptor instead.
 func (*McpServerDefinition) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *McpServerDefinition) GetName() string {
@@ -510,7 +426,7 @@ type StdioServer struct {
 
 func (x *StdioServer) Reset() {
 	*x = StdioServer{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -522,7 +438,7 @@ func (x *StdioServer) String() string {
 func (*StdioServer) ProtoMessage() {}
 
 func (x *StdioServer) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -535,7 +451,7 @@ func (x *StdioServer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StdioServer.ProtoReflect.Descriptor instead.
 func (*StdioServer) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *StdioServer) GetCommand() string {
@@ -588,7 +504,7 @@ type HttpServer struct {
 
 func (x *HttpServer) Reset() {
 	*x = HttpServer{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -600,7 +516,7 @@ func (x *HttpServer) String() string {
 func (*HttpServer) ProtoMessage() {}
 
 func (x *HttpServer) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -613,7 +529,7 @@ func (x *HttpServer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HttpServer.ProtoReflect.Descriptor instead.
 func (*HttpServer) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *HttpServer) GetUrl() string {
@@ -670,7 +586,7 @@ type DockerServer struct {
 
 func (x *DockerServer) Reset() {
 	*x = DockerServer{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -682,7 +598,7 @@ func (x *DockerServer) String() string {
 func (*DockerServer) ProtoMessage() {}
 
 func (x *DockerServer) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -695,7 +611,7 @@ func (x *DockerServer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerServer.ProtoReflect.Descriptor instead.
 func (*DockerServer) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DockerServer) GetImage() string {
@@ -762,7 +678,7 @@ type VolumeMount struct {
 
 func (x *VolumeMount) Reset() {
 	*x = VolumeMount{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -774,7 +690,7 @@ func (x *VolumeMount) String() string {
 func (*VolumeMount) ProtoMessage() {}
 
 func (x *VolumeMount) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -787,7 +703,7 @@ func (x *VolumeMount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VolumeMount.ProtoReflect.Descriptor instead.
 func (*VolumeMount) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *VolumeMount) GetHostPath() string {
@@ -826,7 +742,7 @@ type PortMapping struct {
 
 func (x *PortMapping) Reset() {
 	*x = PortMapping{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -838,7 +754,7 @@ func (x *PortMapping) String() string {
 func (*PortMapping) ProtoMessage() {}
 
 func (x *PortMapping) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -851,7 +767,7 @@ func (x *PortMapping) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PortMapping.ProtoReflect.Descriptor instead.
 func (*PortMapping) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *PortMapping) GetHostPort() int32 {
@@ -892,21 +808,15 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\x12D\n" +
 	"\n" +
 	"sub_agents\x18\x06 \x03(\v2%.ai.stigmer.agentic.agent.v1.SubAgentR\tsubAgents\x12M\n" +
-	"\benv_spec\x18\a \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\"\xd4\x02\n" +
-	"\bSubAgent\x12R\n" +
-	"\vinline_spec\x18\x01 \x01(\v2/.ai.stigmer.agentic.agent.v1.InlineSubAgentSpecH\x00R\n" +
-	"inlineSpec\x12\xe0\x01\n" +
-	"\x13agent_instance_refs\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHu\xba\x01r\n" +
-	"\x18agent_instance_refs.kind\x12Eagent_instance_refs must reference resources with kind=agent_instance\x1a\x0fthis.kind == 45H\x00R\x11agentInstanceRefsB\x11\n" +
-	"\x0fagent_reference\"\xc7\x04\n" +
-	"\x12InlineSubAgentSpec\x12\x1a\n" +
+	"\benv_spec\x18\a \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\"\xb3\x04\n" +
+	"\bSubAgent\x12\x1a\n" +
 	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12+\n" +
 	"\finstructions\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\n" +
 	"R\finstructions\x12\x1f\n" +
 	"\vmcp_servers\x18\x04 \x03(\tR\n" +
-	"mcpServers\x12v\n" +
-	"\x13mcp_tool_selections\x18\x05 \x03(\v2F.ai.stigmer.agentic.agent.v1.InlineSubAgentSpec.McpToolSelectionsEntryR\x11mcpToolSelections\x12\xb7\x01\n" +
+	"mcpServers\x12l\n" +
+	"\x13mcp_tool_selections\x18\x05 \x03(\v2<.ai.stigmer.agentic.agent.v1.SubAgent.McpToolSelectionsEntryR\x11mcpToolSelections\x12\xb7\x01\n" +
 	"\n" +
 	"skill_refs\x18\x06 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBb\xbaH_\x92\x01\\\"Z\xba\x01W\n" +
 	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\x1as\n" +
@@ -976,50 +886,47 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes = []any{
 	(*AgentSpec)(nil),                        // 0: ai.stigmer.agentic.agent.v1.AgentSpec
 	(*SubAgent)(nil),                         // 1: ai.stigmer.agentic.agent.v1.SubAgent
-	(*InlineSubAgentSpec)(nil),               // 2: ai.stigmer.agentic.agent.v1.InlineSubAgentSpec
-	(*McpToolSelection)(nil),                 // 3: ai.stigmer.agentic.agent.v1.McpToolSelection
-	(*McpServerDefinition)(nil),              // 4: ai.stigmer.agentic.agent.v1.McpServerDefinition
-	(*StdioServer)(nil),                      // 5: ai.stigmer.agentic.agent.v1.StdioServer
-	(*HttpServer)(nil),                       // 6: ai.stigmer.agentic.agent.v1.HttpServer
-	(*DockerServer)(nil),                     // 7: ai.stigmer.agentic.agent.v1.DockerServer
-	(*VolumeMount)(nil),                      // 8: ai.stigmer.agentic.agent.v1.VolumeMount
-	(*PortMapping)(nil),                      // 9: ai.stigmer.agentic.agent.v1.PortMapping
-	nil,                                      // 10: ai.stigmer.agentic.agent.v1.InlineSubAgentSpec.McpToolSelectionsEntry
-	nil,                                      // 11: ai.stigmer.agentic.agent.v1.StdioServer.EnvPlaceholdersEntry
-	nil,                                      // 12: ai.stigmer.agentic.agent.v1.HttpServer.HeadersEntry
-	nil,                                      // 13: ai.stigmer.agentic.agent.v1.HttpServer.QueryParamsEntry
-	nil,                                      // 14: ai.stigmer.agentic.agent.v1.DockerServer.EnvPlaceholdersEntry
-	(*apiresource.ApiResourceReference)(nil), // 15: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.EnvironmentSpec)(nil),               // 16: ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	(*McpToolSelection)(nil),                 // 2: ai.stigmer.agentic.agent.v1.McpToolSelection
+	(*McpServerDefinition)(nil),              // 3: ai.stigmer.agentic.agent.v1.McpServerDefinition
+	(*StdioServer)(nil),                      // 4: ai.stigmer.agentic.agent.v1.StdioServer
+	(*HttpServer)(nil),                       // 5: ai.stigmer.agentic.agent.v1.HttpServer
+	(*DockerServer)(nil),                     // 6: ai.stigmer.agentic.agent.v1.DockerServer
+	(*VolumeMount)(nil),                      // 7: ai.stigmer.agentic.agent.v1.VolumeMount
+	(*PortMapping)(nil),                      // 8: ai.stigmer.agentic.agent.v1.PortMapping
+	nil,                                      // 9: ai.stigmer.agentic.agent.v1.SubAgent.McpToolSelectionsEntry
+	nil,                                      // 10: ai.stigmer.agentic.agent.v1.StdioServer.EnvPlaceholdersEntry
+	nil,                                      // 11: ai.stigmer.agentic.agent.v1.HttpServer.HeadersEntry
+	nil,                                      // 12: ai.stigmer.agentic.agent.v1.HttpServer.QueryParamsEntry
+	nil,                                      // 13: ai.stigmer.agentic.agent.v1.DockerServer.EnvPlaceholdersEntry
+	(*apiresource.ApiResourceReference)(nil), // 14: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*v1.EnvironmentSpec)(nil),               // 15: ai.stigmer.agentic.environment.v1.EnvironmentSpec
 }
 var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
-	4,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_servers:type_name -> ai.stigmer.agentic.agent.v1.McpServerDefinition
-	15, // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_servers:type_name -> ai.stigmer.agentic.agent.v1.McpServerDefinition
+	14, // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1,  // 2: ai.stigmer.agentic.agent.v1.AgentSpec.sub_agents:type_name -> ai.stigmer.agentic.agent.v1.SubAgent
-	16, // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	2,  // 4: ai.stigmer.agentic.agent.v1.SubAgent.inline_spec:type_name -> ai.stigmer.agentic.agent.v1.InlineSubAgentSpec
-	15, // 5: ai.stigmer.agentic.agent.v1.SubAgent.agent_instance_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	10, // 6: ai.stigmer.agentic.agent.v1.InlineSubAgentSpec.mcp_tool_selections:type_name -> ai.stigmer.agentic.agent.v1.InlineSubAgentSpec.McpToolSelectionsEntry
-	15, // 7: ai.stigmer.agentic.agent.v1.InlineSubAgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	5,  // 8: ai.stigmer.agentic.agent.v1.McpServerDefinition.stdio:type_name -> ai.stigmer.agentic.agent.v1.StdioServer
-	6,  // 9: ai.stigmer.agentic.agent.v1.McpServerDefinition.http:type_name -> ai.stigmer.agentic.agent.v1.HttpServer
-	7,  // 10: ai.stigmer.agentic.agent.v1.McpServerDefinition.docker:type_name -> ai.stigmer.agentic.agent.v1.DockerServer
-	11, // 11: ai.stigmer.agentic.agent.v1.StdioServer.env_placeholders:type_name -> ai.stigmer.agentic.agent.v1.StdioServer.EnvPlaceholdersEntry
-	12, // 12: ai.stigmer.agentic.agent.v1.HttpServer.headers:type_name -> ai.stigmer.agentic.agent.v1.HttpServer.HeadersEntry
-	13, // 13: ai.stigmer.agentic.agent.v1.HttpServer.query_params:type_name -> ai.stigmer.agentic.agent.v1.HttpServer.QueryParamsEntry
-	14, // 14: ai.stigmer.agentic.agent.v1.DockerServer.env_placeholders:type_name -> ai.stigmer.agentic.agent.v1.DockerServer.EnvPlaceholdersEntry
-	8,  // 15: ai.stigmer.agentic.agent.v1.DockerServer.volumes:type_name -> ai.stigmer.agentic.agent.v1.VolumeMount
-	9,  // 16: ai.stigmer.agentic.agent.v1.DockerServer.ports:type_name -> ai.stigmer.agentic.agent.v1.PortMapping
-	3,  // 17: ai.stigmer.agentic.agent.v1.InlineSubAgentSpec.McpToolSelectionsEntry.value:type_name -> ai.stigmer.agentic.agent.v1.McpToolSelection
-	18, // [18:18] is the sub-list for method output_type
-	18, // [18:18] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	15, // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	9,  // 4: ai.stigmer.agentic.agent.v1.SubAgent.mcp_tool_selections:type_name -> ai.stigmer.agentic.agent.v1.SubAgent.McpToolSelectionsEntry
+	14, // 5: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4,  // 6: ai.stigmer.agentic.agent.v1.McpServerDefinition.stdio:type_name -> ai.stigmer.agentic.agent.v1.StdioServer
+	5,  // 7: ai.stigmer.agentic.agent.v1.McpServerDefinition.http:type_name -> ai.stigmer.agentic.agent.v1.HttpServer
+	6,  // 8: ai.stigmer.agentic.agent.v1.McpServerDefinition.docker:type_name -> ai.stigmer.agentic.agent.v1.DockerServer
+	10, // 9: ai.stigmer.agentic.agent.v1.StdioServer.env_placeholders:type_name -> ai.stigmer.agentic.agent.v1.StdioServer.EnvPlaceholdersEntry
+	11, // 10: ai.stigmer.agentic.agent.v1.HttpServer.headers:type_name -> ai.stigmer.agentic.agent.v1.HttpServer.HeadersEntry
+	12, // 11: ai.stigmer.agentic.agent.v1.HttpServer.query_params:type_name -> ai.stigmer.agentic.agent.v1.HttpServer.QueryParamsEntry
+	13, // 12: ai.stigmer.agentic.agent.v1.DockerServer.env_placeholders:type_name -> ai.stigmer.agentic.agent.v1.DockerServer.EnvPlaceholdersEntry
+	7,  // 13: ai.stigmer.agentic.agent.v1.DockerServer.volumes:type_name -> ai.stigmer.agentic.agent.v1.VolumeMount
+	8,  // 14: ai.stigmer.agentic.agent.v1.DockerServer.ports:type_name -> ai.stigmer.agentic.agent.v1.PortMapping
+	2,  // 15: ai.stigmer.agentic.agent.v1.SubAgent.McpToolSelectionsEntry.value:type_name -> ai.stigmer.agentic.agent.v1.McpToolSelection
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_spec_proto_init() }
@@ -1027,11 +934,7 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_init() {
 	if File_ai_stigmer_agentic_agent_v1_spec_proto != nil {
 		return
 	}
-	file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[1].OneofWrappers = []any{
-		(*SubAgent_InlineSpec)(nil),
-		(*SubAgent_AgentInstanceRefs)(nil),
-	}
-	file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4].OneofWrappers = []any{
+	file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3].OneofWrappers = []any{
 		(*McpServerDefinition_Stdio)(nil),
 		(*McpServerDefinition_Http)(nil),
 		(*McpServerDefinition_Docker)(nil),
@@ -1042,7 +945,7 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

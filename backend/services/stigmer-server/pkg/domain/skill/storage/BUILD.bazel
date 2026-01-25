@@ -4,6 +4,7 @@ go_library(
     name = "storage",
     srcs = [
         "artifact_storage.go",
+        "testutil.go",
         "zip_extractor.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage",
@@ -17,7 +18,6 @@ go_test(
     name = "storage_test",
     srcs = [
         "artifact_storage_test.go",
-        "testutil.go",
         "zip_extractor_test.go",
     ],
     embed = [":storage"],

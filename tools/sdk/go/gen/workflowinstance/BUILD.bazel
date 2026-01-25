@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "workflowinstance",
+    srcs = ["workflowinstancespec_args.go"],
+    importpath = "github.com/stigmer/stigmer/tools/sdk/go/gen/workflowinstance",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_stigmer_stigmer_sdk_go//gen/types"],
+)

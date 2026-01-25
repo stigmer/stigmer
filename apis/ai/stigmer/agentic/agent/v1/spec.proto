@@ -29,7 +29,7 @@ message AgentSpec {
     expression: "this.kind == 43" // 43 = skill enum value
   }];
 
-  // Sub-agents that can be delegated to (inline or referenced).
+  // Sub-agents that can be delegated to.
   repeated SubAgent sub_agents = 6;
 
   // Environment variables required by the agent.
@@ -37,23 +37,9 @@ message AgentSpec {
   ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 7;
 }
 
-// SubAgent represents a sub-agent that can be delegated to.
+// SubAgent defines a sub-agent that can be delegated to.
+// Sub-agents are defined inline within the parent agent spec.
 message SubAgent {
-  oneof agent_reference {
-    // Inline sub-agent definition.
-    InlineSubAgentSpec inline_spec = 1;
-
-    // Reference to existing Agent resource.
-    ai.stigmer.commons.apiresource.ApiResourceReference agent_instance_refs = 2 [(buf.validate.field).cel = {
-      id: "agent_instance_refs.kind"
-      message: "agent_instance_refs must reference resources with kind=agent_instance"
-      expression: "this.kind == 45" // 45 = agent_instance enum value
-    }];
-  }
-}
-
-// InlineSubAgentSpec defines a sub-agent inline without creating a separate resource.
-message InlineSubAgentSpec {
   // Name of the sub-agent.
   string name = 1 [(buf.validate.field).required = true];
 

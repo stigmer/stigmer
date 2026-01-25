@@ -32,3 +32,30 @@ func Platform(slug string, version ...string) *apiresource.ApiResourceReference 
 	}
 	return ref
 }
+
+// Organization creates a reference to an organization-scoped skill.
+//
+// Organization skills are specific to an organization and only available to its members.
+// The version parameter is optional - if omitted or empty, "latest" is used.
+//
+// Version supports three formats:
+//   - Empty or omitted: Uses "latest" (most recent version)
+//   - Tag name: e.g., "v1.0", "stable", "beta"
+//   - Exact hash: e.g., "abc123..." (64-char hex, immutable reference)
+//
+// Examples:
+//
+//	skillref.Organization("my-org", "internal-docs")           // Latest version
+//	skillref.Organization("my-org", "internal-docs", "v1.0")   // Specific tag
+func Organization(org, slug string, version ...string) *apiresource.ApiResourceReference {
+	ref := &apiresource.ApiResourceReference{
+		Kind:  apiresourcekind.ApiResourceKind_skill,
+		Slug:  slug,
+		Scope: apiresource.ApiResourceOwnerScope_organization,
+		Org:   org,
+	}
+	if len(version) > 0 && version[0] != "" {
+		ref.Version = version[0]
+	}
+	return ref
+}

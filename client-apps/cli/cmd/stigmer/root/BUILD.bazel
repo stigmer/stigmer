@@ -11,6 +11,7 @@ go_library(
         "run.go",
         "server.go",
         "server_logs.go",
+        "skill.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/cmd/stigmer/root",
     visibility = ["//visibility:public"],

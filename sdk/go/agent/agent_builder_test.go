@@ -5,11 +5,11 @@ import (
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
-func TestAddSkill(t *testing.T) {
+func TestAddSkillRef(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -27,7 +27,7 @@ func TestAddSkill(t *testing.T) {
 	}
 
 	// Add skill using builder method
-	agent.AddSkill(skill.Platform("coding-best-practices"))
+	agent.AddSkillRef(skillref.Platform("coding-best-practices"))
 
 	if len(agent.Skills) != 1 {
 		t.Errorf("Skills count = %d, want 1", len(agent.Skills))
@@ -50,10 +50,10 @@ func TestAddSkills(t *testing.T) {
 	}
 
 	// Add multiple skills using builder method
-	agent.AddSkills(
-		skill.Platform("coding-best-practices"),
-		skill.Platform("security-analysis"),
-		skill.Organization("my-org", "internal-docs"),
+	agent.AddSkillRefs(
+		skillref.Platform("coding-best-practices"),
+		skillref.Platform("security-analysis"),
+		skillref.Organization("my-org", "internal-docs"),
 	)
 
 	if len(agent.Skills) != 3 {
@@ -75,9 +75,9 @@ func TestAddSkill_Chaining(t *testing.T) {
 
 	// Chain multiple AddSkill calls
 	agent.
-		AddSkill(skill.Platform("skill1")).
-		AddSkill(skill.Platform("skill2")).
-		AddSkill(skill.Platform("skill3"))
+		AddSkillRef(skillref.Platform("skill1")).
+		AddSkillRef(skillref.Platform("skill2")).
+		AddSkillRef(skillref.Platform("skill3"))
 
 	if len(agent.Skills) != 3 {
 		t.Errorf("Skills count = %d, want 3", len(agent.Skills))
@@ -194,10 +194,9 @@ func TestAddSubAgent(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	helper, err := subagent.Inline(
-		subagent.WithName("helper"),
-		subagent.WithInstructions("Helper instructions"),
-	)
+	helper, err := subagent.New("helper", &subagent.Args{
+		Instructions: "Helper instructions",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create sub-agent: %v", err)
 	}
@@ -225,15 +224,13 @@ func TestAddSubAgents(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	helper1, _ := subagent.Inline(
-		subagent.WithName("helper1"),
-		subagent.WithInstructions("Helper 1 instructions"),
-	)
+	helper1, _ := subagent.New("helper1", &subagent.Args{
+		Instructions: "Helper 1 instructions",
+	})
 
-	helper2, _ := subagent.Inline(
-		subagent.WithName("helper2"),
-		subagent.WithInstructions("Helper 2 instructions"),
-	)
+	helper2, _ := subagent.New("helper2", &subagent.Args{
+		Instructions: "Helper 2 instructions",
+	})
 
 	// Add multiple sub-agents using builder method
 	agent.AddSubAgents(helper1, helper2)
@@ -255,15 +252,13 @@ func TestAddSubAgent_Chaining(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	helper1, _ := subagent.Inline(
-		subagent.WithName("helper1"),
-		subagent.WithInstructions("Helper 1 instructions"),
-	)
+	helper1, _ := subagent.New("helper1", &subagent.Args{
+		Instructions: "Helper 1 instructions",
+	})
 
-	helper2, _ := subagent.Inline(
-		subagent.WithName("helper2"),
-		subagent.WithInstructions("Helper 2 instructions"),
-	)
+	helper2, _ := subagent.New("helper2", &subagent.Args{
+		Instructions: "Helper 2 instructions",
+	})
 
 	// Chain multiple AddSubAgent calls
 	agent.
@@ -376,10 +371,9 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
 	)
 
-	helper, _ := subagent.Inline(
-		subagent.WithName("helper"),
-		subagent.WithInstructions("Helper instructions"),
-	)
+	helper, _ := subagent.New("helper", &subagent.Args{
+		Instructions: "Helper instructions",
+	})
 
 	githubToken, _ := environment.New(
 		environment.WithName("GITHUB_TOKEN"),
@@ -399,8 +393,8 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 
 	// Chain all builder methods
 	agent.
-		AddSkill(skill.Platform("coding-best-practices")).
-		AddSkill(skill.Platform("security-analysis")).
+		AddSkillRef(skillref.Platform("coding-best-practices")).
+		AddSkillRef(skillref.Platform("security-analysis")).
 		AddMCPServer(github).
 		AddSubAgent(helper).
 		AddEnvironmentVariable(githubToken)

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/skillref"
 )
 
 // =============================================================================
@@ -16,12 +16,6 @@ import (
 
 // TestAgentToProto_MaximumSkills tests agent with maximum number of skills.
 func TestAgentToProto_MaximumSkills(t *testing.T) {
-	// Create 50 skills
-	skills := make([]skill.Skill, 50)
-	for i := 0; i < 50; i++ {
-		skills[i] = skill.Platform("skill" + string(rune('0'+i%10)))
-	}
-
 	agent, err := New(nil, "max-skills-agent", &AgentArgs{
 		Instructions: "Agent with maximum skills for testing boundary conditions",
 	})
@@ -29,8 +23,10 @@ func TestAgentToProto_MaximumSkills(t *testing.T) {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
 
-	// Add skills using builder method
-	agent.AddSkills(skills...)
+	// Add 50 skills using builder method
+	for i := 0; i < 50; i++ {
+		agent.AddSkillRef(skillref.Platform(fmt.Sprintf("skill%d", i)))
+	}
 
 	proto, err := agent.ToProto()
 	if err != nil {
@@ -56,17 +52,6 @@ func TestAgentToProto_MaximumSubAgents(t *testing.T) {
 
 // TestAgentToProto_MaximumEnvironmentVars tests agent with many environment variables.
 func TestAgentToProto_MaximumEnvironmentVars(t *testing.T) {
-	// Create 100 environment variables with unique names
-	envVars := make([]environment.Variable, 100)
-	for i := 0; i < 100; i++ {
-		env, _ := environment.New(
-			environment.WithName(fmt.Sprintf("ENV_VAR_%d", i)),
-			environment.WithDefaultValue(fmt.Sprintf("value%d", i)),
-			environment.WithSecret(i%2 == 0), // Half are secrets
-		)
-		envVars[i] = env
-	}
-
 	agent, err := New(nil, "max-env-agent", &AgentArgs{
 		Instructions: "Agent with maximum environment variables for testing boundary conditions",
 	})
@@ -74,8 +59,18 @@ func TestAgentToProto_MaximumEnvironmentVars(t *testing.T) {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
 
-	// Add environment variables using builder method
-	agent.AddEnvironmentVariables(envVars...)
+	// Create and add 100 environment variables with unique names
+	for i := 0; i < 100; i++ {
+		env, _ := environment.New(
+			nil,
+			fmt.Sprintf("ENV_VAR_%d", i),
+			&environment.VariableArgs{
+				DefaultValue: fmt.Sprintf("value%d", i),
+				IsSecret:     i%2 == 0, // Half are secrets
+			},
+		)
+		agent.AddEnvironmentVariable(*env)
+	}
 
 	proto, err := agent.ToProto()
 	if err != nil {
@@ -165,7 +160,7 @@ func TestAgentToProto_NilFields(t *testing.T) {
 			agent: &Agent{
 				Name:         "agent1",
 				Instructions: "Test instructions for agent validation",
-				Skills:       nil, // nil slice
+				SkillRefs:    nil, // nil slice
 			},
 			wantErr: false,
 		},
@@ -201,7 +196,7 @@ func TestAgentToProto_NilFields(t *testing.T) {
 			agent: &Agent{
 				Name:                 "agent5",
 				Instructions:         "Test instructions for agent validation",
-				Skills:               nil,
+				SkillRefs:            nil,
 				MCPServers:           nil,
 				SubAgents:            nil,
 				EnvironmentVariables: nil,
@@ -308,20 +303,17 @@ func TestAgentToProto_ConcurrentAccess(t *testing.T) {
 
 // TestAgent_ConcurrentSkillAddition tests concurrent skill additions.
 func TestAgent_ConcurrentSkillAddition(t *testing.T) {
-	agent := &Agent{
-		Name:         "concurrent-skills",
+	agent, _ := New(nil, "concurrent-skills", &AgentArgs{
 		Instructions: "Agent for testing concurrent skill additions",
-		Skills:       []skill.Skill{}, // Initialize to avoid nil
-	}
+	})
 
-	// Concurrently add 50 skills using thread-safe AddSkill method
+	// Concurrently add 50 skills using thread-safe AddSkillRef method
 	var wg sync.WaitGroup
 	for i := 0; i < 50; i++ {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			s := skill.Platform("skill" + string(rune('0'+idx%10)))
-			agent.AddSkill(s)
+			agent.AddSkillRef(skillref.Platform(fmt.Sprintf("skill%d", idx)))
 		}(i)
 	}
 
@@ -330,7 +322,7 @@ func TestAgent_ConcurrentSkillAddition(t *testing.T) {
 	// Verify all 50 skills were added successfully
 	// With thread-safe implementation, we should get exactly 50 skills
 	agent.mu.Lock()
-	skillCount := len(agent.Skills)
+	skillCount := len(agent.SkillRefs)
 	agent.mu.Unlock()
 
 	if skillCount != 50 {
@@ -349,10 +341,9 @@ func TestAgentToProto_ComplexMCPServerConfigurations(t *testing.T) {
 	t.Skip("MCP server functionality not yet fully implemented")
 }
 
-// TestAgentToProto_MixedSubAgentTypes tests combination of inline and referenced sub-agents.
-// NOTE: Sub-agent functionality not yet fully implemented in SDK, skipping for now.
+// TestAgentToProto_MixedSubAgentTypes tests sub-agents with different configurations.
 func TestAgentToProto_MixedSubAgentTypes(t *testing.T) {
-	t.Skip("Sub-agent functionality not yet fully implemented")
+	t.Skip("Sub-agent test moved to agent_subagents_test.go")
 }
 
 // =============================================================================
