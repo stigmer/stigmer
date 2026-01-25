@@ -648,11 +648,11 @@ func TestPush_PlatformScoped(t *testing.T) {
 	req := &skillv1.PushSkillRequest{
 		Name:     "Platform Skill",
 		Artifact: artifact,
-		Scope:    apiresourcepb.ApiResourceScope_API_RESOURCE_SCOPE_PLATFORM,
+		Scope:    apiresourcepb.ApiResourceOwnerScope_platform,
 	}
 
 	result, err := controller.Push(contextWithSkillKind(), req)
 	require.NoError(t, err)
-	assert.Equal(t, apiresourcepb.ApiResourceScope_API_RESOURCE_SCOPE_PLATFORM, result.Metadata.OwnerScope)
+	assert.Equal(t, apiresourcepb.ApiResourceOwnerScope_platform, result.Metadata.OwnerScope)
 	assert.Empty(t, result.Metadata.Org, "platform-scoped skills should not have org set")
 }
