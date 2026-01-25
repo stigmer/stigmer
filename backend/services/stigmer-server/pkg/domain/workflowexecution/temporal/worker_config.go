@@ -2,7 +2,7 @@ package temporal
 
 import (
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"go.temporal.io/sdk/client"
@@ -56,14 +56,14 @@ import (
 // - TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE (Go activities, default: workflow_execution_runner)
 type WorkerConfig struct {
 	config                   *Config
-	store                    *badger.Store
+	store                    store.Store
 	updateStatusActivityImpl *activities.UpdateWorkflowExecutionStatusActivityImpl
 }
 
 // NewWorkerConfig creates a new WorkerConfig.
 func NewWorkerConfig(
 	config *Config,
-	store *badger.Store,
+	store store.Store,
 	streamBroker activities.StreamBroker,
 ) *WorkerConfig {
 	return &WorkerConfig{

@@ -6,7 +6,7 @@ import (
 
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
@@ -73,7 +73,7 @@ func (c *SkillController) buildDeletePipeline() *pipeline.Pipeline[*skillv1.Skil
 // even if we want to maintain referential integrity in the future.
 // Archive deletion is best-effort - failures are logged but don't stop the delete operation.
 type DeleteSkillArchivesStep struct {
-	store *badger.Store
+	store store.Store
 }
 
 func (c *SkillController) newDeleteSkillArchivesStep() *DeleteSkillArchivesStep {

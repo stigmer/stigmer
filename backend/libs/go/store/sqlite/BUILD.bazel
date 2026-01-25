@@ -1,26 +1,28 @@
 load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "badger",
+    name = "sqlite",
     srcs = ["store.go"],
-    importpath = "github.com/stigmer/stigmer/backend/libs/go/badger",
+    importpath = "github.com/stigmer/stigmer/backend/libs/go/store/sqlite",
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
-        "@com_github_dgraph_io_badger_v4//:badger",
+        "//backend/libs/go/store",
         "@org_golang_google_protobuf//proto",
+        "@org_modernc_sqlite//:sqlite",
     ],
 )
 
 go_test(
-    name = "badger_test",
+    name = "sqlite_test",
     srcs = ["store_test.go"],
-    embed = [":badger"],
+    embed = [":sqlite"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/apiresource",
+        "//backend/libs/go/store",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],

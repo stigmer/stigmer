@@ -9,7 +9,8 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
@@ -35,7 +36,7 @@ func contextWithWorkflowKind() context.Context {
 // This handles the circular dependency between Workflow and WorkflowInstance services:
 // - Workflow needs WorkflowInstance client (to create default instances)
 // - WorkflowInstance needs Workflow client (to validate parent workflows)
-func setupInProcessServers(t *testing.T, store *badger.Store) (*workflow.Client, *workflowinstance.Client, func()) {
+func setupInProcessServers(t *testing.T, store store.Store) (*workflow.Client, *workflowinstance.Client, func()) {
 	// STEP 1: Create listeners for both servers
 	workflowListener := bufconn.Listen(1024 * 1024)
 	workflowInstanceListener := bufconn.Listen(1024 * 1024)
@@ -119,13 +120,13 @@ func setupInProcessServers(t *testing.T, store *badger.Store) (*workflow.Client,
 type testControllers struct {
 	workflowInstance *WorkflowInstanceController
 	workflow         *workflowcontroller.WorkflowController
-	store            *badger.Store
+	store            store.Store
 }
 
 // setupTestController creates a test controller with necessary dependencies
 func setupTestController(t *testing.T) *testControllers {
 	// Create temporary BadgerDB store
-	store, err := badger.NewStore(t.TempDir() + "/badger")
+	store, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}

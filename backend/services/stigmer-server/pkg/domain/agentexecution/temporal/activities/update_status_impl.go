@@ -9,7 +9,7 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"go.temporal.io/sdk/activity"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -20,13 +20,13 @@ import (
 // - Load existing execution (single DB query)
 // - Apply status updates (merge or replace based on field)
 // - Update audit timestamps
-// - Save to BadgerDB
+// - Save to database
 // - Broadcast to StreamBroker (for real-time updates to subscribers)
 //
 // This is called by the agent-runner worker via polyglot Temporal workflow.
 // Language-agnostic design: works regardless of which service implements the activity.
 type UpdateExecutionStatusActivityImpl struct {
-	store        *badger.Store
+	store        store.Store
 	streamBroker StreamBroker
 }
 
@@ -36,7 +36,7 @@ type StreamBroker interface {
 }
 
 // NewUpdateExecutionStatusActivityImpl creates a new UpdateExecutionStatusActivityImpl.
-func NewUpdateExecutionStatusActivityImpl(store *badger.Store, streamBroker StreamBroker) *UpdateExecutionStatusActivityImpl {
+func NewUpdateExecutionStatusActivityImpl(store store.Store, streamBroker StreamBroker) *UpdateExecutionStatusActivityImpl {
 	return &UpdateExecutionStatusActivityImpl{
 		store:        store,
 		streamBroker: streamBroker,
@@ -159,7 +159,7 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		Str("phase", existing.GetStatus().GetPhase().String()).
 		Msg("Built updated execution - new status")
 
-	// Persist to BadgerDB
+	// Persist to database
 	if err := a.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent_execution, executionID, existing); err != nil {
 		log.Error().
 			Err(err).

@@ -189,7 +189,7 @@ The controller requires:
 
 ```go
 // Create controller
-store := badger.NewStore(...)
+store := sqlite.NewStore(...)
 workflowClient := workflow.NewClient(conn)
 controller := workflowinstance.NewWorkflowInstanceController(store, workflowClient)
 

@@ -3,7 +3,7 @@ package agentinstance
 import (
 	"context"
 
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
@@ -66,10 +66,10 @@ func (c *AgentInstanceController) buildGetByAgentPipeline() *pipeline.Pipeline[*
 // Note: In OSS (local usage), no authorization filtering is applied.
 // All instances for the agent are returned.
 type loadByAgentStep struct {
-	store *badger.Store
+	store store.Store
 }
 
-func newLoadByAgentStep(store *badger.Store) *loadByAgentStep {
+func newLoadByAgentStep(store store.Store) *loadByAgentStep {
 	return &loadByAgentStep{store: store}
 }
 

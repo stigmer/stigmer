@@ -14,7 +14,7 @@ import (
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
@@ -132,13 +132,13 @@ func (s *validateSessionOrAgentStep) Execute(ctx *pipeline.RequestContext[*agent
 type createDefaultInstanceIfNeededStep struct {
 	agentClient         *agent.Client
 	agentInstanceClient *agentinstance.Client
-	store               *badger.Store
+	store               store.Store
 }
 
 func newCreateDefaultInstanceIfNeededStep(
 	agentClient *agent.Client,
 	agentInstanceClient *agentinstance.Client,
-	store *badger.Store,
+	store store.Store,
 ) *createDefaultInstanceIfNeededStep {
 	return &createDefaultInstanceIfNeededStep{
 		agentClient:         agentClient,
@@ -448,7 +448,7 @@ func (s *setInitialPhaseStep) Execute(ctx *pipeline.RequestContext[*agentexecuti
 // This matches the Java AgentExecutionCreateHandler.StartWorkflowStep.
 type startWorkflowStep struct {
 	workflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
-	store           *badger.Store
+	store           store.Store
 }
 
 func (c *AgentExecutionController) newStartWorkflowStep() *startWorkflowStep {

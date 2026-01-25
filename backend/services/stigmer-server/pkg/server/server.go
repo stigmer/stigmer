@@ -19,11 +19,10 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/debug"
 	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
 	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
@@ -65,32 +64,15 @@ func Run() error {
 		Str("env", cfg.Env).
 		Msg("Starting Stigmer Server")
 
-	// Initialize BadgerDB store (replaced SQLite per ADR-005 Revised)
-	// BadgerDB is a pure Go key-value store optimized for the daemon architecture
-	store, err := badger.NewStore(cfg.DBPath)
+	// Initialize SQLite store (pure Go, no CGO dependencies)
+	// SQLite provides embedded database with excellent tooling support (sqlite3 CLI, DataGrip, etc.)
+	store, err := sqlite.NewStore(cfg.DBPath)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to initialize BadgerDB store")
+		log.Fatal().Err(err).Msg("Failed to initialize SQLite store")
 	}
 	defer store.Close()
 
-	log.Info().Str("db_path", cfg.DBPath).Msg("BadgerDB store initialized")
-
-	// ============================================================================
-	// Start debug HTTP server (for inspecting BadgerDB in browser)
-	// ============================================================================
-
-	// Start debug HTTP server on port 8234 (gRPC port + 1000, matching Temporal's pattern)
-	// Temporal: gRPC=7233, UI=8233 | Stigmer: gRPC=7234, UI=8234
-	// This provides a web UI at http://localhost:8234/debug/db for viewing database contents
-	// Only runs in local/dev mode for security
-	if cfg.Env == "local" || cfg.Env == "dev" {
-		const debugPort = 8234 // Fixed port: gRPC (7234) + 1000
-		startDebugServer(debugPort, store)
-		log.Info().
-			Int("port", debugPort).
-			Str("url", "http://localhost:8234/debug/db").
-			Msg("Debug HTTP server started - view database at http://localhost:8234/debug/db")
-	}
+	log.Info().Str("db_path", cfg.DBPath).Msg("SQLite store initialized")
 
 	// ============================================================================
 	// Create controllers early (needed for Temporal worker setup)
@@ -391,11 +373,6 @@ func setupLogging(cfg *config.Config) {
 
 	// Set timestamp format
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-}
-
-// startDebugServer starts the debug HTTP server
-func startDebugServer(port int, store *badger.Store) {
-	debug.StartHTTPServer(port, store)
 }
 
 // loadSupervisorConfig loads supervisor configuration from environment variables

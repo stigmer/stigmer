@@ -3,23 +3,26 @@ package steps
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 )
 
-func setupTestStore(t *testing.T) *badger.Store {
-	// Create a temporary BadgerDB database for testing
+func setupTestStore(t *testing.T) store.Store {
+	// Create a temporary SQLite database for testing
 	tmpDir := t.TempDir()
-	store, err := badger.NewStore(tmpDir)
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := sqlite.NewStore(dbPath)
 	if err != nil {
 		t.Fatalf("Failed to create test store: %v", err)
 	}
-	return store
+	return s
 }
 
 func TestPersistStep_Execute(t *testing.T) {

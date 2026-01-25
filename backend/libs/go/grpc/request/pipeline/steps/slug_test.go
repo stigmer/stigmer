@@ -182,9 +182,9 @@ func TestGenerateSlug(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := generateSlug(tt.input)
+			result := GenerateSlug(tt.input)
 			if result != tt.expected {
-				t.Errorf("generateSlug(%q) = %q, expected %q", tt.input, result, tt.expected)
+				t.Errorf("GenerateSlug(%q) = %q, expected %q", tt.input, result, tt.expected)
 			}
 		})
 	}
@@ -197,8 +197,8 @@ func TestGenerateSlug_NoCollisions(t *testing.T) {
 	name1 := "This is a very long agent name that exceeds the maximum allowed AAAA"
 	name2 := "This is a very long agent name that exceeds the maximum allowed BBBB"
 
-	slug1 := generateSlug(name1)
-	slug2 := generateSlug(name2)
+	slug1 := GenerateSlug(name1)
+	slug2 := GenerateSlug(name2)
 
 	// Without truncation, these should be different
 	if slug1 == slug2 {

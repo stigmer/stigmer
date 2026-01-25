@@ -67,6 +67,7 @@ use_repo(
     "org_golang_google_grpc",
     "org_golang_google_protobuf",  # keep: Required for protobuf types (timestamppb, structpb, etc.)
     "org_golang_x_term",  # keep: Required for CLI terminal operations
+    "org_modernc_sqlite",  # keep: Required for SQLite storage backend
 )
 
 # ─── OCI base images ─────────────────────────────────────────────────────────

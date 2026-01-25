@@ -15,7 +15,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
-        "//backend/libs/go/badger",
+        "//backend/libs/go/store",
         "@com_github_rs_zerolog//log",
         "@io_temporal_go_sdk//activity",
         "@io_temporal_go_sdk//client",
