@@ -641,9 +641,7 @@ sdk/go/docs/
    - All have compilation errors from schema changes (Task 5)
    - Use old field names: `URI`, `Event`, `[]map[string]interface{}`
    - Need updating to new schema: `Endpoint`, `To`, `[]*types.WorkflowTask`
-   - Marked for separate cleanup task (out of scope for this project)
-
-**Gotchas Discovered**:
+   - Marked for separate cleanup task (out of scope for this project)**Gotchas Discovered**:
 
 1. **TaskConfig Map Structure**: 
    - LoopBody converts tasks to `types.WorkflowTask` format

@@ -349,13 +349,15 @@ build-agent-runner-image: ## Build agent-runner Docker image (for development)
 	@echo "Building Agent-Runner Docker Image"
 	@echo "============================================"
 	@echo ""
-	@echo "Building stigmer-agent-runner:local from Dockerfile..."
-	@cd backend/services/agent-runner && docker build -f Dockerfile -t stigmer-agent-runner:local ../../..
+	@echo "Building agent-runner from local source code..."
+	@cd backend/services/agent-runner && docker build -f Dockerfile -t stigmer-agent-runner:local -t ghcr.io/stigmer/agent-runner:latest ../../..
 	@echo ""
-	@echo "✓ Docker image built: stigmer-agent-runner:local"
+	@echo "✓ Docker image built with tags:"
+	@echo "  - stigmer-agent-runner:local"
+	@echo "  - ghcr.io/stigmer/agent-runner:latest"
 	@echo ""
-	@echo "Verifying image..."
-	@docker images stigmer-agent-runner:local
+	@echo "Verifying images..."
+	@docker images | grep -E "stigmer-agent-runner|ghcr.io/stigmer/agent-runner"
 	@echo ""
 
 release-local-full: ## Build CLI and agent-runner Docker image for complete local testing
@@ -363,10 +365,20 @@ release-local-full: ## Build CLI and agent-runner Docker image for complete loca
 	@echo "Building Complete Local Environment"
 	@echo "============================================"
 	@echo ""
-	@echo "Step 1: Building agent-runner Docker image..."
+	@echo "Step 1: Stopping old agent-runner container (if running)..."
+	@if docker ps -a --format '{{.Names}}' | grep -q '^stigmer-agent-runner$$'; then \
+		echo "Stopping and removing old agent-runner container..."; \
+		docker stop stigmer-agent-runner 2>/dev/null || true; \
+		docker rm stigmer-agent-runner 2>/dev/null || true; \
+		echo "✓ Old container removed"; \
+	else \
+		echo "✓ No old container to remove"; \
+	fi
+	@echo ""
+	@echo "Step 2: Building agent-runner Docker image..."
 	@$(MAKE) build-agent-runner-image
 	@echo ""
-	@echo "Step 2: Building and installing CLI..."
+	@echo "Step 3: Building and installing CLI..."
 	@$(MAKE) release-local
 	@echo ""
 	@echo "============================================"
@@ -375,7 +387,11 @@ release-local-full: ## Build CLI and agent-runner Docker image for complete loca
 	@echo ""
 	@echo "Components installed:"
 	@echo "  • CLI: $(HOME)/bin/stigmer"
-	@echo "  • Agent Runner: stigmer-agent-runner:local (Docker image)"
+	@echo "  • Agent Runner Docker images:"
+	@echo "    - stigmer-agent-runner:local"
+	@echo "    - ghcr.io/stigmer/agent-runner:latest (from local source)"
+	@echo ""
+	@echo "The stigmer server will now use the locally built agent-runner image."
 	@echo ""
 	@echo "Ready to test: stigmer server"
 
