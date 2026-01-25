@@ -32,6 +32,8 @@ type VariableArgs struct {
 	IsSecret bool
 
 	// Description is a human-readable description of the variable.
+	// Recommended for all variables, especially secrets, to document
+	// their purpose and expected format.
 	Description string
 
 	// DefaultValue is the default value if not provided at instance level.
@@ -180,12 +182,6 @@ func validate(v *Variable) error {
 			fmt.Sprintf("invalid environment variable name: %s (must be uppercase letters, numbers, and underscores)", v.Name),
 			validation.ErrInvalidFormat,
 		)
-	}
-
-	// Description is optional but recommended for secrets
-	if v.IsSecret && v.Description == "" {
-		// Warning: not an error, but good practice
-		_ = fmt.Sprintf("warning: secret variable %s has no description", v.Name)
 	}
 
 	return nil

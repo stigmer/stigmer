@@ -261,8 +261,8 @@ func (a *Agent) AddMCPServers(servers ...mcpserver.MCPServer) *Agent {
 //
 // Example:
 //
-//	agent, _ := agent.New(agent.WithName("reviewer"))
-//	agent.AddSubAgent(subagent.Reference("security", "sec-prod"))
+//	helper, _ := subagent.New("security", &subagent.Args{Instructions: "Check security"})
+//	agent.AddSubAgent(helper)
 func (a *Agent) AddSubAgent(sub subagent.SubAgent) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()

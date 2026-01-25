@@ -3,7 +3,7 @@ package agent
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/skillref"
 )
 
 // TestAgentToProto_Complete tests full agent with all optional fields.
@@ -111,11 +111,8 @@ func TestAgentToProto_Minimal(t *testing.T) {
 	}
 }
 
-// TestAgentToProto_WithSkill tests agent with inline skill.
+// TestAgentToProto_WithSkill tests agent with skill reference.
 func TestAgentToProto_WithSkill(t *testing.T) {
-	// Create inline skill
-	skillObj := skill.Platform("code-analysis")
-
 	// Create agent with skill
 	agent, err := New(nil, "code-reviewer-pro", &AgentArgs{
 		Description:  "Professional code reviewer with security focus",
@@ -127,7 +124,7 @@ func TestAgentToProto_WithSkill(t *testing.T) {
 	}
 
 	// Add skill using builder method
-	agent.AddSkill(skillObj)
+	agent.AddSkillRef(skillref.Platform("code-analysis"))
 
 	// Convert to proto
 	proto, err := agent.ToProto()
@@ -190,18 +187,8 @@ func TestAgentToProto_WithSkill(t *testing.T) {
 	}
 }
 
-// TestAgentToProto_MultipleSkills tests agent with multiple skills.
+// TestAgentToProto_MultipleSkills tests agent with multiple skill references.
 func TestAgentToProto_MultipleSkills(t *testing.T) {
-	skill1, _ := skill.New("skill1", &skill.SkillArgs{
-		MarkdownContent: "# Skill 1",
-	})
-	skill2, _ := skill.New("skill2", &skill.SkillArgs{
-		MarkdownContent: "# Skill 2",
-	})
-	skill3, _ := skill.New("skill3", &skill.SkillArgs{
-		MarkdownContent: "# Skill 3",
-	})
-
 	agent, err := New(nil, "multi-skill-agent", &AgentArgs{
 		Instructions: "Use multiple skills",
 	})
@@ -210,7 +197,11 @@ func TestAgentToProto_MultipleSkills(t *testing.T) {
 	}
 
 	// Add skills using builder method
-	agent.AddSkills(*skill1, *skill2, *skill3)
+	agent.AddSkillRefs(
+		skillref.Platform("skill1"),
+		skillref.Platform("skill2"),
+		skillref.Organization("my-org", "skill3"),
+	)
 
 	proto, err := agent.ToProto()
 	if err != nil {

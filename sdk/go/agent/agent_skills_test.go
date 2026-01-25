@@ -3,7 +3,7 @@ package agent
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/skillref"
 )
 
 func TestAgentWithSingleSkill(t *testing.T) {
@@ -15,24 +15,18 @@ func TestAgentWithSingleSkill(t *testing.T) {
 	}
 
 	// Add skill using builder method
-	agent.AddSkill(skill.Platform("coding-best-practices"))
+	agent.AddSkillRef(skillref.Platform("coding-best-practices"))
 
-	if len(agent.Skills) != 1 {
-		t.Errorf("New() skills count = %d, want 1", len(agent.Skills))
+	if len(agent.SkillRefs) != 1 {
+		t.Errorf("New() skills count = %d, want 1", len(agent.SkillRefs))
 	}
 
-	if agent.Skills[0].Slug != "coding-best-practices" {
-		t.Errorf("New() skill[0].Slug = %v, want coding-best-practices", agent.Skills[0].Slug)
+	if agent.SkillRefs[0].Slug != "coding-best-practices" {
+		t.Errorf("New() skill[0].Slug = %v, want coding-best-practices", agent.SkillRefs[0].Slug)
 	}
 }
 
 func TestAgentWithMultipleSkills(t *testing.T) {
-	skills := []skill.Skill{
-		skill.Platform("coding-best-practices"),
-		skill.Platform("security-analysis"),
-		skill.Organization("my-org", "internal-docs"),
-	}
-
 	agent, err := New(nil, "test-agent", &AgentArgs{
 		Instructions: "Test instructions for agent",
 	})
@@ -41,20 +35,27 @@ func TestAgentWithMultipleSkills(t *testing.T) {
 	}
 
 	// Add skills using builder method
-	agent.AddSkills(skills...)
+	agent.AddSkillRefs(
+		skillref.Platform("coding-best-practices"),
+		skillref.Platform("security-analysis"),
+		skillref.Organization("my-org", "internal-docs"),
+	)
 
-	if len(agent.Skills) != 3 {
-		t.Errorf("New() skills count = %d, want 3", len(agent.Skills))
+	if len(agent.SkillRefs) != 3 {
+		t.Errorf("New() skills count = %d, want 3", len(agent.SkillRefs))
 	}
 
 	// Verify all skills are present
-	for i, expectedSkill := range skills {
-		if agent.Skills[i].Slug != expectedSkill.Slug {
-			t.Errorf("New() skill[%d].Slug = %v, want %v", i, agent.Skills[i].Slug, expectedSkill.Slug)
+	expectedSlugs := []string{"coding-best-practices", "security-analysis", "internal-docs"}
+	for i, slug := range expectedSlugs {
+		if agent.SkillRefs[i].Slug != slug {
+			t.Errorf("New() skill[%d].Slug = %v, want %v", i, agent.SkillRefs[i].Slug, slug)
 		}
-		if agent.Skills[i].Org != expectedSkill.Org {
-			t.Errorf("New() skill[%d].Org = %v, want %v", i, agent.Skills[i].Org, expectedSkill.Org)
-		}
+	}
+
+	// Verify org skill has correct org
+	if agent.SkillRefs[2].Org != "my-org" {
+		t.Errorf("New() skill[2].Org = %v, want my-org", agent.SkillRefs[2].Org)
 	}
 }
 

@@ -34,6 +34,6 @@ go_test(
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/store",
-        "//backend/libs/go/store",
+        "//backend/libs/go/store/sqlite",
     ],
 )

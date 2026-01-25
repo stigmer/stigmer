@@ -4,40 +4,28 @@ import (
 	"fmt"
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
-// InlineArgs contains configuration for an inline sub-agent (Pulumi Args pattern).
+// Args contains configuration for a sub-agent (Pulumi Args pattern).
 // This is an alias to the generated InlineSubAgentArgs type.
-type InlineArgs = genAgent.InlineSubAgentArgs
+// Note: After proto regeneration, this will become SubAgentArgs.
+type Args = genAgent.InlineSubAgentArgs
 
 // SubAgent represents a sub-agent that can be delegated to.
-// It can be either an inline definition or a reference to an existing AgentInstance.
+// Sub-agents are defined inline within the parent agent spec.
 type SubAgent struct {
-	// Type of sub-agent
-	subAgentType subAgentType
-
-	// For inline sub-agents
 	name              string
 	description       string
 	instructions      string
 	mcpServers        []string
 	mcpToolSelections map[string]*types.McpToolSelection
 	skillRefs         []*apiresource.ApiResourceReference
-
-	// For referenced sub-agents
-	agentInstanceRef string
 }
 
-type subAgentType int
-
-const (
-	subAgentTypeInline subAgentType = iota
-	subAgentTypeReference
-)
-
-// Inline creates an inline sub-agent definition with struct args (Pulumi pattern).
+// New creates a sub-agent definition with struct args (Pulumi pattern).
 //
 // Required:
 //   - name: sub-agent name (non-empty)
@@ -51,19 +39,18 @@ const (
 //
 // Example:
 //
-//	sub, err := subagent.Inline("code-analyzer", &subagent.InlineArgs{
+//	sub, err := subagent.New("code-analyzer", &subagent.Args{
 //	    Instructions: "Analyze code for bugs and security issues",
 //	    Description:  "Static code analyzer",
 //	    McpServers:   []string{"github"},
 //	})
-func Inline(name string, args *InlineArgs) (SubAgent, error) {
+func New(name string, args *Args) (SubAgent, error) {
 	// Nil-safety: if args is nil, create empty args
 	if args == nil {
-		args = &InlineArgs{}
+		args = &Args{}
 	}
 
 	s := SubAgent{
-		subAgentType:      subAgentTypeInline,
 		name:              name,
 		description:       args.Description,
 		instructions:      args.Instructions,
@@ -84,40 +71,30 @@ func convertSkillRefs(refs []*types.ApiResourceReference) []*apiresource.ApiReso
 	for _, ref := range refs {
 		if ref != nil {
 			result = append(result, &apiresource.ApiResourceReference{
-				Slug: ref.Slug,
-				Org:  ref.Org,
-				// Note: types.ApiResourceReference uses string for Scope/Kind,
-				// proto uses enums. These would need proper conversion if used.
+				Slug:  ref.Slug,
+				Org:   ref.Org,
+				Scope: parseScope(ref.Scope),
+				Kind:  parseKind(ref.Kind),
 			})
 		}
 	}
 	return result
 }
 
-// Reference creates a reference to an existing AgentInstance resource.
-//
-// Example:
-//
-//	sub := subagent.Reference("security-checker", "sec-checker-prod")
-//
-// The name is the local name for this sub-agent reference.
-// The agentInstanceRef is the ID or name of the AgentInstance resource.
-func Reference(name, agentInstanceRef string) SubAgent {
-	return SubAgent{
-		subAgentType:     subAgentTypeReference,
-		name:             name,
-		agentInstanceRef: agentInstanceRef,
+// parseScope converts string scope to proto enum.
+func parseScope(s string) apiresource.ApiResourceOwnerScope {
+	if v, ok := apiresource.ApiResourceOwnerScope_value[s]; ok {
+		return apiresource.ApiResourceOwnerScope(v)
 	}
+	return apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified
 }
 
-// IsInline returns true if this is an inline sub-agent definition.
-func (s SubAgent) IsInline() bool {
-	return s.subAgentType == subAgentTypeInline
-}
-
-// IsReference returns true if this is a reference to an existing AgentInstance.
-func (s SubAgent) IsReference() bool {
-	return s.subAgentType == subAgentTypeReference
+// parseKind converts string kind to proto enum.
+func parseKind(k string) apiresourcekind.ApiResourceKind {
+	if v, ok := apiresourcekind.ApiResourceKind_value[k]; ok {
+		return apiresourcekind.ApiResourceKind(v)
+	}
+	return apiresourcekind.ApiResourceKind_api_resource_kind_unknown
 }
 
 // Name returns the name of the sub-agent.
@@ -125,51 +102,32 @@ func (s SubAgent) Name() string {
 	return s.name
 }
 
-// Instructions returns the behavior instructions for inline sub-agents.
+// Instructions returns the behavior instructions for the sub-agent.
 func (s SubAgent) Instructions() string {
 	return s.instructions
 }
 
-// Description returns the description for inline sub-agents.
+// Description returns the description of the sub-agent.
 func (s SubAgent) Description() string {
 	return s.description
 }
 
-// MCPServerNames returns the list of MCP server names for inline sub-agents.
+// MCPServerNames returns the list of MCP server names the sub-agent can use.
 func (s SubAgent) MCPServerNames() []string {
 	return s.mcpServers
 }
 
-// ToolSelections returns the MCP tool selections map for inline sub-agents.
+// ToolSelections returns the MCP tool selections map.
 func (s SubAgent) ToolSelections() map[string]*types.McpToolSelection {
 	return s.mcpToolSelections
 }
 
-// SkillRefs returns the skill references for inline sub-agents.
+// SkillRefs returns the skill references for the sub-agent.
 func (s SubAgent) SkillRefs() []*apiresource.ApiResourceReference {
 	return s.skillRefs
 }
 
-// Organization returns the organization for referenced sub-agents.
-// For inline sub-agents, returns empty string.
-func (s SubAgent) Organization() string {
-	if s.IsReference() {
-		// For references, we need to parse from agentInstanceRef
-		// For now, return empty - this will be handled by CLI
-		return ""
-	}
-	return ""
-}
-
-// AgentInstanceID returns the agent instance reference for referenced sub-agents.
-func (s SubAgent) AgentInstanceID() string {
-	return s.agentInstanceRef
-}
-
 // String returns a string representation of the sub-agent.
 func (s SubAgent) String() string {
-	if s.IsReference() {
-		return fmt.Sprintf("SubAgent(%s -> %s)", s.name, s.agentInstanceRef)
-	}
-	return fmt.Sprintf("SubAgent(%s inline)", s.name)
+	return fmt.Sprintf("SubAgent(%s)", s.name)
 }

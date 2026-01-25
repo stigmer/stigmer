@@ -3,26 +3,26 @@ package agent
 import (
 	"testing"
 
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
-// mustInline creates an inline sub-agent or panics on error.
+// mustSubAgent creates a sub-agent or panics on error.
 // This is a test helper for concise test cases.
-func mustInline(opts ...subagent.InlineOption) subagent.SubAgent {
-	sub, err := subagent.Inline(opts...)
+func mustSubAgent(name string, args *subagent.Args) subagent.SubAgent {
+	sub, err := subagent.New(name, args)
 	if err != nil {
-		panic("failed to create inline sub-agent: " + err.Error())
+		panic("failed to create sub-agent: " + err.Error())
 	}
 	return sub
 }
 
-func TestAgentWithInlineSubAgent(t *testing.T) {
-	helper := mustInline(
-		subagent.WithName("helper"),
-		subagent.WithInstructions("Helper instructions"),
-	)
+func TestAgentWithSubAgent(t *testing.T) {
+	helper := mustSubAgent("helper", &subagent.Args{
+		Instructions: "Helper instructions",
+	})
 
 	agent, err := New(nil, "main-agent", &AgentArgs{
 		Instructions: "Main agent instructions",
@@ -37,44 +37,23 @@ func TestAgentWithInlineSubAgent(t *testing.T) {
 	if len(agent.SubAgents) != 1 {
 		t.Errorf("len(SubAgents) = %d, want 1", len(agent.SubAgents))
 	}
-	if !agent.SubAgents[0].IsInline() {
-		t.Error("expected inline sub-agent")
-	}
-}
-
-func TestAgentWithReferencedSubAgent(t *testing.T) {
-	refAgent := subagent.Reference("helper", "prod")
-
-	agent, err := New(nil, "main-agent", &AgentArgs{
-		Instructions: "Main agent instructions",
-	})
-	if err != nil {
-		t.Fatalf("New() error = %v", err)
-	}
-
-	// Add referenced sub-agent using builder method
-	agent.AddSubAgent(refAgent)
-
-	if len(agent.SubAgents) != 1 {
-		t.Errorf("len(SubAgents) = %d, want 1", len(agent.SubAgents))
-	}
-	if !agent.SubAgents[0].IsReference() {
-		t.Error("expected referenced sub-agent")
+	if agent.SubAgents[0].Name() != "helper" {
+		t.Errorf("SubAgents[0].Name() = %q, want %q", agent.SubAgents[0].Name(), "helper")
 	}
 }
 
 func TestAgentWithMultipleSubAgents(t *testing.T) {
-	analyzer := mustInline(
-		subagent.WithName("analyzer"),
-		subagent.WithInstructions("Analyze code for bugs"),
-	)
+	analyzer := mustSubAgent("analyzer", &subagent.Args{
+		Instructions: "Analyze code for bugs",
+	})
 
-	reviewer := mustInline(
-		subagent.WithName("reviewer"),
-		subagent.WithInstructions("Review code for style"),
-	)
+	reviewer := mustSubAgent("reviewer", &subagent.Args{
+		Instructions: "Review code for style",
+	})
 
-	securityRef := subagent.Reference("security", "sec-prod")
+	security := mustSubAgent("security", &subagent.Args{
+		Instructions: "Check for security issues",
+	})
 
 	agent, err := New(nil, "orchestrator", &AgentArgs{
 		Instructions: "Orchestrate multiple sub-agents",
@@ -84,19 +63,19 @@ func TestAgentWithMultipleSubAgents(t *testing.T) {
 	}
 
 	// Add all sub-agents using builder method
-	agent.AddSubAgents(analyzer, reviewer, securityRef)
+	agent.AddSubAgents(analyzer, reviewer, security)
 
 	if len(agent.SubAgents) != 3 {
 		t.Errorf("len(SubAgents) = %d, want 3", len(agent.SubAgents))
 	}
-	if !agent.SubAgents[0].IsInline() {
-		t.Error("expected first sub-agent to be inline")
+	if agent.SubAgents[0].Name() != "analyzer" {
+		t.Errorf("SubAgents[0].Name() = %q, want %q", agent.SubAgents[0].Name(), "analyzer")
 	}
-	if !agent.SubAgents[1].IsInline() {
-		t.Error("expected second sub-agent to be inline")
+	if agent.SubAgents[1].Name() != "reviewer" {
+		t.Errorf("SubAgents[1].Name() = %q, want %q", agent.SubAgents[1].Name(), "reviewer")
 	}
-	if !agent.SubAgents[2].IsReference() {
-		t.Error("expected third sub-agent to be reference")
+	if agent.SubAgents[2].Name() != "security" {
+		t.Errorf("SubAgents[2].Name() = %q, want %q", agent.SubAgents[2].Name(), "security")
 	}
 }
 
@@ -110,11 +89,10 @@ func TestAgentWithSubAgentUsingMCPServers(t *testing.T) {
 		t.Fatalf("Failed to create MCP server: %v", err)
 	}
 
-	githubHelper := mustInline(
-		subagent.WithName("github-helper"),
-		subagent.WithInstructions("Help with GitHub operations"),
-		subagent.WithMCPServer("github"),
-	)
+	githubHelper := mustSubAgent("github-helper", &subagent.Args{
+		Instructions: "Help with GitHub operations",
+		McpServers:   []string{"github"},
+	})
 
 	agent, err := New(nil, "main-agent", &AgentArgs{
 		Instructions: "Main agent with sub-agent that uses MCP servers",
@@ -136,14 +114,13 @@ func TestAgentWithSubAgentUsingMCPServers(t *testing.T) {
 }
 
 func TestAgentWithSubAgentUsingSkills(t *testing.T) {
-	skilledHelper := mustInline(
-		subagent.WithName("skilled-helper"),
-		subagent.WithInstructions("Use coding knowledge"),
-		subagent.WithSkills(
-			skill.Platform("coding-best-practices"),
-			skill.Organization("my-org", "internal-apis"),
-		),
-	)
+	skilledHelper := mustSubAgent("skilled-helper", &subagent.Args{
+		Instructions: "Use coding knowledge",
+		SkillRefs: []*types.ApiResourceReference{
+			{Slug: "coding-best-practices", Scope: "platform"},
+			{Slug: "internal-apis", Scope: "organization", Org: "my-org"},
+		},
+	})
 
 	agent, err := New(nil, "main-agent", &AgentArgs{
 		Instructions: "Main agent with sub-agent that uses skills",
@@ -152,11 +129,17 @@ func TestAgentWithSubAgentUsingSkills(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
+	// Also add skills to parent agent
+	agent.AddSkillRef(skillref.Platform("parent-skill"))
+
 	// Add sub-agent using builder method
 	agent.AddSubAgent(skilledHelper)
 
 	if len(agent.SubAgents) != 1 {
 		t.Errorf("len(SubAgents) = %d, want 1", len(agent.SubAgents))
+	}
+	if len(agent.SkillRefs) != 1 {
+		t.Errorf("len(SkillRefs) = %d, want 1", len(agent.SkillRefs))
 	}
 }
 
@@ -170,12 +153,13 @@ func TestAgentWithSubAgentUsingToolSelections(t *testing.T) {
 		t.Fatalf("Failed to create MCP server: %v", err)
 	}
 
-	selectiveHelper := mustInline(
-		subagent.WithName("selective-helper"),
-		subagent.WithInstructions("Use specific GitHub tools"),
-		subagent.WithMCPServer("github"),
-		subagent.WithToolSelection("github", "create_issue", "list_repos"),
-	)
+	selectiveHelper := mustSubAgent("selective-helper", &subagent.Args{
+		Instructions: "Use specific GitHub tools",
+		McpServers:   []string{"github"},
+		McpToolSelections: map[string]*types.McpToolSelection{
+			"github": {EnabledTools: []string{"create_issue", "list_repos"}},
+		},
+	})
 
 	agent, err := New(nil, "main-agent", &AgentArgs{
 		Instructions: "Main agent with selective sub-agent",
@@ -190,5 +174,14 @@ func TestAgentWithSubAgentUsingToolSelections(t *testing.T) {
 
 	if len(agent.SubAgents) != 1 {
 		t.Errorf("len(SubAgents) = %d, want 1", len(agent.SubAgents))
+	}
+
+	// Verify tool selections are preserved
+	selections := agent.SubAgents[0].ToolSelections()
+	if len(selections) != 1 {
+		t.Errorf("len(ToolSelections()) = %d, want 1", len(selections))
+	}
+	if _, ok := selections["github"]; !ok {
+		t.Error("ToolSelections() missing 'github' key")
 	}
 }

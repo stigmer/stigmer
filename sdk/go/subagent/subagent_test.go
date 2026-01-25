@@ -3,133 +3,95 @@ package subagent
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
-func TestInline(t *testing.T) {
+func TestNew(t *testing.T) {
 	tests := []struct {
 		name    string
-		opts    []InlineOption
-		wantErr bool
+		subName string
+		args    *Args
 		check   func(*testing.T, SubAgent)
 	}{
 		{
-			name: "basic inline sub-agent",
-			opts: []InlineOption{
-				WithName("code-analyzer"),
-				WithInstructions("Analyze code for bugs and security issues"),
+			name:    "basic sub-agent",
+			subName: "code-analyzer",
+			args: &Args{
+				Instructions: "Analyze code for bugs and security issues",
 			},
-			wantErr: false,
 			check: func(t *testing.T, s SubAgent) {
-				if !s.IsInline() {
-					t.Error("expected inline sub-agent")
-				}
-				if s.IsReference() {
-					t.Error("expected not reference")
-				}
 				if s.Name() != "code-analyzer" {
 					t.Errorf("Name() = %q, want %q", s.Name(), "code-analyzer")
 				}
-			},
-		},
-		{
-			name: "inline with description",
-			opts: []InlineOption{
-				WithName("security-checker"),
-				WithInstructions("Check code for security vulnerabilities"),
-				WithDescription("Security analysis sub-agent"),
-			},
-			wantErr: false,
-			check: func(t *testing.T, s SubAgent) {
-				if s.description != "Security analysis sub-agent" {
-					t.Errorf("description = %q, want %q", s.description, "Security analysis sub-agent")
+				if s.Instructions() != "Analyze code for bugs and security issues" {
+					t.Errorf("Instructions() = %q, want longer text", s.Instructions())
 				}
 			},
 		},
 		{
-			name: "inline with MCP servers",
-			opts: []InlineOption{
-				WithName("github-bot"),
-				WithInstructions("Interact with GitHub repositories"),
-				WithMCPServer("github"),
-				WithMCPServer("gitlab"),
+			name:    "with description",
+			subName: "security-checker",
+			args: &Args{
+				Instructions: "Check code for security vulnerabilities",
+				Description:  "Security analysis sub-agent",
 			},
-			wantErr: false,
 			check: func(t *testing.T, s SubAgent) {
-				if len(s.mcpServers) != 2 {
-					t.Errorf("len(mcpServers) = %d, want 2", len(s.mcpServers))
-				}
-				if s.mcpServers[0] != "github" || s.mcpServers[1] != "gitlab" {
-					t.Errorf("mcpServers = %v, want [github gitlab]", s.mcpServers)
+				if s.Description() != "Security analysis sub-agent" {
+					t.Errorf("Description() = %q, want %q", s.Description(), "Security analysis sub-agent")
 				}
 			},
 		},
 		{
-			name: "inline with tool selections",
-			opts: []InlineOption{
-				WithName("selective-bot"),
-				WithInstructions("Use specific GitHub tools only"),
-				WithMCPServer("github"),
-				WithToolSelection("github", "create_issue", "list_repos"),
+			name:    "with MCP servers",
+			subName: "github-bot",
+			args: &Args{
+				Instructions: "Interact with GitHub repositories",
+				McpServers:   []string{"github", "gitlab"},
 			},
-			wantErr: false,
 			check: func(t *testing.T, s SubAgent) {
-				if len(s.mcpToolSelections) != 1 {
-					t.Errorf("len(mcpToolSelections) = %d, want 1", len(s.mcpToolSelections))
+				servers := s.MCPServerNames()
+				if len(servers) != 2 {
+					t.Errorf("len(MCPServerNames()) = %d, want 2", len(servers))
 				}
-				tools, ok := s.mcpToolSelections["github"]
+				if servers[0] != "github" || servers[1] != "gitlab" {
+					t.Errorf("MCPServerNames() = %v, want [github gitlab]", servers)
+				}
+			},
+		},
+		{
+			name:    "with tool selections",
+			subName: "selective-bot",
+			args: &Args{
+				Instructions: "Use specific GitHub tools only",
+				McpServers:   []string{"github"},
+				McpToolSelections: map[string]*types.McpToolSelection{
+					"github": {EnabledTools: []string{"create_issue", "list_repos"}},
+				},
+			},
+			check: func(t *testing.T, s SubAgent) {
+				selections := s.ToolSelections()
+				if len(selections) != 1 {
+					t.Errorf("len(ToolSelections()) = %d, want 1", len(selections))
+				}
+				tools, ok := selections["github"]
 				if !ok {
-					t.Error("mcpToolSelections missing 'github' key")
+					t.Error("ToolSelections() missing 'github' key")
 				}
-				if len(tools) != 2 {
-					t.Errorf("len(tools) = %d, want 2", len(tools))
-				}
-			},
-		},
-		{
-			name: "inline with skills",
-			opts: []InlineOption{
-				WithName("knowledgeable-bot"),
-				WithInstructions("Use coding knowledge to analyze code"),
-				WithSkill(skill.Platform("coding-best-practices")),
-				WithSkill(skill.Organization("my-org", "internal-apis")),
-			},
-			wantErr: false,
-			check: func(t *testing.T, s SubAgent) {
-				if len(s.skillRefs) != 2 {
-					t.Errorf("len(skillRefs) = %d, want 2", len(s.skillRefs))
+				if len(tools.EnabledTools) != 2 {
+					t.Errorf("len(tools.EnabledTools) = %d, want 2", len(tools.EnabledTools))
 				}
 			},
 		},
 		{
-			name: "inline with multiple MCP servers at once",
-			opts: []InlineOption{
-				WithName("multi-server-bot"),
-				WithInstructions("Use multiple servers"),
-				WithMCPServers("github", "gitlab", "aws"),
-			},
-			wantErr: false,
+			name:    "with nil args",
+			subName: "minimal-bot",
+			args:    nil,
 			check: func(t *testing.T, s SubAgent) {
-				if len(s.mcpServers) != 3 {
-					t.Errorf("len(mcpServers) = %d, want 3", len(s.mcpServers))
+				if s.Name() != "minimal-bot" {
+					t.Errorf("Name() = %q, want %q", s.Name(), "minimal-bot")
 				}
-			},
-		},
-		{
-			name: "inline with multiple skills at once",
-			opts: []InlineOption{
-				WithName("skilled-bot"),
-				WithInstructions("Use multiple skills"),
-				WithSkills(
-					skill.Platform("skill1"),
-					skill.Platform("skill2"),
-					skill.Organization("org", "skill3"),
-				),
-			},
-			wantErr: false,
-			check: func(t *testing.T, s SubAgent) {
-				if len(s.skillRefs) != 3 {
-					t.Errorf("len(skillRefs) = %d, want 3", len(s.skillRefs))
+				if s.Instructions() != "" {
+					t.Errorf("Instructions() = %q, want empty", s.Instructions())
 				}
 			},
 		},
@@ -137,202 +99,53 @@ func TestInline(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sub, err := Inline(tt.opts...)
-			
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Inline() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			sub, err := New(tt.subName, tt.args)
+			if err != nil {
+				t.Fatalf("New() error = %v", err)
 			}
 
-			if tt.check != nil && !tt.wantErr {
+			if tt.check != nil {
 				tt.check(t, sub)
 			}
 		})
 	}
 }
 
-func TestReference(t *testing.T) {
-	tests := []struct {
-		name             string
-		subName          string
-		agentInstanceRef string
-		wantErr          bool
-	}{
-		{
-			name:             "valid reference",
-			subName:          "security-checker",
-			agentInstanceRef: "sec-checker-prod",
-			wantErr:          false,
-		},
-		{
-			name:             "reference with empty name",
-			subName:          "",
-			agentInstanceRef: "some-agent",
-			wantErr:          true,
-		},
-		{
-			name:             "reference with empty ref",
-			subName:          "checker",
-			agentInstanceRef: "",
-			wantErr:          true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sub := Reference(tt.subName, tt.agentInstanceRef)
-
-			if !sub.IsReference() {
-				t.Error("expected reference sub-agent")
-			}
-			if sub.IsInline() {
-				t.Error("expected not inline")
-			}
-			if sub.Name() != tt.subName {
-				t.Errorf("Name() = %q, want %q", sub.Name(), tt.subName)
-			}
-
-			err := sub.Validate()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestValidateInline(t *testing.T) {
-	tests := []struct {
-		name    string
-		opts    []InlineOption
-		wantErr bool
-		errMsg  string
-	}{
-		{
-			name: "valid inline sub-agent",
-			opts: []InlineOption{
-				WithName("analyzer"),
-				WithInstructions("Analyze code for issues"),
-			},
-			wantErr: false,
-		},
-		{
-			name: "missing name",
-			opts: []InlineOption{
-				WithInstructions("Some instructions"),
-			},
-			wantErr: true,
-			errMsg:  "name is required",
-		},
-		{
-			name: "missing instructions",
-			opts: []InlineOption{
-				WithName("analyzer"),
-			},
-			wantErr: true,
-			errMsg:  "instructions are required",
-		},
-		{
-			name: "instructions too short",
-			opts: []InlineOption{
-				WithName("analyzer"),
-				WithInstructions("short"),
-			},
-			wantErr: true,
-			errMsg:  "instructions must be at least 10 characters",
-		},
-		{
-			name: "invalid skill reference",
-			opts: []InlineOption{
-				WithName("analyzer"),
-				WithInstructions("Analyze code for issues"),
-				WithSkill(skill.Platform("")), // invalid empty skill ID
-			},
-			wantErr: true,
-			errMsg:  "skill_refs",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sub, createErr := Inline(tt.opts...)
-			if createErr != nil {
-				t.Fatalf("Inline() unexpected creation error = %v", createErr)
-			}
-			
-			err := sub.Validate()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			if tt.wantErr && err != nil && tt.errMsg != "" {
-				if !containsString(err.Error(), tt.errMsg) {
-					t.Errorf("Validate() error = %q, want to contain %q", err.Error(), tt.errMsg)
-				}
-			}
-		})
-	}
-}
-
 func TestString(t *testing.T) {
-	tests := []struct {
-		name    string
-		opts    interface{} // Can be []InlineOption or Reference args
-		want    string
-		isInline bool
-	}{
-		{
-			name: "inline sub-agent",
-			opts: []InlineOption{
-				WithName("analyzer"),
-				WithInstructions("Analyze code"),
-			},
-			want:    "SubAgent(analyzer inline)",
-			isInline: true,
-		},
+	sub, err := New("analyzer", &Args{
+		Instructions: "Analyze code",
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var sub SubAgent
-			var err error
-			
-			if tt.isInline {
-				sub, err = Inline(tt.opts.([]InlineOption)...)
-				if err != nil {
-					t.Fatalf("Inline() error = %v", err)
-				}
-			}
-			
-			got := sub.String()
-			if got != tt.want {
-				t.Errorf("String() = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestString_Reference(t *testing.T) {
-	sub := Reference("security", "sec-prod")
-	want := "SubAgent(security -> sec-prod)"
-	
+	want := "SubAgent(analyzer)"
 	got := sub.String()
 	if got != want {
 		t.Errorf("String() = %q, want %q", got, want)
 	}
 }
 
-// Helper function to check if a string contains a substring
-func containsString(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || 
-		(len(s) > 0 && len(substr) > 0 && contains(s, substr)))
-}
-
-func contains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
+func TestSkillRefs(t *testing.T) {
+	sub, err := New("skilled-bot", &Args{
+		Instructions: "Use multiple skills",
+		SkillRefs: []*types.ApiResourceReference{
+			{Slug: "skill1", Scope: "platform"},
+			{Slug: "skill2", Scope: "organization", Org: "my-org"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
 	}
-	return false
+
+	refs := sub.SkillRefs()
+	if len(refs) != 2 {
+		t.Errorf("len(SkillRefs()) = %d, want 2", len(refs))
+	}
+	if refs[0].Slug != "skill1" {
+		t.Errorf("refs[0].Slug = %q, want %q", refs[0].Slug, "skill1")
+	}
+	if refs[1].Slug != "skill2" {
+		t.Errorf("refs[1].Slug = %q, want %q", refs[1].Slug, "skill2")
+	}
 }
