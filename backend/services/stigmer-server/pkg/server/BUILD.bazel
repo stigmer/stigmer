@@ -33,6 +33,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/executioncontext/controller",
         "//backend/services/stigmer-server/pkg/domain/session/controller",
         "//backend/services/stigmer-server/pkg/domain/skill/controller",
+        "//backend/services/stigmer-server/pkg/domain/skill/storage",
         "//backend/services/stigmer-server/pkg/domain/workflow/controller",
         "//backend/services/stigmer-server/pkg/domain/workflow/temporal",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/controller",

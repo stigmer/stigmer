@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/pkg/errors"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/pkg/errors"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
@@ -168,20 +168,20 @@ func (d *Deployer) deployResourceGroup(resources []*synthesis.ResourceWithID) ([
 		resource proto.Message
 		err      error
 	}
-	
+
 	results := make(chan deployResult, len(resources))
 	var wg sync.WaitGroup
 
 	// Deploy each resource in a goroutine
 	for _, res := range resources {
 		wg.Add(1)
-		
+
 		// Capture loop variable
 		resource := res
-		
+
 		go func() {
 			defer wg.Done()
-			
+
 			deployed, err := d.deployResource(resource)
 			results <- deployResult{
 				resource: deployed,
@@ -197,7 +197,7 @@ func (d *Deployer) deployResourceGroup(resources []*synthesis.ResourceWithID) ([
 	// Collect results and check for errors
 	deployed := make([]proto.Message, 0, len(resources))
 	var firstError error
-	
+
 	for result := range results {
 		if result.err != nil && firstError == nil {
 			firstError = result.err

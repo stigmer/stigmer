@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/pkg/errors"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"google.golang.org/grpc"
 )

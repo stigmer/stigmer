@@ -26,6 +26,7 @@ import (
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
+	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
 	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
 	workflowexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/controller"
 	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/controller"
@@ -219,12 +220,18 @@ func Run() error {
 
 	log.Info().Msg("Registered ExecutionContext controllers")
 
-	// Create and register Skill controller
-	skillController := skillcontroller.NewSkillController(store)
+	// Create and register Skill controller (with artifact storage)
+	artifactStorage, err := skillstorage.NewLocalFileStorage(cfg.StoragePath)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize skill artifact storage")
+	}
+	skillController := skillcontroller.NewSkillController(store, artifactStorage)
 	skillv1.RegisterSkillCommandControllerServer(grpcServer, skillController)
 	skillv1.RegisterSkillQueryControllerServer(grpcServer, skillController)
 
-	log.Info().Msg("Registered Skill controllers")
+	log.Info().
+		Str("storage_path", cfg.StoragePath).
+		Msg("Registered Skill controllers with artifact storage")
 
 	// Create and register Agent controller (without dependencies initially)
 	agentController := agentcontroller.NewAgentController(store, nil)
