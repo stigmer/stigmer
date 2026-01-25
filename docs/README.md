@@ -19,6 +19,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Go SDK Proto Integration](sdk/go-sdk-proto-integration.md) - Convert SDK resources to platform protos (Skill ready, Agent in progress)
 
 ### Guides
+- [Uploading Skills](guides/uploading-skills.md) - **NEW**: Complete guide to uploading skills as artifacts using Artifact Mode
 - [Creating and Versioning Skills](guides/creating-and-versioning-skills.md) - Complete guide to creating, uploading, and managing versioned skills
 - [Deploying with Apply](guides/deploying-with-apply.md) - Deploy agents and workflows from code using `stigmer apply`
 - [Distribution Guide](guides/distribution.md) - Complete guide to packaging and distributing Stigmer
