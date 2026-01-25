@@ -84,6 +84,13 @@ func (s *StringRef) Value() string {
 	return s.value
 }
 
+// String implements fmt.Stringer interface for StringRef.
+// This allows StringRef to be used directly in string concatenation and fmt.Sprint().
+// Returns the resolved string value.
+func (s *StringRef) String() string {
+	return s.value
+}
+
 // ToValue implements Ref.ToValue() for synthesis/serialization.
 // Returns the string value as interface{} for JSON serialization.
 func (s *StringRef) ToValue() interface{} {

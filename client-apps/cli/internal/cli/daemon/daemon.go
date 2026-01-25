@@ -331,12 +331,26 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 
 	log.Debug().Str("binary", cliBin).Msg("Starting stigmer-server via CLI")
 
-	// Start daemon process (spawn CLI with hidden internal-server command)
-	cmd := exec.Command(cliBin, "internal-server")
-	cmd.Env = append(os.Environ(),
+	// Prepare environment variables for stigmer-server (including supervisor config)
+	env := append(os.Environ(),
 		fmt.Sprintf("STIGMER_DATA_DIR=%s", dataDir),
 		fmt.Sprintf("GRPC_PORT=%d", DaemonPort),
+		fmt.Sprintf("STIGMER_LOG_DIR=%s", filepath.Join(dataDir, "logs")),
+		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", temporalAddr),
+		fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", llmProvider),
+		fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
+		fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
 	)
+
+	// Add LLM secrets to environment
+	for key, value := range secrets {
+		env = append(env, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	// Start daemon process (spawn CLI with hidden internal-server command)
+	// stigmer-server will now start its own child processes (workflow-runner, agent-runner)
+	cmd := exec.Command(cliBin, "internal-server")
+	cmd.Env = env
 
 	// Redirect output to log files
 	// Consolidate stdout and stderr to single .log file for clarity
@@ -375,108 +389,9 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		Int("pid", cmd.Process.Pid).
 		Int("port", DaemonPort).
 		Str("data_dir", dataDir).
-		Msg("Daemon started successfully")
+		Msg("Stigmer server started successfully")
 
-	// Start workflow-runner subprocess (Temporal worker mode)
-	if opts.Progress != nil {
-		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting workflow runner")
-	}
-	if err := startWorkflowRunner(dataDir, logDir, temporalAddr); err != nil {
-		log.Error().Err(err).Msg("Failed to start workflow-runner, continuing without it")
-		// Don't fail the entire daemon startup if workflow-runner fails
-		// Workflows won't execute but the server is still useful
-	}
-
-	// Resolve execution configuration (CLI flags > env vars > config file > defaults)
-	executionMode := opts.ExecutionMode
-	if executionMode == "" {
-		executionMode = cfg.Backend.Local.ResolveExecutionMode()
-	}
-
-	sandboxImage := opts.SandboxImage
-	if sandboxImage == "" {
-		sandboxImage = cfg.Backend.Local.ResolveSandboxImage()
-	}
-
-	sandboxAutoPull := cfg.Backend.Local.ResolveSandboxAutoPull()
-	sandboxCleanup := cfg.Backend.Local.ResolveSandboxCleanup()
-	sandboxTTL := cfg.Backend.Local.ResolveSandboxTTL()
-
-	// Override with CLI flags if explicitly set (checking changed vs default)
-	if opts.SandboxAutoPull != true { // If explicitly set to false
-		sandboxAutoPull = opts.SandboxAutoPull
-	}
-	if opts.SandboxCleanup != true { // If explicitly set to false
-		sandboxCleanup = opts.SandboxCleanup
-	}
-	if opts.SandboxTTL != 3600 && opts.SandboxTTL != 0 { // If explicitly set to non-default
-		sandboxTTL = opts.SandboxTTL
-	}
-
-	log.Debug().
-		Str("execution_mode", executionMode).
-		Str("sandbox_image", sandboxImage).
-		Bool("sandbox_auto_pull", sandboxAutoPull).
-		Bool("sandbox_cleanup", sandboxCleanup).
-		Int("sandbox_ttl", sandboxTTL).
-		Msg("Resolved execution configuration")
-
-	// Start agent-runner subprocess with LLM config and injected secrets
-	if opts.Progress != nil {
-		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting agent runner")
-	}
-	if err := startAgentRunner(dataDir, logDir, llmProvider, llmModel, llmBaseURL, temporalAddr, secrets, executionMode, sandboxImage, sandboxAutoPull, sandboxCleanup, sandboxTTL); err != nil {
-		log.Error().Err(err).Msg("Failed to start agent-runner, continuing without it")
-		// Don't fail the entire daemon startup if agent-runner fails
-		// The server is still useful without the agent-runner
-	}
-
-	// Save startup configuration for component restarts
-	startupConfig := &StartupConfig{
-		DataDir:         dataDir,
-		LogDir:          logDir,
-		TemporalAddr:    temporalAddr,
-		LLMProvider:     llmProvider,
-		LLMModel:        llmModel,
-		LLMBaseURL:      llmBaseURL,
-		ExecutionMode:   executionMode,
-		SandboxImage:    sandboxImage,
-		SandboxAutoPull: sandboxAutoPull,
-		SandboxCleanup:  sandboxCleanup,
-		SandboxTTL:      sandboxTTL,
-	}
-
-	// Read and save PIDs
-	if pid, err := getPID(dataDir); err == nil {
-		startupConfig.StigmerServerPID = pid
-	}
-
-	if pid, err := GetWorkflowRunnerPID(dataDir); err == nil {
-		startupConfig.WorkflowRunnerPID = pid
-	}
-
-	if containerID, err := GetAgentRunnerContainerID(dataDir); err == nil {
-		startupConfig.AgentRunnerContainerID = containerID
-	}
-
-	if err := saveStartupConfig(startupConfig); err != nil {
-		log.Warn().Err(err).Msg("Failed to save startup configuration - component restart may not work")
-	}
-
-	// Start health monitoring
-	if opts.Progress != nil {
-		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting health monitoring")
-	}
-
-	// Give components a moment to stabilize before starting health checks
-	time.Sleep(2 * time.Second)
-
-	if err := startHealthMonitoring(dataDir); err != nil {
-		log.Warn().Err(err).Msg("Failed to start health monitoring - components will not auto-restart on failure")
-		// Don't fail startup if health monitoring fails
-	} else {
-		log.Info().Msg("Health monitoring active - components will auto-restart on failure")
-	}
+	log.Info().Msg("Stigmer server will spawn and monitor child components (workflow-runner, agent-runner) internally")
 
 	return nil
 }
