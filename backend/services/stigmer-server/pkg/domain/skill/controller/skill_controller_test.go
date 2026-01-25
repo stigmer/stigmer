@@ -312,17 +312,17 @@ func TestIsHash(t *testing.T) {
 		input    string
 		expected bool
 	}{
-		{"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890", true},       // Valid 64-char hex
-		{"0000000000000000000000000000000000000000000000000000000000000000", true},        // All zeros (64 chars)
-		{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", true},        // All f's (64 chars)
-		{"ABCDEF1234567890abcdef1234567890abcdef1234567890ABCDEF1234567890", false},       // Has uppercase (not matching pattern)
-		{"abc123", false},                                                                 // Too short
-		{"stable", false},                                                                 // Tag name
-		{"v1.0", false},                                                                   // Version tag
-		{"latest", false},                                                                 // Latest
-		{"", false},                                                                       // Empty
-		{"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab", false},    // Too long (66 chars)
-		{"ghij001234567890abcdef1234567890abcdef1234567890abcdef1234567890", false},      // Invalid hex chars 'g', 'h', 'i', 'j'
+		{"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890", true},  // Valid 64-char hex
+		{"0000000000000000000000000000000000000000000000000000000000000000", true},  // All zeros (64 chars)
+		{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", true},  // All f's (64 chars)
+		{"ABCDEF1234567890abcdef1234567890abcdef1234567890ABCDEF1234567890", false}, // Has uppercase (not matching pattern)
+		{"abc123", false}, // Too short
+		{"stable", false}, // Tag name
+		{"v1.0", false},   // Version tag
+		{"latest", false}, // Latest
+		{"", false},       // Empty
+		{"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab", false}, // Too long (66 chars)
+		{"ghij001234567890abcdef1234567890abcdef1234567890abcdef1234567890", false},   // Invalid hex chars 'g', 'h', 'i', 'j'
 	}
 
 	for _, tt := range tests {
