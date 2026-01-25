@@ -4,18 +4,54 @@ import (
 	"fmt"
 )
 
+// Context is a minimal interface that represents a stigmer context.
+// This allows the environment package to work with contexts without importing
+// the stigmer package (avoiding import cycles).
+//
+// The stigmer.Context type implements this interface.
+type Context interface {
+	// Environment variables are helper types, not registered resources.
+	// Context is included for consistency with Pulumi patterns.
+}
+
+// VariableArgs contains the configuration arguments for creating an environment Variable.
+//
+// This struct follows the Pulumi Args pattern for resource configuration.
+type VariableArgs struct {
+	// IsSecret indicates whether this value should be treated as a secret.
+	// When true:
+	// - Value is encrypted at rest
+	// - Value is redacted in logs
+	// - Value requires special permissions to read
+	// When false (default):
+	// - Value is stored as plaintext
+	// - Value is visible in audit logs
+	IsSecret bool
+
+	// Description is a human-readable description of the variable.
+	Description string
+
+	// DefaultValue is the default value if not provided at instance level.
+	// Only applicable for optional variables.
+	// Setting a default value automatically marks the variable as optional.
+	DefaultValue string
+
+	// Required indicates whether this variable must be provided.
+	// Defaults to true. Variables with default values are automatically optional.
+	Required *bool
+}
+
 // Variable represents an environment variable required by an agent.
 //
 // Environment variables can be configuration values or secrets. They define what
 // external configuration an agent needs to run.
 //
-// Use New() with functional options to create an environment variable:
+// Use New() with struct args (Pulumi pattern) to create an environment variable:
 //
-//	githubToken, err := environment.New(
-//	    environment.WithName("GITHUB_TOKEN"),
-//	    environment.WithSecret(true),
-//	    environment.WithDescription("GitHub API token"),
-//	)
+//	githubToken, err := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
+//	    IsSecret:    true,
+//	    Description: "GitHub API token",
+//	})
 type Variable struct {
 	// Name is the environment variable name (e.g., "GITHUB_TOKEN", "AWS_REGION").
 	Name string
@@ -42,138 +78,70 @@ type Variable struct {
 	Required bool
 }
 
-// Option is a functional option for configuring a Variable.
-type Option func(*Variable) error
-
-// New creates a new environment variable with the given options.
+// New creates a new environment variable with struct-based args (Pulumi pattern).
 //
-// Required options:
-//   - WithName: variable name
+// Follows Pulumi's Args pattern: context, name as parameters, struct args for configuration.
+//
+// Required:
+//   - ctx: stigmer context (for consistency with other resources)
+//   - name: variable name (uppercase letters, numbers, underscores)
+//
+// Optional args fields:
+//   - IsSecret: whether the value should be treated as a secret
+//   - Description: human-readable description
+//   - DefaultValue: default value (makes the variable optional)
+//   - Required: whether the variable is required (defaults to true)
 //
 // Example:
 //
-//	githubToken, err := environment.New(
-//	    environment.WithName("GITHUB_TOKEN"),
-//	    environment.WithSecret(true),
-//	    environment.WithDescription("GitHub API token"),
-//	)
+//	githubToken, err := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
+//	    IsSecret:    true,
+//	    Description: "GitHub API token",
+//	})
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-func New(opts ...Option) (Variable, error) {
-	v := Variable{
-		Required: true, // Default to required
+//
+// Example with default value (makes variable optional):
+//
+//	awsRegion, err := environment.New(ctx, "AWS_REGION", &environment.VariableArgs{
+//	    DefaultValue: "us-east-1",
+//	    Description:  "AWS region for deployment",
+//	})
+//
+// Example with nil args (creates required variable):
+//
+//	apiKey, err := environment.New(ctx, "API_KEY", nil)
+func New(ctx Context, name string, args *VariableArgs) (*Variable, error) {
+	// Nil-safety: if args is nil, create empty args
+	if args == nil {
+		args = &VariableArgs{}
 	}
 
-	// Apply all options
-	for _, opt := range opts {
-		if err := opt(&v); err != nil {
-			return Variable{}, err
-		}
+	// Determine if required
+	required := true
+	if args.Required != nil {
+		required = *args.Required
+	}
+	// Variables with defaults are optional
+	if args.DefaultValue != "" {
+		required = false
+	}
+
+	v := &Variable{
+		Name:         name,
+		IsSecret:     args.IsSecret,
+		Description:  args.Description,
+		DefaultValue: args.DefaultValue,
+		Required:     required,
 	}
 
 	// Validate the variable
-	if err := validate(&v); err != nil {
-		return Variable{}, err
+	if err := validate(v); err != nil {
+		return nil, err
 	}
 
 	return v, nil
-}
-
-// WithName sets the environment variable name.
-//
-// The name should follow standard environment variable naming conventions:
-//   - Uppercase letters
-//   - Numbers
-//   - Underscores
-//
-// This is a required field.
-//
-// Example:
-//
-//	environment.WithName("GITHUB_TOKEN")
-//	environment.WithName("AWS_REGION")
-func WithName(name string) Option {
-	return func(v *Variable) error {
-		v.Name = name
-		return nil
-	}
-}
-
-// WithSecret marks the variable as a secret.
-//
-// When true:
-//   - Value is encrypted at rest
-//   - Value is redacted in logs
-//   - Value requires special permissions to read
-//
-// When false (default):
-//   - Value is stored as plaintext
-//   - Value is visible in audit logs
-//
-// Example:
-//
-//	environment.WithSecret(true)  // For API tokens, passwords
-//	environment.WithSecret(false) // For configuration values
-func WithSecret(isSecret bool) Option {
-	return func(v *Variable) error {
-		v.IsSecret = isSecret
-		return nil
-	}
-}
-
-// WithDescription sets a human-readable description of the variable.
-//
-// The description should explain:
-//   - What the variable is used for
-//   - Where to obtain the value
-//   - Any format requirements
-//
-// Example:
-//
-//	environment.WithDescription("GitHub personal access token with repo scope")
-//	environment.WithDescription("AWS region for resource deployment (e.g., us-east-1)")
-func WithDescription(description string) Option {
-	return func(v *Variable) error {
-		v.Description = description
-		return nil
-	}
-}
-
-// WithDefaultValue sets a default value for optional variables.
-//
-// If a variable has a default value, it becomes optional (not required).
-// The default value is used if no value is provided at AgentInstance creation.
-//
-// Example:
-//
-//	environment.WithDefaultValue("us-east-1")  // For AWS_REGION
-//	environment.WithDefaultValue("info")        // For LOG_LEVEL
-func WithDefaultValue(defaultValue string) Option {
-	return func(v *Variable) error {
-		v.DefaultValue = defaultValue
-		// Variables with defaults are optional
-		v.Required = false
-		return nil
-	}
-}
-
-// WithRequired sets whether the variable is required.
-//
-// Required variables must be provided at AgentInstance creation.
-// Optional variables can use the default value if not provided.
-//
-// Note: Variables with default values are automatically marked as optional.
-//
-// Example:
-//
-//	environment.WithRequired(true)  // Must be provided
-//	environment.WithRequired(false) // Optional
-func WithRequired(required bool) Option {
-	return func(v *Variable) error {
-		v.Required = required
-		return nil
-	}
 }
 
 // String returns a string representation of the Variable.

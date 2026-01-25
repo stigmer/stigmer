@@ -10,6 +10,16 @@ import (
 // SkillArgs is an alias for the generated SkillArgs from gen/skill
 type SkillArgs = genSkill.SkillArgs
 
+// Context is a minimal interface that represents a stigmer context.
+// This allows the skill package to work with contexts without importing
+// the stigmer package (avoiding import cycles).
+//
+// The stigmer.Context type implements this interface.
+type Context interface {
+	RegisterSkill(s interface{})
+	TrackDependency(resourceID, dependsOnID string)
+}
+
 var (
 	// ErrSkillNameRequired is returned when inline skill name is missing.
 	ErrSkillNameRequired = errors.New("skill name is required for inline skills")
@@ -27,7 +37,7 @@ var (
 //
 // Inline skills (Pulumi-style struct args):
 //
-//	mySkill, _ := skill.New("code-analyzer", &skill.SkillArgs{
+//	mySkill, _ := skill.New(ctx, "code-analyzer", &skill.SkillArgs{
 //	    Description:     "Analyzes code quality",
 //	    MarkdownContent: "# Code Analysis\n\nThis skill analyzes code...",
 //	})
@@ -56,16 +66,21 @@ type Skill struct {
 
 	// IsInline indicates if this is an inline skill definition (true) or a reference (false).
 	IsInline bool
+
+	// ctx is the context reference for registration (optional).
+	ctx Context
 }
 
 // New creates an inline skill definition with struct-based args (Pulumi pattern).
 //
+// The skill is automatically registered with the provided context for synthesis.
 // Inline skills are created in your repository with name, description, and markdown content.
 // The CLI will create these skills on the platform before creating the agent.
 //
-// Follows Pulumi's Args pattern: name as parameter, struct args for configuration.
+// Follows Pulumi's Args pattern: context, name as parameters, struct args for configuration.
 //
 // Required:
+//   - ctx: stigmer context for registration
 //   - name: skill name (lowercase alphanumeric with hyphens)
 //   - args.MarkdownContent: skill documentation/knowledge
 //
@@ -74,16 +89,16 @@ type Skill struct {
 //
 // Example:
 //
-//	skill, _ := skill.New("code-analyzer", &skill.SkillArgs{
+//	skill, _ := skill.New(ctx, "code-analyzer", &skill.SkillArgs{
 //	    Description:     "Analyzes code quality and suggests improvements",
 //	    MarkdownContent: "# Code Analysis\n\nThis skill analyzes code...",
 //	})
 //
 // Example with nil args (validation will fail without markdown):
 //
-//	skill, err := skill.New("code-analyzer", nil)
+//	skill, err := skill.New(ctx, "code-analyzer", nil)
 //	// Returns ErrSkillMarkdownRequired
-func New(name string, args *SkillArgs) (*Skill, error) {
+func New(ctx Context, name string, args *SkillArgs) (*Skill, error) {
 	// Nil-safety: if args is nil, create empty args
 	if args == nil {
 		args = &SkillArgs{}
@@ -95,6 +110,7 @@ func New(name string, args *SkillArgs) (*Skill, error) {
 		Description:     args.Description,
 		MarkdownContent: args.MarkdownContent,
 		IsInline:        true,
+		ctx:             ctx,
 	}
 
 	// Auto-generate slug from name
@@ -114,6 +130,11 @@ func New(name string, args *SkillArgs) (*Skill, error) {
 	// Validate slug format
 	if err := naming.ValidateSlug(s.Slug); err != nil {
 		return nil, err
+	}
+
+	// Register with context (if provided)
+	if ctx != nil {
+		ctx.RegisterSkill(s)
 	}
 
 	return s, nil

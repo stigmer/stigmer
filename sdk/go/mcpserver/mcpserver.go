@@ -1,5 +1,14 @@
 package mcpserver
 
+// Context is a minimal interface that represents a stigmer context.
+// This allows the mcpserver package to work with contexts without importing
+// the stigmer package (avoiding import cycles).
+//
+// The stigmer.Context type implements this interface.
+// MCP servers are helper types added to agents, not top-level resources,
+// but context is included for consistency with Pulumi patterns.
+type Context interface{}
+
 // MCPServer represents an MCP server that can be attached to an agent.
 // MCP servers provide tools and capabilities to agents at runtime.
 type MCPServer interface {

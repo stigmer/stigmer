@@ -2,19 +2,27 @@ package mcpserver
 
 import (
 	"fmt"
+
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
+
+// DockerArgs is an alias for the generated DockerServer type from codegen.
+// This follows the pattern of using generated types for Args structs.
+type DockerArgs = types.DockerServer
 
 // DockerServer represents a Docker-based MCP server that runs in a container.
 //
 // Example:
 //
-//	server := mcpserver.Docker(
-//		mcpserver.WithName("custom-mcp"),
-//		mcpserver.WithImage("ghcr.io/org/mcp:latest"),
-//		mcpserver.WithEnvPlaceholder("API_KEY", "${API_KEY}"),
-//		mcpserver.WithVolumeMount("/data", "/mnt/data", true),
-//		mcpserver.WithPortMapping(8080, 80, "tcp"),
-//	)
+//	server, _ := mcpserver.Docker(ctx, "custom-mcp", &mcpserver.DockerArgs{
+//	    Image: "ghcr.io/org/mcp:latest",
+//	    EnvPlaceholders: map[string]string{
+//	        "API_KEY": "${API_KEY}",
+//	    },
+//	    Volumes: []*types.VolumeMount{
+//	        {HostPath: "/data", ContainerPath: "/mnt/data", ReadOnly: true},
+//	    },
+//	})
 type DockerServer struct {
 	baseServer
 	image           string
@@ -26,32 +34,93 @@ type DockerServer struct {
 	containerName   string
 }
 
-// Docker creates a new Docker-based MCP server with the given options.
+// Docker creates a new Docker-based MCP server with struct-based args (Pulumi pattern).
+//
+// The args struct uses the generated types.DockerServer from proto definitions.
+// This ensures the Args always match the proto schema.
+//
+// Follows Pulumi's Args pattern: context, name as parameters, struct args for configuration.
+//
+// Required:
+//   - ctx: stigmer context (for consistency with other resources)
+//   - name: server name (e.g., "custom-mcp")
+//   - args.Image: Docker image name
+//
+// Optional args fields (from generated types.DockerServer):
+//   - Args: container command arguments
+//   - EnvPlaceholders: environment variable placeholders
+//   - Volumes: volume mount configurations (use []*types.VolumeMount)
+//   - Network: Docker network name
+//   - Ports: port mapping configurations (use []*types.PortMapping)
+//   - ContainerName: container name
+//
+// Note: EnabledTools is set separately via the EnableTools() builder method,
+// as it's defined on McpServerDefinition in proto, not on DockerServer.
 //
 // Example:
 //
-//	custom := mcpserver.Docker(
-//		mcpserver.WithName("custom-mcp"),
-//		mcpserver.WithImage("ghcr.io/org/mcp:latest"),
-//		mcpserver.WithArgs("--config", "/etc/mcp.yaml"),
-//		mcpserver.WithEnvPlaceholder("API_KEY", "${API_KEY}"),
-//		mcpserver.WithVolumeMount("/host/data", "/container/data", false),
-//		mcpserver.WithPortMapping(8080, 80, "tcp"),
-//		mcpserver.WithNetwork("mcp-network"),
-//		mcpserver.WithContainerName("my-mcp-server"),
-//		mcpserver.WithEnabledTools("tool1", "tool2"),
-//	)
-func Docker(opts ...Option) (*DockerServer, error) {
-	server := &DockerServer{
-		envPlaceholders: make(map[string]string),
-		volumes:         []VolumeMount{},
-		ports:           []PortMapping{},
+//	custom, err := mcpserver.Docker(ctx, "custom-mcp", &mcpserver.DockerArgs{
+//	    Image: "ghcr.io/org/mcp:latest",
+//	    Args:  []string{"--config", "/etc/mcp.yaml"},
+//	    EnvPlaceholders: map[string]string{
+//	        "API_KEY": "${API_KEY}",
+//	    },
+//	    Volumes: []*types.VolumeMount{
+//	        {HostPath: "/host/data", ContainerPath: "/container/data", ReadOnly: false},
+//	    },
+//	    Ports: []*types.PortMapping{
+//	        {HostPort: 8080, ContainerPort: 80, Protocol: "tcp"},
+//	    },
+//	    Network:       "mcp-network",
+//	    ContainerName: "my-mcp-server",
+//	})
+//	custom.EnableTools("tool1", "tool2")  // Set enabled tools
+func Docker(ctx Context, name string, args *DockerArgs) (*DockerServer, error) {
+	// Nil-safety: if args is nil, create empty args
+	if args == nil {
+		args = &DockerArgs{}
 	}
 
-	for _, opt := range opts {
-		if err := opt(server); err != nil {
-			return nil, fmt.Errorf("docker server option: %w", err)
+	// Initialize collections
+	envPlaceholders := args.EnvPlaceholders
+	if envPlaceholders == nil {
+		envPlaceholders = make(map[string]string)
+	}
+
+	// Convert generated types to internal types
+	var volumes []VolumeMount
+	for _, v := range args.Volumes {
+		if v != nil {
+			volumes = append(volumes, VolumeMount{
+				HostPath:      v.HostPath,
+				ContainerPath: v.ContainerPath,
+				ReadOnly:      v.ReadOnly,
+			})
 		}
+	}
+
+	var ports []PortMapping
+	for _, p := range args.Ports {
+		if p != nil {
+			ports = append(ports, PortMapping{
+				HostPort:      p.HostPort,
+				ContainerPort: p.ContainerPort,
+				Protocol:      p.Protocol,
+			})
+		}
+	}
+
+	server := &DockerServer{
+		baseServer: baseServer{
+			name: name,
+		},
+		image:           args.Image,
+		args:            args.Args,
+		envPlaceholders: envPlaceholders,
+		volumes:         volumes,
+		network:         args.Network,
+		ports:           ports,
+		containerName:   args.ContainerName,
 	}
 
 	if err := server.Validate(); err != nil {
@@ -59,6 +128,13 @@ func Docker(opts ...Option) (*DockerServer, error) {
 	}
 
 	return server, nil
+}
+
+// EnableTools sets the enabled tools for this server (builder pattern).
+// If not called or called with empty slice, all tools are enabled.
+func (d *DockerServer) EnableTools(tools ...string) *DockerServer {
+	d.enabledTools = tools
+	return d
 }
 
 // Image returns the Docker image name.
