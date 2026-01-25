@@ -17,7 +17,7 @@ const (
 	BasicWorkflowEnvVarName = "API_TOKEN"
 	
 	// Task names from SDK example
-	BasicWorkflowFetchTask   = "fetchData"
+	BasicWorkflowFetchTask   = "fetchPullRequest"
 	BasicWorkflowProcessTask = "processResponse"
 	
 	// Expected values
