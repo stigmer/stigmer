@@ -69,39 +69,56 @@ When starting a new session:
 
 **Created**: 2026-01-25 12:14
 **Current Task**: T01.4 (Agent Integration)
-**Status**: In Progress - Archive Deletion Added
-**Last Session**: 2026-01-25 - Added archive deletion logic for skill delete
-**Last Completed**: T01.3 Cleanup (Remove Obsolete CRUD Operations) ✅ 2026-01-25 16:06
-**Analysis Completed**: T01.4 Pre-Implementation Analysis ✅ 2026-01-25
+**Status**: Go Implementation Complete ✅
+**Last Session**: 2026-01-25 - Version Resolution Implemented
+**Last Completed**: T01.4 Go Version Resolution ✅ 2026-01-25 17:00
 
-## Session Progress (2026-01-25 Evening)
+## Session Progress (2026-01-25 - Latest)
 
-### What Was Accomplished
+### What Was Accomplished - Version Resolution (Latest Session)
+- Created `LoadSkillByReferenceStep` - Skill-specific version resolution step
+- Supports: empty/"latest", tag names, SHA256 hash lookups
+- Searches main collection first, then audit records for historical versions
+- Added comprehensive tests for all version resolution scenarios
+
+### Files Created/Modified
+- `backend/services/stigmer-server/pkg/domain/skill/controller/load_skill_by_reference.go` - **NEW** Version resolution step
+- `backend/services/stigmer-server/pkg/domain/skill/controller/get_by_reference.go` - Updated to use new step
+- `backend/services/stigmer-server/pkg/domain/skill/controller/BUILD.bazel` - Added new file
+- `backend/services/stigmer-server/pkg/domain/skill/controller/skill_controller_test.go` - Added version tests
+
+### Previous Session - Archive Deletion
 - Added `DeleteResourcesByIdPrefix` method to badger store for prefix-based deletion
 - Created `DeleteSkillArchivesStep` in delete.go to clean up version history archives
 - Updated skill delete pipeline to include archive cleanup before resource deletion
-- Archive deletion is best-effort (logs warnings but doesn't fail the delete operation)
 
 ### Key Decisions Made
-- Archive cleanup runs BEFORE the main skill deletion (ensures cleanup even with referential integrity)
-- Best-effort approach: failures are logged but don't stop the delete operation (same pattern as archival)
-- Uses same key format as push: `skill_audit/<resource_id>/<timestamp>`
+- Skill-specific step rather than generic (only Skills have versioning currently)
+- Audit key format: `skill_audit/<resource_id>/<timestamp>` - Allows prefix scanning
+- Latest by timestamp - Multiple audit records with same tag sorted by timestamp
+- Hash detection: 64 lowercase hex characters = SHA256 hash = exact version lookup
 
-### Files Modified
-- `backend/libs/go/badger/store.go` - Added `DeleteResourcesByIdPrefix` method
-- `backend/services/stigmer-server/pkg/domain/skill/controller/delete.go` - Added archive deletion step
+## Test Results
+
+All version resolution tests pass:
+```
+✅ TestSkillController_GetByReference (all 6 scenarios)
+✅ TestSkillController_GetByReference_AuditVersions (all 3 scenarios)
+✅ TestIsHash (all 11 scenarios)
+```
 
 ## Next Steps (when resuming)
 
-1. Test the archive deletion logic manually or add unit tests
-2. Continue with T01.4 Agent Integration work
-3. Review if similar archive cleanup is needed for other resources
+1. **Java Backend (stigmer-cloud)**: Implement similar version resolution
+2. **Python Agent-Runner**: Implement prompt engineering with skill injection
+3. Consider T01.5 (Testing & Validation) or T01.6 (Documentation)
 
 ## Context for Resume
 
+- Version resolution in Go is complete: `GetByReference` now handles `version` field in `ApiResourceReference`
 - Archive records are stored with keys: `skill/skill_audit/<resource_id>/<timestamp>`
-- The delete pipeline now has 5 steps: ValidateProto → ExtractResourceId → LoadExistingForDelete → **DeleteSkillArchives** → DeleteResource
-- The new `DeleteResourcesByIdPrefix` method in badger store can be reused for other audit cleanup scenarios
+- The delete pipeline has 5 steps including archive cleanup
+- Go tests: `go test ./backend/services/stigmer-server/pkg/domain/skill/controller/... -v`
 
 ## Quick Commands
 
