@@ -68,50 +68,87 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-25 12:14
-**Current Task**: T01.5 Python Agent-Runner Skill Injection ✅
-**Status**: Agent-Runner Skill Injection Complete
-**Last Session**: 2026-01-25 - Python Agent-Runner Skill Injection (ADR 001)
-**Last Completed**: Agent-Runner skill_writer.py + execute_graphton.py updates ✅ 2026-01-25
+**Current Task**: T01.6 Artifact Download & Extraction ✅
+**Status**: Artifact Download & Extraction Complete
+**Last Session**: 2026-01-25 - Artifact Download & Extraction Implementation
+**Last Completed**: Complete artifact download pipeline (proto → Java → Python) ✅ 2026-01-25
 
 ## Session Progress (2026-01-25 - Latest Session)
 
-### What Was Accomplished - Python Agent-Runner Skill Injection
+### What Was Accomplished - Artifact Download & Extraction
 
-**Following ADR 001: Skill Injection & Sandbox Mounting Strategy**
+**Complete implementation of artifact download and extraction pipeline following ADR 001**
 
-**skill_writer.py - Complete Rewrite:**
-- Fixed proto field names (`skill.spec.skill_md` instead of non-existent `markdown_content`)
-- Changed skills path to `/bin/skills/{version_hash}/` per ADR
-- Implemented full SKILL.md injection into system prompt with LOCATION header
-- Added local mode support (filesystem backend)
-- Added cloud mode support (Daytona sandbox)
+**1. Proto Definitions (stigmer OSS):**
+- Added `GetArtifactRequest` message with `artifact_storage_key` field
+- Added `GetArtifactResponse` message with `artifact` bytes field
+- Added `getArtifact` RPC to SkillQueryController
+- Regenerated all proto stubs (Java, Python, Go, TypeScript, Dart)
 
-**execute_graphton.py - Updated Skill Handling:**
-- Local mode: Writes skills to `{local_root}/bin/skills/{version_hash}/`
-- Cloud mode: Uploads to Daytona sandbox at `/bin/skills/{version_hash}/`
-- Both modes inject full skill content into system prompt
+**2. Java Backend Handler (stigmer-cloud):**
+- Created `SkillGetArtifactHandler.java`
+- Downloads artifacts from R2 using `SkillArtifactR2Store`
+- Returns ZIP bytes via gRPC
+- Proper error handling (NOT_FOUND, INTERNAL)
 
-**System Prompt Format (per ADR):**
-```text
-### SKILL: calculator
-LOCATION: /bin/skills/abc123def456.../
+**3. Python gRPC Client (stigmer OSS):**
+- Added `get_artifact()` method to `SkillClient`
+- Downloads ZIP files from backend
+- Error handling and logging
 
-(Full content of SKILL.md here...)
+**4. Skill Writer Enhancement (stigmer OSS):**
+- Updated `SkillWriter.write_skills()` to accept optional `artifacts` parameter
+- Added `_extract_artifact_local()` - extracts ZIP to local filesystem
+- Added `_extract_artifact_daytona()` - extracts ZIP in Daytona sandbox
+- Makes scripts executable (`.sh`, `.py`, `.js`, `.ts`, `.rb`, `.pl`)
+- Backward compatible - works with or without artifacts
+
+**5. Execute Graphton Integration (stigmer OSS):**
+- Downloads artifacts for skills with `artifact_storage_key`
+- Passes artifacts to `skill_writer.write_skills()`
+- Graceful fallback to SKILL.md-only if download fails
+
+**Architecture Flow:**
+```
+Agent Execution → Fetch Skills → Download Artifacts (if key exists) 
+→ Extract to /bin/skills/{hash}/ → Inject SKILL.md into prompt
 ```
 
-**Key Design Decisions:**
-- Version hash as directory name (`skill.status.version_hash`)
-- Full content injection - SKILL.md in prompt so agents know how to use tools
-- LOCATION header tells agents where executable files are located
+### Files Modified
 
-### Files Modified (stigmer OSS repo)
+**stigmer OSS repo (13 files):**
+```
+apis/ai/stigmer/agentic/skill/v1/
+├── io.proto                         # +13 lines (new messages)
+└── query.proto                      # +11 lines (new RPC)
+apis/stubs/                          # Auto-generated (all languages)
+backend/services/agent-runner/
+├── grpc_client/skill_client.py      # +44 lines (get_artifact)
+├── worker/activities/
+    ├── execute_graphton.py          # +28 lines (download artifacts)
+    └── graphton/skill_writer.py     # +140 lines (extraction logic)
+```
 
+**stigmer-cloud repo (new file + stubs):**
 ```
-backend/services/agent-runner/worker/activities/
-├── execute_graphton.py      # Updated skill handling for both modes
-└── graphton/
-    └── skill_writer.py      # Complete rewrite per ADR 001
+backend/services/stigmer-service/src/main/java/
+└── ai/stigmer/domain/agentic/skill/request/handler/
+    └── SkillGetArtifactHandler.java # +113 lines (new handler)
+apis/stubs/                          # Auto-generated (all languages)
 ```
+
+### Previous Sessions Summary
+
+**Session 1 - Python Agent-Runner Skill Injection:**
+- skill_writer.py complete rewrite per ADR 001
+- execute_graphton.py skill handling for both modes
+- Full SKILL.md injection into system prompt
+
+**Session 2 - Java R2 Storage & Audit:**
+- R2 storage configuration and credentials
+- SkillArtifactR2Store.java - R2 operations
+- SkillAuditRepo.java - version history
+- SkillPushHandler.java and SkillGetByReferenceHandler.java
 
 ### Previous Session - Java R2 Storage & Audit
 
@@ -136,35 +173,46 @@ Before testing:
 
 ## Next Steps (when resuming)
 
-1. **Artifact Download & Extraction**: Implement ZIP download from R2/storage and extraction to `/bin/skills/{hash}/`
-2. **Unit Tests**: Add tests for skill_writer.py, SkillAuditRepo, SkillArtifactR2Store
-3. **Integration Test**: End-to-end test of skill push → resolve → inject flow
+1. ✅ ~~**Artifact Download & Extraction**~~ - COMPLETED
+2. **Unit Tests**: Add tests for skill_writer.py, SkillClient.get_artifact(), SkillGetArtifactHandler
+3. **Integration Test**: End-to-end test of skill push → download → extract → inject flow
 4. **MongoDB Migration**: Add indices to `skill_audit` collection
-5. **Documentation**: Update agent-runner docs with skill injection architecture
+5. **CLI Enhancement**: Add `stigmer skill push` command
+6. **Documentation**: Update agent-runner docs with complete skill architecture
 
 ## Context for Resume
 
-- **Skill injection complete**: Full SKILL.md content now injected into prompts
-- **Artifact extraction NOT implemented**: Only writes SKILL.md, not ZIP artifact extraction
-- **Both local and cloud modes supported**: SkillWriter handles both
-- **R2 bucket not yet created**: Placeholders in stigmer-cloud secrets
+- **Artifact download & extraction COMPLETE**: Full pipeline implemented per ADR 001
+- **Skill injection complete**: Full SKILL.md content injected into prompts
+- **Both local and cloud modes supported**: Works with filesystem and Daytona
+- **Graceful degradation**: Falls back to SKILL.md-only if artifact download fails
+- **Backward compatible**: Works with skills that don't have artifacts
+- **R2 bucket not yet created**: Placeholders in stigmer-cloud secrets (pending user action)
 - **No unit tests yet**: Added to next steps
 
-## What's NOT Yet Implemented
+## What's Complete (ADR 001)
 
-Per ADR 001, artifact mounting (downloading ZIP and extracting to `/bin/skills/{hash}/`) is not yet implemented. Current implementation only writes SKILL.md content. If skills have executable implementations (scripts, binaries), those would need:
-1. Download artifact from R2/storage using `skill.status.artifact_storage_key`
-2. Extract ZIP to `/bin/skills/{version_hash}/`
+Per ADR 001, the complete skill injection and mounting architecture is now implemented:
+1. ✅ SKILL.md injection into system prompt with LOCATION headers
+2. ✅ Artifact download from R2/storage via gRPC
+3. ✅ ZIP extraction to `/bin/skills/{version_hash}/`
+4. ✅ Executable permissions for scripts
+5. ✅ Both local filesystem and Daytona sandbox support
 
 ## Uncommitted Changes
 
-**stigmer OSS repo (3 files):**
-- `backend/services/agent-runner/worker/activities/execute_graphton.py`
-- `backend/services/agent-runner/worker/activities/graphton/skill_writer.py`
-- `_projects/2026-01/20260125.01.skill-api-enhancement/next-task.md`
+**stigmer OSS repo (13 files modified):**
+- `apis/ai/stigmer/agentic/skill/v1/io.proto` - GetArtifact messages
+- `apis/ai/stigmer/agentic/skill/v1/query.proto` - getArtifact RPC
+- `apis/stubs/` - Proto stubs (auto-generated)
+- `backend/services/agent-runner/grpc_client/skill_client.py` - get_artifact()
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` - artifact download
+- `backend/services/agent-runner/worker/activities/graphton/skill_writer.py` - extraction
+- `_projects/2026-01/20260125.01.skill-api-enhancement/next-task.md` - this file
 
-**stigmer-cloud repo:**
-- Previous session changes (Java R2 + Audit) - already committed
+**stigmer-cloud repo (new file + stubs):**
+- `backend/services/stigmer-service/.../SkillGetArtifactHandler.java` - NEW handler
+- `apis/stubs/` - Proto stubs (auto-generated)
 
 ## Architecture Summary
 

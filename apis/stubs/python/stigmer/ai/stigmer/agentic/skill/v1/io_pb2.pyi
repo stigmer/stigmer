@@ -36,18 +36,14 @@ class PushSkillResponse(_message.Message):
     tag: str
     def __init__(self, version_hash: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...
 
-class GetSkillByTagRequest(_message.Message):
-    __slots__ = ("slug", "tag")
-    SLUG_FIELD_NUMBER: _ClassVar[int]
-    TAG_FIELD_NUMBER: _ClassVar[int]
-    slug: str
-    tag: str
-    def __init__(self, slug: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...
+class GetArtifactRequest(_message.Message):
+    __slots__ = ("artifact_storage_key",)
+    ARTIFACT_STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
+    artifact_storage_key: str
+    def __init__(self, artifact_storage_key: _Optional[str] = ...) -> None: ...
 
-class GetSkillByHashRequest(_message.Message):
-    __slots__ = ("slug", "version_hash")
-    SLUG_FIELD_NUMBER: _ClassVar[int]
-    VERSION_HASH_FIELD_NUMBER: _ClassVar[int]
-    slug: str
-    version_hash: str
-    def __init__(self, slug: _Optional[str] = ..., version_hash: _Optional[str] = ...) -> None: ...
+class GetArtifactResponse(_message.Message):
+    __slots__ = ("artifact",)
+    ARTIFACT_FIELD_NUMBER: _ClassVar[int]
+    artifact: bytes
+    def __init__(self, artifact: _Optional[bytes] = ...) -> None: ...

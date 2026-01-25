@@ -27,15 +27,10 @@ class SkillQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
                 _registered_method=True)
-        self.getByTag = channel.unary_unary(
-                '/ai.stigmer.agentic.skill.v1.SkillQueryController/getByTag',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetSkillByTagRequest.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
-                _registered_method=True)
-        self.getByHash = channel.unary_unary(
-                '/ai.stigmer.agentic.skill.v1.SkillQueryController/getByHash',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetSkillByHashRequest.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
+        self.getArtifact = channel.unary_unary(
+                '/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifact',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactResponse.FromString,
                 _registered_method=True)
 
 
@@ -51,7 +46,13 @@ class SkillQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getByReference(self, request, context):
-        """Get a skill by API resource reference.
+        """Get a skill by API resource reference with version support.
+
+        Version resolution (via ApiResourceReference.version field):
+        - Empty/"latest" → Returns current version from main collection
+        - Tag name (e.g., "stable", "v1.0") → Resolves to version with this tag
+        - SHA256 hash (64 hex chars) → Returns exact immutable version
+
         Authorization is handled in the handler after resolving the reference to a skill ID.
         (Input doesn't contain skill ID, so proto-level auth cannot work)
         """
@@ -59,19 +60,14 @@ class SkillQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def getByTag(self, request, context):
-        """Get a skill by tag name.
-        Resolves the tag to the most recent version with that tag.
-        Authorization is handled in the handler after resolving to a skill ID.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+    def getArtifact(self, request, context):
+        """Download skill artifact from storage by its storage key.
+        Returns the ZIP file containing SKILL.md and implementation files.
 
-    def getByHash(self, request, context):
-        """Get a skill by exact version hash.
-        Returns the specific version identified by the hash (immutable reference).
-        Authorization is handled in the handler after resolving to a skill ID.
+        This endpoint is used by the agent-runner to download and extract
+        skill artifacts into the sandbox at /bin/skills/{version_hash}/.
+
+        Authorization is skipped as the storage key itself acts as a capability token.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -90,15 +86,10 @@ def add_SkillQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
             ),
-            'getByTag': grpc.unary_unary_rpc_method_handler(
-                    servicer.getByTag,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetSkillByTagRequest.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
-            ),
-            'getByHash': grpc.unary_unary_rpc_method_handler(
-                    servicer.getByHash,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetSkillByHashRequest.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
+            'getArtifact': grpc.unary_unary_rpc_method_handler(
+                    servicer.getArtifact,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -167,7 +158,7 @@ class SkillQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def getByTag(request,
+    def getArtifact(request,
             target,
             options=(),
             channel_credentials=None,
@@ -180,36 +171,9 @@ class SkillQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.skill.v1.SkillQueryController/getByTag',
-            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetSkillByTagRequest.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def getByHash(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.skill.v1.SkillQueryController/getByHash',
-            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetSkillByHashRequest.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
+            '/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifact',
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactResponse.FromString,
             options,
             channel_credentials,
             insecure,
