@@ -1,60 +1,69 @@
 # Next Task: 20260125.02.badgerdb-to-sqlite-migration
 
 ## Current State
-- **Status**: COMPLETED (pending commit)
-- **Last Session**: 2026-01-25 - Full implementation completed
-- **Active Task**: T01 - BadgerDB to SQLite Migration
+- **Status**: IN-PROGRESS (uncommitted changes)
+- **Last Session**: 2026-01-25 (Session 2) - SQLite audit table architecture redesign
+- **Active Task**: T02 - SQLite Store Architecture Redesign
 
-## Session Progress (2026-01-25)
+## Session Progress (2026-01-25 - Session 2)
 
 ### Completed
-- ✅ Created `store.Store` interface with `ErrNotFound` sentinel error and `DeleteResourcesByIdPrefix` method
-- ✅ Implemented `sqlite.Store` with WAL mode, write serialization (mutex), comprehensive PRAGMA configuration
-- ✅ Created 20+ comprehensive tests including concurrent access, prefix scans, edge cases
-- ✅ Updated all 10 controller domains (import changes + type changes)
-- ✅ Updated temporal worker configs and activity implementations
-- ✅ Updated `server.go` with `sqlite.NewStore()` and removed debug endpoint
-- ✅ Updated `temporal_manager.go` with `store.Store` interface type assertions
-- ✅ Deleted `backend/libs/go/badger/` directory (entire BadgerDB package)
-- ✅ Deleted `backend/services/stigmer-server/pkg/debug/` directory
-- ✅ Added `modernc.org/sqlite` dependency (pure Go, no CGO)
-- ✅ Updated `MODULE.bazel` with `org_modernc_sqlite` repository
-- ✅ Fixed all BUILD.bazel files with correct dependencies
-- ✅ All tests pass (`go test ./...`)
+- ✅ Added schema version tracking system (`schema_version` table)
+- ✅ Created dedicated `resource_audit` table with proper relational design
+- ✅ Added indexes for efficient audit queries (hash, tag, resource_id)
+- ✅ Enabled `PRAGMA foreign_keys=ON` for data integrity
+- ✅ Added new audit methods to Store interface:
+  - `SaveAudit(ctx, kind, resourceId, msg, versionHash, tag)`
+  - `GetAuditByHash(ctx, kind, resourceId, versionHash, msg)`
+  - `GetAuditByTag(ctx, kind, resourceId, tag, msg)`
+  - `ListAuditHistory(ctx, kind, resourceId)`
+  - `DeleteAuditByResourceId(ctx, kind, resourceId)`
+- ✅ Added `ErrAuditNotFound` sentinel error
+- ✅ Deprecated `DeleteResourcesByIdPrefix` (BadgerDB artifact)
+- ✅ Implemented migration logic for existing `skill_audit/*` prefixed records
+- ✅ Updated `push.go` - uses `SaveAudit()` instead of prefixed ID
+- ✅ Updated `load_skill_by_reference.go` - uses indexed audit queries (O(log n) vs O(n))
+- ✅ Updated `delete.go` - uses `DeleteAuditByResourceId()`
+- ✅ Added comprehensive audit tests to `store_test.go`
+- ✅ Updated `skill_controller_test.go` for new audit API
 
-### Files Modified (72+ files)
-- New: `backend/libs/go/store/sqlite/{store.go, store_test.go, BUILD.bazel}`
-- Modified: `backend/libs/go/store/interface.go` (enhanced with ErrNotFound, DeleteResourcesByIdPrefix)
-- Deleted: `backend/libs/go/badger/` (entire directory)
-- Deleted: `backend/services/stigmer-server/pkg/debug/` (entire directory)
-- Modified: All domain controllers (10 packages)
-- Modified: Temporal worker configs and activities
-- Modified: Server initialization code
-- Modified: MODULE.bazel, go.mod files
+### Files Modified (9 files, +914/-135 lines)
+- `backend/libs/go/store/interface.go` - Added audit methods, ErrAuditNotFound
+- `backend/libs/go/store/sqlite/store.go` - Migration system + audit implementation
+- `backend/libs/go/store/sqlite/store_test.go` - Audit tests
+- `backend/services/stigmer-server/pkg/domain/skill/controller/push.go` - SaveAudit
+- `backend/services/stigmer-server/pkg/domain/skill/controller/load_skill_by_reference.go` - Indexed queries
+- `backend/services/stigmer-server/pkg/domain/skill/controller/delete.go` - DeleteAuditByResourceId
+- `backend/services/stigmer-server/pkg/domain/skill/controller/skill_controller_test.go` - Updated tests
 
-### Key Decisions Made
-1. **Write Serialization**: Used mutex for SQLite single-writer limitation (appropriate for local daemon)
-2. **Interface Abstraction**: Controllers depend on `store.Store` interface, not concrete implementation
-3. **Test Imports**: Test files import both `store` (interface) and `store/sqlite` (implementation)
-4. **Debug Removal**: SQLite accessible via standard tools (sqlite3 CLI, DataGrip, etc.)
+### Key Architectural Decisions
+1. **Separate Audit Table**: Created `resource_audit` table instead of co-mingling with resources
+2. **Indexed Columns**: Extracted `version_hash` and `tag` for indexed queries
+3. **Migration Versioning**: Added `schema_version` table for proper schema evolution
+4. **Interface Abstraction**: Clean audit methods instead of prefix-based deletion
 
-### Technical Details
-- SQLite configured with WAL mode, NORMAL synchronous, 64MB cache
-- GLOB used for prefix matching (better index utilization than LIKE)
-- `WITHOUT ROWID` table for clustered index on (kind, id)
-- Pure Go driver (modernc.org/sqlite) - no CGO dependencies
+### Before vs After
+
+| Aspect | Before (BadgerDB Pattern) | After (Relational) |
+|--------|---------------------------|---------------------|
+| Query efficiency | Full table scan + app filter | Indexed direct lookup |
+| Data integrity | Manual cleanup required | CASCADE-ready design |
+| Interface abstraction | Exposes prefix implementation | Clean domain methods |
+| Version lookup | O(n) scan all skills | O(log n) index lookup |
+| Audit deletion | GLOB pattern match | Direct DELETE by resource_id |
 
 ## Next Steps
 
-1. **Commit changes** - All implementation is complete, needs proper commit
-2. **Integration testing** - Run full Bazel build to verify
-3. **Binary size verification** - Confirm ~5MB increase acceptable
+1. **Run tests** - Verify all tests pass with new architecture
+2. **Commit changes** - Create proper commit for audit table architecture
+3. **Integration testing** - Test skill push/get-by-reference/delete workflows
+4. **Consider FK constraint** - Evaluate adding foreign key for CASCADE DELETE
 
 ## Context for Resume
-- All implementation work is complete
-- Changes are comprehensive but follow consistent patterns
-- Tests pass with `go test -count=1 ./backend/libs/go/store/... ./backend/services/stigmer-server/pkg/domain/*/controller/...`
-- No blockers
+- Plan file exists: `.cursor/plans/sqlite_store_architecture_683ad591.plan.md`
+- This is a follow-up to Session 1 (basic SQLite migration)
+- Previous uncommitted changes from Session 1 may still be present (temporal_manager.go, update_status_impl.go)
+- New changes focus on audit table architecture
 
 ## Quick Resume
 To continue this project, drag this file into chat:
@@ -62,28 +71,63 @@ To continue this project, drag this file into chat:
 
 Then:
 - Review uncommitted changes: `git status`
-- Commit the migration: Use `@commit-stigmer-oss-changes` rule
-- Or create PR: Use `@create-stigmer-oss-pull-request` rule
+- Run tests: `go test ./backend/libs/go/store/... ./backend/services/stigmer-server/pkg/domain/skill/controller/...`
+- Commit: Use `@commit-stigmer-oss-changes` rule
 
 ---
 
-## Original Project Context
+## Project Context
 
-**Description**: Migrate the Stigmer CLI from BadgerDB key-value store to SQLite with JSON document storage, maintaining the same Store interface while reducing binary footprint and complexity.
+**Description**: Migrate the Stigmer CLI from BadgerDB key-value store to SQLite with proper relational design, including a dedicated audit table for version history.
 
-**Tech Stack**: Go, SQLite (modernc.org/sqlite), Protobuf serialization (unchanged)
+**Reference**: stigmer-cloud's `SkillAuditRepo` (MongoDB) uses the same pattern with separate collection and indexed queries.
 
-### Store Interface (preserved)
+### Store Interface (evolved)
 ```go
 type Store interface {
+    // Resource operations
     SaveResource(ctx, kind, id, msg) error
     GetResource(ctx, kind, id, msg) error
     ListResources(ctx, kind) ([][]byte, error)
     DeleteResource(ctx, kind, id) error
     DeleteResourcesByKind(ctx, kind) (int64, error)
-    DeleteResourcesByIdPrefix(ctx, kind, idPrefix) (int64, error)
+    DeleteResourcesByIdPrefix(ctx, kind, idPrefix) (int64, error) // Deprecated
+    
+    // Audit operations (NEW)
+    SaveAudit(ctx, kind, resourceId, msg, versionHash, tag) error
+    GetAuditByHash(ctx, kind, resourceId, versionHash, msg) error
+    GetAuditByTag(ctx, kind, resourceId, tag, msg) error
+    ListAuditHistory(ctx, kind, resourceId) ([][]byte, error)
+    DeleteAuditByResourceId(ctx, kind, resourceId) (int64, error)
+    
     Close() error
 }
 ```
 
-*This file provides direct paths to all project resources for quick context loading.*
+### Schema (v2)
+```sql
+-- Resources table (unchanged)
+CREATE TABLE resources (
+    kind TEXT NOT NULL,
+    id TEXT NOT NULL,
+    data BLOB NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (kind, id)
+) WITHOUT ROWID;
+
+-- Audit table (NEW in v2)
+CREATE TABLE resource_audit (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL,
+    resource_id TEXT NOT NULL,
+    data BLOB NOT NULL,
+    archived_at TEXT NOT NULL DEFAULT (datetime('now')),
+    version_hash TEXT,
+    tag TEXT
+);
+
+-- Indexes for efficient queries
+CREATE INDEX idx_audit_resource ON resource_audit(kind, resource_id);
+CREATE INDEX idx_audit_hash ON resource_audit(kind, resource_id, version_hash);
+CREATE INDEX idx_audit_tag ON resource_audit(kind, resource_id, tag, archived_at DESC);
+```
