@@ -8,164 +8,330 @@
 
 ## Current State
 
-**Phase**: Foundation Refactoring  
-**Current Task**: Tasks 1.2, 2, 3, 4, PROTOVALIDATE MIGRATION COMPLETE - Next: Final tasks (tests, examples, docs)  
+**Phase**: Deep Audit Complete - Implementation Pending  
+**Current Task**: Choose from Available Phases below (one at a time)  
 **Build Status**: PASSES (`go build ./...` succeeds)
 
+**Plan Reference**: `.cursor/plans/sdk_deep_audit_completion.plan.md`
+
 ---
 
-## Session Progress (2026-01-26)
+## Executive Summary
 
-### Completed Today (Session 4) - Protovalidate Migration
+The deep audit (Phase 1 of original plan) has been completed. Critical issues were discovered in:
+1. **Code Generation Pipeline** - Dead code, debug statements, incomplete validation extraction
+2. **Build System** - Bazel/Go inconsistency, deprecated GoReleaser config
+3. **SDK Packages** - DEBUG statements in generated code, incomplete enum conversion
 
-#### Major Architectural Change: Migrate SDK Validation to protovalidate
+These must be addressed before proceeding to final tasks (tests, examples, docs).
 
-**Problem Identified**: SDK had ~1,300 lines of custom validation code duplicating buf.validate rules in proto files. Backend uses protovalidate with ~40 lines. Asked: "Why are we writing custom logic when proto validate handles this?"
+---
 
-**Solution Implemented**: Delegate field-level validation to protovalidate, keep only SDK-specific validations.
+## Available Phases (Choose ONE per session)
 
-**Changes Made**:
+### Phase 1: Code Generation Pipeline Fixes
 
-1. **Added protovalidate to agent/proto.go**:
-   - Global validator initialized in `init()`
-   - `ToProto()` now validates via `validator.Validate(agent)`
-   - Matches workflow/proto.go pattern
+| Task | Severity | Description | Location |
+|------|----------|-------------|----------|
+| **1.1** | HIGH | Remove DEBUG print statements | `tools/codegen/generator/main.go:1032,1046` |
+| **1.2** | HIGH | Remove dead code (generateHelpersFile) | `tools/codegen/proto2schema/main.go:515-569` |
+| **1.3** | MEDIUM | Improve buf.validate extraction | `proto2schema/main.go:655-659` |
+| **1.4** | MEDIUM | Extend namespace coverage (IAM, tenancy) | `proto2schema/main.go:247-310` |
 
-2. **Slimmed agent/validation.go** (179 → 80 lines):
-   - Kept: Name format validation (lowercase alphanumeric with hyphens - SDK convention)
-   - Removed: Instructions, description, iconURL validation (proto rules exist)
+### Phase 2: Build System Unification
 
-3. **Slimmed workflow/validation.go** (528 → 108 lines):
-   - Kept: Task name format and uniqueness (SDK-specific cross-field validation)
-   - Removed: All task config validations (handled by `validateTaskConfigStruct()` via protovalidate)
+| Task | Severity | Description | Location |
+|------|----------|-------------|----------|
+| **2.1** | HIGH | Document canonical build system decision | Decision: Go vs Bazel |
+| **2.2** | HIGH | Fix/remove GoReleaser configuration | `.goreleaser.yml:32-48` |
+| **2.3** | MEDIUM | Pin Go version consistently | CI: 1.22 vs MODULE.bazel: 1.24.6 |
 
-4. **Removed Validate() from mcpserver**:
-   - Deleted `Validate()` from docker.go, stdio.go, http.go
-   - Removed `Validate()` from MCPServer interface
-   - Validation now happens in agent.ToProto() via protovalidate
+### Phase 3: SDK Package Fixes
 
-5. **Removed validation from subagent/subagent.go**:
-   - Proto rules cover name required, instructions min length
+| Task | Severity | Description | Location |
+|------|----------|-------------|----------|
+| **3.1** | HIGH | Remove DEBUG statements from generated code | `sdk/go/gen/workflow/*.go` |
+| **3.2** | HIGH | Fix subagent Scope/Kind enum conversion | `sdk/go/subagent/subagent.go:89-90` |
+| **3.3** | MEDIUM | Implement Organization() for references | `sdk/go/subagent/subagent.go:157-159` |
+| **3.4** | LOW | Fix environment warning system | `sdk/go/environment/environment.go:186-188` |
 
-6. **Slimmed internal/validation/** (577 → 103 lines):
-   - Kept: errors.go (ValidationError, ConversionError types)
-   - Kept: FieldPath(), RequiredWithMessage(), MatchesPattern()
-   - Removed: All other validation functions
+### Phase 4: Pulumi Pattern Adoption (Optional Enhancements)
 
-**Results**:
-- **159 insertions, 1,334 deletions**
-- **Net reduction: 1,175 lines**
+| Task | Priority | Description |
+|------|----------|-------------|
+| **4.1** | MEDIUM | Add context.Context support to SDK Context |
+| **4.2** | LOW | Enhance error types with structured fields |
+
+### Phase 5: Documentation
+
+| Task | Description |
+|------|-------------|
+| **5.1** | Create audit report checkpoint documents |
+| **5.2** | Update architecture documentation |
+
+### Final Tasks (After All Phases Complete)
+
+| Task | Lines | Description |
+|------|-------|-------------|
+| **5a** | ~300 | Fix all test files to new APIs |
+| **5b** | ~200 | Fix all 19 examples |
+| **5c** | ~100 | Fix documentation (doc.go, README, api-reference) |
+
+---
+
+## Deep Audit Findings
+
+### Code Generation Pipeline Audit (T01.1)
+
+#### Files Analyzed
+- `tools/codegen/proto2schema/main.go` (~585 lines)
+- `tools/codegen/generator/main.go` (~735 lines)
+
+#### Critical Issues Found
+
+**1. DEBUG Print Statements in Production Code**
+- Location: `generator/main.go` lines 1032, 1046
+- Issue: `fmt.Printf("DEBUG %s JSON: %%s\\n", string(jsonBytes))`
+- Impact: Unwanted console output in production
+
+**2. Dead Code: generateHelpersFile**
+- Location: `proto2schema/main.go` lines 515-569
+- Issue: Duplicates `generateHelpers` (lines 459-513), appears unused
+- Impact: Maintenance burden, confusion
+
+**3. Brittle Validation Extraction**
+- Location: `proto2schema/main.go` lines 655-659
+- Issue: Uses string matching on proto text instead of protoreflect APIs
+- Example: `if strings.Contains(protoText, "required:") { ... }`
+- Impact: May miss edge cases, fragile to proto format changes
+
+**4. Incomplete buf.validate Parsing**
+
+| Validation Type | Status |
+|-----------------|--------|
+| `required` | Supported |
+| `min_len` / `max_len` | Supported |
+| `gte` / `lte` | Supported |
+| `min_items` / `max_items` | Supported |
+| `string.in` (enums) | **NOT extracted** |
+| `pattern` | **Field exists but NOT extracted** |
+| `float.gte` / `double.gte` | **NOT supported** |
+| `oneof` fields | **NOT handled** |
+
+**5. Missing Namespace Generation**
+- Location: `proto2schema/main.go` lines 247-310 (comprehensive mode)
+- Issue: Only scans `agentic` namespace, misses:
+  - `apis/ai/stigmer/iam/` (ApiKeySpec, IamPolicySpec, IdentityAccountSpec)
+  - `apis/ai/stigmer/tenancy/` (OrganizationSpec)
+
+**6. No Cycle Detection for Nested Types**
+- Location: `proto2schema/main.go` lines 437-478 (`collectNestedTypes`)
+- Issue: Recursively traverses without cycle detection or depth limit
+- Impact: Could hang on circular type references
+
+#### Map/Array Generation Gaps
+
+Unsupported combinations emit TODOs:
+- `map[K]V` where K is not string or V is not string/message
+- Arrays of types other than string, int32, int64, or message pointers
+
+---
+
+### Build System Audit (T01.3)
+
+#### Current State: INCONSISTENT
+
+**Bazel Integration Status: PARTIAL**
+- 117 BUILD.bazel files exist
+- CLI Makefile uses `bazel build` (line 48)
+- Root Makefile uses `go build` (line 27)
+- CI workflows use `go build` (not Bazel)
+
+#### Critical Issues Found
+
+**1. Dual Build Paths for CLI**
+
+| Entry Point | Build Tool | Command |
+|-------------|------------|---------|
+| Root Makefile | `go build` | `go build -o bin/stigmer ./client-apps/cli` |
+| CLI Makefile | `bazel build` | `bazel build //client-apps/cli:stigmer` |
+
+**2. GoReleaser References Deprecated Architecture**
+- Location: `.goreleaser.yml` lines 32-48
+- Issue: References `stigmer-server` binary
+- Root Makefile comment (lines 33-34): "stigmer-server and workflow-runner are now part of the CLI (BusyBox pattern)"
+
+**3. Go Version Mismatch**
+
+| Location | Go Version |
+|----------|------------|
+| CI workflows | 1.22 |
+| MODULE.bazel | 1.24.6 |
+
+**4. CI Doesn't Use Bazel**
+- File: `.github/workflows/release-embedded.yml`
+- Lines 140, 195, 249: All use `go build` directly
+
+#### Build Flow Diagram
+
+```
+protos (apis/Makefile)
+  └─> build (root Makefile)
+       └─> bin/stigmer (via go build)
+
+Proto generation correctly uses Gazelle to generate BUILD.bazel files,
+but the actual builds don't use Bazel.
+```
+
+#### Recommendation
+
+**Option A (Recommended): Standardize on Go Build**
+- Remove Bazel configuration (if not actively used)
+- Update CLI Makefile to use `go build`
+- Simpler, fewer moving parts, matches CI
+
+**Option B: Standardize on Bazel**
+- Update root Makefile to use `bazel build`
+- Update all CI workflows to use Bazel
+- Better reproducibility, but higher complexity
+
+---
+
+### Pulumi Pattern Comparison (T02.1)
+
+#### Patterns Already Adopted by Stigmer
+
+| Pattern | Status |
+|---------|--------|
+| Struct args for resource creation | Adopted |
+| `ctx` as first parameter | Adopted |
+| `name` as second parameter | Adopted |
+| Variadic options pattern | Partial (resource options) |
+| Error returns (not panics) | Adopted |
+| Nil-safe args handling | Adopted |
+
+#### Patterns to Consider Adopting
+
+**1. context.Context Integration**
+
+Current Stigmer:
+```go
+type Context struct {
+    variables    map[string]Ref
+    workflows    []*workflow.Workflow
+    // ... no standard context
+}
+```
+
+Pulumi approach:
+```go
+type Context struct {
+    ctx   context.Context  // Standard Go context
+    state *contextState
+    Log   Log
+}
+```
+
+**2. Output Types with Apply**
+
+Pulumi has rich `Output[T]` types for async value handling:
+```go
+type Output[T any] interface {
+    ElementType() reflect.Type
+    Apply(func(T) U) Output[U]
+}
+```
+
+**3. Structured Error Types**
+
+```go
+type ValidationError struct {
+    Resource string
+    Field    string
+    Reason   string
+    Code     string  // Machine-readable
+}
+```
+
+---
+
+### SDK Package Audit Summary
+
+#### Package Status
+
+| Package | Quality | Critical Issues |
+|---------|---------|-----------------|
+| `agent/` | High | None |
+| `workflow/` | High | None |
+| `mcpserver/` | High | None |
+| `subagent/` | Good | Incomplete enum conversion, Organization() not implemented |
+| `environment/` | High | Unused warning code |
+| `skillref/` | High | No tests |
+| `internal/validation/` | High | No direct tests |
+| `gen/workflow/` | Good | **DEBUG statements in production** |
+
+#### Critical Issues in SDK
+
+**1. DEBUG Statements in Generated Code**
+- Files: `sdk/go/gen/workflow/trytaskconfig.go`, `switchtaskconfig.go`, `fortaskconfig.go`, `forktaskconfig.go`
+- Issue: `fmt.Printf("DEBUG ...")` statements left in production
+
+**2. Incomplete Enum Conversion in subagent**
+- Location: `sdk/go/subagent/subagent.go:89-90`
+- Issue: `convertSkillRefs()` doesn't convert Scope/Kind from strings to enums
+- Comment: "Note: types.ApiResourceReference uses string for Scope/Kind, proto uses enums. These would need proper conversion if used."
+
+**3. Unimplemented Organization() Method**
+- Location: `sdk/go/subagent/subagent.go:157-159`
+- Issue: Returns empty string for referenced sub-agents
+- Comment: "For references, we need to parse from agentInstanceRef. For now, return empty - this will be handled by CLI"
+
+**4. Unused Warning in Environment**
+- Location: `sdk/go/environment/environment.go:186-188`
+- Issue: Warning message created but discarded
+- Code: `_ = fmt.Sprintf("warning: secret variable %s has no description", v.Name)`
+
+---
+
+## Session History
+
+### Session 5 (Current) - Deep Audit
+
+**Completed**: Full audit of code generation pipeline, build system, Pulumi patterns, SDK packages.
+
+**Key Findings**:
+- Code generation has dead code and debug statements
+- Build system is inconsistent (Bazel partially integrated but not used)
+- SDK packages are production-ready with minor issues
+
+### Session 4 - Protovalidate Migration
+
+**Completed**: Major architectural change - migrated SDK validation to protovalidate.
+- Net reduction: 1,175 lines
 - Single source of truth for validation (proto files)
-- Backend/SDK validation alignment
 
----
+### Session 3 - Standardize Validation
 
-### Completed Earlier (Session 3)
+**Completed**: Created `sdk/go/internal/validation/` package, migrated all SDK packages.
 
-#### Task 4: Standardize Validation
-- Created `sdk/go/internal/validation/` package
-- Migrated all SDK packages to use shared validation
-- Result: Eliminated ~100 lines of duplicate code
+### Session 2 - Fix codegen FromProto
 
-### Completed (Session 2)
+**Completed**: Eliminated all 18 TODOs in generated code.
 
-#### Task 3: Fix codegen FromProto
-- All 18 TODOs in generated code eliminated
+### Session 1 - Foundation
 
-#### Task 1.2: Eliminate VolumeMount/PortMapping Duplication
-#### Task 2: Migrate subagent to struct args
-
-### Completed (Session 1)
-
-#### Phase 1.1: Delete mcpserver/options.go
-#### Phase 1: Skill Package Refactoring
-
----
-
-## Available Next Tasks
-
-Choose ONE of these for the next session:
-
-### Final Tasks
-
-| ID | Task | Lines | Description |
-|----|------|-------|-------------|
-| **5a** | Fix tests | ~300 | Update all test files to new APIs |
-| **5b** | Fix examples | ~200 | Update all 19 examples |
-| **5c** | Fix documentation | ~100 | Update doc.go, README, api-reference |
-
----
-
-## Package Status Summary (Final)
-
-| Package | API Pattern | Validation |
-|---------|------------|------------|
-| `agent` | Struct args | protovalidate + SDK name format |
-| `workflow` | Struct args | protovalidate + SDK task uniqueness |
-| `environment` | Struct args | SDK naming convention |
-| `mcpserver` | Struct args | protovalidate (via agent.ToProto) |
-| `subagent` | Struct args | protovalidate (via agent.ToProto) |
-| `skillref` | Functions | N/A (simple helpers) |
-| `internal/validation` | Shared | Error types + essential helpers only |
-
----
-
-## Validation Architecture (New)
-
-```
-SDK Types → SDK-Specific Validation → ToProto() → Proto Message → protovalidate.Validate() → Result
-```
-
-**SDK-Specific Validations Retained**:
-- Agent name format (lowercase alphanumeric with hyphens)
-- Workflow task name uniqueness (cross-field)
-- Environment variable naming (uppercase with underscores)
-
-**Proto Validation Handles** (via buf.validate):
-- Required fields
-- Min/max lengths
-- Numeric ranges
-- Enum values
-- CEL expressions for complex rules
-
----
-
-## Files Modified This Session (Session 4)
-
-```
-MODIFIED: sdk/go/agent/proto.go (+28 lines - protovalidate integration)
-MODIFIED: sdk/go/agent/validation.go (-99 lines - SDK-specific only)
-MODIFIED: sdk/go/workflow/validation.go (-420 lines - SDK-specific only)
-MODIFIED: sdk/go/internal/validation/validation.go (-474 lines - essential helpers only)
-MODIFIED: sdk/go/internal/validation/doc.go (updated documentation)
-MODIFIED: sdk/go/mcpserver/docker.go (-68 lines - removed Validate)
-MODIFIED: sdk/go/mcpserver/http.go (-26 lines - removed Validate)
-MODIFIED: sdk/go/mcpserver/stdio.go (-16 lines - removed Validate)
-MODIFIED: sdk/go/mcpserver/mcpserver.go (-1 line - removed Validate from interface)
-MODIFIED: sdk/go/subagent/subagent.go (-68 lines - removed validation)
-```
+**Completed**: Deleted mcpserver/options.go, skill package refactoring.
 
 ---
 
 ## Uncommitted Changes
 
-**Status**: 10 files modified, NOT committed
+**Status**: 10 files modified from Session 4 (protovalidate migration), NOT committed
 
 ```
 Build: PASSES
-Tests: FAILING (pre-existing - need updates to new APIs, documented as Final Tasks)
+Tests: FAILING (pre-existing - need updates to new APIs)
 ```
-
----
-
-## Quick Resume
-
-To continue this project:
-```
-@_projects/2026-01/20260125.03.sdk-codegen-review-and-improvements/next-task.md
-```
-
-Then choose from "Available Next Tasks" section above.
 
 ---
 
@@ -179,15 +345,35 @@ Then choose from "Available Next Tasks" section above.
 | Delete dead code first | Clean foundation before fixing tests |
 | Generated types for VolumeMount/PortMapping | Eliminates duplication, single source of truth |
 | subagent uses InlineArgs | Consistent with agent, mcpserver patterns |
-| **protovalidate for validation** | Single source of truth, backend/SDK alignment, -1,175 lines |
+| protovalidate for validation | Single source of truth, backend/SDK alignment, -1,175 lines |
 | SDK-specific validations only | Name formats, uniqueness checks not in proto |
 
 ---
 
 ## Key Principles
 
-1. **Small units of work** - Complete one task fully before next
-2. **Update this file** - Track progress after each task
+1. **Small units of work** - Complete one phase fully before next
+2. **Update this file** - Track progress after each session
 3. **Build must pass** - Verify after each change
 4. **Tests come last** - Fix foundations first
 5. **Single source of truth** - Validation rules in proto, not duplicated in SDK
+6. **No technical debt** - Fix issues properly, don't leave them for later
+
+---
+
+## Quick Resume
+
+To continue this project:
+```
+@_projects/2026-01/20260125.03.sdk-codegen-review-and-improvements/next-task.md
+```
+
+Then choose ONE phase from "Available Phases" section and complete it fully.
+
+---
+
+## Reference Documents
+
+- **Plan**: `.cursor/plans/sdk_deep_audit_completion_18b8ab64.plan.md`
+- **Original Plan**: `_projects/2026-01/20260125.03.sdk-codegen-review-and-improvements/tasks/T01_0_plan.md`
+- **Architecture**: `tools/codegen/README.md`, `sdk/go/docs/codegen-architecture.md`
