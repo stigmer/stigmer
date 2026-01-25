@@ -68,12 +68,83 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-25 12:14
-**Current Task**: T01.9 Integration Tests ✅
-**Status**: Integration Tests Complete
-**Last Session**: 2026-01-25 - Integration Test Implementation
-**Last Completed**: Implemented integration tests for skill artifact pipeline (Python + Java) ✅ 2026-01-25
+**Current Task**: T01.10 Go Unit & Integration Tests ✅
+**Status**: Go Tests Complete
+**Last Session**: 2026-01-25 - Go Test Implementation
+**Last Completed**: Implemented comprehensive Go tests for skill domain (65 tests) ✅ 2026-01-25
 
-## Session Progress (2026-01-25 - Integration Test Implementation)
+## Session Progress (2026-01-25 - Go Test Implementation)
+
+### What Was Accomplished - Go Unit & Integration Tests
+
+**Implemented comprehensive test suite for the Go skill domain (stigmer-server):**
+
+**1. Storage Layer Tests:**
+
+| File | Tests | Purpose |
+|------|-------|---------|
+| `storage/testutil.go` | - | ZIP creation utilities (CreateTestZip, CreateZipBomb, etc.) |
+| `storage/artifact_storage_test.go` | 11 | LocalFileStorage CRUD, deduplication, hash calculation |
+| `storage/zip_extractor_test.go` | 18 | Security validation (ZIP bombs, path traversal, size limits) |
+
+**2. Controller Handler Tests:**
+
+| File | Tests | Purpose |
+|------|-------|---------|
+| `controller/get_artifact_test.go` | 5 | GetArtifact handler (success, not found, validation) |
+| `controller/push_test.go` | 20 | Push handler (create, update, deduplication, validation) |
+| `controller/integration_test.go` | 11 | End-to-end pipeline (Push→Get→GetByReference→GetArtifact) |
+
+**Test Categories:**
+- **Storage Unit Tests (29)**: Store, Get, Exists, GetStorageKey, deduplication, hash calculation
+- **Security Tests (10)**: ZIP bomb detection, size limits, file count limits, invalid filenames
+- **Handler Unit Tests (25)**: Create, update, validation errors, org/platform scoping
+- **Integration Tests (11)**: Full pipeline flows, version resolution, concurrent operations
+
+### Files Created (This Session)
+
+**stigmer OSS repo (Go):**
+```
+backend/services/stigmer-server/pkg/domain/skill/
+├── storage/
+│   ├── testutil.go                    # NEW - ZIP creation utilities
+│   ├── artifact_storage_test.go       # NEW - 11 tests
+│   └── zip_extractor_test.go          # NEW - 18 tests
+└── controller/
+    ├── get_artifact_test.go           # NEW - 5 tests
+    ├── push_test.go                   # NEW - 20 tests
+    └── integration_test.go            # NEW - 11 tests
+```
+
+### Files Modified (This Session)
+
+```
+backend/services/stigmer-server/pkg/domain/skill/
+├── storage/BUILD.bazel       # +16 lines (added go_test target)
+└── controller/BUILD.bazel    # +9 lines (added new test sources)
+```
+
+### Test Summary
+
+| Category | Tests |
+|----------|-------|
+| Storage: LocalFileStorage | 11 |
+| Storage: ZIP Extractor | 18 |
+| Controller: GetArtifact | 5 |
+| Controller: Push | 20 |
+| Integration | 11 |
+| **Total New Go Tests** | **65** |
+
+### Testing Philosophy Applied
+- Table-driven tests for comprehensive edge case coverage
+- Real dependencies with `t.TempDir()` (following codebase patterns)
+- testify/assert + require for clear assertions
+- Security-first testing for ZIP handling
+- Concurrent operation tests for race condition validation
+
+---
+
+## Previous Session Progress (2026-01-25 - Integration Test Implementation)
 
 ### What Was Accomplished - Integration Tests
 
@@ -319,11 +390,12 @@ Before testing:
 
 1. ✅ ~~**Artifact Download & Extraction**~~ - COMPLETED
 2. ✅ ~~**OSS GetArtifact Handler**~~ - COMPLETED (Go implementation)
-3. ✅ ~~**Unit Tests**~~ - COMPLETED (Python: 29 tests, Java: 11 tests)
-4. ✅ ~~**Integration Tests**~~ - COMPLETED (Python: 21 tests, Java: 18 tests)
-5. **MongoDB Migration**: Add indices to `skill_audit` collection
-6. **CLI Enhancement**: Add `stigmer skill push` command
-7. **Documentation**: Update agent-runner docs with complete skill architecture
+3. ✅ ~~**Unit Tests (Python/Java)**~~ - COMPLETED (Python: 29 tests, Java: 11 tests)
+4. ✅ ~~**Integration Tests (Python/Java)**~~ - COMPLETED (Python: 21 tests, Java: 18 tests)
+5. ✅ ~~**Go Unit & Integration Tests**~~ - COMPLETED (65 tests for skill domain)
+6. **MongoDB Migration**: Add indices to `skill_audit` collection
+7. **CLI Enhancement**: Add `stigmer skill push` command
+8. **Documentation**: Update agent-runner docs with complete skill architecture
 
 ## Context for Resume
 
@@ -331,6 +403,7 @@ Before testing:
 - **OSS GetArtifact handler COMPLETE**: Go implementation matching Java/Cloud version
 - **Unit tests COMPLETE**: Python (29 tests) + Java (11 tests) for artifact pipeline
 - **Integration tests COMPLETE**: Python (21 tests) + Java (18 tests) for full pipeline
+- **Go tests COMPLETE**: 65 tests for skill domain (storage + controller + integration)
 - **Skill injection complete**: Full SKILL.md content injected into prompts
 - **Both local and cloud modes supported**: Works with filesystem and Daytona
 - **Graceful degradation**: Falls back to SKILL.md-only if artifact download fails
@@ -350,12 +423,18 @@ Per ADR 001, the complete skill injection and mounting architecture is now imple
 
 ## Uncommitted Changes
 
-**stigmer OSS repo (integration test session):**
-- `backend/services/agent-runner/tests/test_integration_skill_pipeline.py` - NEW 21 integration tests
+**stigmer OSS repo (Go test session):**
+- `backend/services/stigmer-server/pkg/domain/skill/storage/testutil.go` - NEW test utilities
+- `backend/services/stigmer-server/pkg/domain/skill/storage/artifact_storage_test.go` - NEW 11 tests
+- `backend/services/stigmer-server/pkg/domain/skill/storage/zip_extractor_test.go` - NEW 18 tests
+- `backend/services/stigmer-server/pkg/domain/skill/controller/get_artifact_test.go` - NEW 5 tests
+- `backend/services/stigmer-server/pkg/domain/skill/controller/push_test.go` - NEW 20 tests
+- `backend/services/stigmer-server/pkg/domain/skill/controller/integration_test.go` - NEW 11 tests
+- `backend/services/stigmer-server/pkg/domain/skill/storage/BUILD.bazel` - MODIFIED (+16 lines)
+- `backend/services/stigmer-server/pkg/domain/skill/controller/BUILD.bazel` - MODIFIED (+9 lines)
 - `_projects/2026-01/20260125.01.skill-api-enhancement/next-task.md` - this file (updated)
-- `_projects/2026-01/20260125.01.skill-api-enhancement/checkpoints/2026-01-25-integration-tests-implementation.md` - NEW checkpoint
 
-**stigmer-cloud repo (integration test session):**
+**stigmer-cloud repo (from previous sessions):**
 - `backend/services/stigmer-service/src/test/java/ai/stigmer/domain/agentic/skill/request/handler/SkillVersionResolutionIntegrationTest.java` - NEW 18 tests
 
 ## Architecture Summary

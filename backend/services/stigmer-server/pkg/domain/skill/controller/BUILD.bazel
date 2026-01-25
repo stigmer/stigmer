@@ -31,7 +31,12 @@ go_library(
 
 go_test(
     name = "controller_test",
-    srcs = ["skill_controller_test.go"],
+    srcs = [
+        "get_artifact_test.go",
+        "integration_test.go",
+        "push_test.go",
+        "skill_controller_test.go",
+    ],
     embed = [":controller"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
@@ -40,5 +45,9 @@ go_test(
         "//backend/libs/go/badger",
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/services/stigmer-server/pkg/domain/skill/storage",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
     ],
 )
