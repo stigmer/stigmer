@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"buf.build/go/protovalidate"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"google.golang.org/protobuf/proto"
 )
@@ -33,7 +34,7 @@ func (s *ValidateProtoStep[T]) Name() string {
 // Execute validates the input message against its proto validation rules.
 func (s *ValidateProtoStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	if err := s.validator.Validate(ctx.Input()); err != nil {
-		return fmt.Errorf("validation failed: %w", err)
+		return grpclib.InvalidArgumentError(err.Error())
 	}
 	return nil
 }
