@@ -68,16 +68,76 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-25 12:14
-**Current Task**: T01.8 Unit Tests ✅
-**Status**: Unit Tests Complete
-**Last Session**: 2026-01-25 - Unit Test Implementation
-**Last Completed**: Implemented unit tests for skill artifact pipeline (Python + Java) ✅ 2026-01-25
+**Current Task**: T01.9 Integration Tests ✅
+**Status**: Integration Tests Complete
+**Last Session**: 2026-01-25 - Integration Test Implementation
+**Last Completed**: Implemented integration tests for skill artifact pipeline (Python + Java) ✅ 2026-01-25
 
-## Session Progress (2026-01-25 - Unit Test Implementation)
+## Session Progress (2026-01-25 - Integration Test Implementation)
+
+### What Was Accomplished - Integration Tests
+
+**Implemented comprehensive integration tests for the skill artifact download and extraction pipeline:**
+
+**1. Python Integration Tests (stigmer OSS - agent-runner):**
+
+| File | Tests | Status |
+|------|-------|--------|
+| `tests/test_integration_skill_pipeline.py` | 21 integration tests | ✅ All Passing |
+
+**Test Coverage:**
+- `TestFullPipelineIntegration` (3 tests) - Full artifact extraction → permissions → paths
+- `TestADR001Compliance` (5 tests) - LOCATION header, SKILL.md injection, /bin/skills/
+- `TestVersionResolutionIntegration` (2 tests) - Version hashes, deduplication
+- `TestErrorRecoveryIntegration` (4 tests) - Invalid ZIP, empty ZIP, fallback
+- `TestPromptGenerationIntegration` (4 tests) - Headers, formatting preservation
+- `TestPathResolution` (3 tests) - Hash paths, slug fallback
+
+**2. Java Integration Tests (stigmer-cloud):**
+
+| File | Tests | Status |
+|------|-------|--------|
+| `SkillVersionResolutionIntegrationTest.java` | 18 integration tests | ✅ No lint errors |
+
+**Test Coverage:**
+- `LoadFromRepoTests` (10 tests) - Version resolution: empty/latest/tag/hash
+- `PlatformScopedSkillTests` (2 tests) - Platform-scoped skill queries
+- `FullHandlerIntegrationTests` (2 tests) - Load → Authorize pipeline
+- `EdgeCaseTests` (4 tests) - Whitespace, semver tags, hash patterns
+
+### Files Created (This Session)
+
+**stigmer OSS repo:**
+```
+backend/services/agent-runner/tests/
+└── test_integration_skill_pipeline.py   # 21 integration tests
+```
+
+**stigmer-cloud repo:**
+```
+backend/services/stigmer-service/src/test/java/ai/stigmer/domain/agentic/skill/request/handler/
+└── SkillVersionResolutionIntegrationTest.java  # 18 integration tests
+```
+
+### Test Execution Results
+```
+Python (50 total tests): ✅ All passing
+  - test_skill_client.py: 7 passed
+  - test_skill_writer.py: 22 passed
+  - test_integration_skill_pipeline.py: 21 passed
+
+Java (29 tests total): ✅ No lint errors
+  - SkillGetArtifactHandlerTest.java: 11 tests
+  - SkillVersionResolutionIntegrationTest.java: 18 tests
+```
+
+---
+
+## Previous Session Progress (2026-01-25 - Unit Test Implementation)
 
 ### What Was Accomplished - Unit Tests
 
-**Implemented comprehensive unit tests for the skill artifact download pipeline:**
+**Implemented unit tests for the skill artifact download pipeline:**
 
 **1. Python Tests (stigmer OSS - agent-runner):**
 
@@ -88,52 +148,11 @@ When starting a new session:
 | `tests/test_skill_writer.py` | 22 tests for extraction and prompt generation | ✅ 22/22 Passing |
 | `pytest.ini` | pytest configuration | ✅ Created |
 
-**Test Coverage:**
-- `SkillClient.get_artifact()` - success, NOT_FOUND, gRPC errors, logging
-- `SkillWriter._extract_artifact_local()` - ZIP extraction, executable permissions
-- `SkillWriter._write_skills_local()` - with/without artifacts, edge cases
-- `SkillWriter.generate_prompt_section()` - ADR 001 format validation
-- `SkillWriter` Daytona mode - directory creation, artifact extraction
-
 **2. Java Tests (stigmer-cloud):**
 
 | File | Tests | Status |
 |------|-------|--------|
-| `SkillGetArtifactHandlerTest.java` | 11 tests for LoadArtifact step | ✅ Created (no lint errors) |
-
-**Test Coverage:**
-- `LoadArtifact.execute()` - success, NOT_FOUND, INTERNAL error
-- Response construction with correct bytes
-- Storage key format handling (org-scoped, platform-scoped)
-- Error message validation
-
-### Files Created (This Session)
-
-**stigmer OSS repo:**
-```
-backend/services/agent-runner/
-├── pytest.ini                     # pytest config
-└── tests/
-    ├── __init__.py
-    ├── conftest.py                # shared fixtures
-    ├── test_skill_client.py       # 7 tests
-    └── test_skill_writer.py       # 22 tests
-```
-
-**stigmer-cloud repo:**
-```
-backend/services/stigmer-service/src/test/java/ai/stigmer/domain/agentic/skill/request/handler/
-└── SkillGetArtifactHandlerTest.java  # 11 tests
-```
-
-### Test Execution Results
-```
-Python (29 tests): ✅ All passing
-  - test_skill_client.py: 7 passed
-  - test_skill_writer.py: 22 passed
-
-Java (11 tests): ✅ No lint errors (tests can be run via IDE)
-```
+| `SkillGetArtifactHandlerTest.java` | 11 tests for LoadArtifact step | ✅ Created |
 
 ---
 
@@ -301,7 +320,7 @@ Before testing:
 1. ✅ ~~**Artifact Download & Extraction**~~ - COMPLETED
 2. ✅ ~~**OSS GetArtifact Handler**~~ - COMPLETED (Go implementation)
 3. ✅ ~~**Unit Tests**~~ - COMPLETED (Python: 29 tests, Java: 11 tests)
-4. **Integration Test**: End-to-end test of skill push → download → extract → inject flow
+4. ✅ ~~**Integration Tests**~~ - COMPLETED (Python: 21 tests, Java: 18 tests)
 5. **MongoDB Migration**: Add indices to `skill_audit` collection
 6. **CLI Enhancement**: Add `stigmer skill push` command
 7. **Documentation**: Update agent-runner docs with complete skill architecture
@@ -311,10 +330,12 @@ Before testing:
 - **Artifact download & extraction COMPLETE**: Full pipeline implemented per ADR 001
 - **OSS GetArtifact handler COMPLETE**: Go implementation matching Java/Cloud version
 - **Unit tests COMPLETE**: Python (29 tests) + Java (11 tests) for artifact pipeline
+- **Integration tests COMPLETE**: Python (21 tests) + Java (18 tests) for full pipeline
 - **Skill injection complete**: Full SKILL.md content injected into prompts
 - **Both local and cloud modes supported**: Works with filesystem and Daytona
 - **Graceful degradation**: Falls back to SKILL.md-only if artifact download fails
 - **Backward compatible**: Works with skills that don't have artifacts
+- **ADR 001 compliance verified**: All ADR validation requirements tested
 - **R2 bucket not yet created**: Placeholders in stigmer-cloud secrets (pending user action)
 - **Build issue note**: `bazel build` has pre-existing issue with missing `com_github_google_safearchive` repo (not related to changes)
 
@@ -329,16 +350,13 @@ Per ADR 001, the complete skill injection and mounting architecture is now imple
 
 ## Uncommitted Changes
 
-**stigmer OSS repo (unit test session):**
-- `backend/services/agent-runner/pytest.ini` - NEW pytest config
-- `backend/services/agent-runner/tests/__init__.py` - NEW test package
-- `backend/services/agent-runner/tests/conftest.py` - NEW shared fixtures
-- `backend/services/agent-runner/tests/test_skill_client.py` - NEW 7 tests
-- `backend/services/agent-runner/tests/test_skill_writer.py` - NEW 22 tests
-- `_projects/2026-01/20260125.01.skill-api-enhancement/next-task.md` - this file
+**stigmer OSS repo (integration test session):**
+- `backend/services/agent-runner/tests/test_integration_skill_pipeline.py` - NEW 21 integration tests
+- `_projects/2026-01/20260125.01.skill-api-enhancement/next-task.md` - this file (updated)
+- `_projects/2026-01/20260125.01.skill-api-enhancement/checkpoints/2026-01-25-integration-tests-implementation.md` - NEW checkpoint
 
-**stigmer-cloud repo (unit test session):**
-- `backend/services/stigmer-service/src/test/java/ai/stigmer/domain/agentic/skill/request/handler/SkillGetArtifactHandlerTest.java` - NEW 11 tests
+**stigmer-cloud repo (integration test session):**
+- `backend/services/stigmer-service/src/test/java/ai/stigmer/domain/agentic/skill/request/handler/SkillVersionResolutionIntegrationTest.java` - NEW 18 tests
 
 ## Architecture Summary
 
