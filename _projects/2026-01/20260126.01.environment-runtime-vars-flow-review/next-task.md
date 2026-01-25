@@ -1,93 +1,89 @@
-# Next Task: Environment Runtime Variables Flow Review
+# Environment Runtime Variables - Implementation Plan
 
 ## Quick Resume
-Drag this file into a new chat to continue this project.
+Drag this file into chat to continue.
 
-## Project Overview
-Review the complete environment variables, secrets, and execution context flow from CLI/frontend to agent/workflow runner execution.
-
-## Key Finding: MOST OF THE FLOW IS NOT IMPLEMENTED
-
-The proto APIs are well-designed with a 3-tier architecture:
-1. **Template** (Agent/Workflow) - Declares `env_spec` with required variables
-2. **Instance** (AgentInstance/WorkflowInstance) - References Environment resources
-3. **Execution** (AgentExecution/WorkflowExecution) - Accepts `runtime_env` overrides
-
-**But the backend implementation is mostly missing.**
-
-## Current State Summary
+## Status After Investigation
 
 | Component | Status |
 |-----------|--------|
 | Proto Definitions | ✅ Complete |
-| Environment CRUD | ✅ Basic (no encryption) |
-| ExecutionContext CRUD | ✅ Basic (not auto-created) |
-| Environment Resolution | ❌ Not Implemented |
-| Environment Merging | ❌ Not Implemented |
-| Placeholder Resolution (`${VAR}`) | ❌ Not Implemented |
-| Secret Encryption | ❌ Not Implemented |
-| runtime_env → ExecutionContext | ❌ Not Implemented |
-| Agent Runner Integration | ❌ Not Implemented |
-| Workflow Runner (Go) | ❌ **SERVICE DOESN'T EXIST** |
-| CLI env flags | ❌ Not Implemented |
+| Environment CRUD | ✅ Basic (needs encryption) |
+| **Workflow Runner (Go)** | ✅ **EXISTS** - already processes runtime_env! |
+| **Agent Runner (Python)** | ✅ **EXISTS** - needs env integration |
+| Environment Resolution | ❌ Missing |
+| Secret Encryption | ❌ Missing |
+| CLI --env flags | ❌ Missing |
 
-## Files Analyzed
+**Key Correction**: The Go workflow-runner EXISTS in `stigmer-oss/backend/services/workflow-runner/` and already handles `runtime_env` (lines 265-300 of `execute_workflow_activity.go`). The missing pieces are upstream.
 
-### Stigmer OSS (apis)
-- `apis/ai/stigmer/agentic/environment/v1/spec.proto` - Environment data model
-- `apis/ai/stigmer/agentic/executioncontext/v1/spec.proto` - Ephemeral env storage
-- `apis/ai/stigmer/agentic/agent/v1/spec.proto` - Agent with env_spec, MCP placeholders
-- `apis/ai/stigmer/agentic/agentinstance/v1/spec.proto` - environment_refs binding
-- `apis/ai/stigmer/agentic/workflowinstance/v1/spec.proto` - env_refs binding
-- `apis/ai/stigmer/agentic/agentexecution/v1/spec.proto` - runtime_env field
-- `apis/ai/stigmer/agentic/workflowexecution/v1/spec.proto` - runtime_env field
+## Key Design Decisions
 
-### Stigmer Cloud (backend)
-- `AgentExecutionCreateHandler.java` - Missing runtime_env processing
-- `AgentInstanceCreateHandler.java` - Missing environment_refs resolution
-- `WorkflowExecutionCreateHandler.java` - Missing runtime_env processing  
-- `WorkflowInstanceCreateHandler.java` - Only validates FGA access
-- `EnvironmentCreateHandler.java` - No encryption
-- `ExecutionContextCreateHandler.java` - Not auto-created
-- `InvokeAgentExecutionWorkflowImpl.java` - No env var passing
-- **Go workflow-runner service** - **COMPLETELY MISSING**
-
-## Intended Data Flow (Not Implemented)
-
-```
-User creates Environment(s) with secrets
-        ↓
-User creates Agent with env_spec (declares requirements)
-        ↓
-User creates AgentInstance with environment_refs (binds envs)
-        ↓
-User creates AgentExecution with runtime_env (overrides)
-        ↓
-Backend MERGES: agent.env_spec + environments + runtime_env
-        ↓
-Backend creates ExecutionContext with merged values
-        ↓
-Temporal workflow fetches ExecutionContext
-        ↓
-Activity decrypts secrets and passes to runner
-        ↓
-Runner resolves ${PLACEHOLDERS} in MCP configs
-        ↓
-Agent runs with fully resolved environment
-```
+1. **Encryption (Cloud)**: Follow existing service configuration pattern with `$secrets-group/`
+2. **Encryption (OSS)**: Environment variable `STIGMER_ENCRYPTION_KEY` or `~/.stigmer/encryption.key`
+3. **Algorithm**: AES-256-GCM (same for both)
+4. **Pulumi-Inspired**: SDK-first, layered environments, runtime overrides
+5. **Security**: ExecutionContext pattern - pass IDs through Temporal, not secrets
 
 ## Implementation Milestones
 
-1. **Foundation** (3-4 days): Secret encryption, ExecutionContext lifecycle
-2. **Resolution** (2-3 days): Environment resolver, merge service, placeholder resolution
-3. **Agent Runner** (2-3 days): Fetch ExecutionContext activity, pass env to runner
-4. **Workflow Runner** (5-7 days): CREATE the missing Go service!
-5. **CLI** (1-2 days): --env, --secret flags
+| Milestone | Duration | Description |
+|-----------|----------|-------------|
+| 1. Encryption Foundation | 2-3 days | AES-256-GCM service, key management |
+| 2. ExecutionContext Lifecycle | 2-3 days | Auto-create on execution, auto-delete on completion |
+| 3. Environment Resolution | 2-3 days | Resolve refs, merge with priority, decrypt |
+| 4. Runner Integration | 2-3 days | Query ExecutionContext, pass to engine |
+| 5. CLI Integration | 1-2 days | --env, --secret, --env-file flags |
+
+**Total: ~10-13 days**
+
+## Quality Requirements (From User)
+
+- This is foundational code for a world-class platform
+- No complacency, no garbage code, no technical debt
+- Follow existing patterns (ConfigurationProperties, pipeline steps)
+- Pulumi-inspired UX for SDK users
 
 ## Task Files
 - Full plan: `tasks/T01_0_plan.md`
 
-## Questions to Resolve
-1. Where to store encryption key? (K8s Secret, Vault, KMS)
-2. Go vs Java for workflow runner?
-3. B2B integration requirements from Plant & Cloud?
+## Design Summary
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     ENVIRONMENT FLOW                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Agent.env_spec (lowest)                                         │
+│         │                                                        │
+│         ▼                                                        │
+│  Instance.environment_refs (medium) → Decrypt secrets           │
+│         │                                                        │
+│         ▼                                                        │
+│  Execution.runtime_env (highest)                                 │
+│         │                                                        │
+│         ▼                                                        │
+│  ┌─────────────────────────────────────────────┐                │
+│  │ MERGED ENVIRONMENT                           │                │
+│  │ (stored in ExecutionContext, secrets        │                │
+│  │  encrypted at rest)                         │                │
+│  └─────────────────────────────────────────────┘                │
+│         │                                                        │
+│         │ execution_id only (NO SECRETS)                        │
+│         ▼                                                        │
+│  Temporal Workflow                                               │
+│         │                                                        │
+│         │ execution_id only                                     │
+│         ▼                                                        │
+│  Activity (Go/Python)                                            │
+│         │                                                        │
+│         │ Query ExecutionContext, decrypt                       │
+│         ▼                                                        │
+│  Agent/Workflow Engine                                           │
+│         │                                                        │
+│         │ Resolve ${PLACEHOLDERS}                               │
+│         ▼                                                        │
+│  MCP Servers with real secrets                                   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
