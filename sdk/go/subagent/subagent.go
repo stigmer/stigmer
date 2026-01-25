@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 )
 
 // SubAgent represents a sub-agent that can be delegated to.
@@ -14,15 +14,15 @@ type SubAgent struct {
 	subAgentType subAgentType
 
 	// For inline sub-agents
-	name                string
-	description         string
-	instructions        string
-	mcpServers          []string
-	mcpToolSelections   map[string][]string
-	skillRefs           []skill.Skill
+	name              string
+	description       string
+	instructions      string
+	mcpServers        []string
+	mcpToolSelections map[string][]string
+	skillRefs         []*apiresource.ApiResourceReference
 
 	// For referenced sub-agents
-	agentInstanceRef    string
+	agentInstanceRef string
 }
 
 type subAgentType int
@@ -107,18 +107,32 @@ func WithToolSelection(mcpServerName string, tools ...string) InlineOption {
 	}
 }
 
-// WithSkill adds a skill reference to the inline sub-agent.
-func WithSkill(sk skill.Skill) InlineOption {
+// WithSkillRef adds a skill reference to the inline sub-agent.
+//
+// Use skillref.Platform() to create platform skill references.
+//
+// Example:
+//
+//	subagent.WithSkillRef(skillref.Platform("code-review"))
+//	subagent.WithSkillRef(skillref.Platform("code-review", "v1.0"))
+func WithSkillRef(ref *apiresource.ApiResourceReference) InlineOption {
 	return func(s *SubAgent) error {
-		s.skillRefs = append(s.skillRefs, sk)
+		s.skillRefs = append(s.skillRefs, ref)
 		return nil
 	}
 }
 
-// WithSkills adds multiple skill references to the inline sub-agent.
-func WithSkills(skills ...skill.Skill) InlineOption {
+// WithSkillRefs adds multiple skill references to the inline sub-agent.
+//
+// Example:
+//
+//	subagent.WithSkillRefs(
+//	    skillref.Platform("code-review"),
+//	    skillref.Platform("security-guidelines", "stable"),
+//	)
+func WithSkillRefs(refs ...*apiresource.ApiResourceReference) InlineOption {
 	return func(s *SubAgent) error {
-		s.skillRefs = append(s.skillRefs, skills...)
+		s.skillRefs = append(s.skillRefs, refs...)
 		return nil
 	}
 }
@@ -201,8 +215,8 @@ func (s SubAgent) ToolSelections() map[string][]string {
 	return s.mcpToolSelections
 }
 
-// Skills returns the skill references for inline sub-agents.
-func (s SubAgent) Skills() []skill.Skill {
+// SkillRefs returns the skill references for inline sub-agents.
+func (s SubAgent) SkillRefs() []*apiresource.ApiResourceReference {
 	return s.skillRefs
 }
 
@@ -234,22 +248,25 @@ func (s SubAgent) validateInline() error {
 	if s.name == "" {
 		return fmt.Errorf("inline sub-agent: name is required")
 	}
-	
+
 	if s.instructions == "" {
 		return fmt.Errorf("inline sub-agent %q: instructions are required", s.name)
 	}
-	
+
 	if len(s.instructions) < 10 {
 		return fmt.Errorf("inline sub-agent %q: instructions must be at least 10 characters (got %d)", s.name, len(s.instructions))
 	}
-	
+
 	// Validate skill references
-	for i, sk := range s.skillRefs {
-		if sk.Slug == "" {
+	for i, ref := range s.skillRefs {
+		if ref == nil {
+			return fmt.Errorf("inline sub-agent %q: skill_refs[%d]: reference is nil", s.name, i)
+		}
+		if ref.Slug == "" {
 			return fmt.Errorf("inline sub-agent %q: skill_refs[%d]: slug is required", s.name, i)
 		}
 	}
-	
+
 	return nil
 }
 
