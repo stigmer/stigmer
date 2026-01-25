@@ -230,6 +230,9 @@ async def _execute_graphton_impl(
             )
         
         # Step 3: Fetch and write skills (from agent template via references)
+        # Following ADR 001: Skill Injection & Sandbox Mounting Strategy
+        # - Skills are written to /bin/skills/{version_hash}/
+        # - Full SKILL.md content is injected into system prompt with LOCATION header
         skills_prompt_section = ""
         skill_refs = agent.spec.skill_refs  # repeated ApiResourceReference
         
@@ -240,21 +243,21 @@ async def _execute_graphton_impl(
             skill_client = SkillClient(api_key)
             
             try:
-                # Fetch skills via gRPC using ApiResourceReference
+                # Fetch skills via gRPC using ApiResourceReference (supports version resolution)
                 activity_logger.info(
                     f"Fetching {len(skill_refs)} skills: {[ref.slug for ref in skill_refs]}"
                 )
                 skills = await skill_client.list_by_refs(list(skill_refs))
                 
-                # Write skills to sandbox (Daytona mode only - local mode not yet supported)
+                # Write skills to sandbox (both local and cloud modes supported)
                 if worker_config.is_local_mode():
-                    # Local mode - skills writing to filesystem not yet implemented
-                    activity_logger.warning(
-                        "Skills writing to local filesystem is not yet implemented. "
-                        "Skills will be skipped in local mode."
+                    # Local mode - write to local filesystem
+                    local_root = sandbox_config.get('root_dir', '/tmp/stigmer-sandbox')
+                    activity_logger.info(
+                        f"Writing {len(skills)} skills to local filesystem at {local_root}/bin/skills/"
                     )
-                    skill_paths = {}
-                    skills_prompt_section = ""
+                    skill_writer = SkillWriter(local_root=local_root)
+                    skill_paths = skill_writer.write_skills(skills)
                 else:
                     # Cloud mode - upload to Daytona sandbox
                     if sandbox is None:
@@ -265,15 +268,14 @@ async def _execute_graphton_impl(
                         f"(sandbox {'newly created' if is_new_sandbox else 'reused, updating skills'})"
                     )
                     skill_writer = SkillWriter(sandbox=sandbox)
-                    
                     skill_paths = skill_writer.write_skills(skills)
-                    
-                    # Generate prompt section with skill metadata
-                    skills_prompt_section = SkillWriter.generate_prompt_section(skills, skill_paths)
-                    
-                    activity_logger.info(
-                        f"Successfully uploaded {len(skills)} skills: {[s.metadata.name for s in skills]}"
-                    )
+                
+                # Generate prompt section with full SKILL.md content and LOCATION headers
+                skills_prompt_section = SkillWriter.generate_prompt_section(skills, skill_paths)
+                
+                activity_logger.info(
+                    f"Successfully wrote {len(skills)} skills: {[s.metadata.name for s in skills]}"
+                )
                     
             except RuntimeError as e:
                 # Catch write/upload failures from SkillWriter
