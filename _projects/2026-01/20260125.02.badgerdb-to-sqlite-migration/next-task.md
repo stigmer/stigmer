@@ -1,78 +1,51 @@
 # Next Task: 20260125.02.badgerdb-to-sqlite-migration
 
 ## Current State
-- **Status**: IN-PROGRESS (uncommitted changes)
-- **Last Session**: 2026-01-25 (Session 2) - SQLite audit table architecture redesign
-- **Active Task**: T02 - SQLite Store Architecture Redesign
+- **Status**: COMPLETED (Session 3 - Bug fixes committed)
+- **Branch**: feat/badgerdb-to-sqllite-migration
+- **Last Session**: 2026-01-25 (Session 3) - Bug fixes for audit queries
 
-## Session Progress (2026-01-25 - Session 2)
+## Session Progress (2026-01-25 - Session 3)
 
 ### Completed
-- ✅ Added schema version tracking system (`schema_version` table)
-- ✅ Created dedicated `resource_audit` table with proper relational design
-- ✅ Added indexes for efficient audit queries (hash, tag, resource_id)
-- ✅ Enabled `PRAGMA foreign_keys=ON` for data integrity
-- ✅ Added new audit methods to Store interface:
-  - `SaveAudit(ctx, kind, resourceId, msg, versionHash, tag)`
-  - `GetAuditByHash(ctx, kind, resourceId, versionHash, msg)`
-  - `GetAuditByTag(ctx, kind, resourceId, tag, msg)`
-  - `ListAuditHistory(ctx, kind, resourceId)`
-  - `DeleteAuditByResourceId(ctx, kind, resourceId)`
-- ✅ Added `ErrAuditNotFound` sentinel error
-- ✅ Deprecated `DeleteResourcesByIdPrefix` (BadgerDB artifact)
-- ✅ Implemented migration logic for existing `skill_audit/*` prefixed records
-- ✅ Updated `push.go` - uses `SaveAudit()` instead of prefixed ID
-- ✅ Updated `load_skill_by_reference.go` - uses indexed audit queries (O(log n) vs O(n))
-- ✅ Updated `delete.go` - uses `DeleteAuditByResourceId()`
-- ✅ Added comprehensive audit tests to `store_test.go`
-- ✅ Updated `skill_controller_test.go` for new audit API
+- ✅ Fixed `GetAuditByTag` timestamp ordering bug (sub-second inserts)
+- ✅ Fixed `ListAuditHistory` timestamp ordering bug (sub-second inserts)
+- ✅ Fixed `push_test.go` enum name (`ApiResourceOwnerScope_platform`)
+- ✅ Committed all fixes: `1f13f50`
 
-### Files Modified (9 files, +914/-135 lines)
-- `backend/libs/go/store/interface.go` - Added audit methods, ErrAuditNotFound
-- `backend/libs/go/store/sqlite/store.go` - Migration system + audit implementation
-- `backend/libs/go/store/sqlite/store_test.go` - Audit tests
-- `backend/services/stigmer-server/pkg/domain/skill/controller/push.go` - SaveAudit
-- `backend/services/stigmer-server/pkg/domain/skill/controller/load_skill_by_reference.go` - Indexed queries
-- `backend/services/stigmer-server/pkg/domain/skill/controller/delete.go` - DeleteAuditByResourceId
-- `backend/services/stigmer-server/pkg/domain/skill/controller/skill_controller_test.go` - Updated tests
+### Bug Fix Details
+The audit queries used `ORDER BY archived_at DESC` which has second-level precision in SQLite. When multiple audit records are inserted within the same second (common in tests), the ordering was undefined. Fixed by adding `id DESC` as a secondary sort criterion since the auto-increment ID is guaranteed to be monotonically increasing.
 
-### Key Architectural Decisions
-1. **Separate Audit Table**: Created `resource_audit` table instead of co-mingling with resources
-2. **Indexed Columns**: Extracted `version_hash` and `tag` for indexed queries
-3. **Migration Versioning**: Added `schema_version` table for proper schema evolution
-4. **Interface Abstraction**: Clean audit methods instead of prefix-based deletion
+### Files Modified (Session 3)
+- `backend/libs/go/store/sqlite/store.go` - Added `id DESC` tiebreaker
+- `backend/services/stigmer-server/pkg/domain/skill/controller/push_test.go` - Fixed enum name
+- Plus goimports ordering changes in several files
 
-### Before vs After
+## Test Status
+- ✅ Store tests: All pass (27 tests)
+- ✅ Skill controller tests: 36/37 pass
+- ⚠️ `TestGetArtifact_EmptyStorageKey`: Pre-existing failure (validation pipeline doesn't wrap errors as gRPC status)
 
-| Aspect | Before (BadgerDB Pattern) | After (Relational) |
-|--------|---------------------------|---------------------|
-| Query efficiency | Full table scan + app filter | Indexed direct lookup |
-| Data integrity | Manual cleanup required | CASCADE-ready design |
-| Interface abstraction | Exposes prefix implementation | Clean domain methods |
-| Version lookup | O(n) scan all skills | O(log n) index lookup |
-| Audit deletion | GLOB pattern match | Direct DELETE by resource_id |
+### Pre-existing Test Issue
+`TestGetArtifact_EmptyStorageKey` fails because the validation pipeline returns a wrapped error rather than a proper gRPC status error. This is unrelated to the audit migration and was present before these changes.
 
-## Next Steps
+## Commit History
+```
+1f13f50 fix(backend): fix audit query ordering and enum naming in tests
+62e0848 docs: update project documentation for audit table session
+df4463c refactor(backend/libs): add dedicated audit table to SQLite store
+5af72bf refactor(backend): migrate from BadgerDB to SQLite storage
+```
 
-1. **Run tests** - Verify all tests pass with new architecture
-2. **Commit changes** - Create proper commit for audit table architecture
-3. **Integration testing** - Test skill push/get-by-reference/delete workflows
-4. **Consider FK constraint** - Evaluate adding foreign key for CASCADE DELETE
-
-## Context for Resume
-- Plan file exists: `.cursor/plans/sqlite_store_architecture_683ad591.plan.md`
-- This is a follow-up to Session 1 (basic SQLite migration)
-- Previous uncommitted changes from Session 1 may still be present (temporal_manager.go, update_status_impl.go)
-- New changes focus on audit table architecture
+## Next Steps (Optional Follow-ups)
+1. **Fix validation pipeline** - Make ValidateProtoConstraints wrap errors as gRPC status
+2. **Add FK constraint** - Consider foreign key for CASCADE DELETE (optional, design decision)
+3. **Integration testing** - Manual testing of skill push/get-by-reference/delete workflows
+4. **Create PR** - When ready to merge to main
 
 ## Quick Resume
 To continue this project, drag this file into chat:
 `@_projects/2026-01/20260125.02.badgerdb-to-sqlite-migration/next-task.md`
-
-Then:
-- Review uncommitted changes: `git status`
-- Run tests: `go test ./backend/libs/go/store/... ./backend/services/stigmer-server/pkg/domain/skill/controller/...`
-- Commit: Use `@commit-stigmer-oss-changes` rule
 
 ---
 
