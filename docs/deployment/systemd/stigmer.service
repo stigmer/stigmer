@@ -1,0 +1,68 @@
+# Stigmer Server systemd Service Unit
+# 
+# Installation:
+#   sudo cp stigmer.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable stigmer
+#   sudo systemctl start stigmer
+#
+# Management:
+#   sudo systemctl status stigmer    # Check status
+#   sudo systemctl restart stigmer   # Restart
+#   sudo systemctl stop stigmer      # Stop
+#   sudo journalctl -u stigmer -f    # View logs
+
+[Unit]
+Description=Stigmer Server - AI Agent Workflow Platform
+Documentation=https://github.com/stigmer/stigmer
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=stigmer
+Group=stigmer
+WorkingDirectory=/home/stigmer
+
+# Main process
+ExecStart=/usr/local/bin/stigmer internal-server
+
+# Environment variables
+Environment="STIGMER_DATA_DIR=/var/lib/stigmer"
+Environment="STIGMER_LOG_DIR=/var/log/stigmer"
+Environment="GRPC_PORT=7234"
+Environment="TEMPORAL_SERVICE_ADDRESS=localhost:7233"
+Environment="STIGMER_LLM_PROVIDER=ollama"
+Environment="STIGMER_LLM_MODEL=qwen2.5-coder:14b"
+Environment="STIGMER_LLM_BASE_URL=http://localhost:11434"
+
+# If you're using external LLM providers, add API keys here:
+# Environment="OPENAI_API_KEY=sk-..."
+# Environment="ANTHROPIC_API_KEY=sk-ant-..."
+
+# Restart policy - THIS IS THE KEY TO SYSTEMD SUPERVISION
+Restart=always
+RestartSec=10
+
+# Restart conditions
+RestartPreventExitStatus=0
+RestartForceExitStatus=1
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/stigmer /var/log/stigmer
+
+# Process limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=append:/var/log/stigmer/stigmer-server.log
+StandardError=append:/var/log/stigmer/stigmer-server.log
+SyslogIdentifier=stigmer
+
+[Install]
+WantedBy=multi-user.target
