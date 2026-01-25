@@ -3,8 +3,8 @@
 **Project**: CLI Log Management Enhancements  
 **Location**: `_projects/2026-01/20260120.03.cli-log-management-enhancements/`  
 **Created**: 2026-01-20  
-**Status**: ✅ COMPLETE (3/4 core tasks done - 75%)  
-**Latest Checkpoint**: `checkpoints/2026-01-21-documentation-complete.md`
+**Status**: ✅ COMPLETE (All core features delivered)  
+**Latest Checkpoint**: `checkpoints/2026-01-25-fix-auto-follow-restarts.md`
 
 ## Overview
 
@@ -63,6 +63,12 @@ Improve operational experience with better log viewing options and automatic log
 - Component prefixes for identification
 - Streaming and non-streaming modes
 
+**Task 3: Auto-Follow Server Restarts** ✅
+- Automatic file replacement detection (inode tracking)
+- Automatic Docker container reconnection
+- No manual intervention needed (no Ctrl+C + re-run)
+- Matches Kubernetes `kubectl logs -f` behavior
+
 **Task 4: Documentation** ✅
 - Comprehensive enhancement of `docs/cli/server-logs.md`
 - 3 Mermaid diagrams (command flow, rotation lifecycle, unified viewing)
@@ -70,7 +76,7 @@ Improve operational experience with better log viewing options and automatic log
 - Real-world debugging scenarios
 - Dogmatic adherence to Stigmer OSS Documentation Standards
 
-**Task 3: Clear Logs Flag** (Optional - Skipped)
+**Optional: Clear Logs Flag** (Skipped)
 - Not implemented (log rotation handles cleanup automatically)
 - Can be added if users request it
 
@@ -80,23 +86,25 @@ Improve operational experience with better log viewing options and automatic log
 - Logs grow indefinitely
 - Need 3 terminals to see all components
 - Manual cleanup required
+- Manual restart needed to see new logs
 
 **After**:
 - Automatic rotation with 7-day cleanup
 - Single command shows unified view
-- Professional log management
+- Automatic follow after server restarts
+- Professional log management experience
 
 ### Metrics
 
 | Metric | Value |
 |--------|-------|
 | **Files Created** | 5 (logs package + docs) |
-| **Files Modified** | 2 (daemon.go + server_logs.go) |
-| **Lines Added** | ~470 lines |
+| **Files Modified** | 3 (daemon.go + server_logs.go + streamer.go) |
+| **Lines Added** | ~550 lines |
 | **Mermaid Diagrams** | 3 |
 | **Documentation Pages** | 1 enhanced |
-| **Implementation Time** | ~2.5 hours total |
-| **Project Completion** | 75% (3 of 4 core tasks) |
+| **Implementation Time** | ~3 hours total |
+| **Project Completion** | 100% (all core features delivered) |
 
 ## Key Features
 
