@@ -67,11 +67,15 @@ func (c *SkillController) buildDeletePipeline() *pipeline.Pipeline[*skillv1.Skil
 // DeleteSkillArchivesStep deletes all archive (audit) records for a skill
 //
 // This step cleans up the version history archives created by Push operations.
-// Archive records are stored with keys in the format: skill_audit/<resource_id>/<timestamp>
+// Archive records are stored in the dedicated resource_audit table with a
+// reference to the parent resource.
 //
-// This step runs BEFORE the main skill deletion to ensure archives are cleaned up
-// even if we want to maintain referential integrity in the future.
+// This step runs BEFORE the main skill deletion to ensure archives are cleaned up.
 // Archive deletion is best-effort - failures are logged but don't stop the delete operation.
+//
+// Note: In a future version with proper foreign key constraints, this step could
+// be removed as CASCADE DELETE would handle cleanup automatically. For now, we
+// explicitly delete audit records to ensure clean removal.
 type DeleteSkillArchivesStep struct {
 	store store.Store
 }
@@ -94,11 +98,8 @@ func (s *DeleteSkillArchivesStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 	}
 	resourceId := idVal.(string)
 
-	// Delete all archive records with prefix: skill_audit/<resource_id>/
-	// This matches the key format used in ArchiveCurrentSkillStep
-	archivePrefix := fmt.Sprintf("skill_audit/%s/", resourceId)
-
-	deletedCount, err := s.store.DeleteResourcesByIdPrefix(ctx.Context(), apiresourcekind.ApiResourceKind_skill, archivePrefix)
+	// Delete all audit records for this skill using the dedicated audit method
+	deletedCount, err := s.store.DeleteAuditByResourceId(ctx.Context(), apiresourcekind.ApiResourceKind_skill, resourceId)
 	if err != nil {
 		// Log warning but don't fail - archive cleanup is best-effort
 		fmt.Printf("Warning: failed to delete skill archives for %s: %v\n", resourceId, err)
