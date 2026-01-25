@@ -9,6 +9,7 @@ Complete documentation for the Agent Runner service - a Python Temporal worker t
 - **[✅ CURRENT IMPLEMENTATION](CURRENT_IMPLEMENTATION.md)** - **START HERE** - Complete overview of the current implementation
 - **[📋 MIGRATION SUMMARY](MIGRATION_SUMMARY.md)** - What changed from Temporal activities to gRPC updates
 - **[Architecture: Agent Execution Workflow](architecture/agent-execution-workflow.md)** - How agent execution works with Temporal + gRPC
+- **[Architecture: Skill Architecture](architecture/skill-architecture.md)** - Complete skill system: push, versioning, extraction, and injection
 - **[Guide: Working with Agent Execution](guides/working-with-agent-execution.md)** - Developer guide for implementation and debugging
 - **[Architecture: Data Model](architecture/data-model.md)** - Resource hierarchy and relationships
 - **[Fix: Progressive Status Updates](fixes/2026-01-15-implement-progressive-status-updates-via-grpc.md)** - How real-time status updates were implemented
@@ -31,6 +32,9 @@ What changed from the Temporal activity approach to gRPC status updates. Include
 
 **[Agent Execution Workflow](architecture/agent-execution-workflow.md)**  
 How agent execution combines Temporal workflows (orchestration) with gRPC calls (status updates) to provide real-time progress visibility. Explains the polyglot pattern, progressive status updates, and the separation between orchestration and persistence.
+
+**[Skill Architecture](architecture/skill-architecture.md)**  
+Complete skill system architecture from push to runtime execution. Covers versioning, content-addressable storage, artifact extraction, prompt injection, and graceful degradation. Includes MongoDB indexes, security considerations, and performance characteristics.
 
 **[Data Model](architecture/data-model.md)**  
 Understanding the resource hierarchy: Agent → AgentInstance → Session → Execution, and how skills and environments are resolved via ApiResourceReference.
@@ -91,7 +95,7 @@ Agent Runner is a Python Temporal worker service that:
 1. **Executes Graphton agents** - Creates agents at runtime and invokes them with user messages
 2. **Sends progressive status updates** - Real-time updates to stigmer-service via gRPC every N events
 3. **Manages Daytona sandboxes** - Session-based sandbox lifecycle for file persistence
-4. **Handles skills** - Fetches and writes skills to sandboxes for agent access
+4. **Handles skills** - Downloads artifacts, extracts to `/bin/skills/{hash}/`, and injects SKILL.md into prompts. See [Skill Architecture](architecture/skill-architecture.md) for complete details.
 5. **Merges environments** - Layers multiple environment configurations with proper overrides
 
 ---

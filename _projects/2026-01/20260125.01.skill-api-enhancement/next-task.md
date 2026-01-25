@@ -68,10 +68,93 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-25 12:14
-**Current Task**: T01.12 CLI Skill Command ✅
-**Status**: CLI Refactor Complete
-**Last Session**: 2026-01-25 - CLI Skill Command Refactor
-**Last Completed**: Refactored CLI with dedicated `stigmer skill push` command, removed artifact mode from apply ✅ 2026-01-25
+**Current Task**: Documentation Complete ✅
+**Status**: Ready for Deployment
+**Last Session**: 2026-01-25 - Documentation Update
+**Last Completed**: Created comprehensive skill architecture documentation following Stigmer OSS standards ✅ 2026-01-25
+
+---
+
+## Session Progress (2026-01-25 - Documentation Update)
+
+### What Was Accomplished - Skill Architecture Documentation
+
+**Created comprehensive architecture documentation following Stigmer OSS documentation standards:**
+
+**New Documentation File:**
+- `backend/services/agent-runner/docs/architecture/skill-architecture.md` (~974 lines)
+
+**Content Sections:**
+1. **Overview** - System purpose and key design principles
+2. **System Components** - Mermaid diagram showing all services
+3. **Data Model** - Proto structure and MongoDB collections
+4. **Complete Skill Lifecycle** - Sequence diagram from push to execution
+5. **Core Workflows** - Push, version resolution, download & extraction (with flowcharts)
+6. **Skill Injection** - Prompt format and injection logic
+7. **File System Layout** - Directory structure and conventions
+8. **Content-Addressable Storage** - Deduplication flow
+9. **MongoDB Indexes** - All 7 compound indexes with ESR optimization
+10. **Error Handling** - Graceful degradation hierarchy
+11. **Security** - Capability tokens, ZIP safety, permissions
+12. **Testing** - 144 tests across Python, Java, Go
+13. **CLI Commands** - Usage examples
+14. **Performance** - Storage efficiency, query performance
+15. **Future Enhancements** - Public registry, dependencies, caching
+
+**Mermaid Diagrams Included:**
+- System components (graph)
+- Complete skill lifecycle (sequence diagram)
+- Push skill workflow (flowchart)
+- Version resolution (flowchart)
+- Artifact download & extraction (flowchart)
+- Content-addressable storage (deduplication flow)
+- Error handling & graceful degradation (hierarchy)
+
+**Documentation Standards Applied:**
+- ✅ Lowercase hyphenated filename: `skill-architecture.md`
+- ✅ Proper category: `docs/architecture/` (explains how system works)
+- ✅ Multiple Mermaid diagrams for visual clarity
+- ✅ Grounded in actual implementation
+- ✅ Developer-friendly with "why" explanations
+- ✅ Concise and scannable structure
+- ✅ Context-first approach
+- ✅ Includes examples and code blocks
+
+**Updated Documentation Indexes:**
+- `backend/services/agent-runner/docs/README.md` - Added to Quick Links and Architecture sections
+- `backend/services/agent-runner/README.md` - Enhanced Skills Integration section, added to key documents
+
+**Files Modified:**
+```
+backend/services/agent-runner/
+├── README.md                                    # +17/-8 lines (skill docs + links)
+├── docs/
+│   ├── README.md                               # +6/-1 lines (index + links)
+│   └── architecture/
+│       └── skill-architecture.md               # NEW - ~974 lines
+```
+
+**Minor Cleanup:**
+- `client-apps/cli/cmd/stigmer/root.go` - Removed trailing whitespace (2 lines)
+
+### Documentation Quality
+
+**Comprehensive Coverage:**
+- Complete lifecycle from `stigmer skill push` to runtime execution
+- All architectural components and their interactions
+- MongoDB schema with two-collection strategy
+- Version resolution logic (latest/tag/hash)
+- Security considerations and best practices
+- Performance characteristics and optimization opportunities
+
+**Developer-Friendly:**
+- Clear explanations of design decisions
+- Practical examples throughout
+- Links to actual implementation files
+- Troubleshooting guidance
+- Future enhancement roadmap
+
+---
 
 ## Session Progress (2026-01-25 - CLI Skill Command Refactor)
 
@@ -503,8 +586,9 @@ Before testing:
 5. ✅ ~~**Go Unit & Integration Tests**~~ - COMPLETED (65 tests for skill domain)
 6. ✅ ~~**MongoDB Migration**~~ - COMPLETED (7 compound indexes for skill_audit)
 7. ✅ ~~**CLI Enhancement**~~ - COMPLETED (`stigmer skill push` command)
-8. **Documentation**: Update agent-runner docs with complete skill architecture
-9. **Commit Changes**: Commit CLI refactor changes (uncommitted)
+8. ✅ ~~**Documentation**~~ - COMPLETED (comprehensive skill architecture docs)
+9. **Commit Changes**: Commit documentation changes
+10. **Deploy & Test**: Deploy to staging and validate end-to-end
 
 ## Context for Resume
 
@@ -515,13 +599,17 @@ Before testing:
 - **Integration tests COMPLETE**: Python (21 tests) + Java (18 tests) for full pipeline
 - **Go tests COMPLETE**: 65 tests for skill domain (storage + controller + integration)
 - **MongoDB indexes COMPLETE**: 7 compound indexes for skill_audit collection
+- **Documentation COMPLETE**: Comprehensive skill architecture documentation (~974 lines)
+  - 7 Mermaid diagrams (system components, lifecycle, workflows)
+  - Follows Stigmer OSS documentation standards
+  - Covers complete system: push → versioning → extraction → injection
+  - Includes security, performance, testing, and future enhancements
 - **Skill injection complete**: Full SKILL.md content injected into prompts
 - **Both local and cloud modes supported**: Works with filesystem and Daytona
 - **Graceful degradation**: Falls back to SKILL.md-only if artifact download fails
 - **Backward compatible**: Works with skills that don't have artifacts
 - **ADR 001 compliance verified**: All ADR validation requirements tested
 - **R2 bucket not yet created**: Placeholders in stigmer-cloud secrets (pending user action)
-- **Build issue note**: `bazel build` has pre-existing issue with missing `com_github_google_safearchive` repo (not related to changes)
 - **CLI command hierarchy**: Now follows industry best practices (verb-first + noun-first hybrid)
 
 ## What's Complete (ADR 001)
@@ -535,24 +623,23 @@ Per ADR 001, the complete skill injection and mounting architecture is now imple
 
 ## Uncommitted Changes
 
-**stigmer OSS repo (CLI Refactor Session):**
+**stigmer OSS repo (Documentation Session):**
 ```
 Modified files:
-- client-apps/cli/cmd/stigmer/root.go              # +1 line (register skill command)
-- client-apps/cli/cmd/stigmer/root/apply.go        # -204 lines (removed artifact mode)
-- client-apps/cli/internal/cli/artifact/skill.go   # Fixed field access bugs
-- client-apps/cli/COMMANDS.md                      # +24 lines (skill docs)
-- backend/.../skill/controller/get_artifact.go     # Fixed ctx.Input() bug
-- _projects/.../next-task.md                       # This file
+- backend/services/agent-runner/README.md          # +17/-8 (enhanced skill integration docs)
+- backend/services/agent-runner/docs/README.md     # +6/-1 (added skill architecture link)
+- client-apps/cli/cmd/stigmer/root.go              # +2/-2 (whitespace cleanup)
+- _projects/.../next-task.md                       # This file (updated with session)
 
 New files:
-- client-apps/cli/cmd/stigmer/root/skill.go        # NEW (~230 lines)
-- _projects/.../checkpoints/2026-01-25-mongodb-index-migration.md  # NEW checkpoint
+- backend/services/agent-runner/docs/architecture/skill-architecture.md  # NEW (~974 lines)
 ```
 
 **stigmer-cloud repo:**
 - All changes committed (clean working tree)
 - Latest commit: `302b8180` feat(backend/skill): add MongoDB indexes for skill_audit collection
+
+**Note**: CLI refactor changes were committed in a previous session
 
 ## Architecture Summary
 
