@@ -27,7 +27,9 @@ service SkillCommandController {
   // 5. Store the artifact (deduplicated by hash)
   // 6. Update skill spec and status
   // 7. Archive the previous version (if updating)
-  rpc push(PushSkillRequest) returns (PushSkillResponse) {
+  //
+  // Returns: The created or updated Skill resource (consistent with other CRUD operations)
+  rpc push(PushSkillRequest) returns (Skill) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_skill;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "org";

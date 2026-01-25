@@ -1,7 +1,8 @@
+from ai.stigmer.commons.apiresource import enum_pb2 as _enum_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from typing import ClassVar as _ClassVar, Optional as _Optional
+from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -12,14 +13,18 @@ class SkillId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class PushSkillRequest(_message.Message):
-    __slots__ = ("skill_id", "artifact", "tag")
-    SKILL_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("name", "scope", "org", "artifact", "tag")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    SCOPE_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     ARTIFACT_FIELD_NUMBER: _ClassVar[int]
     TAG_FIELD_NUMBER: _ClassVar[int]
-    skill_id: str
+    name: str
+    scope: _enum_pb2.ApiResourceOwnerScope
+    org: str
     artifact: bytes
     tag: str
-    def __init__(self, skill_id: _Optional[str] = ..., artifact: _Optional[bytes] = ..., tag: _Optional[str] = ...) -> None: ...
+    def __init__(self, name: _Optional[str] = ..., scope: _Optional[_Union[_enum_pb2.ApiResourceOwnerScope, str]] = ..., org: _Optional[str] = ..., artifact: _Optional[bytes] = ..., tag: _Optional[str] = ...) -> None: ...
 
 class PushSkillResponse(_message.Message):
     __slots__ = ("version_hash", "artifact_storage_key", "tag")
@@ -32,17 +37,17 @@ class PushSkillResponse(_message.Message):
     def __init__(self, version_hash: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...
 
 class GetSkillByTagRequest(_message.Message):
-    __slots__ = ("name", "tag")
-    NAME_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("slug", "tag")
+    SLUG_FIELD_NUMBER: _ClassVar[int]
     TAG_FIELD_NUMBER: _ClassVar[int]
-    name: str
+    slug: str
     tag: str
-    def __init__(self, name: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...
+    def __init__(self, slug: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...
 
 class GetSkillByHashRequest(_message.Message):
-    __slots__ = ("name", "version_hash")
-    NAME_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("slug", "version_hash")
+    SLUG_FIELD_NUMBER: _ClassVar[int]
     VERSION_HASH_FIELD_NUMBER: _ClassVar[int]
-    name: str
+    slug: str
     version_hash: str
-    def __init__(self, name: _Optional[str] = ..., version_hash: _Optional[str] = ...) -> None: ...
+    def __init__(self, slug: _Optional[str] = ..., version_hash: _Optional[str] = ...) -> None: ...

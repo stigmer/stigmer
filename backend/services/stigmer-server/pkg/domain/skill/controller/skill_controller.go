@@ -1,8 +1,8 @@
 package skill
 
 import (
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
 )
 

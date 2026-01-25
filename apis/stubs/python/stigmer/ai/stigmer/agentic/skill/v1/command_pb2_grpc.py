@@ -16,19 +16,9 @@ class SkillCommandControllerStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.apply = channel.unary_unary(
-                '/ai.stigmer.agentic.skill.v1.SkillCommandController/apply',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
-                _registered_method=True)
-        self.create = channel.unary_unary(
-                '/ai.stigmer.agentic.skill.v1.SkillCommandController/create',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
-                _registered_method=True)
-        self.update = channel.unary_unary(
-                '/ai.stigmer.agentic.skill.v1.SkillCommandController/update',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
+        self.push = channel.unary_unary(
+                '/ai.stigmer.agentic.skill.v1.SkillCommandController/push',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
                 _registered_method=True)
         self.delete = channel.unary_unary(
@@ -36,56 +26,39 @@ class SkillCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
                 _registered_method=True)
-        self.push = channel.unary_unary(
-                '/ai.stigmer.agentic.skill.v1.SkillCommandController/push',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillResponse.FromString,
-                _registered_method=True)
 
 
 class SkillCommandControllerServicer(object):
     """SkillCommandController handles write operations for skills.
     """
 
-    def apply(self, request, context):
-        """Create or update a skill.
-        The authorization and state-operation are determined depending on whether the skill
-        is going to be created or updated which is determined as part of the request execution.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def create(self, request, context):
-        """Create a new skill.
+    def push(self, request, context):
+        """Push (upload) a skill artifact.
+        This operation creates a new skill if it doesn't exist, or creates a new version
+        of an existing skill. The skill artifact must contain SKILL.md.
 
         Authorization:
         - Organization-scoped skills: Caller must have can_create_skill permission in the organization
         - Platform-scoped skills: Caller must be a platform operator (handled automatically by common auth step)
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
 
-    def update(self, request, context):
-        """Update an existing skill.
+        The backend will:
+        1. Normalize the name to a slug
+        2. Find or create the skill resource
+        3. Extract SKILL.md from the artifact
+        4. Calculate SHA256 hash (version identifier)
+        5. Store the artifact (deduplicated by hash)
+        6. Update skill spec and status
+        7. Archive the previous version (if updating)
+
+        Returns: The created or updated Skill resource (consistent with other CRUD operations)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def delete(self, request, context):
-        """Delete a skill.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def push(self, request, context):
-        """Push (upload) a skill artifact.
-        This uploads the Zip artifact containing SKILL.md and tools,
-        calculates the version hash, and stores the artifact.
-        Optionally associates a tag with this version.
+        """Delete a skill and all its versions.
+        This removes the skill from the main collection but preserves audit history.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -94,30 +67,15 @@ class SkillCommandControllerServicer(object):
 
 def add_SkillCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'apply': grpc.unary_unary_rpc_method_handler(
-                    servicer.apply,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
-            ),
-            'create': grpc.unary_unary_rpc_method_handler(
-                    servicer.create,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
-            ),
-            'update': grpc.unary_unary_rpc_method_handler(
-                    servicer.update,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
+            'push': grpc.unary_unary_rpc_method_handler(
+                    servicer.push,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
-            ),
-            'push': grpc.unary_unary_rpc_method_handler(
-                    servicer.push,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -132,7 +90,7 @@ class SkillCommandController(object):
     """
 
     @staticmethod
-    def apply(request,
+    def push(request,
             target,
             options=(),
             channel_credentials=None,
@@ -145,62 +103,8 @@ class SkillCommandController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.skill.v1.SkillCommandController/apply',
-            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def create(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.skill.v1.SkillCommandController/create',
-            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def update(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.skill.v1.SkillCommandController/update',
-            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
+            '/ai.stigmer.agentic.skill.v1.SkillCommandController/push',
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
             options,
             channel_credentials,
@@ -229,33 +133,6 @@ class SkillCommandController(object):
             '/ai.stigmer.agentic.skill.v1.SkillCommandController/delete',
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillId.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def push(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.skill.v1.SkillCommandController/push',
-            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillResponse.FromString,
             options,
             channel_credentials,
             insecure,

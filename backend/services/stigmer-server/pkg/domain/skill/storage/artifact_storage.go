@@ -71,7 +71,7 @@ func (s *LocalFileStorage) Store(hash string, data []byte) (string, error) {
 // Get retrieves the artifact from local filesystem.
 func (s *LocalFileStorage) Get(storageKey string) ([]byte, error) {
 	filePath := filepath.Join(s.storagePath, storageKey)
-	
+
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -87,7 +87,7 @@ func (s *LocalFileStorage) Get(storageKey string) ([]byte, error) {
 func (s *LocalFileStorage) Exists(hash string) (bool, error) {
 	storageKey := s.GetStorageKey(hash)
 	filePath := filepath.Join(s.storagePath, storageKey)
-	
+
 	_, err := os.Stat(filePath)
 	if err == nil {
 		return true, nil

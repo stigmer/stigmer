@@ -9,11 +9,11 @@ import (
 
 // Config holds server configuration
 type Config struct {
-	GRPCPort      int
-	DBPath        string
-	StoragePath   string // Path for skill artifacts storage
-	LogLevel      string
-	Env           string
+	GRPCPort    int
+	DBPath      string
+	StoragePath string // Path for skill artifacts storage
+	LogLevel    string
+	Env         string
 
 	// Temporal configuration
 	TemporalHostPort  string // Default: "localhost:7233"

@@ -161,6 +161,10 @@ func (x *PushSkillRequest) GetTag() string {
 }
 
 // PushSkillResponse returns the version information after successful upload.
+// DEPRECATED: Use Skill resource directly (returned by push RPC)
+// This message is kept for backward compatibility only.
+//
+// Deprecated: Marked as deprecated in ai/stigmer/agentic/skill/v1/io.proto.
 type PushSkillResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// SHA256 hash of the uploaded artifact (immutable version identifier).
@@ -346,11 +350,11 @@ const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\x05scope\x18\x02 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05scope\x12\x10\n" +
 	"\x03org\x18\x03 \x01(\tR\x03org\x12\"\n" +
 	"\bartifact\x18\x04 \x01(\fB\x06\xbaH\x03\xc8\x01\x01R\bartifact\x12-\n" +
-	"\x03tag\x18\x05 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\"z\n" +
+	"\x03tag\x18\x05 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\"~\n" +
 	"\x11PushSkillResponse\x12!\n" +
 	"\fversion_hash\x18\x01 \x01(\tR\vversionHash\x120\n" +
 	"\x14artifact_storage_key\x18\x02 \x01(\tR\x12artifactStorageKey\x12\x10\n" +
-	"\x03tag\x18\x03 \x01(\tR\x03tag\"L\n" +
+	"\x03tag\x18\x03 \x01(\tR\x03tag:\x02\x18\x01\"L\n" +
 	"\x14GetSkillByTagRequest\x12\x1a\n" +
 	"\x04slug\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\x18\n" +
 	"\x03tag\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03tag\"m\n" +

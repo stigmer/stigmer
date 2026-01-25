@@ -3,14 +3,11 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "controller",
     srcs = [
-        "apply.go",
-        "create.go",
         "delete.go",
         "get.go",
         "get_by_reference.go",
         "push.go",
         "skill_controller.go",
-        "update.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller",
     visibility = ["//visibility:public"],
@@ -18,15 +15,13 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//backend/libs/go/apiresource",
         "//backend/libs/go/badger",
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/services/stigmer-server/pkg/domain/skill/storage",
         "@com_github_rs_zerolog//log",
-        "@org_golang_google_grpc//codes",
-        "@org_golang_google_grpc//status",
-        "@org_golang_google_protobuf//types/known/timestamppb",
     ],
 )
 
