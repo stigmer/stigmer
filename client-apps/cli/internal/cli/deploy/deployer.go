@@ -72,13 +72,14 @@ func (d *Deployer) deploySequential(synthesisResult *synthesis.Result) (*DeployR
 		DeployedWorkflows: make([]*workflowv1.Workflow, 0),
 	}
 
-	// Deploy skills first (agents depend on them)
+	// TODO(T01.4): Skills are no longer deployed from code (SDK).
+	// Skills must be pushed as artifacts using `stigmer apply` in a directory with SKILL.md.
+	// The inline skill feature will be removed in T01.4.
+	// For now, skip skill deployment from Code Mode.
 	if len(synthesisResult.Skills) > 0 {
-		skills, err := d.deploySkills(synthesisResult.Skills)
-		if err != nil {
-			return nil, err
+		if d.opts.ProgressCallback != nil {
+			d.opts.ProgressCallback("⚠️  Skills detected but Code Mode deployment is deprecated. Use Artifact Mode (SKILL.md) to upload skills.")
 		}
-		result.DeployedSkills = skills
 	}
 
 	// Deploy agents
@@ -227,32 +228,10 @@ func (d *Deployer) deployResource(res *synthesis.ResourceWithID) (proto.Message,
 	}
 }
 
-// deploySkill deploys a single skill.
+// deploySkill is deprecated - skills are now pushed as artifacts only.
+// TODO(T01.4): Remove this method when inline skill feature is removed.
 func (d *Deployer) deploySkill(skill *skillv1.Skill) (*skillv1.Skill, error) {
-	// Ensure metadata is initialized and org is set
-	if skill.Metadata == nil {
-		skill.Metadata = &apiresource.ApiResourceMetadata{}
-	}
-	skill.Metadata.Org = d.opts.OrgID
-	if skill.Metadata.OwnerScope == apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified {
-		skill.Metadata.OwnerScope = apiresource.ApiResourceOwnerScope_organization
-	}
-
-	if d.opts.ProgressCallback != nil {
-		d.opts.ProgressCallback(fmt.Sprintf("Deploying skill: %s", skill.Metadata.Name))
-	}
-
-	client := skillv1.NewSkillCommandControllerClient(d.opts.Conn)
-	deployed, err := client.Apply(context.Background(), skill)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to deploy skill '%s'", skill.Metadata.Name)
-	}
-
-	if d.opts.ProgressCallback != nil {
-		d.opts.ProgressCallback(fmt.Sprintf("✓ Skill deployed: %s (ID: %s)", deployed.Metadata.Name, deployed.Metadata.Id))
-	}
-
-	return deployed, nil
+	return nil, fmt.Errorf("skill deployment from code is no longer supported - use Artifact Mode with SKILL.md")
 }
 
 // deployAgent deploys a single agent.
@@ -311,39 +290,10 @@ func (d *Deployer) deployWorkflow(workflow *workflowv1.Workflow) (*workflowv1.Wo
 	return deployed, nil
 }
 
-// deploySkills deploys all skills
+// deploySkills is deprecated - skills are now pushed as artifacts only.
+// TODO(T01.4): Remove this method when inline skill feature is removed.
 func (d *Deployer) deploySkills(skills []*skillv1.Skill) ([]*skillv1.Skill, error) {
-	client := skillv1.NewSkillCommandControllerClient(d.opts.Conn)
-	deployedSkills := make([]*skillv1.Skill, 0, len(skills))
-
-	for i, skill := range skills {
-		// Ensure metadata is initialized and org is set
-		if skill.Metadata == nil {
-			skill.Metadata = &apiresource.ApiResourceMetadata{}
-		}
-		skill.Metadata.Org = d.opts.OrgID
-		if skill.Metadata.OwnerScope == apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified {
-			skill.Metadata.OwnerScope = apiresource.ApiResourceOwnerScope_organization
-		}
-
-		if d.opts.ProgressCallback != nil {
-			d.opts.ProgressCallback(fmt.Sprintf("Deploying skill %d/%d: %s", i+1, len(skills), skill.Metadata.Name))
-		}
-
-		// Call apply RPC (creates or updates)
-		deployed, err := client.Apply(context.Background(), skill)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to deploy skill '%s'", skill.Metadata.Name)
-		}
-
-		deployedSkills = append(deployedSkills, deployed)
-
-		if d.opts.ProgressCallback != nil {
-			d.opts.ProgressCallback(fmt.Sprintf("✓ Skill deployed: %s (ID: %s)", deployed.Metadata.Name, deployed.Metadata.Id))
-		}
-	}
-
-	return deployedSkills, nil
+	return nil, fmt.Errorf("skill deployment from code is no longer supported - use Artifact Mode with SKILL.md")
 }
 
 // deployAgents deploys all agents
