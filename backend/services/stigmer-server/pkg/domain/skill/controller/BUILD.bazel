@@ -6,6 +6,7 @@ go_library(
         "delete.go",
         "get.go",
         "get_by_reference.go",
+        "load_skill_by_reference.go",
         "push.go",
         "skill_controller.go",
     ],

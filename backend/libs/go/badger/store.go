@@ -157,6 +157,44 @@ func (s *Store) DeleteResourcesByKind(ctx context.Context, kind apiresourcekind.
 	return int64(len(keys)), nil
 }
 
+// DeleteResourcesByIdPrefix deletes all resources of a given kind whose ID starts with the specified prefix.
+// This is useful for deleting audit/archive records that are keyed as "<prefix>/<resource_id>/<timestamp>".
+// Returns the number of resources deleted.
+func (s *Store) DeleteResourcesByIdPrefix(ctx context.Context, kind apiresourcekind.ApiResourceKind, idPrefix string) (int64, error) {
+	// Construct the full prefix: "Kind/IdPrefix"
+	prefix := []byte(fmt.Sprintf("%s/%s", kind.String(), idPrefix))
+
+	// 1. Collect keys matching the prefix
+	var keys [][]byte
+	err := s.db.View(func(txn *badger.Txn) error {
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			keys = append(keys, it.Item().KeyCopy(nil))
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	// 2. Batch Delete
+	if len(keys) > 0 {
+		err := s.db.Update(func(txn *badger.Txn) error {
+			for _, k := range keys {
+				if err := txn.Delete(k); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return 0, err
+		}
+	}
+	return int64(len(keys)), nil
+}
+
 // Close closes the database connection
 func (s *Store) Close() error {
 	return s.db.Close()

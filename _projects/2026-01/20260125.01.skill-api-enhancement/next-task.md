@@ -69,8 +69,39 @@ When starting a new session:
 
 **Created**: 2026-01-25 12:14
 **Current Task**: T01.4 (Agent Integration)
-**Status**: Ready to Start
+**Status**: In Progress - Archive Deletion Added
+**Last Session**: 2026-01-25 - Added archive deletion logic for skill delete
 **Last Completed**: T01.3 Cleanup (Remove Obsolete CRUD Operations) ✅ 2026-01-25 16:06
+**Analysis Completed**: T01.4 Pre-Implementation Analysis ✅ 2026-01-25
+
+## Session Progress (2026-01-25 Evening)
+
+### What Was Accomplished
+- Added `DeleteResourcesByIdPrefix` method to badger store for prefix-based deletion
+- Created `DeleteSkillArchivesStep` in delete.go to clean up version history archives
+- Updated skill delete pipeline to include archive cleanup before resource deletion
+- Archive deletion is best-effort (logs warnings but doesn't fail the delete operation)
+
+### Key Decisions Made
+- Archive cleanup runs BEFORE the main skill deletion (ensures cleanup even with referential integrity)
+- Best-effort approach: failures are logged but don't stop the delete operation (same pattern as archival)
+- Uses same key format as push: `skill_audit/<resource_id>/<timestamp>`
+
+### Files Modified
+- `backend/libs/go/badger/store.go` - Added `DeleteResourcesByIdPrefix` method
+- `backend/services/stigmer-server/pkg/domain/skill/controller/delete.go` - Added archive deletion step
+
+## Next Steps (when resuming)
+
+1. Test the archive deletion logic manually or add unit tests
+2. Continue with T01.4 Agent Integration work
+3. Review if similar archive cleanup is needed for other resources
+
+## Context for Resume
+
+- Archive records are stored with keys: `skill/skill_audit/<resource_id>/<timestamp>`
+- The delete pipeline now has 5 steps: ValidateProto → ExtractResourceId → LoadExistingForDelete → **DeleteSkillArchives** → DeleteResource
+- The new `DeleteResourcesByIdPrefix` method in badger store can be reused for other audit cleanup scenarios
 
 ## Quick Commands
 
