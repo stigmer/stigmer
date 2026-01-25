@@ -771,3 +771,301 @@ func TestStore_SpecialCharactersInID(t *testing.T) {
 		require.NoError(t, err, "failed to delete agent with ID: %s", id)
 	}
 }
+
+// =============================================================================
+// Audit Operations Tests
+// =============================================================================
+
+func TestStore_SaveAudit(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	kindNameStr, err := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// First create the parent resource
+	resourceId := "agent-audit-test-123"
+	agent := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       kindNameStr,
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   resourceId,
+			Name: "test-agent",
+		},
+		Spec: &agentv1.AgentSpec{
+			Description: "Original version",
+		},
+	}
+	err = s.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent)
+	require.NoError(t, err)
+
+	// Save audit record with hash and tag
+	versionHash := "abc123def456abc123def456abc123def456abc123def456abc123def456abcd"
+	tag := "v1.0.0"
+	err = s.SaveAudit(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent, versionHash, tag)
+	require.NoError(t, err)
+
+	// Verify audit record can be retrieved by hash
+	retrieved := &agentv1.Agent{}
+	err = s.GetAuditByHash(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, versionHash, retrieved)
+	require.NoError(t, err)
+	assert.Equal(t, agent.Metadata.Id, retrieved.Metadata.Id)
+	assert.Equal(t, agent.Spec.Description, retrieved.Spec.Description)
+}
+
+func TestStore_GetAuditByHash(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	kindNameStr, err := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Create parent resource
+	resourceId := "agent-hash-test"
+	agent := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       kindNameStr,
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   resourceId,
+			Name: "hash-test-agent",
+		},
+	}
+	err = s.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent)
+	require.NoError(t, err)
+
+	// Save multiple audit records with different hashes
+	hash1 := "1111111111111111111111111111111111111111111111111111111111111111"
+	hash2 := "2222222222222222222222222222222222222222222222222222222222222222"
+
+	agent.Spec = &agentv1.AgentSpec{Description: "Version 1"}
+	err = s.SaveAudit(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent, hash1, "v1")
+	require.NoError(t, err)
+
+	agent.Spec = &agentv1.AgentSpec{Description: "Version 2"}
+	err = s.SaveAudit(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent, hash2, "v2")
+	require.NoError(t, err)
+
+	// Retrieve by hash1
+	retrieved := &agentv1.Agent{}
+	err = s.GetAuditByHash(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, hash1, retrieved)
+	require.NoError(t, err)
+	assert.Equal(t, "Version 1", retrieved.Spec.Description)
+
+	// Retrieve by hash2
+	err = s.GetAuditByHash(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, hash2, retrieved)
+	require.NoError(t, err)
+	assert.Equal(t, "Version 2", retrieved.Spec.Description)
+
+	// Non-existent hash should return ErrAuditNotFound
+	nonExistentHash := "9999999999999999999999999999999999999999999999999999999999999999"
+	err = s.GetAuditByHash(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, nonExistentHash, retrieved)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, store.ErrAuditNotFound), "expected ErrAuditNotFound, got: %v", err)
+}
+
+func TestStore_GetAuditByTag(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	kindNameStr, err := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Create parent resource
+	resourceId := "agent-tag-test"
+	agent := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       kindNameStr,
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   resourceId,
+			Name: "tag-test-agent",
+		},
+	}
+	err = s.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent)
+	require.NoError(t, err)
+
+	// Save multiple audit records with the same tag (simulating re-tagging)
+	// The most recent should be returned
+	tag := "latest"
+
+	agent.Spec = &agentv1.AgentSpec{Description: "First version with latest tag"}
+	err = s.SaveAudit(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent, "hash1", tag)
+	require.NoError(t, err)
+
+	agent.Spec = &agentv1.AgentSpec{Description: "Second version with latest tag"}
+	err = s.SaveAudit(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent, "hash2", tag)
+	require.NoError(t, err)
+
+	// Retrieve by tag - should return the most recent (second version)
+	retrieved := &agentv1.Agent{}
+	err = s.GetAuditByTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, tag, retrieved)
+	require.NoError(t, err)
+	assert.Equal(t, "Second version with latest tag", retrieved.Spec.Description)
+
+	// Non-existent tag should return ErrAuditNotFound
+	err = s.GetAuditByTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, "non-existent-tag", retrieved)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, store.ErrAuditNotFound), "expected ErrAuditNotFound, got: %v", err)
+}
+
+func TestStore_ListAuditHistory(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	kindNameStr, err := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Create parent resource
+	resourceId := "agent-history-test"
+	agent := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       kindNameStr,
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   resourceId,
+			Name: "history-test-agent",
+		},
+	}
+	err = s.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent)
+	require.NoError(t, err)
+
+	// Save 5 audit records
+	for i := 0; i < 5; i++ {
+		agent.Spec = &agentv1.AgentSpec{Description: "Version " + string(rune('0'+i))}
+		hash := string(rune('0'+i)) + "111111111111111111111111111111111111111111111111111111111111111"
+		err = s.SaveAudit(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent, hash, "v"+string(rune('0'+i)))
+		require.NoError(t, err)
+	}
+
+	// List audit history
+	history, err := s.ListAuditHistory(ctx, apiresourcekind.ApiResourceKind_agent, resourceId)
+	require.NoError(t, err)
+	assert.Len(t, history, 5)
+
+	// Empty history for non-existent resource
+	history, err = s.ListAuditHistory(ctx, apiresourcekind.ApiResourceKind_agent, "non-existent-resource")
+	require.NoError(t, err)
+	assert.NotNil(t, history, "should return empty slice, not nil")
+	assert.Len(t, history, 0)
+}
+
+func TestStore_DeleteAuditByResourceId(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	kindNameStr, err := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Create parent resource
+	resourceId := "agent-delete-audit-test"
+	agent := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       kindNameStr,
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   resourceId,
+			Name: "delete-audit-test-agent",
+		},
+	}
+	err = s.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent)
+	require.NoError(t, err)
+
+	// Create another resource to ensure we only delete the right audits
+	otherResourceId := "agent-other-resource"
+	otherAgent := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       kindNameStr,
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   otherResourceId,
+			Name: "other-agent",
+		},
+	}
+	err = s.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, otherResourceId, otherAgent)
+	require.NoError(t, err)
+
+	// Save audit records for both resources
+	for i := 0; i < 3; i++ {
+		agent.Spec = &agentv1.AgentSpec{Description: "Version " + string(rune('0'+i))}
+		hash := string(rune('0'+i)) + "111111111111111111111111111111111111111111111111111111111111111"
+		err = s.SaveAudit(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent, hash, "v"+string(rune('0'+i)))
+		require.NoError(t, err)
+	}
+
+	for i := 0; i < 2; i++ {
+		otherAgent.Spec = &agentv1.AgentSpec{Description: "Other Version " + string(rune('0'+i))}
+		hash := "other" + string(rune('0'+i)) + "1111111111111111111111111111111111111111111111111111111111"
+		err = s.SaveAudit(ctx, apiresourcekind.ApiResourceKind_agent, otherResourceId, otherAgent, hash, "v"+string(rune('0'+i)))
+		require.NoError(t, err)
+	}
+
+	// Delete audit records for first resource only
+	count, err := s.DeleteAuditByResourceId(ctx, apiresourcekind.ApiResourceKind_agent, resourceId)
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), count)
+
+	// Verify first resource's audits are deleted
+	history, err := s.ListAuditHistory(ctx, apiresourcekind.ApiResourceKind_agent, resourceId)
+	require.NoError(t, err)
+	assert.Len(t, history, 0)
+
+	// Verify other resource's audits are still there
+	history, err = s.ListAuditHistory(ctx, apiresourcekind.ApiResourceKind_agent, otherResourceId)
+	require.NoError(t, err)
+	assert.Len(t, history, 2)
+}
+
+func TestStore_AuditOperationsAfterClose(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+
+	err = s.Close()
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	kindNameStr, _ := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	agent := &agentv1.Agent{
+		Metadata: &apiresource.ApiResourceMetadata{Id: "test"},
+		Kind:     kindNameStr,
+	}
+
+	// All audit operations should fail after close
+	err = s.SaveAudit(ctx, apiresourcekind.ApiResourceKind_agent, "test", agent, "hash", "tag")
+	assert.Error(t, err)
+
+	err = s.GetAuditByHash(ctx, apiresourcekind.ApiResourceKind_agent, "test", "hash", agent)
+	assert.Error(t, err)
+
+	err = s.GetAuditByTag(ctx, apiresourcekind.ApiResourceKind_agent, "test", "tag", agent)
+	assert.Error(t, err)
+
+	_, err = s.ListAuditHistory(ctx, apiresourcekind.ApiResourceKind_agent, "test")
+	assert.Error(t, err)
+
+	_, err = s.DeleteAuditByResourceId(ctx, apiresourcekind.ApiResourceKind_agent, "test")
+	assert.Error(t, err)
+}

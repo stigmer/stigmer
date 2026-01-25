@@ -3,7 +3,6 @@ package skill
 import (
 	"context"
 	"fmt"
-	"time"
 
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
@@ -340,8 +339,10 @@ func (s *CheckAndStoreArtifactStep) Execute(ctx *pipeline.RequestContext[*skillv
 
 // ArchiveCurrentSkillStep archives the NEW skill (after populating fields)
 //
-// This step preserves version history by saving a snapshot of the current skill.
-// The archive happens AFTER all fields are populated (including new artifact data).
+// This step preserves version history by saving a snapshot of the current skill
+// to the dedicated audit table. The archive happens AFTER all fields are populated
+// (including new artifact data).
+//
 // Archival is best-effort - failures are logged but don't stop the push operation.
 //
 // Audit Pattern:
@@ -351,7 +352,11 @@ func (s *CheckAndStoreArtifactStep) Execute(ctx *pipeline.RequestContext[*skillv
 // - Query by tag returns latest version with that tag (sorted by timestamp)
 // - Query by hash returns exact match
 //
-// Archive Key Format: skill_audit/<resource_id>/<timestamp>
+// The audit records are stored in a dedicated resource_audit table with:
+// - resource_id: references the main skill's ID
+// - version_hash: for exact version lookups
+// - tag: for tag-based lookups
+// - archived_at: timestamp for ordering
 type ArchiveCurrentSkillStep struct {
 	store store.Store
 }
@@ -378,17 +383,26 @@ func (s *ArchiveCurrentSkillStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 	return nil
 }
 
-// archiveSkill saves a snapshot to the audit collection
-// The archived skill can be queried by tag or hash for version history
+// archiveSkill saves a snapshot to the audit table for version history.
+// The archived skill can be queried by tag or hash.
 func (s *ArchiveCurrentSkillStep) archiveSkill(ctx context.Context, skill *skillv1.Skill) error {
-	// Create audit key: skill_audit/<resource_id>/<timestamp>
-	// This ensures each archived version has a unique key
-	timestamp := time.Now().UnixNano()
-	auditKey := fmt.Sprintf("skill_audit/%s/%d", skill.Metadata.Id, timestamp)
+	// Extract version hash and tag for indexed queries
+	versionHash := ""
+	tag := ""
+	if skill.Status != nil {
+		versionHash = skill.Status.VersionHash
+	}
+	if skill.Spec != nil {
+		tag = skill.Spec.Tag
+	}
 
-	// Save snapshot to audit collection
-	// This allows querying by tag/hash for version history
-	if err := s.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_skill, auditKey, skill); err != nil {
+	// Save snapshot to audit table using the dedicated SaveAudit method
+	// This creates a proper audit record with:
+	// - resource_id: skill.Metadata.Id (for foreign key relationship)
+	// - version_hash: for exact version lookups
+	// - tag: for tag-based lookups
+	// - archived_at: auto-set to current timestamp
+	if err := s.store.SaveAudit(ctx, apiresourcekind.ApiResourceKind_skill, skill.Metadata.Id, skill, versionHash, tag); err != nil {
 		return fmt.Errorf("failed to archive skill: %w", err)
 	}
 

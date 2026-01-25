@@ -15,9 +15,24 @@ import (
 // Consumers should use errors.Is(err, store.ErrNotFound) for checking.
 var ErrNotFound = errors.New("resource not found")
 
+// ErrAuditNotFound is returned when an audit record does not exist.
+// Consumers should use errors.Is(err, store.ErrAuditNotFound) for checking.
+var ErrAuditNotFound = errors.New("audit record not found")
+
 // Store defines the contract for resource persistence.
-// All storage implementations (SQLite, BadgerDB, memory) must satisfy this interface.
+// All storage implementations (SQLite, memory) must satisfy this interface.
+//
+// The store provides two distinct storage areas:
+//   - Resources: Live/current state of resources (SaveResource, GetResource, etc.)
+//   - Audit: Immutable version history snapshots (SaveAudit, GetAuditByHash, etc.)
+//
+// When a resource is deleted, its associated audit records are automatically
+// cleaned up via CASCADE DELETE in the underlying storage.
 type Store interface {
+	// ===========================================================================
+	// Resource Operations (Live/Current State)
+	// ===========================================================================
+
 	// SaveResource persists a proto message to the store.
 	// If a resource with the same kind+id exists, it will be overwritten.
 	//
@@ -39,6 +54,8 @@ type Store interface {
 	// ListResources retrieves all resources of a given kind.
 	// Returns an empty slice (not nil) if no resources exist.
 	//
+	// Note: This returns only live resources, not audit records.
+	//
 	// Parameters:
 	//   - kind: resource kind enum (e.g., ApiResourceKind_agent)
 	//
@@ -48,6 +65,8 @@ type Store interface {
 	// DeleteResource removes a resource by kind and ID.
 	// Returns nil (no error) if the resource does not exist.
 	//
+	// Note: Associated audit records are automatically deleted via CASCADE.
+	//
 	// Parameters:
 	//   - kind: resource kind enum (e.g., ApiResourceKind_agent)
 	//   - id: unique resource identifier
@@ -56,6 +75,8 @@ type Store interface {
 	// DeleteResourcesByKind removes all resources of a given kind.
 	// Useful for bulk cleanup operations (e.g., "stigmer local clean --kind=Agent").
 	//
+	// Note: Associated audit records are automatically deleted via CASCADE.
+	//
 	// Parameters:
 	//   - kind: resource kind enum
 	//
@@ -63,8 +84,11 @@ type Store interface {
 	DeleteResourcesByKind(ctx context.Context, kind apiresourcekind.ApiResourceKind) (int64, error)
 
 	// DeleteResourcesByIdPrefix removes all resources of a given kind whose ID
-	// starts with the specified prefix. This is useful for deleting audit/archive
-	// records keyed as "<resource_id>/<timestamp>".
+	// starts with the specified prefix.
+	//
+	// Deprecated: This method exists for backward compatibility with BadgerDB-style
+	// key patterns. New code should use the audit-specific methods instead.
+	// This will be removed in a future version.
 	//
 	// Parameters:
 	//   - kind: resource kind enum
@@ -72,6 +96,79 @@ type Store interface {
 	//
 	// Returns: number of resources deleted
 	DeleteResourcesByIdPrefix(ctx context.Context, kind apiresourcekind.ApiResourceKind, idPrefix string) (int64, error)
+
+	// ===========================================================================
+	// Audit Operations (Version History)
+	// ===========================================================================
+
+	// SaveAudit archives an immutable snapshot of a resource for version history.
+	// Each call creates a new audit record with a unique auto-incremented ID.
+	//
+	// The versionHash and tag parameters are stored as indexed columns for
+	// efficient queries. These should be extracted from the proto message
+	// before calling this method.
+	//
+	// Parameters:
+	//   - kind: resource kind enum (e.g., ApiResourceKind_skill)
+	//   - resourceId: ID of the parent resource (must exist in resources table)
+	//   - msg: the proto message snapshot to archive (will be marshaled to bytes)
+	//   - versionHash: SHA256 hash of the content (for exact version lookup)
+	//   - tag: version tag/label (for tag-based lookup, may be empty)
+	SaveAudit(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string, msg proto.Message, versionHash, tag string) error
+
+	// GetAuditByHash retrieves an archived version by exact hash match.
+	// Returns ErrAuditNotFound if no audit record exists with the given hash.
+	//
+	// This is useful for content-addressed lookups where the exact version
+	// is known (e.g., "get skill version with hash abc123...").
+	//
+	// Parameters:
+	//   - kind: resource kind enum
+	//   - resourceId: ID of the parent resource
+	//   - versionHash: SHA256 hash to match
+	//   - msg: pointer to proto message to unmarshal into (must be initialized)
+	GetAuditByHash(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId, versionHash string, msg proto.Message) error
+
+	// GetAuditByTag retrieves the most recent archived version with matching tag.
+	// Returns ErrAuditNotFound if no audit record exists with the given tag.
+	//
+	// When multiple audit records have the same tag (e.g., after re-tagging),
+	// the most recent one (by archived_at timestamp) is returned.
+	//
+	// Parameters:
+	//   - kind: resource kind enum
+	//   - resourceId: ID of the parent resource
+	//   - tag: version tag to match
+	//   - msg: pointer to proto message to unmarshal into (must be initialized)
+	GetAuditByTag(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId, tag string, msg proto.Message) error
+
+	// ListAuditHistory retrieves all archived versions for a resource.
+	// Returns newest first (sorted by archived_at DESC).
+	// Returns an empty slice (not nil) if no audit records exist.
+	//
+	// Parameters:
+	//   - kind: resource kind enum
+	//   - resourceId: ID of the parent resource
+	//
+	// Returns: slice of marshaled protobuf bytes (one per audit record)
+	ListAuditHistory(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) ([][]byte, error)
+
+	// DeleteAuditByResourceId removes all audit records for a resource.
+	//
+	// Note: This is typically not needed since audit records are automatically
+	// deleted when the parent resource is deleted (CASCADE DELETE). This method
+	// exists for explicit cleanup scenarios like pruning old versions.
+	//
+	// Parameters:
+	//   - kind: resource kind enum
+	//   - resourceId: ID of the parent resource
+	//
+	// Returns: number of audit records deleted
+	DeleteAuditByResourceId(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) (int64, error)
+
+	// ===========================================================================
+	// Lifecycle
+	// ===========================================================================
 
 	// Close releases all resources held by the store.
 	// After Close is called, all other methods will return errors.
