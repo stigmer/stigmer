@@ -18,11 +18,11 @@ import (
 
 // Context keys for push operation
 const (
-	SkillKey               = "skill"                // The Skill being built (type transformation: PushSkillRequest → Skill)
-	ExtractResultKey       = "extractResult"        // Extracted SKILL.md content and hash
-	ArtifactStorageKeyKey  = "artifactStorageKey"   // Storage key for the artifact
-	ExistingSkillKey       = "existingSkill"        // Existing skill loaded by slug
-	ShouldCreateSkillKey   = "shouldCreateSkill"    // Flag: true=create, false=update
+	SkillKey              = "skill"              // The Skill being built (type transformation: PushSkillRequest → Skill)
+	ExtractResultKey      = "extractResult"      // Extracted SKILL.md content and hash
+	ArtifactStorageKeyKey = "artifactStorageKey" // Storage key for the artifact
+	ExistingSkillKey      = "existingSkill"      // Existing skill loaded by slug
+	ShouldCreateSkillKey  = "shouldCreateSkill"  // Flag: true=create, false=update
 )
 
 // Push uploads a skill artifact and creates or updates the skill resource.
@@ -119,7 +119,7 @@ func (s *BuildInitialSkillStep) Execute(ctx *pipeline.RequestContext[*skillv1.Pu
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Skill",
 		Metadata: &apiresourcepb.ApiResourceMetadata{
-			Name:       req.Name,       // User-provided name (will be stored as-is)
+			Name: req.Name, // User-provided name (will be stored as-is)
 			// Slug will be set by ResolveSlugForPushStep
 			// Id will be set by GenerateIDIfNeededStep or FindExistingBySlugStep
 			OwnerScope: req.Scope,
@@ -171,11 +171,12 @@ func (s *ResolveSlugForPushStep) Execute(ctx *pipeline.RequestContext[*skillv1.P
 // This step:
 // 1. Searches for skill by slug (similar to LoadForApplyStep pattern)
 // 2. If found:
-//    - Sets ExistingSkillKey in context
-//    - Copies existing ID to current skill
-//    - Sets shouldCreate = false
+//   - Sets ExistingSkillKey in context
+//   - Copies existing ID to current skill
+//   - Sets shouldCreate = false
+//
 // 3. If not found:
-//    - Sets shouldCreate = true
+//   - Sets shouldCreate = true
 type FindExistingBySlugStep struct {
 	store *badger.Store
 }
@@ -337,7 +338,6 @@ func (s *CheckAndStoreArtifactStep) Execute(ctx *pipeline.RequestContext[*skillv
 	return nil
 }
 
-
 // ArchiveCurrentSkillStep archives the NEW skill (after populating fields)
 //
 // This step preserves version history by saving a snapshot of the current skill.
@@ -401,8 +401,8 @@ func (s *ArchiveCurrentSkillStep) archiveSkill(ctx context.Context, skill *skill
 // 1. Populates spec.skill_md from extracted SKILL.md content
 // 2. Sets status.version_hash and status.artifact_storage_key
 // 3. Sets audit fields using common library helpers:
-//    - For create: SetAuditFieldsForCreate (sets created_at = updated_at = now)
-//    - For update: Preserves existing audit, then updates with SetAuditFieldsForUpdate
+//   - For create: SetAuditFieldsForCreate (sets created_at = updated_at = now)
+//   - For update: Preserves existing audit, then updates with SetAuditFieldsForUpdate
 type PopulateSkillFieldsStep struct{}
 
 func (c *SkillController) newPopulateSkillFieldsStep() *PopulateSkillFieldsStep {
@@ -436,7 +436,7 @@ func (s *PopulateSkillFieldsStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 	} else {
 		// Updating existing skill - preserve existing audit, then update
 		existingSkill := ctx.Get(ExistingSkillKey).(*skillv1.Skill)
-		
+
 		// First, copy the entire status from existing (including audit)
 		// This preserves all system-managed fields
 		if existingSkill.Status != nil && existingSkill.Status.Audit != nil {
@@ -448,7 +448,7 @@ func (s *PopulateSkillFieldsStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 			skill.Status.Audit.SpecAudit = existingSkill.Status.Audit.SpecAudit
 			skill.Status.Audit.StatusAudit = existingSkill.Status.Audit.StatusAudit
 		}
-		
+
 		// Now update the audit fields (preserves created_at, updates updated_at)
 		if err := steps.SetAuditFieldsForUpdate(skill); err != nil {
 			return fmt.Errorf("failed to set audit fields for update: %w", err)
@@ -485,4 +485,3 @@ func (s *StoreSkillStep) Execute(ctx *pipeline.RequestContext[*skillv1.PushSkill
 
 	return nil
 }
-

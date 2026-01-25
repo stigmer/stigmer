@@ -71,16 +71,17 @@ See [design-decisions/](design-decisions/) for complete architectural documentat
 See [tasks/T01_0_plan.md](tasks/T01_0_plan.md) for the detailed implementation plan.
 
 ### Latest Checkpoint
-**2026-01-25**: T01.3 Refactor - Push Handler Pipeline Framework ([checkpoint](checkpoints/2026-01-25-t01-3-refactor-push-handler-complete.md))
-- Complete Push handler refactor using pipeline framework (10 composable steps)
-- Proto API changed to return Skill (consistent with CRUD operations)
-- Exported common library functions (GenerateSlug, GenerateID, audit helpers)
-- Created FindResourceBySlug generic helper (eliminates duplication)
-- Proper ID generation with proto prefix extraction
-- Find by slug strategy (like Apply handler)
-- Archive timing corrected (archives NEW skill with artifact data)
-- Eliminated all custom ID/audit/slug logic in favor of common library
+**2026-01-25**: T01.3 Cleanup - Remove Obsolete CRUD Operations ([checkpoint](checkpoints/2026-01-25-t01-3-cleanup-obsolete-crud-operations.md))
+- Removed obsolete Create, Update, Apply handlers (169 lines deleted)
+- Aligned code with proto API (only Push and Delete exposed)
+- Simplified controller to 4 active handlers (was 7 with 3 unused)
+- Updated BUILD.bazel, tests, and documentation
+- Emphasized artifact-based design philosophy
+- Zero breaking changes (removed code was never callable)
+- T01.3 Backend Implementation fully complete
 - Ready for T01.4 Agent Integration
+
+**Previous**: T01.3 Refactor - Push Handler Pipeline Framework ([checkpoint](checkpoints/2026-01-25-t01-3-refactor-push-handler-complete.md))
 
 ### Progress Tracking
 - [x] Project initialized
