@@ -21,7 +21,7 @@ service SkillQueryController {
   }
 
   // Get a skill by API resource reference with version support.
-  // 
+  //
   // Version resolution (via ApiResourceReference.version field):
   // - Empty/"latest" → Returns current version from main collection
   // - Tag name (e.g., "stable", "v1.0") → Resolves to version with this tag
@@ -30,6 +30,17 @@ service SkillQueryController {
   // Authorization is handled in the handler after resolving the reference to a skill ID.
   // (Input doesn't contain skill ID, so proto-level auth cannot work)
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Skill) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+
+  // Download skill artifact from storage by its storage key.
+  // Returns the ZIP file containing SKILL.md and implementation files.
+  //
+  // This endpoint is used by the agent-runner to download and extract
+  // skill artifacts into the sandbox at /bin/skills/{version_hash}/.
+  //
+  // Authorization is skipped as the storage key itself acts as a capability token.
+  rpc getArtifact(GetArtifactRequest) returns (GetArtifactResponse) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 }

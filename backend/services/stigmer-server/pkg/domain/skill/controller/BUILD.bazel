@@ -22,7 +22,7 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/services/stigmer-server/pkg/domain/skill/storage",
-        "@com_github_rs_zerolog//log",
+        "@org_golang_google_protobuf//proto",
     ],
 )
 
@@ -36,5 +36,6 @@ go_test(
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/badger",
         "//backend/libs/go/grpc/interceptors/apiresource",
+        "//backend/services/stigmer-server/pkg/domain/skill/storage",
     ],
 )

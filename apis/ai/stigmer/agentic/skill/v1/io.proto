@@ -54,3 +54,16 @@ message PushSkillResponse {
   string tag = 3;
 }
 
+// GetArtifactRequest requests download of a skill artifact by storage key.
+message GetArtifactRequest {
+  // The artifact storage key from skill.status.artifact_storage_key.
+  // This key identifies the location of the ZIP file in storage (R2/S3).
+  string artifact_storage_key = 1 [(buf.validate.field).required = true];
+}
+
+// GetArtifactResponse contains the skill artifact content.
+message GetArtifactResponse {
+  // The skill artifact as a ZIP file (binary content).
+  // Contains SKILL.md and implementation files.
+  bytes artifact = 1;
+}

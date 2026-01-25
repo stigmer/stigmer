@@ -22,8 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	SkillQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.skill.v1.SkillQueryController/get"
 	SkillQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getByReference"
-	SkillQueryController_GetByTag_FullMethodName       = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getByTag"
-	SkillQueryController_GetByHash_FullMethodName      = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getByHash"
+	SkillQueryController_GetArtifact_FullMethodName    = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifact"
 )
 
 // SkillQueryControllerClient is the client API for SkillQueryController service.
@@ -34,18 +33,24 @@ const (
 type SkillQueryControllerClient interface {
 	// Get a single skill by ID.
 	Get(ctx context.Context, in *SkillId, opts ...grpc.CallOption) (*Skill, error)
-	// Get a skill by API resource reference.
+	// Get a skill by API resource reference with version support.
+	//
+	// Version resolution (via ApiResourceReference.version field):
+	// - Empty/"latest" → Returns current version from main collection
+	// - Tag name (e.g., "stable", "v1.0") → Resolves to version with this tag
+	// - SHA256 hash (64 hex chars) → Returns exact immutable version
+	//
 	// Authorization is handled in the handler after resolving the reference to a skill ID.
 	// (Input doesn't contain skill ID, so proto-level auth cannot work)
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Skill, error)
-	// Get a skill by tag name.
-	// Resolves the tag to the most recent version with that tag.
-	// Authorization is handled in the handler after resolving to a skill ID.
-	GetByTag(ctx context.Context, in *GetSkillByTagRequest, opts ...grpc.CallOption) (*Skill, error)
-	// Get a skill by exact version hash.
-	// Returns the specific version identified by the hash (immutable reference).
-	// Authorization is handled in the handler after resolving to a skill ID.
-	GetByHash(ctx context.Context, in *GetSkillByHashRequest, opts ...grpc.CallOption) (*Skill, error)
+	// Download skill artifact from storage by its storage key.
+	// Returns the ZIP file containing SKILL.md and implementation files.
+	//
+	// This endpoint is used by the agent-runner to download and extract
+	// skill artifacts into the sandbox at /bin/skills/{version_hash}/.
+	//
+	// Authorization is skipped as the storage key itself acts as a capability token.
+	GetArtifact(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*GetArtifactResponse, error)
 }
 
 type skillQueryControllerClient struct {
@@ -76,20 +81,10 @@ func (c *skillQueryControllerClient) GetByReference(ctx context.Context, in *api
 	return out, nil
 }
 
-func (c *skillQueryControllerClient) GetByTag(ctx context.Context, in *GetSkillByTagRequest, opts ...grpc.CallOption) (*Skill, error) {
+func (c *skillQueryControllerClient) GetArtifact(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*GetArtifactResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Skill)
-	err := c.cc.Invoke(ctx, SkillQueryController_GetByTag_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *skillQueryControllerClient) GetByHash(ctx context.Context, in *GetSkillByHashRequest, opts ...grpc.CallOption) (*Skill, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Skill)
-	err := c.cc.Invoke(ctx, SkillQueryController_GetByHash_FullMethodName, in, out, cOpts...)
+	out := new(GetArtifactResponse)
+	err := c.cc.Invoke(ctx, SkillQueryController_GetArtifact_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -104,18 +99,24 @@ func (c *skillQueryControllerClient) GetByHash(ctx context.Context, in *GetSkill
 type SkillQueryControllerServer interface {
 	// Get a single skill by ID.
 	Get(context.Context, *SkillId) (*Skill, error)
-	// Get a skill by API resource reference.
+	// Get a skill by API resource reference with version support.
+	//
+	// Version resolution (via ApiResourceReference.version field):
+	// - Empty/"latest" → Returns current version from main collection
+	// - Tag name (e.g., "stable", "v1.0") → Resolves to version with this tag
+	// - SHA256 hash (64 hex chars) → Returns exact immutable version
+	//
 	// Authorization is handled in the handler after resolving the reference to a skill ID.
 	// (Input doesn't contain skill ID, so proto-level auth cannot work)
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Skill, error)
-	// Get a skill by tag name.
-	// Resolves the tag to the most recent version with that tag.
-	// Authorization is handled in the handler after resolving to a skill ID.
-	GetByTag(context.Context, *GetSkillByTagRequest) (*Skill, error)
-	// Get a skill by exact version hash.
-	// Returns the specific version identified by the hash (immutable reference).
-	// Authorization is handled in the handler after resolving to a skill ID.
-	GetByHash(context.Context, *GetSkillByHashRequest) (*Skill, error)
+	// Download skill artifact from storage by its storage key.
+	// Returns the ZIP file containing SKILL.md and implementation files.
+	//
+	// This endpoint is used by the agent-runner to download and extract
+	// skill artifacts into the sandbox at /bin/skills/{version_hash}/.
+	//
+	// Authorization is skipped as the storage key itself acts as a capability token.
+	GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error)
 }
 
 // UnimplementedSkillQueryControllerServer should be embedded to have
@@ -131,11 +132,8 @@ func (UnimplementedSkillQueryControllerServer) Get(context.Context, *SkillId) (*
 func (UnimplementedSkillQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*Skill, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
 }
-func (UnimplementedSkillQueryControllerServer) GetByTag(context.Context, *GetSkillByTagRequest) (*Skill, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetByTag not implemented")
-}
-func (UnimplementedSkillQueryControllerServer) GetByHash(context.Context, *GetSkillByHashRequest) (*Skill, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetByHash not implemented")
+func (UnimplementedSkillQueryControllerServer) GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetArtifact not implemented")
 }
 func (UnimplementedSkillQueryControllerServer) testEmbeddedByValue() {}
 
@@ -193,38 +191,20 @@ func _SkillQueryController_GetByReference_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SkillQueryController_GetByTag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetSkillByTagRequest)
+func _SkillQueryController_GetArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArtifactRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SkillQueryControllerServer).GetByTag(ctx, in)
+		return srv.(SkillQueryControllerServer).GetArtifact(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SkillQueryController_GetByTag_FullMethodName,
+		FullMethod: SkillQueryController_GetArtifact_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SkillQueryControllerServer).GetByTag(ctx, req.(*GetSkillByTagRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _SkillQueryController_GetByHash_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetSkillByHashRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(SkillQueryControllerServer).GetByHash(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: SkillQueryController_GetByHash_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SkillQueryControllerServer).GetByHash(ctx, req.(*GetSkillByHashRequest))
+		return srv.(SkillQueryControllerServer).GetArtifact(ctx, req.(*GetArtifactRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -245,12 +225,8 @@ var SkillQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SkillQueryController_GetByReference_Handler,
 		},
 		{
-			MethodName: "getByTag",
-			Handler:    _SkillQueryController_GetByTag_Handler,
-		},
-		{
-			MethodName: "getByHash",
-			Handler:    _SkillQueryController_GetByHash_Handler,
+			MethodName: "getArtifact",
+			Handler:    _SkillQueryController_GetArtifact_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

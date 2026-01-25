@@ -249,6 +249,30 @@ async def _execute_graphton_impl(
                 )
                 skills = await skill_client.list_by_refs(list(skill_refs))
                 
+                # Download artifacts for skills that have storage keys
+                artifacts = {}
+                for skill in skills:
+                    if skill.status.artifact_storage_key:
+                        activity_logger.info(
+                            f"Downloading artifact for skill {skill.metadata.name} "
+                            f"(key: {skill.status.artifact_storage_key})"
+                        )
+                        try:
+                            artifact_bytes = await skill_client.get_artifact(
+                                skill.status.artifact_storage_key
+                            )
+                            artifacts[skill.metadata.id] = artifact_bytes
+                            activity_logger.info(
+                                f"Downloaded artifact for {skill.metadata.name}: "
+                                f"{len(artifact_bytes)} bytes"
+                            )
+                        except Exception as e:
+                            activity_logger.warning(
+                                f"Failed to download artifact for {skill.metadata.name}: {e}. "
+                                "Falling back to SKILL.md only."
+                            )
+                            # Continue without artifact - will use SKILL.md only
+                
                 # Write skills to sandbox (both local and cloud modes supported)
                 if worker_config.is_local_mode():
                     # Local mode - write to local filesystem
@@ -257,7 +281,7 @@ async def _execute_graphton_impl(
                         f"Writing {len(skills)} skills to local filesystem at {local_root}/bin/skills/"
                     )
                     skill_writer = SkillWriter(local_root=local_root)
-                    skill_paths = skill_writer.write_skills(skills)
+                    skill_paths = skill_writer.write_skills(skills, artifacts=artifacts)
                 else:
                     # Cloud mode - upload to Daytona sandbox
                     if sandbox is None:
@@ -268,7 +292,7 @@ async def _execute_graphton_impl(
                         f"(sandbox {'newly created' if is_new_sandbox else 'reused, updating skills'})"
                     )
                     skill_writer = SkillWriter(sandbox=sandbox)
-                    skill_paths = skill_writer.write_skills(skills)
+                    skill_paths = skill_writer.write_skills(skills, artifacts=artifacts)
                 
                 # Generate prompt section with full SKILL.md content and LOCATION headers
                 skills_prompt_section = SkillWriter.generate_prompt_section(skills, skill_paths)

@@ -163,3 +163,47 @@ class SkillClient:
         except grpc.RpcError as e:
             logger.error(f"Failed to fetch skills: {e}")
             raise
+    
+    async def get_artifact(self, artifact_storage_key: str) -> bytes:
+        """Download skill artifact from storage.
+        
+        Downloads the ZIP file containing SKILL.md and implementation files
+        from R2 storage. This is used by the agent-runner to extract skills
+        into the sandbox at /bin/skills/{version_hash}/.
+        
+        Args:
+            artifact_storage_key: Storage key from skill.status.artifact_storage_key
+            
+        Returns:
+            Artifact content as bytes (ZIP file)
+            
+        Raises:
+            grpc.RpcError: If gRPC call fails
+            ValueError: If artifact not found
+        """
+        from ai.stigmer.agentic.skill.v1.io_pb2 import GetArtifactRequest
+        
+        logger.info(f"Downloading skill artifact - key: {artifact_storage_key}")
+        
+        request = GetArtifactRequest(artifact_storage_key=artifact_storage_key)
+        
+        try:
+            response = await self.stub.getArtifact(request)
+            
+            artifact_bytes = response.artifact
+            logger.info(
+                f"Successfully downloaded artifact - key: {artifact_storage_key}, "
+                f"size: {len(artifact_bytes)} bytes"
+            )
+            
+            return artifact_bytes
+            
+        except grpc.RpcError as e:
+            if e.code() == grpc.StatusCode.NOT_FOUND:
+                logger.error(f"Artifact not found - key: {artifact_storage_key}")
+                raise ValueError(
+                    f"Skill artifact not found: {artifact_storage_key}"
+                ) from e
+            else:
+                logger.error(f"Failed to download artifact - key: {artifact_storage_key}: {e}")
+                raise
