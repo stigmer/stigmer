@@ -2,7 +2,7 @@ package steps
 
 import (
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
@@ -22,11 +22,11 @@ import (
 // In production multi-tenant systems, this would be combined with IAM authorization
 // filtering using an efficient database query (not in-memory filtering).
 type filterByAgentInstanceStep struct {
-	store *badger.Store
+	store store.Store
 }
 
 // NewFilterByAgentInstanceStep creates a new filter-by-agent-instance step
-func NewFilterByAgentInstanceStep(store *badger.Store) *filterByAgentInstanceStep {
+func NewFilterByAgentInstanceStep(store store.Store) *filterByAgentInstanceStep {
 	return &filterByAgentInstanceStep{store: store}
 }
 

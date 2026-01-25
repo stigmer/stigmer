@@ -12,7 +12,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
-        "//backend/libs/go/badger",
+        "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows",
         "@com_github_rs_zerolog//log",

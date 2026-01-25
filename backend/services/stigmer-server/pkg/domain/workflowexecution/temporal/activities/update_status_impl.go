@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
@@ -18,13 +18,13 @@ import (
 // - Load existing execution (single DB query)
 // - Apply status updates (merge or replace based on field)
 // - Update audit timestamps
-// - Save to BadgerDB
+// - Save to database
 // - Broadcast to StreamBroker (for real-time updates to subscribers)
 //
 // This is called by the workflow-runner worker via polyglot Temporal workflow.
 // Language-agnostic design: works regardless of which service implements the activity.
 type UpdateWorkflowExecutionStatusActivityImpl struct {
-	store        *badger.Store
+	store        store.Store
 	streamBroker StreamBroker
 }
 
@@ -34,7 +34,7 @@ type StreamBroker interface {
 }
 
 // NewUpdateWorkflowExecutionStatusActivityImpl creates a new activity implementation.
-func NewUpdateWorkflowExecutionStatusActivityImpl(store *badger.Store, streamBroker StreamBroker) *UpdateWorkflowExecutionStatusActivityImpl {
+func NewUpdateWorkflowExecutionStatusActivityImpl(store store.Store, streamBroker StreamBroker) *UpdateWorkflowExecutionStatusActivityImpl {
 	return &UpdateWorkflowExecutionStatusActivityImpl{
 		store:        store,
 		streamBroker: streamBroker,
@@ -126,7 +126,7 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 		Str("phase", updated.Status.Phase.String()).
 		Msg("Built updated workflow execution")
 
-	// Persist to BadgerDB
+	// Persist to database
 	if err := a.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_workflow_execution, executionID, &updated); err != nil {
 		log.Error().
 			Err(err).

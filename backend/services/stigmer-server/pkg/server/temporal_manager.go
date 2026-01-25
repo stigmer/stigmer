@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	agentexecutionactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
 	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
@@ -50,7 +50,7 @@ type TemporalManager struct {
 
 // serverDependencies holds references to server components needed for reconnection
 type serverDependencies struct {
-	store                        interface{} // *badger.Store
+	store                        interface{} // store.Store
 	agentExecutionController     interface{} // *agentexecutioncontroller.AgentExecutionController
 	workflowExecutionController  interface{} // *workflowexecutioncontroller.WorkflowExecutionController
 	workflowController           interface{} // *workflowcontroller.WorkflowController
@@ -363,14 +363,14 @@ func (tm *TemporalManager) createWorkers(temporalClient client.Client) []worker.
 	// 1. Create workflow execution worker
 	if tm.serverDeps.store != nil && tm.serverDeps.workflowExecutionStreamBroker != nil {
 		// Type assert store and streamBroker
-		store, storeOk := tm.serverDeps.store.(*badger.Store)
+		storeVal, storeOk := tm.serverDeps.store.(store.Store)
 		streamBroker, brokerOk := tm.serverDeps.workflowExecutionStreamBroker.(workflowexecutionactivities.StreamBroker)
 		
 		if storeOk && brokerOk {
 			workflowExecutionTemporalConfig := workflowexecutiontemporal.LoadConfig()
 			workerConfig := workflowexecutiontemporal.NewWorkerConfig(
 				workflowExecutionTemporalConfig,
-				store,
+				storeVal,
 				streamBroker,
 			)
 			workers = append(workers, workerConfig.CreateWorker(temporalClient))
@@ -386,14 +386,14 @@ func (tm *TemporalManager) createWorkers(temporalClient client.Client) []worker.
 	// 2. Create agent execution worker
 	if tm.serverDeps.store != nil && tm.serverDeps.agentExecutionStreamBroker != nil {
 		// Type assert store and streamBroker
-		store, storeOk := tm.serverDeps.store.(*badger.Store)
+		storeVal, storeOk := tm.serverDeps.store.(store.Store)
 		streamBroker, brokerOk := tm.serverDeps.agentExecutionStreamBroker.(agentexecutionactivities.StreamBroker)
 		
 		if storeOk && brokerOk {
 			agentExecutionTemporalConfig := agentexecutiontemporal.NewConfig()
 			workerConfig := agentexecutiontemporal.NewWorkerConfig(
 				agentExecutionTemporalConfig,
-				store,
+				storeVal,
 				streamBroker,
 			)
 			workers = append(workers, workerConfig.CreateWorker(temporalClient))

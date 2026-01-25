@@ -4,7 +4,7 @@ import (
 	"github.com/rs/zerolog/log"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 )
@@ -73,10 +73,10 @@ func (s *ValidateSubscribeInputStep) Execute(ctx *pipeline.RequestContext[*workf
 
 // LoadInitialWorkflowExecutionStep loads the initial execution state and sends it to the client
 type LoadInitialWorkflowExecutionStep struct {
-	store *badger.Store
+	store store.Store
 }
 
-func newLoadInitialWorkflowExecutionStep(store *badger.Store) *LoadInitialWorkflowExecutionStep {
+func newLoadInitialWorkflowExecutionStep(store store.Store) *LoadInitialWorkflowExecutionStep {
 	return &LoadInitialWorkflowExecutionStep{store: store}
 }
 

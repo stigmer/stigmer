@@ -9,7 +9,7 @@ import (
 	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	apiresourcelib "github.com/stigmer/stigmer/backend/libs/go/apiresource"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
@@ -178,7 +178,7 @@ func (s *ResolveSlugForPushStep) Execute(ctx *pipeline.RequestContext[*skillv1.P
 // 3. If not found:
 //   - Sets shouldCreate = true
 type FindExistingBySlugStep struct {
-	store *badger.Store
+	store store.Store
 }
 
 func (c *SkillController) newFindExistingBySlugStep() *FindExistingBySlugStep {
@@ -353,7 +353,7 @@ func (s *CheckAndStoreArtifactStep) Execute(ctx *pipeline.RequestContext[*skillv
 //
 // Archive Key Format: skill_audit/<resource_id>/<timestamp>
 type ArchiveCurrentSkillStep struct {
-	store *badger.Store
+	store store.Store
 }
 
 func (c *SkillController) newArchiveCurrentSkillStep() *ArchiveCurrentSkillStep {
@@ -462,7 +462,7 @@ func (s *PopulateSkillFieldsStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 //
 // This is the final step that saves the fully populated Skill to the database.
 type StoreSkillStep struct {
-	store *badger.Store
+	store store.Store
 }
 
 func (c *SkillController) newStoreSkillStep() *StoreSkillStep {

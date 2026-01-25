@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -81,10 +81,10 @@ func (s *validateListBySessionRequestStep) Execute(ctx *pipeline.RequestContext[
 
 // queryExecutionsBySessionStep queries executions filtered by session ID
 type queryExecutionsBySessionStep struct {
-	store *badger.Store
+	store store.Store
 }
 
-func newQueryExecutionsBySessionStep(store *badger.Store) *queryExecutionsBySessionStep {
+func newQueryExecutionsBySessionStep(store store.Store) *queryExecutionsBySessionStep {
 	return &queryExecutionsBySessionStep{store: store}
 }
 

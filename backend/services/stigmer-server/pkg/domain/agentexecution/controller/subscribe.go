@@ -2,7 +2,7 @@ package agentexecution
 
 import (
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -73,10 +73,10 @@ func (s *ValidateSubscribeInputStep) Execute(ctx *pipeline.RequestContext[*agent
 
 // LoadInitialExecutionStep loads the initial execution state and sends it to the client
 type LoadInitialExecutionStep struct {
-	store *badger.Store
+	store store.Store
 }
 
-func newLoadInitialExecutionStep(store *badger.Store) *LoadInitialExecutionStep {
+func newLoadInitialExecutionStep(store store.Store) *LoadInitialExecutionStep {
 	return &LoadInitialExecutionStep{store: store}
 }
 
