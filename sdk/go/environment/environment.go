@@ -2,6 +2,9 @@ package environment
 
 import (
 	"fmt"
+	"regexp"
+
+	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 )
 
 // Context is a minimal interface that represents a stigmer context.
@@ -77,6 +80,10 @@ type Variable struct {
 	// Required variables without a default value must be provided at AgentInstance creation.
 	Required bool
 }
+
+// envVarNameRegex matches valid environment variable names.
+// Must be uppercase letters, numbers, and underscores, not starting with a number.
+var envVarNameRegex = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
 
 // New creates a new environment variable with struct-based args (Pulumi pattern).
 //
@@ -159,13 +166,20 @@ func (v Variable) String() string {
 
 // validate validates the Variable configuration.
 func validate(v *Variable) error {
-	if v.Name == "" {
-		return fmt.Errorf("environment variable name is required")
+	if err := validation.RequiredWithMessage("name", v.Name, "environment variable name is required"); err != nil {
+		return err
 	}
 
 	// Validate name follows environment variable conventions
-	if !isValidEnvVarName(v.Name) {
-		return fmt.Errorf("invalid environment variable name: %s (must be uppercase letters, numbers, and underscores)", v.Name)
+	if err := validation.MatchesPattern("name", v.Name, envVarNameRegex,
+		"uppercase letters, numbers, and underscores (not starting with a number)"); err != nil {
+		return validation.NewValidationErrorWithCause(
+			"name",
+			v.Name,
+			"format",
+			fmt.Sprintf("invalid environment variable name: %s (must be uppercase letters, numbers, and underscores)", v.Name),
+			validation.ErrInvalidFormat,
+		)
 	}
 
 	// Description is optional but recommended for secrets
@@ -175,30 +189,4 @@ func validate(v *Variable) error {
 	}
 
 	return nil
-}
-
-// isValidEnvVarName checks if a name follows environment variable naming conventions.
-func isValidEnvVarName(name string) bool {
-	if len(name) == 0 {
-		return false
-	}
-
-	for i, c := range name {
-		if c >= 'A' && c <= 'Z' {
-			continue
-		}
-		if c >= '0' && c <= '9' {
-			// Numbers cannot be the first character
-			if i == 0 {
-				return false
-			}
-			continue
-		}
-		if c == '_' {
-			continue
-		}
-		return false
-	}
-
-	return true
 }

@@ -1,10 +1,8 @@
 package mcpserver
 
 import (
-	"fmt"
-	"net/url"
-
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
+	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 )
 
 // HTTPArgs is an alias for the generated HttpServer type from codegen.
@@ -137,26 +135,20 @@ func (h *HTTPServer) Type() ServerType {
 
 // Validate checks if the HTTP server configuration is valid.
 func (h *HTTPServer) Validate() error {
-	if h.name == "" {
-		return fmt.Errorf("http server: name is required")
+	if err := validation.RequiredWithMessage("name", h.name, "http server: name is required"); err != nil {
+		return err
 	}
-	if h.url == "" {
-		return fmt.Errorf("http server %q: url is required", h.name)
-	}
-
-	// Validate URL format
-	parsedURL, err := url.Parse(h.url)
-	if err != nil {
-		return fmt.Errorf("http server %q: invalid url %q: %w", h.name, h.url, err)
+	if err := validation.RequiredWithMessage("url", h.url, "http server: url is required"); err != nil {
+		return err
 	}
 
-	// Ensure URL has a scheme (http or https)
-	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		return fmt.Errorf("http server %q: url must have http or https scheme, got %q", h.name, h.url)
+	// Validate URL format (http or https)
+	if err := validation.ValidHTTPURL("url", h.url); err != nil {
+		return err
 	}
 
-	if h.timeoutSeconds < 0 {
-		return fmt.Errorf("http server %q: timeout_seconds cannot be negative", h.name)
+	if err := validation.NonNegativeInt32("timeout_seconds", h.timeoutSeconds); err != nil {
+		return err
 	}
 
 	return nil
