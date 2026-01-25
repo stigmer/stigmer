@@ -6,6 +6,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
+	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 )
 
 // InlineArgs contains configuration for an inline sub-agent (Pulumi Args pattern).
@@ -178,25 +179,43 @@ func (s SubAgent) Validate() error {
 }
 
 func (s SubAgent) validateInline() error {
-	if s.name == "" {
-		return fmt.Errorf("inline sub-agent: name is required")
+	if err := validation.RequiredWithMessage("name", s.name, "inline sub-agent: name is required"); err != nil {
+		return err
 	}
 
-	if s.instructions == "" {
-		return fmt.Errorf("inline sub-agent %q: instructions are required", s.name)
+	if err := validation.RequiredWithMessage("instructions", s.instructions, "inline sub-agent: instructions are required"); err != nil {
+		return err
 	}
 
-	if len(s.instructions) < 10 {
-		return fmt.Errorf("inline sub-agent %q: instructions must be at least 10 characters (got %d)", s.name, len(s.instructions))
+	if err := validation.MinLength("instructions", s.instructions, 10); err != nil {
+		return validation.NewValidationErrorWithCause(
+			"instructions",
+			s.instructions,
+			"min_length",
+			fmt.Sprintf("inline sub-agent %q: instructions must be at least 10 characters (got %d)", s.name, len(s.instructions)),
+			validation.ErrMinLength,
+		)
 	}
 
 	// Validate skill references
 	for i, ref := range s.skillRefs {
 		if ref == nil {
-			return fmt.Errorf("inline sub-agent %q: skill_refs[%d]: reference is nil", s.name, i)
+			return validation.NewValidationErrorWithCause(
+				validation.FieldPath("skill_refs", i),
+				"nil",
+				"required",
+				fmt.Sprintf("inline sub-agent %q: skill_refs[%d]: reference is nil", s.name, i),
+				validation.ErrRequired,
+			)
 		}
-		if ref.Slug == "" {
-			return fmt.Errorf("inline sub-agent %q: skill_refs[%d]: slug is required", s.name, i)
+		if err := validation.Required(validation.FieldPath("skill_refs", i, "slug"), ref.Slug); err != nil {
+			return validation.NewValidationErrorWithCause(
+				validation.FieldPath("skill_refs", i, "slug"),
+				"",
+				"required",
+				fmt.Sprintf("inline sub-agent %q: skill_refs[%d]: slug is required", s.name, i),
+				validation.ErrRequired,
+			)
 		}
 	}
 
@@ -204,12 +223,12 @@ func (s SubAgent) validateInline() error {
 }
 
 func (s SubAgent) validateReference() error {
-	if s.name == "" {
-		return fmt.Errorf("referenced sub-agent: name is required")
+	if err := validation.RequiredWithMessage("name", s.name, "referenced sub-agent: name is required"); err != nil {
+		return err
 	}
 
-	if s.agentInstanceRef == "" {
-		return fmt.Errorf("referenced sub-agent %q: agent_instance_ref is required", s.name)
+	if err := validation.RequiredWithMessage("agent_instance_ref", s.agentInstanceRef, "referenced sub-agent: agent_instance_ref is required"); err != nil {
+		return err
 	}
 
 	return nil

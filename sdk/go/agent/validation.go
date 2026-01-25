@@ -1,10 +1,10 @@
 package agent
 
 import (
-	"fmt"
-	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 )
 
 // Validation constants matching Python SDK rules.
@@ -67,22 +67,23 @@ func validate(a *Agent) error {
 //   - Must start and end with alphanumeric
 //   - Max 63 characters
 func validateName(name string) error {
-	if name == "" {
-		return NewValidationErrorWithCause("name", name, "required", "name is required", ErrInvalidName)
+	if err := validation.Required("name", name); err != nil {
+		return validation.NewValidationErrorWithCause("name", name, "required", "name is required", ErrInvalidName)
 	}
 
-	if len(name) > nameMaxLength {
-		return NewValidationErrorWithCause(
+	if err := validation.MaxLength("name", name, nameMaxLength); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"name",
 			name,
 			"max_length",
-			fmt.Sprintf("name must be at most %d characters (got %d)", nameMaxLength, len(name)),
+			err.(*validation.ValidationError).Message,
 			ErrInvalidName,
 		)
 	}
 
-	if !nameRegex.MatchString(name) {
-		return NewValidationErrorWithCause(
+	if err := validation.MatchesPattern("name", name, nameRegex,
+		"lowercase alphanumeric with hyphens, starting and ending with alphanumeric"); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"name",
 			name,
 			"format",
@@ -101,8 +102,8 @@ func validateName(name string) error {
 //   - Min 10 characters
 //   - Max 10,000 characters
 func validateInstructions(instructions string) error {
-	if instructions == "" {
-		return NewValidationErrorWithCause("instructions", instructions, "required", "instructions are required", ErrInvalidInstructions)
+	if err := validation.Required("instructions", instructions); err != nil {
+		return validation.NewValidationErrorWithCause("instructions", instructions, "required", "instructions are required", ErrInvalidInstructions)
 	}
 
 	// Trim whitespace for length check
@@ -110,21 +111,21 @@ func validateInstructions(instructions string) error {
 	length := len(trimmed)
 
 	if length < instructionsMinLength {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"instructions",
 			instructions,
 			"min_length",
-			fmt.Sprintf("instructions must be at least %d characters (got %d)", instructionsMinLength, length),
+			validation.MinLengthTrimmed("instructions", instructions, instructionsMinLength).(*validation.ValidationError).Message,
 			ErrInvalidInstructions,
 		)
 	}
 
 	if length > instructionsMaxLength {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"instructions",
 			instructions,
 			"max_length",
-			fmt.Sprintf("instructions must be at most %d characters (got %d)", instructionsMaxLength, length),
+			validation.MaxLengthTrimmed("instructions", instructions, instructionsMaxLength).(*validation.ValidationError).Message,
 			ErrInvalidInstructions,
 		)
 	}
@@ -138,12 +139,12 @@ func validateInstructions(instructions string) error {
 //   - Optional
 //   - Max 500 characters
 func validateDescription(description string) error {
-	if len(description) > descriptionMaxLength {
-		return NewValidationErrorWithCause(
+	if err := validation.MaxLength("description", description, descriptionMaxLength); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"description",
 			description,
 			"max_length",
-			fmt.Sprintf("description must be at most %d characters (got %d)", descriptionMaxLength, len(description)),
+			err.(*validation.ValidationError).Message,
 			ErrInvalidDescription,
 		)
 	}
@@ -162,35 +163,13 @@ func validateIconURL(iconURL string) error {
 		return nil
 	}
 
-	parsedURL, err := url.Parse(iconURL)
-	if err != nil {
-		return NewValidationErrorWithCause(
+	if err := validation.ValidHTTPURL("icon_url", iconURL); err != nil {
+		verr := err.(*validation.ValidationError)
+		return validation.NewValidationErrorWithCause(
 			"icon_url",
 			iconURL,
-			"url_format",
-			"icon_url must be a valid URL",
-			ErrInvalidIconURL,
-		)
-	}
-
-	// Must have a scheme (http or https)
-	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		return NewValidationErrorWithCause(
-			"icon_url",
-			iconURL,
-			"url_scheme",
-			"icon_url must use http or https scheme",
-			ErrInvalidIconURL,
-		)
-	}
-
-	// Must have a host
-	if parsedURL.Host == "" {
-		return NewValidationErrorWithCause(
-			"icon_url",
-			iconURL,
-			"url_host",
-			"icon_url must have a valid host",
+			verr.Rule,
+			verr.Message,
 			ErrInvalidIconURL,
 		)
 	}

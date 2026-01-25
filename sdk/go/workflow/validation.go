@@ -3,6 +3,8 @@ package workflow
 import (
 	"fmt"
 	"regexp"
+
+	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 )
 
 // Validation constants.
@@ -39,8 +41,8 @@ func validate(w *Workflow) error {
 		}
 
 		if taskNames[task.Name] {
-			return NewValidationErrorWithCause(
-				fmt.Sprintf("tasks[%d].name", i),
+			return validation.NewValidationErrorWithCause(
+				validation.FieldPath("tasks", i, "name"),
 				task.Name,
 				"unique",
 				fmt.Sprintf("duplicate task name: %q", task.Name),
@@ -65,8 +67,8 @@ func validate(w *Workflow) error {
 
 // validateTaskName validates a task name.
 func validateTaskName(name string) error {
-	if name == "" {
-		return NewValidationErrorWithCause(
+	if err := validation.Required("name", name); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"name",
 			name,
 			"required",
@@ -75,8 +77,8 @@ func validateTaskName(name string) error {
 		)
 	}
 
-	if len(name) < taskNameMinLength || len(name) > taskNameMaxLength {
-		return NewValidationErrorWithCause(
+	if err := validation.LengthRange("name", name, taskNameMinLength, taskNameMaxLength); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"name",
 			name,
 			"length",
@@ -85,8 +87,8 @@ func validateTaskName(name string) error {
 		)
 	}
 
-	if !taskNameRegex.MatchString(name) {
-		return NewValidationErrorWithCause(
+	if err := validation.MatchesPattern("name", name, taskNameRegex, "alphanumeric with hyphens and underscores"); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"name",
 			name,
 			"format",
@@ -116,7 +118,7 @@ func validateTaskKind(kind TaskKind) error {
 		TaskKindAgentCall:
 		return nil
 	default:
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"kind",
 			string(kind),
 			"enum",
@@ -157,7 +159,7 @@ func validateTaskConfig(task *Task) error {
 	case TaskKindAgentCall:
 		return validateAgentCallTaskConfig(task)
 	default:
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"unknown_kind",
@@ -172,7 +174,7 @@ func validateTaskConfig(task *Task) error {
 func validateSetTaskConfig(task *Task) error {
 	cfg, ok := task.Config.(*SetTaskConfig)
 	if !ok {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"type",
@@ -180,8 +182,8 @@ func validateSetTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if len(cfg.Variables) == 0 {
-		return NewValidationErrorWithCause(
+	if err := validation.NonEmptySliceWithMessage("config.variables", len(cfg.Variables), "SET task must have at least one variable"); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.variables",
 			"",
 			"required",
@@ -195,7 +197,7 @@ func validateSetTaskConfig(task *Task) error {
 func validateHttpCallTaskConfig(task *Task) error {
 	cfg, ok := task.Config.(*HttpCallTaskConfig)
 	if !ok {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"type",
@@ -203,8 +205,8 @@ func validateHttpCallTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.Method == "" {
-		return NewValidationErrorWithCause(
+	if err := validation.Required("config.method", cfg.Method); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.method",
 			"",
 			"required",
@@ -213,9 +215,9 @@ func validateHttpCallTaskConfig(task *Task) error {
 		)
 	}
 	// Validate method is one of: GET, POST, PUT, DELETE, PATCH
-	validMethods := map[string]bool{"GET": true, "POST": true, "PUT": true, "DELETE": true, "PATCH": true}
-	if !validMethods[cfg.Method] {
-		return NewValidationErrorWithCause(
+	if err := validation.OneOfWithMessage("config.method", cfg.Method, []string{"GET", "POST", "PUT", "DELETE", "PATCH"},
+		"HTTP method must be one of: GET, POST, PUT, DELETE, PATCH"); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.method",
 			cfg.Method,
 			"enum",
@@ -224,7 +226,7 @@ func validateHttpCallTaskConfig(task *Task) error {
 		)
 	}
 	if cfg.Endpoint == nil || cfg.Endpoint.Uri == "" {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config.endpoint.uri",
 			"",
 			"required",
@@ -232,8 +234,8 @@ func validateHttpCallTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.TimeoutSeconds < 0 || cfg.TimeoutSeconds > 300 {
-		return NewValidationErrorWithCause(
+	if err := validation.RangeInt32("config.timeout_seconds", cfg.TimeoutSeconds, 0, 300); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.timeout_seconds",
 			fmt.Sprintf("%d", cfg.TimeoutSeconds),
 			"range",
@@ -247,7 +249,7 @@ func validateHttpCallTaskConfig(task *Task) error {
 func validateGrpcCallTaskConfig(task *Task) error {
 	cfg, ok := task.Config.(*GrpcCallTaskConfig)
 	if !ok {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"type",
@@ -255,8 +257,8 @@ func validateGrpcCallTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.Service == "" {
-		return NewValidationErrorWithCause(
+	if err := validation.Required("config.service", cfg.Service); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.service",
 			"",
 			"required",
@@ -264,8 +266,8 @@ func validateGrpcCallTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.Method == "" {
-		return NewValidationErrorWithCause(
+	if err := validation.Required("config.method", cfg.Method); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.method",
 			"",
 			"required",
@@ -279,7 +281,7 @@ func validateGrpcCallTaskConfig(task *Task) error {
 func validateSwitchTaskConfig(task *Task) error {
 	cfg, ok := task.Config.(*SwitchTaskConfig)
 	if !ok {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"type",
@@ -287,8 +289,8 @@ func validateSwitchTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if len(cfg.Cases) == 0 {
-		return NewValidationErrorWithCause(
+	if err := validation.NonEmptySlice("config.cases", len(cfg.Cases)); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.cases",
 			"",
 			"required",
@@ -302,7 +304,7 @@ func validateSwitchTaskConfig(task *Task) error {
 func validateForTaskConfig(task *Task) error {
 	cfg, ok := task.Config.(*ForTaskConfig)
 	if !ok {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"type",
@@ -310,8 +312,8 @@ func validateForTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.In == "" {
-		return NewValidationErrorWithCause(
+	if err := validation.RequiredInterfaceWithMessage("config.in", cfg.In, "FOR task must have an 'in' expression"); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.in",
 			"",
 			"required",
@@ -319,8 +321,8 @@ func validateForTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if len(cfg.Do) == 0 {
-		return NewValidationErrorWithCause(
+	if err := validation.NonEmptySlice("config.do", len(cfg.Do)); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.do",
 			"",
 			"required",
@@ -334,7 +336,7 @@ func validateForTaskConfig(task *Task) error {
 func validateForkTaskConfig(task *Task) error {
 	cfg, ok := task.Config.(*ForkTaskConfig)
 	if !ok {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"type",
@@ -342,8 +344,8 @@ func validateForkTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if len(cfg.Branches) == 0 {
-		return NewValidationErrorWithCause(
+	if err := validation.NonEmptySlice("config.branches", len(cfg.Branches)); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.branches",
 			"",
 			"required",
@@ -357,7 +359,7 @@ func validateForkTaskConfig(task *Task) error {
 func validateTryTaskConfig(task *Task) error {
 	cfg, ok := task.Config.(*TryTaskConfig)
 	if !ok {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"type",
@@ -365,8 +367,8 @@ func validateTryTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if len(cfg.Try) == 0 {
-		return NewValidationErrorWithCause(
+	if err := validation.NonEmptySlice("config.try", len(cfg.Try)); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.try",
 			"",
 			"required",
@@ -380,7 +382,7 @@ func validateTryTaskConfig(task *Task) error {
 func validateListenTaskConfig(task *Task) error {
 	cfg, ok := task.Config.(*ListenTaskConfig)
 	if !ok {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"type",
@@ -389,7 +391,7 @@ func validateListenTaskConfig(task *Task) error {
 		)
 	}
 	if cfg.To == nil {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config.to",
 			"",
 			"required",
@@ -403,7 +405,7 @@ func validateListenTaskConfig(task *Task) error {
 func validateWaitTaskConfig(task *Task) error {
 	cfg, ok := task.Config.(*WaitTaskConfig)
 	if !ok {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"type",
@@ -411,8 +413,8 @@ func validateWaitTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.Seconds < 1 {
-		return NewValidationErrorWithCause(
+	if err := validation.MinInt32("config.seconds", cfg.Seconds, 1); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.seconds",
 			"",
 			"required",
@@ -426,7 +428,7 @@ func validateWaitTaskConfig(task *Task) error {
 func validateCallActivityTaskConfig(task *Task) error {
 	cfg, ok := task.Config.(*CallActivityTaskConfig)
 	if !ok {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"type",
@@ -434,8 +436,8 @@ func validateCallActivityTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.Activity == "" {
-		return NewValidationErrorWithCause(
+	if err := validation.Required("config.activity", cfg.Activity); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.activity",
 			"",
 			"required",
@@ -449,7 +451,7 @@ func validateCallActivityTaskConfig(task *Task) error {
 func validateRaiseTaskConfig(task *Task) error {
 	cfg, ok := task.Config.(*RaiseTaskConfig)
 	if !ok {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"type",
@@ -457,8 +459,8 @@ func validateRaiseTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.Error == "" {
-		return NewValidationErrorWithCause(
+	if err := validation.RequiredInterfaceWithMessage("config.error", cfg.Error, "RAISE task must have an error"); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.error",
 			"",
 			"required",
@@ -472,7 +474,7 @@ func validateRaiseTaskConfig(task *Task) error {
 func validateRunTaskConfig(task *Task) error {
 	cfg, ok := task.Config.(*RunTaskConfig)
 	if !ok {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"type",
@@ -480,8 +482,8 @@ func validateRunTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.Workflow == "" {
-		return NewValidationErrorWithCause(
+	if err := validation.Required("config.workflow", cfg.Workflow); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.workflow",
 			"",
 			"required",
@@ -495,7 +497,7 @@ func validateRunTaskConfig(task *Task) error {
 func validateAgentCallTaskConfig(task *Task) error {
 	cfg, ok := task.Config.(*AgentCallTaskConfig)
 	if !ok {
-		return NewValidationErrorWithCause(
+		return validation.NewValidationErrorWithCause(
 			"config",
 			"",
 			"type",
@@ -503,8 +505,8 @@ func validateAgentCallTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.Agent == "" {
-		return NewValidationErrorWithCause(
+	if err := validation.Required("config.agent", cfg.Agent); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.agent",
 			"",
 			"required",
@@ -512,8 +514,8 @@ func validateAgentCallTaskConfig(task *Task) error {
 			ErrInvalidTaskConfig,
 		)
 	}
-	if cfg.Message == "" {
-		return NewValidationErrorWithCause(
+	if err := validation.RequiredInterfaceWithMessage("config.message", cfg.Message, "AGENT_CALL task must have a message"); err != nil {
+		return validation.NewValidationErrorWithCause(
 			"config.message",
 			"",
 			"required",

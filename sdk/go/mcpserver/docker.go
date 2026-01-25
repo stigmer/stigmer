@@ -1,9 +1,8 @@
 package mcpserver
 
 import (
-	"fmt"
-
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
+	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 )
 
 // DockerArgs is an alias for the generated DockerServer type from codegen.
@@ -156,39 +155,61 @@ func (d *DockerServer) Type() ServerType {
 
 // Validate checks if the Docker server configuration is valid.
 func (d *DockerServer) Validate() error {
-	if d.name == "" {
-		return fmt.Errorf("docker server: name is required")
+	if err := validation.RequiredWithMessage("name", d.name, "docker server: name is required"); err != nil {
+		return err
 	}
-	if d.image == "" {
-		return fmt.Errorf("docker server %q: image is required", d.name)
+	if err := validation.RequiredWithMessage("image", d.image, "docker server: image is required"); err != nil {
+		return err
 	}
 
 	// Validate volume mounts
 	for i, vol := range d.volumes {
 		if vol == nil {
-			return fmt.Errorf("docker server %q: volume[%d]: volume is nil", d.name, i)
+			return validation.NewValidationErrorWithCause(
+				validation.FieldPath("volumes", i),
+				"nil",
+				"required",
+				"volume is nil",
+				validation.ErrRequired,
+			)
 		}
-		if vol.HostPath == "" {
-			return fmt.Errorf("docker server %q: volume[%d]: host_path is required", d.name, i)
+		if err := validation.RequiredWithMessage(
+			validation.FieldPath("volumes", i, "host_path"),
+			vol.HostPath,
+			"host_path is required",
+		); err != nil {
+			return err
 		}
-		if vol.ContainerPath == "" {
-			return fmt.Errorf("docker server %q: volume[%d]: container_path is required", d.name, i)
+		if err := validation.RequiredWithMessage(
+			validation.FieldPath("volumes", i, "container_path"),
+			vol.ContainerPath,
+			"container_path is required",
+		); err != nil {
+			return err
 		}
 	}
 
 	// Validate port mappings
 	for i, port := range d.ports {
 		if port == nil {
-			return fmt.Errorf("docker server %q: port[%d]: port is nil", d.name, i)
+			return validation.NewValidationErrorWithCause(
+				validation.FieldPath("ports", i),
+				"nil",
+				"required",
+				"port is nil",
+				validation.ErrRequired,
+			)
 		}
-		if port.HostPort <= 0 {
-			return fmt.Errorf("docker server %q: port[%d]: host_port must be > 0", d.name, i)
+		if err := validation.PositiveInt32(validation.FieldPath("ports", i, "host_port"), port.HostPort); err != nil {
+			return err
 		}
-		if port.ContainerPort <= 0 {
-			return fmt.Errorf("docker server %q: port[%d]: container_port must be > 0", d.name, i)
+		if err := validation.PositiveInt32(validation.FieldPath("ports", i, "container_port"), port.ContainerPort); err != nil {
+			return err
 		}
-		if port.Protocol != "" && port.Protocol != "tcp" && port.Protocol != "udp" {
-			return fmt.Errorf("docker server %q: port[%d]: protocol must be tcp or udp", d.name, i)
+		if port.Protocol != "" {
+			if err := validation.OneOf(validation.FieldPath("ports", i, "protocol"), port.Protocol, []string{"tcp", "udp"}); err != nil {
+				return err
+			}
 		}
 	}
 
