@@ -51,6 +51,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Request Pipeline Context Design](architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
 - [SDK Code Generation](architecture/sdk-code-generation.md) - Schema-driven code generation for workflow tasks (adds new task in 5 minutes vs 30-60)
 - [SDK-CLI Contract](architecture/sdk-cli-contract.md) - Direct proto pattern: SDKs write platform protos with SDK metadata in annotations (eliminates manifest wrapper layer)
+- [Skill Artifact Storage](architecture/skill-artifact-storage.md) - **NEW**: Secure content-addressable storage for skill artifacts with google/safearchive, ZIP bomb protection, and audit trail
 - [Skill Versioning](architecture/skill-versioning.md) - Versioned artifact-centric skill system with content-addressable storage and tag-based versioning
 - [Spec vs Status Philosophy](architecture/spec-status-philosophy.md) - Kubernetes-inspired philosophy for field placement: inputs in spec, outputs in status
 - [Temporal Integration](architecture/temporal-integration.md) - Polyglot workflow orchestration with Temporal (Go workflows, Python activities)
