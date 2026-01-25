@@ -279,6 +279,7 @@ func (s *Supervisor) startAgentRunner() error {
 		"-e", fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", s.config.LLMProvider),
 		"-e", fmt.Sprintf("STIGMER_LLM_MODEL=%s", s.config.LLMModel),
 		"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
+		"-e", fmt.Sprintf("OLLAMA_BASE_URL=%s", llmBaseURL), // LangChain standard variable
 	)
 
 	// Add LLM secrets
@@ -457,7 +458,7 @@ func (s *Supervisor) isProcessAlive(pid int) bool {
 
 	// Note: os.FindProcess() always succeeds on Unix, even for zombies!
 	// We need to actually check the process state.
-	
+
 	// First, check if we can signal it (quick check)
 	process, err := os.FindProcess(pid)
 	if err != nil {
