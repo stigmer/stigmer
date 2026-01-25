@@ -274,11 +274,11 @@ func (s SubAgent) validateReference() error {
 	if s.name == "" {
 		return fmt.Errorf("referenced sub-agent: name is required")
 	}
-	
+
 	if s.agentInstanceRef == "" {
 		return fmt.Errorf("referenced sub-agent %q: agent_instance_ref is required", s.name)
 	}
-	
+
 	return nil
 }
 
