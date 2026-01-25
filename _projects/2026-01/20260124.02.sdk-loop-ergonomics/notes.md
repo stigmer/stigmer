@@ -385,9 +385,7 @@ expressionFieldPatterns = ["uri", "url", "in", "input", "message", "error", "eve
 - Comprehensive LoopBody function documentation
 - LoopVar methods reference
 - Custom variable name examples
-- Integrated into Helper Functions section
-
-**3. Enhanced "Smart Expression Conversion" Section** (lines 337-415):
+- Integrated into Helper Functions section**3. Enhanced "Smart Expression Conversion" Section** (lines 337-415):
 - Combined smart conversion with LoopBody examples
 - Clear explanation of where .Expression() is still needed
 - LoopVar exception documented (already returns strings)
@@ -643,9 +641,7 @@ sdk/go/docs/
    - All have compilation errors from schema changes (Task 5)
    - Use old field names: `URI`, `Event`, `[]map[string]interface{}`
    - Need updating to new schema: `Endpoint`, `To`, `[]*types.WorkflowTask`
-   - Marked for separate cleanup task (out of scope for this project)
-
-**Gotchas Discovered**:
+   - Marked for separate cleanup task (out of scope for this project)**Gotchas Discovered**:
 
 1. **TaskConfig Map Structure**: 
    - LoopBody converts tasks to `types.WorkflowTask` format

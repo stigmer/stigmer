@@ -1,327 +1,74 @@
 # Next Task: CLI Log Management Enhancements
 
-**Project**: CLI Log Management Enhancements  
-**Location**: `_projects/2026-01/20260120.03.cli-log-management-enhancements/`  
-**Status**: ✅ COMPLETE - Tasks 1, 2, and 4 Complete
+**Project Status**: ✅ COMPLETE  
+**Latest Update**: 2026-01-25  
+**Latest Checkpoint**: `checkpoints/2026-01-25-fix-auto-follow-restarts.md`
 
-## Quick Context
+## Recent Completion
 
-Enhancing `stigmer server logs` command with three key improvements:
-1. **Log rotation** on server restart (highest priority) ✅ **COMPLETE**
-2. **Unified log viewing** with `--all` flag ✅ **COMPLETE**
-3. **Better operational experience** matching Kubernetes/Docker patterns
+✅ **Fixed Auto-Follow Server Restarts** (2026-01-25)
 
-**Goal**: Make log management feel professional and prevent log bloat.
+The `stigmer server logs --all` command now automatically detects and follows logs from restarted server instances:
+- File-based logs (stigmer-server, workflow-runner) track inode and reopen on replacement
+- Docker-based logs (agent-runner) automatically reconnect to new containers
+- No manual intervention needed (Ctrl+C + re-run no longer required)
+- Matches Kubernetes `kubectl logs -f` behavior
 
----
+**Implementation**: `client-apps/cli/internal/cli/logs/streamer.go`
 
-## ✅ Task 4 Complete: Documentation
+## Project Completion Summary
 
-**Status**: Documentation complete with enhancements  
-**What Was Done**:
-- Enhanced `docs/cli/server-logs.md` with comprehensive documentation
-- Added "Key Features" callout at top highlighting new features
-- Added 3 Mermaid diagrams (command flow, rotation lifecycle, unified viewing)
-- Added "Recent Enhancements" section explaining why features matter
-- Followed Stigmer OSS Documentation Standards dogmatically
+All core features are now complete:
 
-**Documentation Improvements**:
-1. **Command flow diagram** - Visualizes `stigmer server logs` execution path
-2. **Log rotation state diagram** - Shows lifecycle from active → rotated → cleanup
-3. **Unified viewing flowchart** - Illustrates how logs merge from 3 components
-4. **Context and rationale** - Explains "three-terminal problem" and log bloat prevention
+1. ✅ **Log Rotation** - Automatic archiving on restart with 7-day retention
+2. ✅ **Unified Log Viewing** - `--all` flag shows interleaved logs from all components
+3. ✅ **Documentation** - Comprehensive `docs/cli/server-logs.md`
+4. ✅ **Auto-Follow Restarts** - Logs automatically follow server restarts
 
-**Quality Standards Applied**:
-- ✅ Grounded in actual implementation (no speculation)
-- ✅ Developer-friendly writing (technical, not marketing)
-- ✅ Mermaid diagrams for clarity (per standards requirement)
-- ✅ Context before details ("why" before "how")
-- ✅ Concrete examples from real usage
+## Optional Future Enhancements
 
-**Result**: `docs/cli/server-logs.md` now comprehensively documents both unified viewing and log rotation features, making it easy for users to understand and use these enhancements.
+If users request these features, they can be added:
 
----
+1. **Visual Restart Indication**
+   - Show "ℹ️ Detected server restart, reconnecting..." message
+   - Helps users understand what's happening during restart
+   - Low priority (silent reconnection works well)
 
-## ✅ Task 1 Complete: Log Rotation
+2. **Configurable Retry Interval**
+   - Add `--retry-interval` flag (default 500ms)
+   - For slower/faster systems
+   - Low priority (500ms works for typical cases)
 
-**Status**: Implementation complete, ready for testing  
-**What Was Done**:
-- Added `rotateLogsIfNeeded()` function to archive logs with timestamps
-- Added `cleanupOldLogs()` function to delete logs older than 7 days
-- Integrated rotation into daemon startup (before services start)
-- Only rotates non-empty files
-- Handles errors gracefully without stopping daemon
+3. **Exponential Backoff**
+   - If restart takes longer than expected
+   - Increase retry interval gradually (500ms → 1s → 2s → 5s)
+   - Low priority (typical restarts are quick)
 
-**Implementation Details**: See `task1-implementation.md`
+4. **Max Retry Limit**
+   - Add `--max-retries` flag
+   - Exit after N failed attempts
+   - Prevent infinite waiting if server crashed
+   - Low priority (users can Ctrl+C if needed)
 
-**Test It Now**:
-```bash
-# Build and test the rotation
-make release-local
-stigmer server start
-stigmer apply  # Generate some logs
-stigmer server restart  # Should rotate logs
-ls -lh ~/.stigmer/data/logs/  # Check for .log.TIMESTAMP files
-```
+5. **Clear Logs Flag** (from original plan)
+   - `stigmer server restart --clear-logs` to delete instead of rotate
+   - Low priority (log rotation handles cleanup automatically)
 
----
+## Current State
 
-## ✅ Task 2 Complete: Unified Log Viewing
-
-**Status**: Implementation complete and tested  
-**What Was Done**:
-- Created new `internal/cli/logs` package with utilities
-- Implemented timestamp parsing with multiple format support
-- Implemented log merging for non-streaming mode
-- Implemented multi-file streaming for follow mode
-- Added component prefixes (`[server]`, `[agent-runner]`, `[workflow-runner]`)
-- Integrated `--all` flag into command
-
-**Implementation Details**: See `task2-implementation.md`
-
-**Test It Now**:
-```bash
-# View last 20 lines from all components
-stigmer server logs --all --follow=false --tail 20
-
-# Stream all logs in real-time
-stigmer server logs --all -f
-
-# View error logs from all components
-stigmer server logs --all --stderr --follow=false
-```
+The log management system is production-ready:
+- ✅ Prevents log bloat with automatic rotation
+- ✅ Keeps audit trail with archived logs
+- ✅ Unified viewing for all components
+- ✅ Auto-follows server restarts
+- ✅ Professional operational experience
+- ✅ Matches industry patterns (Kubernetes/Docker)
 
 ---
 
-## 🎉 Project Status
+**To Resume Work**: If any optional enhancements are needed, drag this file into chat.
 
-**Completed Tasks**:
-- ✅ Task 1: Log Rotation (automatic archiving on restart, 7-day cleanup)
-- ✅ Task 2: Unified Log Viewing (`--all` flag with timestamp interleaving)
-- ✅ Task 4: Documentation (comprehensive docs with Mermaid diagrams)
-
-**Core Objectives Achieved**:
-1. **Professional log management** - Automatic rotation prevents log bloat
-2. **Better debugging experience** - Unified viewing solves "three-terminal problem"
-3. **Industry-standard UX** - Matches Kubernetes/Docker Compose patterns
-
----
-
-## Recommended Next Steps
-
-### Option A: Complete Testing (Recommended)
-Verify everything works together in production scenarios:
-
-```bash
-# Test log rotation
-stigmer server restart
-ls -lh ~/.stigmer/data/logs/  # Check for archived logs
-
-# Test unified viewing
-stigmer server logs --all --tail 30 --follow=false
-
-# Test real-time streaming
-stigmer server logs --all -f
-
-# Test error logs across all components
-stigmer server logs --all --stderr -f
-```
-
-### Option B: Optional Enhancement - Task 3 (Clear Logs Flag)
-Add `--clear-logs` flag for users who want to delete logs instead of archiving (~30 min).
-
-**Why skip this?** Log rotation already handles cleanup automatically, making manual clearing rarely needed.
-
-### Option C: Close the Project
-All primary objectives are complete:
-1. Log rotation prevents bloat ✅
-2. Unified viewing improves UX ✅
-3. Documentation is comprehensive ✅
-
-Consider marking this project as complete and moving to next priority.
-
-## What Log Rotation Does
-
-**Before restart**:
-```
-~/.stigmer/data/logs/
-  daemon.log           # Current logs (maybe 10 MB)
-  agent-runner.log
-  workflow-runner.log
-```
-
-**After restart**:
-```
-~/.stigmer/data/logs/
-  daemon.log           # Fresh empty file
-  agent-runner.log
-  workflow-runner.log
-  daemon.log.2026-01-20-231200       # Archived with timestamp
-  agent-runner.log.2026-01-20-231200
-  workflow-runner.log.2026-01-20-231200
-```
-
-**After 7 days**: Old archives are automatically deleted.
-
-## Implementation Overview
-
-### Step 1: Add Rotation Function (30 min)
-
-Add to `daemon.go`:
-```go
-func rotateLogsIfNeeded(dataDir string) error {
-    logDir := filepath.Join(dataDir, "logs")
-    timestamp := time.Now().Format("2006-01-02-150405")
-    
-    logFiles := []string{
-        "daemon.log", "daemon.err",
-        "agent-runner.log", "agent-runner.err",
-        "workflow-runner.log", "workflow-runner.err",
-    }
-    
-    for _, logFile := range logFiles {
-        oldPath := filepath.Join(logDir, logFile)
-        if _, err := os.Stat(oldPath); err == nil {
-            newPath := fmt.Sprintf("%s.%s", oldPath, timestamp)
-            if err := os.Rename(oldPath, newPath); err != nil {
-                return err
-            }
-        }
-    }
-    
-    return nil
-}
-```
-
-### Step 2: Call at Daemon Start (5 min)
-
-In `Start()` function, before starting services:
-```go
-func Start(cmd *cobra.Command, args []string) {
-    // ... existing code ...
-    
-    // Rotate logs before starting (NEW)
-    if err := rotateLogsIfNeeded(dataDir); err != nil {
-        log.Warn().Err(err).Msg("Failed to rotate logs")
-        // Continue anyway - not fatal
-    }
-    
-    // Start services...
-}
-```
-
-### Step 3: Add Cleanup Function (30 min)
-
-```go
-func cleanupOldLogs(logDir string, keepDays int) error {
-    cutoff := time.Now().AddDate(0, 0, -keepDays)
-    
-    pattern := filepath.Join(logDir, "*.log.*")
-    files, err := filepath.Glob(pattern)
-    if err != nil {
-        return err
-    }
-    
-    for _, file := range files {
-        info, err := os.Stat(file)
-        if err != nil {
-            continue
-        }
-        if info.ModTime().Before(cutoff) {
-            os.Remove(file)
-        }
-    }
-    
-    return nil
-}
-```
-
-Call in `rotateLogsIfNeeded()`:
-```go
-// After rotating, cleanup old logs
-cleanupOldLogs(logDir, 7) // Keep 7 days
-```
-
-### Step 4: Test (30 min)
-
-```bash
-# 1. Start server
-stigmer server start
-
-# 2. Generate some logs
-stigmer apply
-
-# 3. Check log files
-ls -lh ~/.stigmer/data/logs/
-
-# 4. Restart server
-stigmer server restart
-
-# 5. Verify logs were rotated
-ls -lh ~/.stigmer/data/logs/
-# Should see .log.2026-01-20-HHMMSS files
-
-# 6. Check new logs are fresh
-cat ~/.stigmer/data/logs/daemon.log
-# Should be empty or only have new entries
-```
-
-## After Task 1 Is Complete
-
-Move to Task 2 (Unified Viewing) or Task 4 (Documentation):
-- **Task 2** adds the `--all` flag for viewing multiple components
-- **Task 4** documents the new rotation feature
-
-Both can be done independently, so pick what you prefer!
-
-## Files to Modify
-
-**Task 1 (Log Rotation)**:
-- `client-apps/cli/internal/cli/daemon/daemon.go` (main implementation)
-
-**Task 2 (Unified Viewing)**:
-- `client-apps/cli/cmd/stigmer/root/server_logs.go` (add --all flag)
-- Create: `client-apps/cli/internal/cli/logs/streaming.go` (new package)
-
-**Task 4 (Documentation)**:
-- `docs/cli/server-logs.md` (update with new features)
-
-## Success Criteria for Task 1
-
-- [ ] Logs are rotated on `stigmer server restart`
-- [ ] Archived logs have timestamp in filename
-- [ ] New log files start fresh (empty)
-- [ ] Logs older than 7 days are deleted
-- [ ] Process is fast (< 1 second)
-- [ ] No errors if logs don't exist yet
-
-## Common Issues & Solutions
-
-**Issue**: "Permission denied" when rotating logs  
-**Solution**: Check log directory permissions with `ls -la ~/.stigmer/data/logs/`
-
-**Issue**: Old logs not being deleted  
-**Solution**: Check `ModTime()` of files - may need to use file naming pattern to determine age
-
-**Issue**: Rotation is slow with large logs  
-**Solution**: `os.Rename()` is atomic and fast - shouldn't be an issue
-
-## Related Resources
-
-- Current logs location: `~/.stigmer/data/logs/`
-- Daemon startup code: Lines 65-150 in daemon.go
-- Server restart command: `client-apps/cli/cmd/stigmer/root/server.go`
-
----
-
-**To resume**: Drag this file into chat or reference:  
-`@_projects/2026-01/20260120.03.cli-log-management-enhancements/next-task.md`
-
-**To view all tasks**:
-`@_projects/2026-01/20260120.03.cli-log-management-enhancements/tasks.md`
-
-**To check current logs**:
-```bash
-ls -lh ~/.stigmer/data/logs/
-stigmer server logs -f
-```
+**Related**:
+- Project README: `_projects/2026-01/20260120.03.cli-log-management-enhancements/README.md`
+- Changelog: `_changelog/2026-01/2026-01-25-090701-fix-server-logs-auto-follow-restarts.md`
+- Documentation: `docs/cli/server-logs.md`

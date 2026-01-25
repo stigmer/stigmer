@@ -1,6 +1,19 @@
 # Next Task
 
-## Latest Completion (2026-01-23 08:44)
+## Latest Completion (2026-01-25 11:25)
+
+✅ **E2E Workflow Test Constant Mismatch Fixed!**
+- **FIXED**: 2 failing workflow apply tests (`TestApplyBasicWorkflow`, `TestApplyWorkflowTaskDependencies`)
+- **Root cause**: Test constants referenced outdated task name (`fetchData` vs `fetchPullRequest`)
+- Updated `BasicWorkflowFetchTask` constant to match actual SDK example
+- **Impact**: Workflow apply tests now pass (22/26 tests passing, up from 20/26)
+- Remaining failures are agent execution connection issues (separate problem)
+- See: `checkpoints/2026-01-25-fix-workflow-test-constant-mismatch.md`
+- See: `_changelog/2026-01/2026-01-25-112515-fix-e2e-workflow-test-constant-mismatch.md`
+
+---
+
+## Previous Completion (2026-01-23 08:44)
 
 ✅ **Workflow Runner Agent Call Integration - 4 Critical Bugs Fixed!**
 - **CRITICAL**: Fixed cascade of 4 bugs blocking workflow-to-agent integration

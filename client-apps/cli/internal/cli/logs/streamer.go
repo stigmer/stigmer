@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -90,19 +91,47 @@ func streamNewLogs(components []ComponentConfig, showStderr bool) error {
 }
 
 // tailLogFile tails a single log file and sends new lines to the channel
+// Automatically detects and handles file replacement (e.g., when server restarts)
 func tailLogFile(logFile, component string, linesChan chan<- LogLine) error {
-	file, err := os.Open(logFile)
-	if err != nil {
-		return fmt.Errorf("failed to open log file: %w", err)
+	var file *os.File
+	var reader *bufio.Reader
+	var currentInode uint64
+
+	// Function to open/reopen the file
+	openFile := func() error {
+		if file != nil {
+			file.Close()
+		}
+
+		var err error
+		file, err = os.Open(logFile)
+		if err != nil {
+			return fmt.Errorf("failed to open log file: %w", err)
+		}
+
+		// Get inode to detect file replacement
+		stat, err := file.Stat()
+		if err != nil {
+			file.Close()
+			return fmt.Errorf("failed to stat file: %w", err)
+		}
+		currentInode = getInode(stat)
+
+		// Seek to end of file to only capture new logs
+		if _, err := file.Seek(0, io.SeekEnd); err != nil {
+			file.Close()
+			return fmt.Errorf("failed to seek to end: %w", err)
+		}
+
+		reader = bufio.NewReader(file)
+		return nil
+	}
+
+	// Open initial file
+	if err := openFile(); err != nil {
+		return err
 	}
 	defer file.Close()
-
-	// Seek to end of file to only capture new logs
-	if _, err := file.Seek(0, io.SeekEnd); err != nil {
-		return fmt.Errorf("failed to seek to end: %w", err)
-	}
-
-	reader := bufio.NewReader(file)
 
 	// Poll for new lines
 	for {
@@ -112,15 +141,32 @@ func tailLogFile(logFile, component string, linesChan chan<- LogLine) error {
 				// No more data, wait and try again
 				time.Sleep(100 * time.Millisecond)
 
-				// Check if file was truncated/rotated
-				stat, statErr := file.Stat()
-				if statErr == nil {
-					currentPos, _ := file.Seek(0, io.SeekCurrent)
-					if stat.Size() < currentPos {
-						// File was truncated, seek to beginning
-						file.Seek(0, io.SeekStart)
-						reader = bufio.NewReader(file)
+				// Check if file was truncated/rotated or replaced
+				stat, statErr := os.Stat(logFile)
+				if statErr != nil {
+					// File might have been deleted, wait for it to reappear
+					time.Sleep(500 * time.Millisecond)
+					continue
+				}
+
+				newInode := getInode(stat)
+				if newInode != currentInode {
+					// File was replaced (e.g., server restarted), reopen it
+					if err := openFile(); err != nil {
+						// Failed to reopen, wait and retry
+						time.Sleep(500 * time.Millisecond)
+						continue
 					}
+					// Successfully reopened, continue tailing
+					continue
+				}
+
+				// Check if file was truncated
+				currentPos, _ := file.Seek(0, io.SeekCurrent)
+				if stat.Size() < currentPos {
+					// File was truncated, seek to beginning
+					file.Seek(0, io.SeekStart)
+					reader = bufio.NewReader(file)
 				}
 				continue
 			}
@@ -218,7 +264,30 @@ func streamNewLogsWithPreferences(components []ComponentConfig) error {
 }
 
 // tailDockerLogs tails logs from a Docker container and sends lines to the channel
+// Automatically reconnects when container is replaced (e.g., when server restarts)
 func tailDockerLogs(containerName, component string, linesChan chan<- LogLine) error {
+	// Keep retrying if docker logs command exits (e.g., container replaced)
+	for {
+		err := tailDockerLogsOnce(containerName, component, linesChan)
+		if err != nil {
+			// Check if container still exists
+			checkCmd := exec.Command("docker", "inspect", "--format={{.State.Running}}", containerName)
+			output, checkErr := checkCmd.Output()
+			if checkErr != nil || string(output) == "false\n" {
+				// Container doesn't exist or is stopped, wait for it to restart
+				time.Sleep(500 * time.Millisecond)
+				continue
+			}
+			// Container exists but docker logs failed for another reason
+			return err
+		}
+		// docker logs exited cleanly (shouldn't happen with -f), retry
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+// tailDockerLogsOnce runs docker logs -f once and streams until it exits
+func tailDockerLogsOnce(containerName, component string, linesChan chan<- LogLine) error {
 	ctx := context.Background()
 	
 	// Use docker logs -f to follow container logs
@@ -269,4 +338,13 @@ func tailDockerLogs(containerName, component string, linesChan chan<- LogLine) e
 	
 	// Wait for command to exit
 	return cmd.Wait()
+}
+
+// getInode extracts the inode number from os.FileInfo
+// Used to detect when a file has been replaced
+func getInode(info os.FileInfo) uint64 {
+	if stat, ok := info.Sys().(*syscall.Stat_t); ok {
+		return stat.Ino
+	}
+	return 0
 }

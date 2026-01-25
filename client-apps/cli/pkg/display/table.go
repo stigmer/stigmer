@@ -4,10 +4,9 @@ package display
 
 import (
 	"fmt"
-	"os"
+	"strings"
 
 	"github.com/fatih/color"
-	"github.com/olekukonko/tablewriter"
 )
 
 // ResourceType represents the type of resource being applied
@@ -72,6 +71,7 @@ func (t *ApplyResultTable) AddResource(resourceType ResourceType, name string, s
 // Render renders the apply results table to stdout.
 // Displays a formatted table with columns: TYPE, NAME, STATUS, ID
 // Uses color coding: green for success, red for failures, dim for IDs.
+// Adapts to terminal width and only truncates IDs when necessary.
 // After the table, prints a summary of successful/failed resources.
 func (t *ApplyResultTable) Render() {
 	if len(t.Resources) == 0 {
@@ -82,14 +82,14 @@ func (t *ApplyResultTable) Render() {
 	successColor := color.New(color.FgGreen).SprintFunc()
 	errorColor := color.New(color.FgRed).SprintFunc()
 	dimColor := color.New(color.Faint).SprintFunc()
+	headerColor := color.New(color.FgCyan, color.Bold).SprintFunc()
 
-	// Create table with minimal borders
-	table := tablewriter.NewTable(os.Stdout)
+	// Define column headers
+	headers := []string{"TYPE", "NAME", "STATUS", "ID"}
 	
-	// Set header
-	table.Header("TYPE", "NAME", "STATUS", "ID")
-
-	for _, resource := range t.Resources {
+	// Build rows data
+	rows := make([][]string, len(t.Resources))
+	for i, resource := range t.Resources {
 		// Format status with color and emoji
 		var statusStr string
 		switch resource.Status {
@@ -103,27 +103,124 @@ func (t *ApplyResultTable) Render() {
 			statusStr = string(resource.Status)
 		}
 
-		// Truncate ID if too long
-		idStr := resource.ID
-		if len(idStr) > 25 {
-			idStr = idStr[:22] + "..."
-		}
-		idStr = dimColor(idStr)
-
-		table.Append(
+		rows[i] = []string{
 			string(resource.Type),
 			resource.Name,
 			statusStr,
-			idStr,
-		)
+			dimColor(resource.ID), // Don't truncate yet, let adaptive layout handle it
+		}
 	}
 
+	// Render table with adaptive width
 	fmt.Println()
-	table.Render()
+	renderAdaptiveTable(headers, rows, headerColor)
 	fmt.Println()
 
 	// Print summary
 	t.printSummary()
+}
+
+// renderAdaptiveTable renders a table that adapts to terminal width.
+// It calculates optimal column widths and truncates only when necessary.
+// Inspired by Pulumi's sophisticated table rendering.
+func renderAdaptiveTable(headers []string, rows [][]string, headerColor func(...interface{}) string) {
+	if len(rows) == 0 {
+		return
+	}
+
+	// Get terminal width
+	termWidth := GetTerminalWidth()
+	
+	// Calculate maximum width needed for each column
+	maxWidths := make([]int, len(headers))
+	
+	// Measure headers
+	for i, header := range headers {
+		maxWidths[i] = MeasureColorizedString(header)
+	}
+	
+	// Measure all rows
+	for _, row := range rows {
+		for i, cell := range row {
+			if i < len(maxWidths) {
+				cellWidth := MeasureColorizedString(cell)
+				maxWidths[i] = max(maxWidths[i], cellWidth)
+			}
+		}
+	}
+	
+	// Calculate total width needed (columns + padding)
+	const columnGap = 3 // 3 spaces between columns
+	totalNeeded := 0
+	for _, w := range maxWidths {
+		totalNeeded += w
+	}
+	totalNeeded += (len(maxWidths) - 1) * columnGap // gaps between columns
+	
+	// If table is too wide, intelligently shrink columns
+	if totalNeeded > termWidth {
+		// The ID column (last) is most truncatable
+		// Calculate how much we need to shrink
+		shrinkAmount := totalNeeded - termWidth
+		
+		// Try to shrink ID column first (it's usually the longest)
+		idColIdx := len(maxWidths) - 1
+		if maxWidths[idColIdx] > 30 { // Only shrink if ID is long enough
+			shrinkID := min(shrinkAmount, maxWidths[idColIdx]-30)
+			maxWidths[idColIdx] -= shrinkID
+			shrinkAmount -= shrinkID
+		}
+		
+		// If still too wide, shrink all columns proportionally
+		if shrinkAmount > 0 {
+			for i := range maxWidths {
+				minWidth := 10 // Minimum useful width
+				if maxWidths[i] > minWidth {
+					shrink := min(shrinkAmount/(len(maxWidths)-i), maxWidths[i]-minWidth)
+					maxWidths[i] -= shrink
+					shrinkAmount -= shrink
+				}
+			}
+		}
+	}
+	
+	// Render header
+	headerParts := make([]string, len(headers))
+	for i, header := range headers {
+		headerParts[i] = PadRight(headerColor(header), maxWidths[i])
+	}
+	fmt.Println(strings.Join(headerParts, strings.Repeat(" ", columnGap)))
+	
+	// Render separator line
+	separatorParts := make([]string, len(headers))
+	for i, width := range maxWidths {
+		separatorParts[i] = strings.Repeat("─", width)
+	}
+	fmt.Println(strings.Join(separatorParts, strings.Repeat(" ", columnGap)))
+	
+	// Render rows
+	for _, row := range rows {
+		rowParts := make([]string, len(row))
+		for i, cell := range row {
+			if i < len(maxWidths) {
+				// Trim cell to max width if needed (preserving colors)
+				cellWidth := MeasureColorizedString(cell)
+				if cellWidth > maxWidths[i] {
+					cell = TrimColorizedString(cell, maxWidths[i]-3) + "..."
+				}
+				rowParts[i] = PadRight(cell, maxWidths[i])
+			}
+		}
+		fmt.Println(strings.Join(rowParts, strings.Repeat(" ", columnGap)))
+	}
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // printSummary prints a summary of the apply operation
@@ -164,26 +261,28 @@ func (t *ApplyResultTable) RenderDryRun() {
 	infoColor.Println("Dry run: The following resources would be applied:")
 	fmt.Println()
 
-	// Create table
-	table := tablewriter.NewTable(os.Stdout)
+	headerColor := color.New(color.FgCyan, color.Bold).SprintFunc()
 	
-	// Set header
-	table.Header("TYPE", "NAME", "ACTION")
-
-	for _, resource := range t.Resources {
+	// Define headers for dry run (no ID column)
+	headers := []string{"TYPE", "NAME", "ACTION"}
+	
+	// Build rows
+	rows := make([][]string, len(t.Resources))
+	for i, resource := range t.Resources {
 		action := "Create"
 		if resource.Status == ApplyStatusUpdated {
 			action = "Update"
 		}
 
-		table.Append(
+		rows[i] = []string{
 			string(resource.Type),
 			resource.Name,
 			action,
-		)
+		}
 	}
 
-	table.Render()
+	// Render table
+	renderAdaptiveTable(headers, rows, headerColor)
 	fmt.Println()
 
 	successColor := color.New(color.FgGreen, color.Bold)

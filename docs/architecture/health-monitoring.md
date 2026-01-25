@@ -122,10 +122,39 @@ Component starts → Runs 15s → Crash → Restart successful (counter resets)
 ### Workflow Runner
 
 **Liveness Check:**
-1. Process is alive (PID exists)
+1. Process is alive and not zombie (PID exists with valid state)
 2. Minimum uptime met (10 seconds)
 
-**Why**: Detects crash loops and ensures stable operation
+**Why**: Detects crash loops, zombie processes, and ensures stable operation
+
+**Implementation Note (Unix/macOS):**
+
+The process liveness check has special handling for Unix-based systems to detect zombie (defunct) processes:
+
+```go
+// Check if process can be signaled
+process.Signal(syscall.Signal(0))  // Quick check
+
+// Verify not zombie by checking actual state
+ps -p <pid> -o stat=
+// STAT codes: R=running, S=sleeping, Z=zombie, T=stopped
+```
+
+**Why this is necessary:**
+
+On Unix systems, `os.FindProcess()` always succeeds even for zombie processes. Additionally, sending signal 0 to a zombie succeeds because zombies remain in the process table awaiting reaping by the parent. Without state verification, the health monitor incorrectly reports zombies as "alive", preventing automatic restart.
+
+**Before fix (broken):**
+- Zombie workflow-runner reported as healthy ✓
+- Validation workflows timeout indefinitely
+- Manual server restart required
+
+**After fix (working):**
+- Zombie detected within 10 seconds (health check interval)
+- Automatic restart triggered
+- Service recovers within 10-15 seconds
+
+See: `backend/services/stigmer-server/pkg/supervisor/supervisor.go` - `isProcessAlive()` function
 
 ### Agent Runner (Docker)
 
@@ -342,6 +371,36 @@ Component has exceeded maximum restart limit - manual intervention required
 - Identify crash cause in logs
 - Fix underlying issue (config, dependencies, bugs)
 - Component must run stably for 10+ seconds
+
+### Zombie Processes (Unix/macOS)
+
+**Symptom**: Component shows "Running ✓" but workflows/agents timeout
+
+**Cause**: Component crashed and became zombie (defunct) process
+
+**Detection:**
+```bash
+# Check if process is zombie
+ps -p <pid>
+# If output shows "<defunct>", it's a zombie
+
+# Example:
+  PID TTY           TIME CMD
+12346 ttys000    0:00.00 <defunct>
+```
+
+**Automatic Recovery:**
+- Health monitor detects zombie within 10 seconds
+- Automatic restart triggered
+- New process starts successfully
+- Service recovers within 10-15 seconds
+
+**Why zombies occur:**
+- Process crashes/exits but parent hasn't reaped it
+- Process remains in process table as `<defunct>`
+- Health monitoring (as of Jan 2026) correctly detects and restarts zombies
+
+**User Action:** None required - automatic recovery. If zombie persists, check logs for crash cause.
 
 ## Architecture Notes
 
