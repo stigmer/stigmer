@@ -51,8 +51,8 @@ const artifactBytesKey = "artifactBytes"
 // buildGetArtifactPipeline constructs the pipeline for get-artifact operations
 func (c *SkillController) buildGetArtifactPipeline() *pipeline.Pipeline[*skillv1.GetArtifactRequest] {
 	return pipeline.NewPipeline[*skillv1.GetArtifactRequest]("skill-get-artifact").
-		AddStep(steps.NewValidateProtoStep[*skillv1.GetArtifactRequest]()).           // 1. Validate input
-		AddStep(newLoadArtifactStep(c.artifactStorage)).                               // 2. Load artifact
+		AddStep(steps.NewValidateProtoStep[*skillv1.GetArtifactRequest]()). // 1. Validate input
+		AddStep(newLoadArtifactStep(c.artifactStorage)).                    // 2. Load artifact
 		Build()
 }
 
