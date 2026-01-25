@@ -601,10 +601,11 @@ func (s *Store) GetAuditByTag(ctx context.Context, kind apiresourcekind.ApiResou
 
 	var data []byte
 	// Query uses idx_audit_tag index and returns most recent by archived_at
+	// Use id DESC as tiebreaker when timestamps are equal (sub-second inserts)
 	err := s.db.QueryRowContext(ctx,
 		`SELECT data FROM resource_audit 
 		 WHERE kind = ? AND resource_id = ? AND tag = ?
-		 ORDER BY archived_at DESC
+		 ORDER BY archived_at DESC, id DESC
 		 LIMIT 1`,
 		kind.String(), resourceId, tag).Scan(&data)
 
@@ -635,10 +636,11 @@ func (s *Store) ListAuditHistory(ctx context.Context, kind apiresourcekind.ApiRe
 	}
 
 	// Query uses idx_audit_resource index
+	// Use id DESC as tiebreaker when timestamps are equal (sub-second inserts)
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT data FROM resource_audit 
 		 WHERE kind = ? AND resource_id = ?
-		 ORDER BY archived_at DESC`,
+		 ORDER BY archived_at DESC, id DESC`,
 		kind.String(), resourceId)
 	if err != nil {
 		return nil, fmt.Errorf("query audit history: %w", err)
