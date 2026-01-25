@@ -76,7 +76,7 @@ Agent Runner is a Python Temporal worker that:
 - **Executes Graphton agents** - Creates agents at runtime and processes user messages
 - **Manages sandboxes** - Session-based Daytona sandbox lifecycle for file persistence  
 - **Streams updates** - Real-time execution updates to stigmer-service via gRPC
-- **Handles skills** - Fetches and writes skills to sandboxes for agent access
+- **Handles skills** - Downloads artifacts, extracts to `/bin/skills/{hash}/`, injects SKILL.md into prompts
 - **Merges environments** - Layers multiple environment configurations
 
 ## Architecture
@@ -197,11 +197,15 @@ agent.env_spec → environment[0] → environment[1] → runtime_env
 
 ### Skills Integration
 
-Skills are written to sandboxes using progressive disclosure:
+Skills provide reusable capabilities (instructions + executable tools) to agents:
 
-- System prompt contains skill metadata (name, description, path)
-- Agent reads full content on-demand via `read_file` tool
-- Token optimization through lazy loading
+- **Artifact download & extraction**: Downloads ZIP files from R2 storage, extracts to `/bin/skills/{hash}/`
+- **SKILL.md injection**: Full interface definition injected into system prompt with LOCATION headers
+- **Executable access**: Scripts and tools available at versioned paths
+- **Graceful degradation**: Falls back to SKILL.md-only if artifacts unavailable
+- **Content-addressable storage**: SHA256 hashing enables deduplication and immutable versioning
+
+See [Architecture: Skill Architecture](docs/architecture/skill-architecture.md) for complete details.
 
 ## Documentation
 
@@ -209,6 +213,7 @@ Skills are written to sandboxes using progressive disclosure:
 
 **Key documents**:
 - [Architecture: Agent Execution Workflow](docs/architecture/agent-execution-workflow.md)
+- [Architecture: Skill Architecture](docs/architecture/skill-architecture.md)
 - [Guide: Working with Agent Execution](docs/guides/working-with-agent-execution.md)
 - [Architecture: Data Model](docs/architecture/data-model.md)
 - [Implementation: Type Checking](docs/implementation/type-checking.md)
