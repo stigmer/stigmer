@@ -281,7 +281,23 @@ type ApiResourceReference struct {
 	Org  string                          `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	Kind apiresourcekind.ApiResourceKind `protobuf:"varint,3,opt,name=kind,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"kind,omitempty"`
 	// Resource slug (user-friendly name, not ID)
-	Slug          string `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
+	Slug string `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
+	// Version of the resource (optional, only applicable to versioned resources like Skills).
+	// Supports three formats:
+	// 1. Empty/unset → Resolves to "latest" (most recent version)
+	// 2. Tag name → Resolves to version with this tag (e.g., "stable", "v1.0")
+	// 3. Exact hash → Immutable reference to specific version (e.g., "abc123...")
+	//
+	// Default behavior: Empty means "latest" (current version).
+	// This field is ignored for non-versioned resources.
+	//
+	// Examples:
+	// - version: ""           → Use latest version
+	// - version: "latest"     → Use latest version (explicit)
+	// - version: "stable"     → Use version tagged as "stable"
+	// - version: "v1.0"       → Use version tagged as "v1.0"
+	// - version: "abc123..."  → Use exact version with this hash (immutable)
+	Version       string `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -344,6 +360,13 @@ func (x *ApiResourceReference) GetSlug() string {
 	return ""
 }
 
+func (x *ApiResourceReference) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
 var File_ai_stigmer_commons_apiresource_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
@@ -365,12 +388,13 @@ const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
 	"\x04page\x18\x04 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\x12\x1f\n" +
 	"\vpage_number\x18\x05 \x01(\x05R\n" +
 	"pageNumber\x12\x1b\n" +
-	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\"\xe8\x01\n" +
+	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\"\xb7\x02\n" +
 	"\x14ApiResourceReference\x12U\n" +
 	"\x05scope\x18\x01 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05scope\x12\x10\n" +
 	"\x03org\x18\x02 \x01(\tR\x03org\x12S\n" +
 	"\x04kind\x18\x03 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x12\n" +
-	"\x04slug\x18\x04 \x01(\tR\x04slugB\x92\x02\n" +
+	"\x04slug\x18\x04 \x01(\tR\x04slug\x12M\n" +
+	"\aversion\x18\x05 \x01(\tB3\xbaH0r.2,^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\aversionB\x92\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\aIoProtoP\x01ZGgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (

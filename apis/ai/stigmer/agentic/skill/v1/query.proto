@@ -26,4 +26,18 @@ service SkillQueryController {
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Skill) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
+
+  // Get a skill by tag name.
+  // Resolves the tag to the most recent version with that tag.
+  // Authorization is handled in the handler after resolving to a skill ID.
+  rpc getByTag(GetSkillByTagRequest) returns (Skill) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+
+  // Get a skill by exact version hash.
+  // Returns the specific version identified by the hash (immutable reference).
+  // Authorization is handled in the handler after resolving to a skill ID.
+  rpc getByHash(GetSkillByHashRequest) returns (Skill) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }

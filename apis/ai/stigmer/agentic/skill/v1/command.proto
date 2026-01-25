@@ -11,32 +11,31 @@ import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
 service SkillCommandController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = skill;
 
-  // Create or update a skill.
-  // The authorization and state-operation are determined depending on whether the skill
-  // is going to be created or updated which is determined as part of the request execution.
-  rpc apply(Skill) returns (Skill);
-
-  // Create a new skill.
+  // Push (upload) a skill artifact.
+  // This operation creates a new skill if it doesn't exist, or creates a new version
+  // of an existing skill. The skill artifact must contain SKILL.md.
   //
   // Authorization:
   // - Organization-scoped skills: Caller must have can_create_skill permission in the organization
   // - Platform-scoped skills: Caller must be a platform operator (handled automatically by common auth step)
-  rpc create(Skill) returns (Skill) {
+  //
+  // The backend will:
+  // 1. Normalize the name to a slug
+  // 2. Find or create the skill resource
+  // 3. Extract SKILL.md from the artifact
+  // 4. Calculate SHA256 hash (version identifier)
+  // 5. Store the artifact (deduplicated by hash)
+  // 6. Update skill spec and status
+  // 7. Archive the previous version (if updating)
+  rpc push(PushSkillRequest) returns (PushSkillResponse) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_skill;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.org";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to create skill in this organization";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "org";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to push skill in this organization";
   }
 
-  // Update an existing skill.
-  rpc update(Skill) returns (Skill) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = skill;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update skill";
-  }
-
-  // Delete a skill.
+  // Delete a skill and all its versions.
+  // This removes the skill from the main collection but preserves audit history.
   rpc delete(SkillId) returns (Skill) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = skill;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;

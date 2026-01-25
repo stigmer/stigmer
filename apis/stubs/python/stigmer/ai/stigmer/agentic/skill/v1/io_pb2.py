@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/skill/v1/io.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a\x1b\x62uf/validate/validate.proto\"\'\n\x07SkillId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/skill/v1/io.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a\x1b\x62uf/validate/validate.proto\"\'\n\x07SkillId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x88\x01\n\x10PushSkillRequest\x12!\n\x08skill_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07skillId\x12\"\n\x08\x61rtifact\x18\x02 \x01(\x0c\x42\x06\xbaH\x03\xc8\x01\x01R\x08\x61rtifact\x12-\n\x03tag\x18\x03 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\"z\n\x11PushSkillResponse\x12!\n\x0cversion_hash\x18\x01 \x01(\tR\x0bversionHash\x12\x30\n\x14\x61rtifact_storage_key\x18\x02 \x01(\tR\x12\x61rtifactStorageKey\x12\x10\n\x03tag\x18\x03 \x01(\tR\x03tag\"L\n\x14GetSkillByTagRequest\x12\x1a\n\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12\x18\n\x03tag\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03tag\"m\n\x15GetSkillByHashRequest\x12\x1a\n\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12\x38\n\x0cversion_hash\x18\x02 \x01(\tB\x15\xbaH\x12r\x10\x32\x0e^[a-f0-9]{64}$R\x0bversionHashB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,6 +35,28 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n\037com.ai.stigmer.agentic.skill.v1B\007IoProtoP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Skill.V1\312\002\033Ai\\Stigmer\\Agentic\\Skill\\V1\342\002\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Skill::V1'
   _globals['_SKILLID'].fields_by_name['value']._loaded_options = None
   _globals['_SKILLID'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_PUSHSKILLREQUEST'].fields_by_name['skill_id']._loaded_options = None
+  _globals['_PUSHSKILLREQUEST'].fields_by_name['skill_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_PUSHSKILLREQUEST'].fields_by_name['artifact']._loaded_options = None
+  _globals['_PUSHSKILLREQUEST'].fields_by_name['artifact']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_PUSHSKILLREQUEST'].fields_by_name['tag']._loaded_options = None
+  _globals['_PUSHSKILLREQUEST'].fields_by_name['tag']._serialized_options = b'\272H\030r\0262\024^$|^[a-zA-Z0-9._-]+$'
+  _globals['_GETSKILLBYTAGREQUEST'].fields_by_name['name']._loaded_options = None
+  _globals['_GETSKILLBYTAGREQUEST'].fields_by_name['name']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_GETSKILLBYTAGREQUEST'].fields_by_name['tag']._loaded_options = None
+  _globals['_GETSKILLBYTAGREQUEST'].fields_by_name['tag']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_GETSKILLBYHASHREQUEST'].fields_by_name['name']._loaded_options = None
+  _globals['_GETSKILLBYHASHREQUEST'].fields_by_name['name']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_GETSKILLBYHASHREQUEST'].fields_by_name['version_hash']._loaded_options = None
+  _globals['_GETSKILLBYHASHREQUEST'].fields_by_name['version_hash']._serialized_options = b'\272H\022r\0202\016^[a-f0-9]{64}$'
   _globals['_SKILLID']._serialized_start=98
   _globals['_SKILLID']._serialized_end=137
+  _globals['_PUSHSKILLREQUEST']._serialized_start=140
+  _globals['_PUSHSKILLREQUEST']._serialized_end=276
+  _globals['_PUSHSKILLRESPONSE']._serialized_start=278
+  _globals['_PUSHSKILLRESPONSE']._serialized_end=400
+  _globals['_GETSKILLBYTAGREQUEST']._serialized_start=402
+  _globals['_GETSKILLBYTAGREQUEST']._serialized_end=478
+  _globals['_GETSKILLBYHASHREQUEST']._serialized_start=480
+  _globals['_GETSKILLBYHASHREQUEST']._serialized_end=589
 # @@protoc_insertion_point(module_scope)

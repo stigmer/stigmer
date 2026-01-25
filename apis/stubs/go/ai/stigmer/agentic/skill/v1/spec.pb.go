@@ -22,15 +22,21 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// SkillSpec defines the configurable properties of a skill.
+// SkillSpec defines the user-provided configuration of a skill.
+// This represents user intent (desired state).
 type SkillSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Brief description for UI display.
-	Description string `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
-	// Markdown content containing the skill documentation/knowledge.
-	MarkdownContent string `protobuf:"bytes,2,opt,name=markdown_content,json=markdownContent,proto3" json:"markdown_content,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// SKILL.md content containing the skill's interface definition,
+	// documentation, usage examples, and tool descriptions.
+	// This content is injected into agent prompts.
+	SkillMd string `protobuf:"bytes,1,opt,name=skill_md,json=skillMd,proto3" json:"skill_md,omitempty"`
+	// Optional user-provided tag for this skill version.
+	// Tags are mutable pointers that can be updated to reference new versions.
+	// Examples: "stable", "v1.0", "beta", "latest"
+	// If not provided, the version will only be accessible via its immutable hash.
+	Tag           string `protobuf:"bytes,2,opt,name=tag,proto3" json:"tag,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SkillSpec) Reset() {
@@ -63,16 +69,16 @@ func (*SkillSpec) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_skill_v1_spec_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *SkillSpec) GetDescription() string {
+func (x *SkillSpec) GetSkillMd() string {
 	if x != nil {
-		return x.Description
+		return x.SkillMd
 	}
 	return ""
 }
 
-func (x *SkillSpec) GetMarkdownContent() string {
+func (x *SkillSpec) GetTag() string {
 	if x != nil {
-		return x.MarkdownContent
+		return x.Tag
 	}
 	return ""
 }
@@ -81,10 +87,10 @@ var File_ai_stigmer_agentic_skill_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/skill/v1/spec.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a\x1bbuf/validate/validate.proto\"a\n" +
-	"\tSkillSpec\x12 \n" +
-	"\vdescription\x18\x01 \x01(\tR\vdescription\x122\n" +
-	"\x10markdown_content\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0fmarkdownContentB\x8b\x02\n" +
+	"&ai/stigmer/agentic/skill/v1/spec.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a\x1bbuf/validate/validate.proto\"^\n" +
+	"\tSkillSpec\x12\"\n" +
+	"\bskill_md\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\askillMd\x12-\n" +
+	"\x03tag\x18\x02 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tagB\x8b\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.skill.v1B\tSpecProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var (

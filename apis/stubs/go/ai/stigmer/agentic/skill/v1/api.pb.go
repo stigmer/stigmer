@@ -23,7 +23,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Skill represents reusable agent knowledge/documentation.
+// Skill represents a versioned, reusable unit of agent capability.
+// Skills contain tools, scripts, and documentation that agents can use.
+// Each skill version is immutably identified by a content hash.
 type Skill struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
@@ -31,11 +33,12 @@ type Skill struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata including name, id, labels, and tags.
+	// Skill names are normalized to slugs (e.g., "Calculator" → "calculator")
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// Skill-specific configuration.
+	// User-provided skill configuration (desired state).
 	Spec *SkillSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// System-managed status containing audit information.
-	Status        *apiresource.ApiResourceAuditStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	// System-managed skill state (observed state).
+	Status        *SkillStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -98,9 +101,73 @@ func (x *Skill) GetSpec() *SkillSpec {
 	return nil
 }
 
-func (x *Skill) GetStatus() *apiresource.ApiResourceAuditStatus {
+func (x *Skill) GetStatus() *SkillStatus {
 	if x != nil {
 		return x.Status
+	}
+	return nil
+}
+
+// SkillList represents a paginated list of skills.
+type SkillList struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// API version for this list type.
+	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
+	// Resource kind identifier for the list.
+	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
+	// List of skill resources.
+	Items         []*Skill `protobuf:"bytes,3,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SkillList) Reset() {
+	*x = SkillList{}
+	mi := &file_ai_stigmer_agentic_skill_v1_api_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SkillList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SkillList) ProtoMessage() {}
+
+func (x *SkillList) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_api_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SkillList.ProtoReflect.Descriptor instead.
+func (*SkillList) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_api_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SkillList) GetApiVersion() string {
+	if x != nil {
+		return x.ApiVersion
+	}
+	return ""
+}
+
+func (x *SkillList) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *SkillList) GetItems() []*Skill {
+	if x != nil {
+		return x.Items
 	}
 	return nil
 }
@@ -109,7 +176,7 @@ var File_ai_stigmer_agentic_skill_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/agentic/skill/v1/api.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xea\x03\n" +
+	"%ai/stigmer/agentic/skill/v1/api.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a\x1bbuf/validate/validate.proto\"\xdc\x03\n" +
 	"\x05Skill\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
@@ -118,8 +185,13 @@ const file_ai_stigmer_agentic_skill_v1_api_proto_rawDesc = "" +
 	"\x05SkillR\x04kind\x12\xf3\x01\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xa1\x01\xbaH\x9d\x01\xba\x01\x96\x01\n" +
 	"&skill.owner_scope.platform_or_org_only\x12<Skill resources can only have platform or organization scope\x1a.this.owner_scope == 1 || this.owner_scope == 2\xc8\x01\x01R\bmetadata\x12:\n" +
-	"\x04spec\x18\x04 \x01(\v2&.ai.stigmer.agentic.skill.v1.SkillSpecR\x04spec\x12N\n" +
-	"\x06status\x18\x05 \x01(\v26.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\x8a\x02\n" +
+	"\x04spec\x18\x04 \x01(\v2&.ai.stigmer.agentic.skill.v1.SkillSpecR\x04spec\x12@\n" +
+	"\x06status\x18\x05 \x01(\v2(.ai.stigmer.agentic.skill.v1.SkillStatusR\x06status\"z\n" +
+	"\tSkillList\x12\x1f\n" +
+	"\vapi_version\x18\x01 \x01(\tR\n" +
+	"apiVersion\x12\x12\n" +
+	"\x04kind\x18\x02 \x01(\tR\x04kind\x128\n" +
+	"\x05items\x18\x03 \x03(\v2\".ai.stigmer.agentic.skill.v1.SkillR\x05itemsB\x8a\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.skill.v1B\bApiProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var (
@@ -134,22 +206,24 @@ func file_ai_stigmer_agentic_skill_v1_api_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_skill_v1_api_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_skill_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_agentic_skill_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_skill_v1_api_proto_goTypes = []any{
-	(*Skill)(nil),                              // 0: ai.stigmer.agentic.skill.v1.Skill
-	(*apiresource.ApiResourceMetadata)(nil),    // 1: ai.stigmer.commons.apiresource.ApiResourceMetadata
-	(*SkillSpec)(nil),                          // 2: ai.stigmer.agentic.skill.v1.SkillSpec
-	(*apiresource.ApiResourceAuditStatus)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceAuditStatus
+	(*Skill)(nil),                           // 0: ai.stigmer.agentic.skill.v1.Skill
+	(*SkillList)(nil),                       // 1: ai.stigmer.agentic.skill.v1.SkillList
+	(*apiresource.ApiResourceMetadata)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceMetadata
+	(*SkillSpec)(nil),                       // 3: ai.stigmer.agentic.skill.v1.SkillSpec
+	(*SkillStatus)(nil),                     // 4: ai.stigmer.agentic.skill.v1.SkillStatus
 }
 var file_ai_stigmer_agentic_skill_v1_api_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.skill.v1.Skill.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
-	2, // 1: ai.stigmer.agentic.skill.v1.Skill.spec:type_name -> ai.stigmer.agentic.skill.v1.SkillSpec
-	3, // 2: ai.stigmer.agentic.skill.v1.Skill.status:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditStatus
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.skill.v1.Skill.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
+	3, // 1: ai.stigmer.agentic.skill.v1.Skill.spec:type_name -> ai.stigmer.agentic.skill.v1.SkillSpec
+	4, // 2: ai.stigmer.agentic.skill.v1.Skill.status:type_name -> ai.stigmer.agentic.skill.v1.SkillStatus
+	0, // 3: ai.stigmer.agentic.skill.v1.SkillList.items:type_name -> ai.stigmer.agentic.skill.v1.Skill
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_skill_v1_api_proto_init() }
@@ -158,13 +232,14 @@ func file_ai_stigmer_agentic_skill_v1_api_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_skill_v1_spec_proto_init()
+	file_ai_stigmer_agentic_skill_v1_status_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_skill_v1_api_proto_rawDesc), len(file_ai_stigmer_agentic_skill_v1_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

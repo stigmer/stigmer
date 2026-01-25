@@ -29,7 +29,7 @@ from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_sti
 from ai.stigmer.iam.iampolicy.v1.rpcauthorization import method_options_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_rpcauthorization_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/skill/v1/query.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a$ai/stigmer/agentic/skill/v1/io.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x8b\x02\n\x14SkillQueryController\x12{\n\x03get\x12$.ai.stigmer.agentic.skill.v1.SkillId\x1a\".ai.stigmer.agentic.skill.v1.Skill\"*\xc2\xb8\x18&\x08\x03\x10+\"\x05value*\x19unauthorized to get skill\x12p\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\".ai.stigmer.agentic.skill.v1.Skill\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff++B\xbe\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/skill/v1/query.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a$ai/stigmer/agentic/skill/v1/io.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a\x41\x61i/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xdf\x03\n\x14SkillQueryController\x12{\n\x03get\x12$.ai.stigmer.agentic.skill.v1.SkillId\x1a\".ai.stigmer.agentic.skill.v1.Skill\"*\xc2\xb8\x18&\x08\x03\x10+\"\x05value*\x19unauthorized to get skill\x12p\n\x0egetByReference\x12\x34.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\".ai.stigmer.agentic.skill.v1.Skill\"\x04\xd0\xb8\x18\x01\x12g\n\x08getByTag\x12\x31.ai.stigmer.agentic.skill.v1.GetSkillByTagRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\"\x04\xd0\xb8\x18\x01\x12i\n\tgetByHash\x12\x32.ai.stigmer.agentic.skill.v1.GetSkillByHashRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff++B\xbe\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -43,6 +43,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SKILLQUERYCONTROLLER'].methods_by_name['get']._serialized_options = b'\302\270\030&\010\003\020+\"\005value*\031unauthorized to get skill'
   _globals['_SKILLQUERYCONTROLLER'].methods_by_name['getByReference']._loaded_options = None
   _globals['_SKILLQUERYCONTROLLER'].methods_by_name['getByReference']._serialized_options = b'\320\270\030\001'
+  _globals['_SKILLQUERYCONTROLLER'].methods_by_name['getByTag']._loaded_options = None
+  _globals['_SKILLQUERYCONTROLLER'].methods_by_name['getByTag']._serialized_options = b'\320\270\030\001'
+  _globals['_SKILLQUERYCONTROLLER'].methods_by_name['getByHash']._loaded_options = None
+  _globals['_SKILLQUERYCONTROLLER'].methods_by_name['getByHash']._serialized_options = b'\320\270\030\001'
   _globals['_SKILLQUERYCONTROLLER']._serialized_start=316
-  _globals['_SKILLQUERYCONTROLLER']._serialized_end=583
+  _globals['_SKILLQUERYCONTROLLER']._serialized_end=795
 # @@protoc_insertion_point(module_scope)
