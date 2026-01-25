@@ -1,19 +1,19 @@
 package agentexecution
 
 import (
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 )
 
 // AgentExecutionController implements AgentExecutionCommandController and AgentExecutionQueryController
 type AgentExecutionController struct {
 	agentexecutionv1.UnimplementedAgentExecutionCommandControllerServer
 	agentexecutionv1.UnimplementedAgentExecutionQueryControllerServer
-	store               *badger.Store
+	store               store.Store
 	agentClient         *agent.Client
 	agentInstanceClient *agentinstance.Client
 	sessionClient       *session.Client
@@ -24,7 +24,7 @@ type AgentExecutionController struct {
 // NewAgentExecutionController creates a new AgentExecutionController
 //
 // Parameters:
-//   - store: BadgerDB store for persistence
+//   - store: Store for persistence
 //   - agentClient: In-process gRPC client for Agent service
 //   - agentInstanceClient: In-process gRPC client for AgentInstance service
 //   - sessionClient: In-process gRPC client for Session service
@@ -32,7 +32,7 @@ type AgentExecutionController struct {
 // Note: All clients use in-process gRPC to ensure single source of truth through
 // the full interceptor chain (validation, logging, api_resource_kind injection, etc.)
 func NewAgentExecutionController(
-	store *badger.Store,
+	store store.Store,
 	agentClient *agent.Client,
 	agentInstanceClient *agentinstance.Client,
 	sessionClient *session.Client,

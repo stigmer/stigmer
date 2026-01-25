@@ -7,8 +7,9 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 )
 
 // contextWithEnvironmentKind creates a context with the environment resource kind injected
@@ -18,9 +19,9 @@ func contextWithEnvironmentKind() context.Context {
 }
 
 // setupTestController creates a test controller with necessary dependencies
-func setupTestController(t *testing.T) (*EnvironmentController, *badger.Store) {
+func setupTestController(t *testing.T) (*EnvironmentController, store.Store) {
 	// Create temporary BadgerDB store
-	store, err := badger.NewStore(t.TempDir() + "/badger")
+	store, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}

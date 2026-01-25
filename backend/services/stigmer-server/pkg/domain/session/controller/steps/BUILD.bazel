@@ -7,7 +7,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
-        "//backend/libs/go/badger",
+        "//backend/libs/go/store",
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/grpc/request/pipeline",

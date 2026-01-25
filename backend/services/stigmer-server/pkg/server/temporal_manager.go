@@ -10,14 +10,14 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	agentexecutionactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
+	workflowtemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
 	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	workflowexecutionactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
-	workflowtemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	"go.temporal.io/sdk/client"
 	temporallog "go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/worker"
@@ -50,19 +50,19 @@ type TemporalManager struct {
 
 // serverDependencies holds references to server components needed for reconnection
 type serverDependencies struct {
-	store                        interface{} // *badger.Store
-	agentExecutionController     interface{} // *agentexecutioncontroller.AgentExecutionController
-	workflowExecutionController  interface{} // *workflowexecutioncontroller.WorkflowExecutionController
-	workflowController           interface{} // *workflowcontroller.WorkflowController
-	agentExecutionStreamBroker   interface{} // *agentexecution.StreamBroker
+	store                         interface{} // store.Store
+	agentExecutionController      interface{} // *agentexecutioncontroller.AgentExecutionController
+	workflowExecutionController   interface{} // *workflowexecutioncontroller.WorkflowExecutionController
+	workflowController            interface{} // *workflowcontroller.WorkflowController
+	agentExecutionStreamBroker    interface{} // *agentexecution.StreamBroker
 	workflowExecutionStreamBroker interface{} // *workflowexecution.StreamBroker
 }
 
 // NewTemporalManager creates a new Temporal connection manager
 func NewTemporalManager(cfg *config.Config) *TemporalManager {
 	return &TemporalManager{
-		cfg:       cfg,
-		namespace: cfg.TemporalNamespace,
+		cfg:        cfg,
+		namespace:  cfg.TemporalNamespace,
 		serverDeps: &serverDependencies{},
 	}
 }
@@ -208,7 +208,7 @@ func (tm *TemporalManager) StartHealthMonitor(ctx context.Context) {
 func (tm *TemporalManager) checkAndReconnect(ctx context.Context) {
 	// Check if we need to reconnect
 	currentClient := tm.GetClient()
-	
+
 	if currentClient != nil {
 		// Test existing connection
 		if tm.testConnection(ctx, currentClient) {
@@ -222,7 +222,7 @@ func (tm *TemporalManager) checkAndReconnect(ctx context.Context) {
 			}
 			return
 		}
-		
+
 		// Connection is unhealthy
 		log.Warn().Msg("Temporal connection unhealthy, initiating reconnection")
 	}
@@ -267,7 +267,7 @@ func (tm *TemporalManager) attemptReconnection(ctx context.Context) {
 	if err != nil {
 		tm.consecutiveFails++
 		tm.connected = false
-		
+
 		log.Warn().
 			Err(err).
 			Int("consecutive_failures", tm.consecutiveFails).
@@ -339,7 +339,7 @@ func (tm *TemporalManager) restartWorkers(newClient client.Client) {
 
 	// Create new workers with the new client
 	newWorkers := tm.createWorkers(newClient)
-	
+
 	// Start all new workers
 	for i, w := range newWorkers {
 		log.Debug().Int("worker_index", i).Msg("Starting worker")
@@ -363,14 +363,14 @@ func (tm *TemporalManager) createWorkers(temporalClient client.Client) []worker.
 	// 1. Create workflow execution worker
 	if tm.serverDeps.store != nil && tm.serverDeps.workflowExecutionStreamBroker != nil {
 		// Type assert store and streamBroker
-		store, storeOk := tm.serverDeps.store.(*badger.Store)
+		storeVal, storeOk := tm.serverDeps.store.(store.Store)
 		streamBroker, brokerOk := tm.serverDeps.workflowExecutionStreamBroker.(workflowexecutionactivities.StreamBroker)
-		
+
 		if storeOk && brokerOk {
 			workflowExecutionTemporalConfig := workflowexecutiontemporal.LoadConfig()
 			workerConfig := workflowexecutiontemporal.NewWorkerConfig(
 				workflowExecutionTemporalConfig,
-				store,
+				storeVal,
 				streamBroker,
 			)
 			workers = append(workers, workerConfig.CreateWorker(temporalClient))
@@ -386,14 +386,14 @@ func (tm *TemporalManager) createWorkers(temporalClient client.Client) []worker.
 	// 2. Create agent execution worker
 	if tm.serverDeps.store != nil && tm.serverDeps.agentExecutionStreamBroker != nil {
 		// Type assert store and streamBroker
-		store, storeOk := tm.serverDeps.store.(*badger.Store)
+		storeVal, storeOk := tm.serverDeps.store.(store.Store)
 		streamBroker, brokerOk := tm.serverDeps.agentExecutionStreamBroker.(agentexecutionactivities.StreamBroker)
-		
+
 		if storeOk && brokerOk {
 			agentExecutionTemporalConfig := agentexecutiontemporal.NewConfig()
 			workerConfig := agentexecutiontemporal.NewWorkerConfig(
 				agentExecutionTemporalConfig,
-				store,
+				storeVal,
 				streamBroker,
 			)
 			workers = append(workers, workerConfig.CreateWorker(temporalClient))
@@ -431,7 +431,7 @@ func (tm *TemporalManager) StartWorkers(temporalClient client.Client) error {
 	log.Info().Msg("Starting Temporal workers")
 
 	workers := tm.createWorkers(temporalClient)
-	
+
 	for i, w := range workers {
 		if err := w.Start(); err != nil {
 			return fmt.Errorf("failed to start worker %d: %w", i, err)
@@ -441,7 +441,7 @@ func (tm *TemporalManager) StartWorkers(temporalClient client.Client) error {
 
 	tm.workers = workers
 	log.Info().Int("worker_count", len(workers)).Msg("All Temporal workers started")
-	
+
 	return nil
 }
 
@@ -472,7 +472,7 @@ func (tm *TemporalManager) reinjectWorkflowCreators(temporalClient client.Client
 			temporalClient,
 			agentExecutionTemporalConfig,
 		)
-		
+
 		// Type assert to access SetWorkflowCreator method
 		if controller, ok := tm.serverDeps.agentExecutionController.(interface {
 			SetWorkflowCreator(*agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator)
@@ -490,7 +490,7 @@ func (tm *TemporalManager) reinjectWorkflowCreators(temporalClient client.Client
 			workflowExecutionTemporalConfig.StigmerQueue,
 			workflowExecutionTemporalConfig.RunnerQueue,
 		)
-		
+
 		// Type assert to access SetWorkflowCreator method
 		if controller, ok := tm.serverDeps.workflowExecutionController.(interface {
 			SetWorkflowCreator(*workflowexecutionworkflows.InvokeWorkflowExecutionWorkflowCreator)
@@ -507,7 +507,7 @@ func (tm *TemporalManager) reinjectWorkflowCreators(temporalClient client.Client
 			temporalClient,
 			workflowValidationTemporalConfig,
 		)
-		
+
 		// Type assert to access SetValidator method
 		if controller, ok := tm.serverDeps.workflowController.(interface {
 			SetValidator(*workflowtemporal.ServerlessWorkflowValidator)

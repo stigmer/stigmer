@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
@@ -90,10 +90,10 @@ func (s *ValidateUpdateStatusInputStep) Execute(ctx *pipeline.RequestContext[*wo
 
 // LoadExistingExecutionStep loads the existing execution from database
 type LoadExistingExecutionStep struct {
-	store *badger.Store
+	store store.Store
 }
 
-func newLoadExistingExecutionStep(store *badger.Store) *LoadExistingExecutionStep {
+func newLoadExistingExecutionStep(store store.Store) *LoadExistingExecutionStep {
 	return &LoadExistingExecutionStep{store: store}
 }
 
@@ -208,10 +208,10 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*work
 
 // PersistExecutionStep saves the execution to database
 type PersistExecutionStep struct {
-	store *badger.Store
+	store store.Store
 }
 
-func newPersistExecutionStep(store *badger.Store) *PersistExecutionStep {
+func newPersistExecutionStep(store store.Store) *PersistExecutionStep {
 	return &PersistExecutionStep{store: store}
 }
 

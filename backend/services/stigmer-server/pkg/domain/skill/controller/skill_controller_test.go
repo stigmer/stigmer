@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
 )
 
@@ -21,9 +21,9 @@ func contextWithSkillKind() context.Context {
 }
 
 // setupTestController creates a test controller with necessary dependencies
-func setupTestController(t *testing.T) (*SkillController, *badger.Store) {
+func setupTestController(t *testing.T) (*SkillController, store.Store) {
 	// Create temporary BadgerDB store
-	store, err := badger.NewStore(t.TempDir() + "/badger")
+	store, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
@@ -40,7 +40,7 @@ func setupTestController(t *testing.T) (*SkillController, *badger.Store) {
 }
 
 // createTestSkill creates a test skill in the store
-func createTestSkill(t *testing.T, store *badger.Store, id, slug, tag, hash string) *skillv1.Skill {
+func createTestSkill(t *testing.T, store store.Store, id, slug, tag, hash string) *skillv1.Skill {
 	skill := &skillv1.Skill{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Skill",
@@ -68,15 +68,13 @@ func createTestSkill(t *testing.T, store *badger.Store, id, slug, tag, hash stri
 	return skill
 }
 
-// createTestAuditRecord creates a test audit record in the store
-func createTestAuditRecord(t *testing.T, store *badger.Store, skillID, tag, hash string, timestamp int64) *skillv1.Skill {
-	auditKey := fmt.Sprintf("skill_audit/%s/%d", skillID, timestamp)
-
+// createTestAuditRecord creates a test audit record in the store using the new SaveAudit method
+func createTestAuditRecord(t *testing.T, s store.Store, skillID, tag, hash string) *skillv1.Skill {
 	skill := &skillv1.Skill{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Skill",
 		Metadata: &apiresourcepb.ApiResourceMetadata{
-			Id:   auditKey, // Audit key stored as ID
+			Id:   skillID, // Parent skill ID
 			Slug: "test-skill",
 			Name: "Test Skill",
 		},
@@ -91,7 +89,8 @@ func createTestAuditRecord(t *testing.T, store *badger.Store, skillID, tag, hash
 		},
 	}
 
-	err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_skill, auditKey, skill)
+	// Use the new SaveAudit method instead of the deprecated prefix-based approach
+	err := s.SaveAudit(context.Background(), apiresourcekind.ApiResourceKind_skill, skillID, skill, hash, tag)
 	if err != nil {
 		t.Fatalf("failed to save test audit record: %v", err)
 	}
@@ -250,10 +249,10 @@ func TestSkillController_GetByReference_AuditVersions(t *testing.T) {
 	// Hash must be exactly 64 lowercase hex characters (SHA256)
 	_ = createTestSkill(t, store, "skill-456", "web-search", "v3", "3333333333333333333333333333333333333333333333333333333333333333")
 
-	// Create audit records for older versions
-	now := time.Now().UnixNano()
-	createTestAuditRecord(t, store, "skill-456", "v1", "1111111111111111111111111111111111111111111111111111111111111111", now-2000000000) // Oldest
-	createTestAuditRecord(t, store, "skill-456", "v2", "2222222222222222222222222222222222222222222222222222222222222222", now-1000000000) // Newer
+	// Create audit records for older versions using the new SaveAudit method
+	// The audit records are stored in the dedicated resource_audit table
+	createTestAuditRecord(t, store, "skill-456", "v1", "1111111111111111111111111111111111111111111111111111111111111111")
+	createTestAuditRecord(t, store, "skill-456", "v2", "2222222222222222222222222222222222222222222222222222222222222222")
 
 	t.Run("get current version (v3)", func(t *testing.T) {
 		ref := &apiresourcepb.ApiResourceReference{

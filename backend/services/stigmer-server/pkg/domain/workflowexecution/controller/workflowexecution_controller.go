@@ -1,10 +1,10 @@
 package workflowexecution
 
 import (
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
-	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 )
 
 // WorkflowExecutionController implements WorkflowExecutionCommandController and WorkflowExecutionQueryController
@@ -30,7 +30,7 @@ import (
 type WorkflowExecutionController struct {
 	workflowexecutionv1.UnimplementedWorkflowExecutionCommandControllerServer
 	workflowexecutionv1.UnimplementedWorkflowExecutionQueryControllerServer
-	store                  *badger.Store
+	store                  store.Store
 	workflowInstanceClient *workflowinstance.Client
 	workflowCreator        *workflows.InvokeWorkflowExecutionWorkflowCreator
 	streamBroker           *StreamBroker
@@ -39,10 +39,10 @@ type WorkflowExecutionController struct {
 // NewWorkflowExecutionController creates a new WorkflowExecutionController
 //
 // Parameters:
-// - store: BadgerDB store for persistence (also used to load workflows)
+// - store: Store for persistence (also used to load workflows)
 // - workflowInstanceClient: Client for instance creation (auto-create default instances)
 func NewWorkflowExecutionController(
-	store *badger.Store,
+	store store.Store,
 	workflowInstanceClient *workflowinstance.Client,
 ) *WorkflowExecutionController {
 	return &WorkflowExecutionController{
