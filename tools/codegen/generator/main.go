@@ -1181,15 +1181,39 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 	case "bool":
 		fmt.Fprintf(w, "\t\tc.%s = val.GetBoolValue()\n", field.Name)
 
+	case "float":
+		fmt.Fprintf(w, "\t\tc.%s = float32(val.GetNumberValue())\n", field.Name)
+
+	case "double":
+		fmt.Fprintf(w, "\t\tc.%s = val.GetNumberValue()\n", field.Name)
+
 	case "map":
-		if field.Type.KeyType.Kind == "string" && field.Type.ValueType.Kind == "string" {
+		if field.Type.KeyType == nil || field.Type.ValueType == nil {
+			fmt.Fprintf(w, "\t\t// TODO: Map with unknown key/value type\n")
+			fmt.Fprintf(w, "\t\t_ = val // suppress unused variable warning\n")
+		} else if field.Type.KeyType.Kind == "string" && field.Type.ValueType.Kind == "string" {
+			// Simple string-to-string map
 			fmt.Fprintf(w, "\t\tc.%s = make(map[string]string)\n", field.Name)
 			fmt.Fprintf(w, "\t\tfor k, v := range val.GetStructValue().GetFields() {\n")
 			fmt.Fprintf(w, "\t\t\tc.%s[k] = v.GetStringValue()\n", field.Name)
 			fmt.Fprintf(w, "\t\t}\n")
+		} else if field.Type.KeyType.Kind == "string" && field.Type.ValueType.Kind == "message" {
+			// Complex map: map[string]*MessageType
+			typeName := field.Type.ValueType.MessageType
+			if _, isShared := c.sharedTypes[typeName]; isShared && c.packageName != "types" {
+				typeName = "types." + typeName
+				c.addImport("github.com/stigmer/stigmer/sdk/go/gen/types")
+			}
+			fmt.Fprintf(w, "\t\tc.%s = make(map[string]*%s)\n", field.Name, typeName)
+			fmt.Fprintf(w, "\t\tfor k, v := range val.GetStructValue().GetFields() {\n")
+			fmt.Fprintf(w, "\t\t\titem := &%s{}\n", typeName)
+			fmt.Fprintf(w, "\t\t\tif err := item.FromProto(v.GetStructValue()); err != nil {\n")
+			fmt.Fprintf(w, "\t\t\t\treturn err\n")
+			fmt.Fprintf(w, "\t\t\t}\n")
+			fmt.Fprintf(w, "\t\t\tc.%s[k] = item\n", field.Name)
+			fmt.Fprintf(w, "\t\t}\n")
 		} else {
-			// TODO: Implement FromProto for complex map fields
-			fmt.Fprintf(w, "\t\t// TODO: Implement FromProto for map field %s\n", field.Name)
+			fmt.Fprintf(w, "\t\t// TODO: Map with key=%s value=%s\n", field.Type.KeyType.Kind, field.Type.ValueType.Kind)
 			fmt.Fprintf(w, "\t\t_ = val // suppress unused variable warning\n")
 		}
 
@@ -1208,10 +1232,46 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 		fmt.Fprintf(w, "\t\t}\n")
 
 	case "array":
-		// TODO: Implement array FromProto conversion based on element type
-		// For now, skip array fields in FromProto (they're typically output-only)
-		fmt.Fprintf(w, "\t\t// TODO: Implement FromProto for array field %s\n", field.Name)
-		fmt.Fprintf(w, "\t\t_ = val // suppress unused variable warning\n")
+		elementType := field.Type.ElementType
+		if elementType == nil {
+			fmt.Fprintf(w, "\t\t// TODO: Array with unknown element type\n")
+			fmt.Fprintf(w, "\t\t_ = val // suppress unused variable warning\n")
+		} else {
+			switch elementType.Kind {
+			case "string":
+				fmt.Fprintf(w, "\t\tc.%s = make([]string, 0)\n", field.Name)
+				fmt.Fprintf(w, "\t\tfor _, v := range val.GetListValue().GetValues() {\n")
+				fmt.Fprintf(w, "\t\t\tc.%s = append(c.%s, v.GetStringValue())\n", field.Name, field.Name)
+				fmt.Fprintf(w, "\t\t}\n")
+			case "int32":
+				fmt.Fprintf(w, "\t\tc.%s = make([]int32, 0)\n", field.Name)
+				fmt.Fprintf(w, "\t\tfor _, v := range val.GetListValue().GetValues() {\n")
+				fmt.Fprintf(w, "\t\t\tc.%s = append(c.%s, int32(v.GetNumberValue()))\n", field.Name, field.Name)
+				fmt.Fprintf(w, "\t\t}\n")
+			case "int64":
+				fmt.Fprintf(w, "\t\tc.%s = make([]int64, 0)\n", field.Name)
+				fmt.Fprintf(w, "\t\tfor _, v := range val.GetListValue().GetValues() {\n")
+				fmt.Fprintf(w, "\t\t\tc.%s = append(c.%s, int64(v.GetNumberValue()))\n", field.Name, field.Name)
+				fmt.Fprintf(w, "\t\t}\n")
+			case "message":
+				typeName := elementType.MessageType
+				if _, isShared := c.sharedTypes[typeName]; isShared && c.packageName != "types" {
+					typeName = "types." + typeName
+					c.addImport("github.com/stigmer/stigmer/sdk/go/gen/types")
+				}
+				fmt.Fprintf(w, "\t\tc.%s = make([]*%s, 0)\n", field.Name, typeName)
+				fmt.Fprintf(w, "\t\tfor _, v := range val.GetListValue().GetValues() {\n")
+				fmt.Fprintf(w, "\t\t\titem := &%s{}\n", typeName)
+				fmt.Fprintf(w, "\t\t\tif err := item.FromProto(v.GetStructValue()); err != nil {\n")
+				fmt.Fprintf(w, "\t\t\t\treturn err\n")
+				fmt.Fprintf(w, "\t\t\t}\n")
+				fmt.Fprintf(w, "\t\t\tc.%s = append(c.%s, item)\n", field.Name, field.Name)
+				fmt.Fprintf(w, "\t\t}\n")
+			default:
+				fmt.Fprintf(w, "\t\t// TODO: Array of %s type\n", elementType.Kind)
+				fmt.Fprintf(w, "\t\t_ = val // suppress unused variable warning\n")
+			}
+		}
 
 	default:
 		// For unknown types, suppress unused variable warning

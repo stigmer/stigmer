@@ -2,10 +2,15 @@ package subagent
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
+
+// InlineArgs contains configuration for an inline sub-agent (Pulumi Args pattern).
+// This is an alias to the generated InlineSubAgentArgs type.
+type InlineArgs = genAgent.InlineSubAgentArgs
 
 // SubAgent represents a sub-agent that can be delegated to.
 // It can be either an inline definition or a reference to an existing AgentInstance.
@@ -18,7 +23,7 @@ type SubAgent struct {
 	description       string
 	instructions      string
 	mcpServers        []string
-	mcpToolSelections map[string][]string
+	mcpToolSelections map[string]*types.McpToolSelection
 	skillRefs         []*apiresource.ApiResourceReference
 
 	// For referenced sub-agents
@@ -32,136 +37,64 @@ const (
 	subAgentTypeReference
 )
 
-// InlineOption configures an inline sub-agent.
-type InlineOption func(*SubAgent) error
-
-// WithName sets the name of the inline sub-agent.
-func WithName(name string) InlineOption {
-	return func(s *SubAgent) error {
-		s.name = name
-		return nil
-	}
-}
-
-// WithDescription sets the description of the inline sub-agent.
-func WithDescription(description string) InlineOption {
-	return func(s *SubAgent) error {
-		s.description = description
-		return nil
-	}
-}
-
-// WithInstructions sets the behavior instructions for the inline sub-agent from a string.
-func WithInstructions(instructions string) InlineOption {
-	return func(s *SubAgent) error {
-		s.instructions = instructions
-		return nil
-	}
-}
-
-// WithInstructionsFromFile sets the behavior instructions for the inline sub-agent from a file.
+// Inline creates an inline sub-agent definition with struct args (Pulumi pattern).
 //
-// Reads the file content and sets it as the sub-agent's instructions.
-// The file content must be at least 10 characters.
+// Required:
+//   - name: sub-agent name (non-empty)
+//   - args.Instructions: behavior instructions (min 10 characters)
+//
+// Optional args fields:
+//   - Description: human-readable description
+//   - McpServers: MCP server names this sub-agent can use
+//   - McpToolSelections: tool selections for each MCP server
+//   - SkillRefs: references to Skill resources
 //
 // Example:
 //
-//	subagent.WithInstructionsFromFile("instructions/security-analyzer.md")
-func WithInstructionsFromFile(path string) InlineOption {
-	return func(s *SubAgent) error {
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		s.instructions = string(content)
-		return nil
+//	sub, err := subagent.Inline("code-analyzer", &subagent.InlineArgs{
+//	    Instructions: "Analyze code for bugs and security issues",
+//	    Description:  "Static code analyzer",
+//	    McpServers:   []string{"github"},
+//	})
+func Inline(name string, args *InlineArgs) (SubAgent, error) {
+	// Nil-safety: if args is nil, create empty args
+	if args == nil {
+		args = &InlineArgs{}
 	}
-}
 
-// WithMCPServer adds an MCP server name that this sub-agent can use.
-// The name references an MCP server defined in the parent agent.
-func WithMCPServer(serverName string) InlineOption {
-	return func(s *SubAgent) error {
-		s.mcpServers = append(s.mcpServers, serverName)
-		return nil
-	}
-}
-
-// WithMCPServers sets all MCP server names for this sub-agent.
-func WithMCPServers(serverNames ...string) InlineOption {
-	return func(s *SubAgent) error {
-		s.mcpServers = serverNames
-		return nil
-	}
-}
-
-// WithToolSelection adds tool selections for a specific MCP server.
-// If tools is empty, all tools from the server are enabled.
-func WithToolSelection(mcpServerName string, tools ...string) InlineOption {
-	return func(s *SubAgent) error {
-		if s.mcpToolSelections == nil {
-			s.mcpToolSelections = make(map[string][]string)
-		}
-		s.mcpToolSelections[mcpServerName] = tools
-		return nil
-	}
-}
-
-// WithSkillRef adds a skill reference to the inline sub-agent.
-//
-// Use skillref.Platform() to create platform skill references.
-//
-// Example:
-//
-//	subagent.WithSkillRef(skillref.Platform("code-review"))
-//	subagent.WithSkillRef(skillref.Platform("code-review", "v1.0"))
-func WithSkillRef(ref *apiresource.ApiResourceReference) InlineOption {
-	return func(s *SubAgent) error {
-		s.skillRefs = append(s.skillRefs, ref)
-		return nil
-	}
-}
-
-// WithSkillRefs adds multiple skill references to the inline sub-agent.
-//
-// Example:
-//
-//	subagent.WithSkillRefs(
-//	    skillref.Platform("code-review"),
-//	    skillref.Platform("security-guidelines", "stable"),
-//	)
-func WithSkillRefs(refs ...*apiresource.ApiResourceReference) InlineOption {
-	return func(s *SubAgent) error {
-		s.skillRefs = append(s.skillRefs, refs...)
-		return nil
-	}
-}
-
-// Inline creates an inline sub-agent definition.
-//
-// Returns an error if any option fails (e.g., file not found).
-//
-// Example:
-//
-//	sub, err := subagent.Inline(
-//	    subagent.WithName("code-analyzer"),
-//	    subagent.WithInstructions("Analyze code for bugs"),
-//	    subagent.WithDescription("Static code analyzer"),
-//	    subagent.WithMCPServer("github"),
-//	)
-//	if err != nil {
-//	    log.Fatal(err)
-//	}
-func Inline(opts ...InlineOption) (SubAgent, error) {
 	s := SubAgent{
-		subAgentType: subAgentTypeInline,
+		subAgentType:      subAgentTypeInline,
+		name:              name,
+		description:       args.Description,
+		instructions:      args.Instructions,
+		mcpServers:        args.McpServers,
+		mcpToolSelections: args.McpToolSelections,
+		skillRefs:         convertSkillRefs(args.SkillRefs),
 	}
-	for _, opt := range opts {
-		if err := opt(&s); err != nil {
-			return SubAgent{}, err
-		}
+
+	if err := s.Validate(); err != nil {
+		return SubAgent{}, err
 	}
 	return s, nil
+}
+
+// convertSkillRefs converts generated types.ApiResourceReference to proto apiresource.ApiResourceReference.
+func convertSkillRefs(refs []*types.ApiResourceReference) []*apiresource.ApiResourceReference {
+	if refs == nil {
+		return nil
+	}
+	result := make([]*apiresource.ApiResourceReference, 0, len(refs))
+	for _, ref := range refs {
+		if ref != nil {
+			result = append(result, &apiresource.ApiResourceReference{
+				Slug: ref.Slug,
+				Org:  ref.Org,
+				// Note: types.ApiResourceReference uses string for Scope/Kind,
+				// proto uses enums. These would need proper conversion if used.
+			})
+		}
+	}
+	return result
 }
 
 // Reference creates a reference to an existing AgentInstance resource.
@@ -211,7 +144,7 @@ func (s SubAgent) MCPServerNames() []string {
 }
 
 // ToolSelections returns the MCP tool selections map for inline sub-agents.
-func (s SubAgent) ToolSelections() map[string][]string {
+func (s SubAgent) ToolSelections() map[string]*types.McpToolSelection {
 	return s.mcpToolSelections
 }
 

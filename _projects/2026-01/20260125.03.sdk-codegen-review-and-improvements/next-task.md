@@ -9,37 +9,50 @@
 ## Current State
 
 **Phase**: Foundation Refactoring  
-**Current Task**: Phase 1.1 COMPLETE - Next: Choose from available tasks  
+**Current Task**: Tasks 1.2, 2, 3 COMPLETE - Next: Choose from remaining tasks  
 **Build Status**: PASSES (`go build ./...` succeeds)
 
 ---
 
 ## Session Progress (2026-01-26)
 
-### Completed Today
+### Completed Today (Session 2)
+
+#### Task 3: Fix codegen FromProto
+- **File modified**: `tools/codegen/generator/main.go`
+- **Changes**: Updated `genFromProtoField` function to handle:
+  - Arrays of strings, int32, int64, messages
+  - Complex maps (`map[string]*MessageType`)
+  - Float types (float32, float64)
+- **Result**: All 18 TODOs in generated code eliminated
+- **Regenerated**: All SDK files in `sdk/go/gen/`
+
+#### Task 1.2: Eliminate VolumeMount/PortMapping Duplication
+- **Deleted**: Internal `VolumeMount` and `PortMapping` types from `mcpserver/mcpserver.go`
+- **Updated**: `mcpserver/docker.go` to use `[]*types.VolumeMount` and `[]*types.PortMapping` directly
+- **Updated**: `agent/proto.go` conversion logic for pointer slices
+- **Result**: Removed ~20 lines of duplicate type definitions and conversion code
+
+#### Task 2: Migrate subagent to struct args
+- **Refactored**: `subagent/subagent.go` completely
+- **Added**: `InlineArgs` type alias to `genAgent.InlineSubAgentArgs`
+- **Changed**: `Inline(opts ...InlineOption)` → `Inline(name string, args *InlineArgs)`
+- **Deleted**: All 9 functional options (WithName, WithDescription, WithInstructions, etc.)
+- **Updated**: `ToolSelections()` to return `map[string]*types.McpToolSelection`
+- **Updated**: `agent/proto.go` `convertSubAgents()` for new format
+- **Updated**: `subagent/doc.go` with new API examples
+- **Result**: Subagent package now follows Pulumi struct args pattern
+
+### Previously Completed (Session 1)
 
 #### Phase 1.1: Delete mcpserver/options.go
 - **File deleted**: `sdk/go/mcpserver/options.go` (337 lines, 8.5KB)
-- **Content**: All unused functional options (`WithName`, `WithCommand`, `WithArgs`, etc.)
-- **Reason**: Dead code - implementations now use struct args pattern
-- **Build**: PASSES
 
-### Previously Completed (Phase 1: Skill Package Refactoring)
-
-1. **Deleted old skill package** (7 files, -23KB):
-   - `sdk/go/skill/` - entire directory removed
-   - `sdk/go/gen/skill/skillspec_args.go` - not needed
-
-2. **Created new skillref package** (~65 lines total):
-   - `sdk/go/skillref/skillref.go` - `Platform()` helper
-   - `sdk/go/skillref/doc.go` - Package documentation
-
-3. **Updated agent package**:
-   - Changed `Skills []skill.Skill` → `SkillRefs []*apiresource.ApiResourceReference`
-   - Replaced `AddSkill()` → `AddSkillRef()`, `AddSkillRefs()`
-
-4. **Updated subagent package**:
-   - Changed to use `[]*apiresource.ApiResourceReference` directly
+#### Phase 1: Skill Package Refactoring
+1. Deleted old skill package (7 files, -23KB)
+2. Created new skillref package (~65 lines)
+3. Updated agent package (Skills → SkillRefs)
+4. Updated subagent package
 
 ---
 
@@ -47,24 +60,11 @@
 
 Choose ONE of these for the next session:
 
-### Quick Wins (~15-30 min each)
-
-| ID | Task | Lines | Description |
-|----|------|-------|-------------|
-| **1.2** | Assess VolumeMount/PortMapping | ~50 | Check if internal types can use generated types directly |
-
 ### Medium Tasks (~1 hour each)
 
 | ID | Task | Lines | Description |
 |----|------|-------|-------------|
-| **3** | Fix codegen FromProto | ~200 | Fix generator to emit complete FromProto for arrays/maps |
 | **4** | Standardize validation | ~100 | Extract common validation to shared package |
-
-### Larger Tasks (~1-2 hours)
-
-| ID | Task | Lines | Description |
-|----|------|-------|-------------|
-| **2** | Migrate subagent to struct args | ~150 | Replace functional options with InlineArgs struct |
 
 ### Final Tasks (after all above)
 
@@ -76,89 +76,50 @@ Choose ONE of these for the next session:
 
 ---
 
-## Comprehensive Analysis (Preserved)
-
-### Package Status Summary
+## Package Status Summary (Updated)
 
 | Package | API Pattern | Status | Issues |
 |---------|------------|--------|--------|
 | `agent` | Struct args | Good | Tests reference old `AddSkill()` method |
 | `workflow` | Struct args | Good | Docs reference removed `WithCatchTyped` |
 | `environment` | Struct args | Good | Tests use non-existent functional options |
-| `mcpserver` | Struct args | **FIXED** | ~~options.go deleted~~ |
-| `subagent` | Functional opts | **NEEDS MIGRATION** | Inconsistent with rest of SDK |
+| `mcpserver` | Struct args | **DONE** | Types use generated directly |
+| `subagent` | Struct args | **DONE** | Migrated to struct args pattern |
 | `skillref` | Functions | Good | New package, simple helpers |
 
-### Generated Code Gaps (18 TODOs)
+---
 
-**File**: `sdk/go/gen/types/agentic_types.go`
+## Generated Code Status (Updated)
 
-Incomplete `FromProto()` implementations:
-- Array fields: `Args`, `Volumes`, `Ports`, `EnabledTools`, `McpServers`, `SkillRefs`, `Signals`, `Do`
+**All 18 TODOs eliminated** - `FromProto()` now handles:
+- Array fields: `Args`, `Volumes`, `Ports`, `EnabledTools`, `McpServers`, `SkillRefs`, `Signals`, `Do`, `Try`, `Cases`, `Branches`
 - Map fields: `Data`, `McpToolSelections`
 - Float fields: `Temperature`
 
-**File**: `sdk/go/gen/workflow/*.go`
-- `trytaskconfig.go:87` - array field Try
-- `switchtaskconfig.go:62` - array field Cases
-- `fortaskconfig.go:86` - array field Do
-- `forktaskconfig.go:75` - array field Branches
+---
 
-**Root cause**: Code generator doesn't handle these types.
-
-### Validation Duplication
-
-| Location | Check | Pattern |
-|----------|-------|---------|
-| `agent/validation.go:103-133` | Instructions min 10 chars | `ValidationError` struct |
-| `subagent/subagent.go:256-258` | Instructions min 10 chars | `fmt.Errorf()` |
-| `agent/validation.go` | Name regex | `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$` |
-| `workflow/validation.go` | Task name regex | `^[a-zA-Z0-9_-]+$` |
-
-**Recommendation**: Extract to `sdk/go/internal/validation/`
-
-### Test Files Needing Updates
+## Test Files Needing Updates
 
 | File | Issue |
 |------|-------|
 | `mcpserver/mcpserver_test.go` | Uses deleted functional options |
 | `environment/environment_test.go` | Uses functional options that don't exist |
-| `subagent/subagent_test.go` | Will need update after Phase 2 |
+| `subagent/subagent_test.go` | Uses old `Inline(opts...)` API |
 | `agent/agent_builder_test.go` | References `AddSkill()` instead of `AddSkillRef()` |
 | `integration_scenarios_test.go` | Multiple old API usages |
 
-### Example Files Needing Updates
-
-- `examples/03_agent_with_mcp_servers.go` - Uses old mcpserver API
-- `examples/04_agent_with_subagents.go` - Uses old subagent API
-- `examples/05_agent_with_environment_variables.go` - Uses old APIs
-- `examples/12_agent_with_typed_context.go` - Uses old APIs
-- ... and 15 more examples
-
-### TODOs Found in Codebase
-
-| Location | TODO |
-|----------|------|
-| `agent/annotations.go:13` | Read SDK version from file/build |
-| `workflow/annotations.go:13` | Read SDK version from file/build |
-| `subagent/subagent.go:225-232` | `Organization()` returns empty string |
-
 ---
 
-## Files Modified This Project
+## Files Modified This Session
 
 ```
-DELETED: sdk/go/skill/ (7 files, -896 lines)
-DELETED: sdk/go/gen/skill/skillspec_args.go (-17 lines)
-DELETED: sdk/go/mcpserver/options.go (-337 lines)
-CREATED: sdk/go/skillref/skillref.go (~35 lines)
-CREATED: sdk/go/skillref/doc.go (~30 lines)
-MODIFIED: sdk/go/agent/agent.go (Skills → SkillRefs)
-MODIFIED: sdk/go/agent/proto.go (removed convertSkillsToRefs)
-MODIFIED: sdk/go/subagent/subagent.go (proto types)
-MODIFIED: sdk/go/stigmer/context.go (removed skill registration)
-
-Net: -1,366 lines (massive simplification)
+MODIFIED: tools/codegen/generator/main.go (genFromProtoField - arrays, maps, floats)
+REGENERATED: sdk/go/gen/**/*.go (all generated files)
+DELETED: sdk/go/mcpserver/mcpserver.go (VolumeMount, PortMapping types)
+MODIFIED: sdk/go/mcpserver/docker.go (use generated types directly)
+MODIFIED: sdk/go/agent/proto.go (pointer slice handling, tool selections)
+REFACTORED: sdk/go/subagent/subagent.go (struct args pattern)
+MODIFIED: sdk/go/subagent/doc.go (updated examples)
 ```
 
 ---
@@ -168,9 +129,8 @@ Net: -1,366 lines (massive simplification)
 **Status**: Code modified but NOT committed
 
 ```
-13 files changed, -1,366 lines net
 Build: PASSES
-Tests: FAILING (need updates to new APIs)
+Tests: FAILING (need updates to new APIs - documented as Final Tasks)
 ```
 
 ---
@@ -194,6 +154,8 @@ Then choose from "Available Next Tasks" section above.
 | Skills are external | SDK references skills via `skillref`, doesn't create them |
 | Struct args pattern | Pulumi-aligned, consistent across all SDK packages |
 | Delete dead code first | Clean foundation before fixing tests |
+| Generated types for VolumeMount/PortMapping | Eliminates duplication, single source of truth |
+| subagent uses InlineArgs | Consistent with agent, mcpserver patterns |
 
 ---
 

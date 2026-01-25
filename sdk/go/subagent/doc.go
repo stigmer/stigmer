@@ -5,17 +5,18 @@
 //   - Inline: Defined directly with instructions, MCP servers, and skills
 //   - Referenced: Reference to an existing AgentInstance resource
 //
-// # Inline Sub-Agents
+// # Inline Sub-Agents (Struct Args Pattern)
 //
-// Inline sub-agents are defined directly within the parent agent:
+// Inline sub-agents are defined using the struct args pattern (Pulumi-aligned):
 //
-//	sub := subagent.Inline(
-//	    subagent.WithName("code-analyzer"),
-//	    subagent.WithInstructions("Analyze code for bugs and security issues"),
-//	    subagent.WithDescription("Static code analyzer"),
-//	    subagent.WithMCPServer("github"),
-//	    subagent.WithSkill(skill.Platform("code-analysis")),
-//	)
+//	sub, err := subagent.Inline("code-analyzer", &subagent.InlineArgs{
+//	    Instructions: "Analyze code for bugs and security issues",
+//	    Description:  "Static code analyzer",
+//	    McpServers:   []string{"github"},
+//	    SkillRefs: []*types.ApiResourceReference{
+//	        {Slug: "code-analysis"},
+//	    },
+//	})
 //
 // # Referenced Sub-Agents
 //
@@ -25,14 +26,13 @@
 //
 // # Integration with Agent
 //
-// Sub-agents are added to agents using the WithSubAgent option:
+// Sub-agents are added to agents using the AddSubAgent method:
 //
-//	agent, err := agent.New(
-//	    agent.WithName("main-agent"),
-//	    agent.WithInstructions("Main agent instructions"),
-//	    agent.WithSubAgent(subagent.Inline(
-//	        subagent.WithName("helper"),
-//	        subagent.WithInstructions("Helper instructions"),
-//	    )),
-//	)
+//	ag, err := agent.New(ctx, "main-agent", &agent.AgentArgs{
+//	    Instructions: "Main agent instructions",
+//	})
+//	sub, _ := subagent.Inline("helper", &subagent.InlineArgs{
+//	    Instructions: "Helper instructions for the sub-agent",
+//	})
+//	ag.AddSubAgent(sub)
 package subagent
