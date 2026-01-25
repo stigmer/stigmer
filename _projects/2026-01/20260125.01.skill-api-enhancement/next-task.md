@@ -69,56 +69,87 @@ When starting a new session:
 
 **Created**: 2026-01-25 12:14
 **Current Task**: T01.4 (Agent Integration)
-**Status**: Go Implementation Complete ✅
-**Last Session**: 2026-01-25 - Version Resolution Implemented
-**Last Completed**: T01.4 Go Version Resolution ✅ 2026-01-25 17:00
+**Status**: Go + Java Implementation Complete ✅
+**Last Session**: 2026-01-25 - Java Version Resolution + Proto Cleanup
+**Last Completed**: T01.4 Java Version Resolution ✅ 2026-01-25
 
-## Session Progress (2026-01-25 - Latest)
+## Session Progress (2026-01-25 - Latest Session)
 
-### What Was Accomplished - Version Resolution (Latest Session)
-- Created `LoadSkillByReferenceStep` - Skill-specific version resolution step
-- Supports: empty/"latest", tag names, SHA256 hash lookups
-- Searches main collection first, then audit records for historical versions
-- Added comprehensive tests for all version resolution scenarios
+### What Was Accomplished - Java Backend & Proto Cleanup
 
-### Files Created/Modified
-- `backend/services/stigmer-server/pkg/domain/skill/controller/load_skill_by_reference.go` - **NEW** Version resolution step
-- `backend/services/stigmer-server/pkg/domain/skill/controller/get_by_reference.go` - Updated to use new step
-- `backend/services/stigmer-server/pkg/domain/skill/controller/BUILD.bazel` - Added new file
-- `backend/services/stigmer-server/pkg/domain/skill/controller/skill_controller_test.go` - Added version tests
+**Proto API Cleanup:**
+- Removed redundant `getByTag` RPC from `query.proto`
+- Removed redundant `getByHash` RPC from `query.proto`
+- Removed `GetSkillByTagRequest` message from `io.proto`
+- Removed `GetSkillByHashRequest` message from `io.proto`
+- Updated `getByReference` documentation to explain version resolution
+- All stubs regenerated (Go, Java, Python, TypeScript, Dart)
 
-### Previous Session - Archive Deletion
-- Added `DeleteResourcesByIdPrefix` method to badger store for prefix-based deletion
-- Created `DeleteSkillArchivesStep` in delete.go to clean up version history archives
-- Updated skill delete pipeline to include archive cleanup before resource deletion
+**Java Backend Implementation (stigmer-cloud):**
+- Added version resolution methods to `SkillRepo.java`:
+  - `findByOrgAndSlugAndTag()` / `findByOwnerScopeAndSlugAndTag()`
+  - `findByOrgAndSlugAndVersionHash()` / `findByOwnerScopeAndSlugAndVersionHash()`
+- Updated `SkillGetByReferenceHandler.LoadFromRepo`:
+  - Added SHA256 hash detection pattern
+  - Implemented version resolution logic (empty/latest → tag → hash)
+  - Helper methods for each version type
 
-### Key Decisions Made
-- Skill-specific step rather than generic (only Skills have versioning currently)
-- Audit key format: `skill_audit/<resource_id>/<timestamp>` - Allows prefix scanning
-- Latest by timestamp - Multiple audit records with same tag sorted by timestamp
-- Hash detection: 64 lowercase hex characters = SHA256 hash = exact version lookup
+**Key Design Decision:**
+- `getByReference` with `ApiResourceReference.version` handles ALL version queries
+- No need for separate `getByTag` or `getByHash` RPCs
+- Cleaner API surface with single endpoint
+
+### Files Modified
+
+**stigmer repo (proto source):**
+- `apis/ai/stigmer/agentic/skill/v1/query.proto` - Removed 2 RPCs
+- `apis/ai/stigmer/agentic/skill/v1/io.proto` - Removed 2 messages
+
+**stigmer-cloud repo (Java + generated stubs):**
+- `backend/services/stigmer-service/.../SkillRepo.java` - +80 lines (version methods)
+- `backend/services/stigmer-service/.../SkillGetByReferenceHandler.java` - +122 lines (version resolution)
+- Generated stubs updated across Go, Java, Python, TypeScript, Dart (37 files, -2137 lines net)
+
+### Previous Sessions Summary
+- **Session 3**: Go version resolution (`LoadSkillByReferenceStep`)
+- **Session 2**: Archive deletion (`DeleteSkillArchivesStep`)
+- **Session 1**: Proto definitions, CLI enhancement, backend push handler
 
 ## Test Results
 
-All version resolution tests pass:
+**Go Tests** (all pass):
 ```
 ✅ TestSkillController_GetByReference (all 6 scenarios)
 ✅ TestSkillController_GetByReference_AuditVersions (all 3 scenarios)
 ✅ TestIsHash (all 11 scenarios)
 ```
 
+**Java**: No unit tests added yet (recommend for next session)
+
 ## Next Steps (when resuming)
 
-1. **Java Backend (stigmer-cloud)**: Implement similar version resolution
+1. **ResolveSkillsActivity (Java)**: Create Temporal activity for batch skill resolution in workflows
 2. **Python Agent-Runner**: Implement prompt engineering with skill injection
-3. Consider T01.5 (Testing & Validation) or T01.6 (Documentation)
+3. **Unit Tests (Java)**: Add tests for version resolution methods
+4. Consider T01.5 (Testing & Validation) or T01.6 (Documentation)
 
 ## Context for Resume
 
-- Version resolution in Go is complete: `GetByReference` now handles `version` field in `ApiResourceReference`
-- Archive records are stored with keys: `skill/skill_audit/<resource_id>/<timestamp>`
-- The delete pipeline has 5 steps including archive cleanup
-- Go tests: `go test ./backend/services/stigmer-server/pkg/domain/skill/controller/... -v`
+- Version resolution complete in both Go and Java backends
+- `getByReference` is now the ONLY way to query skills by slug/version
+- Proto stubs regenerated - ensure all services rebuild to pick up changes
+- No `skill_audit` collection in Java yet (only main collection queries)
+- Audit collection support can be added later for historical version lookups
+
+## Uncommitted Changes
+
+**stigmer repo** (4 files):
+- Proto changes + minor Go file updates
+- Ready to commit
+
+**stigmer-cloud repo** (37 files):
+- Java handlers + all regenerated stubs
+- Ready to commit
 
 ## Quick Commands
 
