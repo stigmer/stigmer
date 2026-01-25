@@ -13,7 +13,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
-        "//backend/libs/go/badger",
+        "//backend/libs/go/store",
         "@com_github_rs_zerolog//log",
         "@io_temporal_go_sdk//temporal",
         "@io_temporal_go_sdk//workflow",

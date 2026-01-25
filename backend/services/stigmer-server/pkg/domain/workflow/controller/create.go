@@ -8,7 +8,7 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
@@ -158,10 +158,10 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*workfl
 // Separated from createDefaultInstanceStep for pipeline clarity - makes it explicit
 // that a database persist operation is happening.
 type updateWorkflowStatusWithDefaultInstanceStep struct {
-	store *badger.Store
+	store store.Store
 }
 
-func newUpdateWorkflowStatusWithDefaultInstanceStep(store *badger.Store) *updateWorkflowStatusWithDefaultInstanceStep {
+func newUpdateWorkflowStatusWithDefaultInstanceStep(store store.Store) *updateWorkflowStatusWithDefaultInstanceStep {
 	return &updateWorkflowStatusWithDefaultInstanceStep{store: store}
 }
 

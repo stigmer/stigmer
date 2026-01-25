@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -79,10 +79,10 @@ func (s *validateListRequestStep) Execute(ctx *pipeline.RequestContext[*agentexe
 
 // queryAllExecutionsStep queries all executions from the store
 type queryAllExecutionsStep struct {
-	store *badger.Store
+	store store.Store
 }
 
-func newQueryAllExecutionsStep(store *badger.Store) *queryAllExecutionsStep {
+func newQueryAllExecutionsStep(store store.Store) *queryAllExecutionsStep {
 	return &queryAllExecutionsStep{store: store}
 }
 

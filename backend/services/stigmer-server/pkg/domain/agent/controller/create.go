@@ -8,7 +8,7 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
@@ -164,10 +164,10 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv
 // Separated from createDefaultInstanceStep for pipeline clarity - makes it explicit
 // that a database persist operation is happening.
 type updateAgentStatusWithDefaultInstanceStep struct {
-	store *badger.Store
+	store store.Store
 }
 
-func newUpdateAgentStatusWithDefaultInstanceStep(store *badger.Store) *updateAgentStatusWithDefaultInstanceStep {
+func newUpdateAgentStatusWithDefaultInstanceStep(store store.Store) *updateAgentStatusWithDefaultInstanceStep {
 	return &updateAgentStatusWithDefaultInstanceStep{store: store}
 }
 

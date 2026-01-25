@@ -9,7 +9,8 @@ import (
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 )
 
@@ -30,9 +31,9 @@ func contextWithWorkflowKind() context.Context {
 }
 
 // setupTestController creates a test controller with necessary dependencies
-func setupTestController(t *testing.T) (*WorkflowExecutionController, *badger.Store) {
+func setupTestController(t *testing.T) (*WorkflowExecutionController, store.Store) {
 	// Create temporary BadgerDB store
-	store, err := badger.NewStore(t.TempDir() + "/badger")
+	store, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
@@ -45,7 +46,7 @@ func setupTestController(t *testing.T) (*WorkflowExecutionController, *badger.St
 }
 
 // createTestWorkflowInstance creates a workflow instance in the store for testing
-func createTestWorkflowInstance(t *testing.T, store *badger.Store, workflowID string) *workflowinstancev1.WorkflowInstance {
+func createTestWorkflowInstance(t *testing.T, store store.Store, workflowID string) *workflowinstancev1.WorkflowInstance {
 	instance := &workflowinstancev1.WorkflowInstance{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "WorkflowInstance",
@@ -70,7 +71,7 @@ func createTestWorkflowInstance(t *testing.T, store *badger.Store, workflowID st
 }
 
 // createTestWorkflow creates a workflow in the store for testing
-func createTestWorkflow(t *testing.T, store *badger.Store) *workflowv1.Workflow {
+func createTestWorkflow(t *testing.T, store store.Store) *workflowv1.Workflow {
 	workflow := &workflowv1.Workflow{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",

@@ -2,18 +2,18 @@ package skill
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -29,18 +29,18 @@ func isHash(version string) bool {
 //
 // This skill-specific step handles version resolution:
 //   - If version is empty/"latest" → Load from main skill collection (current state)
-//   - If version is a tag → Check main first, then query skill_audit for matching tag
-//   - If version is a hash → Check main first, then query skill_audit for matching hash
-//
-// Audit Key Format: skill/skill_audit/<resource_id>/<timestamp>
-// The audit records are stored using the skill kind with a prefixed key.
+//   - If version is a tag → Check main first, then query audit table for matching tag
+//   - If version is a hash → Check main first, then query audit table for matching hash
 //
 // Version Resolution Logic:
 //  1. Find skill by slug in main collection
 //  2. If version is empty/"latest", return found skill
 //  3. If version matches main skill's tag or hash, return it
-//  4. Otherwise, scan audit records for the skill and find matching version
-//  5. Return the most recent audit record matching the version (sorted by timestamp)
+//  4. Otherwise, query the audit table for the matching version using indexed lookups
+//
+// The audit records are stored in a dedicated resource_audit table with indexes
+// on (kind, resource_id, version_hash) and (kind, resource_id, tag, archived_at DESC)
+// for efficient lookups without full table scans.
 //
 // Usage:
 //
@@ -49,7 +49,7 @@ func isHash(version string) bool {
 //	    AddStep(controller.newLoadSkillByReferenceStep()).
 //	    Build()
 type LoadSkillByReferenceStep struct {
-	store *badger.Store
+	store store.Store
 }
 
 func (c *SkillController) newLoadSkillByReferenceStep() *LoadSkillByReferenceStep {
@@ -113,9 +113,12 @@ func (s *LoadSkillByReferenceStep) Execute(ctx *pipeline.RequestContext[*apireso
 	return nil
 }
 
-// findMainSkillBySlug finds a skill in the main collection by slug
+// findMainSkillBySlug finds a skill in the main collection by slug.
+// With the new relational schema, the resources table only contains live resources
+// (no audit records), so no filtering is needed.
 func (s *LoadSkillByReferenceStep) findMainSkillBySlug(ctx context.Context, slug, org string) (*skillv1.Skill, bool, error) {
 	// List all skills from main collection
+	// Note: With the new schema, this only returns live resources (no audit records)
 	resources, err := s.store.ListResources(ctx, apiresourcekind.ApiResourceKind_skill)
 	if err != nil {
 		return nil, false, grpclib.InternalError(err, "failed to list skills")
@@ -125,11 +128,6 @@ func (s *LoadSkillByReferenceStep) findMainSkillBySlug(ctx context.Context, slug
 		var skill skillv1.Skill
 		if err := proto.Unmarshal(data, &skill); err != nil {
 			continue // Skip invalid entries
-		}
-
-		// Skip audit records (they have "skill_audit/" prefix in their ID)
-		if strings.HasPrefix(skill.Metadata.Id, "skill_audit/") {
-			continue
 		}
 
 		if skill.Metadata == nil {
@@ -169,65 +167,34 @@ func (s *LoadSkillByReferenceStep) skillMatchesVersion(skill *skillv1.Skill, ver
 	return false
 }
 
-// auditRecord holds an audit skill and its timestamp for sorting
-type auditRecord struct {
-	skill     *skillv1.Skill
-	timestamp int64 // Extracted from key
-}
-
-// findAuditSkillByVersion searches audit records for a skill with matching version
-// Returns the most recent audit record matching the version (by timestamp in key)
+// findAuditSkillByVersion queries the audit table for a skill with matching version.
+// Uses indexed lookups (GetAuditByHash or GetAuditByTag) instead of full table scans.
+//
+// Query strategy:
+//   - If version is a hash: Use GetAuditByHash for O(log n) indexed lookup
+//   - If version is a tag: Use GetAuditByTag which returns most recent by archived_at
 func (s *LoadSkillByReferenceStep) findAuditSkillByVersion(ctx context.Context, skillID, version string) (*skillv1.Skill, bool, error) {
-	// List all skills (includes audit records)
-	resources, err := s.store.ListResources(ctx, apiresourcekind.ApiResourceKind_skill)
+	var skill skillv1.Skill
+
+	if isHash(version) {
+		// Version is a hash - use indexed hash lookup
+		err := s.store.GetAuditByHash(ctx, apiresourcekind.ApiResourceKind_skill, skillID, version, &skill)
+		if err != nil {
+			if errors.Is(err, store.ErrAuditNotFound) {
+				return nil, false, nil
+			}
+			return nil, false, grpclib.InternalError(err, "failed to query audit by hash")
+		}
+		return &skill, true, nil
+	}
+
+	// Version is a tag - use indexed tag lookup (returns most recent)
+	err := s.store.GetAuditByTag(ctx, apiresourcekind.ApiResourceKind_skill, skillID, version, &skill)
 	if err != nil {
-		return nil, false, grpclib.InternalError(err, "failed to list skills")
+		if errors.Is(err, store.ErrAuditNotFound) {
+			return nil, false, nil
+		}
+		return nil, false, grpclib.InternalError(err, "failed to query audit by tag")
 	}
-
-	// Collect matching audit records
-	var matches []auditRecord
-
-	// Audit key format: skill_audit/<resource_id>/<timestamp>
-	auditPrefix := fmt.Sprintf("skill_audit/%s/", skillID)
-
-	for _, data := range resources {
-		var skill skillv1.Skill
-		if err := proto.Unmarshal(data, &skill); err != nil {
-			continue
-		}
-
-		// Only process audit records for this skill
-		if skill.Metadata == nil || !strings.HasPrefix(skill.Metadata.Id, auditPrefix) {
-			continue
-		}
-
-		// Check if this audit record matches the version
-		if !s.skillMatchesVersion(&skill, version) {
-			continue
-		}
-
-		// Extract timestamp from key: skill_audit/<resource_id>/<timestamp>
-		parts := strings.Split(skill.Metadata.Id, "/")
-		var timestamp int64 = 0
-		if len(parts) >= 3 {
-			fmt.Sscanf(parts[2], "%d", &timestamp)
-		}
-
-		matches = append(matches, auditRecord{
-			skill:     proto.Clone(&skill).(*skillv1.Skill),
-			timestamp: timestamp,
-		})
-	}
-
-	if len(matches) == 0 {
-		return nil, false, nil
-	}
-
-	// Sort by timestamp descending (most recent first)
-	sort.Slice(matches, func(i, j int) bool {
-		return matches[i].timestamp > matches[j].timestamp
-	})
-
-	// Return the most recent match
-	return matches[0].skill, true, nil
+	return &skill, true, nil
 }

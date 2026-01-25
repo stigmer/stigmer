@@ -10,7 +10,7 @@ import (
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
@@ -139,12 +139,12 @@ func (s *validateWorkflowOrInstanceStep) Execute(ctx *pipeline.RequestContext[*w
 // This step matches the Java WorkflowExecutionCreateHandler.CreateDefaultInstanceIfNeededStep.
 type createDefaultInstanceIfNeededStep struct {
 	workflowInstanceClient *workflowinstance.Client
-	store                  *badger.Store
+	store                  store.Store
 }
 
 func newCreateDefaultInstanceIfNeededStep(
 	workflowInstanceClient *workflowinstance.Client,
-	store *badger.Store,
+	store store.Store,
 ) *createDefaultInstanceIfNeededStep {
 	return &createDefaultInstanceIfNeededStep{
 		workflowInstanceClient: workflowInstanceClient,
@@ -416,7 +416,7 @@ func (s *setInitialPhaseStep) Execute(ctx *pipeline.RequestContext[*workflowexec
 // This matches the Java WorkflowExecutionCreateHandler.StartWorkflowStep.
 type startWorkflowStep struct {
 	workflowCreator *workflows.InvokeWorkflowExecutionWorkflowCreator
-	store           *badger.Store
+	store           store.Store
 }
 
 func (c *WorkflowExecutionController) newStartWorkflowStep() *startWorkflowStep {

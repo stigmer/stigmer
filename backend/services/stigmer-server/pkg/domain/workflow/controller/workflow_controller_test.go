@@ -9,7 +9,8 @@ import (
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/controller"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
@@ -31,7 +32,7 @@ func contextWithWorkflowInstanceKind() context.Context {
 }
 
 // setupInProcessServers sets up both workflow and workflow instance servers with proper circular dependencies
-func setupInProcessServers(t *testing.T, store *badger.Store) (*grpc.ClientConn, *grpc.ClientConn, func()) {
+func setupInProcessServers(t *testing.T, store store.Store) (*grpc.ClientConn, *grpc.ClientConn, func()) {
 	buffer := 1024 * 1024
 
 	// Create workflow server and listener
@@ -111,9 +112,9 @@ func setupInProcessServers(t *testing.T, store *badger.Store) (*grpc.ClientConn,
 }
 
 // setupTestController creates a test controller with necessary dependencies
-func setupTestController(t *testing.T) (*WorkflowController, *badger.Store) {
+func setupTestController(t *testing.T) (*WorkflowController, store.Store) {
 	// Create temporary BadgerDB store
-	store, err := badger.NewStore(t.TempDir() + "/badger")
+	store, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
