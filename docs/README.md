@@ -19,6 +19,8 @@ Complete documentation index for the Stigmer open-source project.
 - [Go SDK Proto Integration](sdk/go-sdk-proto-integration.md) - Convert SDK resources to platform protos (Skill ready, Agent in progress)
 
 ### Guides
+- [Uploading Skills](guides/uploading-skills.md) - **NEW**: Complete guide to uploading skills as artifacts using Artifact Mode
+- [Creating and Versioning Skills](guides/creating-and-versioning-skills.md) - Complete guide to creating, uploading, and managing versioned skills
 - [Deploying with Apply](guides/deploying-with-apply.md) - Deploy agents and workflows from code using `stigmer apply`
 - [Distribution Guide](guides/distribution.md) - Complete guide to packaging and distributing Stigmer
 - [Packaging Quick Start](guides/packaging-quickstart.md) - Quick reference for packaging strategy
@@ -26,6 +28,8 @@ Complete documentation index for the Stigmer open-source project.
 - [Agent Runner: Local Mode](guides/agent-runner-local-mode.md) - Running the agent runner in local vs cloud mode
 - [Stigmer New Command](guides/stigmer-new-command.md) - Complete setup for the `stigmer new` command, demo repository, and zero-config quickstart
 - [Temporal Connection Resilience - Quick Start](guides/temporal-connection-resilience-quick-start.md) - Quick guide to understanding and using automatic Temporal reconnection
+- [Temporal Async Activity Completion](guides/temporal-async-activity-completion.md) - **NEW**: Developer guide for integrating with async activity completion (token handshake) pattern for long-running operations
+- [Temporal Token Handshake Operations](guides/temporal-token-handshake-operations.md) - **NEW**: Operator runbook for monitoring, troubleshooting, and maintaining the token handshake pattern in production
 
 ### Implementation
 - [Phase 1 Foundation](implementation/phase-1-foundation.md) - Phase 1 implementation summary: repository structure, gRPC architecture, and database design
@@ -49,6 +53,8 @@ Complete documentation index for the Stigmer open-source project.
 - [Request Pipeline Context Design](architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
 - [SDK Code Generation](architecture/sdk-code-generation.md) - Schema-driven code generation for workflow tasks (adds new task in 5 minutes vs 30-60)
 - [SDK-CLI Contract](architecture/sdk-cli-contract.md) - Direct proto pattern: SDKs write platform protos with SDK metadata in annotations (eliminates manifest wrapper layer)
+- [Skill Artifact Storage](architecture/skill-artifact-storage.md) - **NEW**: Secure content-addressable storage for skill artifacts with google/safearchive, ZIP bomb protection, and audit trail
+- [Skill Versioning](architecture/skill-versioning.md) - Versioned artifact-centric skill system with content-addressable storage and tag-based versioning
 - [Spec vs Status Philosophy](architecture/spec-status-philosophy.md) - Kubernetes-inspired philosophy for field placement: inputs in spec, outputs in status
 - [Temporal Integration](architecture/temporal-integration.md) - Polyglot workflow orchestration with Temporal (Go workflows, Python activities)
 - [Temporal Connection Resilience](implementation/temporal-connection-resilience.md) - Self-healing Temporal connection with automatic reconnection and zero-downtime recovery
@@ -62,7 +68,7 @@ Complete documentation index for the Stigmer open-source project.
 - [In-Process gRPC Calls and Agent Instance Creation](adr/20260118-214000-in-process-grpc-calls-and-agent-instance-creation.md) - In-process gRPC architecture
 - [Fix Go In-Process gRPC Implementation](adr/20260118-fix-go-inprocess-grpc-implementation.md) - Technical fixes for in-process gRPC
 - [Workflow Runner Config](adr/20260119-011111-workflow-runner-config.md) - Workflow runner configuration architecture
-- [Async Agent Execution - Temporal Token Handshake](adr/20260122-async-agent-execution-temporal-token-handshake.md) - Async activity completion pattern for non-blocking agent execution
+- [Async Agent Execution - Temporal Token Handshake](adr/20260122-async-agent-execution-temporal-token-handshake.md) - **✅ IMPLEMENTED**: Async activity completion pattern for non-blocking agent execution (Go + Java)
 
 **Note**: See `_cursor/adr-doc` for ADR 016: Local Agent Runner Runtime Strategy (implementation guide)
 

@@ -2,13 +2,16 @@ package skill
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
+	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/badger"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
 )
 
 // contextWithSkillKind creates a context with the skill resource kind injected
@@ -25,208 +28,84 @@ func setupTestController(t *testing.T) (*SkillController, *badger.Store) {
 		t.Fatalf("failed to create store: %v", err)
 	}
 
-	controller := NewSkillController(store)
+	// Create temporary artifact storage
+	artifactStorage, err := storage.NewLocalFileStorage(t.TempDir() + "/artifacts")
+	if err != nil {
+		t.Fatalf("failed to create artifact storage: %v", err)
+	}
+
+	controller := NewSkillController(store, artifactStorage)
 
 	return controller, store
 }
 
-func TestSkillController_Create(t *testing.T) {
-	controller, store := setupTestController(t)
-	defer store.Close()
+// createTestSkill creates a test skill in the store
+func createTestSkill(t *testing.T, store *badger.Store, id, slug, tag, hash string) *skillv1.Skill {
+	skill := &skillv1.Skill{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Skill",
+		Metadata: &apiresourcepb.ApiResourceMetadata{
+			Id:   id,
+			Slug: slug,
+			Name: slug,
+		},
+		Spec: &skillv1.SkillSpec{
+			SkillMd: "# Test Skill\nThis is a test skill.",
+			Tag:     tag,
+		},
+		Status: &skillv1.SkillStatus{
+			VersionHash:        hash,
+			ArtifactStorageKey: fmt.Sprintf("skills/%s.zip", hash),
+			State:              skillv1.SkillState_SKILL_STATE_READY,
+		},
+	}
 
-	t.Run("successful creation with markdown_content", func(t *testing.T) {
-		skill := &skillv1.Skill{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Test Skill",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
-			},
-			Spec: &skillv1.SkillSpec{
-				Description:     "Test skill description",
-				MarkdownContent: "# Test Skill\n\nThis is test markdown content.",
-			},
-		}
+	err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_skill, id, skill)
+	if err != nil {
+		t.Fatalf("failed to save test skill: %v", err)
+	}
 
-		created, err := controller.Create(contextWithSkillKind(), skill)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		// Verify defaults set by pipeline
-		if created.Metadata.Id == "" {
-			t.Error("Expected ID to be set")
-		}
-
-		if created.Metadata.Slug == "" {
-			t.Error("Expected slug to be set")
-		}
-
-		if created.Metadata.Slug != "test-skill" {
-			t.Errorf("Expected slug 'test-skill', got '%s'", created.Metadata.Slug)
-		}
-
-		if created.Kind != "Skill" {
-			t.Errorf("Expected kind 'Skill', got '%s'", created.Kind)
-		}
-
-		if created.ApiVersion != "agentic.stigmer.ai/v1" {
-			t.Errorf("Expected api_version 'agentic.stigmer.ai/v1', got '%s'", created.ApiVersion)
-		}
-
-		// Verify markdown_content is preserved
-		if created.Spec.MarkdownContent != "# Test Skill\n\nThis is test markdown content." {
-			t.Errorf("Expected markdown_content to be preserved, got '%s'", created.Spec.MarkdownContent)
-		}
-
-		// Verify description is preserved
-		if created.Spec.Description != "Test skill description" {
-			t.Errorf("Expected description 'Test skill description', got '%s'", created.Spec.Description)
-		}
-	})
-
-	t.Run("validation error - missing markdown_content", func(t *testing.T) {
-		skill := &skillv1.Skill{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Skill",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
-			},
-			Spec: &skillv1.SkillSpec{
-				Description: "Test description",
-			},
-		}
-
-		_, err := controller.Create(contextWithSkillKind(), skill)
-		if err == nil {
-			t.Error("Expected error when markdown_content is not provided")
-		}
-	})
-
-	t.Run("validation error - empty markdown_content", func(t *testing.T) {
-		skill := &skillv1.Skill{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Skill",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
-			},
-			Spec: &skillv1.SkillSpec{
-				Description:     "Test description",
-				MarkdownContent: "",
-			},
-		}
-
-		_, err := controller.Create(contextWithSkillKind(), skill)
-		if err == nil {
-			t.Error("Expected error when markdown_content is empty")
-		}
-	})
-
-	t.Run("missing metadata", func(t *testing.T) {
-		skill := &skillv1.Skill{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Spec: &skillv1.SkillSpec{
-				Description:     "Test description",
-				MarkdownContent: "# Test Content",
-			},
-		}
-
-		_, err := controller.Create(contextWithSkillKind(), skill)
-		if err == nil {
-			t.Error("Expected error for missing metadata")
-		}
-	})
-
-	t.Run("missing name", func(t *testing.T) {
-		skill := &skillv1.Skill{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Metadata:   &apiresource.ApiResourceMetadata{},
-			Spec: &skillv1.SkillSpec{
-				Description:     "Test description",
-				MarkdownContent: "# Test Content",
-			},
-		}
-
-		_, err := controller.Create(contextWithSkillKind(), skill)
-		if err == nil {
-			t.Error("Expected error for missing name")
-		}
-	})
-
-	t.Run("successful creation without optional description", func(t *testing.T) {
-		skill := &skillv1.Skill{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Skill Without Description",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
-			},
-			Spec: &skillv1.SkillSpec{
-				MarkdownContent: "# Skill Content\n\nContent without description.",
-			},
-		}
-
-		created, err := controller.Create(contextWithSkillKind(), skill)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		if created.Spec.Description != "" {
-			t.Errorf("Expected empty description, got '%s'", created.Spec.Description)
-		}
-
-		if created.Spec.MarkdownContent != "# Skill Content\n\nContent without description." {
-			t.Errorf("Expected markdown_content to be preserved, got '%s'", created.Spec.MarkdownContent)
-		}
-	})
+	return skill
 }
+
+// createTestAuditRecord creates a test audit record in the store
+func createTestAuditRecord(t *testing.T, store *badger.Store, skillID, tag, hash string, timestamp int64) *skillv1.Skill {
+	auditKey := fmt.Sprintf("skill_audit/%s/%d", skillID, timestamp)
+
+	skill := &skillv1.Skill{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Skill",
+		Metadata: &apiresourcepb.ApiResourceMetadata{
+			Id:   auditKey, // Audit key stored as ID
+			Slug: "test-skill",
+			Name: "Test Skill",
+		},
+		Spec: &skillv1.SkillSpec{
+			SkillMd: fmt.Sprintf("# Test Skill v%s\nThis is version %s.", tag, tag),
+			Tag:     tag,
+		},
+		Status: &skillv1.SkillStatus{
+			VersionHash:        hash,
+			ArtifactStorageKey: fmt.Sprintf("skills/%s.zip", hash),
+			State:              skillv1.SkillState_SKILL_STATE_READY,
+		},
+	}
+
+	err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_skill, auditKey, skill)
+	if err != nil {
+		t.Fatalf("failed to save test audit record: %v", err)
+	}
+
+	return skill
+}
+
+// Note: Create, Update, and Apply operations have been removed.
+// All skill modifications now go through the Push operation.
+// Tests for Push are in a separate file or should be added here.
 
 func TestSkillController_Get(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
-
-	t.Run("successful get", func(t *testing.T) {
-		// Create skill first
-		skill := &skillv1.Skill{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Get Test Skill",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
-			},
-			Spec: &skillv1.SkillSpec{
-				Description:     "Test description",
-				MarkdownContent: "# Get Test\n\nTest content for get operation.",
-			},
-		}
-
-		created, err := controller.Create(contextWithSkillKind(), skill)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		// Get the skill
-		retrieved, err := controller.Get(contextWithSkillKind(), &skillv1.SkillId{Value: created.Metadata.Id})
-		if err != nil {
-			t.Fatalf("Get failed: %v", err)
-		}
-
-		if retrieved.Metadata.Id != created.Metadata.Id {
-			t.Errorf("Expected ID '%s', got '%s'", created.Metadata.Id, retrieved.Metadata.Id)
-		}
-
-		if retrieved.Spec.Description != "Test description" {
-			t.Errorf("Expected description 'Test description', got '%s'", retrieved.Spec.Description)
-		}
-
-		if retrieved.Spec.MarkdownContent != "# Get Test\n\nTest content for get operation." {
-			t.Errorf("Expected markdown_content to match, got '%s'", retrieved.Spec.MarkdownContent)
-		}
-	})
 
 	t.Run("get non-existent skill", func(t *testing.T) {
 		_, err := controller.Get(contextWithSkillKind(), &skillv1.SkillId{Value: "non-existent-id"})
@@ -243,146 +122,9 @@ func TestSkillController_Get(t *testing.T) {
 	})
 }
 
-func TestSkillController_Update(t *testing.T) {
-	controller, store := setupTestController(t)
-	defer store.Close()
-
-	t.Run("successful update", func(t *testing.T) {
-		// Create skill first
-		skill := &skillv1.Skill{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Update Test Skill",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
-			},
-			Spec: &skillv1.SkillSpec{
-				Description:     "Original description",
-				MarkdownContent: "# Original Content",
-			},
-		}
-
-		created, err := controller.Create(contextWithSkillKind(), skill)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		// Update the skill
-		created.Spec.Description = "Updated description"
-		created.Spec.MarkdownContent = "# Updated Content\n\nThis content has been updated."
-		updated, err := controller.Update(contextWithSkillKind(), created)
-		if err != nil {
-			t.Fatalf("Update failed: %v", err)
-		}
-
-		if updated.Spec.Description != "Updated description" {
-			t.Errorf("Expected description 'Updated description', got '%s'", updated.Spec.Description)
-		}
-
-		if updated.Spec.MarkdownContent != "# Updated Content\n\nThis content has been updated." {
-			t.Errorf("Expected markdown_content to be updated, got '%s'", updated.Spec.MarkdownContent)
-		}
-
-		// Verify ID and slug remain unchanged
-		if updated.Metadata.Id != created.Metadata.Id {
-			t.Errorf("Expected ID to remain '%s', got '%s'", created.Metadata.Id, updated.Metadata.Id)
-		}
-
-		if updated.Metadata.Slug != created.Metadata.Slug {
-			t.Errorf("Expected slug to remain '%s', got '%s'", created.Metadata.Slug, updated.Metadata.Slug)
-		}
-	})
-
-	t.Run("update non-existent skill", func(t *testing.T) {
-		skill := &skillv1.Skill{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Id:         "non-existent-id",
-				Name:       "Non-existent Skill",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
-			},
-			Spec: &skillv1.SkillSpec{
-				Description:     "Test description",
-				MarkdownContent: "# Test Content",
-			},
-		}
-
-		_, err := controller.Update(contextWithSkillKind(), skill)
-		if err == nil {
-			t.Error("Expected error for updating non-existent skill")
-		}
-	})
-
-	t.Run("update with invalid markdown_content", func(t *testing.T) {
-		// Create skill first
-		skill := &skillv1.Skill{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Update Skill",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
-			},
-			Spec: &skillv1.SkillSpec{
-				Description:     "Original description",
-				MarkdownContent: "# Original Content",
-			},
-		}
-
-		created, err := controller.Create(contextWithSkillKind(), skill)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		// Try to update with empty markdown_content
-		created.Spec.MarkdownContent = ""
-		_, err = controller.Update(contextWithSkillKind(), created)
-		if err == nil {
-			t.Error("Expected error when updating with empty markdown_content")
-		}
-	})
-}
-
 func TestSkillController_Delete(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
-
-	t.Run("successful deletion", func(t *testing.T) {
-		// Create skill first
-		skill := &skillv1.Skill{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Test Skill",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
-			},
-			Spec: &skillv1.SkillSpec{
-				Description:     "Test description",
-				MarkdownContent: "# Delete Test\n\nThis skill will be deleted.",
-			},
-		}
-
-		created, err := controller.Create(contextWithSkillKind(), skill)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		// Delete the skill
-		deleted, err := controller.Delete(contextWithSkillKind(), &skillv1.SkillId{Value: created.Metadata.Id})
-		if err != nil {
-			t.Fatalf("Delete failed: %v", err)
-		}
-
-		if deleted.Metadata.Id != created.Metadata.Id {
-			t.Errorf("Expected deleted skill ID '%s', got '%s'", created.Metadata.Id, deleted.Metadata.Id)
-		}
-
-		// Verify skill is deleted
-		_, err = controller.Get(contextWithSkillKind(), &skillv1.SkillId{Value: created.Metadata.Id})
-		if err == nil {
-			t.Error("Expected error when getting deleted skill")
-		}
-	})
 
 	t.Run("delete non-existent skill", func(t *testing.T) {
 		_, err := controller.Delete(contextWithSkillKind(), &skillv1.SkillId{Value: "non-existent-id"})
@@ -397,44 +139,198 @@ func TestSkillController_Delete(t *testing.T) {
 			t.Error("Expected error when deleting with empty ID")
 		}
 	})
+}
 
-	t.Run("verify deleted skill returns correct data", func(t *testing.T) {
-		// Create skill with specific data
-		skill := &skillv1.Skill{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Verify Skill",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
-			},
-			Spec: &skillv1.SkillSpec{
-				Description:     "Verify deletion data",
-				MarkdownContent: "# Verify Delete\n\nVerify that deletion returns correct data.",
-			},
+func TestSkillController_GetByReference(t *testing.T) {
+	controller, store := setupTestController(t)
+	defer store.Close()
+
+	// Create test skill in main collection
+	// Hash must be exactly 64 lowercase hex characters (SHA256)
+	mainSkill := createTestSkill(t, store, "skill-123", "calculator", "stable", "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")
+
+	t.Run("get by slug without version (latest)", func(t *testing.T) {
+		ref := &apiresourcepb.ApiResourceReference{
+			Slug: "calculator",
+			Kind: apiresourcekind.ApiResourceKind_skill,
 		}
 
-		created, err := controller.Create(contextWithSkillKind(), skill)
+		result, err := controller.GetByReference(contextWithSkillKind(), ref)
 		if err != nil {
-			t.Fatalf("Create failed: %v", err)
+			t.Fatalf("Expected no error, got: %v", err)
 		}
 
-		// Delete and verify returned data
-		deleted, err := controller.Delete(contextWithSkillKind(), &skillv1.SkillId{Value: created.Metadata.Id})
-		if err != nil {
-			t.Fatalf("Delete failed: %v", err)
-		}
-
-		// Verify all fields are preserved in deleted response
-		if deleted.Spec.MarkdownContent != "# Verify Delete\n\nVerify that deletion returns correct data." {
-			t.Errorf("Expected markdown_content to be preserved, got '%s'", deleted.Spec.MarkdownContent)
-		}
-
-		if deleted.Spec.Description != "Verify deletion data" {
-			t.Errorf("Expected description 'Verify deletion data', got '%s'", deleted.Spec.Description)
-		}
-
-		if deleted.Metadata.Name != "Delete Verify Skill" {
-			t.Errorf("Expected name 'Delete Verify Skill', got '%s'", deleted.Metadata.Name)
+		if result.Metadata.Id != mainSkill.Metadata.Id {
+			t.Errorf("Expected skill ID %s, got %s", mainSkill.Metadata.Id, result.Metadata.Id)
 		}
 	})
+
+	t.Run("get by slug with explicit latest version", func(t *testing.T) {
+		ref := &apiresourcepb.ApiResourceReference{
+			Slug:    "calculator",
+			Kind:    apiresourcekind.ApiResourceKind_skill,
+			Version: "latest",
+		}
+
+		result, err := controller.GetByReference(contextWithSkillKind(), ref)
+		if err != nil {
+			t.Fatalf("Expected no error, got: %v", err)
+		}
+
+		if result.Metadata.Id != mainSkill.Metadata.Id {
+			t.Errorf("Expected skill ID %s, got %s", mainSkill.Metadata.Id, result.Metadata.Id)
+		}
+	})
+
+	t.Run("get by slug with matching tag", func(t *testing.T) {
+		ref := &apiresourcepb.ApiResourceReference{
+			Slug:    "calculator",
+			Kind:    apiresourcekind.ApiResourceKind_skill,
+			Version: "stable",
+		}
+
+		result, err := controller.GetByReference(contextWithSkillKind(), ref)
+		if err != nil {
+			t.Fatalf("Expected no error, got: %v", err)
+		}
+
+		if result.Spec.Tag != "stable" {
+			t.Errorf("Expected tag 'stable', got '%s'", result.Spec.Tag)
+		}
+	})
+
+	t.Run("get by slug with matching hash", func(t *testing.T) {
+		ref := &apiresourcepb.ApiResourceReference{
+			Slug:    "calculator",
+			Kind:    apiresourcekind.ApiResourceKind_skill,
+			Version: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+		}
+
+		result, err := controller.GetByReference(contextWithSkillKind(), ref)
+		if err != nil {
+			t.Fatalf("Expected no error, got: %v", err)
+		}
+
+		if result.Status.VersionHash != "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" {
+			t.Errorf("Expected hash match, got '%s'", result.Status.VersionHash)
+		}
+	})
+
+	t.Run("get non-existent slug", func(t *testing.T) {
+		ref := &apiresourcepb.ApiResourceReference{
+			Slug: "non-existent",
+			Kind: apiresourcekind.ApiResourceKind_skill,
+		}
+
+		_, err := controller.GetByReference(contextWithSkillKind(), ref)
+		if err == nil {
+			t.Error("Expected error for non-existent slug")
+		}
+	})
+
+	t.Run("get with non-existent version", func(t *testing.T) {
+		ref := &apiresourcepb.ApiResourceReference{
+			Slug:    "calculator",
+			Kind:    apiresourcekind.ApiResourceKind_skill,
+			Version: "nonexistent-tag",
+		}
+
+		_, err := controller.GetByReference(contextWithSkillKind(), ref)
+		if err == nil {
+			t.Error("Expected error for non-existent version")
+		}
+	})
+}
+
+func TestSkillController_GetByReference_AuditVersions(t *testing.T) {
+	controller, store := setupTestController(t)
+	defer store.Close()
+
+	// Create main skill with tag "v3"
+	// Hash must be exactly 64 lowercase hex characters (SHA256)
+	_ = createTestSkill(t, store, "skill-456", "web-search", "v3", "3333333333333333333333333333333333333333333333333333333333333333")
+
+	// Create audit records for older versions
+	now := time.Now().UnixNano()
+	createTestAuditRecord(t, store, "skill-456", "v1", "1111111111111111111111111111111111111111111111111111111111111111", now-2000000000) // Oldest
+	createTestAuditRecord(t, store, "skill-456", "v2", "2222222222222222222222222222222222222222222222222222222222222222", now-1000000000) // Newer
+
+	t.Run("get current version (v3)", func(t *testing.T) {
+		ref := &apiresourcepb.ApiResourceReference{
+			Slug:    "web-search",
+			Kind:    apiresourcekind.ApiResourceKind_skill,
+			Version: "v3",
+		}
+
+		result, err := controller.GetByReference(contextWithSkillKind(), ref)
+		if err != nil {
+			t.Fatalf("Expected no error, got: %v", err)
+		}
+
+		if result.Spec.Tag != "v3" {
+			t.Errorf("Expected tag 'v3', got '%s'", result.Spec.Tag)
+		}
+	})
+
+	t.Run("get older version (v1) from audit", func(t *testing.T) {
+		ref := &apiresourcepb.ApiResourceReference{
+			Slug:    "web-search",
+			Kind:    apiresourcekind.ApiResourceKind_skill,
+			Version: "v1",
+		}
+
+		result, err := controller.GetByReference(contextWithSkillKind(), ref)
+		if err != nil {
+			t.Fatalf("Expected no error, got: %v", err)
+		}
+
+		if result.Spec.Tag != "v1" {
+			t.Errorf("Expected tag 'v1', got '%s'", result.Spec.Tag)
+		}
+	})
+
+	t.Run("get version by hash from audit", func(t *testing.T) {
+		ref := &apiresourcepb.ApiResourceReference{
+			Slug:    "web-search",
+			Kind:    apiresourcekind.ApiResourceKind_skill,
+			Version: "2222222222222222222222222222222222222222222222222222222222222222",
+		}
+
+		result, err := controller.GetByReference(contextWithSkillKind(), ref)
+		if err != nil {
+			t.Fatalf("Expected no error, got: %v", err)
+		}
+
+		if result.Status.VersionHash != "2222222222222222222222222222222222222222222222222222222222222222" {
+			t.Errorf("Expected hash match, got '%s'", result.Status.VersionHash)
+		}
+	})
+}
+
+func TestIsHash(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890", true},  // Valid 64-char hex
+		{"0000000000000000000000000000000000000000000000000000000000000000", true},  // All zeros (64 chars)
+		{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", true},  // All f's (64 chars)
+		{"ABCDEF1234567890abcdef1234567890abcdef1234567890ABCDEF1234567890", false}, // Has uppercase (not matching pattern)
+		{"abc123", false}, // Too short
+		{"stable", false}, // Tag name
+		{"v1.0", false},   // Version tag
+		{"latest", false}, // Latest
+		{"", false},       // Empty
+		{"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab", false}, // Too long (66 chars)
+		{"ghij001234567890abcdef1234567890abcdef1234567890abcdef1234567890", false},   // Invalid hex chars 'g', 'h', 'i', 'j'
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := isHash(tt.input)
+			if result != tt.expected {
+				t.Errorf("isHash(%q) = %v, want %v", tt.input, result, tt.expected)
+			}
+		})
+	}
 }

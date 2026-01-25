@@ -46,6 +46,30 @@ stigmer backend set local
 stigmer backend set cloud
 ```
 
+### Skill Management
+
+```bash
+# Push skill from current directory (must contain SKILL.md)
+stigmer skill push
+
+# Push skill from specific directory
+stigmer skill push ./my-skill/
+
+# Push with specific tag
+stigmer skill push --tag v1.0.0
+
+# Push to specific organization
+stigmer skill push --org acme-corp
+
+# Dry run (validate without pushing)
+stigmer skill push --dry-run
+```
+
+Skills are reusable capabilities that extend agent functionality.
+Each skill is a directory containing a SKILL.md file and supporting
+implementation files. Skills are versioned and stored in the Stigmer
+registry, and can be referenced by agents using tags or exact version hashes.
+
 ### Project Scaffolding
 
 ```bash

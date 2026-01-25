@@ -819,6 +819,168 @@ ctx.Get(ExistingResourceKey).(*Agent)   // Loaded resource
 
 Both achieve the same goal (load resource, delete, return deleted), but with different safety guarantees.
 
+## Type Transformation Pattern: Request → Resource
+
+### Overview
+
+Some operations transform between different message types during pipeline execution:
+- **Delete**: Transforms ID → Resource (input: `AgentId`, output: `Agent`)
+- **Push**: Transforms Request → Resource (input: `PushSkillRequest`, output: `Skill`)
+- **Batch Operations**: Transform batch request → individual resources
+
+This pattern occurs when the RPC signature takes a custom request type but returns a standard resource.
+
+### Challenge: newState Type Constraint
+
+`RequestContext[T]` has a fundamental type constraint:
+
+```go
+type RequestContext[T proto.Message] struct {
+    input    T  // Original request
+    newState T  // Must be same type as input!
+    metadata map[string]interface{}
+}
+```
+
+**Problem**: If `T = PushSkillRequest`, then `newState` is also `PushSkillRequest`.  
+**But**: We're building a `Skill` resource (different type).  
+**Solution**: Use context metadata to store the transformed resource.
+
+### Implementation Pattern: Push Handler
+
+**Pipeline Type**: `Pipeline[*PushSkillRequest]`
+
+```go
+func (c *SkillController) Push(ctx context.Context, req *PushSkillRequest) (*Skill, error) {
+    // Context is typed with the INPUT type
+    reqCtx := pipeline.NewRequestContext(ctx, req)
+    
+    // Execute pipeline (steps build the Skill)
+    p := c.buildPushPipeline()
+    if err := p.Execute(reqCtx); err != nil {
+        return nil, err
+    }
+    
+    // Retrieve OUTPUT type from metadata
+    skill := reqCtx.Get(SkillKey).(*Skill)
+    return skill, nil
+}
+```
+
+**Pipeline Steps Build the Skill:**
+
+```go
+// Step 1: Build initial Skill from PushSkillRequest
+func (s *BuildInitialSkillStep) Execute(ctx *RequestContext[*PushSkillRequest]) error {
+    req := ctx.Input()  // PushSkillRequest
+    
+    // Transform: PushSkillRequest → Skill
+    skill := &Skill{
+        Metadata: &Metadata{
+            Name: req.Name,
+            OwnerScope: req.Scope,
+            Org: req.Org,
+        },
+        Spec: &SkillSpec{
+            Tag: req.Tag,
+        },
+    }
+    
+    // Store transformed resource in metadata (can't use newState - wrong type!)
+    ctx.Set(SkillKey, skill)
+    return nil
+}
+
+// Step 2+: Subsequent steps modify the Skill
+func (s *PopulateFieldsStep) Execute(ctx *RequestContext[*PushSkillRequest]) error {
+    skill := ctx.Get(SkillKey).(*Skill)  // Retrieve Skill
+    
+    // Modify the Skill
+    skill.Spec.SkillMd = extractedContent
+    skill.Status.VersionHash = hash
+    
+    // Skill is already in context, modifications are visible to later steps
+    return nil
+}
+```
+
+### Key Points
+
+**1. Use Constants for Context Keys:**
+```go
+const (
+    SkillKey = "skill"  // Document: type transformation PushSkillRequest → Skill
+)
+```
+
+**2. Document Why newState Can't Be Used:**
+```go
+// We use context metadata because:
+// - RequestContext[T] where T = PushSkillRequest
+// - newState is also typed as PushSkillRequest
+// - We're building a Skill (different type)
+// - Go's type system doesn't allow storing Skill in field typed as PushSkillRequest
+```
+
+**3. Contrast with Same-Type Operations:**
+
+| Operation | Input Type | Output Type | Uses newState? | Storage Strategy |
+|-----------|------------|-------------|----------------|------------------|
+| **Create** | Skill | Skill | ✅ Yes | `ctx.NewState()` |
+| **Update** | Skill | Skill | ✅ Yes | `ctx.NewState()` |
+| **Delete** | SkillId | Skill | ❌ No | `ctx.Set("skill", skill)` |
+| **Push** | PushSkillRequest | Skill | ❌ No | `ctx.Set(SkillKey, skill)` |
+
+**4. Pattern Recognition:**
+
+When implementing a handler, check the RPC signature:
+```protobuf
+// Same types → use newState
+rpc create(Skill) returns (Skill);
+rpc update(Skill) returns (Skill);
+
+// Different types → use context metadata
+rpc delete(SkillId) returns (Skill);
+rpc push(PushSkillRequest) returns (Skill);
+```
+
+### Benefits of This Pattern
+
+**Flexibility:**
+- ✅ Supports any type transformation
+- ✅ No special RequestContext subclasses needed
+- ✅ Reuses existing pipeline infrastructure
+
+**Type Safety:**
+- ⚠️ Runtime type assertions (not compile-time)
+- ✅ Constants prevent typos
+- ✅ Clear documentation in comments
+
+**Consistency:**
+- ✅ Same RequestContext type for all operations
+- ✅ Familiar metadata pattern for inter-step communication
+- ✅ Works alongside same-type operations (Create, Update)
+
+### Alternative Considered: Generic Pipeline[I, O]
+
+Could we make Pipeline generic over both input and output types?
+
+```go
+type Pipeline[I proto.Message, O proto.Message] struct { ... }
+type RequestContext[I proto.Message, O proto.Message] struct {
+    input    I
+    newState O  // Different type!
+}
+```
+
+**Why not adopted:**
+- ❌ Most operations have same input/output (Create, Update, Apply)
+- ❌ Adds complexity for the common case
+- ❌ Metadata pattern works well for edge cases
+- ⚠️ Would require RequestContext[I, O] everywhere (even when I == O)
+
+**Decision**: Keep simple single-type RequestContext[T], use metadata for type transformations.
+
 ## Related Documentation
 
 - [Backend Architecture](backend-architecture.md) - Overall backend design patterns

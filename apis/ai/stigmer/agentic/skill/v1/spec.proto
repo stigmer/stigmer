@@ -4,11 +4,17 @@ package ai.stigmer.agentic.skill.v1;
 
 import "buf/validate/validate.proto";
 
-// SkillSpec defines the configurable properties of a skill.
+// SkillSpec defines the user-provided configuration of a skill.
+// This represents user intent (desired state).
 message SkillSpec {
-  // Brief description for UI display.
-  string description = 1;
+  // SKILL.md content containing the skill's interface definition,
+  // documentation, usage examples, and tool descriptions.
+  // This content is injected into agent prompts.
+  string skill_md = 1 [(buf.validate.field).string.min_len = 1];
 
-  // Markdown content containing the skill documentation/knowledge.
-  string markdown_content = 2 [(buf.validate.field).string.min_len = 1];
+  // Optional user-provided tag for this skill version.
+  // Tags are mutable pointers that can be updated to reference new versions.
+  // Examples: "stable", "v1.0", "beta", "latest"
+  // If not provided, the version will only be accessible via its immutable hash.
+  string tag = 2 [(buf.validate.field).string.pattern = "^$|^[a-zA-Z0-9._-]+$"];
 }

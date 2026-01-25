@@ -2,9 +2,68 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.skill.v1;
 
+import "ai/stigmer/commons/apiresource/enum.proto";
 import "buf/validate/validate.proto";
 
 // SkillId wraps a skill identifier.
 message SkillId {
   string value = 1 [(buf.validate.field).required = true];
+}
+
+// PushSkillRequest contains the skill artifact and metadata for upload.
+// This operation creates a new skill if it doesn't exist, or creates a new version
+// of an existing skill.
+message PushSkillRequest {
+  // Skill name (will be normalized to slug by backend).
+  // Examples: "Math Utils" → "math-utils", "Calculator" → "calculator"
+  string name = 1 [(buf.validate.field).required = true];
+
+  // Owner scope of the skill (platform or organization).
+  ai.stigmer.commons.apiresource.ApiResourceOwnerScope scope = 2 [(buf.validate.field).enum.defined_only = true];
+
+  // Organization ID (required if scope = organization).
+  string org = 3;
+
+  // Skill artifact as a Zip file (binary content).
+  // The Zip must contain:
+  // - SKILL.md (required): Interface definition and documentation
+  // - Tool executables/scripts (optional)
+  // - Additional files referenced in SKILL.md
+  bytes artifact = 4 [(buf.validate.field).required = true];
+
+  // Optional tag to associate with this version.
+  // If provided, this tag will point to the new version.
+  // If empty/not provided, the version will only be accessible via its hash.
+  // Examples: "stable", "v1.0", "latest"
+  string tag = 5 [(buf.validate.field).string.pattern = "^$|^[a-zA-Z0-9._-]+$"];
+}
+
+// PushSkillResponse returns the version information after successful upload.
+// DEPRECATED: Use Skill resource directly (returned by push RPC)
+// This message is kept for backward compatibility only.
+message PushSkillResponse {
+  option deprecated = true;
+
+  // SHA256 hash of the uploaded artifact (immutable version identifier).
+  string version_hash = 1;
+
+  // Storage key where the artifact was saved.
+  string artifact_storage_key = 2;
+
+  // Tag that now points to this version (if provided in request).
+  string tag = 3;
+}
+
+// GetArtifactRequest requests download of a skill artifact by storage key.
+message GetArtifactRequest {
+  // The artifact storage key from skill.status.artifact_storage_key.
+  // This key identifies the location of the ZIP file in storage (R2/S3).
+  string artifact_storage_key = 1 [(buf.validate.field).required = true];
+}
+
+// GetArtifactResponse contains the skill artifact content.
+message GetArtifactResponse {
+  // The skill artifact as a ZIP file (binary content).
+  // Contains SKILL.md and implementation files.
+  bytes artifact = 1;
 }

@@ -3,10 +3,10 @@ package root
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
@@ -26,17 +26,19 @@ func NewApplyCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "apply",
 		Short: "Deploy resources from current project",
-		Long: `Deploy or update resources from code.
+		Long: `Deploy resources from your Stigmer project.
 
-Reads Stigmer.yaml and executes your entry point (main.go) to deploy Agents/Workflows.
-Resources are auto-discovered from your code.
+Reads Stigmer.yaml and executes your entry point (main.go) to deploy
+Agents and Workflows. Resources are auto-discovered from your code.
 
-The Stigmer.yaml file only contains metadata:
+The Stigmer.yaml file contains project metadata:
   name: my-project
   runtime: go
   main: main.go
 
-Run from your project directory containing Stigmer.yaml.`,
+Run from your project directory containing Stigmer.yaml.
+
+For skill artifacts, use 'stigmer skill push' instead.`,
 		Example: `  # Deploy agents from code
   stigmer apply
   
@@ -52,7 +54,7 @@ Run from your project directory containing Stigmer.yaml.`,
   # Override organization
   stigmer apply --org my-org-id`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Use the reusable apply function
+			// Deploy from Stigmer.yaml + code execution
 			deployedSkills, deployedAgents, deployedWorkflows, err := ApplyCodeMode(ApplyCodeModeOptions{
 				ConfigFile:  configFile,
 				OrgOverride: orgOverride,
@@ -148,7 +150,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 	if !opts.Quiet {
 		cliprint.PrintInfo("Loading project configuration...")
 	}
-	
+
 	stigmerConfig, err := config.LoadStigmerConfig(opts.ConfigFile)
 	if err != nil {
 		return nil, nil, nil, err
@@ -175,7 +177,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 	if !opts.Quiet {
 		cliprint.PrintInfo("Executing entry point to discover resources...")
 	}
-	
+
 	synthesisResult, err := agent.ExecuteGoAndGetSynthesis(mainFilePath)
 	if err != nil {
 		return nil, nil, nil, err
@@ -195,7 +197,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 	}
 
 	if !opts.Quiet {
-		cliprint.PrintSuccess("✓ Synthesis complete: %d resource(s) discovered (%d skill(s), %d agent(s), %d workflow(s))", 
+		cliprint.PrintSuccess("✓ Synthesis complete: %d resource(s) discovered (%d skill(s), %d agent(s), %d workflow(s))",
 			totalResources, skillCount, agentCount, workflowCount)
 		fmt.Println()
 
@@ -204,9 +206,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 			cliprint.PrintInfo("Skills discovered: %d", skillCount)
 			for i, skill := range synthesisResult.Skills {
 				cliprint.PrintInfo("  %d. %s", i+1, skill.Metadata.Name)
-				if skill.Spec.Description != "" {
-					cliprint.PrintInfo("     Description: %s", skill.Spec.Description)
-				}
+				// Note: Description field removed from SkillSpec in T01.1
 			}
 			fmt.Println()
 		}
@@ -221,7 +221,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 			}
 			fmt.Println()
 		}
-		
+
 		if workflowCount > 0 {
 			cliprint.PrintInfo("Workflows discovered: %d", workflowCount)
 			for i, wf := range synthesisResult.Workflows {
@@ -239,7 +239,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 		if !opts.Quiet {
 			// Create table for dry-run display
 			resultTable := display.NewApplyResultTable()
-			
+
 			// Add skills to table
 			for _, skill := range synthesisResult.Skills {
 				resultTable.AddResource(
@@ -250,7 +250,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 					nil,
 				)
 			}
-			
+
 			// Add agents to table
 			for _, agent := range synthesisResult.Agents {
 				resultTable.AddResource(
@@ -261,7 +261,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 					nil,
 				)
 			}
-			
+
 			// Add workflows to table
 			for _, wf := range synthesisResult.Workflows {
 				resultTable.AddResource(
@@ -272,7 +272,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 					nil,
 				)
 			}
-			
+
 			// Render dry-run table
 			resultTable.RenderDryRun()
 		}
@@ -287,7 +287,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 
 	// Step 6: Determine organization based on backend mode
 	var orgID string
-	
+
 	switch cfg.Backend.Type {
 	case config.BackendTypeLocal:
 		// Local mode: Use constant organization name
@@ -330,7 +330,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		
+
 		if err := daemon.EnsureRunning(dataDir); err != nil {
 			return nil, nil, nil, err
 		}
@@ -340,7 +340,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 	if !opts.Quiet {
 		cliprint.PrintInfo("Connecting to backend...")
 	}
-	
+
 	conn, err := backend.NewConnection()
 	if err != nil {
 		return nil, nil, nil, err
@@ -358,7 +358,7 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 			cliprint.PrintInfo("%s", msg)
 		}
 	}
-	
+
 	// Create deployer with options
 	deployer := deploy.NewDeployer(&deploy.DeployOptions{
 		OrgID:            orgID,
@@ -367,16 +367,16 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 		DryRun:           opts.DryRun,
 		ProgressCallback: progressCallback,
 	})
-	
+
 	// Deploy all resources
 	deployResult, err := deployer.Deploy(synthesisResult)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	
+
 	if !opts.Quiet && !opts.DryRun {
 		fmt.Println()
 	}
-	
+
 	return deployResult.DeployedSkills, deployResult.DeployedAgents, deployResult.DeployedWorkflows, nil
 }

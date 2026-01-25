@@ -58,4 +58,21 @@ message ApiResourceReference {
 
   // Resource slug (user-friendly name, not ID)
   string slug = 4;
+
+  // Version of the resource (optional, only applicable to versioned resources like Skills).
+  // Supports three formats:
+  // 1. Empty/unset → Resolves to "latest" (most recent version)
+  // 2. Tag name → Resolves to version with this tag (e.g., "stable", "v1.0")
+  // 3. Exact hash → Immutable reference to specific version (e.g., "abc123...")
+  //
+  // Default behavior: Empty means "latest" (current version).
+  // This field is ignored for non-versioned resources.
+  //
+  // Examples:
+  // - version: ""           → Use latest version
+  // - version: "latest"     → Use latest version (explicit)
+  // - version: "stable"     → Use version tagged as "stable"
+  // - version: "v1.0"       → Use version tagged as "v1.0"
+  // - version: "abc123..."  → Use exact version with this hash (immutable)
+  string version = 5 [(buf.validate.field).string.pattern = "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"];
 }

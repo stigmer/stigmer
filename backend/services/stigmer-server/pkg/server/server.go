@@ -9,31 +9,6 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/badger"
-	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
-	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/supervisor"
-	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
-	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
-	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
-	workflowtemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/debug"
-	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
-	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller"
-	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller"
-	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
-	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
-	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
-	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
-	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
-	workflowexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/controller"
-	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/controller"
-	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
-	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
-	sessionclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
-	workflowclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
-	workflowinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
@@ -44,6 +19,32 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
+	"github.com/stigmer/stigmer/backend/libs/go/badger"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/debug"
+	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
+	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller"
+	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
+	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller"
+	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
+	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
+	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
+	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
+	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
+	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
+	workflowtemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
+	workflowexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/controller"
+	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
+	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
+	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/controller"
+	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
+	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
+	sessionclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
+	workflowclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
+	workflowinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/supervisor"
 )
 
 // Run starts the Stigmer server (extracted from main for BusyBox pattern)
@@ -77,7 +78,7 @@ func Run() error {
 	// ============================================================================
 	// Start debug HTTP server (for inspecting BadgerDB in browser)
 	// ============================================================================
-	
+
 	// Start debug HTTP server on port 8234 (gRPC port + 1000, matching Temporal's pattern)
 	// Temporal: gRPC=7233, UI=8233 | Stigmer: gRPC=7234, UI=8234
 	// This provides a web UI at http://localhost:8234/debug/db for viewing database contents
@@ -97,7 +98,7 @@ func Run() error {
 	// We create these before Temporal workers so we can inject their StreamBrokers
 	// into the UpdateExecutionStatusActivities. This ensures workflow error recovery
 	// broadcasts status updates to active subscribers.
-	
+
 	// Create AgentExecutionController
 	agentExecutionController := agentexecutioncontroller.NewAgentExecutionController(
 		store,
@@ -219,12 +220,18 @@ func Run() error {
 
 	log.Info().Msg("Registered ExecutionContext controllers")
 
-	// Create and register Skill controller
-	skillController := skillcontroller.NewSkillController(store)
+	// Create and register Skill controller (with artifact storage)
+	artifactStorage, err := skillstorage.NewLocalFileStorage(cfg.StoragePath)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize skill artifact storage")
+	}
+	skillController := skillcontroller.NewSkillController(store, artifactStorage)
 	skillv1.RegisterSkillCommandControllerServer(grpcServer, skillController)
 	skillv1.RegisterSkillQueryControllerServer(grpcServer, skillController)
 
-	log.Info().Msg("Registered Skill controllers")
+	log.Info().
+		Str("storage_path", cfg.StoragePath).
+		Msg("Registered Skill controllers with artifact storage")
 
 	// Create and register Agent controller (without dependencies initially)
 	agentController := agentcontroller.NewAgentController(store, nil)
@@ -363,7 +370,7 @@ func Run() error {
 	// Graceful shutdown
 	server.Stop()
 	log.Info().Msg("Stigmer Server stopped")
-	
+
 	return nil
 }
 
