@@ -2,19 +2,26 @@ package mcpserver
 
 import (
 	"fmt"
+
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
+
+// StdioArgs is an alias for the generated StdioServer type from codegen.
+// This follows the pattern of using generated types for Args structs.
+type StdioArgs = types.StdioServer
 
 // StdioServer represents a stdio-based MCP server that runs as a subprocess.
 // Communication happens via stdin/stdout (most common MCP server type).
 //
 // Example:
 //
-//	server := mcpserver.Stdio(
-//		mcpserver.WithName("github"),
-//		mcpserver.WithCommand("npx"),
-//		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-//		mcpserver.WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
-//	)
+//	server, _ := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+//	    Command: "npx",
+//	    Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+//	    EnvPlaceholders: map[string]string{
+//	        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+//	    },
+//	})
 type StdioServer struct {
 	baseServer
 	command         string
@@ -23,27 +30,61 @@ type StdioServer struct {
 	workingDir      string
 }
 
-// Stdio creates a new stdio-based MCP server with the given options.
+// Stdio creates a new stdio-based MCP server with struct-based args (Pulumi pattern).
+//
+// The args struct uses the generated types.StdioServer from proto definitions.
+// This ensures the Args always match the proto schema.
+//
+// Follows Pulumi's Args pattern: context, name as parameters, struct args for configuration.
+//
+// Required:
+//   - ctx: stigmer context (for consistency with other resources)
+//   - name: server name (e.g., "github", "aws")
+//   - args.Command: command to execute
+//
+// Optional args fields (from generated types.StdioServer):
+//   - Args: command arguments
+//   - EnvPlaceholders: environment variable placeholders
+//   - WorkingDir: working directory for the process
+//
+// Note: EnabledTools is set separately via the EnableTools() builder method,
+// as it's defined on McpServerDefinition in proto, not on StdioServer.
 //
 // Example:
 //
-//	github := mcpserver.Stdio(
-//		mcpserver.WithName("github"),
-//		mcpserver.WithCommand("npx"),
-//		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-//		mcpserver.WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
-//		mcpserver.WithWorkingDir("/app"),
-//		mcpserver.WithEnabledTools("create_issue", "list_repos"),
-//	)
-func Stdio(opts ...Option) (*StdioServer, error) {
-	server := &StdioServer{
-		envPlaceholders: make(map[string]string),
+//	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+//	    Command: "npx",
+//	    Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+//	    EnvPlaceholders: map[string]string{
+//	        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+//	    },
+//	})
+//	github.EnableTools("create_issue", "list_repos")  // Set enabled tools
+//
+// Example with nil args (validation will fail without command):
+//
+//	server, err := mcpserver.Stdio(ctx, "custom", nil)
+//	// Returns error: command is required
+func Stdio(ctx Context, name string, args *StdioArgs) (*StdioServer, error) {
+	// Nil-safety: if args is nil, create empty args
+	if args == nil {
+		args = &StdioArgs{}
 	}
 
-	for _, opt := range opts {
-		if err := opt(server); err != nil {
-			return nil, fmt.Errorf("stdio server option: %w", err)
-		}
+	// Initialize env placeholders map
+	envPlaceholders := args.EnvPlaceholders
+	if envPlaceholders == nil {
+		envPlaceholders = make(map[string]string)
+	}
+
+	server := &StdioServer{
+		baseServer: baseServer{
+			name: name,
+		},
+		command:         args.Command,
+		args:            args.Args,
+		envPlaceholders: envPlaceholders,
+		workingDir:      args.WorkingDir,
 	}
 
 	if err := server.Validate(); err != nil {
@@ -51,6 +92,13 @@ func Stdio(opts ...Option) (*StdioServer, error) {
 	}
 
 	return server, nil
+}
+
+// EnableTools sets the enabled tools for this server (builder pattern).
+// If not called or called with empty slice, all tools are enabled.
+func (s *StdioServer) EnableTools(tools ...string) *StdioServer {
+	s.enabledTools = tools
+	return s
 }
 
 // Command returns the command to execute.
