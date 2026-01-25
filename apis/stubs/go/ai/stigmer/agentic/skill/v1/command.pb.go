@@ -26,23 +26,22 @@ var File_ai_stigmer_agentic_skill_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_command_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/skill/v1/command.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a$ai/stigmer/agentic/skill/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xca\x02\n" +
-	"\x16SkillCommandController\x12\xa5\x01\n" +
-	"\x04push\x12-.ai.stigmer.agentic.skill.v1.PushSkillRequest\x1a..ai.stigmer.agentic.skill.v1.PushSkillResponse\">¸\x18:\b\x15\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\x81\x01\n" +
+	")ai/stigmer/agentic/skill/v1/command.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a$ai/stigmer/agentic/skill/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xbe\x02\n" +
+	"\x16SkillCommandController\x12\x99\x01\n" +
+	"\x04push\x12-.ai.stigmer.agentic.skill.v1.PushSkillRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\">¸\x18:\b\x15\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\x81\x01\n" +
 	"\x06delete\x12$.ai.stigmer.agentic.skill.v1.SkillId\x1a\".ai.stigmer.agentic.skill.v1.Skill\"-¸\x18)\b\x02\x10+\"\x05value*\x1cunauthorized to delete skill\x1a\x04\xa0\xff++B\x8e\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.skill.v1B\fCommandProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_skill_v1_command_proto_goTypes = []any{
-	(*PushSkillRequest)(nil),  // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest
-	(*SkillId)(nil),           // 1: ai.stigmer.agentic.skill.v1.SkillId
-	(*PushSkillResponse)(nil), // 2: ai.stigmer.agentic.skill.v1.PushSkillResponse
-	(*Skill)(nil),             // 3: ai.stigmer.agentic.skill.v1.Skill
+	(*PushSkillRequest)(nil), // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest
+	(*SkillId)(nil),          // 1: ai.stigmer.agentic.skill.v1.SkillId
+	(*Skill)(nil),            // 2: ai.stigmer.agentic.skill.v1.Skill
 }
 var file_ai_stigmer_agentic_skill_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.skill.v1.SkillCommandController.push:input_type -> ai.stigmer.agentic.skill.v1.PushSkillRequest
 	1, // 1: ai.stigmer.agentic.skill.v1.SkillCommandController.delete:input_type -> ai.stigmer.agentic.skill.v1.SkillId
-	2, // 2: ai.stigmer.agentic.skill.v1.SkillCommandController.push:output_type -> ai.stigmer.agentic.skill.v1.PushSkillResponse
-	3, // 3: ai.stigmer.agentic.skill.v1.SkillCommandController.delete:output_type -> ai.stigmer.agentic.skill.v1.Skill
+	2, // 2: ai.stigmer.agentic.skill.v1.SkillCommandController.push:output_type -> ai.stigmer.agentic.skill.v1.Skill
+	2, // 3: ai.stigmer.agentic.skill.v1.SkillCommandController.delete:output_type -> ai.stigmer.agentic.skill.v1.Skill
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

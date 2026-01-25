@@ -139,6 +139,29 @@ func clearStatusFieldReflect(resource proto.Message) error {
 	return nil
 }
 
+// SetAuditFieldsForCreate sets audit fields for a newly created resource
+//
+// This sets:
+// - created_by and updated_by to the same actor
+// - created_at and updated_at to the same timestamp
+// - event to "created"
+//
+// Both spec_audit and status_audit are set identically for new resources.
+// This function is exported so custom steps can use it for audit field management.
+func SetAuditFieldsForCreate(resource proto.Message) error {
+	return setAuditFieldsReflect(resource, "created")
+}
+
+// SetAuditFieldsForUpdate sets audit fields for an updated resource
+//
+// This preserves created_by and created_at from the existing resource (must be set prior),
+// and updates updated_by and updated_at to current values.
+//
+// This function is exported so custom steps can use it for audit field management.
+func SetAuditFieldsForUpdate(resource proto.Message) error {
+	return setAuditFieldsReflect(resource, "updated")
+}
+
 // setAuditFieldsReflect sets the audit information in the status field using proto reflection
 //
 // For create operations (event="created"):
@@ -198,7 +221,7 @@ func setAuditFieldsReflect(resource proto.Message, event string) error {
 	return nil
 }
 
-// generateID generates a unique ID for a resource using ULID
+// GenerateID generates a unique ID for a resource using ULID
 //
 // Format: {prefix}-{lowercase-ulid}
 // Example: agt-01arz3ndektsv4rrffq69g5fav
@@ -208,9 +231,16 @@ func setAuditFieldsReflect(resource proto.Message, event string) error {
 // - 128-bit compatibility with UUID
 // - Monotonicity within the same millisecond
 // - URL-safe encoding (lowercase for consistency)
-func generateID(prefix string) string {
+//
+// This function is exported so custom steps can use it for ID generation.
+func GenerateID(prefix string) string {
 	// Generate ULID using current timestamp and crypto random entropy
 	id := ulid.MustNew(ulid.Timestamp(time.Now()), rand.Reader)
 
 	return fmt.Sprintf("%s-%s", prefix, strings.ToLower(id.String()))
+}
+
+// generateID is kept for backward compatibility within this package
+func generateID(prefix string) string {
+	return GenerateID(prefix)
 }

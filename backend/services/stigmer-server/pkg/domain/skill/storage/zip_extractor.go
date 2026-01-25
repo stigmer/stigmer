@@ -10,11 +10,11 @@ import (
 
 // Security limits for ZIP files
 const (
-	maxZipSize           = 100 * 1024 * 1024  // 100MB compressed
-	maxUncompressedSize  = 500 * 1024 * 1024  // 500MB uncompressed
-	maxCompressionRatio  = 100                 // Max 100:1 compression ratio
-	maxFiles             = 10000               // Max number of files in ZIP
-	maxSkillMdSize       = 1 * 1024 * 1024    // 1MB for SKILL.md
+	maxZipSize          = 100 * 1024 * 1024 // 100MB compressed
+	maxUncompressedSize = 500 * 1024 * 1024 // 500MB uncompressed
+	maxCompressionRatio = 100               // Max 100:1 compression ratio
+	maxFiles            = 10000             // Max number of files in ZIP
+	maxSkillMdSize      = 1 * 1024 * 1024   // 1MB for SKILL.md
 )
 
 // ExtractSkillMdResult contains the extracted SKILL.md content and validation results.

@@ -45,7 +45,9 @@ type SkillCommandControllerClient interface {
 	// 5. Store the artifact (deduplicated by hash)
 	// 6. Update skill spec and status
 	// 7. Archive the previous version (if updating)
-	Push(ctx context.Context, in *PushSkillRequest, opts ...grpc.CallOption) (*PushSkillResponse, error)
+	//
+	// Returns: The created or updated Skill resource (consistent with other CRUD operations)
+	Push(ctx context.Context, in *PushSkillRequest, opts ...grpc.CallOption) (*Skill, error)
 	// Delete a skill and all its versions.
 	// This removes the skill from the main collection but preserves audit history.
 	Delete(ctx context.Context, in *SkillId, opts ...grpc.CallOption) (*Skill, error)
@@ -59,9 +61,9 @@ func NewSkillCommandControllerClient(cc grpc.ClientConnInterface) SkillCommandCo
 	return &skillCommandControllerClient{cc}
 }
 
-func (c *skillCommandControllerClient) Push(ctx context.Context, in *PushSkillRequest, opts ...grpc.CallOption) (*PushSkillResponse, error) {
+func (c *skillCommandControllerClient) Push(ctx context.Context, in *PushSkillRequest, opts ...grpc.CallOption) (*Skill, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PushSkillResponse)
+	out := new(Skill)
 	err := c.cc.Invoke(ctx, SkillCommandController_Push_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -101,7 +103,9 @@ type SkillCommandControllerServer interface {
 	// 5. Store the artifact (deduplicated by hash)
 	// 6. Update skill spec and status
 	// 7. Archive the previous version (if updating)
-	Push(context.Context, *PushSkillRequest) (*PushSkillResponse, error)
+	//
+	// Returns: The created or updated Skill resource (consistent with other CRUD operations)
+	Push(context.Context, *PushSkillRequest) (*Skill, error)
 	// Delete a skill and all its versions.
 	// This removes the skill from the main collection but preserves audit history.
 	Delete(context.Context, *SkillId) (*Skill, error)
@@ -114,7 +118,7 @@ type SkillCommandControllerServer interface {
 // pointer dereference when methods are called.
 type UnimplementedSkillCommandControllerServer struct{}
 
-func (UnimplementedSkillCommandControllerServer) Push(context.Context, *PushSkillRequest) (*PushSkillResponse, error) {
+func (UnimplementedSkillCommandControllerServer) Push(context.Context, *PushSkillRequest) (*Skill, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Push not implemented")
 }
 func (UnimplementedSkillCommandControllerServer) Delete(context.Context, *SkillId) (*Skill, error) {

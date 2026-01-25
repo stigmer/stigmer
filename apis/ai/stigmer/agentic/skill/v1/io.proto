@@ -39,7 +39,11 @@ message PushSkillRequest {
 }
 
 // PushSkillResponse returns the version information after successful upload.
+// DEPRECATED: Use Skill resource directly (returned by push RPC)
+// This message is kept for backward compatibility only.
 message PushSkillResponse {
+  option deprecated = true;
+
   // SHA256 hash of the uploaded artifact (immutable version identifier).
   string version_hash = 1;
 

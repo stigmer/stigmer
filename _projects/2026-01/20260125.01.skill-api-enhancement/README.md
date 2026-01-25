@@ -71,12 +71,15 @@ See [design-decisions/](design-decisions/) for complete architectural documentat
 See [tasks/T01_0_plan.md](tasks/T01_0_plan.md) for the detailed implementation plan.
 
 ### Latest Checkpoint
-**2026-01-25**: T01.3 Backend Implementation Complete ([checkpoint](checkpoints/2026-01-25-t01-3-backend-implementation-complete.md))
-- Secure artifact storage with google/safearchive
-- Content-addressable storage (SHA256 deduplication)
-- Push handler with audit support
-- BadgerDB integration
-- Security measures: ZIP bomb protection, path traversal prevention
+**2026-01-25**: T01.3 Refactor - Push Handler Pipeline Framework ([checkpoint](checkpoints/2026-01-25-t01-3-refactor-push-handler-complete.md))
+- Complete Push handler refactor using pipeline framework (10 composable steps)
+- Proto API changed to return Skill (consistent with CRUD operations)
+- Exported common library functions (GenerateSlug, GenerateID, audit helpers)
+- Created FindResourceBySlug generic helper (eliminates duplication)
+- Proper ID generation with proto prefix extraction
+- Find by slug strategy (like Apply handler)
+- Archive timing corrected (archives NEW skill with artifact data)
+- Eliminated all custom ID/audit/slug logic in favor of common library
 - Ready for T01.4 Agent Integration
 
 ### Progress Tracking
