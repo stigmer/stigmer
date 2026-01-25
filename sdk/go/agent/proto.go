@@ -3,6 +3,8 @@ package agent
 import (
 	"fmt"
 
+	"buf.build/go/protovalidate"
+
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
@@ -12,6 +14,18 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
+
+// validator is the global protovalidate validator instance.
+var validator protovalidate.Validator
+
+func init() {
+	// Initialize validator once at package load time
+	var err error
+	validator, err = protovalidate.New()
+	if err != nil {
+		panic(fmt.Sprintf("failed to initialize protovalidate: %v", err))
+	}
+}
 
 // ToProto converts the SDK Agent to a platform Agent proto message.
 //
@@ -53,15 +67,18 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 	}
 
 	// Build metadata
+	// Default to organization scope for SDK-created agents
+	// This satisfies the CEL validation: owner_scope must be platform (1) or organization (2)
 	metadata := &apiresource.ApiResourceMetadata{
 		Name:        a.Name,
 		Slug:        slug,
 		Annotations: SDKAnnotations(),
+		OwnerScope:  apiresource.ApiResourceOwnerScope_organization,
 	}
 
 	// Build complete Agent proto
 	// SkillRefs are already proto types - no conversion needed
-	return &agentv1.Agent{
+	agent := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
 		Metadata:   metadata,
@@ -74,7 +91,14 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 			SubAgents:    subAgents,
 			EnvSpec:      envSpec,
 		},
-	}, nil
+	}
+
+	// Validate the proto message against buf.validate rules
+	if err := validator.Validate(agent); err != nil {
+		return nil, fmt.Errorf("agent validation failed: %w", err)
+	}
+
+	return agent, nil
 }
 
 // convertMCPServers converts SDK MCP servers to proto MCP server definitions.

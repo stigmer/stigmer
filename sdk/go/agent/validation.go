@@ -1,178 +1,80 @@
 package agent
 
 import (
+	"fmt"
 	"regexp"
-	"strings"
-
-	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 )
 
-// Validation constants matching Python SDK rules.
+// Validation constants for SDK-specific name format.
 const (
-	// Name validation
-	nameMinLength = 1
 	nameMaxLength = 63
-
-	// Instructions validation
-	instructionsMinLength = 10
-	instructionsMaxLength = 10000
-
-	// Description validation
-	descriptionMaxLength = 500
 )
 
 // nameRegex matches valid agent names (lowercase alphanumeric with hyphens).
+// This is an SDK-specific naming convention not enforced by proto validation.
 var nameRegex = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
 
-// validate validates an Agent according to the validation rules.
+// validate validates SDK-specific rules for an Agent.
 //
-// Validation rules:
-//   - Name: required, lowercase alphanumeric with hyphens, max 63 chars
-//   - Instructions: required, min 10 chars, max 10,000 chars
-//   - Description: optional, max 500 chars
-//   - IconURL: optional, must be valid URL if provided
+// This function validates only SDK-specific conventions that are not covered
+// by protovalidate rules. Field-level validations (required fields, min/max
+// lengths, etc.) are handled by protovalidate in ToProto().
+//
+// SDK-specific rules validated here:
+//   - Name format: lowercase alphanumeric with hyphens (SDK naming convention)
 func validate(a *Agent) error {
-	// Validate name (required)
-	if err := validateName(a.Name); err != nil {
-		return err
-	}
-
-	// Validate instructions (required)
-	if err := validateInstructions(a.Instructions); err != nil {
-		return err
-	}
-
-	// Validate description (optional)
-	if a.Description != "" {
-		if err := validateDescription(a.Description); err != nil {
-			return err
-		}
-	}
-
-	// Validate icon URL (optional)
-	if a.IconURL != "" {
-		if err := validateIconURL(a.IconURL); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return validateName(a.Name)
 }
 
-// validateName validates the agent name.
+// validateName validates the agent name against SDK naming conventions.
 //
-// Rules:
+// Rules (SDK-specific, not in proto):
 //   - Required (non-empty)
 //   - Lowercase alphanumeric with hyphens
 //   - Must start and end with alphanumeric
-//   - Max 63 characters
+//   - Max 63 characters (DNS-compatible)
+//
+// Note: Basic required checks are also in proto, but the lowercase format
+// regex is an SDK-specific convention for consistent naming.
 func validateName(name string) error {
-	if err := validation.Required("name", name); err != nil {
-		return validation.NewValidationErrorWithCause("name", name, "required", "name is required", ErrInvalidName)
+	if name == "" {
+		return &ValidationError{
+			Field:   "name",
+			Value:   name,
+			Rule:    "required",
+			Message: "name is required",
+			Err:     ErrInvalidName,
+		}
 	}
 
-	if err := validation.MaxLength("name", name, nameMaxLength); err != nil {
-		return validation.NewValidationErrorWithCause(
-			"name",
-			name,
-			"max_length",
-			err.(*validation.ValidationError).Message,
-			ErrInvalidName,
-		)
+	if len(name) > nameMaxLength {
+		return &ValidationError{
+			Field:   "name",
+			Value:   truncateValue(name),
+			Rule:    "max_length",
+			Message: fmt.Sprintf("name must be at most %d characters (got %d)", nameMaxLength, len(name)),
+			Err:     ErrInvalidName,
+		}
 	}
 
-	if err := validation.MatchesPattern("name", name, nameRegex,
-		"lowercase alphanumeric with hyphens, starting and ending with alphanumeric"); err != nil {
-		return validation.NewValidationErrorWithCause(
-			"name",
-			name,
-			"format",
-			"invalid name format: must be lowercase alphanumeric with hyphens, starting and ending with alphanumeric",
-			ErrInvalidName,
-		)
-	}
-
-	return nil
-}
-
-// validateInstructions validates the agent instructions.
-//
-// Rules:
-//   - Required (non-empty)
-//   - Min 10 characters
-//   - Max 10,000 characters
-func validateInstructions(instructions string) error {
-	if err := validation.Required("instructions", instructions); err != nil {
-		return validation.NewValidationErrorWithCause("instructions", instructions, "required", "instructions are required", ErrInvalidInstructions)
-	}
-
-	// Trim whitespace for length check
-	trimmed := strings.TrimSpace(instructions)
-	length := len(trimmed)
-
-	if length < instructionsMinLength {
-		return validation.NewValidationErrorWithCause(
-			"instructions",
-			instructions,
-			"min_length",
-			validation.MinLengthTrimmed("instructions", instructions, instructionsMinLength).(*validation.ValidationError).Message,
-			ErrInvalidInstructions,
-		)
-	}
-
-	if length > instructionsMaxLength {
-		return validation.NewValidationErrorWithCause(
-			"instructions",
-			instructions,
-			"max_length",
-			validation.MaxLengthTrimmed("instructions", instructions, instructionsMaxLength).(*validation.ValidationError).Message,
-			ErrInvalidInstructions,
-		)
+	if !nameRegex.MatchString(name) {
+		return &ValidationError{
+			Field:   "name",
+			Value:   truncateValue(name),
+			Rule:    "format",
+			Message: "invalid name format: must be lowercase alphanumeric with hyphens, starting and ending with alphanumeric",
+			Err:     ErrInvalidName,
+		}
 	}
 
 	return nil
 }
 
-// validateDescription validates the agent description.
-//
-// Rules:
-//   - Optional
-//   - Max 500 characters
-func validateDescription(description string) error {
-	if err := validation.MaxLength("description", description, descriptionMaxLength); err != nil {
-		return validation.NewValidationErrorWithCause(
-			"description",
-			description,
-			"max_length",
-			err.(*validation.ValidationError).Message,
-			ErrInvalidDescription,
-		)
+// truncateValue truncates a value for display in error messages.
+func truncateValue(v string) string {
+	const maxLen = 50
+	if len(v) <= maxLen {
+		return v
 	}
-
-	return nil
-}
-
-// validateIconURL validates the icon URL.
-//
-// Rules:
-//   - Optional (empty is valid)
-//   - Must be a valid HTTP/HTTPS URL if provided
-func validateIconURL(iconURL string) error {
-	// Empty is valid (optional field)
-	if iconURL == "" {
-		return nil
-	}
-
-	if err := validation.ValidHTTPURL("icon_url", iconURL); err != nil {
-		verr := err.(*validation.ValidationError)
-		return validation.NewValidationErrorWithCause(
-			"icon_url",
-			iconURL,
-			verr.Rule,
-			verr.Message,
-			ErrInvalidIconURL,
-		)
-	}
-
-	return nil
+	return v[:maxLen] + "..."
 }

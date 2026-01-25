@@ -2,7 +2,6 @@ package mcpserver
 
 import (
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
-	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 )
 
 // DockerArgs is an alias for the generated DockerServer type from codegen.
@@ -99,10 +98,6 @@ func Docker(ctx Context, name string, args *DockerArgs) (*DockerServer, error) {
 		containerName:   args.ContainerName,
 	}
 
-	if err := server.Validate(); err != nil {
-		return nil, err
-	}
-
 	return server, nil
 }
 
@@ -151,67 +146,4 @@ func (d *DockerServer) ContainerName() string {
 // Type returns the server type (docker).
 func (d *DockerServer) Type() ServerType {
 	return TypeDocker
-}
-
-// Validate checks if the Docker server configuration is valid.
-func (d *DockerServer) Validate() error {
-	if err := validation.RequiredWithMessage("name", d.name, "docker server: name is required"); err != nil {
-		return err
-	}
-	if err := validation.RequiredWithMessage("image", d.image, "docker server: image is required"); err != nil {
-		return err
-	}
-
-	// Validate volume mounts
-	for i, vol := range d.volumes {
-		if vol == nil {
-			return validation.NewValidationErrorWithCause(
-				validation.FieldPath("volumes", i),
-				"nil",
-				"required",
-				"volume is nil",
-				validation.ErrRequired,
-			)
-		}
-		if err := validation.RequiredWithMessage(
-			validation.FieldPath("volumes", i, "host_path"),
-			vol.HostPath,
-			"host_path is required",
-		); err != nil {
-			return err
-		}
-		if err := validation.RequiredWithMessage(
-			validation.FieldPath("volumes", i, "container_path"),
-			vol.ContainerPath,
-			"container_path is required",
-		); err != nil {
-			return err
-		}
-	}
-
-	// Validate port mappings
-	for i, port := range d.ports {
-		if port == nil {
-			return validation.NewValidationErrorWithCause(
-				validation.FieldPath("ports", i),
-				"nil",
-				"required",
-				"port is nil",
-				validation.ErrRequired,
-			)
-		}
-		if err := validation.PositiveInt32(validation.FieldPath("ports", i, "host_port"), port.HostPort); err != nil {
-			return err
-		}
-		if err := validation.PositiveInt32(validation.FieldPath("ports", i, "container_port"), port.ContainerPort); err != nil {
-			return err
-		}
-		if port.Protocol != "" {
-			if err := validation.OneOf(validation.FieldPath("ports", i, "protocol"), port.Protocol, []string{"tcp", "udp"}); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
 }

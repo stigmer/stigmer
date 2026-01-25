@@ -1,97 +1,65 @@
-// Package validation provides shared validation utilities for the Stigmer Go SDK.
+// Package validation provides shared error types and helpers for SDK validation.
 //
-// This internal package eliminates duplicate validation code across SDK packages
-// (agent, workflow, mcpserver, subagent, environment) by providing:
+// # Design Philosophy
 //
+// This package contains only SDK-specific validation utilities. Field-level
+// validation (required fields, min/max lengths, etc.) is handled by protovalidate
+// in the ToProto() methods of SDK types.
+//
+// This package provides:
 //   - Structured error types (ValidationError, ConversionError)
-//   - Common validation functions (Required, MinLength, MaxLength, etc.)
-//   - Field path utilities for nested validation
-//   - Sentinel errors for programmatic error handling
+//   - Sentinel errors for programmatic error handling (ErrRequired, ErrInvalidFormat, etc.)
+//   - Helper functions for SDK-specific validations not covered by proto rules
 //
 // # Error Types
 //
-// ValidationError provides structured context for validation failures:
+// ValidationError provides structured validation error information:
 //
-//	err := validation.Required("name", "")
-//	// err.Field = "name"
-//	// err.Rule = "required"
-//	// errors.Is(err, validation.ErrRequired) == true
-//
-// ConversionError provides context for proto conversion failures:
-//
-//	err := validation.NewConversionError("Agent", "skills", "nil skill reference")
-//
-// # Validation Functions
-//
-// All validation functions return nil on success or *ValidationError on failure:
-//
-//	if err := validation.Required("name", agent.Name); err != nil {
-//	    return err
-//	}
-//	if err := validation.MaxLength("description", agent.Description, 500); err != nil {
-//	    return err
+//	err := &ValidationError{
+//	    Field:   "name",
+//	    Value:   "invalid value",
+//	    Rule:    "format",
+//	    Message: "name must be lowercase alphanumeric with hyphens",
+//	    Err:     ErrInvalidFormat,
 //	}
 //
-// # Field Paths
+// ConversionError is used for proto conversion failures:
 //
-// Use FieldPath to build hierarchical paths for nested validation:
-//
-//	// Simple field
-//	field := validation.FieldPath("name") // "name"
-//
-//	// Nested field
-//	field := validation.FieldPath("config", "timeout") // "config.timeout"
-//
-//	// Array element
-//	field := validation.FieldPath("volumes", i, "host_path") // "volumes[0].host_path"
+//	err := NewConversionError("Agent", "skills", "nil skill reference")
 //
 // # Sentinel Errors
 //
-// Use errors.Is() to check for specific error types:
+// Use errors.Is() for programmatic error handling:
 //
 //	if errors.Is(err, validation.ErrRequired) {
 //	    // Handle missing required field
 //	}
-//	if errors.Is(err, validation.ErrOutOfRange) {
-//	    // Handle numeric value out of range
+//	if errors.Is(err, validation.ErrInvalidFormat) {
+//	    // Handle format error
 //	}
 //
-// Available sentinel errors:
-//   - ErrRequired: field is required
-//   - ErrMinLength: value below minimum length
-//   - ErrMaxLength: value exceeds maximum length
-//   - ErrInvalidFormat: value doesn't match expected format
-//   - ErrInvalidURL: invalid URL
-//   - ErrOutOfRange: numeric value out of range
-//   - ErrInvalidEnum: value not in allowed set
-//   - ErrConversion: proto conversion failed
+// # Helper Functions
 //
-// # Example Usage
+// FieldPath builds hierarchical field paths for nested validation:
 //
-// Validating an agent:
+//	field := validation.FieldPath("tasks", i, "name") // "tasks[0].name"
 //
-//	func validate(a *Agent) error {
-//	    if err := validation.Required("name", a.Name); err != nil {
-//	        return err
-//	    }
-//	    if err := validation.MaxLength("name", a.Name, 63); err != nil {
-//	        return err
-//	    }
-//	    if err := validation.MatchesPattern("name", a.Name, nameRegex,
-//	        "lowercase alphanumeric with hyphens"); err != nil {
-//	        return err
-//	    }
-//	    return nil
+// MatchesPattern validates SDK-specific naming conventions:
+//
+//	if err := validation.MatchesPattern("name", name, nameRegex, "lowercase alphanumeric"); err != nil {
+//	    return err
 //	}
 //
-// Validating nested structures:
+// # Proto Validation
 //
-//	for i, vol := range server.Volumes {
-//	    if err := validation.Required(
-//	        validation.FieldPath("volumes", i, "host_path"),
-//	        vol.HostPath,
-//	    ); err != nil {
-//	        return err
+// Most validation is handled by protovalidate via buf.validate rules in proto files.
+// SDK types call protovalidate in their ToProto() methods:
+//
+//	func (a *Agent) ToProto() (*agentv1.Agent, error) {
+//	    // ... build proto ...
+//	    if err := validator.Validate(agent); err != nil {
+//	        return nil, fmt.Errorf("agent validation failed: %w", err)
 //	    }
+//	    return agent, nil
 //	}
 package validation
