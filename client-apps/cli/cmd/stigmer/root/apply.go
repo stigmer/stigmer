@@ -2,15 +2,12 @@ package root
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
@@ -29,17 +26,19 @@ func NewApplyCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "apply",
 		Short: "Deploy resources from current project",
-		Long: `Deploy or update resources from code.
+		Long: `Deploy resources from your Stigmer project.
 
-Reads Stigmer.yaml and executes your entry point (main.go) to deploy Agents/Workflows.
-Resources are auto-discovered from your code.
+Reads Stigmer.yaml and executes your entry point (main.go) to deploy
+Agents and Workflows. Resources are auto-discovered from your code.
 
-The Stigmer.yaml file only contains metadata:
+The Stigmer.yaml file contains project metadata:
   name: my-project
   runtime: go
   main: main.go
 
-Run from your project directory containing Stigmer.yaml.`,
+Run from your project directory containing Stigmer.yaml.
+
+For skill artifacts, use 'stigmer skill push' instead.`,
 		Example: `  # Deploy agents from code
   stigmer apply
   
@@ -55,46 +54,7 @@ Run from your project directory containing Stigmer.yaml.`,
   # Override organization
   stigmer apply --org my-org-id`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Determine working directory
-			workDir, err := determineWorkingDirectory(configFile)
-			clierr.Handle(err)
-
-			// Check for SKILL.md to determine mode
-			if artifact.HasSkillFile(workDir) {
-				// Artifact Mode: Upload skill artifact
-				cliprint.PrintInfo("Detected SKILL.md - entering Artifact Mode")
-				fmt.Println()
-
-				result, err := ApplyArtifactMode(ApplyArtifactModeOptions{
-					Directory:   workDir,
-					OrgOverride: orgOverride,
-					Tag:         "", // Default to "latest"
-					DryRun:      dryRun,
-					Quiet:       false,
-				})
-				clierr.Handle(err)
-
-				// Display result
-				if !dryRun && result != nil {
-					cliprint.PrintSuccess("🚀 Skill uploaded successfully!")
-					fmt.Println()
-					cliprint.PrintInfo("Skill Details:")
-					cliprint.PrintInfo("  Name:         %s", result.SkillName)
-					cliprint.PrintInfo("  Version Hash: %s", result.VersionHash)
-					if result.Tag != "" {
-						cliprint.PrintInfo("  Tag:          %s", result.Tag)
-					}
-					cliprint.PrintInfo("  Size:         %s", formatBytes(result.ArtifactSize))
-					fmt.Println()
-					cliprint.PrintInfo("Next steps:")
-					cliprint.PrintInfo("  - Reference this skill in your agent code")
-					cliprint.PrintInfo("  - Update and re-upload: edit files and run 'stigmer apply' again")
-					fmt.Println()
-				}
-				return
-			}
-
-			// Code Mode: Deploy from Stigmer.yaml + code execution
+			// Deploy from Stigmer.yaml + code execution
 			deployedSkills, deployedAgents, deployedWorkflows, err := ApplyCodeMode(ApplyCodeModeOptions{
 				ConfigFile:  configFile,
 				OrgOverride: orgOverride,
@@ -419,152 +379,4 @@ func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agen
 	}
 
 	return deployResult.DeployedSkills, deployResult.DeployedAgents, deployResult.DeployedWorkflows, nil
-}
-
-// ApplyArtifactModeOptions contains options for artifact mode
-type ApplyArtifactModeOptions struct {
-	Directory   string
-	OrgOverride string
-	Tag         string
-	DryRun      bool
-	Quiet       bool
-}
-
-// ApplyArtifactMode uploads a skill artifact from the current directory
-func ApplyArtifactMode(opts ApplyArtifactModeOptions) (*artifact.SkillArtifactResult, error) {
-	// Dry run mode - just validate SKILL.md exists
-	if opts.DryRun {
-		if !opts.Quiet {
-			cliprint.PrintInfo("Dry run mode - would upload skill from: %s", opts.Directory)
-			cliprint.PrintInfo("  Tag: %s", getTagOrDefault(opts.Tag))
-		}
-		return nil, nil
-	}
-
-	// Step 1: Load backend configuration
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
-
-	// Step 2: Determine organization based on backend mode
-	var orgID string
-
-	switch cfg.Backend.Type {
-	case config.BackendTypeLocal:
-		// Local mode: Use constant organization name
-		orgID = "local"
-		if !opts.Quiet {
-			cliprint.PrintInfo("Using local backend (organization: %s)", orgID)
-		}
-
-	case config.BackendTypeCloud:
-		// Cloud mode: Organization is required from multiple sources
-		if opts.OrgOverride != "" {
-			orgID = opts.OrgOverride
-			if !opts.Quiet {
-				cliprint.PrintInfo("Using organization from flag: %s", orgID)
-			}
-		} else if cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
-			orgID = cfg.Backend.Cloud.OrgID
-			if !opts.Quiet {
-				cliprint.PrintInfo("Using organization from context: %s", orgID)
-			}
-		} else {
-			return nil, fmt.Errorf("organization not set for cloud mode. Use --org flag or run: stigmer context set --org <org-id>")
-		}
-
-	default:
-		return nil, fmt.Errorf("unknown backend type: %s", cfg.Backend.Type)
-	}
-
-	// Step 3: Ensure daemon is running (local mode only)
-	if cfg.Backend.Type == config.BackendTypeLocal {
-		dataDir, err := config.GetDataDir()
-		if err != nil {
-			return nil, err
-		}
-
-		if err := daemon.EnsureRunning(dataDir); err != nil {
-			return nil, err
-		}
-	}
-
-	// Step 4: Connect to backend
-	if !opts.Quiet {
-		cliprint.PrintInfo("Connecting to backend...")
-	}
-
-	conn, err := backend.NewConnection()
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close()
-
-	if !opts.Quiet {
-		cliprint.PrintSuccess("✓ Connected to backend")
-		fmt.Println()
-	}
-
-	// Step 5: Upload skill artifact
-	result, err := artifact.PushSkill(&artifact.SkillArtifactOptions{
-		Directory: opts.Directory,
-		OrgID:     orgID,
-		Tag:       getTagOrDefault(opts.Tag),
-		Conn:      conn,
-		Quiet:     opts.Quiet,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-// determineWorkingDirectory determines the working directory based on configFile flag
-func determineWorkingDirectory(configFile string) (string, error) {
-	if configFile == "" {
-		// Use current directory
-		cwd, err := os.Getwd()
-		if err != nil {
-			return "", fmt.Errorf("failed to get current directory: %w", err)
-		}
-		return cwd, nil
-	}
-
-	// Check if configFile is a directory or file
-	info, err := os.Stat(configFile)
-	if err != nil {
-		return "", fmt.Errorf("failed to stat %s: %w", configFile, err)
-	}
-
-	if info.IsDir() {
-		// It's a directory
-		return configFile, nil
-	}
-
-	// It's a file - use its parent directory
-	return filepath.Dir(configFile), nil
-}
-
-// getTagOrDefault returns the tag or "latest" if empty
-func getTagOrDefault(tag string) string {
-	if tag == "" {
-		return "latest"
-	}
-	return tag
-}
-
-// formatBytes formats a byte count into a human-readable string
-func formatBytes(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }

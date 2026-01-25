@@ -73,7 +73,7 @@ func (s *loadArtifactStep) Name() string {
 
 // Execute loads the artifact from storage
 func (s *loadArtifactStep) Execute(ctx *pipeline.RequestContext[*skillv1.GetArtifactRequest]) error {
-	storageKey := ctx.Request().GetArtifactStorageKey()
+	storageKey := ctx.Input().GetArtifactStorageKey()
 
 	// Load artifact from storage
 	artifactBytes, err := s.storage.Get(storageKey)
