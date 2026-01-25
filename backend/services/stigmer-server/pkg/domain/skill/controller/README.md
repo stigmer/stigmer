@@ -11,12 +11,10 @@ The Skill controller follows the **pipeline pattern** for all operations, ensuri
 ```
 skill/
 ├── skill_controller.go      # Controller struct + constructor
-├── create.go                # Create handler + pipeline
-├── update.go                # Update handler + pipeline
+├── push.go                  # Push handler (create/update via artifact upload)
 ├── delete.go                # Delete handler + pipeline
 ├── get.go                   # Get handler + pipeline
 ├── get_by_reference.go      # GetByReference handler + pipeline
-├── apply.go                 # Apply handler + pipeline
 └── README.md                # This file
 ```
 
@@ -30,50 +28,28 @@ Following Go best practices (inspired by Kubernetes, Docker, gRPC-Go):
 
 ## Operations
 
-### Create
+### Push
 
-**File**: `create.go`
+**File**: `push.go`
 
-Creates a new skill resource.
+Uploads a skill artifact (ZIP file) and creates or updates the skill resource.
+This is the primary way to create and update skills.
 
-**Pipeline**:
-1. ValidateProto - Validate proto field constraints
-2. ResolveSlug - Generate slug from metadata.name
-3. CheckDuplicate - Verify no duplicate exists
-4. BuildNewState - Set defaults, generate ID, timestamps
-5. Persist - Save to BadgerDB
+The operation:
+1. Extracts SKILL.md from the artifact
+2. Calculates SHA256 hash as version identifier
+3. Creates skill if it doesn't exist, or creates new version if it does
+4. Stores the artifact (deduplicated by hash)
+5. Archives previous versions
 
 **Example**:
 ```go
-skill := &skillv1.Skill{
-    Metadata: &apiresource.ApiResourceMetadata{
-        Name: "my-skill",
-        OwnerScope: apiresource.ApiResourceOwnerScope_platform,
-    },
-    Spec: &skillv1.SkillSpec{
-        Description: "Custom skill",
-    },
+req := &skillv1.PushSkillRequest{
+    Name: "my-skill",
+    Org: "org-123", // optional, empty for platform scope
+    Artifact: artifactBytes, // ZIP file bytes
 }
-created, err := controller.Create(ctx, skill)
-```
-
-### Update
-
-**File**: `update.go`
-
-Updates an existing skill resource.
-
-**Pipeline**:
-1. ValidateProto - Validate proto field constraints
-2. ResolveSlug - Generate slug (for fallback lookup)
-3. LoadExisting - Load existing skill from repository
-4. BuildUpdateState - Merge spec, preserve IDs, update timestamps
-5. Persist - Save updated skill
-
-**Example**:
-```go
-skill.Spec.Description = "Updated description"
-updated, err := controller.Update(ctx, skill)
+skill, err := controller.Push(ctx, req)
 ```
 
 ### Delete
@@ -135,33 +111,6 @@ ref := &apiresource.ApiResourceReference{
 skill, err := controller.GetByReference(ctx, ref)
 ```
 
-### Apply
-
-**File**: `apply.go`
-
-Declarative create-or-update operation (like `kubectl apply`).
-
-**Pipeline** (minimal, for existence check only):
-1. ValidateProto - Validate field constraints
-2. ResolveSlug - Generate slug
-3. LoadForApply - Check if resource exists
-
-Then delegates to:
-- `Create()` if resource doesn't exist
-- `Update()` if resource exists
-
-**Example**:
-```go
-skill := &skillv1.Skill{
-    Metadata: &apiresource.ApiResourceMetadata{
-        Name: "my-skill",
-    },
-    Spec: &skillv1.SkillSpec{
-        Description: "Will create or update",
-    },
-}
-result, err := controller.Apply(ctx, skill)
-```
 
 ## Design Decisions
 
@@ -188,13 +137,15 @@ Unlike Stigmer Cloud (Java) which uses specialized contexts, Stigmer OSS uses a 
 
 **Trade-off**: Runtime type assertions vs compile-time safety (acceptable for OSS use case).
 
-### No Custom Steps (Yet)
+### Artifact-Based Operations
 
-Skills don't require custom business logic steps (unlike agents which need instance creation).
+Unlike other resources, skills use an artifact-based approach:
+- **Push** handles both create and update by uploading a ZIP artifact
+- The artifact must contain SKILL.md with skill definition
+- Version control is based on SHA256 hash of artifact content
+- Previous versions are automatically archived
 
-All steps are generic and reusable from `backend/libs/go/grpc/request/pipeline/steps/`.
-
-If skill-specific logic is needed in the future, create a `steps/` subdirectory.
+Generic CRUD operations (Create/Update/Apply) have been removed in favor of Push.
 
 ## Simplified from Stigmer Cloud
 
@@ -215,15 +166,13 @@ All files follow Go best practices:
 
 | File | Lines | Status |
 |------|-------|--------|
-| `skill_controller.go` | 20 | ✅ Ideal |
-| `create.go` | 45 | ✅ Ideal |
-| `update.go` | 45 | ✅ Ideal |
+| `skill_controller.go` | 24 | ✅ Ideal |
+| `push.go` | ~500 | ⚠️ Complex (artifact handling) |
 | `delete.go` | 55 | ✅ Ideal |
 | `get.go` | 50 | ✅ Ideal |
 | `get_by_reference.go` | 55 | ✅ Ideal |
-| `apply.go` | 70 | ✅ Ideal |
 
-**Target**: All files < 100 lines (achieved ✅).
+**Note**: `push.go` is larger due to artifact extraction and version management logic.
 
 ## Testing
 

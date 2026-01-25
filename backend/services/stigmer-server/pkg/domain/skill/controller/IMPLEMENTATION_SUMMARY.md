@@ -2,59 +2,66 @@
 
 ## Overview
 
-Implemented complete CRUD handlers for Skill resources in Stigmer OSS following the pipeline pattern established by the Agent controller.
+Implemented Skill resource handlers in Stigmer OSS following an artifact-based approach using the Push operation.
 
-**Date**: 2026-01-19  
+**Date**: 2026-01-19 (Original)  
+**Last Updated**: 2026-01-25 (Removed Create/Update/Apply, consolidated to Push)  
 **Repository**: stigmer/stigmer  
-**Branch**: feat/migrate-backend-controllers  
+**Branch**: feat/migrate-backend-controllers
 
-## Files Created
+> **IMPORTANT UPDATE (2026-01-25)**: The Create, Update, and Apply operations have been **REMOVED** 
+> from the Skill controller. All skill creation and modification is now handled exclusively through 
+> the **Push** operation, which uploads skill artifacts (ZIP files containing SKILL.md).
+> 
+> This document retains historical context but reflects the current simplified implementation.  
 
-All files are located in `backend/services/stigmer-server/pkg/controllers/skill/`:
+## Current Files (Post-Refactor)
 
-1. **skill_controller.go** (20 lines)
+All files are located in `backend/services/stigmer-server/pkg/domain/skill/controller/`:
+
+1. **skill_controller.go** (24 lines)
    - Controller struct with embedded unimplemented servers
    - Constructor function `NewSkillController`
-   - Dependencies: BadgerDB store
+   - Dependencies: BadgerDB store, ArtifactStorage
 
-2. **create.go** (45 lines)
-   - Create handler using pipeline pattern
-   - Pipeline: ValidateProto → ResolveSlug → CheckDuplicate → BuildNewState → Persist
-   - No custom steps needed (all generic)
+2. **push.go** (~500 lines)
+   - Push handler for artifact-based create/update
+   - Handles ZIP artifact upload, extraction, and storage
+   - Creates or updates skill based on existence
+   - Manages version control via SHA256 hashing
+   - Archives previous versions
 
-3. **update.go** (45 lines)
-   - Update handler using pipeline pattern
-   - Pipeline: ValidateProto → ResolveSlug → LoadExisting → BuildUpdateState → Persist
-   - Full spec replacement strategy
-
-4. **delete.go** (55 lines)
+3. **delete.go** (55 lines)
    - Delete handler using pipeline pattern
    - Pipeline: ValidateProto → ExtractResourceId → LoadExistingForDelete → DeleteResource
    - Returns deleted resource for audit trail
 
-5. **get.go** (50 lines)
+4. **get.go** (50 lines)
    - Get handler using pipeline pattern
    - Pipeline: ValidateProto → LoadTarget
    - Load by ID
 
-6. **get_by_reference.go** (55 lines)
+5. **get_by_reference.go** (55 lines)
    - GetByReference handler using pipeline pattern
    - Pipeline: ValidateProto → LoadByReference
    - Slug-based lookup with org filtering
 
-7. **apply.go** (70 lines)
-   - Apply handler using pipeline pattern
-   - Pipeline: ValidateProto → ResolveSlug → LoadForApply
-   - Delegates to Create or Update based on existence
-
-8. **README.md** (comprehensive documentation)
+6. **README.md** (comprehensive documentation)
    - Architecture overview
    - Handler documentation
    - Design decisions
    - Usage examples
    - Registration guide
 
-9. **IMPLEMENTATION_SUMMARY.md** (this file)
+7. **IMPLEMENTATION_SUMMARY.md** (this file)
+
+## Files Removed (2026-01-25)
+
+The following files were removed when consolidating to the Push-only approach:
+
+- ~~**create.go**~~ - Removed (use Push instead)
+- ~~**update.go**~~ - Removed (use Push instead)
+- ~~**apply.go**~~ - Removed (use Push instead)
 
 ## Files Modified
 
@@ -70,18 +77,18 @@ All files are located in `backend/services/stigmer-server/pkg/controllers/skill/
 
 ## Architecture
 
-### Pipeline Pattern (Mandatory)
+### Current Implementation (Post-Refactor)
 
-All handlers use the pipeline pattern with reusable steps:
+The Skill controller uses an **artifact-based approach**:
 
 ```
-Create:  ValidateProto → ResolveSlug → CheckDuplicate → BuildNewState → Persist
-Update:  ValidateProto → ResolveSlug → LoadExisting → BuildUpdateState → Persist
-Delete:  ValidateProto → ExtractResourceId → LoadExistingForDelete → DeleteResource
-Get:     ValidateProto → LoadTarget
+Push:   Artifact Upload → Extract SKILL.md → Hash (SHA256) → Find/Create Skill → Store Artifact → Archive Previous
+Delete: ValidateProto → ExtractResourceId → LoadExistingForDelete → DeleteResource
+Get:    ValidateProto → LoadTarget
 GetByReference: ValidateProto → LoadByReference
-Apply:   ValidateProto → ResolveSlug → LoadForApply → Delegate
 ```
+
+**Key Difference**: Unlike other resources, skills are managed through artifact uploads rather than direct CRUD operations.
 
 ### Key Decisions
 
@@ -138,21 +145,17 @@ skill/
 
 ## Code Quality
 
-### File Sizes
-
-All files meet Go best practices (< 100 lines):
+### File Sizes (Current)
 
 | File | Lines | Status |
 |------|-------|--------|
-| skill_controller.go | 20 | ✅ Ideal |
-| create.go | 45 | ✅ Ideal |
-| update.go | 45 | ✅ Ideal |
+| skill_controller.go | 24 | ✅ Ideal |
+| push.go | ~500 | ⚠️ Complex (artifact handling) |
 | delete.go | 55 | ✅ Ideal |
 | get.go | 50 | ✅ Ideal |
 | get_by_reference.go | 55 | ✅ Ideal |
-| apply.go | 70 | ✅ Ideal |
 
-**Total**: 340 lines of production code across 7 files (average 48 lines/file)
+**Note**: push.go is larger due to artifact extraction, version management, and storage logic.
 
 ### Compilation
 
@@ -294,13 +297,17 @@ This fix unblocked the overall build.
 
 ## Summary
 
-Successfully implemented complete Skill controller with 7 handlers (Create, Update, Delete, Get, GetByReference, Apply) following the pipeline pattern established in the Agent controller. All handlers are well-structured, documented, and compile without errors. The implementation is simplified compared to Stigmer Cloud by excluding enterprise features (auth, IAM, events) while maintaining the same core pipeline architecture.
+The Skill controller has been successfully refactored to use an **artifact-based approach** with Push as the primary operation for creating and updating skills. This aligns with the requirement that skills are packaged as artifacts (ZIP files containing SKILL.md) rather than being directly created via proto messages.
 
-**Lines of Code**: 340 production lines across 7 handler files  
-**Average File Size**: 48 lines (well within ideal range)  
+**Current State**:
+- **Push**: Primary operation for create/update via artifact upload
+- **Delete**: Remove skills
+- **Get**: Retrieve by ID
+- **GetByReference**: Retrieve by slug/reference
+
 **Compilation**: ✅ Success  
 **Linter**: ✅ No errors  
-**Documentation**: ✅ Comprehensive README  
-**Registration**: ✅ Integrated in main.go  
+**Documentation**: ✅ Updated README  
+**Registration**: ✅ Integrated in server.go  
 
-The Skill controller is production-ready and follows all Stigmer OSS coding standards.
+The Skill controller is production-ready and follows Stigmer OSS coding standards with an artifact-centric design.
