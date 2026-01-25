@@ -62,18 +62,27 @@ func (s *ResolveSlugStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 		return fmt.Errorf("resource name is empty, cannot generate slug")
 	}
 
-	slug := generateSlug(metadata.Name)
+	slug := GenerateSlug(metadata.Name)
 	metadata.Slug = slug
 
 	return nil
 }
 
-// generateSlug converts a name into a URL-friendly slug
+// GenerateSlug converts a name into a URL-friendly slug
 //
 // This implementation matches the Java version (ApiRequestResourceSlugGenerator.generate)
 // by NOT truncating slugs. This prevents silent collisions where two different names
 // would generate the same slug after truncation.
-func generateSlug(name string) string {
+//
+// Rules:
+// - Convert to lowercase
+// - Replace spaces with hyphens
+// - Remove special characters (keep only ASCII alphanumeric and hyphens)
+// - Collapse multiple consecutive hyphens into one
+// - Trim leading and trailing hyphens
+//
+// Example: "My Cool Agent" -> "my-cool-agent"
+func GenerateSlug(name string) string {
 	// 1. Convert to lowercase
 	slug := strings.ToLower(name)
 

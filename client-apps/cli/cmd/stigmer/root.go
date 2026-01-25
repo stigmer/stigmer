@@ -38,15 +38,16 @@ Run locally with BadgerDB or scale to production with Stigmer Cloud.`,
 func init() {
 	// Add global debug flag
 	rootCmd.PersistentFlags().BoolVarP(&debugMode, "debug", "d", false, "enable debug mode with detailed logs")
-	
+
 	// Add subcommands
 	rootCmd.AddCommand(root.NewCommand())
 	rootCmd.AddCommand(root.NewServerCommand())
 	rootCmd.AddCommand(root.NewBackendCommand())
 	rootCmd.AddCommand(root.NewConfigCommand())
+	rootCmd.AddCommand(root.NewSkillCommand())
 	rootCmd.AddCommand(root.NewApplyCommand())
 	rootCmd.AddCommand(root.NewRunCommand())
-	
+
 	// Add hidden internal commands (used by daemon for BusyBox pattern)
 	rootCmd.AddCommand(root.NewInternalServerCommand())
 	rootCmd.AddCommand(root.NewInternalWorkflowRunnerCommand())

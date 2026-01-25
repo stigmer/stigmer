@@ -9,10 +9,11 @@ import (
 
 // Config holds server configuration
 type Config struct {
-	GRPCPort int
-	DBPath   string
-	LogLevel string
-	Env      string
+	GRPCPort    int
+	DBPath      string
+	StoragePath string // Path for skill artifacts storage
+	LogLevel    string
+	Env         string
 
 	// Temporal configuration
 	TemporalHostPort  string // Default: "localhost:7233"
@@ -22,10 +23,11 @@ type Config struct {
 // LoadConfig loads configuration from environment variables
 func LoadConfig() (*Config, error) {
 	config := &Config{
-		GRPCPort: getEnvInt("GRPC_PORT", 7234), // Port 7234 (Temporal + 1)
-		DBPath:   getEnvString("DB_PATH", defaultDBPath()),
-		LogLevel: getEnvString("LOG_LEVEL", "info"),
-		Env:      getEnvString("ENV", "local"),
+		GRPCPort:    getEnvInt("GRPC_PORT", 7234), // Port 7234 (Temporal + 1)
+		DBPath:      getEnvString("DB_PATH", defaultDBPath()),
+		StoragePath: getEnvString("STORAGE_PATH", defaultStoragePath()),
+		LogLevel:    getEnvString("LOG_LEVEL", "info"),
+		Env:         getEnvString("ENV", "local"),
 
 		// Temporal configuration
 		TemporalHostPort:  getEnvString("TEMPORAL_HOST_PORT", "localhost:7233"),
@@ -35,6 +37,11 @@ func LoadConfig() (*Config, error) {
 	// Ensure database directory exists
 	if err := ensureDBDir(config.DBPath); err != nil {
 		return nil, fmt.Errorf("failed to ensure database directory: %w", err)
+	}
+
+	// Ensure storage directory exists
+	if err := ensureStorageDir(config.StoragePath); err != nil {
+		return nil, fmt.Errorf("failed to ensure storage directory: %w", err)
 	}
 
 	return config, nil
@@ -67,10 +74,33 @@ func defaultDBPath() string {
 	return filepath.Join(home, ".stigmer", "stigmer.db")
 }
 
+// defaultStoragePath returns the default storage path (~/.stigmer/storage)
+func defaultStoragePath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "./storage"
+	}
+	return filepath.Join(home, ".stigmer", "storage")
+}
+
 // ensureDBDir ensures the database directory exists
 func ensureDBDir(dbPath string) error {
 	dir := filepath.Dir(dbPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ensureStorageDir ensures the storage directory and subdirectories exist
+func ensureStorageDir(storagePath string) error {
+	// Create main storage directory
+	if err := os.MkdirAll(storagePath, 0755); err != nil {
+		return err
+	}
+	// Create skills subdirectory
+	skillsDir := filepath.Join(storagePath, "skills")
+	if err := os.MkdirAll(skillsDir, 0755); err != nil {
 		return err
 	}
 	return nil

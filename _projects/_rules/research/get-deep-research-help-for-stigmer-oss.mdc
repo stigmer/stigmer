@@ -1,0 +1,152 @@
+---
+description: Action rule to set up and manage Deep Research Agent workflows for external research help via ChatGPT or Gemini
+alwaysApply: false
+---
+
+# Rule: Get Deep Research Help for Stigmer OSS
+
+## Purpose
+
+Workflow for getting external research help from Deep Research Agents (ChatGPT or Gemini) when collaboration requires additional context, market research, technical deep dives, or background checks that benefit from AI-powered web research.
+
+## Triggers
+
+### Trigger 1: Start New Research
+User mentions this rule and provides:
+1. **Required**: A folder location where the research folder should be created
+2. **Optional**: A title/identifier for the research topic
+
+### Trigger 2: Answer Questions (Auto)
+User attaches/drags a `02.questions.md` file from any research folder.
+- **Action**: Automatically read the questions and write answers to `03.answers.md` in the same folder
+- No additional instructions required — just attaching the file triggers the response
+
+### Trigger 3: Import Report (Auto)
+User provides a path to a `.docx` file (ChatGPT Deep Research export) and the research folder location.
+- **Action**: Run the `convert` command to convert .docx to markdown, then analyze the report
+- See Step 6 for details
+
+## Workflow
+
+### Step 1: Create Research Folder
+
+Create a subfolder in the specified location with the naming convention:
+
+```
+research.<lowercase-alphanumeric-hyphen-identifier>
+```
+
+**Examples:**
+- `research.temporal-workflow-patterns`
+- `research.grpc-streaming-best-practices`
+- `research.bazel-remote-caching`
+- `research.go-generics-patterns`
+
+### Step 2: Create Standard Files
+
+Create these empty files in the research folder:
+
+```
+01.prompt.md      # Research prompt to send to Deep Research Agent
+02.questions.md   # Clarifying questions returned by the agent
+03.answers.md     # Answers to provide back to the agent
+04.report.gemini.md  # Final report from Gemini Deep Research
+04.report.gpt.md     # Final report from ChatGPT Deep Research
+```
+
+### Step 3: Write the Research Prompt
+
+Write a comprehensive research prompt in `01.prompt.md` based on:
+- Current conversation context
+- The specific information needed
+- Why this research matters for the decision/task at hand
+
+**Prompt Requirements:**
+- Clear research objective
+- Known information as starting points
+- Specific areas to investigate
+- Request for authoritative sources with citations
+- Output format expectations
+
+### Step 4: User Takes Prompt to Deep Research Agent
+
+User copies the prompt from `01.prompt.md` and submits to:
+- ChatGPT Deep Research, OR
+- Gemini Deep Research
+
+### Step 5: Handle Clarifying Questions
+
+When the Deep Research Agent returns clarifying questions:
+1. User pastes questions into `02.questions.md`
+2. User drags/attaches `02.questions.md` to the conversation
+3. **Agent automatically writes answers to `03.answers.md` in the same folder**
+4. User provides answers back to Deep Research Agent
+
+**Auto-trigger:** When user attaches any `02.questions.md` file from a research folder, immediately read the questions and write comprehensive answers to the sibling `03.answers.md` file without requiring additional instructions.
+
+### Step 6: Import and Analyze Final Report
+
+When Deep Research Agent completes the research:
+
+#### For ChatGPT Reports (.docx export)
+
+1. User downloads report as `.docx` file (ChatGPT's export format)
+2. User provides the `.docx` file path and research folder location
+3. **Agent runs the `convert` command:**
+
+```bash
+convert '<source.docx>' '<research-folder>/04.report.gpt.md'
+```
+
+**Important:** Always use **single quotes** around file paths because ChatGPT export filenames often contain spaces and special characters (colons, apostrophes, etc.).
+
+The `convert` alias uses pandoc to convert .docx to GitHub-flavored markdown with media extraction.
+
+4. **Agent reads the converted report and provides:**
+   - Summary of key findings
+   - Notable information discovered
+   - Any red flags or concerns identified
+   - Recommended next steps for review
+   - Questions or areas that may need follow-up
+
+#### For Gemini Reports
+
+- Copy/paste directly into `04.report.gemini.md`
+- Agent analyzes and summarizes as above
+
+**Auto-trigger:** When user provides a `.docx` path and mentions it's a Deep Research report, automatically:
+1. Run the convert command to the appropriate `04.report.gpt.md`
+2. Read the converted markdown
+3. Provide analysis and next steps
+
+## Example Usage
+
+### Example 1: Start New Research
+
+**User says:**
+> @get-deep-research-help-for-stigmer-oss 
+> Create research folder in `_projects/2026-01/` titled "temporal-saga-patterns"
+
+**Agent actions:**
+1. Creates `_projects/2026-01/research.temporal-saga-patterns/`
+2. Creates standard files (01.prompt.md through 04.report.*.md)
+3. Writes research prompt based on conversation context
+
+### Example 2: Import ChatGPT Report
+
+**User says:**
+> Here's the report: `~/Downloads/Deep research on gRPC streaming patterns.docx`
+> Save to `_projects/2026-01/research.grpc-streaming/`
+
+**Agent actions:**
+1. Runs: `convert '~/Downloads/Deep research on gRPC streaming patterns.docx' '_projects/2026-01/research.grpc-streaming/04.report.gpt.md'`
+2. Reads the converted markdown report
+3. Provides summary of findings, key insights, red flags, and next steps
+
+## Notes
+
+- Research folders are prefixed with `research.` for easy identification
+- Multiple research efforts can exist in the same parent folder
+- Reports are kept in the repository for future reference
+- Both Gemini and ChatGPT reports can be captured for comparison
+- Common research topics for Stigmer OSS: Go patterns, Bazel build system, gRPC/protobuf, Temporal workflows, CLI design patterns

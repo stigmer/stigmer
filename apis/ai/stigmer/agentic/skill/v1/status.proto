@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.skill.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+
+// SkillStatus represents the system-managed state of a skill.
+// This represents observed state managed by the system.
+message SkillStatus {
+  // Standard audit information tracking creation and modification.
+  // Field 99 follows Stigmer convention for audit placement.
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // SHA256 hash of the skill artifact Zip file.
+  // This is the content fingerprint and serves as the immutable version identifier.
+  // Calculated by the system from the uploaded artifact.
+  string version_hash = 1 [(buf.validate.field).string.pattern = "^[a-f0-9]{64}$"];
+
+  // Storage location key for the skill artifact.
+  // Format varies based on storage backend:
+  // - Local: "<hash>.zip"
+  // - Cloud: "skills/<slug>_<hash>.zip"
+  // This is determined by the system based on storage configuration.
+  string artifact_storage_key = 2;
+
+  // Current lifecycle state of the skill.
+  SkillState state = 3;
+}
+
+// SkillState represents the lifecycle state of a skill.
+enum SkillState {
+  // Unspecified state (default/invalid).
+  SKILL_STATE_UNSPECIFIED = 0;
+
+  // Skill artifact is being uploaded to storage.
+  SKILL_STATE_UPLOADING = 1;
+
+  // Skill is ready to be used by agents.
+  SKILL_STATE_READY = 2;
+
+  // Skill upload or processing failed.
+  SKILL_STATE_FAILED = 3;
+}

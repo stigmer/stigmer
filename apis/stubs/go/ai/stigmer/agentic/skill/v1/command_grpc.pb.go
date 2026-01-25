@@ -19,9 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SkillCommandController_Apply_FullMethodName  = "/ai.stigmer.agentic.skill.v1.SkillCommandController/apply"
-	SkillCommandController_Create_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillCommandController/create"
-	SkillCommandController_Update_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillCommandController/update"
+	SkillCommandController_Push_FullMethodName   = "/ai.stigmer.agentic.skill.v1.SkillCommandController/push"
 	SkillCommandController_Delete_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillCommandController/delete"
 )
 
@@ -31,19 +29,27 @@ const (
 //
 // SkillCommandController handles write operations for skills.
 type SkillCommandControllerClient interface {
-	// Create or update a skill.
-	// The authorization and state-operation are determined depending on whether the skill
-	// is going to be created or updated which is determined as part of the request execution.
-	Apply(ctx context.Context, in *Skill, opts ...grpc.CallOption) (*Skill, error)
-	// Create a new skill.
+	// Push (upload) a skill artifact.
+	// This operation creates a new skill if it doesn't exist, or creates a new version
+	// of an existing skill. The skill artifact must contain SKILL.md.
 	//
 	// Authorization:
 	// - Organization-scoped skills: Caller must have can_create_skill permission in the organization
 	// - Platform-scoped skills: Caller must be a platform operator (handled automatically by common auth step)
-	Create(ctx context.Context, in *Skill, opts ...grpc.CallOption) (*Skill, error)
-	// Update an existing skill.
-	Update(ctx context.Context, in *Skill, opts ...grpc.CallOption) (*Skill, error)
-	// Delete a skill.
+	//
+	// The backend will:
+	// 1. Normalize the name to a slug
+	// 2. Find or create the skill resource
+	// 3. Extract SKILL.md from the artifact
+	// 4. Calculate SHA256 hash (version identifier)
+	// 5. Store the artifact (deduplicated by hash)
+	// 6. Update skill spec and status
+	// 7. Archive the previous version (if updating)
+	//
+	// Returns: The created or updated Skill resource (consistent with other CRUD operations)
+	Push(ctx context.Context, in *PushSkillRequest, opts ...grpc.CallOption) (*Skill, error)
+	// Delete a skill and all its versions.
+	// This removes the skill from the main collection but preserves audit history.
 	Delete(ctx context.Context, in *SkillId, opts ...grpc.CallOption) (*Skill, error)
 }
 
@@ -55,30 +61,10 @@ func NewSkillCommandControllerClient(cc grpc.ClientConnInterface) SkillCommandCo
 	return &skillCommandControllerClient{cc}
 }
 
-func (c *skillCommandControllerClient) Apply(ctx context.Context, in *Skill, opts ...grpc.CallOption) (*Skill, error) {
+func (c *skillCommandControllerClient) Push(ctx context.Context, in *PushSkillRequest, opts ...grpc.CallOption) (*Skill, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Skill)
-	err := c.cc.Invoke(ctx, SkillCommandController_Apply_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *skillCommandControllerClient) Create(ctx context.Context, in *Skill, opts ...grpc.CallOption) (*Skill, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Skill)
-	err := c.cc.Invoke(ctx, SkillCommandController_Create_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *skillCommandControllerClient) Update(ctx context.Context, in *Skill, opts ...grpc.CallOption) (*Skill, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Skill)
-	err := c.cc.Invoke(ctx, SkillCommandController_Update_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, SkillCommandController_Push_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -101,19 +87,27 @@ func (c *skillCommandControllerClient) Delete(ctx context.Context, in *SkillId, 
 //
 // SkillCommandController handles write operations for skills.
 type SkillCommandControllerServer interface {
-	// Create or update a skill.
-	// The authorization and state-operation are determined depending on whether the skill
-	// is going to be created or updated which is determined as part of the request execution.
-	Apply(context.Context, *Skill) (*Skill, error)
-	// Create a new skill.
+	// Push (upload) a skill artifact.
+	// This operation creates a new skill if it doesn't exist, or creates a new version
+	// of an existing skill. The skill artifact must contain SKILL.md.
 	//
 	// Authorization:
 	// - Organization-scoped skills: Caller must have can_create_skill permission in the organization
 	// - Platform-scoped skills: Caller must be a platform operator (handled automatically by common auth step)
-	Create(context.Context, *Skill) (*Skill, error)
-	// Update an existing skill.
-	Update(context.Context, *Skill) (*Skill, error)
-	// Delete a skill.
+	//
+	// The backend will:
+	// 1. Normalize the name to a slug
+	// 2. Find or create the skill resource
+	// 3. Extract SKILL.md from the artifact
+	// 4. Calculate SHA256 hash (version identifier)
+	// 5. Store the artifact (deduplicated by hash)
+	// 6. Update skill spec and status
+	// 7. Archive the previous version (if updating)
+	//
+	// Returns: The created or updated Skill resource (consistent with other CRUD operations)
+	Push(context.Context, *PushSkillRequest) (*Skill, error)
+	// Delete a skill and all its versions.
+	// This removes the skill from the main collection but preserves audit history.
 	Delete(context.Context, *SkillId) (*Skill, error)
 }
 
@@ -124,14 +118,8 @@ type SkillCommandControllerServer interface {
 // pointer dereference when methods are called.
 type UnimplementedSkillCommandControllerServer struct{}
 
-func (UnimplementedSkillCommandControllerServer) Apply(context.Context, *Skill) (*Skill, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Apply not implemented")
-}
-func (UnimplementedSkillCommandControllerServer) Create(context.Context, *Skill) (*Skill, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
-}
-func (UnimplementedSkillCommandControllerServer) Update(context.Context, *Skill) (*Skill, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+func (UnimplementedSkillCommandControllerServer) Push(context.Context, *PushSkillRequest) (*Skill, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Push not implemented")
 }
 func (UnimplementedSkillCommandControllerServer) Delete(context.Context, *SkillId) (*Skill, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -156,56 +144,20 @@ func RegisterSkillCommandControllerServer(s grpc.ServiceRegistrar, srv SkillComm
 	s.RegisterService(&SkillCommandController_ServiceDesc, srv)
 }
 
-func _SkillCommandController_Apply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Skill)
+func _SkillCommandController_Push_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PushSkillRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SkillCommandControllerServer).Apply(ctx, in)
+		return srv.(SkillCommandControllerServer).Push(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SkillCommandController_Apply_FullMethodName,
+		FullMethod: SkillCommandController_Push_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SkillCommandControllerServer).Apply(ctx, req.(*Skill))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _SkillCommandController_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Skill)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(SkillCommandControllerServer).Create(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: SkillCommandController_Create_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SkillCommandControllerServer).Create(ctx, req.(*Skill))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _SkillCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Skill)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(SkillCommandControllerServer).Update(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: SkillCommandController_Update_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SkillCommandControllerServer).Update(ctx, req.(*Skill))
+		return srv.(SkillCommandControllerServer).Push(ctx, req.(*PushSkillRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -236,16 +188,8 @@ var SkillCommandController_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*SkillCommandControllerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "apply",
-			Handler:    _SkillCommandController_Apply_Handler,
-		},
-		{
-			MethodName: "create",
-			Handler:    _SkillCommandController_Create_Handler,
-		},
-		{
-			MethodName: "update",
-			Handler:    _SkillCommandController_Update_Handler,
+			MethodName: "push",
+			Handler:    _SkillCommandController_Push_Handler,
 		},
 		{
 			MethodName: "delete",

@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "artifact",
+    srcs = ["skill.go"],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//client-apps/cli/internal/cli/cliprint",
+        "@com_github_pkg_errors//:errors",
+        "@org_golang_google_grpc//:grpc",
+    ],
+)

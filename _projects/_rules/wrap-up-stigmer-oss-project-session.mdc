@@ -1,0 +1,413 @@
+---
+description: Action rule to wrap up a Stigmer OSS project session - save progress, update next-task.md, create session notes, and prepare for seamless resume
+alwaysApply: false
+---
+
+# Rule: Wrap Up Stigmer OSS Project Session
+
+## Purpose
+
+When triggered, executes a complete workflow to wrap up the current project session:
+1. Capture session progress and context
+2. Update `next-task.md` with current state
+3. Create session notes for continuity
+4. Optionally commit work-in-progress
+5. Prepare clear resume instructions
+
+This rule ensures no context is lost between sessions and enables seamless continuation.
+
+## Rule Type
+
+**Action Rule** - Executes session wrap-up workflow with intelligent context preservation
+
+## When to Use
+
+- At the end of a development session (before closing IDE)
+- Before switching to a different project
+- When taking a break from multi-day work
+- Before a meeting or context switch
+- Anytime you want to preserve session context
+
+## User Workflow
+
+**Simple invocation** - AI handles everything:
+1. User is mid-project work
+2. User drags project reference (e.g., `@_projects/2026-01/20260122.03.feature-name`) into chat
+3. User invokes this rule: `@wrap-up-stigmer-oss-project-session`
+4. AI captures progress, updates documentation, prepares resume state
+5. User can safely close IDE or switch contexts
+
+## Execution Flow
+
+### Step 1: Analyze Session Progress
+
+**AI evaluates the current session:**
+- What was accomplished in this session?
+- What files were modified?
+- What tasks were completed vs in-progress?
+- What decisions were made?
+- What blockers or questions emerged?
+
+**Sources to analyze:**
+- Conversation history
+- `git status` (modified files)
+- `git diff` (actual changes)
+- Current task state from `next-task.md`
+
+### Step 2: Update next-task.md
+
+**Action**: Update `next-task.md` with session context
+
+**What to capture:**
+
+```markdown
+# Next Task: [Project Name]
+
+## Current State
+- **Status**: [in-progress/blocked/ready-for-review]
+- **Last Session**: [date and brief summary]
+- **Active Task**: [current task being worked on]
+
+## Session Progress ([date])
+- [What was accomplished]
+- [Key decisions made]
+- [Files modified]
+
+## Next Steps
+1. [Immediate next action]
+2. [Following actions]
+3. [...]
+
+## Context for Resume
+- [Important context that would be lost]
+- [Key findings or discoveries]
+- [Questions to address]
+
+## Blockers (if any)
+- [Blocker description and what's needed]
+
+## Quick Resume
+To continue this project, drag this file into chat:
+`@_projects/YYYY-MM/YYYYMMDD.NN.project-name/next-task.md`
+```
+
+### Step 3: Create Session Notes (if significant work)
+
+**Condition**: Only if meaningful progress was made (not just setup)
+
+**Action**: Create checkpoint or session note in `checkpoints/`
+
+**Format**: `checkpoints/YYYY-MM-DD-session-{n}.md`
+
+**Content**:
+```markdown
+# Session Notes: [date]
+
+## Accomplishments
+- [What was completed]
+
+## Decisions Made
+- [Technical decisions and rationale]
+
+## Key Code Changes
+- [File]: [What changed and why]
+
+## Learnings
+- [Anything discovered that's worth remembering]
+
+## Open Questions
+- [Questions that emerged]
+
+## Next Session Plan
+- [What to tackle next]
+```
+
+### Step 4: Handle Uncommitted Work
+
+**AI evaluates git status and decides:**
+
+**If clean working directory:**
+```
+ℹ️  No uncommitted changes - nothing to stage
+```
+
+**If changes exist:**
+- Present summary of changes
+- Ask user: "Would you like to commit these changes before wrapping up?"
+  - **If yes**: Run commit workflow (invoke `@commit-stigmer-oss-changes.mdc`)
+  - **If no**: Note that changes are uncommitted in next-task.md
+  - **If WIP commit**: Create a WIP commit: `git commit -m "wip: [session summary]"`
+
+### Step 5: Generate Resume Instructions
+
+**Final output to user:**
+
+```
+🎯 Session Wrap-Up Complete!
+
+📋 Session Summary:
+- [Brief summary of what was accomplished]
+- [Number of files modified]
+- [Key decisions or findings]
+
+📝 Updated:
+✅ next-task.md - Updated with current state and next steps
+✅ checkpoints/YYYY-MM-DD-session-N.md - Session notes saved
+[✅ Committed: abc123 ... / ⚠️ Uncommitted changes preserved]
+
+🚀 To Resume:
+Simply drag into chat:
+@_projects/YYYY-MM/YYYYMMDD.NN.project-name/next-task.md
+
+📌 Next Steps (when you return):
+1. [First thing to do]
+2. [Second thing to do]
+3. [...]
+
+Safe to close IDE! Your progress is preserved.
+```
+
+## Implementation Steps
+
+When this rule is triggered:
+
+### 1. Verify Project Context
+```
+Analyzing session for wrap-up...
+```
+- Check that project reference is provided
+- Identify project folder path
+- Load current next-task.md state
+- Analyze conversation for session context
+
+### 2. Gather Session Information
+```
+Gathering session progress...
+```
+- Run `git status` to see modified files
+- Run `git diff --stat` to understand change scope
+- Review conversation for accomplishments and decisions
+- Identify blockers or open questions
+
+### 3. Update next-task.md
+```
+Updating next-task.md with session state...
+```
+- Preserve existing project context
+- Add session progress section
+- Update current state and status
+- Add next steps based on conversation
+- Include resume context
+
+### 4. Create Session Checkpoint (if needed)
+```
+Creating session checkpoint...
+```
+- Evaluate if session was significant enough
+- Create checkpoint file if warranted
+- Link from next-task.md
+
+### 5. Handle Uncommitted Changes
+```
+Checking for uncommitted work...
+```
+- Present options to user
+- Execute chosen action (commit/wip/leave)
+- Update next-task.md with commit status
+
+### 6. Final Summary
+```
+🎯 Session wrap-up complete!
+```
+- Show summary of what was preserved
+- Provide clear resume instructions
+- Confirm safe to close
+
+## Examples
+
+### Example 1: Mid-Feature Development Session
+
+**Context**: Working on implementing agent configuration
+
+**User action**:
+```
+@_projects/2026-01/20260122.03.agent-configuration
+@wrap-up-stigmer-oss-project-session
+```
+
+**AI execution**:
+```
+🎯 Session Wrap-Up Complete!
+
+📋 Session Summary:
+- Implemented AgentConfig proto definition
+- Added validation rules for configuration fields
+- Started backend handler (60% complete)
+- Decision: Using environment variable merging pattern
+
+📝 Updated:
+✅ next-task.md - Updated with current state
+✅ checkpoints/2026-01-22-session-1.md - Session notes saved
+✅ Committed: 8f3a2d1 wip: agent config proto and partial handler
+
+🚀 To Resume:
+@_projects/2026-01/20260122.03.agent-configuration/next-task.md
+
+📌 Next Steps (when you return):
+1. Complete AgentConfigHandler.create() method
+2. Add unit tests for validation
+3. Wire up FGA authorization
+
+Safe to close IDE! Your progress is preserved.
+```
+
+### Example 2: Research/Exploration Session
+
+**Context**: Investigating performance issue
+
+**User action**:
+```
+@_projects/2026-01/20260120.02.performance-investigation
+@wrap-up-stigmer-oss-project-session
+```
+
+**AI execution**:
+```
+🎯 Session Wrap-Up Complete!
+
+📋 Session Summary:
+- Profiled agent execution workflow
+- Identified bottleneck in skill loading (2.3s per skill)
+- Found caching opportunity in artifact storage
+- No code changes yet - research phase
+
+📝 Updated:
+✅ next-task.md - Updated with findings and next steps
+
+ℹ️  No uncommitted changes
+
+🚀 To Resume:
+@_projects/2026-01/20260120.02.performance-investigation/next-task.md
+
+📌 Next Steps (when you return):
+1. Implement skill artifact caching
+2. Add cache invalidation on skill update
+3. Benchmark improvement
+
+Safe to close IDE! Your research is preserved.
+```
+
+### Example 3: Blocked Session
+
+**Context**: Hit a blocker during implementation
+
+**User action**:
+```
+@_projects/2026-01/20260118.01.auth-migration
+@wrap-up-stigmer-oss-project-session
+```
+
+**AI execution**:
+```
+🎯 Session Wrap-Up Complete!
+
+📋 Session Summary:
+- Attempted to migrate auth tokens
+- Hit FGA permission issue - need admin access
+- Documented workaround attempt (didn't work)
+
+📝 Updated:
+✅ next-task.md - Updated with blocker details
+✅ checkpoints/2026-01-18-session-2.md - Blocker documentation
+
+⚠️  Uncommitted changes preserved (not committed - partial work)
+
+🚀 To Resume:
+@_projects/2026-01/20260118.01.auth-migration/next-task.md
+
+🚧 Blocker:
+Need FGA admin access to test permission inheritance.
+Action: Request access from platform team before resuming.
+
+📌 Next Steps (when blocker resolved):
+1. Test permission inheritance with admin role
+2. Complete migration script
+3. Add rollback procedure
+
+Safe to close IDE! Blocker is documented.
+```
+
+## Quality Checklist
+
+Before completing wrap-up, verify:
+
+- [ ] Session progress accurately captured
+- [ ] next-task.md reflects current state
+- [ ] Next steps are clear and actionable
+- [ ] Resume instructions are correct
+- [ ] Important decisions documented
+- [ ] Blockers clearly noted (if any)
+- [ ] Uncommitted work handled appropriately
+- [ ] Context preserved for seamless resume
+
+## When NOT to Use
+
+Don't use this rule when:
+
+- You want to fully complete and commit work (use `@complete-stigmer-oss-work`)
+- Work is trivial and doesn't need context preservation
+- You're just pausing for a few minutes
+- No project context exists (not in a project)
+
+## Difference from complete-stigmer-oss-work
+
+| Aspect | wrap-up-session | complete-work |
+|--------|-----------------|---------------|
+| Purpose | Pause work, preserve context | Finish work, document completion |
+| Changelog | No | Yes |
+| Commit | Optional (WIP ok) | Required (proper commit) |
+| Project update | Session notes | Checkpoint + progress |
+| Rule improvement | No | Yes (AI-driven) |
+| When | Mid-work | Work complete |
+
+## Success Criteria
+
+This rule succeeds when:
+
+- ✅ next-task.md updated with current session state
+- ✅ Session progress documented (if significant)
+- ✅ Uncommitted changes handled appropriately
+- ✅ Clear resume instructions provided
+- ✅ Context preserved for future sessions
+- ✅ User can safely close IDE
+- ✅ Future session can resume seamlessly
+
+## Notes
+
+**Session Context is Valuable**:
+- Conversations contain context that's lost when you close the IDE
+- This rule captures that context before it's lost
+- Future you (or another session) can resume without re-discovery
+
+**WIP Commits are OK**:
+- Unlike complete-work, WIP commits are appropriate here
+- Goal is preserving state, not creating clean history
+- WIP commits can be squashed later when work is complete
+
+**Frequency**:
+- Use at natural stopping points
+- Use before any context switch
+- Use when you're not sure when you'll return
+- Don't over-use for trivial pauses
+
+---
+
+**Related Rules**:
+- `@complete-stigmer-oss-work` - Full work completion (when done, not pausing)
+- `@update-next-project-progress` - Project progress updates (used by complete-work)
+- `@commit-stigmer-oss-changes` - Git commits (optionally invoked)
+- `@start-stigmer-oss-new-project` - Start new projects
+
+---
+
+**Remember**: This rule is about preserving context and enabling seamless resume. It's the "save game" for your development session. Use it whenever you're stepping away from work-in-progress.

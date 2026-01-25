@@ -26,25 +26,30 @@ var File_ai_stigmer_agentic_skill_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/skill/v1/query.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a$ai/stigmer/agentic/skill/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x8b\x02\n" +
+	"'ai/stigmer/agentic/skill/v1/query.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a$ai/stigmer/agentic/skill/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x83\x03\n" +
 	"\x14SkillQueryController\x12{\n" +
 	"\x03get\x12$.ai.stigmer.agentic.skill.v1.SkillId\x1a\".ai.stigmer.agentic.skill.v1.Skill\"*¸\x18&\b\x03\x10+\"\x05value*\x19unauthorized to get skill\x12p\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\".ai.stigmer.agentic.skill.v1.Skill\"\x04и\x18\x01\x1a\x04\xa0\xff++B\x8c\x02\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\".ai.stigmer.agentic.skill.v1.Skill\"\x04и\x18\x01\x12v\n" +
+	"\vgetArtifact\x12/.ai.stigmer.agentic.skill.v1.GetArtifactRequest\x1a0.ai.stigmer.agentic.skill.v1.GetArtifactResponse\"\x04и\x18\x01\x1a\x04\xa0\xff++B\x8c\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.skill.v1B\n" +
 	"QueryProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_skill_v1_query_proto_goTypes = []any{
 	(*SkillId)(nil),                          // 0: ai.stigmer.agentic.skill.v1.SkillId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*Skill)(nil),                            // 2: ai.stigmer.agentic.skill.v1.Skill
+	(*GetArtifactRequest)(nil),               // 2: ai.stigmer.agentic.skill.v1.GetArtifactRequest
+	(*Skill)(nil),                            // 3: ai.stigmer.agentic.skill.v1.Skill
+	(*GetArtifactResponse)(nil),              // 4: ai.stigmer.agentic.skill.v1.GetArtifactResponse
 }
 var file_ai_stigmer_agentic_skill_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.skill.v1.SkillQueryController.get:input_type -> ai.stigmer.agentic.skill.v1.SkillId
 	1, // 1: ai.stigmer.agentic.skill.v1.SkillQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.agentic.skill.v1.SkillQueryController.get:output_type -> ai.stigmer.agentic.skill.v1.Skill
-	2, // 3: ai.stigmer.agentic.skill.v1.SkillQueryController.getByReference:output_type -> ai.stigmer.agentic.skill.v1.Skill
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	2, // 2: ai.stigmer.agentic.skill.v1.SkillQueryController.getArtifact:input_type -> ai.stigmer.agentic.skill.v1.GetArtifactRequest
+	3, // 3: ai.stigmer.agentic.skill.v1.SkillQueryController.get:output_type -> ai.stigmer.agentic.skill.v1.Skill
+	3, // 4: ai.stigmer.agentic.skill.v1.SkillQueryController.getByReference:output_type -> ai.stigmer.agentic.skill.v1.Skill
+	4, // 5: ai.stigmer.agentic.skill.v1.SkillQueryController.getArtifact:output_type -> ai.stigmer.agentic.skill.v1.GetArtifactResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

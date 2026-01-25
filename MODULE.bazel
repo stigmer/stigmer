@@ -34,6 +34,7 @@ use_repo(
     "com_github_charmbracelet_bubbles",  # keep: Required for CLI UI components
     "com_github_charmbracelet_bubbletea",  # keep: Required for CLI TUI framework
     "com_github_charmbracelet_lipgloss",  # keep: Required for CLI styling
+    "com_github_dgraph_io_badger_v3",
     "com_github_dgraph_io_badger_v4",
     "com_github_fatih_color",  # keep: Required for CLI colored output
     "com_github_fullstorydev_grpcurl",
@@ -43,6 +44,7 @@ use_repo(
     "com_github_go_viper_mapstructure_v2",
     "com_github_google_uuid",
     "com_github_itchyny_gojq",
+    "com_github_jhump_protoreflect",
     "com_github_joho_godotenv",
     "com_github_masterminds_semver_v3",
     "com_github_mrsimonemms_golang_helpers",
@@ -55,6 +57,7 @@ use_repo(
     "com_github_spf13_viper",
     "com_github_stigmer_stigmer_apis_stubs_go",
     "com_github_stigmer_stigmer_backend_libs_go",
+    "com_github_stigmer_stigmer_client_apps_cli",
     "com_github_stigmer_stigmer_sdk_go",
     "com_github_stretchr_testify",
     "in_gopkg_yaml_v3",  # keep: Required for CLI YAML config
