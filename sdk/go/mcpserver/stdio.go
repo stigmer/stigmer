@@ -2,7 +2,6 @@ package mcpserver
 
 import (
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
-	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 )
 
 // StdioArgs is an alias for the generated StdioServer type from codegen.
@@ -86,10 +85,6 @@ func Stdio(ctx Context, name string, args *StdioArgs) (*StdioServer, error) {
 		workingDir:      args.WorkingDir,
 	}
 
-	if err := server.Validate(); err != nil {
-		return nil, err
-	}
-
 	return server, nil
 }
 
@@ -123,15 +118,4 @@ func (s *StdioServer) WorkingDir() string {
 // Type returns the server type (stdio).
 func (s *StdioServer) Type() ServerType {
 	return TypeStdio
-}
-
-// Validate checks if the stdio server configuration is valid.
-func (s *StdioServer) Validate() error {
-	if err := validation.RequiredWithMessage("name", s.name, "stdio server: name is required"); err != nil {
-		return err
-	}
-	if err := validation.RequiredWithMessage("command", s.command, "stdio server: command is required"); err != nil {
-		return err
-	}
-	return nil
 }

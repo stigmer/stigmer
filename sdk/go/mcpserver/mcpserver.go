@@ -11,6 +11,10 @@ type Context interface{}
 
 // MCPServer represents an MCP server that can be attached to an agent.
 // MCP servers provide tools and capabilities to agents at runtime.
+//
+// Validation of MCP server configuration is handled by protovalidate when
+// the agent's ToProto() method is called. Proto validation rules ensure
+// required fields (name, command, image, url) are present.
 type MCPServer interface {
 	// Name returns the server name (e.g., "github", "aws", "slack").
 	Name() string
@@ -21,9 +25,6 @@ type MCPServer interface {
 
 	// Type returns the server type (stdio, http, or docker).
 	Type() ServerType
-
-	// Validate checks if the server configuration is valid.
-	Validate() error
 }
 
 // ServerType represents the type of MCP server.

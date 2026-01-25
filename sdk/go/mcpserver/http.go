@@ -2,7 +2,6 @@ package mcpserver
 
 import (
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
-	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 )
 
 // HTTPArgs is an alias for the generated HttpServer type from codegen.
@@ -94,10 +93,6 @@ func HTTP(ctx Context, name string, args *HTTPArgs) (*HTTPServer, error) {
 		timeoutSeconds: timeout,
 	}
 
-	if err := server.Validate(); err != nil {
-		return nil, err
-	}
-
 	return server, nil
 }
 
@@ -131,25 +126,4 @@ func (h *HTTPServer) TimeoutSeconds() int32 {
 // Type returns the server type (http).
 func (h *HTTPServer) Type() ServerType {
 	return TypeHTTP
-}
-
-// Validate checks if the HTTP server configuration is valid.
-func (h *HTTPServer) Validate() error {
-	if err := validation.RequiredWithMessage("name", h.name, "http server: name is required"); err != nil {
-		return err
-	}
-	if err := validation.RequiredWithMessage("url", h.url, "http server: url is required"); err != nil {
-		return err
-	}
-
-	// Validate URL format (http or https)
-	if err := validation.ValidHTTPURL("url", h.url); err != nil {
-		return err
-	}
-
-	if err := validation.NonNegativeInt32("timeout_seconds", h.timeoutSeconds); err != nil {
-		return err
-	}
-
-	return nil
 }
