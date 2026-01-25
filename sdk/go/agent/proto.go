@@ -9,7 +9,6 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
-	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
@@ -23,18 +22,12 @@ import (
 //
 // Example:
 //
-//	agent, _ := agent.New(ctx,
-//	    agent.WithName("code-reviewer"),
-//	    agent.WithInstructions("Review code"),
-//	)
+//	agent, _ := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+//	    Instructions: "Review code",
+//	})
+//	agent.AddSkillRef(skillref.Platform("coding-best-practices"))
 //	proto, err := agent.ToProto()
 func (a *Agent) ToProto() (*agentv1.Agent, error) {
-	// Convert skills to skill references
-	skillRefs, err := convertSkillsToRefs(a.Skills)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert skills: %w", err)
-	}
-
 	// Convert MCP servers
 	mcpServers, err := convertMCPServers(a.MCPServers)
 	if err != nil {
@@ -67,6 +60,7 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 	}
 
 	// Build complete Agent proto
+	// SkillRefs are already proto types - no conversion needed
 	return &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
@@ -75,44 +69,12 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 			Description:  a.Description,
 			IconUrl:      a.IconURL,
 			Instructions: a.Instructions,
-			SkillRefs:    skillRefs,
+			SkillRefs:    a.SkillRefs,
 			McpServers:   mcpServers,
 			SubAgents:    subAgents,
 			EnvSpec:      envSpec,
 		},
 	}, nil
-}
-
-// convertSkillsToRefs converts SDK skills to API resource references.
-func convertSkillsToRefs(skills []skill.Skill) ([]*apiresource.ApiResourceReference, error) {
-	if len(skills) == 0 {
-		return []*apiresource.ApiResourceReference{}, nil
-	}
-
-	refs := make([]*apiresource.ApiResourceReference, 0, len(skills))
-	for _, s := range skills {
-		// Use the skill slug for the reference
-		slug := s.NameOrSlug()
-
-		ref := &apiresource.ApiResourceReference{
-			Slug: slug,
-			Kind: apiresourcekind.ApiResourceKind_skill,
-		}
-
-		// Set scope based on skill type
-		if s.Org != "" {
-			// Organization-scoped skill
-			ref.Scope = apiresource.ApiResourceOwnerScope_organization
-			ref.Org = s.Org
-		} else {
-			// Platform-scoped skill (Org is empty)
-			ref.Scope = apiresource.ApiResourceOwnerScope_platform
-		}
-
-		refs = append(refs, ref)
-	}
-
-	return refs, nil
 }
 
 // convertMCPServers converts SDK MCP servers to proto MCP server definitions.
@@ -215,13 +177,6 @@ func convertSubAgents(subAgents []subagent.SubAgent) ([]*agentv1.SubAgent, error
 	protoSubAgents := make([]*agentv1.SubAgent, 0, len(subAgents))
 	for _, sa := range subAgents {
 		if sa.IsInline() {
-			// Convert inline sub-agent
-			// Convert skill references for this sub-agent
-			skillRefs, err := convertSkillsToRefs(sa.Skills())
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert skills for sub-agent %q: %w", sa.Name(), err)
-			}
-
 			// Convert tool selections map to proto format
 			toolSelections := make(map[string]*agentv1.McpToolSelection)
 			for serverName, tools := range sa.ToolSelections() {
@@ -238,7 +193,7 @@ func convertSubAgents(subAgents []subagent.SubAgent) ([]*agentv1.SubAgent, error
 						Instructions:      sa.Instructions(),
 						McpServers:        sa.MCPServerNames(),
 						McpToolSelections: toolSelections,
-						SkillRefs:         skillRefs,
+						SkillRefs:         sa.SkillRefs(), // Already proto types - no conversion needed
 					},
 				},
 			})

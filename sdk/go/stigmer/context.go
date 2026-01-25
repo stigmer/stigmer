@@ -10,7 +10,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -41,12 +40,9 @@ type Context struct {
 	// agents tracks all agents created in this context
 	agents []*agent.Agent
 
-	// skills tracks all inline skills created in this context
-	skills []*skill.Skill
-
 	// dependencies tracks resource dependencies for creation order
 	// Map format: resourceID -> []dependencyIDs
-	// Example: "agent:code-reviewer" -> ["skill:code-analysis"]
+	// Example: "workflow:pr-review" -> ["agent:code-reviewer"]
 	dependencies map[string][]string
 
 	// mu protects concurrent access to context state
@@ -63,7 +59,6 @@ func newContext() *Context {
 		variables:    make(map[string]Ref),
 		workflows:    make([]*workflow.Workflow, 0),
 		agents:       make([]*agent.Agent, 0),
-		skills:       make([]*skill.Skill, 0),
 		dependencies: make(map[string][]string),
 	}
 }
@@ -304,56 +299,13 @@ func (c *Context) RegisterWorkflow(wf *workflow.Workflow) {
 
 // RegisterAgent registers an agent with this context.
 // This is typically called automatically by agent.New() when passed a context.
-//
-// Dependency tracking: Automatically tracks inline skill dependencies.
 func (c *Context) RegisterAgent(ag *agent.Agent) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.agents = append(c.agents, ag)
-
-	// Track inline skill dependencies and register inline skills
-	agentID := agentResourceID(ag)
-	for i := range ag.Skills {
-		if ag.Skills[i].IsInline {
-			skillID := skillResourceID(&ag.Skills[i])
-			c.addDependency(agentID, skillID)
-			// Register the inline skill if not already registered
-			if !c.isSkillRegistered(&ag.Skills[i]) {
-				c.skills = append(c.skills, &ag.Skills[i])
-			}
-		}
-		// External/platform skills: no dependency (already exist)
-	}
-}
-
-// RegisterSkill registers an inline skill with this context.
-// This is typically called automatically when a skill is created and used by an agent.
-//
-// Only inline skills need registration - platform/org skills are references to
-// existing resources and don't need creation.
-func (c *Context) RegisterSkill(s interface{}) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	// Type assert to *skill.Skill
-	skillPtr, ok := s.(*skill.Skill)
-	if !ok {
-		return
-	}
-
-	// Only register inline skills
-	if !skillPtr.IsInline {
-		return
-	}
-
-	// Don't register if already registered
-	if c.isSkillRegistered(skillPtr) {
-		return
-	}
-
-	c.skills = append(c.skills, skillPtr)
-	// Skills have no dependencies (they're always created first)
+	// Skills are now pushed via CLI (`stigmer skill push`), not created through SDK.
+	// The agent only holds references to existing skills via SkillRefs.
 }
 
 // =============================================================================
@@ -381,17 +333,6 @@ func (c *Context) TrackDependency(resourceID, dependsOnID string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.addDependency(resourceID, dependsOnID)
-}
-
-// isSkillRegistered checks if a skill is already registered in the context.
-// Note: caller must hold c.mu.Lock()
-func (c *Context) isSkillRegistered(s *skill.Skill) bool {
-	for _, existingSkill := range c.skills {
-		if existingSkill.Name == s.Name && existingSkill.IsInline {
-			return true
-		}
-	}
-	return false
 }
 
 // trackWorkflowAgentDependencies scans workflow tasks for agent references
@@ -437,15 +378,6 @@ func agentResourceID(ag *agent.Agent) string {
 	return fmt.Sprintf("agent:%s", ag.Name)
 }
 
-// skillResourceID generates a resource ID for a skill.
-func skillResourceID(s *skill.Skill) string {
-	if s.IsInline {
-		return fmt.Sprintf("skill:%s", s.Name)
-	}
-	// External skills (platform/org) get different IDs to avoid tracking
-	return fmt.Sprintf("skill:external:%s", s.Slug)
-}
-
 // =============================================================================
 // Synthesis
 // =============================================================================
@@ -479,18 +411,12 @@ func (c *Context) Synthesize() error {
 	return nil
 }
 
-// synthesizeManifests writes agent, skill, and workflow manifests to disk
+// synthesizeManifests writes agent and workflow manifests to disk.
+// Skills are pushed via CLI (`stigmer skill push`), not synthesized from SDK.
 func (c *Context) synthesizeManifests(outputDir string) error {
 	// Ensure output directory exists
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
-	}
-
-	// Synthesize skills first (agents depend on them)
-	if len(c.skills) > 0 {
-		if err := c.synthesizeSkills(outputDir); err != nil {
-			return err
-		}
 	}
 
 	// Synthesize agents
@@ -510,33 +436,6 @@ func (c *Context) synthesizeManifests(outputDir string) error {
 	// Write dependency graph
 	if err := c.synthesizeDependencies(outputDir); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-// synthesizeSkills converts skills to protobuf and writes to disk
-func (c *Context) synthesizeSkills(outputDir string) error {
-	// Convert each skill to proto and write individually
-	for i, sk := range c.skills {
-		// Convert skill to proto using ToProto() method
-		skillProto, err := sk.ToProto()
-		if err != nil {
-			return fmt.Errorf("failed to convert skill %q to proto: %w", sk.Name, err)
-		}
-
-		// Serialize to binary protobuf
-		data, err := proto.Marshal(skillProto)
-		if err != nil {
-			return fmt.Errorf("failed to serialize skill %q: %w", sk.Name, err)
-		}
-
-		// Write to skill-{index}.pb (use index to maintain order)
-		filename := fmt.Sprintf("skill-%d.pb", i)
-		skillPath := filepath.Join(outputDir, filename)
-		if err := os.WriteFile(skillPath, data, 0644); err != nil {
-			return fmt.Errorf("failed to write skill %q: %w", sk.Name, err)
-		}
 	}
 
 	return nil
@@ -708,18 +607,6 @@ func (c *Context) Agents() []*agent.Agent {
 	// Return a copy to prevent external modification
 	result := make([]*agent.Agent, len(c.agents))
 	copy(result, c.agents)
-	return result
-}
-
-// Skills returns a copy of all inline skills registered in the context.
-// This is primarily useful for testing and debugging.
-func (c *Context) Skills() []*skill.Skill {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	// Return a copy to prevent external modification
-	result := make([]*skill.Skill, len(c.skills))
-	copy(result, c.skills)
 	return result
 }
 
