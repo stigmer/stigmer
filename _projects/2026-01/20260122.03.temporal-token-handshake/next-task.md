@@ -15,13 +15,13 @@
 
 ## Current Status
 
-📋 **Phase**: Phase 5 - System Activity (or Testing)  
-📝 **Current Task**: Ready for integration testing or Phase 5  
+📋 **Phase**: Phase 6 - Integration Testing  
+📝 **Current Task**: Ready for integration testing  
 ✅ **Phase 1 Complete**: Proto definition with callback_token field  
 ✅ **Phase 2 Complete**: Zigflow (Go) Activity - Async completion implemented  
 ✅ **Phase 3 Complete**: Stigmer Service (Go OSS) - Backend integration with logging  
 ✅ **Phase 4 Complete**: Stigma Workflow (Go OSS) - Completion logic on success/failure  
-⏳ **Phase 3-4 Java**: TODO created for stigmer-cloud replication
+✅ **Phase 3-5 Complete (Java)**: stigmer-cloud implementation finished - backend, workflow, system activities
 
 ---
 
@@ -76,33 +76,34 @@ Temporal async activity completion pattern (token handshake) that:
 - Worker registration with Temporal client initialization
 - Checkpoint: `checkpoints/CP04_phase4_complete_go.md`
 
-### ▶️ What's Next: Multiple Options
+### ▶️ What's Next: Integration Testing & Beyond
 
-**Option A: Integration Testing (Recommended)**
-- Test end-to-end flow with real Zigflow → Stigma → Python
-- Verify token handshake works correctly
+**✅ IMPLEMENTATION COMPLETE**: Both Go OSS and Java Cloud implementations finished
+
+**Next Phase: Integration Testing (Phase 6)**
+- **Primary Goal**: Test end-to-end flow with real Zigflow → Stigma (Java) → Agent Execution
+- Verify token handshake works correctly across language boundaries
 - Test both success and failure paths
-- Verify backward compatibility (no token)
-- Check Temporal UI for activity completion
+- Verify backward compatibility (executions without token)
+- Check Temporal UI for activity completion/pending states
+- Validate non-fatal error handling
+- Monitor logs for token presence and previews
 
-**Option B: Java Implementation (Blocked)**
-- Replicate Phases 3-4 in Java (stigmer-cloud)
-- Currently blocked on proto regeneration issue
-- See `TODO-JAVA-IMPLEMENTATION.md` for full guide
-- Can proceed once proto generation is fixed
+**Future Phases**:
 
-**Option C: Observability (Phase 7)**
-- Add metrics for pending activities
-- Create alerts for stuck activities
-- Enhanced logging and correlation
-- Grafana dashboards
-- Troubleshooting runbooks
+**Phase 7: Observability**
+- Add metrics for pending/completed external activities
+- Create alerts for stuck activities (> timeout threshold)
+- Enhanced logging and correlation IDs
+- Grafana dashboards for token handshake monitoring
+- Troubleshooting runbooks for operators
 
-**Option D: Documentation (Phase 8)**
-- Update ADR with implementation learnings
-- Create developer guide
-- Write operator runbook
-- Record demo video
+**Phase 8: Documentation & Handoff**
+- Update ADR with implementation learnings and decisions
+- Create developer integration guide (how to use from other services)
+- Write operator runbook (troubleshooting, monitoring)
+- Record demo video showing end-to-end flow
+- Knowledge transfer session with team
 
 ---
 
@@ -113,18 +114,21 @@ Phase 1: Proto Definition              (Days 1-2)    ✅ COMPLETED (Day 1 - 1.5 
 Phase 2: Zigflow (Go) Activity         (Days 3-4)    ✅ COMPLETED (Day 1 - 1.7 hours)
 Phase 3: Stigmer Service (Go OSS)      (Days 5-6)    ✅ COMPLETED (Day 1 - 1.0 hour)
 Phase 4: Stigma Workflow (Go OSS)      (Days 7-9)    ✅ COMPLETED (Day 1 - 2.0 hours)
-Phase 3-4: Java Cloud Implementation   (Days 5-9)    ⏳ TODO DOCUMENTED
-Phase 5: System Activity (Java only)   (Days 10-11)  ⏳ NOT STARTED (Go included in Phase 4)
+Phase 3-5: Java Cloud Implementation   (Days 5-11)   ✅ COMPLETED (Day 4 - 3.0 hours)
+  └─ Phase 3: Backend Handler                        ✅ Token logging
+  └─ Phase 4: Workflow Completion                    ✅ Success/failure paths
+  └─ Phase 5: System Activities                      ✅ ActivityCompletionClient
 Phase 6: Testing                       (Days 12-15)  🚧 READY TO START
 Phase 7: Observability                 (Days 16-18)  ⏳ NOT STARTED
 Phase 8: Documentation & Handoff       (Days 19-21)  ⏳ NOT STARTED
 ```
 
-**Overall Progress**: 50% (4/8 phases complete for Go OSS)  
-**Time Spent**: 6.2 hours (Go OSS path - Phases 1-4)  
-**Massively Ahead of Schedule**: Completed Phase 1-4 (Go) in 6.2 hours (estimated 9 days / ~72 hours)  
-**Java Status**: Phase 3-4 documented in TODO (pending proto regeneration)  
-**Note**: Phase 5 (System Activity) was completed as part of Phase 4 for Go
+**Overall Progress**: 62.5% (5/8 phases complete - Go OSS + Java Cloud)  
+**Time Spent**: 9.2 hours total (6.2h Go OSS + 3h Java Cloud)  
+**Massively Ahead of Schedule**: Completed Phases 1-5 in 9.2 hours (estimated 11 days / ~88 hours)  
+**Go OSS Status**: Phases 1-4 complete (Phase 5 system activity included in Phase 4)  
+**Java Cloud Status**: Phases 3-5 complete (backend, workflow, system activities)  
+**Ready For**: Integration testing (Phase 6)
 
 ---
 
@@ -162,7 +166,7 @@ sequenceDiagram
 
 ## Success Criteria
 
-**Implementation** (Go OSS):
+**Implementation (Go OSS)**: ✅ COMPLETE
 - [x] Zigflow correctly waits for actual agent completion (implemented, needs testing)
 - [x] Worker threads are not blocked during agent execution (ErrResultPending pattern)
 - [x] System survives restarts (token is durable in Temporal history)
@@ -170,20 +174,33 @@ sequenceDiagram
 - [x] Code compiles and builds successfully
 - [x] Comprehensive logging with token security (Base64, truncated)
 
-**Testing** (Not Started):
-- [ ] Manual integration test with real Zigflow execution
-- [ ] Unit tests for CompleteExternalActivity
+**Implementation (Java Cloud)**: ✅ COMPLETE
+- [x] Backend handler logs callback token presence
+- [x] Token passed to workflow via AgentExecution object
+- [x] Workflow completes external activity on success
+- [x] Workflow fails external activity on failure
+- [x] ActivityCompletionClient properly configured
+- [x] SystemActivities registered as local activity
+- [x] Non-fatal error handling for external completion
+- [x] Security-conscious token logging (Base64, truncated)
+- [x] Backward compatibility maintained (null/empty checks)
+- [x] Code compiles without linter errors
+
+**Testing**: ⏳ NOT STARTED
+- [ ] Manual integration test with real Zigflow → Stigma execution
+- [ ] Unit tests for SystemActivities (Java)
+- [ ] Unit tests for CompleteExternalActivity (Go)
 - [ ] Unit tests for workflow completion logic
-- [ ] Integration test: success path
-- [ ] Integration test: failure path
-- [ ] Integration test: backward compatibility (no token)
+- [ ] Integration test: success path (Go → Java → completion)
+- [ ] Integration test: failure path (Go → Java → failure notification)
+- [ ] Integration test: backward compatibility (no token scenarios)
 - [ ] Performance test: multiple concurrent executions
 
-**Production Readiness** (Not Started):
+**Production Readiness**: ⏳ NOT STARTED
 - [ ] Production observability (metrics, alerts, logs, dashboards)
 - [ ] Complete documentation (architecture, operations, troubleshooting)
-- [ ] Java implementation (stigmer-cloud)
 - [ ] Load testing and performance validation
+- [ ] Operator runbook for troubleshooting
 
 ---
 
@@ -196,9 +213,11 @@ Simply drag this file (`next-task.md`) into the chat, and I'll:
 
 ---
 
-**Current Status**: 🟢 Ready for Testing - Phase 4 Complete (Go OSS)  
-**Last Checkpoint**: `checkpoints/CP04_phase4_complete_go.md`  
-**Last Changelog**: `_changelog/2026-01/2026-01-22-111458-complete-phase4-temporal-token-handshake.md`  
-**Next Milestone**: Integration testing or Java implementation  
-**Progress**: 50% complete (4/8 phases) - Massively ahead of schedule  
-**Java TODO**: See `TODO-JAVA-IMPLEMENTATION.md` for replication guide
+**Current Status**: 🟢 Implementation Complete - Ready for Integration Testing  
+**Last Checkpoint (Go)**: `checkpoints/CP04_phase4_complete_go.md`  
+**Last Checkpoint (Java)**: `checkpoints/CP05_phase3-5_complete_java.md`  
+**Last Changelog (Go)**: `stigmer/_changelog/2026-01/2026-01-22-111458-complete-phase4-temporal-token-handshake.md`  
+**Last Changelog (Java)**: `stigmer-cloud/_changelog/2026-01/2026-01-25-145958-implement-temporal-token-handshake-java.md`  
+**Next Milestone**: Integration testing (Phase 6)  
+**Progress**: 62.5% complete (5/8 phases) - Massively ahead of schedule  
+**Implementation**: Go OSS ✅ | Java Cloud ✅ | Testing ⏳
