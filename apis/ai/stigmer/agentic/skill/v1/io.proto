@@ -54,20 +54,3 @@ message PushSkillResponse {
   string tag = 3;
 }
 
-// GetSkillByTagRequest retrieves a skill by tag name.
-message GetSkillByTagRequest {
-  // Skill slug (normalized name, e.g., "calculator", "math-utils")
-  string slug = 1 [(buf.validate.field).required = true];
-
-  // Tag to resolve (e.g., "stable", "v1.0", "latest")
-  string tag = 2 [(buf.validate.field).required = true];
-}
-
-// GetSkillByHashRequest retrieves a skill by exact version hash.
-message GetSkillByHashRequest {
-  // Skill slug (normalized name, e.g., "calculator", "math-utils")
-  string slug = 1 [(buf.validate.field).required = true];
-
-  // Exact SHA256 hash (64 hex characters)
-  string version_hash = 2 [(buf.validate.field).string.pattern = "^[a-f0-9]{64}$"];
-}
