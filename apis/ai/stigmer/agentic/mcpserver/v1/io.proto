@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.mcpserver.v1;
+
+import "buf/validate/validate.proto";
+
+// McpServerId wraps an MCP server resource identifier.
+// Used as input for operations that require an MCP server ID.
+message McpServerId {
+  // The unique identifier of the MCP server resource.
+  // This is the system-generated ID (metadata.id), not the slug.
+  // Format: "mcp-" followed by a unique identifier.
+  // Example: "mcp-abc123xyz"
+  string value = 1 [(buf.validate.field).required = true];
+}

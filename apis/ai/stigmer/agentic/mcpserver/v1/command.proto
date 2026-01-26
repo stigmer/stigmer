@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.mcpserver.v1;
+
+import "ai/stigmer/agentic/mcpserver/v1/api.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// McpServerCommandController provides write operations for MCP server resources.
+// Supports creating, updating, and deleting MCP server definitions.
+//
+// Authorization model for writes:
+// - Platform-scoped: Only platform operators can create/modify
+// - Organization-scoped: Org admins can create/modify
+// - Identity-account-scoped: Only the owner can create/modify
+//
+// Primary interface: The `apply` method provides Kubernetes-style idempotent
+// create-or-update semantics, which is the recommended approach for CLI usage.
+service McpServerCommandController {
+  // Service-level option identifying this as an MCP server controller.
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = mcp_server;
+
+  // Create or update an MCP server resource (Kubernetes-style apply).
+  //
+  // This is the primary interface for MCP server management.
+  // Behavior:
+  // - If the resource doesn't exist: Creates a new MCP server
+  // - If the resource exists: Updates the existing MCP server
+  //
+  // The resource is identified by (scope, org, slug) combination.
+  //
+  // Input: Full McpServer resource with metadata and spec.
+  // Returns: The created/updated McpServer with system-populated fields.
+  //
+  // Authorization: Custom authorization in handler.
+  // The handler determines whether this is a create or update operation
+  // and performs appropriate scope-aware authorization:
+  // - Create: Requires permission to create in the target scope
+  // - Update: Requires can_edit on the existing resource
+  rpc apply(McpServer) returns (McpServer);
+
+  // Create a new MCP server resource.
+  //
+  // Use this when you explicitly want to create a new resource
+  // and want an error if it already exists.
+  //
+  // Input: McpServer with metadata (scope, org, name/slug) and spec.
+  // Returns: The created McpServer with system-generated ID and status.
+  //
+  // Authorization: Custom authorization in handler.
+  // Requires permission to create MCP servers in the specified scope:
+  // - Platform: Requires platform operator role
+  // - Organization: Requires org admin role or can_create_mcp_server permission
+  // - Identity Account: Automatically allowed for the authenticated user
+  rpc create(McpServer) returns (McpServer);
+
+  // Update an existing MCP server resource.
+  //
+  // Input: McpServer with metadata.id populated and updated spec.
+  // Returns: The updated McpServer.
+  //
+  // Authorization: Requires can_edit permission on the mcp_server resource.
+  // Only the owner (based on scope) can update:
+  // - Platform: Platform operators
+  // - Organization: Org admins or resource owner
+  // - Identity Account: The owner
+  rpc update(McpServer) returns (McpServer) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = mcp_server;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update mcp server";
+  }
+
+  // Delete an MCP server resource.
+  //
+  // Permanently removes the MCP server definition.
+  // Agents referencing this MCP server will need to be updated.
+  //
+  // Input: ApiResourceDeleteInput with resource_id and optional version_message.
+  // Returns: The deleted McpServer (for confirmation/audit).
+  //
+  // Authorization: Requires can_delete permission on the mcp_server resource.
+  // Only the owner can delete:
+  // - Platform: Platform operators
+  // - Organization: Org admins or resource owner
+  // - Identity Account: The owner
+  rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (McpServer) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = mcp_server;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "resource_id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete mcp server";
+  }
+}

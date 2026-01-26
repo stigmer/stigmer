@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.mcpserver.v1;
+
+import "ai/stigmer/agentic/mcpserver/v1/api.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+
+// McpServerQueryController provides read operations for MCP server resources.
+// All read operations require appropriate authorization based on the resource's scope.
+//
+// Authorization model:
+// - Platform-scoped: Anyone can view (public marketplace)
+// - Organization-scoped: Org members can view
+// - Identity-account-scoped: Only the owner can view
+service McpServerQueryController {
+  // Service-level option identifying this as an MCP server controller.
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = mcp_server;
+
+  // Get an MCP server by its unique identifier.
+  //
+  // Input: ApiResourceId containing the MCP server's system-generated ID.
+  // Returns: The full McpServer resource including metadata, spec, and status.
+  //
+  // Authorization: Requires can_view permission on the mcp_server resource.
+  // The caller must have access based on the resource's scope:
+  // - Platform: All authenticated users
+  // - Organization: Organization members
+  // - Identity Account: Only the owner
+  rpc get(ai.stigmer.commons.apiresource.ApiResourceId) returns (McpServer) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = mcp_server;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to view mcp server";
+  }
+
+  // Get an MCP server by reference (scope + org + slug).
+  //
+  // Input: ApiResourceReference with scope, org (if applicable), kind, and slug.
+  // Returns: The full McpServer resource.
+  //
+  // This is the preferred method for looking up MCP servers by name/slug
+  // rather than system-generated ID. Useful for:
+  // - Resolving references from Agent.mcp_server_usages
+  // - CLI lookups by name
+  // - Cross-scope resolution (platform vs org vs personal)
+  //
+  // Authorization: Custom authorization in handler.
+  // The handler performs scope-aware authorization based on the reference.
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (McpServer);
+}
