@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
-	"github.com/stigmer/stigmer/sdk/go/mcpserver"
+	"github.com/stigmer/stigmer/sdk/go/mcpserverref"
 	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
@@ -87,9 +87,7 @@ func TestAddSkillRef_Chaining(t *testing.T) {
 	}
 }
 
-func TestAddMCPServer(t *testing.T) {
-	ctx := &mockBuilderCtx{}
-
+func TestAddMcpServerUsage(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -101,28 +99,18 @@ func TestAddMCPServer(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
-		Command: "npx",
-		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
-	})
-	if err != nil {
-		t.Fatalf("Failed to create MCP server: %v", err)
-	}
+	// Add MCP server usage using builder method
+	agent.AddMcpServerUsage(mcpserverref.Platform("github"))
 
-	// Add MCP server using builder method
-	agent.AddMCPServer(github)
-
-	if len(agent.MCPServers) != 1 {
-		t.Errorf("MCPServers count = %d, want 1", len(agent.MCPServers))
+	if len(agent.McpServerUsages) != 1 {
+		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages))
 	}
-	if agent.MCPServers[0].Name() != "github" {
-		t.Errorf("MCPServer name = %q, want %q", agent.MCPServers[0].Name(), "github")
+	if agent.McpServerUsages[0].McpServerRef.Slug != "github" {
+		t.Errorf("McpServerRef slug = %q, want %q", agent.McpServerUsages[0].McpServerRef.Slug, "github")
 	}
 }
 
-func TestAddMCPServers(t *testing.T) {
-	ctx := &mockBuilderCtx{}
-
+func TestAddMcpServerUsage_WithTools(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -134,27 +122,21 @@ func TestAddMCPServers(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	github, _ := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
-		Command: "npx",
-		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
-	})
+	// Add MCP server usage with enabled tools
+	agent.AddMcpServerUsage(
+		mcpserverref.Platform("github"),
+		"create_issue", "list_repos", "create_pr",
+	)
 
-	gitlab, _ := mcpserver.Stdio(ctx, "gitlab", &mcpserver.StdioArgs{
-		Command: "npx",
-		Args:    []string{"-y", "@modelcontextprotocol/server-gitlab"},
-	})
-
-	// Add multiple MCP servers using builder method
-	agent.AddMCPServers(github, gitlab)
-
-	if len(agent.MCPServers) != 2 {
-		t.Errorf("MCPServers count = %d, want 2", len(agent.MCPServers))
+	if len(agent.McpServerUsages) != 1 {
+		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages))
+	}
+	if len(agent.McpServerUsages[0].EnabledTools) != 3 {
+		t.Errorf("EnabledTools count = %d, want 3", len(agent.McpServerUsages[0].EnabledTools))
 	}
 }
 
-func TestAddMCPServer_Chaining(t *testing.T) {
-	ctx := &mockBuilderCtx{}
-
+func TestUseMCPServer(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -166,23 +148,59 @@ func TestAddMCPServer_Chaining(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	github, _ := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
-		Command: "npx",
-		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
-	})
+	// Use convenience method
+	agent.UseMCPServer("github", "create_issue")
 
-	gitlab, _ := mcpserver.Stdio(ctx, "gitlab", &mcpserver.StdioArgs{
-		Command: "npx",
-		Args:    []string{"-y", "@modelcontextprotocol/server-gitlab"},
-	})
+	if len(agent.McpServerUsages) != 1 {
+		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages))
+	}
+	if agent.McpServerUsages[0].McpServerRef.Slug != "github" {
+		t.Errorf("McpServerRef slug = %q, want %q", agent.McpServerUsages[0].McpServerRef.Slug, "github")
+	}
+}
 
-	// Chain multiple AddMCPServer calls
+func TestAddMcpServerUsage_Chaining(t *testing.T) {
+	agent, err := New(
+		nil, // No context needed for builder tests
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
+	)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Chain multiple AddMcpServerUsage calls
 	agent.
-		AddMCPServer(github).
-		AddMCPServer(gitlab)
+		AddMcpServerUsage(mcpserverref.Platform("github"), "create_pr").
+		AddMcpServerUsage(mcpserverref.Platform("gitlab"))
 
-	if len(agent.MCPServers) != 2 {
-		t.Errorf("MCPServers count = %d, want 2", len(agent.MCPServers))
+	if len(agent.McpServerUsages) != 2 {
+		t.Errorf("McpServerUsages count = %d, want 2", len(agent.McpServerUsages))
+	}
+}
+
+func TestUseMCPServer_Chaining(t *testing.T) {
+	agent, err := New(
+		nil, // No context needed for builder tests
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
+	)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Chain UseMCPServer calls
+	agent.
+		UseMCPServer("github", "create_pr").
+		UseMCPServer("gitlab").
+		UseMCPServer("slack", "send_message")
+
+	if len(agent.McpServerUsages) != 3 {
+		t.Errorf("McpServerUsages count = %d, want 3", len(agent.McpServerUsages))
 	}
 }
 
@@ -371,15 +389,10 @@ func TestAddEnvironmentVariable_Chaining(t *testing.T) {
 func TestBuilder_ComplexChaining(t *testing.T) {
 	ctx := &mockBuilderCtx{}
 
-	// Test chaining all builder methods together
-	github, _ := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
-		Command: "npx",
-		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
-	})
-
 	helper, _ := subagent.New("helper", &subagent.Args{
 		Instructions: "Helper instructions",
 	})
+	helper.GrantMcpAccess("github", "search_code")
 
 	githubToken, _ := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
 		IsSecret: true,
@@ -400,7 +413,7 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 	agent.
 		AddSkillRef(skillref.Platform("coding-best-practices")).
 		AddSkillRef(skillref.Platform("security-analysis")).
-		AddMCPServer(github).
+		AddMcpServerUsage(mcpserverref.Platform("github"), "create_pr", "search_code").
 		AddSubAgent(helper).
 		AddEnvironmentVariable(*githubToken)
 
@@ -408,13 +421,44 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 	if len(agent.SkillRefs) != 2 {
 		t.Errorf("SkillRefs count = %d, want 2", len(agent.SkillRefs))
 	}
-	if len(agent.MCPServers) != 1 {
-		t.Errorf("MCPServers count = %d, want 1", len(agent.MCPServers))
+	if len(agent.McpServerUsages) != 1 {
+		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages))
 	}
 	if len(agent.SubAgents) != 1 {
 		t.Errorf("SubAgents count = %d, want 1", len(agent.SubAgents))
 	}
 	if len(agent.EnvironmentVariables) != 1 {
 		t.Errorf("EnvironmentVariables count = %d, want 1", len(agent.EnvironmentVariables))
+	}
+}
+
+func TestAddMcpServerUsage_MultipleScopes(t *testing.T) {
+	agent, err := New(
+		nil,
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
+	)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Add MCP servers from different scopes
+	agent.
+		AddMcpServerUsage(mcpserverref.Platform("github")).
+		AddMcpServerUsage(mcpserverref.Organization("acme-corp", "internal-tools")).
+		AddMcpServerUsage(mcpserverref.Personal("my-dev-tools"))
+
+	if len(agent.McpServerUsages) != 3 {
+		t.Errorf("McpServerUsages count = %d, want 3", len(agent.McpServerUsages))
+	}
+
+	// Verify scopes
+	if agent.McpServerUsages[0].McpServerRef.Slug != "github" {
+		t.Errorf("First usage slug = %q, want github", agent.McpServerUsages[0].McpServerRef.Slug)
+	}
+	if agent.McpServerUsages[1].McpServerRef.Org != "acme-corp" {
+		t.Errorf("Second usage org = %q, want acme-corp", agent.McpServerUsages[1].McpServerRef.Org)
 	}
 }

@@ -3,7 +3,8 @@ package subagent
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/gen/types"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 func TestNew(t *testing.T) {
@@ -42,47 +43,6 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name:    "with MCP servers",
-			subName: "github-bot",
-			args: &Args{
-				Instructions: "Interact with GitHub repositories",
-				McpServers:   []string{"github", "gitlab"},
-			},
-			check: func(t *testing.T, s SubAgent) {
-				servers := s.MCPServerNames()
-				if len(servers) != 2 {
-					t.Errorf("len(MCPServerNames()) = %d, want 2", len(servers))
-				}
-				if servers[0] != "github" || servers[1] != "gitlab" {
-					t.Errorf("MCPServerNames() = %v, want [github gitlab]", servers)
-				}
-			},
-		},
-		{
-			name:    "with tool selections",
-			subName: "selective-bot",
-			args: &Args{
-				Instructions: "Use specific GitHub tools only",
-				McpServers:   []string{"github"},
-				McpToolSelections: map[string]*types.McpToolSelection{
-					"github": {EnabledTools: []string{"create_issue", "list_repos"}},
-				},
-			},
-			check: func(t *testing.T, s SubAgent) {
-				selections := s.ToolSelections()
-				if len(selections) != 1 {
-					t.Errorf("len(ToolSelections()) = %d, want 1", len(selections))
-				}
-				tools, ok := selections["github"]
-				if !ok {
-					t.Error("ToolSelections() missing 'github' key")
-				}
-				if len(tools.EnabledTools) != 2 {
-					t.Errorf("len(tools.EnabledTools) = %d, want 2", len(tools.EnabledTools))
-				}
-			},
-		},
-		{
 			name:    "with nil args",
 			subName: "minimal-bot",
 			args:    nil,
@@ -111,6 +71,125 @@ func TestNew(t *testing.T) {
 	}
 }
 
+func TestGrantMcpAccess(t *testing.T) {
+	tests := []struct {
+		name         string
+		grants       []struct {
+			server string
+			tools  []string
+		}
+		wantCount int
+	}{
+		{
+			name: "single server all tools",
+			grants: []struct {
+				server string
+				tools  []string
+			}{
+				{server: "github", tools: nil},
+			},
+			wantCount: 1,
+		},
+		{
+			name: "single server specific tools",
+			grants: []struct {
+				server string
+				tools  []string
+			}{
+				{server: "github", tools: []string{"create_issue", "list_repos"}},
+			},
+			wantCount: 1,
+		},
+		{
+			name: "multiple servers",
+			grants: []struct {
+				server string
+				tools  []string
+			}{
+				{server: "github", tools: []string{"create_issue"}},
+				{server: "gitlab", tools: nil},
+			},
+			wantCount: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sub, err := New("test-sub", &Args{
+				Instructions: "Test sub-agent with MCP access",
+			})
+			if err != nil {
+				t.Fatalf("New() error = %v", err)
+			}
+
+			// Apply grants
+			for _, grant := range tt.grants {
+				sub.GrantMcpAccess(grant.server, grant.tools...)
+			}
+
+			// Check result
+			access := sub.McpAccess()
+			if len(access) != tt.wantCount {
+				t.Errorf("len(McpAccess()) = %d, want %d", len(access), tt.wantCount)
+			}
+
+			// Verify first grant details
+			if len(tt.grants) > 0 && len(access) > 0 {
+				if access[0].McpServer != tt.grants[0].server {
+					t.Errorf("access[0].McpServer = %q, want %q", access[0].McpServer, tt.grants[0].server)
+				}
+				if len(tt.grants[0].tools) > 0 {
+					if len(access[0].EnabledTools) != len(tt.grants[0].tools) {
+						t.Errorf("len(access[0].EnabledTools) = %d, want %d",
+							len(access[0].EnabledTools), len(tt.grants[0].tools))
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestGrantMcpAccess_Chaining(t *testing.T) {
+	sub, err := New("chained-sub", &Args{
+		Instructions: "Test chaining MCP access grants",
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Test fluent chaining
+	sub.GrantMcpAccess("github", "create_issue").
+		GrantMcpAccess("gitlab").
+		GrantMcpAccess("slack", "send_message", "list_channels")
+
+	access := sub.McpAccess()
+	if len(access) != 3 {
+		t.Errorf("len(McpAccess()) = %d, want 3", len(access))
+	}
+
+	// Verify each grant
+	if access[0].McpServer != "github" {
+		t.Errorf("access[0].McpServer = %q, want %q", access[0].McpServer, "github")
+	}
+	if len(access[0].EnabledTools) != 1 {
+		t.Errorf("len(access[0].EnabledTools) = %d, want 1", len(access[0].EnabledTools))
+	}
+
+	if access[1].McpServer != "gitlab" {
+		t.Errorf("access[1].McpServer = %q, want %q", access[1].McpServer, "gitlab")
+	}
+	if len(access[1].EnabledTools) != 0 {
+		t.Errorf("len(access[1].EnabledTools) = %d, want 0 (all tools)", len(access[1].EnabledTools))
+	}
+
+	if access[2].McpServer != "slack" {
+		t.Errorf("access[2].McpServer = %q, want %q", access[2].McpServer, "slack")
+	}
+	if len(access[2].EnabledTools) != 2 {
+		t.Errorf("len(access[2].EnabledTools) = %d, want 2", len(access[2].EnabledTools))
+	}
+}
+
 func TestString(t *testing.T) {
 	sub, err := New("analyzer", &Args{
 		Instructions: "Analyze code",
@@ -126,26 +205,91 @@ func TestString(t *testing.T) {
 	}
 }
 
-func TestSkillRefs(t *testing.T) {
-	sub, err := New("skilled-bot", &Args{
-		Instructions: "Use multiple skills",
-		SkillRefs: []*types.ApiResourceReference{
-			{Slug: "skill1", Scope: "platform"},
-			{Slug: "skill2", Scope: "organization", Org: "my-org"},
-		},
+func TestAddSkillRef(t *testing.T) {
+	sub, err := New("skilled-sub", &Args{
+		Instructions: "Use skills",
 	})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
 
+	// Add skill using builder method
+	ref := &apiresource.ApiResourceReference{
+		Kind:  apiresourcekind.ApiResourceKind_skill,
+		Slug:  "test-skill",
+		Scope: apiresource.ApiResourceOwnerScope_platform,
+	}
+	sub.AddSkillRef(ref)
+
+	refs := sub.SkillRefs()
+	if len(refs) != 1 {
+		t.Errorf("len(SkillRefs()) = %d, want 1", len(refs))
+	}
+	if refs[0].Slug != "test-skill" {
+		t.Errorf("refs[0].Slug = %q, want %q", refs[0].Slug, "test-skill")
+	}
+}
+
+func TestAddSkillRefs(t *testing.T) {
+	sub, err := New("multi-skilled-sub", &Args{
+		Instructions: "Use multiple skills",
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Add multiple skills
+	ref1 := &apiresource.ApiResourceReference{
+		Kind:  apiresourcekind.ApiResourceKind_skill,
+		Slug:  "skill1",
+		Scope: apiresource.ApiResourceOwnerScope_platform,
+	}
+	ref2 := &apiresource.ApiResourceReference{
+		Kind:  apiresourcekind.ApiResourceKind_skill,
+		Slug:  "skill2",
+		Scope: apiresource.ApiResourceOwnerScope_organization,
+		Org:   "my-org",
+	}
+	sub.AddSkillRefs(ref1, ref2)
+
 	refs := sub.SkillRefs()
 	if len(refs) != 2 {
 		t.Errorf("len(SkillRefs()) = %d, want 2", len(refs))
 	}
-	if refs[0].Slug != "skill1" {
-		t.Errorf("refs[0].Slug = %q, want %q", refs[0].Slug, "skill1")
+}
+
+func TestAddOrgSkillRef(t *testing.T) {
+	sub, err := New("org-skilled-sub", &Args{
+		Instructions: "Use org skills",
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
 	}
-	if refs[1].Slug != "skill2" {
-		t.Errorf("refs[1].Slug = %q, want %q", refs[1].Slug, "skill2")
+
+	// Add org skill without version
+	sub.AddOrgSkillRef("acme-corp", "internal-docs")
+
+	// Add org skill with version
+	sub.AddOrgSkillRef("acme-corp", "guidelines", "v1.0")
+
+	refs := sub.SkillRefs()
+	if len(refs) != 2 {
+		t.Errorf("len(SkillRefs()) = %d, want 2", len(refs))
+	}
+
+	// Verify first ref
+	if refs[0].Slug != "internal-docs" {
+		t.Errorf("refs[0].Slug = %q, want %q", refs[0].Slug, "internal-docs")
+	}
+	if refs[0].Org != "acme-corp" {
+		t.Errorf("refs[0].Org = %q, want %q", refs[0].Org, "acme-corp")
+	}
+	if refs[0].Scope != apiresource.ApiResourceOwnerScope_organization {
+		t.Errorf("refs[0].Scope = %v, want organization", refs[0].Scope)
+	}
+
+	// Verify second ref has version
+	if refs[1].Version != "v1.0" {
+		t.Errorf("refs[1].Version = %q, want %q", refs[1].Version, "v1.0")
 	}
 }

@@ -91,15 +91,15 @@ Comprehensive implementation plan with phases, proto structures, FGA model.
 ## Current Status
 
 **Created**: 2026-01-26
-**Last Session**: 2026-01-26 (Phase 1 Complete)
-**Current Phase**: Phase 2 - AgentSpec Migration
-**Status**: IN PROGRESS
+**Last Session**: 2026-01-26 Session 3 (SDK Migration + Codegen Fix)
+**Current Phase**: Phase 3 - FGA Model
+**Status**: READY TO START
 
 ---
 
-## Session Progress (2026-01-26)
+## Session Progress
 
-### ✅ Phase 1 Complete: Proto Definitions
+### ✅ Phase 1 Complete: Proto Definitions (Session 1 - 2026-01-26)
 
 **Accomplishments:**
 - Created complete proto structure for McpServer API resource
@@ -120,18 +120,59 @@ Comprehensive implementation plan with phases, proto structures, FGA model.
 - ✅ Go stubs: `apis/stubs/go/ai/stigmer/agentic/mcpserver/v1/*.go` (8 files)
 - ✅ Python stubs: `apis/stubs/python/stigmer/ai/stigmer/agentic/mcpserver/v1/*_pb2.py` (18 files)
 
-**Key Design Decisions Applied:**
-- All three scopes supported (platform, org, identity_account) - unlike Skill
-- Reuses `EnvironmentSpec` for env var handling (consistent with Agent/Workflow)
-- Validation-only status (tool discovery happens at runtime)
-- Full buf.validate rules applied
-- Kubernetes-style `apply` command for idempotent operations
+### ✅ Phase 2 Complete: AgentSpec Migration (Sessions 2-3 - 2026-01-26)
+
+**Proto Changes (Session 2):**
+- Implemented simplified, user-friendly reference model for McpServer resources
+- Deleted 7 inline message definitions (~614 lines net reduction)
+- Added 2 new messages: `McpServerUsage` and `McpAccess`
+- Rewrote `AgentSpec` and `SubAgent` with clean field numbering
+- Regenerated all Go and Python stubs successfully
+- Passed buf lint validation
+
+**SDK Changes (Session 3):**
+- Created `mcpserverref` package (parallel to `skillref`)
+- Updated `agent` package with new builder methods (`AddMcpServerUsage`, `UseMCPServer`)
+- Updated `subagent` package with `GrantMcpAccess()` and skill methods
+- Deleted obsolete `mcpserver` package (890 lines removed)
+- Updated all SDK examples (4 files)
+- Updated all SDK tests (4 files)
+- Regenerated all SDK types
+- Fixed codegen tool to read from namespace directories
+
+**Key Design Decisions:**
+1. **Single Slug Identifier** - One slug flows through entire system (McpServer.slug → Agent → SubAgent)
+2. **McpAccess Message** - Single field for access grants (no two-field coordination)
+3. **No Version in McpServerRef** - McpServer references don't support versioning
+4. **No Backward Compatibility** - Clean slate, foundation-quality code
+
+**Files Modified:**
+1. **Proto (Session 2):**
+   - `apis/ai/stigmer/agentic/agent/v1/spec.proto` - Complete rewrite
+   - Generated stubs in `apis/stubs/go/` and `apis/stubs/python/`
+
+2. **SDK (Session 3):**
+   - Created: `sdk/go/mcpserverref/` (3 files)
+   - Modified: `sdk/go/agent/` (3 files)
+   - Modified: `sdk/go/subagent/` (2 files)
+   - Deleted: `sdk/go/mcpserver/` (6 files, 890 lines)
+   - Updated: `sdk/go/examples/` (4 files)
+   - Regenerated: `sdk/go/gen/` (38 files)
+
+3. **Tooling (Session 3):**
+   - Modified: `tools/codegen/generator/main.go` (namespace directory support)
+   - Cleaned: 111 obsolete schema files
+
+**Permission Model:**
+- SubAgent can ONLY access parent's MCP servers
+- SubAgent can ONLY restrict tools (not expand)
+- Clean permission hierarchy enforced by structure
 
 **Quality Metrics:**
-- 236 lines in spec.proto with comprehensive field documentation
-- Every field documented with purpose, constraints, and examples
-- All required fields have buf.validate rules
-- Follows established Stigmer proto patterns (Skill, Environment)
+- Proto: 4 messages (down from 11), -85 lines, -614 lines in stubs
+- SDK: -890 lines (mcpserver deleted), +150 lines (mcpserverref)
+- Net: -3,417 lines across 111 files
+- ✅ All tests pass, no linter errors
 
 ---
 
@@ -140,75 +181,150 @@ Comprehensive implementation plan with phases, proto structures, FGA model.
 | Phase | Description | Repo | Status |
 |-------|-------------|------|--------|
 | 1 | Proto definitions (mcpserver/v1/*.proto) | stigmer | ✅ **COMPLETE** |
-| 2 | AgentSpec migration (mcp_server_usages) | stigmer | 🔄 **NEXT** |
-| 3 | FGA model (mcp_server.fga) | stigmer-cloud | Not Started |
+| 2 | AgentSpec migration (mcp_server_usages) | stigmer | ✅ **COMPLETE** |
+| 3 | FGA model (mcp_server.fga) | stigmer-cloud | 🔄 **NEXT** |
 | 4 | Backend handlers (CRUD operations) | stigmer-cloud | Not Started |
 | 5 | Agent runner integration | stigmer-cloud | Not Started |
 | 6 | CLI commands | stigmer | Not Started |
 
 ---
 
-## Next Steps (Phase 2: AgentSpec Migration)
+## Next Steps (Phase 3: FGA Model)
 
-1. **Add `McpServerUsage` to agent/v1/spec.proto**
-   - Create `McpServerUsage` message with `mcp_server_ref`, `enabled_tools_override`, `alias`
-   - Add `repeated McpServerUsage mcp_server_usages = 8` to `AgentSpec`
-   - Mark existing `mcp_servers` field as deprecated
-   - Add CEL validation for `mcp_server_ref.kind == 44` (mcp_server enum)
+Switch to `stigmer-cloud` repo for backend implementation.
 
-2. **Update InlineSubAgentSpec for McpServer references**
-   - Add support for referencing McpServer resources in sub-agents
-   - Maintain backward compatibility with inline MCP definitions
+1. **Create FGA model for McpServer**
+   - Create `apis/ai/stigmer/iam/fga/mcp_server.fga`
+   - Define relations: `owner`, `viewer`, `user`
+   - Add permission checks for operations: `can_view`, `can_update`, `can_delete`, `can_use`
+   - Follow pattern from existing FGA models (skill, agent, environment)
 
-3. **Regenerate stubs**
-   - Run `make build` in `apis/` directory
-   - Verify Go/Python stubs updated correctly
+2. **Update FGA initialization**
+   - Add McpServer type to FGA store initialization
+   - Register relation definitions
+   - Add to authorization middleware
 
-4. **Update SDK (if needed)**
-   - Check if Go SDK needs updates for new usage pattern
-   - Update examples/documentation
+3. **Test FGA model**
+   - Unit tests for permission checks
+   - Test scope-based access (platform, org, identity_account)
+   - Verify inheritance patterns
 
 ---
 
 ## Context for Resume
 
-**Where we left off:**
-- Phase 1 proto definitions are complete and validated
-- All stubs generated successfully
-- Files are uncommitted (ready for review before commit)
+**Where we left off (Session 3):**
+- Phase 1 complete: McpServer proto definitions (6 files)
+- Phase 2 complete: AgentSpec proto migration + full SDK implementation
+- All changes in `stigmer` repo complete and ready for commit
+- SDK fully migrated with new patterns, all tests passing
+- Codegen tool fixed to work with namespace directories
 
 **What's working:**
-- Proto structure follows established patterns perfectly
-- Buf validation passes
-- Generated stubs compile cleanly
+- ✅ McpServer API resource fully defined (6 proto files)
+- ✅ AgentSpec proto migration complete with simplified reference model
+- ✅ SDK completely migrated:
+  - `mcpserverref` package for creating references
+  - `agent` package with new builder methods
+  - `subagent` package with McpAccess pattern
+  - Old `mcpserver` package deleted
+  - All examples and tests updated
+- ✅ Codegen tool fixed (reads from namespace directories)
+- ✅ Single slug identifier flows through entire system
+- ✅ Clean permission hierarchy (SubAgent ⊂ Agent)
+- ✅ No linter errors, all tests pass
+
+**Key Design Patterns Applied:**
+- **Single Slug Pattern**: McpServer.slug used everywhere (no extra naming)
+- **McpAccess Pattern**: Single field for access grants (no coordination)
+- **No Versioning**: McpServerRef doesn't support version parameter
+- **Permission Hierarchy**: SubAgent can only restrict, not expand
+- **Reference-Based SDK**: Using `mcpserverref` instead of inline definitions
+- **Namespace Codegen**: Tool reads from `agentic/agent/` structure
+
+**Technical Improvements:**
+- Codegen now supports namespace directories (no symlinks needed)
+- Cleaned up 111 obsolete schema files
+- Net reduction of 3,417 lines across codebase
 
 **Notes for next session:**
+- Switch to `stigmer-cloud` repo for Phase 3 (FGA model)
+- All stigmer repo work complete - ready for commit
+- Follow existing FGA patterns from skill/agent/environment
 - The `mcp_server = 44` enum value already exists in ApiResourceKind
-- Phase 2 is a simpler change (just adding usage pattern to AgentSpec)
-- Backward compatibility is critical - keep deprecated field functional
+- Backend implementation can start immediately
 
 ---
 
 ## Uncommitted Work
 
-⚠️ **Uncommitted changes preserved** - Phase 1 implementation
+⚠️ **Uncommitted changes preserved** - Phase 1 + Phase 2 + SDK migration complete
 
-**New files to commit:**
-- `apis/ai/stigmer/agentic/mcpserver/v1/*.proto` (6 files)
-- Generated stubs in `apis/stubs/go/` and `apis/stubs/python/`
-- BUILD.bazel files (auto-generated by Gazelle)
+**Files to commit (stigmer repo):**
 
-**Recommendation**: Commit Phase 1 as a complete unit before starting Phase 2
+**Phase 1 (McpServer proto definitions - Session 1):**
+- `apis/ai/stigmer/agentic/mcpserver/v1/*.proto` (6 files - NEW)
+- Generated stubs for mcpserver (NEW)
+
+**Phase 2 Proto (AgentSpec migration - Session 2):**
+- `apis/ai/stigmer/agentic/agent/v1/spec.proto` (MODIFIED - complete rewrite)
+- Generated stubs for agent (MODIFIED)
+
+**Phase 2 SDK (SDK migration - Session 3):**
+- `sdk/go/mcpserverref/` (NEW - 3 files)
+- `sdk/go/agent/` (MODIFIED - 3 files)
+- `sdk/go/subagent/` (MODIFIED - 2 files)
+- `sdk/go/mcpserver/` (DELETED - 6 files, 890 lines)
+- `sdk/go/examples/` (MODIFIED - 4 files)
+- `sdk/go/gen/` (REGENERATED - 38 files)
+- `tools/codegen/generator/main.go` (MODIFIED - namespace support)
+- Old schema files (DELETED - 111 files)
+
+**Total Impact:**
+- Proto: +6 files, -85 lines, -614 lines in stubs
+- SDK: +3 files, -890 lines (mcpserver), +650 lines (updates)
+- Schemas: -111 obsolete files
+- Net: -3,417 lines across 111 files
+
+**Commit Strategy Options:**
+
+**Option 1: Single Commit (Recommended)**
+```
+feat: add McpServer API resource with complete SDK migration
+
+- Add McpServer proto definitions (6 files)
+- Migrate AgentSpec to reference-based pattern
+- Implement complete SDK migration:
+  - New mcpserverref package
+  - Updated agent/subagent packages
+  - Deleted obsolete mcpserver package
+  - Updated all examples and tests
+- Fix codegen to support namespace directories
+- Clean up 111 obsolete schema files
+
+BREAKING CHANGE: sdk/go/mcpserver package removed,
+use mcpserverref for creating references
+```
+
+**Option 2: Three Separate Commits (Better Git History)**
+1. `feat(proto): add McpServer API resource definitions`
+2. `refactor(proto): migrate AgentSpec to reference-based McpServer`
+3. `feat(sdk): implement complete AgentSpec SDK migration`
+
+**Option 3: Two Commits (Balanced)**
+1. `feat(proto): add McpServer API resource and AgentSpec migration`
+2. `feat(sdk): implement complete SDK migration and codegen improvements`
 
 ---
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 2" - Start AgentSpec migration
-- "Show me the proto files" - Review what was created
-- "Commit Phase 1 changes" - Create proper commit for proto definitions
+- "Continue with Phase 3" - Start FGA model in stigmer-cloud repo
+- "Show me the proto files" - Review what was created/modified
+- "Commit changes" - Create proper commit(s) for Phase 1 + Phase 2
 - "Review design decisions" - Review architectural choices
+- "Show session notes" - See detailed progress from Session 2
 
 ---
 
