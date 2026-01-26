@@ -55,7 +55,9 @@ Executes the provided function with a new Context and handles resource synthesis
 **Example**:
 ```go
 err := stigmer.Run(func(ctx *stigmer.Context) error {
-    agent, _ := agent.New(ctx, agent.WithName("my-agent"))
+    agent, _ := agent.New(ctx, "my-agent", &agent.AgentArgs{
+        Instructions: "Do something useful",
+    })
     return nil
 })
 ```
@@ -199,40 +201,40 @@ Configuration struct for agent creation (Pulumi Args pattern).
 - `IconUrl` - Display icon URL
 - Complex fields (use builder methods instead):
   - `McpServers` - Use `agent.AddMCPServer()`
-  - `SkillRefs` - Use `agent.AddSkill()`
+  - `SkillRefs` - Use `agent.AddSkillRef()`
   - `SubAgents` - Use `agent.AddSubAgent()`
   - `EnvSpec` - Use `agent.AddEnvironmentVariable()`
 
-#### func (*Agent) AddSkill
+#### func (*Agent) AddSkillRef
 
 ```go
-func (a *Agent) AddSkill(s *skill.Skill) *Agent
+func (a *Agent) AddSkillRef(ref *types.ApiResourceReference) *Agent
 ```
 
-Adds a skill to the agent (builder method for complex fields).
+Adds a skill reference to the agent (builder method for complex fields).
 
 **Parameters**:
-- `s` - Skill to add (inline, platform, or organization)
+- `ref` - Skill reference (use `skillref.Platform()` or `skillref.Organization()`)
 
 **Returns**:
 - `*Agent` - Agent (for chaining)
 
 **Example**:
 ```go
-agent.AddSkill(codingSkill).
-      AddSkill(skill.Platform("security"))
+agent.AddSkillRef(skillref.Platform("coding-best-practices")).
+      AddSkillRef(skillref.Platform("security-analysis"))
 ```
 
-#### func (*Agent) AddSkills
+#### func (*Agent) AddSkillRefs
 
 ```go
-func (a *Agent) AddSkills(skills ...*skill.Skill) *Agent
+func (a *Agent) AddSkillRefs(refs ...*types.ApiResourceReference) *Agent
 ```
 
-Adds multiple skills to the agent.
+Adds multiple skill references to the agent.
 
 **Parameters**:
-- `skills` - One or more skills
+- `refs` - One or more skill references
 
 **Returns**:
 - `*Agent` - Agent (for chaining)
@@ -453,11 +455,11 @@ Creates a new Workflow.
 
 **Example**:
 ```go
-wf, err := workflow.New(ctx,
-    workflow.WithNamespace("data-processing"),
-    workflow.WithName("daily-sync"),
-    workflow.WithVersion("1.0.0"),
-)
+wf, err := workflow.New(ctx, "data-processing/daily-sync", &workflow.WorkflowArgs{
+    Namespace:   "data-processing",
+    Version:     "1.0.0",
+    Description: "Daily synchronization workflow",
+})
 ```
 
 #### func (*Workflow) HttpCall
@@ -1274,56 +1276,69 @@ Represents an MCP server that provides tools to agents.
 func Stdio(opts ...Option) (*MCPServer, error)
 ```
 
-Creates stdio-based MCP server.
+Creates stdio-based MCP server using struct-based args.
 
 **Example**:
 ```go
-server, _ := mcpserver.Stdio(
-    mcpserver.WithName("github"),
-    mcpserver.WithCommand("npx"),
-    mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-)
+server, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+    Command: "npx",
+    Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+    EnvPlaceholders: map[string]string{
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+    },
+})
 ```
 
 #### func HTTP
 
 ```go
-func HTTP(opts ...Option) (*MCPServer, error)
+func HTTP(ctx *stigmer.Context, name string, args *HTTPArgs) (*MCPServer, error)
 ```
 
-Creates HTTP+SSE MCP server.
+Creates HTTP+SSE MCP server using struct-based args.
 
 **Example**:
 ```go
-server, _ := mcpserver.HTTP(
-    mcpserver.WithName("remote"),
-    mcpserver.WithURL("https://mcp.example.com"),
-)
+server, err := mcpserver.HTTP(ctx, "remote", &mcpserver.HTTPArgs{
+    Url: "https://mcp.example.com",
+    Headers: map[string]string{
+        "Authorization": "Bearer ${API_TOKEN}",
+    },
+})
 ```
 
 #### func Docker
 
 ```go
-func Docker(opts ...Option) (*MCPServer, error)
+func Docker(ctx *stigmer.Context, name string, args *DockerArgs) (*MCPServer, error)
 ```
 
-Creates Docker-based MCP server.
+Creates Docker-based MCP server using struct-based args.
 
 **Example**:
 ```go
-server, _ := mcpserver.Docker(
-    mcpserver.WithName("custom"),
-    mcpserver.WithImage("ghcr.io/org/mcp:latest"),
-)
+server, err := mcpserver.Docker(ctx, "custom", &mcpserver.DockerArgs{
+    Image: "ghcr.io/org/mcp:latest",
+    EnvPlaceholders: map[string]string{
+        "API_KEY": "${API_KEY}",
+    },
+})
 ```
 
-### Options (Stdio)
+### Struct Args
 
-#### func WithCommand
+#### type StdioArgs
 
 ```go
-func WithCommand(cmd string) Option
+type StdioArgs struct {
+    Command         string            // Command to execute
+    Args            []string          // Command arguments
+    EnvPlaceholders map[string]string // Environment variable placeholders
+    WorkingDir      string            // Working directory (optional)
+}
 ```
+
+Configuration for stdio MCP servers.
 
 Sets command to execute.
 
@@ -1433,10 +1448,10 @@ Creates inline sub-agent definition.
 
 **Example**:
 ```go
-sub := subagent.Inline(
-    subagent.WithName("analyzer"),
-    subagent.WithInstructions("Analyze code quality"),
-)
+sub, err := subagent.New(ctx, "analyzer", &subagent.SubAgentArgs{
+    Instructions: "Analyze code quality",
+    Description:  "Code quality analyzer",
+})
 ```
 
 #### func Reference
@@ -1517,11 +1532,10 @@ Creates environment variable.
 
 **Example**:
 ```go
-apiKey, _ := environment.New(
-    environment.WithName("API_KEY"),
-    environment.WithSecret(true),
-    environment.WithDescription("API key for service"),
-)
+apiKey, err := environment.New(ctx, "API_KEY", &environment.VariableArgs{
+    IsSecret:    true,
+    Description: "API key for service",
+})
 ```
 
 ### Options
@@ -1764,7 +1778,9 @@ Do: workflow.LoopBody(func(item workflow.LoopVar) []*workflow.Task {
 All SDK functions that can fail return `error`:
 
 ```go
-agent, err := agent.New(ctx, agent.WithName("my-agent"))
+agent, err := agent.New(ctx, "my-agent", &agent.AgentArgs{
+    Instructions: "Do something useful",
+})
 if err != nil {
     return fmt.Errorf("failed to create agent: %w", err)
 }

@@ -1,21 +1,19 @@
 // Package agent provides the core Agent builder for defining AI agent templates.
 //
-// The agent package implements the functional options pattern to provide a
-// flexible, type-safe API for building agent configurations that convert to
-// protobuf messages.
+// The agent package uses struct-based args (Pulumi pattern) to provide a
+// flexible, type-safe API for building agent configurations.
 //
 // # Basic Usage
 //
 //	import "github.com/stigmer/stigmer/sdk/go/stigmer"
 //	import "github.com/stigmer/stigmer/sdk/go/agent"
-//	
+//
 //	func main() {
 //	    err := stigmer.Run(func(ctx *stigmer.Context) error {
-//	        ag, err := agent.New(ctx,
-//	            agent.WithName("code-reviewer"),
-//	            agent.WithInstructions("Review code and suggest improvements"),
-//	            agent.WithDescription("AI code reviewer"),
-//	        )
+//	        ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+//	            Instructions: "Review code and suggest improvements",
+//	            Description:  "AI code reviewer",
+//	        })
 //	        return err
 //	    })
 //	    if err != nil {
@@ -55,23 +53,24 @@
 // The proto conversion is designed to be lossless - all information in the
 // Go Agent struct is preserved in the protobuf message.
 //
-// # Configuration Options
+// # Configuration
 //
-// The following options are available:
+// Agents are created with struct-based args and configured with builder methods:
 //
-//   - WithName: Set the agent name (required)
-//   - WithInstructions: Set behavior instructions (required)
-//   - WithDescription: Set human-readable description
-//   - WithIconURL: Set icon URL for UI display
-//   - WithOrg: Set organization owner
-//   - WithSkill: Add a skill reference
-//   - WithSkills: Add multiple skill references
-//   - WithMCPServer: Add an MCP server definition
-//   - WithMCPServers: Add multiple MCP server definitions
-//   - WithSubAgent: Add a sub-agent
-//   - WithSubAgents: Add multiple sub-agents
-//   - WithEnvVar: Add an environment variable
-//   - WithEnvVars: Add multiple environment variables
+// Constructor Args (AgentArgs):
+//   - Instructions: Agent behavior definition (required, 10-10,000 chars)
+//   - Description: Human-readable description (optional, max 500 chars)
+//   - IconUrl: Display icon URL (optional)
+//
+// Builder Methods (after creation):
+//   - AddSkillRef: Add a skill reference
+//   - AddSkillRefs: Add multiple skill references
+//   - AddMCPServer: Add an MCP server
+//   - AddMCPServers: Add multiple MCP servers
+//   - AddSubAgent: Add a sub-agent
+//   - AddSubAgents: Add multiple sub-agents
+//   - AddEnvironmentVariable: Add an environment variable
+//   - AddEnvironmentVariables: Add multiple environment variables
 //
 // # Error Handling
 //

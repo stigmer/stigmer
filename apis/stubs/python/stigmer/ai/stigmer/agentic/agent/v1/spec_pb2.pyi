@@ -28,14 +28,6 @@ class AgentSpec(_message.Message):
     def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_servers: _Optional[_Iterable[_Union[McpServerDefinition, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env_spec: _Optional[_Union[_spec_pb2.EnvironmentSpec, _Mapping]] = ...) -> None: ...
 
 class SubAgent(_message.Message):
-    __slots__ = ("inline_spec", "agent_instance_refs")
-    INLINE_SPEC_FIELD_NUMBER: _ClassVar[int]
-    AGENT_INSTANCE_REFS_FIELD_NUMBER: _ClassVar[int]
-    inline_spec: InlineSubAgentSpec
-    agent_instance_refs: _io_pb2.ApiResourceReference
-    def __init__(self, inline_spec: _Optional[_Union[InlineSubAgentSpec, _Mapping]] = ..., agent_instance_refs: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...
-
-class InlineSubAgentSpec(_message.Message):
     __slots__ = ("name", "description", "instructions", "mcp_servers", "mcp_tool_selections", "skill_refs")
     class McpToolSelectionsEntry(_message.Message):
         __slots__ = ("key", "value")

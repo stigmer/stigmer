@@ -8,27 +8,30 @@
 //  2. HTTP servers - Connect to remote services via HTTP + Server-Sent Events
 //  3. Docker servers - Run as containerized services
 //
-// Basic Usage:
+// Basic Usage (struct-args pattern):
 //
 //	// Stdio server (e.g., GitHub MCP)
-//	github := mcpserver.Stdio(
-//		mcpserver.WithName("github"),
-//		mcpserver.WithCommand("npx"),
-//		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-//		mcpserver.WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
-//	)
+//	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+//		Command: "npx",
+//		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+//		EnvPlaceholders: map[string]string{
+//			"GITHUB_TOKEN": "${GITHUB_TOKEN}",
+//		},
+//	})
 //
 //	// HTTP server (remote MCP service)
-//	api := mcpserver.HTTP(
-//		mcpserver.WithName("api-service"),
-//		mcpserver.WithURL("https://mcp.example.com"),
-//		mcpserver.WithHeader("Authorization", "Bearer ${API_TOKEN}"),
-//	)
+//	api, err := mcpserver.HTTP(ctx, "api-service", &mcpserver.HTTPArgs{
+//		Url: "https://mcp.example.com",
+//		Headers: map[string]string{
+//			"Authorization": "Bearer ${API_TOKEN}",
+//		},
+//	})
 //
 //	// Docker server (containerized MCP)
-//	custom := mcpserver.Docker(
-//		mcpserver.WithName("custom-mcp"),
-//		mcpserver.WithImage("ghcr.io/org/mcp:latest"),
-//		mcpserver.WithEnvPlaceholder("API_KEY", "${API_KEY}"),
-//	)
+//	custom, err := mcpserver.Docker(ctx, "custom-mcp", &mcpserver.DockerArgs{
+//		Image: "ghcr.io/org/mcp:latest",
+//		EnvPlaceholders: map[string]string{
+//			"API_KEY": "${API_KEY}",
+//		},
+//	})
 package mcpserver
