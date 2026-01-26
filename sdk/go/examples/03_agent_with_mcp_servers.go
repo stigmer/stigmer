@@ -3,9 +3,9 @@
 // Example 03: Agent with MCP Servers
 //
 // This example demonstrates creating an agent with all three types of MCP servers:
-//   1. Stdio server (subprocess-based, most common)
-//   2. HTTP server (remote services)
-//   3. Docker server (containerized)
+//  1. Stdio server (subprocess-based, most common)
+//  2. HTTP server (remote services)
+//  3. Docker server (containerized)
 //
 // MCP (Model Context Protocol) servers provide tools and capabilities to agents.
 // Each server type serves different deployment scenarios:

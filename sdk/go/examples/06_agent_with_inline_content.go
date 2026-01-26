@@ -3,15 +3,15 @@
 // Example 06: Agent with Organized Content
 //
 // This example demonstrates:
-//   1. Organizing large instructions as Go variables (better code organization)
-//   2. Referencing skills that are managed separately
-//   3. Using multi-line strings for complex agent instructions
+//  1. Organizing large instructions as Go variables (better code organization)
+//  2. Referencing skills that are managed separately
+//  3. Using multi-line strings for complex agent instructions
 //
 // IMPORTANT: The SDK references skills - it doesn't create them.
 // To use custom skills:
-//   1. Create skill content files (e.g., security-guidelines.md)
-//   2. Push skills via CLI: stigmer skill push security-guidelines.md
-//   3. Reference skills in your agent using skillref.Platform() or skillref.Organization()
+//  1. Create skill content files (e.g., security-guidelines.md)
+//  2. Push skills via CLI: stigmer skill push security-guidelines.md
+//  3. Reference skills in your agent using skillref.Platform() or skillref.Organization()
 //
 // For better organization in larger projects, define instructions
 // as variables in separate Go files (e.g., instructions.go).
