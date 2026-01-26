@@ -73,3 +73,47 @@ func NewConversionError(typeName, field, message string) *ConversionError {
 func NewConversionErrorWithCause(typeName, field, message string, err error) *ConversionError {
 	return validation.NewConversionErrorWithCause(typeName, field, message, err)
 }
+
+// =============================================================================
+// Resource Errors
+// =============================================================================
+
+// ResourceError is an alias to the shared resource error type.
+// This provides context about which workflow failed and during what operation.
+type ResourceError = validation.ResourceError
+
+// SynthesisError is an alias to the shared synthesis error type.
+// This provides context about synthesis failures.
+type SynthesisError = validation.SynthesisError
+
+// Synthesis sentinel errors re-exported for convenience.
+var (
+	// ErrSynthesisAlreadyDone indicates synthesis was already performed.
+	ErrSynthesisAlreadyDone = validation.ErrSynthesisAlreadyDone
+
+	// ErrSynthesisFailed indicates the synthesis operation failed.
+	ErrSynthesisFailed = validation.ErrSynthesisFailed
+
+	// ErrManifestWrite indicates a failure to write a manifest file.
+	ErrManifestWrite = validation.ErrManifestWrite
+)
+
+// NewResourceError creates a new resource error for a workflow.
+// This is a convenience wrapper that pre-fills ResourceType as "Workflow".
+//
+// Example:
+//
+//	err := workflow.NewResourceError("data-pipeline", "validation", "missing tasks")
+func NewResourceError(name, operation, message string) *ResourceError {
+	return validation.NewResourceError("Workflow", name, operation, message)
+}
+
+// NewResourceErrorWithCause creates a new resource error for a workflow with a cause.
+// This is a convenience wrapper that pre-fills ResourceType as "Workflow".
+//
+// Example:
+//
+//	err := workflow.NewResourceErrorWithCause("data-pipeline", "validation", "name is required", ErrInvalidName)
+func NewResourceErrorWithCause(name, operation, message string, err error) *ResourceError {
+	return validation.NewResourceErrorWithCause("Workflow", name, operation, message, err)
+}

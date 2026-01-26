@@ -3,6 +3,8 @@ package validation
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 // Sentinel errors for validation rules.
@@ -169,6 +171,254 @@ func NewConversionErrorWithCause(typeName, field, message string, err error) *Co
 		Err:     err,
 	}
 }
+
+// =============================================================================
+// Resource Errors
+// =============================================================================
+
+// ResourceError represents an error associated with a specific Stigmer resource.
+// It provides context about which resource failed and during what operation.
+//
+// This follows the Pulumi pattern of including resource identification in errors,
+// enabling better diagnostics when multiple resources are being processed.
+//
+// Example:
+//
+//	err := &ResourceError{
+//	    ResourceType: "Agent",
+//	    ResourceName: "code-reviewer",
+//	    Operation:    "validation",
+//	    Message:      "missing required instructions",
+//	    Err:          ErrRequired,
+//	}
+//	if errors.Is(err, ErrRequired) {
+//	    // Handle required field error
+//	}
+type ResourceError struct {
+	ResourceType string // The type of resource (e.g., "Agent", "Workflow")
+	ResourceName string // The name of the resource (e.g., "code-reviewer")
+	Operation    string // The operation that failed (e.g., "validation", "synthesis", "conversion")
+	Message      string // Human-readable error message
+	Err          error  // Underlying error for unwrapping
+}
+
+// Error implements the error interface.
+func (e *ResourceError) Error() string {
+	if e.ResourceName != "" {
+		return fmt.Sprintf("%s %q %s failed: %s",
+			e.ResourceType, e.ResourceName, e.Operation, e.Message)
+	}
+	return fmt.Sprintf("%s %s failed: %s", e.ResourceType, e.Operation, e.Message)
+}
+
+// Unwrap returns the underlying error for error chain traversal.
+func (e *ResourceError) Unwrap() error {
+	return e.Err
+}
+
+// Is implements error matching for sentinel errors.
+// This enables errors.Is(err, ErrRequired) to work correctly.
+func (e *ResourceError) Is(target error) bool {
+	if e.Err == nil {
+		return false
+	}
+	return errors.Is(e.Err, target)
+}
+
+// WithField returns a new ValidationError with additional field context.
+// This creates a ValidationError with the resource context preserved in the field path.
+//
+// Example:
+//
+//	resErr := NewResourceError("Agent", "code-reviewer", "validation", "invalid field")
+//	fieldErr := resErr.WithField("instructions", "", "required")
+//	// fieldErr.Field = "agent.instructions"
+func (e *ResourceError) WithField(field, value, rule string) *ValidationError {
+	return &ValidationError{
+		Field:   fmt.Sprintf("%s.%s", strings.ToLower(e.ResourceType), field),
+		Value:   truncateValue(value),
+		Rule:    rule,
+		Message: e.Message,
+		Err:     e.Err,
+	}
+}
+
+// NewResourceError creates a new resource error.
+//
+// Parameters:
+//   - resourceType: the type of resource (e.g., "Agent", "Workflow")
+//   - resourceName: the name of the resource
+//   - operation: the operation that failed (e.g., "validation", "synthesis")
+//   - message: human-readable error message
+func NewResourceError(resourceType, resourceName, operation, message string) *ResourceError {
+	return &ResourceError{
+		ResourceType: resourceType,
+		ResourceName: resourceName,
+		Operation:    operation,
+		Message:      message,
+	}
+}
+
+// NewResourceErrorWithCause creates a new resource error with an underlying cause.
+//
+// Parameters:
+//   - resourceType: the type of resource (e.g., "Agent", "Workflow")
+//   - resourceName: the name of the resource
+//   - operation: the operation that failed
+//   - message: human-readable error message
+//   - err: underlying error for unwrapping and errors.Is() matching
+func NewResourceErrorWithCause(resourceType, resourceName, operation, message string, err error) *ResourceError {
+	return &ResourceError{
+		ResourceType: resourceType,
+		ResourceName: resourceName,
+		Operation:    operation,
+		Message:      message,
+		Err:          err,
+	}
+}
+
+// ResourceErrorf creates a new resource error with a formatted message.
+//
+// Parameters:
+//   - resourceType: the type of resource (e.g., "Agent", "Workflow")
+//   - resourceName: the name of the resource
+//   - operation: the operation that failed
+//   - format: format string for the message
+//   - args: format arguments
+func ResourceErrorf(resourceType, resourceName, operation, format string, args ...any) *ResourceError {
+	return &ResourceError{
+		ResourceType: resourceType,
+		ResourceName: resourceName,
+		Operation:    operation,
+		Message:      fmt.Sprintf(format, args...),
+	}
+}
+
+// =============================================================================
+// Synthesis Errors
+// =============================================================================
+
+// Sentinel errors for synthesis operations.
+var (
+	// ErrSynthesisAlreadyDone indicates synthesis was already performed on this context.
+	ErrSynthesisAlreadyDone = errors.New("synthesis already performed")
+
+	// ErrSynthesisFailed indicates the synthesis operation failed.
+	ErrSynthesisFailed = errors.New("synthesis failed")
+
+	// ErrManifestWrite indicates a failure to write a manifest file.
+	ErrManifestWrite = errors.New("failed to write manifest")
+)
+
+// SynthesisError represents an error during the synthesis phase.
+// It wraps errors that occur when converting SDK types to protobuf
+// or writing manifests to disk.
+//
+// SynthesisError provides context about:
+//   - Phase: which synthesis phase failed (e.g., "agents", "workflows", "dependencies")
+//   - ResourceType: the type of resource being synthesized (if applicable)
+//   - ResourceName: the name of the specific resource (if applicable)
+//
+// Example:
+//
+//	err := &SynthesisError{
+//	    Phase:        "agents",
+//	    ResourceType: "Agent",
+//	    ResourceName: "code-reviewer",
+//	    Message:      "failed to convert to proto",
+//	    Err:          originalErr,
+//	}
+type SynthesisError struct {
+	Phase        string // The synthesis phase (e.g., "agents", "workflows", "dependencies")
+	ResourceType string // Optional: the type of resource being synthesized
+	ResourceName string // Optional: the name of the resource
+	Message      string // Human-readable error message
+	Err          error  // Underlying error
+}
+
+// Error implements the error interface.
+func (e *SynthesisError) Error() string {
+	var b strings.Builder
+	b.WriteString("synthesis")
+	if e.Phase != "" {
+		b.WriteString(" [")
+		b.WriteString(e.Phase)
+		b.WriteString("]")
+	}
+	if e.ResourceType != "" {
+		b.WriteString(" ")
+		b.WriteString(e.ResourceType)
+		if e.ResourceName != "" {
+			b.WriteString(" ")
+			b.WriteString(strconv.Quote(e.ResourceName))
+		}
+	}
+	b.WriteString(" failed: ")
+	b.WriteString(e.Message)
+	return b.String()
+}
+
+// Unwrap returns the underlying error for error chain traversal.
+func (e *SynthesisError) Unwrap() error {
+	return e.Err
+}
+
+// Is implements error matching for sentinel errors.
+func (e *SynthesisError) Is(target error) bool {
+	if e.Err == nil {
+		return false
+	}
+	return errors.Is(e.Err, target)
+}
+
+// NewSynthesisError creates a new synthesis error for a phase.
+//
+// Parameters:
+//   - phase: the synthesis phase that failed (e.g., "agents", "workflows")
+//   - message: human-readable error message
+func NewSynthesisError(phase, message string) *SynthesisError {
+	return &SynthesisError{
+		Phase:   phase,
+		Message: message,
+		Err:     ErrSynthesisFailed,
+	}
+}
+
+// NewSynthesisErrorWithCause creates a new synthesis error with an underlying cause.
+//
+// Parameters:
+//   - phase: the synthesis phase that failed
+//   - message: human-readable error message
+//   - err: underlying error
+func NewSynthesisErrorWithCause(phase, message string, err error) *SynthesisError {
+	return &SynthesisError{
+		Phase:   phase,
+		Message: message,
+		Err:     err,
+	}
+}
+
+// NewSynthesisErrorForResource creates a synthesis error for a specific resource.
+//
+// Parameters:
+//   - phase: the synthesis phase that failed
+//   - resourceType: the type of resource (e.g., "Agent", "Workflow")
+//   - resourceName: the name of the resource
+//   - message: human-readable error message
+//   - err: underlying error
+func NewSynthesisErrorForResource(phase, resourceType, resourceName, message string, err error) *SynthesisError {
+	return &SynthesisError{
+		Phase:        phase,
+		ResourceType: resourceType,
+		ResourceName: resourceName,
+		Message:      message,
+		Err:          err,
+	}
+}
+
+// =============================================================================
+// Helpers
+// =============================================================================
 
 // truncateValue truncates long values for error messages.
 // Values longer than 50 characters are truncated with "...".
