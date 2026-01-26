@@ -27,7 +27,7 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\x97\x04\n\tAgentSpec\x12 \n\x0b\x64\x65scription\x18\x01 \x01(\tR\x0b\x64\x65scription\x12\x19\n\x08icon_url\x18\x02 \x01(\tR\x07iconUrl\x12+\n\x0cinstructions\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\nR\x0cinstructions\x12Q\n\x0bmcp_servers\x18\x04 \x03(\x0b\x32\x30.ai.stigmer.agentic.agent.v1.McpServerDefinitionR\nmcpServers\x12\xb7\x01\n\nskill_refs\x18\x05 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBb\xbaH_\x92\x01\\\"Z\xba\x01W\n\x0fskill_refs.kind\x12\x33skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\x12\x44\n\nsub_agents\x18\x06 \x03(\x0b\x32%.ai.stigmer.agentic.agent.v1.SubAgentR\tsubAgents\x12M\n\x08\x65nv_spec\x18\x07 \x01(\x0b\x32\x32.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\x07\x65nvSpec\"\xb3\x04\n\x08SubAgent\x12\x1a\n\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12+\n\x0cinstructions\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\nR\x0cinstructions\x12\x1f\n\x0bmcp_servers\x18\x04 \x03(\tR\nmcpServers\x12l\n\x13mcp_tool_selections\x18\x05 \x03(\x0b\x32<.ai.stigmer.agentic.agent.v1.SubAgent.McpToolSelectionsEntryR\x11mcpToolSelections\x12\xb7\x01\n\nskill_refs\x18\x06 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBb\xbaH_\x92\x01\\\"Z\xba\x01W\n\x0fskill_refs.kind\x12\x33skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\x1as\n\x16McpToolSelectionsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x43\n\x05value\x18\x02 \x01(\x0b\x32-.ai.stigmer.agentic.agent.v1.McpToolSelectionR\x05value:\x02\x38\x01\"7\n\x10McpToolSelection\x12#\n\renabled_tools\x18\x01 \x03(\tR\x0c\x65nabledTools\"\xab\x02\n\x13McpServerDefinition\x12\x1a\n\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12@\n\x05stdio\x18\x02 \x01(\x0b\x32(.ai.stigmer.agentic.agent.v1.StdioServerH\x00R\x05stdio\x12=\n\x04http\x18\x03 \x01(\x0b\x32\'.ai.stigmer.agentic.agent.v1.HttpServerH\x00R\x04http\x12\x43\n\x06\x64ocker\x18\x04 \x01(\x0b\x32).ai.stigmer.agentic.agent.v1.DockerServerH\x00R\x06\x64ocker\x12#\n\renabled_tools\x18\x05 \x03(\tR\x0c\x65nabledToolsB\r\n\x0bserver_type\"\x92\x02\n\x0bStdioServer\x12 \n\x07\x63ommand\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x63ommand\x12\x12\n\x04\x61rgs\x18\x02 \x03(\tR\x04\x61rgs\x12h\n\x10\x65nv_placeholders\x18\x03 \x03(\x0b\x32=.ai.stigmer.agentic.agent.v1.StdioServer.EnvPlaceholdersEntryR\x0f\x65nvPlaceholders\x12\x1f\n\x0bworking_dir\x18\x04 \x01(\tR\nworkingDir\x1a\x42\n\x14\x45nvPlaceholdersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"\xf8\x02\n\nHttpServer\x12\x18\n\x03url\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03url\x12N\n\x07headers\x18\x02 \x03(\x0b\x32\x34.ai.stigmer.agentic.agent.v1.HttpServer.HeadersEntryR\x07headers\x12[\n\x0cquery_params\x18\x03 \x03(\x0b\x32\x38.ai.stigmer.agentic.agent.v1.HttpServer.QueryParamsEntryR\x0bqueryParams\x12\'\n\x0ftimeout_seconds\x18\x04 \x01(\x05R\x0etimeoutSeconds\x1a:\n\x0cHeadersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x1a>\n\x10QueryParamsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"\xb4\x03\n\x0c\x44ockerServer\x12\x1c\n\x05image\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05image\x12\x12\n\x04\x61rgs\x18\x02 \x03(\tR\x04\x61rgs\x12i\n\x10\x65nv_placeholders\x18\x03 \x03(\x0b\x32>.ai.stigmer.agentic.agent.v1.DockerServer.EnvPlaceholdersEntryR\x0f\x65nvPlaceholders\x12\x42\n\x07volumes\x18\x04 \x03(\x0b\x32(.ai.stigmer.agentic.agent.v1.VolumeMountR\x07volumes\x12\x18\n\x07network\x18\x05 \x01(\tR\x07network\x12>\n\x05ports\x18\x06 \x03(\x0b\x32(.ai.stigmer.agentic.agent.v1.PortMappingR\x05ports\x12%\n\x0e\x63ontainer_name\x18\x07 \x01(\tR\rcontainerName\x1a\x42\n\x14\x45nvPlaceholdersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"~\n\x0bVolumeMount\x12#\n\thost_path\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x08hostPath\x12-\n\x0e\x63ontainer_path\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\rcontainerPath\x12\x1b\n\tread_only\x18\x03 \x01(\x08R\x08readOnly\"\x7f\n\x0bPortMapping\x12$\n\thost_port\x18\x01 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x01R\x08hostPort\x12.\n\x0e\x63ontainer_port\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x01R\rcontainerPort\x12\x1a\n\x08protocol\x18\x03 \x01(\tR\x08protocolB\xbd\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\xa6\x05\n\tAgentSpec\x12 \n\x0b\x64\x65scription\x18\x01 \x01(\tR\x0b\x64\x65scription\x12\x19\n\x08icon_url\x18\x02 \x01(\tR\x07iconUrl\x12+\n\x0cinstructions\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\nR\x0cinstructions\x12\xdf\x01\n\x11mcp_server_usages\x18\x04 \x03(\x0b\x32+.ai.stigmer.agentic.agent.v1.McpServerUsageB\x85\x01\xbaH\x81\x01\x92\x01~\"|\xba\x01y\n\x16mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\xb7\x01\n\nskill_refs\x18\x05 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBb\xbaH_\x92\x01\\\"Z\xba\x01W\n\x0fskill_refs.kind\x12\x33skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\x12\x44\n\nsub_agents\x18\x06 \x03(\x0b\x32%.ai.stigmer.agentic.agent.v1.SubAgentR\tsubAgents\x12M\n\x08\x65nv_spec\x18\x07 \x01(\x0b\x32\x32.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\x07\x65nvSpec\"\xf6\x02\n\x08SubAgent\x12\x1a\n\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12+\n\x0cinstructions\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\nR\x0cinstructions\x12\x45\n\nmcp_access\x18\x04 \x03(\x0b\x32&.ai.stigmer.agentic.agent.v1.McpAccessR\tmcpAccess\x12\xb7\x01\n\nskill_refs\x18\x05 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBb\xbaH_\x92\x01\\\"Z\xba\x01W\n\x0fskill_refs.kind\x12\x33skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\"\x99\x01\n\x0eMcpServerUsage\x12\x62\n\x0emcp_server_ref\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x06\xbaH\x03\xc8\x01\x01R\x0cmcpServerRef\x12#\n\renabled_tools\x18\x02 \x03(\tR\x0c\x65nabledTools\"W\n\tMcpAccess\x12%\n\nmcp_server\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tmcpServer\x12#\n\renabled_tools\x18\x02 \x03(\tR\x0c\x65nabledToolsB\xbd\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,66 +37,26 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n\037com.ai.stigmer.agentic.agent.v1B\tSpecProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Agent::V1'
   _globals['_AGENTSPEC'].fields_by_name['instructions']._loaded_options = None
   _globals['_AGENTSPEC'].fields_by_name['instructions']._serialized_options = b'\272H\004r\002\020\n'
+  _globals['_AGENTSPEC'].fields_by_name['mcp_server_usages']._loaded_options = None
+  _globals['_AGENTSPEC'].fields_by_name['mcp_server_usages']._serialized_options = b'\272H\201\001\222\001~\"|\272\001y\n\026mcp_server_usages.kind\022?mcp_server_usages must reference resources with kind=mcp_server\032\036this.mcp_server_ref.kind == 44'
   _globals['_AGENTSPEC'].fields_by_name['skill_refs']._loaded_options = None
   _globals['_AGENTSPEC'].fields_by_name['skill_refs']._serialized_options = b'\272H_\222\001\\\"Z\272\001W\n\017skill_refs.kind\0223skill_refs must reference resources with kind=skill\032\017this.kind == 43'
-  _globals['_SUBAGENT_MCPTOOLSELECTIONSENTRY']._loaded_options = None
-  _globals['_SUBAGENT_MCPTOOLSELECTIONSENTRY']._serialized_options = b'8\001'
   _globals['_SUBAGENT'].fields_by_name['name']._loaded_options = None
   _globals['_SUBAGENT'].fields_by_name['name']._serialized_options = b'\272H\003\310\001\001'
   _globals['_SUBAGENT'].fields_by_name['instructions']._loaded_options = None
   _globals['_SUBAGENT'].fields_by_name['instructions']._serialized_options = b'\272H\004r\002\020\n'
   _globals['_SUBAGENT'].fields_by_name['skill_refs']._loaded_options = None
   _globals['_SUBAGENT'].fields_by_name['skill_refs']._serialized_options = b'\272H_\222\001\\\"Z\272\001W\n\017skill_refs.kind\0223skill_refs must reference resources with kind=skill\032\017this.kind == 43'
-  _globals['_MCPSERVERDEFINITION'].fields_by_name['name']._loaded_options = None
-  _globals['_MCPSERVERDEFINITION'].fields_by_name['name']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_STDIOSERVER_ENVPLACEHOLDERSENTRY']._loaded_options = None
-  _globals['_STDIOSERVER_ENVPLACEHOLDERSENTRY']._serialized_options = b'8\001'
-  _globals['_STDIOSERVER'].fields_by_name['command']._loaded_options = None
-  _globals['_STDIOSERVER'].fields_by_name['command']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_HTTPSERVER_HEADERSENTRY']._loaded_options = None
-  _globals['_HTTPSERVER_HEADERSENTRY']._serialized_options = b'8\001'
-  _globals['_HTTPSERVER_QUERYPARAMSENTRY']._loaded_options = None
-  _globals['_HTTPSERVER_QUERYPARAMSENTRY']._serialized_options = b'8\001'
-  _globals['_HTTPSERVER'].fields_by_name['url']._loaded_options = None
-  _globals['_HTTPSERVER'].fields_by_name['url']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_DOCKERSERVER_ENVPLACEHOLDERSENTRY']._loaded_options = None
-  _globals['_DOCKERSERVER_ENVPLACEHOLDERSENTRY']._serialized_options = b'8\001'
-  _globals['_DOCKERSERVER'].fields_by_name['image']._loaded_options = None
-  _globals['_DOCKERSERVER'].fields_by_name['image']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_VOLUMEMOUNT'].fields_by_name['host_path']._loaded_options = None
-  _globals['_VOLUMEMOUNT'].fields_by_name['host_path']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_VOLUMEMOUNT'].fields_by_name['container_path']._loaded_options = None
-  _globals['_VOLUMEMOUNT'].fields_by_name['container_path']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_PORTMAPPING'].fields_by_name['host_port']._loaded_options = None
-  _globals['_PORTMAPPING'].fields_by_name['host_port']._serialized_options = b'\272H\004\032\002(\001'
-  _globals['_PORTMAPPING'].fields_by_name['container_port']._loaded_options = None
-  _globals['_PORTMAPPING'].fields_by_name['container_port']._serialized_options = b'\272H\004\032\002(\001'
+  _globals['_MCPSERVERUSAGE'].fields_by_name['mcp_server_ref']._loaded_options = None
+  _globals['_MCPSERVERUSAGE'].fields_by_name['mcp_server_ref']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_MCPACCESS'].fields_by_name['mcp_server']._loaded_options = None
+  _globals['_MCPACCESS'].fields_by_name['mcp_server']._serialized_options = b'\272H\003\310\001\001'
   _globals['_AGENTSPEC']._serialized_start=188
-  _globals['_AGENTSPEC']._serialized_end=723
-  _globals['_SUBAGENT']._serialized_start=726
-  _globals['_SUBAGENT']._serialized_end=1289
-  _globals['_SUBAGENT_MCPTOOLSELECTIONSENTRY']._serialized_start=1174
-  _globals['_SUBAGENT_MCPTOOLSELECTIONSENTRY']._serialized_end=1289
-  _globals['_MCPTOOLSELECTION']._serialized_start=1291
-  _globals['_MCPTOOLSELECTION']._serialized_end=1346
-  _globals['_MCPSERVERDEFINITION']._serialized_start=1349
-  _globals['_MCPSERVERDEFINITION']._serialized_end=1648
-  _globals['_STDIOSERVER']._serialized_start=1651
-  _globals['_STDIOSERVER']._serialized_end=1925
-  _globals['_STDIOSERVER_ENVPLACEHOLDERSENTRY']._serialized_start=1859
-  _globals['_STDIOSERVER_ENVPLACEHOLDERSENTRY']._serialized_end=1925
-  _globals['_HTTPSERVER']._serialized_start=1928
-  _globals['_HTTPSERVER']._serialized_end=2304
-  _globals['_HTTPSERVER_HEADERSENTRY']._serialized_start=2182
-  _globals['_HTTPSERVER_HEADERSENTRY']._serialized_end=2240
-  _globals['_HTTPSERVER_QUERYPARAMSENTRY']._serialized_start=2242
-  _globals['_HTTPSERVER_QUERYPARAMSENTRY']._serialized_end=2304
-  _globals['_DOCKERSERVER']._serialized_start=2307
-  _globals['_DOCKERSERVER']._serialized_end=2743
-  _globals['_DOCKERSERVER_ENVPLACEHOLDERSENTRY']._serialized_start=1859
-  _globals['_DOCKERSERVER_ENVPLACEHOLDERSENTRY']._serialized_end=1925
-  _globals['_VOLUMEMOUNT']._serialized_start=2745
-  _globals['_VOLUMEMOUNT']._serialized_end=2871
-  _globals['_PORTMAPPING']._serialized_start=2873
-  _globals['_PORTMAPPING']._serialized_end=3000
+  _globals['_AGENTSPEC']._serialized_end=866
+  _globals['_SUBAGENT']._serialized_start=869
+  _globals['_SUBAGENT']._serialized_end=1243
+  _globals['_MCPSERVERUSAGE']._serialized_start=1246
+  _globals['_MCPSERVERUSAGE']._serialized_end=1399
+  _globals['_MCPACCESS']._serialized_start=1401
+  _globals['_MCPACCESS']._serialized_end=1488
 # @@protoc_insertion_point(module_scope)
