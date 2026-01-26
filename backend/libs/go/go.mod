@@ -1,8 +1,6 @@
 module github.com/stigmer/stigmer/backend/libs/go
 
-go 1.24.0
-
-toolchain go1.24.12
+go 1.25.6
 
 require (
 	buf.build/go/protovalidate v1.1.0

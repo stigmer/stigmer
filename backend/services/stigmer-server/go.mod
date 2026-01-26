@@ -1,8 +1,6 @@
 module github.com/stigmer/stigmer/backend/services/stigmer-server
 
-go 1.24.0
-
-toolchain go1.24.12
+go 1.25.6
 
 // Local development: Use APIs from monorepo
 replace github.com/stigmer/stigmer/apis/stubs/go => ../../../apis/stubs/go
