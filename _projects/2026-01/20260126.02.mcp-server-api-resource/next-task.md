@@ -95,6 +95,8 @@ Comprehensive implementation plan with phases, proto structures, FGA model.
 **Current Phase**: Phase 4.5 - OSS Go Controller
 **Status**: ✅ COMPLETE
 
+**Phase 4.5 Complete**: McpServer resource is now fully operational in both backends (Java and Go). CLI can manage MCP servers locally. Ready to proceed to Phase 5 (Agent Runner Integration).
+
 ---
 
 ## Session Progress
@@ -443,16 +445,27 @@ Continue in `stigmer-cloud` repo for agent runtime integration.
 **Technical Improvements:**
 - Codegen now supports namespace directories (no symlinks needed)
 - Cleaned up 111 obsolete schema files
-- Net reduction of 3,417 lines across codebase
-- Added 8 handler files (1,410 lines) for McpServer backend
+- Net reduction of 3,417 lines across codebase (proto migration)
+- Added 8 handler files (1,410 lines) for McpServer Java backend
+- Added 10 controller files (1,444 lines) for McpServer Go backend
 
-**Notes for next session:**
-- Stay in `stigmer-cloud` repo for Phase 5 (agent runner integration)
-- Backend handlers complete and ready for testing
-- Pre-existing build issue (annotation processor) affects all handlers, not just McpServer
-- Handler structure is correct, follows established patterns
-- Focus on agent runner: resolve McpServerUsage → load McpServer → merge env vars → start server
-- Test with all three scopes (platform, org, identity_account)
+**Session 6 Accomplishments (2026-01-27):**
+- ✅ Committed Phase 4 Java handlers (stigmer-cloud: `30b555f1`)
+- ✅ Implemented complete Go OSS controller (stigmer: `edef047`)
+- ✅ All CRUD operations with comprehensive tests
+- ✅ Server registration in server.go
+- ✅ BUILD.bazel and README.md documentation
+- ✅ All tests passing, no linter errors
+- ✅ Updated project tracking (stigmer: `fcd1cb8`)
+- ✅ Created session checkpoint
+
+**Notes for next session (Phase 5):**
+- Switch to `stigmer-cloud` repo for Agent Runner integration
+- Both backends (Java + Go) now have complete McpServer support
+- CLI can now manage MCP servers in local mode
+- Focus on runtime: resolve McpServerUsage → load McpServer → merge env vars → start server
+- Implement tri-scope resolution (platform, org, identity_account)
+- Test with all three server types (stdio, http, docker)
 
 ---
 
@@ -461,49 +474,28 @@ Continue in `stigmer-cloud` repo for agent runtime integration.
 ### stigmer-cloud Repo
 
 **Session 4 (FGA Model)**
-- ✅ Committed: aa54ebbe - Phase 3 FGA model
+- ✅ Committed: `aa54ebbe` - Phase 3 FGA model
 - Files: `fga/model/agentic/mcp_server.fga`, `fga/model/fga.mod`
 
-### stigmer Repo (Sessions 1-3) 
+**Session 6 (Java Backend Handlers)**
+- ✅ Committed: `30b555f1` - Phase 4 Java backend handlers
+- Files: 8 handler files (1,410 lines), 29 generated Java stub files
 
+### stigmer Repo
+
+**Sessions 1-3 (Proto + SDK Migration)** 
 - ✅ Committed - Phase 1 + Phase 2 work (proto definitions, SDK migration)
+
+**Session 6 (Go OSS Controller)**
+- ✅ Committed: `edef047` - Phase 4.5 Go controller
+- Files: 10 controller files (1,444 lines), server.go modification
+- ✅ Committed: `fcd1cb8` - Project documentation update
 
 ---
 
-## Uncommitted Work (Session 5)
+## All Work Committed ✅
 
-### stigmer-cloud Repo - Phase 4 Backend Handlers
-
-⚠️ **Uncommitted changes** - Ready for commit
-
-**Files to commit:**
-1. NEW: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/mcpserver/repo/McpServerRepo.java` (293 lines)
-2. NEW: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/mcpserver/request/controller/McpServerGrpcAutoController.java` (39 lines)
-3. NEW: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/mcpserver/request/handler/McpServerGetHandler.java` (64 lines)
-4. NEW: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/mcpserver/request/handler/McpServerGetByReferenceHandler.java` (211 lines)
-5. NEW: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/mcpserver/request/handler/McpServerCreateHandler.java` (280 lines)
-6. NEW: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/mcpserver/request/handler/McpServerUpdateHandler.java` (167 lines)
-7. NEW: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/mcpserver/request/handler/McpServerDeleteHandler.java` (75 lines)
-8. NEW: `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/mcpserver/request/handler/McpServerApplyHandler.java` (81 lines)
-9. NEW: Generated Java stubs in `apis/stubs/java/.../mcpserver/v1/` (29 files)
-
-**Suggested commit message:**
-```
-feat(backend): add McpServer handlers with tri-scope support
-
-- Create McpServerRepo with tri-scope query methods (platform, org, identity_account)
-- Implement all CRUD handlers: Get, GetByReference, Create, Update, Delete, Apply
-- Add FGA tuple creation for all three scopes (platform, org, identity_account)
-- Implement server config validation (stdio, http, docker)
-- Add scope-aware authorization (platform operator, org membership, auto-allow personal)
-- Follow established handler patterns (Skill, WorkflowInstance)
-
-This completes Phase 4, providing the backend infrastructure for MCP server
-CRUD operations. Handlers integrate with FGA for tri-scope authorization and
-follow platform standards for error handling, logging, and documentation.
-
-Total: 8 handler files (1,410 lines), 29 generated stub files
-```
+No uncommitted changes. All Phase 1-4.5 work is complete and committed to both repositories.
 
 ---
 
