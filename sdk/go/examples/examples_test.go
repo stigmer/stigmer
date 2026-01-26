@@ -126,9 +126,9 @@ func TestExample12_AgentWithTypedContext(t *testing.T) {
 			t.Error("Agent should have skills")
 		}
 
-		// Verify agent has MCP servers
-		if len(agent.Spec.McpServers) == 0 {
-			t.Error("Agent should have MCP servers")
+		// Verify agent has MCP server usages
+		if len(agent.Spec.McpServerUsages) == 0 {
+			t.Error("Agent should have MCP server usages")
 		}
 	})
 }
@@ -173,7 +173,7 @@ func TestExample13_WorkflowAndAgentSharedContext(t *testing.T) {
 	})
 }
 
-// TestExample03_AgentWithMCPServers tests the agent with MCP servers example
+// TestExample03_AgentWithMCPServers tests the agent with MCP server references example
 func TestExample03_AgentWithMCPServers(t *testing.T) {
 	runExampleTest(t, "03_agent_with_mcp_servers.go", func(t *testing.T, outputDir string) {
 		agentPath := filepath.Join(outputDir, "agent-0.pb")
@@ -186,39 +186,36 @@ func TestExample03_AgentWithMCPServers(t *testing.T) {
 			t.Errorf("Agent name = %v, want devops-agent", agent.Metadata.Name)
 		}
 
-		// Verify MCP servers were configured
-		if len(agent.Spec.McpServers) == 0 {
-			t.Error("Agent should have MCP servers")
+		// Verify MCP server usages were configured (new pattern)
+		if len(agent.Spec.McpServerUsages) == 0 {
+			t.Error("Agent should have MCP server usages")
 		}
 
-		// Check for different MCP server types (stdio, http, docker)
-		hasStdio := false
-		hasHTTP := false
-		hasDocker := false
+		// Check for different scopes
+		hasPlatform := false
+		hasOrg := false
+		hasPersonal := false
 
-		for _, server := range agent.Spec.McpServers {
-			switch {
-			case server.GetStdio() != nil:
-				hasStdio = true
-			case server.GetHttp() != nil:
-				hasHTTP = true
-			case server.GetDocker() != nil:
-				hasDocker = true
+		for _, usage := range agent.Spec.McpServerUsages {
+			if usage.McpServerRef == nil {
+				continue
+			}
+			switch usage.McpServerRef.Scope {
+			case apiresource.ApiResourceOwnerScope_platform:
+				hasPlatform = true
+			case apiresource.ApiResourceOwnerScope_organization:
+				hasOrg = true
+			case apiresource.ApiResourceOwnerScope_identity_account:
+				hasPersonal = true
 			}
 		}
 
-		if !hasStdio {
-			t.Error("Agent should have at least one stdio MCP server")
-		}
-		if !hasHTTP {
-			t.Error("Agent should have at least one HTTP MCP server")
-		}
-		if !hasDocker {
-			t.Error("Agent should have at least one Docker MCP server")
+		if !hasPlatform {
+			t.Error("Agent should have at least one platform MCP server reference")
 		}
 
-		t.Logf("✅ Agent with %d MCP servers created (stdio: %v, http: %v, docker: %v)",
-			len(agent.Spec.McpServers), hasStdio, hasHTTP, hasDocker)
+		t.Logf("✅ Agent with %d MCP server usages created (platform: %v, org: %v, personal: %v)",
+			len(agent.Spec.McpServerUsages), hasPlatform, hasOrg, hasPersonal)
 	})
 }
 
@@ -237,21 +234,21 @@ func TestExample04_AgentWithSubAgents(t *testing.T) {
 			t.Error("Agent should have sub-agents")
 		}
 
-		// Check for both inline and referenced sub-agents
-		hasInline := false
-		hasReferenced := false
+		// Check for sub-agents with MCP access
+		hasMcpAccess := false
+		hasSkills := false
 
 		for _, subAgent := range agent.Spec.SubAgents {
-			switch subAgent.AgentReference.(type) {
-			case *agentv1.SubAgent_InlineSpec:
-				hasInline = true
-			case *agentv1.SubAgent_AgentInstanceRefs:
-				hasReferenced = true
+			if len(subAgent.McpAccess) > 0 {
+				hasMcpAccess = true
+			}
+			if len(subAgent.SkillRefs) > 0 {
+				hasSkills = true
 			}
 		}
 
-		t.Logf("✅ Agent with %d sub-agents created (inline: %v, referenced: %v)",
-			len(agent.Spec.SubAgents), hasInline, hasReferenced)
+		t.Logf("✅ Agent with %d sub-agents created (mcpAccess: %v, skills: %v)",
+			len(agent.Spec.SubAgents), hasMcpAccess, hasSkills)
 	})
 }
 
