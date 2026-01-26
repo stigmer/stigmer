@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.mcpserver.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+
+// McpServerStatus represents the system-managed state of an MCP server definition.
+// This status tracks the validity of the definition itself, NOT runtime health.
+//
+// IMPORTANT: Tool discovery and health checks happen at RUNTIME (in agent-runner),
+// not here. This is because:
+// 1. Tool discovery requires valid credentials (e.g., GITHUB_TOKEN)
+// 2. The MCP server must be running to query its tools
+// 3. Credentials come from AgentInstance's environment, not the McpServer definition
+//
+// This status only tracks whether the McpServer definition is structurally valid
+// and can be used by agents.
+message McpServerStatus {
+  // Validation state of the MCP server definition.
+  // Indicates whether the definition passed structural validation.
+  ValidationState validation_state = 1;
+
+  // Human-readable validation message.
+  // Populated when validation_state is INVALID to explain what's wrong.
+  // Empty when validation_state is VALID or UNSPECIFIED.
+  // Examples:
+  // - "server_type is required: must specify stdio, http, or docker"
+  // - "http.url is not a valid URL: missing scheme"
+  // - "docker.image is required"
+  string validation_message = 2;
+
+  // Standard audit information tracking creation and modification.
+  // Field 99 follows Stigmer convention for audit placement in status messages.
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}
+
+// ValidationState represents the structural validity of an MCP server definition.
+// This is NOT runtime health - it only indicates whether the definition is valid.
+enum ValidationState {
+  // Default/unspecified state.
+  // Used when validation has not yet been performed.
+  VALIDATION_STATE_UNSPECIFIED = 0;
+
+  // The MCP server definition is structurally valid.
+  // All required fields are present and have valid values.
+  // The definition can be referenced by agents.
+  VALIDATION_STATE_VALID = 1;
+
+  // The MCP server definition is invalid.
+  // Check validation_message for details on what's wrong.
+  // The definition should be corrected before use.
+  VALIDATION_STATE_INVALID = 2;
+}
