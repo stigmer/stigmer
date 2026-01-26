@@ -47,20 +47,11 @@ import (
     "os"
     "github.com/stigmer/stigmer/sdk/go/stigmer"
     "github.com/stigmer/stigmer/sdk/go/agent"
-    "github.com/stigmer/stigmer/sdk/go/skill"
+    "github.com/stigmer/stigmer/sdk/go/skillref"
 )
 
 func main() {
     err := stigmer.Run(func(ctx *stigmer.Context) error {
-        // Load skill content from file
-        skillContent, _ := os.ReadFile("skills/coding.md")
-        
-        // Create a skill with struct-based args
-        codingSkill, _ := skill.New("coding-guidelines", &skill.SkillArgs{
-            MarkdownContent: string(skillContent),
-            Description:     "Coding best practices",
-        })
-        
         // Load instructions from file
         instructions, _ := os.ReadFile("instructions/reviewer.md")
         
@@ -70,8 +61,9 @@ func main() {
             Description:  "AI code reviewer",
         })
         
-        // Add skills using builder method
-        codeReviewer.AddSkill(codingSkill)
+        // Add skill references using builder method
+        // Skills are managed separately and referenced here
+        codeReviewer.AddSkillRef(skillref.Platform("coding-best-practices"))
         
         log.Printf("✅ Created agent: %s", codeReviewer.Name)
         return nil
@@ -184,23 +176,18 @@ skill, _ := skill.New("my-skill", &skill.SkillArgs{
 The SDK tracks dependencies automatically:
 
 ```go
-// Create skill
-codingSkill, _ := skill.New("coding", &skill.SkillArgs{
-    MarkdownContent: "# Coding Standards\n...",
-})
-
 // Create agent
 reviewer, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{
     Instructions: "Review code",
 })
 
-// Add skill (dependency tracked automatically)
-reviewer.AddSkill(codingSkill)
-// → Dependency: "agent:reviewer" → "skill:coding"
+// Add skill reference (dependency tracked automatically)
+reviewer.AddSkillRef(skillref.Platform("coding-standards"))
+// → Dependency: "agent:reviewer" → "skillref:coding-standards"
 
 // Inspect dependency graph
 deps := ctx.Dependencies()
-// deps["agent:reviewer"] = ["skill:coding"]
+// deps["agent:reviewer"] = ["skillref:coding-standards"]
 ```
 
 **Why This Matters**:
@@ -926,43 +913,29 @@ agent, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
 
 ### Adding Skills
 
-#### Inline Skills (Defined in Repository)
-
-```go
-// Load skill content from file
-skillContent, _ := os.ReadFile("skills/security.md")
-
-// Create skill with struct-based args
-securitySkill, _ := skill.New("security-guidelines", &skill.SkillArgs{
-    MarkdownContent: string(skillContent),
-    Description:     "Security review guidelines",
-})
-
-// Add to agent using builder method
-agent.AddSkill(securitySkill)
-```
+The SDK references skills - it doesn't create them inline. Skills are managed separately (via CLI or UI) and referenced here.
 
 #### Platform Skills (Shared)
 
 ```go
 // Reference platform-wide skill
-agent.AddSkill(skill.Platform("coding-best-practices"))
+agent.AddSkillRef(skillref.Platform("coding-best-practices"))
 ```
 
 #### Organization Skills (Private)
 
 ```go
 // Reference organization-private skill
-agent.AddSkill(skill.Organization("my-org", "internal-standards"))
+agent.AddSkillRef(skillref.Organization("my-org", "internal-standards"))
 ```
 
 #### Multiple Skills at Once
 
 ```go
-agent.AddSkills(
-    securitySkill,
-    skill.Platform("coding-best-practices"),
-    skill.Organization("my-org", "internal-standards"),
+agent.AddSkillRefs(
+    skillref.Platform("coding-best-practices"),
+    skillref.Platform("security-analysis"),
+    skillref.Organization("my-org", "internal-standards"),
 )
 ```
 
@@ -971,12 +944,13 @@ agent.AddSkills(
 #### Stdio Servers
 
 ```go
-githubMCP, _ := mcpserver.Stdio(
-    mcpserver.WithName("github"),
-    mcpserver.WithCommand("npx"),
-    mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-    mcpserver.WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
-)
+githubMCP, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+    Command: "npx",
+    Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+    EnvPlaceholders: map[string]string{
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+    },
+})
 
 agent.AddMCPServer(githubMCP)
 ```
@@ -984,12 +958,13 @@ agent.AddMCPServer(githubMCP)
 #### HTTP Servers
 
 ```go
-remoteMCP, _ := mcpserver.HTTP(
-    mcpserver.WithName("remote-mcp"),
-    mcpserver.WithURL("https://mcp.example.com/github"),
-    mcpserver.WithHeader("Authorization", "Bearer ${API_TOKEN}"),
-    mcpserver.WithTimeout(30),
-)
+remoteMCP, err := mcpserver.HTTP(ctx, "remote-mcp", &mcpserver.HTTPArgs{
+    Url: "https://mcp.example.com/github",
+    Headers: map[string]string{
+        "Authorization": "Bearer ${API_TOKEN}",
+    },
+    TimeoutSeconds: 30,
+})
 
 agent.AddMCPServer(remoteMCP)
 ```
@@ -997,34 +972,36 @@ agent.AddMCPServer(remoteMCP)
 #### Docker Servers
 
 ```go
-dockerMCP, _ := mcpserver.Docker(
-    mcpserver.WithName("custom-mcp"),
-    mcpserver.WithImage("ghcr.io/org/custom-mcp:latest"),
-    mcpserver.WithVolumeMount("/host/path", "/container/path", false),
-    mcpserver.WithPortMapping(8080, 80, "tcp"),
-)
+dockerMCP, err := mcpserver.Docker(ctx, "custom-mcp", &mcpserver.DockerArgs{
+    Image: "ghcr.io/org/custom-mcp:latest",
+    Volumes: []*types.VolumeMount{
+        {HostPath: "/host/path", ContainerPath: "/container/path", ReadOnly: false},
+    },
+    Ports: []*types.PortMapping{
+        {HostPort: 8080, ContainerPort: 80, Protocol: "tcp"},
+    },
+})
 
 agent.AddMCPServer(dockerMCP)
 ```
 
 ### Adding Sub-Agents
 
-#### Inline Sub-Agents
+Sub-agents are always inline (defined within the parent agent):
+
+#### Creating Inline Sub-Agents
 
 ```go
-agent.AddSubAgent(subagent.Inline(
-    subagent.WithName("code-analyzer"),
-    subagent.WithInstructions("Analyze code quality"),
-    subagent.WithMCPServer("github"),
-    subagent.WithSkill(skill.Platform("static-analysis")),
-))
-```
+analyzer, err := subagent.New(ctx, "code-analyzer", &subagent.SubAgentArgs{
+    Instructions: "Analyze code quality and provide detailed feedback",
+    Description:  "Specialized code analyzer",
+})
+// Add MCP servers and skill refs to sub-agent
+analyzer.AddMCPServerRef("github")
+analyzer.AddSkillRef(skillref.Platform("static-analysis"))
 
-#### Referenced Sub-Agents
-
-```go
-// Reference existing agent by ID
-agent.AddSubAgent(subagent.Reference("agent-instance-id"))
+// Add sub-agent to parent agent
+parentAgent.AddSubAgent(analyzer)
 ```
 
 ### Environment Variables
@@ -1032,11 +1009,10 @@ agent.AddSubAgent(subagent.Reference("agent-instance-id"))
 #### Secret Variables
 
 ```go
-apiKey, _ := environment.New(
-    environment.WithName("API_KEY"),
-    environment.WithSecret(true),
-    environment.WithDescription("API key for external service"),
-)
+apiKey, err := environment.New(ctx, "API_KEY", &environment.VariableArgs{
+    IsSecret:    true,
+    Description: "API key for external service",
+})
 
 agent.AddEnvironmentVariable(apiKey)
 ```
@@ -1044,48 +1020,49 @@ agent.AddEnvironmentVariable(apiKey)
 #### Configuration with Defaults
 
 ```go
-region, _ := environment.New(
-    environment.WithName("AWS_REGION"),
-    environment.WithDefaultValue("us-east-1"),
-    environment.WithDescription("AWS deployment region"),
-)
+region, err := environment.New(ctx, "AWS_REGION", &environment.VariableArgs{
+    DefaultValue: "us-east-1",
+    Description:  "AWS deployment region",
+})
 
 agent.AddEnvironmentVariable(region)
 ```
 
 ---
 
-## Skill SDK
+## Skill References
 
-### Creating Skills
+### Using Skill References
 
-Use struct-based args (Pulumi pattern) for skill creation:
+The SDK references skills - it doesn't create them inline. Skills are managed separately (via CLI or UI) and referenced in agents.
 
-#### From Markdown File
+#### Platform Skills
 
-```go
-// Load skill content from file
-content, _ := os.ReadFile("skills/coding.md")
-
-// Create skill with struct-based args
-skill, err := skill.New("coding-guidelines", &skill.SkillArgs{
-    MarkdownContent: string(content),
-    Description:     "Coding best practices",
-})
-```
-
-#### From Markdown String
+Reference skills available platform-wide:
 
 ```go
-skill, err := skill.New("security-checklist", &skill.SkillArgs{
-    MarkdownContent: "# Security Review\n\n- Check authentication\n- Validate inputs",
-    Description:     "Security review checklist",
-})
+import "github.com/stigmer/stigmer/sdk/go/skillref"
+
+// Reference platform skill by slug
+platformSkill := skillref.Platform("coding-best-practices")
+agent.AddSkillRef(platformSkill)
 ```
 
-**SkillArgs Fields**:
-- `MarkdownContent` - Skill content (required, 10-50,000 chars)
-- `Description` - Human-readable description (optional, max 500 chars)
+#### Organization Skills
+
+Reference skills private to your organization:
+
+```go
+// Reference org skill by org + slug
+orgSkill := skillref.Organization("my-org", "internal-standards")
+agent.AddSkillRef(orgSkill)
+```
+
+**SkillRef Fields**:
+- `Slug` - Skill identifier (required)
+- `Org` - Organization name (for org skills)
+- `Scope` - PLATFORM or ORGANIZATION (auto-set)
+- `Kind` - Always SKILL (auto-set)
 
 ---
 
@@ -1093,21 +1070,19 @@ skill, err := skill.New("security-checklist", &skill.SkillArgs{
 
 ### 1. File-Based Content
 
-**✅ Recommended**: Load instructions and skills from files
+**✅ Recommended**: Load instructions from files
 
 ```go
-// Load content from files
+// Load instructions from file
 instructions, _ := os.ReadFile("instructions/reviewer.md")
-skillContent, _ := os.ReadFile("skills/guidelines.md")
 
-// Create resources with struct-based args
+// Create agent with struct-based args
 agent, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{
     Instructions: string(instructions),
 })
 
-skill, _ := skill.New("guidelines", &skill.SkillArgs{
-    MarkdownContent: string(skillContent),
-})
+// Skills are referenced, not created inline
+agent.AddSkillRef(skillref.Platform("coding-guidelines"))
 ```
 
 **Why**:
@@ -1191,12 +1166,11 @@ my-repo/
 ├── instructions/
 │   ├── code-reviewer.md
 │   └── security-checker.md
-├── skills/
-│   ├── coding-guidelines.md
-│   └── security-checklist.md
 └── workflows/
     └── ci-pipeline.go
 ```
+
+**Note**: Skills are managed separately (via CLI or UI) and referenced by slug. They don't live in your agent repository.
 
 ### 6. Use Context for Configuration
 

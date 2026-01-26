@@ -1,7 +1,6 @@
 package workflow
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
@@ -17,6 +16,31 @@ type Context interface {
 	RegisterWorkflow(*Workflow)
 }
 
+// WorkflowArgs contains the configuration arguments for creating a Workflow.
+//
+// This struct follows the Pulumi Args pattern for resource configuration.
+// Required fields: Namespace
+// Optional fields: Version (defaults to "0.1.0"), Description, Org, Slug
+type WorkflowArgs struct {
+	// Namespace is the workflow namespace for organization/categorization.
+	// This is a required field.
+	Namespace string
+
+	// Version is the workflow version (semver format, e.g., "1.0.0").
+	// Defaults to "0.1.0" if not provided.
+	Version string
+
+	// Description is a human-readable description for UI and marketplace display.
+	Description string
+
+	// Org is the organization that owns this workflow (optional).
+	Org string
+
+	// Slug is a custom URL-friendly identifier.
+	// If not provided, auto-generated from the name.
+	Slug string
+}
+
 // Workflow represents a workflow orchestration definition.
 //
 // Workflows are orchestration definitions that execute a series of tasks sequentially
@@ -26,12 +50,10 @@ type Context interface {
 // Use workflow.New() with stigmer.Run() to create a workflow:
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
-//	    wf, err := workflow.New(ctx,
-//	        workflow.WithNamespace("my-org"),
-//	        workflow.WithName("data-pipeline"),
-//	        workflow.WithVersion("1.0.0"),
-//	        workflow.WithDescription("Process data from external API"),
-//	    )
+//	    wf, err := workflow.New(ctx, "data-processing/data-pipeline", &workflow.WorkflowArgs{
+//	        Version:     "1.0.0",
+//	        Description: "Process data from external API",
+//	    })
 //	    return err
 //	})
 type Workflow struct {
@@ -60,57 +82,74 @@ type Workflow struct {
 	mu sync.Mutex
 }
 
-// Option is a functional option for configuring a Workflow.
-type Option func(*Workflow) error
-
-// New creates a new Workflow with a typed context for variable management.
+// New creates a new Workflow with struct-based args (Pulumi pattern).
 //
 // The workflow is automatically registered with the provided context for synthesis.
+// Follows Pulumi's Args pattern: name as parameter, args struct for configuration.
 //
-// Required options:
-//   - WithNamespace: workflow namespace
-//   - WithName: workflow name (or WithSlug for custom slug)
+// The name parameter can be either:
+//   - Simple name: "data-pipeline" (namespace must be provided in args)
+//   - Namespaced name: "data-processing/data-pipeline" (namespace parsed from name)
 //
-// Optional (with defaults):
-//   - WithVersion: workflow version (defaults to "0.1.0" if not provided)
-//   - WithDescription: human-readable description
-//   - WithOrg: organization identifier
-//   - WithSlug: custom slug (overrides auto-generation from name)
+// Required:
+//   - name: workflow name (or namespace/name format)
+//   - args.Namespace: workflow namespace (if not in name)
+//
+// Optional args fields:
+//   - Version: workflow version (defaults to "0.1.0")
+//   - Description: human-readable description
+//   - Org: organization identifier
+//   - Slug: custom slug (overrides auto-generation from name)
 //
 // Example:
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
-//	    wf, err := workflow.New(ctx,
-//	        workflow.WithNamespace("data-processing"),
-//	        workflow.WithName("daily-sync"),
-//	        workflow.WithVersion("1.0.0"),
-//	    )
+//	    wf, err := workflow.New(ctx, "data-processing/daily-sync", &workflow.WorkflowArgs{
+//	        Version:     "1.0.0",
+//	        Description: "Sync data daily",
+//	    })
 //	    return err
 //	})
 //
-// Example with custom slug:
+// Example with separate namespace:
 //
-//	wf, err := workflow.New(ctx,
-//	    workflow.WithNamespace("data-processing"),
-//	    workflow.WithName("Daily Data Sync"),
-//	    workflow.WithSlug("daily-sync"),  // Custom slug
-//	    workflow.WithVersion("1.0.0"),
-//	)
-func New(ctx Context, opts ...Option) (*Workflow, error) {
+//	wf, err := workflow.New(ctx, "daily-sync", &workflow.WorkflowArgs{
+//	    Namespace:   "data-processing",
+//	    Version:     "1.0.0",
+//	    Description: "Sync data daily",
+//	})
+//
+// Example with nil args (uses defaults):
+//
+//	wf, err := workflow.New(ctx, "data-processing/daily-sync", nil)
+func New(ctx Context, name string, args *WorkflowArgs) (*Workflow, error) {
+	// Nil-safety: if args is nil, create empty args
+	if args == nil {
+		args = &WorkflowArgs{}
+	}
+
+	// Parse namespace/name from the name parameter
+	namespace, workflowName := parseName(name)
+
+	// Use namespace from args if not in name
+	if namespace == "" {
+		namespace = args.Namespace
+	}
+
 	w := &Workflow{
 		Document: Document{
-			DSL: "1.0.0", // Default DSL version
+			DSL:         "1.0.0", // Default DSL version
+			Namespace:   namespace,
+			Name:        workflowName,
+			Version:     args.Version,
+			Description: args.Description,
 		},
+		Description:          args.Description,
+		Org:                  args.Org,
+		Slug:                 args.Slug,
 		Tasks:                []*Task{},
 		EnvironmentVariables: []environment.Variable{},
 		ctx:                  ctx,
-	}
-
-	// Apply all options
-	for _, opt := range opts {
-		if err := opt(w); err != nil {
-			return nil, err
-		}
 	}
 
 	// Auto-generate slug from name if not provided
@@ -148,176 +187,15 @@ func New(ctx Context, opts ...Option) (*Workflow, error) {
 	return w, nil
 }
 
-// WithNamespace sets the workflow namespace.
-//
-// The namespace is used for organization/categorization.
-// This is a required field.
-//
-// Example:
-//
-//	workflow.WithNamespace("data-processing")
-func WithNamespace(namespace string) Option {
-	return func(w *Workflow) error {
-		w.Document.Namespace = namespace
-		return nil
-	}
-}
-
-// WithName sets the workflow name.
-//
-// The name must be unique within the namespace.
-// This is a required field.
-//
-// Example:
-//
-//	workflow.WithName("daily-sync")
-func WithName(name string) Option {
-	return func(w *Workflow) error {
-		w.Document.Name = name
-		return nil
-	}
-}
-
-// WithVersion sets the workflow version.
-//
-// The version must be valid semver (e.g., "1.0.0").
-// This is a required field.
-//
-// Example:
-//
-//	workflow.WithVersion("1.0.0")
-func WithVersion(version string) Option {
-	return func(w *Workflow) error {
-		w.Document.Version = version
-		return nil
-	}
-}
-
-// WithDescription sets the workflow description.
-//
-// Description is displayed in UI and marketplace.
-// This is an optional field.
-//
-// Example:
-//
-//	workflow.WithDescription("Process data from external API")
-func WithDescription(description string) Option {
-	return func(w *Workflow) error {
-		w.Description = description
-		w.Document.Description = description
-		return nil
-	}
-}
-
-// WithOrg sets the organization that owns this workflow.
-//
-// This is an optional field.
-//
-// Accepts either a string or a StringRef from context.
-//
-// Examples:
-//
-//	workflow.WithOrg("my-org")                                    // Legacy string
-//	workflow.WithOrg(ctx.SetString("org", "my-org"))              // Typed context
-func WithOrg(org interface{}) Option {
-	return func(w *Workflow) error {
-		// Convert to string using the helper
-		switch v := org.(type) {
-		case string:
-			w.Org = v
-		case Ref:
-			// For synthesis, we need the actual value
-			// For StringRef, we can extract the value
-			if stringVal, ok := v.(interface{ Value() string }); ok {
-				w.Org = stringVal.Value()
-			} else {
-				// Fallback: use expression (though this is uncommon for org)
-				w.Org = v.Expression()
-			}
-		default:
-			w.Org = fmt.Sprintf("%v", org)
+// parseName parses a name that may contain namespace (namespace/name format).
+// Returns (namespace, name). If no namespace in string, returns ("", name).
+func parseName(name string) (string, string) {
+	for i := 0; i < len(name); i++ {
+		if name[i] == '/' {
+			return name[:i], name[i+1:]
 		}
-		return nil
 	}
-}
-
-// WithTask adds a task to the workflow.
-//
-// Tasks are executed in the order they are added.
-//
-// Example:
-//
-//	workflow.WithTask(workflow.SetTask("init", workflow.SetVar("x", "1")))
-func WithTask(task *Task) Option {
-	return func(w *Workflow) error {
-		w.Tasks = append(w.Tasks, task)
-		return nil
-	}
-}
-
-// WithTasks adds multiple tasks to the workflow.
-//
-// Example:
-//
-//	workflow.WithTasks(
-//	    workflow.Set("init", workflow.SetVar("x", "1")),
-//	    workflow.HttpGet("fetch", "https://api.example.com"),
-//	)
-func WithTasks(tasks ...*Task) Option {
-	return func(w *Workflow) error {
-		w.Tasks = append(w.Tasks, tasks...)
-		return nil
-	}
-}
-
-// WithEnvironmentVariable adds an environment variable to the workflow.
-//
-// Environment variables define what external configuration the workflow needs to run.
-//
-// Example:
-//
-//	apiToken, _ := environment.New(
-//	    environment.WithName("API_TOKEN"),
-//	    environment.WithSecret(true),
-//	)
-//	workflow.WithEnvironmentVariable(apiToken)
-func WithEnvironmentVariable(variable environment.Variable) Option {
-	return func(w *Workflow) error {
-		w.EnvironmentVariables = append(w.EnvironmentVariables, variable)
-		return nil
-	}
-}
-
-// WithEnvironmentVariables adds multiple environment variables to the workflow.
-//
-// Example:
-//
-//	apiToken, _ := environment.New(environment.WithName("API_TOKEN"), environment.WithSecret(true))
-//	apiURL, _ := environment.New(environment.WithName("API_URL"))
-//	workflow.WithEnvironmentVariables(apiToken, apiURL)
-func WithEnvironmentVariables(variables ...environment.Variable) Option {
-	return func(w *Workflow) error {
-		w.EnvironmentVariables = append(w.EnvironmentVariables, variables...)
-		return nil
-	}
-}
-
-// WithSlug sets a custom slug for the workflow.
-//
-// By default, slugs are auto-generated from the name by converting to lowercase
-// and replacing spaces with hyphens. Use this option to override the auto-generation.
-//
-// The slug must contain only lowercase letters, numbers, and hyphens.
-// It cannot start or end with a hyphen.
-//
-// Example:
-//
-//	workflow.WithSlug("my-custom-workflow")
-func WithSlug(slug string) Option {
-	return func(w *Workflow) error {
-		w.Slug = slug
-		return nil
-	}
+	return "", name
 }
 
 // AddTask adds a task to the workflow after creation.
@@ -327,8 +205,8 @@ func WithSlug(slug string) Option {
 //
 // Example:
 //
-//	wf, _ := workflow.New(workflow.WithNamespace("ns"), workflow.WithName("wf"), workflow.WithVersion("1.0.0"))
-//	wf.AddTask(workflow.Set("init", workflow.SetVar("x", "1")))
+//	wf, _ := workflow.New(ctx, "ns/my-workflow", &workflow.WorkflowArgs{Version: "1.0.0"})
+//	wf.AddTask(workflow.Set("init", &workflow.SetArgs{...}))
 func (w *Workflow) AddTask(task *Task) *Workflow {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -358,8 +236,8 @@ func (w *Workflow) AddTasks(tasks ...*Task) *Workflow {
 //
 // Example:
 //
-//	wf, _ := workflow.New(...)
-//	apiToken, _ := environment.New(environment.WithName("API_TOKEN"))
+//	wf, _ := workflow.New(ctx, "ns/my-workflow", nil)
+//	apiToken, _ := environment.New(ctx, "API_TOKEN", &environment.VariableArgs{IsSecret: true})
 //	wf.AddEnvironmentVariable(apiToken)
 func (w *Workflow) AddEnvironmentVariable(variable environment.Variable) *Workflow {
 	w.mu.Lock()

@@ -1,72 +1,207 @@
-# Migration Guide
+# Migration Guide - Struct Args API
 
-This guide helps you migrate from the proto-coupled SDK design to the new proto-agnostic architecture.
+This guide helps you migrate from the old functional options pattern to the new struct-args API (Pulumi-aligned pattern).
 
 ---
 
 ## What Changed?
 
-### Proto-Agnostic Architecture
+### Struct-Args Pattern (Pulumi-Aligned)
 
-**Before (Proto-Coupled):**
-```
-SDK exports ToProto() methods → User calls ToProto() → Platform
+**Before (Functional Options):**
+```go
+// Old pattern - functional options
+agent, err := agent.New(ctx,
+    agent.WithName("my-agent"),
+    agent.WithInstructions("..."),
+)
+mcpServer, err := mcpserver.Stdio(
+    mcpserver.WithName("github"),
+    mcpserver.WithCommand("npx"),
+)
 ```
 
-**After (Proto-Agnostic):**
-```
-SDK provides pure Go API → CLI converts to proto → Platform
+**After (Struct Args):**
+```go
+// New pattern - struct-based args
+agent, err := agent.New(ctx, "my-agent", &agent.AgentArgs{
+    Instructions: "...",
+})
+mcpServer, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+    Command: "npx",
+})
 ```
 
 **Key Changes:**
-- ✅ SDK has no proto dependencies
-- ✅ No `ToProto()` methods in SDK
-- ✅ CLI handles all proto conversion
-- ✅ Users write pure Go code
+- ✅ Struct-based args instead of functional options
+- ✅ Name is a positional parameter, not an option
+- ✅ Context (ctx) is always first parameter
+- ✅ Better IDE autocomplete and type safety
+- ✅ Consistent with Pulumi, Terraform, AWS SDK patterns
 
-### New Features
+### Skill References (Not Inline Creation)
 
-1. **File-Based Content** - Load instructions and skills from files
-2. **Inline Skills** - Define skills directly in your repository
-3. **Builder Methods** - Add components after agent creation
-4. **Proto-Agnostic** - No proto types in user code
+**Before:**
+```go
+// Old - create skills inline
+skill, err := skill.New("my-skill", &skill.SkillArgs{
+    MarkdownContent: "...",
+})
+agent.AddSkill(skill)
+```
+
+**After:**
+```go
+// New - reference existing skills
+import "github.com/stigmer/stigmer/sdk/go/skillref"
+
+agent.AddSkillRef(skillref.Platform("my-skill"))
+```
+
+**Key Changes:**
+- ✅ Skills are managed separately (via CLI or UI)
+- ✅ SDK references skills, doesn't create them
+- ✅ New `skillref` package for references
+- ✅ Methods renamed: `AddSkill()` → `AddSkillRef()`
 
 ---
 
 ## Migration Steps
 
-### Step 1: Remove ToProto() Calls
+### Step 1: Update Agent Creation
 
 **Before:**
 ```go
-agent, _ := agent.New(
+agent, err := agent.New(ctx,
     agent.WithName("my-agent"),
-    agent.WithInstructions("Do something"),
+    agent.WithInstructions("Do something important"),
+    agent.WithDescription("My agent"),
 )
-
-// ❌ No longer available
-proto := agent.ToProto()
-client.CreateAgent(proto)
 ```
 
 **After:**
 ```go
-agent, _ := agent.New(
-    agent.WithName("my-agent"),
-    agent.WithInstructions("Do something"),
+agent, err := agent.New(ctx, "my-agent", &agent.AgentArgs{
+    Instructions: "Do something important",
+    Description:  "My agent",
+})
+```
+
+**Changes:**
+- ✅ Name is now a positional parameter (second, after ctx)
+- ✅ Instructions, Description, IconUrl are fields in AgentArgs struct
+- ✅ No more `With*()` functions for these fields
+
+### Step 2: Update MCP Server Creation
+
+**Before:**
+```go
+server, err := mcpserver.Stdio(
+    mcpserver.WithName("github"),
+    mcpserver.WithCommand("npx"),
+    mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
+    mcpserver.WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
 )
-
-// ✅ No proto conversion needed
-// Just define the agent - CLI handles deployment
 ```
 
-**Deploy with CLI:**
-```bash
-# CLI converts to proto and deploys
-stigmer deploy agent.go
+**After:**
+```go
+server, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+    Command: "npx",
+    Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+    EnvPlaceholders: map[string]string{
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+    },
+})
 ```
 
-### Step 2: Move Instructions to Files
+**Changes:**
+- ✅ Add ctx as first parameter
+- ✅ Name is now a positional parameter (second, after ctx)
+- ✅ Args is a slice, not variadic With functions
+- ✅ EnvPlaceholders is a map, not multiple WithEnvPlaceholder() calls
+
+### Step 3: Update Environment Variables
+
+**Before:**
+```go
+apiKey, err := environment.New(
+    environment.WithName("API_KEY"),
+    environment.WithSecret(true),
+    environment.WithDescription("API key"),
+)
+```
+
+**After:**
+```go
+apiKey, err := environment.New(ctx, "API_KEY", &environment.VariableArgs{
+    IsSecret:    true,
+    Description: "API key",
+})
+```
+
+**Changes:**
+- ✅ Add ctx as first parameter
+- ✅ Name is now a positional parameter (second, after ctx)
+- ✅ `WithSecret()` → `IsSecret` field
+- ✅ `WithDefaultValue()` → `DefaultValue` field
+
+### Step 4: Replace Skill Creation with Skill References
+
+**Before:**
+```go
+import "github.com/stigmer/stigmer/sdk/go/skill"
+
+// Create inline skill
+mySkill, err := skill.New("my-skill", &skill.SkillArgs{
+    MarkdownContent: "# My Skill\n...",
+    Description:     "My skill",
+})
+
+// Add to agent
+agent.AddSkill(mySkill)
+```
+
+**After:**
+```go
+import "github.com/stigmer/stigmer/sdk/go/skillref"
+
+// Reference existing skill
+agent.AddSkillRef(skillref.Platform("my-skill"))
+// Or for org skills:
+agent.AddSkillRef(skillref.Organization("my-org", "my-skill"))
+```
+
+**Changes:**
+- ✅ Import `skillref` instead of `skill`
+- ✅ Skills are referenced, not created inline
+- ✅ Use `AddSkillRef()` instead of `AddSkill()`
+- ✅ Skills must be created separately via CLI or UI
+
+### Step 5: Update Sub-Agent Creation
+
+**Before:**
+```go
+sub, err := subagent.Inline(
+    subagent.WithName("analyzer"),
+    subagent.WithInstructions("Analyze code"),
+)
+```
+
+**After:**
+```go
+sub, err := subagent.New(ctx, "analyzer", &subagent.SubAgentArgs{
+    Instructions: "Analyze code",
+})
+```
+
+**Changes:**
+- ✅ `subagent.Inline()` → `subagent.New()` (sub-agents are always inline now)
+- ✅ Add ctx as first parameter
+- ✅ Name is now a positional parameter
+- ✅ `WithInstructions()` → `Instructions` field
+
+### Step 6: Move Instructions to Files
 
 **Before:**
 ```go
@@ -103,40 +238,28 @@ agent.New(
 
 **Before:**
 ```go
-// Can only reference platform skills
-agent.New(
+// Old functional options pattern
+agent, _ := agent.New(ctx,
     agent.WithName("reviewer"),
-    agent.WithSkill(skill.Platform("coding-standards")),
+    agent.WithInstructions("Review code"),
 )
+agent.AddSkill(skill.Platform("coding-standards"))
 ```
 
 **After:**
 ```go
-// Option 1: Reference platform skills (same as before)
-agent.New(
-    agent.WithName("reviewer"),
-    agent.WithSkill(skill.Platform("coding-standards")),
-)
-
-// Option 2: Create inline skills in repository
-securitySkill, _ := skill.New(
-    skill.WithName("security-guidelines"),
-    skill.WithDescription("Security review guidelines"),
-    skill.WithMarkdownFromFile("skills/security.md"),
-)
-
-agent.New(
-    agent.WithName("reviewer"),
-    agent.WithSkill(*securitySkill), // Inline skill
-    agent.WithSkill(skill.Platform("coding-standards")), // Platform skill
-)
+// New struct-args pattern
+agent, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{
+    Instructions: "Review code",
+})
+agent.AddSkillRef(skillref.Platform("coding-standards"))
 ```
 
 **Benefits:**
-- ✅ Define skills in your repository
-- ✅ Version controlled with agent code
-- ✅ Easy to share across agents
-- ✅ No need to pre-create on platform
+- ✅ Cleaner, more readable code
+- ✅ Better IDE autocomplete
+- ✅ Consistent with modern Go patterns (Pulumi, Terraform, AWS SDK)
+- ✅ Skills are centrally managed, not duplicated in repos
 
 ### Step 4: Use Builder Methods
 
@@ -285,181 +408,151 @@ func TestAgentToProto(t *testing.T) {
 
 ### Pattern 1: Simple Agent
 
-**Before:**
+**Before (Functional Options):**
 ```go
 package main
 
 import (
-    "github.com/leftbin/stigmer-sdk/go/agent"
-    "github.com/leftbin/stigmer-sdk/go/skill"
+    "github.com/stigmer/stigmer/sdk/go/stigmer"
+    "github.com/stigmer/stigmer/sdk/go/agent"
+    "github.com/stigmer/stigmer/sdk/go/skill"
 )
 
 func main() {
-    myAgent, _ := agent.New(
-        agent.WithName("code-reviewer"),
-        agent.WithInstructions("Review code for quality and best practices"),
-        agent.WithSkill(skill.Platform("coding-standards")),
-    )
-    
-    proto := myAgent.ToProto()
-    // Deploy proto to platform...
+    stigmer.Run(func(ctx *stigmer.Context) error {
+        myAgent, _ := agent.New(ctx,
+            agent.WithName("code-reviewer"),
+            agent.WithInstructions("Review code for quality and best practices"),
+        )
+        myAgent.AddSkill(skill.Platform("coding-standards"))
+        return nil
+    })
 }
 ```
 
-**After:**
+**After (Struct Args):**
 ```go
 package main
 
 import (
-    "github.com/leftbin/stigmer-sdk/go/agent"
-    "github.com/leftbin/stigmer-sdk/go/skill"
+    "os"
+    "github.com/stigmer/stigmer/sdk/go/stigmer"
+    "github.com/stigmer/stigmer/sdk/go/agent"
+    "github.com/stigmer/stigmer/sdk/go/skillref"
 )
 
 func main() {
-    myAgent, _ := agent.New(
-        agent.WithName("code-reviewer"),
-        agent.WithInstructionsFromFile("instructions/reviewer.md"),
-    )
-    
-    myAgent.AddSkill(skill.Platform("coding-standards"))
-    
-    // No proto conversion needed
-    // Deploy with: stigmer deploy agent.go
+    stigmer.Run(func(ctx *stigmer.Context) error {
+        instructions, _ := os.ReadFile("instructions/reviewer.md")
+        
+        myAgent, _ := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+            Instructions: string(instructions),
+        })
+        myAgent.AddSkillRef(skillref.Platform("coding-standards"))
+        return nil
+    })
 }
 ```
 
-### Pattern 2: Agent with Inline Skills
+### Pattern 2: Agent with Multiple Skill References
 
-**Before:**
+**Before (Functional Options):**
 ```go
-// Not possible - could only reference platform skills
-```
-
-**After:**
-```go
-package main
-
-import (
-    "github.com/leftbin/stigmer-sdk/go/agent"
-    "github.com/leftbin/stigmer-sdk/go/skill"
+myAgent, _ := agent.New(ctx,
+    agent.WithName("security-reviewer"),
+    agent.WithInstructions("Review code for security"),
 )
+myAgent.AddSkill(skill.Platform("security-guidelines"))
+myAgent.AddSkill(skill.Platform("coding-standards"))
+```
 
-func main() {
-    // Create inline skill
-    securitySkill, _ := skill.New(
-        skill.WithName("security-guidelines"),
-        skill.WithDescription("Custom security guidelines"),
-        skill.WithMarkdownFromFile("skills/security.md"),
-    )
-    
-    // Create agent
-    myAgent, _ := agent.New(
-        agent.WithName("security-reviewer"),
-        agent.WithInstructionsFromFile("instructions/reviewer.md"),
-    )
-    
-    // Add inline and platform skills
-    myAgent.
-        AddSkill(*securitySkill).
-        AddSkill(skill.Platform("coding-standards"))
-    
-    // Deploy with: stigmer deploy agent.go
-}
+**After (Struct Args):**
+```go
+myAgent, _ := agent.New(ctx, "security-reviewer", &agent.AgentArgs{
+    Instructions: "Review code for security",
+})
+myAgent.AddSkillRefs(
+    skillref.Platform("security-guidelines"),
+    skillref.Platform("coding-standards"),
+    skillref.Organization("my-org", "internal-standards"),
+)
 ```
 
 ### Pattern 3: Complex Agent with Everything
 
-**Before:**
+**Before (Functional Options):**
 ```go
-package main
-
-import (
-    "github.com/leftbin/stigmer-sdk/go/agent"
-    "github.com/leftbin/stigmer-sdk/go/skill"
-    "github.com/leftbin/stigmer-sdk/go/mcpserver"
-    "github.com/leftbin/stigmer-sdk/go/environment"
-    "github.com/leftbin/stigmer-sdk/go/subagent"
-)
-
-func main() {
-    skill1 := skill.Platform("skill-1")
-    server1, _ := mcpserver.Stdio(...)
-    env1, _ := environment.New(...)
-    sub1, _ := subagent.Inline(...)
-    
-    myAgent, _ := agent.New(
-        agent.WithName("complex-agent"),
-        agent.WithInstructions("...very long instructions..."),
-        agent.WithSkill(skill1),
-        agent.WithMCPServer(server1),
-        agent.WithEnvironmentVariable(env1),
-        agent.WithSubAgent(sub1),
-    )
-    
-    proto := myAgent.ToProto()
-    // Deploy...
-}
-```
-
-**After:**
-```go
-package main
-
-import (
-    "github.com/leftbin/stigmer-sdk/go/agent"
-    "github.com/leftbin/stigmer-sdk/go/skill"
-    "github.com/leftbin/stigmer-sdk/go/mcpserver"
-    "github.com/leftbin/stigmer-sdk/go/environment"
-    "github.com/leftbin/stigmer-sdk/go/subagent"
-)
-
-func main() {
-    // Create inline skill
-    customSkill, _ := skill.New(
-        skill.WithName("custom-skill"),
-        skill.WithDescription("Custom knowledge"),
-        skill.WithMarkdownFromFile("skills/custom.md"),
-    )
-    
-    // Create MCP server
+stigmer.Run(func(ctx *stigmer.Context) error {
     server, _ := mcpserver.Stdio(
         mcpserver.WithName("github"),
         mcpserver.WithCommand("npx"),
         mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-        mcpserver.WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
     )
     
-    // Create environment variable
-    token, _ := environment.New(
+    env, _ := environment.New(
         environment.WithName("GITHUB_TOKEN"),
         environment.WithSecret(true),
-        environment.WithDescription("GitHub API token"),
     )
     
-    // Create sub-agent with instructions from file
-    specialist, _ := subagent.Inline(
-        subagent.WithName("security-specialist"),
-        subagent.WithInstructionsFromFile("instructions/security-specialist.md"),
+    sub, _ := subagent.Inline(
+        subagent.WithName("analyzer"),
+        subagent.WithInstructions("Analyze code"),
     )
     
-    // Create main agent
-    myAgent, _ := agent.New(
+    myAgent, _ := agent.New(ctx,
         agent.WithName("complex-agent"),
-        agent.WithInstructionsFromFile("instructions/complex-agent.md"),
-        agent.WithDescription("Complex agent with all features"),
+        agent.WithInstructions("..."),
     )
+    myAgent.AddMCPServer(server)
+    myAgent.AddEnvironmentVariable(env)
+    myAgent.AddSubAgent(sub)
+    
+    return nil
+})
+```
+
+**After (Struct Args):**
+```go
+stigmer.Run(func(ctx *stigmer.Context) error {
+    // Load instructions from file
+    instructions, _ := os.ReadFile("instructions/complex-agent.md")
+    
+    // Create MCP server with struct-args
+    server, _ := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+        Command: "npx",
+        Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+        EnvPlaceholders: map[string]string{
+            "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+        },
+    })
+    
+    // Create environment variable with struct-args
+    env, _ := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
+        IsSecret:    true,
+        Description: "GitHub API token",
+    })
+    
+    // Create sub-agent with struct-args
+    sub, _ := subagent.New(ctx, "analyzer", &subagent.SubAgentArgs{
+        Instructions: "Analyze code quality",
+        Description:  "Code analyzer sub-agent",
+    })
+    
+    // Create main agent with struct-args
+    myAgent, _ := agent.New(ctx, "complex-agent", &agent.AgentArgs{
+        Instructions: string(instructions),
+        Description:  "Complex agent with all features",
+    })
     
     // Build agent incrementally
     myAgent.
-        AddSkill(*customSkill).
-        AddSkill(skill.Platform("coding-standards")).
+        AddSkillRef(skillref.Platform("coding-standards")).
         AddMCPServer(server).
-        AddEnvironmentVariable(token).
-        AddSubAgent(specialist)
+        AddEnvironmentVariable(env).
+        AddSubAgent(sub)
     
-    // No proto conversion needed
-    // Deploy with: stigmer deploy agent.go
-}
+    return nil
+})
 ```
 
 ---

@@ -34,31 +34,29 @@ func main() {
 		apiBase := ctx.SetString("apiBase", "https://api.github.com")
 		orgName := ctx.SetString("org", "my-org")
 
-		// Create environment variable for API token
-		apiToken, err := environment.New(
-			environment.WithName("API_TOKEN"),
-			environment.WithSecret(true),
-			environment.WithDescription("Authentication token for the API"),
-		)
+		// Create environment variable for API token using struct-args pattern
+		apiToken, err := environment.New(ctx, "API_TOKEN", &environment.VariableArgs{
+			IsSecret:    true,
+			Description: "Authentication token for the API",
+		})
 		if err != nil {
 			return err
 		}
 
-		// Create workflow with context
-		wf, err := workflow.New(ctx,
-			// Required metadata
-			workflow.WithNamespace("data-processing"),
-			workflow.WithName("basic-data-fetch"),
-
-			// Optional fields
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Fetch pull request data from GitHub API using Pulumi-aligned patterns"),
-			workflow.WithOrg(orgName), // Use context config
-			workflow.WithEnvironmentVariable(apiToken),
-		)
+		// Create workflow using struct-args pattern
+		// Name format: "namespace/name" (e.g., "data-processing/basic-data-fetch")
+		wf, err := workflow.New(ctx, "data-processing/basic-data-fetch", &workflow.WorkflowArgs{
+			Namespace:   "data-processing",
+			Version:     "1.0.0",
+			Description: "Fetch pull request data from GitHub API using Pulumi-aligned patterns",
+			Org:         orgName.Value(),
+		})
 		if err != nil {
 			return err
 		}
+
+		// Add environment variable using builder method
+		wf.AddEnvironmentVariable(*apiToken)
 
 		// Task 1: Fetch pull request from GitHub API (clean, one-liner!)
 		// No ExportAll() needed - outputs are always available

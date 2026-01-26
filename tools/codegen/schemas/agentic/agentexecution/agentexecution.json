@@ -1,0 +1,80 @@
+{
+  "name": "AgentExecutionSpec",
+  "kind": "AGENT_EXECUTION_SPEC",
+  "description": "AgentExecutionSpec contains only user-provided inputs for triggering an execution.\n All execution results and state live in AgentExecutionStatus (in api.proto).",
+  "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec",
+  "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/spec.proto",
+  "fields": [
+    {
+      "name": "SessionId",
+      "jsonName": "sessionId",
+      "protoField": "session_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Session ID this execution belongs to (optional).\n If not provided, agent_id must be specified - a session will be auto-created\n using the agent's default instance.\n Either session_id or agent_id must be provided (enforced in handler).",
+      "required": false
+    },
+    {
+      "name": "AgentId",
+      "jsonName": "agentId",
+      "protoField": "agent_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Agent ID (optional).\n If session_id is not provided, agent_id must be specified.\n When provided without session_id, a new session is auto-created using\n the agent's default instance ID.\n Either session_id or agent_id must be provided (enforced in handler).",
+      "required": false
+    },
+    {
+      "name": "Message",
+      "jsonName": "message",
+      "protoField": "message",
+      "type": {
+        "kind": "string"
+      },
+      "description": "User input message that triggers this execution.\n Each execution represents one user message and the agent's response.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "ExecutionConfig",
+      "jsonName": "executionConfig",
+      "protoField": "execution_config",
+      "type": {
+        "kind": "message",
+        "messageType": "ExecutionConfig"
+      },
+      "description": "Optional execution-time configuration overrides.\n Example: Specify the model to use for this execution.",
+      "required": false
+    },
+    {
+      "name": "RuntimeEnv",
+      "jsonName": "runtimeEnv",
+      "protoField": "runtime_env",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "ExecutionValue"
+        }
+      },
+      "description": "Runtime environment variables and secrets (execution-scoped).\n These values are only available for this specific execution.\n Use case: B2B integrations where secrets are injected at runtime (e.g., Plant \u0026 Cloud).\n These values are stored in ExecutionContext and deleted when execution completes.\n Merge priority: Agent defaults \u003c Environment \u003c runtime_env (highest)",
+      "required": false
+    },
+    {
+      "name": "CallbackToken",
+      "jsonName": "callbackToken",
+      "protoField": "callback_token",
+      "type": {
+        "kind": "bytes"
+      },
+      "description": "Temporal task token for async activity completion (optional).\n\n **Purpose**: Enables async activity completion pattern where the caller\n (typically a Zigflow workflow activity) waits for actual agent completion\n without blocking worker threads.\n\n **Flow**:\n 1. Caller (Go Temporal activity) extracts its task token\n 2. Passes token in this field when creating AgentExecution\n 3. Returns activity.ErrResultPending (activity paused, thread released)\n 4. Agent workflow completes (minutes/hours later)\n 5. Agent workflow calls ActivityCompletionClient.complete(token, result)\n 6. Temporal resumes the paused activity with the result\n\n **Benefits**:\n - Correctness: Caller waits for actual completion, not just ACK\n - Scalability: Worker threads not blocked during long-running execution\n - Resilience: Token is durable in Temporal; survives restarts\n - Decoupling: Caller doesn't poll or manage agent lifecycle\n\n **When Empty**:\n - Empty/null = fire-and-forget or direct API call (backward compatible)\n - Agent execution proceeds normally, no callback performed\n - Use case: CLI commands, API requests, non-workflow triggers\n\n **When Provided**:\n - Agent workflow MUST complete the external activity using this token\n - Both success and failure paths must call completion\n - Token uniquely identifies the external activity execution\n\n **Token Format**:\n - Opaque binary blob from Temporal SDK (typically 100-200 bytes)\n - Contains: namespace, workflow ID, run ID, activity ID, attempt\n - DO NOT parse or modify - treat as opaque handle\n\n **Security**:\n - Token grants ability to complete the activity (bearer token)\n - Should only be passed through trusted internal services\n - Logged as Base64-encoded string (truncated for security)\n\n **Timeout**:\n - Caller should set StartToCloseTimeout (e.g., 24 hours)\n - If token callback never arrives, activity times out\n - Prevents infinite hangs if agent workflow crashes\n\n **Observability**:\n - Token is logged at creation time (Base64, first 20 chars)\n - Activity appears as \"Running\" in Temporal UI until completed\n - Both caller workflow and agent workflow visible in Temporal\n\n **Example Usage (Go)**:\n ```go\n // In Zigflow workflow activity\n func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) {\n     // Extract task token\n     taskToken := activity.GetInfo(ctx).TaskToken\n\n     // Create agent execution with token\n     execution := \u0026AgentExecution{\n         Spec: \u0026AgentExecutionSpec{\n             AgentId: config.Agent,\n             Message: config.Message,\n             CallbackToken: taskToken,  // 👈 Pass token here\n         },\n     }\n\n     client.Create(ctx, execution)\n\n     // Return pending - activity paused, thread released\n     return nil, activity.ErrResultPending\n }\n ```\n\n **Example Usage (Java Completion)**:\n ```java\n // In agent workflow (after completion)\n if (spec.getCallbackToken() != null \u0026\u0026 !spec.getCallbackToken().isEmpty()) {\n     // Complete the external activity\n     systemActivities.completeZigflowToken(\n         spec.getCallbackToken(),\n         result\n     );\n }\n ```\n\n **References**:\n - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md\n - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion\n - Go SDK: https://pkg.go.dev/go.temporal.io/sdk/activity#ErrResultPending\n - Java SDK: https://www.javadoc.io/doc/io.temporal/temporal-sdk/latest/io/temporal/client/ActivityCompletionClient.html\n\n @since 2026-01-22 (Phase 2: Async Agent Execution Integration)",
+      "required": false
+    }
+  ]
+}

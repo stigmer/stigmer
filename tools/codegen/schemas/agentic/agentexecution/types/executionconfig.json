@@ -1,0 +1,18 @@
+{
+  "name": "ExecutionConfig",
+  "description": "Configuration that can be applied at execution time.",
+  "protoType": "ai.stigmer.agentic.agentexecution.v1.ExecutionConfig",
+  "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/spec.proto",
+  "fields": [
+    {
+      "name": "ModelName",
+      "jsonName": "modelName",
+      "protoField": "model_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The model to use for this execution.\n Example: \"claude-sonnet-4-20250514\"",
+      "required": false
+    }
+  ]
+}

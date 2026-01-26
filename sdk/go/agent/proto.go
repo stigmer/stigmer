@@ -3,16 +3,28 @@ package agent
 import (
 	"fmt"
 
+	"buf.build/go/protovalidate"
+
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
-	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
+
+// validator is the global protovalidate validator instance.
+var validator protovalidate.Validator
+
+func init() {
+	// Initialize validator once at package load time
+	var err error
+	validator, err = protovalidate.New()
+	if err != nil {
+		panic(fmt.Sprintf("failed to initialize protovalidate: %v", err))
+	}
+}
 
 // ToProto converts the SDK Agent to a platform Agent proto message.
 //
@@ -23,18 +35,12 @@ import (
 //
 // Example:
 //
-//	agent, _ := agent.New(ctx,
-//	    agent.WithName("code-reviewer"),
-//	    agent.WithInstructions("Review code"),
-//	)
+//	agent, _ := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+//	    Instructions: "Review code",
+//	})
+//	agent.AddSkillRef(skillref.Platform("coding-best-practices"))
 //	proto, err := agent.ToProto()
 func (a *Agent) ToProto() (*agentv1.Agent, error) {
-	// Convert skills to skill references
-	skillRefs, err := convertSkillsToRefs(a.Skills)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert skills: %w", err)
-	}
-
 	// Convert MCP servers
 	mcpServers, err := convertMCPServers(a.MCPServers)
 	if err != nil {
@@ -60,14 +66,18 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 	}
 
 	// Build metadata
+	// Default to organization scope for SDK-created agents
+	// This satisfies the CEL validation: owner_scope must be platform (1) or organization (2)
 	metadata := &apiresource.ApiResourceMetadata{
 		Name:        a.Name,
 		Slug:        slug,
 		Annotations: SDKAnnotations(),
+		OwnerScope:  apiresource.ApiResourceOwnerScope_organization,
 	}
 
 	// Build complete Agent proto
-	return &agentv1.Agent{
+	// SkillRefs are already proto types - no conversion needed
+	agent := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
 		Metadata:   metadata,
@@ -75,44 +85,19 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 			Description:  a.Description,
 			IconUrl:      a.IconURL,
 			Instructions: a.Instructions,
-			SkillRefs:    skillRefs,
+			SkillRefs:    a.SkillRefs,
 			McpServers:   mcpServers,
 			SubAgents:    subAgents,
 			EnvSpec:      envSpec,
 		},
-	}, nil
-}
-
-// convertSkillsToRefs converts SDK skills to API resource references.
-func convertSkillsToRefs(skills []skill.Skill) ([]*apiresource.ApiResourceReference, error) {
-	if len(skills) == 0 {
-		return []*apiresource.ApiResourceReference{}, nil
 	}
 
-	refs := make([]*apiresource.ApiResourceReference, 0, len(skills))
-	for _, s := range skills {
-		// Use the skill slug for the reference
-		slug := s.NameOrSlug()
-
-		ref := &apiresource.ApiResourceReference{
-			Slug: slug,
-			Kind: apiresourcekind.ApiResourceKind_skill,
-		}
-
-		// Set scope based on skill type
-		if s.Org != "" {
-			// Organization-scoped skill
-			ref.Scope = apiresource.ApiResourceOwnerScope_organization
-			ref.Org = s.Org
-		} else {
-			// Platform-scoped skill (Org is empty)
-			ref.Scope = apiresource.ApiResourceOwnerScope_platform
-		}
-
-		refs = append(refs, ref)
+	// Validate the proto message against buf.validate rules
+	if err := validator.Validate(agent); err != nil {
+		return nil, fmt.Errorf("agent validation failed: %w", err)
 	}
 
-	return refs, nil
+	return agent, nil
 }
 
 // convertMCPServers converts SDK MCP servers to proto MCP server definitions.
@@ -164,24 +149,28 @@ func convertMCPServers(servers []mcpserver.MCPServer) ([]*agentv1.McpServerDefin
 				return nil, fmt.Errorf("server %q: type mismatch - expected DockerServer", server.Name())
 			}
 
-			// Convert volume mounts
+			// Convert volume mounts (types.VolumeMount has same fields as agentv1.VolumeMount)
 			volumes := make([]*agentv1.VolumeMount, 0, len(dockerServer.Volumes()))
 			for _, vol := range dockerServer.Volumes() {
-				volumes = append(volumes, &agentv1.VolumeMount{
-					HostPath:      vol.HostPath,
-					ContainerPath: vol.ContainerPath,
-					ReadOnly:      vol.ReadOnly,
-				})
+				if vol != nil {
+					volumes = append(volumes, &agentv1.VolumeMount{
+						HostPath:      vol.HostPath,
+						ContainerPath: vol.ContainerPath,
+						ReadOnly:      vol.ReadOnly,
+					})
+				}
 			}
 
-			// Convert port mappings
+			// Convert port mappings (types.PortMapping has same fields as agentv1.PortMapping)
 			ports := make([]*agentv1.PortMapping, 0, len(dockerServer.Ports()))
 			for _, port := range dockerServer.Ports() {
-				ports = append(ports, &agentv1.PortMapping{
-					HostPort:      port.HostPort,
-					ContainerPort: port.ContainerPort,
-					Protocol:      port.Protocol,
-				})
+				if port != nil {
+					ports = append(ports, &agentv1.PortMapping{
+						HostPort:      port.HostPort,
+						ContainerPort: port.ContainerPort,
+						Protocol:      port.Protocol,
+					})
+				}
 			}
 
 			def.ServerType = &agentv1.McpServerDefinition_Docker{
@@ -207,6 +196,7 @@ func convertMCPServers(servers []mcpserver.MCPServer) ([]*agentv1.McpServerDefin
 }
 
 // convertSubAgents converts SDK sub-agents to proto sub-agents.
+// SubAgent fields are now directly on the proto message (no InlineSpec wrapper).
 func convertSubAgents(subAgents []subagent.SubAgent) ([]*agentv1.SubAgent, error) {
 	if len(subAgents) == 0 {
 		return []*agentv1.SubAgent{}, nil
@@ -214,48 +204,25 @@ func convertSubAgents(subAgents []subagent.SubAgent) ([]*agentv1.SubAgent, error
 
 	protoSubAgents := make([]*agentv1.SubAgent, 0, len(subAgents))
 	for _, sa := range subAgents {
-		if sa.IsInline() {
-			// Convert inline sub-agent
-			// Convert skill references for this sub-agent
-			skillRefs, err := convertSkillsToRefs(sa.Skills())
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert skills for sub-agent %q: %w", sa.Name(), err)
-			}
-
-			// Convert tool selections map to proto format
-			toolSelections := make(map[string]*agentv1.McpToolSelection)
-			for serverName, tools := range sa.ToolSelections() {
+		// Convert tool selections map to proto format
+		toolSelections := make(map[string]*agentv1.McpToolSelection)
+		for serverName, selection := range sa.ToolSelections() {
+			if selection != nil {
 				toolSelections[serverName] = &agentv1.McpToolSelection{
-					EnabledTools: tools,
+					EnabledTools: selection.EnabledTools,
 				}
 			}
-
-			protoSubAgents = append(protoSubAgents, &agentv1.SubAgent{
-				AgentReference: &agentv1.SubAgent_InlineSpec{
-					InlineSpec: &agentv1.InlineSubAgentSpec{
-						Name:              sa.Name(),
-						Description:       sa.Description(),
-						Instructions:      sa.Instructions(),
-						McpServers:        sa.MCPServerNames(),
-						McpToolSelections: toolSelections,
-						SkillRefs:         skillRefs,
-					},
-				},
-			})
-		} else if sa.IsReference() {
-			// Convert referenced sub-agent
-			protoSubAgents = append(protoSubAgents, &agentv1.SubAgent{
-				AgentReference: &agentv1.SubAgent_AgentInstanceRefs{
-					AgentInstanceRefs: &apiresource.ApiResourceReference{
-						Slug:  sa.AgentInstanceID(),
-						Kind:  apiresourcekind.ApiResourceKind_agent_instance,
-						Scope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
-					},
-				},
-			})
-		} else {
-			return nil, fmt.Errorf("sub-agent %q: unknown type (neither inline nor reference)", sa.Name())
 		}
+
+		// SubAgent fields are directly on the proto message
+		protoSubAgents = append(protoSubAgents, &agentv1.SubAgent{
+			Name:              sa.Name(),
+			Description:       sa.Description(),
+			Instructions:      sa.Instructions(),
+			McpServers:        sa.MCPServerNames(),
+			McpToolSelections: toolSelections,
+			SkillRefs:         sa.SkillRefs(),
+		})
 	}
 
 	return protoSubAgents, nil

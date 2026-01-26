@@ -1,0 +1,52 @@
+{
+  "name": "IamPolicySpec",
+  "kind": "IAM_POLICY_SPEC",
+  "description": "IamPolicySpec defines the desired state of an IAM policy binding.\n It specifies WHO (principal) gets WHAT permission (relation) on WHICH resource.",
+  "protoType": "ai.stigmer.iam.iampolicy.v1.IamPolicySpec",
+  "protoFile": "apis/ai/stigmer/iam/iampolicy/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Principal",
+      "jsonName": "principal",
+      "protoField": "principal",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceRef"
+      },
+      "description": "Principal: WHO is being granted access\n This can be any API resource that acts as an identity:\n - identity_account (individual user)\n - team (group of users)\n - organization (for cross-org grants)\n - Any other resource that can be a subject in authorization",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Resource",
+      "jsonName": "resource",
+      "protoField": "resource",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceRef"
+      },
+      "description": "Resource: WHAT is being accessed\n This can be any API resource that is being protected:\n - organization\n - environment\n - cloud_resource (VPC, S3 bucket, etc.)\n - service\n - Any other resource that requires access control",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Relation",
+      "jsonName": "relation",
+      "protoField": "relation",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Relation: HOW/what permission is being granted\n This is the FGA relation/permission being granted (e.g., \"admin\", \"viewer\", \"owner\")\n The relation value maps to the role_code from IamRole.\n Examples: \"admin\", \"editor\", \"viewer\", \"owner\", \"member\"\n\n When this policy is synced to OpenFGA, this becomes the relation in the tuple:\n principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation",
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  ]
+}

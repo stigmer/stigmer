@@ -17,7 +17,10 @@
         }
       },
       "description": "Branches to execute in parallel (at least 2 required).",
-      "required": false
+      "required": false,
+      "validation": {
+        "minItems": 2
+      }
     },
     {
       "name": "Compete",

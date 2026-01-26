@@ -7,21 +7,19 @@
 //
 // # Basic Usage
 //
-// Create environment variables using builder functions:
+// Create environment variables using struct-based args:
 //
 //	// Required secret
-//	githubToken, err := environment.New(
-//	    environment.WithName("GITHUB_TOKEN"),
-//	    environment.WithSecret(true),
-//	    environment.WithDescription("GitHub API token"),
-//	)
+//	githubToken, err := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
+//	    IsSecret:    true,
+//	    Description: "GitHub API token",
+//	})
 //
 //	// Optional config with default
-//	region, err := environment.New(
-//	    environment.WithName("AWS_REGION"),
-//	    environment.WithDefaultValue("us-east-1"),
-//	    environment.WithDescription("AWS region for deployments"),
-//	)
+//	region, err := environment.New(ctx, "AWS_REGION", &environment.VariableArgs{
+//	    DefaultValue: "us-east-1",
+//	    Description:  "AWS region for deployments",
+//	})
 //
 // # Secret vs Configuration
 //
@@ -37,14 +35,13 @@
 //
 // # Integration with Agent
 //
-// Add environment variables to agents:
+// Add environment variables to agents using builder methods:
 //
-//	agent, err := agent.New(
-//	    agent.WithName("github-bot"),
-//	    agent.WithInstructions("Manage GitHub repositories"),
-//	    agent.WithEnvironmentVariable(githubToken),
-//	    agent.WithEnvironmentVariable(region),
-//	)
+//	agent, err := agent.New(ctx, "github-bot", &agent.AgentArgs{
+//	    Instructions: "Manage GitHub repositories",
+//	})
+//	agent.AddEnvironmentVariable(githubToken)
+//	agent.AddEnvironmentVariable(region)
 //
 // # Proto Conversion
 //

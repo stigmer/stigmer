@@ -3,9 +3,7 @@
 // Example 04: Agent with Sub-Agents
 //
 // This example demonstrates how to create agents with sub-agents.
-// Sub-agents can be:
-// - Inline: Defined directly with their own instructions, MCP servers, and skills
-// - Referenced: References to existing AgentInstance resources
+// Sub-agents are defined inline within the parent agent spec.
 //
 // Run: go run examples/04_agent_with_subagents.go
 package main
@@ -15,8 +13,8 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
-	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
@@ -30,42 +28,35 @@ func main() {
 		if err != nil {
 			return err
 		}
-		printAgent("1. Simple Agent with Inline Sub-Agent", simpleAgent)
+		printAgent("1. Simple Agent with Sub-Agent", simpleAgent)
 
-		// Example 2: Referenced sub-agent
-		agentWithReference, err := createAgentWithReferencedSubAgent(ctx)
-		if err != nil {
-			return err
-		}
-		printAgent("2. Agent with Referenced Sub-Agent", agentWithReference)
-
-		// Example 3: Complex agent with multiple sub-agents
+		// Example 2: Complex agent with multiple sub-agents
 		complexAgent, err := createComplexAgentWithMultipleSubAgents(ctx)
 		if err != nil {
 			return err
 		}
-		printAgent("3. Complex Agent with Multiple Sub-Agents", complexAgent)
+		printAgent("2. Complex Agent with Multiple Sub-Agents", complexAgent)
 
-		// Example 4: Inline sub-agent with MCP server references
+		// Example 3: Sub-agent with MCP server references
 		agentWithMCPSubAgent, err := createAgentWithMCPSubAgent(ctx)
 		if err != nil {
 			return err
 		}
-		printAgent("4. Agent with Sub-Agent Using MCP Servers", agentWithMCPSubAgent)
+		printAgent("3. Agent with Sub-Agent Using MCP Servers", agentWithMCPSubAgent)
 
-		// Example 5: Inline sub-agent with skills
+		// Example 4: Sub-agent with skills
 		agentWithSkilledSubAgent, err := createAgentWithSkilledSubAgent(ctx)
 		if err != nil {
 			return err
 		}
-		printAgent("5. Agent with Sub-Agent Using Skills", agentWithSkilledSubAgent)
+		printAgent("4. Agent with Sub-Agent Using Skills", agentWithSkilledSubAgent)
 
-		// Example 6: Inline sub-agent with tool selections
+		// Example 5: Sub-agent with tool selections
 		agentWithSelectiveSubAgent, err := createAgentWithSelectiveSubAgent(ctx)
 		if err != nil {
 			return err
 		}
-		printAgent("6. Agent with Sub-Agent Using Tool Selections", agentWithSelectiveSubAgent)
+		printAgent("5. Agent with Sub-Agent Using Tool Selections", agentWithSelectiveSubAgent)
 
 		return nil
 	})
@@ -75,14 +66,13 @@ func main() {
 	}
 }
 
-// Example 1: Simple inline sub-agent
+// Example 1: Simple sub-agent
 func createSimpleAgentWithSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create inline sub-agent
-	securityScanner, err := subagent.Inline(
-		subagent.WithName("security-scanner"),
-		subagent.WithInstructions("Scan code for security vulnerabilities and provide detailed security reports"),
-		subagent.WithDescription("Security-focused code analyzer"),
-	)
+	// Create sub-agent using struct args pattern
+	securityScanner, err := subagent.New("security-scanner", &subagent.Args{
+		Instructions: "Scan code for security vulnerabilities and provide detailed security reports",
+		Description:  "Security-focused code analyzer",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sub-agent: %w", err)
 	}
@@ -100,43 +90,39 @@ func createSimpleAgentWithSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
 	return ag, nil
 }
 
-// Example 2: Referenced sub-agent
-func createAgentWithReferencedSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	ag, err := agent.New(ctx, "deployment-orchestrator", &agent.AgentArgs{
-		Instructions: "Orchestrate deployment process by delegating to specialized agents",
-		Description:  "Main deployment coordinator",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create agent: %w", err)
-	}
-
-	// Add referenced sub-agent using builder method
-	ag.AddSubAgent(subagent.Reference(
-		"security-checker",
-		"sec-checker-prod", // References an existing AgentInstance
-	))
-	return ag, nil
-}
-
-// Example 3: Complex agent with multiple sub-agents (inline and referenced)
+// Example 2: Complex agent with multiple sub-agents
 func createComplexAgentWithMultipleSubAgents(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create inline sub-agents
-	codeQualityChecker, err := subagent.Inline(
-		subagent.WithName("code-quality-checker"),
-		subagent.WithInstructions("Run linting, formatting checks, and code quality metrics"),
-		subagent.WithDescription("Code quality analyzer"),
-	)
+	// Create multiple sub-agents
+	codeQualityChecker, err := subagent.New("code-quality-checker", &subagent.Args{
+		Instructions: "Run linting, formatting checks, and code quality metrics",
+		Description:  "Code quality analyzer",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create code quality checker: %w", err)
 	}
 
-	testRunner, err := subagent.Inline(
-		subagent.WithName("test-runner"),
-		subagent.WithInstructions("Execute all test suites and report results"),
-		subagent.WithDescription("Test execution coordinator"),
-	)
+	testRunner, err := subagent.New("test-runner", &subagent.Args{
+		Instructions: "Execute all test suites and report results",
+		Description:  "Test execution coordinator",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create test runner: %w", err)
+	}
+
+	securityScanner, err := subagent.New("security-scanner", &subagent.Args{
+		Instructions: "Scan for security vulnerabilities in code and dependencies",
+		Description:  "Security vulnerability scanner",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create security scanner: %w", err)
+	}
+
+	deployer, err := subagent.New("deployer", &subagent.Args{
+		Instructions: "Handle deployment tasks after all checks pass",
+		Description:  "Deployment automation agent",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create deployer: %w", err)
 	}
 
 	ag, err := agent.New(ctx, "ci-cd-orchestrator", &agent.AgentArgs{
@@ -147,58 +133,51 @@ func createComplexAgentWithMultipleSubAgents(ctx *stigmer.Context) (*agent.Agent
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
 
-	// Add sub-agents using builder method
-	ag.AddSubAgents(
-		// Inline sub-agents
-		codeQualityChecker,
-		testRunner,
-		// Referenced sub-agents
-		subagent.Reference("security-scanner", "sec-scanner-prod"),
-		subagent.Reference("deployer", "deployer-prod"),
-	)
+	// Add all sub-agents using builder method
+	ag.AddSubAgents(codeQualityChecker, testRunner, securityScanner, deployer)
 	return ag, nil
 }
 
-// Example 4: Inline sub-agent with MCP server references
+// Example 3: Sub-agent with MCP server references
 func createAgentWithMCPSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create MCP servers for the main agent
-	github, err := mcpserver.Stdio(
-		mcpserver.WithName("github"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-		mcpserver.WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
-	)
+	// Create MCP servers for the main agent using struct-args pattern
+	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+		EnvPlaceholders: map[string]string{
+			"GITHUB_TOKEN": "${GITHUB_TOKEN}",
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GitHub MCP server: %w", err)
 	}
 
-	gitlab, err := mcpserver.Stdio(
-		mcpserver.WithName("gitlab"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-gitlab"),
-		mcpserver.WithEnvPlaceholder("GITLAB_TOKEN", "${GITLAB_TOKEN}"),
-	)
+	gitlab, err := mcpserver.Stdio(ctx, "gitlab", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-gitlab"},
+		EnvPlaceholders: map[string]string{
+			"GITLAB_TOKEN": "${GITLAB_TOKEN}",
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GitLab MCP server: %w", err)
 	}
 
-	// Create inline sub-agents
-	githubSpecialist, err := subagent.Inline(
-		subagent.WithName("github-specialist"),
-		subagent.WithInstructions("Handle all GitHub-specific operations"),
-		subagent.WithDescription("GitHub operations specialist"),
-		subagent.WithMCPServer("github"), // References the parent's MCP server
-	)
+	// Create sub-agents that reference the parent's MCP servers
+	githubSpecialist, err := subagent.New("github-specialist", &subagent.Args{
+		Instructions: "Handle all GitHub-specific operations",
+		Description:  "GitHub operations specialist",
+		McpServers:   []string{"github"}, // References the parent's MCP server
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create github specialist: %w", err)
 	}
 
-	crossPlatformSync, err := subagent.Inline(
-		subagent.WithName("cross-platform-sync"),
-		subagent.WithInstructions("Sync changes across GitHub and GitLab"),
-		subagent.WithDescription("Cross-platform synchronization"),
-		subagent.WithMCPServers("github", "gitlab"), // Uses multiple MCP servers
-	)
+	crossPlatformSync, err := subagent.New("cross-platform-sync", &subagent.Args{
+		Instructions: "Sync changes across GitHub and GitLab",
+		Description:  "Cross-platform synchronization",
+		McpServers:   []string{"github", "gitlab"}, // Uses multiple MCP servers
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cross-platform sync: %w", err)
 	}
@@ -218,20 +197,19 @@ func createAgentWithMCPSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
 	return ag, nil
 }
 
-// Example 5: Inline sub-agent with skills
+// Example 4: Sub-agent with skills
 func createAgentWithSkilledSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create inline sub-agent with skills
-	codingExpert, err := subagent.Inline(
-		subagent.WithName("coding-expert"),
-		subagent.WithInstructions("Provide coding guidance using best practices and internal documentation"),
-		subagent.WithDescription("Coding expert with knowledge base"),
-		subagent.WithSkills(
-			skill.Platform("coding-best-practices"),
-			skill.Platform("design-patterns"),
-			skill.Organization("my-org", "internal-apis"),
-			skill.Organization("my-org", "architecture-guidelines"),
-		),
-	)
+	// Create sub-agent with skill references
+	codingExpert, err := subagent.New("coding-expert", &subagent.Args{
+		Instructions: "Provide coding guidance using best practices and internal documentation",
+		Description:  "Coding expert with knowledge base",
+		SkillRefs: []*types.ApiResourceReference{
+			{Slug: "coding-best-practices", Scope: "platform"},
+			{Slug: "design-patterns", Scope: "platform"},
+			{Slug: "internal-apis", Scope: "organization", Org: "my-org"},
+			{Slug: "architecture-guidelines", Scope: "organization", Org: "my-org"},
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create coding expert: %w", err)
 	}
@@ -249,37 +227,41 @@ func createAgentWithSkilledSubAgent(ctx *stigmer.Context) (*agent.Agent, error) 
 	return ag, nil
 }
 
-// Example 6: Inline sub-agent with tool selections
+// Example 5: Sub-agent with tool selections
 func createAgentWithSelectiveSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	github, err := mcpserver.Stdio(
-		mcpserver.WithName("github"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-		mcpserver.WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
-	)
+	// Create MCP server using struct-args pattern
+	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+		EnvPlaceholders: map[string]string{
+			"GITHUB_TOKEN": "${GITHUB_TOKEN}",
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GitHub MCP server: %w", err)
 	}
 
-	// Create inline sub-agents with tool selections
-	issueManager, err := subagent.Inline(
-		subagent.WithName("issue-manager"),
-		subagent.WithInstructions("Manage GitHub issues only, cannot access other GitHub features"),
-		subagent.WithDescription("Issue management specialist"),
-		subagent.WithMCPServer("github"),
-		subagent.WithToolSelection("github", "create_issue", "update_issue", "list_issues"),
-	)
+	// Create sub-agents with tool selections
+	issueManager, err := subagent.New("issue-manager", &subagent.Args{
+		Instructions: "Manage GitHub issues only, cannot access other GitHub features",
+		Description:  "Issue management specialist",
+		McpServers:   []string{"github"},
+		McpToolSelections: map[string]*types.McpToolSelection{
+			"github": {EnabledTools: []string{"create_issue", "update_issue", "list_issues"}},
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create issue manager: %w", err)
 	}
 
-	prReviewer, err := subagent.Inline(
-		subagent.WithName("pr-reviewer"),
-		subagent.WithInstructions("Review pull requests only, cannot modify issues or repositories"),
-		subagent.WithDescription("Pull request reviewer"),
-		subagent.WithMCPServer("github"),
-		subagent.WithToolSelection("github", "list_pull_requests", "review_pull_request", "comment_on_pr"),
-	)
+	prReviewer, err := subagent.New("pr-reviewer", &subagent.Args{
+		Instructions: "Review pull requests only, cannot modify issues or repositories",
+		Description:  "Pull request reviewer",
+		McpServers:   []string{"github"},
+		McpToolSelections: map[string]*types.McpToolSelection{
+			"github": {EnabledTools: []string{"list_pull_requests", "review_pull_request", "comment_on_pr"}},
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create PR reviewer: %w", err)
 	}
@@ -307,11 +289,7 @@ func printAgent(title string, ag *agent.Agent) {
 	fmt.Printf("Sub-Agents: %d\n", len(ag.SubAgents))
 
 	for i, sub := range ag.SubAgents {
-		if sub.IsInline() {
-			fmt.Printf("  [%d] Inline: %s\n", i+1, sub.Name())
-		} else {
-			fmt.Printf("  [%d] Reference: %s\n", i+1, sub.String())
-		}
+		fmt.Printf("  [%d] %s: %s\n", i+1, sub.Name(), sub.Description())
 	}
 
 	fmt.Println("\nNote: When you run `stigmer deploy`, the CLI will convert this to proto and deploy to Stigmer.")

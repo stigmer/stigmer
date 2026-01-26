@@ -13,7 +13,11 @@
         "kind": "string"
       },
       "description": "Fully qualified service name.\n Example: \"com.example.UserService\"",
-      "required": false
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
     },
     {
       "name": "Method",
@@ -23,7 +27,11 @@
         "kind": "string"
       },
       "description": "Method name to call.\n Example: \"GetUser\"",
-      "required": false
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
     },
     {
       "name": "Request",

@@ -30,37 +30,37 @@ func main() {
 		orgName := ctx.SetString("orgName", "data-processing-team")
 		retryCount := ctx.SetInt("retryCount", 3)
 
-		// Create shared environment variable
-		apiToken, err := environment.New(
-			environment.WithName("API_TOKEN"),
-			environment.WithSecret(true),
-			environment.WithDescription("API authentication token"),
-		)
+		// Create shared environment variable using struct-args pattern
+		apiToken, err := environment.New(ctx, "API_TOKEN", &environment.VariableArgs{
+			IsSecret:    true,
+			Description: "API authentication token",
+		})
 		if err != nil {
 			return err
 		}
 
-		// Create a workflow that uses the shared context
-		wf, err := workflow.New(ctx,
-			workflow.WithNamespace("data-processing"),
-			workflow.WithName("fetch-and-analyze"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Fetch data from API and analyze with agent"),
-			workflow.WithOrg(orgName), // Shared typed reference
-			workflow.WithEnvironmentVariable(apiToken),
-		)
+		// Create a workflow that uses the shared context using struct-args pattern
+		wf, err := workflow.New(ctx, "data-processing/fetch-and-analyze", &workflow.WorkflowArgs{
+			Namespace:   "data-processing",
+			Version:     "1.0.0",
+			Description: "Fetch data from API and analyze with agent",
+			Org:         orgName.Value(),
+		})
 		if err != nil {
 			return err
 		}
 
-	// Add workflow tasks using shared context variables
-	// Use workflow.Interpolate() to build URL from context variable and literal path
-	endpoint := workflow.Interpolate(apiURL, "/data")
+		// Add environment variable using builder method
+		wf.AddEnvironmentVariable(*apiToken)
 
-	// Task 1: Fetch data using HTTP GET
-	_ = wf.HttpGet("fetchData", endpoint, map[string]string{
-		"Content-Type": "application/json",
-	})
+		// Add workflow tasks using shared context variables
+		// Use workflow.Interpolate() to build URL from context variable and literal path
+		endpoint := workflow.Interpolate(apiURL, "/data")
+
+		// Task 1: Fetch data using HTTP GET
+		_ = wf.HttpGet("fetchData", endpoint, map[string]string{
+			"Content-Type": "application/json",
+		})
 
 		// Task 2: Process data
 		_ = wf.Set("processData", &workflow.SetArgs{
@@ -82,8 +82,8 @@ func main() {
 		// Set Org field directly (same shared typed reference as workflow!)
 		ag.Org = orgName.Value()
 
-		// Add environment variable using builder method
-		ag.AddEnvironmentVariable(apiToken) // Same environment variable
+		// Add environment variable using builder method (dereference pointer)
+		ag.AddEnvironmentVariable(*apiToken) // Same environment variable as workflow!
 
 		log.Printf("Created workflow: %s", wf)
 		log.Printf("Created agent: %s", ag)

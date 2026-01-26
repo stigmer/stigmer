@@ -5,8 +5,11 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/skillref"
 )
+
+// mockEnvContext implements the environment.Context interface for testing
+type mockEnvContext struct{}
 
 // =============================================================================
 // Benchmark Tests - Agent Creation
@@ -27,27 +30,27 @@ func BenchmarkAgent_New_Minimal(b *testing.B) {
 
 // BenchmarkAgent_New_Complete benchmarks complete agent creation.
 func BenchmarkAgent_New_Complete(b *testing.B) {
-	skill1, _ := skill.New("skill1", &skill.SkillArgs{
-		MarkdownContent: "# Skill 1",
-	})
+	ctx := &mockEnvContext{}
 
-	env1, _ := environment.New(
-		environment.WithName("API_KEY"),
-		environment.WithSecret(true),
-	)
+	// Use skillref to reference platform skills (SDK doesn't create skills)
+	skillRef := skillref.Platform("skill1")
+
+	env1, _ := environment.New(ctx, "API_KEY", &environment.VariableArgs{
+		IsSecret: true,
+	})
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		agent, err := New(nil, "complete-agent", &AgentArgs{
-			Description: "Complete agent with all features",
-			IconUrl:     "https://example.com/icon.png",
+			Description:  "Complete agent with all features",
+			IconUrl:      "https://example.com/icon.png",
 			Instructions: "Complete instructions for benchmarking agent creation with all features",
 		})
 		if err != nil {
 			b.Fatal(err)
 		}
-		agent.AddSkill(*skill1)
-		agent.AddEnvironmentVariable(env1)
+		agent.AddSkillRef(skillRef)
+		agent.AddEnvironmentVariable(*env1)
 	}
 }
 
@@ -70,25 +73,20 @@ func BenchmarkAgentToProto_Minimal(b *testing.B) {
 	}
 }
 
-// BenchmarkAgentToProto_WithSkills benchmarks agent with varying skill counts.
-func BenchmarkAgentToProto_WithSkills(b *testing.B) {
+// BenchmarkAgentToProto_WithSkillRefs benchmarks agent with varying skill ref counts.
+func BenchmarkAgentToProto_WithSkillRefs(b *testing.B) {
 	skillCounts := []int{1, 5, 10, 50}
 
-		for _, count := range skillCounts {
-		b.Run(strings.Join([]string{"skills_", string(rune('0' + count%10))}, ""), func(b *testing.B) {
-			// Create skills
-			skills := make([]skill.Skill, count)
-			for i := 0; i < count; i++ {
-				s, _ := skill.New("skill"+string(rune('0'+i%10)), &skill.SkillArgs{
-					MarkdownContent: "# Skill " + string(rune('0'+i%10)),
-				})
-				skills[i] = *s
-			}
-
+	for _, count := range skillCounts {
+		b.Run(strings.Join([]string{"skillrefs_", string(rune('0' + count%10))}, ""), func(b *testing.B) {
 			agent, _ := New(nil, "benchmark-agent", &AgentArgs{
-				Instructions: "Agent with multiple skills for benchmarking proto conversion",
+				Instructions: "Agent with multiple skill refs for benchmarking proto conversion",
 			})
-			agent.AddSkills(skills...)
+
+			// Add skill references (SDK references skills, doesn't create them)
+			for i := 0; i < count; i++ {
+				agent.AddSkillRef(skillref.Platform("skill-" + string(rune('0'+i%10))))
+			}
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -103,6 +101,7 @@ func BenchmarkAgentToProto_WithSkills(b *testing.B) {
 
 // BenchmarkAgentToProto_WithEnvironmentVariables benchmarks agent with varying env var counts.
 func BenchmarkAgentToProto_WithEnvironmentVariables(b *testing.B) {
+	ctx := &mockEnvContext{}
 	envVarCounts := []int{0, 5, 10, 50, 100}
 
 	for _, count := range envVarCounts {
@@ -110,12 +109,11 @@ func BenchmarkAgentToProto_WithEnvironmentVariables(b *testing.B) {
 			// Create environment variables
 			envVars := make([]environment.Variable, count)
 			for i := 0; i < count; i++ {
-				env, _ := environment.New(
-					environment.WithName("ENV_VAR_"+string(rune('0'+i%10))),
-					environment.WithDefaultValue("value"+string(rune('0'+i%10))),
-					environment.WithSecret(i%2 == 0),
-				)
-				envVars[i] = env
+				env, _ := environment.New(ctx, "ENV_VAR_"+string(rune('A'+i%26)), &environment.VariableArgs{
+					DefaultValue: "value" + string(rune('0'+i%10)),
+					IsSecret:     i%2 == 0,
+				})
+				envVars[i] = *env
 			}
 
 			agent, _ := New(nil, "benchmark-agent", &AgentArgs{
@@ -136,32 +134,26 @@ func BenchmarkAgentToProto_WithEnvironmentVariables(b *testing.B) {
 
 // BenchmarkAgentToProto_Complete benchmarks complete agent with all features.
 func BenchmarkAgentToProto_Complete(b *testing.B) {
-	// Create 10 skills
-	skills := make([]skill.Skill, 10)
-	for i := 0; i < 10; i++ {
-		s, _ := skill.New("skill"+string(rune('0'+i)), &skill.SkillArgs{
-			MarkdownContent: "# Skill " + string(rune('0'+i)),
-		})
-		skills[i] = *s
-	}
-
-	// Create 20 environment variables
-	envVars := make([]environment.Variable, 20)
-	for i := 0; i < 20; i++ {
-		env, _ := environment.New(
-			environment.WithName("ENV_VAR_"+string(rune('0'+i%10))),
-			environment.WithDefaultValue("value"+string(rune('0'+i%10))),
-		)
-		envVars[i] = env
-	}
+	ctx := &mockEnvContext{}
 
 	agent, _ := New(nil, "complete-benchmark-agent", &AgentArgs{
 		Description:  "Complete agent with all features for comprehensive benchmarking",
 		IconUrl:      "https://example.com/icon.png",
 		Instructions: strings.Repeat("Detailed instructions for benchmarking. ", 20),
 	})
-	agent.AddSkills(skills...)
-	agent.AddEnvironmentVariables(envVars...)
+
+	// Add 10 skill refs
+	for i := 0; i < 10; i++ {
+		agent.AddSkillRef(skillref.Platform("skill-" + string(rune('0'+i))))
+	}
+
+	// Add 20 environment variables
+	for i := 0; i < 20; i++ {
+		env, _ := environment.New(ctx, "ENV_VAR_"+string(rune('A'+i%26)), &environment.VariableArgs{
+			DefaultValue: "value" + string(rune('0'+i%10)),
+		})
+		agent.AddEnvironmentVariable(*env)
+	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -178,14 +170,10 @@ func BenchmarkAgentToProto_Complete(b *testing.B) {
 
 // BenchmarkAgentToProto_Allocations benchmarks memory allocations.
 func BenchmarkAgentToProto_Allocations(b *testing.B) {
-	skill1, _ := skill.New("skill1", &skill.SkillArgs{
-		MarkdownContent: "# Skill 1",
-	})
-
 	agent, _ := New(nil, "alloc-test-agent", &AgentArgs{
 		Instructions: "Agent for benchmarking memory allocations during proto conversion",
 	})
-	agent.AddSkill(*skill1)
+	agent.AddSkillRef(skillref.Platform("skill1"))
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -203,29 +191,7 @@ func BenchmarkAgentToProto_Allocations(b *testing.B) {
 
 // BenchmarkAgentToProto_RealisticCodeReviewer benchmarks a realistic code reviewer agent.
 func BenchmarkAgentToProto_RealisticCodeReviewer(b *testing.B) {
-	// Create skills
-	codeAnalysisSkill, _ := skill.New("code-analysis", &skill.SkillArgs{
-		MarkdownContent: "# Code Analysis\nAnalyze code quality and best practices",
-	})
-
-	securitySkill, _ := skill.New("security-review", &skill.SkillArgs{
-		MarkdownContent: "# Security Review\nIdentify security vulnerabilities",
-	})
-
-	performanceSkill, _ := skill.New("performance-analysis", &skill.SkillArgs{
-		MarkdownContent: "# Performance Analysis\nAnalyze code performance",
-	})
-
-	// Create environment variables
-	apiKey, _ := environment.New(
-		environment.WithName("GITHUB_TOKEN"),
-		environment.WithSecret(true),
-	)
-
-	repo, _ := environment.New(
-		environment.WithName("REPOSITORY"),
-		environment.WithDefaultValue("myorg/myrepo"),
-	)
+	ctx := &mockEnvContext{}
 
 	agent, _ := New(nil, "code-reviewer-pro", &AgentArgs{
 		Description: "Professional code reviewer with comprehensive analysis capabilities",
@@ -240,8 +206,20 @@ func BenchmarkAgentToProto_RealisticCodeReviewer(b *testing.B) {
 			"Always provide constructive feedback with specific examples.",
 		}, "\n"),
 	})
-	agent.AddSkills(*codeAnalysisSkill, *securitySkill, *performanceSkill)
-	agent.AddEnvironmentVariables(apiKey, repo)
+
+	// Add skill references (SDK references skills, doesn't create them)
+	agent.AddSkillRef(skillref.Platform("code-analysis"))
+	agent.AddSkillRef(skillref.Platform("security-review"))
+	agent.AddSkillRef(skillref.Platform("performance-analysis"))
+
+	// Add environment variables
+	apiKey, _ := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
+		IsSecret: true,
+	})
+	repo, _ := environment.New(ctx, "REPOSITORY", &environment.VariableArgs{
+		DefaultValue: "myorg/myrepo",
+	})
+	agent.AddEnvironmentVariables(*apiKey, *repo)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -254,27 +232,22 @@ func BenchmarkAgentToProto_RealisticCodeReviewer(b *testing.B) {
 
 // BenchmarkAgentToProto_RealisticDataAnalyst benchmarks a realistic data analyst agent.
 func BenchmarkAgentToProto_RealisticDataAnalyst(b *testing.B) {
-	// Create skills
-	sqlSkill, _ := skill.New("sql-queries", &skill.SkillArgs{
-		MarkdownContent: "# SQL Queries\nWrite and optimize SQL queries",
-	})
-
-	dataVizSkill, _ := skill.New("data-visualization", &skill.SkillArgs{
-		MarkdownContent: "# Data Visualization\nCreate meaningful data visualizations",
-	})
-
-	// Create environment variables
-	dbCreds, _ := environment.New(
-		environment.WithName("DB_CONNECTION_STRING"),
-		environment.WithSecret(true),
-	)
+	ctx := &mockEnvContext{}
 
 	agent, _ := New(nil, "data-analyst-pro", &AgentArgs{
 		Description:  "Professional data analyst with SQL and visualization expertise",
 		Instructions: "Analyze data, create insightful visualizations, and generate comprehensive reports",
 	})
-	agent.AddSkills(*sqlSkill, *dataVizSkill)
-	agent.AddEnvironmentVariable(dbCreds)
+
+	// Add skill references
+	agent.AddSkillRef(skillref.Platform("sql-queries"))
+	agent.AddSkillRef(skillref.Platform("data-visualization"))
+
+	// Add environment variable
+	dbCreds, _ := environment.New(ctx, "DB_CONNECTION_STRING", &environment.VariableArgs{
+		IsSecret: true,
+	})
+	agent.AddEnvironmentVariable(*dbCreds)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -307,19 +280,14 @@ func BenchmarkAgentToProto_Parallel(b *testing.B) {
 
 // BenchmarkAgentToProto_ParallelComplex benchmarks parallel conversion with complex agent.
 func BenchmarkAgentToProto_ParallelComplex(b *testing.B) {
-	// Create complex agent
-	skills := make([]skill.Skill, 10)
-	for i := 0; i < 10; i++ {
-		s, _ := skill.New("skill"+string(rune('0'+i)), &skill.SkillArgs{
-			MarkdownContent: "# Skill " + string(rune('0'+i)),
-		})
-		skills[i] = *s
-	}
-
 	agent, _ := New(nil, "parallel-complex-agent", &AgentArgs{
 		Instructions: "Complex agent for benchmarking parallel proto conversion",
 	})
-	agent.AddSkills(skills...)
+
+	// Add 10 skill refs
+	for i := 0; i < 10; i++ {
+		agent.AddSkillRef(skillref.Platform("skill-" + string(rune('0'+i))))
+	}
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {

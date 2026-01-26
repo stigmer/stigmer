@@ -17,7 +17,10 @@
         }
       },
       "description": "List of switch cases (at least one required).\n Cases are evaluated in order. First matching case executes.\n If no \"when\" is specified, the case acts as default.",
-      "required": false
+      "required": false,
+      "validation": {
+        "minItems": 1
+      }
     }
   ]
 }
