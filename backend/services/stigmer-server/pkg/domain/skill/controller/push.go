@@ -436,12 +436,23 @@ func (s *PopulateSkillFieldsStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 	// 1. Populate spec with extracted SKILL.md content
 	skill.Spec.SkillMd = extractResult.Content
 
-	// 2. Populate status with artifact metadata
+	// 2. Set skill name from request (extracted from SKILL.md YAML frontmatter)
+	req := ctx.Input()
+	if req.Name != "" {
+		skill.Spec.Name = req.Name
+	}
+
+	// 3. Set source metadata for traceability (local git or remote git)
+	if req.Source != nil {
+		skill.Spec.Source = req.Source
+	}
+
+	// 4. Populate status with artifact metadata
 	skill.Status.VersionHash = extractResult.Hash
 	skill.Status.ArtifactStorageKey = storageKey
 	skill.Status.State = skillv1.SkillState_SKILL_STATE_READY
 
-	// 3. Set audit fields using common library helpers
+	// 5. Set audit fields using common library helpers
 	if shouldCreate {
 		// Creating new skill - use common helper to set audit fields
 		if err := steps.SetAuditFieldsForCreate(skill); err != nil {
