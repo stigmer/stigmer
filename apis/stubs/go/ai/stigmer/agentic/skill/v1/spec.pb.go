@@ -42,7 +42,13 @@ type SkillSpec struct {
 	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// Source information tracking where the skill artifacts originated from.
 	// This provides traceability and enables reproducible deployments.
-	Source        *SkillSource `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
+	Source *SkillSource `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
+	// Human-readable description extracted from SKILL.md YAML frontmatter.
+	// Provides a concise summary of what this skill does for marketplace display
+	// and system prompt injection into AI agents.
+	// Should be 1-2 sentences, ideally under 100 tokens for prompt efficiency.
+	// Example: "Extracts text and tables from PDF files using OCR when needed"
+	Description   string `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -103,6 +109,13 @@ func (x *SkillSpec) GetSource() *SkillSource {
 		return x.Source
 	}
 	return nil
+}
+
+func (x *SkillSpec) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
 }
 
 // SkillSource identifies where the skill artifacts originated from.
@@ -350,12 +363,13 @@ var File_ai_stigmer_agentic_skill_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/skill/v1/spec.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a\x1bbuf/validate/validate.proto\"\xd5\x01\n" +
+	"&ai/stigmer/agentic/skill/v1/spec.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a\x1bbuf/validate/validate.proto\"\xf7\x01\n" +
 	"\tSkillSpec\x12\"\n" +
 	"\bskill_md\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\askillMd\x12-\n" +
 	"\x03tag\x18\x02 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x123\n" +
 	"\x04name\x18\x03 \x01(\tB\x1f\xbaH\x1cr\x1a2\x18^[a-z0-9]+(-[a-z0-9]+)*$R\x04name\x12@\n" +
-	"\x06source\x18\x04 \x01(\v2(.ai.stigmer.agentic.skill.v1.SkillSourceR\x06source\"\x95\x01\n" +
+	"\x06source\x18\x04 \x01(\v2(.ai.stigmer.agentic.skill.v1.SkillSourceR\x06source\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\"\x95\x01\n" +
 	"\vSkillSource\x12@\n" +
 	"\x05local\x18\x01 \x01(\v2(.ai.stigmer.agentic.skill.v1.LocalSourceH\x00R\x05local\x12:\n" +
 	"\x03git\x18\x02 \x01(\v2&.ai.stigmer.agentic.skill.v1.GitSourceH\x00R\x03gitB\b\n" +

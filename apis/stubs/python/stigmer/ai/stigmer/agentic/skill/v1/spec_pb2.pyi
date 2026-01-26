@@ -7,16 +7,18 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SkillSpec(_message.Message):
-    __slots__ = ("skill_md", "tag", "name", "source")
+    __slots__ = ("skill_md", "tag", "name", "source", "description")
     SKILL_MD_FIELD_NUMBER: _ClassVar[int]
     TAG_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     SOURCE_FIELD_NUMBER: _ClassVar[int]
+    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     skill_md: str
     tag: str
     name: str
     source: SkillSource
-    def __init__(self, skill_md: _Optional[str] = ..., tag: _Optional[str] = ..., name: _Optional[str] = ..., source: _Optional[_Union[SkillSource, _Mapping]] = ...) -> None: ...
+    description: str
+    def __init__(self, skill_md: _Optional[str] = ..., tag: _Optional[str] = ..., name: _Optional[str] = ..., source: _Optional[_Union[SkillSource, _Mapping]] = ..., description: _Optional[str] = ...) -> None: ...
 
 class SkillSource(_message.Message):
     __slots__ = ("local", "git")

@@ -96,7 +96,12 @@ type PushSkillRequest struct {
 	// Source information tracking where the skill artifacts originated from.
 	// For local pushes, CLI auto-detects git information if available.
 	// For remote pushes, this contains the git URL, ref, and subdir.
-	Source        *SkillSource `protobuf:"bytes,6,opt,name=source,proto3" json:"source,omitempty"`
+	Source *SkillSource `protobuf:"bytes,6,opt,name=source,proto3" json:"source,omitempty"`
+	// Human-readable description extracted from SKILL.md YAML frontmatter.
+	// This is extracted by the CLI from the YAML header and passed to the backend
+	// for storage in SkillSpec. Used for marketplace display and prompt injection.
+	// Example: "Extracts text and tables from PDF files using OCR when needed"
+	Description   string `protobuf:"bytes,7,opt,name=description,proto3" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -171,6 +176,13 @@ func (x *PushSkillRequest) GetSource() *SkillSource {
 		return x.Source
 	}
 	return nil
+}
+
+func (x *PushSkillRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
 }
 
 // PushSkillResponse returns the version information after successful upload.
@@ -341,14 +353,15 @@ const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"$ai/stigmer/agentic/skill/v1/io.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"'\n" +
 	"\aSkillId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xac\x02\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xce\x02\n" +
 	"\x10PushSkillRequest\x12\x1a\n" +
 	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12U\n" +
 	"\x05scope\x18\x02 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05scope\x12\x10\n" +
 	"\x03org\x18\x03 \x01(\tR\x03org\x12\"\n" +
 	"\bartifact\x18\x04 \x01(\fB\x06\xbaH\x03\xc8\x01\x01R\bartifact\x12-\n" +
 	"\x03tag\x18\x05 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12@\n" +
-	"\x06source\x18\x06 \x01(\v2(.ai.stigmer.agentic.skill.v1.SkillSourceR\x06source\"~\n" +
+	"\x06source\x18\x06 \x01(\v2(.ai.stigmer.agentic.skill.v1.SkillSourceR\x06source\x12 \n" +
+	"\vdescription\x18\a \x01(\tR\vdescription\"~\n" +
 	"\x11PushSkillResponse\x12!\n" +
 	"\fversion_hash\x18\x01 \x01(\tR\vversionHash\x120\n" +
 	"\x14artifact_storage_key\x18\x02 \x01(\tR\x12artifactStorageKey\x12\x10\n" +
