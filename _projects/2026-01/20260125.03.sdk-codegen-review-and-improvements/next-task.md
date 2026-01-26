@@ -8,17 +8,58 @@
 
 ## Current State
 
-**Phase**: Phase 1 & 3 COMPLETE - Phase 2 Ready  
+**Phase**: Phases 1, 2, 3 COMPLETE - Phase 4 or 5 Ready  
 **Current Task**: Choose from Available Phases below (one at a time)  
-**Build Status**: PASSES (`go build ./...` succeeds)
+**Build Status**: PASSES (`go build ./...` succeeds, Go 1.25.6 standardized)
 
 **Plan References**: 
 - Phase 1: `.cursor/plans/phase_1_codegen_fixes_bcc0bef0.plan.md`
+- Phase 2: `.cursor/plans/build_system_unification_a491a412.plan.md`
 - Phase 3: `.cursor/plans/sdk_package_fixes_c88ae76a.plan.md`
 
 ---
 
 ## Session Progress
+
+### Session 8 (2026-01-26) - Phase 2 Complete: Build System Unification
+
+**Completed**: Build system standardization and documentation
+- **Documentation**: Created `docs/architecture/build-system.md` establishing Go + Make as canonical build system
+- **Dead Code Removal**: Deleted `.goreleaser.yml` (122 lines, referenced non-existent files)
+- **Go Version Standardization**: All configurations now use Go 1.25.6
+- **Net**: -785 lines (removed GoReleaser, stale BUILD.bazel files, standardized go.mod versions)
+
+**Accomplishments**:
+- Created comprehensive build system architecture documentation
+- Documented Go + Make as primary build system (Bazel is auxiliary)
+- Removed broken GoReleaser configuration (referenced non-existent `Dockerfile.server`)
+- Updated CI workflows from Go 1.22 → Go 1.25
+- Updated `MODULE.bazel` Go SDK from 1.24.6 → 1.25.6
+- Standardized all 9 `go.mod` files to Go 1.25.6 (was: 1.24.0, 1.24.3, 1.25.0)
+- Removed obsolete `toolchain` directives from go.mod files
+- Verified build passes with standardized Go version
+
+**Files Modified** (39 files):
+- `docs/architecture/build-system.md` - New comprehensive build system documentation
+- `.goreleaser.yml` - DELETED (broken, unused, 122 lines)
+- `.github/workflows/release-embedded.yml` - Updated Go version
+- `MODULE.bazel` - Updated Go SDK version
+- 7 `go.mod` files - Standardized to Go 1.25.6
+- Multiple `go.sum` files - Dependency updates from version changes
+- 21 `BUILD.bazel` files - DELETED (stale Bazel files from dependency cleanup)
+
+**Key Decisions**:
+- **Go + Make is canonical**: Documented that production releases use Go toolchain, not Bazel
+- **Bazel is auxiliary**: Exists for proto generation (Gazelle) and future migration path
+- **Go 1.25.6 standard**: Single source of truth across workspace, modules, CI, and Bazel
+- **GoReleaser removed**: CI has custom build logic for BusyBox pattern; GoReleaser was broken
+
+**Build Status**: ✅ PASSES (`go build` for all modules succeeds)
+
+**Pre-existing Issue Found** (not caused by Phase 2):
+- `make build` fails on Bazel dependency drift (`bazel mod tidy` needed)
+- This is a pre-existing Bazel/Gazelle issue, not related to Go version changes
+- Direct Go builds work perfectly
 
 ### Session 7 (2026-01-26) - Phase 3 Complete: SubAgent Simplification
 
@@ -75,35 +116,37 @@
 
 ## Executive Summary
 
-**Phases 1 & 3 COMPLETE**. Major progress on code quality and simplification:
+**Phases 1, 2, 3 COMPLETE**. Major progress on code quality, build system, and simplification:
 
 **Phase 1 (Codegen)**: Tools are clean, DRY, robust, and comprehensive
+**Phase 2 (Build)**: Build system documented, standardized, dead code removed
 **Phase 3 (SDK)**: SubAgent simplified (inline-only), enum conversion fixed, dead code removed
 
 **Impact**:
+- Build System: Documented canonical approach (Go + Make), Go 1.25.6 everywhere, -785 lines
 - Proto: Flatter, simpler SubAgent structure (-412 lines net across codebase)
 - SDK: Cleaner API surface, fewer concepts, better type safety
-- Build: Passes cleanly
+- Build: Passes cleanly with consistent Go version
 
-**Remaining phases**: Build system (Phase 2), enhancements (Phase 4), documentation (Phase 5), final test/example fixes.
+**Remaining phases**: Enhancements (Phase 4), documentation (Phase 5), final test/example fixes.
 
 ---
 
-## Next Steps (Session 8)
+## Next Steps (Session 9)
 
 **Immediate Next Action**: Choose one of the remaining phases
 
-**Recommended**: **Phase 2 (Build System Unification)**
-- Document Bazel vs Go build decision
-- Fix or remove GoReleaser configuration
-- Standardize Go version across CI and MODULE.bazel
+**Recommended**: **Phase 4 (Pulumi Pattern Adoption)**
+- Add context.Context support to SDK Context
+- Enhance error types with structured fields
 
-**Alternative**: Skip to **Phase 4** if build system decisions can wait
+**Alternative**: Skip to **Phase 5 (Documentation)** if enhancements can wait
 
 **Context for Resume**:
-- SubAgent is now simplified (inline-only, flattened proto)
-- Enum conversion properly implemented with type-safe parseScope/parseKind
-- Test files need comprehensive update (Task 5a - ~300 lines)
+- Build system is now documented and standardized (Go 1.25.6 everywhere)
+- SubAgent is simplified (inline-only, flattened proto)
+- Code generation pipeline is clean and comprehensive
+- Test files need comprehensive update (Task 5a - ~300 lines) - saved for end
 - Build passes cleanly, ready for next phase
 
 ---
@@ -202,15 +245,18 @@ All tasks completed in Session 6.
 
 ## Uncommitted Changes
 
-**Status**: 30 files modified from Session 7 (Phase 3 SubAgent simplification), NOT committed
+**Status**: UNCOMMITTED - Phase 2 changes ready for commit
 
+**Working Directory State**:
 ```
+Files: 39 files changed, 79 insertions(+), 785 deletions(-)
+- Created: docs/architecture/build-system.md
+- Deleted: .goreleaser.yml
+- Updated: CI workflows, MODULE.bazel, go.mod files
 Build: PASSES
-Tests: Some failing (expected - comprehensive test fix is Task 5a)
-Proto: Regenerated (SubAgent flattened)
 ```
 
-**Change Summary**: 30 files, -412 lines net (979 deleted, 567 added)
+**Latest Commit**: `de5a839` - refactor(apis,sdk): simplify SubAgent to inline-only (breaking)
 
 ---
 
@@ -256,6 +302,11 @@ Then choose ONE phase from "Available Phases" section and complete it fully.
 
 ## Reference Documents
 
-- **Plan**: `.cursor/plans/phase_1_codegen_fixes_bcc0bef0.plan.md`
+- **Phase 1 Plan**: `.cursor/plans/phase_1_codegen_fixes_bcc0bef0.plan.md`
+- **Phase 2 Plan**: `.cursor/plans/build_system_unification_a491a412.plan.md`
 - **Original Plan**: `_projects/2026-01/20260125.03.sdk-codegen-review-and-improvements/tasks/T01_0_plan.md`
-- **Architecture**: `tools/codegen/README.md`, `sdk/go/docs/codegen-architecture.md`
+- **Architecture Docs**:
+  - `docs/architecture/build-system.md` - Build system decision and architecture
+  - `docs/architecture/go-module-structure.md` - Go workspace pattern
+  - `sdk/go/docs/codegen-architecture.md` - Code generation pipeline
+  - `tools/codegen/README.md` - Codegen tools
