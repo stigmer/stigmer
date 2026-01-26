@@ -140,23 +140,25 @@ func createComplexAgentWithMultipleSubAgents(ctx *stigmer.Context) (*agent.Agent
 
 // Example 3: Sub-agent with MCP server references
 func createAgentWithMCPSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create MCP servers for the main agent
-	github, err := mcpserver.Stdio(
-		mcpserver.WithName("github"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-		mcpserver.WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
-	)
+	// Create MCP servers for the main agent using struct-args pattern
+	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+		EnvPlaceholders: map[string]string{
+			"GITHUB_TOKEN": "${GITHUB_TOKEN}",
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GitHub MCP server: %w", err)
 	}
 
-	gitlab, err := mcpserver.Stdio(
-		mcpserver.WithName("gitlab"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-gitlab"),
-		mcpserver.WithEnvPlaceholder("GITLAB_TOKEN", "${GITLAB_TOKEN}"),
-	)
+	gitlab, err := mcpserver.Stdio(ctx, "gitlab", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-gitlab"},
+		EnvPlaceholders: map[string]string{
+			"GITLAB_TOKEN": "${GITLAB_TOKEN}",
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GitLab MCP server: %w", err)
 	}
@@ -227,12 +229,14 @@ func createAgentWithSkilledSubAgent(ctx *stigmer.Context) (*agent.Agent, error) 
 
 // Example 5: Sub-agent with tool selections
 func createAgentWithSelectiveSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	github, err := mcpserver.Stdio(
-		mcpserver.WithName("github"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-		mcpserver.WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
-	)
+	// Create MCP server using struct-args pattern
+	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+		EnvPlaceholders: map[string]string{
+			"GITHUB_TOKEN": "${GITHUB_TOKEN}",
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GitHub MCP server: %w", err)
 	}

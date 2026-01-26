@@ -1,15 +1,20 @@
 //go:build ignore
 
-// Example 06: Agent with Inline Content
+// Example 06: Agent with Organized Content
 //
 // This example demonstrates:
-// 1. Creating agents with inline instructions and skills
-// 2. Organizing large content in separate Go variables
-// 3. Automatic synthesis using stigmer.Run()
+//   1. Organizing large instructions as Go variables (better code organization)
+//   2. Referencing skills that are managed separately
+//   3. Using multi-line strings for complex agent instructions
 //
-// For better organization, define your instructions and skill content
-// as variables in separate Go files (e.g., instructions.go, skills.go)
-// and reference them here.
+// IMPORTANT: The SDK references skills - it doesn't create them.
+// To use custom skills:
+//   1. Create skill content files (e.g., security-guidelines.md)
+//   2. Push skills via CLI: stigmer skill push security-guidelines.md
+//   3. Reference skills in your agent using skillref.Platform() or skillref.Organization()
+//
+// For better organization in larger projects, define instructions
+// as variables in separate Go files (e.g., instructions.go).
 package main
 
 import (
@@ -17,12 +22,23 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
 
-// Define instructions as variables (can be in separate files)
+// =============================================================================
+// Organized Content: Define instructions as variables
+// =============================================================================
+// In larger projects, move these to separate files like:
+//   - instructions/code_review.go
+//   - instructions/security.go
+
 var (
+	// codeReviewInstructions defines the core behavior for the code reviewer agent.
+	// Using a variable allows for:
+	//   - Better code organization
+	//   - Easier testing and modification
+	//   - Reuse across multiple agents
 	codeReviewInstructions = `You are a professional code reviewer.
 
 Your responsibilities:
@@ -34,7 +50,29 @@ Your responsibilities:
 
 Always be respectful and educational in your reviews.`
 
-	securityGuidelinesMarkdown = `# Security Review Guidelines
+	// seniorReviewerInstructions extends the basic instructions with more context.
+	seniorReviewerInstructions = `You are a senior code reviewer with expertise in security and testing.
+
+Your responsibilities:
+1. Perform comprehensive code reviews
+2. Apply security best practices (use your security-guidelines skill)
+3. Verify testing coverage (use your testing-best-practices skill)
+4. Mentor junior developers through constructive feedback
+5. Ensure architectural consistency
+
+Leverage your skill references for detailed guidelines on security and testing.
+Always explain the "why" behind your recommendations.`
+)
+
+// =============================================================================
+// Skill Content (for reference - created via CLI)
+// =============================================================================
+// These markdown strings show what the skill content might look like.
+// In practice, save these to .md files and push via: stigmer skill push <file>
+
+var (
+	// This would be saved to security-guidelines.md and pushed as a skill
+	_ = `# Security Review Guidelines
 
 ## Key Security Checks
 
@@ -53,7 +91,8 @@ Always be respectful and educational in your reviews.`
    - Check for sensitive data exposure
    - Verify secure communication`
 
-	testingBestPracticesMarkdown = `# Testing Best Practices
+	// This would be saved to testing-best-practices.md and pushed as a skill
+	_ = `# Testing Best Practices
 
 ## Testing Standards
 
@@ -75,21 +114,45 @@ Always be respectful and educational in your reviews.`
 
 func main() {
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
-		fmt.Println("=== Example 06: Agent with Inline Content ===\n")
+		fmt.Println("=== Example 06: Agent with Organized Content ===\n")
 
-		// Example 1: Basic agent with inline instructions
+		// =============================================================================
+		// Example 1: Basic agent with organized instructions
+		// =============================================================================
 		basicAgent, err := createBasicAgent(ctx)
 		if err != nil {
 			return err
 		}
-		printAgent("1. Basic Agent", basicAgent)
+		printAgent("1. Basic Agent with Organized Instructions", basicAgent)
 
-		// Example 2: Agent with inline skills
-		agentWithSkills, err := createAgentWithSkills(ctx)
+		// =============================================================================
+		// Example 2: Agent with skill references
+		// =============================================================================
+		// Skills are managed separately (via CLI) and referenced here.
+		// The skill content is defined elsewhere and pushed to the platform.
+		agentWithSkills, err := createAgentWithSkillRefs(ctx)
 		if err != nil {
 			return err
 		}
-		printAgent("2. Agent with Inline Skills", agentWithSkills)
+		printAgent("2. Agent with Skill References", agentWithSkills)
+
+		// =============================================================================
+		// Summary
+		// =============================================================================
+		fmt.Println("\n=== Summary ===")
+		fmt.Println("This example demonstrates:")
+		fmt.Println("  1. Organizing instructions as Go variables (code organization)")
+		fmt.Println("  2. Referencing skills that are managed separately")
+		fmt.Println()
+		fmt.Println("Skill management workflow:")
+		fmt.Println("  1. Create skill content as .md files")
+		fmt.Println("  2. Push skills: stigmer skill push security-guidelines.md")
+		fmt.Println("  3. Reference skills: skillref.Platform(\"security-guidelines\")")
+		fmt.Println()
+		fmt.Println("Benefits of this pattern:")
+		fmt.Println("  - Instructions are version-controlled with your code")
+		fmt.Println("  - Skills are reusable across multiple agents")
+		fmt.Println("  - Clear separation of concerns")
 
 		return nil
 	})
@@ -99,7 +162,8 @@ func main() {
 	}
 }
 
-// Example 1: Basic agent with instructions from variable
+// createBasicAgent creates an agent with instructions from a variable.
+// This pattern helps organize large instruction sets.
 func createBasicAgent(ctx *stigmer.Context) (*agent.Agent, error) {
 	ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
 		Instructions: codeReviewInstructions,
@@ -111,50 +175,44 @@ func createBasicAgent(ctx *stigmer.Context) (*agent.Agent, error) {
 	return ag, nil
 }
 
-// Example 2: Agent with inline skills using variables
-func createAgentWithSkills(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create inline skills with content from variables
-	securitySkill, err := skill.New("security-guidelines", &skill.SkillArgs{
-		Description:     "Comprehensive security review guidelines",
-		MarkdownContent: securityGuidelinesMarkdown,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create security skill: %w", err)
-	}
-
-	testingSkill, err := skill.New("testing-best-practices", &skill.SkillArgs{
-		Description:     "Testing standards and best practices",
-		MarkdownContent: testingBestPracticesMarkdown,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create testing skill: %w", err)
-	}
-
+// createAgentWithSkillRefs creates an agent that references platform skills.
+// The skills must exist on the platform (created via CLI).
+func createAgentWithSkillRefs(ctx *stigmer.Context) (*agent.Agent, error) {
 	ag, err := agent.New(ctx, "senior-reviewer", &agent.AgentArgs{
-		Instructions: codeReviewInstructions,
+		Instructions: seniorReviewerInstructions,
 		Description:  "Senior code reviewer with security and testing expertise",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
 
-	// Add skills using builder method
-	ag.AddSkills(*securitySkill, *testingSkill)
-
-	// Also add platform skills
-	ag.AddSkill(skill.Platform("coding-best-practices"))
+	// Reference skills that were created via CLI
+	// These skills must exist on the platform before the agent can use them
+	ag.AddSkillRefs(
+		skillref.Platform("security-guidelines"),
+		skillref.Platform("testing-best-practices"),
+		skillref.Platform("coding-best-practices"),
+	)
 
 	return ag, nil
 }
 
-// Helper function to print agent information
+// printAgent displays agent information for demonstration.
 func printAgent(title string, ag *agent.Agent) {
 	fmt.Printf("\n%s\n", title)
 	fmt.Println("=" + string(make([]byte, len(title))))
 	fmt.Printf("Agent Name: %s\n", ag.Name)
 	fmt.Printf("Description: %s\n", ag.Description)
 	fmt.Printf("Instructions Length: %d characters\n", len(ag.Instructions))
-	fmt.Printf("Skills: %d\n", len(ag.Skills))
+	fmt.Printf("Skill Refs: %d\n", len(ag.SkillRefs))
+
+	// Show skill refs if any
+	if len(ag.SkillRefs) > 0 {
+		fmt.Println("Referenced Skills:")
+		for i, ref := range ag.SkillRefs {
+			fmt.Printf("  %d. %s (scope: %s)\n", i+1, ref.Slug, ref.Scope)
+		}
+	}
 
 	// Show first 100 chars of instructions
 	if len(ag.Instructions) > 0 {
@@ -165,5 +223,5 @@ func printAgent(title string, ag *agent.Agent) {
 		fmt.Printf("Instructions Preview: %s\n", preview)
 	}
 
-	fmt.Println("\n✅ Agent created successfully!")
+	fmt.Println("\nAgent created successfully!")
 }
