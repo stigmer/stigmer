@@ -6,9 +6,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: In Progress - Phase 2 Complete (Go Backend + CLI)
-- **Last Session**: 2026-01-27 - Completed Phase 2 (Go Backend + Proto + CLI)
-- **Active Task**: Ready for Phase 3 (Java Backend in stigmer-cloud)
+- **Status**: COMPLETE - All Phases Done
+- **Last Session**: 2026-01-27 - Completed Phase 3 (Java Backend in stigmer-cloud)
+- **Active Task**: None - Project Complete
 
 ## Architectural Revision (2026-01-27)
 
@@ -69,20 +69,38 @@ The original approach had CLI extracting `name` and `description` from SKILL.md 
 - `backend/services/stigmer-server/pkg/domain/skill/controller/push.go`
 - `client-apps/cli/internal/cli/artifact/skill.go`
 
-### Pending Tasks
+### Phase 3: Java Backend - COMPLETE ✅
+
+**New Skill Utilities Package:**
+- Created `SkillFrontmatter.java` - Immutable record for parsed frontmatter (name, description, version)
+- Created `SkillFrontmatterParser.java` - Parser with validation matching Go implementation exactly
+- Created `SkillFrontmatterException.java` - Custom exception with detailed error messages
+
+**SkillPushHandler Updates:**
+- Modified `ProcessArtifact` step to parse YAML frontmatter after extracting SKILL.md
+- Added context keys `CTX_FRONTMATTER_NAME` and `CTX_FRONTMATTER_DESCRIPTION`
+- Updated `LoadOrCreateSkill` to use frontmatter name for slug lookup
+- Updated `UpdateSkillState` to set `spec.name` and `spec.description` from frontmatter
+
+**Files Created (stigmer-cloud):**
+- `backend/libs/java/utils/src/main/java/ai/stigmer/utils/skill/SkillFrontmatter.java`
+- `backend/libs/java/utils/src/main/java/ai/stigmer/utils/skill/SkillFrontmatterParser.java`
+- `backend/libs/java/utils/src/main/java/ai/stigmer/utils/skill/SkillFrontmatterException.java`
+
+**Files Modified (stigmer-cloud):**
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/skill/request/handler/SkillPushHandler.java`
+
+### All Tasks Complete
 1. ~~**Proto Cleanup**: Remove fields from `PushSkillRequest`~~ ✅
 2. ~~**Proto Renumbering**: Clean field numbers 1-5~~ ✅
 3. ~~**Regenerate Stubs**: Run stub generation~~ ✅
 4. ~~**Go Backend**: Add YAML frontmatter parsing~~ ✅
 5. ~~**CLI Cleanup**: Remove name from `PushSkillRequest` construction~~ ✅
-6. **Java Backend**: Add YAML frontmatter parsing to stigmer-cloud skill handler
+6. ~~**Java Backend**: Add YAML frontmatter parsing to stigmer-cloud skill handler~~ ✅
 
-## Next Steps
+## Project Complete
 
-1. **Phase 3: Java Backend** - Add frontmatter parsing in stigmer-cloud
-   - Identify skill push handler in Java backend
-   - Port YAML frontmatter parsing logic
-   - Extract `name` and `description` from SKILL.md content
+Both Go (OSS) and Java (Cloud) backends now parse SKILL.md YAML frontmatter to extract skill name and description. The backend is the single source of truth for these values.
 
 ## Files to Reference
 
@@ -95,7 +113,10 @@ The original approach had CLI extracting `name` and `description` from SKILL.md 
 - `backend/services/stigmer-server/pkg/domain/skill/controller/push.go` - Use extracted values
 
 ### Java Backend (stigmer-cloud)
-- Skill push handler (to be identified)
+- `backend/libs/java/utils/src/main/java/ai/stigmer/utils/skill/SkillFrontmatter.java` - Frontmatter record
+- `backend/libs/java/utils/src/main/java/ai/stigmer/utils/skill/SkillFrontmatterParser.java` - Parser with validation
+- `backend/libs/java/utils/src/main/java/ai/stigmer/utils/skill/SkillFrontmatterException.java` - Custom exception
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/skill/request/handler/SkillPushHandler.java` - Push handler
 
 ### CLI
 - `client-apps/cli/internal/cli/artifact/skill.go` - Remove fields from request
@@ -124,4 +145,4 @@ Then say: "I've reviewed the plan, please proceed with Phase 1 - Proto Cleanup"
 
 ---
 
-*Last updated: 2026-01-27 (Revised based on architectural feedback)*
+*Last updated: 2026-01-27 (Phase 3 Java Backend Complete - Project Finished)*
