@@ -1,28 +1,142 @@
 # .stigmerignore Design Notes
 
-## Research Summary
+## Research Summary (Deep Dive - 2026-01-27)
 
 ### How Other Tools Handle Ignores
 
-| Tool | File Name | Pattern Syntax | Git Integration | Negation Support |
-|------|-----------|----------------|-----------------|------------------|
-| **Git** | `.gitignore` | fnmatch + `**` | N/A | ✅ `!pattern` |
-| **Docker** | `.dockerignore` | Go `filepath.Match` + `**` | None | ✅ `!pattern` |
-| **npm** | `.npmignore` | gitignore-style | Falls back to `.gitignore` | ✅ `!pattern` |
-| **Helm** | `.helmignore` | Go `filepath.Match` | None | ❌ |
-| **Buf** | `buf.yaml` | Path lists in YAML | None | ❌ |
+| Tool | File Name | Pattern Syntax | Where Filtered | Git Integration | Negation |
+|------|-----------|----------------|----------------|-----------------|----------|
+| **Git** | `.gitignore` | wildmatch (custom) | Client-side | N/A | ✅ `!pattern` |
+| **Docker** | `.dockerignore` | Go `filepath.Match` + `**` | Client-side (CLI) | None | ✅ `!pattern` |
+| **Buf** | `buf.yaml` excludes | Exact paths only | Client-side (CLI) | None | ❌ |
+| **npm** | `.npmignore` | gitignore-style | Client-side | Falls back to `.gitignore` | ✅ `!pattern` |
+
+### Critical Finding: All Use Client-Side Filtering
+
+**Git**: `.gitignore` is evaluated locally during `git status`, `git add`, etc. The server never participates in ignore logic. Committed files remain tracked even if later added to `.gitignore`.
+
+**Docker**: The CLI reads `.dockerignore` BEFORE creating the build context tar. Excluded files never reach the daemon. This is essential for remote daemon scenarios (reduces network transfer).
+
+**Buf**: The CLI applies `excludes` during file discovery before uploading to BSR. The server receives already-filtered module content.
+
+**Implication for Stigmer**: Follow the same pattern. CLI filters for local push. Backend filters for remote git push (since it fetches files).
+
+---
+
+### Git Implementation Details
+
+**Pattern Matching Algorithm**: Git uses `wildmatch` (derived from rsync), NOT standard `fnmatch`. It's linear-time and avoids exponential behavior with complex patterns.
+
+**Hierarchical Support**:
+- Each directory can have its own `.gitignore`
+- Patterns are relative to the `.gitignore` file's location
+- Lower-level files override higher-level ones
+- **Critical limitation**: If parent directory is ignored, nested `.gitignore` files are NOT consulted (performance optimization)
+
+**Precedence Order** (highest to lowest):
+1. Command-line patterns (`git add --force`)
+2. `.gitignore` files (closer to file = higher priority)
+3. `$GIT_DIR/info/exclude` (repo-specific, not committed)
+4. `core.excludesFile` (global, typically `~/.config/git/ignore`)
+
+**Pattern Processing**: Sequential, top-to-bottom. **Last matching pattern wins**.
+
+**Negation Gotcha**: Cannot re-include a file if its parent directory is excluded. Git stops traversing ignored directories.
+
+```gitignore
+# This DOES NOT work:
+aaafolder/
+!aaafolder/important.txt  # Never evaluated - parent is ignored
+
+# This DOES work:
+aaafolder/*
+!aaafolder/important.txt
+```
+
+**Performance**: Lazy evaluation - stops recursing into ignored directories. Uses untracked cache with mtime checks.
+
+---
+
+### Docker Implementation Details
+
+**Key Difference from Git**: `*.txt` in `.dockerignore` matches root only. Use `**/*.txt` for recursive matching.
+
+**Leading Slash**: Has NO special meaning in Docker (unlike shell globs). `/foo` and `foo` behave the same.
+
+**Pattern Matching**: Uses Go's `filepath.Match` with added `**` support (via `moby/patternmatcher` library).
+
+**Build Context Filtering**: Happens before tar creation. Excluded files never leave the client machine.
+
+**Lesson Learned**: Documentation gaps around leading slash and recursive matching caused significant user confusion.
+
+---
+
+### Buf Implementation Details
+
+**Different Philosophy**: No glob/wildcard support at all. Only exact paths.
+
+**Rationale**: Prevents accidental exclusions; enforces explicit intent. Good for protobuf APIs where you want precision.
+
+**Not Suitable for Stigmer**: Skills can have many file types; exact paths would be tedious.
+
+---
 
 ### Key Insights
 
-1. **npm's approach is elegant**: If `.npmignore` exists, use it; otherwise fall back to `.gitignore`. This reduces cognitive overhead.
+1. **Client-side filtering is the industry standard**: Reduces network transfer, enables local customization.
 
-2. **Git's pattern syntax is the de facto standard**: Most developers already know gitignore syntax.
+2. **Git syntax is the de facto standard**: Developers already know it - no learning curve.
 
-3. **Negation patterns are powerful**: They allow "exclude everything except X" workflows.
+3. **Negation is powerful but has gotchas**: Parent directory exclusion breaks child negation.
 
-4. **Buf uses structured config**: More machine-readable but less intuitive for simple exclusions.
+4. **npm's fallback pattern is elegant**: If `.npmignore` missing, use `.gitignore`. Reduces duplication.
 
-5. **Docker's `**` support is expected**: Developers expect recursive wildcards to work.
+5. **Shared library enables consistency**: Same logic in CLI and backend for remote git push.
+
+---
+
+## ADR-000: CLI vs Backend - Where Should Filtering Happen?
+
+**Question**: Should ignore logic be in CLI (client-side) or Backend (server-side)?
+
+**Decision**: **Both, via shared library**
+
+**Rationale**:
+
+Stigmer has two push modes:
+1. **Local push**: Files are on user's machine → CLI must filter
+2. **Remote git push**: Backend fetches from git → Backend must filter
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      LOCAL PUSH FLOW                            │
+│  User's Machine           Network              Backend          │
+│  ┌─────────────┐         ┌─────┐         ┌──────────────────┐  │
+│  │ Local Files │───▶ CLI │     │───▶     │ Store ZIP as-is  │  │
+│  │             │  Filter │ ZIP │         │ (no filtering)   │  │
+│  └─────────────┘   Here  └─────┘         └──────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    REMOTE GIT PUSH FLOW                         │
+│  CLI                     Backend                                │
+│  ┌─────────────┐   ┌─────────────────────────────────────────┐ │
+│  │ git-url +   │──▶│ Git Clone → Filter Here → ZIP → Store  │ │
+│  │ git-ref     │   │          (uses same library)            │ │
+│  └─────────────┘   └─────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Why not backend-only?**
+- Network overhead: Sending unfiltered files wastes bandwidth
+- Privacy: Sensitive files (`.env`) leave user's machine
+- Industry standard: Git, Docker, Buf all filter client-side
+
+**Why not CLI-only?**
+- Remote git push mode: Backend fetches files, CLI doesn't have them
+- Backend needs filtering capability for this mode
+
+**Solution**: Create `pkg/ignore` as a shared Go package that both CLI and backend can use.
 
 ---
 

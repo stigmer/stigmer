@@ -66,8 +66,67 @@ That's it! No complex structure - just focused work.
 
 ## Current Status
 
-**Last Updated**: Check tasks.md for most recent status  
-**Current Focus**: See which task is marked 🚧 IN PROGRESS in tasks.md
+**Last Updated**: 2026-01-27 (Session 1)
+**Status**: Research Complete - Ready for Implementation
+**Current Focus**: Ready to start Task 2 - Implement pkg/ignore package
+
+### Session Progress (2026-01-27)
+
+**Accomplishments**:
+- ✅ Completed comprehensive research on Git, Docker, and Buf ignore implementations
+- ✅ Documented architectural decisions (ADR-000 through ADR-004)
+- ✅ Designed pkg/ignore package structure and API
+- ✅ Selected go-git library for pattern matching
+- ✅ Defined built-in default patterns for security
+- ✅ Created detailed implementation roadmap in tasks.md
+- ✅ Enhanced notes.md with deep research findings
+
+**Key Decisions Made**:
+1. **Client-side filtering** (industry standard - Git, Docker, Buf all do this)
+2. **Shared library approach** (`pkg/ignore`) for both CLI and backend
+3. **Precedence model**: Built-in defaults < `.gitignore` < `.stigmerignore` < CLI flags
+4. **Git-compatible syntax** using `github.com/go-git/go-git/v5/plumbing/format/gitignore`
+5. **Respect .gitignore by default** with override capability via `.stigmerignore`
+
+**Files Updated**:
+- `tasks.md` - Refined with detailed implementation subtasks
+- `notes.md` - Enhanced with deep research findings and ADRs
+- `README.md` - Updated status to "Research Complete"
+
+### Next Steps (When Ready to Implement)
+
+1. **Start Task 2**: Create `pkg/ignore` package
+   - Create package structure with BUILD.bazel
+   - Implement defaults.go with built-in patterns
+   - Implement parser.go for .stigmerignore file parsing
+   - Implement ignore.go with Matcher interface
+   - Add comprehensive tests
+
+2. **Task 3**: Integrate with skill push
+   - Modify `client-apps/cli/internal/cli/artifact/skill.go`
+   - Replace hardcoded `shouldExclude()` with new Matcher
+   - Test with real skill directories
+
+3. **Task 4**: Tests and documentation
+
+### Context for Resume
+
+**Research Summary**: All three industry tools (Git, Docker, Buf) use client-side filtering. Stigmer needs filtering in both CLI (local push) and backend (remote git push), hence the shared library approach.
+
+**Pattern Matching**: Using go-git's wildmatch implementation (same as Git) ensures developers can use familiar syntax. Supports `**`, `!` negation, trailing `/` for directories, etc.
+
+**Security-First**: Built-in defaults prevent accidental credential/secret inclusion (`.env`, `*.pem`, etc.)
+
+**Gitignore Integration**: Users who already maintain `.gitignore` get automatic ignore behavior. `.stigmerignore` is only needed for Stigmer-specific overrides.
+
+### Quick Data Flow
+
+```
+Local Push:  CLI filters → ZIP → Backend stores
+Remote Push: Backend fetches → Backend filters → ZIP → Backend stores
+```
+
+Both paths use the same `pkg/ignore` library for consistency.
 
 ---
 

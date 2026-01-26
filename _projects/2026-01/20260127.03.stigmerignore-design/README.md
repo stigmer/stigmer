@@ -33,10 +33,19 @@ client-apps/cli/pkg/ignore, client-apps/cli/internal/cli/artifact
 
 Check [tasks.md](tasks.md) for detailed progress tracking.
 
-Update this section as you make progress:
-- Current phase: [Analysis/Implementation/Testing/Complete]
-- Blockers: [None/List any blockers]
-- Next up: [What's next after current task]
+- **Current phase**: Research Complete → Ready for Implementation
+- **Blockers**: None
+- **Next up**: Task 2 - Implement `pkg/ignore` package
+
+### Architecture Summary
+
+After researching Git, Docker, and Buf implementations:
+
+1. **Client-side filtering** (industry standard)
+2. **Shared `pkg/ignore` library** for CLI and backend
+3. **Precedence**: Built-in defaults < `.gitignore` < `.stigmerignore`
+4. **Git-compatible syntax** via `go-git` library
+5. **Security-first defaults** (never distribute .env, credentials, etc.)
 
 ## Notes Summary
 
