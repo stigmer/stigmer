@@ -91,11 +91,11 @@ Comprehensive implementation plan with phases, proto structures, FGA model.
 ## Current Status
 
 **Created**: 2026-01-26
-**Last Session**: 2026-01-27 Session 6 (OSS Go Controller Implementation)
-**Current Phase**: Phase 4.5 - OSS Go Controller
-**Status**: ✅ COMPLETE
+**Last Session**: 2026-01-27 Session 7 (Phase 5 Architectural Review)
+**Current Phase**: Phase 5 - Agent Runner Integration
+**Status**: ✅ COMPLETE (No Java changes needed)
 
-**Phase 4.5 Complete**: McpServer resource is now fully operational in both backends (Java and Go). CLI can manage MCP servers locally. Ready to proceed to Phase 5 (Agent Runner Integration).
+**Phase 5 Complete**: Architectural review determined that existing `getByReference` handler is sufficient for agent runtime. Tool filtering logic belongs in agent-runner (Python), not Java layer. See design decision below.
 
 ---
 
@@ -366,54 +366,105 @@ Comprehensive implementation plan with phases, proto structures, FGA model.
 | 3 | FGA model (mcp_server.fga) | stigmer-cloud | ✅ **COMPLETE** |
 | 4 | Backend handlers (Java CRUD operations) | stigmer-cloud | ✅ **COMPLETE** |
 | 4.5 | OSS Go controller | stigmer | ✅ **COMPLETE** |
-| 5 | Agent runner integration | stigmer-cloud | 🔄 **NEXT** |
-| 6 | CLI commands | stigmer | Not Started |
+| 5 | Agent runner integration | N/A | ✅ **COMPLETE** (No changes needed) |
+| 6 | CLI commands | stigmer | 🔄 **NEXT** |
+
+**Note**: Original Phase 5 tasks split into three projects:
+- **This project (Phase 5)**: MCP server resolution - completed via existing handlers
+- **Environment Variables project**: env_spec resolution + placeholder resolution
+- **Lifecycle Management project**: Server startup + health monitoring + cleanup
 
 ---
 
-## Next Steps (Phase 5: Agent Runner Integration)
+### ✅ Phase 5 Complete: Agent Runner Integration (Session 7 - 2026-01-27)
 
-Continue in `stigmer-cloud` repo for agent runtime integration.
+**Architectural Decision**: No new Java handlers needed. Existing infrastructure is sufficient.
 
-1. **Agent Runner MCP Server Resolution**
-   - Extend agent runner to resolve McpServerUsage references
-   - Load McpServer resources from repository by slug + scope
-   - Handle tri-scope lookups (platform, org, identity_account)
-   - Validate FGA can_use permission on referenced servers
+**Key Insight**: The FGA model defines `can_use` identically to `can_view`:
+```
+define can_view: viewer or platform
+define can_use: viewer or platform  // Same authorization logic
+```
 
-2. **Environment Variable Resolution**
-   - Merge McpServerSpec.env_spec with AgentInstance.environment values
-   - Resolve ${VAR_NAME} placeholders in HttpServerConfig headers/query_params
-   - Validate all required env vars are provided
-   - Handle secret vs non-secret environment variables
+Since both permissions have identical logic, the existing `McpServerGetByReferenceHandler` (which checks `can_view`) already provides the authorization needed for runtime usage.
 
-3. **MCP Server Lifecycle Management**
-   - Start stdio servers as subprocesses
-   - Configure HTTP servers with resolved env vars
-   - Launch docker containers with volume mounts and port mappings
-   - Handle server startup failures gracefully
+**Responsibilities Split:**
 
-4. **SubAgent Permission Filtering**
-   - Apply SubAgent.mcp_access restrictions
-   - Filter tool lists based on allowed_tools
-   - Ensure SubAgent can only restrict, not expand parent's access
-   - Validate permission hierarchy is maintained
+| Layer | Responsibility |
+|-------|----------------|
+| **Java (stigmer-cloud)** | Data access + authorization via `getByReference` |
+| **Python (agent-runner)** | Tool filtering logic from `McpServerUsage.enabled_tools` |
+| **Python (agent-runner)** | SubAgent restrictions via `McpAccess.enabled_tools` intersection |
+
+**Agent Runtime Flow:**
+1. Python calls `AgentQueryController.get(agentId)` → gets Agent with `mcp_server_usages[]`
+2. Python calls `McpServerQueryController.getByReference(ref)` for each usage → gets McpServer
+3. Python applies `enabled_tools` filtering locally
+4. For SubAgents, Python computes tool intersection with `mcp_access.enabled_tools`
+5. Python uses resolved servers with filtered tool sets
+
+**Why This is Correct:**
+- Separation of concerns: Java handles data/auth, Python handles business logic
+- Simpler architecture: No redundant endpoints
+- Tool filtering is agent-runner-specific logic (not a general API concern)
+- SubAgent restrictions are runtime composition (not stored data)
+
+**Quality Decision**: Avoided over-engineering. The simplest solution that meets requirements is the best solution.
+
+---
+
+## Next Steps (Phase 6: CLI Commands)
+
+Continue in `stigmer` repo for CLI support.
+
+### Tasks
+
+1. **CLI MCP Server Commands**
+   - `stigmer mcp-server create` - Create new MCP server
+   - `stigmer mcp-server get` - Get by ID or reference
+   - `stigmer mcp-server list` - List with scope filter
+   - `stigmer mcp-server update` - Update configuration
+   - `stigmer mcp-server delete` - Delete server
+   - `stigmer mcp-server apply` - Idempotent create-or-update
+
+2. **Follow CLI patterns from Environment/Skill commands**
+
+---
+
+### Cross-Project Dependencies
+
+**Depends On:**
+- ✅ McpServer proto definitions (Phase 1 - complete)
+- ✅ McpServer backend handlers (Phase 4 - complete)
+- ✅ McpServer Go controller (Phase 4.5 - complete)
+- ✅ FGA authorization model (Phase 3 - complete)
+
+**Hands Off To:**
+- **Environment Variables Project** (`20260126.01.environment-runtime-vars-flow-review`)
+  - McpServerSpec.env_spec resolution
+  - ${VAR_NAME} placeholder resolution in HTTP configs
+  - Secret handling for MCP servers
+  - Integration with ExecutionContext
+  
+- **MCP Server Lifecycle Management Project** (`20260127.04.mcp-server-lifecycle-management`)
+  - Stdio subprocess management
+  - HTTP client configuration
+  - Docker container orchestration
+  - Server health monitoring and cleanup
 
 ---
 
 ## Context for Resume
 
-**Where we left off (Session 6):**
+**Where we left off (Session 7):**
 - Phase 1 complete: McpServer proto definitions (6 files)
 - Phase 2 complete: AgentSpec proto migration + full SDK implementation  
 - Phase 3 complete: FGA authorization model with tri-scope support
 - Phase 4 complete: Java backend handlers with tri-scope CRUD operations
 - Phase 4.5 complete: Go OSS controller with all CRUD operations
+- Phase 5 complete: Architectural decision - existing handlers sufficient
 - All changes committed to both repos
-- `stigmer-cloud` FGA model committed (aa54ebbe)
-- `stigmer-cloud` backend handlers committed (30b555f1)
-- `stigmer` Go controller committed (edef047)
-- Agent runner integration is next (Phase 5)
+- CLI commands are next (Phase 6)
 
 **What's working:**
 - ✅ McpServer API resource fully defined (6 proto files)
@@ -459,13 +510,20 @@ Continue in `stigmer-cloud` repo for agent runtime integration.
 - ✅ Updated project tracking (stigmer: `fcd1cb8`)
 - ✅ Created session checkpoint
 
-**Notes for next session (Phase 5):**
-- Switch to `stigmer-cloud` repo for Agent Runner integration
-- Both backends (Java + Go) now have complete McpServer support
-- CLI can now manage MCP servers in local mode
-- Focus on runtime: resolve McpServerUsage → load McpServer → merge env vars → start server
-- Implement tri-scope resolution (platform, org, identity_account)
-- Test with all three server types (stdio, http, docker)
+**Session 7 Accomplishments (2026-01-27):**
+- ✅ Architectural review of Phase 5 requirements
+- ✅ Discovered `can_use` and `can_view` have identical FGA definitions
+- ✅ Decision: Existing `getByReference` handler is sufficient for runtime
+- ✅ Decision: Tool filtering belongs in agent-runner (Python), not Java
+- ✅ Updated project tracking to mark Phase 5 complete
+- ✅ Documented architectural decision with rationale
+
+**Notes for next session (Phase 6 - CLI Commands):**
+- Work in `stigmer` repo for CLI implementation
+- Both backends (Java + Go) have complete McpServer support
+- Follow patterns from Environment/Skill CLI commands
+- Implement CRUD commands for MCP servers
+- Test with local mode (Go controller)
 
 ---
 
@@ -495,18 +553,20 @@ Continue in `stigmer-cloud` repo for agent runtime integration.
 
 ## All Work Committed ✅
 
-No uncommitted changes. All Phase 1-4.5 work is complete and committed to both repositories.
+No uncommitted changes. All Phase 1-5 work is complete and committed to both repositories.
+
+**Note**: Phase 5 required no code changes - it was an architectural decision that existing handlers are sufficient.
 
 ---
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 5" - Start agent runner integration
-- "Commit Phase 4 changes" - Commit backend handlers
-- "Show me the handlers" - Review implementation
+- "Continue with Phase 6" - Start CLI commands implementation
+- "Show me the handlers" - Review Java/Go handler implementation
 - "Review design decisions" - Review architectural choices
 - "Show session notes" - See detailed progress from all sessions
+- "Show cross-project dependencies" - View relationships with env vars and lifecycle projects
 
 ---
 

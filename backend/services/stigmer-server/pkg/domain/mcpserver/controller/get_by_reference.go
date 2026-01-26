@@ -50,7 +50,7 @@ func (c *McpServerController) GetByReference(ctx context.Context, ref *apiresour
 // by the apiresource interceptor and injected into request context.
 func (c *McpServerController) buildGetByReferencePipeline() *pipeline.Pipeline[*apiresource.ApiResourceReference] {
 	return pipeline.NewPipeline[*apiresource.ApiResourceReference]("mcpserver-get-by-reference").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()).       // 1. Validate input
-		AddStep(steps.NewLoadByReferenceStep[*mcpserverv1.McpServer](c.store)). // 2. Load by slug
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()). // 1. Validate input
+		AddStep(steps.NewLoadByReferenceStep[*mcpserverv1.McpServer](c.store)).   // 2. Load by slug
 		Build()
 }

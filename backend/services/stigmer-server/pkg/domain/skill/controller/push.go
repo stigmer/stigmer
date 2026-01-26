@@ -73,10 +73,10 @@ func (c *SkillController) Push(ctx context.Context, req *skillv1.PushSkillReques
 // This pipeline converts PushSkillRequest → Skill:
 // 1. Validates request
 // 2. Builds initial Skill (without ID yet)
-// 3. Resolves slug from name
-// 4. Finds existing skill by slug (sets shouldCreate flag + existing ID if found)
-// 5. Generates ID if creating new (uses proper ID generation with prefix)
-// 6. Extracts SKILL.md and calculates hash
+// 3. Extracts SKILL.md, parses frontmatter, and calculates hash
+// 4. Resolves slug from extracted name
+// 5. Finds existing skill by slug (sets shouldCreate flag + existing ID if found)
+// 6. Generates ID if creating new (uses proper ID generation with prefix)
 // 7. Checks/stores artifact with deduplication
 // 8. Populates skill with artifact data and timestamps
 // 9. Archives the NEW skill (for version history)
@@ -85,10 +85,10 @@ func (c *SkillController) buildPushPipeline() *pipeline.Pipeline[*skillv1.PushSk
 	return pipeline.NewPipeline[*skillv1.PushSkillRequest]("skill-push").
 		AddStep(steps.NewValidateProtoStep[*skillv1.PushSkillRequest]()). // 1. Validate request
 		AddStep(c.newBuildInitialSkillStep()).                            // 2. Build Skill (no ID yet)
-		AddStep(c.newResolveSlugForPushStep()).                           // 3. Resolve slug
-		AddStep(c.newFindExistingBySlugStep()).                           // 4. Find by slug
-		AddStep(c.newGenerateIDIfNeededStep()).                           // 5. Generate ID if creating
-		AddStep(c.newExtractAndHashArtifactStep()).                       // 6. Extract SKILL.md
+		AddStep(c.newExtractAndHashArtifactStep()).                       // 3. Extract SKILL.md + parse frontmatter
+		AddStep(c.newResolveSlugForPushStep()).                           // 4. Resolve slug from extracted name
+		AddStep(c.newFindExistingBySlugStep()).                           // 5. Find by slug
+		AddStep(c.newGenerateIDIfNeededStep()).                           // 6. Generate ID if creating
 		AddStep(c.newCheckAndStoreArtifactStep()).                        // 7. Store artifact
 		AddStep(c.newPopulateSkillFieldsStep()).                          // 8. Populate fields
 		AddStep(c.newArchiveCurrentSkillStep()).                          // 9. Archive NEW skill
@@ -99,7 +99,8 @@ func (c *SkillController) buildPushPipeline() *pipeline.Pipeline[*skillv1.PushSk
 // BuildInitialSkillStep builds an initial Skill resource from PushSkillRequest
 //
 // This step creates a Skill with basic metadata from the request.
-// Note: ID and slug are NOT set here - they will be set by later steps.
+// Note: Name, ID, and slug are NOT set here - they will be set by later steps
+// after extracting name from SKILL.md frontmatter.
 type BuildInitialSkillStep struct{}
 
 func (c *SkillController) newBuildInitialSkillStep() *BuildInitialSkillStep {
@@ -113,14 +114,14 @@ func (s *BuildInitialSkillStep) Name() string {
 func (s *BuildInitialSkillStep) Execute(ctx *pipeline.RequestContext[*skillv1.PushSkillRequest]) error {
 	req := ctx.Input()
 
-	// Build initial Skill resource (ID will be set later)
+	// Build initial Skill resource
+	// Name will be set by ResolveSlugForPushStep from extracted frontmatter
+	// ID will be set by GenerateIDIfNeededStep or FindExistingBySlugStep
+	// Slug will be set by ResolveSlugForPushStep
 	skill := &skillv1.Skill{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Skill",
 		Metadata: &apiresourcepb.ApiResourceMetadata{
-			Name: req.Name, // User-provided name (will be stored as-is)
-			// Slug will be set by ResolveSlugForPushStep
-			// Id will be set by GenerateIDIfNeededStep or FindExistingBySlugStep
 			OwnerScope: req.Scope,
 			Org:        req.Org,
 		},
@@ -138,9 +139,10 @@ func (s *BuildInitialSkillStep) Execute(ctx *pipeline.RequestContext[*skillv1.Pu
 	return nil
 }
 
-// ResolveSlugForPushStep generates slug from name
+// ResolveSlugForPushStep generates slug from the extracted skill name
 //
-// This uses the exported GenerateSlug function from common library.
+// This step uses the name extracted from SKILL.md frontmatter (by ExtractAndHashArtifactStep)
+// to set the skill's metadata name and generate the slug.
 type ResolveSlugForPushStep struct{}
 
 func (c *SkillController) newResolveSlugForPushStep() *ResolveSlugForPushStep {
@@ -153,11 +155,15 @@ func (s *ResolveSlugForPushStep) Name() string {
 
 func (s *ResolveSlugForPushStep) Execute(ctx *pipeline.RequestContext[*skillv1.PushSkillRequest]) error {
 	skill := ctx.Get(SkillKey).(*skillv1.Skill)
+	extractResult := ctx.Get(ExtractResultKey).(*storage.ExtractSkillMdResult)
 
-	// Generate slug from name using common library
-	slug := steps.GenerateSlug(skill.Metadata.Name)
+	// Use name extracted from SKILL.md frontmatter
+	skill.Metadata.Name = extractResult.Name
+
+	// Generate slug from extracted name using common library
+	slug := steps.GenerateSlug(extractResult.Name)
 	if slug == "" {
-		return grpclib.InvalidArgumentError(fmt.Sprintf("invalid skill name: %s", skill.Metadata.Name))
+		return grpclib.InvalidArgumentError(fmt.Sprintf("invalid skill name: %s", extractResult.Name))
 	}
 
 	skill.Metadata.Slug = slug
@@ -260,10 +266,16 @@ func (s *GenerateIDIfNeededStep) Execute(ctx *pipeline.RequestContext[*skillv1.P
 	return nil
 }
 
-// ExtractAndHashArtifactStep extracts SKILL.md from ZIP and calculates SHA256 hash
+// ExtractAndHashArtifactStep extracts SKILL.md from ZIP, parses frontmatter, and calculates SHA256 hash
 //
-// This step validates the artifact and extracts the SKILL.md content safely.
-// Security measures are handled by storage.ExtractSkillMd (ZIP bomb prevention, etc.)
+// This step:
+// 1. Validates the artifact (ZIP bomb prevention, size limits, etc.)
+// 2. Extracts SKILL.md content safely (in-memory only)
+// 3. Parses YAML frontmatter to extract name and description
+// 4. Calculates SHA256 hash for content-addressable storage
+//
+// The extracted name and description are stored in the result for use by subsequent steps.
+// Security measures are handled by storage.ExtractSkillMd.
 type ExtractAndHashArtifactStep struct{}
 
 func (c *SkillController) newExtractAndHashArtifactStep() *ExtractAndHashArtifactStep {
@@ -413,8 +425,10 @@ func (s *ArchiveCurrentSkillStep) archiveSkill(ctx context.Context, skill *skill
 //
 // This step:
 // 1. Populates spec.skill_md from extracted SKILL.md content
-// 2. Sets status.version_hash and status.artifact_storage_key
-// 3. Sets audit fields using common library helpers:
+// 2. Sets spec.name and spec.description from extracted frontmatter
+// 3. Sets source metadata for traceability
+// 4. Sets status.version_hash and status.artifact_storage_key
+// 5. Sets audit fields using common library helpers:
 //   - For create: SetAuditFieldsForCreate (sets created_at = updated_at = now)
 //   - For update: Preserves existing audit, then updates with SetAuditFieldsForUpdate
 type PopulateSkillFieldsStep struct{}
@@ -432,15 +446,15 @@ func (s *PopulateSkillFieldsStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 	extractResult := ctx.Get(ExtractResultKey).(*storage.ExtractSkillMdResult)
 	storageKey := ctx.Get(ArtifactStorageKeyKey).(string)
 	shouldCreate := ctx.Get(ShouldCreateSkillKey).(bool)
+	req := ctx.Input()
 
 	// 1. Populate spec with extracted SKILL.md content
 	skill.Spec.SkillMd = extractResult.Content
 
-	// 2. Set skill name from request (extracted from SKILL.md YAML frontmatter)
-	req := ctx.Input()
-	if req.Name != "" {
-		skill.Spec.Name = req.Name
-	}
+	// 2. Set skill name and description from extracted frontmatter
+	// Backend is the single source of truth for parsing SKILL.md
+	skill.Spec.Name = extractResult.Name
+	skill.Spec.Description = extractResult.Description
 
 	// 3. Set source metadata for traceability (local git or remote git)
 	if req.Source != nil {

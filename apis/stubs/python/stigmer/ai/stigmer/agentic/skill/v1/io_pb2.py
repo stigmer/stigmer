@@ -27,7 +27,7 @@ from ai.stigmer.commons.apiresource import enum_pb2 as ai_dot_stigmer_dot_common
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/skill/v1/io.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\'\n\x07SkillId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xce\x02\n\x10PushSkillRequest\x12\x1a\n\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12U\n\x05scope\x18\x02 \x01(\x0e\x32\x35.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeB\x08\xbaH\x05\x82\x01\x02\x10\x01R\x05scope\x12\x10\n\x03org\x18\x03 \x01(\tR\x03org\x12\"\n\x08\x61rtifact\x18\x04 \x01(\x0c\x42\x06\xbaH\x03\xc8\x01\x01R\x08\x61rtifact\x12-\n\x03tag\x18\x05 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12@\n\x06source\x18\x06 \x01(\x0b\x32(.ai.stigmer.agentic.skill.v1.SkillSourceR\x06source\x12 \n\x0b\x64\x65scription\x18\x07 \x01(\tR\x0b\x64\x65scription\"~\n\x11PushSkillResponse\x12!\n\x0cversion_hash\x18\x01 \x01(\tR\x0bversionHash\x12\x30\n\x14\x61rtifact_storage_key\x18\x02 \x01(\tR\x12\x61rtifactStorageKey\x12\x10\n\x03tag\x18\x03 \x01(\tR\x03tag:\x02\x18\x01\"N\n\x12GetArtifactRequest\x12\x38\n\x14\x61rtifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12\x61rtifactStorageKey\"1\n\x13GetArtifactResponse\x12\x1a\n\x08\x61rtifact\x18\x01 \x01(\x0cR\x08\x61rtifactB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/skill/v1/io.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\'\n\x07SkillId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x90\x02\n\x10PushSkillRequest\x12U\n\x05scope\x18\x01 \x01(\x0e\x32\x35.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeB\x08\xbaH\x05\x82\x01\x02\x10\x01R\x05scope\x12\x10\n\x03org\x18\x02 \x01(\tR\x03org\x12\"\n\x08\x61rtifact\x18\x03 \x01(\x0c\x42\x06\xbaH\x03\xc8\x01\x01R\x08\x61rtifact\x12-\n\x03tag\x18\x04 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12@\n\x06source\x18\x05 \x01(\x0b\x32(.ai.stigmer.agentic.skill.v1.SkillSourceR\x06source\"N\n\x12GetArtifactRequest\x12\x38\n\x14\x61rtifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12\x61rtifactStorageKey\"1\n\x13GetArtifactResponse\x12\x1a\n\x08\x61rtifact\x18\x01 \x01(\x0cR\x08\x61rtifactB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,26 +37,20 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n\037com.ai.stigmer.agentic.skill.v1B\007IoProtoP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Skill.V1\312\002\033Ai\\Stigmer\\Agentic\\Skill\\V1\342\002\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Skill::V1'
   _globals['_SKILLID'].fields_by_name['value']._loaded_options = None
   _globals['_SKILLID'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_PUSHSKILLREQUEST'].fields_by_name['name']._loaded_options = None
-  _globals['_PUSHSKILLREQUEST'].fields_by_name['name']._serialized_options = b'\272H\003\310\001\001'
   _globals['_PUSHSKILLREQUEST'].fields_by_name['scope']._loaded_options = None
   _globals['_PUSHSKILLREQUEST'].fields_by_name['scope']._serialized_options = b'\272H\005\202\001\002\020\001'
   _globals['_PUSHSKILLREQUEST'].fields_by_name['artifact']._loaded_options = None
   _globals['_PUSHSKILLREQUEST'].fields_by_name['artifact']._serialized_options = b'\272H\003\310\001\001'
   _globals['_PUSHSKILLREQUEST'].fields_by_name['tag']._loaded_options = None
   _globals['_PUSHSKILLREQUEST'].fields_by_name['tag']._serialized_options = b'\272H\030r\0262\024^$|^[a-zA-Z0-9._-]+$'
-  _globals['_PUSHSKILLRESPONSE']._loaded_options = None
-  _globals['_PUSHSKILLRESPONSE']._serialized_options = b'\030\001'
   _globals['_GETARTIFACTREQUEST'].fields_by_name['artifact_storage_key']._loaded_options = None
   _globals['_GETARTIFACTREQUEST'].fields_by_name['artifact_storage_key']._serialized_options = b'\272H\003\310\001\001'
   _globals['_SKILLID']._serialized_start=181
   _globals['_SKILLID']._serialized_end=220
   _globals['_PUSHSKILLREQUEST']._serialized_start=223
-  _globals['_PUSHSKILLREQUEST']._serialized_end=557
-  _globals['_PUSHSKILLRESPONSE']._serialized_start=559
-  _globals['_PUSHSKILLRESPONSE']._serialized_end=685
-  _globals['_GETARTIFACTREQUEST']._serialized_start=687
-  _globals['_GETARTIFACTREQUEST']._serialized_end=765
-  _globals['_GETARTIFACTRESPONSE']._serialized_start=767
-  _globals['_GETARTIFACTRESPONSE']._serialized_end=816
+  _globals['_PUSHSKILLREQUEST']._serialized_end=495
+  _globals['_GETARTIFACTREQUEST']._serialized_start=497
+  _globals['_GETARTIFACTREQUEST']._serialized_end=575
+  _globals['_GETARTIFACTRESPONSE']._serialized_start=577
+  _globals['_GETARTIFACTRESPONSE']._serialized_end=626
 # @@protoc_insertion_point(module_scope)
