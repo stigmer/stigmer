@@ -73,8 +73,10 @@ func (x *SkillId) GetValue() string {
 // of an existing skill.
 type PushSkillRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Skill name (will be normalized to slug by backend).
-	// Examples: "Math Utils" → "math-utils", "Calculator" → "calculator"
+	// Skill name extracted from SKILL.md YAML frontmatter.
+	// Must match the 'name' field in the SKILL.md YAML header.
+	// Will be normalized to slug format by backend if needed.
+	// Examples: "calculator", "web-scraper", "math-utils"
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Owner scope of the skill (platform or organization).
 	Scope apiresource.ApiResourceOwnerScope `protobuf:"varint,2,opt,name=scope,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceOwnerScope" json:"scope,omitempty"`
@@ -82,7 +84,7 @@ type PushSkillRequest struct {
 	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
 	// Skill artifact as a Zip file (binary content).
 	// The Zip must contain:
-	// - SKILL.md (required): Interface definition and documentation
+	// - SKILL.md (required): Interface definition and documentation with YAML frontmatter
 	// - Tool executables/scripts (optional)
 	// - Additional files referenced in SKILL.md
 	Artifact []byte `protobuf:"bytes,4,opt,name=artifact,proto3" json:"artifact,omitempty"`
@@ -90,7 +92,11 @@ type PushSkillRequest struct {
 	// If provided, this tag will point to the new version.
 	// If empty/not provided, the version will only be accessible via its hash.
 	// Examples: "stable", "v1.0", "latest"
-	Tag           string `protobuf:"bytes,5,opt,name=tag,proto3" json:"tag,omitempty"`
+	Tag string `protobuf:"bytes,5,opt,name=tag,proto3" json:"tag,omitempty"`
+	// Source information tracking where the skill artifacts originated from.
+	// For local pushes, CLI auto-detects git information if available.
+	// For remote pushes, this contains the git URL, ref, and subdir.
+	Source        *SkillSource `protobuf:"bytes,6,opt,name=source,proto3" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -158,6 +164,13 @@ func (x *PushSkillRequest) GetTag() string {
 		return x.Tag
 	}
 	return ""
+}
+
+func (x *PushSkillRequest) GetSource() *SkillSource {
+	if x != nil {
+		return x.Source
+	}
+	return nil
 }
 
 // PushSkillResponse returns the version information after successful upload.
@@ -326,15 +339,16 @@ var File_ai_stigmer_agentic_skill_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/skill/v1/io.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"'\n" +
+	"$ai/stigmer/agentic/skill/v1/io.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"'\n" +
 	"\aSkillId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xea\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xac\x02\n" +
 	"\x10PushSkillRequest\x12\x1a\n" +
 	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12U\n" +
 	"\x05scope\x18\x02 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05scope\x12\x10\n" +
 	"\x03org\x18\x03 \x01(\tR\x03org\x12\"\n" +
 	"\bartifact\x18\x04 \x01(\fB\x06\xbaH\x03\xc8\x01\x01R\bartifact\x12-\n" +
-	"\x03tag\x18\x05 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\"~\n" +
+	"\x03tag\x18\x05 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12@\n" +
+	"\x06source\x18\x06 \x01(\v2(.ai.stigmer.agentic.skill.v1.SkillSourceR\x06source\"~\n" +
 	"\x11PushSkillResponse\x12!\n" +
 	"\fversion_hash\x18\x01 \x01(\tR\vversionHash\x120\n" +
 	"\x14artifact_storage_key\x18\x02 \x01(\tR\x12artifactStorageKey\x12\x10\n" +
@@ -365,14 +379,16 @@ var file_ai_stigmer_agentic_skill_v1_io_proto_goTypes = []any{
 	(*GetArtifactRequest)(nil),             // 3: ai.stigmer.agentic.skill.v1.GetArtifactRequest
 	(*GetArtifactResponse)(nil),            // 4: ai.stigmer.agentic.skill.v1.GetArtifactResponse
 	(apiresource.ApiResourceOwnerScope)(0), // 5: ai.stigmer.commons.apiresource.ApiResourceOwnerScope
+	(*SkillSource)(nil),                    // 6: ai.stigmer.agentic.skill.v1.SkillSource
 }
 var file_ai_stigmer_agentic_skill_v1_io_proto_depIdxs = []int32{
 	5, // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest.scope:type_name -> ai.stigmer.commons.apiresource.ApiResourceOwnerScope
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	6, // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest.source:type_name -> ai.stigmer.agentic.skill.v1.SkillSource
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_skill_v1_io_proto_init() }
@@ -380,6 +396,7 @@ func file_ai_stigmer_agentic_skill_v1_io_proto_init() {
 	if File_ai_stigmer_agentic_skill_v1_io_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_skill_v1_spec_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

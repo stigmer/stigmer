@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -46,6 +47,26 @@ type SkillArtifactResult struct {
 	ArtifactSize int64
 }
 
+// SkillFromGitOptions contains options for pushing a skill from a git repository
+type SkillFromGitOptions struct {
+	// Directory containing the skill (cloned from git)
+	Directory string
+	// Organization ID
+	OrgID string
+	// Tag for the skill version
+	Tag string
+	// gRPC connection to backend
+	Conn *grpc.ClientConn
+	// Quiet mode (suppress detailed output)
+	Quiet bool
+	// Git repository URL
+	GitURL string
+	// Git reference (tag, branch, or commit SHA)
+	GitRef string
+	// Subdirectory within the git repository
+	GitSubdir string
+}
+
 // HasSkillFile checks if the given directory contains a SKILL.md file
 func HasSkillFile(dir string) bool {
 	skillPath := filepath.Join(dir, SkillFileName)
@@ -69,10 +90,14 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 		return nil, fmt.Errorf("SKILL.md not found in %s", opts.Directory)
 	}
 
-	// Step 2: Get skill name from directory name
-	skillName := filepath.Base(opts.Directory)
+	// Step 2: Parse SKILL.md to get skill name from YAML frontmatter
+	metadata, err := ParseSkillMetadata(opts.Directory)
+	if err != nil {
+		return nil, err
+	}
+	skillName := metadata.Name
 	if !opts.Quiet {
-		cliprint.PrintInfo("Skill name: %s", skillName)
+		cliprint.PrintInfo("Skill name: %s (from SKILL.md)", skillName)
 	}
 
 	// Step 3: Create zip artifact
@@ -99,7 +124,10 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 		cliprint.PrintInfo("Version hash: %s", hashHex[:16]+"...") // Show first 16 chars
 	}
 
-	// Step 5: Upload to backend
+	// Step 5: Collect source information (git detection)
+	source := collectLocalSource(opts.Directory, opts.Quiet)
+
+	// Step 6: Upload to backend
 	if !opts.Quiet {
 		cliprint.PrintInfo("Uploading skill artifact...")
 	}
@@ -117,6 +145,117 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 		Org:      opts.OrgID,
 		Artifact: zipBytes,
 		Tag:      tag,
+		Source:   source,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to upload skill artifact")
+	}
+
+	if !opts.Quiet {
+		cliprint.PrintSuccess("✓ Skill artifact uploaded successfully")
+		cliprint.PrintInfo("  Version hash: %s", response.Status.VersionHash)
+		if response.Spec.Tag != "" {
+			cliprint.PrintInfo("  Tag: %s", response.Spec.Tag)
+		}
+	}
+
+	return &SkillArtifactResult{
+		SkillName:    skillName,
+		VersionHash:  response.Status.VersionHash,
+		StorageKey:   response.Status.ArtifactStorageKey,
+		Tag:          response.Spec.Tag,
+		ArtifactSize: artifactSize,
+	}, nil
+}
+
+// PushSkillFromGit uploads a skill artifact from a git repository with GitSource metadata.
+// This is used when pushing directly from a remote git URL.
+func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
+	// Step 1: Validate directory
+	if opts.Directory == "" {
+		return nil, errors.New("directory is required for git push")
+	}
+
+	// Ensure SKILL.md exists
+	if !HasSkillFile(opts.Directory) {
+		return nil, fmt.Errorf("SKILL.md not found in %s", opts.Directory)
+	}
+
+	// Step 2: Parse SKILL.md to get skill name from YAML frontmatter
+	metadata, err := ParseSkillMetadata(opts.Directory)
+	if err != nil {
+		return nil, err
+	}
+	skillName := metadata.Name
+	if !opts.Quiet {
+		cliprint.PrintInfo("Skill name: %s (from SKILL.md)", skillName)
+	}
+
+	// Step 3: Create zip artifact
+	if !opts.Quiet {
+		cliprint.PrintInfo("Creating skill artifact...")
+	}
+
+	zipBuffer := new(bytes.Buffer)
+	artifactSize, err := createSkillZip(opts.Directory, zipBuffer)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create skill artifact")
+	}
+
+	if !opts.Quiet {
+		cliprint.PrintSuccess("✓ Artifact created (%s)", formatBytes(artifactSize))
+	}
+
+	// Step 4: Calculate SHA256 hash
+	zipBytes := zipBuffer.Bytes()
+	hash := sha256.Sum256(zipBytes)
+	hashHex := fmt.Sprintf("%x", hash)
+
+	if !opts.Quiet {
+		cliprint.PrintInfo("Version hash: %s", hashHex[:16]+"...")
+	}
+
+	// Step 5: Create GitSource for source tracking
+	source := &skillv1.SkillSource{
+		Source: &skillv1.SkillSource_Git{
+			Git: &skillv1.GitSource{
+				Url:    opts.GitURL,
+				Ref:    opts.GitRef,
+				Subdir: opts.GitSubdir,
+			},
+		},
+	}
+
+	if !opts.Quiet {
+		cliprint.PrintInfo("Source: git repository")
+		cliprint.PrintInfo("  URL: %s", opts.GitURL)
+		if opts.GitRef != "" {
+			cliprint.PrintInfo("  Ref: %s", opts.GitRef)
+		}
+		if opts.GitSubdir != "" {
+			cliprint.PrintInfo("  Subdir: %s", opts.GitSubdir)
+		}
+	}
+
+	// Step 6: Upload to backend
+	if !opts.Quiet {
+		cliprint.PrintInfo("Uploading skill artifact...")
+	}
+
+	// Default tag to "latest" if not provided
+	tag := opts.Tag
+	if tag == "" {
+		tag = "latest"
+	}
+
+	client := skillv1.NewSkillCommandControllerClient(opts.Conn)
+	response, err := client.Push(context.Background(), &skillv1.PushSkillRequest{
+		Name:     skillName,
+		Scope:    apiresource.ApiResourceOwnerScope_organization,
+		Org:      opts.OrgID,
+		Artifact: zipBytes,
+		Tag:      tag,
+		Source:   source,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to upload skill artifact")
@@ -281,4 +420,99 @@ func formatBytes(bytes int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+// collectLocalSource detects git information and creates a SkillSource for local pushes.
+// If the directory is within a git repo, it collects remote URL, commit SHA, and subdir.
+func collectLocalSource(directory string, quiet bool) *skillv1.SkillSource {
+	localSource := &skillv1.LocalSource{
+		IsGitRepo: false,
+	}
+
+	// Check if we're in a git repo
+	repoRoot, err := getGitRepoRoot(directory)
+	if err != nil {
+		// Not a git repo, return empty local source
+		if !quiet {
+			cliprint.PrintInfo("Source: local directory (not a git repository)")
+		}
+		return &skillv1.SkillSource{
+			Source: &skillv1.SkillSource_Local{Local: localSource},
+		}
+	}
+
+	localSource.IsGitRepo = true
+
+	// Get git remote URL (origin)
+	if remoteURL, err := getGitRemoteURL(directory); err == nil && remoteURL != "" {
+		localSource.GitRemoteUrl = remoteURL
+	}
+
+	// Get current commit SHA
+	if commit, err := getGitCommit(directory); err == nil && commit != "" {
+		localSource.GitCommit = commit
+	}
+
+	// Calculate subdir relative to repo root
+	absDir, err := filepath.Abs(directory)
+	if err == nil {
+		relPath, err := filepath.Rel(repoRoot, absDir)
+		if err == nil && relPath != "." {
+			localSource.Subdir = relPath
+		}
+	}
+
+	if !quiet {
+		if localSource.GitRemoteUrl != "" {
+			cliprint.PrintInfo("Source: git repository")
+			cliprint.PrintInfo("  Remote: %s", localSource.GitRemoteUrl)
+			if localSource.GitCommit != "" {
+				cliprint.PrintInfo("  Commit: %s", localSource.GitCommit[:min(12, len(localSource.GitCommit))])
+			}
+			if localSource.Subdir != "" {
+				cliprint.PrintInfo("  Subdir: %s", localSource.Subdir)
+			}
+		} else {
+			cliprint.PrintInfo("Source: local git repository (no remote)")
+		}
+	}
+
+	return &skillv1.SkillSource{
+		Source: &skillv1.SkillSource_Local{Local: localSource},
+	}
+}
+
+// getGitRepoRoot returns the root directory of the git repository.
+// Returns an error if not in a git repository.
+func getGitRepoRoot(directory string) (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	cmd.Dir = directory
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+// getGitRemoteURL returns the URL of the "origin" remote.
+// Returns empty string if no origin remote exists.
+func getGitRemoteURL(directory string) (string, error) {
+	cmd := exec.Command("git", "remote", "get-url", "origin")
+	cmd.Dir = directory
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+// getGitCommit returns the current HEAD commit SHA.
+func getGitCommit(directory string) (string, error) {
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = directory
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
 }
