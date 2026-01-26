@@ -1,7 +1,7 @@
 {
   "name": "AgentSpec",
   "kind": "AGENT_SPEC",
-  "description": "AgentSpec defines the configurable properties of an AI agent.\n This is the \"Template\" layer - immutable logic that declares requirements.",
+  "description": "AgentSpec defines the configurable properties of an AI agent.\n This is the \"Template\" layer - declares capabilities and requirements.\n\n Example YAML:\n   apiVersion: agentic.stigmer.ai/v1\n   kind: Agent\n   metadata:\n     name: engineering-assistant\n     slug: eng-assistant\n   spec:\n     description: \"Helps engineering teams with code review\"\n     instructions: \"You are an engineering assistant...\"\n     mcp_server_usages:\n       - mcp_server_ref:\n           scope: platform\n           slug: github\n         enabled_tools: [search_code, create_pr]\n     skill_refs:\n       - scope: platform\n         kind: 43\n         slug: code-review-best-practices",
   "protoType": "ai.stigmer.agentic.agent.v1.AgentSpec",
   "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
   "fields": [
@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Human-readable description for UI and marketplace display.",
+      "description": "Human-readable description for UI and marketplace display.\n Should explain what this agent does and its primary capabilities.",
       "required": false
     },
     {
@@ -22,7 +22,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Icon URL for marketplace and UI display.",
+      "description": "Icon URL for marketplace and UI display.\n Should be a publicly accessible URL to an image (SVG, PNG, or JPEG).",
       "required": false
     },
     {
@@ -32,24 +32,24 @@
       "type": {
         "kind": "string"
       },
-      "description": "Instructions defining the agent's behavior and personality (min 10 characters).",
+      "description": "Instructions defining the agent's behavior and personality.\n This is the agent's system prompt - the core logic that shapes its responses.\n Should be at least 10 characters to ensure meaningful instructions.",
       "required": false,
       "validation": {
         "minLength": 10
       }
     },
     {
-      "name": "McpServers",
-      "jsonName": "mcpServers",
-      "protoField": "mcp_servers",
+      "name": "McpServerUsages",
+      "jsonName": "mcpServerUsages",
+      "protoField": "mcp_server_usages",
       "type": {
         "kind": "array",
         "elementType": {
           "kind": "message",
-          "messageType": "McpServerDefinition"
+          "messageType": "McpServerUsage"
         }
       },
-      "description": "MCP server definitions declaring required servers (not configured instances).\n Actual configuration with secrets happens at AgentInstance level.",
+      "description": "MCP servers this Agent can use.\n Each usage references a McpServer resource by its ref.\n The slug from each reference must be unique within this Agent.",
       "required": false
     },
     {
@@ -63,7 +63,7 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "References to Skill resources providing agent knowledge.",
+      "description": "Skill resources providing agent knowledge.\n Skills are injected into the agent's context as additional capabilities.",
       "required": false
     },
     {
@@ -77,7 +77,7 @@
           "messageType": "SubAgent"
         }
       },
-      "description": "Sub-agents that can be delegated to (inline or referenced).",
+      "description": "Sub-agents that can be delegated to.\n Sub-agents inherit the parent's MCP server usages but can have restricted access.",
       "required": false
     },
     {
@@ -88,7 +88,7 @@
         "kind": "message",
         "messageType": "EnvironmentSpec"
       },
-      "description": "Environment variables required by the agent.\n Uses the shared EnvironmentSpec for consistent env var handling.",
+      "description": "Environment variables required by the agent.\n Uses the shared EnvironmentSpec for consistent env var handling across resources.",
       "required": false
     }
   ]
