@@ -8,7 +8,7 @@
 
 ## Current State
 
-**Phase**: Phases 1, 2, 3 COMPLETE - Phase 4 or 5 Ready  
+**Phase**: Phases 1, 2, 3, 4 COMPLETE - Phase 5 Ready  
 **Current Task**: Choose from Available Phases below (one at a time)  
 **Build Status**: PASSES (`go build ./...` succeeds, Go 1.25.6 standardized)
 
@@ -16,10 +16,42 @@
 - Phase 1: `.cursor/plans/phase_1_codegen_fixes_bcc0bef0.plan.md`
 - Phase 2: `.cursor/plans/build_system_unification_a491a412.plan.md`
 - Phase 3: `.cursor/plans/sdk_package_fixes_c88ae76a.plan.md`
+- Phase 4: `.cursor/plans/phase_4_pulumi_patterns_a6d626bc.plan.md`
 
 ---
 
 ## Session Progress
+
+### Session 9 (2026-01-26) - Phase 4 Complete: Pulumi Pattern Adoption
+
+**Completed**: context.Context integration and enhanced error types
+- **Task 4.1**: Added context.Context support to SDK Context (Pulumi pattern)
+- **Task 4.2**: Added ResourceError and SynthesisError types with structured fields
+
+**Accomplishments**:
+- Added `ctx context.Context` field to `stigmer.Context` struct
+- Added `Context()`, `WithValue()`, `Value()`, `Done()`, `Err()` accessor methods
+- Added `RunWithContext(ctx context.Context, fn)` for cancellation/timeout support
+- Added `NewContextWithContext(ctx context.Context)` constructor
+- Updated `Run()` to delegate to `RunWithContext(context.Background(), fn)`
+- Added `ResourceError` type with ResourceType, ResourceName, Operation fields
+- Added `SynthesisError` type with Phase, ResourceType, ResourceName fields
+- Added sentinel errors: `ErrSynthesisAlreadyDone`, `ErrSynthesisFailed`, `ErrManifestWrite`
+- Exported new error types via aliases in agent and workflow packages
+- Updated Context synthesis methods to use structured errors
+
+**Files Modified** (4 files):
+- `sdk/go/stigmer/context.go` - Added context.Context support, updated synthesis errors
+- `sdk/go/internal/validation/errors.go` - Added ResourceError, SynthesisError types
+- `sdk/go/agent/errors.go` - Added ResourceError, SynthesisError aliases
+- `sdk/go/workflow/errors.go` - Added ResourceError, SynthesisError aliases
+
+**Key Patterns Adopted**:
+- **Pulumi context pattern**: Embed `context.Context` for cancellation/timeouts/values
+- **Structured errors**: ResourceError and SynthesisError with resource identification
+- **Backward compatibility**: All existing APIs work unchanged
+
+**Build Status**: ✅ PASSES (`go build ./...` succeeds)
 
 ### Session 8 (2026-01-26) - Phase 2 Complete: Build System Unification
 
@@ -116,36 +148,41 @@
 
 ## Executive Summary
 
-**Phases 1, 2, 3 COMPLETE**. Major progress on code quality, build system, and simplification:
+**Phases 1, 2, 3, 4 COMPLETE**. Major progress on code quality, build system, simplification, and patterns:
 
 **Phase 1 (Codegen)**: Tools are clean, DRY, robust, and comprehensive
 **Phase 2 (Build)**: Build system documented, standardized, dead code removed
 **Phase 3 (SDK)**: SubAgent simplified (inline-only), enum conversion fixed, dead code removed
+**Phase 4 (Patterns)**: context.Context integration, enhanced error types with resource identification
 
 **Impact**:
 - Build System: Documented canonical approach (Go + Make), Go 1.25.6 everywhere, -785 lines
 - Proto: Flatter, simpler SubAgent structure (-412 lines net across codebase)
 - SDK: Cleaner API surface, fewer concepts, better type safety
+- Context: Cancellation/timeout/values support via context.Context (Pulumi pattern)
+- Errors: ResourceError and SynthesisError with structured resource identification
 - Build: Passes cleanly with consistent Go version
 
-**Remaining phases**: Enhancements (Phase 4), documentation (Phase 5), final test/example fixes.
+**Remaining phases**: Documentation (Phase 5), final test/example fixes.
 
 ---
 
-## Next Steps (Session 9)
+## Next Steps (Session 10)
 
-**Immediate Next Action**: Choose one of the remaining phases
+**Immediate Next Action**: Choose Phase 5 or Final Tasks
 
-**Recommended**: **Phase 4 (Pulumi Pattern Adoption)**
-- Add context.Context support to SDK Context
-- Enhance error types with structured fields
+**Recommended**: **Phase 5 (Documentation)**
+- Create audit report checkpoint documents
+- Update architecture documentation
 
-**Alternative**: Skip to **Phase 5 (Documentation)** if enhancements can wait
+**Alternative**: Jump to **Final Tasks** (5a, 5b, 5c) if documentation can wait
 
 **Context for Resume**:
-- Build system is now documented and standardized (Go 1.25.6 everywhere)
+- Build system is documented and standardized (Go 1.25.6 everywhere)
 - SubAgent is simplified (inline-only, flattened proto)
 - Code generation pipeline is clean and comprehensive
+- **context.Context integration complete** (Pulumi pattern)
+- **Enhanced error types complete** (ResourceError, SynthesisError)
 - Test files need comprehensive update (Task 5a - ~300 lines) - saved for end
 - Build passes cleanly, ready for next phase
 
@@ -157,30 +194,20 @@
 
 All tasks completed in Session 6.
 
-### Phase 2: Build System Unification
+### ~~Phase 2: Build System Unification~~ COMPLETE
 
-| Task | Severity | Description | Location |
-|------|----------|-------------|----------|
-| **2.1** | HIGH | Document canonical build system decision | Decision: Go vs Bazel |
-| **2.2** | HIGH | Fix/remove GoReleaser configuration | `.goreleaser.yml:32-48` |
-| **2.3** | MEDIUM | Pin Go version consistently | CI: 1.22 vs MODULE.bazel: 1.24.6 |
+All tasks completed in Session 8.
 
 ### ~~Phase 3: SDK Package Fixes~~ COMPLETE
 
-| Task | Severity | Description | Status |
+All tasks completed in Session 7.
+
+### ~~Phase 4: Pulumi Pattern Adoption~~ COMPLETE
+
+| Task | Priority | Description | Status |
 |------|----------|-------------|--------|
-| ~~**3.1**~~ | ~~HIGH~~ | ~~Remove DEBUG statements from generated code~~ | DONE (via Phase 1) |
-| ~~**3.2**~~ | ~~HIGH~~ | ~~Fix subagent Scope/Kind enum conversion~~ | DONE (Session 7) |
-| ~~**3.3**~~ | ~~MEDIUM~~ | ~~Implement Organization() for references~~ | SUPERSEDED (references removed) |
-| ~~**3.4**~~ | ~~LOW~~ | ~~Fix environment warning system~~ | DONE (Session 7) |
-| **EXTRA** | HIGH | Simplify SubAgent proto (flatten, inline-only) | DONE (Session 7) |
-
-### Phase 4: Pulumi Pattern Adoption (Optional Enhancements)
-
-| Task | Priority | Description |
-|------|----------|-------------|
-| **4.1** | MEDIUM | Add context.Context support to SDK Context |
-| **4.2** | LOW | Enhance error types with structured fields |
+| ~~**4.1**~~ | ~~MEDIUM~~ | ~~Add context.Context support to SDK Context~~ | DONE (Session 9) |
+| ~~**4.2**~~ | ~~LOW~~ | ~~Enhance error types with structured fields~~ | DONE (Session 9) |
 
 ### Phase 5: Documentation
 
@@ -245,18 +272,18 @@ All tasks completed in Session 6.
 
 ## Uncommitted Changes
 
-**Status**: UNCOMMITTED - Phase 2 changes ready for commit
+**Status**: Phase 4 changes ready to commit
 
-**Working Directory State**:
+**Pending Changes** (5 files, +648/-64 lines):
 ```
-Files: 39 files changed, 79 insertions(+), 785 deletions(-)
-- Created: docs/architecture/build-system.md
-- Deleted: .goreleaser.yml
-- Updated: CI workflows, MODULE.bazel, go.mod files
-Build: PASSES
+sdk/go/stigmer/context.go - Added context.Context support (+273 lines)
+sdk/go/internal/validation/errors.go - Added ResourceError, SynthesisError (+250 lines)
+sdk/go/agent/errors.go - Added error type aliases (+44 lines)
+sdk/go/workflow/errors.go - Added error type aliases (+44 lines)
+_projects/.../next-task.md - Session 9 progress (+101/-64 lines)
 ```
 
-**Latest Commit**: `de5a839` - refactor(apis,sdk): simplify SubAgent to inline-only (breaking)
+**Previous Commit**: `8119659` - chore(build): standardize Go version and document build system
 
 ---
 
@@ -275,6 +302,10 @@ Build: PASSES
 | protovalidate for validation | Single source of truth, backend/SDK alignment, -1,175 lines |
 | SDK-specific validations only | Name formats, uniqueness checks not in proto |
 | protoreflect for validation extraction | Type-safe, comprehensive, maintainable |
+| Embed context.Context in SDK Context | Pulumi pattern - enables cancellation, timeouts, request-scoped values |
+| ResourceError with resource identification | Better diagnostics when multiple resources processed |
+| SynthesisError for synthesis phase | Structured errors with phase, resource type, resource name |
+| Backward-compatible context additions | Run() delegates to RunWithContext(), NewContext() uses Background() |
 
 ---
 

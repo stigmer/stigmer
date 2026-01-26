@@ -58,3 +58,47 @@ func NewConversionError(typeName, field, message string) *ConversionError {
 func NewConversionErrorWithCause(typeName, field, message string, err error) *ConversionError {
 	return validation.NewConversionErrorWithCause(typeName, field, message, err)
 }
+
+// =============================================================================
+// Resource Errors
+// =============================================================================
+
+// ResourceError is an alias to the shared resource error type.
+// This provides context about which agent failed and during what operation.
+type ResourceError = validation.ResourceError
+
+// SynthesisError is an alias to the shared synthesis error type.
+// This provides context about synthesis failures.
+type SynthesisError = validation.SynthesisError
+
+// Synthesis sentinel errors re-exported for convenience.
+var (
+	// ErrSynthesisAlreadyDone indicates synthesis was already performed.
+	ErrSynthesisAlreadyDone = validation.ErrSynthesisAlreadyDone
+
+	// ErrSynthesisFailed indicates the synthesis operation failed.
+	ErrSynthesisFailed = validation.ErrSynthesisFailed
+
+	// ErrManifestWrite indicates a failure to write a manifest file.
+	ErrManifestWrite = validation.ErrManifestWrite
+)
+
+// NewResourceError creates a new resource error for an agent.
+// This is a convenience wrapper that pre-fills ResourceType as "Agent".
+//
+// Example:
+//
+//	err := agent.NewResourceError("code-reviewer", "validation", "missing instructions")
+func NewResourceError(name, operation, message string) *ResourceError {
+	return validation.NewResourceError("Agent", name, operation, message)
+}
+
+// NewResourceErrorWithCause creates a new resource error for an agent with a cause.
+// This is a convenience wrapper that pre-fills ResourceType as "Agent".
+//
+// Example:
+//
+//	err := agent.NewResourceErrorWithCause("code-reviewer", "validation", "name is required", ErrInvalidName)
+func NewResourceErrorWithCause(name, operation, message string, err error) *ResourceError {
+	return validation.NewResourceErrorWithCause("Agent", name, operation, message, err)
+}
