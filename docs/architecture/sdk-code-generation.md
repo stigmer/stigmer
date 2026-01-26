@@ -79,7 +79,12 @@ Schemas define task structure in language-agnostic JSON format.
       "jsonName": "variables",
       "type": {"kind": "map", "keyType": {...}, "valueType": {...}},
       "description": "Variables to set...",
-      "required": true
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1,
+        "maxLength": 100
+      }
     }
   ]
 }
@@ -90,7 +95,73 @@ Schemas define task structure in language-agnostic JSON format.
 - Collections: map, array
 - Complex: message (nested), struct (map[string]interface{})
 
-### 2. Code Generator (`tools/codegen/generator/main.go`)
+**Validation Support** (Phase 1 Enhancement):
+The schema format supports comprehensive validation metadata extracted from proto files:
+- `required` - Field is required
+- `minLength`/`maxLength` - String length constraints
+- `gte`/`lte` - Numeric value constraints
+- `minItems`/`maxItems` - Array size constraints
+- `pattern` - Regex pattern matching
+- `enum` - Allowed string values (from `string.in`)
+
+### 2. Proto-to-Schema Tool (`tools/codegen/proto2schema/main.go`)
+
+Parses proto files and generates JSON schemas with validation metadata.
+
+**Features** (Phase 1 Improvements):
+- Uses protoreflect APIs for type-safe proto parsing
+- Comprehensive buf.validate constraint extraction
+- Multi-namespace scanning (agentic, iam, tenancy)
+- Handles nested message types
+- Generates validation metadata
+
+**Validation Extraction**:
+Uses `proto.GetExtension()` with buf.validate for proper constraint extraction:
+
+```go
+import (
+    "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+    "google.golang.org/protobuf/proto"
+)
+
+func extractValidation(field *desc.FieldDescriptor) *Validation {
+    opts := field.GetFieldOptions()
+    ext := proto.GetExtension(opts, validate.E_Field)
+    fieldConstraints := ext.(*validate.FieldConstraints)
+    
+    // Extract all constraint types:
+    // - required, min_len, max_len
+    // - pattern, string.in (enums)
+    // - gte, lte, min_items, max_items
+    // - float/double constraints
+}
+```
+
+**Supported Validation Types** (Phase 1):
+| Validation Type | Extraction Method | Status |
+|-----------------|-------------------|--------|
+| `required` | `fieldConstraints.GetRequired()` | ✅ Complete |
+| `min_len` / `max_len` | `strConstraints.MinLen/MaxLen` | ✅ Complete |
+| `pattern` | `strConstraints.Pattern` | ✅ Complete |
+| `string.in` (enums) | `strConstraints.In` | ✅ Complete |
+| `gte` / `lte` | `intConstraints.Gte/Lte` | ✅ Complete |
+| `min_items` / `max_items` | `repeatedConstraints` | ✅ Complete |
+| `float.gte` / `double.gte` | `floatConstraints` | ✅ Complete |
+
+**Namespace Coverage** (Phase 1):
+```go
+// Scans all Stigmer namespaces:
+topLevelNamespaces := []string{"agentic", "iam", "tenancy"}
+
+// Generates schemas for:
+// - apis/ai/stigmer/agentic/agent/v1/spec.proto
+// - apis/ai/stigmer/agentic/workflow/v1/spec.proto
+// - apis/ai/stigmer/iam/apikey/v1/spec.proto
+// - apis/ai/stigmer/iam/iampolicy/v1/spec.proto
+// - apis/ai/stigmer/tenancy/organization/v1/spec.proto
+```
+
+### 3. Code Generator (`tools/codegen/generator/main.go`)
 
 Self-contained Go program that generates code from schemas.
 
@@ -103,8 +174,15 @@ Self-contained Go program that generates code from schemas.
 - Formats with `go/format`
 - Manages imports automatically
 - Preserves documentation
+- **Phase 1**: Clean code generation (no DEBUG statements)
 
 **Inspiration**: Pulumi's code generator (direct generation with `fmt.Fprintf`, not templates)
+
+**Quality Assurance** (Phase 1):
+- No DEBUG statements in generated code
+- Proper error handling
+- Type-safe code generation
+- Dead code removed (generateHelpersFile deleted)
 
 ### 3. Generated Code
 
@@ -864,6 +942,76 @@ cd sdk/go/workflow && go build .
 **Total Time**: 5 hours (vs 1-2 weeks estimated)
 
 **Status**: Production-ready and working
+
+---
+
+## Code Generation Quality Improvements (2026-01-26)
+
+### Phase 1: Pipeline Fixes
+
+A comprehensive quality review identified and fixed several critical issues:
+
+#### Issue 1: DEBUG Statements in Production Code (FIXED)
+**Problem**: Generator was embedding `fmt.Printf("DEBUG ...")` statements into generated SDK code.
+
+**Root Cause**: Lines 1032 and 1046 in generator/main.go explicitly generated DEBUG output.
+
+**Fix**: Removed DEBUG-generating lines. Generated code is now production-clean.
+
+**Verification**: `grep -r "DEBUG" sdk/go/gen/` returns no matches.
+
+#### Issue 2: Dead Code Removed
+**Problem**: `generateHelpersFile()` function (55 lines) was never called.
+
+**Fix**: Deleted dead function. Generator is now cleaner and more maintainable.
+
+#### Issue 3: Robust Validation Extraction
+**Problem**: Used brittle string matching instead of proper protoreflect APIs.
+
+**Old Approach** (Brittle):
+```go
+protoText := field.AsProto().String()
+if strings.Contains(protoText, "required") { ... }  // Fragile!
+```
+
+**New Approach** (Robust):
+```go
+ext := proto.GetExtension(opts, validate.E_Field)
+fieldConstraints := ext.(*validate.FieldConstraints)
+if fieldConstraints.GetRequired() { ... }  // Type-safe!
+```
+
+**Benefits**:
+- Type-safe validation extraction
+- Comprehensive constraint coverage (pattern, string.in, float constraints)
+- Resilient to proto format changes
+- Proper API usage
+
+#### Issue 4: Multi-Namespace Support
+**Problem**: Only scanned `agentic` namespace, missing IAM and tenancy resources.
+
+**Fix**: Extended to scan all Stigmer namespaces:
+```go
+topLevelNamespaces := []string{"agentic", "iam", "tenancy"}
+```
+
+**Result**: Complete coverage of all API resources.
+
+### Impact
+
+**Code Quality**:
+- Zero DEBUG statements in generated code
+- -57 lines of dead code removed
+- Type-safe validation extraction
+- Complete namespace coverage
+
+**Validation Extraction**:
+- 7 validation types now fully supported (was 4 partial)
+- Proper protoreflect API usage
+- Comprehensive buf.validate constraint extraction
+
+**Documentation**:
+See `docs/audit-reports/sdk-codegen-review-2026-01/phase-1-codegen-pipeline.md` for complete audit report.
 
 ---
 

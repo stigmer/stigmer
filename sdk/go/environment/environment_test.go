@@ -4,18 +4,23 @@ import (
 	"testing"
 )
 
+// mockContext implements the Context interface for testing
+type mockContext struct{}
+
 func TestNew(t *testing.T) {
+	ctx := &mockContext{}
+
 	tests := []struct {
 		name    string
-		opts    []Option
+		varName string
+		args    *VariableArgs
 		want    Variable
 		wantErr bool
 	}{
 		{
-			name: "minimal required variable",
-			opts: []Option{
-				WithName("GITHUB_TOKEN"),
-			},
+			name:    "minimal required variable",
+			varName: "GITHUB_TOKEN",
+			args:    nil,
 			want: Variable{
 				Name:     "GITHUB_TOKEN",
 				Required: true,
@@ -23,11 +28,11 @@ func TestNew(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "secret variable with description",
-			opts: []Option{
-				WithName("API_KEY"),
-				WithSecret(true),
-				WithDescription("API key for external service"),
+			name:    "secret variable with description",
+			varName: "API_KEY",
+			args: &VariableArgs{
+				IsSecret:    true,
+				Description: "API key for external service",
 			},
 			want: Variable{
 				Name:        "API_KEY",
@@ -38,26 +43,26 @@ func TestNew(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "optional variable with default",
-			opts: []Option{
-				WithName("AWS_REGION"),
-				WithDefaultValue("us-east-1"),
-				WithDescription("AWS region"),
+			name:    "optional variable with default",
+			varName: "AWS_REGION",
+			args: &VariableArgs{
+				DefaultValue: "us-east-1",
+				Description:  "AWS region",
 			},
 			want: Variable{
 				Name:         "AWS_REGION",
 				DefaultValue: "us-east-1",
 				Description:  "AWS region",
-				Required:     false, // Automatically set by WithDefaultValue
+				Required:     false, // Automatically set by DefaultValue
 			},
 			wantErr: false,
 		},
 		{
-			name: "config variable not secret",
-			opts: []Option{
-				WithName("LOG_LEVEL"),
-				WithSecret(false),
-				WithDefaultValue("info"),
+			name:    "config variable not secret",
+			varName: "LOG_LEVEL",
+			args: &VariableArgs{
+				IsSecret:     false,
+				DefaultValue: "info",
 			},
 			want: Variable{
 				Name:         "LOG_LEVEL",
@@ -68,10 +73,10 @@ func TestNew(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "explicitly optional",
-			opts: []Option{
-				WithName("DEBUG_MODE"),
-				WithRequired(false),
+			name:    "explicitly optional",
+			varName: "DEBUG_MODE",
+			args: &VariableArgs{
+				Required: ptrBool(false),
 			},
 			want: Variable{
 				Name:     "DEBUG_MODE",
@@ -81,35 +86,32 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name:    "missing name",
-			opts:    []Option{},
+			varName: "",
+			args:    nil,
 			wantErr: true,
 		},
 		{
-			name: "invalid name - lowercase",
-			opts: []Option{
-				WithName("github_token"),
-			},
+			name:    "invalid name - lowercase",
+			varName: "github_token",
+			args:    nil,
 			wantErr: true,
 		},
 		{
-			name: "invalid name - starts with number",
-			opts: []Option{
-				WithName("1_TOKEN"),
-			},
+			name:    "invalid name - starts with number",
+			varName: "1_TOKEN",
+			args:    nil,
 			wantErr: true,
 		},
 		{
-			name: "invalid name - special characters",
-			opts: []Option{
-				WithName("GITHUB-TOKEN"),
-			},
+			name:    "invalid name - special characters",
+			varName: "GITHUB-TOKEN",
+			args:    nil,
 			wantErr: true,
 		},
 		{
-			name: "valid name with numbers",
-			opts: []Option{
-				WithName("API_KEY_V2"),
-			},
+			name:    "valid name with numbers",
+			varName: "API_KEY_V2",
+			args:    nil,
 			want: Variable{
 				Name:     "API_KEY_V2",
 				Required: true,
@@ -117,10 +119,9 @@ func TestNew(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "valid name with underscores",
-			opts: []Option{
-				WithName("MY_SUPER_LONG_VAR_NAME"),
-			},
+			name:    "valid name with underscores",
+			varName: "MY_SUPER_LONG_VAR_NAME",
+			args:    nil,
 			want: Variable{
 				Name:     "MY_SUPER_LONG_VAR_NAME",
 				Required: true,
@@ -131,12 +132,12 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := New(tt.opts...)
+			got, err := New(ctx, tt.varName, tt.args)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !tt.wantErr {
+			if !tt.wantErr && got != nil {
 				if got.Name != tt.want.Name {
 					t.Errorf("New().Name = %v, want %v", got.Name, tt.want.Name)
 				}
@@ -155,6 +156,11 @@ func TestNew(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ptrBool returns a pointer to a bool value
+func ptrBool(b bool) *bool {
+	return &b
 }
 
 func TestVariableString(t *testing.T) {
@@ -204,36 +210,6 @@ func TestVariableString(t *testing.T) {
 			got := tt.variable.String()
 			if got != tt.want {
 				t.Errorf("Variable.String() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestIsValidEnvVarName(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  string
-		want bool
-	}{
-		{"valid uppercase", "GITHUB_TOKEN", true},
-		{"valid with numbers", "API_KEY_V2", true},
-		{"valid with underscores", "MY_SUPER_VAR", true},
-		{"valid single char", "X", true},
-		{"invalid empty", "", false},
-		{"invalid lowercase", "github_token", false},
-		{"invalid mixed case", "GitHub_Token", false},
-		{"invalid starts with number", "2FA_TOKEN", false},
-		{"invalid hyphen", "API-KEY", false},
-		{"invalid dot", "API.KEY", false},
-		{"invalid space", "API KEY", false},
-		{"invalid special chars", "API_KEY!", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := isValidEnvVarName(tt.arg)
-			if got != tt.want {
-				t.Errorf("isValidEnvVarName(%q) = %v, want %v", tt.arg, got, tt.want)
 			}
 		})
 	}

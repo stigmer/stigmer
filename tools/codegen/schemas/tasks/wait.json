@@ -13,7 +13,11 @@
         "kind": "int32"
       },
       "description": "Number of seconds to wait.\n Must be at least 1 second.",
-      "required": false
+      "required": true,
+      "validation": {
+        "required": true,
+        "min": 1
+      }
     }
   ]
 }

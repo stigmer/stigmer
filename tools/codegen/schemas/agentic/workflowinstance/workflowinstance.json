@@ -1,0 +1,46 @@
+{
+  "name": "WorkflowInstanceSpec",
+  "kind": "WORKFLOW_INSTANCE_SPEC",
+  "description": "WorkflowInstanceSpec defines the user-configurable properties for a WorkflowInstance.\n\n This is the \"Instance\" layer in the Template→Instance→Execution pattern.\n It provides stateful configuration with environment bindings and secrets.\n\n The spec contains:\n - A reference to the Workflow template (the orchestration blueprint)\n - Descriptive metadata for humans\n - Environment references (layered configuration with secrets)\n\n Design Philosophy:\n WorkflowInstanceSpec separates \"what to run\" (Workflow) from \"how to run it\" (Environments).\n This allows the same Workflow template to be instantiated multiple times with different\n configurations (dev vs prod, different cloud accounts, different teams).",
+  "protoType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec",
+  "protoFile": "apis/ai/stigmer/agentic/workflowinstance/v1/spec.proto",
+  "fields": [
+    {
+      "name": "WorkflowId",
+      "jsonName": "workflowId",
+      "protoField": "workflow_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Reference to the Workflow template this instance deploys.\n\n This links the instance to a reusable orchestration blueprint.\n The Workflow defines which AgentInstances to orchestrate and in what order.\n\n Format: Workflow resource ID (e.g., \"wfl-abc123\")\n Validation: Minimum length of 1 character (required field)\n\n Example: \"wfl-abc123\" (references a Workflow named \"deploy-to-cloud\")",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description explaining what this instance is for.\n\n Use this to document:\n - Purpose of this instance\n - Environment it targets (dev, staging, prod)\n - Team or project ownership\n - Special configuration notes\n\n Examples:\n - \"Production CI/CD pipeline for main branch\"\n - \"Staging environment deployment for feature testing\"\n - \"Data pipeline for analytics team - runs daily at midnight\"\n - \"Customer onboarding workflow for ACME Corp\"",
+      "required": false
+    },
+    {
+      "name": "EnvRefs",
+      "jsonName": "envRefs",
+      "protoField": "env_refs",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "References to Environment resources providing configuration and secrets.\n\n Environments are layered configuration containers that provide:\n - Environment variables (API keys, endpoints, flags)\n - Secrets (credentials, tokens, passwords)\n - Configuration values (timeouts, limits, settings)\n\n Layering Behavior:\n Environments are merged in order - later environments override earlier ones.\n This enables a base + overrides pattern:\n\n Example layering:\n   [base-env, aws-prod-env, github-team-env]\n   └─ base-env: Common settings for all instances\n   └─ aws-prod-env: AWS production credentials (overrides base AWS settings)\n   └─ github-team-env: Team-specific GitHub tokens (overrides generic tokens)\n\n Use Cases:\n - Single env: [prod-env] - Simple, all config in one place\n - Base + specific: [base, prod] - Common config + environment-specific\n - Layered: [base, cloud, team] - Base + cloud credentials + team settings\n\n References use ApiResourceReference which supports:\n - By ID: {id: \"env-abc123\"}\n - By slug: {slug: \"aws-prod-env\"}\n\n At execution time, the WorkflowExecution runtime merges these environments\n and provides the combined configuration to all agents in the workflow.",
+      "required": false
+    }
+  ]
+}

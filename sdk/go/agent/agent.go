@@ -3,10 +3,11 @@ package agent
 import (
 	"sync"
 
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
-	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
@@ -21,8 +22,6 @@ type AgentArgs = genAgent.AgentArgs
 // The stigmer.Context type implements this interface.
 type Context interface {
 	RegisterAgent(*Agent)
-	RegisterSkill(s interface{})
-	TrackDependency(resourceID, dependsOnID string)
 }
 
 // Agent represents an AI agent template with skills, MCP servers, and configuration.
@@ -33,9 +32,9 @@ type Context interface {
 // Use agent.New() with stigmer.Run() to create an Agent:
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
-//	    ag, err := agent.New(ctx, "code-reviewer",
-//	        gen.AgentInstructions("Review code and suggest improvements"),
-//	    )
+//	    ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+//	        Instructions: "Review code and suggest improvements",
+//	    })
 //	    return err
 //	})
 type Agent struct {
@@ -57,8 +56,10 @@ type Agent struct {
 	// Org is the organization that owns this agent (optional).
 	Org string
 
-	// Skills are references to Skill resources providing agent knowledge.
-	Skills []skill.Skill
+	// SkillRefs are references to Skill resources providing agent knowledge.
+	// Use AddSkillRef() for platform skills or AddOrgSkillRef() for organization skills.
+	// Skills are pushed via `stigmer skill push` CLI - the SDK only references them.
+	SkillRefs []*apiresource.ApiResourceReference
 
 	// MCPServers are MCP server definitions declaring required servers.
 	MCPServers []mcpserver.MCPServer
@@ -72,7 +73,7 @@ type Agent struct {
 	// Context reference (optional, used for typed variable management)
 	ctx Context
 
-	// mu protects concurrent access to Skills, MCPServers, SubAgents, and EnvironmentVariables slices
+	// mu protects concurrent access to SkillRefs, MCPServers, SubAgents, and EnvironmentVariables slices
 	mu sync.Mutex
 }
 
@@ -88,34 +89,26 @@ type Agent struct {
 // Optional args fields:
 //   - Description: human-readable description
 //   - IconUrl: icon URL for UI display
-//   - SkillRefs: skill references
-//   - McpServers: MCP server definitions
-//   - SubAgents: sub-agents
-//   - EnvSpec: environment variables
 //
 // Example (clean single-package import):
 //
-//	import "github.com/stigmer/stigmer/sdk/go/agent"
+//	import (
+//	    "github.com/stigmer/stigmer/sdk/go/agent"
+//	    "github.com/stigmer/stigmer/sdk/go/skillref"
+//	)
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
 //	    ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
 //	        Instructions: "Review code and suggest improvements",
 //	        Description:  "Professional code reviewer",
 //	    })
-//	    return err
+//	    if err != nil {
+//	        return err
+//	    }
+//	    ag.AddSkillRef(skillref.Platform("coding-best-practices"))
+//	    ag.AddOrgSkillRef("internal-docs", "v1.0")
+//	    return nil
 //	})
-//
-// Example with nil args (creates empty agent):
-//
-//	ag, err := agent.New(ctx, "code-reviewer", nil)
-//	ag.Instructions = "Review code..."  // Set fields directly
-//
-// Example with builder methods:
-//
-//	ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
-//	    Instructions: "Review code...",
-//	})
-//	ag.AddSkill(skill.Platform("coding-best-practices"))
 func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 	// Nil-safety: if args is nil, create empty args
 	if args == nil {
@@ -131,10 +124,8 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 		ctx:          ctx,
 	}
 
-	// Convert proto types to SDK types
-	// Note: Full conversion will be implemented as we add support for these fields
-	// For now, we initialize empty slices to avoid nil pointer issues
-	a.Skills = []skill.Skill{}
+	// Initialize empty slices to avoid nil pointer issues
+	a.SkillRefs = []*apiresource.ApiResourceReference{}
 	a.MCPServers = []mcpserver.MCPServer{}
 	a.SubAgents = []subagent.SubAgent{}
 	a.EnvironmentVariables = []environment.Variable{}
@@ -173,49 +164,66 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 // Builder Methods - Modify agent after construction
 // ============================================================================
 
-// AddSkill adds a skill to the agent after creation.
+// AddSkillRef adds a skill reference to the agent.
 //
-// This is a builder method that allows adding skills after the agent is created.
-// If the skill is inline and the agent has a context, it automatically registers
-// the skill and tracks the dependency.
-//
-// Example:
-//
-//	agent, _ := agent.New(agent.WithName("reviewer"))
-//	agent.AddSkill(skill.Platform("coding-best-practices"))
-func (a *Agent) AddSkill(s skill.Skill) *Agent {
-	a.mu.Lock()
-	a.Skills = append(a.Skills, s)
-	a.mu.Unlock()
-	
-	// Register inline skill with context and track dependency
-	if a.ctx != nil && s.IsInline {
-		// Make a copy of the skill to get a pointer
-		skillCopy := s
-		a.ctx.RegisterSkill(&skillCopy)
-		// Track dependency: this agent depends on this skill
-		agentID := "agent:" + a.Name
-		skillID := "skill:" + s.Name
-		a.ctx.TrackDependency(agentID, skillID)
-	}
-	
-	return a
-}
-
-// AddSkills adds multiple skills to the agent after creation.
+// Use skillref.Platform() to create platform skill references.
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	agent, _ := agent.New(agent.WithName("reviewer"))
-//	agent.AddSkills(
-//	    skill.Platform("coding-best-practices"),
-//	    skill.Organization("my-org", "internal-docs"),
-//	)
-func (a *Agent) AddSkills(skills ...skill.Skill) *Agent {
+//	import "github.com/stigmer/stigmer/sdk/go/skillref"
+//
+//	agent.AddSkillRef(skillref.Platform("coding-best-practices"))
+//	agent.AddSkillRef(skillref.Platform("code-review", "v1.0"))
+func (a *Agent) AddSkillRef(ref *apiresource.ApiResourceReference) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.Skills = append(a.Skills, skills...)
+	a.SkillRefs = append(a.SkillRefs, ref)
+	return a
+}
+
+// AddSkillRefs adds multiple skill references to the agent.
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	agent.AddSkillRefs(
+//	    skillref.Platform("coding-best-practices"),
+//	    skillref.Platform("security-guidelines", "stable"),
+//	)
+func (a *Agent) AddSkillRefs(refs ...*apiresource.ApiResourceReference) *Agent {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.SkillRefs = append(a.SkillRefs, refs...)
+	return a
+}
+
+// AddOrgSkillRef adds an organization-scoped skill reference using the agent's Org.
+//
+// This is a convenience method that creates a skill reference scoped to the
+// agent's organization. The agent's Org field must be set for this to work correctly.
+//
+// Version is optional - if omitted or empty, "latest" is used.
+//
+// Example:
+//
+//	agent.AddOrgSkillRef("internal-docs")           // Latest version
+//	agent.AddOrgSkillRef("internal-docs", "v2.0")   // Specific version
+//	agent.AddOrgSkillRef("security-policy", "stable")
+func (a *Agent) AddOrgSkillRef(slug string, version ...string) *Agent {
+	ref := &apiresource.ApiResourceReference{
+		Kind:  apiresourcekind.ApiResourceKind_skill,
+		Slug:  slug,
+		Scope: apiresource.ApiResourceOwnerScope_organization,
+		Org:   a.Org,
+	}
+	if len(version) > 0 && version[0] != "" {
+		ref.Version = version[0]
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.SkillRefs = append(a.SkillRefs, ref)
 	return a
 }
 
@@ -253,8 +261,8 @@ func (a *Agent) AddMCPServers(servers ...mcpserver.MCPServer) *Agent {
 //
 // Example:
 //
-//	agent, _ := agent.New(agent.WithName("reviewer"))
-//	agent.AddSubAgent(subagent.Reference("security", "sec-prod"))
+//	helper, _ := subagent.New("security", &subagent.Args{Instructions: "Check security"})
+//	agent.AddSubAgent(helper)
 func (a *Agent) AddSubAgent(sub subagent.SubAgent) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()

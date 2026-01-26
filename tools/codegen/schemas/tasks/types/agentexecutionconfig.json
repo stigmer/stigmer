@@ -22,7 +22,11 @@
         "kind": "int32"
       },
       "description": "Timeout for agent execution in seconds.\n Default: 300 (5 minutes)\n Optional.",
-      "required": false
+      "required": false,
+      "validation": {
+        "min": 1,
+        "max": 3600
+      }
     },
     {
       "name": "Temperature",
@@ -32,7 +36,10 @@
         "kind": "float"
       },
       "description": "Temperature for LLM sampling (0.0 to 1.0).\n Lower = more deterministic, Higher = more creative\n Default: 0.7\n Optional.",
-      "required": false
+      "required": false,
+      "validation": {
+        "max": 1
+      }
     }
   ]
 }

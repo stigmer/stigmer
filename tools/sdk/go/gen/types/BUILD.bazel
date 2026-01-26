@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "types",
+    srcs = [
+        "agentic_types.go",
+        "commons_types.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/tools/sdk/go/gen/types",
+    visibility = ["//visibility:public"],
+    deps = ["@org_golang_google_protobuf//types/known/structpb"],
+)

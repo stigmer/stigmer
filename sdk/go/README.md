@@ -74,34 +74,26 @@ import (
     "log"
     
     "github.com/leftbin/stigmer-sdk/go/agent"
-    "github.com/leftbin/stigmer-sdk/go/skill"
+    "github.com/leftbin/stigmer-sdk/go/skillref"
     "github.com/leftbin/stigmer-sdk/go/mcpserver"
     "github.com/leftbin/stigmer-sdk/go/stigmer"
 )
 
 func main() {
     err := stigmer.Run(func(ctx *stigmer.Context) error {
-        // Create inline skill with markdown content
-        securitySkill, err := skill.New("security-guidelines", &skill.SkillArgs{
-            Description:     "Security review guidelines",
-            MarkdownContent: "# Security Guidelines\n\nCheck for SQL injection, XSS...",
+        // Create MCP server with struct-based args
+        githubMCP, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+            Command: "npx",
+            Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+            EnvPlaceholders: map[string]string{
+                "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+            },
         })
         if err != nil {
             return err
         }
 
-        // Create MCP server
-        githubMCP, err := mcpserver.Stdio(
-            mcpserver.WithName("github"),
-            mcpserver.WithCommand("npx"),
-            mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-            mcpserver.WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
-        )
-        if err != nil {
-            return err
-        }
-
-        // Create agent with struct-based args (v0.2.0+)
+        // Create agent with struct-based args
         myAgent, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
             Instructions: "Review code for security, performance, and best practices.",
             Description:  "AI code reviewer with security expertise",
@@ -111,9 +103,10 @@ func main() {
             return err
         }
         
-        // Add skills and MCP servers using builder methods
-        myAgent.AddSkill(*securitySkill)
-        myAgent.AddMCPServer(githubMCP)
+        // Add skill references and MCP servers using builder methods
+        myAgent.
+            AddSkillRef(skillref.Platform("security-analysis")).
+            AddMCPServer(githubMCP)
         
         fmt.Printf("Agent created: %s\n", myAgent.Name)
         
@@ -145,41 +138,37 @@ The `Agent` is the main blueprint that defines:
 
 ### Skills
 
-Skills provide knowledge to agents. Three ways to use them:
+Skills provide knowledge to agents. The SDK references existing skills - it doesn't create them inline. Skills are managed separately (via CLI or UI) and referenced here.
 
-#### 1. Inline Skills (Defined in Repository)
-Create skills with markdown content from files:
-
-```go
-// Define skill in your repository
-securitySkill, _ := skill.New(
-    skill.WithName("security-guidelines"),
-    skill.WithDescription("Security review guidelines"),
-    skill.WithMarkdownFromFile("skills/security.md"),
-)
-
-// Add to agent
-myAgent.AddSkill(*securitySkill)
-```
-
-**Benefits:**
-- ✅ Version controlled with your agent code
-- ✅ Easy to edit and update
-- ✅ Sharable across agents in your repository
-
-#### 2. Platform Skills (Shared)
+#### 1. Platform Skills (Shared)
 Reference skills available platform-wide:
 
 ```go
-myAgent.AddSkill(skill.Platform("coding-best-practices"))
+myAgent.AddSkillRef(skillref.Platform("coding-best-practices"))
 ```
 
-#### 3. Organization Skills (Private)
+#### 2. Organization Skills (Private)
 Reference skills private to your organization:
 
 ```go
-myAgent.AddSkill(skill.Organization("my-org", "internal-standards"))
+myAgent.AddSkillRef(skillref.Organization("my-org", "internal-standards"))
 ```
+
+#### 3. Multiple Skills at Once
+Add multiple skill references in one call:
+
+```go
+myAgent.AddSkillRefs(
+    skillref.Platform("coding-best-practices"),
+    skillref.Platform("security-analysis"),
+    skillref.Organization("my-org", "internal-standards"),
+)
+```
+
+**Benefits:**
+- ✅ Skills are centrally managed
+- ✅ Easy to share across agents
+- ✅ Clean separation of concerns
 
 ### MCP Servers
 
@@ -189,59 +178,63 @@ MCP (Model Context Protocol) servers provide tools to agents. Three types:
 Subprocess-based servers (most common):
 
 ```go
-agent.WithMCPServer(mcpserver.Stdio(
-    mcpserver.WithName("github"),
-    mcpserver.WithCommand("npx"),
-    mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-    mcpserver.WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
-))
+githubServer, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+    Command: "npx",
+    Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+    EnvPlaceholders: map[string]string{
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+    },
+})
+agent.AddMCPServer(githubServer)
 ```
 
 #### 2. HTTP Servers
 Remote HTTP + SSE servers:
 
 ```go
-agent.WithMCPServer(mcpserver.HTTP(
-    mcpserver.WithName("remote-mcp"),
-    mcpserver.WithURL("https://mcp.example.com/github"),
-    mcpserver.WithHeader("Authorization", "Bearer ${API_TOKEN}"),
-    mcpserver.WithTimeout(30),
-))
+httpServer, err := mcpserver.HTTP(ctx, "remote-mcp", &mcpserver.HTTPArgs{
+    Url: "https://mcp.example.com/github",
+    Headers: map[string]string{
+        "Authorization": "Bearer ${API_TOKEN}",
+    },
+    TimeoutSeconds: 30,
+})
+agent.AddMCPServer(httpServer)
 ```
 
 #### 3. Docker Servers
 Containerized MCP servers:
 
 ```go
-agent.WithMCPServer(mcpserver.Docker(
-    mcpserver.WithName("custom-mcp"),
-    mcpserver.WithImage("ghcr.io/org/custom-mcp:latest"),
-    mcpserver.WithVolumeMount("/host/path", "/container/path", false),
-    mcpserver.WithPortMapping(8080, 80, "tcp"),
-))
+dockerServer, err := mcpserver.Docker(ctx, "custom-mcp", &mcpserver.DockerArgs{
+    Image: "ghcr.io/org/custom-mcp:latest",
+    Volumes: []*types.VolumeMount{
+        {HostPath: "/host/path", ContainerPath: "/container/path", ReadOnly: false},
+    },
+    Ports: []*types.PortMapping{
+        {HostPort: 8080, ContainerPort: 80, Protocol: "tcp"},
+    },
+})
+agent.AddMCPServer(dockerServer)
 ```
 
 ### Sub-Agents
 
-Sub-agents allow delegation to specialized agents:
+Sub-agents allow delegation to specialized agents. Sub-agents are always inline (defined within the parent):
 
-#### Inline Sub-Agents
-Defined within the parent agent:
-
-```go
-agent.WithSubAgent(subagent.Inline(
-    subagent.WithName("code-analyzer"),
-    subagent.WithInstructions("Analyze code quality"),
-    subagent.WithMCPServer("github"),
-    subagent.WithSkill(skill.Platform("static-analysis")),
-))
-```
-
-#### Referenced Sub-Agents
-Reference existing agents:
+#### Creating Inline Sub-Agents
 
 ```go
-agent.WithSubAgent(subagent.Reference("agent-instance-id"))
+analyzer, err := subagent.New(ctx, "code-analyzer", &subagent.SubAgentArgs{
+    Instructions: "Analyze code quality and provide detailed feedback",
+    Description:  "Specialized code analyzer",
+})
+// Add MCP servers and skill refs to sub-agent
+analyzer.AddMCPServerRef("github")
+analyzer.AddSkillRef(skillref.Platform("static-analysis"))
+
+// Add sub-agent to parent agent
+parentAgent.AddSubAgent(analyzer)
 ```
 
 ### Environment Variables
@@ -252,28 +245,26 @@ Define configuration and secret requirements for agents.
 Required secrets are encrypted at rest:
 
 ```go
-apiKey, _ := environment.New(
-    environment.WithName("API_KEY"),
-    environment.WithSecret(true),
-    environment.WithDescription("API key for external service"),
-)
-agent.WithEnvironmentVariable(apiKey)
+apiKey, err := environment.New(ctx, "API_KEY", &environment.VariableArgs{
+    IsSecret:    true,
+    Description: "API key for external service",
+})
+agent.AddEnvironmentVariable(apiKey)
 ```
 
 #### Configuration with Defaults
 Optional configuration values with sensible defaults:
 
 ```go
-region, _ := environment.New(
-    environment.WithName("AWS_REGION"),
-    environment.WithDefaultValue("us-east-1"),
-    environment.WithDescription("AWS deployment region"),
-)
-agent.WithEnvironmentVariable(region)
+region, err := environment.New(ctx, "AWS_REGION", &environment.VariableArgs{
+    DefaultValue: "us-east-1",
+    Description:  "AWS deployment region",
+})
+agent.AddEnvironmentVariable(region)
 ```
 
 #### Key Features
-- **Secrets**: Encrypted at rest, redacted in logs (use `WithSecret(true)`)
+- **Secrets**: Encrypted at rest, redacted in logs (use `IsSecret: true`)
 - **Configuration**: Plaintext values for non-sensitive data
 - **Defaults**: Variables with defaults are automatically optional
 - **Validation**: Names must be uppercase with underscores (e.g., `GITHUB_TOKEN`)

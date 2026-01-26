@@ -1,0 +1,250 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.mcpserver.v1;
+
+import "ai/stigmer/agentic/environment/v1/spec.proto";
+import "buf/validate/validate.proto";
+
+// McpServerSpec defines the configuration template for an MCP server.
+// This is a reusable definition that can be referenced by multiple agents.
+// Actual secrets/credentials are provided at runtime via AgentInstance's environment.
+//
+// MCP (Model Context Protocol) servers provide tools and capabilities to AI agents.
+// This spec declares the server type, connection details, and required environment variables.
+message McpServerSpec {
+  // Human-readable description for marketplace display and documentation.
+  // Should explain what this MCP server does and its primary use cases.
+  // Example: "GitHub MCP server for repository operations, code search, and PR management"
+  string description = 1;
+
+  // Icon URL for UI display in marketplace and agent configuration screens.
+  // Should be a publicly accessible URL to an image (SVG, PNG, or JPEG).
+  // Example: "https://github.githubassets.com/favicons/favicon.svg"
+  string icon_url = 2;
+
+  // Categorization tags for discoverability in the marketplace.
+  // Use lowercase, hyphenated tags that describe the server's domain and capabilities.
+  // Examples: ["git", "vcs", "code-analysis"], ["aws", "cloud", "infrastructure"]
+  repeated string tags = 3;
+
+  // Server type and transport configuration.
+  // Exactly one must be specified based on how the MCP server communicates.
+  oneof server_type {
+    option (buf.validate.oneof).required = true;
+
+    // stdio-based server (subprocess with stdin/stdout communication).
+    // Most common type - used for Node.js, Python, and other CLI-based MCP servers.
+    StdioServerConfig stdio = 4;
+
+    // HTTP-based server (HTTP + Server-Sent Events communication).
+    // Used for remote/managed MCP services accessible over the network.
+    HttpServerConfig http = 5;
+
+    // Docker-based server (containerized MCP server).
+    // Used for isolated, reproducible MCP server environments.
+    DockerServerConfig docker = 6;
+  }
+
+  // Default tools to enable from this MCP server.
+  // Empty list means all tools are enabled by default.
+  // When specified, only these tools will be available unless overridden in McpServerUsage.
+  // Tool names must match exactly what the MCP server reports via tools/list.
+  // Examples: ["create_pull_request", "search_code", "get_file_contents"]
+  repeated string default_enabled_tools = 7;
+
+  // Environment specification declaring required environment variables.
+  // This defines the SCHEMA of required env vars - actual values are provided
+  // at runtime via AgentInstance's environment_ref.
+  //
+  // Use this to declare what environment variables the MCP server needs,
+  // whether they are secrets (e.g., API tokens), and their descriptions.
+  // Values in this spec can be empty - they serve as documentation and validation.
+  //
+  // Example:
+  //   data:
+  //     GITHUB_TOKEN:
+  //       is_secret: true
+  //       description: "GitHub personal access token with repo scope"
+  //     GITHUB_OWNER:
+  //       is_secret: false
+  //       description: "Default GitHub organization or user"
+  ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8;
+}
+
+// StdioServerConfig defines an MCP server that runs as a subprocess.
+// Communication happens via stdin/stdout using JSON-RPC messages.
+//
+// This is the most common MCP server type, used for:
+// - Node.js servers: npx @modelcontextprotocol/server-github
+// - Python servers: python -m mcp_server_sqlite
+// - Go servers: ./mcp-server-binary
+//
+// The agent runner starts this process and communicates via stdio.
+message StdioServerConfig {
+  // Command to execute the MCP server.
+  // This is the executable name or path.
+  // Examples: "npx", "python", "node", "./custom-mcp-server"
+  string command = 1 [(buf.validate.field).required = true];
+
+  // Arguments to pass to the command.
+  // Examples:
+  // - For npx: ["-y", "@modelcontextprotocol/server-github"]
+  // - For python: ["-m", "mcp_server_sqlite", "--db-path", "/data/db.sqlite"]
+  repeated string args = 2;
+
+  // Working directory for the process.
+  // If not specified, the process inherits the agent runner's working directory.
+  // Use absolute paths or paths relative to the agent runner's context.
+  string working_dir = 3;
+}
+
+// HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.
+// Used for remote/managed MCP services that expose an HTTP endpoint.
+//
+// Communication flow:
+// 1. Agent sends JSON-RPC requests via HTTP POST
+// 2. Server streams responses via Server-Sent Events (SSE)
+//
+// This is useful for:
+// - Managed MCP services (e.g., hosted by a cloud provider)
+// - MCP servers behind a reverse proxy or API gateway
+// - Sharing a single MCP server instance across multiple agents
+message HttpServerConfig {
+  // Base URL of the MCP server endpoint.
+  // Must be a valid HTTP or HTTPS URL.
+  // Examples:
+  // - "http://localhost:3000/mcp"
+  // - "https://mcp.example.com/v1"
+  // - "https://api.company.com/mcp/github"
+  string url = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uri = true
+  ];
+
+  // HTTP headers to include with every request.
+  // Use for authentication, API versioning, or custom routing.
+  //
+  // Header values can reference environment variables using ${VAR_NAME} syntax.
+  // These placeholders are resolved at runtime from AgentInstance's environment.
+  //
+  // Examples:
+  //   "Authorization": "Bearer ${API_TOKEN}"
+  //   "X-API-Version": "2024-01"
+  //   "X-Tenant-ID": "${TENANT_ID}"
+  map<string, string> headers = 2;
+
+  // Query parameters to append to the URL.
+  // Values can reference environment variables using ${VAR_NAME} syntax.
+  //
+  // Examples:
+  //   "region": "${AWS_REGION}"
+  //   "version": "v1"
+  map<string, string> query_params = 3;
+
+  // Timeout for HTTP requests in seconds.
+  // Applies to both the initial connection and response streaming.
+  // Default: 30 seconds if not specified.
+  // Set higher values for MCP servers that perform long-running operations.
+  int32 timeout_seconds = 4 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 300
+  }];
+}
+
+// DockerServerConfig defines an MCP server that runs in a Docker container.
+// Provides isolation and reproducibility for MCP server environments.
+//
+// Communication can happen via:
+// - stdio: Container's stdin/stdout (default, similar to StdioServerConfig)
+// - HTTP: Via port mapping to container's HTTP endpoint
+//
+// This is useful for:
+// - Custom MCP servers with complex dependencies
+// - Isolated execution environments
+// - Consistent environments across different host systems
+message DockerServerConfig {
+  // Docker image name and tag.
+  // Can be from any registry accessible to the agent runner.
+  // Examples:
+  // - "ghcr.io/org/mcp-server:latest"
+  // - "myregistry.com/mcp/custom-server:v1.2.3"
+  // - "mcp-local-server:dev" (local image)
+  string image = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Command arguments to pass to the container.
+  // Overrides the default CMD in the Docker image.
+  // Leave empty to use the image's default command.
+  repeated string args = 2;
+
+  // Volume mounts for the container.
+  // Use to provide access to host filesystem, configuration files, or data.
+  repeated VolumeMount volumes = 3;
+
+  // Docker network to attach the container to.
+  // Default: "bridge" (Docker's default network).
+  // Use custom networks for inter-container communication.
+  string network = 4;
+
+  // Port mappings for the container.
+  // Required if communicating via HTTP instead of stdio.
+  // Maps host ports to container ports.
+  repeated PortMapping ports = 5;
+
+  // Container name for identification and management.
+  // If not specified, Docker generates a random name.
+  // Useful for debugging and container lifecycle management.
+  string container_name = 6;
+}
+
+// VolumeMount defines a Docker volume mount configuration.
+// Maps a path on the host to a path inside the container.
+message VolumeMount {
+  // Path on the host machine to mount.
+  // Can be an absolute path or a named Docker volume.
+  // Examples:
+  // - "/home/user/data" (absolute path)
+  // - "mcp-data-volume" (named volume)
+  string host_path = 1 [(buf.validate.field).required = true];
+
+  // Path inside the container where the volume is mounted.
+  // Must be an absolute path.
+  // Example: "/data"
+  string container_path = 2 [(buf.validate.field).required = true];
+
+  // Whether the mount should be read-only.
+  // Default: false (read-write).
+  // Set to true for configuration files or sensitive data that shouldn't be modified.
+  bool read_only = 3;
+}
+
+// PortMapping defines a Docker port mapping configuration.
+// Maps a port on the host to a port inside the container.
+message PortMapping {
+  // Port on the host machine to bind.
+  // Must be available and within valid port range (1-65535).
+  int32 host_port = 1 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 65535
+  }];
+
+  // Port inside the container to expose.
+  // Must match the port the MCP server listens on.
+  int32 container_port = 2 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 65535
+  }];
+
+  // Network protocol for the port mapping.
+  // Default: "tcp".
+  // Valid values: "tcp", "udp".
+  string protocol = 3 [(buf.validate.field).string = {
+    in: [
+      "",
+      "tcp",
+      "udp"
+    ]
+  }];
+}

@@ -12,7 +12,11 @@
         "kind": "string"
       },
       "description": "Signal identifier.",
-      "required": false
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
     },
     {
       "name": "Type",
@@ -22,7 +26,15 @@
         "kind": "string"
       },
       "description": "Signal type:\n - \"signal\": Temporal signal\n - \"query\": Temporal query\n - \"update\": Temporal update",
-      "required": false
+      "required": true,
+      "validation": {
+        "required": true,
+        "enum": [
+          "signal",
+          "query",
+          "update"
+        ]
+      }
     }
   ]
 }

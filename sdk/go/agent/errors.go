@@ -2,7 +2,8 @@ package agent
 
 import (
 	"errors"
-	"fmt"
+
+	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 )
 
 // Common errors that can occur when working with agents.
@@ -26,90 +27,78 @@ var (
 	ErrConversion = errors.New("proto conversion failed")
 )
 
-// ValidationError represents a validation error with context.
-type ValidationError struct {
-	Field   string // The field that failed validation
-	Value   string // The value that was invalid
-	Rule    string // The validation rule that failed
-	Message string // Human-readable error message
-	Err     error  // Underlying error, if any
-}
+// ValidationError is an alias to the shared validation error type.
+// This maintains backward compatibility with existing code that uses agent.ValidationError.
+type ValidationError = validation.ValidationError
 
-// Error implements the error interface.
-func (e *ValidationError) Error() string {
-	if e.Field != "" {
-		return fmt.Sprintf("validation failed for field %q: %s", e.Field, e.Message)
-	}
-	return fmt.Sprintf("validation failed: %s", e.Message)
-}
-
-// Unwrap returns the underlying error.
-func (e *ValidationError) Unwrap() error {
-	return e.Err
-}
-
-// Is implements error matching for sentinel errors.
-func (e *ValidationError) Is(target error) bool {
-	return e.Err != nil && errors.Is(e.Err, target)
-}
+// ConversionError is an alias to the shared conversion error type.
+// This maintains backward compatibility with existing code that uses agent.ConversionError.
+type ConversionError = validation.ConversionError
 
 // NewValidationError creates a new validation error.
+// This is a convenience wrapper around the shared validation package.
 func NewValidationError(field, value, rule, message string) *ValidationError {
-	return &ValidationError{
-		Field:   field,
-		Value:   value,
-		Rule:    rule,
-		Message: message,
-	}
+	return validation.NewValidationError(field, value, rule, message)
 }
 
 // NewValidationErrorWithCause creates a new validation error with an underlying cause.
+// This is a convenience wrapper around the shared validation package.
 func NewValidationErrorWithCause(field, value, rule, message string, err error) *ValidationError {
-	return &ValidationError{
-		Field:   field,
-		Value:   value,
-		Rule:    rule,
-		Message: message,
-		Err:     err,
-	}
-}
-
-// ConversionError represents an error during proto conversion.
-type ConversionError struct {
-	Type    string // The type being converted
-	Field   string // The field that caused the error (optional)
-	Message string // Human-readable error message
-	Err     error  // Underlying error, if any
-}
-
-// Error implements the error interface.
-func (e *ConversionError) Error() string {
-	if e.Field != "" {
-		return fmt.Sprintf("failed to convert %s.%s: %s", e.Type, e.Field, e.Message)
-	}
-	return fmt.Sprintf("failed to convert %s: %s", e.Type, e.Message)
-}
-
-// Unwrap returns the underlying error.
-func (e *ConversionError) Unwrap() error {
-	return e.Err
+	return validation.NewValidationErrorWithCause(field, value, rule, message, err)
 }
 
 // NewConversionError creates a new conversion error.
+// This is a convenience wrapper around the shared validation package.
 func NewConversionError(typeName, field, message string) *ConversionError {
-	return &ConversionError{
-		Type:    typeName,
-		Field:   field,
-		Message: message,
-	}
+	return validation.NewConversionError(typeName, field, message)
 }
 
 // NewConversionErrorWithCause creates a new conversion error with an underlying cause.
+// This is a convenience wrapper around the shared validation package.
 func NewConversionErrorWithCause(typeName, field, message string, err error) *ConversionError {
-	return &ConversionError{
-		Type:    typeName,
-		Field:   field,
-		Message: message,
-		Err:     err,
-	}
+	return validation.NewConversionErrorWithCause(typeName, field, message, err)
+}
+
+// =============================================================================
+// Resource Errors
+// =============================================================================
+
+// ResourceError is an alias to the shared resource error type.
+// This provides context about which agent failed and during what operation.
+type ResourceError = validation.ResourceError
+
+// SynthesisError is an alias to the shared synthesis error type.
+// This provides context about synthesis failures.
+type SynthesisError = validation.SynthesisError
+
+// Synthesis sentinel errors re-exported for convenience.
+var (
+	// ErrSynthesisAlreadyDone indicates synthesis was already performed.
+	ErrSynthesisAlreadyDone = validation.ErrSynthesisAlreadyDone
+
+	// ErrSynthesisFailed indicates the synthesis operation failed.
+	ErrSynthesisFailed = validation.ErrSynthesisFailed
+
+	// ErrManifestWrite indicates a failure to write a manifest file.
+	ErrManifestWrite = validation.ErrManifestWrite
+)
+
+// NewResourceError creates a new resource error for an agent.
+// This is a convenience wrapper that pre-fills ResourceType as "Agent".
+//
+// Example:
+//
+//	err := agent.NewResourceError("code-reviewer", "validation", "missing instructions")
+func NewResourceError(name, operation, message string) *ResourceError {
+	return validation.NewResourceError("Agent", name, operation, message)
+}
+
+// NewResourceErrorWithCause creates a new resource error for an agent with a cause.
+// This is a convenience wrapper that pre-fills ResourceType as "Agent".
+//
+// Example:
+//
+//	err := agent.NewResourceErrorWithCause("code-reviewer", "validation", "name is required", ErrInvalidName)
+func NewResourceErrorWithCause(name, operation, message string, err error) *ResourceError {
+	return validation.NewResourceErrorWithCause("Agent", name, operation, message, err)
 }

@@ -2,178 +2,99 @@ package subagent
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
+
+// Args contains configuration for a sub-agent (Pulumi Args pattern).
+// This is an alias to the generated InlineSubAgentArgs type.
+// Note: After proto regeneration, this will become SubAgentArgs.
+type Args = genAgent.InlineSubAgentArgs
 
 // SubAgent represents a sub-agent that can be delegated to.
-// It can be either an inline definition or a reference to an existing AgentInstance.
+// Sub-agents are defined inline within the parent agent spec.
 type SubAgent struct {
-	// Type of sub-agent
-	subAgentType subAgentType
-
-	// For inline sub-agents
-	name                string
-	description         string
-	instructions        string
-	mcpServers          []string
-	mcpToolSelections   map[string][]string
-	skillRefs           []skill.Skill
-
-	// For referenced sub-agents
-	agentInstanceRef    string
+	name              string
+	description       string
+	instructions      string
+	mcpServers        []string
+	mcpToolSelections map[string]*types.McpToolSelection
+	skillRefs         []*apiresource.ApiResourceReference
 }
 
-type subAgentType int
-
-const (
-	subAgentTypeInline subAgentType = iota
-	subAgentTypeReference
-)
-
-// InlineOption configures an inline sub-agent.
-type InlineOption func(*SubAgent) error
-
-// WithName sets the name of the inline sub-agent.
-func WithName(name string) InlineOption {
-	return func(s *SubAgent) error {
-		s.name = name
-		return nil
-	}
-}
-
-// WithDescription sets the description of the inline sub-agent.
-func WithDescription(description string) InlineOption {
-	return func(s *SubAgent) error {
-		s.description = description
-		return nil
-	}
-}
-
-// WithInstructions sets the behavior instructions for the inline sub-agent from a string.
-func WithInstructions(instructions string) InlineOption {
-	return func(s *SubAgent) error {
-		s.instructions = instructions
-		return nil
-	}
-}
-
-// WithInstructionsFromFile sets the behavior instructions for the inline sub-agent from a file.
+// New creates a sub-agent definition with struct args (Pulumi pattern).
 //
-// Reads the file content and sets it as the sub-agent's instructions.
-// The file content must be at least 10 characters.
+// Required:
+//   - name: sub-agent name (non-empty)
+//   - args.Instructions: behavior instructions (min 10 characters)
+//
+// Optional args fields:
+//   - Description: human-readable description
+//   - McpServers: MCP server names this sub-agent can use
+//   - McpToolSelections: tool selections for each MCP server
+//   - SkillRefs: references to Skill resources
 //
 // Example:
 //
-//	subagent.WithInstructionsFromFile("instructions/security-analyzer.md")
-func WithInstructionsFromFile(path string) InlineOption {
-	return func(s *SubAgent) error {
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		s.instructions = string(content)
-		return nil
+//	sub, err := subagent.New("code-analyzer", &subagent.Args{
+//	    Instructions: "Analyze code for bugs and security issues",
+//	    Description:  "Static code analyzer",
+//	    McpServers:   []string{"github"},
+//	})
+func New(name string, args *Args) (SubAgent, error) {
+	// Nil-safety: if args is nil, create empty args
+	if args == nil {
+		args = &Args{}
 	}
-}
 
-// WithMCPServer adds an MCP server name that this sub-agent can use.
-// The name references an MCP server defined in the parent agent.
-func WithMCPServer(serverName string) InlineOption {
-	return func(s *SubAgent) error {
-		s.mcpServers = append(s.mcpServers, serverName)
-		return nil
-	}
-}
-
-// WithMCPServers sets all MCP server names for this sub-agent.
-func WithMCPServers(serverNames ...string) InlineOption {
-	return func(s *SubAgent) error {
-		s.mcpServers = serverNames
-		return nil
-	}
-}
-
-// WithToolSelection adds tool selections for a specific MCP server.
-// If tools is empty, all tools from the server are enabled.
-func WithToolSelection(mcpServerName string, tools ...string) InlineOption {
-	return func(s *SubAgent) error {
-		if s.mcpToolSelections == nil {
-			s.mcpToolSelections = make(map[string][]string)
-		}
-		s.mcpToolSelections[mcpServerName] = tools
-		return nil
-	}
-}
-
-// WithSkill adds a skill reference to the inline sub-agent.
-func WithSkill(sk skill.Skill) InlineOption {
-	return func(s *SubAgent) error {
-		s.skillRefs = append(s.skillRefs, sk)
-		return nil
-	}
-}
-
-// WithSkills adds multiple skill references to the inline sub-agent.
-func WithSkills(skills ...skill.Skill) InlineOption {
-	return func(s *SubAgent) error {
-		s.skillRefs = append(s.skillRefs, skills...)
-		return nil
-	}
-}
-
-// Inline creates an inline sub-agent definition.
-//
-// Returns an error if any option fails (e.g., file not found).
-//
-// Example:
-//
-//	sub, err := subagent.Inline(
-//	    subagent.WithName("code-analyzer"),
-//	    subagent.WithInstructions("Analyze code for bugs"),
-//	    subagent.WithDescription("Static code analyzer"),
-//	    subagent.WithMCPServer("github"),
-//	)
-//	if err != nil {
-//	    log.Fatal(err)
-//	}
-func Inline(opts ...InlineOption) (SubAgent, error) {
 	s := SubAgent{
-		subAgentType: subAgentTypeInline,
+		name:              name,
+		description:       args.Description,
+		instructions:      args.Instructions,
+		mcpServers:        args.McpServers,
+		mcpToolSelections: args.McpToolSelections,
+		skillRefs:         convertSkillRefs(args.SkillRefs),
 	}
-	for _, opt := range opts {
-		if err := opt(&s); err != nil {
-			return SubAgent{}, err
-		}
-	}
+
 	return s, nil
 }
 
-// Reference creates a reference to an existing AgentInstance resource.
-//
-// Example:
-//
-//	sub := subagent.Reference("security-checker", "sec-checker-prod")
-//
-// The name is the local name for this sub-agent reference.
-// The agentInstanceRef is the ID or name of the AgentInstance resource.
-func Reference(name, agentInstanceRef string) SubAgent {
-	return SubAgent{
-		subAgentType:     subAgentTypeReference,
-		name:             name,
-		agentInstanceRef: agentInstanceRef,
+// convertSkillRefs converts generated types.ApiResourceReference to proto apiresource.ApiResourceReference.
+func convertSkillRefs(refs []*types.ApiResourceReference) []*apiresource.ApiResourceReference {
+	if refs == nil {
+		return nil
 	}
+	result := make([]*apiresource.ApiResourceReference, 0, len(refs))
+	for _, ref := range refs {
+		if ref != nil {
+			result = append(result, &apiresource.ApiResourceReference{
+				Slug:  ref.Slug,
+				Org:   ref.Org,
+				Scope: parseScope(ref.Scope),
+				Kind:  parseKind(ref.Kind),
+			})
+		}
+	}
+	return result
 }
 
-// IsInline returns true if this is an inline sub-agent definition.
-func (s SubAgent) IsInline() bool {
-	return s.subAgentType == subAgentTypeInline
+// parseScope converts string scope to proto enum.
+func parseScope(s string) apiresource.ApiResourceOwnerScope {
+	if v, ok := apiresource.ApiResourceOwnerScope_value[s]; ok {
+		return apiresource.ApiResourceOwnerScope(v)
+	}
+	return apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified
 }
 
-// IsReference returns true if this is a reference to an existing AgentInstance.
-func (s SubAgent) IsReference() bool {
-	return s.subAgentType == subAgentTypeReference
+// parseKind converts string kind to proto enum.
+func parseKind(k string) apiresourcekind.ApiResourceKind {
+	if v, ok := apiresourcekind.ApiResourceKind_value[k]; ok {
+		return apiresourcekind.ApiResourceKind(v)
+	}
+	return apiresourcekind.ApiResourceKind_api_resource_kind_unknown
 }
 
 // Name returns the name of the sub-agent.
@@ -181,94 +102,32 @@ func (s SubAgent) Name() string {
 	return s.name
 }
 
-// Instructions returns the behavior instructions for inline sub-agents.
+// Instructions returns the behavior instructions for the sub-agent.
 func (s SubAgent) Instructions() string {
 	return s.instructions
 }
 
-// Description returns the description for inline sub-agents.
+// Description returns the description of the sub-agent.
 func (s SubAgent) Description() string {
 	return s.description
 }
 
-// MCPServerNames returns the list of MCP server names for inline sub-agents.
+// MCPServerNames returns the list of MCP server names the sub-agent can use.
 func (s SubAgent) MCPServerNames() []string {
 	return s.mcpServers
 }
 
-// ToolSelections returns the MCP tool selections map for inline sub-agents.
-func (s SubAgent) ToolSelections() map[string][]string {
+// ToolSelections returns the MCP tool selections map.
+func (s SubAgent) ToolSelections() map[string]*types.McpToolSelection {
 	return s.mcpToolSelections
 }
 
-// Skills returns the skill references for inline sub-agents.
-func (s SubAgent) Skills() []skill.Skill {
+// SkillRefs returns the skill references for the sub-agent.
+func (s SubAgent) SkillRefs() []*apiresource.ApiResourceReference {
 	return s.skillRefs
-}
-
-// Organization returns the organization for referenced sub-agents.
-// For inline sub-agents, returns empty string.
-func (s SubAgent) Organization() string {
-	if s.IsReference() {
-		// For references, we need to parse from agentInstanceRef
-		// For now, return empty - this will be handled by CLI
-		return ""
-	}
-	return ""
-}
-
-// AgentInstanceID returns the agent instance reference for referenced sub-agents.
-func (s SubAgent) AgentInstanceID() string {
-	return s.agentInstanceRef
-}
-
-// Validate checks if the sub-agent configuration is valid.
-func (s SubAgent) Validate() error {
-	if s.IsInline() {
-		return s.validateInline()
-	}
-	return s.validateReference()
-}
-
-func (s SubAgent) validateInline() error {
-	if s.name == "" {
-		return fmt.Errorf("inline sub-agent: name is required")
-	}
-	
-	if s.instructions == "" {
-		return fmt.Errorf("inline sub-agent %q: instructions are required", s.name)
-	}
-	
-	if len(s.instructions) < 10 {
-		return fmt.Errorf("inline sub-agent %q: instructions must be at least 10 characters (got %d)", s.name, len(s.instructions))
-	}
-	
-	// Validate skill references
-	for i, sk := range s.skillRefs {
-		if sk.Slug == "" {
-			return fmt.Errorf("inline sub-agent %q: skill_refs[%d]: slug is required", s.name, i)
-		}
-	}
-	
-	return nil
-}
-
-func (s SubAgent) validateReference() error {
-	if s.name == "" {
-		return fmt.Errorf("referenced sub-agent: name is required")
-	}
-	
-	if s.agentInstanceRef == "" {
-		return fmt.Errorf("referenced sub-agent %q: agent_instance_ref is required", s.name)
-	}
-	
-	return nil
 }
 
 // String returns a string representation of the sub-agent.
 func (s SubAgent) String() string {
-	if s.IsReference() {
-		return fmt.Sprintf("SubAgent(%s -> %s)", s.name, s.agentInstanceRef)
-	}
-	return fmt.Sprintf("SubAgent(%s inline)", s.name)
+	return fmt.Sprintf("SubAgent(%s)", s.name)
 }

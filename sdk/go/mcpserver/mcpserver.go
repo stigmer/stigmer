@@ -1,7 +1,20 @@
 package mcpserver
 
+// Context is a minimal interface that represents a stigmer context.
+// This allows the mcpserver package to work with contexts without importing
+// the stigmer package (avoiding import cycles).
+//
+// The stigmer.Context type implements this interface.
+// MCP servers are helper types added to agents, not top-level resources,
+// but context is included for consistency with Pulumi patterns.
+type Context interface{}
+
 // MCPServer represents an MCP server that can be attached to an agent.
 // MCP servers provide tools and capabilities to agents at runtime.
+//
+// Validation of MCP server configuration is handled by protovalidate when
+// the agent's ToProto() method is called. Proto validation rules ensure
+// required fields (name, command, image, url) are present.
 type MCPServer interface {
 	// Name returns the server name (e.g., "github", "aws", "slack").
 	Name() string
@@ -12,9 +25,6 @@ type MCPServer interface {
 
 	// Type returns the server type (stdio, http, or docker).
 	Type() ServerType
-
-	// Validate checks if the server configuration is valid.
-	Validate() error
 }
 
 // ServerType represents the type of MCP server.
@@ -43,20 +53,6 @@ func (st ServerType) String() string {
 	default:
 		return "unknown"
 	}
-}
-
-// VolumeMount represents a Docker volume mount configuration.
-type VolumeMount struct {
-	HostPath      string // Host path to mount
-	ContainerPath string // Container path where the volume is mounted
-	ReadOnly      bool   // Whether the mount is read-only
-}
-
-// PortMapping represents a Docker port mapping configuration.
-type PortMapping struct {
-	HostPort      int32  // Host port to bind to
-	ContainerPort int32  // Container port to expose
-	Protocol      string // Protocol (tcp or udp)
 }
 
 // baseServer contains common fields for all MCP server types.

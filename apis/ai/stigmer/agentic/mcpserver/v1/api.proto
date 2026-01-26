@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.mcpserver.v1;
+
+import "ai/stigmer/agentic/mcpserver/v1/spec.proto";
+import "ai/stigmer/agentic/mcpserver/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// McpServer represents a reusable MCP (Model Context Protocol) server configuration.
+// MCP servers provide tools and capabilities to AI agents via a standardized protocol.
+//
+// Unlike inline McpServerDefinition in AgentSpec, McpServer is a first-class resource that:
+// - Can be referenced by multiple agents (reusability)
+// - Has proper access control via FGA (authorization)
+// - Can be discovered in the marketplace (discoverability)
+// - Supports all three scopes: platform, organization, identity_account
+//
+// Lifecycle:
+// 1. Create McpServer definition (this resource) with server type and env requirements
+// 2. Reference in Agent via mcp_server_usages
+// 3. Create AgentInstance with environment_ref providing actual secrets
+// 4. Agent runner resolves McpServer, gets secrets from Environment, starts server
+//
+// Example YAML:
+//   apiVersion: agentic.stigmer.ai/v1
+//   kind: McpServer
+//   metadata:
+//     name: github
+//     scope: platform
+//   spec:
+//     description: "GitHub MCP server for repository operations"
+//     stdio:
+//       command: npx
+//       args: ["-y", "@modelcontextprotocol/server-github"]
+//     env_spec:
+//       data:
+//         GITHUB_TOKEN:
+//           is_secret: true
+//           description: "GitHub personal access token"
+message McpServer {
+  // API version for this resource type.
+  // Must be exactly "agentic.stigmer.ai/v1".
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  // Must be exactly "McpServer".
+  string kind = 2 [(buf.validate.field).string.const = 'McpServer'];
+
+  // Standard resource metadata including name, id, scope, labels, and tags.
+  //
+  // Key fields:
+  // - name: Human-readable name (e.g., "GitHub MCP Server")
+  // - slug: URL-friendly identifier (e.g., "github")
+  // - owner_scope: Visibility scope (platform, organization, or identity_account)
+  // - org: Organization ID (required if owner_scope = organization)
+  //
+  // Scope semantics:
+  // - platform: Public/marketplace server, visible to all users
+  // - organization: Private to org members
+  // - identity_account: Personal, visible only to the owner
+  //
+  // Note: Unlike Skill (which restricts to platform/org), McpServer supports
+  // all three scopes to enable personal MCP server configurations.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // User-provided MCP server configuration (desired state).
+  // Defines the server type, connection details, and environment requirements.
+  McpServerSpec spec = 4;
+
+  // System-managed MCP server state (observed state).
+  // Contains validation status and audit information.
+  // This is populated by the system, not by users.
+  McpServerStatus status = 5;
+}
+
+// McpServerList represents a paginated list of MCP servers.
+// Returned by list operations with pagination support.
+message McpServerList {
+  // API version for this list type.
+  string api_version = 1;
+
+  // Resource kind identifier for the list.
+  string kind = 2;
+
+  // List of MCP server resources.
+  repeated McpServer items = 3;
+}

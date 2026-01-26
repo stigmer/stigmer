@@ -1,0 +1,60 @@
+{
+  "name": "StdioServer",
+  "description": "StdioServer defines an MCP server that runs as a subprocess.\n Communication happens via stdin/stdout (most common type).",
+  "protoType": "ai.stigmer.agentic.agent.v1.StdioServer",
+  "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Command",
+      "jsonName": "command",
+      "protoField": "command",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Command to run the MCP server (e.g., \"npx\", \"python\", \"node\").",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Args",
+      "jsonName": "args",
+      "protoField": "args",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Command arguments (e.g., [\"-y\", \"@modelcontextprotocol/server-github\"]).",
+      "required": false
+    },
+    {
+      "name": "EnvPlaceholders",
+      "jsonName": "envPlaceholders",
+      "protoField": "env_placeholders",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "Environment variable placeholders (e.g., {\"GITHUB_TOKEN\": \"${GITHUB_TOKEN}\"}).\n Actual values provided at AgentInstance level via ConfigSchema.\n The key is the env var name that the MCP server expects.\n The value is a placeholder reference like \"${GITHUB_TOKEN}\" that maps to\n a secret or env_var defined in the Agent's ConfigSchema.",
+      "required": false
+    },
+    {
+      "name": "WorkingDir",
+      "jsonName": "workingDir",
+      "protoField": "working_dir",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Working directory for the process (optional).",
+      "required": false
+    }
+  ]
+}

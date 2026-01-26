@@ -1,6 +1,7 @@
 package stigmer
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,7 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -19,7 +20,8 @@ import (
 // created within its scope.
 //
 // Context follows the Pulumi pattern where all resources are created within
-// an explicit context that manages their lifecycle.
+// an explicit context that manages their lifecycle. It embeds a standard
+// context.Context for cancellation, timeouts, and request-scoped values.
 //
 // Example:
 //
@@ -31,7 +33,20 @@ import (
 //
 //	    return nil
 //	})
+//
+// Example with timeout:
+//
+//	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+//	defer cancel()
+//	stigmer.RunWithContext(ctx, func(sCtx *stigmer.Context) error {
+//	    // Operations will be cancelled after 30 seconds
+//	    return nil
+//	})
 type Context struct {
+	// ctx is the underlying Go context for cancellation, timeouts, and values.
+	// This follows the Pulumi pattern of embedding context.Context.
+	ctx context.Context
+
 	// variables stores all context variables by name
 	variables map[string]Ref
 
@@ -41,12 +56,9 @@ type Context struct {
 	// agents tracks all agents created in this context
 	agents []*agent.Agent
 
-	// skills tracks all inline skills created in this context
-	skills []*skill.Skill
-
 	// dependencies tracks resource dependencies for creation order
 	// Map format: resourceID -> []dependencyIDs
-	// Example: "agent:code-reviewer" -> ["skill:code-analysis"]
+	// Example: "workflow:pr-review" -> ["agent:code-reviewer"]
 	dependencies map[string][]string
 
 	// mu protects concurrent access to context state
@@ -56,19 +68,26 @@ type Context struct {
 	synthesized bool
 }
 
-// newContext creates a new Context instance.
-// This is internal - users should use Run() instead.
-func newContext() *Context {
+// newContextWithContext creates a new Context with the given Go context.
+// This is the core constructor that all other constructors delegate to.
+func newContextWithContext(ctx context.Context) *Context {
 	return &Context{
+		ctx:          ctx,
 		variables:    make(map[string]Ref),
 		workflows:    make([]*workflow.Workflow, 0),
 		agents:       make([]*agent.Agent, 0),
-		skills:       make([]*skill.Skill, 0),
 		dependencies: make(map[string][]string),
 	}
 }
 
+// newContext creates a new Context instance with a background context.
+// This is internal - users should use Run() instead.
+func newContext() *Context {
+	return newContextWithContext(context.Background())
+}
+
 // NewContext creates a new Context instance for testing or advanced use cases.
+// The returned Context uses context.Background() as its underlying context.
 // For normal usage, prefer using Run() which handles context lifecycle automatically.
 //
 // Example (testing):
@@ -77,6 +96,96 @@ func newContext() *Context {
 //	apiURL := ctx.SetString("apiURL", "https://api.example.com")
 func NewContext() *Context {
 	return newContext()
+}
+
+// NewContextWithContext creates a new Context with a custom Go context.
+// This is useful for testing cancellation behavior or passing request-scoped values.
+//
+// Example:
+//
+//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//	defer cancel()
+//	sCtx := stigmer.NewContextWithContext(ctx)
+func NewContextWithContext(ctx context.Context) *Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return newContextWithContext(ctx)
+}
+
+// =============================================================================
+// Context Access Methods
+// =============================================================================
+
+// Context returns the underlying Go context.Context.
+// Use this when you need to pass a context to external libraries
+// or for cancellation-aware operations.
+//
+// Example:
+//
+//	goCtx := sCtx.Context()
+//	req, err := http.NewRequestWithContext(goCtx, "GET", url, nil)
+func (c *Context) Context() context.Context {
+	return c.ctx
+}
+
+// WithValue returns a new Context with the key-value pair added to the
+// underlying context.Context. The returned Context shares state (variables,
+// workflows, agents, dependencies) with the original but has an extended
+// context.Context.
+//
+// Example:
+//
+//	ctx = ctx.WithValue("requestID", "abc-123")
+//	reqID := ctx.Value("requestID").(string)
+func (c *Context) WithValue(key, val any) *Context {
+	return &Context{
+		ctx:          context.WithValue(c.ctx, key, val),
+		variables:    c.variables,
+		workflows:    c.workflows,
+		agents:       c.agents,
+		dependencies: c.dependencies,
+		// Note: mu and synthesized are zero-valued (new mutex, false)
+		// This is intentional - WithValue creates a derived context for
+		// value propagation, not for shared mutation tracking.
+	}
+}
+
+// Value returns the value associated with key from the underlying context.Context.
+// Returns nil if the key is not present.
+//
+// Example:
+//
+//	if reqID, ok := ctx.Value("requestID").(string); ok {
+//	    log.Printf("Request ID: %s", reqID)
+//	}
+func (c *Context) Value(key any) any {
+	return c.ctx.Value(key)
+}
+
+// Done returns a channel that's closed when the underlying context is cancelled.
+// This is a convenience method equivalent to ctx.Context().Done().
+//
+// Example:
+//
+//	select {
+//	case <-ctx.Done():
+//	    return ctx.Err()
+//	case result := <-resultChan:
+//	    // Process result
+//	}
+func (c *Context) Done() <-chan struct{} {
+	return c.ctx.Done()
+}
+
+// Err returns the error explaining why Done() was closed.
+// Returns nil if Done() is not yet closed.
+//
+// Common errors:
+//   - context.Canceled: the context was cancelled
+//   - context.DeadlineExceeded: the context's deadline passed
+func (c *Context) Err() error {
+	return c.ctx.Err()
 }
 
 // =============================================================================
@@ -304,56 +413,13 @@ func (c *Context) RegisterWorkflow(wf *workflow.Workflow) {
 
 // RegisterAgent registers an agent with this context.
 // This is typically called automatically by agent.New() when passed a context.
-//
-// Dependency tracking: Automatically tracks inline skill dependencies.
 func (c *Context) RegisterAgent(ag *agent.Agent) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.agents = append(c.agents, ag)
-
-	// Track inline skill dependencies and register inline skills
-	agentID := agentResourceID(ag)
-	for i := range ag.Skills {
-		if ag.Skills[i].IsInline {
-			skillID := skillResourceID(&ag.Skills[i])
-			c.addDependency(agentID, skillID)
-			// Register the inline skill if not already registered
-			if !c.isSkillRegistered(&ag.Skills[i]) {
-				c.skills = append(c.skills, &ag.Skills[i])
-			}
-		}
-		// External/platform skills: no dependency (already exist)
-	}
-}
-
-// RegisterSkill registers an inline skill with this context.
-// This is typically called automatically when a skill is created and used by an agent.
-//
-// Only inline skills need registration - platform/org skills are references to
-// existing resources and don't need creation.
-func (c *Context) RegisterSkill(s interface{}) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	// Type assert to *skill.Skill
-	skillPtr, ok := s.(*skill.Skill)
-	if !ok {
-		return
-	}
-
-	// Only register inline skills
-	if !skillPtr.IsInline {
-		return
-	}
-
-	// Don't register if already registered
-	if c.isSkillRegistered(skillPtr) {
-		return
-	}
-
-	c.skills = append(c.skills, skillPtr)
-	// Skills have no dependencies (they're always created first)
+	// Skills are now pushed via CLI (`stigmer skill push`), not created through SDK.
+	// The agent only holds references to existing skills via SkillRefs.
 }
 
 // =============================================================================
@@ -381,17 +447,6 @@ func (c *Context) TrackDependency(resourceID, dependsOnID string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.addDependency(resourceID, dependsOnID)
-}
-
-// isSkillRegistered checks if a skill is already registered in the context.
-// Note: caller must hold c.mu.Lock()
-func (c *Context) isSkillRegistered(s *skill.Skill) bool {
-	for _, existingSkill := range c.skills {
-		if existingSkill.Name == s.Name && existingSkill.IsInline {
-			return true
-		}
-	}
-	return false
 }
 
 // trackWorkflowAgentDependencies scans workflow tasks for agent references
@@ -437,15 +492,6 @@ func agentResourceID(ag *agent.Agent) string {
 	return fmt.Sprintf("agent:%s", ag.Name)
 }
 
-// skillResourceID generates a resource ID for a skill.
-func skillResourceID(s *skill.Skill) string {
-	if s.IsInline {
-		return fmt.Sprintf("skill:%s", s.Name)
-	}
-	// External skills (platform/org) get different IDs to avoid tracking
-	return fmt.Sprintf("skill:external:%s", s.Slug)
-}
-
 // =============================================================================
 // Synthesis
 // =============================================================================
@@ -457,7 +503,11 @@ func (c *Context) Synthesize() error {
 	defer c.mu.Unlock()
 
 	if c.synthesized {
-		return fmt.Errorf("context already synthesized")
+		return &validation.SynthesisError{
+			Phase:   "init",
+			Message: "context already synthesized",
+			Err:     validation.ErrSynthesisAlreadyDone,
+		}
 	}
 
 	// Get output directory from environment variable
@@ -469,28 +519,25 @@ func (c *Context) Synthesize() error {
 		return nil
 	}
 
-	// Import synthesis package for converters
-	// We'll call the converters to generate manifests
+	// Synthesize all resources to disk
 	if err := c.synthesizeManifests(outputDir); err != nil {
-		return fmt.Errorf("synthesis failed: %w", err)
+		return err // Already a structured error from synthesize methods
 	}
 
 	c.synthesized = true
 	return nil
 }
 
-// synthesizeManifests writes agent, skill, and workflow manifests to disk
+// synthesizeManifests writes agent and workflow manifests to disk.
+// Skills are pushed via CLI (`stigmer skill push`), not synthesized from SDK.
 func (c *Context) synthesizeManifests(outputDir string) error {
 	// Ensure output directory exists
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory: %w", err)
-	}
-
-	// Synthesize skills first (agents depend on them)
-	if len(c.skills) > 0 {
-		if err := c.synthesizeSkills(outputDir); err != nil {
-			return err
-		}
+		return validation.NewSynthesisErrorWithCause(
+			"init",
+			fmt.Sprintf("failed to create output directory %q", outputDir),
+			err,
+		)
 	}
 
 	// Synthesize agents
@@ -515,33 +562,6 @@ func (c *Context) synthesizeManifests(outputDir string) error {
 	return nil
 }
 
-// synthesizeSkills converts skills to protobuf and writes to disk
-func (c *Context) synthesizeSkills(outputDir string) error {
-	// Convert each skill to proto and write individually
-	for i, sk := range c.skills {
-		// Convert skill to proto using ToProto() method
-		skillProto, err := sk.ToProto()
-		if err != nil {
-			return fmt.Errorf("failed to convert skill %q to proto: %w", sk.Name, err)
-		}
-
-		// Serialize to binary protobuf
-		data, err := proto.Marshal(skillProto)
-		if err != nil {
-			return fmt.Errorf("failed to serialize skill %q: %w", sk.Name, err)
-		}
-
-		// Write to skill-{index}.pb (use index to maintain order)
-		filename := fmt.Sprintf("skill-%d.pb", i)
-		skillPath := filepath.Join(outputDir, filename)
-		if err := os.WriteFile(skillPath, data, 0644); err != nil {
-			return fmt.Errorf("failed to write skill %q: %w", sk.Name, err)
-		}
-	}
-
-	return nil
-}
-
 // synthesizeAgents converts agents to protobuf and writes to disk
 func (c *Context) synthesizeAgents(outputDir string) error {
 	// Convert each agent to proto and write individually
@@ -549,20 +569,34 @@ func (c *Context) synthesizeAgents(outputDir string) error {
 		// Convert agent to proto using ToProto() method
 		agentProto, err := ag.ToProto()
 		if err != nil {
-			return fmt.Errorf("failed to convert agent %q to proto: %w", ag.Name, err)
+			return validation.NewSynthesisErrorForResource(
+				"agents", "Agent", ag.Name,
+				"failed to convert to proto",
+				err,
+			)
 		}
 
 		// Serialize to binary protobuf
 		data, err := proto.Marshal(agentProto)
 		if err != nil {
-			return fmt.Errorf("failed to serialize agent %q: %w", ag.Name, err)
+			return validation.NewSynthesisErrorForResource(
+				"agents", "Agent", ag.Name,
+				"failed to serialize protobuf",
+				err,
+			)
 		}
 
 		// Write to agent-{index}.pb (use index to maintain order)
 		filename := fmt.Sprintf("agent-%d.pb", i)
 		agentPath := filepath.Join(outputDir, filename)
 		if err := os.WriteFile(agentPath, data, 0644); err != nil {
-			return fmt.Errorf("failed to write agent %q: %w", ag.Name, err)
+			return &validation.SynthesisError{
+				Phase:        "agents",
+				ResourceType: "Agent",
+				ResourceName: ag.Name,
+				Message:      fmt.Sprintf("failed to write manifest to %s", agentPath),
+				Err:          validation.ErrManifestWrite,
+			}
 		}
 	}
 
@@ -576,20 +610,34 @@ func (c *Context) synthesizeWorkflows(outputDir string) error {
 		// Convert workflow to proto using ToProto() method
 		workflowProto, err := wf.ToProto()
 		if err != nil {
-			return fmt.Errorf("failed to convert workflow %q to proto: %w", wf.Document.Name, err)
+			return validation.NewSynthesisErrorForResource(
+				"workflows", "Workflow", wf.Document.Name,
+				"failed to convert to proto",
+				err,
+			)
 		}
 
 		// Serialize to binary protobuf
 		data, err := proto.Marshal(workflowProto)
 		if err != nil {
-			return fmt.Errorf("failed to serialize workflow %q: %w", wf.Document.Name, err)
+			return validation.NewSynthesisErrorForResource(
+				"workflows", "Workflow", wf.Document.Name,
+				"failed to serialize protobuf",
+				err,
+			)
 		}
 
 		// Write to workflow-{index}.pb (use index to maintain order)
 		filename := fmt.Sprintf("workflow-%d.pb", i)
 		workflowPath := filepath.Join(outputDir, filename)
 		if err := os.WriteFile(workflowPath, data, 0644); err != nil {
-			return fmt.Errorf("failed to write workflow %q: %w", wf.Document.Name, err)
+			return &validation.SynthesisError{
+				Phase:        "workflows",
+				ResourceType: "Workflow",
+				ResourceName: wf.Document.Name,
+				Message:      fmt.Sprintf("failed to write manifest to %s", workflowPath),
+				Err:          validation.ErrManifestWrite,
+			}
 		}
 	}
 
@@ -606,13 +654,21 @@ func (c *Context) synthesizeDependencies(outputDir string) error {
 	// Convert to JSON
 	data, err := json.MarshalIndent(deps, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal dependencies: %w", err)
+		return validation.NewSynthesisErrorWithCause(
+			"dependencies",
+			"failed to marshal dependency graph",
+			err,
+		)
 	}
 
 	// Write to dependencies.json
 	depsPath := filepath.Join(outputDir, "dependencies.json")
 	if err := os.WriteFile(depsPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write dependencies.json: %w", err)
+		return &validation.SynthesisError{
+			Phase:   "dependencies",
+			Message: fmt.Sprintf("failed to write dependencies to %s", depsPath),
+			Err:     validation.ErrManifestWrite,
+		}
 	}
 
 	return nil
@@ -622,8 +678,76 @@ func (c *Context) synthesizeDependencies(outputDir string) error {
 // Context Lifecycle - Run Pattern
 // =============================================================================
 
+// RunWithContext executes a function with a Context derived from the given
+// parent context.Context. This enables cancellation, timeouts, and
+// request-scoped values.
+//
+// If the parent context is nil, context.Background() is used.
+//
+// Example with timeout:
+//
+//	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+//	defer cancel()
+//	err := stigmer.RunWithContext(ctx, func(sCtx *stigmer.Context) error {
+//	    // Operations will be cancelled after 30 seconds
+//	    // Check sCtx.Err() or sCtx.Done() for cancellation
+//	    return nil
+//	})
+//
+// Example with cancellation:
+//
+//	ctx, cancel := context.WithCancel(context.Background())
+//	go func() {
+//	    <-signalChan
+//	    cancel() // Cancel on signal
+//	}()
+//	err := stigmer.RunWithContext(ctx, func(sCtx *stigmer.Context) error {
+//	    select {
+//	    case <-sCtx.Done():
+//	        return sCtx.Err()
+//	    default:
+//	        // Continue processing
+//	    }
+//	    return nil
+//	})
+//
+// Example with request-scoped values:
+//
+//	ctx := context.WithValue(context.Background(), "traceID", "abc-123")
+//	err := stigmer.RunWithContext(ctx, func(sCtx *stigmer.Context) error {
+//	    traceID := sCtx.Value("traceID").(string)
+//	    return nil
+//	})
+func RunWithContext(ctx context.Context, fn func(*Context) error) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	sCtx := newContextWithContext(ctx)
+
+	// Execute the user function
+	if err := fn(sCtx); err != nil {
+		return fmt.Errorf("context function failed: %w", err)
+	}
+
+	// Check if context was cancelled before synthesis
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("context cancelled before synthesis: %w", err)
+	}
+
+	// Synthesize all resources
+	if err := sCtx.Synthesize(); err != nil {
+		return fmt.Errorf("synthesis failed: %w", err)
+	}
+
+	return nil
+}
+
 // Run executes a function with a new Context and automatically handles synthesis.
 // This is the primary entry point for using the Stigmer SDK with typed context.
+//
+// This uses context.Background() internally. For cancellation or timeout support,
+// use RunWithContext instead.
 //
 // The function is called with a fresh Context instance. Any workflows or agents
 // created within the function are automatically registered and synthesized when
@@ -654,19 +778,7 @@ func (c *Context) synthesizeDependencies(outputDir string) error {
 //	    }
 //	}
 func Run(fn func(*Context) error) error {
-	ctx := newContext()
-
-	// Execute the user function
-	if err := fn(ctx); err != nil {
-		return fmt.Errorf("context function failed: %w", err)
-	}
-
-	// Synthesize all resources
-	if err := ctx.Synthesize(); err != nil {
-		return fmt.Errorf("synthesis failed: %w", err)
-	}
-
-	return nil
+	return RunWithContext(context.Background(), fn)
 }
 
 // =============================================================================
@@ -708,18 +820,6 @@ func (c *Context) Agents() []*agent.Agent {
 	// Return a copy to prevent external modification
 	result := make([]*agent.Agent, len(c.agents))
 	copy(result, c.agents)
-	return result
-}
-
-// Skills returns a copy of all inline skills registered in the context.
-// This is primarily useful for testing and debugging.
-func (c *Context) Skills() []*skill.Skill {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	// Return a copy to prevent external modification
-	result := make([]*skill.Skill, len(c.skills))
-	copy(result, c.skills)
 	return result
 }
 

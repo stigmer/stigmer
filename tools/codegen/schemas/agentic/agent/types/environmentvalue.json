@@ -1,0 +1,38 @@
+{
+  "name": "EnvironmentValue",
+  "description": "EnvironmentValue represents a single configuration or secret value.",
+  "protoType": "ai.stigmer.agentic.environment.v1.EnvironmentValue",
+  "protoFile": "apis/ai/stigmer/agentic/environment/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Value",
+      "jsonName": "value",
+      "protoField": "value",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The actual value.\n - If is_secret=true: This value is encrypted at rest and redacted in logs\n - If is_secret=false: This value is stored as plaintext\n Note: Value can be empty when defining environment variables in specs.\n       Actual values are typically provided at runtime during execution.",
+      "required": false
+    },
+    {
+      "name": "IsSecret",
+      "jsonName": "isSecret",
+      "protoField": "is_secret",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether this value should be treated as a secret.\n When true:\n - Value is encrypted at rest\n - Value is redacted in logs\n - Value requires special permissions to read\n When false:\n - Value is stored as plaintext\n - Value is visible in audit logs",
+      "required": false
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Optional description for documentation.\n Example: \"AWS access key for S3 bucket access\"",
+      "required": false
+    }
+  ]
+}

@@ -7,10 +7,13 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
+
+// mockIntegrationCtx implements the environment.Context interface for testing
+type mockIntegrationCtx struct{}
 
 // =============================================================================
 // Integration Scenarios - Multi-Resource Workflows
@@ -22,22 +25,14 @@ func TestIntegration_CompleteWorkflowWithAgent(t *testing.T) {
 	var capturedAgent *agent.Agent
 
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
-		// Create a skill for the agent
-		codeSkill, err := skill.New("code-analysis", &skill.SkillArgs{
-			MarkdownContent: "# Code Analysis\nAnalyze code quality",
-		})
-		if err != nil {
-			return err
-		}
-
-		// Create agent
+		// Create agent with skill refs (SDK references skills, doesn't create them)
 		codeReviewer, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
 			Instructions: "Review code and provide detailed feedback on quality and best practices",
 		})
 		if err != nil {
 			return err
 		}
-		codeReviewer.AddSkill(*codeSkill)
+		codeReviewer.AddSkillRef(skillref.Platform("code-analysis"))
 		capturedAgent = codeReviewer
 
 		// Create workflow that uses the agent
@@ -227,40 +222,33 @@ func TestIntegration_MultiAgentWorkflow(t *testing.T) {
 
 // TestIntegration_AgentWithAllFeatures tests agent with all nested resources.
 func TestIntegration_AgentWithAllFeatures(t *testing.T) {
+	ctx := &mockIntegrationCtx{}
 	var capturedAgent *agent.Agent
 
-	err := stigmer.Run(func(ctx *stigmer.Context) error {
-		// Create multiple skills
-		skill1, _ := skill.New("skill1", &skill.SkillArgs{
-			MarkdownContent: "# Skill 1\nFirst skill",
-		})
-
-		skill2, _ := skill.New("skill2", &skill.SkillArgs{
-			MarkdownContent: "# Skill 2\nSecond skill",
-		})
-
+	err := stigmer.Run(func(sCtx *stigmer.Context) error {
 		// Create environment variables
-		env1, _ := environment.New(
-			environment.WithName("API_KEY"),
-			environment.WithSecret(true),
-		)
+		env1, _ := environment.New(ctx, "API_KEY", &environment.VariableArgs{
+			IsSecret: true,
+		})
 
-		env2, _ := environment.New(
-			environment.WithName("REGION"),
-			environment.WithDefaultValue("us-east-1"),
-		)
+		env2, _ := environment.New(ctx, "REGION", &environment.VariableArgs{
+			DefaultValue: "us-east-1",
+		})
 
-		// Create comprehensive agent (simplified - without MCP servers and sub-agents)
-		comprehensiveAgent, err := agent.New(ctx, "comprehensive-agent", &agent.AgentArgs{
+		// Create comprehensive agent with skill refs (SDK references skills, doesn't create them)
+		comprehensiveAgent, err := agent.New(sCtx, "comprehensive-agent", &agent.AgentArgs{
 			Description:  "Agent with all features for integration testing",
 			IconUrl:      "https://example.com/icon.png",
-			Instructions: "Comprehensive agent with skills and environment variables for integration testing",
+			Instructions: "Comprehensive agent with skill refs and environment variables for integration testing",
 		})
 		if err != nil {
 			return err
 		}
-		comprehensiveAgent.AddSkills(*skill1, *skill2)
-		comprehensiveAgent.AddEnvironmentVariables(env1, env2)
+		comprehensiveAgent.AddSkillRefs(
+			skillref.Platform("skill1"),
+			skillref.Platform("skill2"),
+		)
+		comprehensiveAgent.AddEnvironmentVariables(*env1, *env2)
 
 		capturedAgent = comprehensiveAgent
 		return nil
@@ -281,7 +269,7 @@ func TestIntegration_AgentWithAllFeatures(t *testing.T) {
 
 	// Verify features
 	if len(agentProto.Spec.SkillRefs) != 2 {
-		t.Errorf("Expected 2 skills, got %d", len(agentProto.Spec.SkillRefs))
+		t.Errorf("Expected 2 skill refs, got %d", len(agentProto.Spec.SkillRefs))
 	}
 
 	if len(agentProto.Spec.EnvSpec.Data) != 2 {
@@ -300,23 +288,14 @@ func TestIntegration_DependencyTracking(t *testing.T) {
 	err := stigmer.Run(func(c *stigmer.Context) error {
 		ctx = c
 
-		// Create inline skills
-		skill1, _ := skill.New("coding", &skill.SkillArgs{
-			MarkdownContent: "# Coding\nCoding guidelines",
-		})
-
-		skill2, _ := skill.New("security", &skill.SkillArgs{
-			MarkdownContent: "# Security\nSecurity best practices",
-		})
-
-		// Create agents with inline skills
+		// Create agents with skill refs (SDK references skills, doesn't create them)
 		agent1, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
 			Instructions: "Review code for best practices",
 		})
 		if err != nil {
 			return err
 		}
-		agent1.AddSkill(*skill1)
+		agent1.AddSkillRef(skillref.Platform("coding-guidelines"))
 
 		agent2, err := agent.New(ctx, "security-reviewer", &agent.AgentArgs{
 			Instructions: "Review code for security issues",
@@ -324,7 +303,7 @@ func TestIntegration_DependencyTracking(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		agent2.AddSkill(*skill2)
+		agent2.AddSkillRef(skillref.Platform("security-best-practices"))
 
 		// Create workflow using agents
 		_, err = workflow.New(ctx,
@@ -345,27 +324,13 @@ func TestIntegration_DependencyTracking(t *testing.T) {
 		t.Fatalf("Dependency tracking test failed: %v", err)
 	}
 
-	// Verify dependencies were tracked
-	deps := ctx.Dependencies()
-
-	t.Logf("Tracked dependencies: %v", deps)
-
-	// Check agent → skill dependencies
-	agent1Deps := ctx.GetDependencies("agent:code-reviewer")
-	if len(agent1Deps) == 0 {
-		t.Error("Expected dependencies for code-reviewer agent")
+	// Verify agents were tracked
+	agents := ctx.Agents()
+	if len(agents) < 2 {
+		t.Errorf("Expected at least 2 agents registered, got %d", len(agents))
 	}
 
-	agent2Deps := ctx.GetDependencies("agent:security-reviewer")
-	if len(agent2Deps) == 0 {
-		t.Error("Expected dependencies for security-reviewer agent")
-	}
-
-	// Verify skills were registered
-	skills := ctx.Skills()
-	if len(skills) < 2 {
-		t.Errorf("Expected at least 2 skills registered, got %d", len(skills))
-	}
+	t.Logf("Tracked %d agents", len(agents))
 }
 
 // =============================================================================
@@ -379,33 +344,19 @@ func TestIntegration_ManyResourcesStressTest(t *testing.T) {
 	}
 
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
-		// Create 50 skills with unique names
-		skills := make([]*skill.Skill, 50)
-		for i := 0; i < 50; i++ {
-			s, err := skill.New(fmt.Sprintf("stress-skill-%d", i), &skill.SkillArgs{
-				MarkdownContent: fmt.Sprintf("# Stress Skill %d", i),
-			})
-			if err != nil {
-				return err
-			}
-			skills[i] = s
-		}
-
-		// Create 20 agents with unique names
+		// Create 20 agents with skill refs (SDK references skills, doesn't create them)
 		for i := 0; i < 20; i++ {
-			// Each agent gets 2-3 skills
-			agentSkills := skills[i*2 : min(i*2+3, len(skills))]
-
 			ag, err := agent.New(ctx, fmt.Sprintf("stress-agent-%d", i), &agent.AgentArgs{
 				Instructions: fmt.Sprintf("Stress test agent %d for testing system capacity", i),
 			})
 			if err != nil {
 				return err
 			}
-			// Add skills to agent
-			for _, s := range agentSkills {
-				ag.AddSkill(*s)
-			}
+			// Add skill refs to agent (2-3 refs per agent)
+			ag.AddSkillRefs(
+				skillref.Platform(fmt.Sprintf("skill-%d-a", i)),
+				skillref.Platform(fmt.Sprintf("skill-%d-b", i)),
+			)
 		}
 
 		// Create 10 workflows with unique names
@@ -437,14 +388,7 @@ func TestIntegration_ManyResourcesStressTest(t *testing.T) {
 		t.Fatalf("Stress test failed: %v", err)
 	}
 
-	t.Log("Successfully created 50 skills, 20 agents, and 10 workflows with 10 tasks each")
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
+	t.Log("Successfully created 20 agents and 10 workflows with 10 tasks each")
 }
 
 // =============================================================================

@@ -1,38 +1,31 @@
 // Package subagent provides types and builders for defining sub-agents
 // that can be delegated to within an agent.
 //
-// Sub-agents can be either:
-//   - Inline: Defined directly with instructions, MCP servers, and skills
-//   - Referenced: Reference to an existing AgentInstance resource
+// Sub-agents are defined inline within the parent agent spec using the
+// struct args pattern (Pulumi-aligned).
 //
-// # Inline Sub-Agents
+// # Creating Sub-Agents
 //
-// Inline sub-agents are defined directly within the parent agent:
+// Sub-agents are created using the New function with struct args:
 //
-//	sub := subagent.Inline(
-//	    subagent.WithName("code-analyzer"),
-//	    subagent.WithInstructions("Analyze code for bugs and security issues"),
-//	    subagent.WithDescription("Static code analyzer"),
-//	    subagent.WithMCPServer("github"),
-//	    subagent.WithSkill(skill.Platform("code-analysis")),
-//	)
-//
-// # Referenced Sub-Agents
-//
-// Referenced sub-agents point to existing AgentInstance resources:
-//
-//	sub := subagent.Reference("security-checker", "sec-checker-prod")
+//	sub, err := subagent.New("code-analyzer", &subagent.Args{
+//	    Instructions: "Analyze code for bugs and security issues",
+//	    Description:  "Static code analyzer",
+//	    McpServers:   []string{"github"},
+//	    SkillRefs: []*types.ApiResourceReference{
+//	        {Slug: "code-analysis"},
+//	    },
+//	})
 //
 // # Integration with Agent
 //
-// Sub-agents are added to agents using the WithSubAgent option:
+// Sub-agents are added to agents using the AddSubAgent method:
 //
-//	agent, err := agent.New(
-//	    agent.WithName("main-agent"),
-//	    agent.WithInstructions("Main agent instructions"),
-//	    agent.WithSubAgent(subagent.Inline(
-//	        subagent.WithName("helper"),
-//	        subagent.WithInstructions("Helper instructions"),
-//	    )),
-//	)
+//	ag, err := agent.New(ctx, "main-agent", &agent.AgentArgs{
+//	    Instructions: "Main agent instructions",
+//	})
+//	sub, _ := subagent.New("helper", &subagent.Args{
+//	    Instructions: "Helper instructions for the sub-agent",
+//	})
+//	ag.AddSubAgent(sub)
 package subagent

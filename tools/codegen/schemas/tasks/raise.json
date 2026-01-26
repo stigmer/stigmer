@@ -13,8 +13,12 @@
         "kind": "string"
       },
       "description": "Error type/name.",
-      "required": false,
-      "isExpression": true
+      "required": true,
+      "isExpression": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
     },
     {
       "name": "Message",
@@ -24,8 +28,12 @@
         "kind": "string"
       },
       "description": "Error message.\n Can contain expressions: \"${ .errorMessage }\"",
-      "required": false,
-      "isExpression": true
+      "required": true,
+      "isExpression": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
     }
   ]
 }
