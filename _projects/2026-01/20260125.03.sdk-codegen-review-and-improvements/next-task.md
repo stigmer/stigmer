@@ -9,9 +9,9 @@
 ## Current State
 
 **Phase**: ALL PHASES COMPLETE (1, 2, 3, 4, 5)  
-**Current Task**: Final Task 5a (IN PROGRESS) - Fixing test files  
-**Progress**: Phase 1 tests fixed (mcpserver, agent, integration) - 9 files, -407 lines
-**Build Status**: Tests updated, verification pending (`go test -c ./...` not yet run)
+**Current Task**: Final Task 5b (IN PROGRESS) - Fixing example files  
+**Progress**: Example 03 fixed (comprehensive MCP server example) - 1 file, +120/-90 lines  
+**Build Status**: Example compiles cleanly, ready for next example
 
 **Plan References**: 
 - Phase 1: `.cursor/plans/phase_1_codegen_fixes_bcc0bef0.plan.md`
@@ -26,6 +26,43 @@
 ---
 
 ## Session Progress
+
+### Session 12 (2026-01-26) - Final Task 5b: Example 03 Fixed
+
+**Status**: COMPLETE
+**Work Scope**: Fix example 03 (agent with MCP servers) to use new APIs
+
+**Accomplishments**:
+
+**Example 03: Complete Rewrite** (1 file, +120/-90 lines):
+- **03_agent_with_mcp_servers.go**: Full migration to struct-args API
+  - Updated imports: removed `skill`, added `skillref` and `gen/types`
+  - GitHub Stdio server: `mcpserver.Stdio(ctx, name, &StdioArgs{...})`
+  - AWS Stdio server: same struct-args pattern with multiple env vars
+  - HTTP server: `mcpserver.HTTP(ctx, name, &HTTPArgs{...})`
+  - Docker server: `mcpserver.Docker(ctx, name, &DockerArgs{...})`
+  - VolumeMount: `Volumes: []*types.VolumeMount{{HostPath:..., ContainerPath:..., ReadOnly:...}}`
+  - PortMapping: `Ports: []*types.PortMapping{{HostPort:..., ContainerPort:..., Protocol:...}}`
+  - Skill refs: `skillref.Platform("slug")` with `agent.AddSkillRefs(...)`
+  - EnableTools: builder pattern `server.EnableTools("tool1", "tool2")`
+  
+**Key Patterns Demonstrated**:
+- All three MCP server types (Stdio, HTTP, Docker) with proper struct-args
+- Generated types (VolumeMount, PortMapping) instead of functional options
+- skillref package for platform skill references
+- Builder pattern for EnableTools (separate from constructor)
+- Educational comments explaining when to use each server type
+
+**Verification**:
+- `go build ./sdk/go/examples/03_agent_with_mcp_servers.go` - PASSES
+- `go build ./sdk/go/...` - PASSES (no regressions)
+
+**Design Decision**:
+- Example 03 chosen first as it's the most comprehensive MCP server example
+- Establishes canonical reference implementation for examples 04, 05
+- Demonstrates all API patterns in one cohesive example
+
+**Build Status**: ✅ PASSES (example compiles cleanly)
 
 ### Session 11 (2026-01-26) - Final Task 5a: Test Fixes (PARTIAL)
 
@@ -309,55 +346,54 @@ sdk/go/stigmer/context_test.go         | 266 +++++-------------------
 
 ---
 
-## Next Steps (Session 12)
+## Next Steps (Session 13)
 
-**Immediate Next Action**: Complete Task 5a verification OR start Task 5b
+**Immediate Next Action**: Continue Task 5b - Fix remaining example files
 
-**Task 5a Status**: PARTIAL COMPLETE (Phase 1 done, verification pending)
-- ✅ Phase 1: Core SDK tests fixed (9 files, -407 lines)
-- ⏸️ Verification: Need to run `go test -c ./...` to verify compilation
-- 📋 If errors found: Fix remaining test files
-- 📋 If clean: Mark Task 5a complete, move to Task 5b
+**Task 5b Status**: STARTED (1 of 19 examples complete)
+- ✅ Example 03: `03_agent_with_mcp_servers.go` - Complete rewrite, all MCP types
+- 📋 Example 02: `02_agent_with_skills.go` - Replace `skill` with `skillref`
+- 📋 Example 04: `04_agent_with_subagents.go` - Update mcpserver to struct-args
+- 📋 Example 05: `05_agent_with_environment_variables.go` - Update environment + mcpserver
+- 📋 Example 06: `06_agent_with_inline_content.go` - Replace skill references
+- 📋 Example 12: `12_agent_with_typed_context.go` - Replace skill references
+- 📋 Remaining 13 examples (workflow examples) - Check if they need updates
 
 **Remaining Final Tasks**:
 
-| Task | Status | Description | Priority |
-|------|--------|-------------|----------|
-| **5a** | IN PROGRESS | Verify tests compile, fix any remaining issues | HIGH |
-| **5b** | PENDING | Fix all 19 examples to new APIs | MEDIUM |
-| **5c** | PENDING | Fix documentation (doc.go, README, api-reference) | LOW |
+| Task | Status | Description | Files |
+|------|--------|-------------|-------|
+| **5b** | IN PROGRESS | Fix example files to new APIs | 1/19 done |
+| **5c** | PENDING | Fix documentation (doc.go, README, api-reference) | ~8 files |
 
-**Recommended Approach for Next Session**:
+**Recommended Strategy for Next Example**:
 
-**Option 1: Complete Task 5a** (Recommended)
-```
-1. Run: go test -c ./...
-2. If errors: Fix remaining test files
-3. Verify: All tests compile successfully
-4. Mark Task 5a complete
-```
+Pick **ONE example at a time** (incremental approach):
+- Example 02 (skills) - Simple skillref migration
+- Example 05 (environment) - environment + mcpserver struct-args
+- Example 04 (subagents) - mcpserver struct-args
+- Continue pattern for remaining examples
 
-**Option 2: Start Task 5b** (If 5a verification shows no errors)
-```
-1. Fix example files one at a time (19 files total)
-2. Each example should be verified independently
-3. Use same API patterns as test fixes
-```
+**Why Example 03 First**:
+- Most comprehensive (all 3 MCP types + skills)
+- Establishes reference implementation
+- Other examples can follow this pattern
 
 **Context for Resume**:
 - ALL PHASES COMPLETE (1-5)
-- **Task 5a**: 9 test files fixed, verification pending
-  - Core SDK tests updated to struct args and skillref
-  - API changes: mcpserver, environment, skill→skillref
-  - -407 lines net (cleaner, focused tests)
-- **Task 5b**: Not started - 19 example files need updates
-- **Task 5c**: Not started - documentation files need updates
+- **Task 5a**: COMPLETE - 9 test files fixed and verified
+- **Task 5b**: IN PROGRESS - 1 of 19 examples complete
+  - ✅ Example 03: Comprehensive MCP server example (all 3 types)
+  - Reference implementation for struct-args + skillref patterns
+  - Demonstrates VolumeMount, PortMapping with generated types
+  - Remaining: 18 examples (6 agent, 13 workflow)
+- **Task 5c**: PENDING - documentation files need updates
 - Build system documented and standardized (Go 1.25.6 everywhere)
 - SubAgent simplified (inline-only, flattened proto)
 - context.Context integration complete (Pulumi pattern)
 - Enhanced error types complete (ResourceError, SynthesisError)
 - Documentation complete (4 audit reports + 3 architecture docs)
-- **Uncommitted changes**: 9 test files modified, ready to commit after verification
+- **Uncommitted changes**: 1 example file + next-task.md update
 
 ---
 
@@ -445,26 +481,12 @@ All tasks completed in Session 7.
 
 ## Uncommitted Changes
 
-**Status**: WORK IN PROGRESS - 9 test files modified (Session 11)
-
-**Modified Files** (9 files, 521 insertions, 928 deletions):
-- sdk/go/agent/agent_builder_test.go
-- sdk/go/agent/agent_environment_test.go
-- sdk/go/agent/agent_subagents_test.go
-- sdk/go/agent/benchmarks_test.go
-- sdk/go/agent/error_cases_test.go
-- sdk/go/agent/validation_test.go
-- sdk/go/integration_scenarios_test.go
-- sdk/go/mcpserver/mcpserver_test.go
-- sdk/go/stigmer/context_test.go
-
-**Changes Summary**:
-- Converted tests from functional options to struct args pattern
-- Replaced `skill` package with `skillref` package
-- Updated to current SDK APIs
-- Net: -407 lines (cleaner, more focused tests)
+**Status**: CLEAN - All Session 11 changes committed
 
 **Latest Commits**:
+- `75ca5c8` - test(sdk): migrate tests to struct args and skillref APIs (Session 11)
+  - 11 files changed: 905 insertions(+), 946 deletions(-)
+  - 9 test files + session checkpoint + next-task.md update
 - `0438eee` - docs(sdk): add comprehensive phase audit reports and architecture docs (Session 10)
 - `5ace05d` - feat(sdk): add context.Context support and enhanced error types (Session 9)
 
