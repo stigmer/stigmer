@@ -2,19 +2,26 @@ package mcpserver
 
 import (
 	"testing"
+
+	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
+
+// mockContext implements the Context interface for testing
+type mockContext struct{}
 
 // Test Stdio Server
 
 func TestStdioServer_Success(t *testing.T) {
-	server, err := Stdio(
-		WithName("github"),
-		WithCommand("npx"),
-		WithArgs("-y", "@modelcontextprotocol/server-github"),
-		WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
-		WithWorkingDir("/app"),
-		WithEnabledTools("create_issue", "list_repos"),
-	)
+	ctx := &mockContext{}
+	server, err := Stdio(ctx, "github", &StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+		EnvPlaceholders: map[string]string{
+			"GITHUB_TOKEN": "${GITHUB_TOKEN}",
+		},
+		WorkingDir: "/app",
+	})
+	server.EnableTools("create_issue", "list_repos")
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -41,39 +48,62 @@ func TestStdioServer_Success(t *testing.T) {
 	}
 }
 
-func TestStdioServer_MissingName(t *testing.T) {
-	_, err := Stdio(
-		WithCommand("npx"),
-	)
+func TestStdioServer_MinimalArgs(t *testing.T) {
+	ctx := &mockContext{}
+	server, err := Stdio(ctx, "github", &StdioArgs{
+		Command: "npx",
+	})
 
-	if err == nil {
-		t.Fatal("expected error for missing name, got nil")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if server.Name() != "github" {
+		t.Errorf("expected name 'github', got %q", server.Name())
+	}
+
+	if server.Command() != "npx" {
+		t.Errorf("expected command 'npx', got %q", server.Command())
 	}
 }
 
-func TestStdioServer_MissingCommand(t *testing.T) {
-	_, err := Stdio(
-		WithName("github"),
-	)
+func TestStdioServer_NilArgs(t *testing.T) {
+	ctx := &mockContext{}
+	server, err := Stdio(ctx, "github", nil)
 
-	if err == nil {
-		t.Fatal("expected error for missing command, got nil")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if server.Name() != "github" {
+		t.Errorf("expected name 'github', got %q", server.Name())
 	}
 }
 
+func TestStdioServer_Type(t *testing.T) {
+	ctx := &mockContext{}
+	server, _ := Stdio(ctx, "test", &StdioArgs{Command: "echo"})
 
+	if server.Type() != TypeStdio {
+		t.Errorf("expected type TypeStdio, got %v", server.Type())
+	}
+}
 
 // Test HTTP Server
 
 func TestHTTPServer_Success(t *testing.T) {
-	server, err := HTTP(
-		WithName("api-service"),
-		WithURL("https://mcp.example.com"),
-		WithHeader("Authorization", "Bearer ${API_TOKEN}"),
-		WithQueryParam("region", "${AWS_REGION}"),
-		WithTimeout(60),
-		WithEnabledTools("search", "fetch"),
-	)
+	ctx := &mockContext{}
+	server, err := HTTP(ctx, "api-service", &HTTPArgs{
+		Url: "https://mcp.example.com",
+		Headers: map[string]string{
+			"Authorization": "Bearer ${API_TOKEN}",
+		},
+		QueryParams: map[string]string{
+			"region": "${AWS_REGION}",
+		},
+		TimeoutSeconds: 60,
+	})
+	server.EnableTools("search", "fetch")
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -104,42 +134,11 @@ func TestHTTPServer_Success(t *testing.T) {
 	}
 }
 
-func TestHTTPServer_MissingName(t *testing.T) {
-	_, err := HTTP(
-		WithURL("https://mcp.example.com"),
-	)
-
-	if err == nil {
-		t.Fatal("expected error for missing name, got nil")
-	}
-}
-
-func TestHTTPServer_MissingURL(t *testing.T) {
-	_, err := HTTP(
-		WithName("api-service"),
-	)
-
-	if err == nil {
-		t.Fatal("expected error for missing url, got nil")
-	}
-}
-
-func TestHTTPServer_InvalidURL(t *testing.T) {
-	_, err := HTTP(
-		WithName("api-service"),
-		WithURL("not a valid url"),
-	)
-
-	if err == nil {
-		t.Fatal("expected error for invalid url, got nil")
-	}
-}
-
 func TestHTTPServer_DefaultTimeout(t *testing.T) {
-	server, err := HTTP(
-		WithName("api-service"),
-		WithURL("https://mcp.example.com"),
-	)
+	ctx := &mockContext{}
+	server, err := HTTP(ctx, "api-service", &HTTPArgs{
+		Url: "https://mcp.example.com",
+	})
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -150,22 +149,53 @@ func TestHTTPServer_DefaultTimeout(t *testing.T) {
 	}
 }
 
+func TestHTTPServer_NilArgs(t *testing.T) {
+	ctx := &mockContext{}
+	server, err := HTTP(ctx, "api-service", nil)
 
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if server.Name() != "api-service" {
+		t.Errorf("expected name 'api-service', got %q", server.Name())
+	}
+
+	// Default timeout should be applied
+	if server.TimeoutSeconds() != 30 {
+		t.Errorf("expected default timeout 30, got %d", server.TimeoutSeconds())
+	}
+}
+
+func TestHTTPServer_Type(t *testing.T) {
+	ctx := &mockContext{}
+	server, _ := HTTP(ctx, "test", &HTTPArgs{Url: "https://example.com"})
+
+	if server.Type() != TypeHTTP {
+		t.Errorf("expected type TypeHTTP, got %v", server.Type())
+	}
+}
 
 // Test Docker Server
 
 func TestDockerServer_Success(t *testing.T) {
-	server, err := Docker(
-		WithName("custom-mcp"),
-		WithImage("ghcr.io/org/mcp:latest"),
-		WithArgs("--config", "/etc/mcp.yaml"),
-		WithEnvPlaceholder("API_KEY", "${API_KEY}"),
-		WithVolumeMount("/host/data", "/container/data", false),
-		WithPortMapping(8080, 80, "tcp"),
-		WithNetwork("mcp-network"),
-		WithContainerName("my-mcp-server"),
-		WithEnabledTools("tool1", "tool2"),
-	)
+	ctx := &mockContext{}
+	server, err := Docker(ctx, "custom-mcp", &DockerArgs{
+		Image: "ghcr.io/org/mcp:latest",
+		Args:  []string{"--config", "/etc/mcp.yaml"},
+		EnvPlaceholders: map[string]string{
+			"API_KEY": "${API_KEY}",
+		},
+		Volumes: []*types.VolumeMount{
+			{HostPath: "/host/data", ContainerPath: "/container/data", ReadOnly: false},
+		},
+		Ports: []*types.PortMapping{
+			{HostPort: 8080, ContainerPort: 80, Protocol: "tcp"},
+		},
+		Network:       "mcp-network",
+		ContainerName: "my-mcp-server",
+	})
+	server.EnableTools("tool1", "tool2")
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -204,71 +234,57 @@ func TestDockerServer_Success(t *testing.T) {
 	}
 }
 
-func TestDockerServer_MissingName(t *testing.T) {
-	_, err := Docker(
-		WithImage("ghcr.io/org/mcp:latest"),
-	)
+func TestDockerServer_NilArgs(t *testing.T) {
+	ctx := &mockContext{}
+	server, err := Docker(ctx, "custom-mcp", nil)
 
-	if err == nil {
-		t.Fatal("expected error for missing name, got nil")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if server.Name() != "custom-mcp" {
+		t.Errorf("expected name 'custom-mcp', got %q", server.Name())
 	}
 }
 
-func TestDockerServer_MissingImage(t *testing.T) {
-	_, err := Docker(
-		WithName("custom-mcp"),
-	)
+func TestDockerServer_Type(t *testing.T) {
+	ctx := &mockContext{}
+	server, _ := Docker(ctx, "test", &DockerArgs{Image: "test:latest"})
 
-	if err == nil {
-		t.Fatal("expected error for missing image, got nil")
+	if server.Type() != TypeDocker {
+		t.Errorf("expected type TypeDocker, got %v", server.Type())
 	}
 }
 
-func TestDockerServer_InvalidVolumeMount(t *testing.T) {
-	_, err := Docker(
-		WithName("custom-mcp"),
-		WithImage("ghcr.io/org/mcp:latest"),
-		WithVolumeMount("", "/container/data", false),
-	)
+// Test multiple volumes and ports
 
-	if err == nil {
-		t.Fatal("expected error for invalid volume mount, got nil")
+func TestDockerServer_MultipleVolumesAndPorts(t *testing.T) {
+	ctx := &mockContext{}
+	server, err := Docker(ctx, "multi", &DockerArgs{
+		Image: "test:latest",
+		Volumes: []*types.VolumeMount{
+			{HostPath: "/host/data1", ContainerPath: "/data1", ReadOnly: false},
+			{HostPath: "/host/data2", ContainerPath: "/data2", ReadOnly: true},
+		},
+		Ports: []*types.PortMapping{
+			{HostPort: 8080, ContainerPort: 80, Protocol: "tcp"},
+			{HostPort: 8443, ContainerPort: 443, Protocol: "tcp"},
+			{HostPort: 5353, ContainerPort: 53, Protocol: "udp"},
+		},
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(server.Volumes()) != 2 {
+		t.Errorf("expected 2 volumes, got %d", len(server.Volumes()))
+	}
+
+	if len(server.Ports()) != 3 {
+		t.Errorf("expected 3 ports, got %d", len(server.Ports()))
 	}
 }
-
-func TestDockerServer_InvalidPortMapping(t *testing.T) {
-	_, err := Docker(
-		WithName("custom-mcp"),
-		WithImage("ghcr.io/org/mcp:latest"),
-		WithPortMapping(-1, 80, "tcp"),
-	)
-
-	if err == nil {
-		t.Fatal("expected error for invalid port mapping, got nil")
-	}
-}
-
-func TestDockerServer_InvalidProtocol(t *testing.T) {
-	_, err := Docker(
-		WithName("custom-mcp"),
-		WithImage("ghcr.io/org/mcp:latest"),
-		WithPortMapping(8080, 80, "invalid"),
-	)
-
-	if err == nil {
-		t.Fatal("expected error for invalid protocol, got nil")
-	}
-}
-
-
-
-// Test VolumeMount and PortMapping
-
-
-
-
-
-
 
 // Test ServerType
 
@@ -298,103 +314,71 @@ func TestMCPServer_Interface(t *testing.T) {
 	var _ MCPServer = (*DockerServer)(nil)
 }
 
-// Test option errors
+// Test EnableTools builder pattern
 
-func TestOption_WrongServerType(t *testing.T) {
-	tests := []struct {
-		name   string
-		option Option
-		server interface{}
-	}{
-		{
-			name:   "WithCommand on HTTPServer",
-			option: WithCommand("test"),
-			server: &HTTPServer{},
-		},
-		{
-			name:   "WithURL on StdioServer",
-			option: WithURL("https://example.com"),
-			server: &StdioServer{},
-		},
-		{
-			name:   "WithImage on StdioServer",
-			option: WithImage("test:latest"),
-			server: &StdioServer{},
-		},
-		{
-			name:   "WithWorkingDir on HTTPServer",
-			option: WithWorkingDir("/app"),
-			server: &HTTPServer{},
-		},
+func TestEnableTools_Chaining(t *testing.T) {
+	ctx := &mockContext{}
+
+	// Test Stdio chaining
+	stdioServer, _ := Stdio(ctx, "test", &StdioArgs{Command: "echo"})
+	result := stdioServer.EnableTools("tool1", "tool2")
+	if result != stdioServer {
+		t.Error("EnableTools should return the same server for chaining")
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.option(tt.server)
-			if err == nil {
-				t.Errorf("expected error for %s, got nil", tt.name)
-			}
-		})
-	}
-}
-
-// Test multiple volumes and ports
-
-func TestDockerServer_MultipleVolumesAndPorts(t *testing.T) {
-	server, err := Docker(
-		WithName("multi"),
-		WithImage("test:latest"),
-		WithVolumeMount("/host/data1", "/data1", false),
-		WithVolumeMount("/host/data2", "/data2", true),
-		WithPortMapping(8080, 80, "tcp"),
-		WithPortMapping(8443, 443, "tcp"),
-		WithPortMapping(5353, 53, "udp"),
-	)
-
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	// Test HTTP chaining
+	httpServer, _ := HTTP(ctx, "test", &HTTPArgs{Url: "https://example.com"})
+	httpResult := httpServer.EnableTools("search")
+	if httpResult != httpServer {
+		t.Error("EnableTools should return the same server for chaining")
 	}
 
-	if len(server.Volumes()) != 2 {
-		t.Errorf("expected 2 volumes, got %d", len(server.Volumes()))
-	}
-
-	if len(server.Ports()) != 3 {
-		t.Errorf("expected 3 ports, got %d", len(server.Ports()))
+	// Test Docker chaining
+	dockerServer, _ := Docker(ctx, "test", &DockerArgs{Image: "test:latest"})
+	dockerResult := dockerServer.EnableTools("process")
+	if dockerResult != dockerServer {
+		t.Error("EnableTools should return the same server for chaining")
 	}
 }
 
 // Benchmark tests
 
 func BenchmarkStdioServer_Create(b *testing.B) {
+	ctx := &mockContext{}
 	for i := 0; i < b.N; i++ {
-		_, _ = Stdio(
-			WithName("github"),
-			WithCommand("npx"),
-			WithArgs("-y", "@modelcontextprotocol/server-github"),
-			WithEnvPlaceholder("GITHUB_TOKEN", "${GITHUB_TOKEN}"),
-		)
+		server, _ := Stdio(ctx, "github", &StdioArgs{
+			Command: "npx",
+			Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+			EnvPlaceholders: map[string]string{
+				"GITHUB_TOKEN": "${GITHUB_TOKEN}",
+			},
+		})
+		server.EnableTools("create_issue", "list_repos")
 	}
 }
 
-
-
 func BenchmarkHTTPServer_Create(b *testing.B) {
+	ctx := &mockContext{}
 	for i := 0; i < b.N; i++ {
-		_, _ = HTTP(
-			WithName("api-service"),
-			WithURL("https://mcp.example.com"),
-			WithHeader("Authorization", "Bearer ${API_TOKEN}"),
-		)
+		server, _ := HTTP(ctx, "api-service", &HTTPArgs{
+			Url: "https://mcp.example.com",
+			Headers: map[string]string{
+				"Authorization": "Bearer ${API_TOKEN}",
+			},
+		})
+		server.EnableTools("search", "fetch")
 	}
 }
 
 func BenchmarkDockerServer_Create(b *testing.B) {
+	ctx := &mockContext{}
 	for i := 0; i < b.N; i++ {
-		_, _ = Docker(
-			WithName("custom-mcp"),
-			WithImage("ghcr.io/org/mcp:latest"),
-			WithEnvPlaceholder("API_KEY", "${API_KEY}"),
-		)
+		server, _ := Docker(ctx, "custom-mcp", &DockerArgs{
+			Image: "ghcr.io/org/mcp:latest",
+			EnvPlaceholders: map[string]string{
+				"API_KEY": "${API_KEY}",
+			},
+		})
+		server.EnableTools("tool1")
 	}
 }

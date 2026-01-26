@@ -5,9 +5,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/sdk/go/environment"
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/skillref"
 )
+
+// mockEnvCtx implements the environment.Context interface for testing
+type mockEnvCtx struct{}
 
 // =============================================================================
 // Error Case Tests - Validation Failures
@@ -206,58 +210,45 @@ func TestNew_ValidationErrors(t *testing.T) {
 // Error Case Tests - Invalid Nested Resources
 // =============================================================================
 
-// TestNew_InvalidSkills tests agent creation with invalid skills.
-func TestNew_InvalidSkills(t *testing.T) {
-	// Create an invalid skill using skill.New (will catch validation)
-	_, skillErr := skill.New("", nil) // Invalid empty name
+// TestNew_InvalidSkillRefs tests agent creation with skill references.
+// Note: SDK references skills via skillref, it doesn't create them.
+// Skill validation happens at the platform level, not in the SDK.
+func TestNew_InvalidSkillRefs(t *testing.T) {
+	// skillref.Platform returns a reference - validation is minimal
+	ref := skillref.Platform("")
 
-	if skillErr != nil {
-		t.Logf("Skill validation caught empty name at creation: %v", skillErr)
-		return
+	if ref == nil {
+		t.Fatal("skillref.Platform should return a non-nil reference")
 	}
 
-	t.Log("Skill validation may be deferred")
+	t.Log("Skill reference created - validation happens at platform level")
 }
 
 // TestNew_InvalidMCPServers tests agent creation with invalid MCP servers.
-// NOTE: MCP server functionality not yet fully implemented in SDK, skipping for now.
+// NOTE: MCP server validation happens via protovalidate at deployment time.
 func TestNew_InvalidMCPServers(t *testing.T) {
-	t.Skip("MCP server functionality not yet fully implemented")
+	t.Skip("MCP server validation happens via protovalidate at deployment")
 }
 
 // TestNew_InvalidSubAgents tests agent creation with invalid sub-agents.
-// NOTE: Sub-agent functionality not yet fully implemented in SDK, skipping for now.
+// NOTE: Sub-agent validation happens via protovalidate at deployment time.
 func TestNew_InvalidSubAgents(t *testing.T) {
-	t.Skip("Sub-agent functionality not yet fully implemented")
+	t.Skip("Sub-agent validation happens via protovalidate at deployment")
 }
 
 // TestNew_InvalidEnvironmentVariables tests agent creation with invalid env vars.
 func TestNew_InvalidEnvironmentVariables(t *testing.T) {
+	ctx := &mockEnvCtx{}
+
 	// Create invalid environment variable (empty name)
-	invalidEnv, err := environment.New(
-		environment.WithName(""),
-	)
+	_, err := environment.New(ctx, "", nil)
 
 	if err != nil {
 		t.Log("Environment variable validation caught empty name at creation")
 		return
 	}
 
-	agent, err := New(nil, "test-agent", &AgentArgs{
-		Instructions: "Valid instructions for testing invalid environment variable",
-	})
-	if err != nil {
-		t.Fatalf("Failed to create agent: %v", err)
-	}
-
-	// Add invalid environment variable using builder method
-	agent.AddEnvironmentVariable(invalidEnv)
-
-	if err != nil {
-		t.Logf("Got error with invalid environment variable: %v", err)
-	} else {
-		t.Log("Invalid environment variable not caught at agent creation")
-	}
+	t.Log("Environment variable validation may be deferred to deployment")
 }
 
 // =============================================================================
@@ -266,8 +257,8 @@ func TestNew_InvalidEnvironmentVariables(t *testing.T) {
 
 // TestAgentToProto_ErrorPropagation tests error propagation from nested conversions.
 func TestAgentToProto_ErrorPropagation(t *testing.T) {
-	// Create agent with skill (simplified version without MCP servers)
-	skill1 := skill.Platform("skill1")
+	// Create agent with skill reference (SDK references skills, doesn't create them)
+	skillRef := skillref.Platform("skill1")
 
 	agent, err := New(nil, "error-prop-agent", &AgentArgs{
 		Instructions: "Agent for testing error propagation in proto conversion",
@@ -276,8 +267,8 @@ func TestAgentToProto_ErrorPropagation(t *testing.T) {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
 
-	// Add skill using builder method
-	agent.AddSkill(skill1)
+	// Add skill ref using builder method
+	agent.AddSkillRef(skillRef)
 
 	proto, err := agent.ToProto()
 
@@ -297,19 +288,20 @@ func TestAgentToProto_ErrorPropagation(t *testing.T) {
 // TestAgentToProto_MultipleErrorSources tests agent with multiple potential error sources.
 // Simplified version without MCP servers and sub-agents.
 func TestAgentToProto_MultipleErrorSources(t *testing.T) {
-	// Create agent with multiple complex nested resources
-	skills := []skill.Skill{}
+	ctx := &mockEnvCtx{}
+
+	// Create agent with multiple skill refs
+	skillRefs := []*apiresource.ApiResourceReference{}
 	for i := 0; i < 10; i++ {
-		skills = append(skills, skill.Platform("skill"+string(rune('0'+i))))
+		skillRefs = append(skillRefs, skillref.Platform("skill"+string(rune('0'+i))))
 	}
 
 	envVars := []environment.Variable{}
 	for i := 0; i < 10; i++ {
-		env, _ := environment.New(
-			environment.WithName("ENV_VAR_"+string(rune('0'+i))),
-			environment.WithDefaultValue("value"+string(rune('0'+i))),
-		)
-		envVars = append(envVars, env)
+		env, _ := environment.New(ctx, "ENV_VAR_"+string(rune('A'+i%26)), &environment.VariableArgs{
+			DefaultValue: "value" + string(rune('0'+i)),
+		})
+		envVars = append(envVars, *env)
 	}
 
 	agent, err := New(nil, "multi-error-agent", &AgentArgs{
@@ -319,8 +311,10 @@ func TestAgentToProto_MultipleErrorSources(t *testing.T) {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
 
-	// Add skills and environment variables using builder methods
-	agent.AddSkills(skills...)
+	// Add skill refs and environment variables using builder methods
+	for _, ref := range skillRefs {
+		agent.AddSkillRef(ref)
+	}
 	agent.AddEnvironmentVariables(envVars...)
 
 	proto, err := agent.ToProto()
@@ -344,32 +338,27 @@ func TestAgentToProto_MultipleErrorSources(t *testing.T) {
 // Error Case Tests - Resource Exhaustion
 // =============================================================================
 
-// TestNew_ExcessiveSkills tests agent with extremely large number of skills.
-func TestNew_ExcessiveSkills(t *testing.T) {
-	// Create 1000 skills
-	skills := make([]skill.Skill, 1000)
-	for i := 0; i < 1000; i++ {
-		skills[i] = skill.Platform("skill-" + strings.Repeat("x", i%10))
-	}
-
+// TestNew_ExcessiveSkillRefs tests agent with extremely large number of skill refs.
+func TestNew_ExcessiveSkillRefs(t *testing.T) {
 	agent, err := New(nil, "excessive-skills", &AgentArgs{
-		Instructions: "Agent with 1000 skills for stress testing resource exhaustion",
+		Instructions: "Agent with 1000 skill refs for stress testing resource exhaustion",
 	})
 
 	if err != nil {
-		t.Logf("Agent creation failed with 1000 skills: %v", err)
-		return
+		t.Fatalf("Agent creation failed: %v", err)
 	}
 
-	// Add skills using builder method
-	agent.AddSkills(skills...)
+	// Add 1000 skill refs
+	for i := 0; i < 1000; i++ {
+		agent.AddSkillRef(skillref.Platform("skill-" + strings.Repeat("x", i%10)))
+	}
 
 	proto, err := agent.ToProto()
 
 	if err != nil {
-		t.Logf("Proto conversion failed with 1000 skills: %v", err)
+		t.Logf("Proto conversion failed with 1000 skill refs: %v", err)
 	} else if proto != nil {
-		t.Logf("Successfully converted agent with %d skills", len(proto.Spec.SkillRefs))
+		t.Logf("Successfully converted agent with %d skill refs", len(proto.Spec.SkillRefs))
 	}
 }
 

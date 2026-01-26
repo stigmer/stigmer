@@ -9,6 +9,9 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
+// mockBuilderCtx implements the environment.Context interface for testing
+type mockBuilderCtx struct{}
+
 func TestAddSkillRef(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
@@ -21,23 +24,23 @@ func TestAddSkillRef(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Start with no skills
-	if len(agent.Skills) != 0 {
-		t.Errorf("Initial skills count = %d, want 0", len(agent.Skills))
+	// Start with no skill refs
+	if len(agent.SkillRefs) != 0 {
+		t.Errorf("Initial SkillRefs count = %d, want 0", len(agent.SkillRefs))
 	}
 
-	// Add skill using builder method
+	// Add skill ref using builder method
 	agent.AddSkillRef(skillref.Platform("coding-best-practices"))
 
-	if len(agent.Skills) != 1 {
-		t.Errorf("Skills count = %d, want 1", len(agent.Skills))
+	if len(agent.SkillRefs) != 1 {
+		t.Errorf("SkillRefs count = %d, want 1", len(agent.SkillRefs))
 	}
-	if agent.Skills[0].Slug != "coding-best-practices" {
-		t.Errorf("Skill slug = %q, want %q", agent.Skills[0].Slug, "coding-best-practices")
+	if agent.SkillRefs[0].Slug != "coding-best-practices" {
+		t.Errorf("SkillRef slug = %q, want %q", agent.SkillRefs[0].Slug, "coding-best-practices")
 	}
 }
 
-func TestAddSkills(t *testing.T) {
+func TestAddSkillRefs(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -49,19 +52,19 @@ func TestAddSkills(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Add multiple skills using builder method
+	// Add multiple skill refs using builder method
 	agent.AddSkillRefs(
 		skillref.Platform("coding-best-practices"),
 		skillref.Platform("security-analysis"),
 		skillref.Organization("my-org", "internal-docs"),
 	)
 
-	if len(agent.Skills) != 3 {
-		t.Errorf("Skills count = %d, want 3", len(agent.Skills))
+	if len(agent.SkillRefs) != 3 {
+		t.Errorf("SkillRefs count = %d, want 3", len(agent.SkillRefs))
 	}
 }
 
-func TestAddSkill_Chaining(t *testing.T) {
+func TestAddSkillRef_Chaining(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -73,18 +76,20 @@ func TestAddSkill_Chaining(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Chain multiple AddSkill calls
+	// Chain multiple AddSkillRef calls
 	agent.
 		AddSkillRef(skillref.Platform("skill1")).
 		AddSkillRef(skillref.Platform("skill2")).
 		AddSkillRef(skillref.Platform("skill3"))
 
-	if len(agent.Skills) != 3 {
-		t.Errorf("Skills count = %d, want 3", len(agent.Skills))
+	if len(agent.SkillRefs) != 3 {
+		t.Errorf("SkillRefs count = %d, want 3", len(agent.SkillRefs))
 	}
 }
 
 func TestAddMCPServer(t *testing.T) {
+	ctx := &mockBuilderCtx{}
+
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -96,11 +101,10 @@ func TestAddMCPServer(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	github, err := mcpserver.Stdio(
-		mcpserver.WithName("github"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-	)
+	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+	})
 	if err != nil {
 		t.Fatalf("Failed to create MCP server: %v", err)
 	}
@@ -117,6 +121,8 @@ func TestAddMCPServer(t *testing.T) {
 }
 
 func TestAddMCPServers(t *testing.T) {
+	ctx := &mockBuilderCtx{}
+
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -128,17 +134,15 @@ func TestAddMCPServers(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	github, _ := mcpserver.Stdio(
-		mcpserver.WithName("github"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-	)
+	github, _ := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+	})
 
-	gitlab, _ := mcpserver.Stdio(
-		mcpserver.WithName("gitlab"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-gitlab"),
-	)
+	gitlab, _ := mcpserver.Stdio(ctx, "gitlab", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-gitlab"},
+	})
 
 	// Add multiple MCP servers using builder method
 	agent.AddMCPServers(github, gitlab)
@@ -149,6 +153,8 @@ func TestAddMCPServers(t *testing.T) {
 }
 
 func TestAddMCPServer_Chaining(t *testing.T) {
+	ctx := &mockBuilderCtx{}
+
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -160,17 +166,15 @@ func TestAddMCPServer_Chaining(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	github, _ := mcpserver.Stdio(
-		mcpserver.WithName("github"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-	)
+	github, _ := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+	})
 
-	gitlab, _ := mcpserver.Stdio(
-		mcpserver.WithName("gitlab"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-gitlab"),
-	)
+	gitlab, _ := mcpserver.Stdio(ctx, "gitlab", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-gitlab"},
+	})
 
 	// Chain multiple AddMCPServer calls
 	agent.
@@ -271,6 +275,8 @@ func TestAddSubAgent_Chaining(t *testing.T) {
 }
 
 func TestAddEnvironmentVariable(t *testing.T) {
+	ctx := &mockBuilderCtx{}
+
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -282,16 +288,15 @@ func TestAddEnvironmentVariable(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	githubToken, err := environment.New(
-		environment.WithName("GITHUB_TOKEN"),
-		environment.WithSecret(true),
-	)
+	githubToken, err := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
+		IsSecret: true,
+	})
 	if err != nil {
 		t.Fatalf("Failed to create environment variable: %v", err)
 	}
 
 	// Add environment variable using builder method
-	agent.AddEnvironmentVariable(githubToken)
+	agent.AddEnvironmentVariable(*githubToken)
 
 	if len(agent.EnvironmentVariables) != 1 {
 		t.Errorf("EnvironmentVariables count = %d, want 1", len(agent.EnvironmentVariables))
@@ -302,6 +307,8 @@ func TestAddEnvironmentVariable(t *testing.T) {
 }
 
 func TestAddEnvironmentVariables(t *testing.T) {
+	ctx := &mockBuilderCtx{}
+
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -313,18 +320,16 @@ func TestAddEnvironmentVariables(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	githubToken, _ := environment.New(
-		environment.WithName("GITHUB_TOKEN"),
-		environment.WithSecret(true),
-	)
+	githubToken, _ := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
+		IsSecret: true,
+	})
 
-	awsRegion, _ := environment.New(
-		environment.WithName("AWS_REGION"),
-		environment.WithDefaultValue("us-east-1"),
-	)
+	awsRegion, _ := environment.New(ctx, "AWS_REGION", &environment.VariableArgs{
+		DefaultValue: "us-east-1",
+	})
 
 	// Add multiple environment variables using builder method
-	agent.AddEnvironmentVariables(githubToken, awsRegion)
+	agent.AddEnvironmentVariables(*githubToken, *awsRegion)
 
 	if len(agent.EnvironmentVariables) != 2 {
 		t.Errorf("EnvironmentVariables count = %d, want 2", len(agent.EnvironmentVariables))
@@ -332,6 +337,8 @@ func TestAddEnvironmentVariables(t *testing.T) {
 }
 
 func TestAddEnvironmentVariable_Chaining(t *testing.T) {
+	ctx := &mockBuilderCtx{}
+
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -343,20 +350,18 @@ func TestAddEnvironmentVariable_Chaining(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	githubToken, _ := environment.New(
-		environment.WithName("GITHUB_TOKEN"),
-		environment.WithSecret(true),
-	)
+	githubToken, _ := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
+		IsSecret: true,
+	})
 
-	awsRegion, _ := environment.New(
-		environment.WithName("AWS_REGION"),
-		environment.WithDefaultValue("us-east-1"),
-	)
+	awsRegion, _ := environment.New(ctx, "AWS_REGION", &environment.VariableArgs{
+		DefaultValue: "us-east-1",
+	})
 
 	// Chain multiple AddEnvironmentVariable calls
 	agent.
-		AddEnvironmentVariable(githubToken).
-		AddEnvironmentVariable(awsRegion)
+		AddEnvironmentVariable(*githubToken).
+		AddEnvironmentVariable(*awsRegion)
 
 	if len(agent.EnvironmentVariables) != 2 {
 		t.Errorf("EnvironmentVariables count = %d, want 2", len(agent.EnvironmentVariables))
@@ -364,21 +369,21 @@ func TestAddEnvironmentVariable_Chaining(t *testing.T) {
 }
 
 func TestBuilder_ComplexChaining(t *testing.T) {
+	ctx := &mockBuilderCtx{}
+
 	// Test chaining all builder methods together
-	github, _ := mcpserver.Stdio(
-		mcpserver.WithName("github"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-	)
+	github, _ := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+	})
 
 	helper, _ := subagent.New("helper", &subagent.Args{
 		Instructions: "Helper instructions",
 	})
 
-	githubToken, _ := environment.New(
-		environment.WithName("GITHUB_TOKEN"),
-		environment.WithSecret(true),
-	)
+	githubToken, _ := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
+		IsSecret: true,
+	})
 
 	agent, err := New(
 		nil, // No context needed for builder tests
@@ -397,11 +402,11 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 		AddSkillRef(skillref.Platform("security-analysis")).
 		AddMCPServer(github).
 		AddSubAgent(helper).
-		AddEnvironmentVariable(githubToken)
+		AddEnvironmentVariable(*githubToken)
 
 	// Verify all were added
-	if len(agent.Skills) != 2 {
-		t.Errorf("Skills count = %d, want 2", len(agent.Skills))
+	if len(agent.SkillRefs) != 2 {
+		t.Errorf("SkillRefs count = %d, want 2", len(agent.SkillRefs))
 	}
 	if len(agent.MCPServers) != 1 {
 		t.Errorf("MCPServers count = %d, want 1", len(agent.MCPServers))

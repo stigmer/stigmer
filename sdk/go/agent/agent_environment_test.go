@@ -6,12 +6,16 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/environment"
 )
 
+// mockEnvTestCtx implements the environment.Context interface for testing
+type mockEnvTestCtx struct{}
+
 func TestAgentWithEnvironmentVariable(t *testing.T) {
-	githubToken, err := environment.New(
-		environment.WithName("GITHUB_TOKEN"),
-		environment.WithSecret(true),
-		environment.WithDescription("GitHub API token"),
-	)
+	ctx := &mockEnvTestCtx{}
+
+	githubToken, err := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
+		IsSecret:    true,
+		Description: "GitHub API token",
+	})
 	if err != nil {
 		t.Fatalf("failed to create environment variable: %v", err)
 	}
@@ -24,7 +28,7 @@ func TestAgentWithEnvironmentVariable(t *testing.T) {
 	}
 
 	// Add environment variable using builder method
-	agent.AddEnvironmentVariable(githubToken)
+	agent.AddEnvironmentVariable(*githubToken)
 
 	if len(agent.EnvironmentVariables) != 1 {
 		t.Errorf("len(agent.EnvironmentVariables) = %d, want 1", len(agent.EnvironmentVariables))
@@ -40,20 +44,19 @@ func TestAgentWithEnvironmentVariable(t *testing.T) {
 }
 
 func TestAgentWithMultipleEnvironmentVariables(t *testing.T) {
-	githubToken, _ := environment.New(
-		environment.WithName("GITHUB_TOKEN"),
-		environment.WithSecret(true),
-	)
+	ctx := &mockEnvTestCtx{}
 
-	awsRegion, _ := environment.New(
-		environment.WithName("AWS_REGION"),
-		environment.WithDefaultValue("us-east-1"),
-	)
+	githubToken, _ := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
+		IsSecret: true,
+	})
 
-	logLevel, _ := environment.New(
-		environment.WithName("LOG_LEVEL"),
-		environment.WithDefaultValue("info"),
-	)
+	awsRegion, _ := environment.New(ctx, "AWS_REGION", &environment.VariableArgs{
+		DefaultValue: "us-east-1",
+	})
+
+	logLevel, _ := environment.New(ctx, "LOG_LEVEL", &environment.VariableArgs{
+		DefaultValue: "info",
+	})
 
 	agent, err := New(nil, "cloud-deployer", &AgentArgs{
 		Instructions: "Deploy applications to cloud",
@@ -63,7 +66,7 @@ func TestAgentWithMultipleEnvironmentVariables(t *testing.T) {
 	}
 
 	// Add environment variables using builder method
-	agent.AddEnvironmentVariables(githubToken, awsRegion, logLevel)
+	agent.AddEnvironmentVariables(*githubToken, *awsRegion, *logLevel)
 
 	if len(agent.EnvironmentVariables) != 3 {
 		t.Errorf("len(agent.EnvironmentVariables) = %d, want 3", len(agent.EnvironmentVariables))
