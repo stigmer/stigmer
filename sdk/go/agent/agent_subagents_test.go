@@ -9,6 +9,9 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
+// mockSubAgentCtx implements the mcpserver.Context interface for testing
+type mockSubAgentCtx struct{}
+
 // mustSubAgent creates a sub-agent or panics on error.
 // This is a test helper for concise test cases.
 func mustSubAgent(name string, args *subagent.Args) subagent.SubAgent {
@@ -80,11 +83,12 @@ func TestAgentWithMultipleSubAgents(t *testing.T) {
 }
 
 func TestAgentWithSubAgentUsingMCPServers(t *testing.T) {
-	github, err := mcpserver.Stdio(
-		mcpserver.WithName("github"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-	)
+	ctx := &mockSubAgentCtx{}
+
+	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+	})
 	if err != nil {
 		t.Fatalf("Failed to create MCP server: %v", err)
 	}
@@ -144,11 +148,12 @@ func TestAgentWithSubAgentUsingSkills(t *testing.T) {
 }
 
 func TestAgentWithSubAgentUsingToolSelections(t *testing.T) {
-	github, err := mcpserver.Stdio(
-		mcpserver.WithName("github"),
-		mcpserver.WithCommand("npx"),
-		mcpserver.WithArgs("-y", "@modelcontextprotocol/server-github"),
-	)
+	ctx := &mockSubAgentCtx{}
+
+	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
+		Command: "npx",
+		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+	})
 	if err != nil {
 		t.Fatalf("Failed to create MCP server: %v", err)
 	}

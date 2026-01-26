@@ -9,8 +9,9 @@
 ## Current State
 
 **Phase**: ALL PHASES COMPLETE (1, 2, 3, 4, 5)  
-**Current Task**: Final Tasks (5a, 5b, 5c) - Fix tests, examples, and docs  
-**Build Status**: PASSES (`go build ./sdk/go/...` succeeds, Go 1.25.6 standardized)
+**Current Task**: Final Task 5a (IN PROGRESS) - Fixing test files  
+**Progress**: Phase 1 tests fixed (mcpserver, agent, integration) - 9 files, -407 lines
+**Build Status**: Tests updated, verification pending (`go test -c ./...` not yet run)
 
 **Plan References**: 
 - Phase 1: `.cursor/plans/phase_1_codegen_fixes_bcc0bef0.plan.md`
@@ -25,6 +26,99 @@
 ---
 
 ## Session Progress
+
+### Session 11 (2026-01-26) - Final Task 5a: Test Fixes (PARTIAL)
+
+**Status**: IN PROGRESS - Phase 1 complete, verification pending
+**Work Scope**: Fix all test files to use new APIs (struct args, skillref)
+
+**Accomplishments**:
+
+**Phase 1: Core SDK Tests Fixed** (9 files, -407 lines net):
+- **mcpserver_test.go**: Complete rewrite from functional options to struct args pattern
+  - Removed all `WithName()`, `WithCommand()`, etc. functions
+  - Updated to `Stdio(ctx, name, &StdioArgs{...})` pattern
+  - Updated to `HTTP(ctx, name, &HTTPArgs{...})` pattern
+  - Updated to `Docker(ctx, name, &DockerArgs{...})` pattern
+  - All tests now use current API, removed validation tests (handled by protovalidate)
+
+- **agent/benchmarks_test.go**: Replaced `skill` with `skillref`
+  - Changed `skill.New()` (inline creation) to `skillref.Platform()` (references)
+  - Updated environment creation to struct args: `environment.New(ctx, name, &VariableArgs{})`
+  - Skill refs are now external references, not created inline
+
+- **agent/error_cases_test.go**: Replaced `skill` with `skillref`
+  - Updated all test cases to use `skillref.Platform()` for skill references
+  - Noted that skill validation happens at platform level, not SDK level
+
+- **agent/agent_builder_test.go**: Updated to current API
+  - Changed `agent.Skills` field to `agent.SkillRefs`
+  - Updated mcpserver creation to struct args pattern
+  - Updated environment creation to struct args pattern
+
+- **agent/agent_environment_test.go**: Updated to struct args
+  - Environment variables now use `environment.New(ctx, name, &VariableArgs{})`
+
+- **agent/agent_subagents_test.go**: Updated mcpserver creation
+  - MCP servers use struct args: `mcpserver.Stdio(ctx, name, &StdioArgs{})`
+
+- **agent/validation_test.go**: Simplified to current validation
+  - Removed `validateInstructions()`, `validateDescription()`, `validateIconURL()` tests
+  - These validations are now handled by protovalidate in `ToProto()`
+  - SDK only validates name format (lowercase alphanumeric with hyphens)
+
+- **integration_scenarios_test.go**: Full migration to skillref
+  - All agents now use `skillref.Platform()` or `skillref.Organization()`
+  - Removed all inline skill creation with `skill.New()`
+  - Updated environment variables to struct args pattern
+
+- **stigmer/context_test.go**: Removed skill-related code
+  - Skills are no longer created through SDK (pushed via CLI)
+  - Context no longer tracks skills or skill dependencies
+  - Updated agent registration tests to use skillref
+
+**API Changes Applied**:
+1. **mcpserver**: Functional options → struct args
+   - Before: `mcpserver.Stdio(WithName("x"), WithCommand("y"))`
+   - After: `mcpserver.Stdio(ctx, "x", &StdioArgs{Command: "y"})`
+
+2. **environment**: Functional options → struct args
+   - Before: `environment.New(WithName("X"), WithSecret(true))`
+   - After: `environment.New(ctx, "X", &VariableArgs{IsSecret: true})`
+
+3. **skill → skillref**: Inline creation → external references
+   - Before: `skill.New("name", &SkillArgs{Content: "..."})`
+   - After: `skillref.Platform("name")` or `skillref.Organization("org", "name")`
+
+4. **agent.Skills → agent.SkillRefs**: Field rename
+   - Reflects that agents now hold references, not inline skills
+
+**Impact**:
+- All core SDK test files now use current API
+- Tests are cleaner and focused on SDK behavior, not validation
+- -407 lines net (removed old validation tests, simplified test setup)
+
+**Work Remaining**:
+- **Verification**: Run `go test -c ./...` to verify all tests compile
+- **Phase 2**: Fix remaining test files (if any compilation errors found)
+- **Examples**: Fix 19 example files (Task 5b)
+- **Documentation**: Fix doc.go, README, api-reference (Task 5c)
+
+**Files Modified** (9 files):
+```
+sdk/go/agent/agent_builder_test.go     | 159 +++++++-------
+sdk/go/agent/agent_environment_test.go |  41 ++--
+sdk/go/agent/agent_subagents_test.go   |  25 ++-
+sdk/go/agent/benchmarks_test.go        | 186 +++++++----------
+sdk/go/agent/error_cases_test.go       | 109 +++++-----
+sdk/go/agent/validation_test.go        | 163 ++-------------
+sdk/go/integration_scenarios_test.go   | 130 ++++--------
+sdk/go/mcpserver/mcpserver_test.go     | 370 +++++++++++++-----------
+sdk/go/stigmer/context_test.go         | 266 +++++-------------------
+9 files changed, 521 insertions(+), 928 deletions(-)
+```
+
+**Build Status**: ⚠️ Tests updated, compilation not yet verified
 
 ### Session 10 (2026-01-26) - Phase 5 Complete: Documentation
 
@@ -215,32 +309,55 @@
 
 ---
 
-## Next Steps (Session 11)
+## Next Steps (Session 12)
 
-**Immediate Next Action**: Choose Final Tasks (5a, 5b, or 5c)
+**Immediate Next Action**: Complete Task 5a verification OR start Task 5b
 
-**Final Tasks Remaining**:
+**Task 5a Status**: PARTIAL COMPLETE (Phase 1 done, verification pending)
+- ✅ Phase 1: Core SDK tests fixed (9 files, -407 lines)
+- ⏸️ Verification: Need to run `go test -c ./...` to verify compilation
+- 📋 If errors found: Fix remaining test files
+- 📋 If clean: Mark Task 5a complete, move to Task 5b
 
-| Task | Lines | Description | Priority |
-|------|-------|-------------|----------|
-| **5a** | ~300 | Fix all test files to new APIs | HIGH |
-| **5b** | ~200 | Fix all 19 examples | MEDIUM |
-| **5c** | ~100 | Fix documentation (doc.go, README, api-reference) | LOW |
+**Remaining Final Tasks**:
 
-**Recommended Order**: 5a → 5b → 5c (tests, examples, then docs)
+| Task | Status | Description | Priority |
+|------|--------|-------------|----------|
+| **5a** | IN PROGRESS | Verify tests compile, fix any remaining issues | HIGH |
+| **5b** | PENDING | Fix all 19 examples to new APIs | MEDIUM |
+| **5c** | PENDING | Fix documentation (doc.go, README, api-reference) | LOW |
+
+**Recommended Approach for Next Session**:
+
+**Option 1: Complete Task 5a** (Recommended)
+```
+1. Run: go test -c ./...
+2. If errors: Fix remaining test files
+3. Verify: All tests compile successfully
+4. Mark Task 5a complete
+```
+
+**Option 2: Start Task 5b** (If 5a verification shows no errors)
+```
+1. Fix example files one at a time (19 files total)
+2. Each example should be verified independently
+3. Use same API patterns as test fixes
+```
 
 **Context for Resume**:
 - ALL PHASES COMPLETE (1-5)
+- **Task 5a**: 9 test files fixed, verification pending
+  - Core SDK tests updated to struct args and skillref
+  - API changes: mcpserver, environment, skill→skillref
+  - -407 lines net (cleaner, focused tests)
+- **Task 5b**: Not started - 19 example files need updates
+- **Task 5c**: Not started - documentation files need updates
 - Build system documented and standardized (Go 1.25.6 everywhere)
 - SubAgent simplified (inline-only, flattened proto)
-- Code generation pipeline clean and comprehensive
 - context.Context integration complete (Pulumi pattern)
 - Enhanced error types complete (ResourceError, SynthesisError)
-- **Documentation complete** (4 audit reports + 3 architecture docs)
-- Test files need comprehensive update (Task 5a - ~300 lines)
-- Examples need update (Task 5b - ~200 lines)
-- SDK docs need update (Task 5c - ~100 lines)
-- Build passes cleanly, ready for final cleanup
+- Documentation complete (4 audit reports + 3 architecture docs)
+- **Uncommitted changes**: 9 test files modified, ready to commit after verification
 
 ---
 
@@ -328,7 +445,24 @@ All tasks completed in Session 7.
 
 ## Uncommitted Changes
 
-**Status**: CLEAN - All Phase 5 documentation committed
+**Status**: WORK IN PROGRESS - 9 test files modified (Session 11)
+
+**Modified Files** (9 files, 521 insertions, 928 deletions):
+- sdk/go/agent/agent_builder_test.go
+- sdk/go/agent/agent_environment_test.go
+- sdk/go/agent/agent_subagents_test.go
+- sdk/go/agent/benchmarks_test.go
+- sdk/go/agent/error_cases_test.go
+- sdk/go/agent/validation_test.go
+- sdk/go/integration_scenarios_test.go
+- sdk/go/mcpserver/mcpserver_test.go
+- sdk/go/stigmer/context_test.go
+
+**Changes Summary**:
+- Converted tests from functional options to struct args pattern
+- Replaced `skill` package with `skillref` package
+- Updated to current SDK APIs
+- Net: -407 lines (cleaner, more focused tests)
 
 **Latest Commits**:
 - `0438eee` - docs(sdk): add comprehensive phase audit reports and architecture docs (Session 10)

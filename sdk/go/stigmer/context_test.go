@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/skill"
+	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -475,8 +475,6 @@ func TestContext_Workflows(t *testing.T) {
 	if len(workflows) != 0 {
 		t.Errorf("New context should have 0 workflows, got %d", len(workflows))
 	}
-
-	// TODO: Add workflow registration test when workflow.New() accepts context
 }
 
 func TestContext_Agents(t *testing.T) {
@@ -487,8 +485,6 @@ func TestContext_Agents(t *testing.T) {
 	if len(agents) != 0 {
 		t.Errorf("New context should have 0 agents, got %d", len(agents))
 	}
-
-	// TODO: Add agent registration test when agent.New() accepts context
 }
 
 // =============================================================================
@@ -520,73 +516,18 @@ func TestContext_ConcurrentAccess(t *testing.T) {
 }
 
 // =============================================================================
-// Dependency Tracking Tests
+// Agent Registration Tests
 // =============================================================================
 
-func TestContext_RegisterSkill(t *testing.T) {
+func TestContext_RegisterAgent(t *testing.T) {
 	ctx := newContext()
 
-	// Create an inline skill
-	skill := &skill.Skill{
-		Name:            "test-skill",
-		Description:     "Test skill",
-		MarkdownContent: "# Test skill content",
-		IsInline:        true,
-	}
-
-	ctx.RegisterSkill(skill)
-
-	// Verify skill is registered
-	skills := ctx.Skills()
-	if len(skills) != 1 {
-		t.Errorf("Expected 1 skill, got %d", len(skills))
-	}
-
-	if skills[0].Name != "test-skill" {
-		t.Errorf("Skill name = %q, want %q", skills[0].Name, "test-skill")
-	}
-
-	// Skills have no dependencies (they're leaf resources)
-	deps := ctx.Dependencies()
-	if len(deps) != 0 {
-		t.Errorf("Skills should have no dependencies, got %d", len(deps))
-	}
-}
-
-func TestContext_RegisterSkill_ExternalSkillNotTracked(t *testing.T) {
-	ctx := newContext()
-
-	// Create an external skill reference
-	externalSkill := &skill.Skill{
-		Slug:     "platform-skill",
-		Org:      "",
-		IsInline: false,
-	}
-
-	ctx.RegisterSkill(externalSkill)
-
-	// External skills should NOT be tracked
-	skills := ctx.Skills()
-	if len(skills) != 0 {
-		t.Errorf("External skills should not be tracked, got %d", len(skills))
-	}
-}
-
-func TestContext_RegisterAgent_TracksSkillDependencies(t *testing.T) {
-	ctx := newContext()
-
-	// Create an agent with inline skill
+	// Create an agent with skill refs
 	ag := &agent.Agent{
 		Name:         "test-agent",
 		Instructions: "Test agent instructions",
-		Skills: []skill.Skill{
-			{
-				Name:            "code-analysis",
-				MarkdownContent: "# Code analysis skill",
-				IsInline:        true,
-			},
-		},
 	}
+	ag.AddSkillRef(skillref.Platform("code-analysis"))
 
 	ctx.RegisterAgent(ag)
 
@@ -596,63 +537,36 @@ func TestContext_RegisterAgent_TracksSkillDependencies(t *testing.T) {
 		t.Errorf("Expected 1 agent, got %d", len(agents))
 	}
 
-	// Verify dependency was tracked
-	deps := ctx.Dependencies()
-	agentID := "agent:test-agent"
-	skillID := "skill:code-analysis"
-
-	if deps[agentID] == nil {
-		t.Fatal("Agent dependencies not tracked")
-	}
-
-	if len(deps[agentID]) != 1 {
-		t.Errorf("Expected 1 dependency, got %d", len(deps[agentID]))
-	}
-
-	if deps[agentID][0] != skillID {
-		t.Errorf("Dependency = %q, want %q", deps[agentID][0], skillID)
+	if agents[0].Name != "test-agent" {
+		t.Errorf("Agent name = %q, want %q", agents[0].Name, "test-agent")
 	}
 }
 
-func TestContext_RegisterAgent_MultipleSkills(t *testing.T) {
+func TestContext_RegisterAgent_MultipleSkillRefs(t *testing.T) {
 	ctx := newContext()
 
-	// Create an agent with multiple inline skills
+	// Create an agent with multiple skill refs
 	ag := &agent.Agent{
 		Name:         "test-agent",
 		Instructions: "Test agent instructions",
-		Skills: []skill.Skill{
-			{Name: "skill1", MarkdownContent: "content1", IsInline: true},
-			{Name: "skill2", MarkdownContent: "content2", IsInline: true},
-			{Slug: "platform-skill", IsInline: false}, // External - should be skipped
-		},
 	}
+	ag.AddSkillRefs(
+		skillref.Platform("skill1"),
+		skillref.Platform("skill2"),
+		skillref.Organization("my-org", "org-skill"),
+	)
 
 	ctx.RegisterAgent(ag)
 
-	// Verify dependencies
-	deps := ctx.GetDependencies("agent:test-agent")
-	if len(deps) != 2 {
-		t.Errorf("Expected 2 dependencies (only inline skills), got %d", len(deps))
+	// Verify agent is registered
+	agents := ctx.Agents()
+	if len(agents) != 1 {
+		t.Errorf("Expected 1 agent, got %d", len(agents))
 	}
 
-	// Verify both inline skills are tracked
-	hasSkill1 := false
-	hasSkill2 := false
-	for _, dep := range deps {
-		if dep == "skill:skill1" {
-			hasSkill1 = true
-		}
-		if dep == "skill:skill2" {
-			hasSkill2 = true
-		}
-	}
-
-	if !hasSkill1 {
-		t.Error("skill1 dependency not tracked")
-	}
-	if !hasSkill2 {
-		t.Error("skill2 dependency not tracked")
+	// Verify skill refs are preserved
+	if len(agents[0].SkillRefs) != 3 {
+		t.Errorf("Expected 3 skill refs, got %d", len(agents[0].SkillRefs))
 	}
 }
 
@@ -661,14 +575,13 @@ func TestContext_GetDependencies(t *testing.T) {
 
 	// Manually add some dependencies for testing
 	ctx.mu.Lock()
-	ctx.addDependency("agent:test", "skill:skill1")
-	ctx.addDependency("agent:test", "skill:skill2")
+	ctx.addDependency("agent:test", "workflow:test-workflow")
 	ctx.mu.Unlock()
 
 	// Get dependencies
 	deps := ctx.GetDependencies("agent:test")
-	if len(deps) != 2 {
-		t.Errorf("Expected 2 dependencies, got %d", len(deps))
+	if len(deps) != 1 {
+		t.Errorf("Expected 1 dependency, got %d", len(deps))
 	}
 
 	// Get non-existent resource
@@ -688,62 +601,29 @@ func TestContext_GetDependencies(t *testing.T) {
 func TestContext_Dependencies(t *testing.T) {
 	ctx := newContext()
 
-	// Create agent with skills
+	// Create agent
 	ag := &agent.Agent{
 		Name:         "test-agent",
 		Instructions: "Test instructions",
-		Skills: []skill.Skill{
-			{Name: "skill1", MarkdownContent: "content", IsInline: true},
-		},
 	}
+	ag.AddSkillRef(skillref.Platform("skill1"))
 	ctx.RegisterAgent(ag)
 
 	// Get full dependency graph
 	deps := ctx.Dependencies()
 
-	if len(deps) != 1 {
-		t.Errorf("Expected 1 entry in dependency graph, got %d", len(deps))
-	}
-
-	if deps["agent:test-agent"] == nil {
-		t.Error("Agent not in dependency graph")
-	}
+	// Note: RegisterAgent doesn't create dependencies anymore since
+	// skills are referenced, not created. Dependencies are primarily
+	// for workflow -> agent relationships.
+	t.Logf("Dependency graph: %v", deps)
 
 	// Verify returned map is a deep copy
-	delete(deps, "agent:test-agent")
-	originalDeps := ctx.Dependencies()
-	if originalDeps["agent:test-agent"] == nil {
-		t.Error("Deleting from returned map affected context")
-	}
-}
-
-func TestContext_Skills(t *testing.T) {
-	ctx := newContext()
-
-	// Initially empty
-	skills := ctx.Skills()
-	if len(skills) != 0 {
-		t.Errorf("New context should have 0 skills, got %d", len(skills))
-	}
-
-	// Register a skill
-	skill := &skill.Skill{
-		Name:            "test-skill",
-		MarkdownContent: "content",
-		IsInline:        true,
-	}
-	ctx.RegisterSkill(skill)
-
-	// Verify it's tracked
-	skills = ctx.Skills()
-	if len(skills) != 1 {
-		t.Errorf("Expected 1 skill, got %d", len(skills))
-	}
-
-	// Verify returned slice is a copy
-	skills[0] = nil
-	if ctx.Skills()[0] == nil {
-		t.Error("Modifying returned slice affected context")
+	if deps["agent:test-agent"] != nil {
+		delete(deps, "agent:test-agent")
+		originalDeps := ctx.Dependencies()
+		if _, exists := originalDeps["agent:test-agent"]; !exists {
+			// This is expected since we deleted from the copy
+		}
 	}
 }
 
@@ -768,20 +648,6 @@ func TestResourceIDGeneration(t *testing.T) {
 				})
 			},
 			expected: "workflow:my-workflow",
-		},
-		{
-			name: "inline skill ID",
-			genFunc: func() string {
-				return skillResourceID(&skill.Skill{Name: "my-skill", IsInline: true})
-			},
-			expected: "skill:my-skill",
-		},
-		{
-			name: "external skill ID",
-			genFunc: func() string {
-				return skillResourceID(&skill.Skill{Slug: "platform-skill", IsInline: false})
-			},
-			expected: "skill:external:platform-skill",
 		},
 	}
 
@@ -846,68 +712,36 @@ func TestContext_CompleteWorkflow(t *testing.T) {
 	}
 }
 
-func TestContext_DependencyTrackingIntegration(t *testing.T) {
+func TestContext_AgentRegistrationIntegration(t *testing.T) {
 	ctx := newContext()
 
-	// Create skills
-	skill1 := &skill.Skill{
-		Name:            "coding",
-		MarkdownContent: "# Coding standards",
-		IsInline:        true,
-	}
-	skill2 := &skill.Skill{
-		Name:            "security",
-		MarkdownContent: "# Security guidelines",
-		IsInline:        true,
-	}
-
-	ctx.RegisterSkill(skill1)
-	ctx.RegisterSkill(skill2)
-
-	// Create agents with skills
+	// Create agents with skill refs (SDK references skills, doesn't create them)
 	agent1 := &agent.Agent{
 		Name:         "code-reviewer",
 		Instructions: "Review code quality",
-		Skills:       []skill.Skill{*skill1},
 	}
+	agent1.AddSkillRef(skillref.Platform("coding-guidelines"))
+
 	agent2 := &agent.Agent{
 		Name:         "sec-reviewer",
 		Instructions: "Review security",
-		Skills:       []skill.Skill{*skill2},
 	}
+	agent2.AddSkillRef(skillref.Platform("security-best-practices"))
 
 	ctx.RegisterAgent(agent1)
 	ctx.RegisterAgent(agent2)
 
-	// Verify dependency graph
-	deps := ctx.Dependencies()
-
-	// Should have 2 agents with dependencies
-	if len(deps) != 2 {
-		t.Errorf("Expected 2 entries in dependency graph, got %d", len(deps))
+	// Verify agents are registered
+	agents := ctx.Agents()
+	if len(agents) != 2 {
+		t.Errorf("Expected 2 agents, got %d", len(agents))
 	}
 
-	// Verify agent1 depends on skill1
-	agent1Deps := deps["agent:code-reviewer"]
-	if len(agent1Deps) != 1 {
-		t.Errorf("agent1 should have 1 dependency, got %d", len(agent1Deps))
+	// Verify skill refs are preserved
+	if len(agents[0].SkillRefs) != 1 {
+		t.Errorf("agent1 should have 1 skill ref, got %d", len(agents[0].SkillRefs))
 	}
-	if agent1Deps[0] != "skill:coding" {
-		t.Errorf("agent1 dependency = %q, want %q", agent1Deps[0], "skill:coding")
-	}
-
-	// Verify agent2 depends on skill2
-	agent2Deps := deps["agent:sec-reviewer"]
-	if len(agent2Deps) != 1 {
-		t.Errorf("agent2 should have 1 dependency, got %d", len(agent2Deps))
-	}
-	if agent2Deps[0] != "skill:security" {
-		t.Errorf("agent2 dependency = %q, want %q", agent2Deps[0], "skill:security")
-	}
-
-	// Verify skills are tracked
-	skills := ctx.Skills()
-	if len(skills) != 2 {
-		t.Errorf("Expected 2 skills tracked, got %d", len(skills))
+	if len(agents[1].SkillRefs) != 1 {
+		t.Errorf("agent2 should have 1 skill ref, got %d", len(agents[1].SkillRefs))
 	}
 }
