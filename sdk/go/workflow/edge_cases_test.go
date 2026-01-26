@@ -118,14 +118,14 @@ func TestWorkflowToProto_MaximumFields(t *testing.T) {
 		}
 	}
 
-	// Create many environment variables (50) with unique names
+	// Create many environment variables (50) with unique names using struct-args pattern
+	ctx := &mockEnvContext{}
 	envVars := make([]environment.Variable, 50)
 	for i := 0; i < 50; i++ {
-		env, _ := environment.New(
-			environment.WithName(fmt.Sprintf("ENV_VAR_%d", i)), // Use unique names
-			environment.WithDefaultValue(fmt.Sprintf("value%d", i)),
-		)
-		envVars[i] = env
+		env, _ := environment.New(ctx, fmt.Sprintf("ENV_VAR_%d", i), &environment.VariableArgs{
+			DefaultValue: fmt.Sprintf("value%d", i),
+		})
+		envVars[i] = *env
 	}
 
 	wf := &Workflow{

@@ -53,14 +53,14 @@ func main() {
 		// Add environment variable using builder method
 		wf.AddEnvironmentVariable(*apiToken)
 
-	// Add workflow tasks using shared context variables
-	// Use workflow.Interpolate() to build URL from context variable and literal path
-	endpoint := workflow.Interpolate(apiURL, "/data")
+		// Add workflow tasks using shared context variables
+		// Use workflow.Interpolate() to build URL from context variable and literal path
+		endpoint := workflow.Interpolate(apiURL, "/data")
 
-	// Task 1: Fetch data using HTTP GET
-	_ = wf.HttpGet("fetchData", endpoint, map[string]string{
-		"Content-Type": "application/json",
-	})
+		// Task 1: Fetch data using HTTP GET
+		_ = wf.HttpGet("fetchData", endpoint, map[string]string{
+			"Content-Type": "application/json",
+		})
 
 		// Task 2: Process data
 		_ = wf.Set("processData", &workflow.SetArgs{

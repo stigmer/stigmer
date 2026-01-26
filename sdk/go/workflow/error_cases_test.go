@@ -253,6 +253,8 @@ func TestWorkflowToProto_InvalidTaskConfigurations(t *testing.T) {
 
 // TestWorkflowToProto_InvalidEnvironmentVariables tests invalid env vars.
 func TestWorkflowToProto_InvalidEnvironmentVariables(t *testing.T) {
+	ctx := &mockEnvContext{}
+
 	tests := []struct {
 		name    string
 		envVars []environment.Variable
@@ -261,15 +263,13 @@ func TestWorkflowToProto_InvalidEnvironmentVariables(t *testing.T) {
 		{
 			name: "duplicate environment variable names",
 			envVars: func() []environment.Variable {
-				env1, _ := environment.New(
-					environment.WithName("API_KEY"),
-					environment.WithSecret(true),
-				)
-				env2, _ := environment.New(
-					environment.WithName("API_KEY"), // duplicate
-					environment.WithDefaultValue("test"),
-				)
-				return []environment.Variable{env1, env2}
+				env1, _ := environment.New(ctx, "API_KEY", &environment.VariableArgs{
+					IsSecret: true,
+				})
+				env2, _ := environment.New(ctx, "API_KEY", &environment.VariableArgs{ // duplicate
+					DefaultValue: "test",
+				})
+				return []environment.Variable{*env1, *env2}
 			}(),
 			wantErr: false, // May not validate duplicates
 		},
@@ -467,13 +467,19 @@ func TestWorkflowToProto_InvalidFlowControl(t *testing.T) {
 
 // TestWorkflowToProto_NestedErrorPropagation tests error propagation from nested operations.
 func TestWorkflowToProto_NestedErrorPropagation(t *testing.T) {
-	// Create invalid environment variable
-	invalidEnv, err := environment.New(
-		environment.WithName(""), // invalid - empty name
-	)
+	ctx := &mockEnvContext{}
+
+	// Create invalid environment variable - empty name should fail validation
+	invalidEnv, err := environment.New(ctx, "", nil) // invalid - empty name
 
 	if err == nil {
 		t.Log("Environment validation may allow empty names")
+	}
+
+	// If env creation failed, use a zero-value Variable to test error propagation
+	var envVar environment.Variable
+	if invalidEnv != nil {
+		envVar = *invalidEnv
 	}
 
 	wf := &Workflow{
@@ -492,7 +498,7 @@ func TestWorkflowToProto_NestedErrorPropagation(t *testing.T) {
 				},
 			},
 		},
-		EnvironmentVariables: []environment.Variable{invalidEnv},
+		EnvironmentVariables: []environment.Variable{envVar},
 	}
 
 	_, err = wf.ToProto()

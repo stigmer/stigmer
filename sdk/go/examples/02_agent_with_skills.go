@@ -9,8 +9,8 @@
 // Skills are managed separately (created via CLI or UI) and referenced here.
 //
 // There are two scopes for skill references:
-//   1. Platform: Shared across all users (referenced by slug)
-//   2. Organization: Private to your org (referenced by org + slug)
+//  1. Platform: Shared across all users (referenced by slug)
+//  2. Organization: Private to your org (referenced by org + slug)
 //
 // Skills are added using builder methods (AddSkillRef, AddSkillRefs) after agent creation.
 package main
@@ -146,8 +146,8 @@ func main() {
 		}
 
 		versionedAgent.AddSkillRefs(
-			skillref.Platform("coding-best-practices"),             // Latest version (default)
-			skillref.Platform("security-analysis", "v2.0"),         // Specific tag version
+			skillref.Platform("coding-best-practices"),              // Latest version (default)
+			skillref.Platform("security-analysis", "v2.0"),          // Specific tag version
 			skillref.Platform("performance-optimization", "stable"), // Stable tag
 			skillref.Organization("my-org", "internal-standards", "v1.5"),
 		)

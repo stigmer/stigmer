@@ -9,12 +9,13 @@ import (
 
 // TestWorkflowToProto_Complete tests full workflow with all fields.
 func TestWorkflowToProto_Complete(t *testing.T) {
-	// Create environment variable
-	env1, err := environment.New(
-		environment.WithName("API_TOKEN"),
-		environment.WithSecret(true),
-		environment.WithDescription("API authentication token"),
-	)
+	ctx := &mockEnvContext{}
+
+	// Create environment variable using struct-args pattern (Pulumi-aligned)
+	env1, err := environment.New(ctx, "API_TOKEN", &environment.VariableArgs{
+		IsSecret:    true,
+		Description: "API authentication token",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create env var: %v", err)
 	}
@@ -30,7 +31,7 @@ func TestWorkflowToProto_Complete(t *testing.T) {
 		Slug:                 "daily-sync",
 		Description:          "Sync data from external API",
 		Tasks:                []*Task{},
-		EnvironmentVariables: []environment.Variable{env1},
+		EnvironmentVariables: []environment.Variable{*env1},
 		Org:                  "my-org",
 	}
 
@@ -441,18 +442,18 @@ func TestWorkflowToProto_SlugAutoGeneration(t *testing.T) {
 
 // TestWorkflowToProto_MultipleEnvVars tests multiple environment variables.
 func TestWorkflowToProto_MultipleEnvVars(t *testing.T) {
-	env1, _ := environment.New(
-		environment.WithName("API_KEY"),
-		environment.WithSecret(true),
-	)
-	env2, _ := environment.New(
-		environment.WithName("REGION"),
-		environment.WithDefaultValue("us-east-1"),
-	)
-	env3, _ := environment.New(
-		environment.WithName("DEBUG"),
-		environment.WithDefaultValue("false"),
-	)
+	ctx := &mockEnvContext{}
+
+	// Create environment variables using struct-args pattern (Pulumi-aligned)
+	env1, _ := environment.New(ctx, "API_KEY", &environment.VariableArgs{
+		IsSecret: true,
+	})
+	env2, _ := environment.New(ctx, "REGION", &environment.VariableArgs{
+		DefaultValue: "us-east-1",
+	})
+	env3, _ := environment.New(ctx, "DEBUG", &environment.VariableArgs{
+		DefaultValue: "false",
+	})
 
 	wf := &Workflow{
 		Document: Document{
@@ -470,7 +471,7 @@ func TestWorkflowToProto_MultipleEnvVars(t *testing.T) {
 				},
 			},
 		},
-		EnvironmentVariables: []environment.Variable{env1, env2, env3},
+		EnvironmentVariables: []environment.Variable{*env1, *env2, *env3},
 	}
 
 	proto, err := wf.ToProto()
