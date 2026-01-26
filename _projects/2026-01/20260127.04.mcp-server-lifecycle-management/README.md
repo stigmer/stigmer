@@ -1,38 +1,84 @@
 # Project: 20260127.04.mcp-server-lifecycle-management
 
 ## Overview
-Implement runtime lifecycle management for MCP servers (stdio subprocesses, HTTP clients, Docker containers) within the agent runner execution environment
+Integrate MCP servers with agent runner using LangGraph's built-in lifecycle management
 
 **Created**: 2026-01-27
+**Updated**: 2026-01-27 (Simplified after research)
 **Status**: Active 🟢
+
+## Key Insight
+
+**LangGraph already handles MCP server lifecycle management.**
+
+Original plan proposed building custom subprocess managers, HTTP session managers, and Docker container managers (~18-25 days). After research, we discovered that LangGraph's `MultiServerMCPClient` already provides production-grade lifecycle management.
+
+**Revised scope**: 3-5 days of integration work.
+
+## What We're Building
+
+| Component | Description |
+|-----------|-------------|
+| Config Transformer | Transform Stigmer `McpServerSpec` to LangGraph format |
+| LangGraph Integration | Create `MultiServerMCPClient` from agent config |
+| Dockerfile Update | Add Node.js for npm-based MCP servers |
+
+## What We're NOT Building
+
+| Component | Why Not |
+|-----------|---------|
+| `StdioServerManager` | LangGraph handles subprocess lifecycle |
+| `HttpServerManager` | LangGraph handles HTTP sessions |
+| `DockerServerManager` | Docker transport not supported initially |
+| `HealthMonitor` | LangGraph handles connection health |
+| `ShutdownCoordinator` | LangGraph handles graceful shutdown |
+
+## Design Decisions
+
+See [design-decisions/](design-decisions/) for detailed rationale:
+- **DD01**: Use LangGraph's built-in lifecycle management
+- **DD02**: Docker transport removed from proto (can add later if needed)
 
 ## Project Information
 
 ### Primary Goal
-Enable agent runner to start, monitor, and gracefully shutdown MCP servers of all three types (stdio/http/docker) with proper resource management, error handling, and cleanup
+Transform Stigmer MCP server configuration to LangGraph format and leverage `MultiServerMCPClient` for stdio/HTTP transport
 
 ### Timeline
-**Target Completion**: 2-3 weeks
+**Target Completion**: 3-5 days (reduced from 2-3 weeks)
 
 ### Technology Stack
-Python (agent runner), Docker SDK, subprocess management, asyncio
+- Python (agent runner)
+- langchain-mcp-adapters
+- Node.js (for npm-based MCP servers like `npx @modelcontextprotocol/server-github`)
 
 ### Project Type
-Feature Development
+Feature Development (Simplified Integration)
 
 ### Affected Components
-stigmer-cloud/backend agent runner, MCP server orchestration layer
+- stigmer/backend/services/agent-runner (Dockerfile, MCP integration)
+- stigmer/apis (proto documentation updates)
 
-## Project Context
+## Supported Transports
 
-### Dependencies
-MCP Server API Resource project (Phase 1-4 complete), Environment Variables project (env resolution), Docker runtime availability
+| Transport | Supported | Notes |
+|-----------|-----------|-------|
+| stdio | ✅ Yes | LangGraph spawns subprocess |
+| HTTP | ✅ Yes | LangGraph makes HTTP requests |
 
-### Success Criteria
-- Stdio servers start as subprocesses with proper stdin/stdout pipes; HTTP servers configured with connection pooling and retry logic; Docker containers start with volume mounts and port mappings; All server types shutdown gracefully on agent completion; Health monitoring and auto-recovery for failed servers; Resource cleanup (no orphaned processes or containers)
+## Dependencies
 
-### Known Risks & Mitigations
-Docker availability on execution nodes, Process management complexity (zombie processes, signal handling), Network port conflicts for Docker containers, Volume mount permissions and security, Cross-platform compatibility (Linux/macOS/Windows)
+- MCP Server API Resource project (proto spec complete)
+- Environment Variables project (env resolution - separate project)
+- Node.js in agent-runner Docker image (to be added)
+
+## Success Criteria
+
+- [ ] stdio MCP servers work (e.g., `npx @modelcontextprotocol/server-github`)
+- [ ] HTTP MCP servers work (e.g., remote/managed MCP services)
+- [ ] Config transformation correct (Stigmer proto → LangGraph format)
+- [ ] Placeholder resolution works (`${VAR_NAME}` in HTTP headers)
+- [ ] Agent runner Dockerfile includes Node.js
 
 ## Project Structure
 
@@ -45,53 +91,47 @@ This project follows the **Next Project Framework** for structured multi-day dev
 - **`wrong-assumptions/`** - Important misconceptions (⚠️ ASK before creating)
 - **`dont-dos/`** - Critical anti-patterns (⚠️ ASK before creating)
 
-**📌 IMPORTANT**: Knowledge folders require developer permission. See [coding-guidelines/documentation-discipline.md](coding-guidelines/documentation-discipline.md)
-
 ## Current Status
 
 ### Active Task
-See [tasks/](tasks/) for the current task being worked on.
-
-### Latest Checkpoint
-See [checkpoints/](checkpoints/) for the most recent project state.
+See [tasks/T01_0_plan.md](tasks/T01_0_plan.md) - Simplified implementation plan
 
 ### Progress Tracking
 - [x] Project initialized
-- [ ] Initial analysis complete
-- [ ] Core implementation
+- [x] Research complete (LangGraph handles lifecycle)
+- [x] Design decisions documented
+- [ ] Config transformer implementation
+- [ ] LangGraph integration
+- [ ] Dockerfile update
+- [ ] Proto documentation update
 - [ ] Testing and validation
-- [ ] Documentation finalized
 - [ ] Project completed
 
 ## How to Resume Work
 
 **Quick Resume**: Simply drag and drop the `next-task.md` file into your AI conversation.
 
-The `next-task.md` file contains:
-- Direct paths to all project folders
-- Current status information
-- Resume checklist
-- Quick commands
-
 ## Quick Links
 
 - [Next Task](next-task.md) - **Drag this into chat to resume**
-- [Current Task](tasks/)
-- [Latest Checkpoint](checkpoints/)
+- [Current Task](tasks/T01_0_plan.md)
 - [Design Decisions](design-decisions/)
-- [Coding Guidelines](coding-guidelines/)
-
-## Documentation Discipline
-
-**CRITICAL**: AI assistants must ASK for permission before creating:
-- Checkpoints
-- Design decisions
-- Guidelines
-- Wrong assumptions
-- Don't dos
-
-Only task logs (T##_1_feedback.md, T##_2_execution.md) can be updated without permission.
+- [Latest Checkpoint](checkpoints/)
 
 ## Notes
 
-_Add any additional notes, links, or context here as the project evolves._
+### Agent Runner Docker Image Issue
+
+The current agent-runner Dockerfile (`python:3.11-slim`) does NOT have Node.js/npm/npx.
+Most MCP servers are npm packages that require npx to run (e.g., `npx @modelcontextprotocol/server-github`).
+
+**Solution**: Add Node.js 20.x to the agent-runner Dockerfile.
+
+### Docker Transport
+
+Removed from proto spec to keep it simple. Users who need containerized MCP servers can:
+1. Run the container themselves: `docker run -d -p 8000:8000 my-mcp-server`
+2. Configure HTTP transport: `url: "http://localhost:8000/mcp"`
+
+This gives users more control over container configuration (volumes, networks, resource limits).
+Can be added back to the proto if there's demand.

@@ -6,10 +6,16 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Project: 20260127.04.mcp-server-lifecycle-management
 
-**Description**: Implement runtime lifecycle management for MCP servers (stdio subprocesses, HTTP clients, Docker containers) within the agent runner execution environment
-**Goal**: Enable agent runner to start, monitor, and gracefully shutdown MCP servers of all three types (stdio/http/docker) with proper resource management, error handling, and cleanup
-**Tech Stack**: Python (agent runner), Docker SDK, subprocess management, asyncio
-**Components**: stigmer-cloud/backend agent runner, MCP server orchestration layer
+**Description**: Integrate MCP servers with agent runner using LangGraph's built-in lifecycle management
+**Goal**: Transform Stigmer MCP server configuration to LangGraph format and leverage MultiServerMCPClient for stdio/HTTP transport
+**Tech Stack**: Python (agent runner), langchain-mcp-adapters, Node.js (for npm-based MCP servers)
+**Components**: stigmer/backend agent runner, config transformation layer
+
+## Key Design Decisions
+
+1. **Use LangGraph's lifecycle management** - No custom subprocess/HTTP managers (saves 15-20 days)
+2. **Docker transport not supported initially** - Users can run containers manually + use HTTP transport
+3. **Add Node.js to agent-runner Dockerfile** - Required for npm-based MCP servers (npx)
 
 ## Essential Files to Review
 
@@ -68,16 +74,70 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-27 01:49
-**Current Task**: T01 (Initial Setup)
-**Status**: Planning
+**Updated**: 2026-01-27 (Simplified after research)
+**Last Session**: 2026-01-27 - Research and planning phase complete
+**Current Task**: T01 (MCP Server Integration)
+**Status**: Ready for Implementation
+**Estimated Duration**: 2.5-4.5 days (reduced from 18-25 days)
+
+## Last Session Progress (2026-01-27)
+
+### Accomplishments
+- ✅ Deep research into MCP protocol and transport types
+- ✅ Discovered LangGraph already handles lifecycle management (15-20 days saved!)
+- ✅ Simplified implementation plan from custom managers to config transformation
+- ✅ Removed Docker transport from proto spec (YAGNI - can add later)
+- ✅ Created 2 design decision documents (DD01, DD02)
+- ✅ Updated all project documentation
+
+### Key Decisions
+1. **Use LangGraph's built-in lifecycle** - No custom subprocess/HTTP managers needed
+2. **Docker transport removed** - Keep proto simple, users can run containers + use HTTP
+3. **Add Node.js to agent-runner** - Required for npm-based MCP servers (npx)
+
+### Files Modified
+- `apis/ai/stigmer/agentic/mcpserver/v1/spec.proto` - Removed Docker config (-102 lines)
+- `tasks/T01_0_plan.md` - Completely rewritten with simplified approach
+- `README.md` - Updated to reflect simplified scope
+- Added design decisions: DD01 (LangGraph), DD02 (Docker removed)
+
+### Research Findings
+- MCP stdio: Client spawns subprocess (LangGraph does this)
+- MCP HTTP: Just HTTP calls to already-running server
+- LangGraph's `MultiServerMCPClient` handles all lifecycle automatically
+- Agent-runner Docker image needs Node.js added (currently missing)
+
+## Next Steps (When You Resume)
+
+### Immediate Actions
+1. **Review the simplified plan** - Read `tasks/T01_0_plan.md`
+2. **Start implementation** - Phase 1: Config Transformer
+   - Create `agent_runner/mcp/config_transformer.py`
+   - Implement `transform_mcp_config()` function
+   - Handle placeholder resolution for HTTP headers
+
+### Implementation Order
+```
+Phase 1: Config Transformer (1-2 days)
+  → Phase 2: LangGraph Integration (1-2 days)
+  → Phase 3: Dockerfile Update (0.5 days)
+```
+
+### Context to Remember
+- Environment variable resolution is handled elsewhere (not part of this project)
+- LangGraph handles ALL lifecycle - we just transform config
+- No custom subprocess/HTTP/Docker managers needed
+
+## Blockers
+
+None - ready to implement!
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01" - Resume the current task
+- "Continue with T01" - Resume implementation
 - "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
+- "Review design decisions" - Check DD01 and DD02
 
 ---
 
