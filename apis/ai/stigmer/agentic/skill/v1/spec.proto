@@ -27,6 +27,13 @@ message SkillSpec {
   // Source information tracking where the skill artifacts originated from.
   // This provides traceability and enables reproducible deployments.
   SkillSource source = 4;
+
+  // Human-readable description extracted from SKILL.md YAML frontmatter.
+  // Provides a concise summary of what this skill does for marketplace display
+  // and system prompt injection into AI agents.
+  // Should be 1-2 sentences, ideally under 100 tokens for prompt efficiency.
+  // Example: "Extracts text and tables from PDF files using OCR when needed"
+  string description = 5;
 }
 
 // SkillSource identifies where the skill artifacts originated from.
