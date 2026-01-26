@@ -27,9 +27,17 @@ my-skill/
 
 ### SKILL.md Format
 
-The `SKILL.md` file defines your skill's interface and is injected into agent prompts:
+The `SKILL.md` file defines your skill's interface and is injected into agent prompts.
+
+**REQUIRED**: YAML frontmatter with `name` field at the top:
 
 ```markdown
+---
+name: calculator
+version: 1.0.0
+description: Mathematical calculation capabilities
+---
+
 # Calculator Skill
 
 ## Description
@@ -68,7 +76,14 @@ calculator multiply $ITEM_PRICE $QUANTITY
 - Maximum precision: 10 decimal places
 ```
 
+**YAML Frontmatter Fields**:
+- `name` (required): Skill name in kebab-case
+- `version` (optional): Skill version (e.g., "1.0.0")
+- `description` (optional): Brief description
+
 **Best Practices**:
+- Always include YAML frontmatter with `name` field
+- Use kebab-case for skill names (lowercase-with-hyphens)
 - Clear tool descriptions
 - Usage examples
 - Expected inputs/outputs
@@ -86,7 +101,20 @@ cd my-skill
 
 ### Step 2: Write SKILL.md
 
-Create `SKILL.md` with your skill's interface definition (see format above).
+Create `SKILL.md` with YAML frontmatter and interface definition:
+
+```markdown
+---
+name: my-skill
+version: 1.0.0
+---
+
+# My Skill
+
+Description and tool documentation here...
+```
+
+**Important**: The `name` field in YAML frontmatter is **required**.
 
 ### Step 3: Add Tools (Optional)
 
@@ -111,28 +139,31 @@ Test your tools work correctly:
 ```bash
 cd my-skill/
 
-# Auto-detect SKILL.md and upload
-stigmer apply
+# Upload skill
+stigmer skill push
 ```
 
 **What happens**:
 1. CLI detects `SKILL.md` in current directory
-2. Creates Zip artifact of entire directory
-3. Extracts skill name from SKILL.md or prompts you
-4. Uploads to Stigmer
-5. Returns version hash
+2. Extracts skill name from YAML frontmatter (required)
+3. Auto-detects git metadata (if in git repository)
+4. Creates Zip artifact of entire directory
+5. Uploads to Stigmer with source metadata
+6. Returns version hash
 
 **Output**:
 ```
 ✓ Detected SKILL.md
-? Skill name: calculator
-? Tag (optional, default: latest): stable
+✓ Skill name: calculator (from YAML frontmatter)
+✓ Git metadata detected:
+  Remote: https://github.com/myorg/skills.git
+  Commit: abc123def456...
 ✓ Creating skill artifact...
 ✓ Uploading to Stigmer...
-✓ Skill created: calculator
-  Version: abc123def456...
-  Tag: stable
-  Storage: skills/calculator_abc123def456.zip
+✓ Skill uploaded successfully!
+  Version Hash: abc123def456...
+  Tag: latest
+  Source: https://github.com/myorg/skills.git @ abc123def
 ```
 
 ### Updating a Skill
@@ -142,27 +173,53 @@ stigmer apply
 vim SKILL.md
 
 # Upload new version
-stigmer apply
+stigmer skill push
 ```
 
 **What happens**:
-1. CLI detects existing skill by name
-2. Archives previous version
-3. Uploads new version
-4. Updates tag pointer (if specified)
+1. CLI validates SKILL.md and extracts name
+2. Auto-detects new git commit (if changed)
+3. Creates new artifact version
+4. Uploads with updated source metadata
+5. Updates tag pointer (if specified)
 
 **Output**:
 ```
 ✓ Detected SKILL.md
-✓ Skill name: calculator (existing)
-? Tag (optional, default: latest): stable
+✓ Skill name: calculator (from YAML frontmatter)
+✓ Git metadata detected:
+  Remote: https://github.com/myorg/skills.git
+  Commit: xyz789abc123...  (updated)
 ✓ Creating skill artifact...
 ✓ Uploading to Stigmer...
 ✓ Skill updated: calculator
-  Version: xyz789abc123...
-  Tag: stable (moved from previous version)
-  Previous version archived
+  Version Hash: xyz789abc123...
+  Tag: latest (updated)
+  Source: https://github.com/myorg/skills.git @ xyz789abc
 ```
+
+### Pushing from Remote GitHub
+
+You can push skills directly from a GitHub repository:
+
+```bash
+# Push from repository root
+stigmer skill push \
+  --git-url https://github.com/myorg/skills.git \
+  --git-ref v1.0.0
+
+# Push from subdirectory
+stigmer skill push \
+  --git-url https://github.com/myorg/monorepo.git \
+  --git-ref main \
+  --subdir skills/calculator
+```
+
+**Use cases**:
+- CI/CD pipelines (GitHub Actions, etc.)
+- Monorepo with multiple skills
+- Push specific git tags or commits
+- No need to clone locally
 
 ## Version Management
 
@@ -179,10 +236,10 @@ Tags are mutable pointers to skill versions:
 **Using tags**:
 ```bash
 # Upload with tag
-stigmer apply --tag stable
+stigmer skill push --tag stable
 
-# Upload without tag (version only accessible by hash)
-stigmer apply
+# Upload with default "latest" tag
+stigmer skill push
 ```
 
 ### Version Hashes
@@ -427,8 +484,23 @@ stigmer apply
 - **Check**: `ls -la SKILL.md`
 
 **Error**: `Error: skill name required`
-- **Solution**: Provide skill name when prompted
-- **Or**: Add metadata to SKILL.md
+- **Solution**: Add YAML frontmatter with `name` field to `SKILL.md`:
+  ```yaml
+  ---
+  name: my-skill-name
+  ---
+  ```
+
+**Error**: `Error: invalid skill name format`
+- **Solution**: Use kebab-case (lowercase with hyphens):
+  ```yaml
+  ---
+  name: my-skill-name  # ✅ Good
+  ---
+  # Not valid:
+  # name: MySkill      # ❌ Has capitals
+  # name: my_skill     # ❌ Has underscores
+  ```
 
 **Error**: `Error: artifact too large`
 - **Solution**: Reduce artifact size (< 100MB recommended)
