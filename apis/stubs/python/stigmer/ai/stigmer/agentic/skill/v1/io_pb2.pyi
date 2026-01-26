@@ -15,32 +15,18 @@ class SkillId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class PushSkillRequest(_message.Message):
-    __slots__ = ("name", "scope", "org", "artifact", "tag", "source", "description")
-    NAME_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("scope", "org", "artifact", "tag", "source")
     SCOPE_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
     ARTIFACT_FIELD_NUMBER: _ClassVar[int]
     TAG_FIELD_NUMBER: _ClassVar[int]
     SOURCE_FIELD_NUMBER: _ClassVar[int]
-    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
-    name: str
     scope: _enum_pb2.ApiResourceOwnerScope
     org: str
     artifact: bytes
     tag: str
     source: _spec_pb2.SkillSource
-    description: str
-    def __init__(self, name: _Optional[str] = ..., scope: _Optional[_Union[_enum_pb2.ApiResourceOwnerScope, str]] = ..., org: _Optional[str] = ..., artifact: _Optional[bytes] = ..., tag: _Optional[str] = ..., source: _Optional[_Union[_spec_pb2.SkillSource, _Mapping]] = ..., description: _Optional[str] = ...) -> None: ...
-
-class PushSkillResponse(_message.Message):
-    __slots__ = ("version_hash", "artifact_storage_key", "tag")
-    VERSION_HASH_FIELD_NUMBER: _ClassVar[int]
-    ARTIFACT_STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
-    TAG_FIELD_NUMBER: _ClassVar[int]
-    version_hash: str
-    artifact_storage_key: str
-    tag: str
-    def __init__(self, version_hash: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...
+    def __init__(self, scope: _Optional[_Union[_enum_pb2.ApiResourceOwnerScope, str]] = ..., org: _Optional[str] = ..., artifact: _Optional[bytes] = ..., tag: _Optional[str] = ..., source: _Optional[_Union[_spec_pb2.SkillSource, _Mapping]] = ...) -> None: ...
 
 class GetArtifactRequest(_message.Message):
     __slots__ = ("artifact_storage_key",)

@@ -140,7 +140,6 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 
 	client := skillv1.NewSkillCommandControllerClient(opts.Conn)
 	response, err := client.Push(context.Background(), &skillv1.PushSkillRequest{
-		Name:     skillName,
 		Scope:    apiresource.ApiResourceOwnerScope_organization,
 		Org:      opts.OrgID,
 		Artifact: zipBytes,
@@ -250,7 +249,6 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 
 	client := skillv1.NewSkillCommandControllerClient(opts.Conn)
 	response, err := client.Push(context.Background(), &skillv1.PushSkillRequest{
-		Name:     skillName,
 		Scope:    apiresource.ApiResourceOwnerScope_organization,
 		Org:      opts.OrgID,
 		Artifact: zipBytes,

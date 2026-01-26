@@ -41,7 +41,7 @@ func (c *McpServerController) Get(ctx context.Context, id *apiresource.ApiResour
 // by the apiresource interceptor and injected into request context.
 func (c *McpServerController) buildGetPipeline() *pipeline.Pipeline[*apiresource.ApiResourceId] {
 	return pipeline.NewPipeline[*apiresource.ApiResourceId]("mcpserver-get").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceId]()).                           // 1. Validate input
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceId]()).                             // 1. Validate input
 		AddStep(steps.NewLoadTargetStep[*apiresource.ApiResourceId, *mcpserverv1.McpServer](c.store)). // 2. Load by ID
 		Build()
 }

@@ -14,42 +14,36 @@ message SkillId {
 // PushSkillRequest contains the skill artifact and metadata for upload.
 // This operation creates a new skill if it doesn't exist, or creates a new version
 // of an existing skill.
+//
+// The skill name and description are extracted by the backend from the SKILL.md
+// YAML frontmatter within the artifact. The CLI validates the format but does not
+// send these fields - backend is the single source of truth for parsing.
 message PushSkillRequest {
-  // Skill name extracted from SKILL.md YAML frontmatter.
-  // Must match the 'name' field in the SKILL.md YAML header.
-  // Will be normalized to slug format by backend if needed.
-  // Examples: "calculator", "web-scraper", "math-utils"
-  string name = 1 [(buf.validate.field).required = true];
-
   // Owner scope of the skill (platform or organization).
-  ai.stigmer.commons.apiresource.ApiResourceOwnerScope scope = 2 [(buf.validate.field).enum.defined_only = true];
+  ai.stigmer.commons.apiresource.ApiResourceOwnerScope scope = 1 [(buf.validate.field).enum.defined_only = true];
 
   // Organization ID (required if scope = organization).
-  string org = 3;
+  string org = 2;
 
-  // Skill artifact as a Zip file (binary content).
-  // The Zip must contain:
+  // Skill artifact as a ZIP file (binary content).
+  // The ZIP must contain:
   // - SKILL.md (required): Interface definition and documentation with YAML frontmatter
+  //   - name: Skill identifier (required in frontmatter, kebab-case)
+  //   - description: Human-readable description (optional but recommended)
   // - Tool executables/scripts (optional)
   // - Additional files referenced in SKILL.md
-  bytes artifact = 4 [(buf.validate.field).required = true];
+  bytes artifact = 3 [(buf.validate.field).required = true];
 
   // Optional tag to associate with this version.
   // If provided, this tag will point to the new version.
   // If empty/not provided, the version will only be accessible via its hash.
   // Examples: "stable", "v1.0", "latest"
-  string tag = 5 [(buf.validate.field).string.pattern = "^$|^[a-zA-Z0-9._-]+$"];
+  string tag = 4 [(buf.validate.field).string.pattern = "^$|^[a-zA-Z0-9._-]+$"];
 
   // Source information tracking where the skill artifacts originated from.
   // For local pushes, CLI auto-detects git information if available.
   // For remote pushes, this contains the git URL, ref, and subdir.
-  SkillSource source = 6;
-
-  // Human-readable description extracted from SKILL.md YAML frontmatter.
-  // This is extracted by the CLI from the YAML header and passed to the backend
-  // for storage in SkillSpec. Used for marketplace display and prompt injection.
-  // Example: "Extracts text and tables from PDF files using OCR when needed"
-  string description = 7;
+  SkillSource source = 5;
 }
 
 // GetArtifactRequest requests download of a skill artifact by storage key.

@@ -52,8 +52,8 @@ func (c *McpServerController) Delete(ctx context.Context, input *apiresource.Api
 // has ResourceId field (not Value), so we manually extract it in Delete method.
 func (c *McpServerController) buildDeletePipeline() *pipeline.Pipeline[*apiresource.ApiResourceDeleteInput] {
 	return pipeline.NewPipeline[*apiresource.ApiResourceDeleteInput]("mcpserver-delete").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceDeleteInput]()).                                       // 1. Validate field constraints
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceDeleteInput]()).                                        // 1. Validate field constraints
 		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceDeleteInput, *mcpserverv1.McpServer](c.store)). // 2. Load MCP server
-		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).                               // 3. Delete from database
+		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).                                // 3. Delete from database
 		Build()
 }
