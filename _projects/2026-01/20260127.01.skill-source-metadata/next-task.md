@@ -1,9 +1,9 @@
 # Next Task: 20260127.01.skill-source-metadata
 
 ## Current State
-- **Status**: Complete (T01-T05 all done)
-- **Last Session**: 2026-01-27 (Session 2)
-- **Active Task**: None - All tasks completed
+- **Status**: Complete (T01-T06 all done, full backend parity)
+- **Last Session**: 2026-01-27 (Session 4)
+- **Active Task**: None - All tasks completed including Go backend
 
 ## Session Progress (2026-01-27 Session 1)
 
@@ -88,12 +88,93 @@ if (request.hasSource()) {
 ### 📝 Documentation Created
 - `checkpoints/2026-01-27-session-2.md` - Session 2 notes
 
+## Session Progress (2026-01-27 Session 3)
+
+### ✅ Completed: Documentation and Examples
+
+**Changes Made**:
+
+1. **Updated CLI Commands Reference** (`client-apps/cli/COMMANDS.md`):
+   - Added remote push examples with `--git-url`, `--git-ref`, `--subdir`
+   - Documented source metadata capture
+   - Added +17 lines
+
+2. **Updated Uploading Skills Guide** (`docs/guides/uploading-skills.md`):
+   - Updated all examples to use YAML frontmatter
+   - Changed `stigmer apply` → `stigmer skill push`
+   - Added "Source Metadata" section
+   - Added "Remote Push from GitHub" section
+   - Updated error handling with YAML frontmatter solutions
+   - Added ~150 lines
+
+3. **Updated Creating and Versioning Skills** (`docs/guides/creating-and-versioning-skills.md`):
+   - Added YAML frontmatter requirement to SKILL.md format
+   - Updated all upload examples
+   - Added remote push section
+   - Updated error handling
+   - Added ~80 lines
+
+4. **Created Example Skill** (`examples/skills/calculator/`):
+   - `SKILL.md` - Proper YAML frontmatter and documentation (67 lines)
+   - `calculator.sh` - Working implementation (58 lines)
+   - `README.md` - Comprehensive guide (105 lines)
+
+5. **Updated Examples README** (`examples/README.md`):
+   - Added "Skills" section
+   - Added "Skill Template" section
+   - Added +60 lines
+
+**Total**: 7 files, ~537 lines added/updated
+
+### 📝 Documentation Created
+- `checkpoints/2026-01-27-session-3-documentation.md` - Session 3 notes
+
+## Session Progress (2026-01-27 Session 4)
+
+### ✅ Completed: T06 - Go Backend Storage (stigmer OSS)
+
+**Location**: `/Users/suresh/scm/github.com/stigmer/stigmer/`
+
+**Objective**: Bring Go backend to parity with Java backend for skill source metadata persistence.
+
+**Changes Made**:
+
+1. **Updated PopulateSkillFieldsStep** (`backend/services/stigmer-server/pkg/domain/skill/controller/push.go`):
+   - Added code to copy `name` from request to spec
+   - Added code to copy `source` from request to spec
+   - Source metadata now persisted with skill to SQLite
+
+**Code Added** (in `PopulateSkillFieldsStep.Execute()`):
+```go
+// 2. Set skill name from request (extracted from SKILL.md YAML frontmatter)
+req := ctx.Input()
+if req.Name != "" {
+    skill.Spec.Name = req.Name
+}
+
+// 3. Set source metadata for traceability (local git or remote git)
+if req.Source != nil {
+    skill.Spec.Source = req.Source
+}
+```
+
+### 📊 Files Modified (Session 4)
+- `backend/services/stigmer-server/pkg/domain/skill/controller/push.go` - +13 lines, -2 lines
+
+### ✅ Verification
+- Build passes: `bazel build //backend/services/stigmer-server/pkg/domain/skill/controller`
+- No linter errors introduced
+- Pre-existing test failures confirmed unrelated to this change
+
+### 📝 Documentation Created
+- `checkpoints/2026-01-27-session-4.md` - Session 4 notes
+
 ## Next Steps (Optional Enhancements)
 
 ### 🔄 Follow-up Tasks
 1. Test end-to-end flow (local + remote push)
-2. Update CLI documentation/examples
-3. Consider creating a sample skill with proper YAML
+2. ✅ ~~Update CLI documentation/examples~~ - COMPLETED (Session 3)
+3. ✅ ~~Consider creating a sample skill with proper YAML~~ - COMPLETED (Session 3)
 4. Create changelog entry
 
 ## Context for Resume
@@ -130,8 +211,18 @@ stigmer skill push \
 ## Implementation Summary
 
 ### Complete Data Flow
+
+**Java Backend (stigmer-cloud)**:
 ```
 SKILL.md → CLI → PushSkillRequest → SkillPushHandler → SkillSpec → MongoDB
+   ↓
+name: from YAML frontmatter
+source: LocalSource (auto-detected git) or GitSource (remote push)
+```
+
+**Go Backend (stigmer OSS)**:
+```
+SKILL.md → CLI → PushSkillRequest → PopulateSkillFieldsStep → SkillSpec → SQLite
    ↓
 name: from YAML frontmatter
 source: LocalSource (auto-detected git) or GitSource (remote push)
@@ -141,18 +232,22 @@ source: LocalSource (auto-detected git) or GitSource (remote push)
 - **Proto definitions**: `stigmer/apis/ai/stigmer/agentic/skill/v1/spec.proto`
 - **CLI implementation**: `stigmer/client-apps/cli/internal/cli/artifact/skill.go`
 - **YAML parser**: `stigmer/client-apps/cli/internal/cli/artifact/skillmd.go`
-- **Backend handler**: `stigmer-cloud/backend/services/stigmer-service/.../SkillPushHandler.java`
+- **Java backend handler**: `stigmer-cloud/backend/services/stigmer-service/.../SkillPushHandler.java`
+- **Go backend handler**: `stigmer/backend/services/stigmer-server/pkg/domain/skill/controller/push.go`
 
 ## Project Complete
 
-All tasks T01-T05 have been completed:
+All tasks T01-T06 have been completed:
 - ✅ T01: Proto Design (SkillSource, LocalSource, GitSource)
 - ✅ T02: CLI YAML Parsing (skillmd.go)
 - ✅ T03: CLI Git Detection (auto-detect for local pushes)
 - ✅ T04: CLI Remote GitHub Push (--git-url, --git-ref, --subdir)
-- ✅ T05: Backend Storage (name + source persisted)
+- ✅ T05: Java Backend Storage (name + source persisted to MongoDB)
+- ✅ T06: Go Backend Storage (name + source persisted to SQLite)
 
 ---
 
-**Session 1 Summary**: Proto design and CLI implementation complete (T01-T04).
-**Session 2 Summary**: Backend storage complete (T05). Source metadata now flows from CLI to database.
+**Session 1 Summary**: Proto design and CLI implementation complete (T01-T04).  
+**Session 2 Summary**: Java backend storage complete (T05). Source metadata now flows from CLI to MongoDB.  
+**Session 3 Summary**: Documentation and examples complete. Updated 3 guides, created working calculator example skill.  
+**Session 4 Summary**: Go backend storage complete (T06). Full backend parity achieved - both Java and Go backends now persist skill source metadata.
