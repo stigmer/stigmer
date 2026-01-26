@@ -73,8 +73,8 @@ func TestNew(t *testing.T) {
 
 func TestGrantMcpAccess(t *testing.T) {
 	tests := []struct {
-		name         string
-		grants       []struct {
+		name   string
+		grants []struct {
 			server string
 			tools  []string
 		}

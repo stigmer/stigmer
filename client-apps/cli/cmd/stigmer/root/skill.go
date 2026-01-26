@@ -3,6 +3,9 @@ package root
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
@@ -42,19 +45,26 @@ func newSkillPushCommand() *cobra.Command {
 	var tag string
 	var orgOverride string
 	var dryRun bool
+	var gitURL string
+	var gitRef string
+	var gitSubdir string
 
 	cmd := &cobra.Command{
 		Use:   "push [directory]",
 		Short: "Push a skill artifact to the registry",
 		Long: `Push a skill directory as an artifact to the Stigmer registry.
 
-The directory must contain a SKILL.md file defining the skill interface.
-All files (except .git, node_modules, .venv, etc.) are packaged into a
-ZIP artifact and uploaded to the registry.
+The directory must contain a SKILL.md file with YAML frontmatter defining
+the skill name. All files (except .git, node_modules, .venv, etc.) are
+packaged into a ZIP artifact and uploaded to the registry.
 
-The skill name is derived from the directory name. A SHA256 hash is
-calculated from the artifact contents for content-addressable storage
-and deduplication.`,
+The skill name is extracted from the SKILL.md YAML frontmatter 'name' field.
+A SHA256 hash is calculated from the artifact contents for content-addressable
+storage and deduplication.
+
+SOURCE MODES:
+  Local Push:  Push from a local directory (default). Git info is auto-detected.
+  Remote Push: Push directly from a GitHub URL using --git-url flag.`,
 		Example: `  # Push skill from current directory
   stigmer skill push
 
@@ -67,21 +77,38 @@ and deduplication.`,
   # Push to a specific organization
   stigmer skill push --org my-org
 
+  # Push from a GitHub repository
+  stigmer skill push --git-url https://github.com/stigmer/skills.git --git-ref v1.0.0 --subdir skills/calculator
+
   # Dry run (validate without pushing)
   stigmer skill push --dry-run`,
 		Args: cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			// Determine directory
-			directory, err := resolveSkillDirectory(args)
-			clierr.Handle(err)
+			var result *artifact.SkillArtifactResult
+			var err error
 
-			// Execute push
-			result, err := executeSkillPush(skillPushOptions{
-				Directory:   directory,
-				Tag:         tag,
-				OrgOverride: orgOverride,
-				DryRun:      dryRun,
-			})
+			// Check if remote push mode (--git-url provided)
+			if gitURL != "" {
+				result, err = executeRemoteSkillPush(remotePushOptions{
+					GitURL:      gitURL,
+					GitRef:      gitRef,
+					GitSubdir:   gitSubdir,
+					Tag:         tag,
+					OrgOverride: orgOverride,
+					DryRun:      dryRun,
+				})
+			} else {
+				// Local push mode
+				directory, dirErr := resolveSkillDirectory(args)
+				clierr.Handle(dirErr)
+
+				result, err = executeSkillPush(skillPushOptions{
+					Directory:   directory,
+					Tag:         tag,
+					OrgOverride: orgOverride,
+					DryRun:      dryRun,
+				})
+			}
 			clierr.Handle(err)
 
 			// Display result
@@ -94,6 +121,9 @@ and deduplication.`,
 	cmd.Flags().StringVar(&tag, "tag", "latest", "version tag for the skill")
 	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID (overrides context)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate without pushing")
+	cmd.Flags().StringVar(&gitURL, "git-url", "", "push from a remote git repository URL")
+	cmd.Flags().StringVar(&gitRef, "git-ref", "", "git reference (tag, branch, or commit SHA) for remote push")
+	cmd.Flags().StringVar(&gitSubdir, "subdir", "", "subdirectory within git repository containing SKILL.md")
 
 	return cmd
 }
@@ -101,6 +131,16 @@ and deduplication.`,
 // skillPushOptions contains options for the skill push operation
 type skillPushOptions struct {
 	Directory   string
+	Tag         string
+	OrgOverride string
+	DryRun      bool
+}
+
+// remotePushOptions contains options for pushing from a remote git repository
+type remotePushOptions struct {
+	GitURL      string
+	GitRef      string
+	GitSubdir   string
 	Tag         string
 	OrgOverride string
 	DryRun      bool
@@ -117,6 +157,139 @@ func resolveSkillDirectory(args []string) (string, error) {
 		return "", fmt.Errorf("failed to get current directory: %w", err)
 	}
 	return cwd, nil
+}
+
+// executeRemoteSkillPush handles pushing a skill from a remote git repository
+func executeRemoteSkillPush(opts remotePushOptions) (*artifact.SkillArtifactResult, error) {
+	cliprint.PrintInfo("Pushing skill from remote git repository")
+	cliprint.PrintInfo("  URL: %s", opts.GitURL)
+	if opts.GitRef != "" {
+		cliprint.PrintInfo("  Ref: %s", opts.GitRef)
+	}
+	if opts.GitSubdir != "" {
+		cliprint.PrintInfo("  Subdir: %s", opts.GitSubdir)
+	}
+	fmt.Println()
+
+	// Step 1: Dry run mode - just validate
+	if opts.DryRun {
+		cliprint.PrintInfo("Dry run mode - would push skill with:")
+		cliprint.PrintInfo("  Git URL: %s", opts.GitURL)
+		cliprint.PrintInfo("  Git Ref: %s", opts.GitRef)
+		cliprint.PrintInfo("  Subdir:  %s", opts.GitSubdir)
+		cliprint.PrintInfo("  Tag:     %s", opts.Tag)
+		return nil, nil
+	}
+
+	// Step 2: Create temp directory for clone
+	tempDir, err := os.MkdirTemp("", "stigmer-skill-*")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp directory: %w", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	cliprint.PrintInfo("Cloning repository...")
+
+	// Step 3: Clone the repository (shallow clone for speed)
+	cloneArgs := []string{"clone", "--depth", "1"}
+	if opts.GitRef != "" {
+		// For tags/branches, use --branch
+		cloneArgs = append(cloneArgs, "--branch", opts.GitRef)
+	}
+	cloneArgs = append(cloneArgs, opts.GitURL, tempDir)
+
+	cloneCmd := exec.Command("git", cloneArgs...)
+	cloneOutput, err := cloneCmd.CombinedOutput()
+	if err != nil {
+		// If --branch failed (e.g., commit SHA), try full clone then checkout
+		if opts.GitRef != "" && strings.Contains(string(cloneOutput), "Could not find remote branch") {
+			cliprint.PrintInfo("Branch not found, trying commit checkout...")
+
+			// Full clone without depth limit for commit SHA
+			cloneCmd = exec.Command("git", "clone", opts.GitURL, tempDir)
+			if _, err := cloneCmd.CombinedOutput(); err != nil {
+				return nil, fmt.Errorf("failed to clone repository: %w\n%s", err, string(cloneOutput))
+			}
+
+			// Checkout the specific commit
+			checkoutCmd := exec.Command("git", "checkout", opts.GitRef)
+			checkoutCmd.Dir = tempDir
+			if _, err := checkoutCmd.CombinedOutput(); err != nil {
+				return nil, fmt.Errorf("failed to checkout ref '%s': %w", opts.GitRef, err)
+			}
+		} else {
+			return nil, fmt.Errorf("failed to clone repository: %w\n%s", err, string(cloneOutput))
+		}
+	}
+
+	cliprint.PrintSuccess("✓ Repository cloned")
+
+	// Step 4: Determine skill directory (repo root or subdir)
+	skillDir := tempDir
+	if opts.GitSubdir != "" {
+		skillDir = filepath.Join(tempDir, opts.GitSubdir)
+		if _, err := os.Stat(skillDir); os.IsNotExist(err) {
+			return nil, fmt.Errorf("subdirectory '%s' not found in repository", opts.GitSubdir)
+		}
+	}
+
+	// Step 5: Validate SKILL.md exists
+	if !artifact.HasSkillFile(skillDir) {
+		return nil, fmt.Errorf("SKILL.md not found in %s\n\nThe skill directory must contain a SKILL.md file with YAML frontmatter", skillDir)
+	}
+
+	// Step 6: Load backend configuration
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 7: Determine organization
+	orgID, err := resolveOrganization(cfg, opts.OrgOverride)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 8: Ensure daemon is running (local mode only)
+	if cfg.Backend.Type == config.BackendTypeLocal {
+		dataDir, err := config.GetDataDir()
+		if err != nil {
+			return nil, err
+		}
+
+		if err := daemon.EnsureRunning(dataDir); err != nil {
+			return nil, err
+		}
+	}
+
+	// Step 9: Connect to backend
+	cliprint.PrintInfo("Connecting to backend...")
+
+	conn, err := backend.NewConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	cliprint.PrintSuccess("✓ Connected to backend")
+	fmt.Println()
+
+	// Step 10: Push skill artifact with GitSource
+	result, err := artifact.PushSkillFromGit(&artifact.SkillFromGitOptions{
+		Directory: skillDir,
+		OrgID:     orgID,
+		Tag:       opts.Tag,
+		Conn:      conn,
+		Quiet:     false,
+		GitURL:    opts.GitURL,
+		GitRef:    opts.GitRef,
+		GitSubdir: opts.GitSubdir,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // executeSkillPush handles the skill push operation
