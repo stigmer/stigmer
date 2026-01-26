@@ -39,10 +39,6 @@ message McpServerSpec {
     // HTTP-based server (HTTP + Server-Sent Events communication).
     // Used for remote/managed MCP services accessible over the network.
     HttpServerConfig http = 5;
-
-    // Docker-based server (containerized MCP server).
-    // Used for isolated, reproducible MCP server environments.
-    DockerServerConfig docker = 6;
   }
 
   // Default tools to enable from this MCP server.
@@ -148,103 +144,5 @@ message HttpServerConfig {
   int32 timeout_seconds = 4 [(buf.validate.field).int32 = {
     gte: 0
     lte: 300
-  }];
-}
-
-// DockerServerConfig defines an MCP server that runs in a Docker container.
-// Provides isolation and reproducibility for MCP server environments.
-//
-// Communication can happen via:
-// - stdio: Container's stdin/stdout (default, similar to StdioServerConfig)
-// - HTTP: Via port mapping to container's HTTP endpoint
-//
-// This is useful for:
-// - Custom MCP servers with complex dependencies
-// - Isolated execution environments
-// - Consistent environments across different host systems
-message DockerServerConfig {
-  // Docker image name and tag.
-  // Can be from any registry accessible to the agent runner.
-  // Examples:
-  // - "ghcr.io/org/mcp-server:latest"
-  // - "myregistry.com/mcp/custom-server:v1.2.3"
-  // - "mcp-local-server:dev" (local image)
-  string image = 1 [
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.min_len = 1
-  ];
-
-  // Command arguments to pass to the container.
-  // Overrides the default CMD in the Docker image.
-  // Leave empty to use the image's default command.
-  repeated string args = 2;
-
-  // Volume mounts for the container.
-  // Use to provide access to host filesystem, configuration files, or data.
-  repeated VolumeMount volumes = 3;
-
-  // Docker network to attach the container to.
-  // Default: "bridge" (Docker's default network).
-  // Use custom networks for inter-container communication.
-  string network = 4;
-
-  // Port mappings for the container.
-  // Required if communicating via HTTP instead of stdio.
-  // Maps host ports to container ports.
-  repeated PortMapping ports = 5;
-
-  // Container name for identification and management.
-  // If not specified, Docker generates a random name.
-  // Useful for debugging and container lifecycle management.
-  string container_name = 6;
-}
-
-// VolumeMount defines a Docker volume mount configuration.
-// Maps a path on the host to a path inside the container.
-message VolumeMount {
-  // Path on the host machine to mount.
-  // Can be an absolute path or a named Docker volume.
-  // Examples:
-  // - "/home/user/data" (absolute path)
-  // - "mcp-data-volume" (named volume)
-  string host_path = 1 [(buf.validate.field).required = true];
-
-  // Path inside the container where the volume is mounted.
-  // Must be an absolute path.
-  // Example: "/data"
-  string container_path = 2 [(buf.validate.field).required = true];
-
-  // Whether the mount should be read-only.
-  // Default: false (read-write).
-  // Set to true for configuration files or sensitive data that shouldn't be modified.
-  bool read_only = 3;
-}
-
-// PortMapping defines a Docker port mapping configuration.
-// Maps a port on the host to a port inside the container.
-message PortMapping {
-  // Port on the host machine to bind.
-  // Must be available and within valid port range (1-65535).
-  int32 host_port = 1 [(buf.validate.field).int32 = {
-    gte: 1
-    lte: 65535
-  }];
-
-  // Port inside the container to expose.
-  // Must match the port the MCP server listens on.
-  int32 container_port = 2 [(buf.validate.field).int32 = {
-    gte: 1
-    lte: 65535
-  }];
-
-  // Network protocol for the port mapping.
-  // Default: "tcp".
-  // Valid values: "tcp", "udp".
-  string protocol = 3 [(buf.validate.field).string = {
-    in: [
-      "",
-      "tcp",
-      "udp"
-    ]
   }];
 }
