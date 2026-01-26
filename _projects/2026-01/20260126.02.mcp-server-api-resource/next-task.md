@@ -91,11 +91,11 @@ Comprehensive implementation plan with phases, proto structures, FGA model.
 ## Current Status
 
 **Created**: 2026-01-26
-**Last Session**: 2026-01-27 Session 8 (Phase 6 CLI Commands)
-**Current Phase**: Phase 6 - CLI Commands
-**Status**: ✅ COMPLETE
+**Last Session**: 2026-01-27 Session 9 (Documentation)
+**Current Phase**: Documentation Phase
+**Status**: ✅ COMPLETE (All Phases + Documentation)
 
-**Phase 6 Complete**: Production-quality CLI commands implemented for McpServer resource management. All commands (apply, get, delete, list) implemented with comprehensive help, error handling, and testing. Follows Kubernetes-style declarative patterns.
+**All Implementation Complete**: All 6 phases of implementation complete. Session 9 added comprehensive documentation following Stigmer OSS documentation standards.
 
 ---
 
@@ -430,6 +430,72 @@ stigmer mcp ...                    # Short alias
 - Examples in every help text
 - Validation happens early with clear feedback
 
+### ✅ Documentation Phase Complete (Session 9 - 2026-01-27)
+
+**Accomplishments:**
+- Created comprehensive documentation following Stigmer OSS documentation standards
+- Three major documentation files covering architecture, implementation, and user guide
+- Updated documentation index with proper categorization
+- All documentation uses lowercase-hyphenated filenames
+- Includes Mermaid diagrams for visual clarity
+
+**Files Created:**
+
+1. **`docs/architecture/mcp-server-resource.md`** (528 lines, 15 KB)
+   - Design philosophy and tri-scope model
+   - Server types (stdio, http, docker) with detailed examples
+   - Reference-based usage model
+   - FGA authorization patterns
+   - Tool filtering hierarchy
+   - Runtime resolution flow
+   - SubAgent access control
+   - 7 Mermaid diagrams for clarity
+   - Comparison with inline pattern (before/after)
+
+2. **`docs/implementation/mcp-server-api-resource-completion.md`** (883 lines, 27 KB)
+   - Complete project overview and timeline
+   - All 6 phases documented in detail
+   - Quality metrics (files, lines of code)
+   - Key design decisions with rationale
+   - Cross-project dependencies
+   - Lessons learned
+   - Testing strategy
+   - Zero technical debt confirmation
+
+3. **`docs/guides/using-mcp-servers.md`** (846 lines, 17 KB)
+   - Quick start guide
+   - Detailed server type explanations
+   - Ownership scope selection guide
+   - Environment variable patterns
+   - Tool filtering hierarchy
+   - CLI command reference
+   - Common patterns and best practices
+   - Troubleshooting section
+   - 3 complete working examples
+
+**Files Modified:**
+
+4. **`docs/README.md`**
+   - Added entries in Guides, Implementation, and Architecture sections
+   - Marked all three new documents as NEW
+   - Proper categorization following documentation standards
+
+**Documentation Quality**:
+- ✅ Lowercase-hyphenated filenames
+- ✅ Proper categorization (architecture/implementation/guides)
+- ✅ Mermaid diagrams for clarity (7 total)
+- ✅ Grounded in actual implementation
+- ✅ Developer-friendly with examples
+- ✅ Concise yet comprehensive (2,257 total lines)
+- ✅ No duplication - cross-references instead
+- ✅ Follows @stigmer-oss-documentation-standards.md
+
+**Total Documentation Size**:
+- 3 new files
+- 2,257 lines
+- ~59 KB
+- 7 Mermaid diagrams
+
 ---
 
 ## Implementation Phases Overview
@@ -644,37 +710,67 @@ All 6 phases implemented. McpServer is now a fully functional, first-class API r
 - ✅ Committed: `fcd1cb8` - Project documentation update
 
 **Session 8 (CLI Commands)**
-- ⏳ Pending commit: Phase 6 CLI commands
-- Files: 4 new files (1,090 lines), 2 modified files
-- Ready for commit
+- ✅ Committed: `c64afc9` - feat(cli): add mcpserver commands
+- Files: 4 new files (1,090 lines), 2 modified files, 1 checkpoint
+- All Phase 6 work committed
+
+**Session 9 (Documentation)** - 2026-01-27
+- ⚠️ Uncommitted - Documentation ready for commit
+- Files: 3 new docs (2,257 lines), 1 modified (docs/README.md)
 
 ---
 
-## Uncommitted Work - Ready for Commit
+## Project Status: ✅ COMPLETE
 
-Session 8 CLI implementation is complete and tested:
-- ✅ All commands working (apply, get, delete, list)
-- ✅ Comprehensive testing completed
-- ✅ No linter errors
-- ✅ Foundation-quality code
+**All implementation phases committed:**
+- Phase 1-3: Proto, SDK, FGA (stigmer + stigmer-cloud)
+- Phase 4-4.5: Backend handlers (Java + Go)
+- Phase 5: Architectural review (no code needed)
+- Phase 6: CLI commands (stigmer)
 
-**Files to commit:**
-- New: `client-apps/cli/internal/cli/mcpserver/` (3 files)
-- New: `client-apps/cli/cmd/stigmer/root/mcpserver.go`
-- Modified: `client-apps/cli/cmd/stigmer/root.go`
-- Modified: `client-apps/cli/cmd/stigmer/root/BUILD.bazel`
+**Documentation ready for commit:**
+- Architecture guide (mcp-server-resource.md)
+- Implementation report (mcp-server-api-resource-completion.md)
+- User guide (using-mcp-servers.md)
+- Documentation index updated
 
----
-
-## Quick Commands
-
-After loading context:
-- "Continue with Phase 6" - Start CLI commands implementation
-- "Show me the handlers" - Review Java/Go handler implementation
-- "Review design decisions" - Review architectural choices
-- "Show session notes" - See detailed progress from all sessions
-- "Show cross-project dependencies" - View relationships with env vars and lifecycle projects
+The McpServer API Resource is now a fully functional, first-class resource with complete documentation.
 
 ---
 
-*This file provides direct paths to all project resources for quick context loading.*
+## Project Complete ✅
+
+**Status**: All 6 phases implemented and committed
+**Total Sessions**: 8 sessions over 2 days (Jan 26-27, 2026)
+**Total Work**: ~5,000 lines across proto, backend (Java + Go), and CLI
+
+**What was built:**
+- Complete McpServer API resource with proto definitions
+- Backend handlers in Java (stigmer-cloud) and Go (stigmer)
+- FGA authorization model with tri-scope support
+- CLI tools for local management (apply, get, delete, list)
+- SDK migration with simplified reference model
+- Foundation ready for marketplace and agent integration
+
+**Related Projects (Handoffs):**
+- Environment Variables: `20260126.01.environment-runtime-vars-flow-review`
+- Lifecycle Management: `20260127.04.mcp-server-lifecycle-management`
+
+---
+
+## Quick Reference
+
+**Review work:**
+- See all checkpoints: `checkpoints/` directory
+- Design decisions: `design-decisions/` directory
+- Session 8 notes: `checkpoints/2026-01-27-session-8.md`
+
+**Commits:**
+- Phase 1-3: Proto + SDK + FGA (multiple commits)
+- Phase 4: Java handlers `30b555f1`
+- Phase 4.5: Go controller `edef047`
+- Phase 6: CLI commands `c64afc9`
+
+---
+
+*Project foundation complete. Ready for production use.*
