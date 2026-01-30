@@ -48,6 +48,10 @@ func newSkillPushCommand() *cobra.Command {
 	var gitURL string
 	var gitRef string
 	var gitSubdir string
+	var ignorePatterns []string
+	var includePatterns []string
+	var noGitignore bool
+	var verbose bool
 
 	cmd := &cobra.Command{
 		Use:   "push [directory]",
@@ -55,8 +59,17 @@ func newSkillPushCommand() *cobra.Command {
 		Long: `Push a skill directory as an artifact to the Stigmer registry.
 
 The directory must contain a SKILL.md file with YAML frontmatter defining
-the skill name. All files (except .git, node_modules, .venv, etc.) are
-packaged into a ZIP artifact and uploaded to the registry.
+the skill name. Files are filtered using gitignore-compatible patterns with
+layered precedence:
+
+  1. Built-in security defaults (credentials, .git, node_modules, etc.)
+  2. .gitignore patterns (if present and --no-gitignore not set)
+  3. .stigmerignore patterns (Stigmer-specific overrides)
+  4. CLI --ignore flags
+  5. CLI --include flags (highest priority, force includes)
+
+Use negation patterns (e.g., "!.env.example") to include files that would
+otherwise be excluded.
 
 The skill name is extracted from the SKILL.md YAML frontmatter 'name' field.
 A SHA256 hash is calculated from the artifact contents for content-addressable
@@ -81,7 +94,19 @@ SOURCE MODES:
   stigmer skill push --git-url https://github.com/stigmer/skills.git --git-ref v1.0.0 --subdir skills/calculator
 
   # Dry run (validate without pushing)
-  stigmer skill push --dry-run`,
+  stigmer skill push --dry-run
+
+  # Ignore additional patterns
+  stigmer skill push --ignore "*.tmp" --ignore "draft/**"
+
+  # Force include specific files that would be ignored
+  stigmer skill push --include ".env.example"
+
+  # Don't respect .gitignore patterns
+  stigmer skill push --no-gitignore
+
+  # Show verbose output with ignore decisions
+  stigmer skill push --verbose`,
 		Args: cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			var result *artifact.SkillArtifactResult
@@ -90,12 +115,16 @@ SOURCE MODES:
 			// Check if remote push mode (--git-url provided)
 			if gitURL != "" {
 				result, err = executeRemoteSkillPush(remotePushOptions{
-					GitURL:      gitURL,
-					GitRef:      gitRef,
-					GitSubdir:   gitSubdir,
-					Tag:         tag,
-					OrgOverride: orgOverride,
-					DryRun:      dryRun,
+					GitURL:          gitURL,
+					GitRef:          gitRef,
+					GitSubdir:       gitSubdir,
+					Tag:             tag,
+					OrgOverride:     orgOverride,
+					DryRun:          dryRun,
+					IgnorePatterns:  ignorePatterns,
+					IncludePatterns: includePatterns,
+					NoGitignore:     noGitignore,
+					Verbose:         verbose,
 				})
 			} else {
 				// Local push mode
@@ -103,10 +132,14 @@ SOURCE MODES:
 				clierr.Handle(dirErr)
 
 				result, err = executeSkillPush(skillPushOptions{
-					Directory:   directory,
-					Tag:         tag,
-					OrgOverride: orgOverride,
-					DryRun:      dryRun,
+					Directory:       directory,
+					Tag:             tag,
+					OrgOverride:     orgOverride,
+					DryRun:          dryRun,
+					IgnorePatterns:  ignorePatterns,
+					IncludePatterns: includePatterns,
+					NoGitignore:     noGitignore,
+					Verbose:         verbose,
 				})
 			}
 			clierr.Handle(err)
@@ -118,32 +151,49 @@ SOURCE MODES:
 		},
 	}
 
+	// Core flags
 	cmd.Flags().StringVar(&tag, "tag", "latest", "version tag for the skill")
 	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID (overrides context)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate without pushing")
+
+	// Git source flags
 	cmd.Flags().StringVar(&gitURL, "git-url", "", "push from a remote git repository URL")
 	cmd.Flags().StringVar(&gitRef, "git-ref", "", "git reference (tag, branch, or commit SHA) for remote push")
 	cmd.Flags().StringVar(&gitSubdir, "subdir", "", "subdirectory within git repository containing SKILL.md")
+
+	// Ignore filtering flags
+	cmd.Flags().StringArrayVar(&ignorePatterns, "ignore", nil, "additional patterns to ignore (can be repeated)")
+	cmd.Flags().StringArrayVar(&includePatterns, "include", nil, "patterns to force-include (can be repeated)")
+	cmd.Flags().BoolVar(&noGitignore, "no-gitignore", false, "don't respect .gitignore patterns")
+	cmd.Flags().BoolVar(&verbose, "verbose", false, "show detailed output including ignore decisions")
 
 	return cmd
 }
 
 // skillPushOptions contains options for the skill push operation
 type skillPushOptions struct {
-	Directory   string
-	Tag         string
-	OrgOverride string
-	DryRun      bool
+	Directory       string
+	Tag             string
+	OrgOverride     string
+	DryRun          bool
+	IgnorePatterns  []string
+	IncludePatterns []string
+	NoGitignore     bool
+	Verbose         bool
 }
 
 // remotePushOptions contains options for pushing from a remote git repository
 type remotePushOptions struct {
-	GitURL      string
-	GitRef      string
-	GitSubdir   string
-	Tag         string
-	OrgOverride string
-	DryRun      bool
+	GitURL          string
+	GitRef          string
+	GitSubdir       string
+	Tag             string
+	OrgOverride     string
+	DryRun          bool
+	IgnorePatterns  []string
+	IncludePatterns []string
+	NoGitignore     bool
+	Verbose         bool
 }
 
 // resolveSkillDirectory determines the skill directory from args or current directory
@@ -171,13 +221,39 @@ func executeRemoteSkillPush(opts remotePushOptions) (*artifact.SkillArtifactResu
 	}
 	fmt.Println()
 
-	// Step 1: Dry run mode - just validate
+	// Step 1: Dry run mode - show configuration
 	if opts.DryRun {
 		cliprint.PrintInfo("Dry run mode - would push skill with:")
-		cliprint.PrintInfo("  Git URL: %s", opts.GitURL)
-		cliprint.PrintInfo("  Git Ref: %s", opts.GitRef)
-		cliprint.PrintInfo("  Subdir:  %s", opts.GitSubdir)
-		cliprint.PrintInfo("  Tag:     %s", opts.Tag)
+		fmt.Println()
+		cliprint.PrintInfo("Git Source:")
+		cliprint.PrintInfo("  URL:    %s", opts.GitURL)
+		if opts.GitRef != "" {
+			cliprint.PrintInfo("  Ref:    %s", opts.GitRef)
+		}
+		if opts.GitSubdir != "" {
+			cliprint.PrintInfo("  Subdir: %s", opts.GitSubdir)
+		}
+		cliprint.PrintInfo("  Tag:    %s", opts.Tag)
+		fmt.Println()
+
+		cliprint.PrintInfo("Ignore Configuration:")
+		if opts.NoGitignore {
+			cliprint.PrintInfo("  Gitignore: disabled")
+		} else {
+			cliprint.PrintInfo("  Gitignore: enabled (will respect .gitignore in repo)")
+		}
+		cliprint.PrintInfo("  Security defaults: enabled")
+		cliprint.PrintInfo("  Stigmerignore: will load if present")
+		if len(opts.IgnorePatterns) > 0 {
+			cliprint.PrintInfo("  Extra ignore: %v", opts.IgnorePatterns)
+		}
+		if len(opts.IncludePatterns) > 0 {
+			cliprint.PrintInfo("  Force include: %v", opts.IncludePatterns)
+		}
+		fmt.Println()
+
+		cliprint.PrintInfo("Note: Full analysis requires cloning the repository.")
+		cliprint.PrintInfo("Run without --dry-run to push the skill artifact.")
 		return nil, nil
 	}
 
@@ -274,7 +350,14 @@ func executeRemoteSkillPush(opts remotePushOptions) (*artifact.SkillArtifactResu
 	cliprint.PrintSuccess("✓ Connected to backend")
 	fmt.Println()
 
-	// Step 10: Push skill artifact with GitSource
+	// Step 10: Push skill artifact with GitSource and ignore options
+	ignoreOpts := &artifact.IgnoreOptions{
+		RespectGitignore: !opts.NoGitignore,
+		ExtraIgnore:      opts.IgnorePatterns,
+		ExtraInclude:     opts.IncludePatterns,
+		Verbose:          opts.Verbose,
+	}
+
 	result, err := artifact.PushSkillFromGit(&artifact.SkillFromGitOptions{
 		Directory: skillDir,
 		OrgID:     orgID,
@@ -284,6 +367,7 @@ func executeRemoteSkillPush(opts remotePushOptions) (*artifact.SkillArtifactResu
 		GitURL:    opts.GitURL,
 		GitRef:    opts.GitRef,
 		GitSubdir: opts.GitSubdir,
+		Ignore:    ignoreOpts,
 	})
 	if err != nil {
 		return nil, err
@@ -302,11 +386,73 @@ func executeSkillPush(opts skillPushOptions) (*artifact.SkillArtifactResult, err
 	cliprint.PrintInfo("Pushing skill from: %s", opts.Directory)
 	fmt.Println()
 
-	// Step 2: Dry run mode - just validate
+	// Step 2: Dry run mode - analyze and show what would happen
 	if opts.DryRun {
-		cliprint.PrintInfo("Dry run mode - would push skill with:")
+		cliprint.PrintInfo("Dry run mode - analyzing directory...")
+		fmt.Println()
+
+		ignoreOpts := artifact.IgnoreOptions{
+			RespectGitignore: !opts.NoGitignore,
+			ExtraIgnore:      opts.IgnorePatterns,
+			ExtraInclude:     opts.IncludePatterns,
+			Verbose:          opts.Verbose,
+		}
+
+		analysis, err := artifact.AnalyzeDryRun(opts.Directory, ignoreOpts)
+		if err != nil {
+			return nil, fmt.Errorf("dry run analysis failed: %w", err)
+		}
+
+		// Show configuration
+		cliprint.PrintInfo("Configuration:")
 		cliprint.PrintInfo("  Directory: %s", opts.Directory)
 		cliprint.PrintInfo("  Tag:       %s", opts.Tag)
+		if opts.NoGitignore {
+			cliprint.PrintInfo("  Gitignore: disabled")
+		}
+		if len(opts.IgnorePatterns) > 0 {
+			cliprint.PrintInfo("  Extra ignore: %v", opts.IgnorePatterns)
+		}
+		if len(opts.IncludePatterns) > 0 {
+			cliprint.PrintInfo("  Force include: %v", opts.IncludePatterns)
+		}
+		fmt.Println()
+
+		// Show pattern sources
+		if len(analysis.PatternSources) > 0 {
+			cliprint.PrintInfo("Pattern sources:")
+			for _, src := range analysis.PatternSources {
+				cliprint.PrintInfo("  - %s", src)
+			}
+			fmt.Println()
+		}
+
+		// Show summary
+		cliprint.PrintSuccess("Would create artifact:")
+		cliprint.PrintInfo("  Files: %d included, %d ignored", analysis.Stats.FilesIncluded, analysis.Stats.FilesIgnored)
+		cliprint.PrintInfo("  Directories skipped: %d", analysis.Stats.DirsSkipped)
+		cliprint.PrintInfo("  Estimated size: %s", formatSkillBytes(analysis.Stats.TotalSize))
+		fmt.Println()
+
+		// Show samples if verbose or if there are ignored items
+		if opts.Verbose || len(analysis.SampleIgnored) > 0 {
+			if len(analysis.SampleIgnored) > 0 {
+				cliprint.PrintInfo("Sample ignored (up to 10):")
+				for _, item := range analysis.SampleIgnored {
+					cliprint.PrintInfo("  - %s", item)
+				}
+				fmt.Println()
+			}
+		}
+
+		if opts.Verbose && len(analysis.SampleIncluded) > 0 {
+			cliprint.PrintInfo("Sample included (up to 10):")
+			for _, item := range analysis.SampleIncluded {
+				cliprint.PrintInfo("  + %s", item)
+			}
+			fmt.Println()
+		}
+
 		return nil, nil
 	}
 
@@ -346,13 +492,21 @@ func executeSkillPush(opts skillPushOptions) (*artifact.SkillArtifactResult, err
 	cliprint.PrintSuccess("✓ Connected to backend")
 	fmt.Println()
 
-	// Step 7: Push skill artifact
+	// Step 7: Push skill artifact with ignore options
+	ignoreOpts := &artifact.IgnoreOptions{
+		RespectGitignore: !opts.NoGitignore,
+		ExtraIgnore:      opts.IgnorePatterns,
+		ExtraInclude:     opts.IncludePatterns,
+		Verbose:          opts.Verbose,
+	}
+
 	result, err := artifact.PushSkill(&artifact.SkillArtifactOptions{
 		Directory: opts.Directory,
 		OrgID:     orgID,
 		Tag:       opts.Tag,
 		Conn:      conn,
 		Quiet:     false,
+		Ignore:    ignoreOpts,
 	})
 	if err != nil {
 		return nil, err
