@@ -89,6 +89,115 @@ class ApprovalConfig:
         return self.default_tool_approvals.get(mcp_server, [])
 
 
+def build_approval_config(
+    execution: Any,
+    mcp_server_usages: List[Any],
+    mcp_servers: List[Any],
+    mcp_tools_config: Dict[str, Optional[List[str]]],
+) -> ApprovalConfig:
+    """
+    Build ApprovalConfig from execution context.
+    
+    Assembles the approval policy chain configuration from multiple sources:
+    
+    1. execution.spec.auto_approve_all - Runtime bypass flag (highest priority)
+    2. mcp_server_usages[].tool_approval_overrides - Per-agent customization
+    3. mcp_servers[].spec.default_tool_approvals - Platform/org defaults
+    4. mcp_tools_config - Tool-to-MCP-server mapping (inverted for lookup)
+    
+    The resulting ApprovalConfig is passed to StatusBuilder to enable
+    tool approval detection during execution.
+    
+    This function is designed to be pure with no I/O, accepting proto objects
+    or mock objects for easy testing.
+    
+    Args:
+        execution: The AgentExecution protobuf containing spec.auto_approve_all
+        mcp_server_usages: List of McpServerUsage protos from agent spec
+        mcp_servers: List of McpServer protos fetched via gRPC
+        mcp_tools_config: Mapping of server slug to list of enabled tool names
+        
+    Returns:
+        ApprovalConfig with assembled policy data
+        
+    Example:
+        >>> config = build_approval_config(
+        ...     execution=execution,
+        ...     mcp_server_usages=agent.spec.mcp_server_usages,
+        ...     mcp_servers=fetched_servers,
+        ...     mcp_tools_config={"github": ["list_repos", "delete_repo"]},
+        ... )
+        >>> config.auto_approve_all
+        False
+        >>> config.get_mcp_server_for_tool("delete_repo")
+        "github"
+    """
+    # 1. Extract auto_approve_all from execution spec
+    # Safe access - defaults to False if not set
+    auto_approve_all = False
+    try:
+        auto_approve_all = bool(execution.spec.auto_approve_all)
+    except AttributeError:
+        pass  # Field not present, use default
+    
+    # 2. Collect tool_approval_overrides from all MCP server usages
+    # Each usage can have per-tool overrides for its MCP server
+    tool_approval_overrides: List[Any] = []
+    for usage in mcp_server_usages:
+        try:
+            if hasattr(usage, 'tool_approval_overrides') and usage.tool_approval_overrides:
+                tool_approval_overrides.extend(usage.tool_approval_overrides)
+        except (AttributeError, TypeError):
+            pass  # Skip if field doesn't exist or isn't iterable
+    
+    # 3. Build default_tool_approvals dict keyed by server slug
+    # Maps MCP server slug -> list of ToolApprovalPolicy protos
+    default_tool_approvals: Dict[str, List[Any]] = {}
+    for server in mcp_servers:
+        try:
+            # Get the server slug from metadata
+            slug = ""
+            if hasattr(server, 'metadata') and hasattr(server.metadata, 'slug'):
+                slug = server.metadata.slug
+            elif hasattr(server, 'metadata') and hasattr(server.metadata, 'name'):
+                # Fallback to name if slug not available
+                slug = server.metadata.name
+            
+            if not slug:
+                continue
+            
+            # Get default_tool_approvals from spec
+            if hasattr(server, 'spec') and hasattr(server.spec, 'default_tool_approvals'):
+                policies = server.spec.default_tool_approvals
+                if policies:
+                    default_tool_approvals[slug] = list(policies)
+        except (AttributeError, TypeError):
+            pass  # Skip malformed server
+    
+    # 4. Build tool_to_mcp_server mapping by inverting mcp_tools_config
+    # mcp_tools_config: {server_slug: [tool1, tool2, ...]}
+    # tool_to_mcp_server: {tool_name: server_slug}
+    tool_to_mcp_server: Dict[str, str] = {}
+    for server_slug, tool_names in mcp_tools_config.items():
+        if tool_names:
+            for tool_name in tool_names:
+                tool_to_mcp_server[tool_name] = server_slug
+    
+    logger.debug(
+        f"Built ApprovalConfig: auto_approve_all={auto_approve_all}, "
+        f"overrides={len(tool_approval_overrides)}, "
+        f"default_policies={len(default_tool_approvals)} servers, "
+        f"tool_mapping={len(tool_to_mcp_server)} tools"
+    )
+    
+    return ApprovalConfig(
+        auto_approve_all=auto_approve_all,
+        tool_approval_overrides=tool_approval_overrides,
+        default_tool_approvals=default_tool_approvals,
+        tool_to_mcp_server=tool_to_mcp_server,
+    )
+
+
 @dataclass(frozen=True)
 class ApprovalRequirement:
     """

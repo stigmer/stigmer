@@ -24,6 +24,89 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// ApprovalAction represents the user's decision on an approval request.
+//
+// ## Action Semantics
+//
+// - APPROVE: Execute the tool normally, continue execution
+// - SKIP: Return "skipped by user" message to LLM, continue execution
+// - REJECT: Fail the execution immediately with rejection error
+//
+// ## LLM Behavior on Skip
+//
+// When a tool is skipped, the LLM receives a message like:
+// "Tool 'delete_repository' was skipped by user. Please proceed without this operation."
+// This allows the LLM to adapt its plan while preserving execution continuity.
+//
+// ## Usage
+//
+// Used in:
+// - ToolCall.approval_action: Records the decision made
+// - SubmitApprovalInput.action: User's submitted decision
+type ApprovalAction int32
+
+const (
+	// Unspecified action (invalid, should never be used).
+	// SubmitApproval RPC rejects this value.
+	ApprovalAction_APPROVAL_ACTION_UNSPECIFIED ApprovalAction = 0
+	// Execute the tool normally.
+	// Tool transitions from WAITING_APPROVAL to RUNNING, then executes.
+	// Execution phase returns to IN_PROGRESS.
+	ApprovalAction_APPROVAL_ACTION_APPROVE ApprovalAction = 1
+	// Skip tool execution, continue without it.
+	// Tool transitions to SKIPPED status.
+	// LLM receives: "Tool '{name}' was skipped by user. Please proceed without this operation."
+	// Execution continues - this is NOT a failure.
+	ApprovalAction_APPROVAL_ACTION_SKIP ApprovalAction = 2
+	// Reject tool execution, fail the entire execution.
+	// Execution phase transitions to FAILED.
+	// Error message includes rejection reason from user's comment.
+	ApprovalAction_APPROVAL_ACTION_REJECT ApprovalAction = 3
+)
+
+// Enum value maps for ApprovalAction.
+var (
+	ApprovalAction_name = map[int32]string{
+		0: "APPROVAL_ACTION_UNSPECIFIED",
+		1: "APPROVAL_ACTION_APPROVE",
+		2: "APPROVAL_ACTION_SKIP",
+		3: "APPROVAL_ACTION_REJECT",
+	}
+	ApprovalAction_value = map[string]int32{
+		"APPROVAL_ACTION_UNSPECIFIED": 0,
+		"APPROVAL_ACTION_APPROVE":     1,
+		"APPROVAL_ACTION_SKIP":        2,
+		"APPROVAL_ACTION_REJECT":      3,
+	}
+)
+
+func (x ApprovalAction) Enum() *ApprovalAction {
+	p := new(ApprovalAction)
+	*p = x
+	return p
+}
+
+func (x ApprovalAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ApprovalAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_enumTypes[0].Descriptor()
+}
+
+func (ApprovalAction) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_api_proto_enumTypes[0]
+}
+
+func (x ApprovalAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ApprovalAction.Descriptor instead.
+func (ApprovalAction) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP(), []int{0}
+}
+
 // AgentExecution represents a single agent execution instance (conversational).
 // Follows the standard pattern: spec contains user inputs, status contains execution results.
 type AgentExecution struct {
@@ -183,6 +266,22 @@ type AgentExecutionStatus struct {
 	// Populated once before streaming begins, after all resources are resolved.
 	// Immutable after initial population - represents the "snapshot" of resolved state.
 	ResolvedContext *ResolvedExecutionContext `protobuf:"bytes,12,opt,name=resolved_context,json=resolvedContext,proto3" json:"resolved_context,omitempty"`
+	// Current pending approval request, if any.
+	//
+	// Lifecycle:
+	// 1. Populated when a tool with requires_approval=true is about to execute
+	// 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+	// 3. User submits decision via SubmitApproval RPC
+	// 4. Field is cleared, phase returns to EXECUTION_IN_PROGRESS
+	//
+	// Only one pending approval at a time (tools execute sequentially in LangGraph).
+	// If multiple tools need approval, they are handled one at a time.
+	//
+	// When populated:
+	// - tool_call_id matches one entry in tool_calls[] with status WAITING_APPROVAL
+	// - UI should display approval dialog with message and args_preview
+	// - User must call SubmitApproval to continue execution
+	PendingApproval *PendingApproval `protobuf:"bytes,13,opt,name=pending_approval,json=pendingApproval,proto3" json:"pending_approval,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -297,6 +396,13 @@ func (x *AgentExecutionStatus) GetUsage() *UsageMetrics {
 func (x *AgentExecutionStatus) GetResolvedContext() *ResolvedExecutionContext {
 	if x != nil {
 		return x.ResolvedContext
+	}
+	return nil
+}
+
+func (x *AgentExecutionStatus) GetPendingApproval() *PendingApproval {
+	if x != nil {
+		return x.PendingApproval
 	}
 	return nil
 }
@@ -523,9 +629,49 @@ type ToolCall struct {
 	// ISO 8601 timestamp when the tool call completed or failed.
 	CompletedAt string `protobuf:"bytes,8,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
 	// Error message if status == TOOL_CALL_FAILED.
-	Error         string `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Error string `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
+	// True if this tool requires approval before execution.
+	// Determined at runtime by merging:
+	//  1. McpServer.default_tool_approvals (platform/org defaults)
+	//  2. McpServerUsage.tool_approval_overrides (agent-specific)
+	//  3. AgentExecutionSpec.auto_approve_all (runtime bypass)
+	//
+	// When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused
+	// awaiting user decision via SubmitApproval RPC.
+	RequiresApproval bool `protobuf:"varint,10,opt,name=requires_approval,json=requiresApproval,proto3" json:"requires_approval,omitempty"`
+	// Human-readable message explaining what approval is being requested.
+	// Populated from ToolApprovalPolicy.message with argument placeholders resolved.
+	//
+	// Examples:
+	//   - "Delete repository: my-important-repo"
+	//   - "Force push to branch: main"
+	//   - "Send email to: customer@example.com"
+	//
+	// If no custom message configured, defaults to: "Execute tool: {tool_name}"
+	ApprovalMessage string `protobuf:"bytes,11,opt,name=approval_message,json=approvalMessage,proto3" json:"approval_message,omitempty"`
+	// ISO 8601 timestamp when approval was requested.
+	// Set when status transitions to TOOL_CALL_WAITING_APPROVAL.
+	// Used for tracking approval latency and potential timeout logic.
+	// Example: "2026-01-30T15:30:00Z"
+	ApprovalRequestedAt string `protobuf:"bytes,12,opt,name=approval_requested_at,json=approvalRequestedAt,proto3" json:"approval_requested_at,omitempty"`
+	// ISO 8601 timestamp when approval decision was made.
+	// Set when user submits APPROVE, SKIP, or REJECT via SubmitApproval.
+	// Example: "2026-01-30T15:32:15Z"
+	ApprovalDecidedAt string `protobuf:"bytes,13,opt,name=approval_decided_at,json=approvalDecidedAt,proto3" json:"approval_decided_at,omitempty"`
+	// User ID of who made the approval decision.
+	// Extracted from authentication context when SubmitApproval is called.
+	// Important for audit trails and accountability.
+	// Example: "usr_abc123xyz"
+	ApprovedBy string `protobuf:"bytes,14,opt,name=approved_by,json=approvedBy,proto3" json:"approved_by,omitempty"`
+	// The action taken by the user.
+	// Only populated after approval decision is made (approval_decided_at is set).
+	// Determines how the tool execution proceeds:
+	//   - APPROVE: Tool executes normally
+	//   - SKIP: Tool returns skip message, execution continues
+	//   - REJECT: Execution fails with rejection error
+	ApprovalAction ApprovalAction `protobuf:"varint,15,opt,name=approval_action,json=approvalAction,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalAction" json:"approval_action,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ToolCall) Reset() {
@@ -619,6 +765,48 @@ func (x *ToolCall) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *ToolCall) GetRequiresApproval() bool {
+	if x != nil {
+		return x.RequiresApproval
+	}
+	return false
+}
+
+func (x *ToolCall) GetApprovalMessage() string {
+	if x != nil {
+		return x.ApprovalMessage
+	}
+	return ""
+}
+
+func (x *ToolCall) GetApprovalRequestedAt() string {
+	if x != nil {
+		return x.ApprovalRequestedAt
+	}
+	return ""
+}
+
+func (x *ToolCall) GetApprovalDecidedAt() string {
+	if x != nil {
+		return x.ApprovalDecidedAt
+	}
+	return ""
+}
+
+func (x *ToolCall) GetApprovedBy() string {
+	if x != nil {
+		return x.ApprovedBy
+	}
+	return ""
+}
+
+func (x *ToolCall) GetApprovalAction() ApprovalAction {
+	if x != nil {
+		return x.ApprovalAction
+	}
+	return ApprovalAction_APPROVAL_ACTION_UNSPECIFIED
 }
 
 // Metadata to guide frontend UI component rendering for tool calls.
@@ -1160,6 +1348,153 @@ func (x *McpServerResolutionStatus) GetEnabledToolCount() int32 {
 	return 0
 }
 
+// PendingApproval surfaces the current approval request for UI display.
+//
+// ## Purpose
+//
+// This message provides all information needed for a UI to render an approval
+// dialog/card. It's populated when an execution enters WAITING_FOR_APPROVAL phase.
+//
+// ## Relationship to ToolCall
+//
+// While ToolCall contains the canonical approval state, PendingApproval provides
+// a denormalized view optimized for UI consumption. The tool_call_id links back
+// to the authoritative ToolCall record.
+//
+// ## Sub-Agent Approvals
+//
+// When a sub-agent's tool requires approval, the main agent's pending_approval
+// is populated with from_sub_agent=true. This allows UI to show:
+// "Sub-agent 'code-reviewer' needs approval to execute 'delete_file'"
+//
+// ## Lifecycle
+//
+// 1. Tool with requires_approval=true is about to execute
+// 2. PendingApproval is populated, phase becomes WAITING_FOR_APPROVAL
+// 3. User calls SubmitApproval RPC with their decision
+// 4. PendingApproval is cleared, phase returns to IN_PROGRESS (or FAILED on REJECT)
+type PendingApproval struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the tool call waiting for approval.
+	// Use this when calling SubmitApproval to identify which tool call to resume.
+	// Format: Tool call ID from the agent runtime (e.g., "call_abc123")
+	ToolCallId string `protobuf:"bytes,1,opt,name=tool_call_id,json=toolCallId,proto3" json:"tool_call_id,omitempty"`
+	// Name of the tool requiring approval.
+	// Matches ToolCall.name for correlation.
+	// Example: "delete_repository", "send_email", "execute_sql"
+	ToolName string `protobuf:"bytes,2,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
+	// Human-readable approval message for display.
+	// Copied from ToolCall.approval_message for UI convenience.
+	// Contains resolved placeholders (e.g., "Delete repo: my-repo")
+	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	// Sanitized preview of tool arguments for informed decision-making.
+	// Sensitive values (passwords, tokens) are redacted.
+	// Displayed as formatted JSON or key-value pairs in UI.
+	//
+	// Example:
+	//
+	//	{
+	//	  "repository": "acme/important-repo",
+	//	  "force": true,
+	//	  "reason": "cleanup"
+	//	}
+	ArgsPreview string `protobuf:"bytes,4,opt,name=args_preview,json=argsPreview,proto3" json:"args_preview,omitempty"`
+	// ISO 8601 timestamp when the approval was requested.
+	// Enables UI to show waiting duration: "Waiting for 2 minutes"
+	// Example: "2026-01-30T15:30:00Z"
+	RequestedAt string `protobuf:"bytes,5,opt,name=requested_at,json=requestedAt,proto3" json:"requested_at,omitempty"`
+	// True if this approval originates from a sub-agent.
+	// Enables differentiated UI treatment:
+	//   - false: "Agent needs approval to..."
+	//   - true: "Sub-agent 'name' needs approval to..."
+	FromSubAgent bool `protobuf:"varint,6,opt,name=from_sub_agent,json=fromSubAgent,proto3" json:"from_sub_agent,omitempty"`
+	// Name of the sub-agent if from_sub_agent is true.
+	// Example: "code-reviewer", "researcher", "debugger"
+	// Empty if from_sub_agent is false.
+	SubAgentName  string `protobuf:"bytes,7,opt,name=sub_agent_name,json=subAgentName,proto3" json:"sub_agent_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PendingApproval) Reset() {
+	*x = PendingApproval{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PendingApproval) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PendingApproval) ProtoMessage() {}
+
+func (x *PendingApproval) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PendingApproval.ProtoReflect.Descriptor instead.
+func (*PendingApproval) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *PendingApproval) GetToolCallId() string {
+	if x != nil {
+		return x.ToolCallId
+	}
+	return ""
+}
+
+func (x *PendingApproval) GetToolName() string {
+	if x != nil {
+		return x.ToolName
+	}
+	return ""
+}
+
+func (x *PendingApproval) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *PendingApproval) GetArgsPreview() string {
+	if x != nil {
+		return x.ArgsPreview
+	}
+	return ""
+}
+
+func (x *PendingApproval) GetRequestedAt() string {
+	if x != nil {
+		return x.RequestedAt
+	}
+	return ""
+}
+
+func (x *PendingApproval) GetFromSubAgent() bool {
+	if x != nil {
+		return x.FromSubAgent
+	}
+	return false
+}
+
+func (x *PendingApproval) GetSubAgentName() string {
+	if x != nil {
+		return x.SubAgentName
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
@@ -1174,7 +1509,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xa3\x01\xbaH\x9f\x01\xba\x01\x98\x01\n" +
 	",agent_execution.owner_scope.unspecified_only\x12QAgentExecution owner_scope must be unspecified (inherits premission from session)\x1a\x15this.owner_scope == 0\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xb9\a\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\x9b\b\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -1190,7 +1525,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0ecallback_token\x18\n" +
 	" \x01(\fR\rcallbackToken\x12H\n" +
 	"\x05usage\x18\v \x01(\v22.ai.stigmer.agentic.agentexecution.v1.UsageMetricsR\x05usage\x12i\n" +
-	"\x10resolved_context\x18\f \x01(\v2>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContextR\x0fresolvedContext\x1ah\n" +
+	"\x10resolved_context\x18\f \x01(\v2>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContextR\x0fresolvedContext\x12`\n" +
+	"\x10pending_approval\x18\r \x01(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x0fpendingApproval\x1ah\n" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
@@ -1213,7 +1549,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\x12\x1f\n" +
 	"\vtoken_count\x18\a \x01(\x05R\n" +
 	"tokenCount\x124\n" +
-	"\x16generation_duration_ms\x18\b \x01(\x05R\x14generationDurationMs\"\x8b\x03\n" +
+	"\x16generation_duration_ms\x18\b \x01(\x05R\x14generationDurationMs\"\xc7\x05\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
@@ -1224,7 +1560,15 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\a \x01(\tR\tstartedAt\x12!\n" +
 	"\fcompleted_at\x18\b \x01(\tR\vcompletedAt\x12\x14\n" +
-	"\x05error\x18\t \x01(\tR\x05error\"\xb9\x01\n" +
+	"\x05error\x18\t \x01(\tR\x05error\x12+\n" +
+	"\x11requires_approval\x18\n" +
+	" \x01(\bR\x10requiresApproval\x12)\n" +
+	"\x10approval_message\x18\v \x01(\tR\x0fapprovalMessage\x122\n" +
+	"\x15approval_requested_at\x18\f \x01(\tR\x13approvalRequestedAt\x12.\n" +
+	"\x13approval_decided_at\x18\r \x01(\tR\x11approvalDecidedAt\x12\x1f\n" +
+	"\vapproved_by\x18\x0e \x01(\tR\n" +
+	"approvedBy\x12]\n" +
+	"\x0fapproval_action\x18\x0f \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionR\x0eapprovalAction\"\xb9\x01\n" +
 	"\x11ComponentMetadata\x12%\n" +
 	"\x0ecomponent_type\x18\x01 \x01(\tR\rcomponentType\x12'\n" +
 	"\x0fcomponent_group\x18\x02 \x01(\tR\x0ecomponentGroup\x12\x1f\n" +
@@ -1265,7 +1609,21 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x19McpServerResolutionStatus\x12\x1a\n" +
 	"\bresolved\x18\x01 \x01(\bR\bresolved\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12,\n" +
-	"\x12enabled_tool_count\x18\x03 \x01(\x05R\x10enabledToolCountB\xc9\x02\n" +
+	"\x12enabled_tool_count\x18\x03 \x01(\x05R\x10enabledToolCount\"\xfc\x01\n" +
+	"\x0fPendingApproval\x12 \n" +
+	"\ftool_call_id\x18\x01 \x01(\tR\n" +
+	"toolCallId\x12\x1b\n" +
+	"\ttool_name\x18\x02 \x01(\tR\btoolName\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x12!\n" +
+	"\fargs_preview\x18\x04 \x01(\tR\vargsPreview\x12!\n" +
+	"\frequested_at\x18\x05 \x01(\tR\vrequestedAt\x12$\n" +
+	"\x0efrom_sub_agent\x18\x06 \x01(\bR\ffromSubAgent\x12$\n" +
+	"\x0esub_agent_name\x18\a \x01(\tR\fsubAgentName*\x84\x01\n" +
+	"\x0eApprovalAction\x12\x1f\n" +
+	"\x1bAPPROVAL_ACTION_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17APPROVAL_ACTION_APPROVE\x10\x01\x12\x18\n" +
+	"\x14APPROVAL_ACTION_SKIP\x10\x02\x12\x1a\n" +
+	"\x16APPROVAL_ACTION_REJECT\x10\x03B\xc9\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\bApiProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -1280,63 +1638,68 @@ func file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_ai_stigmer_agentic_agentexecution_v1_api_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
-	(*AgentExecution)(nil),                  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	(*AgentExecutionStatus)(nil),            // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
-	(*TodoItem)(nil),                        // 2: ai.stigmer.agentic.agentexecution.v1.TodoItem
-	(*AgentMessage)(nil),                    // 3: ai.stigmer.agentic.agentexecution.v1.AgentMessage
-	(*ToolCall)(nil),                        // 4: ai.stigmer.agentic.agentexecution.v1.ToolCall
-	(*ComponentMetadata)(nil),               // 5: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
-	(*SubAgentExecution)(nil),               // 6: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution
-	(*UsageMetrics)(nil),                    // 7: ai.stigmer.agentic.agentexecution.v1.UsageMetrics
-	(*ResolvedExecutionContext)(nil),        // 8: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
-	(*McpServerResolutionStatus)(nil),       // 9: ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
-	nil,                                     // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
-	nil,                                     // 11: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
-	(*apiresource.ApiResourceMetadata)(nil), // 12: ai.stigmer.commons.apiresource.ApiResourceMetadata
-	(*AgentExecutionSpec)(nil),              // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
-	(*apiresource.ApiResourceAudit)(nil),    // 14: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(ExecutionPhase)(0),                     // 15: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	(TodoStatus)(0),                         // 16: ai.stigmer.agentic.agentexecution.v1.TodoStatus
-	(MessageType)(0),                        // 17: ai.stigmer.agentic.agentexecution.v1.MessageType
-	(*structpb.Struct)(nil),                 // 18: google.protobuf.Struct
-	(ToolCallStatus)(0),                     // 19: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	(SubAgentStatus)(0),                     // 20: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	(ApprovalAction)(0),                     // 0: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(*AgentExecution)(nil),                  // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	(*AgentExecutionStatus)(nil),            // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
+	(*TodoItem)(nil),                        // 3: ai.stigmer.agentic.agentexecution.v1.TodoItem
+	(*AgentMessage)(nil),                    // 4: ai.stigmer.agentic.agentexecution.v1.AgentMessage
+	(*ToolCall)(nil),                        // 5: ai.stigmer.agentic.agentexecution.v1.ToolCall
+	(*ComponentMetadata)(nil),               // 6: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
+	(*SubAgentExecution)(nil),               // 7: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution
+	(*UsageMetrics)(nil),                    // 8: ai.stigmer.agentic.agentexecution.v1.UsageMetrics
+	(*ResolvedExecutionContext)(nil),        // 9: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
+	(*McpServerResolutionStatus)(nil),       // 10: ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
+	(*PendingApproval)(nil),                 // 11: ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	nil,                                     // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
+	nil,                                     // 13: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
+	(*apiresource.ApiResourceMetadata)(nil), // 14: ai.stigmer.commons.apiresource.ApiResourceMetadata
+	(*AgentExecutionSpec)(nil),              // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
+	(*apiresource.ApiResourceAudit)(nil),    // 16: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(ExecutionPhase)(0),                     // 17: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(TodoStatus)(0),                         // 18: ai.stigmer.agentic.agentexecution.v1.TodoStatus
+	(MessageType)(0),                        // 19: ai.stigmer.agentic.agentexecution.v1.MessageType
+	(*structpb.Struct)(nil),                 // 20: google.protobuf.Struct
+	(ToolCallStatus)(0),                     // 21: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	(SubAgentStatus)(0),                     // 22: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
-	12, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
-	13, // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecution.spec:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
-	1,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
-	14, // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	3,  // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
-	15, // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	4,  // 6: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
-	6,  // 7: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.sub_agent_executions:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentExecution
-	10, // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.todos:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
-	7,  // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
-	8,  // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.resolved_context:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
-	16, // 11: ai.stigmer.agentic.agentexecution.v1.TodoItem.status:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoStatus
-	17, // 12: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
-	4,  // 13: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
-	18, // 14: ai.stigmer.agentic.agentexecution.v1.AgentMessage.metadata:type_name -> google.protobuf.Struct
-	18, // 15: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
-	19, // 16: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	5,  // 17: ai.stigmer.agentic.agentexecution.v1.ToolCall.component_metadata:type_name -> ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
-	18, // 18: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.metadata:type_name -> google.protobuf.Struct
-	20, // 19: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
-	18, // 20: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.metadata:type_name -> google.protobuf.Struct
-	4,  // 21: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
-	3,  // 22: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
-	7,  // 23: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
-	11, // 24: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.mcp_servers:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
-	2,  // 25: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
-	9,  // 26: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
-	27, // [27:27] is the sub-list for method output_type
-	27, // [27:27] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	14, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
+	15, // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecution.spec:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
+	2,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
+	16, // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	4,  // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
+	17, // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	5,  // 6: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
+	7,  // 7: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.sub_agent_executions:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentExecution
+	12, // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.todos:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
+	8,  // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
+	9,  // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.resolved_context:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
+	11, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.pending_approval:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	18, // 12: ai.stigmer.agentic.agentexecution.v1.TodoItem.status:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoStatus
+	19, // 13: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
+	5,  // 14: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
+	20, // 15: ai.stigmer.agentic.agentexecution.v1.AgentMessage.metadata:type_name -> google.protobuf.Struct
+	20, // 16: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
+	21, // 17: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	6,  // 18: ai.stigmer.agentic.agentexecution.v1.ToolCall.component_metadata:type_name -> ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
+	0,  // 19: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	20, // 20: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.metadata:type_name -> google.protobuf.Struct
+	22, // 21: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	20, // 22: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.metadata:type_name -> google.protobuf.Struct
+	5,  // 23: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
+	4,  // 24: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
+	8,  // 25: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
+	13, // 26: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.mcp_servers:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
+	3,  // 27: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	10, // 28: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
+	29, // [29:29] is the sub-list for method output_type
+	29, // [29:29] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() }
@@ -1351,13 +1714,14 @@ func file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   12,
+			NumEnums:      1,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_agentic_agentexecution_v1_api_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_agentexecution_v1_api_proto = out.File

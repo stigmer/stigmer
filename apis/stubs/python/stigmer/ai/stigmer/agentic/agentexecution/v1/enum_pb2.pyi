@@ -12,6 +12,7 @@ class ExecutionPhase(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     EXECUTION_COMPLETED: _ClassVar[ExecutionPhase]
     EXECUTION_FAILED: _ClassVar[ExecutionPhase]
     EXECUTION_CANCELLED: _ClassVar[ExecutionPhase]
+    EXECUTION_WAITING_FOR_APPROVAL: _ClassVar[ExecutionPhase]
 
 class MessageType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -28,6 +29,8 @@ class ToolCallStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TOOL_CALL_RUNNING: _ClassVar[ToolCallStatus]
     TOOL_CALL_COMPLETED: _ClassVar[ToolCallStatus]
     TOOL_CALL_FAILED: _ClassVar[ToolCallStatus]
+    TOOL_CALL_WAITING_APPROVAL: _ClassVar[ToolCallStatus]
+    TOOL_CALL_SKIPPED: _ClassVar[ToolCallStatus]
 
 class TodoStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -50,6 +53,7 @@ EXECUTION_IN_PROGRESS: ExecutionPhase
 EXECUTION_COMPLETED: ExecutionPhase
 EXECUTION_FAILED: ExecutionPhase
 EXECUTION_CANCELLED: ExecutionPhase
+EXECUTION_WAITING_FOR_APPROVAL: ExecutionPhase
 MESSAGE_TYPE_UNSPECIFIED: MessageType
 MESSAGE_HUMAN: MessageType
 MESSAGE_AI: MessageType
@@ -60,6 +64,8 @@ TOOL_CALL_PENDING: ToolCallStatus
 TOOL_CALL_RUNNING: ToolCallStatus
 TOOL_CALL_COMPLETED: ToolCallStatus
 TOOL_CALL_FAILED: ToolCallStatus
+TOOL_CALL_WAITING_APPROVAL: ToolCallStatus
+TOOL_CALL_SKIPPED: ToolCallStatus
 TODO_STATUS_UNSPECIFIED: TodoStatus
 TODO_PENDING: TodoStatus
 TODO_IN_PROGRESS: TodoStatus

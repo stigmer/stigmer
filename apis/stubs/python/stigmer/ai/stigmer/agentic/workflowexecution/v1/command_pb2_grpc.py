@@ -3,7 +3,7 @@
 import grpc
 
 from ai.stigmer.agentic.workflowexecution.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2
-from ai.stigmer.agentic.workflowexecution.v1 import command_pb2 as ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_command__pb2
+from ai.stigmer.agentic.workflowexecution.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
@@ -42,7 +42,7 @@ class WorkflowExecutionCommandControllerStub(object):
                 _registered_method=True)
         self.updateStatus = channel.unary_unary(
                 '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/updateStatus',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_command__pb2.WorkflowExecutionUpdateStatusInput.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.WorkflowExecutionUpdateStatusInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
                 _registered_method=True)
         self.delete = channel.unary_unary(
@@ -326,7 +326,7 @@ def add_WorkflowExecutionCommandControllerServicer_to_server(servicer, server):
             ),
             'updateStatus': grpc.unary_unary_rpc_method_handler(
                     servicer.updateStatus,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_command__pb2.WorkflowExecutionUpdateStatusInput.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.WorkflowExecutionUpdateStatusInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -428,7 +428,7 @@ class WorkflowExecutionCommandController(object):
             request,
             target,
             '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/updateStatus',
-            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_command__pb2.WorkflowExecutionUpdateStatusInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.WorkflowExecutionUpdateStatusInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
             options,
             channel_credentials,

@@ -636,6 +636,66 @@ func (x *ListWorkflowExecutionsByWorkflowRequest) GetPageToken() string {
 	return ""
 }
 
+// Input message for updateStatus RPC.
+// Contains only the execution ID and the status fields to be updated.
+// This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
+type WorkflowExecutionUpdateStatusInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the workflow execution to update (required).
+	// Format: "wex_abc123xyz456"
+	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// Status fields to update.
+	// The handler will merge these status fields with the existing execution's status.
+	// Only the fields present in this status object will be updated.
+	Status        *WorkflowExecutionStatus `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkflowExecutionUpdateStatusInput) Reset() {
+	*x = WorkflowExecutionUpdateStatusInput{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkflowExecutionUpdateStatusInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkflowExecutionUpdateStatusInput) ProtoMessage() {}
+
+func (x *WorkflowExecutionUpdateStatusInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkflowExecutionUpdateStatusInput.ProtoReflect.Descriptor instead.
+func (*WorkflowExecutionUpdateStatusInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *WorkflowExecutionUpdateStatusInput) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *WorkflowExecutionUpdateStatusInput) GetStatus() *WorkflowExecutionStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
 // SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.
 //
 // Opens a server-side streaming RPC that pushes WorkflowExecution updates
@@ -681,7 +741,7 @@ type SubscribeWorkflowExecutionRequest struct {
 
 func (x *SubscribeWorkflowExecutionRequest) Reset() {
 	*x = SubscribeWorkflowExecutionRequest{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -693,7 +753,7 @@ func (x *SubscribeWorkflowExecutionRequest) String() string {
 func (*SubscribeWorkflowExecutionRequest) ProtoMessage() {}
 
 func (x *SubscribeWorkflowExecutionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -706,7 +766,7 @@ func (x *SubscribeWorkflowExecutionRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use SubscribeWorkflowExecutionRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeWorkflowExecutionRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *SubscribeWorkflowExecutionRequest) GetExecutionId() string {
@@ -792,7 +852,7 @@ type WorkflowExecutionUpdate struct {
 
 func (x *WorkflowExecutionUpdate) Reset() {
 	*x = WorkflowExecutionUpdate{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -804,7 +864,7 @@ func (x *WorkflowExecutionUpdate) String() string {
 func (*WorkflowExecutionUpdate) ProtoMessage() {}
 
 func (x *WorkflowExecutionUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -817,7 +877,7 @@ func (x *WorkflowExecutionUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowExecutionUpdate.ProtoReflect.Descriptor instead.
 func (*WorkflowExecutionUpdate) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *WorkflowExecutionUpdate) GetUpdateType() WorkflowUpdateType {
@@ -866,7 +926,10 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"workflowId\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tR\tpageToken\"N\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"\xb2\x01\n" +
+	"\"WorkflowExecutionUpdateStatusInput\x12*\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12`\n" +
+	"\x06status\x18\x02 \x01(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\"N\n" +
 	"!SubscribeWorkflowExecutionRequest\x12)\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\"\xa6\x02\n" +
 	"\x17WorkflowExecutionUpdate\x12f\n" +
@@ -897,7 +960,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP() []byte 
 }
 
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_goTypes = []any{
 	(WorkflowUpdateType)(0),                         // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType
 	(*WorkflowExecutionId)(nil),                     // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId
@@ -905,23 +968,26 @@ var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_goTypes = []any{
 	(*WorkflowExecutionList)(nil),                   // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList
 	(*ListWorkflowExecutionsRequest)(nil),           // 4: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest
 	(*ListWorkflowExecutionsByWorkflowRequest)(nil), // 5: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest
-	(*SubscribeWorkflowExecutionRequest)(nil),       // 6: ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest
-	(*WorkflowExecutionUpdate)(nil),                 // 7: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate
-	(*WorkflowExecution)(nil),                       // 8: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	(ExecutionPhase)(0),                             // 9: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	(*WorkflowTask)(nil),                            // 10: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
+	(*WorkflowExecutionUpdateStatusInput)(nil),      // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput
+	(*SubscribeWorkflowExecutionRequest)(nil),       // 7: ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest
+	(*WorkflowExecutionUpdate)(nil),                 // 8: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate
+	(*WorkflowExecution)(nil),                       // 9: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	(ExecutionPhase)(0),                             // 10: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	(*WorkflowExecutionStatus)(nil),                 // 11: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
+	(*WorkflowTask)(nil),                            // 12: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_depIdxs = []int32{
-	8,  // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList.entries:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	9,  // 1: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	0,  // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.update_type:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType
-	8,  // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.execution:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	10, // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.task:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
-	5,  // [5:5] is the sub-list for method output_type
-	5,  // [5:5] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	9,  // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList.entries:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	10, // 1: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	11, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
+	0,  // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.update_type:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType
+	9,  // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.execution:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	12, // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.task:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
+	6,  // [6:6] is the sub-list for method output_type
+	6,  // [6:6] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflowexecution_v1_io_proto_init() }
@@ -937,7 +1003,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

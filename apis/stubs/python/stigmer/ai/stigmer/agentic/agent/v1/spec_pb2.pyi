@@ -42,12 +42,14 @@ class SubAgent(_message.Message):
     def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_access: _Optional[_Iterable[_Union[McpAccess, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ...) -> None: ...
 
 class McpServerUsage(_message.Message):
-    __slots__ = ("mcp_server_ref", "enabled_tools")
+    __slots__ = ("mcp_server_ref", "enabled_tools", "tool_approval_overrides")
     MCP_SERVER_REF_FIELD_NUMBER: _ClassVar[int]
     ENABLED_TOOLS_FIELD_NUMBER: _ClassVar[int]
+    TOOL_APPROVAL_OVERRIDES_FIELD_NUMBER: _ClassVar[int]
     mcp_server_ref: _io_pb2.ApiResourceReference
     enabled_tools: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, mcp_server_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., enabled_tools: _Optional[_Iterable[str]] = ...) -> None: ...
+    tool_approval_overrides: _containers.RepeatedCompositeFieldContainer[ToolApprovalOverride]
+    def __init__(self, mcp_server_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., enabled_tools: _Optional[_Iterable[str]] = ..., tool_approval_overrides: _Optional[_Iterable[_Union[ToolApprovalOverride, _Mapping]]] = ...) -> None: ...
 
 class McpAccess(_message.Message):
     __slots__ = ("mcp_server", "enabled_tools")
@@ -56,3 +58,13 @@ class McpAccess(_message.Message):
     mcp_server: str
     enabled_tools: _containers.RepeatedScalarFieldContainer[str]
     def __init__(self, mcp_server: _Optional[str] = ..., enabled_tools: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class ToolApprovalOverride(_message.Message):
+    __slots__ = ("tool_name", "requires_approval", "message")
+    TOOL_NAME_FIELD_NUMBER: _ClassVar[int]
+    REQUIRES_APPROVAL_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    tool_name: str
+    requires_approval: bool
+    message: str
+    def __init__(self, tool_name: _Optional[str] = ..., requires_approval: bool = ..., message: _Optional[str] = ...) -> None: ...

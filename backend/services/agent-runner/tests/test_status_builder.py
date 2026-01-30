@@ -2809,3 +2809,363 @@ class TestToolStartApprovalIntegration:
         
         pending = status_builder_with_approval_config.current_status.pending_approval
         assert "production-db" in pending.message
+
+
+# =============================================================================
+# Tests for build_approval_config function (HITL Phase 3A)
+# =============================================================================
+
+
+class TestBuildApprovalConfig:
+    """
+    Tests for the build_approval_config() function in execute_graphton.py.
+    
+    This function assembles ApprovalConfig from execution context:
+    - execution.spec.auto_approve_all
+    - mcp_server_usages[].tool_approval_overrides
+    - mcp_servers[].spec.default_tool_approvals
+    - mcp_tools_config (inverted to tool_to_mcp_server)
+    """
+    
+    def test_empty_inputs_return_safe_defaults(self):
+        """Test that empty inputs return ApprovalConfig with safe defaults."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        # Create minimal mock execution
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[],
+            mcp_tools_config={},
+        )
+        
+        assert config.auto_approve_all is False
+        assert config.tool_approval_overrides == []
+        assert config.default_tool_approvals == {}
+        assert config.tool_to_mcp_server == {}
+    
+    def test_auto_approve_all_extracted_from_execution_spec(self):
+        """Test that auto_approve_all is correctly extracted from execution.spec."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        # Test with auto_approve_all = True
+        execution = MagicMock()
+        execution.spec.auto_approve_all = True
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[],
+            mcp_tools_config={},
+        )
+        
+        assert config.auto_approve_all is True
+    
+    def test_auto_approve_all_defaults_false_when_missing(self):
+        """Test that auto_approve_all defaults to False when field is missing."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        # Create execution without auto_approve_all field
+        execution = MagicMock()
+        del execution.spec.auto_approve_all  # Remove the field
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[],
+            mcp_tools_config={},
+        )
+        
+        assert config.auto_approve_all is False
+    
+    def test_tool_approval_overrides_collected_from_all_usages(self):
+        """Test that tool_approval_overrides are collected from all MCP server usages."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Create two usages with different overrides
+        override1 = MagicMock()
+        override1.tool_name = "delete_repo"
+        override1.requires_approval = True
+        
+        override2 = MagicMock()
+        override2.tool_name = "force_push"
+        override2.requires_approval = True
+        
+        override3 = MagicMock()
+        override3.tool_name = "drop_table"
+        override3.requires_approval = True
+        
+        usage1 = MagicMock()
+        usage1.tool_approval_overrides = [override1, override2]
+        
+        usage2 = MagicMock()
+        usage2.tool_approval_overrides = [override3]
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[usage1, usage2],
+            mcp_servers=[],
+            mcp_tools_config={},
+        )
+        
+        # Should have all 3 overrides from both usages
+        assert len(config.tool_approval_overrides) == 3
+        assert override1 in config.tool_approval_overrides
+        assert override2 in config.tool_approval_overrides
+        assert override3 in config.tool_approval_overrides
+    
+    def test_tool_approval_overrides_handles_empty_usages(self):
+        """Test that empty tool_approval_overrides in usages are handled gracefully."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Usage with empty overrides
+        usage1 = MagicMock()
+        usage1.tool_approval_overrides = []
+        
+        # Usage with None overrides
+        usage2 = MagicMock()
+        usage2.tool_approval_overrides = None
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[usage1, usage2],
+            mcp_servers=[],
+            mcp_tools_config={},
+        )
+        
+        assert config.tool_approval_overrides == []
+    
+    def test_default_tool_approvals_keyed_by_server_slug(self):
+        """Test that default_tool_approvals are correctly keyed by server slug."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Create MCP servers with default approval policies
+        policy1 = MagicMock()
+        policy1.tool_name = "delete_repository"
+        policy1.message = "Are you sure?"
+        
+        policy2 = MagicMock()
+        policy2.tool_name = "drop_table"
+        policy2.message = "This is destructive!"
+        
+        server1 = MagicMock()
+        server1.metadata.slug = "github"
+        server1.spec.default_tool_approvals = [policy1]
+        
+        server2 = MagicMock()
+        server2.metadata.slug = "postgres"
+        server2.spec.default_tool_approvals = [policy2]
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[server1, server2],
+            mcp_tools_config={},
+        )
+        
+        assert len(config.default_tool_approvals) == 2
+        assert "github" in config.default_tool_approvals
+        assert "postgres" in config.default_tool_approvals
+        assert config.default_tool_approvals["github"] == [policy1]
+        assert config.default_tool_approvals["postgres"] == [policy2]
+    
+    def test_default_tool_approvals_falls_back_to_name_when_slug_missing(self):
+        """Test that server name is used as fallback when slug is missing."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        policy = MagicMock()
+        
+        # Server with name but no slug
+        server = MagicMock()
+        server.metadata.name = "my-github-server"
+        del server.metadata.slug  # No slug
+        server.spec.default_tool_approvals = [policy]
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[server],
+            mcp_tools_config={},
+        )
+        
+        # Should use name as key
+        assert "my-github-server" in config.default_tool_approvals
+    
+    def test_default_tool_approvals_handles_empty_policies(self):
+        """Test that servers with empty default_tool_approvals are skipped."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Server with empty policies
+        server = MagicMock()
+        server.metadata.slug = "github"
+        server.spec.default_tool_approvals = []
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[server],
+            mcp_tools_config={},
+        )
+        
+        # Should not include servers with empty policies
+        assert "github" not in config.default_tool_approvals
+    
+    def test_tool_to_mcp_server_mapping_inverted_correctly(self):
+        """Test that mcp_tools_config is correctly inverted to tool_to_mcp_server."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Tool config: server slug -> list of tools
+        mcp_tools_config = {
+            "github": ["list_repos", "delete_repo", "create_pr"],
+            "postgres": ["query", "execute_sql"],
+        }
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[],
+            mcp_tools_config=mcp_tools_config,
+        )
+        
+        # Check inverted mapping
+        assert len(config.tool_to_mcp_server) == 5
+        assert config.tool_to_mcp_server["list_repos"] == "github"
+        assert config.tool_to_mcp_server["delete_repo"] == "github"
+        assert config.tool_to_mcp_server["create_pr"] == "github"
+        assert config.tool_to_mcp_server["query"] == "postgres"
+        assert config.tool_to_mcp_server["execute_sql"] == "postgres"
+    
+    def test_tool_to_mcp_server_handles_none_tool_lists(self):
+        """Test that None tool lists in mcp_tools_config are handled gracefully."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Some servers have None for tool list
+        mcp_tools_config = {
+            "github": ["list_repos"],
+            "postgres": None,  # No tools
+            "redis": [],  # Empty list
+        }
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[],
+            mcp_tools_config=mcp_tools_config,
+        )
+        
+        # Should only have the github tool
+        assert len(config.tool_to_mcp_server) == 1
+        assert config.tool_to_mcp_server["list_repos"] == "github"
+    
+    def test_full_integration_all_sources(self):
+        """Integration test: verify all sources are assembled correctly."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        # Setup execution
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Setup overrides
+        override = MagicMock()
+        override.tool_name = "delete_repo"
+        override.requires_approval = True
+        override.message = "Custom override message"
+        
+        usage = MagicMock()
+        usage.tool_approval_overrides = [override]
+        
+        # Setup MCP server defaults
+        default_policy = MagicMock()
+        default_policy.tool_name = "delete_repository"
+        default_policy.message = "Are you sure you want to delete {{args.repo}}?"
+        
+        server = MagicMock()
+        server.metadata.slug = "github"
+        server.spec.default_tool_approvals = [default_policy]
+        
+        # Setup tool config
+        mcp_tools_config = {
+            "github": ["list_repos", "delete_repository", "create_pr"],
+        }
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[usage],
+            mcp_servers=[server],
+            mcp_tools_config=mcp_tools_config,
+        )
+        
+        # Verify all components
+        assert config.auto_approve_all is False
+        assert len(config.tool_approval_overrides) == 1
+        assert config.tool_approval_overrides[0] == override
+        assert "github" in config.default_tool_approvals
+        assert config.default_tool_approvals["github"] == [default_policy]
+        assert len(config.tool_to_mcp_server) == 3
+        assert config.get_mcp_server_for_tool("delete_repository") == "github"
+    
+    def test_malformed_server_handled_gracefully(self):
+        """Test that malformed MCP server objects don't crash the function."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Server missing metadata entirely
+        malformed_server = MagicMock()
+        del malformed_server.metadata
+        
+        # This should not raise an exception
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[malformed_server],
+            mcp_tools_config={},
+        )
+        
+        assert config.default_tool_approvals == {}
+    
+    def test_malformed_usage_handled_gracefully(self):
+        """Test that malformed MCP server usage objects don't crash the function."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Usage missing tool_approval_overrides entirely
+        malformed_usage = MagicMock()
+        del malformed_usage.tool_approval_overrides
+        
+        # This should not raise an exception
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[malformed_usage],
+            mcp_servers=[],
+            mcp_tools_config={},
+        )
+        
+        assert config.tool_approval_overrides == []

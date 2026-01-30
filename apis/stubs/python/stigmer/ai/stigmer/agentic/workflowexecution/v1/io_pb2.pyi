@@ -69,6 +69,14 @@ class ListWorkflowExecutionsByWorkflowRequest(_message.Message):
     page_token: str
     def __init__(self, workflow_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
+class WorkflowExecutionUpdateStatusInput(_message.Message):
+    __slots__ = ("execution_id", "status")
+    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    execution_id: str
+    status: _api_pb2.WorkflowExecutionStatus
+    def __init__(self, execution_id: _Optional[str] = ..., status: _Optional[_Union[_api_pb2.WorkflowExecutionStatus, _Mapping]] = ...) -> None: ...
+
 class SubscribeWorkflowExecutionRequest(_message.Message):
     __slots__ = ("execution_id",)
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
