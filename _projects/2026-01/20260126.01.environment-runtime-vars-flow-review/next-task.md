@@ -4,9 +4,9 @@
 Drag this file into chat to continue.
 
 ## Current State
-- **Status**: ✅✅✅✅✅ Milestones 1, 2, 3, 4 & 6 COMPLETE
-- **Last Session**: 2026-01-30 - Session 5: Pulumi-Style Secret Handling + E2E Tests
-- **Active Milestone**: Ready for E2E test execution and final documentation
+- **Status**: ✅✅✅✅✅✅ ALL MILESTONES COMPLETE + DOCUMENTATION COMPLETE
+- **Last Session**: 2026-01-30 - Session 6: Complete User Documentation
+- **Active Milestone**: Ready for E2E test execution in deployed environment
 
 ## Status After Milestone 1 Completion
 
@@ -32,6 +32,51 @@ Drag this file into chat to continue.
 5. **Security**: ExecutionContext pattern - pass IDs through Temporal, not secrets
 
 ## Session Progress
+
+### Session 6 (2026-01-30) - Complete User Documentation ✅ COMPLETE
+
+#### Accomplishments
+- ✅ **Created comprehensive environment variables guide** - 725 lines covering all aspects
+- ✅ **Created quick reference guide** - 307 lines for experienced users
+- ✅ **Created 3 example template files** - `.env.example`, `.env.secret.example`, `.gitignore.example`
+- ✅ **Updated CLI documentation** - New flags and precedence rules
+- ✅ **Updated MCP server documentation** - Added placeholder resolution section (250+ lines)
+- ✅ **Updated documentation index** - Added environment variables guide
+- ✅ **Created documentation completion summary** - Full metrics and overview
+
+#### Files Created (6 files)
+**New Documentation:**
+- `docs/guides/environment-variables.md` - Complete guide (725 lines)
+- `docs/guides/environment-variables-quick-reference.md` - Quick reference (307 lines)
+- `docs/guides/.env.example` - Environment template (83 lines)
+- `docs/guides/.env.secret.example` - Secrets template (147 lines)
+- `docs/guides/.gitignore.example` - Gitignore template (61 lines)
+- `_projects/.../documentation-completion-summary.md` - Session summary
+
+#### Files Updated (3 files)
+**Updated Documentation:**
+- `docs/cli/running-agents-workflows.md` - Added new flags, precedence rules (~50 lines changed)
+- `docs/guides/using-mcp-servers.md` - Added placeholder resolution section (~250 lines added)
+- `docs/README.md` - Updated documentation index (3 lines changed)
+
+#### Documentation Coverage
+- ✅ CLI Usage - All 4 flags with examples
+- ✅ File Formats - Complete `.env` specification
+- ✅ Security - AES-256-GCM, best practices, warnings
+- ✅ MCP Integration - Placeholder syntax and resolution
+- ✅ Troubleshooting - 6 common issues with solutions
+- ✅ Examples - 50+ code examples across all docs
+- ✅ Templates - Copy-paste ready files
+
+#### Quality Metrics
+- **Total documentation**: ~1,500+ lines of new/updated content
+- **Code examples**: 50+ across all documentation
+- **Complete guides**: 2 (main + quick reference)
+- **Template files**: 3 (ready to copy)
+- **Updated files**: 3 existing documentation files
+- **Cross-references**: Proper links between all related docs
+
+**Checkpoint**: User documentation complete and production-ready
 
 ### Session 5 (2026-01-30) - Pulumi-Style Secret Handling + Complete E2E Tests ✅ COMPLETE
 
@@ -350,12 +395,24 @@ Total: 53 tests - ALL PASSING ✅
    - Tests verify: inline flags, file loading, merge precedence, IsSecret flag
    - All test fixtures committed to git (`testdata/fixtures/env-vars/`)
 
-2. **User Documentation**:
-   - Update main CLI docs with `--env`, `--secret`, `--env-file`, `--secret-file` examples
-   - Document precedence rules (flags > files)
-   - Add `.env` file format examples
-   - Create MCP server environment setup guide
-   - Add secret handling best practices
+2. **User Documentation**: ✅ **COMPLETE**
+   - ✅ Updated CLI docs with `--env`, `--secret`, `--env-file`, `--secret-file` examples
+   - ✅ Documented precedence rules (flags > files)
+   - ✅ Added comprehensive `.env` file format examples
+   - ✅ Created complete environment variables guide (`docs/guides/environment-variables.md`)
+   - ✅ Updated MCP server guide with runtime environment resolution
+   - ✅ Added security best practices and troubleshooting
+   - ✅ Created example template files (`.env.example`, `.env.secret.example`, `.gitignore.example`)
+   - ✅ Updated documentation index (`docs/README.md`)
+
+   **Files Created/Updated (8 files)**:
+   - `docs/cli/running-agents-workflows.md` - Updated with new flags and examples
+   - `docs/guides/environment-variables.md` - **NEW** - Complete 700+ line guide
+   - `docs/guides/using-mcp-servers.md` - Added runtime environment resolution section
+   - `docs/README.md` - Added environment variables guide to index
+   - `docs/guides/.env.example` - **NEW** - Template for environment variables
+   - `docs/guides/.env.secret.example` - **NEW** - Template for secrets
+   - `docs/guides/.gitignore.example` - **NEW** - Template for .gitignore rules
 
 3. **Optional Enhancements** (Future):
    - Shell completion for `--env-file` and `--secret-file` (path completion)

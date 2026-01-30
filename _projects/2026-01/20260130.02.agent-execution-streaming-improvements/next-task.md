@@ -109,8 +109,8 @@ Check anti-patterns to avoid.
 ## Current Status
 
 **Created**: 2026-01-30
-**Last Session**: 2026-01-30 (Phase 2.2 Implementation)
-**Current Task**: Phase 2.2 Complete - Ready for Phase 2.3
+**Last Session**: 2026-01-30 (Phase 2.3 Implementation)
+**Current Task**: Phase 2.3 Complete - Ready for Phase 2.4
 **Status**: IN PROGRESS
 
 ## Session Progress (2026-01-30)
@@ -295,14 +295,56 @@ int32 generation_duration_ms = 8;
 - In LangGraph, `on_tool_start` fires when execution begins, not when queued
 - Previous `PENDING` status misled users into thinking tools hadn't started yet
 
+### ✅ Completed: Phase 2.3 - Capture Sub-Agent Internals
+
+**What was accomplished:**
+- Added `tool_calls` and `messages` fields to SubAgentExecution proto
+- Implemented namespace-based event routing infrastructure
+- Added "task" tool detection to create SubAgentExecution entries
+- Implemented namespace discovery via `_register_sub_agent_namespace()`
+- Routed all event handlers (tool_start, tool_end, chat_model_stream, chat_model_end) based on namespace
+- Implemented sub-agent lifecycle completion (`_handle_sub_agent_end`)
+- Created comprehensive unit test suite (14 new tests, all passing)
+- Structured logging with `[SUBAGENT]` prefix for observability
+
+**Files modified:**
+- `apis/ai/stigmer/agentic/agentexecution/v1/api.proto` (+13 lines - tool_calls, messages fields)
+- `backend/services/agent-runner/worker/activities/graphton/status_builder.py` (+200 lines)
+- `backend/services/agent-runner/tests/test_status_builder.py` (+350 lines, 14 new tests)
+- Auto-generated stubs updated (Go, Python)
+
+**Key implementation details:**
+- Sub-agent tracking via `_active_sub_agents` dict (keyed by run_id)
+- Namespace mapping via `_namespace_to_sub_agent_id` dict
+- Separate timing tracking for sub-agent messages (`_sub_agent_message_start_times`)
+- Graceful fallback to main agent for unknown namespaces
+- Cleanup of tracking dictionaries on sub-agent completion
+
+**Test coverage (14 new tests in TestSubAgentInternals class):**
+- `test_task_tool_creates_sub_agent_execution` - Verifies SubAgentExecution created
+- `test_task_tool_does_not_create_regular_tool_call` - Verifies no ToolCall for task tool
+- `test_sub_agent_completion_sets_output` - Verifies lifecycle completion
+- `test_sub_agent_failure_captures_error` - Verifies error handling
+- `test_namespace_routing_tool_calls_to_sub_agent` - Verifies tool routing
+- `test_namespace_routing_messages_to_sub_agent` - Verifies message routing
+- `test_sub_agent_tool_end_updates_correct_context` - Verifies tool end routing
+- `test_multiple_sub_agents_isolated` - Verifies isolation
+- `test_main_agent_events_unaffected` - Verifies main agent still works
+- `test_sub_agent_message_finalization` - Verifies AI message finalization
+- `test_namespace_cleanup_on_sub_agent_end` - Verifies cleanup
+- `test_sub_agent_extracts_alternative_arg_names` - Verifies arg extraction
+- `test_get_execution_context_returns_main_for_empty_namespace`
+- `test_get_execution_context_returns_main_for_unknown_namespace`
+
+**What this enables:**
+- UI visibility into sub-agent internal execution (what tools did it call?)
+- Debugging failed sub-agents (where did it fail? on which tool?)
+- Performance monitoring (how many tokens did the sub-agent use?)
+- Complete execution audit trail (every tool call and message captured)
+
 ## Next Steps
 
-1. **Phase 2.3: Capture Sub-Agent Internals**
-   - Implement namespace routing for sub-agent events
-   - Track nested tool calls and messages within SubAgentExecution
-   - Update proto if needed for internals structure
-
-3. **Phase 2.4: Add UsageMetrics**
+1. **Phase 2.4: Add UsageMetrics**
    - Create UsageMetrics message (prompt_tokens, completion_tokens, model_used)
    - Add to AgentExecutionStatus for execution-level aggregation
    - Wire cumulative token tracking to proto
@@ -313,12 +355,14 @@ int32 generation_duration_ms = 8;
 - Phase 1 (Critical Fixes) is complete and production-ready
 - Phase 2.1 (AgentMessage streaming fields) is complete
 - Phase 2.2 (ToolCall RUNNING status) is complete
+- Phase 2.3 (Sub-agent internals capture) is complete
 - Token tracking now persisted in AgentMessage (not just logs)
 - Tool execution now shows correct RUNNING status (not misleading PENDING)
+- Sub-agent tool_calls and messages now captured via namespace routing
 - `is_streaming` enables UI typing indicators
 - Streaming updates are time-based with configurable thresholds
 - Final status updates have retry with exponential backoff
-- Test coverage is comprehensive (14 + 44 + 62 + 5 + 7 = 132 tests, 288 total tests passing)
+- Test coverage is comprehensive (14 + 44 + 62 + 5 + 7 + 14 = 146 tests, 302 total tests passing)
 
 **Important discoveries:**
 - Monotonic time is essential for reliable duration tracking
@@ -347,7 +391,8 @@ When starting a new session:
 5. [x] Implement Phase 1.3 (retry logic) - COMPLETED
 6. [x] Implement Phase 2.1 (AgentMessage streaming fields) - COMPLETED
 7. [x] Implement Phase 2.2 (RUNNING status for ToolCall) - COMPLETED
-8. [ ] Continue with Phase 2.3 (Sub-agent internals capture)
+8. [x] Implement Phase 2.3 (Sub-agent internals capture) - COMPLETED
+9. [ ] Continue with Phase 2.4 (UsageMetrics)
 
 ## Quick Commands
 
@@ -364,14 +409,14 @@ The project addresses issues found in architectural review:
 **Proto Contract Issues**:
 - ~~AgentMessage has no streaming state indicator~~ ✅ FIXED in Phase 2.1 (`is_streaming`, `token_count`, `generation_duration_ms`)
 - ~~ToolCallStatus.RUNNING never used~~ ✅ FIXED in Phase 2.2 (tools now start in RUNNING status)
-- SubAgentExecution is a black box (no internals)
+- ~~SubAgentExecution is a black box (no internals)~~ ✅ FIXED in Phase 2.3 (`tool_calls`, `messages` fields)
 - No token/cost tracking (UsageMetrics missing) - partial fix in Phase 2.1 (per-message), execution-level pending
 - No HITL foundation fields
 
 **StatusBuilder Issues**:
 - ~~Only handles 3 event types (missing `on_chat_model_end`)~~ ✅ FIXED in Phase 1.1
 - ~~AI message streaming never finalizes~~ ✅ FIXED in Phase 1.1
-- Sub-agent namespace routing not implemented
+- ~~Sub-agent namespace routing not implemented~~ ✅ FIXED in Phase 2.3 (namespace-based event routing)
 
 **Streaming Strategy Issues**:
 - ~~Event-count based (bad UX for slow/fast operations)~~ ✅ FIXED in Phase 1.2

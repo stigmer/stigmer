@@ -38,10 +38,10 @@ func (s *E2ESuite) TestEnvVarIsSecretFlag() {
 		s.Harness.ServerPort,
 		BasicAgentName,
 		BasicAgentTestMessage,
-		[]string{absEnvFile},                  // env file (non-secrets)
-		[]string{absSecretFile},               // secret file (secrets)
-		[]string{"INLINE_ENV=inline_value"},   // --env flag (non-secret)
-		[]string{"INLINE_SECRET=inline_sec"},  // --secret flag (secret)
+		[]string{absEnvFile},                 // env file (non-secrets)
+		[]string{absSecretFile},              // secret file (secrets)
+		[]string{"INLINE_ENV=inline_value"},  // --env flag (non-secret)
+		[]string{"INLINE_SECRET=inline_sec"}, // --secret flag (secret)
 	)
 
 	// STEP 4: Verify execution was created
