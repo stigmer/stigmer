@@ -109,8 +109,8 @@ Check anti-patterns to avoid.
 ## Current Status
 
 **Created**: 2026-01-30
-**Last Session**: 2026-01-30 (Phase 2.1 Implementation)
-**Current Task**: Phase 2.1 Complete - Ready for Phase 2.2
+**Last Session**: 2026-01-30 (Phase 2.2 Implementation)
+**Current Task**: Phase 2.2 Complete - Ready for Phase 2.3
 **Status**: IN PROGRESS
 
 ## Session Progress (2026-01-30)
@@ -254,14 +254,50 @@ int32 generation_duration_ms = 8;
 - Per-message cost tracking: `token_count` enables cost attribution to individual messages
 - Performance monitoring: `generation_duration_ms` helps identify slow responses
 
+### ✅ Completed: Phase 2.2 - Use RUNNING Status for ToolCall
+
+**What was accomplished:**
+- Changed tool initial status from `TOOL_CALL_PENDING` to `TOOL_CALL_RUNNING` in StatusBuilder
+- Added `_tool_start_times` dictionary to track tool execution timing
+- Implemented duration calculation on tool completion
+- Added structured logging with `[TOOL]` prefix for tool lifecycle observability
+- Created comprehensive unit test suite (7 new tests, all passing)
+- All 288 tests passing (no regressions)
+
+**Files modified:**
+- `backend/services/agent-runner/worker/activities/graphton/status_builder.py` (+47 lines)
+- `backend/services/agent-runner/tests/test_status_builder.py` (+232 lines, 7 new tests)
+
+**Key implementation details:**
+- Tools now start in `RUNNING` status (semantically correct - on_tool_start fires when execution begins)
+- Tool execution duration tracked using `_tool_start_times` dict (keyed by run_id)
+- Duration calculation follows same pattern as message duration (Phase 1.1)
+- Structured logging: `[TOOL]` prefix with execution_id, tool_name, run_id, status, duration_ms
+- Duration tracked for observability (not added to proto - would require stub regeneration)
+
+**Test coverage (7 new tests in TestToolCallStatus class):**
+- `test_tool_start_sets_running_status` - Verifies RUNNING on tool start
+- `test_tool_start_sets_started_at_timestamp` - Verifies started_at timestamp
+- `test_tool_end_sets_completed_status` - Verifies RUNNING → COMPLETED transition
+- `test_tool_end_sets_completed_at_timestamp` - Verifies completed_at timestamp
+- `test_tool_status_in_messages_list` - Verifies status in messages[].tool_calls
+- `test_tool_status_in_tool_calls_list` - Verifies status in status.tool_calls
+- `test_tool_duration_tracking` - Verifies duration tracking and cleanup
+
+**UX impact:**
+- CLI now shows `⚙️ Running` during tool execution (instead of misleading `⏳ Queued`)
+- Frontend can display real-time "running" indicators for long-running tools
+- Better visibility into tool lifecycle through structured logs
+
+**Why this matters:**
+- `PENDING` implies "waiting to execute" (queued, not started)
+- `RUNNING` correctly reflects "currently executing" (tool is doing work)
+- In LangGraph, `on_tool_start` fires when execution begins, not when queued
+- Previous `PENDING` status misled users into thinking tools hadn't started yet
+
 ## Next Steps
 
-1. **Phase 2.2: Use RUNNING Status for ToolCall**
-   - Update `_handle_tool_start_event` to set RUNNING status (not just PENDING)
-   - Frontend can show "running" indicator for long tools
-   - Consider adding `started_at` timestamp when transitioning to RUNNING
-
-2. **Phase 2.3: Capture Sub-Agent Internals**
+1. **Phase 2.3: Capture Sub-Agent Internals**
    - Implement namespace routing for sub-agent events
    - Track nested tool calls and messages within SubAgentExecution
    - Update proto if needed for internals structure
@@ -276,11 +312,13 @@ int32 generation_duration_ms = 8;
 **Current implementation state:**
 - Phase 1 (Critical Fixes) is complete and production-ready
 - Phase 2.1 (AgentMessage streaming fields) is complete
+- Phase 2.2 (ToolCall RUNNING status) is complete
 - Token tracking now persisted in AgentMessage (not just logs)
+- Tool execution now shows correct RUNNING status (not misleading PENDING)
 - `is_streaming` enables UI typing indicators
 - Streaming updates are time-based with configurable thresholds
 - Final status updates have retry with exponential backoff
-- Test coverage is comprehensive (14 + 44 + 62 + 5 = 125 tests)
+- Test coverage is comprehensive (14 + 44 + 62 + 5 + 7 = 132 tests, 288 total tests passing)
 
 **Important discoveries:**
 - Monotonic time is essential for reliable duration tracking
@@ -308,7 +346,8 @@ When starting a new session:
 4. [x] Implement Phase 1.2 (time-based streaming) - COMPLETED
 5. [x] Implement Phase 1.3 (retry logic) - COMPLETED
 6. [x] Implement Phase 2.1 (AgentMessage streaming fields) - COMPLETED
-7. [ ] Continue with Phase 2.2 (RUNNING status for ToolCall)
+7. [x] Implement Phase 2.2 (RUNNING status for ToolCall) - COMPLETED
+8. [ ] Continue with Phase 2.3 (Sub-agent internals capture)
 
 ## Quick Commands
 
@@ -324,7 +363,7 @@ The project addresses issues found in architectural review:
 
 **Proto Contract Issues**:
 - ~~AgentMessage has no streaming state indicator~~ ✅ FIXED in Phase 2.1 (`is_streaming`, `token_count`, `generation_duration_ms`)
-- ToolCallStatus.RUNNING never used
+- ~~ToolCallStatus.RUNNING never used~~ ✅ FIXED in Phase 2.2 (tools now start in RUNNING status)
 - SubAgentExecution is a black box (no internals)
 - No token/cost tracking (UsageMetrics missing) - partial fix in Phase 2.1 (per-message), execution-level pending
 - No HITL foundation fields
