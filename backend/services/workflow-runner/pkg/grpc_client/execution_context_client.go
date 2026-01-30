@@ -20,9 +20,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/rs/zerolog/log"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/config"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"

@@ -46,12 +46,12 @@ import (
 //
 // Task Queue: workflow_execution (orchestration)
 type ExecuteWorkflowActivityImpl struct {
-	workflowExecutionClient  *grpc_client.WorkflowExecutionClient
-	workflowInstanceClient   *grpc_client.WorkflowInstanceClient
-	workflowClient           *grpc_client.WorkflowClient
-	executionContextClient   *grpc_client.ExecutionContextClient
-	temporalClient           client.Client
-	executionTaskQueue       string
+	workflowExecutionClient *grpc_client.WorkflowExecutionClient
+	workflowInstanceClient  *grpc_client.WorkflowInstanceClient
+	workflowClient          *grpc_client.WorkflowClient
+	executionContextClient  *grpc_client.ExecutionContextClient
+	temporalClient          client.Client
+	executionTaskQueue      string
 }
 
 // NewExecuteWorkflowActivity creates a new ExecuteWorkflowActivity instance.
@@ -82,20 +82,21 @@ func NewExecuteWorkflowActivity(
 	}
 
 	return &ExecuteWorkflowActivityImpl{
-		workflowExecutionClient:  workflowExecutionClient,
-		workflowInstanceClient:   workflowInstanceClient,
-		workflowClient:           workflowClient,
-		executionContextClient:   executionContextClient,
-		temporalClient:           temporalClient,
-		executionTaskQueue:       executionTaskQueue,
+		workflowExecutionClient: workflowExecutionClient,
+		workflowInstanceClient:  workflowInstanceClient,
+		workflowClient:          workflowClient,
+		executionContextClient:  executionContextClient,
+		temporalClient:          temporalClient,
+		executionTaskQueue:      executionTaskQueue,
 	}, nil
 }
 
 // ExecuteWorkflow executes a Zigflow workflow from WorkflowExecution proto.
 //
 // This method signature matches the Java interface:
-//   @ActivityMethod(name = "ExecuteWorkflow")
-//   WorkflowExecutionStatus executeWorkflow(WorkflowExecution execution);
+//
+//	@ActivityMethod(name = "ExecuteWorkflow")
+//	WorkflowExecutionStatus executeWorkflow(WorkflowExecution execution);
 //
 // Implementation steps:
 // 1. Extract execution ID and workflow instance ID from input
@@ -276,7 +277,7 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 	// 2. WorkflowInstance env_refs (layered configs)
 	// 3. WorkflowExecution runtime_env (overrides)
 	runtimeEnv := make(map[string]any)
-	
+
 	// Try to get merged environment from ExecutionContext (new flow)
 	execCtx, err := a.executionContextClient.GetByExecutionId(ctx, executionID)
 	if err == nil && execCtx != nil && execCtx.Spec != nil && len(execCtx.Spec.Data) > 0 {
@@ -366,7 +367,7 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		WorkflowExecutionID: executionID,
 		WorkflowYaml:        workflowYAML,
 		InitialData:         map[string]interface{}{},
-		EnvVars:             runtimeEnv, // ✅ Now populated with runtime environment
+		EnvVars:             runtimeEnv,             // ✅ Now populated with runtime environment
 		OrgId:               execution.Metadata.Org, // ✅ Organization context from workflow execution
 	}
 

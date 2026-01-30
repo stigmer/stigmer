@@ -109,8 +109,8 @@ Check anti-patterns to avoid.
 ## Current Status
 
 **Created**: 2026-01-30
-**Last Session**: 2026-01-30 (Phase 1.3 Implementation)
-**Current Task**: Phase 1 Complete - Ready for Phase 2
+**Last Session**: 2026-01-30 (Phase 2.1 Implementation)
+**Current Task**: Phase 2.1 Complete - Ready for Phase 2.2
 **Status**: IN PROGRESS
 
 ## Session Progress (2026-01-30)
@@ -214,31 +214,80 @@ Check anti-patterns to avoid.
 - Reusable for any gRPC operation requiring retry
 - Clear separation: status code classification, config, executor
 
+### ✅ Completed: Phase 2.1 - AgentMessage Streaming State Fields
+
+**What was accomplished:**
+- Added 3 new fields to AgentMessage proto: `is_streaming`, `token_count`, `generation_duration_ms`
+- Updated StatusBuilder to set `is_streaming=True` when creating new AI messages
+- Updated StatusBuilder to finalize all 3 fields in `_handle_chat_model_end_event`
+- Created 5 new unit tests for field population verification
+- Regenerated all protobuf stubs (Python, Go)
+- All 281 tests passing
+
+**Files modified:**
+- `apis/ai/stigmer/agentic/agentexecution/v1/api.proto` (+22 lines)
+- `backend/services/agent-runner/worker/activities/graphton/status_builder.py` (+16 lines)
+- `backend/services/agent-runner/tests/test_status_builder.py` (+160 lines)
+- Auto-generated stubs updated (Go, Python)
+
+**New proto fields:**
+```protobuf
+// True while the AI is actively generating this message, false when complete.
+bool is_streaming = 6;
+
+// Total tokens consumed to generate this message (prompt + completion tokens).
+int32 token_count = 7;
+
+// Wall-clock time in milliseconds from first token to completion.
+int32 generation_duration_ms = 8;
+```
+
+**Test coverage (5 new tests):**
+- `test_sets_is_streaming_true_on_new_message`
+- `test_sets_is_streaming_false_on_end`
+- `test_sets_token_count_on_end`
+- `test_sets_generation_duration_ms_on_end`
+- `test_token_count_zero_when_no_usage_metadata`
+
+**What this enables:**
+- UI typing indicator: Frontend can show "typing..." while `is_streaming=True`
+- Per-message cost tracking: `token_count` enables cost attribution to individual messages
+- Performance monitoring: `generation_duration_ms` helps identify slow responses
+
 ## Next Steps
 
-1. **Phase 2.1: Proto Changes for Streaming State**
-   - Add `is_streaming`, `token_count`, `generation_duration_ms` to AgentMessage
-   - Update StatusBuilder to populate new fields
-   - Regenerate all stubs
-
-3. **Phase 2.2: Use RUNNING Status for ToolCall**
-   - Update `_handle_tool_start_event` to set RUNNING status
+1. **Phase 2.2: Use RUNNING Status for ToolCall**
+   - Update `_handle_tool_start_event` to set RUNNING status (not just PENDING)
    - Frontend can show "running" indicator for long tools
+   - Consider adding `started_at` timestamp when transitioning to RUNNING
+
+2. **Phase 2.3: Capture Sub-Agent Internals**
+   - Implement namespace routing for sub-agent events
+   - Track nested tool calls and messages within SubAgentExecution
+   - Update proto if needed for internals structure
+
+3. **Phase 2.4: Add UsageMetrics**
+   - Create UsageMetrics message (prompt_tokens, completion_tokens, model_used)
+   - Add to AgentExecutionStatus for execution-level aggregation
+   - Wire cumulative token tracking to proto
 
 ## Context for Resume
 
 **Current implementation state:**
 - Phase 1 (Critical Fixes) is complete and production-ready
-- Token tracking works but data only in logs (proto fields come in Phase 2.1)
-- Streaming updates are now time-based with configurable thresholds
-- Final status updates now have retry with exponential backoff
-- Test coverage is comprehensive (14 + 44 + 62 = 120 tests)
+- Phase 2.1 (AgentMessage streaming fields) is complete
+- Token tracking now persisted in AgentMessage (not just logs)
+- `is_streaming` enables UI typing indicators
+- Streaming updates are time-based with configurable thresholds
+- Final status updates have retry with exponential backoff
+- Test coverage is comprehensive (14 + 44 + 62 + 5 = 125 tests)
 
 **Important discoveries:**
 - Monotonic time is essential for reliable duration tracking
 - Hybrid approach (time + events) handles both slow and fast operations well
 - Separating heartbeat from status update timing is important (different purposes)
 - gRPC status code classification is crucial for intelligent retry
+- Proto field defaults (0 for int32, false for bool) work well as "unset" indicators
 
 **Technical decisions:**
 - Used frozen dataclass for immutable configuration
@@ -246,6 +295,8 @@ Check anti-patterns to avoid.
 - Mark update as sent even on failure to prevent retry storms
 - No external retry library (asyncio.sleep is sufficient)
 - Retry only final status updates (progressive updates don't need retry)
+- Used `int32` (not `int64`) for token counts and durations - fits in 32 bits
+- Proto3 default values (0, false) used as "unset" indicators - no optional needed
 
 ## Resume Checklist
 
@@ -253,10 +304,11 @@ When starting a new session:
 
 1. [x] Read the task plan: `tasks/T01_0_plan.md`
 2. [x] Check for latest checkpoint in `checkpoints/`
-3. [x] Review Phase 1.2 requirements (time-based streaming) - COMPLETED
-4. [x] Implement time-based streaming scheduler - COMPLETED
+3. [x] Implement Phase 1.1 (on_chat_model_end) - COMPLETED
+4. [x] Implement Phase 1.2 (time-based streaming) - COMPLETED
 5. [x] Implement Phase 1.3 (retry logic) - COMPLETED
-6. [ ] Continue with Phase 2 (proto changes)
+6. [x] Implement Phase 2.1 (AgentMessage streaming fields) - COMPLETED
+7. [ ] Continue with Phase 2.2 (RUNNING status for ToolCall)
 
 ## Quick Commands
 
@@ -271,10 +323,10 @@ After loading context:
 The project addresses issues found in architectural review:
 
 **Proto Contract Issues**:
-- AgentMessage has no streaming state indicator
+- ~~AgentMessage has no streaming state indicator~~ ✅ FIXED in Phase 2.1 (`is_streaming`, `token_count`, `generation_duration_ms`)
 - ToolCallStatus.RUNNING never used
 - SubAgentExecution is a black box (no internals)
-- No token/cost tracking (UsageMetrics missing)
+- No token/cost tracking (UsageMetrics missing) - partial fix in Phase 2.1 (per-message), execution-level pending
 - No HITL foundation fields
 
 **StatusBuilder Issues**:

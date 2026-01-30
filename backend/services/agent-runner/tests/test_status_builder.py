@@ -442,3 +442,163 @@ class TestOpenAIUsageFormat:
         
         assert status_builder._total_prompt_tokens == 150
         assert status_builder._total_completion_tokens == 80
+
+
+# =============================================================================
+# Tests for AgentMessage streaming state fields (Phase 2.1)
+# =============================================================================
+
+
+class TestAgentMessageStreamingFields:
+    """Tests for AgentMessage.is_streaming, token_count, and generation_duration_ms fields.
+    
+    These fields track AI message generation progress and resource usage:
+    - is_streaming: True while generating, False when complete
+    - token_count: Total tokens (prompt + completion) for this message
+    - generation_duration_ms: Wall-clock time from first token to completion
+    """
+
+    @pytest.mark.asyncio
+    async def test_sets_is_streaming_true_on_new_message(self, status_builder):
+        """Test that is_streaming=True when a new AI message is created."""
+        chunk = MagicMock()
+        chunk.content = "Hello"
+        
+        event = {
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {}
+        }
+        
+        await status_builder.process_event(event)
+        
+        assert len(status_builder.current_status.messages) == 1
+        ai_message = status_builder.current_status.messages[0]
+        assert ai_message.type == MessageType.MESSAGE_AI
+        assert ai_message.is_streaming is True
+
+    @pytest.mark.asyncio
+    async def test_sets_is_streaming_false_on_end(self, status_builder):
+        """Test that is_streaming=False after on_chat_model_end."""
+        # Stream event creates message with is_streaming=True
+        chunk = MagicMock()
+        chunk.content = "Response"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {}
+        })
+        
+        # Verify initially streaming
+        assert status_builder.current_status.messages[0].is_streaming is True
+        
+        # End event should finalize to is_streaming=False
+        output = MagicMock()
+        output.usage_metadata = MagicMock()
+        output.usage_metadata.input_tokens = 100
+        output.usage_metadata.output_tokens = 50
+        output.usage_metadata.total_tokens = 150
+        output.response_metadata = {}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {}
+        })
+        
+        ai_message = status_builder.current_status.messages[0]
+        assert ai_message.is_streaming is False
+
+    @pytest.mark.asyncio
+    async def test_sets_token_count_on_end(self, status_builder):
+        """Test that token_count is set to prompt + completion tokens."""
+        # Create AI message
+        chunk = MagicMock()
+        chunk.content = "Response"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {}
+        })
+        
+        # End event with usage metadata
+        output = MagicMock()
+        output.usage_metadata = MagicMock()
+        output.usage_metadata.input_tokens = 100  # prompt tokens
+        output.usage_metadata.output_tokens = 50   # completion tokens
+        output.usage_metadata.total_tokens = 150
+        output.response_metadata = {}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {}
+        })
+        
+        ai_message = status_builder.current_status.messages[0]
+        # token_count should be prompt + completion = 100 + 50 = 150
+        assert ai_message.token_count == 150
+
+    @pytest.mark.asyncio
+    async def test_sets_generation_duration_ms_on_end(self, status_builder):
+        """Test that generation_duration_ms is calculated from start time."""
+        # Create AI message
+        chunk = MagicMock()
+        chunk.content = "Response"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {}
+        })
+        
+        # Set a known start time to control duration calculation
+        known_start = datetime.utcnow() - timedelta(milliseconds=750)
+        status_builder._message_start_times[0] = known_start
+        
+        # End event
+        output = MagicMock()
+        output.usage_metadata = MagicMock()
+        output.usage_metadata.input_tokens = 10
+        output.usage_metadata.output_tokens = 5
+        output.usage_metadata.total_tokens = 15
+        output.response_metadata = {}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {}
+        })
+        
+        ai_message = status_builder.current_status.messages[0]
+        # Duration should be ~750ms (with some tolerance for test execution time)
+        assert ai_message.generation_duration_ms >= 750
+        assert ai_message.generation_duration_ms < 1500  # Upper bound for sanity
+
+    @pytest.mark.asyncio
+    async def test_token_count_zero_when_no_usage_metadata(self, status_builder):
+        """Test that token_count is 0 when usage metadata is unavailable."""
+        # Create AI message
+        chunk = MagicMock()
+        chunk.content = "Response"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {}
+        })
+        
+        # End event WITHOUT usage metadata
+        output = MagicMock()
+        output.usage_metadata = None
+        output.response_metadata = {}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {}
+        })
+        
+        ai_message = status_builder.current_status.messages[0]
+        # No usage metadata means 0 tokens
+        assert ai_message.token_count == 0
+        # is_streaming should still be False (finalized)
+        assert ai_message.is_streaming is False
