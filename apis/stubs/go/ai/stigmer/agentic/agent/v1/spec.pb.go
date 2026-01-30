@@ -25,24 +25,51 @@ const (
 )
 
 // AgentSpec defines the configurable properties of an AI agent.
-// This is the "Template" layer - immutable logic that declares requirements.
+// This is the "Template" layer - declares capabilities and requirements.
+//
+// Example YAML:
+//
+//	apiVersion: agentic.stigmer.ai/v1
+//	kind: Agent
+//	metadata:
+//	  name: engineering-assistant
+//	  slug: eng-assistant
+//	spec:
+//	  description: "Helps engineering teams with code review"
+//	  instructions: "You are an engineering assistant..."
+//	  mcp_server_usages:
+//	    - mcp_server_ref:
+//	        scope: platform
+//	        slug: github
+//	      enabled_tools: [search_code, create_pr]
+//	  skill_refs:
+//	    - scope: platform
+//	      kind: 43
+//	      slug: code-review-best-practices
 type AgentSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable description for UI and marketplace display.
+	// Should explain what this agent does and its primary capabilities.
 	Description string `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
 	// Icon URL for marketplace and UI display.
+	// Should be a publicly accessible URL to an image (SVG, PNG, or JPEG).
 	IconUrl string `protobuf:"bytes,2,opt,name=icon_url,json=iconUrl,proto3" json:"icon_url,omitempty"`
-	// Instructions defining the agent's behavior and personality (min 10 characters).
+	// Instructions defining the agent's behavior and personality.
+	// This is the agent's system prompt - the core logic that shapes its responses.
+	// Should be at least 10 characters to ensure meaningful instructions.
 	Instructions string `protobuf:"bytes,3,opt,name=instructions,proto3" json:"instructions,omitempty"`
-	// MCP server definitions declaring required servers (not configured instances).
-	// Actual configuration with secrets happens at AgentInstance level.
-	McpServers []*McpServerDefinition `protobuf:"bytes,4,rep,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty"`
-	// References to Skill resources providing agent knowledge.
+	// MCP servers this Agent can use.
+	// Each usage references a McpServer resource by its ref.
+	// The slug from each reference must be unique within this Agent.
+	McpServerUsages []*McpServerUsage `protobuf:"bytes,4,rep,name=mcp_server_usages,json=mcpServerUsages,proto3" json:"mcp_server_usages,omitempty"`
+	// Skill resources providing agent knowledge.
+	// Skills are injected into the agent's context as additional capabilities.
 	SkillRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
 	// Sub-agents that can be delegated to.
+	// Sub-agents inherit the parent's MCP server usages but can have restricted access.
 	SubAgents []*SubAgent `protobuf:"bytes,6,rep,name=sub_agents,json=subAgents,proto3" json:"sub_agents,omitempty"`
 	// Environment variables required by the agent.
-	// Uses the shared EnvironmentSpec for consistent env var handling.
+	// Uses the shared EnvironmentSpec for consistent env var handling across resources.
 	EnvSpec       *v1.EnvironmentSpec `protobuf:"bytes,7,opt,name=env_spec,json=envSpec,proto3" json:"env_spec,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -99,9 +126,9 @@ func (x *AgentSpec) GetInstructions() string {
 	return ""
 }
 
-func (x *AgentSpec) GetMcpServers() []*McpServerDefinition {
+func (x *AgentSpec) GetMcpServerUsages() []*McpServerUsage {
 	if x != nil {
-		return x.McpServers
+		return x.McpServerUsages
 	}
 	return nil
 }
@@ -127,22 +154,49 @@ func (x *AgentSpec) GetEnvSpec() *v1.EnvironmentSpec {
 	return nil
 }
 
-// SubAgent defines a sub-agent that can be delegated to.
-// Sub-agents are defined inline within the parent agent spec.
+// SubAgent defines a specialized agent that the parent can delegate to.
+// SubAgents have restricted access to the parent's MCP servers.
+//
+// Permission Model:
+// - SubAgent can only access MCP servers that parent has in mcp_server_usages
+// - SubAgent tools must be a subset of parent's enabled tools (can restrict, not expand)
+// - SubAgent skills can reference any Skill resource (independent of parent)
+//
+// Example YAML:
+//
+//	sub_agents:
+//	  - name: code-reviewer
+//	    description: "Reviews code changes for quality and security"
+//	    instructions: "You review code changes. Focus on security..."
+//	    mcp_access:
+//	      - mcp_server: github
+//	        enabled_tools: [search_code, get_file]
+//	    skill_refs:
+//	      - scope: platform
+//	        kind: 43
+//	        slug: code-review-best-practices
 type SubAgent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Name of the sub-agent.
+	// Unique name of the sub-agent within the parent agent.
+	// Used for delegation routing and logging.
+	// Examples: "code-reviewer", "researcher", "writer"
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// Description of what this sub-agent does.
+	// Description of what this sub-agent specializes in.
+	// Helps the parent agent decide when to delegate to this sub-agent.
+	// Example: "Reviews code changes for security issues and best practices"
 	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// Behavior instructions for this sub-agent.
+	// Defines the sub-agent's personality, expertise, and constraints.
+	// Should be at least 10 characters to ensure meaningful instructions.
 	Instructions string `protobuf:"bytes,3,opt,name=instructions,proto3" json:"instructions,omitempty"`
-	// MCP server names this sub-agent can use (references McpServerDefinition.name).
-	McpServers []string `protobuf:"bytes,4,rep,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty"`
-	// Tool selections for each MCP server.
-	McpToolSelections map[string]*McpToolSelection `protobuf:"bytes,5,rep,name=mcp_tool_selections,json=mcpToolSelections,proto3" json:"mcp_tool_selections,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// References to Skill resources for this sub-agent's knowledge.
-	SkillRefs     []*apiresource.ApiResourceReference `protobuf:"bytes,6,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
+	// MCP server access grants for this sub-agent.
+	// Each McpAccess references a parent's McpServerUsage by slug and
+	// optionally restricts which tools are available.
+	// Sub-agent can only use MCP servers listed here.
+	McpAccess []*McpAccess `protobuf:"bytes,4,rep,name=mcp_access,json=mcpAccess,proto3" json:"mcp_access,omitempty"`
+	// Skill resources for this sub-agent's knowledge.
+	// Skills provide domain-specific knowledge and capabilities.
+	SkillRefs     []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -198,16 +252,9 @@ func (x *SubAgent) GetInstructions() string {
 	return ""
 }
 
-func (x *SubAgent) GetMcpServers() []string {
+func (x *SubAgent) GetMcpAccess() []*McpAccess {
 	if x != nil {
-		return x.McpServers
-	}
-	return nil
-}
-
-func (x *SubAgent) GetMcpToolSelections() map[string]*McpToolSelection {
-	if x != nil {
-		return x.McpToolSelections
+		return x.McpAccess
 	}
 	return nil
 }
@@ -219,29 +266,52 @@ func (x *SubAgent) GetSkillRefs() []*apiresource.ApiResourceReference {
 	return nil
 }
 
-// McpToolSelection defines which tools from an MCP server are enabled.
-type McpToolSelection struct {
+// McpServerUsage declares that this Agent uses a McpServer resource.
+// The slug from mcp_server_ref becomes the identifier for SubAgent access.
+//
+// Design principle: Users already named their McpServer with a slug.
+// We use that slug as the identifier - no extra naming required.
+//
+// Example YAML:
+//
+//	mcp_server_usages:
+//	  - mcp_server_ref:
+//	      scope: platform
+//	      slug: github
+//	    enabled_tools: [search_code, get_file, create_pr]
+//	  - mcp_server_ref:
+//	      scope: organization
+//	      org: acme-corp
+//	      slug: internal-tools
+type McpServerUsage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Tool names to enable from the MCP server (empty = all tools).
-	EnabledTools  []string `protobuf:"bytes,1,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
+	// Reference to the McpServer resource.
+	// Must reference a resource with kind=mcp_server (44).
+	// The slug from this reference is how SubAgents identify this server.
+	McpServerRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=mcp_server_ref,json=mcpServerRef,proto3" json:"mcp_server_ref,omitempty"`
+	// Tools to enable from this MCP server for this Agent.
+	// This defines the maximum tool set - SubAgents can only restrict further.
+	// Empty list = use McpServer's default_enabled_tools (or all if not specified).
+	// Tool names must match exactly what the MCP server reports via tools/list.
+	EnabledTools  []string `protobuf:"bytes,2,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *McpToolSelection) Reset() {
-	*x = McpToolSelection{}
+func (x *McpServerUsage) Reset() {
+	*x = McpServerUsage{}
 	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *McpToolSelection) String() string {
+func (x *McpServerUsage) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*McpToolSelection) ProtoMessage() {}
+func (*McpServerUsage) ProtoMessage() {}
 
-func (x *McpToolSelection) ProtoReflect() protoreflect.Message {
+func (x *McpServerUsage) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -253,68 +323,68 @@ func (x *McpToolSelection) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use McpToolSelection.ProtoReflect.Descriptor instead.
-func (*McpToolSelection) Descriptor() ([]byte, []int) {
+// Deprecated: Use McpServerUsage.ProtoReflect.Descriptor instead.
+func (*McpServerUsage) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *McpToolSelection) GetEnabledTools() []string {
+func (x *McpServerUsage) GetMcpServerRef() *apiresource.ApiResourceReference {
+	if x != nil {
+		return x.McpServerRef
+	}
+	return nil
+}
+
+func (x *McpServerUsage) GetEnabledTools() []string {
 	if x != nil {
 		return x.EnabledTools
 	}
 	return nil
 }
 
-// McpServerDefinition defines an MCP server without configuration.
-// Configuration with secrets happens at AgentInstance level.
+// McpAccess grants a SubAgent access to one of the parent Agent's MCP servers.
+// Uses the same slug that identifies the McpServer resource.
 //
-// Supports three types of MCP servers:
-// 1. **stdio**: Subprocess-based servers (most common)
-//   - Example: npx @modelcontextprotocol/server-github
-//   - Use when: Running Node.js, Python, or other CLI-based MCP servers
-//   - Communication: stdin/stdout
+// Permission model:
+// - SubAgent can only access servers that parent has in mcp_server_usages
+// - SubAgent tools must be a subset of parent's enabled tools
 //
-// 2. **http**: HTTP + SSE servers (for remote/managed services)
-//   - Example: https://mcp.example.com/github
-//   - Use when: Connecting to remote MCP services, managed infrastructure
-//   - Communication: HTTP requests + Server-Sent Events
+// Example YAML:
 //
-// 3. **docker**: Containerized MCP servers
-//   - Example: ghcr.io/org/custom-mcp:latest
-//   - Use when: Running custom/isolated MCP servers, need volume mounts
-//   - Communication: stdio (via Docker exec) or HTTP (via port mapping)
-type McpServerDefinition struct {
+//	sub_agents:
+//	  - name: code-reviewer
+//	    mcp_access:
+//	      - mcp_server: github
+//	        enabled_tools: [search_code, get_file]
+//	      - mcp_server: slack
+//	        # enabled_tools empty = all tools from parent
+type McpAccess struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Name of the MCP server (e.g., "github", "aws", "slack").
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// Server type and transport configuration (choose one).
-	//
-	// Types that are valid to be assigned to ServerType:
-	//
-	//	*McpServerDefinition_Stdio
-	//	*McpServerDefinition_Http
-	//	*McpServerDefinition_Docker
-	ServerType isMcpServerDefinition_ServerType `protobuf_oneof:"server_type"`
-	// Tool names to enable from this server (empty = all tools).
-	EnabledTools  []string `protobuf:"bytes,5,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
+	// Slug of the McpServer to grant access to.
+	// Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+	McpServer string `protobuf:"bytes,1,opt,name=mcp_server,json=mcpServer,proto3" json:"mcp_server,omitempty"`
+	// Tools this SubAgent can use from this MCP server.
+	// Must be a subset of the parent's enabled_tools for this server.
+	// Empty list = all tools that parent has enabled (no additional restriction).
+	EnabledTools  []string `protobuf:"bytes,2,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *McpServerDefinition) Reset() {
-	*x = McpServerDefinition{}
+func (x *McpAccess) Reset() {
+	*x = McpAccess{}
 	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *McpServerDefinition) String() string {
+func (x *McpAccess) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*McpServerDefinition) ProtoMessage() {}
+func (*McpAccess) ProtoMessage() {}
 
-func (x *McpServerDefinition) ProtoReflect() protoreflect.Message {
+func (x *McpAccess) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -326,552 +396,60 @@ func (x *McpServerDefinition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use McpServerDefinition.ProtoReflect.Descriptor instead.
-func (*McpServerDefinition) Descriptor() ([]byte, []int) {
+// Deprecated: Use McpAccess.ProtoReflect.Descriptor instead.
+func (*McpAccess) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *McpServerDefinition) GetName() string {
+func (x *McpAccess) GetMcpServer() string {
 	if x != nil {
-		return x.Name
+		return x.McpServer
 	}
 	return ""
 }
 
-func (x *McpServerDefinition) GetServerType() isMcpServerDefinition_ServerType {
-	if x != nil {
-		return x.ServerType
-	}
-	return nil
-}
-
-func (x *McpServerDefinition) GetStdio() *StdioServer {
-	if x != nil {
-		if x, ok := x.ServerType.(*McpServerDefinition_Stdio); ok {
-			return x.Stdio
-		}
-	}
-	return nil
-}
-
-func (x *McpServerDefinition) GetHttp() *HttpServer {
-	if x != nil {
-		if x, ok := x.ServerType.(*McpServerDefinition_Http); ok {
-			return x.Http
-		}
-	}
-	return nil
-}
-
-func (x *McpServerDefinition) GetDocker() *DockerServer {
-	if x != nil {
-		if x, ok := x.ServerType.(*McpServerDefinition_Docker); ok {
-			return x.Docker
-		}
-	}
-	return nil
-}
-
-func (x *McpServerDefinition) GetEnabledTools() []string {
+func (x *McpAccess) GetEnabledTools() []string {
 	if x != nil {
 		return x.EnabledTools
 	}
 	return nil
-}
-
-type isMcpServerDefinition_ServerType interface {
-	isMcpServerDefinition_ServerType()
-}
-
-type McpServerDefinition_Stdio struct {
-	// stdio-based server (subprocess with stdin/stdout communication).
-	Stdio *StdioServer `protobuf:"bytes,2,opt,name=stdio,proto3,oneof"`
-}
-
-type McpServerDefinition_Http struct {
-	// HTTP-based server (HTTP + Server-Sent Events communication).
-	Http *HttpServer `protobuf:"bytes,3,opt,name=http,proto3,oneof"`
-}
-
-type McpServerDefinition_Docker struct {
-	// Docker-based server (containerized MCP server).
-	Docker *DockerServer `protobuf:"bytes,4,opt,name=docker,proto3,oneof"`
-}
-
-func (*McpServerDefinition_Stdio) isMcpServerDefinition_ServerType() {}
-
-func (*McpServerDefinition_Http) isMcpServerDefinition_ServerType() {}
-
-func (*McpServerDefinition_Docker) isMcpServerDefinition_ServerType() {}
-
-// StdioServer defines an MCP server that runs as a subprocess.
-// Communication happens via stdin/stdout (most common type).
-type StdioServer struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Command to run the MCP server (e.g., "npx", "python", "node").
-	Command string `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
-	// Command arguments (e.g., ["-y", "@modelcontextprotocol/server-github"]).
-	Args []string `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"`
-	// Environment variable placeholders (e.g., {"GITHUB_TOKEN": "${GITHUB_TOKEN}"}).
-	// Actual values provided at AgentInstance level via ConfigSchema.
-	// The key is the env var name that the MCP server expects.
-	// The value is a placeholder reference like "${GITHUB_TOKEN}" that maps to
-	// a secret or env_var defined in the Agent's ConfigSchema.
-	EnvPlaceholders map[string]string `protobuf:"bytes,3,rep,name=env_placeholders,json=envPlaceholders,proto3" json:"env_placeholders,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Working directory for the process (optional).
-	WorkingDir    string `protobuf:"bytes,4,opt,name=working_dir,json=workingDir,proto3" json:"working_dir,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StdioServer) Reset() {
-	*x = StdioServer{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StdioServer) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StdioServer) ProtoMessage() {}
-
-func (x *StdioServer) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StdioServer.ProtoReflect.Descriptor instead.
-func (*StdioServer) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *StdioServer) GetCommand() string {
-	if x != nil {
-		return x.Command
-	}
-	return ""
-}
-
-func (x *StdioServer) GetArgs() []string {
-	if x != nil {
-		return x.Args
-	}
-	return nil
-}
-
-func (x *StdioServer) GetEnvPlaceholders() map[string]string {
-	if x != nil {
-		return x.EnvPlaceholders
-	}
-	return nil
-}
-
-func (x *StdioServer) GetWorkingDir() string {
-	if x != nil {
-		return x.WorkingDir
-	}
-	return ""
-}
-
-// HttpServer defines an MCP server accessible via HTTP + SSE.
-// Used for remote/managed MCP services.
-type HttpServer struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Base URL of the MCP server.
-	// Example: "http://localhost:3000/mcp" or "https://mcp.example.com"
-	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
-	// HTTP headers for authentication/configuration.
-	// Example: {"Authorization": "Bearer ${API_TOKEN}"}
-	// Placeholders like ${API_TOKEN} reference secrets in ConfigSchema.
-	Headers map[string]string `protobuf:"bytes,2,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Query parameters for the MCP endpoint (optional).
-	// Example: {"version": "v1", "region": "${AWS_REGION}"}
-	QueryParams map[string]string `protobuf:"bytes,3,rep,name=query_params,json=queryParams,proto3" json:"query_params,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Timeout for HTTP requests in seconds (default: 30).
-	TimeoutSeconds int32 `protobuf:"varint,4,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *HttpServer) Reset() {
-	*x = HttpServer{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *HttpServer) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*HttpServer) ProtoMessage() {}
-
-func (x *HttpServer) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use HttpServer.ProtoReflect.Descriptor instead.
-func (*HttpServer) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *HttpServer) GetUrl() string {
-	if x != nil {
-		return x.Url
-	}
-	return ""
-}
-
-func (x *HttpServer) GetHeaders() map[string]string {
-	if x != nil {
-		return x.Headers
-	}
-	return nil
-}
-
-func (x *HttpServer) GetQueryParams() map[string]string {
-	if x != nil {
-		return x.QueryParams
-	}
-	return nil
-}
-
-func (x *HttpServer) GetTimeoutSeconds() int32 {
-	if x != nil {
-		return x.TimeoutSeconds
-	}
-	return 0
-}
-
-// DockerServer defines an MCP server that runs in a Docker container.
-type DockerServer struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Docker image name and tag.
-	// Example: "ghcr.io/org/mcp-server:latest"
-	Image string `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
-	// Container command arguments (optional).
-	// Overrides the default CMD in the Docker image.
-	Args []string `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"`
-	// Environment variable placeholders (same as StdioServer).
-	// Example: {"GITHUB_TOKEN": "${GITHUB_TOKEN}"}
-	EnvPlaceholders map[string]string `protobuf:"bytes,3,rep,name=env_placeholders,json=envPlaceholders,proto3" json:"env_placeholders,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Volume mounts for the container (optional).
-	Volumes []*VolumeMount `protobuf:"bytes,4,rep,name=volumes,proto3" json:"volumes,omitempty"`
-	// Docker network to attach the container to (optional, default: "bridge").
-	Network string `protobuf:"bytes,5,opt,name=network,proto3" json:"network,omitempty"`
-	// Port mappings for the container (optional).
-	Ports []*PortMapping `protobuf:"bytes,6,rep,name=ports,proto3" json:"ports,omitempty"`
-	// Container name (optional, auto-generated if not provided).
-	ContainerName string `protobuf:"bytes,7,opt,name=container_name,json=containerName,proto3" json:"container_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DockerServer) Reset() {
-	*x = DockerServer{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DockerServer) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DockerServer) ProtoMessage() {}
-
-func (x *DockerServer) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DockerServer.ProtoReflect.Descriptor instead.
-func (*DockerServer) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *DockerServer) GetImage() string {
-	if x != nil {
-		return x.Image
-	}
-	return ""
-}
-
-func (x *DockerServer) GetArgs() []string {
-	if x != nil {
-		return x.Args
-	}
-	return nil
-}
-
-func (x *DockerServer) GetEnvPlaceholders() map[string]string {
-	if x != nil {
-		return x.EnvPlaceholders
-	}
-	return nil
-}
-
-func (x *DockerServer) GetVolumes() []*VolumeMount {
-	if x != nil {
-		return x.Volumes
-	}
-	return nil
-}
-
-func (x *DockerServer) GetNetwork() string {
-	if x != nil {
-		return x.Network
-	}
-	return ""
-}
-
-func (x *DockerServer) GetPorts() []*PortMapping {
-	if x != nil {
-		return x.Ports
-	}
-	return nil
-}
-
-func (x *DockerServer) GetContainerName() string {
-	if x != nil {
-		return x.ContainerName
-	}
-	return ""
-}
-
-// VolumeMount defines a Docker volume mount.
-type VolumeMount struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Host path to mount.
-	HostPath string `protobuf:"bytes,1,opt,name=host_path,json=hostPath,proto3" json:"host_path,omitempty"`
-	// Container path where the volume is mounted.
-	ContainerPath string `protobuf:"bytes,2,opt,name=container_path,json=containerPath,proto3" json:"container_path,omitempty"`
-	// Whether the mount is read-only (default: false).
-	ReadOnly      bool `protobuf:"varint,3,opt,name=read_only,json=readOnly,proto3" json:"read_only,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *VolumeMount) Reset() {
-	*x = VolumeMount{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *VolumeMount) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*VolumeMount) ProtoMessage() {}
-
-func (x *VolumeMount) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use VolumeMount.ProtoReflect.Descriptor instead.
-func (*VolumeMount) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *VolumeMount) GetHostPath() string {
-	if x != nil {
-		return x.HostPath
-	}
-	return ""
-}
-
-func (x *VolumeMount) GetContainerPath() string {
-	if x != nil {
-		return x.ContainerPath
-	}
-	return ""
-}
-
-func (x *VolumeMount) GetReadOnly() bool {
-	if x != nil {
-		return x.ReadOnly
-	}
-	return false
-}
-
-// PortMapping defines a Docker port mapping.
-type PortMapping struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Host port to bind to.
-	HostPort int32 `protobuf:"varint,1,opt,name=host_port,json=hostPort,proto3" json:"host_port,omitempty"`
-	// Container port to expose.
-	ContainerPort int32 `protobuf:"varint,2,opt,name=container_port,json=containerPort,proto3" json:"container_port,omitempty"`
-	// Protocol (default: "tcp"). Can be "tcp" or "udp".
-	Protocol      string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PortMapping) Reset() {
-	*x = PortMapping{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PortMapping) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PortMapping) ProtoMessage() {}
-
-func (x *PortMapping) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PortMapping.ProtoReflect.Descriptor instead.
-func (*PortMapping) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *PortMapping) GetHostPort() int32 {
-	if x != nil {
-		return x.HostPort
-	}
-	return 0
-}
-
-func (x *PortMapping) GetContainerPort() int32 {
-	if x != nil {
-		return x.ContainerPort
-	}
-	return 0
-}
-
-func (x *PortMapping) GetProtocol() string {
-	if x != nil {
-		return x.Protocol
-	}
-	return ""
 }
 
 var File_ai_stigmer_agentic_agent_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x97\x04\n" +
+	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xa6\x05\n" +
 	"\tAgentSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12+\n" +
 	"\finstructions\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\n" +
-	"R\finstructions\x12Q\n" +
-	"\vmcp_servers\x18\x04 \x03(\v20.ai.stigmer.agentic.agent.v1.McpServerDefinitionR\n" +
-	"mcpServers\x12\xb7\x01\n" +
+	"R\finstructions\x12\xdf\x01\n" +
+	"\x11mcp_server_usages\x18\x04 \x03(\v2+.ai.stigmer.agentic.agent.v1.McpServerUsageB\x85\x01\xbaH\x81\x01\x92\x01~\"|\xba\x01y\n" +
+	"\x16mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\xb7\x01\n" +
 	"\n" +
 	"skill_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBb\xbaH_\x92\x01\\\"Z\xba\x01W\n" +
 	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\x12D\n" +
 	"\n" +
 	"sub_agents\x18\x06 \x03(\v2%.ai.stigmer.agentic.agent.v1.SubAgentR\tsubAgents\x12M\n" +
-	"\benv_spec\x18\a \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\"\xb3\x04\n" +
+	"\benv_spec\x18\a \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\"\xf6\x02\n" +
 	"\bSubAgent\x12\x1a\n" +
 	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12+\n" +
 	"\finstructions\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\n" +
-	"R\finstructions\x12\x1f\n" +
-	"\vmcp_servers\x18\x04 \x03(\tR\n" +
-	"mcpServers\x12l\n" +
-	"\x13mcp_tool_selections\x18\x05 \x03(\v2<.ai.stigmer.agentic.agent.v1.SubAgent.McpToolSelectionsEntryR\x11mcpToolSelections\x12\xb7\x01\n" +
+	"R\finstructions\x12E\n" +
 	"\n" +
-	"skill_refs\x18\x06 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBb\xbaH_\x92\x01\\\"Z\xba\x01W\n" +
-	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\x1as\n" +
-	"\x16McpToolSelectionsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12C\n" +
-	"\x05value\x18\x02 \x01(\v2-.ai.stigmer.agentic.agent.v1.McpToolSelectionR\x05value:\x028\x01\"7\n" +
-	"\x10McpToolSelection\x12#\n" +
-	"\renabled_tools\x18\x01 \x03(\tR\fenabledTools\"\xab\x02\n" +
-	"\x13McpServerDefinition\x12\x1a\n" +
-	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12@\n" +
-	"\x05stdio\x18\x02 \x01(\v2(.ai.stigmer.agentic.agent.v1.StdioServerH\x00R\x05stdio\x12=\n" +
-	"\x04http\x18\x03 \x01(\v2'.ai.stigmer.agentic.agent.v1.HttpServerH\x00R\x04http\x12C\n" +
-	"\x06docker\x18\x04 \x01(\v2).ai.stigmer.agentic.agent.v1.DockerServerH\x00R\x06docker\x12#\n" +
-	"\renabled_tools\x18\x05 \x03(\tR\fenabledToolsB\r\n" +
-	"\vserver_type\"\x92\x02\n" +
-	"\vStdioServer\x12 \n" +
-	"\acommand\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\acommand\x12\x12\n" +
-	"\x04args\x18\x02 \x03(\tR\x04args\x12h\n" +
-	"\x10env_placeholders\x18\x03 \x03(\v2=.ai.stigmer.agentic.agent.v1.StdioServer.EnvPlaceholdersEntryR\x0fenvPlaceholders\x12\x1f\n" +
-	"\vworking_dir\x18\x04 \x01(\tR\n" +
-	"workingDir\x1aB\n" +
-	"\x14EnvPlaceholdersEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf8\x02\n" +
+	"mcp_access\x18\x04 \x03(\v2&.ai.stigmer.agentic.agent.v1.McpAccessR\tmcpAccess\x12\xb7\x01\n" +
 	"\n" +
-	"HttpServer\x12\x18\n" +
-	"\x03url\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03url\x12N\n" +
-	"\aheaders\x18\x02 \x03(\v24.ai.stigmer.agentic.agent.v1.HttpServer.HeadersEntryR\aheaders\x12[\n" +
-	"\fquery_params\x18\x03 \x03(\v28.ai.stigmer.agentic.agent.v1.HttpServer.QueryParamsEntryR\vqueryParams\x12'\n" +
-	"\x0ftimeout_seconds\x18\x04 \x01(\x05R\x0etimeoutSeconds\x1a:\n" +
-	"\fHeadersEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +
-	"\x10QueryParamsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb4\x03\n" +
-	"\fDockerServer\x12\x1c\n" +
-	"\x05image\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05image\x12\x12\n" +
-	"\x04args\x18\x02 \x03(\tR\x04args\x12i\n" +
-	"\x10env_placeholders\x18\x03 \x03(\v2>.ai.stigmer.agentic.agent.v1.DockerServer.EnvPlaceholdersEntryR\x0fenvPlaceholders\x12B\n" +
-	"\avolumes\x18\x04 \x03(\v2(.ai.stigmer.agentic.agent.v1.VolumeMountR\avolumes\x12\x18\n" +
-	"\anetwork\x18\x05 \x01(\tR\anetwork\x12>\n" +
-	"\x05ports\x18\x06 \x03(\v2(.ai.stigmer.agentic.agent.v1.PortMappingR\x05ports\x12%\n" +
-	"\x0econtainer_name\x18\a \x01(\tR\rcontainerName\x1aB\n" +
-	"\x14EnvPlaceholdersEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"~\n" +
-	"\vVolumeMount\x12#\n" +
-	"\thost_path\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\bhostPath\x12-\n" +
-	"\x0econtainer_path\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\rcontainerPath\x12\x1b\n" +
-	"\tread_only\x18\x03 \x01(\bR\breadOnly\"\x7f\n" +
-	"\vPortMapping\x12$\n" +
-	"\thost_port\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x01R\bhostPort\x12.\n" +
-	"\x0econtainer_port\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x01R\rcontainerPort\x12\x1a\n" +
-	"\bprotocol\x18\x03 \x01(\tR\bprotocolB\x8b\x02\n" +
+	"skill_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBb\xbaH_\x92\x01\\\"Z\xba\x01W\n" +
+	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\"\x99\x01\n" +
+	"\x0eMcpServerUsage\x12b\n" +
+	"\x0emcp_server_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x06\xbaH\x03\xc8\x01\x01R\fmcpServerRef\x12#\n" +
+	"\renabled_tools\x18\x02 \x03(\tR\fenabledTools\"W\n" +
+	"\tMcpAccess\x12%\n" +
+	"\n" +
+	"mcp_server\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tmcpServer\x12#\n" +
+	"\renabled_tools\x18\x02 \x03(\tR\fenabledToolsB\x8b\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\tSpecProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (
@@ -886,47 +464,28 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes = []any{
 	(*AgentSpec)(nil),                        // 0: ai.stigmer.agentic.agent.v1.AgentSpec
 	(*SubAgent)(nil),                         // 1: ai.stigmer.agentic.agent.v1.SubAgent
-	(*McpToolSelection)(nil),                 // 2: ai.stigmer.agentic.agent.v1.McpToolSelection
-	(*McpServerDefinition)(nil),              // 3: ai.stigmer.agentic.agent.v1.McpServerDefinition
-	(*StdioServer)(nil),                      // 4: ai.stigmer.agentic.agent.v1.StdioServer
-	(*HttpServer)(nil),                       // 5: ai.stigmer.agentic.agent.v1.HttpServer
-	(*DockerServer)(nil),                     // 6: ai.stigmer.agentic.agent.v1.DockerServer
-	(*VolumeMount)(nil),                      // 7: ai.stigmer.agentic.agent.v1.VolumeMount
-	(*PortMapping)(nil),                      // 8: ai.stigmer.agentic.agent.v1.PortMapping
-	nil,                                      // 9: ai.stigmer.agentic.agent.v1.SubAgent.McpToolSelectionsEntry
-	nil,                                      // 10: ai.stigmer.agentic.agent.v1.StdioServer.EnvPlaceholdersEntry
-	nil,                                      // 11: ai.stigmer.agentic.agent.v1.HttpServer.HeadersEntry
-	nil,                                      // 12: ai.stigmer.agentic.agent.v1.HttpServer.QueryParamsEntry
-	nil,                                      // 13: ai.stigmer.agentic.agent.v1.DockerServer.EnvPlaceholdersEntry
-	(*apiresource.ApiResourceReference)(nil), // 14: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.EnvironmentSpec)(nil),               // 15: ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	(*McpServerUsage)(nil),                   // 2: ai.stigmer.agentic.agent.v1.McpServerUsage
+	(*McpAccess)(nil),                        // 3: ai.stigmer.agentic.agent.v1.McpAccess
+	(*apiresource.ApiResourceReference)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*v1.EnvironmentSpec)(nil),               // 5: ai.stigmer.agentic.environment.v1.EnvironmentSpec
 }
 var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
-	3,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_servers:type_name -> ai.stigmer.agentic.agent.v1.McpServerDefinition
-	14, // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	1,  // 2: ai.stigmer.agentic.agent.v1.AgentSpec.sub_agents:type_name -> ai.stigmer.agentic.agent.v1.SubAgent
-	15, // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	9,  // 4: ai.stigmer.agentic.agent.v1.SubAgent.mcp_tool_selections:type_name -> ai.stigmer.agentic.agent.v1.SubAgent.McpToolSelectionsEntry
-	14, // 5: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	4,  // 6: ai.stigmer.agentic.agent.v1.McpServerDefinition.stdio:type_name -> ai.stigmer.agentic.agent.v1.StdioServer
-	5,  // 7: ai.stigmer.agentic.agent.v1.McpServerDefinition.http:type_name -> ai.stigmer.agentic.agent.v1.HttpServer
-	6,  // 8: ai.stigmer.agentic.agent.v1.McpServerDefinition.docker:type_name -> ai.stigmer.agentic.agent.v1.DockerServer
-	10, // 9: ai.stigmer.agentic.agent.v1.StdioServer.env_placeholders:type_name -> ai.stigmer.agentic.agent.v1.StdioServer.EnvPlaceholdersEntry
-	11, // 10: ai.stigmer.agentic.agent.v1.HttpServer.headers:type_name -> ai.stigmer.agentic.agent.v1.HttpServer.HeadersEntry
-	12, // 11: ai.stigmer.agentic.agent.v1.HttpServer.query_params:type_name -> ai.stigmer.agentic.agent.v1.HttpServer.QueryParamsEntry
-	13, // 12: ai.stigmer.agentic.agent.v1.DockerServer.env_placeholders:type_name -> ai.stigmer.agentic.agent.v1.DockerServer.EnvPlaceholdersEntry
-	7,  // 13: ai.stigmer.agentic.agent.v1.DockerServer.volumes:type_name -> ai.stigmer.agentic.agent.v1.VolumeMount
-	8,  // 14: ai.stigmer.agentic.agent.v1.DockerServer.ports:type_name -> ai.stigmer.agentic.agent.v1.PortMapping
-	2,  // 15: ai.stigmer.agentic.agent.v1.SubAgent.McpToolSelectionsEntry.value:type_name -> ai.stigmer.agentic.agent.v1.McpToolSelection
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
+	4, // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	1, // 2: ai.stigmer.agentic.agent.v1.AgentSpec.sub_agents:type_name -> ai.stigmer.agentic.agent.v1.SubAgent
+	5, // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	3, // 4: ai.stigmer.agentic.agent.v1.SubAgent.mcp_access:type_name -> ai.stigmer.agentic.agent.v1.McpAccess
+	4, // 5: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4, // 6: ai.stigmer.agentic.agent.v1.McpServerUsage.mcp_server_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_spec_proto_init() }
@@ -934,18 +493,13 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_init() {
 	if File_ai_stigmer_agentic_agent_v1_spec_proto != nil {
 		return
 	}
-	file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3].OneofWrappers = []any{
-		(*McpServerDefinition_Stdio)(nil),
-		(*McpServerDefinition_Http)(nil),
-		(*McpServerDefinition_Docker)(nil),
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

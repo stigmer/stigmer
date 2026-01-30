@@ -17,23 +17,33 @@ const (
 	maxSkillMdSize      = 1 * 1024 * 1024   // 1MB for SKILL.md
 )
 
-// ExtractSkillMdResult contains the extracted SKILL.md content and validation results.
+// ExtractSkillMdResult contains the extracted SKILL.md content and parsed metadata.
 type ExtractSkillMdResult struct {
+	// Content is the full SKILL.md file content (including frontmatter).
 	Content string
-	Hash    string // SHA256 of the ZIP content
+
+	// Hash is the SHA256 hash of the ZIP content for content-addressable storage.
+	Hash string
+
+	// Name is the skill identifier extracted from YAML frontmatter (kebab-case).
+	Name string
+
+	// Description is the human-readable summary extracted from YAML frontmatter.
+	Description string
 }
 
-// ExtractSkillMd safely extracts SKILL.md from a ZIP archive.
+// ExtractSkillMd safely extracts SKILL.md from a ZIP archive and parses its metadata.
 // This function implements multiple security measures:
 // 1. Uses google/safearchive to prevent path traversal and symlink attacks
 // 2. Validates ZIP size and compression ratios to prevent ZIP bombs
 // 3. Extracts SKILL.md content IN MEMORY (never writes to disk)
 // 4. Limits SKILL.md size to prevent memory exhaustion
 // 5. Validates that SKILL.md exists in the archive
+// 6. Parses YAML frontmatter to extract name and description
 //
 // Returns:
-// - ExtractSkillMdResult with SKILL.md content and SHA256 hash
-// - Error if validation fails or SKILL.md is not found
+// - ExtractSkillMdResult with SKILL.md content, hash, name, and description
+// - Error if validation fails, SKILL.md is not found, or frontmatter is invalid
 func ExtractSkillMd(zipData []byte) (*ExtractSkillMdResult, error) {
 	// 1. Validate ZIP size (prevent huge uploads)
 	if len(zipData) > maxZipSize {
@@ -63,9 +73,17 @@ func ExtractSkillMd(zipData []byte) (*ExtractSkillMdResult, error) {
 		return nil, err
 	}
 
+	// 7. Parse YAML frontmatter to extract name and description
+	frontmatter, err := ParseFrontmatter(skillMdContent)
+	if err != nil {
+		return nil, fmt.Errorf("invalid SKILL.md frontmatter: %w", err)
+	}
+
 	return &ExtractSkillMdResult{
-		Content: skillMdContent,
-		Hash:    hash,
+		Content:     skillMdContent,
+		Hash:        hash,
+		Name:        frontmatter.Name,
+		Description: frontmatter.Description,
 	}, nil
 }
 

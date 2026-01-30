@@ -54,15 +54,29 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install minimal runtime dependencies
+# Install runtime dependencies including Node.js for MCP servers
 # git: May be needed by some Python packages at runtime
 # ca-certificates: Required for HTTPS connections
+# curl: Required for Node.js installation
+# Node.js 20.x: Required for npm-based MCP servers (npx command)
+#   Many MCP servers are published as npm packages and run via npx, e.g.:
+#   - npx @modelcontextprotocol/server-github
+#   - npx @modelcontextprotocol/server-filesystem
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         git \
-        ca-certificates && \
+        ca-certificates \
+        curl \
+        gnupg && \
+    # Install Node.js 20.x from NodeSource
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    # Cleanup
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Verify Node.js and npm installation
+RUN node --version && npm --version && npx --version
 
 # Create non-root user for security
 # UID 1000 is standard for first non-privileged user on Linux

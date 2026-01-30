@@ -49,7 +49,7 @@ stigmer backend set cloud
 ### Skill Management
 
 ```bash
-# Push skill from current directory (must contain SKILL.md)
+# Push skill from current directory (must contain SKILL.md with name in YAML frontmatter)
 stigmer skill push
 
 # Push skill from specific directory
@@ -61,14 +61,29 @@ stigmer skill push --tag v1.0.0
 # Push to specific organization
 stigmer skill push --org acme-corp
 
+# Push from remote GitHub repository
+stigmer skill push --git-url https://github.com/org/repo.git --git-ref v1.0.0
+
+# Push from GitHub repository subdirectory
+stigmer skill push \
+  --git-url https://github.com/org/repo.git \
+  --git-ref main \
+  --subdir skills/calculator
+
 # Dry run (validate without pushing)
 stigmer skill push --dry-run
 ```
 
 Skills are reusable capabilities that extend agent functionality.
-Each skill is a directory containing a SKILL.md file and supporting
-implementation files. Skills are versioned and stored in the Stigmer
-registry, and can be referenced by agents using tags or exact version hashes.
+Each skill is a directory containing a SKILL.md file (with name in YAML
+frontmatter) and supporting implementation files. Skills are versioned
+and stored in the Stigmer registry, and can be referenced by agents
+using tags or exact version hashes.
+
+**Source Metadata**: Skills automatically capture source information:
+- **Local pushes**: Auto-detects git repository (remote URL, commit SHA, subdirectory)
+- **Remote pushes**: Stores GitHub URL, ref (tag/branch/commit), and subdirectory
+- **Traceability**: All metadata is stored for debugging and auditing
 
 ### Project Scaffolding
 

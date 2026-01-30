@@ -3,14 +3,10 @@ package agent
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/gen/types"
-	"github.com/stigmer/stigmer/sdk/go/mcpserver"
+	"github.com/stigmer/stigmer/sdk/go/mcpserverref"
 	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
-
-// mockSubAgentCtx implements the mcpserver.Context interface for testing
-type mockSubAgentCtx struct{}
 
 // mustSubAgent creates a sub-agent or panics on error.
 // This is a test helper for concise test cases.
@@ -82,21 +78,12 @@ func TestAgentWithMultipleSubAgents(t *testing.T) {
 	}
 }
 
-func TestAgentWithSubAgentUsingMCPServers(t *testing.T) {
-	ctx := &mockSubAgentCtx{}
-
-	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
-		Command: "npx",
-		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
-	})
-	if err != nil {
-		t.Fatalf("Failed to create MCP server: %v", err)
-	}
-
+func TestAgentWithSubAgentUsingMCPAccess(t *testing.T) {
+	// Create sub-agent with MCP access grants
 	githubHelper := mustSubAgent("github-helper", &subagent.Args{
 		Instructions: "Help with GitHub operations",
-		McpServers:   []string{"github"},
 	})
+	githubHelper.GrantMcpAccess("github")
 
 	agent, err := New(nil, "main-agent", &AgentArgs{
 		Instructions: "Main agent with sub-agent that uses MCP servers",
@@ -105,26 +92,33 @@ func TestAgentWithSubAgentUsingMCPServers(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Add MCP server and sub-agent using builder methods
-	agent.AddMCPServer(github)
+	// Add MCP server usage to parent and sub-agent
+	agent.AddMcpServerUsage(mcpserverref.Platform("github"))
 	agent.AddSubAgent(githubHelper)
 
-	if len(agent.MCPServers) != 1 {
-		t.Errorf("len(MCPServers) = %d, want 1", len(agent.MCPServers))
+	if len(agent.McpServerUsages) != 1 {
+		t.Errorf("len(McpServerUsages) = %d, want 1", len(agent.McpServerUsages))
 	}
 	if len(agent.SubAgents) != 1 {
 		t.Errorf("len(SubAgents) = %d, want 1", len(agent.SubAgents))
+	}
+
+	// Verify sub-agent has MCP access
+	mcpAccess := agent.SubAgents[0].McpAccess()
+	if len(mcpAccess) != 1 {
+		t.Errorf("len(SubAgents[0].McpAccess()) = %d, want 1", len(mcpAccess))
+	}
+	if mcpAccess[0].McpServer != "github" {
+		t.Errorf("McpAccess[0].McpServer = %q, want %q", mcpAccess[0].McpServer, "github")
 	}
 }
 
 func TestAgentWithSubAgentUsingSkills(t *testing.T) {
 	skilledHelper := mustSubAgent("skilled-helper", &subagent.Args{
 		Instructions: "Use coding knowledge",
-		SkillRefs: []*types.ApiResourceReference{
-			{Slug: "coding-best-practices", Scope: "platform"},
-			{Slug: "internal-apis", Scope: "organization", Org: "my-org"},
-		},
 	})
+	skilledHelper.AddSkillRef(skillref.Platform("coding-best-practices"))
+	skilledHelper.AddOrgSkillRef("my-org", "internal-apis")
 
 	agent, err := New(nil, "main-agent", &AgentArgs{
 		Instructions: "Main agent with sub-agent that uses skills",
@@ -145,26 +139,21 @@ func TestAgentWithSubAgentUsingSkills(t *testing.T) {
 	if len(agent.SkillRefs) != 1 {
 		t.Errorf("len(SkillRefs) = %d, want 1", len(agent.SkillRefs))
 	}
+
+	// Verify sub-agent has skills
+	subSkills := agent.SubAgents[0].SkillRefs()
+	if len(subSkills) != 2 {
+		t.Errorf("len(SubAgents[0].SkillRefs()) = %d, want 2", len(subSkills))
+	}
 }
 
-func TestAgentWithSubAgentUsingToolSelections(t *testing.T) {
-	ctx := &mockSubAgentCtx{}
-
-	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
-		Command: "npx",
-		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
-	})
-	if err != nil {
-		t.Fatalf("Failed to create MCP server: %v", err)
-	}
-
+func TestAgentWithSubAgentUsingRestrictedTools(t *testing.T) {
+	// Create sub-agent with restricted tool access
 	selectiveHelper := mustSubAgent("selective-helper", &subagent.Args{
 		Instructions: "Use specific GitHub tools",
-		McpServers:   []string{"github"},
-		McpToolSelections: map[string]*types.McpToolSelection{
-			"github": {EnabledTools: []string{"create_issue", "list_repos"}},
-		},
 	})
+	// Grant access with restricted tools (subset of parent's tools)
+	selectiveHelper.GrantMcpAccess("github", "create_issue", "list_repos")
 
 	agent, err := New(nil, "main-agent", &AgentArgs{
 		Instructions: "Main agent with selective sub-agent",
@@ -173,20 +162,71 @@ func TestAgentWithSubAgentUsingToolSelections(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Add MCP server and sub-agent using builder methods
-	agent.AddMCPServer(github)
+	// Parent has access to all GitHub tools
+	agent.AddMcpServerUsage(
+		mcpserverref.Platform("github"),
+		"create_issue", "list_repos", "create_pr", "search_code",
+	)
 	agent.AddSubAgent(selectiveHelper)
 
 	if len(agent.SubAgents) != 1 {
 		t.Errorf("len(SubAgents) = %d, want 1", len(agent.SubAgents))
 	}
 
-	// Verify tool selections are preserved
-	selections := agent.SubAgents[0].ToolSelections()
-	if len(selections) != 1 {
-		t.Errorf("len(ToolSelections()) = %d, want 1", len(selections))
+	// Verify sub-agent has restricted access
+	mcpAccess := agent.SubAgents[0].McpAccess()
+	if len(mcpAccess) != 1 {
+		t.Errorf("len(McpAccess()) = %d, want 1", len(mcpAccess))
 	}
-	if _, ok := selections["github"]; !ok {
-		t.Error("ToolSelections() missing 'github' key")
+	if mcpAccess[0].McpServer != "github" {
+		t.Errorf("McpAccess[0].McpServer = %q, want %q", mcpAccess[0].McpServer, "github")
+	}
+	if len(mcpAccess[0].EnabledTools) != 2 {
+		t.Errorf("len(EnabledTools) = %d, want 2", len(mcpAccess[0].EnabledTools))
+	}
+}
+
+func TestAgentWithSubAgentMultipleMCPAccess(t *testing.T) {
+	// Create sub-agent with access to multiple MCP servers
+	multiHelper := mustSubAgent("multi-helper", &subagent.Args{
+		Instructions: "Use multiple platforms",
+	})
+	multiHelper.GrantMcpAccess("github", "create_pr").
+		GrantMcpAccess("gitlab").
+		GrantMcpAccess("slack", "send_message")
+
+	agent, err := New(nil, "orchestrator", &AgentArgs{
+		Instructions: "Orchestrate multiple platforms",
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Parent has access to all these servers
+	agent.UseMCPServer("github", "create_pr", "search_code")
+	agent.UseMCPServer("gitlab")
+	agent.UseMCPServer("slack", "send_message", "list_channels")
+	agent.AddSubAgent(multiHelper)
+
+	// Verify sub-agent has all MCP access grants
+	mcpAccess := agent.SubAgents[0].McpAccess()
+	if len(mcpAccess) != 3 {
+		t.Errorf("len(McpAccess()) = %d, want 3", len(mcpAccess))
+	}
+
+	// Verify each access grant
+	servers := make(map[string]int)
+	for _, access := range mcpAccess {
+		servers[access.McpServer] = len(access.EnabledTools)
+	}
+
+	if servers["github"] != 1 {
+		t.Errorf("github tools count = %d, want 1", servers["github"])
+	}
+	if servers["gitlab"] != 0 {
+		t.Errorf("gitlab tools count = %d, want 0 (all tools)", servers["gitlab"])
+	}
+	if servers["slack"] != 1 {
+		t.Errorf("slack tools count = %d, want 1", servers["slack"])
 	}
 }

@@ -17,9 +17,15 @@ cd my-calculator-skill
 
 ### 2. Create SKILL.md
 
-Create a `SKILL.md` file with your skill definition:
+Create a `SKILL.md` file with YAML frontmatter and your skill definition:
 
 ```markdown
+---
+name: calculator
+version: 1.0.0
+description: Simple calculator for basic arithmetic
+---
+
 # Calculator Skill
 
 A simple calculator skill for basic arithmetic operations.
@@ -36,6 +42,8 @@ Subtracts second number from first.
 
 Usage: `./calculator.sh subtract <num1> <num2>`
 ```
+
+**Important**: The YAML frontmatter with `name` field is **required**. The `version` and `description` fields are optional but recommended.
 
 ### 3. Add Your Tool Implementation
 
@@ -56,42 +64,63 @@ chmod +x calculator.sh
 ### 4. Upload the Skill
 
 ```bash
-stigmer apply
+stigmer skill push
 ```
 
 That's it! The CLI will:
 1. Detect the `SKILL.md` file
-2. Zip the entire directory (with smart exclusions)
-3. Calculate a SHA256 hash for versioning
-4. Upload to your Stigmer backend
-5. Display success with version information
+2. Extract the skill name from YAML frontmatter
+3. Auto-detect git metadata (if in a git repository)
+4. Zip the entire directory (with smart exclusions)
+5. Calculate a SHA256 hash for versioning
+6. Upload to your Stigmer backend with source metadata
+7. Display success with version information
 
 ## How It Works
 
-### Automatic Mode Detection
+### Skill Push Process
 
-When you run `stigmer apply`, the CLI checks the current directory:
+When you run `stigmer skill push`, the CLI:
 
-**Artifact Mode** (Skill Upload):
-- **Triggered when**: `SKILL.md` exists in the directory
-- **Process**: Zips and uploads the skill artifact
-- **Scope**: Organization-level by default
-
-**Code Mode** (Agent/Workflow Deployment):
-- **Triggered when**: `Stigmer.yaml` exists (no `SKILL.md`)
-- **Process**: Executes entry point and deploys resources
-- **Scope**: Defined in Stigmer.yaml
+1. **Validates SKILL.md**: Checks that `SKILL.md` exists and has valid YAML frontmatter
+2. **Extracts Name**: Reads the `name` field from YAML frontmatter (required)
+3. **Detects Source**: Auto-detects git metadata if you're in a git repository:
+   - Git remote URL (origin)
+   - Current commit SHA
+   - Subdirectory path (if not at repository root)
+4. **Creates Artifact**: Zips the directory with smart exclusions
+5. **Uploads**: Sends to Stigmer backend with source metadata
+6. **Confirms**: Displays version hash and storage information
 
 ### Skill Naming
 
-The skill name is derived from the **directory name**:
+The skill name **must** be defined in the YAML frontmatter of `SKILL.md`:
 
-```bash
-my-calculator-skill/   → Skill name: "my-calculator-skill"
-cool-validator/        → Skill name: "cool-validator"
+```yaml
+---
+name: my-calculator-skill
+---
 ```
 
-The backend normalizes the name to a slug (lowercase, hyphens for spaces).
+**Requirements**:
+- Must be in kebab-case (lowercase with hyphens)
+- Must be unique within your organization/platform
+- Cannot use directory name as fallback (name field is required)
+
+**Examples**:
+```yaml
+---
+name: calculator        # ✅ Good
+---
+
+---
+name: json-validator    # ✅ Good
+---
+
+---
+name: MySkill          # ❌ Bad (not kebab-case)
+---
+```
 
 ### What Gets Included
 
@@ -113,6 +142,27 @@ The CLI automatically zips your entire skill directory, **excluding** common fil
 - System files: `.DS_Store`, `Thumbs.db`
 - Temporary files: `*.log`, `*.swp`
 
+### Source Metadata
+
+Every skill push automatically captures source information for **traceability**:
+
+**Local Push** (auto-detected):
+- Git remote URL (e.g., `https://github.com/org/repo.git`)
+- Commit SHA (e.g., `abc123def456...`)
+- Subdirectory path (if not at repo root)
+- Whether it's in a git repository
+
+**Remote Push** (from flags):
+- Git repository URL (`--git-url`)
+- Git reference (`--git-ref` - tag, branch, or commit SHA)
+- Subdirectory path (`--subdir`)
+
+This metadata helps you:
+- Track which git commit a skill version came from
+- Debug issues by checking out the exact source code
+- Audit skill changes over time
+- Reproduce builds from specific commits
+
 ### Versioning and Hashing
 
 Each skill upload is **content-addressable**:
@@ -120,7 +170,7 @@ Each skill upload is **content-addressable**:
 1. **SHA256 Hash**: Calculated from the zip content
 2. **Immutable**: Same content = same hash
 3. **Deduplication**: Identical uploads won't duplicate storage
-4. **Tag**: Defaults to `"latest"` (can be overridden in future)
+4. **Tag**: Defaults to `"latest"` (can be overridden with `--tag`)
 
 ## Example Workflow
 
@@ -133,6 +183,12 @@ cd code-formatter
 
 # 2. Create SKILL.md
 cat > SKILL.md << 'EOF'
+---
+name: code-formatter
+version: 1.0.0
+description: Formats code in various languages
+---
+
 # Code Formatter
 
 Formats code in various languages.
@@ -163,38 +219,37 @@ EOF
 chmod +x format.sh
 
 # 4. Upload
-stigmer apply
+stigmer skill push
 ```
 
 **Output**:
 ```
-Detected SKILL.md - entering Artifact Mode
-
-Skill name: code-formatter
-Creating skill artifact...
+✓ Detected SKILL.md
+✓ Skill name: code-formatter (from YAML frontmatter)
+✓ Git metadata detected:
+  Remote: https://github.com/myorg/skills.git
+  Commit: a3f7b2e1c8d9f4a6...
+  Subdir: code-formatter/
+✓ Creating skill artifact...
 ✓ Artifact created (8.2 KB)
-Version hash: a3f7b2e1...
-Uploading skill artifact...
-✓ Skill artifact uploaded successfully
-  Version hash: a3f7b2e1c8d9f4a6...
-  Tag: latest
-
-🚀 Skill uploaded successfully!
+✓ Uploading skill artifact...
+✓ Skill uploaded successfully!
 
 Skill Details:
   Name:         code-formatter
   Version Hash: a3f7b2e1c8d9f4a6...
   Tag:          latest
   Size:         8.2 KB
+  Source:       https://github.com/myorg/skills.git @ a3f7b2e1
 
 Next steps:
   - Reference this skill in your agent code
-  - Update and re-upload: edit files and run 'stigmer apply' again
+  - Update and re-upload: edit files and run 'stigmer skill push' again
 ```
 
 ### Updating an Existing Skill
 
-Simply edit your files and run `stigmer apply` again:
+Simply edit your files and run `stigmer skill push` again:
 
 ```bash
 # Edit your skill
@@ -202,10 +257,59 @@ vim SKILL.md
 vim format.sh
 
 # Re-upload (creates new version)
-stigmer apply
+stigmer skill push
 ```
 
 Each upload creates a new version with a unique hash. The `"latest"` tag points to the newest version.
+
+## Remote Push from GitHub
+
+You can push skills directly from a GitHub repository without cloning locally:
+
+### Push from GitHub Repository Root
+
+```bash
+stigmer skill push \
+  --git-url https://github.com/myorg/skills.git \
+  --git-ref v1.0.0
+```
+
+### Push from GitHub Subdirectory
+
+```bash
+stigmer skill push \
+  --git-url https://github.com/myorg/monorepo.git \
+  --git-ref main \
+  --subdir skills/calculator
+```
+
+**Use Cases**:
+- **CI/CD pipelines**: Push skills from GitHub Actions
+- **Shared repositories**: Multiple skills in one repo (monorepo pattern)
+- **Version pinning**: Push specific git tags or commits
+- **Quick deployment**: No need to clone entire repository
+
+**How it works**:
+1. CLI performs shallow clone (`--depth 1`) of the repository
+2. Extracts specified subdirectory (if provided)
+3. Validates SKILL.md and extracts name
+4. Creates artifact and uploads with git source metadata
+5. Cleans up temporary clone
+
+**Example Output**:
+```
+✓ Cloning https://github.com/myorg/monorepo.git (ref: v1.0.0)
+✓ Extracted subdirectory: skills/calculator
+✓ Skill name: calculator (from YAML frontmatter)
+✓ Creating skill artifact...
+✓ Uploading...
+✓ Skill uploaded successfully!
+
+Source Metadata:
+  URL:    https://github.com/myorg/monorepo.git
+  Ref:    v1.0.0
+  Subdir: skills/calculator
+```
 
 ## Configuration
 
@@ -217,14 +321,14 @@ Skills are uploaded to your active backend:
 ```bash
 # Uses local daemon at localhost:7234
 # Organization: "local"
-stigmer apply
+stigmer skill push
 ```
 
 **Cloud Backend** (Production):
 ```bash
 # Uses cloud backend from config
 # Organization: from config or --org flag
-stigmer apply --org my-org-id
+stigmer skill push --org my-org-id
 ```
 
 ### Scope
@@ -242,8 +346,43 @@ Skills are currently **organization-scoped** by default. Platform-scoped skills 
 # Check current directory
 ls SKILL.md
 
-# Create SKILL.md
-touch SKILL.md
+# Create SKILL.md with YAML frontmatter
+cat > SKILL.md << 'EOF'
+---
+name: my-skill
+---
+
+# My Skill
+
+Description here...
+EOF
+```
+
+### Error: "Skill name is required"
+
+**Cause**: Missing `name` field in YAML frontmatter.
+
+**Solution**: Add YAML frontmatter to the top of `SKILL.md`:
+```yaml
+---
+name: my-skill-name
+---
+```
+
+### Error: "Invalid skill name format"
+
+**Cause**: Skill name is not in kebab-case.
+
+**Solution**: Use lowercase letters, numbers, and hyphens only:
+```yaml
+---
+name: my-valid-skill-name  # ✅ Good
+---
+
+# Not valid:
+# name: MySkill            # ❌ Has capitals
+# name: my_skill           # ❌ Has underscores
+# name: My Skill           # ❌ Has spaces
 ```
 
 ### Large Skills (>10MB)

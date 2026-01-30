@@ -3,26 +3,32 @@ package subagent
 import (
 	"fmt"
 
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
-	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
 // Args contains configuration for a sub-agent (Pulumi Args pattern).
-// This is an alias to the generated InlineSubAgentArgs type.
-// Note: After proto regeneration, this will become SubAgentArgs.
-type Args = genAgent.InlineSubAgentArgs
+type Args struct {
+	// Description of what this sub-agent does.
+	Description string
+
+	// Instructions defining the sub-agent's behavior (min 10 characters).
+	Instructions string
+}
 
 // SubAgent represents a sub-agent that can be delegated to.
 // Sub-agents are defined inline within the parent agent spec.
+//
+// Sub-agents have restricted access to the parent's MCP servers via McpAccess grants.
+// They can only use MCP servers that the parent has declared and can only restrict
+// the tools further (cannot expand access beyond what parent has).
 type SubAgent struct {
-	name              string
-	description       string
-	instructions      string
-	mcpServers        []string
-	mcpToolSelections map[string]*types.McpToolSelection
-	skillRefs         []*apiresource.ApiResourceReference
+	name         string
+	description  string
+	instructions string
+	mcpAccess    []*agentv1.McpAccess
+	skillRefs    []*apiresource.ApiResourceReference
 }
 
 // New creates a sub-agent definition with struct args (Pulumi pattern).
@@ -33,17 +39,17 @@ type SubAgent struct {
 //
 // Optional args fields:
 //   - Description: human-readable description
-//   - McpServers: MCP server names this sub-agent can use
-//   - McpToolSelections: tool selections for each MCP server
-//   - SkillRefs: references to Skill resources
+//
+// After creation, use GrantMcpAccess() to specify which of the parent's
+// MCP servers this sub-agent can use.
 //
 // Example:
 //
 //	sub, err := subagent.New("code-analyzer", &subagent.Args{
 //	    Instructions: "Analyze code for bugs and security issues",
 //	    Description:  "Static code analyzer",
-//	    McpServers:   []string{"github"},
 //	})
+//	sub.GrantMcpAccess("github", "search_code", "get_file")
 func New(name string, args *Args) (SubAgent, error) {
 	// Nil-safety: if args is nil, create empty args
 	if args == nil {
@@ -51,50 +57,14 @@ func New(name string, args *Args) (SubAgent, error) {
 	}
 
 	s := SubAgent{
-		name:              name,
-		description:       args.Description,
-		instructions:      args.Instructions,
-		mcpServers:        args.McpServers,
-		mcpToolSelections: args.McpToolSelections,
-		skillRefs:         convertSkillRefs(args.SkillRefs),
+		name:         name,
+		description:  args.Description,
+		instructions: args.Instructions,
+		mcpAccess:    []*agentv1.McpAccess{},
+		skillRefs:    []*apiresource.ApiResourceReference{},
 	}
 
 	return s, nil
-}
-
-// convertSkillRefs converts generated types.ApiResourceReference to proto apiresource.ApiResourceReference.
-func convertSkillRefs(refs []*types.ApiResourceReference) []*apiresource.ApiResourceReference {
-	if refs == nil {
-		return nil
-	}
-	result := make([]*apiresource.ApiResourceReference, 0, len(refs))
-	for _, ref := range refs {
-		if ref != nil {
-			result = append(result, &apiresource.ApiResourceReference{
-				Slug:  ref.Slug,
-				Org:   ref.Org,
-				Scope: parseScope(ref.Scope),
-				Kind:  parseKind(ref.Kind),
-			})
-		}
-	}
-	return result
-}
-
-// parseScope converts string scope to proto enum.
-func parseScope(s string) apiresource.ApiResourceOwnerScope {
-	if v, ok := apiresource.ApiResourceOwnerScope_value[s]; ok {
-		return apiresource.ApiResourceOwnerScope(v)
-	}
-	return apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified
-}
-
-// parseKind converts string kind to proto enum.
-func parseKind(k string) apiresourcekind.ApiResourceKind {
-	if v, ok := apiresourcekind.ApiResourceKind_value[k]; ok {
-		return apiresourcekind.ApiResourceKind(v)
-	}
-	return apiresourcekind.ApiResourceKind_api_resource_kind_unknown
 }
 
 // Name returns the name of the sub-agent.
@@ -112,19 +82,92 @@ func (s SubAgent) Description() string {
 	return s.description
 }
 
-// MCPServerNames returns the list of MCP server names the sub-agent can use.
-func (s SubAgent) MCPServerNames() []string {
-	return s.mcpServers
-}
-
-// ToolSelections returns the MCP tool selections map.
-func (s SubAgent) ToolSelections() map[string]*types.McpToolSelection {
-	return s.mcpToolSelections
+// McpAccess returns the MCP access grants for this sub-agent.
+// Each grant specifies which MCP server (by slug) the sub-agent can use
+// and optionally which tools are enabled.
+func (s SubAgent) McpAccess() []*agentv1.McpAccess {
+	return s.mcpAccess
 }
 
 // SkillRefs returns the skill references for the sub-agent.
 func (s SubAgent) SkillRefs() []*apiresource.ApiResourceReference {
 	return s.skillRefs
+}
+
+// GrantMcpAccess grants this sub-agent access to one of the parent's MCP servers.
+//
+// The mcpServerSlug must match the slug of an MCP server that the parent agent
+// has declared in its McpServerUsages. The enabled tools (if specified) must be
+// a subset of the tools the parent has enabled for that server.
+//
+// If no enabled tools are specified, the sub-agent gets access to all tools
+// that the parent has enabled for this server.
+//
+// Example:
+//
+//	// Grant access to GitHub with specific tools only
+//	sub.GrantMcpAccess("github", "search_code", "get_file")
+//
+//	// Grant access to AWS with all tools the parent has enabled
+//	sub.GrantMcpAccess("aws")
+//
+//	// Chain multiple grants
+//	sub.GrantMcpAccess("github", "search_code").
+//	    GrantMcpAccess("slack", "send_message")
+func (s *SubAgent) GrantMcpAccess(mcpServerSlug string, enabledTools ...string) *SubAgent {
+	access := &agentv1.McpAccess{
+		McpServer:    mcpServerSlug,
+		EnabledTools: enabledTools,
+	}
+	s.mcpAccess = append(s.mcpAccess, access)
+	return s
+}
+
+// AddSkillRef adds a skill reference to the sub-agent.
+// Sub-agents can have their own skill references independent of the parent.
+//
+// Example:
+//
+//	sub.AddSkillRef(skillref.Platform("code-review-best-practices"))
+func (s *SubAgent) AddSkillRef(ref *apiresource.ApiResourceReference) *SubAgent {
+	s.skillRefs = append(s.skillRefs, ref)
+	return s
+}
+
+// AddSkillRefs adds multiple skill references to the sub-agent.
+//
+// Example:
+//
+//	sub.AddSkillRefs(
+//	    skillref.Platform("code-review"),
+//	    skillref.Platform("security-guidelines"),
+//	)
+func (s *SubAgent) AddSkillRefs(refs ...*apiresource.ApiResourceReference) *SubAgent {
+	s.skillRefs = append(s.skillRefs, refs...)
+	return s
+}
+
+// AddOrgSkillRef adds an organization-scoped skill reference.
+// The org parameter specifies which organization the skill belongs to.
+//
+// Version is optional - if omitted or empty, "latest" is used.
+//
+// Example:
+//
+//	sub.AddOrgSkillRef("acme-corp", "internal-docs")
+//	sub.AddOrgSkillRef("acme-corp", "internal-docs", "v1.0")
+func (s *SubAgent) AddOrgSkillRef(org, slug string, version ...string) *SubAgent {
+	ref := &apiresource.ApiResourceReference{
+		Kind:  apiresourcekind.ApiResourceKind_skill,
+		Slug:  slug,
+		Scope: apiresource.ApiResourceOwnerScope_organization,
+		Org:   org,
+	}
+	if len(version) > 0 && version[0] != "" {
+		ref.Version = version[0]
+	}
+	s.skillRefs = append(s.skillRefs, ref)
+	return s
 }
 
 // String returns a string representation of the sub-agent.

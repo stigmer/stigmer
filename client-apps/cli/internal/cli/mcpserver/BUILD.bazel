@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mcpserver",
+    srcs = [
+        "applier.go",
+        "loader.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//client-apps/cli/internal/cli/cliprint",
+        "@com_github_pkg_errors//:errors",
+        "@in_gopkg_yaml_v3//:yaml_v3",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)

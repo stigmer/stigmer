@@ -1,0 +1,558 @@
+"""Unit tests for MCP config transformer module.
+
+Tests cover:
+- Placeholder resolution (${VAR_NAME} syntax)
+- Stdio config transformation
+- HTTP config transformation
+- Tool filtering
+- Error handling
+- Multi-server transformation
+"""
+
+import pytest
+from unittest.mock import MagicMock
+
+from worker.mcp.config_transformer import (
+    resolve_placeholders,
+    transform_mcp_config,
+    transform_all_mcp_configs,
+    McpConfigResult,
+)
+
+
+# =============================================================================
+# Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def mock_stdio_spec():
+    """Create a mock McpServerSpec with stdio config."""
+    spec = MagicMock()
+    spec.HasField.side_effect = lambda x: x == "stdio"
+    spec.stdio.command = "npx"
+    spec.stdio.args = ["-y", "@modelcontextprotocol/server-github"]
+    spec.stdio.working_dir = "/app"
+    spec.default_enabled_tools = ["search_code", "create_pr"]
+    return spec
+
+
+@pytest.fixture
+def mock_http_spec():
+    """Create a mock McpServerSpec with HTTP config."""
+    spec = MagicMock()
+    spec.HasField.side_effect = lambda x: x == "http"
+    spec.http.url = "https://mcp.example.com/v1"
+    spec.http.headers = {
+        "Authorization": "Bearer ${API_TOKEN}",
+        "X-Custom-Header": "static-value",
+    }
+    spec.http.query_params = {
+        "region": "${AWS_REGION}",
+        "version": "v1",
+    }
+    spec.http.timeout_seconds = 60
+    spec.default_enabled_tools = []
+    return spec
+
+
+@pytest.fixture
+def mock_mcp_server():
+    """Create a mock McpServer proto message."""
+    server = MagicMock()
+    server.metadata.id = "mcp-server-123"
+    server.metadata.name = "github-mcp"
+    server.metadata.slug = "github"
+    server.spec.HasField.side_effect = lambda x: x == "stdio"
+    server.spec.stdio.command = "npx"
+    server.spec.stdio.args = ["-y", "@modelcontextprotocol/server-github"]
+    server.spec.stdio.working_dir = ""
+    server.spec.default_enabled_tools = ["search_code", "create_pr"]
+    return server
+
+
+@pytest.fixture
+def mock_mcp_server_http():
+    """Create a mock McpServer with HTTP config."""
+    server = MagicMock()
+    server.metadata.id = "mcp-server-456"
+    server.metadata.name = "custom-mcp"
+    server.metadata.slug = "custom-api"
+    server.spec.HasField.side_effect = lambda x: x == "http"
+    server.spec.http.url = "https://api.custom.com/mcp"
+    server.spec.http.headers = {"Authorization": "Bearer ${SECRET}"}
+    server.spec.http.query_params = {}
+    server.spec.http.timeout_seconds = 30
+    server.spec.default_enabled_tools = []
+    return server
+
+
+@pytest.fixture
+def mock_mcp_server_usage():
+    """Create a mock McpServerUsage."""
+    usage = MagicMock()
+    usage.mcp_server_ref.slug = "github"
+    usage.enabled_tools = ["search_code"]  # Restricted tools
+    return usage
+
+
+@pytest.fixture
+def mock_mcp_server_usage_all_tools():
+    """Create a mock McpServerUsage with all tools enabled."""
+    usage = MagicMock()
+    usage.mcp_server_ref.slug = "github"
+    usage.enabled_tools = []  # Empty = all tools
+    return usage
+
+
+# =============================================================================
+# Tests for resolve_placeholders()
+# =============================================================================
+
+
+class TestResolvePlaceholders:
+    """Tests for placeholder resolution function."""
+
+    def test_resolve_single_placeholder(self):
+        """Test resolving a single ${VAR} placeholder."""
+        result = resolve_placeholders(
+            "Bearer ${TOKEN}",
+            {"TOKEN": "abc123"}
+        )
+        assert result == "Bearer abc123"
+
+    def test_resolve_multiple_placeholders(self):
+        """Test resolving multiple placeholders in one string."""
+        result = resolve_placeholders(
+            "${PREFIX}-${SUFFIX}",
+            {"PREFIX": "hello", "SUFFIX": "world"}
+        )
+        assert result == "hello-world"
+
+    def test_unresolved_placeholder_preserved(self):
+        """Test that unresolved placeholders are preserved."""
+        result = resolve_placeholders(
+            "Bearer ${MISSING}",
+            {}
+        )
+        assert result == "Bearer ${MISSING}"
+
+    def test_partial_resolution(self):
+        """Test partial resolution when some vars are missing."""
+        result = resolve_placeholders(
+            "${EXISTS}-${MISSING}",
+            {"EXISTS": "found"}
+        )
+        assert result == "found-${MISSING}"
+
+    def test_empty_string(self):
+        """Test empty string returns empty string."""
+        result = resolve_placeholders("", {"VAR": "value"})
+        assert result == ""
+
+    def test_no_placeholders(self):
+        """Test string without placeholders passes through."""
+        result = resolve_placeholders(
+            "plain text",
+            {"VAR": "unused"}
+        )
+        assert result == "plain text"
+
+    def test_placeholder_with_underscores(self):
+        """Test placeholder with underscores in name."""
+        result = resolve_placeholders(
+            "${MY_API_KEY}",
+            {"MY_API_KEY": "secret123"}
+        )
+        assert result == "secret123"
+
+    def test_placeholder_with_numbers(self):
+        """Test placeholder with numbers in name."""
+        result = resolve_placeholders(
+            "${VAR123}",
+            {"VAR123": "value"}
+        )
+        assert result == "value"
+
+    def test_nested_braces_ignored(self):
+        """Test that nested/extra braces don't cause issues."""
+        # This tests that only ${VAR} pattern is matched
+        result = resolve_placeholders(
+            "${{DOUBLE}}",
+            {"DOUBLE": "value"}
+        )
+        # The ${DOUBLE} inside gets resolved, leaving ${ and }
+        assert result == "${value}"
+
+    def test_dollar_without_braces(self):
+        """Test that $ without braces is not a placeholder."""
+        result = resolve_placeholders(
+            "$VAR and ${VAR}",
+            {"VAR": "value"}
+        )
+        assert result == "$VAR and value"
+
+
+# =============================================================================
+# Tests for transform_mcp_config() - Stdio
+# =============================================================================
+
+
+class TestTransformMcpConfigStdio:
+    """Tests for stdio transport transformation."""
+
+    def test_basic_stdio_config(self, mock_stdio_spec):
+        """Test basic stdio config transformation."""
+        config, tools = transform_mcp_config(
+            server_slug="github",
+            spec=mock_stdio_spec,
+            env_vars={"GITHUB_TOKEN": "token123"},
+        )
+
+        assert config["transport"] == "stdio"
+        assert config["command"] == "npx"
+        assert config["args"] == ["-y", "@modelcontextprotocol/server-github"]
+        assert config["cwd"] == "/app"
+        assert config["env"] == {"GITHUB_TOKEN": "token123"}
+
+    def test_stdio_uses_default_enabled_tools(self, mock_stdio_spec):
+        """Test that default_enabled_tools from spec are used."""
+        config, tools = transform_mcp_config(
+            server_slug="github",
+            spec=mock_stdio_spec,
+            env_vars={},
+        )
+
+        assert tools == ["search_code", "create_pr"]
+
+    def test_stdio_explicit_tools_override_default(self, mock_stdio_spec):
+        """Test that explicit enabled_tools override defaults."""
+        config, tools = transform_mcp_config(
+            server_slug="github",
+            spec=mock_stdio_spec,
+            env_vars={},
+            enabled_tools=["search_code"],  # Restricted
+        )
+
+        assert tools == ["search_code"]
+
+    def test_stdio_no_working_dir(self):
+        """Test stdio config without working directory."""
+        spec = MagicMock()
+        spec.HasField.side_effect = lambda x: x == "stdio"
+        spec.stdio.command = "python"
+        spec.stdio.args = ["-m", "mcp_server"]
+        spec.stdio.working_dir = ""  # Empty
+        spec.default_enabled_tools = []
+
+        config, tools = transform_mcp_config(
+            server_slug="python-mcp",
+            spec=spec,
+            env_vars={},
+        )
+
+        assert "cwd" not in config
+
+    def test_stdio_empty_env_not_included(self):
+        """Test that empty env dict is still included (for subprocess)."""
+        spec = MagicMock()
+        spec.HasField.side_effect = lambda x: x == "stdio"
+        spec.stdio.command = "npx"
+        spec.stdio.args = []
+        spec.stdio.working_dir = ""
+        spec.default_enabled_tools = []
+
+        config, tools = transform_mcp_config(
+            server_slug="test",
+            spec=spec,
+            env_vars={},
+        )
+
+        # Empty env should not be included (falsy check)
+        assert "env" not in config or config["env"] == {}
+
+
+# =============================================================================
+# Tests for transform_mcp_config() - HTTP
+# =============================================================================
+
+
+class TestTransformMcpConfigHttp:
+    """Tests for HTTP transport transformation."""
+
+    def test_basic_http_config(self, mock_http_spec):
+        """Test basic HTTP config transformation."""
+        env_vars = {
+            "API_TOKEN": "secret123",
+            "AWS_REGION": "us-west-2",
+        }
+
+        config, tools = transform_mcp_config(
+            server_slug="custom-api",
+            spec=mock_http_spec,
+            env_vars=env_vars,
+        )
+
+        assert config["transport"] == "streamable_http"
+        # URL should include resolved query params
+        assert "https://mcp.example.com/v1?" in config["url"]
+        assert "region=us-west-2" in config["url"]
+        assert "version=v1" in config["url"]
+        assert config["headers"]["Authorization"] == "Bearer secret123"
+        assert config["headers"]["X-Custom-Header"] == "static-value"
+        assert config["timeout"] == 60
+
+    def test_http_placeholder_resolution_in_headers(self, mock_http_spec):
+        """Test that placeholders in headers are resolved."""
+        config, tools = transform_mcp_config(
+            server_slug="api",
+            spec=mock_http_spec,
+            env_vars={"API_TOKEN": "resolved_token", "AWS_REGION": "eu-west-1"},
+        )
+
+        assert config["headers"]["Authorization"] == "Bearer resolved_token"
+
+    def test_http_unresolved_placeholder_warning(self, mock_http_spec, caplog):
+        """Test that unresolved placeholders log a warning."""
+        import logging
+        caplog.set_level(logging.WARNING)
+
+        config, tools = transform_mcp_config(
+            server_slug="api",
+            spec=mock_http_spec,
+            env_vars={},  # No vars - placeholders won't resolve
+        )
+
+        # Should still contain placeholder
+        assert "${API_TOKEN}" in config["headers"]["Authorization"]
+        # Should have logged warning
+        assert any("Unresolved placeholder" in record.message for record in caplog.records)
+
+    def test_http_no_query_params(self):
+        """Test HTTP config without query params."""
+        spec = MagicMock()
+        spec.HasField.side_effect = lambda x: x == "http"
+        spec.http.url = "https://api.example.com/mcp"
+        spec.http.headers = {}
+        spec.http.query_params = {}
+        spec.http.timeout_seconds = 0
+        spec.default_enabled_tools = []
+
+        config, tools = transform_mcp_config(
+            server_slug="simple-api",
+            spec=spec,
+            env_vars={},
+        )
+
+        assert config["url"] == "https://api.example.com/mcp"
+        assert "timeout" not in config  # 0 timeout not included
+
+    def test_http_no_headers(self):
+        """Test HTTP config without headers."""
+        spec = MagicMock()
+        spec.HasField.side_effect = lambda x: x == "http"
+        spec.http.url = "https://api.example.com/mcp"
+        spec.http.headers = {}
+        spec.http.query_params = {}
+        spec.http.timeout_seconds = 30
+        spec.default_enabled_tools = []
+
+        config, tools = transform_mcp_config(
+            server_slug="no-headers",
+            spec=spec,
+            env_vars={},
+        )
+
+        assert "headers" not in config
+
+    def test_http_url_encoding(self):
+        """Test that query params are properly URL-encoded."""
+        spec = MagicMock()
+        spec.HasField.side_effect = lambda x: x == "http"
+        spec.http.url = "https://api.example.com/mcp"
+        spec.http.headers = {}
+        spec.http.query_params = {"key": "value with spaces"}
+        spec.http.timeout_seconds = 0
+        spec.default_enabled_tools = []
+
+        config, tools = transform_mcp_config(
+            server_slug="encoded",
+            spec=spec,
+            env_vars={},
+        )
+
+        # urllib.parse.urlencode should encode spaces
+        assert "value+with+spaces" in config["url"] or "value%20with%20spaces" in config["url"]
+
+
+# =============================================================================
+# Tests for transform_mcp_config() - Error Cases
+# =============================================================================
+
+
+class TestTransformMcpConfigErrors:
+    """Tests for error handling in config transformation."""
+
+    def test_no_server_type_raises_error(self):
+        """Test that missing server type raises ValueError."""
+        spec = MagicMock()
+        spec.HasField.return_value = False  # Neither stdio nor http
+
+        with pytest.raises(ValueError) as exc_info:
+            transform_mcp_config(
+                server_slug="invalid",
+                spec=spec,
+                env_vars={},
+            )
+
+        assert "no valid server type" in str(exc_info.value).lower()
+
+
+# =============================================================================
+# Tests for transform_all_mcp_configs()
+# =============================================================================
+
+
+class TestTransformAllMcpConfigs:
+    """Tests for multi-server transformation."""
+
+    def test_transform_single_server(
+        self, mock_mcp_server, mock_mcp_server_usage
+    ):
+        """Test transforming a single server."""
+        result = transform_all_mcp_configs(
+            mcp_servers=[mock_mcp_server],
+            mcp_server_usages=[mock_mcp_server_usage],
+            env_vars={"GITHUB_TOKEN": "token123"},
+        )
+
+        assert isinstance(result, McpConfigResult)
+        assert "github" in result.servers
+        assert "github" in result.tools
+        assert result.servers["github"]["transport"] == "stdio"
+        assert result.tools["github"] == ["search_code"]
+
+    def test_transform_multiple_servers(
+        self,
+        mock_mcp_server,
+        mock_mcp_server_http,
+        mock_mcp_server_usage,
+    ):
+        """Test transforming multiple servers."""
+        usage_http = MagicMock()
+        usage_http.mcp_server_ref.slug = "custom-api"
+        usage_http.enabled_tools = []
+
+        result = transform_all_mcp_configs(
+            mcp_servers=[mock_mcp_server, mock_mcp_server_http],
+            mcp_server_usages=[mock_mcp_server_usage, usage_http],
+            env_vars={"GITHUB_TOKEN": "token", "SECRET": "mysecret"},
+        )
+
+        assert len(result.servers) == 2
+        assert "github" in result.servers
+        assert "custom-api" in result.servers
+
+    def test_transform_empty_list(self):
+        """Test transforming empty server list."""
+        result = transform_all_mcp_configs(
+            mcp_servers=[],
+            mcp_server_usages=[],
+            env_vars={},
+        )
+
+        assert result.servers == {}
+        assert result.tools == {}
+
+    def test_missing_server_skipped(self, mock_mcp_server_usage):
+        """Test that missing servers are skipped with error log."""
+        result = transform_all_mcp_configs(
+            mcp_servers=[],  # No servers
+            mcp_server_usages=[mock_mcp_server_usage],  # But usage references github
+            env_vars={},
+        )
+
+        # github usage should be skipped since server wasn't fetched
+        assert "github" not in result.servers
+
+    def test_server_without_slug_skipped(self, mock_mcp_server_usage):
+        """Test that servers without slug are skipped."""
+        server = MagicMock()
+        server.metadata.id = "some-id"
+        server.metadata.slug = ""  # Empty slug
+
+        result = transform_all_mcp_configs(
+            mcp_servers=[server],
+            mcp_server_usages=[mock_mcp_server_usage],
+            env_vars={},
+        )
+
+        assert len(result.servers) == 0
+
+    def test_usage_without_slug_skipped(self, mock_mcp_server):
+        """Test that usages without slug are skipped."""
+        usage = MagicMock()
+        usage.mcp_server_ref.slug = ""  # Empty
+
+        result = transform_all_mcp_configs(
+            mcp_servers=[mock_mcp_server],
+            mcp_server_usages=[usage],
+            env_vars={},
+        )
+
+        # Server exists but usage doesn't reference it properly
+        assert len(result.servers) == 0
+
+    def test_tools_from_usage_override_default(
+        self, mock_mcp_server, mock_mcp_server_usage
+    ):
+        """Test that tools from usage override server defaults."""
+        # mock_mcp_server has default_enabled_tools = ["search_code", "create_pr"]
+        # mock_mcp_server_usage has enabled_tools = ["search_code"]
+
+        result = transform_all_mcp_configs(
+            mcp_servers=[mock_mcp_server],
+            mcp_server_usages=[mock_mcp_server_usage],
+            env_vars={},
+        )
+
+        # Should use the restricted list from usage
+        assert result.tools["github"] == ["search_code"]
+
+    def test_empty_usage_tools_uses_default(
+        self, mock_mcp_server, mock_mcp_server_usage_all_tools
+    ):
+        """Test that empty usage tools means use server defaults."""
+        result = transform_all_mcp_configs(
+            mcp_servers=[mock_mcp_server],
+            mcp_server_usages=[mock_mcp_server_usage_all_tools],
+            env_vars={},
+        )
+
+        # Should use default_enabled_tools from server spec
+        assert result.tools["github"] == ["search_code", "create_pr"]
+
+
+# =============================================================================
+# Tests for McpConfigResult dataclass
+# =============================================================================
+
+
+class TestMcpConfigResult:
+    """Tests for McpConfigResult dataclass."""
+
+    def test_create_empty_result(self):
+        """Test creating empty result."""
+        result = McpConfigResult(servers={}, tools={})
+        assert result.servers == {}
+        assert result.tools == {}
+
+    def test_create_with_data(self):
+        """Test creating result with data."""
+        result = McpConfigResult(
+            servers={"github": {"transport": "stdio", "command": "npx"}},
+            tools={"github": ["search_code"]},
+        )
+        assert "github" in result.servers
+        assert result.servers["github"]["transport"] == "stdio"
+        assert result.tools["github"] == ["search_code"]

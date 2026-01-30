@@ -74,3 +74,59 @@ def mock_skill_stub():
     stub.get = AsyncMock()
     stub.getByReference = AsyncMock()
     return stub
+
+
+# =============================================================================
+# MCP Server Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def mock_mcp_server_stub():
+    """Create a mock McpServerQueryController stub."""
+    stub = MagicMock()
+    stub.get = AsyncMock()
+    stub.getByReference = AsyncMock()
+    return stub
+
+
+@pytest.fixture
+def mock_mcp_server():
+    """Create a mock McpServer proto message with stdio config."""
+    server = MagicMock()
+    server.metadata.id = "mcp-server-123"
+    server.metadata.name = "github-mcp"
+    server.metadata.slug = "github"
+    server.spec.HasField.side_effect = lambda x: x == "stdio"
+    server.spec.stdio.command = "npx"
+    server.spec.stdio.args = ["-y", "@modelcontextprotocol/server-github"]
+    server.spec.stdio.working_dir = ""
+    server.spec.default_enabled_tools = ["search_code", "create_pr"]
+    return server
+
+
+@pytest.fixture
+def mock_mcp_server_http():
+    """Create a mock McpServer proto message with HTTP config."""
+    server = MagicMock()
+    server.metadata.id = "mcp-server-456"
+    server.metadata.name = "custom-api-mcp"
+    server.metadata.slug = "custom-api"
+    server.spec.HasField.side_effect = lambda x: x == "http"
+    server.spec.http.url = "https://api.example.com/mcp"
+    server.spec.http.headers = {"Authorization": "Bearer ${API_TOKEN}"}
+    server.spec.http.query_params = {}
+    server.spec.http.timeout_seconds = 30
+    server.spec.default_enabled_tools = []
+    return server
+
+
+@pytest.fixture
+def mock_api_resource_reference():
+    """Create a mock ApiResourceReference."""
+    ref = MagicMock()
+    ref.slug = "github"
+    ref.scope = "org"
+    ref.org = "test-org"
+    ref.kind = "McpServer"
+    return ref
