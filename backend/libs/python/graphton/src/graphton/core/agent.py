@@ -35,6 +35,10 @@ def create_deep_agent(
     auto_enhance_prompt: bool = True,
     subagents: list[dict[str, Any]] | None = None,
     general_purpose_agent: bool = True,
+    # Loop detection configuration - tuned for autonomous, self-correcting agents
+    loop_history_size: int = 20,
+    loop_consecutive_threshold: int = 7,
+    loop_total_threshold: int = 20,
     **model_kwargs: Any,  # noqa: ANN401
 ) -> CompiledStateGraph:
     """Create a Deep Agent with minimal boilerplate.
@@ -109,6 +113,17 @@ def create_deep_agent(
             (default: True). The general-purpose sub-agent has the same tools
             and model as the main agent, useful for breaking down tasks without
             defining specialized sub-agents.
+        loop_history_size: Number of recent tool calls to track for loop detection
+            (default: 20). Higher values provide better pattern detection but use
+            more memory. Recommended range: 10-50.
+        loop_consecutive_threshold: Number of consecutive identical tool calls before
+            the agent receives a warning intervention (default: 7). This allows the
+            agent to retry failed operations while still catching infinite loops.
+            Set higher (10-15) for very autonomous agents, lower (3-5) for cautious ones.
+        loop_total_threshold: Total repetitions of a tool+params combination before
+            forcing graceful stop (default: 20). This is the hard limit that prevents
+            runaway agents. Should be higher than consecutive_threshold.
+            Set higher (25-50) for complex tasks, lower (10-15) for simple ones.
         **model_kwargs: Additional model-specific parameters to pass to the model
             constructor (e.g., top_p, top_k for Anthropic).
     
@@ -247,6 +262,9 @@ def create_deep_agent(
             temperature=temperature,
             subagents=subagents,
             general_purpose_agent=general_purpose_agent,
+            loop_history_size=loop_history_size,
+            loop_consecutive_threshold=loop_consecutive_threshold,
+            loop_total_threshold=loop_total_threshold,
         )
     except ValidationError as e:
         # Re-raise with context about configuration validation
@@ -285,10 +303,12 @@ def create_deep_agent(
     # Auto-inject loop detection middleware for autonomous agents
     # This prevents infinite loops by tracking tool invocations and intervening
     # when repetitive patterns are detected. Enabled by default.
+    # Default thresholds are tuned for self-correcting agents that need room
+    # to retry and try alternative approaches before being stopped.
     loop_detection = LoopDetectionMiddleware(
-        history_size=10,
-        consecutive_threshold=3,
-        total_threshold=5,
+        history_size=loop_history_size,
+        consecutive_threshold=loop_consecutive_threshold,
+        total_threshold=loop_total_threshold,
         enabled=True,
     )
     middleware_list.append(loop_detection)
