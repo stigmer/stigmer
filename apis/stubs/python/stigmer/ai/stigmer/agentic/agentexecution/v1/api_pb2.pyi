@@ -241,3 +241,19 @@ class PendingApproval(_message.Message):
     from_sub_agent: bool
     sub_agent_name: str
     def __init__(self, tool_call_id: _Optional[str] = ..., tool_name: _Optional[str] = ..., message: _Optional[str] = ..., args_preview: _Optional[str] = ..., requested_at: _Optional[str] = ..., from_sub_agent: bool = ..., sub_agent_name: _Optional[str] = ...) -> None: ...
+
+class ChildApprovalNotification(_message.Message):
+    __slots__ = ("execution_id", "tool_call_id", "tool_name", "message", "args_preview", "requested_at")
+    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    TOOL_CALL_ID_FIELD_NUMBER: _ClassVar[int]
+    TOOL_NAME_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    ARGS_PREVIEW_FIELD_NUMBER: _ClassVar[int]
+    REQUESTED_AT_FIELD_NUMBER: _ClassVar[int]
+    execution_id: str
+    tool_call_id: str
+    tool_name: str
+    message: str
+    args_preview: str
+    requested_at: str
+    def __init__(self, execution_id: _Optional[str] = ..., tool_call_id: _Optional[str] = ..., tool_name: _Optional[str] = ..., message: _Optional[str] = ..., args_preview: _Optional[str] = ..., requested_at: _Optional[str] = ...) -> None: ...

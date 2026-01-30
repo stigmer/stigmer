@@ -1,3 +1,4 @@
+from ai.stigmer.agentic.agentexecution.v1 import api_pb2 as _api_pb2
 from ai.stigmer.agentic.workflowexecution.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.workflowexecution.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2 as _metadata_pb2
@@ -27,7 +28,7 @@ class WorkflowExecution(_message.Message):
     def __init__(self, api_version: _Optional[str] = ..., kind: _Optional[str] = ..., metadata: _Optional[_Union[_metadata_pb2.ApiResourceMetadata, _Mapping]] = ..., spec: _Optional[_Union[_spec_pb2.WorkflowExecutionSpec, _Mapping]] = ..., status: _Optional[_Union[WorkflowExecutionStatus, _Mapping]] = ...) -> None: ...
 
 class WorkflowExecutionStatus(_message.Message):
-    __slots__ = ("audit", "phase", "tasks", "output", "error", "started_at", "completed_at", "temporal_workflow_id")
+    __slots__ = ("audit", "phase", "tasks", "output", "error", "started_at", "completed_at", "temporal_workflow_id", "pending_approval")
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     PHASE_FIELD_NUMBER: _ClassVar[int]
     TASKS_FIELD_NUMBER: _ClassVar[int]
@@ -36,6 +37,7 @@ class WorkflowExecutionStatus(_message.Message):
     STARTED_AT_FIELD_NUMBER: _ClassVar[int]
     COMPLETED_AT_FIELD_NUMBER: _ClassVar[int]
     TEMPORAL_WORKFLOW_ID_FIELD_NUMBER: _ClassVar[int]
+    PENDING_APPROVAL_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     phase: _enum_pb2.ExecutionPhase
     tasks: _containers.RepeatedCompositeFieldContainer[WorkflowTask]
@@ -44,7 +46,8 @@ class WorkflowExecutionStatus(_message.Message):
     started_at: str
     completed_at: str
     temporal_workflow_id: str
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., temporal_workflow_id: _Optional[str] = ...) -> None: ...
+    pending_approval: _api_pb2.PendingApproval
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., temporal_workflow_id: _Optional[str] = ..., pending_approval: _Optional[_Union[_api_pb2.PendingApproval, _Mapping]] = ...) -> None: ...
 
 class WorkflowTask(_message.Message):
     __slots__ = ("task_id", "task_name", "task_type", "input", "output", "status", "started_at", "completed_at", "error", "metadata")
