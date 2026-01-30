@@ -12,6 +12,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//client-apps/cli/internal/cli/cliprint",
+        "//client-apps/cli/pkg/ignore",
         "@com_github_pkg_errors//:errors",
         "@in_gopkg_yaml_v3//:yaml_v3",
         "@org_golang_google_grpc//:grpc",
