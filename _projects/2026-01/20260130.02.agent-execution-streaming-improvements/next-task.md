@@ -109,8 +109,8 @@ Check anti-patterns to avoid.
 ## Current Status
 
 **Created**: 2026-01-30
-**Last Session**: 2026-01-30 (Phase 1.1 Implementation)
-**Current Task**: Phase 1.1 Complete - Ready for Phase 1.2
+**Last Session**: 2026-01-30 (Phase 1.2 Implementation)
+**Current Task**: Phase 1.2 Complete - Ready for Phase 1.3
 **Status**: IN PROGRESS
 
 ## Session Progress (2026-01-30)
@@ -130,56 +130,79 @@ Check anti-patterns to avoid.
 - `backend/services/agent-runner/worker/activities/graphton/status_builder.py` (+116 lines)
 - `backend/services/agent-runner/tests/test_status_builder.py` (new file, 347 lines)
 
-**Key implementation details:**
-- Supports both LangChain object format and dict format for usage metadata
-- Handles OpenAI-style `prompt_tokens`/`completion_tokens` naming
-- Calculates generation duration in milliseconds
-- Accumulates tokens across multiple LLM calls per execution
-- Graceful error handling for missing messages or empty output
+### ✅ Completed: Phase 1.2 - Time-Based Streaming Updates
 
-**Test coverage:**
-- Stream event handling (create message, append tokens, record start time)
-- End event handling (extract usage, calculate duration, accumulate tokens)
-- Multiple usage metadata formats (object, dict, OpenAI-style)
-- Error cases (missing messages, empty output, None output)
-- Event routing verification
+**What was accomplished:**
+- Created new `worker/streaming/` module with hybrid time + event scheduler
+- Implemented `StreamingConfig` dataclass with environment variable support
+- Implemented `StreamingUpdateScheduler` class with hybrid scheduling algorithm
+- Replaced naive event-count based updates with intelligent time-based system
+- Added structured logging with `[STREAM]` prefix for observability
+- Created comprehensive unit test suite (44 tests, all passing)
+
+**Files created/modified:**
+- `backend/services/agent-runner/worker/streaming/__init__.py` (new module)
+- `backend/services/agent-runner/worker/streaming/update_scheduler.py` (new, ~350 lines)
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` (refactored streaming loop)
+- `backend/services/agent-runner/tests/test_streaming_update_scheduler.py` (new, 44 tests)
+
+**Key implementation details:**
+- Hybrid scheduling algorithm with three trigger conditions:
+  1. Time threshold: 500ms minimum between updates (rate limiting)
+  2. Burst protection: 50 events forces immediate update (memory safety)
+  3. Keepalive: 5 second maximum for long operations (UX)
+- Uses `time.monotonic()` for reliable duration tracking (immune to clock changes)
+- Configurable via environment variables:
+  - `STREAMING_MIN_INTERVAL_MS` (default: 500)
+  - `STREAMING_MAX_INTERVAL_MS` (default: 5000)
+  - `STREAMING_BURST_THRESHOLD` (default: 50)
+- Heartbeat now time-based (every 2 seconds) instead of event-count
+- Structured logging shows reason for each update (time_threshold, burst_protection, keepalive, first_update)
+
+**Test coverage (44 tests):**
+- StreamingConfig: defaults, validation, env loading, edge cases
+- StreamingUpdateScheduler: time-based triggers, burst protection, keepalive
+- First update handling, state management, reset functionality
+- Edge cases: rapid events, zero events, high event counts
+
+**Architecture decision:**
+- Created dedicated `StreamingUpdateScheduler` class instead of inline logic
+- Benefits: testable, reusable, clean separation of concerns
+- Follows existing codebase patterns (dataclass + load_from_env)
 
 ## Next Steps
 
-1. **Phase 1.2: Time-Based Streaming Updates**
-   - Replace event-count based updates (current: every 10 events)
-   - Implement time-based updates (500ms minimum interval)
-   - Add configurable thresholds via environment variables
-   - Update `execute_graphton.py` streaming loop (lines 519-575)
-   - Test with both slow and fast operations
-
-2. **Phase 1.3: Reliable Final Status Persistence**
+1. **Phase 1.3: Reliable Final Status Persistence**
    - Add retry logic for final status update (exponential backoff)
    - Consider workflow-level backup persistence
    - Handle gRPC failures gracefully
 
-3. **Phase 2.1: Proto Changes for Streaming State**
+2. **Phase 2.1: Proto Changes for Streaming State**
    - Add `is_streaming`, `token_count`, `generation_duration_ms` to AgentMessage
    - Update StatusBuilder to populate new fields
    - Regenerate all stubs
 
+3. **Phase 2.2: Use RUNNING Status for ToolCall**
+   - Update `_handle_tool_start_event` to set RUNNING status
+   - Frontend can show "running" indicator for long tools
+
 ## Context for Resume
 
 **Current implementation state:**
-- `on_chat_model_end` handler is production-ready
+- Phase 1.1 and 1.2 are production-ready
 - Token tracking works but data only in logs (proto fields come in Phase 2.1)
-- Message timing is tracked internally, ready for proto fields
-- Test coverage is comprehensive (14 tests)
+- Streaming updates are now time-based with configurable thresholds
+- Test coverage is comprehensive (14 + 44 = 58 tests)
 
 **Important discoveries:**
-- LangChain usage metadata format varies by provider (Anthropic, OpenAI, Ollama)
-- Handler needs to support both object attributes and dict keys
-- Message indices are stable during streaming (safe to use as tracking keys)
+- Monotonic time is essential for reliable duration tracking
+- Hybrid approach (time + events) handles both slow and fast operations well
+- Separating heartbeat from status update timing is important (different purposes)
 
 **Technical decisions:**
-- Chose to accumulate tokens at execution level (not just per-message)
-- Log format: `[USAGE] execution=<id> prompt_tokens=X completion_tokens=Y ...`
-- Duration calculation uses message index, not run_id (messages don't have run_id)
+- Used frozen dataclass for immutable configuration
+- UpdateReason enum provides clear logging and debugging
+- Mark update as sent even on failure to prevent retry storms
 
 ## Resume Checklist
 
@@ -187,9 +210,9 @@ When starting a new session:
 
 1. [x] Read the task plan: `tasks/T01_0_plan.md`
 2. [x] Check for latest checkpoint in `checkpoints/`
-3. [ ] Review Phase 1.2 requirements (time-based streaming)
-4. [ ] Read `execute_graphton.py` streaming loop implementation
-5. [ ] Continue with Phase 1.2 or move to Phase 2 (proto changes)
+3. [x] Review Phase 1.2 requirements (time-based streaming) - COMPLETED
+4. [x] Implement time-based streaming scheduler - COMPLETED
+5. [ ] Continue with Phase 1.3 (retry logic) or Phase 2 (proto changes)
 
 ## Quick Commands
 
@@ -211,12 +234,12 @@ The project addresses issues found in architectural review:
 - No HITL foundation fields
 
 **StatusBuilder Issues**:
-- Only handles 3 event types (missing `on_chat_model_end`)
-- AI message streaming never finalizes
+- ~~Only handles 3 event types (missing `on_chat_model_end`)~~ ✅ FIXED in Phase 1.1
+- ~~AI message streaming never finalizes~~ ✅ FIXED in Phase 1.1
 - Sub-agent namespace routing not implemented
 
 **Streaming Strategy Issues**:
-- Event-count based (bad UX for slow/fast operations)
+- ~~Event-count based (bad UX for slow/fast operations)~~ ✅ FIXED in Phase 1.2
 - Full state transmission (wasteful)
 - Final update has no retry (data loss risk)
 
