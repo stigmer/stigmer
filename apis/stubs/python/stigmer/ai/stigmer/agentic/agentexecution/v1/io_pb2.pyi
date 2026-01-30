@@ -50,3 +50,23 @@ class ListAgentExecutionsBySessionRequest(_message.Message):
     page_size: int
     page_token: str
     def __init__(self, session_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+
+class AgentExecutionUpdateStatusInput(_message.Message):
+    __slots__ = ("execution_id", "status")
+    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    execution_id: str
+    status: _api_pb2.AgentExecutionStatus
+    def __init__(self, execution_id: _Optional[str] = ..., status: _Optional[_Union[_api_pb2.AgentExecutionStatus, _Mapping]] = ...) -> None: ...
+
+class SubmitApprovalInput(_message.Message):
+    __slots__ = ("agent_execution_id", "tool_call_id", "action", "comment")
+    AGENT_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    TOOL_CALL_ID_FIELD_NUMBER: _ClassVar[int]
+    ACTION_FIELD_NUMBER: _ClassVar[int]
+    COMMENT_FIELD_NUMBER: _ClassVar[int]
+    agent_execution_id: str
+    tool_call_id: str
+    action: _api_pb2.ApprovalAction
+    comment: str
+    def __init__(self, agent_execution_id: _Optional[str] = ..., tool_call_id: _Optional[str] = ..., action: _Optional[_Union[_api_pb2.ApprovalAction, str]] = ..., comment: _Optional[str] = ...) -> None: ...

@@ -147,8 +147,28 @@ type AgentExecutionSpec struct {
 	//
 	// @since 2026-01-22 (Phase 2: Async Agent Execution Integration)
 	CallbackToken []byte `protobuf:"bytes,6,opt,name=callback_token,json=callbackToken,proto3" json:"callback_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Auto-approve all tool executions for this execution.
+	//
+	// When true, tools that would normally require approval are automatically
+	// approved without user intervention. This is the highest-priority override
+	// in the approval policy chain:
+	//
+	//	McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+	//
+	// Use cases:
+	// - Automated CI/CD pipelines where human approval isn't practical
+	// - Trusted batch operations with pre-validated inputs
+	// - Development/testing environments
+	// - Scheduled jobs where approval would block automation
+	//
+	// Security consideration: This flag bypasses all approval checks.
+	// Ensure appropriate access controls on who can set this flag.
+	// Consider auditing executions where this flag is used.
+	//
+	// Default: false (approvals required as configured in policies)
+	AutoApproveAll bool `protobuf:"varint,7,opt,name=auto_approve_all,json=autoApproveAll,proto3" json:"auto_approve_all,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *AgentExecutionSpec) Reset() {
@@ -223,6 +243,13 @@ func (x *AgentExecutionSpec) GetCallbackToken() []byte {
 	return nil
 }
 
+func (x *AgentExecutionSpec) GetAutoApproveAll() bool {
+	if x != nil {
+		return x.AutoApproveAll
+	}
+	return false
+}
+
 // Configuration that can be applied at execution time.
 type ExecutionConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -274,7 +301,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xdc\x03\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\x86\x04\n" +
 	"\x12AgentExecutionSpec\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
@@ -283,7 +310,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x10execution_config\x18\x04 \x01(\v25.ai.stigmer.agentic.agentexecution.v1.ExecutionConfigR\x0fexecutionConfig\x12i\n" +
 	"\vruntime_env\x18\x05 \x03(\v2H.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntryR\n" +
 	"runtimeEnv\x12%\n" +
-	"\x0ecallback_token\x18\x06 \x01(\fR\rcallbackToken\x1au\n" +
+	"\x0ecallback_token\x18\x06 \x01(\fR\rcallbackToken\x12(\n" +
+	"\x10auto_approve_all\x18\a \x01(\bR\x0eautoApproveAll\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"0\n" +

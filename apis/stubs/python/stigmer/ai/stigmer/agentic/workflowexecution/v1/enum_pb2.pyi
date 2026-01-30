@@ -32,6 +32,7 @@ class WorkflowTaskStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     WORKFLOW_TASK_COMPLETED: _ClassVar[WorkflowTaskStatus]
     WORKFLOW_TASK_FAILED: _ClassVar[WorkflowTaskStatus]
     WORKFLOW_TASK_SKIPPED: _ClassVar[WorkflowTaskStatus]
+    WORKFLOW_TASK_WAITING_APPROVAL: _ClassVar[WorkflowTaskStatus]
 EXECUTION_PHASE_UNSPECIFIED: ExecutionPhase
 EXECUTION_PENDING: ExecutionPhase
 EXECUTION_IN_PROGRESS: ExecutionPhase
@@ -52,3 +53,4 @@ WORKFLOW_TASK_IN_PROGRESS: WorkflowTaskStatus
 WORKFLOW_TASK_COMPLETED: WorkflowTaskStatus
 WORKFLOW_TASK_FAILED: WorkflowTaskStatus
 WORKFLOW_TASK_SKIPPED: WorkflowTaskStatus
+WORKFLOW_TASK_WAITING_APPROVAL: WorkflowTaskStatus

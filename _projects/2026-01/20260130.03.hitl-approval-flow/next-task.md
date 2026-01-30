@@ -18,9 +18,75 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-01-30
-**Last Session**: 2026-01-30 (Phase 2 Session)
-**Current Phase**: Phase 2 Complete - StatusBuilder Approval State Management
-**Status**: IN_PROGRESS - Ready for Phase 3
+**Last Session**: 2026-01-30 (Phase 3A Session)
+**Current Phase**: Phase 3A Complete - Approval Config Wiring
+**Status**: IN_PROGRESS - Ready for Phase 3B (LangGraph Interrupt)
+
+---
+
+## Session Progress (2026-01-30 - Phase 3A Implementation)
+
+### Completed - Phase 3A: ApprovalConfig Wiring
+**Duration**: ~1.5 hours | **Lines Added**: ~370 lines (net: +140 after refactoring)
+
+#### What Was Accomplished
+1. **Created `build_approval_config()` function** - Assembles `ApprovalConfig` from execution context
+   - Location: `approval_policy.py` (kept with `ApprovalConfig` class for cohesion)
+   - Pure function with no I/O, accepts proto objects or mocks
+   - Handles all edge cases gracefully (missing fields, malformed data)
+   - Extracts data from 4 sources: execution.spec, mcp_server_usages, mcp_servers, mcp_tools_config
+
+2. **Wired ApprovalConfig into execute_graphton.py**
+   - Moved `StatusBuilder` initialization from line 251 to line 611 (after MCP server fetch)
+   - Added Step 5.6 to build `ApprovalConfig` with complete policy data
+   - Passes `approval_config` to `StatusBuilder` constructor
+   - Added `mcp_servers = []` initialization and reset in exception handlers
+
+3. **Comprehensive Unit Tests** - Added `TestBuildApprovalConfig` class with 13 tests
+   - All 112 tests pass (99 existing + 13 new)
+   - Tests cover: empty inputs, auto_approve_all extraction, override collection, default policies, tool mapping
+   - Tests verify graceful handling of malformed/missing data
+
+#### Key Technical Decisions
+
+| Decision | Implementation | Rationale |
+|----------|---------------|-----------|
+| Function location | `approval_policy.py` (not `execute_graphton.py`) | Keeps config builder with config class, avoids heavy import chain |
+| StatusBuilder timing | Initialize after MCP fetch (line 611) | Needs complete MCP data to build ApprovalConfig |
+| Error handling | Safe defaults for all missing fields | Production-ready, won't crash on malformed protos |
+| Server slug fallback | Use `metadata.name` if `slug` missing | Handles legacy MCP servers without slug field |
+
+#### Architecture Flow
+
+```
+execute_graphton.py
+    │
+    ▼
+Step 5: Fetch MCP servers
+    │
+    ▼
+Step 5.6: build_approval_config() ← NEW
+    ├─ execution.spec.auto_approve_all
+    ├─ mcp_server_usages[].tool_approval_overrides
+    ├─ mcp_servers[].spec.default_tool_approvals
+    └─ mcp_tools_config → tool_to_mcp_server mapping
+    │
+    ▼
+StatusBuilder(execution_id, status, approval_config)
+    │
+    ▼
+Tools matching policies → WAITING_APPROVAL status
+```
+
+#### What This Enables
+
+Tools that match approval policies will now be correctly marked `WAITING_APPROVAL` instead of `RUNNING`. This is the foundation for the actual interrupt mechanism in Phase 3B.
+
+#### What This Does NOT Do (Phase 3B Scope)
+
+- Does NOT actually pause LangGraph execution
+- Tools still execute even when marked WAITING_APPROVAL
+- Phase 3B will add the LangGraph interrupt mechanism
 
 ---
 
@@ -140,12 +206,27 @@ Drop this file into your conversation to quickly resume work on this project.
 - [x] Update `_handle_tool_start_event()` to check approval requirements
 - [x] Add unit tests for approval state management
 
-### Phase 3: LangGraph Integration (~3 days)
-- [ ] Create `should_require_approval()` helper
-- [ ] Create `create_approval_wrapped_tool()` wrapper
-- [ ] Integrate with tool initialization in `execute_graphton.py`
-- [ ] Test interrupt/resume flow locally
+### Phase 3A: ApprovalConfig Wiring - ✅ COMPLETE
+- [x] Create `build_approval_config()` function
+- [x] Move StatusBuilder init after MCP fetch, pass ApprovalConfig
+- [x] Add comprehensive unit tests (13 new tests, all pass)
+
+### Phase 3B: LangGraph Interrupt Mechanism (~2-3 days) - NEXT
+**Goal**: Actually pause LangGraph execution when tool requires approval
+
+**Investigation needed**:
+- Research `graphton` library interrupt capabilities
+- Understand LangGraph `interrupt_before`/`interrupt_after` patterns
+- Determine if tool wrapper is needed vs graph-level interrupt
+- Figure out resume mechanism after approval
+
+**Implementation**:
+- [ ] Research LangGraph interrupt/resume patterns in `graphton`
+- [ ] Design interrupt mechanism (tool wrapper vs node interrupt)
+- [ ] Implement pause at tool execution boundary
+- [ ] Implement resume flow after approval decision
 - [ ] Handle sub-agent approval surfacing
+- [ ] Test interrupt/resume flow locally
 
 ### Phase 4: Java Handler (~2 days)
 - [ ] Implement `submitApproval` RPC handler
@@ -169,6 +250,22 @@ Drop this file into your conversation to quickly resume work on this project.
 - [ ] Test auto_approve_all mode
 - [ ] Test sub-agent approval propagation
 - [ ] Test workflow-to-agent propagation
+
+---
+
+## Modified Files (Phase 3A)
+
+### stigmer (Python implementation)
+```
+backend/services/agent-runner/worker/activities/graphton/approval_policy.py    (+109 lines - build_approval_config function)
+backend/services/agent-runner/worker/activities/execute_graphton.py            (+40 lines wiring, -110 lines removed duplicate)
+backend/services/agent-runner/tests/test_status_builder.py                     (+227 lines - TestBuildApprovalConfig class)
+.cursor/plans/phase_3a_approval_wiring_7818290e.plan.md                        (NEW - 200 lines)
+```
+
+**Net Changes**: +366 lines (3 modified files, 1 new plan file)
+
+**Test Results**: All 112 tests pass ✅
 
 ---
 
@@ -217,12 +314,12 @@ All language stubs regenerated: Java, Python, Go, TypeScript, Dart
 /Users/suresh/scm/github.com/stigmer/stigmer/apis/ai/stigmer/agentic/agent/v1/spec.proto
 ```
 
-### Python Agent Runner (MODIFIED IN PHASE 2)
+### Python Agent Runner (MODIFIED IN PHASES 2 & 3A)
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/worker/activities/graphton/status_builder.py ✅
-/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/worker/activities/graphton/approval_policy.py ✅ NEW
-/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/tests/test_status_builder.py ✅
-/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/worker/activities/execute_graphton.py (Phase 3)
+/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/worker/activities/graphton/status_builder.py ✅ Phase 2
+/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/worker/activities/graphton/approval_policy.py ✅ Phases 2 & 3A
+/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/tests/test_status_builder.py ✅ Phases 2 & 3A
+/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/worker/activities/execute_graphton.py ✅ Phase 3A
 ```
 
 ### Java Handler (TO BE MODIFIED IN PHASE 4)
@@ -240,8 +337,11 @@ When starting a new session:
 2. [ ] Check `checkpoints/` for session details:
    - `2026-01-30-session-phase-1.md` - Phase 1 proto contracts
    - `2026-01-30-session-phase-2.md` - Phase 2 StatusBuilder implementation
-3. [ ] Review uncommitted changes (Phase 2 not yet committed)
-4. [ ] Begin Phase 3: LangGraph Integration
+   - `2026-01-30-session-phase-3a.md` - Phase 3A ApprovalConfig wiring
+3. [ ] Review uncommitted changes (Phases 1, 2, 3A not yet committed)
+4. [ ] Begin Phase 3B: LangGraph Interrupt Mechanism
+
+**Important Note for Phase 3B**: The subagent exploration revealed that tools currently execute even when marked `WAITING_APPROVAL`. Phase 3B requires deeper research into the `graphton` library to implement actual execution interruption.
 
 ## Quick Commands
 

@@ -17,6 +17,7 @@ from grpc_client.mcp_server_client import McpServerClient
 from worker.token_manager import get_api_key
 from worker.sandbox_manager import SandboxManager
 from worker.activities.graphton.status_builder import StatusBuilder
+from worker.activities.graphton.approval_policy import ApprovalConfig, build_approval_config
 from worker.mcp import transform_all_mcp_configs
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.resilience import (
@@ -137,8 +138,9 @@ async def _execute_graphton_impl(
     # Uses exponential backoff (1s, 2s, 4s) with max 3 attempts
     retry_executor = GrpcRetryExecutor(RetryConfig.load_from_env())
     
-    # Initialize status builder (builds status locally, returns to workflow)
-    status_builder = StatusBuilder(execution_id, execution.status)
+    # NOTE: StatusBuilder is initialized later after MCP servers are fetched
+    # so that ApprovalConfig can be built with complete policy data.
+    # See Step 5.6 below.
     
     try:
         # Step 1: Resolve the full chain: execution → session → agent_instance → agent
@@ -416,6 +418,7 @@ async def _execute_graphton_impl(
         # MCP servers provide external tools via Model Context Protocol
         mcp_servers_config = {}
         mcp_tools_config = {}
+        mcp_servers = []  # Initialize to empty list (populated if usages exist and fetch succeeds)
         mcp_server_usages = agent.spec.mcp_server_usages
         
         if mcp_server_usages:
@@ -461,14 +464,45 @@ async def _execute_graphton_impl(
                 activity_logger.warning("Continuing without MCP servers - agent will have limited capabilities")
                 mcp_servers_config = {}
                 mcp_tools_config = {}
+                mcp_servers = []  # Reset to empty on failure
             except Exception as e:
                 activity_logger.error(f"Unexpected error preparing MCP servers: {e}")
                 activity_logger.warning("Continuing without MCP servers - agent will have limited capabilities")
                 mcp_servers_config = {}
                 mcp_tools_config = {}
+                mcp_servers = []  # Reset to empty on failure
         
         # ─────────────────────────────────────────────────────────────────────────────
-        # Step 5.5: Build ResolvedExecutionContext (Phase 2.5)
+        # Step 5.6: Build ApprovalConfig and Initialize StatusBuilder (HITL Phase 3A)
+        #
+        # Assembles approval policy configuration from multiple sources:
+        # - execution.spec.auto_approve_all (runtime bypass)
+        # - mcp_server_usages[].tool_approval_overrides (per-agent customization)
+        # - mcp_servers[].spec.default_tool_approvals (platform/org defaults)
+        #
+        # StatusBuilder is initialized here (not earlier) to receive the complete
+        # ApprovalConfig for tool approval detection during execution.
+        # ─────────────────────────────────────────────────────────────────────────────
+        
+        approval_config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=list(mcp_server_usages) if mcp_server_usages else [],
+            mcp_servers=mcp_servers,
+            mcp_tools_config=mcp_tools_config,
+        )
+        
+        activity_logger.info(
+            f"Built ApprovalConfig: auto_approve_all={approval_config.auto_approve_all}, "
+            f"overrides={len(approval_config.tool_approval_overrides)}, "
+            f"default_policies={len(approval_config.default_tool_approvals)} servers, "
+            f"tool_mapping={len(approval_config.tool_to_mcp_server)} tools"
+        )
+        
+        # Initialize status builder with approval config
+        status_builder = StatusBuilder(execution_id, execution.status, approval_config)
+        
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 5.7: Build ResolvedExecutionContext (Phase 2.5)
         #
         # Captures what resources the agent actually has access to for visibility,
         # debugging, and auditing. Populated once before streaming begins.
