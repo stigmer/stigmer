@@ -20,8 +20,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ExecutionContextQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController/get"
-	ExecutionContextQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController/getByReference"
+	ExecutionContextQueryController_Get_FullMethodName              = "/ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController/get"
+	ExecutionContextQueryController_GetByReference_FullMethodName   = "/ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController/getByReference"
+	ExecutionContextQueryController_GetByExecutionId_FullMethodName = "/ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController/getByExecutionId"
 )
 
 // ExecutionContextQueryControllerClient is the client API for ExecutionContextQueryController service.
@@ -35,6 +36,18 @@ type ExecutionContextQueryControllerClient interface {
 	Get(ctx context.Context, in *ExecutionContextId, opts ...grpc.CallOption) (*ExecutionContext, error)
 	// Get an ExecutionContext by reference (operator-only).
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*ExecutionContext, error)
+	// Get an ExecutionContext by the execution ID it belongs to.
+	// This is the primary lookup method used by runners to retrieve the merged
+	// environment variables during workflow/agent execution. The returned context
+	// contains decrypted secrets for runner consumption.
+	//
+	// Use cases:
+	// - Go workflow-runner queries for merged env vars before executing workflow
+	// - Python agent-runner queries for merged env vars before executing agent
+	//
+	// Security: Operator-only access ensures only internal services (runners) can
+	// retrieve decrypted secrets. Public APIs use get/getByReference which redact secrets.
+	GetByExecutionId(ctx context.Context, in *ExecutionContextExecutionIdInput, opts ...grpc.CallOption) (*ExecutionContext, error)
 }
 
 type executionContextQueryControllerClient struct {
@@ -65,6 +78,16 @@ func (c *executionContextQueryControllerClient) GetByReference(ctx context.Conte
 	return out, nil
 }
 
+func (c *executionContextQueryControllerClient) GetByExecutionId(ctx context.Context, in *ExecutionContextExecutionIdInput, opts ...grpc.CallOption) (*ExecutionContext, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExecutionContext)
+	err := c.cc.Invoke(ctx, ExecutionContextQueryController_GetByExecutionId_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ExecutionContextQueryControllerServer is the server API for ExecutionContextQueryController service.
 // All implementations should embed UnimplementedExecutionContextQueryControllerServer
 // for forward compatibility.
@@ -76,6 +99,18 @@ type ExecutionContextQueryControllerServer interface {
 	Get(context.Context, *ExecutionContextId) (*ExecutionContext, error)
 	// Get an ExecutionContext by reference (operator-only).
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*ExecutionContext, error)
+	// Get an ExecutionContext by the execution ID it belongs to.
+	// This is the primary lookup method used by runners to retrieve the merged
+	// environment variables during workflow/agent execution. The returned context
+	// contains decrypted secrets for runner consumption.
+	//
+	// Use cases:
+	// - Go workflow-runner queries for merged env vars before executing workflow
+	// - Python agent-runner queries for merged env vars before executing agent
+	//
+	// Security: Operator-only access ensures only internal services (runners) can
+	// retrieve decrypted secrets. Public APIs use get/getByReference which redact secrets.
+	GetByExecutionId(context.Context, *ExecutionContextExecutionIdInput) (*ExecutionContext, error)
 }
 
 // UnimplementedExecutionContextQueryControllerServer should be embedded to have
@@ -90,6 +125,9 @@ func (UnimplementedExecutionContextQueryControllerServer) Get(context.Context, *
 }
 func (UnimplementedExecutionContextQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*ExecutionContext, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
+}
+func (UnimplementedExecutionContextQueryControllerServer) GetByExecutionId(context.Context, *ExecutionContextExecutionIdInput) (*ExecutionContext, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetByExecutionId not implemented")
 }
 func (UnimplementedExecutionContextQueryControllerServer) testEmbeddedByValue() {}
 
@@ -147,6 +185,24 @@ func _ExecutionContextQueryController_GetByReference_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ExecutionContextQueryController_GetByExecutionId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecutionContextExecutionIdInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExecutionContextQueryControllerServer).GetByExecutionId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ExecutionContextQueryController_GetByExecutionId_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExecutionContextQueryControllerServer).GetByExecutionId(ctx, req.(*ExecutionContextExecutionIdInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ExecutionContextQueryController_ServiceDesc is the grpc.ServiceDesc for ExecutionContextQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -161,6 +217,10 @@ var ExecutionContextQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByReference",
 			Handler:    _ExecutionContextQueryController_GetByReference_Handler,
+		},
+		{
+			MethodName: "getByExecutionId",
+			Handler:    _ExecutionContextQueryController_GetByExecutionId_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

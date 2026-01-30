@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "envfile",
+    srcs = [
+        "merge.go",
+        "parser.go",
+        "types.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/executioncontext/v1:executioncontext",
+        "@com_github_pkg_errors//:errors",
+    ],
+)
+
+go_test(
+    name = "envfile_test",
+    srcs = ["parser_test.go"],
+    embed = [":envfile"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

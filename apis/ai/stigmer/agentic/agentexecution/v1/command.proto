@@ -47,6 +47,47 @@ service AgentExecutionCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete agent execution";
   }
+
+  // Submit approval decision for a pending tool call (HITL Phase 1).
+  //
+  // ## Preconditions
+  //
+  // - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase
+  // - tool_call_id must match status.pending_approval.tool_call_id
+  // - User must have can_edit permission on the execution
+  //
+  // ## Behavior by Action
+  //
+  // - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
+  // - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
+  // - REJECT: Execution fails with rejection error, phase becomes FAILED
+  //
+  // ## State Transitions
+  //
+  // On success:
+  // - ToolCall.approval_action = submitted action
+  // - ToolCall.approval_decided_at = current timestamp
+  // - ToolCall.approved_by = authenticated user ID
+  // - AgentExecutionStatus.pending_approval = cleared
+  // - ExecutionPhase = EXECUTION_IN_PROGRESS (or EXECUTION_FAILED if REJECT)
+  //
+  // ## Error Conditions
+  //
+  // - NOT_FOUND: Execution doesn't exist
+  // - FAILED_PRECONDITION: Execution not in WAITING_FOR_APPROVAL phase
+  // - INVALID_ARGUMENT: tool_call_id doesn't match pending approval, or action is UNSPECIFIED
+  // - PERMISSION_DENIED: User lacks can_edit permission
+  //
+  // ## Idempotency
+  //
+  // If the same approval is submitted twice (same execution, tool_call, action),
+  // the second call is a no-op and returns the current state.
+  rpc submitApproval(SubmitApprovalInput) returns (AgentExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "agent_execution_id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to submit approval for agent execution";
+  }
 }
 
 // Input message for updateStatus RPC.
@@ -61,4 +102,44 @@ message AgentExecutionUpdateStatusInput {
   // The handler will merge these status fields with the existing execution's status.
   // Only the fields present in this status object will be updated.
   AgentExecutionStatus status = 2 [(buf.validate.field).required = true];
+}
+
+// Input for submitting an approval decision (HITL Phase 1).
+//
+// All required fields must be provided. The handler validates:
+// 1. The execution exists and is in EXECUTION_WAITING_FOR_APPROVAL phase
+// 2. The tool_call_id matches status.pending_approval.tool_call_id
+// 3. The action is a valid non-UNSPECIFIED enum value
+//
+// Example:
+//   {
+//     "agent_execution_id": "aex_abc123xyz456",
+//     "tool_call_id": "call_def789",
+//     "action": "APPROVAL_ACTION_APPROVE",
+//     "comment": "Verified safe to execute"
+//   }
+message SubmitApprovalInput {
+  // ID of the agent execution.
+  // Format: "aex_abc123xyz456"
+  string agent_execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // ID of the tool call to approve/skip/reject.
+  // Must match status.pending_approval.tool_call_id exactly.
+  // Format: Tool call ID from agent runtime (e.g., "call_abc123")
+  string tool_call_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // User's decision: APPROVE, SKIP, or REJECT.
+  // APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
+  ApprovalAction action = 3 [(buf.validate.field).enum = {
+    defined_only: true,
+    not_in: [0]
+  }];
+
+  // Optional reason/comment for the decision.
+  // Stored in audit trail for compliance and debugging.
+  // Examples:
+  //   - "Verified the target repository is safe to delete" (on APPROVE)
+  //   - "Will handle this operation manually" (on SKIP)
+  //   - "Unexpected target - this looks like the wrong repository" (on REJECT)
+  string comment = 4;
 }

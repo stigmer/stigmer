@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Cross-platform test vectors for Stigmer environment secret encryption",
+  "version": "1.0.0",
+  "algorithm": "AES-256-GCM",
+  "format": "enc:v1:<base64(nonce || ciphertext || tag)>",
+  "nonce_size_bytes": 12,
+  "tag_size_bits": 128,
+  "key_size_bytes": 32,
+  
+  "test_key": {
+    "description": "Test encryption key (32 bytes = 256 bits)",
+    "raw_hex": "3031323334353637383930313233343536373839303132333435363738393031",
+    "raw_ascii": "01234567890123456789012345678901",
+    "base64": "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
+  },
+  
+  "test_cases": [
+    {
+      "id": "simple_string",
+      "description": "Simple ASCII string",
+      "plaintext": "hello world",
+      "notes": "Basic test case"
+    },
+    {
+      "id": "empty_string",
+      "description": "Empty string (edge case)",
+      "plaintext": "",
+      "notes": "GCM handles empty plaintext correctly"
+    },
+    {
+      "id": "github_token",
+      "description": "GitHub personal access token format",
+      "plaintext": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "notes": "Common API key format"
+    },
+    {
+      "id": "aws_secret_key",
+      "description": "AWS secret access key format",
+      "plaintext": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+      "notes": "Contains special characters (/+)"
+    },
+    {
+      "id": "unicode",
+      "description": "Unicode characters",
+      "plaintext": "こんにちは世界",
+      "notes": "UTF-8 encoding must be consistent across platforms"
+    },
+    {
+      "id": "json_content",
+      "description": "JSON-like content",
+      "plaintext": "{\"key\": \"value\", \"secret\": \"password123\"}",
+      "notes": "Quotes and colons in content"
+    },
+    {
+      "id": "special_chars",
+      "description": "Special characters",
+      "plaintext": "!@#$%^&*()_+-={}[]|\\:\";<>?,./",
+      "notes": "All ASCII special characters"
+    },
+    {
+      "id": "newlines",
+      "description": "Multi-line content",
+      "plaintext": "line1\nline2\nline3",
+      "notes": "Newline handling"
+    },
+    {
+      "id": "long_string",
+      "description": "Long string (1000 chars)",
+      "plaintext": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "notes": "Tests buffer handling for large content"
+    }
+  ],
+  
+  "verification_notes": [
+    "Due to random nonce generation, encrypted values will differ between runs.",
+    "To verify cross-platform compatibility:",
+    "1. Encrypt a value in Java, decrypt in Go (and vice versa)",
+    "2. Both implementations must produce ciphertext with the same structure",
+    "3. Format: 'enc:v1:' prefix + base64(12-byte-nonce || ciphertext || 16-byte-tag)",
+    "4. UTF-8 encoding must be used consistently for plaintext",
+    "5. Base64 standard encoding (not URL-safe) must be used"
+  ],
+  
+  "implementation_requirements": [
+    "AES-256-GCM with 12-byte (96-bit) nonce",
+    "128-bit authentication tag",
+    "Nonce prepended to ciphertext before Base64 encoding",
+    "Versioned prefix 'enc:v1:' for future key rotation support",
+    "No padding required (GCM is a stream cipher mode)",
+    "Fail on any authentication error (tampered data)"
+  ]
+}

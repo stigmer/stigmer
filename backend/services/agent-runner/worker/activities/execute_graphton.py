@@ -11,13 +11,22 @@ from grpc_client.agent_instance_client import AgentInstanceClient
 from grpc_client.skill_client import SkillClient
 from grpc_client.session_client import SessionClient
 from grpc_client.environment_client import EnvironmentClient
+from grpc_client.execution_context_client import ExecutionContextClient, ExecutionContextNotFoundError
 from grpc_client.agent_execution_client import AgentExecutionClient
 from grpc_client.mcp_server_client import McpServerClient
 from worker.token_manager import get_api_key
 from worker.sandbox_manager import SandboxManager
 from worker.activities.graphton.status_builder import StatusBuilder
 from worker.mcp import transform_all_mcp_configs
+from worker.streaming import StreamingConfig, StreamingUpdateScheduler
+from worker.resilience import (
+    GrpcRetryExecutor,
+    GrpcRetryExhaustedError,
+    GrpcNonRetryableError,
+    RetryConfig,
+)
 import os
+import time
 
 
 @activity.defn(name="ExecuteGraphton")
@@ -123,6 +132,10 @@ async def _execute_graphton_impl(
     agent_instance_client = AgentInstanceClient(api_key)
     agent_client = AgentClient(api_key)
     execution_client = AgentExecutionClient(api_key)
+    
+    # Initialize retry executor for reliable final status updates
+    # Uses exponential backoff (1s, 2s, 4s) with max 3 attempts
+    retry_executor = GrpcRetryExecutor(RetryConfig.load_from_env())
     
     # Initialize status builder (builds status locally, returns to workflow)
     status_builder = StatusBuilder(execution_id, execution.status)
@@ -236,6 +249,7 @@ async def _execute_graphton_impl(
         # - Skills are written to /bin/skills/{version_hash}/
         # - Full SKILL.md content is injected into system prompt with LOCATION header
         skills_prompt_section = ""
+        skills = []  # List of Skill protos (populated if skill_refs exist)
         skill_refs = agent.spec.skill_refs  # repeated ApiResourceReference
         
         if skill_refs:
@@ -311,58 +325,92 @@ async def _execute_graphton_impl(
                 activity_logger.error(f"Unexpected error preparing skills: {e}")
                 raise
         
-        # Step 4: Merge environments (if agent instance has environment refs)
+        # Step 4: Get merged environment variables
+        # Try ExecutionContext first (new flow with pre-merged/decrypted env vars)
+        # Fall back to legacy environment merging if ExecutionContext not found
         merged_env_vars = {}
-        environment_refs = agent_instance.spec.environment_refs
+        use_legacy_env_merge = True
         
-        if environment_refs:
-            activity_logger.info(
-                f"Merging {len(environment_refs)} environments: "
-                f"{[ref.slug for ref in environment_refs]}"
-            )
+        try:
+            # Try to get pre-merged environment from ExecutionContext
+            execution_context_client = ExecutionContextClient(api_key)
+            exec_ctx = await execution_context_client.try_get_by_execution_id(execution_id)
             
-            try:
-                # Create environment client
-                environment_client = EnvironmentClient(api_key)
+            if exec_ctx and exec_ctx.spec.data:
+                # Use pre-merged and pre-decrypted environment from ExecutionContext
+                activity_logger.info(
+                    f"Using merged environment from ExecutionContext: "
+                    f"context_id={exec_ctx.metadata.id}, env_count={len(exec_ctx.spec.data)}"
+                )
                 
-                # Fetch environments (preserves order for proper merging)
-                environments = await environment_client.list_by_refs(list(environment_refs))
+                # Extract values from ExecutionValue objects
+                for key, exec_value in exec_ctx.spec.data.items():
+                    merged_env_vars[key] = exec_value.value
                 
-                # Merge environments in order (later overrides earlier)
-                # Start with agent's base env_spec if it exists
-                if agent.spec.env_spec and agent.spec.env_spec.data:
-                    # Extract values from EnvironmentValue objects
-                    for key, env_value in agent.spec.env_spec.data.items():
-                        merged_env_vars[key] = env_value.value
-                    activity_logger.info(f"Base env vars from agent: {len(agent.spec.env_spec.data)}")
+                use_legacy_env_merge = False
+                activity_logger.info(f"ExecutionContext environment: {len(merged_env_vars)} total vars")
+            else:
+                activity_logger.debug(
+                    f"No ExecutionContext found for execution {execution_id} - "
+                    "using legacy environment merge"
+                )
+        except Exception as e:
+            activity_logger.warning(
+                f"Failed to get ExecutionContext, falling back to legacy merge: {e}"
+            )
+        
+        # Legacy environment merge (backward compatibility)
+        if use_legacy_env_merge:
+            environment_refs = agent_instance.spec.environment_refs
+            
+            if environment_refs:
+                activity_logger.info(
+                    f"[Legacy] Merging {len(environment_refs)} environments: "
+                    f"{[ref.slug for ref in environment_refs]}"
+                )
                 
-                # Layer each environment (order matters!)
-                for idx, env in enumerate(environments):
-                    if env.spec.data:
+                try:
+                    # Create environment client
+                    environment_client = EnvironmentClient(api_key)
+                    
+                    # Fetch environments (preserves order for proper merging)
+                    environments = await environment_client.list_by_refs(list(environment_refs))
+                    
+                    # Merge environments in order (later overrides earlier)
+                    # Start with agent's base env_spec if it exists
+                    if agent.spec.env_spec and agent.spec.env_spec.data:
                         # Extract values from EnvironmentValue objects
-                        for key, env_value in env.spec.data.items():
+                        for key, env_value in agent.spec.env_spec.data.items():
                             merged_env_vars[key] = env_value.value
-                        activity_logger.info(
-                            f"Merged env {idx+1}/{len(environments)} ({env.metadata.name}): "
-                            f"{len(env.spec.data)} vars"
-                        )
-                
-                # Runtime env vars from execution have highest priority
-                if execution.spec.runtime_env:
-                    # Convert ExecutionValue to string values
-                    runtime_vars = {
-                        key: value.value 
-                        for key, value in execution.spec.runtime_env.items()
-                    }
-                    merged_env_vars.update(runtime_vars)
-                    activity_logger.info(f"Applied runtime env overrides: {len(runtime_vars)} vars")
-                
-                activity_logger.info(f"Final merged environment: {len(merged_env_vars)} total vars")
-                
-            except Exception as e:
-                activity_logger.error(f"Failed to merge environments: {e}")
-                # Continue without environments rather than failing execution
-                merged_env_vars = {}
+                        activity_logger.info(f"[Legacy] Base env vars from agent: {len(agent.spec.env_spec.data)}")
+                    
+                    # Layer each environment (order matters!)
+                    for idx, env in enumerate(environments):
+                        if env.spec.data:
+                            # Extract values from EnvironmentValue objects
+                            for key, env_value in env.spec.data.items():
+                                merged_env_vars[key] = env_value.value
+                            activity_logger.info(
+                                f"[Legacy] Merged env {idx+1}/{len(environments)} ({env.metadata.name}): "
+                                f"{len(env.spec.data)} vars"
+                            )
+                    
+                    # Runtime env vars from execution have highest priority
+                    if execution.spec.runtime_env:
+                        # Convert ExecutionValue to string values
+                        runtime_vars = {
+                            key: value.value 
+                            for key, value in execution.spec.runtime_env.items()
+                        }
+                        merged_env_vars.update(runtime_vars)
+                        activity_logger.info(f"[Legacy] Applied runtime env overrides: {len(runtime_vars)} vars")
+                    
+                    activity_logger.info(f"[Legacy] Final merged environment: {len(merged_env_vars)} total vars")
+                    
+                except Exception as e:
+                    activity_logger.error(f"[Legacy] Failed to merge environments: {e}")
+                    # Continue without environments rather than failing execution
+                    merged_env_vars = {}
         
         # Step 5: Fetch and transform MCP servers (from agent template via mcp_server_usages)
         # MCP servers provide external tools via Model Context Protocol
@@ -418,6 +466,41 @@ async def _execute_graphton_impl(
                 activity_logger.warning("Continuing without MCP servers - agent will have limited capabilities")
                 mcp_servers_config = {}
                 mcp_tools_config = {}
+        
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 5.5: Build ResolvedExecutionContext (Phase 2.5)
+        #
+        # Captures what resources the agent actually has access to for visibility,
+        # debugging, and auditing. Populated once before streaming begins.
+        # ─────────────────────────────────────────────────────────────────────────────
+        
+        # Build MCP server resolution status
+        # Track which servers were requested vs successfully resolved
+        mcp_server_status = {}
+        requested_mcp_slugs = (
+            {usage.mcp_server_ref.slug for usage in mcp_server_usages}
+            if mcp_server_usages else set()
+        )
+        resolved_mcp_slugs = set(mcp_servers_config.keys())
+        
+        for slug in requested_mcp_slugs:
+            if slug in resolved_mcp_slugs:
+                # Server successfully resolved - count enabled tools
+                tool_count = len(mcp_tools_config.get(slug, []) or [])
+                mcp_server_status[slug] = (True, "Configured successfully", tool_count)
+            else:
+                # Server resolution failed
+                mcp_server_status[slug] = (False, "Server not found or resolution failed", 0)
+        
+        # Extract skill names from fetched skill protos
+        skill_names = [s.metadata.name for s in skills] if skills else []
+        
+        # Set resolved context on status builder
+        status_builder.set_resolved_context(
+            environment_keys=list(merged_env_vars.keys()),
+            mcp_servers=mcp_server_status,
+            skill_names=skill_names,
+        )
         
         # Step 6: Create Graphton agent at runtime with EXISTING sandbox
         # Note: MCP servers are passed if configured, providing external tool access
@@ -514,14 +597,28 @@ async def _execute_graphton_impl(
         activity_logger.info(f"Execution {execution_id} phase set to IN_PROGRESS (building locally)")
         
         # Step 9: Stream execution and build status from events
+        # 
+        # Streaming Update Strategy (Phase 1.2):
+        # - Time-based updates: Send every 500ms minimum (configurable)
+        # - Burst protection: Force update after 50 events (configurable)
+        # - Keepalive: Send update every 5 seconds during long operations
+        # 
+        # This replaces the naive event-count based approach which caused:
+        # - Poor UX for slow tools (no update for 30+ seconds)
+        # - Wasteful updates during fast streaming (10+ updates/second)
         events_processed = 0
-        last_update_sent = 0
-        last_heartbeat_sent = 0
-        update_interval = 10  # Send status update every N events
-        heartbeat_interval = 5  # Send heartbeat every N events (more frequent than status updates)
+        last_heartbeat_time = time.monotonic()
+        heartbeat_interval_ms = 2000  # Send heartbeat every 2 seconds
+        
+        # Initialize streaming update scheduler
+        streaming_config = StreamingConfig.load_from_env()
+        update_scheduler = StreamingUpdateScheduler(streaming_config)
         
         activity_logger.info(
-            f"🔍 Starting Graphton agent stream for execution {execution_id}"
+            f"🔍 Starting Graphton agent stream for execution {execution_id} "
+            f"(streaming: min_interval={streaming_config.min_interval_ms}ms, "
+            f"max_interval={streaming_config.max_interval_ms}ms, "
+            f"burst_threshold={streaming_config.burst_threshold})"
         )
         
         async for event in agent_graph.astream_events(
@@ -534,9 +631,11 @@ async def _execute_graphton_impl(
             
             events_processed += 1
             
-            # Send activity heartbeat to prevent timeout
-            # This tells Temporal the activity is still running and making progress
-            if events_processed - last_heartbeat_sent >= heartbeat_interval:
+            # Send activity heartbeat to prevent Temporal timeout
+            # Time-based: every 2 seconds (independent of status updates)
+            now = time.monotonic()
+            time_since_heartbeat_ms = (now - last_heartbeat_time) * 1000
+            if time_since_heartbeat_ms >= heartbeat_interval_ms:
                 try:
                     activity.heartbeat({
                         "events_processed": events_processed,
@@ -544,17 +643,27 @@ async def _execute_graphton_impl(
                         "tool_calls": len(status_builder.current_status.tool_calls),
                         "phase": status_builder.current_status.phase,
                     })
-                    last_heartbeat_sent = events_processed
+                    last_heartbeat_time = now
                 except Exception as e:
                     # Heartbeat failure is not critical - log and continue
                     activity_logger.debug(f"Heartbeat failed (event {events_processed}): {e}")
             
-            # Send progressive status update via gRPC (every N events)
-            if events_processed - last_update_sent >= update_interval:
+            # Send progressive status update via gRPC using hybrid scheduler
+            # Triggers on: time threshold (500ms), burst (50 events), or keepalive (5s)
+            if update_scheduler.should_send_update(events_processed):
+                reason = update_scheduler.get_update_reason_str()
+                time_since_last = update_scheduler.get_time_since_last_update_ms()
+                events_since_last = update_scheduler.get_events_since_last_update(events_processed)
+                
                 try:
-                    activity_logger.debug(
-                        f"📤 Sending status update #{events_processed}: "
-                        f"messages={len(status_builder.current_status.messages)}, "
+                    activity_logger.info(
+                        f"[STREAM] execution={execution_id} "
+                        f"update_sent=true "
+                        f"reason={reason} "
+                        f"events_total={events_processed} "
+                        f"events_since_last={events_since_last} "
+                        f"time_since_last_ms={time_since_last:.0f} "
+                        f"messages={len(status_builder.current_status.messages)} "
                         f"tool_calls={len(status_builder.current_status.tool_calls)}"
                     )
                     
@@ -564,17 +673,21 @@ async def _execute_graphton_impl(
                         status=status_builder.current_status
                     )
                     
-                    last_update_sent = events_processed
-                    activity_logger.debug(f"✅ Status update sent successfully")
+                    update_scheduler.mark_update_sent(events_processed)
                     
                 except Exception as e:
                     # Log but don't fail - keep processing events
+                    # Still mark as sent to avoid retry storm on persistent failures
                     activity_logger.warning(
-                        f"Failed to send status update (event {events_processed}): {e}"
+                        f"[STREAM] execution={execution_id} "
+                        f"update_sent=false "
+                        f"reason={reason} "
+                        f"error={str(e)}"
                     )
+                    update_scheduler.mark_update_sent(events_processed)
             
-            # Log progress periodically
-            if events_processed % 10 == 0:
+            # Log progress periodically (every 50 events for reduced noise)
+            if events_processed % 50 == 0:
                 activity_logger.debug(f"Processed {events_processed} events")
         
         # Verify stream processed data
@@ -591,17 +704,33 @@ async def _execute_graphton_impl(
         # Set phase to COMPLETED
         status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
         
-        # Send final status update via gRPC
+        # Send final status update via gRPC with retry
+        # This is critical for data persistence - use retry to handle transient failures
         try:
-            activity_logger.info(f"📤 Sending FINAL status update")
-            await execution_client.update_status(
-                execution_id=execution_id,
-                status=status_builder.current_status
+            activity_logger.info(f"📤 [FINAL] Sending COMPLETED status update with retry")
+            await retry_executor.execute(
+                operation=lambda: execution_client.update_status(
+                    execution_id=execution_id,
+                    status=status_builder.current_status
+                ),
+                operation_name="final_status_update",
+                context={"execution_id": execution_id, "phase": "COMPLETED"},
             )
-            activity_logger.info(f"✅ Final status update sent successfully")
+            activity_logger.info(f"✅ [FINAL] Status update sent successfully")
+        except GrpcRetryExhaustedError as e:
+            activity_logger.error(
+                f"[FINAL] All retries exhausted for status update: {e.attempts} attempts, "
+                f"{e.total_duration_ms:.0f}ms total. Last error: {e.last_error}"
+            )
+            # Continue - we'll still return status to workflow as fallback
+        except GrpcNonRetryableError as e:
+            activity_logger.error(
+                f"[FINAL] Non-retryable error on status update: {e.status_code.name} - {e.original_error}"
+            )
+            # Continue - we'll still return status to workflow as fallback
         except Exception as e:
-            activity_logger.error(f"Failed to send final status update: {e}")
-            # Continue - we'll still return status to workflow
+            activity_logger.error(f"[FINAL] Unexpected error on status update: {e}")
+            # Continue - we'll still return status to workflow as fallback
         
         # Diagnostic logging for final status
         activity_logger.info("=" * 80)
@@ -659,17 +788,33 @@ async def _execute_graphton_impl(
             activity_logger.error(f"❌ CRITICAL: current_status is None in error handler for execution {execution_id}")
             raise RuntimeError("Status builder returned None in error handler - this should never happen")
         
-        # Send failed status update via gRPC to persist to database
+        # Send failed status update via gRPC with retry
+        # This is critical for data persistence - use retry to handle transient failures
         try:
-            activity_logger.info(f"📤 Sending FAILED status update to persist to database")
-            await execution_client.update_status(
-                execution_id=execution_id,
-                status=status_builder.current_status
+            activity_logger.info(f"📤 [FINAL] Sending FAILED status update with retry")
+            await retry_executor.execute(
+                operation=lambda: execution_client.update_status(
+                    execution_id=execution_id,
+                    status=status_builder.current_status
+                ),
+                operation_name="final_status_update",
+                context={"execution_id": execution_id, "phase": "FAILED"},
             )
-            activity_logger.info(f"✅ Failed status update sent successfully")
+            activity_logger.info(f"✅ [FINAL] Failed status update sent successfully")
+        except GrpcRetryExhaustedError as e:
+            activity_logger.error(
+                f"[FINAL] All retries exhausted for failed status update: {e.attempts} attempts, "
+                f"{e.total_duration_ms:.0f}ms total. Last error: {e.last_error}"
+            )
+            # Continue - we'll still return status to workflow as fallback
+        except GrpcNonRetryableError as e:
+            activity_logger.error(
+                f"[FINAL] Non-retryable error on failed status update: {e.status_code.name} - {e.original_error}"
+            )
+            # Continue - we'll still return status to workflow as fallback
         except Exception as update_error:
-            activity_logger.error(f"Failed to send failed status update: {update_error}")
-            # Continue - we'll still return status to workflow
+            activity_logger.error(f"[FINAL] Unexpected error on failed status update: {update_error}")
+            # Continue - we'll still return status to workflow as fallback
         
         activity_logger.info(
             f"✅ Returning failed AgentExecutionStatus to workflow: "

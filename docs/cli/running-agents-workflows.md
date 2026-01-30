@@ -161,7 +161,10 @@ stigmer run [agent-or-workflow-name-or-id] [flags]
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--message` | string | `"execute"` | Initial prompt/message for execution |
-| `--runtime-env` | strings | `[]` | Runtime environment variables (repeatable) |
+| `--env` | strings | `[]` | Environment variables (repeatable, format: `KEY=VALUE`) |
+| `--secret` | strings | `[]` | Secret variables (repeatable, encrypted at rest) |
+| `--env-file` | strings | `[]` | Load environment variables from file (repeatable) |
+| `--secret-file` | strings | `[]` | Load secrets from file (repeatable) |
 | `--follow` | bool | `true` | Stream execution logs in real-time |
 | `--org` | string | from config | Override organization ID |
 
@@ -176,28 +179,68 @@ stigmer run code-reviewer --message "Review for security issues"
 stigmer run data-processor --message "Process last 100 orders"
 ```
 
-#### Runtime Environment Variables
+#### Environment Variables and Secrets
 
-Pass execution-specific configuration:
+Pass configuration and secrets to your executions using inline flags or files.
+
+**Inline environment variables:**
 
 ```bash
 # Single variable
-stigmer run deployer --runtime-env "REGION=us-east-1"
+stigmer run deployer --env "REGION=us-east-1"
 
 # Multiple variables
 stigmer run deployer \
-  --runtime-env "REGION=us-east-1" \
-  --runtime-env "ENVIRONMENT=production" \
-  --runtime-env "secret:API_KEY=sk_prod_abc123"
+  --env "REGION=us-east-1" \
+  --env "ENVIRONMENT=production"
 ```
 
-**Secret values**: Prefix with `secret:` to encrypt:
+**Inline secrets** (encrypted at rest):
 
 ```bash
-stigmer run my-agent \
-  --runtime-env "API_KEY=plain_text_value" \
-  --runtime-env "secret:DB_PASSWORD=encrypted_value"
+# Single secret
+stigmer run my-agent --secret "API_KEY=sk_prod_abc123"
+
+# Multiple secrets
+stigmer run deployer \
+  --secret "DB_PASSWORD=supersecret" \
+  --secret "API_KEY=sk_prod_abc123"
 ```
+
+**Load from files:**
+
+```bash
+# Load environment variables from .env file
+stigmer run my-agent --env-file .env
+
+# Load secrets from .env.secret file
+stigmer run my-agent --secret-file .env.secret
+
+# Combine all sources
+stigmer run my-agent \
+  --env-file .env \
+  --secret-file .env.secret \
+  --env "REGION=us-west-2" \
+  --secret "API_KEY=override_key"
+```
+
+**Precedence rules** (highest to lowest):
+
+1. `--secret` flags (inline secrets)
+2. `--env` flags (inline env vars)
+3. `--secret-file` files (secret files)
+4. `--env-file` files (env files)
+
+Later flags override earlier ones:
+
+```bash
+# REGION will be "us-west-2" (inline flag wins)
+stigmer run my-agent \
+  --env-file .env \
+  --env "REGION=us-west-2"
+```
+
+See [Environment Variables Guide](../guides/environment-variables.md) for complete documentation.
 
 #### Log Streaming Control
 
