@@ -3,6 +3,22 @@ syntax = "proto3";
 package ai.stigmer.agentic.agentexecution.v1;
 
 // ExecutionPhase defines the lifecycle phase of an agent execution.
+//
+// Phase Transitions:
+//
+// Normal flow:
+// EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_COMPLETED
+//
+// Failure flow:
+// EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED
+//
+// Approval flow (HITL):
+// EXECUTION_IN_PROGRESS → EXECUTION_WAITING_FOR_APPROVAL → EXECUTION_IN_PROGRESS
+//
+// Terminal States:
+// - EXECUTION_COMPLETED: Agent finished successfully
+// - EXECUTION_FAILED: Agent encountered an error
+// - EXECUTION_CANCELLED: Agent was stopped by user or system
 enum ExecutionPhase {
   EXECUTION_PHASE_UNSPECIFIED = 0;
   EXECUTION_PENDING = 1; // Waiting to start
@@ -10,6 +26,21 @@ enum ExecutionPhase {
   EXECUTION_COMPLETED = 3; // Successfully completed
   EXECUTION_FAILED = 4; // Failed with error
   EXECUTION_CANCELLED = 5; // Cancelled by user
+
+  // Blocked on tool approval (HITL Phase 1).
+  //
+  // The agent has encountered a tool that requires user approval before execution.
+  // When in this phase:
+  // - status.pending_approval contains details about the tool awaiting approval
+  // - User must call SubmitApproval RPC to continue
+  //
+  // This is NOT a terminal state - execution resumes after approval decision:
+  // - APPROVE: Tool executes, phase returns to EXECUTION_IN_PROGRESS
+  // - SKIP: Tool returns skip message, phase returns to EXECUTION_IN_PROGRESS
+  // - REJECT: Execution fails, phase transitions to EXECUTION_FAILED
+  //
+  // UI should show distinct treatment for this phase (e.g., approval dialog).
+  EXECUTION_WAITING_FOR_APPROVAL = 6;
 }
 
 // MessageType defines the type of message in the conversation.
@@ -22,12 +53,58 @@ enum MessageType {
 }
 
 // ToolCallStatus defines the status of a tool call.
+//
+// Status Transitions:
+//
+// Normal flow (no approval required):
+// TOOL_CALL_PENDING → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED
+//
+// Failure flow:
+// TOOL_CALL_PENDING → TOOL_CALL_RUNNING → TOOL_CALL_FAILED
+//
+// Approval flow (HITL):
+// TOOL_CALL_PENDING → TOOL_CALL_WAITING_APPROVAL → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED
+//                                                ↘ TOOL_CALL_SKIPPED (if user skips)
+//
+// Terminal States:
+// - TOOL_CALL_COMPLETED: Tool executed successfully
+// - TOOL_CALL_FAILED: Tool execution failed
+// - TOOL_CALL_SKIPPED: User chose to skip this tool (HITL)
 enum ToolCallStatus {
   TOOL_CALL_STATUS_UNSPECIFIED = 0;
   TOOL_CALL_PENDING = 1; // Waiting to execute
   TOOL_CALL_RUNNING = 2; // Currently executing
   TOOL_CALL_COMPLETED = 3; // Successfully completed
   TOOL_CALL_FAILED = 4; // Failed with error
+
+  // Blocked on user approval (HITL Phase 1).
+  //
+  // The tool requires user consent before execution. This status is set when:
+  // - Tool has requires_approval=true (from approval policy chain)
+  // - AgentExecutionSpec.auto_approve_all is false
+  //
+  // While in this status:
+  // - ToolCall.approval_message contains the approval prompt
+  // - ToolCall.approval_requested_at is set
+  // - ExecutionPhase is EXECUTION_WAITING_FOR_APPROVAL
+  //
+  // Transitions:
+  // - APPROVE → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED/FAILED
+  // - SKIP → TOOL_CALL_SKIPPED
+  // - REJECT → Execution fails (tool remains in WAITING_APPROVAL)
+  TOOL_CALL_WAITING_APPROVAL = 5;
+
+  // User skipped this tool (HITL Phase 1).
+  //
+  // Terminal state indicating the user chose not to execute this tool.
+  // When a tool is skipped:
+  // - The LLM receives a message: "Tool '{name}' was skipped by user"
+  // - Execution continues without this tool's result
+  // - The LLM can adapt its plan accordingly
+  //
+  // This is a terminal state - the tool will not be retried.
+  // Unlike FAILED, SKIPPED is an intentional user decision, not an error.
+  TOOL_CALL_SKIPPED = 6;
 }
 
 // TodoStatus defines the status of a todo item.

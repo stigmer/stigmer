@@ -133,6 +133,30 @@ message AgentExecutionStatus {
   // Populated once before streaming begins, after all resources are resolved.
   // Immutable after initial population - represents the "snapshot" of resolved state.
   ResolvedExecutionContext resolved_context = 12;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Pending Approval (HITL Phase 1)
+  //
+  // When phase == EXECUTION_WAITING_FOR_APPROVAL, this field contains
+  // details about the tool call awaiting user decision.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Current pending approval request, if any.
+  //
+  // Lifecycle:
+  // 1. Populated when a tool with requires_approval=true is about to execute
+  // 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+  // 3. User submits decision via SubmitApproval RPC
+  // 4. Field is cleared, phase returns to EXECUTION_IN_PROGRESS
+  //
+  // Only one pending approval at a time (tools execute sequentially in LangGraph).
+  // If multiple tools need approval, they are handled one at a time.
+  //
+  // When populated:
+  // - tool_call_id matches one entry in tool_calls[] with status WAITING_APPROVAL
+  // - UI should display approval dialog with message and args_preview
+  // - User must call SubmitApproval to continue execution
+  PendingApproval pending_approval = 13;
 }
 
 // Represents a single item in the agent's todo list.
@@ -226,6 +250,59 @@ message ToolCall {
 
   // Error message if status == TOOL_CALL_FAILED.
   string error = 9;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Approval Fields (HITL Phase 1)
+  //
+  // These fields track the approval state for tools that require user consent
+  // before execution. Populated only for tools where approval is configured.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // True if this tool requires approval before execution.
+  // Determined at runtime by merging:
+  //   1. McpServer.default_tool_approvals (platform/org defaults)
+  //   2. McpServerUsage.tool_approval_overrides (agent-specific)
+  //   3. AgentExecutionSpec.auto_approve_all (runtime bypass)
+  //
+  // When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused
+  // awaiting user decision via SubmitApproval RPC.
+  bool requires_approval = 10;
+
+  // Human-readable message explaining what approval is being requested.
+  // Populated from ToolApprovalPolicy.message with argument placeholders resolved.
+  //
+  // Examples:
+  //   - "Delete repository: my-important-repo"
+  //   - "Force push to branch: main"
+  //   - "Send email to: customer@example.com"
+  //
+  // If no custom message configured, defaults to: "Execute tool: {tool_name}"
+  string approval_message = 11;
+
+  // ISO 8601 timestamp when approval was requested.
+  // Set when status transitions to TOOL_CALL_WAITING_APPROVAL.
+  // Used for tracking approval latency and potential timeout logic.
+  // Example: "2026-01-30T15:30:00Z"
+  string approval_requested_at = 12;
+
+  // ISO 8601 timestamp when approval decision was made.
+  // Set when user submits APPROVE, SKIP, or REJECT via SubmitApproval.
+  // Example: "2026-01-30T15:32:15Z"
+  string approval_decided_at = 13;
+
+  // User ID of who made the approval decision.
+  // Extracted from authentication context when SubmitApproval is called.
+  // Important for audit trails and accountability.
+  // Example: "usr_abc123xyz"
+  string approved_by = 14;
+
+  // The action taken by the user.
+  // Only populated after approval decision is made (approval_decided_at is set).
+  // Determines how the tool execution proceeds:
+  //   - APPROVE: Tool executes normally
+  //   - SKIP: Tool returns skip message, execution continues
+  //   - REJECT: Execution fails with rejection error
+  ApprovalAction approval_action = 15;
 }
 
 // Metadata to guide frontend UI component rendering for tool calls.
@@ -453,4 +530,121 @@ message McpServerResolutionStatus {
   // Reflects the intersection of server's available tools and enabled_tools config.
   // 0 if resolution failed, server has no tools, or all tools disabled.
   int32 enabled_tool_count = 3;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Human-in-the-Loop (HITL) Approval Types (Phase 1)
+//
+// These types support the approval flow for tool execution requiring user consent.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ApprovalAction represents the user's decision on an approval request.
+//
+// ## Action Semantics
+//
+// - APPROVE: Execute the tool normally, continue execution
+// - SKIP: Return "skipped by user" message to LLM, continue execution
+// - REJECT: Fail the execution immediately with rejection error
+//
+// ## LLM Behavior on Skip
+//
+// When a tool is skipped, the LLM receives a message like:
+// "Tool 'delete_repository' was skipped by user. Please proceed without this operation."
+// This allows the LLM to adapt its plan while preserving execution continuity.
+//
+// ## Usage
+//
+// Used in:
+// - ToolCall.approval_action: Records the decision made
+// - SubmitApprovalInput.action: User's submitted decision
+enum ApprovalAction {
+  // Unspecified action (invalid, should never be used).
+  // SubmitApproval RPC rejects this value.
+  APPROVAL_ACTION_UNSPECIFIED = 0;
+
+  // Execute the tool normally.
+  // Tool transitions from WAITING_APPROVAL to RUNNING, then executes.
+  // Execution phase returns to IN_PROGRESS.
+  APPROVAL_ACTION_APPROVE = 1;
+
+  // Skip tool execution, continue without it.
+  // Tool transitions to SKIPPED status.
+  // LLM receives: "Tool '{name}' was skipped by user. Please proceed without this operation."
+  // Execution continues - this is NOT a failure.
+  APPROVAL_ACTION_SKIP = 2;
+
+  // Reject tool execution, fail the entire execution.
+  // Execution phase transitions to FAILED.
+  // Error message includes rejection reason from user's comment.
+  APPROVAL_ACTION_REJECT = 3;
+}
+
+// PendingApproval surfaces the current approval request for UI display.
+//
+// ## Purpose
+//
+// This message provides all information needed for a UI to render an approval
+// dialog/card. It's populated when an execution enters WAITING_FOR_APPROVAL phase.
+//
+// ## Relationship to ToolCall
+//
+// While ToolCall contains the canonical approval state, PendingApproval provides
+// a denormalized view optimized for UI consumption. The tool_call_id links back
+// to the authoritative ToolCall record.
+//
+// ## Sub-Agent Approvals
+//
+// When a sub-agent's tool requires approval, the main agent's pending_approval
+// is populated with from_sub_agent=true. This allows UI to show:
+// "Sub-agent 'code-reviewer' needs approval to execute 'delete_file'"
+//
+// ## Lifecycle
+//
+// 1. Tool with requires_approval=true is about to execute
+// 2. PendingApproval is populated, phase becomes WAITING_FOR_APPROVAL
+// 3. User calls SubmitApproval RPC with their decision
+// 4. PendingApproval is cleared, phase returns to IN_PROGRESS (or FAILED on REJECT)
+message PendingApproval {
+  // ID of the tool call waiting for approval.
+  // Use this when calling SubmitApproval to identify which tool call to resume.
+  // Format: Tool call ID from the agent runtime (e.g., "call_abc123")
+  string tool_call_id = 1;
+
+  // Name of the tool requiring approval.
+  // Matches ToolCall.name for correlation.
+  // Example: "delete_repository", "send_email", "execute_sql"
+  string tool_name = 2;
+
+  // Human-readable approval message for display.
+  // Copied from ToolCall.approval_message for UI convenience.
+  // Contains resolved placeholders (e.g., "Delete repo: my-repo")
+  string message = 3;
+
+  // Sanitized preview of tool arguments for informed decision-making.
+  // Sensitive values (passwords, tokens) are redacted.
+  // Displayed as formatted JSON or key-value pairs in UI.
+  //
+  // Example:
+  //   {
+  //     "repository": "acme/important-repo",
+  //     "force": true,
+  //     "reason": "cleanup"
+  //   }
+  string args_preview = 4;
+
+  // ISO 8601 timestamp when the approval was requested.
+  // Enables UI to show waiting duration: "Waiting for 2 minutes"
+  // Example: "2026-01-30T15:30:00Z"
+  string requested_at = 5;
+
+  // True if this approval originates from a sub-agent.
+  // Enables differentiated UI treatment:
+  //   - false: "Agent needs approval to..."
+  //   - true: "Sub-agent 'name' needs approval to..."
+  bool from_sub_agent = 6;
+
+  // Name of the sub-agent if from_sub_agent is true.
+  // Example: "code-reviewer", "researcher", "debugger"
+  // Empty if from_sub_agent is false.
+  string sub_agent_name = 7;
 }

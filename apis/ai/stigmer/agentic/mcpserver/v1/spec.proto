@@ -65,6 +65,44 @@ message McpServerSpec {
   //       is_secret: false
   //       description: "Default GitHub organization or user"
   ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 8;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Default Tool Approval Policies (HITL Phase 1)
+  //
+  // These policies define which tools require user approval by default.
+  // Agents using this MCP server inherit these policies unless overridden.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Default tool approval policies for this MCP server.
+  //
+  // Tools listed here require user approval before execution by default.
+  // This is the first layer in the approval policy chain:
+  //   McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+  //
+  // Use cases:
+  // - Mark destructive operations as requiring approval by default
+  // - Protect sensitive data access across all agents using this server
+  // - Establish organization-wide safety policies for dangerous tools
+  //
+  // Example (GitHub MCP):
+  //   default_tool_approvals:
+  //     - tool_name: "delete_repository"
+  //       message: "Delete repository: {{args.repo}}"
+  //     - tool_name: "force_push"
+  //       message: "Force push to {{args.branch}}"
+  //     - tool_name: "add_collaborator"
+  //       message: "Add {{args.user}} as collaborator to {{args.repo}}"
+  //
+  // Example (Database MCP):
+  //   default_tool_approvals:
+  //     - tool_name: "execute_sql"
+  //       message: "Execute SQL: {{args.query}}"
+  //     - tool_name: "drop_table"
+  //       message: "Drop table: {{args.table_name}}"
+  //
+  // Tools not listed here do not require approval by default.
+  // Agents can still add approval requirements via tool_approval_overrides.
+  repeated ToolApprovalPolicy default_tool_approvals = 9;
 }
 
 // StdioServerConfig defines an MCP server that runs as a subprocess.
@@ -145,4 +183,66 @@ message HttpServerConfig {
     gte: 0
     lte: 300
   }];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tool Approval Policy (HITL Phase 1)
+//
+// Defines which tools require user approval before execution.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ToolApprovalPolicy defines approval requirements for a specific tool.
+//
+// ## Message Templates
+//
+// The message field supports {{args.field}} placeholders that are resolved
+// at runtime using the actual tool arguments. This enables contextual
+// approval messages that help users make informed decisions.
+//
+// Placeholder syntax:
+//   {{args.field_name}} - Replaced with the tool argument value
+//   {{tool_name}} - Replaced with the tool name (always available)
+//
+// If a placeholder references a missing argument, it's replaced with "<unknown>".
+//
+// ## Examples
+//
+// Simple message:
+//   tool_name: "send_email"
+//   message: "Send email to {{args.recipient}}"
+//   Result: "Send email to customer@example.com"
+//
+// Multiple placeholders:
+//   tool_name: "delete_file"
+//   message: "Delete {{args.path}} from {{args.repository}}"
+//   Result: "Delete src/main.py from acme/webapp"
+//
+// Default message (empty):
+//   tool_name: "dangerous_operation"
+//   message: ""
+//   Result: "Execute tool: dangerous_operation" (auto-generated)
+//
+// ## Policy Chain
+//
+// This policy sits at the McpServer level. The full approval policy chain is:
+// 1. McpServer.default_tool_approvals (this message) - Platform/org defaults
+// 2. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+// 3. AgentExecution.auto_approve_all - Runtime bypass
+message ToolApprovalPolicy {
+  // Name of the tool (must match tools/list from MCP server exactly).
+  // Case-sensitive matching against tool names reported by the MCP server.
+  // Example: "delete_repository", "send_email", "execute_sql"
+  string tool_name = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable message shown to user when approval is requested.
+  // Supports {{args.field}} placeholders for dynamic content.
+  //
+  // If empty, a default message is generated: "Execute tool: {tool_name}"
+  //
+  // Guidelines for effective messages:
+  //   - Be specific about what will happen
+  //   - Include the most important argument values using placeholders
+  //   - Keep under 100 characters for UI display
+  //   - Use action verbs: "Delete", "Send", "Execute", "Create"
+  string message = 2;
 }
