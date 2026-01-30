@@ -19,6 +19,12 @@ from worker.sandbox_manager import SandboxManager
 from worker.activities.graphton.status_builder import StatusBuilder
 from worker.mcp import transform_all_mcp_configs
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
+from worker.resilience import (
+    GrpcRetryExecutor,
+    GrpcRetryExhaustedError,
+    GrpcNonRetryableError,
+    RetryConfig,
+)
 import os
 import time
 
@@ -126,6 +132,10 @@ async def _execute_graphton_impl(
     agent_instance_client = AgentInstanceClient(api_key)
     agent_client = AgentClient(api_key)
     execution_client = AgentExecutionClient(api_key)
+    
+    # Initialize retry executor for reliable final status updates
+    # Uses exponential backoff (1s, 2s, 4s) with max 3 attempts
+    retry_executor = GrpcRetryExecutor(RetryConfig.load_from_env())
     
     # Initialize status builder (builds status locally, returns to workflow)
     status_builder = StatusBuilder(execution_id, execution.status)
@@ -658,17 +668,33 @@ async def _execute_graphton_impl(
         # Set phase to COMPLETED
         status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
         
-        # Send final status update via gRPC
+        # Send final status update via gRPC with retry
+        # This is critical for data persistence - use retry to handle transient failures
         try:
-            activity_logger.info(f"📤 Sending FINAL status update")
-            await execution_client.update_status(
-                execution_id=execution_id,
-                status=status_builder.current_status
+            activity_logger.info(f"📤 [FINAL] Sending COMPLETED status update with retry")
+            await retry_executor.execute(
+                operation=lambda: execution_client.update_status(
+                    execution_id=execution_id,
+                    status=status_builder.current_status
+                ),
+                operation_name="final_status_update",
+                context={"execution_id": execution_id, "phase": "COMPLETED"},
             )
-            activity_logger.info(f"✅ Final status update sent successfully")
+            activity_logger.info(f"✅ [FINAL] Status update sent successfully")
+        except GrpcRetryExhaustedError as e:
+            activity_logger.error(
+                f"[FINAL] All retries exhausted for status update: {e.attempts} attempts, "
+                f"{e.total_duration_ms:.0f}ms total. Last error: {e.last_error}"
+            )
+            # Continue - we'll still return status to workflow as fallback
+        except GrpcNonRetryableError as e:
+            activity_logger.error(
+                f"[FINAL] Non-retryable error on status update: {e.status_code.name} - {e.original_error}"
+            )
+            # Continue - we'll still return status to workflow as fallback
         except Exception as e:
-            activity_logger.error(f"Failed to send final status update: {e}")
-            # Continue - we'll still return status to workflow
+            activity_logger.error(f"[FINAL] Unexpected error on status update: {e}")
+            # Continue - we'll still return status to workflow as fallback
         
         # Diagnostic logging for final status
         activity_logger.info("=" * 80)
@@ -726,17 +752,33 @@ async def _execute_graphton_impl(
             activity_logger.error(f"❌ CRITICAL: current_status is None in error handler for execution {execution_id}")
             raise RuntimeError("Status builder returned None in error handler - this should never happen")
         
-        # Send failed status update via gRPC to persist to database
+        # Send failed status update via gRPC with retry
+        # This is critical for data persistence - use retry to handle transient failures
         try:
-            activity_logger.info(f"📤 Sending FAILED status update to persist to database")
-            await execution_client.update_status(
-                execution_id=execution_id,
-                status=status_builder.current_status
+            activity_logger.info(f"📤 [FINAL] Sending FAILED status update with retry")
+            await retry_executor.execute(
+                operation=lambda: execution_client.update_status(
+                    execution_id=execution_id,
+                    status=status_builder.current_status
+                ),
+                operation_name="final_status_update",
+                context={"execution_id": execution_id, "phase": "FAILED"},
             )
-            activity_logger.info(f"✅ Failed status update sent successfully")
+            activity_logger.info(f"✅ [FINAL] Failed status update sent successfully")
+        except GrpcRetryExhaustedError as e:
+            activity_logger.error(
+                f"[FINAL] All retries exhausted for failed status update: {e.attempts} attempts, "
+                f"{e.total_duration_ms:.0f}ms total. Last error: {e.last_error}"
+            )
+            # Continue - we'll still return status to workflow as fallback
+        except GrpcNonRetryableError as e:
+            activity_logger.error(
+                f"[FINAL] Non-retryable error on failed status update: {e.status_code.name} - {e.original_error}"
+            )
+            # Continue - we'll still return status to workflow as fallback
         except Exception as update_error:
-            activity_logger.error(f"Failed to send failed status update: {update_error}")
-            # Continue - we'll still return status to workflow
+            activity_logger.error(f"[FINAL] Unexpected error on failed status update: {update_error}")
+            # Continue - we'll still return status to workflow as fallback
         
         activity_logger.info(
             f"✅ Returning failed AgentExecutionStatus to workflow: "

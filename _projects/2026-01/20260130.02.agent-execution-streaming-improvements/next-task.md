@@ -109,8 +109,8 @@ Check anti-patterns to avoid.
 ## Current Status
 
 **Created**: 2026-01-30
-**Last Session**: 2026-01-30 (Phase 1.2 Implementation)
-**Current Task**: Phase 1.2 Complete - Ready for Phase 1.3
+**Last Session**: 2026-01-30 (Phase 1.3 Implementation)
+**Current Task**: Phase 1 Complete - Ready for Phase 2
 **Status**: IN PROGRESS
 
 ## Session Progress (2026-01-30)
@@ -170,14 +170,53 @@ Check anti-patterns to avoid.
 - Benefits: testable, reusable, clean separation of concerns
 - Follows existing codebase patterns (dataclass + load_from_env)
 
+### ✅ Completed: Phase 1.3 - Reliable Final Status Persistence
+
+**What was accomplished:**
+- Created new `worker/resilience/` module with gRPC retry logic
+- Implemented `RetryConfig` dataclass with environment variable support
+- Implemented `GrpcRetryExecutor` class with exponential backoff
+- Implemented gRPC status code classification (retryable vs non-retryable)
+- Custom exceptions: `GrpcRetryExhaustedError`, `GrpcNonRetryableError`
+- Integrated retry into both success and error paths for final status updates
+- Created comprehensive unit test suite (62 tests, all passing)
+- Structured logging with `[RETRY]` prefix for observability
+
+**Files created/modified:**
+- `backend/services/agent-runner/worker/resilience/__init__.py` (new module)
+- `backend/services/agent-runner/worker/resilience/grpc_retry.py` (new, ~450 lines)
+- `backend/services/agent-runner/tests/test_grpc_retry.py` (new, 62 tests)
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` (integrated retry)
+
+**Key implementation details:**
+- Exponential backoff: 1s → 2s → 4s (configurable)
+- Max 3 attempts by default
+- Retryable status codes: UNAVAILABLE, DEADLINE_EXCEEDED, ABORTED, RESOURCE_EXHAUSTED, INTERNAL
+- Non-retryable status codes: NOT_FOUND, INVALID_ARGUMENT, PERMISSION_DENIED, UNAUTHENTICATED, etc.
+- Uses `time.monotonic()` for reliable duration tracking
+- Configurable via environment variables:
+  - `GRPC_RETRY_MAX_ATTEMPTS` (default: 3)
+  - `GRPC_RETRY_INITIAL_DELAY_MS` (default: 1000)
+  - `GRPC_RETRY_BACKOFF_MULTIPLIER` (default: 2.0)
+  - `GRPC_RETRY_MAX_DELAY_MS` (default: 10000)
+
+**Test coverage (62 tests):**
+- RetryConfig: defaults, validation, env loading, backoff calculation
+- Status code classification: all retryable and non-retryable codes
+- GrpcRetryExecutor: success cases, failure cases, mixed errors
+- Exception details: message format, attributes
+- Timing behavior: backoff delays, zero delay config
+- Edge cases: single attempt, context handling
+
+**Architecture decision:**
+- Created dedicated `worker/resilience/` module parallel to `worker/streaming/`
+- No external dependencies (uses asyncio.sleep instead of tenacity)
+- Reusable for any gRPC operation requiring retry
+- Clear separation: status code classification, config, executor
+
 ## Next Steps
 
-1. **Phase 1.3: Reliable Final Status Persistence**
-   - Add retry logic for final status update (exponential backoff)
-   - Consider workflow-level backup persistence
-   - Handle gRPC failures gracefully
-
-2. **Phase 2.1: Proto Changes for Streaming State**
+1. **Phase 2.1: Proto Changes for Streaming State**
    - Add `is_streaming`, `token_count`, `generation_duration_ms` to AgentMessage
    - Update StatusBuilder to populate new fields
    - Regenerate all stubs
@@ -189,20 +228,24 @@ Check anti-patterns to avoid.
 ## Context for Resume
 
 **Current implementation state:**
-- Phase 1.1 and 1.2 are production-ready
+- Phase 1 (Critical Fixes) is complete and production-ready
 - Token tracking works but data only in logs (proto fields come in Phase 2.1)
 - Streaming updates are now time-based with configurable thresholds
-- Test coverage is comprehensive (14 + 44 = 58 tests)
+- Final status updates now have retry with exponential backoff
+- Test coverage is comprehensive (14 + 44 + 62 = 120 tests)
 
 **Important discoveries:**
 - Monotonic time is essential for reliable duration tracking
 - Hybrid approach (time + events) handles both slow and fast operations well
 - Separating heartbeat from status update timing is important (different purposes)
+- gRPC status code classification is crucial for intelligent retry
 
 **Technical decisions:**
 - Used frozen dataclass for immutable configuration
 - UpdateReason enum provides clear logging and debugging
 - Mark update as sent even on failure to prevent retry storms
+- No external retry library (asyncio.sleep is sufficient)
+- Retry only final status updates (progressive updates don't need retry)
 
 ## Resume Checklist
 
@@ -212,7 +255,8 @@ When starting a new session:
 2. [x] Check for latest checkpoint in `checkpoints/`
 3. [x] Review Phase 1.2 requirements (time-based streaming) - COMPLETED
 4. [x] Implement time-based streaming scheduler - COMPLETED
-5. [ ] Continue with Phase 1.3 (retry logic) or Phase 2 (proto changes)
+5. [x] Implement Phase 1.3 (retry logic) - COMPLETED
+6. [ ] Continue with Phase 2 (proto changes)
 
 ## Quick Commands
 
@@ -241,7 +285,7 @@ The project addresses issues found in architectural review:
 **Streaming Strategy Issues**:
 - ~~Event-count based (bad UX for slow/fast operations)~~ ✅ FIXED in Phase 1.2
 - Full state transmission (wasteful)
-- Final update has no retry (data loss risk)
+- ~~Final update has no retry (data loss risk)~~ ✅ FIXED in Phase 1.3
 
 ---
 
