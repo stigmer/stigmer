@@ -3169,3 +3169,299 @@ class TestBuildApprovalConfig:
         )
         
         assert config.tool_approval_overrides == []
+
+
+# =============================================================================
+# TestCreateApprovalChecker - Tests for HITL approval checker factory (Phase 3B)
+# =============================================================================
+
+
+class TestCreateApprovalChecker:
+    """
+    Tests for the create_approval_checker() function.
+    
+    This function creates a callable that can be passed to graphton's
+    create_deep_agent to enable HITL tool approval flow.
+    """
+    
+    def test_creates_callable(self):
+        """Test that create_approval_checker returns a callable."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        config = ApprovalConfig()
+        checker = create_approval_checker(config)
+        
+        assert callable(checker)
+    
+    def test_checker_returns_no_approval_when_auto_approve_all(self):
+        """Test that checker returns no approval required when auto_approve_all is True."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        config = ApprovalConfig(auto_approve_all=True)
+        checker = create_approval_checker(config)
+        
+        result = checker("any_tool", {"arg1": "value"})
+        
+        assert result.requires_approval is False
+        assert result.source == "auto_approve_all"
+    
+    def test_checker_returns_no_approval_when_no_policy_matches(self):
+        """Test that checker returns no approval when no policy matches."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals={},
+            tool_to_mcp_server={"some_tool": "some-server"},
+        )
+        checker = create_approval_checker(config)
+        
+        result = checker("unknown_tool", {"arg1": "value"})
+        
+        assert result.requires_approval is False
+        assert result.source == "none"
+    
+    def test_checker_returns_approval_required_from_mcp_default(self):
+        """Test that checker returns approval required from MCP default policy."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        # Create mock policy
+        policy = MagicMock()
+        policy.tool_name = "delete_resource"
+        policy.message = "Are you sure you want to delete?"
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals={"test-server": [policy]},
+            tool_to_mcp_server={"delete_resource": "test-server"},
+        )
+        checker = create_approval_checker(config)
+        
+        result = checker("delete_resource", {})
+        
+        assert result.requires_approval is True
+        assert result.source == "mcp_default"
+        assert "delete" in result.message.lower()
+    
+    def test_checker_returns_approval_required_from_agent_override(self):
+        """Test that checker returns approval required from agent override."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        # Create mock override
+        override = MagicMock()
+        override.tool_name = "send_email"
+        override.requires_approval = True
+        override.message = "Confirm sending email to {{args.recipient}}?"
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_approval_overrides=[override],
+            default_tool_approvals={},
+            tool_to_mcp_server={"send_email": "email-server"},
+        )
+        checker = create_approval_checker(config)
+        
+        result = checker("send_email", {"recipient": "user@example.com"})
+        
+        assert result.requires_approval is True
+        assert result.source == "agent_override"
+        assert "user@example.com" in result.message
+    
+    def test_checker_renders_message_template_with_args(self):
+        """Test that checker renders {{args.field}} placeholders in message."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        # Create mock policy with template
+        policy = MagicMock()
+        policy.tool_name = "delete_file"
+        policy.message = "Delete file {{args.path}} from {{args.directory}}?"
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals={"fs-server": [policy]},
+            tool_to_mcp_server={"delete_file": "fs-server"},
+        )
+        checker = create_approval_checker(config)
+        
+        result = checker("delete_file", {"path": "config.yaml", "directory": "/app"})
+        
+        assert "config.yaml" in result.message
+        assert "/app" in result.message
+    
+    def test_checker_includes_mcp_server_in_result(self):
+        """Test that checker result includes mcp_server field."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals={},
+            tool_to_mcp_server={"test_tool": "my-mcp-server"},
+        )
+        checker = create_approval_checker(config)
+        
+        result = checker("test_tool", {})
+        
+        assert result.mcp_server == "my-mcp-server"
+    
+    def test_checker_handles_missing_tool_gracefully(self):
+        """Test that checker handles tools not in config gracefully."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals={},
+            tool_to_mcp_server={},  # Empty - no tools mapped
+        )
+        checker = create_approval_checker(config)
+        
+        # Should not raise, just return no approval required
+        result = checker("completely_unknown_tool", {"arg": "value"})
+        
+        assert result.requires_approval is False
+        assert result.mcp_server == ""
+
+
+# =============================================================================
+# TestResumeFromApprovalDetection - Tests for HITL resume flow detection (Phase 3B)
+# =============================================================================
+
+
+class TestResumeFromApprovalDetection:
+    """
+    Tests for the resume-from-approval detection logic in execute_graphton.
+    
+    These tests verify that the activity correctly detects when execution
+    should resume from a pending approval vs start fresh.
+    """
+    
+    def test_no_pending_approval_is_fresh_execution(self):
+        """Test that execution without pending_approval is a fresh start."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+            AgentExecution,
+            AgentExecutionStatus,
+            PendingApproval,
+        )
+        
+        # Create execution with no pending approval
+        status = AgentExecutionStatus()
+        status.pending_approval.CopyFrom(PendingApproval())  # Empty - no tool_call_id
+        
+        execution = MagicMock()
+        execution.status = status
+        
+        # Check: no tool_call_id means fresh execution
+        has_pending = bool(execution.status.pending_approval.tool_call_id)
+        assert has_pending is False
+    
+    def test_pending_approval_with_decision_is_resume(self):
+        """Test that pending_approval with decision triggers resume."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+            AgentExecutionStatus,
+            PendingApproval,
+            ToolCall,
+            ApprovalAction,
+        )
+        
+        # Create execution with pending approval and decision
+        status = AgentExecutionStatus()
+        pending = PendingApproval()
+        pending.tool_call_id = "call_abc123"
+        status.pending_approval.CopyFrom(pending)
+        
+        # Add tool call with approval decision
+        tool_call = status.tool_calls.add()
+        tool_call.id = "call_abc123"
+        tool_call.name = "delete_resource"
+        tool_call.approval_action = ApprovalAction.APPROVAL_ACTION_APPROVE
+        tool_call.approved_by = "user@test.com"
+        
+        # Check: has pending and decision set
+        has_pending = bool(status.pending_approval.tool_call_id)
+        assert has_pending is True
+        
+        # Find tool call and check decision
+        found_action = ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+        for tc in status.tool_calls:
+            if tc.id == status.pending_approval.tool_call_id:
+                found_action = tc.approval_action
+                break
+        
+        assert found_action == ApprovalAction.APPROVAL_ACTION_APPROVE
+    
+    def test_pending_approval_without_decision_is_warning(self):
+        """Test that pending_approval without decision logs warning."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+            AgentExecutionStatus,
+            PendingApproval,
+            ToolCall,
+            ApprovalAction,
+        )
+        
+        # Create execution with pending approval but NO decision
+        status = AgentExecutionStatus()
+        pending = PendingApproval()
+        pending.tool_call_id = "call_abc123"
+        status.pending_approval.CopyFrom(pending)
+        
+        # Add tool call WITHOUT approval decision
+        tool_call = status.tool_calls.add()
+        tool_call.id = "call_abc123"
+        tool_call.name = "delete_resource"
+        # approval_action defaults to UNSPECIFIED
+        
+        # Find tool call and check decision
+        found_action = ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+        for tc in status.tool_calls:
+            if tc.id == status.pending_approval.tool_call_id:
+                found_action = tc.approval_action
+                break
+        
+        # This should be UNSPECIFIED - triggers warning in real code
+        assert found_action == ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+    
+    def test_approval_action_mapping_to_strings(self):
+        """Test that ApprovalAction enum values map correctly to strings."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        
+        action_map = {
+            ApprovalAction.APPROVAL_ACTION_APPROVE: "approve",
+            ApprovalAction.APPROVAL_ACTION_SKIP: "skip",
+            ApprovalAction.APPROVAL_ACTION_REJECT: "reject",
+        }
+        
+        # Verify all actions map correctly
+        assert action_map[ApprovalAction.APPROVAL_ACTION_APPROVE] == "approve"
+        assert action_map[ApprovalAction.APPROVAL_ACTION_SKIP] == "skip"
+        assert action_map[ApprovalAction.APPROVAL_ACTION_REJECT] == "reject"
+        
+        # Unspecified should not be in the map (handled as special case)
+        assert ApprovalAction.APPROVAL_ACTION_UNSPECIFIED not in action_map

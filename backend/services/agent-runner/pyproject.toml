@@ -15,6 +15,14 @@ temporalio = "^1.9.0"
 langgraph = "*"
 langchain-core = ">=1.0.0"
 
+# LangGraph checkpointers (for HITL approval flow and conversation persistence)
+# SQLite: file-based persistence for local/open-source deployments
+langgraph-checkpoint-sqlite = "^2.0.0"
+# MongoDB: database persistence for cloud deployments (multi-instance safe)
+langgraph-checkpoint-mongodb = "^0.3.0"
+# Motor: async MongoDB driver (required by AsyncMongoDBSaver)
+motor = "^3.0.0"
+
 # Graphton (local copy)
 graphton = {path = "../../libs/python/graphton", develop = true}
 

@@ -1,7 +1,7 @@
 """Temporal activity for executing Graphton agents."""
 
 from temporalio import activity
-from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecution, AgentExecutionStatus
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecution, AgentExecutionStatus, ApprovalAction
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
 from graphton import create_deep_agent
 import logging
@@ -17,7 +17,12 @@ from grpc_client.mcp_server_client import McpServerClient
 from worker.token_manager import get_api_key
 from worker.sandbox_manager import SandboxManager
 from worker.activities.graphton.status_builder import StatusBuilder
-from worker.activities.graphton.approval_policy import ApprovalConfig, build_approval_config
+from worker.activities.graphton.approval_policy import (
+    ApprovalConfig,
+    build_approval_config,
+    create_approval_checker,
+)
+from worker.checkpointer import create_checkpointer
 from worker.mcp import transform_all_mcp_configs
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.resilience import (
@@ -177,6 +182,23 @@ async def _execute_graphton_impl(
         # Step 2: Get worker configuration (for sandbox and LLM config)
         from worker.config import Config
         worker_config = Config.load_from_env()
+        
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 2.5: Create checkpointer for HITL and conversation persistence
+        #
+        # The checkpointer enables two critical capabilities:
+        # 1. HITL (Human-in-the-Loop) approval flow - interrupt/resume execution
+        # 2. Conversational context preservation - multi-turn conversations
+        #
+        # Checkpointer selection is mode-aware:
+        # - local mode: MemorySaver (ephemeral) or SqliteSaver (persistent)
+        # - cloud mode: AsyncMongoDBSaver (persistent, multi-instance safe)
+        # ─────────────────────────────────────────────────────────────────────────────
+        checkpointer = await create_checkpointer(worker_config.checkpointer)
+        activity_logger.info(
+            f"Created {worker_config.checkpointer.type} checkpointer "
+            f"for HITL approval flow and conversation persistence"
+        )
         
         # Model name from execution config or worker config (mode-aware default)
         # Priority: execution config > worker LLM config (env vars + mode-aware defaults)
@@ -589,9 +611,20 @@ async def _execute_graphton_impl(
             # Fallback: pass model name as string and let Graphton handle it
             llm_model = model_name
         
+        # Create approval checker for HITL tool approval flow (Phase 3B)
+        # The checker evaluates the approval policy chain for each tool invocation
+        approval_checker = create_approval_checker(approval_config)
+        
+        activity_logger.info(
+            f"Created approval checker for HITL flow "
+            f"(auto_approve_all={approval_config.auto_approve_all})"
+        )
+        
         # Create Graphton agent
         # Recursion limit set to 1000 for maximum autonomy
         # Graphton's loop detection middleware prevents infinite loops
+        # approval_checker enables HITL tool approval with interrupt/resume
+        # checkpointer enables HITL interrupt/resume and conversation persistence
         agent_graph = create_deep_agent(
             model=llm_model,  # Pass LLM instance instead of string
             system_prompt=enhanced_system_prompt,
@@ -600,6 +633,8 @@ async def _execute_graphton_impl(
             subagents=None,  # Sub-agents support will be added later
             sandbox_config=sandbox_config_for_agent,
             recursion_limit=1000,
+            checkpointer=checkpointer,  # Enable HITL interrupt/resume and conversation persistence
+            approval_checker=approval_checker,  # Enable HITL tool approval (Phase 3B)
         )
         
         activity_logger.info(f"Graphton agent created successfully with {'new' if is_new_sandbox else 'reused'} sandbox")
@@ -625,6 +660,68 @@ async def _execute_graphton_impl(
             f"Using thread_id: {thread_id} for Graphton execution {execution_id}"
         )
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 7.5: Check for Resume from HITL Approval (Phase 3B)
+        #
+        # If the execution was previously interrupted for approval (WAITING_FOR_APPROVAL),
+        # and a decision has been submitted, we need to resume the graph with that decision.
+        #
+        # Flow:
+        # 1. Initial run: Tool calls interrupt(), execution pauses at WAITING_FOR_APPROVAL
+        # 2. User submits decision via SubmitApproval RPC
+        # 3. Temporal workflow re-invokes this activity
+        # 4. We detect pending_approval + approval_action and resume with Command(resume=...)
+        # ─────────────────────────────────────────────────────────────────────────────
+        
+        resume_decision = None
+        is_resume_from_approval = False
+        
+        # Check if this is a resume from a pending approval
+        if execution.status.pending_approval.tool_call_id:
+            pending_tool_call_id = execution.status.pending_approval.tool_call_id
+            activity_logger.info(
+                f"Detected pending approval for tool_call_id={pending_tool_call_id}"
+            )
+            
+            # Find the tool call with this ID to get the approval decision
+            approval_action = ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+            approved_by = ""
+            
+            for tool_call in execution.status.tool_calls:
+                if tool_call.id == pending_tool_call_id:
+                    approval_action = tool_call.approval_action
+                    approved_by = tool_call.approved_by
+                    break
+            
+            # If we found an approval decision (not UNSPECIFIED), this is a resume
+            if approval_action != ApprovalAction.APPROVAL_ACTION_UNSPECIFIED:
+                is_resume_from_approval = True
+                
+                # Map proto enum to action string for interrupt resume
+                action_map = {
+                    ApprovalAction.APPROVAL_ACTION_APPROVE: "approve",
+                    ApprovalAction.APPROVAL_ACTION_SKIP: "skip",
+                    ApprovalAction.APPROVAL_ACTION_REJECT: "reject",
+                }
+                action_str = action_map.get(approval_action, "unknown")
+                
+                resume_decision = {
+                    "action": action_str,
+                    "approved_by": approved_by,
+                }
+                
+                activity_logger.info(
+                    f"🔄 Resuming from approval: tool_call_id={pending_tool_call_id}, "
+                    f"action={action_str}, approved_by={approved_by}"
+                )
+            else:
+                # Pending approval exists but no decision yet - this shouldn't happen
+                # in normal flow, but handle gracefully
+                activity_logger.warning(
+                    f"⚠️ Pending approval found but no decision set for tool_call_id={pending_tool_call_id}. "
+                    "This may indicate a workflow timing issue. Proceeding with fresh execution."
+                )
+        
         # Step 8: Set phase to IN_PROGRESS (status built locally)
         status_builder.current_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
         
@@ -648,15 +745,28 @@ async def _execute_graphton_impl(
         streaming_config = StreamingConfig.load_from_env()
         update_scheduler = StreamingUpdateScheduler(streaming_config)
         
-        activity_logger.info(
-            f"🔍 Starting Graphton agent stream for execution {execution_id} "
-            f"(streaming: min_interval={streaming_config.min_interval_ms}ms, "
-            f"max_interval={streaming_config.max_interval_ms}ms, "
-            f"burst_threshold={streaming_config.burst_threshold})"
-        )
+        # Determine graph input based on whether this is a resume or fresh execution
+        if is_resume_from_approval and resume_decision is not None:
+            # Resume from approval: use Command(resume=decision) to continue from interrupt
+            from langgraph.types import Command
+            
+            graph_input = Command(resume=resume_decision)
+            activity_logger.info(
+                f"🔄 Resuming Graphton agent from approval for execution {execution_id} "
+                f"(decision={resume_decision['action']})"
+            )
+        else:
+            # Fresh execution: use normal input
+            graph_input = langgraph_input
+            activity_logger.info(
+                f"🔍 Starting Graphton agent stream for execution {execution_id} "
+                f"(streaming: min_interval={streaming_config.min_interval_ms}ms, "
+                f"max_interval={streaming_config.max_interval_ms}ms, "
+                f"burst_threshold={streaming_config.burst_threshold})"
+            )
         
         async for event in agent_graph.astream_events(
-            langgraph_input,
+            graph_input,
             config=config,
             version="v2",  # Use v2 schema for consistent event structure
         ):
