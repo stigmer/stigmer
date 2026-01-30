@@ -11,6 +11,8 @@ func NewRunCommand() *cobra.Command {
 	var message string
 	var envFlags []string
 	var envFileFlags []string
+	var secretFlags []string
+	var secretFileFlags []string
 	var orgOverride string
 	var follow bool
 
@@ -41,17 +43,16 @@ TWO MODES:
 
 ENVIRONMENT VARIABLES:
 
-  --env KEY=VALUE       Runtime environment variable (can be repeated)
-                        Prefix with "secret:" for encrypted values
+  --env KEY=VALUE         Runtime environment variable (can be repeated)
+  --secret KEY=VALUE      Secret environment variable (can be repeated, encrypted)
   
-  --env-file PATH       Load environment from file (can be repeated)
-                        Files are processed in order, later files override earlier
-                        Supports standard .env format with comments and quoted values
+  --env-file PATH         Load environment from file (can be repeated)
+  --secret-file PATH      Load secrets from file (can be repeated, all values encrypted)
 
   Precedence (highest to lowest):
-    1. --env flags (inline values)
-    2. Later --env-file flags
-    3. Earlier --env-file flags
+    1. --env and --secret flags (inline values)
+    2. Later --env-file and --secret-file flags
+    3. Earlier --env-file and --secret-file flags
 
 OTHER OPTIONS:
 
@@ -74,15 +75,20 @@ OTHER OPTIONS:
   stigmer run my-agent --no-follow
   
   # Run with inline environment variables
-  stigmer run my-agent --env API_KEY=abc123 --env DEBUG=true
-  stigmer run my-agent --env "secret:DB_PASSWORD=supersecret"
+  stigmer run my-agent --env API_URL=https://api.example.com --env DEBUG=true
   
-  # Run with environment file
+  # Run with inline secrets (encrypted)
+  stigmer run my-agent --secret DB_PASSWORD=supersecret --secret API_KEY=ghp_abc123
+  
+  # Run with environment file (all values are non-secrets)
   stigmer run my-agent --env-file .env
   stigmer run my-agent --env-file .env.defaults --env-file .env.local
   
-  # Combine env files and inline overrides
-  stigmer run my-agent --env-file .env --env API_KEY=override
+  # Run with secret file (all values are encrypted)
+  stigmer run my-agent --secret-file .env.secret
+  
+  # Combine env files, secret files, and inline overrides
+  stigmer run my-agent --env-file .env --secret-file .env.secret --env DEBUG=true
   
   # Run by ID
   stigmer run agt_01kewqjbtdy0w4d14bnhhy4yc2
@@ -91,8 +97,13 @@ OTHER OPTIONS:
   # Override organization
   stigmer run my-agent --org my-org-id`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Parse and merge environment variables from files and flags
-			runtimeEnv, err := envfile.LoadAndMerge(envFileFlags, envFlags)
+			// Parse and merge environment variables and secrets from files and flags
+			runtimeEnv, err := envfile.LoadAndMergeWithSecrets(
+				envFileFlags,
+				secretFileFlags,
+				envFlags,
+				secretFlags,
+			)
 			if err != nil {
 				cliprint.PrintError("Failed to load environment: %s", err)
 				return
@@ -114,11 +125,17 @@ OTHER OPTIONS:
 	// Message flag
 	cmd.Flags().StringVar(&message, "message", "", "initial message/prompt for execution")
 
-	// Environment variable flags
+	// Environment variable flags (non-secrets)
 	cmd.Flags().StringArrayVar(&envFlags, "env", []string{},
-		"runtime environment variable (KEY=VALUE, can be repeated, prefix with 'secret:' for secrets)")
+		"runtime environment variable (KEY=VALUE, can be repeated)")
 	cmd.Flags().StringArrayVar(&envFileFlags, "env-file", []string{},
 		"load environment from file (can be repeated, later files override earlier)")
+
+	// Secret flags (encrypted)
+	cmd.Flags().StringArrayVar(&secretFlags, "secret", []string{},
+		"secret environment variable (KEY=VALUE, can be repeated, encrypted)")
+	cmd.Flags().StringArrayVar(&secretFileFlags, "secret-file", []string{},
+		"load secrets from file (can be repeated, all values encrypted)")
 
 	// Execution flags
 	cmd.Flags().BoolVar(&follow, "follow", true, "stream execution logs in real-time (default: true)")

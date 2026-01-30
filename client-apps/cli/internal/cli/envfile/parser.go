@@ -9,14 +9,22 @@ import (
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 )
 
-const (
-	// secretPrefix marks a value as a secret in env files and flags.
-	secretPrefix = "secret:"
-)
-
 // ParseFile reads and parses an environment file.
-// Supports comments (#), empty lines, quoted values, and secret: prefix.
+// All values are marked as non-secrets. Use ParseFileAsSecrets for secret files.
+// Supports comments (#), empty lines, quoted values, and export prefix.
 func ParseFile(path string) (EnvMap, error) {
+	return parseFileWithSecretFlag(path, false)
+}
+
+// ParseFileAsSecrets reads and parses an environment file where all values are secrets.
+// Use this for --secret-file flag to load files where all values should be encrypted.
+func ParseFileAsSecrets(path string) (EnvMap, error) {
+	return parseFileWithSecretFlag(path, true)
+}
+
+// parseFileWithSecretFlag is the internal implementation that parses a file
+// and marks all values with the specified isSecret flag.
+func parseFileWithSecretFlag(path string, isSecret bool) (EnvMap, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open environment file %s", path)
@@ -31,7 +39,7 @@ func ParseFile(path string) (EnvMap, error) {
 		lineNum++
 		line := scanner.Text()
 
-		key, value, isSecret, err := ParseLine(line)
+		key, value, err := ParseLine(line)
 		if err != nil {
 			return nil, &ParseError{
 				File:    path,
@@ -59,21 +67,15 @@ func ParseFile(path string) (EnvMap, error) {
 }
 
 // ParseLine parses a single KEY=VALUE line.
-// Returns key, value, isSecret, error.
+// Returns key, value, error.
 // Returns empty key for comments and blank lines (not an error).
-func ParseLine(line string) (key string, value string, isSecret bool, err error) {
+func ParseLine(line string) (key string, value string, err error) {
 	// Trim whitespace
 	line = strings.TrimSpace(line)
 
 	// Skip empty lines and comments
 	if line == "" || strings.HasPrefix(line, "#") {
-		return "", "", false, nil
-	}
-
-	// Check for secret prefix
-	if strings.HasPrefix(line, secretPrefix) {
-		isSecret = true
-		line = strings.TrimPrefix(line, secretPrefix)
+		return "", "", nil
 	}
 
 	// Handle optional 'export ' prefix (common in shell scripts)
@@ -82,32 +84,44 @@ func ParseLine(line string) (key string, value string, isSecret bool, err error)
 	// Find the first '=' separator
 	eqIndex := strings.Index(line, "=")
 	if eqIndex == -1 {
-		return "", "", false, errors.New("invalid format: missing '=' separator")
+		return "", "", errors.New("invalid format: missing '=' separator")
 	}
 
 	key = strings.TrimSpace(line[:eqIndex])
 	if key == "" {
-		return "", "", false, errors.New("empty key")
+		return "", "", errors.New("empty key")
 	}
 
 	// Validate key format (alphanumeric and underscores only)
 	if !isValidEnvKey(key) {
-		return "", "", false, errors.Errorf("invalid key %q: must contain only letters, numbers, and underscores", key)
+		return "", "", errors.Errorf("invalid key %q: must contain only letters, numbers, and underscores", key)
 	}
 
 	value = line[eqIndex+1:]
 	value = parseValue(value)
 
-	return key, value, isSecret, nil
+	return key, value, nil
 }
 
-// ParseFlags parses --env flag values (KEY=VALUE or secret:KEY=VALUE).
-// Same format as existing --runtime-env parsing.
+// ParseFlags parses --env flag values (KEY=VALUE format).
+// All values are marked as non-secrets. Use ParseFlagsAsSecrets for --secret flags.
 func ParseFlags(envVars []string) (EnvMap, error) {
+	return parseFlagsWithSecretFlag(envVars, false)
+}
+
+// ParseFlagsAsSecrets parses --secret flag values (KEY=VALUE format).
+// All values are marked as secrets and will be encrypted.
+func ParseFlagsAsSecrets(secretVars []string) (EnvMap, error) {
+	return parseFlagsWithSecretFlag(secretVars, true)
+}
+
+// parseFlagsWithSecretFlag is the internal implementation that parses flag values
+// and marks all values with the specified isSecret flag.
+func parseFlagsWithSecretFlag(vars []string, isSecret bool) (EnvMap, error) {
 	result := make(EnvMap)
 
-	for _, envVar := range envVars {
-		key, value, isSecret, err := ParseLine(envVar)
+	for _, envVar := range vars {
+		key, value, err := ParseLine(envVar)
 		if err != nil {
 			return nil, errors.Wrapf(err, "invalid environment variable %q", envVar)
 		}

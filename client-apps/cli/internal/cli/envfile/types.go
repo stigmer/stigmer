@@ -1,6 +1,6 @@
 // Package envfile provides parsing and merging of environment files
 // for the stigmer run command. It supports the standard .env file format
-// with extensions for marking secrets.
+// with comments, quoted values, and export prefix.
 package envfile
 
 import (

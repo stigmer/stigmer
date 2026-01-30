@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
