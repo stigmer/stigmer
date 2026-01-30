@@ -12,9 +12,11 @@ from grpc_client.skill_client import SkillClient
 from grpc_client.session_client import SessionClient
 from grpc_client.environment_client import EnvironmentClient
 from grpc_client.agent_execution_client import AgentExecutionClient
+from grpc_client.mcp_server_client import McpServerClient
 from worker.token_manager import get_api_key
 from worker.sandbox_manager import SandboxManager
 from worker.activities.graphton.status_builder import StatusBuilder
+from worker.mcp import transform_all_mcp_configs
 import os
 
 
@@ -362,7 +364,63 @@ async def _execute_graphton_impl(
                 # Continue without environments rather than failing execution
                 merged_env_vars = {}
         
-        # Step 5: Create Graphton agent at runtime with EXISTING sandbox
+        # Step 5: Fetch and transform MCP servers (from agent template via mcp_server_usages)
+        # MCP servers provide external tools via Model Context Protocol
+        mcp_servers_config = {}
+        mcp_tools_config = {}
+        mcp_server_usages = agent.spec.mcp_server_usages
+        
+        if mcp_server_usages:
+            activity_logger.info(
+                f"Fetching {len(mcp_server_usages)} MCP servers: "
+                f"{[usage.mcp_server_ref.slug for usage in mcp_server_usages]}"
+            )
+            
+            try:
+                # Create MCP server client
+                mcp_server_client = McpServerClient(api_key)
+                
+                # Extract refs from usages
+                mcp_server_refs = [usage.mcp_server_ref for usage in mcp_server_usages]
+                
+                # Fetch MCP server resources via gRPC
+                mcp_servers = await mcp_server_client.list_by_refs(mcp_server_refs)
+                
+                activity_logger.info(
+                    f"Fetched {len(mcp_servers)} MCP servers: "
+                    f"{[s.metadata.name for s in mcp_servers]}"
+                )
+                
+                # Transform MCP server configs to LangGraph format
+                # Uses merged_env_vars for placeholder resolution (${VAR_NAME})
+                mcp_config_result = transform_all_mcp_configs(
+                    mcp_servers=mcp_servers,
+                    mcp_server_usages=list(mcp_server_usages),
+                    env_vars=merged_env_vars,
+                )
+                
+                mcp_servers_config = mcp_config_result.servers
+                mcp_tools_config = mcp_config_result.tools
+                
+                activity_logger.info(
+                    f"Transformed MCP configs: servers={list(mcp_servers_config.keys())}, "
+                    f"tools={sum(len(t) if t else 0 for t in mcp_tools_config.values())} total"
+                )
+                
+            except ValueError as e:
+                # MCP server not found - log error but continue without MCP
+                activity_logger.error(f"MCP server fetch failed: {e}")
+                activity_logger.warning("Continuing without MCP servers - agent will have limited capabilities")
+                mcp_servers_config = {}
+                mcp_tools_config = {}
+            except Exception as e:
+                activity_logger.error(f"Unexpected error preparing MCP servers: {e}")
+                activity_logger.warning("Continuing without MCP servers - agent will have limited capabilities")
+                mcp_servers_config = {}
+                mcp_tools_config = {}
+        
+        # Step 6: Create Graphton agent at runtime with EXISTING sandbox
+        # Note: MCP servers are passed if configured, providing external tool access
         activity_logger.info(f"Creating Graphton agent for execution {execution_id}")
         
         # Enhance system prompt with skills section
@@ -420,8 +478,8 @@ async def _execute_graphton_impl(
         agent_graph = create_deep_agent(
             model=llm_model,  # Pass LLM instance instead of string
             system_prompt=enhanced_system_prompt,
-            mcp_servers={},  # MCP support will be added later
-            mcp_tools=None,
+            mcp_servers=mcp_servers_config if mcp_servers_config else None,
+            mcp_tools=mcp_tools_config if mcp_tools_config else None,
             subagents=None,  # Sub-agents support will be added later
             sandbox_config=sandbox_config_for_agent,
             recursion_limit=1000,
@@ -429,7 +487,7 @@ async def _execute_graphton_impl(
         
         activity_logger.info(f"Graphton agent created successfully with {'new' if is_new_sandbox else 'reused'} sandbox")
         
-        # Step 6: Prepare invocation input
+        # Step 7: Prepare invocation input
         # Append organization context to message
         context_section = f"\n\n---\nContext:\n- Organization: {execution.metadata.org}"
         message_with_context = user_message + context_section
@@ -450,12 +508,12 @@ async def _execute_graphton_impl(
             f"Using thread_id: {thread_id} for Graphton execution {execution_id}"
         )
         
-        # Step 7: Set phase to IN_PROGRESS (status built locally)
+        # Step 8: Set phase to IN_PROGRESS (status built locally)
         status_builder.current_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
         
         activity_logger.info(f"Execution {execution_id} phase set to IN_PROGRESS (building locally)")
         
-        # Step 8: Stream execution and build status from events
+        # Step 9: Stream execution and build status from events
         events_processed = 0
         last_update_sent = 0
         last_heartbeat_sent = 0
