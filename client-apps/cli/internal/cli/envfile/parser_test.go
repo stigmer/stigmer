@@ -9,6 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// =============================================================================
+// ParseLine Tests
+// =============================================================================
+
 func TestParseLine_BasicKeyValue(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -63,7 +67,7 @@ func TestParseLine_BasicKeyValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			key, value, isSecret, err := ParseLine(tt.input)
+			key, value, err := ParseLine(tt.input)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -71,7 +75,6 @@ func TestParseLine_BasicKeyValue(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantKey, key)
 			assert.Equal(t, tt.wantValue, value)
-			assert.False(t, isSecret)
 		})
 	}
 }
@@ -129,7 +132,7 @@ func TestParseLine_QuotedValues(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			key, value, _, err := ParseLine(tt.input)
+			key, value, err := ParseLine(tt.input)
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantKey, key)
 			assert.Equal(t, tt.wantValue, value)
@@ -167,58 +170,9 @@ func TestParseLine_CommentsAndEmptyLines(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			key, _, _, err := ParseLine(tt.input)
+			key, _, err := ParseLine(tt.input)
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantKey, key)
-		})
-	}
-}
-
-func TestParseLine_SecretPrefix(t *testing.T) {
-	tests := []struct {
-		name       string
-		input      string
-		wantKey    string
-		wantValue  string
-		wantSecret bool
-	}{
-		{
-			name:       "secret prefixed value",
-			input:      "secret:DB_PASSWORD=supersecret",
-			wantKey:    "DB_PASSWORD",
-			wantValue:  "supersecret",
-			wantSecret: true,
-		},
-		{
-			name:       "secret with quoted value",
-			input:      `secret:API_KEY="my-secret-key"`,
-			wantKey:    "API_KEY",
-			wantValue:  "my-secret-key",
-			wantSecret: true,
-		},
-		{
-			name:       "non-secret value",
-			input:      "DEBUG=true",
-			wantKey:    "DEBUG",
-			wantValue:  "true",
-			wantSecret: false,
-		},
-		{
-			name:       "value containing secret: in value",
-			input:      "MESSAGE=the secret: is here",
-			wantKey:    "MESSAGE",
-			wantValue:  "the secret: is here",
-			wantSecret: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			key, value, isSecret, err := ParseLine(tt.input)
-			require.NoError(t, err)
-			assert.Equal(t, tt.wantKey, key)
-			assert.Equal(t, tt.wantValue, value)
-			assert.Equal(t, tt.wantSecret, isSecret)
 		})
 	}
 }
@@ -237,16 +191,16 @@ func TestParseLine_ExportPrefix(t *testing.T) {
 			wantValue: "value",
 		},
 		{
-			name:      "export with secret",
-			input:     "secret:export DB_PASS=secret",
-			wantKey:   "DB_PASS",
-			wantValue: "secret",
+			name:      "export with quoted value",
+			input:     `export MESSAGE="hello world"`,
+			wantKey:   "MESSAGE",
+			wantValue: "hello world",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			key, value, _, err := ParseLine(tt.input)
+			key, value, err := ParseLine(tt.input)
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantKey, key)
 			assert.Equal(t, tt.wantValue, value)
@@ -256,9 +210,9 @@ func TestParseLine_ExportPrefix(t *testing.T) {
 
 func TestParseLine_InvalidFormats(t *testing.T) {
 	tests := []struct {
-		name        string
-		input       string
-		wantErrMsg  string
+		name       string
+		input      string
+		wantErrMsg string
 	}{
 		{
 			name:       "missing equals sign",
@@ -289,42 +243,33 @@ func TestParseLine_InvalidFormats(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, _, _, err := ParseLine(tt.input)
+			_, _, err := ParseLine(tt.input)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tt.wantErrMsg)
 		})
 	}
 }
 
+// =============================================================================
+// ParseFlags Tests (non-secrets)
+// =============================================================================
+
 func TestParseFlags(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   []string
-		want    map[string]struct{ value string; secret bool }
+		want    map[string]string
 		wantErr bool
 	}{
 		{
 			name:  "single flag",
 			input: []string{"API_KEY=abc123"},
-			want: map[string]struct{ value string; secret bool }{
-				"API_KEY": {value: "abc123", secret: false},
-			},
+			want:  map[string]string{"API_KEY": "abc123"},
 		},
 		{
 			name:  "multiple flags",
 			input: []string{"API_KEY=abc", "DEBUG=true"},
-			want: map[string]struct{ value string; secret bool }{
-				"API_KEY": {value: "abc", secret: false},
-				"DEBUG":   {value: "true", secret: false},
-			},
-		},
-		{
-			name:  "with secrets",
-			input: []string{"API_KEY=abc", "secret:DB_PASS=secret"},
-			want: map[string]struct{ value string; secret bool }{
-				"API_KEY": {value: "abc", secret: false},
-				"DB_PASS": {value: "secret", secret: true},
-			},
+			want:  map[string]string{"API_KEY": "abc", "DEBUG": "true"},
 		},
 		{
 			name:    "invalid format",
@@ -352,24 +297,72 @@ func TestParseFlags(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			for key, expected := range tt.want {
+			for key, expectedValue := range tt.want {
 				require.Contains(t, result, key)
-				assert.Equal(t, expected.value, result[key].Value)
-				assert.Equal(t, expected.secret, result[key].IsSecret)
+				assert.Equal(t, expectedValue, result[key].Value)
+				assert.False(t, result[key].IsSecret, "ParseFlags should mark all values as non-secret")
 			}
 		})
 	}
 }
 
+// =============================================================================
+// ParseFlagsAsSecrets Tests
+// =============================================================================
+
+func TestParseFlagsAsSecrets(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   []string
+		want    map[string]string
+		wantErr bool
+	}{
+		{
+			name:  "single secret flag",
+			input: []string{"DB_PASSWORD=supersecret"},
+			want:  map[string]string{"DB_PASSWORD": "supersecret"},
+		},
+		{
+			name:  "multiple secret flags",
+			input: []string{"DB_PASSWORD=secret1", "API_KEY=secret2"},
+			want:  map[string]string{"DB_PASSWORD": "secret1", "API_KEY": "secret2"},
+		},
+		{
+			name:    "invalid format",
+			input:   []string{"INVALID"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := ParseFlagsAsSecrets(tt.input)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			for key, expectedValue := range tt.want {
+				require.Contains(t, result, key)
+				assert.Equal(t, expectedValue, result[key].Value)
+				assert.True(t, result[key].IsSecret, "ParseFlagsAsSecrets should mark all values as secret")
+			}
+		})
+	}
+}
+
+// =============================================================================
+// ParseFile Tests (non-secrets)
+// =============================================================================
+
 func TestParseFile(t *testing.T) {
-	// Create temp directory
 	tmpDir := t.TempDir()
 
 	t.Run("valid env file", func(t *testing.T) {
 		content := `# Database configuration
 DB_HOST=localhost
 DB_PORT=5432
-secret:DB_PASSWORD=supersecret
 
 # API settings
 API_KEY="my-api-key"
@@ -382,13 +375,15 @@ DEBUG=true
 		result, err := ParseFile(path)
 		require.NoError(t, err)
 
-		assert.Len(t, result, 5)
+		assert.Len(t, result, 4)
 		assert.Equal(t, "localhost", result["DB_HOST"].Value)
+		assert.False(t, result["DB_HOST"].IsSecret)
 		assert.Equal(t, "5432", result["DB_PORT"].Value)
-		assert.Equal(t, "supersecret", result["DB_PASSWORD"].Value)
-		assert.True(t, result["DB_PASSWORD"].IsSecret)
+		assert.False(t, result["DB_PORT"].IsSecret)
 		assert.Equal(t, "my-api-key", result["API_KEY"].Value)
+		assert.False(t, result["API_KEY"].IsSecret)
 		assert.Equal(t, "true", result["DEBUG"].Value)
+		assert.False(t, result["DEBUG"].IsSecret)
 	})
 
 	t.Run("file not found", func(t *testing.T) {
@@ -439,6 +434,43 @@ INVALID_LINE
 		assert.Empty(t, result)
 	})
 }
+
+// =============================================================================
+// ParseFileAsSecrets Tests
+// =============================================================================
+
+func TestParseFileAsSecrets(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	t.Run("valid secrets file", func(t *testing.T) {
+		content := `# Database secrets
+DB_PASSWORD=supersecret
+API_KEY=ghp_abc123
+`
+		path := filepath.Join(tmpDir, "secrets.env")
+		err := os.WriteFile(path, []byte(content), 0644)
+		require.NoError(t, err)
+
+		result, err := ParseFileAsSecrets(path)
+		require.NoError(t, err)
+
+		assert.Len(t, result, 2)
+		assert.Equal(t, "supersecret", result["DB_PASSWORD"].Value)
+		assert.True(t, result["DB_PASSWORD"].IsSecret, "All values should be marked as secret")
+		assert.Equal(t, "ghp_abc123", result["API_KEY"].Value)
+		assert.True(t, result["API_KEY"].IsSecret, "All values should be marked as secret")
+	})
+
+	t.Run("file not found", func(t *testing.T) {
+		_, err := ParseFileAsSecrets(filepath.Join(tmpDir, "nonexistent.env"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to open environment file")
+	})
+}
+
+// =============================================================================
+// MergeEnvSources Tests
+// =============================================================================
 
 func TestMergeEnvSources(t *testing.T) {
 	t.Run("single source", func(t *testing.T) {
@@ -501,70 +533,166 @@ func TestMergeEnvSources(t *testing.T) {
 	})
 }
 
-func TestLoadAndMerge(t *testing.T) {
+// =============================================================================
+// LoadAndMergeWithSecrets Tests
+// =============================================================================
+
+func TestLoadAndMergeWithSecrets(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Create test files
-	defaultsContent := `API_KEY=default-key
+	envDefaultsContent := `API_URL=https://api.default.com
 DEBUG=false
 LOG_LEVEL=info
 `
-	localContent := `DEBUG=true
-secret:DB_PASSWORD=local-password
+	envLocalContent := `DEBUG=true
+API_URL=https://api.local.com
 `
-	defaultsPath := filepath.Join(tmpDir, ".env.defaults")
-	localPath := filepath.Join(tmpDir, ".env.local")
+	secretsContent := `DB_PASSWORD=file-secret-password
+API_KEY=file-api-key
+`
+	envDefaultsPath := filepath.Join(tmpDir, ".env.defaults")
+	envLocalPath := filepath.Join(tmpDir, ".env.local")
+	secretsPath := filepath.Join(tmpDir, ".env.secret")
 
-	err := os.WriteFile(defaultsPath, []byte(defaultsContent), 0644)
+	err := os.WriteFile(envDefaultsPath, []byte(envDefaultsContent), 0644)
 	require.NoError(t, err)
-	err = os.WriteFile(localPath, []byte(localContent), 0644)
+	err = os.WriteFile(envLocalPath, []byte(envLocalContent), 0644)
+	require.NoError(t, err)
+	err = os.WriteFile(secretsPath, []byte(secretsContent), 0644)
 	require.NoError(t, err)
 
-	t.Run("files only", func(t *testing.T) {
-		result, err := LoadAndMerge([]string{defaultsPath, localPath}, nil)
+	t.Run("env files only", func(t *testing.T) {
+		result, err := LoadAndMergeWithSecrets(
+			[]string{envDefaultsPath, envLocalPath}, // env files
+			nil,                                     // secret files
+			nil,                                     // env flags
+			nil,                                     // secret flags
+		)
 		require.NoError(t, err)
 
-		assert.Equal(t, "default-key", result["API_KEY"].Value)
+		assert.Equal(t, "https://api.local.com", result["API_URL"].Value) // Later file wins
+		assert.False(t, result["API_URL"].IsSecret)
 		assert.Equal(t, "true", result["DEBUG"].Value) // Override from local
+		assert.False(t, result["DEBUG"].IsSecret)
 		assert.Equal(t, "info", result["LOG_LEVEL"].Value)
-		assert.Equal(t, "local-password", result["DB_PASSWORD"].Value)
+		assert.False(t, result["LOG_LEVEL"].IsSecret)
+	})
+
+	t.Run("env files with secret files", func(t *testing.T) {
+		result, err := LoadAndMergeWithSecrets(
+			[]string{envDefaultsPath},  // env files
+			[]string{secretsPath},      // secret files
+			nil,                        // env flags
+			nil,                        // secret flags
+		)
+		require.NoError(t, err)
+
+		// Env file values (non-secrets)
+		assert.Equal(t, "https://api.default.com", result["API_URL"].Value)
+		assert.False(t, result["API_URL"].IsSecret)
+
+		// Secret file values (secrets)
+		assert.Equal(t, "file-secret-password", result["DB_PASSWORD"].Value)
+		assert.True(t, result["DB_PASSWORD"].IsSecret)
+		assert.Equal(t, "file-api-key", result["API_KEY"].Value)
+		assert.True(t, result["API_KEY"].IsSecret)
+	})
+
+	t.Run("flags override files", func(t *testing.T) {
+		result, err := LoadAndMergeWithSecrets(
+			[]string{envDefaultsPath},                      // env files
+			[]string{secretsPath},                          // secret files
+			[]string{"API_URL=https://api.override.com"},   // env flags
+			[]string{"DB_PASSWORD=flag-override-password"}, // secret flags
+		)
+		require.NoError(t, err)
+
+		// Env flag overrides env file
+		assert.Equal(t, "https://api.override.com", result["API_URL"].Value)
+		assert.False(t, result["API_URL"].IsSecret)
+
+		// Secret flag overrides secret file
+		assert.Equal(t, "flag-override-password", result["DB_PASSWORD"].Value)
 		assert.True(t, result["DB_PASSWORD"].IsSecret)
 	})
 
-	t.Run("files with flag override", func(t *testing.T) {
-		flags := []string{"API_KEY=flag-override", "secret:NEW_KEY=new-value"}
-
-		result, err := LoadAndMerge([]string{defaultsPath, localPath}, flags)
-		require.NoError(t, err)
-
-		assert.Equal(t, "flag-override", result["API_KEY"].Value) // Flag wins
-		assert.Equal(t, "true", result["DEBUG"].Value)
-		assert.Equal(t, "new-value", result["NEW_KEY"].Value)
-		assert.True(t, result["NEW_KEY"].IsSecret)
-	})
-
 	t.Run("flags only", func(t *testing.T) {
-		flags := []string{"KEY1=value1", "KEY2=value2"}
-
-		result, err := LoadAndMerge(nil, flags)
+		result, err := LoadAndMergeWithSecrets(
+			nil,                                    // env files
+			nil,                                    // secret files
+			[]string{"KEY1=value1", "KEY2=value2"}, // env flags
+			[]string{"SECRET1=secret1"},            // secret flags
+		)
 		require.NoError(t, err)
 
-		assert.Len(t, result, 2)
+		assert.Len(t, result, 3)
 		assert.Equal(t, "value1", result["KEY1"].Value)
+		assert.False(t, result["KEY1"].IsSecret)
 		assert.Equal(t, "value2", result["KEY2"].Value)
+		assert.False(t, result["KEY2"].IsSecret)
+		assert.Equal(t, "secret1", result["SECRET1"].Value)
+		assert.True(t, result["SECRET1"].IsSecret)
 	})
 
-	t.Run("nonexistent file", func(t *testing.T) {
-		_, err := LoadAndMerge([]string{filepath.Join(tmpDir, "nonexistent.env")}, nil)
+	t.Run("nonexistent env file", func(t *testing.T) {
+		_, err := LoadAndMergeWithSecrets(
+			[]string{filepath.Join(tmpDir, "nonexistent.env")},
+			nil, nil, nil,
+		)
 		require.Error(t, err)
 	})
 
-	t.Run("invalid flag", func(t *testing.T) {
-		flags := []string{"INVALID"}
-		_, err := LoadAndMerge(nil, flags)
+	t.Run("nonexistent secret file", func(t *testing.T) {
+		_, err := LoadAndMergeWithSecrets(
+			nil,
+			[]string{filepath.Join(tmpDir, "nonexistent.secret")},
+			nil, nil,
+		)
 		require.Error(t, err)
+	})
+
+	t.Run("invalid env flag", func(t *testing.T) {
+		_, err := LoadAndMergeWithSecrets(nil, nil, []string{"INVALID"}, nil)
+		require.Error(t, err)
+	})
+
+	t.Run("invalid secret flag", func(t *testing.T) {
+		_, err := LoadAndMergeWithSecrets(nil, nil, nil, []string{"INVALID"})
+		require.Error(t, err)
+	})
+
+	t.Run("precedence order", func(t *testing.T) {
+		// Same key in all sources - verify precedence
+		envContent := `SHARED_KEY=from-env-file
+`
+		secretContent := `SHARED_KEY=from-secret-file
+`
+		envPath := filepath.Join(tmpDir, ".env.precedence")
+		secretPath := filepath.Join(tmpDir, ".secret.precedence")
+
+		err := os.WriteFile(envPath, []byte(envContent), 0644)
+		require.NoError(t, err)
+		err = os.WriteFile(secretPath, []byte(secretContent), 0644)
+		require.NoError(t, err)
+
+		result, err := LoadAndMergeWithSecrets(
+			[]string{envPath},                      // env files (lowest)
+			[]string{secretPath},                   // secret files
+			[]string{"SHARED_KEY=from-env-flag"},   // env flags
+			[]string{"SHARED_KEY=from-secret-flag"}, // secret flags (highest)
+		)
+		require.NoError(t, err)
+
+		// Secret flags have highest precedence
+		assert.Equal(t, "from-secret-flag", result["SHARED_KEY"].Value)
+		assert.True(t, result["SHARED_KEY"].IsSecret)
 	})
 }
+
+// =============================================================================
+// CopyEnvMap Tests
+// =============================================================================
 
 func TestCopyEnvMap(t *testing.T) {
 	t.Run("copy non-nil map", func(t *testing.T) {
@@ -595,6 +723,10 @@ func TestCopyEnvMap(t *testing.T) {
 		assert.Empty(t, copied)
 	})
 }
+
+// =============================================================================
+// ParseError Tests
+// =============================================================================
 
 func TestParseError_Error(t *testing.T) {
 	tests := []struct {
@@ -634,6 +766,10 @@ func TestParseError_Error(t *testing.T) {
 		})
 	}
 }
+
+// =============================================================================
+// isValidEnvKey Tests
+// =============================================================================
 
 func TestIsValidEnvKey(t *testing.T) {
 	tests := []struct {

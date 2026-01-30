@@ -24,6 +24,9 @@ const (
 	BasicWorkflowTaskCount = 2
 	BasicWorkflowEnvVarCount = 1
 	
+	// Test messages
+	BasicWorkflowTestMessage = "Execute test workflow"
+	
 	// Execution timeouts
 	WorkflowExecutionTimeoutSeconds = 60
 	
