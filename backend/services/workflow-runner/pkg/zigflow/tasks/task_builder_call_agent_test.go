@@ -162,34 +162,34 @@ func TestPendingApprovalProtocol(t *testing.T) {
 		// When Go sends: PendingApproval{ToolCallId: "call_123", ToolName: "delete_repo"}
 		// Java should: statusBuilder.setPendingApproval(...)
 		// Result: WorkflowExecution.status.pending_approval is populated
-		
+
 		// This documents the expected behavior implemented in:
 		// - Go: UpdateWorkflowTaskApprovalStatus() builds PendingApproval from notification
 		// - Java: BuildNewStateWithStatusStep checks hasPendingApproval() && !toolCallId.isEmpty()
 		toolCallId := "call_abc123"
 		assert.NotEmpty(t, toolCallId, "SET signal requires non-empty tool_call_id")
 	})
-	
+
 	t.Run("CLEAR: Empty ToolCallId clears pending_approval", func(t *testing.T) {
 		// When Go sends: PendingApproval{ToolCallId: ""}  (empty, not nil)
 		// Java should: statusBuilder.clearPendingApproval()
 		// Result: WorkflowExecution.status.pending_approval is cleared
-		
+
 		// This documents the expected behavior implemented in:
 		// - Go: ClearWorkflowApprovalStatus() builds PendingApproval{ToolCallId: ""}
 		// - Java: BuildNewStateWithStatusStep checks hasPendingApproval() && toolCallId.isEmpty()
 		toolCallId := ""
 		assert.Empty(t, toolCallId, "CLEAR signal requires empty tool_call_id")
 	})
-	
+
 	t.Run("PRESERVE: Nil PendingApproval preserves existing", func(t *testing.T) {
 		// When Go sends: status with no PendingApproval field (nil)
 		// Java should: preserve existing pending_approval (don't touch it)
 		// Result: Existing pending_approval is unchanged
-		
+
 		// This allows status updates like tasks[] or phase to be sent
 		// without accidentally clearing a pending approval request.
-		
+
 		// This documents the expected behavior implemented in:
 		// - Go: Regular status updates don't set PendingApproval field
 		// - Java: BuildNewStateWithStatusStep checks hasPendingApproval() first

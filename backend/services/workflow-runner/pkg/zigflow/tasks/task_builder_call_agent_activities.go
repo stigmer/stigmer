@@ -516,12 +516,13 @@ func (a *CallAgentActivities) UpdateWorkflowTaskApprovalStatus(
 	// Build pending approval from notification
 	// This surfaces the child's approval request at the workflow level
 	pendingApproval := &agentexecv1.PendingApproval{
-		ToolCallId:  notification.ToolCallId,
-		ToolName:    notification.ToolName,
-		Message:     notification.Message,
-		ArgsPreview: notification.ArgsPreview,
-		RequestedAt: notification.RequestedAt,
-		// Note: from_sub_agent and sub_agent_name are for sub-agent scenarios
+		ToolCallId:              notification.ToolCallId,
+		ToolName:                notification.ToolName,
+		Message:                 notification.Message,
+		ArgsPreview:             notification.ArgsPreview,
+		RequestedAt:             notification.RequestedAt,
+		ChildAgentExecutionId:   notification.ExecutionId, // Enable workflow-level approval forwarding (Phase 5.3)
+		// Note: from_sub_agent and sub_agent_name are for sub-agent scenarios within the agent
 		// In the workflow case, the approval comes from a child agent execution
 	}
 	

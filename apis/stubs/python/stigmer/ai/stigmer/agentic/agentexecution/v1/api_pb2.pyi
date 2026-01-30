@@ -225,7 +225,7 @@ class McpServerResolutionStatus(_message.Message):
     def __init__(self, resolved: bool = ..., message: _Optional[str] = ..., enabled_tool_count: _Optional[int] = ...) -> None: ...
 
 class PendingApproval(_message.Message):
-    __slots__ = ("tool_call_id", "tool_name", "message", "args_preview", "requested_at", "from_sub_agent", "sub_agent_name")
+    __slots__ = ("tool_call_id", "tool_name", "message", "args_preview", "requested_at", "from_sub_agent", "sub_agent_name", "child_agent_execution_id")
     TOOL_CALL_ID_FIELD_NUMBER: _ClassVar[int]
     TOOL_NAME_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
@@ -233,6 +233,7 @@ class PendingApproval(_message.Message):
     REQUESTED_AT_FIELD_NUMBER: _ClassVar[int]
     FROM_SUB_AGENT_FIELD_NUMBER: _ClassVar[int]
     SUB_AGENT_NAME_FIELD_NUMBER: _ClassVar[int]
+    CHILD_AGENT_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     tool_call_id: str
     tool_name: str
     message: str
@@ -240,7 +241,8 @@ class PendingApproval(_message.Message):
     requested_at: str
     from_sub_agent: bool
     sub_agent_name: str
-    def __init__(self, tool_call_id: _Optional[str] = ..., tool_name: _Optional[str] = ..., message: _Optional[str] = ..., args_preview: _Optional[str] = ..., requested_at: _Optional[str] = ..., from_sub_agent: bool = ..., sub_agent_name: _Optional[str] = ...) -> None: ...
+    child_agent_execution_id: str
+    def __init__(self, tool_call_id: _Optional[str] = ..., tool_name: _Optional[str] = ..., message: _Optional[str] = ..., args_preview: _Optional[str] = ..., requested_at: _Optional[str] = ..., from_sub_agent: bool = ..., sub_agent_name: _Optional[str] = ..., child_agent_execution_id: _Optional[str] = ...) -> None: ...
 
 class ChildApprovalNotification(_message.Message):
     __slots__ = ("execution_id", "tool_call_id", "tool_name", "message", "args_preview", "requested_at")

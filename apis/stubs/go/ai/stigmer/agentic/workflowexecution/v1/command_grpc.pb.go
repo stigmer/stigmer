@@ -20,10 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WorkflowExecutionCommandController_Create_FullMethodName       = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/create"
-	WorkflowExecutionCommandController_Update_FullMethodName       = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/update"
-	WorkflowExecutionCommandController_UpdateStatus_FullMethodName = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/updateStatus"
-	WorkflowExecutionCommandController_Delete_FullMethodName       = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/delete"
+	WorkflowExecutionCommandController_Create_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/create"
+	WorkflowExecutionCommandController_Update_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/update"
+	WorkflowExecutionCommandController_UpdateStatus_FullMethodName   = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/updateStatus"
+	WorkflowExecutionCommandController_SubmitApproval_FullMethodName = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitApproval"
+	WorkflowExecutionCommandController_Delete_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/delete"
 )
 
 // WorkflowExecutionCommandControllerClient is the client API for WorkflowExecutionCommandController service.
@@ -269,6 +270,64 @@ type WorkflowExecutionCommandControllerClient interface {
 	//	  }
 	//	}
 	UpdateStatus(ctx context.Context, in *WorkflowExecutionUpdateStatusInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
+	// Submit approval for a child agent's tool execution (HITL Phase 5.3).
+	//
+	// This RPC forwards the approval decision to the child AgentExecution that
+	// is waiting for approval. The child is identified by the child_agent_execution_id
+	// in status.pending_approval.
+	//
+	// ## Behavior
+	//
+	// When a workflow invokes an agent that requires tool approval, the approval
+	// request surfaces at the workflow level via status.pending_approval. Users can
+	// submit their decision through this RPC, which forwards it to the child agent.
+	//
+	// The approval is forwarded to the child via AgentExecution.submitApproval RPC,
+	// ensuring consistent validation and Temporal workflow signaling.
+	//
+	// ## Preconditions
+	//
+	// - status.pending_approval must be populated
+	// - tool_call_id must match status.pending_approval.tool_call_id
+	// - status.pending_approval.child_agent_execution_id must not be empty
+	// - User must have can_edit permission on the workflow execution
+	//
+	// ## State Transitions
+	//
+	// After successful approval:
+	// - Approval is forwarded to child AgentExecution
+	// - Child agent resumes execution based on action (APPROVE/SKIP/REJECT)
+	// - Child agent clears its pending_approval, which triggers signal to parent
+	// - WorkflowExecution.status.pending_approval is eventually cleared
+	// - Workflow task status returns from WAITING_APPROVAL to IN_PROGRESS
+	//
+	// ## Approval Actions
+	//
+	// - APPROVE: Tool executes with the provided arguments
+	// - SKIP: Tool execution is skipped, agent continues with skip message
+	// - REJECT: Agent execution fails with rejection error
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Workflow execution doesn't exist
+	// - PERMISSION_DENIED: User doesn't have can_edit permission
+	// - FAILED_PRECONDITION: No pending approval, or child agent not waiting
+	// - INVALID_ARGUMENT: Tool call ID mismatch, or action is UNSPECIFIED
+	// - UNAVAILABLE: Failed to forward to child agent (transient error)
+	//
+	// ## Idempotency
+	//
+	// If the same approval is submitted twice (same workflow execution, tool_call_id,
+	// and action), the second call is a no-op if the approval was already processed.
+	//
+	// ## Alternative: Direct Agent Approval
+	//
+	// Users can also submit approvals directly via AgentExecution.submitApproval
+	// using the child_agent_execution_id. Both paths are equivalent and result
+	// in the same state transitions.
+	//
+	// @since Phase 5.3 (Approval Forwarding)
+	SubmitApproval(ctx context.Context, in *SubmitWorkflowApprovalInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
 	// Delete an execution.
 	Delete(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*WorkflowExecution, error)
 }
@@ -305,6 +364,16 @@ func (c *workflowExecutionCommandControllerClient) UpdateStatus(ctx context.Cont
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WorkflowExecution)
 	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_UpdateStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowExecutionCommandControllerClient) SubmitApproval(ctx context.Context, in *SubmitWorkflowApprovalInput, opts ...grpc.CallOption) (*WorkflowExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowExecution)
+	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_SubmitApproval_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -564,6 +633,64 @@ type WorkflowExecutionCommandControllerServer interface {
 	//	  }
 	//	}
 	UpdateStatus(context.Context, *WorkflowExecutionUpdateStatusInput) (*WorkflowExecution, error)
+	// Submit approval for a child agent's tool execution (HITL Phase 5.3).
+	//
+	// This RPC forwards the approval decision to the child AgentExecution that
+	// is waiting for approval. The child is identified by the child_agent_execution_id
+	// in status.pending_approval.
+	//
+	// ## Behavior
+	//
+	// When a workflow invokes an agent that requires tool approval, the approval
+	// request surfaces at the workflow level via status.pending_approval. Users can
+	// submit their decision through this RPC, which forwards it to the child agent.
+	//
+	// The approval is forwarded to the child via AgentExecution.submitApproval RPC,
+	// ensuring consistent validation and Temporal workflow signaling.
+	//
+	// ## Preconditions
+	//
+	// - status.pending_approval must be populated
+	// - tool_call_id must match status.pending_approval.tool_call_id
+	// - status.pending_approval.child_agent_execution_id must not be empty
+	// - User must have can_edit permission on the workflow execution
+	//
+	// ## State Transitions
+	//
+	// After successful approval:
+	// - Approval is forwarded to child AgentExecution
+	// - Child agent resumes execution based on action (APPROVE/SKIP/REJECT)
+	// - Child agent clears its pending_approval, which triggers signal to parent
+	// - WorkflowExecution.status.pending_approval is eventually cleared
+	// - Workflow task status returns from WAITING_APPROVAL to IN_PROGRESS
+	//
+	// ## Approval Actions
+	//
+	// - APPROVE: Tool executes with the provided arguments
+	// - SKIP: Tool execution is skipped, agent continues with skip message
+	// - REJECT: Agent execution fails with rejection error
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Workflow execution doesn't exist
+	// - PERMISSION_DENIED: User doesn't have can_edit permission
+	// - FAILED_PRECONDITION: No pending approval, or child agent not waiting
+	// - INVALID_ARGUMENT: Tool call ID mismatch, or action is UNSPECIFIED
+	// - UNAVAILABLE: Failed to forward to child agent (transient error)
+	//
+	// ## Idempotency
+	//
+	// If the same approval is submitted twice (same workflow execution, tool_call_id,
+	// and action), the second call is a no-op if the approval was already processed.
+	//
+	// ## Alternative: Direct Agent Approval
+	//
+	// Users can also submit approvals directly via AgentExecution.submitApproval
+	// using the child_agent_execution_id. Both paths are equivalent and result
+	// in the same state transitions.
+	//
+	// @since Phase 5.3 (Approval Forwarding)
+	SubmitApproval(context.Context, *SubmitWorkflowApprovalInput) (*WorkflowExecution, error)
 	// Delete an execution.
 	Delete(context.Context, *apiresource.ApiResourceId) (*WorkflowExecution, error)
 }
@@ -583,6 +710,9 @@ func (UnimplementedWorkflowExecutionCommandControllerServer) Update(context.Cont
 }
 func (UnimplementedWorkflowExecutionCommandControllerServer) UpdateStatus(context.Context, *WorkflowExecutionUpdateStatusInput) (*WorkflowExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateStatus not implemented")
+}
+func (UnimplementedWorkflowExecutionCommandControllerServer) SubmitApproval(context.Context, *SubmitWorkflowApprovalInput) (*WorkflowExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SubmitApproval not implemented")
 }
 func (UnimplementedWorkflowExecutionCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceId) (*WorkflowExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -661,6 +791,24 @@ func _WorkflowExecutionCommandController_UpdateStatus_Handler(srv interface{}, c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkflowExecutionCommandController_SubmitApproval_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitWorkflowApprovalInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionCommandControllerServer).SubmitApproval(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionCommandController_SubmitApproval_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionCommandControllerServer).SubmitApproval(ctx, req.(*SubmitWorkflowApprovalInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _WorkflowExecutionCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(apiresource.ApiResourceId)
 	if err := dec(in); err != nil {
@@ -697,6 +845,10 @@ var WorkflowExecutionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "updateStatus",
 			Handler:    _WorkflowExecutionCommandController_UpdateStatus_Handler,
+		},
+		{
+			MethodName: "submitApproval",
+			Handler:    _WorkflowExecutionCommandController_SubmitApproval_Handler,
 		},
 		{
 			MethodName: "delete",

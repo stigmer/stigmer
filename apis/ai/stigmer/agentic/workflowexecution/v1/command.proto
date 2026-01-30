@@ -258,6 +258,70 @@ service WorkflowExecutionCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update workflow execution status";
   }
 
+  // Submit approval for a child agent's tool execution (HITL Phase 5.3).
+  //
+  // This RPC forwards the approval decision to the child AgentExecution that
+  // is waiting for approval. The child is identified by the child_agent_execution_id
+  // in status.pending_approval.
+  //
+  // ## Behavior
+  //
+  // When a workflow invokes an agent that requires tool approval, the approval
+  // request surfaces at the workflow level via status.pending_approval. Users can
+  // submit their decision through this RPC, which forwards it to the child agent.
+  //
+  // The approval is forwarded to the child via AgentExecution.submitApproval RPC,
+  // ensuring consistent validation and Temporal workflow signaling.
+  //
+  // ## Preconditions
+  //
+  // - status.pending_approval must be populated
+  // - tool_call_id must match status.pending_approval.tool_call_id
+  // - status.pending_approval.child_agent_execution_id must not be empty
+  // - User must have can_edit permission on the workflow execution
+  //
+  // ## State Transitions
+  //
+  // After successful approval:
+  // - Approval is forwarded to child AgentExecution
+  // - Child agent resumes execution based on action (APPROVE/SKIP/REJECT)
+  // - Child agent clears its pending_approval, which triggers signal to parent
+  // - WorkflowExecution.status.pending_approval is eventually cleared
+  // - Workflow task status returns from WAITING_APPROVAL to IN_PROGRESS
+  //
+  // ## Approval Actions
+  //
+  // - APPROVE: Tool executes with the provided arguments
+  // - SKIP: Tool execution is skipped, agent continues with skip message
+  // - REJECT: Agent execution fails with rejection error
+  //
+  // ## Error Cases
+  //
+  // - NOT_FOUND: Workflow execution doesn't exist
+  // - PERMISSION_DENIED: User doesn't have can_edit permission
+  // - FAILED_PRECONDITION: No pending approval, or child agent not waiting
+  // - INVALID_ARGUMENT: Tool call ID mismatch, or action is UNSPECIFIED
+  // - UNAVAILABLE: Failed to forward to child agent (transient error)
+  //
+  // ## Idempotency
+  //
+  // If the same approval is submitted twice (same workflow execution, tool_call_id,
+  // and action), the second call is a no-op if the approval was already processed.
+  //
+  // ## Alternative: Direct Agent Approval
+  //
+  // Users can also submit approvals directly via AgentExecution.submitApproval
+  // using the child_agent_execution_id. Both paths are equivalent and result
+  // in the same state transitions.
+  //
+  // @since Phase 5.3 (Approval Forwarding)
+  rpc submitApproval(SubmitWorkflowApprovalInput) returns (WorkflowExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "execution_id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to submit approval for workflow execution";
+  }
+
   // Delete an execution.
   rpc delete(ai.stigmer.commons.apiresource.ApiResourceId) returns (WorkflowExecution) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
