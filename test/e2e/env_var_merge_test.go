@@ -44,10 +44,10 @@ func (s *E2ESuite) TestEnvVarMergePrecedence() {
 		s.Harness.ServerPort,
 		BasicAgentName,
 		BasicAgentTestMessage,
-		[]string{absEnvFile},     // env files (lowest precedence)
-		[]string{absSecretFile},  // secret files
+		[]string{absEnvFile},    // env files (lowest precedence)
+		[]string{absSecretFile}, // secret files
 		[]string{"API_URL=https://override.api.com", "CUSTOM_VAR=from_flag"}, // env flags
-		[]string{"DB_PASSWORD=flag_override_secret"}, // secret flags (highest precedence)
+		[]string{"DB_PASSWORD=flag_override_secret"},                         // secret flags (highest precedence)
 	)
 
 	// STEP 4: Verify execution was created

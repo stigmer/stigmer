@@ -834,3 +834,518 @@ class TestToolCallStatus:
         
         # Verify start time was cleaned up
         assert run_id not in status_builder._tool_start_times
+
+
+# =============================================================================
+# Tests for Sub-Agent Internals (Phase 2.3)
+# =============================================================================
+
+
+class TestSubAgentInternals:
+    """Tests for SubAgentExecution creation and namespace-based event routing.
+    
+    Phase 2.3 adds visibility into sub-agent execution:
+    - "task" tool invocations create SubAgentExecution entries
+    - Events are routed to sub-agent's tool_calls/messages based on namespace
+    - Sub-agent lifecycle: IN_PROGRESS -> COMPLETED/FAILED
+    """
+
+    @pytest.mark.asyncio
+    async def test_task_tool_creates_sub_agent_execution(self, status_builder):
+        """Test that 'task' tool invocation creates SubAgentExecution."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+        
+        run_id = "task-run-123"
+        event = {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "code_editor",
+                    "input": "Fix the bug in main.py"
+                }
+            },
+            "metadata": {}
+        }
+        
+        await status_builder.process_event(event)
+        
+        # Verify SubAgentExecution was created
+        assert len(status_builder.current_status.sub_agent_executions) == 1
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        
+        assert sub_agent.id == run_id
+        assert sub_agent.name == "code_editor"
+        assert sub_agent.input == "Fix the bug in main.py"
+        assert sub_agent.status == SubAgentStatus.SUB_AGENT_IN_PROGRESS
+        assert sub_agent.started_at != ""
+        
+        # Verify sub-agent is tracked for namespace routing
+        assert run_id in status_builder._active_sub_agents
+
+    @pytest.mark.asyncio
+    async def test_task_tool_does_not_create_regular_tool_call(self, status_builder):
+        """Test that 'task' tool does NOT create a regular ToolCall entry."""
+        event = {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "task-run-456",
+            "data": {
+                "input": {
+                    "subagent_type": "researcher",
+                    "task": "Research the topic"
+                }
+            },
+            "metadata": {}
+        }
+        
+        await status_builder.process_event(event)
+        
+        # No regular tool calls should be created
+        assert len(status_builder.current_status.tool_calls) == 0
+        assert len(status_builder.current_status.messages) == 0
+        
+        # But sub-agent should exist
+        assert len(status_builder.current_status.sub_agent_executions) == 1
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_completion_sets_output(self, status_builder):
+        """Test that task tool end event finalizes SubAgentExecution."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+        
+        run_id = "task-run-complete"
+        
+        # Start sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "code_editor",
+                    "input": "Fix the bug"
+                }
+            },
+            "metadata": {}
+        })
+        
+        # Verify initial state
+        assert status_builder.current_status.sub_agent_executions[0].status == SubAgentStatus.SUB_AGENT_IN_PROGRESS
+        
+        # End sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": "Bug fixed successfully"},
+            "metadata": {}
+        })
+        
+        # Verify completion
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert sub_agent.status == SubAgentStatus.SUB_AGENT_COMPLETED
+        assert sub_agent.output == "Bug fixed successfully"
+        assert sub_agent.completed_at != ""
+        
+        # Verify cleanup
+        assert run_id not in status_builder._active_sub_agents
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_failure_captures_error(self, status_builder):
+        """Test that sub-agent failure sets error status and message."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+        
+        run_id = "task-run-fail"
+        
+        # Start sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "debugger",
+                    "input": "Debug the issue"
+                }
+            },
+            "metadata": {}
+        })
+        
+        # End with error
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {
+                "output": {
+                    "error": "Failed to connect to debugging server",
+                    "status": "failed"
+                }
+            },
+            "metadata": {}
+        })
+        
+        # Verify failure state
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert sub_agent.status == SubAgentStatus.SUB_AGENT_FAILED
+        assert "Failed to connect" in sub_agent.error
+
+    @pytest.mark.asyncio
+    async def test_namespace_routing_tool_calls_to_sub_agent(self, status_builder):
+        """Test that tool calls with sub-agent namespace route to SubAgentExecution."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        
+        sub_agent_run_id = "task-run-ns-test"
+        namespace = f"agent_node:{sub_agent_run_id}"
+        
+        # Start sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sub_agent_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "code_editor",
+                    "input": "Write some code"
+                }
+            },
+            "metadata": {}
+        })
+        
+        # Tool call from sub-agent (with namespace)
+        tool_run_id = "tool-in-subagent"
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "write_file",
+            "run_id": tool_run_id,
+            "data": {"input": {"path": "/tmp/test.py", "content": "print('hello')"}},
+            "metadata": {"langgraph_checkpoint_ns": namespace}
+        })
+        
+        # Verify tool call is in sub-agent, not main agent
+        assert len(status_builder.current_status.tool_calls) == 0  # Not in main
+        
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert len(sub_agent.tool_calls) == 1
+        assert sub_agent.tool_calls[0].id == tool_run_id
+        assert sub_agent.tool_calls[0].name == "write_file"
+        assert sub_agent.tool_calls[0].status == ToolCallStatus.TOOL_CALL_RUNNING
+
+    @pytest.mark.asyncio
+    async def test_namespace_routing_messages_to_sub_agent(self, status_builder):
+        """Test that AI messages with sub-agent namespace route to SubAgentExecution."""
+        sub_agent_run_id = "task-run-msg-test"
+        namespace = f"agent_node:{sub_agent_run_id}"
+        
+        # Start sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sub_agent_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "assistant",
+                    "input": "Help me"
+                }
+            },
+            "metadata": {}
+        })
+        
+        # AI message from sub-agent (with namespace)
+        chunk = MagicMock()
+        chunk.content = "I'll help you with that."
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {"langgraph_checkpoint_ns": namespace}
+        })
+        
+        # Verify message is in sub-agent, not main agent
+        assert len(status_builder.current_status.messages) == 0  # Not in main
+        
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert len(sub_agent.messages) == 1
+        assert sub_agent.messages[0].content == "I'll help you with that."
+        assert sub_agent.messages[0].is_streaming is True
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_tool_end_updates_correct_context(self, status_builder):
+        """Test that tool end events update the correct sub-agent context."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        
+        sub_agent_run_id = "task-run-end-test"
+        namespace = f"agent_node:{sub_agent_run_id}"
+        tool_run_id = "tool-end-test"
+        
+        # Start sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sub_agent_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "code_editor",
+                    "input": "Write code"
+                }
+            },
+            "metadata": {}
+        })
+        
+        # Start tool in sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "read_file",
+            "run_id": tool_run_id,
+            "data": {"input": {"path": "/tmp/file.txt"}},
+            "metadata": {"langgraph_checkpoint_ns": namespace}
+        })
+        
+        # End tool in sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "read_file",
+            "run_id": tool_run_id,
+            "data": {"output": "file contents"},
+            "metadata": {"langgraph_checkpoint_ns": namespace}
+        })
+        
+        # Verify tool completed in sub-agent
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert len(sub_agent.tool_calls) == 1
+        assert sub_agent.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert sub_agent.tool_calls[0].result == "file contents"
+
+    @pytest.mark.asyncio
+    async def test_multiple_sub_agents_isolated(self, status_builder):
+        """Test that multiple sub-agents have isolated tool_calls and messages."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+        
+        # Start first sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "sub-agent-1",
+            "data": {
+                "input": {
+                    "subagent_type": "researcher",
+                    "input": "Research topic A"
+                }
+            },
+            "metadata": {}
+        })
+        
+        # Start second sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "sub-agent-2",
+            "data": {
+                "input": {
+                    "subagent_type": "code_editor",
+                    "input": "Edit topic B"
+                }
+            },
+            "metadata": {}
+        })
+        
+        # Tool call for sub-agent-1
+        namespace1 = "node:sub-agent-1"
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "search",
+            "run_id": "tool-1",
+            "data": {"input": {"query": "topic A"}},
+            "metadata": {"langgraph_checkpoint_ns": namespace1}
+        })
+        
+        # Tool call for sub-agent-2
+        namespace2 = "node:sub-agent-2"
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "write_file",
+            "run_id": "tool-2",
+            "data": {"input": {"path": "/tmp/b.txt"}},
+            "metadata": {"langgraph_checkpoint_ns": namespace2}
+        })
+        
+        # Verify isolation
+        sub_agent_1 = status_builder.current_status.sub_agent_executions[0]
+        sub_agent_2 = status_builder.current_status.sub_agent_executions[1]
+        
+        assert sub_agent_1.name == "researcher"
+        assert len(sub_agent_1.tool_calls) == 1
+        assert sub_agent_1.tool_calls[0].name == "search"
+        
+        assert sub_agent_2.name == "code_editor"
+        assert len(sub_agent_2.tool_calls) == 1
+        assert sub_agent_2.tool_calls[0].name == "write_file"
+        
+        # Main agent should have no tool calls
+        assert len(status_builder.current_status.tool_calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_main_agent_events_unaffected(self, status_builder):
+        """Test that main agent events (no namespace) still work correctly."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        
+        # Main agent tool call (no namespace)
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "read_file",
+            "run_id": "main-tool-1",
+            "data": {"input": {"path": "/tmp/main.txt"}},
+            "metadata": {}
+        })
+        
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "read_file",
+            "run_id": "main-tool-1",
+            "data": {"output": "main file content"},
+            "metadata": {}
+        })
+        
+        # Verify main agent has the tool call
+        assert len(status_builder.current_status.tool_calls) == 1
+        assert status_builder.current_status.tool_calls[0].name == "read_file"
+        assert status_builder.current_status.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
+        
+        # No sub-agent executions
+        assert len(status_builder.current_status.sub_agent_executions) == 0
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_message_finalization(self, status_builder):
+        """Test that AI message finalization works for sub-agent messages."""
+        sub_agent_run_id = "task-run-finalize"
+        namespace = f"agent_node:{sub_agent_run_id}"
+        
+        # Start sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sub_agent_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "assistant",
+                    "input": "Help"
+                }
+            },
+            "metadata": {}
+        })
+        
+        # Stream AI message in sub-agent
+        chunk = MagicMock()
+        chunk.content = "Here's my response"
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {"langgraph_checkpoint_ns": namespace}
+        })
+        
+        # Verify is_streaming is True
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert sub_agent.messages[0].is_streaming is True
+        
+        # Finalize AI message
+        output = MagicMock()
+        output.usage_metadata = MagicMock()
+        output.usage_metadata.input_tokens = 50
+        output.usage_metadata.output_tokens = 25
+        output.usage_metadata.total_tokens = 75
+        output.response_metadata = {"model": "claude-3"}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {"langgraph_checkpoint_ns": namespace}
+        })
+        
+        # Verify finalization
+        assert sub_agent.messages[0].is_streaming is False
+        assert sub_agent.messages[0].token_count == 75
+
+    @pytest.mark.asyncio
+    async def test_namespace_cleanup_on_sub_agent_end(self, status_builder):
+        """Test that namespace mappings are cleaned up when sub-agent ends."""
+        sub_agent_run_id = "task-run-cleanup"
+        namespace = f"agent_node:{sub_agent_run_id}"
+        
+        # Start sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sub_agent_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "helper",
+                    "input": "Do something"
+                }
+            },
+            "metadata": {}
+        })
+        
+        # Register namespace via child event
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "echo",
+            "run_id": "child-tool",
+            "data": {"input": {"text": "hello"}},
+            "metadata": {"langgraph_checkpoint_ns": namespace}
+        })
+        
+        # Verify namespace is registered
+        assert namespace in status_builder._namespace_to_sub_agent_id
+        assert sub_agent_run_id in status_builder._active_sub_agents
+        
+        # End sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": sub_agent_run_id,
+            "data": {"output": "done"},
+            "metadata": {}
+        })
+        
+        # Verify cleanup
+        assert namespace not in status_builder._namespace_to_sub_agent_id
+        assert sub_agent_run_id not in status_builder._active_sub_agents
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_extracts_alternative_arg_names(self, status_builder):
+        """Test that sub-agent extracts name/input from alternative arg names."""
+        # Test 'agent_type' instead of 'subagent_type'
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "alt-args-1",
+            "data": {
+                "input": {
+                    "agent_type": "analyzer",
+                    "prompt": "Analyze the data"
+                }
+            },
+            "metadata": {}
+        })
+        
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert sub_agent.name == "analyzer"
+        assert sub_agent.input == "Analyze the data"
+
+    @pytest.mark.asyncio
+    async def test_get_execution_context_returns_main_for_empty_namespace(self, status_builder):
+        """Test that _get_execution_context returns main status for empty namespace."""
+        context, sub_agent = status_builder._get_execution_context("")
+        
+        assert context is status_builder.current_status
+        assert sub_agent is None
+
+    @pytest.mark.asyncio
+    async def test_get_execution_context_returns_main_for_unknown_namespace(self, status_builder):
+        """Test that _get_execution_context falls back to main for unknown namespace."""
+        context, sub_agent = status_builder._get_execution_context("unknown:namespace:123")
+        
+        assert context is status_builder.current_status
+        assert sub_agent is None

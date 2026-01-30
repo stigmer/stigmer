@@ -9,7 +9,7 @@ via Java activity (polyglot pattern).
 import logging
 import json
 import hashlib
-from typing import Dict, Any
+from typing import Dict, Any, Optional, Tuple, List
 from datetime import datetime
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
@@ -84,6 +84,25 @@ class StatusBuilder:
         # Track accumulated token usage across all LLM calls in this execution
         self._total_prompt_tokens: int = 0
         self._total_completion_tokens: int = 0
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Sub-Agent Tracking (Phase 2.3)
+        #
+        # These structures enable namespace-based event routing to capture
+        # tool calls and messages within sub-agent executions.
+        # ─────────────────────────────────────────────────────────────────────────
+        
+        # Track active sub-agent executions by their run_id
+        # Key: run_id (from task tool), Value: SubAgentExecution proto
+        self._active_sub_agents: Dict[str, SubAgentExecution] = {}
+        
+        # Map namespace to sub-agent run_id for event routing
+        # Key: namespace string, Value: sub-agent run_id
+        self._namespace_to_sub_agent_id: Dict[str, str] = {}
+        
+        # Track AI message generation timing within sub-agents (separate from main)
+        # Key: (sub_agent_id, message_index), Value: start timestamp
+        self._sub_agent_message_start_times: Dict[Tuple[str, int], datetime] = {}
     
     async def process_event(self, event: Dict[str, Any]) -> None:
         """
@@ -140,6 +159,17 @@ class StatusBuilder:
                     self._update_todos(todos_data)
             return
         
+        # ─────────────────────────────────────────────────────────────────────
+        # Sub-Agent Detection (Phase 2.3): "task" tool invokes a sub-agent
+        # ─────────────────────────────────────────────────────────────────────
+        if tool_name == "task":
+            self._handle_sub_agent_start(event, tool_args, run_id)
+            return  # Don't create regular ToolCall for task tool
+        
+        # Try to register namespace for event routing (for sub-agent child events)
+        if namespace:
+            self._register_sub_agent_namespace(namespace)
+        
         # Transform tool name
         display_name = tool_name
         if tool_name.startswith("execute") or tool_name == "Shell":
@@ -174,7 +204,7 @@ class StatusBuilder:
         # Track start time for duration calculation
         self._tool_start_times[run_id] = now
         
-        # Add to local status (both messages and tool_calls)
+        # Create tool message wrapper
         tool_message = AgentMessage(
             type=MessageType.MESSAGE_TOOL,
             content="",
@@ -182,14 +212,27 @@ class StatusBuilder:
         )
         tool_message.tool_calls.append(tool_call)
         
-        self.current_status.messages.append(tool_message)
-        self.current_status.tool_calls.append(tool_call)
+        # ─────────────────────────────────────────────────────────────────────
+        # Namespace-Based Routing (Phase 2.3): Route to correct execution context
+        # ─────────────────────────────────────────────────────────────────────
+        context, sub_agent = self._get_execution_context(namespace)
         
-        # Structured logging for tool lifecycle observability
-        self.logger.debug(
-            f"[TOOL] execution={self.execution_id} "
-            f"tool={tool_name} run_id={run_id} status=RUNNING"
-        )
+        if sub_agent:
+            # Route to sub-agent's nested lists
+            sub_agent.tool_calls.append(tool_call)
+            sub_agent.messages.append(tool_message)
+            self.logger.debug(
+                f"[TOOL] execution={self.execution_id} sub_agent={sub_agent.id} "
+                f"tool={tool_name} run_id={run_id} status=RUNNING"
+            )
+        else:
+            # Route to main agent status
+            self.current_status.messages.append(tool_message)
+            self.current_status.tool_calls.append(tool_call)
+            self.logger.debug(
+                f"[TOOL] execution={self.execution_id} "
+                f"tool={tool_name} run_id={run_id} status=RUNNING"
+            )
     
     def _handle_tool_end_event(self, event: Dict[str, Any], namespace: str = "") -> None:
         """Handle on_tool_end event - updates local status with COMPLETED status."""
@@ -198,6 +241,13 @@ class StatusBuilder:
         tool_result_raw = event.get("data", {}).get("output", "")
         
         if not run_id or tool_name in PLANNING_TOOLS:
+            return
+        
+        # ─────────────────────────────────────────────────────────────────────
+        # Sub-Agent Completion (Phase 2.3): task tool returns sub-agent result
+        # ─────────────────────────────────────────────────────────────────────
+        if tool_name == "task":
+            self._handle_sub_agent_end(event, run_id)
             return
         
         tool_result_content = self._extract_tool_result_content(tool_result_raw)
@@ -209,32 +259,63 @@ class StatusBuilder:
             start_time = self._tool_start_times.pop(run_id)
             duration_ms = int((now - start_time).total_seconds() * 1000)
         
-        # Update in messages list
-        for message in self.current_status.messages:
-            if (message.type == MessageType.MESSAGE_TOOL and 
-                len(message.tool_calls) > 0 and 
-                message.tool_calls[0].id == run_id):
-                
-                tc = message.tool_calls[0]
-                tc.result = tool_result_content
-                tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                tc.completed_at = now.isoformat()
-                break
+        # ─────────────────────────────────────────────────────────────────────
+        # Namespace-Based Routing (Phase 2.3): Update in correct execution context
+        # ─────────────────────────────────────────────────────────────────────
+        context, sub_agent = self._get_execution_context(namespace)
         
-        # Update in tool_calls list
-        for tool_call in self.current_status.tool_calls:
-            if tool_call.id == run_id:
-                tool_call.result = tool_result_content
-                tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                tool_call.completed_at = now.isoformat()
-                break
-        
-        # Structured logging for tool lifecycle observability
-        self.logger.debug(
-            f"[TOOL] execution={self.execution_id} "
-            f"tool={tool_name} run_id={run_id} status=COMPLETED "
-            f"duration_ms={duration_ms or 'N/A'}"
-        )
+        if sub_agent:
+            # Update in sub-agent's messages list
+            for message in sub_agent.messages:
+                if (message.type == MessageType.MESSAGE_TOOL and 
+                    len(message.tool_calls) > 0 and 
+                    message.tool_calls[0].id == run_id):
+                    
+                    tc = message.tool_calls[0]
+                    tc.result = tool_result_content
+                    tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
+                    tc.completed_at = now.isoformat()
+                    break
+            
+            # Update in sub-agent's tool_calls list
+            for tool_call in sub_agent.tool_calls:
+                if tool_call.id == run_id:
+                    tool_call.result = tool_result_content
+                    tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
+                    tool_call.completed_at = now.isoformat()
+                    break
+            
+            self.logger.debug(
+                f"[TOOL] execution={self.execution_id} sub_agent={sub_agent.id} "
+                f"tool={tool_name} run_id={run_id} status=COMPLETED "
+                f"duration_ms={duration_ms or 'N/A'}"
+            )
+        else:
+            # Update in main agent's messages list
+            for message in self.current_status.messages:
+                if (message.type == MessageType.MESSAGE_TOOL and 
+                    len(message.tool_calls) > 0 and 
+                    message.tool_calls[0].id == run_id):
+                    
+                    tc = message.tool_calls[0]
+                    tc.result = tool_result_content
+                    tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
+                    tc.completed_at = now.isoformat()
+                    break
+            
+            # Update in main agent's tool_calls list
+            for tool_call in self.current_status.tool_calls:
+                if tool_call.id == run_id:
+                    tool_call.result = tool_result_content
+                    tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
+                    tool_call.completed_at = now.isoformat()
+                    break
+            
+            self.logger.debug(
+                f"[TOOL] execution={self.execution_id} "
+                f"tool={tool_name} run_id={run_id} status=COMPLETED "
+                f"duration_ms={duration_ms or 'N/A'}"
+            )
     
     def _handle_chat_model_stream_event(self, event: Dict[str, Any], namespace: str = "") -> None:
         """Handle on_chat_model_stream event - updates local status."""
@@ -242,6 +323,10 @@ class StatusBuilder:
         
         if not chunk_data:
             return
+        
+        # Try to register namespace for event routing
+        if namespace:
+            self._register_sub_agent_namespace(namespace)
         
         # Extract token
         token = ""
@@ -255,11 +340,19 @@ class StatusBuilder:
         if not token:
             return
         
-        # Find or create AI message
+        # ─────────────────────────────────────────────────────────────────────
+        # Namespace-Based Routing (Phase 2.3): Route to correct execution context
+        # ─────────────────────────────────────────────────────────────────────
+        context, sub_agent = self._get_execution_context(namespace)
+        
+        # Get the appropriate messages list
+        messages_list = sub_agent.messages if sub_agent else self.current_status.messages
+        
+        # Find or create AI message in the correct context
         ai_message = None
         ai_message_index = None
-        for idx in range(len(self.current_status.messages) - 1, -1, -1):
-            message = self.current_status.messages[idx]
+        for idx in range(len(messages_list) - 1, -1, -1):
+            message = messages_list[idx]
             if message.type == MessageType.MESSAGE_AI:
                 ai_message = message
                 ai_message_index = idx
@@ -274,12 +367,17 @@ class StatusBuilder:
                 timestamp=now.isoformat(),
                 is_streaming=True,  # Mark as actively streaming (finalized in on_chat_model_end)
             )
-            self.current_status.messages.append(ai_message)
+            messages_list.append(ai_message)
             
-            # Track start time using message index
-            new_message_index = len(self.current_status.messages) - 1
-            self._message_start_times[new_message_index] = now
-            self.logger.debug(f"Started new AI message at index {new_message_index}")
+            # Track start time using appropriate key
+            new_message_index = len(messages_list) - 1
+            if sub_agent:
+                # Use tuple key for sub-agent messages
+                self._sub_agent_message_start_times[(sub_agent.id, new_message_index)] = now
+                self.logger.debug(f"Started new AI message in sub_agent={sub_agent.id} at index {new_message_index}")
+            else:
+                self._message_start_times[new_message_index] = now
+                self.logger.debug(f"Started new AI message at index {new_message_index}")
         else:
             ai_message.content += token
     
@@ -301,27 +399,42 @@ class StatusBuilder:
         if not output_data:
             return
         
+        # ─────────────────────────────────────────────────────────────────────
+        # Namespace-Based Routing (Phase 2.3): Find message in correct context
+        # ─────────────────────────────────────────────────────────────────────
+        context, sub_agent = self._get_execution_context(namespace)
+        messages_list = sub_agent.messages if sub_agent else self.current_status.messages
+        
         # Find the most recent AI message to finalize
         ai_message_index = None
-        for idx in range(len(self.current_status.messages) - 1, -1, -1):
-            message = self.current_status.messages[idx]
+        for idx in range(len(messages_list) - 1, -1, -1):
+            message = messages_list[idx]
             if message.type == MessageType.MESSAGE_AI:
                 ai_message_index = idx
                 break
         
         if ai_message_index is None:
-            self.logger.warning("on_chat_model_end received but no AI message found to finalize")
+            context_desc = f"sub_agent={sub_agent.id}" if sub_agent else "main_agent"
+            self.logger.warning(f"on_chat_model_end received but no AI message found to finalize ({context_desc})")
             return
         
         # Calculate generation duration if we tracked the start time
         generation_duration_ms = None
-        if ai_message_index in self._message_start_times:
-            start_time = self._message_start_times[ai_message_index]
-            duration = datetime.utcnow() - start_time
-            generation_duration_ms = int(duration.total_seconds() * 1000)
-            
-            # Clean up the start time entry
-            del self._message_start_times[ai_message_index]
+        if sub_agent:
+            # Check sub-agent timing dict
+            timing_key = (sub_agent.id, ai_message_index)
+            if timing_key in self._sub_agent_message_start_times:
+                start_time = self._sub_agent_message_start_times[timing_key]
+                duration = datetime.utcnow() - start_time
+                generation_duration_ms = int(duration.total_seconds() * 1000)
+                del self._sub_agent_message_start_times[timing_key]
+        else:
+            # Check main agent timing dict
+            if ai_message_index in self._message_start_times:
+                start_time = self._message_start_times[ai_message_index]
+                duration = datetime.utcnow() - start_time
+                generation_duration_ms = int(duration.total_seconds() * 1000)
+                del self._message_start_times[ai_message_index]
         
         # Extract usage metadata from LangChain response
         # LangChain models expose this via usage_metadata attribute on the AIMessage
@@ -360,7 +473,7 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────────
         # Finalize AI message streaming state fields (Phase 2.1)
         # ─────────────────────────────────────────────────────────────────────────
-        ai_message = self.current_status.messages[ai_message_index]
+        ai_message = messages_list[ai_message_index]
         
         # Mark streaming complete - UI can now show final content
         ai_message.is_streaming = False
@@ -374,8 +487,9 @@ class StatusBuilder:
         
         # Log the metrics (structured logging for observability)
         # This prepares for Phase 2.4 (UsageMetrics proto) - for now we log for visibility
+        context_info = f"sub_agent={sub_agent.id} " if sub_agent else ""
         self.logger.info(
-            f"[USAGE] execution={self.execution_id} "
+            f"[USAGE] execution={self.execution_id} {context_info}"
             f"prompt_tokens={prompt_tokens} "
             f"completion_tokens={completion_tokens} "
             f"total_tokens={total_tokens} "
@@ -386,7 +500,7 @@ class StatusBuilder:
         )
         
         self.logger.debug(
-            f"AI message finalized at index {ai_message_index} "
+            f"AI message finalized at index {ai_message_index} {context_info}"
             f"(tokens: {total_tokens}, duration: {generation_duration_ms}ms)"
         )
     
@@ -450,3 +564,147 @@ class StatusBuilder:
             )
             
             self.current_status.todos[todo_id].CopyFrom(todo_item)
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Sub-Agent Namespace Routing (Phase 2.3)
+    # ─────────────────────────────────────────────────────────────────────────────
+    
+    def _get_execution_context(self, namespace: str) -> Tuple[Any, Optional[SubAgentExecution]]:
+        """
+        Determine execution context based on namespace.
+        
+        Root-level events (namespace == "") route to main agent status.
+        Sub-agent events (namespace != "") route to the corresponding SubAgentExecution.
+        
+        Args:
+            namespace: LangGraph checkpoint namespace string
+            
+        Returns:
+            Tuple of (container, sub_agent_or_none):
+            - Root events: (self.current_status, None)
+            - Sub-agent events: (sub_agent, sub_agent)
+        """
+        if not namespace:
+            return self.current_status, None
+        
+        # Try to find matching sub-agent by namespace
+        sub_agent_id = self._namespace_to_sub_agent_id.get(namespace)
+        if sub_agent_id and sub_agent_id in self._active_sub_agents:
+            sub_agent = self._active_sub_agents[sub_agent_id]
+            return sub_agent, sub_agent
+        
+        # Namespace not yet registered - fall back to main agent
+        return self.current_status, None
+    
+    def _register_sub_agent_namespace(self, namespace: str) -> None:
+        """
+        Register namespace -> sub-agent mapping when child event arrives.
+        
+        LangGraph namespaces contain the run_id of the sub-agent that spawned them.
+        Format: "node_id:uuid" where uuid matches or contains the task tool run_id.
+        
+        This method is called for each event with a non-empty namespace to
+        discover and register the namespace -> sub-agent mapping.
+        
+        Args:
+            namespace: LangGraph checkpoint namespace string
+        """
+        if not namespace or namespace in self._namespace_to_sub_agent_id:
+            return
+        
+        # Check if this namespace matches any active sub-agent
+        # Namespace format is typically "node_name:run_id" or contains run_id
+        for sub_agent_id in self._active_sub_agents:
+            if sub_agent_id in namespace:
+                self._namespace_to_sub_agent_id[namespace] = sub_agent_id
+                self.logger.debug(
+                    f"[SUBAGENT] Registered namespace={namespace} -> sub_agent={sub_agent_id}"
+                )
+                return
+    
+    def _handle_sub_agent_start(self, event: Dict[str, Any], tool_args: Dict[str, Any], run_id: str) -> None:
+        """
+        Handle task tool invocation - creates SubAgentExecution.
+        
+        The "task" tool is the mechanism for invoking sub-agents in LangGraph.
+        We extract sub-agent metadata and create a tracking entry.
+        
+        Args:
+            event: The on_tool_start event dictionary
+            tool_args: Unwrapped tool arguments
+            run_id: The run_id for this tool invocation
+        """
+        # Extract sub-agent metadata from tool args
+        sub_agent_name = tool_args.get("subagent_type", "") or tool_args.get("agent_type", "") or "unknown"
+        sub_agent_input = tool_args.get("input", "") or tool_args.get("task", "") or tool_args.get("prompt", "")
+        
+        now = datetime.utcnow()
+        sub_agent = SubAgentExecution(
+            id=run_id,
+            name=sub_agent_name,
+            input=sub_agent_input,
+            status=SubAgentStatus.SUB_AGENT_IN_PROGRESS,  # Skip PENDING - already executing
+            started_at=now.isoformat(),
+        )
+        
+        # Track for namespace routing and lifecycle management
+        self._active_sub_agents[run_id] = sub_agent
+        self.current_status.sub_agent_executions.append(sub_agent)
+        
+        self.logger.debug(
+            f"[SUBAGENT] execution={self.execution_id} "
+            f"sub_agent={sub_agent_name} id={run_id} status=IN_PROGRESS"
+        )
+    
+    def _handle_sub_agent_end(self, event: Dict[str, Any], run_id: str) -> None:
+        """
+        Handle task tool completion - finalize SubAgentExecution.
+        
+        This is called when the "task" tool returns, indicating the sub-agent
+        has completed its work (successfully or with failure).
+        
+        Args:
+            event: The on_tool_end event dictionary
+            run_id: The run_id for this task tool invocation
+        """
+        output_raw = event.get("data", {}).get("output", "")
+        output = self._extract_tool_result_content(output_raw)
+        now = datetime.utcnow()
+        
+        # Check for error indicators in output
+        is_error = False
+        error_message = ""
+        if isinstance(output_raw, dict):
+            if output_raw.get("error") or output_raw.get("status") == "failed":
+                is_error = True
+                error_message = output_raw.get("error", "") or output_raw.get("message", "Sub-agent failed")
+        
+        # Find and update the sub-agent execution
+        for sub_agent in self.current_status.sub_agent_executions:
+            if sub_agent.id == run_id:
+                sub_agent.output = output
+                sub_agent.completed_at = now.isoformat()
+                
+                if is_error:
+                    sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
+                    sub_agent.error = error_message
+                else:
+                    sub_agent.status = SubAgentStatus.SUB_AGENT_COMPLETED
+                
+                self.logger.debug(
+                    f"[SUBAGENT] execution={self.execution_id} "
+                    f"id={run_id} status={'FAILED' if is_error else 'COMPLETED'}"
+                )
+                break
+        
+        # Cleanup tracking dictionaries
+        if run_id in self._active_sub_agents:
+            del self._active_sub_agents[run_id]
+        
+        # Cleanup any namespace mappings pointing to this sub-agent
+        namespaces_to_remove = [
+            ns for ns, sa_id in self._namespace_to_sub_agent_id.items()
+            if sa_id == run_id
+        ]
+        for ns in namespaces_to_remove:
+            del self._namespace_to_sub_agent_id[ns]

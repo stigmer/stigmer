@@ -326,6 +326,260 @@ spec:
 3. Runtime resolves McpServer config + Environment values
 4. MCP server starts with actual environment variables
 
+### Runtime Environment Override
+
+Override environment variables at execution time using CLI flags:
+
+```bash
+# Override environment variables for this execution
+stigmer run code-assistant \
+  --secret "GITHUB_TOKEN=ghp_xxxxxxxxxxxx" \
+  --env "GITHUB_OWNER=my-org"
+```
+
+**Precedence** (highest to lowest):
+1. CLI runtime flags (`--secret`, `--env`)
+2. CLI runtime files (`--secret-file`, `--env-file`)
+3. AgentInstance Environment reference
+4. Agent default env_spec
+5. McpServer default env_spec
+
+This allows:
+- **Development**: Override production secrets with dev credentials
+- **Testing**: Use mock/sandbox API endpoints
+- **Debugging**: Enable verbose logging temporarily
+
+**Example: Development Override**
+
+```bash
+# Production AgentInstance uses prod-env
+# Override for local development:
+stigmer run code-assistant \
+  --secret "GITHUB_TOKEN=ghp_dev_token" \
+  --env "GITHUB_API_URL=http://localhost:8080"
+```
+
+See [Environment Variables Guide](environment-variables.md) for complete CLI documentation.
+
+## Placeholder Resolution
+
+MCP server configurations support `${VAR_NAME}` placeholders that are resolved at runtime.
+
+### Supported Locations
+
+Placeholders can be used in:
+
+**HTTP Servers:**
+- `headers` - Authorization, custom headers
+- `query_params` - API keys, configuration parameters
+
+**Future Support:**
+- Stdio servers: `env` map (when added to proto)
+- Docker servers: `env` map (when added to proto)
+
+### Syntax
+
+```yaml
+${VARIABLE_NAME}
+```
+
+**Rules:**
+- Case-sensitive: `${API_KEY}` ≠ `${api_key}`
+- Alphanumeric + underscore only
+- Must start with letter or underscore
+- No spaces or special characters
+
+### Example: HTTP Server with Placeholders
+
+```yaml
+spec:
+  http:
+    url: https://api.github.com
+    headers:
+      Authorization: "Bearer ${GITHUB_TOKEN}"
+      X-GitHub-Api-Version: "2022-11-28"
+      X-Custom-Header: "${CUSTOM_VALUE}"
+    query_params:
+      api_key: "${API_KEY}"
+      region: "${AWS_REGION}"
+```
+
+### Runtime Resolution
+
+At execution time:
+
+1. **Merge environment sources** (precedence order):
+   - CLI runtime flags (`--secret`, `--env`)
+   - CLI runtime files (`--secret-file`, `--env-file`)
+   - AgentInstance Environment reference
+   - Agent default env_spec
+   - McpServer default env_spec
+
+2. **Resolve placeholders** in MCP config:
+   ```
+   Authorization: "Bearer ${GITHUB_TOKEN}"
+   → Authorization: "Bearer ghp_xxxxxxxxxxxx"
+   ```
+
+3. **Validate required variables**:
+   - If placeholder cannot be resolved → fail fast with error
+   - Clear error message indicates missing variables
+
+4. **Start MCP server** with resolved configuration
+
+### Validation
+
+**Strict Mode** (default for executions):
+
+```bash
+stigmer run my-agent
+
+# Error: MCP server 'github' missing required environment variables:
+#   - GITHUB_TOKEN
+#   - API_KEY
+#
+# Provide via CLI:
+#   stigmer run my-agent --secret "GITHUB_TOKEN=ghp_xxx" --secret "API_KEY=key_yyy"
+```
+
+**Required vs Optional:**
+
+- Variables in `env_spec` without default values → **required**
+- Variables in `env_spec` with default values → **optional**
+- Placeholders with no corresponding `env_spec` entry → **required**
+
+### Example: Complete Flow
+
+**1. McpServer definition:**
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: GitHub MCP Server
+  slug: github
+spec:
+  http:
+    url: https://api.github.com
+    headers:
+      Authorization: "Bearer ${GITHUB_TOKEN}"
+  
+  env_spec:
+    data:
+      GITHUB_TOKEN:
+        is_secret: true
+        description: "GitHub personal access token"
+```
+
+**2. Environment resource:**
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Environment
+metadata:
+  name: Production Environment
+  slug: prod-env
+spec:
+  data:
+    GITHUB_TOKEN:
+      value: "ghp_prod_token_xxxxxxxxxxxx"
+      is_secret: true
+```
+
+**3. AgentInstance binding:**
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: AgentInstance
+metadata:
+  name: Code Assistant Instance
+spec:
+  agent_ref:
+    slug: code-assistant
+  environment_ref:
+    slug: prod-env
+```
+
+**4. Runtime execution:**
+
+```bash
+# Uses prod-env GITHUB_TOKEN
+stigmer run code-assistant
+
+# Or override for testing:
+stigmer run code-assistant \
+  --secret "GITHUB_TOKEN=ghp_dev_token"
+```
+
+**5. Result:**
+
+```
+✓ Environment loaded: 1 variable (1 secret)
+✓ MCP server 'github' configured
+  - Authorization: Bearer ghp_dev_token
+✓ Agent execution started
+```
+
+### Debugging Placeholders
+
+**Check environment resolution:**
+
+```bash
+# Verbose logging (future enhancement)
+stigmer run my-agent --verbose
+
+# Output:
+# ✓ Merged environment:
+#   - GITHUB_TOKEN=*** (secret, from --secret flag)
+#   - API_KEY=*** (secret, from prod-env)
+#   - LOG_LEVEL=debug (from --env flag)
+# ✓ Resolved placeholders for MCP server 'github':
+#   - Authorization: Bearer *** (GITHUB_TOKEN)
+#   - X-API-Key: *** (API_KEY)
+```
+
+### Security Considerations
+
+**1. Secrets in headers:**
+
+```yaml
+# Good - Secret properly marked and encrypted
+headers:
+  Authorization: "Bearer ${API_KEY}"
+
+env_spec:
+  data:
+    API_KEY:
+      is_secret: true  # Encrypted at rest
+```
+
+**2. Never hardcode secrets:**
+
+```yaml
+# BAD - Secret exposed in plain text
+headers:
+  Authorization: "Bearer ghp_hardcoded_secret"
+
+# GOOD - Use placeholder
+headers:
+  Authorization: "Bearer ${GITHUB_TOKEN}"
+```
+
+**3. Least privilege:**
+
+Only include required placeholders:
+
+```yaml
+# Good - Only necessary tokens
+headers:
+  Authorization: "Bearer ${GITHUB_TOKEN}"
+
+# Bad - Unnecessary secrets exposed
+headers:
+  Authorization: "Bearer ${GITHUB_TOKEN}"
+  X-Database-Password: "${DATABASE_PASSWORD}"  # Not needed!
+```
+
 ## Tool Filtering
 
 Control which tools from an MCP server are available to agents.
@@ -836,10 +1090,10 @@ spec:
 
 ## Related Documentation
 
+- [Environment Variables Guide](environment-variables.md) - Complete environment variables and secrets documentation
+- [Running Agents and Workflows](../cli/running-agents-workflows.md) - CLI command reference
 - [McpServer Architecture](../architecture/mcp-server-resource.md) - Design and patterns
 - [Implementation Report](../implementation/mcp-server-api-resource-completion.md) - What was built
-- [Environment Architecture](../architecture/environment-architecture.md) - Secret management
-- [Agent Configuration](../guides/configuring-agents.md) - Using agents with MCP servers
 
 ---
 

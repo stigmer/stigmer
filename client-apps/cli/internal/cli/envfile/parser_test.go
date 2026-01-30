@@ -581,10 +581,10 @@ API_KEY=file-api-key
 
 	t.Run("env files with secret files", func(t *testing.T) {
 		result, err := LoadAndMergeWithSecrets(
-			[]string{envDefaultsPath},  // env files
-			[]string{secretsPath},      // secret files
-			nil,                        // env flags
-			nil,                        // secret flags
+			[]string{envDefaultsPath}, // env files
+			[]string{secretsPath},     // secret files
+			nil,                       // env flags
+			nil,                       // secret flags
 		)
 		require.NoError(t, err)
 
@@ -677,9 +677,9 @@ API_KEY=file-api-key
 		require.NoError(t, err)
 
 		result, err := LoadAndMergeWithSecrets(
-			[]string{envPath},                      // env files (lowest)
-			[]string{secretPath},                   // secret files
-			[]string{"SHARED_KEY=from-env-flag"},   // env flags
+			[]string{envPath},                       // env files (lowest)
+			[]string{secretPath},                    // secret files
+			[]string{"SHARED_KEY=from-env-flag"},    // env flags
 			[]string{"SHARED_KEY=from-secret-flag"}, // secret flags (highest)
 		)
 		require.NoError(t, err)

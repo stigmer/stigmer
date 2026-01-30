@@ -19,8 +19,9 @@ Complete documentation index for the Stigmer open-source project.
 - [Go SDK Proto Integration](sdk/go-sdk-proto-integration.md) - Convert SDK resources to platform protos (Skill ready, Agent in progress)
 
 ### Guides
-- [Using MCP Servers](guides/using-mcp-servers.md) - **NEW**: Complete guide to creating and using MCP server configurations
-- [Uploading Skills](guides/uploading-skills.md) - **NEW**: Complete guide to uploading skills as artifacts using Artifact Mode
+- [Environment Variables and Secrets](guides/environment-variables.md) - **NEW**: Complete guide to environment variables, secrets, `.env` files, and runtime configuration
+- [Using MCP Servers](guides/using-mcp-servers.md) - Complete guide to creating and using MCP server configurations with environment variable placeholders
+- [Uploading Skills](guides/uploading-skills.md) - Complete guide to uploading skills as artifacts using Artifact Mode
 - [Creating and Versioning Skills](guides/creating-and-versioning-skills.md) - Complete guide to creating, uploading, and managing versioned skills
 - [Deploying with Apply](guides/deploying-with-apply.md) - Deploy agents and workflows from code using `stigmer apply`
 - [Distribution Guide](guides/distribution.md) - Complete guide to packaging and distributing Stigmer
