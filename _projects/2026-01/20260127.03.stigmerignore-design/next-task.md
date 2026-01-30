@@ -66,9 +66,107 @@ That's it! No complex structure - just focused work.
 
 ## Current Status
 
-**Last Updated**: 2026-01-30 (Session 2)
-**Status**: ✅ Task 2 Complete - pkg/ignore Package Implemented
-**Current Focus**: Ready for Task 3 - Integration with skill push
+**Last Updated**: 2026-01-30 (Session 4 - Wrap-up)
+**Status**: ✅ Task 4 Complete - Tests and Documentation
+**Current Focus**: Ready for use! Task 5 (backend support) is optional/future work
+
+### Session Progress (2026-01-30 - Session 4)
+
+**Accomplishments**:
+- ✅ **Created comprehensive integration tests** (`skill_test.go` - 25+ tests):
+  - Basic skill creation and zip statistics
+  - .gitignore pattern respect
+  - .stigmerignore pattern application
+  - Precedence: .stigmerignore overriding .gitignore with negation
+  - Security defaults (60+ patterns protecting credentials)
+  - CLI flags (--ignore, --include, --no-gitignore, --verbose)
+  - Directory skipping optimization
+  - Edge cases: empty files, invalid patterns, Unicode filenames, symlinks
+  - Real-world scenarios: Python, Node.js, Go skills
+- ✅ **Updated BUILD.bazel** with go_test target for artifact package
+- ✅ **Created `.stigmerignore` reference documentation**:
+  - Overview and quick start
+  - Pattern syntax reference table
+  - Precedence rules explanation
+  - Security defaults documentation
+  - CLI flags reference
+  - Common scenarios (Python, Node.js, Go, full-stack)
+  - Directory skipping behavior
+  - Dry-run analysis guide
+  - Best practices and troubleshooting
+- ✅ **All tests passing** - Both ignore package (30+) and artifact package (25+) tests
+
+**Files Created**:
+- `client-apps/cli/internal/cli/artifact/skill_test.go` (650+ lines)
+- `docs/guides/stigmerignore-reference.md` (comprehensive guide)
+
+**Files Modified**:
+- `client-apps/cli/internal/cli/artifact/BUILD.bazel` (added go_test)
+- `_projects/2026-01/20260127.03.stigmerignore-design/tasks.md` (updated status)
+
+### Session Progress (2026-01-30 - Session 3)
+
+**Accomplishments**:
+- ✅ **Completed full integration of pkg/ignore with skill push workflow**
+- ✅ **Added production-grade structs to artifact package**:
+  - `IgnoreOptions` - Comprehensive configuration for file filtering
+  - `ZipStats` - Detailed statistics (files included/ignored, dirs skipped, size, source tracking)
+  - `DryRunAnalysis` - Full analysis capability with pattern sources and samples
+- ✅ **Refactored `createSkillZip()` with world-class implementation**:
+  - Signature: `(sourceDir, zipWriter, opts) → (*ZipStats, error)`
+  - Directory-level skipping with `filepath.SkipDir` for performance
+  - Real-time statistics tracking during zip creation
+  - Verbose mode showing INCLUDE/IGNORE/SKIP DIR decisions
+- ✅ **Added 4 new CLI flags to skill push**:
+  - `--ignore` (repeatable) - Additional patterns to ignore
+  - `--include` (repeatable) - Force-include patterns (highest priority)
+  - `--no-gitignore` - Disable .gitignore respect
+  - `--verbose` - Show detailed ignore decisions
+- ✅ **Enhanced dry-run with comprehensive analysis**:
+  - Shows pattern sources and counts
+  - Displays sample ignored/included files
+  - Configuration summary
+  - Estimated artifact size
+- ✅ **Updated option structs throughout stack**:
+  - `SkillArtifactOptions.Ignore` - Artifact layer
+  - `SkillFromGitOptions.Ignore` - Git push variant
+  - `skillPushOptions` - CLI layer (local)
+  - `remotePushOptions` - CLI layer (remote)
+- ✅ **Removed legacy `shouldExclude()` function** - Fully replaced with ignore.Matcher
+- ✅ **All tests passing** - 30+ ignore package tests, artifact package builds clean
+- ✅ **Zero linter errors** - Production-ready code
+
+**Implementation Highlights**:
+- **Directory-level optimization**: Skip entire trees when directory matches (critical for node_modules, .venv)
+- **Statistics transparency**: Users see exactly what was included/excluded and why
+- **Diagnostic capability**: MatchWithReason() integration for verbose output
+- **Backward compatible**: Default behavior unchanged, all new flags optional
+- **Layered precedence maintained**: defaults → .gitignore → .stigmerignore → CLI flags
+- **Dry-run enhancement**: Full analysis without creating artifact
+
+**Files Modified** (445 insertions, 116 deletions):
+- `client-apps/cli/internal/cli/artifact/skill.go` (+330 lines)
+  - Added IgnoreOptions, ZipStats, DryRunAnalysis structs
+  - Refactored createSkillZip() with ignore.Matcher integration
+  - Added AnalyzeDryRun() for dry-run analysis
+  - Updated PushSkill() and PushSkillFromGit() to use ignore options
+  - Removed legacy shouldExclude() function
+- `client-apps/cli/cmd/stigmer/root/skill.go` (+114 lines)
+  - Added 4 CLI flags (--ignore, --include, --no-gitignore, --verbose)
+  - Updated skillPushOptions and remotePushOptions structs
+  - Enhanced dry-run output with detailed analysis
+  - Wired ignore options through to artifact layer
+- `client-apps/cli/internal/cli/artifact/BUILD.bazel` (+1 line)
+  - Added dependency: `//client-apps/cli/pkg/ignore`
+
+**Key Decisions Made**:
+1. **DefaultIgnoreOptions()** factory pattern for standard usage
+2. **Statistics tracking** during zip creation (not after)
+3. **Verbose output format**: Aligned with cliprint patterns (ℹ prefix)
+4. **Dry-run analysis**: Separate function (AnalyzeDryRun) for reusability
+5. **Option passing**: Via pointer to allow nil check for defaults
+
+**Committed**: ✅ c50f77f - "feat(cli): integrate pkg/ignore with skill push workflow"
 
 ### Session Progress (2026-01-30 - Session 2)
 
@@ -130,23 +228,18 @@ That's it! No complex structure - just focused work.
 
 ### Next Steps (When Ready to Continue)
 
-1. **Task 3**: Integrate with skill push (NEXT)
-   - Import `pkg/ignore` in skill.go
-   - Modify `createSkillZip()` to create Matcher with options
-   - Replace `shouldExclude()` calls with `matcher.Match()` calls
-   - Handle directory-level filtering (skip entire directories that match)
-   - Add `--dry-run` enhancement to show ignored files
-   - Test with real skill directories
+1. **Task 4**: Tests and documentation - ✅ COMPLETE
+   - All integration tests created and passing
+   - Documentation created at `docs/guides/stigmerignore-reference.md`
 
-2. **Task 4**: Tests and documentation
-   - Integration tests for various .gitignore/.stigmerignore combinations
-   - Update CLI help text
-   - Create `.stigmerignore` reference documentation
-   - Add examples for common scenarios
-
-3. **Task 5**: Backend support (Future/Optional)
+2. **Task 5**: Backend support (Future/Optional)
    - Modify backend skill push handler to apply ignore filtering
    - Test remote git push with .stigmerignore
+   - Ensure consistent behavior between CLI and backend filtering
+
+3. **Code Review** (Optional)
+   - Review test coverage for any gaps
+   - Validate documentation accuracy
 
 ### Context for Resume
 

@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "artifact",
@@ -17,4 +17,10 @@ go_library(
         "@in_gopkg_yaml_v3//:yaml_v3",
         "@org_golang_google_grpc//:grpc",
     ],
+)
+
+go_test(
+    name = "artifact_test",
+    srcs = ["skill_test.go"],
+    embed = [":artifact"],
 )

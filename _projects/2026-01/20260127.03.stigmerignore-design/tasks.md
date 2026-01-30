@@ -90,20 +90,26 @@ func (m *Matcher) ShouldInclude(path string, isDir bool) bool
 
 ## Task 3: Integrate with skill push
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-01-27 00:27
+**Completed**: 2026-01-30 (Session 3)
 
 ### Files to Modify
 - `client-apps/cli/internal/cli/artifact/skill.go`
+- `client-apps/cli/cmd/stigmer/root/skill.go`
+- `client-apps/cli/internal/cli/artifact/BUILD.bazel`
 
 ### Subtasks
-- [ ] Import `pkg/ignore` in skill.go
-- [ ] Modify `createSkillZip()` to create Matcher with options
-- [ ] Replace `shouldExclude()` calls with `matcher.Match()` calls
-- [ ] Handle directory-level filtering (skip entire directories that match)
-- [ ] Add `--dry-run` enhancement to show ignored files
-- [ ] Remove hardcoded `shouldExclude()` function (or keep as fallback temporarily)
-- [ ] Test with real skill directories
+- [x] Import `pkg/ignore` in skill.go
+- [x] Modify `createSkillZip()` to create Matcher with options
+- [x] Replace `shouldExclude()` calls with `matcher.Match()` calls
+- [x] Handle directory-level filtering (skip entire directories that match)
+- [x] Add `--dry-run` enhancement to show ignored files
+- [x] Remove hardcoded `shouldExclude()` function (fully replaced)
+- [x] Add CLI flags (--ignore, --include, --no-gitignore, --verbose)
+- [x] Wire options through option structs
+- [x] Add statistics and dry-run analysis
+- [x] All tests passing
 
 ### Code Changes
 ```go
@@ -131,39 +137,37 @@ if matcher.Match(relPath, info.IsDir()) {
 
 ## Task 4: Add tests and documentation
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-01-27 00:27
+**Completed**: 2026-01-30 (Session 4)
 
 ### Subtasks
 
-**Tests:**
-- [ ] Unit tests for pattern parsing (all gitignore syntax variants)
-- [ ] Unit tests for precedence resolution
-- [ ] Unit tests for negation patterns (including parent-excluded gotcha)
-- [ ] Integration test: skill push with .gitignore only
-- [ ] Integration test: skill push with .stigmerignore only
-- [ ] Integration test: skill push with both files
-- [ ] Integration test: .stigmerignore overriding .gitignore with !pattern
-- [ ] Edge case: empty .stigmerignore
-- [ ] Edge case: invalid pattern syntax (should warn, not fail)
-- [ ] Edge case: Unicode filenames
+**Tests (in `client-apps/cli/internal/cli/artifact/skill_test.go`):**
+- [x] Unit tests for pattern parsing (all gitignore syntax variants) - covered in pkg/ignore tests
+- [x] Unit tests for precedence resolution - covered in pkg/ignore tests
+- [x] Unit tests for negation patterns (including parent-excluded gotcha)
+- [x] Integration test: skill push with .gitignore only (`TestCreateSkillZip_WithGitignore`)
+- [x] Integration test: skill push with .stigmerignore only (`TestCreateSkillZip_WithStigmerignore`)
+- [x] Integration test: skill push with both files (multiple tests)
+- [x] Integration test: .stigmerignore overriding .gitignore with !pattern (`TestCreateSkillZip_StigmerignoreOverridesGitignore`)
+- [x] Edge case: empty .stigmerignore (`TestCreateSkillZip_EmptyStigmerignore`)
+- [x] Edge case: invalid pattern syntax (should warn, not fail) (`TestCreateSkillZip_InvalidPatternSyntax`)
+- [x] Edge case: Unicode filenames (`TestCreateSkillZip_UnicodeFilenames`)
+- [x] Real-world scenarios: Python, Node.js, Go skills
 
 **Documentation:**
-- [ ] Update CLI help text for `stigmer skill push`
-- [ ] Create `.stigmerignore` reference documentation
-- [ ] Add examples for common scenarios (Python skill, Node.js skill, etc.)
-- [ ] Document precedence rules clearly
+- [x] Update CLI help text for `stigmer skill push` (done in Session 3)
+- [x] Create `.stigmerignore` reference documentation (`docs/guides/stigmerignore-reference.md`)
+- [x] Add examples for common scenarios (Python skill, Node.js skill, Go skill)
+- [x] Document precedence rules clearly
 
-### Test Fixtures to Create
-```
-test/fixtures/ignore/
-├── basic/                 # Simple patterns
-├── gitignore-only/        # Only .gitignore, no .stigmerignore
-├── stigmerignore-only/    # Only .stigmerignore
-├── both-files/            # Both files with overrides
-├── negation/              # Negation patterns
-└── invalid-syntax/        # Invalid patterns (should warn)
-```
+### Test Files Created
+- `client-apps/cli/internal/cli/artifact/skill_test.go` - 25+ integration tests
+- `client-apps/cli/internal/cli/artifact/BUILD.bazel` - Updated with test target
+
+### Documentation Created
+- `docs/guides/stigmerignore-reference.md` - Comprehensive reference guide
 
 ---
 
@@ -189,12 +193,13 @@ This is lower priority since local push is the primary use case. Can be done in 
 
 When all tasks are done:
 - [x] Research and architecture complete
-- [ ] pkg/ignore package implemented with tests
-- [ ] skill push integration complete
-- [ ] All tests passing
-- [ ] Documentation updated
+- [x] pkg/ignore package implemented with tests
+- [x] skill push integration complete
+- [x] All tests passing (30+ ignore package tests)
+- [x] Integration tests for real-world scenarios (25+ tests in skill_test.go)
+- [x] Documentation updated (.stigmerignore reference docs)
 - [ ] Code reviewed/validated
-- [ ] Ready for use
+- [x] Ready for use
 
 ---
 
