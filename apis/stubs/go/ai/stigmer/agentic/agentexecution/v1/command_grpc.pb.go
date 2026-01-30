@@ -20,10 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AgentExecutionCommandController_Create_FullMethodName       = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create"
-	AgentExecutionCommandController_Update_FullMethodName       = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/update"
-	AgentExecutionCommandController_UpdateStatus_FullMethodName = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus"
-	AgentExecutionCommandController_Delete_FullMethodName       = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/delete"
+	AgentExecutionCommandController_Create_FullMethodName         = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create"
+	AgentExecutionCommandController_Update_FullMethodName         = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/update"
+	AgentExecutionCommandController_UpdateStatus_FullMethodName   = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus"
+	AgentExecutionCommandController_Delete_FullMethodName         = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/delete"
+	AgentExecutionCommandController_SubmitApproval_FullMethodName = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitApproval"
 )
 
 // AgentExecutionCommandControllerClient is the client API for AgentExecutionCommandController service.
@@ -49,6 +50,41 @@ type AgentExecutionCommandControllerClient interface {
 	UpdateStatus(ctx context.Context, in *AgentExecutionUpdateStatusInput, opts ...grpc.CallOption) (*AgentExecution, error)
 	// Delete an execution.
 	Delete(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*AgentExecution, error)
+	// Submit approval decision for a pending tool call (HITL Phase 1).
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase
+	// - tool_call_id must match status.pending_approval.tool_call_id
+	// - User must have can_edit permission on the execution
+	//
+	// ## Behavior by Action
+	//
+	// - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
+	// - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
+	// - REJECT: Execution fails with rejection error, phase becomes FAILED
+	//
+	// ## State Transitions
+	//
+	// On success:
+	// - ToolCall.approval_action = submitted action
+	// - ToolCall.approval_decided_at = current timestamp
+	// - ToolCall.approved_by = authenticated user ID
+	// - AgentExecutionStatus.pending_approval = cleared
+	// - ExecutionPhase = EXECUTION_IN_PROGRESS (or EXECUTION_FAILED if REJECT)
+	//
+	// ## Error Conditions
+	//
+	// - NOT_FOUND: Execution doesn't exist
+	// - FAILED_PRECONDITION: Execution not in WAITING_FOR_APPROVAL phase
+	// - INVALID_ARGUMENT: tool_call_id doesn't match pending approval, or action is UNSPECIFIED
+	// - PERMISSION_DENIED: User lacks can_edit permission
+	//
+	// ## Idempotency
+	//
+	// If the same approval is submitted twice (same execution, tool_call, action),
+	// the second call is a no-op and returns the current state.
+	SubmitApproval(ctx context.Context, in *SubmitApprovalInput, opts ...grpc.CallOption) (*AgentExecution, error)
 }
 
 type agentExecutionCommandControllerClient struct {
@@ -99,6 +135,16 @@ func (c *agentExecutionCommandControllerClient) Delete(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *agentExecutionCommandControllerClient) SubmitApproval(ctx context.Context, in *SubmitApprovalInput, opts ...grpc.CallOption) (*AgentExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentExecution)
+	err := c.cc.Invoke(ctx, AgentExecutionCommandController_SubmitApproval_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentExecutionCommandControllerServer is the server API for AgentExecutionCommandController service.
 // All implementations should embed UnimplementedAgentExecutionCommandControllerServer
 // for forward compatibility.
@@ -122,6 +168,41 @@ type AgentExecutionCommandControllerServer interface {
 	UpdateStatus(context.Context, *AgentExecutionUpdateStatusInput) (*AgentExecution, error)
 	// Delete an execution.
 	Delete(context.Context, *apiresource.ApiResourceId) (*AgentExecution, error)
+	// Submit approval decision for a pending tool call (HITL Phase 1).
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase
+	// - tool_call_id must match status.pending_approval.tool_call_id
+	// - User must have can_edit permission on the execution
+	//
+	// ## Behavior by Action
+	//
+	// - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
+	// - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
+	// - REJECT: Execution fails with rejection error, phase becomes FAILED
+	//
+	// ## State Transitions
+	//
+	// On success:
+	// - ToolCall.approval_action = submitted action
+	// - ToolCall.approval_decided_at = current timestamp
+	// - ToolCall.approved_by = authenticated user ID
+	// - AgentExecutionStatus.pending_approval = cleared
+	// - ExecutionPhase = EXECUTION_IN_PROGRESS (or EXECUTION_FAILED if REJECT)
+	//
+	// ## Error Conditions
+	//
+	// - NOT_FOUND: Execution doesn't exist
+	// - FAILED_PRECONDITION: Execution not in WAITING_FOR_APPROVAL phase
+	// - INVALID_ARGUMENT: tool_call_id doesn't match pending approval, or action is UNSPECIFIED
+	// - PERMISSION_DENIED: User lacks can_edit permission
+	//
+	// ## Idempotency
+	//
+	// If the same approval is submitted twice (same execution, tool_call, action),
+	// the second call is a no-op and returns the current state.
+	SubmitApproval(context.Context, *SubmitApprovalInput) (*AgentExecution, error)
 }
 
 // UnimplementedAgentExecutionCommandControllerServer should be embedded to have
@@ -142,6 +223,9 @@ func (UnimplementedAgentExecutionCommandControllerServer) UpdateStatus(context.C
 }
 func (UnimplementedAgentExecutionCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceId) (*AgentExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedAgentExecutionCommandControllerServer) SubmitApproval(context.Context, *SubmitApprovalInput) (*AgentExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SubmitApproval not implemented")
 }
 func (UnimplementedAgentExecutionCommandControllerServer) testEmbeddedByValue() {}
 
@@ -235,6 +319,24 @@ func _AgentExecutionCommandController_Delete_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentExecutionCommandController_SubmitApproval_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitApprovalInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionCommandControllerServer).SubmitApproval(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionCommandController_SubmitApproval_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionCommandControllerServer).SubmitApproval(ctx, req.(*SubmitApprovalInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentExecutionCommandController_ServiceDesc is the grpc.ServiceDesc for AgentExecutionCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -257,6 +359,10 @@ var AgentExecutionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _AgentExecutionCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "submitApproval",
+			Handler:    _AgentExecutionCommandController_SubmitApproval_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

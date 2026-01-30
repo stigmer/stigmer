@@ -501,6 +501,11 @@ func (WorkflowTaskType) EnumDescriptor() ([]byte, []int) {
 //
 // Skip flow (conditional):
 // WORKFLOW_TASK_PENDING → WORKFLOW_TASK_SKIPPED
+//
+// Approval flow (HITL, for agent invocation tasks):
+// WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_WAITING_APPROVAL → WORKFLOW_TASK_IN_PROGRESS
+//
+//	↘ WORKFLOW_TASK_FAILED (on reject)
 type WorkflowTaskStatus int32
 
 const (
@@ -608,6 +613,31 @@ const (
 	//
 	// Next statuses: None (terminal state for this task)
 	WorkflowTaskStatus_WORKFLOW_TASK_SKIPPED WorkflowTaskStatus = 5
+	// Task is waiting for approval from child agent (HITL Phase 1).
+	//
+	// This status is set when:
+	// - task_type == WORKFLOW_TASK_AGENT_INVOCATION
+	// - The invoked AgentExecution has phase == EXECUTION_WAITING_FOR_APPROVAL
+	//
+	// The workflow runner detects this by polling or watching the child execution.
+	// When the child's approval is submitted, the task returns to IN_PROGRESS.
+	//
+	// While in this status:
+	// - started_at is set (task started before agent needed approval)
+	// - completed_at is not set (task is not done)
+	// - The child AgentExecution.status.pending_approval contains approval details
+	//
+	// UI should show: "Agent is waiting for tool approval"
+	// with details from the child execution's pending_approval field.
+	//
+	// Approval can be submitted through:
+	// - AgentExecution.SubmitApproval (direct to child agent)
+	// - WorkflowExecution API (forwarded to child - future work)
+	//
+	// This is NOT a terminal state - workflow resumes after approval decision.
+	//
+	// Next statuses: WORKFLOW_TASK_IN_PROGRESS (on approval), WORKFLOW_TASK_FAILED (on reject or timeout)
+	WorkflowTaskStatus_WORKFLOW_TASK_WAITING_APPROVAL WorkflowTaskStatus = 6
 )
 
 // Enum value maps for WorkflowTaskStatus.
@@ -619,6 +649,7 @@ var (
 		3: "WORKFLOW_TASK_COMPLETED",
 		4: "WORKFLOW_TASK_FAILED",
 		5: "WORKFLOW_TASK_SKIPPED",
+		6: "WORKFLOW_TASK_WAITING_APPROVAL",
 	}
 	WorkflowTaskStatus_value = map[string]int32{
 		"WORKFLOW_TASK_STATUS_UNSPECIFIED": 0,
@@ -627,6 +658,7 @@ var (
 		"WORKFLOW_TASK_COMPLETED":          3,
 		"WORKFLOW_TASK_FAILED":             4,
 		"WORKFLOW_TASK_SKIPPED":            5,
+		"WORKFLOW_TASK_WAITING_APPROVAL":   6,
 	}
 )
 
@@ -677,14 +709,15 @@ const file_ai_stigmer_agentic_workflowexecution_v1_enum_proto_rawDesc = "" +
 	"\x19WORKFLOW_TASK_CONDITIONAL\x10\x04\x12\x1a\n" +
 	"\x16WORKFLOW_TASK_PARALLEL\x10\x05\x12\x1b\n" +
 	"\x17WORKFLOW_TASK_TRANSFORM\x10\x06\x12\x18\n" +
-	"\x14WORKFLOW_TASK_CUSTOM\x10\a*\xc6\x01\n" +
+	"\x14WORKFLOW_TASK_CUSTOM\x10\a*\xea\x01\n" +
 	"\x12WorkflowTaskStatus\x12$\n" +
 	" WORKFLOW_TASK_STATUS_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15WORKFLOW_TASK_PENDING\x10\x01\x12\x1d\n" +
 	"\x19WORKFLOW_TASK_IN_PROGRESS\x10\x02\x12\x1b\n" +
 	"\x17WORKFLOW_TASK_COMPLETED\x10\x03\x12\x18\n" +
 	"\x14WORKFLOW_TASK_FAILED\x10\x04\x12\x19\n" +
-	"\x15WORKFLOW_TASK_SKIPPED\x10\x05B\xdf\x02\n" +
+	"\x15WORKFLOW_TASK_SKIPPED\x10\x05\x12\"\n" +
+	"\x1eWORKFLOW_TASK_WAITING_APPROVAL\x10\x06B\xdf\x02\n" +
 	"+com.ai.stigmer.agentic.workflowexecution.v1B\tEnumProtoP\x01Zdgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 
 var (

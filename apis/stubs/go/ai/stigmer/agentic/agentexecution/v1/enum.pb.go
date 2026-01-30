@@ -22,6 +22,22 @@ const (
 )
 
 // ExecutionPhase defines the lifecycle phase of an agent execution.
+//
+// Phase Transitions:
+//
+// Normal flow:
+// EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_COMPLETED
+//
+// Failure flow:
+// EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED
+//
+// Approval flow (HITL):
+// EXECUTION_IN_PROGRESS → EXECUTION_WAITING_FOR_APPROVAL → EXECUTION_IN_PROGRESS
+//
+// Terminal States:
+// - EXECUTION_COMPLETED: Agent finished successfully
+// - EXECUTION_FAILED: Agent encountered an error
+// - EXECUTION_CANCELLED: Agent was stopped by user or system
 type ExecutionPhase int32
 
 const (
@@ -31,6 +47,20 @@ const (
 	ExecutionPhase_EXECUTION_COMPLETED         ExecutionPhase = 3 // Successfully completed
 	ExecutionPhase_EXECUTION_FAILED            ExecutionPhase = 4 // Failed with error
 	ExecutionPhase_EXECUTION_CANCELLED         ExecutionPhase = 5 // Cancelled by user
+	// Blocked on tool approval (HITL Phase 1).
+	//
+	// The agent has encountered a tool that requires user approval before execution.
+	// When in this phase:
+	// - status.pending_approval contains details about the tool awaiting approval
+	// - User must call SubmitApproval RPC to continue
+	//
+	// This is NOT a terminal state - execution resumes after approval decision:
+	// - APPROVE: Tool executes, phase returns to EXECUTION_IN_PROGRESS
+	// - SKIP: Tool returns skip message, phase returns to EXECUTION_IN_PROGRESS
+	// - REJECT: Execution fails, phase transitions to EXECUTION_FAILED
+	//
+	// UI should show distinct treatment for this phase (e.g., approval dialog).
+	ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL ExecutionPhase = 6
 )
 
 // Enum value maps for ExecutionPhase.
@@ -42,14 +72,16 @@ var (
 		3: "EXECUTION_COMPLETED",
 		4: "EXECUTION_FAILED",
 		5: "EXECUTION_CANCELLED",
+		6: "EXECUTION_WAITING_FOR_APPROVAL",
 	}
 	ExecutionPhase_value = map[string]int32{
-		"EXECUTION_PHASE_UNSPECIFIED": 0,
-		"EXECUTION_PENDING":           1,
-		"EXECUTION_IN_PROGRESS":       2,
-		"EXECUTION_COMPLETED":         3,
-		"EXECUTION_FAILED":            4,
-		"EXECUTION_CANCELLED":         5,
+		"EXECUTION_PHASE_UNSPECIFIED":    0,
+		"EXECUTION_PENDING":              1,
+		"EXECUTION_IN_PROGRESS":          2,
+		"EXECUTION_COMPLETED":            3,
+		"EXECUTION_FAILED":               4,
+		"EXECUTION_CANCELLED":            5,
+		"EXECUTION_WAITING_FOR_APPROVAL": 6,
 	}
 )
 
@@ -137,6 +169,24 @@ func (MessageType) EnumDescriptor() ([]byte, []int) {
 }
 
 // ToolCallStatus defines the status of a tool call.
+//
+// Status Transitions:
+//
+// Normal flow (no approval required):
+// TOOL_CALL_PENDING → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED
+//
+// Failure flow:
+// TOOL_CALL_PENDING → TOOL_CALL_RUNNING → TOOL_CALL_FAILED
+//
+// Approval flow (HITL):
+// TOOL_CALL_PENDING → TOOL_CALL_WAITING_APPROVAL → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED
+//
+//	↘ TOOL_CALL_SKIPPED (if user skips)
+//
+// Terminal States:
+// - TOOL_CALL_COMPLETED: Tool executed successfully
+// - TOOL_CALL_FAILED: Tool execution failed
+// - TOOL_CALL_SKIPPED: User chose to skip this tool (HITL)
 type ToolCallStatus int32
 
 const (
@@ -145,6 +195,33 @@ const (
 	ToolCallStatus_TOOL_CALL_RUNNING            ToolCallStatus = 2 // Currently executing
 	ToolCallStatus_TOOL_CALL_COMPLETED          ToolCallStatus = 3 // Successfully completed
 	ToolCallStatus_TOOL_CALL_FAILED             ToolCallStatus = 4 // Failed with error
+	// Blocked on user approval (HITL Phase 1).
+	//
+	// The tool requires user consent before execution. This status is set when:
+	// - Tool has requires_approval=true (from approval policy chain)
+	// - AgentExecutionSpec.auto_approve_all is false
+	//
+	// While in this status:
+	// - ToolCall.approval_message contains the approval prompt
+	// - ToolCall.approval_requested_at is set
+	// - ExecutionPhase is EXECUTION_WAITING_FOR_APPROVAL
+	//
+	// Transitions:
+	// - APPROVE → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED/FAILED
+	// - SKIP → TOOL_CALL_SKIPPED
+	// - REJECT → Execution fails (tool remains in WAITING_APPROVAL)
+	ToolCallStatus_TOOL_CALL_WAITING_APPROVAL ToolCallStatus = 5
+	// User skipped this tool (HITL Phase 1).
+	//
+	// Terminal state indicating the user chose not to execute this tool.
+	// When a tool is skipped:
+	// - The LLM receives a message: "Tool '{name}' was skipped by user"
+	// - Execution continues without this tool's result
+	// - The LLM can adapt its plan accordingly
+	//
+	// This is a terminal state - the tool will not be retried.
+	// Unlike FAILED, SKIPPED is an intentional user decision, not an error.
+	ToolCallStatus_TOOL_CALL_SKIPPED ToolCallStatus = 6
 )
 
 // Enum value maps for ToolCallStatus.
@@ -155,6 +232,8 @@ var (
 		2: "TOOL_CALL_RUNNING",
 		3: "TOOL_CALL_COMPLETED",
 		4: "TOOL_CALL_FAILED",
+		5: "TOOL_CALL_WAITING_APPROVAL",
+		6: "TOOL_CALL_SKIPPED",
 	}
 	ToolCallStatus_value = map[string]int32{
 		"TOOL_CALL_STATUS_UNSPECIFIED": 0,
@@ -162,6 +241,8 @@ var (
 		"TOOL_CALL_RUNNING":            2,
 		"TOOL_CALL_COMPLETED":          3,
 		"TOOL_CALL_FAILED":             4,
+		"TOOL_CALL_WAITING_APPROVAL":   5,
+		"TOOL_CALL_SKIPPED":            6,
 	}
 )
 
@@ -308,27 +389,30 @@ var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/enum.proto\x12$ai.stigmer.agentic.agentexecution.v1*\xab\x01\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/enum.proto\x12$ai.stigmer.agentic.agentexecution.v1*\xcf\x01\n" +
 	"\x0eExecutionPhase\x12\x1f\n" +
 	"\x1bEXECUTION_PHASE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11EXECUTION_PENDING\x10\x01\x12\x19\n" +
 	"\x15EXECUTION_IN_PROGRESS\x10\x02\x12\x17\n" +
 	"\x13EXECUTION_COMPLETED\x10\x03\x12\x14\n" +
 	"\x10EXECUTION_FAILED\x10\x04\x12\x17\n" +
-	"\x13EXECUTION_CANCELLED\x10\x05*t\n" +
+	"\x13EXECUTION_CANCELLED\x10\x05\x12\"\n" +
+	"\x1eEXECUTION_WAITING_FOR_APPROVAL\x10\x06*t\n" +
 	"\vMessageType\x12\x1c\n" +
 	"\x18MESSAGE_TYPE_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rMESSAGE_HUMAN\x10\x01\x12\x0e\n" +
 	"\n" +
 	"MESSAGE_AI\x10\x02\x12\x10\n" +
 	"\fMESSAGE_TOOL\x10\x03\x12\x12\n" +
-	"\x0eMESSAGE_SYSTEM\x10\x04*\x8f\x01\n" +
+	"\x0eMESSAGE_SYSTEM\x10\x04*\xc6\x01\n" +
 	"\x0eToolCallStatus\x12 \n" +
 	"\x1cTOOL_CALL_STATUS_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11TOOL_CALL_PENDING\x10\x01\x12\x15\n" +
 	"\x11TOOL_CALL_RUNNING\x10\x02\x12\x17\n" +
 	"\x13TOOL_CALL_COMPLETED\x10\x03\x12\x14\n" +
-	"\x10TOOL_CALL_FAILED\x10\x04*y\n" +
+	"\x10TOOL_CALL_FAILED\x10\x04\x12\x1e\n" +
+	"\x1aTOOL_CALL_WAITING_APPROVAL\x10\x05\x12\x15\n" +
+	"\x11TOOL_CALL_SKIPPED\x10\x06*y\n" +
 	"\n" +
 	"TodoStatus\x12\x1b\n" +
 	"\x17TODO_STATUS_UNSPECIFIED\x10\x00\x12\x10\n" +

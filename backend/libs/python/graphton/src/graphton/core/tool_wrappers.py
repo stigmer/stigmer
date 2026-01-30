@@ -1,21 +1,112 @@
-"""Tool wrapper generator for MCP tools.
+"""Tool wrapper generator for MCP and platform tools.
 
-This module dynamically creates @tool decorated wrapper functions for MCP tools.
-The wrappers delegate to actual MCP tools loaded by the middleware, eliminating
-the need for manual wrapper code in each agent.
+This module dynamically creates @tool decorated wrapper functions for:
+
+1. **MCP Tools**: Tools from MCP (Model Context Protocol) servers, loaded via middleware.
+   The wrappers delegate to actual MCP tools loaded by the middleware.
+
+2. **Platform Tools**: Sandbox/filesystem tools (read, write, edit, execute, ls, glob, grep)
+   that are provided to agents with sandbox access. These tools interact with the
+   backend (FilesystemBackend, DaytonaBackend, etc.) for file and command operations.
 
 For dynamic MCP configurations (with template variables), this module provides
 lazy tool wrappers that defer tool loading until first invocation, allowing
 graphs to be created at module import time without requiring user credentials.
+
+**HITL (Human-in-the-Loop) Approval Flow:**
+
+Both MCP and platform tools support approval-aware wrappers that call interrupt()
+before executing tools that require user approval. The approval flow:
+
+1. Check if approval is required via the approval_checker callback
+2. If required, call interrupt() to pause execution and wait for user decision
+3. Handle the response: approve (continue), skip (return message), reject (raise error)
+
+**Platform Tools:**
+
+Platform tools are divided into two categories based on risk:
+
+- **Safe tools** (no approval by default): read, ls, glob, grep
+  Read-only operations that don't modify files or execute commands.
+
+- **Dangerous tools** (require approval by default): write, edit, execute
+  Operations that can modify the filesystem or execute arbitrary commands.
+
+Example:
+    >>> from graphton.core.tool_wrappers import create_platform_tool_wrappers
+    >>> 
+    >>> # Create all 7 platform tools with approval checking
+    >>> tools = create_platform_tool_wrappers(backend, approval_checker=my_checker)
+    >>> # Returns: read, ls, glob, grep, write, edit, execute
 """
 
 import logging
 from collections.abc import Callable
-from typing import Any
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
 from langchain_core.tools import tool
 
+if TYPE_CHECKING:
+    pass  # For future type imports
+
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Exception Classes for HITL Approval Flow
+# =============================================================================
+
+
+class ToolExecutionRejectedError(Exception):
+    """Raised when a user rejects tool execution during HITL approval flow.
+    
+    This exception indicates that the user explicitly rejected the tool execution,
+    and the agent should fail gracefully with an appropriate error message.
+    
+    Attributes:
+        tool_name: Name of the tool that was rejected
+        message: User-facing rejection message
+    
+    """
+    
+    def __init__(self, tool_name: str, message: str | None = None):
+        """Initialize the rejection error.
+        
+        Args:
+            tool_name: Name of the tool that was rejected
+            message: Optional custom message explaining the rejection
+        
+        """
+        self.tool_name = tool_name
+        self.message = message or f"User rejected execution of tool '{tool_name}'"
+        super().__init__(self.message)
+
+
+# =============================================================================
+# Data Classes for Approval Flow
+# =============================================================================
+
+
+@dataclass
+class ApprovalRequirement:
+    """Result of checking whether a tool requires approval.
+    
+    This dataclass is returned by approval checker functions to indicate
+    whether approval is needed and provide context for the approval request.
+    
+    Attributes:
+        requires_approval: True if user approval is needed before execution
+        message: Human-readable message explaining why approval is needed
+        mcp_server: Name of the MCP server providing the tool (for context)
+        source: Where the approval requirement came from (for debugging)
+    
+    """
+    
+    requires_approval: bool = False
+    message: str = ""
+    mcp_server: str = ""
+    source: str = "none"  # "auto_approve_all", "agent_override", "mcp_default", "none"
 
 
 def create_tool_wrapper(
@@ -145,6 +236,159 @@ def create_tool_wrapper(
         )
     
     return wrapper  # type: ignore[return-value]
+
+
+def create_approval_aware_tool_wrapper(
+    tool_name: str,
+    middleware_instance: Any,  # noqa: ANN401
+    approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
+    mcp_server_name: str = "",
+    sub_agent_name: str = "",
+) -> Callable[..., Any]:
+    """Create a wrapper that checks approval before executing an MCP tool.
+    
+    This function creates an approval-aware wrapper for HITL (human-in-the-loop)
+    approval flow. When approval is required, the wrapper calls interrupt() to
+    pause execution and wait for user approval before proceeding.
+    
+    The generated wrapper:
+    1. Checks if the tool requires approval using the approval_checker
+    2. If approval required: calls interrupt() with approval request payload
+    3. Handles the resume response (approve/skip/reject)
+    4. If approved or no approval needed: executes the actual MCP tool
+    5. Returns the tool result or skip message
+    
+    Args:
+        tool_name: Name of the MCP tool to wrap
+        middleware_instance: McpToolsLoader instance with cached tools
+        approval_checker: Optional callable that checks if tool requires approval.
+            Signature: (tool_name, tool_args) -> ApprovalRequirement
+            If None, tool executes without approval check.
+        mcp_server_name: Name of the MCP server providing this tool (for context)
+        sub_agent_name: Name of the sub-agent if this tool is used by a sub-agent.
+            When non-empty, the interrupt payload includes from_sub_agent=True.
+        
+    Returns:
+        A @tool decorated function that checks approval before executing
+        
+    Raises:
+        RuntimeError: If tool metadata cannot be copied from original
+        ToolExecutionRejectedError: If user rejects tool execution
+        
+    Example:
+        >>> from graphton.core.tool_wrappers import (
+        ...     create_approval_aware_tool_wrapper,
+        ...     ApprovalRequirement,
+        ... )
+        >>> 
+        >>> def my_checker(tool_name: str, args: dict) -> ApprovalRequirement:
+        ...     if tool_name == "delete_resource":
+        ...         return ApprovalRequirement(
+        ...             requires_approval=True,
+        ...             message="Delete operation requires approval",
+        ...         )
+        ...     return ApprovalRequirement(requires_approval=False)
+        >>> 
+        >>> wrapper = create_approval_aware_tool_wrapper(
+        ...     "delete_resource",
+        ...     middleware,
+        ...     approval_checker=my_checker,
+        ... )
+        >>> # When invoked, will pause for approval before executing
+
+    """
+    # Pre-validate that tool exists in middleware cache
+    # This will raise clear error if tool not found
+    try:
+        actual_tool = middleware_instance.get_tool(tool_name)
+    except (RuntimeError, ValueError) as e:
+        logger.error(f"Failed to create approval-aware wrapper for '{tool_name}': {e}")
+        raise RuntimeError(
+            f"Cannot create approval-aware wrapper for tool '{tool_name}': {e}"
+        ) from e
+    
+    # Create the approval-aware wrapper function
+    @tool
+    async def approval_wrapper(**kwargs: Any) -> Any:  # noqa: ANN401
+        """Auto-generated approval-aware wrapper for MCP tool.
+        
+        This wrapper:
+        - Checks if approval is required before execution
+        - Calls interrupt() if approval needed
+        - Handles approve/skip/reject decisions
+        - Executes the actual MCP tool if approved
+        """
+        logger.debug(f"Invoking MCP tool '{tool_name}' (approval-aware mode)")
+        
+        # Unwrap double-nested arguments if present
+        actual_args = kwargs
+        if isinstance(kwargs, dict):
+            if len(kwargs) == 1 and 'input' in kwargs:
+                logger.debug(f"Unwrapping 'input' key for '{tool_name}'")
+                actual_args = kwargs['input']
+            elif len(kwargs) == 1 and 'kwargs' in kwargs:
+                logger.debug(f"Unwrapping 'kwargs' key for '{tool_name}'")
+                actual_args = kwargs['kwargs']
+        
+        # Check if approval is required using the shared approval handler
+        # This handles interrupt/resume for HITL flow
+        is_sub_agent = bool(sub_agent_name)
+        skip_result = _check_and_handle_approval(
+            tool_name=tool_name,
+            tool_args=actual_args,
+            approval_checker=approval_checker,
+            mcp_server=mcp_server_name,
+            from_sub_agent=is_sub_agent,
+            sub_agent_name=sub_agent_name if is_sub_agent else "",
+        )
+        if skip_result is not None:
+            return skip_result
+        
+        # Execute the actual tool (either no approval needed, or user approved)
+        try:
+            mcp_tool = middleware_instance.get_tool(tool_name)
+        except (RuntimeError, ValueError) as e:
+            logger.error(f"Failed to get tool '{tool_name}' from cache: {e}")
+            raise RuntimeError(
+                f"Tool '{tool_name}' not available. "
+                "Ensure middleware loaded tools successfully."
+            ) from e
+        
+        # Invoke the actual MCP tool
+        try:
+            logger.info(f"🔧 Executing MCP tool '{tool_name}'")
+            result = await mcp_tool.ainvoke(actual_args)
+            logger.info(f"✅ MCP tool '{tool_name}' completed successfully")
+            return result
+        except Exception as e:
+            logger.error(
+                f"MCP tool '{tool_name}' invocation failed: {e}",
+                exc_info=True
+            )
+            raise RuntimeError(
+                f"MCP tool '{tool_name}' invocation failed: {e}"
+            ) from e
+    
+    # Copy metadata from original tool for better LangChain integration
+    try:
+        approval_wrapper.name = tool_name  # type: ignore[attr-defined]
+        approval_wrapper.description = actual_tool.description  # type: ignore[attr-defined]
+        
+        if hasattr(actual_tool, 'args_schema'):
+            approval_wrapper.args_schema = actual_tool.args_schema  # type: ignore[attr-defined]
+        
+        logger.debug(
+            f"Created approval-aware wrapper for MCP tool '{tool_name}' "
+            f"(approval_checker={'enabled' if approval_checker else 'disabled'})"
+        )
+        
+    except Exception as e:
+        logger.warning(
+            f"Failed to copy metadata from tool '{tool_name}': {e}. "
+            "Wrapper will work but may have incomplete metadata."
+        )
+    
+    return approval_wrapper  # type: ignore[return-value]
 
 
 def create_lazy_tool_wrapper(
@@ -325,4 +569,695 @@ def create_tool_wrappers_for_server(
     )
     
     return wrappers
+
+
+# =============================================================================
+# Platform Tool Wrappers (for sandbox/filesystem tools)
+# =============================================================================
+
+
+def create_platform_tool_wrappers(
+    backend: Any,  # noqa: ANN401
+    approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
+) -> list[Callable[..., Any]]:
+    """Create approval-aware wrappers for platform tools (sandbox/filesystem tools).
+    
+    This function creates LangChain-compatible tool wrappers for all 7 platform tools
+    that delegate to a backend (FilesystemBackend, DaytonaBackend, etc.).
+    
+    Platform tools are divided into two categories:
+    
+    **Safe tools** (read-only operations, no approval needed by default):
+    - read: Read file contents
+    - ls: List directory contents
+    - glob: Find files by pattern
+    - grep: Search file contents
+    
+    **Dangerous tools** (write/execute operations, require approval by default):
+    - write: Write content to a file
+    - edit: Edit a file by replacing text
+    - execute: Execute shell commands
+    
+    When approval_checker is provided, the dangerous tool wrappers check if approval
+    is required before executing, using the same interrupt/resume pattern as MCP tools.
+    Safe tools may also be configured to require approval via the approval_checker.
+    
+    Args:
+        backend: Backend instance with methods like read(), write(), execute(),
+            list_files(). Must implement the backend protocol.
+        approval_checker: Optional callable that checks if tool requires approval.
+            Signature: (tool_name, tool_args) -> ApprovalRequirement
+            If None, tools execute without approval check.
+        
+    Returns:
+        List of 7 @tool decorated functions for platform tools
+        
+    Example:
+        >>> from graphton.core.sandbox_factory import create_sandbox_backend
+        >>> from graphton.core.tool_wrappers import create_platform_tool_wrappers
+        >>> 
+        >>> backend = create_sandbox_backend({"type": "filesystem", "root_dir": "/workspace"})
+        >>> tools = create_platform_tool_wrappers(backend, approval_checker=my_checker)
+        >>> # tools contains: read, ls, glob, grep, write, edit, execute
+        >>> len(tools)
+        7
+    
+    """
+    tools: list[Callable[..., Any]] = []
+    
+    # =========================================================================
+    # Safe tools (read-only operations, no approval needed by default)
+    # =========================================================================
+    
+    # read: Read file contents
+    tools.append(_create_read_tool(backend, approval_checker))
+    
+    # ls: List directory contents
+    tools.append(_create_ls_tool(backend))
+    
+    # glob: Find files by pattern
+    tools.append(_create_glob_tool(backend))
+    
+    # grep: Search file contents
+    tools.append(_create_grep_tool(backend))
+    
+    # =========================================================================
+    # Dangerous tools (write/execute operations, require approval by default)
+    # =========================================================================
+    
+    # write: Write content to file
+    tools.append(_create_write_tool(backend, approval_checker))
+    
+    # edit: Edit file by replacing text
+    tools.append(_create_edit_tool(backend, approval_checker))
+    
+    # execute: Execute shell commands
+    tools.append(_create_execute_tool(backend, approval_checker))
+    
+    tool_names = [getattr(t, 'name', 'unknown') for t in tools]
+    logger.info(
+        f"Created {len(tools)} platform tool wrapper(s): {tool_names} "
+        f"(approval_checker={'enabled' if approval_checker else 'disabled'})"
+    )
+    
+    return tools
+
+
+def _check_and_handle_approval(
+    tool_name: str,
+    tool_args: dict[str, Any],
+    approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None,
+    mcp_server: str = "__platform__",
+    from_sub_agent: bool = False,
+    sub_agent_name: str = "",
+) -> str | None:
+    """Unified approval handling for both MCP and platform tools.
+    
+    This function checks if a tool requires approval and handles the interrupt/resume
+    flow for HITL (human-in-the-loop) approval. It is used by both MCP tool wrappers
+    and platform tool wrappers to ensure consistent approval behavior.
+    
+    If approval is required, calls interrupt() and handles the response.
+    
+    Args:
+        tool_name: Name of the tool
+        tool_args: Arguments passed to the tool
+        approval_checker: Optional approval checker function.
+            Signature: (tool_name, tool_args) -> ApprovalRequirement
+            If None, returns None immediately (no approval check).
+        mcp_server: Name of the MCP server providing this tool.
+            Use "__platform__" for platform/sandbox tools.
+        from_sub_agent: True if this tool is being invoked by a sub-agent.
+        sub_agent_name: Name of the sub-agent if from_sub_agent is True.
+        
+    Returns:
+        - None: No approval needed OR user approved - proceed with execution
+        - str: Skip message - return this instead of executing the tool
+        
+    Raises:
+        ToolExecutionRejectedError: If user rejected the tool execution
+        RuntimeError: If langgraph is not available for HITL support
+        
+    Example:
+        >>> # For platform tools
+        >>> skip_msg = _check_and_handle_approval("write", {"path": "foo.txt"}, checker)
+        >>> if skip_msg:
+        ...     return skip_msg  # User skipped
+        >>> # Proceed with execution...
+        
+        >>> # For MCP tools with sub-agent context
+        >>> skip_msg = _check_and_handle_approval(
+        ...     "delete_file", args, checker,
+        ...     mcp_server="filesystem",
+        ...     from_sub_agent=True,
+        ...     sub_agent_name="code_assistant"
+        ... )
+    
+    """
+    if approval_checker is None:
+        return None
+    
+    requirement = approval_checker(tool_name, tool_args)
+    
+    if not requirement.requires_approval:
+        return None
+    
+    # Determine effective MCP server (use requirement's if available, else parameter)
+    effective_server = requirement.mcp_server or mcp_server
+    
+    context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
+    logger.info(
+        f"🔐 Tool '{tool_name}' requires approval "
+        f"(source={requirement.source}, server={effective_server}, context={context_info})"
+    )
+    
+    # Import interrupt here to avoid circular imports
+    # and to only require langgraph when actually using HITL
+    try:
+        from langgraph.types import interrupt
+    except ImportError as e:
+        logger.error(
+            "langgraph.types.interrupt not available. "
+            "Ensure langgraph>=0.2.0 is installed for HITL support."
+        )
+        raise RuntimeError(
+            "HITL approval flow requires langgraph>=0.2.0. "
+            f"Import error: {e}"
+        ) from e
+    
+    # Prepare approval request payload
+    approval_request = {
+        "tool_name": tool_name,
+        "tool_args": tool_args,
+        "message": requirement.message,
+        "mcp_server": effective_server,
+        "source": requirement.source,
+        "from_sub_agent": from_sub_agent,
+        "sub_agent_name": sub_agent_name if from_sub_agent else "",
+    }
+    
+    logger.info(
+        f"⏸️  Interrupting execution for approval: "
+        f"tool={tool_name}, context={context_info}, message={requirement.message[:100]}..."
+    )
+    
+    # Call interrupt() - this checkpoints state and pauses execution
+    # Resume will provide the decision as the return value
+    response = interrupt(approval_request)
+    
+    # Handle the approval decision from resume
+    action = response.get("action", "").lower() if isinstance(response, dict) else ""
+    approved_by = response.get("approved_by", "") if isinstance(response, dict) else ""
+    
+    logger.info(
+        f"📋 Received approval decision for '{tool_name}': "
+        f"action={action}, approved_by={approved_by}"
+    )
+    
+    if action == "skip":
+        skip_message = (
+            f"Tool '{tool_name}' was skipped by user. "
+            "Please proceed without this operation."
+        )
+        logger.info(f"⏭️  {skip_message}")
+        return skip_message
+    
+    elif action == "reject":
+        logger.warning(f"❌ User rejected execution of '{tool_name}'")
+        raise ToolExecutionRejectedError(
+            tool_name=tool_name,
+            message=f"User rejected execution of tool '{tool_name}'",
+        )
+    
+    elif action == "approve":
+        logger.info(f"✅ User approved execution of '{tool_name}'")
+        return None  # Proceed with execution
+    
+    else:
+        # Unknown action - treat as rejection for safety
+        logger.warning(
+            f"⚠️  Unknown approval action '{action}' for '{tool_name}'. "
+            "Treating as rejection for safety."
+        )
+        raise ToolExecutionRejectedError(
+            tool_name=tool_name,
+            message=f"Unknown approval action '{action}'. Execution rejected.",
+        )
+
+
+def _create_read_tool(
+    backend: Any,  # noqa: ANN401
+    approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
+) -> Callable[..., Any]:
+    """Create approval-aware read tool wrapper.
+    
+    Args:
+        backend: Backend instance with read() method
+        approval_checker: Optional approval checker
+        
+    Returns:
+        @tool decorated function for reading files
+    """
+    @tool
+    async def read(path: str) -> str:
+        """Read file contents from the workspace.
+        
+        Args:
+            path: Relative path to the file within the workspace
+            
+        Returns:
+            File contents as string
+        """
+        tool_args = {"path": path}
+        
+        # Check approval (read is typically auto-approved but respects config)
+        skip_result = _check_and_handle_approval("read", tool_args, approval_checker)
+        if skip_result is not None:
+            return skip_result
+        
+        # Execute the read operation
+        try:
+            logger.debug(f"📖 Reading file: {path}")
+            result = backend.read(path)
+            logger.debug(f"✅ Read file '{path}' ({len(result)} chars)")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to read file '{path}': {e}")
+            raise RuntimeError(f"Failed to read file '{path}': {e}") from e
+    
+    read.name = "read"  # type: ignore[attr-defined]
+    return read  # type: ignore[return-value]
+
+
+def _create_write_tool(
+    backend: Any,  # noqa: ANN401
+    approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
+) -> Callable[..., Any]:
+    """Create approval-aware write tool wrapper.
+    
+    Args:
+        backend: Backend instance with write() method
+        approval_checker: Optional approval checker
+        
+    Returns:
+        @tool decorated function for writing files
+    """
+    @tool
+    async def write(path: str, content: str) -> str:
+        """Write content to a file in the workspace.
+        
+        Args:
+            path: Relative path to the file within the workspace
+            content: Content to write to the file
+            
+        Returns:
+            Confirmation message
+        """
+        tool_args = {"path": path, "content": content}
+        
+        # Check approval (write typically requires approval)
+        skip_result = _check_and_handle_approval("write", tool_args, approval_checker)
+        if skip_result is not None:
+            return skip_result
+        
+        # Execute the write operation
+        try:
+            logger.info(f"📝 Writing file: {path} ({len(content)} chars)")
+            backend.write(path, content)
+            logger.info(f"✅ Wrote file '{path}'")
+            return f"Successfully wrote {len(content)} characters to '{path}'"
+        except Exception as e:
+            logger.error(f"Failed to write file '{path}': {e}")
+            raise RuntimeError(f"Failed to write file '{path}': {e}") from e
+    
+    write.name = "write"  # type: ignore[attr-defined]
+    return write  # type: ignore[return-value]
+
+
+def _create_execute_tool(
+    backend: Any,  # noqa: ANN401
+    approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
+) -> Callable[..., Any]:
+    """Create approval-aware execute tool wrapper.
+    
+    Args:
+        backend: Backend instance with execute() method
+        approval_checker: Optional approval checker
+        
+    Returns:
+        @tool decorated function for executing shell commands
+    """
+    @tool
+    async def execute(command: str, timeout: int = 120) -> str:
+        """Execute a shell command in the workspace.
+        
+        Args:
+            command: Shell command to execute
+            timeout: Command timeout in seconds (default: 120)
+            
+        Returns:
+            Command output (stdout + stderr combined)
+        """
+        tool_args = {"command": command, "timeout": timeout}
+        
+        # Check approval (execute typically requires approval)
+        skip_result = _check_and_handle_approval("execute", tool_args, approval_checker)
+        if skip_result is not None:
+            return skip_result
+        
+        # Execute the command
+        try:
+            logger.info(f"🔧 Executing command: {command[:100]}...")
+            result = backend.execute(command, timeout=timeout)
+            
+            # Format output
+            output_parts = []
+            if result.stdout:
+                output_parts.append(f"STDOUT:\n{result.stdout}")
+            if result.stderr:
+                output_parts.append(f"STDERR:\n{result.stderr}")
+            output = "\n".join(output_parts) if output_parts else "(no output)"
+            
+            if result.exit_code == 0:
+                logger.info(f"✅ Command completed successfully")
+            else:
+                logger.warning(f"⚠️  Command exited with code {result.exit_code}")
+            
+            return f"Exit code: {result.exit_code}\n{output}"
+        except Exception as e:
+            logger.error(f"Failed to execute command: {e}")
+            raise RuntimeError(f"Failed to execute command: {e}") from e
+    
+    execute.name = "execute"  # type: ignore[attr-defined]
+    return execute  # type: ignore[return-value]
+
+
+def _create_edit_tool(
+    backend: Any,  # noqa: ANN401
+    approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
+) -> Callable[..., Any]:
+    """Create approval-aware edit tool wrapper.
+    
+    The edit tool performs a text replacement in a file. It reads the file,
+    replaces the first occurrence of old_text with new_text, and writes back.
+    
+    This is a DANGEROUS operation that requires approval by default.
+    
+    Args:
+        backend: Backend instance with read() and write() methods
+        approval_checker: Optional approval checker
+        
+    Returns:
+        @tool decorated function for editing files
+    """
+    @tool
+    async def edit(path: str, old_text: str, new_text: str) -> str:
+        """Edit a file by replacing text.
+        
+        Finds the first occurrence of old_text in the file and replaces it
+        with new_text. The file must exist and contain the old_text.
+        
+        Args:
+            path: Relative path to the file within the workspace
+            old_text: Text to find and replace (must exist in file)
+            new_text: Text to replace old_text with
+            
+        Returns:
+            Confirmation message with change details
+            
+        Raises:
+            ValueError: If old_text is not found in the file
+            RuntimeError: If file operations fail
+        """
+        tool_args = {"path": path, "old_text": old_text, "new_text": new_text}
+        
+        # Check approval (edit is dangerous - requires approval by default)
+        skip_result = _check_and_handle_approval("edit", tool_args, approval_checker)
+        if skip_result is not None:
+            return skip_result
+        
+        # Execute the edit operation
+        try:
+            logger.info(f"✏️  Editing file: {path}")
+            
+            # Read current content
+            content = backend.read(path)
+            
+            # Verify old_text exists
+            if old_text not in content:
+                error_msg = f"Text to replace not found in '{path}'"
+                logger.error(f"❌ {error_msg}")
+                raise ValueError(error_msg)
+            
+            # Replace first occurrence only
+            new_content = content.replace(old_text, new_text, 1)
+            
+            # Write back
+            backend.write(path, new_content)
+            
+            logger.info(f"✅ Edited file '{path}'")
+            return (
+                f"Successfully edited '{path}': "
+                f"replaced {len(old_text)} chars with {len(new_text)} chars"
+            )
+        except ValueError:
+            raise  # Re-raise ValueError as-is
+        except Exception as e:
+            logger.error(f"Failed to edit file '{path}': {e}")
+            raise RuntimeError(f"Failed to edit file '{path}': {e}") from e
+    
+    edit.name = "edit"  # type: ignore[attr-defined]
+    return edit  # type: ignore[return-value]
+
+
+def _create_ls_tool(
+    backend: Any,  # noqa: ANN401
+) -> Callable[..., Any]:
+    """Create ls (list files) tool wrapper.
+    
+    This is a SAFE read-only operation that does not require approval.
+    
+    Args:
+        backend: Backend instance with list_files() method
+        
+    Returns:
+        @tool decorated function for listing directory contents
+    """
+    @tool
+    async def ls(path: str = ".") -> str:
+        """List files and directories in the workspace.
+        
+        Args:
+            path: Relative path to the directory (default: current directory)
+            
+        Returns:
+            Newline-separated list of files and directories
+        """
+        try:
+            logger.debug(f"📂 Listing directory: {path}")
+            files = backend.list_files(path)
+            
+            if not files:
+                logger.debug(f"Directory '{path}' is empty")
+                return f"Directory '{path}' is empty"
+            
+            logger.debug(f"✅ Listed {len(files)} items in '{path}'")
+            return "\n".join(files)
+        except Exception as e:
+            logger.error(f"Failed to list directory '{path}': {e}")
+            raise RuntimeError(f"Failed to list directory '{path}': {e}") from e
+    
+    ls.name = "ls"  # type: ignore[attr-defined]
+    return ls  # type: ignore[return-value]
+
+
+def _create_glob_tool(
+    backend: Any,  # noqa: ANN401
+) -> Callable[..., Any]:
+    """Create glob (pattern matching) tool wrapper.
+    
+    This is a SAFE read-only operation that does not require approval.
+    Uses Python's glob module for pattern matching.
+    
+    Args:
+        backend: Backend instance (used to get workspace root if available)
+        
+    Returns:
+        @tool decorated function for finding files by pattern
+    """
+    import fnmatch
+    import os
+    
+    @tool
+    async def glob(pattern: str, path: str = ".") -> str:
+        """Find files matching a glob pattern.
+        
+        Recursively searches for files matching the pattern.
+        Supports standard glob patterns: *, ?, [seq], [!seq], **
+        
+        Args:
+            pattern: Glob pattern to match (e.g., "*.py", "**/*.txt")
+            path: Starting directory for the search (default: current directory)
+            
+        Returns:
+            Newline-separated list of matching file paths
+        """
+        try:
+            logger.debug(f"🔍 Searching for pattern '{pattern}' in '{path}'")
+            
+            # Get all files recursively using backend's list_files
+            # Then filter by pattern
+            all_files = []
+            
+            def collect_files(dir_path: str) -> None:
+                """Recursively collect all files."""
+                try:
+                    items = backend.list_files(dir_path)
+                    for item in items:
+                        item_path = os.path.join(dir_path, item) if dir_path != "." else item
+                        # Normalize path separators
+                        item_path = item_path.replace("\\", "/")
+                        all_files.append(item_path)
+                        # Try to recurse into directories
+                        try:
+                            collect_files(item_path)
+                        except Exception:
+                            pass  # Not a directory or can't access
+                except Exception:
+                    pass  # Can't list this directory
+            
+            collect_files(path)
+            
+            # Filter by glob pattern
+            # Handle ** for recursive matching
+            if "**" in pattern:
+                # Use fnmatch with the full path
+                matches = [f for f in all_files if fnmatch.fnmatch(f, pattern)]
+            else:
+                # Match just the filename
+                matches = [f for f in all_files if fnmatch.fnmatch(os.path.basename(f), pattern)]
+            
+            if not matches:
+                logger.debug(f"No files matching '{pattern}'")
+                return f"No files matching pattern '{pattern}'"
+            
+            logger.debug(f"✅ Found {len(matches)} files matching '{pattern}'")
+            return "\n".join(sorted(matches))
+        except Exception as e:
+            logger.error(f"Failed to glob '{pattern}': {e}")
+            raise RuntimeError(f"Failed to glob '{pattern}': {e}") from e
+    
+    glob.name = "glob"  # type: ignore[attr-defined]
+    return glob  # type: ignore[return-value]
+
+
+def _create_grep_tool(
+    backend: Any,  # noqa: ANN401
+) -> Callable[..., Any]:
+    """Create grep (search content) tool wrapper.
+    
+    This is a SAFE read-only operation that does not require approval.
+    Searches file contents for a pattern using regular expressions.
+    
+    Args:
+        backend: Backend instance with read() and list_files() methods
+        
+    Returns:
+        @tool decorated function for searching file contents
+    """
+    import os
+    import re
+    
+    @tool
+    async def grep(pattern: str, path: str = ".", include: str = "*") -> str:
+        """Search for a pattern in file contents.
+        
+        Recursively searches files for lines matching the pattern.
+        Returns matching lines with file paths and line numbers.
+        
+        Args:
+            pattern: Regular expression pattern to search for
+            path: Starting directory for the search (default: current directory)
+            include: Glob pattern to filter which files to search (default: all files)
+            
+        Returns:
+            Matching lines in format: "filepath:line_number:line_content"
+        """
+        import fnmatch
+        
+        try:
+            logger.debug(f"🔎 Searching for '{pattern}' in '{path}' (include={include})")
+            
+            # Compile the regex pattern
+            try:
+                regex = re.compile(pattern)
+            except re.error as e:
+                return f"Invalid regex pattern '{pattern}': {e}"
+            
+            results = []
+            files_searched = 0
+            max_results = 1000  # Limit results to prevent overwhelming output
+            
+            def search_file(file_path: str) -> None:
+                """Search a single file for matches."""
+                nonlocal files_searched
+                
+                # Check include pattern
+                if not fnmatch.fnmatch(os.path.basename(file_path), include):
+                    return
+                
+                try:
+                    content = backend.read(file_path)
+                    files_searched += 1
+                    
+                    for line_num, line in enumerate(content.splitlines(), 1):
+                        if len(results) >= max_results:
+                            return
+                        if regex.search(line):
+                            results.append(f"{file_path}:{line_num}:{line.rstrip()}")
+                except Exception:
+                    pass  # Skip files that can't be read (binary, permission, etc.)
+            
+            def collect_and_search(dir_path: str) -> None:
+                """Recursively search files in directory."""
+                try:
+                    items = backend.list_files(dir_path)
+                    for item in items:
+                        if len(results) >= max_results:
+                            return
+                        item_path = os.path.join(dir_path, item) if dir_path != "." else item
+                        item_path = item_path.replace("\\", "/")
+                        
+                        # Try to search as file
+                        search_file(item_path)
+                        
+                        # Try to recurse as directory
+                        try:
+                            collect_and_search(item_path)
+                        except Exception:
+                            pass  # Not a directory
+                except Exception:
+                    pass  # Can't list this directory
+            
+            # Start the search
+            collect_and_search(path)
+            
+            if not results:
+                logger.debug(f"No matches for '{pattern}' in {files_searched} files")
+                return f"No matches for pattern '{pattern}' in {files_searched} files searched"
+            
+            truncated = len(results) >= max_results
+            summary = (
+                f"Found {len(results)}{'+ (truncated)' if truncated else ''} matches "
+                f"in {files_searched} files:"
+            )
+            logger.debug(f"✅ {summary}")
+            
+            return f"{summary}\n\n" + "\n".join(results)
+        except Exception as e:
+            logger.error(f"Failed to grep '{pattern}': {e}")
+            raise RuntimeError(f"Failed to grep '{pattern}': {e}") from e
+    
+    grep.name = "grep"  # type: ignore[attr-defined]
+    return grep  # type: ignore[return-value]
 

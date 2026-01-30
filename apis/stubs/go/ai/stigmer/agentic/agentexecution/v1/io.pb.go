@@ -304,6 +304,162 @@ func (x *ListAgentExecutionsBySessionRequest) GetPageToken() string {
 	return ""
 }
 
+// Input message for updateStatus RPC.
+// Contains only the execution ID and the status fields to be updated.
+// This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
+type AgentExecutionUpdateStatusInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the agent execution to update (required).
+	// Format: "aex_abc123xyz456"
+	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// Status fields to update.
+	// The handler will merge these status fields with the existing execution's status.
+	// Only the fields present in this status object will be updated.
+	Status        *AgentExecutionStatus `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AgentExecutionUpdateStatusInput) Reset() {
+	*x = AgentExecutionUpdateStatusInput{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentExecutionUpdateStatusInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentExecutionUpdateStatusInput) ProtoMessage() {}
+
+func (x *AgentExecutionUpdateStatusInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentExecutionUpdateStatusInput.ProtoReflect.Descriptor instead.
+func (*AgentExecutionUpdateStatusInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AgentExecutionUpdateStatusInput) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *AgentExecutionUpdateStatusInput) GetStatus() *AgentExecutionStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+// Input for submitting an approval decision (HITL Phase 1).
+//
+// All required fields must be provided. The handler validates:
+// 1. The execution exists and is in EXECUTION_WAITING_FOR_APPROVAL phase
+// 2. The tool_call_id matches status.pending_approval.tool_call_id
+// 3. The action is a valid non-UNSPECIFIED enum value
+//
+// Example:
+//
+//	{
+//	  "agent_execution_id": "aex_abc123xyz456",
+//	  "tool_call_id": "call_def789",
+//	  "action": "APPROVAL_ACTION_APPROVE",
+//	  "comment": "Verified safe to execute"
+//	}
+type SubmitApprovalInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the agent execution.
+	// Format: "aex_abc123xyz456"
+	AgentExecutionId string `protobuf:"bytes,1,opt,name=agent_execution_id,json=agentExecutionId,proto3" json:"agent_execution_id,omitempty"`
+	// ID of the tool call to approve/skip/reject.
+	// Must match status.pending_approval.tool_call_id exactly.
+	// Format: Tool call ID from agent runtime (e.g., "call_abc123")
+	ToolCallId string `protobuf:"bytes,2,opt,name=tool_call_id,json=toolCallId,proto3" json:"tool_call_id,omitempty"`
+	// User's decision: APPROVE, SKIP, or REJECT.
+	// APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
+	Action ApprovalAction `protobuf:"varint,3,opt,name=action,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalAction" json:"action,omitempty"`
+	// Optional reason/comment for the decision.
+	// Stored in audit trail for compliance and debugging.
+	// Examples:
+	//   - "Verified the target repository is safe to delete" (on APPROVE)
+	//   - "Will handle this operation manually" (on SKIP)
+	//   - "Unexpected target - this looks like the wrong repository" (on REJECT)
+	Comment       string `protobuf:"bytes,4,opt,name=comment,proto3" json:"comment,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubmitApprovalInput) Reset() {
+	*x = SubmitApprovalInput{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitApprovalInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitApprovalInput) ProtoMessage() {}
+
+func (x *SubmitApprovalInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitApprovalInput.ProtoReflect.Descriptor instead.
+func (*SubmitApprovalInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *SubmitApprovalInput) GetAgentExecutionId() string {
+	if x != nil {
+		return x.AgentExecutionId
+	}
+	return ""
+}
+
+func (x *SubmitApprovalInput) GetToolCallId() string {
+	if x != nil {
+		return x.ToolCallId
+	}
+	return ""
+}
+
+func (x *SubmitApprovalInput) GetAction() ApprovalAction {
+	if x != nil {
+		return x.Action
+	}
+	return ApprovalAction_APPROVAL_ACTION_UNSPECIFIED
+}
+
+func (x *SubmitApprovalInput) GetComment() string {
+	if x != nil {
+		return x.Comment
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
@@ -328,7 +484,17 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"session_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tR\tpageTokenB\xc8\x02\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"\xa9\x01\n" +
+	"\x1fAgentExecutionUpdateStatusInput\x12*\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12Z\n" +
+	"\x06status\x18\x02 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\"\xeb\x01\n" +
+	"\x13SubmitApprovalInput\x125\n" +
+	"\x12agent_execution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x10agentExecutionId\x12)\n" +
+	"\ftool_call_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
+	"toolCallId\x12X\n" +
+	"\x06action\x18\x03 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionB\n" +
+	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\x06action\x12\x18\n" +
+	"\acomment\x18\x04 \x01(\tR\acommentB\xc8\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\aIoProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -343,24 +509,30 @@ func file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_agentexecution_v1_io_proto_goTypes = []any{
 	(*AgentExecutionId)(nil),                    // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionId
 	(*SessionId)(nil),                           // 1: ai.stigmer.agentic.agentexecution.v1.SessionId
 	(*AgentExecutionList)(nil),                  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList
 	(*ListAgentExecutionsRequest)(nil),          // 3: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest
 	(*ListAgentExecutionsBySessionRequest)(nil), // 4: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest
-	(*AgentExecution)(nil),                      // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	(ExecutionPhase)(0),                         // 6: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(*AgentExecutionUpdateStatusInput)(nil),     // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput
+	(*SubmitApprovalInput)(nil),                 // 6: ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput
+	(*AgentExecution)(nil),                      // 7: ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	(ExecutionPhase)(0),                         // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(*AgentExecutionStatus)(nil),                // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
+	(ApprovalAction)(0),                         // 10: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 }
 var file_ai_stigmer_agentic_agentexecution_v1_io_proto_depIdxs = []int32{
-	5, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.entries:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	6, // 1: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	7,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.entries:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	8,  // 1: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	9,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
+	10, // 3: ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	4,  // [4:4] is the sub-list for method output_type
+	4,  // [4:4] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_io_proto_init() }
@@ -376,7 +548,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

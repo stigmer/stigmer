@@ -210,9 +210,8 @@ func validateMcpServer(mcpServer *mcpserverv1.McpServer) error {
 
 	// Validate server_type is specified
 	if mcpServer.Spec.GetStdio() == nil &&
-		mcpServer.Spec.GetHttp() == nil &&
-		mcpServer.Spec.GetDocker() == nil {
-		return fmt.Errorf("spec must specify one of: stdio, http, or docker")
+		mcpServer.Spec.GetHttp() == nil {
+		return fmt.Errorf("spec must specify one of: stdio or http")
 	}
 
 	// Validate stdio config if present
@@ -226,13 +225,6 @@ func validateMcpServer(mcpServer *mcpserverv1.McpServer) error {
 	if http := mcpServer.Spec.GetHttp(); http != nil {
 		if http.Url == "" {
 			return fmt.Errorf("spec.http.url is required")
-		}
-	}
-
-	// Validate docker config if present
-	if docker := mcpServer.Spec.GetDocker(); docker != nil {
-		if docker.Image == "" {
-			return fmt.Errorf("spec.docker.image is required")
 		}
 	}
 

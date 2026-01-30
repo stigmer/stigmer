@@ -18,12 +18,8 @@ func runReferenceMode(reference string, message string, orgOverride string, runt
 	// Check if we're in a Stigmer project directory
 	inProjectDir := config.InStigmerProjectDirectory()
 
-	var deployedAgents []*agentv1.Agent
-	var deployedWorkflows []*workflowv1.Workflow
-
 	if inProjectDir {
-		var err error
-		deployedAgents, deployedWorkflows, err = applyProjectCode(orgOverride)
+		_, _, err := applyProjectCode(orgOverride)
 		if err != nil {
 			return
 		}

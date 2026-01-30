@@ -475,9 +475,7 @@ warning: pattern "*.xyz" in .stigmerignore matches no files
 ### denormal/go-gitignore
 - **Pros**: Standalone, simple API
 - **Cons**: Last updated 2018, may have bugs
-- **Verdict**: ❌ Too old
-
-### Custom implementation
+- **Verdict**: ❌ Too old### Custom implementation
 - **Pros**: No dependencies, full control
 - **Cons**: Complex to get right, maintenance burden
 - **Verdict**: ❌ Don't reinvent the wheel

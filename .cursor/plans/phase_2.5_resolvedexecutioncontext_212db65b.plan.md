@@ -162,6 +162,8 @@ sequenceDiagram
     SB->>SB: ResolvedExecutionContext is immutable from here
 ```
 
+
+
 ### StatusBuilder Method Addition
 
 Add a simple setter method to StatusBuilder for clean encapsulation:
@@ -305,18 +307,18 @@ The stigmer-cloud repo stubs (Java, TypeScript, Dart) will be regenerated separa
 
 ## Acceptance Criteria
 
-- [ ] `ResolvedExecutionContext` proto message defined with comprehensive documentation
-- [ ] `McpServerResolutionStatus` proto message defined for rich MCP status
-- [ ] Field 12 wired to `AgentExecutionStatus.resolved_context`
-- [ ] `StatusBuilder.set_resolved_context()` method implemented
-- [ ] Integration in `execute_graphton.py` after Step 5, before Step 6
-- [ ] Environment keys sorted alphabetically (no values exposed)
-- [ ] Skill names sorted alphabetically
-- [ ] MCP servers capture resolution status with error messages
-- [ ] 10+ unit tests covering all scenarios
-- [ ] All existing tests still pass (no regressions)
-- [ ] Structured logging with `[CONTEXT]` prefix
-- [ ] Proto stubs regenerated (Python, Go)
+- `ResolvedExecutionContext` proto message defined with comprehensive documentation
+- `McpServerResolutionStatus` proto message defined for rich MCP status
+- Field 12 wired to `AgentExecutionStatus.resolved_context`
+- `StatusBuilder.set_resolved_context()` method implemented
+- Integration in `execute_graphton.py` after Step 5, before Step 6
+- Environment keys sorted alphabetically (no values exposed)
+- Skill names sorted alphabetically
+- MCP servers capture resolution status with error messages
+- 10+ unit tests covering all scenarios
+- All existing tests still pass (no regressions)
+- Structured logging with `[CONTEXT]` prefix
+- Proto stubs regenerated (Python, Go)
 
 ## Risk Mitigation
 

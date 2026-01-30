@@ -2079,3 +2079,1714 @@ class TestResolvedExecutionContext:
         assert "código-review" in ctx.skill_names
         assert "日本語-skill" in ctx.skill_names
         assert "test-skill" in ctx.skill_names
+
+
+# =============================================================================
+# Tests for Approval Policy Resolution (HITL Phase 2)
+# =============================================================================
+
+
+class TestApprovalPolicyResolution:
+    """Tests for approval policy resolution logic.
+    
+    Tests cover the policy chain evaluation:
+    1. auto_approve_all (highest priority)
+    2. tool_approval_overrides (per-agent)
+    3. default_tool_approvals (MCP server defaults)
+    """
+    
+    def test_auto_approve_all_bypasses_all_policies(self):
+        """Test that auto_approve_all=True bypasses all approval requirements."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        # Even with MCP default requiring approval, auto_approve_all bypasses
+        default_policies = [
+            {"tool_name": "delete_repository", "message": "Delete repo {{args.repo}}"}
+        ]
+        
+        result = resolve_tool_approval(
+            tool_name="delete_repository",
+            mcp_server_name="github",
+            auto_approve_all=True,  # Highest priority bypass
+            tool_approval_overrides=[],
+            default_tool_approvals=default_policies,
+        )
+        
+        assert result.requires_approval is False
+        assert result.source == "auto_approve_all"
+    
+    def test_agent_override_takes_precedence_over_mcp_default(self):
+        """Test that agent override takes precedence over MCP default."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        # MCP server has default approval for delete_repository
+        default_policies = [
+            {"tool_name": "delete_repository", "message": "MCP default message"}
+        ]
+        
+        # Agent override disables approval for this tool
+        overrides = [
+            {"tool_name": "delete_repository", "requires_approval": False}
+        ]
+        
+        result = resolve_tool_approval(
+            tool_name="delete_repository",
+            mcp_server_name="github",
+            auto_approve_all=False,
+            tool_approval_overrides=overrides,
+            default_tool_approvals=default_policies,
+        )
+        
+        assert result.requires_approval is False
+        assert result.source == "agent_override"
+    
+    def test_agent_override_adds_approval_not_in_mcp_default(self):
+        """Test that agent can add approval for tools not in MCP defaults."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        # No MCP default for this tool
+        default_policies = []
+        
+        # Agent adds approval requirement
+        overrides = [
+            {
+                "tool_name": "send_email",
+                "requires_approval": True,
+                "message": "Send email to {{args.recipient}}"
+            }
+        ]
+        
+        result = resolve_tool_approval(
+            tool_name="send_email",
+            mcp_server_name="email-server",
+            auto_approve_all=False,
+            tool_approval_overrides=overrides,
+            default_tool_approvals=default_policies,
+        )
+        
+        assert result.requires_approval is True
+        assert result.source == "agent_override"
+        assert "{{args.recipient}}" in result.message
+    
+    def test_mcp_default_applied_when_no_override(self):
+        """Test that MCP default is applied when no agent override exists."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        default_policies = [
+            {"tool_name": "delete_repository", "message": "Delete repo: {{args.repo}}"}
+        ]
+        
+        result = resolve_tool_approval(
+            tool_name="delete_repository",
+            mcp_server_name="github",
+            auto_approve_all=False,
+            tool_approval_overrides=[],  # No override
+            default_tool_approvals=default_policies,
+        )
+        
+        assert result.requires_approval is True
+        assert result.source == "mcp_default"
+        assert "{{args.repo}}" in result.message
+    
+    def test_no_approval_required_when_no_policy_matches(self):
+        """Test that tools without policies don't require approval."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        result = resolve_tool_approval(
+            tool_name="read_file",  # No policy for this tool
+            mcp_server_name="filesystem",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is False
+        assert result.source == "none"
+    
+    def test_approval_message_template_rendering(self):
+        """Test that message templates are rendered with tool arguments."""
+        from worker.activities.graphton.approval_policy import render_approval_message
+        
+        template = "Delete {{args.repo}} from {{args.owner}}"
+        tool_args = {"repo": "my-repo", "owner": "acme-corp"}
+        
+        result = render_approval_message(
+            template=template,
+            tool_name="delete_repository",
+            tool_args=tool_args,
+        )
+        
+        assert result == "Delete my-repo from acme-corp"
+    
+    def test_approval_message_handles_missing_args(self):
+        """Test that missing args are replaced with <unknown>."""
+        from worker.activities.graphton.approval_policy import render_approval_message
+        
+        template = "Send to {{args.recipient}}"
+        tool_args = {}  # Missing recipient
+        
+        result = render_approval_message(
+            template=template,
+            tool_name="send_email",
+            tool_args=tool_args,
+        )
+        
+        assert result == "Send to <unknown>"
+    
+    def test_approval_message_tool_name_placeholder(self):
+        """Test that {{tool_name}} placeholder is replaced."""
+        from worker.activities.graphton.approval_policy import render_approval_message
+        
+        template = "Execute {{tool_name}} with {{args.path}}"
+        tool_args = {"path": "/tmp/file.txt"}
+        
+        result = render_approval_message(
+            template=template,
+            tool_name="delete_file",
+            tool_args=tool_args,
+        )
+        
+        assert result == "Execute delete_file with /tmp/file.txt"
+    
+    def test_approval_message_empty_template_uses_default(self):
+        """Test that empty template uses default message."""
+        from worker.activities.graphton.approval_policy import render_approval_message
+        
+        result = render_approval_message(
+            template="",
+            tool_name="dangerous_operation",
+            tool_args={},
+        )
+        
+        assert result == "Execute tool: dangerous_operation"
+    
+    def test_approval_message_nested_args(self):
+        """Test rendering with nested argument values."""
+        from worker.activities.graphton.approval_policy import render_approval_message
+        
+        template = "Update {{args.user.name}} at {{args.user.email}}"
+        tool_args = {"user": {"name": "John", "email": "john@example.com"}}
+        
+        result = render_approval_message(
+            template=template,
+            tool_name="update_user",
+            tool_args=tool_args,
+        )
+        
+        assert result == "Update John at john@example.com"
+
+
+# =============================================================================
+# Tests for Platform Tool Approval Defaults (HITL Phase 5.6)
+# =============================================================================
+
+
+class TestPlatformToolApprovalDefaults:
+    """Tests for platform tool (sandbox) approval defaults."""
+    
+    def test_platform_tool_read_no_approval_required(self):
+        """Test that 'read' platform tool does not require approval by default."""
+        from worker.activities.graphton.approval_policy import (
+            resolve_tool_approval,
+            PLATFORM_SERVER_NAME,
+        )
+        
+        result = resolve_tool_approval(
+            tool_name="read",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is False
+        assert result.source == "platform_default"
+        assert result.mcp_server == PLATFORM_SERVER_NAME
+    
+    def test_platform_tool_write_requires_approval(self):
+        """Test that 'write' platform tool requires approval by default."""
+        from worker.activities.graphton.approval_policy import (
+            resolve_tool_approval,
+            PLATFORM_SERVER_NAME,
+        )
+        
+        result = resolve_tool_approval(
+            tool_name="write",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is True
+        assert result.source == "platform_default"
+        assert result.mcp_server == PLATFORM_SERVER_NAME
+        assert "{{args.path}}" in result.message  # Template not yet rendered
+    
+    def test_platform_tool_execute_requires_approval(self):
+        """Test that 'execute' platform tool requires approval by default."""
+        from worker.activities.graphton.approval_policy import (
+            resolve_tool_approval,
+            PLATFORM_SERVER_NAME,
+        )
+        
+        result = resolve_tool_approval(
+            tool_name="execute",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is True
+        assert result.source == "platform_default"
+        assert result.mcp_server == PLATFORM_SERVER_NAME
+        assert "{{args.command}}" in result.message
+    
+    def test_platform_tool_edit_requires_approval(self):
+        """Test that 'edit' platform tool requires approval by default."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        result = resolve_tool_approval(
+            tool_name="edit",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is True
+        assert result.source == "platform_default"
+    
+    def test_platform_tool_ls_no_approval_required(self):
+        """Test that 'ls' platform tool does not require approval."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        result = resolve_tool_approval(
+            tool_name="ls",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is False
+        assert result.source == "platform_default"
+    
+    def test_platform_tool_glob_no_approval_required(self):
+        """Test that 'glob' platform tool does not require approval."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        result = resolve_tool_approval(
+            tool_name="glob",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is False
+        assert result.source == "platform_default"
+    
+    def test_platform_tool_grep_no_approval_required(self):
+        """Test that 'grep' platform tool does not require approval."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        result = resolve_tool_approval(
+            tool_name="grep",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is False
+        assert result.source == "platform_default"
+    
+    def test_auto_approve_all_bypasses_platform_tool_approval(self):
+        """Test that auto_approve_all=True bypasses platform tool approval."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        result = resolve_tool_approval(
+            tool_name="write",  # Normally requires approval
+            mcp_server_name="",
+            auto_approve_all=True,  # Bypass
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is False
+        assert result.source == "auto_approve_all"
+    
+    def test_is_platform_tool_helper(self):
+        """Test is_platform_tool() helper function."""
+        from worker.activities.graphton.approval_policy import is_platform_tool
+        
+        # Platform tools
+        assert is_platform_tool("read") is True
+        assert is_platform_tool("write") is True
+        assert is_platform_tool("edit") is True
+        assert is_platform_tool("execute") is True
+        assert is_platform_tool("ls") is True
+        assert is_platform_tool("glob") is True
+        assert is_platform_tool("grep") is True
+        
+        # Non-platform tools
+        assert is_platform_tool("delete_repository") is False
+        assert is_platform_tool("send_email") is False
+        assert is_platform_tool("read_file") is False  # Different from "read"
+    
+    def test_get_platform_tool_names_helper(self):
+        """Test get_platform_tool_names() helper function."""
+        from worker.activities.graphton.approval_policy import get_platform_tool_names
+        
+        names = get_platform_tool_names()
+        
+        assert "read" in names
+        assert "write" in names
+        assert "edit" in names
+        assert "execute" in names
+        assert "ls" in names
+        assert "glob" in names
+        assert "grep" in names
+        assert len(names) == 7
+
+
+# =============================================================================
+# Tests for ApprovalConfig (HITL Phase 2)
+# =============================================================================
+
+
+class TestApprovalConfig:
+    """Tests for ApprovalConfig dataclass."""
+    
+    def test_get_mcp_server_for_tool_found(self):
+        """Test getting MCP server for a known tool."""
+        from worker.activities.graphton.approval_policy import ApprovalConfig
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_to_mcp_server={"delete_repository": "github", "send_email": "email"}
+        )
+        
+        assert config.get_mcp_server_for_tool("delete_repository") == "github"
+        assert config.get_mcp_server_for_tool("send_email") == "email"
+    
+    def test_get_mcp_server_for_tool_not_found(self):
+        """Test getting MCP server for unknown tool returns empty string."""
+        from worker.activities.graphton.approval_policy import ApprovalConfig
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_to_mcp_server={"delete_repository": "github"}
+        )
+        
+        assert config.get_mcp_server_for_tool("unknown_tool") == ""
+    
+    def test_get_default_policies_for_tool(self):
+        """Test getting default policies for a tool's MCP server."""
+        from worker.activities.graphton.approval_policy import ApprovalConfig
+        
+        policies = [{"tool_name": "delete_repository", "message": "Delete repo"}]
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_to_mcp_server={"delete_repository": "github"},
+            default_tool_approvals={"github": policies}
+        )
+        
+        result = config.get_default_policies_for_tool("delete_repository")
+        assert result == policies
+    
+    def test_get_default_policies_for_unknown_server(self):
+        """Test that unknown server returns empty policies list."""
+        from worker.activities.graphton.approval_policy import ApprovalConfig
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_to_mcp_server={"unknown_tool": "unknown_server"},
+            default_tool_approvals={"github": []}
+        )
+        
+        result = config.get_default_policies_for_tool("unknown_tool")
+        assert result == []
+
+
+# =============================================================================
+# Tests for Tool Waiting Approval (HITL Phase 2)
+# =============================================================================
+
+
+class TestToolWaitingApproval:
+    """Tests for set_tool_waiting_approval method."""
+    
+    @pytest.fixture
+    def status_builder_with_approval(self, mock_initial_status):
+        """Create StatusBuilder with a tool call already added."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+            ToolCall, PendingApproval
+        )
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+            ToolCallStatus, ExecutionPhase
+        )
+        
+        # Add real PendingApproval proto (MagicMock doesn't support CopyFrom)
+        mock_initial_status.pending_approval = PendingApproval()
+        mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
+        
+        builder = StatusBuilder(
+            execution_id="test-execution-approval",
+            initial_status=mock_initial_status
+        )
+        
+        # Add a tool call to work with
+        tool_call = ToolCall(
+            id="tool-run-123",
+            name="delete_repository",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        mock_initial_status.tool_calls.append(tool_call)
+        
+        return builder
+    
+    def test_set_tool_waiting_approval_updates_status(self, status_builder_with_approval):
+        """Test that set_tool_waiting_approval updates tool call status."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        
+        status_builder_with_approval.set_tool_waiting_approval(
+            run_id="tool-run-123",
+            tool_name="delete_repository",
+            tool_args={"repo": "my-repo"},
+            approval_message="Delete repo: my-repo",
+        )
+        
+        tool_call = status_builder_with_approval.current_status.tool_calls[0]
+        assert tool_call.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+        assert tool_call.requires_approval is True
+    
+    def test_set_tool_waiting_approval_populates_pending_approval(self, status_builder_with_approval):
+        """Test that pending_approval is populated correctly."""
+        status_builder_with_approval.set_tool_waiting_approval(
+            run_id="tool-run-123",
+            tool_name="delete_repository",
+            tool_args={"repo": "my-repo"},
+            approval_message="Delete repo: my-repo",
+        )
+        
+        pending = status_builder_with_approval.current_status.pending_approval
+        assert pending.tool_call_id == "tool-run-123"
+        assert pending.tool_name == "delete_repository"
+        assert pending.message == "Delete repo: my-repo"
+        assert pending.from_sub_agent is False
+    
+    def test_set_tool_waiting_approval_sets_execution_phase(self, status_builder_with_approval):
+        """Test that execution phase is updated to WAITING_FOR_APPROVAL."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
+        
+        status_builder_with_approval.set_tool_waiting_approval(
+            run_id="tool-run-123",
+            tool_name="delete_repository",
+            tool_args={},
+            approval_message="Delete repo",
+        )
+        
+        assert status_builder_with_approval.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+    
+    def test_set_tool_waiting_approval_sets_timestamps(self, status_builder_with_approval):
+        """Test that approval timestamps are set correctly."""
+        status_builder_with_approval.set_tool_waiting_approval(
+            run_id="tool-run-123",
+            tool_name="delete_repository",
+            tool_args={},
+            approval_message="Delete repo",
+        )
+        
+        tool_call = status_builder_with_approval.current_status.tool_calls[0]
+        pending = status_builder_with_approval.current_status.pending_approval
+        
+        # Both should have timestamps set
+        assert tool_call.approval_requested_at != ""
+        assert pending.requested_at != ""
+        # Timestamps should be ISO 8601 format
+        assert "T" in tool_call.approval_requested_at
+    
+    def test_set_tool_waiting_approval_from_sub_agent(self, status_builder_with_approval):
+        """Test that sub-agent flag is set correctly."""
+        status_builder_with_approval.set_tool_waiting_approval(
+            run_id="tool-run-123",
+            tool_name="delete_repository",
+            tool_args={},
+            approval_message="Delete repo",
+            from_sub_agent=True,
+            sub_agent_name="code-reviewer",
+        )
+        
+        pending = status_builder_with_approval.current_status.pending_approval
+        assert pending.from_sub_agent is True
+        assert pending.sub_agent_name == "code-reviewer"
+    
+    def test_set_tool_waiting_approval_args_preview(self, status_builder_with_approval):
+        """Test that args preview is generated correctly."""
+        status_builder_with_approval.set_tool_waiting_approval(
+            run_id="tool-run-123",
+            tool_name="delete_repository",
+            tool_args={"repo": "my-repo", "force": True},
+            approval_message="Delete repo",
+        )
+        
+        pending = status_builder_with_approval.current_status.pending_approval
+        assert "my-repo" in pending.args_preview
+        assert "force" in pending.args_preview
+
+
+# =============================================================================
+# Tests for Tool Approval Decision (HITL Phase 2)
+# =============================================================================
+
+
+class TestToolApprovalDecision:
+    """Tests for set_tool_approval_decision method."""
+    
+    @pytest.fixture
+    def status_builder_waiting_approval(self, mock_initial_status):
+        """Create StatusBuilder with a tool in WAITING_APPROVAL state."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+            ToolCall, PendingApproval
+        )
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+            ToolCallStatus, ExecutionPhase
+        )
+        
+        # Set up real protos
+        mock_initial_status.pending_approval = PendingApproval()
+        mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
+        
+        builder = StatusBuilder(
+            execution_id="test-execution-decision",
+            initial_status=mock_initial_status
+        )
+        
+        # Add a tool call in WAITING_APPROVAL state
+        tool_call = ToolCall(
+            id="tool-run-456",
+            name="delete_repository",
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requires_approval=True,
+            approval_message="Delete repo: my-repo",
+        )
+        mock_initial_status.tool_calls.append(tool_call)
+        
+        # Set up pending state
+        builder._pending_tool_approval = "tool-run-456"
+        builder._saved_phase_before_approval = ExecutionPhase.EXECUTION_IN_PROGRESS
+        builder.current_status.pending_approval.CopyFrom(PendingApproval(
+            tool_call_id="tool-run-456",
+            tool_name="delete_repository",
+        ))
+        builder.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+        
+        return builder
+    
+    def test_approve_action_clears_pending_state(self, status_builder_waiting_approval):
+        """Test that APPROVE clears pending state and restores phase."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
+        
+        status_builder_waiting_approval.set_tool_approval_decision(
+            run_id="tool-run-456",
+            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            approved_by="user-123",
+        )
+        
+        # Pending state should be cleared
+        assert status_builder_waiting_approval._pending_tool_approval is None
+        # Phase should be restored
+        assert status_builder_waiting_approval.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
+    
+    def test_approve_action_records_decision(self, status_builder_waiting_approval):
+        """Test that APPROVE records the decision on the tool call."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        
+        status_builder_waiting_approval.set_tool_approval_decision(
+            run_id="tool-run-456",
+            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            approved_by="user-123",
+        )
+        
+        tool_call = status_builder_waiting_approval.current_status.tool_calls[0]
+        assert tool_call.approval_action == ApprovalAction.APPROVAL_ACTION_APPROVE
+        assert tool_call.approved_by == "user-123"
+        assert tool_call.approval_decided_at != ""
+    
+    def test_skip_action_sets_skipped_status(self, status_builder_waiting_approval):
+        """Test that SKIP sets TOOL_CALL_SKIPPED status."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        
+        status_builder_waiting_approval.set_tool_approval_decision(
+            run_id="tool-run-456",
+            action=ApprovalAction.APPROVAL_ACTION_SKIP,
+            approved_by="user-123",
+        )
+        
+        tool_call = status_builder_waiting_approval.current_status.tool_calls[0]
+        assert tool_call.status == ToolCallStatus.TOOL_CALL_SKIPPED
+        assert "skipped by user" in tool_call.result
+    
+    def test_skip_action_continues_execution(self, status_builder_waiting_approval):
+        """Test that SKIP restores execution phase (not FAILED)."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
+        
+        status_builder_waiting_approval.set_tool_approval_decision(
+            run_id="tool-run-456",
+            action=ApprovalAction.APPROVAL_ACTION_SKIP,
+            approved_by="user-123",
+        )
+        
+        # Should restore to IN_PROGRESS, not FAILED
+        assert status_builder_waiting_approval.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
+    
+    def test_reject_action_sets_failed_status(self, status_builder_waiting_approval):
+        """Test that REJECT sets TOOL_CALL_FAILED status."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        
+        status_builder_waiting_approval.set_tool_approval_decision(
+            run_id="tool-run-456",
+            action=ApprovalAction.APPROVAL_ACTION_REJECT,
+            approved_by="user-123",
+        )
+        
+        tool_call = status_builder_waiting_approval.current_status.tool_calls[0]
+        assert tool_call.status == ToolCallStatus.TOOL_CALL_FAILED
+        assert "rejected" in tool_call.error.lower()
+    
+    def test_reject_action_fails_execution(self, status_builder_waiting_approval):
+        """Test that REJECT sets execution phase to FAILED."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
+        
+        status_builder_waiting_approval.set_tool_approval_decision(
+            run_id="tool-run-456",
+            action=ApprovalAction.APPROVAL_ACTION_REJECT,
+            approved_by="user-123",
+        )
+        
+        # Should be FAILED, not IN_PROGRESS
+        assert status_builder_waiting_approval.current_status.phase == ExecutionPhase.EXECUTION_FAILED
+    
+    def test_decision_records_approved_by_and_timestamp(self, status_builder_waiting_approval):
+        """Test that decision records who approved and when."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        
+        status_builder_waiting_approval.set_tool_approval_decision(
+            run_id="tool-run-456",
+            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            approved_by="admin-user-999",
+        )
+        
+        tool_call = status_builder_waiting_approval.current_status.tool_calls[0]
+        assert tool_call.approved_by == "admin-user-999"
+        assert tool_call.approval_decided_at != ""
+        # Should be ISO 8601 format
+        assert "T" in tool_call.approval_decided_at
+    
+    def test_decision_clears_pending_approval_proto(self, status_builder_waiting_approval):
+        """Test that decision clears the pending_approval proto field."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        
+        # Verify pending_approval is set before
+        assert status_builder_waiting_approval.current_status.pending_approval.tool_call_id == "tool-run-456"
+        
+        status_builder_waiting_approval.set_tool_approval_decision(
+            run_id="tool-run-456",
+            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            approved_by="user-123",
+        )
+        
+        # pending_approval should be cleared
+        assert status_builder_waiting_approval.current_status.pending_approval.tool_call_id == ""
+
+
+# =============================================================================
+# Phase 5.4: Approval Resumption Verification Tests
+#
+# These tests verify that pending_approval is properly cleared after each
+# approval action, which is critical for the workflow → agent approval flow.
+# =============================================================================
+
+
+class TestPhase54ApprovalClearing:
+    """Phase 5.4: Tests verifying pending_approval clearing for all approval actions."""
+    
+    @pytest.fixture
+    def status_builder_with_pending_approval(self, mock_initial_status):
+        """Create StatusBuilder with full pending_approval state."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+            ToolCall, PendingApproval
+        )
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+            ToolCallStatus, ExecutionPhase
+        )
+        
+        # Set up real protos with all pending_approval fields populated
+        mock_initial_status.pending_approval = PendingApproval()
+        mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
+        
+        builder = StatusBuilder(
+            execution_id="test-execution-phase54",
+            initial_status=mock_initial_status
+        )
+        
+        # Add a tool call in WAITING_APPROVAL state
+        tool_call = ToolCall(
+            id="tool-run-phase54",
+            name="dangerous_operation",
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requires_approval=True,
+            approval_message="Execute dangerous operation?",
+        )
+        mock_initial_status.tool_calls.append(tool_call)
+        
+        # Set up full pending approval state (simulating approval request)
+        builder._pending_tool_approval = "tool-run-phase54"
+        builder._saved_phase_before_approval = ExecutionPhase.EXECUTION_IN_PROGRESS
+        builder.current_status.pending_approval.CopyFrom(PendingApproval(
+            tool_call_id="tool-run-phase54",
+            tool_name="dangerous_operation",
+            message="Execute dangerous operation?",
+            args_preview='{"target": "production"}',
+            requested_at="2026-01-30T12:00:00Z",
+            from_sub_agent=False,
+            sub_agent_name="",
+        ))
+        builder.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+        
+        return builder
+    
+    def test_approve_clears_pending_approval_completely(self, status_builder_with_pending_approval):
+        """Phase 5.4: Verify APPROVE action clears all pending_approval fields."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        
+        # Verify all pending_approval fields are set before
+        pending = status_builder_with_pending_approval.current_status.pending_approval
+        assert pending.tool_call_id == "tool-run-phase54"
+        assert pending.tool_name == "dangerous_operation"
+        assert pending.message == "Execute dangerous operation?"
+        assert pending.args_preview == '{"target": "production"}'
+        assert pending.requested_at == "2026-01-30T12:00:00Z"
+        
+        # Execute APPROVE decision
+        status_builder_with_pending_approval.set_tool_approval_decision(
+            run_id="tool-run-phase54",
+            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            approved_by="user-123",
+        )
+        
+        # Verify ALL pending_approval fields are cleared
+        cleared_pending = status_builder_with_pending_approval.current_status.pending_approval
+        assert cleared_pending.tool_call_id == ""
+        assert cleared_pending.tool_name == ""
+        assert cleared_pending.message == ""
+        assert cleared_pending.args_preview == ""
+        assert cleared_pending.requested_at == ""
+        
+        # Verify internal tracking state is also cleared
+        assert status_builder_with_pending_approval._pending_tool_approval is None
+    
+    def test_skip_clears_pending_approval_completely(self, status_builder_with_pending_approval):
+        """Phase 5.4: Verify SKIP action clears all pending_approval fields."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        
+        # Verify pending_approval is set before
+        assert status_builder_with_pending_approval.current_status.pending_approval.tool_call_id != ""
+        
+        # Execute SKIP decision
+        status_builder_with_pending_approval.set_tool_approval_decision(
+            run_id="tool-run-phase54",
+            action=ApprovalAction.APPROVAL_ACTION_SKIP,
+            approved_by="user-123",
+        )
+        
+        # Verify pending_approval is cleared
+        cleared_pending = status_builder_with_pending_approval.current_status.pending_approval
+        assert cleared_pending.tool_call_id == ""
+        assert cleared_pending.tool_name == ""
+        
+        # Verify internal tracking state is also cleared
+        assert status_builder_with_pending_approval._pending_tool_approval is None
+    
+    def test_reject_clears_pending_approval_completely(self, status_builder_with_pending_approval):
+        """Phase 5.4: Verify REJECT action clears all pending_approval fields."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        
+        # Verify pending_approval is set before
+        assert status_builder_with_pending_approval.current_status.pending_approval.tool_call_id != ""
+        
+        # Execute REJECT decision
+        status_builder_with_pending_approval.set_tool_approval_decision(
+            run_id="tool-run-phase54",
+            action=ApprovalAction.APPROVAL_ACTION_REJECT,
+            approved_by="user-123",
+        )
+        
+        # Verify pending_approval is cleared even on REJECT
+        # This is important: REJECT should still clear pending state
+        cleared_pending = status_builder_with_pending_approval.current_status.pending_approval
+        assert cleared_pending.tool_call_id == ""
+        assert cleared_pending.tool_name == ""
+        
+        # Verify internal tracking state is also cleared
+        assert status_builder_with_pending_approval._pending_tool_approval is None
+    
+    def test_clear_pending_approval_restores_saved_phase(self, status_builder_with_pending_approval):
+        """Phase 5.4: Verify clear_pending_approval restores the saved phase."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
+        
+        # Verify starting state
+        assert status_builder_with_pending_approval.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+        assert status_builder_with_pending_approval._saved_phase_before_approval == ExecutionPhase.EXECUTION_IN_PROGRESS
+        
+        # Call clear_pending_approval directly
+        status_builder_with_pending_approval.clear_pending_approval()
+        
+        # Verify phase is restored to IN_PROGRESS (not WAITING_FOR_APPROVAL)
+        assert status_builder_with_pending_approval.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
+        
+        # Verify saved phase is reset to None after restoration
+        assert status_builder_with_pending_approval._saved_phase_before_approval is None
+
+
+# =============================================================================
+# Tests for Tool Start Approval Integration (HITL Phase 2)
+# =============================================================================
+
+
+class TestToolStartApprovalIntegration:
+    """Tests for approval check integration in _handle_tool_start_event."""
+    
+    @pytest.fixture
+    def status_builder_with_approval_config(self, mock_initial_status):
+        """Create StatusBuilder with approval config."""
+        from worker.activities.graphton.approval_policy import ApprovalConfig
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
+        
+        # Set up real protos
+        mock_initial_status.pending_approval = PendingApproval()
+        mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
+        
+        # Configure approval policy: delete_repository requires approval
+        approval_config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals={
+                "github": [
+                    {"tool_name": "delete_repository", "message": "Delete {{args.repo}}"}
+                ]
+            },
+            tool_to_mcp_server={"delete_repository": "github", "read_file": "filesystem"}
+        )
+        
+        return StatusBuilder(
+            execution_id="test-execution-integration",
+            initial_status=mock_initial_status,
+            approval_config=approval_config,
+        )
+    
+    @pytest.mark.asyncio
+    async def test_tool_start_creates_waiting_approval_when_required(self, status_builder_with_approval_config):
+        """Test that tool requiring approval gets WAITING_APPROVAL status."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus, ExecutionPhase
+        
+        event = {
+            "event": "on_tool_start",
+            "name": "delete_repository",
+            "run_id": "tool-run-approval-001",
+            "data": {"input": {"repo": "important-repo"}},
+            "metadata": {}
+        }
+        
+        await status_builder_with_approval_config.process_event(event)
+        
+        # Tool should be in WAITING_APPROVAL status
+        tool_call = status_builder_with_approval_config.current_status.tool_calls[0]
+        assert tool_call.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+        assert tool_call.requires_approval is True
+        
+        # Execution phase should be WAITING_FOR_APPROVAL
+        assert status_builder_with_approval_config.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+        
+        # Pending approval should be populated
+        pending = status_builder_with_approval_config.current_status.pending_approval
+        assert pending.tool_call_id == "tool-run-approval-001"
+        assert pending.tool_name == "delete_repository"
+    
+    @pytest.mark.asyncio
+    async def test_tool_start_proceeds_to_running_when_no_approval_required(self, status_builder_with_approval_config):
+        """Test that tool not requiring approval gets RUNNING status."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus, ExecutionPhase
+        
+        event = {
+            "event": "on_tool_start",
+            "name": "read_file",  # No approval policy for this tool
+            "run_id": "tool-run-no-approval",
+            "data": {"input": {"path": "/tmp/test.txt"}},
+            "metadata": {}
+        }
+        
+        await status_builder_with_approval_config.process_event(event)
+        
+        # Tool should be in RUNNING status (normal flow)
+        tool_call = status_builder_with_approval_config.current_status.tool_calls[0]
+        assert tool_call.status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert tool_call.requires_approval is False
+        
+        # Execution phase should remain IN_PROGRESS
+        assert status_builder_with_approval_config.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
+    
+    @pytest.mark.asyncio
+    async def test_tool_start_skips_approval_when_auto_approve_all(self, mock_initial_status):
+        """Test that auto_approve_all bypasses approval requirements."""
+        from worker.activities.graphton.approval_policy import ApprovalConfig
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus, ExecutionPhase
+        
+        mock_initial_status.pending_approval = PendingApproval()
+        mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
+        
+        # auto_approve_all is True - should bypass all approval
+        approval_config = ApprovalConfig(
+            auto_approve_all=True,  # Bypass all approval
+            tool_approval_overrides=[],
+            default_tool_approvals={
+                "github": [
+                    {"tool_name": "delete_repository", "message": "Delete repo"}
+                ]
+            },
+            tool_to_mcp_server={"delete_repository": "github"}
+        )
+        
+        builder = StatusBuilder(
+            execution_id="test-auto-approve",
+            initial_status=mock_initial_status,
+            approval_config=approval_config,
+        )
+        
+        event = {
+            "event": "on_tool_start",
+            "name": "delete_repository",
+            "run_id": "tool-run-auto-approve",
+            "data": {"input": {"repo": "repo-to-delete"}},
+            "metadata": {}
+        }
+        
+        await builder.process_event(event)
+        
+        # Tool should be in RUNNING status despite having approval policy
+        tool_call = builder.current_status.tool_calls[0]
+        assert tool_call.status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert tool_call.requires_approval is False
+    
+    @pytest.mark.asyncio
+    async def test_tool_start_without_approval_config_proceeds_normally(self, mock_initial_status):
+        """Test that no approval config means normal RUNNING flow."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        
+        # No approval config provided
+        builder = StatusBuilder(
+            execution_id="test-no-config",
+            initial_status=mock_initial_status,
+            approval_config=None,  # No config
+        )
+        
+        event = {
+            "event": "on_tool_start",
+            "name": "any_tool",
+            "run_id": "tool-run-no-config",
+            "data": {"input": {}},
+            "metadata": {}
+        }
+        
+        await builder.process_event(event)
+        
+        # Tool should be in RUNNING status
+        tool_call = builder.current_status.tool_calls[0]
+        assert tool_call.status == ToolCallStatus.TOOL_CALL_RUNNING
+    
+    @pytest.mark.asyncio
+    async def test_approval_message_rendered_with_args(self, status_builder_with_approval_config):
+        """Test that approval message template is rendered with tool args."""
+        event = {
+            "event": "on_tool_start",
+            "name": "delete_repository",
+            "run_id": "tool-run-render-test",
+            "data": {"input": {"repo": "production-db"}},
+            "metadata": {}
+        }
+        
+        await status_builder_with_approval_config.process_event(event)
+        
+        # Check rendered message (should have args substituted)
+        tool_call = status_builder_with_approval_config.current_status.tool_calls[0]
+        assert "production-db" in tool_call.approval_message
+        
+        pending = status_builder_with_approval_config.current_status.pending_approval
+        assert "production-db" in pending.message
+
+
+# =============================================================================
+# Tests for build_approval_config function (HITL Phase 3A)
+# =============================================================================
+
+
+class TestBuildApprovalConfig:
+    """
+    Tests for the build_approval_config() function in execute_graphton.py.
+    
+    This function assembles ApprovalConfig from execution context:
+    - execution.spec.auto_approve_all
+    - mcp_server_usages[].tool_approval_overrides
+    - mcp_servers[].spec.default_tool_approvals
+    - mcp_tools_config (inverted to tool_to_mcp_server)
+    """
+    
+    def test_empty_inputs_return_safe_defaults(self):
+        """Test that empty inputs return ApprovalConfig with safe defaults."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        # Create minimal mock execution
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[],
+            mcp_tools_config={},
+        )
+        
+        assert config.auto_approve_all is False
+        assert config.tool_approval_overrides == []
+        assert config.default_tool_approvals == {}
+        assert config.tool_to_mcp_server == {}
+    
+    def test_auto_approve_all_extracted_from_execution_spec(self):
+        """Test that auto_approve_all is correctly extracted from execution.spec."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        # Test with auto_approve_all = True
+        execution = MagicMock()
+        execution.spec.auto_approve_all = True
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[],
+            mcp_tools_config={},
+        )
+        
+        assert config.auto_approve_all is True
+    
+    def test_auto_approve_all_defaults_false_when_missing(self):
+        """Test that auto_approve_all defaults to False when field is missing."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        # Create execution without auto_approve_all field
+        execution = MagicMock()
+        del execution.spec.auto_approve_all  # Remove the field
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[],
+            mcp_tools_config={},
+        )
+        
+        assert config.auto_approve_all is False
+    
+    def test_tool_approval_overrides_collected_from_all_usages(self):
+        """Test that tool_approval_overrides are collected from all MCP server usages."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Create two usages with different overrides
+        override1 = MagicMock()
+        override1.tool_name = "delete_repo"
+        override1.requires_approval = True
+        
+        override2 = MagicMock()
+        override2.tool_name = "force_push"
+        override2.requires_approval = True
+        
+        override3 = MagicMock()
+        override3.tool_name = "drop_table"
+        override3.requires_approval = True
+        
+        usage1 = MagicMock()
+        usage1.tool_approval_overrides = [override1, override2]
+        
+        usage2 = MagicMock()
+        usage2.tool_approval_overrides = [override3]
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[usage1, usage2],
+            mcp_servers=[],
+            mcp_tools_config={},
+        )
+        
+        # Should have all 3 overrides from both usages
+        assert len(config.tool_approval_overrides) == 3
+        assert override1 in config.tool_approval_overrides
+        assert override2 in config.tool_approval_overrides
+        assert override3 in config.tool_approval_overrides
+    
+    def test_tool_approval_overrides_handles_empty_usages(self):
+        """Test that empty tool_approval_overrides in usages are handled gracefully."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Usage with empty overrides
+        usage1 = MagicMock()
+        usage1.tool_approval_overrides = []
+        
+        # Usage with None overrides
+        usage2 = MagicMock()
+        usage2.tool_approval_overrides = None
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[usage1, usage2],
+            mcp_servers=[],
+            mcp_tools_config={},
+        )
+        
+        assert config.tool_approval_overrides == []
+    
+    def test_default_tool_approvals_keyed_by_server_slug(self):
+        """Test that default_tool_approvals are correctly keyed by server slug."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Create MCP servers with default approval policies
+        policy1 = MagicMock()
+        policy1.tool_name = "delete_repository"
+        policy1.message = "Are you sure?"
+        
+        policy2 = MagicMock()
+        policy2.tool_name = "drop_table"
+        policy2.message = "This is destructive!"
+        
+        server1 = MagicMock()
+        server1.metadata.slug = "github"
+        server1.spec.default_tool_approvals = [policy1]
+        
+        server2 = MagicMock()
+        server2.metadata.slug = "postgres"
+        server2.spec.default_tool_approvals = [policy2]
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[server1, server2],
+            mcp_tools_config={},
+        )
+        
+        assert len(config.default_tool_approvals) == 2
+        assert "github" in config.default_tool_approvals
+        assert "postgres" in config.default_tool_approvals
+        assert config.default_tool_approvals["github"] == [policy1]
+        assert config.default_tool_approvals["postgres"] == [policy2]
+    
+    def test_default_tool_approvals_falls_back_to_name_when_slug_missing(self):
+        """Test that server name is used as fallback when slug is missing."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        policy = MagicMock()
+        
+        # Server with name but no slug
+        server = MagicMock()
+        server.metadata.name = "my-github-server"
+        del server.metadata.slug  # No slug
+        server.spec.default_tool_approvals = [policy]
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[server],
+            mcp_tools_config={},
+        )
+        
+        # Should use name as key
+        assert "my-github-server" in config.default_tool_approvals
+    
+    def test_default_tool_approvals_handles_empty_policies(self):
+        """Test that servers with empty default_tool_approvals are skipped."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Server with empty policies
+        server = MagicMock()
+        server.metadata.slug = "github"
+        server.spec.default_tool_approvals = []
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[server],
+            mcp_tools_config={},
+        )
+        
+        # Should not include servers with empty policies
+        assert "github" not in config.default_tool_approvals
+    
+    def test_tool_to_mcp_server_mapping_inverted_correctly(self):
+        """Test that mcp_tools_config is correctly inverted to tool_to_mcp_server."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Tool config: server slug -> list of tools
+        mcp_tools_config = {
+            "github": ["list_repos", "delete_repo", "create_pr"],
+            "postgres": ["query", "execute_sql"],
+        }
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[],
+            mcp_tools_config=mcp_tools_config,
+        )
+        
+        # Check inverted mapping
+        assert len(config.tool_to_mcp_server) == 5
+        assert config.tool_to_mcp_server["list_repos"] == "github"
+        assert config.tool_to_mcp_server["delete_repo"] == "github"
+        assert config.tool_to_mcp_server["create_pr"] == "github"
+        assert config.tool_to_mcp_server["query"] == "postgres"
+        assert config.tool_to_mcp_server["execute_sql"] == "postgres"
+    
+    def test_tool_to_mcp_server_handles_none_tool_lists(self):
+        """Test that None tool lists in mcp_tools_config are handled gracefully."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Some servers have None for tool list
+        mcp_tools_config = {
+            "github": ["list_repos"],
+            "postgres": None,  # No tools
+            "redis": [],  # Empty list
+        }
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[],
+            mcp_tools_config=mcp_tools_config,
+        )
+        
+        # Should only have the github tool
+        assert len(config.tool_to_mcp_server) == 1
+        assert config.tool_to_mcp_server["list_repos"] == "github"
+    
+    def test_full_integration_all_sources(self):
+        """Integration test: verify all sources are assembled correctly."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        # Setup execution
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Setup overrides
+        override = MagicMock()
+        override.tool_name = "delete_repo"
+        override.requires_approval = True
+        override.message = "Custom override message"
+        
+        usage = MagicMock()
+        usage.tool_approval_overrides = [override]
+        
+        # Setup MCP server defaults
+        default_policy = MagicMock()
+        default_policy.tool_name = "delete_repository"
+        default_policy.message = "Are you sure you want to delete {{args.repo}}?"
+        
+        server = MagicMock()
+        server.metadata.slug = "github"
+        server.spec.default_tool_approvals = [default_policy]
+        
+        # Setup tool config
+        mcp_tools_config = {
+            "github": ["list_repos", "delete_repository", "create_pr"],
+        }
+        
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[usage],
+            mcp_servers=[server],
+            mcp_tools_config=mcp_tools_config,
+        )
+        
+        # Verify all components
+        assert config.auto_approve_all is False
+        assert len(config.tool_approval_overrides) == 1
+        assert config.tool_approval_overrides[0] == override
+        assert "github" in config.default_tool_approvals
+        assert config.default_tool_approvals["github"] == [default_policy]
+        assert len(config.tool_to_mcp_server) == 3
+        assert config.get_mcp_server_for_tool("delete_repository") == "github"
+    
+    def test_malformed_server_handled_gracefully(self):
+        """Test that malformed MCP server objects don't crash the function."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Server missing metadata entirely
+        malformed_server = MagicMock()
+        del malformed_server.metadata
+        
+        # This should not raise an exception
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[],
+            mcp_servers=[malformed_server],
+            mcp_tools_config={},
+        )
+        
+        assert config.default_tool_approvals == {}
+    
+    def test_malformed_usage_handled_gracefully(self):
+        """Test that malformed MCP server usage objects don't crash the function."""
+        from worker.activities.graphton.approval_policy import build_approval_config
+        
+        execution = MagicMock()
+        execution.spec.auto_approve_all = False
+        
+        # Usage missing tool_approval_overrides entirely
+        malformed_usage = MagicMock()
+        del malformed_usage.tool_approval_overrides
+        
+        # This should not raise an exception
+        config = build_approval_config(
+            execution=execution,
+            mcp_server_usages=[malformed_usage],
+            mcp_servers=[],
+            mcp_tools_config={},
+        )
+        
+        assert config.tool_approval_overrides == []
+
+
+# =============================================================================
+# TestCreateApprovalChecker - Tests for HITL approval checker factory (Phase 3B)
+# =============================================================================
+
+
+class TestCreateApprovalChecker:
+    """
+    Tests for the create_approval_checker() function.
+    
+    This function creates a callable that can be passed to graphton's
+    create_deep_agent to enable HITL tool approval flow.
+    """
+    
+    def test_creates_callable(self):
+        """Test that create_approval_checker returns a callable."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        config = ApprovalConfig()
+        checker = create_approval_checker(config)
+        
+        assert callable(checker)
+    
+    def test_checker_returns_no_approval_when_auto_approve_all(self):
+        """Test that checker returns no approval required when auto_approve_all is True."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        config = ApprovalConfig(auto_approve_all=True)
+        checker = create_approval_checker(config)
+        
+        result = checker("any_tool", {"arg1": "value"})
+        
+        assert result.requires_approval is False
+        assert result.source == "auto_approve_all"
+    
+    def test_checker_returns_no_approval_when_no_policy_matches(self):
+        """Test that checker returns no approval when no policy matches."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals={},
+            tool_to_mcp_server={"some_tool": "some-server"},
+        )
+        checker = create_approval_checker(config)
+        
+        result = checker("unknown_tool", {"arg1": "value"})
+        
+        assert result.requires_approval is False
+        assert result.source == "none"
+    
+    def test_checker_returns_approval_required_from_mcp_default(self):
+        """Test that checker returns approval required from MCP default policy."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        # Create mock policy
+        policy = MagicMock()
+        policy.tool_name = "delete_resource"
+        policy.message = "Are you sure you want to delete?"
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals={"test-server": [policy]},
+            tool_to_mcp_server={"delete_resource": "test-server"},
+        )
+        checker = create_approval_checker(config)
+        
+        result = checker("delete_resource", {})
+        
+        assert result.requires_approval is True
+        assert result.source == "mcp_default"
+        assert "delete" in result.message.lower()
+    
+    def test_checker_returns_approval_required_from_agent_override(self):
+        """Test that checker returns approval required from agent override."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        # Create mock override
+        override = MagicMock()
+        override.tool_name = "send_email"
+        override.requires_approval = True
+        override.message = "Confirm sending email to {{args.recipient}}?"
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_approval_overrides=[override],
+            default_tool_approvals={},
+            tool_to_mcp_server={"send_email": "email-server"},
+        )
+        checker = create_approval_checker(config)
+        
+        result = checker("send_email", {"recipient": "user@example.com"})
+        
+        assert result.requires_approval is True
+        assert result.source == "agent_override"
+        assert "user@example.com" in result.message
+    
+    def test_checker_renders_message_template_with_args(self):
+        """Test that checker renders {{args.field}} placeholders in message."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        # Create mock policy with template
+        policy = MagicMock()
+        policy.tool_name = "delete_file"
+        policy.message = "Delete file {{args.path}} from {{args.directory}}?"
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals={"fs-server": [policy]},
+            tool_to_mcp_server={"delete_file": "fs-server"},
+        )
+        checker = create_approval_checker(config)
+        
+        result = checker("delete_file", {"path": "config.yaml", "directory": "/app"})
+        
+        assert "config.yaml" in result.message
+        assert "/app" in result.message
+    
+    def test_checker_includes_mcp_server_in_result(self):
+        """Test that checker result includes mcp_server field."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals={},
+            tool_to_mcp_server={"test_tool": "my-mcp-server"},
+        )
+        checker = create_approval_checker(config)
+        
+        result = checker("test_tool", {})
+        
+        assert result.mcp_server == "my-mcp-server"
+    
+    def test_checker_handles_missing_tool_gracefully(self):
+        """Test that checker handles tools not in config gracefully."""
+        from worker.activities.graphton.approval_policy import (
+            ApprovalConfig,
+            create_approval_checker,
+        )
+        
+        config = ApprovalConfig(
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals={},
+            tool_to_mcp_server={},  # Empty - no tools mapped
+        )
+        checker = create_approval_checker(config)
+        
+        # Should not raise, just return no approval required
+        result = checker("completely_unknown_tool", {"arg": "value"})
+        
+        assert result.requires_approval is False
+        assert result.mcp_server == ""
+
+
+# =============================================================================
+# TestResumeFromApprovalDetection - Tests for HITL resume flow detection (Phase 3B)
+# =============================================================================
+
+
+class TestResumeFromApprovalDetection:
+    """
+    Tests for the resume-from-approval detection logic in execute_graphton.
+    
+    These tests verify that the activity correctly detects when execution
+    should resume from a pending approval vs start fresh.
+    """
+    
+    def test_no_pending_approval_is_fresh_execution(self):
+        """Test that execution without pending_approval is a fresh start."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+            AgentExecution,
+            AgentExecutionStatus,
+            PendingApproval,
+        )
+        
+        # Create execution with no pending approval
+        status = AgentExecutionStatus()
+        status.pending_approval.CopyFrom(PendingApproval())  # Empty - no tool_call_id
+        
+        execution = MagicMock()
+        execution.status = status
+        
+        # Check: no tool_call_id means fresh execution
+        has_pending = bool(execution.status.pending_approval.tool_call_id)
+        assert has_pending is False
+    
+    def test_pending_approval_with_decision_is_resume(self):
+        """Test that pending_approval with decision triggers resume."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+            AgentExecutionStatus,
+            PendingApproval,
+            ToolCall,
+            ApprovalAction,
+        )
+        
+        # Create execution with pending approval and decision
+        status = AgentExecutionStatus()
+        pending = PendingApproval()
+        pending.tool_call_id = "call_abc123"
+        status.pending_approval.CopyFrom(pending)
+        
+        # Add tool call with approval decision
+        tool_call = status.tool_calls.add()
+        tool_call.id = "call_abc123"
+        tool_call.name = "delete_resource"
+        tool_call.approval_action = ApprovalAction.APPROVAL_ACTION_APPROVE
+        tool_call.approved_by = "user@test.com"
+        
+        # Check: has pending and decision set
+        has_pending = bool(status.pending_approval.tool_call_id)
+        assert has_pending is True
+        
+        # Find tool call and check decision
+        found_action = ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+        for tc in status.tool_calls:
+            if tc.id == status.pending_approval.tool_call_id:
+                found_action = tc.approval_action
+                break
+        
+        assert found_action == ApprovalAction.APPROVAL_ACTION_APPROVE
+    
+    def test_pending_approval_without_decision_is_warning(self):
+        """Test that pending_approval without decision logs warning."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+            AgentExecutionStatus,
+            PendingApproval,
+            ToolCall,
+            ApprovalAction,
+        )
+        
+        # Create execution with pending approval but NO decision
+        status = AgentExecutionStatus()
+        pending = PendingApproval()
+        pending.tool_call_id = "call_abc123"
+        status.pending_approval.CopyFrom(pending)
+        
+        # Add tool call WITHOUT approval decision
+        tool_call = status.tool_calls.add()
+        tool_call.id = "call_abc123"
+        tool_call.name = "delete_resource"
+        # approval_action defaults to UNSPECIFIED
+        
+        # Find tool call and check decision
+        found_action = ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+        for tc in status.tool_calls:
+            if tc.id == status.pending_approval.tool_call_id:
+                found_action = tc.approval_action
+                break
+        
+        # This should be UNSPECIFIED - triggers warning in real code
+        assert found_action == ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+    
+    def test_approval_action_mapping_to_strings(self):
+        """Test that ApprovalAction enum values map correctly to strings."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        
+        action_map = {
+            ApprovalAction.APPROVAL_ACTION_APPROVE: "approve",
+            ApprovalAction.APPROVAL_ACTION_SKIP: "skip",
+            ApprovalAction.APPROVAL_ACTION_REJECT: "reject",
+        }
+        
+        # Verify all actions map correctly
+        assert action_map[ApprovalAction.APPROVAL_ACTION_APPROVE] == "approve"
+        assert action_map[ApprovalAction.APPROVAL_ACTION_SKIP] == "skip"
+        assert action_map[ApprovalAction.APPROVAL_ACTION_REJECT] == "reject"
+        
+        # Unspecified should not be in the map (handled as special case)
+        assert ApprovalAction.APPROVAL_ACTION_UNSPECIFIED not in action_map

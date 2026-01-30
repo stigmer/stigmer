@@ -19,15 +19,57 @@ package grpc_client
 import (
 	"context"
 	"fmt"
+	"sync"
 
+	"github.com/rs/zerolog/log"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/config"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 )
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Singleton Client Accessor
+//
+// Thread-safe lazy initialization of the WorkflowExecution command client.
+// ─────────────────────────────────────────────────────────────────────────────
+
+var (
+	workflowExecCommandClientOnce sync.Once
+	workflowExecCommandClient     *WorkflowExecutionClient
+	workflowExecCommandClientErr  error
+)
+
+// GetWorkflowExecutionCommandClient returns a singleton WorkflowExecutionClient.
+// The client is lazily initialized on first call and cached for subsequent calls.
+// This is thread-safe via sync.Once.
+//
+// Usage:
+//
+//	client, err := GetWorkflowExecutionCommandClient()
+//	if err != nil {
+//	    return err
+//	}
+//	// Use client to update status
+//	client.UpdateStatus(ctx, &input)
+func GetWorkflowExecutionCommandClient() (*WorkflowExecutionClient, error) {
+	workflowExecCommandClientOnce.Do(func() {
+		cfg, err := config.LoadStigmerConfig()
+		if err != nil {
+			workflowExecCommandClientErr = fmt.Errorf("failed to load stigmer config: %w", err)
+			return
+		}
+
+		workflowExecCommandClient, workflowExecCommandClientErr = NewWorkflowExecutionClient(cfg)
+		if workflowExecCommandClientErr != nil {
+			workflowExecCommandClientErr = fmt.Errorf("failed to create workflow execution client: %w", workflowExecCommandClientErr)
+		}
+	})
+
+	return workflowExecCommandClient, workflowExecCommandClientErr
+}
 
 // WorkflowExecutionClient sends status updates to Stigmer backend.
 //
