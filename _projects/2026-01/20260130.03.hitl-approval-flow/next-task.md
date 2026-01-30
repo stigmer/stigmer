@@ -18,9 +18,82 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-01-30
-**Last Session**: 2026-01-30
-**Current Phase**: Phase 1 Complete - Proto Contracts Implemented
-**Status**: IN_PROGRESS - Ready for Phase 2
+**Last Session**: 2026-01-30 (Phase 2 Session)
+**Current Phase**: Phase 2 Complete - StatusBuilder Approval State Management
+**Status**: IN_PROGRESS - Ready for Phase 3
+
+---
+
+## Session Progress (2026-01-30 - Phase 2 Implementation)
+
+### Completed - Phase 2: StatusBuilder Approval State Management
+**Duration**: ~3 hours | **Lines Added**: ~1,300+ lines
+
+#### Phase 2.1: Approval Policy Resolution
+**New File**: `backend/services/agent-runner/worker/activities/graphton/approval_policy.py` (420 lines)
+- Created `ApprovalConfig` dataclass - holds approval policy configuration
+- Created `ApprovalRequirement` dataclass - result of policy resolution
+- Implemented `resolve_tool_approval()` - evaluates policy chain (auto_approve_all → agent_override → mcp_default)
+- Implemented `render_approval_message()` - renders {{args.field}} placeholders with tool arguments
+- Pure functions with no I/O for easy testing
+- Safe defaults and nested argument support
+
+#### Phase 2.2: State Management Methods
+**Modified**: `status_builder.py` (+300 lines)
+- Added `_pending_tool_approval` tracking state
+- Added `_saved_phase_before_approval` for phase restoration
+- Implemented `set_tool_waiting_approval()` - transitions tool to WAITING_APPROVAL, populates PendingApproval
+- Implemented `set_tool_approval_decision()` - processes APPROVE/SKIP/REJECT decisions
+- Implemented `clear_pending_approval()` - clears pending state and restores phase
+- Implemented `_find_tool_call_by_id()` - finds ToolCall in main agent or sub-agents
+- Implemented `_create_args_preview()` - sanitized JSON preview with sensitive data redaction
+
+#### Phase 2.3: Tool Event Integration
+**Modified**: `status_builder.py` (+200 lines)
+- Added `approval_config` parameter to `__init__()` for optional approval policy
+- Implemented `_check_tool_approval_requirement()` - resolves approval policy for a tool
+- Implemented `_populate_pending_approval()` - sets up PendingApproval when approval required
+- Modified `_handle_tool_start_event()` - checks approval before creating ToolCall
+- Tools requiring approval now get `TOOL_CALL_WAITING_APPROVAL` status instead of `RUNNING`
+- Execution phase transitions to `EXECUTION_WAITING_FOR_APPROVAL`
+- Backward compatible: `approval_config=None` preserves existing RUNNING flow
+
+#### Phase 2.4: Unit Tests
+**Modified**: `test_status_builder.py` (+730 lines)
+- Added `TestApprovalPolicyResolution` class (10 tests) - policy chain evaluation and message rendering
+- Added `TestApprovalConfig` class (4 tests) - ApprovalConfig dataclass methods
+- Added `TestToolWaitingApproval` class (7 tests) - set_tool_waiting_approval() behavior
+- Added `TestToolApprovalDecision` class (8 tests) - APPROVE/SKIP/REJECT handling
+- Added `TestToolStartApprovalIntegration` class (5 tests) - end-to-end tool start with approval
+- Total: 34 new tests covering all approval functionality
+
+### Key Technical Decisions
+
+| Decision | Implementation | Rationale |
+|----------|---------------|-----------|
+| Policy chain evaluation | auto_approve_all → agent_override → mcp_default | Explicit priority order matching documentation |
+| Message rendering | {{args.field}} with `<unknown>` fallback | Graceful handling of missing args |
+| State tracking | Single `_pending_tool_approval` run_id | Only one tool can be pending at a time |
+| Phase restoration | Saved phase restored on APPROVE/SKIP | Preserves execution state through approval flow |
+| Args sanitization | Redact sensitive keys, truncate large values | Security-first approach for UI display |
+| Backward compatibility | `approval_config=None` → normal RUNNING flow | No breaking changes to existing code |
+
+### Architecture Patterns
+
+**Policy Resolution**: Pure function composition
+- Stateless policy evaluation
+- Easy to test with simple dicts
+- Clear separation from StatusBuilder state
+
+**State Management**: Proto-first approach
+- Direct proto manipulation for status updates
+- Dual-reference pattern maintained (messages[] and tool_calls[])
+- Event-driven state transitions
+
+**Testing Strategy**: Fixture-based with real protos
+- MagicMock for simple fields
+- Real proto objects for CopyFrom() operations
+- Isolated tests for each layer (policy, state, integration)
 
 ---
 
@@ -58,14 +131,14 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ---
 
-## Next Steps (Phase 2+)
+## Next Steps (Phase 3+)
 
-### Phase 2: StatusBuilder Updates (~2 days)
-- [ ] Add approval state tracking methods to StatusBuilder
-- [ ] Add `set_tool_waiting_approval()` method
-- [ ] Add `set_tool_approval_decision()` method
-- [ ] Update `_handle_tool_start_event()` to check approval requirements
-- [ ] Add unit tests for approval state management
+### Phase 2: StatusBuilder Updates - ✅ COMPLETE
+- [x] Add approval state tracking methods to StatusBuilder
+- [x] Add `set_tool_waiting_approval()` method
+- [x] Add `set_tool_approval_decision()` method
+- [x] Update `_handle_tool_start_event()` to check approval requirements
+- [x] Add unit tests for approval state management
 
 ### Phase 3: LangGraph Integration (~3 days)
 - [ ] Create `should_require_approval()` helper
@@ -99,6 +172,21 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ---
 
+## Modified Files (Phase 2)
+
+### stigmer (Python implementation)
+```
+backend/services/agent-runner/worker/activities/graphton/approval_policy.py   (NEW - 420 lines)
+backend/services/agent-runner/worker/activities/graphton/status_builder.py    (+492 lines)
+backend/services/agent-runner/tests/test_status_builder.py                     (+730 lines)
+apis/ai/stigmer/agentic/agentexecution/v1/io.proto                            (+54 lines - imports)
+.cursor/plans/phase_2_statusbuilder_approval_2dfd773b.plan.md                 (NEW - 294 lines)
+```
+
+**Total Changes**: +1,990 lines (1 new file, 4 modified files)
+
+---
+
 ## Modified Files (Phase 1)
 
 ### stigmer (proto definitions)
@@ -129,10 +217,12 @@ All language stubs regenerated: Java, Python, Go, TypeScript, Dart
 /Users/suresh/scm/github.com/stigmer/stigmer/apis/ai/stigmer/agentic/agent/v1/spec.proto
 ```
 
-### Python Agent Runner (TO BE MODIFIED IN PHASE 2+)
+### Python Agent Runner (MODIFIED IN PHASE 2)
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/worker/activities/graphton/status_builder.py
-/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/worker/activities/execute_graphton.py
+/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/worker/activities/graphton/status_builder.py ✅
+/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/worker/activities/graphton/approval_policy.py ✅ NEW
+/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/tests/test_status_builder.py ✅
+/Users/suresh/scm/github.com/stigmer/stigmer/backend/services/agent-runner/worker/activities/execute_graphton.py (Phase 3)
 ```
 
 ### Java Handler (TO BE MODIFIED IN PHASE 4)
@@ -147,15 +237,18 @@ All language stubs regenerated: Java, Python, Go, TypeScript, Dart
 When starting a new session:
 
 1. [ ] Review this file for current status
-2. [ ] Check `checkpoints/2026-01-30-session-phase-1.md` for Phase 1 details
-3. [ ] Verify proto changes are committed
-4. [ ] Begin Phase 2: StatusBuilder Updates
+2. [ ] Check `checkpoints/` for session details:
+   - `2026-01-30-session-phase-1.md` - Phase 1 proto contracts
+   - `2026-01-30-session-phase-2.md` - Phase 2 StatusBuilder implementation
+3. [ ] Review uncommitted changes (Phase 2 not yet committed)
+4. [ ] Begin Phase 3: LangGraph Integration
 
 ## Quick Commands
 
 After loading context:
 - "Show Phase 1 implementation" - Review proto changes
-- "Start Phase 2" - Begin StatusBuilder updates
+- "Show Phase 2 implementation" - Review StatusBuilder approval logic
+- "Start Phase 3" - Begin LangGraph integration
 - "Show approval flow" - Review the approval architecture
 
 ---
