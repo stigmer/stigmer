@@ -37,19 +37,21 @@ import (
 // It's called from the Java Temporal workflow (InvokeWorkflowExecutionWorkflowImpl).
 //
 // Flow:
-// 1. Query Stigmer service for complete workflow context (execution → instance → workflow)
-// 2. Convert WorkflowSpec proto → YAML (Phase 2 converter)
-// 3. Start ExecuteServerlessWorkflow on zigflow_execution queue
-// 4. Wait for workflow completion
-// 5. Return final status
+// 1. Query ExecutionContext for merged environment variables (if available)
+// 2. Query Stigmer service for complete workflow context (execution → instance → workflow)
+// 3. Convert WorkflowSpec proto → YAML (Phase 2 converter)
+// 4. Start ExecuteServerlessWorkflow on zigflow_execution queue
+// 5. Wait for workflow completion
+// 6. Return final status
 //
 // Task Queue: workflow_execution (orchestration)
 type ExecuteWorkflowActivityImpl struct {
-	workflowExecutionClient *grpc_client.WorkflowExecutionClient
-	workflowInstanceClient  *grpc_client.WorkflowInstanceClient
-	workflowClient          *grpc_client.WorkflowClient
-	temporalClient          client.Client
-	executionTaskQueue      string
+	workflowExecutionClient  *grpc_client.WorkflowExecutionClient
+	workflowInstanceClient   *grpc_client.WorkflowInstanceClient
+	workflowClient           *grpc_client.WorkflowClient
+	executionContextClient   *grpc_client.ExecutionContextClient
+	temporalClient           client.Client
+	executionTaskQueue       string
 }
 
 // NewExecuteWorkflowActivity creates a new ExecuteWorkflowActivity instance.
@@ -74,12 +76,18 @@ func NewExecuteWorkflowActivity(
 		return nil, fmt.Errorf("failed to create workflow client: %w", err)
 	}
 
+	executionContextClient, err := grpc_client.NewExecutionContextClient(stigmerCfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create execution context client: %w", err)
+	}
+
 	return &ExecuteWorkflowActivityImpl{
-		workflowExecutionClient: workflowExecutionClient,
-		workflowInstanceClient:  workflowInstanceClient,
-		workflowClient:          workflowClient,
-		temporalClient:          temporalClient,
-		executionTaskQueue:      executionTaskQueue,
+		workflowExecutionClient:  workflowExecutionClient,
+		workflowInstanceClient:   workflowInstanceClient,
+		workflowClient:           workflowClient,
+		executionContextClient:   executionContextClient,
+		temporalClient:           temporalClient,
+		executionTaskQueue:       executionTaskQueue,
 	}, nil
 }
 
@@ -262,24 +270,29 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		"execution_id", executionID,
 		"task_queue", a.executionTaskQueue)
 
-	// Build runtime environment from execution.Spec.RuntimeEnv
-	// This enables just-in-time secret resolution in Zigflow activities
+	// Build runtime environment - try ExecutionContext first, fall back to execution.Spec.RuntimeEnv
+	// ExecutionContext contains pre-merged and pre-decrypted environment variables from:
+	// 1. Workflow template env_spec (defaults)
+	// 2. WorkflowInstance env_refs (layered configs)
+	// 3. WorkflowExecution runtime_env (overrides)
 	runtimeEnv := make(map[string]any)
-	if execution.Spec != nil && execution.Spec.RuntimeEnv != nil {
-		logger.Info("Processing runtime environment variables",
+	
+	// Try to get merged environment from ExecutionContext (new flow)
+	execCtx, err := a.executionContextClient.GetByExecutionId(ctx, executionID)
+	if err == nil && execCtx != nil && execCtx.Spec != nil && len(execCtx.Spec.Data) > 0 {
+		// Use pre-merged environment from ExecutionContext
+		logger.Info("Using merged environment from ExecutionContext",
 			"execution_id", executionID,
-			"env_count", len(execution.Spec.RuntimeEnv))
+			"context_id", execCtx.Metadata.Id,
+			"env_count", len(execCtx.Spec.Data))
 
-		for key, execValue := range execution.Spec.RuntimeEnv {
+		for key, execValue := range execCtx.Spec.Data {
 			if execValue == nil {
-				logger.Warn("Skipping nil runtime env value",
-					"execution_id", executionID,
-					"key", key)
 				continue
 			}
 
 			// Store as map with value and metadata
-			// The is_secret flag is preserved for JIT resolution
+			// Values are already decrypted by the service
 			runtimeEnv[key] = map[string]interface{}{
 				"value":     execValue.Value,
 				"is_secret": execValue.IsSecret,
@@ -287,14 +300,56 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 
 			// Log non-secret values for debugging (NEVER log secret values!)
 			if !execValue.IsSecret {
-				logger.Debug("Runtime env value (non-secret)",
+				logger.Debug("ExecutionContext env (non-secret)",
 					"execution_id", executionID,
 					"key", key,
 					"value", execValue.Value)
 			} else {
-				logger.Debug("Runtime env value (secret - value hidden)",
+				logger.Debug("ExecutionContext env (secret - value hidden)",
 					"execution_id", executionID,
 					"key", key)
+			}
+		}
+	} else {
+		// Fall back to execution.Spec.RuntimeEnv (backward compatibility)
+		// This path handles executions created before ExecutionContext support
+		if err != nil && err != grpc_client.ErrExecutionContextNotFound {
+			logger.Warn("Failed to get ExecutionContext, falling back to runtime_env",
+				"execution_id", executionID,
+				"error", err)
+		}
+
+		if execution.Spec != nil && execution.Spec.RuntimeEnv != nil {
+			logger.Info("Using fallback runtime environment from execution spec",
+				"execution_id", executionID,
+				"env_count", len(execution.Spec.RuntimeEnv))
+
+			for key, execValue := range execution.Spec.RuntimeEnv {
+				if execValue == nil {
+					logger.Warn("Skipping nil runtime env value",
+						"execution_id", executionID,
+						"key", key)
+					continue
+				}
+
+				// Store as map with value and metadata
+				// The is_secret flag is preserved for JIT resolution
+				runtimeEnv[key] = map[string]interface{}{
+					"value":     execValue.Value,
+					"is_secret": execValue.IsSecret,
+				}
+
+				// Log non-secret values for debugging (NEVER log secret values!)
+				if !execValue.IsSecret {
+					logger.Debug("Runtime env value (non-secret)",
+						"execution_id", executionID,
+						"key", key,
+						"value", execValue.Value)
+				} else {
+					logger.Debug("Runtime env value (secret - value hidden)",
+						"execution_id", executionID,
+						"key", key)
+				}
 			}
 		}
 	}

@@ -11,6 +11,7 @@ from grpc_client.agent_instance_client import AgentInstanceClient
 from grpc_client.skill_client import SkillClient
 from grpc_client.session_client import SessionClient
 from grpc_client.environment_client import EnvironmentClient
+from grpc_client.execution_context_client import ExecutionContextClient, ExecutionContextNotFoundError
 from grpc_client.agent_execution_client import AgentExecutionClient
 from grpc_client.mcp_server_client import McpServerClient
 from worker.token_manager import get_api_key
@@ -311,58 +312,92 @@ async def _execute_graphton_impl(
                 activity_logger.error(f"Unexpected error preparing skills: {e}")
                 raise
         
-        # Step 4: Merge environments (if agent instance has environment refs)
+        # Step 4: Get merged environment variables
+        # Try ExecutionContext first (new flow with pre-merged/decrypted env vars)
+        # Fall back to legacy environment merging if ExecutionContext not found
         merged_env_vars = {}
-        environment_refs = agent_instance.spec.environment_refs
+        use_legacy_env_merge = True
         
-        if environment_refs:
-            activity_logger.info(
-                f"Merging {len(environment_refs)} environments: "
-                f"{[ref.slug for ref in environment_refs]}"
-            )
+        try:
+            # Try to get pre-merged environment from ExecutionContext
+            execution_context_client = ExecutionContextClient(api_key)
+            exec_ctx = await execution_context_client.try_get_by_execution_id(execution_id)
             
-            try:
-                # Create environment client
-                environment_client = EnvironmentClient(api_key)
+            if exec_ctx and exec_ctx.spec.data:
+                # Use pre-merged and pre-decrypted environment from ExecutionContext
+                activity_logger.info(
+                    f"Using merged environment from ExecutionContext: "
+                    f"context_id={exec_ctx.metadata.id}, env_count={len(exec_ctx.spec.data)}"
+                )
                 
-                # Fetch environments (preserves order for proper merging)
-                environments = await environment_client.list_by_refs(list(environment_refs))
+                # Extract values from ExecutionValue objects
+                for key, exec_value in exec_ctx.spec.data.items():
+                    merged_env_vars[key] = exec_value.value
                 
-                # Merge environments in order (later overrides earlier)
-                # Start with agent's base env_spec if it exists
-                if agent.spec.env_spec and agent.spec.env_spec.data:
-                    # Extract values from EnvironmentValue objects
-                    for key, env_value in agent.spec.env_spec.data.items():
-                        merged_env_vars[key] = env_value.value
-                    activity_logger.info(f"Base env vars from agent: {len(agent.spec.env_spec.data)}")
+                use_legacy_env_merge = False
+                activity_logger.info(f"ExecutionContext environment: {len(merged_env_vars)} total vars")
+            else:
+                activity_logger.debug(
+                    f"No ExecutionContext found for execution {execution_id} - "
+                    "using legacy environment merge"
+                )
+        except Exception as e:
+            activity_logger.warning(
+                f"Failed to get ExecutionContext, falling back to legacy merge: {e}"
+            )
+        
+        # Legacy environment merge (backward compatibility)
+        if use_legacy_env_merge:
+            environment_refs = agent_instance.spec.environment_refs
+            
+            if environment_refs:
+                activity_logger.info(
+                    f"[Legacy] Merging {len(environment_refs)} environments: "
+                    f"{[ref.slug for ref in environment_refs]}"
+                )
                 
-                # Layer each environment (order matters!)
-                for idx, env in enumerate(environments):
-                    if env.spec.data:
+                try:
+                    # Create environment client
+                    environment_client = EnvironmentClient(api_key)
+                    
+                    # Fetch environments (preserves order for proper merging)
+                    environments = await environment_client.list_by_refs(list(environment_refs))
+                    
+                    # Merge environments in order (later overrides earlier)
+                    # Start with agent's base env_spec if it exists
+                    if agent.spec.env_spec and agent.spec.env_spec.data:
                         # Extract values from EnvironmentValue objects
-                        for key, env_value in env.spec.data.items():
+                        for key, env_value in agent.spec.env_spec.data.items():
                             merged_env_vars[key] = env_value.value
-                        activity_logger.info(
-                            f"Merged env {idx+1}/{len(environments)} ({env.metadata.name}): "
-                            f"{len(env.spec.data)} vars"
-                        )
-                
-                # Runtime env vars from execution have highest priority
-                if execution.spec.runtime_env:
-                    # Convert ExecutionValue to string values
-                    runtime_vars = {
-                        key: value.value 
-                        for key, value in execution.spec.runtime_env.items()
-                    }
-                    merged_env_vars.update(runtime_vars)
-                    activity_logger.info(f"Applied runtime env overrides: {len(runtime_vars)} vars")
-                
-                activity_logger.info(f"Final merged environment: {len(merged_env_vars)} total vars")
-                
-            except Exception as e:
-                activity_logger.error(f"Failed to merge environments: {e}")
-                # Continue without environments rather than failing execution
-                merged_env_vars = {}
+                        activity_logger.info(f"[Legacy] Base env vars from agent: {len(agent.spec.env_spec.data)}")
+                    
+                    # Layer each environment (order matters!)
+                    for idx, env in enumerate(environments):
+                        if env.spec.data:
+                            # Extract values from EnvironmentValue objects
+                            for key, env_value in env.spec.data.items():
+                                merged_env_vars[key] = env_value.value
+                            activity_logger.info(
+                                f"[Legacy] Merged env {idx+1}/{len(environments)} ({env.metadata.name}): "
+                                f"{len(env.spec.data)} vars"
+                            )
+                    
+                    # Runtime env vars from execution have highest priority
+                    if execution.spec.runtime_env:
+                        # Convert ExecutionValue to string values
+                        runtime_vars = {
+                            key: value.value 
+                            for key, value in execution.spec.runtime_env.items()
+                        }
+                        merged_env_vars.update(runtime_vars)
+                        activity_logger.info(f"[Legacy] Applied runtime env overrides: {len(runtime_vars)} vars")
+                    
+                    activity_logger.info(f"[Legacy] Final merged environment: {len(merged_env_vars)} total vars")
+                    
+                except Exception as e:
+                    activity_logger.error(f"[Legacy] Failed to merge environments: {e}")
+                    # Continue without environments rather than failing execution
+                    merged_env_vars = {}
         
         # Step 5: Fetch and transform MCP servers (from agent template via mcp_server_usages)
         # MCP servers provide external tools via Model Context Protocol

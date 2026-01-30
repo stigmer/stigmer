@@ -4,9 +4,9 @@
 Drag this file into chat to continue.
 
 ## Current State
-- **Status**: ✅ Milestone 1 COMPLETE - Encryption Foundation implemented
-- **Last Session**: 2026-01-30 - Implemented AES-256-GCM encryption for environment secrets
-- **Active Milestone**: Ready for Milestone 2 (ExecutionContext Lifecycle)
+- **Status**: ✅✅ Milestones 1 & 2 COMPLETE - Encryption + ExecutionContext implemented
+- **Last Session**: 2026-01-30 - Implemented ExecutionContext lifecycle with secure env merging
+- **Active Milestone**: Ready for Milestone 3 (Environment Resolution)
 
 ## Status After Milestone 1 Completion
 
@@ -31,9 +31,11 @@ Drag this file into chat to continue.
 4. **Pulumi-Inspired**: SDK-first, layered environments, runtime overrides
 5. **Security**: ExecutionContext pattern - pass IDs through Temporal, not secrets
 
-## Session Progress (2026-01-30)
+## Session Progress
 
-### Accomplishments
+### Session 2 (2026-01-30) - Milestone 2: ExecutionContext Lifecycle
+
+#### Accomplishments
 - ✅ **Milestone 1: Encryption Foundation COMPLETE**
 - ✅ Implemented AES-256-GCM encryption for both Cloud (Java) and OSS (Go)
 - ✅ Created encryption pipeline steps (Encrypt, Decrypt, Redact)
@@ -81,31 +83,31 @@ Drag this file into chat to continue.
 | Milestone | Duration | Status |
 |-----------|----------|--------|
 | **1. Encryption Foundation** | **2-3 days** | ✅ **COMPLETE** |
-| 2. ExecutionContext Lifecycle | 2-3 days | ⏭️ **NEXT** |
-| 3. Environment Resolution | 2-3 days | Pending |
-| 4. Runner Integration | 2-3 days | Pending |
+| **2. ExecutionContext Lifecycle** | **2-3 days** | ✅ **COMPLETE** |
+| 3. Environment Resolution | 2-3 days | ⏭️ **NEXT** |
+| 4. Runner Integration | 2-3 days | ⚠️ **PARTIALLY DONE** (ExecutionContext clients added) |
 | 5. **MCP Server Env Resolution** | 1-2 days | Pending |
 | 6. CLI Integration | 1-2 days | Pending |
 
-**Total: ~12-16 days** (Milestone 1 complete, ~9-13 days remaining)
+**Total: ~12-16 days** (Milestones 1-2 complete, ~6-10 days remaining)
 
-## Next Steps (Milestone 2: ExecutionContext Lifecycle)
+## Next Steps (Milestone 3: Environment Resolution)
 
 ### Immediate Actions
-1. **Add findByExecutionId query** to ExecutionContextRepo
-2. **Create GetByExecutionIdHandler** for internal gRPC access
-3. **Modify AgentExecutionCreateHandler**:
-   - Merge environments (template + instance + runtime)
-   - Create ExecutionContext with merged env
-   - Pass only execution_id to Temporal (NO SECRETS)
-4. **Modify WorkflowExecutionCreateHandler** (same pattern)
-5. **Add cleanup logic** - Delete ExecutionContext on completion
+1. **Implement environment resolution** for Agent/Workflow templates
+2. **Add environment ref loading** from Instance.environment_refs
+3. **Implement placeholder resolution** for MCP server configurations:
+   - HttpServerConfig headers and query_params
+   - StdioServerConfig env (future)
+   - DockerServerConfig env (future)
+4. **Add validation** for required environment variables
+5. **Create PlaceholderResolverService** for ${VAR} substitution
 
 ### Implementation Approach
-- Follow same patterns as Milestone 1 (pipeline steps, ConfigurationProperties)
-- Use EnvironmentSecretService for encryption/decryption
-- Add TTL-based auto-deletion backup (24h)
-- Comprehensive tests for lifecycle management
+- Extend EnvironmentMergeService for MCP server support
+- Create PlaceholderResolverService for template variable resolution
+- Add validation for missing required env vars
+- Comprehensive tests for resolution logic and edge cases
 
 ## Context for Resume
 
@@ -126,6 +128,67 @@ Drag this file into chat to continue.
 - Integration tests verify MongoDB encryption
 - Cross-platform tests use shared test vectors
 - Test key: `MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=`
+
+### Session 1 (2026-01-30) - Milestone 1: Encryption Foundation
+
+#### Accomplishments
+- ✅ **Milestone 1: Encryption Foundation COMPLETE**
+- ✅ Implemented AES-256-GCM encryption for both Cloud (Java) and OSS (Go)
+- ✅ Created encryption pipeline steps (Encrypt, Decrypt, Redact)
+- ✅ Integrated encryption into Environment CRUD handlers
+- ✅ Created comprehensive unit and integration tests
+- ✅ Established cross-platform compatibility (Java ↔ Go)
+- ✅ Added encryption key configuration (service.yaml, secrets-group)
+
+---
+
+## Session Progress (Most Recent)
+
+### Session 2 (2026-01-30) - Milestone 2: ExecutionContext Lifecycle ✅ COMPLETE
+
+#### Accomplishments
+- ✅ **Milestone 2: ExecutionContext Lifecycle COMPLETE**
+- ✅ Added `getByExecutionId` RPC to ExecutionContext proto (operator-only)
+- ✅ Implemented `EnvironmentMergeService` with priority-based merging
+- ✅ Created pipeline steps for both AgentExecution and WorkflowExecution
+- ✅ Integrated ExecutionContext creation into execution handlers
+- ✅ Implemented Temporal cleanup activity (finally blocks + TTL index)
+- ✅ Added runner integration (Go + Python) with backward compatibility
+- ✅ Created comprehensive unit tests for EnvironmentMergeService
+
+#### Files Modified/Created (27 files)
+
+**stigmer (11 files):**
+- Proto definitions: io.proto, query.proto
+- Go/Python stubs regenerated
+- New runner clients: execution_context_client.go, execution_context_client.py
+- Modified activities: execute_workflow_activity.go, execute_graphton.py
+
+**stigmer-cloud (16 files):**
+- Java stubs regenerated
+- New services: EnvironmentMergeService.java
+- New handlers: ExecutionContextGetByExecutionIdHandler.java
+- New pipeline steps: DecryptExecutionContextValues.java, CreateExecutionContextStep.java (×2)
+- New Temporal activities: DeleteExecutionContextActivity.java + Impl
+- Modified handlers: AgentExecutionCreateHandler.java, WorkflowExecutionCreateHandler.java
+- Modified workflows: InvokeAgentExecutionWorkflowImpl.java, InvokeWorkflowExecutionWorkflowImpl.java
+- Modified repo: ExecutionContextRepo.java (added TTL index)
+- New tests: EnvironmentMergeServiceTest.java
+
+#### Key Decisions
+1. **Security**: Secrets encrypted at rest, decrypted only for operator-level runners
+2. **Backward Compatibility**: Runners try ExecutionContext first, fall back to legacy flow
+3. **Cleanup Strategy**: Dual-layer (Temporal activity + 24h TTL index)
+4. **Priority Order**: Template < Instance envs < Runtime env (Pulumi-inspired)
+5. **Bean Naming**: Unique @Component names to avoid Spring collision
+
+#### Technical Highlights
+- Cross-repository proto generation (stigmer + stigmer-cloud)
+- Environment merging with source decryption and re-encryption
+- Idempotent, fault-tolerant cleanup (logs errors, doesn't throw)
+- Backward compatibility via NOT_FOUND error handling in runners
+
+**Detailed checkpoint:** `checkpoints/2026-01-30-milestone-2-complete.md`
 
 ## Quality Requirements (From User)
 
