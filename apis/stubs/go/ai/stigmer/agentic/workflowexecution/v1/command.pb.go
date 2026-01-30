@@ -26,30 +26,34 @@ var File_ai_stigmer_agentic_workflowexecution_v1_command_proto protoreflect.File
 
 const file_ai_stigmer_agentic_workflowexecution_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"5ai/stigmer/agentic/workflowexecution/v1/command.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a0ai/stigmer/agentic/workflowexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x88\x06\n" +
+	"5ai/stigmer/agentic/workflowexecution/v1/command.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a0ai/stigmer/agentic/workflowexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xed\a\n" +
 	"\"WorkflowExecutionCommandController\x12\x80\x01\n" +
 	"\x06create\x12:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x12\xc2\x01\n" +
 	"\x06update\x12:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"@¸\x18<\b\x04\x104\"\vmetadata.id*)unauthorized to update workflow execution\x12\xe1\x01\n" +
-	"\fupdateStatus\x12K.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"H¸\x18D\b\x04\x104\"\fexecution_id*0unauthorized to update workflow execution status\x12\xaf\x01\n" +
+	"\fupdateStatus\x12K.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"H¸\x18D\b\x04\x104\"\fexecution_id*0unauthorized to update workflow execution status\x12\xe2\x01\n" +
+	"\x0esubmitApproval\x12D.ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"N¸\x18J\b\x04\x104\"\fexecution_id*6unauthorized to submit approval for workflow execution\x12\xaf\x01\n" +
 	"\x06delete\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\":¸\x186\b\x04\x104\"\x05value*)unauthorized to delete workflow execution\x1a\x04\xa0\xff+4B\xe2\x02\n" +
 	"+com.ai.stigmer.agentic.workflowexecution.v1B\fCommandProtoP\x01Zdgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_workflowexecution_v1_command_proto_goTypes = []any{
 	(*WorkflowExecution)(nil),                  // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
 	(*WorkflowExecutionUpdateStatusInput)(nil), // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput
-	(*apiresource.ApiResourceId)(nil),          // 2: ai.stigmer.commons.apiresource.ApiResourceId
+	(*SubmitWorkflowApprovalInput)(nil),        // 2: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput
+	(*apiresource.ApiResourceId)(nil),          // 3: ai.stigmer.commons.apiresource.ApiResourceId
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.create:input_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
 	0, // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.update:input_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
 	1, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.updateStatus:input_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput
-	2, // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceId
-	0, // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.create:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	0, // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.update:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	0, // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.updateStatus:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	0, // 7: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.delete:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
+	2, // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.submitApproval:input_type -> ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput
+	3, // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceId
+	0, // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.create:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0, // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.update:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0, // 7: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.updateStatus:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0, // 8: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.submitApproval:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0, // 9: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.delete:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

@@ -1411,9 +1411,21 @@ type PendingApproval struct {
 	// Name of the sub-agent if from_sub_agent is true.
 	// Example: "code-reviewer", "researcher", "debugger"
 	// Empty if from_sub_agent is false.
-	SubAgentName  string `protobuf:"bytes,7,opt,name=sub_agent_name,json=subAgentName,proto3" json:"sub_agent_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	SubAgentName string `protobuf:"bytes,7,opt,name=sub_agent_name,json=subAgentName,proto3" json:"sub_agent_name,omitempty"`
+	// ID of the child agent execution (for workflow-level approvals only).
+	//
+	// Populated when this PendingApproval is surfaced at WorkflowExecution level.
+	// Empty when pending_approval is on AgentExecution directly.
+	//
+	// Use this ID to forward approvals from workflow to child agent via
+	// AgentExecution.submitApproval RPC.
+	//
+	// Format: "aex_abc123xyz456"
+	//
+	// @since Phase 5.3 (Approval Forwarding)
+	ChildAgentExecutionId string `protobuf:"bytes,8,opt,name=child_agent_execution_id,json=childAgentExecutionId,proto3" json:"child_agent_execution_id,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *PendingApproval) Reset() {
@@ -1491,6 +1503,13 @@ func (x *PendingApproval) GetFromSubAgent() bool {
 func (x *PendingApproval) GetSubAgentName() string {
 	if x != nil {
 		return x.SubAgentName
+	}
+	return ""
+}
+
+func (x *PendingApproval) GetChildAgentExecutionId() string {
+	if x != nil {
+		return x.ChildAgentExecutionId
 	}
 	return ""
 }
@@ -1741,7 +1760,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x19McpServerResolutionStatus\x12\x1a\n" +
 	"\bresolved\x18\x01 \x01(\bR\bresolved\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12,\n" +
-	"\x12enabled_tool_count\x18\x03 \x01(\x05R\x10enabledToolCount\"\xfc\x01\n" +
+	"\x12enabled_tool_count\x18\x03 \x01(\x05R\x10enabledToolCount\"\xb5\x02\n" +
 	"\x0fPendingApproval\x12 \n" +
 	"\ftool_call_id\x18\x01 \x01(\tR\n" +
 	"toolCallId\x12\x1b\n" +
@@ -1750,7 +1769,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\fargs_preview\x18\x04 \x01(\tR\vargsPreview\x12!\n" +
 	"\frequested_at\x18\x05 \x01(\tR\vrequestedAt\x12$\n" +
 	"\x0efrom_sub_agent\x18\x06 \x01(\bR\ffromSubAgent\x12$\n" +
-	"\x0esub_agent_name\x18\a \x01(\tR\fsubAgentName\"\xdd\x01\n" +
+	"\x0esub_agent_name\x18\a \x01(\tR\fsubAgentName\x127\n" +
+	"\x18child_agent_execution_id\x18\b \x01(\tR\x15childAgentExecutionId\"\xdd\x01\n" +
 	"\x19ChildApprovalNotification\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12 \n" +
 	"\ftool_call_id\x18\x02 \x01(\tR\n" +

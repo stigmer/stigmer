@@ -18,9 +18,130 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-01-30
-**Last Session**: 2026-01-30 (Phase 5.2 Workflow Status Propagation)
-**Current Phase**: Phase 5.2 Complete
-**Status**: READY - pending_approval field handling complete, ready for Phase 5.3 (Approval Forwarding)
+**Last Session**: 2026-01-30 (Phase 5.3 Approval Forwarding)
+**Current Phase**: Phase 5.3 Complete
+**Status**: READY - Workflow-level approval forwarding complete, ready for Phase 5.4 (Verification) or Phase 5.5 (E2E Testing)
+
+---
+
+## Session Progress (2026-01-30 - Phase 5.3 Approval Forwarding)
+
+### Completed - Phase 5.3: Workflow-Level Approval Submission
+**Duration**: ~1 hour | **Lines Added**: ~1,050 lines (7 modified proto/Go files, 2 new Java files, stubs regenerated)
+
+#### What Was Accomplished
+
+Implemented complete workflow-level approval forwarding mechanism, enabling users to submit approvals through the `WorkflowExecution` API. The approval is automatically forwarded to the child `AgentExecution`, providing a convenient alternative to submitting directly to the agent.
+
+1. **Proto Changes** (stigmer)
+   - Added `child_agent_execution_id` field (field 8) to `PendingApproval` message
+   - Added `submitApproval` RPC to `WorkflowExecutionCommandController`
+   - Added `SubmitWorkflowApprovalInput` message with full validation
+   - Comprehensive documentation following Stigmer API standards
+
+2. **Go Update** (stigmer)
+   - Updated `UpdateWorkflowTaskApprovalStatus` to populate `ChildAgentExecutionId`
+   - Enables workflow-level approval forwarding from Phase 5.1 signal handler
+
+3. **Java Handler** (stigmer-cloud)
+   - Created `WorkflowExecutionSubmitApprovalHandler.java` (~360 lines)
+   - 5-step pipeline: LoadExisting, Authorize, ValidateApproval, ForwardToChild, BuildResponse
+   - Direct handler injection (not gRPC) for in-process forwarding
+   - Comprehensive error handling and audit logging
+
+4. **Comprehensive Unit Tests** (stigmer-cloud)
+   - Created `WorkflowExecutionSubmitApprovalHandlerTest.java` (~630 lines)
+   - 25+ unit tests covering all pipeline steps
+   - Tests for validation errors, authorization failures, forwarding errors
+   - Tests verify correct input propagation and authorization skipping
+
+5. **Stub Regeneration**
+   - All language stubs regenerated: Go, Java, Python, TypeScript, Dart
+   - buf build and buf lint passed successfully
+
+#### Key Technical Achievements
+
+| Achievement | Implementation | Impact |
+|-------------|---------------|--------|
+| **Dual Submission Paths** | Workflow or Agent API both work | Flexible UX - users choose convenience |
+| **Handler Forwarding** | Direct injection vs gRPC | In-process, no network overhead |
+| **Authorization Propagation** | Skip auth on child handler | Workflow auth implies child auth |
+| **Clean Architecture** | 5-step pipeline pattern | Consistent with existing handlers |
+| **Comprehensive Tests** | 25+ tests, all scenarios covered | Full confidence in forwarding logic |
+
+#### Architecture Flow
+
+```
+User → WorkflowExecution.submitApproval
+    │
+    ├─ Load workflow execution from DB
+    ├─ Authorize: user has can_edit on workflow
+    ├─ Validate: pending_approval exists, tool_call_id matches, child_id present
+    ├─ Forward: Call AgentExecutionSubmitApprovalHandler.handle()
+    │   ├─ Authorization skipped (inherited from workflow)
+    │   ├─ Validation at agent level
+    │   ├─ Temporal signal sent to agent workflow
+    │   └─ Agent resumes execution
+    └─ Return workflow execution (status updates async)
+```
+
+#### Files Modified
+
+**stigmer repo**:
+```
+apis/ai/stigmer/agentic/agentexecution/v1/api.proto                        (+13 lines - child_agent_execution_id field)
+apis/ai/stigmer/agentic/workflowexecution/v1/command.proto                 (+64 lines - submitApproval RPC)
+apis/ai/stigmer/agentic/workflowexecution/v1/io.proto                      (+61 lines - SubmitWorkflowApprovalInput)
+backend/services/workflow-runner/pkg/zigflow/tasks/
+  - task_builder_call_agent_activities.go                                   (+1 line - populate child_agent_execution_id)
+All stub files regenerated (Go, Python)
+```
+
+**stigmer-cloud repo**:
+```
+backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/workflowexecution/request/handler/
+  - WorkflowExecutionSubmitApprovalHandler.java                             (NEW - ~360 lines)
+backend/services/stigmer-service/src/test/java/ai/stigmer/domain/agentic/workflowexecution/request/handler/
+  - WorkflowExecutionSubmitApprovalHandlerTest.java                         (NEW - ~630 lines)
+All stub files regenerated (Java, Python, TypeScript, Dart)
+```
+
+**Net Changes**: ~1,050 lines (7 modified proto/Go files, 2 new Java files, all stubs)
+
+**Test Coverage**: 25+ new unit tests, all passing ✅
+
+#### Key Design Decisions
+
+1. **child_agent_execution_id in PendingApproval**
+   - Makes the API explicit and type-safe
+   - Avoids JSON parsing of task metadata
+   - Follows pattern of centralizing approval info
+
+2. **Direct Handler Injection vs gRPC**
+   - `ForwardToChildStep` calls `AgentExecutionSubmitApprovalHandler.handle()` directly
+   - In-process call eliminates network overhead
+   - Maintains proper transaction/context propagation
+   - Reuses existing validation and Temporal signal logic
+
+3. **Authorization Propagation**
+   - Workflow-level authorization implies child authorization
+   - Sets `skipAuthorization=true` on child context
+   - Avoids redundant permission checks
+
+4. **Error Mapping from Child**
+   - Child handler errors mapped to appropriate gRPC status codes
+   - NOT_FOUND, FAILED_PRECONDITION, INVALID_ARGUMENT preserved
+   - Generic errors default to UNAVAILABLE
+
+#### What This Completes
+
+Phase 5.3 completes the workflow-level approval submission mechanism. Now:
+- ✅ Users can submit approvals via `WorkflowExecution.submitApproval` RPC
+- ✅ Approvals automatically forwarded to child `AgentExecution`
+- ✅ Both submission paths work (workflow or agent API)
+- ✅ Full validation and error handling
+- ✅ Comprehensive audit logging
+- ✅ Ready for Phase 5.4: Approval Resumption Verification
 
 ---
 
@@ -780,10 +901,11 @@ Tools that match approval policies will now be correctly marked `WAITING_APPROVA
 - [x] Add comprehensive audit logging for approval decisions
 - [x] Comprehensive unit tests (25+ tests across handler and workflow)
 
-### Phase 5: Workflow Integration - ✅ 5.1 & 5.2 COMPLETE, 5.3-5.5 REMAINING
+### Phase 5: Workflow Integration - ✅ 5.1, 5.2 & 5.3 COMPLETE, 5.4-5.5 REMAINING
 **Plans**: 
 - Phase 5.1: `.cursor/plans/hitl_phase_5.1_events_5363b890.plan.md` (Events-Based Notification)
 - Phase 5.2: `.cursor/plans/phase_5.2_workflow_status_f79f8b00.plan.md` (Workflow Status Propagation)
+- Phase 5.3: `.cursor/plans/hitl_phase_5.3_approval_forwarding_60aedf93.plan.md` (Approval Forwarding)
 
 **Sub-Tasks**:
 - [x] **5.1**: Child Agent Approval Detection (Events-Based) - ✅ COMPLETE (2 hours)
@@ -802,14 +924,13 @@ Tools that match approval policies will now be correctly marked `WAITING_APPROVA
   - Fixed Go ClearWorkflowApprovalStatus to send empty PendingApproval
   - Comprehensive tests (25+ Java unit tests, 3 Go protocol tests, all passing)
   
-- [ ] **5.3**: Approval Forwarding Mechanism (Optional Convenience) - 75-90 min (NEXT TASK)
-  - Add submitApproval RPC to WorkflowExecutionCommandController (proto change)
-  - Add SubmitWorkflowApprovalInput message with validation
-  - Implement WorkflowExecutionSubmitApprovalHandler (pipeline pattern)
-  - Extract child agent_execution_id from workflow task metadata
-  - Forward approval to child AgentExecution via AgentExecution.submitApproval RPC
-  - Add validation and authorization checks
-  - Comprehensive unit tests
+- [x] **5.3**: Approval Forwarding Mechanism - ✅ COMPLETE (1 hour)
+  - Added child_agent_execution_id field to PendingApproval proto
+  - Added submitApproval RPC to WorkflowExecutionCommandController
+  - Added SubmitWorkflowApprovalInput message with validation
+  - Implemented WorkflowExecutionSubmitApprovalHandler (5-step pipeline)
+  - Forward approval via direct handler injection (in-process)
+  - Comprehensive unit tests (25+ tests, all passing)
   - Users can submit via workflow OR agent API (both work)
   
 - [ ] **5.4**: Approval Resumption Verification - 60-75 min

@@ -45,6 +45,11 @@ class WorkflowExecutionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.WorkflowExecutionUpdateStatusInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
                 _registered_method=True)
+        self.submitApproval = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitApproval',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowApprovalInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.SerializeToString,
@@ -304,6 +309,69 @@ class WorkflowExecutionCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def submitApproval(self, request, context):
+        """Submit approval for a child agent's tool execution (HITL Phase 5.3).
+
+        This RPC forwards the approval decision to the child AgentExecution that
+        is waiting for approval. The child is identified by the child_agent_execution_id
+        in status.pending_approval.
+
+        ## Behavior
+
+        When a workflow invokes an agent that requires tool approval, the approval
+        request surfaces at the workflow level via status.pending_approval. Users can
+        submit their decision through this RPC, which forwards it to the child agent.
+
+        The approval is forwarded to the child via AgentExecution.submitApproval RPC,
+        ensuring consistent validation and Temporal workflow signaling.
+
+        ## Preconditions
+
+        - status.pending_approval must be populated
+        - tool_call_id must match status.pending_approval.tool_call_id
+        - status.pending_approval.child_agent_execution_id must not be empty
+        - User must have can_edit permission on the workflow execution
+
+        ## State Transitions
+
+        After successful approval:
+        - Approval is forwarded to child AgentExecution
+        - Child agent resumes execution based on action (APPROVE/SKIP/REJECT)
+        - Child agent clears its pending_approval, which triggers signal to parent
+        - WorkflowExecution.status.pending_approval is eventually cleared
+        - Workflow task status returns from WAITING_APPROVAL to IN_PROGRESS
+
+        ## Approval Actions
+
+        - APPROVE: Tool executes with the provided arguments
+        - SKIP: Tool execution is skipped, agent continues with skip message
+        - REJECT: Agent execution fails with rejection error
+
+        ## Error Cases
+
+        - NOT_FOUND: Workflow execution doesn't exist
+        - PERMISSION_DENIED: User doesn't have can_edit permission
+        - FAILED_PRECONDITION: No pending approval, or child agent not waiting
+        - INVALID_ARGUMENT: Tool call ID mismatch, or action is UNSPECIFIED
+        - UNAVAILABLE: Failed to forward to child agent (transient error)
+
+        ## Idempotency
+
+        If the same approval is submitted twice (same workflow execution, tool_call_id,
+        and action), the second call is a no-op if the approval was already processed.
+
+        ## Alternative: Direct Agent Approval
+
+        Users can also submit approvals directly via AgentExecution.submitApproval
+        using the child_agent_execution_id. Both paths are equivalent and result
+        in the same state transitions.
+
+        @since Phase 5.3 (Approval Forwarding)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def delete(self, request, context):
         """Delete an execution.
         """
@@ -327,6 +395,11 @@ def add_WorkflowExecutionCommandControllerServicer_to_server(servicer, server):
             'updateStatus': grpc.unary_unary_rpc_method_handler(
                     servicer.updateStatus,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.WorkflowExecutionUpdateStatusInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
+            ),
+            'submitApproval': grpc.unary_unary_rpc_method_handler(
+                    servicer.submitApproval,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowApprovalInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -429,6 +502,33 @@ class WorkflowExecutionCommandController(object):
             target,
             '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/updateStatus',
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.WorkflowExecutionUpdateStatusInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def submitApproval(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitApproval',
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowApprovalInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
             options,
             channel_credentials,
