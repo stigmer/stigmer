@@ -20,7 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
+	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	workflowtasks "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/rs/zerolog/log"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
@@ -59,11 +60,25 @@ type CallAgentTaskBuilder struct {
 	builder[*model.CallFunction]
 
 	// Parsed agent call configuration from task.With
-	agentConfig *tasks.AgentCallTaskConfig
+	agentConfig *workflowtasks.AgentCallTaskConfig
 }
 
 // Build creates a Temporal workflow function that executes an agent call.
 // It parses the task configuration and delegates to the agent execution activity.
+//
+// ## Events-Based Approval Notification (Phase 5.1)
+//
+// When the child agent requires tool approval (enters WAITING_FOR_APPROVAL phase),
+// the Java agent execution workflow signals this workflow via "child_approval_required".
+// This function listens for that signal while waiting for the activity to complete.
+//
+// ## Signal Handling Pattern
+//
+// 1. Start agent activity (async completion pattern)
+// 2. Listen for "child_approval_required" signal in parallel
+// 3. When signal received: update workflow task status to WAITING_APPROVAL
+// 4. Continue listening until activity completes
+// 5. On completion: clear any pending approval state
 func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	log.Debug().Str("task", t.GetTaskName()).Msg("Building call agent task")
 	
@@ -84,17 +99,66 @@ func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 			return nil, fmt.Errorf("error evaluating agent task expressions: %w", err)
 		}
 
-		logger.Info("Executing agent call activity",
+		// Get parent workflow ID for events-based approval notification
+		// The child agent will signal this workflow when it requires approval
+		workflowInfo := workflow.GetInfo(ctx)
+		parentWorkflowId := workflowInfo.WorkflowExecution.ID
+
+		logger.Info("Executing agent call activity with parent workflow context",
 			"agent", t.agentConfig.Agent,
 			"scope", t.agentConfig.Scope,
-			"task", t.GetTaskName())
+			"task", t.GetTaskName(),
+			"parent_workflow_id", parentWorkflowId)
 
-		// Call agent activity directly with parsed config (not via executeActivity base method)
-		// We pass: agentConfig (parsed task config), input (workflow input), state.Env (runtime environment)
+		// Call agent activity with parent workflow ID for signal-based notification
+		// We pass: agentConfig, input, state.Env, parentWorkflowId
 		var res any
 		future := workflow.ExecuteActivity(ctx, (*CallAgentActivities).CallAgentActivity, 
-			t.agentConfig, input, state.Env)
+			t.agentConfig, input, state.Env, parentWorkflowId)
 		
+		// Setup signal channel for child approval notifications
+		// The Java agent execution workflow sends this signal when the agent
+		// enters WAITING_FOR_APPROVAL phase
+		approvalSignalCh := workflow.GetSignalChannel(ctx, SignalChildApprovalRequired)
+		
+		// Track activity completion
+		activityDone := false
+		
+		// Listen for signals while waiting for activity completion
+		// This follows the pattern from task_builder_listen.go
+		for !activityDone {
+			// Use selector to wait for either activity completion or approval signal
+			selector := workflow.NewNamedSelector(ctx, "approval-or-completion")
+			
+			// Add activity future to selector
+			selector.AddFuture(future, func(f workflow.Future) {
+				activityDone = true
+			})
+			
+			// Add signal channel to selector
+			selector.AddReceive(approvalSignalCh, func(c workflow.ReceiveChannel, more bool) {
+				var notification agentexecv1.ChildApprovalNotification
+				c.Receive(ctx, &notification)
+				
+				logger.Info("Received child approval notification",
+					"execution_id", notification.ExecutionId,
+					"tool_call_id", notification.ToolCallId,
+					"tool_name", notification.ToolName,
+					"task", t.GetTaskName())
+				
+				// Update workflow task status to WAITING_APPROVAL
+				if err := t.updateTaskApprovalStatus(ctx, state, &notification); err != nil {
+					logger.Error("Failed to update task approval status", 
+						"error", err,
+						"task", t.GetTaskName())
+				}
+			})
+			
+			// Wait for one of the conditions
+			selector.Select(ctx)
+		}
+		
+		// Activity completed - get result
 		if err := future.Get(ctx, &res); err != nil {
 			// Handle workflow cancellation gracefully
 			if temporal.IsCanceledError(err) {
@@ -105,6 +169,9 @@ func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 			return nil, fmt.Errorf("agent call activity failed: %w", err)
 		}
 
+		// Clear any pending approval state on successful completion
+		t.clearTaskApprovalStatus(ctx, state)
+
 		// Store result in state
 		state.AddData(map[string]any{
 			t.GetTaskName(): res,
@@ -112,6 +179,112 @@ func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 		return res, nil
 	}, nil
+}
+
+// updateTaskApprovalStatus updates the workflow task to WAITING_APPROVAL state
+// and sends a status update to stigmer-service with the pending approval details.
+//
+// This is called when a child agent signals that it requires approval.
+// The status update allows the UI to display the approval request at the
+// workflow level, not just at the agent execution level.
+func (t *CallAgentTaskBuilder) updateTaskApprovalStatus(
+	ctx workflow.Context,
+	state *utils.State,
+	notification *agentexecv1.ChildApprovalNotification,
+) error {
+	logger := workflow.GetLogger(ctx)
+	
+	// Extract workflow execution ID from state
+	// This was stored by temporal_workflow.go when the workflow started
+	executionId := getExecutionIdFromState(state)
+	if executionId == "" {
+		logger.Warn("Workflow execution ID not found in state - cannot update approval status",
+			"task", t.GetTaskName())
+		return nil // Non-fatal
+	}
+	
+	logger.Info("Updating workflow task to WAITING_APPROVAL",
+		"task", t.GetTaskName(),
+		"execution_id", executionId,
+		"agent_execution_id", notification.ExecutionId,
+		"tool_name", notification.ToolName)
+	
+	// Execute local activity to update workflow execution status
+	// Local activities run in-process without going through task queues
+	localCtx := workflow.WithLocalActivityOptions(ctx, getLocalActivityOptions())
+	
+	err := workflow.ExecuteLocalActivity(localCtx,
+		(*CallAgentActivities).UpdateWorkflowTaskApprovalStatus,
+		executionId,
+		t.GetTaskName(),
+		notification,
+	).Get(ctx, nil)
+	
+	if err != nil {
+		logger.Error("Failed to execute UpdateWorkflowTaskApprovalStatus activity",
+			"error", err,
+			"task", t.GetTaskName())
+		// Non-fatal: continue execution even if status update fails
+		// The approval can still be submitted via the AgentExecution API
+		return err
+	}
+	
+	logger.Info("Successfully updated workflow task approval status",
+		"task", t.GetTaskName())
+	return nil
+}
+
+// clearTaskApprovalStatus clears any pending approval state when the task completes.
+// This ensures the WorkflowExecution.status.pending_approval is cleared when
+// the child agent finishes (whether approved, rejected, or no approval needed).
+func (t *CallAgentTaskBuilder) clearTaskApprovalStatus(
+	ctx workflow.Context,
+	state *utils.State,
+) {
+	logger := workflow.GetLogger(ctx)
+	
+	// Extract workflow execution ID from state
+	executionId := getExecutionIdFromState(state)
+	if executionId == "" {
+		logger.Debug("Workflow execution ID not found - skipping approval status clear",
+			"task", t.GetTaskName())
+		return
+	}
+	
+	logger.Debug("Clearing task approval status on completion",
+		"task", t.GetTaskName(),
+		"execution_id", executionId)
+	
+	// Execute local activity to clear pending approval
+	localCtx := workflow.WithLocalActivityOptions(ctx, getLocalActivityOptions())
+	
+	err := workflow.ExecuteLocalActivity(localCtx,
+		(*CallAgentActivities).ClearWorkflowApprovalStatus,
+		executionId,
+	).Get(ctx, nil)
+	
+	if err != nil {
+		// Log but don't fail - clearing status is best-effort
+		logger.Warn("Failed to clear workflow approval status",
+			"error", err,
+			"task", t.GetTaskName())
+	}
+}
+
+// getExecutionIdFromState extracts the workflow execution ID from state.Data.
+// The execution ID is stored by temporal_workflow.go when the workflow starts.
+func getExecutionIdFromState(state *utils.State) string {
+	if state == nil || state.Data == nil {
+		return ""
+	}
+	
+	if execId, ok := state.Data["__stigmer_execution_id"]; ok {
+		if execIdStr, ok := execId.(string); ok {
+			return execIdStr
+		}
+	}
+	
+	return ""
 }
 
 // parseConfig unmarshals the CallFunction.With field into AgentCallTaskConfig.
@@ -125,7 +298,7 @@ func (t *CallAgentTaskBuilder) parseConfig() error {
 
 	// Unmarshal into AgentCallTaskConfig using protojson
 	// This properly handles string enum values (e.g., "organization", "platform")
-	t.agentConfig = &tasks.AgentCallTaskConfig{}
+	t.agentConfig = &workflowtasks.AgentCallTaskConfig{}
 	if err := protojson.Unmarshal(withBytes, t.agentConfig); err != nil {
 		return fmt.Errorf("failed to unmarshal agent call config: %w", err)
 	}
@@ -205,8 +378,20 @@ func isRuntimePlaceholder(value string) bool {
 	// 
 	// Key distinction: runtime placeholders have NO space after ${
 	// We use a simple heuristic: if it starts with ${.secrets or ${.env_vars, it's runtime
-	return len(value) > 10 && value[:11] == "${.secrets." ||
-		len(value) > 12 && value[:13] == "${.env_vars."
+	//
+	// String lengths:
+	// - "${.secrets." = 11 characters (need at least 12 for a valid placeholder)
+	// - "${.env_vars." = 12 characters (need at least 13 for a valid placeholder)
+	const secretsPrefix = "${.secrets."
+	const envVarsPrefix = "${.env_vars."
+	
+	if len(value) > len(secretsPrefix) && value[:len(secretsPrefix)] == secretsPrefix {
+		return true
+	}
+	if len(value) > len(envVarsPrefix) && value[:len(envVarsPrefix)] == envVarsPrefix {
+		return true
+	}
+	return false
 }
 
 // evaluateTaskArguments is required by the builder interface but not used for agent tasks.

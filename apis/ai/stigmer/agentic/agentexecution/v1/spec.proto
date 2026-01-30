@@ -159,6 +159,44 @@ message AgentExecutionSpec {
   //
   // Default: false (approvals required as configured in policies)
   bool auto_approve_all = 7;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Parent Workflow Context (HITL Phase 5.1)
+  //
+  // Events-based notification for approval state propagation.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Parent workflow context for events-based approval notification (optional).
+  //
+  // When a workflow invokes an agent via CallAgentActivity, this field captures
+  // the parent workflow's Temporal workflow ID. This enables the agent execution
+  // workflow to signal the parent when approval is required, eliminating polling.
+  //
+  // ## Signal Pattern
+  //
+  // 1. Go workflow passes its workflow ID when creating AgentExecution
+  // 2. Go workflow starts signal listener for "child_approval_required"
+  // 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
+  // 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
+  //
+  // ## Format
+  //
+  // Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
+  // Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
+  //
+  // ## When Empty
+  //
+  // - Agent invoked directly (not from workflow) - no parent to notify
+  // - Older clients that don't support this field - fallback to direct approval
+  //
+  // ## Backward Compatibility
+  //
+  // This field is optional. Agents invoked without a parent workflow ID will
+  // continue to work normally - approval is submitted directly via the
+  // AgentExecution.SubmitApproval RPC.
+  //
+  // @since Phase 5.1 (Events-Based Approval Notification)
+  string parent_workflow_id = 8;
 }
 
 // Configuration that can be applied at execution time.

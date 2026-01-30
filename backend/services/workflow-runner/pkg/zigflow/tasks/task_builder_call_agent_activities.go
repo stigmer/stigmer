@@ -26,15 +26,34 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	workflowexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowtasks "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/config"
+	workflowexecclient "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/grpc_client"
 	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/temporal"
+	"go.temporal.io/sdk/workflow"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Signal Constants (HITL Phase 5.1)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// SignalChildApprovalRequired is the Temporal signal name sent by child agent
+// executions when they require approval. The parent workflow listens for this
+// signal to update its task status to WAITING_APPROVAL.
+//
+// Signal Flow:
+// 1. Child agent enters WAITING_FOR_APPROVAL phase
+// 2. Java agent execution workflow sends this signal to parent workflow
+// 3. Parent Go workflow receives signal and updates task status
+// 4. UI can then show approval request at workflow level
+const SignalChildApprovalRequired = "child_approval_required"
 
 func init() {
 	activitiesRegistry = append(activitiesRegistry, &CallAgentActivities{})
@@ -53,17 +72,19 @@ type CallAgentActivities struct{}
 // 1. Extract Temporal task token (unique identifier for this activity execution)
 // 2. Resolve JIT secrets (${.secrets.KEY} → actual values)
 // 3. Resolve agent slug to agent ID
-// 4. Create AgentExecution with callback_token
+// 4. Create AgentExecution with callback_token and parent_workflow_id
 // 5. Return activity.ErrResultPending (activity paused, thread released)
 // 6. [Agent executes asynchronously in Java/Python]
-// 7. [Agent workflow completes and calls back using the token]
-// 8. [Temporal resumes this activity with the result]
+// 7. [If approval needed, Java signals parent via parent_workflow_id]
+// 8. [Agent workflow completes and calls back using the token]
+// 9. [Temporal resumes this activity with the result]
 //
 // **Key Points**:
 // - Worker thread is NOT blocked during agent execution
 // - Activity remains in "Running" state until callback
 // - Token is durable in Temporal; survives restarts
 // - Timeout configured via StartToCloseTimeout (should be 24+ hours)
+// - Parent workflow ID enables events-based approval notification (Phase 5.1)
 //
 // **SECURITY CRITICAL**: Secrets are resolved HERE (in activity), never in workflow context.
 // This ensures secrets don't appear in Temporal workflow history.
@@ -75,6 +96,7 @@ func (a *CallAgentActivities) CallAgentActivity(
 	taskConfig *workflowtasks.AgentCallTaskConfig,
 	input any,
 	runtimeEnv map[string]any,
+	parentWorkflowId string, // Phase 5.1: For events-based approval notification
 ) (any, error) {
 	logger := activity.GetLogger(ctx)
 	logger.Info("⏳ Starting agent call activity (async completion pattern)",
@@ -138,16 +160,17 @@ func (a *CallAgentActivities) CallAgentActivity(
 	}
 	logger.Debug("Agent resolved", "agent", resolvedConfig.Agent, "agent_id", agentId)
 
-	// **STEP 3: Create Agent Execution** (with callback token)
-	execution, err := a.createAgentExecution(ctx, agentId, resolvedConfig, taskToken)
+	// **STEP 3: Create Agent Execution** (with callback token and parent workflow ID)
+	execution, err := a.createAgentExecution(ctx, agentId, resolvedConfig, taskToken, parentWorkflowId)
 	if err != nil {
 		logger.Error("❌ Failed to create agent execution", "error", err)
 		return nil, fmt.Errorf("failed to create agent execution: %w", err)
 	}
 	executionId := execution.Metadata.Id
-	logger.Info("✅ Agent execution created with callback token",
+	logger.Info("✅ Agent execution created with callback token and parent workflow context",
 		"execution_id", executionId,
-		"token_preview", tokenPreview)
+		"token_preview", tokenPreview,
+		"parent_workflow_id", parentWorkflowId)
 
 	// **STEP 4: Return Pending** (async completion - activity paused, thread released)
 	// The agent workflow will complete this activity asynchronously when it finishes.
@@ -248,11 +271,13 @@ func (a *CallAgentActivities) resolveAgent(
 
 // createAgentExecution creates a new agent execution through the AgentExecution command service.
 // The callbackToken enables async activity completion pattern.
+// The parentWorkflowId enables events-based approval notification (Phase 5.1).
 func (a *CallAgentActivities) createAgentExecution(
 	ctx context.Context,
 	agentId string,
 	config *workflowtasks.AgentCallTaskConfig,
 	callbackToken []byte,
+	parentWorkflowId string, // Phase 5.1: For events-based approval notification
 ) (*agentexecv1.AgentExecution, error) {
 	logger := activity.GetLogger(ctx)
 
@@ -267,12 +292,15 @@ func (a *CallAgentActivities) createAgentExecution(
 		}
 	}
 
-	// Build execution spec with callback token for async completion
+	// Build execution spec with callback token and parent workflow ID
+	// - CallbackToken: enables async activity completion pattern
+	// - ParentWorkflowId: enables events-based approval notification (Phase 5.1)
 	spec := &agentexecv1.AgentExecutionSpec{
-		AgentId:       agentId,
-		Message:       config.Message,
-		RuntimeEnv:    runtimeEnv,
-		CallbackToken: callbackToken, // 👈 Pass token for async completion
+		AgentId:          agentId,
+		Message:          config.Message,
+		RuntimeEnv:       runtimeEnv,
+		CallbackToken:    callbackToken,    // For async completion
+		ParentWorkflowId: parentWorkflowId, // For approval signal (Phase 5.1)
 	}
 
 	// Add execution config if provided
@@ -431,6 +459,152 @@ func getOrgIdFromRuntimeEnv(runtimeEnv map[string]any) string {
 	}
 
 	return ""
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Local Activities for Workflow Approval Status (HITL Phase 5.1)
+//
+// These activities update the WorkflowExecution status when child agents
+// require or resolve approval. They run in-process without task queue overhead.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// getLocalActivityOptions returns options for local activities.
+// Local activities run in-process without going through Temporal task queues,
+// which is ideal for quick RPC calls like status updates.
+func getLocalActivityOptions() workflow.LocalActivityOptions {
+	return workflow.LocalActivityOptions{
+		StartToCloseTimeout: 30 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 3,
+			InitialInterval: 2 * time.Second,
+		},
+	}
+}
+
+// UpdateWorkflowTaskApprovalStatus updates the workflow execution to reflect
+// that a child agent task is waiting for approval. This is called when the
+// child agent signals that it has entered WAITING_FOR_APPROVAL phase.
+//
+// This local activity:
+// 1. Builds a PendingApproval from the ChildApprovalNotification
+// 2. Updates the WorkflowExecution status via gRPC
+// 3. Enables UI to display approval request at workflow level
+//
+// The status update is additive - it only sets the pending_approval field
+// without clearing other status fields like tasks[] or phase.
+func (a *CallAgentActivities) UpdateWorkflowTaskApprovalStatus(
+	ctx context.Context,
+	executionId string,
+	taskName string,
+	notification *agentexecv1.ChildApprovalNotification,
+) error {
+	logger := activity.GetLogger(ctx)
+	
+	logger.Info("Updating workflow execution with pending approval",
+		"execution_id", executionId,
+		"task_name", taskName,
+		"agent_execution_id", notification.ExecutionId,
+		"tool_name", notification.ToolName)
+	
+	// Get workflow execution client
+	client, err := workflowexecclient.GetWorkflowExecutionCommandClient()
+	if err != nil {
+		logger.Error("Failed to get workflow execution client", "error", err)
+		return fmt.Errorf("failed to get workflow execution client: %w", err)
+	}
+	
+	// Build pending approval from notification
+	// This surfaces the child's approval request at the workflow level
+	pendingApproval := &agentexecv1.PendingApproval{
+		ToolCallId:  notification.ToolCallId,
+		ToolName:    notification.ToolName,
+		Message:     notification.Message,
+		ArgsPreview: notification.ArgsPreview,
+		RequestedAt: notification.RequestedAt,
+		// Note: from_sub_agent and sub_agent_name are for sub-agent scenarios
+		// In the workflow case, the approval comes from a child agent execution
+	}
+	
+	// Build status update with pending approval
+	// We only set pending_approval - other fields are left unchanged
+	status := &workflowexecv1.WorkflowExecutionStatus{
+		PendingApproval: pendingApproval,
+	}
+	
+	// Update workflow execution status
+	_, err = client.UpdateStatus(ctx, executionId, status)
+	if err != nil {
+		logger.Error("Failed to update workflow execution status",
+			"execution_id", executionId,
+			"error", err)
+		return fmt.Errorf("failed to update workflow execution status: %w", err)
+	}
+	
+	logger.Info("Successfully updated workflow execution with pending approval",
+		"execution_id", executionId,
+		"tool_name", notification.ToolName)
+	
+	return nil
+}
+
+// ClearWorkflowApprovalStatus clears the pending approval from a workflow
+// execution when the child agent task completes (whether approved, rejected,
+// or if no approval was needed).
+//
+// This is called when the agent activity completes successfully. It ensures
+// the WorkflowExecution.status.pending_approval is cleared so UI doesn't
+// show a stale approval request.
+//
+// Implementation Note (Phase 5.2):
+// We send an empty PendingApproval with empty ToolCallId as the clear signal.
+// The Java handler checks hasPendingApproval() && toolCallId.isEmpty() to detect
+// the clear intent, as proto3 semantics require an explicit message to differentiate
+// "clear" from "not provided" (both appear as nil otherwise).
+func (a *CallAgentActivities) ClearWorkflowApprovalStatus(
+	ctx context.Context,
+	executionId string,
+) error {
+	logger := activity.GetLogger(ctx)
+	
+	logger.Debug("Clearing pending approval from workflow execution",
+		"execution_id", executionId)
+	
+	// Get workflow execution client
+	client, err := workflowexecclient.GetWorkflowExecutionCommandClient()
+	if err != nil {
+		logger.Error("Failed to get workflow execution client", "error", err)
+		return fmt.Errorf("failed to get workflow execution client: %w", err)
+	}
+	
+	// Build status update with empty PendingApproval to signal clearing
+	// 
+	// IMPORTANT (Phase 5.2): We send an EMPTY PendingApproval (not nil) with
+	// ToolCallId = "" to signal the Java handler to clear the field.
+	// 
+	// Reasoning:
+	// - Proto3 semantics: nil message field means "not set" -> handler preserves existing
+	// - Empty message with empty ToolCallId signals "clear" -> handler clears field
+	// - This allows status updates (tasks, phase) without affecting pending_approval
+	status := &workflowexecv1.WorkflowExecutionStatus{
+		PendingApproval: &agentexecv1.PendingApproval{
+			ToolCallId: "", // Empty tool_call_id signals clear intent
+		},
+	}
+	
+	// Update workflow execution status
+	_, err = client.UpdateStatus(ctx, executionId, status)
+	if err != nil {
+		// Log but don't fail - clearing is best-effort
+		logger.Warn("Failed to clear workflow pending approval",
+			"execution_id", executionId,
+			"error", err)
+		return fmt.Errorf("failed to clear workflow pending approval: %w", err)
+	}
+	
+	logger.Debug("Successfully cleared pending approval from workflow execution",
+		"execution_id", executionId)
+	
+	return nil
 }
 
 // gRPC client accessors
