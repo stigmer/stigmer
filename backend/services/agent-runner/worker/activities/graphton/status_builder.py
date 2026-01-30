@@ -17,7 +17,8 @@ from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     ToolCall, 
     ComponentMetadata, 
     SubAgentExecution,
-    TodoItem
+    TodoItem,
+    UsageMetrics
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase, 
@@ -103,6 +104,25 @@ class StatusBuilder:
         # Track AI message generation timing within sub-agents (separate from main)
         # Key: (sub_agent_id, message_index), Value: start timestamp
         self._sub_agent_message_start_times: Dict[Tuple[str, int], datetime] = {}
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Usage Metrics Tracking (Phase 2.4)
+        #
+        # These structures track LLM call counts and model usage for UsageMetrics.
+        # ─────────────────────────────────────────────────────────────────────────
+        
+        # Main agent LLM call counter
+        self._llm_call_count: int = 0
+        
+        # Primary model name (captured from first LLM response)
+        self._primary_model: str = ""
+        
+        # Per-sub-agent usage tracking
+        # Key: sub_agent_id (run_id), Value: accumulated metrics
+        self._sub_agent_llm_call_count: Dict[str, int] = {}
+        self._sub_agent_prompt_tokens: Dict[str, int] = {}
+        self._sub_agent_completion_tokens: Dict[str, int] = {}
+        self._sub_agent_primary_model: Dict[str, str] = {}
     
     async def process_event(self, event: Dict[str, Any]) -> None:
         """
@@ -466,10 +486,6 @@ class StatusBuilder:
             response_meta = output_data.get("response_metadata", {})
             model_name = response_meta.get("model", "") or response_meta.get("model_name", "")
         
-        # Accumulate token counts for this execution
-        self._total_prompt_tokens += prompt_tokens
-        self._total_completion_tokens += completion_tokens
-        
         # ─────────────────────────────────────────────────────────────────────────
         # Finalize AI message streaming state fields (Phase 2.1)
         # ─────────────────────────────────────────────────────────────────────────
@@ -485,9 +501,41 @@ class StatusBuilder:
         if generation_duration_ms is not None:
             ai_message.generation_duration_ms = generation_duration_ms
         
-        # Log the metrics (structured logging for observability)
-        # This prepares for Phase 2.4 (UsageMetrics proto) - for now we log for visibility
-        context_info = f"sub_agent={sub_agent.id} " if sub_agent else ""
+        # ─────────────────────────────────────────────────────────────────────────
+        # Update UsageMetrics (Phase 2.4)
+        #
+        # Accumulate tokens and call counts, then build and assign UsageMetrics proto.
+        # Sub-agent and main agent metrics are tracked separately for accurate attribution.
+        # ─────────────────────────────────────────────────────────────────────────
+        context_info = ""
+        if sub_agent:
+            # Track sub-agent usage (isolated from main agent)
+            sa_id = sub_agent.id
+            self._sub_agent_llm_call_count[sa_id] = self._sub_agent_llm_call_count.get(sa_id, 0) + 1
+            self._sub_agent_prompt_tokens[sa_id] = self._sub_agent_prompt_tokens.get(sa_id, 0) + prompt_tokens
+            self._sub_agent_completion_tokens[sa_id] = self._sub_agent_completion_tokens.get(sa_id, 0) + completion_tokens
+            
+            # Capture primary model (first model used by this sub-agent)
+            if not self._sub_agent_primary_model.get(sa_id) and model_name:
+                self._sub_agent_primary_model[sa_id] = model_name
+            
+            # Update sub-agent's usage proto progressively
+            sub_agent.usage.CopyFrom(self._build_sub_agent_usage(sa_id))
+            context_info = f"sub_agent={sa_id} "
+        else:
+            # Track main agent usage
+            self._total_prompt_tokens += prompt_tokens
+            self._total_completion_tokens += completion_tokens
+            self._llm_call_count += 1
+            
+            # Capture primary model (first model used by main agent)
+            if not self._primary_model and model_name:
+                self._primary_model = model_name
+            
+            # Update main agent's usage proto progressively
+            self.current_status.usage.CopyFrom(self._build_usage_metrics())
+        
+        # Structured logging for observability
         self.logger.info(
             f"[USAGE] execution={self.execution_id} {context_info}"
             f"prompt_tokens={prompt_tokens} "
@@ -495,8 +543,7 @@ class StatusBuilder:
             f"total_tokens={total_tokens} "
             f"duration_ms={generation_duration_ms or 'N/A'} "
             f"model={model_name or 'unknown'} "
-            f"cumulative_prompt={self._total_prompt_tokens} "
-            f"cumulative_completion={self._total_completion_tokens}"
+            f"llm_call_count={self._sub_agent_llm_call_count.get(sub_agent.id, 0) if sub_agent else self._llm_call_count}"
         )
         
         self.logger.debug(
@@ -708,3 +755,48 @@ class StatusBuilder:
         ]
         for ns in namespaces_to_remove:
             del self._namespace_to_sub_agent_id[ns]
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Usage Metrics Builders (Phase 2.4)
+    # ─────────────────────────────────────────────────────────────────────────────
+    
+    def _build_usage_metrics(self) -> UsageMetrics:
+        """
+        Build UsageMetrics proto for main agent.
+        
+        Creates a UsageMetrics instance containing accumulated token usage
+        and LLM call statistics for the main agent's direct calls.
+        
+        Returns:
+            UsageMetrics proto with current accumulated values
+        """
+        return UsageMetrics(
+            prompt_tokens=self._total_prompt_tokens,
+            completion_tokens=self._total_completion_tokens,
+            total_tokens=self._total_prompt_tokens + self._total_completion_tokens,
+            llm_call_count=self._llm_call_count,
+            primary_model=self._primary_model,
+        )
+    
+    def _build_sub_agent_usage(self, sub_agent_id: str) -> UsageMetrics:
+        """
+        Build UsageMetrics proto for a specific sub-agent.
+        
+        Creates a UsageMetrics instance containing accumulated token usage
+        and LLM call statistics for a sub-agent's direct calls.
+        
+        Args:
+            sub_agent_id: The run_id of the sub-agent
+            
+        Returns:
+            UsageMetrics proto with current accumulated values for the sub-agent
+        """
+        prompt = self._sub_agent_prompt_tokens.get(sub_agent_id, 0)
+        completion = self._sub_agent_completion_tokens.get(sub_agent_id, 0)
+        return UsageMetrics(
+            prompt_tokens=prompt,
+            completion_tokens=completion,
+            total_tokens=prompt + completion,
+            llm_call_count=self._sub_agent_llm_call_count.get(sub_agent_id, 0),
+            primary_model=self._sub_agent_primary_model.get(sub_agent_id, ""),
+        )

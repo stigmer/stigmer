@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 
 from worker.activities.graphton.status_builder import StatusBuilder
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import UsageMetrics
 
 
 # =============================================================================
@@ -31,6 +32,9 @@ def mock_initial_status():
     status.tool_calls = []
     status.sub_agent_executions = []
     status.todos = {}
+    # Real UsageMetrics proto for Phase 2.4 usage tracking
+    # MagicMock doesn't support CopyFrom(), so we use a real proto
+    status.usage = UsageMetrics()
     return status
 
 
@@ -1349,3 +1353,466 @@ class TestSubAgentInternals:
         
         assert context is status_builder.current_status
         assert sub_agent is None
+
+
+# =============================================================================
+# Tests for UsageMetrics (Phase 2.4)
+# =============================================================================
+
+
+class TestUsageMetrics:
+    """Tests for UsageMetrics tracking and proto assignment.
+    
+    Phase 2.4 adds execution-level token tracking:
+    - UsageMetrics proto with prompt_tokens, completion_tokens, total_tokens, llm_call_count, primary_model
+    - Main agent usage tracked in status.usage
+    - Sub-agent usage tracked in sub_agent.usage (isolated from main)
+    - Progressive updates during streaming (not just at end)
+    """
+
+    @pytest.mark.asyncio
+    async def test_usage_metrics_updated_on_chat_model_end(self, status_builder):
+        """Test that UsageMetrics proto is populated after LLM call."""
+        # Create AI message
+        chunk = MagicMock()
+        chunk.content = "Response"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {}
+        })
+        
+        # End with usage metadata
+        output = MagicMock()
+        output.usage_metadata = MagicMock()
+        output.usage_metadata.input_tokens = 100
+        output.usage_metadata.output_tokens = 50
+        output.usage_metadata.total_tokens = 150
+        output.response_metadata = {"model": "claude-sonnet-4"}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {}
+        })
+        
+        # Verify UsageMetrics proto is populated
+        usage = status_builder.current_status.usage
+        assert usage.prompt_tokens == 100
+        assert usage.completion_tokens == 50
+        assert usage.total_tokens == 150
+        assert usage.llm_call_count == 1
+        assert usage.primary_model == "claude-sonnet-4"
+
+    @pytest.mark.asyncio
+    async def test_llm_call_count_incremented(self, status_builder):
+        """Test that llm_call_count increases with each LLM response."""
+        for i in range(3):
+            # Stream message
+            chunk = MagicMock()
+            chunk.content = f"Response {i}"
+            await status_builder.process_event({
+                "event": "on_chat_model_stream",
+                "data": {"chunk": chunk},
+                "metadata": {}
+            })
+            
+            # End message
+            output = MagicMock()
+            output.usage_metadata = MagicMock()
+            output.usage_metadata.input_tokens = 10
+            output.usage_metadata.output_tokens = 5
+            output.usage_metadata.total_tokens = 15
+            output.response_metadata = {}
+            
+            await status_builder.process_event({
+                "event": "on_chat_model_end",
+                "data": {"output": output},
+                "metadata": {}
+            })
+        
+        # Verify call count
+        assert status_builder.current_status.usage.llm_call_count == 3
+        assert status_builder._llm_call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_primary_model_captured_from_first_call(self, status_builder):
+        """Test that primary_model is set from the first LLM response."""
+        # First call with model A
+        chunk = MagicMock()
+        chunk.content = "First"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {}
+        })
+        
+        output = MagicMock()
+        output.usage_metadata = MagicMock()
+        output.usage_metadata.input_tokens = 10
+        output.usage_metadata.output_tokens = 5
+        output.usage_metadata.total_tokens = 15
+        output.response_metadata = {"model": "claude-sonnet-4"}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {}
+        })
+        
+        assert status_builder.current_status.usage.primary_model == "claude-sonnet-4"
+
+    @pytest.mark.asyncio
+    async def test_primary_model_not_overwritten(self, status_builder):
+        """Test that subsequent different models don't change primary_model."""
+        # First call
+        chunk = MagicMock()
+        chunk.content = "First"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {}
+        })
+        
+        output1 = MagicMock()
+        output1.usage_metadata = MagicMock()
+        output1.usage_metadata.input_tokens = 10
+        output1.usage_metadata.output_tokens = 5
+        output1.usage_metadata.total_tokens = 15
+        output1.response_metadata = {"model": "claude-sonnet-4"}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output1},
+            "metadata": {}
+        })
+        
+        # Second call with different model
+        chunk2 = MagicMock()
+        chunk2.content = "Second"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk2},
+            "metadata": {}
+        })
+        
+        output2 = MagicMock()
+        output2.usage_metadata = MagicMock()
+        output2.usage_metadata.input_tokens = 20
+        output2.usage_metadata.output_tokens = 10
+        output2.usage_metadata.total_tokens = 30
+        output2.response_metadata = {"model": "gpt-4o"}  # Different model
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output2},
+            "metadata": {}
+        })
+        
+        # Primary model should still be the first one
+        assert status_builder.current_status.usage.primary_model == "claude-sonnet-4"
+
+    @pytest.mark.asyncio
+    async def test_usage_accumulates_across_calls(self, status_builder):
+        """Test that tokens accumulate correctly across multiple LLM calls."""
+        # First call
+        chunk = MagicMock()
+        chunk.content = "First"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {}
+        })
+        
+        output1 = MagicMock()
+        output1.usage_metadata = MagicMock()
+        output1.usage_metadata.input_tokens = 100
+        output1.usage_metadata.output_tokens = 50
+        output1.usage_metadata.total_tokens = 150
+        output1.response_metadata = {}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output1},
+            "metadata": {}
+        })
+        
+        # Second call
+        chunk2 = MagicMock()
+        chunk2.content = "Second"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk2},
+            "metadata": {}
+        })
+        
+        output2 = MagicMock()
+        output2.usage_metadata = MagicMock()
+        output2.usage_metadata.input_tokens = 200
+        output2.usage_metadata.output_tokens = 100
+        output2.usage_metadata.total_tokens = 300
+        output2.response_metadata = {}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output2},
+            "metadata": {}
+        })
+        
+        # Verify cumulative totals
+        usage = status_builder.current_status.usage
+        assert usage.prompt_tokens == 300  # 100 + 200
+        assert usage.completion_tokens == 150  # 50 + 100
+        assert usage.total_tokens == 450  # 300 + 150
+
+    @pytest.mark.asyncio
+    async def test_total_tokens_equals_sum(self, status_builder):
+        """Test that total_tokens always equals prompt_tokens + completion_tokens."""
+        chunk = MagicMock()
+        chunk.content = "Test"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {}
+        })
+        
+        output = MagicMock()
+        output.usage_metadata = MagicMock()
+        output.usage_metadata.input_tokens = 123
+        output.usage_metadata.output_tokens = 456
+        output.usage_metadata.total_tokens = 579
+        output.response_metadata = {}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {}
+        })
+        
+        usage = status_builder.current_status.usage
+        assert usage.total_tokens == usage.prompt_tokens + usage.completion_tokens
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_usage_tracked_separately(self, status_builder):
+        """Test that sub-agent has its own UsageMetrics populated."""
+        sub_agent_run_id = "task-usage-test"
+        namespace = f"agent_node:{sub_agent_run_id}"
+        
+        # Start sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sub_agent_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "code_editor",
+                    "input": "Edit code"
+                }
+            },
+            "metadata": {}
+        })
+        
+        # Sub-agent AI message
+        chunk = MagicMock()
+        chunk.content = "Sub-agent response"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {"langgraph_checkpoint_ns": namespace}
+        })
+        
+        # Sub-agent message end
+        output = MagicMock()
+        output.usage_metadata = MagicMock()
+        output.usage_metadata.input_tokens = 200
+        output.usage_metadata.output_tokens = 100
+        output.usage_metadata.total_tokens = 300
+        output.response_metadata = {"model": "claude-haiku"}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {"langgraph_checkpoint_ns": namespace}
+        })
+        
+        # Verify sub-agent usage
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert sub_agent.usage.prompt_tokens == 200
+        assert sub_agent.usage.completion_tokens == 100
+        assert sub_agent.usage.total_tokens == 300
+        assert sub_agent.usage.llm_call_count == 1
+        assert sub_agent.usage.primary_model == "claude-haiku"
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_usage_isolated_from_main(self, status_builder):
+        """Test that main agent usage doesn't include sub-agent tokens."""
+        sub_agent_run_id = "task-isolation-test"
+        namespace = f"agent_node:{sub_agent_run_id}"
+        
+        # Main agent call first
+        chunk_main = MagicMock()
+        chunk_main.content = "Main response"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk_main},
+            "metadata": {}
+        })
+        
+        output_main = MagicMock()
+        output_main.usage_metadata = MagicMock()
+        output_main.usage_metadata.input_tokens = 100
+        output_main.usage_metadata.output_tokens = 50
+        output_main.usage_metadata.total_tokens = 150
+        output_main.response_metadata = {"model": "claude-sonnet-4"}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output_main},
+            "metadata": {}
+        })
+        
+        # Start sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sub_agent_run_id,
+            "data": {"input": {"subagent_type": "helper", "input": "Help"}},
+            "metadata": {}
+        })
+        
+        # Sub-agent call
+        chunk_sub = MagicMock()
+        chunk_sub.content = "Sub response"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk_sub},
+            "metadata": {"langgraph_checkpoint_ns": namespace}
+        })
+        
+        output_sub = MagicMock()
+        output_sub.usage_metadata = MagicMock()
+        output_sub.usage_metadata.input_tokens = 500
+        output_sub.usage_metadata.output_tokens = 250
+        output_sub.usage_metadata.total_tokens = 750
+        output_sub.response_metadata = {"model": "claude-haiku"}
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output_sub},
+            "metadata": {"langgraph_checkpoint_ns": namespace}
+        })
+        
+        # Verify main agent usage is NOT affected by sub-agent
+        main_usage = status_builder.current_status.usage
+        assert main_usage.prompt_tokens == 100  # Only main agent's tokens
+        assert main_usage.completion_tokens == 50
+        assert main_usage.total_tokens == 150
+        assert main_usage.llm_call_count == 1  # Only main agent's call
+        
+        # Verify sub-agent has separate usage
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert sub_agent.usage.prompt_tokens == 500
+        assert sub_agent.usage.completion_tokens == 250
+        assert sub_agent.usage.llm_call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_usage_zero_when_no_llm_calls(self, status_builder):
+        """Test that UsageMetrics defaults to zeros when no LLM calls made."""
+        # Process a tool event (not an LLM call)
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "read_file",
+            "run_id": "tool-1",
+            "data": {"input": {"path": "/tmp/test.txt"}},
+            "metadata": {}
+        })
+        
+        # Verify defaults
+        usage = status_builder.current_status.usage
+        assert usage.prompt_tokens == 0
+        assert usage.completion_tokens == 0
+        assert usage.total_tokens == 0
+        assert usage.llm_call_count == 0
+        assert usage.primary_model == ""
+
+    @pytest.mark.asyncio
+    async def test_usage_handles_missing_model_name(self, status_builder):
+        """Test graceful handling when model name is not available."""
+        chunk = MagicMock()
+        chunk.content = "Response"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {}
+        })
+        
+        output = MagicMock()
+        output.usage_metadata = MagicMock()
+        output.usage_metadata.input_tokens = 50
+        output.usage_metadata.output_tokens = 25
+        output.usage_metadata.total_tokens = 75
+        output.response_metadata = {}  # No model name
+        
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {}
+        })
+        
+        # Should work without error, model remains empty
+        usage = status_builder.current_status.usage
+        assert usage.prompt_tokens == 50
+        assert usage.completion_tokens == 25
+        assert usage.llm_call_count == 1
+        assert usage.primary_model == ""  # Empty, not error
+
+    @pytest.mark.asyncio
+    async def test_build_usage_metrics_helper(self, status_builder):
+        """Test _build_usage_metrics helper method directly."""
+        # Set up internal state
+        status_builder._total_prompt_tokens = 1000
+        status_builder._total_completion_tokens = 500
+        status_builder._llm_call_count = 5
+        status_builder._primary_model = "claude-opus-4"
+        
+        # Call helper
+        usage = status_builder._build_usage_metrics()
+        
+        # Verify
+        assert usage.prompt_tokens == 1000
+        assert usage.completion_tokens == 500
+        assert usage.total_tokens == 1500
+        assert usage.llm_call_count == 5
+        assert usage.primary_model == "claude-opus-4"
+
+    @pytest.mark.asyncio
+    async def test_build_sub_agent_usage_helper(self, status_builder):
+        """Test _build_sub_agent_usage helper method directly."""
+        sub_agent_id = "test-sub-agent"
+        
+        # Set up internal state
+        status_builder._sub_agent_prompt_tokens[sub_agent_id] = 200
+        status_builder._sub_agent_completion_tokens[sub_agent_id] = 100
+        status_builder._sub_agent_llm_call_count[sub_agent_id] = 2
+        status_builder._sub_agent_primary_model[sub_agent_id] = "claude-haiku"
+        
+        # Call helper
+        usage = status_builder._build_sub_agent_usage(sub_agent_id)
+        
+        # Verify
+        assert usage.prompt_tokens == 200
+        assert usage.completion_tokens == 100
+        assert usage.total_tokens == 300
+        assert usage.llm_call_count == 2
+        assert usage.primary_model == "claude-haiku"
+
+    @pytest.mark.asyncio
+    async def test_build_sub_agent_usage_defaults_for_unknown(self, status_builder):
+        """Test _build_sub_agent_usage returns zeros for unknown sub-agent."""
+        usage = status_builder._build_sub_agent_usage("nonexistent-id")
+        
+        assert usage.prompt_tokens == 0
+        assert usage.completion_tokens == 0
+        assert usage.total_tokens == 0
+        assert usage.llm_call_count == 0
+        assert usage.primary_model == ""
