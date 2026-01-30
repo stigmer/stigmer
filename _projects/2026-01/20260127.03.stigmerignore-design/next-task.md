@@ -66,11 +66,51 @@ That's it! No complex structure - just focused work.
 
 ## Current Status
 
-**Last Updated**: 2026-01-27 (Session 1)
-**Status**: Research Complete - Ready for Implementation
-**Current Focus**: Ready to start Task 2 - Implement pkg/ignore package
+**Last Updated**: 2026-01-30 (Session 2)
+**Status**: ✅ Task 2 Complete - pkg/ignore Package Implemented
+**Current Focus**: Ready for Task 3 - Integration with skill push
 
-### Session Progress (2026-01-27)
+### Session Progress (2026-01-30 - Session 2)
+
+**Accomplishments**:
+- ✅ **Implemented complete `pkg/ignore` package** with production-grade quality
+- ✅ **Added go-git dependency** to go.mod and configured Bazel MODULE
+- ✅ **Created 7 source files** with comprehensive implementation:
+  - `doc.go` - Package documentation with usage examples
+  - `defaults.go` - 60+ security-first built-in patterns
+  - `result.go` - MatchResult and Reason types for diagnostics
+  - `pattern.go` - Path conversion and parsing helpers
+  - `source.go` - Loaders for .gitignore, .stigmerignore, and CLI patterns
+  - `matcher.go` - Core Matcher with New(), Match(), MatchWithReason()
+  - `matcher_test.go` - 30+ comprehensive test cases
+- ✅ **All tests passing** - Comprehensive coverage of patterns, precedence, edge cases
+- ✅ **Zero linter errors** - Clean, production-ready code
+- ✅ **Proper Bazel integration** - BUILD.bazel configured, gazelle run, module registered
+
+**Implementation Highlights**:
+- **Security defaults**: 60+ patterns protecting against credential leaks (.env, *.pem, *.key, etc.)
+- **Layered precedence**: defaults → .gitignore → .stigmerignore → CLI flags (last wins)
+- **Full gitignore syntax**: `**`, `!` negation, trailing `/`, comments via go-git library
+- **Diagnostic capability**: MatchWithReason() returns source, pattern, reason for debugging
+- **Two constructors**: New() for full control, NewWithDefaults() for standard usage
+- **30+ test cases**: Validation, defaults, gitignore, stigmerignore, precedence, negation, edge cases
+
+**Files Created**:
+- `client-apps/cli/pkg/ignore/BUILD.bazel`
+- `client-apps/cli/pkg/ignore/doc.go`
+- `client-apps/cli/pkg/ignore/defaults.go`
+- `client-apps/cli/pkg/ignore/result.go`
+- `client-apps/cli/pkg/ignore/pattern.go`
+- `client-apps/cli/pkg/ignore/source.go`
+- `client-apps/cli/pkg/ignore/matcher.go`
+- `client-apps/cli/pkg/ignore/matcher_test.go`
+
+**Files Modified**:
+- `MODULE.bazel` - Added com_github_go_git_go_git_v5 to use_repo
+- `client-apps/cli/go.mod` - Added go-git v5.16.4 dependency
+- `client-apps/cli/go.sum` - Updated checksums
+
+### Session Progress (2026-01-27 - Session 1)
 
 **Accomplishments**:
 - ✅ Completed comprehensive research on Git, Docker, and Buf ignore implementations
@@ -88,26 +128,25 @@ That's it! No complex structure - just focused work.
 4. **Git-compatible syntax** using `github.com/go-git/go-git/v5/plumbing/format/gitignore`
 5. **Respect .gitignore by default** with override capability via `.stigmerignore`
 
-**Files Updated**:
-- `tasks.md` - Refined with detailed implementation subtasks
-- `notes.md` - Enhanced with deep research findings and ADRs
-- `README.md` - Updated status to "Research Complete"
+### Next Steps (When Ready to Continue)
 
-### Next Steps (When Ready to Implement)
-
-1. **Start Task 2**: Create `pkg/ignore` package
-   - Create package structure with BUILD.bazel
-   - Implement defaults.go with built-in patterns
-   - Implement parser.go for .stigmerignore file parsing
-   - Implement ignore.go with Matcher interface
-   - Add comprehensive tests
-
-2. **Task 3**: Integrate with skill push
-   - Modify `client-apps/cli/internal/cli/artifact/skill.go`
-   - Replace hardcoded `shouldExclude()` with new Matcher
+1. **Task 3**: Integrate with skill push (NEXT)
+   - Import `pkg/ignore` in skill.go
+   - Modify `createSkillZip()` to create Matcher with options
+   - Replace `shouldExclude()` calls with `matcher.Match()` calls
+   - Handle directory-level filtering (skip entire directories that match)
+   - Add `--dry-run` enhancement to show ignored files
    - Test with real skill directories
 
-3. **Task 4**: Tests and documentation
+2. **Task 4**: Tests and documentation
+   - Integration tests for various .gitignore/.stigmerignore combinations
+   - Update CLI help text
+   - Create `.stigmerignore` reference documentation
+   - Add examples for common scenarios
+
+3. **Task 5**: Backend support (Future/Optional)
+   - Modify backend skill push handler to apply ignore filtering
+   - Test remote git push with .stigmerignore
 
 ### Context for Resume
 

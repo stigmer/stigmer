@@ -40,21 +40,24 @@ Add timestamps and notes to track your progress.
 
 ## Task 2: Implement ignore package in pkg/
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-01-27 00:27
+**Completed**: 2026-01-30
 
 ### Package Location
 `client-apps/cli/pkg/ignore/`
 
 ### Subtasks
-- [ ] Create package structure with BUILD.bazel
-- [ ] Implement `defaults.go` with built-in patterns
-- [ ] Implement `parser.go` for .stigmerignore file parsing
-- [ ] Implement `gitignore.go` for .gitignore integration using go-git library
-- [ ] Implement `ignore.go` with main `Matcher` interface and `NewMatcher()` factory
-- [ ] Implement precedence resolution: defaults < .gitignore < .stigmerignore
-- [ ] Add warning handling for invalid patterns (lenient like Git)
-- [ ] Write comprehensive unit tests in `ignore_test.go`
+- [x] Create package structure with BUILD.bazel
+- [x] Implement `defaults.go` with built-in patterns (60+ security-first patterns)
+- [x] Implement `pattern.go` for path conversion and parsing helpers
+- [x] Implement `source.go` for .gitignore, .stigmerignore, and CLI pattern loading
+- [x] Implement `result.go` with MatchResult and Reason types for diagnostics
+- [x] Implement `matcher.go` with main Matcher type, New(), Match(), MatchWithReason()
+- [x] Implement precedence resolution: defaults < .gitignore < .stigmerignore < CLI
+- [x] Add lenient pattern parsing (invalid patterns skipped, not errors)
+- [x] Write comprehensive unit tests in `matcher_test.go` (30+ test cases)
+- [x] All tests passing with zero linter errors
 
 ### Core Interface
 ```go

@@ -50,7 +50,6 @@ type McpServerSpec struct {
 	//
 	//	*McpServerSpec_Stdio
 	//	*McpServerSpec_Http
-	//	*McpServerSpec_Docker
 	ServerType isMcpServerSpec_ServerType `protobuf_oneof:"server_type"`
 	// Default tools to enable from this MCP server.
 	// Empty list means all tools are enabled by default.
@@ -156,15 +155,6 @@ func (x *McpServerSpec) GetHttp() *HttpServerConfig {
 	return nil
 }
 
-func (x *McpServerSpec) GetDocker() *DockerServerConfig {
-	if x != nil {
-		if x, ok := x.ServerType.(*McpServerSpec_Docker); ok {
-			return x.Docker
-		}
-	}
-	return nil
-}
-
 func (x *McpServerSpec) GetDefaultEnabledTools() []string {
 	if x != nil {
 		return x.DefaultEnabledTools
@@ -195,17 +185,9 @@ type McpServerSpec_Http struct {
 	Http *HttpServerConfig `protobuf:"bytes,5,opt,name=http,proto3,oneof"`
 }
 
-type McpServerSpec_Docker struct {
-	// Docker-based server (containerized MCP server).
-	// Used for isolated, reproducible MCP server environments.
-	Docker *DockerServerConfig `protobuf:"bytes,6,opt,name=docker,proto3,oneof"`
-}
-
 func (*McpServerSpec_Stdio) isMcpServerSpec_ServerType() {}
 
 func (*McpServerSpec_Http) isMcpServerSpec_ServerType() {}
-
-func (*McpServerSpec_Docker) isMcpServerSpec_ServerType() {}
 
 // StdioServerConfig defines an MCP server that runs as a subprocess.
 // Communication happens via stdin/stdout using JSON-RPC messages.
@@ -393,275 +375,17 @@ func (x *HttpServerConfig) GetTimeoutSeconds() int32 {
 	return 0
 }
 
-// DockerServerConfig defines an MCP server that runs in a Docker container.
-// Provides isolation and reproducibility for MCP server environments.
-//
-// Communication can happen via:
-// - stdio: Container's stdin/stdout (default, similar to StdioServerConfig)
-// - HTTP: Via port mapping to container's HTTP endpoint
-//
-// This is useful for:
-// - Custom MCP servers with complex dependencies
-// - Isolated execution environments
-// - Consistent environments across different host systems
-type DockerServerConfig struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Docker image name and tag.
-	// Can be from any registry accessible to the agent runner.
-	// Examples:
-	// - "ghcr.io/org/mcp-server:latest"
-	// - "myregistry.com/mcp/custom-server:v1.2.3"
-	// - "mcp-local-server:dev" (local image)
-	Image string `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
-	// Command arguments to pass to the container.
-	// Overrides the default CMD in the Docker image.
-	// Leave empty to use the image's default command.
-	Args []string `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"`
-	// Volume mounts for the container.
-	// Use to provide access to host filesystem, configuration files, or data.
-	Volumes []*VolumeMount `protobuf:"bytes,3,rep,name=volumes,proto3" json:"volumes,omitempty"`
-	// Docker network to attach the container to.
-	// Default: "bridge" (Docker's default network).
-	// Use custom networks for inter-container communication.
-	Network string `protobuf:"bytes,4,opt,name=network,proto3" json:"network,omitempty"`
-	// Port mappings for the container.
-	// Required if communicating via HTTP instead of stdio.
-	// Maps host ports to container ports.
-	Ports []*PortMapping `protobuf:"bytes,5,rep,name=ports,proto3" json:"ports,omitempty"`
-	// Container name for identification and management.
-	// If not specified, Docker generates a random name.
-	// Useful for debugging and container lifecycle management.
-	ContainerName string `protobuf:"bytes,6,opt,name=container_name,json=containerName,proto3" json:"container_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DockerServerConfig) Reset() {
-	*x = DockerServerConfig{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DockerServerConfig) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DockerServerConfig) ProtoMessage() {}
-
-func (x *DockerServerConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DockerServerConfig.ProtoReflect.Descriptor instead.
-func (*DockerServerConfig) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *DockerServerConfig) GetImage() string {
-	if x != nil {
-		return x.Image
-	}
-	return ""
-}
-
-func (x *DockerServerConfig) GetArgs() []string {
-	if x != nil {
-		return x.Args
-	}
-	return nil
-}
-
-func (x *DockerServerConfig) GetVolumes() []*VolumeMount {
-	if x != nil {
-		return x.Volumes
-	}
-	return nil
-}
-
-func (x *DockerServerConfig) GetNetwork() string {
-	if x != nil {
-		return x.Network
-	}
-	return ""
-}
-
-func (x *DockerServerConfig) GetPorts() []*PortMapping {
-	if x != nil {
-		return x.Ports
-	}
-	return nil
-}
-
-func (x *DockerServerConfig) GetContainerName() string {
-	if x != nil {
-		return x.ContainerName
-	}
-	return ""
-}
-
-// VolumeMount defines a Docker volume mount configuration.
-// Maps a path on the host to a path inside the container.
-type VolumeMount struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Path on the host machine to mount.
-	// Can be an absolute path or a named Docker volume.
-	// Examples:
-	// - "/home/user/data" (absolute path)
-	// - "mcp-data-volume" (named volume)
-	HostPath string `protobuf:"bytes,1,opt,name=host_path,json=hostPath,proto3" json:"host_path,omitempty"`
-	// Path inside the container where the volume is mounted.
-	// Must be an absolute path.
-	// Example: "/data"
-	ContainerPath string `protobuf:"bytes,2,opt,name=container_path,json=containerPath,proto3" json:"container_path,omitempty"`
-	// Whether the mount should be read-only.
-	// Default: false (read-write).
-	// Set to true for configuration files or sensitive data that shouldn't be modified.
-	ReadOnly      bool `protobuf:"varint,3,opt,name=read_only,json=readOnly,proto3" json:"read_only,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *VolumeMount) Reset() {
-	*x = VolumeMount{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *VolumeMount) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*VolumeMount) ProtoMessage() {}
-
-func (x *VolumeMount) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use VolumeMount.ProtoReflect.Descriptor instead.
-func (*VolumeMount) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *VolumeMount) GetHostPath() string {
-	if x != nil {
-		return x.HostPath
-	}
-	return ""
-}
-
-func (x *VolumeMount) GetContainerPath() string {
-	if x != nil {
-		return x.ContainerPath
-	}
-	return ""
-}
-
-func (x *VolumeMount) GetReadOnly() bool {
-	if x != nil {
-		return x.ReadOnly
-	}
-	return false
-}
-
-// PortMapping defines a Docker port mapping configuration.
-// Maps a port on the host to a port inside the container.
-type PortMapping struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Port on the host machine to bind.
-	// Must be available and within valid port range (1-65535).
-	HostPort int32 `protobuf:"varint,1,opt,name=host_port,json=hostPort,proto3" json:"host_port,omitempty"`
-	// Port inside the container to expose.
-	// Must match the port the MCP server listens on.
-	ContainerPort int32 `protobuf:"varint,2,opt,name=container_port,json=containerPort,proto3" json:"container_port,omitempty"`
-	// Network protocol for the port mapping.
-	// Default: "tcp".
-	// Valid values: "tcp", "udp".
-	Protocol      string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PortMapping) Reset() {
-	*x = PortMapping{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PortMapping) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PortMapping) ProtoMessage() {}
-
-func (x *PortMapping) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PortMapping.ProtoReflect.Descriptor instead.
-func (*PortMapping) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *PortMapping) GetHostPort() int32 {
-	if x != nil {
-		return x.HostPort
-	}
-	return 0
-}
-
-func (x *PortMapping) GetContainerPort() int32 {
-	if x != nil {
-		return x.ContainerPort
-	}
-	return 0
-}
-
-func (x *PortMapping) GetProtocol() string {
-	if x != nil {
-		return x.Protocol
-	}
-	return ""
-}
-
 var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xdd\x03\n" +
+	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\x8e\x03\n" +
 	"\rMcpServerSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12\x12\n" +
 	"\x04tags\x18\x03 \x03(\tR\x04tags\x12J\n" +
 	"\x05stdio\x18\x04 \x01(\v22.ai.stigmer.agentic.mcpserver.v1.StdioServerConfigH\x00R\x05stdio\x12G\n" +
-	"\x04http\x18\x05 \x01(\v21.ai.stigmer.agentic.mcpserver.v1.HttpServerConfigH\x00R\x04http\x12M\n" +
-	"\x06docker\x18\x06 \x01(\v23.ai.stigmer.agentic.mcpserver.v1.DockerServerConfigH\x00R\x06docker\x122\n" +
+	"\x04http\x18\x05 \x01(\v21.ai.stigmer.agentic.mcpserver.v1.HttpServerConfigH\x00R\x04http\x122\n" +
 	"\x15default_enabled_tools\x18\a \x03(\tR\x13defaultEnabledTools\x12M\n" +
 	"\benv_spec\x18\b \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpecB\x14\n" +
 	"\vserver_type\x12\x05\xbaH\x02\b\x01\"j\n" +
@@ -681,23 +405,7 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +
 	"\x10QueryParamsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x97\x02\n" +
-	"\x12DockerServerConfig\x12 \n" +
-	"\x05image\x18\x01 \x01(\tB\n" +
-	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x05image\x12\x12\n" +
-	"\x04args\x18\x02 \x03(\tR\x04args\x12F\n" +
-	"\avolumes\x18\x03 \x03(\v2,.ai.stigmer.agentic.mcpserver.v1.VolumeMountR\avolumes\x12\x18\n" +
-	"\anetwork\x18\x04 \x01(\tR\anetwork\x12B\n" +
-	"\x05ports\x18\x05 \x03(\v2,.ai.stigmer.agentic.mcpserver.v1.PortMappingR\x05ports\x12%\n" +
-	"\x0econtainer_name\x18\x06 \x01(\tR\rcontainerName\"~\n" +
-	"\vVolumeMount\x12#\n" +
-	"\thost_path\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\bhostPath\x12-\n" +
-	"\x0econtainer_path\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\rcontainerPath\x12\x1b\n" +
-	"\tread_only\x18\x03 \x01(\bR\breadOnly\"\x9a\x01\n" +
-	"\vPortMapping\x12(\n" +
-	"\thost_port\x18\x01 \x01(\x05B\v\xbaH\b\x1a\x06\x18\xff\xff\x03(\x01R\bhostPort\x122\n" +
-	"\x0econtainer_port\x18\x02 \x01(\x05B\v\xbaH\b\x1a\x06\x18\xff\xff\x03(\x01R\rcontainerPort\x12-\n" +
-	"\bprotocol\x18\x03 \x01(\tB\x11\xbaH\x0er\fR\x00R\x03tcpR\x03udpR\bprotocolB\xa7\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\xa7\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\x01ZTgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
@@ -712,32 +420,26 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_goTypes = []any{
 	(*McpServerSpec)(nil),      // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec
 	(*StdioServerConfig)(nil),  // 1: ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
 	(*HttpServerConfig)(nil),   // 2: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	(*DockerServerConfig)(nil), // 3: ai.stigmer.agentic.mcpserver.v1.DockerServerConfig
-	(*VolumeMount)(nil),        // 4: ai.stigmer.agentic.mcpserver.v1.VolumeMount
-	(*PortMapping)(nil),        // 5: ai.stigmer.agentic.mcpserver.v1.PortMapping
-	nil,                        // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	nil,                        // 7: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	(*v1.EnvironmentSpec)(nil), // 8: ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	nil,                        // 3: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	nil,                        // 4: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	(*v1.EnvironmentSpec)(nil), // 5: ai.stigmer.agentic.environment.v1.EnvironmentSpec
 }
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
 	2, // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	3, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.docker:type_name -> ai.stigmer.agentic.mcpserver.v1.DockerServerConfig
-	8, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	6, // 4: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	7, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	4, // 6: ai.stigmer.agentic.mcpserver.v1.DockerServerConfig.volumes:type_name -> ai.stigmer.agentic.mcpserver.v1.VolumeMount
-	5, // 7: ai.stigmer.agentic.mcpserver.v1.DockerServerConfig.ports:type_name -> ai.stigmer.agentic.mcpserver.v1.PortMapping
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	5, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	3, // 3: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	4, // 4: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() }
@@ -748,7 +450,6 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() {
 	file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[0].OneofWrappers = []any{
 		(*McpServerSpec_Stdio)(nil),
 		(*McpServerSpec_Http)(nil),
-		(*McpServerSpec_Docker)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -756,7 +457,7 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
