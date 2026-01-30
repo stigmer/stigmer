@@ -121,8 +121,9 @@ func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		// enters WAITING_FOR_APPROVAL phase
 		approvalSignalCh := workflow.GetSignalChannel(ctx, SignalChildApprovalRequired)
 
-		// Track activity completion
+		// Track activity completion and approval signal state (Phase 5.4 observability)
 		activityDone := false
+		approvalSignalCount := 0
 
 		// Listen for signals while waiting for activity completion
 		// This follows the pattern from task_builder_listen.go
@@ -140,10 +141,12 @@ func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 				var notification agentexecv1.ChildApprovalNotification
 				c.Receive(ctx, &notification)
 
+				approvalSignalCount++
 				logger.Info("Received child approval notification",
 					"execution_id", notification.ExecutionId,
 					"tool_call_id", notification.ToolCallId,
 					"tool_name", notification.ToolName,
+					"signal_count", approvalSignalCount,
 					"task", t.GetTaskName())
 
 				// Update workflow task status to WAITING_APPROVAL
@@ -170,7 +173,8 @@ func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		}
 
 		// Clear any pending approval state on successful completion
-		t.clearTaskApprovalStatus(ctx, state)
+		// Phase 5.4: Enhanced logging for observability
+		t.clearTaskApprovalStatus(ctx, state, approvalSignalCount)
 
 		// Store result in state
 		state.AddData(map[string]any{
@@ -237,9 +241,12 @@ func (t *CallAgentTaskBuilder) updateTaskApprovalStatus(
 // clearTaskApprovalStatus clears any pending approval state when the task completes.
 // This ensures the WorkflowExecution.status.pending_approval is cleared when
 // the child agent finishes (whether approved, rejected, or no approval needed).
+//
+// Phase 5.4: Enhanced with observability logging to track approval signal count.
 func (t *CallAgentTaskBuilder) clearTaskApprovalStatus(
 	ctx workflow.Context,
 	state *utils.State,
+	approvalSignalCount int,
 ) {
 	logger := workflow.GetLogger(ctx)
 
@@ -251,9 +258,14 @@ func (t *CallAgentTaskBuilder) clearTaskApprovalStatus(
 		return
 	}
 
-	logger.Debug("Clearing task approval status on completion",
+	// Phase 5.4: Enhanced logging for observability
+	// Log whether any approval signals were received during execution
+	hadApprovalSignal := approvalSignalCount > 0
+	logger.Info("Clearing workflow approval status after agent completion",
 		"task", t.GetTaskName(),
-		"execution_id", executionId)
+		"execution_id", executionId,
+		"had_approval_signal", hadApprovalSignal,
+		"approval_signal_count", approvalSignalCount)
 
 	// Execute local activity to clear pending approval
 	localCtx := workflow.WithLocalActivityOptions(ctx, getLocalActivityOptions())
@@ -267,7 +279,13 @@ func (t *CallAgentTaskBuilder) clearTaskApprovalStatus(
 		// Log but don't fail - clearing status is best-effort
 		logger.Warn("Failed to clear workflow approval status",
 			"error", err,
-			"task", t.GetTaskName())
+			"task", t.GetTaskName(),
+			"had_approval_signal", hadApprovalSignal)
+	} else if hadApprovalSignal {
+		logger.Info("Successfully cleared workflow approval status after approval flow",
+			"task", t.GetTaskName(),
+			"execution_id", executionId,
+			"approval_cycles", approvalSignalCount)
 	}
 }
 

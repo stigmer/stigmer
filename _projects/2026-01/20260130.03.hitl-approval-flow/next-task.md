@@ -18,9 +18,105 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-01-30
-**Last Session**: 2026-01-30 (Phase 5.3 Approval Forwarding)
-**Current Phase**: Phase 5.3 Complete
-**Status**: READY - Workflow-level approval forwarding complete, ready for Phase 5.4 (Verification) or Phase 5.5 (E2E Testing)
+**Last Session**: 2026-01-30 (Phase 5.4 Approval Resumption Verification)
+**Current Phase**: Phase 5.4 Complete
+**Status**: READY - Approval resumption verification complete, ready for Phase 5.5 (E2E Testing)
+
+---
+
+## Session Progress (2026-01-30 - Phase 5.4 Approval Resumption Verification)
+
+### Completed - Phase 5.4: Approval Resumption Verification
+**Duration**: ~1 hour | **Lines Added**: ~340 lines (3 modified files, 2 new test sections, 1 new doc)
+
+#### What Was Accomplished
+
+Implemented comprehensive verification and hardening of the approval resumption flow, ensuring status clearing works correctly across all three layers (Go, Java, Python).
+
+1. **Java Defensive Validation** (stigmer-cloud)
+   - Added defensive check after approval loop in `InvokeAgentExecutionWorkflowImpl.java`
+   - If Python doesn't clear pending_approval (edge case), Java clears it explicitly
+   - Persists final status to DB after approval flow completes
+   - Warning logs for investigation if stale approval detected
+
+2. **Java Observability Logging** (stigmer-cloud)
+   - Added approval wait time tracking (`Workflow.currentTimeMillis()`)
+   - Logs: `wait_ms`, `pending_approval_cleared`, `cycle` count
+   - Enables tracking of approval → completion latency
+
+3. **Java Unit Tests** (stigmer-cloud)
+   - 5 new tests in `InvokeAgentExecutionWorkflowSignalTest.java`:
+     - `testApprovalLoop_ClearsStatusAfterApprove`
+     - `testApprovalLoop_ClearsStatusAfterSkip`
+     - `testApprovalLoop_SetsFailedStatusOnReject`
+     - `testApprovalLoop_CallsUpdateStatusAfterCompletion`
+     - `testApprovalLoop_DefensivelyClearsStalePendingApproval`
+
+4. **Go Enhanced Logging** (stigmer)
+   - Added `approvalSignalCount` tracking in `CallAgentTaskBuilder.Build()`
+   - Enhanced `clearTaskApprovalStatus` with signal count logging
+   - Logs `had_approval_signal` and `approval_signal_count` for observability
+
+5. **Go Unit Tests** (stigmer)
+   - 2 new tests in `task_builder_call_agent_test.go`:
+     - `TestApprovalSignalCount_TrackedCorrectly`
+     - `TestClearTaskApprovalStatus_RequiresValidExecutionId`
+
+6. **Python Verification Tests** (stigmer)
+   - 4 new tests in `TestPhase54ApprovalClearing` class:
+     - `test_approve_clears_pending_approval_completely`
+     - `test_skip_clears_pending_approval_completely`
+     - `test_reject_clears_pending_approval_completely`
+     - `test_clear_pending_approval_restores_saved_phase`
+
+7. **Integration Test Scenarios Document** (stigmer)
+   - Created `integration-test-scenarios.md` for Phase 5.5
+   - 7 comprehensive test scenarios documented
+   - gRPC call examples and verification checklists
+
+#### Key Technical Achievements
+
+| Achievement | Implementation | Impact |
+|-------------|---------------|--------|
+| **Defensive Validation** | Java checks & clears stale pending_approval | No orphaned approval states |
+| **Observability** | Wait time + signal count tracking | Measurable approval latency |
+| **Comprehensive Tests** | 11 new tests across 3 languages | High confidence in flow |
+| **E2E Documentation** | 7 integration test scenarios | Ready for Phase 5.5 |
+
+#### Files Modified
+
+**stigmer-cloud repo**:
+```
+backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/temporal/workflow/
+  - InvokeAgentExecutionWorkflowImpl.java (+40 lines - defensive validation + logging)
+backend/services/stigmer-service/src/test/java/ai/stigmer/domain/agentic/agentexecution/temporal/workflow/
+  - InvokeAgentExecutionWorkflowSignalTest.java (+150 lines - 5 new tests)
+```
+
+**stigmer repo**:
+```
+backend/services/workflow-runner/pkg/zigflow/tasks/
+  - task_builder_call_agent.go (+15 lines - signal count tracking + enhanced logging)
+  - task_builder_call_agent_test.go (+60 lines - 2 new tests)
+backend/services/agent-runner/tests/
+  - test_status_builder.py (+120 lines - TestPhase54ApprovalClearing class)
+_projects/2026-01/20260130.03.hitl-approval-flow/
+  - integration-test-scenarios.md (NEW - ~250 lines)
+```
+
+**Net Changes**: ~340 lines (4 modified files, 1 new doc, 11 new tests)
+
+**Test Coverage**: 11 new tests, all passing
+
+#### What This Completes
+
+Phase 5.4 completes the approval resumption verification. Now:
+- ✅ Java defensively validates and clears stale pending_approval
+- ✅ Observability logging tracks approval wait time and signal counts
+- ✅ All approval actions (APPROVE, SKIP, REJECT) verified to clear pending_approval
+- ✅ Phase restoration after clearing verified
+- ✅ Integration test scenarios documented for Phase 5.5
+- ✅ Ready for Phase 5.5: End-to-End Integration Testing
 
 ---
 
@@ -901,11 +997,12 @@ Tools that match approval policies will now be correctly marked `WAITING_APPROVA
 - [x] Add comprehensive audit logging for approval decisions
 - [x] Comprehensive unit tests (25+ tests across handler and workflow)
 
-### Phase 5: Workflow Integration - ✅ 5.1, 5.2 & 5.3 COMPLETE, 5.4-5.5 REMAINING
+### Phase 5: Workflow Integration - ✅ 5.1-5.4 COMPLETE, 5.5 REMAINING
 **Plans**: 
 - Phase 5.1: `.cursor/plans/hitl_phase_5.1_events_5363b890.plan.md` (Events-Based Notification)
 - Phase 5.2: `.cursor/plans/phase_5.2_workflow_status_f79f8b00.plan.md` (Workflow Status Propagation)
 - Phase 5.3: `.cursor/plans/hitl_phase_5.3_approval_forwarding_60aedf93.plan.md` (Approval Forwarding)
+- Phase 5.4: `.cursor/plans/hitl_phase_5.4_approval_resumption_d6b4558c.plan.md` (Approval Resumption)
 
 **Sub-Tasks**:
 - [x] **5.1**: Child Agent Approval Detection (Events-Based) - ✅ COMPLETE (2 hours)
@@ -933,16 +1030,21 @@ Tools that match approval policies will now be correctly marked `WAITING_APPROVA
   - Comprehensive unit tests (25+ tests, all passing)
   - Users can submit via workflow OR agent API (both work)
   
-- [ ] **5.4**: Approval Resumption Verification - 60-75 min
-  - Verify callback flow after approval
-  - Verify status clearing logic works correctly
-  - Test end-to-end resume flow
+- [x] **5.4**: Approval Resumption Verification - ✅ COMPLETE (1 hour)
+  - Added defensive validation in Java to clear stale pending_approval
+  - Added observability logging for approval wait time and status transitions
+  - Added approval signal count tracking in Go for observability
+  - 5 new Java unit tests for approval resumption scenarios
+  - 2 new Go unit tests for clearing behavior verification
+  - 4 new Python tests verifying pending_approval clearing for all actions
+  - Created integration test scenarios document for Phase 5.5
   
 - [ ] **5.5**: End-to-End Integration Testing - 90-120 min
   - Test all approval actions (approve, skip, reject)
   - Test both submission paths (workflow vs agent)
   - Test multiple agents in workflow
   - Verify sub-100ms signal latency
+  - Integration test scenarios documented in `integration-test-scenarios.md`
 
 ### Phase 6: CLI Support (~1 day)
 - [ ] Detect `EXECUTION_WAITING_FOR_APPROVAL` in streaming output

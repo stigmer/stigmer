@@ -2634,6 +2634,155 @@ class TestToolApprovalDecision:
 
 
 # =============================================================================
+# Phase 5.4: Approval Resumption Verification Tests
+#
+# These tests verify that pending_approval is properly cleared after each
+# approval action, which is critical for the workflow → agent approval flow.
+# =============================================================================
+
+
+class TestPhase54ApprovalClearing:
+    """Phase 5.4: Tests verifying pending_approval clearing for all approval actions."""
+    
+    @pytest.fixture
+    def status_builder_with_pending_approval(self, mock_initial_status):
+        """Create StatusBuilder with full pending_approval state."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+            ToolCall, PendingApproval
+        )
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+            ToolCallStatus, ExecutionPhase
+        )
+        
+        # Set up real protos with all pending_approval fields populated
+        mock_initial_status.pending_approval = PendingApproval()
+        mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
+        
+        builder = StatusBuilder(
+            execution_id="test-execution-phase54",
+            initial_status=mock_initial_status
+        )
+        
+        # Add a tool call in WAITING_APPROVAL state
+        tool_call = ToolCall(
+            id="tool-run-phase54",
+            name="dangerous_operation",
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requires_approval=True,
+            approval_message="Execute dangerous operation?",
+        )
+        mock_initial_status.tool_calls.append(tool_call)
+        
+        # Set up full pending approval state (simulating approval request)
+        builder._pending_tool_approval = "tool-run-phase54"
+        builder._saved_phase_before_approval = ExecutionPhase.EXECUTION_IN_PROGRESS
+        builder.current_status.pending_approval.CopyFrom(PendingApproval(
+            tool_call_id="tool-run-phase54",
+            tool_name="dangerous_operation",
+            message="Execute dangerous operation?",
+            args_preview='{"target": "production"}',
+            requested_at="2026-01-30T12:00:00Z",
+            from_sub_agent=False,
+            sub_agent_name="",
+        ))
+        builder.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+        
+        return builder
+    
+    def test_approve_clears_pending_approval_completely(self, status_builder_with_pending_approval):
+        """Phase 5.4: Verify APPROVE action clears all pending_approval fields."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        
+        # Verify all pending_approval fields are set before
+        pending = status_builder_with_pending_approval.current_status.pending_approval
+        assert pending.tool_call_id == "tool-run-phase54"
+        assert pending.tool_name == "dangerous_operation"
+        assert pending.message == "Execute dangerous operation?"
+        assert pending.args_preview == '{"target": "production"}'
+        assert pending.requested_at == "2026-01-30T12:00:00Z"
+        
+        # Execute APPROVE decision
+        status_builder_with_pending_approval.set_tool_approval_decision(
+            run_id="tool-run-phase54",
+            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            approved_by="user-123",
+        )
+        
+        # Verify ALL pending_approval fields are cleared
+        cleared_pending = status_builder_with_pending_approval.current_status.pending_approval
+        assert cleared_pending.tool_call_id == ""
+        assert cleared_pending.tool_name == ""
+        assert cleared_pending.message == ""
+        assert cleared_pending.args_preview == ""
+        assert cleared_pending.requested_at == ""
+        
+        # Verify internal tracking state is also cleared
+        assert status_builder_with_pending_approval._pending_tool_approval is None
+    
+    def test_skip_clears_pending_approval_completely(self, status_builder_with_pending_approval):
+        """Phase 5.4: Verify SKIP action clears all pending_approval fields."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        
+        # Verify pending_approval is set before
+        assert status_builder_with_pending_approval.current_status.pending_approval.tool_call_id != ""
+        
+        # Execute SKIP decision
+        status_builder_with_pending_approval.set_tool_approval_decision(
+            run_id="tool-run-phase54",
+            action=ApprovalAction.APPROVAL_ACTION_SKIP,
+            approved_by="user-123",
+        )
+        
+        # Verify pending_approval is cleared
+        cleared_pending = status_builder_with_pending_approval.current_status.pending_approval
+        assert cleared_pending.tool_call_id == ""
+        assert cleared_pending.tool_name == ""
+        
+        # Verify internal tracking state is also cleared
+        assert status_builder_with_pending_approval._pending_tool_approval is None
+    
+    def test_reject_clears_pending_approval_completely(self, status_builder_with_pending_approval):
+        """Phase 5.4: Verify REJECT action clears all pending_approval fields."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
+        
+        # Verify pending_approval is set before
+        assert status_builder_with_pending_approval.current_status.pending_approval.tool_call_id != ""
+        
+        # Execute REJECT decision
+        status_builder_with_pending_approval.set_tool_approval_decision(
+            run_id="tool-run-phase54",
+            action=ApprovalAction.APPROVAL_ACTION_REJECT,
+            approved_by="user-123",
+        )
+        
+        # Verify pending_approval is cleared even on REJECT
+        # This is important: REJECT should still clear pending state
+        cleared_pending = status_builder_with_pending_approval.current_status.pending_approval
+        assert cleared_pending.tool_call_id == ""
+        assert cleared_pending.tool_name == ""
+        
+        # Verify internal tracking state is also cleared
+        assert status_builder_with_pending_approval._pending_tool_approval is None
+    
+    def test_clear_pending_approval_restores_saved_phase(self, status_builder_with_pending_approval):
+        """Phase 5.4: Verify clear_pending_approval restores the saved phase."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
+        
+        # Verify starting state
+        assert status_builder_with_pending_approval.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+        assert status_builder_with_pending_approval._saved_phase_before_approval == ExecutionPhase.EXECUTION_IN_PROGRESS
+        
+        # Call clear_pending_approval directly
+        status_builder_with_pending_approval.clear_pending_approval()
+        
+        # Verify phase is restored to IN_PROGRESS (not WAITING_FOR_APPROVAL)
+        assert status_builder_with_pending_approval.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
+        
+        # Verify saved phase is reset to None after restoration
+        assert status_builder_with_pending_approval._saved_phase_before_approval is None
+
+
+# =============================================================================
 # Tests for Tool Start Approval Integration (HITL Phase 2)
 # =============================================================================
 

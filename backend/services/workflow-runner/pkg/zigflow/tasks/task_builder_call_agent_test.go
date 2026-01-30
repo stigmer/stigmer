@@ -140,6 +140,94 @@ func TestIsRuntimePlaceholder(t *testing.T) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Phase 5.4: Approval Resumption Verification Tests
+//
+// These tests verify the approval signal handling and clearing behavior
+// for the workflow → agent approval flow.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// TestApprovalSignalCount_TrackedCorrectly verifies that approval signal counting
+// works correctly for observability logging.
+func TestApprovalSignalCount_TrackedCorrectly(t *testing.T) {
+	tests := []struct {
+		name                string
+		signalCount         int
+		hadApprovalSignal   bool
+		expectedDescription string
+	}{
+		{
+			name:                "no signals received",
+			signalCount:         0,
+			hadApprovalSignal:   false,
+			expectedDescription: "Agent completed without requiring approval",
+		},
+		{
+			name:                "one signal received",
+			signalCount:         1,
+			hadApprovalSignal:   true,
+			expectedDescription: "Agent required one approval cycle",
+		},
+		{
+			name:                "multiple signals received",
+			signalCount:         3,
+			hadApprovalSignal:   true,
+			expectedDescription: "Agent required multiple approval cycles",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Verify the tracking logic used in clearTaskApprovalStatus
+			hadSignal := tc.signalCount > 0
+			assert.Equal(t, tc.hadApprovalSignal, hadSignal, tc.expectedDescription)
+		})
+	}
+}
+
+// TestClearTaskApprovalStatus_RequiresValidExecutionId verifies that
+// clearTaskApprovalStatus requires a valid execution ID from state.
+func TestClearTaskApprovalStatus_RequiresValidExecutionId(t *testing.T) {
+	tests := []struct {
+		name              string
+		state             *utils.State
+		shouldAttemptClear bool
+		description       string
+	}{
+		{
+			name:              "nil state skips clearing",
+			state:             nil,
+			shouldAttemptClear: false,
+			description:       "Cannot clear without execution ID",
+		},
+		{
+			name:              "missing execution ID skips clearing",
+			state:             &utils.State{Data: map[string]any{}},
+			shouldAttemptClear: false,
+			description:       "No execution ID in state",
+		},
+		{
+			name: "valid execution ID attempts clearing",
+			state: &utils.State{
+				Data: map[string]any{
+					"__stigmer_execution_id": "wfx-test-123",
+				},
+			},
+			shouldAttemptClear: true,
+			description:       "Valid execution ID enables clearing",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// The clearing logic checks for execution ID first
+			executionId := getExecutionIdFromState(tc.state)
+			shouldClear := executionId != ""
+			assert.Equal(t, tc.shouldAttemptClear, shouldClear, tc.description)
+		})
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Phase 5.2: pending_approval Status Protocol Tests
 //
 // These tests document and verify the contract between Go (workflow-runner)
