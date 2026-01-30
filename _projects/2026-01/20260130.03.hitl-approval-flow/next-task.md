@@ -18,9 +18,155 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-01-30
-**Last Session**: 2026-01-30 (Phase 6.1 CLI Approval Display)
-**Current Phase**: Phase 6.1 Complete
-**Status**: READY - CLI approval display implemented, tests passing, ready for Phase 6.2
+**Last Session**: 2026-01-30 (Phase 6.2 Interactive Approval Prompt)
+**Current Phase**: Phase 6.2 Complete
+**Status**: READY - Interactive approval prompt implemented, 15 tests passing, ready for Phase 6.3
+
+---
+
+## Session Progress (2026-01-30 - Phase 6.2 Interactive Approval Prompt)
+
+### Completed - Phase 6.2: Interactive Approval Prompt
+**Duration**: ~45 min | **Lines Added**: ~469 lines (6 new files in pkg/approval/)
+
+#### What Was Accomplished
+
+Implemented the `pkg/approval/` package with a clean, testable interface for interactive approval prompts. This enables users to approve, skip, or reject tool executions during streaming with optional comment input, while supporting non-interactive CI/CD environments.
+
+1. **Core Types** (types.go - 62 lines)
+   - `Action` enum (Approve, Skip, Reject, Unspecified)
+   - `Decision` struct with Action and optional Comment
+   - `Options` struct for prompt configuration
+   - `String()` method for human-readable action names
+
+2. **Prompter Interface** (prompter.go - 30 lines)
+   - `Prompter` interface for testability and future implementations
+   - `ErrPromptCancelled` sentinel error for user cancellation
+   - `ErrNonInteractiveNoDefault` sentinel error for missing default
+
+3. **Interactive Implementation** (interactive.go - 91 lines)
+   - `InteractivePrompter` using Survey library
+   - TTY detection with auto-fallback to non-interactive
+   - Three-option selection (Approve/Skip/Reject)
+   - Optional comment collection on Reject
+   - Non-interactive mode support for CI/CD
+
+4. **Comprehensive Tests** (interactive_test.go - 225 lines)
+   - 15 unit tests covering all functionality
+   - Action.String() tests
+   - indexToAction conversion tests
+   - Non-interactive mode tests
+   - Error handling tests
+   - Decision and Options struct tests
+
+5. **Package Documentation** (doc.go - 40 lines)
+   - Package overview with usage examples
+   - Non-interactive mode documentation
+   - Testing pattern examples
+
+6. **Build Configuration** (BUILD.bazel - 21 lines)
+   - Proper Bazel configuration
+   - Dependencies: Survey v2, pkg/display
+
+#### Key Technical Achievements
+
+| Achievement | Implementation | Impact |
+|-------------|---------------|--------|
+| **Prompter Interface** | Clean abstraction with mock support | Enables testing without TTY |
+| **TTY Detection** | Auto-fallback via pkg/display.IsTerminal() | CI/CD friendly |
+| **Domain Agnostic** | No proto imports in pkg/ | Reusable utility package |
+| **Engineering Standards** | All files <250 lines, all functions <50 lines | Zero technical debt |
+
+#### Files Created
+
+**stigmer repo**:
+```
+client-apps/cli/pkg/approval/types.go              (NEW - 62 lines)
+client-apps/cli/pkg/approval/prompter.go           (NEW - 30 lines)
+client-apps/cli/pkg/approval/interactive.go        (NEW - 91 lines)
+client-apps/cli/pkg/approval/interactive_test.go   (NEW - 225 lines, 15 tests)
+client-apps/cli/pkg/approval/doc.go                (NEW - 40 lines)
+client-apps/cli/pkg/approval/BUILD.bazel           (NEW - 21 lines)
+```
+
+**Net Changes**: ~469 lines (6 new files)
+
+**Test Results**: 15 tests, all passing ✅
+- Go test: PASS
+- Bazel test: PASS
+- No linter errors
+
+#### What This Completes
+
+Phase 6.2 completes the interactive approval prompt foundation. Now:
+- ✅ `Prompter` interface defined for testability
+- ✅ `InteractivePrompter` implements Survey-based three-option selection
+- ✅ Non-interactive mode with DefaultAction support
+- ✅ TTY detection prevents prompts in CI/CD environments
+- ✅ Optional comment input on Reject action
+- ✅ Sentinel errors for specific failure modes
+- ✅ Comprehensive test coverage (15 tests)
+- ✅ BUILD.bazel properly configured with dependencies
+- ✅ Ready for Phase 6.3: Approval API Client
+
+---
+
+## Session Progress (2026-01-30 - Phase 5.6 Platform Tool Approval Defaults)
+
+### Completed - Phase 5.6: Platform Tool Approval Defaults
+**Duration**: ~1 hour | **Lines Added**: ~420 lines (4 files modified, 10 new tests)
+
+#### What Was Accomplished
+
+Implemented hardcoded approval defaults for platform/sandbox tools so that dangerous operations (write, edit, execute) require approval by default, while safe operations (read, ls, glob, grep) auto-approve.
+
+1. **approval_policy.py Enhancements**
+   - Added `PLATFORM_TOOL_DEFAULTS` constant with 7 tools
+   - Added `PLATFORM_SERVER_NAME = "__platform__"` constant
+   - Added `is_platform_tool()` and `get_platform_tool_names()` helpers
+   - Extended `resolve_tool_approval()` with platform_default priority (4th level)
+   - Added `mcp_server` field to `ApprovalRequirement` dataclass
+
+2. **graphton/tool_wrappers.py Platform Tool Wrappers**
+   - Created `create_platform_tool_wrappers()` function (~200 lines)
+   - Created `_handle_approval_check()` helper for approval flow
+   - Created `_create_read_tool()`, `_create_write_tool()`, `_create_execute_tool()`
+   - Each wrapper checks approval before delegating to backend
+
+3. **graphton/agent.py Integration**
+   - Modified `create_deep_agent()` to detect when both `approval_checker` AND `sandbox_config` provided
+   - Creates approval-aware platform tool wrappers and adds to `tools_list`
+   - Passes `backend=None` to deepagents to prevent duplicate tools
+   - Backward compatible: without `approval_checker`, behavior unchanged
+
+4. **Unit Tests**
+   - Added `TestPlatformToolApprovalDefaults` class (10 tests)
+   - Tests for all 7 platform tools
+   - Tests for auto_approve_all bypass
+   - Tests for helper functions
+   - All 20 tests passing (10 existing + 10 new) ✅
+
+#### Platform Tool Defaults
+
+| Tool | Requires Approval | Message Template |
+|------|-------------------|------------------|
+| read | No | - |
+| ls | No | - |
+| glob | No | - |
+| grep | No | - |
+| write | Yes | `Write file: {{args.path}}` |
+| edit | Yes | `Edit file: {{args.path}}` |
+| execute | Yes | `Execute command: {{args.command}}` |
+
+#### Policy Chain (Updated)
+
+```
+1. auto_approve_all = true     → No approval (bypasses everything)
+2. agent_override              → Per-agent MCP tool overrides
+3. mcp_default                 → MCP server default policies
+4. platform_default (NEW)      → Hardcoded defaults for sandbox tools
+5. none                        → No approval required
+```
 
 ---
 
@@ -1276,6 +1422,100 @@ Tools that match approval policies will now be correctly marked `WAITING_APPROVA
   - Tests for multiple agents in workflow
   - Tests for signal latency verification
   - Integration test scenarios implementation documented
+
+### Phase 5.6: Platform Tool Approval Defaults - ✅ COMPLETE
+**Goal**: Add hardcoded approval defaults for sandbox/platform tools (read, write, edit, execute, ls, glob, grep)
+
+**Context**: 
+- Sandbox tools are provided by `deepagents` library and currently bypass all approval mechanisms
+- Users cannot see or configure these tools during agent creation
+- For MVP, we'll hardcode sensible defaults:
+  - Safe tools (read, ls, glob, grep): No approval needed
+  - Dangerous tools (write, edit, execute): Require approval by default
+- `auto_approve_all: true` bypasses all platform tool approvals
+
+**Sub-Tasks**:
+- [x] **5.6.1**: Add `PLATFORM_TOOL_DEFAULTS` constant to `approval_policy.py` - ✅ COMPLETE
+  - Added `PLATFORM_TOOL_DEFAULTS` dict with approval policies for read, write, edit, execute, ls, glob, grep
+  - Added `PLATFORM_SERVER_NAME = "__platform__"` constant
+  - Added `is_platform_tool()` and `get_platform_tool_names()` helper functions
+  
+- [x] **5.6.2**: Extend `resolve_tool_approval()` to check platform defaults as 4th priority - ✅ COMPLETE
+  - Added Priority 4 check for platform tools after MCP defaults
+  - Updated docstring to document the 4-level policy chain
+  - Added `mcp_server` field to `ApprovalRequirement` for server tracking
+  
+- [x] **5.6.3**: Create `create_platform_tool_wrappers()` in graphton for sandbox tools - ✅ COMPLETE
+  - Created `create_platform_tool_wrappers()` function in `tool_wrappers.py`
+  - Created `_handle_approval_check()` helper for approval flow
+  - Created `_create_read_tool()`, `_create_write_tool()`, `_create_execute_tool()` wrappers
+  - Each wrapper checks approval before delegating to backend
+  
+- [x] **5.6.4**: Modify `create_deep_agent()` to wrap sandbox tools with approval - ✅ COMPLETE
+  - When `approval_checker` AND `sandbox_config` provided:
+    - Creates approval-aware platform tool wrappers
+    - Adds them to `tools_list`
+    - Passes `backend=None` to deepagents (prevents duplicate tools)
+  - Backward compatible: without `approval_checker`, deepagents creates tools as before
+  
+- [x] **5.6.5**: Unit tests for platform tool approval flow - ✅ COMPLETE
+  - Added `TestPlatformToolApprovalDefaults` class with 10 tests
+  - Tests for all 7 platform tools (read, write, edit, execute, ls, glob, grep)
+  - Tests for auto_approve_all bypass
+  - Tests for helper functions (is_platform_tool, get_platform_tool_names)
+  - All 10 tests passing ✅
+
+**Files Modified**:
+```
+backend/services/agent-runner/worker/activities/graphton/approval_policy.py
+  - Added PLATFORM_TOOL_DEFAULTS constant (~25 lines)
+  - Added PLATFORM_SERVER_NAME constant
+  - Added is_platform_tool() and get_platform_tool_names() helpers
+  - Extended resolve_tool_approval() with platform_default priority
+  - Added mcp_server field to ApprovalRequirement
+
+backend/libs/python/graphton/src/graphton/core/tool_wrappers.py
+  - Added create_platform_tool_wrappers() function (~200 lines)
+  - Added _handle_approval_check() helper
+  - Added _create_read_tool(), _create_write_tool(), _create_execute_tool()
+
+backend/libs/python/graphton/src/graphton/core/agent.py
+  - Modified create_deep_agent() to use platform tool wrappers when approval_checker provided
+  - Added logging import
+
+backend/services/agent-runner/tests/test_status_builder.py
+  - Added TestPlatformToolApprovalDefaults class (~170 lines, 10 tests)
+```
+
+**Test Results**: 20 tests passing (10 existing + 10 new) ✅
+
+**Policy Chain (Updated)**:
+```
+1. auto_approve_all = true     → No approval (bypasses everything)
+2. agent_override              → Per-agent MCP tool overrides
+3. mcp_default                 → MCP server default policies
+4. platform_default (NEW)      → Hardcoded defaults for sandbox tools
+5. none                        → No approval required
+```
+
+**Platform Tool Defaults**:
+| Tool | Requires Approval | Message Template |
+|------|-------------------|------------------|
+| read | No | - |
+| ls | No | - |
+| glob | No | - |
+| grep | No | - |
+| write | Yes | `Write file: {{args.path}}` |
+| edit | Yes | `Edit file: {{args.path}}` |
+| execute | Yes | `Execute command: {{args.command}}` |
+
+**Files to Modify**:
+- `approval_policy.py` - Add PLATFORM_TOOL_DEFAULTS, extend resolve_tool_approval()
+- `graphton/core/agent.py` - Create and use platform tool wrappers
+- `graphton/core/tool_wrappers.py` - Add create_platform_tool_wrapper() function
+- Unit tests for new functionality
+
+---
 
 ### Phase 6: CLI Support - ✅ 6.1 COMPLETE, 6.2-6.4 REMAINING
 **Plan**: `.cursor/plans/hitl_cli_approval_support_58e326ae.plan.md`
