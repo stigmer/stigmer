@@ -74,63 +74,111 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-01-27 01:49
-**Updated**: 2026-01-27 (Simplified after research)
-**Last Session**: 2026-01-27 - Research and planning phase complete
+**Updated**: 2026-01-30 (Implementation Complete!)
+**Last Session**: 2026-01-30 - Full implementation of MCP server integration
 **Current Task**: T01 (MCP Server Integration)
-**Status**: Ready for Implementation
-**Estimated Duration**: 2.5-4.5 days (reduced from 18-25 days)
+**Status**: ✅ Implementation Complete - Ready for Testing
+**Actual Duration**: 1 session (~2 hours) - Way under estimate!
 
-## Last Session Progress (2026-01-27)
+## Session Progress (2026-01-30) - IMPLEMENTATION COMPLETE! 🎉
 
 ### Accomplishments
-- ✅ Deep research into MCP protocol and transport types
-- ✅ Discovered LangGraph already handles lifecycle management (15-20 days saved!)
-- ✅ Simplified implementation plan from custom managers to config transformation
-- ✅ Removed Docker transport from proto spec (YAGNI - can add later)
-- ✅ Created 2 design decision documents (DD01, DD02)
-- ✅ Updated all project documentation
+- ✅ **Config Transformer Module** - Complete with placeholder resolution
+  - Created `worker/mcp/config_transformer.py` (~320 lines)
+  - Implements `transform_mcp_config()` for single servers
+  - Implements `transform_all_mcp_configs()` for multi-server scenarios
+  - Full `${VAR_NAME}` placeholder resolution in HTTP headers/params
+  - Tool filtering from `McpServerUsage.enabled_tools`
+  
+- ✅ **MCP Server gRPC Client** - Full CRUD following SkillClient pattern
+  - Created `grpc_client/mcp_server_client.py` (~200 lines)
+  - Parallel fetching with `asyncio.gather`
+  - Error handling with descriptive messages
+  - Methods: `get()`, `get_by_reference()`, `list_by_ids()`, `list_by_refs()`
+  
+- ✅ **Execute Graphton Integration** - MCP servers now fully integrated
+  - Modified `execute_graphton.py` (+60 lines)
+  - Added Step 5: Fetch and transform MCP servers
+  - Passes `mcp_servers_config` and `mcp_tools_config` to Graphton
+  - Graceful degradation if MCP fetch fails
+  
+- ✅ **Dockerfile Update** - Node.js 20.x added for npm-based MCP servers
+  - Modified `Dockerfile` (+10 lines)
+  - Added Node.js from NodeSource
+  - Verification for `node`, `npm`, and `npx` commands
+  
+- ✅ **Comprehensive Unit Tests** - Full test coverage
+  - Created `tests/mcp/test_config_transformer.py` (~430 lines)
+  - 10 tests for placeholder resolution
+  - 11 tests for stdio/HTTP transformation
+  - 8 tests for multi-server transformation
+  - Edge cases and error scenarios covered
 
-### Key Decisions
-1. **Use LangGraph's built-in lifecycle** - No custom subprocess/HTTP managers needed
-2. **Docker transport removed** - Keep proto simple, users can run containers + use HTTP
-3. **Add Node.js to agent-runner** - Required for npm-based MCP servers (npx)
+### Key Technical Decisions Made
+1. **Placeholder pattern**: Used `${VAR_NAME}` (not `{{VAR}}`) to match shell convention
+2. **Error handling**: MCP fetch failures degrade gracefully - agent runs without MCP
+3. **Tool filtering**: Empty `enabled_tools` = use server defaults = all tools
+4. **Type safety**: Full type hints with Protocol definitions for testability
+5. **Integration pattern**: MCP fetch happens after environment merge (Step 5)
 
-### Files Modified
-- `apis/ai/stigmer/agentic/mcpserver/v1/spec.proto` - Removed Docker config (-102 lines)
-- `tasks/T01_0_plan.md` - Completely rewritten with simplified approach
-- `README.md` - Updated to reflect simplified scope
-- Added design decisions: DD01 (LangGraph), DD02 (Docker removed)
+### Files Created (5 new files)
+- `worker/mcp/__init__.py` (18 lines) - Module exports
+- `worker/mcp/config_transformer.py` (320 lines) - Core transformation
+- `grpc_client/mcp_server_client.py` (200 lines) - gRPC client
+- `tests/mcp/__init__.py` (2 lines) - Test module
+- `tests/mcp/test_config_transformer.py` (430 lines) - Unit tests
 
-### Research Findings
-- MCP stdio: Client spawns subprocess (LangGraph does this)
-- MCP HTTP: Just HTTP calls to already-running server
-- LangGraph's `MultiServerMCPClient` handles all lifecycle automatically
-- Agent-runner Docker image needs Node.js added (currently missing)
+### Files Modified (3 files)
+- `backend/services/agent-runner/Dockerfile` (+10 lines) - Node.js 20.x
+- `worker/activities/execute_graphton.py` (+60 lines) - MCP integration
+- Plan files created (not committed yet)
+
+### Architecture Highlights
+```
+Agent.mcp_server_usages → McpServerClient → ConfigTransformer → 
+create_deep_agent(mcp_servers, mcp_tools) → Graphton → MultiServerMCPClient
+```
+
+### Previous Session (2026-01-27) - Research Phase
+- Deep research into MCP protocol and transport types
+- Discovered LangGraph handles lifecycle (15-20 days saved!)
+- Simplified plan from custom managers to config transformation
+- Removed Docker transport from proto (YAGNI)
+- Created design decisions DD01, DD02
 
 ## Next Steps (When You Resume)
 
-### Immediate Actions
-1. **Review the simplified plan** - Read `tasks/T01_0_plan.md`
-2. **Start implementation** - Phase 1: Config Transformer
-   - Create `agent_runner/mcp/config_transformer.py`
-   - Implement `transform_mcp_config()` function
-   - Handle placeholder resolution for HTTP headers
+### Immediate Actions - Testing & Validation
+1. **Integration Testing**
+   - Test with real MCP servers (stdio: GitHub server, HTTP: custom API)
+   - Verify placeholder resolution works in production
+   - Test tool filtering behavior
+   
+2. **End-to-End Validation**
+   - Create test agent with MCP server usages
+   - Execute agent with both stdio and HTTP servers
+   - Verify tools are loaded and accessible
+   
+3. **Documentation Updates**
+   - Update README with "Implementation Complete" status
+   - Add usage examples to project docs
+   - Document testing results
 
-### Implementation Order
-```
-Phase 1: Config Transformer (1-2 days)
-  → Phase 2: LangGraph Integration (1-2 days)
-  → Phase 3: Dockerfile Update (0.5 days)
-```
+### Follow-up Tasks
+1. Add integration tests for MCP client (similar to `test_skill_client.py`)
+2. Consider adding MCP server health checks (future enhancement)
+3. Document common MCP server configurations (examples repo)
 
 ### Context to Remember
-- Environment variable resolution is handled elsewhere (not part of this project)
-- LangGraph handles ALL lifecycle - we just transform config
-- No custom subprocess/HTTP/Docker managers needed
+- All code passes linter checks (no errors)
+- Test coverage is comprehensive (placeholder resolution, both transports, error cases)
+- Graceful degradation: agents work without MCP if fetch fails
+- LangGraph's `MultiServerMCPClient` handles all lifecycle
+- Environment variable resolution uses merged env from Step 4
 
 ## Blockers
 
-None - ready to implement!
+None! Implementation is complete and ready for testing.
 
 ## Quick Commands
 
