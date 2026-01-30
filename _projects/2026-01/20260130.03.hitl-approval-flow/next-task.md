@@ -19,8 +19,104 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Created**: 2026-01-30
 **Last Session**: 2026-01-30 (Checkpointer Infrastructure Session)
-**Current Phase**: Checkpointer Infrastructure Complete + Phase 3B Complete
-**Status**: READY - Checkpointer integrated, HITL flow ready for Phase 4 (Java Handler)
+**Current Phase**: Phase 4 Complete
+**Status**: READY - Java Handler implemented, HITL flow ready for Phase 5 (Workflow Integration)
+
+---
+
+## Session Progress (2026-01-30 - Phase 4 Java Handler Implementation)
+
+### Completed - Phase 4: Java Handler for HITL Approval Flow
+**Duration**: ~2.5 hours | **Lines Added**: ~1,200+ lines (5 new files, 3 modified files)
+
+#### What Was Accomplished
+
+Implemented complete Java handler infrastructure for HITL approval flow in 5 sub-tasks:
+
+1. **Sub-Task 4.1: Workflow Signal Infrastructure** (60 min)
+   - Added `SIGNAL_SUBMIT_APPROVAL` constant to `AgentExecutionTemporalWorkflowTypes.java`
+   - Added `@SignalMethod` to `InvokeAgentExecutionWorkflow.java` interface
+   - Implemented signal handler and HITL approval loop in `InvokeAgentExecutionWorkflowImpl.java`
+   - Created comprehensive workflow signal tests
+
+2. **Sub-Task 4.2: Handler Skeleton with Validation** (45 min)
+   - Created `AgentExecutionSubmitApprovalHandler.java` with pipeline pattern
+   - Implemented LoadExistingStep, AuthorizeStep, ValidateApprovalStep
+   - Full validation: phase check, tool_call_id match, idempotency handling
+
+3. **Sub-Task 4.3: Signal Sending Step** (30 min)
+   - Implemented `SignalWorkflowStep` with WorkflowClient injection
+   - Proper error handling: WorkflowNotFoundException, WorkflowServiceException
+
+4. **Sub-Task 4.4: Workflow Resume Logic** (integrated with 4.1)
+   - HITL approval loop with `Workflow.await()`
+   - Activity re-invocation with approval decision embedded
+   - MAX_APPROVAL_CYCLES safety limit (100)
+   - Tool call ID mismatch validation
+
+5. **Sub-Task 4.5: Audit Logging** (20 min)
+   - Enhanced BuildResponseStep with caller identity in audit logs
+   - Structured audit logging for compliance and debugging
+
+#### Key Technical Achievements
+
+| Achievement | Implementation | Impact |
+|-------------|---------------|--------|
+| **Workflow Signal** | `@SignalMethod` with untyped stub signaling | Clean async communication |
+| **HITL Loop** | `Workflow.await()` + while loop | Multiple approval cycles supported |
+| **Handler Pipeline** | 5-step pipeline with validation | Consistent error handling |
+| **Idempotency** | Check existing approval_action | Same approval twice is no-op |
+| **Audit Logging** | Structured logs with caller identity | Compliance and debugging |
+
+#### Architecture Flow
+
+```
+SubmitApproval RPC Request
+    │
+    ▼
+AgentExecutionSubmitApprovalHandler
+    │
+    ├─ LoadExistingStep (DB lookup)
+    ├─ AuthorizeStep (can_edit permission)
+    ├─ ValidateApprovalStep (phase + tool_call_id)
+    ├─ SignalWorkflowStep (Temporal signal)
+    └─ BuildResponseStep (audit log + response)
+    │
+    ▼
+Temporal Workflow receives signal
+    │
+    ├─ submitApproval() signal handler stores decision
+    ├─ Workflow.await() unblocks
+    ├─ buildExecutionWithApprovalDecision()
+    └─ Re-invoke ExecuteGraphton activity
+    │
+    ▼
+Python Activity detects pending_approval + approval_action
+    │
+    └─ Command(resume=decision) → Tool executes/skips/rejects
+```
+
+#### Files Created (stigmer-cloud)
+
+```
+backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/request/handler/AgentExecutionSubmitApprovalHandler.java     (NEW - ~320 lines)
+backend/services/stigmer-service/src/test/java/ai/stigmer/domain/agentic/agentexecution/request/handler/AgentExecutionSubmitApprovalHandlerTest.java (NEW - ~400 lines)
+backend/services/stigmer-service/src/test/java/ai/stigmer/domain/agentic/agentexecution/temporal/workflow/InvokeAgentExecutionWorkflowSignalTest.java (NEW - ~350 lines)
+```
+
+#### Files Modified (stigmer-cloud)
+
+```
+backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/temporal/AgentExecutionTemporalWorkflowTypes.java           (+20 lines - signal constant)
+backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/temporal/workflow/InvokeAgentExecutionWorkflow.java         (+25 lines - signal method)
+backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/temporal/workflow/InvokeAgentExecutionWorkflowImpl.java     (+200 lines - signal handler + HITL loop)
+```
+
+**Net Changes**: ~1,315 lines (3 new files, 3 modified files)
+
+**Test Coverage**: 25+ new tests
+- Workflow signal tests: 10 tests
+- Handler step tests: 15+ tests (LoadExisting, Authorize, Validate, Signal, Response)
 
 ---
 
@@ -436,11 +532,17 @@ Tools that match approval policies will now be correctly marked `WAITING_APPROVA
 - [x] Handle sub-agent approval propagation
 - [x] Comprehensive unit tests (61 new tests, all passing)
 
-### Phase 4: Java Handler (~2 days)
-- [ ] Implement `submitApproval` RPC handler
-- [ ] Add validation (correct phase, matching tool_call_id)
-- [ ] Signal the Temporal workflow to resume agent
-- [ ] Add audit logging for approval decisions
+### Phase 4: Java Handler - ✅ COMPLETE
+**Goal**: Implement submitApproval RPC handler with workflow signaling
+
+**Completed**:
+- [x] Implement `submitApproval` RPC handler (`AgentExecutionSubmitApprovalHandler.java`)
+- [x] Add validation (correct phase, matching tool_call_id)
+- [x] Implement Temporal workflow signal infrastructure (`InvokeAgentExecutionWorkflow.java`)
+- [x] Add signal handler and HITL approval loop in workflow implementation
+- [x] Signal the Temporal workflow to resume agent (`SignalWorkflowStep`)
+- [x] Add comprehensive audit logging for approval decisions
+- [x] Comprehensive unit tests (25+ tests across handler and workflow)
 
 ### Phase 5: Workflow Integration (~2 days)
 - [ ] Detect child agent waiting for approval
