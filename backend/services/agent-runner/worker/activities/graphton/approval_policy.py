@@ -41,6 +41,68 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+# =============================================================================
+# Platform Tool Defaults
+# =============================================================================
+# 
+# Platform tools are sandbox/filesystem tools provided by the deepagents library.
+# These tools bypass MCP server configuration but still need approval policies.
+# 
+# For MVP, we hardcode sensible defaults:
+# - Safe tools (read, ls, glob, grep): No approval needed
+# - Dangerous tools (write, edit, execute): Require approval by default
+#
+# `auto_approve_all: true` on AgentExecutionSpec bypasses all platform tool approvals.
+#
+# Future enhancement: Allow user configuration via AgentSpec.platform_tool_approvals
+
+PLATFORM_TOOL_DEFAULTS: Dict[str, Dict[str, Any]] = {
+    # Safe tools - no approval needed (read-only operations)
+    "read": {"requires_approval": False},
+    "ls": {"requires_approval": False},
+    "glob": {"requires_approval": False},
+    "grep": {"requires_approval": False},
+    
+    # Dangerous tools - require approval by default (write/execute operations)
+    "write": {
+        "requires_approval": True,
+        "message": "Write file: {{args.path}}",
+    },
+    "edit": {
+        "requires_approval": True,
+        "message": "Edit file: {{args.path}}",
+    },
+    "execute": {
+        "requires_approval": True,
+        "message": "Execute command: {{args.command}}",
+    },
+}
+
+# Special server name for platform tools (used internally)
+PLATFORM_SERVER_NAME = "__platform__"
+
+
+def is_platform_tool(tool_name: str) -> bool:
+    """Check if a tool is a platform tool (sandbox/filesystem tool).
+    
+    Args:
+        tool_name: Name of the tool
+        
+    Returns:
+        True if the tool is a known platform tool
+    """
+    return tool_name in PLATFORM_TOOL_DEFAULTS
+
+
+def get_platform_tool_names() -> List[str]:
+    """Get list of all platform tool names.
+    
+    Returns:
+        List of platform tool names
+    """
+    return list(PLATFORM_TOOL_DEFAULTS.keys())
+
+
 @dataclass
 class ApprovalConfig:
     """
@@ -212,11 +274,13 @@ class ApprovalRequirement:
         message: Human-readable message to display when requesting approval.
                  May contain rendered {{args.field}} placeholders.
         source: Where this requirement came from (for debugging/logging).
-                One of: "auto_approve_all", "agent_override", "mcp_default", "none"
+                One of: "auto_approve_all", "agent_override", "mcp_default", "platform_default", "none"
+        mcp_server: Name of the MCP server providing this tool (or "__platform__" for sandbox tools).
     """
     requires_approval: bool
     message: str
     source: str
+    mcp_server: str = ""
 
 
 # Default message template when no custom message is provided
@@ -237,10 +301,11 @@ def resolve_tool_approval(
     1. auto_approve_all - Runtime bypass (if True, no approval needed)
     2. tool_approval_overrides - Per-agent customization
     3. default_tool_approvals - MCP server defaults
+    4. platform_default - Hardcoded defaults for sandbox/platform tools (NEW)
     
     Args:
         tool_name: Name of the tool being invoked (e.g., "delete_repository")
-        mcp_server_name: Slug of the MCP server providing this tool
+        mcp_server_name: Slug of the MCP server providing this tool (or "__platform__" for platform tools)
         auto_approve_all: If True, bypass all approval requirements
         tool_approval_overrides: List of ToolApprovalOverride protos from Agent spec
         default_tool_approvals: List of ToolApprovalPolicy protos from MCP server spec
@@ -260,6 +325,19 @@ def resolve_tool_approval(
         True
         >>> requirement.source
         'mcp_default'
+        
+        >>> # Platform tool example
+        >>> requirement = resolve_tool_approval(
+        ...     tool_name="write",
+        ...     mcp_server_name="__platform__",
+        ...     auto_approve_all=False,
+        ...     tool_approval_overrides=[],
+        ...     default_tool_approvals=[],
+        ... )
+        >>> requirement.requires_approval
+        True
+        >>> requirement.source
+        'platform_default'
     """
     # Priority 1: auto_approve_all bypasses everything
     if auto_approve_all:
@@ -271,6 +349,7 @@ def resolve_tool_approval(
             requires_approval=False,
             message="",
             source="auto_approve_all",
+            mcp_server=mcp_server_name,
         )
     
     # Priority 2: Check agent-level overrides
@@ -296,6 +375,7 @@ def resolve_tool_approval(
                 requires_approval=True,
                 message=message,
                 source="agent_override",
+                mcp_server=mcp_server_name,
             )
         else:
             # Override explicitly disables approval
@@ -307,6 +387,7 @@ def resolve_tool_approval(
                 requires_approval=False,
                 message="",
                 source="agent_override",
+                mcp_server=mcp_server_name,
             )
     
     # Priority 3: Check MCP server defaults
@@ -324,7 +405,40 @@ def resolve_tool_approval(
             requires_approval=True,
             message=message,
             source="mcp_default",
+            mcp_server=mcp_server_name,
         )
+    
+    # Priority 4: Check platform tool defaults (sandbox/filesystem tools)
+    if is_platform_tool(tool_name):
+        platform_config = PLATFORM_TOOL_DEFAULTS[tool_name]
+        requires_approval = platform_config.get("requires_approval", False)
+        
+        if requires_approval:
+            message = platform_config.get("message", "")
+            if not message:
+                message = DEFAULT_APPROVAL_MESSAGE_TEMPLATE.format(tool_name=tool_name)
+            
+            logger.debug(
+                f"[APPROVAL] tool={tool_name} server={mcp_server_name} "
+                f"result=REQUIRED source=platform_default"
+            )
+            return ApprovalRequirement(
+                requires_approval=True,
+                message=message,
+                source="platform_default",
+                mcp_server=PLATFORM_SERVER_NAME,  # Use platform server marker
+            )
+        else:
+            logger.debug(
+                f"[APPROVAL] tool={tool_name} server={mcp_server_name} "
+                f"result=NOT_REQUIRED source=platform_default"
+            )
+            return ApprovalRequirement(
+                requires_approval=False,
+                message="",
+                source="platform_default",
+                mcp_server=PLATFORM_SERVER_NAME,  # Use platform server marker
+            )
     
     # No policy matched - tool does not require approval
     logger.debug(
@@ -335,6 +449,7 @@ def resolve_tool_approval(
         requires_approval=False,
         message="",
         source="none",
+        mcp_server=mcp_server_name,
     )
 
 

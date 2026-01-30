@@ -4,8 +4,11 @@ This module provides the main entry point for creating LangGraph Deep Agents
 using Graphton's declarative API.
 """
 
+import logging
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
+
+logger = logging.getLogger(__name__)
 
 from deepagents import (  # type: ignore[import-untyped]
     create_deep_agent as deepagents_create_deep_agent,
@@ -444,9 +447,33 @@ def create_deep_agent(
     
     # Create sandbox backend if configured (for terminal execution support)
     backend = None
+    backend_for_deepagents = None  # May be None if we create platform tool wrappers
+    
     if sandbox_config:
         from graphton.core.sandbox_factory import create_sandbox_backend
         backend = create_sandbox_backend(sandbox_config)
+        
+        if approval_checker is not None:
+            # HITL approval flow: Create approval-aware platform tool wrappers
+            # We create our own wrappers that check approval before executing,
+            # and pass backend=None to deepagents to prevent duplicate tools
+            from graphton.core.tool_wrappers import create_platform_tool_wrappers
+            
+            platform_tools = create_platform_tool_wrappers(
+                backend=backend,
+                approval_checker=approval_checker,
+            )
+            tools_list.extend(platform_tools)
+            
+            logger.info(
+                f"Created {len(platform_tools)} approval-aware platform tool wrappers "
+                "(sandbox tools will check approval before executing)"
+            )
+            # Don't pass backend to deepagents - we handle platform tools ourselves
+            backend_for_deepagents = None
+        else:
+            # No approval checker: let deepagents create platform tools normally
+            backend_for_deepagents = backend
     
     # Create the Deep Agent using deepagents library
     # DeepAgents automatically adds SubAgentMiddleware when subagents are provided
@@ -458,7 +485,7 @@ def create_deep_agent(
         middleware=middleware_list,
         subagents=transformed_subagents,  # Pass transformed subagents to DeepAgents
         context_schema=context_schema,
-        backend=backend,
+        backend=backend_for_deepagents,  # May be None if using approval-aware wrappers
         checkpointer=checkpointer,  # Enable interrupt/resume for HITL approval
     )
     

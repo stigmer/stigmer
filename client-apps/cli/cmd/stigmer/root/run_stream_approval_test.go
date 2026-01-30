@@ -386,11 +386,11 @@ func TestHandleWorkflowApprovalPrompt_NonInteractiveNoDefaultError(t *testing.T)
 
 func TestNeedsApprovalPrompt_TableDriven(t *testing.T) {
 	tests := []struct {
-		name           string
-		phase          agentexecutionv1.ExecutionPhase
+		name            string
+		phase           agentexecutionv1.ExecutionPhase
 		pendingApproval *agentexecutionv1.PendingApproval
-		lastToolCallID string
-		expected       bool
+		lastToolCallID  string
+		expected        bool
 	}{
 		{
 			name:  "waiting with new approval",

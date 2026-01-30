@@ -238,9 +238,6 @@ func displayMcpServerPreview(mcpServer *mcpserverv1.McpServer) {
 	} else if http := mcpServer.Spec.GetHttp(); http != nil {
 		cliprint.PrintInfo("  Type:        http")
 		cliprint.PrintInfo("  URL:         %s", http.Url)
-	} else if docker := mcpServer.Spec.GetDocker(); docker != nil {
-		cliprint.PrintInfo("  Type:        docker")
-		cliprint.PrintInfo("  Image:       %s", docker.Image)
 	}
 
 	if len(mcpServer.Spec.Tags) > 0 {
@@ -488,12 +485,6 @@ func displayMcpServerGetResult(mcpServer *mcpserverv1.McpServer, format string) 
 			cliprint.PrintInfo("  URL:         %s", http.Url)
 			if http.TimeoutSeconds > 0 {
 				cliprint.PrintInfo("  Timeout:     %ds", http.TimeoutSeconds)
-			}
-		} else if docker := mcpServer.Spec.GetDocker(); docker != nil {
-			cliprint.PrintInfo("  Type:        docker")
-			cliprint.PrintInfo("  Image:       %s", docker.Image)
-			if docker.Network != "" {
-				cliprint.PrintInfo("  Network:     %s", docker.Network)
 			}
 		}
 
