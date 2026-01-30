@@ -18,7 +18,9 @@ from worker.token_manager import get_api_key
 from worker.sandbox_manager import SandboxManager
 from worker.activities.graphton.status_builder import StatusBuilder
 from worker.mcp import transform_all_mcp_configs
+from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 import os
+import time
 
 
 @activity.defn(name="ExecuteGraphton")
@@ -549,14 +551,28 @@ async def _execute_graphton_impl(
         activity_logger.info(f"Execution {execution_id} phase set to IN_PROGRESS (building locally)")
         
         # Step 9: Stream execution and build status from events
+        # 
+        # Streaming Update Strategy (Phase 1.2):
+        # - Time-based updates: Send every 500ms minimum (configurable)
+        # - Burst protection: Force update after 50 events (configurable)
+        # - Keepalive: Send update every 5 seconds during long operations
+        # 
+        # This replaces the naive event-count based approach which caused:
+        # - Poor UX for slow tools (no update for 30+ seconds)
+        # - Wasteful updates during fast streaming (10+ updates/second)
         events_processed = 0
-        last_update_sent = 0
-        last_heartbeat_sent = 0
-        update_interval = 10  # Send status update every N events
-        heartbeat_interval = 5  # Send heartbeat every N events (more frequent than status updates)
+        last_heartbeat_time = time.monotonic()
+        heartbeat_interval_ms = 2000  # Send heartbeat every 2 seconds
+        
+        # Initialize streaming update scheduler
+        streaming_config = StreamingConfig.load_from_env()
+        update_scheduler = StreamingUpdateScheduler(streaming_config)
         
         activity_logger.info(
-            f"🔍 Starting Graphton agent stream for execution {execution_id}"
+            f"🔍 Starting Graphton agent stream for execution {execution_id} "
+            f"(streaming: min_interval={streaming_config.min_interval_ms}ms, "
+            f"max_interval={streaming_config.max_interval_ms}ms, "
+            f"burst_threshold={streaming_config.burst_threshold})"
         )
         
         async for event in agent_graph.astream_events(
@@ -569,9 +585,11 @@ async def _execute_graphton_impl(
             
             events_processed += 1
             
-            # Send activity heartbeat to prevent timeout
-            # This tells Temporal the activity is still running and making progress
-            if events_processed - last_heartbeat_sent >= heartbeat_interval:
+            # Send activity heartbeat to prevent Temporal timeout
+            # Time-based: every 2 seconds (independent of status updates)
+            now = time.monotonic()
+            time_since_heartbeat_ms = (now - last_heartbeat_time) * 1000
+            if time_since_heartbeat_ms >= heartbeat_interval_ms:
                 try:
                     activity.heartbeat({
                         "events_processed": events_processed,
@@ -579,17 +597,27 @@ async def _execute_graphton_impl(
                         "tool_calls": len(status_builder.current_status.tool_calls),
                         "phase": status_builder.current_status.phase,
                     })
-                    last_heartbeat_sent = events_processed
+                    last_heartbeat_time = now
                 except Exception as e:
                     # Heartbeat failure is not critical - log and continue
                     activity_logger.debug(f"Heartbeat failed (event {events_processed}): {e}")
             
-            # Send progressive status update via gRPC (every N events)
-            if events_processed - last_update_sent >= update_interval:
+            # Send progressive status update via gRPC using hybrid scheduler
+            # Triggers on: time threshold (500ms), burst (50 events), or keepalive (5s)
+            if update_scheduler.should_send_update(events_processed):
+                reason = update_scheduler.get_update_reason_str()
+                time_since_last = update_scheduler.get_time_since_last_update_ms()
+                events_since_last = update_scheduler.get_events_since_last_update(events_processed)
+                
                 try:
-                    activity_logger.debug(
-                        f"📤 Sending status update #{events_processed}: "
-                        f"messages={len(status_builder.current_status.messages)}, "
+                    activity_logger.info(
+                        f"[STREAM] execution={execution_id} "
+                        f"update_sent=true "
+                        f"reason={reason} "
+                        f"events_total={events_processed} "
+                        f"events_since_last={events_since_last} "
+                        f"time_since_last_ms={time_since_last:.0f} "
+                        f"messages={len(status_builder.current_status.messages)} "
                         f"tool_calls={len(status_builder.current_status.tool_calls)}"
                     )
                     
@@ -599,17 +627,21 @@ async def _execute_graphton_impl(
                         status=status_builder.current_status
                     )
                     
-                    last_update_sent = events_processed
-                    activity_logger.debug(f"✅ Status update sent successfully")
+                    update_scheduler.mark_update_sent(events_processed)
                     
                 except Exception as e:
                     # Log but don't fail - keep processing events
+                    # Still mark as sent to avoid retry storm on persistent failures
                     activity_logger.warning(
-                        f"Failed to send status update (event {events_processed}): {e}"
+                        f"[STREAM] execution={execution_id} "
+                        f"update_sent=false "
+                        f"reason={reason} "
+                        f"error={str(e)}"
                     )
+                    update_scheduler.mark_update_sent(events_processed)
             
-            # Log progress periodically
-            if events_processed % 10 == 0:
+            # Log progress periodically (every 50 events for reduced noise)
+            if events_processed % 50 == 0:
                 activity_logger.debug(f"Processed {events_processed} events")
         
         # Verify stream processed data
