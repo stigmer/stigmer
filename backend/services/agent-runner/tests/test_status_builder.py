@@ -6,6 +6,8 @@ Tests cover:
 - on_chat_model_end event handling (token usage extraction)
 - Message duration tracking
 - Cumulative token counting
+- ToolCall status transitions (Phase 2.2): RUNNING -> COMPLETED
+- Tool execution duration tracking
 """
 
 import pytest
@@ -602,3 +604,233 @@ class TestAgentMessageStreamingFields:
         assert ai_message.token_count == 0
         # is_streaming should still be False (finalized)
         assert ai_message.is_streaming is False
+
+
+# =============================================================================
+# Tests for ToolCall status transitions (Phase 2.2)
+# =============================================================================
+
+
+class TestToolCallStatus:
+    """Tests for ToolCall status transitions: RUNNING -> COMPLETED.
+    
+    Phase 2.2 changes the initial tool status from PENDING to RUNNING,
+    as on_tool_start fires when execution begins, not when queued.
+    
+    Status lifecycle:
+    - on_tool_start -> RUNNING (tool is executing)
+    - on_tool_end -> COMPLETED (tool finished successfully)
+    """
+
+    @pytest.mark.asyncio
+    async def test_tool_start_sets_running_status(self, status_builder):
+        """Test that on_tool_start sets RUNNING status (not PENDING)."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        
+        event = {
+            "event": "on_tool_start",
+            "name": "read_file",
+            "run_id": "tool-run-123",
+            "data": {"input": {"path": "/tmp/test.txt"}},
+            "metadata": {}
+        }
+        
+        await status_builder.process_event(event)
+        
+        # Verify tool call was created
+        assert len(status_builder.current_status.tool_calls) == 1
+        tool_call = status_builder.current_status.tool_calls[0]
+        
+        # Key assertion: Status should be RUNNING, not PENDING
+        assert tool_call.status == ToolCallStatus.TOOL_CALL_RUNNING
+
+    @pytest.mark.asyncio
+    async def test_tool_start_sets_started_at_timestamp(self, status_builder):
+        """Test that on_tool_start sets started_at timestamp."""
+        event = {
+            "event": "on_tool_start",
+            "name": "execute_command",
+            "run_id": "tool-run-456",
+            "data": {"input": {"command": "ls -la"}},
+            "metadata": {}
+        }
+        
+        await status_builder.process_event(event)
+        
+        tool_call = status_builder.current_status.tool_calls[0]
+        
+        # Verify started_at is set and looks like ISO 8601 format
+        assert tool_call.started_at != ""
+        assert "T" in tool_call.started_at  # ISO 8601 format check
+
+    @pytest.mark.asyncio
+    async def test_tool_end_sets_completed_status(self, status_builder):
+        """Test that on_tool_end transitions from RUNNING to COMPLETED."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        
+        run_id = "tool-run-789"
+        
+        # First, start the tool
+        start_event = {
+            "event": "on_tool_start",
+            "name": "read_file",
+            "run_id": run_id,
+            "data": {"input": {"path": "/tmp/test.txt"}},
+            "metadata": {}
+        }
+        await status_builder.process_event(start_event)
+        
+        # Verify initial status is RUNNING
+        assert status_builder.current_status.tool_calls[0].status == ToolCallStatus.TOOL_CALL_RUNNING
+        
+        # Now end the tool
+        end_event = {
+            "event": "on_tool_end",
+            "name": "read_file",
+            "run_id": run_id,
+            "data": {"output": "file contents here"},
+            "metadata": {}
+        }
+        await status_builder.process_event(end_event)
+        
+        # Verify status transitioned to COMPLETED
+        tool_call = status_builder.current_status.tool_calls[0]
+        assert tool_call.status == ToolCallStatus.TOOL_CALL_COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_tool_end_sets_completed_at_timestamp(self, status_builder):
+        """Test that on_tool_end sets completed_at timestamp."""
+        run_id = "tool-run-timestamp"
+        
+        # Start the tool
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "api_call",
+            "run_id": run_id,
+            "data": {"input": {"url": "https://api.example.com"}},
+            "metadata": {}
+        })
+        
+        # Verify completed_at is empty initially
+        assert status_builder.current_status.tool_calls[0].completed_at == ""
+        
+        # End the tool
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "api_call",
+            "run_id": run_id,
+            "data": {"output": {"status": 200}},
+            "metadata": {}
+        })
+        
+        tool_call = status_builder.current_status.tool_calls[0]
+        
+        # Verify completed_at is now set
+        assert tool_call.completed_at != ""
+        assert "T" in tool_call.completed_at  # ISO 8601 format check
+
+    @pytest.mark.asyncio
+    async def test_tool_status_in_messages_list(self, status_builder):
+        """Test that tool status is correctly set in messages[].tool_calls."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus, MessageType
+        
+        run_id = "tool-run-msg"
+        
+        # Start the tool
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "search",
+            "run_id": run_id,
+            "data": {"input": {"query": "test"}},
+            "metadata": {}
+        })
+        
+        # Find the tool message
+        tool_message = None
+        for msg in status_builder.current_status.messages:
+            if msg.type == MessageType.MESSAGE_TOOL:
+                tool_message = msg
+                break
+        
+        assert tool_message is not None
+        assert len(tool_message.tool_calls) == 1
+        assert tool_message.tool_calls[0].status == ToolCallStatus.TOOL_CALL_RUNNING
+        
+        # End the tool
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "search",
+            "run_id": run_id,
+            "data": {"output": "results"},
+            "metadata": {}
+        })
+        
+        # Verify status updated in messages list too
+        assert tool_message.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_tool_status_in_tool_calls_list(self, status_builder):
+        """Test that tool status is correctly set in status.tool_calls."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        
+        run_id = "tool-run-list"
+        
+        # Start the tool
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "write_file",
+            "run_id": run_id,
+            "data": {"input": {"path": "/tmp/out.txt", "content": "data"}},
+            "metadata": {}
+        })
+        
+        # Verify in status.tool_calls
+        assert len(status_builder.current_status.tool_calls) == 1
+        assert status_builder.current_status.tool_calls[0].status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert status_builder.current_status.tool_calls[0].id == run_id
+        
+        # End the tool
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "write_file",
+            "run_id": run_id,
+            "data": {"output": "success"},
+            "metadata": {}
+        })
+        
+        # Verify status updated
+        assert status_builder.current_status.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_tool_duration_tracking(self, status_builder):
+        """Test that tool execution duration is tracked in _tool_start_times."""
+        run_id = "tool-run-duration"
+        
+        # Start the tool
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "slow_operation",
+            "run_id": run_id,
+            "data": {"input": {}},
+            "metadata": {}
+        })
+        
+        # Verify start time is tracked
+        assert run_id in status_builder._tool_start_times
+        assert isinstance(status_builder._tool_start_times[run_id], datetime)
+        
+        # Set a known start time to control duration calculation
+        known_start = datetime.utcnow() - timedelta(milliseconds=1500)
+        status_builder._tool_start_times[run_id] = known_start
+        
+        # End the tool
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "slow_operation",
+            "run_id": run_id,
+            "data": {"output": "done"},
+            "metadata": {}
+        })
+        
+        # Verify start time was cleaned up
+        assert run_id not in status_builder._tool_start_times

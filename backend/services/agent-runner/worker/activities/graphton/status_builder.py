@@ -77,6 +77,10 @@ class StatusBuilder:
         # Key: message index in messages list, Value: start timestamp
         self._message_start_times: Dict[int, datetime] = {}
         
+        # Track tool execution timing for duration calculation (Phase 2.2)
+        # Key: run_id, Value: start timestamp
+        self._tool_start_times: Dict[str, datetime] = {}
+        
         # Track accumulated token usage across all LLM calls in this execution
         self._total_prompt_tokens: int = 0
         self._total_completion_tokens: int = 0
@@ -150,36 +154,45 @@ class StatusBuilder:
             component_group="main-agent-tools",
         )
         
-        # Create tool call
+        # Create tool call with RUNNING status (Phase 2.2)
+        # In LangGraph, on_tool_start fires when execution begins, not when queued
         args_struct = Struct()
         if tool_args:
             args_struct.update(tool_args)
         
+        now = datetime.utcnow()
         tool_call = ToolCall(
             id=run_id,
             name=tool_name,
             args=args_struct,
             result="",
-            status=ToolCallStatus.TOOL_CALL_PENDING,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
             component_metadata=component_metadata,
-            started_at=datetime.utcnow().isoformat(),
+            started_at=now.isoformat(),
         )
+        
+        # Track start time for duration calculation
+        self._tool_start_times[run_id] = now
         
         # Add to local status (both messages and tool_calls)
         tool_message = AgentMessage(
             type=MessageType.MESSAGE_TOOL,
             content="",
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=now.isoformat(),
         )
         tool_message.tool_calls.append(tool_call)
         
         self.current_status.messages.append(tool_message)
         self.current_status.tool_calls.append(tool_call)
         
-        self.logger.debug(f"Tool '{tool_name}' added to local status")
+        # Structured logging for tool lifecycle observability
+        self.logger.debug(
+            f"[TOOL] execution={self.execution_id} "
+            f"tool={tool_name} run_id={run_id} status=RUNNING"
+        )
     
     def _handle_tool_end_event(self, event: Dict[str, Any], namespace: str = "") -> None:
-        """Handle on_tool_end event - updates local status."""
+        """Handle on_tool_end event - updates local status with COMPLETED status."""
         tool_name = event.get("name", "")
         run_id = event.get("run_id", "")
         tool_result_raw = event.get("data", {}).get("output", "")
@@ -188,6 +201,13 @@ class StatusBuilder:
             return
         
         tool_result_content = self._extract_tool_result_content(tool_result_raw)
+        now = datetime.utcnow()
+        
+        # Calculate execution duration if we tracked the start time (Phase 2.2)
+        duration_ms = None
+        if run_id in self._tool_start_times:
+            start_time = self._tool_start_times.pop(run_id)
+            duration_ms = int((now - start_time).total_seconds() * 1000)
         
         # Update in messages list
         for message in self.current_status.messages:
@@ -198,7 +218,7 @@ class StatusBuilder:
                 tc = message.tool_calls[0]
                 tc.result = tool_result_content
                 tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                tc.completed_at = datetime.utcnow().isoformat()
+                tc.completed_at = now.isoformat()
                 break
         
         # Update in tool_calls list
@@ -206,10 +226,15 @@ class StatusBuilder:
             if tool_call.id == run_id:
                 tool_call.result = tool_result_content
                 tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                tool_call.completed_at = datetime.utcnow().isoformat()
+                tool_call.completed_at = now.isoformat()
                 break
         
-        self.logger.debug(f"Tool '{tool_name}' completed in local status")
+        # Structured logging for tool lifecycle observability
+        self.logger.debug(
+            f"[TOOL] execution={self.execution_id} "
+            f"tool={tool_name} run_id={run_id} status=COMPLETED "
+            f"duration_ms={duration_ms or 'N/A'}"
+        )
     
     def _handle_chat_model_stream_event(self, event: Dict[str, Any], namespace: str = "") -> None:
         """Handle on_chat_model_stream event - updates local status."""
