@@ -4,9 +4,9 @@
 Drag this file into chat to continue.
 
 ## Current State
-- **Status**: ✅✅ Milestones 1 & 2 COMPLETE - Encryption + ExecutionContext implemented
-- **Last Session**: 2026-01-30 - Implemented ExecutionContext lifecycle with secure env merging
-- **Active Milestone**: Ready for Milestone 3 (Environment Resolution)
+- **Status**: ✅✅✅ Milestones 1, 2 & 3 COMPLETE
+- **Last Session**: 2026-01-30 - Implemented Milestone 3 (Environment Placeholder Resolution)
+- **Active Milestone**: Ready for Milestone 4 (Runner Integration - partially complete)
 
 ## Status After Milestone 1 Completion
 
@@ -32,6 +32,63 @@ Drag this file into chat to continue.
 5. **Security**: ExecutionContext pattern - pass IDs through Temporal, not secrets
 
 ## Session Progress
+
+### Session 3 (2026-01-30) - Architectural Cleanup: Downstream gRPC Pattern
+
+#### Accomplishments
+- ✅ **Refactored ExecutionContext creation to use downstream gRPC client pattern**
+- ✅ Created `ExecutionContextGrpcRepo` interface and `ExecutionContextGrpcRepoImpl`
+- ✅ Updated both `CreateExecutionContextStep` implementations (agent + workflow)
+- ✅ **Moved all domain-specific gRPC interfaces to local downstream packages**
+- ✅ Cleaned up `api-authorization/repo/` to contain only IAM authorization logic
+
+#### Key Architectural Decisions
+1. **Domain Ownership**: ExecutionContext domain owns creation via handler pipeline
+2. **Downstream Pattern**: Cross-domain access via in-process gRPC (not direct repo)
+3. **Package Organization**: Domain-specific interfaces belong in downstream packages, not api-authorization
+4. **System Channel**: ExecutionContext creation uses system credentials (backend automation)
+
+#### Files Modified/Created (16 files - stigmer-cloud only)
+
+**New Interfaces (moved from api-authorization to downstream):**
+- `downstream/agentic/agentinstance/AgentInstanceGrpcRepo.java`
+- `downstream/agentic/session/SessionGrpcRepo.java`
+- `downstream/agentic/workflowinstance/WorkflowInstanceGrpcRepo.java`
+- `downstream/agentic/executioncontext/ExecutionContextGrpcRepo.java`
+
+**New Implementation:**
+- `downstream/agentic/executioncontext/ExecutionContextGrpcRepoImpl.java`
+
+**Modified:**
+- `agentexecution/request/step/CreateExecutionContextStep.java` - Uses gRPC repo
+- `workflowexecution/request/step/CreateExecutionContextStep.java` - Uses gRPC repo
+- `downstream/agentic/agentinstance/AgentInstanceGrpcRepoImpl.java` - Updated import
+- `downstream/agentic/session/SessionGrpcRepoImpl.java` - Updated import
+- `downstream/agentic/workflowinstance/WorkflowInstanceGrpcRepoImpl.java` - Updated import
+- `agent/request/handler/AgentCreateHandler.java` - Updated import
+- `agentexecution/request/handler/AgentExecutionCreateHandler.java` - Updated imports
+- `workflow/request/handler/WorkflowCreateHandler.java` - Updated import
+- `workflowexecution/request/handler/WorkflowExecutionCreateHandler.java` - Updated import
+
+**Deleted (moved to downstream):**
+- `api-authorization/repo/AgentInstanceGrpcRepo.java`
+- `api-authorization/repo/SessionGrpcRepo.java`
+- `api-authorization/repo/WorkflowInstanceGrpcRepo.java`
+
+#### Technical Highlights
+- Maintains single ownership of ExecutionContext creation logic
+- Handler pipeline ensures validation, authorization, encryption, and persistence
+- Microservice-ready architecture (swap channel config, no code changes)
+- Consistent with domain boundary principles
+- Go codebase already follows correct pattern (no changes needed)
+
+#### Code Quality Impact
+- Eliminated direct repository access across domain boundaries
+- All ExecutionContext creation now goes through proper handler pipeline
+- Reduced code duplication (buildExecutionContext simplified - no manual ID generation)
+- Clear separation: api-authorization only contains IAM/authorization logic
+
+**Checkpoint**: All architectural cleanup complete
 
 ### Session 2 (2026-01-30) - Milestone 2: ExecutionContext Lifecycle
 
@@ -84,30 +141,66 @@ Drag this file into chat to continue.
 |-----------|----------|--------|
 | **1. Encryption Foundation** | **2-3 days** | ✅ **COMPLETE** |
 | **2. ExecutionContext Lifecycle** | **2-3 days** | ✅ **COMPLETE** |
-| 3. Environment Resolution | 2-3 days | ⏭️ **NEXT** |
+| **3. Environment Resolution** | **2-3 days** | ✅ **COMPLETE** |
 | 4. Runner Integration | 2-3 days | ⚠️ **PARTIALLY DONE** (ExecutionContext clients added) |
-| 5. **MCP Server Env Resolution** | 1-2 days | Pending |
-| 6. CLI Integration | 1-2 days | Pending |
+| 5. **MCP Server Env Resolution** | 1-2 days | ✅ **COMPLETE** (Merged into M3) |
+| 6. CLI Integration | 1-2 days | ⏭️ **NEXT** |
 
-**Total: ~12-16 days** (Milestones 1-2 complete, ~6-10 days remaining)
+**Total: ~12-16 days** (Milestones 1-3 complete, ~4-5 days remaining)
 
-## Next Steps (Milestone 3: Environment Resolution)
+## Session Progress (2026-01-30 - Milestone 3)
+
+### Accomplishments
+- ✅ Created comprehensive PlaceholderResolver service (Python) with strict/lenient modes
+- ✅ Implemented McpEnvironmentValidator service (Java) for fail-fast validation
+- ✅ Integrated validation into both Agent and Workflow execution pipelines
+- ✅ Refactored config_transformer.py to use new PlaceholderResolver
+- ✅ Added 90 comprehensive tests (58 new + 32 existing passing)
+- ✅ All tests passing with no linter errors
+
+### Key Decisions Made
+1. **Two-phase validation**: Java validates at execution creation, Python resolves at runtime
+2. **Strict vs Lenient modes**: PlaceholderResolver supports both for different use cases
+3. **Tri-scope MCP lookup**: Proper support for platform/org/identity-account scoped servers
+4. **Fail-fast errors**: Clear, actionable error messages for missing variables
+
+### Files Created (8 files)
+**Python (stigmer-oss)**:
+- `backend/services/agent-runner/worker/mcp/placeholder_resolver.py` (380 lines)
+- `backend/services/agent-runner/tests/mcp/test_placeholder_resolver.py` (682 lines)
+
+**Java (stigmer-cloud)**:
+- `domain/agentic/executioncontext/service/McpEnvironmentValidator.java` (303 lines)
+- `test/.../McpEnvironmentValidatorTest.java` (526 lines)
+
+**Plans**:
+- `.cursor/plans/environment_placeholder_resolution_546fc060.plan.md`
+- Plus 3 other plan files (auto-generated during session)
+
+### Files Modified (5 files)
+- Updated placeholder resolution in config_transformer.py
+- Integrated validation in AgentExecution CreateExecutionContextStep
+- Integrated validation in WorkflowExecution CreateExecutionContextStep
+- Updated __init__.py exports
+- Fixed edge case test in test_config_transformer.py
+
+## Next Steps (Milestone 4 & 6: Runner Integration & CLI)
 
 ### Immediate Actions
-1. **Implement environment resolution** for Agent/Workflow templates
-2. **Add environment ref loading** from Instance.environment_refs
-3. **Implement placeholder resolution** for MCP server configurations:
-   - HttpServerConfig headers and query_params
-   - StdioServerConfig env (future)
-   - DockerServerConfig env (future)
-4. **Add validation** for required environment variables
-5. **Create PlaceholderResolverService** for ${VAR} substitution
+1. **CLI Integration** (Milestone 6):
+   - Add `--env KEY=VALUE` flags to CLI commands
+   - Add `--env-file PATH` support for bulk environment loading
+   - Integrate with AgentExecution/WorkflowExecution creation
 
-### Implementation Approach
-- Extend EnvironmentMergeService for MCP server support
-- Create PlaceholderResolverService for template variable resolution
-- Add validation for missing required env vars
-- Comprehensive tests for resolution logic and edge cases
+2. **Complete Runner Integration** (Milestone 4):
+   - Verify ExecutionContext flow in workflow-runner (already done)
+   - Verify ExecutionContext flow in agent-runner (already done)
+   - End-to-end testing of environment variable flow
+
+3. **Documentation**:
+   - Update user docs for environment variable usage
+   - Document MCP server environment requirements
+   - Add examples for common patterns
 
 ## Context for Resume
 
@@ -143,6 +236,28 @@ Drag this file into chat to continue.
 ---
 
 ## Session Progress (Most Recent)
+
+### Session 3 (2026-01-30) - Architectural Cleanup: Downstream gRPC Pattern ✅ COMPLETE
+
+#### Accomplishments
+- ✅ **Refactored ExecutionContext creation to use downstream gRPC client pattern**
+- ✅ Created `ExecutionContextGrpcRepo` + `ExecutionContextGrpcRepoImpl`
+- ✅ Updated both `CreateExecutionContextStep` implementations (agent + workflow)
+- ✅ **Moved all domain-specific gRPC interfaces to local downstream packages**
+- ✅ Cleaned up `api-authorization/repo/` to contain only IAM authorization logic
+
+#### Key Decisions
+1. **Domain Ownership**: ExecutionContext domain owns creation via handler pipeline
+2. **Package Organization**: Domain-specific interfaces → downstream packages (not api-authorization)
+3. **System Channel**: ExecutionContext creation uses system credentials (backend automation)
+
+#### Files Changed (16 files)
+- 5 new files (4 interfaces + 1 implementation moved to downstream)
+- 9 modified files (handlers + downstream impls updated imports)
+- 3 deletions (interfaces moved from api-authorization)
+- Net: -88 lines of code (architectural cleanup)
+
+**Detailed checkpoint:** `checkpoints/2026-01-30-session-3-downstream-grpc-cleanup.md`
 
 ### Session 2 (2026-01-30) - Milestone 2: ExecutionContext Lifecycle ✅ COMPLETE
 

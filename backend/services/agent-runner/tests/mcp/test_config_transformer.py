@@ -176,13 +176,13 @@ class TestResolvePlaceholders:
 
     def test_nested_braces_ignored(self):
         """Test that nested/extra braces don't cause issues."""
-        # This tests that only ${VAR} pattern is matched
+        # ${{DOUBLE}} - pattern requires ${VAR} format, extra braces break it
         result = resolve_placeholders(
             "${{DOUBLE}}",
             {"DOUBLE": "value"}
         )
-        # The ${DOUBLE} inside gets resolved, leaving ${ and }
-        assert result == "${value}"
+        # Pattern doesn't match ${...} inside ${{ because {DOUBLE starts with {
+        assert result == "${{DOUBLE}}"  # Unchanged - no valid placeholder
 
     def test_dollar_without_braces(self):
         """Test that $ without braces is not a placeholder."""
