@@ -4,8 +4,8 @@ This module provides the main entry point for creating LangGraph Deep Agents
 using Graphton's declarative API.
 """
 
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Any
 
 from deepagents import (  # type: ignore[import-untyped]
     create_deep_agent as deepagents_create_deep_agent,
@@ -18,6 +18,9 @@ from pydantic import ValidationError
 from graphton.core.loop_detection import LoopDetectionMiddleware
 from graphton.core.models import parse_model_string
 from graphton.core.prompt_enhancement import enhance_user_instructions
+
+if TYPE_CHECKING:
+    from langgraph.checkpoint.base import BaseCheckpointSaver
 
 
 def create_deep_agent(
@@ -39,6 +42,10 @@ def create_deep_agent(
     loop_history_size: int = 20,
     loop_consecutive_threshold: int = 7,
     loop_total_threshold: int = 20,
+    # Checkpointer for interrupt/resume support (HITL approval flow)
+    checkpointer: "BaseCheckpointSaver | None" = None,
+    # Approval checker for HITL tool approval (optional)
+    approval_checker: "Callable[[str, dict[str, Any]], Any] | None" = None,
     **model_kwargs: Any,  # noqa: ANN401
 ) -> CompiledStateGraph:
     """Create a Deep Agent with minimal boilerplate.
@@ -124,6 +131,18 @@ def create_deep_agent(
             forcing graceful stop (default: 20). This is the hard limit that prevents
             runaway agents. Should be higher than consecutive_threshold.
             Set higher (25-50) for complex tasks, lower (10-15) for simple ones.
+        checkpointer: Optional LangGraph checkpointer for interrupt/resume support.
+            Required for HITL (human-in-the-loop) approval flow where tool execution
+            can be paused for user approval. Supports MemorySaver for testing or
+            PostgresSaver for production persistence. When provided, the graph state
+            is automatically checkpointed, enabling interrupt() calls to pause
+            execution and Command(resume=...) to continue after approval.
+        approval_checker: Optional callable for HITL tool approval policy checking.
+            Signature: (tool_name: str, tool_args: dict) -> ApprovalRequirement
+            When provided, MCP tools are wrapped with approval checks. If a tool
+            requires approval, the wrapper calls interrupt() to pause execution.
+            The returned ApprovalRequirement should have requires_approval, message,
+            mcp_server, and source attributes.
         **model_kwargs: Additional model-specific parameters to pass to the model
             constructor (e.g., top_p, top_k for Anthropic).
     
@@ -240,6 +259,20 @@ def create_deep_agent(
         >>> result = agent.invoke(
         ...     {"messages": [{"role": "user", "content": "List files in current directory"}]}
         ... )
+        
+        Agent with checkpointer for HITL approval flow:
+        
+        >>> from langgraph.checkpoint.memory import MemorySaver
+        >>> 
+        >>> # Create checkpointer for interrupt/resume support
+        >>> checkpointer = MemorySaver()
+        >>> agent = create_deep_agent(
+        ...     model="claude-sonnet-4.5",
+        ...     system_prompt="You are a cloud assistant.",
+        ...     checkpointer=checkpointer,  # Enable HITL approval flow
+        ... )
+        >>> # Agent tools can now use interrupt() for approval
+        >>> # Resume with Command(resume={"action": "approve"}) after user approves
     
     """
     # Validate configuration using AgentConfig model
@@ -265,6 +298,7 @@ def create_deep_agent(
             loop_history_size=loop_history_size,
             loop_consecutive_threshold=loop_consecutive_threshold,
             loop_total_threshold=loop_total_threshold,
+            checkpointer=checkpointer,
         )
     except ValidationError as e:
         # Re-raise with context about configuration validation
@@ -325,7 +359,10 @@ def create_deep_agent(
     if mcp_servers and mcp_tools:
         # Import MCP modules only when needed
         from graphton.core.middleware import McpToolsLoader
-        from graphton.core.tool_wrappers import create_tool_wrapper
+        from graphton.core.tool_wrappers import (
+            create_approval_aware_tool_wrapper,
+            create_tool_wrapper,
+        )
         
         # Validate that both parameters are provided together
         if not mcp_servers:
@@ -365,12 +402,22 @@ def create_deep_agent(
             mcp_middleware._deferred_loading = False
         
         # Generate tool wrappers for all requested tools
-        # Use eager wrappers now that tools are loaded at creation time
+        # Use approval-aware wrappers when approval_checker is provided (HITL flow)
+        # Otherwise use standard wrappers for backward compatibility
         mcp_tool_wrappers: list[BaseTool] = []
         for server_name, tool_names in mcp_tools.items():
             for tool_name in tool_names:
-                # Tools are always loaded (or deferred), so use eager wrappers
-                wrapper = create_tool_wrapper(tool_name, mcp_middleware)
+                if approval_checker is not None:
+                    # HITL approval flow: use approval-aware wrappers
+                    wrapper = create_approval_aware_tool_wrapper(
+                        tool_name=tool_name,
+                        middleware_instance=mcp_middleware,
+                        approval_checker=approval_checker,
+                        mcp_server_name=server_name,
+                    )
+                else:
+                    # Standard flow: use regular wrappers
+                    wrapper = create_tool_wrapper(tool_name, mcp_middleware)
                 mcp_tool_wrappers.append(wrapper)  # type: ignore[arg-type]
         
         # Add MCP tools and middleware to the agent
@@ -403,6 +450,7 @@ def create_deep_agent(
     
     # Create the Deep Agent using deepagents library
     # DeepAgents automatically adds SubAgentMiddleware when subagents are provided
+    # Pass checkpointer for interrupt/resume support (HITL approval flow)
     agent = deepagents_create_deep_agent(
         model=model_instance,
         tools=tools_list,
@@ -411,6 +459,7 @@ def create_deep_agent(
         subagents=transformed_subagents,  # Pass transformed subagents to DeepAgents
         context_schema=context_schema,
         backend=backend,
+        checkpointer=checkpointer,  # Enable interrupt/resume for HITL approval
     )
     
     # Apply recursion limit configuration

@@ -6,11 +6,14 @@ allowing the framework to work with any MCP server format and authentication met
 """
 
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+
+if TYPE_CHECKING:
+    from langgraph.checkpoint.base import BaseCheckpointSaver
 
 
 class AgentConfig(BaseModel):
@@ -41,6 +44,9 @@ class AgentConfig(BaseModel):
         loop_history_size: Number of recent tool calls to track for loop detection (default: 20)
         loop_consecutive_threshold: Consecutive identical calls before warning (default: 7)
         loop_total_threshold: Total repetitions before forced stop (default: 20)
+        checkpointer: Optional LangGraph checkpointer for interrupt/resume support.
+            Required for HITL approval flow. Supports MemorySaver for testing or
+            PostgresSaver for production.
     
     Example:
         >>> config = AgentConfig(
@@ -80,6 +86,8 @@ class AgentConfig(BaseModel):
     loop_history_size: int = 20
     loop_consecutive_threshold: int = 7
     loop_total_threshold: int = 20
+    # Checkpointer for interrupt/resume support (HITL approval flow)
+    checkpointer: Any | None = None  # Type is BaseCheckpointSaver but using Any for flexibility
     
     model_config = ConfigDict(arbitrary_types_allowed=True)
     

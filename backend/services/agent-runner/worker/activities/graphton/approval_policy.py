@@ -31,8 +31,12 @@ Design principles:
 
 import logging
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+if TYPE_CHECKING:
+    pass  # For future type imports
 
 logger = logging.getLogger(__name__)
 
@@ -549,3 +553,97 @@ def _get_policy_message(policy: Any) -> str:
     if isinstance(policy, dict):
         return policy.get("message", "")
     return getattr(policy, "message", "")
+
+
+# =============================================================================
+# Approval Checker Factory (Phase 3B - HITL Tool Approval)
+# =============================================================================
+
+
+def create_approval_checker(
+    approval_config: ApprovalConfig,
+) -> "Callable[[str, Dict[str, Any]], ApprovalRequirement]":
+    """
+    Create an approval checker function from ApprovalConfig.
+    
+    This factory creates a callable that can be passed to graphton's
+    create_deep_agent to enable HITL (human-in-the-loop) tool approval flow.
+    
+    The returned checker evaluates the approval policy chain:
+    1. auto_approve_all - Bypasses all approvals
+    2. tool_approval_overrides - Per-agent customization
+    3. default_tool_approvals - MCP server defaults
+    
+    Args:
+        approval_config: ApprovalConfig containing policy data
+        
+    Returns:
+        A callable (tool_name, tool_args) -> ApprovalRequirement
+        
+    Example:
+        >>> config = build_approval_config(execution, usages, servers, tools_config)
+        >>> checker = create_approval_checker(config)
+        >>> 
+        >>> # Pass to graphton agent creation
+        >>> agent = create_deep_agent(
+        ...     model="claude-sonnet-4.5",
+        ...     system_prompt="...",
+        ...     approval_checker=checker,  # Enable HITL approval
+        ... )
+        
+        >>> # The checker is called for each tool invocation
+        >>> requirement = checker("delete_resource", {"id": "res-123"})
+        >>> requirement.requires_approval
+        True
+    """
+    def _check_tool_approval(
+        tool_name: str,
+        tool_args: Dict[str, Any],
+    ) -> ApprovalRequirement:
+        """
+        Check if a tool requires approval based on the approval config.
+        
+        This is the callable returned by create_approval_checker.
+        """
+        # Get MCP server for this tool
+        mcp_server = approval_config.get_mcp_server_for_tool(tool_name)
+        
+        # Get default policies for this tool's MCP server
+        default_policies = approval_config.get_default_policies_for_tool(tool_name)
+        
+        # Resolve approval requirement using policy chain
+        requirement = resolve_tool_approval(
+            tool_name=tool_name,
+            mcp_server_name=mcp_server,
+            auto_approve_all=approval_config.auto_approve_all,
+            tool_approval_overrides=approval_config.tool_approval_overrides,
+            default_tool_approvals=default_policies,
+        )
+        
+        # Render message template with actual tool arguments
+        if requirement.requires_approval and requirement.message:
+            rendered_message = render_approval_message(
+                template=requirement.message,
+                tool_name=tool_name,
+                tool_args=tool_args,
+            )
+            # Create new requirement with rendered message
+            requirement = ApprovalRequirement(
+                requires_approval=True,
+                message=rendered_message,
+                source=requirement.source,
+            )
+        
+        # Convert to graphton's ApprovalRequirement format
+        # graphton expects: requires_approval, message, mcp_server, source
+        # We need to add mcp_server to the result
+        from graphton.core.tool_wrappers import ApprovalRequirement as GraphtonRequirement
+        
+        return GraphtonRequirement(
+            requires_approval=requirement.requires_approval,
+            message=requirement.message,
+            mcp_server=mcp_server,
+            source=requirement.source,
+        )
+    
+    return _check_tool_approval

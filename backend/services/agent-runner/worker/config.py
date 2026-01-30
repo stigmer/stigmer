@@ -184,6 +184,148 @@ class LLMConfig:
 
 
 @dataclass
+class CheckpointerConfig:
+    """Checkpointer configuration for LangGraph state persistence.
+    
+    Enables two critical capabilities:
+    1. HITL (Human-in-the-Loop) approval flow - interrupt/resume execution
+    2. Conversational context preservation - multi-turn conversations
+    
+    Checkpointer Types:
+    ------------------
+    - memory: In-memory storage (ephemeral, fast, zero setup)
+      Best for: Local development, testing, stateless workloads
+      
+    - sqlite: File-based storage (persistent, single-instance)
+      Best for: Open source deployments, local persistence
+      
+    - mongodb: Database storage (persistent, multi-instance safe)
+      Best for: Cloud deployments, horizontal scaling
+    
+    Configuration Cascade:
+    1. Environment variables (explicit user config)
+    2. Mode-aware defaults:
+       - local mode: memory (zero config)
+       - cloud mode: mongodb (shared state)
+    """
+    
+    # Core configuration
+    type: str  # "memory" | "sqlite" | "mongodb"
+    
+    # SQLite settings (local/open-source mode)
+    sqlite_path: str | None = None
+    
+    # MongoDB settings (cloud mode)
+    mongodb_uri: str | None = None
+    mongodb_db_name: str = "stigmer_checkpoints"
+    mongodb_ttl_seconds: int | None = None  # Optional TTL for auto-cleanup
+    
+    @classmethod
+    def load_from_env(cls, mode: str) -> "CheckpointerConfig":
+        """Load checkpointer configuration from environment variables.
+        
+        Args:
+            mode: Execution mode ("local" or "cloud") for default selection
+            
+        Returns:
+            CheckpointerConfig instance with cascaded configuration
+            
+        Environment Variables:
+            STIGMER_CHECKPOINTER_TYPE: Checkpointer type (memory|sqlite|mongodb)
+            STIGMER_CHECKPOINTER_SQLITE_PATH: Path for SQLite database file
+            STIGMER_CHECKPOINTER_MONGODB_URI: MongoDB connection string
+            STIGMER_CHECKPOINTER_MONGODB_DB: MongoDB database name
+            STIGMER_CHECKPOINTER_TTL: TTL in seconds for checkpoint expiration
+            
+        Configuration Cascade:
+            1. Environment variables (explicit user config)
+            2. Mode-aware defaults:
+               - local mode: memory (fast, zero setup)
+               - cloud mode: mongodb (persistent, shared)
+        """
+        # Determine mode-aware defaults
+        if mode == "local":
+            default_type = "memory"
+            default_sqlite_path: str | None = "./checkpoints/langgraph.db"
+        else:  # cloud mode
+            default_type = "mongodb"
+            default_sqlite_path = None
+        
+        # Read from environment (overrides defaults)
+        checkpointer_type = os.getenv("STIGMER_CHECKPOINTER_TYPE", default_type)
+        
+        # SQLite settings
+        sqlite_path = os.getenv("STIGMER_CHECKPOINTER_SQLITE_PATH", default_sqlite_path)
+        
+        # MongoDB settings
+        mongodb_uri = os.getenv("STIGMER_CHECKPOINTER_MONGODB_URI")
+        mongodb_db_name = os.getenv("STIGMER_CHECKPOINTER_MONGODB_DB", "stigmer_checkpoints")
+        
+        # TTL for checkpoint expiration (optional)
+        ttl_str = os.getenv("STIGMER_CHECKPOINTER_TTL")
+        mongodb_ttl_seconds = int(ttl_str) if ttl_str else None
+        
+        # Create config
+        config = cls(
+            type=checkpointer_type,
+            sqlite_path=sqlite_path,
+            mongodb_uri=mongodb_uri,
+            mongodb_db_name=mongodb_db_name,
+            mongodb_ttl_seconds=mongodb_ttl_seconds,
+        )
+        
+        # Validate before returning
+        config.validate(mode)
+        
+        return config
+    
+    def validate(self, mode: str = "cloud") -> None:
+        """Validate configuration is complete and correct.
+        
+        Args:
+            mode: Execution mode for context-aware validation
+            
+        Raises:
+            ValueError: If configuration is invalid
+        """
+        # Validate type
+        valid_types = {"memory", "sqlite", "mongodb"}
+        if self.type not in valid_types:
+            raise ValueError(
+                f"Invalid checkpointer type '{self.type}'. "
+                f"Must be one of: {', '.join(sorted(valid_types))}"
+            )
+        
+        # Validate type-specific requirements
+        if self.type == "sqlite":
+            if not self.sqlite_path:
+                raise ValueError(
+                    "sqlite_path is required for sqlite checkpointer. "
+                    "Set STIGMER_CHECKPOINTER_SQLITE_PATH environment variable."
+                )
+        
+        if self.type == "mongodb":
+            if not self.mongodb_uri:
+                raise ValueError(
+                    "mongodb_uri is required for mongodb checkpointer. "
+                    "Set STIGMER_CHECKPOINTER_MONGODB_URI environment variable."
+                )
+            
+            # Validate MongoDB database name is not empty
+            if not self.mongodb_db_name or not self.mongodb_db_name.strip():
+                raise ValueError(
+                    "mongodb_db_name cannot be empty. "
+                    "Set STIGMER_CHECKPOINTER_MONGODB_DB or use default 'stigmer_checkpoints'."
+                )
+        
+        # Validate TTL if provided
+        if self.mongodb_ttl_seconds is not None and self.mongodb_ttl_seconds < 0:
+            raise ValueError(
+                f"mongodb_ttl_seconds must be non-negative, got {self.mongodb_ttl_seconds}"
+            )
+
+
+@dataclass
 class Config:
     """Worker configuration loaded from environment variables.
     
@@ -233,6 +375,9 @@ class Config:
     # LLM configuration
     llm: LLMConfig
     
+    # Checkpointer configuration (for HITL and conversation persistence)
+    checkpointer: CheckpointerConfig
+    
     # Execution mode configuration (local/sandbox/auto)
     execution_mode: ExecutionMode
     sandbox_image: str  # Docker image for sandbox mode
@@ -249,6 +394,9 @@ class Config:
         
         # Load LLM configuration (mode-aware)
         llm_config = LLMConfig.load_from_env(mode)
+        
+        # Load checkpointer configuration (mode-aware)
+        checkpointer_config = CheckpointerConfig.load_from_env(mode)
         
         # Load execution mode configuration
         execution_mode_str = os.getenv("STIGMER_EXECUTION_MODE", "local")
@@ -320,6 +468,7 @@ class Config:
             redis_port=redis_port,
             redis_password=redis_password if redis_password else None,
             llm=llm_config,
+            checkpointer=checkpointer_config,
             execution_mode=execution_mode,
             sandbox_image=sandbox_image,
             sandbox_auto_pull=sandbox_auto_pull,
