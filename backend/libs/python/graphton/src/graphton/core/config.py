@@ -38,6 +38,9 @@ class AgentConfig(BaseModel):
         temperature: Override default temperature for the model
         subagents: Optional list of sub-agent specifications for task delegation
         general_purpose_agent: Whether to include general-purpose sub-agent (default: True)
+        loop_history_size: Number of recent tool calls to track for loop detection (default: 20)
+        loop_consecutive_threshold: Consecutive identical calls before warning (default: 7)
+        loop_total_threshold: Total repetitions before forced stop (default: 20)
     
     Example:
         >>> config = AgentConfig(
@@ -73,6 +76,10 @@ class AgentConfig(BaseModel):
     auto_enhance_prompt: bool = True
     subagents: list[dict[str, Any]] | None = None
     general_purpose_agent: bool = True
+    # Loop detection configuration - tuned for self-correcting agents
+    loop_history_size: int = 20
+    loop_consecutive_threshold: int = 7
+    loop_total_threshold: int = 20
     
     model_config = ConfigDict(arbitrary_types_allowed=True)
     
@@ -338,6 +345,116 @@ class AgentConfig(BaseModel):
                 )
         
         return v
+    
+    @field_validator("loop_history_size")
+    @classmethod
+    def validate_loop_history_size(cls, v: int) -> int:
+        """Validate loop history size is reasonable.
+        
+        Args:
+            v: History size value
+            
+        Returns:
+            Validated history size
+            
+        Raises:
+            ValueError: If history size is invalid
+        
+        """
+        if v < 5:
+            raise ValueError(
+                f"loop_history_size must be at least 5, got {v}. "
+                "Smaller values provide insufficient context for loop detection."
+            )
+        if v > 100:
+            import warnings
+            warnings.warn(
+                f"loop_history_size of {v} is very high. "
+                "This uses more memory. Recommended range: 10-50.",
+                UserWarning,
+                stacklevel=2
+            )
+        return v
+    
+    @field_validator("loop_consecutive_threshold")
+    @classmethod
+    def validate_loop_consecutive_threshold(cls, v: int) -> int:
+        """Validate consecutive threshold is reasonable.
+        
+        Args:
+            v: Consecutive threshold value
+            
+        Returns:
+            Validated threshold
+            
+        Raises:
+            ValueError: If threshold is invalid
+        
+        """
+        if v < 2:
+            raise ValueError(
+                f"loop_consecutive_threshold must be at least 2, got {v}. "
+                "A value of 1 would trigger on every repeated tool call."
+            )
+        if v > 20:
+            import warnings
+            warnings.warn(
+                f"loop_consecutive_threshold of {v} is very high. "
+                "The agent may get stuck in loops. Recommended range: 3-10.",
+                UserWarning,
+                stacklevel=2
+            )
+        return v
+    
+    @field_validator("loop_total_threshold")
+    @classmethod
+    def validate_loop_total_threshold(cls, v: int) -> int:
+        """Validate total threshold is reasonable.
+        
+        Args:
+            v: Total threshold value
+            
+        Returns:
+            Validated threshold
+            
+        Raises:
+            ValueError: If threshold is invalid
+        
+        """
+        if v < 3:
+            raise ValueError(
+                f"loop_total_threshold must be at least 3, got {v}. "
+                "Smaller values would stop agents too quickly."
+            )
+        if v > 100:
+            import warnings
+            warnings.warn(
+                f"loop_total_threshold of {v} is very high. "
+                "The agent may waste resources on futile retries. Recommended range: 10-50.",
+                UserWarning,
+                stacklevel=2
+            )
+        return v
+    
+    @model_validator(mode="after")
+    def validate_loop_thresholds_relationship(self) -> "AgentConfig":
+        """Validate that loop thresholds are logically consistent.
+        
+        Returns:
+            Validated AgentConfig instance
+            
+        Raises:
+            ValueError: If threshold relationship is invalid
+        
+        """
+        if self.loop_total_threshold < self.loop_consecutive_threshold:
+            raise ValueError(
+                f"loop_total_threshold ({self.loop_total_threshold}) must be >= "
+                f"loop_consecutive_threshold ({self.loop_consecutive_threshold}). "
+                "The total threshold is a hard limit that should be higher than "
+                "the warning threshold."
+            )
+        return self
     
     @model_validator(mode="after")
     def validate_mcp_configuration(self) -> "AgentConfig":
