@@ -2277,6 +2277,182 @@ class TestApprovalPolicyResolution:
 
 
 # =============================================================================
+# Tests for Platform Tool Approval Defaults (HITL Phase 5.6)
+# =============================================================================
+
+
+class TestPlatformToolApprovalDefaults:
+    """Tests for platform tool (sandbox) approval defaults."""
+    
+    def test_platform_tool_read_no_approval_required(self):
+        """Test that 'read' platform tool does not require approval by default."""
+        from worker.activities.graphton.approval_policy import (
+            resolve_tool_approval,
+            PLATFORM_SERVER_NAME,
+        )
+        
+        result = resolve_tool_approval(
+            tool_name="read",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is False
+        assert result.source == "platform_default"
+        assert result.mcp_server == PLATFORM_SERVER_NAME
+    
+    def test_platform_tool_write_requires_approval(self):
+        """Test that 'write' platform tool requires approval by default."""
+        from worker.activities.graphton.approval_policy import (
+            resolve_tool_approval,
+            PLATFORM_SERVER_NAME,
+        )
+        
+        result = resolve_tool_approval(
+            tool_name="write",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is True
+        assert result.source == "platform_default"
+        assert result.mcp_server == PLATFORM_SERVER_NAME
+        assert "{{args.path}}" in result.message  # Template not yet rendered
+    
+    def test_platform_tool_execute_requires_approval(self):
+        """Test that 'execute' platform tool requires approval by default."""
+        from worker.activities.graphton.approval_policy import (
+            resolve_tool_approval,
+            PLATFORM_SERVER_NAME,
+        )
+        
+        result = resolve_tool_approval(
+            tool_name="execute",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is True
+        assert result.source == "platform_default"
+        assert result.mcp_server == PLATFORM_SERVER_NAME
+        assert "{{args.command}}" in result.message
+    
+    def test_platform_tool_edit_requires_approval(self):
+        """Test that 'edit' platform tool requires approval by default."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        result = resolve_tool_approval(
+            tool_name="edit",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is True
+        assert result.source == "platform_default"
+    
+    def test_platform_tool_ls_no_approval_required(self):
+        """Test that 'ls' platform tool does not require approval."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        result = resolve_tool_approval(
+            tool_name="ls",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is False
+        assert result.source == "platform_default"
+    
+    def test_platform_tool_glob_no_approval_required(self):
+        """Test that 'glob' platform tool does not require approval."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        result = resolve_tool_approval(
+            tool_name="glob",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is False
+        assert result.source == "platform_default"
+    
+    def test_platform_tool_grep_no_approval_required(self):
+        """Test that 'grep' platform tool does not require approval."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        result = resolve_tool_approval(
+            tool_name="grep",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is False
+        assert result.source == "platform_default"
+    
+    def test_auto_approve_all_bypasses_platform_tool_approval(self):
+        """Test that auto_approve_all=True bypasses platform tool approval."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        result = resolve_tool_approval(
+            tool_name="write",  # Normally requires approval
+            mcp_server_name="",
+            auto_approve_all=True,  # Bypass
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is False
+        assert result.source == "auto_approve_all"
+    
+    def test_is_platform_tool_helper(self):
+        """Test is_platform_tool() helper function."""
+        from worker.activities.graphton.approval_policy import is_platform_tool
+        
+        # Platform tools
+        assert is_platform_tool("read") is True
+        assert is_platform_tool("write") is True
+        assert is_platform_tool("edit") is True
+        assert is_platform_tool("execute") is True
+        assert is_platform_tool("ls") is True
+        assert is_platform_tool("glob") is True
+        assert is_platform_tool("grep") is True
+        
+        # Non-platform tools
+        assert is_platform_tool("delete_repository") is False
+        assert is_platform_tool("send_email") is False
+        assert is_platform_tool("read_file") is False  # Different from "read"
+    
+    def test_get_platform_tool_names_helper(self):
+        """Test get_platform_tool_names() helper function."""
+        from worker.activities.graphton.approval_policy import get_platform_tool_names
+        
+        names = get_platform_tool_names()
+        
+        assert "read" in names
+        assert "write" in names
+        assert "edit" in names
+        assert "execute" in names
+        assert "ls" in names
+        assert "glob" in names
+        assert "grep" in names
+        assert len(names) == 7
+
+
+# =============================================================================
 # Tests for ApprovalConfig (HITL Phase 2)
 # =============================================================================
 

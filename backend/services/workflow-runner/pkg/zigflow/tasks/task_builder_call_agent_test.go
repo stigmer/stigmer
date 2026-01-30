@@ -188,22 +188,22 @@ func TestApprovalSignalCount_TrackedCorrectly(t *testing.T) {
 // clearTaskApprovalStatus requires a valid execution ID from state.
 func TestClearTaskApprovalStatus_RequiresValidExecutionId(t *testing.T) {
 	tests := []struct {
-		name              string
-		state             *utils.State
+		name               string
+		state              *utils.State
 		shouldAttemptClear bool
-		description       string
+		description        string
 	}{
 		{
-			name:              "nil state skips clearing",
-			state:             nil,
+			name:               "nil state skips clearing",
+			state:              nil,
 			shouldAttemptClear: false,
-			description:       "Cannot clear without execution ID",
+			description:        "Cannot clear without execution ID",
 		},
 		{
-			name:              "missing execution ID skips clearing",
-			state:             &utils.State{Data: map[string]any{}},
+			name:               "missing execution ID skips clearing",
+			state:              &utils.State{Data: map[string]any{}},
 			shouldAttemptClear: false,
-			description:       "No execution ID in state",
+			description:        "No execution ID in state",
 		},
 		{
 			name: "valid execution ID attempts clearing",
@@ -213,7 +213,7 @@ func TestClearTaskApprovalStatus_RequiresValidExecutionId(t *testing.T) {
 				},
 			},
 			shouldAttemptClear: true,
-			description:       "Valid execution ID enables clearing",
+			description:        "Valid execution ID enables clearing",
 		},
 	}
 

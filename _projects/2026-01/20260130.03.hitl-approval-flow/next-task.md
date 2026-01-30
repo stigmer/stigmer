@@ -18,9 +18,112 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-01-30
-**Last Session**: 2026-01-30 (Phase 6.4 Streaming Integration - COMPLETE ✅)
-**Current Phase**: Phase 6.4 - COMPLETE ✅
-**Status**: READY - Phase 6 (CLI Support) complete! All components integrated, 21 new tests passing, ready for E2E testing
+**Last Session**: 2026-01-30 (Phase 7 Planning - BLOCKED on SDK Changes)
+**Current Phase**: Phase 7 - BLOCKED (SDK Changes Required)
+**Status**: BLOCKED - SDK changes needed before Phase 7 Integration Testing can proceed
+
+---
+
+## ⚠️ BLOCKER: SDK Changes Required for Phase 7
+
+### Summary
+
+Phase 7 (Integration Testing) requires SDK changes to expose the new HITL approval fields. The Go SDK currently does NOT support:
+
+1. **`auto_approve_all`** - Field on `AgentExecutionSpec` (proto field 7)
+2. **`sandbox_config`** - For platform tool testing (not exposed in SDK)
+3. **Tool approval overrides** - `McpServerUsage.tool_approval_overrides` not in SDK
+
+### Current SDK State
+
+The `types.AgentExecutionConfig` struct in the SDK only has:
+- `Model` (string)
+- `Temperature` (float)
+- `Timeout` (int)
+
+It does NOT have `AutoApproveAll` or any approval-related fields.
+
+### SDK Changes Needed
+
+#### 1. Add `AutoApproveAll` to AgentExecutionConfig
+
+```go
+// In sdk/go/gen/types or sdk/go/workflow
+type AgentExecutionConfig struct {
+    Model          string  `json:"model,omitempty"`
+    Temperature    float64 `json:"temperature,omitempty"`
+    Timeout        int     `json:"timeout,omitempty"`
+    AutoApproveAll bool    `json:"auto_approve_all,omitempty"`  // NEW
+}
+```
+
+#### 2. Add Tool Approval Override Support to McpServerUsage
+
+```go
+// In sdk/go/mcpserverref or sdk/go/agent
+type ToolApprovalOverride struct {
+    ToolName         string `json:"tool_name"`
+    RequiresApproval bool   `json:"requires_approval"`
+    Message          string `json:"message,omitempty"`
+}
+
+// Add to MCP server usage
+func (u *McpServerUsage) WithToolApprovalOverride(override ToolApprovalOverride) *McpServerUsage
+```
+
+#### 3. Update Proto-to-SDK Mapping
+
+Update `sdk/go/workflow/proto.go` to serialize `AutoApproveAll`:
+
+```go
+if c.Config.AutoApproveAll {
+    configMap["auto_approve_all"] = c.Config.AutoApproveAll
+}
+```
+
+### What This Enables
+
+Once SDK changes are complete:
+
+| Test Scenario | SDK Feature Needed |
+|--------------|-------------------|
+| auto_approve_all mode | `AgentExecutionConfig.AutoApproveAll` |
+| Tool approval overrides | `McpServerUsage.ToolApprovalOverrides` |
+| Platform tool defaults | Uses existing agent with sandbox (no SDK change) |
+| Sub-agent approvals | Uses existing `04_agent_with_subagents.go` example |
+
+### Files to Modify
+
+**SDK Changes** (estimated ~200 lines):
+```
+sdk/go/gen/types/agentic_types.go          - Add AgentExecutionConfig fields
+sdk/go/workflow/proto.go                    - Serialize new fields
+sdk/go/gen/workflow/agentcalltaskconfig.go - Update generated code
+sdk/go/mcpserverref/mcpserverref.go        - Add tool approval override support
+```
+
+**New Example** (after SDK changes):
+```
+sdk/go/examples/20_agent_with_approval_config.go - Example showing auto_approve_all usage
+```
+
+### Testing Without SDK Changes
+
+Some tests CAN be written using the existing test infrastructure:
+
+1. **Existing 22 tests** - Run as-is (use existing HITL fixtures)
+2. **Sub-agent tests** - Use `04_agent_with_subagents.go` example (already exists)
+3. **Direct API tests** - Bypass SDK, use gRPC clients directly in tests
+
+Tests that REQUIRE SDK changes:
+1. **auto_approve_all tests** - Need SDK to set the field
+2. **Tool approval override tests** - Need SDK to configure overrides
+
+### Next Steps
+
+1. **You**: Make SDK changes (add `AutoApproveAll`, tool approval overrides)
+2. **You**: Create example `20_agent_with_approval_config.go`
+3. **Resume**: Return here and implement Phase 7 tests using updated SDK
 
 ---
 
@@ -2092,56 +2195,78 @@ TOOL_CALL_PENDING → TOOL_CALL_WAITING_APPROVAL → TOOL_CALL_RUNNING → TOOL_
 
 ## Next Steps (When You Return)
 
-### Immediate Next Action
+### Immediate Next Action: SDK Changes (BLOCKER)
 
-**Phase 6.4: Streaming Integration** (~60-90 min)
+**Before Phase 7 can proceed, complete these SDK changes:**
 
-1. Integrate approval flow into `streamAgentExecutionLogs()` in `run_stream.go`
-2. Integrate approval flow into `streamWorkflowExecutionLogs()` in `run_stream.go`
-3. Implement `needsApprovalPrompt()` detection logic
-4. Track `lastPendingToolCallID` to prevent duplicate prompts
-5. Wire together: display (6.1) → prompt (6.2) → submit (6.3)
-6. Add comprehensive integration tests
+1. **Add `AutoApproveAll` to `AgentExecutionConfig`**
+   - File: `sdk/go/gen/types/agentic_types.go` or wherever `AgentExecutionConfig` is defined
+   - Add: `AutoApproveAll bool `json:"auto_approve_all,omitempty"``
 
-**Reference Plan**: `.cursor/plans/hitl_cli_approval_support_58e326ae.plan.md`
+2. **Update `sdk/go/workflow/proto.go`** to serialize the new field:
+   ```go
+   if c.Config.AutoApproveAll {
+       configMap["auto_approve_all"] = c.Config.AutoApproveAll
+   }
+   ```
 
-**What's Already Complete:**
-- ✅ Phase 6.1: Display functions (`displayPendingApproval`, `formatWaitingDuration`, etc.)
-- ✅ Phase 6.2: Interactive prompt (`pkg/approval` package with `InteractivePrompter`)
-- ✅ Phase 6.3: API submission (`submitAgentApproval`, `submitWorkflowApproval`)
+3. **Create SDK example** `sdk/go/examples/20_agent_with_approval_config.go`:
+   - Demonstrate `auto_approve_all` usage in workflow
+   - Show tool approval override configuration
 
-**What Phase 6.4 Will Do:**
-- Wire all pieces together in the streaming loop
-- Detect approval requirement from execution status
-- Pause streaming, prompt user, submit decision, resume streaming
-- Handle both agent and workflow execution streams
+4. **Optional: Add tool approval override support** to `McpServerUsage`
+
+### After SDK Changes: Phase 7 Integration Testing
+
+Once SDK changes are complete, Phase 7 will implement:
+
+| Scenario | Tests | Fixture |
+|----------|-------|---------|
+| auto_approve_all mode | 4 tests | New example with `AutoApproveAll: true` |
+| Sub-agent approval propagation | 5 tests | Existing `04_agent_with_subagents.go` |
+| Platform tool defaults | 9 tests | Agent with sandbox tools |
+
+**Reference Plan**: `.cursor/plans/phase_7_integration_testing_38dd4e44.plan.md`
+
+### What's Already Complete (Phases 1-6)
+
+- ✅ Phase 1: Proto Contracts (607 lines)
+- ✅ Phase 2: StatusBuilder Approval State Management (1,300+ lines)
+- ✅ Phase 3A: ApprovalConfig Wiring (370 lines)
+- ✅ Phase 3B: LangGraph Interrupt Mechanism (847 lines)
+- ✅ Checkpointer Infrastructure (1,000+ lines)
+- ✅ Phase 4: Java Handler (1,200+ lines)
+- ✅ Phase 5.1-5.6: Workflow Integration (all sub-tasks complete)
+- ✅ Phase 6.1-6.4: CLI Support (all sub-tasks complete, 713+ lines)
+
+### Existing E2E Tests (Ready to Run)
+
+22 tests already exist in `test/e2e/`:
+- `hitl_approval_workflow_approve_test.go` (3 tests)
+- `hitl_approval_agent_approve_test.go` (4 tests)
+- `hitl_approval_workflow_skip_test.go` (4 tests)
+- `hitl_approval_workflow_reject_test.go` (4 tests)
+- `hitl_approval_multi_agent_test.go` (3 tests)
+- `hitl_approval_latency_test.go` (4 tests)
+
+These can be run NOW against live infrastructure:
+```bash
+go test -tags=e2e -v -timeout 15m -run "TestHitlApproval" ./test/e2e/...
+```
 
 ### Context for Resume
 
-**Current State**:
-- Phase 6.1 (Approval Display) is complete and all tests pass
-- Display functions are ready to show approval requests to users
-- Next step is to add interactive prompting to collect user decisions
+**Current Blocker**: SDK does not expose `auto_approve_all` field
 
-**Key Design Decisions Made in 6.1**:
-- Separated approval display into dedicated file (`run_display_approval.go`) to maintain file size limits
-- Used helper functions for duration formatting and JSON indentation
-- All functions kept under 50 lines following engineering standards
-- Comprehensive test coverage (31 tests) including edge cases
+**SDK Types to Check**:
+- `types.AgentExecutionConfig` - Currently only has Model, Temperature, Timeout
+- `AgentExecutionSpec` proto - Has `auto_approve_all` (field 7) but not exposed in SDK
 
 **What's Working**:
-- ✅ CLI can display `EXECUTION_WAITING_FOR_APPROVAL` phase changes
-- ✅ CLI can display `WORKFLOW_TASK_WAITING_APPROVAL` task status
-- ✅ `displayPendingApproval()` formats all approval fields beautifully
-- ✅ Sub-agent context conditionally displayed
-- ✅ Waiting duration calculated and formatted
-- ✅ JSON arguments indented for readability
-
-**What's Next**:
-- Need to create the interactive prompt to collect Approve/Skip/Reject decisions
-- Prompt should use Survey library (standard for CLI prompts)
-- Must support non-interactive mode for CI/CD environments
-- Must detect TTY to avoid prompting in non-interactive scenarios
+- ✅ All backend implementation complete (Python, Java, Go)
+- ✅ CLI approval flow complete
+- ✅ 22 E2E tests written (need to validate against live system)
+- ✅ Proto contracts include all approval fields
 
 ### Quick Resume
 
@@ -2150,9 +2275,14 @@ To continue this project, drag into chat:
 @_projects/2026-01/20260130.03.hitl-approval-flow/next-task.md
 ```
 
-Or reference the Phase 6.2 plan directly:
+**After SDK changes are complete**, reference the Phase 7 plan:
 ```
-@.cursor/plans/hitl_cli_approval_support_58e326ae.plan.md
+@.cursor/plans/phase_7_integration_testing_38dd4e44.plan.md
+```
+
+**To run existing E2E tests now** (validates basic approval flow):
+```bash
+go test -tags=e2e -v -timeout 15m -run "TestHitlApproval" ./test/e2e/...
 ```
 
 ---

@@ -585,3 +585,545 @@ class TestApprovalAwareWrapperIntegration:
             await delete_wrapper.ainvoke({})
         
         mock_interrupt.assert_called_once()
+
+
+# =============================================================================
+# Platform Tool Wrapper Tests (Phase 5.6 Fixes)
+# =============================================================================
+
+from graphton.core.tool_wrappers import (
+    _check_and_handle_approval,
+    create_platform_tool_wrappers,
+    _create_read_tool,
+    _create_write_tool,
+    _create_edit_tool,
+    _create_execute_tool,
+    _create_ls_tool,
+    _create_glob_tool,
+    _create_grep_tool,
+)
+
+
+class TestCheckAndHandleApproval:
+    """Tests for the shared _check_and_handle_approval function."""
+
+    def test_returns_none_when_no_checker(self):
+        """Test that None is returned when no approval checker provided."""
+        result = _check_and_handle_approval(
+            tool_name="test_tool",
+            tool_args={"arg": "value"},
+            approval_checker=None,
+        )
+        assert result is None
+
+    def test_returns_none_when_approval_not_required(self):
+        """Test that None is returned when approval not required."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=False)
+        
+        result = _check_and_handle_approval(
+            tool_name="test_tool",
+            tool_args={"arg": "value"},
+            approval_checker=checker,
+        )
+        assert result is None
+
+    def test_returns_none_on_approve(self):
+        """Test that None is returned when user approves."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=True, message="Confirm?")
+        
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "approve", "approved_by": "user"}
+            
+            result = _check_and_handle_approval(
+                tool_name="test_tool",
+                tool_args={"arg": "value"},
+                approval_checker=checker,
+            )
+        
+        assert result is None
+
+    def test_returns_skip_message_on_skip(self):
+        """Test that skip message is returned when user skips."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=True, message="Confirm?")
+        
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "skip", "approved_by": "user"}
+            
+            result = _check_and_handle_approval(
+                tool_name="test_tool",
+                tool_args={"arg": "value"},
+                approval_checker=checker,
+            )
+        
+        assert result is not None
+        assert "skipped" in result.lower()
+        assert "test_tool" in result
+
+    def test_raises_error_on_reject(self):
+        """Test that rejection error is raised when user rejects."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=True, message="Confirm?")
+        
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "reject", "approved_by": "user"}
+            
+            with pytest.raises(ToolExecutionRejectedError) as exc_info:
+                _check_and_handle_approval(
+                    tool_name="test_tool",
+                    tool_args={"arg": "value"},
+                    approval_checker=checker,
+                )
+        
+        assert exc_info.value.tool_name == "test_tool"
+
+    def test_raises_error_on_unknown_action(self):
+        """Test that unknown action is treated as rejection."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=True, message="Confirm?")
+        
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "something_weird"}
+            
+            with pytest.raises(ToolExecutionRejectedError):
+                _check_and_handle_approval(
+                    tool_name="test_tool",
+                    tool_args={"arg": "value"},
+                    approval_checker=checker,
+                )
+
+    def test_includes_sub_agent_context_in_payload(self):
+        """Test that sub-agent context is included in interrupt payload."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=True, message="Confirm?")
+        
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "approve"}
+            
+            _check_and_handle_approval(
+                tool_name="test_tool",
+                tool_args={"arg": "value"},
+                approval_checker=checker,
+                mcp_server="test-server",
+                from_sub_agent=True,
+                sub_agent_name="code_reviewer",
+            )
+        
+        call_args = mock_interrupt.call_args[0][0]
+        assert call_args["from_sub_agent"] is True
+        assert call_args["sub_agent_name"] == "code_reviewer"
+        assert call_args["mcp_server"] == "test-server"
+
+    def test_uses_platform_server_by_default(self):
+        """Test that __platform__ is used as default server."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=True, message="Confirm?")
+        
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "approve"}
+            
+            _check_and_handle_approval(
+                tool_name="write",
+                tool_args={"path": "test.txt"},
+                approval_checker=checker,
+            )
+        
+        call_args = mock_interrupt.call_args[0][0]
+        assert call_args["mcp_server"] == "__platform__"
+
+
+class TestCreatePlatformToolWrappers:
+    """Tests for create_platform_tool_wrappers function."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        """Create a mock backend with all required methods."""
+        backend = MagicMock()
+        backend.read.return_value = "file content"
+        backend.write.return_value = None
+        backend.execute.return_value = MagicMock(stdout="output", stderr="", exit_code=0)
+        backend.list_files.return_value = ["file1.txt", "file2.py"]
+        return backend
+
+    def test_creates_seven_tools(self, mock_backend):
+        """Test that exactly 7 tools are created."""
+        tools = create_platform_tool_wrappers(mock_backend)
+        assert len(tools) == 7
+
+    def test_creates_tools_with_correct_names(self, mock_backend):
+        """Test that tools have correct names."""
+        tools = create_platform_tool_wrappers(mock_backend)
+        tool_names = [getattr(t, 'name', None) for t in tools]
+        
+        expected_names = ["read", "ls", "glob", "grep", "write", "edit", "execute"]
+        for name in expected_names:
+            assert name in tool_names, f"Tool '{name}' not found in {tool_names}"
+
+    def test_tools_are_invokable(self, mock_backend):
+        """Test that all tools have ainvoke method (are LangChain tools)."""
+        tools = create_platform_tool_wrappers(mock_backend)
+        for tool in tools:
+            # LangChain tools have ainvoke method
+            assert hasattr(tool, 'ainvoke'), f"Tool {tool} missing ainvoke method"
+
+    def test_creates_tools_with_approval_checker(self, mock_backend):
+        """Test that tools are created with approval checker."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=False)
+        
+        tools = create_platform_tool_wrappers(mock_backend, approval_checker=checker)
+        assert len(tools) == 7
+
+
+class TestReadToolWrapper:
+    """Tests for _create_read_tool wrapper."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        backend = MagicMock()
+        backend.read.return_value = "Hello, world!"
+        return backend
+
+    @pytest.mark.asyncio
+    async def test_reads_file(self, mock_backend):
+        """Test that read tool reads file correctly."""
+        tool = _create_read_tool(mock_backend)
+        result = await tool.ainvoke({"path": "test.txt"})
+        
+        assert result == "Hello, world!"
+        mock_backend.read.assert_called_once_with("test.txt")
+
+    @pytest.mark.asyncio
+    async def test_read_with_approval_check(self, mock_backend):
+        """Test that read tool checks approval."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=False)
+        
+        tool = _create_read_tool(mock_backend, approval_checker=checker)
+        result = await tool.ainvoke({"path": "test.txt"})
+        
+        assert result == "Hello, world!"
+
+    @pytest.mark.asyncio
+    async def test_read_returns_skip_message(self, mock_backend):
+        """Test that read returns skip message when skipped."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=True, message="Confirm read?")
+        
+        tool = _create_read_tool(mock_backend, approval_checker=checker)
+        
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "skip"}
+            result = await tool.ainvoke({"path": "test.txt"})
+        
+        assert "skipped" in result.lower()
+        mock_backend.read.assert_not_called()
+
+
+class TestWriteToolWrapper:
+    """Tests for _create_write_tool wrapper."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        backend = MagicMock()
+        backend.write.return_value = None
+        return backend
+
+    @pytest.mark.asyncio
+    async def test_writes_file(self, mock_backend):
+        """Test that write tool writes file correctly."""
+        tool = _create_write_tool(mock_backend)
+        result = await tool.ainvoke({"path": "test.txt", "content": "Hello!"})
+        
+        assert "Successfully wrote" in result
+        mock_backend.write.assert_called_once_with("test.txt", "Hello!")
+
+    @pytest.mark.asyncio
+    async def test_write_requires_approval_by_default(self, mock_backend):
+        """Test that write tool checks approval."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            if name == "write":
+                return ApprovalRequirement(requires_approval=True, message="Write file?")
+            return ApprovalRequirement(requires_approval=False)
+        
+        tool = _create_write_tool(mock_backend, approval_checker=checker)
+        
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "approve"}
+            result = await tool.ainvoke({"path": "test.txt", "content": "Hello!"})
+        
+        mock_interrupt.assert_called_once()
+        assert "Successfully wrote" in result
+
+
+class TestEditToolWrapper:
+    """Tests for _create_edit_tool wrapper."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        backend = MagicMock()
+        backend.read.return_value = "old text here"
+        backend.write.return_value = None
+        return backend
+
+    @pytest.mark.asyncio
+    async def test_edits_file(self, mock_backend):
+        """Test that edit tool replaces text correctly."""
+        tool = _create_edit_tool(mock_backend)
+        result = await tool.ainvoke({
+            "path": "test.txt",
+            "old_text": "old",
+            "new_text": "new"
+        })
+        
+        assert "Successfully edited" in result
+        mock_backend.read.assert_called_once_with("test.txt")
+        mock_backend.write.assert_called_once_with("test.txt", "new text here")
+
+    @pytest.mark.asyncio
+    async def test_edit_raises_when_text_not_found(self, mock_backend):
+        """Test that edit raises error when old_text not found."""
+        tool = _create_edit_tool(mock_backend)
+        
+        with pytest.raises(ValueError) as exc_info:
+            await tool.ainvoke({
+                "path": "test.txt",
+                "old_text": "nonexistent",
+                "new_text": "new"
+            })
+        
+        assert "not found" in str(exc_info.value).lower()
+
+    @pytest.mark.asyncio
+    async def test_edit_requires_approval(self, mock_backend):
+        """Test that edit tool checks approval."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            if name == "edit":
+                return ApprovalRequirement(requires_approval=True, message="Edit file?")
+            return ApprovalRequirement(requires_approval=False)
+        
+        tool = _create_edit_tool(mock_backend, approval_checker=checker)
+        
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "approve"}
+            result = await tool.ainvoke({
+                "path": "test.txt",
+                "old_text": "old",
+                "new_text": "new"
+            })
+        
+        mock_interrupt.assert_called_once()
+        assert "Successfully edited" in result
+
+
+class TestExecuteToolWrapper:
+    """Tests for _create_execute_tool wrapper."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        backend = MagicMock()
+        result = MagicMock()
+        result.stdout = "command output"
+        result.stderr = ""
+        result.exit_code = 0
+        backend.execute.return_value = result
+        return backend
+
+    @pytest.mark.asyncio
+    async def test_executes_command(self, mock_backend):
+        """Test that execute tool runs command correctly."""
+        tool = _create_execute_tool(mock_backend)
+        result = await tool.ainvoke({"command": "ls -la"})
+        
+        assert "Exit code: 0" in result
+        assert "command output" in result
+        mock_backend.execute.assert_called_once_with("ls -la", timeout=120)
+
+    @pytest.mark.asyncio
+    async def test_execute_with_custom_timeout(self, mock_backend):
+        """Test that execute uses custom timeout."""
+        tool = _create_execute_tool(mock_backend)
+        await tool.ainvoke({"command": "sleep 10", "timeout": 30})
+        
+        mock_backend.execute.assert_called_once_with("sleep 10", timeout=30)
+
+    @pytest.mark.asyncio
+    async def test_execute_requires_approval(self, mock_backend):
+        """Test that execute tool checks approval."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            if name == "execute":
+                return ApprovalRequirement(requires_approval=True, message="Execute command?")
+            return ApprovalRequirement(requires_approval=False)
+        
+        tool = _create_execute_tool(mock_backend, approval_checker=checker)
+        
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "approve"}
+            result = await tool.ainvoke({"command": "ls"})
+        
+        mock_interrupt.assert_called_once()
+        assert "Exit code: 0" in result
+
+
+class TestLsToolWrapper:
+    """Tests for _create_ls_tool wrapper."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        backend = MagicMock()
+        backend.list_files.return_value = ["file1.txt", "file2.py", "subdir"]
+        return backend
+
+    @pytest.mark.asyncio
+    async def test_lists_directory(self, mock_backend):
+        """Test that ls tool lists directory correctly."""
+        tool = _create_ls_tool(mock_backend)
+        result = await tool.ainvoke({"path": "."})
+        
+        assert "file1.txt" in result
+        assert "file2.py" in result
+        mock_backend.list_files.assert_called_once_with(".")
+
+    @pytest.mark.asyncio
+    async def test_lists_empty_directory(self, mock_backend):
+        """Test that ls handles empty directory."""
+        mock_backend.list_files.return_value = []
+        
+        tool = _create_ls_tool(mock_backend)
+        result = await tool.ainvoke({"path": "empty_dir"})
+        
+        assert "empty" in result.lower()
+
+
+class TestGlobToolWrapper:
+    """Tests for _create_glob_tool wrapper."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        backend = MagicMock()
+        # Simulate a simple directory structure
+        def list_files_side_effect(path):
+            if path == ".":
+                return ["file1.py", "file2.txt", "subdir"]
+            elif path == "subdir":
+                return ["nested.py"]
+            return []
+        backend.list_files.side_effect = list_files_side_effect
+        return backend
+
+    @pytest.mark.asyncio
+    async def test_finds_matching_files(self, mock_backend):
+        """Test that glob finds files matching pattern."""
+        tool = _create_glob_tool(mock_backend)
+        result = await tool.ainvoke({"pattern": "*.py"})
+        
+        assert "file1.py" in result
+
+    @pytest.mark.asyncio
+    async def test_glob_no_matches(self, mock_backend):
+        """Test that glob handles no matches."""
+        tool = _create_glob_tool(mock_backend)
+        result = await tool.ainvoke({"pattern": "*.xyz"})
+        
+        assert "No files matching" in result
+
+
+class TestGrepToolWrapper:
+    """Tests for _create_grep_tool wrapper."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        backend = MagicMock()
+        
+        def list_files_side_effect(path):
+            if path == ".":
+                return ["test.py", "data.txt"]
+            return []
+        
+        def read_side_effect(path):
+            if path == "test.py":
+                return "def hello():\n    print('Hello world')\n"
+            elif path == "data.txt":
+                return "some data\nmore data\n"
+            raise FileNotFoundError(path)
+        
+        backend.list_files.side_effect = list_files_side_effect
+        backend.read.side_effect = read_side_effect
+        return backend
+
+    @pytest.mark.asyncio
+    async def test_finds_matching_lines(self, mock_backend):
+        """Test that grep finds matching lines."""
+        tool = _create_grep_tool(mock_backend)
+        result = await tool.ainvoke({"pattern": "hello", "include": "*.py"})
+        
+        assert "test.py" in result.lower()
+
+    @pytest.mark.asyncio
+    async def test_grep_no_matches(self, mock_backend):
+        """Test that grep handles no matches."""
+        tool = _create_grep_tool(mock_backend)
+        result = await tool.ainvoke({"pattern": "nonexistent_pattern"})
+        
+        assert "No matches" in result
+
+    @pytest.mark.asyncio
+    async def test_grep_invalid_regex(self, mock_backend):
+        """Test that grep handles invalid regex."""
+        tool = _create_grep_tool(mock_backend)
+        result = await tool.ainvoke({"pattern": "[invalid"})
+        
+        assert "Invalid regex" in result
+
+
+class TestPlatformToolApprovalIntegration:
+    """Integration tests for platform tool approval flow."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        """Create a complete mock backend."""
+        backend = MagicMock()
+        backend.read.return_value = "old content"
+        backend.write.return_value = None
+        result = MagicMock(stdout="output", stderr="", exit_code=0)
+        backend.execute.return_value = result
+        backend.list_files.return_value = ["file.txt"]
+        return backend
+
+    @pytest.mark.asyncio
+    async def test_dangerous_tools_check_approval(self, mock_backend):
+        """Test that dangerous tools (write, edit, execute) check approval."""
+        checked_tools = []
+        
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            checked_tools.append(name)
+            return ApprovalRequirement(requires_approval=False)
+        
+        tools = create_platform_tool_wrappers(mock_backend, approval_checker=checker)
+        tool_dict = {getattr(t, 'name', ''): t for t in tools}
+        
+        # Execute each dangerous tool
+        await tool_dict["write"].ainvoke({"path": "test.txt", "content": "hi"})
+        await tool_dict["edit"].ainvoke({"path": "test.txt", "old_text": "old", "new_text": "new"})
+        await tool_dict["execute"].ainvoke({"command": "ls"})
+        
+        # All dangerous tools should have checked approval
+        assert "write" in checked_tools
+        assert "edit" in checked_tools
+        assert "execute" in checked_tools
+
+    @pytest.mark.asyncio
+    async def test_safe_tools_execute_without_interrupt(self, mock_backend):
+        """Test that safe tools (ls, glob, grep) don't call interrupt."""
+        tools = create_platform_tool_wrappers(mock_backend, approval_checker=None)
+        tool_dict = {getattr(t, 'name', ''): t for t in tools}
+        
+        # Safe tools should work without interrupt
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            await tool_dict["ls"].ainvoke({"path": "."})
+            await tool_dict["read"].ainvoke({"path": "test.txt"})
+        
+        # Interrupt should never be called for safe tools without approval_checker
+        mock_interrupt.assert_not_called()
