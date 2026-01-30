@@ -28,17 +28,19 @@ HTTP transport (Streamable HTTP):
 from __future__ import annotations
 
 import logging
-import re
 from dataclasses import dataclass
 from typing import Any
 
 from ai.stigmer.agentic.mcpserver.v1.api_pb2 import McpServer
 from ai.stigmer.agentic.mcpserver.v1.spec_pb2 import McpServerSpec
 
+# Import placeholder resolution from dedicated module
+from worker.mcp.placeholder_resolver import PlaceholderResolver
+
 logger = logging.getLogger(__name__)
 
-# Regex pattern for ${VAR_NAME} placeholders
-_PLACEHOLDER_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
+# Module-level resolver instance (lenient mode for backward compatibility)
+_resolver = PlaceholderResolver(strict=False)
 
 
 @dataclass
@@ -66,6 +68,8 @@ def resolve_placeholders(value: str, env_vars: dict[str, str]) -> str:
     variables dictionary. Unresolved placeholders are logged as warnings
     but left unchanged to allow debugging.
     
+    This function delegates to PlaceholderResolver for consistent behavior.
+    
     Args:
         value: String potentially containing ${VAR_NAME} placeholders.
         env_vars: Dictionary mapping variable names to their values.
@@ -80,21 +84,7 @@ def resolve_placeholders(value: str, env_vars: dict[str, str]) -> str:
         >>> resolve_placeholders("Hello ${MISSING}", {})
         'Hello ${MISSING}'
     """
-    if not value or "${" not in value:
-        return value
-    
-    def replace_match(match: re.Match[str]) -> str:
-        var_name = match.group(1)
-        if var_name in env_vars:
-            return env_vars[var_name]
-        else:
-            logger.warning(
-                f"Unresolved placeholder ${{{var_name}}} - "
-                "ensure this variable is provided in the environment"
-            )
-            return match.group(0)  # Return original placeholder
-    
-    return _PLACEHOLDER_PATTERN.sub(replace_match, value)
+    return _resolver.resolve(value, env_vars)
 
 
 def transform_mcp_config(
@@ -204,19 +194,16 @@ def _transform_http_config(
     Returns:
         Dictionary with HTTP transport configuration.
     """
-    # Resolve placeholders in headers
-    resolved_headers: dict[str, str] = {}
-    for key, value in http.headers.items():
-        resolved_headers[key] = resolve_placeholders(value, env_vars)
+    # Resolve placeholders in headers and query params using the resolver
+    resolved_headers, resolved_params = _resolver.resolve_http_config(
+        headers=dict(http.headers) if http.headers else None,
+        query_params=dict(http.query_params) if http.query_params else None,
+        env_vars=env_vars,
+    )
     
-    # Resolve placeholders in query params and build URL
+    # Build URL with resolved query params
     url = http.url
-    if http.query_params:
-        resolved_params = {
-            k: resolve_placeholders(v, env_vars)
-            for k, v in http.query_params.items()
-        }
-        # URL-encode query parameters
+    if resolved_params:
         from urllib.parse import urlencode
         query_string = urlencode(resolved_params)
         url = f"{url}?{query_string}" if "?" not in url else f"{url}&{query_string}"

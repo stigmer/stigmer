@@ -7,13 +7,25 @@ configurations into LangGraph's MultiServerMCPClient format.
 from worker.mcp.config_transformer import (
     transform_mcp_config,
     transform_all_mcp_configs,
-    resolve_placeholders,
     McpConfigResult,
+)
+from worker.mcp.placeholder_resolver import (
+    PlaceholderResolver,
+    PlaceholderResolutionError,
+    PlaceholderResolutionResult,
+    resolve_placeholders,
+    resolve_placeholders_strict,
 )
 
 __all__ = [
+    # Config transformation
     "transform_mcp_config",
     "transform_all_mcp_configs",
-    "resolve_placeholders",
     "McpConfigResult",
+    # Placeholder resolution
+    "PlaceholderResolver",
+    "PlaceholderResolutionError",
+    "PlaceholderResolutionResult",
+    "resolve_placeholders",
+    "resolve_placeholders_strict",
 ]
