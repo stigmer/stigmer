@@ -279,6 +279,9 @@ func (x *SubAgent) GetSkillRefs() []*apiresource.ApiResourceReference {
 //	      scope: platform
 //	      slug: github
 //	    enabled_tools: [search_code, get_file, create_pr]
+//	    tool_approval_overrides:
+//	      - tool_name: delete_repository
+//	        requires_approval: false  # Trust this agent
 //	  - mcp_server_ref:
 //	      scope: organization
 //	      org: acme-corp
@@ -293,9 +296,37 @@ type McpServerUsage struct {
 	// This defines the maximum tool set - SubAgents can only restrict further.
 	// Empty list = use McpServer's default_enabled_tools (or all if not specified).
 	// Tool names must match exactly what the MCP server reports via tools/list.
-	EnabledTools  []string `protobuf:"bytes,2,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	EnabledTools []string `protobuf:"bytes,2,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
+	// Override approval requirements for specific tools.
+	//
+	// These overrides take precedence over McpServer.default_tool_approvals,
+	// allowing per-agent customization of the approval policy.
+	//
+	// Use cases:
+	// - Disable approval for a trusted automation agent
+	// - Add approval for a tool that doesn't have default approval
+	// - Customize the approval message for this agent's context
+	//
+	// Example (trusted deployment agent - disable defaults):
+	//
+	//	tool_approval_overrides:
+	//	  - tool_name: "delete_repository"
+	//	    requires_approval: false  # Trust this agent for deletions
+	//	  - tool_name: "force_push"
+	//	    requires_approval: false  # Trust this agent for force pushes
+	//
+	// Example (stricter approval for customer-facing agent):
+	//
+	//	tool_approval_overrides:
+	//	  - tool_name: "send_email"
+	//	    requires_approval: true
+	//	    message: "Send customer communication: {{args.subject}}"
+	//	  - tool_name: "create_ticket"
+	//	    requires_approval: true
+	//	    message: "Create support ticket for customer"
+	ToolApprovalOverrides []*ToolApprovalOverride `protobuf:"bytes,3,rep,name=tool_approval_overrides,json=toolApprovalOverrides,proto3" json:"tool_approval_overrides,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *McpServerUsage) Reset() {
@@ -338,6 +369,13 @@ func (x *McpServerUsage) GetMcpServerRef() *apiresource.ApiResourceReference {
 func (x *McpServerUsage) GetEnabledTools() []string {
 	if x != nil {
 		return x.EnabledTools
+	}
+	return nil
+}
+
+func (x *McpServerUsage) GetToolApprovalOverrides() []*ToolApprovalOverride {
+	if x != nil {
+		return x.ToolApprovalOverrides
 	}
 	return nil
 }
@@ -415,6 +453,114 @@ func (x *McpAccess) GetEnabledTools() []string {
 	return nil
 }
 
+// ToolApprovalOverride allows per-agent customization of approval requirements.
+//
+// ## Override Semantics
+//
+// - requires_approval=true: Tool requires approval (even if MCP has no default)
+// - requires_approval=false: Tool does NOT require approval (overrides MCP default)
+//
+// ## Message Inheritance
+//
+// When requires_approval=true and message is empty:
+// - If McpServer has default_tool_approvals for this tool, uses that message
+// - Otherwise, auto-generates: "Execute tool: {tool_name}"
+//
+// When message is provided, it overrides any McpServer default message.
+//
+// ## Policy Chain Position
+//
+// This sits in the middle of the approval policy chain:
+// 1. McpServer.default_tool_approvals - Platform/org defaults (lowest priority)
+// 2. Agent.McpServerUsage.tool_approval_overrides (this message) - Per-agent customization
+// 3. AgentExecution.auto_approve_all - Runtime bypass (highest priority)
+//
+// ## Validation
+//
+// The tool_name should match a tool in the referenced McpServer's tools/list.
+// Invalid tool names are silently ignored (no approval applied).
+// This allows forward-compatibility when MCP servers add/remove tools.
+type ToolApprovalOverride struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Name of the tool to override.
+	// Must match exactly (case-sensitive) with MCP server's tool name.
+	// Example: "delete_repository", "send_email", "execute_sql"
+	ToolName string `protobuf:"bytes,1,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
+	// Whether this tool requires approval for this agent.
+	//
+	// false: No approval needed (overrides any McpServer default)
+	// true: Approval required (even if McpServer has no default)
+	//
+	// Note: This can be further overridden at execution time by
+	// AgentExecutionSpec.auto_approve_all=true
+	RequiresApproval bool `protobuf:"varint,2,opt,name=requires_approval,json=requiresApproval,proto3" json:"requires_approval,omitempty"`
+	// Optional: Custom approval message for this agent.
+	// Supports {{args.field}} placeholders like ToolApprovalPolicy.message.
+	//
+	// If empty and requires_approval=true:
+	// - Uses McpServer's default message for this tool (if exists)
+	// - Otherwise auto-generates: "Execute tool: {tool_name}"
+	//
+	// Guidelines for effective messages:
+	//   - Be specific to this agent's context
+	//   - Include the most important argument values
+	//   - Keep under 100 characters for UI display
+	Message       string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ToolApprovalOverride) Reset() {
+	*x = ToolApprovalOverride{}
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ToolApprovalOverride) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ToolApprovalOverride) ProtoMessage() {}
+
+func (x *ToolApprovalOverride) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ToolApprovalOverride.ProtoReflect.Descriptor instead.
+func (*ToolApprovalOverride) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ToolApprovalOverride) GetToolName() string {
+	if x != nil {
+		return x.ToolName
+	}
+	return ""
+}
+
+func (x *ToolApprovalOverride) GetRequiresApproval() bool {
+	if x != nil {
+		return x.RequiresApproval
+	}
+	return false
+}
+
+func (x *ToolApprovalOverride) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agent_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
@@ -442,14 +588,19 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"mcp_access\x18\x04 \x03(\v2&.ai.stigmer.agentic.agent.v1.McpAccessR\tmcpAccess\x12\xb7\x01\n" +
 	"\n" +
 	"skill_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBb\xbaH_\x92\x01\\\"Z\xba\x01W\n" +
-	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\"\x99\x01\n" +
+	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\"\x84\x02\n" +
 	"\x0eMcpServerUsage\x12b\n" +
 	"\x0emcp_server_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x06\xbaH\x03\xc8\x01\x01R\fmcpServerRef\x12#\n" +
-	"\renabled_tools\x18\x02 \x03(\tR\fenabledTools\"W\n" +
+	"\renabled_tools\x18\x02 \x03(\tR\fenabledTools\x12i\n" +
+	"\x17tool_approval_overrides\x18\x03 \x03(\v21.ai.stigmer.agentic.agent.v1.ToolApprovalOverrideR\x15toolApprovalOverrides\"W\n" +
 	"\tMcpAccess\x12%\n" +
 	"\n" +
 	"mcp_server\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tmcpServer\x12#\n" +
-	"\renabled_tools\x18\x02 \x03(\tR\fenabledToolsB\x8b\x02\n" +
+	"\renabled_tools\x18\x02 \x03(\tR\fenabledTools\"\x83\x01\n" +
+	"\x14ToolApprovalOverride\x12$\n" +
+	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12+\n" +
+	"\x11requires_approval\x18\x02 \x01(\bR\x10requiresApproval\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessageB\x8b\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\tSpecProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (
@@ -464,28 +615,30 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes = []any{
 	(*AgentSpec)(nil),                        // 0: ai.stigmer.agentic.agent.v1.AgentSpec
 	(*SubAgent)(nil),                         // 1: ai.stigmer.agentic.agent.v1.SubAgent
 	(*McpServerUsage)(nil),                   // 2: ai.stigmer.agentic.agent.v1.McpServerUsage
 	(*McpAccess)(nil),                        // 3: ai.stigmer.agentic.agent.v1.McpAccess
-	(*apiresource.ApiResourceReference)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.EnvironmentSpec)(nil),               // 5: ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	(*ToolApprovalOverride)(nil),             // 4: ai.stigmer.agentic.agent.v1.ToolApprovalOverride
+	(*apiresource.ApiResourceReference)(nil), // 5: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*v1.EnvironmentSpec)(nil),               // 6: ai.stigmer.agentic.environment.v1.EnvironmentSpec
 }
 var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
-	4, // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	5, // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1, // 2: ai.stigmer.agentic.agent.v1.AgentSpec.sub_agents:type_name -> ai.stigmer.agentic.agent.v1.SubAgent
-	5, // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	6, // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
 	3, // 4: ai.stigmer.agentic.agent.v1.SubAgent.mcp_access:type_name -> ai.stigmer.agentic.agent.v1.McpAccess
-	4, // 5: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	4, // 6: ai.stigmer.agentic.agent.v1.McpServerUsage.mcp_server_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	5, // 5: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	5, // 6: ai.stigmer.agentic.agent.v1.McpServerUsage.mcp_server_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4, // 7: ai.stigmer.agentic.agent.v1.McpServerUsage.tool_approval_overrides:type_name -> ai.stigmer.agentic.agent.v1.ToolApprovalOverride
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_spec_proto_init() }
@@ -499,7 +652,7 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

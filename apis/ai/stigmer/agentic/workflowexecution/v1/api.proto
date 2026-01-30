@@ -10,6 +10,7 @@ syntax = "proto3";
 // systems and workflow orchestration capabilities.
 package ai.stigmer.agentic.workflowexecution.v1;
 
+import "ai/stigmer/agentic/agentexecution/v1/api.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/enum.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/spec.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
@@ -350,6 +351,48 @@ message WorkflowExecutionStatus {
   // This field is optional and only relevant when Temporal is used as the execution engine.
   // Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
   string temporal_workflow_id = 7;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Pending Approval (HITL Phase 5.1)
+  //
+  // Child agent approval surfaced at workflow level for UI visibility.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Pending approval from a child agent's tool execution (HITL Phase 5).
+  //
+  // Populated when a workflow task invokes an agent that enters
+  // EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces the approval
+  // request at the workflow level for UI visibility.
+  //
+  // ## When This Is Set
+  //
+  // - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
+  // - The child AgentExecution has phase EXECUTION_WAITING_FOR_APPROVAL
+  // - UI should display the approval prompt to the user
+  // - User can submit approval via WorkflowExecution or AgentExecution API
+  //
+  // ## Lifecycle
+  //
+  // 1. Child agent enters WAITING_FOR_APPROVAL (tool requires approval)
+  // 2. Child signals parent workflow via Temporal "child_approval_required"
+  // 3. Workflow updates task status and populates this field
+  // 4. User submits approval via AgentExecution.SubmitApproval or (future) WorkflowExecution.SubmitApproval
+  // 5. This field is cleared, task returns to IN_PROGRESS
+  //
+  // ## Approval Submission
+  //
+  // Currently, approval must be submitted via AgentExecution.SubmitApproval RPC
+  // using the child execution ID from this field. Future work will add
+  // WorkflowExecution.SubmitApproval for convenience.
+  //
+  // ## Type Reference
+  //
+  // Uses PendingApproval from agentexecution/v1/api.proto for consistency.
+  // Contains: tool_call_id, tool_name, message, args_preview, requested_at,
+  // from_sub_agent, sub_agent_name.
+  //
+  // @since Phase 5.1 (Events-Based Approval Notification)
+  ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approval = 8;
 }
 
 // WorkflowTask represents a single task within a workflow execution.

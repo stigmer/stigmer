@@ -74,9 +74,42 @@ type McpServerSpec struct {
 	//	  GITHUB_OWNER:
 	//	    is_secret: false
 	//	    description: "Default GitHub organization or user"
-	EnvSpec       *v1.EnvironmentSpec `protobuf:"bytes,8,opt,name=env_spec,json=envSpec,proto3" json:"env_spec,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	EnvSpec *v1.EnvironmentSpec `protobuf:"bytes,8,opt,name=env_spec,json=envSpec,proto3" json:"env_spec,omitempty"`
+	// Default tool approval policies for this MCP server.
+	//
+	// Tools listed here require user approval before execution by default.
+	// This is the first layer in the approval policy chain:
+	//
+	//	McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+	//
+	// Use cases:
+	// - Mark destructive operations as requiring approval by default
+	// - Protect sensitive data access across all agents using this server
+	// - Establish organization-wide safety policies for dangerous tools
+	//
+	// Example (GitHub MCP):
+	//
+	//	default_tool_approvals:
+	//	  - tool_name: "delete_repository"
+	//	    message: "Delete repository: {{args.repo}}"
+	//	  - tool_name: "force_push"
+	//	    message: "Force push to {{args.branch}}"
+	//	  - tool_name: "add_collaborator"
+	//	    message: "Add {{args.user}} as collaborator to {{args.repo}}"
+	//
+	// Example (Database MCP):
+	//
+	//	default_tool_approvals:
+	//	  - tool_name: "execute_sql"
+	//	    message: "Execute SQL: {{args.query}}"
+	//	  - tool_name: "drop_table"
+	//	    message: "Drop table: {{args.table_name}}"
+	//
+	// Tools not listed here do not require approval by default.
+	// Agents can still add approval requirements via tool_approval_overrides.
+	DefaultToolApprovals []*ToolApprovalPolicy `protobuf:"bytes,9,rep,name=default_tool_approvals,json=defaultToolApprovals,proto3" json:"default_tool_approvals,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *McpServerSpec) Reset() {
@@ -165,6 +198,13 @@ func (x *McpServerSpec) GetDefaultEnabledTools() []string {
 func (x *McpServerSpec) GetEnvSpec() *v1.EnvironmentSpec {
 	if x != nil {
 		return x.EnvSpec
+	}
+	return nil
+}
+
+func (x *McpServerSpec) GetDefaultToolApprovals() []*ToolApprovalPolicy {
+	if x != nil {
+		return x.DefaultToolApprovals
 	}
 	return nil
 }
@@ -375,11 +415,117 @@ func (x *HttpServerConfig) GetTimeoutSeconds() int32 {
 	return 0
 }
 
+// ToolApprovalPolicy defines approval requirements for a specific tool.
+//
+// ## Message Templates
+//
+// The message field supports {{args.field}} placeholders that are resolved
+// at runtime using the actual tool arguments. This enables contextual
+// approval messages that help users make informed decisions.
+//
+// Placeholder syntax:
+//
+//	{{args.field_name}} - Replaced with the tool argument value
+//	{{tool_name}} - Replaced with the tool name (always available)
+//
+// If a placeholder references a missing argument, it's replaced with "<unknown>".
+//
+// ## Examples
+//
+// Simple message:
+//
+//	tool_name: "send_email"
+//	message: "Send email to {{args.recipient}}"
+//	Result: "Send email to customer@example.com"
+//
+// Multiple placeholders:
+//
+//	tool_name: "delete_file"
+//	message: "Delete {{args.path}} from {{args.repository}}"
+//	Result: "Delete src/main.py from acme/webapp"
+//
+// Default message (empty):
+//
+//	tool_name: "dangerous_operation"
+//	message: ""
+//	Result: "Execute tool: dangerous_operation" (auto-generated)
+//
+// ## Policy Chain
+//
+// This policy sits at the McpServer level. The full approval policy chain is:
+// 1. McpServer.default_tool_approvals (this message) - Platform/org defaults
+// 2. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
+// 3. AgentExecution.auto_approve_all - Runtime bypass
+type ToolApprovalPolicy struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Name of the tool (must match tools/list from MCP server exactly).
+	// Case-sensitive matching against tool names reported by the MCP server.
+	// Example: "delete_repository", "send_email", "execute_sql"
+	ToolName string `protobuf:"bytes,1,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
+	// Human-readable message shown to user when approval is requested.
+	// Supports {{args.field}} placeholders for dynamic content.
+	//
+	// If empty, a default message is generated: "Execute tool: {tool_name}"
+	//
+	// Guidelines for effective messages:
+	//   - Be specific about what will happen
+	//   - Include the most important argument values using placeholders
+	//   - Keep under 100 characters for UI display
+	//   - Use action verbs: "Delete", "Send", "Execute", "Create"
+	Message       string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ToolApprovalPolicy) Reset() {
+	*x = ToolApprovalPolicy{}
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ToolApprovalPolicy) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ToolApprovalPolicy) ProtoMessage() {}
+
+func (x *ToolApprovalPolicy) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ToolApprovalPolicy.ProtoReflect.Descriptor instead.
+func (*ToolApprovalPolicy) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ToolApprovalPolicy) GetToolName() string {
+	if x != nil {
+		return x.ToolName
+	}
+	return ""
+}
+
+func (x *ToolApprovalPolicy) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\x8e\x03\n" +
+	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xf9\x03\n" +
 	"\rMcpServerSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12\x12\n" +
@@ -387,7 +533,8 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05stdio\x18\x04 \x01(\v22.ai.stigmer.agentic.mcpserver.v1.StdioServerConfigH\x00R\x05stdio\x12G\n" +
 	"\x04http\x18\x05 \x01(\v21.ai.stigmer.agentic.mcpserver.v1.HttpServerConfigH\x00R\x04http\x122\n" +
 	"\x15default_enabled_tools\x18\a \x03(\tR\x13defaultEnabledTools\x12M\n" +
-	"\benv_spec\x18\b \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpecB\x14\n" +
+	"\benv_spec\x18\b \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\x12i\n" +
+	"\x16default_tool_approvals\x18\t \x03(\v23.ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicyR\x14defaultToolApprovalsB\x14\n" +
 	"\vserver_type\x12\x05\xbaH\x02\b\x01\"j\n" +
 	"\x11StdioServerConfig\x12 \n" +
 	"\acommand\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\acommand\x12\x12\n" +
@@ -405,7 +552,10 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +
 	"\x10QueryParamsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\xa7\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"T\n" +
+	"\x12ToolApprovalPolicy\x12$\n" +
+	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessageB\xa7\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\x01ZTgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
@@ -420,26 +570,28 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_goTypes = []any{
 	(*McpServerSpec)(nil),      // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec
 	(*StdioServerConfig)(nil),  // 1: ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
 	(*HttpServerConfig)(nil),   // 2: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	nil,                        // 3: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	nil,                        // 4: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	(*v1.EnvironmentSpec)(nil), // 5: ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	(*ToolApprovalPolicy)(nil), // 3: ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
+	nil,                        // 4: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	nil,                        // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	(*v1.EnvironmentSpec)(nil), // 6: ai.stigmer.agentic.environment.v1.EnvironmentSpec
 }
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
 	2, // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	5, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	3, // 3: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	4, // 4: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	6, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	3, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.default_tool_approvals:type_name -> ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy
+	4, // 4: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	5, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() }
@@ -457,7 +609,7 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

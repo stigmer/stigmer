@@ -9,7 +9,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentExecutionSpec(_message.Message):
-    __slots__ = ("session_id", "agent_id", "message", "execution_config", "runtime_env", "callback_token")
+    __slots__ = ("session_id", "agent_id", "message", "execution_config", "runtime_env", "callback_token", "auto_approve_all", "parent_workflow_id")
     class RuntimeEnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -23,13 +23,17 @@ class AgentExecutionSpec(_message.Message):
     EXECUTION_CONFIG_FIELD_NUMBER: _ClassVar[int]
     RUNTIME_ENV_FIELD_NUMBER: _ClassVar[int]
     CALLBACK_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    AUTO_APPROVE_ALL_FIELD_NUMBER: _ClassVar[int]
+    PARENT_WORKFLOW_ID_FIELD_NUMBER: _ClassVar[int]
     session_id: str
     agent_id: str
     message: str
     execution_config: ExecutionConfig
     runtime_env: _containers.MessageMap[str, _spec_pb2.ExecutionValue]
     callback_token: bytes
-    def __init__(self, session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ...) -> None: ...
+    auto_approve_all: bool
+    parent_workflow_id: str
+    def __init__(self, session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ..., auto_approve_all: bool = ..., parent_workflow_id: _Optional[str] = ...) -> None: ...
 
 class ExecutionConfig(_message.Message):
     __slots__ = ("model_name",)

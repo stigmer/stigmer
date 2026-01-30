@@ -23,6 +23,8 @@ func displayAgentPhaseChange(phase agentexecutionv1.ExecutionPhase) {
 		cliprint.PrintError("❌ Execution failed")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
 		cliprint.PrintWarning("⚠️  Execution cancelled")
+	case agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL:
+		cliprint.PrintWarning("⏸️  Approval required")
 	}
 	fmt.Println()
 }
@@ -88,6 +90,9 @@ func displayWorkflowTask(task *workflowexecutionv1.WorkflowTask) {
 	case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_SKIPPED:
 		icon = "⊘"
 		statusText = "Skipped"
+	case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_WAITING_APPROVAL:
+		icon = "⏸"
+		statusText = "Awaiting Approval"
 	}
 
 	fmt.Printf("%s Task: %s [%s]\n", icon, task.TaskName, statusText)

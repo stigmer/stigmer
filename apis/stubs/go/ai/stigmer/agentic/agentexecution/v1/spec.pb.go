@@ -147,8 +147,59 @@ type AgentExecutionSpec struct {
 	//
 	// @since 2026-01-22 (Phase 2: Async Agent Execution Integration)
 	CallbackToken []byte `protobuf:"bytes,6,opt,name=callback_token,json=callbackToken,proto3" json:"callback_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Auto-approve all tool executions for this execution.
+	//
+	// When true, tools that would normally require approval are automatically
+	// approved without user intervention. This is the highest-priority override
+	// in the approval policy chain:
+	//
+	//	McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all
+	//
+	// Use cases:
+	// - Automated CI/CD pipelines where human approval isn't practical
+	// - Trusted batch operations with pre-validated inputs
+	// - Development/testing environments
+	// - Scheduled jobs where approval would block automation
+	//
+	// Security consideration: This flag bypasses all approval checks.
+	// Ensure appropriate access controls on who can set this flag.
+	// Consider auditing executions where this flag is used.
+	//
+	// Default: false (approvals required as configured in policies)
+	AutoApproveAll bool `protobuf:"varint,7,opt,name=auto_approve_all,json=autoApproveAll,proto3" json:"auto_approve_all,omitempty"`
+	// Parent workflow context for events-based approval notification (optional).
+	//
+	// When a workflow invokes an agent via CallAgentActivity, this field captures
+	// the parent workflow's Temporal workflow ID. This enables the agent execution
+	// workflow to signal the parent when approval is required, eliminating polling.
+	//
+	// ## Signal Pattern
+	//
+	// 1. Go workflow passes its workflow ID when creating AgentExecution
+	// 2. Go workflow starts signal listener for "child_approval_required"
+	// 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
+	// 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
+	//
+	// ## Format
+	//
+	// Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
+	// Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
+	//
+	// ## When Empty
+	//
+	// - Agent invoked directly (not from workflow) - no parent to notify
+	// - Older clients that don't support this field - fallback to direct approval
+	//
+	// ## Backward Compatibility
+	//
+	// This field is optional. Agents invoked without a parent workflow ID will
+	// continue to work normally - approval is submitted directly via the
+	// AgentExecution.SubmitApproval RPC.
+	//
+	// @since Phase 5.1 (Events-Based Approval Notification)
+	ParentWorkflowId string `protobuf:"bytes,8,opt,name=parent_workflow_id,json=parentWorkflowId,proto3" json:"parent_workflow_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *AgentExecutionSpec) Reset() {
@@ -223,6 +274,20 @@ func (x *AgentExecutionSpec) GetCallbackToken() []byte {
 	return nil
 }
 
+func (x *AgentExecutionSpec) GetAutoApproveAll() bool {
+	if x != nil {
+		return x.AutoApproveAll
+	}
+	return false
+}
+
+func (x *AgentExecutionSpec) GetParentWorkflowId() string {
+	if x != nil {
+		return x.ParentWorkflowId
+	}
+	return ""
+}
+
 // Configuration that can be applied at execution time.
 type ExecutionConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -274,7 +339,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xdc\x03\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xb4\x04\n" +
 	"\x12AgentExecutionSpec\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
@@ -283,7 +348,9 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x10execution_config\x18\x04 \x01(\v25.ai.stigmer.agentic.agentexecution.v1.ExecutionConfigR\x0fexecutionConfig\x12i\n" +
 	"\vruntime_env\x18\x05 \x03(\v2H.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntryR\n" +
 	"runtimeEnv\x12%\n" +
-	"\x0ecallback_token\x18\x06 \x01(\fR\rcallbackToken\x1au\n" +
+	"\x0ecallback_token\x18\x06 \x01(\fR\rcallbackToken\x12(\n" +
+	"\x10auto_approve_all\x18\a \x01(\bR\x0eautoApproveAll\x12,\n" +
+	"\x12parent_workflow_id\x18\b \x01(\tR\x10parentWorkflowId\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"0\n" +

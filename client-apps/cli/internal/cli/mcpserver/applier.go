@@ -116,9 +116,6 @@ func displayMcpServerSummary(mcpServer *mcpserverv1.McpServer) {
 	} else if http := mcpServer.Spec.GetHttp(); http != nil {
 		cliprint.PrintInfo("  Type:        http")
 		cliprint.PrintInfo("  URL:         %s", http.Url)
-	} else if docker := mcpServer.Spec.GetDocker(); docker != nil {
-		cliprint.PrintInfo("  Type:        docker")
-		cliprint.PrintInfo("  Image:       %s", docker.Image)
 	}
 
 	if len(mcpServer.Spec.Tags) > 0 {

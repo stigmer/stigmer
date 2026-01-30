@@ -3,7 +3,7 @@
 import grpc
 
 from ai.stigmer.agentic.agentexecution.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2
-from ai.stigmer.agentic.agentexecution.v1 import command_pb2 as ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_command__pb2
+from ai.stigmer.agentic.agentexecution.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
@@ -30,12 +30,17 @@ class AgentExecutionCommandControllerStub(object):
                 _registered_method=True)
         self.updateStatus = channel.unary_unary(
                 '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_command__pb2.AgentExecutionUpdateStatusInput.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionUpdateStatusInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
                 _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+                _registered_method=True)
+        self.submitApproval = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitApproval',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.SubmitApprovalInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
                 _registered_method=True)
 
@@ -81,6 +86,46 @@ class AgentExecutionCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def submitApproval(self, request, context):
+        """Submit approval decision for a pending tool call (HITL Phase 1).
+
+        ## Preconditions
+
+        - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase
+        - tool_call_id must match status.pending_approval.tool_call_id
+        - User must have can_edit permission on the execution
+
+        ## Behavior by Action
+
+        - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
+        - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
+        - REJECT: Execution fails with rejection error, phase becomes FAILED
+
+        ## State Transitions
+
+        On success:
+        - ToolCall.approval_action = submitted action
+        - ToolCall.approval_decided_at = current timestamp
+        - ToolCall.approved_by = authenticated user ID
+        - AgentExecutionStatus.pending_approval = cleared
+        - ExecutionPhase = EXECUTION_IN_PROGRESS (or EXECUTION_FAILED if REJECT)
+
+        ## Error Conditions
+
+        - NOT_FOUND: Execution doesn't exist
+        - FAILED_PRECONDITION: Execution not in WAITING_FOR_APPROVAL phase
+        - INVALID_ARGUMENT: tool_call_id doesn't match pending approval, or action is UNSPECIFIED
+        - PERMISSION_DENIED: User lacks can_edit permission
+
+        ## Idempotency
+
+        If the same approval is submitted twice (same execution, tool_call, action),
+        the second call is a no-op and returns the current state.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AgentExecutionCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -96,12 +141,17 @@ def add_AgentExecutionCommandControllerServicer_to_server(servicer, server):
             ),
             'updateStatus': grpc.unary_unary_rpc_method_handler(
                     servicer.updateStatus,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_command__pb2.AgentExecutionUpdateStatusInput.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionUpdateStatusInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
+            ),
+            'submitApproval': grpc.unary_unary_rpc_method_handler(
+                    servicer.submitApproval,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.SubmitApprovalInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
             ),
     }
@@ -186,7 +236,7 @@ class AgentExecutionCommandController(object):
             request,
             target,
             '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus',
-            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_command__pb2.AgentExecutionUpdateStatusInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionUpdateStatusInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
             options,
             channel_credentials,
@@ -214,6 +264,33 @@ class AgentExecutionCommandController(object):
             target,
             '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/delete',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def submitApproval(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitApproval',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.SubmitApprovalInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
             options,
             channel_credentials,
