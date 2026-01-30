@@ -8,6 +8,7 @@ Tests cover:
 - Cumulative token counting
 - ToolCall status transitions (Phase 2.2): RUNNING -> COMPLETED
 - Tool execution duration tracking
+- ResolvedExecutionContext population (Phase 2.5)
 """
 
 import pytest
@@ -16,7 +17,10 @@ from datetime import datetime, timedelta
 
 from worker.activities.graphton.status_builder import StatusBuilder
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
-from ai.stigmer.agentic.agentexecution.v1.api_pb2 import UsageMetrics
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+    UsageMetrics,
+    ResolvedExecutionContext,
+)
 
 
 # =============================================================================
@@ -35,6 +39,9 @@ def mock_initial_status():
     # Real UsageMetrics proto for Phase 2.4 usage tracking
     # MagicMock doesn't support CopyFrom(), so we use a real proto
     status.usage = UsageMetrics()
+    # Real ResolvedExecutionContext proto for Phase 2.5
+    # MagicMock doesn't support CopyFrom(), so we use a real proto
+    status.resolved_context = ResolvedExecutionContext()
     return status
 
 
@@ -1816,3 +1823,259 @@ class TestUsageMetrics:
         assert usage.total_tokens == 0
         assert usage.llm_call_count == 0
         assert usage.primary_model == ""
+
+
+# =============================================================================
+# Tests for ResolvedExecutionContext (Phase 2.5)
+# =============================================================================
+
+
+class TestResolvedExecutionContext:
+    """Tests for ResolvedExecutionContext population (Phase 2.5).
+    
+    ResolvedExecutionContext captures what resources the agent had access to
+    at execution time: environment keys, MCP server status, and skill names.
+    """
+
+    def test_set_resolved_context_populates_proto(self, status_builder):
+        """Verify set_resolved_context creates properly structured proto."""
+        status_builder.set_resolved_context(
+            environment_keys=["API_KEY", "DATABASE_URL"],
+            mcp_servers={
+                "github-mcp": (True, "Configured successfully", 5),
+            },
+            skill_names=["code-review"],
+        )
+        
+        ctx = status_builder.current_status.resolved_context
+        
+        # Verify all fields are populated
+        assert len(ctx.environment_keys) == 2
+        assert len(ctx.mcp_servers) == 1
+        assert len(ctx.skill_names) == 1
+        
+        # Verify MCP server has all fields
+        github_status = ctx.mcp_servers["github-mcp"]
+        assert github_status.resolved is True
+        assert github_status.message == "Configured successfully"
+        assert github_status.enabled_tool_count == 5
+
+    def test_environment_keys_sorted_alphabetically(self, status_builder):
+        """Verify environment keys are sorted for consistent ordering."""
+        # Pass keys in non-alphabetical order
+        status_builder.set_resolved_context(
+            environment_keys=["ZEBRA", "APPLE", "MANGO", "BANANA"],
+            mcp_servers={},
+            skill_names=[],
+        )
+        
+        ctx = status_builder.current_status.resolved_context
+        
+        # Should be sorted alphabetically
+        assert list(ctx.environment_keys) == ["APPLE", "BANANA", "MANGO", "ZEBRA"]
+
+    def test_skill_names_sorted_alphabetically(self, status_builder):
+        """Verify skill names are sorted for consistent ordering."""
+        # Pass names in non-alphabetical order
+        status_builder.set_resolved_context(
+            environment_keys=[],
+            mcp_servers={},
+            skill_names=["kubernetes-operator", "docker-expert", "code-review"],
+        )
+        
+        ctx = status_builder.current_status.resolved_context
+        
+        # Should be sorted alphabetically
+        assert list(ctx.skill_names) == ["code-review", "docker-expert", "kubernetes-operator"]
+
+    def test_mcp_server_resolved_status(self, status_builder):
+        """Verify MCP server with resolved=True has correct fields."""
+        status_builder.set_resolved_context(
+            environment_keys=[],
+            mcp_servers={
+                "slack-mcp": (True, "Configured successfully", 12),
+            },
+            skill_names=[],
+        )
+        
+        ctx = status_builder.current_status.resolved_context
+        slack_status = ctx.mcp_servers["slack-mcp"]
+        
+        assert slack_status.resolved is True
+        assert slack_status.message == "Configured successfully"
+        assert slack_status.enabled_tool_count == 12
+
+    def test_mcp_server_failed_status(self, status_builder):
+        """Verify MCP server with resolved=False captures error message."""
+        status_builder.set_resolved_context(
+            environment_keys=[],
+            mcp_servers={
+                "postgres-mcp": (False, "Missing required environment variable: PG_PASSWORD", 0),
+            },
+            skill_names=[],
+        )
+        
+        ctx = status_builder.current_status.resolved_context
+        pg_status = ctx.mcp_servers["postgres-mcp"]
+        
+        assert pg_status.resolved is False
+        assert pg_status.message == "Missing required environment variable: PG_PASSWORD"
+        assert pg_status.enabled_tool_count == 0
+
+    def test_empty_context_all_fields_empty(self, status_builder):
+        """Verify empty inputs produce empty but valid proto."""
+        status_builder.set_resolved_context(
+            environment_keys=[],
+            mcp_servers={},
+            skill_names=[],
+        )
+        
+        ctx = status_builder.current_status.resolved_context
+        
+        # All collections should be empty
+        assert len(ctx.environment_keys) == 0
+        assert len(ctx.mcp_servers) == 0
+        assert len(ctx.skill_names) == 0
+
+    def test_context_overwrites_on_second_call(self, status_builder):
+        """Verify calling set_resolved_context twice overwrites previous values."""
+        # First call
+        status_builder.set_resolved_context(
+            environment_keys=["KEY_A"],
+            mcp_servers={"server-a": (True, "OK", 5)},
+            skill_names=["skill-a"],
+        )
+        
+        # Second call with different values
+        status_builder.set_resolved_context(
+            environment_keys=["KEY_B", "KEY_C"],
+            mcp_servers={"server-b": (False, "Failed", 0)},
+            skill_names=["skill-b"],
+        )
+        
+        ctx = status_builder.current_status.resolved_context
+        
+        # Should have second call's values only
+        assert list(ctx.environment_keys) == ["KEY_B", "KEY_C"]
+        assert "server-a" not in ctx.mcp_servers
+        assert "server-b" in ctx.mcp_servers
+        assert list(ctx.skill_names) == ["skill-b"]
+
+    def test_env_keys_only_no_values_accepted(self, status_builder):
+        """Verify the method signature only accepts keys, not values (security)."""
+        # The method signature enforces this - it only takes List[str] for env_keys
+        # This test verifies the design intent is implemented
+        status_builder.set_resolved_context(
+            environment_keys=["SECRET_KEY", "API_TOKEN", "DATABASE_PASSWORD"],
+            mcp_servers={},
+            skill_names=[],
+        )
+        
+        ctx = status_builder.current_status.resolved_context
+        
+        # Keys are present, but the method never sees values
+        # (values are not passed in, only keys)
+        assert "SECRET_KEY" in ctx.environment_keys
+        assert "API_TOKEN" in ctx.environment_keys
+        assert "DATABASE_PASSWORD" in ctx.environment_keys
+
+    def test_large_env_count_handled(self, status_builder):
+        """Verify handling of many environment variables (100+)."""
+        # Generate 150 env keys
+        large_env_keys = [f"ENV_VAR_{i:03d}" for i in range(150)]
+        
+        status_builder.set_resolved_context(
+            environment_keys=large_env_keys,
+            mcp_servers={},
+            skill_names=[],
+        )
+        
+        ctx = status_builder.current_status.resolved_context
+        
+        # All keys should be present and sorted
+        assert len(ctx.environment_keys) == 150
+        assert ctx.environment_keys[0] == "ENV_VAR_000"
+        assert ctx.environment_keys[149] == "ENV_VAR_149"
+
+    def test_mcp_tool_count_accurate(self, status_builder):
+        """Verify enabled_tool_count reflects actual tool configuration."""
+        status_builder.set_resolved_context(
+            environment_keys=[],
+            mcp_servers={
+                "github-mcp": (True, "Configured successfully", 8),
+                "slack-mcp": (True, "Configured successfully", 15),
+                "jira-mcp": (True, "Configured successfully", 0),  # No tools enabled
+            },
+            skill_names=[],
+        )
+        
+        ctx = status_builder.current_status.resolved_context
+        
+        assert ctx.mcp_servers["github-mcp"].enabled_tool_count == 8
+        assert ctx.mcp_servers["slack-mcp"].enabled_tool_count == 15
+        assert ctx.mcp_servers["jira-mcp"].enabled_tool_count == 0
+
+    def test_multiple_mcp_servers_mixed_status(self, status_builder):
+        """Verify handling of multiple MCP servers with mixed resolution status."""
+        status_builder.set_resolved_context(
+            environment_keys=["GITHUB_TOKEN", "SLACK_TOKEN"],
+            mcp_servers={
+                "github-mcp": (True, "Configured successfully", 10),
+                "slack-mcp": (True, "Configured successfully", 5),
+                "postgres-mcp": (False, "Server not found", 0),
+                "redis-mcp": (False, "Missing required env var: REDIS_URL", 0),
+            },
+            skill_names=["debugging", "code-review"],
+        )
+        
+        ctx = status_builder.current_status.resolved_context
+        
+        # Check resolved servers
+        assert ctx.mcp_servers["github-mcp"].resolved is True
+        assert ctx.mcp_servers["github-mcp"].enabled_tool_count == 10
+        
+        assert ctx.mcp_servers["slack-mcp"].resolved is True
+        assert ctx.mcp_servers["slack-mcp"].enabled_tool_count == 5
+        
+        # Check failed servers
+        assert ctx.mcp_servers["postgres-mcp"].resolved is False
+        assert "not found" in ctx.mcp_servers["postgres-mcp"].message
+        
+        assert ctx.mcp_servers["redis-mcp"].resolved is False
+        assert "REDIS_URL" in ctx.mcp_servers["redis-mcp"].message
+
+    def test_special_characters_in_keys_preserved(self, status_builder):
+        """Verify environment keys with special characters are preserved."""
+        special_keys = [
+            "MY_APP__CONFIG",
+            "DATABASE.URL",
+            "CONFIG-VALUE",
+            "KEY_WITH_123_NUMBERS",
+        ]
+        
+        status_builder.set_resolved_context(
+            environment_keys=special_keys,
+            mcp_servers={},
+            skill_names=[],
+        )
+        
+        ctx = status_builder.current_status.resolved_context
+        
+        # All special characters should be preserved
+        for key in special_keys:
+            assert key in ctx.environment_keys
+
+    def test_unicode_skill_names_handled(self, status_builder):
+        """Verify skill names with unicode characters are handled."""
+        status_builder.set_resolved_context(
+            environment_keys=[],
+            mcp_servers={},
+            skill_names=["código-review", "日本語-skill", "test-skill"],
+        )
+        
+        ctx = status_builder.current_status.resolved_context
+        
+        # Unicode should be preserved and sorted correctly
+        assert "código-review" in ctx.skill_names
+        assert "日本語-skill" in ctx.skill_names
+        assert "test-skill" in ctx.skill_names

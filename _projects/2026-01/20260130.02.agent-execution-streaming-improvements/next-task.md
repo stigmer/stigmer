@@ -109,9 +109,9 @@ Check anti-patterns to avoid.
 ## Current Status
 
 **Created**: 2026-01-30
-**Last Session**: 2026-01-30 (Phase 2.3 Implementation)
-**Current Task**: Phase 2.3 Complete - Ready for Phase 2.4
-**Status**: IN PROGRESS
+**Last Session**: 2026-01-30 (Phase 2.5 Implementation)
+**Current Task**: Phase 2.5 Complete - Ready for Phase 3 or Commit
+**Status**: READY FOR COMMIT
 
 ## Session Progress (2026-01-30)
 
@@ -342,27 +342,177 @@ int32 generation_duration_ms = 8;
 - Performance monitoring (how many tokens did the sub-agent use?)
 - Complete execution audit trail (every tool call and message captured)
 
+### ✅ Completed: Phase 2.4 - Add UsageMetrics for Token/Cost Tracking
+
+**What was accomplished:**
+- Created `UsageMetrics` proto message with comprehensive documentation
+- Added 5 fields: `prompt_tokens`, `completion_tokens`, `total_tokens`, `llm_call_count`, `primary_model`
+- Wired `UsageMetrics` to `AgentExecutionStatus.usage` (field 11) for main agent
+- Wired `UsageMetrics` to `SubAgentExecution.usage` (field 12) for per-sub-agent tracking
+- Updated StatusBuilder to track LLM call counts and primary model
+- Implemented progressive UsageMetrics updates during streaming
+- Created helper methods: `_build_usage_metrics()`, `_build_sub_agent_usage()`
+- Created comprehensive unit test suite (13 new tests, all passing)
+- Regenerated all protobuf stubs (Go, Python)
+- All 315 tests passing (no regressions)
+
+**Files modified:**
+- `apis/ai/stigmer/agentic/agentexecution/v1/api.proto` (+75 lines - UsageMetrics message and wiring)
+- `backend/services/agent-runner/worker/activities/graphton/status_builder.py` (+80 lines - tracking, helpers, updated handler)
+- `backend/services/agent-runner/tests/test_status_builder.py` (+200 lines - TestUsageMetrics class, fixture update)
+- Auto-generated stubs updated (Go, Python)
+
+**New proto message:**
+```protobuf
+message UsageMetrics {
+  int32 prompt_tokens = 1;          // Input tokens consumed
+  int32 completion_tokens = 2;      // Output tokens generated
+  int32 total_tokens = 3;           // Convenience sum
+  int32 llm_call_count = 4;         // Number of LLM API calls
+  string primary_model = 5;         // Primary model used
+}
+```
+
+**Test coverage (13 new tests in TestUsageMetrics class):**
+- `test_usage_metrics_updated_on_chat_model_end` - Verifies UsageMetrics proto populated
+- `test_llm_call_count_incremented` - Verifies call count increases
+- `test_primary_model_captured_from_first_call` - Verifies first model becomes primary
+- `test_primary_model_not_overwritten` - Verifies subsequent models don't change primary
+- `test_usage_accumulates_across_calls` - Verifies token accumulation
+- `test_total_tokens_equals_sum` - Verifies total = prompt + completion
+- `test_sub_agent_usage_tracked_separately` - Verifies sub-agent has own UsageMetrics
+- `test_sub_agent_usage_isolated_from_main` - Verifies main doesn't include sub-agent
+- `test_usage_zero_when_no_llm_calls` - Verifies defaults to zeros
+- `test_usage_handles_missing_model_name` - Verifies graceful handling
+- `test_build_usage_metrics_helper` - Tests main agent helper
+- `test_build_sub_agent_usage_helper` - Tests sub-agent helper
+- `test_build_sub_agent_usage_defaults_for_unknown` - Tests unknown sub-agent
+
+**Key design decisions:**
+- Main agent and sub-agent usage tracked separately (no double counting)
+- Progressive updates during streaming (not just at end)
+- Primary model captured from first LLM response (not overwritten)
+- Sub-agent tokens isolated for accurate cost attribution
+- Total execution cost = status.usage + sum(sub_agent.usage)
+
+**What this enables:**
+- Execution-level cost tracking and billing
+- Per-sub-agent cost attribution
+- LLM call frequency analysis (avg tokens/call)
+- Real-time cost visibility during streaming
+- Performance analytics (tokens consumed, models used)
+
+### ✅ Completed: Phase 2.5 - Add ResolvedExecutionContext
+
+**What was accomplished:**
+- Created `ResolvedExecutionContext` proto message with comprehensive documentation
+- Created `McpServerResolutionStatus` proto message for rich MCP server diagnostics
+- Added field 12 to `AgentExecutionStatus.resolved_context`
+- Implemented `StatusBuilder.set_resolved_context()` method with structured `[CONTEXT]` logging
+- Integrated context population in `execute_graphton.py` Step 5.5 (after resource resolution)
+- Environment keys sorted alphabetically (NO values for security)
+- MCP server status includes resolution success/failure, error messages, and tool counts
+- Skill names sorted alphabetically
+- Created comprehensive unit test suite (13 new tests, all passing)
+- Regenerated all protobuf stubs (Go, Python)
+- All 328 tests passing (no regressions)
+
+**Files modified:**
+- `apis/ai/stigmer/agentic/agentexecution/v1/api.proto` (+102 lines - ResolvedExecutionContext and McpServerResolutionStatus messages)
+- `backend/services/agent-runner/worker/activities/graphton/status_builder.py` (+82 lines - set_resolved_context method with logging)
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` (+36 lines - Step 5.5 integration)
+- `backend/services/agent-runner/tests/test_status_builder.py` (+265 lines - TestResolvedExecutionContext class)
+- Auto-generated stubs updated (Go, Python)
+
+**New proto messages:**
+```protobuf
+message ResolvedExecutionContext {
+  repeated string environment_keys = 1;  // Keys only, sorted alphabetically
+  map<string, McpServerResolutionStatus> mcp_servers = 2;
+  repeated string skill_names = 3;       // Sorted alphabetically
+}
+
+message McpServerResolutionStatus {
+  bool resolved = 1;                     // Success/failure
+  string message = 2;                    // Diagnostic message
+  int32 enabled_tool_count = 3;          // Number of tools enabled
+}
+```
+
+**Test coverage (13 new tests in TestResolvedExecutionContext class):**
+- `test_set_resolved_context_populates_proto` - Verifies proto structure
+- `test_environment_keys_sorted_alphabetically` - Verifies alphabetical sorting
+- `test_skill_names_sorted_alphabetically` - Verifies skill sorting
+- `test_mcp_server_resolved_status` - Verifies successful resolution
+- `test_mcp_server_failed_status` - Verifies failure with error message
+- `test_empty_context_all_fields_empty` - Verifies empty state handling
+- `test_context_overwrites_on_second_call` - Verifies overwrite behavior
+- `test_env_keys_only_no_values_accepted` - Verifies security (keys only)
+- `test_large_env_count_handled` - Verifies 150+ keys handled
+- `test_mcp_tool_count_accurate` - Verifies tool count tracking
+- `test_multiple_mcp_servers_mixed_status` - Verifies mixed success/failure
+- `test_special_characters_in_keys_preserved` - Verifies special character handling
+- `test_unicode_skill_names_handled` - Verifies unicode support
+
+**Key design decisions:**
+- **Security**: Environment keys only (NO values) to prevent secret exposure
+- **Rich MCP status**: Used `McpServerResolutionStatus` instead of simple boolean for better debugging
+- **Consistent ordering**: Alphabetical sorting for deterministic comparison and diffs
+- **One-time population**: Set once after resource resolution, immutable during streaming
+- **Structured logging**: `[CONTEXT]` prefix with debug details for troubleshooting
+
+**What this enables:**
+- **Debugging**: Understanding what resources were available when investigating failures
+- **Auditing**: Tracking what resources each execution consumed
+- **Security review**: Verifying which secrets (by key name only) were exposed
+- **UX transparency**: Showing users what their agent can access
+
 ## Next Steps
 
-1. **Phase 2.4: Add UsageMetrics**
-   - Create UsageMetrics message (prompt_tokens, completion_tokens, model_used)
-   - Add to AgentExecutionStatus for execution-level aggregation
-   - Wire cumulative token tracking to proto
+### Option A: Commit Phase 2 Work (Recommended)
+Phase 2 is complete and production-ready. All critical and should-fix items are implemented:
+1. Review the implementation
+2. Commit Phase 2 work with changelog entry
+3. Consider Phase 3 as separate PR
+
+### Option B: Continue to Phase 3 (Future Foundation)
+If you want to add future-proofing fields in same PR:
+1. **Phase 3.1: HITL approval fields in ToolCall**
+   - Add `requires_approval`, `approval_status`, `approved_by` fields
+   - Prepare for human-in-the-loop tool approval workflow
+   
+2. **Phase 3.2: Execution limits in ExecutionConfig**
+   - Add `max_tool_calls`, `max_llm_calls`, `max_tokens` fields
+   - Enable budget-based execution constraints
+   
+3. **Phase 3.3: Cancellation RPC**
+   - Add `CancelExecution` RPC for stopping in-progress executions
+   
+4. **Phase 3.4: Delta updates (optional)**
+   - Implement incremental status updates instead of full state
 
 ## Context for Resume
 
 **Current implementation state:**
-- Phase 1 (Critical Fixes) is complete and production-ready
-- Phase 2.1 (AgentMessage streaming fields) is complete
-- Phase 2.2 (ToolCall RUNNING status) is complete
-- Phase 2.3 (Sub-agent internals capture) is complete
-- Token tracking now persisted in AgentMessage (not just logs)
-- Tool execution now shows correct RUNNING status (not misleading PENDING)
-- Sub-agent tool_calls and messages now captured via namespace routing
-- `is_streaming` enables UI typing indicators
-- Streaming updates are time-based with configurable thresholds
-- Final status updates have retry with exponential backoff
-- Test coverage is comprehensive (14 + 44 + 62 + 5 + 7 + 14 = 146 tests, 302 total tests passing)
+- ✅ Phase 1 (Critical Fixes) - COMPLETE and production-ready
+  - on_chat_model_end event handling
+  - Time-based streaming updates (500ms intervals)
+  - Reliable final status persistence with retry
+  
+- ✅ Phase 2 (Should Fix) - COMPLETE and production-ready
+  - Phase 2.1: AgentMessage streaming state fields (`is_streaming`, `token_count`, `generation_duration_ms`)
+  - Phase 2.2: ToolCall RUNNING status (not misleading PENDING)
+  - Phase 2.3: Sub-agent internals capture (tool_calls, messages via namespace routing)
+  - Phase 2.4: UsageMetrics for token/cost tracking (main agent + per-sub-agent)
+  - Phase 2.5: ResolvedExecutionContext for resource visibility (env keys, MCP status, skills)
+
+- 🎯 All acceptance criteria met for Phase 1 and Phase 2
+- ✅ 328 tests passing (66 StatusBuilder + 98 other + 44 streaming + 62 retry + 58 other)
+- ✅ No regressions introduced
+- ✅ Structured logging throughout (`[USAGE]`, `[TOOL]`, `[SUBAGENT]`, `[STREAM]`, `[RETRY]`, `[CONTEXT]`)
+- ✅ Proto stubs regenerated (Python, Go)
+
+**Ready to commit or continue to Phase 3**
 
 **Important discoveries:**
 - Monotonic time is essential for reliable duration tracking
@@ -392,7 +542,9 @@ When starting a new session:
 6. [x] Implement Phase 2.1 (AgentMessage streaming fields) - COMPLETED
 7. [x] Implement Phase 2.2 (RUNNING status for ToolCall) - COMPLETED
 8. [x] Implement Phase 2.3 (Sub-agent internals capture) - COMPLETED
-9. [ ] Continue with Phase 2.4 (UsageMetrics)
+9. [x] Implement Phase 2.4 (UsageMetrics) - COMPLETED
+10. [x] Implement Phase 2.5 (ResolvedExecutionContext) - COMPLETED
+11. [ ] Decide: Commit Phase 2 work OR continue to Phase 3
 
 ## Quick Commands
 
@@ -410,8 +562,9 @@ The project addresses issues found in architectural review:
 - ~~AgentMessage has no streaming state indicator~~ ✅ FIXED in Phase 2.1 (`is_streaming`, `token_count`, `generation_duration_ms`)
 - ~~ToolCallStatus.RUNNING never used~~ ✅ FIXED in Phase 2.2 (tools now start in RUNNING status)
 - ~~SubAgentExecution is a black box (no internals)~~ ✅ FIXED in Phase 2.3 (`tool_calls`, `messages` fields)
-- No token/cost tracking (UsageMetrics missing) - partial fix in Phase 2.1 (per-message), execution-level pending
-- No HITL foundation fields
+- ~~No token/cost tracking (UsageMetrics missing)~~ ✅ FIXED in Phase 2.4 (status.usage, sub_agent.usage)
+- No ResolvedExecutionContext (env keys, MCP status, skills) - pending Phase 2.5
+- No HITL foundation fields - pending Phase 3.1
 
 **StatusBuilder Issues**:
 - ~~Only handles 3 event types (missing `on_chat_model_end`)~~ ✅ FIXED in Phase 1.1

@@ -249,6 +249,7 @@ async def _execute_graphton_impl(
         # - Skills are written to /bin/skills/{version_hash}/
         # - Full SKILL.md content is injected into system prompt with LOCATION header
         skills_prompt_section = ""
+        skills = []  # List of Skill protos (populated if skill_refs exist)
         skill_refs = agent.spec.skill_refs  # repeated ApiResourceReference
         
         if skill_refs:
@@ -465,6 +466,41 @@ async def _execute_graphton_impl(
                 activity_logger.warning("Continuing without MCP servers - agent will have limited capabilities")
                 mcp_servers_config = {}
                 mcp_tools_config = {}
+        
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 5.5: Build ResolvedExecutionContext (Phase 2.5)
+        #
+        # Captures what resources the agent actually has access to for visibility,
+        # debugging, and auditing. Populated once before streaming begins.
+        # ─────────────────────────────────────────────────────────────────────────────
+        
+        # Build MCP server resolution status
+        # Track which servers were requested vs successfully resolved
+        mcp_server_status = {}
+        requested_mcp_slugs = (
+            {usage.mcp_server_ref.slug for usage in mcp_server_usages}
+            if mcp_server_usages else set()
+        )
+        resolved_mcp_slugs = set(mcp_servers_config.keys())
+        
+        for slug in requested_mcp_slugs:
+            if slug in resolved_mcp_slugs:
+                # Server successfully resolved - count enabled tools
+                tool_count = len(mcp_tools_config.get(slug, []) or [])
+                mcp_server_status[slug] = (True, "Configured successfully", tool_count)
+            else:
+                # Server resolution failed
+                mcp_server_status[slug] = (False, "Server not found or resolution failed", 0)
+        
+        # Extract skill names from fetched skill protos
+        skill_names = [s.metadata.name for s in skills] if skills else []
+        
+        # Set resolved context on status builder
+        status_builder.set_resolved_context(
+            environment_keys=list(merged_env_vars.keys()),
+            mcp_servers=mcp_server_status,
+            skill_names=skill_names,
+        )
         
         # Step 6: Create Graphton agent at runtime with EXISTING sandbox
         # Note: MCP servers are passed if configured, providing external tool access

@@ -122,6 +122,17 @@ message AgentExecutionStatus {
   // Does NOT include sub-agent usage - sum sub_agent_executions[].usage for total.
   // Updated progressively during streaming for real-time cost visibility.
   UsageMetrics usage = 11;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Resolved Execution Context (Phase 2.5)
+  //
+  // Captures what resources the agent actually had access to at execution time.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Resolved execution context showing what resources the agent had access to.
+  // Populated once before streaming begins, after all resources are resolved.
+  // Immutable after initial population - represents the "snapshot" of resolved state.
+  ResolvedExecutionContext resolved_context = 12;
 }
 
 // Represents a single item in the agent's todo list.
@@ -351,4 +362,95 @@ message UsageMetrics {
   // Typically matches ExecutionConfig.model_name or the first model detected.
   // Examples: "claude-sonnet-4-20250514", "gpt-4o", "gemini-1.5-pro"
   string primary_model = 5;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Resolved Execution Context (Phase 2.5)
+//
+// Captures the resolved configuration state at execution time for visibility,
+// debugging, and auditing purposes.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ResolvedExecutionContext captures the resolved configuration state at execution time.
+// Populated once after all resources are resolved, before the agent begins processing.
+//
+// ## Purpose
+//
+// Provides visibility into what the agent actually had access to during execution:
+// - Which environment variables were available (keys only, not values for security)
+// - Which MCP servers were configured and their resolution status
+// - Which skills were injected into the agent's context
+//
+// This enables:
+// - **Debugging**: Understanding what environment/tools were available when investigating failures
+// - **Auditing**: Tracking what resources each execution consumed
+// - **Security review**: Verifying which secrets (by key name only) were exposed
+// - **UX transparency**: Showing users what their agent can access
+//
+// ## Timing
+//
+// Populated in execute_graphton.py after Steps 3-5 complete (skills, env vars, MCP servers)
+// but before the streaming loop begins. This represents the "snapshot" of resolved state.
+// Once set, this field is immutable for the remainder of the execution.
+//
+// ## Security Considerations
+//
+// - Environment values are NEVER included (only keys)
+// - MCP server credentials are not exposed
+// - This is safe to include in status responses to clients
+message ResolvedExecutionContext {
+  // Environment variable keys available to the agent (NOT values for security).
+  // Represents the merged result of: template env_spec + instance environment_refs + runtime_env.
+  // Keys are sorted alphabetically for consistent ordering and deterministic comparison.
+  // Examples: ["API_KEY", "DATABASE_URL", "LOG_LEVEL"]
+  repeated string environment_keys = 1;
+
+  // MCP servers referenced by the agent and their resolution status.
+  // Key: MCP server slug (e.g., "github-mcp", "slack-mcp")
+  // Value: Resolution status including success/failure and diagnostic information
+  //
+  // Note: This tracks configuration resolution, not runtime connection status.
+  // A server showing resolved=true means it was found and transformed successfully;
+  // actual WebSocket/stdio connection happens later in the Graphton runtime.
+  map<string, McpServerResolutionStatus> mcp_servers = 2;
+
+  // Names of skills injected into the agent's system prompt.
+  // Each skill's SKILL.md content is appended to the instructions.
+  // Sorted alphabetically for consistent ordering and deterministic comparison.
+  // Examples: ["code-review", "docker-expert", "kubernetes-operator"]
+  repeated string skill_names = 3;
+}
+
+// McpServerResolutionStatus captures the resolution outcome for a single MCP server.
+// Provides richer information than a simple boolean for better debugging and visibility.
+//
+// ## Resolution vs Connection
+//
+// This tracks whether the MCP server definition was successfully loaded and configured,
+// NOT whether the runtime connection succeeded. Resolution includes:
+// - Looking up the McpServer resource by reference
+// - Transforming the server config (resolving env var placeholders)
+// - Determining which tools to enable
+//
+// Runtime connection (WebSocket/stdio) happens later and is not tracked here.
+message McpServerResolutionStatus {
+  // Whether the MCP server was successfully resolved and configured.
+  // true: Server found, config transformed, ready for runtime connection
+  // false: Resolution failed (server not found, missing env var, invalid config)
+  bool resolved = 1;
+
+  // Human-readable status message explaining the resolution outcome.
+  // For success: "Configured successfully"
+  // For failure: Describes what went wrong
+  // Examples:
+  //   - "Configured successfully"
+  //   - "Server not found"
+  //   - "Missing required environment variable: GITHUB_TOKEN"
+  //   - "Invalid server configuration: missing command"
+  string message = 2;
+
+  // Number of tools enabled from this MCP server.
+  // Reflects the intersection of server's available tools and enabled_tools config.
+  // 0 if resolution failed, server has no tools, or all tools disabled.
+  int32 enabled_tool_count = 3;
 }

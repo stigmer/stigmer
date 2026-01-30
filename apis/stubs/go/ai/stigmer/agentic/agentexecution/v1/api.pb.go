@@ -178,9 +178,13 @@ type AgentExecutionStatus struct {
 	// Token and LLM resource usage for this execution (main agent only).
 	// Does NOT include sub-agent usage - sum sub_agent_executions[].usage for total.
 	// Updated progressively during streaming for real-time cost visibility.
-	Usage         *UsageMetrics `protobuf:"bytes,11,opt,name=usage,proto3" json:"usage,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Usage *UsageMetrics `protobuf:"bytes,11,opt,name=usage,proto3" json:"usage,omitempty"`
+	// Resolved execution context showing what resources the agent had access to.
+	// Populated once before streaming begins, after all resources are resolved.
+	// Immutable after initial population - represents the "snapshot" of resolved state.
+	ResolvedContext *ResolvedExecutionContext `protobuf:"bytes,12,opt,name=resolved_context,json=resolvedContext,proto3" json:"resolved_context,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *AgentExecutionStatus) Reset() {
@@ -286,6 +290,13 @@ func (x *AgentExecutionStatus) GetCallbackToken() []byte {
 func (x *AgentExecutionStatus) GetUsage() *UsageMetrics {
 	if x != nil {
 		return x.Usage
+	}
+	return nil
+}
+
+func (x *AgentExecutionStatus) GetResolvedContext() *ResolvedExecutionContext {
+	if x != nil {
+		return x.ResolvedContext
 	}
 	return nil
 }
@@ -961,6 +972,194 @@ func (x *UsageMetrics) GetPrimaryModel() string {
 	return ""
 }
 
+// ResolvedExecutionContext captures the resolved configuration state at execution time.
+// Populated once after all resources are resolved, before the agent begins processing.
+//
+// ## Purpose
+//
+// Provides visibility into what the agent actually had access to during execution:
+// - Which environment variables were available (keys only, not values for security)
+// - Which MCP servers were configured and their resolution status
+// - Which skills were injected into the agent's context
+//
+// This enables:
+// - **Debugging**: Understanding what environment/tools were available when investigating failures
+// - **Auditing**: Tracking what resources each execution consumed
+// - **Security review**: Verifying which secrets (by key name only) were exposed
+// - **UX transparency**: Showing users what their agent can access
+//
+// ## Timing
+//
+// Populated in execute_graphton.py after Steps 3-5 complete (skills, env vars, MCP servers)
+// but before the streaming loop begins. This represents the "snapshot" of resolved state.
+// Once set, this field is immutable for the remainder of the execution.
+//
+// ## Security Considerations
+//
+// - Environment values are NEVER included (only keys)
+// - MCP server credentials are not exposed
+// - This is safe to include in status responses to clients
+type ResolvedExecutionContext struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Environment variable keys available to the agent (NOT values for security).
+	// Represents the merged result of: template env_spec + instance environment_refs + runtime_env.
+	// Keys are sorted alphabetically for consistent ordering and deterministic comparison.
+	// Examples: ["API_KEY", "DATABASE_URL", "LOG_LEVEL"]
+	EnvironmentKeys []string `protobuf:"bytes,1,rep,name=environment_keys,json=environmentKeys,proto3" json:"environment_keys,omitempty"`
+	// MCP servers referenced by the agent and their resolution status.
+	// Key: MCP server slug (e.g., "github-mcp", "slack-mcp")
+	// Value: Resolution status including success/failure and diagnostic information
+	//
+	// Note: This tracks configuration resolution, not runtime connection status.
+	// A server showing resolved=true means it was found and transformed successfully;
+	// actual WebSocket/stdio connection happens later in the Graphton runtime.
+	McpServers map[string]*McpServerResolutionStatus `protobuf:"bytes,2,rep,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Names of skills injected into the agent's system prompt.
+	// Each skill's SKILL.md content is appended to the instructions.
+	// Sorted alphabetically for consistent ordering and deterministic comparison.
+	// Examples: ["code-review", "docker-expert", "kubernetes-operator"]
+	SkillNames    []string `protobuf:"bytes,3,rep,name=skill_names,json=skillNames,proto3" json:"skill_names,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolvedExecutionContext) Reset() {
+	*x = ResolvedExecutionContext{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolvedExecutionContext) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolvedExecutionContext) ProtoMessage() {}
+
+func (x *ResolvedExecutionContext) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolvedExecutionContext.ProtoReflect.Descriptor instead.
+func (*ResolvedExecutionContext) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ResolvedExecutionContext) GetEnvironmentKeys() []string {
+	if x != nil {
+		return x.EnvironmentKeys
+	}
+	return nil
+}
+
+func (x *ResolvedExecutionContext) GetMcpServers() map[string]*McpServerResolutionStatus {
+	if x != nil {
+		return x.McpServers
+	}
+	return nil
+}
+
+func (x *ResolvedExecutionContext) GetSkillNames() []string {
+	if x != nil {
+		return x.SkillNames
+	}
+	return nil
+}
+
+// McpServerResolutionStatus captures the resolution outcome for a single MCP server.
+// Provides richer information than a simple boolean for better debugging and visibility.
+//
+// ## Resolution vs Connection
+//
+// This tracks whether the MCP server definition was successfully loaded and configured,
+// NOT whether the runtime connection succeeded. Resolution includes:
+// - Looking up the McpServer resource by reference
+// - Transforming the server config (resolving env var placeholders)
+// - Determining which tools to enable
+//
+// Runtime connection (WebSocket/stdio) happens later and is not tracked here.
+type McpServerResolutionStatus struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whether the MCP server was successfully resolved and configured.
+	// true: Server found, config transformed, ready for runtime connection
+	// false: Resolution failed (server not found, missing env var, invalid config)
+	Resolved bool `protobuf:"varint,1,opt,name=resolved,proto3" json:"resolved,omitempty"`
+	// Human-readable status message explaining the resolution outcome.
+	// For success: "Configured successfully"
+	// For failure: Describes what went wrong
+	// Examples:
+	//   - "Configured successfully"
+	//   - "Server not found"
+	//   - "Missing required environment variable: GITHUB_TOKEN"
+	//   - "Invalid server configuration: missing command"
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// Number of tools enabled from this MCP server.
+	// Reflects the intersection of server's available tools and enabled_tools config.
+	// 0 if resolution failed, server has no tools, or all tools disabled.
+	EnabledToolCount int32 `protobuf:"varint,3,opt,name=enabled_tool_count,json=enabledToolCount,proto3" json:"enabled_tool_count,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *McpServerResolutionStatus) Reset() {
+	*x = McpServerResolutionStatus{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *McpServerResolutionStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*McpServerResolutionStatus) ProtoMessage() {}
+
+func (x *McpServerResolutionStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use McpServerResolutionStatus.ProtoReflect.Descriptor instead.
+func (*McpServerResolutionStatus) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *McpServerResolutionStatus) GetResolved() bool {
+	if x != nil {
+		return x.Resolved
+	}
+	return false
+}
+
+func (x *McpServerResolutionStatus) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *McpServerResolutionStatus) GetEnabledToolCount() int32 {
+	if x != nil {
+		return x.EnabledToolCount
+	}
+	return 0
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
@@ -975,7 +1174,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xa3\x01\xbaH\x9f\x01\xba\x01\x98\x01\n" +
 	",agent_execution.owner_scope.unspecified_only\x12QAgentExecution owner_scope must be unspecified (inherits premission from session)\x1a\x15this.owner_scope == 0\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xce\x06\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xb9\a\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -990,7 +1189,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x05todos\x18\t \x03(\v2E.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntryR\x05todos\x12%\n" +
 	"\x0ecallback_token\x18\n" +
 	" \x01(\fR\rcallbackToken\x12H\n" +
-	"\x05usage\x18\v \x01(\v22.ai.stigmer.agentic.agentexecution.v1.UsageMetricsR\x05usage\x1ah\n" +
+	"\x05usage\x18\v \x01(\v22.ai.stigmer.agentic.agentexecution.v1.UsageMetricsR\x05usage\x12i\n" +
+	"\x10resolved_context\x18\f \x01(\v2>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContextR\x0fresolvedContext\x1ah\n" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
@@ -1052,7 +1252,20 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x11completion_tokens\x18\x02 \x01(\x05R\x10completionTokens\x12!\n" +
 	"\ftotal_tokens\x18\x03 \x01(\x05R\vtotalTokens\x12$\n" +
 	"\x0ellm_call_count\x18\x04 \x01(\x05R\fllmCallCount\x12#\n" +
-	"\rprimary_model\x18\x05 \x01(\tR\fprimaryModelB\xc9\x02\n" +
+	"\rprimary_model\x18\x05 \x01(\tR\fprimaryModel\"\xd7\x02\n" +
+	"\x18ResolvedExecutionContext\x12)\n" +
+	"\x10environment_keys\x18\x01 \x03(\tR\x0fenvironmentKeys\x12o\n" +
+	"\vmcp_servers\x18\x02 \x03(\v2N.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntryR\n" +
+	"mcpServers\x12\x1f\n" +
+	"\vskill_names\x18\x03 \x03(\tR\n" +
+	"skillNames\x1a~\n" +
+	"\x0fMcpServersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12U\n" +
+	"\x05value\x18\x02 \x01(\v2?.ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatusR\x05value:\x028\x01\"\x7f\n" +
+	"\x19McpServerResolutionStatus\x12\x1a\n" +
+	"\bresolved\x18\x01 \x01(\bR\bresolved\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12,\n" +
+	"\x12enabled_tool_count\x18\x03 \x01(\x05R\x10enabledToolCountB\xc9\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\bApiProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -1067,7 +1280,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*AgentExecution)(nil),                  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution
 	(*AgentExecutionStatus)(nil),            // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
@@ -1077,47 +1290,53 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*ComponentMetadata)(nil),               // 5: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
 	(*SubAgentExecution)(nil),               // 6: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution
 	(*UsageMetrics)(nil),                    // 7: ai.stigmer.agentic.agentexecution.v1.UsageMetrics
-	nil,                                     // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
-	(*apiresource.ApiResourceMetadata)(nil), // 9: ai.stigmer.commons.apiresource.ApiResourceMetadata
-	(*AgentExecutionSpec)(nil),              // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
-	(*apiresource.ApiResourceAudit)(nil),    // 11: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(ExecutionPhase)(0),                     // 12: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	(TodoStatus)(0),                         // 13: ai.stigmer.agentic.agentexecution.v1.TodoStatus
-	(MessageType)(0),                        // 14: ai.stigmer.agentic.agentexecution.v1.MessageType
-	(*structpb.Struct)(nil),                 // 15: google.protobuf.Struct
-	(ToolCallStatus)(0),                     // 16: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	(SubAgentStatus)(0),                     // 17: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	(*ResolvedExecutionContext)(nil),        // 8: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
+	(*McpServerResolutionStatus)(nil),       // 9: ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
+	nil,                                     // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
+	nil,                                     // 11: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
+	(*apiresource.ApiResourceMetadata)(nil), // 12: ai.stigmer.commons.apiresource.ApiResourceMetadata
+	(*AgentExecutionSpec)(nil),              // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
+	(*apiresource.ApiResourceAudit)(nil),    // 14: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(ExecutionPhase)(0),                     // 15: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(TodoStatus)(0),                         // 16: ai.stigmer.agentic.agentexecution.v1.TodoStatus
+	(MessageType)(0),                        // 17: ai.stigmer.agentic.agentexecution.v1.MessageType
+	(*structpb.Struct)(nil),                 // 18: google.protobuf.Struct
+	(ToolCallStatus)(0),                     // 19: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	(SubAgentStatus)(0),                     // 20: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
-	9,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
-	10, // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecution.spec:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
+	12, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
+	13, // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecution.spec:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
 	1,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
-	11, // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	14, // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
 	3,  // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
-	12, // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	15, // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	4,  // 6: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
 	6,  // 7: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.sub_agent_executions:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentExecution
-	8,  // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.todos:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
+	10, // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.todos:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
 	7,  // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
-	13, // 10: ai.stigmer.agentic.agentexecution.v1.TodoItem.status:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoStatus
-	14, // 11: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
-	4,  // 12: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
-	15, // 13: ai.stigmer.agentic.agentexecution.v1.AgentMessage.metadata:type_name -> google.protobuf.Struct
-	15, // 14: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
-	16, // 15: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	5,  // 16: ai.stigmer.agentic.agentexecution.v1.ToolCall.component_metadata:type_name -> ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
-	15, // 17: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.metadata:type_name -> google.protobuf.Struct
-	17, // 18: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
-	15, // 19: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.metadata:type_name -> google.protobuf.Struct
-	4,  // 20: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
-	3,  // 21: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
-	7,  // 22: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
-	2,  // 23: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
-	24, // [24:24] is the sub-list for method output_type
-	24, // [24:24] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	8,  // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.resolved_context:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
+	16, // 11: ai.stigmer.agentic.agentexecution.v1.TodoItem.status:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoStatus
+	17, // 12: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
+	4,  // 13: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
+	18, // 14: ai.stigmer.agentic.agentexecution.v1.AgentMessage.metadata:type_name -> google.protobuf.Struct
+	18, // 15: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
+	19, // 16: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	5,  // 17: ai.stigmer.agentic.agentexecution.v1.ToolCall.component_metadata:type_name -> ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
+	18, // 18: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.metadata:type_name -> google.protobuf.Struct
+	20, // 19: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	18, // 20: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.metadata:type_name -> google.protobuf.Struct
+	4,  // 21: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
+	3,  // 22: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
+	7,  // 23: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
+	11, // 24: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.mcp_servers:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
+	2,  // 25: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	9,  // 26: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
+	27, // [27:27] is the sub-list for method output_type
+	27, // [27:27] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() }
@@ -1133,7 +1352,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
