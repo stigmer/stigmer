@@ -27,6 +27,11 @@ class ExecutionContextQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_api__pb2.ExecutionContext.FromString,
                 _registered_method=True)
+        self.getByExecutionId = channel.unary_unary(
+                '/ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController/getByExecutionId',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_io__pb2.ExecutionContextExecutionIdInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_api__pb2.ExecutionContext.FromString,
+                _registered_method=True)
 
 
 class ExecutionContextQueryControllerServicer(object):
@@ -48,6 +53,23 @@ class ExecutionContextQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getByExecutionId(self, request, context):
+        """Get an ExecutionContext by the execution ID it belongs to.
+        This is the primary lookup method used by runners to retrieve the merged
+        environment variables during workflow/agent execution. The returned context
+        contains decrypted secrets for runner consumption.
+
+        Use cases:
+        - Go workflow-runner queries for merged env vars before executing workflow
+        - Python agent-runner queries for merged env vars before executing agent
+
+        Security: Operator-only access ensures only internal services (runners) can
+        retrieve decrypted secrets. Public APIs use get/getByReference which redact secrets.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ExecutionContextQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -59,6 +81,11 @@ def add_ExecutionContextQueryControllerServicer_to_server(servicer, server):
             'getByReference': grpc.unary_unary_rpc_method_handler(
                     servicer.getByReference,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_api__pb2.ExecutionContext.SerializeToString,
+            ),
+            'getByExecutionId': grpc.unary_unary_rpc_method_handler(
+                    servicer.getByExecutionId,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_io__pb2.ExecutionContextExecutionIdInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_api__pb2.ExecutionContext.SerializeToString,
             ),
     }
@@ -116,6 +143,33 @@ class ExecutionContextQueryController(object):
             target,
             '/ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController/getByReference',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_api__pb2.ExecutionContext.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getByExecutionId(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController/getByExecutionId',
+            ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_io__pb2.ExecutionContextExecutionIdInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_executioncontext_dot_v1_dot_api__pb2.ExecutionContext.FromString,
             options,
             channel_credentials,

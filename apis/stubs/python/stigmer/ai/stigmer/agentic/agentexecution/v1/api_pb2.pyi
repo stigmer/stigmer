@@ -27,7 +27,7 @@ class AgentExecution(_message.Message):
     def __init__(self, api_version: _Optional[str] = ..., kind: _Optional[str] = ..., metadata: _Optional[_Union[_metadata_pb2.ApiResourceMetadata, _Mapping]] = ..., spec: _Optional[_Union[_spec_pb2.AgentExecutionSpec, _Mapping]] = ..., status: _Optional[_Union[AgentExecutionStatus, _Mapping]] = ...) -> None: ...
 
 class AgentExecutionStatus(_message.Message):
-    __slots__ = ("audit", "messages", "phase", "tool_calls", "sub_agent_executions", "error", "started_at", "completed_at", "todos", "callback_token")
+    __slots__ = ("audit", "messages", "phase", "tool_calls", "sub_agent_executions", "error", "started_at", "completed_at", "todos", "callback_token", "usage", "resolved_context")
     class TodosEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -45,6 +45,8 @@ class AgentExecutionStatus(_message.Message):
     COMPLETED_AT_FIELD_NUMBER: _ClassVar[int]
     TODOS_FIELD_NUMBER: _ClassVar[int]
     CALLBACK_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    USAGE_FIELD_NUMBER: _ClassVar[int]
+    RESOLVED_CONTEXT_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     messages: _containers.RepeatedCompositeFieldContainer[AgentMessage]
     phase: _enum_pb2.ExecutionPhase
@@ -55,7 +57,9 @@ class AgentExecutionStatus(_message.Message):
     completed_at: str
     todos: _containers.MessageMap[str, TodoItem]
     callback_token: bytes
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., messages: _Optional[_Iterable[_Union[AgentMessage, _Mapping]]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., sub_agent_executions: _Optional[_Iterable[_Union[SubAgentExecution, _Mapping]]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., todos: _Optional[_Mapping[str, TodoItem]] = ..., callback_token: _Optional[bytes] = ...) -> None: ...
+    usage: UsageMetrics
+    resolved_context: ResolvedExecutionContext
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., messages: _Optional[_Iterable[_Union[AgentMessage, _Mapping]]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., sub_agent_executions: _Optional[_Iterable[_Union[SubAgentExecution, _Mapping]]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., todos: _Optional[_Mapping[str, TodoItem]] = ..., callback_token: _Optional[bytes] = ..., usage: _Optional[_Union[UsageMetrics, _Mapping]] = ..., resolved_context: _Optional[_Union[ResolvedExecutionContext, _Mapping]] = ...) -> None: ...
 
 class TodoItem(_message.Message):
     __slots__ = ("id", "content", "status", "created_at", "updated_at")
@@ -72,18 +76,24 @@ class TodoItem(_message.Message):
     def __init__(self, id: _Optional[str] = ..., content: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.TodoStatus, str]] = ..., created_at: _Optional[str] = ..., updated_at: _Optional[str] = ...) -> None: ...
 
 class AgentMessage(_message.Message):
-    __slots__ = ("type", "content", "timestamp", "tool_calls", "metadata")
+    __slots__ = ("type", "content", "timestamp", "tool_calls", "metadata", "is_streaming", "token_count", "generation_duration_ms")
     TYPE_FIELD_NUMBER: _ClassVar[int]
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
     TOOL_CALLS_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
+    IS_STREAMING_FIELD_NUMBER: _ClassVar[int]
+    TOKEN_COUNT_FIELD_NUMBER: _ClassVar[int]
+    GENERATION_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
     type: _enum_pb2.MessageType
     content: str
     timestamp: str
     tool_calls: _containers.RepeatedCompositeFieldContainer[ToolCall]
     metadata: _struct_pb2.Struct
-    def __init__(self, type: _Optional[_Union[_enum_pb2.MessageType, str]] = ..., content: _Optional[str] = ..., timestamp: _Optional[str] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
+    is_streaming: bool
+    token_count: int
+    generation_duration_ms: int
+    def __init__(self, type: _Optional[_Union[_enum_pb2.MessageType, str]] = ..., content: _Optional[str] = ..., timestamp: _Optional[str] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., is_streaming: bool = ..., token_count: _Optional[int] = ..., generation_duration_ms: _Optional[int] = ...) -> None: ...
 
 class ToolCall(_message.Message):
     __slots__ = ("id", "name", "args", "result", "status", "component_metadata", "started_at", "completed_at", "error")
@@ -120,7 +130,7 @@ class ComponentMetadata(_message.Message):
     def __init__(self, component_type: _Optional[str] = ..., component_group: _Optional[str] = ..., layout_hint: _Optional[str] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
 
 class SubAgentExecution(_message.Message):
-    __slots__ = ("id", "name", "input", "output", "status", "started_at", "completed_at", "error", "metadata")
+    __slots__ = ("id", "name", "input", "output", "status", "started_at", "completed_at", "error", "metadata", "tool_calls", "messages", "usage")
     ID_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     INPUT_FIELD_NUMBER: _ClassVar[int]
@@ -130,6 +140,9 @@ class SubAgentExecution(_message.Message):
     COMPLETED_AT_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
+    TOOL_CALLS_FIELD_NUMBER: _ClassVar[int]
+    MESSAGES_FIELD_NUMBER: _ClassVar[int]
+    USAGE_FIELD_NUMBER: _ClassVar[int]
     id: str
     name: str
     input: str
@@ -139,4 +152,48 @@ class SubAgentExecution(_message.Message):
     completed_at: str
     error: str
     metadata: _struct_pb2.Struct
-    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., input: _Optional[str] = ..., output: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.SubAgentStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
+    tool_calls: _containers.RepeatedCompositeFieldContainer[ToolCall]
+    messages: _containers.RepeatedCompositeFieldContainer[AgentMessage]
+    usage: UsageMetrics
+    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., input: _Optional[str] = ..., output: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.SubAgentStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., messages: _Optional[_Iterable[_Union[AgentMessage, _Mapping]]] = ..., usage: _Optional[_Union[UsageMetrics, _Mapping]] = ...) -> None: ...
+
+class UsageMetrics(_message.Message):
+    __slots__ = ("prompt_tokens", "completion_tokens", "total_tokens", "llm_call_count", "primary_model")
+    PROMPT_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    COMPLETION_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    LLM_CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
+    PRIMARY_MODEL_FIELD_NUMBER: _ClassVar[int]
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+    llm_call_count: int
+    primary_model: str
+    def __init__(self, prompt_tokens: _Optional[int] = ..., completion_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., llm_call_count: _Optional[int] = ..., primary_model: _Optional[str] = ...) -> None: ...
+
+class ResolvedExecutionContext(_message.Message):
+    __slots__ = ("environment_keys", "mcp_servers", "skill_names")
+    class McpServersEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: McpServerResolutionStatus
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[McpServerResolutionStatus, _Mapping]] = ...) -> None: ...
+    ENVIRONMENT_KEYS_FIELD_NUMBER: _ClassVar[int]
+    MCP_SERVERS_FIELD_NUMBER: _ClassVar[int]
+    SKILL_NAMES_FIELD_NUMBER: _ClassVar[int]
+    environment_keys: _containers.RepeatedScalarFieldContainer[str]
+    mcp_servers: _containers.MessageMap[str, McpServerResolutionStatus]
+    skill_names: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, environment_keys: _Optional[_Iterable[str]] = ..., mcp_servers: _Optional[_Mapping[str, McpServerResolutionStatus]] = ..., skill_names: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class McpServerResolutionStatus(_message.Message):
+    __slots__ = ("resolved", "message", "enabled_tool_count")
+    RESOLVED_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    ENABLED_TOOL_COUNT_FIELD_NUMBER: _ClassVar[int]
+    resolved: bool
+    message: str
+    enabled_tool_count: int
+    def __init__(self, resolved: bool = ..., message: _Optional[str] = ..., enabled_tool_count: _Optional[int] = ...) -> None: ...

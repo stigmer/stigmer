@@ -28,4 +28,22 @@ service ExecutionContextQueryController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get Execution Context by reference (operator-only action)";
   }
+
+  // Get an ExecutionContext by the execution ID it belongs to.
+  // This is the primary lookup method used by runners to retrieve the merged
+  // environment variables during workflow/agent execution. The returned context
+  // contains decrypted secrets for runner consumption.
+  //
+  // Use cases:
+  // - Go workflow-runner queries for merged env vars before executing workflow
+  // - Python agent-runner queries for merged env vars before executing agent
+  //
+  // Security: Operator-only access ensures only internal services (runners) can
+  // retrieve decrypted secrets. Public APIs use get/getByReference which redact secrets.
+  rpc getByExecutionId(ExecutionContextExecutionIdInput) returns (ExecutionContext) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = operator;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get Execution Context by execution ID (operator-only action)";
+  }
 }
