@@ -244,6 +244,20 @@ message ListWorkflowExecutionsByWorkflowRequest {
   string page_token = 3;
 }
 
+// Input message for updateStatus RPC.
+// Contains only the execution ID and the status fields to be updated.
+// This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
+message WorkflowExecutionUpdateStatusInput {
+  // ID of the workflow execution to update (required).
+  // Format: "wex_abc123xyz456"
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Status fields to update.
+  // The handler will merge these status fields with the existing execution's status.
+  // Only the fields present in this status object will be updated.
+  WorkflowExecutionStatus status = 2 [(buf.validate.field).required = true];
+}
+
 // SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.
 //
 // Opens a server-side streaming RPC that pushes WorkflowExecution updates

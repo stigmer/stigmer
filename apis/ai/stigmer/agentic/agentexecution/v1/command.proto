@@ -3,10 +3,10 @@ syntax = "proto3";
 package ai.stigmer.agentic.agentexecution.v1;
 
 import "ai/stigmer/agentic/agentexecution/v1/api.proto";
+import "ai/stigmer/agentic/agentexecution/v1/io.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
-import "buf/validate/validate.proto";
 
 // AgentExecutionCommandController handles write operations for agent executions.
 // Follows the standard pattern: create, update, delete (no granular field updates).
@@ -88,58 +88,4 @@ service AgentExecutionCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "agent_execution_id";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to submit approval for agent execution";
   }
-}
-
-// Input message for updateStatus RPC.
-// Contains only the execution ID and the status fields to be updated.
-// This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
-message AgentExecutionUpdateStatusInput {
-  // ID of the agent execution to update (required).
-  // Format: "aex_abc123xyz456"
-  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
-
-  // Status fields to update.
-  // The handler will merge these status fields with the existing execution's status.
-  // Only the fields present in this status object will be updated.
-  AgentExecutionStatus status = 2 [(buf.validate.field).required = true];
-}
-
-// Input for submitting an approval decision (HITL Phase 1).
-//
-// All required fields must be provided. The handler validates:
-// 1. The execution exists and is in EXECUTION_WAITING_FOR_APPROVAL phase
-// 2. The tool_call_id matches status.pending_approval.tool_call_id
-// 3. The action is a valid non-UNSPECIFIED enum value
-//
-// Example:
-//   {
-//     "agent_execution_id": "aex_abc123xyz456",
-//     "tool_call_id": "call_def789",
-//     "action": "APPROVAL_ACTION_APPROVE",
-//     "comment": "Verified safe to execute"
-//   }
-message SubmitApprovalInput {
-  // ID of the agent execution.
-  // Format: "aex_abc123xyz456"
-  string agent_execution_id = 1 [(buf.validate.field).string.min_len = 1];
-
-  // ID of the tool call to approve/skip/reject.
-  // Must match status.pending_approval.tool_call_id exactly.
-  // Format: Tool call ID from agent runtime (e.g., "call_abc123")
-  string tool_call_id = 2 [(buf.validate.field).string.min_len = 1];
-
-  // User's decision: APPROVE, SKIP, or REJECT.
-  // APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
-  ApprovalAction action = 3 [(buf.validate.field).enum = {
-    defined_only: true,
-    not_in: [0]
-  }];
-
-  // Optional reason/comment for the decision.
-  // Stored in audit trail for compliance and debugging.
-  // Examples:
-  //   - "Verified the target repository is safe to delete" (on APPROVE)
-  //   - "Will handle this operation manually" (on SKIP)
-  //   - "Unexpected target - this looks like the wrong repository" (on REJECT)
-  string comment = 4;
 }

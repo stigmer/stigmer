@@ -21,17 +21,25 @@ from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     UsageMetrics,
     ResolvedExecutionContext,
     McpServerResolutionStatus,
+    PendingApproval,
+    ApprovalAction,
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase, 
     MessageType, 
     ToolCallStatus,
     SubAgentStatus,
-    TodoStatus
+    TodoStatus,
 )
 from google.protobuf.struct_pb2 import Struct
 from worker.component_type_inference import infer_component_type
 from worker.command_parser import format_execute_tool_name
+from worker.activities.graphton.approval_policy import (
+    ApprovalConfig,
+    ApprovalRequirement,
+    resolve_tool_approval,
+    render_approval_message,
+)
 
 
 # Planning tools that update execution state without UI display
@@ -58,17 +66,29 @@ class StatusBuilder:
         return builder.current_status
     """
     
-    def __init__(self, execution_id: str, initial_status: Any):
+    def __init__(
+        self,
+        execution_id: str,
+        initial_status: Any,
+        approval_config: Optional[ApprovalConfig] = None,
+    ):
         """
         Initialize status builder.
         
         Args:
             execution_id: The execution ID
             initial_status: Initial AgentExecutionStatus proto
+            approval_config: Optional approval policy configuration. When provided,
+                           tools matching approval policies will be set to
+                           WAITING_APPROVAL status instead of RUNNING.
         """
         self.execution_id = execution_id
         self.current_status = initial_status
         self.logger = logging.getLogger(__name__)
+        
+        # Approval policy configuration (HITL Phase 2)
+        # When set, tool calls are checked against policies before execution
+        self._approval_config = approval_config
         
         # Track tool calls for deduplication
         self.tool_call_fingerprints: set = set()
@@ -125,6 +145,20 @@ class StatusBuilder:
         self._sub_agent_prompt_tokens: Dict[str, int] = {}
         self._sub_agent_completion_tokens: Dict[str, int] = {}
         self._sub_agent_primary_model: Dict[str, str] = {}
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Approval State Tracking (HITL Phase 2)
+        #
+        # Tracks which tool call is currently pending approval.
+        # Only one tool can be pending approval at a time per execution.
+        # ─────────────────────────────────────────────────────────────────────────
+        
+        # run_id of the tool call currently pending approval (None if not waiting)
+        self._pending_tool_approval: Optional[str] = None
+        
+        # Saved execution phase to restore after approval decision
+        # (preserves IN_PROGRESS state when transitioning to WAITING_FOR_APPROVAL)
+        self._saved_phase_before_approval: Optional[int] = None
     
     async def process_event(self, event: Dict[str, Any]) -> None:
         """
@@ -206,24 +240,46 @@ class StatusBuilder:
             component_group="main-agent-tools",
         )
         
-        # Create tool call with RUNNING status (Phase 2.2)
-        # In LangGraph, on_tool_start fires when execution begins, not when queued
+        # ─────────────────────────────────────────────────────────────────────
+        # Approval Check (HITL Phase 2): Check if tool requires user approval
+        # ─────────────────────────────────────────────────────────────────────
+        approval_requirement = self._check_tool_approval_requirement(tool_name, tool_args)
+        
+        # Create tool call with appropriate initial status
+        # If approval required: WAITING_APPROVAL, otherwise: RUNNING
         args_struct = Struct()
         if tool_args:
             args_struct.update(tool_args)
         
         now = datetime.utcnow()
+        initial_status = (
+            ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+            if approval_requirement.requires_approval
+            else ToolCallStatus.TOOL_CALL_RUNNING
+        )
+        
         tool_call = ToolCall(
             id=run_id,
             name=tool_name,
             args=args_struct,
             result="",
-            status=ToolCallStatus.TOOL_CALL_RUNNING,
+            status=initial_status,
             component_metadata=component_metadata,
             started_at=now.isoformat(),
         )
         
-        # Track start time for duration calculation
+        # If approval required, populate approval fields on the ToolCall
+        if approval_requirement.requires_approval:
+            rendered_message = render_approval_message(
+                template=approval_requirement.message,
+                tool_name=tool_name,
+                tool_args=tool_args,
+            )
+            tool_call.requires_approval = True
+            tool_call.approval_message = rendered_message
+            tool_call.approval_requested_at = now.isoformat()
+        
+        # Track start time for duration calculation (even for approval-pending tools)
         self._tool_start_times[run_id] = now
         
         # Create tool message wrapper
@@ -239,13 +295,16 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────
         context, sub_agent = self._get_execution_context(namespace)
         
+        # Determine context info for logging
+        status_name = ToolCallStatus.Name(initial_status)
+        
         if sub_agent:
             # Route to sub-agent's nested lists
             sub_agent.tool_calls.append(tool_call)
             sub_agent.messages.append(tool_message)
             self.logger.debug(
                 f"[TOOL] execution={self.execution_id} sub_agent={sub_agent.id} "
-                f"tool={tool_name} run_id={run_id} status=RUNNING"
+                f"tool={tool_name} run_id={run_id} status={status_name}"
             )
         else:
             # Route to main agent status
@@ -253,7 +312,33 @@ class StatusBuilder:
             self.current_status.tool_calls.append(tool_call)
             self.logger.debug(
                 f"[TOOL] execution={self.execution_id} "
-                f"tool={tool_name} run_id={run_id} status=RUNNING"
+                f"tool={tool_name} run_id={run_id} status={status_name}"
+            )
+        
+        # ─────────────────────────────────────────────────────────────────────
+        # Approval State Update (HITL Phase 2): Populate PendingApproval if needed
+        # ─────────────────────────────────────────────────────────────────────
+        if approval_requirement.requires_approval:
+            # Now that tool_call is added to the lists, populate pending approval
+            # This must happen AFTER adding to lists so _find_tool_call_by_id works
+            rendered_message = render_approval_message(
+                template=approval_requirement.message,
+                tool_name=tool_name,
+                tool_args=tool_args,
+            )
+            
+            # Determine if this is from a sub-agent (for UI display)
+            from_sub_agent = sub_agent is not None
+            sub_agent_name = sub_agent.name if sub_agent else ""
+            
+            # Populate pending_approval and update execution phase
+            self._populate_pending_approval(
+                run_id=run_id,
+                tool_name=tool_name,
+                tool_args=tool_args,
+                approval_message=rendered_message,
+                from_sub_agent=from_sub_agent,
+                sub_agent_name=sub_agent_name,
             )
     
     def _handle_tool_end_event(self, event: Dict[str, Any], namespace: str = "") -> None:
@@ -613,6 +698,397 @@ class StatusBuilder:
             )
             
             self.current_status.todos[todo_id].CopyFrom(todo_item)
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Approval State Management (HITL Phase 2)
+    #
+    # These methods manage the approval workflow state transitions:
+    # - set_tool_waiting_approval: Tool requires approval → WAITING_APPROVAL
+    # - set_tool_approval_decision: User decision → RUNNING/SKIPPED/FAILED
+    # - clear_pending_approval: Clear pending state and restore phase
+    # ─────────────────────────────────────────────────────────────────────────────
+    
+    def set_tool_waiting_approval(
+        self,
+        run_id: str,
+        tool_name: str,
+        tool_args: Dict[str, Any],
+        approval_message: str,
+        from_sub_agent: bool = False,
+        sub_agent_name: str = "",
+    ) -> None:
+        """
+        Set a tool call to WAITING_APPROVAL status and update execution phase.
+        
+        This method transitions a tool call to the waiting-for-approval state:
+        1. Updates the ToolCall status to WAITING_APPROVAL
+        2. Sets approval-related fields on the ToolCall
+        3. Populates pending_approval on AgentExecutionStatus for UI
+        4. Updates execution phase to WAITING_FOR_APPROVAL
+        
+        Only one tool can be pending approval at a time. Calling this while
+        another tool is pending will log a warning but proceed (overwrites).
+        
+        Args:
+            run_id: The tool call's run_id (from LangGraph event)
+            tool_name: Name of the tool requiring approval
+            tool_args: Tool arguments dictionary (for args_preview)
+            approval_message: Human-readable message for the approval prompt
+            from_sub_agent: True if this approval bubbles up from a sub-agent
+            sub_agent_name: Name of the sub-agent (when from_sub_agent=True)
+        
+        Note:
+            The tool call must already exist in messages[].tool_calls[] or
+            tool_calls[]. If not found, this method logs a warning and returns.
+        """
+        if self._pending_tool_approval is not None:
+            self.logger.warning(
+                f"[APPROVAL] execution={self.execution_id} "
+                f"overwriting pending approval {self._pending_tool_approval} with {run_id}"
+            )
+        
+        now = datetime.utcnow()
+        timestamp = now.isoformat()
+        
+        # Find and update the tool call (handles dual-reference pattern)
+        tool_call = self._find_tool_call_by_id(run_id)
+        if tool_call is None:
+            self.logger.warning(
+                f"[APPROVAL] execution={self.execution_id} "
+                f"tool call {run_id} not found, cannot set waiting approval"
+            )
+            return
+        
+        # Update tool call status and approval fields
+        tool_call.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+        tool_call.requires_approval = True
+        tool_call.approval_message = approval_message
+        tool_call.approval_requested_at = timestamp
+        
+        # Create args preview (sanitized JSON for UI display)
+        args_preview = self._create_args_preview(tool_args)
+        
+        # Populate pending_approval for UI consumption
+        pending = PendingApproval(
+            tool_call_id=run_id,
+            tool_name=tool_name,
+            message=approval_message,
+            args_preview=args_preview,
+            requested_at=timestamp,
+            from_sub_agent=from_sub_agent,
+            sub_agent_name=sub_agent_name,
+        )
+        self.current_status.pending_approval.CopyFrom(pending)
+        
+        # Save current phase and transition to WAITING_FOR_APPROVAL
+        self._saved_phase_before_approval = self.current_status.phase
+        self.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+        
+        # Track pending approval state
+        self._pending_tool_approval = run_id
+        
+        context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
+        self.logger.info(
+            f"[APPROVAL] execution={self.execution_id} "
+            f"tool={tool_name} run_id={run_id} "
+            f"status=WAITING_APPROVAL context={context_info}"
+        )
+    
+    def set_tool_approval_decision(
+        self,
+        run_id: str,
+        action: ApprovalAction,
+        approved_by: str,
+    ) -> None:
+        """
+        Record approval decision on a tool call and update state accordingly.
+        
+        This method processes the user's approval decision:
+        - APPROVE: Marks tool ready to execute, clears pending state
+        - SKIP: Sets tool to SKIPPED, returns skip message to LLM
+        - REJECT: Sets execution to FAILED
+        
+        Args:
+            run_id: The tool call's run_id
+            action: User's approval decision (ApprovalAction enum)
+            approved_by: User ID or identifier who made the decision
+        
+        Note:
+            For APPROVE, the caller is responsible for actually resuming tool
+            execution (e.g., via LangGraph interrupt/resume). This method only
+            updates the state to reflect the decision.
+        """
+        if self._pending_tool_approval != run_id:
+            self.logger.warning(
+                f"[APPROVAL] execution={self.execution_id} "
+                f"approval decision for {run_id} but pending is {self._pending_tool_approval}"
+            )
+        
+        now = datetime.utcnow()
+        timestamp = now.isoformat()
+        
+        # Find the tool call
+        tool_call = self._find_tool_call_by_id(run_id)
+        if tool_call is None:
+            self.logger.warning(
+                f"[APPROVAL] execution={self.execution_id} "
+                f"tool call {run_id} not found, cannot record decision"
+            )
+            return
+        
+        # Record the decision on the tool call
+        tool_call.approval_action = action
+        tool_call.approval_decided_at = timestamp
+        tool_call.approved_by = approved_by
+        
+        # Process based on action
+        action_name = ApprovalAction.Name(action)
+        
+        if action == ApprovalAction.APPROVAL_ACTION_APPROVE:
+            # Tool is approved - it will transition to RUNNING when execution resumes
+            # Keep status as WAITING_APPROVAL until actual execution starts
+            # Clear pending state and restore phase
+            self.clear_pending_approval()
+            self.logger.info(
+                f"[APPROVAL] execution={self.execution_id} "
+                f"run_id={run_id} decision=APPROVE by={approved_by}"
+            )
+            
+        elif action == ApprovalAction.APPROVAL_ACTION_SKIP:
+            # Tool is skipped - set terminal status and skip message
+            tool_call.status = ToolCallStatus.TOOL_CALL_SKIPPED
+            tool_call.result = f"Tool '{tool_call.name}' was skipped by user. Please proceed without this operation."
+            tool_call.completed_at = timestamp
+            
+            # Clear pending state and restore phase
+            self.clear_pending_approval()
+            self.logger.info(
+                f"[APPROVAL] execution={self.execution_id} "
+                f"run_id={run_id} decision=SKIP by={approved_by}"
+            )
+            
+        elif action == ApprovalAction.APPROVAL_ACTION_REJECT:
+            # Tool is rejected - fail the execution
+            tool_call.status = ToolCallStatus.TOOL_CALL_FAILED
+            tool_call.error = f"Tool execution rejected by {approved_by}"
+            tool_call.completed_at = timestamp
+            
+            # Clear pending state but set phase to FAILED (not restore)
+            self._pending_tool_approval = None
+            self.current_status.pending_approval.Clear()
+            self.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            
+            self.logger.info(
+                f"[APPROVAL] execution={self.execution_id} "
+                f"run_id={run_id} decision=REJECT by={approved_by}"
+            )
+        else:
+            self.logger.warning(
+                f"[APPROVAL] execution={self.execution_id} "
+                f"run_id={run_id} unknown action={action_name}"
+            )
+    
+    def clear_pending_approval(self) -> None:
+        """
+        Clear pending approval state and restore execution phase.
+        
+        Called after an approval decision is processed to clean up state.
+        Restores the execution phase to what it was before entering
+        WAITING_FOR_APPROVAL (typically IN_PROGRESS).
+        """
+        self._pending_tool_approval = None
+        self.current_status.pending_approval.Clear()
+        
+        # Restore phase (default to IN_PROGRESS if not saved)
+        if self._saved_phase_before_approval is not None:
+            self.current_status.phase = self._saved_phase_before_approval
+            self._saved_phase_before_approval = None
+        else:
+            self.current_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
+    
+    def _check_tool_approval_requirement(
+        self,
+        tool_name: str,
+        tool_args: Dict[str, Any],
+    ) -> ApprovalRequirement:
+        """
+        Check if a tool requires approval based on the configured policy chain.
+        
+        Uses the ApprovalConfig to resolve whether this tool requires approval.
+        If no ApprovalConfig is set, tools never require approval.
+        
+        Args:
+            tool_name: Name of the tool to check
+            tool_args: Tool arguments (used for logging, not policy resolution)
+            
+        Returns:
+            ApprovalRequirement with resolved approval status and message
+        """
+        # No approval config = no approval required
+        if self._approval_config is None:
+            return ApprovalRequirement(
+                requires_approval=False,
+                message="",
+                source="none",
+            )
+        
+        # Resolve using policy chain
+        mcp_server_name = self._approval_config.get_mcp_server_for_tool(tool_name)
+        default_policies = self._approval_config.get_default_policies_for_tool(tool_name)
+        
+        return resolve_tool_approval(
+            tool_name=tool_name,
+            mcp_server_name=mcp_server_name,
+            auto_approve_all=self._approval_config.auto_approve_all,
+            tool_approval_overrides=self._approval_config.tool_approval_overrides,
+            default_tool_approvals=default_policies,
+        )
+    
+    def _populate_pending_approval(
+        self,
+        run_id: str,
+        tool_name: str,
+        tool_args: Dict[str, Any],
+        approval_message: str,
+        from_sub_agent: bool = False,
+        sub_agent_name: str = "",
+    ) -> None:
+        """
+        Populate pending_approval field and update execution phase.
+        
+        This is called after the ToolCall has already been created with
+        WAITING_APPROVAL status. It handles the execution-level state updates.
+        
+        Unlike set_tool_waiting_approval(), this does not need to find and
+        update the ToolCall (already done during creation).
+        
+        Args:
+            run_id: The tool call's run_id
+            tool_name: Name of the tool requiring approval
+            tool_args: Tool arguments dictionary (for args_preview)
+            approval_message: Rendered approval message
+            from_sub_agent: True if this approval bubbles up from a sub-agent
+            sub_agent_name: Name of the sub-agent (when from_sub_agent=True)
+        """
+        if self._pending_tool_approval is not None:
+            self.logger.warning(
+                f"[APPROVAL] execution={self.execution_id} "
+                f"overwriting pending approval {self._pending_tool_approval} with {run_id}"
+            )
+        
+        now = datetime.utcnow()
+        timestamp = now.isoformat()
+        
+        # Create args preview (sanitized JSON for UI display)
+        args_preview = self._create_args_preview(tool_args)
+        
+        # Populate pending_approval for UI consumption
+        pending = PendingApproval(
+            tool_call_id=run_id,
+            tool_name=tool_name,
+            message=approval_message,
+            args_preview=args_preview,
+            requested_at=timestamp,
+            from_sub_agent=from_sub_agent,
+            sub_agent_name=sub_agent_name,
+        )
+        self.current_status.pending_approval.CopyFrom(pending)
+        
+        # Save current phase and transition to WAITING_FOR_APPROVAL
+        self._saved_phase_before_approval = self.current_status.phase
+        self.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+        
+        # Track pending approval state
+        self._pending_tool_approval = run_id
+        
+        context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
+        self.logger.info(
+            f"[APPROVAL] execution={self.execution_id} "
+            f"tool={tool_name} run_id={run_id} "
+            f"status=WAITING_APPROVAL context={context_info}"
+        )
+    
+    def _find_tool_call_by_id(self, run_id: str) -> Optional[ToolCall]:
+        """
+        Find a ToolCall by its run_id in the current execution context.
+        
+        Searches both main agent and sub-agent tool calls.
+        Returns the first match (there should only be one per run_id).
+        
+        Args:
+            run_id: The tool call's run_id to find
+            
+        Returns:
+            ToolCall proto if found, None otherwise
+        """
+        # Check main agent tool_calls
+        for tool_call in self.current_status.tool_calls:
+            if tool_call.id == run_id:
+                return tool_call
+        
+        # Check sub-agent tool_calls
+        for sub_agent in self.current_status.sub_agent_executions:
+            for tool_call in sub_agent.tool_calls:
+                if tool_call.id == run_id:
+                    return tool_call
+        
+        return None
+    
+    def _create_args_preview(self, tool_args: Dict[str, Any]) -> str:
+        """
+        Create a sanitized preview of tool arguments for UI display.
+        
+        Sensitive values (passwords, tokens, keys) are redacted.
+        Large values are truncated for readability.
+        
+        Args:
+            tool_args: Tool arguments dictionary
+            
+        Returns:
+            JSON string suitable for UI display
+        """
+        if not tool_args:
+            return "{}"
+        
+        # List of key patterns that indicate sensitive data
+        sensitive_patterns = [
+            "password", "passwd", "pwd",
+            "token", "api_key", "apikey", "api-key",
+            "secret", "credential", "auth",
+            "private_key", "privatekey", "private-key",
+        ]
+        
+        def sanitize_value(key: str, value: Any) -> Any:
+            """Sanitize a single value based on its key name."""
+            key_lower = key.lower()
+            
+            # Check if key matches sensitive patterns
+            for pattern in sensitive_patterns:
+                if pattern in key_lower:
+                    return "***REDACTED***"
+            
+            # Truncate long strings
+            if isinstance(value, str) and len(value) > 200:
+                return value[:200] + "... (truncated)"
+            
+            # Recursively sanitize nested dicts
+            if isinstance(value, dict):
+                return {k: sanitize_value(k, v) for k, v in value.items()}
+            
+            # Truncate long lists
+            if isinstance(value, list):
+                if len(value) > 10:
+                    return value[:10] + [f"... ({len(value) - 10} more items)"]
+                return [sanitize_value(str(i), v) for i, v in enumerate(value)]
+            
+            return value
+        
+        sanitized = {k: sanitize_value(k, v) for k, v in tool_args.items()}
+        
+        try:
+            return json.dumps(sanitized, indent=2, default=str)
+        except (TypeError, ValueError):
+            return "{}"
     
     # ─────────────────────────────────────────────────────────────────────────────
     # Sub-Agent Namespace Routing (Phase 2.3)

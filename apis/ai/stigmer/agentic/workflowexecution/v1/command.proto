@@ -3,10 +3,10 @@ syntax = "proto3";
 package ai.stigmer.agentic.workflowexecution.v1;
 
 import "ai/stigmer/agentic/workflowexecution/v1/api.proto";
+import "ai/stigmer/agentic/workflowexecution/v1/io.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
-import "buf/validate/validate.proto";
 
 // WorkflowExecutionCommandController handles write operations (Create, Update, Delete) for WorkflowExecution resources.
 //
@@ -265,18 +265,4 @@ service WorkflowExecutionCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "value";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete workflow execution";
   }
-}
-
-// Input message for updateStatus RPC.
-// Contains only the execution ID and the status fields to be updated.
-// This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
-message WorkflowExecutionUpdateStatusInput {
-  // ID of the workflow execution to update (required).
-  // Format: "wex_abc123xyz456"
-  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
-
-  // Status fields to update.
-  // The handler will merge these status fields with the existing execution's status.
-  // Only the fields present in this status object will be updated.
-  WorkflowExecutionStatus status = 2 [(buf.validate.field).required = true];
 }
