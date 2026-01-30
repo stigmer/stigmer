@@ -12,7 +12,7 @@ import (
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/environment"
-	"github.com/stigmer/stigmer/sdk/go/mcpserver"
+	"github.com/stigmer/stigmer/sdk/go/mcpserverref"
 	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
@@ -29,7 +29,8 @@ import (
 //   - Typed context variables (agentName, iconURL, org)
 //   - Compile-time checked references (no string typos)
 //   - IDE autocomplete for context variables
-//   - Struct-args pattern for environment and mcpserver
+//   - Struct-args pattern for environment variables
+//   - MCP server references (instead of inline definitions)
 //   - Automatic synthesis on completion
 func main() {
 	// Use stigmer.Run() for automatic context and synthesis management
@@ -46,18 +47,6 @@ func main() {
 		githubToken, err := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
 			IsSecret:    true,
 			Description: "GitHub personal access token for code review",
-		})
-		if err != nil {
-			return err
-		}
-
-		// Create MCP server using struct-args pattern
-		githubMCP, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
-			Command: "npx",
-			Args:    []string{"-y", "@modelcontextprotocol/server-github"},
-			EnvPlaceholders: map[string]string{
-				"GITHUB_TOKEN": "${GITHUB_TOKEN}",
-			},
 		})
 		if err != nil {
 			return err
@@ -83,15 +72,21 @@ func main() {
 			skillref.Platform("security-review"),
 		)
 
-		// Add MCP server and environment variable
-		ag.AddMCPServer(githubMCP)
+		// Add MCP server reference (instead of inline definition)
+		// MCP servers are now first-class resources created separately
+		ag.AddMcpServerUsage(
+			mcpserverref.Platform("github"),
+			"create_pr", "search_code", "get_file",
+		)
+
+		// Add environment variable
 		ag.AddEnvironmentVariable(*githubToken)
 
 		log.Printf("Created agent: %s", ag)
 		log.Printf("  - Organization: %s", ag.Org)
 		log.Printf("  - Icon URL: %s", ag.IconURL)
 		log.Printf("  - Skill Refs: %d", len(ag.SkillRefs))
-		log.Printf("  - MCP Servers: %d", len(ag.MCPServers))
+		log.Printf("  - MCP Server Usages: %d", len(ag.McpServerUsages))
 		log.Printf("  - Environment Variables: %d", len(ag.EnvironmentVariables))
 		log.Println("Agent will be synthesized automatically on completion")
 		return nil

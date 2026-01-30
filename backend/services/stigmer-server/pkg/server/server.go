@@ -14,6 +14,7 @@ import (
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
@@ -29,6 +30,7 @@ import (
 	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller"
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
+	mcpservercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller"
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
 	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
@@ -250,6 +252,13 @@ func Run() error {
 	workflowexecutionv1.RegisterWorkflowExecutionQueryControllerServer(grpcServer, workflowExecutionController)
 
 	log.Info().Msg("Registered WorkflowExecution controllers")
+
+	// Create and register McpServer controller
+	mcpServerController := mcpservercontroller.NewMcpServerController(store)
+	mcpserverv1.RegisterMcpServerCommandControllerServer(grpcServer, mcpServerController)
+	mcpserverv1.RegisterMcpServerQueryControllerServer(grpcServer, mcpServerController)
+
+	log.Info().Msg("Registered McpServer controllers")
 
 	// ============================================================================
 	// CRITICAL: All services MUST be registered BEFORE starting the server

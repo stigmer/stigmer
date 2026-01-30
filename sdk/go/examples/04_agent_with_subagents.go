@@ -3,7 +3,13 @@
 // Example 04: Agent with Sub-Agents
 //
 // This example demonstrates how to create agents with sub-agents.
-// Sub-agents are defined inline within the parent agent spec.
+// Sub-agents are defined inline within the parent agent spec and have
+// restricted access to the parent's MCP servers via McpAccess grants.
+//
+// Key concepts:
+//   - Sub-agents can only access MCP servers that the parent has declared
+//   - Sub-agent tools must be a subset of parent's enabled tools (can restrict, not expand)
+//   - Sub-agents can have their own skill references independent of parent
 //
 // Run: go run examples/04_agent_with_subagents.go
 package main
@@ -13,8 +19,8 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/gen/types"
-	"github.com/stigmer/stigmer/sdk/go/mcpserver"
+	"github.com/stigmer/stigmer/sdk/go/mcpserverref"
+	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
@@ -37,12 +43,12 @@ func main() {
 		}
 		printAgent("2. Complex Agent with Multiple Sub-Agents", complexAgent)
 
-		// Example 3: Sub-agent with MCP server references
+		// Example 3: Sub-agent with MCP access grants
 		agentWithMCPSubAgent, err := createAgentWithMCPSubAgent(ctx)
 		if err != nil {
 			return err
 		}
-		printAgent("3. Agent with Sub-Agent Using MCP Servers", agentWithMCPSubAgent)
+		printAgent("3. Agent with Sub-Agent Using MCP Access", agentWithMCPSubAgent)
 
 		// Example 4: Sub-agent with skills
 		agentWithSkilledSubAgent, err := createAgentWithSkilledSubAgent(ctx)
@@ -51,12 +57,12 @@ func main() {
 		}
 		printAgent("4. Agent with Sub-Agent Using Skills", agentWithSkilledSubAgent)
 
-		// Example 5: Sub-agent with tool selections
+		// Example 5: Sub-agent with restricted tool access
 		agentWithSelectiveSubAgent, err := createAgentWithSelectiveSubAgent(ctx)
 		if err != nil {
 			return err
 		}
-		printAgent("5. Agent with Sub-Agent Using Tool Selections", agentWithSelectiveSubAgent)
+		printAgent("5. Agent with Sub-Agent Using Restricted Tools", agentWithSelectiveSubAgent)
 
 		return nil
 	})
@@ -138,51 +144,9 @@ func createComplexAgentWithMultipleSubAgents(ctx *stigmer.Context) (*agent.Agent
 	return ag, nil
 }
 
-// Example 3: Sub-agent with MCP server references
+// Example 3: Sub-agent with MCP access grants
 func createAgentWithMCPSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create MCP servers for the main agent using struct-args pattern
-	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
-		Command: "npx",
-		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
-		EnvPlaceholders: map[string]string{
-			"GITHUB_TOKEN": "${GITHUB_TOKEN}",
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GitHub MCP server: %w", err)
-	}
-
-	gitlab, err := mcpserver.Stdio(ctx, "gitlab", &mcpserver.StdioArgs{
-		Command: "npx",
-		Args:    []string{"-y", "@modelcontextprotocol/server-gitlab"},
-		EnvPlaceholders: map[string]string{
-			"GITLAB_TOKEN": "${GITLAB_TOKEN}",
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GitLab MCP server: %w", err)
-	}
-
-	// Create sub-agents that reference the parent's MCP servers
-	githubSpecialist, err := subagent.New("github-specialist", &subagent.Args{
-		Instructions: "Handle all GitHub-specific operations",
-		Description:  "GitHub operations specialist",
-		McpServers:   []string{"github"}, // References the parent's MCP server
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create github specialist: %w", err)
-	}
-
-	crossPlatformSync, err := subagent.New("cross-platform-sync", &subagent.Args{
-		Instructions: "Sync changes across GitHub and GitLab",
-		Description:  "Cross-platform synchronization",
-		McpServers:   []string{"github", "gitlab"}, // Uses multiple MCP servers
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create cross-platform sync: %w", err)
-	}
-
-	// Create agent with sub-agents that use the MCP servers
+	// Create agent that references MCP servers
 	ag, err := agent.New(ctx, "multi-repo-manager", &agent.AgentArgs{
 		Instructions: "Manage repositories across multiple platforms",
 		Description:  "Multi-platform repository manager",
@@ -191,8 +155,32 @@ func createAgentWithMCPSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
 
-	// Add MCP servers and sub-agents using builder methods
-	ag.AddMCPServers(github, gitlab)
+	// Add MCP server references to the parent agent
+	ag.AddMcpServerUsage(mcpserverref.Platform("github"))
+	ag.AddMcpServerUsage(mcpserverref.Platform("gitlab"))
+
+	// Create sub-agents that have access to parent's MCP servers
+	githubSpecialist, err := subagent.New("github-specialist", &subagent.Args{
+		Instructions: "Handle all GitHub-specific operations",
+		Description:  "GitHub operations specialist",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create github specialist: %w", err)
+	}
+	// Grant access to github MCP server (inherits all tools from parent)
+	githubSpecialist.GrantMcpAccess("github")
+
+	crossPlatformSync, err := subagent.New("cross-platform-sync", &subagent.Args{
+		Instructions: "Sync changes across GitHub and GitLab",
+		Description:  "Cross-platform synchronization",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create cross-platform sync: %w", err)
+	}
+	// Grant access to both MCP servers
+	crossPlatformSync.GrantMcpAccess("github").GrantMcpAccess("gitlab")
+
+	// Add sub-agents
 	ag.AddSubAgents(githubSpecialist, crossPlatformSync)
 	return ag, nil
 }
@@ -203,16 +191,18 @@ func createAgentWithSkilledSubAgent(ctx *stigmer.Context) (*agent.Agent, error) 
 	codingExpert, err := subagent.New("coding-expert", &subagent.Args{
 		Instructions: "Provide coding guidance using best practices and internal documentation",
 		Description:  "Coding expert with knowledge base",
-		SkillRefs: []*types.ApiResourceReference{
-			{Slug: "coding-best-practices", Scope: "platform"},
-			{Slug: "design-patterns", Scope: "platform"},
-			{Slug: "internal-apis", Scope: "organization", Org: "my-org"},
-			{Slug: "architecture-guidelines", Scope: "organization", Org: "my-org"},
-		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create coding expert: %w", err)
 	}
+
+	// Add skills to the sub-agent using builder methods
+	codingExpert.AddSkillRefs(
+		skillref.Platform("coding-best-practices"),
+		skillref.Platform("design-patterns"),
+	)
+	codingExpert.AddOrgSkillRef("my-org", "internal-apis")
+	codingExpert.AddOrgSkillRef("my-org", "architecture-guidelines")
 
 	ag, err := agent.New(ctx, "development-assistant", &agent.AgentArgs{
 		Instructions: "Assist with software development tasks by leveraging specialized knowledge",
@@ -227,45 +217,9 @@ func createAgentWithSkilledSubAgent(ctx *stigmer.Context) (*agent.Agent, error) 
 	return ag, nil
 }
 
-// Example 5: Sub-agent with tool selections
+// Example 5: Sub-agent with restricted tool access
 func createAgentWithSelectiveSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create MCP server using struct-args pattern
-	github, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
-		Command: "npx",
-		Args:    []string{"-y", "@modelcontextprotocol/server-github"},
-		EnvPlaceholders: map[string]string{
-			"GITHUB_TOKEN": "${GITHUB_TOKEN}",
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GitHub MCP server: %w", err)
-	}
-
-	// Create sub-agents with tool selections
-	issueManager, err := subagent.New("issue-manager", &subagent.Args{
-		Instructions: "Manage GitHub issues only, cannot access other GitHub features",
-		Description:  "Issue management specialist",
-		McpServers:   []string{"github"},
-		McpToolSelections: map[string]*types.McpToolSelection{
-			"github": {EnabledTools: []string{"create_issue", "update_issue", "list_issues"}},
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create issue manager: %w", err)
-	}
-
-	prReviewer, err := subagent.New("pr-reviewer", &subagent.Args{
-		Instructions: "Review pull requests only, cannot modify issues or repositories",
-		Description:  "Pull request reviewer",
-		McpServers:   []string{"github"},
-		McpToolSelections: map[string]*types.McpToolSelection{
-			"github": {EnabledTools: []string{"list_pull_requests", "review_pull_request", "comment_on_pr"}},
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create PR reviewer: %w", err)
-	}
-
+	// Create agent with MCP server reference
 	ag, err := agent.New(ctx, "selective-github-bot", &agent.AgentArgs{
 		Instructions: "Manage GitHub operations with specialized sub-agents",
 		Description:  "GitHub bot with selective tool access",
@@ -274,8 +228,37 @@ func createAgentWithSelectiveSubAgent(ctx *stigmer.Context) (*agent.Agent, error
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
 
-	// Add MCP server and sub-agents using builder methods
-	ag.AddMCPServer(github)
+	// Parent agent has access to all GitHub tools
+	ag.AddMcpServerUsage(
+		mcpserverref.Platform("github"),
+		// Parent enables all these tools
+		"create_issue", "update_issue", "list_issues",
+		"list_pull_requests", "review_pull_request", "comment_on_pr",
+		"create_repository", "delete_repository",
+	)
+
+	// Create sub-agents with restricted tool access
+	issueManager, err := subagent.New("issue-manager", &subagent.Args{
+		Instructions: "Manage GitHub issues only, cannot access other GitHub features",
+		Description:  "Issue management specialist",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create issue manager: %w", err)
+	}
+	// Grant access with restricted tools (subset of parent's tools)
+	issueManager.GrantMcpAccess("github", "create_issue", "update_issue", "list_issues")
+
+	prReviewer, err := subagent.New("pr-reviewer", &subagent.Args{
+		Instructions: "Review pull requests only, cannot modify issues or repositories",
+		Description:  "Pull request reviewer",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create PR reviewer: %w", err)
+	}
+	// Grant access with different restricted tools
+	prReviewer.GrantMcpAccess("github", "list_pull_requests", "review_pull_request", "comment_on_pr")
+
+	// Add sub-agents
 	ag.AddSubAgents(issueManager, prReviewer)
 	return ag, nil
 }
@@ -286,10 +269,25 @@ func printAgent(title string, ag *agent.Agent) {
 	fmt.Println("=" + string(make([]byte, len(title))))
 	fmt.Printf("Agent Name: %s\n", ag.Name)
 	fmt.Printf("Instructions: %s\n", ag.Instructions)
+	fmt.Printf("MCP Server Usages: %d\n", len(ag.McpServerUsages))
 	fmt.Printf("Sub-Agents: %d\n", len(ag.SubAgents))
 
 	for i, sub := range ag.SubAgents {
 		fmt.Printf("  [%d] %s: %s\n", i+1, sub.Name(), sub.Description())
+		if len(sub.McpAccess()) > 0 {
+			fmt.Printf("      MCP Access: ")
+			for _, access := range sub.McpAccess() {
+				if len(access.EnabledTools) > 0 {
+					fmt.Printf("%s (tools: %v) ", access.McpServer, access.EnabledTools)
+				} else {
+					fmt.Printf("%s (all tools) ", access.McpServer)
+				}
+			}
+			fmt.Println()
+		}
+		if len(sub.SkillRefs()) > 0 {
+			fmt.Printf("      Skills: %d references\n", len(sub.SkillRefs()))
+		}
 	}
 
 	fmt.Println("\nNote: When you run `stigmer deploy`, the CLI will convert this to proto and deploy to Stigmer.")

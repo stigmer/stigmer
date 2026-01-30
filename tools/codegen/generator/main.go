@@ -308,41 +308,23 @@ func (g *Generator) loadSchemas() error {
 		}
 	}
 
-	// Load shared types from agent/types/ (agent-specific types)
-	agentTypesDir := filepath.Join(g.schemaDir, "agent", "types")
-	if _, err := os.Stat(agentTypesDir); err == nil {
-		entries, err := os.ReadDir(agentTypesDir)
-		if err != nil {
-			return fmt.Errorf("failed to read agent types directory: %w", err)
-		}
-
-		for _, entry := range entries {
-			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
-				continue
-			}
-
-			path := filepath.Join(agentTypesDir, entry.Name())
-			schema, err := loadTypeSchema(path)
-			if err != nil {
-				return fmt.Errorf("failed to load type %s: %w", entry.Name(), err)
-			}
-
-			// Skip duplicates
-			if loadedTypes[schema.Name] {
-				continue
-			}
-			loadedTypes[schema.Name] = true
-
-			// Extract domain from proto namespace (data-driven, no hard-coding)
-			schema.Domain = extractDomainFromProtoType(schema.ProtoType)
-			fmt.Printf("  Loaded type: %s (domain: %s)\n", schema.Name, schema.Domain)
-
-			g.sharedTypes = append(g.sharedTypes, schema)
-		}
-	}
-
-	// Load SDK resource specs from ALL namespace subdirectories
-	// Scan schema directory for all subdirectories (agent/, skill/, workflow/, etc.)
+	// Load SDK resource specs and types from namespace directories
+	// Schema directory structure:
+	//   schemas/
+	//     tasks/              <- workflow task configs (handled above)
+	//     types/              <- workflow task types (handled above)
+	//     agentic/            <- namespace directory
+	//       agent/            <- resource directory
+	//         agent.json      <- resource spec
+	//         types/          <- resource-specific types
+	//           subagent.json
+	//       skill/
+	//         skill.json
+	//       workflow/
+	//         workflow.json
+	//     iam/                <- another namespace
+	//       apikey/
+	//         apikey.json
 	if schemaEntries, err := os.ReadDir(g.schemaDir); err == nil {
 		for _, schemaEntry := range schemaEntries {
 			// Skip non-directories and special directories
@@ -350,71 +332,49 @@ func (g *Generator) loadSchemas() error {
 				continue
 			}
 
-			dirName := schemaEntry.Name()
+			topLevelName := schemaEntry.Name()
 
-			// Skip known non-resource directories
-			if dirName == "tasks" || dirName == "types" {
+			// Skip known non-resource directories (workflow tasks handled separately)
+			if topLevelName == "tasks" || topLevelName == "types" {
 				continue
 			}
 
-			// Load specs from this namespace directory
-			namespaceDir := filepath.Join(g.schemaDir, dirName)
-			entries, err := os.ReadDir(namespaceDir)
+			topLevelDir := filepath.Join(g.schemaDir, topLevelName)
+
+			// Check if this is a namespace directory (contains subdirectories with JSON files)
+			// or a resource directory (contains JSON files directly)
+			subEntries, err := os.ReadDir(topLevelDir)
 			if err != nil {
-				continue // Skip directories we can't read
+				continue
 			}
 
-			for _, entry := range entries {
-				// Check if this is a types/ subdirectory
-				if entry.IsDir() && entry.Name() == "types" {
-					// Load types from <namespace>/types/ directory
-					namespaceTypesDir := filepath.Join(namespaceDir, "types")
-					typeEntries, err := os.ReadDir(namespaceTypesDir)
-					if err != nil {
+			// Determine if this is a namespace or resource directory
+			isNamespaceDir := false
+			for _, subEntry := range subEntries {
+				if subEntry.IsDir() && subEntry.Name() != "types" {
+					// Has subdirectories other than types/ - this is a namespace
+					isNamespaceDir = true
+					break
+				}
+			}
+
+			if isNamespaceDir {
+				// This is a namespace directory (e.g., agentic/, iam/)
+				// Iterate over resource directories within the namespace
+				for _, resourceEntry := range subEntries {
+					if !resourceEntry.IsDir() {
 						continue
 					}
 
-					for _, typeEntry := range typeEntries {
-						if typeEntry.IsDir() || !strings.HasSuffix(typeEntry.Name(), ".json") {
-							continue
-						}
+					resourceName := resourceEntry.Name()
+					resourceDir := filepath.Join(topLevelDir, resourceName)
 
-						path := filepath.Join(namespaceTypesDir, typeEntry.Name())
-						schema, err := loadTypeSchema(path)
-						if err != nil {
-							fmt.Printf("  Warning: failed to load type %s: %v\n", typeEntry.Name(), err)
-							continue
-						}
-
-						// Skip duplicates
-						if loadedTypes[schema.Name] {
-							continue
-						}
-						loadedTypes[schema.Name] = true
-
-						// Extract domain from proto namespace (data-driven, no hard-coding)
-						schema.Domain = extractDomainFromProtoType(schema.ProtoType)
-						fmt.Printf("  Loaded type: %s (domain: %s, from %s/types/)\n", schema.Name, schema.Domain, dirName)
-
-						g.sharedTypes = append(g.sharedTypes, schema)
-					}
-					continue
+					// Load from this resource directory
+					g.loadResourceDir(resourceDir, topLevelName+"/"+resourceName, loadedTypes)
 				}
-
-				// Skip other subdirectories and non-JSON files
-				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
-					continue
-				}
-
-				path := filepath.Join(namespaceDir, entry.Name())
-				schema, err := loadTaskConfigSchema(path)
-				if err != nil {
-					fmt.Printf("  Warning: failed to load spec %s: %v\n", entry.Name(), err)
-					continue
-				}
-
-				g.resourceSpecs = append(g.resourceSpecs, schema)
-				fmt.Printf("  Loaded spec: %s (from %s/)\n", schema.Name, dirName)
+			} else {
+				// This is a resource directory directly (backward compatibility)
+				g.loadResourceDir(topLevelDir, topLevelName, loadedTypes)
 			}
 		}
 	}
@@ -424,6 +384,68 @@ func (g *Generator) loadSchemas() error {
 	}
 
 	return nil
+}
+
+// loadResourceDir loads specs and types from a resource directory.
+// resourceDir is the absolute path, displayPath is for logging (e.g., "agentic/agent").
+func (g *Generator) loadResourceDir(resourceDir, displayPath string, loadedTypes map[string]bool) {
+	entries, err := os.ReadDir(resourceDir)
+	if err != nil {
+		return
+	}
+
+	for _, entry := range entries {
+		// Check if this is a types/ subdirectory
+		if entry.IsDir() && entry.Name() == "types" {
+			// Load types from <resource>/types/ directory
+			typesDir := filepath.Join(resourceDir, "types")
+			typeEntries, err := os.ReadDir(typesDir)
+			if err != nil {
+				continue
+			}
+
+			for _, typeEntry := range typeEntries {
+				if typeEntry.IsDir() || !strings.HasSuffix(typeEntry.Name(), ".json") {
+					continue
+				}
+
+				path := filepath.Join(typesDir, typeEntry.Name())
+				schema, err := loadTypeSchema(path)
+				if err != nil {
+					fmt.Printf("  Warning: failed to load type %s: %v\n", typeEntry.Name(), err)
+					continue
+				}
+
+				// Skip duplicates
+				if loadedTypes[schema.Name] {
+					continue
+				}
+				loadedTypes[schema.Name] = true
+
+				// Extract domain from proto namespace (data-driven, no hard-coding)
+				schema.Domain = extractDomainFromProtoType(schema.ProtoType)
+				fmt.Printf("  Loaded type: %s (domain: %s, from %s/types/)\n", schema.Name, schema.Domain, displayPath)
+
+				g.sharedTypes = append(g.sharedTypes, schema)
+			}
+			continue
+		}
+
+		// Skip other subdirectories and non-JSON files
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+
+		path := filepath.Join(resourceDir, entry.Name())
+		schema, err := loadTaskConfigSchema(path)
+		if err != nil {
+			fmt.Printf("  Warning: failed to load spec %s: %v\n", entry.Name(), err)
+			continue
+		}
+
+		g.resourceSpecs = append(g.resourceSpecs, schema)
+		fmt.Printf("  Loaded spec: %s (from %s/)\n", schema.Name, displayPath)
+	}
 }
 
 // loadTaskConfigSchema loads a task config schema from a JSON file

@@ -7,193 +7,168 @@ import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
 
 // AgentSpec defines the configurable properties of an AI agent.
-// This is the "Template" layer - immutable logic that declares requirements.
+// This is the "Template" layer - declares capabilities and requirements.
+//
+// Example YAML:
+//   apiVersion: agentic.stigmer.ai/v1
+//   kind: Agent
+//   metadata:
+//     name: engineering-assistant
+//     slug: eng-assistant
+//   spec:
+//     description: "Helps engineering teams with code review"
+//     instructions: "You are an engineering assistant..."
+//     mcp_server_usages:
+//       - mcp_server_ref:
+//           scope: platform
+//           slug: github
+//         enabled_tools: [search_code, create_pr]
+//     skill_refs:
+//       - scope: platform
+//         kind: 43
+//         slug: code-review-best-practices
 message AgentSpec {
   // Human-readable description for UI and marketplace display.
+  // Should explain what this agent does and its primary capabilities.
   string description = 1;
 
   // Icon URL for marketplace and UI display.
+  // Should be a publicly accessible URL to an image (SVG, PNG, or JPEG).
   string icon_url = 2;
 
-  // Instructions defining the agent's behavior and personality (min 10 characters).
+  // Instructions defining the agent's behavior and personality.
+  // This is the agent's system prompt - the core logic that shapes its responses.
+  // Should be at least 10 characters to ensure meaningful instructions.
   string instructions = 3 [(buf.validate.field).string.min_len = 10];
 
-  // MCP server definitions declaring required servers (not configured instances).
-  // Actual configuration with secrets happens at AgentInstance level.
-  repeated McpServerDefinition mcp_servers = 4;
+  // MCP servers this Agent can use.
+  // Each usage references a McpServer resource by its ref.
+  // The slug from each reference must be unique within this Agent.
+  repeated McpServerUsage mcp_server_usages = 4 [(buf.validate.field).repeated.items.cel = {
+    id: "mcp_server_usages.kind"
+    message: "mcp_server_usages must reference resources with kind=mcp_server"
+    expression: "this.mcp_server_ref.kind == 44"
+  }];
 
-  // References to Skill resources providing agent knowledge.
+  // Skill resources providing agent knowledge.
+  // Skills are injected into the agent's context as additional capabilities.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [(buf.validate.field).repeated.items.cel = {
     id: "skill_refs.kind"
     message: "skill_refs must reference resources with kind=skill"
-    expression: "this.kind == 43" // 43 = skill enum value
+    expression: "this.kind == 43"
   }];
 
   // Sub-agents that can be delegated to.
+  // Sub-agents inherit the parent's MCP server usages but can have restricted access.
   repeated SubAgent sub_agents = 6;
 
   // Environment variables required by the agent.
-  // Uses the shared EnvironmentSpec for consistent env var handling.
+  // Uses the shared EnvironmentSpec for consistent env var handling across resources.
   ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 7;
 }
 
-// SubAgent defines a sub-agent that can be delegated to.
-// Sub-agents are defined inline within the parent agent spec.
+// SubAgent defines a specialized agent that the parent can delegate to.
+// SubAgents have restricted access to the parent's MCP servers.
+//
+// Permission Model:
+// - SubAgent can only access MCP servers that parent has in mcp_server_usages
+// - SubAgent tools must be a subset of parent's enabled tools (can restrict, not expand)
+// - SubAgent skills can reference any Skill resource (independent of parent)
+//
+// Example YAML:
+//   sub_agents:
+//     - name: code-reviewer
+//       description: "Reviews code changes for quality and security"
+//       instructions: "You review code changes. Focus on security..."
+//       mcp_access:
+//         - mcp_server: github
+//           enabled_tools: [search_code, get_file]
+//       skill_refs:
+//         - scope: platform
+//           kind: 43
+//           slug: code-review-best-practices
 message SubAgent {
-  // Name of the sub-agent.
+  // Unique name of the sub-agent within the parent agent.
+  // Used for delegation routing and logging.
+  // Examples: "code-reviewer", "researcher", "writer"
   string name = 1 [(buf.validate.field).required = true];
 
-  // Description of what this sub-agent does.
+  // Description of what this sub-agent specializes in.
+  // Helps the parent agent decide when to delegate to this sub-agent.
+  // Example: "Reviews code changes for security issues and best practices"
   string description = 2;
 
   // Behavior instructions for this sub-agent.
+  // Defines the sub-agent's personality, expertise, and constraints.
+  // Should be at least 10 characters to ensure meaningful instructions.
   string instructions = 3 [(buf.validate.field).string.min_len = 10];
 
-  // MCP server names this sub-agent can use (references McpServerDefinition.name).
-  repeated string mcp_servers = 4;
+  // MCP server access grants for this sub-agent.
+  // Each McpAccess references a parent's McpServerUsage by slug and
+  // optionally restricts which tools are available.
+  // Sub-agent can only use MCP servers listed here.
+  repeated McpAccess mcp_access = 4;
 
-  // Tool selections for each MCP server.
-  map<string, McpToolSelection> mcp_tool_selections = 5;
-
-  // References to Skill resources for this sub-agent's knowledge.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 6 [(buf.validate.field).repeated.items.cel = {
+  // Skill resources for this sub-agent's knowledge.
+  // Skills provide domain-specific knowledge and capabilities.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [(buf.validate.field).repeated.items.cel = {
     id: "skill_refs.kind"
     message: "skill_refs must reference resources with kind=skill"
-    expression: "this.kind == 43" // 43 = skill enum value
+    expression: "this.kind == 43"
   }];
 }
 
-// McpToolSelection defines which tools from an MCP server are enabled.
-message McpToolSelection {
-  // Tool names to enable from the MCP server (empty = all tools).
-  repeated string enabled_tools = 1;
-}
-
-// McpServerDefinition defines an MCP server without configuration.
-// Configuration with secrets happens at AgentInstance level.
+// McpServerUsage declares that this Agent uses a McpServer resource.
+// The slug from mcp_server_ref becomes the identifier for SubAgent access.
 //
-// Supports three types of MCP servers:
-// 1. **stdio**: Subprocess-based servers (most common)
-//    - Example: npx @modelcontextprotocol/server-github
-//    - Use when: Running Node.js, Python, or other CLI-based MCP servers
-//    - Communication: stdin/stdout
+// Design principle: Users already named their McpServer with a slug.
+// We use that slug as the identifier - no extra naming required.
 //
-// 2. **http**: HTTP + SSE servers (for remote/managed services)
-//    - Example: https://mcp.example.com/github
-//    - Use when: Connecting to remote MCP services, managed infrastructure
-//    - Communication: HTTP requests + Server-Sent Events
+// Example YAML:
+//   mcp_server_usages:
+//     - mcp_server_ref:
+//         scope: platform
+//         slug: github
+//       enabled_tools: [search_code, get_file, create_pr]
+//     - mcp_server_ref:
+//         scope: organization
+//         org: acme-corp
+//         slug: internal-tools
+message McpServerUsage {
+  // Reference to the McpServer resource.
+  // Must reference a resource with kind=mcp_server (44).
+  // The slug from this reference is how SubAgents identify this server.
+  ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [(buf.validate.field).required = true];
+
+  // Tools to enable from this MCP server for this Agent.
+  // This defines the maximum tool set - SubAgents can only restrict further.
+  // Empty list = use McpServer's default_enabled_tools (or all if not specified).
+  // Tool names must match exactly what the MCP server reports via tools/list.
+  repeated string enabled_tools = 2;
+}
+
+// McpAccess grants a SubAgent access to one of the parent Agent's MCP servers.
+// Uses the same slug that identifies the McpServer resource.
 //
-// 3. **docker**: Containerized MCP servers
-//    - Example: ghcr.io/org/custom-mcp:latest
-//    - Use when: Running custom/isolated MCP servers, need volume mounts
-//    - Communication: stdio (via Docker exec) or HTTP (via port mapping)
-message McpServerDefinition {
-  // Name of the MCP server (e.g., "github", "aws", "slack").
-  string name = 1 [(buf.validate.field).required = true];
+// Permission model:
+// - SubAgent can only access servers that parent has in mcp_server_usages
+// - SubAgent tools must be a subset of parent's enabled tools
+//
+// Example YAML:
+//   sub_agents:
+//     - name: code-reviewer
+//       mcp_access:
+//         - mcp_server: github
+//           enabled_tools: [search_code, get_file]
+//         - mcp_server: slack
+//           # enabled_tools empty = all tools from parent
+message McpAccess {
+  // Slug of the McpServer to grant access to.
+  // Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+  string mcp_server = 1 [(buf.validate.field).required = true];
 
-  // Server type and transport configuration (choose one).
-  oneof server_type {
-    // stdio-based server (subprocess with stdin/stdout communication).
-    StdioServer stdio = 2;
-
-    // HTTP-based server (HTTP + Server-Sent Events communication).
-    HttpServer http = 3;
-
-    // Docker-based server (containerized MCP server).
-    DockerServer docker = 4;
-  }
-
-  // Tool names to enable from this server (empty = all tools).
-  repeated string enabled_tools = 5;
-}
-
-// StdioServer defines an MCP server that runs as a subprocess.
-// Communication happens via stdin/stdout (most common type).
-message StdioServer {
-  // Command to run the MCP server (e.g., "npx", "python", "node").
-  string command = 1 [(buf.validate.field).required = true];
-
-  // Command arguments (e.g., ["-y", "@modelcontextprotocol/server-github"]).
-  repeated string args = 2;
-
-  // Environment variable placeholders (e.g., {"GITHUB_TOKEN": "${GITHUB_TOKEN}"}).
-  // Actual values provided at AgentInstance level via ConfigSchema.
-  // The key is the env var name that the MCP server expects.
-  // The value is a placeholder reference like "${GITHUB_TOKEN}" that maps to
-  // a secret or env_var defined in the Agent's ConfigSchema.
-  map<string, string> env_placeholders = 3;
-
-  // Working directory for the process (optional).
-  string working_dir = 4;
-}
-
-// HttpServer defines an MCP server accessible via HTTP + SSE.
-// Used for remote/managed MCP services.
-message HttpServer {
-  // Base URL of the MCP server.
-  // Example: "http://localhost:3000/mcp" or "https://mcp.example.com"
-  string url = 1 [(buf.validate.field).required = true];
-
-  // HTTP headers for authentication/configuration.
-  // Example: {"Authorization": "Bearer ${API_TOKEN}"}
-  // Placeholders like ${API_TOKEN} reference secrets in ConfigSchema.
-  map<string, string> headers = 2;
-
-  // Query parameters for the MCP endpoint (optional).
-  // Example: {"version": "v1", "region": "${AWS_REGION}"}
-  map<string, string> query_params = 3;
-
-  // Timeout for HTTP requests in seconds (default: 30).
-  int32 timeout_seconds = 4;
-}
-
-// DockerServer defines an MCP server that runs in a Docker container.
-message DockerServer {
-  // Docker image name and tag.
-  // Example: "ghcr.io/org/mcp-server:latest"
-  string image = 1 [(buf.validate.field).required = true];
-
-  // Container command arguments (optional).
-  // Overrides the default CMD in the Docker image.
-  repeated string args = 2;
-
-  // Environment variable placeholders (same as StdioServer).
-  // Example: {"GITHUB_TOKEN": "${GITHUB_TOKEN}"}
-  map<string, string> env_placeholders = 3;
-
-  // Volume mounts for the container (optional).
-  repeated VolumeMount volumes = 4;
-
-  // Docker network to attach the container to (optional, default: "bridge").
-  string network = 5;
-
-  // Port mappings for the container (optional).
-  repeated PortMapping ports = 6;
-
-  // Container name (optional, auto-generated if not provided).
-  string container_name = 7;
-}
-
-// VolumeMount defines a Docker volume mount.
-message VolumeMount {
-  // Host path to mount.
-  string host_path = 1 [(buf.validate.field).required = true];
-
-  // Container path where the volume is mounted.
-  string container_path = 2 [(buf.validate.field).required = true];
-
-  // Whether the mount is read-only (default: false).
-  bool read_only = 3;
-}
-
-// PortMapping defines a Docker port mapping.
-message PortMapping {
-  // Host port to bind to.
-  int32 host_port = 1 [(buf.validate.field).int32.gte = 1];
-
-  // Container port to expose.
-  int32 container_port = 2 [(buf.validate.field).int32.gte = 1];
-
-  // Protocol (default: "tcp"). Can be "tcp" or "udp".
-  string protocol = 3;
+  // Tools this SubAgent can use from this MCP server.
+  // Must be a subset of the parent's enabled_tools for this server.
+  // Empty list = all tools that parent has enabled (no additional restriction).
+  repeated string enabled_tools = 2;
 }

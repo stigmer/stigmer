@@ -19,6 +19,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Go SDK Proto Integration](sdk/go-sdk-proto-integration.md) - Convert SDK resources to platform protos (Skill ready, Agent in progress)
 
 ### Guides
+- [Using MCP Servers](guides/using-mcp-servers.md) - **NEW**: Complete guide to creating and using MCP server configurations
 - [Uploading Skills](guides/uploading-skills.md) - **NEW**: Complete guide to uploading skills as artifacts using Artifact Mode
 - [Creating and Versioning Skills](guides/creating-and-versioning-skills.md) - Complete guide to creating, uploading, and managing versioned skills
 - [Deploying with Apply](guides/deploying-with-apply.md) - Deploy agents and workflows from code using `stigmer apply`
@@ -33,6 +34,7 @@ Complete documentation index for the Stigmer open-source project.
 
 ### Implementation
 - [Phase 1 Foundation](implementation/phase-1-foundation.md) - Phase 1 implementation summary: repository structure, gRPC architecture, and database design
+- [McpServer API Resource](implementation/mcp-server-api-resource-completion.md) - **NEW**: Complete implementation report for McpServer resource (6 phases, tri-scope support, FGA authorization)
 - [Cloud Build Alignment](implementation/cloud-build-alignment.md) - Complete alignment of Stigmer OSS with Stigmer Cloud build system and development patterns
 - [Task Export Context Fix](implementation/task-export-context-fix.md) - Fix for multi-task workflows with hyphenated names and context merging
 - [Task Export Context Fix - Learnings](implementation/task-export-context-fix-learnings.md) - Detailed learnings from the task export context bug fix for SDK and workflow runner improvements
@@ -48,6 +50,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Health Monitoring](architecture/health-monitoring.md) - Production-grade health monitoring and automatic restart for daemon components
 - [LLM Automation](architecture/llm-automation.md) - Zero-config local LLM setup, automatic binary downloads, and lifecycle management
 - [Go Module Structure](architecture/go-module-structure.md) - Go workspace and module organization pattern for contributors
+- [McpServer Resource](architecture/mcp-server-resource.md) - **NEW**: First-class MCP server resource with tri-scope support, FGA authorization, and marketplace patterns
 - [Open Core Model](architecture/open-core-model.md) - Open source vs enterprise architecture
 - [Packaging Flow](architecture/packaging-flow.md) - How Stigmer is packaged and distributed (with diagrams)
 - [Request Pipeline Context Design](architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis

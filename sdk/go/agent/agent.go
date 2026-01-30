@@ -3,11 +3,11 @@ package agent
 import (
 	"sync"
 
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
-	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
@@ -61,8 +61,10 @@ type Agent struct {
 	// Skills are pushed via `stigmer skill push` CLI - the SDK only references them.
 	SkillRefs []*apiresource.ApiResourceReference
 
-	// MCPServers are MCP server definitions declaring required servers.
-	MCPServers []mcpserver.MCPServer
+	// McpServerUsages are references to McpServer resources this agent uses.
+	// Each usage specifies which MCP server to use and optionally which tools to enable.
+	// Use AddMcpServerUsage() or UseMCPServer() to add usages.
+	McpServerUsages []*agentv1.McpServerUsage
 
 	// SubAgents are sub-agents that can be delegated to (inline or referenced).
 	SubAgents []subagent.SubAgent
@@ -73,7 +75,7 @@ type Agent struct {
 	// Context reference (optional, used for typed variable management)
 	ctx Context
 
-	// mu protects concurrent access to SkillRefs, MCPServers, SubAgents, and EnvironmentVariables slices
+	// mu protects concurrent access to SkillRefs, McpServerUsages, SubAgents, and EnvironmentVariables slices
 	mu sync.Mutex
 }
 
@@ -94,6 +96,7 @@ type Agent struct {
 //
 //	import (
 //	    "github.com/stigmer/stigmer/sdk/go/agent"
+//	    "github.com/stigmer/stigmer/sdk/go/mcpserverref"
 //	    "github.com/stigmer/stigmer/sdk/go/skillref"
 //	)
 //
@@ -106,7 +109,7 @@ type Agent struct {
 //	        return err
 //	    }
 //	    ag.AddSkillRef(skillref.Platform("coding-best-practices"))
-//	    ag.AddOrgSkillRef("internal-docs", "v1.0")
+//	    ag.AddMcpServerUsage(mcpserverref.Platform("github"), "create_pr", "search_code")
 //	    return nil
 //	})
 func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
@@ -126,7 +129,7 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 
 	// Initialize empty slices to avoid nil pointer issues
 	a.SkillRefs = []*apiresource.ApiResourceReference{}
-	a.MCPServers = []mcpserver.MCPServer{}
+	a.McpServerUsages = []*agentv1.McpServerUsage{}
 	a.SubAgents = []subagent.SubAgent{}
 	a.EnvironmentVariables = []environment.Variable{}
 
@@ -227,33 +230,106 @@ func (a *Agent) AddOrgSkillRef(slug string, version ...string) *Agent {
 	return a
 }
 
-// AddMCPServer adds an MCP server to the agent after creation.
+// AddMcpServerUsage adds an MCP server usage to the agent.
+//
+// Use mcpserverref.Platform(), mcpserverref.Organization(), or mcpserverref.Personal()
+// to create the reference. Optionally specify which tools to enable from the server.
+//
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	agent, _ := agent.New(agent.WithName("reviewer"))
-//	github, _ := mcpserver.Stdio(mcpserver.WithName("github"))
-//	agent.AddMCPServer(github)
-func (a *Agent) AddMCPServer(server mcpserver.MCPServer) *Agent {
+//	import "github.com/stigmer/stigmer/sdk/go/mcpserverref"
+//
+//	// Enable all tools from the GitHub MCP server
+//	agent.AddMcpServerUsage(mcpserverref.Platform("github"))
+//
+//	// Enable specific tools only
+//	agent.AddMcpServerUsage(
+//	    mcpserverref.Platform("github"),
+//	    "create_issue", "list_repos", "create_pr",
+//	)
+//
+//	// Reference an organization MCP server
+//	agent.AddMcpServerUsage(
+//	    mcpserverref.Organization("acme-corp", "internal-tools"),
+//	)
+func (a *Agent) AddMcpServerUsage(ref *apiresource.ApiResourceReference, enabledTools ...string) *Agent {
+	usage := &agentv1.McpServerUsage{
+		McpServerRef: ref,
+		EnabledTools: enabledTools,
+	}
+
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.MCPServers = append(a.MCPServers, server)
+	a.McpServerUsages = append(a.McpServerUsages, usage)
 	return a
 }
 
-// AddMCPServers adds multiple MCP servers to the agent after creation.
+// AddMcpServerUsages adds multiple MCP server usages to the agent.
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	agent, _ := agent.New(agent.WithName("reviewer"))
-//	agent.AddMCPServers(github, aws)
-func (a *Agent) AddMCPServers(servers ...mcpserver.MCPServer) *Agent {
+//	agent.AddMcpServerUsages(
+//	    &agentv1.McpServerUsage{
+//	        McpServerRef: mcpserverref.Platform("github"),
+//	        EnabledTools: []string{"create_pr", "search_code"},
+//	    },
+//	    &agentv1.McpServerUsage{
+//	        McpServerRef: mcpserverref.Platform("aws"),
+//	    },
+//	)
+func (a *Agent) AddMcpServerUsages(usages ...*agentv1.McpServerUsage) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.MCPServers = append(a.MCPServers, servers...)
+	a.McpServerUsages = append(a.McpServerUsages, usages...)
 	return a
+}
+
+// UseMCPServer is a convenience method that adds a platform-scoped MCP server usage.
+//
+// This is a shorthand for AddMcpServerUsage with mcpserverref.Platform().
+// For organization or personal MCP servers, use AddMcpServerUsage() directly.
+//
+// Example:
+//
+//	// Enable all tools
+//	agent.UseMCPServer("github")
+//
+//	// Enable specific tools
+//	agent.UseMCPServer("github", "create_issue", "list_repos")
+//
+//	// Chain multiple servers
+//	agent.UseMCPServer("github", "create_pr").
+//	      UseMCPServer("aws", "list_buckets").
+//	      UseMCPServer("slack")
+func (a *Agent) UseMCPServer(slug string, enabledTools ...string) *Agent {
+	ref := &apiresource.ApiResourceReference{
+		Kind:  apiresourcekind.ApiResourceKind_mcp_server,
+		Slug:  slug,
+		Scope: apiresource.ApiResourceOwnerScope_platform,
+	}
+	return a.AddMcpServerUsage(ref, enabledTools...)
+}
+
+// UseOrgMCPServer is a convenience method that adds an organization-scoped MCP server usage.
+//
+// This is a shorthand for AddMcpServerUsage with mcpserverref.Organization().
+// Uses the agent's Org field for the organization.
+//
+// Example:
+//
+//	agent.UseOrgMCPServer("internal-tools")
+//	agent.UseOrgMCPServer("internal-tools", "tool1", "tool2")
+func (a *Agent) UseOrgMCPServer(slug string, enabledTools ...string) *Agent {
+	ref := &apiresource.ApiResourceReference{
+		Kind:  apiresourcekind.ApiResourceKind_mcp_server,
+		Slug:  slug,
+		Scope: apiresource.ApiResourceOwnerScope_organization,
+		Org:   a.Org,
+	}
+	return a.AddMcpServerUsage(ref, enabledTools...)
 }
 
 // AddSubAgent adds a sub-agent to the agent after creation.
@@ -262,6 +338,7 @@ func (a *Agent) AddMCPServers(servers ...mcpserver.MCPServer) *Agent {
 // Example:
 //
 //	helper, _ := subagent.New("security", &subagent.Args{Instructions: "Check security"})
+//	helper.GrantMcpAccess("github", "search_code")
 //	agent.AddSubAgent(helper)
 func (a *Agent) AddSubAgent(sub subagent.SubAgent) *Agent {
 	a.mu.Lock()

@@ -1,0 +1,83 @@
+{
+  "name": "DockerServerConfig",
+  "description": "DockerServerConfig defines an MCP server that runs in a Docker container.\n Provides isolation and reproducibility for MCP server environments.\n\n Communication can happen via:\n - stdio: Container's stdin/stdout (default, similar to StdioServerConfig)\n - HTTP: Via port mapping to container's HTTP endpoint\n\n This is useful for:\n - Custom MCP servers with complex dependencies\n - Isolated execution environments\n - Consistent environments across different host systems",
+  "protoType": "ai.stigmer.agentic.mcpserver.v1.DockerServerConfig",
+  "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Image",
+      "jsonName": "image",
+      "protoField": "image",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Docker image name and tag.\n Can be from any registry accessible to the agent runner.\n Examples:\n - \"ghcr.io/org/mcp-server:latest\"\n - \"myregistry.com/mcp/custom-server:v1.2.3\"\n - \"mcp-local-server:dev\" (local image)",
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Args",
+      "jsonName": "args",
+      "protoField": "args",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Command arguments to pass to the container.\n Overrides the default CMD in the Docker image.\n Leave empty to use the image's default command.",
+      "required": false
+    },
+    {
+      "name": "Volumes",
+      "jsonName": "volumes",
+      "protoField": "volumes",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "VolumeMount"
+        }
+      },
+      "description": "Volume mounts for the container.\n Use to provide access to host filesystem, configuration files, or data.",
+      "required": false
+    },
+    {
+      "name": "Network",
+      "jsonName": "network",
+      "protoField": "network",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Docker network to attach the container to.\n Default: \"bridge\" (Docker's default network).\n Use custom networks for inter-container communication.",
+      "required": false
+    },
+    {
+      "name": "Ports",
+      "jsonName": "ports",
+      "protoField": "ports",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "PortMapping"
+        }
+      },
+      "description": "Port mappings for the container.\n Required if communicating via HTTP instead of stdio.\n Maps host ports to container ports.",
+      "required": false
+    },
+    {
+      "name": "ContainerName",
+      "jsonName": "containerName",
+      "protoField": "container_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Container name for identification and management.\n If not specified, Docker generates a random name.\n Useful for debugging and container lifecycle management.",
+      "required": false
+    }
+  ]
+}
