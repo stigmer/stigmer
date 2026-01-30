@@ -24,6 +24,130 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ---
 
+## Session Progress (2026-01-30 - Phase 5.2 Workflow Status Propagation)
+
+### Completed - Phase 5.2: pending_approval Field Handling
+**Duration**: ~1.5 hours | **Lines Added**: ~530 lines (4 modified, 2 new test files)
+
+#### What Was Accomplished
+
+Implemented complete `pending_approval` field handling in the Java `WorkflowExecutionUpdateStatusHandler` to complete the workflow-level approval status propagation. The Go signal handling and local activities from Phase 5.1 can now successfully set and clear approval state at the workflow level.
+
+1. **Java Handler Updates** (stigmer-cloud)
+   - Updated `BuildNewStateWithStatusStep.execute()` with pending_approval logic
+   - SET: `hasPendingApproval()` && non-empty `toolCallId` → sets the field
+   - CLEAR: `hasPendingApproval()` && empty `toolCallId` → clears the field  
+   - PRESERVE: `!hasPendingApproval()` → preserves existing (allows task/phase updates)
+   - Added comprehensive documentation explaining Proto3 semantics
+
+2. **Comprehensive Unit Tests** (stigmer-cloud)
+   - Created `WorkflowExecutionUpdateStatusHandlerTest.java` (~450 lines)
+   - Tests for pending_approval SET, CLEAR, PRESERVE behaviors
+   - Full integration flow test (set → update tasks → clear)
+   - Tests verify all pending_approval fields preserved (from_sub_agent, sub_agent_name, etc.)
+   - General handler tests (LoadExisting, Authorize, status merging)
+   - All 25+ tests passing ✅
+
+3. **Go Clear Signal Fix** (stigmer)
+   - Fixed `ClearWorkflowApprovalStatus()` to send `PendingApproval{ToolCallId: ""}`
+   - Previously sent `nil` which Java couldn't distinguish from "not provided"
+   - Now explicitly sends empty message with empty ToolCallId as clear signal
+   - Added detailed documentation explaining the protocol
+
+4. **Protocol Documentation Tests** (stigmer)
+   - Added `TestPendingApprovalProtocol` documenting Go → Java contract
+   - SET: Non-empty ToolCallId sets field
+   - CLEAR: Empty ToolCallId clears field
+   - PRESERVE: Nil message preserves existing
+   - All tests passing ✅
+
+#### Key Technical Achievements
+
+| Achievement | Implementation | Impact |
+|-------------|---------------|--------|
+| **Proto3 Empty Semantics** | Empty ToolCallId signals "clear" | Distinguishes clear from preserve |
+| **Backward Compatible** | nil pending_approval preserves existing | Tasks/phase updates don't affect approval |
+| **Comprehensive Tests** | 25+ unit tests across both repos | Full coverage of protocol |
+| **Clean Architecture** | Pipeline pattern with clear separation | Zero technical debt |
+
+#### Architecture Flow
+
+```
+Go: UpdateWorkflowTaskApprovalStatus
+    │
+    ├─ Build PendingApproval with tool_call_id, tool_name, message, etc.
+    ├─ Call WorkflowExecution.UpdateStatus RPC
+    │
+    ▼
+Java: BuildNewStateWithStatusStep.execute()
+    │
+    ├─ Check: hasPendingApproval() && !toolCallId.isEmpty()
+    ├─ Action: statusBuilder.setPendingApproval(...)
+    └─ Result: WorkflowExecution.status.pending_approval populated
+    
+Go: ClearWorkflowApprovalStatus  
+    │
+    ├─ Build PendingApproval{ToolCallId: ""}  (empty, not nil)
+    ├─ Call WorkflowExecution.UpdateStatus RPC
+    │
+    ▼
+Java: BuildNewStateWithStatusStep.execute()
+    │
+    ├─ Check: hasPendingApproval() && toolCallId.isEmpty()
+    ├─ Action: statusBuilder.clearPendingApproval()
+    └─ Result: WorkflowExecution.status.pending_approval cleared
+```
+
+#### Files Modified
+
+**stigmer-cloud repo**:
+```
+backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/workflowexecution/request/handler/
+  - WorkflowExecutionUpdateStatusHandler.java (+35 lines - pending_approval logic)
+  - WorkflowExecutionUpdateStatusHandlerTest.java (NEW - ~450 lines, 25+ tests)
+```
+
+**stigmer repo**:
+```
+backend/services/workflow-runner/pkg/zigflow/tasks/
+  - task_builder_call_agent_activities.go (+15 lines - fix clear signal + docs)
+  - task_builder_call_agent_test.go (+45 lines - protocol documentation tests)
+```
+
+**Net Changes**: ~530 lines (4 modified, 2 new files)
+
+**Test Results**: All tests pass ✅
+- Java: 25+ unit tests for handler and pending_approval handling
+- Go: 3 protocol documentation tests
+
+#### Key Design Decisions
+
+1. **Proto3 Empty vs Unset Semantics**
+   - Proto3 doesn't distinguish "not set" from "set to default"
+   - Solution: Use `tool_call_id.isEmpty()` to detect "clear" intent
+   - Empty ToolCallId signals clear, nil message preserves existing
+
+2. **Backward Compatibility**
+   - Existing status updates (tasks, phase) don't touch pending_approval
+   - Only explicit set/clear operations modify the field
+   - No breaking changes to existing workflows
+
+3. **Clear Signal Protocol**
+   - Go sends `PendingApproval{ToolCallId: ""}` not `nil`
+   - Java checks `hasPendingApproval() && toolCallId.isEmpty()`
+   - This enables explicit clearing vs implicit preservation
+
+#### What This Completes
+
+Phase 5.2 completes the pending_approval status propagation. Now:
+- ✅ Go can set pending_approval when child agent requires approval
+- ✅ Go can clear pending_approval when approval is resolved
+- ✅ Regular status updates (tasks, phase) don't affect pending_approval
+- ✅ Full test coverage of the protocol
+- ✅ Ready for Phase 5.3: Approval Forwarding Mechanism
+
+---
+
 ## Session Progress (2026-01-30 - Phase 5.1 Events-Based Notification)
 
 ### Completed - Phase 5.1: Events-Based Child Agent Approval Detection
@@ -656,8 +780,10 @@ Tools that match approval policies will now be correctly marked `WAITING_APPROVA
 - [x] Add comprehensive audit logging for approval decisions
 - [x] Comprehensive unit tests (25+ tests across handler and workflow)
 
-### Phase 5: Workflow Integration - ✅ 5.1 COMPLETE, 5.2-5.5 REMAINING
-**Plan**: `.cursor/plans/hitl_phase_5.1_events_5363b890.plan.md` (Events-Based Implementation)
+### Phase 5: Workflow Integration - ✅ 5.1 & 5.2 COMPLETE, 5.3-5.5 REMAINING
+**Plans**: 
+- Phase 5.1: `.cursor/plans/hitl_phase_5.1_events_5363b890.plan.md` (Events-Based Notification)
+- Phase 5.2: `.cursor/plans/phase_5.2_workflow_status_f79f8b00.plan.md` (Workflow Status Propagation)
 
 **Sub-Tasks**:
 - [x] **5.1**: Child Agent Approval Detection (Events-Based) - ✅ COMPLETE (2 hours)
@@ -668,15 +794,22 @@ Tools that match approval policies will now be correctly marked `WAITING_APPROVA
   - Added UpdateWorkflowTaskApprovalStatus local activity
   - Comprehensive tests (23 tests passing)
   
-- [ ] **5.2**: Workflow Task Status Transitions - 60-75 min
-  - Update workflow task status to WORKFLOW_TASK_WAITING_APPROVAL when signal received
-  - Update workflow task status back to WORKFLOW_TASK_IN_PROGRESS when approval resolved
-  - Ensure task status transitions are properly tracked in WorkflowExecution.status.tasks[]
+- [x] **5.2**: Workflow Status Propagation - ✅ COMPLETE (1.5 hours)
+  - Updated WorkflowExecutionUpdateStatusHandler.java to handle pending_approval
+  - SET: Non-empty ToolCallId sets pending_approval field
+  - CLEAR: Empty ToolCallId clears pending_approval field
+  - PRESERVE: Nil message preserves existing pending_approval
+  - Fixed Go ClearWorkflowApprovalStatus to send empty PendingApproval
+  - Comprehensive tests (25+ Java unit tests, 3 Go protocol tests, all passing)
   
-- [ ] **5.3**: Approval Forwarding Mechanism (Optional Convenience) - 75-90 min
-  - Add submitApproval RPC to WorkflowExecutionCommandController
-  - Implement forwarding handler (pipeline pattern)
-  - Forward approval to child AgentExecution
+- [ ] **5.3**: Approval Forwarding Mechanism (Optional Convenience) - 75-90 min (NEXT TASK)
+  - Add submitApproval RPC to WorkflowExecutionCommandController (proto change)
+  - Add SubmitWorkflowApprovalInput message with validation
+  - Implement WorkflowExecutionSubmitApprovalHandler (pipeline pattern)
+  - Extract child agent_execution_id from workflow task metadata
+  - Forward approval to child AgentExecution via AgentExecution.submitApproval RPC
+  - Add validation and authorization checks
+  - Comprehensive unit tests
   - Users can submit via workflow OR agent API (both work)
   
 - [ ] **5.4**: Approval Resumption Verification - 60-75 min

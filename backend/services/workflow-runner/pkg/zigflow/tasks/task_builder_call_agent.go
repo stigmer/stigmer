@@ -20,11 +20,11 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/rs/zerolog/log"
+	"github.com/serverlessworkflow/sdk-go/v3/model"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowtasks "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
-	"github.com/rs/zerolog/log"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
@@ -81,7 +81,7 @@ type CallAgentTaskBuilder struct {
 // 5. On completion: clear any pending approval state
 func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 	log.Debug().Str("task", t.GetTaskName()).Msg("Building call agent task")
-	
+
 	if err := t.parseConfig(); err != nil {
 		log.Error().Err(err).Msg("Error parsing agent call configuration")
 		return nil, err
@@ -113,51 +113,51 @@ func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		// Call agent activity with parent workflow ID for signal-based notification
 		// We pass: agentConfig, input, state.Env, parentWorkflowId
 		var res any
-		future := workflow.ExecuteActivity(ctx, (*CallAgentActivities).CallAgentActivity, 
+		future := workflow.ExecuteActivity(ctx, (*CallAgentActivities).CallAgentActivity,
 			t.agentConfig, input, state.Env, parentWorkflowId)
-		
+
 		// Setup signal channel for child approval notifications
 		// The Java agent execution workflow sends this signal when the agent
 		// enters WAITING_FOR_APPROVAL phase
 		approvalSignalCh := workflow.GetSignalChannel(ctx, SignalChildApprovalRequired)
-		
+
 		// Track activity completion
 		activityDone := false
-		
+
 		// Listen for signals while waiting for activity completion
 		// This follows the pattern from task_builder_listen.go
 		for !activityDone {
 			// Use selector to wait for either activity completion or approval signal
 			selector := workflow.NewNamedSelector(ctx, "approval-or-completion")
-			
+
 			// Add activity future to selector
 			selector.AddFuture(future, func(f workflow.Future) {
 				activityDone = true
 			})
-			
+
 			// Add signal channel to selector
 			selector.AddReceive(approvalSignalCh, func(c workflow.ReceiveChannel, more bool) {
 				var notification agentexecv1.ChildApprovalNotification
 				c.Receive(ctx, &notification)
-				
+
 				logger.Info("Received child approval notification",
 					"execution_id", notification.ExecutionId,
 					"tool_call_id", notification.ToolCallId,
 					"tool_name", notification.ToolName,
 					"task", t.GetTaskName())
-				
+
 				// Update workflow task status to WAITING_APPROVAL
 				if err := t.updateTaskApprovalStatus(ctx, state, &notification); err != nil {
-					logger.Error("Failed to update task approval status", 
+					logger.Error("Failed to update task approval status",
 						"error", err,
 						"task", t.GetTaskName())
 				}
 			})
-			
+
 			// Wait for one of the conditions
 			selector.Select(ctx)
 		}
-		
+
 		// Activity completed - get result
 		if err := future.Get(ctx, &res); err != nil {
 			// Handle workflow cancellation gracefully
@@ -193,7 +193,7 @@ func (t *CallAgentTaskBuilder) updateTaskApprovalStatus(
 	notification *agentexecv1.ChildApprovalNotification,
 ) error {
 	logger := workflow.GetLogger(ctx)
-	
+
 	// Extract workflow execution ID from state
 	// This was stored by temporal_workflow.go when the workflow started
 	executionId := getExecutionIdFromState(state)
@@ -202,24 +202,24 @@ func (t *CallAgentTaskBuilder) updateTaskApprovalStatus(
 			"task", t.GetTaskName())
 		return nil // Non-fatal
 	}
-	
+
 	logger.Info("Updating workflow task to WAITING_APPROVAL",
 		"task", t.GetTaskName(),
 		"execution_id", executionId,
 		"agent_execution_id", notification.ExecutionId,
 		"tool_name", notification.ToolName)
-	
+
 	// Execute local activity to update workflow execution status
 	// Local activities run in-process without going through task queues
 	localCtx := workflow.WithLocalActivityOptions(ctx, getLocalActivityOptions())
-	
+
 	err := workflow.ExecuteLocalActivity(localCtx,
 		(*CallAgentActivities).UpdateWorkflowTaskApprovalStatus,
 		executionId,
 		t.GetTaskName(),
 		notification,
 	).Get(ctx, nil)
-	
+
 	if err != nil {
 		logger.Error("Failed to execute UpdateWorkflowTaskApprovalStatus activity",
 			"error", err,
@@ -228,7 +228,7 @@ func (t *CallAgentTaskBuilder) updateTaskApprovalStatus(
 		// The approval can still be submitted via the AgentExecution API
 		return err
 	}
-	
+
 	logger.Info("Successfully updated workflow task approval status",
 		"task", t.GetTaskName())
 	return nil
@@ -242,7 +242,7 @@ func (t *CallAgentTaskBuilder) clearTaskApprovalStatus(
 	state *utils.State,
 ) {
 	logger := workflow.GetLogger(ctx)
-	
+
 	// Extract workflow execution ID from state
 	executionId := getExecutionIdFromState(state)
 	if executionId == "" {
@@ -250,19 +250,19 @@ func (t *CallAgentTaskBuilder) clearTaskApprovalStatus(
 			"task", t.GetTaskName())
 		return
 	}
-	
+
 	logger.Debug("Clearing task approval status on completion",
 		"task", t.GetTaskName(),
 		"execution_id", executionId)
-	
+
 	// Execute local activity to clear pending approval
 	localCtx := workflow.WithLocalActivityOptions(ctx, getLocalActivityOptions())
-	
+
 	err := workflow.ExecuteLocalActivity(localCtx,
 		(*CallAgentActivities).ClearWorkflowApprovalStatus,
 		executionId,
 	).Get(ctx, nil)
-	
+
 	if err != nil {
 		// Log but don't fail - clearing status is best-effort
 		logger.Warn("Failed to clear workflow approval status",
@@ -277,13 +277,13 @@ func getExecutionIdFromState(state *utils.State) string {
 	if state == nil || state.Data == nil {
 		return ""
 	}
-	
+
 	if execId, ok := state.Data["__stigmer_execution_id"]; ok {
 		if execIdStr, ok := execId.(string); ok {
 			return execIdStr
 		}
 	}
-	
+
 	return ""
 }
 
@@ -375,7 +375,7 @@ func (t *CallAgentTaskBuilder) evaluateExpressions(ctx workflow.Context, state *
 func isRuntimePlaceholder(value string) bool {
 	// Runtime placeholders: ${.secrets.XXX} or ${.env_vars.XXX}
 	// Workflow expressions: ${ .context.field } or ${ .data.something }
-	// 
+	//
 	// Key distinction: runtime placeholders have NO space after ${
 	// We use a simple heuristic: if it starts with ${.secrets or ${.env_vars, it's runtime
 	//
@@ -384,7 +384,7 @@ func isRuntimePlaceholder(value string) bool {
 	// - "${.env_vars." = 12 characters (need at least 13 for a valid placeholder)
 	const secretsPrefix = "${.secrets."
 	const envVarsPrefix = "${.env_vars."
-	
+
 	if len(value) > len(secretsPrefix) && value[:len(secretsPrefix)] == secretsPrefix {
 		return true
 	}
