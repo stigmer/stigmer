@@ -72,6 +72,14 @@ class StatusBuilder:
         
         # Namespace mapping for sub-agent tool call routing
         self.namespace_mapping: Dict[str, Dict[str, str]] = {}
+        
+        # Track AI message generation timing for duration calculation
+        # Key: message index in messages list, Value: start timestamp
+        self._message_start_times: Dict[int, datetime] = {}
+        
+        # Track accumulated token usage across all LLM calls in this execution
+        self._total_prompt_tokens: int = 0
+        self._total_completion_tokens: int = 0
     
     async def process_event(self, event: Dict[str, Any]) -> None:
         """
@@ -100,6 +108,8 @@ class StatusBuilder:
             self._handle_tool_end_event(event, namespace)
         elif event_type == "on_chat_model_stream":
             self._handle_chat_model_stream_event(event, namespace)
+        elif event_type == "on_chat_model_end":
+            self._handle_chat_model_end_event(event, namespace)
     
     def _handle_tool_start_event(self, event: Dict[str, Any], namespace: str = "") -> None:
         """Handle on_tool_start event - updates local status."""
@@ -222,20 +232,122 @@ class StatusBuilder:
         
         # Find or create AI message
         ai_message = None
-        for message in reversed(self.current_status.messages):
+        ai_message_index = None
+        for idx in range(len(self.current_status.messages) - 1, -1, -1):
+            message = self.current_status.messages[idx]
             if message.type == MessageType.MESSAGE_AI:
                 ai_message = message
+                ai_message_index = idx
                 break
         
         if not ai_message:
+            # Create new AI message and record start time for duration tracking
+            now = datetime.utcnow()
             ai_message = AgentMessage(
                 type=MessageType.MESSAGE_AI,
                 content=token,
-                timestamp=datetime.utcnow().isoformat(),
+                timestamp=now.isoformat(),
             )
             self.current_status.messages.append(ai_message)
+            
+            # Track start time using message index
+            new_message_index = len(self.current_status.messages) - 1
+            self._message_start_times[new_message_index] = now
+            self.logger.debug(f"Started new AI message at index {new_message_index}")
         else:
             ai_message.content += token
+    
+    def _handle_chat_model_end_event(self, event: Dict[str, Any], namespace: str = "") -> None:
+        """
+        Handle on_chat_model_end event - finalize AI message and capture usage metrics.
+        
+        This event is emitted when the LLM completes generating a response. It contains:
+        - Final message content (already captured via streaming)
+        - Usage metadata (token counts) - only available in this event
+        - Model information
+        
+        Args:
+            event: The astream_events v2 event dictionary
+            namespace: LangGraph checkpoint namespace for sub-agent routing
+        """
+        output_data = event.get("data", {}).get("output", {})
+        
+        if not output_data:
+            return
+        
+        # Find the most recent AI message to finalize
+        ai_message_index = None
+        for idx in range(len(self.current_status.messages) - 1, -1, -1):
+            message = self.current_status.messages[idx]
+            if message.type == MessageType.MESSAGE_AI:
+                ai_message_index = idx
+                break
+        
+        if ai_message_index is None:
+            self.logger.warning("on_chat_model_end received but no AI message found to finalize")
+            return
+        
+        # Calculate generation duration if we tracked the start time
+        generation_duration_ms = None
+        if ai_message_index in self._message_start_times:
+            start_time = self._message_start_times[ai_message_index]
+            duration = datetime.utcnow() - start_time
+            generation_duration_ms = int(duration.total_seconds() * 1000)
+            
+            # Clean up the start time entry
+            del self._message_start_times[ai_message_index]
+        
+        # Extract usage metadata from LangChain response
+        # LangChain models expose this via usage_metadata attribute on the AIMessage
+        prompt_tokens = 0
+        completion_tokens = 0
+        total_tokens = 0
+        model_name = ""
+        
+        # Handle both AIMessage objects and dict representations
+        if hasattr(output_data, "usage_metadata") and output_data.usage_metadata:
+            usage = output_data.usage_metadata
+            prompt_tokens = getattr(usage, "input_tokens", 0) or 0
+            completion_tokens = getattr(usage, "output_tokens", 0) or 0
+            total_tokens = getattr(usage, "total_tokens", 0) or (prompt_tokens + completion_tokens)
+        elif isinstance(output_data, dict):
+            # Some models return usage in dict format
+            usage = output_data.get("usage_metadata") or output_data.get("usage", {})
+            if usage:
+                prompt_tokens = usage.get("input_tokens", 0) or usage.get("prompt_tokens", 0) or 0
+                completion_tokens = usage.get("output_tokens", 0) or usage.get("completion_tokens", 0) or 0
+                total_tokens = usage.get("total_tokens", 0) or (prompt_tokens + completion_tokens)
+        
+        # Extract model name if available
+        if hasattr(output_data, "response_metadata"):
+            response_meta = output_data.response_metadata
+            if isinstance(response_meta, dict):
+                model_name = response_meta.get("model", "") or response_meta.get("model_name", "")
+        elif isinstance(output_data, dict):
+            response_meta = output_data.get("response_metadata", {})
+            model_name = response_meta.get("model", "") or response_meta.get("model_name", "")
+        
+        # Accumulate token counts for this execution
+        self._total_prompt_tokens += prompt_tokens
+        self._total_completion_tokens += completion_tokens
+        
+        # Log the metrics (structured logging for observability)
+        # This prepares for Phase 2.4 (UsageMetrics proto) - for now we log for visibility
+        self.logger.info(
+            f"[USAGE] execution={self.execution_id} "
+            f"prompt_tokens={prompt_tokens} "
+            f"completion_tokens={completion_tokens} "
+            f"total_tokens={total_tokens} "
+            f"duration_ms={generation_duration_ms or 'N/A'} "
+            f"model={model_name or 'unknown'} "
+            f"cumulative_prompt={self._total_prompt_tokens} "
+            f"cumulative_completion={self._total_completion_tokens}"
+        )
+        
+        self.logger.debug(
+            f"AI message finalized at index {ai_message_index} "
+            f"(tokens: {total_tokens}, duration: {generation_duration_ms}ms)"
+        )
     
     # Helper methods
     def _unwrap_tool_args(self, args: Dict[str, Any]) -> Dict[str, Any]:
