@@ -3,16 +3,21 @@
 ## Quick Resume
 Drag this file into chat to continue.
 
-## Status After Investigation
+## Current State
+- **Status**: ✅ Milestone 1 COMPLETE - Encryption Foundation implemented
+- **Last Session**: 2026-01-30 - Implemented AES-256-GCM encryption for environment secrets
+- **Active Milestone**: Ready for Milestone 2 (ExecutionContext Lifecycle)
+
+## Status After Milestone 1 Completion
 
 | Component | Status |
 |-----------|--------|
 | Proto Definitions | ✅ Complete |
-| Environment CRUD | ✅ Basic (needs encryption) |
+| **Environment CRUD** | ✅ **WITH ENCRYPTION** - AES-256-GCM at-rest encryption |
+| **Secret Encryption** | ✅ **COMPLETE** - Java & Go implementations |
 | **Workflow Runner (Go)** | ✅ **EXISTS** - already processes runtime_env! |
 | **Agent Runner (Python)** | ✅ **EXISTS** - needs env integration |
-| Environment Resolution | ❌ Missing |
-| Secret Encryption | ❌ Missing |
+| Environment Resolution | ❌ Missing - Next milestone |
 | CLI --env flags | ❌ Missing |
 | **MCP Server Env Resolution** | ❌ **NEW SCOPE** - placeholder resolution for MCP servers |
 
@@ -26,18 +31,101 @@ Drag this file into chat to continue.
 4. **Pulumi-Inspired**: SDK-first, layered environments, runtime overrides
 5. **Security**: ExecutionContext pattern - pass IDs through Temporal, not secrets
 
+## Session Progress (2026-01-30)
+
+### Accomplishments
+- ✅ **Milestone 1: Encryption Foundation COMPLETE**
+- ✅ Implemented AES-256-GCM encryption for both Cloud (Java) and OSS (Go)
+- ✅ Created encryption pipeline steps (Encrypt, Decrypt, Redact)
+- ✅ Integrated encryption into Environment CRUD handlers
+- ✅ Created comprehensive unit and integration tests
+- ✅ Established cross-platform compatibility (Java ↔ Go)
+- ✅ Added encryption key configuration (service.yaml, secrets-group)
+
+### Key Decisions Made
+1. **Encryption format**: Versioned prefix `enc:v1:` for future key rotation support
+2. **Redaction for API responses**: Secret values never exposed via public APIs
+3. **Backward compatibility**: Non-encrypted values pass through unchanged
+4. **Thread-safe design**: No shared mutable state in encryption services
+5. **Fail-fast validation**: Invalid keys cause startup failure, not runtime errors
+
+### Files Created (20 files)
+
+**stigmer-cloud (Java):**
+- `config/encryption/EncryptionConfig.java` - Configuration with validation
+- `domain/agentic/environment/service/EnvironmentSecretService.java` - AES-256-GCM service
+- `domain/agentic/environment/request/step/EncryptSecretValues.java` - Encryption pipeline step
+- `domain/agentic/environment/request/step/DecryptSecretValues.java` - Decryption pipeline step
+- `domain/agentic/environment/request/step/RedactSecretValues.java` - Redaction pipeline step
+- `test/.../EnvironmentSecretServiceTest.java` - Unit tests
+- `test/.../EnvironmentEncryptionIntegrationTest.java` - Integration tests
+- `_ops/planton/service-hub/secrets-group/stigmer-encryption.yaml` - Encryption key secrets
+
+**stigmer (Go):**
+- `backend/services/stigmer-server/pkg/encryption/encryption.go` - Core AES-256-GCM
+- `backend/services/stigmer-server/pkg/encryption/keymanager.go` - Key management
+- `backend/services/stigmer-server/pkg/encryption/encryption_test.go` - Comprehensive tests
+- `backend/services/stigmer-server/pkg/encryption/BUILD.bazel` - Build config
+
+**Both:**
+- `_projects/.../test-vectors/encryption_test_vectors.json` - Cross-platform test vectors
+- `_projects/.../test-vectors/README.md` - Testing documentation
+
+**Modified (6 files):**
+- Environment handlers (Create, Update, Get, GetByReference) - Added encryption steps
+- `service.yaml` - Added encryption key configuration
+- `application.yaml` - Added property binding
+
 ## Implementation Milestones
 
-| Milestone | Duration | Description |
-|-----------|----------|-------------|
-| 1. Encryption Foundation | 2-3 days | AES-256-GCM service, key management |
-| 2. ExecutionContext Lifecycle | 2-3 days | Auto-create on execution, auto-delete on completion |
-| 3. Environment Resolution | 2-3 days | Resolve refs, merge with priority, decrypt |
-| 4. Runner Integration | 2-3 days | Query ExecutionContext, pass to engine |
-| 5. **MCP Server Env Resolution** | 1-2 days | **NEW**: Placeholder resolution for MCP configs |
-| 6. CLI Integration | 1-2 days | --env, --secret, --env-file flags |
+| Milestone | Duration | Status |
+|-----------|----------|--------|
+| **1. Encryption Foundation** | **2-3 days** | ✅ **COMPLETE** |
+| 2. ExecutionContext Lifecycle | 2-3 days | ⏭️ **NEXT** |
+| 3. Environment Resolution | 2-3 days | Pending |
+| 4. Runner Integration | 2-3 days | Pending |
+| 5. **MCP Server Env Resolution** | 1-2 days | Pending |
+| 6. CLI Integration | 1-2 days | Pending |
 
-**Total: ~12-16 days** (updated with MCP server scope)
+**Total: ~12-16 days** (Milestone 1 complete, ~9-13 days remaining)
+
+## Next Steps (Milestone 2: ExecutionContext Lifecycle)
+
+### Immediate Actions
+1. **Add findByExecutionId query** to ExecutionContextRepo
+2. **Create GetByExecutionIdHandler** for internal gRPC access
+3. **Modify AgentExecutionCreateHandler**:
+   - Merge environments (template + instance + runtime)
+   - Create ExecutionContext with merged env
+   - Pass only execution_id to Temporal (NO SECRETS)
+4. **Modify WorkflowExecutionCreateHandler** (same pattern)
+5. **Add cleanup logic** - Delete ExecutionContext on completion
+
+### Implementation Approach
+- Follow same patterns as Milestone 1 (pipeline steps, ConfigurationProperties)
+- Use EnvironmentSecretService for encryption/decryption
+- Add TTL-based auto-deletion backup (24h)
+- Comprehensive tests for lifecycle management
+
+## Context for Resume
+
+### What's Working
+- Encryption is production-ready and cross-platform compatible
+- Pipeline steps integrate cleanly into existing handlers
+- Format supports future key rotation via version prefix
+- Tests verify MongoDB stores encrypted values (not plaintext)
+
+### Key Implementation Details
+- **Encryption format**: `enc:v1:<base64(nonce || ciphertext || tag)>`
+- **Java service**: Spring Boot with @ConfigurationProperties pattern
+- **Go service**: Standalone with env var or file-based key management
+- **Pipeline integration**: Steps inserted before persist (encrypt) and after load (decrypt/redact)
+
+### Testing Strategy
+- Unit tests verify algorithm correctness
+- Integration tests verify MongoDB encryption
+- Cross-platform tests use shared test vectors
+- Test key: `MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=`
 
 ## Quality Requirements (From User)
 
