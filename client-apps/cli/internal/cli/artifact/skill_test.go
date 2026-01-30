@@ -236,8 +236,8 @@ func TestCreateSkillZip_StigmerignoreOverridesGitignore(t *testing.T) {
 	dir := createTestSkillDir(t, map[string]string{
 		"SKILL.md":       "# Test Skill",
 		"main.py":        "print('hello')",
-		".gitignore":     "*.log\n",              // Ignore all .log files
-		".stigmerignore": "!important.log\n",     // Re-include important.log
+		".gitignore":     "*.log\n",          // Ignore all .log files
+		".stigmerignore": "!important.log\n", // Re-include important.log
 		"debug.log":      "debug logs",
 		"important.log":  "# This should be included",
 	})
@@ -260,7 +260,7 @@ func TestCreateSkillZip_StigmerignoreOverridesGitignore(t *testing.T) {
 		t.Error("zip should contain important.log (re-included by .stigmerignore negation)")
 	}
 
-	t.Logf("Stats: %d included, %d ignored, %d dirs skipped", 
+	t.Logf("Stats: %d included, %d ignored, %d dirs skipped",
 		stats.FilesIncluded, stats.FilesIgnored, stats.DirsSkipped)
 }
 
@@ -391,11 +391,11 @@ func TestCreateSkillZip_NoGitignore(t *testing.T) {
 	// Test with RespectGitignore=false
 	// Note: Uses 'output/' which is NOT in security defaults (build/ is)
 	dir := createTestSkillDir(t, map[string]string{
-		"SKILL.md":       "# Test Skill",
-		"main.py":        "print('hello')",
-		".gitignore":     "output/\n*.compiled\n",
-		"output/out.js":  "// compiled output",
-		"data.compiled":  "compiled data",
+		"SKILL.md":      "# Test Skill",
+		"main.py":       "print('hello')",
+		".gitignore":    "output/\n*.compiled\n",
+		"output/out.js": "// compiled output",
+		"data.compiled": "compiled data",
 	})
 
 	// First, test WITH gitignore (should exclude output/)
@@ -480,11 +480,11 @@ func TestCreateSkillZip_EmptyDirectory(t *testing.T) {
 func TestCreateSkillZip_NestedDirectories(t *testing.T) {
 	// Test deeply nested directory structure
 	dir := createTestSkillDir(t, map[string]string{
-		"SKILL.md":                    "# Test Skill",
-		"src/main.py":                 "main",
-		"src/utils/helper.py":         "helper",
+		"SKILL.md":                      "# Test Skill",
+		"src/main.py":                   "main",
+		"src/utils/helper.py":           "helper",
 		"src/utils/deep/nested/file.py": "deep",
-		"tests/unit/test_main.py":     "test",
+		"tests/unit/test_main.py":       "test",
 	})
 
 	var buf bytes.Buffer
@@ -518,13 +518,13 @@ func TestCreateSkillZip_NestedDirectories(t *testing.T) {
 func TestCreateSkillZip_DirectorySkipping(t *testing.T) {
 	// Test that entire directories are skipped efficiently
 	dir := createTestSkillDir(t, map[string]string{
-		"SKILL.md":                 "# Test Skill",
-		"main.py":                  "main",
-		"node_modules/pkg1/i.js":   "pkg1",
-		"node_modules/pkg2/i.js":   "pkg2",
-		"node_modules/pkg3/i.js":   "pkg3",
-		".venv/lib/site.py":        "venv",
-		".venv/bin/python":         "python",
+		"SKILL.md":               "# Test Skill",
+		"main.py":                "main",
+		"node_modules/pkg1/i.js": "pkg1",
+		"node_modules/pkg2/i.js": "pkg2",
+		"node_modules/pkg3/i.js": "pkg3",
+		".venv/lib/site.py":      "venv",
+		".venv/bin/python":       "python",
 	})
 
 	var buf bytes.Buffer
@@ -540,17 +540,17 @@ func TestCreateSkillZip_DirectorySkipping(t *testing.T) {
 
 	// None of the files in skipped dirs should be counted as FilesIgnored
 	// They should not even be traversed
-	t.Logf("Stats: files=%d, ignored=%d, dirs_skipped=%d", 
+	t.Logf("Stats: files=%d, ignored=%d, dirs_skipped=%d",
 		stats.FilesIncluded, stats.FilesIgnored, stats.DirsSkipped)
 }
 
 func TestCreateSkillZip_UnicodeFilenames(t *testing.T) {
 	// Test Unicode filenames are handled correctly
 	dir := createTestSkillDir(t, map[string]string{
-		"SKILL.md":      "# Test Skill",
-		"日本語.py":        "# Japanese",
-		"données.py":    "# French",
-		"数据/文件.txt":     "# Chinese path",
+		"SKILL.md":   "# Test Skill",
+		"日本語.py":     "# Japanese",
+		"données.py": "# French",
+		"数据/文件.txt":  "# Chinese path",
 	})
 
 	var buf bytes.Buffer
@@ -575,9 +575,9 @@ func TestCreateSkillZip_EnvExampleAllowed(t *testing.T) {
 	// Test that .env.example and .env.template are allowed
 	dir := createTestSkillDir(t, map[string]string{
 		"SKILL.md":      "# Test Skill",
-		".env":          "SECRET=real",    // Should be ignored
-		".env.local":    "SECRET=local",   // Should be ignored
-		".env.example":  "SECRET=example", // Should be ALLOWED
+		".env":          "SECRET=real",     // Should be ignored
+		".env.local":    "SECRET=local",    // Should be ignored
+		".env.example":  "SECRET=example",  // Should be ALLOWED
 		".env.template": "SECRET=template", // Should be ALLOWED
 	})
 
@@ -637,16 +637,16 @@ func TestAnalyzeDryRun_BasicAnalysis(t *testing.T) {
 		t.Error("expected sample included files")
 	}
 
-	t.Logf("Analysis: %d included, %d ignored, sources: %v", 
+	t.Logf("Analysis: %d included, %d ignored, sources: %v",
 		analysis.Stats.FilesIncluded, analysis.Stats.FilesIgnored, analysis.PatternSources)
 }
 
 func TestAnalyzeDryRun_WithIgnoredFiles(t *testing.T) {
 	dir := createTestSkillDir(t, map[string]string{
-		"SKILL.md":            "# Test Skill",
-		"main.py":             "print('hello')",
-		".env":                "SECRET=x",
-		".env.local":          "LOCAL=y",
+		"SKILL.md":              "# Test Skill",
+		"main.py":               "print('hello')",
+		".env":                  "SECRET=x",
+		".env.local":            "LOCAL=y",
 		"node_modules/pkg/i.js": "// module",
 	})
 
@@ -763,7 +763,7 @@ func TestCreateSkillZip_InvalidPatternSyntax(t *testing.T) {
 func TestCreateSkillZip_SymlinksIgnored(t *testing.T) {
 	// Create a directory with a symlink
 	dir := t.TempDir()
-	
+
 	// Create regular files
 	if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte("# Test"), 0644); err != nil {
 		t.Fatal(err)
@@ -771,7 +771,7 @@ func TestCreateSkillZip_SymlinksIgnored(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "main.py"), []byte("main"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Create a symlink (may fail on some systems)
 	target := filepath.Join(dir, "main.py")
 	link := filepath.Join(dir, "link.py")
@@ -798,19 +798,19 @@ func TestCreateSkillZip_SymlinksIgnored(t *testing.T) {
 func TestCreateSkillZip_PythonSkillScenario(t *testing.T) {
 	// Simulate a real Python skill with typical files
 	dir := createTestSkillDir(t, map[string]string{
-		"SKILL.md":                    "# Python Analysis Skill",
-		"skill.py":                    "def analyze(): pass",
-		"requirements.txt":            "pandas==2.0.0\nnumpy==1.24.0",
-		"utils/helpers.py":            "def helper(): pass",
-		"utils/__init__.py":           "",
-		"tests/test_skill.py":         "def test_analyze(): pass",
-		"tests/__init__.py":           "",
-		".gitignore":                  "*.pyc\n__pycache__/\n.pytest_cache/\ndist/\n*.egg-info/\n",
-		".stigmerignore":              "tests/\n",
-		".env":                        "API_KEY=secret",
-		".env.example":                "API_KEY=your-key-here",
+		"SKILL.md":                          "# Python Analysis Skill",
+		"skill.py":                          "def analyze(): pass",
+		"requirements.txt":                  "pandas==2.0.0\nnumpy==1.24.0",
+		"utils/helpers.py":                  "def helper(): pass",
+		"utils/__init__.py":                 "",
+		"tests/test_skill.py":               "def test_analyze(): pass",
+		"tests/__init__.py":                 "",
+		".gitignore":                        "*.pyc\n__pycache__/\n.pytest_cache/\ndist/\n*.egg-info/\n",
+		".stigmerignore":                    "tests/\n",
+		".env":                              "API_KEY=secret",
+		".env.example":                      "API_KEY=your-key-here",
 		"__pycache__/skill.cpython-311.pyc": "bytecode",
-		".pytest_cache/v/cache/stuff": "cache",
+		".pytest_cache/v/cache/stuff":       "cache",
 	})
 
 	var buf bytes.Buffer
@@ -917,13 +917,13 @@ func TestCreateSkillZip_NodeJSSkillScenario(t *testing.T) {
 func TestCreateSkillZip_GoSkillScenario(t *testing.T) {
 	// Simulate a real Go skill
 	dir := createTestSkillDir(t, map[string]string{
-		"SKILL.md":     "# Go Analysis Skill",
-		"main.go":      "package main",
-		"go.mod":       "module skill",
-		"go.sum":       "checksums",
+		"SKILL.md":      "# Go Analysis Skill",
+		"main.go":       "package main",
+		"go.mod":        "module skill",
+		"go.sum":        "checksums",
 		"internal/x.go": "package internal",
-		".gitignore":   "bin/\n*.exe\n",
-		"bin/skill":    "binary",
+		".gitignore":    "bin/\n*.exe\n",
+		"bin/skill":     "binary",
 	})
 
 	var buf bytes.Buffer
@@ -978,7 +978,7 @@ func TestFormatBytes(t *testing.T) {
 
 func TestDefaultIgnoreOptions(t *testing.T) {
 	opts := DefaultIgnoreOptions()
-	
+
 	if !opts.RespectGitignore {
 		t.Error("RespectGitignore should be true by default")
 	}
