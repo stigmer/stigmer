@@ -18,7 +18,9 @@ from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     ComponentMetadata, 
     SubAgentExecution,
     TodoItem,
-    UsageMetrics
+    UsageMetrics,
+    ResolvedExecutionContext,
+    McpServerResolutionStatus,
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase, 
@@ -800,3 +802,81 @@ class StatusBuilder:
             llm_call_count=self._sub_agent_llm_call_count.get(sub_agent_id, 0),
             primary_model=self._sub_agent_primary_model.get(sub_agent_id, ""),
         )
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Resolved Execution Context (Phase 2.5)
+    #
+    # Captures what resources the agent had access to at execution time.
+    # This is set once after all resources are resolved, before streaming begins.
+    # ─────────────────────────────────────────────────────────────────────────────
+    
+    def set_resolved_context(
+        self,
+        environment_keys: List[str],
+        mcp_servers: Dict[str, Tuple[bool, str, int]],
+        skill_names: List[str],
+    ) -> None:
+        """
+        Set the resolved execution context.
+        
+        Called once after all resources are resolved, before streaming begins.
+        This captures the "snapshot" of what the agent has access to, enabling:
+        - Debugging: Understanding what was available when investigating failures
+        - Auditing: Tracking what resources each execution consumed
+        - Security review: Verifying which secrets (by key name only) were exposed
+        - UX transparency: Showing users what their agent can access
+        
+        Args:
+            environment_keys: Environment variable keys (NOT values) available to agent.
+                              Represents the merged result of template, instance, and runtime env.
+            mcp_servers: Dict mapping server slug to (resolved, message, enabled_tool_count).
+                         resolved=True means server was found and configured successfully.
+                         resolved=False means resolution failed (server not found, missing env var).
+            skill_names: Names of skills injected into system prompt.
+        
+        Note:
+            Environment values are intentionally NOT captured for security reasons.
+            Only keys are stored to enable debugging without exposing secrets.
+        """
+        # Build ResolvedExecutionContext proto
+        resolved_context = ResolvedExecutionContext(
+            environment_keys=sorted(environment_keys),  # Sorted for consistent ordering
+            skill_names=sorted(skill_names),            # Sorted for consistent ordering
+        )
+        
+        # Build MCP server status map
+        for slug, (resolved, message, tool_count) in mcp_servers.items():
+            resolved_context.mcp_servers[slug].CopyFrom(
+                McpServerResolutionStatus(
+                    resolved=resolved,
+                    message=message,
+                    enabled_tool_count=tool_count,
+                )
+            )
+        
+        # Assign to status proto
+        self.current_status.resolved_context.CopyFrom(resolved_context)
+        
+        # Structured logging for observability
+        resolved_count = sum(1 for r, _, _ in mcp_servers.values() if r)
+        failed_count = len(mcp_servers) - resolved_count
+        
+        self.logger.info(
+            f"[CONTEXT] execution={self.execution_id} "
+            f"env_keys={len(environment_keys)} "
+            f"mcp_servers={len(mcp_servers)} (resolved={resolved_count}, failed={failed_count}) "
+            f"skills={len(skill_names)}"
+        )
+        
+        # Log details at debug level for troubleshooting
+        if environment_keys:
+            self.logger.debug(f"[CONTEXT] Environment keys: {sorted(environment_keys)}")
+        if mcp_servers:
+            for slug, (resolved, message, tool_count) in mcp_servers.items():
+                status = "OK" if resolved else "FAILED"
+                self.logger.debug(
+                    f"[CONTEXT] MCP server '{slug}': {status} - {message} "
+                    f"(tools={tool_count})"
+                )
+        if skill_names:
+            self.logger.debug(f"[CONTEXT] Skills: {sorted(skill_names)}")
