@@ -150,6 +150,28 @@ message AgentMessage {
 
   // Optional message metadata.
   google.protobuf.Struct metadata = 5;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Streaming State Fields (Phase 2.1)
+  //
+  // These fields track AI message generation progress and resource usage.
+  // Only meaningful for messages where type == MESSAGE_AI.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // True while the AI is actively generating this message, false when complete.
+  // Enables UI to show typing indicator during streaming and final content when done.
+  // Default (false) indicates either a non-AI message or a completed AI message.
+  bool is_streaming = 6;
+
+  // Total tokens consumed to generate this message (prompt + completion tokens).
+  // Zero until message generation completes, or if token usage is unavailable.
+  // Useful for cost tracking and usage analytics at the message level.
+  int32 token_count = 7;
+
+  // Wall-clock time in milliseconds from first token to completion.
+  // Measured from when streaming begins until on_chat_model_end event.
+  // Zero until message generation completes.
+  int32 generation_duration_ms = 8;
 }
 
 // Represents a tool call made by the agent during execution.

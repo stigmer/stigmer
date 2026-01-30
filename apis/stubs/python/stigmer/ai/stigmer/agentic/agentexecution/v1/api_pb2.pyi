@@ -72,18 +72,24 @@ class TodoItem(_message.Message):
     def __init__(self, id: _Optional[str] = ..., content: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.TodoStatus, str]] = ..., created_at: _Optional[str] = ..., updated_at: _Optional[str] = ...) -> None: ...
 
 class AgentMessage(_message.Message):
-    __slots__ = ("type", "content", "timestamp", "tool_calls", "metadata")
+    __slots__ = ("type", "content", "timestamp", "tool_calls", "metadata", "is_streaming", "token_count", "generation_duration_ms")
     TYPE_FIELD_NUMBER: _ClassVar[int]
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
     TOOL_CALLS_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
+    IS_STREAMING_FIELD_NUMBER: _ClassVar[int]
+    TOKEN_COUNT_FIELD_NUMBER: _ClassVar[int]
+    GENERATION_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
     type: _enum_pb2.MessageType
     content: str
     timestamp: str
     tool_calls: _containers.RepeatedCompositeFieldContainer[ToolCall]
     metadata: _struct_pb2.Struct
-    def __init__(self, type: _Optional[_Union[_enum_pb2.MessageType, str]] = ..., content: _Optional[str] = ..., timestamp: _Optional[str] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
+    is_streaming: bool
+    token_count: int
+    generation_duration_ms: int
+    def __init__(self, type: _Optional[_Union[_enum_pb2.MessageType, str]] = ..., content: _Optional[str] = ..., timestamp: _Optional[str] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., is_streaming: bool = ..., token_count: _Optional[int] = ..., generation_duration_ms: _Optional[int] = ...) -> None: ...
 
 class ToolCall(_message.Message):
     __slots__ = ("id", "name", "args", "result", "status", "component_metadata", "started_at", "completed_at", "error")

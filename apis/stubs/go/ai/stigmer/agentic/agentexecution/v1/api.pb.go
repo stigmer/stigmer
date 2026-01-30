@@ -376,9 +376,21 @@ type AgentMessage struct {
 	// Tool calls associated with this message (if type == ai and tools were invoked).
 	ToolCalls []*ToolCall `protobuf:"bytes,4,rep,name=tool_calls,json=toolCalls,proto3" json:"tool_calls,omitempty"`
 	// Optional message metadata.
-	Metadata      *structpb.Struct `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Metadata *structpb.Struct `protobuf:"bytes,5,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	// True while the AI is actively generating this message, false when complete.
+	// Enables UI to show typing indicator during streaming and final content when done.
+	// Default (false) indicates either a non-AI message or a completed AI message.
+	IsStreaming bool `protobuf:"varint,6,opt,name=is_streaming,json=isStreaming,proto3" json:"is_streaming,omitempty"`
+	// Total tokens consumed to generate this message (prompt + completion tokens).
+	// Zero until message generation completes, or if token usage is unavailable.
+	// Useful for cost tracking and usage analytics at the message level.
+	TokenCount int32 `protobuf:"varint,7,opt,name=token_count,json=tokenCount,proto3" json:"token_count,omitempty"`
+	// Wall-clock time in milliseconds from first token to completion.
+	// Measured from when streaming begins until on_chat_model_end event.
+	// Zero until message generation completes.
+	GenerationDurationMs int32 `protobuf:"varint,8,opt,name=generation_duration_ms,json=generationDurationMs,proto3" json:"generation_duration_ms,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *AgentMessage) Reset() {
@@ -444,6 +456,27 @@ func (x *AgentMessage) GetMetadata() *structpb.Struct {
 		return x.Metadata
 	}
 	return nil
+}
+
+func (x *AgentMessage) GetIsStreaming() bool {
+	if x != nil {
+		return x.IsStreaming
+	}
+	return false
+}
+
+func (x *AgentMessage) GetTokenCount() int32 {
+	if x != nil {
+		return x.TokenCount
+	}
+	return 0
+}
+
+func (x *AgentMessage) GetGenerationDurationMs() int32 {
+	if x != nil {
+		return x.GenerationDurationMs
+	}
+	return 0
 }
 
 // Represents a tool call made by the agent during execution.
@@ -815,14 +848,18 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x05 \x01(\tR\tupdatedAt\"\x9b\x02\n" +
+	"updated_at\x18\x05 \x01(\tR\tupdatedAt\"\x95\x03\n" +
 	"\fAgentMessage\x12O\n" +
 	"\x04type\x18\x01 \x01(\x0e21.ai.stigmer.agentic.agentexecution.v1.MessageTypeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x04type\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\x1c\n" +
 	"\ttimestamp\x18\x03 \x01(\tR\ttimestamp\x12M\n" +
 	"\n" +
 	"tool_calls\x18\x04 \x03(\v2..ai.stigmer.agentic.agentexecution.v1.ToolCallR\ttoolCalls\x123\n" +
-	"\bmetadata\x18\x05 \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\x8b\x03\n" +
+	"\bmetadata\x18\x05 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
+	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\x12\x1f\n" +
+	"\vtoken_count\x18\a \x01(\x05R\n" +
+	"tokenCount\x124\n" +
+	"\x16generation_duration_ms\x18\b \x01(\x05R\x14generationDurationMs\"\x8b\x03\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +

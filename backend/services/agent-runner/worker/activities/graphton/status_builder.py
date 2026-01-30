@@ -247,6 +247,7 @@ class StatusBuilder:
                 type=MessageType.MESSAGE_AI,
                 content=token,
                 timestamp=now.isoformat(),
+                is_streaming=True,  # Mark as actively streaming (finalized in on_chat_model_end)
             )
             self.current_status.messages.append(ai_message)
             
@@ -330,6 +331,21 @@ class StatusBuilder:
         # Accumulate token counts for this execution
         self._total_prompt_tokens += prompt_tokens
         self._total_completion_tokens += completion_tokens
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Finalize AI message streaming state fields (Phase 2.1)
+        # ─────────────────────────────────────────────────────────────────────────
+        ai_message = self.current_status.messages[ai_message_index]
+        
+        # Mark streaming complete - UI can now show final content
+        ai_message.is_streaming = False
+        
+        # Set per-message token count (this message's tokens, not cumulative)
+        ai_message.token_count = prompt_tokens + completion_tokens
+        
+        # Set generation duration if we tracked the start time
+        if generation_duration_ms is not None:
+            ai_message.generation_duration_ms = generation_duration_ms
         
         # Log the metrics (structured logging for observability)
         # This prepares for Phase 2.4 (UsageMetrics proto) - for now we log for visibility
