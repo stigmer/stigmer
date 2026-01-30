@@ -67,13 +67,65 @@ func (x *ExecutionContextId) GetValue() string {
 	return ""
 }
 
+// ExecutionContextExecutionIdInput is used to look up an ExecutionContext by the
+// execution ID it belongs to (e.g., AgentExecution ID or WorkflowExecution ID).
+// This is the primary lookup method used by runners to retrieve merged environment
+// variables during execution.
+type ExecutionContextExecutionIdInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The workflow or agent execution ID to look up.
+	// This must match the execution_id field in ExecutionContextSpec.
+	ExecutionId   string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExecutionContextExecutionIdInput) Reset() {
+	*x = ExecutionContextExecutionIdInput{}
+	mi := &file_ai_stigmer_agentic_executioncontext_v1_io_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecutionContextExecutionIdInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecutionContextExecutionIdInput) ProtoMessage() {}
+
+func (x *ExecutionContextExecutionIdInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_executioncontext_v1_io_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecutionContextExecutionIdInput.ProtoReflect.Descriptor instead.
+func (*ExecutionContextExecutionIdInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_executioncontext_v1_io_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ExecutionContextExecutionIdInput) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_executioncontext_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_executioncontext_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"/ai/stigmer/agentic/executioncontext/v1/io.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a\x1bbuf/validate/validate.proto\"2\n" +
 	"\x12ExecutionContextId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\xd6\x02\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"N\n" +
+	" ExecutionContextExecutionIdInput\x12*\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionIdB\xd6\x02\n" +
 	"*com.ai.stigmer.agentic.executioncontext.v1B\aIoProtoP\x01Zbgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1;executioncontextv1\xa2\x02\x04ASAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3"
 
 var (
@@ -88,9 +140,10 @@ func file_ai_stigmer_agentic_executioncontext_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_executioncontext_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_executioncontext_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_agentic_executioncontext_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_executioncontext_v1_io_proto_goTypes = []any{
-	(*ExecutionContextId)(nil), // 0: ai.stigmer.agentic.executioncontext.v1.ExecutionContextId
+	(*ExecutionContextId)(nil),               // 0: ai.stigmer.agentic.executioncontext.v1.ExecutionContextId
+	(*ExecutionContextExecutionIdInput)(nil), // 1: ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput
 }
 var file_ai_stigmer_agentic_executioncontext_v1_io_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -111,7 +164,7 @@ func file_ai_stigmer_agentic_executioncontext_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_executioncontext_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_executioncontext_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

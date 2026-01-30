@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/executioncontext/v1/io.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a\x1b\x62uf/validate/validate.proto\"2\n\x12\x45xecutionContextId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\xf2\x01\n*com.ai.stigmer.agentic.executioncontext.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x02\x32\x41i\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/executioncontext/v1/io.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a\x1b\x62uf/validate/validate.proto\"2\n\x12\x45xecutionContextId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"N\n ExecutionContextExecutionIdInput\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionIdB\xf2\x01\n*com.ai.stigmer.agentic.executioncontext.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x02\x32\x41i\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,6 +35,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n*com.ai.stigmer.agentic.executioncontext.v1B\007IoProtoP\001\242\002\004ASAE\252\002&Ai.Stigmer.Agentic.Executioncontext.V1\312\002&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\342\0022Ai\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\352\002*Ai::Stigmer::Agentic::Executioncontext::V1'
   _globals['_EXECUTIONCONTEXTID'].fields_by_name['value']._loaded_options = None
   _globals['_EXECUTIONCONTEXTID'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_EXECUTIONCONTEXTEXECUTIONIDINPUT'].fields_by_name['execution_id']._loaded_options = None
+  _globals['_EXECUTIONCONTEXTEXECUTIONIDINPUT'].fields_by_name['execution_id']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_EXECUTIONCONTEXTID']._serialized_start=120
   _globals['_EXECUTIONCONTEXTID']._serialized_end=170
+  _globals['_EXECUTIONCONTEXTEXECUTIONIDINPUT']._serialized_start=172
+  _globals['_EXECUTIONCONTEXTEXECUTIONIDINPUT']._serialized_end=250
 # @@protoc_insertion_point(module_scope)

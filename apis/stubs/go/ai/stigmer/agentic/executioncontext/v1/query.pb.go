@@ -26,25 +26,29 @@ var File_ai_stigmer_agentic_executioncontext_v1_query_proto protoreflect.FileDes
 
 const file_ai_stigmer_agentic_executioncontext_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/agentic/executioncontext/v1/query.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a0ai/stigmer/agentic/executioncontext/v1/api.proto\x1a/ai/stigmer/agentic/executioncontext/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xd7\x03\n" +
+	"2ai/stigmer/agentic/executioncontext/v1/query.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a0ai/stigmer/agentic/executioncontext/v1/api.proto\x1a/ai/stigmer/agentic/executioncontext/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xd1\x05\n" +
 	"\x1fExecutionContextQueryController\x12\xcc\x01\n" +
 	"\x03get\x12:.ai.stigmer.agentic.executioncontext.v1.ExecutionContextId\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"O¸\x18K\b\x05\x10\x1f*<unauthorized to get Execution Context (operator-only action)2\astigmer\x12\xde\x01\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\\¸\x18X\b\x05\x10\x1f*Iunauthorized to get Execution Context by reference (operator-only action)2\astigmer\x1a\x04\xa0\xff+6B\xd9\x02\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\\¸\x18X\b\x05\x10\x1f*Iunauthorized to get Execution Context by reference (operator-only action)2\astigmer\x12\xf7\x01\n" +
+	"\x10getByExecutionId\x12H.ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"_¸\x18[\b\x05\x10\x1f*Lunauthorized to get Execution Context by execution ID (operator-only action)2\astigmer\x1a\x04\xa0\xff+6B\xd9\x02\n" +
 	"*com.ai.stigmer.agentic.executioncontext.v1B\n" +
 	"QueryProtoP\x01Zbgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1;executioncontextv1\xa2\x02\x04ASAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_executioncontext_v1_query_proto_goTypes = []any{
 	(*ExecutionContextId)(nil),               // 0: ai.stigmer.agentic.executioncontext.v1.ExecutionContextId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*ExecutionContext)(nil),                 // 2: ai.stigmer.agentic.executioncontext.v1.ExecutionContext
+	(*ExecutionContextExecutionIdInput)(nil), // 2: ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput
+	(*ExecutionContext)(nil),                 // 3: ai.stigmer.agentic.executioncontext.v1.ExecutionContext
 }
 var file_ai_stigmer_agentic_executioncontext_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.get:input_type -> ai.stigmer.agentic.executioncontext.v1.ExecutionContextId
 	1, // 1: ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.get:output_type -> ai.stigmer.agentic.executioncontext.v1.ExecutionContext
-	2, // 3: ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByReference:output_type -> ai.stigmer.agentic.executioncontext.v1.ExecutionContext
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	2, // 2: ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByExecutionId:input_type -> ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput
+	3, // 3: ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.get:output_type -> ai.stigmer.agentic.executioncontext.v1.ExecutionContext
+	3, // 4: ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByReference:output_type -> ai.stigmer.agentic.executioncontext.v1.ExecutionContext
+	3, // 5: ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByExecutionId:output_type -> ai.stigmer.agentic.executioncontext.v1.ExecutionContext
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
