@@ -293,9 +293,13 @@ type ExecutionConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The model to use for this execution.
 	// Example: "claude-sonnet-4-20250514"
-	ModelName     string `protobuf:"bytes,1,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ModelName string `protobuf:"bytes,1,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
+	// Context management configuration for this execution.
+	// Controls automatic summarization behavior for long-running conversations.
+	// When not specified, defaults are derived from the Model Registry.
+	ContextManagement *ContextManagementConfig `protobuf:"bytes,2,opt,name=context_management,json=contextManagement,proto3" json:"context_management,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ExecutionConfig) Reset() {
@@ -335,6 +339,152 @@ func (x *ExecutionConfig) GetModelName() string {
 	return ""
 }
 
+func (x *ExecutionConfig) GetContextManagement() *ContextManagementConfig {
+	if x != nil {
+		return x.ContextManagement
+	}
+	return nil
+}
+
+// ContextManagementConfig controls automatic context summarization behavior.
+//
+// Context summarization monitors token usage and automatically summarizes
+// older conversation history when approaching the model's context window limit.
+// This enables long-running agent conversations without hitting context limits.
+//
+// ## Default Behavior
+//
+// When not specified, defaults are derived from the Model Registry:
+// - Each model has a configured context_window, trigger_threshold, and target_tokens
+// - Summarization is enabled by default for all models
+// - Economy-tier models (claude-haiku-4, gpt-4o-mini) are used for summarization
+//
+// ## Configuration Options
+//
+// - **disable_summarization**: Opt out of automatic summarization entirely
+// - **custom_trigger_threshold**: Override when summarization triggers
+// - **custom_target_tokens**: Override the target size after summarization
+//
+// ## Example YAML
+//
+// Default behavior (use model registry defaults):
+//
+//	execution_config:
+//	  model_name: "claude-sonnet-4.5"
+//	  # context_management not specified = use defaults
+//
+// Disable summarization:
+//
+//	execution_config:
+//	  model_name: "claude-sonnet-4.5"
+//	  context_management:
+//	    disable_summarization: true
+//
+// Custom thresholds (tokens):
+//
+//	execution_config:
+//	  model_name: "claude-sonnet-4.5"
+//	  context_management:
+//	    custom_trigger_threshold: 100000
+//	    custom_target_tokens: 80000
+//
+// @since Phase 3 (Context Summarization Architecture)
+type ContextManagementConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Disable automatic context summarization for this execution.
+	//
+	// When true, the agent will never trigger automatic summarization,
+	// even if the context window approaches the model's limit.
+	//
+	// Use cases:
+	// - Short-lived executions that won't approach context limits
+	// - Debugging context-related issues
+	// - Workflows that manage their own context externally
+	//
+	// Warning: Disabling summarization may cause execution failure
+	// if context exceeds model limits.
+	//
+	// Default: false (summarization enabled based on model defaults)
+	DisableSummarization bool `protobuf:"varint,1,opt,name=disable_summarization,json=disableSummarization,proto3" json:"disable_summarization,omitempty"`
+	// Custom token threshold to trigger summarization.
+	//
+	// When the context token count exceeds this threshold, summarization
+	// is triggered to reduce context size. Set to 0 to use model default.
+	//
+	// The default trigger threshold from Model Registry is typically 90%
+	// of the model's context window (e.g., 180K for 200K context models).
+	//
+	// Must be greater than custom_target_tokens if both are specified.
+	//
+	// Default: 0 (use model default from Model Registry)
+	CustomTriggerThreshold int32 `protobuf:"varint,2,opt,name=custom_trigger_threshold,json=customTriggerThreshold,proto3" json:"custom_trigger_threshold,omitempty"`
+	// Custom target token count after summarization.
+	//
+	// Summarization aims to reduce context to approximately this size.
+	// Set to 0 to use model default.
+	//
+	// The default target from Model Registry is typically 80% of the
+	// model's context window (e.g., 160K for 200K context models).
+	//
+	// Must be less than custom_trigger_threshold if both are specified.
+	//
+	// Default: 0 (use model default from Model Registry)
+	CustomTargetTokens int32 `protobuf:"varint,3,opt,name=custom_target_tokens,json=customTargetTokens,proto3" json:"custom_target_tokens,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *ContextManagementConfig) Reset() {
+	*x = ContextManagementConfig{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ContextManagementConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ContextManagementConfig) ProtoMessage() {}
+
+func (x *ContextManagementConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ContextManagementConfig.ProtoReflect.Descriptor instead.
+func (*ContextManagementConfig) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ContextManagementConfig) GetDisableSummarization() bool {
+	if x != nil {
+		return x.DisableSummarization
+	}
+	return false
+}
+
+func (x *ContextManagementConfig) GetCustomTriggerThreshold() int32 {
+	if x != nil {
+		return x.CustomTriggerThreshold
+	}
+	return 0
+}
+
+func (x *ContextManagementConfig) GetCustomTargetTokens() int32 {
+	if x != nil {
+		return x.CustomTargetTokens
+	}
+	return 0
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
@@ -353,10 +503,15 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x12parent_workflow_id\x18\b \x01(\tR\x10parentWorkflowId\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"0\n" +
+	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\x9e\x01\n" +
 	"\x0fExecutionConfig\x12\x1d\n" +
 	"\n" +
-	"model_name\x18\x01 \x01(\tR\tmodelNameB\xca\x02\n" +
+	"model_name\x18\x01 \x01(\tR\tmodelName\x12l\n" +
+	"\x12context_management\x18\x02 \x01(\v2=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11contextManagement\"\xcc\x01\n" +
+	"\x17ContextManagementConfig\x123\n" +
+	"\x15disable_summarization\x18\x01 \x01(\bR\x14disableSummarization\x12A\n" +
+	"\x18custom_trigger_threshold\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x16customTriggerThreshold\x129\n" +
+	"\x14custom_target_tokens\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x12customTargetTokensB\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tSpecProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -371,22 +526,24 @@ func file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_goTypes = []any{
-	(*AgentExecutionSpec)(nil), // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
-	(*ExecutionConfig)(nil),    // 1: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
-	nil,                        // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
-	(*v1.ExecutionValue)(nil),  // 3: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(*AgentExecutionSpec)(nil),      // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
+	(*ExecutionConfig)(nil),         // 1: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
+	(*ContextManagementConfig)(nil), // 2: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
+	nil,                             // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
+	(*v1.ExecutionValue)(nil),       // 4: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.execution_config:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
-	2, // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
-	3, // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	3, // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
+	2, // 2: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
+	4, // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() }
@@ -400,7 +557,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
