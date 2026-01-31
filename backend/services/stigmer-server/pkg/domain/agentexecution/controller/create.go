@@ -7,22 +7,22 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc/codes"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/store"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
+	"google.golang.org/grpc/codes"
 )
 
 // Context keys for inter-step communication
@@ -66,15 +66,15 @@ func (c *AgentExecutionController) Create(ctx context.Context, execution *agente
 // buildCreatePipeline constructs the pipeline for agent execution creation
 func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*agentexecutionv1.AgentExecution] {
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecution]("agent-execution-create").
-		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).             // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).               // 2. Resolve slug
-		AddStep(newValidateSessionOrAgentStep()).                                            // 3. Validate session_id OR agent_id
-		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).             // 4. Build new state
+		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).                      // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).                        // 2. Resolve slug
+		AddStep(newValidateSessionOrAgentStep()).                                                     // 3. Validate session_id OR agent_id
+		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).                      // 4. Build new state
 		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)). // 5. Create default instance if needed
-		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).               // 6. Create session if needed
-		AddStep(newSetInitialPhaseStep()).                                                   // 7. Set phase to PENDING
-		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).            // 8. Persist execution
-		AddStep(c.newStartWorkflowStep()).                                                   // 9. Start Temporal workflow
+		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).                        // 6. Create session if needed
+		AddStep(newSetInitialPhaseStep()).                                                            // 7. Set phase to PENDING
+		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                     // 8. Persist execution
+		AddStep(c.newStartWorkflowStep()).                                                            // 9. Start Temporal workflow
 		Build()
 }
 
@@ -341,7 +341,7 @@ func (s *createSessionIfNeededStep) Execute(ctx *pipeline.RequestContext[*agente
 	// 3. Build session request with default instance
 	sessionMetadataBuilder := &apiresource.ApiResourceMetadata{
 		Name: fmt.Sprintf("session-%d", time.Now().UnixMilli()), // Auto-generated name
-		Org:  orgID,                                              // All resources belong to an org
+		Org:  orgID,                                             // All resources belong to an org
 	}
 
 	sessionRequest := &sessionv1.Session{
@@ -478,7 +478,7 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 		if len(tokenPreview) > 20 {
 			tokenPreview = tokenPreview[:20] + "..."
 		}
-		
+
 		log.Info().
 			Str("execution_id", executionID).
 			Str("token_preview", tokenPreview).

@@ -37,8 +37,8 @@ func createTestMcpServer(name string) *mcpserverv1.McpServer {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "McpServer",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:       name,
-			Org: "test-org",
+			Name: name,
+			Org:  "test-org",
 		},
 		Spec: &mcpserverv1.McpServerSpec{
 			Description: "Test MCP server for unit tests",
@@ -58,8 +58,8 @@ func createTestMcpServerWithHttp(name string) *mcpserverv1.McpServer {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "McpServer",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:       name,
-			Org: "test-org",
+			Name: name,
+			Org:  "test-org",
 		},
 		Spec: &mcpserverv1.McpServerSpec{
 			Description: "HTTP-based MCP server",
@@ -82,8 +82,8 @@ func createTestMcpServerWithDocker(name string) *mcpserverv1.McpServer {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "McpServer",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:       name,
-			Org: "test-org",
+			Name: name,
+			Org:  "test-org",
 		},
 		Spec: &mcpserverv1.McpServerSpec{
 			Description: "Docker-based MCP server",
@@ -284,8 +284,8 @@ func TestMcpServerController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "McpServer",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Server",
-				Org: "test-org",
+				Name: "Invalid Server",
+				Org:  "test-org",
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "Test description",
@@ -304,8 +304,8 @@ func TestMcpServerController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "McpServer",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Stdio Server",
-				Org: "test-org",
+				Name: "Invalid Stdio Server",
+				Org:  "test-org",
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "Test description",
@@ -328,8 +328,8 @@ func TestMcpServerController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "McpServer",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Docker Server",
-				Org: "test-org",
+				Name: "Invalid Docker Server",
+				Org:  "test-org",
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "Test description",
@@ -568,9 +568,9 @@ func TestMcpServerController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "McpServer",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:         "non-existent-id",
-				Name:       "Non-existent Server",
-				Org: "test-org",
+				Id:   "non-existent-id",
+				Name: "Non-existent Server",
+				Org:  "test-org",
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "Test description",

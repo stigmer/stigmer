@@ -5,13 +5,13 @@ import (
 	"net"
 	"testing"
 
-	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
-	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
@@ -214,8 +214,8 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Test Instance",
-				Org: "test-org",
+				Name: "Test Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -265,8 +265,8 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Instance",
-				Org: "test-org",
+				Name: "Invalid Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				Description: "Test description",
@@ -284,8 +284,8 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Instance",
-				Org: "test-org",
+				Name: "Invalid Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  "non-existent-workflow-id",
@@ -340,8 +340,8 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Org Instance",
-				Org: "org-123", // Same org as workflow
+				Name: "Org Instance",
+				Org:  "org-123", // Same org as workflow
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -367,8 +367,8 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Cross Org Instance",
-				Org: "org-789", // Different org from workflow
+				Name: "Cross Org Instance",
+				Org:  "org-789", // Different org from workflow
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -396,8 +396,8 @@ func TestWorkflowInstanceController_Get(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Get Test Instance",
-				Org: "test-org",
+				Name: "Get Test Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -457,8 +457,8 @@ func TestWorkflowInstanceController_GetByReference(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Get By Reference Test",
-				Org: "test-org",
+				Name: "Get By Reference Test",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -513,8 +513,8 @@ func TestWorkflowInstanceController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Update Test Instance",
-				Org: "test-org",
+				Name: "Update Test Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -553,9 +553,9 @@ func TestWorkflowInstanceController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:         "non-existent-id",
-				Name:       "Non-existent Instance",
-				Org: "test-org",
+				Id:   "non-existent-id",
+				Name: "Non-existent Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  "wfl-test-123",
@@ -583,8 +583,8 @@ func TestWorkflowInstanceController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Test Instance",
-				Org: "test-org",
+				Name: "Delete Test Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -637,8 +637,8 @@ func TestWorkflowInstanceController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Verify Instance",
-				Org: "test-org",
+				Name: "Delete Verify Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -689,8 +689,8 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 				ApiVersion: "agentic.stigmer.ai/v1",
 				Kind:       "WorkflowInstance",
 				Metadata: &apiresource.ApiResourceMetadata{
-					Name:       "Instance " + string(rune(i+'0')),
-					Org: "test-org",
+					Name: "Instance " + string(rune(i+'0')),
+					Org:  "test-org",
 				},
 				Spec: &workflowinstancev1.WorkflowInstanceSpec{
 					WorkflowId:  parentWorkflow.Metadata.Id,
@@ -708,8 +708,8 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Other Instance",
-				Org: "test-org",
+				Name: "Other Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  otherWorkflow.Metadata.Id,
