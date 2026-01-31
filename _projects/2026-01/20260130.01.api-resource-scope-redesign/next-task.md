@@ -17,13 +17,116 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-01-30 08:12
-**Revised**: 2026-01-31 (Phase 2 Sub-Tasks 5-8 completed)
-**Current Task**: Phase 2 COMPLETE - Full SDK cleanup with deprecated package removal
-**Status**: IN_PROGRESS - Phase 1 done, Phase 2 done, ready for Phase 3 (Backend)
+**Revised**: 2026-01-31 (Phase 3 Sub-Task 1 completed - Library Migration)
+**Current Task**: Phase 3 IN PROGRESS - Backend architectural refactoring
+**Status**: IN_PROGRESS - Phase 1 done, Phase 2 done, Phase 3 started (library migration complete)
 
 ## Session Progress (2026-01-31)
 
-### Latest Session (2026-01-31 Late Evening - Sub-Tasks 5-8: Complete SDK Cleanup)
+### Latest Session (2026-01-31 Afternoon - Phase 3, Sub-Task 1: Library Migration)
+
+**Accomplished - Phase 3, Sub-Task 1: Migrate IAM Policy Creation to Libraries**
+
+Executed a critical architectural refactoring to move IAM policy creation components from the service layer to proper library locations:
+
+**Problem Identified:**
+- IAM policy creation logic was embedded in `stigmer-service`
+- Should be in shared libraries (similar to Planton Cloud's api-authorization pattern)
+- Violates separation of concerns - authorization logic should be reusable
+
+**Migration Executed:**
+
+**To `api-authorization` Library** (Core authorization logic):
+1. **IamPolicyCreationService.java** (442 lines)
+   - Configuration-driven FGA tuple creation service
+   - Reads `AuthorizationConfig` from proto metadata
+   - Supports all 5 scope types (PLATFORM, ORGANIZATION, PARENT, OWNER_ONLY, NONE)
+   - Supports all 4 owner types (DIRECT, INHERITED, SELF, NONE)
+   - Added `@Service` annotation for Spring auto-discovery
+
+2. **TupleCreationRequest.java** (192 lines)
+   - Immutable record with builder pattern
+   - Validation at construction (null checks, blank checks)
+   - Defensive copying of mutable collections
+   - Clean API for all tuple creation scenarios
+
+3. **IamPolicyCreationException.java** (132 lines)
+   - Contextual exception with resource kind and ID
+   - Enhanced getMessage() with full context
+   - Multiple constructors for different error scenarios
+
+4. **IamPolicyCreationServiceTest.java** (621 lines)
+   - Comprehensive test suite (28 test methods)
+   - Tests all scope types and owner types
+   - Parameterized tests for resource kinds
+   - Error handling and validation tests
+
+**To `grpc-request` Library** (Pipeline integration):
+1. **CreateAuthorizationTuplesStep.java** (352 lines)
+   - Factory for creating pipeline steps
+   - Type-safe field accessor pattern
+   - 5 factory methods for different resource patterns:
+     - `forOrgScopedResource()` - agent, skill, workflow, etc.
+     - `forResourceWithParent()` - agent_instance, workflow_instance
+     - `forParentScopedResource()` - agent_execution
+     - `forPlatformScopedResource()` - organization
+     - `forOwnerOnlyResource()` - api_key
+   - Added `@Component` annotation for Spring auto-discovery
+
+**Deleted from stigmer-service:**
+- Empty `apiauthorization/` package structure
+- All migrated source and test files
+
+**Architectural Decision Made:**
+- **Initial approach**: Removed `@Service`/`@Component`, created config class
+- **DDD analysis**: Identified these as Application/Infrastructure services, not Domain services
+- **Final approach**: Added annotations back - these are framework-aware by design
+- **Result**: Simpler, cleaner, consistent with existing library patterns
+
+**Package Structure After Migration:**
+```
+api-authorization/
+├── exception/
+│   ├── AuthorizationCheckFailedException.java (existing)
+│   └── IamPolicyCreationException.java (NEW)
+├── library/
+│   └── ApiRequestAuthorizationResourceIdExtractor.java (existing)
+├── repo/
+│   └── IamPolicyGrpcRepo.java (existing)
+└── service/
+    ├── RequestAuthorizationService.java (existing)
+    ├── IamPolicyCreationService.java (NEW)
+    └── TupleCreationRequest.java (NEW)
+
+grpc-request/pipeline/step/common/
+├── ... (existing steps)
+└── CreateAuthorizationTuplesStep.java (NEW)
+```
+
+**Key Benefits:**
+1. **Reusability**: Authorization logic available to all services (not just stigmer-service)
+2. **Proper separation**: Core logic in api-authorization, pipeline integration in grpc-request
+3. **Consistency**: Follows existing library patterns (Spring annotations, component scanning)
+4. **Testability**: Comprehensive test suite migrated with the code
+5. **Zero circular dependencies**: Proper dependency graph maintained
+
+**Verification:**
+- All files successfully migrated
+- Spring annotations added appropriately
+- Package structure validated
+- No broken imports or dependencies
+
+**Files Changed (stigmer-cloud repo):**
+- **Created**: 5 files (3 in api-authorization, 1 in grpc-request, 1 test)
+- **Deleted**: 6 files (5 from stigmer-service + 1 config file)
+- **Net impact**: Clean library structure, no service-level duplication
+
+**Next Steps for Phase 3:**
+- Sub-Task 2: Update domain handlers to use migrated components
+- Sub-Task 3: Update FGA model files to remove scope-based relations
+- Sub-Task 4: Add visibility-based filtering to list operations
+
+### Previous Session (2026-01-31 Late Evening - Sub-Tasks 5-8: Complete SDK Cleanup)
 
 **Accomplished - Phase 2, Sub-Tasks 5-8: Complete SDK Cleanup and Deprecated Package Removal**
 
