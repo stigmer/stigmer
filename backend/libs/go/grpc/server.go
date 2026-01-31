@@ -226,9 +226,12 @@ func NotFoundError(resource string, id string) error {
 	return status.Errorf(codes.NotFound, "%s not found: %s", resource, id)
 }
 
-// InvalidArgumentError returns a gRPC INVALID_ARGUMENT error
-func InvalidArgumentError(message string) error {
-	return status.Error(codes.InvalidArgument, message)
+// InvalidArgumentError returns a gRPC INVALID_ARGUMENT error with format string support
+func InvalidArgumentError(format string, args ...interface{}) error {
+	if len(args) == 0 {
+		return status.Error(codes.InvalidArgument, format)
+	}
+	return status.Errorf(codes.InvalidArgument, format, args...)
 }
 
 // InternalError returns a gRPC INTERNAL error
@@ -239,6 +242,24 @@ func InternalError(err error, message string) error {
 // AlreadyExistsError returns a gRPC ALREADY_EXISTS error
 func AlreadyExistsError(resource string, id string) error {
 	return status.Errorf(codes.AlreadyExists, "%s already exists: %s", resource, id)
+}
+
+// FailedPreconditionError returns a gRPC FAILED_PRECONDITION error with format string support.
+// Use this when the system is not in a state required for the operation to execute.
+func FailedPreconditionError(format string, args ...interface{}) error {
+	if len(args) == 0 {
+		return status.Error(codes.FailedPrecondition, format)
+	}
+	return status.Errorf(codes.FailedPrecondition, format, args...)
+}
+
+// UnavailableError returns a gRPC UNAVAILABLE error with format string support.
+// Use this when a service is temporarily unavailable (e.g., Temporal not reachable).
+func UnavailableError(format string, args ...interface{}) error {
+	if len(args) == 0 {
+		return status.Error(codes.Unavailable, format)
+	}
+	return status.Errorf(codes.Unavailable, format, args...)
 }
 
 // NewInProcessConnection creates a new gRPC client connection to this server

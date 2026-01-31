@@ -141,7 +141,7 @@ func (s *loadExistingForApprovalStep) Execute(ctx *pipeline.RequestContext[*agen
 			Err(err).
 			Str("execution_id", executionID).
 			Msg("Failed to load AgentExecution")
-		return grpclib.InternalError("failed to load agent execution: %v", err)
+		return grpclib.InternalError(err, "failed to load agent execution")
 	}
 
 	// Store loaded execution in context
