@@ -130,3 +130,39 @@ def mock_api_resource_reference():
     ref.org = "test-org"
     ref.kind = "McpServer"
     return ref
+
+
+# =============================================================================
+# SubAgent Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def mock_sub_agent():
+    """Create a mock SubAgent proto message."""
+    sub_agent = MagicMock()
+    sub_agent.name = "code-reviewer"
+    sub_agent.description = "Reviews code for quality and security"
+    sub_agent.instructions = "You are a code review expert. Focus on security issues."
+    sub_agent.mcp_access = []
+    sub_agent.skill_refs = []
+    return sub_agent
+
+
+@pytest.fixture
+def mock_mcp_access():
+    """Create a mock McpAccess proto message."""
+    access = MagicMock()
+    access.mcp_server = "github"
+    access.enabled_tools = ["search_code", "get_file"]
+    return access
+
+
+@pytest.fixture
+def mock_mcp_server_usage():
+    """Create a mock McpServerUsage proto message."""
+    usage = MagicMock()
+    usage.mcp_server_ref.slug = "github"
+    usage.enabled_tools = ["search_code", "get_file", "create_pr", "list_repos"]
+    usage.tool_approval_overrides = []
+    return usage
