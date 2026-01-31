@@ -81,7 +81,7 @@ class WorkflowExecutionCommandControllerServicer(object):
         The workflow execution engine (Temporal) picks up the execution and begins processing tasks.
 
         Input Validation:
-        - metadata.owner_scope must be ORGANIZATION or IDENTITY_ACCOUNT (not PLATFORM)
+        - metadata.org must be specified
         - spec.workflow_instance_id is required and must reference an existing WorkflowInstance
         - api_version must be exactly "agentic.stigmer.ai/v1"
         - kind must be exactly "WorkflowExecution"
@@ -135,7 +135,7 @@ class WorkflowExecutionCommandControllerServicer(object):
 
         - INVALID_ARGUMENT:
         - workflow_instance_id is missing or invalid
-        - owner_scope is PLATFORM (not allowed)
+        - org is missing
         - api_version or kind is incorrect
 
         - PERMISSION_DENIED:
@@ -158,7 +158,7 @@ class WorkflowExecutionCommandControllerServicer(object):
         "kind": "WorkflowExecution",
         "metadata": {
         "name": "customer-onboarding-20250111-143022",
-        "owner_scope": 2  // ORGANIZATION
+        "org": "acme"
         },
         "spec": {
         "workflow_instance_id": "wfi-customer-onboarding-prod",
@@ -181,7 +181,7 @@ class WorkflowExecutionCommandControllerServicer(object):
         "metadata": {
         "id": "wfx-abc123xyz456",  // Auto-generated
         "name": "customer-onboarding-20250111-143022",
-        "owner_scope": 2
+        "org": "acme"
         },
         "spec": { ... },  // Same as request
         "status": {

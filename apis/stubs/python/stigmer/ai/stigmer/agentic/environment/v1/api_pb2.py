@@ -28,7 +28,7 @@ from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_comm
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/environment/v1/api.proto\x12!ai.stigmer.agentic.environment.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\"\x96\x04\n\x0b\x45nvironment\x12=\n\x0b\x61pi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n\x15\x61gentic.stigmer.ai/v1R\napiVersion\x12&\n\x04kind\x18\x02 \x01(\tB\x12\xbaH\x0fr\r\n\x0b\x45nvironmentR\x04kind\x12\x87\x02\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xb5\x01\xbaH\xb1\x01\xba\x01\xaa\x01\n,environment.owner_scope.org_or_identity_only\x12JEnvironment resources can only have organization or identity_account scope\x1a.this.owner_scope == 2 || this.owner_scope == 3\xc8\x01\x01R\x08metadata\x12\x46\n\x04spec\x18\x04 \x01(\x0b\x32\x32.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\x04spec\x12N\n\x06status\x18\x05 \x01(\x0b\x32\x36.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\xda\x01\n%com.ai.stigmer.agentic.environment.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/environment/v1/api.proto\x12!ai.stigmer.agentic.environment.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\"\xe5\x02\n\x0b\x45nvironment\x12=\n\x0b\x61pi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n\x15\x61gentic.stigmer.ai/v1R\napiVersion\x12&\n\x04kind\x18\x02 \x01(\tB\x12\xbaH\x0fr\r\n\x0b\x45nvironmentR\x04kind\x12W\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\x08metadata\x12\x46\n\x04spec\x18\x04 \x01(\x0b\x32\x32.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\x04spec\x12N\n\x06status\x18\x05 \x01(\x0b\x32\x36.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\xda\x01\n%com.ai.stigmer.agentic.environment.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,7 +41,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ENVIRONMENT'].fields_by_name['kind']._loaded_options = None
   _globals['_ENVIRONMENT'].fields_by_name['kind']._serialized_options = b'\272H\017r\r\n\013Environment'
   _globals['_ENVIRONMENT'].fields_by_name['metadata']._loaded_options = None
-  _globals['_ENVIRONMENT'].fields_by_name['metadata']._serialized_options = b'\272H\261\001\272\001\252\001\n,environment.owner_scope.org_or_identity_only\022JEnvironment resources can only have organization or identity_account scope\032.this.owner_scope == 2 || this.owner_scope == 3\310\001\001'
+  _globals['_ENVIRONMENT'].fields_by_name['metadata']._serialized_options = b'\272H\003\310\001\001'
   _globals['_ENVIRONMENT']._serialized_start=250
-  _globals['_ENVIRONMENT']._serialized_end=784
+  _globals['_ENVIRONMENT']._serialized_end=607
 # @@protoc_insertion_point(module_scope)

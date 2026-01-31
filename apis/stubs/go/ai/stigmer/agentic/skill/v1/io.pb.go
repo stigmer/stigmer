@@ -8,7 +8,6 @@ package skillv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -77,10 +76,9 @@ func (x *SkillId) GetValue() string {
 // send these fields - backend is the single source of truth for parsing.
 type PushSkillRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Owner scope of the skill (platform or organization).
-	Scope apiresource.ApiResourceOwnerScope `protobuf:"varint,1,opt,name=scope,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceOwnerScope" json:"scope,omitempty"`
-	// Organization ID (required if scope = organization).
-	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
+	// Organization that owns this skill. Required.
+	// All skills belong to exactly one organization.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Skill artifact as a ZIP file (binary content).
 	// The ZIP must contain:
 	// - SKILL.md (required): Interface definition and documentation with YAML frontmatter
@@ -89,16 +87,16 @@ type PushSkillRequest struct {
 	//
 	// - Tool executables/scripts (optional)
 	// - Additional files referenced in SKILL.md
-	Artifact []byte `protobuf:"bytes,3,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	Artifact []byte `protobuf:"bytes,2,opt,name=artifact,proto3" json:"artifact,omitempty"`
 	// Optional tag to associate with this version.
 	// If provided, this tag will point to the new version.
 	// If empty/not provided, the version will only be accessible via its hash.
 	// Examples: "stable", "v1.0", "latest"
-	Tag string `protobuf:"bytes,4,opt,name=tag,proto3" json:"tag,omitempty"`
+	Tag string `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
 	// Source information tracking where the skill artifacts originated from.
 	// For local pushes, CLI auto-detects git information if available.
 	// For remote pushes, this contains the git URL, ref, and subdir.
-	Source        *SkillSource `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`
+	Source        *SkillSource `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -131,13 +129,6 @@ func (x *PushSkillRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use PushSkillRequest.ProtoReflect.Descriptor instead.
 func (*PushSkillRequest) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *PushSkillRequest) GetScope() apiresource.ApiResourceOwnerScope {
-	if x != nil {
-		return x.Scope
-	}
-	return apiresource.ApiResourceOwnerScope(0)
 }
 
 func (x *PushSkillRequest) GetOrg() string {
@@ -266,15 +257,14 @@ var File_ai_stigmer_agentic_skill_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/skill/v1/io.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"'\n" +
+	"$ai/stigmer/agentic/skill/v1/io.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"'\n" +
 	"\aSkillId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x90\x02\n" +
-	"\x10PushSkillRequest\x12U\n" +
-	"\x05scope\x18\x01 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05scope\x12\x10\n" +
-	"\x03org\x18\x02 \x01(\tR\x03org\x12\"\n" +
-	"\bartifact\x18\x03 \x01(\fB\x06\xbaH\x03\xc8\x01\x01R\bartifact\x12-\n" +
-	"\x03tag\x18\x04 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12@\n" +
-	"\x06source\x18\x05 \x01(\v2(.ai.stigmer.agentic.skill.v1.SkillSourceR\x06source\"N\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xc7\x01\n" +
+	"\x10PushSkillRequest\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\"\n" +
+	"\bartifact\x18\x02 \x01(\fB\x06\xbaH\x03\xc8\x01\x01R\bartifact\x12-\n" +
+	"\x03tag\x18\x03 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12@\n" +
+	"\x06source\x18\x04 \x01(\v2(.ai.stigmer.agentic.skill.v1.SkillSourceR\x06sourceJ\x04\b\x05\x10\x06\"N\n" +
 	"\x12GetArtifactRequest\x128\n" +
 	"\x14artifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12artifactStorageKey\"1\n" +
 	"\x13GetArtifactResponse\x12\x1a\n" +
@@ -295,21 +285,19 @@ func file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_skill_v1_io_proto_goTypes = []any{
-	(*SkillId)(nil),                        // 0: ai.stigmer.agentic.skill.v1.SkillId
-	(*PushSkillRequest)(nil),               // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest
-	(*GetArtifactRequest)(nil),             // 2: ai.stigmer.agentic.skill.v1.GetArtifactRequest
-	(*GetArtifactResponse)(nil),            // 3: ai.stigmer.agentic.skill.v1.GetArtifactResponse
-	(apiresource.ApiResourceOwnerScope)(0), // 4: ai.stigmer.commons.apiresource.ApiResourceOwnerScope
-	(*SkillSource)(nil),                    // 5: ai.stigmer.agentic.skill.v1.SkillSource
+	(*SkillId)(nil),             // 0: ai.stigmer.agentic.skill.v1.SkillId
+	(*PushSkillRequest)(nil),    // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest
+	(*GetArtifactRequest)(nil),  // 2: ai.stigmer.agentic.skill.v1.GetArtifactRequest
+	(*GetArtifactResponse)(nil), // 3: ai.stigmer.agentic.skill.v1.GetArtifactResponse
+	(*SkillSource)(nil),         // 4: ai.stigmer.agentic.skill.v1.SkillSource
 }
 var file_ai_stigmer_agentic_skill_v1_io_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest.scope:type_name -> ai.stigmer.commons.apiresource.ApiResourceOwnerScope
-	5, // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest.source:type_name -> ai.stigmer.agentic.skill.v1.SkillSource
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	4, // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest.source:type_name -> ai.stigmer.agentic.skill.v1.SkillSource
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_skill_v1_io_proto_init() }

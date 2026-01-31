@@ -16,14 +16,9 @@ message Workflow {
   string kind = 2 [(buf.validate.field).string.const = 'Workflow'];
 
   // Standard resource metadata including name, id, labels, and tags.
-  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
-    (buf.validate.field).required = true,
-    (buf.validate.field).cel = {
-      id: "workflow.owner_scope.platform_or_org_only"
-      message: "Workflow resources can only have platform or organization scope"
-      expression: "this.owner_scope == 1 || this.owner_scope == 2"
-    }
-  ];
+  // Workflows belong to an organization and can be PUBLIC or PRIVATE.
+  // Reference format: "org/slug" (e.g., "stigmer/deploy", "acme/onboarding")
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
   // Workflow-specific configuration.
   WorkflowSpec spec = 4;

@@ -9,7 +9,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ApiResourceMetadata(_message.Message):
-    __slots__ = ("name", "slug", "id", "org", "owner_scope", "labels", "annotations", "tags", "version")
+    __slots__ = ("name", "slug", "id", "org", "visibility", "labels", "annotations", "tags", "version")
     class LabelsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -28,7 +28,7 @@ class ApiResourceMetadata(_message.Message):
     SLUG_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
-    OWNER_SCOPE_FIELD_NUMBER: _ClassVar[int]
+    VISIBILITY_FIELD_NUMBER: _ClassVar[int]
     LABELS_FIELD_NUMBER: _ClassVar[int]
     ANNOTATIONS_FIELD_NUMBER: _ClassVar[int]
     TAGS_FIELD_NUMBER: _ClassVar[int]
@@ -37,12 +37,12 @@ class ApiResourceMetadata(_message.Message):
     slug: str
     id: str
     org: str
-    owner_scope: _enum_pb2.ApiResourceOwnerScope
+    visibility: _enum_pb2.ApiResourceVisibility
     labels: _containers.ScalarMap[str, str]
     annotations: _containers.ScalarMap[str, str]
     tags: _containers.RepeatedScalarFieldContainer[str]
     version: ApiResourceMetadataVersion
-    def __init__(self, name: _Optional[str] = ..., slug: _Optional[str] = ..., id: _Optional[str] = ..., org: _Optional[str] = ..., owner_scope: _Optional[_Union[_enum_pb2.ApiResourceOwnerScope, str]] = ..., labels: _Optional[_Mapping[str, str]] = ..., annotations: _Optional[_Mapping[str, str]] = ..., tags: _Optional[_Iterable[str]] = ..., version: _Optional[_Union[ApiResourceMetadataVersion, _Mapping]] = ...) -> None: ...
+    def __init__(self, name: _Optional[str] = ..., slug: _Optional[str] = ..., id: _Optional[str] = ..., org: _Optional[str] = ..., visibility: _Optional[_Union[_enum_pb2.ApiResourceVisibility, str]] = ..., labels: _Optional[_Mapping[str, str]] = ..., annotations: _Optional[_Mapping[str, str]] = ..., tags: _Optional[_Iterable[str]] = ..., version: _Optional[_Union[ApiResourceMetadataVersion, _Mapping]] = ...) -> None: ...
 
 class ApiResourceMetadataVersion(_message.Message):
     __slots__ = ("id", "message", "previous_version_id")

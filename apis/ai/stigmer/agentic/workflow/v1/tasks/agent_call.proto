@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.workflow.v1.tasks;
 
-import "ai/stigmer/commons/apiresource/enum.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
@@ -11,12 +10,11 @@ import "buf/validate/validate.proto";
 // This enables workflows to invoke AI agents as tasks, delegating complex
 // operations to specialized agents with their own skills and context.
 //
-// The agent is referenced by slug (name) and scope. The runtime resolves
-// the (slug, scope) pair to an actual agent:
-// 1. If scope is PLATFORM: look only in platform-scoped agents (public)
-// 2. If scope is ORGANIZATION: look only in org agents
-// 3. If scope is UNSPECIFIED: defaults to ORGANIZATION scope
-// 4. Before explicit scope lookup, check manifest (current deployment)
+// The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer").
+// Resolution order:
+// 1. If org is specified: look in that org's agents
+// 2. If org is empty: use the workflow's org
+// 3. Before external lookup, check manifest (current deployment)
 //
 // The workflow's execution context (environment variables, secrets) is
 // passed to the agent invocation, allowing agents to access workflow state.
@@ -25,8 +23,8 @@ import "buf/validate/validate.proto";
 //   - analyze:
 //       call: agent
 //       with:
-//         agent: "code-reviewer"
-//         scope: organization
+//         agent: "code-reviewer"           # Uses workflow's org
+//         # OR agent: "stigmer/code-reviewer"  # Explicit org reference
 //         message: "Review this code: ${ $context.fetchCode.body }"
 //         env:
 //           GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
@@ -36,20 +34,21 @@ import "buf/validate/validate.proto";
 //
 // Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
 message AgentCallTaskConfig {
-  // Agent slug/name to invoke (e.g., "code-reviewer", "data-analyst").
-  // The runtime resolves this to an actual agent considering the scope.
+  // Agent reference in "org/slug" or "slug" format.
+  // - "slug" only: uses the workflow's organization
+  // - "org/slug": explicit organization reference
+  // Examples: "code-reviewer", "stigmer/code-reviewer", "acme/data-analyst"
   // Required field.
   string agent = 1 [
     (buf.validate.field).required = true,
     (buf.validate.field).string.min_len = 1,
-    (buf.validate.field).string.max_len = 63
+    (buf.validate.field).string.max_len = 127
   ];
 
-  // Agent owner scope (platform or organization).
-  // Determines where to resolve the agent slug.
-  // Default (UNSPECIFIED) = ORGANIZATION scope.
-  // Optional (defaults to organization if not specified).
-  ai.stigmer.commons.apiresource.ApiResourceOwnerScope scope = 2;
+  // Explicit organization for agent resolution. Optional.
+  // If empty, the org is parsed from the agent field or defaults to workflow's org.
+  // Use this when you need to override the parsed org.
+  string org = 2;
 
   // Instructions/prompt to send to the agent.
   // Supports interpolation of workflow variables using JQ expressions.

@@ -28,7 +28,7 @@ from ai.stigmer.commons.apiresource import metadata_pb2 as ai_dot_stigmer_dot_co
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/workflow/v1/api.proto\x12\x1e\x61i.stigmer.agentic.workflow.v1\x1a)ai/stigmer/agentic/workflow/v1/spec.proto\x1a+ai/stigmer/agentic/workflow/v1/status.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a\x1b\x62uf/validate/validate.proto\"\xf4\x03\n\x08Workflow\x12=\n\x0b\x61pi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n\x15\x61gentic.stigmer.ai/v1R\napiVersion\x12#\n\x04kind\x18\x02 \x01(\tB\x0f\xbaH\x0cr\n\n\x08WorkflowR\x04kind\x12\xf9\x01\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xa7\x01\xbaH\xa3\x01\xba\x01\x9c\x01\n)workflow.owner_scope.platform_or_org_only\x12?Workflow resources can only have platform or organization scope\x1a.this.owner_scope == 1 || this.owner_scope == 2\xc8\x01\x01R\x08metadata\x12@\n\x04spec\x18\x04 \x01(\x0b\x32,.ai.stigmer.agentic.workflow.v1.WorkflowSpecR\x04spec\x12\x46\n\x06status\x18\x05 \x01(\x0b\x32..ai.stigmer.agentic.workflow.v1.WorkflowStatusR\x06statusB\xcb\x01\n\"com.ai.stigmer.agentic.workflow.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\x1e\x41i.Stigmer.Agentic.Workflow.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/workflow/v1/api.proto\x12\x1e\x61i.stigmer.agentic.workflow.v1\x1a)ai/stigmer/agentic/workflow/v1/spec.proto\x1a+ai/stigmer/agentic/workflow/v1/status.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a\x1b\x62uf/validate/validate.proto\"\xd1\x02\n\x08Workflow\x12=\n\x0b\x61pi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n\x15\x61gentic.stigmer.ai/v1R\napiVersion\x12#\n\x04kind\x18\x02 \x01(\tB\x0f\xbaH\x0cr\n\n\x08WorkflowR\x04kind\x12W\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\x08metadata\x12@\n\x04spec\x18\x04 \x01(\x0b\x32,.ai.stigmer.agentic.workflow.v1.WorkflowSpecR\x04spec\x12\x46\n\x06status\x18\x05 \x01(\x0b\x32..ai.stigmer.agentic.workflow.v1.WorkflowStatusR\x06statusB\xcb\x01\n\"com.ai.stigmer.agentic.workflow.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\x1e\x41i.Stigmer.Agentic.Workflow.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,7 +41,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_WORKFLOW'].fields_by_name['kind']._loaded_options = None
   _globals['_WORKFLOW'].fields_by_name['kind']._serialized_options = b'\272H\014r\n\n\010Workflow'
   _globals['_WORKFLOW'].fields_by_name['metadata']._loaded_options = None
-  _globals['_WORKFLOW'].fields_by_name['metadata']._serialized_options = b'\272H\243\001\272\001\234\001\n)workflow.owner_scope.platform_or_org_only\022?Workflow resources can only have platform or organization scope\032.this.owner_scope == 1 || this.owner_scope == 2\310\001\001'
+  _globals['_WORKFLOW'].fields_by_name['metadata']._serialized_options = b'\272H\003\310\001\001'
   _globals['_WORKFLOW']._serialized_start=241
-  _globals['_WORKFLOW']._serialized_end=741
+  _globals['_WORKFLOW']._serialized_end=578
 # @@protoc_insertion_point(module_scope)

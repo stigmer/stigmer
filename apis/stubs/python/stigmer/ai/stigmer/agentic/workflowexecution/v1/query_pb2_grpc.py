@@ -126,7 +126,7 @@ class WorkflowExecutionQueryControllerServicer(object):
         "metadata": {
         "id": "wfx-abc123xyz456",
         "name": "customer-onboarding-20250111-143022",
-        "owner_scope": 2  // ORGANIZATION
+        "org": "acme"
         },
         "spec": {
         "workflow_instance_id": "wfi-customer-onboarding-prod",
@@ -154,8 +154,7 @@ class WorkflowExecutionQueryControllerServicer(object):
         Authorization:
         Custom authorization filters results to only include executions the user can access:
         - Organization users: Only executions in their organization
-        - Identity account users: Only their own executions
-        - Platform admins: All executions (filtered by owner_scope in request)
+        - Users with cross-org access: Public executions from other orgs
 
         Pagination:
         - page_size: Maximum number of results to return (default: 50, max: 100)

@@ -19,14 +19,8 @@ message AgentExecution {
   string kind = 2 [(buf.validate.field).string.const = 'AgentExecution'];
 
   // Standard resource metadata including name, id, labels, and tags.
-  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
-    (buf.validate.field).required = true,
-    (buf.validate.field).cel = {
-      id: "agent_execution.owner_scope.unspecified_only"
-      message: "AgentExecution owner_scope must be unspecified (inherits premission from session)"
-      expression: "this.owner_scope == 0"
-    }
-  ];
+  // Agent executions belong to an organization and inherit permissions from the session.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
   // User-provided inputs for this execution.
   // Contains: session_id, agent_id, message, execution_config, environment_id, credential_overrides

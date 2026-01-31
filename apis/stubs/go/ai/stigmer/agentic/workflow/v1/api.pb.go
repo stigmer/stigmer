@@ -31,6 +31,8 @@ type Workflow struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata including name, id, labels, and tags.
+	// Workflows belong to an organization and can be PUBLIC or PRIVATE.
+	// Reference format: "org/slug" (e.g., "stigmer/deploy", "acme/onboarding")
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Workflow-specific configuration.
 	Spec *WorkflowSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
@@ -109,16 +111,15 @@ var File_ai_stigmer_agentic_workflow_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/workflow/v1/api.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a)ai/stigmer/agentic/workflow/v1/spec.proto\x1a+ai/stigmer/agentic/workflow/v1/status.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a\x1bbuf/validate/validate.proto\"\xf4\x03\n" +
+	"(ai/stigmer/agentic/workflow/v1/api.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a)ai/stigmer/agentic/workflow/v1/spec.proto\x1a+ai/stigmer/agentic/workflow/v1/status.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a\x1bbuf/validate/validate.proto\"\xd1\x02\n" +
 	"\bWorkflow\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
 	"apiVersion\x12#\n" +
 	"\x04kind\x18\x02 \x01(\tB\x0f\xbaH\fr\n" +
 	"\n" +
-	"\bWorkflowR\x04kind\x12\xf9\x01\n" +
-	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xa7\x01\xbaH\xa3\x01\xba\x01\x9c\x01\n" +
-	")workflow.owner_scope.platform_or_org_only\x12?Workflow resources can only have platform or organization scope\x1a.this.owner_scope == 1 || this.owner_scope == 2\xc8\x01\x01R\bmetadata\x12@\n" +
+	"\bWorkflowR\x04kind\x12W\n" +
+	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12@\n" +
 	"\x04spec\x18\x04 \x01(\v2,.ai.stigmer.agentic.workflow.v1.WorkflowSpecR\x04spec\x12F\n" +
 	"\x06status\x18\x05 \x01(\v2..ai.stigmer.agentic.workflow.v1.WorkflowStatusR\x06statusB\x9f\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\bApiProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"

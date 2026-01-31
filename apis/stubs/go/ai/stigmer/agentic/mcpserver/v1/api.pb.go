@@ -30,7 +30,7 @@ const (
 // - Can be referenced by multiple agents (reusability)
 // - Has proper access control via FGA (authorization)
 // - Can be discovered in the marketplace (discoverability)
-// - Supports all three scopes: platform, organization, identity_account
+// - Belongs to an organization with PUBLIC/PRIVATE visibility
 //
 // Lifecycle:
 // 1. Create McpServer definition (this resource) with server type and env requirements
@@ -63,21 +63,19 @@ type McpServer struct {
 	// Resource kind identifier.
 	// Must be exactly "McpServer".
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// Standard resource metadata including name, id, scope, labels, and tags.
+	// Standard resource metadata including name, id, org, visibility, labels, and tags.
 	//
 	// Key fields:
 	// - name: Human-readable name (e.g., "GitHub MCP Server")
 	// - slug: URL-friendly identifier (e.g., "github")
-	// - owner_scope: Visibility scope (platform, organization, or identity_account)
-	// - org: Organization ID (required if owner_scope = organization)
+	// - org: Organization that owns this MCP server (required)
+	// - visibility: Access control (PUBLIC or PRIVATE)
 	//
-	// Scope semantics:
-	// - platform: Public/marketplace server, visible to all users
-	// - organization: Private to org members
-	// - identity_account: Personal, visible only to the owner
+	// Visibility semantics:
+	// - PUBLIC: Marketplace server, discoverable by all users
+	// - PRIVATE: Only accessible to organization members
 	//
-	// Note: Unlike Skill (which restricts to platform/org), McpServer supports
-	// all three scopes to enable personal MCP server configurations.
+	// Reference format: "org/slug" (e.g., "stigmer/github", "acme/internal-tools")
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// User-provided MCP server configuration (desired state).
 	// Defines the server type, connection details, and environment requirements.

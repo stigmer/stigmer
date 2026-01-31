@@ -52,7 +52,7 @@ type WorkflowExecutionCommandControllerClient interface {
 	// The workflow execution engine (Temporal) picks up the execution and begins processing tasks.
 	//
 	// Input Validation:
-	// - metadata.owner_scope must be ORGANIZATION or IDENTITY_ACCOUNT (not PLATFORM)
+	// - metadata.org must be specified
 	// - spec.workflow_instance_id is required and must reference an existing WorkflowInstance
 	// - api_version must be exactly "agentic.stigmer.ai/v1"
 	// - kind must be exactly "WorkflowExecution"
@@ -106,7 +106,7 @@ type WorkflowExecutionCommandControllerClient interface {
 	//
 	// - INVALID_ARGUMENT:
 	//   - workflow_instance_id is missing or invalid
-	//   - owner_scope is PLATFORM (not allowed)
+	//   - org is missing
 	//   - api_version or kind is incorrect
 	//
 	// - PERMISSION_DENIED:
@@ -130,7 +130,7 @@ type WorkflowExecutionCommandControllerClient interface {
 	//	  "kind": "WorkflowExecution",
 	//	  "metadata": {
 	//	    "name": "customer-onboarding-20250111-143022",
-	//	    "owner_scope": 2  // ORGANIZATION
+	//	    "org": "acme"
 	//	  },
 	//	  "spec": {
 	//	    "workflow_instance_id": "wfi-customer-onboarding-prod",
@@ -154,7 +154,7 @@ type WorkflowExecutionCommandControllerClient interface {
 	//	  "metadata": {
 	//	    "id": "wfx-abc123xyz456",  // Auto-generated
 	//	    "name": "customer-onboarding-20250111-143022",
-	//	    "owner_scope": 2
+	//	    "org": "acme"
 	//	  },
 	//	  "spec": { ... },  // Same as request
 	//	  "status": {
@@ -415,7 +415,7 @@ type WorkflowExecutionCommandControllerServer interface {
 	// The workflow execution engine (Temporal) picks up the execution and begins processing tasks.
 	//
 	// Input Validation:
-	// - metadata.owner_scope must be ORGANIZATION or IDENTITY_ACCOUNT (not PLATFORM)
+	// - metadata.org must be specified
 	// - spec.workflow_instance_id is required and must reference an existing WorkflowInstance
 	// - api_version must be exactly "agentic.stigmer.ai/v1"
 	// - kind must be exactly "WorkflowExecution"
@@ -469,7 +469,7 @@ type WorkflowExecutionCommandControllerServer interface {
 	//
 	// - INVALID_ARGUMENT:
 	//   - workflow_instance_id is missing or invalid
-	//   - owner_scope is PLATFORM (not allowed)
+	//   - org is missing
 	//   - api_version or kind is incorrect
 	//
 	// - PERMISSION_DENIED:
@@ -493,7 +493,7 @@ type WorkflowExecutionCommandControllerServer interface {
 	//	  "kind": "WorkflowExecution",
 	//	  "metadata": {
 	//	    "name": "customer-onboarding-20250111-143022",
-	//	    "owner_scope": 2  // ORGANIZATION
+	//	    "org": "acme"
 	//	  },
 	//	  "spec": {
 	//	    "workflow_instance_id": "wfi-customer-onboarding-prod",
@@ -517,7 +517,7 @@ type WorkflowExecutionCommandControllerServer interface {
 	//	  "metadata": {
 	//	    "id": "wfx-abc123xyz456",  // Auto-generated
 	//	    "name": "customer-onboarding-20250111-143022",
-	//	    "owner_scope": 2
+	//	    "org": "acme"
 	//	  },
 	//	  "spec": { ... },  // Same as request
 	//	  "status": {
