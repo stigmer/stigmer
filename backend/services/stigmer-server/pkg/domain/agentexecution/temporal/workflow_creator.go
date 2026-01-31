@@ -2,12 +2,14 @@ package temporal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"
 )
 
@@ -73,3 +75,69 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(execution *agentexecutionv1
 
 	return nil
 }
+
+// SignalApproval sends a submitApproval signal to a running agent execution workflow.
+//
+// This is called by AgentExecutionSubmitApprovalHandler when a user submits
+// an approval decision for a tool call. The workflow receives this signal
+// and unblocks its Workflow.await() to resume execution with the decision.
+//
+// Parameters:
+//   - executionID: The agent execution ID (used to construct workflow ID)
+//   - input: The approval input containing tool_call_id, action, and comment
+//
+// Returns:
+//   - ErrWorkflowNotFound if the workflow is not running
+//   - Other errors for transient Temporal failures
+//
+// Thread Safety: This method is safe for concurrent use.
+func (c *InvokeAgentExecutionWorkflowCreator) SignalApproval(executionID string, input *agentexecutionv1.SubmitApprovalInput) error {
+	// Workflow ID format: stigmer/agent-execution/invoke/{execution-id}
+	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeAgentExecutionWorkflowName, executionID)
+
+	log.Info().
+		Str("workflow_id", workflowID).
+		Str("execution_id", executionID).
+		Str("tool_call_id", input.GetToolCallId()).
+		Str("action", input.GetAction().String()).
+		Msg("Sending submitApproval signal to workflow")
+
+	// Send signal to workflow
+	err := c.workflowClient.SignalWorkflow(
+		context.Background(),
+		workflowID,
+		"", // Run ID - empty means latest run
+		SignalSubmitApproval,
+		input,
+	)
+
+	if err != nil {
+		// Check for workflow not found error
+		var notFoundErr *serviceerror.NotFound
+		if errors.As(err, &notFoundErr) {
+			log.Warn().
+				Str("workflow_id", workflowID).
+				Str("execution_id", executionID).
+				Msg("Workflow not found - may have already completed")
+			return fmt.Errorf("workflow not found for execution %s: %w", executionID, ErrWorkflowNotFound)
+		}
+
+		log.Error().
+			Err(err).
+			Str("workflow_id", workflowID).
+			Str("execution_id", executionID).
+			Msg("Failed to signal workflow")
+		return fmt.Errorf("failed to signal workflow: %w", err)
+	}
+
+	log.Info().
+		Str("workflow_id", workflowID).
+		Str("execution_id", executionID).
+		Msg("Successfully sent submitApproval signal to workflow")
+
+	return nil
+}
+
+// ErrWorkflowNotFound is returned when the workflow is not running.
+// This typically means the execution has already completed or failed.
+var ErrWorkflowNotFound = errors.New("workflow not found")
