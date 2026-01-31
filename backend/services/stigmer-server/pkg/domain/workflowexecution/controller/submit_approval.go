@@ -136,7 +136,7 @@ func (s *loadExistingForWfApprovalStep) Execute(ctx *pipeline.RequestContext[*wo
 			Err(err).
 			Str("execution_id", executionID).
 			Msg("Failed to load WorkflowExecution")
-		return grpclib.InternalError("failed to load workflow execution: %v", err)
+		return grpclib.InternalError(err, "failed to load workflow execution")
 	}
 
 	// Store loaded execution in context

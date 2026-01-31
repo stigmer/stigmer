@@ -6,6 +6,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
@@ -98,7 +99,7 @@ func (s *loadByExecutionIdStep) Execute(ctx *pipeline.RequestContext[*executionc
 	// The field path is "spec.executionId" (protobuf JSON field naming)
 	err := s.store.FindByField(
 		ctx.Context(),
-		executioncontextv1.ExecutionContext_Api_resource_kind,
+		apiresourcekind.ApiResourceKind_execution_context,
 		"spec.executionId",
 		executionId,
 		executionContext,
@@ -115,7 +116,7 @@ func (s *loadByExecutionIdStep) Execute(ctx *pipeline.RequestContext[*executionc
 			Err(err).
 			Str("execution_id", executionId).
 			Msg("Failed to query ExecutionContext by execution_id")
-		return grpclib.InternalError("failed to query execution context: %v", err)
+		return grpclib.InternalError(err, "failed to query execution context")
 	}
 
 	log.Debug().
