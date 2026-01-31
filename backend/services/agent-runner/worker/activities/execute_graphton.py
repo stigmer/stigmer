@@ -3,7 +3,7 @@
 from temporalio import activity
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecution, AgentExecutionStatus, ApprovalAction
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-from graphton import create_deep_agent
+from graphton import create_deep_agent, SummarizationConfig
 import logging
 import json
 from grpc_client.agent_client import AgentClient
@@ -211,6 +211,18 @@ async def _execute_graphton_impl(
         activity_logger.info(
             f"Agent config: model={model_name} (provider={worker_config.llm.provider}), "
             f"instructions_length={len(instructions)}"
+        )
+        
+        # Create summarization config for automatic context window management
+        # Uses Model Registry to determine model-appropriate thresholds
+        summarization_config = SummarizationConfig.for_model(
+            model_id=model_name,
+            enabled=True,  # Enable by default for long-running conversations
+        )
+        activity_logger.info(
+            f"Summarization enabled: trigger={summarization_config.trigger_threshold}, "
+            f"target={summarization_config.target_tokens}, "
+            f"model={summarization_config.summarization_model}"
         )
         
         # Get sandbox configuration from worker config
@@ -635,6 +647,7 @@ async def _execute_graphton_impl(
             recursion_limit=1000,
             checkpointer=checkpointer,  # Enable HITL interrupt/resume and conversation persistence
             approval_checker=approval_checker,  # Enable HITL tool approval (Phase 3B)
+            summarization_config=summarization_config,  # Enable automatic context summarization
         )
         
         activity_logger.info(f"Graphton agent created successfully with {'new' if is_new_sandbox else 'reused'} sandbox")
