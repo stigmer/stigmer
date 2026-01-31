@@ -7,7 +7,6 @@ import (
 	"github.com/rs/zerolog/log"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
@@ -63,8 +62,8 @@ func (c *WorkflowInstanceController) buildCreatePipeline() *pipeline.Pipeline[*w
 	return pipeline.NewPipeline[*workflowinstancev1.WorkflowInstance]("workflow-instance-create").
 		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()).         // 1. Validate field constraints
 		AddStep(steps.NewResolveSlugStep[*workflowinstancev1.WorkflowInstance]()).           // 2. Resolve slug
-		AddStep(newLoadParentWorkflowStep(c.workflowClient)).                                 // 3. Load parent workflow
-		AddStep(newValidateSameOrgBusinessRuleStep()).                                        // 4. Validate same-org business rule
+		AddStep(newLoadParentWorkflowStep(c.workflowClient)).                                // 3. Load parent workflow
+		AddStep(newValidateSameOrgBusinessRuleStep()).                                       // 4. Validate same-org business rule
 		AddStep(steps.NewCheckDuplicateStep[*workflowinstancev1.WorkflowInstance](c.store)). // 5. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*workflowinstancev1.WorkflowInstance]()).         // 6. Build new state
 		AddStep(steps.NewPersistStep[*workflowinstancev1.WorkflowInstance](c.store)).        // 7. Persist workflow instance
@@ -118,18 +117,16 @@ func (s *loadParentWorkflowStep) Execute(ctx *pipeline.RequestContext[*workflowi
 
 	log.Debug().
 		Str("workflow_id", workflowID).
-		Str("scope", parentWorkflow.GetMetadata().GetOwnerScope().String()).
+		Str("org", parentWorkflow.GetMetadata().GetOrg()).
 		Msg("Loaded parent workflow")
 
 	return nil
 }
 
-// validateSameOrgBusinessRuleStep validates same-org business rule for org-scoped instances.
+// validateSameOrgBusinessRuleStep validates same-org business rule for workflow instances.
 //
-// Business rule: Org-scoped workflows can only create instances in the same organization.
+// Business rule: Workflow instances must be in the same organization as the parent workflow.
 // This prevents cross-org instance creation which could leak configuration/secrets.
-//
-// For platform or user-scoped instances, this validation is skipped.
 //
 // Corresponds to Java's ValidateSameOrgBusinessRule step.
 type validateSameOrgBusinessRuleStep struct{}
@@ -144,26 +141,13 @@ func (s *validateSameOrgBusinessRuleStep) Name() string {
 
 func (s *validateSameOrgBusinessRuleStep) Execute(ctx *pipeline.RequestContext[*workflowinstancev1.WorkflowInstance]) error {
 	requestedInstance := ctx.NewState()
-	
+
 	// Get parent workflow from context
 	parentWorkflowVal := ctx.Get(ParentWorkflowKey)
 	if parentWorkflowVal == nil {
 		return fmt.Errorf("parent workflow not found in context")
 	}
 	parentWorkflow := parentWorkflowVal.(*workflowv1.Workflow)
-
-	targetScope := requestedInstance.GetMetadata().GetOwnerScope()
-	workflowScope := parentWorkflow.GetMetadata().GetOwnerScope()
-
-	// Only validate for org-scoped instances of org-scoped workflows
-	if targetScope != apiresource.ApiResourceOwnerScope_organization ||
-		workflowScope != apiresource.ApiResourceOwnerScope_organization {
-		log.Debug().
-			Str("target_scope", targetScope.String()).
-			Str("workflow_scope", workflowScope.String()).
-			Msg("Skipping same-org validation (not org-scoped)")
-		return nil
-	}
 
 	targetOrgID := requestedInstance.GetMetadata().GetOrg()
 	workflowOrgID := parentWorkflow.GetMetadata().GetOrg()
@@ -179,11 +163,10 @@ func (s *validateSameOrgBusinessRuleStep) Execute(ctx *pipeline.RequestContext[*
 			Str("workflow_id", workflowID).
 			Str("workflow_org", workflowOrgID).
 			Str("instance_org", targetOrgID).
-			Msg("Business rule violation: Cannot create instance of org workflow in different org")
+			Msg("Business rule violation: Cannot create instance of workflow in different org")
 		return grpclib.InvalidArgumentError(
-			fmt.Sprintf("Cannot create instance of org-scoped workflow in a different organization. "+
-				"Workflow belongs to org '%s', instance target is org '%s'. "+
-				"Create a user-scoped instance instead.", workflowOrgID, targetOrgID))
+			fmt.Sprintf("Cannot create instance of workflow in a different organization. "+
+				"Workflow belongs to org '%s', instance target is org '%s'.", workflowOrgID, targetOrgID))
 	}
 
 	log.Debug().Msg("Same-org validation passed")

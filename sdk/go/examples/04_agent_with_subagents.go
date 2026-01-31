@@ -10,6 +10,7 @@
 //   - Sub-agents can only access MCP servers that the parent has declared
 //   - Sub-agent tools must be a subset of parent's enabled tools (can restrict, not expand)
 //   - Sub-agents can have their own skill references independent of parent
+//   - All references use the org/slug format
 //
 // Run: go run examples/04_agent_with_subagents.go
 package main
@@ -19,8 +20,6 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/mcpserverref"
-	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
@@ -155,9 +154,9 @@ func createAgentWithMCPSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
 
-	// Add MCP server references to the parent agent
-	ag.AddMcpServerUsage(mcpserverref.Platform("github"))
-	ag.AddMcpServerUsage(mcpserverref.Platform("gitlab"))
+	// Add MCP server references to the parent agent using new API
+	ag.UseMCP("stigmer/github")
+	ag.UseMCP("stigmer/gitlab")
 
 	// Create sub-agents that have access to parent's MCP servers
 	githubSpecialist, err := subagent.New("github-specialist", &subagent.Args{
@@ -196,13 +195,14 @@ func createAgentWithSkilledSubAgent(ctx *stigmer.Context) (*agent.Agent, error) 
 		return nil, fmt.Errorf("failed to create coding expert: %w", err)
 	}
 
-	// Add skills to the sub-agent using builder methods
-	codingExpert.AddSkillRefs(
-		skillref.Platform("coding-best-practices"),
-		skillref.Platform("design-patterns"),
+	// Add skills to the sub-agent using new org/slug format
+	// Note: SubAgents require explicit org/slug (no slug-only references)
+	codingExpert.AddSkills(
+		"stigmer/coding-best-practices",
+		"stigmer/design-patterns",
+		"my-org/internal-apis",
+		"my-org/architecture-guidelines",
 	)
-	codingExpert.AddOrgSkillRef("my-org", "internal-apis")
-	codingExpert.AddOrgSkillRef("my-org", "architecture-guidelines")
 
 	ag, err := agent.New(ctx, "development-assistant", &agent.AgentArgs{
 		Instructions: "Assist with software development tasks by leveraging specialized knowledge",
@@ -229,8 +229,7 @@ func createAgentWithSelectiveSubAgent(ctx *stigmer.Context) (*agent.Agent, error
 	}
 
 	// Parent agent has access to all GitHub tools
-	ag.AddMcpServerUsage(
-		mcpserverref.Platform("github"),
+	ag.UseMCP("stigmer/github",
 		// Parent enables all these tools
 		"create_issue", "update_issue", "list_issues",
 		"list_pull_requests", "review_pull_request", "comment_on_pr",

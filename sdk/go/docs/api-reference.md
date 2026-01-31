@@ -205,39 +205,54 @@ Configuration struct for agent creation (Pulumi Args pattern).
   - `SubAgents` - Use `agent.AddSubAgent()`
   - `EnvSpec` - Use `agent.AddEnvironmentVariable()`
 
-#### func (*Agent) AddSkillRef
+#### func (*Agent) AddSkill
 
 ```go
-func (a *Agent) AddSkillRef(ref *types.ApiResourceReference) *Agent
+func (a *Agent) AddSkill(ref string, opts ...SkillOption) *Agent
 ```
 
-Adds a skill reference to the agent (builder method for complex fields).
+Adds a skill reference to the agent using the `org/slug` format.
 
 **Parameters**:
-- `ref` - Skill reference (use `skillref.Platform()` or `skillref.Organization()`)
+- `ref` - Skill reference in `org/slug` format (e.g., `"stigmer/coding-best-practices"`)
+- `opts` - Optional skill options (e.g., `AtVersion("v2.0")`)
 
 **Returns**:
 - `*Agent` - Agent (for chaining)
 
 **Example**:
 ```go
-agent.AddSkillRef(skillref.Platform("coding-best-practices")).
-      AddSkillRef(skillref.Platform("security-analysis"))
+agent.AddSkill("stigmer/coding-best-practices").
+      AddSkill("stigmer/security-analysis").
+      AddSkill("my-org/internal-standards")
+
+// With version
+agent.AddSkill("stigmer/coding-best-practices@v2.0")
+agent.AddSkill("stigmer/coding-best-practices", agent.AtVersion("v2.0"))
 ```
 
-#### func (*Agent) AddSkillRefs
+#### func (*Agent) AddSkills
 
 ```go
-func (a *Agent) AddSkillRefs(refs ...*types.ApiResourceReference) *Agent
+func (a *Agent) AddSkills(refs ...string) *Agent
 ```
 
 Adds multiple skill references to the agent.
 
 **Parameters**:
-- `refs` - One or more skill references
+- `refs` - One or more skill references in `org/slug` format
 
 **Returns**:
 - `*Agent` - Agent (for chaining)
+
+**Example**:
+```go
+agent.AddSkills(
+    "stigmer/coding-best-practices",
+    "stigmer/security-analysis",
+    "my-org/internal-standards",
+)
+```
 
 #### func (*Agent) AddMCPServer
 

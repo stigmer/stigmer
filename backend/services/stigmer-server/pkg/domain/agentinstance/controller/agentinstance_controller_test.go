@@ -7,9 +7,9 @@ import (
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
-	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 )
 
 // contextWithAgentInstanceKind creates a context with the agent instance resource kind injected
@@ -40,8 +40,8 @@ func TestAgentInstanceController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Test Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Test Instance",
+				Org:  "test-org",
 			},
 			Spec: &agentinstancev1.AgentInstanceSpec{
 				AgentId:     "test-agent-id",
@@ -91,8 +91,8 @@ func TestAgentInstanceController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Invalid Instance",
+				Org:  "test-org",
 			},
 			Spec: &agentinstancev1.AgentInstanceSpec{
 				Description: "Test description",
@@ -150,8 +150,8 @@ func TestAgentInstanceController_Get(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Get Test Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Get Test Instance",
+				Org:  "test-org",
 			},
 			Spec: &agentinstancev1.AgentInstanceSpec{
 				AgentId:     "test-agent-id",
@@ -208,8 +208,8 @@ func TestAgentInstanceController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Update Test Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Update Test Instance",
+				Org:  "test-org",
 			},
 			Spec: &agentinstancev1.AgentInstanceSpec{
 				AgentId:     "test-agent-id",
@@ -248,9 +248,9 @@ func TestAgentInstanceController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:         "non-existent-id",
-				Name:       "Non-existent Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Id:   "non-existent-id",
+				Name: "Non-existent Instance",
+				Org:  "test-org",
 			},
 			Spec: &agentinstancev1.AgentInstanceSpec{
 				AgentId:     "test-agent-id",
@@ -276,8 +276,8 @@ func TestAgentInstanceController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Test Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Delete Test Instance",
+				Org:  "test-org",
 			},
 			Spec: &agentinstancev1.AgentInstanceSpec{
 				AgentId:     "test-agent-id",
@@ -327,8 +327,8 @@ func TestAgentInstanceController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Verify Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Delete Verify Instance",
+				Org:  "test-org",
 			},
 			Spec: &agentinstancev1.AgentInstanceSpec{
 				AgentId:     "verify-agent-id",

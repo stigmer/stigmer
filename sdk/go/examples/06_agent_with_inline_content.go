@@ -11,7 +11,7 @@
 // To use custom skills:
 //  1. Create skill content files (e.g., security-guidelines.md)
 //  2. Push skills via CLI: stigmer skill push security-guidelines.md
-//  3. Reference skills in your agent using skillref.Platform() or skillref.Organization()
+//  3. Reference skills in your agent using org/slug format (e.g., "stigmer/security-guidelines")
 //
 // For better organization in larger projects, define instructions
 // as variables in separate Go files (e.g., instructions.go).
@@ -22,7 +22,6 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
 
@@ -147,7 +146,7 @@ func main() {
 		fmt.Println("Skill management workflow:")
 		fmt.Println("  1. Create skill content as .md files")
 		fmt.Println("  2. Push skills: stigmer skill push security-guidelines.md")
-		fmt.Println("  3. Reference skills: skillref.Platform(\"security-guidelines\")")
+		fmt.Println("  3. Reference skills: agent.AddSkill(\"stigmer/security-guidelines\")")
 		fmt.Println()
 		fmt.Println("Benefits of this pattern:")
 		fmt.Println("  - Instructions are version-controlled with your code")
@@ -175,7 +174,7 @@ func createBasicAgent(ctx *stigmer.Context) (*agent.Agent, error) {
 	return ag, nil
 }
 
-// createAgentWithSkillRefs creates an agent that references platform skills.
+// createAgentWithSkillRefs creates an agent that references skills.
 // The skills must exist on the platform (created via CLI).
 func createAgentWithSkillRefs(ctx *stigmer.Context) (*agent.Agent, error) {
 	ag, err := agent.New(ctx, "senior-reviewer", &agent.AgentArgs{
@@ -186,12 +185,12 @@ func createAgentWithSkillRefs(ctx *stigmer.Context) (*agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
 
-	// Reference skills that were created via CLI
+	// Reference skills that were created via CLI using org/slug format
 	// These skills must exist on the platform before the agent can use them
-	ag.AddSkillRefs(
-		skillref.Platform("security-guidelines"),
-		skillref.Platform("testing-best-practices"),
-		skillref.Platform("coding-best-practices"),
+	ag.AddSkills(
+		"stigmer/security-guidelines",
+		"stigmer/testing-best-practices",
+		"stigmer/coding-best-practices",
 	)
 
 	return ag, nil
@@ -210,7 +209,7 @@ func printAgent(title string, ag *agent.Agent) {
 	if len(ag.SkillRefs) > 0 {
 		fmt.Println("Referenced Skills:")
 		for i, ref := range ag.SkillRefs {
-			fmt.Printf("  %d. %s (scope: %s)\n", i+1, ref.Slug, ref.Scope)
+			fmt.Printf("  %d. %s/%s\n", i+1, ref.Org, ref.Slug)
 		}
 	}
 

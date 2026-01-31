@@ -9,9 +9,9 @@ import (
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
-	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 )
 
 // contextWithWorkflowExecutionKind creates a context with the workflow execution resource kind injected
@@ -51,10 +51,10 @@ func createTestWorkflowInstance(t *testing.T, store store.Store, workflowID stri
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "WorkflowInstance",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Id:         "wfi-test-instance",
-			Name:       "Test Workflow Instance",
-			Slug:       "test-workflow-instance",
-			OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+			Id:   "wfi-test-instance",
+			Name: "Test Workflow Instance",
+			Slug: "test-workflow-instance",
+			Org:  "test-org",
 		},
 		Spec: &workflowinstancev1.WorkflowInstanceSpec{
 			WorkflowId:  workflowID,
@@ -76,10 +76,10 @@ func createTestWorkflow(t *testing.T, store store.Store) *workflowv1.Workflow {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Id:         "wf-test-workflow",
-			Name:       "Test Workflow",
-			Slug:       "test-workflow",
-			OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+			Id:   "wf-test-workflow",
+			Name: "Test Workflow",
+			Slug: "test-workflow",
+			Org:  "test-org",
 		},
 		Spec: &workflowv1.WorkflowSpec{
 			Description: "Test workflow",
@@ -107,8 +107,8 @@ func TestWorkflowExecutionController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Test Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Test Execution",
+				Org:  "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowInstanceId: instance.Metadata.Id,
@@ -164,7 +164,7 @@ func TestWorkflowExecutionController_Create(t *testing.T) {
 	// a properly configured in-process gRPC connection for the workflow instance client.
 	// This test would need to set up the full gRPC server infrastructure.
 	// The auto-instance creation logic is tested indirectly through integration tests.
-	
+
 	// t.Run("successful creation with workflow_id", func(t *testing.T) {
 	// 	// This test requires a full gRPC setup with workflow instance service
 	// })
@@ -174,8 +174,8 @@ func TestWorkflowExecutionController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Invalid Execution",
+				Org:  "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				TriggerMessage: "Test message",
@@ -193,8 +193,8 @@ func TestWorkflowExecutionController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Execution With Invalid Workflow",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Execution With Invalid Workflow",
+				Org:  "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowId:     "non-existent-workflow",
@@ -256,8 +256,8 @@ func TestWorkflowExecutionController_Get(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Get Test Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Get Test Execution",
+				Org:  "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowInstanceId: instance.Metadata.Id,
@@ -318,8 +318,8 @@ func TestWorkflowExecutionController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Update Test Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Update Test Execution",
+				Org:  "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowInstanceId: instance.Metadata.Id,
@@ -358,9 +358,9 @@ func TestWorkflowExecutionController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:         "non-existent-id",
-				Name:       "Non-existent Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Id:   "non-existent-id",
+				Name: "Non-existent Execution",
+				Org:  "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowInstanceId: "wfi-test",
@@ -389,8 +389,8 @@ func TestWorkflowExecutionController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Test Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Delete Test Execution",
+				Org:  "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowInstanceId: instance.Metadata.Id,
@@ -444,8 +444,8 @@ func TestWorkflowExecutionController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Verify Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Delete Verify Execution",
+				Org:  "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowInstanceId: instance.Metadata.Id,

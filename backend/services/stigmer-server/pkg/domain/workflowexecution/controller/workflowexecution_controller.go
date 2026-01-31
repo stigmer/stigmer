@@ -27,6 +27,10 @@ import (
 // - streamBroker manages in-memory Go channels for real-time updates
 // - UpdateStatus broadcasts to subscribers after persisting to database
 // - Subscribe() provides streaming updates without polling
+//
+// HITL Approval (Phase 5.3):
+// - agentExecutionClient enables approval forwarding to child agent executions
+// - WorkflowExecution.SubmitApproval delegates to child AgentExecution
 type WorkflowExecutionController struct {
 	workflowexecutionv1.UnimplementedWorkflowExecutionCommandControllerServer
 	workflowexecutionv1.UnimplementedWorkflowExecutionQueryControllerServer
@@ -34,6 +38,7 @@ type WorkflowExecutionController struct {
 	workflowInstanceClient *workflowinstance.Client
 	workflowCreator        *workflows.InvokeWorkflowExecutionWorkflowCreator
 	streamBroker           *StreamBroker
+	agentExecutionClient   AgentExecutionApprovalClient // For forwarding approvals to child agents
 }
 
 // NewWorkflowExecutionController creates a new WorkflowExecutionController
@@ -69,4 +74,11 @@ func (c *WorkflowExecutionController) SetWorkflowCreator(creator *workflows.Invo
 // This allows workflow error recovery to broadcast status updates to subscribers
 func (c *WorkflowExecutionController) GetStreamBroker() *StreamBroker {
 	return c.streamBroker
+}
+
+// SetAgentExecutionClient sets the AgentExecution client dependency for approval forwarding
+// This is used when the controller is created before the in-process gRPC server is started
+// If nil, approval forwarding will be skipped (graceful degradation)
+func (c *WorkflowExecutionController) SetAgentExecutionClient(client AgentExecutionApprovalClient) {
+	c.agentExecutionClient = client
 }

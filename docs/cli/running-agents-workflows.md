@@ -312,6 +312,165 @@ Total tasks: 3
 Completed: 3
 ```
 
+## Resource References
+
+Stigmer supports multiple ways to reference agents and workflows using the `org/slug` model.
+
+### Explicit org/slug Format
+
+The most portable and clear way to reference resources:
+
+```bash
+# Agent from stigmer org
+stigmer run stigmer/code-reviewer
+
+# Agent from custom org
+stigmer run acme-corp/deploy-agent
+
+# Workflow with org
+stigmer run my-team/ci-pipeline
+```
+
+**Benefits:**
+- ✅ Works across all environments (local, cloud, self-hosted)
+- ✅ Clear ownership (shows which org owns the resource)
+- ✅ No ambiguity
+
+### Slug-Only (Context-Based)
+
+When you have an organization context set, you can use slug-only references:
+
+```bash
+# Uses current org from context
+stigmer run code-reviewer
+
+# Equivalent to: stigmer run <current-org>/code-reviewer
+```
+
+**When to use:**
+- Inside a project with configured org
+- Quick local development
+- Current org is obvious from context
+
+**Limitations:**
+- Requires organization context
+- Less portable (depends on current config)
+
+### Resource IDs
+
+Use resource IDs for precise, immutable references:
+
+```bash
+# Agent by ID
+stigmer run agt_01abc123xyz
+
+# Workflow by ID
+stigmer run wf_01xyz789def
+
+# Execution by ID (to view logs)
+stigmer run agtexec_01def456ghi --follow
+```
+
+**ID prefixes:**
+- `agt_` - Agent
+- `wf_` - Workflow
+- `agtexec_` - Agent Execution
+- `wfexec_` - Workflow Execution
+- `skill_` - Skill
+- `mcp-` - MCP Server (or UUID format)
+
+**When to use:**
+- Scripts and automation (immutable references)
+- Cross-org references
+- Debugging specific executions
+
+### Reference Resolution Order
+
+When you run `stigmer run <reference>`:
+
+```mermaid
+flowchart TD
+    A[Parse Reference] --> B{Contains '/'?}
+    
+    B -->|Yes| C[Parse as org/slug]
+    B -->|No| D{Is Resource ID?}
+    
+    D -->|Yes| E[Lookup by ID]
+    D -->|No| F{Org Context Set?}
+    
+    F -->|Yes| G[Use org context + slug]
+    F -->|No| H[ERROR: Org required]
+    
+    C --> I[Resolve Resource]
+    E --> I
+    G --> I
+    
+    I --> J{Found?}
+    J -->|Yes| K[Execute]
+    J -->|No| L[ERROR: Not found]
+    
+    style A fill:#e1f5ff,stroke:#333,stroke-width:2px
+    style K fill:#c8e6c9,stroke:#333,stroke-width:2px
+    style H fill:#ffcdd2,stroke:#333,stroke-width:2px
+    style L fill:#ffcdd2,stroke:#333,stroke-width:2px
+```
+
+### Examples by Reference Type
+
+**Platform resources (stigmer org):**
+```bash
+# Explicit org/slug
+stigmer run stigmer/code-reviewer
+
+# Slug-only (if org context is 'stigmer')
+stigmer run code-reviewer
+```
+
+**Organization resources:**
+```bash
+# Explicit org/slug (recommended)
+stigmer run acme-corp/deploy-pipeline
+
+# Slug-only (if current org is 'acme-corp')
+stigmer run deploy-pipeline
+```
+
+**Cross-organization references:**
+```bash
+# Reference resources from different orgs
+stigmer run stigmer/base-agent
+stigmer run acme-corp/custom-agent
+stigmer run partner-org/integration-workflow
+```
+
+### Best Practices
+
+**1. Use explicit org/slug in shared/production code:**
+```bash
+# ✅ Good - portable
+stigmer run stigmer/code-reviewer
+
+# ⚠️ Avoid - depends on context
+stigmer run code-reviewer
+```
+
+**2. Use IDs for automation:**
+```bash
+#!/bin/bash
+# ✅ Good - immutable reference
+AGENT_ID="agt_01abc123xyz"
+stigmer run $AGENT_ID
+```
+
+**3. Set org context for local development:**
+```bash
+# Set default org
+stigmer context set --org acme-corp
+
+# Now slug-only works
+stigmer run deploy-pipeline  # → acme-corp/deploy-pipeline
+```
+
 ## Error Handling
 
 ### Not in Project Directory

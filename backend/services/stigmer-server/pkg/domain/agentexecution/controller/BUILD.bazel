@@ -10,6 +10,7 @@ go_library(
         "list.go",
         "list_by_session.go",
         "stream_broker.go",
+        "submit_approval.go",
         "subscribe.go",
         "update.go",
         "update_status.go",

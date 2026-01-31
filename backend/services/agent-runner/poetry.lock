@@ -997,6 +997,24 @@ docs = ["pydoctor (>=25.4.0)"]
 test = ["pytest"]
 
 [[package]]
+name = "dydantic"
+version = "0.0.8"
+description = "Dynamically generate pydantic models from JSON schema."
+optional = false
+python-versions = "<4.0,>=3.9"
+groups = ["main"]
+files = [
+    {file = "dydantic-0.0.8-py3-none-any.whl", hash = "sha256:cd0a991f523bd8632699872f1c0c4278415dd04783e36adec5428defa0afb721"},
+    {file = "dydantic-0.0.8.tar.gz", hash = "sha256:14a31d4cdfce314ce3e69e8f8c7c46cbc26ce3ce4485de0832260386c612942f"},
+]
+
+[package.dependencies]
+pydantic = ">=2,<3"
+
+[package.extras]
+email = ["email-validator (>=2.1,<3.0)"]
+
+[[package]]
 name = "environs"
 version = "14.5.0"
 description = "simplified environment variable parsing"
@@ -2032,6 +2050,28 @@ files = [
 [package.dependencies]
 httpx = ">=0.25.2"
 orjson = ">=3.10.1"
+
+[[package]]
+name = "langmem"
+version = "0.0.30"
+description = "Prebuilt utilities for memory management and retrieval."
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "langmem-0.0.30-py3-none-any.whl", hash = "sha256:142f040014493eebd67e1055c0642f9ab38868b5b1fde5c8f2d39add57f4ba5b"},
+    {file = "langmem-0.0.30.tar.gz", hash = "sha256:4e27920979f8253a96d279f4f97b1aebbfb49e95a46d5269433488ed044756e1"},
+]
+
+[package.dependencies]
+langchain = ">=0.3.15"
+langchain-anthropic = ">=0.3.3"
+langchain-core = ">=0.3.46"
+langchain-openai = ">=0.3.1"
+langgraph = ">=0.6.0,<2"
+langgraph-checkpoint = ">=2.0.12"
+langsmith = ">=0.3.8"
+trustcall = ">=0.0.39"
 
 [[package]]
 name = "langsmith"
@@ -4872,6 +4912,23 @@ slack = ["slack-sdk"]
 telegram = ["requests"]
 
 [[package]]
+name = "trustcall"
+version = "0.0.39"
+description = "Tenacious & trustworthy tool calling built on LangGraph."
+optional = false
+python-versions = "<4.0,>=3.10"
+groups = ["main"]
+files = [
+    {file = "trustcall-0.0.39-py3-none-any.whl", hash = "sha256:d7da42e0bba816c0539b2936dfed90ffb3ea8d789e548e73865d416f8ac4ee64"},
+    {file = "trustcall-0.0.39.tar.gz", hash = "sha256:ec315818224501b9537ce6b7618dbc21be41210c6e8f2e239169a5a00912cd6e"},
+]
+
+[package.dependencies]
+dydantic = ">=0.0.8,<1.0.0"
+jsonpatch = ">=1.33,<2.0"
+langgraph = ">=0.2.25"
+
+[[package]]
 name = "typer"
 version = "0.21.1"
 description = "Typer, build great CLIs. Easy to code. Based on Python type hints."
@@ -5780,4 +5837,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "9b5631344acbe50be0a683249b903a79b08d1434435bad46d912760522c3a90f"
+content-hash = "ef1d12a62ccaded6c7b1060cece08bcbed31dc9b2fc8eca29777a694814951db"

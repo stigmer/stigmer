@@ -1,5 +1,4 @@
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2 as _api_resource_kind_pb2
-from ai.stigmer.commons.apiresource import enum_pb2 as _enum_pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import descriptor as _descriptor
@@ -48,15 +47,13 @@ class FindApiResourcesRequest(_message.Message):
     def __init__(self, org: _Optional[str] = ..., kind: _Optional[str] = ..., page: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., page_number: _Optional[int] = ..., page_size: _Optional[int] = ...) -> None: ...
 
 class ApiResourceReference(_message.Message):
-    __slots__ = ("scope", "org", "kind", "slug", "version")
-    SCOPE_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "kind", "slug", "version")
     ORG_FIELD_NUMBER: _ClassVar[int]
     KIND_FIELD_NUMBER: _ClassVar[int]
     SLUG_FIELD_NUMBER: _ClassVar[int]
     VERSION_FIELD_NUMBER: _ClassVar[int]
-    scope: _enum_pb2.ApiResourceOwnerScope
     org: str
     kind: _api_resource_kind_pb2.ApiResourceKind
     slug: str
     version: str
-    def __init__(self, scope: _Optional[_Union[_enum_pb2.ApiResourceOwnerScope, str]] = ..., org: _Optional[str] = ..., kind: _Optional[_Union[_api_resource_kind_pb2.ApiResourceKind, str]] = ..., slug: _Optional[str] = ..., version: _Optional[str] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., kind: _Optional[_Union[_api_resource_kind_pb2.ApiResourceKind, str]] = ..., slug: _Optional[str] = ..., version: _Optional[str] = ...) -> None: ...

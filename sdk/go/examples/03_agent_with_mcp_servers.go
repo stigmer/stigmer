@@ -3,13 +3,12 @@
 // Example 03: Agent with MCP Server References
 //
 // This example demonstrates creating an agent that references MCP servers.
-// MCP servers are now first-class API resources that are created separately
-// and referenced by agents using their slug.
+// MCP servers are first-class API resources that are created separately
+// and referenced by agents using the org/slug format.
 //
-// MCP Server Scopes:
-//   - Platform: Public/marketplace servers, visible to all users
-//   - Organization: Private to org members
-//   - Personal: Private to the individual user
+// All MCP servers belong to an organization:
+//   - Public servers (e.g., stigmer/github) are available to all users
+//   - Private servers (e.g., my-org/internal-tools) are only visible to org members
 //
 // Note: MCP servers are created separately via:
 //   - CLI: `stigmer mcpserver apply -f mcpserver.yaml`
@@ -21,8 +20,6 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/mcpserverref"
-	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
 
@@ -48,65 +45,46 @@ Use these tools to help with infrastructure automation, deployments, and DevOps 
 		}
 
 		// =============================================================================
-		// Add Platform MCP Server References
+		// Add Public MCP Server References (from stigmer org)
 		// =============================================================================
-		// Platform servers are publicly available on the marketplace.
-		// Use mcpserverref.Platform() to reference them.
+		// Public servers are available to all users on the platform.
+		// Use the org/slug format to reference them.
 
 		// Reference GitHub MCP server with specific tools enabled
-		a.AddMcpServerUsage(
-			mcpserverref.Platform("github"),
-			"create_issue", "list_repos", "create_pr", "search_code",
-		)
+		a.UseMCP("stigmer/github", "create_issue", "list_repos", "create_pr", "search_code")
 
 		// Reference AWS MCP server (all tools enabled)
-		a.AddMcpServerUsage(
-			mcpserverref.Platform("aws"),
-		)
+		a.UseMCP("stigmer/aws")
 
 		// Reference Slack MCP server
-		a.AddMcpServerUsage(
-			mcpserverref.Platform("slack"),
-			"send_message", "list_channels",
-		)
+		a.UseMCP("stigmer/slack", "send_message", "list_channels")
+
+		// Reference Docker MCP server
+		a.UseMCP("stigmer/docker", "build", "push", "pull")
 
 		// =============================================================================
-		// Add Organization MCP Server References
+		// Add Private Organization MCP Server References
 		// =============================================================================
-		// Organization servers are private to the org.
-		// Use mcpserverref.Organization() to reference them.
+		// Private servers are only visible to your organization.
+		// Use the org/slug format to reference them.
 
-		a.AddMcpServerUsage(
-			mcpserverref.Organization("acme-corp", "internal-tools"),
-			"deploy", "rollback", "check_status",
-		)
+		a.UseMCP("acme-corp/internal-tools", "deploy", "rollback", "check_status")
 
 		// =============================================================================
-		// Convenience Methods
+		// Using agent.Org for slug-only references
 		// =============================================================================
-		// UseMCPServer() is a shorthand for platform-scoped servers
+		// When agent.Org is set, you can use slug-only references
+		// which will automatically use the agent's org.
 
-		a.UseMCPServer("docker", "build", "push", "pull")
-
-		// UseOrgMCPServer() is a shorthand for org-scoped servers
-		// (requires agent.Org to be set)
-
-		// =============================================================================
-		// Add Personal MCP Server Reference
-		// =============================================================================
-		// Personal servers are private to the individual user.
-		// Useful for personal development tools or custom configurations.
-
-		a.AddMcpServerUsage(
-			mcpserverref.Personal("my-dev-tools"),
-		)
+		a.Org = "my-org"
+		a.UseMCP("my-dev-tools") // Resolves to my-org/my-dev-tools
 
 		// =============================================================================
-		// Add Skill References
+		// Add Skill References using the new API
 		// =============================================================================
-		a.AddSkillRefs(
-			skillref.Platform("devops-best-practices"),
-			skillref.Platform("cloud-infrastructure"),
+		a.AddSkills(
+			"stigmer/devops-best-practices",
+			"stigmer/cloud-infrastructure",
 		)
 
 		// =============================================================================
@@ -114,6 +92,7 @@ Use these tools to help with infrastructure automation, deployments, and DevOps 
 		// =============================================================================
 		fmt.Println("=== Agent Configuration ===")
 		fmt.Printf("Name: %s\n", a.Name)
+		fmt.Printf("Org: %s\n", a.Org)
 		fmt.Printf("Instructions: %s...\n", a.Instructions[:80])
 		fmt.Printf("Skill Refs: %d\n", len(a.SkillRefs))
 		fmt.Printf("MCP Server Usages: %d\n\n", len(a.McpServerUsages))
@@ -122,7 +101,7 @@ Use these tools to help with infrastructure automation, deployments, and DevOps 
 		fmt.Println("=== MCP Server Usages ===")
 		for i, usage := range a.McpServerUsages {
 			ref := usage.McpServerRef
-			fmt.Printf("%d. %s (scope: %s)\n", i+1, ref.Slug, ref.Scope.String())
+			fmt.Printf("%d. %s/%s\n", i+1, ref.Org, ref.Slug)
 			if len(usage.EnabledTools) > 0 {
 				fmt.Printf("   Enabled tools: %v\n", usage.EnabledTools)
 			} else {
@@ -132,15 +111,14 @@ Use these tools to help with infrastructure automation, deployments, and DevOps 
 
 		fmt.Println("\n=== Summary ===")
 		fmt.Println("Created agent with MCP server references:")
-		fmt.Println("  - Platform servers: 4 (github, aws, slack, docker)")
-		fmt.Println("  - Organization servers: 1 (internal-tools)")
-		fmt.Println("  - Personal servers: 1 (my-dev-tools)")
+		fmt.Println("  - Public servers: 4 (stigmer/github, stigmer/aws, stigmer/slack, stigmer/docker)")
+		fmt.Println("  - Private servers: 2 (acme-corp/internal-tools, my-org/my-dev-tools)")
 		fmt.Println()
-		fmt.Println("Key differences from old inline pattern:")
-		fmt.Println("  - MCP servers are now standalone API resources")
-		fmt.Println("  - Agents reference servers by slug, not define them inline")
-		fmt.Println("  - Server configurations (command, args, etc.) are in McpServer resources")
-		fmt.Println("  - Agents only specify which tools to enable from each server")
+		fmt.Println("Key concepts:")
+		fmt.Println("  - MCP servers are standalone API resources")
+		fmt.Println("  - Use org/slug format to reference servers")
+		fmt.Println("  - Set agent.Org for slug-only references")
+		fmt.Println("  - Use UseMCP() with optional tool list")
 		fmt.Println()
 		fmt.Println("Note: Run `stigmer deploy` to deploy this agent to the platform.")
 

@@ -41,7 +41,7 @@ const (
 // - update: Standard authorization (requires update permission on the instance)
 // - delete: Standard authorization (requires delete permission on the instance)
 //
-// All operations enforce owner scope restrictions (organization or identity_account only).
+// All workflow instances belong to an organization.
 type WorkflowInstanceCommandControllerClient interface {
 	// Create or update a workflow instance.
 	// The authorization and state-operation are determined depending on whether the workflow instance
@@ -52,7 +52,7 @@ type WorkflowInstanceCommandControllerClient interface {
 	// Creates a configured deployment of a Workflow template with environment bindings.
 	//
 	// Input validation:
-	// - metadata.owner_scope must be organization (2) or identity_account (3)
+	// - metadata.org must be specified
 	// - spec.workflow_id must be a valid Workflow resource ID
 	// - spec.env_refs must reference valid Environment resources
 	//
@@ -83,7 +83,7 @@ type WorkflowInstanceCommandControllerClient interface {
 	// You cannot update:
 	// - spec.workflow_id (must delete and recreate to change template)
 	// - metadata.id (immutable resource identifier)
-	// - metadata.owner_scope (immutable after creation)
+	// - metadata.org (immutable after creation)
 	//
 	// Authorization:
 	// Requires "update" permission on the specific WorkflowInstance resource.
@@ -190,7 +190,7 @@ func (c *workflowInstanceCommandControllerClient) Delete(ctx context.Context, in
 // - update: Standard authorization (requires update permission on the instance)
 // - delete: Standard authorization (requires delete permission on the instance)
 //
-// All operations enforce owner scope restrictions (organization or identity_account only).
+// All workflow instances belong to an organization.
 type WorkflowInstanceCommandControllerServer interface {
 	// Create or update a workflow instance.
 	// The authorization and state-operation are determined depending on whether the workflow instance
@@ -201,7 +201,7 @@ type WorkflowInstanceCommandControllerServer interface {
 	// Creates a configured deployment of a Workflow template with environment bindings.
 	//
 	// Input validation:
-	// - metadata.owner_scope must be organization (2) or identity_account (3)
+	// - metadata.org must be specified
 	// - spec.workflow_id must be a valid Workflow resource ID
 	// - spec.env_refs must reference valid Environment resources
 	//
@@ -232,7 +232,7 @@ type WorkflowInstanceCommandControllerServer interface {
 	// You cannot update:
 	// - spec.workflow_id (must delete and recreate to change template)
 	// - metadata.id (immutable resource identifier)
-	// - metadata.owner_scope (immutable after creation)
+	// - metadata.org (immutable after creation)
 	//
 	// Authorization:
 	// Requires "update" permission on the specific WorkflowInstance resource.

@@ -7,9 +7,9 @@ import (
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
-	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 )
 
 // contextWithExecutionContextKind creates a context with the execution context resource kind injected
@@ -40,8 +40,8 @@ func TestExecutionContextController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Test Execution Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Test Execution Context",
+				Org:  "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "test-execution-id",
@@ -107,8 +107,8 @@ func TestExecutionContextController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Secret Test Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Secret Test Context",
+				Org:  "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "test-secret-execution-id",
@@ -141,8 +141,8 @@ func TestExecutionContextController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Invalid Context",
+				Org:  "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				// execution_id is missing
@@ -194,8 +194,8 @@ func TestExecutionContextController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Empty Data Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Empty Data Context",
+				Org:  "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "empty-data-execution-id",
@@ -226,8 +226,8 @@ func TestExecutionContextController_Get(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Get Test Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Get Test Context",
+				Org:  "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "get-test-execution-id",
@@ -293,8 +293,8 @@ func TestExecutionContextController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Test Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Delete Test Context",
+				Org:  "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "delete-test-execution-id",
@@ -358,8 +358,8 @@ func TestExecutionContextController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Verify Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Delete Verify Context",
+				Org:  "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "verify-delete-execution-id",
@@ -413,8 +413,8 @@ func TestExecutionContextController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Secret Lifecycle Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Secret Lifecycle Context",
+				Org:  "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "secret-lifecycle-id",

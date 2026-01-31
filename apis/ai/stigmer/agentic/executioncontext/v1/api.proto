@@ -18,15 +18,8 @@ message ExecutionContext {
   string kind = 2 [(buf.validate.field).string.const = 'ExecutionContext'];
 
   // Standard resource metadata including name, id, labels, and tags.
-  // ExecutionContext must have unspecified owner_scope (operator-managed only).
-  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
-    (buf.validate.field).required = true,
-    (buf.validate.field).cel = {
-      id: "execution_context.owner_scope.unspecified_only"
-      message: "ExecutionContext owner_scope must be unspecified (operator-managed resource)"
-      expression: "this.owner_scope == 0"
-    }
-  ];
+  // ExecutionContext is operator-managed and belongs to an organization.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
   // ExecutionContext-specific configuration.
   ExecutionContextSpec spec = 4;

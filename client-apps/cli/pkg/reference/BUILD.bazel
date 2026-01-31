@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "reference",
+    srcs = [
+        "doc.go",
+        "errors.go",
+        "reference.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/pkg/reference",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "reference_test",
+    srcs = ["reference_test.go"],
+    embed = [":reference"],
+)

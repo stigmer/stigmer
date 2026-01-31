@@ -215,9 +215,9 @@ func TestAddSkillRef(t *testing.T) {
 
 	// Add skill using builder method
 	ref := &apiresource.ApiResourceReference{
-		Kind:  apiresourcekind.ApiResourceKind_skill,
-		Slug:  "test-skill",
-		Scope: apiresource.ApiResourceOwnerScope_platform,
+		Kind: apiresourcekind.ApiResourceKind_skill,
+		Slug: "test-skill",
+		Org:  "stigmer",
 	}
 	sub.AddSkillRef(ref)
 
@@ -240,15 +240,14 @@ func TestAddSkillRefs(t *testing.T) {
 
 	// Add multiple skills
 	ref1 := &apiresource.ApiResourceReference{
-		Kind:  apiresourcekind.ApiResourceKind_skill,
-		Slug:  "skill1",
-		Scope: apiresource.ApiResourceOwnerScope_platform,
+		Kind: apiresourcekind.ApiResourceKind_skill,
+		Slug: "skill1",
+		Org:  "stigmer",
 	}
 	ref2 := &apiresource.ApiResourceReference{
-		Kind:  apiresourcekind.ApiResourceKind_skill,
-		Slug:  "skill2",
-		Scope: apiresource.ApiResourceOwnerScope_organization,
-		Org:   "my-org",
+		Kind: apiresourcekind.ApiResourceKind_skill,
+		Slug: "skill2",
+		Org:  "my-org",
 	}
 	sub.AddSkillRefs(ref1, ref2)
 
@@ -284,8 +283,8 @@ func TestAddOrgSkillRef(t *testing.T) {
 	if refs[0].Org != "acme-corp" {
 		t.Errorf("refs[0].Org = %q, want %q", refs[0].Org, "acme-corp")
 	}
-	if refs[0].Scope != apiresource.ApiResourceOwnerScope_organization {
-		t.Errorf("refs[0].Scope = %v, want organization", refs[0].Scope)
+	if refs[0].Kind != apiresourcekind.ApiResourceKind_skill {
+		t.Errorf("refs[0].Kind = %v, want skill", refs[0].Kind)
 	}
 
 	// Verify second ref has version

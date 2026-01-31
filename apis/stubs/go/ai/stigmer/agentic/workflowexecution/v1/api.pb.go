@@ -84,18 +84,8 @@ type WorkflowExecution struct {
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata including name, id, slug, labels, tags, and annotations.
 	//
-	// Owner Scope Restrictions:
-	// WorkflowExecution resources can only have organization or identity_account scope (not platform).
-	// This restriction ensures executions belong to a specific organization or user account.
-	//
-	// Validation:
-	// - owner_scope == 2 (ORGANIZATION) - Execution owned by an organization
-	// - owner_scope == 3 (IDENTITY_ACCOUNT) - Execution owned by a user account
-	//
-	// Why This Restriction?
-	// - Executions are tenant-specific runtime instances, not platform-level templates
-	// - Each execution consumes resources and should be attributed to a billable entity
-	// - Access control is enforced at the organization or user level
+	// All workflow executions belong to an organization. Visibility (public/private)
+	// is typically PRIVATE for executions since they contain runtime data.
 	//
 	// Naming Pattern:
 	// - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
@@ -917,15 +907,14 @@ var File_ai_stigmer_agentic_workflowexecution_v1_api_proto protoreflect.FileDesc
 
 const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/workflowexecution/v1/api.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xc5\x04\n" +
+	"1ai/stigmer/agentic/workflowexecution/v1/api.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x87\x03\n" +
 	"\x11WorkflowExecution\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
 	"apiVersion\x12,\n" +
 	"\x04kind\x18\x02 \x01(\tB\x18\xbaH\x15r\x13\n" +
-	"\x11WorkflowExecutionR\x04kind\x12\x94\x02\n" +
-	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xc2\x01\xbaH\xbe\x01\xba\x01\xb7\x01\n" +
-	"3workflow_execution.owner_scope.org_or_identity_only\x12PWorkflowExecution resources can only have organization or identity_account scope\x1a.this.owner_scope == 2 || this.owner_scope == 3\xc8\x01\x01R\bmetadata\x12R\n" +
+	"\x11WorkflowExecutionR\x04kind\x12W\n" +
+	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12R\n" +
 	"\x04spec\x18\x04 \x01(\v2>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpecR\x04spec\x12X\n" +
 	"\x06status\x18\x05 \x01(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusR\x06status\"\xa4\x04\n" +
 	"\x17WorkflowExecutionStatus\x12F\n" +

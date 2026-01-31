@@ -72,6 +72,32 @@ type Store interface {
 	//   - id: unique resource identifier
 	DeleteResource(ctx context.Context, kind apiresourcekind.ApiResourceKind, id string) error
 
+	// FindByField retrieves a single resource by matching a specific JSON field value.
+	// This enables queries like "find ExecutionContext where spec.executionId = X".
+	// Returns ErrNotFound if no resource exists with the matching field value.
+	//
+	// Parameters:
+	//   - kind: resource kind enum (e.g., ApiResourceKind_execution_context)
+	//   - fieldPath: JSON field path using dot notation (e.g., "spec.executionId")
+	//   - value: the value to match
+	//   - msg: pointer to proto message to unmarshal into (must be initialized)
+	//
+	// Note: This performs a full table scan for the given kind. For frequently
+	// queried fields, consider adding a dedicated index in the store implementation.
+	FindByField(ctx context.Context, kind apiresourcekind.ApiResourceKind, fieldPath string, value string, msg proto.Message) error
+
+	// FindAllByField retrieves all resources matching a specific JSON field value.
+	// This enables queries like "find all WorkflowExecutions where spec.workflowInstanceId = X".
+	// Returns an empty slice (not nil) if no resources match.
+	//
+	// Parameters:
+	//   - kind: resource kind enum (e.g., ApiResourceKind_workflow_execution)
+	//   - fieldPath: JSON field path using dot notation (e.g., "spec.workflowInstanceId")
+	//   - value: the value to match
+	//
+	// Returns: slice of marshaled protobuf bytes (one per matching resource)
+	FindAllByField(ctx context.Context, kind apiresourcekind.ApiResourceKind, fieldPath string, value string) ([][]byte, error)
+
 	// DeleteResourcesByKind removes all resources of a given kind.
 	// Useful for bulk cleanup operations (e.g., "stigmer local clean --kind=Agent").
 	//

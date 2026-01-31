@@ -5,13 +5,13 @@ import (
 	"net"
 	"testing"
 
-	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
-	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
@@ -150,11 +150,11 @@ func setupTestController(t *testing.T) *testControllers {
 }
 
 // createTestWorkflow creates a workflow in the store for testing
-// Workflows require: platform/organization scope, document, and at least one task
-func createTestWorkflow(t *testing.T, controllers *testControllers, name string, scope apiresource.ApiResourceOwnerScope, org string) *workflowv1.Workflow {
-	// If scope is unspecified, default to platform (required for workflows)
-	if scope == apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified {
-		scope = apiresource.ApiResourceOwnerScope_platform
+// All resources belong to an org in the new model
+func createTestWorkflow(t *testing.T, controllers *testControllers, name string, org string) *workflowv1.Workflow {
+	// Default org if not provided
+	if org == "" {
+		org = "test-org"
 	}
 
 	// Create minimal task config for a SET task
@@ -171,9 +171,8 @@ func createTestWorkflow(t *testing.T, controllers *testControllers, name string,
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:       name,
-			OwnerScope: scope,
-			Org:        org,
+			Name: name,
+			Org:  org,
 		},
 		Spec: &workflowv1.WorkflowSpec{
 			Description: "Test workflow description",
@@ -209,14 +208,14 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 
 	t.Run("successful creation with workflow_id", func(t *testing.T) {
 		// Create a parent workflow first
-		parentWorkflow := createTestWorkflow(t, controllers, "test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		parentWorkflow := createTestWorkflow(t, controllers, "test-workflow", "")
 
 		instance := &workflowinstancev1.WorkflowInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Test Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Test Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -266,8 +265,8 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Invalid Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				Description: "Test description",
@@ -285,8 +284,8 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Invalid Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  "non-existent-workflow-id",
@@ -335,15 +334,14 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 
 	t.Run("same-org validation - org workflow can create instance in same org", func(t *testing.T) {
 		// Create org-scoped workflow
-		parentWorkflow := createTestWorkflow(t, controllers, "org-workflow", apiresource.ApiResourceOwnerScope_organization, "org-123")
+		parentWorkflow := createTestWorkflow(t, controllers, "org-workflow", "org-123")
 
 		instance := &workflowinstancev1.WorkflowInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Org Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
-				Org:        "org-123", // Same org as workflow
+				Name: "Org Instance",
+				Org:  "org-123", // Same org as workflow
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -363,15 +361,14 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 
 	t.Run("same-org validation - org workflow cannot create instance in different org", func(t *testing.T) {
 		// Create org-scoped workflow
-		parentWorkflow := createTestWorkflow(t, controllers, "org-workflow-2", apiresource.ApiResourceOwnerScope_organization, "org-456")
+		parentWorkflow := createTestWorkflow(t, controllers, "org-workflow-2", "org-456")
 
 		instance := &workflowinstancev1.WorkflowInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Cross Org Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
-				Org:        "org-789", // Different org from workflow
+				Name: "Cross Org Instance",
+				Org:  "org-789", // Different org from workflow
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -392,15 +389,15 @@ func TestWorkflowInstanceController_Get(t *testing.T) {
 
 	t.Run("successful get", func(t *testing.T) {
 		// Create parent workflow first
-		parentWorkflow := createTestWorkflow(t, controllers, "get-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		parentWorkflow := createTestWorkflow(t, controllers, "get-test-workflow", "")
 
 		// Create instance first
 		instance := &workflowinstancev1.WorkflowInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Get Test Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Get Test Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -453,15 +450,15 @@ func TestWorkflowInstanceController_GetByReference(t *testing.T) {
 
 	t.Run("successful get by slug", func(t *testing.T) {
 		// Create parent workflow first
-		parentWorkflow := createTestWorkflow(t, controllers, "ref-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		parentWorkflow := createTestWorkflow(t, controllers, "ref-test-workflow", "")
 
 		// Create instance first
 		instance := &workflowinstancev1.WorkflowInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Get By Reference Test",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Get By Reference Test",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -509,15 +506,15 @@ func TestWorkflowInstanceController_Update(t *testing.T) {
 
 	t.Run("successful update", func(t *testing.T) {
 		// Create parent workflow first
-		parentWorkflow := createTestWorkflow(t, controllers, "update-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		parentWorkflow := createTestWorkflow(t, controllers, "update-test-workflow", "")
 
 		// Create instance first
 		instance := &workflowinstancev1.WorkflowInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Update Test Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Update Test Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -556,9 +553,9 @@ func TestWorkflowInstanceController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:         "non-existent-id",
-				Name:       "Non-existent Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Id:   "non-existent-id",
+				Name: "Non-existent Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  "wfl-test-123",
@@ -579,15 +576,15 @@ func TestWorkflowInstanceController_Delete(t *testing.T) {
 
 	t.Run("successful deletion", func(t *testing.T) {
 		// Create parent workflow first
-		parentWorkflow := createTestWorkflow(t, controllers, "delete-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		parentWorkflow := createTestWorkflow(t, controllers, "delete-test-workflow", "")
 
 		// Create instance first
 		instance := &workflowinstancev1.WorkflowInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Test Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Delete Test Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -633,15 +630,15 @@ func TestWorkflowInstanceController_Delete(t *testing.T) {
 
 	t.Run("verify deleted instance returns correct data", func(t *testing.T) {
 		// Create parent workflow first
-		parentWorkflow := createTestWorkflow(t, controllers, "delete-verify-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		parentWorkflow := createTestWorkflow(t, controllers, "delete-verify-workflow", "")
 
 		// Create instance with specific data
 		instance := &workflowinstancev1.WorkflowInstance{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Verify Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Delete Verify Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  parentWorkflow.Metadata.Id,
@@ -681,10 +678,10 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 
 	t.Run("successful get by workflow with multiple instances", func(t *testing.T) {
 		// Create parent workflow first
-		parentWorkflow := createTestWorkflow(t, controllers, "list-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		parentWorkflow := createTestWorkflow(t, controllers, "list-test-workflow", "")
 
 		// Create another workflow to test filtering
-		otherWorkflow := createTestWorkflow(t, controllers, "other-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		otherWorkflow := createTestWorkflow(t, controllers, "other-test-workflow", "")
 
 		// Create multiple instances for the parent workflow
 		for i := 1; i <= 3; i++ {
@@ -692,8 +689,8 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 				ApiVersion: "agentic.stigmer.ai/v1",
 				Kind:       "WorkflowInstance",
 				Metadata: &apiresource.ApiResourceMetadata{
-					Name:       "Instance " + string(rune(i+'0')),
-					OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+					Name: "Instance " + string(rune(i+'0')),
+					Org:  "test-org",
 				},
 				Spec: &workflowinstancev1.WorkflowInstanceSpec{
 					WorkflowId:  parentWorkflow.Metadata.Id,
@@ -711,8 +708,8 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Other Instance",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Other Instance",
+				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
 				WorkflowId:  otherWorkflow.Metadata.Id,
@@ -748,7 +745,7 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 
 	t.Run("get by workflow with no instances", func(t *testing.T) {
 		// Create a workflow with no explicit instances (but it will have 1 default instance)
-		emptyWorkflow := createTestWorkflow(t, controllers, "empty-test-workflow", apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified, "")
+		emptyWorkflow := createTestWorkflow(t, controllers, "empty-test-workflow", "")
 
 		request := &workflowinstancev1.GetWorkflowInstancesByWorkflowRequest{
 			WorkflowId: emptyWorkflow.Metadata.Id,

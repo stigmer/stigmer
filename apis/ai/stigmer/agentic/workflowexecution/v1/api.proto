@@ -68,18 +68,8 @@ message WorkflowExecution {
 
   // Standard resource metadata including name, id, slug, labels, tags, and annotations.
   //
-  // Owner Scope Restrictions:
-  // WorkflowExecution resources can only have organization or identity_account scope (not platform).
-  // This restriction ensures executions belong to a specific organization or user account.
-  //
-  // Validation:
-  // - owner_scope == 2 (ORGANIZATION) - Execution owned by an organization
-  // - owner_scope == 3 (IDENTITY_ACCOUNT) - Execution owned by a user account
-  //
-  // Why This Restriction?
-  // - Executions are tenant-specific runtime instances, not platform-level templates
-  // - Each execution consumes resources and should be attributed to a billable entity
-  // - Access control is enforced at the organization or user level
+  // All workflow executions belong to an organization. Visibility (public/private)
+  // is typically PRIVATE for executions since they contain runtime data.
   //
   // Naming Pattern:
   // - ID Format: "wfx-abc123xyz456" (auto-generated, unique)
@@ -89,14 +79,7 @@ message WorkflowExecution {
   // Labels and Tags:
   // - Labels: workflow_instance_id, workflow_id, trigger_source
   // - Tags: environment names, team names, execution metadata
-  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
-    (buf.validate.field).required = true,
-    (buf.validate.field).cel = {
-      id: "workflow_execution.owner_scope.org_or_identity_only"
-      message: "WorkflowExecution resources can only have organization or identity_account scope"
-      expression: "this.owner_scope == 2 || this.owner_scope == 3"
-    }
-  ];
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
   // User-provided inputs and configuration for this workflow execution.
   //

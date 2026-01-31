@@ -3,7 +3,6 @@ syntax = "proto3";
 package ai.stigmer.agentic.skill.v1;
 
 import "ai/stigmer/agentic/skill/v1/spec.proto";
-import "ai/stigmer/commons/apiresource/enum.proto";
 import "buf/validate/validate.proto";
 
 // SkillId wraps a skill identifier.
@@ -19,11 +18,9 @@ message SkillId {
 // YAML frontmatter within the artifact. The CLI validates the format but does not
 // send these fields - backend is the single source of truth for parsing.
 message PushSkillRequest {
-  // Owner scope of the skill (platform or organization).
-  ai.stigmer.commons.apiresource.ApiResourceOwnerScope scope = 1 [(buf.validate.field).enum.defined_only = true];
-
-  // Organization ID (required if scope = organization).
-  string org = 2;
+  // Organization that owns this skill. Required.
+  // All skills belong to exactly one organization.
+  string org = 1 [(buf.validate.field).required = true];
 
   // Skill artifact as a ZIP file (binary content).
   // The ZIP must contain:
@@ -32,18 +29,21 @@ message PushSkillRequest {
   //   - description: Human-readable description (optional but recommended)
   // - Tool executables/scripts (optional)
   // - Additional files referenced in SKILL.md
-  bytes artifact = 3 [(buf.validate.field).required = true];
+  bytes artifact = 2 [(buf.validate.field).required = true];
 
   // Optional tag to associate with this version.
   // If provided, this tag will point to the new version.
   // If empty/not provided, the version will only be accessible via its hash.
   // Examples: "stable", "v1.0", "latest"
-  string tag = 4 [(buf.validate.field).string.pattern = "^$|^[a-zA-Z0-9._-]+$"];
+  string tag = 3 [(buf.validate.field).string.pattern = "^$|^[a-zA-Z0-9._-]+$"];
 
   // Source information tracking where the skill artifacts originated from.
   // For local pushes, CLI auto-detects git information if available.
   // For remote pushes, this contains the git URL, ref, and subdir.
-  SkillSource source = 5;
+  SkillSource source = 4;
+
+  // Reserved field numbers from previous schema versions.
+  reserved 5;
 }
 
 // GetArtifactRequest requests download of a skill artifact by storage key.

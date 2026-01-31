@@ -33,6 +33,7 @@ type Environment struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata including name, id, labels, and tags.
+	// Environments belong to an organization and are typically PRIVATE visibility.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Environment-specific configuration.
 	Spec *EnvironmentSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
@@ -111,15 +112,14 @@ var File_ai_stigmer_agentic_environment_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_environment_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/environment/v1/api.proto\x12!ai.stigmer.agentic.environment.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\x96\x04\n" +
+	"+ai/stigmer/agentic/environment/v1/api.proto\x12!ai.stigmer.agentic.environment.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xe5\x02\n" +
 	"\vEnvironment\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
 	"apiVersion\x12&\n" +
 	"\x04kind\x18\x02 \x01(\tB\x12\xbaH\x0fr\r\n" +
-	"\vEnvironmentR\x04kind\x12\x87\x02\n" +
-	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xb5\x01\xbaH\xb1\x01\xba\x01\xaa\x01\n" +
-	",environment.owner_scope.org_or_identity_only\x12JEnvironment resources can only have organization or identity_account scope\x1a.this.owner_scope == 2 || this.owner_scope == 3\xc8\x01\x01R\bmetadata\x12F\n" +
+	"\vEnvironmentR\x04kind\x12W\n" +
+	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12F\n" +
 	"\x04spec\x18\x04 \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\x04spec\x12N\n" +
 	"\x06status\x18\x05 \x01(\v26.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\xb4\x02\n" +
 	"%com.ai.stigmer.agentic.environment.v1B\bApiProtoP\x01ZXgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"

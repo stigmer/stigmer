@@ -142,70 +142,69 @@ func (ApiResourceStateOperationType) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_commons_apiresource_enum_proto_rawDescGZIP(), []int{1}
 }
 
-// Defines who owns and has primary control over an API resource.
-// Ownership determines visibility and access control rules.
-// This enum is used across multiple resource types (agents, MCP servers, etc.)
-// Values align with FGA model owner types: platform, organization, identity_account.
-type ApiResourceOwnerScope int32
+// Visibility controls who can access an API resource.
+// This is orthogonal to ownership - visibility is about access control,
+// while ownership (org) determines who manages the resource.
+//
+// Key distinction:
+// - Ownership: Which organization controls/manages the resource
+// - Visibility: Who can access/use the resource
+//
+// All resources belong to an organization. Visibility determines whether
+// users outside that organization can access the resource.
+type ApiResourceVisibility int32
 
 const (
-	// Default/unspecified value - should not be used in practice.
-	// When unspecified, backend should infer from context or reject.
-	ApiResourceOwnerScope_api_resource_owner_scope_unspecified ApiResourceOwnerScope = 0
-	// Platform-owned resources created by platform operators.
-	// These are official/public resources visible to all users.
-	// Examples: Official agents, pre-configured MCP servers
-	ApiResourceOwnerScope_platform ApiResourceOwnerScope = 1
-	// Organization-owned resources created by org admins.
-	// These are visible only to members of the owning organization.
-	// Examples: Custom enterprise agents, org-specific tools
-	ApiResourceOwnerScope_organization ApiResourceOwnerScope = 2
-	// Identity account-owned resources created by individual users.
-	// These are private resources visible only to the owning identity account.
-	// Examples: Personal agents, private experiments
-	ApiResourceOwnerScope_identity_account ApiResourceOwnerScope = 3
+	// Default/unspecified - backend infers from context.
+	// For new resources: defaults to PRIVATE.
+	ApiResourceVisibility_API_RESOURCE_VISIBILITY_UNSPECIFIED ApiResourceVisibility = 0
+	// Only members of the owning organization can access.
+	// This is the default for most resources.
+	ApiResourceVisibility_API_RESOURCE_VISIBILITY_PRIVATE ApiResourceVisibility = 1
+	// Anyone can access (read) this resource.
+	// Used for marketplace-published resources (e.g., "stigmer/web-search").
+	// Write access still requires org membership.
+	ApiResourceVisibility_API_RESOURCE_VISIBILITY_PUBLIC ApiResourceVisibility = 2
 )
 
-// Enum value maps for ApiResourceOwnerScope.
+// Enum value maps for ApiResourceVisibility.
 var (
-	ApiResourceOwnerScope_name = map[int32]string{
-		0: "api_resource_owner_scope_unspecified",
-		1: "platform",
-		2: "organization",
-		3: "identity_account",
+	ApiResourceVisibility_name = map[int32]string{
+		0: "API_RESOURCE_VISIBILITY_UNSPECIFIED",
+		1: "API_RESOURCE_VISIBILITY_PRIVATE",
+		2: "API_RESOURCE_VISIBILITY_PUBLIC",
 	}
-	ApiResourceOwnerScope_value = map[string]int32{
-		"api_resource_owner_scope_unspecified": 0,
-		"platform":                             1,
-		"organization":                         2,
-		"identity_account":                     3,
+	ApiResourceVisibility_value = map[string]int32{
+		"API_RESOURCE_VISIBILITY_UNSPECIFIED": 0,
+		"API_RESOURCE_VISIBILITY_PRIVATE":     1,
+		"API_RESOURCE_VISIBILITY_PUBLIC":      2,
 	}
 )
 
-func (x ApiResourceOwnerScope) Enum() *ApiResourceOwnerScope {
-	p := new(ApiResourceOwnerScope)
+func (x ApiResourceVisibility) Enum() *ApiResourceVisibility {
+	p := new(ApiResourceVisibility)
 	*p = x
 	return p
 }
 
-func (x ApiResourceOwnerScope) String() string {
+func (x ApiResourceVisibility) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (ApiResourceOwnerScope) Descriptor() protoreflect.EnumDescriptor {
+func (ApiResourceVisibility) Descriptor() protoreflect.EnumDescriptor {
 	return file_ai_stigmer_commons_apiresource_enum_proto_enumTypes[2].Descriptor()
 }
 
-func (ApiResourceOwnerScope) Type() protoreflect.EnumType {
+func (ApiResourceVisibility) Type() protoreflect.EnumType {
 	return &file_ai_stigmer_commons_apiresource_enum_proto_enumTypes[2]
 }
 
-func (x ApiResourceOwnerScope) Number() protoreflect.EnumNumber {
+func (x ApiResourceVisibility) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use ApiResourceOwnerScope.Descriptor instead.
-func (ApiResourceOwnerScope) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use ApiResourceVisibility.Descriptor instead.
+func (ApiResourceVisibility) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_commons_apiresource_enum_proto_rawDescGZIP(), []int{2}
 }
 
@@ -345,12 +344,11 @@ const file_ai_stigmer_commons_apiresource_enum_proto_rawDesc = "" +
 	"\x06delete\x10\x03\x12\b\n" +
 	"\x04read\x10\x04\x12\n" +
 	"\n" +
-	"\x06stream\x10\x05*w\n" +
-	"\x15ApiResourceOwnerScope\x12(\n" +
-	"$api_resource_owner_scope_unspecified\x10\x00\x12\f\n" +
-	"\bplatform\x10\x01\x12\x10\n" +
-	"\forganization\x10\x02\x12\x14\n" +
-	"\x10identity_account\x10\x03*\xc9\x03\n" +
+	"\x06stream\x10\x05*\x89\x01\n" +
+	"\x15ApiResourceVisibility\x12'\n" +
+	"#API_RESOURCE_VISIBILITY_UNSPECIFIED\x10\x00\x12#\n" +
+	"\x1fAPI_RESOURCE_VISIBILITY_PRIVATE\x10\x01\x12\"\n" +
+	"\x1eAPI_RESOURCE_VISIBILITY_PUBLIC\x10\x02*\xc9\x03\n" +
 	"\x10WorkflowTaskKind\x12\"\n" +
 	"\x1eWORKFLOW_TASK_KIND_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16WORKFLOW_TASK_KIND_SET\x10\x01\x12 \n" +
@@ -385,7 +383,7 @@ var file_ai_stigmer_commons_apiresource_enum_proto_enumTypes = make([]protoimpl.
 var file_ai_stigmer_commons_apiresource_enum_proto_goTypes = []any{
 	(ApiResourceEventType)(0),          // 0: ai.stigmer.commons.apiresource.ApiResourceEventType
 	(ApiResourceStateOperationType)(0), // 1: ai.stigmer.commons.apiresource.ApiResourceStateOperationType
-	(ApiResourceOwnerScope)(0),         // 2: ai.stigmer.commons.apiresource.ApiResourceOwnerScope
+	(ApiResourceVisibility)(0),         // 2: ai.stigmer.commons.apiresource.ApiResourceVisibility
 	(WorkflowTaskKind)(0),              // 3: ai.stigmer.commons.apiresource.WorkflowTaskKind
 }
 var file_ai_stigmer_commons_apiresource_enum_proto_depIdxs = []int32{

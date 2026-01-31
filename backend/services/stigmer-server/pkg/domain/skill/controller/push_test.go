@@ -7,7 +7,6 @@ import (
 	"time"
 
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
 	"github.com/stretchr/testify/assert"
@@ -639,20 +638,19 @@ func TestPush_OrgScoped(t *testing.T) {
 	assert.Equal(t, "my-organization", result.Metadata.Org)
 }
 
-// TestPush_PlatformScoped verifies that Push works with platform-scoped skills.
-func TestPush_PlatformScoped(t *testing.T) {
+// TestPush_OrgScoped verifies that Push works with org-scoped skills.
+func TestPush_OrgScoped(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
 
-	artifact := storage.CreateTestZip("# Platform Skill")
+	artifact := storage.CreateTestZip("# Org Skill")
 	req := &skillv1.PushSkillRequest{
-		Name:     "Platform Skill",
+		Name:     "Org Skill",
 		Artifact: artifact,
-		Scope:    apiresourcepb.ApiResourceOwnerScope_platform,
+		Org:      "test-org",
 	}
 
 	result, err := controller.Push(contextWithSkillKind(), req)
 	require.NoError(t, err)
-	assert.Equal(t, apiresourcepb.ApiResourceOwnerScope_platform, result.Metadata.OwnerScope)
-	assert.Empty(t, result.Metadata.Org, "platform-scoped skills should not have org set")
+	assert.Equal(t, "test-org", result.Metadata.Org, "skill should have org set")
 }

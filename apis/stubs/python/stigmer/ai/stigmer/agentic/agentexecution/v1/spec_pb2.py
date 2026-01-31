@@ -26,7 +26,7 @@ from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as ai_dot_stigmer_do
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a\x31\x61i/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\"\xb4\x04\n\x12\x41gentExecutionSpec\x12\x1d\n\nsession_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n\x08\x61gent_id\x18\x02 \x01(\tR\x07\x61gentId\x12!\n\x07message\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07message\x12`\n\x10\x65xecution_config\x18\x04 \x01(\x0b\x32\x35.ai.stigmer.agentic.agentexecution.v1.ExecutionConfigR\x0f\x65xecutionConfig\x12i\n\x0bruntime_env\x18\x05 \x03(\x0b\x32H.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntryR\nruntimeEnv\x12%\n\x0e\x63\x61llback_token\x18\x06 \x01(\x0cR\rcallbackToken\x12(\n\x10\x61uto_approve_all\x18\x07 \x01(\x08R\x0e\x61utoApproveAll\x12,\n\x12parent_workflow_id\x18\x08 \x01(\tR\x10parentWorkflowId\x1au\n\x0fRuntimeEnvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12L\n\x05value\x18\x02 \x01(\x0b\x32\x36.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x02\x38\x01\"0\n\x0f\x45xecutionConfig\x12\x1d\n\nmodel_name\x18\x01 \x01(\tR\tmodelNameB\xea\x01\n(com.ai.stigmer.agentic.agentexecution.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a\x31\x61i/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\"\xb4\x04\n\x12\x41gentExecutionSpec\x12\x1d\n\nsession_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n\x08\x61gent_id\x18\x02 \x01(\tR\x07\x61gentId\x12!\n\x07message\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07message\x12`\n\x10\x65xecution_config\x18\x04 \x01(\x0b\x32\x35.ai.stigmer.agentic.agentexecution.v1.ExecutionConfigR\x0f\x65xecutionConfig\x12i\n\x0bruntime_env\x18\x05 \x03(\x0b\x32H.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntryR\nruntimeEnv\x12%\n\x0e\x63\x61llback_token\x18\x06 \x01(\x0cR\rcallbackToken\x12(\n\x10\x61uto_approve_all\x18\x07 \x01(\x08R\x0e\x61utoApproveAll\x12,\n\x12parent_workflow_id\x18\x08 \x01(\tR\x10parentWorkflowId\x1au\n\x0fRuntimeEnvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12L\n\x05value\x18\x02 \x01(\x0b\x32\x36.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x02\x38\x01\"\x9e\x01\n\x0f\x45xecutionConfig\x12\x1d\n\nmodel_name\x18\x01 \x01(\tR\tmodelName\x12l\n\x12\x63ontext_management\x18\x02 \x01(\x0b\x32=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11\x63ontextManagement\"\xcc\x01\n\x17\x43ontextManagementConfig\x12\x33\n\x15\x64isable_summarization\x18\x01 \x01(\x08R\x14\x64isableSummarization\x12\x41\n\x18\x63ustom_trigger_threshold\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x16\x63ustomTriggerThreshold\x12\x39\n\x14\x63ustom_target_tokens\x18\x03 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x12\x63ustomTargetTokensB\xea\x01\n(com.ai.stigmer.agentic.agentexecution.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,10 +38,16 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_AGENTEXECUTIONSPEC_RUNTIMEENVENTRY']._serialized_options = b'8\001'
   _globals['_AGENTEXECUTIONSPEC'].fields_by_name['message']._loaded_options = None
   _globals['_AGENTEXECUTIONSPEC'].fields_by_name['message']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_CONTEXTMANAGEMENTCONFIG'].fields_by_name['custom_trigger_threshold']._loaded_options = None
+  _globals['_CONTEXTMANAGEMENTCONFIG'].fields_by_name['custom_trigger_threshold']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_CONTEXTMANAGEMENTCONFIG'].fields_by_name['custom_target_tokens']._loaded_options = None
+  _globals['_CONTEXTMANAGEMENTCONFIG'].fields_by_name['custom_target_tokens']._serialized_options = b'\272H\004\032\002(\000'
   _globals['_AGENTEXECUTIONSPEC']._serialized_start=170
   _globals['_AGENTEXECUTIONSPEC']._serialized_end=734
   _globals['_AGENTEXECUTIONSPEC_RUNTIMEENVENTRY']._serialized_start=617
   _globals['_AGENTEXECUTIONSPEC_RUNTIMEENVENTRY']._serialized_end=734
-  _globals['_EXECUTIONCONFIG']._serialized_start=736
-  _globals['_EXECUTIONCONFIG']._serialized_end=784
+  _globals['_EXECUTIONCONFIG']._serialized_start=737
+  _globals['_EXECUTIONCONFIG']._serialized_end=895
+  _globals['_CONTEXTMANAGEMENTCONFIG']._serialized_start=898
+  _globals['_CONTEXTMANAGEMENTCONFIG']._serialized_end=1102
 # @@protoc_insertion_point(module_scope)

@@ -19,7 +19,8 @@ Complete documentation index for the Stigmer open-source project.
 - [Go SDK Proto Integration](sdk/go-sdk-proto-integration.md) - Convert SDK resources to platform protos (Skill ready, Agent in progress)
 
 ### Guides
-- [Environment Variables and Secrets](guides/environment-variables.md) - **NEW**: Complete guide to environment variables, secrets, `.env` files, and runtime configuration
+- [org/slug Migration Guide](guides/org-slug-migration.md) - **NEW**: Complete migration guide from scope-based to org/slug ownership model
+- [Environment Variables and Secrets](guides/environment-variables.md) - Complete guide to environment variables, secrets, `.env` files, and runtime configuration
 - [Using MCP Servers](guides/using-mcp-servers.md) - Complete guide to creating and using MCP server configurations with environment variable placeholders
 - [Uploading Skills](guides/uploading-skills.md) - Complete guide to uploading skills as artifacts using Artifact Mode
 - [Creating and Versioning Skills](guides/creating-and-versioning-skills.md) - Complete guide to creating, uploading, and managing versioned skills
@@ -30,8 +31,8 @@ Complete documentation index for the Stigmer open-source project.
 - [Agent Runner: Local Mode](guides/agent-runner-local-mode.md) - Running the agent runner in local vs cloud mode
 - [Stigmer New Command](guides/stigmer-new-command.md) - Complete setup for the `stigmer new` command, demo repository, and zero-config quickstart
 - [Temporal Connection Resilience - Quick Start](guides/temporal-connection-resilience-quick-start.md) - Quick guide to understanding and using automatic Temporal reconnection
-- [Temporal Async Activity Completion](guides/temporal-async-activity-completion.md) - **NEW**: Developer guide for integrating with async activity completion (token handshake) pattern for long-running operations
-- [Temporal Token Handshake Operations](guides/temporal-token-handshake-operations.md) - **NEW**: Operator runbook for monitoring, troubleshooting, and maintaining the token handshake pattern in production
+- [Temporal Async Activity Completion](guides/temporal-async-activity-completion.md) - Developer guide for integrating with async activity completion (token handshake) pattern for long-running operations
+- [Temporal Token Handshake Operations](guides/temporal-token-handshake-operations.md) - Operator runbook for monitoring, troubleshooting, and maintaining the token handshake pattern in production
 
 ### Implementation
 - [Phase 1 Foundation](implementation/phase-1-foundation.md) - Phase 1 implementation summary: repository structure, gRPC architecture, and database design
@@ -45,19 +46,20 @@ Complete documentation index for the Stigmer open-source project.
 - [SDK Code Generation](implementation/sdk-code-generation.md) - Two-stage code generation pipeline for SDK workflow tasks (proto → schemas → Go code)
 
 ### Architecture
+- [org/slug Ownership Model](architecture/org-slug-ownership-model.md) - **NEW**: GitHub-inspired ownership model with org/slug references, visibility controls, and simplified authorization
 - [Backend Modes](architecture/backend-modes.md) - Local vs cloud backend architecture, auto-start daemon, and organization handling
 - [Backend Abstraction](architecture/backend-abstraction.md) - Backend interface design and abstraction layers
 - [CLI Subprocess Lifecycle](architecture/cli-subprocess-lifecycle.md) - Production-grade subprocess management with lock files, health checks, and auto-restart
 - [Health Monitoring](architecture/health-monitoring.md) - Production-grade health monitoring and automatic restart for daemon components
 - [LLM Automation](architecture/llm-automation.md) - Zero-config local LLM setup, automatic binary downloads, and lifecycle management
 - [Go Module Structure](architecture/go-module-structure.md) - Go workspace and module organization pattern for contributors
-- [McpServer Resource](architecture/mcp-server-resource.md) - **NEW**: First-class MCP server resource with tri-scope support, FGA authorization, and marketplace patterns
+- [McpServer Resource](architecture/mcp-server-resource.md) - First-class MCP server resource with tri-scope support, FGA authorization, and marketplace patterns
 - [Open Core Model](architecture/open-core-model.md) - Open source vs enterprise architecture
 - [Packaging Flow](architecture/packaging-flow.md) - How Stigmer is packaged and distributed (with diagrams)
 - [Request Pipeline Context Design](architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
 - [SDK Code Generation](architecture/sdk-code-generation.md) - Schema-driven code generation for workflow tasks (adds new task in 5 minutes vs 30-60)
 - [SDK-CLI Contract](architecture/sdk-cli-contract.md) - Direct proto pattern: SDKs write platform protos with SDK metadata in annotations (eliminates manifest wrapper layer)
-- [Skill Artifact Storage](architecture/skill-artifact-storage.md) - **NEW**: Secure content-addressable storage for skill artifacts with google/safearchive, ZIP bomb protection, and audit trail
+- [Skill Artifact Storage](architecture/skill-artifact-storage.md) - Secure content-addressable storage for skill artifacts with google/safearchive, ZIP bomb protection, and audit trail
 - [Skill Versioning](architecture/skill-versioning.md) - Versioned artifact-centric skill system with content-addressable storage and tag-based versioning
 - [Spec vs Status Philosophy](architecture/spec-status-philosophy.md) - Kubernetes-inspired philosophy for field placement: inputs in spec, outputs in status
 - [Temporal Integration](architecture/temporal-integration.md) - Polyglot workflow orchestration with Temporal (Go workflows, Python activities)
