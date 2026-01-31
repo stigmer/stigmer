@@ -18,14 +18,8 @@ message Environment {
   string kind = 2 [(buf.validate.field).string.const = 'Environment'];
 
   // Standard resource metadata including name, id, labels, and tags.
-  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
-    (buf.validate.field).required = true,
-    (buf.validate.field).cel = {
-      id: "environment.owner_scope.org_or_identity_only"
-      message: "Environment resources can only have organization or identity_account scope"
-      expression: "this.owner_scope == 2 || this.owner_scope == 3"
-    }
-  ];
+  // Environments belong to an organization and are typically PRIVATE visibility.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
   // Environment-specific configuration.
   EnvironmentSpec spec = 4;

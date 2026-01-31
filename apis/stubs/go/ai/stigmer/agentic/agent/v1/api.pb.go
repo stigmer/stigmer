@@ -31,7 +31,8 @@ type Agent struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata including name, id, labels, and tags.
-	// Agents can only have platform or organization scope (not identity_account).
+	// Agents belong to an organization and can be PUBLIC or PRIVATE.
+	// Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Agent-specific configuration.
 	Spec *AgentSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
@@ -110,15 +111,14 @@ var File_ai_stigmer_agentic_agent_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/agentic/agent/v1/api.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/agent/v1/status.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a\x1bbuf/validate/validate.proto\"\xdc\x03\n" +
+	"%ai/stigmer/agentic/agent/v1/api.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/agent/v1/status.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a\x1bbuf/validate/validate.proto\"\xbf\x02\n" +
 	"\x05Agent\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
 	"apiVersion\x12 \n" +
 	"\x04kind\x18\x02 \x01(\tB\f\xbaH\tr\a\n" +
-	"\x05AgentR\x04kind\x12\xf3\x01\n" +
-	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xa1\x01\xbaH\x9d\x01\xba\x01\x96\x01\n" +
-	"&agent.owner_scope.platform_or_org_only\x12<Agent resources can only have platform or organization scope\x1a.this.owner_scope == 1 || this.owner_scope == 2\xc8\x01\x01R\bmetadata\x12:\n" +
+	"\x05AgentR\x04kind\x12W\n" +
+	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12:\n" +
 	"\x04spec\x18\x04 \x01(\v2&.ai.stigmer.agentic.agent.v1.AgentSpecR\x04spec\x12@\n" +
 	"\x06status\x18\x05 \x01(\v2(.ai.stigmer.agentic.agent.v1.AgentStatusR\x06statusB\x8a\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\bApiProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"

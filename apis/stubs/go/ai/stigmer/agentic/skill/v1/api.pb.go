@@ -33,7 +33,8 @@ type Skill struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata including name, id, labels, and tags.
-	// Skill names are normalized to slugs (e.g., "Calculator" → "calculator")
+	// Skill names are normalized to slugs (e.g., "Calculator" → "calculator").
+	// Skills belong to an organization and can be public or private.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// User-provided skill configuration (desired state).
 	Spec *SkillSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
@@ -176,15 +177,14 @@ var File_ai_stigmer_agentic_skill_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/agentic/skill/v1/api.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a\x1bbuf/validate/validate.proto\"\xdc\x03\n" +
+	"%ai/stigmer/agentic/skill/v1/api.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a\x1bbuf/validate/validate.proto\"\xbf\x02\n" +
 	"\x05Skill\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
 	"apiVersion\x12 \n" +
 	"\x04kind\x18\x02 \x01(\tB\f\xbaH\tr\a\n" +
-	"\x05SkillR\x04kind\x12\xf3\x01\n" +
-	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xa1\x01\xbaH\x9d\x01\xba\x01\x96\x01\n" +
-	"&skill.owner_scope.platform_or_org_only\x12<Skill resources can only have platform or organization scope\x1a.this.owner_scope == 1 || this.owner_scope == 2\xc8\x01\x01R\bmetadata\x12:\n" +
+	"\x05SkillR\x04kind\x12W\n" +
+	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12:\n" +
 	"\x04spec\x18\x04 \x01(\v2&.ai.stigmer.agentic.skill.v1.SkillSpecR\x04spec\x12@\n" +
 	"\x06status\x18\x05 \x01(\v2(.ai.stigmer.agentic.skill.v1.SkillStatusR\x06status\"z\n" +
 	"\tSkillList\x12\x1f\n" +

@@ -3,7 +3,6 @@ syntax = "proto3";
 package ai.stigmer.commons.apiresource;
 
 import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
-import "ai/stigmer/commons/apiresource/enum.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
 
@@ -45,19 +44,20 @@ message FindApiResourcesRequest {
   int32 page_size = 6;
 }
 
-// Generic reference to any API resource by scope, org, and name.
-// Used across resources to reference other resources (e.g., Environment, Agent, etc.)
+// Generic reference to any API resource by org and slug.
+// Used across resources to reference other resources (e.g., Environment, Agent, Skill).
+// Canonical format: "org/slug" (e.g., "stigmer/web-search", "acme/my-agent").
 message ApiResourceReference {
-  // Owner scope of the referenced resource
-  ApiResourceOwnerScope scope = 1 [(buf.validate.field).enum.defined_only = true];
+  // Organization that owns the referenced resource. Required.
+  // Format: lowercase alphanumeric with hyphens (e.g., "stigmer", "acme-corp").
+  string org = 1 [(buf.validate.field).required = true];
 
-  // Organization ID (required if scope = organization)
-  string org = 2;
+  // Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+  ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2;
 
-  ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 3;
-
-  // Resource slug (user-friendly name, not ID)
-  string slug = 4;
+  // Resource slug (user-friendly identifier, unique within org).
+  // Format: lowercase alphanumeric with hyphens (e.g., "web-search", "code-reviewer").
+  string slug = 3;
 
   // Version of the resource (optional, only applicable to versioned resources like Skills).
   // Supports three formats:
@@ -74,5 +74,8 @@ message ApiResourceReference {
   // - version: "stable"     → Use version tagged as "stable"
   // - version: "v1.0"       → Use version tagged as "v1.0"
   // - version: "abc123..."  → Use exact version with this hash (immutable)
-  string version = 5 [(buf.validate.field).string.pattern = "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"];
+  string version = 4 [(buf.validate.field).string.pattern = "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"];
+
+  // Reserved field numbers from previous schema versions.
+  reserved 5;
 }

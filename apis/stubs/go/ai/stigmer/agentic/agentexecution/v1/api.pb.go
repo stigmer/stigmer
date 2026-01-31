@@ -116,6 +116,7 @@ type AgentExecution struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata including name, id, labels, and tags.
+	// Agent executions belong to an organization and inherit permissions from the session.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// User-provided inputs for this execution.
 	// Contains: session_id, agent_id, message, execution_config, environment_id, credential_overrides
@@ -1650,15 +1651,14 @@ var File_ai_stigmer_agentic_agentexecution_v1_api_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/agentic/agentexecution/v1/api.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x94\x04\n" +
+	".ai/stigmer/agentic/agentexecution/v1/api.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xf5\x02\n" +
 	"\x0eAgentExecution\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
 	"apiVersion\x12)\n" +
 	"\x04kind\x18\x02 \x01(\tB\x15\xbaH\x12r\x10\n" +
-	"\x0eAgentExecutionR\x04kind\x12\xf5\x01\n" +
-	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xa3\x01\xbaH\x9f\x01\xba\x01\x98\x01\n" +
-	",agent_execution.owner_scope.unspecified_only\x12QAgentExecution owner_scope must be unspecified (inherits premission from session)\x1a\x15this.owner_scope == 0\xc8\x01\x01R\bmetadata\x12L\n" +
+	"\x0eAgentExecutionR\x04kind\x12W\n" +
+	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
 	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\x9b\b\n" +
 	"\x14AgentExecutionStatus\x12F\n" +

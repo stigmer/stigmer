@@ -271,17 +271,19 @@ func (x *FindApiResourcesRequest) GetPageSize() int32 {
 	return 0
 }
 
-// Generic reference to any API resource by scope, org, and name.
-// Used across resources to reference other resources (e.g., Environment, Agent, etc.)
+// Generic reference to any API resource by org and slug.
+// Used across resources to reference other resources (e.g., Environment, Agent, Skill).
+// Canonical format: "org/slug" (e.g., "stigmer/web-search", "acme/my-agent").
 type ApiResourceReference struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Owner scope of the referenced resource
-	Scope ApiResourceOwnerScope `protobuf:"varint,1,opt,name=scope,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceOwnerScope" json:"scope,omitempty"`
-	// Organization ID (required if scope = organization)
-	Org  string                          `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
-	Kind apiresourcekind.ApiResourceKind `protobuf:"varint,3,opt,name=kind,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"kind,omitempty"`
-	// Resource slug (user-friendly name, not ID)
-	Slug string `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
+	// Organization that owns the referenced resource. Required.
+	// Format: lowercase alphanumeric with hyphens (e.g., "stigmer", "acme-corp").
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+	Kind apiresourcekind.ApiResourceKind `protobuf:"varint,2,opt,name=kind,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"kind,omitempty"`
+	// Resource slug (user-friendly identifier, unique within org).
+	// Format: lowercase alphanumeric with hyphens (e.g., "web-search", "code-reviewer").
+	Slug string `protobuf:"bytes,3,opt,name=slug,proto3" json:"slug,omitempty"`
 	// Version of the resource (optional, only applicable to versioned resources like Skills).
 	// Supports three formats:
 	// 1. Empty/unset → Resolves to "latest" (most recent version)
@@ -297,7 +299,7 @@ type ApiResourceReference struct {
 	// - version: "stable"     → Use version tagged as "stable"
 	// - version: "v1.0"       → Use version tagged as "v1.0"
 	// - version: "abc123..."  → Use exact version with this hash (immutable)
-	Version       string `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
+	Version       string `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -332,13 +334,6 @@ func (*ApiResourceReference) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_commons_apiresource_io_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ApiResourceReference) GetScope() ApiResourceOwnerScope {
-	if x != nil {
-		return x.Scope
-	}
-	return ApiResourceOwnerScope_api_resource_owner_scope_unspecified
-}
-
 func (x *ApiResourceReference) GetOrg() string {
 	if x != nil {
 		return x.Org
@@ -371,7 +366,7 @@ var File_ai_stigmer_commons_apiresource_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/commons/apiresource/io.proto\x12\x1eai.stigmer.commons.apiresource\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"-\n" +
+	"'ai/stigmer/commons/apiresource/io.proto\x12\x1eai.stigmer.commons.apiresource\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"-\n" +
 	"\rApiResourceId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x80\x01\n" +
 	"\x16ApiResourceDeleteInput\x12'\n" +
@@ -388,13 +383,12 @@ const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
 	"\x04page\x18\x04 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\x12\x1f\n" +
 	"\vpage_number\x18\x05 \x01(\x05R\n" +
 	"pageNumber\x12\x1b\n" +
-	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\"\xb7\x02\n" +
-	"\x14ApiResourceReference\x12U\n" +
-	"\x05scope\x18\x01 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05scope\x12\x10\n" +
-	"\x03org\x18\x02 \x01(\tR\x03org\x12S\n" +
-	"\x04kind\x18\x03 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x12\n" +
-	"\x04slug\x18\x04 \x01(\tR\x04slug\x12M\n" +
-	"\aversion\x18\x05 \x01(\tB3\xbaH0r.2,^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\aversionB\x92\x02\n" +
+	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\"\xee\x01\n" +
+	"\x14ApiResourceReference\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12S\n" +
+	"\x04kind\x18\x02 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x12\n" +
+	"\x04slug\x18\x03 \x01(\tR\x04slug\x12M\n" +
+	"\aversion\x18\x04 \x01(\tB3\xbaH0r.2,^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\aversionJ\x04\b\x05\x10\x06B\x92\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\aIoProtoP\x01ZGgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (
@@ -417,18 +411,16 @@ var file_ai_stigmer_commons_apiresource_io_proto_goTypes = []any{
 	(*FindApiResourcesRequest)(nil),       // 3: ai.stigmer.commons.apiresource.FindApiResourcesRequest
 	(*ApiResourceReference)(nil),          // 4: ai.stigmer.commons.apiresource.ApiResourceReference
 	(*rpc.PageInfo)(nil),                  // 5: ai.stigmer.commons.rpc.PageInfo
-	(ApiResourceOwnerScope)(0),            // 6: ai.stigmer.commons.apiresource.ApiResourceOwnerScope
-	(apiresourcekind.ApiResourceKind)(0),  // 7: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
+	(apiresourcekind.ApiResourceKind)(0),  // 6: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
 }
 var file_ai_stigmer_commons_apiresource_io_proto_depIdxs = []int32{
 	5, // 0: ai.stigmer.commons.apiresource.FindApiResourcesRequest.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	6, // 1: ai.stigmer.commons.apiresource.ApiResourceReference.scope:type_name -> ai.stigmer.commons.apiresource.ApiResourceOwnerScope
-	7, // 2: ai.stigmer.commons.apiresource.ApiResourceReference.kind:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	6, // 1: ai.stigmer.commons.apiresource.ApiResourceReference.kind:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_commons_apiresource_io_proto_init() }
@@ -436,7 +428,6 @@ func file_ai_stigmer_commons_apiresource_io_proto_init() {
 	if File_ai_stigmer_commons_apiresource_io_proto != nil {
 		return
 	}
-	file_ai_stigmer_commons_apiresource_enum_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

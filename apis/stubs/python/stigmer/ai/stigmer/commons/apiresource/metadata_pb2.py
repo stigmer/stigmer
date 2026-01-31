@@ -26,7 +26,7 @@ from ai.stigmer.commons.apiresource import enum_pb2 as ai_dot_stigmer_dot_common
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/commons/apiresource/metadata.proto\x12\x1e\x61i.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\xe7\x04\n\x13\x41piResourceMetadata\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n\x04slug\x18\x02 \x01(\tR\x04slug\x12\x0e\n\x02id\x18\x03 \x01(\tR\x02id\x12\x10\n\x03org\x18\x04 \x01(\tR\x03org\x12`\n\x0bowner_scope\x18\x05 \x01(\x0e\x32\x35.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeB\x08\xbaH\x05\x82\x01\x02\x10\x01R\nownerScope\x12W\n\x06labels\x18\x06 \x03(\x0b\x32?.ai.stigmer.commons.apiresource.ApiResourceMetadata.LabelsEntryR\x06labels\x12\x66\n\x0b\x61nnotations\x18\x07 \x03(\x0b\x32\x44.ai.stigmer.commons.apiresource.ApiResourceMetadata.AnnotationsEntryR\x0b\x61nnotations\x12\x12\n\x04tags\x18\x08 \x03(\tR\x04tags\x12T\n\x07version\x18\t \x01(\x0b\x32:.ai.stigmer.commons.apiresource.ApiResourceMetadataVersionR\x07version\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x1a>\n\x10\x41nnotationsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"v\n\x1a\x41piResourceMetadataVersion\x12\x0e\n\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n\x07message\x18\x02 \x01(\tR\x07message\x12.\n\x13previous_version_id\x18\x03 \x01(\tR\x11previousVersionIdB\xcf\x01\n\"com.ai.stigmer.commons.apiresourceB\rMetadataProtoP\x01\xa2\x02\x04\x41SCA\xaa\x02\x1e\x41i.Stigmer.Commons.Apiresource\xca\x02\x1e\x41i\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/commons/apiresource/metadata.proto\x12\x1e\x61i.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\xe6\x04\n\x13\x41piResourceMetadata\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n\x04slug\x18\x02 \x01(\tR\x04slug\x12\x0e\n\x02id\x18\x03 \x01(\tR\x02id\x12\x10\n\x03org\x18\x04 \x01(\tR\x03org\x12_\n\nvisibility\x18\x05 \x01(\x0e\x32\x35.ai.stigmer.commons.apiresource.ApiResourceVisibilityB\x08\xbaH\x05\x82\x01\x02\x10\x01R\nvisibility\x12W\n\x06labels\x18\x06 \x03(\x0b\x32?.ai.stigmer.commons.apiresource.ApiResourceMetadata.LabelsEntryR\x06labels\x12\x66\n\x0b\x61nnotations\x18\x07 \x03(\x0b\x32\x44.ai.stigmer.commons.apiresource.ApiResourceMetadata.AnnotationsEntryR\x0b\x61nnotations\x12\x12\n\x04tags\x18\x08 \x03(\tR\x04tags\x12T\n\x07version\x18\t \x01(\x0b\x32:.ai.stigmer.commons.apiresource.ApiResourceMetadataVersionR\x07version\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x1a>\n\x10\x41nnotationsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"v\n\x1a\x41piResourceMetadataVersion\x12\x0e\n\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n\x07message\x18\x02 \x01(\tR\x07message\x12.\n\x13previous_version_id\x18\x03 \x01(\tR\x11previousVersionIdB\xcf\x01\n\"com.ai.stigmer.commons.apiresourceB\rMetadataProtoP\x01\xa2\x02\x04\x41SCA\xaa\x02\x1e\x41i.Stigmer.Commons.Apiresource\xca\x02\x1e\x41i\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,14 +38,14 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_APIRESOURCEMETADATA_LABELSENTRY']._serialized_options = b'8\001'
   _globals['_APIRESOURCEMETADATA_ANNOTATIONSENTRY']._loaded_options = None
   _globals['_APIRESOURCEMETADATA_ANNOTATIONSENTRY']._serialized_options = b'8\001'
-  _globals['_APIRESOURCEMETADATA'].fields_by_name['owner_scope']._loaded_options = None
-  _globals['_APIRESOURCEMETADATA'].fields_by_name['owner_scope']._serialized_options = b'\272H\005\202\001\002\020\001'
+  _globals['_APIRESOURCEMETADATA'].fields_by_name['visibility']._loaded_options = None
+  _globals['_APIRESOURCEMETADATA'].fields_by_name['visibility']._serialized_options = b'\272H\005\202\001\002\020\001'
   _globals['_APIRESOURCEMETADATA']._serialized_start=154
-  _globals['_APIRESOURCEMETADATA']._serialized_end=769
-  _globals['_APIRESOURCEMETADATA_LABELSENTRY']._serialized_start=648
-  _globals['_APIRESOURCEMETADATA_LABELSENTRY']._serialized_end=705
-  _globals['_APIRESOURCEMETADATA_ANNOTATIONSENTRY']._serialized_start=707
-  _globals['_APIRESOURCEMETADATA_ANNOTATIONSENTRY']._serialized_end=769
-  _globals['_APIRESOURCEMETADATAVERSION']._serialized_start=771
-  _globals['_APIRESOURCEMETADATAVERSION']._serialized_end=889
+  _globals['_APIRESOURCEMETADATA']._serialized_end=768
+  _globals['_APIRESOURCEMETADATA_LABELSENTRY']._serialized_start=647
+  _globals['_APIRESOURCEMETADATA_LABELSENTRY']._serialized_end=704
+  _globals['_APIRESOURCEMETADATA_ANNOTATIONSENTRY']._serialized_start=706
+  _globals['_APIRESOURCEMETADATA_ANNOTATIONSENTRY']._serialized_end=768
+  _globals['_APIRESOURCEMETADATAVERSION']._serialized_start=770
+  _globals['_APIRESOURCEMETADATAVERSION']._serialized_end=888
 # @@protoc_insertion_point(module_scope)

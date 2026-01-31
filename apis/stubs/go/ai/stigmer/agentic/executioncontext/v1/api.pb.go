@@ -33,7 +33,7 @@ type ExecutionContext struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata including name, id, labels, and tags.
-	// ExecutionContext must have unspecified owner_scope (operator-managed only).
+	// ExecutionContext is operator-managed and belongs to an organization.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// ExecutionContext-specific configuration.
 	Spec *ExecutionContextSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
@@ -112,15 +112,14 @@ var File_ai_stigmer_agentic_executioncontext_v1_api_proto protoreflect.FileDescr
 
 const file_ai_stigmer_agentic_executioncontext_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/agentic/executioncontext/v1/api.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\x95\x04\n" +
+	"0ai/stigmer/agentic/executioncontext/v1/api.proto\x12&ai.stigmer.agentic.executioncontext.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xf9\x02\n" +
 	"\x10ExecutionContext\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
 	"apiVersion\x12+\n" +
 	"\x04kind\x18\x02 \x01(\tB\x17\xbaH\x14r\x12\n" +
-	"\x10ExecutionContextR\x04kind\x12\xf2\x01\n" +
-	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xa0\x01\xbaH\x9c\x01\xba\x01\x95\x01\n" +
-	".execution_context.owner_scope.unspecified_only\x12LExecutionContext owner_scope must be unspecified (operator-managed resource)\x1a\x15this.owner_scope == 0\xc8\x01\x01R\bmetadata\x12P\n" +
+	"\x10ExecutionContextR\x04kind\x12W\n" +
+	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12P\n" +
 	"\x04spec\x18\x04 \x01(\v2<.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpecR\x04spec\x12N\n" +
 	"\x06status\x18\x05 \x01(\v26.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\xd7\x02\n" +
 	"*com.ai.stigmer.agentic.executioncontext.v1B\bApiProtoP\x01Zbgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1;executioncontextv1\xa2\x02\x04ASAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3"

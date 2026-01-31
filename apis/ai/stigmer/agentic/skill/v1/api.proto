@@ -18,15 +18,9 @@ message Skill {
   string kind = 2 [(buf.validate.field).string.const = 'Skill'];
 
   // Standard resource metadata including name, id, labels, and tags.
-  // Skill names are normalized to slugs (e.g., "Calculator" → "calculator")
-  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
-    (buf.validate.field).required = true,
-    (buf.validate.field).cel = {
-      id: "skill.owner_scope.platform_or_org_only"
-      message: "Skill resources can only have platform or organization scope"
-      expression: "this.owner_scope == 1 || this.owner_scope == 2"
-    }
-  ];
+  // Skill names are normalized to slugs (e.g., "Calculator" → "calculator").
+  // Skills belong to an organization and can be public or private.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
   // User-provided skill configuration (desired state).
   SkillSpec spec = 4;

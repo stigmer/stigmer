@@ -1,37 +1,72 @@
-# Task T01: API Resource Scope Redesign - Detailed Plan
+# Task T01: API Resource Scope Redesign - Revised Plan
 
 **Created**: 2026-01-30 08:12
-**Status**: PENDING REVIEW
+**Revised**: 2026-01-31 (after architectural review)
+**Status**: APPROVED
 **Type**: Refactoring (Breaking Change)
 
-⚠️ **This plan requires your review before execution**
+## Executive Summary
+
+Remove `ApiResourceOwnerScope` entirely. Adopt the GitHub model: every resource belongs to an organization, referenced as `org/slug`. Visibility (public/private) is orthogonal to ownership.
+
+---
 
 ## Problem Statement
 
-The current `ApiResourceOwnerScope` design conflates two concerns:
-1. **Visibility** - Who can access a resource (public vs private)
-2. **Provider/Origin** - Who created the resource (platform vs org vs user)
+The current `ApiResourceOwnerScope` (platform/organization/identity_account) conflates ownership with visibility and creates portability issues between deployment modes.
 
-This creates a **portability problem**: SDK code using `skillref.Platform("slug")` works in Stigmer Cloud (where Stigmer provides platform resources) but fails in local/self-hosted mode (where no "platform" exists).
+**Root issues:**
+1. "Platform" scope is cloud-specific—doesn't exist in local/self-hosted mode
+2. Three scope types add complexity without clear benefit
+3. SDK helpers like `skillref.Platform()` break in non-cloud deployments
+4. Mental model is confusing (scope vs visibility vs ownership)
 
-### The Root Cause
-- Platform-scoped resources have no `org` - they're "above" organizations
-- This required a special `scope` field on references to distinguish them
-- But "platform" as a concept doesn't exist in local mode
+---
 
-## Design Decision: The GitHub Model
+## Design Decisions (Finalized)
 
-**Everything has an org. Period.**
+### 1. Everything Belongs to an Organization
 
-| Current (Broken) | Proposed (Clean) |
-|-----------------|------------------|
-| `scope: platform, slug: official-agent` | `org: stigmer, slug: official-agent` |
-| `scope: organization, org: my-org, slug: my-skill` | `org: my-org, slug: my-skill` |
-| `scope: identity_account, slug: personal-exp` | `org: suresh, slug: personal-exp` |
+No personal accounts. No platform scope. Just organizations.
 
-- **Platform resources** → Become resources owned by the `stigmer` org with `visibility: public`
-- **Org resources** → Stay as org-owned, visibility can be public or private
-- **Personal resources** → Owned by user's personal org (created during onboarding)
+| Current | New |
+|---------|-----|
+| `scope: platform, slug: web-search` | `org: stigmer, slug: web-search` |
+| `scope: organization, org: acme, slug: tool` | `org: acme, slug: tool` |
+| `scope: identity_account, slug: experiment` | **Eliminated** - use org instead |
+
+### 2. Reference Format: `org/slug` Everywhere
+
+Single consistent format. No special cases.
+
+```go
+// SDK usage
+agent.AddSkill("my-skill")           // → uses agent.Org
+agent.AddSkill("stigmer/web-search") // → parses as org/slug
+```
+
+### 3. Visibility is Public or Private
+
+Any org member can set visibility on their resources.
+
+| Visibility | Who Can Access |
+|------------|----------------|
+| `private` | Only org members |
+| `public` | Anyone |
+
+### 4. No "Official" Concept
+
+Users discover resources through marketplace. They see the org name and make their own trust decisions. `stigmer/web-search` is obviously from Stigmer—no badge needed.
+
+### 5. Local Mode Has No External Resources
+
+Users create their own org and define all resources themselves. No dependency on external catalogs.
+
+### 6. No Special Publisher Permissions
+
+Any org member can create public resources. Simple model.
+
+---
 
 ## Target Architecture
 
@@ -48,7 +83,7 @@ message ApiResourceReference {
 }
 ```
 
-**2. ApiResourceMetadata (visibility only)**
+**2. ApiResourceMetadata (visibility replaces scope)**
 ```protobuf
 message ApiResourceMetadata {
   string name = 1;
@@ -56,12 +91,12 @@ message ApiResourceMetadata {
   string id = 3;
   string org = 4;                        // Required - who owns it
   ApiResourceVisibility visibility = 5;  // public or private
-  // ... rest unchanged
+  // ... other fields unchanged
   // REMOVED: ApiResourceOwnerScope owner_scope
 }
 ```
 
-**3. New Visibility Enum (replaces OwnerScope)**
+**3. New Visibility Enum**
 ```protobuf
 enum ApiResourceVisibility {
   visibility_unspecified = 0;
@@ -70,184 +105,249 @@ enum ApiResourceVisibility {
 }
 ```
 
-**4. Remove ApiResourceOwnerScope enum entirely**
+**4. Remove ApiResourceOwnerScope Enum**
 
-### SDK Changes (Two-Method Pattern)
+Delete entirely. No deprecation period—clean break.
+
+### SDK Changes
 
 **skillref package:**
 ```go
-// Always explicit org + slug
+// Single constructor - always org + slug
 func New(org, slug string, opts ...Option) *ApiResourceReference
 
-// With version
-func NewVersioned(org, slug, version string) *ApiResourceReference
+// Parse "org/slug" format
+func Parse(ref string) (*ApiResourceReference, error)
+
+// REMOVED: Platform(), Organization()
 ```
 
-**Agent convenience methods:**
+**mcpserverref package:**
 ```go
-// Same org - uses agent.Org internally
-func (a *Agent) AddSkill(slug string, opts ...SkillOption)
+// Single constructor
+func New(org, slug string) *ApiResourceReference
 
-// Cross-org - explicit org
-func (a *Agent) AddSkillFrom(org, slug string, opts ...SkillOption)
+// Parse "org/slug" format  
+func Parse(ref string) (*ApiResourceReference, error)
+
+// REMOVED: Platform(), Organization(), Personal()
 ```
 
-**Similar for MCP servers:**
+**Agent methods:**
 ```go
-func (a *Agent) UseMCPServer(slug string, tools ...string)
-func (a *Agent) UseMCPServerFrom(org, slug string, tools ...string)
+// Single method with smart parsing
+func (a *Agent) AddSkill(ref string, opts ...SkillOption)
+// "my-skill" → org: a.Org, slug: "my-skill"
+// "stigmer/web-search" → org: "stigmer", slug: "web-search"
+
+// Single method for MCP servers
+func (a *Agent) UseMCPServer(ref string, tools ...string)
+// Same parsing logic
+
+// REMOVED: AddSkillRef(), AddOrgSkillRef(), AddSkillRefs()
+// REMOVED: UseOrgMCPServer()
 ```
 
 ### FGA Model Changes
 
-- Remove platform-scoped authorization patterns
+- Remove all platform-scoped authorization patterns
 - All resources authorize via org membership
-- Public resources: anyone can read (check visibility in app layer, not FGA)
-- Private resources: org members only (standard org-based auth)
+- Public resources: check visibility at app layer (not FGA)
+- Private resources: standard org-based auth
+
+### Service Layer Changes
+
+**Visibility enforcement:**
+```java
+// When resolving cross-org references
+if (resource.getOrg() != requestingUserOrg) {
+    if (resource.getVisibility() != PUBLIC) {
+        throw new ForbiddenException("Resource is private");
+    }
+}
+```
+
+---
 
 ## Task Breakdown
 
-### Phase 1: Proto & Enum Changes (Days 1-3)
+### Phase 1: Proto & Enum Changes
 
-**T01.1: Create new visibility enum**
+**T01.1: Add visibility enum**
 - [ ] Add `ApiResourceVisibility` enum to `enum.proto`
 - [ ] Values: `visibility_unspecified`, `private`, `public`
 
 **T01.2: Update ApiResourceMetadata**
-- [ ] Replace `owner_scope` field with `visibility` field
+- [ ] Add `visibility` field
+- [ ] Remove `owner_scope` field
 - [ ] Update field documentation
-- [ ] Keep field number if possible for wire compatibility, or document breaking change
 
 **T01.3: Update ApiResourceReference**
 - [ ] Remove `scope` field
-- [ ] Make `org` required (add buf validation)
+- [ ] Add buf validation: `org` is required
 - [ ] Update documentation
 
-**T01.4: Mark ApiResourceOwnerScope as deprecated**
-- [ ] Add deprecation notice to enum
-- [ ] Plan removal in next major version
+**T01.4: Delete ApiResourceOwnerScope**
+- [ ] Remove enum from `enum.proto`
+- [ ] Remove all references in proto files
 
 **T01.5: Regenerate all stubs**
-- [ ] Go stubs
-- [ ] Python stubs
-- [ ] Java stubs
-- [ ] TypeScript stubs
-- [ ] Dart stubs
+- [ ] Go, Python, Java, TypeScript, Dart stubs
 
-### Phase 2: SDK Refactoring (Days 4-7)
+### Phase 2: SDK Refactoring
 
 **T02.1: Refactor skillref package**
 - [ ] Remove `Platform()`, `Organization()` functions
-- [ ] Add `New(org, slug)` as the only constructor
-- [ ] Add `NewVersioned(org, slug, version)` for versioned refs
-- [ ] Update all tests
+- [ ] Add `New(org, slug)` constructor
+- [ ] Add `Parse(ref string)` for "org/slug" parsing
+- [ ] Update tests
 
 **T02.2: Refactor mcpserverref package**
 - [ ] Remove `Platform()`, `Organization()`, `Personal()` functions
-- [ ] Add `New(org, slug)` as the only constructor
-- [ ] Update all tests
+- [ ] Add `New(org, slug)` constructor
+- [ ] Add `Parse(ref string)` for "org/slug" parsing
+- [ ] Update tests
 
 **T02.3: Update Agent methods**
-- [ ] Add `AddSkill(slug)` - uses agent.Org
-- [ ] Add `AddSkillFrom(org, slug)` - explicit org
-- [ ] Deprecate `AddSkillRef()`, `AddOrgSkillRef()`, `AddSkillRefs()`
-- [ ] Same pattern for MCP servers
+- [ ] Change `AddSkill` to accept string with smart parsing
+- [ ] Change `UseMCPServer` to accept string with smart parsing
+- [ ] Remove deprecated methods
 - [ ] Update all examples
 
 **T02.4: Update SubAgent methods**
 - [ ] Mirror Agent method changes
 - [ ] Update tests
 
-### Phase 3: FGA Model Updates (Days 8-10) - stigmer-cloud
+### Phase 3: Backend Changes (stigmer-cloud)
 
-**T03.1: Simplify FGA model**
-- [ ] Remove platform-specific authorization patterns
-- [ ] Ensure all resources use org-based authorization
-- [ ] Document that visibility is enforced at app layer, not FGA
+**T03.1: Update FGA model**
+- [ ] Remove platform-scoped patterns
+- [ ] Ensure org-based authorization for all resources
 
 **T03.2: Update service layer**
-- [ ] Check visibility when resolving cross-org references
-- [ ] Public resources: allow read from any authenticated user
-- [ ] Private resources: require org membership
+- [ ] Add visibility check for cross-org resource access
+- [ ] Public: allow read from any authenticated user
+- [ ] Private: require org membership
 
-**T03.3: Migration for existing data**
-- [ ] Plan migration for existing platform-scoped resources
-- [ ] Move to `stigmer` org with `visibility: public`
+**T03.3: Data migration**
+- [ ] Migrate `platform`-scoped resources → `stigmer` org with `visibility: public`
+- [ ] Migrate `organization`-scoped resources → add `visibility: private`
+- [ ] Eliminate `identity_account`-scoped resources (or migrate to user's default org)
 
-### Phase 4: CLI Updates (Days 11-12)
+### Phase 4: CLI Updates
 
 **T04.1: Update CLI reference handling**
-- [ ] Remove `--scope` flags
-- [ ] Ensure `--org` is required or defaults to configured org
+- [ ] Remove `--scope` flags from all commands
+- [ ] Ensure `--org` defaults to configured org
 - [ ] Update help text
 
-**T04.2: Update CLI examples and docs**
-- [ ] Update all example commands
-- [ ] Document the new reference pattern
+**T04.2: Update CLI examples**
+- [ ] Update all example commands in help text
+- [ ] Update any documentation
 
-### Phase 5: Documentation & Migration (Days 13-15)
+### Phase 5: Documentation
 
 **T05.1: Migration guide**
 - [ ] Document breaking changes
 - [ ] Provide before/after code examples
-- [ ] Explain the rationale
+- [ ] Explain the rationale (GitHub model)
 
 **T05.2: Update SDK documentation**
 - [ ] Update README files
-- [ ] Update inline code comments
+- [ ] Update inline comments
 - [ ] Update examples
 
-**T05.3: Update architecture docs**
-- [ ] Document the new ownership model
-- [ ] Explain visibility vs ownership
+---
 
 ## Success Criteria
 
-- [ ] `ApiResourceOwnerScope` removed from `ApiResourceReference`
+- [ ] `ApiResourceOwnerScope` enum deleted
 - [ ] All references use `org/slug` pattern with `org` required
-- [ ] SDK provides two-method pattern:
-  - `AddSkill(slug)` for same-org
-  - `AddSkillFrom(org, slug)` for cross-org
-- [ ] `Visibility` (public/private) lives only on resource metadata
+- [ ] SDK provides single method with smart parsing:
+  - `AddSkill("slug")` for same-org
+  - `AddSkill("org/slug")` for cross-org
+- [ ] `Visibility` (public/private) on resource metadata
 - [ ] Same SDK code works in local, cloud, and self-hosted
 - [ ] FGA model uses org-based authorization only
-- [ ] Migration guide available for existing users
+- [ ] Migration guide available
+
+---
 
 ## Risks & Mitigations
 
 | Risk | Mitigation |
-|------|-----------|
-| Breaking change for SDK users | Provide migration guide with clear before/after examples |
-| FGA tuple migration | Script to migrate existing tuples, test in staging first |
-| Proto field number changes | Evaluate wire compatibility, may need major version bump |
-| Coordination between repos | Plan PRs to land in correct order |
-
-## Estimated Timeline
-
-| Phase | Duration | Deliverable |
-|-------|----------|-------------|
-| Phase 1: Proto changes | 3 days | Updated protos, regenerated stubs |
-| Phase 2: SDK refactoring | 4 days | New SDK API, updated examples |
-| Phase 3: FGA model | 3 days | Simplified auth model |
-| Phase 4: CLI updates | 2 days | Updated CLI commands |
-| Phase 5: Documentation | 3 days | Migration guide, updated docs |
-| **Total** | **~15 days (3 weeks)** | |
-
-## Review Questions
-
-**Please consider before approving:**
-
-1. **Two-method pattern**: Is `AddSkill(slug)` + `AddSkillFrom(org, slug)` the right UX?
-2. **Visibility scope**: Should we have `org_only` in addition to `public`/`private`?
-3. **Personal orgs**: Do we need to implement personal org creation in onboarding now, or defer?
-4. **Wire compatibility**: Should we try to maintain proto wire compatibility, or accept a major version bump?
-5. **Phasing**: Should we deprecate first and remove later, or do it all at once?
+|------|------------|
+| Breaking change for SDK users | Migration guide with clear before/after examples |
+| FGA tuple migration | Script to migrate existing tuples, test in staging |
+| Proto field changes | Accept breaking change, major version bump if needed |
+| Coordination between repos | Plan PRs to land in correct order (stigmer → stigmer-cloud) |
 
 ---
 
-**What happens next**:
-1. **You review this plan** - Take your time to consider the approach
-2. **Provide feedback** - Share any concerns, suggestions, or changes
-3. **I'll revise the plan** - Create an updated version incorporating your feedback
-4. **You approve** - Give explicit approval to proceed
-5. **Execution begins** - Implementation tracked in T01_3_execution.md
+## Key Principles (Reference)
+
+These principles guided the design:
+
+1. **DDD: Keep supporting subdomains simple** - Ownership model shouldn't complicate core domain
+2. **GitHub model** - `org/slug` is intuitive, battle-tested
+3. **No magic** - No "official" concept, no special SDK functions, no deployment-specific behavior
+4. **Visibility ≠ Ownership** - Orthogonal concerns, modeled separately
+5. **Local mode is self-contained** - No external dependencies
+
+---
+
+## Appendix: Before/After Examples
+
+### SDK Code
+
+**Before:**
+```go
+agent.AddSkillRef(skillref.Platform("web-search"))
+agent.AddSkillRef(skillref.Organization(agent.Org, "my-skill"))
+agent.AddMcpServerUsage(mcpserverref.Platform("github"))
+```
+
+**After:**
+```go
+agent.AddSkill("stigmer/web-search")
+agent.AddSkill("my-skill")  // Uses agent.Org
+agent.UseMCPServer("stigmer/github")
+```
+
+### Proto References
+
+**Before:**
+```protobuf
+ApiResourceReference {
+  scope: platform
+  slug: "web-search"
+}
+```
+
+**After:**
+```protobuf
+ApiResourceReference {
+  org: "stigmer"
+  slug: "web-search"
+}
+```
+
+### Resource Metadata
+
+**Before:**
+```protobuf
+ApiResourceMetadata {
+  org: "stigmer"
+  slug: "web-search"
+  owner_scope: platform
+}
+```
+
+**After:**
+```protobuf
+ApiResourceMetadata {
+  org: "stigmer"
+  slug: "web-search"
+  visibility: public
+}
+```
