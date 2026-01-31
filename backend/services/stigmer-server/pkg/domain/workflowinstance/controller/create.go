@@ -62,8 +62,8 @@ func (c *WorkflowInstanceController) buildCreatePipeline() *pipeline.Pipeline[*w
 	return pipeline.NewPipeline[*workflowinstancev1.WorkflowInstance]("workflow-instance-create").
 		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()).         // 1. Validate field constraints
 		AddStep(steps.NewResolveSlugStep[*workflowinstancev1.WorkflowInstance]()).           // 2. Resolve slug
-		AddStep(newLoadParentWorkflowStep(c.workflowClient)).                                 // 3. Load parent workflow
-		AddStep(newValidateSameOrgBusinessRuleStep()).                                        // 4. Validate same-org business rule
+		AddStep(newLoadParentWorkflowStep(c.workflowClient)).                                // 3. Load parent workflow
+		AddStep(newValidateSameOrgBusinessRuleStep()).                                       // 4. Validate same-org business rule
 		AddStep(steps.NewCheckDuplicateStep[*workflowinstancev1.WorkflowInstance](c.store)). // 5. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*workflowinstancev1.WorkflowInstance]()).         // 6. Build new state
 		AddStep(steps.NewPersistStep[*workflowinstancev1.WorkflowInstance](c.store)).        // 7. Persist workflow instance

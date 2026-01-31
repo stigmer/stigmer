@@ -7,9 +7,9 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
-	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 )
 
 // contextWithAgentExecutionKind creates a context with the agent execution resource kind injected
@@ -44,8 +44,8 @@ func TestAgentExecutionController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Test Execution",
-				Org: "test-org",
+				Name: "Test Execution",
+				Org:  "test-org",
 			},
 			Spec: &agentexecutionv1.AgentExecutionSpec{
 				SessionId: "test-session-id",
@@ -99,8 +99,8 @@ func TestAgentExecutionController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Execution",
-				Org: "test-org",
+				Name: "Invalid Execution",
+				Org:  "test-org",
 			},
 			Spec: &agentexecutionv1.AgentExecutionSpec{
 				Message: "Test message",
@@ -159,8 +159,8 @@ func TestAgentExecutionController_Get(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Get Test Execution",
-				Org: "test-org",
+				Name: "Get Test Execution",
+				Org:  "test-org",
 			},
 			Spec: &agentexecutionv1.AgentExecutionSpec{
 				SessionId: "test-session-id",
@@ -208,8 +208,8 @@ func TestAgentExecutionController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Update Test Execution",
-				Org: "test-org",
+				Name: "Update Test Execution",
+				Org:  "test-org",
 			},
 			Spec: &agentexecutionv1.AgentExecutionSpec{
 				SessionId: "test-session-id",
@@ -239,9 +239,9 @@ func TestAgentExecutionController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:         "non-existent-id",
-				Name:       "Non-existent Execution",
-				Org: "test-org",
+				Id:   "non-existent-id",
+				Name: "Non-existent Execution",
+				Org:  "test-org",
 			},
 			Spec: &agentexecutionv1.AgentExecutionSpec{
 				SessionId: "test-session-id",
@@ -268,8 +268,8 @@ func TestAgentExecutionController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Test Execution",
-				Org: "test-org",
+				Name: "Delete Test Execution",
+				Org:  "test-org",
 			},
 			Spec: &agentexecutionv1.AgentExecutionSpec{
 				SessionId: "test-session-id",

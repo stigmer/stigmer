@@ -7,9 +7,9 @@ import (
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
-	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 )
 
 // contextWithSessionKind creates a context with the session resource kind injected
@@ -40,8 +40,8 @@ func TestSessionController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Test Session",
-				Org: "test-org",
+				Name: "Test Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -115,8 +115,8 @@ func TestSessionController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Session",
-				Org: "test-org",
+				Name: "Invalid Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				Subject: "Test conversation",
@@ -189,7 +189,7 @@ func TestSessionController_Create(t *testing.T) {
 
 	t.Run("successful creation with metadata fields", func(t *testing.T) {
 		metadata := map[string]string{
-			"client": "web-ui",
+			"client":  "web-ui",
 			"version": "1.0.0",
 		}
 
@@ -197,8 +197,8 @@ func TestSessionController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Metadata Session",
-				Org: "test-org",
+				Name: "Metadata Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -232,8 +232,8 @@ func TestSessionController_Get(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Get Test Session",
-				Org: "test-org",
+				Name: "Get Test Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -290,8 +290,8 @@ func TestSessionController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Update Test Session",
-				Org: "test-org",
+				Name: "Update Test Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -347,8 +347,8 @@ func TestSessionController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Metadata Update Session",
-				Org: "test-org",
+				Name: "Metadata Update Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -391,9 +391,9 @@ func TestSessionController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:         "non-existent-id",
-				Name:       "Non-existent Session",
-				Org: "test-org",
+				Id:   "non-existent-id",
+				Name: "Non-existent Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -413,8 +413,8 @@ func TestSessionController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Validation Update Session",
-				Org: "test-org",
+				Name: "Validation Update Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -447,8 +447,8 @@ func TestSessionController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Test Session",
-				Org: "test-org",
+				Name: "Delete Test Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -498,8 +498,8 @@ func TestSessionController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Verify Session",
-				Org: "test-org",
+				Name: "Delete Verify Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "verify-agent-instance-id",
