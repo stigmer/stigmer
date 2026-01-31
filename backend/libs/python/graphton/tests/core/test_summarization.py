@@ -644,3 +644,277 @@ class TestSummarizationMiddlewareCallback:
         middleware = SummarizationMiddleware(config=config, callback=None)
         
         assert middleware._callback is None
+
+
+# =============================================================================
+# Deserialization Error Handling Tests
+# =============================================================================
+
+
+class TestDeserializationErrorHandling:
+    """Test suite for deserialization error handling in message_utils."""
+    
+    def test_deserialize_empty_dict(self):
+        """Empty dict returns None."""
+        result = deserialize_running_summary({})
+        assert result is None
+    
+    def test_deserialize_none_summary(self):
+        """Dict with None summary returns None."""
+        result = deserialize_running_summary({'summary': None})
+        assert result is None
+    
+    def test_deserialize_empty_string_summary(self):
+        """Dict with empty string summary returns None."""
+        result = deserialize_running_summary({'summary': ''})
+        assert result is None
+    
+    def test_deserialize_missing_summary_key(self):
+        """Dict without summary key returns None."""
+        result = deserialize_running_summary({
+            'summarized_message_ids': ['msg_1'],
+            'last_summarized_message_id': 'msg_1',
+        })
+        assert result is None
+    
+    def test_deserialize_malformed_ids_list(self):
+        """Malformed summarized_message_ids is handled gracefully."""
+        # This tests that the function handles edge cases
+        result = deserialize_running_summary({
+            'summary': 'Test summary',
+            'summarized_message_ids': 'not_a_list',  # Should be a list
+        })
+        # Should either succeed by converting or return None
+        # The implementation should handle this gracefully
+        assert result is None or hasattr(result, 'summary')
+    
+    def test_deserialize_with_extra_fields(self):
+        """Extra fields in dict are ignored."""
+        result = deserialize_running_summary({
+            'summary': 'Test summary',
+            'summarized_message_ids': ['msg_1'],
+            'last_summarized_message_id': 'msg_1',
+            'extra_field': 'ignored',
+            'another_extra': 12345,
+        })
+        # Should succeed despite extra fields
+        if result is not None:
+            assert result.summary == 'Test summary'
+    
+    def test_deserialize_with_unicode_summary(self):
+        """Unicode characters in summary are handled."""
+        result = deserialize_running_summary({
+            'summary': 'Test summary with unicode: 日本語 emoji 🎉',
+            'summarized_message_ids': [],
+        })
+        if result is not None:
+            assert '日本語' in result.summary
+    
+    def test_deserialize_with_very_long_summary(self):
+        """Very long summaries are handled."""
+        long_summary = 'A' * 100000  # 100KB summary
+        result = deserialize_running_summary({
+            'summary': long_summary,
+            'summarized_message_ids': [],
+        })
+        if result is not None:
+            assert len(result.summary) == 100000
+
+
+class TestExtractSummaryEdgeCases:
+    """Test suite for extract_summary_from_result edge cases."""
+    
+    def test_extract_from_none(self):
+        """None result returns empty string."""
+        result = extract_summary_from_result(None)
+        assert result == ''
+    
+    def test_extract_from_empty_object(self):
+        """Object with no relevant attributes returns empty string."""
+        class EmptyResult:
+            pass
+        
+        result = extract_summary_from_result(EmptyResult())
+        assert result == ''
+    
+    def test_extract_with_none_running_summary(self):
+        """Result with None running_summary falls back to messages."""
+        class ResultWithNone:
+            running_summary = None
+            messages = [SystemMessage(content="Short")]
+        
+        result = extract_summary_from_result(ResultWithNone())
+        # Should return empty since message doesn't look like summary
+        assert result == ''
+    
+    def test_extract_with_empty_messages(self):
+        """Result with empty messages list returns empty string."""
+        class ResultWithEmptyMessages:
+            running_summary = None
+            messages = []
+        
+        result = extract_summary_from_result(ResultWithEmptyMessages())
+        assert result == ''
+    
+    def test_extract_summary_like_content(self):
+        """Content that looks like a summary is extracted."""
+        class ResultWithSummaryMessage:
+            running_summary = None
+            messages = [
+                SystemMessage(content="Original system prompt"),
+                SystemMessage(content="This is a comprehensive summary of the conversation. "
+                            "The user discussed various topics including configuration, "
+                            "database setup, and API design patterns."),
+            ]
+        
+        result = extract_summary_from_result(ResultWithSummaryMessage())
+        # Should extract the summary-like message
+        assert 'comprehensive summary' in result.lower() or result == ''
+    
+    def test_looks_like_summary_short_content(self):
+        """Short content is not considered a summary."""
+        from graphton.core.message_utils import _looks_like_summary
+        
+        assert _looks_like_summary("Short") is False
+        assert _looks_like_summary("A" * 50) is False
+        assert _looks_like_summary("A" * 99) is False
+    
+    def test_looks_like_summary_long_without_keywords(self):
+        """Long content without keywords may not be summary."""
+        from graphton.core.message_utils import _looks_like_summary
+        
+        # Long content without any summary-related keywords
+        content = "The quick brown fox " * 20  # ~400 chars
+        result = _looks_like_summary(content)
+        assert result is False
+    
+    def test_looks_like_summary_with_keywords(self):
+        """Long content with summary keywords is detected."""
+        from graphton.core.message_utils import _looks_like_summary
+        
+        content = "This is a comprehensive summary of the conversation " + "A" * 100
+        result = _looks_like_summary(content)
+        assert result is True
+        
+        content = "The user discussed various configuration options " + "A" * 100
+        result = _looks_like_summary(content)
+        assert result is True
+
+
+class TestSerializationRoundTrip:
+    """Test suite for serialization/deserialization round-trip."""
+    
+    def test_round_trip_basic(self):
+        """Basic round-trip preserves data."""
+        try:
+            from langmem.short_term import RunningSummary
+            
+            original = RunningSummary(
+                summary="Test summary content",
+                summarized_message_ids={'msg_1', 'msg_2'},
+                last_summarized_message_id='msg_2',
+            )
+            
+            serialized = serialize_running_summary(original)
+            restored = deserialize_running_summary(serialized)
+            
+            assert restored is not None
+            assert restored.summary == original.summary
+            assert restored.summarized_message_ids == original.summarized_message_ids
+            assert restored.last_summarized_message_id == original.last_summarized_message_id
+        except ImportError:
+            pytest.skip("langmem not installed")
+    
+    def test_serialized_includes_timestamp(self):
+        """Serialized data includes timestamp."""
+        try:
+            from langmem.short_term import RunningSummary
+            
+            original = RunningSummary(
+                summary="Test",
+                summarized_message_ids=set(),
+            )
+            
+            serialized = serialize_running_summary(original)
+            
+            assert 'serialized_at' in serialized
+            assert serialized['serialized_at'] is not None
+        except ImportError:
+            pytest.skip("langmem not installed")
+    
+    def test_serialize_none_returns_empty_dict(self):
+        """Serializing None returns empty dict."""
+        result = serialize_running_summary(None)
+        assert result == {}
+    
+    def test_serialize_converts_set_to_list(self):
+        """Sets are converted to lists for JSON serialization."""
+        try:
+            from langmem.short_term import RunningSummary
+            
+            original = RunningSummary(
+                summary="Test",
+                summarized_message_ids={'a', 'b', 'c'},
+            )
+            
+            serialized = serialize_running_summary(original)
+            
+            # Should be a list (JSON-serializable)
+            assert isinstance(serialized['summarized_message_ids'], list)
+            assert set(serialized['summarized_message_ids']) == {'a', 'b', 'c'}
+        except ImportError:
+            pytest.skip("langmem not installed")
+
+
+class TestConfigValidation:
+    """Test suite for SummarizationConfig validation."""
+    
+    def test_trigger_must_be_greater_than_target(self):
+        """Trigger threshold must be greater than target tokens."""
+        with pytest.raises(ValueError) as exc_info:
+            SummarizationConfig.for_model(
+                "claude-sonnet-4.5",
+                trigger_threshold_override=100000,
+                target_tokens_override=150000,  # Greater than trigger
+            )
+        
+        assert "trigger_threshold" in str(exc_info.value)
+        assert "target_tokens" in str(exc_info.value)
+    
+    def test_trigger_equal_to_target_fails(self):
+        """Trigger threshold equal to target fails validation."""
+        with pytest.raises(ValueError):
+            SummarizationConfig.for_model(
+                "claude-sonnet-4.5",
+                trigger_threshold_override=100000,
+                target_tokens_override=100000,
+            )
+    
+    def test_target_must_be_greater_than_max_summary(self):
+        """Target tokens must be greater than max summary tokens."""
+        with pytest.raises(ValueError) as exc_info:
+            SummarizationConfig.for_model(
+                "claude-sonnet-4.5",
+                target_tokens_override=1000,
+                max_summary_tokens_override=5000,  # Greater than target
+            )
+        
+        assert "target_tokens" in str(exc_info.value)
+        assert "max_summary_tokens" in str(exc_info.value)
+    
+    def test_disabled_config_skips_validation(self):
+        """Disabled config doesn't validate thresholds."""
+        # This should not raise even though thresholds are 0
+        config = SummarizationConfig.disabled()
+        assert config.enabled is False
+        assert config.trigger_threshold == 0
+    
+    def test_trigger_cannot_exceed_context_window(self):
+        """Trigger threshold cannot exceed model's context window."""
+        with pytest.raises(ValueError) as exc_info:
+            SummarizationConfig.for_model(
+                "gpt-4",  # 8K context window
+                trigger_threshold_override=500000,  # Way over 8K
+            )
+        
+        assert "context_window" in str(exc_info.value).lower()

@@ -30,7 +30,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from langchain_core.messages import (
     AIMessage,
@@ -39,6 +39,9 @@ from langchain_core.messages import (
     SystemMessage,
     ToolMessage,
 )
+
+if TYPE_CHECKING:
+    from langmem.short_term import RunningSummary, SummarizationResult
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +185,7 @@ def _create_message_with_id(message: BaseMessage) -> BaseMessage:
             return message
 
 
-def extract_summary_from_result(result: Any) -> str:
+def extract_summary_from_result(result: SummarizationResult | Any | None) -> str:
     """Extract summary text from LangMem SummarizationResult.
     
     LangMem's summarize_messages() returns a SummarizationResult containing:
@@ -192,7 +195,8 @@ def extract_summary_from_result(result: Any) -> str:
     This function extracts the summary text using multiple fallback strategies.
     
     Args:
-        result: The SummarizationResult from summarize_messages().
+        result: The SummarizationResult from summarize_messages(), or any
+            compatible object with running_summary or messages attributes.
     
     Returns:
         The extracted summary text, or empty string if extraction fails.
@@ -265,17 +269,20 @@ def _looks_like_summary(content: str) -> bool:
     return any(indicator in content_lower for indicator in summary_indicators)
 
 
-def serialize_running_summary(running_summary: Any) -> dict[str, Any]:
+def serialize_running_summary(running_summary: RunningSummary | Any | None) -> dict[str, Any]:
     """Convert a LangMem RunningSummary to a JSON-serializable dictionary.
     
     This is used to store the running summary in checkpointer state,
     which requires JSON-serializable data.
     
     Args:
-        running_summary: A LangMem RunningSummary object.
+        running_summary: A LangMem RunningSummary object, or any compatible
+            object with summary, summarized_message_ids, and
+            last_summarized_message_id attributes.
     
     Returns:
         A dictionary with the summary data that can be stored in state.
+        Returns empty dict if running_summary is None.
     
     Example:
         >>> from langmem.short_term import RunningSummary
@@ -300,16 +307,18 @@ def serialize_running_summary(running_summary: Any) -> dict[str, Any]:
     }
 
 
-def deserialize_running_summary(data: dict[str, Any]) -> Any | None:
+def deserialize_running_summary(data: dict[str, Any]) -> RunningSummary | None:
     """Restore a LangMem RunningSummary from stored dictionary.
     
     This is used to restore the running summary from checkpointer state.
     
     Args:
         data: Dictionary previously created by serialize_running_summary().
+            Must contain at least a 'summary' key with non-empty value.
     
     Returns:
-        A RunningSummary object, or None if data is empty or invalid.
+        A RunningSummary object, or None if data is empty, invalid, or
+        if langmem is not installed.
     
     Example:
         >>> data = {'summary': '...', 'summarized_message_ids': ['msg_1']}
@@ -332,13 +341,23 @@ def deserialize_running_summary(data: dict[str, Any]) -> Any | None:
         )
     except ImportError:
         logger.warning(
-            "langmem not available, cannot deserialize RunningSummary"
+            "langmem not available, cannot deserialize RunningSummary. "
+            "Install with: pip install langmem"
+        )
+        return None
+    except (TypeError, KeyError, ValueError) as e:
+        logger.warning(
+            "Failed to deserialize RunningSummary due to invalid data (%s): %s",
+            type(e).__name__,
+            e,
         )
         return None
     except Exception as e:
         logger.warning(
-            "Failed to deserialize RunningSummary: %s",
+            "Unexpected error deserializing RunningSummary (%s): %s",
+            type(e).__name__,
             e,
+            exc_info=True,
         )
         return None
 

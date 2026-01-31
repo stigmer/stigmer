@@ -35,6 +35,9 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from langchain_core.messages import BaseMessage
+    from tiktoken import Encoding
+
+    from graphton.core.model_registry import TokenCounterMethod
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +96,7 @@ class TokenCounter:
     def count_messages(
         cls,
         messages: list[BaseMessage],
-        method: Any,  # TokenCounterMethod, but avoid circular import
+        method: TokenCounterMethod,
     ) -> int:
         """Count tokens in a list of messages using the specified method.
         
@@ -103,6 +106,7 @@ class TokenCounter:
         Args:
             messages: List of LangChain messages to count tokens for.
             method: TokenCounterMethod specifying which counting strategy to use.
+                Must be a valid TokenCounterMethod enum value.
         
         Returns:
             Total token count for all messages.
@@ -121,17 +125,26 @@ class TokenCounter:
         
         """
         # Import here to avoid circular dependency
-        from graphton.core.model_registry import TokenCounterMethod
+        from graphton.core.model_registry import TokenCounterMethod as TCM
         
         if not messages:
             return 0
         
+        # Validate method parameter
+        if not isinstance(method, TCM):
+            logger.warning(
+                "Invalid token counter method type '%s' (expected TokenCounterMethod), "
+                "falling back to APPROXIMATE",
+                type(method).__name__,
+            )
+            return cls._count_approximate(messages)
+        
         try:
-            if method == TokenCounterMethod.TIKTOKEN_CL100K:
+            if method == TCM.TIKTOKEN_CL100K:
                 return cls._count_tiktoken(messages, "cl100k_base")
-            elif method == TokenCounterMethod.TIKTOKEN_O200K:
+            elif method == TCM.TIKTOKEN_O200K:
                 return cls._count_tiktoken(messages, "o200k_base")
-            elif method == TokenCounterMethod.ANTHROPIC_NATIVE:
+            elif method == TCM.ANTHROPIC_NATIVE:
                 return cls._count_anthropic(messages)
             else:
                 # APPROXIMATE or unknown method
@@ -140,14 +153,15 @@ class TokenCounter:
             logger.warning(
                 "Token counting failed with method %s: %s. "
                 "Falling back to approximate counting.",
-                method.value if hasattr(method, 'value') else method,
+                method.value,
                 e,
             )
             return cls._count_approximate(messages)
         except Exception as e:
             logger.warning(
-                "Unexpected error in token counting: %s. "
+                "Unexpected error in token counting (%s): %s. "
                 "Falling back to approximate counting.",
+                type(e).__name__,
                 e,
             )
             return cls._count_approximate(messages)
@@ -156,7 +170,7 @@ class TokenCounter:
     def count_text(
         cls,
         text: str,
-        method: Any,  # TokenCounterMethod
+        method: TokenCounterMethod,
     ) -> int:
         """Count tokens in a single text string.
         
@@ -166,6 +180,7 @@ class TokenCounter:
         Args:
             text: The text to count tokens for.
             method: TokenCounterMethod specifying which counting strategy to use.
+                Must be a valid TokenCounterMethod enum value.
         
         Returns:
             Token count for the text.
@@ -181,23 +196,33 @@ class TokenCounter:
         
         """
         # Import here to avoid circular dependency
-        from graphton.core.model_registry import TokenCounterMethod
+        from graphton.core.model_registry import TokenCounterMethod as TCM
         
         if not text:
             return 0
         
+        # Validate method parameter
+        if not isinstance(method, TCM):
+            logger.warning(
+                "Invalid token counter method type '%s' (expected TokenCounterMethod), "
+                "falling back to APPROXIMATE",
+                type(method).__name__,
+            )
+            return len(text) // _CHARS_PER_TOKEN
+        
         try:
-            if method == TokenCounterMethod.TIKTOKEN_CL100K:
+            if method == TCM.TIKTOKEN_CL100K:
                 return cls._count_text_tiktoken(text, "cl100k_base")
-            elif method == TokenCounterMethod.TIKTOKEN_O200K:
+            elif method == TCM.TIKTOKEN_O200K:
                 return cls._count_text_tiktoken(text, "o200k_base")
-            elif method == TokenCounterMethod.ANTHROPIC_NATIVE:
+            elif method == TCM.ANTHROPIC_NATIVE:
                 return cls._count_text_anthropic(text)
             else:
                 return len(text) // _CHARS_PER_TOKEN
         except Exception as e:
             logger.warning(
-                "Text token counting failed: %s. Using approximate.",
+                "Text token counting failed (%s): %s. Using approximate.",
+                type(e).__name__,
                 e,
             )
             return len(text) // _CHARS_PER_TOKEN
@@ -263,19 +288,21 @@ class TokenCounter:
     
     @classmethod
     @lru_cache(maxsize=4)
-    def _get_tiktoken_encoding(cls, encoding_name: str) -> Any:
+    def _get_tiktoken_encoding(cls, encoding_name: str) -> Encoding:
         """Get a cached tiktoken encoding instance.
         
         Caches encoding instances to avoid repeated initialization overhead.
+        The LRU cache ensures we don't repeatedly load the same encoding.
         
         Args:
-            encoding_name: The tiktoken encoding name.
+            encoding_name: The tiktoken encoding name (e.g., 'cl100k_base', 'o200k_base').
         
         Returns:
-            A tiktoken Encoding instance.
+            A tiktoken Encoding instance for the specified encoding.
         
         Raises:
             ImportError: If tiktoken is not installed.
+            KeyError: If the encoding name is not recognized by tiktoken.
         
         """
         try:
