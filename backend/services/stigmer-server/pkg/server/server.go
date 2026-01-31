@@ -309,6 +309,10 @@ func Run() error {
 	workflowExecutionController.SetWorkflowCreator(workflowExecutionWorkflowCreator)
 	agentExecutionController.SetWorkflowCreator(agentExecutionWorkflowCreator)
 
+	// Inject AgentExecution client for HITL approval forwarding
+	// This enables WorkflowExecution.SubmitApproval to forward decisions to child agent executions
+	workflowExecutionController.SetAgentExecutionClient(agentExecutionController)
+
 	log.Info().Msg("Injected dependencies into controllers")
 
 	// ============================================================================
