@@ -468,3 +468,161 @@ class TestFullPipelineMocked:
             
             # Should have tried to load the running summary
             mock_deserialize.assert_called_once()
+
+
+# =============================================================================
+# Callback Integration Tests (Phase 3)
+# =============================================================================
+
+
+class TestCallbackIntegration:
+    """Integration tests for SummarizationCallback with middleware."""
+    
+    @pytest.mark.asyncio
+    async def test_callback_receives_token_count_updates(self):
+        """Test that callback receives token count updates."""
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        received_counts = []
+        
+        class TestCallback:
+            def on_summarization_complete(self, event: SummarizationEventData) -> None:
+                pass
+            
+            def on_token_count_updated(self, token_count: int) -> None:
+                received_counts.append(token_count)
+        
+        config = SummarizationConfig(
+            enabled=True,
+            trigger_threshold=10000,  # High to prevent triggering
+            target_tokens=8000,
+            max_summary_tokens=50,
+            summarization_model="gpt-4o-mini",
+            token_counter_method=TokenCounterMethod.APPROXIMATE,
+        )
+        middleware = SummarizationMiddleware(config=config, callback=TestCallback())
+        
+        state = {"messages": [HumanMessage(content="Hello world")]}
+        await middleware.abefore_agent(state, {})
+        
+        # Should have received at least one token count update
+        assert len(received_counts) >= 1
+        assert received_counts[0] > 0
+    
+    @pytest.mark.asyncio
+    async def test_callback_receives_summarization_events(self):
+        """Test that callback receives summarization events."""
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        received_events = []
+        
+        class TestCallback:
+            def on_summarization_complete(self, event: SummarizationEventData) -> None:
+                received_events.append(event)
+            
+            def on_token_count_updated(self, token_count: int) -> None:
+                pass
+        
+        config = SummarizationConfig(
+            enabled=True,
+            trigger_threshold=10,  # Very low to trigger
+            target_tokens=8,
+            max_summary_tokens=50,
+            summarization_model="gpt-4o-mini",
+            token_counter_method=TokenCounterMethod.APPROXIMATE,
+        )
+        middleware = SummarizationMiddleware(config=config, callback=TestCallback())
+        
+        # Create messages that exceed threshold
+        messages = [
+            SystemMessage(content="You are helpful.", id="sys_1"),
+            HumanMessage(content="x" * 100, id="human_1"),
+        ]
+        state: dict[str, Any] = {"messages": messages}
+        
+        # Mock the summarization function
+        mock_result = MagicMock()
+        mock_result.running_summary = MagicMock(summary="Test summary")
+        mock_result.messages = [
+            SystemMessage(content="Summary", id="summary_1"),
+        ]
+        
+        with patch(
+            'graphton.core.summarization_middleware.summarize_messages',
+            return_value=mock_result,
+        ):
+            await middleware.abefore_agent(state, {})
+        
+        # Should have received a summarization event
+        assert len(received_events) == 1
+        event = received_events[0]
+        assert event.tokens_before > 0
+        assert event.tokens_after >= 0
+        assert event.compression_ratio >= 0
+        assert event.duration_ms >= 0
+        assert event.summarization_model == "gpt-4o-mini"
+    
+    @pytest.mark.asyncio
+    async def test_callback_failure_does_not_break_middleware(self):
+        """Test that callback failures don't break middleware."""
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        class BrokenCallback:
+            def on_summarization_complete(self, event: SummarizationEventData) -> None:
+                raise ValueError("Callback error!")
+            
+            def on_token_count_updated(self, token_count: int) -> None:
+                raise ValueError("Callback error!")
+        
+        config = SummarizationConfig(
+            enabled=True,
+            trigger_threshold=10,
+            target_tokens=8,
+            max_summary_tokens=50,
+            summarization_model="gpt-4o-mini",
+            token_counter_method=TokenCounterMethod.APPROXIMATE,
+        )
+        middleware = SummarizationMiddleware(config=config, callback=BrokenCallback())
+        
+        messages = [
+            SystemMessage(content="You are helpful.", id="sys_1"),
+            HumanMessage(content="x" * 100, id="human_1"),
+        ]
+        state: dict[str, Any] = {"messages": messages}
+        
+        mock_result = MagicMock()
+        mock_result.running_summary = MagicMock(summary="Test summary")
+        mock_result.messages = [
+            SystemMessage(content="Summary", id="summary_1"),
+        ]
+        
+        with patch(
+            'graphton.core.summarization_middleware.summarize_messages',
+            return_value=mock_result,
+        ):
+            # Should not raise, even though callback fails
+            result = await middleware.abefore_agent(state, {})
+            
+            # Summarization should still complete
+            assert result is not None
+    
+    @pytest.mark.asyncio
+    async def test_none_callback_works(self):
+        """Test that None callback works (no callback calls)."""
+        config = SummarizationConfig(
+            enabled=True,
+            trigger_threshold=10000,  # High to prevent triggering
+            target_tokens=8000,
+            max_summary_tokens=50,
+            summarization_model="gpt-4o-mini",
+            token_counter_method=TokenCounterMethod.APPROXIMATE,
+        )
+        middleware = SummarizationMiddleware(config=config, callback=None)
+        
+        state = {"messages": [HumanMessage(content="Hello world")]}
+        
+        # Should not raise
+        result = await middleware.abefore_agent(state, {})
+        
+        # Below threshold, so no summarization
+        assert result is None

@@ -14,6 +14,10 @@ from graphton.core.model_registry import (
     ModelRegistry,
     TokenCounterMethod,
 )
+from graphton.core.summarization_callback import (
+    SummarizationCallback,
+    SummarizationEventData,
+)
 from graphton.core.summarization_config import SummarizationConfig
 from graphton.core.token_counter import TokenCounter, TokenCountingError
 
@@ -26,7 +30,9 @@ __all__ = [
     "ModelRegistry",
     "TokenCounterMethod",
     # Summarization
+    "SummarizationCallback",
     "SummarizationConfig",
+    "SummarizationEventData",
     "TokenCounter",
     "TokenCountingError",
     # Message utilities

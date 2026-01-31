@@ -10,12 +10,13 @@ Key Features:
     - Cost-effective summarization using economy-tier models
     - Message ID generation for LangMem compatibility
     - Graceful fallback when summarization fails
+    - Callback support for external observability (StatusBuilder integration)
 
 Design Principles:
     1. Non-Blocking - Summarization runs before agent execution
     2. State Persistence - Running summary stored in checkpointer state
     3. Fail-Safe - Agent continues even if summarization fails
-    4. Observable - Comprehensive logging for debugging
+    4. Observable - Comprehensive logging and callback support
 
 Example:
     >>> from graphton.core.summarization_middleware import SummarizationMiddleware
@@ -24,6 +25,17 @@ Example:
     >>> config = SummarizationConfig.for_model("claude-sonnet-4.5")
     >>> middleware = SummarizationMiddleware(config=config)
     >>> # Middleware is typically injected by create_deep_agent()
+
+Example with callback:
+    >>> from graphton.core.summarization_callback import SummarizationCallback
+    >>>
+    >>> class MyCallback:
+    ...     def on_summarization_complete(self, event):
+    ...         print(f"Summarized: {event.tokens_before} -> {event.tokens_after}")
+    ...     def on_token_count_updated(self, token_count):
+    ...         print(f"Token count: {token_count}")
+    >>>
+    >>> middleware = SummarizationMiddleware(config=config, callback=MyCallback())
 
 """
 
@@ -43,6 +55,10 @@ from graphton.core.message_utils import (
     ensure_message_ids,
     extract_summary_from_result,
     serialize_running_summary,
+)
+from graphton.core.summarization_callback import (
+    SummarizationCallback,
+    SummarizationEventData,
 )
 from graphton.core.token_counter import TokenCounter
 
@@ -71,6 +87,7 @@ class SummarizationMiddleware(AgentMiddleware):
     
     Attributes:
         config: SummarizationConfig with thresholds and model settings
+        callback: Optional callback for reporting summarization events
         _running_summary: LangMem RunningSummary object (persisted in state)
         _summarization_count: Number of times summarization was triggered
         _last_summarization_time: Timestamp of last summarization
@@ -83,16 +100,37 @@ class SummarizationMiddleware(AgentMiddleware):
         >>> 
         >>> # Middleware is added to middleware_list in create_deep_agent()
     
+    Example with callback:
+        >>> class StatusBuilder:
+        ...     def on_summarization_complete(self, event):
+        ...         self._events.append(event)
+        ...     def on_token_count_updated(self, count):
+        ...         self._token_count = count
+        >>>
+        >>> middleware = SummarizationMiddleware(
+        ...     config=config,
+        ...     callback=StatusBuilder(),
+        ... )
+    
     """
     
-    def __init__(self, config: SummarizationConfig) -> None:
+    def __init__(
+        self,
+        config: SummarizationConfig,
+        callback: SummarizationCallback | None = None,
+    ) -> None:
         """Initialize the summarization middleware.
         
         Args:
             config: SummarizationConfig with thresholds and model settings.
+            callback: Optional callback for reporting summarization events.
+                If provided, on_summarization_complete() is called after
+                each successful summarization, and on_token_count_updated()
+                is called whenever the token count is recalculated.
         
         """
         self.config = config
+        self._callback = callback
         
         # Per-invocation state
         self._running_summary: Any = None
@@ -102,11 +140,12 @@ class SummarizationMiddleware(AgentMiddleware):
         
         logger.info(
             "SummarizationMiddleware initialized: enabled=%s, trigger=%d, "
-            "target=%d, model='%s'",
+            "target=%d, model='%s', callback=%s",
             config.enabled,
             config.trigger_threshold,
             config.target_tokens,
             config.summarization_model,
+            "present" if callback is not None else "none",
         )
     
     async def abefore_agent(
@@ -119,8 +158,10 @@ class SummarizationMiddleware(AgentMiddleware):
         This is called at the start of each agent invocation. It:
         1. Loads any existing running_summary from state
         2. Counts current tokens in the conversation
-        3. If over threshold, triggers summarization
-        4. Injects summary into messages if summarization occurred
+        3. Reports token count via callback (if configured)
+        4. If over threshold, triggers summarization
+        5. Reports summarization event via callback (if configured)
+        6. Injects summary into messages if summarization occurred
         
         Args:
             state: Current agent state with messages
@@ -149,6 +190,13 @@ class SummarizationMiddleware(AgentMiddleware):
             self.config.token_counter_method,
         )
         
+        # Report token count via callback
+        if self._callback is not None:
+            try:
+                self._callback.on_token_count_updated(self._current_token_count)
+            except Exception as e:
+                logger.warning("Callback on_token_count_updated failed: %s", e)
+        
         logger.debug(
             "Token count: %d / %d (trigger threshold)",
             self._current_token_count,
@@ -167,6 +215,10 @@ class SummarizationMiddleware(AgentMiddleware):
         
         # Perform summarization
         try:
+            messages_before = len(messages)
+            tokens_before = self._current_token_count
+            start_time = time.time()
+            
             summarized_messages = await self._perform_summarization(messages)
             
             # Update state with summarized messages
@@ -175,22 +227,44 @@ class SummarizationMiddleware(AgentMiddleware):
             # Store updated running summary
             self._save_running_summary_to_state(state)
             
-            # Log summarization stats
+            # Calculate summarization stats
             new_token_count = TokenCounter.count_messages(
                 summarized_messages,
                 self.config.token_counter_method,
             )
             compression_ratio = (
-                1 - (new_token_count / self._current_token_count)
-                if self._current_token_count > 0 else 0
+                1 - (new_token_count / tokens_before)
+                if tokens_before > 0 else 0.0
             )
+            duration_ms = int((time.time() - start_time) * 1000)
             
             logger.info(
                 "Summarization complete: %d -> %d tokens (%.1f%% reduction)",
-                self._current_token_count,
+                tokens_before,
                 new_token_count,
                 compression_ratio * 100,
             )
+            
+            # Report summarization event via callback
+            if self._callback is not None:
+                try:
+                    event = SummarizationEventData(
+                        tokens_before=tokens_before,
+                        tokens_after=new_token_count,
+                        compression_ratio=compression_ratio,
+                        duration_ms=duration_ms,
+                        summarization_model=self.config.summarization_model,
+                        messages_before=messages_before,
+                        messages_after=len(summarized_messages),
+                    )
+                    self._callback.on_summarization_complete(event)
+                    # Also report the updated token count
+                    self._callback.on_token_count_updated(new_token_count)
+                except Exception as e:
+                    logger.warning("Callback on_summarization_complete failed: %s", e)
+            
+            # Update internal token count tracking
+            self._current_token_count = new_token_count
             
             return {"messages": summarized_messages}
             
@@ -279,8 +353,6 @@ class SummarizationMiddleware(AgentMiddleware):
             Exception: If summarization fails completely.
         
         """
-        start_time = time.time()
-        
         # Ensure all messages have IDs (LangMem requirement)
         messages_with_ids = ensure_message_ids(messages)
         
@@ -320,15 +392,14 @@ class SummarizationMiddleware(AgentMiddleware):
             summary_text=summary_text,
         )
         
-        # Update stats
+        # Update internal stats
         self._summarization_count += 1
         self._last_summarization_time = time.time()
         
-        elapsed = time.time() - start_time
-        logger.info(
-            "Summarization took %.2fs, produced %d messages",
-            elapsed,
+        logger.debug(
+            "Summarization produced %d messages from %d original",
             len(new_messages),
+            len(messages),
         )
         
         return new_messages

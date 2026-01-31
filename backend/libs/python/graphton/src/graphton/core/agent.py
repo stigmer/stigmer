@@ -25,6 +25,7 @@ from graphton.core.prompt_enhancement import enhance_user_instructions
 if TYPE_CHECKING:
     from langgraph.checkpoint.base import BaseCheckpointSaver
 
+    from graphton.core.summarization_callback import SummarizationCallback
     from graphton.core.summarization_config import SummarizationConfig
 
 
@@ -53,6 +54,8 @@ def create_deep_agent(
     approval_checker: "Callable[[str, dict[str, Any]], Any] | None" = None,
     # Context summarization configuration
     summarization_config: "SummarizationConfig | None" = None,
+    # Callback for summarization events (Phase 3)
+    summarization_callback: "SummarizationCallback | None" = None,
     **model_kwargs: Any,  # noqa: ANN401
 ) -> CompiledStateGraph:
     """Create a Deep Agent with minimal boilerplate.
@@ -155,6 +158,11 @@ def create_deep_agent(
             conversation history when token count exceeds configured thresholds.
             Use SummarizationConfig.for_model() to create model-appropriate config.
             Example: summarization_config=SummarizationConfig.for_model("claude-sonnet-4.5")
+        summarization_callback: Optional callback for receiving summarization events.
+            Must implement the SummarizationCallback protocol with methods:
+            - on_summarization_complete(event: SummarizationEventData) -> None
+            - on_token_count_updated(token_count: int) -> None
+            Used for observability integration (e.g., StatusBuilder in agent-runner).
         **model_kwargs: Additional model-specific parameters to pass to the model
             constructor (e.g., top_p, top_k for Anthropic).
     
@@ -367,15 +375,17 @@ def create_deep_agent(
         
         summarization_middleware = SummarizationMiddleware(
             config=summarization_config,
+            callback=summarization_callback,  # Pass callback for observability (Phase 3)
         )
         # Insert at beginning so it runs before other middleware
         middleware_list.insert(0, summarization_middleware)
         
         logger.info(
-            "Summarization middleware enabled: trigger=%d, target=%d, model='%s'",
+            "Summarization middleware enabled: trigger=%d, target=%d, model='%s', callback=%s",
             summarization_config.trigger_threshold,
             summarization_config.target_tokens,
             summarization_config.summarization_model,
+            "present" if summarization_callback is not None else "none",
         )
     
     # Transform subagents to DeepAgents format if provided
