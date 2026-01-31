@@ -7,7 +7,6 @@ go_library(
         "create.go",
         "delete.go",
         "get.go",
-        "get_by_reference.go",
         "list.go",
         "list_by_agent.go",
         "session_controller.go",
@@ -17,7 +16,6 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
-        "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/interceptors/apiresource",

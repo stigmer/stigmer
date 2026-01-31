@@ -40,8 +40,8 @@ func TestEnvironmentController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Test Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Test Environment",
+				Org:  "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test environment description",
@@ -118,8 +118,8 @@ func TestEnvironmentController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Empty Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Empty Environment",
+				Org:  "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Environment with no data",
@@ -182,8 +182,8 @@ func TestEnvironmentController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Scope Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform, // Invalid scope for environment (only org or identity_account allowed)
+				Name: "Invalid Scope Environment",
+				Org:  "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test description",
@@ -201,8 +201,8 @@ func TestEnvironmentController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Empty Value Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Empty Value Environment",
+				Org:  "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Environment with empty value",
@@ -236,8 +236,8 @@ func TestEnvironmentController_Get(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Get Test Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Get Test Environment",
+				Org:  "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test description",
@@ -304,8 +304,8 @@ func TestEnvironmentController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Update Test Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Update Test Environment",
+				Org:  "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Original description",
@@ -344,8 +344,8 @@ func TestEnvironmentController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Update Data Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Update Data Environment",
+				Org:  "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test description",
@@ -396,8 +396,8 @@ func TestEnvironmentController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Modify Data Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Modify Data Environment",
+				Org:  "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test description",
@@ -436,9 +436,9 @@ func TestEnvironmentController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:         "non-existent-id",
-				Name:       "Non-existent Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Id:   "non-existent-id",
+				Name: "Non-existent Environment",
+				Org:  "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test description",
@@ -462,8 +462,8 @@ func TestEnvironmentController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Test Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Delete Test Environment",
+				Org:  "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test description",
@@ -512,8 +512,8 @@ func TestEnvironmentController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Verify Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Delete Verify Environment",
+				Org:  "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Verify deletion data",
@@ -562,8 +562,8 @@ func TestEnvironmentController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Secret Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Secret Environment",
+				Org:  "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Environment with secrets",

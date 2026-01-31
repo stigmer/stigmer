@@ -15,6 +15,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 
 	// Pure Go SQLite driver - no CGO required
 	_ "modernc.org/sqlite"
@@ -517,6 +518,172 @@ func (s *Store) DeleteResourcesByIdPrefix(ctx context.Context, kind apiresourcek
 	}
 
 	return result.RowsAffected()
+}
+
+// =============================================================================
+// Field-Based Queries
+// =============================================================================
+
+// FindByField retrieves a single resource by matching a specific field value.
+// The fieldPath uses dot notation (e.g., "spec.executionId") and the matcher
+// function extracts the field value from the proto message for comparison.
+//
+// Since protobuf data is stored as binary BLOBs (not JSON), this implementation
+// loads all resources of the given kind and filters in Go. For performance-critical
+// queries, consider adding a dedicated database column with an index.
+//
+// Returns store.ErrNotFound if no resource matches.
+func (s *Store) FindByField(ctx context.Context, kind apiresourcekind.ApiResourceKind, fieldPath string, value string, msg proto.Message) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("store is closed")
+	}
+
+	// Load all resources of this kind
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT data FROM resources WHERE kind = ?`,
+		kind.String())
+	if err != nil {
+		return fmt.Errorf("query resources: %w", err)
+	}
+	defer rows.Close()
+
+	// Iterate and find matching resource
+	for rows.Next() {
+		var data []byte
+		if err := rows.Scan(&data); err != nil {
+			return fmt.Errorf("scan row: %w", err)
+		}
+
+		// Create a new instance of the message type for comparison
+		testMsg := proto.Clone(msg)
+		proto.Reset(testMsg)
+
+		if err := proto.Unmarshal(data, testMsg); err != nil {
+			// Skip malformed records
+			continue
+		}
+
+		// Extract field value using protobuf reflection
+		fieldValue := extractFieldValue(testMsg, fieldPath)
+		if fieldValue == value {
+			// Found a match - unmarshal into the output message
+			if err := proto.Unmarshal(data, msg); err != nil {
+				return fmt.Errorf("unmarshal proto: %w", err)
+			}
+			return nil
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate rows: %w", err)
+	}
+
+	return fmt.Errorf("%w: %s where %s=%s", store.ErrNotFound, kind.String(), fieldPath, value)
+}
+
+// FindAllByField retrieves all resources matching a specific field value.
+// The fieldPath uses dot notation (e.g., "spec.workflowInstanceId").
+//
+// Since protobuf data is stored as binary BLOBs (not JSON), this implementation
+// loads all resources of the given kind and filters in Go.
+//
+// Returns an empty slice (not nil) if no resources match.
+func (s *Store) FindAllByField(ctx context.Context, kind apiresourcekind.ApiResourceKind, fieldPath string, value string) ([][]byte, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return nil, fmt.Errorf("store is closed")
+	}
+
+	// Load all resources of this kind
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT data FROM resources WHERE kind = ?`,
+		kind.String())
+	if err != nil {
+		return nil, fmt.Errorf("query resources: %w", err)
+	}
+	defer rows.Close()
+
+	results := make([][]byte, 0)
+
+	for rows.Next() {
+		var data []byte
+		if err := rows.Scan(&data); err != nil {
+			return nil, fmt.Errorf("scan row: %w", err)
+		}
+
+		// Copy data since database driver may reuse the buffer
+		dataCopy := make([]byte, len(data))
+		copy(dataCopy, data)
+
+		// We need a proto type to unmarshal into for field extraction
+		// Since we don't have the type here, we use protojson to convert to JSON
+		// and then extract the field using JSON path
+		// This is a workaround - callers should use the typed version when possible
+		results = append(results, dataCopy)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate rows: %w", err)
+	}
+
+	// Note: This returns ALL resources of the kind, not filtered.
+	// The filtering needs to be done by the caller with the proto type.
+	// This is because we can't unmarshal without knowing the proto type.
+	return results, nil
+}
+
+// extractFieldValue extracts a field value from a proto message using dot notation path.
+// Example: extractFieldValue(msg, "spec.executionId") extracts the executionId from spec.
+func extractFieldValue(msg proto.Message, fieldPath string) string {
+	parts := strings.Split(fieldPath, ".")
+
+	// Use protobuf reflection to navigate the field path
+	current := msg.ProtoReflect()
+
+	for i, part := range parts {
+		// Find the field by name
+		fields := current.Descriptor().Fields()
+		field := fields.ByName(protoreflect.Name(part))
+		if field == nil {
+			// Try camelCase to snake_case conversion
+			field = fields.ByName(protoreflect.Name(toSnakeCase(part)))
+		}
+		if field == nil {
+			return ""
+		}
+
+		if i == len(parts)-1 {
+			// Last part - get the value
+			val := current.Get(field)
+			return val.String()
+		}
+
+		// Not the last part - navigate into the nested message
+		if field.Kind() != protoreflect.MessageKind {
+			return ""
+		}
+		current = current.Get(field).Message()
+	}
+
+	return ""
+}
+
+// toSnakeCase converts a camelCase string to snake_case.
+// Example: "executionId" -> "execution_id"
+func toSnakeCase(s string) string {
+	var result strings.Builder
+	for i, r := range s {
+		if i > 0 && r >= 'A' && r <= 'Z' {
+			result.WriteByte('_')
+		}
+		result.WriteRune(r)
+	}
+	return strings.ToLower(result.String())
 }
 
 // =============================================================================

@@ -10,10 +10,10 @@ import (
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/backend/libs/go/store"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	"google.golang.org/protobuf/proto"
@@ -267,16 +267,11 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		Str("workflow_id", workflowID).
 		Msg("Default instance not found, creating new one")
 
-	ownerScope := workflow.GetMetadata().GetOwnerScope()
+	workflowOrg := workflow.GetMetadata().GetOrg()
 
 	instanceMetadata := &apiresource.ApiResourceMetadata{
-		Name:       defaultInstanceSlug,
-		OwnerScope: ownerScope,
-	}
-
-	// Copy org if org-scoped
-	if ownerScope == apiresource.ApiResourceOwnerScope_organization {
-		instanceMetadata.Org = workflow.GetMetadata().GetOrg()
+		Name: defaultInstanceSlug,
+		Org:  workflowOrg, // All resources belong to an org
 	}
 
 	instanceRequest := &workflowinstancev1.WorkflowInstance{

@@ -5,9 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/sdk/go/environment"
-	"github.com/stigmer/stigmer/sdk/go/skillref"
 )
 
 // mockEnvCtx implements the environment.Context interface for testing
@@ -211,15 +209,18 @@ func TestNew_ValidationErrors(t *testing.T) {
 // =============================================================================
 
 // TestNew_InvalidSkillRefs tests agent creation with skill references.
-// Note: SDK references skills via skillref, it doesn't create them.
+// Note: SDK references skills via AddSkill(), it doesn't create them.
 // Skill validation happens at the platform level, not in the SDK.
 func TestNew_InvalidSkillRefs(t *testing.T) {
-	// skillref.Platform returns a reference - validation is minimal
-	ref := skillref.Platform("")
-
-	if ref == nil {
-		t.Fatal("skillref.Platform should return a non-nil reference")
+	agent, err := New(nil, "test-agent", &AgentArgs{
+		Instructions: "Test instructions for skill reference testing",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create agent: %v", err)
 	}
+
+	// AddSkill with empty string - validation is minimal in SDK
+	agent.AddSkill("")
 
 	t.Log("Skill reference created - validation happens at platform level")
 }
@@ -257,9 +258,6 @@ func TestNew_InvalidEnvironmentVariables(t *testing.T) {
 
 // TestAgentToProto_ErrorPropagation tests error propagation from nested conversions.
 func TestAgentToProto_ErrorPropagation(t *testing.T) {
-	// Create agent with skill reference (SDK references skills, doesn't create them)
-	skillRef := skillref.Platform("skill1")
-
 	agent, err := New(nil, "error-prop-agent", &AgentArgs{
 		Instructions: "Agent for testing error propagation in proto conversion",
 	})
@@ -267,8 +265,8 @@ func TestAgentToProto_ErrorPropagation(t *testing.T) {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
 
-	// Add skill ref using builder method
-	agent.AddSkillRef(skillRef)
+	// Add skill ref using new smart parsing API
+	agent.AddSkill("stigmer/skill1")
 
 	proto, err := agent.ToProto()
 
@@ -290,20 +288,6 @@ func TestAgentToProto_ErrorPropagation(t *testing.T) {
 func TestAgentToProto_MultipleErrorSources(t *testing.T) {
 	ctx := &mockEnvCtx{}
 
-	// Create agent with multiple skill refs
-	skillRefs := []*apiresource.ApiResourceReference{}
-	for i := 0; i < 10; i++ {
-		skillRefs = append(skillRefs, skillref.Platform("skill"+string(rune('0'+i))))
-	}
-
-	envVars := []environment.Variable{}
-	for i := 0; i < 10; i++ {
-		env, _ := environment.New(ctx, "ENV_VAR_"+string(rune('A'+i%26)), &environment.VariableArgs{
-			DefaultValue: "value" + string(rune('0'+i)),
-		})
-		envVars = append(envVars, *env)
-	}
-
 	agent, err := New(nil, "multi-error-agent", &AgentArgs{
 		Instructions: "Agent with multiple nested resources for error testing",
 	})
@@ -311,9 +295,18 @@ func TestAgentToProto_MultipleErrorSources(t *testing.T) {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
 
-	// Add skill refs and environment variables using builder methods
-	for _, ref := range skillRefs {
-		agent.AddSkillRef(ref)
+	// Add 10 skill refs using new smart parsing API
+	for i := 0; i < 10; i++ {
+		agent.AddSkill("stigmer/skill" + string(rune('0'+i)))
+	}
+
+	// Create and add environment variables
+	envVars := []environment.Variable{}
+	for i := 0; i < 10; i++ {
+		env, _ := environment.New(ctx, "ENV_VAR_"+string(rune('A'+i%26)), &environment.VariableArgs{
+			DefaultValue: "value" + string(rune('0'+i)),
+		})
+		envVars = append(envVars, *env)
 	}
 	agent.AddEnvironmentVariables(envVars...)
 
@@ -348,9 +341,9 @@ func TestNew_ExcessiveSkillRefs(t *testing.T) {
 		t.Fatalf("Agent creation failed: %v", err)
 	}
 
-	// Add 1000 skill refs
+	// Add 1000 skill refs using new smart parsing API
 	for i := 0; i < 1000; i++ {
-		agent.AddSkillRef(skillref.Platform("skill-" + strings.Repeat("x", i%10)))
+		agent.AddSkill("stigmer/skill-" + strings.Repeat("x", i%10))
 	}
 
 	proto, err := agent.ToProto()

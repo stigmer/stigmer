@@ -16,15 +16,9 @@ message Agent {
   string kind = 2 [(buf.validate.field).string.const = 'Agent'];
 
   // Standard resource metadata including name, id, labels, and tags.
-  // Agents can only have platform or organization scope (not identity_account).
-  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
-    (buf.validate.field).required = true,
-    (buf.validate.field).cel = {
-      id: "agent.owner_scope.platform_or_org_only"
-      message: "Agent resources can only have platform or organization scope"
-      expression: "this.owner_scope == 1 || this.owner_scope == 2"
-    }
-  ];
+  // Agents belong to an organization and can be PUBLIC or PRIVATE.
+  // Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
   // Agent-specific configuration.
   AgentSpec spec = 4;

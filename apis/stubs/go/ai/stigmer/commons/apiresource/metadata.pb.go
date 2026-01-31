@@ -23,24 +23,26 @@ const (
 )
 
 // ApiResourceMetadata contains standard metadata for all API resources.
+// Every resource belongs to an organization and has a visibility setting.
 type ApiResourceMetadata struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable name of the resource.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// URL-friendly identifier, unique within scope.
+	// URL-friendly identifier, unique within the organization.
+	// Combined with org, forms the canonical reference: "org/slug".
 	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
 	// System-generated unique identifier.
 	Id string `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
-	// Organization to which this resource belongs.
-	// In Local Mode: This is ignored (or defaults to "default").
-	// In Cloud Mode: This is enforced by the Authorization Service.
+	// Organization that owns this resource.
+	// In Local Mode: Defaults to "default" org.
+	// In Cloud Mode: Required and enforced by the Authorization Service.
+	// All resources belong to exactly one organization.
 	Org string `protobuf:"bytes,4,opt,name=org,proto3" json:"org,omitempty"`
-	// Owner scope determines visibility and access control for this resource.
-	// Defines who can see and access this resource.
-	// In Local Mode: Defaults to identity_account or platform (depending on resource).
-	// In Cloud Mode: Critical for RBAC.
-	// Default: organization (set by middleware in Cloud Mode).
-	OwnerScope ApiResourceOwnerScope `protobuf:"varint,5,opt,name=owner_scope,json=ownerScope,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceOwnerScope" json:"owner_scope,omitempty"`
+	// Visibility controls who can access this resource.
+	// - PRIVATE: Only members of the owning organization can access.
+	// - PUBLIC: Anyone can access (read). Write access still requires org membership.
+	// Default: PRIVATE for new resources.
+	Visibility ApiResourceVisibility `protobuf:"varint,5,opt,name=visibility,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceVisibility" json:"visibility,omitempty"`
 	// Key-value labels for organization and filtering.
 	Labels map[string]string `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Key-value annotations for additional metadata.
@@ -111,11 +113,11 @@ func (x *ApiResourceMetadata) GetOrg() string {
 	return ""
 }
 
-func (x *ApiResourceMetadata) GetOwnerScope() ApiResourceOwnerScope {
+func (x *ApiResourceMetadata) GetVisibility() ApiResourceVisibility {
 	if x != nil {
-		return x.OwnerScope
+		return x.Visibility
 	}
-	return ApiResourceOwnerScope_api_resource_owner_scope_unspecified
+	return ApiResourceVisibility_API_RESOURCE_VISIBILITY_UNSPECIFIED
 }
 
 func (x *ApiResourceMetadata) GetLabels() map[string]string {
@@ -214,14 +216,15 @@ var File_ai_stigmer_commons_apiresource_metadata_proto protoreflect.FileDescript
 
 const file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xe7\x04\n" +
+	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xe6\x04\n" +
 	"\x13ApiResourceMetadata\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04slug\x18\x02 \x01(\tR\x04slug\x12\x0e\n" +
 	"\x02id\x18\x03 \x01(\tR\x02id\x12\x10\n" +
-	"\x03org\x18\x04 \x01(\tR\x03org\x12`\n" +
-	"\vowner_scope\x18\x05 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeB\b\xbaH\x05\x82\x01\x02\x10\x01R\n" +
-	"ownerScope\x12W\n" +
+	"\x03org\x18\x04 \x01(\tR\x03org\x12_\n" +
+	"\n" +
+	"visibility\x18\x05 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceVisibilityB\b\xbaH\x05\x82\x01\x02\x10\x01R\n" +
+	"visibility\x12W\n" +
 	"\x06labels\x18\x06 \x03(\v2?.ai.stigmer.commons.apiresource.ApiResourceMetadata.LabelsEntryR\x06labels\x12f\n" +
 	"\vannotations\x18\a \x03(\v2D.ai.stigmer.commons.apiresource.ApiResourceMetadata.AnnotationsEntryR\vannotations\x12\x12\n" +
 	"\x04tags\x18\b \x03(\tR\x04tags\x12T\n" +
@@ -256,10 +259,10 @@ var file_ai_stigmer_commons_apiresource_metadata_proto_goTypes = []any{
 	(*ApiResourceMetadataVersion)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceMetadataVersion
 	nil,                                // 2: ai.stigmer.commons.apiresource.ApiResourceMetadata.LabelsEntry
 	nil,                                // 3: ai.stigmer.commons.apiresource.ApiResourceMetadata.AnnotationsEntry
-	(ApiResourceOwnerScope)(0),         // 4: ai.stigmer.commons.apiresource.ApiResourceOwnerScope
+	(ApiResourceVisibility)(0),         // 4: ai.stigmer.commons.apiresource.ApiResourceVisibility
 }
 var file_ai_stigmer_commons_apiresource_metadata_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.commons.apiresource.ApiResourceMetadata.owner_scope:type_name -> ai.stigmer.commons.apiresource.ApiResourceOwnerScope
+	4, // 0: ai.stigmer.commons.apiresource.ApiResourceMetadata.visibility:type_name -> ai.stigmer.commons.apiresource.ApiResourceVisibility
 	2, // 1: ai.stigmer.commons.apiresource.ApiResourceMetadata.labels:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata.LabelsEntry
 	3, // 2: ai.stigmer.commons.apiresource.ApiResourceMetadata.annotations:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata.AnnotationsEntry
 	1, // 3: ai.stigmer.commons.apiresource.ApiResourceMetadata.version:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadataVersion

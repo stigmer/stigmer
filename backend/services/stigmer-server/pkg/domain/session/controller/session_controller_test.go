@@ -7,9 +7,9 @@ import (
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
-	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 )
 
 // contextWithSessionKind creates a context with the session resource kind injected
@@ -40,8 +40,8 @@ func TestSessionController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Test Session",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Test Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -86,17 +86,17 @@ func TestSessionController_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("successful creation with identity_account scope", func(t *testing.T) {
+	t.Run("successful creation with org", func(t *testing.T) {
 		session := &sessionv1.Session{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Identity Session",
-				OwnerScope: apiresource.ApiResourceOwnerScope_identity_account,
+				Name: "Org Session",
+				Org:  "another-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
-				Subject:         "Personal conversation",
+				Subject:         "Organization conversation",
 			},
 		}
 
@@ -105,8 +105,8 @@ func TestSessionController_Create(t *testing.T) {
 			t.Fatalf("Create failed: %v", err)
 		}
 
-		if created.Metadata.OwnerScope != apiresource.ApiResourceOwnerScope_identity_account {
-			t.Errorf("Expected owner_scope 'identity_account', got '%v'", created.Metadata.OwnerScope)
+		if created.Metadata.Org != "another-org" {
+			t.Errorf("Expected org 'another-org', got '%v'", created.Metadata.Org)
 		}
 	})
 
@@ -115,8 +115,8 @@ func TestSessionController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Session",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Invalid Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				Subject: "Test conversation",
@@ -129,13 +129,13 @@ func TestSessionController_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("validation error - invalid owner_scope", func(t *testing.T) {
+	t.Run("successful creation with empty org defaults correctly", func(t *testing.T) {
 		session := &sessionv1.Session{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Invalid Scope Session",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Name: "Default Org Session",
+				Org:  "", // Empty org - should still create
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -143,9 +143,14 @@ func TestSessionController_Create(t *testing.T) {
 			},
 		}
 
-		_, err := controller.Create(contextWithSessionKind(), session)
-		if err == nil {
-			t.Error("Expected error for invalid owner_scope")
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		// Session should be created successfully
+		if created.Metadata.Id == "" {
+			t.Error("Expected session to be created with an ID")
 		}
 	})
 
@@ -184,7 +189,7 @@ func TestSessionController_Create(t *testing.T) {
 
 	t.Run("successful creation with metadata fields", func(t *testing.T) {
 		metadata := map[string]string{
-			"client": "web-ui",
+			"client":  "web-ui",
 			"version": "1.0.0",
 		}
 
@@ -192,8 +197,8 @@ func TestSessionController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Metadata Session",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Metadata Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -227,8 +232,8 @@ func TestSessionController_Get(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Get Test Session",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Get Test Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -285,8 +290,8 @@ func TestSessionController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Update Test Session",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Update Test Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -342,8 +347,8 @@ func TestSessionController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Metadata Update Session",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Metadata Update Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -386,9 +391,9 @@ func TestSessionController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Id:         "non-existent-id",
-				Name:       "Non-existent Session",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Id:   "non-existent-id",
+				Name: "Non-existent Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -408,8 +413,8 @@ func TestSessionController_Update(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Validation Update Session",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Validation Update Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -442,8 +447,8 @@ func TestSessionController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Test Session",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Delete Test Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "test-agent-instance-id",
@@ -493,8 +498,8 @@ func TestSessionController_Delete(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name:       "Delete Verify Session",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Name: "Delete Verify Session",
+				Org:  "test-org",
 			},
 			Spec: &sessionv1.SessionSpec{
 				AgentInstanceId: "verify-agent-instance-id",

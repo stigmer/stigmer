@@ -3,10 +3,10 @@ package root
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/pkg/errors"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
@@ -14,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	"google.golang.org/grpc"
 )
 
@@ -69,61 +70,79 @@ func printOrgNotSetError() {
 	fmt.Println()
 }
 
-// resolveAgent resolves an agent by ID or name (slug)
-func resolveAgent(reference string, orgID string, conn *grpc.ClientConn) (*agentv1.Agent, error) {
+// resolveAgent resolves an agent by ID, org/slug, or slug (with context org).
+//
+// Supported reference formats:
+//   - "agt_xxx": Agent ID (direct lookup)
+//   - "org/slug": Explicit organization and slug
+//   - "slug": Uses orgID as the organization context
+func resolveAgent(ref string, orgID string, conn *grpc.ClientConn) (*agentv1.Agent, error) {
 	client := agentv1.NewAgentQueryControllerClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Check if reference looks like an agent ID (starts with "agt_")
-	if strings.HasPrefix(reference, "agt_") {
-		agent, err := client.Get(ctx, &agentv1.AgentId{Value: reference})
+	// Parse the reference (handles ID detection and org/slug parsing)
+	parsed, err := reference.Parse(ref, orgID)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid agent reference")
+	}
+
+	// If it's an ID, fetch directly
+	if parsed.IsID {
+		agent, err := client.Get(ctx, &agentv1.AgentId{Value: parsed.ID})
 		if err != nil {
-			return nil, fmt.Errorf("agent not found: %w", err)
+			return nil, errors.Wrap(err, "agent not found")
 		}
 		return agent, nil
 	}
 
-	// Lookup by name (slug) using getByReference
+	// Lookup by org/slug using GetByReference
 	agent, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
-		Scope: apiresource.ApiResourceOwnerScope_organization,
-		Org:   orgID,
-		Kind:  apiresourcekind.ApiResourceKind_agent,
-		Slug:  reference,
+		Org:  parsed.Org,
+		Kind: apiresourcekind.ApiResourceKind_agent,
+		Slug: parsed.Slug,
 	})
-
 	if err != nil {
-		return nil, fmt.Errorf("agent not found: %w", err)
+		return nil, errors.Wrap(err, "agent not found")
 	}
 
 	return agent, nil
 }
 
-// resolveWorkflow resolves a workflow by ID or name (slug)
-func resolveWorkflow(reference string, orgID string, conn *grpc.ClientConn) (*workflowv1.Workflow, error) {
+// resolveWorkflow resolves a workflow by ID, org/slug, or slug (with context org).
+//
+// Supported reference formats:
+//   - "wf_xxx": Workflow ID (direct lookup)
+//   - "org/slug": Explicit organization and slug
+//   - "slug": Uses orgID as the organization context
+func resolveWorkflow(ref string, orgID string, conn *grpc.ClientConn) (*workflowv1.Workflow, error) {
 	client := workflowv1.NewWorkflowQueryControllerClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Check if reference looks like a workflow ID (starts with "wf_")
-	if strings.HasPrefix(reference, "wf_") {
-		workflow, err := client.Get(ctx, &workflowv1.WorkflowId{Value: reference})
+	// Parse the reference (handles ID detection and org/slug parsing)
+	parsed, err := reference.Parse(ref, orgID)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid workflow reference")
+	}
+
+	// If it's an ID, fetch directly
+	if parsed.IsID {
+		workflow, err := client.Get(ctx, &workflowv1.WorkflowId{Value: parsed.ID})
 		if err != nil {
-			return nil, fmt.Errorf("workflow not found: %w", err)
+			return nil, errors.Wrap(err, "workflow not found")
 		}
 		return workflow, nil
 	}
 
-	// Lookup by name (slug) using getByReference
+	// Lookup by org/slug using GetByReference
 	workflow, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
-		Scope: apiresource.ApiResourceOwnerScope_organization,
-		Org:   orgID,
-		Kind:  apiresourcekind.ApiResourceKind_workflow,
-		Slug:  reference,
+		Org:  parsed.Org,
+		Kind: apiresourcekind.ApiResourceKind_workflow,
+		Slug: parsed.Slug,
 	})
-
 	if err != nil {
-		return nil, fmt.Errorf("workflow not found: %w", err)
+		return nil, errors.Wrap(err, "workflow not found")
 	}
 
 	return workflow, nil

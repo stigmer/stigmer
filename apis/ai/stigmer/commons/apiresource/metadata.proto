@@ -6,27 +6,29 @@ import "ai/stigmer/commons/apiresource/enum.proto";
 import "buf/validate/validate.proto";
 
 // ApiResourceMetadata contains standard metadata for all API resources.
+// Every resource belongs to an organization and has a visibility setting.
 message ApiResourceMetadata {
   // Human-readable name of the resource.
   string name = 1;
 
-  // URL-friendly identifier, unique within scope.
+  // URL-friendly identifier, unique within the organization.
+  // Combined with org, forms the canonical reference: "org/slug".
   string slug = 2;
 
   // System-generated unique identifier.
   string id = 3;
 
-  // Organization to which this resource belongs.
-  // In Local Mode: This is ignored (or defaults to "default").
-  // In Cloud Mode: This is enforced by the Authorization Service.
+  // Organization that owns this resource.
+  // In Local Mode: Defaults to "default" org.
+  // In Cloud Mode: Required and enforced by the Authorization Service.
+  // All resources belong to exactly one organization.
   string org = 4;
 
-  // Owner scope determines visibility and access control for this resource.
-  // Defines who can see and access this resource.
-  // In Local Mode: Defaults to identity_account or platform (depending on resource).
-  // In Cloud Mode: Critical for RBAC.
-  // Default: organization (set by middleware in Cloud Mode).
-  ApiResourceOwnerScope owner_scope = 5 [(buf.validate.field).enum.defined_only = true];
+  // Visibility controls who can access this resource.
+  // - PRIVATE: Only members of the owning organization can access.
+  // - PUBLIC: Anyone can access (read). Write access still requires org membership.
+  // Default: PRIVATE for new resources.
+  ApiResourceVisibility visibility = 5 [(buf.validate.field).enum.defined_only = true];
 
   // Key-value labels for organization and filtering.
   map<string, string> labels = 6;

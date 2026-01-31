@@ -18,7 +18,7 @@ import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
 // - update: Standard authorization (requires update permission on the instance)
 // - delete: Standard authorization (requires delete permission on the instance)
 //
-// All operations enforce owner scope restrictions (organization or identity_account only).
+// All workflow instances belong to an organization.
 service WorkflowInstanceCommandController {
   // Service-level option linking this controller to the workflow_instance resource kind.
   // This enables generic middleware to identify the resource type for logging, metrics, and policy enforcement.
@@ -34,7 +34,7 @@ service WorkflowInstanceCommandController {
   // Creates a configured deployment of a Workflow template with environment bindings.
   //
   // Input validation:
-  // - metadata.owner_scope must be organization (2) or identity_account (3)
+  // - metadata.org must be specified
   // - spec.workflow_id must be a valid Workflow resource ID
   // - spec.env_refs must reference valid Environment resources
   //
@@ -66,7 +66,7 @@ service WorkflowInstanceCommandController {
   // You cannot update:
   // - spec.workflow_id (must delete and recreate to change template)
   // - metadata.id (immutable resource identifier)
-  // - metadata.owner_scope (immutable after creation)
+  // - metadata.org (immutable after creation)
   //
   // Authorization:
   // Requires "update" permission on the specific WorkflowInstance resource.

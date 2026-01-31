@@ -470,9 +470,7 @@ warning: pattern "*.xyz" in .stigmerignore matches no files
 ### go-git/go-git gitignore package
 - **Pros**: Full gitignore spec, actively maintained, well-documented
 - **Cons**: Depends on billy filesystem abstraction
-- **Verdict**: ✅ Use this
-
-### denormal/go-gitignore
+- **Verdict**: ✅ Use this### denormal/go-gitignore
 - **Pros**: Standalone, simple API
 - **Cons**: Last updated 2018, may have bugs
 - **Verdict**: ❌ Too old### Custom implementation

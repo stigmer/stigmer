@@ -4,8 +4,6 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
-	"github.com/stigmer/stigmer/sdk/go/mcpserverref"
-	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
@@ -29,8 +27,8 @@ func TestAddSkillRef(t *testing.T) {
 		t.Errorf("Initial SkillRefs count = %d, want 0", len(agent.SkillRefs))
 	}
 
-	// Add skill ref using builder method
-	agent.AddSkillRef(skillref.Platform("coding-best-practices"))
+	// Add skill ref using new smart parsing API
+	agent.AddSkill("stigmer/coding-best-practices")
 
 	if len(agent.SkillRefs) != 1 {
 		t.Errorf("SkillRefs count = %d, want 1", len(agent.SkillRefs))
@@ -52,11 +50,11 @@ func TestAddSkillRefs(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Add multiple skill refs using builder method
-	agent.AddSkillRefs(
-		skillref.Platform("coding-best-practices"),
-		skillref.Platform("security-analysis"),
-		skillref.Organization("my-org", "internal-docs"),
+	// Add multiple skill refs using new API
+	agent.AddSkills(
+		"stigmer/coding-best-practices",
+		"stigmer/security-analysis",
+		"my-org/internal-docs",
 	)
 
 	if len(agent.SkillRefs) != 3 {
@@ -76,11 +74,11 @@ func TestAddSkillRef_Chaining(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Chain multiple AddSkillRef calls
+	// Chain multiple AddSkill calls
 	agent.
-		AddSkillRef(skillref.Platform("skill1")).
-		AddSkillRef(skillref.Platform("skill2")).
-		AddSkillRef(skillref.Platform("skill3"))
+		AddSkill("stigmer/skill1").
+		AddSkill("stigmer/skill2").
+		AddSkill("stigmer/skill3")
 
 	if len(agent.SkillRefs) != 3 {
 		t.Errorf("SkillRefs count = %d, want 3", len(agent.SkillRefs))
@@ -99,8 +97,8 @@ func TestAddMcpServerUsage(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Add MCP server usage using builder method
-	agent.AddMcpServerUsage(mcpserverref.Platform("github"))
+	// Add MCP server usage using new smart parsing API
+	agent.UseMCP("stigmer/github")
 
 	if len(agent.McpServerUsages) != 1 {
 		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages))
@@ -122,11 +120,8 @@ func TestAddMcpServerUsage_WithTools(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Add MCP server usage with enabled tools
-	agent.AddMcpServerUsage(
-		mcpserverref.Platform("github"),
-		"create_issue", "list_repos", "create_pr",
-	)
+	// Add MCP server usage with enabled tools using new API
+	agent.UseMCP("stigmer/github", "create_issue", "list_repos", "create_pr")
 
 	if len(agent.McpServerUsages) != 1 {
 		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages))
@@ -148,8 +143,8 @@ func TestUseMCPServer(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Use convenience method
-	agent.UseMCPServer("github", "create_issue")
+	// Use convenience method with org/slug format
+	agent.UseMCP("stigmer/github", "create_issue")
 
 	if len(agent.McpServerUsages) != 1 {
 		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages))
@@ -171,10 +166,10 @@ func TestAddMcpServerUsage_Chaining(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Chain multiple AddMcpServerUsage calls
+	// Chain multiple UseMCP calls
 	agent.
-		AddMcpServerUsage(mcpserverref.Platform("github"), "create_pr").
-		AddMcpServerUsage(mcpserverref.Platform("gitlab"))
+		UseMCP("stigmer/github", "create_pr").
+		UseMCP("stigmer/gitlab")
 
 	if len(agent.McpServerUsages) != 2 {
 		t.Errorf("McpServerUsages count = %d, want 2", len(agent.McpServerUsages))
@@ -193,11 +188,11 @@ func TestUseMCPServer_Chaining(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Chain UseMCPServer calls
+	// Chain UseMCP calls
 	agent.
-		UseMCPServer("github", "create_pr").
-		UseMCPServer("gitlab").
-		UseMCPServer("slack", "send_message")
+		UseMCP("stigmer/github", "create_pr").
+		UseMCP("stigmer/gitlab").
+		UseMCP("stigmer/slack", "send_message")
 
 	if len(agent.McpServerUsages) != 3 {
 		t.Errorf("McpServerUsages count = %d, want 3", len(agent.McpServerUsages))
@@ -409,11 +404,11 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Chain all builder methods
+	// Chain all builder methods using new API
 	agent.
-		AddSkillRef(skillref.Platform("coding-best-practices")).
-		AddSkillRef(skillref.Platform("security-analysis")).
-		AddMcpServerUsage(mcpserverref.Platform("github"), "create_pr", "search_code").
+		AddSkill("stigmer/coding-best-practices").
+		AddSkill("stigmer/security-analysis").
+		UseMCP("stigmer/github", "create_pr", "search_code").
 		AddSubAgent(helper).
 		AddEnvironmentVariable(*githubToken)
 
@@ -432,7 +427,7 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 	}
 }
 
-func TestAddMcpServerUsage_MultipleScopes(t *testing.T) {
+func TestAddMcpServerUsage_MultipleOrgs(t *testing.T) {
 	agent, err := New(
 		nil,
 		"test-agent",
@@ -444,21 +439,47 @@ func TestAddMcpServerUsage_MultipleScopes(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Add MCP servers from different scopes
+	// Add MCP servers from different organizations using new API
 	agent.
-		AddMcpServerUsage(mcpserverref.Platform("github")).
-		AddMcpServerUsage(mcpserverref.Organization("acme-corp", "internal-tools")).
-		AddMcpServerUsage(mcpserverref.Personal("my-dev-tools"))
+		UseMCP("stigmer/github").
+		UseMCP("acme-corp/internal-tools")
 
-	if len(agent.McpServerUsages) != 3 {
-		t.Errorf("McpServerUsages count = %d, want 3", len(agent.McpServerUsages))
+	if len(agent.McpServerUsages) != 2 {
+		t.Errorf("McpServerUsages count = %d, want 2", len(agent.McpServerUsages))
 	}
 
-	// Verify scopes
+	// Verify orgs
 	if agent.McpServerUsages[0].McpServerRef.Slug != "github" {
 		t.Errorf("First usage slug = %q, want github", agent.McpServerUsages[0].McpServerRef.Slug)
 	}
 	if agent.McpServerUsages[1].McpServerRef.Org != "acme-corp" {
 		t.Errorf("Second usage org = %q, want acme-corp", agent.McpServerUsages[1].McpServerRef.Org)
+	}
+}
+
+func TestSlugOnlyMcpServer(t *testing.T) {
+	agent, err := New(
+		nil,
+		"test-agent",
+		&AgentArgs{
+			Instructions: "Test instructions for agent",
+		},
+	)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Set agent org for slug-only references
+	agent.Org = "my-org"
+
+	// Add MCP server using slug-only (should use agent.Org)
+	agent.UseMCP("my-dev-tools")
+
+	if len(agent.McpServerUsages) != 1 {
+		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages))
+	}
+
+	if agent.McpServerUsages[0].McpServerRef.Org != "my-org" {
+		t.Errorf("McpServerRef org = %q, want my-org (from agent.Org)", agent.McpServerUsages[0].McpServerRef.Org)
 	}
 }

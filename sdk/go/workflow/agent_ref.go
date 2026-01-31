@@ -1,29 +1,33 @@
 package workflow
 
-import "github.com/stigmer/stigmer/sdk/go/agent"
+import (
+	"strings"
 
-// AgentRef represents a reference to an agent (Pulumi-style).
+	"github.com/stigmer/stigmer/sdk/go/agent"
+)
+
+// AgentRef represents a reference to an agent using the org/slug model.
 //
 // AgentRef enables workflows to reference agents either by direct instance
-// or by slug with optional scope specification.
+// or by org/slug string. All resources belong to an organization and are
+// referenced using the "org/slug" format.
 //
 // Example:
 //
 //	// Reference agent by instance
 //	ref := workflow.Agent(myAgent)
 //
-//	// Reference agent by slug (organization scope assumed)
-//	ref := workflow.AgentBySlug("code-reviewer")
+//	// Reference agent by org/slug
+//	ref := workflow.AgentBySlug("stigmer/code-reviewer")
 //
-//	// Reference agent by slug with explicit scope
-//	ref := workflow.AgentBySlug("code-reviewer", "platform")
+//	// Reference agent with explicit org and slug
+//	ref := workflow.AgentByOrgSlug("stigmer", "code-reviewer")
 type AgentRef struct {
-	// Agent slug (name)
-	slug string
+	// org is the organization that owns this agent
+	org string
 
-	// Scope (platform or organization) - optional
-	// Empty means unspecified, will default to organization at runtime
-	scope string
+	// slug is the agent's unique identifier within the organization
+	slug string
 }
 
 // Agent creates an AgentRef from an agent instance.
@@ -31,39 +35,51 @@ type AgentRef struct {
 //
 // Example:
 //
-//	reviewer, _ := agent.New(ctx,
-//	    agent.WithName("code-reviewer"),
-//	    agent.WithInstructions("Review code"),
-//	)
+//	reviewer, _ := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+//	    Instructions: "Review code",
+//	})
 //	ref := workflow.Agent(reviewer)
 func Agent(a *agent.Agent) AgentRef {
 	return AgentRef{
-		slug:  a.Name,
-		scope: determineScope(a),
+		org:  a.Org,
+		slug: a.Slug,
 	}
 }
 
-// AgentBySlug creates an AgentRef by slug with optional scope.
+// AgentBySlug creates an AgentRef from an "org/slug" string.
 //
-// If scope is not provided, it defaults to organization scope at runtime.
-//
-// Valid scopes:
-//   - "platform" - Public agents available to all organizations
-//   - "organization" - Private agents in current organization
+// The ref parameter should be in the format "org/slug" (e.g., "stigmer/code-reviewer").
 //
 // Example:
 //
-//	// Organization scope (default)
-//	ref := workflow.AgentBySlug("code-reviewer")
+//	// Reference a public agent from stigmer org
+//	ref := workflow.AgentBySlug("stigmer/code-reviewer")
 //
-//	// Platform scope (public agent)
-//	ref := workflow.AgentBySlug("code-reviewer", "platform")
-func AgentBySlug(slug string, scope ...string) AgentRef {
-	ref := AgentRef{slug: slug}
-	if len(scope) > 0 {
-		ref.scope = scope[0]
+//	// Reference an agent from your organization
+//	ref := workflow.AgentBySlug("my-org/my-agent")
+func AgentBySlug(ref string) AgentRef {
+	org, slug := parseOrgSlug(ref)
+	return AgentRef{
+		org:  org,
+		slug: slug,
 	}
-	return ref
+}
+
+// AgentByOrgSlug creates an AgentRef with explicit org and slug.
+//
+// Example:
+//
+//	ref := workflow.AgentByOrgSlug("stigmer", "code-reviewer")
+func AgentByOrgSlug(org, slug string) AgentRef {
+	return AgentRef{
+		org:  org,
+		slug: slug,
+	}
+}
+
+// Org returns the organization that owns this agent.
+func (r AgentRef) Org() string {
+	return r.org
 }
 
 // Slug returns the agent slug.
@@ -71,22 +87,19 @@ func (r AgentRef) Slug() string {
 	return r.slug
 }
 
-// Scope returns the agent scope (platform or organization).
-// Empty string means unspecified (defaults to organization at runtime).
-func (r AgentRef) Scope() string {
-	return r.scope
+// Ref returns the full reference string in "org/slug" format.
+func (r AgentRef) Ref() string {
+	if r.org == "" {
+		return r.slug
+	}
+	return r.org + "/" + r.slug
 }
 
-// determineScope infers scope from agent configuration.
-//
-// Logic:
-//   - If agent has Org set, it's organization-scoped
-//   - If agent has no Org, assume platform-scoped (public agent)
-func determineScope(a *agent.Agent) string {
-	// If org is set, it's organization-scoped (private to that org)
-	if a.Org != "" {
-		return "organization"
+// parseOrgSlug parses an "org/slug" string into org and slug components.
+// If no "/" is present, the entire string is treated as the slug with empty org.
+func parseOrgSlug(ref string) (org, slug string) {
+	if idx := strings.Index(ref, "/"); idx > 0 {
+		return ref[:idx], ref[idx+1:]
 	}
-	// Otherwise assume platform-scoped (public agent)
-	return "platform"
+	return "", ref
 }

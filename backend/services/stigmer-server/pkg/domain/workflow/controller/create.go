@@ -8,10 +8,10 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/backend/libs/go/store"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 )
 
@@ -55,14 +55,14 @@ func (c *WorkflowController) buildCreatePipeline() *pipeline.Pipeline[*workflowv
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowv1.Workflow]("workflow-create").
-		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).          // 1. Validate field constraints (Layer 1)
-		AddStep(newValidateWorkflowSpecStep(c.validator)).                    // 2. Validate via Temporal (Layer 2: Go converts + validates - SSOT)
-		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).            // 3. Resolve slug
-		AddStep(steps.NewCheckDuplicateStep[*workflowv1.Workflow](c.store)).  // 4. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*workflowv1.Workflow]()).          // 5. Build new state
-		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).         // 6. Persist workflow
-		AddStep(newCreateDefaultInstanceStep(c.workflowInstanceClient)).      // 7. Create default instance
-		AddStep(newUpdateWorkflowStatusWithDefaultInstanceStep(c.store)).     // 8. Update status
+		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).         // 1. Validate field constraints (Layer 1)
+		AddStep(newValidateWorkflowSpecStep(c.validator)).                   // 2. Validate via Temporal (Layer 2: Go converts + validates - SSOT)
+		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).           // 3. Resolve slug
+		AddStep(steps.NewCheckDuplicateStep[*workflowv1.Workflow](c.store)). // 4. Check duplicate
+		AddStep(steps.NewBuildNewStateStep[*workflowv1.Workflow]()).         // 5. Build new state
+		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).        // 6. Persist workflow
+		AddStep(newCreateDefaultInstanceStep(c.workflowInstanceClient)).     // 7. Create default instance
+		AddStep(newUpdateWorkflowStatusWithDefaultInstanceStep(c.store)).    // 8. Update status
 		Build()
 }
 
@@ -96,25 +96,20 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*workfl
 	workflow := ctx.NewState()
 	workflowID := workflow.GetMetadata().GetId()
 	workflowSlug := workflow.GetMetadata().GetName()
-	ownerScope := workflow.GetMetadata().GetOwnerScope()
+	workflowOrg := workflow.GetMetadata().GetOrg()
 
 	log.Info().
 		Str("workflow_id", workflowID).
 		Str("slug", workflowSlug).
-		Str("scope", ownerScope.String()).
+		Str("org", workflowOrg).
 		Msg("Creating default instance for workflow")
 
 	// 1. Build default instance request
 	defaultInstanceName := workflowSlug + "-default"
 
 	metadataBuilder := &apiresource.ApiResourceMetadata{
-		Name:       defaultInstanceName,
-		OwnerScope: ownerScope,
-	}
-
-	// Copy org if org-scoped
-	if ownerScope == apiresource.ApiResourceOwnerScope_organization {
-		metadataBuilder.Org = workflow.GetMetadata().GetOrg()
+		Name: defaultInstanceName,
+		Org:  workflowOrg, // All resources belong to an org
 	}
 
 	instanceRequest := &workflowinstancev1.WorkflowInstance{

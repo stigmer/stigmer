@@ -1,11 +1,11 @@
 package agent
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
-	"github.com/stigmer/stigmer/sdk/go/skillref"
 )
 
 // mockEnvContext implements the environment.Context interface for testing
@@ -32,9 +32,6 @@ func BenchmarkAgent_New_Minimal(b *testing.B) {
 func BenchmarkAgent_New_Complete(b *testing.B) {
 	ctx := &mockEnvContext{}
 
-	// Use skillref to reference platform skills (SDK doesn't create skills)
-	skillRef := skillref.Platform("skill1")
-
 	env1, _ := environment.New(ctx, "API_KEY", &environment.VariableArgs{
 		IsSecret: true,
 	})
@@ -49,7 +46,7 @@ func BenchmarkAgent_New_Complete(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		agent.AddSkillRef(skillRef)
+		agent.AddSkill("stigmer/skill1")
 		agent.AddEnvironmentVariable(*env1)
 	}
 }
@@ -83,9 +80,9 @@ func BenchmarkAgentToProto_WithSkillRefs(b *testing.B) {
 				Instructions: "Agent with multiple skill refs for benchmarking proto conversion",
 			})
 
-			// Add skill references (SDK references skills, doesn't create them)
+			// Add skill references using new API (SDK references skills, doesn't create them)
 			for i := 0; i < count; i++ {
-				agent.AddSkillRef(skillref.Platform("skill-" + string(rune('0'+i%10))))
+				agent.AddSkill(fmt.Sprintf("stigmer/skill-%d", i%10))
 			}
 
 			b.ResetTimer()
@@ -142,9 +139,9 @@ func BenchmarkAgentToProto_Complete(b *testing.B) {
 		Instructions: strings.Repeat("Detailed instructions for benchmarking. ", 20),
 	})
 
-	// Add 10 skill refs
+	// Add 10 skill refs using new API
 	for i := 0; i < 10; i++ {
-		agent.AddSkillRef(skillref.Platform("skill-" + string(rune('0'+i))))
+		agent.AddSkill(fmt.Sprintf("stigmer/skill-%d", i))
 	}
 
 	// Add 20 environment variables
@@ -173,7 +170,7 @@ func BenchmarkAgentToProto_Allocations(b *testing.B) {
 	agent, _ := New(nil, "alloc-test-agent", &AgentArgs{
 		Instructions: "Agent for benchmarking memory allocations during proto conversion",
 	})
-	agent.AddSkillRef(skillref.Platform("skill1"))
+	agent.AddSkill("stigmer/skill1")
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -207,10 +204,12 @@ func BenchmarkAgentToProto_RealisticCodeReviewer(b *testing.B) {
 		}, "\n"),
 	})
 
-	// Add skill references (SDK references skills, doesn't create them)
-	agent.AddSkillRef(skillref.Platform("code-analysis"))
-	agent.AddSkillRef(skillref.Platform("security-review"))
-	agent.AddSkillRef(skillref.Platform("performance-analysis"))
+	// Add skill references using new API (SDK references skills, doesn't create them)
+	agent.AddSkills(
+		"stigmer/code-analysis",
+		"stigmer/security-review",
+		"stigmer/performance-analysis",
+	)
 
 	// Add environment variables
 	apiKey, _ := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
@@ -239,9 +238,11 @@ func BenchmarkAgentToProto_RealisticDataAnalyst(b *testing.B) {
 		Instructions: "Analyze data, create insightful visualizations, and generate comprehensive reports",
 	})
 
-	// Add skill references
-	agent.AddSkillRef(skillref.Platform("sql-queries"))
-	agent.AddSkillRef(skillref.Platform("data-visualization"))
+	// Add skill references using new API
+	agent.AddSkills(
+		"stigmer/sql-queries",
+		"stigmer/data-visualization",
+	)
 
 	// Add environment variable
 	dbCreds, _ := environment.New(ctx, "DB_CONNECTION_STRING", &environment.VariableArgs{
@@ -284,9 +285,9 @@ func BenchmarkAgentToProto_ParallelComplex(b *testing.B) {
 		Instructions: "Complex agent for benchmarking parallel proto conversion",
 	})
 
-	// Add 10 skill refs
+	// Add 10 skill refs using new API
 	for i := 0; i < 10; i++ {
-		agent.AddSkillRef(skillref.Platform("skill-" + string(rune('0'+i))))
+		agent.AddSkill(fmt.Sprintf("stigmer/skill-%d", i))
 	}
 
 	b.RunParallel(func(pb *testing.PB) {

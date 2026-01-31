@@ -17,7 +17,7 @@ class WorkflowInstanceCommandControllerStub(object):
     - update: Standard authorization (requires update permission on the instance)
     - delete: Standard authorization (requires delete permission on the instance)
 
-    All operations enforce owner scope restrictions (organization or identity_account only).
+    All workflow instances belong to an organization.
     """
 
     def __init__(self, channel):
@@ -59,7 +59,7 @@ class WorkflowInstanceCommandControllerServicer(object):
     - update: Standard authorization (requires update permission on the instance)
     - delete: Standard authorization (requires delete permission on the instance)
 
-    All operations enforce owner scope restrictions (organization or identity_account only).
+    All workflow instances belong to an organization.
     """
 
     def apply(self, request, context):
@@ -77,7 +77,7 @@ class WorkflowInstanceCommandControllerServicer(object):
         Creates a configured deployment of a Workflow template with environment bindings.
 
         Input validation:
-        - metadata.owner_scope must be organization (2) or identity_account (3)
+        - metadata.org must be specified
         - spec.workflow_id must be a valid Workflow resource ID
         - spec.env_refs must reference valid Environment resources
 
@@ -113,7 +113,7 @@ class WorkflowInstanceCommandControllerServicer(object):
         You cannot update:
         - spec.workflow_id (must delete and recreate to change template)
         - metadata.id (immutable resource identifier)
-        - metadata.owner_scope (immutable after creation)
+        - metadata.org (immutable after creation)
 
         Authorization:
         Requires "update" permission on the specific WorkflowInstance resource.
@@ -207,7 +207,7 @@ class WorkflowInstanceCommandController(object):
     - update: Standard authorization (requires update permission on the instance)
     - delete: Standard authorization (requires delete permission on the instance)
 
-    All operations enforce owner scope restrictions (organization or identity_account only).
+    All workflow instances belong to an organization.
     """
 
     @staticmethod

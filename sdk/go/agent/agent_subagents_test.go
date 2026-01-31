@@ -3,8 +3,6 @@ package agent
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/mcpserverref"
-	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
@@ -92,8 +90,8 @@ func TestAgentWithSubAgentUsingMCPAccess(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Add MCP server usage to parent and sub-agent
-	agent.AddMcpServerUsage(mcpserverref.Platform("github"))
+	// Add MCP server usage to parent using new smart parsing API
+	agent.UseMCP("stigmer/github")
 	agent.AddSubAgent(githubHelper)
 
 	if len(agent.McpServerUsages) != 1 {
@@ -117,8 +115,10 @@ func TestAgentWithSubAgentUsingSkills(t *testing.T) {
 	skilledHelper := mustSubAgent("skilled-helper", &subagent.Args{
 		Instructions: "Use coding knowledge",
 	})
-	skilledHelper.AddSkillRef(skillref.Platform("coding-best-practices"))
-	skilledHelper.AddOrgSkillRef("my-org", "internal-apis")
+	skilledHelper.AddSkills(
+		"stigmer/coding-best-practices",
+		"my-org/internal-apis",
+	)
 
 	agent, err := New(nil, "main-agent", &AgentArgs{
 		Instructions: "Main agent with sub-agent that uses skills",
@@ -127,8 +127,8 @@ func TestAgentWithSubAgentUsingSkills(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Also add skills to parent agent
-	agent.AddSkillRef(skillref.Platform("parent-skill"))
+	// Also add skills to parent agent using new API
+	agent.AddSkill("stigmer/parent-skill")
 
 	// Add sub-agent using builder method
 	agent.AddSubAgent(skilledHelper)
@@ -162,11 +162,8 @@ func TestAgentWithSubAgentUsingRestrictedTools(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Parent has access to all GitHub tools
-	agent.AddMcpServerUsage(
-		mcpserverref.Platform("github"),
-		"create_issue", "list_repos", "create_pr", "search_code",
-	)
+	// Parent has access to all GitHub tools using new API
+	agent.UseMCP("stigmer/github", "create_issue", "list_repos", "create_pr", "search_code")
 	agent.AddSubAgent(selectiveHelper)
 
 	if len(agent.SubAgents) != 1 {
@@ -202,10 +199,10 @@ func TestAgentWithSubAgentMultipleMCPAccess(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Parent has access to all these servers
-	agent.UseMCPServer("github", "create_pr", "search_code")
-	agent.UseMCPServer("gitlab")
-	agent.UseMCPServer("slack", "send_message", "list_channels")
+	// Parent has access to all these servers using new API
+	agent.UseMCP("stigmer/github", "create_pr", "search_code")
+	agent.UseMCP("stigmer/gitlab")
+	agent.UseMCP("stigmer/slack", "send_message", "list_channels")
 	agent.AddSubAgent(multiHelper)
 
 	// Verify sub-agent has all MCP access grants

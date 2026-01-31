@@ -3,7 +3,8 @@
 from temporalio import activity
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecution, AgentExecutionStatus, ApprovalAction
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-from graphton import create_deep_agent
+from graphton import create_deep_agent, SummarizationConfig
+from graphton.core import ModelRegistry
 import logging
 import json
 from grpc_client.agent_client import AgentClient
@@ -212,6 +213,58 @@ async def _execute_graphton_impl(
             f"Agent config: model={model_name} (provider={worker_config.llm.provider}), "
             f"instructions_length={len(instructions)}"
         )
+        
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Create summarization config for automatic context window management (Phase 3)
+        #
+        # Uses Model Registry to determine model-appropriate thresholds.
+        # Supports overrides from ExecutionConfig.context_management:
+        # - disable_summarization: Opt out of automatic summarization
+        # - custom_trigger_threshold: Override when summarization triggers
+        # - custom_target_tokens: Override the target size after summarization
+        # ─────────────────────────────────────────────────────────────────────────────
+        
+        # Parse context management config from execution_config (if present)
+        context_management_config = None
+        if execution.spec.HasField("execution_config") and execution.spec.execution_config.HasField("context_management"):
+            context_management_config = execution.spec.execution_config.context_management
+            activity_logger.info(
+                f"[CONTEXT] Context management config from spec: "
+                f"disable={context_management_config.disable_summarization}, "
+                f"custom_trigger={context_management_config.custom_trigger_threshold}, "
+                f"custom_target={context_management_config.custom_target_tokens}"
+            )
+        
+        # Build summarization config with optional overrides
+        if context_management_config and context_management_config.disable_summarization:
+            summarization_config = SummarizationConfig.disabled()
+            activity_logger.info("[CONTEXT] Summarization DISABLED via context_management config")
+        else:
+            # Apply custom thresholds if specified (0 means use model default)
+            trigger_override = (
+                context_management_config.custom_trigger_threshold
+                if context_management_config and context_management_config.custom_trigger_threshold > 0
+                else None
+            )
+            target_override = (
+                context_management_config.custom_target_tokens
+                if context_management_config and context_management_config.custom_target_tokens > 0
+                else None
+            )
+            
+            summarization_config = SummarizationConfig.for_model(
+                model_id=model_name,
+                enabled=True,
+                trigger_threshold_override=trigger_override,
+                target_tokens_override=target_override,
+            )
+            activity_logger.info(
+                f"[CONTEXT] Summarization enabled: trigger={summarization_config.trigger_threshold}, "
+                f"target={summarization_config.target_tokens}, "
+                f"model={summarization_config.summarization_model}"
+                + (f", trigger_override={trigger_override}" if trigger_override else "")
+                + (f", target_override={target_override}" if target_override else "")
+            )
         
         # Get sandbox configuration from worker config
         sandbox_config = worker_config.get_sandbox_config()
@@ -558,6 +611,25 @@ async def _execute_graphton_impl(
             skill_names=skill_names,
         )
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 5.8: Initialize Context Management Tracking (Phase 3)
+        #
+        # Sets up context info for tracking context window utilization and
+        # summarization events. The StatusBuilder implements SummarizationCallback
+        # to receive events from the middleware during execution.
+        # ─────────────────────────────────────────────────────────────────────────────
+        
+        # Get model metadata for context window info
+        model_metadata = ModelRegistry.get_or_default(model_name)
+        
+        # Initialize context info on status builder
+        status_builder.initialize_context_info(
+            context_window_limit=model_metadata.context_window,
+            trigger_threshold=summarization_config.trigger_threshold,
+            target_tokens=summarization_config.target_tokens,
+            enabled=summarization_config.enabled,
+        )
+        
         # Step 6: Create Graphton agent at runtime with EXISTING sandbox
         # Note: MCP servers are passed if configured, providing external tool access
         activity_logger.info(f"Creating Graphton agent for execution {execution_id}")
@@ -635,6 +707,8 @@ async def _execute_graphton_impl(
             recursion_limit=1000,
             checkpointer=checkpointer,  # Enable HITL interrupt/resume and conversation persistence
             approval_checker=approval_checker,  # Enable HITL tool approval (Phase 3B)
+            summarization_config=summarization_config,  # Enable automatic context summarization
+            summarization_callback=status_builder,  # StatusBuilder implements SummarizationCallback (Phase 3)
         )
         
         activity_logger.info(f"Graphton agent created successfully with {'new' if is_new_sandbox else 'reused'} sandbox")
@@ -845,6 +919,10 @@ async def _execute_graphton_impl(
             f"📊 Execution {execution_id} completed - processed {events_processed} events"
         )
         
+        # Finalize context info before returning (Phase 3)
+        # Copies accumulated context info and summarization events to status proto
+        status_builder.finalize_context_info()
+        
         # Set phase to COMPLETED
         status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
         
@@ -923,6 +1001,11 @@ async def _execute_graphton_impl(
         )
         
         status_builder.current_status.messages.append(error_msg)
+        
+        # Finalize context info before returning (Phase 3)
+        # Even on failure, we want to capture any context tracking data
+        status_builder.finalize_context_info()
+        
         status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
         
         activity_logger.info(f"Execution {execution_id} phase set to FAILED - returning error status to workflow")

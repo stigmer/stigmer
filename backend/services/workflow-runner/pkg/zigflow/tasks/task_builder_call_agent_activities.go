@@ -101,7 +101,7 @@ func (a *CallAgentActivities) CallAgentActivity(
 	logger := activity.GetLogger(ctx)
 	logger.Info("⏳ Starting agent call activity (async completion pattern)",
 		"agent", taskConfig.Agent,
-		"scope", taskConfig.Scope)
+		"org", taskConfig.Org)
 
 	// **STEP 0: Extract Temporal Task Token** (for async completion)
 	// This token uniquely identifies this activity execution and allows the agent
@@ -145,20 +145,24 @@ func (a *CallAgentActivities) CallAgentActivity(
 	}
 
 	// **STEP 2: Agent Resolution**
-	// Extract org ID from runtime environment (set by workflow execution context)
-	orgId := getOrgIdFromRuntimeEnv(runtimeEnv)
+	// Get org from task config (set by workflow definition)
+	// Fall back to runtime environment if not explicitly set
+	orgId := resolvedConfig.Org
 	if orgId == "" {
-		logger.Error("Organization ID not found in runtime environment")
+		orgId = getOrgIdFromRuntimeEnv(runtimeEnv)
+	}
+	if orgId == "" {
+		logger.Error("Organization ID not found in task config or runtime environment")
 		return nil, fmt.Errorf("organization ID not available in workflow execution context")
 	}
 
-	// Resolve agent slug + scope to actual agent ID
-	agentId, err := a.resolveAgent(ctx, resolvedConfig.Agent, resolvedConfig.Scope, orgId)
+	// Resolve agent org/slug to actual agent ID
+	agentId, err := a.resolveAgent(ctx, resolvedConfig.Agent, orgId)
 	if err != nil {
-		logger.Error("Failed to resolve agent", "agent", resolvedConfig.Agent, "error", err)
-		return nil, fmt.Errorf("agent '%s' not found: %w", resolvedConfig.Agent, err)
+		logger.Error("Failed to resolve agent", "agent", resolvedConfig.Agent, "org", orgId, "error", err)
+		return nil, fmt.Errorf("agent '%s' not found in org '%s': %w", resolvedConfig.Agent, orgId, err)
 	}
-	logger.Debug("Agent resolved", "agent", resolvedConfig.Agent, "agent_id", agentId)
+	logger.Debug("Agent resolved", "agent", resolvedConfig.Agent, "org", orgId, "agent_id", agentId)
 
 	// **STEP 3: Create Agent Execution** (with callback token and parent workflow ID)
 	execution, err := a.createAgentExecution(ctx, agentId, resolvedConfig, taskToken, parentWorkflowId)
@@ -203,7 +207,7 @@ func (a *CallAgentActivities) resolveRuntimePlaceholders(
 	// Clone the config to avoid modifying the original
 	resolvedConfig := &workflowtasks.AgentCallTaskConfig{
 		Agent:   config.Agent,
-		Scope:   config.Scope,
+		Org:     config.Org,
 		Message: config.Message,
 		Config:  config.Config,
 		Env:     make(map[string]string),
@@ -231,27 +235,24 @@ func (a *CallAgentActivities) resolveRuntimePlaceholders(
 }
 
 // resolveAgent resolves an agent slug to an agent ID using the Agent query service.
-// Uses ApiResourceReference to query by scope, org, and slug.
+// Uses ApiResourceReference to query by org and slug.
 func (a *CallAgentActivities) resolveAgent(
 	ctx context.Context,
 	slug string,
-	scope apiresource.ApiResourceOwnerScope,
 	orgId string,
 ) (string, error) {
 	logger := activity.GetLogger(ctx)
 
 	// Build the ApiResourceReference
-	// This tells the backend: "Find agent with this slug in this scope/org"
+	// This tells the backend: "Find agent with this slug in this org"
 	reference := &apiresource.ApiResourceReference{
-		Scope: scope,
-		Org:   orgId,
-		Kind:  apiresourcekind.ApiResourceKind_agent,
-		Slug:  slug,
+		Org:  orgId,
+		Kind: apiresourcekind.ApiResourceKind_agent,
+		Slug: slug,
 	}
 
 	logger.Debug("Resolving agent by reference",
 		"slug", slug,
-		"scope", scope,
 		"org", orgId)
 
 	// Get gRPC client

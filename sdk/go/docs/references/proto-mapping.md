@@ -111,28 +111,28 @@ type Skill struct {
 ```protobuf
 message ApiResourceReference {
   ApiResourceKind kind = 1;  // enum value 43 for skill
-  string id = 2;
-  string org = 3;
+  string org = 2;            // Organization that owns the resource
+  string slug = 3;           // Resource identifier within the org
+  string version = 4;        // Optional version
 }
 ```
 
-### SDK Factory Functions
+### Skill Reference Format
+
+Skills are referenced using the `org/slug` format:
 
 ```go
-// Platform skill reference
-skill.Platform("coding-standards")
-// → Skill{IsInline: false, Slug: "coding-standards", Org: ""}
+// Platform skill reference (stigmer org)
+agent.AddSkill("stigmer/coding-standards")
+// → SkillRef{Org: "stigmer", Slug: "coding-standards"}
 
 // Organization skill reference
-skill.Organization("my-org", "internal-docs")
-// → Skill{IsInline: false, Slug: "internal-docs", Org: "my-org"}
+agent.AddSkill("my-org/internal-docs")
+// → SkillRef{Org: "my-org", Slug: "internal-docs"}
 
-// Inline skill creation
-skill.New(
-    skill.WithName("my-skill"),
-    skill.WithMarkdownFromFile("skills/my-skill.md"),
-)
-// → Skill{IsInline: true, Name: "my-skill", MarkdownContent: "..."}
+// Versioned skill reference
+agent.AddSkill("stigmer/coding-standards@v2.0")
+// → SkillRef{Org: "stigmer", Slug: "coding-standards", Version: "v2.0"}
 ```
 
 ## MCP Server Mapping
@@ -349,47 +349,16 @@ func AgentToProto(sdk *sdkagent.Agent) *agentv1.AgentSpec {
 ```go
 // cli/internal/converter/skill.go
 
-func convertSkills(skills []skill.Skill, agentOrg string) []*apiresource.ApiResourceReference {
-    refs := make([]*apiresource.ApiResourceReference, 0)
+func convertSkillRefs(skillRefs []*agent.SkillRef) []*apiresource.ApiResourceReference {
+    refs := make([]*apiresource.ApiResourceReference, 0, len(skillRefs))
     
-    for _, skill := range skills {
-        if skill.IsInline {
-            // CLI creates inline skill on platform first
-            skillProto := &skillv1.Skill{
-                Metadata: &apiresource.ApiResourceMetadata{
-                    Name: skill.Name,
-                    Org:  agentOrg,
-                },
-                Spec: &skillv1.SkillSpec{
-                    Description:     skill.Description,
-                    MarkdownContent: skill.MarkdownContent,
-                },
-            }
-            
-            // Create on platform
-            created, _ := platformClient.CreateSkill(skillProto)
-            
-            // Use the created skill's reference
-            refs = append(refs, &apiresource.ApiResourceReference{
-                Scope: apiresource.ApiResourceOwnerScope_organization,
-                Org:   agentOrg,
-                Kind:  43, // skill kind
-                Slug:  skill.Name,
-            })
-        } else {
-            // Reference existing skill
-            scope := apiresource.ApiResourceOwnerScope_platform
-            if skill.Org != "" {
-                scope = apiresource.ApiResourceOwnerScope_organization
-            }
-            
-            refs = append(refs, &apiresource.ApiResourceReference{
-                Scope: scope,
-                Org:   skill.Org,
-                Kind:  43,
-                Slug:  skill.Slug,
-            })
-        }
+    for _, ref := range skillRefs {
+        refs = append(refs, &apiresource.ApiResourceReference{
+            Kind:    43, // skill kind
+            Org:     ref.Org,
+            Slug:    ref.Slug,
+            Version: ref.Version,
+        })
     }
     
     return refs

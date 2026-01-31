@@ -20,6 +20,7 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     UsageMetrics,
     ResolvedExecutionContext,
+    ContextInfo,
 )
 
 
@@ -42,6 +43,9 @@ def mock_initial_status():
     # Real ResolvedExecutionContext proto for Phase 2.5
     # MagicMock doesn't support CopyFrom(), so we use a real proto
     status.resolved_context = ResolvedExecutionContext()
+    # Real ContextInfo proto for Phase 3 context management
+    # MagicMock doesn't support CopyFrom(), so we use a real proto
+    status.context_info = ContextInfo()
     return status
 
 
@@ -3790,3 +3794,272 @@ class TestResumeFromApprovalDetection:
         
         # Unspecified should not be in the map (handled as special case)
         assert ApprovalAction.APPROVAL_ACTION_UNSPECIFIED not in action_map
+
+
+# =============================================================================
+# Tests for Context Management Tracking (Phase 3)
+# =============================================================================
+
+
+class TestContextManagementTracking:
+    """Tests for context window utilization and summarization tracking.
+    
+    These tests verify the SummarizationCallback implementation in StatusBuilder:
+    - initialize_context_info: Sets up context tracking
+    - on_summarization_complete: Records summarization events
+    - on_token_count_updated: Updates current token count
+    - finalize_context_info: Copies to status proto
+    """
+    
+    def test_initialize_context_info_sets_fields(self, status_builder):
+        """Test that initialize_context_info sets all context info fields."""
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        assert status_builder._context_info is not None
+        assert status_builder._context_info.context_window_limit == 200000
+        assert status_builder._context_info.summarization_trigger_threshold == 180000
+        assert status_builder._context_info.summarization_target_tokens == 160000
+        assert status_builder._context_info.summarization_enabled is True
+        assert status_builder._context_info.current_token_count == 0
+        assert status_builder._context_info.utilization_percent == 0.0
+    
+    def test_initialize_context_info_disabled(self, status_builder):
+        """Test that initialize_context_info works when disabled."""
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=0,
+            target_tokens=0,
+            enabled=False,
+        )
+        
+        assert status_builder._context_info is not None
+        assert status_builder._context_info.summarization_enabled is False
+    
+    def test_on_token_count_updated_updates_count(self, status_builder):
+        """Test that on_token_count_updated updates the current token count."""
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        status_builder.on_token_count_updated(50000)
+        
+        assert status_builder._context_info.current_token_count == 50000
+    
+    def test_on_token_count_updated_calculates_utilization(self, status_builder):
+        """Test that on_token_count_updated calculates utilization percentage."""
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        status_builder.on_token_count_updated(100000)  # 50% of 200000
+        
+        assert status_builder._context_info.utilization_percent == 50.0
+    
+    def test_on_token_count_updated_without_init_is_noop(self, status_builder):
+        """Test that on_token_count_updated is a no-op without initialization."""
+        # Should not raise
+        status_builder.on_token_count_updated(50000)
+        
+        # Context info should still be None
+        assert status_builder._context_info is None
+    
+    def test_on_summarization_complete_adds_event(self, status_builder):
+        """Test that on_summarization_complete records a summarization event."""
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        event = SummarizationEventData(
+            tokens_before=185000,
+            tokens_after=80000,
+            compression_ratio=0.57,
+            duration_ms=2500,
+            summarization_model="claude-haiku-4",
+            messages_before=50,
+            messages_after=10,
+        )
+        
+        status_builder.on_summarization_complete(event)
+        
+        assert len(status_builder._summarization_events) == 1
+        recorded = status_builder._summarization_events[0]
+        assert recorded.tokens_before == 185000
+        assert recorded.tokens_after == 80000
+        assert recorded.compression_ratio == pytest.approx(0.57, rel=0.01)
+        assert recorded.duration_ms == 2500
+        assert recorded.summarization_model == "claude-haiku-4"
+        assert recorded.messages_before == 50
+        assert recorded.messages_after == 10
+        assert recorded.timestamp != ""  # Should have timestamp
+    
+    def test_on_summarization_complete_updates_token_count(self, status_builder):
+        """Test that on_summarization_complete updates current token count."""
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        event = SummarizationEventData(
+            tokens_before=185000,
+            tokens_after=80000,
+            compression_ratio=0.57,
+            duration_ms=2500,
+            summarization_model="claude-haiku-4",
+            messages_before=50,
+            messages_after=10,
+        )
+        
+        status_builder.on_summarization_complete(event)
+        
+        # Token count should be updated to tokens_after
+        assert status_builder._context_info.current_token_count == 80000
+        # Utilization should be recalculated: 80000/200000 = 40%
+        assert status_builder._context_info.utilization_percent == 40.0
+    
+    def test_on_summarization_complete_without_init_is_noop(self, status_builder):
+        """Test that on_summarization_complete is a no-op without initialization."""
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        event = SummarizationEventData(
+            tokens_before=185000,
+            tokens_after=80000,
+            compression_ratio=0.57,
+            duration_ms=2500,
+            summarization_model="claude-haiku-4",
+            messages_before=50,
+            messages_after=10,
+        )
+        
+        # Should not raise
+        status_builder.on_summarization_complete(event)
+        
+        # No events should be recorded
+        assert len(status_builder._summarization_events) == 0
+    
+    def test_finalize_context_info_copies_to_status(self, status_builder):
+        """Test that finalize_context_info copies context info to status proto."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ContextInfo
+        
+        # Need real proto for CopyFrom
+        status_builder.current_status.context_info = ContextInfo()
+        
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        status_builder.on_token_count_updated(150000)
+        
+        status_builder.finalize_context_info()
+        
+        assert status_builder.current_status.context_info.context_window_limit == 200000
+        assert status_builder.current_status.context_info.summarization_trigger_threshold == 180000
+        assert status_builder.current_status.context_info.current_token_count == 150000
+        assert status_builder.current_status.context_info.summarization_enabled is True
+    
+    def test_finalize_context_info_includes_events(self, status_builder):
+        """Test that finalize_context_info includes summarization events."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ContextInfo
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        # Need real proto for CopyFrom
+        status_builder.current_status.context_info = ContextInfo()
+        
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        # Add two summarization events
+        event1 = SummarizationEventData(
+            tokens_before=185000,
+            tokens_after=80000,
+            compression_ratio=0.57,
+            duration_ms=2500,
+            summarization_model="claude-haiku-4",
+            messages_before=50,
+            messages_after=10,
+        )
+        event2 = SummarizationEventData(
+            tokens_before=180000,
+            tokens_after=75000,
+            compression_ratio=0.58,
+            duration_ms=2300,
+            summarization_model="claude-haiku-4",
+            messages_before=45,
+            messages_after=8,
+        )
+        
+        status_builder.on_summarization_complete(event1)
+        status_builder.on_summarization_complete(event2)
+        
+        status_builder.finalize_context_info()
+        
+        assert len(status_builder.current_status.context_info.summarization_events) == 2
+        assert status_builder.current_status.context_info.summarization_events[0].tokens_before == 185000
+        assert status_builder.current_status.context_info.summarization_events[1].tokens_before == 180000
+    
+    def test_finalize_context_info_without_init_is_noop(self, status_builder):
+        """Test that finalize_context_info is a no-op without initialization."""
+        # Should not raise
+        status_builder.finalize_context_info()
+        
+        # Context info should not be populated (MagicMock)
+        # Just verify no exception was raised
+    
+    def test_multiple_token_count_updates(self, status_builder):
+        """Test multiple token count updates track correctly."""
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        # Simulate growing context
+        status_builder.on_token_count_updated(50000)
+        assert status_builder._context_info.current_token_count == 50000
+        
+        status_builder.on_token_count_updated(100000)
+        assert status_builder._context_info.current_token_count == 100000
+        
+        status_builder.on_token_count_updated(150000)
+        assert status_builder._context_info.current_token_count == 150000
+        assert status_builder._context_info.utilization_percent == 75.0
+    
+    def test_utilization_with_zero_limit(self, status_builder):
+        """Test that utilization handles zero limit gracefully."""
+        status_builder.initialize_context_info(
+            context_window_limit=0,  # Edge case
+            trigger_threshold=0,
+            target_tokens=0,
+            enabled=False,
+        )
+        
+        status_builder.on_token_count_updated(1000)
+        
+        # Should not divide by zero
+        assert status_builder._context_info.utilization_percent == 0.0

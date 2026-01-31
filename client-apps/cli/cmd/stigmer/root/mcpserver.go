@@ -3,7 +3,6 @@ package root
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
@@ -15,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 )
@@ -34,7 +34,7 @@ Unlike inline MCP server definitions in AgentSpec, McpServer resources:
   - Can be referenced by multiple agents (reusability)
   - Have proper access control via FGA (authorization)
   - Can be discovered in the marketplace (discoverability)
-  - Support platform, organization, and personal scopes
+  - Referenced by org/slug format (e.g., stigmer/github)
 
 Supported server types:
   - stdio:  Subprocess with stdin/stdout communication (most common)
@@ -363,50 +363,36 @@ func executeMcpServerGet(opts mcpServerGetOptions) (*mcpserverv1.McpServer, erro
 	}
 	defer conn.Close()
 
-	// Step 5: Determine if reference is ID or slug
-	isID := isResourceID(opts.Reference)
+	// Step 5: Parse reference (handles ID detection and org/slug parsing)
+	parsed, err := reference.Parse(opts.Reference, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid MCP server reference: %w", err)
+	}
 
 	var result *mcpserverv1.McpServer
+	client := mcpserverv1.NewMcpServerQueryControllerClient(conn)
 
-	if isID {
+	if parsed.IsID {
 		// Get by ID
-		client := mcpserverv1.NewMcpServerQueryControllerClient(conn)
 		result, err = client.Get(context.Background(), &apiresource.ApiResourceId{
-			Value: opts.Reference,
+			Value: parsed.ID,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get MCP server by ID: %w", err)
 		}
 	} else {
-		// Get by reference (slug)
-		client := mcpserverv1.NewMcpServerQueryControllerClient(conn)
+		// Get by org/slug reference
 		result, err = client.GetByReference(context.Background(), &apiresource.ApiResourceReference{
-			Scope: apiresource.ApiResourceOwnerScope_organization,
-			Org:   orgID,
-			Kind:  apiresourcekind.ApiResourceKind_mcp_server,
-			Slug:  opts.Reference,
+			Org:  parsed.Org,
+			Kind: apiresourcekind.ApiResourceKind_mcp_server,
+			Slug: parsed.Slug,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get MCP server '%s': %w", opts.Reference, err)
+			return nil, fmt.Errorf("failed to get MCP server '%s/%s': %w", parsed.Org, parsed.Slug, err)
 		}
 	}
 
 	return result, nil
-}
-
-// isResourceID checks if the reference looks like a resource ID
-func isResourceID(ref string) bool {
-	// Resource IDs typically have a prefix like "mcp-" or are UUIDs
-	return strings.HasPrefix(ref, "mcp-") || strings.HasPrefix(ref, "mcp_") || isUUID(ref)
-}
-
-// isUUID checks if a string looks like a UUID
-func isUUID(s string) bool {
-	// Simple check: UUIDs are 36 chars with hyphens at specific positions
-	if len(s) != 36 {
-		return false
-	}
-	return s[8] == '-' && s[13] == '-' && s[18] == '-' && s[23] == '-'
 }
 
 // displayMcpServerGetResult displays the get result in the specified format
@@ -462,7 +448,6 @@ func displayMcpServerGetResult(mcpServer *mcpserverv1.McpServer, format string) 
 		cliprint.PrintInfo("  Name:        %s", mcpServer.Metadata.Name)
 		cliprint.PrintInfo("  Slug:        %s", mcpServer.Metadata.Slug)
 		cliprint.PrintInfo("  Org:         %s", mcpServer.Metadata.Org)
-		cliprint.PrintInfo("  Owner Scope: %s", mcpServer.Metadata.OwnerScope.String())
 		fmt.Println()
 
 		cliprint.PrintInfo("Spec:")
@@ -582,31 +567,33 @@ func executeMcpServerDelete(opts mcpServerDeleteOptions) error {
 	}
 	defer conn.Close()
 
-	// Step 5: Get the resource first to get its ID and confirm existence
+	// Step 5: Parse reference and get the resource to confirm existence
+	parsed, err := reference.Parse(opts.Reference, orgID)
+	if err != nil {
+		return fmt.Errorf("invalid MCP server reference: %w", err)
+	}
+
 	var resourceID string
 	var resourceName string
-
-	isID := isResourceID(opts.Reference)
 	queryClient := mcpserverv1.NewMcpServerQueryControllerClient(conn)
 
-	if isID {
+	if parsed.IsID {
 		result, err := queryClient.Get(context.Background(), &apiresource.ApiResourceId{
-			Value: opts.Reference,
+			Value: parsed.ID,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to find MCP server with ID '%s': %w", opts.Reference, err)
+			return fmt.Errorf("failed to find MCP server with ID '%s': %w", parsed.ID, err)
 		}
 		resourceID = result.Metadata.Id
 		resourceName = result.Metadata.Name
 	} else {
 		result, err := queryClient.GetByReference(context.Background(), &apiresource.ApiResourceReference{
-			Scope: apiresource.ApiResourceOwnerScope_organization,
-			Org:   orgID,
-			Kind:  apiresourcekind.ApiResourceKind_mcp_server,
-			Slug:  opts.Reference,
+			Org:  parsed.Org,
+			Kind: apiresourcekind.ApiResourceKind_mcp_server,
+			Slug: parsed.Slug,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to find MCP server '%s': %w", opts.Reference, err)
+			return fmt.Errorf("failed to find MCP server '%s/%s': %w", parsed.Org, parsed.Slug, err)
 		}
 		resourceID = result.Metadata.Id
 		resourceName = result.Metadata.Name

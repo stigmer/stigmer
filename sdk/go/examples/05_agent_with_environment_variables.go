@@ -20,7 +20,6 @@ import (
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/environment"
-	"github.com/stigmer/stigmer/sdk/go/mcpserverref"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
 
@@ -113,12 +112,8 @@ Always check environment configurations before deployment.`,
 			return fmt.Errorf("failed to create agent: %w", err)
 		}
 
-		// Add MCP server reference (instead of inline definition)
-		// The MCP server is created separately as a McpServer resource
-		deployAgent.AddMcpServerUsage(
-			mcpserverref.Platform("github"),
-			"create_pr", "search_code", "list_repos",
-		)
+		// Add MCP server reference using new org/slug format
+		deployAgent.UseMCP("stigmer/github", "create_pr", "search_code", "list_repos")
 
 		// Add environment variables using builder methods
 		deployAgent.AddEnvironmentVariables(
@@ -250,7 +245,7 @@ Always check environment configurations before deployment.`,
 		fmt.Println()
 		fmt.Println("5. MCP Server Configuration:")
 		fmt.Println("   - MCP servers are now standalone resources (McpServer)")
-		fmt.Println("   - Agents reference them by slug using mcpserverref")
+		fmt.Println("   - Agents reference them using org/slug format (e.g., stigmer/github)")
 		fmt.Println("   - Environment variables for MCP servers are defined in McpServer spec")
 
 		fmt.Println("\nExample completed successfully!")

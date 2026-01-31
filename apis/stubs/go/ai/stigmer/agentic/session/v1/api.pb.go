@@ -31,6 +31,7 @@ type Session struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata including name, id, labels, and tags.
+	// Sessions belong to an organization and are typically PRIVATE visibility.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Session-specific configuration.
 	Spec *SessionSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
@@ -109,15 +110,14 @@ var File_ai_stigmer_agentic_session_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/session/v1/api.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xfe\x03\n" +
+	"'ai/stigmer/agentic/session/v1/api.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xd5\x02\n" +
 	"\aSession\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
 	"apiVersion\x12\"\n" +
 	"\x04kind\x18\x02 \x01(\tB\x0e\xbaH\vr\t\n" +
-	"\aSessionR\x04kind\x12\xff\x01\n" +
-	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\xad\x01\xbaH\xa9\x01\xba\x01\xa2\x01\n" +
-	"(session.owner_scope.org_or_identity_only\x12FSession resources can only have organization or identity_account scope\x1a.this.owner_scope == 2 || this.owner_scope == 3\xc8\x01\x01R\bmetadata\x12>\n" +
+	"\aSessionR\x04kind\x12W\n" +
+	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12>\n" +
 	"\x04spec\x18\x04 \x01(\v2*.ai.stigmer.agentic.session.v1.SessionSpecR\x04spec\x12N\n" +
 	"\x06status\x18\x05 \x01(\v26.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\x98\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\bApiProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"

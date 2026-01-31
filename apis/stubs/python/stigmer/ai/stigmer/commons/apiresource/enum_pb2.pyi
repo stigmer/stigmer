@@ -22,12 +22,11 @@ class ApiResourceStateOperationType(int, metaclass=_enum_type_wrapper.EnumTypeWr
     read: _ClassVar[ApiResourceStateOperationType]
     stream: _ClassVar[ApiResourceStateOperationType]
 
-class ApiResourceOwnerScope(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+class ApiResourceVisibility(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
-    api_resource_owner_scope_unspecified: _ClassVar[ApiResourceOwnerScope]
-    platform: _ClassVar[ApiResourceOwnerScope]
-    organization: _ClassVar[ApiResourceOwnerScope]
-    identity_account: _ClassVar[ApiResourceOwnerScope]
+    API_RESOURCE_VISIBILITY_UNSPECIFIED: _ClassVar[ApiResourceVisibility]
+    API_RESOURCE_VISIBILITY_PRIVATE: _ClassVar[ApiResourceVisibility]
+    API_RESOURCE_VISIBILITY_PUBLIC: _ClassVar[ApiResourceVisibility]
 
 class WorkflowTaskKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -57,10 +56,9 @@ update: ApiResourceStateOperationType
 delete: ApiResourceStateOperationType
 read: ApiResourceStateOperationType
 stream: ApiResourceStateOperationType
-api_resource_owner_scope_unspecified: ApiResourceOwnerScope
-platform: ApiResourceOwnerScope
-organization: ApiResourceOwnerScope
-identity_account: ApiResourceOwnerScope
+API_RESOURCE_VISIBILITY_UNSPECIFIED: ApiResourceVisibility
+API_RESOURCE_VISIBILITY_PRIVATE: ApiResourceVisibility
+API_RESOURCE_VISIBILITY_PUBLIC: ApiResourceVisibility
 WORKFLOW_TASK_KIND_UNSPECIFIED: WorkflowTaskKind
 WORKFLOW_TASK_KIND_SET: WorkflowTaskKind
 WORKFLOW_TASK_KIND_HTTP_CALL: WorkflowTaskKind

@@ -7,7 +7,6 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
-	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
@@ -32,7 +31,7 @@ func TestIntegration_CompleteWorkflowWithAgent(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		codeReviewer.AddSkillRef(skillref.Platform("code-analysis"))
+		codeReviewer.AddSkill("stigmer/code-analysis")
 		capturedAgent = codeReviewer
 
 		// Create workflow that uses the agent
@@ -244,9 +243,9 @@ func TestIntegration_AgentWithAllFeatures(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		comprehensiveAgent.AddSkillRefs(
-			skillref.Platform("skill1"),
-			skillref.Platform("skill2"),
+		comprehensiveAgent.AddSkills(
+			"stigmer/skill1",
+			"stigmer/skill2",
 		)
 		comprehensiveAgent.AddEnvironmentVariables(*env1, *env2)
 
@@ -295,7 +294,7 @@ func TestIntegration_DependencyTracking(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		agent1.AddSkillRef(skillref.Platform("coding-guidelines"))
+		agent1.AddSkill("stigmer/coding-guidelines")
 
 		agent2, err := agent.New(ctx, "security-reviewer", &agent.AgentArgs{
 			Instructions: "Review code for security issues",
@@ -303,7 +302,7 @@ func TestIntegration_DependencyTracking(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		agent2.AddSkillRef(skillref.Platform("security-best-practices"))
+		agent2.AddSkill("stigmer/security-best-practices")
 
 		// Create workflow using agents
 		_, err = workflow.New(ctx,
@@ -352,10 +351,10 @@ func TestIntegration_ManyResourcesStressTest(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			// Add skill refs to agent (2-3 refs per agent)
-			ag.AddSkillRefs(
-				skillref.Platform(fmt.Sprintf("skill-%d-a", i)),
-				skillref.Platform(fmt.Sprintf("skill-%d-b", i)),
+			// Add skill refs to agent (2-3 refs per agent) using new API
+			ag.AddSkills(
+				fmt.Sprintf("stigmer/skill-%d-a", i),
+				fmt.Sprintf("stigmer/skill-%d-b", i),
 			)
 		}
 

@@ -62,14 +62,9 @@ type WorkflowInstance struct {
 	// Validated as const for type safety.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata including name, id, slug, labels, tags, and annotations.
-	//
-	// Owner Scope:
-	// WorkflowInstances can have platform, organization, or identity_account scope.
-	//
-	// Allowed scopes:
-	// - platform (owner_scope = 1): Global default instances (auto-created)
-	// - organization (owner_scope = 2): Shared across organization members
-	// - identity_account (owner_scope = 3): Private to individual user
+	// WorkflowInstances belong to an organization. Visibility controls access:
+	// - PUBLIC: Shared templates accessible to all users
+	// - PRIVATE: Organization-internal instances
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// User-provided configuration for this workflow instance.
 	// Defines which Workflow template to use and which Environments provide configuration/secrets.

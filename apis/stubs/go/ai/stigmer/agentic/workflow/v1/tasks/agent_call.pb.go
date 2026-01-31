@@ -8,7 +8,8 @@ package tasks
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -28,12 +29,11 @@ const (
 // This enables workflows to invoke AI agents as tasks, delegating complex
 // operations to specialized agents with their own skills and context.
 //
-// The agent is referenced by slug (name) and scope. The runtime resolves
-// the (slug, scope) pair to an actual agent:
-// 1. If scope is PLATFORM: look only in platform-scoped agents (public)
-// 2. If scope is ORGANIZATION: look only in org agents
-// 3. If scope is UNSPECIFIED: defaults to ORGANIZATION scope
-// 4. Before explicit scope lookup, check manifest (current deployment)
+// The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer").
+// Resolution order:
+// 1. If org is specified: look in that org's agents
+// 2. If org is empty: use the workflow's org
+// 3. Before external lookup, check manifest (current deployment)
 //
 // The workflow's execution context (environment variables, secrets) is
 // passed to the agent invocation, allowing agents to access workflow state.
@@ -42,8 +42,8 @@ const (
 //   - analyze:
 //     call: agent
 //     with:
-//     agent: "code-reviewer"
-//     scope: organization
+//     agent: "code-reviewer"           # Uses workflow's org
+//     # OR agent: "stigmer/code-reviewer"  # Explicit org reference
 //     message: "Review this code: ${ $context.fetchCode.body }"
 //     env:
 //     GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
@@ -54,15 +54,16 @@ const (
 // Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
 type AgentCallTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Agent slug/name to invoke (e.g., "code-reviewer", "data-analyst").
-	// The runtime resolves this to an actual agent considering the scope.
+	// Agent reference in "org/slug" or "slug" format.
+	// - "slug" only: uses the workflow's organization
+	// - "org/slug": explicit organization reference
+	// Examples: "code-reviewer", "stigmer/code-reviewer", "acme/data-analyst"
 	// Required field.
 	Agent string `protobuf:"bytes,1,opt,name=agent,proto3" json:"agent,omitempty"`
-	// Agent owner scope (platform or organization).
-	// Determines where to resolve the agent slug.
-	// Default (UNSPECIFIED) = ORGANIZATION scope.
-	// Optional (defaults to organization if not specified).
-	Scope apiresource.ApiResourceOwnerScope `protobuf:"varint,2,opt,name=scope,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceOwnerScope" json:"scope,omitempty"`
+	// Explicit organization for agent resolution. Optional.
+	// If empty, the org is parsed from the agent field or defaults to workflow's org.
+	// Use this when you need to override the parsed org.
+	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	// Instructions/prompt to send to the agent.
 	// Supports interpolation of workflow variables using JQ expressions.
 	// Example: "Analyze this code: ${ $context.fetchCode.body }"
@@ -118,11 +119,11 @@ func (x *AgentCallTaskConfig) GetAgent() string {
 	return ""
 }
 
-func (x *AgentCallTaskConfig) GetScope() apiresource.ApiResourceOwnerScope {
+func (x *AgentCallTaskConfig) GetOrg() string {
 	if x != nil {
-		return x.Scope
+		return x.Org
 	}
-	return apiresource.ApiResourceOwnerScope(0)
+	return ""
 }
 
 func (x *AgentCallTaskConfig) GetMessage() string {
@@ -162,9 +163,29 @@ type AgentExecutionConfig struct {
 	// Lower = more deterministic, Higher = more creative
 	// Default: 0.7
 	// Optional.
-	Temperature   float32 `protobuf:"fixed32,3,opt,name=temperature,proto3" json:"temperature,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Temperature float32 `protobuf:"fixed32,3,opt,name=temperature,proto3" json:"temperature,omitempty"`
+	// Context management configuration for this agent invocation.
+	//
+	// Controls automatic summarization behavior for long-running conversations.
+	// When specified, overrides model defaults from the Model Registry.
+	//
+	// Use cases:
+	// - Disable summarization for short-lived agents
+	// - Custom thresholds for agents with specific context requirements
+	// - Fine-tune summarization behavior per workflow task
+	//
+	// Example YAML:
+	//
+	//	config:
+	//	  model: "claude-sonnet-4.5"
+	//	  context_management:
+	//	    custom_trigger_threshold: 150000
+	//	    custom_target_tokens: 120000
+	//
+	// @since Phase 3 (Context Summarization Architecture)
+	ContextManagement *v1.ContextManagementConfig `protobuf:"bytes,4,opt,name=context_management,json=contextManagement,proto3" json:"context_management,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *AgentExecutionConfig) Reset() {
@@ -218,27 +239,35 @@ func (x *AgentExecutionConfig) GetTemperature() float32 {
 	return 0
 }
 
+func (x *AgentExecutionConfig) GetContextManagement() *v1.ContextManagementConfig {
+	if x != nil {
+		return x.ContextManagement
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\n" +
-	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"\x92\x03\n" +
+	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"\xd7\x02\n" +
 	"\x13AgentCallTaskConfig\x12\"\n" +
-	"\x05agent\x18\x01 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18?R\x05agent\x12K\n" +
-	"\x05scope\x18\x02 \x01(\x0e25.ai.stigmer.commons.apiresource.ApiResourceOwnerScopeR\x05scope\x12(\n" +
+	"\x05agent\x18\x01 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18\x7fR\x05agent\x12\x10\n" +
+	"\x03org\x18\x02 \x01(\tR\x03org\x12(\n" +
 	"\amessage\x18\x03 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\amessage\x12T\n" +
 	"\x03env\x18\x04 \x03(\v2B.ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntryR\x03env\x12R\n" +
 	"\x06config\x18\x05 \x01(\v2:.ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfigR\x06config\x1a6\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x85\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf3\x01\n" +
 	"\x14AgentExecutionConfig\x12\x14\n" +
 	"\x05model\x18\x01 \x01(\tR\x05model\x12$\n" +
 	"\atimeout\x18\x02 \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\x90\x1c(\x01R\atimeout\x121\n" +
 	"\vtemperature\x18\x03 \x01(\x02B\x0f\xbaH\f\n" +
 	"\n" +
-	"\x1d\x00\x00\x80?-\x00\x00\x00\x00R\vtemperatureB\xc1\x02\n" +
+	"\x1d\x00\x00\x80?-\x00\x00\x00\x00R\vtemperature\x12l\n" +
+	"\x12context_management\x18\x04 \x01(\v2=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11contextManagementB\xc1\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\x0eAgentCallProtoP\x01ZMgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (
@@ -255,15 +284,15 @@ func file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescGZIP() []
 
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_goTypes = []any{
-	(*AgentCallTaskConfig)(nil),            // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
-	(*AgentExecutionConfig)(nil),           // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
-	nil,                                    // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
-	(apiresource.ApiResourceOwnerScope)(0), // 3: ai.stigmer.commons.apiresource.ApiResourceOwnerScope
+	(*AgentCallTaskConfig)(nil),        // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+	(*AgentExecutionConfig)(nil),       // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
+	nil,                                // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
+	(*v1.ContextManagementConfig)(nil), // 3: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
 }
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.scope:type_name -> ai.stigmer.commons.apiresource.ApiResourceOwnerScope
-	2, // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.env:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
-	1, // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.config:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
+	2, // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.env:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
+	1, // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.config:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
+	3, // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
