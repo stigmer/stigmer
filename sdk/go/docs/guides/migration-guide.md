@@ -1,12 +1,112 @@
-# Migration Guide - Struct Args API
+# Migration Guide - Struct Args API and org/slug References
 
-This guide helps you migrate from the old functional options pattern to the new struct-args API (Pulumi-aligned pattern).
+This guide helps you migrate to the modern Stigmer SDK with struct-args API and simplified org/slug resource references.
+
+## Table of Contents
+
+1. [Struct-Args Pattern (Pulumi-Aligned)](#struct-args-pattern-pulumi-aligned)
+2. [org/slug Resource References](#orgslug-resource-references)
+3. [Migration Steps](#migration-steps)
+4. [Breaking Changes](#breaking-changes)
 
 ---
 
-## What Changed?
+## org/slug Resource References
 
-### Struct-Args Pattern (Pulumi-Aligned)
+**The biggest change:** Resource references now use a simple `org/slug` format instead of scope-based constructors.
+
+### What Changed
+
+**Before (scope-based):**
+```go
+import "github.com/stigmer/stigmer/sdk/go/skillref"
+import "github.com/stigmer/stigmer/sdk/go/mcpserverref"
+
+// Platform resources
+agent.AddSkillRef(skillref.Platform("code-review"))
+agent.AddMCPServerRef(mcpserverref.Platform("github"))
+
+// Organization resources
+agent.AddSkillRef(skillref.Organization("acme-corp", "custom-skill"))
+agent.AddMCPServerRef(mcpserverref.Organization("acme-corp", "custom-mcp"))
+
+// User resources
+agent.AddSkillRef(skillref.User("my-skill"))
+```
+
+**After (org/slug):**
+```go
+// No imports needed - direct string references
+
+// Platform resources (stigmer org)
+agent.AddSkill("stigmer/code-review")
+agent.UseMCP("stigmer/github")
+
+// Organization resources
+agent.AddSkill("acme-corp/custom-skill")
+agent.UseMCP("acme-corp/custom-mcp")
+
+// Personal org resources
+agent.AddSkill("alice-personal/my-skill")
+```
+
+### Key Benefits
+
+1. **Simpler** - No imports, no factory functions
+2. **Portable** - Same code works in local, cloud, and self-hosted
+3. **Clear** - `org/slug` is intuitive and familiar (like GitHub, npm)
+4. **Versioned** - Support for versioned resources (`org/slug@version`)
+
+### Reference Formats
+
+```go
+// Basic org/slug
+agent.AddSkill("stigmer/code-review")
+
+// With semantic version
+agent.AddSkill("stigmer/security-scan@v2.1.0")
+
+// With tag
+agent.AddSkill("acme-corp/deploy@latest")
+
+// Slug-only (uses agent.Org context)
+agent.AddSkill("my-skill")  // → uses agent.Org/my-skill
+```
+
+### Deprecated Packages Removed
+
+These packages no longer exist:
+
+- ❌ `sdk/go/skillref/` - Removed
+- ❌ `sdk/go/mcpserverref/` - Removed
+
+**Migration:**
+```go
+// Remove these imports
+import "github.com/stigmer/stigmer/sdk/go/skillref"
+import "github.com/stigmer/stigmer/sdk/go/mcpserverref"
+
+// Use direct string references instead
+agent.AddSkill("stigmer/security-scan")
+agent.UseMCP("stigmer/github")
+```
+
+### New Reference Packages
+
+For parsing and validation, use these packages:
+
+```go
+// SDK packages (optional - for creating reusable resources)
+import "github.com/stigmer/stigmer/sdk/go/skill"
+import "github.com/stigmer/stigmer/sdk/go/mcpserver"
+
+skill, _ := skill.Parse("stigmer/security-scan@v2.1")
+mcp, _ := mcpserver.Parse("stigmer/github")
+```
+
+---
+
+## Struct-Args Pattern (Pulumi-Aligned)
 
 **Before (Functional Options):**
 ```go
@@ -39,29 +139,42 @@ mcpServer, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
 - ✅ Better IDE autocomplete and type safety
 - ✅ Consistent with Pulumi, Terraform, AWS SDK patterns
 
-### Skill References (Using org/slug Format)
+### Skill and MCP Server References
 
-**Before:**
+**Before (scope-based factory functions):**
 ```go
-// Old - create skills inline
-skill, err := skill.New("my-skill", &skill.SkillArgs{
-    MarkdownContent: "...",
-})
-agent.AddSkill(skill)
+import "github.com/stigmer/stigmer/sdk/go/skillref"
+import "github.com/stigmer/stigmer/sdk/go/mcpserverref"
+
+// Platform resources
+agent.AddSkillRef(skillref.Platform("security-scan"))
+agent.AddMCPServerRef(mcpserverref.Platform("github"))
+
+// Organization resources
+agent.AddSkillRef(skillref.Organization("acme-corp", "custom"))
 ```
 
-**After:**
+**After (org/slug string references):**
 ```go
-// New - reference existing skills using org/slug format
-agent.AddSkill("stigmer/my-skill")  // Platform skill
-agent.AddSkill("my-org/my-skill")   // Organization skill
+// No imports needed - direct string references
+
+// Platform resources (stigmer org)
+agent.AddSkill("stigmer/security-scan")
+agent.UseMCP("stigmer/github")
+
+// Organization resources
+agent.AddSkill("acme-corp/custom")
+
+// With versioning
+agent.AddSkill("stigmer/security-scan@v2.1")
 ```
 
 **Key Changes:**
-- ✅ Skills are managed separately (via CLI or UI)
-- ✅ SDK references skills using simple `org/slug` format
-- ✅ No separate `skillref` package needed
-- ✅ Use `AddSkill()` with string references
+- ✅ No `skillref` or `mcpserverref` imports needed
+- ✅ Simple `org/slug` string format
+- ✅ Supports versioning (`org/slug@version`)
+- ✅ Works identically in local, cloud, and self-hosted
+- ✅ `AddSkill()` and `UseMCP()` methods with smart parsing
 
 ---
 
@@ -145,35 +258,48 @@ apiKey, err := environment.New(ctx, "API_KEY", &environment.VariableArgs{
 - ✅ `WithSecret()` → `IsSecret` field
 - ✅ `WithDefaultValue()` → `DefaultValue` field
 
-### Step 4: Replace Skill Creation with Skill References
+### Step 4: Replace Skill and MCP Server References
 
-**Before:**
+**Before (scope-based factory functions):**
 ```go
-import "github.com/stigmer/stigmer/sdk/go/skill"
+import "github.com/stigmer/stigmer/sdk/go/skillref"
+import "github.com/stigmer/stigmer/sdk/go/mcpserverref"
 
-// Create inline skill
-mySkill, err := skill.New("my-skill", &skill.SkillArgs{
-    MarkdownContent: "# My Skill\n...",
-    Description:     "My skill",
-})
+// Platform resources
+agent.AddSkillRef(skillref.Platform("security-scan"))
+agent.AddSkillRef(skillref.Platform("code-review"))
+agent.AddMCPServerRef(mcpserverref.Platform("github"))
 
-// Add to agent
-agent.AddSkill(mySkill)
+// Organization resources
+agent.AddSkillRef(skillref.Organization("acme-corp", "custom"))
 ```
 
-**After:**
+**After (org/slug string references):**
 ```go
-// Reference existing skill using org/slug format
-agent.AddSkill("stigmer/my-skill")    // Platform skill
-// Or for org skills:
-agent.AddSkill("my-org/my-skill")     // Organization skill
+// No imports needed - direct string references
+
+// Platform resources (stigmer org)
+agent.AddSkill("stigmer/security-scan")
+agent.AddSkill("stigmer/code-review")
+agent.UseMCP("stigmer/github")
+
+// Organization resources
+agent.AddSkill("acme-corp/custom")
+
+// Batch addition
+agent.AddSkills(
+    "stigmer/security-scan",
+    "stigmer/code-review",
+    "acme-corp/custom",
+)
 ```
 
 **Changes:**
-- ✅ No import needed for skill references
-- ✅ Skills are referenced using simple `org/slug` format
-- ✅ Use `AddSkill()` with string references
-- ✅ Skills must be created separately via CLI or UI
+- ✅ Remove `skillref` and `mcpserverref` imports
+- ✅ Use simple `org/slug` string format
+- ✅ `AddSkill()` and `UseMCP()` methods with smart parsing
+- ✅ Batch methods: `AddSkills()` for multiple skills
+- ✅ Version support: `agent.AddSkill("stigmer/skill@v2.1")`
 
 ### Step 5: Update Sub-Agent Creation
 
@@ -231,32 +357,35 @@ agent.New(
 - ✅ Version controlled separately
 - ✅ Reusable across agents
 
-### Step 3: Use Inline Skills
+### Step 3: Use org/slug Skill References
 
 **Before:**
 ```go
-// Old functional options pattern
-agent, _ := agent.New(ctx,
-    agent.WithName("reviewer"),
-    agent.WithInstructions("Review code"),
-)
-agent.AddSkill(skill.Platform("coding-standards"))
-```
+import "github.com/stigmer/stigmer/sdk/go/skillref"
 
-**After:**
-```go
-// New struct-args pattern
 agent, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{
     Instructions: "Review code",
 })
 agent.AddSkillRef(skillref.Platform("coding-standards"))
 ```
 
+**After:**
+```go
+// No skillref import needed
+
+agent, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{
+    Org:          "my-org",
+    Instructions: "Review code",
+})
+agent.AddSkill("stigmer/coding-standards")
+```
+
 **Benefits:**
-- ✅ Cleaner, more readable code
-- ✅ Better IDE autocomplete
-- ✅ Consistent with modern Go patterns (Pulumi, Terraform, AWS SDK)
-- ✅ Skills are centrally managed, not duplicated in repos
+- ✅ No imports needed for references
+- ✅ Simple, intuitive `org/slug` format
+- ✅ Portable across all environments
+- ✅ Supports versioning (`org/slug@version`)
+- ✅ Works with slug-only when org context is set
 
 ### Step 4: Use Builder Methods
 
@@ -405,14 +534,14 @@ func TestAgentToProto(t *testing.T) {
 
 ### Pattern 1: Simple Agent
 
-**Before (Functional Options):**
+**Before (Functional Options + scope-based references):**
 ```go
 package main
 
 import (
     "github.com/stigmer/stigmer/sdk/go/stigmer"
     "github.com/stigmer/stigmer/sdk/go/agent"
-    "github.com/stigmer/stigmer/sdk/go/skill"
+    "github.com/stigmer/stigmer/sdk/go/skillref"
 )
 
 func main() {
@@ -421,28 +550,26 @@ func main() {
             agent.WithName("code-reviewer"),
             agent.WithInstructions("Review code for quality and best practices"),
         )
-        myAgent.AddSkill(skill.Platform("coding-standards"))
+        myAgent.AddSkillRef(skillref.Platform("coding-standards"))
         return nil
     })
 }
 ```
 
-**After (Struct Args):**
+**After (Struct Args + org/slug references):**
 ```go
 package main
 
 import (
-    "os"
     "github.com/stigmer/stigmer/sdk/go/stigmer"
     "github.com/stigmer/stigmer/sdk/go/agent"
 )
 
 func main() {
     stigmer.Run(func(ctx *stigmer.Context) error {
-        instructions, _ := os.ReadFile("instructions/reviewer.md")
-        
         myAgent, _ := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
-            Instructions: string(instructions),
+            Org:          "my-org",
+            Instructions: "Review code for quality and best practices",
         })
         myAgent.AddSkill("stigmer/coding-standards")
         return nil
@@ -452,25 +579,30 @@ func main() {
 
 ### Pattern 2: Agent with Multiple Skill References
 
-**Before (Functional Options):**
+**Before (scope-based references):**
 ```go
-myAgent, _ := agent.New(ctx,
-    agent.WithName("security-reviewer"),
-    agent.WithInstructions("Review code for security"),
-)
-myAgent.AddSkill(skill.Platform("security-guidelines"))
-myAgent.AddSkill(skill.Platform("coding-standards"))
+import "github.com/stigmer/stigmer/sdk/go/skillref"
+
+myAgent, _ := agent.New(ctx, "security-reviewer", &agent.AgentArgs{
+    Instructions: "Review code for security",
+})
+myAgent.AddSkillRef(skillref.Platform("security-guidelines"))
+myAgent.AddSkillRef(skillref.Platform("coding-standards"))
+myAgent.AddSkillRef(skillref.Organization("acme-corp", "internal"))
 ```
 
-**After (Struct Args):**
+**After (org/slug references):**
 ```go
+// No import needed
+
 myAgent, _ := agent.New(ctx, "security-reviewer", &agent.AgentArgs{
+    Org:          "my-org",
     Instructions: "Review code for security",
 })
 myAgent.AddSkills(
     "stigmer/security-guidelines",
     "stigmer/coding-standards",
-    "my-org/internal-standards",
+    "acme-corp/internal-standards",
 )
 ```
 
