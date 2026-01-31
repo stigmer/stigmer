@@ -47,7 +47,6 @@ import (
     "os"
     "github.com/stigmer/stigmer/sdk/go/stigmer"
     "github.com/stigmer/stigmer/sdk/go/agent"
-    "github.com/stigmer/stigmer/sdk/go/skillref"
 )
 
 func main() {
@@ -61,9 +60,9 @@ func main() {
             Description:  "AI code reviewer",
         })
         
-        // Add skill references using builder method
+        // Add skill references using org/slug format
         // Skills are managed separately and referenced here
-        codeReviewer.AddSkillRef(skillref.Platform("coding-best-practices"))
+        codeReviewer.AddSkill("stigmer/coding-best-practices")
         
         log.Printf("✅ Created agent: %s", codeReviewer.Name)
         return nil
@@ -181,13 +180,13 @@ reviewer, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{
     Instructions: "Review code",
 })
 
-// Add skill reference (dependency tracked automatically)
-reviewer.AddSkillRef(skillref.Platform("coding-standards"))
-// → Dependency: "agent:reviewer" → "skillref:coding-standards"
+// Add skill reference using org/slug format (dependency tracked automatically)
+reviewer.AddSkill("stigmer/coding-standards")
+// → Dependency: "agent:reviewer" → "skill:stigmer/coding-standards"
 
 // Inspect dependency graph
 deps := ctx.Dependencies()
-// deps["agent:reviewer"] = ["skillref:coding-standards"]
+// deps["agent:reviewer"] = ["skill:stigmer/coding-standards"]
 ```
 
 **Why This Matters**:
@@ -913,29 +912,29 @@ agent, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
 
 ### Adding Skills
 
-The SDK references skills - it doesn't create them inline. Skills are managed separately (via CLI or UI) and referenced here.
+The SDK references skills - it doesn't create them inline. Skills are managed separately (via CLI or UI) and referenced here using the `org/slug` format.
 
 #### Platform Skills (Shared)
 
 ```go
-// Reference platform-wide skill
-agent.AddSkillRef(skillref.Platform("coding-best-practices"))
+// Reference platform-wide skill using "stigmer/" prefix
+agent.AddSkill("stigmer/coding-best-practices")
 ```
 
 #### Organization Skills (Private)
 
 ```go
-// Reference organization-private skill
-agent.AddSkillRef(skillref.Organization("my-org", "internal-standards"))
+// Reference organization-private skill using "org/slug" format
+agent.AddSkill("my-org/internal-standards")
 ```
 
 #### Multiple Skills at Once
 
 ```go
-agent.AddSkillRefs(
-    skillref.Platform("coding-best-practices"),
-    skillref.Platform("security-analysis"),
-    skillref.Organization("my-org", "internal-standards"),
+agent.AddSkills(
+    "stigmer/coding-best-practices",
+    "stigmer/security-analysis",
+    "my-org/internal-standards",
 )
 ```
 
@@ -998,7 +997,7 @@ analyzer, err := subagent.New(ctx, "code-analyzer", &subagent.SubAgentArgs{
 })
 // Add MCP servers and skill refs to sub-agent
 analyzer.AddMCPServerRef("github")
-analyzer.AddSkillRef(skillref.Platform("static-analysis"))
+analyzer.AddSkill("stigmer/static-analysis")
 
 // Add sub-agent to parent agent
 parentAgent.AddSubAgent(analyzer)
@@ -1034,18 +1033,21 @@ agent.AddEnvironmentVariable(region)
 
 ### Using Skill References
 
-The SDK references skills - it doesn't create them inline. Skills are managed separately (via CLI or UI) and referenced in agents.
+The SDK references skills - it doesn't create them inline. Skills are managed separately (via CLI or UI) and referenced in agents using the `org/slug` format.
 
 #### Platform Skills
 
-Reference skills available platform-wide:
+Reference skills available platform-wide using the `stigmer/` prefix:
 
 ```go
-import "github.com/stigmer/stigmer/sdk/go/skillref"
+// Reference platform skill using org/slug format
+agent.AddSkill("stigmer/coding-best-practices")
 
-// Reference platform skill by slug
-platformSkill := skillref.Platform("coding-best-practices")
-agent.AddSkillRef(platformSkill)
+// Or add multiple at once
+agent.AddSkills(
+    "stigmer/coding-best-practices",
+    "stigmer/security-analysis",
+)
 ```
 
 #### Organization Skills
@@ -1053,16 +1055,38 @@ agent.AddSkillRef(platformSkill)
 Reference skills private to your organization:
 
 ```go
-// Reference org skill by org + slug
-orgSkill := skillref.Organization("my-org", "internal-standards")
-agent.AddSkillRef(orgSkill)
+// Reference org skill using org/slug format
+agent.AddSkill("my-org/internal-standards")
 ```
 
-**SkillRef Fields**:
-- `Slug` - Skill identifier (required)
-- `Org` - Organization name (for org skills)
-- `Scope` - PLATFORM or ORGANIZATION (auto-set)
-- `Kind` - Always SKILL (auto-set)
+#### Versioned Skills
+
+Reference specific versions of skills:
+
+```go
+// Using version suffix in the reference
+agent.AddSkill("stigmer/coding-best-practices@v2.0")
+
+// Or using the AtVersion option
+agent.AddSkill("stigmer/coding-best-practices", agent.AtVersion("v2.0"))
+```
+
+#### Slug-Only References
+
+When the agent's organization is set, you can use slug-only references:
+
+```go
+// Set agent organization
+agent.Org = "my-org"
+
+// Now use slug-only (defaults to agent's org)
+agent.AddSkill("my-skill")  // Resolves to my-org/my-skill
+```
+
+**Reference Format**:
+- `org/slug` - Full reference (e.g., `stigmer/coding-best-practices`)
+- `org/slug@version` - Versioned reference (e.g., `stigmer/coding-best-practices@v2.0`)
+- `slug` - Slug-only (uses agent's Org field)
 
 ---
 
@@ -1081,8 +1105,8 @@ agent, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{
     Instructions: string(instructions),
 })
 
-// Skills are referenced, not created inline
-agent.AddSkillRef(skillref.Platform("coding-guidelines"))
+// Skills are referenced using org/slug format
+agent.AddSkill("stigmer/coding-guidelines")
 ```
 
 **Why**:

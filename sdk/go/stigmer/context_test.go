@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -522,12 +521,12 @@ func TestContext_ConcurrentAccess(t *testing.T) {
 func TestContext_RegisterAgent(t *testing.T) {
 	ctx := newContext()
 
-	// Create an agent with skill refs
+	// Create an agent with skill refs using new API
 	ag := &agent.Agent{
 		Name:         "test-agent",
 		Instructions: "Test agent instructions",
 	}
-	ag.AddSkillRef(skillref.Platform("code-analysis"))
+	ag.AddSkill("stigmer/code-analysis")
 
 	ctx.RegisterAgent(ag)
 
@@ -545,15 +544,15 @@ func TestContext_RegisterAgent(t *testing.T) {
 func TestContext_RegisterAgent_MultipleSkillRefs(t *testing.T) {
 	ctx := newContext()
 
-	// Create an agent with multiple skill refs
+	// Create an agent with multiple skill refs using new API
 	ag := &agent.Agent{
 		Name:         "test-agent",
 		Instructions: "Test agent instructions",
 	}
-	ag.AddSkillRefs(
-		skillref.Platform("skill1"),
-		skillref.Platform("skill2"),
-		skillref.Organization("my-org", "org-skill"),
+	ag.AddSkills(
+		"stigmer/skill1",
+		"stigmer/skill2",
+		"my-org/org-skill",
 	)
 
 	ctx.RegisterAgent(ag)
@@ -601,12 +600,12 @@ func TestContext_GetDependencies(t *testing.T) {
 func TestContext_Dependencies(t *testing.T) {
 	ctx := newContext()
 
-	// Create agent
+	// Create agent using new API
 	ag := &agent.Agent{
 		Name:         "test-agent",
 		Instructions: "Test instructions",
 	}
-	ag.AddSkillRef(skillref.Platform("skill1"))
+	ag.AddSkill("stigmer/skill1")
 	ctx.RegisterAgent(ag)
 
 	// Get full dependency graph
@@ -715,18 +714,18 @@ func TestContext_CompleteWorkflow(t *testing.T) {
 func TestContext_AgentRegistrationIntegration(t *testing.T) {
 	ctx := newContext()
 
-	// Create agents with skill refs (SDK references skills, doesn't create them)
+	// Create agents with skill refs using new API (SDK references skills, doesn't create them)
 	agent1 := &agent.Agent{
 		Name:         "code-reviewer",
 		Instructions: "Review code quality",
 	}
-	agent1.AddSkillRef(skillref.Platform("coding-guidelines"))
+	agent1.AddSkill("stigmer/coding-guidelines")
 
 	agent2 := &agent.Agent{
 		Name:         "sec-reviewer",
 		Instructions: "Review security",
 	}
-	agent2.AddSkillRef(skillref.Platform("security-best-practices"))
+	agent2.AddSkill("stigmer/security-best-practices")
 
 	ctx.RegisterAgent(agent1)
 	ctx.RegisterAgent(agent2)

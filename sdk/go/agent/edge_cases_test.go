@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/environment"
-	"github.com/stigmer/stigmer/sdk/go/skillref"
 )
 
 // =============================================================================
@@ -23,9 +22,9 @@ func TestAgentToProto_MaximumSkills(t *testing.T) {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
 
-	// Add 50 skills using builder method
+	// Add 50 skills using new smart parsing API
 	for i := 0; i < 50; i++ {
-		agent.AddSkillRef(skillref.Platform(fmt.Sprintf("skill%d", i)))
+		agent.AddSkill(fmt.Sprintf("stigmer/skill%d", i))
 	}
 
 	proto, err := agent.ToProto()
@@ -169,7 +168,7 @@ func TestAgentToProto_NilFields(t *testing.T) {
 			agent: &Agent{
 				Name:         "agent2",
 				Instructions: "Test instructions for agent validation",
-				MCPServers:   nil, // nil slice
+				McpServerUsages: nil, // nil slice
 			},
 			wantErr: false,
 		},
@@ -197,7 +196,7 @@ func TestAgentToProto_NilFields(t *testing.T) {
 				Name:                 "agent5",
 				Instructions:         "Test instructions for agent validation",
 				SkillRefs:            nil,
-				MCPServers:           nil,
+				McpServerUsages:      nil,
 				SubAgents:            nil,
 				EnvironmentVariables: nil,
 			},
@@ -228,8 +227,8 @@ func TestAgentToProto_NilFields(t *testing.T) {
 			if proto.Spec.SkillRefs == nil {
 				t.Error("SkillRefs should not be nil (should be empty slice)")
 			}
-			if proto.Spec.McpServers == nil {
-				t.Error("McpServers should not be nil (should be empty slice)")
+			if proto.Spec.McpServerUsages == nil {
+				t.Error("McpServerUsages should not be nil (should be empty slice)")
 			}
 			if proto.Spec.SubAgents == nil {
 				t.Error("SubAgents should not be nil (should be empty slice)")
@@ -307,13 +306,13 @@ func TestAgent_ConcurrentSkillAddition(t *testing.T) {
 		Instructions: "Agent for testing concurrent skill additions",
 	})
 
-	// Concurrently add 50 skills using thread-safe AddSkillRef method
+	// Concurrently add 50 skills using thread-safe AddSkill method
 	var wg sync.WaitGroup
 	for i := 0; i < 50; i++ {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			agent.AddSkillRef(skillref.Platform(fmt.Sprintf("skill%d", idx)))
+			agent.AddSkill(fmt.Sprintf("stigmer/skill%d", idx))
 		}(i)
 	}
 

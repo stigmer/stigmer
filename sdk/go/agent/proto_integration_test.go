@@ -2,8 +2,6 @@ package agent
 
 import (
 	"testing"
-
-	"github.com/stigmer/stigmer/sdk/go/skillref"
 )
 
 // TestAgentToProto_Complete tests full agent with all optional fields.
@@ -103,8 +101,8 @@ func TestAgentToProto_Minimal(t *testing.T) {
 	if len(proto.Spec.SkillRefs) != 0 {
 		t.Error("Expected no skill references")
 	}
-	if len(proto.Spec.McpServers) != 0 {
-		t.Error("Expected no MCP servers")
+	if len(proto.Spec.McpServerUsages) != 0 {
+		t.Error("Expected no MCP server usages")
 	}
 	if len(proto.Spec.SubAgents) != 0 {
 		t.Error("Expected no sub-agents")
@@ -123,8 +121,8 @@ func TestAgentToProto_WithSkill(t *testing.T) {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
 
-	// Add skill using builder method
-	agent.AddSkillRef(skillref.Platform("code-analysis"))
+	// Add skill using new smart parsing API
+	agent.AddSkill("stigmer/code-analysis")
 
 	// Convert to proto
 	proto, err := agent.ToProto()
@@ -196,11 +194,11 @@ func TestAgentToProto_MultipleSkills(t *testing.T) {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
 
-	// Add skills using builder method
-	agent.AddSkillRefs(
-		skillref.Platform("skill1"),
-		skillref.Platform("skill2"),
-		skillref.Organization("my-org", "skill3"),
+	// Add skills using new smart parsing API
+	agent.AddSkills(
+		"stigmer/skill1",
+		"stigmer/skill2",
+		"my-org/skill3",
 	)
 
 	proto, err := agent.ToProto()

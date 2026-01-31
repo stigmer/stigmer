@@ -74,7 +74,6 @@ import (
     "log"
     
     "github.com/leftbin/stigmer-sdk/go/agent"
-    "github.com/leftbin/stigmer-sdk/go/skillref"
     "github.com/leftbin/stigmer-sdk/go/mcpserver"
     "github.com/leftbin/stigmer-sdk/go/stigmer"
 )
@@ -104,8 +103,9 @@ func main() {
         }
         
         // Add skill references and MCP servers using builder methods
+        // Skills use org/slug format: "org/slug" or just "slug" if agent.Org is set
         myAgent.
-            AddSkillRef(skillref.Platform("security-analysis")).
+            AddSkill("stigmer/security-analysis").
             AddMCPServer(githubMCP)
         
         fmt.Printf("Agent created: %s\n", myAgent.Name)
@@ -141,34 +141,48 @@ The `Agent` is the main blueprint that defines:
 Skills provide knowledge to agents. The SDK references existing skills - it doesn't create them inline. Skills are managed separately (via CLI or UI) and referenced here.
 
 #### 1. Platform Skills (Shared)
-Reference skills available platform-wide:
+Reference skills available platform-wide using the `org/slug` format:
 
 ```go
-myAgent.AddSkillRef(skillref.Platform("coding-best-practices"))
+// Use "stigmer/" prefix for platform skills
+myAgent.AddSkill("stigmer/coding-best-practices")
 ```
 
 #### 2. Organization Skills (Private)
 Reference skills private to your organization:
 
 ```go
-myAgent.AddSkillRef(skillref.Organization("my-org", "internal-standards"))
+// Use "org/slug" format for organization skills
+myAgent.AddSkill("my-org/internal-standards")
 ```
 
 #### 3. Multiple Skills at Once
 Add multiple skill references in one call:
 
 ```go
-myAgent.AddSkillRefs(
-    skillref.Platform("coding-best-practices"),
-    skillref.Platform("security-analysis"),
-    skillref.Organization("my-org", "internal-standards"),
+myAgent.AddSkills(
+    "stigmer/coding-best-practices",
+    "stigmer/security-analysis",
+    "my-org/internal-standards",
 )
+```
+
+#### 4. Versioned Skills
+Reference specific versions of skills:
+
+```go
+// With version suffix
+myAgent.AddSkill("stigmer/coding-best-practices@v2.0")
+
+// Or using AtVersion option
+myAgent.AddSkill("stigmer/coding-best-practices", agent.AtVersion("v2.0"))
 ```
 
 **Benefits:**
 - ✅ Skills are centrally managed
 - ✅ Easy to share across agents
 - ✅ Clean separation of concerns
+- ✅ Simple `org/slug` format for all references
 
 ### MCP Servers
 
@@ -231,11 +245,13 @@ analyzer, err := subagent.New(ctx, "code-analyzer", &subagent.SubAgentArgs{
 })
 // Add MCP servers and skill refs to sub-agent
 analyzer.AddMCPServerRef("github")
-analyzer.AddSkillRef(skillref.Platform("static-analysis"))
+analyzer.AddSkill("stigmer/static-analysis")
 
 // Add sub-agent to parent agent
 parentAgent.AddSubAgent(analyzer)
 ```
+
+**Note**: Sub-agents use `AddMCPServerRef()` and `AddSkill()` with simple slug names since they inherit from the parent's context.
 
 ### Environment Variables
 

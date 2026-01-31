@@ -12,8 +12,6 @@ import (
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/environment"
-	"github.com/stigmer/stigmer/sdk/go/mcpserverref"
-	"github.com/stigmer/stigmer/sdk/go/skillref"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
 
@@ -30,7 +28,7 @@ import (
 //   - Compile-time checked references (no string typos)
 //   - IDE autocomplete for context variables
 //   - Struct-args pattern for environment variables
-//   - MCP server references (instead of inline definitions)
+//   - MCP server references using org/slug format
 //   - Automatic synthesis on completion
 func main() {
 	// Use stigmer.Run() for automatic context and synthesis management
@@ -66,18 +64,14 @@ func main() {
 		// Set Org field directly using typed context
 		ag.Org = orgName.Value()
 
-		// Add skill references using skillref package
-		ag.AddSkillRefs(
-			skillref.Platform("coding-best-practices"),
-			skillref.Platform("security-review"),
+		// Add skill references using new org/slug format
+		ag.AddSkills(
+			"stigmer/coding-best-practices",
+			"stigmer/security-review",
 		)
 
-		// Add MCP server reference (instead of inline definition)
-		// MCP servers are now first-class resources created separately
-		ag.AddMcpServerUsage(
-			mcpserverref.Platform("github"),
-			"create_pr", "search_code", "get_file",
-		)
+		// Add MCP server reference using org/slug format
+		ag.UseMCP("stigmer/github", "create_pr", "search_code", "get_file")
 
 		// Add environment variable
 		ag.AddEnvironmentVariable(*githubToken)
