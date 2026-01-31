@@ -33,7 +33,7 @@ func TestAgentController_Create(t *testing.T) {
 			Kind:       "Agent",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Test Agent",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
+				Org: "test-org",
 			},
 			Spec: &agentv1.AgentSpec{
 				Description:  "A test agent",
@@ -74,7 +74,7 @@ func TestAgentController_Create(t *testing.T) {
 			Kind:       "Agent",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Duplicate Agent",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
+				Org: "test-org",
 			},
 			Spec: &agentv1.AgentSpec{
 				Instructions: "You are a duplicate test agent.",
@@ -136,7 +136,7 @@ func TestAgentController_Update(t *testing.T) {
 			Kind:       "Agent",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Original Agent",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
+				Org: "test-org",
 			},
 			Spec: &agentv1.AgentSpec{
 				Description:  "Original description",
@@ -168,7 +168,7 @@ func TestAgentController_Update(t *testing.T) {
 			Metadata: &apiresource.ApiResourceMetadata{
 				Id:         "non-existent-id",
 				Name:       "Non-existent Agent",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
+				Org: "test-org",
 			},
 			Spec: &agentv1.AgentSpec{
 				Instructions: "You are a non-existent agent.",
@@ -198,7 +198,7 @@ func TestAgentController_Delete(t *testing.T) {
 			Kind:       "Agent",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Agent to Delete",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform,
+				Org: "test-org",
 			},
 			Spec: &agentv1.AgentSpec{
 				Instructions: "You are an agent that will be deleted.",

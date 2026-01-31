@@ -7,7 +7,9 @@ go_library(
         "delete.go",
         "get.go",
         "list.go",
+        "list_by_workflow.go",
         "stream_broker.go",
+        "submit_approval.go",
         "subscribe.go",
         "update.go",
         "update_status.go",
@@ -16,6 +18,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/controller",
     visibility = ["//visibility:public"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",
         "//apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",

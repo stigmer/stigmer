@@ -96,25 +96,20 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*workfl
 	workflow := ctx.NewState()
 	workflowID := workflow.GetMetadata().GetId()
 	workflowSlug := workflow.GetMetadata().GetName()
-	ownerScope := workflow.GetMetadata().GetOwnerScope()
+	workflowOrg := workflow.GetMetadata().GetOrg()
 
 	log.Info().
 		Str("workflow_id", workflowID).
 		Str("slug", workflowSlug).
-		Str("scope", ownerScope.String()).
+		Str("org", workflowOrg).
 		Msg("Creating default instance for workflow")
 
 	// 1. Build default instance request
 	defaultInstanceName := workflowSlug + "-default"
 
 	metadataBuilder := &apiresource.ApiResourceMetadata{
-		Name:       defaultInstanceName,
-		OwnerScope: ownerScope,
-	}
-
-	// Copy org if org-scoped
-	if ownerScope == apiresource.ApiResourceOwnerScope_organization {
-		metadataBuilder.Org = workflow.GetMetadata().GetOrg()
+		Name: defaultInstanceName,
+		Org:  workflowOrg, // All resources belong to an org
 	}
 
 	instanceRequest := &workflowinstancev1.WorkflowInstance{

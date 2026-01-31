@@ -5,11 +5,11 @@ import (
 	"errors"
 
 	"github.com/rs/zerolog/log"
+	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
-	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 )
 
 // GetByExecutionId retrieves an execution context by the execution ID it belongs to.
@@ -49,7 +49,7 @@ func (c *ExecutionContextController) GetByExecutionId(ctx context.Context, input
 func (c *ExecutionContextController) buildGetByExecutionIdPipeline() *pipeline.Pipeline[*executioncontextv1.ExecutionContextExecutionIdInput] {
 	return pipeline.NewPipeline[*executioncontextv1.ExecutionContextExecutionIdInput]("execution-context-get-by-execution-id").
 		AddStep(steps.NewValidateProtoStep[*executioncontextv1.ExecutionContextExecutionIdInput]()). // 1. Validate input
-		AddStep(newLoadByExecutionIdStep(c.store)).                                                   // 2. Load by execution_id
+		AddStep(newLoadByExecutionIdStep(c.store)).                                                  // 2. Load by execution_id
 		Build()
 }
 

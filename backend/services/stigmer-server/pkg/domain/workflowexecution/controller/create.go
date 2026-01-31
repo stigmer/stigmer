@@ -267,16 +267,11 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		Str("workflow_id", workflowID).
 		Msg("Default instance not found, creating new one")
 
-	ownerScope := workflow.GetMetadata().GetOwnerScope()
+	workflowOrg := workflow.GetMetadata().GetOrg()
 
 	instanceMetadata := &apiresource.ApiResourceMetadata{
-		Name:       defaultInstanceSlug,
-		OwnerScope: ownerScope,
-	}
-
-	// Copy org if org-scoped
-	if ownerScope == apiresource.ApiResourceOwnerScope_organization {
-		instanceMetadata.Org = workflow.GetMetadata().GetOrg()
+		Name: defaultInstanceSlug,
+		Org:  workflowOrg, // All resources belong to an org
 	}
 
 	instanceRequest := &workflowinstancev1.WorkflowInstance{

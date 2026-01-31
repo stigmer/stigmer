@@ -106,7 +106,7 @@ func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 		logger.Info("Executing agent call activity with parent workflow context",
 			"agent", t.agentConfig.Agent,
-			"scope", t.agentConfig.Scope,
+			"org", t.agentConfig.Org,
 			"task", t.GetTaskName(),
 			"parent_workflow_id", parentWorkflowId)
 

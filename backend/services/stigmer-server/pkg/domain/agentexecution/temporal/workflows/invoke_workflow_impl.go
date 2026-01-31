@@ -25,6 +25,7 @@ import (
 //   - During execution, agent-runner sends progressive status updates via gRPC
 //   - Updates are processed by AgentExecutionUpdateHandler (custom status merge logic)
 //   - Final status is returned to workflow for observability
+//
 // 3. If tool requires approval (HITL), waits for submitApproval signal
 //   - Signal unblocks the workflow
 //   - Workflow re-invokes Python activity with approval decision
@@ -113,6 +114,7 @@ const SignalSubmitApproval = "submitApproval"
 // 2. Python activity: Execute agent (on "execution" queue)
 //   - During execution, agent-runner sends progressive status updates via gRPC
 //   - Final status is returned for Temporal observability
+//
 // 3. Approval loop: If tool requires approval, wait for signal and re-invoke
 //
 // HITL Approval Loop:

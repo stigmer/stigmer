@@ -198,16 +198,11 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 	// Use agent's name (matching Java implementation)
 	// Java: String agentSlug = agent.getMetadata().getName();
 	agentSlug := agent.GetMetadata().GetName()
-	ownerScope := agent.GetMetadata().GetOwnerScope()
+	agentOrg := agent.GetMetadata().GetOrg()
 
 	instanceMetadataBuilder := &apiresource.ApiResourceMetadata{
-		Name:       agentSlug + "-default",
-		OwnerScope: ownerScope,
-	}
-
-	// Copy org if org-scoped
-	if ownerScope == apiresource.ApiResourceOwnerScope_organization {
-		instanceMetadataBuilder.Org = agent.GetMetadata().GetOrg()
+		Name: agentSlug + "-default",
+		Org:  agentOrg, // All resources belong to an org
 	}
 
 	instanceRequest := &agentinstancev1.AgentInstance{
@@ -331,7 +326,7 @@ func (s *createSessionIfNeededStep) Execute(ctx *pipeline.RequestContext[*agente
 		Str("default_instance_id", defaultInstanceID).
 		Msg("Using default instance from context for session creation")
 
-	// 2. Load agent for metadata (scope, org) via in-process gRPC (single source of truth)
+	// 2. Load agent for metadata (org) via in-process gRPC (single source of truth)
 	agent, err := s.agentClient.Get(ctx.Context(), &agentv1.AgentId{Value: agentID})
 	if err != nil {
 		log.Error().
@@ -341,18 +336,12 @@ func (s *createSessionIfNeededStep) Execute(ctx *pipeline.RequestContext[*agente
 		return err // Already a gRPC error from the client
 	}
 
-	ownerScope := agent.GetMetadata().GetOwnerScope()
 	orgID := agent.GetMetadata().GetOrg()
 
 	// 3. Build session request with default instance
 	sessionMetadataBuilder := &apiresource.ApiResourceMetadata{
-		Name:       fmt.Sprintf("session-%d", time.Now().UnixMilli()), // Auto-generated name
-		OwnerScope: ownerScope,
-	}
-
-	// Copy org if org-scoped
-	if ownerScope == apiresource.ApiResourceOwnerScope_organization && orgID != "" {
-		sessionMetadataBuilder.Org = orgID
+		Name: fmt.Sprintf("session-%d", time.Now().UnixMilli()), // Auto-generated name
+		Org:  orgID,                                              // All resources belong to an org
 	}
 
 	sessionRequest := &sessionv1.Session{

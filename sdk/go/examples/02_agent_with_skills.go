@@ -121,9 +121,9 @@ func main() {
 
 		// Now slug-only references will use "my-org" as the org
 		autoOrgAgent.
-			AddSkill("internal-coding-standards").  // Resolves to my-org/internal-coding-standards
-			AddSkill("proprietary-frameworks").     // Resolves to my-org/proprietary-frameworks
-			AddSkill("stigmer/security-analysis")   // Explicit org still works
+			AddSkill("internal-coding-standards"). // Resolves to my-org/internal-coding-standards
+			AddSkill("proprietary-frameworks").    // Resolves to my-org/proprietary-frameworks
+			AddSkill("stigmer/security-analysis")  // Explicit org still works
 
 		fmt.Println("\nCreated agent with auto-resolved org references:")
 		fmt.Printf("   Name: %s\n", autoOrgAgent.Name)
@@ -147,7 +147,7 @@ func main() {
 		}
 
 		versionedAgent.
-			AddSkill("stigmer/coding-best-practices").                         // Latest version (default)
+			AddSkill("stigmer/coding-best-practices").                          // Latest version (default)
 			AddSkill("stigmer/security-analysis@v2.0").                         // Specific tag version
 			AddSkill("stigmer/performance-optimization@stable").                // Stable tag
 			AddSkill("my-org/internal-standards@v1.5", agent.AtVersion("v1.5")) // Using option

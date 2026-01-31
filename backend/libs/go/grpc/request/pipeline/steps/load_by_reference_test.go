@@ -18,41 +18,41 @@ func TestLoadByReferenceStep(t *testing.T) {
 	defer testStore.Close()
 
 	// Create test agents
-	platformAgent := &agentv1.Agent{
+	agentOne := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Id:         "platform-agent-id",
-			Name:       "platform-agent",
-			Slug:       "platform-agent",
-			OwnerScope: apiresource.ApiResourceOwnerScope_platform,
+			Id:   "agent-one-id",
+			Name: "agent-one",
+			Slug: "agent-one",
+			Org:  "stigmer", // All resources belong to an org
 		},
 	}
 
-	orgAgent := &agentv1.Agent{
+	agentTwo := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Id:         "org-agent-id",
-			Name:       "org-agent",
-			Slug:       "org-agent",
-			Org:        "test-org",
-			OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+			Id:   "agent-two-id",
+			Name: "agent-two",
+			Slug: "agent-two",
+			Org:  "test-org",
 		},
 	}
 
 	// Save to store
 	ctx := context.Background()
-	err := testStore.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, platformAgent.Metadata.Id, platformAgent)
+	err := testStore.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, agentOne.Metadata.Id, agentOne)
 	require.NoError(t, err)
-	err = testStore.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, orgAgent.Metadata.Id, orgAgent)
+	err = testStore.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, agentTwo.Metadata.Id, agentTwo)
 	require.NoError(t, err)
 
-	t.Run("loads platform-scoped resource by slug", func(t *testing.T) {
-		// Create reference (no org = platform scope)
+	t.Run("loads resource by org and slug", func(t *testing.T) {
+		// Create reference with org/slug
 		ref := &apiresource.ApiResourceReference{
 			Kind: apiresourcekind.ApiResourceKind_agent,
-			Slug: "platform-agent",
+			Slug: "agent-one",
+			Org:  "stigmer",
 		}
 
 		// Create request context
@@ -71,15 +71,16 @@ func TestLoadByReferenceStep(t *testing.T) {
 
 		agent, ok := loaded.(*agentv1.Agent)
 		require.True(t, ok)
-		assert.Equal(t, "platform-agent-id", agent.Metadata.Id)
-		assert.Equal(t, "platform-agent", agent.Metadata.Name)
+		assert.Equal(t, "agent-one-id", agent.Metadata.Id)
+		assert.Equal(t, "agent-one", agent.Metadata.Name)
+		assert.Equal(t, "stigmer", agent.Metadata.Org)
 	})
 
-	t.Run("loads org-scoped resource by slug and org", func(t *testing.T) {
+	t.Run("loads resource from different org", func(t *testing.T) {
 		// Create reference with org
 		ref := &apiresource.ApiResourceReference{
 			Kind: apiresourcekind.ApiResourceKind_agent,
-			Slug: "org-agent",
+			Slug: "agent-two",
 			Org:  "test-org",
 		}
 
@@ -99,8 +100,8 @@ func TestLoadByReferenceStep(t *testing.T) {
 
 		agent, ok := loaded.(*agentv1.Agent)
 		require.True(t, ok)
-		assert.Equal(t, "org-agent-id", agent.Metadata.Id)
-		assert.Equal(t, "org-agent", agent.Metadata.Name)
+		assert.Equal(t, "agent-two-id", agent.Metadata.Id)
+		assert.Equal(t, "agent-two", agent.Metadata.Name)
 		assert.Equal(t, "test-org", agent.Metadata.Org)
 	})
 
@@ -109,6 +110,7 @@ func TestLoadByReferenceStep(t *testing.T) {
 		ref := &apiresource.ApiResourceReference{
 			Kind: apiresourcekind.ApiResourceKind_agent,
 			Slug: "non-existent-agent",
+			Org:  "test-org",
 		}
 
 		// Create request context
@@ -128,6 +130,7 @@ func TestLoadByReferenceStep(t *testing.T) {
 		ref := &apiresource.ApiResourceReference{
 			Kind: apiresourcekind.ApiResourceKind_agent,
 			Slug: "",
+			Org:  "test-org",
 		}
 
 		// Create request context
@@ -146,7 +149,8 @@ func TestLoadByReferenceStep(t *testing.T) {
 		// Create reference with wrong kind
 		ref := &apiresource.ApiResourceReference{
 			Kind: apiresourcekind.ApiResourceKind_workflow, // Wrong kind!
-			Slug: "platform-agent",
+			Slug: "agent-one",
+			Org:  "stigmer",
 		}
 
 		// Create request context

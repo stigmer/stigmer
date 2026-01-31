@@ -101,25 +101,20 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv
 	// Use agent's name (matching Java implementation)
 	// Java: String agentSlug = agent.getMetadata().getName();
 	agentSlug := agent.GetMetadata().GetName()
-	ownerScope := agent.GetMetadata().GetOwnerScope()
+	agentOrg := agent.GetMetadata().GetOrg()
 
 	log.Info().
 		Str("agent_id", agentID).
 		Str("name", agentSlug).
-		Str("scope", ownerScope.String()).
+		Str("org", agentOrg).
 		Msg("Creating default instance for agent")
 
 	// 1. Build default instance request
 	defaultInstanceName := agentSlug + "-default"
 
 	metadataBuilder := &apiresource.ApiResourceMetadata{
-		Name:       defaultInstanceName,
-		OwnerScope: ownerScope,
-	}
-
-	// Copy org if org-scoped
-	if ownerScope == apiresource.ApiResourceOwnerScope_organization {
-		metadataBuilder.Org = agent.GetMetadata().GetOrg()
+		Name: defaultInstanceName,
+		Org:  agentOrg, // All resources belong to an org
 	}
 
 	instanceRequest := &agentinstancev1.AgentInstance{

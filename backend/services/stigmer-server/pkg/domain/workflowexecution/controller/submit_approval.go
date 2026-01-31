@@ -5,13 +5,13 @@ import (
 	"errors"
 
 	"github.com/rs/zerolog/log"
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // Context keys for inter-step communication
@@ -81,10 +81,10 @@ func (c *WorkflowExecutionController) SubmitApproval(ctx context.Context, input 
 func (c *WorkflowExecutionController) buildSubmitApprovalPipeline() *pipeline.Pipeline[*workflowexecutionv1.SubmitWorkflowApprovalInput] {
 	return pipeline.NewPipeline[*workflowexecutionv1.SubmitWorkflowApprovalInput]("workflow-execution-submit-approval").
 		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.SubmitWorkflowApprovalInput]()). // 1. Validate input
-		AddStep(newLoadExistingForWfApprovalStep(c.store)).                                     // 2. Load execution
-		AddStep(newValidateWfApprovalStep()).                                                   // 3. Validate approval
-		AddStep(newForwardToChildStep(c.agentExecutionClient)).                                 // 4. Forward to child
-		AddStep(newBuildWfApprovalResponseStep()).                                              // 5. Build response
+		AddStep(newLoadExistingForWfApprovalStep(c.store)).                                      // 2. Load execution
+		AddStep(newValidateWfApprovalStep()).                                                    // 3. Validate approval
+		AddStep(newForwardToChildStep(c.agentExecutionClient)).                                  // 4. Forward to child
+		AddStep(newBuildWfApprovalResponseStep()).                                               // 5. Build response
 		Build()
 }
 

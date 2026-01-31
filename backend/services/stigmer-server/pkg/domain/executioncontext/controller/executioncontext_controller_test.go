@@ -41,7 +41,7 @@ func TestExecutionContextController_Create(t *testing.T) {
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Test Execution Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "test-execution-id",
@@ -108,7 +108,7 @@ func TestExecutionContextController_Create(t *testing.T) {
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Secret Test Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "test-secret-execution-id",
@@ -142,7 +142,7 @@ func TestExecutionContextController_Create(t *testing.T) {
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Invalid Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				// execution_id is missing
@@ -195,7 +195,7 @@ func TestExecutionContextController_Create(t *testing.T) {
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Empty Data Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "empty-data-execution-id",
@@ -227,7 +227,7 @@ func TestExecutionContextController_Get(t *testing.T) {
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Get Test Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "get-test-execution-id",
@@ -294,7 +294,7 @@ func TestExecutionContextController_Delete(t *testing.T) {
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Delete Test Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "delete-test-execution-id",
@@ -359,7 +359,7 @@ func TestExecutionContextController_Delete(t *testing.T) {
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Delete Verify Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "verify-delete-execution-id",
@@ -414,7 +414,7 @@ func TestExecutionContextController_Delete(t *testing.T) {
 			Kind:       "ExecutionContext",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Secret Lifecycle Context",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &executioncontextv1.ExecutionContextSpec{
 				ExecutionId: "secret-lifecycle-id",
