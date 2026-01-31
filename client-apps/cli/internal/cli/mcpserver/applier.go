@@ -54,11 +54,6 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 		opts.McpServer.Metadata.Org = opts.OrgID
 	}
 
-	// Set owner scope to organization if not set
-	if opts.McpServer.Metadata.OwnerScope == apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified {
-		opts.McpServer.Metadata.OwnerScope = apiresource.ApiResourceOwnerScope_organization
-	}
-
 	// Dry run - just validate and return
 	if opts.DryRun {
 		if !opts.Quiet {

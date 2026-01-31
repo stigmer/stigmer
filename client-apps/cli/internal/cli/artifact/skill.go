@@ -14,7 +14,6 @@ import (
 
 	"github.com/pkg/errors"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/ignore"
 	"google.golang.org/grpc"
@@ -209,7 +208,6 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 
 	client := skillv1.NewSkillCommandControllerClient(opts.Conn)
 	response, err := client.Push(context.Background(), &skillv1.PushSkillRequest{
-		Scope:    apiresource.ApiResourceOwnerScope_organization,
 		Org:      opts.OrgID,
 		Artifact: zipBytes,
 		Tag:      tag,
@@ -330,7 +328,6 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 
 	client := skillv1.NewSkillCommandControllerClient(opts.Conn)
 	response, err := client.Push(context.Background(), &skillv1.PushSkillRequest{
-		Scope:    apiresource.ApiResourceOwnerScope_organization,
 		Org:      opts.OrgID,
 		Artifact: zipBytes,
 		Tag:      tag,

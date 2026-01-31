@@ -17,13 +17,341 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-01-30 08:12
-**Revised**: 2026-01-31 (Phase 3 Sub-Task 1 completed - Library Migration)
-**Current Task**: Phase 3 IN PROGRESS - Backend architectural refactoring
-**Status**: IN_PROGRESS - Phase 1 done, Phase 2 done, Phase 3 started (library migration complete)
+**Revised**: 2026-01-31 Evening (Phase 4 COMPLETE)
+**Current Task**: Phase 4 COMPLETE - All CLI updates done
+**Status**: Phase 1 done, Phase 2 done, Phase 3 done, Phase 4 COMPLETE (7 of 7 sub-tasks done)
 
 ## Session Progress (2026-01-31)
 
-### Latest Session (2026-01-31 Afternoon - Phase 3, Sub-Task 1: Library Migration)
+### Latest Session (2026-01-31 Late Evening - Phase 4 COMPLETE: CLI Scope Removal)
+
+**Accomplished - Phase 4: CLI Updates for org/slug Model (All 7 Sub-Tasks Complete)**
+
+Successfully completed all CLI updates to remove `ApiResourceOwnerScope` and implement the `org/slug` reference model:
+
+**Sub-Task 1: Reference Parsing Package** ✅
+- Created `client-apps/cli/pkg/reference/` package (5 new files)
+- `reference.go` (~200 lines) - Core parsing logic with Parse(), MustParse(), ID detection
+- `errors.go` (~50 lines) - ParseError type with context and Unwrap support
+- `reference_test.go` (~350 lines) - 25 comprehensive test cases (all passing)
+- `doc.go` - Full package documentation
+- `BUILD.bazel` - Bazel build configuration
+- Supports: `org/slug`, `org/slug@version`, slug-only (with context org), and ID detection
+- Handles all resource ID prefixes: `agt_`, `wf_`, `mcp-`, `skill_`, `agtexec_`, `wfexec_`, etc.
+- UUID detection for MCP servers
+
+**Sub-Task 2: Deployer & Applier Cleanup** ✅
+- `deployer.go`: Removed 4 `OwnerScope` defaulting blocks (8 locations total)
+  - Lines 244-245: Agent metadata in `deployAgent()`
+  - Lines 272-273: Workflow metadata in `deployWorkflow()`
+  - Lines 310-311: Agent metadata in `deployAgents()`
+  - Lines 353-354: Workflow metadata in `deployWorkflows()`
+- `applier.go`: Removed `OwnerScope` defaulting (2 locations)
+  - Lines 58-59: MCP server metadata defaulting removed
+
+**Sub-Task 3: Run Resolve Functions** ✅
+- `run_resolve.go`: Complete rewrite of resolution logic
+  - Added `pkg/reference` import
+  - Removed `strings` import (no longer needed)
+  - Added `errors` import for proper error wrapping
+  - `resolveAgent()`: Updated to use `reference.Parse()`, removed `Scope` field from `ApiResourceReference`
+  - `resolveWorkflow()`: Updated to use `reference.Parse()`, removed `Scope` field
+  - Both functions now support `org/slug`, slug-only, and ID formats
+  - Improved error messages with context wrapping
+
+**Sub-Task 4: MCP Server Commands** ✅
+- `mcpserver.go`: Updated get/delete commands
+  - Added `pkg/reference` import
+  - Updated help text: Removed mention of "platform, organization, and personal scopes"
+  - New help text: "Referenced by org/slug format (e.g., stigmer/github)"
+  - Get command: Updated to use `reference.Parse()`, removed `Scope` field
+  - Delete command: Updated to use `reference.Parse()`, removed `Scope` field
+  - Removed local `isResourceID()` and `isUUID()` helper functions (now in `pkg/reference`)
+  - Display output: Removed `Owner Scope` field from table format
+
+**Sub-Task 5: Skill Push** ✅
+- `skill.go`: Removed `Scope` field from `PushSkillRequest`
+  - Line 212: Local push request (removed `Scope` field)
+  - Line 333: Git push request (removed `Scope` field)
+  - Removed unused `apiresource` import
+
+**Sub-Task 6: Run Create** ✅
+- `run_create.go`: Removed `OwnerScope` from execution metadata
+  - Line 35: Agent execution metadata (removed `OwnerScope` field)
+  - Line 72: Workflow execution metadata (removed `OwnerScope` field)
+  - Cleaned up metadata initialization to only include `Name` and `Org`
+
+**Sub-Task 7: Final Verification** ✅
+- All CLI packages build successfully
+- All tests pass (25 tests in `pkg/reference`, plus all existing tests)
+- Created comprehensive changelog: `_changelog/2026-01/2026-01-31-170739-cli-scope-removal.md`
+- Verified no scope references remain in CLI codebase
+
+**Files Changed:**
+- **New**: 5 files in `client-apps/cli/pkg/reference/`
+- **Modified**: 7 CLI files
+  - `internal/cli/deploy/deployer.go` (-16 lines)
+  - `internal/cli/mcpserver/applier.go` (-4 lines)
+  - `internal/cli/artifact/skill.go` (-4 lines, -1 import)
+  - `cmd/stigmer/root/run_resolve.go` (~20 lines changed)
+  - `cmd/stigmer/root/mcpserver.go` (~30 lines changed, help text updated)
+  - `cmd/stigmer/root/run_create.go` (-4 lines)
+
+**Total Impact:**
+- Lines added: ~600 (mostly new reference package with tests)
+- Lines removed: ~50 (scope-related code)
+- Net change: +550 lines (high-quality foundation code)
+
+**Verification:**
+- `go build ./pkg/reference/...` ✅
+- `go build ./internal/cli/deploy/...` ✅
+- `go build ./internal/cli/mcpserver/...` ✅
+- `go build ./internal/cli/artifact/...` ✅
+- `go test ./pkg/reference/...` ✅ (25/25 tests pass)
+- `go test ./internal/cli/...` ✅ (all tests pass)
+
+**Known Limitation:**
+- Go backend services (`backend/services/stigmer-server/`, `backend/services/workflow-runner/`) still have `ApiResourceOwnerScope` references
+- These services don't compile currently
+- Tracked as separate task: "Go Backend Scope Cleanup"
+- CLI is isolated and fully functional
+
+**Phase 4 Status:** ✅ COMPLETE - All 7 sub-tasks done, CLI fully updated for org/slug model
+
+---
+
+### Previous Session (2026-01-31 Evening - Phase 3 COMPLETE: Sub-Task 2 Handler Cleanup)
+
+**Accomplished - Phase 3, Sub-Task 2: Remove ApiResourceOwnerScope from Create Handlers**
+
+Removed all `ApiResourceOwnerScope` references from domain handlers, completing Phase 3:
+
+**Files Modified (10 files)**:
+1. AgentCreateHandler.java - Simplified CreateDefaultInstance step
+2. WorkflowCreateHandler.java - Simplified CreateDefaultInstance step
+3. SkillPushHandler.java - Simplified UpdateSkillState step
+4. McpServerCreateHandler.java - Simplified AuthorizeCreation to org-only
+5. AgentInstanceCreateHandler.java - Simplified business rules and authorization
+6. WorkflowInstanceCreateHandler.java - Same simplifications as AgentInstance
+7. AgentExecutionCreateHandler.java - Simplified instance/session creation
+8. WorkflowExecutionCreateHandler.java - Same simplifications
+9. agentexecution/CreateExecutionContextStep.java - Removed scope import/usage
+10. workflowexecution/CreateExecutionContextStep.java - Same removal
+
+**Documentation Deleted**:
+- `CONTEXTUAL_TUPLES_PATTERN.md` (225 lines) - Obsolete pattern documentation
+
+**Impact**: Zero `ApiResourceOwnerScope` references remain in domain handlers.
+
+---
+
+### Previous Session (2026-01-31 Late Afternoon - Phase 3, Sub-Task 7: Migration Cleanup)
+
+**Accomplished - Phase 3, Sub-Task 7: Clean Up Migration/Index Files**
+
+Cleaned the database migration file to remove all `owner_scope` references and align with current repository implementation:
+
+**Changes Made:**
+
+1. **U20260125_SkillAuditIndexes.java** - Comprehensive cleanup:
+   - Removed `ownerScope` field from document structure documentation
+   - Removed indexes #6 and #7 (platform-scoped indexes with no repository methods)
+   - Removed 2 index name constants (`IDX_OWNER_SCOPE_SLUG_VERSION_HASH`, `IDX_OWNER_SCOPE_SLUG_TAG_ARCHIVED_AT`)
+   - Updated query method coverage table (removed 2 deprecated methods)
+   - Removed rollback code for deleted indexes
+   - Total reduction: 35 lines
+
+2. **Architecture Decision: Fresh Migration**
+   - No separate "drop" migration created (clean slate deployment)
+   - Migration creates exactly 5 indexes that match repository methods
+   - Zero references to `owner_scope` or `ownerScope`
+   - Perfect alignment between migration and `SkillAuditRepo`
+
+**Final Index Schema (5 indexes)**:
+
+| # | Index | Repository Methods |
+|---|-------|-------------------|
+| 1 | `skillId + archivedAt` | `findAllBySkillId`, `deleteBySkillId` |
+| 2 | `skillId + versionHash` | `findBySkillIdAndVersionHash` |
+| 3 | `skillId + tag + archivedAt` | `findMostRecentBySkillIdAndTag` |
+| 4 | `org + slug + versionHash` | `findByOrgAndSlugAndVersionHash` |
+| 5 | `org + slug + tag + archivedAt` | `findMostRecentByOrgAndSlugAndTag` |
+
+**Key Benefits:**
+- Clean migration for fresh database deployments
+- 100% index-to-method alignment (no orphaned indexes)
+- 28% reduction in index count (7 → 5 indexes)
+- Documentation accuracy restored
+
+**Verification:**
+- Java syntax validated ✅
+- No linter errors ✅
+- Migration file clean and production-ready ✅
+
+**Changelog Created:**
+- `stigmer-cloud/_changelog/2026-01/2026-01-31-163241-database-migration-cleanup-owner-scope-removal.md`
+
+**Files Changed (stigmer-cloud repo):**
+- Modified: 1 file (`U20260125_SkillAuditIndexes.java`)
+- Lines removed: 35
+
+**Phase 3 Progress:**
+- ✅ Sub-Task 7 Complete (Migration cleanup)
+- ⏳ Sub-Task 2 Remaining (Update create handlers)
+
+### Previous Session (2026-01-31 Evening - Phase 3, Sub-Task 8)
+
+**Accomplished - Phase 3, Sub-Task 8: Verify Test Files**
+
+Verified that all test files in stigmer-cloud are already updated for the org-only ownership model:
+
+**Status**: ✅ Already Complete (no changes needed)
+
+**Test Files Verified (12 total)**:
+1. **SkillVersionResolutionIntegrationTest.java** - Uses `findByOrgAndSlug` pattern
+2. **McpEnvironmentValidatorTest.java** - Uses `findByOrgAndSlug` pattern
+3. **SystemActivitiesImplTest.java** - No scope references
+4. **EnvironmentMergeServiceTest.java** - No scope references
+5. **NotifyParentActivitiesImplTest.java** - No scope references
+6. **SkillGetArtifactHandlerTest.java** - No scope references
+7. **WorkflowExecutionSubmitApprovalHandlerTest.java** - No scope references
+8. **EnvironmentEncryptionIntegrationTest.java** - No scope references
+9. **AgentExecutionSubmitApprovalHandlerTest.java** - No scope references
+10. **InvokeAgentExecutionWorkflowSignalTest.java** - No scope references
+11. **EnvironmentSecretServiceTest.java** - No scope references
+12. **WorkflowExecutionUpdateStatusHandlerTest.java** - No scope references
+
+**Key Findings**:
+- Zero references to `findByOwnerScopeAndSlug` in test directory
+- Zero references to `OwnerScope` or `ownerScope` in test directory
+- All tests already use `findByOrgAndSlug(org, slug)` pattern
+- Test files were updated during earlier Sub-Task 3 (repository cleanup)
+
+---
+
+### Previous Session (2026-01-31 Evening - Phase 3, Sub-Tasks 4 & 6)
+
+**Accomplished - Phase 3, Sub-Task 4: Verify GetByReference Handlers**
+
+Verified that all three GetByReference handlers were already updated for the org-only ownership model:
+
+**Status**: ✅ Already Complete (no changes needed)
+
+**Handlers Verified**:
+1. **SkillGetByReferenceHandler.java** (242 lines)
+   - Uses `findByOrgAndSlug(org, slug)` for lookups
+   - Requires `org` field in reference (returns INVALID_ARGUMENT if missing)
+   - Supports version resolution (hash/tag/latest)
+   - Pure FGA authorization via `RequestAuthorizationService`
+
+2. **McpServerGetByReferenceHandler.java** (180 lines)
+   - Uses `findByOrgAndSlug(org, slug)` for lookups
+   - Validates org is required (org-only model)
+   - No version support (MCP servers don't have versions)
+   - Pure FGA authorization
+
+3. **WorkflowInstanceGetByReferenceHandler.java** (165 lines)
+   - Uses `findByOrgAndSlug(org, slug)` for lookups
+   - Requires org in reference
+   - Pure FGA authorization
+
+**Key Findings**:
+- All handlers use `repo.findByOrgAndSlug(org, slug)` pattern
+- All validate that `org` field is provided
+- No scope-based resolution logic remaining
+- All perform pure FGA authorization (no application-level bypasses)
+- Repositories already have `findByOrgAndSlug()` methods implemented
+
+**Accomplished - Phase 3, Sub-Task 6: Clean Up Authorization Infrastructure**
+
+Removed all platform scope checking logic from the authorization layer:
+
+**Files Modified**:
+1. **AuthorizeRequestStepV2.java**
+   - Removed 92 lines (172 → 80 lines, 53% reduction)
+   - Deleted entire `checkPlatformScopedResource()` method
+   - Removed 6 unnecessary imports
+   - Eliminated reflection-based `owner_scope` field detection
+
+2. **platform-scoped-authorization.md**
+   - Deleted obsolete documentation file (289 lines)
+
+**Total Impact**: 380 lines of code deleted
+
+**Before/After**:
+- **Before**: Dual authorization paths - proto annotations OR platform operator check (runtime reflection)
+- **After**: Single authorization path - purely proto annotation driven
+
+**Key Improvements**:
+- Eliminated reflection overhead on every authorization check
+- Removed conditional branching based on runtime field inspection
+- Simplified mental model - only one authorization mechanism
+- Consistent with org-only ownership model
+- No hidden behavior based on field presence
+
+**Changelog Created**:
+- `_changelog/2026-01/2026-01-31-162640-authorization-cleanup-platform-scope-removal.md` (534 lines)
+
+## Session Progress (2026-01-31)
+
+### Latest Session (2026-01-31 Late Afternoon - Phase 3, Sub-Task 7: Migration Cleanup)
+
+**Accomplished - Phase 3, Sub-Task 7: Clean Up Migration/Index Files**
+
+Cleaned the database migration file to remove all `owner_scope` references and align with current repository implementation:
+
+**Changes Made:**
+
+1. **U20260125_SkillAuditIndexes.java** - Comprehensive cleanup:
+   - Removed `ownerScope` field from document structure documentation
+   - Removed indexes #6 and #7 (platform-scoped indexes with no repository methods)
+   - Removed 2 index name constants (`IDX_OWNER_SCOPE_SLUG_VERSION_HASH`, `IDX_OWNER_SCOPE_SLUG_TAG_ARCHIVED_AT`)
+   - Updated query method coverage table (removed 2 deprecated methods)
+   - Removed rollback code for deleted indexes
+   - Total reduction: 35 lines
+
+2. **Architecture Decision: Fresh Migration**
+   - No separate "drop" migration created (clean slate deployment)
+   - Migration creates exactly 5 indexes that match repository methods
+   - Zero references to `owner_scope` or `ownerScope`
+   - Perfect alignment between migration and `SkillAuditRepo`
+
+**Final Index Schema (5 indexes)**:
+
+| # | Index | Repository Methods |
+|---|-------|-------------------|
+| 1 | `skillId + archivedAt` | `findAllBySkillId`, `deleteBySkillId` |
+| 2 | `skillId + versionHash` | `findBySkillIdAndVersionHash` |
+| 3 | `skillId + tag + archivedAt` | `findMostRecentBySkillIdAndTag` |
+| 4 | `org + slug + versionHash` | `findByOrgAndSlugAndVersionHash` |
+| 5 | `org + slug + tag + archivedAt` | `findMostRecentByOrgAndSlugAndTag` |
+
+**Key Benefits:**
+- Clean migration for fresh database deployments
+- 100% index-to-method alignment (no orphaned indexes)
+- 28% reduction in index count (7 → 5 indexes)
+- Documentation accuracy restored
+
+**Verification:**
+- Java syntax validated ✅
+- No linter errors ✅
+- Migration file clean and production-ready ✅
+
+**Changelog Created:**
+- `_changelog/2026-01/2026-01-31-163241-database-migration-cleanup-owner-scope-removal.md`
+
+**Files Changed (stigmer-cloud repo):**
+- Modified: 1 file (`U20260125_SkillAuditIndexes.java`)
+- Lines removed: 35
+
+**Phase 3 Progress:**
+- ✅ Sub-Task 7 Complete (Migration cleanup)
+- ⏳ Sub-Task 2 Pending (Update create handlers)
+- ⏳ Sub-Task 8 Pending (Update tests)
+
+## Session Progress (2026-01-31) - Earlier
+
+### Session (2026-01-31 Afternoon - Phase 3, Sub-Task 1: Library Migration)
 
 **Accomplished - Phase 3, Sub-Task 1: Migrate IAM Policy Creation to Libraries**
 
@@ -503,13 +831,41 @@ All proto changes implemented and validated:
 4. **Phase 4**: CLI updates (remove --scope flags) - PENDING
 5. **Phase 5**: Documentation (migration guide) - PENDING
 
-## Next Steps (Immediate - Phase 3)
+## Next Steps (Immediate - Phase 3 Remaining Work)
 
-**Ready to continue**: Phase 3 - Backend Changes (stigmer-cloud repo)
+**Current Status**: Phase 3 is ~60% complete (6 of 8 sub-tasks done)
 
-Now that all SDK changes are complete, the next phase involves updating the backend services in the `stigmer-cloud` repository:
+**Remaining Work** (stigmer-cloud repo):
 
-### Phase 3 Sub-Tasks:
+### Phase 3 Sub-Tasks (Updated Status):
+
+#### ✅ Completed (7 of 8):
+
+1. ✅ **Sub-Task 1**: Create IamPolicyCreationService for centralized tuple creation
+2. ✅ **Sub-Task 3**: Remove findByOwnerScopeAndSlug methods from repositories  
+3. ✅ **Sub-Task 4**: Update GetByReference handlers (already done, verified)
+4. ✅ **Sub-Task 5**: Implement FGA-native public visibility (wildcard tuples)
+5. ✅ **Sub-Task 6**: Remove owner_scope checking from AuthorizeRequestStepV2
+6. ✅ **Sub-Task 7**: Update database indexes in migration files
+7. ✅ **Sub-Task 8**: Update test files - verified all 12 test files already clean
+
+#### ⏳ Remaining (1 of 8):
+
+1. **Sub-Task 2**: Update create handlers to remove `OwnerScope` references
+   - Status: **NEXT IMMEDIATE TASK**
+   - Files: 8 handler files still have `ApiResourceOwnerScope` imports:
+     - AgentCreateHandler.java
+     - WorkflowCreateHandler.java
+     - SkillPushHandler.java
+     - McpServerCreateHandler.java
+     - AgentInstanceCreateHandler.java
+     - WorkflowInstanceCreateHandler.java
+     - AgentExecutionCreateHandler.java
+     - WorkflowExecutionCreateHandler.java
+   - Also: 2 CreateExecutionContextStep files
+   - Impact: Clean up remaining scope references in create handlers
+
+### Original Phase 3 Plan Reference:
 
 1. **Update FGA Authorization Model** (stigmer-cloud repo)
    - Remove scope-based relations from FGA schema
@@ -540,7 +896,38 @@ Now that all SDK changes are complete, the next phase involves updating the back
 
 **What You Need to Know:**
 
-1. **Phase 2 is COMPLETE - Entire SDK Cleanup Done:**
+### Latest Session (2026-01-31 Evening)
+
+**Completed Today**:
+1. ✅ **Sub-Task 8**: Verified all 12 test files in stigmer-cloud are clean (no changes needed)
+   - Zero references to `findByOwnerScopeAndSlug` in test directory
+   - Zero references to `OwnerScope` or `ownerScope` in test directory
+   - All tests already use `findByOrgAndSlug(org, slug)` pattern
+
+**Phase 3 Progress**: 7 of 8 sub-tasks complete (~90%)
+
+**Next Immediate Task**: Sub-Task 2 - Update Create Handlers (FINAL TASK)
+- 8 handler files still reference `ApiResourceOwnerScope`:
+  - AgentCreateHandler.java
+  - WorkflowCreateHandler.java
+  - SkillPushHandler.java
+  - McpServerCreateHandler.java
+  - AgentInstanceCreateHandler.java
+  - WorkflowInstanceCreateHandler.java
+  - AgentExecutionCreateHandler.java
+  - WorkflowExecutionCreateHandler.java
+- Also: 2 CreateExecutionContextStep files
+- Need to remove scope-based logic and imports
+
+### Overall Project Status
+
+1. **Phase 1 COMPLETE - Proto Layer:**
+   - ✅ Removed `ApiResourceOwnerScope` enum
+   - ✅ Added `ApiResourceVisibility` enum
+   - ✅ Updated all proto files
+   - ✅ Regenerated stubs
+
+2. **Phase 2 COMPLETE - Entire SDK Cleanup Done:**
    - ✅ `sdk/go/skill/` - Full org/slug API with versioning support
    - ✅ `sdk/go/mcpserver/` - Full org/slug API without versioning
    - ✅ `sdk/go/agent/` - Smart parsing methods (AddSkill, UseMCP, Try* variants)
@@ -578,18 +965,85 @@ Now that all SDK changes are complete, the next phase involves updating the back
    err = sub.TryAddSkill(userInput)
    ```
 
-4. **Next Phase (Phase 3) requires switching to stigmer-cloud repo:**
-   - Backend services are in `stigmer-cloud/backend/` (Java)
-   - FGA model is in `stigmer-cloud/_ops/planton/fga/`
-   - Proto stubs already regenerated in Phase 1
-   - Need to update service layer to use `Visibility` instead of `OwnerScope`
+3. **Phase 3 COMPLETE - Backend Cleanup:**
+   - ✅ Sub-Task 1: IamPolicyCreationService created
+   - ✅ Sub-Task 2: Update Create Handlers
+   - ✅ Sub-Task 3: Repository cleanup (findByOwnerScopeAndSlug removed)
+   - ✅ Sub-Task 4: GetByReference handlers verified
+   - ✅ Sub-Task 5: FGA-native visibility implemented
+   - ✅ Sub-Task 6: Authorization cleanup
+   - ✅ Sub-Task 7: Migration indexes updated
+   - ✅ Sub-Task 8: Test files verified clean (no changes needed)
 
-5. **Uncommitted Work - Ready to commit:**
-   - 59 files modified (+1,433, -1,118 lines)
-   - 5 files deleted (deprecated packages)
-   - 1 comprehensive changelog created
-   - All changes verified and tested
-   - **Recommended**: Commit before starting Phase 3 (different repo)
+4. **Phase 4 COMPLETE - CLI Updates:**
+   - ✅ Sub-Task 1: Created reference parsing package (pkg/reference/)
+   - ✅ Sub-Task 2: Fixed deployer.go and applier.go
+   - ✅ Sub-Task 3: Fixed run_resolve.go
+   - ✅ Sub-Task 4: Fixed mcpserver.go
+   - ✅ Sub-Task 5: Fixed skill.go
+   - ✅ Sub-Task 6: Fixed run_create.go
+   - ✅ Sub-Task 7: Documentation and verification complete
+   - ✅ All CLI packages build successfully
+   - ✅ All tests pass (25 new tests in reference package)
+
+## Next Steps - Phase 5: Documentation
+
+With Phase 4 complete, the next phase is documentation updates:
+
+1. **Update Migration Guide**
+   - Document the org/slug model
+   - Provide examples of updating existing code
+   - Explain breaking changes and migration path
+   - Document new reference parsing package
+
+2. **Update CLI Documentation**
+   - Update command examples to show org/slug format
+   - Document reference resolution behavior
+   - Add examples for different reference formats
+
+3. **Create Architecture Documentation**
+   - Document the new ownership model
+   - Explain visibility vs ownership
+   - Document FGA authorization patterns
+
+## Uncommitted Work
+
+**Current changes in stigmer repo:**
+- 7 CLI files modified (scope removal)
+- 5 new files in `pkg/reference/`
+- 1 new changelog created
+- Several other files modified (not CLI-related, from previous sessions)
+
+**Status**: Ready for commit - all work complete and tested
+
+## Blockers
+
+**Go Backend Compilation:**
+- `backend/services/stigmer-server/` has scope references (not compiling)
+- `backend/services/workflow-runner/` has scope references (not compiling)
+- This is **out of scope** for Phase 4 (CLI-only)
+- Should be tracked as separate task: "Go Backend Scope Cleanup"
+- Does NOT block CLI functionality or Phase 5 documentation
+
+## Resume Instructions
+
+**To continue this project:**
+
+1. **Drag this file into chat**:
+   ```
+   @_projects/2026-01/20260130.01.api-resource-scope-redesign/next-task.md
+   ```
+
+2. **Commit current work first**:
+   ```
+   @commit-stigmer-oss-changes
+   ```
+
+3. **Start Phase 5** (documentation):
+   - Create migration guide for org/slug model
+   - Update CLI docs with new examples
+   - Document reference parsing package
+   - Create architecture docs for new ownership model
 
 ## Essential Files to Review
 
@@ -628,4 +1082,16 @@ Now that all SDK changes are complete, the next phase involves updating the back
 
 ## Session Notes
 
-**Latest session was exceptionally comprehensive** - completed all 4 remaining Phase 2 sub-tasks in a single focused session. This represents a complete SDK overhaul touching 59 files across examples, tests, generated code, schemas, and documentation. The SDK is now in a clean, modern state ready for Phase 3 backend work.
+**Phase 4 Complete (2026-01-31 Late Evening):**
+
+This session completed all CLI updates in a single focused execution:
+- Created world-class reference parsing package with 25 comprehensive tests
+- Removed all 18 `ApiResourceOwnerScope` references from CLI codebase
+- Updated all resource resolution functions to use new parser
+- CLI now fully supports org/slug model
+- All CLI packages build successfully
+- All tests pass
+
+**Key Accomplishment:** The CLI is now completely independent of the old scope model and uses a clean, modern `org/slug` reference system. The new `pkg/reference` package provides a reusable, well-tested foundation for parsing resource references throughout the CLI.
+
+**Next Session:** Focus on Phase 5 (documentation) to capture migration guides and architecture docs for the new ownership model.
