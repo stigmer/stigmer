@@ -291,7 +291,9 @@ type ApiResourceKindMeta struct {
 	// Flag to indicate if the api-resource-kind is not searchable
 	NotSearchIndexed bool `protobuf:"varint,7,opt,name=not_search_indexed,json=notSearchIndexed,proto3" json:"not_search_indexed,omitempty"`
 	// Defines availability context - whether resource is available in open source or cloud only
-	Tier          ResourceTier `protobuf:"varint,8,opt,name=tier,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier" json:"tier,omitempty"`
+	Tier ResourceTier `protobuf:"varint,8,opt,name=tier,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier" json:"tier,omitempty"`
+	// FGA authorization configuration - defines how FGA tuples are created for this resource
+	Authorization *AuthorizationConfig `protobuf:"bytes,9,opt,name=authorization,proto3" json:"authorization,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -382,6 +384,13 @@ func (x *ApiResourceKindMeta) GetTier() ResourceTier {
 	return ResourceTier_TIER_UNSPECIFIED
 }
 
+func (x *ApiResourceKindMeta) GetAuthorization() *AuthorizationConfig {
+	if x != nil {
+		return x.Authorization
+	}
+	return nil
+}
+
 var file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.EnumValueOptions)(nil),
@@ -403,7 +412,7 @@ var File_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto 
 
 const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto_rawDesc = "" +
 	"\n" +
-	"Fai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1aGai/stigmer/commons/apiresource/apiresourcekind/api_resource_group.proto\x1a google/protobuf/descriptor.proto\"\xc2\x03\n" +
+	"Fai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1aGai/stigmer/commons/apiresource/apiresourcekind/api_resource_group.proto\x1aIai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x1a google/protobuf/descriptor.proto\"\xad\x04\n" +
 	"\x13ApiResourceKindMeta\x12V\n" +
 	"\x05group\x18\x01 \x01(\x0e2@.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceGroupR\x05group\x12\\\n" +
 	"\aversion\x18\x02 \x01(\x0e2B.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceVersionR\aversion\x12\x12\n" +
@@ -412,7 +421,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\tid_prefix\x18\x05 \x01(\tR\bidPrefix\x12!\n" +
 	"\fis_versioned\x18\x06 \x01(\bR\visVersioned\x12,\n" +
 	"\x12not_search_indexed\x18\a \x01(\bR\x10notSearchIndexed\x12P\n" +
-	"\x04tier\x18\b \x01(\x0e2<.ai.stigmer.commons.apiresource.apiresourcekind.ResourceTierR\x04tier*B\n" +
+	"\x04tier\x18\b \x01(\x0e2<.ai.stigmer.commons.apiresource.apiresourcekind.ResourceTierR\x04tier\x12i\n" +
+	"\rauthorization\x18\t \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfigR\rauthorization*B\n" +
 	"\x12ApiResourceVersion\x12$\n" +
 	" api_resource_version_unspecified\x10\x00\x12\x06\n" +
 	"\x02v1\x10\x01*O\n" +
@@ -422,35 +432,40 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x0fTIER_CLOUD_ONLY\x10\x02*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\x8f\t\n" +
+	"\astigmer\x10\x01*\xe8\n" +
+	"\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
-	"\x19api_resource_kind_unknown\x10\x00\x12U\n" +
-	"\x14api_resource_version\x10\x01\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02\x129\n" +
+	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
+	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
 	"\n" +
 	"iam_policy\x10\n" +
-	"\x1a)\xaa\xff+%\b\x02\x10\x01\x1a\tIamPolicy\"\n" +
-	"IAM Policy*\x04iamp8\x01@\x02\x12H\n" +
-	"\x10identity_account\x10\v\x1a2\xaa\xff+.\b\x02\x10\x01\x1a\x0fIdentityAccount\"\x10Identity Account*\x03ida@\x02\x12/\n" +
-	"\aapi_key\x10\f\x1a\"\xaa\xff+\x1e\b\x02\x10\x01\x1a\x06ApiKey\"\aAPI Key*\x03key8\x01@\x02\x129\n" +
+	"\x1a/\xaa\xff++\b\x02\x10\x01\x1a\tIamPolicy\"\n" +
+	"IAM Policy*\x04iamp8\x01@\x02J\x04\b\x02\x10\x01\x12N\n" +
+	"\x10identity_account\x10\v\x1a8\xaa\xff+4\b\x02\x10\x01\x1a\x0fIdentityAccount\"\x10Identity Account*\x03ida@\x02J\x04\b\x01\x10\x03\x125\n" +
+	"\aapi_key\x10\f\x1a(\xaa\xff+$\b\x02\x10\x01\x1a\x06ApiKey\"\aAPI Key*\x03key8\x01@\x02J\x04\b\x04\x10\x01\x12?\n" +
 	"\n" +
-	"credential\x10\x14\x1a)\xaa\xff+%\b\x02\x10\x01\x1a\n" +
+	"credential\x10\x14\x1a/\xaa\xff++\b\x02\x10\x01\x1a\n" +
 	"Credential\"\n" +
-	"Credential*\x03crd8\x01@\x02\x12=\n" +
-	"\forganization\x10\x1e\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x02\x123\n" +
-	"\bplatform\x10\x1f\x1a%\xaa\xff+!\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x02\x12(\n" +
-	"\x05agent\x10(\x1a\x1d\xaa\xff+\x19\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt@\x01\x12E\n" +
-	"\x0fagent_execution\x10)\x1a0\xaa\xff+,\b\x01\x10\x01\x1a\x0eAgentExecution\"\x0fAgent Execution*\x03aex@\x01\x12.\n" +
-	"\asession\x10*\x1a!\xaa\xff+\x1d\b\x01\x10\x01\x1a\aSession\"\aSession*\x03ses@\x01\x12*\n" +
-	"\x05skill\x10+\x1a\x1f\xaa\xff+\x1b\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01\x126\n" +
+	"Credential*\x03crd8\x01@\x02J\x04\b\x05\x10\x04\x12C\n" +
+	"\forganization\x10\x1e\x1a1\xaa\xff+-\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x02J\x04\b\x01\x10\x01\x129\n" +
+	"\bplatform\x10\x1f\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x02J\x04\b\x05\x10\x04\x122\n" +
+	"\x05agent\x10(\x1a'\xaa\xff+#\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12k\n" +
+	"\x0fagent_execution\x10)\x1aV\xaa\xff+R\b\x01\x10\x01\x1a\x0eAgentExecution\"\x0fAgent Execution*\x03aex@\x01J$\b\x03\x10\x02\x1a\x1e\n" +
+	"\asession\x12\asession\x1a\n" +
+	"session_id\x124\n" +
+	"\asession\x10*\x1a'\xaa\xff+#\b\x01\x10\x01\x1a\aSession\"\aSession*\x03ses@\x01J\x04\b\x02\x10\x01\x124\n" +
+	"\x05skill\x10+\x1a)\xaa\xff+%\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12@\n" +
 	"\n" +
-	"mcp_server\x10,\x1a&\xaa\xff+\"\b\x01\x10\x01\x1a\tMcpServer\"\n" +
-	"MCP Server*\x03mcp@\x01\x12B\n" +
-	"\x0eagent_instance\x10-\x1a.\xaa\xff+*\b\x01\x10\x01\x1a\rAgentInstance\"\x0eAgent Instance*\x03ain@\x01\x121\n" +
-	"\bworkflow\x102\x1a#\xaa\xff+\x1f\b\x01\x10\x01\x1a\bWorkflow\"\bWorkflow*\x03wfl@\x01\x12K\n" +
-	"\x11workflow_instance\x103\x1a4\xaa\xff+0\b\x01\x10\x01\x1a\x10WorkflowInstance\"\x11Workflow Instance*\x03win@\x01\x12N\n" +
-	"\x12workflow_execution\x104\x1a6\xaa\xff+2\b\x01\x10\x01\x1a\x11WorkflowExecution\"\x12Workflow Execution*\x03wex@\x01\x12:\n" +
-	"\venvironment\x105\x1a)\xaa\xff+%\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01\x12L\n" +
-	"\x11execution_context\x106\x1a5\xaa\xff+1\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04exec@\x01:\x85\x01\n" +
+	"mcp_server\x10,\x1a0\xaa\xff+,\b\x01\x10\x01\x1a\tMcpServer\"\n" +
+	"MCP Server*\x03mcp@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12b\n" +
+	"\x0eagent_instance\x10-\x1aN\xaa\xff+J\b\x01\x10\x01\x1a\rAgentInstance\"\x0eAgent Instance*\x03ain@\x01J\x1e\b\x02\x10\x01\"\x18\n" +
+	"\x05agent\x12\x05agent\x1a\bagent_id\x12;\n" +
+	"\bworkflow\x102\x1a-\xaa\xff+)\b\x01\x10\x01\x1a\bWorkflow\"\bWorkflow*\x03wfl@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12t\n" +
+	"\x11workflow_instance\x103\x1a]\xaa\xff+Y\b\x01\x10\x01\x1a\x10WorkflowInstance\"\x11Workflow Instance*\x03win@\x01J'\b\x02\x10\x01\"!\n" +
+	"\bworkflow\x12\bworkflow\x1a\vworkflow_id\x12T\n" +
+	"\x12workflow_execution\x104\x1a<\xaa\xff+8\b\x01\x10\x01\x1a\x11WorkflowExecution\"\x12Workflow Execution*\x03wex@\x01J\x04\b\x02\x10\x01\x12@\n" +
+	"\venvironment\x105\x1a/\xaa\xff++\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01J\x04\b\x02\x10\x01\x12R\n" +
+	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04exec@\x01J\x04\b\x05\x10\x04:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x81\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZWgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
 
@@ -475,19 +490,21 @@ var file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto_
 	(ApiResourceKind)(0),                  // 3: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
 	(*ApiResourceKindMeta)(nil),           // 4: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMeta
 	(ApiResourceGroup)(0),                 // 5: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceGroup
-	(*descriptorpb.EnumValueOptions)(nil), // 6: google.protobuf.EnumValueOptions
+	(*AuthorizationConfig)(nil),           // 6: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig
+	(*descriptorpb.EnumValueOptions)(nil), // 7: google.protobuf.EnumValueOptions
 }
 var file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto_depIdxs = []int32{
 	5, // 0: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMeta.group:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceGroup
 	0, // 1: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMeta.version:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceVersion
 	1, // 2: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMeta.tier:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier
-	6, // 3: ai.stigmer.commons.apiresource.apiresourcekind.kind_meta:extendee -> google.protobuf.EnumValueOptions
-	4, // 4: ai.stigmer.commons.apiresource.apiresourcekind.kind_meta:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMeta
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	4, // [4:5] is the sub-list for extension type_name
-	3, // [3:4] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	6, // 3: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMeta.authorization:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig
+	7, // 4: ai.stigmer.commons.apiresource.apiresourcekind.kind_meta:extendee -> google.protobuf.EnumValueOptions
+	4, // 5: ai.stigmer.commons.apiresource.apiresourcekind.kind_meta:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMeta
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	5, // [5:6] is the sub-list for extension type_name
+	4, // [4:5] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto_init() }
@@ -496,6 +513,7 @@ func file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto
 		return
 	}
 	file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group_proto_init()
+	file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "api_resource_group.pb.go",
         "api_resource_kind.pb.go",
+        "authorization_config.pb.go",
     ],
     importpath = "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
     visibility = ["//visibility:public"],

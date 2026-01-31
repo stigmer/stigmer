@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.commons.apiresource.apiresourcekind;
 
 import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group.proto";
+import "ai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto";
 import "google/protobuf/descriptor.proto";
 
 option java_outer_classname = "ApiResourceKindOuterClass";
@@ -53,6 +54,8 @@ message ApiResourceKindMeta {
   bool not_search_indexed = 7;
   // Defines availability context - whether resource is available in open source or cloud only
   ResourceTier tier = 8;
+  // FGA authorization configuration - defines how FGA tuples are created for this resource
+  AuthorizationConfig authorization = 9;
 }
 
 // API resource kinds for Stigmer
@@ -69,6 +72,10 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: true
     tier: TIER_CLOUD_ONLY
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_NONE
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+    }
   }];
 
   // IAM - Identity and Access Management
@@ -81,6 +88,10 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: true
     tier: TIER_CLOUD_ONLY
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+    }
   }];
 
   identity_account = 11 [(kind_meta) = {
@@ -92,6 +103,10 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: false
     tier: TIER_CLOUD_ONLY
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_PLATFORM
+      owner_type: OWNER_ATTRIBUTION_TYPE_SELF
+    }
   }];
 
   api_key = 12 [(kind_meta) = {
@@ -103,6 +118,10 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: true
     tier: TIER_CLOUD_ONLY
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+    }
   }];
 
   // IAM - Credential and connection management
@@ -115,6 +134,10 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: true
     tier: TIER_CLOUD_ONLY
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_NONE
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+    }
   }];
 
   // Tenancy - Platform and organizational resources
@@ -127,6 +150,10 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: false
     tier: TIER_CLOUD_ONLY
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_PLATFORM
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+    }
   }];
 
   platform = 31 [(kind_meta) = {
@@ -138,6 +165,10 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: true
     tier: TIER_CLOUD_ONLY
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_NONE
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+    }
   }];
 
   // Agentic - AI agent management
@@ -150,6 +181,11 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: false
     tier: TIER_OPEN_SOURCE
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      visibility: {supports_public: true}
+    }
   }];
 
   agent_execution = 41 [(kind_meta) = {
@@ -161,6 +197,15 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: false
     tier: TIER_OPEN_SOURCE
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_PARENT
+      owner_type: OWNER_ATTRIBUTION_TYPE_INHERITED
+      parent: {
+        kind: "session"
+        relation: "session"
+        spec_field: "session_id"
+      }
+    }
   }];
 
   session = 42 [(kind_meta) = {
@@ -172,6 +217,10 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: false
     tier: TIER_OPEN_SOURCE
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+    }
   }];
 
   skill = 43 [(kind_meta) = {
@@ -183,6 +232,11 @@ enum ApiResourceKind {
     is_versioned: true
     not_search_indexed: false
     tier: TIER_OPEN_SOURCE
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      visibility: {supports_public: true}
+    }
   }];
 
   mcp_server = 44 [(kind_meta) = {
@@ -194,6 +248,11 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: false
     tier: TIER_OPEN_SOURCE
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      visibility: {supports_public: true}
+    }
   }];
 
   agent_instance = 45 [(kind_meta) = {
@@ -205,6 +264,17 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: false
     tier: TIER_OPEN_SOURCE
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      additional_parents: [
+        {
+          kind: "agent"
+          relation: "agent"
+          spec_field: "agent_id"
+        }
+      ]
+    }
   }];
 
   // Agentic - Workflow orchestration
@@ -217,6 +287,11 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: false
     tier: TIER_OPEN_SOURCE
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      visibility: {supports_public: true}
+    }
   }];
 
   workflow_instance = 51 [(kind_meta) = {
@@ -228,6 +303,17 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: false
     tier: TIER_OPEN_SOURCE
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      additional_parents: [
+        {
+          kind: "workflow"
+          relation: "workflow"
+          spec_field: "workflow_id"
+        }
+      ]
+    }
   }];
 
   workflow_execution = 52 [(kind_meta) = {
@@ -239,6 +325,10 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: false
     tier: TIER_OPEN_SOURCE
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+    }
   }];
 
   environment = 53 [(kind_meta) = {
@@ -250,6 +340,10 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: false
     tier: TIER_OPEN_SOURCE
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+    }
   }];
 
   execution_context = 54 [(kind_meta) = {
@@ -261,6 +355,10 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: false
     tier: TIER_OPEN_SOURCE
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_NONE
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+    }
   }];
 }
 

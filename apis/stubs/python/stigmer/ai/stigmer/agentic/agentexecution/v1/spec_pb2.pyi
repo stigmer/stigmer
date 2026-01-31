@@ -36,7 +36,19 @@ class AgentExecutionSpec(_message.Message):
     def __init__(self, session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ..., auto_approve_all: bool = ..., parent_workflow_id: _Optional[str] = ...) -> None: ...
 
 class ExecutionConfig(_message.Message):
-    __slots__ = ("model_name",)
+    __slots__ = ("model_name", "context_management")
     MODEL_NAME_FIELD_NUMBER: _ClassVar[int]
+    CONTEXT_MANAGEMENT_FIELD_NUMBER: _ClassVar[int]
     model_name: str
-    def __init__(self, model_name: _Optional[str] = ...) -> None: ...
+    context_management: ContextManagementConfig
+    def __init__(self, model_name: _Optional[str] = ..., context_management: _Optional[_Union[ContextManagementConfig, _Mapping]] = ...) -> None: ...
+
+class ContextManagementConfig(_message.Message):
+    __slots__ = ("disable_summarization", "custom_trigger_threshold", "custom_target_tokens")
+    DISABLE_SUMMARIZATION_FIELD_NUMBER: _ClassVar[int]
+    CUSTOM_TRIGGER_THRESHOLD_FIELD_NUMBER: _ClassVar[int]
+    CUSTOM_TARGET_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    disable_summarization: bool
+    custom_trigger_threshold: int
+    custom_target_tokens: int
+    def __init__(self, disable_summarization: bool = ..., custom_trigger_threshold: _Optional[int] = ..., custom_target_tokens: _Optional[int] = ...) -> None: ...

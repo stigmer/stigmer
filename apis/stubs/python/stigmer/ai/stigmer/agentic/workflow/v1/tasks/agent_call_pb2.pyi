@@ -1,3 +1,4 @@
+from ai.stigmer.agentic.agentexecution.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
@@ -30,11 +31,13 @@ class AgentCallTaskConfig(_message.Message):
     def __init__(self, agent: _Optional[str] = ..., org: _Optional[str] = ..., message: _Optional[str] = ..., env: _Optional[_Mapping[str, str]] = ..., config: _Optional[_Union[AgentExecutionConfig, _Mapping]] = ...) -> None: ...
 
 class AgentExecutionConfig(_message.Message):
-    __slots__ = ("model", "timeout", "temperature")
+    __slots__ = ("model", "timeout", "temperature", "context_management")
     MODEL_FIELD_NUMBER: _ClassVar[int]
     TIMEOUT_FIELD_NUMBER: _ClassVar[int]
     TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
+    CONTEXT_MANAGEMENT_FIELD_NUMBER: _ClassVar[int]
     model: str
     timeout: int
     temperature: float
-    def __init__(self, model: _Optional[str] = ..., timeout: _Optional[int] = ..., temperature: _Optional[float] = ...) -> None: ...
+    context_management: _spec_pb2.ContextManagementConfig
+    def __init__(self, model: _Optional[str] = ..., timeout: _Optional[int] = ..., temperature: _Optional[float] = ..., context_management: _Optional[_Union[_spec_pb2.ContextManagementConfig, _Mapping]] = ...) -> None: ...

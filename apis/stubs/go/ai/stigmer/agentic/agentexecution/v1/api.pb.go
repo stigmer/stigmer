@@ -283,8 +283,24 @@ type AgentExecutionStatus struct {
 	// - UI should display approval dialog with message and args_preview
 	// - User must call SubmitApproval to continue execution
 	PendingApproval *PendingApproval `protobuf:"bytes,13,opt,name=pending_approval,json=pendingApproval,proto3" json:"pending_approval,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Context window utilization and summarization tracking.
+	//
+	// Provides visibility into how the agent is using its context window and
+	// any summarization events that occurred during execution.
+	//
+	// Populated when context management is active (not disabled via config).
+	// Updated progressively during streaming as token counts change.
+	//
+	// Use cases:
+	// - **Monitoring**: Track context utilization across executions
+	// - **Debugging**: Understand why an execution hit context limits
+	// - **Cost optimization**: Identify executions with excessive summarization
+	// - **UX**: Show users their context window health
+	//
+	// @since Phase 3 (Context Summarization Architecture)
+	ContextInfo   *ContextInfo `protobuf:"bytes,14,opt,name=context_info,json=contextInfo,proto3" json:"context_info,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentExecutionStatus) Reset() {
@@ -404,6 +420,13 @@ func (x *AgentExecutionStatus) GetResolvedContext() *ResolvedExecutionContext {
 func (x *AgentExecutionStatus) GetPendingApproval() *PendingApproval {
 	if x != nil {
 		return x.PendingApproval
+	}
+	return nil
+}
+
+func (x *AgentExecutionStatus) GetContextInfo() *ContextInfo {
+	if x != nil {
+		return x.ContextInfo
 	}
 	return nil
 }
@@ -1349,6 +1372,332 @@ func (x *McpServerResolutionStatus) GetEnabledToolCount() int32 {
 	return 0
 }
 
+// SummarizationEvent records a single summarization occurrence during execution.
+//
+// Each time the context window approaches the model's limit and summarization
+// is triggered, an event is recorded with before/after metrics.
+//
+// ## Purpose
+//
+// - **Debugging**: Understand when and why summarization occurred
+// - **Monitoring**: Track summarization frequency and effectiveness
+// - **Cost analysis**: Measure compression ratios and summarization costs
+// - **Performance**: Track summarization latency
+//
+// ## Event Timing
+//
+// Events are recorded immediately after successful summarization, capturing:
+// - Token counts before and after (to measure compression)
+// - Message counts before and after (to understand conversation reduction)
+// - Duration in milliseconds (to track performance)
+// - Model used (to understand cost implications)
+//
+// @since Phase 3 (Context Summarization Architecture)
+type SummarizationEvent struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ISO 8601 timestamp when summarization occurred.
+	// Example: "2026-01-31T14:30:00.123Z"
+	Timestamp string `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// Token count before summarization.
+	// This was the token count that exceeded the trigger threshold.
+	TokensBefore int32 `protobuf:"varint,2,opt,name=tokens_before,json=tokensBefore,proto3" json:"tokens_before,omitempty"`
+	// Token count after summarization.
+	// Should be approximately at or below the target_tokens threshold.
+	TokensAfter int32 `protobuf:"varint,3,opt,name=tokens_after,json=tokensAfter,proto3" json:"tokens_after,omitempty"`
+	// Compression ratio achieved (0.0 to 1.0).
+	//
+	// Calculated as: 1 - (tokens_after / tokens_before)
+	// Example: 0.6 means 60% reduction in tokens (from 100K to 40K).
+	//
+	// Higher values indicate more aggressive compression.
+	// Typical values range from 0.3 to 0.7 depending on conversation content.
+	CompressionRatio float32 `protobuf:"fixed32,4,opt,name=compression_ratio,json=compressionRatio,proto3" json:"compression_ratio,omitempty"`
+	// Time taken to perform summarization in milliseconds.
+	//
+	// Includes the LLM call to the summarization model, message processing,
+	// and summary injection. Does not include token counting.
+	//
+	// Typical values: 1000-5000ms depending on context size and model.
+	DurationMs int32 `protobuf:"varint,5,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	// Model used for summarization (economy-tier model).
+	//
+	// Summarization uses cost-effective models to minimize expense:
+	// - For Anthropic: claude-haiku-4
+	// - For OpenAI: gpt-4o-mini
+	// - For Ollama: local model
+	//
+	// Example: "claude-haiku-4", "gpt-4o-mini"
+	SummarizationModel string `protobuf:"bytes,6,opt,name=summarization_model,json=summarizationModel,proto3" json:"summarization_model,omitempty"`
+	// Number of messages in conversation before summarization.
+	// Provides insight into conversation length that triggered summarization.
+	MessagesBefore int32 `protobuf:"varint,7,opt,name=messages_before,json=messagesBefore,proto3" json:"messages_before,omitempty"`
+	// Number of messages in conversation after summarization.
+	// Typically reduced significantly as historical messages are collapsed.
+	MessagesAfter int32 `protobuf:"varint,8,opt,name=messages_after,json=messagesAfter,proto3" json:"messages_after,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SummarizationEvent) Reset() {
+	*x = SummarizationEvent{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SummarizationEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SummarizationEvent) ProtoMessage() {}
+
+func (x *SummarizationEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SummarizationEvent.ProtoReflect.Descriptor instead.
+func (*SummarizationEvent) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *SummarizationEvent) GetTimestamp() string {
+	if x != nil {
+		return x.Timestamp
+	}
+	return ""
+}
+
+func (x *SummarizationEvent) GetTokensBefore() int32 {
+	if x != nil {
+		return x.TokensBefore
+	}
+	return 0
+}
+
+func (x *SummarizationEvent) GetTokensAfter() int32 {
+	if x != nil {
+		return x.TokensAfter
+	}
+	return 0
+}
+
+func (x *SummarizationEvent) GetCompressionRatio() float32 {
+	if x != nil {
+		return x.CompressionRatio
+	}
+	return 0
+}
+
+func (x *SummarizationEvent) GetDurationMs() int32 {
+	if x != nil {
+		return x.DurationMs
+	}
+	return 0
+}
+
+func (x *SummarizationEvent) GetSummarizationModel() string {
+	if x != nil {
+		return x.SummarizationModel
+	}
+	return ""
+}
+
+func (x *SummarizationEvent) GetMessagesBefore() int32 {
+	if x != nil {
+		return x.MessagesBefore
+	}
+	return 0
+}
+
+func (x *SummarizationEvent) GetMessagesAfter() int32 {
+	if x != nil {
+		return x.MessagesAfter
+	}
+	return 0
+}
+
+// ContextInfo provides visibility into context window utilization.
+//
+// This message enables monitoring, debugging, and optimization of context
+// usage during agent executions. It tracks both the current state and
+// historical summarization events.
+//
+// ## Real-Time Updates
+//
+// Fields are updated progressively during execution:
+// - current_token_count: Updated after each LLM call
+// - utilization_percent: Recalculated when token count changes
+// - summarization_events: Appended when summarization occurs
+//
+// ## Configuration Visibility
+//
+// The message also surfaces the effective configuration:
+// - What thresholds are in effect (model defaults or custom overrides)
+// - Whether summarization is enabled
+// - The model's context window limit
+//
+// ## Use Cases
+//
+// - **Dashboard**: Show context health indicator (green/yellow/red based on utilization)
+// - **Alerts**: Notify when utilization consistently exceeds thresholds
+// - **Analytics**: Track summarization frequency across agent fleet
+// - **Debugging**: Understand context-related failures
+//
+// @since Phase 3 (Context Summarization Architecture)
+type ContextInfo struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Current token count in the context window.
+	//
+	// This is the most recent token count, updated after each LLM call
+	// or summarization event. Represents the total tokens in the
+	// conversation (system prompt + messages + tool results).
+	//
+	// Updated progressively during streaming for real-time visibility.
+	CurrentTokenCount int32 `protobuf:"varint,1,opt,name=current_token_count,json=currentTokenCount,proto3" json:"current_token_count,omitempty"`
+	// Model's maximum context window size in tokens.
+	//
+	// Retrieved from Model Registry for the configured model.
+	// Example values:
+	// - claude-sonnet-4.5: 200,000
+	// - gpt-4o: 128,000
+	// - gpt-4-turbo: 128,000
+	//
+	// Used to calculate utilization_percent.
+	ContextWindowLimit int32 `protobuf:"varint,2,opt,name=context_window_limit,json=contextWindowLimit,proto3" json:"context_window_limit,omitempty"`
+	// Token threshold that triggers summarization.
+	//
+	// When current_token_count exceeds this value, summarization is triggered
+	// to reduce context size. This is either the model default from Model
+	// Registry or a custom override from ContextManagementConfig.
+	//
+	// Typically set to ~90% of context_window_limit.
+	SummarizationTriggerThreshold int32 `protobuf:"varint,3,opt,name=summarization_trigger_threshold,json=summarizationTriggerThreshold,proto3" json:"summarization_trigger_threshold,omitempty"`
+	// Target token count after summarization.
+	//
+	// Summarization aims to reduce context to approximately this size.
+	// This is either the model default from Model Registry or a custom
+	// override from ContextManagementConfig.
+	//
+	// Typically set to ~80% of context_window_limit.
+	SummarizationTargetTokens int32 `protobuf:"varint,4,opt,name=summarization_target_tokens,json=summarizationTargetTokens,proto3" json:"summarization_target_tokens,omitempty"`
+	// Whether summarization is enabled for this execution.
+	//
+	// false if ContextManagementConfig.disable_summarization was true.
+	// true otherwise (default).
+	//
+	// When false, no summarization events will occur regardless of
+	// token count. The execution may fail if context exceeds limits.
+	SummarizationEnabled bool `protobuf:"varint,5,opt,name=summarization_enabled,json=summarizationEnabled,proto3" json:"summarization_enabled,omitempty"`
+	// Summarization events that occurred during this execution.
+	//
+	// Ordered chronologically (oldest first).
+	// Empty if no summarization was triggered during execution.
+	//
+	// Multiple events indicate a very long-running conversation that
+	// required multiple rounds of summarization.
+	SummarizationEvents []*SummarizationEvent `protobuf:"bytes,6,rep,name=summarization_events,json=summarizationEvents,proto3" json:"summarization_events,omitempty"`
+	// Context utilization as a percentage (0-100).
+	//
+	// Calculated as: (current_token_count / context_window_limit) * 100
+	//
+	// Use for health indicators:
+	// - 0-70%: Green (healthy)
+	// - 70-90%: Yellow (approaching threshold)
+	// - 90-100%: Red (at or above trigger threshold)
+	//
+	// Updated progressively during streaming.
+	UtilizationPercent float32 `protobuf:"fixed32,7,opt,name=utilization_percent,json=utilizationPercent,proto3" json:"utilization_percent,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *ContextInfo) Reset() {
+	*x = ContextInfo{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ContextInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ContextInfo) ProtoMessage() {}
+
+func (x *ContextInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ContextInfo.ProtoReflect.Descriptor instead.
+func (*ContextInfo) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ContextInfo) GetCurrentTokenCount() int32 {
+	if x != nil {
+		return x.CurrentTokenCount
+	}
+	return 0
+}
+
+func (x *ContextInfo) GetContextWindowLimit() int32 {
+	if x != nil {
+		return x.ContextWindowLimit
+	}
+	return 0
+}
+
+func (x *ContextInfo) GetSummarizationTriggerThreshold() int32 {
+	if x != nil {
+		return x.SummarizationTriggerThreshold
+	}
+	return 0
+}
+
+func (x *ContextInfo) GetSummarizationTargetTokens() int32 {
+	if x != nil {
+		return x.SummarizationTargetTokens
+	}
+	return 0
+}
+
+func (x *ContextInfo) GetSummarizationEnabled() bool {
+	if x != nil {
+		return x.SummarizationEnabled
+	}
+	return false
+}
+
+func (x *ContextInfo) GetSummarizationEvents() []*SummarizationEvent {
+	if x != nil {
+		return x.SummarizationEvents
+	}
+	return nil
+}
+
+func (x *ContextInfo) GetUtilizationPercent() float32 {
+	if x != nil {
+		return x.UtilizationPercent
+	}
+	return 0
+}
+
 // PendingApproval surfaces the current approval request for UI display.
 //
 // ## Purpose
@@ -1431,7 +1780,7 @@ type PendingApproval struct {
 
 func (x *PendingApproval) Reset() {
 	*x = PendingApproval{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1443,7 +1792,7 @@ func (x *PendingApproval) String() string {
 func (*PendingApproval) ProtoMessage() {}
 
 func (x *PendingApproval) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1456,7 +1805,7 @@ func (x *PendingApproval) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PendingApproval.ProtoReflect.Descriptor instead.
 func (*PendingApproval) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP(), []int{10}
+	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *PendingApproval) GetToolCallId() string {
@@ -1577,7 +1926,7 @@ type ChildApprovalNotification struct {
 
 func (x *ChildApprovalNotification) Reset() {
 	*x = ChildApprovalNotification{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1589,7 +1938,7 @@ func (x *ChildApprovalNotification) String() string {
 func (*ChildApprovalNotification) ProtoMessage() {}
 
 func (x *ChildApprovalNotification) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1602,7 +1951,7 @@ func (x *ChildApprovalNotification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChildApprovalNotification.ProtoReflect.Descriptor instead.
 func (*ChildApprovalNotification) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP(), []int{11}
+	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ChildApprovalNotification) GetExecutionId() string {
@@ -1660,7 +2009,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0eAgentExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\x9b\b\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xf1\b\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -1677,7 +2026,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	" \x01(\fR\rcallbackToken\x12H\n" +
 	"\x05usage\x18\v \x01(\v22.ai.stigmer.agentic.agentexecution.v1.UsageMetricsR\x05usage\x12i\n" +
 	"\x10resolved_context\x18\f \x01(\v2>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContextR\x0fresolvedContext\x12`\n" +
-	"\x10pending_approval\x18\r \x01(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x0fpendingApproval\x1ah\n" +
+	"\x10pending_approval\x18\r \x01(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x0fpendingApproval\x12T\n" +
+	"\fcontext_info\x18\x0e \x01(\v21.ai.stigmer.agentic.agentexecution.v1.ContextInfoR\vcontextInfo\x1ah\n" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
@@ -1760,7 +2110,25 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x19McpServerResolutionStatus\x12\x1a\n" +
 	"\bresolved\x18\x01 \x01(\bR\bresolved\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12,\n" +
-	"\x12enabled_tool_count\x18\x03 \x01(\x05R\x10enabledToolCount\"\xb5\x02\n" +
+	"\x12enabled_tool_count\x18\x03 \x01(\x05R\x10enabledToolCount\"\xc9\x02\n" +
+	"\x12SummarizationEvent\x12\x1c\n" +
+	"\ttimestamp\x18\x01 \x01(\tR\ttimestamp\x12#\n" +
+	"\rtokens_before\x18\x02 \x01(\x05R\ftokensBefore\x12!\n" +
+	"\ftokens_after\x18\x03 \x01(\x05R\vtokensAfter\x12+\n" +
+	"\x11compression_ratio\x18\x04 \x01(\x02R\x10compressionRatio\x12\x1f\n" +
+	"\vduration_ms\x18\x05 \x01(\x05R\n" +
+	"durationMs\x12/\n" +
+	"\x13summarization_model\x18\x06 \x01(\tR\x12summarizationModel\x12'\n" +
+	"\x0fmessages_before\x18\a \x01(\x05R\x0emessagesBefore\x12%\n" +
+	"\x0emessages_after\x18\b \x01(\x05R\rmessagesAfter\"\xca\x03\n" +
+	"\vContextInfo\x12.\n" +
+	"\x13current_token_count\x18\x01 \x01(\x05R\x11currentTokenCount\x120\n" +
+	"\x14context_window_limit\x18\x02 \x01(\x05R\x12contextWindowLimit\x12F\n" +
+	"\x1fsummarization_trigger_threshold\x18\x03 \x01(\x05R\x1dsummarizationTriggerThreshold\x12>\n" +
+	"\x1bsummarization_target_tokens\x18\x04 \x01(\x05R\x19summarizationTargetTokens\x123\n" +
+	"\x15summarization_enabled\x18\x05 \x01(\bR\x14summarizationEnabled\x12k\n" +
+	"\x14summarization_events\x18\x06 \x03(\v28.ai.stigmer.agentic.agentexecution.v1.SummarizationEventR\x13summarizationEvents\x12/\n" +
+	"\x13utilization_percent\x18\a \x01(\x02R\x12utilizationPercent\"\xb5\x02\n" +
 	"\x0fPendingApproval\x12 \n" +
 	"\ftool_call_id\x18\x01 \x01(\tR\n" +
 	"toolCallId\x12\x1b\n" +
@@ -1799,7 +2167,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(ApprovalAction)(0),                     // 0: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 	(*AgentExecution)(nil),                  // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecution
@@ -1812,55 +2180,59 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*UsageMetrics)(nil),                    // 8: ai.stigmer.agentic.agentexecution.v1.UsageMetrics
 	(*ResolvedExecutionContext)(nil),        // 9: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
 	(*McpServerResolutionStatus)(nil),       // 10: ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
-	(*PendingApproval)(nil),                 // 11: ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	(*ChildApprovalNotification)(nil),       // 12: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification
-	nil,                                     // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
-	nil,                                     // 14: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
-	(*apiresource.ApiResourceMetadata)(nil), // 15: ai.stigmer.commons.apiresource.ApiResourceMetadata
-	(*AgentExecutionSpec)(nil),              // 16: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
-	(*apiresource.ApiResourceAudit)(nil),    // 17: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(ExecutionPhase)(0),                     // 18: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	(TodoStatus)(0),                         // 19: ai.stigmer.agentic.agentexecution.v1.TodoStatus
-	(MessageType)(0),                        // 20: ai.stigmer.agentic.agentexecution.v1.MessageType
-	(*structpb.Struct)(nil),                 // 21: google.protobuf.Struct
-	(ToolCallStatus)(0),                     // 22: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	(SubAgentStatus)(0),                     // 23: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	(*SummarizationEvent)(nil),              // 11: ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
+	(*ContextInfo)(nil),                     // 12: ai.stigmer.agentic.agentexecution.v1.ContextInfo
+	(*PendingApproval)(nil),                 // 13: ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	(*ChildApprovalNotification)(nil),       // 14: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification
+	nil,                                     // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
+	nil,                                     // 16: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
+	(*apiresource.ApiResourceMetadata)(nil), // 17: ai.stigmer.commons.apiresource.ApiResourceMetadata
+	(*AgentExecutionSpec)(nil),              // 18: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
+	(*apiresource.ApiResourceAudit)(nil),    // 19: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(ExecutionPhase)(0),                     // 20: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(TodoStatus)(0),                         // 21: ai.stigmer.agentic.agentexecution.v1.TodoStatus
+	(MessageType)(0),                        // 22: ai.stigmer.agentic.agentexecution.v1.MessageType
+	(*structpb.Struct)(nil),                 // 23: google.protobuf.Struct
+	(ToolCallStatus)(0),                     // 24: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	(SubAgentStatus)(0),                     // 25: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
-	15, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
-	16, // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecution.spec:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
+	17, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
+	18, // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecution.spec:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
 	2,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
-	17, // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	19, // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
 	4,  // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
-	18, // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	20, // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	5,  // 6: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
 	7,  // 7: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.sub_agent_executions:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentExecution
-	13, // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.todos:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
+	15, // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.todos:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
 	8,  // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
 	9,  // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.resolved_context:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
-	11, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.pending_approval:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	19, // 12: ai.stigmer.agentic.agentexecution.v1.TodoItem.status:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoStatus
-	20, // 13: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
-	5,  // 14: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
-	21, // 15: ai.stigmer.agentic.agentexecution.v1.AgentMessage.metadata:type_name -> google.protobuf.Struct
-	21, // 16: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
-	22, // 17: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	6,  // 18: ai.stigmer.agentic.agentexecution.v1.ToolCall.component_metadata:type_name -> ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
-	0,  // 19: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	21, // 20: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.metadata:type_name -> google.protobuf.Struct
-	23, // 21: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
-	21, // 22: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.metadata:type_name -> google.protobuf.Struct
-	5,  // 23: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
-	4,  // 24: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
-	8,  // 25: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
-	14, // 26: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.mcp_servers:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
-	3,  // 27: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
-	10, // 28: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
-	29, // [29:29] is the sub-list for method output_type
-	29, // [29:29] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	13, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.pending_approval:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	12, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.context_info:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextInfo
+	21, // 13: ai.stigmer.agentic.agentexecution.v1.TodoItem.status:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoStatus
+	22, // 14: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
+	5,  // 15: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
+	23, // 16: ai.stigmer.agentic.agentexecution.v1.AgentMessage.metadata:type_name -> google.protobuf.Struct
+	23, // 17: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
+	24, // 18: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	6,  // 19: ai.stigmer.agentic.agentexecution.v1.ToolCall.component_metadata:type_name -> ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
+	0,  // 20: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	23, // 21: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.metadata:type_name -> google.protobuf.Struct
+	25, // 22: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	23, // 23: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.metadata:type_name -> google.protobuf.Struct
+	5,  // 24: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
+	4,  // 25: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
+	8,  // 26: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
+	16, // 27: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.mcp_servers:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
+	11, // 28: ai.stigmer.agentic.agentexecution.v1.ContextInfo.summarization_events:type_name -> ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
+	3,  // 29: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	10, // 30: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
+	31, // [31:31] is the sub-list for method output_type
+	31, // [31:31] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() }
@@ -1876,7 +2248,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   14,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
