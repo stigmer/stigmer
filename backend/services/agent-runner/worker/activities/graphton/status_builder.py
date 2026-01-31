@@ -23,6 +23,8 @@ from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     McpServerResolutionStatus,
     PendingApproval,
     ApprovalAction,
+    ContextInfo,
+    SummarizationEvent,
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase, 
@@ -40,6 +42,7 @@ from worker.activities.graphton.approval_policy import (
     resolve_tool_approval,
     render_approval_message,
 )
+from graphton.core.summarization_callback import SummarizationEventData
 
 
 # Planning tools that update execution state without UI display
@@ -159,6 +162,20 @@ class StatusBuilder:
         # Saved execution phase to restore after approval decision
         # (preserves IN_PROGRESS state when transitioning to WAITING_FOR_APPROVAL)
         self._saved_phase_before_approval: Optional[int] = None
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Context Management Tracking (Phase 3)
+        #
+        # Tracks context window utilization and summarization events.
+        # This class implements the SummarizationCallback protocol for integration
+        # with the SummarizationMiddleware in graphton.
+        # ─────────────────────────────────────────────────────────────────────────
+        
+        # Context info initialized via initialize_context_info()
+        self._context_info: Optional[ContextInfo] = None
+        
+        # Accumulated summarization events during this execution
+        self._summarization_events: List[SummarizationEvent] = []
     
     async def process_event(self, event: Dict[str, Any]) -> None:
         """
@@ -1356,3 +1373,158 @@ class StatusBuilder:
                 )
         if skill_names:
             self.logger.debug(f"[CONTEXT] Skills: {sorted(skill_names)}")
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Context Management (Phase 3)
+    #
+    # These methods implement the SummarizationCallback protocol for integration
+    # with the SummarizationMiddleware in graphton. They track context window
+    # utilization and record summarization events.
+    # ─────────────────────────────────────────────────────────────────────────────
+    
+    def initialize_context_info(
+        self,
+        context_window_limit: int,
+        trigger_threshold: int,
+        target_tokens: int,
+        enabled: bool,
+    ) -> None:
+        """
+        Initialize context info from model registry data.
+        
+        Called once at the start of execution to set up context tracking.
+        This captures the configuration that will be used for summarization.
+        
+        Args:
+            context_window_limit: Model's maximum context window size in tokens.
+            trigger_threshold: Token threshold that triggers summarization.
+            target_tokens: Target token count after summarization.
+            enabled: Whether summarization is enabled for this execution.
+        """
+        self._context_info = ContextInfo(
+            context_window_limit=context_window_limit,
+            summarization_trigger_threshold=trigger_threshold,
+            summarization_target_tokens=target_tokens,
+            summarization_enabled=enabled,
+            current_token_count=0,
+            utilization_percent=0.0,
+        )
+        
+        self.logger.info(
+            f"[CONTEXT] execution={self.execution_id} "
+            f"context_management initialized: "
+            f"window={context_window_limit}, "
+            f"trigger={trigger_threshold}, "
+            f"target={target_tokens}, "
+            f"enabled={enabled}"
+        )
+    
+    def on_summarization_complete(self, event: SummarizationEventData) -> None:
+        """
+        Callback from SummarizationMiddleware when summarization completes.
+        
+        Records the summarization event and updates context info.
+        This is part of the SummarizationCallback protocol.
+        
+        Args:
+            event: Immutable data object containing summarization metrics.
+        """
+        if self._context_info is None:
+            self.logger.warning(
+                f"[CONTEXT] execution={self.execution_id} "
+                "on_summarization_complete called but context_info not initialized"
+            )
+            return
+        
+        # Create proto event
+        timestamp = datetime.utcnow().isoformat() + "Z"
+        proto_event = SummarizationEvent(
+            timestamp=timestamp,
+            tokens_before=event.tokens_before,
+            tokens_after=event.tokens_after,
+            compression_ratio=event.compression_ratio,
+            duration_ms=event.duration_ms,
+            summarization_model=event.summarization_model,
+            messages_before=event.messages_before,
+            messages_after=event.messages_after,
+        )
+        self._summarization_events.append(proto_event)
+        
+        # Update context info with new token count
+        self._context_info.current_token_count = event.tokens_after
+        self._update_utilization()
+        
+        # Structured logging
+        self.logger.info(
+            f"[CONTEXT] execution={self.execution_id} "
+            f"summarization completed: "
+            f"{event.tokens_before} -> {event.tokens_after} tokens "
+            f"({event.compression_ratio * 100:.1f}% reduction), "
+            f"duration={event.duration_ms}ms, "
+            f"model={event.summarization_model}"
+        )
+    
+    def on_token_count_updated(self, token_count: int) -> None:
+        """
+        Callback from SummarizationMiddleware when token count changes.
+        
+        Updates the current token count and recalculates utilization.
+        This is part of the SummarizationCallback protocol.
+        
+        Args:
+            token_count: Current token count in the context window.
+        """
+        if self._context_info is None:
+            # Not an error - context tracking may be disabled
+            return
+        
+        self._context_info.current_token_count = token_count
+        self._update_utilization()
+        
+        self.logger.debug(
+            f"[CONTEXT] execution={self.execution_id} "
+            f"token_count={token_count} "
+            f"utilization={self._context_info.utilization_percent:.1f}%"
+        )
+    
+    def _update_utilization(self) -> None:
+        """Recalculate utilization percentage based on current token count."""
+        if self._context_info is None:
+            return
+        
+        if self._context_info.context_window_limit > 0:
+            self._context_info.utilization_percent = (
+                self._context_info.current_token_count
+                / self._context_info.context_window_limit
+                * 100
+            )
+        else:
+            self._context_info.utilization_percent = 0.0
+    
+    def finalize_context_info(self) -> None:
+        """
+        Finalize context info and copy to status proto.
+        
+        Called at the end of execution to copy accumulated context info
+        and summarization events to the status proto.
+        """
+        if self._context_info is None:
+            # Context tracking was not initialized
+            return
+        
+        # Copy summarization events to context info
+        for event in self._summarization_events:
+            self._context_info.summarization_events.append(event)
+        
+        # Copy context info to status proto
+        self.current_status.context_info.CopyFrom(self._context_info)
+        
+        # Summary log
+        summarization_count = len(self._summarization_events)
+        self.logger.info(
+            f"[CONTEXT] execution={self.execution_id} "
+            f"context_info finalized: "
+            f"final_tokens={self._context_info.current_token_count}, "
+            f"utilization={self._context_info.utilization_percent:.1f}%, "
+            f"summarizations={summarization_count}"
+        )

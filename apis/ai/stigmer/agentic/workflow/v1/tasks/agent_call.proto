@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.workflow.v1.tasks;
 
+import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
@@ -96,4 +97,24 @@ message AgentExecutionConfig {
     (buf.validate.field).float.gte = 0.0,
     (buf.validate.field).float.lte = 1.0
   ];
+
+  // Context management configuration for this agent invocation.
+  //
+  // Controls automatic summarization behavior for long-running conversations.
+  // When specified, overrides model defaults from the Model Registry.
+  //
+  // Use cases:
+  // - Disable summarization for short-lived agents
+  // - Custom thresholds for agents with specific context requirements
+  // - Fine-tune summarization behavior per workflow task
+  //
+  // Example YAML:
+  //   config:
+  //     model: "claude-sonnet-4.5"
+  //     context_management:
+  //       custom_trigger_threshold: 150000
+  //       custom_target_tokens: 120000
+  //
+  // @since Phase 3 (Context Summarization Architecture)
+  ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig context_management = 4;
 }

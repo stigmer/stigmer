@@ -498,3 +498,149 @@ class TestEdgeCases:
         
         ids = [msg.id for msg in result]
         assert len(ids) == len(set(ids))  # All unique
+
+
+# =============================================================================
+# SummarizationCallback Tests (Phase 3)
+# =============================================================================
+
+
+class TestSummarizationCallback:
+    """Test suite for SummarizationCallback protocol and SummarizationEventData."""
+    
+    def test_event_data_creation(self):
+        """SummarizationEventData can be created with all fields."""
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        event = SummarizationEventData(
+            tokens_before=150000,
+            tokens_after=60000,
+            compression_ratio=0.6,
+            duration_ms=2500,
+            summarization_model="claude-haiku-4",
+            messages_before=45,
+            messages_after=8,
+        )
+        
+        assert event.tokens_before == 150000
+        assert event.tokens_after == 60000
+        assert event.compression_ratio == 0.6
+        assert event.duration_ms == 2500
+        assert event.summarization_model == "claude-haiku-4"
+        assert event.messages_before == 45
+        assert event.messages_after == 8
+    
+    def test_event_data_is_frozen(self):
+        """SummarizationEventData is immutable."""
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        event = SummarizationEventData(
+            tokens_before=100,
+            tokens_after=50,
+            compression_ratio=0.5,
+            duration_ms=1000,
+            summarization_model="test-model",
+            messages_before=10,
+            messages_after=5,
+        )
+        
+        with pytest.raises(AttributeError):
+            event.tokens_before = 200  # type: ignore
+    
+    def test_callback_protocol_is_runtime_checkable(self):
+        """SummarizationCallback protocol supports isinstance checks."""
+        from graphton.core.summarization_callback import (
+            SummarizationCallback,
+            SummarizationEventData,
+        )
+        
+        class ValidCallback:
+            def on_summarization_complete(self, event: SummarizationEventData) -> None:
+                pass
+            
+            def on_token_count_updated(self, token_count: int) -> None:
+                pass
+        
+        class InvalidCallback:
+            def some_other_method(self) -> None:
+                pass
+        
+        valid = ValidCallback()
+        invalid = InvalidCallback()
+        
+        assert isinstance(valid, SummarizationCallback)
+        assert not isinstance(invalid, SummarizationCallback)
+    
+    def test_callback_receives_events(self):
+        """Callback methods can be called with correct types."""
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        received_events = []
+        received_counts = []
+        
+        class TestCallback:
+            def on_summarization_complete(self, event: SummarizationEventData) -> None:
+                received_events.append(event)
+            
+            def on_token_count_updated(self, token_count: int) -> None:
+                received_counts.append(token_count)
+        
+        callback = TestCallback()
+        
+        event = SummarizationEventData(
+            tokens_before=100,
+            tokens_after=50,
+            compression_ratio=0.5,
+            duration_ms=1000,
+            summarization_model="test",
+            messages_before=10,
+            messages_after=5,
+        )
+        
+        callback.on_summarization_complete(event)
+        callback.on_token_count_updated(12345)
+        
+        assert len(received_events) == 1
+        assert received_events[0].tokens_before == 100
+        assert len(received_counts) == 1
+        assert received_counts[0] == 12345
+
+
+# =============================================================================
+# SummarizationMiddleware Callback Integration Tests (Phase 3)
+# =============================================================================
+
+
+class TestSummarizationMiddlewareCallback:
+    """Tests for SummarizationMiddleware callback integration."""
+    
+    def test_middleware_accepts_callback(self):
+        """Middleware can be initialized with a callback."""
+        from graphton.core.summarization_middleware import SummarizationMiddleware
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        callback_events = []
+        
+        class TestCallback:
+            def on_summarization_complete(self, event: SummarizationEventData) -> None:
+                callback_events.append(event)
+            
+            def on_token_count_updated(self, token_count: int) -> None:
+                pass
+        
+        config = SummarizationConfig.for_model("claude-sonnet-4.5")
+        middleware = SummarizationMiddleware(
+            config=config,
+            callback=TestCallback(),
+        )
+        
+        assert middleware._callback is not None
+    
+    def test_middleware_accepts_none_callback(self):
+        """Middleware works without a callback."""
+        from graphton.core.summarization_middleware import SummarizationMiddleware
+        
+        config = SummarizationConfig.for_model("claude-sonnet-4.5")
+        middleware = SummarizationMiddleware(config=config, callback=None)
+        
+        assert middleware._callback is None
