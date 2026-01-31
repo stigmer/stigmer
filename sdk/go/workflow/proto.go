@@ -61,9 +61,8 @@ func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
 		Name:        w.Document.Name,
 		Slug:        w.Slug, // Include slug for backend resolution
 		Annotations: SDKAnnotations(),
-		// Default to organization scope for SDK-created workflows
-		// This satisfies the CEL validation: owner_scope must be platform (1) or organization (2)
-		OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+		// Default to private visibility for SDK-created workflows
+		Visibility: apiresource.ApiResourceVisibility_API_RESOURCE_VISIBILITY_PRIVATE,
 	}
 
 	// Build WorkflowDocument

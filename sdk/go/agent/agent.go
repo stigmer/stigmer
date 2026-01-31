@@ -215,10 +215,9 @@ func (a *Agent) AddSkillRefs(refs ...*apiresource.ApiResourceReference) *Agent {
 //	agent.AddOrgSkillRef("security-policy", "stable")
 func (a *Agent) AddOrgSkillRef(slug string, version ...string) *Agent {
 	ref := &apiresource.ApiResourceReference{
-		Kind:  apiresourcekind.ApiResourceKind_skill,
-		Slug:  slug,
-		Scope: apiresource.ApiResourceOwnerScope_organization,
-		Org:   a.Org,
+		Kind: apiresourcekind.ApiResourceKind_skill,
+		Slug: slug,
+		Org:  a.Org,
 	}
 	if len(version) > 0 && version[0] != "" {
 		ref.Version = version[0]
@@ -229,6 +228,150 @@ func (a *Agent) AddOrgSkillRef(slug string, version ...string) *Agent {
 	a.SkillRefs = append(a.SkillRefs, ref)
 	return a
 }
+
+// ============================================================================
+// Smart Parsing Methods - Add skills and MCP servers with org/slug parsing
+// ============================================================================
+
+// AddSkill adds a skill reference using smart org/slug parsing.
+//
+// Smart parsing rules:
+//   - If ref contains "/", it's parsed as "org/slug" or "org/slug@version"
+//   - If ref has no "/", the agent's Org is used with ref as the slug
+//   - Version can be in the string (after @) or via AtVersion option
+//
+// Panics if the format is invalid or if Org is required but not set.
+// For dynamic/user-provided input, use TryAddSkill instead.
+//
+// This method is thread-safe and can be called concurrently.
+//
+// Examples:
+//
+//	// Set agent org first for slug-only references
+//	agent.Org = "my-org"
+//
+//	agent.AddSkill("web-search")                    // Uses agent.Org → "my-org/web-search"
+//	agent.AddSkill("stigmer/web-search")            // Explicit org
+//	agent.AddSkill("stigmer/web-search@v1.0")       // With version in string
+//	agent.AddSkill("web-search", AtVersion("v1.0")) // With version option
+//
+//	// Chain multiple skills
+//	agent.AddSkill("code-review").AddSkill("security-analysis")
+func (a *Agent) AddSkill(ref string, opts ...SkillOption) *Agent {
+	parsed, err := parseSkillRef(ref, a.Org, opts...)
+	if err != nil {
+		panic(err)
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.SkillRefs = append(a.SkillRefs, parsed)
+	return a
+}
+
+// AddSkills adds multiple skill references using smart org/slug parsing.
+//
+// Each reference follows the same parsing rules as AddSkill.
+// Panics on the first invalid reference.
+//
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	agent.Org = "my-org"
+//	agent.AddSkills(
+//	    "web-search",                // Uses agent.Org
+//	    "stigmer/code-review",       // Explicit org
+//	    "stigmer/security@v2.0",     // With version
+//	)
+func (a *Agent) AddSkills(refs ...string) *Agent {
+	if len(refs) == 0 {
+		return a
+	}
+
+	// Parse all refs first to fail fast before modifying state
+	parsed := make([]*apiresource.ApiResourceReference, len(refs))
+	for i, ref := range refs {
+		p, err := parseSkillRef(ref, a.Org)
+		if err != nil {
+			panic(err)
+		}
+		parsed[i] = p
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.SkillRefs = append(a.SkillRefs, parsed...)
+	return a
+}
+
+// TryAddSkill is like AddSkill but returns an error instead of panicking.
+//
+// Use this for dynamic/user-provided references where panicking is not appropriate.
+//
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	ref := getUserInput() // Dynamic input
+//	agent, err := agent.TryAddSkill(ref)
+//	if err != nil {
+//	    var parseErr *RefParseError
+//	    if errors.As(err, &parseErr) {
+//	        log.Printf("Invalid skill reference %q: %s", parseErr.Ref, parseErr.Message)
+//	    }
+//	    return err
+//	}
+func (a *Agent) TryAddSkill(ref string, opts ...SkillOption) (*Agent, error) {
+	parsed, err := parseSkillRef(ref, a.Org, opts...)
+	if err != nil {
+		return a, err
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.SkillRefs = append(a.SkillRefs, parsed)
+	return a, nil
+}
+
+// TryAddSkills is like AddSkills but returns an error instead of panicking.
+//
+// Stops on the first invalid reference and returns the error.
+// No skills are added if any reference is invalid (atomic operation).
+//
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	refs := getSkillRefsFromConfig() // Dynamic input
+//	agent, err := agent.TryAddSkills(refs...)
+//	if err != nil {
+//	    return fmt.Errorf("invalid skill configuration: %w", err)
+//	}
+func (a *Agent) TryAddSkills(refs ...string) (*Agent, error) {
+	if len(refs) == 0 {
+		return a, nil
+	}
+
+	// Parse all refs first to fail fast before modifying state
+	parsed := make([]*apiresource.ApiResourceReference, len(refs))
+	for i, ref := range refs {
+		p, err := parseSkillRef(ref, a.Org)
+		if err != nil {
+			return a, err
+		}
+		parsed[i] = p
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.SkillRefs = append(a.SkillRefs, parsed...)
+	return a, nil
+}
+
+// ============================================================================
+// Legacy Builder Methods - Retained for backward compatibility
+// ============================================================================
 
 // AddMcpServerUsage adds an MCP server usage to the agent.
 //
@@ -306,9 +449,8 @@ func (a *Agent) AddMcpServerUsages(usages ...*agentv1.McpServerUsage) *Agent {
 //	      UseMCPServer("slack")
 func (a *Agent) UseMCPServer(slug string, enabledTools ...string) *Agent {
 	ref := &apiresource.ApiResourceReference{
-		Kind:  apiresourcekind.ApiResourceKind_mcp_server,
-		Slug:  slug,
-		Scope: apiresource.ApiResourceOwnerScope_platform,
+		Kind: apiresourcekind.ApiResourceKind_mcp_server,
+		Slug: slug,
 	}
 	return a.AddMcpServerUsage(ref, enabledTools...)
 }
@@ -324,13 +466,92 @@ func (a *Agent) UseMCPServer(slug string, enabledTools ...string) *Agent {
 //	agent.UseOrgMCPServer("internal-tools", "tool1", "tool2")
 func (a *Agent) UseOrgMCPServer(slug string, enabledTools ...string) *Agent {
 	ref := &apiresource.ApiResourceReference{
-		Kind:  apiresourcekind.ApiResourceKind_mcp_server,
-		Slug:  slug,
-		Scope: apiresource.ApiResourceOwnerScope_organization,
-		Org:   a.Org,
+		Kind: apiresourcekind.ApiResourceKind_mcp_server,
+		Slug: slug,
+		Org:  a.Org,
 	}
 	return a.AddMcpServerUsage(ref, enabledTools...)
 }
+
+// UseMCP adds an MCP server using smart org/slug parsing.
+//
+// Smart parsing rules:
+//   - If ref contains "/", it's parsed as "org/slug"
+//   - If ref has no "/", the agent's Org is used with ref as the slug
+//
+// Note: Unlike skills, MCP servers do not support versioning.
+//
+// Panics if the format is invalid or if Org is required but not set.
+// For dynamic/user-provided input, use TryUseMCP instead.
+//
+// This method is thread-safe and can be called concurrently.
+//
+// Examples:
+//
+//	// Set agent org first for slug-only references
+//	agent.Org = "my-org"
+//
+//	agent.UseMCP("github")                      // Uses agent.Org → "my-org/github"
+//	agent.UseMCP("stigmer/github")              // Explicit org
+//	agent.UseMCP("github", "create_pr")         // With specific tools
+//	agent.UseMCP("stigmer/github", "search")    // Explicit org with tools
+//
+//	// Chain multiple servers
+//	agent.UseMCP("github", "create_pr").UseMCP("slack", "send_message")
+func (a *Agent) UseMCP(ref string, enabledTools ...string) *Agent {
+	parsed, err := parseMcpServerRef(ref, a.Org)
+	if err != nil {
+		panic(err)
+	}
+
+	usage := &agentv1.McpServerUsage{
+		McpServerRef: parsed,
+		EnabledTools: enabledTools,
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.McpServerUsages = append(a.McpServerUsages, usage)
+	return a
+}
+
+// TryUseMCP is like UseMCP but returns an error instead of panicking.
+//
+// Use this for dynamic/user-provided references where panicking is not appropriate.
+//
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	ref := getUserInput() // Dynamic input
+//	agent, err := agent.TryUseMCP(ref, "tool1", "tool2")
+//	if err != nil {
+//	    var parseErr *RefParseError
+//	    if errors.As(err, &parseErr) {
+//	        log.Printf("Invalid MCP server reference %q: %s", parseErr.Ref, parseErr.Message)
+//	    }
+//	    return err
+//	}
+func (a *Agent) TryUseMCP(ref string, enabledTools ...string) (*Agent, error) {
+	parsed, err := parseMcpServerRef(ref, a.Org)
+	if err != nil {
+		return a, err
+	}
+
+	usage := &agentv1.McpServerUsage{
+		McpServerRef: parsed,
+		EnabledTools: enabledTools,
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.McpServerUsages = append(a.McpServerUsages, usage)
+	return a, nil
+}
+
+// ============================================================================
+// SubAgent and Environment Methods
+// ============================================================================
 
 // AddSubAgent adds a sub-agent to the agent after creation.
 // This method is thread-safe and can be called concurrently.

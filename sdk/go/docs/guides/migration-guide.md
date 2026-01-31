@@ -39,7 +39,7 @@ mcpServer, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
 - ✅ Better IDE autocomplete and type safety
 - ✅ Consistent with Pulumi, Terraform, AWS SDK patterns
 
-### Skill References (Not Inline Creation)
+### Skill References (Using org/slug Format)
 
 **Before:**
 ```go
@@ -52,17 +52,16 @@ agent.AddSkill(skill)
 
 **After:**
 ```go
-// New - reference existing skills
-import "github.com/stigmer/stigmer/sdk/go/skillref"
-
-agent.AddSkillRef(skillref.Platform("my-skill"))
+// New - reference existing skills using org/slug format
+agent.AddSkill("stigmer/my-skill")  // Platform skill
+agent.AddSkill("my-org/my-skill")   // Organization skill
 ```
 
 **Key Changes:**
 - ✅ Skills are managed separately (via CLI or UI)
-- ✅ SDK references skills, doesn't create them
-- ✅ New `skillref` package for references
-- ✅ Methods renamed: `AddSkill()` → `AddSkillRef()`
+- ✅ SDK references skills using simple `org/slug` format
+- ✅ No separate `skillref` package needed
+- ✅ Use `AddSkill()` with string references
 
 ---
 
@@ -164,18 +163,16 @@ agent.AddSkill(mySkill)
 
 **After:**
 ```go
-import "github.com/stigmer/stigmer/sdk/go/skillref"
-
-// Reference existing skill
-agent.AddSkillRef(skillref.Platform("my-skill"))
+// Reference existing skill using org/slug format
+agent.AddSkill("stigmer/my-skill")    // Platform skill
 // Or for org skills:
-agent.AddSkillRef(skillref.Organization("my-org", "my-skill"))
+agent.AddSkill("my-org/my-skill")     // Organization skill
 ```
 
 **Changes:**
-- ✅ Import `skillref` instead of `skill`
-- ✅ Skills are referenced, not created inline
-- ✅ Use `AddSkillRef()` instead of `AddSkill()`
+- ✅ No import needed for skill references
+- ✅ Skills are referenced using simple `org/slug` format
+- ✅ Use `AddSkill()` with string references
 - ✅ Skills must be created separately via CLI or UI
 
 ### Step 5: Update Sub-Agent Creation
@@ -438,7 +435,6 @@ import (
     "os"
     "github.com/stigmer/stigmer/sdk/go/stigmer"
     "github.com/stigmer/stigmer/sdk/go/agent"
-    "github.com/stigmer/stigmer/sdk/go/skillref"
 )
 
 func main() {
@@ -448,7 +444,7 @@ func main() {
         myAgent, _ := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
             Instructions: string(instructions),
         })
-        myAgent.AddSkillRef(skillref.Platform("coding-standards"))
+        myAgent.AddSkill("stigmer/coding-standards")
         return nil
     })
 }
@@ -471,10 +467,10 @@ myAgent.AddSkill(skill.Platform("coding-standards"))
 myAgent, _ := agent.New(ctx, "security-reviewer", &agent.AgentArgs{
     Instructions: "Review code for security",
 })
-myAgent.AddSkillRefs(
-    skillref.Platform("security-guidelines"),
-    skillref.Platform("coding-standards"),
-    skillref.Organization("my-org", "internal-standards"),
+myAgent.AddSkills(
+    "stigmer/security-guidelines",
+    "stigmer/coding-standards",
+    "my-org/internal-standards",
 )
 ```
 
@@ -546,7 +542,7 @@ stigmer.Run(func(ctx *stigmer.Context) error {
     
     // Build agent incrementally
     myAgent.
-        AddSkillRef(skillref.Platform("coding-standards")).
+        AddSkill("stigmer/coding-standards").
         AddMCPServer(server).
         AddEnvironmentVariable(env).
         AddSubAgent(sub)

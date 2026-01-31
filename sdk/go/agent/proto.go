@@ -60,13 +60,12 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 	}
 
 	// Build metadata
-	// Default to organization scope for SDK-created agents
-	// This satisfies the CEL validation: owner_scope must be platform (1) or organization (2)
+	// Default to private visibility for SDK-created agents
 	metadata := &apiresource.ApiResourceMetadata{
 		Name:        a.Name,
 		Slug:        slug,
 		Annotations: SDKAnnotations(),
-		OwnerScope:  apiresource.ApiResourceOwnerScope_organization,
+		Visibility:  apiresource.ApiResourceVisibility_API_RESOURCE_VISIBILITY_PRIVATE,
 	}
 
 	// Build complete Agent proto

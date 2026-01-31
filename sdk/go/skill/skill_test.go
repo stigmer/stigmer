@@ -319,7 +319,9 @@ func TestKindIsSkill(t *testing.T) {
 				t.Fatal("got nil result")
 			}
 			// Type assert since we return interface{}
-			ref, ok := result.(interface{ GetKind() apiresourcekind.ApiResourceKind })
+			ref, ok := result.(interface {
+				GetKind() apiresourcekind.ApiResourceKind
+			})
 			if !ok {
 				t.Fatal("result doesn't have GetKind method")
 			}
