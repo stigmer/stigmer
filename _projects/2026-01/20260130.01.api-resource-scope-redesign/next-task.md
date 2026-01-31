@@ -17,13 +17,50 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-01-30 08:12
-**Revised**: 2026-01-31 (Phase 1 completed)
-**Current Task**: T01 - Phase 1 Complete, Ready for Phase 2
-**Status**: IN_PROGRESS - Phase 1 done, Phase 2-5 pending
+**Revised**: 2026-01-31 (Phase 2 Sub-Task 1 completed)
+**Current Task**: Phase 2, Sub-Task 1 COMPLETE - New `skill` package created
+**Status**: IN_PROGRESS - Phase 1 done, Phase 2 Sub-Task 1 done, continuing Phase 2
 
 ## Session Progress (2026-01-31)
 
-### Phase 1 COMPLETED
+### Latest Session (2026-01-31 Evening)
+
+**Accomplished - Phase 2, Sub-Task 1: Create `skill` Package**
+
+Created brand new `sdk/go/skill/` package with intuitive org/slug API:
+
+1. **skill.go** (139 lines)
+   - `New(org, slug, opts...)` - Constructor with explicit org/slug
+   - `Parse(ref)` - Parses "org/slug" or "org/slug@version" format
+   - `MustParse(ref)` - Parse variant that panics on error
+   - `WithVersion(v)` - Option for setting version
+
+2. **errors.go** (45 lines)
+   - Sentinel errors: `ErrInvalidFormat`, `ErrEmptyOrg`, `ErrEmptySlug`
+   - `ParseError` type with context and Unwrap support
+
+3. **doc.go** (53 lines)
+   - Comprehensive package documentation with examples
+
+4. **skill_test.go** (310 lines)
+   - 27 test cases covering all functions and edge cases
+   - All tests passing ✅
+
+**Verification Results:**
+- `go build ./skill/...` - Passed ✅
+- `go test -v ./skill/...` - All 27 tests passed ✅
+- No linter errors ✅
+- Bazel BUILD not needed (SDK uses Go modules)
+
+**Key Decisions Made:**
+- Used functional Option pattern for version parameter (clean, extensible)
+- ParseError wraps sentinel errors for better error checking with errors.Is/As
+- Parse handles edge cases: multiple slashes, @ in version, empty parts
+- MustParse panics for init-time/test usage (Go convention)
+
+### Previous Session (2026-01-31)
+
+**Phase 1 COMPLETED**
 
 All proto changes implemented and validated:
 
@@ -33,7 +70,7 @@ All proto changes implemented and validated:
 4. **16 domain protos updated**: Removed all CEL validations referencing `owner_scope`
 5. **Stubs regenerated**: Go and Python stubs regenerated and verified
 
-### Verification Results
+**Verification Results:**
 - `buf lint` - Passed
 - `buf build` - Passed
 - Go stubs compile - Passed
@@ -59,24 +96,48 @@ All proto changes implemented and validated:
 4. **Phase 4**: CLI updates (remove --scope flags) - PENDING
 5. **Phase 5**: Documentation (migration guide) - PENDING
 
-## Next Steps (Phase 2)
+## Next Steps (Immediate - Sub-Task 2)
 
-When you return, start with SDK refactoring:
+**Ready to continue**: Sub-Task 2 - Create `mcpserver` Package
 
-1. **skillref package** (`sdk/go/skillref/skillref.go`):
-   - Remove `Platform()`, `Organization()` functions
-   - Add `New(org, slug)` constructor
-   - Add `Parse(ref string)` for "org/slug" parsing
+Follow the same pattern as the `skill` package just created:
 
-2. **mcpserverref package** (`sdk/go/mcpserverref/mcpserverref.go`):
-   - Remove `Platform()`, `Organization()`, `Personal()` functions
-   - Add `New(org, slug)` constructor
-   - Add `Parse(ref string)` for "org/slug" parsing
+1. **Create `sdk/go/mcpserver/` package** (45-60 minutes estimated)
+   - `mcpserver.go`: `New(org, slug)`, `Parse(ref)`, `MustParse(ref)`
+   - `errors.go`: Same sentinel errors and ParseError pattern
+   - `doc.go`: Package documentation (note: MCP servers NOT versioned)
+   - `mcpserver_test.go`: Full test coverage
+   - Verify: `go build ./mcpserver/...` and `go test -v ./mcpserver/...`
 
-3. **Agent methods** (`sdk/go/agent/agent.go`):
-   - Change `AddSkill` to accept string with smart parsing
-   - Change `UseMCPServer` to accept string with smart parsing
-   - Remove deprecated methods
+2. **Then Sub-Task 3**: Add smart parsing to Agent package
+3. **Then Sub-Task 4**: Add smart parsing to SubAgent package
+4. **Then Sub-Tasks 5-8**: Migrate examples, tests, docs, cleanup
+
+## Context for Resume
+
+**What You Need to Know:**
+
+1. **The `skill` package is the reference implementation** - When creating `mcpserver`, follow the exact same pattern:
+   - File structure: mcpserver.go, errors.go, doc.go, mcpserver_test.go
+   - Functions: New(), Parse(), MustParse() (no WithVersion option - MCP servers aren't versioned)
+   - Error handling: Same ParseError wrapper with sentinel errors
+   - Test coverage: Similar test cases (minus version-related tests)
+
+2. **Current SDK build status**: The old packages (`skillref`, `mcpserverref`, `subagent`) still reference removed `Scope` field, causing build errors. This is expected - they'll be fixed/removed in later sub-tasks.
+
+3. **Key difference for mcpserver**: MCP servers do NOT support versioning, so:
+   - No `WithVersion()` option
+   - No version parameter anywhere
+   - Parse only accepts "org/slug" (not "org/slug@version")
+   - Tests don't need version test cases
+
+4. **Reference files to read when resuming**:
+   - `sdk/go/skill/skill.go` - Template for mcpserver.go structure
+   - `sdk/go/skill/errors.go` - Exact error pattern to replicate
+   - `sdk/go/skill/skill_test.go` - Test structure (remove version tests)
+   - `.cursor/plans/sdk_skill_package_refactor_3ff5a18c.plan.md` - Overall plan
+
+5. **Uncommitted work**: New `sdk/go/skill/` directory ready for commit. Consider committing Sub-Task 1 before starting Sub-Task 2, or batch commit after Sub-Task 2.
 
 ## Essential Files to Review
 
