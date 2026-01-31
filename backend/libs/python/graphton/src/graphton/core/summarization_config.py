@@ -142,24 +142,50 @@ class SummarizationConfig:
             or ModelRegistry.get_summarization_model(model_id)
         )
         
-        # Build config with registry values or overrides
+        # Compute final threshold values
+        trigger_threshold = (
+            trigger_threshold_override
+            if trigger_threshold_override is not None
+            else metadata.summarization_trigger_threshold
+        )
+        target_tokens = (
+            target_tokens_override
+            if target_tokens_override is not None
+            else metadata.summarization_target_tokens
+        )
+        max_summary_tokens = (
+            max_summary_tokens_override
+            if max_summary_tokens_override is not None
+            else metadata.max_summary_tokens
+        )
+        
+        # Validate threshold relationships
+        if enabled:
+            if trigger_threshold <= target_tokens:
+                raise ValueError(
+                    f"trigger_threshold ({trigger_threshold}) must be greater than "
+                    f"target_tokens ({target_tokens}). The trigger threshold is when "
+                    f"summarization starts, and target_tokens is the goal after summarization."
+                )
+            if trigger_threshold > metadata.context_window_tokens:
+                raise ValueError(
+                    f"trigger_threshold ({trigger_threshold}) cannot exceed the model's "
+                    f"context_window_tokens ({metadata.context_window_tokens}). "
+                    f"Summarization would never be possible."
+                )
+            if target_tokens <= max_summary_tokens:
+                raise ValueError(
+                    f"target_tokens ({target_tokens}) must be greater than "
+                    f"max_summary_tokens ({max_summary_tokens}). Otherwise the summary "
+                    f"alone would exceed the target."
+                )
+        
+        # Build config with validated values
         config = cls(
             enabled=enabled,
-            trigger_threshold=(
-                trigger_threshold_override
-                if trigger_threshold_override is not None
-                else metadata.summarization_trigger_threshold
-            ),
-            target_tokens=(
-                target_tokens_override
-                if target_tokens_override is not None
-                else metadata.summarization_target_tokens
-            ),
-            max_summary_tokens=(
-                max_summary_tokens_override
-                if max_summary_tokens_override is not None
-                else metadata.max_summary_tokens
-            ),
+            trigger_threshold=trigger_threshold,
+            target_tokens=target_tokens,
+            max_summary_tokens=max_summary_tokens,
             summarization_model=summarization_model,
             token_counter_method=metadata.token_counter_method,
         )

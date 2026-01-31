@@ -63,6 +63,9 @@ from graphton.core.summarization_callback import (
 from graphton.core.token_counter import TokenCounter
 
 if TYPE_CHECKING:
+    from langchain_core.language_models import BaseChatModel
+    from langmem.short_term import RunningSummary
+
     from graphton.core.summarization_config import SummarizationConfig
 
 logger = logging.getLogger(__name__)
@@ -88,7 +91,7 @@ class SummarizationMiddleware(AgentMiddleware):
     Attributes:
         config: SummarizationConfig with thresholds and model settings
         callback: Optional callback for reporting summarization events
-        _running_summary: LangMem RunningSummary object (persisted in state)
+        _running_summary: LangMem RunningSummary object (persisted in state), or None
         _summarization_count: Number of times summarization was triggered
         _last_summarization_time: Timestamp of last summarization
     
@@ -133,10 +136,10 @@ class SummarizationMiddleware(AgentMiddleware):
         self._callback = callback
         
         # Per-invocation state
-        self._running_summary: Any = None
-        self._summarization_count = 0
+        self._running_summary: RunningSummary | None = None
+        self._summarization_count: int = 0
         self._last_summarization_time: float | None = None
-        self._current_token_count = 0
+        self._current_token_count: int = 0
         
         logger.info(
             "SummarizationMiddleware initialized: enabled=%s, trigger=%d, "
@@ -195,7 +198,12 @@ class SummarizationMiddleware(AgentMiddleware):
             try:
                 self._callback.on_token_count_updated(self._current_token_count)
             except Exception as e:
-                logger.warning("Callback on_token_count_updated failed: %s", e)
+                logger.warning(
+                    "Callback on_token_count_updated failed (%s): %s",
+                    type(e).__name__,
+                    e,
+                    exc_info=True,
+                )
         
         logger.debug(
             "Token count: %d / %d (trigger threshold)",
@@ -261,7 +269,12 @@ class SummarizationMiddleware(AgentMiddleware):
                     # Also report the updated token count
                     self._callback.on_token_count_updated(new_token_count)
                 except Exception as e:
-                    logger.warning("Callback on_summarization_complete failed: %s", e)
+                    logger.warning(
+                        "Callback on_summarization_complete failed (%s): %s",
+                        type(e).__name__,
+                        e,
+                        exc_info=True,
+                    )
             
             # Update internal token count tracking
             self._current_token_count = new_token_count
@@ -270,8 +283,14 @@ class SummarizationMiddleware(AgentMiddleware):
             
         except Exception as e:
             logger.error(
-                "Summarization failed: %s. Continuing without summarization.",
+                "Summarization failed (%s): %s. "
+                "Continuing without summarization. "
+                "Context: model='%s', token_count=%d, message_count=%d",
+                type(e).__name__,
                 e,
+                self.config.summarization_model,
+                self._current_token_count,
+                len(messages),
                 exc_info=True,
             )
             return None
@@ -404,28 +423,56 @@ class SummarizationMiddleware(AgentMiddleware):
         
         return new_messages
     
-    def _create_summarization_model(self) -> Any:
+    def _create_summarization_model(self) -> BaseChatModel:
         """Create the LangChain model instance for summarization.
         
         Uses the economy-tier model specified in config for cost efficiency.
+        Provider detection uses the ModelRegistry for robust identification.
         
         Returns:
-            A LangChain chat model instance.
+            A LangChain BaseChatModel instance for the configured summarization model.
+        
+        Raises:
+            ImportError: If the required LangChain provider package is not installed.
+            ValueError: If the provider is unknown and cannot create a model.
         
         """
+        from graphton.core.model_registry import ModelRegistry
+
         model_id = self.config.summarization_model
         
-        # Determine provider from model ID
-        if model_id.startswith("claude") or model_id.startswith("claude-"):
+        # Use ModelRegistry for robust provider detection
+        metadata = ModelRegistry.get_or_default(model_id)
+        provider = metadata.provider
+        
+        if provider == "anthropic":
             return self._create_anthropic_model(model_id)
-        elif model_id.startswith("gpt") or model_id.startswith("o1"):
+        elif provider == "openai":
             return self._create_openai_model(model_id)
+        elif provider == "ollama":
+            return self._create_ollama_model(model_id)
         else:
-            # Assume Ollama for other models
+            # Unknown provider - log warning and attempt Ollama as fallback
+            logger.warning(
+                "Unknown provider '%s' for model '%s', attempting Ollama as fallback",
+                provider,
+                model_id,
+            )
             return self._create_ollama_model(model_id)
     
-    def _create_anthropic_model(self, model_id: str) -> Any:
-        """Create an Anthropic model instance."""
+    def _create_anthropic_model(self, model_id: str) -> BaseChatModel:
+        """Create an Anthropic ChatAnthropic model instance.
+        
+        Args:
+            model_id: The Anthropic model identifier (e.g., 'claude-haiku-4').
+        
+        Returns:
+            A ChatAnthropic instance configured for summarization.
+        
+        Raises:
+            ImportError: If langchain-anthropic is not installed.
+        
+        """
         try:
             from langchain_anthropic import ChatAnthropic
         except ImportError as e:
@@ -439,8 +486,19 @@ class SummarizationMiddleware(AgentMiddleware):
             max_tokens=self.config.max_summary_tokens,
         )
     
-    def _create_openai_model(self, model_id: str) -> Any:
-        """Create an OpenAI model instance."""
+    def _create_openai_model(self, model_id: str) -> BaseChatModel:
+        """Create an OpenAI ChatOpenAI model instance.
+        
+        Args:
+            model_id: The OpenAI model identifier (e.g., 'gpt-4o-mini').
+        
+        Returns:
+            A ChatOpenAI instance configured for summarization.
+        
+        Raises:
+            ImportError: If langchain-openai is not installed.
+        
+        """
         try:
             from langchain_openai import ChatOpenAI
         except ImportError as e:
@@ -454,8 +512,19 @@ class SummarizationMiddleware(AgentMiddleware):
             max_tokens=self.config.max_summary_tokens,
         )
     
-    def _create_ollama_model(self, model_id: str) -> Any:
-        """Create an Ollama model instance."""
+    def _create_ollama_model(self, model_id: str) -> BaseChatModel:
+        """Create an Ollama ChatOllama model instance.
+        
+        Args:
+            model_id: The Ollama model identifier (e.g., 'qwen2.5-coder:7b').
+        
+        Returns:
+            A ChatOllama instance for local model inference.
+        
+        Raises:
+            ImportError: If langchain-ollama is not installed.
+        
+        """
         try:
             from langchain_ollama import ChatOllama
         except ImportError as e:
