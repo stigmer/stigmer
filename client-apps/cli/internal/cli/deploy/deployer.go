@@ -241,9 +241,6 @@ func (d *Deployer) deployAgent(agent *agentv1.Agent) (*agentv1.Agent, error) {
 		agent.Metadata = &apiresource.ApiResourceMetadata{}
 	}
 	agent.Metadata.Org = d.opts.OrgID
-	if agent.Metadata.OwnerScope == apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified {
-		agent.Metadata.OwnerScope = apiresource.ApiResourceOwnerScope_organization
-	}
 
 	if d.opts.ProgressCallback != nil {
 		d.opts.ProgressCallback(fmt.Sprintf("Deploying agent: %s", agent.Metadata.Name))
@@ -269,9 +266,6 @@ func (d *Deployer) deployWorkflow(workflow *workflowv1.Workflow) (*workflowv1.Wo
 		workflow.Metadata = &apiresource.ApiResourceMetadata{}
 	}
 	workflow.Metadata.Org = d.opts.OrgID
-	if workflow.Metadata.OwnerScope == apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified {
-		workflow.Metadata.OwnerScope = apiresource.ApiResourceOwnerScope_organization
-	}
 
 	if d.opts.ProgressCallback != nil {
 		d.opts.ProgressCallback(fmt.Sprintf("Deploying workflow: %s", workflow.Metadata.Name))
@@ -307,9 +301,6 @@ func (d *Deployer) deployAgents(agents []*agentv1.Agent) ([]*agentv1.Agent, erro
 			agent.Metadata = &apiresource.ApiResourceMetadata{}
 		}
 		agent.Metadata.Org = d.opts.OrgID
-		if agent.Metadata.OwnerScope == apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified {
-			agent.Metadata.OwnerScope = apiresource.ApiResourceOwnerScope_organization
-		}
 
 		if d.opts.ProgressCallback != nil {
 			d.opts.ProgressCallback(fmt.Sprintf("Deploying agent %d/%d: %s", i+1, len(agents), agent.Metadata.Name))
@@ -350,9 +341,6 @@ func (d *Deployer) deployWorkflows(workflows []*workflowv1.Workflow) ([]*workflo
 		// The workflow is already in the correct format from SDK
 		// Just need to ensure org is set
 		workflow.Metadata.Org = d.opts.OrgID
-		if workflow.Metadata.OwnerScope == apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified {
-			workflow.Metadata.OwnerScope = apiresource.ApiResourceOwnerScope_organization
-		}
 
 		// Call apply RPC (creates or updates)
 		deployed, err := client.Apply(context.Background(), workflow)

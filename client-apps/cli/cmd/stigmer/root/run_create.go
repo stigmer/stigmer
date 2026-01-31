@@ -30,9 +30,8 @@ func createAgentExecution(agentID string, orgID string, message string, runtimeE
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "AgentExecution",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:       executionName,
-			Org:        orgID,
-			OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+			Name: executionName,
+			Org:  orgID,
 		},
 		Spec: spec,
 	}
@@ -67,9 +66,8 @@ func createWorkflowExecution(workflowID string, orgID string, message string, ru
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "WorkflowExecution",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name:       executionName,
-			Org:        orgID,
-			OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+			Name: executionName,
+			Org:  orgID,
 		},
 		Spec: spec,
 	}
