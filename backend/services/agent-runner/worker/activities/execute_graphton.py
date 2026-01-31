@@ -18,11 +18,13 @@ from grpc_client.mcp_server_client import McpServerClient
 from worker.token_manager import get_api_key
 from worker.sandbox_manager import SandboxManager
 from worker.activities.graphton.status_builder import StatusBuilder
+from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.approval_policy import (
     ApprovalConfig,
     build_approval_config,
     create_approval_checker,
 )
+from worker.activities.graphton.subagent_transformer import transform_sub_agents
 from worker.checkpointer import create_checkpointer
 from worker.mcp import transform_all_mcp_configs
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
@@ -329,11 +331,10 @@ async def _execute_graphton_impl(
         skills = []  # List of Skill protos (populated if skill_refs exist)
         skill_refs = agent.spec.skill_refs  # repeated ApiResourceReference
         
+        # Create skill client (needed for both parent skills and subagent skills)
+        skill_client = SkillClient(api_key)
+        
         if skill_refs:
-            from worker.activities.graphton.skill_writer import SkillWriter
-            
-            # Create skill client
-            skill_client = SkillClient(api_key)
             
             try:
                 # Fetch skills via gRPC using ApiResourceReference (supports version resolution)
@@ -692,6 +693,68 @@ async def _execute_graphton_impl(
             f"(auto_approve_all={approval_config.auto_approve_all})"
         )
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 5.9: Transform SubAgents (Sub-agent Execution Support)
+        #
+        # Transforms proto SubAgent definitions from AgentSpec.sub_agents to graphton
+        # format. Each subagent gets:
+        # - Filtered MCP access based on McpAccess grants (subset of parent's tools)
+        # - Resolved skills injected into system_prompt
+        # - Tool wrappers for allowed MCP tools
+        #
+        # Permission model:
+        # - SubAgent can only access MCP servers explicitly listed in mcp_access
+        # - SubAgent tools = intersection of parent's enabled tools and subagent's request
+        # - SubAgent skills are independent (can reference any Skill resource)
+        # ─────────────────────────────────────────────────────────────────────────────
+        
+        transformed_subagents = None
+        
+        if agent.spec.sub_agents:
+            activity_logger.info(
+                f"Transforming {len(agent.spec.sub_agents)} sub-agent(s): "
+                f"{[sa.name for sa in agent.spec.sub_agents]}"
+            )
+            
+            try:
+                # Build skill writer kwargs based on mode
+                if worker_config.is_local_mode():
+                    skill_writer_kwargs = {
+                        "local_root": sandbox_config.get('root_dir', '/tmp/stigmer-sandbox')
+                    }
+                else:
+                    if sandbox is None:
+                        raise RuntimeError("Sandbox not initialized for cloud mode")
+                    skill_writer_kwargs = {"sandbox": sandbox}
+                
+                # Transform subagents with MCP filtering and skill resolution
+                transformed_subagents = await transform_sub_agents(
+                    sub_agents=list(agent.spec.sub_agents),
+                    parent_mcp_servers=mcp_servers_config or {},
+                    parent_mcp_tools=mcp_tools_config or {},
+                    parent_mcp_usages=list(agent.spec.mcp_server_usages) if agent.spec.mcp_server_usages else [],
+                    skill_client=skill_client,
+                    skill_writer_class=SkillWriter,
+                    skill_writer_kwargs=skill_writer_kwargs,
+                    approval_checker=approval_checker,
+                    activity_logger=activity_logger,
+                )
+                
+                if transformed_subagents:
+                    activity_logger.info(
+                        f"Successfully transformed {len(transformed_subagents)} sub-agent(s) "
+                        f"with MCP tools and skills"
+                    )
+                else:
+                    activity_logger.warning(
+                        "No valid sub-agents after transformation (all may have invalid configs)"
+                    )
+                    
+            except Exception as e:
+                activity_logger.error(f"Failed to transform sub-agents: {e}")
+                activity_logger.warning("Continuing without sub-agents - agent will not delegate tasks")
+                transformed_subagents = None
+        
         # Create Graphton agent
         # Recursion limit set to 1000 for maximum autonomy
         # Graphton's loop detection middleware prevents infinite loops
@@ -702,7 +765,7 @@ async def _execute_graphton_impl(
             system_prompt=enhanced_system_prompt,
             mcp_servers=mcp_servers_config if mcp_servers_config else None,
             mcp_tools=mcp_tools_config if mcp_tools_config else None,
-            subagents=None,  # Sub-agents support will be added later
+            subagents=transformed_subagents,  # Sub-agents from AgentSpec.sub_agents
             sandbox_config=sandbox_config_for_agent,
             recursion_limit=1000,
             checkpointer=checkpointer,  # Enable HITL interrupt/resume and conversation persistence
