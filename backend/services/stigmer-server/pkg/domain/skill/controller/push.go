@@ -122,8 +122,7 @@ func (s *BuildInitialSkillStep) Execute(ctx *pipeline.RequestContext[*skillv1.Pu
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Skill",
 		Metadata: &apiresourcepb.ApiResourceMetadata{
-			OwnerScope: req.Scope,
-			Org:        req.Org,
+			Org: req.Org, // All resources belong to an org
 		},
 		Spec: &skillv1.SkillSpec{
 			Tag: req.Tag,

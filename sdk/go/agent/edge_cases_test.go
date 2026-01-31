@@ -166,8 +166,8 @@ func TestAgentToProto_NilFields(t *testing.T) {
 		{
 			name: "nil MCP servers",
 			agent: &Agent{
-				Name:         "agent2",
-				Instructions: "Test instructions for agent validation",
+				Name:            "agent2",
+				Instructions:    "Test instructions for agent validation",
 				McpServerUsages: nil, // nil slice
 			},
 			wantErr: false,

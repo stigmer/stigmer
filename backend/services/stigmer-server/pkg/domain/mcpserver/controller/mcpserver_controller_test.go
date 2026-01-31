@@ -38,7 +38,7 @@ func createTestMcpServer(name string) *mcpserverv1.McpServer {
 		Kind:       "McpServer",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name:       name,
-			OwnerScope: apiresource.ApiResourceOwnerScope_identity_account,
+			Org: "test-org",
 		},
 		Spec: &mcpserverv1.McpServerSpec{
 			Description: "Test MCP server for unit tests",
@@ -59,7 +59,7 @@ func createTestMcpServerWithHttp(name string) *mcpserverv1.McpServer {
 		Kind:       "McpServer",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name:       name,
-			OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+			Org: "test-org",
 		},
 		Spec: &mcpserverv1.McpServerSpec{
 			Description: "HTTP-based MCP server",
@@ -83,7 +83,7 @@ func createTestMcpServerWithDocker(name string) *mcpserverv1.McpServer {
 		Kind:       "McpServer",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name:       name,
-			OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+			Org: "test-org",
 		},
 		Spec: &mcpserverv1.McpServerSpec{
 			Description: "Docker-based MCP server",
@@ -285,7 +285,7 @@ func TestMcpServerController_Create(t *testing.T) {
 			Kind:       "McpServer",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Invalid Server",
-				OwnerScope: apiresource.ApiResourceOwnerScope_identity_account,
+				Org: "test-org",
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "Test description",
@@ -305,7 +305,7 @@ func TestMcpServerController_Create(t *testing.T) {
 			Kind:       "McpServer",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Invalid Stdio Server",
-				OwnerScope: apiresource.ApiResourceOwnerScope_identity_account,
+				Org: "test-org",
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "Test description",
@@ -329,7 +329,7 @@ func TestMcpServerController_Create(t *testing.T) {
 			Kind:       "McpServer",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Invalid Docker Server",
-				OwnerScope: apiresource.ApiResourceOwnerScope_identity_account,
+				Org: "test-org",
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "Test description",
@@ -570,7 +570,7 @@ func TestMcpServerController_Update(t *testing.T) {
 			Metadata: &apiresource.ApiResourceMetadata{
 				Id:         "non-existent-id",
 				Name:       "Non-existent Server",
-				OwnerScope: apiresource.ApiResourceOwnerScope_identity_account,
+				Org: "test-org",
 			},
 			Spec: &mcpserverv1.McpServerSpec{
 				Description: "Test description",

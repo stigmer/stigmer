@@ -54,7 +54,7 @@ func createTestWorkflowInstance(t *testing.T, store store.Store, workflowID stri
 			Id:         "wfi-test-instance",
 			Name:       "Test Workflow Instance",
 			Slug:       "test-workflow-instance",
-			OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+			Org: "test-org",
 		},
 		Spec: &workflowinstancev1.WorkflowInstanceSpec{
 			WorkflowId:  workflowID,
@@ -79,7 +79,7 @@ func createTestWorkflow(t *testing.T, store store.Store) *workflowv1.Workflow {
 			Id:         "wf-test-workflow",
 			Name:       "Test Workflow",
 			Slug:       "test-workflow",
-			OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+			Org: "test-org",
 		},
 		Spec: &workflowv1.WorkflowSpec{
 			Description: "Test workflow",
@@ -108,7 +108,7 @@ func TestWorkflowExecutionController_Create(t *testing.T) {
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Test Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowInstanceId: instance.Metadata.Id,
@@ -175,7 +175,7 @@ func TestWorkflowExecutionController_Create(t *testing.T) {
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Invalid Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				TriggerMessage: "Test message",
@@ -194,7 +194,7 @@ func TestWorkflowExecutionController_Create(t *testing.T) {
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Execution With Invalid Workflow",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowId:     "non-existent-workflow",
@@ -257,7 +257,7 @@ func TestWorkflowExecutionController_Get(t *testing.T) {
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Get Test Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowInstanceId: instance.Metadata.Id,
@@ -319,7 +319,7 @@ func TestWorkflowExecutionController_Update(t *testing.T) {
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Update Test Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowInstanceId: instance.Metadata.Id,
@@ -360,7 +360,7 @@ func TestWorkflowExecutionController_Update(t *testing.T) {
 			Metadata: &apiresource.ApiResourceMetadata{
 				Id:         "non-existent-id",
 				Name:       "Non-existent Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowInstanceId: "wfi-test",
@@ -390,7 +390,7 @@ func TestWorkflowExecutionController_Delete(t *testing.T) {
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Delete Test Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowInstanceId: instance.Metadata.Id,
@@ -445,7 +445,7 @@ func TestWorkflowExecutionController_Delete(t *testing.T) {
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Delete Verify Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 				WorkflowInstanceId: instance.Metadata.Id,

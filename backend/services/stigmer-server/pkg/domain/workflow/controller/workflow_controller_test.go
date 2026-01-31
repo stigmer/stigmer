@@ -145,7 +145,7 @@ func createValidWorkflow(name, description string) *workflowv1.Workflow {
 		Kind:       "Workflow",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name:       name,
-			OwnerScope: apiresource.ApiResourceOwnerScope_platform,
+			Org: "test-org",
 		},
 		Spec: &workflowv1.WorkflowSpec{
 			Description: description,

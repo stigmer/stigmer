@@ -23,6 +23,13 @@ langgraph-checkpoint-mongodb = "^0.3.0"
 # Motor: async MongoDB driver (required by AsyncMongoDBSaver)
 motor = "^3.0.0"
 
+# LangMem for context window summarization
+langmem = ">=0.0.30"
+
+# LangChain model providers (for LangMem evaluation)
+langchain-anthropic = ">=0.3.0"
+langchain-openai = ">=0.3.0"
+
 # Graphton (local copy)
 graphton = {path = "../../libs/python/graphton", develop = true}
 

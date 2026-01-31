@@ -41,7 +41,7 @@ func TestEnvironmentController_Create(t *testing.T) {
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Test Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test environment description",
@@ -119,7 +119,7 @@ func TestEnvironmentController_Create(t *testing.T) {
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Empty Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Environment with no data",
@@ -183,7 +183,7 @@ func TestEnvironmentController_Create(t *testing.T) {
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Invalid Scope Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_platform, // Invalid scope for environment (only org or identity_account allowed)
+				Org: "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test description",
@@ -202,7 +202,7 @@ func TestEnvironmentController_Create(t *testing.T) {
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Empty Value Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Environment with empty value",
@@ -237,7 +237,7 @@ func TestEnvironmentController_Get(t *testing.T) {
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Get Test Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test description",
@@ -305,7 +305,7 @@ func TestEnvironmentController_Update(t *testing.T) {
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Update Test Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Original description",
@@ -345,7 +345,7 @@ func TestEnvironmentController_Update(t *testing.T) {
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Update Data Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test description",
@@ -397,7 +397,7 @@ func TestEnvironmentController_Update(t *testing.T) {
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Modify Data Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test description",
@@ -438,7 +438,7 @@ func TestEnvironmentController_Update(t *testing.T) {
 			Metadata: &apiresource.ApiResourceMetadata{
 				Id:         "non-existent-id",
 				Name:       "Non-existent Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test description",
@@ -463,7 +463,7 @@ func TestEnvironmentController_Delete(t *testing.T) {
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Delete Test Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Test description",
@@ -513,7 +513,7 @@ func TestEnvironmentController_Delete(t *testing.T) {
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Delete Verify Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Verify deletion data",
@@ -563,7 +563,7 @@ func TestEnvironmentController_Delete(t *testing.T) {
 			Kind:       "Environment",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Secret Environment",
-				OwnerScope: apiresource.ApiResourceOwnerScope_organization,
+				Org: "test-org",
 			},
 			Spec: &environmentv1.EnvironmentSpec{
 				Description: "Environment with secrets",

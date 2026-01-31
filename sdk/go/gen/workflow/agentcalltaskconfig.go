@@ -6,6 +6,7 @@ package workflow
 
 import (
 	"encoding/json"
+
 	"google.golang.org/protobuf/types/known/structpb"
 )
 

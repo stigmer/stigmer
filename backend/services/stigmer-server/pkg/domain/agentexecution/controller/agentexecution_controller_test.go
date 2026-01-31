@@ -45,7 +45,7 @@ func TestAgentExecutionController_Create(t *testing.T) {
 			Kind:       "AgentExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Test Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &agentexecutionv1.AgentExecutionSpec{
 				SessionId: "test-session-id",
@@ -100,7 +100,7 @@ func TestAgentExecutionController_Create(t *testing.T) {
 			Kind:       "AgentExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Invalid Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &agentexecutionv1.AgentExecutionSpec{
 				Message: "Test message",
@@ -160,7 +160,7 @@ func TestAgentExecutionController_Get(t *testing.T) {
 			Kind:       "AgentExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Get Test Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &agentexecutionv1.AgentExecutionSpec{
 				SessionId: "test-session-id",
@@ -209,7 +209,7 @@ func TestAgentExecutionController_Update(t *testing.T) {
 			Kind:       "AgentExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Update Test Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &agentexecutionv1.AgentExecutionSpec{
 				SessionId: "test-session-id",
@@ -241,7 +241,7 @@ func TestAgentExecutionController_Update(t *testing.T) {
 			Metadata: &apiresource.ApiResourceMetadata{
 				Id:         "non-existent-id",
 				Name:       "Non-existent Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &agentexecutionv1.AgentExecutionSpec{
 				SessionId: "test-session-id",
@@ -269,7 +269,7 @@ func TestAgentExecutionController_Delete(t *testing.T) {
 			Kind:       "AgentExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name:       "Delete Test Execution",
-				OwnerScope: apiresource.ApiResourceOwnerScope_api_resource_owner_scope_unspecified,
+				Org: "test-org",
 			},
 			Spec: &agentexecutionv1.AgentExecutionSpec{
 				SessionId: "test-session-id",

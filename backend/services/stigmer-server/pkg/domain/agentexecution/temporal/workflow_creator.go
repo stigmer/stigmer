@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows"
 	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"
 )
@@ -42,9 +42,9 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(execution *agentexecutionv1
 
 	// Build workflow options
 	options := client.StartWorkflowOptions{
-		ID:                  workflowID,
-		TaskQueue:           c.config.StigmerQueue,
-		WorkflowRunTimeout:  10 * time.Minute, // Max 10 minutes per execution
+		ID:                 workflowID,
+		TaskQueue:          c.config.StigmerQueue,
+		WorkflowRunTimeout: 10 * time.Minute, // Max 10 minutes per execution
 		Memo: map[string]interface{}{
 			"activityTaskQueue": c.config.RunnerQueue, // Pass runner queue to workflow
 		},
