@@ -21,12 +21,44 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Phase**: Phase 1 - Agent YAML-First Foundation (COMPLETED ✅)
-**Current Task**: None - Phase 1 Complete
-**Status**: All 7 Sub-tasks COMPLETED ✅ (7 of 7, 100% complete)
+**Phase**: Phase 2 - Workflow Command Restructuring (IN PROGRESS 🚧)
+**Current Task**: Sub-task 2 COMPLETED ✅, Ready for Sub-task 3
+**Status**: 2 of 8 Sub-tasks COMPLETED ✅ (25% complete)
 
-**Latest Session** (2026-02-01 - Session 7):
-- ✅ Completed Sub-task 7: Run Command (FINAL for Phase 1)
+**Latest Session** (2026-02-01 - Session 9 - Workflow Command Group):
+- ✅ **COMPLETED Phase 2 Sub-task 2**: Workflow Command Group Foundation
+- Created cmd/stigmer/root/workflow.go (79 lines) - NewWorkflowCommand() factory
+- Registered NewWorkflowCommand() in root.go (line 50)
+- Updated BUILD.bazel to add workflow.go to sources (line 31)
+- Command group with alias "wf" (consistent with "agt" for agent)
+- Comprehensive help text explaining SDK-synthesis model
+- Documents workflow lifecycle: define (SDK) → deploy (apply) → execute (run)
+- Comparison with YAML-first agents for clarity
+- Usage examples for all planned subcommands (get, delete, list, search, run)
+- Subcommands to be added in sub-tasks 3-7 (placeholder comments in code)
+- All coding guidelines met (79 lines, no business logic, pattern consistency)
+- Build verified: workflow internal package builds, Go syntax validated
+- Note: Root package build blocked by pre-existing SDK templates issue
+- Changelog: `2026-02-01-125536-workflow-command-group-foundation.md`
+- Committed: `1e8f1b4 feat(cli/workflow): add workflow command group foundation`
+
+**Previous Session** (2026-02-01 - Session 8 - Phase 2 Start):
+- ✅ **COMPLETED Phase 2 Sub-task 1**: Workflow Internal Package Foundation
+- Created internal/cli/workflow/ package (380 lines across 4 files)
+- get.go (84 lines) - GetFromBackend(), Get() with ID vs slug routing
+- delete.go (77 lines) - DeleteFromBackend(), Delete() with result types
+- display.go (194 lines) - All display functions (table/yaml/json formats)
+- BUILD.bazel (25 lines) - Bazel build definition
+- Mirrors agent package patterns exactly
+- Differences from agent: No applier/loader/validator (workflows are SDK-synthesized)
+- Enum-based ID detection (no hardcoded prefixes)
+- All coding guidelines met (files <250 lines, functions <50 lines)
+- Build verified: bazel build successful, no linter errors
+- Changelog: `2026-02-01-125008-workflow-internal-package-foundation.md`
+- Committed: `4922494 feat(cli/workflow): add workflow internal package foundation`
+
+**Previous Session** (2026-02-01 - Session 7):
+- ✅ Completed Phase 1 Sub-task 7: Run Command (FINAL for Phase 1)
 - Created agent_run.go (188 lines) - thin orchestration reusing run_*.go infrastructure
 - Added deprecation warning to run.go directing users to resource-specific commands
 - Registered run command in agent.go with enhanced examples
@@ -159,7 +191,7 @@ stigmer
 | Phase | Description | Status |
 |-------|-------------|--------|
 | **1** | Agent YAML-First Foundation | ✅ **COMPLETED** (7 of 7 sub-tasks) |
-| **2** | Workflow Command Restructuring | **NEXT** |
+| **2** | Workflow Command Restructuring | 🚧 **IN PROGRESS** (2 of 8 sub-tasks complete, 25%) |
 | **3** | Search and Discovery | Pending |
 | **4** | Remove Agent from SDK | Pending |
 | **5** | Platform Capabilities (Draft Commands) | Pending |
@@ -432,50 +464,81 @@ apis/stubs/             (REGENERATED via make protos)
 
 ## Next Steps
 
-**Phase 1 COMPLETE** ✅
+**Phase 2 IN PROGRESS** (1 of 8 sub-tasks complete)
 
-All agent YAML-first commands are now implemented:
-- `stigmer agent apply` - Apply YAML configuration
-- `stigmer agent validate` - Validate configuration (CI-friendly)
-- `stigmer agent get` - Get agent by name/ID
-- `stigmer agent list` - List agents (placeholder until backend RPC)
-- `stigmer agent search` - Search agents
-- `stigmer agent delete` - Delete agent with confirmation
-- `stigmer agent run` - Execute agent
+✅ **Sub-task 1 COMPLETE**: Workflow Internal Package Foundation
+- Created internal/cli/workflow/ package with get, delete, display operations
+- Ready for consumption by command layer
 
-**Next Phase** (Phase 2 - Workflow Command Restructuring):
-1. Plan workflow command restructuring
-2. Add `stigmer workflow run` command
-3. Update workflow commands to match agent patterns
-4. Consider root `run` command removal timeline
+🚧 **NEXT: Sub-task 2** - Workflow Command Group
+**Action**: Create workflow.go command group and register in root.go
+**Estimated**: 45-60 minutes
+**Files to create**:
+1. `cmd/stigmer/root/workflow.go` (~80 lines)
+   - `NewWorkflowCommand()` - Command group factory
+   - Alias: `wf`
+   - Long description explaining SDK synthesis model
+   - Register all subcommands (initially empty, filled in later sub-tasks)
+2. Modify `cmd/stigmer/root/root.go`
+   - Add `rootCmd.AddCommand(root.NewWorkflowCommand())`
+3. Update `cmd/stigmer/root/BUILD.bazel`
+   - Add `workflow.go` to sources
+**Pattern reference**: `cmd/stigmer/root/agent.go` lines 15-72
+**Success criteria**: `stigmer workflow --help` displays command group
+
+**Remaining Sub-tasks**:
+- Sub-task 3: Workflow Get Command (45-60 min)
+- Sub-task 4: Workflow Delete Command (60-75 min)
+- Sub-task 5: Workflow List Command (30-45 min)
+- Sub-task 6: Workflow Search Command (45-60 min)
+- Sub-task 7: Workflow Run Command (60-75 min)
+- Sub-task 8: Documentation and Cleanup (30-45 min)
 
 ---
 
 ## Context for Resume
 
-**What works now** (Phase 1 Complete):
+**Phase 1 Complete** ✅:
 - Agent YAML files can be loaded and parsed (loader.go)
 - Protovalidate enforces proto schema rules + Go validates cross-field logic (validator.go)
 - gRPC apply flow ready (applier.go)
 - Terminal output formatting complete (display.go)
-- **Agent apply command fully functional (agent.go)** ✨
-- **Agent validate command - CI-friendly validation (agent_validate.go)** ✨
-- **Agent get command - flexible retrieval with table/yaml/json output (agent_get.go)** ✨
-- **Agent list command - helpful placeholder until backend RPC available (agent_list.go)** ✨
-- **Agent delete command - production-ready with interactive confirmation (agent_delete.go)** ✨
-- **Agent run command - execute agents with full flag support (agent_run.go)** ✨
-- **Root run deprecation warning - guides users to resource-specific commands** ✨
-- **Enum-based ID detection - zero hardcoded prefixes (reference.go)** ✨
+- Agent apply command fully functional (agent.go)
+- Agent validate command - CI-friendly validation (agent_validate.go)
+- Agent get command - flexible retrieval with table/yaml/json output (agent_get.go)
+- Agent list command - helpful placeholder until backend RPC available (agent_list.go)
+- Agent delete command - production-ready with interactive confirmation (agent_delete.go)
+- Agent run command - execute agents with full flag support (agent_run.go)
+- Root run deprecation warning - guides users to resource-specific commands
+- Enum-based ID detection - zero hardcoded prefixes (reference.go)
 - Command orchestration: load → validate → apply → display
 - Organization resolution for local and cloud modes
 - Reference parsing automatically supports all resource kinds via enum
 - Interactive confirmations using survey library
 - Full agent lifecycle: apply → get → run → delete
 
+**Phase 2 Progress** (Sub-tasks 1-2 Complete):
+- **Sub-task 1: Workflow internal package foundation** ✅
+  - internal/cli/workflow/get.go - GetFromBackend(), Get() with ID vs slug routing
+  - internal/cli/workflow/delete.go - DeleteFromBackend(), Delete() with result types
+  - internal/cli/workflow/display.go - All display functions (table/yaml/json)
+  - internal/cli/workflow/BUILD.bazel - Dependencies configured
+  - Mirrors agent package patterns exactly
+
+- **Sub-task 2: Workflow command group** ✅
+  - cmd/stigmer/root/workflow.go - NewWorkflowCommand() factory (79 lines)
+  - Registered in root.go with "wf" alias
+  - Comprehensive help text explaining SDK-synthesis model
+  - Usage examples for all planned subcommands
+  - Ready for sub-task 3 (workflow_get.go)
+
 **What's needed next**:
-- Begin Phase 2 planning (Workflow Command Restructuring)
-- Add `stigmer workflow run` command
-- Update workflow commands to match agent patterns
+- **Sub-task 3**: Implement workflow_get.go with table/yaml/json output formats
+- **Sub-task 4**: Implement workflow_delete.go with interactive confirmation
+- **Sub-task 5**: Create workflow_list.go placeholder command
+- **Sub-task 6**: Implement workflow_search.go using existing search infrastructure
+- **Sub-task 7**: Implement workflow_run.go reusing run_*.go infrastructure
+- **Sub-task 8**: Documentation, changelog, and final cleanup
 
 **Known Blocker**:
 - Pre-existing Bazel SDK templates issue prevents full CLI build
