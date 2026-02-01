@@ -31,6 +31,7 @@ go_library(
         "workflow.go",
         "workflow_delete.go",
         "workflow_get.go",
+        "workflow_list.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/cmd/stigmer/root",
     visibility = ["//visibility:public"],

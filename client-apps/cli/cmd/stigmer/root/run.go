@@ -1,8 +1,6 @@
 package root
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"

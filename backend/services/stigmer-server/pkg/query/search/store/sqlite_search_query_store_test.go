@@ -33,10 +33,10 @@ func TestEscapeFTS5Query(t *testing.T) {
 
 func TestParseKind(t *testing.T) {
 	tests := []struct {
-		name      string
-		input     string
-		expected  apiresourcekind.ApiResourceKind
-		expectOK  bool
+		name     string
+		input    string
+		expected apiresourcekind.ApiResourceKind
+		expectOK bool
 	}{
 		{"agent", "agent", apiresourcekind.ApiResourceKind_agent, true},
 		{"skill", "skill", apiresourcekind.ApiResourceKind_skill, true},
@@ -85,8 +85,8 @@ func TestNormalizeScore(t *testing.T) {
 
 func TestCreateEmptyProtoForKind(t *testing.T) {
 	tests := []struct {
-		name     string
-		kind     apiresourcekind.ApiResourceKind
+		name      string
+		kind      apiresourcekind.ApiResourceKind
 		expectNil bool
 	}{
 		{"agent", apiresourcekind.ApiResourceKind_agent, false},

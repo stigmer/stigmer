@@ -74,8 +74,8 @@ func TestNewSearchCriteria_QueryAtMaxLength(t *testing.T) {
 func TestNewSearchCriteria_FiltersNonSearchableKinds(t *testing.T) {
 	kinds := []apiresourcekind.ApiResourceKind{
 		apiresourcekind.ApiResourceKind_agent,
-		apiresourcekind.ApiResourceKind_session,           // Not searchable
-		apiresourcekind.ApiResourceKind_agent_execution,   // Not searchable
+		apiresourcekind.ApiResourceKind_session,         // Not searchable
+		apiresourcekind.ApiResourceKind_agent_execution, // Not searchable
 		apiresourcekind.ApiResourceKind_skill,
 	}
 
