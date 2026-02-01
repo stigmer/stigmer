@@ -262,15 +262,15 @@ func TestIsAgentID(t *testing.T) {
 		ref  string
 		want bool
 	}{
-		{"agt_abc123", true},            // underscore separator
-		{"agt-abc123", true},            // hyphen separator
-		{"agt_", true},                  // minimal with underscore
-		{"agt-", true},                  // minimal with hyphen
-		{"agt_longer_id_here", true},    // longer ID
-		{"AGT_abc123", false},           // case sensitive
-		{"wfl_abc123", false},           // different kind
-		{"stigmer/agent", false},        // org/slug format
-		{"", false},                     // empty
+		{"agt_abc123", true},         // underscore separator
+		{"agt-abc123", true},         // hyphen separator
+		{"agt_", true},               // minimal with underscore
+		{"agt-", true},               // minimal with hyphen
+		{"agt_longer_id_here", true}, // longer ID
+		{"AGT_abc123", false},        // case sensitive
+		{"wfl_abc123", false},        // different kind
+		{"stigmer/agent", false},     // org/slug format
+		{"", false},                  // empty
 	}
 
 	for _, tt := range tests {
@@ -288,15 +288,15 @@ func TestIsWorkflowID(t *testing.T) {
 		ref  string
 		want bool
 	}{
-		{"wfl_xyz789", true},              // underscore separator
-		{"wfl-xyz789", true},              // hyphen separator
-		{"wfl_", true},                    // minimal with underscore
-		{"wfl-", true},                    // minimal with hyphen
-		{"wfl_longer_workflow_id", true},  // longer ID
-		{"WFL_xyz789", false},             // case sensitive
-		{"agt_abc123", false},             // different kind
-		{"stigmer/workflow", false},       // org/slug format
-		{"", false},                       // empty
+		{"wfl_xyz789", true},             // underscore separator
+		{"wfl-xyz789", true},             // hyphen separator
+		{"wfl_", true},                   // minimal with underscore
+		{"wfl-", true},                   // minimal with hyphen
+		{"wfl_longer_workflow_id", true}, // longer ID
+		{"WFL_xyz789", false},            // case sensitive
+		{"agt_abc123", false},            // different kind
+		{"stigmer/workflow", false},      // org/slug format
+		{"", false},                      // empty
 	}
 
 	for _, tt := range tests {
@@ -314,21 +314,21 @@ func TestIsMcpServerID(t *testing.T) {
 		ref  string
 		want bool
 	}{
-		{"mcp_github", true},                             // underscore separator
-		{"mcp-github", true},                             // hyphen separator
-		{"mcp_", true},                                   // minimal with underscore
-		{"mcp-", true},                                   // minimal with hyphen
-		{"mcp_server-name", true},                        // longer ID
-		{"mcp-server-name", true},                        // hyphen separator with dashes in value
-		{"12345678-1234-1234-1234-123456789abc", true},   // UUID
-		{"12345678-1234-1234-1234-123456789ABC", true},   // UUID uppercase
-		{"MCP_github", false},                            // case sensitive prefix
-		{"agt_abc123", false},                            // different kind
-		{"stigmer/mcp", false},                           // org/slug format
-		{"", false},                                      // empty
-		{"12345678-1234-1234-1234-12345678", false},      // invalid UUID (too short)
-		{"12345678123412341234123456789abc", false},      // UUID without dashes
-		{"g2345678-1234-1234-1234-123456789abc", false},  // invalid hex
+		{"mcp_github", true},                            // underscore separator
+		{"mcp-github", true},                            // hyphen separator
+		{"mcp_", true},                                  // minimal with underscore
+		{"mcp-", true},                                  // minimal with hyphen
+		{"mcp_server-name", true},                       // longer ID
+		{"mcp-server-name", true},                       // hyphen separator with dashes in value
+		{"12345678-1234-1234-1234-123456789abc", true},  // UUID
+		{"12345678-1234-1234-1234-123456789ABC", true},  // UUID uppercase
+		{"MCP_github", false},                           // case sensitive prefix
+		{"agt_abc123", false},                           // different kind
+		{"stigmer/mcp", false},                          // org/slug format
+		{"", false},                                     // empty
+		{"12345678-1234-1234-1234-12345678", false},     // invalid UUID (too short)
+		{"12345678123412341234123456789abc", false},     // UUID without dashes
+		{"g2345678-1234-1234-1234-123456789abc", false}, // invalid hex
 	}
 
 	for _, tt := range tests {
@@ -346,13 +346,13 @@ func TestIsAgentExecutionID(t *testing.T) {
 		ref  string
 		want bool
 	}{
-		{"aex_run123", true},    // underscore separator
-		{"aex-run123", true},    // hyphen separator
-		{"aex_", true},          // minimal with underscore
-		{"aex-", true},          // minimal with hyphen
-		{"AEX_run", false},      // case sensitive
-		{"agt_abc", false},      // different kind
-		{"", false},             // empty
+		{"aex_run123", true}, // underscore separator
+		{"aex-run123", true}, // hyphen separator
+		{"aex_", true},       // minimal with underscore
+		{"aex-", true},       // minimal with hyphen
+		{"AEX_run", false},   // case sensitive
+		{"agt_abc", false},   // different kind
+		{"", false},          // empty
 	}
 
 	for _, tt := range tests {
@@ -370,13 +370,13 @@ func TestIsWorkflowExecutionID(t *testing.T) {
 		ref  string
 		want bool
 	}{
-		{"wex_run456", true},    // underscore separator
-		{"wex-run456", true},    // hyphen separator
-		{"wex_", true},          // minimal with underscore
-		{"wex-", true},          // minimal with hyphen
-		{"WEX_run", false},      // case sensitive
-		{"wfl_abc", false},      // different kind
-		{"", false},             // empty
+		{"wex_run456", true}, // underscore separator
+		{"wex-run456", true}, // hyphen separator
+		{"wex_", true},       // minimal with underscore
+		{"wex-", true},       // minimal with hyphen
+		{"WEX_run", false},   // case sensitive
+		{"wfl_abc", false},   // different kind
+		{"", false},          // empty
 	}
 
 	for _, tt := range tests {
@@ -394,13 +394,13 @@ func TestIsSkillID(t *testing.T) {
 		ref  string
 		want bool
 	}{
-		{"skl_abc", true},      // underscore separator
-		{"skl-abc", true},      // hyphen separator
-		{"skl_", true},         // minimal with underscore
-		{"skl-", true},         // minimal with hyphen
-		{"SKL_abc", false},     // case sensitive
-		{"agt_abc", false},     // different kind
-		{"", false},            // empty
+		{"skl_abc", true},  // underscore separator
+		{"skl-abc", true},  // hyphen separator
+		{"skl_", true},     // minimal with underscore
+		{"skl-", true},     // minimal with hyphen
+		{"SKL_abc", false}, // case sensitive
+		{"agt_abc", false}, // different kind
+		{"", false},        // empty
 	}
 
 	for _, tt := range tests {
@@ -418,13 +418,13 @@ func TestIsAgentInstanceID(t *testing.T) {
 		ref  string
 		want bool
 	}{
-		{"ain_inst1", true},    // underscore separator
-		{"ain-inst1", true},    // hyphen separator
-		{"ain_", true},         // minimal with underscore
-		{"ain-", true},         // minimal with hyphen
-		{"AIN_inst", false},    // case sensitive
-		{"agt_abc", false},     // different kind
-		{"", false},            // empty
+		{"ain_inst1", true}, // underscore separator
+		{"ain-inst1", true}, // hyphen separator
+		{"ain_", true},      // minimal with underscore
+		{"ain-", true},      // minimal with hyphen
+		{"AIN_inst", false}, // case sensitive
+		{"agt_abc", false},  // different kind
+		{"", false},         // empty
 	}
 
 	for _, tt := range tests {
@@ -442,13 +442,13 @@ func TestIsWorkflowInstanceID(t *testing.T) {
 		ref  string
 		want bool
 	}{
-		{"win_inst2", true},    // underscore separator
-		{"win-inst2", true},    // hyphen separator
-		{"win_", true},         // minimal with underscore
-		{"win-", true},         // minimal with hyphen
-		{"WIN_inst", false},    // case sensitive
-		{"wfl_abc", false},     // different kind
-		{"", false},            // empty
+		{"win_inst2", true}, // underscore separator
+		{"win-inst2", true}, // hyphen separator
+		{"win_", true},      // minimal with underscore
+		{"win-", true},      // minimal with hyphen
+		{"WIN_inst", false}, // case sensitive
+		{"wfl_abc", false},  // different kind
+		{"", false},         // empty
 	}
 
 	for _, tt := range tests {
@@ -466,13 +466,13 @@ func TestIsSessionID(t *testing.T) {
 		ref  string
 		want bool
 	}{
-		{"ses_session123", true},  // underscore separator
-		{"ses-session123", true},  // hyphen separator
-		{"ses_", true},            // minimal with underscore
-		{"ses-", true},            // minimal with hyphen
-		{"SES_session", false},    // case sensitive
-		{"agt_abc", false},        // different kind
-		{"", false},               // empty
+		{"ses_session123", true}, // underscore separator
+		{"ses-session123", true}, // hyphen separator
+		{"ses_", true},           // minimal with underscore
+		{"ses-", true},           // minimal with hyphen
+		{"SES_session", false},   // case sensitive
+		{"agt_abc", false},       // different kind
+		{"", false},              // empty
 	}
 
 	for _, tt := range tests {
@@ -490,13 +490,13 @@ func TestIsEnvironmentID(t *testing.T) {
 		ref  string
 		want bool
 	}{
-		{"env_myenv", true},     // underscore separator
-		{"env-myenv", true},     // hyphen separator
-		{"env_", true},          // minimal with underscore
-		{"env-", true},          // minimal with hyphen
-		{"ENV_myenv", false},    // case sensitive
-		{"agt_abc", false},      // different kind
-		{"", false},             // empty
+		{"env_myenv", true},  // underscore separator
+		{"env-myenv", true},  // hyphen separator
+		{"env_", true},       // minimal with underscore
+		{"env-", true},       // minimal with hyphen
+		{"ENV_myenv", false}, // case sensitive
+		{"agt_abc", false},   // different kind
+		{"", false},          // empty
 	}
 
 	for _, tt := range tests {
