@@ -73,9 +73,9 @@ COMPARISON WITH AGENTS:
 	}
 
 	cmd.AddCommand(newWorkflowGetCommand())
+	cmd.AddCommand(newWorkflowDeleteCommand())
 
 	// Subcommands to be registered in future sub-tasks:
-	// - Sub-task 4: newWorkflowDeleteCommand()
 	// - Sub-task 5: newWorkflowListCommand()
 	// - Sub-task 6: newWorkflowSearchCommand()
 	// - Sub-task 7: newWorkflowRunCommand()

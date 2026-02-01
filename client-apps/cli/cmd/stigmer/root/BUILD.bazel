@@ -29,6 +29,7 @@ go_library(
         "server_logs.go",
         "skill.go",
         "workflow.go",
+        "workflow_delete.go",
         "workflow_get.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/cmd/stigmer/root",
