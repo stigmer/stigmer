@@ -2,6 +2,9 @@ package reference
 
 import (
 	"strings"
+
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 )
 
 // ParsedReference contains the components of a parsed resource reference.
@@ -27,7 +30,7 @@ type ParsedReference struct {
 // Parse parses a resource reference string into its components.
 //
 // The function handles multiple reference formats:
-//   - Resource IDs: Detected by prefix (agt_, wf_, mcp-, or UUID format)
+//   - Resource IDs: Detected by prefix from ApiResourceKind enum (e.g., agt_, agt-, mcp_, mcp-)
 //   - org/slug: Explicit organization and slug
 //   - org/slug@version: With version suffix
 //   - slug: Slug-only, requires contextOrg to be provided
@@ -132,63 +135,83 @@ func extractVersion(ref string) (string, string) {
 }
 
 // isResourceID checks if the reference looks like a resource ID.
-// Resource IDs have specific prefixes or are UUIDs.
+// Resource IDs are detected by prefix from ApiResourceKind enum options or UUID format.
+// Supports both underscore (prefix_) and hyphen (prefix-) separators.
 func isResourceID(ref string) bool {
-	return IsAgentID(ref) || IsWorkflowID(ref) || IsMcpServerID(ref) ||
-		IsAgentExecutionID(ref) || IsWorkflowExecutionID(ref) ||
-		IsSkillID(ref) || IsAgentInstanceID(ref) || IsWorkflowInstanceID(ref)
-}
-
-// IsAgentID returns true if the reference is an agent resource ID.
-// Agent IDs have the prefix "agt_".
-func IsAgentID(ref string) bool {
-	return strings.HasPrefix(ref, "agt_")
-}
-
-// IsWorkflowID returns true if the reference is a workflow resource ID.
-// Workflow IDs have the prefix "wf_".
-func IsWorkflowID(ref string) bool {
-	return strings.HasPrefix(ref, "wf_")
-}
-
-// IsMcpServerID returns true if the reference is an MCP server resource ID.
-// MCP server IDs have the prefix "mcp-" or look like UUIDs.
-func IsMcpServerID(ref string) bool {
-	if strings.HasPrefix(ref, "mcp-") {
-		return true
+	// Check against all known resource kinds
+	for kind := range apiresourcekind.ApiResourceKind_name {
+		k := apiresourcekind.ApiResourceKind(kind)
+		if k == apiresourcekind.ApiResourceKind_api_resource_kind_unknown {
+			continue
+		}
+		if isResourceIDWithKind(ref, k) {
+			return true
+		}
 	}
-	// Check for UUID format (8-4-4-4-12)
+	// Also check for UUID format (legacy compatibility)
 	return isUUID(ref)
 }
 
+// isResourceIDWithKind checks if the reference is a resource ID for the given kind.
+// ID format is: prefix + separator + ULID, where separator is underscore or hyphen.
+// Prefix is derived from the ApiResourceKind enum options (id_prefix).
+func isResourceIDWithKind(ref string, kind apiresourcekind.ApiResourceKind) bool {
+	prefix, err := apiresource.GetIdPrefix(kind)
+	if err != nil || prefix == "" {
+		return false
+	}
+	// Support both underscore and hyphen separators
+	return strings.HasPrefix(ref, prefix+"_") || strings.HasPrefix(ref, prefix+"-")
+}
+
+// IsAgentID returns true if the reference is an agent resource ID.
+func IsAgentID(ref string) bool {
+	return isResourceIDWithKind(ref, apiresourcekind.ApiResourceKind_agent)
+}
+
+// IsWorkflowID returns true if the reference is a workflow resource ID.
+func IsWorkflowID(ref string) bool {
+	return isResourceIDWithKind(ref, apiresourcekind.ApiResourceKind_workflow)
+}
+
+// IsMcpServerID returns true if the reference is an MCP server resource ID or UUID.
+func IsMcpServerID(ref string) bool {
+	return isResourceIDWithKind(ref, apiresourcekind.ApiResourceKind_mcp_server) || isUUID(ref)
+}
+
 // IsAgentExecutionID returns true if the reference is an agent execution ID.
-// Agent execution IDs have the prefix "agtexec_".
 func IsAgentExecutionID(ref string) bool {
-	return strings.HasPrefix(ref, "agtexec_")
+	return isResourceIDWithKind(ref, apiresourcekind.ApiResourceKind_agent_execution)
 }
 
 // IsWorkflowExecutionID returns true if the reference is a workflow execution ID.
-// Workflow execution IDs have the prefix "wfexec_".
 func IsWorkflowExecutionID(ref string) bool {
-	return strings.HasPrefix(ref, "wfexec_")
+	return isResourceIDWithKind(ref, apiresourcekind.ApiResourceKind_workflow_execution)
 }
 
 // IsSkillID returns true if the reference is a skill resource ID.
-// Skill IDs have the prefix "skill_".
 func IsSkillID(ref string) bool {
-	return strings.HasPrefix(ref, "skill_")
+	return isResourceIDWithKind(ref, apiresourcekind.ApiResourceKind_skill)
 }
 
 // IsAgentInstanceID returns true if the reference is an agent instance ID.
-// Agent instance IDs have the prefix "agtinst_".
 func IsAgentInstanceID(ref string) bool {
-	return strings.HasPrefix(ref, "agtinst_")
+	return isResourceIDWithKind(ref, apiresourcekind.ApiResourceKind_agent_instance)
 }
 
 // IsWorkflowInstanceID returns true if the reference is a workflow instance ID.
-// Workflow instance IDs have the prefix "wfinst_".
 func IsWorkflowInstanceID(ref string) bool {
-	return strings.HasPrefix(ref, "wfinst_")
+	return isResourceIDWithKind(ref, apiresourcekind.ApiResourceKind_workflow_instance)
+}
+
+// IsSessionID returns true if the reference is a session resource ID.
+func IsSessionID(ref string) bool {
+	return isResourceIDWithKind(ref, apiresourcekind.ApiResourceKind_session)
+}
+
+// IsEnvironmentID returns true if the reference is an environment resource ID.
+func IsEnvironmentID(ref string) bool {
+	return isResourceIDWithKind(ref, apiresourcekind.ApiResourceKind_environment)
 }
 
 // isUUID checks if a string looks like a UUID (8-4-4-4-12 format).

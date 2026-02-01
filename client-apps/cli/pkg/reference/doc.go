@@ -10,7 +10,16 @@
 //   - org/slug: Full organization and slug reference (e.g., "stigmer/web-search")
 //   - org/slug@version: With version suffix (e.g., "stigmer/web-search@v1.0")
 //   - slug: Slug-only, uses context organization (e.g., "web-search")
-//   - resource ID: Detected by prefix (e.g., "agt_xxx", "wf_xxx", "mcp-xxx")
+//   - resource ID: Detected by prefix from ApiResourceKind enum (e.g., "agt_xxx", "wfl_xxx", "mcp_xxx")
+//
+// # Resource ID Format
+//
+// Resource IDs use the format: prefix + separator + ULID
+//   - Prefix is derived from the ApiResourceKind enum options (id_prefix)
+//   - Separator can be underscore (_) or hyphen (-)
+//   - ULID is a unique lexicographically sortable identifier
+//
+// Examples: "agt_01ABC...", "agt-01ABC...", "wfl_01XYZ...", "mcp-server123"
 //
 // # Usage
 //
@@ -29,7 +38,7 @@
 //	parsed, err := reference.Parse("stigmer/web-search@v1.0", "")
 //	// parsed.Org = "stigmer", parsed.Slug = "web-search", parsed.Version = "v1.0"
 //
-// ID detection:
+// ID detection (prefix from enum, not hardcoded):
 //
 //	parsed, err := reference.Parse("agt_abc123", "")
 //	// parsed.IsID = true, parsed.ID = "agt_abc123"

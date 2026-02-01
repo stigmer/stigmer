@@ -85,9 +85,9 @@ func TestMarshalTaskConfig_Success(t *testing.T) {
 // TestMarshalTaskConfig_RoundTrip tests that typed → Struct → typed produces identical proto
 func TestMarshalTaskConfig_RoundTrip(t *testing.T) {
 	testCases := []struct {
-		name       string
-		kind       workflowv1.WorkflowTaskKind
-		original   proto.Message
+		name     string
+		kind     workflowv1.WorkflowTaskKind
+		original proto.Message
 	}{
 		{
 			name: "SET task round-trip",
