@@ -32,6 +32,7 @@ go_library(
         "workflow_delete.go",
         "workflow_get.go",
         "workflow_list.go",
+        "workflow_run.go",
         "workflow_search.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/cmd/stigmer/root",
