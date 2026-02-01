@@ -7,6 +7,7 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/search"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 )
@@ -187,4 +188,48 @@ func displayAgentJSON(agent *agentv1.Agent) {
 		return
 	}
 	fmt.Println(string(jsonBytes))
+}
+
+// DisplayListResult displays a list of agents from search results.
+// Uses the generic search display with agent-specific settings.
+func DisplayListResult(results *search.Result, format string, page int32) {
+	if results.IsEmpty() {
+		search.DisplayEmptyResults("agents", "")
+		return
+	}
+
+	search.DisplayResults(results, &search.DisplayOptions{
+		Format:       format,
+		ShowKind:     false, // Agent-specific: don't show KIND column
+		ShowOrg:      true,  // Show ORG since agents can be from different orgs
+		MaxDescLen:   50,
+		ResourceName: "agents",
+	})
+
+	search.DisplayPaginationInfo(page, results.TotalPages, results.TotalCount)
+}
+
+// DisplaySearchResult displays agent search results with query context.
+// Shows results sorted by relevance with the search query highlighted.
+func DisplaySearchResult(results *search.Result, query string, format string, page int32) {
+	if results.IsEmpty() {
+		search.DisplayEmptyResults("agents", query)
+		return
+	}
+
+	// For search results, show a header indicating what was searched
+	if format == "table" || format == "" {
+		fmt.Println()
+		cliprint.PrintInfo("Found %d agents matching '%s'", results.TotalCount, query)
+	}
+
+	search.DisplayResults(results, &search.DisplayOptions{
+		Format:       format,
+		ShowKind:     false,
+		ShowOrg:      true,
+		MaxDescLen:   50,
+		ResourceName: "agents",
+	})
+
+	search.DisplayPaginationInfo(page, results.TotalPages, results.TotalCount)
 }

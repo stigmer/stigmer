@@ -27,9 +27,11 @@ const (
 	schemaVersion1 = 1
 	// schemaVersion2: Separate audit table with foreign keys for proper relational design
 	schemaVersion2 = 2
+	// schemaVersion3: FTS5 full-text search index for unified search
+	schemaVersion3 = 3
 
 	// currentSchemaVersion is the target version for new databases
-	currentSchemaVersion = schemaVersion2
+	currentSchemaVersion = schemaVersion3
 )
 
 // Store implements store.Store using SQLite as the backing storage.
@@ -124,6 +126,12 @@ func runMigrations(db *sql.DB) error {
 	if currentVersion < schemaVersion2 {
 		if err := migrateToV2(db); err != nil {
 			return fmt.Errorf("migrate to v2: %w", err)
+		}
+	}
+
+	if currentVersion < schemaVersion3 {
+		if err := migrateToV3(db); err != nil {
+			return fmt.Errorf("migrate to v3: %w", err)
 		}
 	}
 
@@ -229,6 +237,63 @@ func migrateToV2(db *sql.DB) error {
 	}
 
 	if err := setSchemaVersion(tx, schemaVersion2); err != nil {
+		return fmt.Errorf("set schema version: %w", err)
+	}
+
+	return tx.Commit()
+}
+
+// migrateToV3 creates the FTS5 full-text search index table.
+// This enables efficient text search across all searchable resources (agents, skills,
+// mcp_servers, workflows) with BM25 ranking and porter stemming.
+//
+// The search_index table stores denormalized searchable fields extracted from resources.
+// It is maintained separately from the main resources table and must be explicitly
+// updated when resources are created/modified/deleted.
+//
+// FTS5 Configuration:
+//   - tokenize='porter unicode61': Porter stemming + Unicode support
+//   - BM25 ranking for relevance scoring
+//   - Weighted columns: name (10), description (5), tags (5)
+func migrateToV3(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Create the FTS5 virtual table for full-text search
+	// The 'porter' tokenizer provides English word stemming (deploy -> deploy, deployment -> deploy)
+	// The 'unicode61' tokenizer handles Unicode normalization
+	//
+	// Columns:
+	//   - kind: resource type (for filtering, but still searchable for FTS5)
+	//   - resource_id: join key to resources table (UNINDEXED = not searchable)
+	//   - name: display name (highest search weight)
+	//   - description: resource description
+	//   - tags: space-separated tags
+	//   - org: organization filter (UNINDEXED = not searchable)
+	//   - visibility: public/private filter (UNINDEXED = not searchable)
+	//   - created_at: for sorting in list mode (UNINDEXED = not searchable)
+	fts5Schema := `
+		CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
+			kind,
+			resource_id UNINDEXED,
+			name,
+			description,
+			tags,
+			org UNINDEXED,
+			visibility UNINDEXED,
+			created_at UNINDEXED,
+			tokenize='porter unicode61'
+		);
+	`
+
+	if _, err := tx.Exec(fts5Schema); err != nil {
+		return fmt.Errorf("create search_index FTS5 table: %w", err)
+	}
+
+	if err := setSchemaVersion(tx, schemaVersion3); err != nil {
 		return fmt.Errorf("set schema version: %w", err)
 	}
 
@@ -856,6 +921,92 @@ func (s *Store) DeleteAuditByResourceId(ctx context.Context, kind apiresourcekin
 	}
 
 	return result.RowsAffected()
+}
+
+// =============================================================================
+// Search Index Operations (Full-Text Search)
+// =============================================================================
+
+// UpsertSearchIndex inserts or updates a search index entry for a resource.
+// This uses FTS5's INSERT OR REPLACE semantics via a DELETE + INSERT pattern
+// since FTS5 doesn't support UPDATE directly.
+//
+// The entry's fields are indexed for full-text search:
+//   - name: highest weight in BM25 ranking
+//   - description: medium weight
+//   - tags: medium weight (space-separated)
+//
+// Non-searchable fields (org, visibility, created_at) are stored for filtering and sorting.
+func (s *Store) UpsertSearchIndex(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string, entry *store.SearchIndexEntry) error {
+	// Acquire write lock to serialize writes (SQLite single-writer limitation)
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("store is closed")
+	}
+
+	// FTS5 doesn't support UPDATE, so we DELETE + INSERT
+	// This is wrapped in a transaction for atomicity
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Delete existing entry (if any)
+	_, err = tx.ExecContext(ctx,
+		`DELETE FROM search_index WHERE kind = ? AND resource_id = ?`,
+		kind.String(), resourceId)
+	if err != nil {
+		return fmt.Errorf("delete existing search index entry: %w", err)
+	}
+
+	// Insert new entry
+	_, err = tx.ExecContext(ctx,
+		`INSERT INTO search_index (kind, resource_id, name, description, tags, org, visibility, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		kind.String(),
+		resourceId,
+		entry.Name,
+		entry.Description,
+		entry.Tags,
+		entry.Org,
+		entry.Visibility,
+		entry.CreatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("insert search index entry: %w", err)
+	}
+
+	return tx.Commit()
+}
+
+// DeleteSearchIndex removes a search index entry for a resource.
+// Should be called when a resource is deleted.
+func (s *Store) DeleteSearchIndex(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) error {
+	// Acquire write lock to serialize writes (SQLite single-writer limitation)
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("store is closed")
+	}
+
+	_, err := s.db.ExecContext(ctx,
+		`DELETE FROM search_index WHERE kind = ? AND resource_id = ?`,
+		kind.String(), resourceId)
+	if err != nil {
+		return fmt.Errorf("delete search index entry: %w", err)
+	}
+
+	return nil
 }
 
 // Close releases all resources held by the store.
