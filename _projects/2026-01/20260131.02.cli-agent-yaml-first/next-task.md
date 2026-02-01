@@ -22,17 +22,22 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 1 - Agent YAML-First Foundation (IN PROGRESS)
-**Current Task**: Sub-task 2 - Agent Schema Validator
-**Status**: Sub-task 1 COMPLETED ✅
+**Current Task**: Sub-task 3 - Agent Applier & Display
+**Status**: Sub-tasks 1-2 COMPLETED ✅
 
-**Latest Session** (2026-02-01):
+**Latest Session** (2026-02-01 - Session 2):
+- ✅ Completed Sub-task 2: Agent Schema Validator
+- Enhanced proto validation (ApiResourceReference slug/org format rules)
+- Implemented validator.go with cross-field validation (80 lines)
+- Created comprehensive test suite (14 test functions, 28 total tests passing)
+- Proto validation is single source of truth - Go only handles cross-field logic
+
+**Previous Session** (2026-02-01 - Session 1):
 - ✅ Completed Sub-task 1: Agent YAML Loader
 - Implemented loader.go with protovalidate as single source of truth
 - Created comprehensive test suite (12 test cases, all passing)
-- Updated BUILD.bazel with dependencies
-- Created changelog: `_changelog/2026-02/2026-02-01-075912-agent-yaml-loader-foundation.md`
 
-**Key Achievement**: Established clean architectural pattern using protovalidate instead of duplicating validation (avoiding MCP Server loader's technical debt)
+**Key Achievement**: Strengthened proto validation at the source, minimal Go validation for cross-field business logic only
 
 ---
 
@@ -117,14 +122,44 @@ stigmer
 
 ---
 
-## Session Progress (2026-02-01)
+## Session Progress (2026-02-01 Session 2)
+
+### Completed
+- ✅ Enhanced `ApiResourceReference` proto with slug/org format validation
+- ✅ Added pattern validation: `^[a-z][a-z0-9-]*$` (must start with letter)
+- ✅ Added length constraints: 1-63 characters
+- ✅ Removed reserved field (no backward compat needed)
+- ✅ Agent validator implementation (`validator.go`, 180 lines)
+- ✅ Cross-field validation: unique mcp_server_usages, SubAgent mcp_access references
+- ✅ Comprehensive test suite (`validator_test.go`, 250 lines, 14 test functions)
+- ✅ All 28 tests passing (14 loader + 14 validator)
+
+### Key Decisions
+- **Proto validations strengthened at source**: org/slug format rules belong in proto
+- **No duplication of proto rules**: Go code only validates cross-field business logic
+- **Actionable error messages**: Each error includes guidance on how to fix
+- **SubAgent tool subset validation**: Enforces permission inheritance model
+
+### Files Created/Modified
+```
+apis/ai/stigmer/commons/apiresource/
+└── io.proto           (MODIFIED - added validation rules)
+
+client-apps/cli/internal/cli/agent/
+├── validator.go       (NEW - 180 lines)
+├── validator_test.go  (NEW - 250 lines)
+└── BUILD.bazel        (MODIFIED - added validator files)
+
+apis/stubs/             (REGENERATED via make protos)
+```
+
+## Session Progress (2026-02-01 Session 1)
 
 ### Completed
 - ✅ Agent YAML Loader implementation (`loader.go`, 168 lines)
 - ✅ Comprehensive test suite (`loader_test.go`, 367 lines, 12 test cases)
 - ✅ BUILD.bazel updated with protovalidate dependency
 - ✅ All tests passing via Bazel
-- ✅ Changelog created documenting the work
 - ✅ Enum text values fixed in tests (`skill` vs `43`, `mcp_server` vs `44`)
 
 ### Key Decisions
@@ -133,30 +168,20 @@ stigmer
 - **Auto-detection**: `agent.yaml` or `AGENT.yaml` in current directory
 - **Human-readable enums**: YAML uses text values, not numeric codes
 
-### Files Created
-```
-client-apps/cli/internal/cli/agent/
-├── loader.go          (NEW - 168 lines)
-├── loader_test.go     (NEW - 367 lines)
-└── BUILD.bazel        (MODIFIED)
-
-_changelog/2026-02/
-└── 2026-02-01-075912-agent-yaml-loader-foundation.md
-```
-
 ---
 
 ## Next Steps
 
-**Immediate** (Sub-task 2):
-1. Create `validator.go` for cross-resource validation
-2. Add reference validation (does skill/MCP server exist?)
-3. Implement business logic checks beyond schema
-4. Create comprehensive tests for validator
+**Immediate** (Sub-task 3):
+1. Create `applier.go` for gRPC apply flow (mirror MCP Server pattern)
+2. Create `display.go` for output formatting (preview, success, error messages)
+3. Wire up with AgentCommandControllerClient
+4. Implement dry-run preview mode
 
-**Then** (Sub-task 3):
-5. Create `applier.go` for gRPC apply flow
-6. Create `display.go` for output formatting
+**Then** (Sub-task 4):
+5. Create `cmd/stigmer/root/agent.go` command group
+6. Implement `stigmer agent apply` command
+7. Wire up loader → validator → applier flow
 
 ---
 
@@ -168,9 +193,9 @@ _changelog/2026-02/
 - Tests verify file resolution, parsing, and validation
 
 **What's needed next**:
-- Cross-resource validation (does referenced skill exist?)
-- Business logic validation beyond schema
-- Integration with backend for apply operations
+- Applier for gRPC integration with backend
+- Display functions for user-facing output
+- Agent command group with apply subcommand
 
 **Technical context**:
 - Using `@build_buf_go_protovalidate//:protovalidate` dependency
@@ -258,5 +283,5 @@ After loading context:
 
 ---
 
-*Last updated: 2026-02-01 07:59 PST*
-*Status: Phase 1 in progress - Sub-task 1 complete, Sub-task 2 next*
+*Last updated: 2026-02-01 (Session 2)*
+*Status: Phase 1 in progress - Sub-tasks 1-2 complete, Sub-task 3 next*
