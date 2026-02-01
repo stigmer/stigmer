@@ -22,10 +22,26 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 2 - Workflow Command Restructuring (IN PROGRESS 🚧)
-**Current Task**: Sub-task 4 COMPLETED ✅, Ready for Sub-task 5
-**Status**: 4 of 8 Sub-tasks COMPLETED ✅ (50% complete)
+**Current Task**: Sub-task 5 COMPLETED ✅, Ready for Sub-task 6
+**Status**: 5 of 8 Sub-tasks COMPLETED ✅ (62.5% complete)
 
-**Latest Session** (2026-02-01 - Session 11 - Workflow Delete Command):
+**Latest Session** (2026-02-01 - Session 12 - Workflow List Command):
+- ✅ **COMPLETED Phase 2 Sub-task 5**: Workflow List Command Implementation
+- Created cmd/stigmer/root/workflow_list.go (139 lines) - Full list command using search infrastructure
+- Updated workflow.go - Registered newWorkflowListCommand() and removed Sub-task 5 placeholder
+- Updated BUILD.bazel - Added workflow_list.go to sources
+- Command structure: Mirrors agent_list.go pattern exactly (139 vs 133 lines)
+- 5-step orchestration: config → org → daemon → connect → search (empty query = list mode)
+- Flags: `--output, -o` (table/yaml/json), `--org`, `--all-orgs`, `--page`, `--page-size`
+- Full pagination support (default: 20 per page, max: 100)
+- Organization filtering: Default to current context, or list from specific org or all orgs
+- Zero new infrastructure: Reuses search.Search() and workflow.DisplayListResult()
+- All coding guidelines met (139 lines, functions <50 lines, pattern consistency)
+- Build verified: workflow internal package builds, gofmt passes
+- Changelog: `2026-02-01-131321-workflow-list-command.md`
+- Committed: PENDING
+
+**Previous Session** (2026-02-01 - Session 11 - Workflow Delete Command):
 - ✅ **COMPLETED Phase 2 Sub-task 4**: Workflow Delete Command Implementation
 - Created cmd/stigmer/root/workflow_delete.go (151 lines) - Full delete command with interactive confirmation
 - Updated workflow.go - Registered newWorkflowDeleteCommand() and removed Sub-task 4 placeholder
@@ -502,20 +518,21 @@ apis/stubs/             (REGENERATED via make protos)
 ✅ **Sub-task 3 COMPLETE**: Workflow Get Command
 ✅ **Sub-task 4 COMPLETE**: Workflow Delete Command
 
-🚧 **NEXT: Sub-task 5** - Workflow List Command
-**Action**: Create workflow_list.go placeholder command
-**Estimated**: 30-45 minutes
-**Files to create/modify**:
-1. `cmd/stigmer/root/workflow_list.go` (~50 lines)
-   - `newWorkflowListCommand()` - Helpful placeholder
-   - Message explaining List API not available
-   - Suggests using `stigmer workflow get` instead
+🚧 **NEXT: Sub-task 6** - Workflow Search Command
+**Action**: Create workflow_search.go command
+**Estimated**: 45-60 minutes
+**Files to create**:
+1. `cmd/stigmer/root/workflow_search.go` (~150 lines)
+   - `newWorkflowSearchCommand()` - Search subcommand
+   - `executeWorkflowSearch()` - Search orchestration
+   - Uses existing `internal/cli/search` package
+   - Flags: `--output`, `--org`, `--page`
 2. Update `cmd/stigmer/root/workflow.go`
-   - Register `newWorkflowListCommand()`
+   - Register `newWorkflowSearchCommand()`
 3. Update `cmd/stigmer/root/BUILD.bazel`
-   - Add `workflow_list.go` to sources
-**Pattern reference**: `cmd/stigmer/root/agent_list.go`
-**Success criteria**: `stigmer workflow list` shows helpful message
+   - Add `workflow_search.go` to sources
+**Pattern reference**: `cmd/stigmer/root/agent_search.go`
+**Success criteria**: `stigmer workflow search <query>` returns relevant workflows with pagination
 
 **Remaining Sub-tasks**:
 - Sub-task 6: Workflow Search Command (45-60 min)

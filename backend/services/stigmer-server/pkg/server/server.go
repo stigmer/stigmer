@@ -44,14 +44,14 @@ import (
 
 	// Search service imports
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
-	searchcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/controller"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
-	searchhandler "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/handler"
-	searchstore "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/store"
 	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	sessionclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
 	workflowclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
 	workflowinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
+	searchcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/controller"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
+	searchhandler "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/handler"
+	searchstore "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/supervisor"
 )
 
