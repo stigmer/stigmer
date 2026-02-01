@@ -1034,3 +1034,14 @@ func (s *Store) Close() error {
 func (s *Store) Path() string {
 	return s.path
 }
+
+// DB returns the underlying *sql.DB connection.
+// This is useful for components that need direct database access,
+// such as the SearchQueryStore that needs to query the FTS5 index.
+//
+// Warning: Be careful when using direct database access - ensure proper
+// locking if performing writes. Prefer using the Store methods for
+// standard operations.
+func (s *Store) DB() *sql.DB {
+	return s.db
+}

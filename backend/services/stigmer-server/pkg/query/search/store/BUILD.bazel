@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "store",
+    srcs = [
+        "search_query_store.go",
+        "sqlite_search_query_store.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/store",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
+        "//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver",
+        "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/search/v1:search",
+        "//backend/libs/go/store",
+        "//backend/services/stigmer-server/pkg/query/search/extractor",
+        "//backend/services/stigmer-server/pkg/query/search/valueobject",
+        "@com_github_rs_zerolog//log",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "store_test",
+    srcs = ["sqlite_search_query_store_test.go"],
+    embed = [":store"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+    ],
+)

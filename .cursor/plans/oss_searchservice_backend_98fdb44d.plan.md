@@ -7,37 +7,37 @@ todos:
     status: completed
   - id: 2-value-objects
     content: Create search_criteria.go and search_paged_result.go with validation and tests
-    status: in_progress
+    status: completed
   - id: 3-extractor-interface
     content: Create extractor.go interface and SearchableFields struct
-    status: pending
+    status: completed
   - id: 4-extractor-registry
     content: Create registry.go with auto-discovery and tests
-    status: pending
+    status: completed
   - id: 5-concrete-extractors
     content: Implement Agent, Skill, McpServer, Workflow extractors
-    status: pending
+    status: completed
   - id: 6-query-store-interface
     content: Create search_query_store.go interface
-    status: pending
+    status: completed
   - id: 7-sqlite-query-store
     content: Implement sqlite_search_query_store.go with FTS5 queries and tests
-    status: pending
+    status: completed
   - id: 8-search-handler
     content: Create search_handler.go with pipeline steps
-    status: pending
+    status: completed
   - id: 9-search-controller
     content: Create search_controller.go gRPC handler
-    status: pending
+    status: completed
   - id: 10-server-registration
     content: Register SearchService in server.go
-    status: pending
+    status: completed
   - id: 11-build-files
     content: Create BUILD.bazel files for all new packages
-    status: pending
+    status: completed
   - id: 12-readme-docs
     content: Create comprehensive README.md with architecture documentation
-    status: pending
+    status: completed
 isProject: false
 ---
 
