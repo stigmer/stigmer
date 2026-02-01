@@ -10,7 +10,6 @@ go_library(
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
-        "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/pkg/ignore",
         "@com_github_pkg_errors//:errors",

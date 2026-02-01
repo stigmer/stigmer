@@ -46,6 +46,8 @@ Agents can:
 	}
 
 	cmd.AddCommand(newAgentApplyCommand())
+	cmd.AddCommand(newAgentValidateCommand())
+	cmd.AddCommand(newAgentGetCommand())
 
 	return cmd
 }

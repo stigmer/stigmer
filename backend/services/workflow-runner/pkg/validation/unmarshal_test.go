@@ -144,11 +144,11 @@ func TestUnmarshalSwitchTaskConfig(t *testing.T) {
 		switchConfig, ok := msg.(*tasksv1.SwitchTaskConfig)
 		require.True(t, ok, "expected SwitchTaskConfig type")
 		require.Len(t, switchConfig.Cases, 2)
-		
+
 		assert.Equal(t, "highValue", switchConfig.Cases[0].Name)
 		assert.Equal(t, "${ .value > 100 }", switchConfig.Cases[0].When)
 		assert.Equal(t, "processHighValue", switchConfig.Cases[0].Then)
-		
+
 		assert.Equal(t, "default", switchConfig.Cases[1].Name)
 		assert.Equal(t, "", switchConfig.Cases[1].When) // No when = default case
 		assert.Equal(t, "processDefault", switchConfig.Cases[1].Then)

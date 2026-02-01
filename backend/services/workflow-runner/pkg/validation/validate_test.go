@@ -45,7 +45,7 @@ func TestValidateSetTaskConfig(t *testing.T) {
 
 		err := ValidateTaskConfig(config)
 		assert.Error(t, err)
-		
+
 		// Check that it's a ValidationErrors
 		valErrs, ok := err.(*ValidationErrors)
 		require.True(t, ok, "expected ValidationErrors type")
@@ -77,11 +77,11 @@ func TestValidateHttpCallTaskConfig(t *testing.T) {
 
 		err := ValidateTaskConfig(config)
 		assert.Error(t, err)
-		
+
 		valErrs, ok := err.(*ValidationErrors)
 		require.True(t, ok, "expected ValidationErrors type")
 		assert.Greater(t, len(valErrs.Errors), 0)
-		
+
 		// Check that the error mentions the method field
 		assert.Contains(t, valErrs.Error(), "method")
 	})
@@ -225,7 +225,7 @@ func TestValidateTask(t *testing.T) {
 
 		err = ValidateTask(task)
 		assert.Error(t, err)
-		
+
 		// Check that error includes task name and kind
 		assert.Contains(t, err.Error(), "fetchData")
 		assert.Contains(t, err.Error(), "http_call")
