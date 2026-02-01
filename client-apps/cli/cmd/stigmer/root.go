@@ -46,6 +46,7 @@ func init() {
 	rootCmd.AddCommand(root.NewConfigCommand())
 	rootCmd.AddCommand(root.NewSkillCommand())
 	rootCmd.AddCommand(root.NewMcpServerCommand())
+	rootCmd.AddCommand(root.NewAgentCommand())
 	rootCmd.AddCommand(root.NewApplyCommand())
 	rootCmd.AddCommand(root.NewRunCommand())
 
