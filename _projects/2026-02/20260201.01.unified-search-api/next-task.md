@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-01 10:18
-**Current Task**: Phase 2 (Backend Implementation)
+**Current Task**: Phase 3 (Repository Layer)
 **Status**: Ready to start
-**Last Updated**: 2026-02-01 10:52
+**Last Updated**: 2026-02-01 11:19
 
 ### Phase 1 Complete ✅
 
@@ -87,6 +87,30 @@ Phase 1 (Proto Definitions) completed on 2026-02-01:
 - Type-safe API with buf.validate rules
 - Generated stubs compiled and verified
 - CQRS architecture clearly documented in proto comments
+
+### Phase 2 Complete ✅
+
+Phase 2 (Backend Domain Layer - Refactored) completed on 2026-02-01:
+- ✅ Created `SearchableExtractor` interface (Strategy Pattern for proto classes)
+- ✅ Implemented 4 extractors: Agent, Skill, McpServer, Workflow
+- ✅ Created `SearchableResourceRegistry` with Spring auto-discovery
+- ✅ Created `SearchCriteria` value object with inline validation
+- ✅ **Refactored**: Removed duplicate DTOs - use proto classes directly
+- ✅ Deleted unnecessary classes: SearchableMetadata, SearchResultDto, AuthorizedResourceIds, SearchQuery
+- ✅ Comprehensive unit tests for all components
+- ✅ No linter errors
+
+**Key Decisions**:
+- Strategy Pattern to handle protobuf classes (can't implement interfaces)
+- Return `SearchResult` proto directly from extractors (no intermediate DTOs)
+- Use existing `IamPolicyGrpcRepo.listAuthorizedResourceIds()` for authorization
+- Inline query validation in `SearchCriteria` (max 500 chars)
+
+**Session Progress (2026-02-01)**:
+- Identified and eliminated duplicate data structures
+- Simplified architecture by using proto classes as DTOs
+- Reduced code footprint: deleted 8 files, streamlined to 7 source + 3 test files
+- Maintained world-class code quality with comprehensive tests
 
 ## Quick Commands
 
