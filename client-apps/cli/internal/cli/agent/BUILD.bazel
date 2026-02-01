@@ -20,6 +20,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//client-apps/cli/internal/cli/clierr",
         "//client-apps/cli/internal/cli/cliprint",
+        "//client-apps/cli/internal/cli/search",
         "//client-apps/cli/internal/cli/synthesis",
         "//client-apps/cli/pkg/reference",
         "@build_buf_go_protovalidate//:protovalidate",

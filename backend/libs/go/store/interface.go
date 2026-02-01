@@ -193,10 +193,66 @@ type Store interface {
 	DeleteAuditByResourceId(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) (int64, error)
 
 	// ===========================================================================
+	// Search Index Operations (Full-Text Search)
+	// ===========================================================================
+
+	// UpsertSearchIndex inserts or updates a search index entry for a resource.
+	// This enables full-text search across resources using FTS5.
+	//
+	// The search index is separate from the main resources table and must be
+	// explicitly updated when resources are created/modified. This separation
+	// allows for flexible indexing strategies and avoids coupling the main
+	// store with search-specific concerns.
+	//
+	// Parameters:
+	//   - kind: resource kind enum (e.g., ApiResourceKind_agent)
+	//   - resourceId: unique resource identifier
+	//   - entry: searchable fields extracted from the resource
+	UpsertSearchIndex(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string, entry *SearchIndexEntry) error
+
+	// DeleteSearchIndex removes a search index entry for a resource.
+	// Should be called when a resource is deleted.
+	//
+	// Parameters:
+	//   - kind: resource kind enum
+	//   - resourceId: unique resource identifier
+	DeleteSearchIndex(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) error
+
+	// ===========================================================================
 	// Lifecycle
 	// ===========================================================================
 
 	// Close releases all resources held by the store.
 	// After Close is called, all other methods will return errors.
 	Close() error
+}
+
+// SearchIndexEntry contains the searchable fields extracted from a resource.
+// These fields are stored in the FTS5 index for full-text search.
+type SearchIndexEntry struct {
+	// Name is the human-readable display name (from metadata.name).
+	// This field has the highest search weight.
+	Name string
+
+	// Description is the resource description for search results.
+	// Varies by resource type:
+	//   - Agent: spec.instructions or spec.description
+	//   - Skill, McpServer, Workflow: spec.description
+	Description string
+
+	// Tags are space-separated tags for categorization (from metadata.tags).
+	// Stored as a single string for FTS5 indexing.
+	Tags string
+
+	// Org is the organization that owns this resource (from metadata.org).
+	// Used for org-scoped filtering.
+	Org string
+
+	// Visibility is the resource visibility ("visibility_public" or "visibility_private").
+	// Used for filtering public/private resources.
+	Visibility string
+
+	// CreatedAt is the Unix timestamp (seconds) when the resource was created.
+	// Used for sorting in list mode (no query).
+	CreatedAt int64
 }

@@ -44,6 +44,9 @@ Agents can:
   # List all agents
   stigmer agent list
 
+  # Search for agents
+  stigmer agent search "code review"
+
   # Delete an agent
   stigmer agent delete my-agent
 
@@ -55,6 +58,7 @@ Agents can:
 	cmd.AddCommand(newAgentValidateCommand())
 	cmd.AddCommand(newAgentGetCommand())
 	cmd.AddCommand(newAgentListCommand())
+	cmd.AddCommand(newAgentSearchCommand())
 	cmd.AddCommand(newAgentDeleteCommand())
 
 	return cmd

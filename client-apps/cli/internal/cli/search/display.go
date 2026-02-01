@@ -1,0 +1,299 @@
+// Package search provides CLI utilities for the unified Search API.
+// This file contains display functions for rendering search results.
+package search
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/fatih/color"
+	"google.golang.org/protobuf/encoding/protojson"
+	"gopkg.in/yaml.v3"
+
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
+)
+
+const (
+	// DefaultDescriptionMaxLen is the default max length for descriptions in table view.
+	DefaultDescriptionMaxLen = 50
+)
+
+// DisplayOptions controls how search results are rendered.
+type DisplayOptions struct {
+	// Format is the output format: "table" (default), "yaml", "json".
+	Format string
+
+	// ShowKind includes the KIND column (useful for discover mode).
+	ShowKind bool
+
+	// ShowOrg includes the ORG column.
+	ShowOrg bool
+
+	// MaxDescLen is the max length for descriptions in table view.
+	// Default: 50.
+	MaxDescLen int
+
+	// ResourceName is used for messages (e.g., "agent", "skill").
+	ResourceName string
+}
+
+// DisplayResults renders search results to stdout.
+func DisplayResults(results *Result, opts *DisplayOptions) {
+	if opts == nil {
+		opts = &DisplayOptions{}
+	}
+
+	if opts.MaxDescLen <= 0 {
+		opts.MaxDescLen = DefaultDescriptionMaxLen
+	}
+
+	switch opts.Format {
+	case "yaml":
+		displayResultsYAML(results)
+	case "json":
+		displayResultsJSON(results)
+	default:
+		displayResultsTable(results, opts)
+	}
+}
+
+// DisplayEmptyResults shows a helpful message when no results found.
+func DisplayEmptyResults(resourceName string, query string) {
+	fmt.Println()
+	if query != "" {
+		cliprint.PrintInfo("No %s found matching '%s'", resourceName, query)
+	} else {
+		cliprint.PrintInfo("No %s found", resourceName)
+	}
+	fmt.Println()
+}
+
+// DisplayPaginationInfo shows current page and total pages.
+func DisplayPaginationInfo(page, totalPages, totalCount int32) {
+	if totalPages <= 1 {
+		return
+	}
+
+	dimColor := color.New(color.Faint)
+	fmt.Println()
+	dimColor.Printf("Page %d of %d (total: %d)\n", page, totalPages, totalCount)
+
+	if page < totalPages {
+		dimColor.Printf("Use --page %d to see more results\n", page+1)
+	}
+}
+
+// displayResultsTable renders results in a formatted table.
+func displayResultsTable(results *Result, opts *DisplayOptions) {
+	if results.IsEmpty() {
+		DisplayEmptyResults(opts.ResourceName, "")
+		return
+	}
+
+	headerColor := color.New(color.FgCyan, color.Bold).SprintFunc()
+	dimColor := color.New(color.Faint).SprintFunc()
+
+	// Build headers based on options
+	headers := buildTableHeaders(opts)
+
+	// Build rows
+	rows := make([][]string, len(results.Entries))
+	for i, entry := range results.Entries {
+		rows[i] = buildTableRow(entry, opts, dimColor)
+	}
+
+	// Render table
+	fmt.Println()
+	renderTable(headers, rows, headerColor)
+}
+
+// buildTableHeaders builds table headers based on display options.
+func buildTableHeaders(opts *DisplayOptions) []string {
+	headers := []string{"NAME"}
+
+	if opts.ShowKind {
+		headers = append(headers, "KIND")
+	}
+
+	headers = append(headers, "DESCRIPTION")
+
+	if opts.ShowOrg {
+		headers = append(headers, "ORG")
+	}
+
+	headers = append(headers, "VISIBILITY", "CREATED")
+
+	return headers
+}
+
+// buildTableRow builds a table row from a search result.
+func buildTableRow(entry *searchv1.SearchResult, opts *DisplayOptions, dimColor func(...interface{}) string) []string {
+	row := []string{entry.GetQualifiedSlug()}
+
+	if opts.ShowKind {
+		row = append(row, formatKind(entry.GetKind().String()))
+	}
+
+	desc := display.TruncateDescription(entry.GetDescription(), opts.MaxDescLen)
+	desc = display.NormalizeWhitespace(desc)
+	row = append(row, desc)
+
+	if opts.ShowOrg {
+		row = append(row, entry.GetOrg())
+	}
+
+	visibility := formatVisibility(entry.GetVisibility())
+	row = append(row, visibility)
+
+	created := formatRelativeTime(entry.GetCreatedAt().AsTime())
+	row = append(row, dimColor(created))
+
+	return row
+}
+
+// formatKind formats the resource kind for display.
+func formatKind(kind string) string {
+	// Convert "api_resource_kind_agent" to "Agent"
+	kind = strings.TrimPrefix(kind, "api_resource_kind_")
+	if len(kind) > 0 {
+		return strings.ToUpper(kind[:1]) + kind[1:]
+	}
+	return kind
+}
+
+// formatVisibility formats the visibility enum for display.
+func formatVisibility(v apiresource.ApiResourceVisibility) string {
+	switch v {
+	case apiresource.ApiResourceVisibility_visibility_public:
+		return "public"
+	case apiresource.ApiResourceVisibility_visibility_private:
+		return "private"
+	default:
+		return "unknown"
+	}
+}
+
+// formatRelativeTime formats a timestamp as relative time.
+func formatRelativeTime(t time.Time) string {
+	if t.IsZero() {
+		return "-"
+	}
+
+	seconds := int64(time.Since(t).Seconds())
+	return display.FormatRelativeTime(seconds)
+}
+
+// renderTable renders a simple table with aligned columns.
+func renderTable(headers []string, rows [][]string, headerColor func(...interface{}) string) {
+	if len(rows) == 0 {
+		return
+	}
+
+	// Calculate column widths
+	widths := make([]int, len(headers))
+	for i, h := range headers {
+		widths[i] = display.MeasureColorizedString(h)
+	}
+
+	for _, row := range rows {
+		for i, cell := range row {
+			if i < len(widths) {
+				cellWidth := display.MeasureColorizedString(cell)
+				if cellWidth > widths[i] {
+					widths[i] = cellWidth
+				}
+			}
+		}
+	}
+
+	const columnGap = 3
+
+	// Render header
+	headerParts := make([]string, len(headers))
+	for i, h := range headers {
+		headerParts[i] = display.PadRight(headerColor(h), widths[i])
+	}
+	fmt.Println(strings.Join(headerParts, strings.Repeat(" ", columnGap)))
+
+	// Render separator
+	sepParts := make([]string, len(headers))
+	for i, w := range widths {
+		sepParts[i] = strings.Repeat("-", w)
+	}
+	fmt.Println(strings.Join(sepParts, strings.Repeat(" ", columnGap)))
+
+	// Render rows
+	for _, row := range rows {
+		rowParts := make([]string, len(row))
+		for i, cell := range row {
+			if i < len(widths) {
+				rowParts[i] = display.PadRight(cell, widths[i])
+			}
+		}
+		fmt.Println(strings.Join(rowParts, strings.Repeat(" ", columnGap)))
+	}
+}
+
+// displayResultsYAML renders results as YAML.
+func displayResultsYAML(results *Result) {
+	marshaler := protojson.MarshalOptions{
+		Indent:          "  ",
+		UseProtoNames:   true,
+		EmitUnpopulated: false,
+	}
+
+	// Convert each entry to YAML
+	entries := make([]map[string]interface{}, len(results.Entries))
+	for i, entry := range results.Entries {
+		jsonBytes, err := marshaler.Marshal(entry)
+		if err != nil {
+			cliprint.PrintError("failed to marshal result: %v", err)
+			continue
+		}
+
+		var m map[string]interface{}
+		if err := yaml.Unmarshal(jsonBytes, &m); err != nil {
+			cliprint.PrintError("failed to parse result: %v", err)
+			continue
+		}
+		entries[i] = m
+	}
+
+	yamlBytes, err := yaml.Marshal(entries)
+	if err != nil {
+		cliprint.PrintError("failed to marshal to YAML: %v", err)
+		return
+	}
+
+	fmt.Print(string(yamlBytes))
+}
+
+// displayResultsJSON renders results as JSON.
+func displayResultsJSON(results *Result) {
+	marshaler := protojson.MarshalOptions{
+		Indent:          "  ",
+		UseProtoNames:   true,
+		EmitUnpopulated: false,
+	}
+
+	// Build a JSON array manually since we need individual marshaling
+	fmt.Println("[")
+	for i, entry := range results.Entries {
+		jsonBytes, err := marshaler.Marshal(entry)
+		if err != nil {
+			cliprint.PrintError("failed to marshal result: %v", err)
+			continue
+		}
+
+		if i < len(results.Entries)-1 {
+			fmt.Printf("  %s,\n", string(jsonBytes))
+		} else {
+			fmt.Printf("  %s\n", string(jsonBytes))
+		}
+	}
+	fmt.Println("]")
+}

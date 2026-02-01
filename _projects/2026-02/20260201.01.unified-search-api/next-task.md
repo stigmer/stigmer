@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-01 10:18
-**Current Task**: Phase 3 (Repository Layer)
-**Status**: Ready to start
-**Last Updated**: 2026-02-01 11:19
+**Current Task**: Phase 4 (CLI Integration) - Agent Commands Complete
+**Status**: In Progress - Agents Done, Remaining Resources Pending
+**Last Updated**: 2026-02-01 12:05
 
 ### Phase 1 Complete ✅
 
@@ -106,18 +106,117 @@ Phase 2 (Backend Domain Layer - Refactored) completed on 2026-02-01:
 - Use existing `IamPolicyGrpcRepo.listAuthorizedResourceIds()` for authorization
 - Inline query validation in `SearchCriteria` (max 500 chars)
 
-**Session Progress (2026-02-01)**:
-- Identified and eliminated duplicate data structures
-- Simplified architecture by using proto classes as DTOs
-- Reduced code footprint: deleted 8 files, streamlined to 7 source + 3 test files
-- Maintained world-class code quality with comprehensive tests
+### Phase 3 Complete ✅
+
+Phase 3 (Repository Layer / Query Layer) completed on 2026-02-01:
+- ✅ Created `SearchQueryStore` interface - Query-side data access abstraction
+- ✅ Created `SearchPagedResult` value object - Immutable paginated result container
+- ✅ Implemented `MongoSearchQueryStore` - MongoDB implementation with text search
+- ✅ Created MongoDB text index migration (`U20260201_SearchTextIndexes`) using Mongock
+- ✅ Created `SearchGrpcAutoController` - gRPC router with auto-discovery
+- ✅ Implemented `SearchHandler` with pipeline steps:
+  - `BuildSearchCriteria` - Validates and converts request
+  - `QueryAuthorizedIds` - Queries FGA for authorized IDs per kind
+  - `ExecuteSearch` - Queries MongoDB via SearchQueryStore
+- ✅ Reorganized package structure into clean sub-packages (extractor/, store/, handler/, controller/, valueobject/)
+- ✅ Comprehensive unit tests for all components
+- ✅ Updated `package-info.java` with complete architecture documentation
+- ✅ No linter errors
+- ✅ Changelog created: `_changelog/2026-02/2026-02-01-114355-search-backend-package-reorganization.md`
+- ✅ Committed: `9b631a2` feat(backend/search): implement unified search backend with clean package structure
+
+**Key Deliverables**:
+- `SearchQueryStore` interface (allows future SQLite implementation for OSS)
+- `MongoSearchQueryStore` with multi-collection querying and text search
+- MongoDB text indexes via Mongock migration with weighted fields (name: 10, description: 5, tags: 5)
+- Pipeline-based handler following established codebase patterns
+- Authorization via FGA integration (per-kind authorized ID queries)
+- Clean package structure following best practices
+
+**Final Package Structure**:
+```
+stigmer-cloud/backend/services/stigmer-service/src/main/java/ai/stigmer/query/search/
+├── package-info.java                        # Architecture docs
+├── controller/
+│   └── SearchGrpcAutoController.java        # gRPC router
+├── extractor/                               # Strategy pattern
+│   ├── SearchableExtractor.java             # Interface
+│   ├── SearchableResourceRegistry.java      # Registry
+│   ├── AgentSearchableExtractor.java
+│   ├── SkillSearchableExtractor.java
+│   ├── McpServerSearchableExtractor.java
+│   └── WorkflowSearchableExtractor.java
+├── handler/
+│   └── SearchHandler.java                   # Pipeline handler
+├── store/                                   # Data access
+│   ├── SearchQueryStore.java                # Interface
+│   └── MongoSearchQueryStore.java           # MongoDB impl
+└── valueobject/
+    ├── SearchCriteria.java                  # Validated criteria
+    └── SearchPagedResult.java               # Result container
+
+stigmer-cloud/backend/services/stigmer-service/src/main/java/ai/stigmer/migrations/
+└── U20260201_SearchTextIndexes.java         # Mongock migration
+
+stigmer-cloud/backend/services/stigmer-service/src/test/java/ai/stigmer/query/search/
+├── extractor/
+│   ├── AgentSearchableExtractorTest.java
+│   └── SearchableResourceRegistryTest.java
+├── handler/
+│   └── SearchHandlerTest.java
+├── store/
+│   └── MongoSearchQueryStoreTest.java
+└── valueobject/
+    ├── SearchCriteriaTest.java
+    └── SearchPagedResultTest.java
+```
+
+### Phase 4 In Progress: CLI Integration (Agent Commands Complete)
+
+Phase 4 (Session 1 - 2026-02-01):
+- ✅ Created `pkg/display/truncate.go` - Presentation-layer truncation (170 lines)
+- ✅ Created `internal/cli/search/client.go` - SearchService gRPC wrapper (155 lines)
+- ✅ Created `internal/cli/search/display.go` - Generic search result display (270 lines)
+- ✅ Created `internal/cli/search/BUILD.bazel` - Build configuration
+- ✅ Replaced `agent_list.go` placeholder with full implementation (120 lines)
+- ✅ Created `agent_search.go` - Text-based agent search (140 lines)
+- ✅ Extended `internal/cli/agent/display.go` - List/search display functions (+45 lines)
+- ✅ Updated BUILD.bazel files with dependencies
+- ✅ Added comprehensive unit tests (445 lines total)
+- ✅ All tests passing (3 test suites, 15+ test cases)
+- ✅ Changelog: `_changelog/2026-02/2026-02-01-120534-cli-search-api-integration.md`
+
+**CLI Commands Now Available**:
+- `stigmer agent list` - List agents with pagination, org scoping, output formats
+- `stigmer agent search <query>` - Text search across name/description/tags
+
+**Key Implementation**:
+- Reusable `internal/cli/search/` package for all resources
+- Presentation-layer truncation following ADR-4
+- Word boundary-aware description truncation
+- Relative time formatting ("2 days ago")
+- Table/YAML/JSON output formats
+- Pagination support (page, page-size flags)
+
+**Remaining Phase 4 Tasks**:
+- [ ] Add `list` subcommand to: skill, mcpserver, workflow
+- [ ] Add `search` subcommand to: skill, mcpserver, workflow
+- [ ] Add root `discover` command
+- [ ] Extend `internal/cli/search/` for multi-kind display
+
+**CLI Command Mapping**:
+| CLI Command | RPC Request |
+|-------------|-------------|
+| `stigmer agent list` | `{kinds: [AGENT], org: "<user's org>", query: ""}` |
+| `stigmer agent search "code review"` | `{kinds: [AGENT], query: "code review"}` |
+| `stigmer discover "kubernetes"` | `{kinds: [], query: "kubernetes"}` |
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 2" - Begin backend implementation
+- "Start Phase 4" - Begin CLI integration
 - "Show project status" - Get overview of progress
-- "Review Phase 1 changelog" - See what was accomplished
+- "Review Phase 3 code" - See the backend implementation
 - "Review proto definitions" - Check API contract
 
 ---
