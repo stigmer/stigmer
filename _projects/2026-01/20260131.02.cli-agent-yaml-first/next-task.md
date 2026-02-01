@@ -22,10 +22,26 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 2 - Workflow Command Restructuring (IN PROGRESS 🚧)
-**Current Task**: Sub-task 3 COMPLETED ✅, Ready for Sub-task 4
-**Status**: 3 of 8 Sub-tasks COMPLETED ✅ (37.5% complete)
+**Current Task**: Sub-task 4 COMPLETED ✅, Ready for Sub-task 5
+**Status**: 4 of 8 Sub-tasks COMPLETED ✅ (50% complete)
 
-**Latest Session** (2026-02-01 - Session 10 - Workflow Get Command):
+**Latest Session** (2026-02-01 - Session 11 - Workflow Delete Command):
+- ✅ **COMPLETED Phase 2 Sub-task 4**: Workflow Delete Command Implementation
+- Created cmd/stigmer/root/workflow_delete.go (151 lines) - Full delete command with interactive confirmation
+- Updated workflow.go - Registered newWorkflowDeleteCommand() and removed Sub-task 4 placeholder
+- Updated BUILD.bazel - Added workflow_delete.go to sources
+- Command structure: Mirrors agent_delete.go pattern exactly (151 vs 152 lines)
+- 8-step orchestration: config → org → daemon → connect → fetch → confirm → delete → display
+- Interactive confirmation via survey.Confirm (bypassable with --force)
+- Flags: `--force, -f` (skip confirmation), `--org` (organization override)
+- Reference resolution: slug, org/slug, or resource ID (wfl_abc123)
+- Zero code duplication: Reuses 100% of workflow internal package (277 lines)
+- All coding guidelines met (151 lines, functions <50 lines, pattern consistency)
+- Build verified: workflow internal package builds, Go syntax validated
+- Changelog: `2026-02-01-130629-workflow-delete-command.md`
+- Committed: `acc029d feat(cli/workflow): add workflow delete command with interactive confirmation`
+
+**Previous Session** (2026-02-01 - Session 10 - Workflow Get Command):
 - ✅ **COMPLETED Phase 2 Sub-task 3**: Workflow Get Command Implementation
 - Created cmd/stigmer/root/workflow_get.go (115 lines) - Full get command with output formats
 - Updated workflow.go (79 → 110 lines) - Added resolveWorkflowOrganization() and command registration
@@ -206,7 +222,7 @@ stigmer
 | Phase | Description | Status |
 |-------|-------------|--------|
 | **1** | Agent YAML-First Foundation | ✅ **COMPLETED** (7 of 7 sub-tasks) |
-| **2** | Workflow Command Restructuring | 🚧 **IN PROGRESS** (3 of 8 sub-tasks complete, 37.5%) |
+| **2** | Workflow Command Restructuring | 🚧 **IN PROGRESS** (4 of 8 sub-tasks complete, 50%) |
 | **3** | Search and Discovery | Pending |
 | **4** | Remove Agent from SDK | Pending |
 | **5** | Platform Capabilities (Draft Commands) | Pending |
@@ -479,31 +495,29 @@ apis/stubs/             (REGENERATED via make protos)
 
 ## Next Steps
 
-**Phase 2 IN PROGRESS** (3 of 8 sub-tasks complete, 37.5%)
+**Phase 2 IN PROGRESS** (4 of 8 sub-tasks complete, 50%)
 
 ✅ **Sub-task 1 COMPLETE**: Workflow Internal Package Foundation
 ✅ **Sub-task 2 COMPLETE**: Workflow Command Group
 ✅ **Sub-task 3 COMPLETE**: Workflow Get Command
+✅ **Sub-task 4 COMPLETE**: Workflow Delete Command
 
-🚧 **NEXT: Sub-task 4** - Workflow Delete Command
-**Action**: Implement workflow_delete.go with interactive confirmation
-**Estimated**: 60-75 minutes
+🚧 **NEXT: Sub-task 5** - Workflow List Command
+**Action**: Create workflow_list.go placeholder command
+**Estimated**: 30-45 minutes
 **Files to create/modify**:
-1. `cmd/stigmer/root/workflow_delete.go` (~150 lines)
-   - `newWorkflowDeleteCommand()` - Delete subcommand
-   - `workflowDeleteOptions` struct
-   - `executeWorkflowDelete()` - 8-step orchestration
-   - `confirmWorkflowDeletion()` - Interactive confirmation using survey
-   - Flags: `--force` (skip confirmation), `--org`
+1. `cmd/stigmer/root/workflow_list.go` (~50 lines)
+   - `newWorkflowListCommand()` - Helpful placeholder
+   - Message explaining List API not available
+   - Suggests using `stigmer workflow get` instead
 2. Update `cmd/stigmer/root/workflow.go`
-   - Register `newWorkflowDeleteCommand()`
+   - Register `newWorkflowListCommand()`
 3. Update `cmd/stigmer/root/BUILD.bazel`
-   - Add `workflow_delete.go` to sources
-**Pattern reference**: `cmd/stigmer/root/agent_delete.go`
-**Success criteria**: `stigmer workflow delete <ref>` with confirmation prompt
+   - Add `workflow_list.go` to sources
+**Pattern reference**: `cmd/stigmer/root/agent_list.go`
+**Success criteria**: `stigmer workflow list` shows helpful message
 
 **Remaining Sub-tasks**:
-- Sub-task 5: Workflow List Command (30-45 min)
 - Sub-task 6: Workflow Search Command (45-60 min)
 - Sub-task 7: Workflow Run Command (60-75 min)
 - Sub-task 8: Documentation and Cleanup (30-45 min)
@@ -531,7 +545,7 @@ apis/stubs/             (REGENERATED via make protos)
 - Interactive confirmations using survey library
 - Full agent lifecycle: apply → get → run → delete
 
-**Phase 2 Progress** (Sub-tasks 1-3 Complete):
+**Phase 2 Progress** (Sub-tasks 1-4 Complete):
 - **Sub-task 1: Workflow internal package foundation** ✅
   - internal/cli/workflow/get.go - GetFromBackend(), Get() with ID vs slug routing
   - internal/cli/workflow/delete.go - DeleteFromBackend(), Delete() with result types
@@ -554,8 +568,18 @@ apis/stubs/             (REGENERATED via make protos)
   - 5-step orchestration matching agent get pattern
   - All coding guidelines met
 
+- **Sub-task 4: Workflow delete command** ✅
+  - cmd/stigmer/root/workflow_delete.go - Complete delete command (151 lines)
+  - Interactive confirmation using survey library
+  - 8-step orchestration: config → org → daemon → connect → fetch → confirm → delete → display
+  - Force flag (--force, -f) for bypassing confirmation
+  - Organization override via --org flag
+  - Mirrors agent_delete.go pattern exactly (151 vs 152 lines)
+  - Zero code duplication - reuses workflow internal package
+  - All coding guidelines met
+
 **What's needed next**:
-- **Sub-task 4**: Implement workflow_delete.go with interactive confirmation
+- **Sub-task 5**: Create workflow_list.go placeholder command
 - **Sub-task 5**: Create workflow_list.go placeholder command
 - **Sub-task 6**: Implement workflow_search.go using existing search infrastructure
 - **Sub-task 7**: Implement workflow_run.go reusing run_*.go infrastructure
@@ -653,5 +677,5 @@ After loading context:
 
 ---
 
-*Last updated: 2026-02-01 (Session 10)*
-*Status: Phase 1 COMPLETE ✅, Phase 2 IN PROGRESS (3 of 8 sub-tasks complete, 37.5%)*
+*Last updated: 2026-02-01 (Session 11)*
+*Status: Phase 1 COMPLETE ✅, Phase 2 IN PROGRESS (4 of 8 sub-tasks complete, 50%)*
