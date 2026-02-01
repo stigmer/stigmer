@@ -1,7 +1,11 @@
 package root
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 )
 
 // NewWorkflowCommand creates the workflow management command group.
@@ -68,12 +72,39 @@ COMPARISON WITH AGENTS:
   stigmer wf run my-workflow`,
 	}
 
-	// Subcommands will be registered as they are implemented:
-	// - Sub-task 3: newWorkflowGetCommand()
+	cmd.AddCommand(newWorkflowGetCommand())
+
+	// Subcommands to be registered in future sub-tasks:
 	// - Sub-task 4: newWorkflowDeleteCommand()
 	// - Sub-task 5: newWorkflowListCommand()
 	// - Sub-task 6: newWorkflowSearchCommand()
 	// - Sub-task 7: newWorkflowRunCommand()
 
 	return cmd
+}
+
+// resolveWorkflowOrganization determines the organization ID based on backend type and overrides.
+func resolveWorkflowOrganization(cfg *config.Config, orgOverride string) (string, error) {
+	switch cfg.Backend.Type {
+	case config.BackendTypeLocal:
+		orgID := "local"
+		cliprint.PrintInfo("Using local backend (organization: %s)", orgID)
+		return orgID, nil
+
+	case config.BackendTypeCloud:
+		if orgOverride != "" {
+			cliprint.PrintInfo("Using organization from flag: %s", orgOverride)
+			return orgOverride, nil
+		}
+
+		if cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
+			cliprint.PrintInfo("Using organization from context: %s", cfg.Backend.Cloud.OrgID)
+			return cfg.Backend.Cloud.OrgID, nil
+		}
+
+		return "", fmt.Errorf("organization not set for cloud mode\n\nUse --org flag or run: stigmer context set --org <org-id>")
+
+	default:
+		return "", fmt.Errorf("unknown backend type: %s", cfg.Backend.Type)
+	}
 }
