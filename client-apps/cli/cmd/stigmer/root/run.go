@@ -99,12 +99,6 @@ OTHER OPTIONS:
   # Override organization
   stigmer run my-agent --org my-org-id`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Show deprecation warning
-			cliprint.PrintWarning("Deprecated: 'stigmer run' will be removed in a future version")
-			cliprint.PrintInfo("  Use: stigmer agent run <name>    (for agents)")
-			cliprint.PrintInfo("  Use: stigmer workflow run <name> (for workflows)")
-			fmt.Println()
-
 			// Parse and merge environment variables and secrets from files and flags
 			runtimeEnv, err := envfile.LoadAndMergeWithSecrets(
 				envFileFlags,
