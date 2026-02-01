@@ -156,28 +156,30 @@ type ApiResourceVisibility int32
 
 const (
 	// Default/unspecified - backend infers from context.
-	// For new resources: defaults to PRIVATE.
-	ApiResourceVisibility_API_RESOURCE_VISIBILITY_UNSPECIFIED ApiResourceVisibility = 0
+	// For new resources: defaults to visibility_private.
+	ApiResourceVisibility_api_resource_visibility_unspecified ApiResourceVisibility = 0
 	// Only members of the owning organization can access.
 	// This is the default for most resources.
-	ApiResourceVisibility_API_RESOURCE_VISIBILITY_PRIVATE ApiResourceVisibility = 1
+	// Named visibility_private to avoid Java reserved keyword conflict.
+	ApiResourceVisibility_visibility_private ApiResourceVisibility = 1
 	// Anyone can access (read) this resource.
 	// Used for marketplace-published resources (e.g., "stigmer/web-search").
 	// Write access still requires org membership.
-	ApiResourceVisibility_API_RESOURCE_VISIBILITY_PUBLIC ApiResourceVisibility = 2
+	// Named visibility_public to avoid Java reserved keyword conflict.
+	ApiResourceVisibility_visibility_public ApiResourceVisibility = 2
 )
 
 // Enum value maps for ApiResourceVisibility.
 var (
 	ApiResourceVisibility_name = map[int32]string{
-		0: "API_RESOURCE_VISIBILITY_UNSPECIFIED",
-		1: "API_RESOURCE_VISIBILITY_PRIVATE",
-		2: "API_RESOURCE_VISIBILITY_PUBLIC",
+		0: "api_resource_visibility_unspecified",
+		1: "visibility_private",
+		2: "visibility_public",
 	}
 	ApiResourceVisibility_value = map[string]int32{
-		"API_RESOURCE_VISIBILITY_UNSPECIFIED": 0,
-		"API_RESOURCE_VISIBILITY_PRIVATE":     1,
-		"API_RESOURCE_VISIBILITY_PUBLIC":      2,
+		"api_resource_visibility_unspecified": 0,
+		"visibility_private":                  1,
+		"visibility_public":                   2,
 	}
 )
 
@@ -208,120 +210,6 @@ func (ApiResourceVisibility) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_commons_apiresource_enum_proto_rawDescGZIP(), []int{2}
 }
 
-// WorkflowTaskKind enum defines all supported task types in workflows.
-// These map directly to Zigflow DSL task types.
-//
-// Task config schemas (for each kind):
-//
-// SET: {"variables": {"key": "value", ...}}
-// HTTP_CALL: {"method": "POST", "endpoint": {"uri": "..."}, "headers": {...}, "body": {...}}
-// GRPC_CALL: {"service": "...", "method": "...", "request": {...}}
-// CALL_ACTIVITY: {"activity": "ActivityName", "input": {...}}
-// SWITCH: {"cases": [{"name": "...", "when": "${expr}", "then": "taskName"}, ...]}
-// FOR: {"each": "item", "in": "${$data.items}", "do": [{task}, ...]}
-// FORK: {"branches": [{"name": "...", "do": [{task}, ...]}, ...], "compete": false}
-// TRY: {"try": [{task}, ...], "catch": {"as": "error", "do": [{task}, ...]}}
-// LISTEN: {"to": {"mode": "one", "signals": [{"id": "...", "type": "signal"}]}}
-// WAIT: {"seconds": 5}
-// RAISE: {"error": "ErrorType", "message": "${...}"}
-// RUN: {"workflow": "workflow-name", "input": {...}}
-type WorkflowTaskKind int32
-
-const (
-	// Unspecified (invalid).
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_UNSPECIFIED WorkflowTaskKind = 0
-	// SET: Set variables in workflow state.
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_SET WorkflowTaskKind = 1
-	// HTTP_CALL: Make HTTP requests (GET, POST, PUT, DELETE, PATCH).
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL WorkflowTaskKind = 2
-	// GRPC_CALL: Make gRPC requests.
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_GRPC_CALL WorkflowTaskKind = 3
-	// CALL_ACTIVITY: Execute Temporal activities.
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_CALL_ACTIVITY WorkflowTaskKind = 4
-	// SWITCH: Conditional branching based on expressions.
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_SWITCH WorkflowTaskKind = 5
-	// FOR: Iterate over collections (forEach loop).
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_FOR WorkflowTaskKind = 6
-	// FORK: Parallel execution of multiple branches.
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_FORK WorkflowTaskKind = 7
-	// TRY: Error handling (try/catch).
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_TRY WorkflowTaskKind = 8
-	// LISTEN: Wait for external signals/events.
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_LISTEN WorkflowTaskKind = 9
-	// WAIT: Sleep/delay (Temporal timer).
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_WAIT WorkflowTaskKind = 10
-	// RAISE: Raise errors/exceptions.
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_RAISE WorkflowTaskKind = 11
-	// RUN: Execute sub-workflows.
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_RUN WorkflowTaskKind = 12
-	// AGENT_CALL: Invoke AI agents as tasks.
-	// Allows workflows to delegate complex operations to specialized agents.
-	WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL WorkflowTaskKind = 13
-)
-
-// Enum value maps for WorkflowTaskKind.
-var (
-	WorkflowTaskKind_name = map[int32]string{
-		0:  "WORKFLOW_TASK_KIND_UNSPECIFIED",
-		1:  "WORKFLOW_TASK_KIND_SET",
-		2:  "WORKFLOW_TASK_KIND_HTTP_CALL",
-		3:  "WORKFLOW_TASK_KIND_GRPC_CALL",
-		4:  "WORKFLOW_TASK_KIND_CALL_ACTIVITY",
-		5:  "WORKFLOW_TASK_KIND_SWITCH",
-		6:  "WORKFLOW_TASK_KIND_FOR",
-		7:  "WORKFLOW_TASK_KIND_FORK",
-		8:  "WORKFLOW_TASK_KIND_TRY",
-		9:  "WORKFLOW_TASK_KIND_LISTEN",
-		10: "WORKFLOW_TASK_KIND_WAIT",
-		11: "WORKFLOW_TASK_KIND_RAISE",
-		12: "WORKFLOW_TASK_KIND_RUN",
-		13: "WORKFLOW_TASK_KIND_AGENT_CALL",
-	}
-	WorkflowTaskKind_value = map[string]int32{
-		"WORKFLOW_TASK_KIND_UNSPECIFIED":   0,
-		"WORKFLOW_TASK_KIND_SET":           1,
-		"WORKFLOW_TASK_KIND_HTTP_CALL":     2,
-		"WORKFLOW_TASK_KIND_GRPC_CALL":     3,
-		"WORKFLOW_TASK_KIND_CALL_ACTIVITY": 4,
-		"WORKFLOW_TASK_KIND_SWITCH":        5,
-		"WORKFLOW_TASK_KIND_FOR":           6,
-		"WORKFLOW_TASK_KIND_FORK":          7,
-		"WORKFLOW_TASK_KIND_TRY":           8,
-		"WORKFLOW_TASK_KIND_LISTEN":        9,
-		"WORKFLOW_TASK_KIND_WAIT":          10,
-		"WORKFLOW_TASK_KIND_RAISE":         11,
-		"WORKFLOW_TASK_KIND_RUN":           12,
-		"WORKFLOW_TASK_KIND_AGENT_CALL":    13,
-	}
-)
-
-func (x WorkflowTaskKind) Enum() *WorkflowTaskKind {
-	p := new(WorkflowTaskKind)
-	*p = x
-	return p
-}
-
-func (x WorkflowTaskKind) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (WorkflowTaskKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_commons_apiresource_enum_proto_enumTypes[3].Descriptor()
-}
-
-func (WorkflowTaskKind) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_commons_apiresource_enum_proto_enumTypes[3]
-}
-
-func (x WorkflowTaskKind) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use WorkflowTaskKind.Descriptor instead.
-func (WorkflowTaskKind) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_commons_apiresource_enum_proto_rawDescGZIP(), []int{3}
-}
-
 var File_ai_stigmer_commons_apiresource_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_commons_apiresource_enum_proto_rawDesc = "" +
@@ -344,27 +232,11 @@ const file_ai_stigmer_commons_apiresource_enum_proto_rawDesc = "" +
 	"\x06delete\x10\x03\x12\b\n" +
 	"\x04read\x10\x04\x12\n" +
 	"\n" +
-	"\x06stream\x10\x05*\x89\x01\n" +
+	"\x06stream\x10\x05*o\n" +
 	"\x15ApiResourceVisibility\x12'\n" +
-	"#API_RESOURCE_VISIBILITY_UNSPECIFIED\x10\x00\x12#\n" +
-	"\x1fAPI_RESOURCE_VISIBILITY_PRIVATE\x10\x01\x12\"\n" +
-	"\x1eAPI_RESOURCE_VISIBILITY_PUBLIC\x10\x02*\xc9\x03\n" +
-	"\x10WorkflowTaskKind\x12\"\n" +
-	"\x1eWORKFLOW_TASK_KIND_UNSPECIFIED\x10\x00\x12\x1a\n" +
-	"\x16WORKFLOW_TASK_KIND_SET\x10\x01\x12 \n" +
-	"\x1cWORKFLOW_TASK_KIND_HTTP_CALL\x10\x02\x12 \n" +
-	"\x1cWORKFLOW_TASK_KIND_GRPC_CALL\x10\x03\x12$\n" +
-	" WORKFLOW_TASK_KIND_CALL_ACTIVITY\x10\x04\x12\x1d\n" +
-	"\x19WORKFLOW_TASK_KIND_SWITCH\x10\x05\x12\x1a\n" +
-	"\x16WORKFLOW_TASK_KIND_FOR\x10\x06\x12\x1b\n" +
-	"\x17WORKFLOW_TASK_KIND_FORK\x10\a\x12\x1a\n" +
-	"\x16WORKFLOW_TASK_KIND_TRY\x10\b\x12\x1d\n" +
-	"\x19WORKFLOW_TASK_KIND_LISTEN\x10\t\x12\x1b\n" +
-	"\x17WORKFLOW_TASK_KIND_WAIT\x10\n" +
-	"\x12\x1c\n" +
-	"\x18WORKFLOW_TASK_KIND_RAISE\x10\v\x12\x1a\n" +
-	"\x16WORKFLOW_TASK_KIND_RUN\x10\f\x12!\n" +
-	"\x1dWORKFLOW_TASK_KIND_AGENT_CALL\x10\rB\x94\x02\n" +
+	"#api_resource_visibility_unspecified\x10\x00\x12\x16\n" +
+	"\x12visibility_private\x10\x01\x12\x15\n" +
+	"\x11visibility_public\x10\x02B\x94\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\tEnumProtoP\x01ZGgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (
@@ -379,12 +251,11 @@ func file_ai_stigmer_commons_apiresource_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_commons_apiresource_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_commons_apiresource_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_ai_stigmer_commons_apiresource_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_ai_stigmer_commons_apiresource_enum_proto_goTypes = []any{
 	(ApiResourceEventType)(0),          // 0: ai.stigmer.commons.apiresource.ApiResourceEventType
 	(ApiResourceStateOperationType)(0), // 1: ai.stigmer.commons.apiresource.ApiResourceStateOperationType
 	(ApiResourceVisibility)(0),         // 2: ai.stigmer.commons.apiresource.ApiResourceVisibility
-	(WorkflowTaskKind)(0),              // 3: ai.stigmer.commons.apiresource.WorkflowTaskKind
 }
 var file_ai_stigmer_commons_apiresource_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -404,7 +275,7 @@ func file_ai_stigmer_commons_apiresource_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_commons_apiresource_enum_proto_rawDesc), len(file_ai_stigmer_commons_apiresource_enum_proto_rawDesc)),
-			NumEnums:      4,
+			NumEnums:      3,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

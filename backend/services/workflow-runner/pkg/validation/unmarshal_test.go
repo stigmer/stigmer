@@ -19,7 +19,7 @@ package validation
 import (
 	"testing"
 
-	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,7 +37,7 @@ func TestUnmarshalSetTaskConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		msg, err := UnmarshalTaskConfig(
-			apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+			workflowv1.WorkflowTaskKind_set_vars,
 			config,
 		)
 
@@ -52,7 +52,7 @@ func TestUnmarshalSetTaskConfig(t *testing.T) {
 
 	t.Run("nil config", func(t *testing.T) {
 		_, err := UnmarshalTaskConfig(
-			apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+			workflowv1.WorkflowTaskKind_set_vars,
 			nil,
 		)
 
@@ -76,7 +76,7 @@ func TestUnmarshalHttpCallTaskConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		msg, err := UnmarshalTaskConfig(
-			apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+			workflowv1.WorkflowTaskKind_http_call,
 			config,
 		)
 
@@ -105,7 +105,7 @@ func TestUnmarshalHttpCallTaskConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		msg, err := UnmarshalTaskConfig(
-			apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+			workflowv1.WorkflowTaskKind_http_call,
 			config,
 		)
 
@@ -134,7 +134,7 @@ func TestUnmarshalSwitchTaskConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		msg, err := UnmarshalTaskConfig(
-			apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SWITCH,
+			workflowv1.WorkflowTaskKind_switch_case,
 			config,
 		)
 
@@ -163,7 +163,7 @@ func TestUnmarshalWaitTaskConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		msg, err := UnmarshalTaskConfig(
-			apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_WAIT,
+			workflowv1.WorkflowTaskKind_wait,
 			config,
 		)
 
@@ -185,7 +185,7 @@ func TestUnmarshalRaiseTaskConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		msg, err := UnmarshalTaskConfig(
-			apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_RAISE,
+			workflowv1.WorkflowTaskKind_raise_error,
 			config,
 		)
 
@@ -206,7 +206,7 @@ func TestUnmarshalUnsupportedTaskKind(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = UnmarshalTaskConfig(
-		apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_UNSPECIFIED,
+		workflowv1.WorkflowTaskKind_workflow_task_kind_unspecified,
 		config,
 	)
 
