@@ -22,10 +22,25 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 2 - Workflow Command Restructuring (IN PROGRESS 🚧)
-**Current Task**: Sub-task 2 COMPLETED ✅, Ready for Sub-task 3
-**Status**: 2 of 8 Sub-tasks COMPLETED ✅ (25% complete)
+**Current Task**: Sub-task 3 COMPLETED ✅, Ready for Sub-task 4
+**Status**: 3 of 8 Sub-tasks COMPLETED ✅ (37.5% complete)
 
-**Latest Session** (2026-02-01 - Session 9 - Workflow Command Group):
+**Latest Session** (2026-02-01 - Session 10 - Workflow Get Command):
+- ✅ **COMPLETED Phase 2 Sub-task 3**: Workflow Get Command Implementation
+- Created cmd/stigmer/root/workflow_get.go (115 lines) - Full get command with output formats
+- Updated workflow.go (79 → 110 lines) - Added resolveWorkflowOrganization() and command registration
+- Updated BUILD.bazel - Added workflow_get.go to sources and workflow internal package to deps
+- Command flags: --output (table/yaml/json), --org (organization override)
+- 5-step orchestration: config → org → daemon → connect → fetch
+- Reference resolution: slug, org/slug, or resource ID (wfl_abc123)
+- Output formats: table (human-readable), yaml (for editing), json (for automation)
+- Mirrors agent_get.go pattern exactly for UX consistency
+- All coding guidelines met (115 lines, functions <50 lines, pattern consistency)
+- Build verified: workflow internal package builds, Go vet passes
+- Changelog: `2026-02-01-130334-workflow-get-command-implementation.md`
+- Committed: `88073fe feat(cli/workflow): add workflow get command with output formats`
+
+**Previous Session** (2026-02-01 - Session 9 - Workflow Command Group):
 - ✅ **COMPLETED Phase 2 Sub-task 2**: Workflow Command Group Foundation
 - Created cmd/stigmer/root/workflow.go (79 lines) - NewWorkflowCommand() factory
 - Registered NewWorkflowCommand() in root.go (line 50)
@@ -191,7 +206,7 @@ stigmer
 | Phase | Description | Status |
 |-------|-------------|--------|
 | **1** | Agent YAML-First Foundation | ✅ **COMPLETED** (7 of 7 sub-tasks) |
-| **2** | Workflow Command Restructuring | 🚧 **IN PROGRESS** (2 of 8 sub-tasks complete, 25%) |
+| **2** | Workflow Command Restructuring | 🚧 **IN PROGRESS** (3 of 8 sub-tasks complete, 37.5%) |
 | **3** | Search and Discovery | Pending |
 | **4** | Remove Agent from SDK | Pending |
 | **5** | Platform Capabilities (Draft Commands) | Pending |
@@ -464,31 +479,30 @@ apis/stubs/             (REGENERATED via make protos)
 
 ## Next Steps
 
-**Phase 2 IN PROGRESS** (1 of 8 sub-tasks complete)
+**Phase 2 IN PROGRESS** (3 of 8 sub-tasks complete, 37.5%)
 
 ✅ **Sub-task 1 COMPLETE**: Workflow Internal Package Foundation
-- Created internal/cli/workflow/ package with get, delete, display operations
-- Ready for consumption by command layer
+✅ **Sub-task 2 COMPLETE**: Workflow Command Group
+✅ **Sub-task 3 COMPLETE**: Workflow Get Command
 
-🚧 **NEXT: Sub-task 2** - Workflow Command Group
-**Action**: Create workflow.go command group and register in root.go
-**Estimated**: 45-60 minutes
-**Files to create**:
-1. `cmd/stigmer/root/workflow.go` (~80 lines)
-   - `NewWorkflowCommand()` - Command group factory
-   - Alias: `wf`
-   - Long description explaining SDK synthesis model
-   - Register all subcommands (initially empty, filled in later sub-tasks)
-2. Modify `cmd/stigmer/root/root.go`
-   - Add `rootCmd.AddCommand(root.NewWorkflowCommand())`
+🚧 **NEXT: Sub-task 4** - Workflow Delete Command
+**Action**: Implement workflow_delete.go with interactive confirmation
+**Estimated**: 60-75 minutes
+**Files to create/modify**:
+1. `cmd/stigmer/root/workflow_delete.go` (~150 lines)
+   - `newWorkflowDeleteCommand()` - Delete subcommand
+   - `workflowDeleteOptions` struct
+   - `executeWorkflowDelete()` - 8-step orchestration
+   - `confirmWorkflowDeletion()` - Interactive confirmation using survey
+   - Flags: `--force` (skip confirmation), `--org`
+2. Update `cmd/stigmer/root/workflow.go`
+   - Register `newWorkflowDeleteCommand()`
 3. Update `cmd/stigmer/root/BUILD.bazel`
-   - Add `workflow.go` to sources
-**Pattern reference**: `cmd/stigmer/root/agent.go` lines 15-72
-**Success criteria**: `stigmer workflow --help` displays command group
+   - Add `workflow_delete.go` to sources
+**Pattern reference**: `cmd/stigmer/root/agent_delete.go`
+**Success criteria**: `stigmer workflow delete <ref>` with confirmation prompt
 
 **Remaining Sub-tasks**:
-- Sub-task 3: Workflow Get Command (45-60 min)
-- Sub-task 4: Workflow Delete Command (60-75 min)
 - Sub-task 5: Workflow List Command (30-45 min)
 - Sub-task 6: Workflow Search Command (45-60 min)
 - Sub-task 7: Workflow Run Command (60-75 min)
@@ -517,7 +531,7 @@ apis/stubs/             (REGENERATED via make protos)
 - Interactive confirmations using survey library
 - Full agent lifecycle: apply → get → run → delete
 
-**Phase 2 Progress** (Sub-tasks 1-2 Complete):
+**Phase 2 Progress** (Sub-tasks 1-3 Complete):
 - **Sub-task 1: Workflow internal package foundation** ✅
   - internal/cli/workflow/get.go - GetFromBackend(), Get() with ID vs slug routing
   - internal/cli/workflow/delete.go - DeleteFromBackend(), Delete() with result types
@@ -526,14 +540,21 @@ apis/stubs/             (REGENERATED via make protos)
   - Mirrors agent package patterns exactly
 
 - **Sub-task 2: Workflow command group** ✅
-  - cmd/stigmer/root/workflow.go - NewWorkflowCommand() factory (79 lines)
+  - cmd/stigmer/root/workflow.go - NewWorkflowCommand() factory (79 → 110 lines)
   - Registered in root.go with "wf" alias
   - Comprehensive help text explaining SDK-synthesis model
   - Usage examples for all planned subcommands
-  - Ready for sub-task 3 (workflow_get.go)
+  - Organization resolver: resolveWorkflowOrganization()
+
+- **Sub-task 3: Workflow get command** ✅
+  - cmd/stigmer/root/workflow_get.go - Complete get command (115 lines)
+  - Reference resolution (slug, org/slug, resource ID)
+  - Output formats: table/yaml/json via --output flag
+  - Organization override via --org flag
+  - 5-step orchestration matching agent get pattern
+  - All coding guidelines met
 
 **What's needed next**:
-- **Sub-task 3**: Implement workflow_get.go with table/yaml/json output formats
 - **Sub-task 4**: Implement workflow_delete.go with interactive confirmation
 - **Sub-task 5**: Create workflow_list.go placeholder command
 - **Sub-task 6**: Implement workflow_search.go using existing search infrastructure
@@ -632,5 +653,5 @@ After loading context:
 
 ---
 
-*Last updated: 2026-02-01 (Session 7)*
-*Status: Phase 1 COMPLETE ✅ - All 7 sub-tasks finished, Phase 2 next*
+*Last updated: 2026-02-01 (Session 10)*
+*Status: Phase 1 COMPLETE ✅, Phase 2 IN PROGRESS (3 of 8 sub-tasks complete, 37.5%)*
