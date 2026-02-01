@@ -51,7 +51,13 @@ Agents can:
   stigmer agent delete my-agent
 
   # Run an agent
-  stigmer agent run my-agent`,
+  stigmer agent run my-agent
+
+  # Run with an initial message
+  stigmer agent run my-agent --message "Analyze the code"
+
+  # Run with environment variables
+  stigmer agent run my-agent --env API_KEY=xxx`,
 	}
 
 	cmd.AddCommand(newAgentApplyCommand())
@@ -60,6 +66,7 @@ Agents can:
 	cmd.AddCommand(newAgentListCommand())
 	cmd.AddCommand(newAgentSearchCommand())
 	cmd.AddCommand(newAgentDeleteCommand())
+	cmd.AddCommand(newAgentRunCommand())
 
 	return cmd
 }
