@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "root",
     srcs = [
+        "agent.go",
         "apply.go",
         "backend.go",
         "config.go",
@@ -50,7 +51,9 @@ go_library(
         "//client-apps/cli/internal/cli/mcpserver",
         "//client-apps/cli/pkg/approval",
         "//client-apps/cli/pkg/display",
+        "//client-apps/cli/pkg/reference",
         "@com_github_alecaivazis_survey_v2//:survey",
+        "@com_github_pkg_errors//:errors",
         "@com_github_spf13_cobra//:cobra",
         "@com_github_stigmer_stigmer_sdk_go//templates",
         "@in_gopkg_yaml_v3//:yaml_v3",
