@@ -22,10 +22,46 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 2 - Workflow Command Restructuring (IN PROGRESS 🚧)
-**Current Task**: Sub-task 5 COMPLETED ✅, Ready for Sub-task 6
-**Status**: 5 of 8 Sub-tasks COMPLETED ✅ (62.5% complete)
+**Current Task**: Sub-task 7 COMPLETED ✅, Ready for Sub-task 8
+**Status**: 7 of 8 Sub-tasks COMPLETED ✅ (87.5% complete)
 
-**Latest Session** (2026-02-01 - Session 12 - Workflow List Command):
+**Latest Session** (2026-02-01 - Session 14 - Workflow Run Command):
+- ✅ **COMPLETED Phase 2 Sub-task 7**: Workflow Run Command Implementation
+- Created cmd/stigmer/root/workflow_run.go (187 lines) - Full run command with execution support
+- Updated workflow.go - Registered newWorkflowRunCommand() and removed Sub-task 7 placeholder
+- Updated BUILD.bazel - Added workflow_run.go to sources
+- Command structure: Mirrors agent_run.go pattern exactly (187 vs 188 lines)
+- 6-step orchestration: env → connect → resolve → execute → display → stream
+- Flags: `--message/-m`, `--env`, `--env-file`, `--secret`, `--secret-file`, `--follow`, `--org`
+- Reference formats: ID (wf_xxx), slug, org/slug
+- Reuses ~800 lines existing infrastructure: connectToBackend(), resolveWorkflow(),
+  createWorkflowExecution(), streamWorkflowExecutionLogs()
+- Helpful error messages with troubleshooting guidance
+- Zero code duplication: Thin orchestration layer only
+- All coding guidelines met (187 lines, functions <50 lines, pattern consistency)
+- Build verified: workflow internal package builds, gofmt passes
+- Changelog: `2026-02-01-132211-workflow-run-command.md`
+- Committed: `0f207f8 feat(cli/workflow): add workflow run command with execution support`
+
+**Previous Session** (2026-02-01 - Session 13 - Workflow Search Command):
+- ✅ **COMPLETED Phase 2 Sub-task 6**: Workflow Search Command Implementation
+- Created cmd/stigmer/root/workflow_search.go (153 lines) - Full search command with text query support
+- Updated workflow.go - Registered newWorkflowSearchCommand() and removed Sub-task 6 placeholder
+- Updated BUILD.bazel - Added workflow_search.go to sources
+- Command structure: Mirrors agent_search.go pattern exactly (153 vs 151 lines)
+- 5-step orchestration: validate query → config → org → daemon → connect → search
+- Flags: `--output, -o` (table/yaml/json), `--org`, `--exclude-public`, `--page`, `--page-size`
+- Full text search: Searches workflow names, descriptions, and tags
+- Results sorted by relevance score (best matches first)
+- Pagination support (default: 20 per page, max: 100)
+- Organization filtering and public workflow exclusion options
+- Zero code duplication: Reuses search.Search() and workflow.DisplaySearchResult()
+- All coding guidelines met (153 lines, functions <50 lines, pattern consistency)
+- Build verified: workflow internal package builds, search tests pass
+- Changelog: `2026-02-01-131812-workflow-search-command.md`
+- Committed: `ab632e2 feat(cli/workflow): add workflow search command with text query support`
+
+**Previous Session** (2026-02-01 - Session 12 - Workflow List Command):
 - ✅ **COMPLETED Phase 2 Sub-task 5**: Workflow List Command Implementation
 - Created cmd/stigmer/root/workflow_list.go (139 lines) - Full list command using search infrastructure
 - Updated workflow.go - Registered newWorkflowListCommand() and removed Sub-task 5 placeholder
@@ -39,7 +75,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - All coding guidelines met (139 lines, functions <50 lines, pattern consistency)
 - Build verified: workflow internal package builds, gofmt passes
 - Changelog: `2026-02-01-131321-workflow-list-command.md`
-- Committed: PENDING
+- Committed: `ab632e2 feat(cli/workflow): add workflow search command with text query support` (bundled with search)
 
 **Previous Session** (2026-02-01 - Session 11 - Workflow Delete Command):
 - ✅ **COMPLETED Phase 2 Sub-task 4**: Workflow Delete Command Implementation
@@ -238,7 +274,7 @@ stigmer
 | Phase | Description | Status |
 |-------|-------------|--------|
 | **1** | Agent YAML-First Foundation | ✅ **COMPLETED** (7 of 7 sub-tasks) |
-| **2** | Workflow Command Restructuring | 🚧 **IN PROGRESS** (4 of 8 sub-tasks complete, 50%) |
+| **2** | Workflow Command Restructuring | 🚧 **IN PROGRESS** (7 of 8 sub-tasks complete, 87.5%) |
 | **3** | Search and Discovery | Pending |
 | **4** | Remove Agent from SDK | Pending |
 | **5** | Platform Capabilities (Draft Commands) | Pending |
@@ -511,33 +547,27 @@ apis/stubs/             (REGENERATED via make protos)
 
 ## Next Steps
 
-**Phase 2 IN PROGRESS** (4 of 8 sub-tasks complete, 50%)
+**Phase 2 IN PROGRESS** (7 of 8 sub-tasks complete, 87.5%)
 
 ✅ **Sub-task 1 COMPLETE**: Workflow Internal Package Foundation
 ✅ **Sub-task 2 COMPLETE**: Workflow Command Group
 ✅ **Sub-task 3 COMPLETE**: Workflow Get Command
 ✅ **Sub-task 4 COMPLETE**: Workflow Delete Command
+✅ **Sub-task 5 COMPLETE**: Workflow List Command
+✅ **Sub-task 6 COMPLETE**: Workflow Search Command
+✅ **Sub-task 7 COMPLETE**: Workflow Run Command
 
-🚧 **NEXT: Sub-task 6** - Workflow Search Command
-**Action**: Create workflow_search.go command
-**Estimated**: 45-60 minutes
-**Files to create**:
-1. `cmd/stigmer/root/workflow_search.go` (~150 lines)
-   - `newWorkflowSearchCommand()` - Search subcommand
-   - `executeWorkflowSearch()` - Search orchestration
-   - Uses existing `internal/cli/search` package
-   - Flags: `--output`, `--org`, `--page`
-2. Update `cmd/stigmer/root/workflow.go`
-   - Register `newWorkflowSearchCommand()`
-3. Update `cmd/stigmer/root/BUILD.bazel`
-   - Add `workflow_search.go` to sources
-**Pattern reference**: `cmd/stigmer/root/agent_search.go`
-**Success criteria**: `stigmer workflow search <query>` returns relevant workflows with pagination
+🚧 **NEXT: Sub-task 8** - Documentation and Cleanup
+**Action**: Ensure consistency, update documentation, final cleanup
+**Estimated**: 30-45 minutes
+**Tasks**:
+1. Verify all commands have consistent help text
+2. Ensure examples are accurate
+3. Update `next-task.md` with Phase 2 completion status
+4. Create changelog entry for Phase 2 completion
+5. Final review of all new files for coding guidelines
 
-**Remaining Sub-tasks**:
-- Sub-task 6: Workflow Search Command (45-60 min)
-- Sub-task 7: Workflow Run Command (60-75 min)
-- Sub-task 8: Documentation and Cleanup (30-45 min)
+**Remaining Sub-tasks**: None after Sub-task 8 - Phase 2 will be COMPLETE!
 
 ---
 
@@ -562,7 +592,7 @@ apis/stubs/             (REGENERATED via make protos)
 - Interactive confirmations using survey library
 - Full agent lifecycle: apply → get → run → delete
 
-**Phase 2 Progress** (Sub-tasks 1-4 Complete):
+**Phase 2 Progress** (Sub-tasks 1-7 Complete):
 - **Sub-task 1: Workflow internal package foundation** ✅
   - internal/cli/workflow/get.go - GetFromBackend(), Get() with ID vs slug routing
   - internal/cli/workflow/delete.go - DeleteFromBackend(), Delete() with result types
@@ -583,24 +613,35 @@ apis/stubs/             (REGENERATED via make protos)
   - Output formats: table/yaml/json via --output flag
   - Organization override via --org flag
   - 5-step orchestration matching agent get pattern
-  - All coding guidelines met
 
 - **Sub-task 4: Workflow delete command** ✅
   - cmd/stigmer/root/workflow_delete.go - Complete delete command (151 lines)
   - Interactive confirmation using survey library
   - 8-step orchestration: config → org → daemon → connect → fetch → confirm → delete → display
   - Force flag (--force, -f) for bypassing confirmation
-  - Organization override via --org flag
   - Mirrors agent_delete.go pattern exactly (151 vs 152 lines)
-  - Zero code duplication - reuses workflow internal package
-  - All coding guidelines met
+
+- **Sub-task 5: Workflow list command** ✅
+  - cmd/stigmer/root/workflow_list.go - Full list command (139 lines)
+  - Uses search infrastructure with empty query
+  - Pagination support (default: 20 per page, max: 100)
+  - Organization filtering: --org, --all-orgs
+
+- **Sub-task 6: Workflow search command** ✅
+  - cmd/stigmer/root/workflow_search.go - Full search command (153 lines)
+  - Text search across names, descriptions, tags
+  - Relevance scoring and pagination
+  - Public workflow exclusion option
+
+- **Sub-task 7: Workflow run command** ✅
+  - cmd/stigmer/root/workflow_run.go - Full run command (187 lines)
+  - 6-step orchestration: env → connect → resolve → execute → display → stream
+  - Full flag parity with agent run command
+  - Reuses ~800 lines existing run infrastructure
+  - Zero code duplication
 
 **What's needed next**:
-- **Sub-task 5**: Create workflow_list.go placeholder command
-- **Sub-task 5**: Create workflow_list.go placeholder command
-- **Sub-task 6**: Implement workflow_search.go using existing search infrastructure
-- **Sub-task 7**: Implement workflow_run.go reusing run_*.go infrastructure
-- **Sub-task 8**: Documentation, changelog, and final cleanup
+- **Sub-task 8**: Documentation and cleanup (final sub-task)
 
 **Known Blocker**:
 - Pre-existing Bazel SDK templates issue prevents full CLI build
@@ -694,5 +735,5 @@ After loading context:
 
 ---
 
-*Last updated: 2026-02-01 (Session 11)*
-*Status: Phase 1 COMPLETE ✅, Phase 2 IN PROGRESS (4 of 8 sub-tasks complete, 50%)*
+*Last updated: 2026-02-01 (Session 14)*
+*Status: Phase 1 COMPLETE ✅, Phase 2 IN PROGRESS (7 of 8 sub-tasks complete, 87.5%)*
