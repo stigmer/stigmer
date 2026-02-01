@@ -4,6 +4,7 @@ go_library(
     name = "agent",
     srcs = [
         "applier.go",
+        "delete.go",
         "display.go",
         "execute.go",
         "get.go",

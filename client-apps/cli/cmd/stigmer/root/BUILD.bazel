@@ -4,7 +4,9 @@ go_library(
     name = "root",
     srcs = [
         "agent.go",
+        "agent_delete.go",
         "agent_get.go",
+        "agent_list.go",
         "agent_validate.go",
         "apply.go",
         "backend.go",

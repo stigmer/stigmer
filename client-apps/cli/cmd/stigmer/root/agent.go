@@ -41,6 +41,12 @@ Agents can:
   # Get an agent by name
   stigmer agent get my-agent
 
+  # List all agents
+  stigmer agent list
+
+  # Delete an agent
+  stigmer agent delete my-agent
+
   # Run an agent
   stigmer agent run my-agent`,
 	}
@@ -48,6 +54,8 @@ Agents can:
 	cmd.AddCommand(newAgentApplyCommand())
 	cmd.AddCommand(newAgentValidateCommand())
 	cmd.AddCommand(newAgentGetCommand())
+	cmd.AddCommand(newAgentListCommand())
+	cmd.AddCommand(newAgentDeleteCommand())
 
 	return cmd
 }
