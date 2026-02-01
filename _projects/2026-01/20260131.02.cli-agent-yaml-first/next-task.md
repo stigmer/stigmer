@@ -22,17 +22,25 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 1 - Agent YAML-First Foundation (IN PROGRESS)
-**Current Task**: Sub-task 3 - Agent Applier & Display
-**Status**: Sub-tasks 1-2 COMPLETED ✅
+**Current Task**: Sub-task 4 - Agent Apply Command
+**Status**: Sub-tasks 1-3 COMPLETED ✅
 
-**Latest Session** (2026-02-01 - Session 2):
+**Latest Session** (2026-02-01 - Session 3):
+- ✅ Completed Sub-task 3: Agent Applier & Display
+- Created applier.go (89 lines) for gRPC apply orchestration
+- Created display.go (85 lines) for terminal output formatting
+- Updated BUILD.bazel with cliprint, apiresource, and grpc dependencies
+- Mirrors proven MCP Server pattern exactly
+- All builds and tests pass (28 total tests)
+
+**Previous Session** (2026-02-01 - Session 2):
 - ✅ Completed Sub-task 2: Agent Schema Validator
 - Enhanced proto validation (ApiResourceReference slug/org format rules)
 - Implemented validator.go with cross-field validation (80 lines)
 - Created comprehensive test suite (14 test functions, 28 total tests passing)
 - Proto validation is single source of truth - Go only handles cross-field logic
 
-**Previous Session** (2026-02-01 - Session 1):
+**Session 1** (2026-02-01):
 - ✅ Completed Sub-task 1: Agent YAML Loader
 - Implemented loader.go with protovalidate as single source of truth
 - Created comprehensive test suite (12 test cases, all passing)
@@ -99,7 +107,7 @@ stigmer
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| **1** | Agent YAML-First Foundation | **IN PROGRESS** (Sub-task 1 of 7 complete) |
+| **1** | Agent YAML-First Foundation | **IN PROGRESS** (Sub-tasks 1-3 of 7 complete) |
 | **2** | Workflow Command Restructuring | Pending |
 | **3** | Search and Discovery | Pending |
 | **4** | Remove Agent from SDK | Pending |
@@ -113,14 +121,48 @@ stigmer
 | Sub-task | Description | Duration | Status |
 |----------|-------------|----------|--------|
 | 1 | Agent YAML Loader | 60-75 min | ✅ **COMPLETED** |
-| 2 | Agent Schema Validator | 45-60 min | **NEXT** |
-| 3 | Agent Applier & Display | 60-75 min | Pending |
-| 4 | Agent Apply Command | 45-60 min | Pending |
+| 2 | Agent Schema Validator | 45-60 min | ✅ **COMPLETED** |
+| 3 | Agent Applier & Display | 60-75 min | ✅ **COMPLETED** |
+| 4 | Agent Apply Command | 45-60 min | **NEXT** |
 | 5 | Validate + Get Commands | 60-75 min | Pending |
 | 6 | List + Delete Commands | 45-60 min | Pending |
 | 7 | Run Command | 75-90 min | Pending |
 
 ---
+
+## Session Progress (2026-02-01 Session 3)
+
+### Completed
+- ✅ Created `applier.go` with ApplyOptions, ApplyResult types and Apply function
+- ✅ Created `display.go` with DisplayApplyResult, DisplayAgentPreview, and display helpers
+- ✅ Updated BUILD.bazel with new source files and dependencies
+- ✅ Bazel build successful
+- ✅ All 28 tests passing
+- ✅ Changelog created: `2026-02-01-091708-agent-applier-display-foundation.md`
+- ✅ Committed: `feat(cli/agent): add applier and display components`
+
+### Key Implementation
+- **applier.go** (89 lines): Mirrors MCP Server pattern
+  - Input validation, metadata initialization
+  - Dry-run handling with preview
+  - Create vs update detection
+  - gRPC call via AgentCommandControllerClient.Apply()
+  
+- **display.go** (85 lines): Agent-specific output formatting
+  - DisplayApplyResult() for success messages
+  - DisplayAgentPreview() for dry-run mode
+  - Shows name, description, instructions (truncated), counts for MCP servers/skills/sub-agents
+
+### Files Created/Modified
+```
+client-apps/cli/internal/cli/agent/
+├── applier.go        (NEW - 89 lines)
+├── display.go        (NEW - 85 lines)
+└── BUILD.bazel       (MODIFIED - added cliprint, apiresource, grpc deps)
+
+_changelog/2026-02/
+└── 2026-02-01-091708-agent-applier-display-foundation.md (NEW)
+```
 
 ## Session Progress (2026-02-01 Session 2)
 
@@ -172,30 +214,34 @@ apis/stubs/             (REGENERATED via make protos)
 
 ## Next Steps
 
-**Immediate** (Sub-task 3):
-1. Create `applier.go` for gRPC apply flow (mirror MCP Server pattern)
-2. Create `display.go` for output formatting (preview, success, error messages)
-3. Wire up with AgentCommandControllerClient
-4. Implement dry-run preview mode
+**Immediate** (Sub-task 4):
+1. Create `cmd/stigmer/root/agent.go` command group with aliases
+2. Implement `newAgentApplyCommand()` subcommand
+3. Create `executeAgentApply()` orchestration function
+4. Wire up: loader → validator → applier → display flow
+5. Add flags: `--org`, `--dry-run`
+6. Register agent command in root.go
 
-**Then** (Sub-task 4):
-5. Create `cmd/stigmer/root/agent.go` command group
-6. Implement `stigmer agent apply` command
-7. Wire up loader → validator → applier flow
+**Then** (Sub-task 5):
+7. Add `stigmer agent validate` command (load + validate without backend)
+8. Add `stigmer agent get` command (parse reference, fetch via gRPC)
+9. Support output formats: table, yaml, json
 
 ---
 
 ## Context for Resume
 
 **What works now**:
-- Agent YAML files can be loaded and parsed
-- Protovalidate automatically enforces all proto schema rules
-- Tests verify file resolution, parsing, and validation
+- Agent YAML files can be loaded and parsed (loader.go)
+- Protovalidate enforces proto schema rules + Go validates cross-field logic (validator.go)
+- gRPC apply flow ready (applier.go)
+- Terminal output formatting complete (display.go)
+- All building blocks ready for command layer
 
 **What's needed next**:
-- Applier for gRPC integration with backend
-- Display functions for user-facing output
-- Agent command group with apply subcommand
+- Agent command group in cmd/stigmer/root/
+- Wire up loader → validator → applier flow in command handlers
+- Add remaining CRUD commands (get, list, delete, run)
 
 **Technical context**:
 - Using `@build_buf_go_protovalidate//:protovalidate` dependency
@@ -283,5 +329,5 @@ After loading context:
 
 ---
 
-*Last updated: 2026-02-01 (Session 2)*
-*Status: Phase 1 in progress - Sub-tasks 1-2 complete, Sub-task 3 next*
+*Last updated: 2026-02-01 (Session 3)*
+*Status: Phase 1 in progress - Sub-tasks 1-3 complete (43% done), Sub-task 4 next*
