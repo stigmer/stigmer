@@ -6,6 +6,7 @@ go_library(
         "execute.go",
         "loader.go",
         "validation.go",
+        "validator.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent",
     visibility = ["//client-apps/cli:__subpackages__"],
@@ -21,9 +22,15 @@ go_library(
 
 go_test(
     name = "agent_test",
-    srcs = ["loader_test.go"],
+    srcs = [
+        "loader_test.go",
+        "validator_test.go",
+    ],
     embed = [":agent"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],
