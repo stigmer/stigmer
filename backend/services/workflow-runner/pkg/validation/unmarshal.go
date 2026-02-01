@@ -19,7 +19,7 @@ package validation
 import (
 	"fmt"
 
-	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -30,21 +30,21 @@ import (
 // based on WorkflowTaskKind.
 //
 // Returns the appropriate proto message type:
-// - SET → SetTaskConfig
-// - HTTP_CALL → HttpCallTaskConfig
-// - GRPC_CALL → GrpcCallTaskConfig
-// - SWITCH → SwitchTaskConfig
-// - FOR → ForTaskConfig
-// - FORK → ForkTaskConfig
-// - TRY → TryTaskConfig
-// - LISTEN → ListenTaskConfig
-// - WAIT → WaitTaskConfig
-// - CALL_ACTIVITY → CallActivityTaskConfig
-// - RAISE → RaiseTaskConfig
-// - RUN → RunTaskConfig
-// - AGENT_CALL → AgentCallTaskConfig
+// - set_vars → SetTaskConfig
+// - http_call → HttpCallTaskConfig
+// - grpc_call → GrpcCallTaskConfig
+// - switch_case → SwitchTaskConfig
+// - for_each → ForTaskConfig
+// - fork → ForkTaskConfig
+// - try_catch → TryTaskConfig
+// - listen → ListenTaskConfig
+// - wait → WaitTaskConfig
+// - activity_call → CallActivityTaskConfig
+// - raise_error → RaiseTaskConfig
+// - run_workflow → RunTaskConfig
+// - agent_call → AgentCallTaskConfig
 func UnmarshalTaskConfig(
-	kind apiresourcev1.WorkflowTaskKind,
+	kind workflowv1.WorkflowTaskKind,
 	config *structpb.Struct,
 ) (proto.Message, error) {
 	if config == nil {
@@ -61,43 +61,43 @@ func UnmarshalTaskConfig(
 	var protoMsg proto.Message
 
 	switch kind {
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET:
+	case workflowv1.WorkflowTaskKind_set_vars:
 		protoMsg = &tasksv1.SetTaskConfig{}
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL:
+	case workflowv1.WorkflowTaskKind_http_call:
 		protoMsg = &tasksv1.HttpCallTaskConfig{}
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_GRPC_CALL:
+	case workflowv1.WorkflowTaskKind_grpc_call:
 		protoMsg = &tasksv1.GrpcCallTaskConfig{}
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SWITCH:
+	case workflowv1.WorkflowTaskKind_switch_case:
 		protoMsg = &tasksv1.SwitchTaskConfig{}
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_FOR:
+	case workflowv1.WorkflowTaskKind_for_each:
 		protoMsg = &tasksv1.ForTaskConfig{}
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_FORK:
+	case workflowv1.WorkflowTaskKind_fork:
 		protoMsg = &tasksv1.ForkTaskConfig{}
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_TRY:
+	case workflowv1.WorkflowTaskKind_try_catch:
 		protoMsg = &tasksv1.TryTaskConfig{}
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_LISTEN:
+	case workflowv1.WorkflowTaskKind_listen:
 		protoMsg = &tasksv1.ListenTaskConfig{}
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_WAIT:
+	case workflowv1.WorkflowTaskKind_wait:
 		protoMsg = &tasksv1.WaitTaskConfig{}
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_CALL_ACTIVITY:
+	case workflowv1.WorkflowTaskKind_activity_call:
 		protoMsg = &tasksv1.CallActivityTaskConfig{}
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_RAISE:
+	case workflowv1.WorkflowTaskKind_raise_error:
 		protoMsg = &tasksv1.RaiseTaskConfig{}
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_RUN:
+	case workflowv1.WorkflowTaskKind_run_workflow:
 		protoMsg = &tasksv1.RunTaskConfig{}
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL:
+	case workflowv1.WorkflowTaskKind_agent_call:
 		protoMsg = &tasksv1.AgentCallTaskConfig{}
 
 	default:

@@ -3,7 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.workflow.v1;
 
 import "ai/stigmer/agentic/environment/v1/spec.proto";
-import "ai/stigmer/commons/apiresource/enum.proto";
+import "ai/stigmer/agentic/workflow/v1/enum.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
@@ -50,14 +50,14 @@ message WorkflowDocument {
 
 // WorkflowTask represents a single task in the workflow.
 // Uses the "kind + Struct" pattern (like CloudResource in Planton Cloud):
-// - `kind` determines the task type (SET, HTTP_CALL, SWITCH, etc.)
+// - `kind` determines the task type (set_vars, http_call, switch_case, etc.)
 // - `task_config` contains task-specific configuration as dynamic JSON
 // - Backend unmarshals `task_config` to the appropriate Go struct based on `kind`
 //
 // Example (HTTP Call):
 // {
 //   "name": "fetchData",
-//   "kind": "HTTP_CALL",
+//   "kind": "http_call",
 //   "task_config": {
 //     "method": "GET",
 //     "endpoint": {"uri": "https://api.example.com/data"},
@@ -71,24 +71,25 @@ message WorkflowTask {
   string name = 1 [(buf.validate.field).required = true];
 
   // Task type (determines how to interpret task_config).
-  ai.stigmer.commons.apiresource.WorkflowTaskKind kind = 2 [(buf.validate.field).required = true];
+  WorkflowTaskKind kind = 2 [(buf.validate.field).required = true];
 
   // Task-specific configuration (dynamic typed).
   // Structure depends on `kind` value.
   //
   // Backend unmarshals this Struct to the appropriate proto message:
-  // - SET: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
-  // - HTTP_CALL: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
-  // - GRPC_CALL: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig
-  // - SWITCH: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig
-  // - FOR: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig
-  // - FORK: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig
-  // - TRY: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig
-  // - LISTEN: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig
-  // - WAIT: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig
-  // - CALL_ACTIVITY: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig
-  // - RAISE: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
-  // - RUN: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
+  // - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
+  // - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
+  // - grpc_call: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig
+  // - switch_case: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig
+  // - for_each: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig
+  // - fork: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig
+  // - try_catch: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig
+  // - listen: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig
+  // - wait: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig
+  // - activity_call: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig
+  // - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
+  // - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
+  // - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
   //
   // See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.
   google.protobuf.Struct task_config = 3 [(buf.validate.field).required = true];

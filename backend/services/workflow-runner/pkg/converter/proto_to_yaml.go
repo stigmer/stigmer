@@ -21,7 +21,6 @@ import (
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
-	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/validation"
 	"gopkg.in/yaml.v3"
 )
@@ -136,19 +135,19 @@ func (c *Converter) ProtoToYAML(spec *workflowv1.WorkflowSpec) (string, error) {
 // This provides type safety, better error messages, and contract adherence.
 //
 // Maps WorkflowTaskKind enum to Zigflow task types:
-// - SET → set
-// - HTTP_CALL → call: http
-// - GRPC_CALL → call: grpc
-// - SWITCH → switch
-// - FOR → for
-// - FORK → fork
-// - TRY → try
-// - LISTEN → listen
-// - WAIT → wait
-// - CALL_ACTIVITY → callActivity (future)
-// - RAISE → raise
-// - RUN → run
-// - AGENT_CALL → call: agent
+// - set_vars → set
+// - http_call → call: http
+// - grpc_call → call: grpc
+// - switch_case → switch
+// - for_each → for
+// - fork → fork
+// - try_catch → try
+// - listen → listen
+// - wait → wait
+// - activity_call → callActivity (future)
+// - raise_error → raise
+// - run_workflow → run
+// - agent_call → call: agent
 func (c *Converter) convertTask(task *workflowv1.WorkflowTask) (map[string]interface{}, error) {
 	if task.Name == "" {
 		return nil, fmt.Errorf("task name is required")
@@ -165,45 +164,45 @@ func (c *Converter) convertTask(task *workflowv1.WorkflowTask) (map[string]inter
 
 	// Use type-safe converters for each task kind
 	switch task.Kind {
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET:
+	case workflowv1.WorkflowTaskKind_set_vars:
 		yamlTask[task.Name] = c.convertSetTask(typedProto.(*tasksv1.SetTaskConfig))
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL:
+	case workflowv1.WorkflowTaskKind_http_call:
 		yamlTask[task.Name] = c.convertHttpCallTask(typedProto.(*tasksv1.HttpCallTaskConfig))
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_GRPC_CALL:
+	case workflowv1.WorkflowTaskKind_grpc_call:
 		yamlTask[task.Name] = c.convertGrpcCallTask(typedProto.(*tasksv1.GrpcCallTaskConfig))
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SWITCH:
+	case workflowv1.WorkflowTaskKind_switch_case:
 		yamlTask[task.Name] = c.convertSwitchTask(typedProto.(*tasksv1.SwitchTaskConfig))
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_FOR:
+	case workflowv1.WorkflowTaskKind_for_each:
 		yamlTask[task.Name] = c.convertForTask(typedProto.(*tasksv1.ForTaskConfig))
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_FORK:
+	case workflowv1.WorkflowTaskKind_fork:
 		yamlTask[task.Name] = c.convertForkTask(typedProto.(*tasksv1.ForkTaskConfig))
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_TRY:
+	case workflowv1.WorkflowTaskKind_try_catch:
 		yamlTask[task.Name] = c.convertTryTask(typedProto.(*tasksv1.TryTaskConfig))
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_LISTEN:
+	case workflowv1.WorkflowTaskKind_listen:
 		yamlTask[task.Name] = c.convertListenTask(typedProto.(*tasksv1.ListenTaskConfig))
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_WAIT:
+	case workflowv1.WorkflowTaskKind_wait:
 		yamlTask[task.Name] = c.convertWaitTask(typedProto.(*tasksv1.WaitTaskConfig))
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_RAISE:
+	case workflowv1.WorkflowTaskKind_raise_error:
 		yamlTask[task.Name] = c.convertRaiseTask(typedProto.(*tasksv1.RaiseTaskConfig))
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_RUN:
+	case workflowv1.WorkflowTaskKind_run_workflow:
 		yamlTask[task.Name] = c.convertRunTask(typedProto.(*tasksv1.RunTaskConfig))
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL:
+	case workflowv1.WorkflowTaskKind_agent_call:
 		yamlTask[task.Name] = c.convertAgentCallTask(typedProto.(*tasksv1.AgentCallTaskConfig))
 
-	case apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_CALL_ACTIVITY:
-		// CALL_ACTIVITY: Future implementation for Temporal activities
-		return nil, fmt.Errorf("CALL_ACTIVITY not yet implemented")
+	case workflowv1.WorkflowTaskKind_activity_call:
+		// activity_call: Future implementation for Temporal activities
+		return nil, fmt.Errorf("activity_call not yet implemented")
 
 	default:
 		return nil, fmt.Errorf("unsupported task kind: %v", task.Kind)

@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -201,7 +200,7 @@ func TestValidateTask(t *testing.T) {
 
 		task := &workflowv1.WorkflowTask{
 			Name:       "initializeTask",
-			Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+			Kind:       workflowv1.WorkflowTaskKind_set_vars,
 			TaskConfig: config,
 		}
 
@@ -220,7 +219,7 @@ func TestValidateTask(t *testing.T) {
 
 		task := &workflowv1.WorkflowTask{
 			Name:       "fetchData",
-			Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+			Kind:       workflowv1.WorkflowTaskKind_http_call,
 			TaskConfig: config,
 		}
 
@@ -229,7 +228,7 @@ func TestValidateTask(t *testing.T) {
 		
 		// Check that error includes task name and kind
 		assert.Contains(t, err.Error(), "fetchData")
-		assert.Contains(t, err.Error(), "WORKFLOW_TASK_KIND_HTTP_CALL")
+		assert.Contains(t, err.Error(), "http_call")
 	})
 
 	t.Run("nil task fails", func(t *testing.T) {
@@ -267,12 +266,12 @@ func TestValidateWorkflow(t *testing.T) {
 			Tasks: []*workflowv1.WorkflowTask{
 				{
 					Name:       "initialize",
-					Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+					Kind:       workflowv1.WorkflowTaskKind_set_vars,
 					TaskConfig: setConfig,
 				},
 				{
 					Name:       "fetchData",
-					Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+					Kind:       workflowv1.WorkflowTaskKind_http_call,
 					TaskConfig: httpConfig,
 				},
 			},
@@ -301,7 +300,7 @@ func TestValidateWorkflow(t *testing.T) {
 			Tasks: []*workflowv1.WorkflowTask{
 				{
 					Name:       "fetchData",
-					Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+					Kind:       workflowv1.WorkflowTaskKind_http_call,
 					TaskConfig: invalidConfig,
 				},
 			},

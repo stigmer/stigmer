@@ -24,26 +24,9 @@ class ApiResourceStateOperationType(int, metaclass=_enum_type_wrapper.EnumTypeWr
 
 class ApiResourceVisibility(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
-    API_RESOURCE_VISIBILITY_UNSPECIFIED: _ClassVar[ApiResourceVisibility]
-    API_RESOURCE_VISIBILITY_PRIVATE: _ClassVar[ApiResourceVisibility]
-    API_RESOURCE_VISIBILITY_PUBLIC: _ClassVar[ApiResourceVisibility]
-
-class WorkflowTaskKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    WORKFLOW_TASK_KIND_UNSPECIFIED: _ClassVar[WorkflowTaskKind]
-    WORKFLOW_TASK_KIND_SET: _ClassVar[WorkflowTaskKind]
-    WORKFLOW_TASK_KIND_HTTP_CALL: _ClassVar[WorkflowTaskKind]
-    WORKFLOW_TASK_KIND_GRPC_CALL: _ClassVar[WorkflowTaskKind]
-    WORKFLOW_TASK_KIND_CALL_ACTIVITY: _ClassVar[WorkflowTaskKind]
-    WORKFLOW_TASK_KIND_SWITCH: _ClassVar[WorkflowTaskKind]
-    WORKFLOW_TASK_KIND_FOR: _ClassVar[WorkflowTaskKind]
-    WORKFLOW_TASK_KIND_FORK: _ClassVar[WorkflowTaskKind]
-    WORKFLOW_TASK_KIND_TRY: _ClassVar[WorkflowTaskKind]
-    WORKFLOW_TASK_KIND_LISTEN: _ClassVar[WorkflowTaskKind]
-    WORKFLOW_TASK_KIND_WAIT: _ClassVar[WorkflowTaskKind]
-    WORKFLOW_TASK_KIND_RAISE: _ClassVar[WorkflowTaskKind]
-    WORKFLOW_TASK_KIND_RUN: _ClassVar[WorkflowTaskKind]
-    WORKFLOW_TASK_KIND_AGENT_CALL: _ClassVar[WorkflowTaskKind]
+    api_resource_visibility_unspecified: _ClassVar[ApiResourceVisibility]
+    visibility_private: _ClassVar[ApiResourceVisibility]
+    visibility_public: _ClassVar[ApiResourceVisibility]
 unspecified: ApiResourceEventType
 created: ApiResourceEventType
 updated: ApiResourceEventType
@@ -56,20 +39,6 @@ update: ApiResourceStateOperationType
 delete: ApiResourceStateOperationType
 read: ApiResourceStateOperationType
 stream: ApiResourceStateOperationType
-API_RESOURCE_VISIBILITY_UNSPECIFIED: ApiResourceVisibility
-API_RESOURCE_VISIBILITY_PRIVATE: ApiResourceVisibility
-API_RESOURCE_VISIBILITY_PUBLIC: ApiResourceVisibility
-WORKFLOW_TASK_KIND_UNSPECIFIED: WorkflowTaskKind
-WORKFLOW_TASK_KIND_SET: WorkflowTaskKind
-WORKFLOW_TASK_KIND_HTTP_CALL: WorkflowTaskKind
-WORKFLOW_TASK_KIND_GRPC_CALL: WorkflowTaskKind
-WORKFLOW_TASK_KIND_CALL_ACTIVITY: WorkflowTaskKind
-WORKFLOW_TASK_KIND_SWITCH: WorkflowTaskKind
-WORKFLOW_TASK_KIND_FOR: WorkflowTaskKind
-WORKFLOW_TASK_KIND_FORK: WorkflowTaskKind
-WORKFLOW_TASK_KIND_TRY: WorkflowTaskKind
-WORKFLOW_TASK_KIND_LISTEN: WorkflowTaskKind
-WORKFLOW_TASK_KIND_WAIT: WorkflowTaskKind
-WORKFLOW_TASK_KIND_RAISE: WorkflowTaskKind
-WORKFLOW_TASK_KIND_RUN: WorkflowTaskKind
-WORKFLOW_TASK_KIND_AGENT_CALL: WorkflowTaskKind
+api_resource_visibility_unspecified: ApiResourceVisibility
+visibility_private: ApiResourceVisibility
+visibility_public: ApiResourceVisibility
