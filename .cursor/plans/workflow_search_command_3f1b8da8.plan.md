@@ -4,16 +4,16 @@ overview: Implement the `stigmer workflow search <query>` command by creating a 
 todos:
   - id: create-workflow-search
     content: Create workflow_search.go with newWorkflowSearchCommand(), workflowSearchOptions struct, and executeWorkflowSearch() orchestration (~135 lines)
-    status: pending
+    status: completed
   - id: update-workflow-cmd
     content: Register newWorkflowSearchCommand() in workflow.go and remove Sub-task 6 placeholder comment
-    status: pending
+    status: completed
   - id: update-build-bazel
     content: Add workflow_search.go to BUILD.bazel sources
-    status: pending
+    status: completed
   - id: verify-build
     content: Verify Bazel build succeeds and all patterns are consistent
-    status: pending
+    status: completed
 isProject: false
 ---
 
