@@ -256,7 +256,6 @@ rootCmd.AddCommand(NewAgentCommand())
 **Files to modify**:
 
 - [cmd/stigmer/root/agent.go](client-apps/cli/cmd/stigmer/root/agent.go)
-- [cmd/stigmer/root/run.go](client-apps/cli/cmd/stigmer/root/run.go) (add deprecation warning)
 
 **Run command**:
 
@@ -266,10 +265,6 @@ rootCmd.AddCommand(NewAgentCommand())
   - `--message, -m` - initial message
   - `--env` - environment variables (repeatable)
 - Integrate with existing execution infrastructure
-
-**Deprecation**:
-
-- Root `run` command shows warning: "Deprecated: use 'stigmer agent run' or 'stigmer workflow run'"
 
 ---
 
