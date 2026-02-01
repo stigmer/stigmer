@@ -41,6 +41,13 @@ import (
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/controller"
 	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
+
+	// Search service imports
+	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
+	searchcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/controller"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
+	searchhandler "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/handler"
+	searchstore "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/store"
 	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	sessionclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
 	workflowclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
@@ -259,6 +266,26 @@ func Run() error {
 	mcpserverv1.RegisterMcpServerQueryControllerServer(grpcServer, mcpServerController)
 
 	log.Info().Msg("Registered McpServer controllers")
+
+	// Create and register SearchService controller (CQRS Query Service)
+	// The search service provides unified search across all searchable resources
+	// (agents, skills, mcp_servers, workflows) using FTS5 full-text search.
+	searchQueryStore := searchstore.NewSQLiteSearchQueryStore(
+		store.(*sqlite.Store).DB(), // Get the underlying *sql.DB
+		store,
+		extractor.GetRegistry(),
+	)
+	searchHandler, err := searchhandler.NewSearchHandler(searchQueryStore)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create SearchHandler")
+	}
+	searchController := searchcontroller.NewSearchController(searchHandler)
+	searchv1.RegisterSearchServiceServer(grpcServer, searchController)
+
+	// Validate that all expected extractors are registered
+	extractor.GetRegistry().ValidateExpectedKinds()
+
+	log.Info().Msg("Registered SearchService controller")
 
 	// ============================================================================
 	// CRITICAL: All services MUST be registered BEFORE starting the server
