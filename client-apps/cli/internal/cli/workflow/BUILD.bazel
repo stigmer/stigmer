@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "workflow",
@@ -6,6 +6,7 @@ go_library(
         "delete.go",
         "display.go",
         "get.go",
+        "loader.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow",
     visibility = ["//client-apps/cli:__subpackages__"],
@@ -17,9 +18,22 @@ go_library(
         "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/internal/cli/search",
         "//client-apps/cli/pkg/reference",
+        "@build_buf_go_protovalidate//:protovalidate",
         "@com_github_pkg_errors//:errors",
         "@in_gopkg_yaml_v3//:yaml_v3",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)
+
+go_test(
+    name = "workflow_test",
+    srcs = [
+        "loader_test.go",
+    ],
+    embed = [":workflow"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
     ],
 )

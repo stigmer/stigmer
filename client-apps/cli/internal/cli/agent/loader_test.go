@@ -86,43 +86,14 @@ func TestLoad_ExplicitPath(t *testing.T) {
 	assert.Equal(t, "test-agent", result.Agent.Metadata.Name)
 }
 
-func TestLoad_AutoDetect(t *testing.T) {
+func TestLoad_AnyFileName(t *testing.T) {
 	dir := t.TempDir()
-	createTestFile(t, dir, "agent.yaml", minimalValidAgentYAML())
+	// File can have any name - validation is based on content, not filename
+	path := createTestFile(t, dir, "my-agent-config.yml", minimalValidAgentYAML())
 
-	// Change to the test directory
-	originalWd, err := os.Getwd()
+	result, err := Load(&LoadOptions{FilePath: path})
 	require.NoError(t, err)
-	defer func() { _ = os.Chdir(originalWd) }()
-
-	err = os.Chdir(dir)
-	require.NoError(t, err)
-
-	result, err := Load(&LoadOptions{})
-	require.NoError(t, err)
-	// Use filepath.Base to avoid /var vs /private/var symlink issues on macOS
-	assert.Equal(t, "agent.yaml", filepath.Base(result.SourcePath))
-	assert.Equal(t, "test-agent", result.Agent.Metadata.Name)
-}
-
-func TestLoad_AutoDetectAlternate(t *testing.T) {
-	dir := t.TempDir()
-	// Only create AGENT.yaml (not agent.yaml) to test alternate detection
-	// Note: On case-insensitive filesystems (macOS default), agent.yaml search
-	// may match AGENT.yaml, which is acceptable behavior.
-	createTestFile(t, dir, "AGENT.yaml", minimalValidAgentYAML())
-
-	originalWd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() { _ = os.Chdir(originalWd) }()
-
-	err = os.Chdir(dir)
-	require.NoError(t, err)
-
-	result, err := Load(&LoadOptions{})
-	require.NoError(t, err)
-	// Verify the agent was loaded correctly (filename may vary by filesystem case sensitivity)
-	assert.NotEmpty(t, result.SourcePath)
+	assert.Equal(t, path, result.SourcePath)
 	assert.Equal(t, "test-agent", result.Agent.Metadata.Name)
 }
 
@@ -132,21 +103,11 @@ func TestLoad_FileNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "file not found")
 }
 
-func TestLoad_NoConfigFound(t *testing.T) {
-	dir := t.TempDir()
-
-	originalWd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() { _ = os.Chdir(originalWd) }()
-
-	err = os.Chdir(dir)
-	require.NoError(t, err)
-
-	_, err = Load(&LoadOptions{})
+func TestLoad_FilePathRequired(t *testing.T) {
+	_, err := Load(&LoadOptions{})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "no Agent configuration found")
-	assert.Contains(t, err.Error(), "agent.yaml")
-	assert.Contains(t, err.Error(), "AGENT.yaml")
+	assert.Contains(t, err.Error(), "file path is required")
+	assert.Contains(t, err.Error(), "stigmer agent apply <file>")
 }
 
 // =============================================================================
