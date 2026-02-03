@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-03 15:53
-**Last Updated**: 2026-02-03 17:08
-**Current Task**: T01 (Initial Setup) - ✅ COMPLETED, Phase 2 (Core Components) - ✅ COMPLETED
-**Status**: Phase 2 Complete - Production-Ready Landing Page
+**Last Updated**: 2026-02-03 18:07
+**Current Task**: Phase 3 (Content Polish) - ✅ COMPLETED
+**Status**: Production-Ready with Code-First Messaging
 
 ## Session Progress (2026-02-03)
 
@@ -95,6 +95,20 @@ When starting a new session:
 - ✅ Zero linter/TypeScript errors
 - ✅ Optimized build: 124 kB First Load JS
 
+### Phase 3 Completed (18:07)
+- ✅ Comprehensive content rewrite with code-first messaging
+- ✅ Updated tagline: "Agentic Workflows as Code"
+- ✅ Repositioned for engineering teams (vs business analysts)
+- ✅ Emphasized Dual-Track architecture (YAML + SDK)
+- ✅ Fixed CLI commands: brew install, stigmer server
+- ✅ Fixed license: Apache 2.0 (was MIT)
+- ✅ Rewrote all 6 features with outcome focus
+- ✅ Updated Hero badges: Apache 2.0, Built on Temporal, YAML + SDK
+- ✅ Completely revamped Quickstart: 4-step 60-second flow
+- ✅ Added SDK callout box explaining progression path
+- ✅ Validated against 6 content tests (clarity, differentiation, outcome, respect, proof, code-first)
+- ✅ Zero linter errors maintained
+
 ### Key Decisions
 - Used Next.js 15 App Router with static export for GitHub Pages
 - Adopted Tailwind 4 CSS-first pattern with PostCSS
@@ -105,6 +119,14 @@ When starting a new session:
 - Type aliases instead of empty interfaces (ESLint compliance)
 - Focus trap and keyboard navigation in mobile menu
 - Copy-to-clipboard with visual feedback
+
+**Content Strategy (Phase 3):**
+- Positioned as "Agentic Workflows as Code" for engineers
+- Implicit contrast to visual BPMN tools (no explicit competitor mentions)
+- Dual-Track architecture as core differentiator (YAML for experiments, SDK for production)
+- Technical credibility through specific stack mentions (Temporal, BadgerDB, gRPC)
+- Messaging framework: Hair on Fire → Intellectual Insight → Aha Moment
+- Voice: Clear > Clever, Precise Language, High Agency, No Fluff
 
 ### Files Created (Total: 30 files)
 **Phase 1:**
@@ -122,14 +144,9 @@ When starting a new session:
 
 ## Next Steps
 
-**Phase 3: Content Refinement & Deployment** (optional polish)
+**Ready for Production Deployment**
 
-1. Content polish with Sonnet 4.5 (optional)
-   - Refine hero copy and value proposition
-   - Review feature descriptions
-   - Add more visual polish
-
-2. Deploy to GitHub Pages
+1. Deploy to GitHub Pages
    - DNS configuration for stigmer.ai
    - Verify GitHub Actions workflow
    - Enable HTTPS enforcement
@@ -152,6 +169,7 @@ The site is production-ready now. To deploy:
 
 - 📝 [2026-02-03-164601-stigmer-website-phase-1-infrastructure.md](/_changelog/2026-02/2026-02-03-164601-stigmer-website-phase-1-infrastructure.md)
 - 📝 [2026-02-03-170506-stigmer-website-phase-2-core-components.md](/_changelog/2026-02/2026-02-03-170506-stigmer-website-phase-2-core-components.md)
+- 📝 [2026-02-03-180701-website-content-polish-code-first-messaging.md](/_changelog/2026-02/2026-02-03-180701-website-content-polish-code-first-messaging.md)
 
 ## Quick Commands
 
