@@ -23,16 +23,39 @@ stigmer agent execute support-bot "How do I reset my password?"
 
 An automated code review workflow that:
 1. Fetches PR details from GitHub
-2. Analyzes code quality
-3. Checks for test coverage
+2. Analyzes code quality with AI agents
+3. Checks test coverage
 4. Generates a comprehensive review
-5. Posts the review as a comment
+5. Posts the review as a GitHub comment
 
 **Usage**:
 ```bash
-stigmer apply -f examples/workflows/pr-review.yaml
-stigmer workflow execute pr-review-workflow \
-  --input pr_url=https://github.com/myorg/myrepo/pull/123
+stigmer workflow apply examples/workflows/pr-review.yaml
+stigmer workflow run pr-review-workflow
+```
+
+### Hello World Workflow (`workflows/hello-world.yaml`)
+
+A minimal starter workflow demonstrating basic workflow structure.
+
+**Usage**:
+```bash
+stigmer workflow apply examples/workflows/hello-world.yaml
+stigmer workflow run hello-world
+```
+
+### Multi-Step Workflow (`workflows/multi-step.yaml`)
+
+A comprehensive example demonstrating:
+- Multiple task types (set_vars, http_call, agent_call, wait)
+- Flow control between tasks
+- Data export patterns
+- Context variable usage
+
+**Usage**:
+```bash
+stigmer workflow apply examples/workflows/multi-step.yaml
+stigmer workflow run multi-step-example
 ```
 
 ## Skills
@@ -137,15 +160,32 @@ kind: Workflow
 metadata:
   name: my-workflow
 spec:
-  inputs:
-    some_input:
-      type: string
-      required: true
+  description: Brief description of your workflow
+  document:
+    dsl: "1.0.0"
+    namespace: my-namespace
+    name: my-workflow
+    version: "1.0.0"
   tasks:
-    - name: task-1
-      agent: my-agent
-      inputs:
-        input: "${workflow.inputs.some_input}"
+    - name: first-task
+      kind: set_vars
+      task_config:
+        variables:
+          key: value
+      export:
+        as: "${.}"
+      flow:
+        then: second-task
+    
+    - name: second-task
+      kind: agent_call
+      task_config:
+        agent: my-agent
+        message: "Process this: ${context.first-task.key}"
+      export:
+        as: "${.result}"
+      flow:
+        then: end
 ```
 
 ## More Examples
