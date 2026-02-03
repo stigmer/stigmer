@@ -39,10 +39,25 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 4 - Project Entity & stigmer.yaml Foundation 🚀 **IN PROGRESS**
-**Current Sub-task**: T04.4 ✅ **COMPLETE** - Project Display
+**Current Sub-task**: T04.1a ✅ **COMPLETE** - Project Command/Query Services
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-03 - Session 25 - Project Display Foundation):
+**Latest Session** (2026-02-03 - Session 26 - Project Command/Query Services):
+- ✅ **COMPLETED Phase 4 Sub-task T04.1a**: Project Command/Query Services
+- Created command.proto with ProjectCommandController service (47 lines)
+- Created query.proto with ProjectQueryController service (25 lines)
+- Added can_create_project permission to IAM enum
+- Generated Go/Python stubs (command and query services)
+- **Command Service RPCs**: apply, create, update, delete
+- **Query Service RPCs**: get, getByReference
+- **Authorization**: Full IAM integration with organization/project-scoped permissions
+- **Pattern Consistency**: Exact mirror of Agent/Workflow service patterns
+- **Build Verification**: All stubs compile successfully with Bazel, buf lint passes
+- Changelog: `2026-02-03-205629-project-command-query-services-api-contract.md`
+- Committed: `dd7796c feat(apis/project): add Project command/query services to complete API contract`
+- **Completion Time**: ~45 minutes
+
+**Previous Session** (2026-02-03 - Session 25 - Project Display Foundation):
 - ✅ **COMPLETED Phase 4 Sub-task T04.4**: Project Display
 - Created comprehensive display layer for Project entity (214 lines)
 - Implemented display.go with table/yaml/json output formats
@@ -770,6 +785,13 @@ apis/stubs/             (REGENERATED via make protos)
 - DisplayValidationSuccess() for CI-friendly output
 - Smart default entry point display, reconciliation status formatting
 - Pattern consistency with Agent/Workflow (214 vs 236/228 lines)
+
+✅ **T04.1a COMPLETE**: Project Command/Query Services
+- Created command.proto with ProjectCommandController (apply, create, update, delete)
+- Created query.proto with ProjectQueryController (get, getByReference)
+- Added can_create_project permission to IAM enum
+- Generated Go/Python stubs for command and query services
+- All stubs compile successfully with Bazel
 
 ⏭️ **T04.5 NEXT**: Track Detection Logic (~60 min)
 - Create internal/cli/project/detect.go
