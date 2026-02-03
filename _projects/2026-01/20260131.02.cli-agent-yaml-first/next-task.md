@@ -39,10 +39,24 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 3 - Workflow YAML-First (IN PROGRESS)
-**Current Sub-task**: T03.2 ✅ **COMPLETE** | T03.3 NEXT
+**Current Sub-task**: T03.3 ✅ **COMPLETE** | T03.4 NEXT
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-03 - Session 17 - Workflow Cross-Field Validator):
+**Latest Session** (2026-02-03 - Session 18 - Workflow Applier):
+- ✅ **COMPLETED Phase 3 Sub-task T03.3**: Workflow Applier Implementation
+- Created workflow/applier.go (94 lines) with Apply() orchestration
+- Added ApplyOptions and ApplyResult structs (mirroring agent pattern)
+- Implemented 7-step apply flow: validate → metadata → dry-run → create/update → gRPC → result
+- Added DisplayApplyResult() to display.go (+24 lines) for success messages and next steps
+- Updated BUILD.bazel - Added applier.go to sources
+- **Pattern Fidelity**: Exact mirror of agent applier (94 vs 94 lines)
+- **Backend Integration**: Uses existing WorkflowCommandController.Apply() RPC
+- All engineering standards met (file sizes, function sizes, error wrapping)
+- Changelog: `2026-02-03-164324-workflow-applier-foundation.md`
+- Build verified: Package builds successfully, all 36 tests passing
+- Committed: `409dabe feat(cli/workflow): add workflow applier for YAML-first support`
+
+**Previous Session** (2026-02-03 - Session 17 - Workflow Cross-Field Validator):
 - ✅ **COMPLETED Phase 3 Sub-task T03.2**: Workflow Cross-Field Validator Implementation
 - Created workflow/validator.go (210 lines) with comprehensive cross-field validation
 - Created comprehensive test suite (36 tests, 458 lines) - all passing
@@ -641,19 +655,20 @@ The previous plan's "two-footed approach" (YAML for Agent, SDK for Workflow) was
 
 ---
 
-🚧 **NEXT: Phase 3 Sub-task T03.3** - Workflow Applier
-**Action**: Create applier.go for apply operations and update display.go with DisplayApplyResult
-**Plan**: See `/Users/suresh/.cursor/plans/phase_3_workflow_yaml-first_225d7b07.plan.md` → T03.3
+🚧 **NEXT: Phase 3 Sub-task T03.4** - Workflow Apply Command
+**Action**: Create workflow_apply.go with 8-step orchestration in cmd/stigmer/root/
+**Plan**: See `/Users/suresh/.cursor/plans/phase_3_workflow_yaml-first_225d7b07.plan.md` → T03.4
+**Foundation Ready**: All internal components complete (loader, validator, applier)
 
 **Sub-tasks (Phase 3)**:
 - [x] T03.1: Workflow YAML Loader ✅ **COMPLETE**
 - [x] T03.2: Workflow Cross-Field Validator ✅ **COMPLETE**
-- [ ] T03.3: Workflow Applier (NEXT)
-- [ ] T03.4: Workflow Apply Command (YAML)
+- [x] T03.3: Workflow Applier ✅ **COMPLETE**
+- [ ] T03.4: Workflow Apply Command (NEXT)
 - [ ] T03.5: Workflow Validate Command
 - [ ] T03.6: Integration Testing and Documentation
 
-**Phase 3 Progress**: 2 of 6 sub-tasks complete (33%)
+**Phase 3 Progress**: 3 of 6 sub-tasks complete (50%)
 
 ---
 
