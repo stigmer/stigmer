@@ -1,4 +1,4 @@
-name: Publish Agent Sandbox Image (Basic)
+name: release.sandbox
 
 # Triggers:
 # - Automatically on version tags (v*)
