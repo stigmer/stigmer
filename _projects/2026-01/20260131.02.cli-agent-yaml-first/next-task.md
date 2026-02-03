@@ -38,11 +38,25 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Phase**: Phase 3 - Workflow YAML-First ✅ **COMPLETE**
-**Current Sub-task**: T03.6 ✅ **COMPLETE** - All Phase 3 sub-tasks finished!
+**Phase**: Phase 4 - Project Entity & stigmer.yaml Foundation 🚀 **IN PROGRESS**
+**Current Sub-task**: T04.1 ✅ **COMPLETE** - Project Proto Schema Design
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-03 - Session 21 - Integration Testing and Documentation):
+**Latest Session** (2026-02-03 - Session 22 - Project Proto Schema Foundation):
+- ✅ **COMPLETED Phase 4 Sub-task T04.1**: Project Proto Schema Design
+- Created complete proto schema for Project entity as aggregate root
+- Implemented api.proto, spec.proto, status.proto, enum.proto, io.proto (5 proto files)
+- Added ProjectRuntime enum with lowercase values (go, python, node)
+- Added ReconciliationSummary for tracking reconciliation state with counts, timestamp, manifest hash
+- Registered project = 60 in ApiResourceKind enum with id_prefix 'prj'
+- Generated Go and Python stubs via make protos
+- **Key Decision**: SDK-only (no YAML resource globs), backend-managed status
+- **Architectural Review**: Principal Software Architect role applied - proper aggregate root design
+- **Pattern Consistency**: Follows Agent/Workflow proto structure exactly
+- Changelog: `2026-02-03-184319-project-proto-schema-foundation.md`
+- Committed: `20b116d feat(apis/project): add Project proto schema as aggregate root for resource lifecycle`
+
+**Previous Session** (2026-02-03 - Session 21 - Integration Testing and Documentation):
 - ✅ **COMPLETED Phase 3 Sub-task T03.6**: Integration Testing and Documentation
 - Fixed outdated examples/workflows/pr-review.yaml - rewrote to proto-compliant Zigflow DSL format (69 → 71 lines)
 - Created examples/workflows/hello-world.yaml - minimal starter example (20 lines)
@@ -672,16 +686,29 @@ apis/stubs/             (REGENERATED via make protos)
 
 ## Next Steps
 
-**Phase 2 COMPLETE** ✅ (8 of 8 sub-tasks complete, 100%)
+**Phase 3 COMPLETE** ✅ (6 of 6 sub-tasks complete, 100%)
+**Phase 4 IN PROGRESS** 🚀 (1 of 7 sub-tasks complete, 14%)
 
-✅ **Sub-task 1 COMPLETE**: Workflow Internal Package Foundation
-✅ **Sub-task 2 COMPLETE**: Workflow Command Group
-✅ **Sub-task 3 COMPLETE**: Workflow Get Command
-✅ **Sub-task 4 COMPLETE**: Workflow Delete Command
-✅ **Sub-task 5 COMPLETE**: Workflow List Command
-✅ **Sub-task 6 COMPLETE**: Workflow Search Command
-✅ **Sub-task 7 COMPLETE**: Workflow Run Command
-✅ **Sub-task 8 COMPLETE**: Documentation and Cleanup
+### Phase 4 Progress
+
+✅ **T04.1 COMPLETE**: Project Proto Schema Design
+- Created api.proto, spec.proto, status.proto, enum.proto, io.proto
+- Registered project = 60 in ApiResourceKind enum
+- Generated Go/Python stubs
+
+⏭️ **T04.2 NEXT**: Project Loader Foundation (~75 min)
+- Create client-apps/cli/internal/cli/project/loader.go
+- Follow Agent loader pattern exactly
+- Protovalidate integration
+- 12+ test cases
+- Entry point defaults by runtime
+
+**Upcoming Sub-tasks**:
+- T04.3: Project Validator (Cross-Field) - runtime + entry_point consistency
+- T04.4: Project Display - table/yaml/json output
+- T04.5: Track Detection Logic - walk-up algorithm for stigmer.yaml
+- T04.6: Project Command Group - info and validate subcommands
+- T04.7: Integration and Documentation - E2E testing, examples
 
 ---
 
