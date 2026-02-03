@@ -75,6 +75,7 @@ WORKFLOW LIFECYCLE:
 	}
 
 	cmd.AddCommand(newWorkflowApplyCommand())
+	cmd.AddCommand(newWorkflowValidateCommand())
 	cmd.AddCommand(newWorkflowGetCommand())
 	cmd.AddCommand(newWorkflowDeleteCommand())
 	cmd.AddCommand(newWorkflowListCommand())
