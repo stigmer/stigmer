@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "project",
-    srcs = ["loader.go"],
+    srcs = [
+        "loader.go",
+        "validator.go",
+    ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/project",
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
@@ -16,10 +19,14 @@ go_library(
 
 go_test(
     name = "project_test",
-    srcs = ["loader_test.go"],
+    srcs = [
+        "loader_test.go",
+        "validator_test.go",
+    ],
     embed = [":project"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],

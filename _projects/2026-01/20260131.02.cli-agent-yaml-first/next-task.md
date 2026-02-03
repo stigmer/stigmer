@@ -39,10 +39,26 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 4 - Project Entity & stigmer.yaml Foundation 🚀 **IN PROGRESS**
-**Current Sub-task**: T04.2 ✅ **COMPLETE** - Project Loader Foundation
+**Current Sub-task**: T04.3 ✅ **COMPLETE** - Project Validator (Cross-Field)
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-03 - Session 23 - Project Loader Foundation):
+**Latest Session** (2026-02-03 - Session 24 - Project Validator Cross-Field):
+- ✅ **COMPLETED Phase 4 Sub-task T04.3**: Project Validator (Cross-Field)
+- Created comprehensive cross-field validator (605 lines across 2 files)
+- Implemented validator.go (166 lines) with 3 validation rules
+- Created extensive test suite (439 lines, 33 test functions)
+- All tests passing (51 total project tests: 18 loader + 33 validator)
+- **Validation Rules**:
+  - Runtime-EntryPoint Consistency: Extensions must match runtime (.go for Go, .py for Python, .js/.ts/.mjs/.mts for Node)
+  - Reserved Name Detection: Blocks platform namespaces (default, system, admin, root, stigmer, test)
+  - Path Security: Rejects absolute paths and directory traversal (..)
+- **Error Messages**: All errors include actionable guidance with fix instructions
+- **Pattern Consistency**: Follows workflow/validator.go and agent/validator.go patterns exactly
+- **Engineering Standards**: All files < 250 lines, functions < 50 lines, comprehensive test coverage
+- **Build Verification**: bazel build and test succeed, all 51 tests pass
+- Changelog: `2026-02-03-192150-project-validator-cross-field-foundation.md`
+
+**Previous Session** (2026-02-03 - Session 23 - Project Loader Foundation):
 - ✅ **COMPLETED Phase 4 Sub-task T04.2**: Project Loader Foundation
 - Created complete loader package with protovalidate integration (596 lines across 3 files)
 - Implemented loader.go (156 lines) following Agent/Workflow pattern exactly
@@ -704,7 +720,7 @@ apis/stubs/             (REGENERATED via make protos)
 ## Next Steps
 
 **Phase 3 COMPLETE** ✅ (6 of 6 sub-tasks complete, 100%)
-**Phase 4 IN PROGRESS** 🚀 (2 of 7 sub-tasks complete, 29%)
+**Phase 4 IN PROGRESS** 🚀 (3 of 7 sub-tasks complete, 43%)
 
 ### Phase 4 Progress
 
@@ -720,15 +736,19 @@ apis/stubs/             (REGENERATED via make protos)
 - Protovalidate integration as single source of truth
 - All tests passing (100% success rate)
 
-⏭️ **T04.3 NEXT**: Project Validator (Cross-Field) (~60 min)
-- Create internal/cli/project/validator.go
-- Runtime + entry_point extension consistency checks
-- Resource glob pattern validation
-- Reserved project name checks
-- 10+ test cases
+✅ **T04.3 COMPLETE**: Project Validator (Cross-Field)
+- Created internal/cli/project/validator.go (166 lines)
+- Created comprehensive test suite (439 lines, 33 test functions)
+- 3 validation rules: runtime-entrypoint consistency, reserved names, path security
+- Actionable error messages with fix guidance
+- All 51 tests passing (18 loader + 33 validator)
+
+⏭️ **T04.4 NEXT**: Project Display (~45 min)
+- Create internal/cli/project/display.go
+- DisplayProjectInfo() with table/yaml/json formats
+- Follow Agent/Workflow display patterns
 
 **Upcoming Sub-tasks**:
-- T04.3: Project Validator (Cross-Field) - runtime + entry_point consistency
 - T04.4: Project Display - table/yaml/json output
 - T04.5: Track Detection Logic - walk-up algorithm for stigmer.yaml
 - T04.6: Project Command Group - info and validate subcommands
