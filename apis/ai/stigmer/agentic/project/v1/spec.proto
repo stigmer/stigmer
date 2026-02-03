@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.project.v1;
+
+import "ai/stigmer/agentic/project/v1/enum.proto";
+import "buf/validate/validate.proto";
+
+// ProjectSpec defines the configuration for a Stigmer project.
+// Projects use SDK synthesis - all resources are defined in code.
+//
+// The SDK:
+// 1. Reads the entry_point file
+// 2. Executes it to generate a resource manifest
+// 3. Writes manifest for CLI to apply
+//
+// Note: No YAML glob patterns. Use Atomic Track (`stigmer <resource> apply`)
+// for individual YAML files. Project Track is SDK-only.
+message ProjectSpec {
+  // SDK runtime for resource synthesis.
+  // Determines how the entry_point is executed to generate the manifest.
+  //
+  // Required - must be a valid enum value (not UNSPECIFIED).
+  ProjectRuntime runtime = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    }
+  ];
+
+  // Entry point file for SDK synthesis.
+  // This file is executed to generate the resource manifest.
+  //
+  // Optional - defaults based on runtime:
+  // - go: main.go
+  // - python: main.py
+  // - node: index.ts
+  //
+  // Cross-field validation (runtime + entry_point extension consistency)
+  // is handled by the CLI validator.
+  string entry_point = 2;
+
+  // Human-readable description of the project.
+  string description = 3;
+}

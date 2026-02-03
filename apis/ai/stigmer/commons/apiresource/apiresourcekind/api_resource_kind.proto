@@ -360,6 +360,22 @@ enum ApiResourceKind {
       owner_type: OWNER_ATTRIBUTION_TYPE_NONE
     }
   }];
+
+  // Agentic - Project management (aggregate root for resource lifecycle)
+  project = 60 [(kind_meta) = {
+    group: agentic
+    version: v1
+    name: "Project"
+    display_name: "Project"
+    id_prefix: "prj"
+    is_versioned: false
+    not_search_indexed: false
+    tier: TIER_OPEN_SOURCE
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+    }
+  }];
 }
 
 // Note: Extension field 'kind_meta' (90101) is used for metadata access in Java

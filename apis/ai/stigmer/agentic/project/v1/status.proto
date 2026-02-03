@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.project.v1;
+
+import "ai/stigmer/agentic/project/v1/enum.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "google/protobuf/timestamp.proto";
+
+// ProjectStatus contains system-managed state for a Project.
+// Updated by the backend after each reconciliation.
+message ProjectStatus {
+  // Standard audit information (created_at, updated_at, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // Summary of the last reconciliation operation.
+  ReconciliationSummary reconciliation = 1;
+}
+
+// ReconciliationSummary captures the outcome of the last `stigmer apply`.
+// This is outcome data (what happened), not process data (how it happened).
+//
+// The dependency graph and manifest details are NOT stored here - they are
+// ephemeral build artifacts managed by SDK and CLI.
+message ReconciliationSummary {
+  // Timestamp of the last successful reconciliation.
+  google.protobuf.Timestamp last_reconciled_at = 1;
+
+  // Result of the last reconciliation attempt.
+  ReconciliationResult result = 2;
+
+  // SHA256 hash of the synthesized manifest.
+  // Used for drift detection - if manifest changes, hash changes.
+  string manifest_hash = 3;
+
+  // Resource counts from the last reconciliation.
+  // Provides a quick summary without querying each resource type.
+  ResourceCounts resource_counts = 4;
+}
+
+// ResourceCounts tracks how many resources of each type exist in the project.
+message ResourceCounts {
+  int32 agents = 1;
+  int32 workflows = 2;
+  int32 skills = 3;
+  int32 mcp_servers = 4;
+}

@@ -36,6 +36,7 @@ go_test(
     ],
     embed = [":workflow"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],
