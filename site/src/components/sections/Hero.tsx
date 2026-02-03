@@ -6,7 +6,6 @@ import { SITE_CONFIG } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
-import { StigmerLogo } from "@/components/ui/StigmerLogo";
 
 export type HeroProps = React.HTMLAttributes<HTMLElement>;
 
@@ -75,11 +74,6 @@ function Hero({ className, ...props }: HeroProps) {
 
       {/* Content */}
       <div className="relative z-10 max-w-4xl mx-auto text-center">
-        {/* Logo Mark */}
-        <div className="mb-6 inline-flex items-center justify-center">
-          <StigmerLogo size="lg" withContainer className="w-20 h-20 sm:w-24 sm:h-24" />
-        </div>
-
         {/* Badges */}
         <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
           <Badge variant="outline" className="gap-1">
@@ -92,7 +86,7 @@ function Hero({ className, ...props }: HeroProps) {
           </Badge>
           <Badge variant="outline" className="gap-1">
             <Icon name="unlock" size="xs" />
-            Apache 2.0
+            Open Source
           </Badge>
         </div>
 
@@ -102,13 +96,13 @@ function Hero({ className, ...props }: HeroProps) {
           className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight mb-6"
         >
           <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
-            Build Agents, Integrate Anywhere
+            Agents as Microservices
           </span>
         </h1>
 
         {/* Subheadline */}
         <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-          Create agents in YAML or Go/Python SDKs. Stigmer handles sandboxing, orchestration, and MCP connections. Integrate agents into any app via gRPC. Build once, call from anywhere. No vendor lock-in.
+          Build agents in YAML or Go. Deploy once. Call from everywhere via gRPC. Update agents independently—all consumers benefit instantly.
         </p>
 
         {/* CTAs */}
