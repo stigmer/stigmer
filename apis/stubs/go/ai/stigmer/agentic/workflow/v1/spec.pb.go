@@ -9,7 +9,6 @@ package workflowv1
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -190,7 +189,7 @@ func (x *WorkflowDocument) GetDescription() string {
 
 // WorkflowTask represents a single task in the workflow.
 // Uses the "kind + Struct" pattern (like CloudResource in Planton Cloud):
-// - `kind` determines the task type (SET, HTTP_CALL, SWITCH, etc.)
+// - `kind` determines the task type (set_vars, http_call, switch_case, etc.)
 // - `task_config` contains task-specific configuration as dynamic JSON
 // - Backend unmarshals `task_config` to the appropriate Go struct based on `kind`
 //
@@ -198,7 +197,7 @@ func (x *WorkflowDocument) GetDescription() string {
 //
 //	{
 //	  "name": "fetchData",
-//	  "kind": "HTTP_CALL",
+//	  "kind": "http_call",
 //	  "task_config": {
 //	    "method": "GET",
 //	    "endpoint": {"uri": "https://api.example.com/data"},
@@ -212,23 +211,24 @@ type WorkflowTask struct {
 	// Task name/identifier (must be unique within workflow).
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Task type (determines how to interpret task_config).
-	Kind apiresource.WorkflowTaskKind `protobuf:"varint,2,opt,name=kind,proto3,enum=ai.stigmer.commons.apiresource.WorkflowTaskKind" json:"kind,omitempty"`
+	Kind WorkflowTaskKind `protobuf:"varint,2,opt,name=kind,proto3,enum=ai.stigmer.agentic.workflow.v1.WorkflowTaskKind" json:"kind,omitempty"`
 	// Task-specific configuration (dynamic typed).
 	// Structure depends on `kind` value.
 	//
 	// Backend unmarshals this Struct to the appropriate proto message:
-	// - SET: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
-	// - HTTP_CALL: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
-	// - GRPC_CALL: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig
-	// - SWITCH: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig
-	// - FOR: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig
-	// - FORK: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig
-	// - TRY: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig
-	// - LISTEN: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig
-	// - WAIT: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig
-	// - CALL_ACTIVITY: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig
-	// - RAISE: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
-	// - RUN: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
+	// - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
+	// - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
+	// - grpc_call: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig
+	// - switch_case: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig
+	// - for_each: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig
+	// - fork: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig
+	// - try_catch: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig
+	// - listen: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig
+	// - wait: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig
+	// - activity_call: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig
+	// - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
+	// - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
+	// - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
 	//
 	// See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.
 	TaskConfig *structpb.Struct `protobuf:"bytes,3,opt,name=task_config,json=taskConfig,proto3" json:"task_config,omitempty"`
@@ -279,11 +279,11 @@ func (x *WorkflowTask) GetName() string {
 	return ""
 }
 
-func (x *WorkflowTask) GetKind() apiresource.WorkflowTaskKind {
+func (x *WorkflowTask) GetKind() WorkflowTaskKind {
 	if x != nil {
 		return x.Kind
 	}
-	return apiresource.WorkflowTaskKind(0)
+	return WorkflowTaskKind_workflow_task_kind_unspecified
 }
 
 func (x *WorkflowTask) GetTaskConfig() *structpb.Struct {
@@ -416,7 +416,7 @@ var File_ai_stigmer_agentic_workflow_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/workflow/v1/spec.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa3\x02\n" +
+	")ai/stigmer/agentic/workflow/v1/spec.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa3\x02\n" +
 	"\fWorkflowSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12T\n" +
 	"\bdocument\x18\x02 \x01(\v20.ai.stigmer.agentic.workflow.v1.WorkflowDocumentB\x06\xbaH\x03\xc8\x01\x01R\bdocument\x12L\n" +
@@ -430,7 +430,7 @@ const file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc = "" +
 	"\vdescription\x18\x05 \x01(\tR\vdescription\"\xbb\x02\n" +
 	"\fWorkflowTask\x12\x1a\n" +
 	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12L\n" +
-	"\x04kind\x18\x02 \x01(\x0e20.ai.stigmer.commons.apiresource.WorkflowTaskKindB\x06\xbaH\x03\xc8\x01\x01R\x04kind\x12@\n" +
+	"\x04kind\x18\x02 \x01(\x0e20.ai.stigmer.agentic.workflow.v1.WorkflowTaskKindB\x06\xbaH\x03\xc8\x01\x01R\x04kind\x12@\n" +
 	"\vtask_config\x18\x03 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"taskConfig\x12>\n" +
 	"\x06export\x18\x04 \x01(\v2&.ai.stigmer.agentic.workflow.v1.ExportR\x06export\x12?\n" +
@@ -455,20 +455,20 @@ func file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_workflow_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_agentic_workflow_v1_spec_proto_goTypes = []any{
-	(*WorkflowSpec)(nil),              // 0: ai.stigmer.agentic.workflow.v1.WorkflowSpec
-	(*WorkflowDocument)(nil),          // 1: ai.stigmer.agentic.workflow.v1.WorkflowDocument
-	(*WorkflowTask)(nil),              // 2: ai.stigmer.agentic.workflow.v1.WorkflowTask
-	(*Export)(nil),                    // 3: ai.stigmer.agentic.workflow.v1.Export
-	(*FlowControl)(nil),               // 4: ai.stigmer.agentic.workflow.v1.FlowControl
-	(*v1.EnvironmentSpec)(nil),        // 5: ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	(apiresource.WorkflowTaskKind)(0), // 6: ai.stigmer.commons.apiresource.WorkflowTaskKind
-	(*structpb.Struct)(nil),           // 7: google.protobuf.Struct
+	(*WorkflowSpec)(nil),       // 0: ai.stigmer.agentic.workflow.v1.WorkflowSpec
+	(*WorkflowDocument)(nil),   // 1: ai.stigmer.agentic.workflow.v1.WorkflowDocument
+	(*WorkflowTask)(nil),       // 2: ai.stigmer.agentic.workflow.v1.WorkflowTask
+	(*Export)(nil),             // 3: ai.stigmer.agentic.workflow.v1.Export
+	(*FlowControl)(nil),        // 4: ai.stigmer.agentic.workflow.v1.FlowControl
+	(*v1.EnvironmentSpec)(nil), // 5: ai.stigmer.agentic.environment.v1.EnvironmentSpec
+	(WorkflowTaskKind)(0),      // 6: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	(*structpb.Struct)(nil),    // 7: google.protobuf.Struct
 }
 var file_ai_stigmer_agentic_workflow_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.workflow.v1.WorkflowSpec.document:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowDocument
 	2, // 1: ai.stigmer.agentic.workflow.v1.WorkflowSpec.tasks:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTask
 	5, // 2: ai.stigmer.agentic.workflow.v1.WorkflowSpec.env_spec:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentSpec
-	6, // 3: ai.stigmer.agentic.workflow.v1.WorkflowTask.kind:type_name -> ai.stigmer.commons.apiresource.WorkflowTaskKind
+	6, // 3: ai.stigmer.agentic.workflow.v1.WorkflowTask.kind:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
 	7, // 4: ai.stigmer.agentic.workflow.v1.WorkflowTask.task_config:type_name -> google.protobuf.Struct
 	3, // 5: ai.stigmer.agentic.workflow.v1.WorkflowTask.export:type_name -> ai.stigmer.agentic.workflow.v1.Export
 	4, // 6: ai.stigmer.agentic.workflow.v1.WorkflowTask.flow:type_name -> ai.stigmer.agentic.workflow.v1.FlowControl
@@ -484,6 +484,7 @@ func file_ai_stigmer_agentic_workflow_v1_spec_proto_init() {
 	if File_ai_stigmer_agentic_workflow_v1_spec_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_workflow_v1_enum_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

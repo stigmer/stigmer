@@ -72,16 +72,6 @@ func (d *Deployer) deploySequential(synthesisResult *synthesis.Result) (*DeployR
 		DeployedWorkflows: make([]*workflowv1.Workflow, 0),
 	}
 
-	// TODO(T01.4): Skills are no longer deployed from code (SDK).
-	// Skills must be pushed as artifacts using `stigmer apply` in a directory with SKILL.md.
-	// The inline skill feature will be removed in T01.4.
-	// For now, skip skill deployment from Code Mode.
-	if len(synthesisResult.Skills) > 0 {
-		if d.opts.ProgressCallback != nil {
-			d.opts.ProgressCallback("⚠️  Skills detected but Code Mode deployment is deprecated. Use Artifact Mode (SKILL.md) to upload skills.")
-		}
-	}
-
 	// Deploy agents
 	if len(synthesisResult.Agents) > 0 {
 		agents, err := d.deployAgents(synthesisResult.Agents)
@@ -228,12 +218,6 @@ func (d *Deployer) deployResource(res *synthesis.ResourceWithID) (proto.Message,
 	}
 }
 
-// deploySkill is deprecated - skills are now pushed as artifacts only.
-// TODO(T01.4): Remove this method when inline skill feature is removed.
-func (d *Deployer) deploySkill(skill *skillv1.Skill) (*skillv1.Skill, error) {
-	return nil, fmt.Errorf("skill deployment from code is no longer supported - use Artifact Mode with SKILL.md")
-}
-
 // deployAgent deploys a single agent.
 func (d *Deployer) deployAgent(agent *agentv1.Agent) (*agentv1.Agent, error) {
 	// Ensure metadata is initialized and org is set
@@ -282,12 +266,6 @@ func (d *Deployer) deployWorkflow(workflow *workflowv1.Workflow) (*workflowv1.Wo
 	}
 
 	return deployed, nil
-}
-
-// deploySkills is deprecated - skills are now pushed as artifacts only.
-// TODO(T01.4): Remove this method when inline skill feature is removed.
-func (d *Deployer) deploySkills(skills []*skillv1.Skill) ([]*skillv1.Skill, error) {
-	return nil, fmt.Errorf("skill deployment from code is no longer supported - use Artifact Mode with SKILL.md")
 }
 
 // deployAgents deploys all agents

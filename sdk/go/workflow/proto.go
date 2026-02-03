@@ -62,7 +62,7 @@ func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
 		Slug:        w.Slug, // Include slug for backend resolution
 		Annotations: SDKAnnotations(),
 		// Default to private visibility for SDK-created workflows
-		Visibility: apiresource.ApiResourceVisibility_API_RESOURCE_VISIBILITY_PRIVATE,
+		Visibility: apiresource.ApiResourceVisibility_visibility_private,
 	}
 
 	// Build WorkflowDocument
@@ -137,7 +137,7 @@ func convertTasks(tasks []*Task) ([]*workflowv1.WorkflowTask, error) {
 
 // validateTaskConfigStruct validates a task config by unmarshaling it back to typed proto.
 // This enables buf.validate rules on the typed proto messages to be applied.
-func validateTaskConfigStruct(kind apiresource.WorkflowTaskKind, config *structpb.Struct) error {
+func validateTaskConfigStruct(kind workflowv1.WorkflowTaskKind, config *structpb.Struct) error {
 	if config == nil {
 		return fmt.Errorf("task_config cannot be nil")
 	}
@@ -152,31 +152,31 @@ func validateTaskConfigStruct(kind apiresource.WorkflowTaskKind, config *structp
 	var protoMsg proto.Message
 
 	switch kind {
-	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET:
+	case workflowv1.WorkflowTaskKind_set_vars:
 		protoMsg = &tasksv1.SetTaskConfig{}
-	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL:
+	case workflowv1.WorkflowTaskKind_http_call:
 		protoMsg = &tasksv1.HttpCallTaskConfig{}
-	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_GRPC_CALL:
+	case workflowv1.WorkflowTaskKind_grpc_call:
 		protoMsg = &tasksv1.GrpcCallTaskConfig{}
-	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SWITCH:
+	case workflowv1.WorkflowTaskKind_switch_case:
 		protoMsg = &tasksv1.SwitchTaskConfig{}
-	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_FOR:
+	case workflowv1.WorkflowTaskKind_for_each:
 		protoMsg = &tasksv1.ForTaskConfig{}
-	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_FORK:
+	case workflowv1.WorkflowTaskKind_fork:
 		protoMsg = &tasksv1.ForkTaskConfig{}
-	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_TRY:
+	case workflowv1.WorkflowTaskKind_try_catch:
 		protoMsg = &tasksv1.TryTaskConfig{}
-	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_LISTEN:
+	case workflowv1.WorkflowTaskKind_listen:
 		protoMsg = &tasksv1.ListenTaskConfig{}
-	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_WAIT:
+	case workflowv1.WorkflowTaskKind_wait:
 		protoMsg = &tasksv1.WaitTaskConfig{}
-	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_CALL_ACTIVITY:
+	case workflowv1.WorkflowTaskKind_activity_call:
 		protoMsg = &tasksv1.CallActivityTaskConfig{}
-	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_RAISE:
+	case workflowv1.WorkflowTaskKind_raise_error:
 		protoMsg = &tasksv1.RaiseTaskConfig{}
-	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_RUN:
+	case workflowv1.WorkflowTaskKind_run_workflow:
 		protoMsg = &tasksv1.RunTaskConfig{}
-	case apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL:
+	case workflowv1.WorkflowTaskKind_agent_call:
 		protoMsg = &tasksv1.AgentCallTaskConfig{}
 	default:
 		return fmt.Errorf("unsupported task kind: %v", kind)
@@ -198,10 +198,12 @@ func validateTaskConfigStruct(kind apiresource.WorkflowTaskKind, config *structp
 
 // convertTask converts a single SDK Task to a proto WorkflowTask.
 func convertTask(task *Task) (*workflowv1.WorkflowTask, error) {
-	// Convert task kind to proto enum
-	kind, err := convertTaskKind(task.Kind)
-	if err != nil {
-		return nil, fmt.Errorf("invalid task kind %s: %w", task.Kind, err)
+	// TaskKind is now the proto enum type directly - no conversion needed
+	kind := task.Kind
+
+	// Validate task kind is not unspecified
+	if kind == workflowv1.WorkflowTaskKind_workflow_task_kind_unspecified {
+		return nil, fmt.Errorf("task kind cannot be unspecified for task %s", task.Name)
 	}
 
 	// Convert task config to google.protobuf.Struct
@@ -239,39 +241,8 @@ func convertTask(task *Task) (*workflowv1.WorkflowTask, error) {
 	return protoTask, nil
 }
 
-// convertTaskKind converts SDK TaskKind to proto WorkflowTaskKind enum.
-func convertTaskKind(kind TaskKind) (apiresource.WorkflowTaskKind, error) {
-	switch kind {
-	case TaskKindSet:
-		return apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET, nil
-	case TaskKindHttpCall:
-		return apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL, nil
-	case TaskKindGrpcCall:
-		return apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_GRPC_CALL, nil
-	case TaskKindSwitch:
-		return apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SWITCH, nil
-	case TaskKindFor:
-		return apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_FOR, nil
-	case TaskKindFork:
-		return apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_FORK, nil
-	case TaskKindTry:
-		return apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_TRY, nil
-	case TaskKindListen:
-		return apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_LISTEN, nil
-	case TaskKindWait:
-		return apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_WAIT, nil
-	case TaskKindCallActivity:
-		return apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_CALL_ACTIVITY, nil
-	case TaskKindRaise:
-		return apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_RAISE, nil
-	case TaskKindRun:
-		return apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_RUN, nil
-	case TaskKindAgentCall:
-		return apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL, nil
-	default:
-		return 0, fmt.Errorf("unknown task kind: %s", kind)
-	}
-}
+// NOTE: convertTaskKind function removed - TaskKind is now the proto enum type directly.
+// No conversion needed since SDK uses workflowv1.WorkflowTaskKind as the source of truth.
 
 // convertTaskConfig converts SDK TaskConfig to google.protobuf.Struct.
 //
@@ -625,7 +596,7 @@ func workflowTaskToMap(task *types.WorkflowTask) map[string]interface{} {
 	}
 	if task.Kind != "" {
 		// Convert SDK TaskKind string to proto enum constant name
-		// e.g., "SET" -> "WORKFLOW_TASK_KIND_SET"
+		// e.g., "set_vars" -> "set_vars" (direct mapping with new naming)
 		m["kind"] = convertTaskKindStringToProtoEnumName(task.Kind)
 	}
 	if task.TaskConfig != nil && len(task.TaskConfig) > 0 {
@@ -645,11 +616,11 @@ func workflowTaskToMap(task *types.WorkflowTask) map[string]interface{} {
 }
 
 // convertTaskKindStringToProtoEnumName converts SDK TaskKind string to proto enum constant name.
-// Example: "SET" -> "WORKFLOW_TASK_KIND_SET"
+// With the new DDD-aligned naming, the SDK TaskKind values match the proto enum values directly.
+// Example: "set_vars" -> "set_vars"
 func convertTaskKindStringToProtoEnumName(kind string) string {
-	// The SDK uses short names like "SET", "HTTP_CALL"
-	// The proto expects full enum names like "WORKFLOW_TASK_KIND_SET", "WORKFLOW_TASK_KIND_HTTP_CALL"
-	return "WORKFLOW_TASK_KIND_" + kind
+	// The SDK TaskKind values now match the proto enum values directly
+	return kind
 }
 
 // forkBranchToMap converts types.ForkBranch to map[string]interface{}.

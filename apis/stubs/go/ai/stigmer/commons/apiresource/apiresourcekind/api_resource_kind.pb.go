@@ -198,6 +198,8 @@ const (
 	ApiResourceKind_workflow_execution ApiResourceKind = 52
 	ApiResourceKind_environment        ApiResourceKind = 53
 	ApiResourceKind_execution_context  ApiResourceKind = 54
+	// Agentic - Project management (aggregate root for resource lifecycle)
+	ApiResourceKind_project ApiResourceKind = 60
 )
 
 // Enum value maps for ApiResourceKind.
@@ -222,6 +224,7 @@ var (
 		52: "workflow_execution",
 		53: "environment",
 		54: "execution_context",
+		60: "project",
 	}
 	ApiResourceKind_value = map[string]int32{
 		"api_resource_kind_unknown": 0,
@@ -243,6 +246,7 @@ var (
 		"workflow_execution":        52,
 		"environment":               53,
 		"execution_context":         54,
+		"project":                   60,
 	}
 )
 
@@ -432,8 +436,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x0fTIER_CLOUD_ONLY\x10\x02*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xe8\n" +
-	"\n" +
+	"\astigmer\x10\x01*\x9e\v\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -465,7 +468,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\bworkflow\x12\bworkflow\x1a\vworkflow_id\x12T\n" +
 	"\x12workflow_execution\x104\x1a<\xaa\xff+8\b\x01\x10\x01\x1a\x11WorkflowExecution\"\x12Workflow Execution*\x03wex@\x01J\x04\b\x02\x10\x01\x12@\n" +
 	"\venvironment\x105\x1a/\xaa\xff++\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01J\x04\b\x02\x10\x01\x12R\n" +
-	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04exec@\x01J\x04\b\x05\x10\x04:\x85\x01\n" +
+	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04exec@\x01J\x04\b\x05\x10\x04\x124\n" +
+	"\aproject\x10<\x1a'\xaa\xff+#\b\x01\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\x04\b\x02\x10\x01:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x81\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZWgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
 

@@ -3,6 +3,8 @@ package reference
 import (
 	"errors"
 	"testing"
+
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 func TestParse(t *testing.T) {
@@ -54,19 +56,35 @@ func TestParse(t *testing.T) {
 			want:       &ParsedReference{Org: "acme", Slug: "code-review", Version: "stable"},
 		},
 
-		// Resource IDs
+		// Resource IDs - using prefixes from ApiResourceKind enum
+		// Format: prefix + separator (underscore or hyphen) + ULID
 		{
-			name: "agent ID",
+			name: "agent ID with underscore",
 			ref:  "agt_abc123",
 			want: &ParsedReference{IsID: true, ID: "agt_abc123"},
 		},
 		{
-			name: "workflow ID",
-			ref:  "wf_xyz789",
-			want: &ParsedReference{IsID: true, ID: "wf_xyz789"},
+			name: "agent ID with hyphen",
+			ref:  "agt-abc123",
+			want: &ParsedReference{IsID: true, ID: "agt-abc123"},
 		},
 		{
-			name: "mcp server ID with prefix",
+			name: "workflow ID with underscore",
+			ref:  "wfl_xyz789",
+			want: &ParsedReference{IsID: true, ID: "wfl_xyz789"},
+		},
+		{
+			name: "workflow ID with hyphen",
+			ref:  "wfl-xyz789",
+			want: &ParsedReference{IsID: true, ID: "wfl-xyz789"},
+		},
+		{
+			name: "mcp server ID with underscore",
+			ref:  "mcp_github-server",
+			want: &ParsedReference{IsID: true, ID: "mcp_github-server"},
+		},
+		{
+			name: "mcp server ID with hyphen",
 			ref:  "mcp-github-server",
 			want: &ParsedReference{IsID: true, ID: "mcp-github-server"},
 		},
@@ -76,29 +94,64 @@ func TestParse(t *testing.T) {
 			want: &ParsedReference{IsID: true, ID: "12345678-1234-1234-1234-123456789abc"},
 		},
 		{
-			name: "agent execution ID",
-			ref:  "agtexec_run123",
-			want: &ParsedReference{IsID: true, ID: "agtexec_run123"},
+			name: "agent execution ID with underscore",
+			ref:  "aex_run123",
+			want: &ParsedReference{IsID: true, ID: "aex_run123"},
 		},
 		{
-			name: "workflow execution ID",
-			ref:  "wfexec_run456",
-			want: &ParsedReference{IsID: true, ID: "wfexec_run456"},
+			name: "agent execution ID with hyphen",
+			ref:  "aex-run123",
+			want: &ParsedReference{IsID: true, ID: "aex-run123"},
 		},
 		{
-			name: "skill ID",
-			ref:  "skill_abc",
-			want: &ParsedReference{IsID: true, ID: "skill_abc"},
+			name: "workflow execution ID with underscore",
+			ref:  "wex_run456",
+			want: &ParsedReference{IsID: true, ID: "wex_run456"},
 		},
 		{
-			name: "agent instance ID",
-			ref:  "agtinst_inst1",
-			want: &ParsedReference{IsID: true, ID: "agtinst_inst1"},
+			name: "workflow execution ID with hyphen",
+			ref:  "wex-run456",
+			want: &ParsedReference{IsID: true, ID: "wex-run456"},
 		},
 		{
-			name: "workflow instance ID",
-			ref:  "wfinst_inst2",
-			want: &ParsedReference{IsID: true, ID: "wfinst_inst2"},
+			name: "skill ID with underscore",
+			ref:  "skl_abc",
+			want: &ParsedReference{IsID: true, ID: "skl_abc"},
+		},
+		{
+			name: "skill ID with hyphen",
+			ref:  "skl-abc",
+			want: &ParsedReference{IsID: true, ID: "skl-abc"},
+		},
+		{
+			name: "agent instance ID with underscore",
+			ref:  "ain_inst1",
+			want: &ParsedReference{IsID: true, ID: "ain_inst1"},
+		},
+		{
+			name: "agent instance ID with hyphen",
+			ref:  "ain-inst1",
+			want: &ParsedReference{IsID: true, ID: "ain-inst1"},
+		},
+		{
+			name: "workflow instance ID with underscore",
+			ref:  "win_inst2",
+			want: &ParsedReference{IsID: true, ID: "win_inst2"},
+		},
+		{
+			name: "workflow instance ID with hyphen",
+			ref:  "win-inst2",
+			want: &ParsedReference{IsID: true, ID: "win-inst2"},
+		},
+		{
+			name: "session ID with underscore",
+			ref:  "ses_session123",
+			want: &ParsedReference{IsID: true, ID: "ses_session123"},
+		},
+		{
+			name: "environment ID with underscore",
+			ref:  "env_myenv",
+			want: &ParsedReference{IsID: true, ID: "env_myenv"},
 		},
 
 		// Edge cases
@@ -204,17 +257,20 @@ func TestMustParse(t *testing.T) {
 }
 
 func TestIsAgentID(t *testing.T) {
+	// Agent prefix from enum: "agt"
 	tests := []struct {
 		ref  string
 		want bool
 	}{
-		{"agt_abc123", true},
-		{"agt_", true},
-		{"agt_longer_id_here", true},
-		{"AGT_abc123", false}, // case sensitive
-		{"wf_abc123", false},
-		{"stigmer/agent", false},
-		{"", false},
+		{"agt_abc123", true},         // underscore separator
+		{"agt-abc123", true},         // hyphen separator
+		{"agt_", true},               // minimal with underscore
+		{"agt-", true},               // minimal with hyphen
+		{"agt_longer_id_here", true}, // longer ID
+		{"AGT_abc123", false},        // case sensitive
+		{"wfl_abc123", false},        // different kind
+		{"stigmer/agent", false},     // org/slug format
+		{"", false},                  // empty
 	}
 
 	for _, tt := range tests {
@@ -227,17 +283,20 @@ func TestIsAgentID(t *testing.T) {
 }
 
 func TestIsWorkflowID(t *testing.T) {
+	// Workflow prefix from enum: "wfl"
 	tests := []struct {
 		ref  string
 		want bool
 	}{
-		{"wf_xyz789", true},
-		{"wf_", true},
-		{"wf_longer_workflow_id", true},
-		{"WF_xyz789", false}, // case sensitive
-		{"agt_abc123", false},
-		{"stigmer/workflow", false},
-		{"", false},
+		{"wfl_xyz789", true},             // underscore separator
+		{"wfl-xyz789", true},             // hyphen separator
+		{"wfl_", true},                   // minimal with underscore
+		{"wfl-", true},                   // minimal with hyphen
+		{"wfl_longer_workflow_id", true}, // longer ID
+		{"WFL_xyz789", false},            // case sensitive
+		{"agt_abc123", false},            // different kind
+		{"stigmer/workflow", false},      // org/slug format
+		{"", false},                      // empty
 	}
 
 	for _, tt := range tests {
@@ -250,19 +309,23 @@ func TestIsWorkflowID(t *testing.T) {
 }
 
 func TestIsMcpServerID(t *testing.T) {
+	// MCP server prefix from enum: "mcp"
 	tests := []struct {
 		ref  string
 		want bool
 	}{
-		{"mcp-github", true},
-		{"mcp-", true},
-		{"mcp-server-name", true},
-		{"12345678-1234-1234-1234-123456789abc", true}, // UUID
-		{"12345678-1234-1234-1234-123456789ABC", true}, // UUID uppercase
-		{"MCP-github", false},                          // case sensitive prefix
-		{"agt_abc123", false},
-		{"stigmer/mcp", false},
-		{"", false},
+		{"mcp_github", true},                            // underscore separator
+		{"mcp-github", true},                            // hyphen separator
+		{"mcp_", true},                                  // minimal with underscore
+		{"mcp-", true},                                  // minimal with hyphen
+		{"mcp_server-name", true},                       // longer ID
+		{"mcp-server-name", true},                       // hyphen separator with dashes in value
+		{"12345678-1234-1234-1234-123456789abc", true},  // UUID
+		{"12345678-1234-1234-1234-123456789ABC", true},  // UUID uppercase
+		{"MCP_github", false},                           // case sensitive prefix
+		{"agt_abc123", false},                           // different kind
+		{"stigmer/mcp", false},                          // org/slug format
+		{"", false},                                     // empty
 		{"12345678-1234-1234-1234-12345678", false},     // invalid UUID (too short)
 		{"12345678123412341234123456789abc", false},     // UUID without dashes
 		{"g2345678-1234-1234-1234-123456789abc", false}, // invalid hex
@@ -278,15 +341,18 @@ func TestIsMcpServerID(t *testing.T) {
 }
 
 func TestIsAgentExecutionID(t *testing.T) {
+	// Agent execution prefix from enum: "aex"
 	tests := []struct {
 		ref  string
 		want bool
 	}{
-		{"agtexec_run123", true},
-		{"agtexec_", true},
-		{"AGTEXEC_run", false}, // case sensitive
-		{"agt_abc", false},
-		{"", false},
+		{"aex_run123", true}, // underscore separator
+		{"aex-run123", true}, // hyphen separator
+		{"aex_", true},       // minimal with underscore
+		{"aex-", true},       // minimal with hyphen
+		{"AEX_run", false},   // case sensitive
+		{"agt_abc", false},   // different kind
+		{"", false},          // empty
 	}
 
 	for _, tt := range tests {
@@ -299,15 +365,18 @@ func TestIsAgentExecutionID(t *testing.T) {
 }
 
 func TestIsWorkflowExecutionID(t *testing.T) {
+	// Workflow execution prefix from enum: "wex"
 	tests := []struct {
 		ref  string
 		want bool
 	}{
-		{"wfexec_run456", true},
-		{"wfexec_", true},
-		{"WFEXEC_run", false}, // case sensitive
-		{"wf_abc", false},
-		{"", false},
+		{"wex_run456", true}, // underscore separator
+		{"wex-run456", true}, // hyphen separator
+		{"wex_", true},       // minimal with underscore
+		{"wex-", true},       // minimal with hyphen
+		{"WEX_run", false},   // case sensitive
+		{"wfl_abc", false},   // different kind
+		{"", false},          // empty
 	}
 
 	for _, tt := range tests {
@@ -320,21 +389,120 @@ func TestIsWorkflowExecutionID(t *testing.T) {
 }
 
 func TestIsSkillID(t *testing.T) {
+	// Skill prefix from enum: "skl"
 	tests := []struct {
 		ref  string
 		want bool
 	}{
-		{"skill_abc", true},
-		{"skill_", true},
-		{"SKILL_abc", false}, // case sensitive
-		{"agt_abc", false},
-		{"", false},
+		{"skl_abc", true},  // underscore separator
+		{"skl-abc", true},  // hyphen separator
+		{"skl_", true},     // minimal with underscore
+		{"skl-", true},     // minimal with hyphen
+		{"SKL_abc", false}, // case sensitive
+		{"agt_abc", false}, // different kind
+		{"", false},        // empty
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.ref, func(t *testing.T) {
 			if got := IsSkillID(tt.ref); got != tt.want {
 				t.Errorf("IsSkillID(%q) = %v, want %v", tt.ref, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsAgentInstanceID(t *testing.T) {
+	// Agent instance prefix from enum: "ain"
+	tests := []struct {
+		ref  string
+		want bool
+	}{
+		{"ain_inst1", true}, // underscore separator
+		{"ain-inst1", true}, // hyphen separator
+		{"ain_", true},      // minimal with underscore
+		{"ain-", true},      // minimal with hyphen
+		{"AIN_inst", false}, // case sensitive
+		{"agt_abc", false},  // different kind
+		{"", false},         // empty
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.ref, func(t *testing.T) {
+			if got := IsAgentInstanceID(tt.ref); got != tt.want {
+				t.Errorf("IsAgentInstanceID(%q) = %v, want %v", tt.ref, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsWorkflowInstanceID(t *testing.T) {
+	// Workflow instance prefix from enum: "win"
+	tests := []struct {
+		ref  string
+		want bool
+	}{
+		{"win_inst2", true}, // underscore separator
+		{"win-inst2", true}, // hyphen separator
+		{"win_", true},      // minimal with underscore
+		{"win-", true},      // minimal with hyphen
+		{"WIN_inst", false}, // case sensitive
+		{"wfl_abc", false},  // different kind
+		{"", false},         // empty
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.ref, func(t *testing.T) {
+			if got := IsWorkflowInstanceID(tt.ref); got != tt.want {
+				t.Errorf("IsWorkflowInstanceID(%q) = %v, want %v", tt.ref, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsSessionID(t *testing.T) {
+	// Session prefix from enum: "ses"
+	tests := []struct {
+		ref  string
+		want bool
+	}{
+		{"ses_session123", true}, // underscore separator
+		{"ses-session123", true}, // hyphen separator
+		{"ses_", true},           // minimal with underscore
+		{"ses-", true},           // minimal with hyphen
+		{"SES_session", false},   // case sensitive
+		{"agt_abc", false},       // different kind
+		{"", false},              // empty
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.ref, func(t *testing.T) {
+			if got := IsSessionID(tt.ref); got != tt.want {
+				t.Errorf("IsSessionID(%q) = %v, want %v", tt.ref, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsEnvironmentID(t *testing.T) {
+	// Environment prefix from enum: "env"
+	tests := []struct {
+		ref  string
+		want bool
+	}{
+		{"env_myenv", true},  // underscore separator
+		{"env-myenv", true},  // hyphen separator
+		{"env_", true},       // minimal with underscore
+		{"env-", true},       // minimal with hyphen
+		{"ENV_myenv", false}, // case sensitive
+		{"agt_abc", false},   // different kind
+		{"", false},          // empty
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.ref, func(t *testing.T) {
+			if got := IsEnvironmentID(tt.ref); got != tt.want {
+				t.Errorf("IsEnvironmentID(%q) = %v, want %v", tt.ref, got, tt.want)
 			}
 		})
 	}
@@ -399,11 +567,11 @@ func TestIsUUID(t *testing.T) {
 		{"12345678-1234-1234-1234-123456789abc", true},
 		{"ABCDEF12-3456-7890-ABCD-EF1234567890", true},
 		{"abcdef12-3456-7890-abcd-ef1234567890", true},
-		{"12345678123412341234123456789abc", false},     // no dashes
-		{"12345678-1234-1234-1234-12345678", false},     // too short
+		{"12345678123412341234123456789abc", false},      // no dashes
+		{"12345678-1234-1234-1234-12345678", false},      // too short
 		{"12345678-1234-1234-1234-123456789abcd", false}, // too long
-		{"g2345678-1234-1234-1234-123456789abc", false}, // invalid hex
-		{"12345678_1234_1234_1234_123456789abc", false}, // wrong separator
+		{"g2345678-1234-1234-1234-123456789abc", false},  // invalid hex
+		{"12345678_1234_1234_1234_123456789abc", false},  // wrong separator
 		{"", false},
 	}
 
@@ -411,6 +579,79 @@ func TestIsUUID(t *testing.T) {
 		t.Run(tt.s, func(t *testing.T) {
 			if got := isUUID(tt.s); got != tt.want {
 				t.Errorf("isUUID(%q) = %v, want %v", tt.s, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestIsResourceIDWithKind verifies that isResourceIDWithKind correctly uses enum prefixes.
+func TestIsResourceIDWithKind(t *testing.T) {
+	tests := []struct {
+		name string
+		ref  string
+		kind apiresourcekind.ApiResourceKind
+		want bool
+	}{
+		{
+			name: "agent with underscore",
+			ref:  "agt_abc123",
+			kind: apiresourcekind.ApiResourceKind_agent,
+			want: true,
+		},
+		{
+			name: "agent with hyphen",
+			ref:  "agt-abc123",
+			kind: apiresourcekind.ApiResourceKind_agent,
+			want: true,
+		},
+		{
+			name: "workflow with underscore",
+			ref:  "wfl_xyz789",
+			kind: apiresourcekind.ApiResourceKind_workflow,
+			want: true,
+		},
+		{
+			name: "workflow with hyphen",
+			ref:  "wfl-xyz789",
+			kind: apiresourcekind.ApiResourceKind_workflow,
+			want: true,
+		},
+		{
+			name: "mcp server with underscore",
+			ref:  "mcp_server1",
+			kind: apiresourcekind.ApiResourceKind_mcp_server,
+			want: true,
+		},
+		{
+			name: "mcp server with hyphen",
+			ref:  "mcp-server1",
+			kind: apiresourcekind.ApiResourceKind_mcp_server,
+			want: true,
+		},
+		{
+			name: "wrong kind prefix",
+			ref:  "agt_abc123",
+			kind: apiresourcekind.ApiResourceKind_workflow,
+			want: false,
+		},
+		{
+			name: "unknown kind",
+			ref:  "agt_abc123",
+			kind: apiresourcekind.ApiResourceKind_api_resource_kind_unknown,
+			want: false,
+		},
+		{
+			name: "empty ref",
+			ref:  "",
+			kind: apiresourcekind.ApiResourceKind_agent,
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isResourceIDWithKind(tt.ref, tt.kind); got != tt.want {
+				t.Errorf("isResourceIDWithKind(%q, %v) = %v, want %v", tt.ref, tt.kind, got, tt.want)
 			}
 		})
 	}

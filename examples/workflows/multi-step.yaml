@@ -1,0 +1,85 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: multi-step-example
+  labels:
+    category: tutorial
+    complexity: intermediate
+spec:
+  description: Comprehensive example demonstrating multiple task types, flow control, and data exports
+  document:
+    dsl: "1.0.0"
+    namespace: examples
+    name: multi-step
+    version: "1.0.0"
+  tasks:
+    - name: initialize-context
+      kind: set_vars
+      task_config:
+        variables:
+          workflow_id: "${workflowId}"
+          started_at: "${now()}"
+          environment: "production"
+      export:
+        as: "${.}"
+      flow:
+        then: fetch-data
+
+    - name: fetch-data
+      kind: http_call
+      task_config:
+        method: GET
+        endpoint:
+          uri: "https://api.example.com/data"
+        headers:
+          Content-Type: "application/json"
+          X-Workflow-Id: "${context.initialize-context.workflow_id}"
+      export:
+        as: "${.response}"
+      flow:
+        then: process-with-agent
+
+    - name: process-with-agent
+      kind: agent_call
+      task_config:
+        agent: data-processor
+        message: "Process this data: ${context.fetch-data.response}"
+      export:
+        as: "${.processed}"
+      flow:
+        then: conditional-wait
+
+    - name: conditional-wait
+      kind: wait
+      task_config:
+        duration: "5s"
+      flow:
+        then: validate-results
+
+    - name: validate-results
+      kind: agent_call
+      task_config:
+        agent: validator
+        message: "Validate processing results: ${context.process-with-agent.processed}"
+      export:
+        as: "${.validation}"
+      flow:
+        then: store-results
+
+    - name: store-results
+      kind: http_call
+      task_config:
+        method: POST
+        endpoint:
+          uri: "https://api.example.com/results"
+        headers:
+          Content-Type: "application/json"
+        body:
+          workflow_id: "${context.initialize-context.workflow_id}"
+          processed_data: "${context.process-with-agent.processed}"
+          validation: "${context.validate-results.validation}"
+          completed_at: "${now()}"
+      export:
+        as: "${.}"
+      flow:
+        then: end

@@ -49,15 +49,27 @@ message FindApiResourcesRequest {
 // Canonical format: "org/slug" (e.g., "stigmer/web-search", "acme/my-agent").
 message ApiResourceReference {
   // Organization that owns the referenced resource. Required.
-  // Format: lowercase alphanumeric with hyphens (e.g., "stigmer", "acme-corp").
-  string org = 1 [(buf.validate.field).required = true];
+  // Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "stigmer", "acme-corp").
+  // Length: 1-63 characters.
+  string org = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*$",
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 63
+  ];
 
   // Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
   ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2;
 
   // Resource slug (user-friendly identifier, unique within org).
-  // Format: lowercase alphanumeric with hyphens (e.g., "web-search", "code-reviewer").
-  string slug = 3;
+  // Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "web-search", "code-reviewer").
+  // Length: 1-63 characters.
+  string slug = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*$",
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 63
+  ];
 
   // Version of the resource (optional, only applicable to versioned resources like Skills).
   // Supports three formats:
@@ -75,7 +87,4 @@ message ApiResourceReference {
   // - version: "v1.0"       → Use version tagged as "v1.0"
   // - version: "abc123..."  → Use exact version with this hash (immutable)
   string version = 4 [(buf.validate.field).string.pattern = "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"];
-
-  // Reserved field numbers from previous schema versions.
-  reserved 5;
 }

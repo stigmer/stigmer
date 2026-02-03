@@ -117,7 +117,7 @@ func (x *ApiResourceMetadata) GetVisibility() ApiResourceVisibility {
 	if x != nil {
 		return x.Visibility
 	}
-	return ApiResourceVisibility_API_RESOURCE_VISIBILITY_UNSPECIFIED
+	return ApiResourceVisibility_api_resource_visibility_unspecified
 }
 
 func (x *ApiResourceMetadata) GetLabels() map[string]string {

@@ -65,7 +65,7 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 		Name:        a.Name,
 		Slug:        slug,
 		Annotations: SDKAnnotations(),
-		Visibility:  apiresource.ApiResourceVisibility_API_RESOURCE_VISIBILITY_PRIVATE,
+		Visibility:  apiresource.ApiResourceVisibility_visibility_private,
 	}
 
 	// Build complete Agent proto

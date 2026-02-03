@@ -19,7 +19,7 @@ package validation
 import (
 	"testing"
 
-	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -85,13 +85,13 @@ func TestMarshalTaskConfig_Success(t *testing.T) {
 // TestMarshalTaskConfig_RoundTrip tests that typed → Struct → typed produces identical proto
 func TestMarshalTaskConfig_RoundTrip(t *testing.T) {
 	testCases := []struct {
-		name       string
-		kind       apiresourcev1.WorkflowTaskKind
-		original   proto.Message
+		name     string
+		kind     workflowv1.WorkflowTaskKind
+		original proto.Message
 	}{
 		{
 			name: "SET task round-trip",
-			kind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+			kind: workflowv1.WorkflowTaskKind_set_vars,
 			original: &tasksv1.SetTaskConfig{
 				Variables: map[string]string{
 					"foo": "bar",
@@ -101,7 +101,7 @@ func TestMarshalTaskConfig_RoundTrip(t *testing.T) {
 		},
 		{
 			name: "HTTP_CALL task round-trip",
-			kind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+			kind: workflowv1.WorkflowTaskKind_http_call,
 			original: &tasksv1.HttpCallTaskConfig{
 				Method: "POST",
 				Endpoint: &tasksv1.HttpEndpoint{
@@ -115,7 +115,7 @@ func TestMarshalTaskConfig_RoundTrip(t *testing.T) {
 		},
 		{
 			name: "GRPC_CALL task round-trip",
-			kind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_GRPC_CALL,
+			kind: workflowv1.WorkflowTaskKind_grpc_call,
 			original: &tasksv1.GrpcCallTaskConfig{
 				Service: "UserService",
 				Method:  "GetUser",
@@ -123,7 +123,7 @@ func TestMarshalTaskConfig_RoundTrip(t *testing.T) {
 		},
 		{
 			name: "SWITCH task round-trip",
-			kind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SWITCH,
+			kind: workflowv1.WorkflowTaskKind_switch_case,
 			original: &tasksv1.SwitchTaskConfig{
 				Cases: []*tasksv1.SwitchCase{
 					{
@@ -143,14 +143,14 @@ func TestMarshalTaskConfig_RoundTrip(t *testing.T) {
 		// They are tested separately in integration tests
 		{
 			name: "WAIT task round-trip",
-			kind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_WAIT,
+			kind: workflowv1.WorkflowTaskKind_wait,
 			original: &tasksv1.WaitTaskConfig{
 				Seconds: 10,
 			},
 		},
 		{
 			name: "RAISE task round-trip",
-			kind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_RAISE,
+			kind: workflowv1.WorkflowTaskKind_raise_error,
 			original: &tasksv1.RaiseTaskConfig{
 				Error:   "ValidationError",
 				Message: "Invalid input data",
@@ -158,7 +158,7 @@ func TestMarshalTaskConfig_RoundTrip(t *testing.T) {
 		},
 		{
 			name: "RUN task round-trip",
-			kind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_RUN,
+			kind: workflowv1.WorkflowTaskKind_run_workflow,
 			original: &tasksv1.RunTaskConfig{
 				Workflow: "child-workflow",
 			},

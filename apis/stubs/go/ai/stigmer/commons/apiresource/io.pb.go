@@ -277,12 +277,14 @@ func (x *FindApiResourcesRequest) GetPageSize() int32 {
 type ApiResourceReference struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization that owns the referenced resource. Required.
-	// Format: lowercase alphanumeric with hyphens (e.g., "stigmer", "acme-corp").
+	// Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "stigmer", "acme-corp").
+	// Length: 1-63 characters.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
 	Kind apiresourcekind.ApiResourceKind `protobuf:"varint,2,opt,name=kind,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"kind,omitempty"`
 	// Resource slug (user-friendly identifier, unique within org).
-	// Format: lowercase alphanumeric with hyphens (e.g., "web-search", "code-reviewer").
+	// Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "web-search", "code-reviewer").
+	// Length: 1-63 characters.
 	Slug string `protobuf:"bytes,3,opt,name=slug,proto3" json:"slug,omitempty"`
 	// Version of the resource (optional, only applicable to versioned resources like Skills).
 	// Supports three formats:
@@ -383,12 +385,12 @@ const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
 	"\x04page\x18\x04 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\x12\x1f\n" +
 	"\vpage_number\x18\x05 \x01(\x05R\n" +
 	"pageNumber\x12\x1b\n" +
-	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\"\xee\x01\n" +
-	"\x14ApiResourceReference\x12\x18\n" +
-	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12S\n" +
-	"\x04kind\x18\x02 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x12\n" +
-	"\x04slug\x18\x03 \x01(\tR\x04slug\x12M\n" +
-	"\aversion\x18\x04 \x01(\tB3\xbaH0r.2,^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\aversionJ\x04\b\x05\x10\x06B\x92\x02\n" +
+	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\"\xa2\x02\n" +
+	"\x14ApiResourceReference\x121\n" +
+	"\x03org\x18\x01 \x01(\tB\x1f\xbaH\x1c\xc8\x01\x01r\x17\x10\x01\x18?2\x11^[a-z][a-z0-9-]*$R\x03org\x12S\n" +
+	"\x04kind\x18\x02 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x123\n" +
+	"\x04slug\x18\x03 \x01(\tB\x1f\xbaH\x1c\xc8\x01\x01r\x17\x10\x01\x18?2\x11^[a-z][a-z0-9-]*$R\x04slug\x12M\n" +
+	"\aversion\x18\x04 \x01(\tB3\xbaH0r.2,^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\aversionB\x92\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\aIoProtoP\x01ZGgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (

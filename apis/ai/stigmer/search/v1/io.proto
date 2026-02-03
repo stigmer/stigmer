@@ -1,0 +1,242 @@
+syntax = "proto3";
+
+package ai.stigmer.search.v1;
+
+import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
+import "ai/stigmer/commons/apiresource/enum.proto";
+import "ai/stigmer/commons/rpc/pagination.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// ============================================================================
+// Request Messages
+// ============================================================================
+
+// SearchRequest specifies criteria for searching API resources.
+//
+// This single request type supports three use cases:
+// - List: Return all accessible resources of specified kind(s)
+// - Search: Find resources matching a text query
+// - Discover: Search across all resource kinds
+//
+// Examples:
+//
+// List agents in an organization:
+//   {kinds: [agent], org: "acme", query: ""}
+//
+// Search agents by text:
+//   {kinds: [agent], query: "code review"}
+//
+// Discover all resources matching a query:
+//   {kinds: [], query: "kubernetes"}
+//
+// Search multiple kinds:
+//   {kinds: [agent, skill], query: "security", org: "acme"}
+message SearchRequest {
+  // Resource kinds to search.
+  //
+  // Behavior:
+  // - Empty: Search all searchable kinds (discover mode)
+  //   Searchable kinds: agent, skill, mcp_server, workflow
+  // - Single kind: Search only that resource type
+  // - Multiple kinds: Search specified types
+  //
+  // Invalid kinds are silently ignored (allows forward compatibility).
+  repeated ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kinds = 1 [(buf.validate.field).repeated.items.enum.defined_only = true];
+
+  // Text query for full-text search.
+  //
+  // Searches across: name, description, tags.
+  //
+  // Behavior:
+  // - Empty: Return all accessible resources (list mode)
+  //   Results sorted by created_at descending (newer first)
+  // - Non-empty: Full-text search with relevance ranking
+  //   Results sorted by relevance score descending
+  //
+  // Query syntax: Plain text (no special operators).
+  // Maximum length: 500 characters.
+  string query = 2 [(buf.validate.field).string.max_len = 500];
+
+  // Organization to scope the search.
+  //
+  // Format: lowercase alphanumeric with hyphens (e.g., "acme", "stigmer").
+  //
+  // Behavior:
+  // - Empty: Search all organizations the caller has access to
+  // - Non-empty: Search only within the specified organization
+  //   Caller must have access to at least one resource in the org
+  //
+  // Examples: "stigmer", "acme-corp", "my-org"
+  string org = 3 [
+    (buf.validate.field).string.max_len = 63,
+    (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*$"
+  ];
+
+  // Exclude public/platform resources from results.
+  //
+  // Default: false (include public resources).
+  //
+  // When true: Only return resources from organizations the caller
+  // is a member of. Excludes platform-provided public resources
+  // like "stigmer/web-search".
+  //
+  // Useful when users want to see only their own resources.
+  bool exclude_public = 4;
+
+  // Pagination parameters.
+  //
+  // - num: Page number (1-indexed). Default: 1
+  // - size: Items per page. Default: 20, Maximum: 100
+  //
+  // If not provided, defaults to page 1 with 20 items.
+  ai.stigmer.commons.rpc.PageInfo page = 5;
+}
+
+// ============================================================================
+// Response Messages
+// ============================================================================
+
+// SearchResponse contains paginated search results with metadata.
+//
+// The response includes:
+// - Matching resources as SearchResult projections
+// - Counts per kind for UI filtering/tabs
+// - Pagination metadata
+message SearchResponse {
+  // Search results for the current page.
+  //
+  // Ordering:
+  // - With query: Sorted by relevance score (descending)
+  // - Without query: Sorted by created_at (descending, newer first)
+  //
+  // Each result is a display projection, not the full resource.
+  // To get the full resource, use the kind-specific get RPC.
+  repeated SearchResult entries = 1;
+
+  // Count of results per resource kind.
+  //
+  // Keys are ApiResourceKind enum names as strings (e.g., "agent", "skill").
+  // Values are the total count of matching resources for that kind
+  // (not just the current page).
+  //
+  // Useful for rendering UI tabs or filter badges showing counts.
+  // Example: {"agent": 5, "skill": 12, "mcp_server": 3, "workflow": 2}
+  map<string, int32> counts_by_kind = 2;
+
+  // Total count of matching resources across all kinds.
+  //
+  // This is the sum of all counts_by_kind values.
+  // Used for displaying "Showing X of Y results".
+  int32 total_count = 3;
+
+  // Total number of pages based on current page size.
+  //
+  // Calculated as: ceil(total_count / page.size)
+  // Used for pagination controls.
+  int32 total_pages = 4;
+}
+
+// ============================================================================
+// Result Messages
+// ============================================================================
+
+// SearchResult is a display-optimized projection of an API resource.
+//
+// Contains only the fields needed for search result display:
+// - Identity: kind, id, slug, org
+// - Display: name, description, tags
+// - Metadata: visibility, timestamps, relevance score
+//
+// This is NOT the full resource. Use the kind-specific QueryController
+// (e.g., AgentQueryController.get) to retrieve the complete resource.
+//
+// The description field is populated by each resource's Searchable interface:
+// - Agent: spec.instructions (may be truncated)
+// - Skill: spec.description
+// - McpServer: spec.description
+// - Workflow: spec.description
+message SearchResult {
+  // Resource kind (e.g., agent, skill, mcp_server, workflow).
+  ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1;
+
+  // System-generated unique identifier (UUID).
+  //
+  // Format: Prefixed UUID (e.g., "agt-550e8400-e29b-41d4-a716-446655440000").
+  // Use this for subsequent API calls to get/update/delete the resource.
+  string id = 2;
+
+  // Human-readable display name.
+  //
+  // From metadata.name. This is the user-provided name.
+  // Example: "Code Review Agent", "Web Search Skill"
+  string name = 3;
+
+  // URL-friendly identifier, unique within the organization.
+  //
+  // From metadata.slug. Lowercase alphanumeric with hyphens.
+  // Example: "code-review-agent", "web-search"
+  string slug = 4;
+
+  // Fully qualified slug: "org/slug".
+  //
+  // Pre-computed for CLI and UI display.
+  // Example: "stigmer/web-search", "acme/code-reviewer"
+  //
+  // This is the canonical reference format used in YAML configurations.
+  string qualified_slug = 5;
+
+  // Organization that owns this resource.
+  //
+  // From metadata.org. The organization slug.
+  // Example: "stigmer", "acme-corp"
+  string org = 6;
+
+  // Brief description for display in search results.
+  //
+  // Extracted from the resource spec via the Searchable interface.
+  // The source field varies by resource type:
+  // - Agent: spec.instructions
+  // - Skill: spec.description
+  // - McpServer: spec.description
+  // - Workflow: spec.description
+  //
+  // May be empty if the resource has no description.
+  // Truncation for display is a presentation concern (CLI/UI responsibility).
+  string description = 7;
+
+  // Resource visibility: public or private.
+  //
+  // - visibility_private: Only org members can access
+  // - visibility_public: Anyone can read (e.g., marketplace resources)
+  ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 8;
+
+  // Tags for categorization and filtering.
+  //
+  // From metadata.tags. User-provided labels.
+  // Example: ["security", "code-review", "ai"]
+  repeated string tags = 9;
+
+  // When the resource was created.
+  //
+  // From status.audit.created_at.
+  // Used for sorting in list mode (no query).
+  google.protobuf.Timestamp created_at = 10;
+
+  // When the resource was last updated.
+  //
+  // From status.audit.updated_at.
+  // Useful for showing recency in search results.
+  google.protobuf.Timestamp updated_at = 11;
+
+  // Relevance score for search ranking.
+  //
+  // Range: 0.0 to 1.0 (higher = better match).
+  //
+  // Behavior:
+  // - With query: Score from full-text search ranking
+  // - Without query (list mode): Always 1.0
+  //
+  // Used for sorting when a search query is provided.
+  float score = 12;
+}

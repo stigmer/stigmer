@@ -1,0 +1,23 @@
+{
+  "name": "Stigmer",
+  "short_name": "Stigmer",
+  "description": "Agents as Microservices - Build agents in YAML or Go SDKs. Deploy once. Call from everywhere via gRPC.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1a",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/icon?size=192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon?size=512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
