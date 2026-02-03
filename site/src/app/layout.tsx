@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SITE_CONFIG } from "@/lib/constants";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,54 +22,53 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://stigmer.ai"),
+  metadataBase: new URL(SITE_CONFIG.url),
   title: {
-    default: "Stigmer — AI-Powered Workflow Automation",
-    template: "%s | Stigmer",
+    default: `${SITE_CONFIG.name} — ${SITE_CONFIG.tagline}`,
+    template: `%s | ${SITE_CONFIG.name}`,
   },
-  description:
-    "Build, run, and scale AI-powered workflows with Stigmer. Define workflows in YAML, execute with powerful CLI, integrate with any AI model. Open source.",
+  description: SITE_CONFIG.description,
   keywords: [
     "Stigmer",
-    "AI workflows",
-    "workflow automation",
     "AI agents",
-    "CLI",
-    "YAML",
-    "open source",
-    "LLM orchestration",
+    "microservices",
+    "gRPC",
+    "agent platform",
+    "YAML agents",
+    "Go SDK",
+    "agent orchestration",
+    "MCP",
+    "open source agents",
+    "Temporal",
+    "workflow engine",
+    "agent deployment",
+    "multi-language agents",
   ],
   authors: [{ name: "Stigmer Team" }],
-  creator: "Stigmer",
+  creator: SITE_CONFIG.name,
+  publisher: SITE_CONFIG.name,
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "/",
-    title: "Stigmer — AI-Powered Workflow Automation",
-    description:
-      "Build, run, and scale AI-powered workflows with Stigmer. Define workflows in YAML, execute with powerful CLI, integrate with any AI model.",
-    siteName: "Stigmer",
+    url: SITE_CONFIG.url,
+    title: `${SITE_CONFIG.name} — ${SITE_CONFIG.tagline}`,
+    description: SITE_CONFIG.description,
+    siteName: SITE_CONFIG.name,
     images: [
       {
-        url: "/og-image.png",
+        url: `${SITE_CONFIG.url}/opengraph-image`,
         width: 1200,
         height: 630,
-        alt: "Stigmer - AI-Powered Workflow Automation",
+        alt: `${SITE_CONFIG.name} — ${SITE_CONFIG.tagline}`,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Stigmer — AI-Powered Workflow Automation",
-    description:
-      "Build, run, and scale AI-powered workflows with Stigmer. Define workflows in YAML, execute with powerful CLI, integrate with any AI model.",
-    images: ["/og-image.png"],
+    title: `${SITE_CONFIG.name} — ${SITE_CONFIG.tagline}`,
+    description: SITE_CONFIG.description,
+    images: [`${SITE_CONFIG.url}/twitter-image`],
   },
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
-  manifest: "/site.webmanifest",
   robots: {
     index: true,
     follow: true,
@@ -80,6 +80,11 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  manifest: "/site.webmanifest",
+  other: {
+    "github:repository": SITE_CONFIG.githubUrl,
+    "license": SITE_CONFIG.copyright.license,
+  },
 };
 
 export default function RootLayout({
@@ -87,8 +92,62 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Structured data for SEO (JSON-LD)
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${SITE_CONFIG.url}/#organization`,
+        "name": SITE_CONFIG.name,
+        "url": SITE_CONFIG.url,
+        "logo": {
+          "@type": "ImageObject",
+          "url": `${SITE_CONFIG.url}/opengraph-image`,
+        },
+        "sameAs": [SITE_CONFIG.githubUrl],
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": `${SITE_CONFIG.url}/#software`,
+        "name": SITE_CONFIG.name,
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Linux, macOS, Windows",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+        },
+        "description": SITE_CONFIG.description,
+        "url": SITE_CONFIG.url,
+        "downloadUrl": SITE_CONFIG.githubUrl,
+        "softwareVersion": "latest",
+        "license": `https://www.apache.org/licenses/LICENSE-2.0`,
+        "author": {
+          "@id": `${SITE_CONFIG.url}/#organization`,
+        },
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_CONFIG.url}/#website`,
+        "url": SITE_CONFIG.url,
+        "name": SITE_CONFIG.name,
+        "description": SITE_CONFIG.description,
+        "publisher": {
+          "@id": `${SITE_CONFIG.url}/#organization`,
+        },
+      },
+    ],
+  };
+
   return (
     <html lang="en" className="dark">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans min-h-screen`}
       >
