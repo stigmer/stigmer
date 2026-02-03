@@ -7,6 +7,7 @@ go_library(
         "display.go",
         "get.go",
         "loader.go",
+        "validator.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow",
     visibility = ["//client-apps/cli:__subpackages__"],
@@ -30,6 +31,7 @@ go_test(
     name = "workflow_test",
     srcs = [
         "loader_test.go",
+        "validator_test.go",
     ],
     embed = [":workflow"],
     deps = [

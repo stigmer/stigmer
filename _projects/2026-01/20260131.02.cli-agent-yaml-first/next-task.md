@@ -38,11 +38,39 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Phase**: Phase 2 - Workflow Command Restructuring ✅ **COMPLETE**
-**Architecture Revision**: ADR-005 Unified Architecture Plan created (T01_4)
-**Next Phase**: Phase 3 - Workflow YAML-First (AWAITING APPROVAL)
+**Phase**: Phase 3 - Workflow YAML-First (IN PROGRESS)
+**Current Sub-task**: T03.2 ✅ **COMPLETE** | T03.3 NEXT
+**Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-01 - Session 15 - Documentation and Cleanup):
+**Latest Session** (2026-02-03 - Session 17 - Workflow Cross-Field Validator):
+- ✅ **COMPLETED Phase 3 Sub-task T03.2**: Workflow Cross-Field Validator Implementation
+- Created workflow/validator.go (210 lines) with comprehensive cross-field validation
+- Created comprehensive test suite (36 tests, 458 lines) - all passing
+- **Validation Rules Implemented**:
+  - Task name uniqueness (no duplicates across workflow)
+  - Flow control references (flow.then must reference existing task or "end")
+  - DAG acyclicity (no circular dependencies using DFS with path tracking)
+- **Pattern Consistency**: Mirrored agent validator pattern exactly
+- **Error Messages**: Actionable guidance with field paths and fix suggestions
+- All engineering standards met (file sizes, function sizes, error wrapping)
+- Changelog: `2026-02-03-162444-workflow-cross-field-validator.md`
+- Build verified: Package builds successfully, all 36 tests passing
+
+**Previous Session** (2026-02-03 - Session 16 - Workflow YAML Loader & Loader Simplification):
+- ✅ **COMPLETED Phase 3 Sub-task T03.1**: Workflow YAML Loader Implementation
+- Created workflow/loader.go (159 lines) with protovalidate integration
+- Created comprehensive test suite (18 tests, 759 lines) - all passing
+- **IMPORTANT IMPROVEMENT**: Simplified ALL loaders (Agent, MCP Server, Workflow)
+  - Removed default filename auto-detection (~60 lines of unnecessary magic)
+  - Now requires explicit file paths (like kubectl: `stigmer <resource> apply <file>`)
+  - Filename is irrelevant - validation via apiVersion/kind
+  - Better error messages with clear usage guidance
+- Updated BUILD.bazel - Added protovalidate dependency and test target
+- All engineering standards met (file sizes, function sizes, error wrapping)
+- Changelog: `2026-02-03-154822-workflow-yaml-loader-and-loader-simplification.md`
+- Committed: `039322e feat(cli/workflow): add YAML loader and simplify all loader interfaces`
+
+**Previous Session** (2026-02-01 - Session 15 - Documentation and Cleanup):
 - ✅ **COMPLETED Phase 2 Sub-task 8**: Documentation and Cleanup
 - Fixed workflow ID prefix inconsistency: Changed `wf_` to correct `wfl_` prefix in examples
   - workflow_run.go line 56: `wfl_01kewqjbtdy0w4d14bnhhy4yc2`
@@ -613,20 +641,19 @@ The previous plan's "two-footed approach" (YAML for Agent, SDK for Workflow) was
 
 ---
 
-🚧 **NEXT: Phase 3** - Workflow YAML-First (Complete Atomic Track)
-**Action**: Add YAML support for Workflows (`stigmer workflow apply workflow.yaml`)
-**Rationale**: Currently Workflow is the only resource without YAML support, breaking Atomic Track consistency
-**Plan**: See `tasks/T01_4_unified_architecture_plan.md` → Phase 3
+🚧 **NEXT: Phase 3 Sub-task T03.3** - Workflow Applier
+**Action**: Create applier.go for apply operations and update display.go with DisplayApplyResult
+**Plan**: See `/Users/suresh/.cursor/plans/phase_3_workflow_yaml-first_225d7b07.plan.md` → T03.3
 
 **Sub-tasks (Phase 3)**:
-- [ ] T03.1: Workflow YAML Schema Definition
-- [ ] T03.2: Workflow YAML Loader
-- [ ] T03.3: Workflow YAML Validator
+- [x] T03.1: Workflow YAML Loader ✅ **COMPLETE**
+- [x] T03.2: Workflow Cross-Field Validator ✅ **COMPLETE**
+- [ ] T03.3: Workflow Applier (NEXT)
 - [ ] T03.4: Workflow Apply Command (YAML)
 - [ ] T03.5: Workflow Validate Command
-- [ ] T03.6: Backend Support (If Needed)
+- [ ] T03.6: Integration Testing and Documentation
 
-**AWAITING APPROVAL**: Reply "Approved" or "Start Phase 3" to begin.
+**Phase 3 Progress**: 2 of 6 sub-tasks complete (33%)
 
 ---
 
