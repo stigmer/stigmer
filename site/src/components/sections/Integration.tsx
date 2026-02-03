@@ -37,8 +37,8 @@ function Integration({ className, ...props }: IntegrationProps) {
             </span>
           </h2>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto">
-            Stigmer isn&apos;t just a framework—it&apos;s a platform. Create agents once, integrate them everywhere via gRPC. 
-            Your apps don&apos;t import libraries; they call APIs. Update agents independently. Build agent marketplaces for your users. 
+            Stigmer isn&apos;t a framework—it&apos;s a platform. Agents run as independent microservices with gRPC APIs. 
+            Your apps don&apos;t import libraries; they call services. Update agents independently. Build agent marketplaces for your users. 
             All with standard protocols and public contracts.
           </p>
         </div>

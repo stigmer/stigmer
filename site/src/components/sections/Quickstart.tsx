@@ -109,29 +109,25 @@ spec:
           >
             <div className="space-y-4">
               <CodeBlock
-                code={`// Go integration
-import "github.com/stigmer/stigmer/apis/ai/stigmer/agentic/agent/v1"
+                code={`// Execute an agent via gRPC
+import agentexec "github.com/stigmer/stigmer/apis/ai/stigmer/agentic/agentexecution/v1"
+import "github.com/stigmer/stigmer/apis/ai/stigmer/commons/apiresource"
 
-client := agent.NewAgentServiceClient(conn)
-resp, err := client.ExecuteAgent(ctx, &agent.ExecuteAgentRequest{
-    OrganizationId: "your-org",
-    AgentId: "code-reviewer",
-    Input: "Review PR #123",
+client := agentexec.NewAgentExecutionCommandControllerClient(conn)
+execution, err := client.Create(ctx, &agentexec.AgentExecution{
+    Metadata: &apiresource.ApiResourceMetadata{
+        OrganizationId: "your-org",
+    },
+    Spec: &agentexec.AgentExecutionSpec{
+        AgentId: "code-reviewer",
+        Input: "Review PR #123",
+    },
 })`}
                 language="go"
               />
-              <CodeBlock
-                code={`# Python integration
-from stigmer.apis.ai.stigmer.agentic.agent.v1 import agent_service_pb2
-
-client = AgentServiceStub(channel)
-response = client.ExecuteAgent(
-    organization_id="your-org",
-    agent_id="code-reviewer",
-    input="Review PR #123"
-)`}
-                language="python"
-              />
+              <p className="text-sm text-muted-foreground">
+                Python gRPC client example in docs (standard grpc-tools). Native Python SDK in active development—track progress on GitHub.
+              </p>
               <p className="text-sm text-muted-foreground">
                 <a 
                   href="/docs/integration/grpc" 
@@ -155,17 +151,20 @@ response = client.ExecuteAgent(
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                Need more power? Use the Go or Python SDK
+                Need more power? Use the Go SDK
               </h3>
               <p className="text-sm text-muted-foreground mb-3">
-                For complex production workflows, drop into code:
+                For complex production workflows, drop into code with the Go SDK:
               </p>
               <ul className="text-sm text-muted-foreground space-y-1 mb-4">
-                <li>• Full type safety and IDE support</li>
+                <li>• Full type safety and IDE autocomplete</li>
                 <li>• Programmatic workflow composition</li>
                 <li>• State management and error handling</li>
                 <li>• Unit testing and CI/CD integration</li>
               </ul>
+              <p className="text-sm text-muted-foreground mb-4">
+                Python SDK in active development. Python developers can call agents via gRPC today using standard grpc-tools.
+              </p>
               <Button asChild variant="outline" size="sm">
                 <Link href="/docs/sdk">
                   See SDK docs
