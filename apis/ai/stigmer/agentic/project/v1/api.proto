@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.project.v1;
+
+import "ai/stigmer/agentic/project/v1/spec.proto";
+import "ai/stigmer/agentic/project/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// Project represents the aggregate root for resource lifecycle management.
+// It enables SDK synthesis with automatic reconciliation and orphan cleanup.
+//
+// The Project Track workflow:
+// 1. SDK code defines resources (agents, workflows, skills, MCP servers)
+// 2. Running entry_point generates a resource manifest
+// 3. `stigmer apply` reconciles manifest with backend
+// 4. Resources removed from manifest are automatically deleted (pruning)
+//
+// Example YAML (stigmer.yaml):
+//   apiVersion: agentic.stigmer.ai/v1
+//   kind: Project
+//   metadata:
+//     name: my-super-app
+//     org: acme-corp
+//   spec:
+//     runtime: go
+//     entry_point: main.go
+message Project {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Project'];
+
+  // Standard resource metadata including name, org, labels, and tags.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Project-specific configuration.
+  ProjectSpec spec = 4 [(buf.validate.field).required = true];
+
+  // System-managed status containing reconciliation state and audit info.
+  ProjectStatus status = 5;
+}

@@ -9,7 +9,6 @@ go_library(
         "//apis/stubs/go/ai/stigmer/search/v1:search",
         "//backend/services/stigmer-server/pkg/query/search/store",
         "//backend/services/stigmer-server/pkg/query/search/valueobject",
-        "@com_github_bufbuild_protovalidate_go//:protovalidate-go",
         "@com_github_rs_zerolog//log",
     ],
 )
