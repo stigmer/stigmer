@@ -12,6 +12,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// DisplayWorkflowPreview displays a preview of the Workflow configuration.
+// Used for dry-run mode to show what would be applied.
+func DisplayWorkflowPreview(workflow *workflowv1.Workflow) {
+	fmt.Println()
+	cliprint.PrintInfo("Workflow Preview:")
+	displayWorkflowSummary(workflow)
+	fmt.Println()
+}
+
 // DisplayApplyResult displays the result of an apply operation.
 // Shows success message with resource details and next steps.
 func DisplayApplyResult(result *ApplyResult) {

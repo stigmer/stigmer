@@ -29,6 +29,7 @@ go_library(
         "server_logs.go",
         "skill.go",
         "workflow.go",
+        "workflow_apply.go",
         "workflow_delete.go",
         "workflow_get.go",
         "workflow_list.go",
