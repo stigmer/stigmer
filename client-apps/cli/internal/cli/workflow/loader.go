@@ -1,6 +1,6 @@
-// Package agent provides CLI utilities for managing Agent resources.
-// It handles YAML/JSON parsing and validation for Agent configurations.
-package agent
+// Package workflow provides CLI utilities for managing Workflow resources.
+// It handles YAML/JSON parsing and validation for Workflow configurations.
+package workflow
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 
 	"buf.build/go/protovalidate"
 	"github.com/pkg/errors"
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 )
@@ -28,23 +28,24 @@ func init() {
 	}
 }
 
-// LoadOptions contains options for loading an Agent configuration.
+// LoadOptions contains options for loading a Workflow configuration.
 type LoadOptions struct {
 	// FilePath is the path to the YAML/JSON file (required).
 	// The file can have any name - validation is based on content (apiVersion, kind).
 	FilePath string
 }
 
-// LoadResult contains the result of loading an Agent configuration.
+// LoadResult contains the result of loading a Workflow configuration.
 type LoadResult struct {
-	// Agent is the parsed Agent proto message.
-	Agent *agentv1.Agent
+	// Workflow is the parsed Workflow proto message.
+	Workflow *workflowv1.Workflow
 	// SourcePath is the path to the file that was loaded.
 	SourcePath string
 }
 
-// Load loads an Agent configuration from a YAML or JSON file.
-// The file path is required - validation is based on content (apiVersion, kind).
+// Load loads a Workflow configuration from a YAML or JSON file.
+// If opts.FilePath is empty, it searches for workflow.yaml or WORKFLOW.yaml
+// in the current directory.
 func Load(opts *LoadOptions) (*LoadResult, error) {
 	filePath, err := resolveFilePath(opts.FilePath)
 	if err != nil {
@@ -56,21 +57,22 @@ func Load(opts *LoadOptions) (*LoadResult, error) {
 		return nil, errors.Wrapf(err, "failed to read file %s", filePath)
 	}
 
-	agent, err := parseContent(content, filePath)
+	workflow, err := parseContent(content, filePath)
 	if err != nil {
 		return nil, err
 	}
 
 	return &LoadResult{
-		Agent:      agent,
+		Workflow:   workflow,
 		SourcePath: filePath,
 	}, nil
 }
 
 // resolveFilePath validates that the file path is provided and exists.
+// Unlike kubectl which uses -f flag, we require the file path as an argument.
 func resolveFilePath(filePath string) (string, error) {
 	if filePath == "" {
-		return "", fmt.Errorf("file path is required\n\nUsage: stigmer agent apply <file>\n\nThe file can be YAML or JSON with apiVersion: agentic.stigmer.ai/v1 and kind: Agent")
+		return "", fmt.Errorf("file path is required\n\nUsage: stigmer workflow apply <file>\n\nThe file can be YAML or JSON with apiVersion: agentic.stigmer.ai/v1 and kind: Workflow")
 	}
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
@@ -80,8 +82,8 @@ func resolveFilePath(filePath string) (string, error) {
 	return filePath, nil
 }
 
-// parseContent parses YAML or JSON content into an Agent proto message.
-func parseContent(content []byte, filePath string) (*agentv1.Agent, error) {
+// parseContent parses YAML or JSON content into a Workflow proto message.
+func parseContent(content []byte, filePath string) (*workflowv1.Workflow, error) {
 	ext := strings.ToLower(filepath.Ext(filePath))
 	isJSON := ext == ".json"
 
@@ -104,21 +106,21 @@ func parseContent(content []byte, filePath string) (*agentv1.Agent, error) {
 	}
 
 	// Use protojson to unmarshal into the proto message
-	agent := &agentv1.Agent{}
+	workflow := &workflowv1.Workflow{}
 	unmarshaler := protojson.UnmarshalOptions{
 		DiscardUnknown: false, // Strict parsing - reject unknown fields
 	}
 
-	if err = unmarshaler.Unmarshal(jsonBytes, agent); err != nil {
-		return nil, errors.Wrapf(err, "failed to parse Agent configuration from %s", filePath)
+	if err = unmarshaler.Unmarshal(jsonBytes, workflow); err != nil {
+		return nil, errors.Wrapf(err, "failed to parse Workflow configuration from %s", filePath)
 	}
 
 	// Validate using protovalidate - single source of truth for schema rules
-	if err = validator.Validate(agent); err != nil {
-		return nil, errors.Wrapf(err, "agent validation failed in %s", filePath)
+	if err = validator.Validate(workflow); err != nil {
+		return nil, errors.Wrapf(err, "workflow validation failed in %s", filePath)
 	}
 
-	return agent, nil
+	return workflow, nil
 }
 
 // yamlMapToJSON converts a YAML map to JSON bytes.

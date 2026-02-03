@@ -4,11 +4,13 @@
 
 Drop this file into your conversation to quickly resume work on this project.
 
-## Project: CLI Agent YAML-First
+## Project: CLI Unified Architecture (ADR-005)
 
-**Description**: Restructure CLI to make Agent a YAML-first resource, remove Agent from SDK (keeping only Workflow), and add agentic creation commands where users describe what they want and agents create the resources.
+**Description**: Implement Dual-Track Interface for Stigmer CLI - Atomic Track (YAML-first for quick experiments) and Project Track (SDK synthesis with reconciliation for production).
 
-**Goal**: Enable agent-assisted resource creation - users describe what they want (an agent, skill, workflow) and our platform creates it agentically. Simplify Agent to YAML-based configuration, keep only Workflow in SDK for complex orchestration.
+**Goal**: Unified resource management where ALL resources (Agent, Workflow, Skill, MCP Server) have consistent YAML and SDK support. Project-based reconciliation enables automatic orphan cleanup.
+
+**Architecture**: ADR-005 - Unified Resource Management & Project-Based Reconciliation
 
 **Tech Stack**: Go (CLI), Proto definitions, gRPC APIs
 
@@ -19,11 +21,26 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ---
 
+## ARCHITECTURE CHANGE (2026-02-03)
+
+**Previous approach** (T01_3_revised_plan.md): 
+- Agent YAML-only, remove Agent from SDK
+- Workflow SDK-only, no YAML support
+- No Project entity, no reconciliation
+
+**NEW approach** (T01_4_unified_architecture_plan.md based on ADR-005):
+- **Dual-Track Interface**: Both YAML (Atomic) and SDK (Project) for ALL resources
+- **Agent stays in SDK**: SDK is Universal Definition Language
+- **Workflow gets YAML support**: Consistency across all resource types
+- **Project entity**: Aggregate root for reconciliation and pruning
+
+---
+
 ## Current Status
 
 **Phase**: Phase 2 - Workflow Command Restructuring ✅ **COMPLETE**
-**Current Task**: All 8 Sub-tasks COMPLETED ✅
-**Status**: 8 of 8 Sub-tasks COMPLETED ✅ (100% complete)
+**Architecture Revision**: ADR-005 Unified Architecture Plan created (T01_4)
+**Next Phase**: Phase 3 - Workflow YAML-First (AWAITING APPROVAL)
 
 **Latest Session** (2026-02-01 - Session 15 - Documentation and Cleanup):
 - ✅ **COMPLETED Phase 2 Sub-task 8**: Documentation and Cleanup
@@ -283,16 +300,24 @@ stigmer
 
 ---
 
-## Implementation Phases
+## Implementation Phases (REVISED per ADR-005)
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| **1** | Agent YAML-First Foundation | ✅ **COMPLETED** (7 of 7 sub-tasks) |
-| **2** | Workflow Command Restructuring | ✅ **COMPLETED** (8 of 8 sub-tasks) |
-| **3** | Search and Discovery | Pending |
-| **4** | Remove Agent from SDK | Pending |
-| **5** | Platform Capabilities (Draft Commands) | Pending |
-| **6** | Cleanup and Documentation | Pending |
+| **1** | Agent YAML-First Foundation | ✅ **COMPLETED** (Atomic Track) |
+| **2** | Workflow Command Restructuring | ✅ **COMPLETED** (CRUD commands) |
+| **3** | Workflow YAML-First | 🆕 **PENDING** (Complete Atomic Track) |
+| **4** | Project Entity & stigmer.yaml | 🆕 **PENDING** (Project Track foundation) |
+| **5** | SDK Unification | 🆕 **PENDING** (All resources in SDK) |
+| **6** | Project Reconciliation (Pruning) | 🆕 **PENDING** (State management) |
+| **7** | Search and Discovery | ⏸️ **DEFERRED** (Lower priority) |
+| **8** | Platform Capabilities (Draft Commands) | ⏸️ **DEFERRED** (Lower priority) |
+| **9** | Documentation & Cleanup | ⏸️ **DEFERRED** |
+
+**Key Changes from Previous Plan:**
+- ❌ "Remove Agent from SDK" → **CANCELLED** (SDK is Universal per ADR-005)
+- ✅ Phase 3: Workflow YAML support → **NEW** (Atomic Track consistency)
+- ✅ Phases 4-6: Project Track → **NEW** (Reconciliation & pruning)
 
 ### Phase 1 Progress
 
@@ -572,11 +597,36 @@ apis/stubs/             (REGENERATED via make protos)
 ✅ **Sub-task 7 COMPLETE**: Workflow Run Command
 ✅ **Sub-task 8 COMPLETE**: Documentation and Cleanup
 
-🚧 **NEXT: Phase 3** - Search and Discovery
-**Action**: Implement cross-cutting search and discovery commands
-**Scope**: TBD - requires planning
+---
 
-**Ready for Phase 3**: All workflow commands are production-ready with consistent UX matching agent commands.
+## 🆕 ARCHITECTURE REVISION: ADR-005 Adoption
+
+**Date**: 2026-02-03
+**Revised Plan**: `tasks/T01_4_unified_architecture_plan.md`
+
+The previous plan's "two-footed approach" (YAML for Agent, SDK for Workflow) was inconsistent with DDD principles. ADR-005 introduces a **Dual-Track Interface** that provides consistent UX:
+
+| Track | Purpose | Commands |
+|-------|---------|----------|
+| **Atomic** | Quick experiments | `stigmer <resource> apply <file.yaml>` |
+| **Project** | Production lifecycle | `stigmer apply` (SDK synthesis + reconciliation) |
+
+---
+
+🚧 **NEXT: Phase 3** - Workflow YAML-First (Complete Atomic Track)
+**Action**: Add YAML support for Workflows (`stigmer workflow apply workflow.yaml`)
+**Rationale**: Currently Workflow is the only resource without YAML support, breaking Atomic Track consistency
+**Plan**: See `tasks/T01_4_unified_architecture_plan.md` → Phase 3
+
+**Sub-tasks (Phase 3)**:
+- [ ] T03.1: Workflow YAML Schema Definition
+- [ ] T03.2: Workflow YAML Loader
+- [ ] T03.3: Workflow YAML Validator
+- [ ] T03.4: Workflow Apply Command (YAML)
+- [ ] T03.5: Workflow Validate Command
+- [ ] T03.6: Backend Support (If Needed)
+
+**AWAITING APPROVAL**: Reply "Approved" or "Start Phase 3" to begin.
 
 ---
 
@@ -673,22 +723,22 @@ apis/stubs/             (REGENERATED via make protos)
 
 ## Essential Files to Review
 
-### 1. Revised Plan (AWAITING APPROVAL)
+### 1. ADR-005: Unified Architecture (CURRENT)
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-01/20260131.02.cli-agent-yaml-first/tasks/T01_2_revised_plan.md
-```
-
-### 2. Review Feedback (Completed)
-```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-01/20260131.02.cli-agent-yaml-first/tasks/T01_1_review.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_cursor/adr-doc.md
 ```
 
-### 3. Original Plan (Superseded)
+### 2. NEW Unified Architecture Plan (AWAITING APPROVAL)
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-01/20260131.02.cli-agent-yaml-first/tasks/T01_0_plan.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-01/20260131.02.cli-agent-yaml-first/tasks/T01_4_unified_architecture_plan.md
 ```
 
-### 4. Design Decision
+### 3. Previous Plan (SUPERSEDED by T01_4)
+```
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-01/20260131.02.cli-agent-yaml-first/tasks/T01_3_revised_plan.md
+```
+
+### 4. Original Design Decision (Context)
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-01/20260131.02.cli-agent-yaml-first/design-decisions/001-agent-yaml-first-architecture.md
 ```
@@ -733,22 +783,23 @@ apis/stubs/             (REGENERATED via make protos)
 
 When starting a new session:
 
-1. [ ] Read the revised plan: `tasks/T01_2_revised_plan.md`
-2. [ ] Check if developer has approved (look for approval in conversation or `T01_3_approved.md`)
-3. [ ] If approved, start execution from Phase 1
-4. [ ] Review feedback if needed: `tasks/T01_1_review.md`
+1. [ ] Read ADR-005: `_cursor/adr-doc.md`
+2. [ ] Read the unified plan: `tasks/T01_4_unified_architecture_plan.md`
+3. [ ] Check current phase status in this file
+4. [ ] If Phase 3 approved, start Workflow YAML-First implementation
 
 ---
 
 ## Quick Commands
 
 After loading context:
-- "Approved" or "Start Phase 1" - Begin Agent YAML-First implementation
-- "Show revised plan" - I'll show T01_2_revised_plan.md
+- "Approved" or "Start Phase 3" - Begin Workflow YAML-First implementation
+- "Show unified plan" - I'll show T01_4_unified_architecture_plan.md
 - "Show project status" - Overview of progress
 - "Create checkpoint" - Save current progress
 
 ---
 
-*Last updated: 2026-02-01 (Session 15)*
-*Status: Phase 1 COMPLETE ✅, Phase 2 COMPLETE ✅ (8 of 8 sub-tasks, 100%)*
+*Last updated: 2026-02-03 (Architecture Revision Session)*
+*Status: Phase 1 ✅, Phase 2 ✅, Phase 3 AWAITING APPROVAL*
+*Architecture: ADR-005 Dual-Track Interface adopted*
