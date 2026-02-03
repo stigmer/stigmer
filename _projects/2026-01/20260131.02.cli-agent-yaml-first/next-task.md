@@ -39,10 +39,40 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 3 - Workflow YAML-First (IN PROGRESS)
-**Current Sub-task**: T03.3 ✅ **COMPLETE** | T03.4 NEXT
+**Current Sub-task**: T03.5 ✅ **COMPLETE** | T03.6 NEXT
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-03 - Session 18 - Workflow Applier):
+**Latest Session** (2026-02-03 - Session 20 - Workflow Validate Command):
+- ✅ **COMPLETED Phase 3 Sub-task T03.5**: Workflow Validate Command Implementation
+- Created workflow_validate.go (72 lines) with newWorkflowValidateCommand() and executeWorkflowValidate()
+- Implemented 2-step orchestration: load → validate (no backend required)
+- CI-friendly exit codes: 0 = valid, 1 = invalid
+- Comprehensive help text with validation checks and examples
+- Updated workflow.go to register newWorkflowValidateCommand()
+- Updated BUILD.bazel - Added workflow_validate.go to sources
+- **Pattern Fidelity**: 100% match with agent_validate.go (72 vs 78 lines)
+- **Command Usage**: `stigmer workflow validate <file>` with no flags (pure validation)
+- **Validation Coverage**: YAML syntax, proto schema, task uniqueness, flow references, DAG acyclicity
+- All engineering standards met (file sizes, function sizes, error wrapping)
+- Changelog: `2026-02-03-170611-workflow-validate-command-ci-friendly-validation.md`
+- Build verified: Workflow package builds successfully, all 36 tests passing
+- Committed: `dd80deb feat(cli/workflow): add workflow validate command for CI-friendly validation`
+
+**Previous Session** (2026-02-03 - Session 19 - Workflow Apply Command):
+- ✅ **COMPLETED Phase 3 Sub-task T03.4**: Workflow Apply Command Implementation
+- Created workflow_apply.go (172 lines) with newWorkflowApplyCommand() and executeWorkflowApply()
+- Implemented 8-step orchestration: load → validate → dry-run → config → org → daemon → connect → apply
+- Added DisplayWorkflowPreview() to display.go (+8 lines) for dry-run mode consistency
+- Updated workflow.go to document YAML-first (Atomic Track) and SDK-first (Project Track) deployment methods
+- Updated BUILD.bazel - Added workflow_apply.go to sources
+- **Pattern Fidelity**: 100% match with agent apply pattern (flags, orchestration, error handling)
+- **Command Usage**: `stigmer workflow apply <file>` with --org and --dry-run flags
+- All engineering standards met (file sizes, function sizes, error wrapping)
+- Changelog: `2026-02-03-165631-workflow-apply-command-yaml-first-support.md`
+- Build verified: Workflow package builds successfully, all 36 tests passing
+- Committed: `6687f12 feat(cli/workflow): add workflow apply command for YAML-first support`
+
+**Previous Session** (2026-02-03 - Session 18 - Workflow Applier):
 - ✅ **COMPLETED Phase 3 Sub-task T03.3**: Workflow Applier Implementation
 - Created workflow/applier.go (94 lines) with Apply() orchestration
 - Added ApplyOptions and ApplyResult structs (mirroring agent pattern)
@@ -655,20 +685,20 @@ The previous plan's "two-footed approach" (YAML for Agent, SDK for Workflow) was
 
 ---
 
-🚧 **NEXT: Phase 3 Sub-task T03.4** - Workflow Apply Command
-**Action**: Create workflow_apply.go with 8-step orchestration in cmd/stigmer/root/
-**Plan**: See `/Users/suresh/.cursor/plans/phase_3_workflow_yaml-first_225d7b07.plan.md` → T03.4
-**Foundation Ready**: All internal components complete (loader, validator, applier)
+🚧 **NEXT: Phase 3 Sub-task T03.6** - Integration Testing and Documentation
+**Action**: Create sample workflow YAML, update help text, verify end-to-end flow
+**Plan**: See `/Users/suresh/.cursor/plans/phase_3_workflow_yaml-first_225d7b07.plan.md` → T03.6
+**Pattern**: Final polish - sample YAML, documentation updates, verification testing
 
 **Sub-tasks (Phase 3)**:
 - [x] T03.1: Workflow YAML Loader ✅ **COMPLETE**
 - [x] T03.2: Workflow Cross-Field Validator ✅ **COMPLETE**
 - [x] T03.3: Workflow Applier ✅ **COMPLETE**
-- [ ] T03.4: Workflow Apply Command (NEXT)
-- [ ] T03.5: Workflow Validate Command
-- [ ] T03.6: Integration Testing and Documentation
+- [x] T03.4: Workflow Apply Command ✅ **COMPLETE**
+- [x] T03.5: Workflow Validate Command ✅ **COMPLETE**
+- [ ] T03.6: Integration Testing and Documentation (NEXT)
 
-**Phase 3 Progress**: 3 of 6 sub-tasks complete (50%)
+**Phase 3 Progress**: 5 of 6 sub-tasks complete (83%)
 
 ---
 
