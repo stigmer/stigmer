@@ -16,6 +16,10 @@ import {
   ChevronRight,
   Copy,
   Check,
+  Network,
+  Lightbulb,
+  Package,
+  ArrowRight,
   type LucideIcon,
 } from "lucide-react";
 
@@ -38,6 +42,10 @@ const iconMap = {
   "chevron-right": ChevronRight,
   copy: Copy,
   check: Check,
+  network: Network,
+  lightbulb: Lightbulb,
+  package: Package,
+  "arrow-right": ArrowRight,
 } as const;
 
 /**

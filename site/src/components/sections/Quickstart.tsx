@@ -100,6 +100,49 @@ spec:
               language="bash"
             />
           </QuickstartStep>
+
+          {/* Step 5: Integrate via gRPC */}
+          <QuickstartStep
+            number={5}
+            title="Integrate into Your App"
+            description="Agents expose gRPC endpoints. Call from any language. No custom SDKs, just standard gRPC clients."
+          >
+            <div className="space-y-4">
+              <CodeBlock
+                code={`// Go integration
+import "github.com/stigmer/stigmer/apis/ai/stigmer/agentic/agent/v1"
+
+client := agent.NewAgentServiceClient(conn)
+resp, err := client.ExecuteAgent(ctx, &agent.ExecuteAgentRequest{
+    OrganizationId: "your-org",
+    AgentId: "code-reviewer",
+    Input: "Review PR #123",
+})`}
+                language="go"
+              />
+              <CodeBlock
+                code={`# Python integration
+from stigmer.apis.ai.stigmer.agentic.agent.v1 import agent_service_pb2
+
+client = AgentServiceStub(channel)
+response = client.ExecuteAgent(
+    organization_id="your-org",
+    agent_id="code-reviewer",
+    input="Review PR #123"
+)`}
+                language="python"
+              />
+              <p className="text-sm text-muted-foreground">
+                <a 
+                  href="/docs/integration/grpc" 
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                >
+                  See full integration guide
+                  <Icon name="arrow-right" size="xs" />
+                </a>
+              </p>
+            </div>
+          </QuickstartStep>
         </div>
 
         {/* SDK Callout */}
@@ -131,6 +174,42 @@ spec:
               </Button>
             </div>
           </div>
+        </div>
+
+        {/* Progression Path Callout */}
+        <div className="mt-12 p-6 rounded-lg border border-border bg-background">
+          <h3 className="text-lg font-semibold text-foreground mb-4 text-center">
+            From Creation to Integration in 20 Minutes
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <ProgressionStep
+              number={1}
+              title="Create"
+              time="5 min"
+              description="Write a 5-line YAML agent in Stigmer Cloud"
+            />
+            <ProgressionStep
+              number={2}
+              title="Test"
+              time="5 min"
+              description="Run agent via CLI or web UI"
+            />
+            <ProgressionStep
+              number={3}
+              title="Integrate"
+              time="10 min"
+              description="Call agent from your app via gRPC"
+            />
+            <ProgressionStep
+              number={4}
+              title="Scale"
+              time="ongoing"
+              description="Update agent independently, all consumers benefit"
+            />
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground text-center">
+            Start simple, scale naturally. No rip-and-replace.
+          </p>
         </div>
 
         {/* CTA */}
@@ -250,6 +329,32 @@ function CodeBlock({ code, language }: CodeBlockProps) {
           {code}
         </code>
       </pre>
+    </div>
+  );
+}
+
+/**
+ * Progression step component for the progression path callout.
+ */
+interface ProgressionStepProps {
+  number: number;
+  title: string;
+  time: string;
+  description: string;
+}
+
+function ProgressionStep({ number, title, time, description }: ProgressionStepProps) {
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold mb-2">
+        {number}
+      </div>
+      <h4 className="text-sm font-semibold text-foreground mb-1">
+        {title} <span className="text-xs text-muted-foreground">({time})</span>
+      </h4>
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        {description}
+      </p>
     </div>
   );
 }
