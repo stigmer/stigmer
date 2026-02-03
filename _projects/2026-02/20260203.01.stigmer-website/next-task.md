@@ -68,11 +68,39 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-03 15:53
-**Last Updated**: 2026-02-03 19:47
-**Current Task**: Phase 4.2 (Brand Assets) - READY TO START
-**Status**: Phase 4.1 completed and committed (c03b7a9f)
+**Last Updated**: 2026-02-03 21:46
+**Current Task**: Phase 4.2 (Brand Assets) - COMPLETED WITH TECHNICAL DEBT
+**Status**: Metadata & structured data complete, image generation needs static export fix
 
 ## Session Progress (2026-02-03)
+
+### Content Precision Completed (20:00-20:52) ✅
+- ✅ Repositioned hero with "Agents as Microservices" (platform vs framework)
+- ✅ Reduced features from 7 to 6 cards (perfect 3×2 grid)
+- ✅ Removed centered logo from hero (follows standard pattern)
+- ✅ Updated badges: Apache 2.0 → Open Source (no license marketing)
+- ✅ Fixed Python SDK claims (Go ready, Python in development)
+- ✅ Fixed SQLite claims (local dev vs Stigmer Cloud)
+- ✅ Updated integration examples with actual proto paths
+- ✅ Removed defensive language ("no trap", "no lock-in")
+- ✅ Committed: b84f6514 "feat(site): content precision - agents as microservices positioning"
+- ✅ All quality validation tests passed
+- ✅ Zero linter errors, zero TypeScript errors
+- ✅ Successful build (125 kB First Load JS)
+
+**Content Precision Deliverables**:
+- **Hero**: "Agents as Microservices" headline, [gRPC APIs] [YAML + SDK] [Open Source] badges
+- **Features**: 6 cards (merged Production + Type-Safe SDKs), all technically accurate
+- **Quickstart**: Real AgentExecution proto examples, Python roadmap footnote
+- **Integration**: Microservices emphasis in intro
+- **Voice**: Confident, positive messaging (no defensive language)
+
+**Technical Accuracy Achieved**:
+- Python SDK: Clear it's in development (gRPC available now)
+- SQLite: Honest about local vs cloud distinction
+- Proto examples: Actual paths developers can verify
+- Proto count: Link to repo (not hardcoded "119")
+- License: "Open Source" (no marketing Apache 2.0)
 
 ### Phase 4.1 Completed (19:00-19:47) ✅
 - ✅ Executed all 6 phases (A-F) of Phase 4.1 plan with world-class quality
@@ -194,42 +222,97 @@ When starting a new session:
 - Design Decisions: 1 file (DD01_infrastructure_first_messaging)
 - Changelog: 1 file (2026-02-03-194656-website-phase-4-content-excellence)
 
+## Session Progress (2026-02-03 Evening)
+
+### Phase 4.2 Completed (21:00-21:46) ⚠️
+
+**Metadata & Structured Data** ✅:
+- ✅ Updated all metadata to Phase 4.1 messaging ("Agents as Microservices")
+- ✅ Implemented JSON-LD structured data (Organization, SoftwareApplication, WebSite)
+- ✅ Imported SITE_CONFIG as single source of truth (no hardcoded strings)
+- ✅ Added publisher, github:repository, license metadata
+- ✅ Zero linter errors, zero TypeScript errors
+- ✅ Build succeeds (125 kB First Load JS - unchanged)
+
+**Dynamic Image Generation Infrastructure** ⚠️:
+- ✅ Created icon.tsx (favicon generator)
+- ✅ Created apple-icon.tsx (iOS touch icon)
+- ✅ Created opengraph-image.tsx (social media preview)
+- ✅ Created twitter-image.tsx (Twitter card)
+- ✅ Created site.webmanifest (PWA manifest)
+- ⚠️ **CRITICAL ISSUE**: Dynamic image routes don't work with GitHub Pages static export
+- ⚠️ Routes are marked as "ƒ (Dynamic)" in build - require server
+
+**Technical Debt Identified**:
+- 🚨 Favicon/OG images won't load on GitHub Pages (404 errors)
+- 🚨 Need to generate static PNG files at build time OR deploy to platform with Edge Functions
+- 📝 Logo is 133KB raster-in-SVG (not true vector) - future optimization opportunity
+
+**Deliverables**:
+- Comprehensive changelog: `_changelog/2026-02/2026-02-03-brand-assets-phase-4-2.md`
+- Proposed solutions: Build-time PNG generation (recommended) or Vercel/Cloudflare deployment
+- All code changes validated and ready to commit
+
+## 🚨 CRITICAL BLOCKER
+
+**See**: `BLOCKER-static-export-images.md` for full details
+
+**Issue**: Dynamic image routes (favicon, OG images) don't work with GitHub Pages static export.  
+**Impact**: Images will 404 on deployment - broken favicons, broken social share previews.  
+**Must Fix Before**: Production deployment to GitHub Pages.  
+**Estimated Time**: 30 min (manual PNGs) or 1-2 hours (automated build-time generation).
+
+---
+
 ## Next Steps
 
-**Phase 4.2: Brand Assets (NEXT SESSION)**
+**Phase 4.2.1: Fix Image Generation for Static Export (CRITICAL - NEXT SESSION)**
 
-With Phase 4.1 completed and committed, next session should focus on:
+**Option 1: Build-Time PNG Generation (RECOMMENDED)**:
+1. Create `scripts/generate-images.js` using Puppeteer or Canvas
+2. Generate static PNGs at build time:
+   - `/public/favicon.ico` (32×32)
+   - `/public/apple-touch-icon.png` (180×180)
+   - `/public/og-image.png` (1200×630)
+   - `/public/twitter-image.png` (1200×630)
+3. Update `layout.tsx` metadata to point to static files
+4. Remove dynamic image routes (icon.tsx, etc.)
+5. Update `package.json`: `"build": "npm run generate-images && next build"`
+6. Test static export - verify images load
 
-1. **Generate Favicon** (from logo.svg)
-   - Create favicon using Next.js icon.tsx with logo
-   - Test favicon in browser (light/dark mode)
-   - Verify all sizes (16x16, 32x32, etc.)
+**Option 2: Manual PNG Creation (QUICK FIX)**:
+1. Create PNGs manually using design tool (Figma, Photoshop, etc.)
+2. Save to `public/` directory
+3. Update `layout.tsx` to reference static files
+4. Remove dynamic routes
+5. Test
 
-2. **Logo Testing**
-   - Test logo rendering on mobile, tablet, desktop
-   - Verify dark mode compatibility
-   - Check logo in all contexts (Hero, Header, Footer)
+**Option 3: Deploy to Vercel (FUTURE)**:
+- Migrate from GitHub Pages to Vercel
+- Dynamic routes will work natively
+- Keep current implementation
 
-3. **Additional Brand Graphics** (if needed)
-   - Evaluate need for additional graphics
-   - Create if necessary
+**Phase 4.3: Final Polish & Deploy (AFTER 4.2.1)**
 
-**Phase 4.3: Final Polish & Deploy (AFTER 4.2)**
+1. Resolve image generation issue (4.2.1)
+2. Test social previews (Twitter Card Validator, LinkedIn Post Inspector)
+3. Test favicons in all browsers (Chrome, Safari, Firefox, Edge)
+4. Visual QA at all breakpoints
+5. Run Lighthouse audit (target: 95+ on all metrics)
+6. Deploy to GitHub Pages (or Vercel if Option 3)
+7. Verify live site
+8. Announce launch
 
-1. Visual QA in browser (all breakpoints)
-2. Performance audit
-3. Deploy to production (GitHub Pages)
-4. Verify live site
-5. Announce launch
-
-**Current State**: Phase 4.1 complete, all changes committed, ready for Phase 4.2
+**Current State**: Phase 4.2 metadata/structured data complete, image generation needs static export compatibility fix before deployment
 
 ## Changelog
 
 - 📝 [2026-02-03-164601-stigmer-website-phase-1-infrastructure.md](/_changelog/2026-02/2026-02-03-164601-stigmer-website-phase-1-infrastructure.md)
 - 📝 [2026-02-03-170506-stigmer-website-phase-2-core-components.md](/_changelog/2026-02/2026-02-03-170506-stigmer-website-phase-2-core-components.md)
 - 📝 [2026-02-03-180701-website-content-polish-code-first-messaging.md](/_changelog/2026-02/2026-02-03-180701-website-content-polish-code-first-messaging.md)
-- 📝 [2026-02-03-194656-website-phase-4-content-excellence-dual-pillar-messaging.md](/_changelog/2026-02/2026-02-03-194656-website-phase-4-content-excellence-dual-pillar-messaging.md) ⭐️ **Latest**
+- 📝 [2026-02-03-194656-website-phase-4-content-excellence-dual-pillar-messaging.md](/_changelog/2026-02/2026-02-03-194656-website-phase-4-content-excellence-dual-pillar-messaging.md)
+- 📝 [2026-02-03-website-content-precision.md](/_changelog/2026-02/2026-02-03-website-content-precision.md)
+- 📝 [2026-02-03-brand-assets-phase-4-2.md](/_changelog/2026-02/2026-02-03-brand-assets-phase-4-2.md) ⭐️ **Latest** ⚠️ **Technical Debt**
 
 ## Quick Commands
 
