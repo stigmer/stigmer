@@ -39,10 +39,27 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 4 - Project Entity & stigmer.yaml Foundation 🚀 **IN PROGRESS**
-**Current Sub-task**: T04.1 ✅ **COMPLETE** - Project Proto Schema Design
+**Current Sub-task**: T04.2 ✅ **COMPLETE** - Project Loader Foundation
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-03 - Session 22 - Project Proto Schema Foundation):
+**Latest Session** (2026-02-03 - Session 23 - Project Loader Foundation):
+- ✅ **COMPLETED Phase 4 Sub-task T04.2**: Project Loader Foundation
+- Created complete loader package with protovalidate integration (596 lines across 3 files)
+- Implemented loader.go (156 lines) following Agent/Workflow pattern exactly
+- Created comprehensive test suite (414 lines, 17 tests, 29 total test cases)
+- All tests passing (100% success rate)
+- **Key Features**:
+  - Package-level protovalidate validator for schema validation
+  - YAML/JSON format auto-detection
+  - Strict parsing (DiscardUnknown: false) catches typos
+  - Actionable error messages with file paths and usage hints
+- **Pattern Consistency**: Indistinguishable structure from Agent/Workflow loaders
+- **Engineering Standards**: All files within size limits, functions < 50 lines
+- **Build Verification**: bazel build and test succeed, gofmt clean
+- Changelog: `2026-02-03-190302-project-loader-foundation.md`
+- Committed: `b6796ed feat(cli/project): add project loader foundation with protovalidate`
+
+**Previous Session** (2026-02-03 - Session 22 - Project Proto Schema Foundation):
 - ✅ **COMPLETED Phase 4 Sub-task T04.1**: Project Proto Schema Design
 - Created complete proto schema for Project entity as aggregate root
 - Implemented api.proto, spec.proto, status.proto, enum.proto, io.proto (5 proto files)
@@ -687,7 +704,7 @@ apis/stubs/             (REGENERATED via make protos)
 ## Next Steps
 
 **Phase 3 COMPLETE** ✅ (6 of 6 sub-tasks complete, 100%)
-**Phase 4 IN PROGRESS** 🚀 (1 of 7 sub-tasks complete, 14%)
+**Phase 4 IN PROGRESS** 🚀 (2 of 7 sub-tasks complete, 29%)
 
 ### Phase 4 Progress
 
@@ -696,12 +713,19 @@ apis/stubs/             (REGENERATED via make protos)
 - Registered project = 60 in ApiResourceKind enum
 - Generated Go/Python stubs
 
-⏭️ **T04.2 NEXT**: Project Loader Foundation (~75 min)
-- Create client-apps/cli/internal/cli/project/loader.go
-- Follow Agent loader pattern exactly
-- Protovalidate integration
-- 12+ test cases
-- Entry point defaults by runtime
+✅ **T04.2 COMPLETE**: Project Loader Foundation
+- Created internal/cli/project/loader.go (156 lines)
+- Created comprehensive test suite (414 lines, 17 tests, 29 cases)
+- Followed Agent loader pattern exactly
+- Protovalidate integration as single source of truth
+- All tests passing (100% success rate)
+
+⏭️ **T04.3 NEXT**: Project Validator (Cross-Field) (~60 min)
+- Create internal/cli/project/validator.go
+- Runtime + entry_point extension consistency checks
+- Resource glob pattern validation
+- Reserved project name checks
+- 10+ test cases
 
 **Upcoming Sub-tasks**:
 - T04.3: Project Validator (Cross-Field) - runtime + entry_point consistency
