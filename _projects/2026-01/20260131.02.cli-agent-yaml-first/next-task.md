@@ -39,10 +39,30 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 4 - Project Entity & stigmer.yaml Foundation 🚀 **IN PROGRESS**
-**Current Sub-task**: T04.3 ✅ **COMPLETE** - Project Validator (Cross-Field)
+**Current Sub-task**: T04.4 ✅ **COMPLETE** - Project Display
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-03 - Session 24 - Project Validator Cross-Field):
+**Latest Session** (2026-02-03 - Session 25 - Project Display Foundation):
+- ✅ **COMPLETED Phase 4 Sub-task T04.4**: Project Display
+- Created comprehensive display layer for Project entity (214 lines)
+- Implemented display.go with table/yaml/json output formats
+- **Key Functions**:
+  - DisplayProjectInfo() - Format router (table/yaml/json)
+  - displayProjectTable() - Human-readable output with metadata, spec, and status sections
+  - DisplayProjectPreview() - Dry-run mode output
+  - DisplayValidationSuccess() - CI-friendly validation result
+- **Features**:
+  - Smart default entry point display with "(default)" indicator
+  - Reconciliation status display with formatted resource counts
+  - Runtime enum to lowercase string conversion ("go", "python", "node")
+  - Description truncation at 60 chars with "..." suffix
+- **Pattern Consistency**: Exact mirror of Agent/Workflow display patterns (214 vs 236/228 lines)
+- **Engineering Standards**: All functions < 50 lines, comprehensive documentation, zero business logic
+- **Build Verification**: bazel build succeeds, all 51 project tests pass, gofmt clean
+- Changelog: `2026-02-03-201241-project-display-foundation.md`
+- Committed: `7883025 feat(cli/project): add project display foundation`
+
+**Previous Session** (2026-02-03 - Session 24 - Project Validator Cross-Field):
 - ✅ **COMPLETED Phase 4 Sub-task T04.3**: Project Validator (Cross-Field)
 - Created comprehensive cross-field validator (605 lines across 2 files)
 - Implemented validator.go (166 lines) with 3 validation rules
@@ -720,7 +740,7 @@ apis/stubs/             (REGENERATED via make protos)
 ## Next Steps
 
 **Phase 3 COMPLETE** ✅ (6 of 6 sub-tasks complete, 100%)
-**Phase 4 IN PROGRESS** 🚀 (3 of 7 sub-tasks complete, 43%)
+**Phase 4 IN PROGRESS** 🚀 (4 of 7 sub-tasks complete, 57%)
 
 ### Phase 4 Progress
 
@@ -743,13 +763,21 @@ apis/stubs/             (REGENERATED via make protos)
 - Actionable error messages with fix guidance
 - All 51 tests passing (18 loader + 33 validator)
 
-⏭️ **T04.4 NEXT**: Project Display (~45 min)
-- Create internal/cli/project/display.go
+✅ **T04.4 COMPLETE**: Project Display
+- Created internal/cli/project/display.go (214 lines)
 - DisplayProjectInfo() with table/yaml/json formats
-- Follow Agent/Workflow display patterns
+- DisplayProjectPreview() for dry-run mode
+- DisplayValidationSuccess() for CI-friendly output
+- Smart default entry point display, reconciliation status formatting
+- Pattern consistency with Agent/Workflow (214 vs 236/228 lines)
+
+⏭️ **T04.5 NEXT**: Track Detection Logic (~60 min)
+- Create internal/cli/project/detect.go
+- DetectTrack() with walk-up algorithm for stigmer.yaml
+- Determine Atomic/Project/Legacy track based on context
+- Test coverage for detection scenarios
 
 **Upcoming Sub-tasks**:
-- T04.4: Project Display - table/yaml/json output
 - T04.5: Track Detection Logic - walk-up algorithm for stigmer.yaml
 - T04.6: Project Command Group - info and validate subcommands
 - T04.7: Integration and Documentation - E2E testing, examples
