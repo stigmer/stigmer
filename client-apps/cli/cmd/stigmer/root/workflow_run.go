@@ -53,7 +53,7 @@ OTHER OPTIONS:
   stigmer workflow run my-workflow -m "Deploy to production"
 
   # Run by resource ID
-  stigmer workflow run wf_01kewqjbtdy0w4d14bnhhy4yc2
+  stigmer workflow run wfl_01kewqjbtdy0w4d14bnhhy4yc2
 
   # Run with org/slug format
   stigmer workflow run acme-corp/data-pipeline
@@ -77,7 +77,10 @@ OTHER OPTIONS:
   stigmer workflow run my-workflow --env-file .env --secret-file .env.secrets --env DEBUG=true
 
   # Override organization
-  stigmer workflow run my-workflow --org acme-corp`,
+  stigmer workflow run my-workflow --org acme-corp
+
+  # Use the 'wf' alias for brevity
+  stigmer wf run my-workflow`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			reference := args[0]
