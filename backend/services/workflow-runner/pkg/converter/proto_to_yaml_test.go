@@ -21,7 +21,6 @@ import (
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
-	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/validation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,7 +54,7 @@ func TestProtoToYAML_SimpleSetTask(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "set-status",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+				Kind:       workflowv1.WorkflowTaskKind_set_vars,
 				TaskConfig: taskConfig,
 			},
 		},
@@ -101,7 +100,7 @@ func TestProtoToYAML_HTTPCallTask(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "fetch-data",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+				Kind:       workflowv1.WorkflowTaskKind_http_call,
 				TaskConfig: taskConfig,
 				Export: &workflowv1.Export{
 					As: "${.}",
@@ -154,7 +153,7 @@ func TestProtoToYAML_WithFlowControl(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "validate",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+				Kind:       workflowv1.WorkflowTaskKind_set_vars,
 				TaskConfig: validateTaskConfig,
 				Flow: &workflowv1.FlowControl{
 					Then: "process",
@@ -162,7 +161,7 @@ func TestProtoToYAML_WithFlowControl(t *testing.T) {
 			},
 			{
 				Name:       "process",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+				Kind:       workflowv1.WorkflowTaskKind_set_vars,
 				TaskConfig: processTaskConfig,
 				Flow: &workflowv1.FlowControl{
 					Then: "end",
@@ -194,7 +193,7 @@ func TestProtoToYAML_MissingDocument(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "task1",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+				Kind:       workflowv1.WorkflowTaskKind_set_vars,
 				TaskConfig: taskConfig,
 			},
 		},
@@ -245,7 +244,7 @@ func TestProtoToYAML_GrpcCallTask(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "get-user",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_GRPC_CALL,
+				Kind:       workflowv1.WorkflowTaskKind_grpc_call,
 				TaskConfig: taskConfig,
 			},
 		},
@@ -280,7 +279,7 @@ func TestProtoToYAML_WaitTask(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "pause",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_WAIT,
+				Kind:       workflowv1.WorkflowTaskKind_wait,
 				TaskConfig: taskConfig,
 			},
 		},
@@ -324,7 +323,7 @@ func TestProtoToYAML_SwitchTask(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "route",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SWITCH,
+				Kind:       workflowv1.WorkflowTaskKind_switch_case,
 				TaskConfig: taskConfig,
 			},
 		},
@@ -376,7 +375,7 @@ func TestProtoToYAML_ComplexWorkflow(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "set-user-id",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+				Kind:       workflowv1.WorkflowTaskKind_set_vars,
 				TaskConfig: setTaskConfig,
 				Flow: &workflowv1.FlowControl{
 					Then: "fetch-user",
@@ -384,7 +383,7 @@ func TestProtoToYAML_ComplexWorkflow(t *testing.T) {
 			},
 			{
 				Name:       "fetch-user",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+				Kind:       workflowv1.WorkflowTaskKind_http_call,
 				TaskConfig: httpTaskConfig,
 				Export: &workflowv1.Export{
 					As: "${.user}",
@@ -395,7 +394,7 @@ func TestProtoToYAML_ComplexWorkflow(t *testing.T) {
 			},
 			{
 				Name:       "pause",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_WAIT,
+				Kind:       workflowv1.WorkflowTaskKind_wait,
 				TaskConfig: waitTaskConfig,
 			},
 		},

@@ -15,16 +15,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const (
-	// DefaultFileName is the default name for MCP server configuration files
-	DefaultFileName = "mcpserver.yaml"
-	// AlternateFileName is an alternate name for MCP server configuration files
-	AlternateFileName = "MCPSERVER.yaml"
-)
-
 // LoadOptions contains options for loading an MCP server configuration
 type LoadOptions struct {
-	// FilePath is the path to the YAML/JSON file (optional, auto-detects if empty)
+	// FilePath is the path to the YAML/JSON file (required).
+	// The file can have any name - validation is based on content (apiVersion, kind).
 	FilePath string
 }
 
@@ -37,8 +31,7 @@ type LoadResult struct {
 }
 
 // Load loads an MCP server configuration from a YAML or JSON file.
-// If opts.FilePath is empty, it searches for mcpserver.yaml or MCPSERVER.yaml
-// in the current directory.
+// The file path is required - validation is based on content (apiVersion, kind).
 func Load(opts *LoadOptions) (*LoadResult, error) {
 	filePath, err := resolveFilePath(opts.FilePath)
 	if err != nil {
@@ -61,34 +54,17 @@ func Load(opts *LoadOptions) (*LoadResult, error) {
 	}, nil
 }
 
-// resolveFilePath resolves the file path to load from.
-// If explicit path is provided, uses that. Otherwise, searches for default files.
-func resolveFilePath(explicitPath string) (string, error) {
-	if explicitPath != "" {
-		// Check if path exists
-		if _, err := os.Stat(explicitPath); os.IsNotExist(err) {
-			return "", fmt.Errorf("file not found: %s", explicitPath)
-		}
-		return explicitPath, nil
+// resolveFilePath validates that the file path is provided and exists.
+func resolveFilePath(filePath string) (string, error) {
+	if filePath == "" {
+		return "", fmt.Errorf("file path is required\n\nUsage: stigmer mcpserver apply <file>\n\nThe file can be YAML or JSON with apiVersion: agentic.stigmer.ai/v1 and kind: McpServer")
 	}
 
-	// Search for default files in current directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get current directory")
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found: %s", filePath)
 	}
 
-	// Try default file names
-	candidates := []string{DefaultFileName, AlternateFileName}
-	for _, candidate := range candidates {
-		path := filepath.Join(cwd, candidate)
-		if _, err := os.Stat(path); err == nil {
-			return path, nil
-		}
-	}
-
-	return "", fmt.Errorf("no MCP server configuration found\n\nLooking for: %s or %s in current directory\n\nCreate a configuration file or specify a path: stigmer mcpserver apply <file>",
-		DefaultFileName, AlternateFileName)
+	return filePath, nil
 }
 
 // parseContent parses YAML or JSON content into an McpServer proto message.

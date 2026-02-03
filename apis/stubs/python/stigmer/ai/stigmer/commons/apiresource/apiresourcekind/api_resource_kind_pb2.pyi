@@ -46,6 +46,7 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     workflow_execution: _ClassVar[ApiResourceKind]
     environment: _ClassVar[ApiResourceKind]
     execution_context: _ClassVar[ApiResourceKind]
+    project: _ClassVar[ApiResourceKind]
 api_resource_version_unspecified: ApiResourceVersion
 v1: ApiResourceVersion
 TIER_UNSPECIFIED: ResourceTier
@@ -72,6 +73,7 @@ workflow_instance: ApiResourceKind
 workflow_execution: ApiResourceKind
 environment: ApiResourceKind
 execution_context: ApiResourceKind
+project: ApiResourceKind
 KIND_META_FIELD_NUMBER: _ClassVar[int]
 kind_meta: _descriptor.FieldDescriptor
 

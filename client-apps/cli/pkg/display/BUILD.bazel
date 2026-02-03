@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "display",
@@ -6,6 +6,7 @@ go_library(
         "colors.go",
         "table.go",
         "terminal.go",
+        "truncate.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/pkg/display",
     visibility = ["//visibility:public"],
@@ -13,5 +14,14 @@ go_library(
         "@com_github_fatih_color//:color",
         "@com_github_rivo_uniseg//:uniseg",
         "@org_golang_x_term//:term",
+    ],
+)
+
+go_test(
+    name = "display_test",
+    srcs = ["truncate_test.go"],
+    embed = [":display"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
     ],
 )

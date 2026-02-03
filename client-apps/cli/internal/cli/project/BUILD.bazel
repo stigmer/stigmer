@@ -1,0 +1,36 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "project",
+    srcs = [
+        "display.go",
+        "loader.go",
+        "validator.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/project",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
+        "//client-apps/cli/internal/cli/clierr",
+        "//client-apps/cli/internal/cli/cliprint",
+        "@build_buf_go_protovalidate//:protovalidate",
+        "@com_github_pkg_errors//:errors",
+        "@in_gopkg_yaml_v3//:yaml_v3",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)
+
+go_test(
+    name = "project_test",
+    srcs = [
+        "loader_test.go",
+        "validator_test.go",
+    ],
+    embed = [":project"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

@@ -465,9 +465,7 @@ warning: pattern "*.xyz" in .stigmerignore matches no files
 
 ---
 
-## Appendix: Library Evaluation
-
-### go-git/go-git gitignore package
+## Appendix: Library Evaluation### go-git/go-git gitignore package
 - **Pros**: Full gitignore spec, actively maintained, well-documented
 - **Cons**: Depends on billy filesystem abstraction
 - **Verdict**: ✅ Use this### denormal/go-gitignore

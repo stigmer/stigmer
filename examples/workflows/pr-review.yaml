@@ -6,63 +6,67 @@ metadata:
     team: engineering
     automation: code-review
 spec:
-  inputs:
-    pr_url:
-      type: string
-      description: GitHub pull request URL
-      required: true
-  
+  description: Automated code review workflow with quality analysis
+  document:
+    dsl: "1.0.0"
+    namespace: examples
+    name: pr-review
+    version: "1.0.0"
   tasks:
-    - name: fetch-pr-details
-      agent: github-analyst
-      inputs:
-        pr_url: "${workflow.inputs.pr_url}"
-      outputs:
-        - pr_title
-        - pr_description
-        - changed_files
-        - diff
-    
+    - name: fetch-pr-data
+      kind: http_call
+      task_config:
+        method: GET
+        endpoint:
+          uri: "https://api.github.com/repos/${repo}/pulls/${pr_number}"
+        headers:
+          Authorization: "Bearer ${GITHUB_TOKEN}"
+          Accept: "application/vnd.github.v3+json"
+      export:
+        as: "${.}"
+      flow:
+        then: analyze-code-quality
+
     - name: analyze-code-quality
-      agent: code-reviewer
-      dependsOn:
-        - fetch-pr-details
-      inputs:
-        files: "${tasks.fetch-pr-details.outputs.changed_files}"
-        diff: "${tasks.fetch-pr-details.outputs.diff}"
-      outputs:
-        - issues
-        - suggestions
-        - severity
-    
-    - name: check-tests
-      agent: test-analyzer
-      dependsOn:
-        - fetch-pr-details
-      inputs:
-        diff: "${tasks.fetch-pr-details.outputs.diff}"
-      outputs:
-        - has_tests
-        - test_coverage
-    
+      kind: agent_call
+      task_config:
+        agent: code-reviewer
+        message: "Analyze code quality for PR: ${context.fetch-pr-data.title}\n\nFiles changed: ${context.fetch-pr-data.changed_files}\nDiff: ${context.fetch-pr-data.diff_url}"
+      export:
+        as: "${.analysis}"
+      flow:
+        then: check-test-coverage
+
+    - name: check-test-coverage
+      kind: agent_call
+      task_config:
+        agent: test-analyzer
+        message: "Check test coverage for PR diff: ${context.fetch-pr-data.diff_url}"
+      export:
+        as: "${.coverage}"
+      flow:
+        then: generate-review
+
     - name: generate-review
-      agent: review-synthesizer
-      dependsOn:
-        - analyze-code-quality
-        - check-tests
-      inputs:
-        code_issues: "${tasks.analyze-code-quality.outputs.issues}"
-        suggestions: "${tasks.analyze-code-quality.outputs.suggestions}"
-        test_status: "${tasks.check-tests.outputs}"
-      outputs:
-        - review_comment
-        - approval_status
-    
-    - name: post-review
-      agent: github-commenter
-      dependsOn:
-        - generate-review
-      inputs:
-        pr_url: "${workflow.inputs.pr_url}"
-        comment: "${tasks.generate-review.outputs.review_comment}"
-        status: "${tasks.generate-review.outputs.approval_status}"
+      kind: agent_call
+      task_config:
+        agent: review-synthesizer
+        message: "Generate comprehensive review based on:\nCode Analysis: ${context.analyze-code-quality.analysis}\nTest Coverage: ${context.check-test-coverage.coverage}"
+      export:
+        as: "${.review}"
+      flow:
+        then: post-comment
+
+    - name: post-comment
+      kind: http_call
+      task_config:
+        method: POST
+        endpoint:
+          uri: "https://api.github.com/repos/${repo}/issues/${pr_number}/comments"
+        headers:
+          Authorization: "Bearer ${GITHUB_TOKEN}"
+          Accept: "application/vnd.github.v3+json"
+        body:
+          body: "${context.generate-review.review}"
+      flow:
+        then: end

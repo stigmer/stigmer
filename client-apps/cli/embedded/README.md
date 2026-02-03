@@ -55,7 +55,6 @@ See git history for the embedded binary implementation.
   - `embedded_linux_amd64.go` - Linux (returns nil → Docker pull)
 - **`extract.go`**: Binary extraction logic (now a no-op, kept for backward compatibility)
 - **`version.go`**: Version tracking for CLI builds
-- **`binaries/`**: ⚠️ No longer used (Docker-based distribution)
 
 ## Usage
 

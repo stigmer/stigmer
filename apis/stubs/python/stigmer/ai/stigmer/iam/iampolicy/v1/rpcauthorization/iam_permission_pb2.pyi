@@ -28,6 +28,7 @@ class ApiResourceIamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper
     can_create_execution_in: _ClassVar[ApiResourceIamPermission]
     can_create_instance: _ClassVar[ApiResourceIamPermission]
     can_create_skill: _ClassVar[ApiResourceIamPermission]
+    can_create_project: _ClassVar[ApiResourceIamPermission]
     can_execute: _ClassVar[ApiResourceIamPermission]
 unspecified: ApiResourceIamPermission
 create: ApiResourceIamPermission
@@ -51,4 +52,5 @@ can_create_session: ApiResourceIamPermission
 can_create_execution_in: ApiResourceIamPermission
 can_create_instance: ApiResourceIamPermission
 can_create_skill: ApiResourceIamPermission
+can_create_project: ApiResourceIamPermission
 can_execute: ApiResourceIamPermission

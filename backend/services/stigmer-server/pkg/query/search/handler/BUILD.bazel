@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "handler",
+    srcs = ["search_handler.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/handler",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/search/v1:search",
+        "//backend/services/stigmer-server/pkg/query/search/store",
+        "//backend/services/stigmer-server/pkg/query/search/valueobject",
+        "@com_github_rs_zerolog//log",
+    ],
+)

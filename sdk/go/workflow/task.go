@@ -2,26 +2,36 @@ package workflow
 
 import (
 	"fmt"
+
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 )
 
-// TaskKind represents the type of workflow task.
-type TaskKind string
+// TaskKind is an alias for the proto enum WorkflowTaskKind.
+// This establishes the proto as the single source of truth for task types.
+type TaskKind = workflowv1.WorkflowTaskKind
 
-// Task kinds matching Zigflow DSL task types.
-const (
-	TaskKindSet          TaskKind = "SET"
-	TaskKindHttpCall     TaskKind = "HTTP_CALL"
-	TaskKindGrpcCall     TaskKind = "GRPC_CALL"
-	TaskKindSwitch       TaskKind = "SWITCH"
-	TaskKindFor          TaskKind = "FOR"
-	TaskKindFork         TaskKind = "FORK"
-	TaskKindTry          TaskKind = "TRY"
-	TaskKindListen       TaskKind = "LISTEN"
-	TaskKindWait         TaskKind = "WAIT"
-	TaskKindCallActivity TaskKind = "CALL_ACTIVITY"
-	TaskKindRaise        TaskKind = "RAISE"
-	TaskKindRun          TaskKind = "RUN"
-	TaskKindAgentCall    TaskKind = "AGENT_CALL"
+// Task kind constants - aliases to proto enum values for ergonomic SDK usage.
+// These provide a clean SDK API while the proto enum remains the source of truth.
+//
+// Usage:
+//
+//	task := &workflow.Task{Kind: workflow.TaskKindSetVars}
+//	// Or directly:
+//	task := &workflow.Task{Kind: workflowv1.WorkflowTaskKind_set_vars}
+var (
+	TaskKindSetVars      = workflowv1.WorkflowTaskKind_set_vars
+	TaskKindHttpCall     = workflowv1.WorkflowTaskKind_http_call
+	TaskKindGrpcCall     = workflowv1.WorkflowTaskKind_grpc_call
+	TaskKindActivityCall = workflowv1.WorkflowTaskKind_activity_call
+	TaskKindSwitchCase   = workflowv1.WorkflowTaskKind_switch_case
+	TaskKindForEach      = workflowv1.WorkflowTaskKind_for_each
+	TaskKindFork         = workflowv1.WorkflowTaskKind_fork
+	TaskKindTryCatch     = workflowv1.WorkflowTaskKind_try_catch
+	TaskKindListen       = workflowv1.WorkflowTaskKind_listen
+	TaskKindWait         = workflowv1.WorkflowTaskKind_wait
+	TaskKindRaiseError   = workflowv1.WorkflowTaskKind_raise_error
+	TaskKindRunWorkflow  = workflowv1.WorkflowTaskKind_run_workflow
+	TaskKindAgentCall    = workflowv1.WorkflowTaskKind_agent_call
 )
 
 // Special task flow control constants.

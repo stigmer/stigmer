@@ -8,6 +8,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Local Mode](getting-started/local-mode.md) - Running Stigmer locally for development
 
 ### CLI
+- [Managing Agents](cli/managing-agents.md) - **NEW**: Complete guide to listing, searching, and managing agents
 - [Running Agents and Workflows](cli/running-agents-workflows.md) - Execute agents and workflows with `stigmer run`
 - [Configuration](cli/configuration.md) - CLI configuration and context management
 - [Configuration Cascade](cli/configuration-cascade.md) - Complete guide to configuration priority (CLI flags, env vars, config file)
