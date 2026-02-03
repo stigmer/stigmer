@@ -16,37 +16,38 @@ func NewWorkflowCommand() *cobra.Command {
 		Short:   "Manage workflows",
 		Long: `Manage workflow configurations and executions.
 
-Workflows are SDK-synthesized resources that define multi-step automation
-with complex orchestration logic. Unlike agents (which are YAML-based),
-workflows require Go SDK code to define tasks, dependencies, and execution flow.
+Workflows support two deployment methods:
+
+  YAML-First (Atomic Track):
+    Define workflows in YAML files and apply directly.
+    Best for: Quick experiments, simple workflows, version control.
+    Command: stigmer workflow apply workflow.yaml
+
+  SDK-First (Project Track):
+    Define workflows in Go code for complex orchestration.
+    Best for: Production workflows, conditional logic, loops.
+    Command: stigmer apply (runs SDK code)
 
 WORKFLOW LIFECYCLE:
 
-  1. Define workflow using Go SDK (github.com/stigmer/stigmer-sdk-go/workflow)
-  2. Deploy via 'stigmer apply' (runs SDK code, synthesizes resources)
-  3. Execute via 'stigmer workflow run'
-  4. Manage via 'stigmer workflow get/delete/search'
+  YAML-based workflows:
+    1. Create workflow.yaml with apiVersion, kind, metadata, spec
+    2. Apply via 'stigmer workflow apply workflow.yaml'
+    3. Execute via 'stigmer workflow run'
+    4. Manage via 'stigmer workflow get/delete/search'
 
-WHY SDK-BASED (NOT YAML):
+  SDK-based workflows:
+    1. Define workflow using Go SDK (github.com/stigmer/stigmer-sdk-go/workflow)
+    2. Deploy via 'stigmer apply' (runs SDK code, synthesizes resources)
+    3. Execute via 'stigmer workflow run'
+    4. Manage via 'stigmer workflow get/delete/search'`,
+		Example: `  # Apply a workflow from YAML
+  stigmer workflow apply workflow.yaml
 
-  Workflows use the Go SDK because they require:
-  - Complex orchestration with conditional logic and loops
-  - Implicit dependency tracking between tasks
-  - Programmatic task generation based on inputs
-  - Type-safe task definitions with compile-time validation
+  # Validate without applying (dry run)
+  stigmer workflow apply workflow.yaml --dry-run
 
-COMPARISON WITH AGENTS:
-
-  Agents (YAML-first):
-  - Declarative configuration
-  - Applied via 'stigmer agent apply'
-  - Simple to define, no code required
-
-  Workflows (SDK-first):
-  - Programmatic definition
-  - Applied via 'stigmer apply' (runs Go code)
-  - Powerful orchestration capabilities`,
-		Example: `  # Get a workflow by name
+  # Get a workflow by name
   stigmer workflow get my-workflow
 
   # Get a workflow with YAML output
@@ -68,10 +69,12 @@ COMPARISON WITH AGENTS:
   stigmer workflow search "deploy"
 
   # Use the 'wf' alias for brevity
+  stigmer wf apply workflow.yaml
   stigmer wf get my-workflow
   stigmer wf run my-workflow`,
 	}
 
+	cmd.AddCommand(newWorkflowApplyCommand())
 	cmd.AddCommand(newWorkflowGetCommand())
 	cmd.AddCommand(newWorkflowDeleteCommand())
 	cmd.AddCommand(newWorkflowListCommand())
