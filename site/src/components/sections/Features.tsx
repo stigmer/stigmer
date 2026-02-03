@@ -39,12 +39,11 @@ function Features({ className, ...props }: FeaturesProps) {
             className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4"
           >
             <span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-              Built for engineering teams who code
+              Infrastructure You Don&apos;t Have to Build
             </span>
           </h2>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Stigmer provides the flexibility you need: YAML for quick experiments, SDKs for complex production workflows. 
-            Version control everything. Review like infrastructure. Test in CI/CD.
+            Stigmer solves the infrastructure challenges that derail agent projects. Sandboxing, orchestration, MCP security, local-to-cloud scaling—all handled. You focus on agent logic, not plumbing.
           </p>
         </div>
 

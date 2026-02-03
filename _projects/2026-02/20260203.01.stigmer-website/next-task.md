@@ -68,11 +68,30 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-03 15:53
-**Last Updated**: 2026-02-03 18:07
-**Current Task**: Phase 3 (Content Polish) - ✅ COMPLETED
-**Status**: Production-Ready with Code-First Messaging
+**Last Updated**: 2026-02-03 21:00
+**Current Task**: Phase 4 (Content Overhaul) - ✅ APPROVED, READY FOR EXECUTION
+**Status**: Dual-pillar messaging approved (Creation + Integration)
 
 ## Session Progress (2026-02-03)
+
+### Phase 4 Planning Completed (20:15-21:00)
+- ✅ Created T02_0_content_overhaul_plan.md (comprehensive phase 4 plan)
+- ✅ Created T02_1_messaging_comparison.md (before/after analysis)
+- ✅ Created T02_2_integration_story_update.md (second pillar details)
+- ✅ Created DD01_infrastructure_first_messaging.md (design decision)
+- ✅ Located official Stigmer logo (stigmer-cloud/docs/logo.svg)
+- ✅ APPROVED: Founder approved dual-pillar messaging
+
+**Key Insights Captured**:
+- **Pillar 1**: Create agents (YAML→SDK, infrastructure handled)
+- **Pillar 2**: Integrate agents (gRPC APIs, agents as microservices)
+- Platform positioning: "Twilio for AI Agents"
+- Marketplace capability: "Build your own agent marketplace"
+- No Planton Cloud mention (integration incomplete)
+- SaaS-only (no self-hosting yet)
+- Public protos at github.com/stigmer/stigmer/apis/
+
+## Session Progress (2026-02-03 - Earlier)
 
 ### Phase 1 Completed (16:46)
 - ✅ Created complete site/ infrastructure (20 files)
@@ -144,26 +163,28 @@ When starting a new session:
 
 ## Next Steps
 
-**Ready for Production Deployment**
+**Phase 4: Content Overhaul (APPROVED - READY FOR EXECUTION)**
 
-1. Deploy to GitHub Pages
-   - DNS configuration for stigmer.ai
-   - Verify GitHub Actions workflow
-   - Enable HTTPS enforcement
-   - Test on production domain
+See task files:
+- `/tasks/T02_0_content_overhaul_plan.md` (main plan, updated with integration)
+- `/tasks/T02_1_messaging_comparison.md` (before/after comparison)
+- `/tasks/T02_2_integration_story_update.md` (integration pillar details)
 
-3. Phase 4: Documentation Foundation
-   - Create /docs/[...slug] dynamic route
-   - Setup MDX/Markdown rendering
-   - Docs sidebar navigation
-   - Migrate existing docs content
+**Approved Changes**:
+1. **Dual-Pillar Messaging**: "Build Agents, Integrate Anywhere"
+2. **Creation Pillar**: YAML→SDK, infrastructure handled
+3. **Integration Pillar**: gRPC APIs, agents as microservices
+4. **Features**: Add 7th feature "Integrate Agents Anywhere"
+5. **New Section**: "Integrate Agents Anywhere" (comparison + platform callout)
+6. **Logo Update**: Use stigmer-cloud/docs/logo.svg
+7. **Quickstart**: Add gRPC integration step
 
-**Immediate Deployment Path:**
-The site is production-ready now. To deploy:
-1. Configure DNS (GoDaddy) - see T01_0_plan.md for records
-2. Push to main branch
-3. GitHub Actions will deploy automatically
-4. Verify at https://stigmer.ai
+**Execution Plan**:
+- Phase 4.1: Content rewrite (Hero, Features, new section, Quickstart)
+- Phase 4.2: Brand assets (logo, favicon)
+- Phase 4.3: Polish & deploy to production
+
+**Ready to Start Phase 4.1 Execution**
 
 ## Changelog
 
