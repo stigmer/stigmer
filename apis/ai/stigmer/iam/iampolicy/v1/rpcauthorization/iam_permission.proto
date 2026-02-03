@@ -39,6 +39,7 @@ enum ApiResourceIamPermission {
   can_create_execution_in = 19; // Permission to create agent executions in a session
   can_create_instance = 20; // Permission to create agent instances (derived from can_execute on parent agent)
   can_create_skill = 21; // Permission to create skills in an organization
+  can_create_project = 23; // Permission to create projects in an organization
 
   // Resource-specific operation permissions
   can_execute = 22; // Permission to execute agent/session operations
