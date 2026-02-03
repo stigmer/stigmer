@@ -40,7 +40,10 @@ or a name/slug and uses the appropriate lookup method.`,
   stigmer workflow delete my-workflow --force
 
   # Delete from specific organization
-  stigmer workflow delete my-workflow --org acme-corp`,
+  stigmer workflow delete my-workflow --org acme-corp
+
+  # Use the 'wf' alias for brevity
+  stigmer wf delete my-workflow`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			reference := args[0]

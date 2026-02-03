@@ -21,11 +21,25 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Phase**: Phase 2 - Workflow Command Restructuring (IN PROGRESS 🚧)
-**Current Task**: Sub-task 7 COMPLETED ✅, Ready for Sub-task 8
-**Status**: 7 of 8 Sub-tasks COMPLETED ✅ (87.5% complete)
+**Phase**: Phase 2 - Workflow Command Restructuring ✅ **COMPLETE**
+**Current Task**: All 8 Sub-tasks COMPLETED ✅
+**Status**: 8 of 8 Sub-tasks COMPLETED ✅ (100% complete)
 
-**Latest Session** (2026-02-01 - Session 14 - Workflow Run Command):
+**Latest Session** (2026-02-01 - Session 15 - Documentation and Cleanup):
+- ✅ **COMPLETED Phase 2 Sub-task 8**: Documentation and Cleanup
+- Fixed workflow ID prefix inconsistency: Changed `wf_` to correct `wfl_` prefix in examples
+  - workflow_run.go line 56: `wfl_01kewqjbtdy0w4d14bnhhy4yc2`
+  - run.go lines 42, 95: Updated to use `wfl_` prefix
+- Added deprecation notice to root run.go command
+  - Guides users to `stigmer agent run` and `stigmer workflow run`
+  - Maintains backward compatibility while promoting new commands
+- Added consistent alias examples to workflow commands
+  - workflow_get.go, workflow_delete.go, workflow_run.go: Added `# Use the 'wf' alias` examples
+- Created Phase 2 completion changelog documenting all 8 sub-tasks
+- Verified all coding guidelines met across Phase 2 files
+- Changelog: `2026-02-01-132653-phase2-workflow-commands-complete.md`
+
+**Previous Session** (2026-02-01 - Session 14 - Workflow Run Command):
 - ✅ **COMPLETED Phase 2 Sub-task 7**: Workflow Run Command Implementation
 - Created cmd/stigmer/root/workflow_run.go (187 lines) - Full run command with execution support
 - Updated workflow.go - Registered newWorkflowRunCommand() and removed Sub-task 7 placeholder
@@ -274,7 +288,7 @@ stigmer
 | Phase | Description | Status |
 |-------|-------------|--------|
 | **1** | Agent YAML-First Foundation | ✅ **COMPLETED** (7 of 7 sub-tasks) |
-| **2** | Workflow Command Restructuring | 🚧 **IN PROGRESS** (7 of 8 sub-tasks complete, 87.5%) |
+| **2** | Workflow Command Restructuring | ✅ **COMPLETED** (8 of 8 sub-tasks) |
 | **3** | Search and Discovery | Pending |
 | **4** | Remove Agent from SDK | Pending |
 | **5** | Platform Capabilities (Draft Commands) | Pending |
@@ -547,7 +561,7 @@ apis/stubs/             (REGENERATED via make protos)
 
 ## Next Steps
 
-**Phase 2 IN PROGRESS** (7 of 8 sub-tasks complete, 87.5%)
+**Phase 2 COMPLETE** ✅ (8 of 8 sub-tasks complete, 100%)
 
 ✅ **Sub-task 1 COMPLETE**: Workflow Internal Package Foundation
 ✅ **Sub-task 2 COMPLETE**: Workflow Command Group
@@ -556,18 +570,13 @@ apis/stubs/             (REGENERATED via make protos)
 ✅ **Sub-task 5 COMPLETE**: Workflow List Command
 ✅ **Sub-task 6 COMPLETE**: Workflow Search Command
 ✅ **Sub-task 7 COMPLETE**: Workflow Run Command
+✅ **Sub-task 8 COMPLETE**: Documentation and Cleanup
 
-🚧 **NEXT: Sub-task 8** - Documentation and Cleanup
-**Action**: Ensure consistency, update documentation, final cleanup
-**Estimated**: 30-45 minutes
-**Tasks**:
-1. Verify all commands have consistent help text
-2. Ensure examples are accurate
-3. Update `next-task.md` with Phase 2 completion status
-4. Create changelog entry for Phase 2 completion
-5. Final review of all new files for coding guidelines
+🚧 **NEXT: Phase 3** - Search and Discovery
+**Action**: Implement cross-cutting search and discovery commands
+**Scope**: TBD - requires planning
 
-**Remaining Sub-tasks**: None after Sub-task 8 - Phase 2 will be COMPLETE!
+**Ready for Phase 3**: All workflow commands are production-ready with consistent UX matching agent commands.
 
 ---
 
@@ -640,8 +649,14 @@ apis/stubs/             (REGENERATED via make protos)
   - Reuses ~800 lines existing run infrastructure
   - Zero code duplication
 
-**What's needed next**:
-- **Sub-task 8**: Documentation and cleanup (final sub-task)
+- **Sub-task 8: Documentation and cleanup** ✅
+  - Fixed workflow ID prefix inconsistency (`wf_` → `wfl_`)
+  - Added deprecation notice to root run.go command
+  - Added consistent alias examples across all workflow commands
+  - Created Phase 2 completion changelog
+  - Verified all coding guidelines met
+
+**Phase 2 Complete**: All 8 sub-tasks finished. The workflow command group now provides full parity with agent commands.
 
 **Known Blocker**:
 - Pre-existing Bazel SDK templates issue prevents full CLI build
@@ -735,5 +750,5 @@ After loading context:
 
 ---
 
-*Last updated: 2026-02-01 (Session 14)*
-*Status: Phase 1 COMPLETE ✅, Phase 2 IN PROGRESS (7 of 8 sub-tasks complete, 87.5%)*
+*Last updated: 2026-02-01 (Session 15)*
+*Status: Phase 1 COMPLETE ✅, Phase 2 COMPLETE ✅ (8 of 8 sub-tasks, 100%)*

@@ -21,6 +21,13 @@ func NewRunCommand() *cobra.Command {
 		Short: "Execute an agent or workflow",
 		Long: `Execute an agent or workflow by name/ID or from your project directory.
 
+NOTE: This command is maintained for backward compatibility. For new projects,
+prefer the resource-specific commands:
+  - stigmer agent run <name>    # For agents
+  - stigmer workflow run <name> # For workflows
+
+These commands provide the same functionality with better discoverability.
+
 TWO MODES:
 
 1. AUTO-DISCOVERY MODE (no arguments):
@@ -39,7 +46,7 @@ TWO MODES:
      stigmer run my-agent           # Agent by name
      stigmer run my-workflow        # Workflow by name  
      stigmer run agt_01abc123       # Agent by ID
-     stigmer run wf_01xyz789        # Workflow by ID
+     stigmer run wfl_01xyz789       # Workflow by ID
 
 ENVIRONMENT VARIABLES:
 
@@ -92,7 +99,7 @@ OTHER OPTIONS:
   
   # Run by ID
   stigmer run agt_01kewqjbtdy0w4d14bnhhy4yc2
-  stigmer run wf_01abc123xyz456
+  stigmer run wfl_01abc123xyz456
   
   # Override organization
   stigmer run my-agent --org my-org-id`,

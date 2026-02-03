@@ -43,7 +43,10 @@ Output formats:
   stigmer workflow get my-workflow --output json
 
   # Get from specific organization
-  stigmer workflow get my-workflow --org acme-corp`,
+  stigmer workflow get my-workflow --org acme-corp
+
+  # Use the 'wf' alias for brevity
+  stigmer wf get my-workflow`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			reference := args[0]
