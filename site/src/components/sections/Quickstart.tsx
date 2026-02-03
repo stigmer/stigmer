@@ -37,11 +37,11 @@ function Quickstart({ className, ...props }: QuickstartProps) {
             className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4"
           >
             <span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-              Get started in seconds
+              From zero to running agent in 60 seconds
             </span>
           </h2>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Install Stigmer and run your first workflow with just a few commands.
+            Install, start server, create agent, run. No configuration, no complexity.
           </p>
         </div>
 
@@ -51,53 +51,86 @@ function Quickstart({ className, ...props }: QuickstartProps) {
           <QuickstartStep
             number={1}
             title="Install the CLI"
-            description="Install Stigmer using Go's package manager."
+            description="Install the Stigmer CLI. Works on macOS and Linux."
           >
             <CodeBlock
-              code="go install github.com/stigmer/stigmer/cmd/stigmer@latest"
+              code="brew install stigmer/tap/stigmer"
               language="bash"
             />
           </QuickstartStep>
 
-          {/* Step 2: Create workflow */}
+          {/* Step 2: Start Server */}
           <QuickstartStep
             number={2}
-            title="Create a workflow"
-            description="Define your AI workflow in a simple YAML file."
+            title="Start the server"
+            description="That's it. Auto-downloads Temporal, uses free Ollama models, ready in < 3 seconds."
           >
             <CodeBlock
-              code={`# workflow.yaml
-name: summarize
-description: Summarize a document using AI
+              code="stigmer server"
+              language="bash"
+            />
+          </QuickstartStep>
 
-steps:
-  - name: read-input
-    action: file.read
-    input:
-      path: "\${input.file}"
-
-  - name: summarize
-    action: llm.complete
-    input:
-      model: gpt-4
-      prompt: |
-        Summarize the following document:
-        \${steps.read-input.output}`}
+          {/* Step 3: Create Agent */}
+          <QuickstartStep
+            number={3}
+            title="Create an agent"
+            description="Define an agent in 5 lines of YAML. Apply with: stigmer agent apply agent.yaml"
+          >
+            <CodeBlock
+              code={`apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: code-reviewer
+spec:
+  instructions: "Review code for security and best practices"
+  mcpServers: [github]`}
               language="yaml"
             />
           </QuickstartStep>
 
-          {/* Step 3: Run */}
+          {/* Step 4: Run Agent */}
           <QuickstartStep
-            number={3}
-            title="Run your workflow"
-            description="Execute the workflow with a single command."
+            number={4}
+            title="Run your agent"
+            description="Execute your agent. Results stream to your terminal in real-time."
           >
             <CodeBlock
-              code="stigmer run workflow.yaml --input file=document.txt"
+              code='stigmer agent run code-reviewer "Review PR #123"'
               language="bash"
             />
           </QuickstartStep>
+        </div>
+
+        {/* SDK Callout */}
+        <div className="mt-12 p-6 rounded-lg border border-border bg-muted/30">
+          <div className="flex items-start gap-4">
+            <div className="shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/20 flex items-center justify-center">
+                <Icon name="code" size="lg" className="text-primary" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                Need more power? Use the Go or Python SDK
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                For complex production workflows, drop into code:
+              </p>
+              <ul className="text-sm text-muted-foreground space-y-1 mb-4">
+                <li>• Full type safety and IDE support</li>
+                <li>• Programmatic workflow composition</li>
+                <li>• State management and error handling</li>
+                <li>• Unit testing and CI/CD integration</li>
+              </ul>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/docs/sdk">
+                  See SDK docs
+                  <Icon name="arrow-right" size="xs" />
+                </Link>
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* CTA */}

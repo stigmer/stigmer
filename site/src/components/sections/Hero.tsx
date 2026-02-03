@@ -25,7 +25,7 @@ export type HeroProps = React.HTMLAttributes<HTMLElement>;
 function Hero({ className, ...props }: HeroProps) {
   const [copied, setCopied] = React.useState(false);
 
-  const installCommand = "go install github.com/stigmer/stigmer/cmd/stigmer@latest";
+  const installCommand = "brew install stigmer/tap/stigmer";
 
   const handleCopy = async () => {
     try {
@@ -85,15 +85,15 @@ function Hero({ className, ...props }: HeroProps) {
         <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
           <Badge variant="outline" className="gap-1">
             <Icon name="unlock" size="xs" />
-            Open Source
+            Apache 2.0
           </Badge>
           <Badge variant="outline" className="gap-1">
-            <Icon name="terminal" size="xs" />
-            CLI-First
+            <Icon name="activity" size="xs" />
+            Built on Temporal
           </Badge>
           <Badge variant="outline" className="gap-1">
-            <Icon name="cpu" size="xs" />
-            Any AI Model
+            <Icon name="file-code" size="xs" />
+            YAML + SDK
           </Badge>
         </div>
 
@@ -102,16 +102,15 @@ function Hero({ className, ...props }: HeroProps) {
           id="hero-heading"
           className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight mb-6"
         >
-          <span className="text-foreground">AI-Powered </span>
           <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
-            Workflow Automation
+            Agentic Workflows as Code
           </span>
         </h1>
 
         {/* Subheadline */}
         <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-          Define workflows in YAML. Execute with a powerful CLI.
-          Integrate with any AI model. Build production-ready automations in minutes.
+          Define agents and workflows in YAML or Go/Python SDKs. 
+          Run locally with zero setup. Scale to cloud without code changes.
         </p>
 
         {/* CTAs */}
@@ -159,7 +158,7 @@ function Hero({ className, ...props }: HeroProps) {
             </Button>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Requires Go 1.21 or later
+            Start building: <code className="text-foreground">stigmer server</code>
           </p>
         </div>
       </div>
