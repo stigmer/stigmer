@@ -39,10 +39,35 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 4 - Project Entity & stigmer.yaml Foundation 🚀 **IN PROGRESS**
-**Current Sub-task**: T04.5 ✅ **COMPLETE** - Track Detection Logic
+**Current Sub-task**: T04.6 ✅ **COMPLETE** - Project Command Group
+**Next Sub-task**: T04.7 - Integration and Documentation
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-04 - Session 28 - Track Detection Logic):
+**Latest Session** (2026-02-04 - Session 29 - Project Command Group):
+- ✅ **COMPLETED Phase 4 Sub-task T04.6**: Project Command Group
+- Created `project.go` (236 lines) with `stigmer project` command group
+- Implemented two local-only subcommands:
+  - `info` - Display stigmer.yaml configuration (table/yaml/json output)
+  - `validate` - CI-friendly validation with exit codes (0=valid, 1=invalid)
+- **Key Features**:
+  - Uses track detection to find stigmer.yaml from cwd or parents
+  - `--output` flag for info format (table/yaml/json)
+  - `--dir` flag for custom search directory
+  - Helpful guidance when no project found (Atomic Track mode)
+  - CI-friendly exit codes for validate command
+- **Pattern Consistency**:
+  - Factory function: `NewProjectCommand()`
+  - Alias: `"proj"` (4-letter abbreviation)
+  - Options structs: `projectInfoOptions`, `projectValidateOptions`
+  - Execute functions: `executeProjectInfo()`, `executeProjectValidate()`
+  - 236 lines (comparable to agent.go at 262 lines)
+- **Zero New Internal Package Code**: Pure orchestration using existing infrastructure
+- **Build Verification**: gofmt pass, go vet pass, go build pass, 81 project tests pass
+- Changelog: `2026-02-04-131159-project-command-group-foundation.md`
+- Committed: `d4de260 feat(cli/project): add project command group with info and validate subcommands`
+- **Completion Time**: ~45 minutes
+
+**Previous Session** (2026-02-04 - Session 28 - Track Detection Logic):
 - ✅ **COMPLETED Phase 4 Sub-task T04.5**: Track Detection Logic
 - Implemented walk-up directory traversal to detect Project Track vs Atomic Track
 - Created `detect.go` (223 lines) with DetectTrack(), DetectOptions, DetectResult types
@@ -777,7 +802,7 @@ apis/stubs/             (REGENERATED via make protos)
 ## Next Steps
 
 **Phase 3 COMPLETE** ✅ (6 of 6 sub-tasks complete, 100%)
-**Phase 4 IN PROGRESS** 🚀 (7 of 8 sub-tasks complete, 87.5%)
+**Phase 4 IN PROGRESS** 🚀 (8 of 9 sub-tasks complete, 88.9%)
 
 ### Phase 4 Progress
 
@@ -828,17 +853,19 @@ apis/stubs/             (REGENERATED via make protos)
 - Binary track model: Atomic/Project (no legacy)
 - Comprehensive test coverage (37 tests, all passing)
 
-⏭️ **T04.6 NEXT**: Project Command Group (~75 min)
-- Create cmd/stigmer/root/project.go
-- Implement `stigmer project info` - display local stigmer.yaml
-- Implement `stigmer project validate` - validate stigmer.yaml without deploying
-- Wire up track detection to determine context
-- Test coverage for command orchestration
+✅ **T04.6 COMPLETE**: Project Command Group
+- Created cmd/stigmer/root/project.go (236 lines)
+- `stigmer project info` - display local stigmer.yaml (table/yaml/json)
+- `stigmer project validate` - CI-friendly validation (exit codes 0/1)
+- Registered NewProjectCommand() in root.go
+- Zero new internal package code - pure orchestration
 
-**Upcoming Sub-tasks**:
-- T04.5: Track Detection Logic - walk-up algorithm for stigmer.yaml
-- T04.6: Project Command Group - info and validate subcommands
-- T04.7: Integration and Documentation - E2E testing, examples
+⏭️ **T04.7 NEXT**: Integration and Documentation (~60 min)
+- Create `examples/project/stigmer.yaml` with valid Project format
+- Test `stigmer project info` and `stigmer project validate` (when CLI builds)
+- Test track detection with various directory structures
+- Update project documentation
+- Create Phase 4 completion changelog
 
 ---
 
