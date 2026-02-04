@@ -47,6 +47,14 @@ export const metadata: Metadata = {
   authors: [{ name: "Stigmer Team" }],
   creator: SITE_CONFIG.name,
   publisher: SITE_CONFIG.name,
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -56,7 +64,7 @@ export const metadata: Metadata = {
     siteName: SITE_CONFIG.name,
     images: [
       {
-        url: `${SITE_CONFIG.url}/opengraph-image`,
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: `${SITE_CONFIG.name} — ${SITE_CONFIG.tagline}`,
@@ -67,7 +75,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${SITE_CONFIG.name} — ${SITE_CONFIG.tagline}`,
     description: SITE_CONFIG.description,
-    images: [`${SITE_CONFIG.url}/twitter-image`],
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,
@@ -103,7 +111,7 @@ export default function RootLayout({
         "url": SITE_CONFIG.url,
         "logo": {
           "@type": "ImageObject",
-          "url": `${SITE_CONFIG.url}/opengraph-image`,
+          "url": `${SITE_CONFIG.url}/og-image.png`,
         },
         "sameAs": [SITE_CONFIG.githubUrl],
       },
