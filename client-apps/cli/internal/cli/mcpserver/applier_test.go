@@ -15,12 +15,12 @@ import (
 // =============================================================================
 
 const (
-	testOrgID        = "org_01kewqjbtdy0w4d14bnhhy4yc2"
-	testMcpServerID  = "mcp_01kewqjbtdy0w4d14bnhhy4yc2"
-	testServerName   = "test-server"
-	testServerSlug   = "test-server"
-	testCommand      = "node"
-	testDescription  = "Test MCP server"
+	testOrgID       = "org_01kewqjbtdy0w4d14bnhhy4yc2"
+	testMcpServerID = "mcp_01kewqjbtdy0w4d14bnhhy4yc2"
+	testServerName  = "test-server"
+	testServerSlug  = "test-server"
+	testCommand     = "node"
+	testDescription = "Test MCP server"
 )
 
 // =============================================================================

@@ -214,7 +214,6 @@ runtime: go
 	assert.Equal(t, "main.go", config.Main)
 }
 
-
 func TestStigmerConfig_SetDefaults_PreservesExistingMain(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `name: test-project
