@@ -39,11 +39,53 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 5 - Backend + Full CLI Integration 🚀 **IN PROGRESS**
-**Current Sub-task**: T05.13 ✅ **COMPLETE** - DependencyDiscoverer
-**Next Sub-task**: T05.14 - DependencyGraphBuilder
+**Current Sub-task**: T05.14 ✅ **COMPLETE** - DependencyGraphBuilder
+**Next Sub-task**: T05.15 - ProjectReconciliationService Foundation
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-04 - Session 38 - DependencyDiscoverer - T05.13):
+**Latest Session** (2026-02-04 - Session 39 - DependencyGraphBuilder - T05.14):
+- ✅ **COMPLETED Phase 5 Sub-task T05.14**: DependencyGraphBuilder - Graph construction from DesiredState
+- Implemented Spring component that builds dependency graphs using reflection-based DependencyDiscoverer
+- **Files Created**:
+  - `DependencyGraphBuilder.java` (~141 lines) - Spring @Component with buildFromDesiredState()
+  - `DependencyGraphBuilderTest.java` (~474 lines) - 21 comprehensive test methods
+  - Changelog: `2026-02-04-165704-dependency-graph-builder-t05.14.md`
+- **Key Design Decisions**:
+  - **Spring Component**: Constructor injection of DependencyDiscoverer for testability
+  - **Generic Scanning**: scanResources<T extends Message>() handles all resource types uniformly
+  - **Defensive Programming**: Returns DependencyGraph.empty() for null/empty input
+  - **Resource Key Convention**: Uses "{kind}:{slug}" format (e.g., "agent:etl-agent")
+  - **Open/Closed Principle**: Delegates to DependencyDiscoverer for schema-driven discovery
+- **Implementation Details**:
+  - buildFromDesiredState(DesiredState) iterates all resource types
+  - scanResources() computes resourceKey, discovers dependencies, adds edges
+  - Leverages DesiredState.toResourceKey() and DependencyDiscoverer.toResourceKey()
+  - Returns immutable DependencyGraph ready for topological sorting
+- **Test Coverage** (21 test methods across 7 nested classes):
+  - BasicFunctionalityTests: null/empty input, immutability (4 tests)
+  - SingleResourceTypeTests: agents, workflows, mcp_servers, skills (6 tests)
+  - MultiResourceGraphTests: mixed resources, shared dependencies (3 tests)
+  - SubAgentReferencesTests: nested skill refs, multi-level nesting (2 tests)
+  - EdgeCaseTests: many dependencies, deduplication (2 tests)
+  - RealWorldScenarioTests: data pipeline, topological ordering, complex agents (3 tests)
+  - GraphPropertiesTests: cycle detection, getAllNodes (2 tests)
+- **Engineering Quality**:
+  - Zero linter errors in both files
+  - 100% JavaDoc coverage on public methods
+  - Comprehensive real-world test scenarios
+  - Pattern follows DependencyDiscovererTest.java
+- **Build Status**:
+  - All tests passing (21 methods)
+  - Zero linter errors
+  - Committed: 1dc85d20 (stigmer-cloud), 619a74d6 (stigmer)
+- **Impact**:
+  - Enables T05.15 (ProjectReconciliationService) to use graph for reconciliation
+  - Provides topological sort for dependency-ordered resource creation
+  - Provides reverse topological sort for dependency-ordered resource deletion
+  - Detects circular dependencies via graph.detectCycle()
+- **Completion Time**: ~60 minutes (as estimated in Phase 5 plan)
+
+**Previous Session** (2026-02-04 - Session 38 - DependencyDiscoverer - T05.13):
 - ✅ **COMPLETED Phase 5 Sub-task T05.13**: DependencyDiscoverer - Reflection-based scanner
 - Implemented reflection-based proto scanner that discovers all ApiResourceReference fields automatically
 - **Files Created**:
@@ -1177,36 +1219,37 @@ apis/stubs/             (REGENERATED via make protos)
 | **T05.10** | ✅ **COMPLETE** | **60 min** | **Project Get Handler** |
 | **T05.11** | ✅ **COMPLETE** | **45 min** | **Project GetByReference Handler** |
 | **T05.12** | ✅ **COMPLETE** | **75 min** | **Domain Value Objects (8 records + 91 tests)** |
-| T05.13 | 🎯 **NEXT** | 60-75 min | DependencyDiscoverer (reflection-based) |
-| T05.14+ | 🚧 Pending | - | Remaining reconciliation implementation |
+| **T05.13** | ✅ **COMPLETE** | **60 min** | **DependencyDiscoverer (reflection-based scanner)** |
+| **T05.14** | ✅ **COMPLETE** | **60 min** | **DependencyGraphBuilder (graph construction)** |
+| T05.15 | 🎯 **NEXT** | 60-75 min | ProjectReconciliationService Foundation |
+| T05.16+ | 🚧 Pending | - | Remaining reconciliation implementation |
 
 ---
 
 ## 🎯 Next Steps - Ready to Continue
 
-### Latest Session (2026-02-04 - Session 37 - T05.12 Domain Value Objects)
+### Latest Session (2026-02-04 - Session 39 - T05.14 DependencyGraphBuilder)
 
 **Accomplished**:
-- ✅ **COMPLETED Phase 5 Sub-task T05.12**: Domain Value Objects for Reconciliation Engine
-- ✅ Implemented 8 immutable Java records (~1,476 lines):
-  - ChangeType.java (37 lines) - Internal enum for operation types
-  - ReconciliationError.java (92 lines) - Error tracking with cause
-  - DesiredState.java (163 lines) - Parsed from Project.spec
-  - ActualState.java (177 lines) - Fetched from repositories
-  - ResourceChange.java (169 lines) - Planned change with factories
-  - DependencyGraph.java (296 lines) - Kahn's algorithm + cycle detection
-  - ReconciliationPlan.java (261 lines) - Diff algorithm + execution order
-  - ReconciliationResult.java (281 lines) - Outcome + toProto()
-- ✅ Created comprehensive test suite (~800 lines, 91 test methods):
-  - DependencyGraphTest.java (20 methods) - Linear, diamond, cycles, real-world
-  - All other value objects tested with 10-14 methods each
-- ✅ Zero duplication: Uses ApiResourceReference proto directly
-- ✅ User feedback prevented ResourceReference duplication
-- ✅ Zero linter errors
-- ✅ Created changelog: 2026-02-04-162852-domain-value-objects-reconciliation-t05.12.md
-- ✅ Committed: 30055488 feat(backend/project): add domain value objects for reconciliation engine (T05.12)
+- ✅ **COMPLETED Phase 5 Sub-task T05.14**: DependencyGraphBuilder - Graph construction from DesiredState
+- ✅ Implemented Spring component (~141 lines):
+  - DependencyGraphBuilder.java - @Component with constructor injection
+  - buildFromDesiredState() method iterates all resource types
+  - Generic scanResources<T>() for uniform handling
+  - Returns immutable DependencyGraph ready for topological sorting
+- ✅ Created comprehensive test suite (~474 lines, 21 test methods):
+  - BasicFunctionalityTests (4) - null/empty input, immutability
+  - SingleResourceTypeTests (6) - agents, workflows, mcp_servers, skills
+  - MultiResourceGraphTests (3) - mixed resources, shared dependencies
+  - SubAgentReferencesTests (2) - nested skill refs
+  - EdgeCaseTests (2) - many dependencies, deduplication
+  - RealWorldScenarioTests (3) - data pipeline, topological ordering
+  - GraphPropertiesTests (2) - cycle detection, getAllNodes
+- ✅ Zero linter errors, all tests passing
+- ✅ Created changelog: 2026-02-04-165704-dependency-graph-builder-t05.14.md
+- ✅ Committed: 1dc85d20 (stigmer-cloud), 619a74d6 (stigmer)
 
-**Phase 5 Progress**: **12 of 29 sub-tasks complete** (T05.0, T05.2-T05.12)
+**Phase 5 Progress**: **14 of 29 sub-tasks complete** (T05.0, T05.2-T05.14)
 
 ### Backend Handler Status
 
@@ -1235,24 +1278,28 @@ Commits:
 - c2c22b46: refactor(backend/grpc-request): remove ApiResourceOwnerScope references
 - 30055488: feat(backend/project): add domain value objects for reconciliation engine (T05.12)
 
-### Immediate Next Task: T05.13 - DependencyDiscoverer
+### Immediate Next Task: T05.15 - ProjectReconciliationService Foundation
 
-**Goal**: Create reflection-based scanner that finds ALL ApiResourceReference fields dynamically.
+**Goal**: Create the Domain Service skeleton with dependency injection that orchestrates the reconciliation workflow.
 
-**Pattern**: Open/Closed Principle - works automatically when proto evolves
+**Pattern**: Domain Service following DDD principles
 
 **Key Implementation**:
-- Scan proto message tree using reflection
-- Find all fields of type `ai.stigmer.commons.apiresource.ApiResourceReference`
-- Extract kind, org, slug from each reference
-- No hardcoded field paths - schema-driven discovery
-- Works automatically when new reference fields are added
+- Spring `@Service` with constructor injection of repositories and builders
+- Main entry point: `reconcile(Project project, ReconciliationOptions options)`
+- Orchestration flow:
+  1. Parse desired state from `project.spec` (T05.16)
+  2. Fetch actual state from repositories (T05.17)
+  3. Build dependency graph using `DependencyGraphBuilder` ✅
+  4. Compute diff and create `ReconciliationPlan` (T05.18)
+  5. Execute plan in topological order (T05.19)
+  6. Prune orphans if enabled (T05.20)
 
 **Estimated Duration**: 60-75 minutes
 
-**Pattern Reference**: Backend reflection patterns for proto introspection
+**Dependencies**: All prerequisites complete (DependencyDiscoverer ✅, DependencyGraphBuilder ✅)
 
-**To Resume**: Start working on T05.13 following reflection-based scanning approach
+**To Resume**: Start working on T05.15 following reconciliation service patterns
 
 ---
 
