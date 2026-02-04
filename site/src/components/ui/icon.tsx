@@ -20,6 +20,7 @@ import {
   Lightbulb,
   Package,
   ArrowRight,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 
@@ -46,6 +47,7 @@ const iconMap = {
   lightbulb: Lightbulb,
   package: Package,
   "arrow-right": ArrowRight,
+  shield: Shield,
 } as const;
 
 /**

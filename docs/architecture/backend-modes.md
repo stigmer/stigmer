@@ -11,7 +11,7 @@ flowchart TB
     CLI -->|stigmer login| Cloud[Cloud Backend]
     
     Local --> Daemon[Local Daemon<br/>localhost:50051]
-    Local --> DB[BadgerDB<br/>~/.stigmer/data]
+    Local --> DB[SQLite<br/>~/.stigmer/stigmer.db]
     Local --> Temporal[Temporal<br/>localhost:7233]
     
     Cloud --> API[Stigmer Cloud API<br/>api.stigmer.ai:443]
@@ -32,7 +32,7 @@ flowchart TB
 | **Organization** | Constant `"local"` | User-provided org ID |
 | **Authentication** | None | Token-based |
 | **Daemon** | Auto-started | Not used (remote API) |
-| **Storage** | BadgerDB (`~/.stigmer/data`) | Stigmer Cloud |
+| **Storage** | SQLite (`~/.stigmer/stigmer.db`) | Stigmer Cloud |
 | **Network** | localhost:50051 | api.stigmer.ai:443 |
 | **TLS** | Insecure (localhost) | TLS + auth token |
 | **Collaboration** | Single user | Teams, RBAC |
@@ -45,7 +45,7 @@ flowchart TB
 **Components:**
 - **Stigmer CLI** - User interface
 - **Local Daemon** (stigmer-server) - gRPC server on localhost:50051
-- **BadgerDB** - Embedded key-value store
+- **SQLite** - Embedded relational database
 - **Temporal** - Workflow orchestrator (auto-managed)
 - **Agent Runner** - Python subprocess for agent execution
 
@@ -61,7 +61,7 @@ flowchart TB
 │ localhost:50051  │
 └───────┬──────────┘
         │
-        ├─→ [BadgerDB]     ~/.stigmer/data/stigmer.db
+        ├─→ [SQLite]       ~/.stigmer/stigmer.db
         ├─→ [Temporal]     localhost:7233
         └─→ [Agent Runner] Python subprocess
 ```

@@ -123,7 +123,7 @@ Both WorkflowExecution and AgentExecution have complete streaming support:
 
 ```
 Write Path:
-workflow-runner → UpdateStatus RPC → BadgerDB persist → Broadcast → Go channels
+workflow-runner → UpdateStatus RPC → SQLite persist → Broadcast → Go channels
 
 Read Path:
 CLI (stigmer run) → Subscribe RPC → Go channel subscription → Real-time stream → CLI

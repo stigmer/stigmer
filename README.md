@@ -2,13 +2,13 @@
 
 **Build AI agents and workflows with zero infrastructure.**
 
-Stigmer is an open-source agentic automation platform that runs locally with BadgerDB key-value store or scales to production with Stigmer Cloud. Define agents and workflows in code, execute them anywhere.
+Stigmer is an open-source agentic automation platform that runs locally with SQLite database or scales to production with Stigmer Cloud. Define agents and workflows in code, execute them anywhere.
 
 ## Why Stigmer?
 
 Most AI agent frameworks force you to choose: either run locally with limited features, or commit to a cloud platform from day one. Stigmer gives you both.
 
-**Local Mode**: Run agents and workflows on your laptop with a BadgerDB key-value store. No servers, no auth, no complexity. Perfect for development, personal projects, and small teams.
+**Local Mode**: Run agents and workflows on your laptop with a SQLite database. No servers, no auth, no complexity. Perfect for development, personal projects, and small teams.
 
 **Cloud Mode**: When you're ready, `stigmer login` switches to Stigmer Cloud for multi-user collaboration, secrets management, and production scale—without changing your code.
 
@@ -146,13 +146,13 @@ Stigmer uses an **Open Core** model with a clean separation between local and cl
 │                       │                                      │
 │                       ↓                                      │
 │         ┌──────────────────────────────┐                    │
-│         │   BadgerDB Storage Layer     │                    │
-│         │  (libs/go/badger)            │                    │
+│         │   SQLite Storage Layer       │                    │
+│         │  (libs/go/store/sqlite)      │                    │
 │         │                              │                    │
-│         │  Key-Value Pattern:          │                    │
-│         │  - Key: kind/id              │                    │
-│         │  - Value: Protobuf bytes     │                    │
-│         │  - Prefix scan for listing   │                    │
+│         │  Single-file database:       │                    │
+│         │  - ACID transactions         │                    │
+│         │  - Full-text search (FTS5)   │                    │
+│         │  - Standard SQL queries      │                    │
 │         └──────────────────────────────┘                    │
 └─────────────────────────────────────────────────────────────┘
                        │
@@ -176,8 +176,8 @@ Stigmer uses an **Open Core** model with a clean separation between local and cl
 - Agent and workflow CRUD operations
 - **Location**: `client-apps/cli/` - [See CLI README](client-apps/cli/README.md)
 
-**stigmer-server** - Go gRPC API server with BadgerDB storage
-- Key-value storage with prefix scanning (zero schema migrations)
+**stigmer-server** - Go gRPC API server with SQLite storage
+- Relational storage with standard SQL queries
 - In-process gRPC (no network overhead for local usage)
 - Protobuf validation
 - **Location**: `backend/services/stigmer-server/`
@@ -211,7 +211,7 @@ For full local development with agent execution:
 │  Layer 2: API Server (stigmer-server - Go)                │
 │  ┌──────────────────────────────────────────────────────┐ │
 │  │  Controllers: Agent, Workflow, Session, etc.         │ │
-│  │  Storage: BadgerDB (~/.stigmer/data/)                │ │
+│  │  Storage: SQLite (~/.stigmer/stigmer.db)             │ │
 │  └──────────────────┬───────────────────────────────────┘ │
 └────────────────────│──────────────────────────────────────┘
                      │ Temporal Client
@@ -249,24 +249,34 @@ stigmer local
 
 ### Storage Strategy
 
-Stigmer uses **BadgerDB** with a simple **key-value pattern**:
+Stigmer uses **SQLite** with the pure Go modernc.org/sqlite driver.
 
-**Key Format**: `resource_kind/resource_id` (e.g., `agent/abc123`)  
-**Value**: Raw Protobuf bytes (no JSON conversion overhead)
+**Why SQLite?**
+- ✅ Industry standard embedded database (powers Chrome, Firefox, iOS apps)
+- ✅ Universal tooling: sqlite3 CLI, DataGrip, DB Browser for SQLite
+- ✅ Standard SQL: developers already know the query language
+- ✅ Inspectable: `sqlite3 ~/.stigmer/stigmer.db` works immediately
+- ✅ Pure Go driver: no CGO dependencies, builds work everywhere
+- ✅ ACID transactions: correctness guarantees for agent state
+- ✅ Built-in FTS5: full-text search without external dependencies
+- ✅ Single-file database: simple backups and portability
 
-**Listing**: BadgerDB's prefix scan enables fast listing by kind:
-```go
-// List all agents: Seek("agent/")
-// List all workflows: Seek("workflow/")
+**Schema Design**:
+```sql
+CREATE TABLE resources (
+    kind TEXT NOT NULL,
+    id TEXT NOT NULL,
+    data BLOB NOT NULL,  -- Protobuf-serialized resource
+    PRIMARY KEY (kind, id)
+);
+CREATE INDEX idx_kind ON resources(kind);
 ```
 
 **Benefits**:
-- ✅ Zero schema migrations when adding new resource kinds
-- ✅ 10-50x faster than SQLite for Protobuf storage (no JSON conversion)
-- ✅ Pure Go implementation (no CGO dependencies)
-- ✅ 90% less persistence layer code
-
-See [ADR: Local Backend to Use BadgerDB](docs/adr/20260118-181912-local-backend-to-use-badgerdb.md)
+- Fast listing by kind: `SELECT * FROM resources WHERE kind = 'agent'`
+- Developer-friendly: inspect data with any SQLite client
+- Zero schema migrations when adding new resource types
+- Full-text search on agent descriptions with FTS5 virtual tables
 
 ### Open Source vs Cloud
 
@@ -276,7 +286,7 @@ See [ADR: Local Backend to Use BadgerDB](docs/adr/20260118-181912-local-backend-
 - agent-runner (Python Temporal worker)
 - workflow-runner (Go Temporal worker)
 - Go and Python SDKs
-- BadgerDB storage layer
+- SQLite storage layer
 - **Repository**: `github.com/stigmer/stigmer`
 
 **Proprietary** (Stigmer Cloud):
@@ -366,14 +376,14 @@ Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to gi
 
 **How it works**:
 - Local daemon runs on `localhost:50051` (started with `stigmer local`)
-- BadgerDB key-value store in `~/.stigmer/data/` (daemon holds exclusive lock)
+- SQLite database in `~/.stigmer/stigmer.db` (single-file, portable)
 - CLI and Agent Runner both connect to daemon via gRPC
 - Single implicit user (`local-user`)
 - Uses Ollama by default (no API keys needed)
 - Auto-manages Temporal for workflow orchestration
 
 **What runs in local mode:**
-- **stigmer-server** (Go): gRPC API server with BadgerDB storage
+- **stigmer-server** (Go): gRPC API server with SQLite storage
 - **agent-runner** (Python): Temporal worker for executing AI agents
 - **Temporal** (managed): Workflow orchestration (auto-downloaded and started)
 
@@ -474,7 +484,7 @@ service AgentQueryController {
 }
 ```
 
-**Local Mode**: Implements these gRPC services with BadgerDB (in-process, no network).  
+**Local Mode**: Implements these gRPC services with SQLite (in-process, no network).  
 **Cloud Mode**: Implements these gRPC services over network with distributed storage.
 
 This guarantees:

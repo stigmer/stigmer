@@ -55,7 +55,7 @@ The backend (T01.3):
 4. **Calculates hash**: SHA256 of ZIP content (content fingerprint)
 5. **Checks for duplicates**: Same content = same hash = reuse existing file
 6. **Stores artifact**: Writes sealed ZIP to `~/.stigmer/storage/skills/<hash>.zip`
-7. **Updates database**: Saves metadata and SKILL.md text to BadgerDB
+7. **Updates database**: Saves metadata and SKILL.md text to SQLite
 8. **Archives previous version**: If updating, saves snapshot to audit collection
 
 ## Content-Addressable Storage
@@ -179,7 +179,7 @@ $ ls -la ~/.stigmer/storage/skills/
 
 ```
 ~/.stigmer/
-├── stigmer.db/                    # BadgerDB database
+├── stigmer.db                     # SQLite database
 └── storage/
     └── skills/
         ├── 7f3d2e1c...zip         # Sealed artifact (hash 1)
@@ -187,7 +187,7 @@ $ ls -la ~/.stigmer/storage/skills/
         └── d8e3f7a2...zip         # Sealed artifact (hash 3)
 ```
 
-### BadgerDB Schema
+### SQLite Schema
 
 #### Main Collection
 
@@ -273,7 +273,7 @@ func (c *SkillController) archiveSkill(ctx context.Context, skill *Skill) error 
 
 ### Why Manual Wrapper?
 
-**BadgerDB has no built-in CDC or triggers** (unlike MongoDB Change Streams).
+**SQLite has no built-in CDC or triggers in our current setup** (unlike MongoDB Change Streams).
 
 Manual wrapper is:
 - ✅ Explicit and reliable

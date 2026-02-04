@@ -481,7 +481,7 @@ Six proto files define the complete McpServer API:
 **stigmer (Go)**:
 - Local controller for development
 - Pipeline-based operations
-- BadgerDB persistence
+- SQLite persistence
 - Comprehensive tests
 
 ### CLI Commands

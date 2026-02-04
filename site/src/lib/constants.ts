@@ -8,11 +8,11 @@ export const SITE_CONFIG = {
   name: "Stigmer",
 
   /** Site tagline */
-  tagline: "Agents as Microservices",
+  tagline: "Build Agents. Skip the Infrastructure.",
 
   /** Full site description */
   description:
-    "Build agents in YAML or Go SDKs. Deploy once. Call from everywhere via gRPC. Update agents independently—all consumers benefit instantly. Stigmer handles sandboxing, orchestration, and MCP connections.",
+    "Open source platform for building AI agents. We handle sandboxing, orchestration, and MCP security. You write YAML or Go. Agents run locally with zero cloud dependency or scale to production. gRPC integration works with any language.",
 
   /** Production URL */
   url: "https://stigmer.ai",
@@ -78,39 +78,39 @@ export const FOOTER_LINKS = {
  */
 export const FEATURES = [
   {
-    title: "Start Simple, Scale Naturally",
+    title: "Isolated Execution Environments",
     description:
-      "5-line YAML agent today. Type-safe Go SDK when you need conditionals, loops, error handling. No migration—both work together. Start with YAML for experiments, grow into SDK for production. No rip-and-replace.",
-    icon: "file-code",
+      "Every agent runs in its own sandbox. MCP servers are isolated. File system access is controlled. Your agents can't interfere with each other or your system.",
+    icon: "shield",
   },
   {
-    title: "One Command, Zero Config",
+    title: "Temporal Workflows Under the Hood",
     description:
-      "Run `stigmer server` and you're building. No Docker to configure. No databases to set up. No YAML hell. Stigmer auto-downloads Temporal, configures SQLite for local dev. The 2 weeks of DevOps work happens in 30 seconds.",
-    icon: "terminal",
-  },
-  {
-    title: "Production-Grade Stack",
-    description:
-      "Temporal workflows. gRPC contracts. Go SDK with full type safety and IDE autocomplete. Event sourcing patterns. Your local setup mirrors production architecture—just scaled down. Graduate to Stigmer Cloud when ready. Same code, managed infrastructure.",
+      "Agent execution is Temporal workflows. Automatic retries. Durable state. Event sourcing. You don't write workflow code—Stigmer generates it from your agent spec.",
     icon: "cpu",
   },
   {
-    title: "Bring Your Own AI",
+    title: "Zero Cloud Dependency",
     description:
-      "Ollama for free local development. OpenAI or Anthropic for production. Or your own model via LangChain integration. API key optional, not required.",
-    icon: "activity",
+      "Runs 100% locally with SQLite. No auth, no network, no Docker setup. One command: stigmer local. Your agents execute in seconds.",
+    icon: "terminal",
   },
   {
-    title: "Fully Open Source",
+    title: "Start Simple, Grow into Code",
     description:
-      "Source code on GitHub. Fork it. Modify it. Self-host it. Public gRPC contracts at github.com/stigmer/stigmer/apis/. Build on Stigmer, extend Stigmer, or learn from Stigmer.",
-    icon: "unlock",
+      "5-line YAML agent today. Type-safe Go SDK tomorrow. Both work together. Your choice, your timeline.",
+    icon: "file-code",
   },
   {
-    title: "Integrate Agents Anywhere",
+    title: "Call from Any Language",
     description:
-      "Public gRPC protos. Type-safe contracts. Call agents from Go, Python, Java, TypeScript, Rust—any language with gRPC support. Agents are microservices, not libraries. Update once, all consumers benefit instantly.",
+      "Public gRPC contracts. Generated clients for Go, Python, Java, TypeScript, Rust. Your apps call agents like any microservice.",
     icon: "network",
+  },
+  {
+    title: "Apache 2.0. Fork It. Own It.",
+    description:
+      "Source code on GitHub. Public proto contracts. No vendor lock-in. Build on Stigmer, extend Stigmer, or learn from Stigmer.",
+    icon: "unlock",
   },
 ] as const;
