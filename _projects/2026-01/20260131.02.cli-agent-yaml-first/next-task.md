@@ -39,11 +39,44 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 5 - Backend + Full CLI Integration 🚀 **IN PROGRESS**
-**Current Sub-task**: T05.19 ✅ **COMPLETE** - Dependency-Ordered Apply
-**Next Sub-task**: T05.20 - Handler Integration (Integrate reconciliation into create/update handlers)
+**Current Sub-task**: T05.20 ✅ **COMPLETE** - Orphan Pruning with Safety Controls
+**Next Sub-task**: T05.21 - SDK Synthesis Runner (Execute SDK entry point and capture output)
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-04 - Session 43 - Dependency-Ordered Apply - T05.19):
+**Latest Session** (2026-02-04 - Session 44 - Orphan Pruning - T05.20):
+- ✅ **COMPLETED Phase 5 Sub-task T05.20**: Orphan Pruning with Safety Controls
+- Enhanced reconciliation engine with robust orphan deletion capabilities
+- **Files Modified**:
+  - `ReconciliationPlan.java` (+97 lines) - Kind-based deletion ordering
+  - `ReconciliationOptions.java` (+22 lines) - Safety documentation
+  - `ProjectReconciliationService.java` (+27 lines) - Safety documentation
+  - `ProjectReconciliationServiceTest.java` (+213 lines) - 6 new orphan tests
+  - Changelog: `2026-02-04-orphan-pruning-safety-controls-t05.20.md`
+- **Implementation Highlights**:
+  - Kind-based deletion ordering: Workflows → Agents → MCP Servers → Skills
+  - Deterministic slug-based ordering within same kind
+  - Comprehensive safety warnings in JavaDoc
+  - Audit trail for all deletions
+- **New Test Methods** (6 tests added):
+  - `shouldDeleteOrphansInKindOrder` - Verifies correct deletion hierarchy
+  - `shouldHandleMultipleOrphansOfSameKind` - Alphabetical ordering within kind
+  - `shouldContinueDeletingAfterPartialFailure` - Error resilience
+  - `shouldSkipOrphanWithMissingResourceId` - Edge case handling
+  - `shouldHandleLargeNumberOfOrphansEfficiently` - Performance test (50+ orphans)
+- **Safety Controls**:
+  - `--prune=false` flag disables deletion entirely
+  - `log.warn()` before each orphan deletion
+  - All deletions tracked in ReconciliationResult
+  - Deterministic ordering prevents race conditions
+- **Engineering Quality**:
+  - Zero linter errors
+  - Comprehensive JavaDoc with safety warnings
+  - Production-ready orphan pruning
+- **Commits**: 
+  - c90e3754 feat(backend/project): add orphan pruning with safety controls (T05.20) (stigmer-cloud)
+- **Completion Time**: ~45 minutes (as estimated in Phase 5 plan)
+
+**Previous Session** (2026-02-04 - Session 43 - Dependency-Ordered Apply - T05.19):
 - ✅ **COMPLETED Phase 5 Sub-task T05.19**: Dependency-Ordered Apply - Reconciliation Execution Engine
 - Replaced stub executePlan() with production-ready dependency-ordered execution
 - **Files Modified**:
@@ -1404,8 +1437,9 @@ apis/stubs/             (REGENERATED via make protos)
 | **T05.17** | ✅ **COMPLETE** | **45 min** | **Actual State Fetching (fetchActualState + findByProjectId)** |
 | **T05.18** | ✅ **COMPLETE** | **75 min** | **Diff Algorithm (comprehensive test verification)** |
 | **T05.19** | ✅ **COMPLETE** | **60 min** | **Dependency-Ordered Apply (execute plan in topological order)** |
-| T05.20 | 🎯 **NEXT** | 45-60 min | Handler Integration (Integrate reconciliation into create/update handlers) |
-| T05.21+ | 🚧 Pending | - | Remaining reconciliation implementation |
+| **T05.20** | ✅ **COMPLETE** | **45 min** | **Orphan Pruning with Safety Controls** |
+| T05.21 | 🎯 **NEXT** | 60-75 min | SDK Synthesis Runner (Execute SDK entry point and capture output) |
+| T05.22+ | 🚧 Pending | - | Remaining CLI and testing implementation |
 
 ---
 
@@ -1427,7 +1461,7 @@ apis/stubs/             (REGENERATED via make protos)
 - ✅ Commits: ca92ac0e (stigmer-cloud), a017100a (stigmer)
 - ✅ Changelog: 2026-02-04-173120-diff-algorithm-comprehensive-tests-t05.18.md
 
-**Phase 5 Progress**: **17 of 29 sub-tasks complete** (T05.0, T05.2-T05.18)
+**Phase 5 Progress**: **19 of 29 sub-tasks complete** (T05.0, T05.2-T05.20)
 
 **Previous Session** (2026-02-04 - Session 41 - T05.16 Verification)
 
