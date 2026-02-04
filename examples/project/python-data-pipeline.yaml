@@ -1,0 +1,98 @@
+# Python Data Pipeline Project
+#
+# This example demonstrates a realistic Python project for data processing workflows.
+# Use this as a template for batch processing, ETL pipelines, or ML data preparation.
+
+apiVersion: agentic.stigmer.ai/v1
+kind: Project
+
+metadata:
+  name: customer-analytics-pipeline
+  org: data-team
+  
+  # Labels help organize and filter projects in multi-project environments.
+  # They're key-value pairs that can be used for grouping, searching, and automation.
+  labels:
+    team: data-engineering
+    environment: production
+    cost-center: analytics
+    data-classification: internal
+
+spec:
+  runtime: python
+  
+  # Python projects often have custom entry points for different deployment scenarios.
+  # Here we use a pipeline-specific entry point that contains all workflow definitions.
+  entry_point: pipelines/main.py
+  
+  description: |
+    Customer analytics data pipeline processing daily transaction data.
+    
+    This project orchestrates:
+    - Raw data ingestion from S3
+    - Data validation and cleaning
+    - Feature extraction with ML agents
+    - Aggregation and reporting
+    - Results upload to data warehouse
+    
+    Runs daily at 2 AM UTC via scheduled workflow execution.
+
+# Python Runtime Details:
+#
+# Execution: The CLI runs `python pipelines/main.py` to synthesize resources
+# 
+# Your entry_point should:
+# 1. Import the Stigmer Python SDK
+# 2. Define agents, workflows, or other resources using SDK functions
+# 3. The SDK writes manifests to .stigmer/ directory
+# 4. CLI reads manifests and deploys to backend
+#
+# Example pipelines/main.py structure:
+#
+#   from stigmer import Context
+#   from stigmer.workflow import Workflow
+#   from stigmer.agent import Agent
+#   
+#   def main(ctx: Context):
+#       # Define data validation agent
+#       validator = Agent(
+#           ctx,
+#           name="data-validator",
+#           instructions="Validate data quality and schema compliance..."
+#       )
+#       
+#       # Define ETL workflow
+#       etl_workflow = Workflow(
+#           ctx,
+#           name="daily-customer-analytics",
+#           tasks=[
+#               # Task definitions...
+#           ]
+#       )
+#   
+#   if __name__ == "__main__":
+#       from stigmer import run
+#       run(main)
+#
+# Dependencies:
+# - Manage Python dependencies via requirements.txt or pyproject.toml
+# - The SDK synthesis happens in an isolated environment
+# - Your dependencies are installed before entry_point execution
+
+# Labels Strategy:
+#
+# team: data-engineering
+#   - All data team projects share this label
+#   - Enables queries like "show all data-engineering projects"
+#
+# environment: production
+#   - Distinguishes from dev/staging versions
+#   - Used for access control and monitoring
+#
+# cost-center: analytics
+#   - For cost allocation and budgeting
+#   - Links project to specific business unit
+#
+# data-classification: internal
+#   - Security/compliance metadata
+#   - Determines access policies and audit requirements

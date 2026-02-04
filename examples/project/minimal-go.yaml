@@ -1,0 +1,51 @@
+# Minimal Stigmer Project Configuration
+#
+# This is the simplest valid stigmer.yaml - perfect for getting started.
+# Place this file at the root of your project directory alongside your entry_point.
+
+apiVersion: agentic.stigmer.ai/v1
+kind: Project
+
+metadata:
+  # Project name must be unique within your organization.
+  # Use lowercase letters, numbers, and hyphens. Must start with a letter.
+  # Valid: "data-pipeline", "api-gateway", "ml-trainer"
+  # Invalid: "Data_Pipeline", "123-project", "my project"
+  name: minimal-project
+  
+  # Organization slug or ID. The project will be deployed to this organization.
+  # You can override this with --org flag or CLI context.
+  org: my-org
+
+spec:
+  # Runtime determines how your entry_point is executed.
+  # Options: go | python | node
+  # Each runtime has different default entry points (see below).
+  runtime: go
+  
+  # Optional: Entry point file for SDK synthesis.
+  # If omitted, defaults are: main.go (go), main.py (python), index.ts (node)
+  # 
+  # The entry_point must:
+  # - Exist in your project directory
+  # - Have an extension matching the runtime (.go for go, .py for python, .js/.ts for node)
+  # - Contain SDK code that defines resources (agents, workflows, etc.)
+  #
+  # entry_point: main.go  # This is the default for Go, so we can omit it
+  
+  # Optional: Human-readable description of what this project does.
+  # Shown in project listings and helps team members understand the project's purpose.
+  description: Minimal Go project showing essential configuration
+
+# What happens when you run 'stigmer apply':
+# 1. CLI finds this stigmer.yaml (walks up from current directory)
+# 2. CLI validates the configuration (schema + cross-field rules)
+# 3. CLI executes your entry_point (e.g., go run main.go)
+# 4. Your SDK code generates resource manifests (agents, workflows, etc.)
+# 5. CLI sends manifests to backend for reconciliation
+# 6. Backend creates/updates/deletes resources to match your desired state
+#
+# This is Project Track - SDK synthesis with automatic reconciliation.
+# For quick experiments with individual resources, use Atomic Track:
+#   stigmer agent apply agent.yaml
+#   stigmer workflow apply workflow.yaml
