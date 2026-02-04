@@ -38,12 +38,41 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Phase**: Phase 4 - Project Entity & stigmer.yaml Foundation ✅ **COMPLETE**
-**Current Sub-task**: All 9 sub-tasks complete (T04.1 through T04.7)
-**Next Phase**: Phase 5 - Backend + Full CLI Integration
+**Phase**: Phase 5 - Backend + Full CLI Integration 🚀 **IN PROGRESS**
+**Current Sub-task**: T05.2 ✅ **COMPLETE** - Project Get Foundation
+**Next Sub-task**: T05.3 - Project Delete Foundation
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-04 - Session 30 - Integration and Documentation Excellence):
+**Latest Session** (2026-02-04 - Session 31 - Project Get Foundation - T05.2):
+- ✅ **COMPLETED Phase 5 Sub-task T05.2**: Project Get Foundation
+- Created complete get infrastructure for project internal package
+- **Files Created**:
+  - `get.go` (84 lines) - GetFromBackend() and Get() functions with gRPC orchestration
+  - `get_test.go` (260 lines) - Comprehensive test suite with 8 test functions
+  - Changelog (730+ lines) - Complete documentation of implementation
+- **Files Modified**:
+  - `BUILD.bazel` - Added get.go, tests, and dependencies (reference, apiresourcekind, grpc)
+  - `reference.go` - Added IsProjectID() helper for consistency
+- **Key Features**:
+  - Automatic reference type detection (ID vs org/slug)
+  - Routes to correct RPC (Get by ID or GetByReference)
+  - Comprehensive error wrapping with actionable messages
+  - 100% pattern fidelity with agent/get.go (84 lines exact match)
+- **Testing Results**:
+  - All 89+ tests passing (81 existing + 8 new)
+  - Zero lint errors, zero vet warnings
+  - gofmt clean, bazel build/test successful
+- **Engineering Standards**:
+  - File size: 84 lines (33% of 250-line limit)
+  - All functions under 50 lines
+  - Comprehensive documentation
+  - Pattern matches agent/workflow exactly
+- **Unblocks**: T05.4 (Project CLI Commands) can now implement `stigmer project get`
+- Changelog: `2026-02-04-150653-project-get-foundation-cli-backend-integration.md`
+- Committed: `fe8e0a02 feat(cli/project): add project get foundation with gRPC backend integration`
+- **Completion Time**: ~45 minutes (as estimated in Phase 5 plan)
+
+**Previous Session** (2026-02-04 - Session 30 - Integration and Documentation Excellence):
 - ✅ **COMPLETED Phase 4 Sub-task T04.7**: Integration and Documentation
 - Created comprehensive examples and documentation for Project Track
 - **Examples Created** (examples/project/):
@@ -898,6 +927,75 @@ apis/stubs/             (REGENERATED via make protos)
 - Backend: 3-4 weeks
 - CLI: 2-3 weeks
 - Testing: 1-2 weeks
+
+### Phase 5 Progress Tracking
+
+| Sub-task | Status | Duration | Notes |
+|----------|--------|----------|-------|
+| T05.0 | 🚧 Pending | 45-60 min | Reconciliation Proto Types |
+| T05.1 | 🚧 Pending | 45-60 min | Project Applier Foundation |
+| **T05.2** | ✅ **COMPLETE** | **45 min** | **Project Get Foundation** |
+| T05.3 | 🎯 **NEXT** | 45-60 min | Project Delete Foundation |
+| T05.4 | 🚧 Blocked | 60-75 min | Project CLI Commands (needs T05.1-T05.3) |
+| T05.5+ | 🚧 Pending | - | Backend handlers & reconciliation |
+
+---
+
+## 🎯 Next Steps - Ready to Continue
+
+### Immediate Next Task: T05.3 - Project Delete Foundation
+
+**Goal**: Create `delete.go` for gRPC delete orchestration in the project internal package.
+
+**Pattern Reference**: [client-apps/cli/internal/cli/agent/delete.go](client-apps/cli/internal/cli/agent/delete.go)
+
+**Files to Create**:
+1. `client-apps/cli/internal/cli/project/delete.go` (~77 lines)
+   - `DeleteFromBackend(conn, projectID)` - Low-level gRPC delete
+   - `Delete(opts *DeleteOptions)` - High-level delete with validation
+   - `DeleteOptions` and `DeleteResult` structs
+
+**Implementation Pattern**:
+```go
+type DeleteOptions struct {
+    ProjectID string
+    Conn      grpc.ClientConnInterface
+}
+
+type DeleteResult struct {
+    Project *projectv1.Project  // Deleted project for confirmation
+}
+
+func DeleteFromBackend(conn grpc.ClientConnInterface, projectID string) (*projectv1.Project, error)
+func Delete(opts *DeleteOptions) (*DeleteResult, error)
+```
+
+**Dependencies**:
+- Reuses `Get()` to fetch project before deletion (user confirmation display)
+- Uses `ProjectCommandController.Delete()` RPC
+
+**Estimated Duration**: 45-60 minutes
+
+**To Resume**: Simply start working on T05.3 following the pattern from agent/delete.go
+
+---
+
+## 🚀 Quick Resume Instructions
+
+To continue this project, open a new chat and drag this file:
+```
+@_projects/2026-01/20260131.02.cli-agent-yaml-first/next-task.md
+```
+
+Then say: **"Start working on T05.3"** or **"Continue with next subtask"**
+
+The AI will:
+1. Read the Phase 5 plan for detailed implementation steps
+2. Create delete.go following agent/delete.go pattern
+3. Add comprehensive tests
+4. Update BUILD.bazel
+5. Verify build and tests
+6. Create changelog and commit
 
 ---
 
