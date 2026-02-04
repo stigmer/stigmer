@@ -214,6 +214,11 @@ func IsEnvironmentID(ref string) bool {
 	return isResourceIDWithKind(ref, apiresourcekind.ApiResourceKind_environment)
 }
 
+// IsProjectID returns true if the reference is a project resource ID.
+func IsProjectID(ref string) bool {
+	return isResourceIDWithKind(ref, apiresourcekind.ApiResourceKind_project)
+}
+
 // isUUID checks if a string looks like a UUID (8-4-4-4-12 format).
 func isUUID(s string) bool {
 	if len(s) != 36 {
