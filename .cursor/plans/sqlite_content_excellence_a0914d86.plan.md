@@ -191,7 +191,7 @@ CREATE INDEX idx_kind ON resources(kind);
 {
   title: "Zero Cloud Dependency",
   description:
-    "Runs 100% locally with SQLite. No auth, no network, no Docker setup. One command: stigmer local. Your agents execute in seconds.",
+    "Runs 100% locally with SQLite. No auth, no network, no Docker setup. One command: stigmer server. Your agents execute in seconds.",
   icon: "terminal",
 },
 ```

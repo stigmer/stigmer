@@ -37,7 +37,7 @@ Phase 4.3 content excellence updates incorrectly stated that Stigmer uses Badger
 
 3. **[site/src/lib/constants.ts](../../site/src/lib/constants.ts)**
    - Updated "Zero Cloud Dependency" feature: "Runs 100% locally with SQLite"
-   - Fixed command reference: `stigmer server` → `stigmer local`
+   - Command is `stigmer server` (consistent throughout)
 
 4. **[site/src/components/sections/Quickstart.tsx](../../site/src/components/sections/Quickstart.tsx)**
    - Updated description: "stores data in SQLite. Ready in seconds."
