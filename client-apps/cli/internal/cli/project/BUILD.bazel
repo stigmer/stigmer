@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "project",
     srcs = [
+        "detect.go",
         "display.go",
         "loader.go",
         "validator.go",
@@ -23,6 +24,7 @@ go_library(
 go_test(
     name = "project_test",
     srcs = [
+        "detect_test.go",
         "loader_test.go",
         "validator_test.go",
     ],
