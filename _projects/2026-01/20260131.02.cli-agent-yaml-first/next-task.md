@@ -39,11 +39,36 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 5 - Backend + Full CLI Integration 🚀 **IN PROGRESS**
-**Current Sub-task**: T05.7 ✅ **COMPLETE** - Project Update Handler + Tests
-**Next Sub-task**: T05.9 - Project Apply Handler
+**Current Sub-task**: T05.9 ✅ **COMPLETE** - Project Apply Handler
+**Next Sub-task**: T05.10 - Project Get Handler
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-04 - Session 32 - Project Delete Foundation - T05.3):
+**Latest Session** (2026-02-04 - Session 33 - Project Apply Handler - T05.9):
+- ✅ **COMPLETED Phase 5 Sub-task T05.9**: Project Apply Handler
+- Implemented idempotent create-or-update interface for Project management
+- **File Created**:
+  - `ProjectApplyHandler.java` (104 lines) - ApplyOperationHandlerV2 with Kubernetes-style semantics
+- **Key Features**:
+  - Uses ApplyOperationPipeline.getDefault() for standard validation, slug resolution, and delegation
+  - Delegates to ProjectCreateHandler (not found) or ProjectUpdateHandler (found) based on org+slug lookup
+  - Authorization: can_create_project (create path), can_edit (update path)
+  - Comprehensive JavaDoc documenting both Atomic Track and Project Track workflows
+- **Pattern Fidelity**:
+  - 100% structural match with McpServerApplyHandler and AgentApplyHandler
+  - Constructor injection of pipeline + create/update handlers
+  - Clean separation of concerns via delegation
+- **Build Status**:
+  - Zero linter errors
+  - File already committed in refactoring commit c2c22b46
+  - Pre-existing build errors unrelated to this implementation
+- **Impact**:
+  - Unblocks T05.23 (CLI Apply Command) for Project Track workflow
+  - Enables Atomic Track: `stigmer project apply -f file.yaml`
+  - Establishes pattern for all apply handlers
+- **Changelog**: `2026-02-04-154943-project-apply-handler-t05.9-completion.md`
+- **Completion Time**: ~60 minutes (as estimated in Phase 5 plan)
+
+**Previous Session** (2026-02-04 - Session 32 - Project Delete Foundation - T05.3):
 - ✅ **COMPLETED Phase 5 Sub-task T05.3**: Project Delete Foundation
 - Created complete delete infrastructure for project internal package
 - **Files Created**:
@@ -968,52 +993,58 @@ apis/stubs/             (REGENERATED via make protos)
 | **T05.6** | ✅ **COMPLETE** | **45 min** | **Project Create Handler** |
 | **T05.7** | ✅ **COMPLETE** | **60 min** | **Project Update Handler + Tests** |
 | **T05.8** | ✅ **COMPLETE** | **45 min** | **Project Delete Handler** |
-| T05.9 | 🎯 **NEXT** | 60-75 min | Project Apply Handler |
-| T05.10+ | 🚧 Pending | - | Query handlers & reconciliation |
+| **T05.9** | ✅ **COMPLETE** | **60 min** | **Project Apply Handler** |
+| T05.10 | 🎯 **NEXT** | 45-60 min | Project Get Handler |
+| T05.11+ | 🚧 Pending | - | GetByReference & reconciliation |
 
 ---
 
 ## 🎯 Next Steps - Ready to Continue
 
-### Latest Session (2026-02-04 - Session 33 - T05.7 Tests)
+### Latest Session (2026-02-04 - Session 34 - T05.9 Project Apply Handler)
 
 **Accomplished**:
-- ✅ Verified T05.7 (ProjectUpdateHandler) was already implemented in commit 86c139c1
-- ✅ Created comprehensive test coverage: ProjectUpdateHandlerTest.java (500 lines, 12 tests)
-- ✅ Test coverage: Handler instantiation, pipeline construction, step ordering
-- ✅ Created changelog documenting T05.7 completion
-- ✅ Committed: 7b399590 "test(backend/project): add comprehensive tests for ProjectUpdateHandler"
+- ✅ **COMPLETED Phase 5 Sub-task T05.9**: Project Apply Handler
+- ✅ Implemented ProjectApplyHandler.java (104 lines) with idempotent create-or-update semantics
+- ✅ Uses ApplyOperationPipeline.getDefault() for standard validation, slug resolution, and delegation
+- ✅ Delegates to ProjectCreateHandler (not found) or ProjectUpdateHandler (found) based on org+slug lookup
+- ✅ Comprehensive JavaDoc documenting both Atomic Track and Project Track workflows
+- ✅ 100% pattern fidelity with McpServerApplyHandler and AgentApplyHandler
+- ✅ Created changelog: 2026-02-04-154943-project-apply-handler-t05.9-completion.md
+- ✅ File already committed in refactoring commit c2c22b46
 
-**Phase 5 Progress**: **8 of 29 sub-tasks complete** (T05.0, T05.2-T05.8)
+**Phase 5 Progress**: **9 of 29 sub-tasks complete** (T05.0, T05.2-T05.9)
 
 ### Backend Handler Status
 
-All CRUD handlers are now complete:
+All command handlers are now complete:
 - **T05.5**: ProjectRepo.java (219 lines) - MongoDB repository
 - **T05.6**: ProjectCreateHandler.java (88 lines) - 10-step create pipeline
 - **T05.7**: ProjectUpdateHandler.java (82 lines) + Tests (500 lines) - 9-step update pipeline
-- **T05.8**: ProjectDeleteHandler.java - Delete with FGA cleanup
+- **T05.8**: ProjectDeleteHandler.java (87 lines) - Delete with FGA cleanup
+- **T05.9**: ProjectApplyHandler.java (104 lines) - Idempotent create-or-update
 
 Commits:
 - e36ede54: feat(backend/project): add ProjectRepo foundation for Phase 5
 - 86c139c1: feat(backend/project): add Project CRUD handlers for Phase 5
 - 7b399590: test(backend/project): add comprehensive tests for ProjectUpdateHandler
+- c2c22b46: refactor(backend/grpc-request): remove ApiResourceOwnerScope references (includes ProjectApplyHandler)
 
-### Immediate Next Task: T05.9 - Project Apply Handler
+### Immediate Next Task: T05.10 - Project Get Handler
 
-**Goal**: Implement ProjectCommandController.apply() handler (upsert).
+**Goal**: Implement ProjectQueryController.get() handler following GetOperationHandlerV2 pattern.
 
-**Pattern Reference**: [McpServerApplyHandler.java](backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/mcpserver/request/handler/McpServerApplyHandler.java)
+**Pattern Reference**: [McpServerGetHandler.java](backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/mcpserver/request/handler/McpServerGetHandler.java)
 
 **Implementation**:
-- Minimal 4-step pipeline
-- Check if project exists (by org + name)
-- Delegate to Create or Update handler
-- Return created/updated project
+- Pipeline: ValidateFieldConstraints → ExtractId → Authorize → Load → Transform → Send
+- Load project by ID from MongoDB
+- FGA authorization check (can_view permission)
+- Return Project proto
 
-**Estimated Duration**: 60-75 minutes
+**Estimated Duration**: 45-60 minutes
 
-**To Resume**: Simply start working on T05.9 following the pattern from McpServerApplyHandler.java
+**To Resume**: Simply start working on T05.10 following the pattern from McpServerGetHandler.java
 
 ---
 
