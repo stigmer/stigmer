@@ -66,6 +66,8 @@ function Architecture({ className, ...props }: ArchitectureProps) {
  * Shows: You Write → Stigmer Handles → You Integrate
  */
 function ArchitectureDiagram() {
+  const [activeTab, setActiveTab] = React.useState<'yaml' | 'sdk'>('yaml');
+
   return (
     <div className="relative">
       {/* Desktop: 3-column layout */}
@@ -74,19 +76,10 @@ function ArchitectureDiagram() {
         <div className="flex flex-col">
           <ColumnHeader
             title="You Write"
-            subtitle="5 lines. No infrastructure code."
+            subtitle="YAML for speed, SDK for production"
             variant="input"
           />
-          <CodeSnippetCard
-            language="yaml"
-            code={`apiVersion: agentic.stigmer.ai/v1
-kind: Agent
-metadata:
-  name: code-reviewer
-spec:
-  instructions: "Review code for security"
-  mcpServers: [github]`}
-          />
+          <CodeTabViewer activeTab={activeTab} onTabChange={setActiveTab} />
         </div>
 
         {/* Arrow 1 */}
@@ -126,19 +119,10 @@ spec:
           <div>
             <ColumnHeader
               title="You Write"
-              subtitle="5 lines. No infrastructure code."
+              subtitle="YAML for speed, SDK for production"
               variant="input"
             />
-            <CodeSnippetCard
-              language="yaml"
-              code={`apiVersion: agentic.stigmer.ai/v1
-kind: Agent
-metadata:
-  name: code-reviewer
-spec:
-  instructions: "Review code for security"
-  mcpServers: [github]`}
-            />
+            <CodeTabViewer activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
           <div>
             <ColumnHeader
@@ -164,19 +148,10 @@ spec:
         <div>
           <ColumnHeader
             title="You Write"
-            subtitle="5 lines. No infrastructure code."
+            subtitle="YAML for speed, SDK for production"
             variant="input"
           />
-          <CodeSnippetCard
-            language="yaml"
-            code={`apiVersion: agentic.stigmer.ai/v1
-kind: Agent
-metadata:
-  name: code-reviewer
-spec:
-  instructions: "Review code for security"
-  mcpServers: [github]`}
-          />
+          <CodeTabViewer activeTab={activeTab} onTabChange={setActiveTab} />
         </div>
 
         <div className="flex justify-center py-4">
@@ -294,20 +269,86 @@ function CodeSnippetCard({ language, code }: CodeSnippetCardProps) {
 }
 
 /**
+ * Tabbed code viewer for YAML and Go SDK examples.
+ */
+interface CodeTabViewerProps {
+  activeTab: 'yaml' | 'sdk';
+  onTabChange: (tab: 'yaml' | 'sdk') => void;
+}
+
+function CodeTabViewer({ activeTab, onTabChange }: CodeTabViewerProps) {
+  const yamlCode = `apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: code-reviewer
+spec:
+  instructions: "Review code for security"
+  mcpServers: [github]`;
+
+  const goCode = `agent := &agentic.Agent{
+    Metadata: &agentic.Metadata{
+        Name: "code-reviewer",
+    },
+    Spec: &agentic.AgentSpec{
+        Instructions: "Review code for security",
+        McpServers: []string{"github"},
+    },
+}`;
+
+  return (
+    <div className="space-y-3">
+      {/* Tab buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => onTabChange('yaml')}
+          className={cn(
+            "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+            activeTab === 'yaml'
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
+        >
+          YAML
+        </button>
+        <button
+          onClick={() => onTabChange('sdk')}
+          className={cn(
+            "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+            activeTab === 'sdk'
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
+        >
+          Go SDK
+        </button>
+      </div>
+
+      {/* Code display */}
+      {activeTab === 'yaml' && (
+        <CodeSnippetCard language="yaml" code={yamlCode} />
+      )}
+      {activeTab === 'sdk' && (
+        <CodeSnippetCard language="go" code={goCode} />
+      )}
+    </div>
+  );
+}
+
+/**
  * Platform layer stack showing infrastructure components.
  */
 function PlatformLayerStack() {
   const layers = [
     {
       icon: "network" as IconName,
-      title: "Agent as Microservice",
-      description: "Independent service with gRPC contract",
+      title: "Agents as gRPC Services",
+      description: "Define once, call from anywhere via standard gRPC",
       highlight: true,
     },
     {
       icon: "shield" as IconName,
       title: "Sandbox Isolation",
-      description: "MCP servers isolated, file system controlled",
+      description: "Isolated file system, controlled process execution",
     },
     {
       icon: "cpu" as IconName,
@@ -407,13 +448,24 @@ function IntegrationCard() {
       {/* Code example */}
       <CodeSnippetCard
         language="go"
-        code={`// Call agent from your app
+        code={`// Create execution
 execution, err := client.Create(ctx, &AgentExecution{
     Spec: &AgentExecutionSpec{
         AgentId: "code-reviewer",
         Input: "Review PR #123",
     },
-})`}
+})
+
+// Poll for completion
+for {
+    status, _ := client.GetStatus(ctx, execution.Id)
+    if status.Phase == "COMPLETED" { break }
+    time.Sleep(2 * time.Second)
+}
+
+// Retrieve result
+result, _ := client.GetResult(ctx, execution.Id)
+fmt.Println(result.Output)`}
       />
 
       {/* Technical foundation footer */}
