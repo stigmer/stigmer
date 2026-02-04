@@ -199,3 +199,68 @@ func truncateString(s string, maxLen int) string {
 	}
 	return s[:maxLen-3] + "..."
 }
+
+// DisplayGetResult displays a project in the specified format.
+// This is the entry point for the 'stigmer project get' command output.
+// Supported formats: "table" (default), "yaml", "json".
+func DisplayGetResult(project *projectv1.Project, format string) {
+	switch format {
+	case "yaml":
+		displayProjectYAML(project)
+	case "json":
+		displayProjectJSON(project)
+	default: // table
+		displayProjectGetTable(project)
+	}
+}
+
+// displayProjectGetTable displays the project in detailed table format for get command.
+// This differs from displayProjectTable by showing more backend-specific fields.
+func displayProjectGetTable(project *projectv1.Project) {
+	fmt.Println()
+	cliprint.PrintInfo("Project: %s", project.Metadata.Name)
+	fmt.Println()
+
+	cliprint.PrintInfo("Metadata:")
+	cliprint.PrintInfo("  ID:   %s", project.Metadata.Id)
+	cliprint.PrintInfo("  Name: %s", project.Metadata.Name)
+	cliprint.PrintInfo("  Slug: %s", project.Metadata.Slug)
+	cliprint.PrintInfo("  Org:  %s", project.Metadata.Org)
+	fmt.Println()
+
+	cliprint.PrintInfo("Spec:")
+	displayProjectSummary(project)
+
+	// Display resource counts derived from spec
+	displayResourceCounts(project)
+	fmt.Println()
+}
+
+// DisplayDeleteResult displays the result of a delete operation.
+// Shows success message confirming the project was deleted.
+func DisplayDeleteResult(result *DeleteResult) {
+	fmt.Println()
+	cliprint.PrintSuccess("Project deleted successfully")
+	fmt.Println()
+
+	cliprint.PrintInfo("Deleted Resource:")
+	cliprint.PrintInfo("  ID:   %s", result.Project.Metadata.Id)
+	cliprint.PrintInfo("  Name: %s", result.Project.Metadata.Name)
+	cliprint.PrintInfo("  Slug: %s", result.Project.Metadata.Slug)
+	fmt.Println()
+}
+
+// DisplayDeleteConfirmation displays the project details before deletion.
+// Used to show the user what will be deleted for confirmation.
+func DisplayDeleteConfirmation(project *projectv1.Project) {
+	fmt.Println()
+	cliprint.PrintWarning("You are about to delete the following project:")
+	fmt.Println()
+	cliprint.PrintInfo("  ID:   %s", project.Metadata.Id)
+	cliprint.PrintInfo("  Name: %s", project.Metadata.Name)
+	cliprint.PrintInfo("  Slug: %s", project.Metadata.Slug)
+	cliprint.PrintInfo("  Org:  %s", project.Metadata.Org)
+	fmt.Println()
+	cliprint.PrintWarning("This action cannot be undone.")
+	fmt.Println()
+}

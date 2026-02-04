@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
 )
 
@@ -42,7 +43,9 @@ to deploy a project to the backend.`,
 
 	cmd.AddCommand(newProjectInfoCommand())
 	cmd.AddCommand(newProjectValidateCommand())
-	// Phase 5: get, apply, delete
+	cmd.AddCommand(newProjectGetCommand())
+	cmd.AddCommand(newProjectDeleteCommand())
+	// Phase 5: apply command (requires backend reconciliation)
 
 	return cmd
 }
@@ -233,4 +236,40 @@ func executeProjectValidate(opts projectValidateOptions) error {
 	project.DisplayValidationSuccess(result.Project, result.ConfigPath)
 
 	return nil
+}
+
+// =============================================================================
+// Organization Resolution
+// =============================================================================
+
+// resolveProjectOrganization resolves the organization ID for project operations.
+// This determines which organization context to use for backend API calls.
+//
+// Resolution order:
+//  1. --org flag (explicit override)
+//  2. Context org (from stigmer context set --org)
+//  3. Local mode (uses "local" as org)
+func resolveProjectOrganization(cfg *config.Config, orgOverride string) (string, error) {
+	switch cfg.Backend.Type {
+	case config.BackendTypeLocal:
+		orgID := "local"
+		cliprint.PrintInfo("Using local backend (organization: %s)", orgID)
+		return orgID, nil
+
+	case config.BackendTypeCloud:
+		if orgOverride != "" {
+			cliprint.PrintInfo("Using organization from flag: %s", orgOverride)
+			return orgOverride, nil
+		}
+
+		if cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
+			cliprint.PrintInfo("Using organization from context: %s", cfg.Backend.Cloud.OrgID)
+			return cfg.Backend.Cloud.OrgID, nil
+		}
+
+		return "", fmt.Errorf("organization not set for cloud mode\n\nUse --org flag or run: stigmer context set --org <org-id>")
+
+	default:
+		return "", fmt.Errorf("unknown backend type: %s", cfg.Backend.Type)
+	}
 }
