@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/project/v1/enum.proto\x12\x1d\x61i.stigmer.agentic.project.v1*O\n\x0eProjectRuntime\x12\x1f\n\x1bproject_runtime_unspecified\x10\x00\x12\x06\n\x02go\x10\x01\x12\n\n\x06python\x10\x02\x12\x08\n\x04node\x10\x03*c\n\x14ReconciliationResult\x12%\n!reconciliation_result_unspecified\x10\x00\x12\x0b\n\x07success\x10\x01\x12\x0b\n\x07partial\x10\x02\x12\n\n\x06\x66\x61iled\x10\x03\x42\xc7\x01\n!com.ai.stigmer.agentic.project.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02\x1d\x41i.Stigmer.Agentic.Project.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Project\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Project::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/project/v1/enum.proto\x12\x1d\x61i.stigmer.agentic.project.v1*O\n\x0eProjectRuntime\x12\x1f\n\x1bproject_runtime_unspecified\x10\x00\x12\x06\n\x02go\x10\x01\x12\n\n\x06python\x10\x02\x12\x08\n\x04node\x10\x03\x42\xc7\x01\n!com.ai.stigmer.agentic.project.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02\x1d\x41i.Stigmer.Agentic.Project.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Project\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Project::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,6 +34,4 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n!com.ai.stigmer.agentic.project.v1B\tEnumProtoP\001\242\002\004ASAP\252\002\035Ai.Stigmer.Agentic.Project.V1\312\002\035Ai\\Stigmer\\Agentic\\Project\\V1\342\002)Ai\\Stigmer\\Agentic\\Project\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic::Project::V1'
   _globals['_PROJECTRUNTIME']._serialized_start=75
   _globals['_PROJECTRUNTIME']._serialized_end=154
-  _globals['_RECONCILIATIONRESULT']._serialized_start=156
-  _globals['_RECONCILIATIONRESULT']._serialized_end=255
 # @@protoc_insertion_point(module_scope)

@@ -77,16 +77,16 @@ function Hero({ className, ...props }: HeroProps) {
         {/* Badges */}
         <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
           <Badge variant="outline" className="gap-1">
-            <Icon name="network" size="xs" />
-            gRPC APIs
-          </Badge>
-          <Badge variant="outline" className="gap-1">
-            <Icon name="file-code" size="xs" />
-            YAML + SDK
+            <Icon name="terminal" size="xs" />
+            Local-First
           </Badge>
           <Badge variant="outline" className="gap-1">
             <Icon name="unlock" size="xs" />
             Open Source
+          </Badge>
+          <Badge variant="outline" className="gap-1">
+            <Icon name="network" size="xs" />
+            gRPC APIs
           </Badge>
         </div>
 
@@ -96,13 +96,13 @@ function Hero({ className, ...props }: HeroProps) {
           className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight mb-6"
         >
           <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
-            Agents as Microservices
+            Build Agents. Skip the Infrastructure.
           </span>
         </h1>
 
         {/* Subheadline */}
         <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-          Build agents in YAML or Go. Deploy once. Call from everywhere via gRPC. Update agents independently—all consumers benefit instantly.
+          We handle sandboxing, orchestration, and MCP security. You write 5 lines of YAML. Your agent runs anywhere.
         </p>
 
         {/* CTAs */}

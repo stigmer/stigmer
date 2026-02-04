@@ -8,6 +8,7 @@ import {
   Code,
   Activity,
   Unlock,
+  Lock,
   Github,
   BookOpen,
   ExternalLink,
@@ -20,6 +21,7 @@ import {
   Lightbulb,
   Package,
   ArrowRight,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,6 +36,7 @@ const iconMap = {
   code: Code,
   activity: Activity,
   unlock: Unlock,
+  lock: Lock,
   github: Github,
   "book-open": BookOpen,
   "external-link": ExternalLink,
@@ -46,6 +49,7 @@ const iconMap = {
   lightbulb: Lightbulb,
   package: Package,
   "arrow-right": ArrowRight,
+  shield: Shield,
 } as const;
 
 /**

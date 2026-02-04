@@ -41,11 +41,8 @@ func displayProjectTable(project *projectv1.Project) {
 	cliprint.PrintInfo("Spec:")
 	displayProjectSummary(project)
 
-	// Display status if present (only after reconciliation)
-	if project.Status != nil && project.Status.Reconciliation != nil {
-		fmt.Println()
-		displayReconciliationStatus(project.Status)
-	}
+	// Display resource counts derived from spec
+	displayResourceCounts(project)
 	fmt.Println()
 }
 
@@ -72,42 +69,32 @@ func displayProjectSummary(project *projectv1.Project) {
 	}
 }
 
-// displayReconciliationStatus displays the reconciliation status section.
-func displayReconciliationStatus(status *projectv1.ProjectStatus) {
-	recon := status.Reconciliation
-	cliprint.PrintInfo("Status:")
-
-	if recon.LastReconciledAt != nil {
-		cliprint.PrintInfo("  Reconciled:  %s", recon.LastReconciledAt.AsTime().Format("2006-01-02 15:04:05"))
+// displayResourceCounts displays the resource counts derived from spec.
+// Counts are computed from the spec fields, not stored separately.
+func displayResourceCounts(project *projectv1.Project) {
+	if project.Spec == nil {
+		return
 	}
 
-	result := strings.ToLower(recon.Result.String())
-	cliprint.PrintInfo("  Result:      %s", result)
-
-	if recon.ResourceCounts != nil {
-		counts := formatResourceCounts(recon.ResourceCounts)
-		if counts != "" {
-			cliprint.PrintInfo("  Resources:   %s", counts)
-		}
-	}
-}
-
-// formatResourceCounts formats the resource counts as a human-readable string.
-func formatResourceCounts(counts *projectv1.ResourceCounts) string {
 	var parts []string
-	if counts.Agents > 0 {
-		parts = append(parts, fmt.Sprintf("%d agents", counts.Agents))
+	if len(project.Spec.Agents) > 0 {
+		parts = append(parts, fmt.Sprintf("%d agents", len(project.Spec.Agents)))
 	}
-	if counts.Workflows > 0 {
-		parts = append(parts, fmt.Sprintf("%d workflows", counts.Workflows))
+	if len(project.Spec.Workflows) > 0 {
+		parts = append(parts, fmt.Sprintf("%d workflows", len(project.Spec.Workflows)))
 	}
-	if counts.Skills > 0 {
-		parts = append(parts, fmt.Sprintf("%d skills", counts.Skills))
+	if len(project.Spec.Skills) > 0 {
+		parts = append(parts, fmt.Sprintf("%d skills", len(project.Spec.Skills)))
 	}
-	if counts.McpServers > 0 {
-		parts = append(parts, fmt.Sprintf("%d mcp servers", counts.McpServers))
+	if len(project.Spec.McpServers) > 0 {
+		parts = append(parts, fmt.Sprintf("%d mcp servers", len(project.Spec.McpServers)))
 	}
-	return strings.Join(parts, ", ")
+
+	if len(parts) > 0 {
+		fmt.Println()
+		cliprint.PrintInfo("Resources:")
+		cliprint.PrintInfo("  %s", strings.Join(parts, ", "))
+	}
 }
 
 // displayProjectYAML displays the project as YAML.
@@ -211,4 +198,69 @@ func truncateString(s string, maxLen int) string {
 		return "..."
 	}
 	return s[:maxLen-3] + "..."
+}
+
+// DisplayGetResult displays a project in the specified format.
+// This is the entry point for the 'stigmer project get' command output.
+// Supported formats: "table" (default), "yaml", "json".
+func DisplayGetResult(project *projectv1.Project, format string) {
+	switch format {
+	case "yaml":
+		displayProjectYAML(project)
+	case "json":
+		displayProjectJSON(project)
+	default: // table
+		displayProjectGetTable(project)
+	}
+}
+
+// displayProjectGetTable displays the project in detailed table format for get command.
+// This differs from displayProjectTable by showing more backend-specific fields.
+func displayProjectGetTable(project *projectv1.Project) {
+	fmt.Println()
+	cliprint.PrintInfo("Project: %s", project.Metadata.Name)
+	fmt.Println()
+
+	cliprint.PrintInfo("Metadata:")
+	cliprint.PrintInfo("  ID:   %s", project.Metadata.Id)
+	cliprint.PrintInfo("  Name: %s", project.Metadata.Name)
+	cliprint.PrintInfo("  Slug: %s", project.Metadata.Slug)
+	cliprint.PrintInfo("  Org:  %s", project.Metadata.Org)
+	fmt.Println()
+
+	cliprint.PrintInfo("Spec:")
+	displayProjectSummary(project)
+
+	// Display resource counts derived from spec
+	displayResourceCounts(project)
+	fmt.Println()
+}
+
+// DisplayDeleteResult displays the result of a delete operation.
+// Shows success message confirming the project was deleted.
+func DisplayDeleteResult(result *DeleteResult) {
+	fmt.Println()
+	cliprint.PrintSuccess("Project deleted successfully")
+	fmt.Println()
+
+	cliprint.PrintInfo("Deleted Resource:")
+	cliprint.PrintInfo("  ID:   %s", result.Project.Metadata.Id)
+	cliprint.PrintInfo("  Name: %s", result.Project.Metadata.Name)
+	cliprint.PrintInfo("  Slug: %s", result.Project.Metadata.Slug)
+	fmt.Println()
+}
+
+// DisplayDeleteConfirmation displays the project details before deletion.
+// Used to show the user what will be deleted for confirmation.
+func DisplayDeleteConfirmation(project *projectv1.Project) {
+	fmt.Println()
+	cliprint.PrintWarning("You are about to delete the following project:")
+	fmt.Println()
+	cliprint.PrintInfo("  ID:   %s", project.Metadata.Id)
+	cliprint.PrintInfo("  Name: %s", project.Metadata.Name)
+	cliprint.PrintInfo("  Slug: %s", project.Metadata.Slug)
+	cliprint.PrintInfo("  Org:  %s", project.Metadata.Org)
+	fmt.Println()
+	cliprint.PrintWarning("This action cannot be undone.")
+	fmt.Println()
 }

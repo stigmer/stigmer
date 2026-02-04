@@ -1,43 +1,37 @@
-import datetime
-
-from ai.stigmer.agentic.project.v1 import enum_pb2 as _enum_pb2
+from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2 as _api_resource_kind_pb2
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
-from google.protobuf import timestamp_pb2 as _timestamp_pb2
+from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Mapping as _Mapping
+from collections.abc import Iterable as _Iterable, Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class ProjectStatus(_message.Message):
-    __slots__ = ("audit", "reconciliation")
-    AUDIT_FIELD_NUMBER: _ClassVar[int]
-    RECONCILIATION_FIELD_NUMBER: _ClassVar[int]
-    audit: _status_pb2.ApiResourceAudit
-    reconciliation: ReconciliationSummary
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., reconciliation: _Optional[_Union[ReconciliationSummary, _Mapping]] = ...) -> None: ...
-
 class ReconciliationSummary(_message.Message):
-    __slots__ = ("last_reconciled_at", "result", "manifest_hash", "resource_counts")
-    LAST_RECONCILED_AT_FIELD_NUMBER: _ClassVar[int]
-    RESULT_FIELD_NUMBER: _ClassVar[int]
-    MANIFEST_HASH_FIELD_NUMBER: _ClassVar[int]
-    RESOURCE_COUNTS_FIELD_NUMBER: _ClassVar[int]
-    last_reconciled_at: _timestamp_pb2.Timestamp
-    result: _enum_pb2.ReconciliationResult
-    manifest_hash: str
-    resource_counts: ResourceCounts
-    def __init__(self, last_reconciled_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., result: _Optional[_Union[_enum_pb2.ReconciliationResult, str]] = ..., manifest_hash: _Optional[str] = ..., resource_counts: _Optional[_Union[ResourceCounts, _Mapping]] = ...) -> None: ...
+    __slots__ = ("created", "updated", "deleted")
+    CREATED_FIELD_NUMBER: _ClassVar[int]
+    UPDATED_FIELD_NUMBER: _ClassVar[int]
+    DELETED_FIELD_NUMBER: _ClassVar[int]
+    created: _containers.RepeatedCompositeFieldContainer[ResourceChangeRecord]
+    updated: _containers.RepeatedCompositeFieldContainer[ResourceChangeRecord]
+    deleted: _containers.RepeatedCompositeFieldContainer[ResourceChangeRecord]
+    def __init__(self, created: _Optional[_Iterable[_Union[ResourceChangeRecord, _Mapping]]] = ..., updated: _Optional[_Iterable[_Union[ResourceChangeRecord, _Mapping]]] = ..., deleted: _Optional[_Iterable[_Union[ResourceChangeRecord, _Mapping]]] = ...) -> None: ...
 
-class ResourceCounts(_message.Message):
-    __slots__ = ("agents", "workflows", "skills", "mcp_servers")
-    AGENTS_FIELD_NUMBER: _ClassVar[int]
-    WORKFLOWS_FIELD_NUMBER: _ClassVar[int]
-    SKILLS_FIELD_NUMBER: _ClassVar[int]
-    MCP_SERVERS_FIELD_NUMBER: _ClassVar[int]
-    agents: int
-    workflows: int
-    skills: int
-    mcp_servers: int
-    def __init__(self, agents: _Optional[int] = ..., workflows: _Optional[int] = ..., skills: _Optional[int] = ..., mcp_servers: _Optional[int] = ...) -> None: ...
+class ResourceChangeRecord(_message.Message):
+    __slots__ = ("kind", "slug", "resource_id")
+    KIND_FIELD_NUMBER: _ClassVar[int]
+    SLUG_FIELD_NUMBER: _ClassVar[int]
+    RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
+    kind: _api_resource_kind_pb2.ApiResourceKind
+    slug: str
+    resource_id: str
+    def __init__(self, kind: _Optional[_Union[_api_resource_kind_pb2.ApiResourceKind, str]] = ..., slug: _Optional[str] = ..., resource_id: _Optional[str] = ...) -> None: ...
+
+class ProjectStatus(_message.Message):
+    __slots__ = ("last_reconciliation", "audit")
+    LAST_RECONCILIATION_FIELD_NUMBER: _ClassVar[int]
+    AUDIT_FIELD_NUMBER: _ClassVar[int]
+    last_reconciliation: ReconciliationSummary
+    audit: _status_pb2.ApiResourceAudit
+    def __init__(self, last_reconciliation: _Optional[_Union[ReconciliationSummary, _Mapping]] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...

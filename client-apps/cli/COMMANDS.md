@@ -225,10 +225,10 @@ stigmer workflow execute <id> --input key=value
 | Old Command | New Command |
 |------------|-------------|
 | `stigmer init` | `stigmer server` (auto-initializes) |
-| `stigmer local start` | `stigmer server` |
-| `stigmer local stop` | `stigmer server stop` |
-| `stigmer local status` | `stigmer server status` |
-| `stigmer local restart` | `stigmer server start` (idempotent) |
+| `stigmer server start` | `stigmer server` |
+| `stigmer server stop` | `stigmer server stop` |
+| `stigmer server status` | `stigmer server status` |
+| `stigmer server restart` | `stigmer server start` (idempotent) |
 | `stigmer agent create` | Use UI or API (removed from CLI) |
 | `stigmer workflow create` | Use UI or API (removed from CLI) |
 | `stigmer version` | Removed (use `--version` flag) |

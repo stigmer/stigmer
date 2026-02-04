@@ -1,6 +1,6 @@
 # Getting Started with Local Mode
 
-Stigmer local mode runs entirely on your machine with a BadgerDB database. No servers, no cloud dependencies, no complexity.
+Stigmer local mode runs entirely on your machine with a SQLite database. No servers, no cloud dependencies, no complexity.
 
 ## Quick Start (Recommended)
 
@@ -204,7 +204,7 @@ When you run `stigmer apply`, `stigmer run`, or any command requiring the backen
 $ stigmer server
 
 ✓ First-time setup: Initializing Stigmer...
-  Starting Stigmer server...
+  Starting Stigmer local server...
    ⣷ Initializing: Setting up local LLM
    ⣷ Installing: Downloading local LLM: 50% (75 MB / 150 MB)
    ⣷ Starting: Starting local LLM server
@@ -213,7 +213,7 @@ $ stigmer server
    ⣷ Deploying: Starting Temporal server
    ⣷ Deploying: Starting workflow runner
    ⣷ Deploying: Starting agent runner
-✓ Ready! Stigmer server is running
+✓ Ready! Stigmer is running on localhost:50051
 
 LLM Configuration:
   Provider: Local ✓ Running
@@ -241,11 +241,11 @@ Web UI:
 $ stigmer server
 
 ✓ Using local LLM (no API key required)
-  Starting Stigmer server...
+  Starting Stigmer local server...
    ⣷ Starting: Starting Temporal server
    ⣷ Deploying: Starting workflow runner
    ⣷ Deploying: Starting agent runner
-✓ Ready! Stigmer server is running
+✓ Ready! Stigmer is running on localhost:50051
 ```
 
 **Fast path**: < 30 seconds (LLM and model already installed, just starting services)
@@ -353,7 +353,7 @@ The Temporal UI provides:
 **Example use cases**:
 ```bash
 # Start daemon (Temporal UI starts automatically)
-stigmer local start
+stigmer server start
 ✓ Ready! Stigmer is running
   Temporal UI: http://localhost:8233
 
@@ -386,7 +386,7 @@ The Temporal UI is invaluable for understanding workflow execution flow and debu
 ### Check Status
 
 ```bash
-stigmer local status
+stigmer server status
 ```
 
 **Output**:
@@ -404,7 +404,7 @@ Temporal UI: http://localhost:8233
 ### Stop Local Daemon
 
 ```bash
-stigmer local stop
+stigmer server stop
 ```
 
 This gracefully shuts down both stigmer-server and agent-runner.

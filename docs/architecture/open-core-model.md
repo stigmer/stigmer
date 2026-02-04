@@ -15,9 +15,9 @@ Located in `github.com/stigmer/stigmer`:
 - **SDKs** (`sdk/go/`, `sdk/python/`) - Libraries for building workflows
 
 **Local Backend**:
-- **Local Daemon** (`cmd/stigmer-daemon/`) - gRPC server that holds BadgerDB file lock
-- **Local Controllers** (`internal/backend/local/`) - BadgerDB-based gRPC service implementations
-- **BadgerDB Storage** (`internal/backend/local/`) - Key-value storage layer (LSM tree)
+- **Local Daemon** (`cmd/stigmer-daemon/`) - gRPC server with SQLite storage
+- **Local Controllers** (`internal/backend/local/`) - SQLite-based gRPC service implementations
+- **SQLite Storage** (`backend/libs/go/store/sqlite/`) - Relational storage layer with FTS5 search
 
 **API Contracts**:
 - **gRPC Services** (`apis/ai/stigmer/agentic/*/v1/`) - Protobuf service definitions
@@ -110,7 +110,7 @@ service AgentCommandController {
 BadgerDB uses file-based locking (only one process can open the database at a time). To support both CLI and Agent Runner (Python) accessing the database concurrently, we use a **daemon model**:
 
 **Components**:
-1. **Local Daemon** (`stigmer local start`): Lightweight gRPC server that holds the BadgerDB file lock
+1. **Local Daemon** (`stigmer server start`): Lightweight gRPC server with SQLite storage
    - Listens on `localhost:50051`
    - Implements the same gRPC services as Cloud
    - Opens BadgerDB in `~/.stigmer/data`

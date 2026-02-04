@@ -518,7 +518,7 @@ The Temporal async completion pattern is purpose-built for this exact use case. 
 
 Successfully implemented async activity completion pattern across three repositories:
 - **Zigflow (Go)**: Extracts task token, passes to Stigmer, returns `ErrResultPending`
-- **Stigmer OSS (Go)**: Logs token, persists to BadgerDB, starts workflow, completes external activity
+- **Stigmer OSS (Go)**: Logs token, persists to SQLite, starts workflow, completes external activity
 - **Stigmer Cloud (Java)**: Logs token, passes to workflow, uses `ActivityCompletionClient` for completion
 
 **Token Flow**:

@@ -48,6 +48,7 @@ func init() {
 	rootCmd.AddCommand(root.NewMcpServerCommand())
 	rootCmd.AddCommand(root.NewAgentCommand())
 	rootCmd.AddCommand(root.NewWorkflowCommand())
+	rootCmd.AddCommand(root.NewProjectCommand())
 	rootCmd.AddCommand(root.NewApplyCommand())
 	rootCmd.AddCommand(root.NewRunCommand())
 

@@ -85,63 +85,6 @@ func (ProjectRuntime) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_project_v1_enum_proto_rawDescGZIP(), []int{0}
 }
 
-// ReconciliationResult indicates the outcome of a project reconciliation.
-type ReconciliationResult int32
-
-const (
-	// Unspecified result.
-	ReconciliationResult_reconciliation_result_unspecified ReconciliationResult = 0
-	// All resources reconciled successfully.
-	ReconciliationResult_success ReconciliationResult = 1
-	// Some resources failed to reconcile.
-	ReconciliationResult_partial ReconciliationResult = 2
-	// Reconciliation failed completely.
-	ReconciliationResult_failed ReconciliationResult = 3
-)
-
-// Enum value maps for ReconciliationResult.
-var (
-	ReconciliationResult_name = map[int32]string{
-		0: "reconciliation_result_unspecified",
-		1: "success",
-		2: "partial",
-		3: "failed",
-	}
-	ReconciliationResult_value = map[string]int32{
-		"reconciliation_result_unspecified": 0,
-		"success":                           1,
-		"partial":                           2,
-		"failed":                            3,
-	}
-)
-
-func (x ReconciliationResult) Enum() *ReconciliationResult {
-	p := new(ReconciliationResult)
-	*p = x
-	return p
-}
-
-func (x ReconciliationResult) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ReconciliationResult) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_project_v1_enum_proto_enumTypes[1].Descriptor()
-}
-
-func (ReconciliationResult) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_project_v1_enum_proto_enumTypes[1]
-}
-
-func (x ReconciliationResult) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ReconciliationResult.Descriptor instead.
-func (ReconciliationResult) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_project_v1_enum_proto_rawDescGZIP(), []int{1}
-}
-
 var File_ai_stigmer_agentic_project_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_project_v1_enum_proto_rawDesc = "" +
@@ -152,13 +95,7 @@ const file_ai_stigmer_agentic_project_v1_enum_proto_rawDesc = "" +
 	"\x02go\x10\x01\x12\n" +
 	"\n" +
 	"\x06python\x10\x02\x12\b\n" +
-	"\x04node\x10\x03*c\n" +
-	"\x14ReconciliationResult\x12%\n" +
-	"!reconciliation_result_unspecified\x10\x00\x12\v\n" +
-	"\asuccess\x10\x01\x12\v\n" +
-	"\apartial\x10\x02\x12\n" +
-	"\n" +
-	"\x06failed\x10\x03B\x99\x02\n" +
+	"\x04node\x10\x03B\x99\x02\n" +
 	"!com.ai.stigmer.agentic.project.v1B\tEnumProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1;projectv1\xa2\x02\x04ASAP\xaa\x02\x1dAi.Stigmer.Agentic.Project.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Project\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Project::V1b\x06proto3"
 
 var (
@@ -173,10 +110,9 @@ func file_ai_stigmer_agentic_project_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_project_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_project_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_ai_stigmer_agentic_project_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_ai_stigmer_agentic_project_v1_enum_proto_goTypes = []any{
-	(ProjectRuntime)(0),       // 0: ai.stigmer.agentic.project.v1.ProjectRuntime
-	(ReconciliationResult)(0), // 1: ai.stigmer.agentic.project.v1.ReconciliationResult
+	(ProjectRuntime)(0), // 0: ai.stigmer.agentic.project.v1.ProjectRuntime
 }
 var file_ai_stigmer_agentic_project_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -196,7 +132,7 @@ func file_ai_stigmer_agentic_project_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_project_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_project_v1_enum_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      1,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

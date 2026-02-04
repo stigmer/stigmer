@@ -63,7 +63,7 @@ function Quickstart({ className, ...props }: QuickstartProps) {
           <QuickstartStep
             number={2}
             title="Start the server"
-            description="That's it. Auto-downloads Temporal, uses free Ollama models, ready in < 3 seconds."
+            description="Auto-starts Temporal, uses Ollama (free, local LLM), stores data in SQLite. Ready in seconds."
           >
             <CodeBlock
               code="stigmer server"
@@ -178,36 +178,36 @@ execution, err := client.Create(ctx, &agentexec.AgentExecution{
         {/* Progression Path Callout */}
         <div className="mt-12 p-6 rounded-lg border border-border bg-background">
           <h3 className="text-lg font-semibold text-foreground mb-4 text-center">
-            From Creation to Integration in 20 Minutes
+            From Local Development to Production Integration
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <ProgressionStep
               number={1}
-              title="Create"
-              time="5 min"
-              description="Write a 5-line YAML agent in Stigmer Cloud"
+              title="Develop Locally"
+              time=""
+              description="Write YAML agents, test with stigmer server, iterate in seconds"
             />
             <ProgressionStep
               number={2}
-              title="Test"
-              time="5 min"
-              description="Run agent via CLI or web UI"
+              title="Add Complexity"
+              time="optional"
+              description="Graduate to Go SDK when you need conditionals, loops, state management"
             />
             <ProgressionStep
               number={3}
-              title="Integrate"
-              time="10 min"
-              description="Call agent from your app via gRPC"
+              title="Integrate via gRPC"
+              time=""
+              description="Generate gRPC clients, call agents from your app like any service"
             />
             <ProgressionStep
               number={4}
-              title="Scale"
-              time="ongoing"
-              description="Update agent independently, all consumers benefit"
+              title="Deploy to Production"
+              time=""
+              description="Same code, managed infrastructure (coming soon)"
             />
           </div>
           <p className="mt-4 text-sm text-muted-foreground text-center">
-            Start simple, scale naturally. No rip-and-replace.
+            Start simple, scale naturally.
           </p>
         </div>
 
