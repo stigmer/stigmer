@@ -39,11 +39,54 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 5 - Backend + Full CLI Integration 🚀 **IN PROGRESS**
-**Current Sub-task**: T05.17 ✅ **COMPLETE** - Actual State Fetching
-**Next Sub-task**: T05.18 - Diff Algorithm (Compare desired vs actual to produce ReconciliationPlan)
+**Current Sub-task**: T05.18 ✅ **COMPLETE** - Diff Algorithm
+**Next Sub-task**: T05.19 - Dependency-Ordered Apply (Execute plan in topological order)
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-04 - Session 41 - Actual State Fetching - T05.17):
+**Latest Session** (2026-02-04 - Session 42 - Diff Algorithm Comprehensive Tests - T05.18):
+- ✅ **COMPLETED Phase 5 Sub-task T05.18**: Diff Algorithm - Comprehensive Test Enhancement
+- Verified and enhanced ReconciliationPlan.fromDiff() with 27 new test methods
+- **Files Modified**:
+  - `ReconciliationPlanTest.java` (+890 lines) - Enhanced from 309 to 1,199 lines
+  - Changelog: `2026-02-04-173120-diff-algorithm-comprehensive-tests-t05.18.md`
+- **Implementation Verification**:
+  - Confirmed specEquals() correctly handles all 4 resource types
+  - Spec-only comparison ensures metadata changes don't trigger false updates
+  - Diff algorithm was fully implemented in T05.12, tests verify correctness
+- **New Test Classes** (27 tests added):
+  - **MultiResourceTypeDiffTests** (10 tests): Creates/updates/deletes for Workflow, McpServer, Skill
+  - **SpecOnlyComparisonTests** (7 tests): Metadata changes (ID, timestamps, org) correctly ignored
+  - **EdgeCaseTests** (6 tests): Null handling, empty states, large counts (100+ resources)
+  - **RealWorldScenarioTests** (4 tests): Data pipelines, partial deployments, resource renames
+- **Enhanced Helper Methods**:
+  - Added Workflow, McpServer, Skill helpers with spec configuration
+  - Added metadata variant helpers for all resource types
+  - Comprehensive proto object creation with proper defaults
+- **Test Coverage Summary**:
+  - Before: 11 tests (309 lines)
+  - After: 38 tests (1,199 lines)
+  - Added: +27 tests (+890 lines)
+- **Key Verifications**:
+  - Creates detected for all 4 resource types ✓
+  - Updates detected only when spec differs ✓
+  - Deletes (orphans) detected correctly ✓
+  - Dependency ordering respected across types ✓
+  - Metadata changes correctly ignored ✓
+- **Engineering Quality**:
+  - Zero linter errors
+  - Pattern consistency with existing tests
+  - Comprehensive JavaDoc documentation
+  - Real-world scenario coverage
+- **Impact**:
+  - **Unblocks T05.19**: Dependency-ordered apply can proceed with confidence
+  - **Production Ready**: Diff algorithm verified for all resource types
+  - **Safety Net**: Comprehensive tests protect against regressions
+- **Commits**: 
+  - ca92ac0e test(backend/project): add comprehensive diff algorithm tests for T05.18 (stigmer-cloud)
+  - a017100a docs(project): add T05.18 diff algorithm completion changelog and plan (stigmer)
+- **Completion Time**: ~75 minutes (as estimated in Phase 5 plan)
+
+**Previous Session** (2026-02-04 - Session 41 - Actual State Fetching - T05.17):
 - ✅ **COMPLETED Phase 5 Sub-task T05.17**: Actual State Fetching
 - Implemented findByProjectId() for all 4 repositories and fetchActualState() in service
 - **Files Modified**:
@@ -1307,34 +1350,38 @@ apis/stubs/             (REGENERATED via make protos)
 | **T05.15** | ✅ **COMPLETE** | **60 min** | **ProjectReconciliationService Foundation** |
 | **T05.16** | ✅ **VERIFIED** | **-** | **Desired State Parsing (done in T05.15)** |
 | **T05.17** | ✅ **COMPLETE** | **45 min** | **Actual State Fetching (fetchActualState + findByProjectId)** |
-| T05.18 | 🎯 **NEXT** | 60-75 min | Diff Algorithm (compare desired vs actual) |
-| T05.19+ | 🚧 Pending | - | Remaining reconciliation implementation |
+| **T05.18** | ✅ **COMPLETE** | **75 min** | **Diff Algorithm (comprehensive test verification)** |
+| T05.19 | 🎯 **NEXT** | 60-75 min | Dependency-Ordered Apply (execute plan in topological order) |
+| T05.20+ | 🚧 Pending | - | Remaining reconciliation implementation |
 
 ---
 
 ## 🎯 Next Steps - Ready to Continue
 
-### Latest Session (2026-02-04 - Session 41 - T05.16 Verification)
+### Latest Session (2026-02-04 - Session 42 - T05.18 Diff Algorithm Tests)
+
+**Accomplished**:
+- ✅ **COMPLETED Phase 5 Sub-task T05.18**: Diff Algorithm - Comprehensive Test Enhancement
+- ✅ Verified specEquals() method handles all 4 resource types (Agent, Workflow, McpServer, Skill)
+- ✅ Added 27 new test methods to ReconciliationPlanTest.java:
+  - MultiResourceTypeDiffTests (10 tests) - Verify diff for all resource types
+  - SpecOnlyComparisonTests (7 tests) - Metadata changes don't trigger updates
+  - EdgeCaseTests (6 tests) - Null handling, empty states, large counts
+  - RealWorldScenarioTests (4 tests) - Data pipelines, partial deployments, renames
+- ✅ Enhanced test helper methods for all resource types (with spec + metadata variants)
+- ✅ Test coverage: 11 → 38 tests (+27), 309 → 1,199 lines (+890)
+- ✅ Zero linter errors, production ready verification
+- ✅ Commits: ca92ac0e (stigmer-cloud), a017100a (stigmer)
+- ✅ Changelog: 2026-02-04-173120-diff-algorithm-comprehensive-tests-t05.18.md
+
+**Phase 5 Progress**: **17 of 29 sub-tasks complete** (T05.0, T05.2-T05.18)
+
+**Previous Session** (2026-02-04 - Session 41 - T05.16 Verification)
 
 **Accomplished**:
 - ✅ **VERIFIED Phase 5 Sub-task T05.16**: Desired State Parsing - Complete (implemented in T05.15)
-- ✅ Verified `parseDesiredState()` method implementation (lines 185-246):
-  - Extracts agents, workflows, mcpServers, skills from ProjectSpec
-  - Keys resources by slug (metadata.name) for O(1) lookup
-  - Handles duplicate slugs (keeps first, logs warning)
-  - Filters out resources without names
-  - Returns properly constructed DesiredState
-- ✅ Verified test coverage (7 dedicated tests in DesiredStateParsingTests):
-  - shouldParseAgentsFromProjectSpec
-  - shouldParseWorkflowsFromProjectSpec
-  - shouldParseMcpServersFromProjectSpec
-  - shouldParseSkillsFromProjectSpec
-  - shouldReturnEmptyDesiredStateForNullSpec
-  - shouldHandleDuplicateSlugsByKeepingFirst
-  - shouldSkipResourcesWithoutName
-- ✅ Created verification changelog: 2026-02-04-171444-desired-state-parsing-t05.16-verification.md
-
-**Phase 5 Progress**: **16 of 29 sub-tasks complete** (T05.0, T05.2-T05.16)
+- Verified parseDesiredState() method and test coverage
+- Changelog: 2026-02-04-171444-desired-state-parsing-t05.16-verification.md
 
 ### Backend Handler Status
 
@@ -1363,32 +1410,32 @@ Commits:
 - c2c22b46: refactor(backend/grpc-request): remove ApiResourceOwnerScope references
 - 30055488: feat(backend/project): add domain value objects for reconciliation engine (T05.12)
 
-### Immediate Next Task: T05.18 - Diff Algorithm
+### Immediate Next Task: T05.19 - Dependency-Ordered Apply
 
-**Goal**: Implement the diff algorithm that compares desired state (from project spec) vs actual state (from database) to produce a ReconciliationPlan with creates, updates, and deletes.
+**Goal**: Execute the reconciliation plan by creating, updating, and deleting resources in dependency order.
 
-**Pattern**: Pure function that computes plan without side effects
+**Pattern**: Implement executePlan() method in ProjectReconciliationService (currently stubbed)
 
 **Key Implementation**:
-- Enhance `ReconciliationPlan.fromDiff()` method (partially implemented in T05.12):
-  - Process each resource type (mcp_server, skill, agent, workflow)
-  - Creates: in desired, not in actual
-  - Updates: in both, but spec differs
-  - Deletes: in actual, not in desired (orphans)
-- Identity matching by `kind + slug` (not resource ID)
-- Proto equality comparison (spec-only, ignoring metadata like timestamps)
-- Topological sort for execution order from DependencyGraph
+- Implement `ProjectReconciliationService.executePlan()` method (stubbed in T05.15):
+  - Execute creates/updates in dependency order using plan.getChangesInExecutionOrder()
+  - Execute deletes in reverse dependency order using plan.getDeletesInReverseDependencyOrder()
+  - Track results and errors using ReconciliationResult.Builder
+- Route to appropriate repository apply methods based on resource kind
+- Handle partial failures (continue or abort based on policy)
+- Respect dry-run mode (return plan without executing)
+- Respect pruneEnabled option (skip deletes if disabled)
 
 **Estimated Duration**: 60-75 minutes
 
 **Dependencies**: 
 - All prerequisites complete:
-  - ReconciliationPlan value object ✅ (T05.12)
-  - DesiredState parsing ✅ (T05.16/T05.15)
-  - ActualState fetching ✅ (T05.17)
-  - DependencyGraph ✅ (T05.14)
+  - ReconciliationPlan with execution ordering ✅ (T05.12, T05.18)
+  - Repository apply methods exist ✅ (AgentRepo, WorkflowRepo, etc.)
+  - Domain value objects ✅ (ResourceChange, ReconciliationResult)
+  - DependencyGraph topological sort ✅ (T05.14)
 
-**To Resume**: Start working on T05.18 - verify/enhance ReconciliationPlan.fromDiff() and add comprehensive tests
+**To Resume**: Start working on T05.19 - implement executePlan() with dependency-ordered resource creation/deletion
 
 ---
 
@@ -1399,14 +1446,14 @@ To continue this project, open a new chat and drag this file:
 @_projects/2026-01/20260131.02.cli-agent-yaml-first/next-task.md
 ```
 
-Then say: **"Start working on T05.18"** or **"Continue with next subtask"**
+Then say: **"Start working on T05.19"** or **"Continue with next subtask"**
 
 The AI will:
 1. Read the Phase 5 plan for detailed implementation steps
-2. Review ReconciliationPlan.fromDiff() implementation from T05.12
-3. Verify/enhance diff algorithm for all resource types
-4. Add comprehensive tests for create/update/delete detection
-5. Create changelog and commit
+2. Review executePlan() stub in ProjectReconciliationService from T05.15
+3. Implement dependency-ordered execution for creates/updates
+4. Implement reverse-ordered execution for deletes (orphan pruning)
+5. Add comprehensive tests and create changelog
 
 ---
 
