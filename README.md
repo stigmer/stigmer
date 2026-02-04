@@ -66,7 +66,7 @@ curl -fsSL https://raw.githubusercontent.com/stigmer/stigmer/main/scripts/instal
 ### 2. Start Local Mode
 
 ```bash
-stigmer local
+stigmer server
 ```
 
 **That's it!** This single command:
@@ -89,13 +89,13 @@ stigmer local
 
 ```bash
 # Check status
-stigmer local status
+stigmer server status
 
 # Stop daemon
-stigmer local stop
+stigmer server stop
 
 # Restart
-stigmer local restart
+stigmer server start
 ```
 
 ### Configuration (Optional)
@@ -117,7 +117,7 @@ Or use environment variables:
 ```bash
 export STIGMER_LLM_PROVIDER=anthropic
 export ANTHROPIC_API_KEY=sk-ant-...
-stigmer local restart
+stigmer server start
 ```
 
 **See the full documentation** for advanced configuration options.
@@ -236,7 +236,7 @@ For full local development with agent execution:
 
 **Zero-config setup**:
 ```bash
-stigmer local
+stigmer server
 # That's it! Temporal auto-starts, Ollama used by default
 ```
 
@@ -244,7 +244,7 @@ stigmer local
 ```bash
 export STIGMER_LLM_PROVIDER=anthropic
 export ANTHROPIC_API_KEY=sk-ant-...
-stigmer local
+stigmer server
 ```
 
 ### Storage Strategy
@@ -375,7 +375,7 @@ Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to gi
 - Air-gapped environments
 
 **How it works**:
-- Local daemon runs on `localhost:50051` (started with `stigmer local`)
+- Local daemon runs on `localhost:50051` (started with `stigmer server`)
 - SQLite database in `~/.stigmer/stigmer.db` (single-file, portable)
 - CLI and Agent Runner both connect to daemon via gRPC
 - Single implicit user (`local-user`)
@@ -390,7 +390,7 @@ Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to gi
 **Start using**:
 ```bash
 # Single command to start everything
-stigmer local
+stigmer server
 
 # Now you can create and execute agents
 stigmer agent create --name my-agent --instructions "..."
@@ -499,7 +499,7 @@ This guarantees:
 
 **Check if already running:**
 ```bash
-stigmer local status
+stigmer server status
 ```
 
 **Kill existing processes:**
@@ -531,11 +531,11 @@ cat ~/.stigmer/logs/daemon.log | grep -i temporal
 **Connect to custom Temporal server:**
 ```bash
 # If Temporal is running on a different host/port
-stigmer local restart --temporal-host=192.168.1.5:7233
+stigmer server start --temporal-host=192.168.1.5:7233
 
 # Or set environment variable
 export TEMPORAL_HOST=192.168.1.5:7233
-stigmer local restart
+stigmer server start
 ```
 
 **Without Temporal:** Agent execution will fail. You can still create/list agents, but execution requires Temporal.
@@ -550,14 +550,14 @@ stigmer local restart
 
 **Set via flag:**
 ```bash
-stigmer local start --anthropic-api-key=sk-ant-...
+stigmer server start --anthropic-api-key=sk-ant-...
 ```
 
 **Update keychain (macOS):**
 ```bash
 # Open Keychain Access app
 # Search for "ANTHROPIC_API_KEY" and update
-stigmer local restart
+stigmer server start
 ```
 
 ### Database locked errors
@@ -566,13 +566,13 @@ If you see "database is locked":
 
 ```bash
 # Stop the daemon first
-stigmer local stop
+stigmer server stop
 
 # Wait a moment for cleanup
 sleep 2
 
 # Restart
-stigmer local start
+stigmer server start
 ```
 
 ### Reset everything
@@ -580,7 +580,7 @@ stigmer local start
 **⚠️ This deletes all local data:**
 
 ```bash
-stigmer local stop
+stigmer server stop
 rm -rf ~/.stigmer
 stigmer init
 ```
