@@ -210,17 +210,17 @@ func TestLoad_FullMcpServerYAML(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	
+
 	// Verify metadata
 	assert.Equal(t, "github-api", result.McpServer.Metadata.Name)
 	assert.Equal(t, "github-api", result.McpServer.Metadata.Slug)
-	
+
 	// Verify spec
 	assert.Equal(t, "GitHub API MCP server", result.McpServer.Spec.Description)
 	assert.Equal(t, "npx", result.McpServer.Spec.GetStdio().Command)
 	assert.Len(t, result.McpServer.Spec.GetStdio().Args, 1)
 	assert.Equal(t, "@modelcontextprotocol/server-github", result.McpServer.Spec.GetStdio().Args[0])
-	
+
 	// Verify tags
 	assert.Len(t, result.McpServer.Spec.Tags, 3)
 	assert.Contains(t, result.McpServer.Spec.Tags, "github")
@@ -234,7 +234,7 @@ func TestLoad_HTTPServerYAML(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	
+
 	assert.Equal(t, "remote-server", result.McpServer.Metadata.Name)
 	assert.Equal(t, "https://api.example.com/mcp", result.McpServer.Spec.GetHttp().Url)
 	assert.Nil(t, result.McpServer.Spec.GetStdio())

@@ -2034,6 +2034,63 @@ After loading context:
 
 ---
 
-*Last updated: 2026-02-03 (Architecture Revision Session)*
-*Status: Phase 1 ✅, Phase 2 ✅, Phase 3 AWAITING APPROVAL*
+## Recent Session Progress (2026-02-04)
+
+### T05.27 Integration Tests - COMPLETE ✅
+
+**Accomplishment**: Implemented comprehensive E2E integration tests for Project Track workflow
+
+**What was built**:
+- **Test Infrastructure** (2 files, ~405 lines):
+  - `test/e2e/project_test_constants.go` - Constants for all test fixtures
+  - `test/e2e/project_test_helpers.go` - Helper functions for project E2E tests
+  - Added Project/MCP Server gRPC helpers to `helpers_test.go` (~120 lines)
+
+- **Test Fixtures** (8 SDK projects, 16 files):
+  - `basic-project/` - 1 agent for fresh deployment
+  - `multi-agent-project/` - 3 agents, 1 MCP server, 1 workflow for dependency testing
+  - `update-project/v1-v2/` - Update scenario fixtures
+  - `orphan-project/v1-v2/` - Orphan pruning fixtures
+  - `circular-deps/` - Circular dependency error fixture
+  - `invalid-sdk/` - Invalid SDK error fixture
+
+- **Test Files** (6 files, 21 tests, ~415 lines):
+  - `project_apply_fresh_test.go` - Fresh deployment (3 tests)
+  - `project_apply_dryrun_test.go` - Dry-run validation (3 tests)
+  - `project_apply_update_test.go` - Update scenarios (3 tests)
+  - `project_apply_orphan_test.go` - Orphan pruning (3 tests)
+  - `project_apply_deps_test.go` - Dependency ordering (4 tests)
+  - `project_apply_error_test.go` - Error handling (5 tests)
+
+**Coverage**: All 7 scenarios from Phase 5 plan
+1. Fresh project deployment ✅
+2. Project update ✅
+3. Resource removal (orphan pruning) ✅
+4. Dry-run mode ✅
+5. Backend derives dependency graph ✅
+6. Circular dependency detection ✅
+7. Error handling ✅
+
+**Key Validations**:
+- Backend-derived dependency graph (not passed from CLI)
+- Topological ordering (MCP → Agents → Workflows)
+- Orphan pruning with `--prune=false` opt-out
+- Spec-only comparison (metadata preserved)
+- Dry-run safety (no execution)
+
+**Files Modified**:
+- Modified: 4 test files (minor fixes from T05.26)
+- Created: 8 new test files + 8 fixture directories + 1 plan file
+- Total: ~820 lines of test code + 16 fixture files
+
+**Status**: Phase 5 is now 28/29 tasks complete (96%)
+
+**Next**: T05.28 (Phase 5 Documentation)
+
+**Changelog**: `_changelog/2026-02/2026-02-04-190747-integration-tests-project-track-e2e-t05.27.md`
+
+---
+
+*Last updated: 2026-02-04 (T05.27 Integration Tests Complete)*
+*Status: Phase 1 ✅, Phase 2 ✅, Phase 3 AWAITING APPROVAL, Phase 5 (28/29) 🚧*
 *Architecture: ADR-005 Dual-Track Interface adopted*

@@ -1,0 +1,5 @@
+name: invalid-sdk-project
+runtime: go
+main: main.go
+version: 0.1.0
+description: Project with invalid SDK code for error handling testing
