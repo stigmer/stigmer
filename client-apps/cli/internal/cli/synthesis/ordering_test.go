@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
@@ -12,6 +13,12 @@ import (
 // Test helper functions
 func createTestSkill(slug string) *skillv1.Skill {
 	return &skillv1.Skill{
+		Metadata: &apiresource.ApiResourceMetadata{Slug: slug},
+	}
+}
+
+func createTestMcpServer(slug string) *mcpserverv1.McpServer {
+	return &mcpserverv1.McpServer{
 		Metadata: &apiresource.ApiResourceMetadata{Slug: slug},
 	}
 }
@@ -928,6 +935,7 @@ func TestGetResourceType(t *testing.T) {
 		expected string
 	}{
 		{"skill:coding", "skill"},
+		{"mcp_server:github", "mcp_server"},
 		{"agent:reviewer", "agent"},
 		{"workflow:pr-review", "workflow"},
 		{"invalid", "unknown"},
@@ -949,6 +957,7 @@ func TestGetNodeStyle(t *testing.T) {
 		expectedColor string
 	}{
 		{"skill:coding", "box", "#e1f5e1"},
+		{"mcp_server:github", "diamond", "#f3e5f5"},
 		{"agent:reviewer", "ellipse", "#e3f2fd"},
 		{"workflow:pr-review", "hexagon", "#fff3e0"},
 		{"unknown:test", "ellipse", "#f5f5f5"},
@@ -957,7 +966,7 @@ func TestGetNodeStyle(t *testing.T) {
 	for _, tt := range tests {
 		shape, color := getNodeStyle(tt.input)
 		if shape != tt.expectedShape || color != tt.expectedColor {
-			t.Errorf("getNodeStyle(%s) = (%s, %s), want (%s, %s)", 
+			t.Errorf("getNodeStyle(%s) = (%s, %s), want (%s, %s)",
 				tt.input, shape, color, tt.expectedShape, tt.expectedColor)
 		}
 	}
@@ -978,4 +987,309 @@ func findSubstring(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+// =============================================================================
+// MCP Server Tests
+// =============================================================================
+
+// TestGetResourceID_McpServer tests resource ID generation for MCP servers.
+func TestGetResourceID_McpServer(t *testing.T) {
+	mcpServer := createTestMcpServer("github-api")
+	id := GetResourceID(mcpServer)
+
+	if id != "mcp_server:github-api" {
+		t.Errorf("GetResourceID(McpServer) = %s, want mcp_server:github-api", id)
+	}
+}
+
+// TestMcpServerCount tests the MCP server count method.
+func TestMcpServerCount(t *testing.T) {
+	result := &Result{
+		McpServers: []*mcpserverv1.McpServer{
+			createTestMcpServer("github"),
+			createTestMcpServer("slack"),
+		},
+	}
+
+	if result.McpServerCount() != 2 {
+		t.Errorf("McpServerCount() = %d, want 2", result.McpServerCount())
+	}
+}
+
+// TestTotalResources_WithMcpServers tests total resource count includes MCP servers.
+func TestTotalResources_WithMcpServers(t *testing.T) {
+	result := &Result{
+		Skills:     []*skillv1.Skill{createTestSkill("s1")},
+		McpServers: []*mcpserverv1.McpServer{createTestMcpServer("m1"), createTestMcpServer("m2")},
+		Agents:     []*agentv1.Agent{createTestAgent("a1")},
+		Workflows:  []*workflowv1.Workflow{createTestWorkflow("w1")},
+	}
+
+	expected := 5 // 1 skill + 2 mcp servers + 1 agent + 1 workflow
+	if result.TotalResources() != expected {
+		t.Errorf("TotalResources() = %d, want %d", result.TotalResources(), expected)
+	}
+}
+
+// TestTopologicalSort_WithMcpServer tests ordering with MCP server dependencies.
+func TestTopologicalSort_WithMcpServer(t *testing.T) {
+	// mcp_server:github → agent:reviewer
+	result := &Result{
+		McpServers: []*mcpserverv1.McpServer{createTestMcpServer("github")},
+		Agents:     []*agentv1.Agent{createTestAgent("reviewer")},
+		Dependencies: map[string][]string{
+			"agent:reviewer": {"mcp_server:github"},
+		},
+	}
+
+	ordered, err := result.GetOrderedResources()
+	if err != nil {
+		t.Fatalf("GetOrderedResources failed: %v", err)
+	}
+
+	if len(ordered) != 2 {
+		t.Fatalf("expected 2 resources, got %d", len(ordered))
+	}
+
+	// MCP server should come before agent
+	if ordered[0].ID != "mcp_server:github" {
+		t.Errorf("expected mcp_server:github first, got %s", ordered[0].ID)
+	}
+	if ordered[1].ID != "agent:reviewer" {
+		t.Errorf("expected agent:reviewer second, got %s", ordered[1].ID)
+	}
+}
+
+// TestTopologicalSort_MixedDependencies tests agent depending on both skill and MCP server.
+func TestTopologicalSort_MixedDependencies(t *testing.T) {
+	// skill:coding, mcp_server:github → agent:reviewer → workflow:pr-review
+	result := &Result{
+		Skills:     []*skillv1.Skill{createTestSkill("coding")},
+		McpServers: []*mcpserverv1.McpServer{createTestMcpServer("github")},
+		Agents:     []*agentv1.Agent{createTestAgent("reviewer")},
+		Workflows:  []*workflowv1.Workflow{createTestWorkflow("pr-review")},
+		Dependencies: map[string][]string{
+			"agent:reviewer":     {"skill:coding", "mcp_server:github"},
+			"workflow:pr-review": {"agent:reviewer"},
+		},
+	}
+
+	ordered, err := result.GetOrderedResources()
+	if err != nil {
+		t.Fatalf("GetOrderedResources failed: %v", err)
+	}
+
+	if len(ordered) != 4 {
+		t.Fatalf("expected 4 resources, got %d", len(ordered))
+	}
+
+	// Find indices
+	skillIdx := -1
+	mcpIdx := -1
+	agentIdx := -1
+	workflowIdx := -1
+
+	for i, res := range ordered {
+		switch res.ID {
+		case "skill:coding":
+			skillIdx = i
+		case "mcp_server:github":
+			mcpIdx = i
+		case "agent:reviewer":
+			agentIdx = i
+		case "workflow:pr-review":
+			workflowIdx = i
+		}
+	}
+
+	// Skill and MCP server should come before agent, agent before workflow
+	if skillIdx >= agentIdx {
+		t.Error("skill should come before agent")
+	}
+	if mcpIdx >= agentIdx {
+		t.Error("mcp_server should come before agent")
+	}
+	if agentIdx >= workflowIdx {
+		t.Error("agent should come before workflow")
+	}
+}
+
+// TestValidateDependencies_WithMcpServer tests dependency validation includes MCP servers.
+func TestValidateDependencies_WithMcpServer(t *testing.T) {
+	result := &Result{
+		McpServers: []*mcpserverv1.McpServer{createTestMcpServer("github")},
+		Agents:     []*agentv1.Agent{createTestAgent("reviewer")},
+		Dependencies: map[string][]string{
+			"agent:reviewer": {"mcp_server:github"},
+		},
+	}
+
+	err := result.ValidateDependencies()
+	if err != nil {
+		t.Errorf("ValidateDependencies failed: %v", err)
+	}
+}
+
+// TestValidateDependencies_MissingMcpServer tests validation fails for missing MCP server.
+func TestValidateDependencies_MissingMcpServer(t *testing.T) {
+	result := &Result{
+		Agents: []*agentv1.Agent{createTestAgent("reviewer")},
+		Dependencies: map[string][]string{
+			"agent:reviewer": {"mcp_server:nonexistent"},
+		},
+	}
+
+	err := result.ValidateDependencies()
+	if err == nil {
+		t.Error("expected error for missing MCP server dependency")
+	}
+}
+
+// TestGetResourcesByDepth_WithMcpServer tests depth grouping includes MCP servers.
+func TestGetResourcesByDepth_WithMcpServer(t *testing.T) {
+	// skill, mcp_server (depth 0) → agent (depth 1) → workflow (depth 2)
+	result := &Result{
+		Skills:     []*skillv1.Skill{createTestSkill("coding")},
+		McpServers: []*mcpserverv1.McpServer{createTestMcpServer("github")},
+		Agents:     []*agentv1.Agent{createTestAgent("reviewer")},
+		Workflows:  []*workflowv1.Workflow{createTestWorkflow("pr-review")},
+		Dependencies: map[string][]string{
+			"agent:reviewer":     {"skill:coding", "mcp_server:github"},
+			"workflow:pr-review": {"agent:reviewer"},
+		},
+	}
+
+	groups, err := result.GetResourcesByDepth()
+	if err != nil {
+		t.Fatalf("GetResourcesByDepth failed: %v", err)
+	}
+
+	if len(groups) != 3 {
+		t.Fatalf("expected 3 depth groups, got %d", len(groups))
+	}
+
+	// Depth 0: skill and mcp_server (can be created in parallel)
+	if len(groups[0]) != 2 {
+		t.Errorf("expected 2 resources at depth 0, got %d", len(groups[0]))
+	}
+
+	// Depth 1: agent
+	if len(groups[1]) != 1 {
+		t.Errorf("expected 1 resource at depth 1, got %d", len(groups[1]))
+	}
+
+	// Depth 2: workflow
+	if len(groups[2]) != 1 {
+		t.Errorf("expected 1 resource at depth 2, got %d", len(groups[2]))
+	}
+}
+
+// TestGetDependencyGraphMermaid_WithMcpServer tests Mermaid diagram includes MCP servers.
+func TestGetDependencyGraphMermaid_WithMcpServer(t *testing.T) {
+	result := &Result{
+		Skills:     []*skillv1.Skill{createTestSkill("coding")},
+		McpServers: []*mcpserverv1.McpServer{createTestMcpServer("github")},
+		Agents:     []*agentv1.Agent{createTestAgent("reviewer")},
+		Dependencies: map[string][]string{
+			"agent:reviewer": {"skill:coding", "mcp_server:github"},
+		},
+	}
+
+	mermaid := result.GetDependencyGraphMermaid()
+
+	// Should contain MCP server
+	if !containsString(mermaid, "mcp_server:github") {
+		t.Error("expected mcp_server:github in Mermaid diagram")
+	}
+
+	// Should contain MCP server styling
+	if !containsString(mermaid, "classDef mcp_server") {
+		t.Error("expected mcp_server styling in Mermaid diagram")
+	}
+
+	// Should contain all resource types
+	if !containsString(mermaid, "skill:coding") {
+		t.Error("expected skill:coding in Mermaid diagram")
+	}
+	if !containsString(mermaid, "agent:reviewer") {
+		t.Error("expected agent:reviewer in Mermaid diagram")
+	}
+}
+
+// TestGetDependencyGraphDot_WithMcpServer tests DOT diagram includes MCP servers.
+func TestGetDependencyGraphDot_WithMcpServer(t *testing.T) {
+	result := &Result{
+		McpServers: []*mcpserverv1.McpServer{createTestMcpServer("github")},
+		Agents:     []*agentv1.Agent{createTestAgent("reviewer")},
+		Dependencies: map[string][]string{
+			"agent:reviewer": {"mcp_server:github"},
+		},
+	}
+
+	dot := result.GetDependencyGraphDot()
+
+	// Should contain MCP server node
+	if !containsString(dot, "\"mcp_server:github\"") {
+		t.Error("expected mcp_server:github in DOT diagram")
+	}
+
+	// Should have diamond shape for MCP server
+	if !containsString(dot, "shape=diamond") {
+		t.Error("expected diamond shape for MCP server in DOT diagram")
+	}
+
+	// Should have purple color for MCP server
+	if !containsString(dot, "#f3e5f5") {
+		t.Error("expected purple color for MCP server in DOT diagram")
+	}
+}
+
+// TestSanitizeMermaidID_McpServer tests Mermaid ID sanitization for MCP servers.
+func TestSanitizeMermaidID_McpServer(t *testing.T) {
+	id := sanitizeMermaidID("mcp_server:github-api")
+	expected := "mcp_server_github_api"
+
+	if id != expected {
+		t.Errorf("sanitizeMermaidID(mcp_server:github-api) = %s, want %s", id, expected)
+	}
+}
+
+// TestMultipleMcpServers tests handling of multiple MCP servers.
+func TestMultipleMcpServers(t *testing.T) {
+	result := &Result{
+		McpServers: []*mcpserverv1.McpServer{
+			createTestMcpServer("github"),
+			createTestMcpServer("slack"),
+			createTestMcpServer("jira"),
+		},
+		Agents: []*agentv1.Agent{createTestAgent("pm-assistant")},
+		Dependencies: map[string][]string{
+			"agent:pm-assistant": {"mcp_server:github", "mcp_server:slack", "mcp_server:jira"},
+		},
+	}
+
+	ordered, err := result.GetOrderedResources()
+	if err != nil {
+		t.Fatalf("GetOrderedResources failed: %v", err)
+	}
+
+	if len(ordered) != 4 {
+		t.Fatalf("expected 4 resources, got %d", len(ordered))
+	}
+
+	// All MCP servers should come before the agent
+	agentIdx := -1
+	for i, res := range ordered {
+		if res.ID == "agent:pm-assistant" {
+			agentIdx = i
+			break
+		}
+	}
+
+	for i, res := range ordered {
+		if getResourceType(res.ID) == "mcp_server" && i >= agentIdx {
+			t.Errorf("MCP server %s should come before agent", res.ID)
+		}
+	}
 }
