@@ -173,6 +173,24 @@ func executeApply(opts applyOptions) error {
 	cliprint.PrintSuccess("✓ Connected to backend")
 	fmt.Println()
 
+	// Step 10.5: Verify external skill references
+	externalSkillRefs := apply.ExtractExternalSkillRefs(result)
+	if len(externalSkillRefs) > 0 {
+		cliprint.PrintInfo("Verifying external skill references...")
+		verifyResult, err := apply.VerifyExternalSkills(conn, orgID, externalSkillRefs)
+		if err != nil {
+			return errors.Wrap(err, "skill verification failed")
+		}
+
+		if len(verifyResult.Missing) > 0 {
+			apply.DisplayMissingSkillsGuidance(verifyResult.Missing)
+			return fmt.Errorf("deployment blocked: %d skill(s) not found - push them first", len(verifyResult.Missing))
+		}
+
+		cliprint.PrintSuccess("✓ All external skills verified (%d)", len(verifyResult.Found))
+		fmt.Println()
+	}
+
 	// Step 11: Apply Project to backend
 	cliprint.PrintInfo("Deploying resources...")
 	applyResult, err := project.Apply(&project.ApplyOptions{

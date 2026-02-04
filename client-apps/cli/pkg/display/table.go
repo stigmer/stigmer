@@ -87,7 +87,7 @@ func (t *ApplyResultTable) Render() {
 
 	// Define column headers
 	headers := []string{"TYPE", "NAME", "STATUS", "ID"}
-	
+
 	// Build rows data
 	rows := make([][]string, len(t.Resources))
 	for i, resource := range t.Resources {
@@ -131,15 +131,15 @@ func renderAdaptiveTable(headers []string, rows [][]string, headerColor func(...
 
 	// Get terminal width
 	termWidth := GetTerminalWidth()
-	
+
 	// Calculate maximum width needed for each column
 	maxWidths := make([]int, len(headers))
-	
+
 	// Measure headers
 	for i, header := range headers {
 		maxWidths[i] = MeasureColorizedString(header)
 	}
-	
+
 	// Measure all rows
 	for _, row := range rows {
 		for i, cell := range row {
@@ -149,7 +149,7 @@ func renderAdaptiveTable(headers []string, rows [][]string, headerColor func(...
 			}
 		}
 	}
-	
+
 	// Calculate total width needed (columns + padding)
 	const columnGap = 3 // 3 spaces between columns
 	totalNeeded := 0
@@ -157,13 +157,13 @@ func renderAdaptiveTable(headers []string, rows [][]string, headerColor func(...
 		totalNeeded += w
 	}
 	totalNeeded += (len(maxWidths) - 1) * columnGap // gaps between columns
-	
+
 	// If table is too wide, intelligently shrink columns
 	if totalNeeded > termWidth {
 		// The ID column (last) is most truncatable
 		// Calculate how much we need to shrink
 		shrinkAmount := totalNeeded - termWidth
-		
+
 		// Try to shrink ID column first (it's usually the longest)
 		idColIdx := len(maxWidths) - 1
 		if maxWidths[idColIdx] > 30 { // Only shrink if ID is long enough
@@ -171,7 +171,7 @@ func renderAdaptiveTable(headers []string, rows [][]string, headerColor func(...
 			maxWidths[idColIdx] -= shrinkID
 			shrinkAmount -= shrinkID
 		}
-		
+
 		// If still too wide, shrink all columns proportionally
 		if shrinkAmount > 0 {
 			for i := range maxWidths {
@@ -184,21 +184,21 @@ func renderAdaptiveTable(headers []string, rows [][]string, headerColor func(...
 			}
 		}
 	}
-	
+
 	// Render header
 	headerParts := make([]string, len(headers))
 	for i, header := range headers {
 		headerParts[i] = PadRight(headerColor(header), maxWidths[i])
 	}
 	fmt.Println(strings.Join(headerParts, strings.Repeat(" ", columnGap)))
-	
+
 	// Render separator line
 	separatorParts := make([]string, len(headers))
 	for i, width := range maxWidths {
 		separatorParts[i] = strings.Repeat("─", width)
 	}
 	fmt.Println(strings.Join(separatorParts, strings.Repeat(" ", columnGap)))
-	
+
 	// Render rows
 	for _, row := range rows {
 		rowParts := make([]string, len(row))
@@ -263,10 +263,10 @@ func (t *ApplyResultTable) RenderDryRun() {
 	fmt.Println()
 
 	headerColor := color.New(color.FgCyan, color.Bold).SprintFunc()
-	
+
 	// Define headers for dry run (no ID column)
 	headers := []string{"TYPE", "NAME", "ACTION"}
-	
+
 	// Build rows
 	rows := make([][]string, len(t.Resources))
 	for i, resource := range t.Resources {
