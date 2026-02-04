@@ -39,11 +39,11 @@ function Features({ className, ...props }: FeaturesProps) {
             className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4"
           >
             <span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-              Infrastructure You Don&apos;t Have to Build
+              What We Handle So You Don&apos;t Have To
             </span>
           </h2>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Stigmer solves the infrastructure challenges that derail agent projects. Sandboxing, orchestration, MCP security, local-to-cloud scaling—all handled. You focus on agent logic, not plumbing.
+            Stigmer solves the infrastructure challenges that derail agent projects. Sandboxing, orchestration, MCP security—all handled. You focus on agent logic, not plumbing.
           </p>
         </div>
 

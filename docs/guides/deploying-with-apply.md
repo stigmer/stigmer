@@ -210,7 +210,7 @@ stigmer backend set local
 stigmer apply
 ```
 
-Resources deployed to local BadgerDB.
+Resources deployed to local SQLite database.
 
 ### Cloud Mode
 
@@ -667,7 +667,7 @@ stigmer.Run(func(ctx *stigmer.Context) error {
 ```
 
 What changes:
-- **Local mode**: `stigmer backend set local` → Deploys to localhost BadgerDB
+- **Local mode**: `stigmer backend set local` → Deploys to localhost SQLite database
 - **Cloud mode**: `stigmer backend set cloud` → Deploys to Stigmer Cloud
 
 The apply command automatically detects the current backend and connects appropriately.

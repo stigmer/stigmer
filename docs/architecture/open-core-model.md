@@ -15,9 +15,9 @@ Located in `github.com/stigmer/stigmer`:
 - **SDKs** (`sdk/go/`, `sdk/python/`) - Libraries for building workflows
 
 **Local Backend**:
-- **Local Daemon** (`cmd/stigmer-daemon/`) - gRPC server that holds BadgerDB file lock
-- **Local Controllers** (`internal/backend/local/`) - BadgerDB-based gRPC service implementations
-- **BadgerDB Storage** (`internal/backend/local/`) - Key-value storage layer (LSM tree)
+- **Local Daemon** (`cmd/stigmer-daemon/`) - gRPC server with SQLite storage
+- **Local Controllers** (`internal/backend/local/`) - SQLite-based gRPC service implementations
+- **SQLite Storage** (`backend/libs/go/store/sqlite/`) - Relational storage layer with FTS5 search
 
 **API Contracts**:
 - **gRPC Services** (`apis/ai/stigmer/agentic/*/v1/`) - Protobuf service definitions

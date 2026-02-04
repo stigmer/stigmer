@@ -33,13 +33,11 @@ function Integration({ className, ...props }: IntegrationProps) {
             className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4"
           >
             <span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-              Build Your Agent Infrastructure
+              Platform, Not Framework
             </span>
           </h2>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto">
-            Stigmer isn&apos;t a framework—it&apos;s a platform. Agents run as independent microservices with gRPC APIs. 
-            Your apps don&apos;t import libraries; they call services. Update agents independently. Build agent marketplaces for your users. 
-            All with standard protocols and public contracts.
+            Agents run as independent microservices with gRPC APIs. Your apps don&apos;t import libraries; they call services. Update agents independently—all consumers benefit instantly. All with standard protocols and public contracts.
           </p>
         </div>
 
@@ -74,11 +72,11 @@ function Integration({ className, ...props }: IntegrationProps) {
                 <CardTitle className="text-xl">Stigmer Approach</CardTitle>
               </div>
               <ul className="space-y-3">
-                <ComparisonItem text="Create agent once in Stigmer Cloud" highlight />
+                <ComparisonItem text="Create agent once (YAML or SDK)" highlight />
                 <ComparisonItem text="Loosely coupled via gRPC" highlight />
                 <ComparisonItem text="Update agent, all consumers benefit instantly" highlight />
                 <ComparisonItem text="Standard gRPC (Go, Python, Java, TypeScript, Rust)" highlight />
-                <ComparisonItem text="Agent runs in Stigmer (multi-tenant, isolated)" highlight />
+                <ComparisonItem text="Agent runs in isolated sandbox" highlight />
               </ul>
             </CardHeader>
           </Card>
@@ -100,9 +98,8 @@ function Integration({ className, ...props }: IntegrationProps) {
                 Platform for Platforms
               </h3>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
-                <strong className="text-foreground">The marketplace opportunity:</strong> Because Stigmer exposes agents via gRPC, 
-                you can build agent marketplaces for YOUR users. Create a catalog of agents in Stigmer, let users call them via API. 
-                Think &ldquo;Twilio for AI Agents&rdquo;—infrastructure you don&apos;t see, APIs you use.
+                <strong className="text-foreground">The marketplace opportunity:</strong> Because agents are gRPC services, 
+                you can build agent marketplaces. Create a catalog in Stigmer, expose via API, let users call agents like Twilio calls. Infrastructure disappears. APIs scale.
               </p>
             </div>
           </div>

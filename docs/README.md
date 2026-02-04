@@ -68,10 +68,9 @@ Complete documentation index for the Stigmer open-source project.
 - [Update Pipeline and Immutable Fields](architecture/update-pipeline-and-immutable-fields.md) - How updates preserve identity while allowing modifications
 
 ### Architecture Decision Records (ADR)
-- [Local Backend to Use BadgerDB](adr/20260118-181912-local-backend-to-use-badgerdb.md) - Decision to use BadgerDB for local mode
+- [Local Backend to Use SQLite](adr/20260118-181912-local-backend-to-use-sqlite.md) - Decision to use SQLite for local mode
 - [SDK Code Generators](adr/20260118-181912-sdk-code-generators.md) - Code generation approach for SDKs
 - [Stigmer Local Daemon](adr/20260118-190513-stigmer-local-deamon.md) - Local daemon architecture
-- [Badger Schema Changes](adr/20260118-202523-badger-schema-changes.md) - BadgerDB schema design decisions
 - [In-Process gRPC Calls and Agent Instance Creation](adr/20260118-214000-in-process-grpc-calls-and-agent-instance-creation.md) - In-process gRPC architecture
 - [Fix Go In-Process gRPC Implementation](adr/20260118-fix-go-inprocess-grpc-implementation.md) - Technical fixes for in-process gRPC
 - [Workflow Runner Config](adr/20260119-011111-workflow-runner-config.md) - Workflow runner configuration architecture
