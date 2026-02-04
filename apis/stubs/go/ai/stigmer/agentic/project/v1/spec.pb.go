@@ -8,6 +8,10 @@ package projectv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	v12 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	v13 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
+	v11 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,6 +36,12 @@ const (
 //
 // Note: No YAML glob patterns. Use Atomic Track (`stigmer <resource> apply`)
 // for individual YAML files. Project Track is SDK-only.
+//
+// The Project is an aggregate root that contains all managed resources.
+// On apply, the backend reconciles resources to match this specification:
+// - Resources in spec are created or updated
+// - Resources removed from spec are deleted (orphan pruning)
+// - Resource dependencies are resolved in order (MCP Servers → Agents → Workflows)
 type ProjectSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// SDK runtime for resource synthesis.
@@ -51,7 +61,53 @@ type ProjectSpec struct {
 	// is handled by the CLI validator.
 	EntryPoint string `protobuf:"bytes,2,opt,name=entry_point,json=entryPoint,proto3" json:"entry_point,omitempty"`
 	// Human-readable description of the project.
-	Description   string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	// Agents managed by this project.
+	//
+	// Each Agent must have unique metadata.name within the project.
+	// Agents may reference MCP Servers (via mcp_server_usages) and Skills
+	// (via skill_refs) - these dependencies are resolved during reconciliation.
+	//
+	// On apply:
+	// - Agents present here are created or updated
+	// - Agents removed from this list are deleted (orphan pruning)
+	// - Agent IDs are assigned by the backend and populated in the response
+	Agents []*v1.Agent `protobuf:"bytes,10,rep,name=agents,proto3" json:"agents,omitempty"`
+	// Workflows managed by this project.
+	//
+	// Each Workflow must have unique metadata.name within the project.
+	// Workflows define multi-step orchestrations using the Zigflow DSL.
+	//
+	// On apply:
+	// - Workflows present here are created or updated
+	// - Workflows removed from this list are deleted (orphan pruning)
+	// - Workflow IDs are assigned by the backend and populated in the response
+	Workflows []*v11.Workflow `protobuf:"bytes,11,rep,name=workflows,proto3" json:"workflows,omitempty"`
+	// MCP Servers managed by this project.
+	//
+	// Each McpServer must have unique metadata.name within the project.
+	// MCP Servers are processed first during reconciliation since Agents
+	// may depend on them via mcp_server_usages.
+	//
+	// On apply:
+	// - MCP Servers present here are created or updated
+	// - MCP Servers removed from this list are deleted (orphan pruning)
+	// - Server IDs are assigned by the backend and populated in the response
+	McpServers []*v12.McpServer `protobuf:"bytes,12,rep,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty"`
+	// Skills managed by this project.
+	//
+	// Each Skill must have unique metadata.name within the project.
+	// Skills are special: they require code to be pushed separately before
+	// project apply. The CLI handles this flow:
+	// 1. CLI pushes skill code → SkillCommandController.Push() → returns Skill with ID
+	// 2. CLI adds returned Skill to project.spec.skills
+	// 3. CLI calls ProjectCommandController.Apply()
+	// 4. Backend validates skill references exist
+	//
+	// On apply:
+	// - Skills present here are validated (code must already be pushed)
+	// - Skills removed from this list are deleted (orphan pruning)
+	Skills        []*v13.Skill `protobuf:"bytes,13,rep,name=skills,proto3" json:"skills,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -107,17 +163,51 @@ func (x *ProjectSpec) GetDescription() string {
 	return ""
 }
 
+func (x *ProjectSpec) GetAgents() []*v1.Agent {
+	if x != nil {
+		return x.Agents
+	}
+	return nil
+}
+
+func (x *ProjectSpec) GetWorkflows() []*v11.Workflow {
+	if x != nil {
+		return x.Workflows
+	}
+	return nil
+}
+
+func (x *ProjectSpec) GetMcpServers() []*v12.McpServer {
+	if x != nil {
+		return x.McpServers
+	}
+	return nil
+}
+
+func (x *ProjectSpec) GetSkills() []*v13.Skill {
+	if x != nil {
+		return x.Skills
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_project_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_project_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/project/v1/spec.proto\x12\x1dai.stigmer.agentic.project.v1\x1a(ai/stigmer/agentic/project/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xa8\x01\n" +
+	"(ai/stigmer/agentic/project/v1/spec.proto\x12\x1dai.stigmer.agentic.project.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a)ai/stigmer/agentic/mcpserver/v1/api.proto\x1a(ai/stigmer/agentic/project/v1/enum.proto\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a(ai/stigmer/agentic/workflow/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"\xb5\x03\n" +
 	"\vProjectSpec\x12V\n" +
 	"\aruntime\x18\x01 \x01(\x0e2-.ai.stigmer.agentic.project.v1.ProjectRuntimeB\r\xbaH\n" +
 	"\xc8\x01\x01\x82\x01\x04\x10\x01 \x00R\aruntime\x12\x1f\n" +
 	"\ventry_point\x18\x02 \x01(\tR\n" +
 	"entryPoint\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescriptionB\x99\x02\n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12:\n" +
+	"\x06agents\x18\n" +
+	" \x03(\v2\".ai.stigmer.agentic.agent.v1.AgentR\x06agents\x12F\n" +
+	"\tworkflows\x18\v \x03(\v2(.ai.stigmer.agentic.workflow.v1.WorkflowR\tworkflows\x12K\n" +
+	"\vmcp_servers\x18\f \x03(\v2*.ai.stigmer.agentic.mcpserver.v1.McpServerR\n" +
+	"mcpServers\x12:\n" +
+	"\x06skills\x18\r \x03(\v2\".ai.stigmer.agentic.skill.v1.SkillR\x06skillsB\x99\x02\n" +
 	"!com.ai.stigmer.agentic.project.v1B\tSpecProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1;projectv1\xa2\x02\x04ASAP\xaa\x02\x1dAi.Stigmer.Agentic.Project.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Project\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Project::V1b\x06proto3"
 
 var (
@@ -134,16 +224,24 @@ func file_ai_stigmer_agentic_project_v1_spec_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_project_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_agentic_project_v1_spec_proto_goTypes = []any{
-	(*ProjectSpec)(nil), // 0: ai.stigmer.agentic.project.v1.ProjectSpec
-	(ProjectRuntime)(0), // 1: ai.stigmer.agentic.project.v1.ProjectRuntime
+	(*ProjectSpec)(nil),   // 0: ai.stigmer.agentic.project.v1.ProjectSpec
+	(ProjectRuntime)(0),   // 1: ai.stigmer.agentic.project.v1.ProjectRuntime
+	(*v1.Agent)(nil),      // 2: ai.stigmer.agentic.agent.v1.Agent
+	(*v11.Workflow)(nil),  // 3: ai.stigmer.agentic.workflow.v1.Workflow
+	(*v12.McpServer)(nil), // 4: ai.stigmer.agentic.mcpserver.v1.McpServer
+	(*v13.Skill)(nil),     // 5: ai.stigmer.agentic.skill.v1.Skill
 }
 var file_ai_stigmer_agentic_project_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.project.v1.ProjectSpec.runtime:type_name -> ai.stigmer.agentic.project.v1.ProjectRuntime
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 1: ai.stigmer.agentic.project.v1.ProjectSpec.agents:type_name -> ai.stigmer.agentic.agent.v1.Agent
+	3, // 2: ai.stigmer.agentic.project.v1.ProjectSpec.workflows:type_name -> ai.stigmer.agentic.workflow.v1.Workflow
+	4, // 3: ai.stigmer.agentic.project.v1.ProjectSpec.mcp_servers:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServer
+	5, // 4: ai.stigmer.agentic.project.v1.ProjectSpec.skills:type_name -> ai.stigmer.agentic.skill.v1.Skill
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_project_v1_spec_proto_init() }

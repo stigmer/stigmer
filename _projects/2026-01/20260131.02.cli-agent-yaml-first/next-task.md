@@ -39,10 +39,29 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 4 - Project Entity & stigmer.yaml Foundation 🚀 **IN PROGRESS**
-**Current Sub-task**: T04.1a ✅ **COMPLETE** - Project Command/Query Services
+**Current Sub-task**: T04.1b ✅ **COMPLETE** - ProjectSpec Aggregate Root Resource Fields
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-03 - Session 26 - Project Command/Query Services):
+**Latest Session** (2026-02-04 - Session 27 - ProjectSpec Aggregate Root Resource Fields):
+- ✅ **COMPLETED Phase 4 Sub-task T04.1b**: Update ProjectSpec with Resource Fields
+- Enhanced `ProjectSpec` to include repeated resource fields (agents, workflows, mcp_servers, skills)
+- Project is now a true aggregate root for resource lifecycle management
+- **Added imports** for Agent, Workflow, McpServer, Skill api.proto files
+- **Added resource fields** with field numbers 10-13:
+  - `repeated Agent agents = 10`
+  - `repeated Workflow workflows = 11`
+  - `repeated McpServer mcp_servers = 12`
+  - `repeated Skill skills = 13`
+- **Comprehensive documentation** explaining reconciliation behavior for each field
+- **Design decisions**:
+  - Embed full resources (not references) for atomic apply
+  - Field numbers 10-13 to separate from SDK config (1-3)
+  - No buf.validate on repeated fields (resources self-validate)
+- **Build Verification**: Go/Python stubs regenerated, bazel build succeeds, all 51 project tests pass
+- Changelog: `2026-02-04-111212-project-aggregate-root-resource-fields.md`
+- **Completion Time**: ~20 minutes
+
+**Previous Session** (2026-02-03 - Session 26 - Project Command/Query Services):
 - ✅ **COMPLETED Phase 4 Sub-task T04.1a**: Project Command/Query Services
 - Created command.proto with ProjectCommandController service (47 lines)
 - Created query.proto with ProjectQueryController service (25 lines)
@@ -755,7 +774,7 @@ apis/stubs/             (REGENERATED via make protos)
 ## Next Steps
 
 **Phase 3 COMPLETE** ✅ (6 of 6 sub-tasks complete, 100%)
-**Phase 4 IN PROGRESS** 🚀 (4 of 7 sub-tasks complete, 57%)
+**Phase 4 IN PROGRESS** 🚀 (6 of 8 sub-tasks complete, 75%)
 
 ### Phase 4 Progress
 
@@ -792,6 +811,13 @@ apis/stubs/             (REGENERATED via make protos)
 - Added can_create_project permission to IAM enum
 - Generated Go/Python stubs for command and query services
 - All stubs compile successfully with Bazel
+
+✅ **T04.1b COMPLETE**: ProjectSpec Aggregate Root Resource Fields
+- Added imports for Agent, Workflow, McpServer, Skill api.proto files
+- Added repeated resource fields: agents (10), workflows (11), mcp_servers (12), skills (13)
+- Comprehensive documentation explaining reconciliation behavior
+- Go/Python stubs regenerated, BUILD.bazel updated with new dependencies
+- All 51 project tests pass
 
 ⏭️ **T04.5 NEXT**: Track Detection Logic (~60 min)
 - Create internal/cli/project/detect.go

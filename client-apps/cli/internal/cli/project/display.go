@@ -41,11 +41,8 @@ func displayProjectTable(project *projectv1.Project) {
 	cliprint.PrintInfo("Spec:")
 	displayProjectSummary(project)
 
-	// Display status if present (only after reconciliation)
-	if project.Status != nil && project.Status.Reconciliation != nil {
-		fmt.Println()
-		displayReconciliationStatus(project.Status)
-	}
+	// Display resource counts derived from spec
+	displayResourceCounts(project)
 	fmt.Println()
 }
 
@@ -72,42 +69,32 @@ func displayProjectSummary(project *projectv1.Project) {
 	}
 }
 
-// displayReconciliationStatus displays the reconciliation status section.
-func displayReconciliationStatus(status *projectv1.ProjectStatus) {
-	recon := status.Reconciliation
-	cliprint.PrintInfo("Status:")
-
-	if recon.LastReconciledAt != nil {
-		cliprint.PrintInfo("  Reconciled:  %s", recon.LastReconciledAt.AsTime().Format("2006-01-02 15:04:05"))
+// displayResourceCounts displays the resource counts derived from spec.
+// Counts are computed from the spec fields, not stored separately.
+func displayResourceCounts(project *projectv1.Project) {
+	if project.Spec == nil {
+		return
 	}
 
-	result := strings.ToLower(recon.Result.String())
-	cliprint.PrintInfo("  Result:      %s", result)
-
-	if recon.ResourceCounts != nil {
-		counts := formatResourceCounts(recon.ResourceCounts)
-		if counts != "" {
-			cliprint.PrintInfo("  Resources:   %s", counts)
-		}
-	}
-}
-
-// formatResourceCounts formats the resource counts as a human-readable string.
-func formatResourceCounts(counts *projectv1.ResourceCounts) string {
 	var parts []string
-	if counts.Agents > 0 {
-		parts = append(parts, fmt.Sprintf("%d agents", counts.Agents))
+	if len(project.Spec.Agents) > 0 {
+		parts = append(parts, fmt.Sprintf("%d agents", len(project.Spec.Agents)))
 	}
-	if counts.Workflows > 0 {
-		parts = append(parts, fmt.Sprintf("%d workflows", counts.Workflows))
+	if len(project.Spec.Workflows) > 0 {
+		parts = append(parts, fmt.Sprintf("%d workflows", len(project.Spec.Workflows)))
 	}
-	if counts.Skills > 0 {
-		parts = append(parts, fmt.Sprintf("%d skills", counts.Skills))
+	if len(project.Spec.Skills) > 0 {
+		parts = append(parts, fmt.Sprintf("%d skills", len(project.Spec.Skills)))
 	}
-	if counts.McpServers > 0 {
-		parts = append(parts, fmt.Sprintf("%d mcp servers", counts.McpServers))
+	if len(project.Spec.McpServers) > 0 {
+		parts = append(parts, fmt.Sprintf("%d mcp servers", len(project.Spec.McpServers)))
 	}
-	return strings.Join(parts, ", ")
+
+	if len(parts) > 0 {
+		fmt.Println()
+		cliprint.PrintInfo("Resources:")
+		cliprint.PrintInfo("  %s", strings.Join(parts, ", "))
+	}
 }
 
 // displayProjectYAML displays the project as YAML.

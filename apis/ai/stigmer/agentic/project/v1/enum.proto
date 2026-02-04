@@ -23,18 +23,3 @@ enum ProjectRuntime {
   // Synthesis: `npx ts-node <entry_point>` generates manifest
   node = 3;
 }
-
-// ReconciliationResult indicates the outcome of a project reconciliation.
-enum ReconciliationResult {
-  // Unspecified result.
-  reconciliation_result_unspecified = 0;
-
-  // All resources reconciled successfully.
-  success = 1;
-
-  // Some resources failed to reconcile.
-  partial = 2;
-
-  // Reconciliation failed completely.
-  failed = 3;
-}
