@@ -77,15 +77,15 @@ func main() {
 		})
 
 		validateTask := dataPipeline.CallAgent("validate_data", &workflow.AgentCallArgs{
-			Agent:      workflow.Agent(validatorAgent).Slug(),
-			Message:    "Validate the extracted data",
-			DependsOn:  extractTask,
+			Agent:     workflow.Agent(validatorAgent).Slug(),
+			Message:   "Validate the extracted data",
+			DependsOn: extractTask,
 		})
 
 		dataPipeline.CallAgent("generate_report", &workflow.AgentCallArgs{
-			Agent:      workflow.Agent(reporterAgent).Slug(),
-			Message:    "Generate data quality report",
-			DependsOn:  validateTask,
+			Agent:     workflow.Agent(reporterAgent).Slug(),
+			Message:   "Generate data quality report",
+			DependsOn: validateTask,
 		})
 
 		log.Println("Created multi-agent-orchestrator with:")
