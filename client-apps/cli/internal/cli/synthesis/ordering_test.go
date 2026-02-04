@@ -269,7 +269,7 @@ func TestValidateDependencies_ValidDeps(t *testing.T) {
 		Agents: []*agentv1.Agent{
 			{Metadata: &apiresource.ApiResourceMetadata{Slug: "agent1"}},
 		},
-		Workflows:    []*workflowv1.Workflow{},
+		Workflows: []*workflowv1.Workflow{},
 		Dependencies: map[string][]string{
 			"agent:agent1": {"skill:skill1"},
 		},
@@ -328,7 +328,7 @@ func TestGetDependencyGraph(t *testing.T) {
 		Agents: []*agentv1.Agent{
 			{Metadata: &apiresource.ApiResourceMetadata{Slug: "agent1"}},
 		},
-		Workflows:    []*workflowv1.Workflow{},
+		Workflows: []*workflowv1.Workflow{},
 		Dependencies: map[string][]string{
 			"agent:agent1": {"skill:skill1"},
 		},
@@ -695,7 +695,7 @@ func TestGetDependencyGraphMermaid_Empty(t *testing.T) {
 	if mermaid == "" {
 		t.Error("expected non-empty Mermaid diagram")
 	}
-	
+
 	// Should contain empty state
 	if !containsString(mermaid, "empty") {
 		t.Error("expected Mermaid diagram to indicate empty state")
@@ -718,16 +718,16 @@ func TestGetDependencyGraphMermaid_SimpleChain(t *testing.T) {
 	}
 
 	mermaid := result.GetDependencyGraphMermaid()
-	
+
 	// Should contain Mermaid header
 	if !containsString(mermaid, "```mermaid") {
 		t.Error("expected Mermaid code block opening")
 	}
-	
+
 	if !containsString(mermaid, "flowchart LR") {
 		t.Error("expected flowchart LR directive")
 	}
-	
+
 	// Should contain all resources
 	if !containsString(mermaid, "skill:coding") {
 		t.Error("expected skill:coding in diagram")
@@ -738,12 +738,12 @@ func TestGetDependencyGraphMermaid_SimpleChain(t *testing.T) {
 	if !containsString(mermaid, "workflow:pr-review") {
 		t.Error("expected workflow:pr-review in diagram")
 	}
-	
+
 	// Should contain arrows
 	if !containsString(mermaid, "-->") {
 		t.Error("expected --> arrows in diagram")
 	}
-	
+
 	// Should contain styling
 	if !containsString(mermaid, "classDef skill") {
 		t.Error("expected skill styling")
@@ -775,7 +775,7 @@ func TestGetDependencyGraphMermaid_ParallelBranches(t *testing.T) {
 	}
 
 	mermaid := result.GetDependencyGraphMermaid()
-	
+
 	// Should contain all resources
 	if !containsString(mermaid, "skill:coding") {
 		t.Error("expected skill:coding in diagram")
@@ -806,12 +806,12 @@ func TestGetDependencyGraphDot_Empty(t *testing.T) {
 	if dot == "" {
 		t.Error("expected non-empty DOT diagram")
 	}
-	
+
 	// Should contain DOT header
 	if !containsString(dot, "digraph dependencies") {
 		t.Error("expected digraph dependencies directive")
 	}
-	
+
 	// Should contain empty state
 	if !containsString(dot, "empty") {
 		t.Error("expected DOT diagram to indicate empty state")
@@ -834,16 +834,16 @@ func TestGetDependencyGraphDot_SimpleChain(t *testing.T) {
 	}
 
 	dot := result.GetDependencyGraphDot()
-	
+
 	// Should contain DOT header
 	if !containsString(dot, "digraph dependencies") {
 		t.Error("expected digraph dependencies directive")
 	}
-	
+
 	if !containsString(dot, "rankdir=LR") {
 		t.Error("expected left-to-right layout")
 	}
-	
+
 	// Should contain all resources
 	if !containsString(dot, "\"skill:coding\"") {
 		t.Error("expected skill:coding in diagram")
@@ -854,17 +854,17 @@ func TestGetDependencyGraphDot_SimpleChain(t *testing.T) {
 	if !containsString(dot, "\"workflow:pr-review\"") {
 		t.Error("expected workflow:pr-review in diagram")
 	}
-	
+
 	// Should contain arrows
 	if !containsString(dot, "->") {
 		t.Error("expected -> arrows in diagram")
 	}
-	
+
 	// Should contain shapes
 	if !containsString(dot, "shape=") {
 		t.Error("expected shape definitions")
 	}
-	
+
 	// Should contain colors
 	if !containsString(dot, "fillcolor=") {
 		t.Error("expected fillcolor definitions")
@@ -890,7 +890,7 @@ func TestGetDependencyGraphDot_ParallelBranches(t *testing.T) {
 	}
 
 	dot := result.GetDependencyGraphDot()
-	
+
 	// Should contain all resources
 	if !containsString(dot, "\"skill:coding\"") {
 		t.Error("expected skill:coding in diagram")

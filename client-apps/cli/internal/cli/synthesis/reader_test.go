@@ -154,7 +154,7 @@ func TestGetResourceID_Workflow(t *testing.T) {
 			expected: "workflow:unknown",
 		},
 		{
-			name: "workflow with nil spec returns unknown",
+			name:     "workflow with nil spec returns unknown",
 			workflow: &workflowv1.Workflow{},
 			expected: "workflow:unknown",
 		},

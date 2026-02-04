@@ -13,9 +13,10 @@ import (
 type ResourceType string
 
 const (
-	ResourceTypeAgent    ResourceType = "Agent"
-	ResourceTypeWorkflow ResourceType = "Workflow"
-	ResourceTypeSkill    ResourceType = "Skill"
+	ResourceTypeAgent     ResourceType = "Agent"
+	ResourceTypeWorkflow  ResourceType = "Workflow"
+	ResourceTypeSkill     ResourceType = "Skill"
+	ResourceTypeMcpServer ResourceType = "McpServer"
 )
 
 // ApplyStatus represents the status of an apply operation

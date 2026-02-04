@@ -3,380 +3,434 @@ package root
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/apply"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/deploy"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
-// NewApplyCommand creates the apply command for deploying resources
+// NewApplyCommand creates the apply command for deploying resources from a Project.
 func NewApplyCommand() *cobra.Command {
 	var dryRun bool
-	var configFile string
+	var configDir string
 	var orgOverride string
+	var pruneEnabled bool
 
 	cmd := &cobra.Command{
 		Use:   "apply",
 		Short: "Deploy resources from current project",
 		Long: `Deploy resources from your Stigmer project.
 
-Reads Stigmer.yaml and executes your entry point (main.go) to deploy
-Agents and Workflows. Resources are auto-discovered from your code.
+Detects your project configuration (stigmer.yaml), executes SDK synthesis,
+and deploys all resources (agents, workflows, skills, mcp servers) to the backend.
 
-The Stigmer.yaml file contains project metadata:
-  name: my-project
-  runtime: go
-  main: main.go
+The backend performs reconciliation:
+  - Creates new resources
+  - Updates changed resources
+  - Deletes orphaned resources (unless --prune=false)
 
-Run from your project directory containing Stigmer.yaml.
+Track Detection:
+  - Project Track: stigmer.yaml found - runs SDK synthesis
+  - Atomic Track: no stigmer.yaml - use 'stigmer <resource> apply <file>' instead
 
-For skill artifacts, use 'stigmer skill push' instead.`,
-		Example: `  # Deploy agents from code
+Runtimes Supported:
+  - Go:     go run <entry_point>
+  - Python: python <entry_point>
+  - Node:   npx ts-node <entry_point> (for .ts) or node <entry_point>`,
+		Example: `  # Deploy from current directory
   stigmer apply
   
   # Deploy from specific directory
   stigmer apply --config /path/to/project/
   
-  # Deploy with specific config file
-  stigmer apply --config /path/to/Stigmer.yaml
-  
-  # Dry run (validate without deploying)
+  # Dry run (validate and preview without deploying)
   stigmer apply --dry-run
+  
+  # Deploy without orphan pruning
+  stigmer apply --prune=false
   
   # Override organization
   stigmer apply --org my-org-id`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Deploy from Stigmer.yaml + code execution
-			deployedSkills, deployedAgents, deployedWorkflows, err := ApplyCodeMode(ApplyCodeModeOptions{
-				ConfigFile:  configFile,
-				OrgOverride: orgOverride,
-				DryRun:      dryRun,
-				Quiet:       false,
+			err := executeApply(applyOptions{
+				ConfigDir:    configDir,
+				OrgOverride:  orgOverride,
+				DryRun:       dryRun,
+				PruneEnabled: pruneEnabled,
 			})
 			clierr.Handle(err)
-
-			// If no resources deployed, return
-			if len(deployedSkills) == 0 && len(deployedAgents) == 0 && len(deployedWorkflows) == 0 {
-				return
-			}
-
-			// Create and populate results table
-			resultTable := display.NewApplyResultTable()
-
-			// Add skills to table
-			for _, deployed := range deployedSkills {
-				resultTable.AddResource(
-					display.ResourceTypeSkill,
-					deployed.Metadata.Name,
-					display.ApplyStatusCreated,
-					deployed.Metadata.Id,
-					nil,
-				)
-			}
-
-			// Add agents to table
-			for _, deployed := range deployedAgents {
-				resultTable.AddResource(
-					display.ResourceTypeAgent,
-					deployed.Metadata.Name,
-					display.ApplyStatusCreated,
-					deployed.Metadata.Id,
-					nil,
-				)
-			}
-
-			// Add workflows to table
-			for _, deployed := range deployedWorkflows {
-				resultTable.AddResource(
-					display.ResourceTypeWorkflow,
-					deployed.Metadata.Name,
-					display.ApplyStatusCreated,
-					deployed.Metadata.Id,
-					nil,
-				)
-			}
-
-			// Render appropriate output
-			if dryRun {
-				resultTable.RenderDryRun()
-			} else {
-				cliprint.PrintSuccess("🚀 Deployment successful!")
-				resultTable.Render()
-
-				// Print next steps
-				cliprint.PrintInfo("Next steps:")
-				if len(deployedSkills) > 0 {
-					cliprint.PrintInfo("  - View skills: stigmer skill list")
-				}
-				if len(deployedAgents) > 0 {
-					cliprint.PrintInfo("  - View agents: stigmer agent list")
-				}
-				if len(deployedWorkflows) > 0 {
-					cliprint.PrintInfo("  - View workflows: stigmer workflow list")
-				}
-				cliprint.PrintInfo("  - Update and redeploy: edit code and run 'stigmer apply' again")
-				fmt.Println()
-			}
 		},
 	}
 
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate without deploying")
-	cmd.Flags().StringVar(&configFile, "config", "", "path to Stigmer.yaml or directory containing it (default: current directory)")
-	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID (overrides Stigmer.yaml and context)")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate and preview without deploying")
+	cmd.Flags().StringVar(&configDir, "config", "", "path to project directory containing stigmer.yaml (default: current directory)")
+	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID (overrides stigmer.yaml and context)")
+	cmd.Flags().BoolVar(&pruneEnabled, "prune", true, "delete orphaned resources not in SDK output (disable with --prune=false)")
 
 	return cmd
 }
 
-// ApplyCodeModeOptions contains options for applying code mode
-type ApplyCodeModeOptions struct {
-	ConfigFile  string
-	OrgOverride string
-	DryRun      bool
-	Quiet       bool // If true, suppress detailed output
+// applyOptions contains options for the apply command.
+type applyOptions struct {
+	ConfigDir    string
+	OrgOverride  string
+	DryRun       bool
+	PruneEnabled bool
 }
 
-// ApplyCodeMode applies skills, agents, and workflows from code (Stigmer.yaml + entry point execution)
-// Returns the list of deployed skills, agents, and workflows or error
-func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agent, []*workflowv1.Workflow, error) {
-	// Step 1: Load Stigmer.yaml (minimal metadata)
-	if !opts.Quiet {
-		cliprint.PrintInfo("Loading project configuration...")
-	}
-
-	stigmerConfig, err := config.LoadStigmerConfig(opts.ConfigFile)
+// executeApply implements the apply command logic.
+func executeApply(opts applyOptions) error {
+	// Step 1: Detect track (Project vs Atomic)
+	detectResult, err := project.DetectTrack(&project.DetectOptions{
+		StartDir: opts.ConfigDir,
+	})
 	if err != nil {
-		return nil, nil, nil, err
+		return errors.Wrap(err, "track detection failed")
 	}
 
-	if !opts.Quiet {
-		cliprint.PrintSuccess("✓ Loaded Stigmer.yaml")
-		cliprint.PrintInfo("  Project:  %s", stigmerConfig.Name)
-		cliprint.PrintInfo("  Runtime:  %s", stigmerConfig.Runtime)
-		if stigmerConfig.Version != "" {
-			cliprint.PrintInfo("  Version:  %s", stigmerConfig.Version)
-		}
-		cliprint.PrintInfo("  Main:     %s", stigmerConfig.Main)
-		fmt.Println()
+	// Step 2: Handle Atomic Track (no stigmer.yaml found)
+	if detectResult.Track == project.TrackAtomic {
+		displayAtomicTrackGuidance()
+		return nil
 	}
 
-	// Step 2: Get absolute path to entry point
-	mainFilePath, err := stigmerConfig.GetMainFilePath()
+	// Step 3: Use detected Project and directory
+	proj := detectResult.Project
+	projectDir := detectResult.ConfigDir
+
+	cliprint.PrintSuccess("✓ Found project: %s", proj.Metadata.Name)
+	cliprint.PrintInfo("  Runtime:     %s", runtimeToStringForApply(proj.Spec.Runtime))
+	cliprint.PrintInfo("  Entry Point: %s", getEntryPoint(proj))
+	cliprint.PrintInfo("  Directory:   %s", projectDir)
+	fmt.Println()
+
+	// Step 4: Run SDK synthesis
+	cliprint.PrintInfo("Running SDK synthesis...")
+	synthResult, err := apply.Synthesize(&apply.SynthesizeOptions{
+		ProjectDir: projectDir,
+		Runtime:    proj.Spec.Runtime,
+		EntryPoint: getEntryPoint(proj),
+		Quiet:      false,
+	})
 	if err != nil {
-		return nil, nil, nil, err
+		return errors.Wrap(err, "SDK synthesis failed")
 	}
 
-	// Step 3: Execute entry point to get synthesis result (auto-discovers resources!)
-	if !opts.Quiet {
-		cliprint.PrintInfo("Executing entry point to discover resources...")
-	}
+	result := synthResult.Result
+	displaySynthesisResult(result)
 
-	synthesisResult, err := agent.ExecuteGoAndGetSynthesis(mainFilePath)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	// Step 5: Embed synthesized resources into Project.Spec
+	// NOTE: No dependency_graph field - backend derives it via proto reflection
+	proj.Spec.Agents = result.Agents
+	proj.Spec.Workflows = result.Workflows
+	proj.Spec.McpServers = result.McpServers
+	proj.Spec.Skills = result.Skills
 
-	// Count resources
-	skillCount := synthesisResult.SkillCount()
-	agentCount := synthesisResult.AgentCount()
-	workflowCount := synthesisResult.WorkflowCount()
-	totalResources := synthesisResult.TotalResources()
-
-	if totalResources == 0 {
-		if !opts.Quiet {
-			cliprint.PrintWarning("⚠️  No resources found in synthesis output")
-		}
-		return nil, nil, nil, fmt.Errorf("no resources found in synthesis output")
-	}
-
-	if !opts.Quiet {
-		cliprint.PrintSuccess("✓ Synthesis complete: %d resource(s) discovered (%d skill(s), %d agent(s), %d workflow(s))",
-			totalResources, skillCount, agentCount, workflowCount)
-		fmt.Println()
-
-		// Show preview of discovered resources
-		if skillCount > 0 {
-			cliprint.PrintInfo("Skills discovered: %d", skillCount)
-			for i, skill := range synthesisResult.Skills {
-				cliprint.PrintInfo("  %d. %s", i+1, skill.Metadata.Name)
-				// Note: Description field removed from SkillSpec in T01.1
-			}
-			fmt.Println()
-		}
-
-		if agentCount > 0 {
-			cliprint.PrintInfo("Agents discovered: %d", agentCount)
-			for i, agent := range synthesisResult.Agents {
-				cliprint.PrintInfo("  %d. %s", i+1, agent.Metadata.Name)
-				if agent.Spec.Description != "" {
-					cliprint.PrintInfo("     Description: %s", agent.Spec.Description)
-				}
-			}
-			fmt.Println()
-		}
-
-		if workflowCount > 0 {
-			cliprint.PrintInfo("Workflows discovered: %d", workflowCount)
-			for i, wf := range synthesisResult.Workflows {
-				cliprint.PrintInfo("  %d. %s", i+1, wf.Metadata.Name)
-				if wf.Spec.Description != "" {
-					cliprint.PrintInfo("     Description: %s", wf.Spec.Description)
-				}
-			}
-			fmt.Println()
-		}
-	}
-
-	// Dry run mode - stop here
+	// Step 6: Handle dry-run mode
 	if opts.DryRun {
-		if !opts.Quiet {
-			// Create table for dry-run display
-			resultTable := display.NewApplyResultTable()
-
-			// Add skills to table
-			for _, skill := range synthesisResult.Skills {
-				resultTable.AddResource(
-					display.ResourceTypeSkill,
-					skill.Metadata.Name,
-					display.ApplyStatusCreated,
-					"",
-					nil,
-				)
-			}
-
-			// Add agents to table
-			for _, agent := range synthesisResult.Agents {
-				resultTable.AddResource(
-					display.ResourceTypeAgent,
-					agent.Metadata.Name,
-					display.ApplyStatusCreated,
-					"",
-					nil,
-				)
-			}
-
-			// Add workflows to table
-			for _, wf := range synthesisResult.Workflows {
-				resultTable.AddResource(
-					display.ResourceTypeWorkflow,
-					wf.Metadata.Name,
-					display.ApplyStatusCreated,
-					"",
-					nil,
-				)
-			}
-
-			// Render dry-run table
-			resultTable.RenderDryRun()
-		}
-		return nil, nil, nil, nil
+		displayDryRunPreview(proj, result)
+		return nil
 	}
 
-	// Step 5: Load backend configuration
+	// Step 7: Load backend configuration
 	cfg, err := config.Load()
 	if err != nil {
-		return nil, nil, nil, err
+		return errors.Wrap(err, "failed to load configuration")
 	}
 
-	// Step 6: Determine organization based on backend mode
-	var orgID string
-
-	switch cfg.Backend.Type {
-	case config.BackendTypeLocal:
-		// Local mode: Use constant organization name
-		// No auth, no cloud features - just local development
-		orgID = "local"
-		if !opts.Quiet {
-			cliprint.PrintInfo("Using local backend (organization: %s)", orgID)
-		}
-
-	case config.BackendTypeCloud:
-		// Cloud mode: Organization is required from multiple sources
-		if opts.OrgOverride != "" {
-			orgID = opts.OrgOverride
-			if !opts.Quiet {
-				cliprint.PrintInfo("Using organization from flag: %s", orgID)
-			}
-		} else if stigmerConfig.Organization != "" {
-			orgID = stigmerConfig.Organization
-			if !opts.Quiet {
-				cliprint.PrintInfo("Using organization from Stigmer.yaml: %s", orgID)
-			}
-		} else if cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
-			orgID = cfg.Backend.Cloud.OrgID
-			if !opts.Quiet {
-				cliprint.PrintInfo("Using organization from context: %s", orgID)
-			}
-		} else {
-			return nil, nil, nil, fmt.Errorf("organization not set for cloud mode. Specify in Stigmer.yaml, use --org flag, or run: stigmer context set --org <org-id>")
-		}
-
-	default:
-		return nil, nil, nil, fmt.Errorf("unknown backend type: %s", cfg.Backend.Type)
+	// Step 8: Resolve organization
+	orgID, err := resolveApplyOrganization(cfg, proj, opts.OrgOverride)
+	if err != nil {
+		return err
 	}
 
-	// Step 7: Ensure daemon is running (auto-start if needed, local mode only)
+	// Step 9: Ensure daemon is running (local mode only)
 	if cfg.Backend.Type == config.BackendTypeLocal {
-		// Always use hardcoded data directory - not configurable
-		// CLI manages daemon infrastructure, users shouldn't change this
 		dataDir, err := config.GetDataDir()
 		if err != nil {
-			return nil, nil, nil, err
+			return errors.Wrap(err, "failed to get data directory")
 		}
-
 		if err := daemon.EnsureRunning(dataDir); err != nil {
-			return nil, nil, nil, err
+			return errors.Wrap(err, "failed to start daemon")
 		}
 	}
 
-	// Step 8: Connect to backend
-	if !opts.Quiet {
-		cliprint.PrintInfo("Connecting to backend...")
-	}
-
+	// Step 10: Connect to backend
+	cliprint.PrintInfo("Connecting to backend...")
 	conn, err := backend.NewConnection()
 	if err != nil {
-		return nil, nil, nil, err
+		return errors.Wrap(err, "failed to connect to backend")
 	}
 	defer conn.Close()
+	cliprint.PrintSuccess("✓ Connected to backend")
+	fmt.Println()
 
-	if !opts.Quiet {
-		cliprint.PrintSuccess("✓ Connected to backend")
-		fmt.Println()
+	// Step 11: Apply Project to backend
+	cliprint.PrintInfo("Deploying resources...")
+	applyResult, err := project.Apply(&project.ApplyOptions{
+		Project: proj,
+		OrgID:   orgID,
+		Conn:    conn,
+		Quiet:   false,
+		DryRun:  false,
+		Prune:   opts.PruneEnabled,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to deploy project")
 	}
 
-	// Step 9: Deploy resources
-	progressCallback := func(msg string) {
-		if !opts.Quiet {
-			cliprint.PrintInfo("%s", msg)
+	// Step 12: Display reconciliation summary
+	displayApplyResult(applyResult, opts.PruneEnabled)
+
+	return nil
+}
+
+// displayAtomicTrackGuidance shows guidance when no stigmer.yaml is found.
+func displayAtomicTrackGuidance() {
+	fmt.Println()
+	cliprint.PrintWarning("No stigmer.yaml found in current directory or parents")
+	fmt.Println()
+	cliprint.PrintInfo("The 'stigmer apply' command requires a project with stigmer.yaml.")
+	cliprint.PrintInfo("This enables SDK synthesis and project-based reconciliation.")
+	fmt.Println()
+	cliprint.PrintInfo("For single-resource deployment (Atomic Track), use:")
+	cliprint.PrintInfo("  stigmer agent apply <file.yaml>")
+	cliprint.PrintInfo("  stigmer workflow apply <file.yaml>")
+	cliprint.PrintInfo("  stigmer mcpserver apply <file.yaml>")
+	fmt.Println()
+	cliprint.PrintInfo("To create a new project:")
+	cliprint.PrintInfo("  1. Create stigmer.yaml in your project directory")
+	cliprint.PrintInfo("  2. Define your resources using the Stigmer SDK")
+	cliprint.PrintInfo("  3. Run 'stigmer apply' to deploy")
+	fmt.Println()
+}
+
+// displaySynthesisResult shows the synthesis output summary.
+func displaySynthesisResult(result *synthesis.Result) {
+	cliprint.PrintSuccess("✓ Synthesis complete: %d resource(s) discovered", result.TotalResources())
+	fmt.Println()
+
+	if result.SkillCount() > 0 {
+		cliprint.PrintInfo("  Skills:      %d", result.SkillCount())
+	}
+	if result.McpServerCount() > 0 {
+		cliprint.PrintInfo("  MCP Servers: %d", result.McpServerCount())
+	}
+	if result.AgentCount() > 0 {
+		cliprint.PrintInfo("  Agents:      %d", result.AgentCount())
+	}
+	if result.WorkflowCount() > 0 {
+		cliprint.PrintInfo("  Workflows:   %d", result.WorkflowCount())
+	}
+	fmt.Println()
+}
+
+// displayDryRunPreview shows a preview of what would be deployed.
+func displayDryRunPreview(proj *projectv1.Project, result *synthesis.Result) {
+	fmt.Println()
+	cliprint.PrintInfo("Dry Run Preview")
+	cliprint.PrintInfo("===============")
+	fmt.Println()
+
+	resultTable := display.NewApplyResultTable()
+
+	// Add skills
+	for _, skill := range result.Skills {
+		resultTable.AddResource(
+			display.ResourceTypeSkill,
+			skill.Metadata.Name,
+			display.ApplyStatusCreated,
+			"",
+			nil,
+		)
+	}
+
+	// Add MCP servers
+	for _, mcp := range result.McpServers {
+		resultTable.AddResource(
+			display.ResourceTypeMcpServer,
+			mcp.Metadata.Name,
+			display.ApplyStatusCreated,
+			"",
+			nil,
+		)
+	}
+
+	// Add agents
+	for _, agent := range result.Agents {
+		resultTable.AddResource(
+			display.ResourceTypeAgent,
+			agent.Metadata.Name,
+			display.ApplyStatusCreated,
+			"",
+			nil,
+		)
+	}
+
+	// Add workflows
+	for _, wf := range result.Workflows {
+		name := ""
+		if wf.Spec != nil && wf.Spec.Document != nil {
+			name = wf.Spec.Document.Name
+		}
+		if name == "" && wf.Metadata != nil {
+			name = wf.Metadata.Name
+		}
+		resultTable.AddResource(
+			display.ResourceTypeWorkflow,
+			name,
+			display.ApplyStatusCreated,
+			"",
+			nil,
+		)
+	}
+
+	resultTable.RenderDryRun()
+
+	fmt.Println()
+	cliprint.PrintInfo("Run without --dry-run to deploy these resources.")
+	fmt.Println()
+}
+
+// displayApplyResult shows the result of applying the project.
+func displayApplyResult(result *project.ApplyResult, pruneEnabled bool) {
+	fmt.Println()
+	cliprint.PrintSuccess("🚀 Deployment successful!")
+	fmt.Println()
+
+	proj := result.Project
+	if result.Created {
+		cliprint.PrintInfo("Created project: %s (ID: %s)", proj.Metadata.Name, proj.Metadata.Id)
+	} else {
+		cliprint.PrintInfo("Updated project: %s (ID: %s)", proj.Metadata.Name, proj.Metadata.Id)
+	}
+
+	// Display reconciliation summary if available
+	if proj.Status != nil && proj.Status.LastReconciliation != nil {
+		recon := proj.Status.LastReconciliation
+		fmt.Println()
+		cliprint.PrintInfo("Reconciliation Summary:")
+
+		createdCount := len(recon.Created)
+		updatedCount := len(recon.Updated)
+		deletedCount := len(recon.Deleted)
+
+		if createdCount > 0 {
+			cliprint.PrintInfo("  Created: %d resource(s)", createdCount)
+			for _, r := range recon.Created {
+				cliprint.PrintInfo("    - %s: %s (%s)", r.Kind.String(), r.Slug, r.ResourceId)
+			}
+		}
+
+		if updatedCount > 0 {
+			cliprint.PrintInfo("  Updated: %d resource(s)", updatedCount)
+			for _, r := range recon.Updated {
+				cliprint.PrintInfo("    - %s: %s (%s)", r.Kind.String(), r.Slug, r.ResourceId)
+			}
+		}
+
+		if deletedCount > 0 {
+			if pruneEnabled {
+				cliprint.PrintInfo("  Deleted: %d orphaned resource(s)", deletedCount)
+			} else {
+				cliprint.PrintInfo("  Would delete: %d orphaned resource(s) (pruning disabled)", deletedCount)
+			}
+			for _, r := range recon.Deleted {
+				cliprint.PrintInfo("    - %s: %s (%s)", r.Kind.String(), r.Slug, r.ResourceId)
+			}
+		}
+
+		if createdCount == 0 && updatedCount == 0 && deletedCount == 0 {
+			cliprint.PrintInfo("  No changes detected")
 		}
 	}
 
-	// Create deployer with options
-	deployer := deploy.NewDeployer(&deploy.DeployOptions{
-		OrgID:            orgID,
-		Conn:             conn,
-		Quiet:            opts.Quiet,
-		DryRun:           opts.DryRun,
-		ProgressCallback: progressCallback,
-	})
+	// Print next steps
+	fmt.Println()
+	cliprint.PrintInfo("Next steps:")
+	cliprint.PrintInfo("  - View project: stigmer project get %s", proj.Metadata.Name)
+	if len(proj.Spec.Agents) > 0 {
+		cliprint.PrintInfo("  - Run an agent: stigmer agent run <agent-name>")
+	}
+	if len(proj.Spec.Workflows) > 0 {
+		cliprint.PrintInfo("  - Run a workflow: stigmer workflow run <workflow-name>")
+	}
+	cliprint.PrintInfo("  - Update and redeploy: edit code and run 'stigmer apply' again")
+	fmt.Println()
+}
 
-	// Deploy all resources
-	deployResult, err := deployer.Deploy(synthesisResult)
-	if err != nil {
-		return nil, nil, nil, err
+// resolveApplyOrganization determines the organization ID for deployment.
+func resolveApplyOrganization(cfg *config.Config, proj *projectv1.Project, override string) (string, error) {
+	// Priority: flag override > stigmer.yaml > context > local default
+	if override != "" {
+		cliprint.PrintInfo("Using organization from flag: %s", override)
+		return override, nil
 	}
 
-	if !opts.Quiet && !opts.DryRun {
-		fmt.Println()
+	// Check stigmer.yaml organization field
+	if proj.Metadata != nil && proj.Metadata.Org != "" {
+		cliprint.PrintInfo("Using organization from stigmer.yaml: %s", proj.Metadata.Org)
+		return proj.Metadata.Org, nil
 	}
 
-	return deployResult.DeployedSkills, deployResult.DeployedAgents, deployResult.DeployedWorkflows, nil
+	// Check context (cloud mode)
+	if cfg.Backend.Type == config.BackendTypeCloud {
+		if cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
+			cliprint.PrintInfo("Using organization from context: %s", cfg.Backend.Cloud.OrgID)
+			return cfg.Backend.Cloud.OrgID, nil
+		}
+		return "", errors.New("organization not set for cloud mode\n\n" +
+			"Specify organization in one of these ways:\n" +
+			"  1. Set metadata.org in stigmer.yaml\n" +
+			"  2. Use --org flag: stigmer apply --org <org-id>\n" +
+			"  3. Set context: stigmer context set --org <org-id>")
+	}
+
+	// Local mode default
+	cliprint.PrintInfo("Using local backend (organization: local)")
+	return "local", nil
+}
+
+// getEntryPoint returns the entry point from the project spec, or the default for the runtime.
+func getEntryPoint(proj *projectv1.Project) string {
+	if proj.Spec != nil && proj.Spec.EntryPoint != "" {
+		return proj.Spec.EntryPoint
+	}
+	return getDefaultEntryPointForApply(proj.Spec.Runtime)
+}
+
+// runtimeToStringForApply converts a ProjectRuntime to a display string.
+func runtimeToStringForApply(runtime projectv1.ProjectRuntime) string {
+	switch runtime {
+	case projectv1.ProjectRuntime_go:
+		return "go"
+	case projectv1.ProjectRuntime_python:
+		return "python"
+	case projectv1.ProjectRuntime_node:
+		return "node"
+	default:
+		return "unknown"
+	}
+}
+
+// getDefaultEntryPointForApply returns the default entry point for a runtime.
+func getDefaultEntryPointForApply(runtime projectv1.ProjectRuntime) string {
+	switch runtime {
+	case projectv1.ProjectRuntime_go:
+		return "main.go"
+	case projectv1.ProjectRuntime_python:
+		return "main.py"
+	case projectv1.ProjectRuntime_node:
+		return "index.ts"
+	default:
+		return ""
+	}
 }
