@@ -39,11 +39,42 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 5 - Backend + Full CLI Integration 🚀 **IN PROGRESS**
-**Current Sub-task**: T05.15 ✅ **COMPLETE** - ProjectReconciliationService Foundation
-**Next Sub-task**: T05.16 - Desired State Parsing (effectively complete - parseDesiredState implemented in T05.15)
+**Current Sub-task**: T05.17 ✅ **COMPLETE** - Actual State Fetching
+**Next Sub-task**: T05.18 - Diff Algorithm (Compare desired vs actual to produce ReconciliationPlan)
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-04 - Session 40 - ProjectReconciliationService Foundation - T05.15):
+**Latest Session** (2026-02-04 - Session 41 - Actual State Fetching - T05.17):
+- ✅ **COMPLETED Phase 5 Sub-task T05.17**: Actual State Fetching
+- Implemented findByProjectId() for all 4 repositories and fetchActualState() in service
+- **Files Modified**:
+  - `AgentRepo.java` (+26 lines) - Add findByProjectId()
+  - `WorkflowRepo.java` (+26 lines) - Add findByProjectId()
+  - `McpServerRepo.java` (+26 lines) - Add findByProjectId()
+  - `SkillRepo.java` (+26 lines) - Add findByProjectId()
+  - `ProjectReconciliationService.java` (+60 net) - Implement fetchActualState()
+  - `ProjectReconciliationServiceTest.java` (+120 net) - Add comprehensive tests
+  - Changelog: `2026-02-04-173045-actual-state-fetching-t05.17.md`
+- **Key Implementation Details**:
+  - **Annotation-Based Ownership**: Resources queried via `metadata.annotations["stigmer.ai/sdk.project"]`
+  - **MongoDB Query**: `Criteria.where("metadata.annotations.stigmer\\.ai/sdk\\.project").is(projectId)`
+  - **Batch Queries**: One query per resource type (no N+1 problem)
+  - **Slug-Keyed Maps**: Results converted to slug-keyed maps for O(1) diff lookup
+  - **Defensive Programming**: Empty projectId returns empty list, null-safe throughout
+- **Test Coverage** (10 new test methods):
+  - FetchActualStateTests (9 tests): empty state, each resource type, all types, filtering, duplicates
+  - ProjectOwnershipAnnotationTests (1 test): constant verification
+- **Engineering Quality**:
+  - Zero linter errors
+  - Comprehensive JavaDoc on new methods
+  - Pattern follows existing findByIds() implementation
+- **Impact**:
+  - **Unblocks T05.18**: Diff algorithm can now compare desired vs actual state
+  - **Enables Update Detection**: Reconciliation can identify updates to existing resources
+  - **Enables Orphan Detection**: Reconciliation can identify resources to delete
+- **Commit**: 482f9717 feat(backend/project): implement actual state fetching for reconciliation (T05.17)
+- **Completion Time**: ~45 minutes (as estimated in Phase 5 plan)
+
+**Previous Session** (2026-02-04 - Session 40 - ProjectReconciliationService Foundation - T05.15):
 - ✅ **COMPLETED Phase 5 Sub-task T05.15**: ProjectReconciliationService Foundation
 - Implemented the core Domain Service that orchestrates project reconciliation
 - **Files Created**:
@@ -1273,35 +1304,37 @@ apis/stubs/             (REGENERATED via make protos)
 | **T05.12** | ✅ **COMPLETE** | **75 min** | **Domain Value Objects (8 records + 91 tests)** |
 | **T05.13** | ✅ **COMPLETE** | **60 min** | **DependencyDiscoverer (reflection-based scanner)** |
 | **T05.14** | ✅ **COMPLETE** | **60 min** | **DependencyGraphBuilder (graph construction)** |
-| T05.15 | 🎯 **NEXT** | 60-75 min | ProjectReconciliationService Foundation |
-| T05.16+ | 🚧 Pending | - | Remaining reconciliation implementation |
+| **T05.15** | ✅ **COMPLETE** | **60 min** | **ProjectReconciliationService Foundation** |
+| **T05.16** | ✅ **VERIFIED** | **-** | **Desired State Parsing (done in T05.15)** |
+| **T05.17** | ✅ **COMPLETE** | **45 min** | **Actual State Fetching (fetchActualState + findByProjectId)** |
+| T05.18 | 🎯 **NEXT** | 60-75 min | Diff Algorithm (compare desired vs actual) |
+| T05.19+ | 🚧 Pending | - | Remaining reconciliation implementation |
 
 ---
 
 ## 🎯 Next Steps - Ready to Continue
 
-### Latest Session (2026-02-04 - Session 39 - T05.14 DependencyGraphBuilder)
+### Latest Session (2026-02-04 - Session 41 - T05.16 Verification)
 
 **Accomplished**:
-- ✅ **COMPLETED Phase 5 Sub-task T05.14**: DependencyGraphBuilder - Graph construction from DesiredState
-- ✅ Implemented Spring component (~141 lines):
-  - DependencyGraphBuilder.java - @Component with constructor injection
-  - buildFromDesiredState() method iterates all resource types
-  - Generic scanResources<T>() for uniform handling
-  - Returns immutable DependencyGraph ready for topological sorting
-- ✅ Created comprehensive test suite (~474 lines, 21 test methods):
-  - BasicFunctionalityTests (4) - null/empty input, immutability
-  - SingleResourceTypeTests (6) - agents, workflows, mcp_servers, skills
-  - MultiResourceGraphTests (3) - mixed resources, shared dependencies
-  - SubAgentReferencesTests (2) - nested skill refs
-  - EdgeCaseTests (2) - many dependencies, deduplication
-  - RealWorldScenarioTests (3) - data pipeline, topological ordering
-  - GraphPropertiesTests (2) - cycle detection, getAllNodes
-- ✅ Zero linter errors, all tests passing
-- ✅ Created changelog: 2026-02-04-165704-dependency-graph-builder-t05.14.md
-- ✅ Committed: 1dc85d20 (stigmer-cloud), 619a74d6 (stigmer)
+- ✅ **VERIFIED Phase 5 Sub-task T05.16**: Desired State Parsing - Complete (implemented in T05.15)
+- ✅ Verified `parseDesiredState()` method implementation (lines 185-246):
+  - Extracts agents, workflows, mcpServers, skills from ProjectSpec
+  - Keys resources by slug (metadata.name) for O(1) lookup
+  - Handles duplicate slugs (keeps first, logs warning)
+  - Filters out resources without names
+  - Returns properly constructed DesiredState
+- ✅ Verified test coverage (7 dedicated tests in DesiredStateParsingTests):
+  - shouldParseAgentsFromProjectSpec
+  - shouldParseWorkflowsFromProjectSpec
+  - shouldParseMcpServersFromProjectSpec
+  - shouldParseSkillsFromProjectSpec
+  - shouldReturnEmptyDesiredStateForNullSpec
+  - shouldHandleDuplicateSlugsByKeepingFirst
+  - shouldSkipResourcesWithoutName
+- ✅ Created verification changelog: 2026-02-04-171444-desired-state-parsing-t05.16-verification.md
 
-**Phase 5 Progress**: **14 of 29 sub-tasks complete** (T05.0, T05.2-T05.14)
+**Phase 5 Progress**: **16 of 29 sub-tasks complete** (T05.0, T05.2-T05.16)
 
 ### Backend Handler Status
 
@@ -1330,28 +1363,32 @@ Commits:
 - c2c22b46: refactor(backend/grpc-request): remove ApiResourceOwnerScope references
 - 30055488: feat(backend/project): add domain value objects for reconciliation engine (T05.12)
 
-### Immediate Next Task: T05.15 - ProjectReconciliationService Foundation
+### Immediate Next Task: T05.18 - Diff Algorithm
 
-**Goal**: Create the Domain Service skeleton with dependency injection that orchestrates the reconciliation workflow.
+**Goal**: Implement the diff algorithm that compares desired state (from project spec) vs actual state (from database) to produce a ReconciliationPlan with creates, updates, and deletes.
 
-**Pattern**: Domain Service following DDD principles
+**Pattern**: Pure function that computes plan without side effects
 
 **Key Implementation**:
-- Spring `@Service` with constructor injection of repositories and builders
-- Main entry point: `reconcile(Project project, ReconciliationOptions options)`
-- Orchestration flow:
-  1. Parse desired state from `project.spec` (T05.16)
-  2. Fetch actual state from repositories (T05.17)
-  3. Build dependency graph using `DependencyGraphBuilder` ✅
-  4. Compute diff and create `ReconciliationPlan` (T05.18)
-  5. Execute plan in topological order (T05.19)
-  6. Prune orphans if enabled (T05.20)
+- Enhance `ReconciliationPlan.fromDiff()` method (partially implemented in T05.12):
+  - Process each resource type (mcp_server, skill, agent, workflow)
+  - Creates: in desired, not in actual
+  - Updates: in both, but spec differs
+  - Deletes: in actual, not in desired (orphans)
+- Identity matching by `kind + slug` (not resource ID)
+- Proto equality comparison (spec-only, ignoring metadata like timestamps)
+- Topological sort for execution order from DependencyGraph
 
 **Estimated Duration**: 60-75 minutes
 
-**Dependencies**: All prerequisites complete (DependencyDiscoverer ✅, DependencyGraphBuilder ✅)
+**Dependencies**: 
+- All prerequisites complete:
+  - ReconciliationPlan value object ✅ (T05.12)
+  - DesiredState parsing ✅ (T05.16/T05.15)
+  - ActualState fetching ✅ (T05.17)
+  - DependencyGraph ✅ (T05.14)
 
-**To Resume**: Start working on T05.15 following reconciliation service patterns
+**To Resume**: Start working on T05.18 - verify/enhance ReconciliationPlan.fromDiff() and add comprehensive tests
 
 ---
 
@@ -1362,13 +1399,13 @@ To continue this project, open a new chat and drag this file:
 @_projects/2026-01/20260131.02.cli-agent-yaml-first/next-task.md
 ```
 
-Then say: **"Start working on T05.13"** or **"Continue with next subtask"**
+Then say: **"Start working on T05.18"** or **"Continue with next subtask"**
 
 The AI will:
 1. Read the Phase 5 plan for detailed implementation steps
-2. Create DependencyDiscoverer.java using proto reflection
-3. Add comprehensive tests for nested messages and repeated fields
-4. Verify all ApiResourceReference fields are discovered dynamically
+2. Review ReconciliationPlan.fromDiff() implementation from T05.12
+3. Verify/enhance diff algorithm for all resource types
+4. Add comprehensive tests for create/update/delete detection
 5. Create changelog and commit
 
 ---
