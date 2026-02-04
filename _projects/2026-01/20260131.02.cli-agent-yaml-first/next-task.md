@@ -39,27 +39,30 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 4 - Project Entity & stigmer.yaml Foundation 🚀 **IN PROGRESS**
-**Current Sub-task**: T04.1b ✅ **COMPLETE** - ProjectSpec Aggregate Root Resource Fields
+**Current Sub-task**: T04.5 ✅ **COMPLETE** - Track Detection Logic
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-04 - Session 27 - ProjectSpec Aggregate Root Resource Fields):
-- ✅ **COMPLETED Phase 4 Sub-task T04.1b**: Update ProjectSpec with Resource Fields
-- Enhanced `ProjectSpec` to include repeated resource fields (agents, workflows, mcp_servers, skills)
-- Project is now a true aggregate root for resource lifecycle management
-- **Added imports** for Agent, Workflow, McpServer, Skill api.proto files
-- **Added resource fields** with field numbers 10-13:
-  - `repeated Agent agents = 10`
-  - `repeated Workflow workflows = 11`
-  - `repeated McpServer mcp_servers = 12`
-  - `repeated Skill skills = 13`
-- **Comprehensive documentation** explaining reconciliation behavior for each field
-- **Design decisions**:
-  - Embed full resources (not references) for atomic apply
-  - Field numbers 10-13 to separate from SDK config (1-3)
-  - No buf.validate on repeated fields (resources self-validate)
-- **Build Verification**: Go/Python stubs regenerated, bazel build succeeds, all 51 project tests pass
-- Changelog: `2026-02-04-111212-project-aggregate-root-resource-fields.md`
-- **Completion Time**: ~20 minutes
+**Latest Session** (2026-02-04 - Session 28 - Track Detection Logic):
+- ✅ **COMPLETED Phase 4 Sub-task T04.5**: Track Detection Logic
+- Implemented walk-up directory traversal to detect Project Track vs Atomic Track
+- Created `detect.go` (223 lines) with DetectTrack(), DetectOptions, DetectResult types
+- Created `detect_test.go` (457 lines, 37 comprehensive tests covering all scenarios)
+- **Key Features**:
+  - DetectTrack() walks up from cwd searching for stigmer.yaml (max 10 levels)
+  - Reuses existing Load() for validation (zero code duplication)
+  - Returns TrackProject with loaded Project or TrackAtomic
+  - Invalid config = error with guidance, missing config = Atomic
+  - Platform-aware: handles macOS symlinks and case-insensitive filesystems
+- **Design Decisions**:
+  - Binary track model (Atomic or Project only, no legacy)
+  - Case-sensitive: only `stigmer.yaml` (lowercase) recognized
+  - Default MaxDepth of 10 balances discoverability with performance
+  - Error philosophy: help users fix broken configs, don't silently fallback
+- **Build Verification**: All tests passing (37/37), bazel build succeeds, gofmt clean
+- **Platform Compatibility**: macOS, Linux, Windows all handled correctly
+- Changelog: `2026-02-04-125212-track-detection-logic-foundation.md`
+- Committed: `ea3c8e4 feat(cli/project): add track detection logic for dual-track interface`
+- **Completion Time**: ~60 minutes (exactly as estimated in plan)
 
 **Previous Session** (2026-02-03 - Session 26 - Project Command/Query Services):
 - ✅ **COMPLETED Phase 4 Sub-task T04.1a**: Project Command/Query Services
@@ -774,7 +777,7 @@ apis/stubs/             (REGENERATED via make protos)
 ## Next Steps
 
 **Phase 3 COMPLETE** ✅ (6 of 6 sub-tasks complete, 100%)
-**Phase 4 IN PROGRESS** 🚀 (6 of 8 sub-tasks complete, 75%)
+**Phase 4 IN PROGRESS** 🚀 (7 of 8 sub-tasks complete, 87.5%)
 
 ### Phase 4 Progress
 
@@ -819,11 +822,18 @@ apis/stubs/             (REGENERATED via make protos)
 - Go/Python stubs regenerated, BUILD.bazel updated with new dependencies
 - All 51 project tests pass
 
-⏭️ **T04.5 NEXT**: Track Detection Logic (~60 min)
-- Create internal/cli/project/detect.go
+✅ **T04.5 COMPLETE**: Track Detection Logic
+- Created internal/cli/project/detect.go (223 lines)
 - DetectTrack() with walk-up algorithm for stigmer.yaml
-- Determine Atomic/Project/Legacy track based on context
-- Test coverage for detection scenarios
+- Binary track model: Atomic/Project (no legacy)
+- Comprehensive test coverage (37 tests, all passing)
+
+⏭️ **T04.6 NEXT**: Project Command Group (~75 min)
+- Create cmd/stigmer/root/project.go
+- Implement `stigmer project info` - display local stigmer.yaml
+- Implement `stigmer project validate` - validate stigmer.yaml without deploying
+- Wire up track detection to determine context
+- Test coverage for command orchestration
 
 **Upcoming Sub-tasks**:
 - T04.5: Track Detection Logic - walk-up algorithm for stigmer.yaml
