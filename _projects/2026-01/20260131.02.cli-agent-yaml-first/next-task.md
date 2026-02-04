@@ -39,11 +39,63 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 5 - Backend + Full CLI Integration 🚀 **IN PROGRESS**
-**Current Sub-task**: T05.14 ✅ **COMPLETE** - DependencyGraphBuilder
-**Next Sub-task**: T05.15 - ProjectReconciliationService Foundation
+**Current Sub-task**: T05.15 ✅ **COMPLETE** - ProjectReconciliationService Foundation
+**Next Sub-task**: T05.16 - Desired State Parsing (effectively complete - parseDesiredState implemented in T05.15)
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-04 - Session 39 - DependencyGraphBuilder - T05.14):
+**Latest Session** (2026-02-04 - Session 40 - ProjectReconciliationService Foundation - T05.15):
+- ✅ **COMPLETED Phase 5 Sub-task T05.15**: ProjectReconciliationService Foundation
+- Implemented the core Domain Service that orchestrates project reconciliation
+- **Files Created**:
+  - `ReconciliationOptions.java` (~130 lines) - Immutable config record with factory methods
+  - `ProjectReconciliationService.java` (~276 lines) - @Service with full orchestration
+  - `ProjectReconciliationServiceTest.java` (~540 lines) - 33 comprehensive test methods
+  - Changelog: `2026-02-04-170632-project-reconciliation-service-foundation-t05.15.md`
+- **Key Design Decisions**:
+  - **Spring @Service**: Constructor injection of 5 repos (Agent, Workflow, McpServer, Skill) + DependencyGraphBuilder
+  - **Stub Strategy**: fetchActualState() and executePlan() stubbed for T05.17 and T05.19
+  - **parseDesiredState() Complete**: Fully implemented, effectively completing T05.16
+  - **Circular Dependency Detection**: Returns failure if cycle detected in graph
+- **reconcile() Method** - Main orchestration (7 steps):
+  1. Validate input (null checks, project ID presence)
+  2. Parse desired state from project.spec
+  3. Fetch actual state (stubbed - returns empty)
+  4. Derive dependency graph via DependencyGraphBuilder
+  5. Detect circular dependencies
+  6. Compute reconciliation plan via ReconciliationPlan.fromDiff()
+  7. Execute plan (stubbed - returns dry-run result)
+- **parseDesiredState()** - Fully Implemented:
+  - Extracts agents, workflows, mcpServers, skills from ProjectSpec
+  - Keys by slug (metadata.name) for O(1) lookup during diff
+  - Handles duplicate slugs (keeps first, logs warning)
+  - Filters out resources without names
+- **ReconciliationOptions** - Factory methods:
+  - defaults(): prune=true, dryRun=false
+  - dryRun(): prune=true, dryRun=true
+  - noPrune(): prune=false, dryRun=false
+  - asDryRun(), withoutPrune(): Fluent API for immutable copies
+- **Test Coverage** (33 test methods):
+  - Service Instantiation (4 tests): @Service annotation, constructor, dependencies
+  - Input Validation (4 tests): null project, null options, missing/empty ID
+  - Reconcile Orchestration (6 tests): valid project, empty spec, agents, dry-run, graph, all types
+  - Desired State Parsing (7 tests): agents, workflows, mcpServers, skills, null spec, duplicates, no names
+  - Stubbed Behaviors (3 tests): fetchActual returns empty, executePlan returns dry-run, empty plan
+  - ReconciliationOptions (5 tests): defaults, dryRun, noPrune, asDryRun, withoutPrune
+  - Real-World Scenarios (3 tests): data pipeline, multi-agent microservice, dry-run preview
+  - Error Handling (1 test): circular dependency detection
+- **Engineering Quality**:
+  - Zero linter errors
+  - 100% JavaDoc coverage on public methods
+  - Stateless, thread-safe service design
+  - Comprehensive logging with structured context
+- **Impact**:
+  - **T05.16 Complete**: parseDesiredState() fully implemented
+  - **Enables T05.17**: Clear interface for fetchActualState() with findByProjectId()
+  - **Enables T05.19**: Clear interface for executePlan() with dependency-ordered execution
+  - **Unblocks Handlers**: Can now integrate reconciliation into ProjectCreateHandler/UpdateHandler
+- **Completion Time**: ~60 minutes (as estimated in Phase 5 plan)
+
+**Previous Session** (2026-02-04 - Session 39 - DependencyGraphBuilder - T05.14):
 - ✅ **COMPLETED Phase 5 Sub-task T05.14**: DependencyGraphBuilder - Graph construction from DesiredState
 - Implemented Spring component that builds dependency graphs using reflection-based DependencyDiscoverer
 - **Files Created**:
