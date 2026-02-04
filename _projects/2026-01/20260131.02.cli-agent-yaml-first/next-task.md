@@ -39,11 +39,47 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 5 - Backend + Full CLI Integration 🚀 **IN PROGRESS**
-**Current Sub-task**: T05.10 ✅ **COMPLETE** - Project Get Handler
-**Next Sub-task**: T05.11 - Project GetByReference Handler
+**Current Sub-task**: T05.11 ✅ **COMPLETE** - Project GetByReference Handler
+**Next Sub-task**: T05.12 - Domain Value Objects
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-04 - Session 34 - Project Get Handler - T05.10):
+**Latest Session** (2026-02-04 - Session 36 - Project GetByReference Handler - T05.11):
+- ✅ **COMPLETED Phase 5 Sub-task T05.11**: Project GetByReference Handler
+- Implemented ProjectQueryController.getByReference() for org/slug-based Project retrieval
+- **Files Created**:
+  - `ProjectGetByReferenceHandler.java` (183 lines) - 5-step pipeline with custom LoadFromRepo and Authorize
+  - `ProjectGetByReferenceHandlerTest.java` (499 lines) - 17 comprehensive test cases
+  - Changelog (180+ lines) - Complete documentation
+- **Key Features**:
+  - Post-load FGA authorization (resource ID unknown upfront)
+  - Custom LoadFromRepo step using `projectRepo.findByOrgAndSlug()`
+  - Custom Authorize step with can_view permission
+  - 100% pattern fidelity with McpServerGetByReferenceHandler
+- **Pipeline Structure**:
+  1. validateFieldConstraints - Validate input reference proto
+  2. LoadFromRepo (custom) - Load by org/slug
+  3. Authorize (custom) - Post-load FGA check
+  4. transformResponse - Apply transformations
+  5. sendResponse - Return Project
+- **Test Coverage**:
+  - Handler instantiation (7 tests)
+  - Pipeline construction (5 tests)
+  - Pipeline step dependencies (4 tests)
+  - Inner class structure (6 tests)
+  - Test data validation (2 tests)
+- **Architecture Notes**:
+  - Uses CustomOperationHandlerV2 for post-load authorization
+  - Input is ApiResourceReference (org + slug), not resource ID
+  - FGA check requires resource ID from loaded project
+- **Impact**:
+  - Completes all Project query handlers (Get + GetByReference)
+  - Enables CLI: `stigmer project get org/my-project`
+  - Combined with command handlers: full Project CRUD on backend
+- **Changelog**: `2026-02-04-155929-project-getbyreference-handler-t05.11-completion.md`
+- **Commit**: 45f3f19d feat(backend/project): add ProjectGetByReferenceHandler for Phase 5 T05.11
+- **Completion Time**: ~45 minutes (as estimated in Phase 5 plan)
+
+**Previous Session** (2026-02-04 - Session 34 - Project Get Handler - T05.10):
 - ✅ **COMPLETED Phase 5 Sub-task T05.10**: Project Get Handler
 - Implemented ProjectQueryController.get() for retrieving Projects by ID
 - **File Created**:
@@ -1040,8 +1076,9 @@ apis/stubs/             (REGENERATED via make protos)
 | **T05.8** | ✅ **COMPLETE** | **45 min** | **Project Delete Handler** |
 | **T05.9** | ✅ **COMPLETE** | **60 min** | **Project Apply Handler** |
 | **T05.10** | ✅ **COMPLETE** | **60 min** | **Project Get Handler** |
-| T05.11 | 🎯 **NEXT** | 45-60 min | Project GetByReference Handler |
-| T05.12+ | 🚧 Pending | - | Domain value objects & reconciliation |
+| **T05.11** | ✅ **COMPLETE** | **45 min** | **Project GetByReference Handler** |
+| T05.12 | 🎯 **NEXT** | 60-75 min | Domain Value Objects |
+| T05.13+ | 🚧 Pending | - | Reconciliation domain logic |
 
 ---
 
@@ -1060,15 +1097,18 @@ apis/stubs/             (REGENERATED via make protos)
 - ✅ Created changelog: 2026-02-04-102032-project-get-handler-t05.10.md
 - ✅ Committed: cb5b94d8 feat(backend/project): add ProjectGetHandler for Phase 5 T05.10
 
-**Phase 5 Progress**: **10 of 29 sub-tasks complete** (T05.0, T05.2-T05.10)
+**Phase 5 Progress**: **11 of 29 sub-tasks complete** (T05.0, T05.2-T05.11)
 
 ### Backend Handler Status
 
-Command handlers complete (T05.5-T05.9):
+All CRUD and query handlers complete (T05.5-T05.11):
 - **T05.5**: ProjectRepo.java (219 lines) - MongoDB repository
 - **T05.6**: ProjectCreateHandler.java (88 lines) - 10-step create pipeline
 - **T05.7**: ProjectUpdateHandler.java (82 lines) + Tests (500 lines) - 9-step update pipeline
 - **T05.8**: ProjectDeleteHandler.java (87 lines) - Delete with FGA cleanup
+- **T05.9**: ProjectApplyHandler.java (104 lines) - Upsert (create-or-update)
+- **T05.10**: ProjectGetHandler.java (60 lines) - Retrieve by ID
+- **T05.11**: ProjectGetByReferenceHandler.java (183 lines) + Tests (499 lines) - Retrieve by org/slug
 - **T05.9**: ProjectApplyHandler.java (104 lines) - Idempotent create-or-update
 
 Query handlers started (T05.10):
@@ -1081,17 +1121,26 @@ Commits:
 - cb5b94d8: feat(backend/project): add ProjectGetHandler for Phase 5 T05.10
 - c2c22b46: refactor(backend/grpc-request): remove ApiResourceOwnerScope references (includes ProjectApplyHandler)
 
-### Immediate Next Task: T05.11 - Project GetByReference Handler
+### Immediate Next Task: T05.12 - Domain Value Objects
 
-**Goal**: Implement ProjectQueryController.getByReference() handler for org/slug lookups.
+**Goal**: Create immutable Value Objects for reconciliation domain.
 
-**Pattern Reference**: [AgentGetByReferenceHandler.java](backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agent/request/handler/AgentGetByReferenceHandler.java)
+**Files to Create**:
+- `DependencyGraph.java` - INTERNAL domain concept (NOT a proto, derived by backend)
+- `ResourceReference.java` - Extracted from ApiResourceReference proto fields
+- `ReconciliationPlan.java` - What changes need to be made (pure, no side effects)
+- `ReconciliationResult.java` - What changes were made (immutable outcome)
+- `ResourceChange.java` - A planned change (before execution)
+- `DesiredState.java` - Parsed from project.spec
+- `ActualState.java` - Fetched from repositories
 
-**Implementation**:
-- Custom pipeline with post-load authorization
-- Parse org + slug from ApiResourceReference
-- Load project by org + slug from ProjectRepo
-- Authorize after loading (ID not known upfront)
+**Key Design Decisions**:
+- All as immutable Java records with defensive copying
+- DependencyGraph provides topological sort for execution order
+- ReconciliationPlan factory method: `fromDiff(desired, actual, graph)`
+- ReconciliationResult converts to proto for Apply response
+
+**Estimated Duration**: 60-75 minutes
 - Return Project proto
 
 **Estimated Duration**: 45-60 minutes
