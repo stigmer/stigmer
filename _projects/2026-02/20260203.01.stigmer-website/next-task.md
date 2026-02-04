@@ -68,9 +68,68 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-03 15:53
-**Last Updated**: 2026-02-04 (Architecture Diagram Complete)
-**Current Task**: Architecture Diagram - ✅ COMPLETED
-**Status**: ✅ PRODUCTION READY - Website complete with visual architecture diagram
+**Last Updated**: 2026-02-04 (Content Refinement - Technical Precision)
+**Current Task**: Content Refinement - ✅ COMPLETED
+**Status**: ✅ PRODUCTION READY - Website refined with dual-track positioning and technical precision
+
+## Session Progress (2026-02-04 - Content Refinement - Technical Precision)
+
+### Completed (Evening Session) ✅
+
+**Technical Precision & Dual-Track Positioning**
+
+Refined website architecture section with 6 critical improvements addressing founder feedback on messaging, technical accuracy, and information architecture.
+
+**Accomplishments**:
+
+1. **Messaging Precision**: "Agent as Microservice" → "Agents as gRPC Services"
+   - Reframed to consumer perspective (consumption vs deployment)
+   - Description: "Define once, call from anywhere via standard gRPC"
+   - Clearer value proposition (infrastructure-free services)
+
+2. **Dual-Track Code Display**: Added tabbed YAML + Go SDK viewer
+   - New `CodeTabViewer` component with state management
+   - YAML tab: Rapid prototyping (existing example)
+   - Go SDK tab: Production-grade (new equivalent example)
+   - Subtitle: "YAML for speed, SDK for production"
+   - Visual proof of Stigmer's flexibility
+
+3. **Technical Accuracy**: Fixed Sandbox Isolation description
+   - Corrected: "MCP servers isolated..." → "Isolated file system, controlled process execution"
+   - Properly separates OS-level and application-level security
+   - 5 distinct infrastructure layers with precision
+
+4. **Complete Workflow Example**: Expanded integration code
+   - Before: Single `Create()` call
+   - After: Create → Poll → Retrieve (complete async pattern)
+   - Shows realistic developer workflow (~15 lines)
+
+5. **Removed Redundancy**: Deleted Integration section
+   - Eliminated duplicate "Platform vs Framework" content
+   - Cleaner page structure: Hero → Features → Architecture → Quickstart
+   - Deleted `Integration.tsx` component (5,712 bytes)
+
+6. **Visual Alignment**: Verified arrow positioning
+   - Desktop horizontal arrows: Properly centered
+   - Mobile vertical arrows: Correct spacing
+   - All responsive breakpoints verified
+
+**Quality Validation**: ✅
+- TypeScript: Zero errors
+- ESLint: Zero errors (18 warnings in build script - expected)
+- Build: Successful (129 kB First Load JS - unchanged)
+- Content: Technical accuracy, precise language, complete examples
+- Visual: Arrow alignment verified at 3 breakpoints
+
+**Files Modified**: 3 files
+- `site/src/components/sections/Architecture.tsx` - 6 improvements (+90 lines)
+- `site/src/components/pages/HomePage.tsx` - Removed Integration section (-5 lines)
+- `site/src/components/sections/Integration.tsx` - DELETED (-182 lines)
+
+**Changelog Created**:
+- `_changelog/2026-02/2026-02-04-website-content-refinement-technical-precision.md`
+
+---
 
 ## Session Progress (2026-02-04 - Architecture Diagram)
 
