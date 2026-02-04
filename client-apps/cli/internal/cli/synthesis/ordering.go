@@ -392,11 +392,11 @@ func (r *Result) GetDependencyGraphMermaid() string {
 //	digraph dependencies {
 //	  rankdir=LR;
 //	  node [style=filled];
-//	  
+//
 //	  "skill:coding" [shape=box, fillcolor="#e1f5e1"];
 //	  "agent:reviewer" [shape=ellipse, fillcolor="#e3f2fd"];
 //	  "workflow:pr-review" [shape=hexagon, fillcolor="#fff3e0"];
-//	  
+//
 //	  "skill:coding" -> "agent:reviewer";
 //	  "agent:reviewer" -> "workflow:pr-review";
 //	}
@@ -563,7 +563,7 @@ func (r *Result) GetResourcesByDepth() ([][]*ResourceWithID, error) {
 
 	// Calculate depth for each resource
 	depths := make(map[string]int)
-	
+
 	// Use BFS-like approach to calculate depths
 	// Start with resources that have no dependencies (depth 0)
 	for _, res := range ordered {
@@ -587,7 +587,7 @@ func (r *Result) GetResourcesByDepth() ([][]*ResourceWithID, error) {
 			if isExternalReference(depID) {
 				continue
 			}
-			
+
 			if depDepth, exists := depths[depID]; exists {
 				if depDepth > maxDepth {
 					maxDepth = depDepth
@@ -602,7 +602,7 @@ func (r *Result) GetResourcesByDepth() ([][]*ResourceWithID, error) {
 	// Group resources by depth
 	depthGroups := make(map[int][]*ResourceWithID)
 	maxDepthFound := 0
-	
+
 	for _, res := range ordered {
 		depth := depths[res.ID]
 		if depth > maxDepthFound {

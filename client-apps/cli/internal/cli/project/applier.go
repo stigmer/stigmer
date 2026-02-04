@@ -1,0 +1,117 @@
+// Package project provides CLI utilities for managing Project resources.
+package project
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/pkg/errors"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"google.golang.org/grpc"
+)
+
+// ApplyOptions contains options for applying a Project configuration.
+type ApplyOptions struct {
+	// Project is the Project proto to apply.
+	Project *projectv1.Project
+	// OrgID is the organization ID for the resource.
+	OrgID string
+	// Conn is the gRPC connection to the backend.
+	Conn grpc.ClientConnInterface
+	// Quiet suppresses detailed output.
+	Quiet bool
+	// DryRun validates without applying.
+	DryRun bool
+	// Prune enables orphan pruning (default: true).
+	// When true, resources not in the desired state are deleted.
+	Prune bool
+}
+
+// ApplyResult contains the result of applying a Project configuration.
+type ApplyResult struct {
+	// Project is the applied Project (from server response).
+	Project *projectv1.Project
+	// Created is true if resource was created, false if updated.
+	Created bool
+}
+
+// Apply applies a Project configuration to the backend.
+// It uses the Apply RPC which handles both create and update (idempotent).
+//
+// The Project.Spec should contain all embedded resources (agents, workflows,
+// skills, mcp_servers). The backend will:
+// 1. Create/update the Project entity
+// 2. Derive the dependency graph via proto reflection
+// 3. Reconcile embedded resources in dependency order
+// 4. Optionally prune orphaned resources
+// 5. Return the Project with ReconciliationSummary populated
+func Apply(opts *ApplyOptions) (*ApplyResult, error) {
+	if err := validateApplyOptions(opts); err != nil {
+		return nil, err
+	}
+
+	// Ensure metadata exists and set organization
+	if opts.Project.Metadata == nil {
+		opts.Project.Metadata = &apiresource.ApiResourceMetadata{}
+	}
+
+	// Set organization if not already set
+	if opts.Project.Metadata.Org == "" && opts.OrgID != "" {
+		opts.Project.Metadata.Org = opts.OrgID
+	}
+
+	// Dry run - just validate and return
+	if opts.DryRun {
+		if !opts.Quiet {
+			cliprint.PrintInfo("Dry run mode - configuration is valid")
+			displayProjectSummary(opts.Project)
+		}
+		return &ApplyResult{
+			Project: opts.Project,
+			Created: false,
+		}, nil
+	}
+
+	// Check if resource exists to determine create vs update
+	existingID := opts.Project.Metadata.Id
+	isCreate := existingID == ""
+
+	if !opts.Quiet {
+		if isCreate {
+			cliprint.PrintInfo("Creating project: %s", opts.Project.Metadata.Name)
+		} else {
+			cliprint.PrintInfo("Updating project: %s", opts.Project.Metadata.Name)
+		}
+	}
+
+	// Call Apply RPC
+	client := projectv1.NewProjectCommandControllerClient(opts.Conn)
+	result, err := client.Apply(context.Background(), opts.Project)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to apply project")
+	}
+
+	return &ApplyResult{
+		Project: result,
+		Created: isCreate,
+	}, nil
+}
+
+// validateApplyOptions validates the ApplyOptions fields.
+func validateApplyOptions(opts *ApplyOptions) error {
+	if opts == nil {
+		return fmt.Errorf("apply options cannot be nil")
+	}
+
+	if opts.Project == nil {
+		return fmt.Errorf("project is required")
+	}
+
+	if opts.Conn == nil {
+		return fmt.Errorf("connection is required")
+	}
+
+	return nil
+}
