@@ -3,7 +3,11 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "project",
     srcs = [
+        "applier.go",
+        "delete.go",
+        "detect.go",
         "display.go",
+        "get.go",
         "loader.go",
         "validator.go",
     ],
@@ -11,11 +15,15 @@ go_library(
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//client-apps/cli/internal/cli/clierr",
         "//client-apps/cli/internal/cli/cliprint",
+        "//client-apps/cli/pkg/reference",
         "@build_buf_go_protovalidate//:protovalidate",
         "@com_github_pkg_errors//:errors",
         "@in_gopkg_yaml_v3//:yaml_v3",
+        "@org_golang_google_grpc//:grpc",
         "@org_golang_google_protobuf//encoding/protojson",
     ],
 )
@@ -23,6 +31,10 @@ go_library(
 go_test(
     name = "project_test",
     srcs = [
+        "applier_test.go",
+        "delete_test.go",
+        "detect_test.go",
+        "get_test.go",
         "loader_test.go",
         "validator_test.go",
     ],
@@ -32,5 +44,6 @@ go_test(
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//:grpc",
     ],
 )

@@ -8,9 +8,9 @@ package projectv1
 
 import (
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -23,86 +23,45 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ProjectStatus contains system-managed state for a Project.
-// Updated by the backend after each reconciliation.
-type ProjectStatus struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Standard audit information (created_at, updated_at, etc.)
-	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
-	// Summary of the last reconciliation operation.
-	Reconciliation *ReconciliationSummary `protobuf:"bytes,1,opt,name=reconciliation,proto3" json:"reconciliation,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *ProjectStatus) Reset() {
-	*x = ProjectStatus{}
-	mi := &file_ai_stigmer_agentic_project_v1_status_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ProjectStatus) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ProjectStatus) ProtoMessage() {}
-
-func (x *ProjectStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_project_v1_status_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ProjectStatus.ProtoReflect.Descriptor instead.
-func (*ProjectStatus) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_project_v1_status_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ProjectStatus) GetAudit() *apiresource.ApiResourceAudit {
-	if x != nil {
-		return x.Audit
-	}
-	return nil
-}
-
-func (x *ProjectStatus) GetReconciliation() *ReconciliationSummary {
-	if x != nil {
-		return x.Reconciliation
-	}
-	return nil
-}
-
-// ReconciliationSummary captures the outcome of the last `stigmer apply`.
-// This is outcome data (what happened), not process data (how it happened).
+// ReconciliationSummary contains the results of project reconciliation.
+// This is populated only in the Apply response to show what changes were made.
+// It is NOT persisted to the database - the status remains minimal.
 //
-// The dependency graph and manifest details are NOT stored here - they are
-// ephemeral build artifacts managed by SDK and CLI.
+// Design Decision: No DependencyGraph proto.
+// The backend derives dependency relationships by scanning resources for
+// ApiResourceReference fields using proto reflection. This keeps the proto
+// simple and ensures the graph is always consistent with the actual resources.
+//
+// Usage:
+// - Returned in ProjectCommandController.Apply() response
+// - Shows what resources were created, updated, or deleted during reconciliation
+// - Enables CLI to display a summary of changes to the user
+//
+// Example CLI output:
+//
+//	Applied project "my-app":
+//	  Created: 2 agents, 1 workflow
+//	  Updated: 1 mcp_server
+//	  Deleted: 0 resources (orphan pruning)
 type ReconciliationSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Timestamp of the last successful reconciliation.
-	LastReconciledAt *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=last_reconciled_at,json=lastReconciledAt,proto3" json:"last_reconciled_at,omitempty"`
-	// Result of the last reconciliation attempt.
-	Result ReconciliationResult `protobuf:"varint,2,opt,name=result,proto3,enum=ai.stigmer.agentic.project.v1.ReconciliationResult" json:"result,omitempty"`
-	// SHA256 hash of the synthesized manifest.
-	// Used for drift detection - if manifest changes, hash changes.
-	ManifestHash string `protobuf:"bytes,3,opt,name=manifest_hash,json=manifestHash,proto3" json:"manifest_hash,omitempty"`
-	// Resource counts from the last reconciliation.
-	// Provides a quick summary without querying each resource type.
-	ResourceCounts *ResourceCounts `protobuf:"bytes,4,opt,name=resource_counts,json=resourceCounts,proto3" json:"resource_counts,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Resources that were created during this apply.
+	// These are new resources that did not exist before reconciliation.
+	Created []*ResourceChangeRecord `protobuf:"bytes,1,rep,name=created,proto3" json:"created,omitempty"`
+	// Resources that were updated during this apply.
+	// These are existing resources whose spec changed.
+	Updated []*ResourceChangeRecord `protobuf:"bytes,2,rep,name=updated,proto3" json:"updated,omitempty"`
+	// Resources that were deleted (orphan pruning) during this apply.
+	// These are resources that existed in the previous state but were
+	// removed from the project spec (no longer in desired state).
+	Deleted       []*ResourceChangeRecord `protobuf:"bytes,3,rep,name=deleted,proto3" json:"deleted,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ReconciliationSummary) Reset() {
 	*x = ReconciliationSummary{}
-	mi := &file_ai_stigmer_agentic_project_v1_status_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_project_v1_status_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -114,7 +73,7 @@ func (x *ReconciliationSummary) String() string {
 func (*ReconciliationSummary) ProtoMessage() {}
 
 func (x *ReconciliationSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_project_v1_status_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_project_v1_status_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -127,62 +86,145 @@ func (x *ReconciliationSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReconciliationSummary.ProtoReflect.Descriptor instead.
 func (*ReconciliationSummary) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_project_v1_status_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_agentic_project_v1_status_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ReconciliationSummary) GetLastReconciledAt() *timestamppb.Timestamp {
+func (x *ReconciliationSummary) GetCreated() []*ResourceChangeRecord {
 	if x != nil {
-		return x.LastReconciledAt
+		return x.Created
 	}
 	return nil
 }
 
-func (x *ReconciliationSummary) GetResult() ReconciliationResult {
+func (x *ReconciliationSummary) GetUpdated() []*ResourceChangeRecord {
 	if x != nil {
-		return x.Result
-	}
-	return ReconciliationResult_reconciliation_result_unspecified
-}
-
-func (x *ReconciliationSummary) GetManifestHash() string {
-	if x != nil {
-		return x.ManifestHash
-	}
-	return ""
-}
-
-func (x *ReconciliationSummary) GetResourceCounts() *ResourceCounts {
-	if x != nil {
-		return x.ResourceCounts
+		return x.Updated
 	}
 	return nil
 }
 
-// ResourceCounts tracks how many resources of each type exist in the project.
-type ResourceCounts struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Agents        int32                  `protobuf:"varint,1,opt,name=agents,proto3" json:"agents,omitempty"`
-	Workflows     int32                  `protobuf:"varint,2,opt,name=workflows,proto3" json:"workflows,omitempty"`
-	Skills        int32                  `protobuf:"varint,3,opt,name=skills,proto3" json:"skills,omitempty"`
-	McpServers    int32                  `protobuf:"varint,4,opt,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty"`
+func (x *ReconciliationSummary) GetDeleted() []*ResourceChangeRecord {
+	if x != nil {
+		return x.Deleted
+	}
+	return nil
+}
+
+// ResourceChangeRecord identifies a single resource that was changed.
+// Used in ReconciliationSummary to report create/update/delete operations.
+//
+// This message captures the essential identity of a changed resource:
+// - kind: What type of resource (agent, workflow, mcp_server, skill)
+// - slug: The human-readable name (from metadata.name)
+// - resource_id: The system-assigned ID (e.g., agt_xxx, wfl_xxx)
+//
+// The combination of kind + slug uniquely identifies a resource within a project.
+// The resource_id is included for reference and linking to audit trails.
+type ResourceChangeRecord struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The kind of resource that was changed.
+	// Valid values: agent (40), workflow (50), mcp_server (44), skill (43).
+	Kind apiresourcekind.ApiResourceKind `protobuf:"varint,1,opt,name=kind,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"kind,omitempty"`
+	// The resource slug (human-readable identifier from metadata.name).
+	// This is the name used in SDK code and YAML files.
+	// Example: "code-review-agent", "data-pipeline", "postgres-mcp"
+	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
+	// The resource ID (system-assigned unique identifier).
+	// Format: {prefix}_{ulid} where prefix is from ApiResourceKind.id_prefix.
+	// Examples: agt_01kewqjbtdy0w4d14bnhhy4yc2, wfl_01kfxyz..., mcp_01kghi...
+	ResourceId    string `protobuf:"bytes,3,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ResourceCounts) Reset() {
-	*x = ResourceCounts{}
+func (x *ResourceChangeRecord) Reset() {
+	*x = ResourceChangeRecord{}
+	mi := &file_ai_stigmer_agentic_project_v1_status_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResourceChangeRecord) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResourceChangeRecord) ProtoMessage() {}
+
+func (x *ResourceChangeRecord) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_project_v1_status_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResourceChangeRecord.ProtoReflect.Descriptor instead.
+func (*ResourceChangeRecord) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_project_v1_status_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ResourceChangeRecord) GetKind() apiresourcekind.ApiResourceKind {
+	if x != nil {
+		return x.Kind
+	}
+	return apiresourcekind.ApiResourceKind(0)
+}
+
+func (x *ResourceChangeRecord) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *ResourceChangeRecord) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+// ProjectStatus contains system-managed state for a Project.
+//
+// Design Decision: Status is minimal by design.
+// - audit.updated_at = when the project was last applied (no separate reconciliation timestamp)
+// - Resource counts are derivable from spec (no duplication)
+// - Errors are returned in Apply() response, not stored in status
+type ProjectStatus struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Reconciliation summary from the most recent Apply operation.
+	// Populated only in Apply() response - not persisted to database.
+	// Shows what resources were created, updated, or deleted during reconciliation.
+	//
+	// Note: No dependency_graph field - backend derives it from resources
+	// by scanning for ApiResourceReference fields using proto reflection.
+	// This ensures the graph is always consistent with actual resource state.
+	LastReconciliation *ReconciliationSummary `protobuf:"bytes,1,opt,name=last_reconciliation,json=lastReconciliation,proto3" json:"last_reconciliation,omitempty"`
+	// Standard audit information (created_at, updated_at, etc.)
+	// The updated_at field indicates when the project was last successfully applied.
+	Audit         *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProjectStatus) Reset() {
+	*x = ProjectStatus{}
 	mi := &file_ai_stigmer_agentic_project_v1_status_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ResourceCounts) String() string {
+func (x *ProjectStatus) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ResourceCounts) ProtoMessage() {}
+func (*ProjectStatus) ProtoMessage() {}
 
-func (x *ResourceCounts) ProtoReflect() protoreflect.Message {
+func (x *ProjectStatus) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_project_v1_status_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -194,58 +236,42 @@ func (x *ResourceCounts) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ResourceCounts.ProtoReflect.Descriptor instead.
-func (*ResourceCounts) Descriptor() ([]byte, []int) {
+// Deprecated: Use ProjectStatus.ProtoReflect.Descriptor instead.
+func (*ProjectStatus) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_project_v1_status_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ResourceCounts) GetAgents() int32 {
+func (x *ProjectStatus) GetLastReconciliation() *ReconciliationSummary {
 	if x != nil {
-		return x.Agents
+		return x.LastReconciliation
 	}
-	return 0
+	return nil
 }
 
-func (x *ResourceCounts) GetWorkflows() int32 {
+func (x *ProjectStatus) GetAudit() *apiresource.ApiResourceAudit {
 	if x != nil {
-		return x.Workflows
+		return x.Audit
 	}
-	return 0
-}
-
-func (x *ResourceCounts) GetSkills() int32 {
-	if x != nil {
-		return x.Skills
-	}
-	return 0
-}
-
-func (x *ResourceCounts) GetMcpServers() int32 {
-	if x != nil {
-		return x.McpServers
-	}
-	return 0
+	return nil
 }
 
 var File_ai_stigmer_agentic_project_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_project_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/project/v1/status.proto\x12\x1dai.stigmer.agentic.project.v1\x1a(ai/stigmer/agentic/project/v1/enum.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb5\x01\n" +
-	"\rProjectStatus\x12F\n" +
-	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12\\\n" +
-	"\x0ereconciliation\x18\x01 \x01(\v24.ai.stigmer.agentic.project.v1.ReconciliationSummaryR\x0ereconciliation\"\xab\x02\n" +
-	"\x15ReconciliationSummary\x12H\n" +
-	"\x12last_reconciled_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x10lastReconciledAt\x12K\n" +
-	"\x06result\x18\x02 \x01(\x0e23.ai.stigmer.agentic.project.v1.ReconciliationResultR\x06result\x12#\n" +
-	"\rmanifest_hash\x18\x03 \x01(\tR\fmanifestHash\x12V\n" +
-	"\x0fresource_counts\x18\x04 \x01(\v2-.ai.stigmer.agentic.project.v1.ResourceCountsR\x0eresourceCounts\"\x7f\n" +
-	"\x0eResourceCounts\x12\x16\n" +
-	"\x06agents\x18\x01 \x01(\x05R\x06agents\x12\x1c\n" +
-	"\tworkflows\x18\x02 \x01(\x05R\tworkflows\x12\x16\n" +
-	"\x06skills\x18\x03 \x01(\x05R\x06skills\x12\x1f\n" +
-	"\vmcp_servers\x18\x04 \x01(\x05R\n" +
-	"mcpServersB\x9b\x02\n" +
+	"*ai/stigmer/agentic/project/v1/status.proto\x12\x1dai.stigmer.agentic.project.v1\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\x84\x02\n" +
+	"\x15ReconciliationSummary\x12M\n" +
+	"\acreated\x18\x01 \x03(\v23.ai.stigmer.agentic.project.v1.ResourceChangeRecordR\acreated\x12M\n" +
+	"\aupdated\x18\x02 \x03(\v23.ai.stigmer.agentic.project.v1.ResourceChangeRecordR\aupdated\x12M\n" +
+	"\adeleted\x18\x03 \x03(\v23.ai.stigmer.agentic.project.v1.ResourceChangeRecordR\adeleted\"\xa0\x01\n" +
+	"\x14ResourceChangeRecord\x12S\n" +
+	"\x04kind\x18\x01 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x12\n" +
+	"\x04slug\x18\x02 \x01(\tR\x04slug\x12\x1f\n" +
+	"\vresource_id\x18\x03 \x01(\tR\n" +
+	"resourceId\"\xbe\x01\n" +
+	"\rProjectStatus\x12e\n" +
+	"\x13last_reconciliation\x18\x01 \x01(\v24.ai.stigmer.agentic.project.v1.ReconciliationSummaryR\x12lastReconciliation\x12F\n" +
+	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\x9b\x02\n" +
 	"!com.ai.stigmer.agentic.project.v1B\vStatusProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1;projectv1\xa2\x02\x04ASAP\xaa\x02\x1dAi.Stigmer.Agentic.Project.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Project\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Project::V1b\x06proto3"
 
 var (
@@ -262,24 +288,24 @@ func file_ai_stigmer_agentic_project_v1_status_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_project_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_agentic_project_v1_status_proto_goTypes = []any{
-	(*ProjectStatus)(nil),                // 0: ai.stigmer.agentic.project.v1.ProjectStatus
-	(*ReconciliationSummary)(nil),        // 1: ai.stigmer.agentic.project.v1.ReconciliationSummary
-	(*ResourceCounts)(nil),               // 2: ai.stigmer.agentic.project.v1.ResourceCounts
-	(*apiresource.ApiResourceAudit)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(*timestamppb.Timestamp)(nil),        // 4: google.protobuf.Timestamp
-	(ReconciliationResult)(0),            // 5: ai.stigmer.agentic.project.v1.ReconciliationResult
+	(*ReconciliationSummary)(nil),        // 0: ai.stigmer.agentic.project.v1.ReconciliationSummary
+	(*ResourceChangeRecord)(nil),         // 1: ai.stigmer.agentic.project.v1.ResourceChangeRecord
+	(*ProjectStatus)(nil),                // 2: ai.stigmer.agentic.project.v1.ProjectStatus
+	(apiresourcekind.ApiResourceKind)(0), // 3: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
+	(*apiresource.ApiResourceAudit)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceAudit
 }
 var file_ai_stigmer_agentic_project_v1_status_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.agentic.project.v1.ProjectStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	1, // 1: ai.stigmer.agentic.project.v1.ProjectStatus.reconciliation:type_name -> ai.stigmer.agentic.project.v1.ReconciliationSummary
-	4, // 2: ai.stigmer.agentic.project.v1.ReconciliationSummary.last_reconciled_at:type_name -> google.protobuf.Timestamp
-	5, // 3: ai.stigmer.agentic.project.v1.ReconciliationSummary.result:type_name -> ai.stigmer.agentic.project.v1.ReconciliationResult
-	2, // 4: ai.stigmer.agentic.project.v1.ReconciliationSummary.resource_counts:type_name -> ai.stigmer.agentic.project.v1.ResourceCounts
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	1, // 0: ai.stigmer.agentic.project.v1.ReconciliationSummary.created:type_name -> ai.stigmer.agentic.project.v1.ResourceChangeRecord
+	1, // 1: ai.stigmer.agentic.project.v1.ReconciliationSummary.updated:type_name -> ai.stigmer.agentic.project.v1.ResourceChangeRecord
+	1, // 2: ai.stigmer.agentic.project.v1.ReconciliationSummary.deleted:type_name -> ai.stigmer.agentic.project.v1.ResourceChangeRecord
+	3, // 3: ai.stigmer.agentic.project.v1.ResourceChangeRecord.kind:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
+	0, // 4: ai.stigmer.agentic.project.v1.ProjectStatus.last_reconciliation:type_name -> ai.stigmer.agentic.project.v1.ReconciliationSummary
+	4, // 5: ai.stigmer.agentic.project.v1.ProjectStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_project_v1_status_proto_init() }
@@ -287,7 +313,6 @@ func file_ai_stigmer_agentic_project_v1_status_proto_init() {
 	if File_ai_stigmer_agentic_project_v1_status_proto != nil {
 		return
 	}
-	file_ai_stigmer_agentic_project_v1_enum_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

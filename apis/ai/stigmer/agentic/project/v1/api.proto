@@ -39,5 +39,6 @@ message Project {
   ProjectSpec spec = 4 [(buf.validate.field).required = true];
 
   // System-managed status containing reconciliation state and audit info.
+  // The status.last_reconciliation field contains reconciliation results from Apply.
   ProjectStatus status = 5;
 }

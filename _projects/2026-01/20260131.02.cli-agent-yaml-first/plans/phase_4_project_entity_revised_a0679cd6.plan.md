@@ -7,7 +7,7 @@ todos:
     status: completed
   - id: T04.1b
     content: Update ProjectSpec - Add agents, workflows, mcp_servers, skills repeated fields
-    status: pending
+    status: completed
   - id: T04.5
     content: Track Detection Logic - Create detect.go with walk-up algorithm for stigmer.yaml discovery
     status: pending

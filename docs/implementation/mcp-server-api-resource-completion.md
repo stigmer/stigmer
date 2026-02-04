@@ -356,7 +356,7 @@ createTuple("mcp_server:{id}#owner@identity_account:{creator_id}");
 1. **Controller** (62 lines)
    - `backend/services/stigmer-server/pkg/domain/mcpserver/controller/mcpserver_controller.go`
    - Controller struct with UnimplementedServer interfaces
-   - Constructor with BadgerDB store dependency
+   - Constructor with SQLite store dependency
 
 2. **Operations** (7 files, 744 lines)
    
@@ -674,7 +674,7 @@ Unlike Skills (platform/org only), MCP servers need personal scope for localhost
 This project built upon:
 - ✅ Stigmer proto infrastructure (buf, code generation)
 - ✅ FGA authorization framework
-- ✅ BadgerDB local storage (stigmer)
+- ✅ SQLite local storage (stigmer)
 - ✅ Postgres + JPA repositories (stigmer-cloud)
 - ✅ gRPC handler patterns
 - ✅ CLI infrastructure
@@ -743,7 +743,7 @@ All code is foundation-quality with:
 - Tests for all three server types
 - Validation error tests
 - Duplicate detection tests
-- Integration tests with BadgerDB
+- Integration tests with SQLite
 
 **Java (stigmer-cloud)**:
 - Repository query tests

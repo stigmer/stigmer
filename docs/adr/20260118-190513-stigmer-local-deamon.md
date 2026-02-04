@@ -12,12 +12,12 @@ To provide a robust "Tier 1" local development experience, Stigmer must support:
 1. **Polyglot Execution**: Running both Go (Workflow) and Python (Agent) logic on a developer's machine.
 2. **Real-Time Observability**: Streaming execution logs and status updates to the CLI without heavy infrastructure like Redis.
 3. **Unified State**: A single source of truth for execution data to prevent concurrency issues between processes.
-4. **Simple UX**: Developers should run a single command (`stigmer local start`) to spin up the entire stack.
+4. **Simple UX**: Developers should run a single command (`stigmer server start`) to spin up the entire stack.
 
 **Decision**:
 We will implement a **Centralized Daemon Architecture** using the **Supervisor Pattern**.
 
-The `stigmer local start` command will launch a long-running Go process (The Daemon) that acts as the "Hub" for the local environment. It serves as the API Server, Data Guardian, Stream Broker, and Process Supervisor.
+The `stigmer server start` command will launch a long-running Go process (The Daemon) that acts as the "Hub" for the local environment. It serves as the API Server, Data Guardian, Stream Broker, and Process Supervisor.
 
 ## 1. Component Roles
 
@@ -62,7 +62,7 @@ When a user runs `stigmer logs -f <id>`:
 
 ### Supervisor Logic (Startup Sequence)
 
-When `stigmer local start` is executed:
+When `stigmer server start` is executed:
 
 1. **Pre-flight Checks**: Verify `python3` is installed and `docker` is running (for Temporal).
 2. **Start Database**: Open SQLite connection (enable WAL mode).
@@ -123,7 +123,7 @@ Both WorkflowExecution and AgentExecution have complete streaming support:
 
 ```
 Write Path:
-workflow-runner → UpdateStatus RPC → BadgerDB persist → Broadcast → Go channels
+workflow-runner → UpdateStatus RPC → SQLite persist → Broadcast → Go channels
 
 Read Path:
 CLI (stigmer run) → Subscribe RPC → Go channel subscription → Real-time stream → CLI
@@ -133,7 +133,7 @@ CLI (stigmer run) → Subscribe RPC → Go channel subscription → Real-time st
 
 ```bash
 # Start daemon
-stigmer local start
+stigmer server start
 
 # Run workflow with real-time streaming
 stigmer run  # Logs stream in real-time ✓

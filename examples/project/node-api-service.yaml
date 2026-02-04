@@ -1,0 +1,121 @@
+# Node.js API Service Project
+#
+# This example demonstrates a TypeScript-based microservice project.
+# Use this pattern for API backends, webhook handlers, or real-time services.
+
+apiVersion: agentic.stigmer.ai/v1
+kind: Project
+
+metadata:
+  name: notification-service-api
+  org: platform-engineering
+  
+  labels:
+    service-type: api
+    runtime: nodejs
+    deployment: kubernetes
+    tier: critical
+  
+  # Tags are unstructured identifiers for flexible categorization.
+  # Unlike labels (key-value), tags are simple strings.
+  tags:
+    - notifications
+    - webhooks
+    - real-time
+    - typescript
+
+spec:
+  runtime: node
+  
+  # Node.js projects commonly use TypeScript with index.ts as the entry point.
+  # The SDK synthesis supports .ts, .js, .mjs, and .mts extensions.
+  entry_point: src/index.ts
+  
+  description: |
+    Real-time notification delivery service with intelligent routing.
+    
+    Capabilities:
+    - Multi-channel delivery (email, SMS, push, Slack)
+    - Priority-based queuing and retry logic
+    - Template rendering with personalization
+    - Delivery tracking and analytics
+    - Rate limiting and throttling
+    
+    Deployed as a Kubernetes service with autoscaling based on queue depth.
+
+# Node.js Runtime Details:
+#
+# Execution: The CLI runs `npx ts-node src/index.ts` for TypeScript entry points
+#            or `node src/index.js` for JavaScript entry points
+#
+# TypeScript Support:
+# - Automatic detection of .ts/.mts files
+# - Transpilation handled by ts-node during synthesis
+# - Your tsconfig.json is respected
+#
+# Example src/index.ts structure:
+#
+#   import { Context, run } from '@stigmer/sdk';
+#   import { Agent } from '@stigmer/sdk/agent';
+#   import { Workflow } from '@stigmer/sdk/workflow';
+#   
+#   async function defineResources(ctx: Context) {
+#       // Define notification routing agent
+#       const router = new Agent(ctx, {
+#           name: 'notification-router',
+#           instructions: `
+#               Route notifications to appropriate channels based on:
+#               - User preferences
+#               - Message priority
+#               - Channel availability
+#           `,
+#           mcpServers: ['slack', 'sendgrid', 'twilio']
+#       });
+#       
+#       // Define delivery workflow
+#       const deliveryWorkflow = new Workflow(ctx, {
+#           name: 'notification-delivery',
+#           tasks: [
+#               // Workflow definition...
+#           ]
+#       });
+#   }
+#   
+#   run(defineResources);
+#
+# Package Management:
+# - Dependencies in package.json are auto-installed before synthesis
+# - Use npm, yarn, or pnpm - the SDK respects your lock files
+# - Dev dependencies are available during synthesis
+
+# Microservice Architecture Notes:
+#
+# This pattern works well for:
+# - Services that need agent-powered intelligence (routing, classification, enrichment)
+# - Workflow-based orchestration (multi-step processes, retries, compensations)
+# - Integration with multiple external systems (MCP servers for each integration)
+#
+# The Project Track enables:
+# - Atomic deployment of all service resources
+# - Version-controlled resource definitions (in TypeScript, not YAML)
+# - Automatic cleanup when resources are removed from code
+# - Type-safe resource configuration with IDE autocomplete
+
+# Deployment Strategy:
+#
+# Local Development:
+#   stigmer backend set local
+#   stigmer apply
+#   # Resources deployed to local SQLite backend
+#   # Test with: stigmer workflow run notification-delivery
+#
+# Staging Environment:
+#   stigmer apply --org platform-staging
+#   # Resources deployed to staging organization
+#   # Integration tests run against staging
+#
+# Production:
+#   stigmer apply --org platform-production
+#   # CI/CD pipeline validates before deployment
+#   # Automated rollback on errors
+#   # Monitoring and alerting configured

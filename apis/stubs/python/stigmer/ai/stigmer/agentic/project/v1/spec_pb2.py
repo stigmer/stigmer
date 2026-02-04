@@ -22,11 +22,15 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.agentic.agent.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2
+from ai.stigmer.agentic.mcpserver.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.project.v1 import enum_pb2 as ai_dot_stigmer_dot_agentic_dot_project_dot_v1_dot_enum__pb2
+from ai.stigmer.agentic.skill.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2
+from ai.stigmer.agentic.workflow.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/project/v1/spec.proto\x12\x1d\x61i.stigmer.agentic.project.v1\x1a(ai/stigmer/agentic/project/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\xa8\x01\n\x0bProjectSpec\x12V\n\x07runtime\x18\x01 \x01(\x0e\x32-.ai.stigmer.agentic.project.v1.ProjectRuntimeB\r\xbaH\n\x82\x01\x04\x10\x01 \x00\xc8\x01\x01R\x07runtime\x12\x1f\n\x0b\x65ntry_point\x18\x02 \x01(\tR\nentryPoint\x12 \n\x0b\x64\x65scription\x18\x03 \x01(\tR\x0b\x64\x65scriptionB\xc7\x01\n!com.ai.stigmer.agentic.project.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02\x1d\x41i.Stigmer.Agentic.Project.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Project\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Project::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/project/v1/spec.proto\x12\x1d\x61i.stigmer.agentic.project.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a)ai/stigmer/agentic/mcpserver/v1/api.proto\x1a(ai/stigmer/agentic/project/v1/enum.proto\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a(ai/stigmer/agentic/workflow/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\"\xb5\x03\n\x0bProjectSpec\x12V\n\x07runtime\x18\x01 \x01(\x0e\x32-.ai.stigmer.agentic.project.v1.ProjectRuntimeB\r\xbaH\n\x82\x01\x04\x10\x01 \x00\xc8\x01\x01R\x07runtime\x12\x1f\n\x0b\x65ntry_point\x18\x02 \x01(\tR\nentryPoint\x12 \n\x0b\x64\x65scription\x18\x03 \x01(\tR\x0b\x64\x65scription\x12:\n\x06\x61gents\x18\n \x03(\x0b\x32\".ai.stigmer.agentic.agent.v1.AgentR\x06\x61gents\x12\x46\n\tworkflows\x18\x0b \x03(\x0b\x32(.ai.stigmer.agentic.workflow.v1.WorkflowR\tworkflows\x12K\n\x0bmcp_servers\x18\x0c \x03(\x0b\x32*.ai.stigmer.agentic.mcpserver.v1.McpServerR\nmcpServers\x12:\n\x06skills\x18\r \x03(\x0b\x32\".ai.stigmer.agentic.skill.v1.SkillR\x06skillsB\xc7\x01\n!com.ai.stigmer.agentic.project.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02\x1d\x41i.Stigmer.Agentic.Project.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Project\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Project::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,6 +40,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n!com.ai.stigmer.agentic.project.v1B\tSpecProtoP\001\242\002\004ASAP\252\002\035Ai.Stigmer.Agentic.Project.V1\312\002\035Ai\\Stigmer\\Agentic\\Project\\V1\342\002)Ai\\Stigmer\\Agentic\\Project\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic::Project::V1'
   _globals['_PROJECTSPEC'].fields_by_name['runtime']._loaded_options = None
   _globals['_PROJECTSPEC'].fields_by_name['runtime']._serialized_options = b'\272H\n\202\001\004\020\001 \000\310\001\001'
-  _globals['_PROJECTSPEC']._serialized_start=147
-  _globals['_PROJECTSPEC']._serialized_end=315
+  _globals['_PROJECTSPEC']._serialized_start=310
+  _globals['_PROJECTSPEC']._serialized_end=747
 # @@protoc_insertion_point(module_scope)

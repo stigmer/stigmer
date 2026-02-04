@@ -272,14 +272,14 @@ func (w *InvokeWorkflowImpl) getActivityTaskQueue(ctx workflow.Context) string {
 
 **Use Cases**:
 - Fast operations (< 1 second)
-- Direct database access (BadgerDB in stigmer-server)
+- Direct database access (SQLite in stigmer-server)
 - System error recovery (updating status on workflow failure)
 
 **Example**: `UpdateExecutionStatusActivity`
 
 **Why local?**
 - Avoids task queue routing complexity
-- Direct access to BadgerDB store
+- Direct access to SQLite database
 - Only used for error recovery (not normal flow)
 - No need for Python worker communication
 
@@ -441,7 +441,7 @@ Layer 2: "Workflow validation failed: State 'process_data' not defined in states
 1. **Real-time updates** (normal flow):
    - Python activity sends progressive updates via gRPC to stigmer-server
    - Controller: `AgentExecutionController.UpdateStatus()`
-   - Updates persisted to BadgerDB immediately
+   - Updates persisted to SQLite database immediately
    - Frontend receives real-time progress
 
 2. **Final status** (observability):

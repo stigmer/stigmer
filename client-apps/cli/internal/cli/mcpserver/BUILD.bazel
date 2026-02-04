@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "mcpserver",
@@ -16,5 +16,21 @@ go_library(
         "@in_gopkg_yaml_v3//:yaml_v3",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)
+
+go_test(
+    name = "mcpserver_test",
+    srcs = [
+        "applier_test.go",
+        "loader_test.go",
+    ],
+    embed = [":mcpserver"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//:grpc",
     ],
 )

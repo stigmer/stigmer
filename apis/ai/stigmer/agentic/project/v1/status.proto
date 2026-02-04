@@ -2,45 +2,87 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.project.v1;
 
-import "ai/stigmer/agentic/project/v1/enum.proto";
+import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
-import "google/protobuf/timestamp.proto";
+
+// ReconciliationSummary contains the results of project reconciliation.
+// This is populated only in the Apply response to show what changes were made.
+// It is NOT persisted to the database - the status remains minimal.
+//
+// Design Decision: No DependencyGraph proto.
+// The backend derives dependency relationships by scanning resources for
+// ApiResourceReference fields using proto reflection. This keeps the proto
+// simple and ensures the graph is always consistent with the actual resources.
+//
+// Usage:
+// - Returned in ProjectCommandController.Apply() response
+// - Shows what resources were created, updated, or deleted during reconciliation
+// - Enables CLI to display a summary of changes to the user
+//
+// Example CLI output:
+//
+//	Applied project "my-app":
+//	  Created: 2 agents, 1 workflow
+//	  Updated: 1 mcp_server
+//	  Deleted: 0 resources (orphan pruning)
+message ReconciliationSummary {
+  // Resources that were created during this apply.
+  // These are new resources that did not exist before reconciliation.
+  repeated ResourceChangeRecord created = 1;
+
+  // Resources that were updated during this apply.
+  // These are existing resources whose spec changed.
+  repeated ResourceChangeRecord updated = 2;
+
+  // Resources that were deleted (orphan pruning) during this apply.
+  // These are resources that existed in the previous state but were
+  // removed from the project spec (no longer in desired state).
+  repeated ResourceChangeRecord deleted = 3;
+}
+
+// ResourceChangeRecord identifies a single resource that was changed.
+// Used in ReconciliationSummary to report create/update/delete operations.
+//
+// This message captures the essential identity of a changed resource:
+// - kind: What type of resource (agent, workflow, mcp_server, skill)
+// - slug: The human-readable name (from metadata.name)
+// - resource_id: The system-assigned ID (e.g., agt_xxx, wfl_xxx)
+//
+// The combination of kind + slug uniquely identifies a resource within a project.
+// The resource_id is included for reference and linking to audit trails.
+message ResourceChangeRecord {
+  // The kind of resource that was changed.
+  // Valid values: agent (40), workflow (50), mcp_server (44), skill (43).
+  ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 1;
+
+  // The resource slug (human-readable identifier from metadata.name).
+  // This is the name used in SDK code and YAML files.
+  // Example: "code-review-agent", "data-pipeline", "postgres-mcp"
+  string slug = 2;
+
+  // The resource ID (system-assigned unique identifier).
+  // Format: {prefix}_{ulid} where prefix is from ApiResourceKind.id_prefix.
+  // Examples: agt_01kewqjbtdy0w4d14bnhhy4yc2, wfl_01kfxyz..., mcp_01kghi...
+  string resource_id = 3;
+}
 
 // ProjectStatus contains system-managed state for a Project.
-// Updated by the backend after each reconciliation.
-message ProjectStatus {
-  // Standard audit information (created_at, updated_at, etc.)
-  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
-
-  // Summary of the last reconciliation operation.
-  ReconciliationSummary reconciliation = 1;
-}
-
-// ReconciliationSummary captures the outcome of the last `stigmer apply`.
-// This is outcome data (what happened), not process data (how it happened).
 //
-// The dependency graph and manifest details are NOT stored here - they are
-// ephemeral build artifacts managed by SDK and CLI.
-message ReconciliationSummary {
-  // Timestamp of the last successful reconciliation.
-  google.protobuf.Timestamp last_reconciled_at = 1;
+// Design Decision: Status is minimal by design.
+// - audit.updated_at = when the project was last applied (no separate reconciliation timestamp)
+// - Resource counts are derivable from spec (no duplication)
+// - Errors are returned in Apply() response, not stored in status
+message ProjectStatus {
+  // Reconciliation summary from the most recent Apply operation.
+  // Populated only in Apply() response - not persisted to database.
+  // Shows what resources were created, updated, or deleted during reconciliation.
+  //
+  // Note: No dependency_graph field - backend derives it from resources
+  // by scanning for ApiResourceReference fields using proto reflection.
+  // This ensures the graph is always consistent with actual resource state.
+  ReconciliationSummary last_reconciliation = 1;
 
-  // Result of the last reconciliation attempt.
-  ReconciliationResult result = 2;
-
-  // SHA256 hash of the synthesized manifest.
-  // Used for drift detection - if manifest changes, hash changes.
-  string manifest_hash = 3;
-
-  // Resource counts from the last reconciliation.
-  // Provides a quick summary without querying each resource type.
-  ResourceCounts resource_counts = 4;
-}
-
-// ResourceCounts tracks how many resources of each type exist in the project.
-message ResourceCounts {
-  int32 agents = 1;
-  int32 workflows = 2;
-  int32 skills = 3;
-  int32 mcp_servers = 4;
+  // Standard audit information (created_at, updated_at, etc.)
+  // The updated_at field indicates when the project was last successfully applied.
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 }

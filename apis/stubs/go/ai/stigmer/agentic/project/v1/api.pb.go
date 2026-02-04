@@ -53,6 +53,7 @@ type Project struct {
 	// Project-specific configuration.
 	Spec *ProjectSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
 	// System-managed status containing reconciliation state and audit info.
+	// The status.last_reconciliation field contains reconciliation results from Apply.
 	Status        *ProjectStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

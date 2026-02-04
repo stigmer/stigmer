@@ -341,7 +341,7 @@ type UpdateExecutionStatusActivityImpl struct {
 }
 
 func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(...) error {
-    // 1. Load execution from BadgerDB
+    // 1. Load execution from SQLite
     existing := &agentexecutionv1.AgentExecution{}
     _ = a.store.GetResource(ctx, kind, executionID, existing)
     
@@ -351,7 +351,7 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(...) error {
     status.Error = statusUpdates.Error
     status.Messages = statusUpdates.Messages
     
-    // 3. Save to BadgerDB
+    // 3. Save to SQLite
     _ = a.store.SaveResource(ctx, kind, executionID, existing)
     
     // 4. Broadcast to active subscribers ← NEW! Critical for user visibility
@@ -530,7 +530,7 @@ sequenceDiagram
     participant Broker as StreamBroker
     participant Temporal
     participant Activity as UpdateStatusActivity
-    participant DB as BadgerDB
+    participant DB as SQLite
     participant Worker as agent-runner
     
     User->>API: Create Execution

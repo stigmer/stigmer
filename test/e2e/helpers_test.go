@@ -12,6 +12,8 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
@@ -176,7 +178,7 @@ func GetAgentExecutionViaAPI(serverPort int, executionID string) (*agentexecutio
 func WaitForExecutionPhase(serverPort int, executionID string, targetPhase agentexecutionv1.ExecutionPhase, timeout time.Duration) (*agentexecutionv1.AgentExecution, error) {
 	deadline := time.Now().Add(timeout)
 	var lastExecution *agentexecutionv1.AgentExecution
-	
+
 	for time.Now().Before(deadline) {
 		execution, err := GetAgentExecutionViaAPI(serverPort, executionID)
 		if err != nil {
@@ -351,7 +353,7 @@ func GetWorkflowExecutionViaAPI(serverPort int, executionID string) (*workflowex
 func WaitForWorkflowExecutionPhase(serverPort int, executionID string, targetPhase workflowexecutionv1.ExecutionPhase, timeout time.Duration) (*workflowexecutionv1.WorkflowExecution, error) {
 	deadline := time.Now().Add(timeout)
 	var lastExecution *workflowexecutionv1.WorkflowExecution
-	
+
 	for time.Now().Before(deadline) {
 		execution, err := GetWorkflowExecutionViaAPI(serverPort, executionID)
 		if err != nil {
@@ -432,4 +434,152 @@ func GetWorkflowInstanceViaAPI(serverPort int, instanceID string) (*workflowinst
 	}
 
 	return instance, nil
+}
+
+// ============================================================================
+// PROJECT API HELPERS
+// ============================================================================
+
+// GetProjectViaAPI retrieves a project by ID via gRPC API
+func GetProjectViaAPI(serverPort int, projectID string) (*projectv1.Project, error) {
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	client := projectv1.NewProjectQueryControllerClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	project, err := client.Get(ctx, &projectv1.ProjectId{Value: projectID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get project: %w", err)
+	}
+
+	return project, nil
+}
+
+// GetProjectBySlug queries a project by slug and organization via gRPC API
+// This is the proper way to verify projects by slug in tests
+func GetProjectBySlug(serverPort int, slug string, org string) (*projectv1.Project, error) {
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	client := projectv1.NewProjectQueryControllerClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	project, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
+		Scope: apiresource.ApiResourceOwnerScope_organization,
+		Org:   org,
+		Kind:  apiresourcekind.ApiResourceKind_project,
+		Slug:  slug,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get project by slug: %w", err)
+	}
+
+	return project, nil
+}
+
+// ProjectExistsViaAPI checks if a project exists by querying the gRPC API
+func ProjectExistsViaAPI(serverPort int, projectID string) (bool, error) {
+	project, err := GetProjectViaAPI(serverPort, projectID)
+	if err != nil {
+		return false, err
+	}
+	return project != nil, nil
+}
+
+// DeleteProjectViaAPI deletes a project via gRPC API
+func DeleteProjectViaAPI(serverPort int, projectID string) error {
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	client := projectv1.NewProjectCommandControllerClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = client.Delete(ctx, &projectv1.ProjectId{Value: projectID})
+	if err != nil {
+		return fmt.Errorf("failed to delete project: %w", err)
+	}
+
+	return nil
+}
+
+// ============================================================================
+// MCP SERVER API HELPERS
+// ============================================================================
+
+// GetMcpServerViaAPI retrieves an MCP server by ID via gRPC API
+func GetMcpServerViaAPI(serverPort int, mcpServerID string) (*mcpserverv1.McpServer, error) {
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	client := mcpserverv1.NewMcpServerQueryControllerClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	mcpServer, err := client.Get(ctx, &mcpserverv1.McpServerId{Value: mcpServerID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get MCP server: %w", err)
+	}
+
+	return mcpServer, nil
+}
+
+// GetMcpServerBySlug queries an MCP server by slug and organization via gRPC API
+// This is the proper way to verify MCP servers by slug in tests
+func GetMcpServerBySlug(serverPort int, slug string, org string) (*mcpserverv1.McpServer, error) {
+	addr := fmt.Sprintf("localhost:%d", serverPort)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	client := mcpserverv1.NewMcpServerQueryControllerClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	mcpServer, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
+		Scope: apiresource.ApiResourceOwnerScope_organization,
+		Org:   org,
+		Kind:  apiresourcekind.ApiResourceKind_mcp_server,
+		Slug:  slug,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get MCP server by slug: %w", err)
+	}
+
+	return mcpServer, nil
+}
+
+// McpServerExistsViaAPI checks if an MCP server exists by querying the gRPC API
+func McpServerExistsViaAPI(serverPort int, mcpServerID string) (bool, error) {
+	mcpServer, err := GetMcpServerViaAPI(serverPort, mcpServerID)
+	if err != nil {
+		return false, err
+	}
+	return mcpServer != nil, nil
 }
