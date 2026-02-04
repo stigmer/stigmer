@@ -16,9 +16,11 @@ type ResourceWithID struct {
 
 // GetOrderedResources returns all resources in topological dependency order.
 //
-// Skills are created first (they have no dependencies).
-// Then agents (which may depend on skills).
-// Then workflows (which may depend on agents).
+// Resource ordering (base order before topological sort):
+//   - Skills first (typically no dependencies)
+//   - MCP Servers second (typically no dependencies)
+//   - Agents third (may depend on skills and MCP servers)
+//   - Workflows last (may depend on agents)
 //
 // Within each category, resources are ordered by their dependencies.
 //
@@ -36,7 +38,16 @@ func (r *Result) GetOrderedResources() ([]*ResourceWithID, error) {
 		})
 	}
 
-	// Add agents
+	// Add MCP servers (typically no dependencies, like skills)
+	for _, mcpServer := range r.McpServers {
+		id := GetResourceID(mcpServer)
+		allResources = append(allResources, &ResourceWithID{
+			ID:       id,
+			Resource: mcpServer,
+		})
+	}
+
+	// Add agents (may depend on skills and MCP servers)
 	for _, agent := range r.Agents {
 		id := GetResourceID(agent)
 		allResources = append(allResources, &ResourceWithID{
@@ -45,7 +56,7 @@ func (r *Result) GetOrderedResources() ([]*ResourceWithID, error) {
 		})
 	}
 
-	// Add workflows
+	// Add workflows (may depend on agents)
 	for _, workflow := range r.Workflows {
 		id := GetResourceID(workflow)
 		allResources = append(allResources, &ResourceWithID{
@@ -182,6 +193,9 @@ func (r *Result) ValidateDependencies() error {
 	for _, skill := range r.Skills {
 		validIDs[GetResourceID(skill)] = true
 	}
+	for _, mcpServer := range r.McpServers {
+		validIDs[GetResourceID(mcpServer)] = true
+	}
 	for _, agent := range r.Agents {
 		validIDs[GetResourceID(agent)] = true
 	}
@@ -284,10 +298,13 @@ func (r *Result) GetDependencyGraph() string {
 func (r *Result) GetDependencyGraphMermaid() string {
 	// Collect all resource IDs
 	allResources := make(map[string]bool)
-	
-	// Add resources from skills, agents, workflows
+
+	// Add resources from skills, mcp servers, agents, workflows
 	for _, skill := range r.Skills {
 		allResources[GetResourceID(skill)] = true
+	}
+	for _, mcpServer := range r.McpServers {
+		allResources[GetResourceID(mcpServer)] = true
 	}
 	for _, agent := range r.Agents {
 		allResources[GetResourceID(agent)] = true
@@ -314,10 +331,10 @@ func (r *Result) GetDependencyGraphMermaid() string {
 	for _, resourceID := range sortedIDs {
 		// Generate Mermaid-safe node ID (replace colons with underscores)
 		nodeID := sanitizeMermaidID(resourceID)
-		
+
 		// Determine resource type for styling
 		resourceType := getResourceType(resourceID)
-		
+
 		// Add node definition
 		result += fmt.Sprintf("  %s[%s]:::%s\n", nodeID, resourceID, resourceType)
 	}
@@ -334,27 +351,28 @@ func (r *Result) GetDependencyGraphMermaid() string {
 		if len(deps) == 0 {
 			continue
 		}
-		
+
 		sourceNode := sanitizeMermaidID(resourceID)
-		
+
 		// Sort dependencies for consistent output
 		sortedDeps := make([]string, len(deps))
 		copy(sortedDeps, deps)
 		sort.Strings(sortedDeps)
-		
+
 		for _, depID := range sortedDeps {
 			// Skip external references in visualization
 			if isExternalReference(depID) {
 				continue
 			}
-			
+
 			targetNode := sanitizeMermaidID(depID)
 			result += fmt.Sprintf("  %s --> %s\n", targetNode, sourceNode)
 		}
 	}
 
-	// Add styling
+	// Add styling for all resource types
 	result += "  classDef skill fill:#e1f5e1,stroke:#4caf50,stroke-width:2px\n"
+	result += "  classDef mcp_server fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px\n"
 	result += "  classDef agent fill:#e3f2fd,stroke:#2196f3,stroke-width:2px\n"
 	result += "  classDef workflow fill:#fff3e0,stroke:#ff9800,stroke-width:2px\n"
 	result += "```"
@@ -385,10 +403,13 @@ func (r *Result) GetDependencyGraphMermaid() string {
 func (r *Result) GetDependencyGraphDot() string {
 	// Collect all resource IDs
 	allResources := make(map[string]bool)
-	
-	// Add resources from skills, agents, workflows
+
+	// Add resources from skills, mcp servers, agents, workflows
 	for _, skill := range r.Skills {
 		allResources[GetResourceID(skill)] = true
+	}
+	for _, mcpServer := range r.McpServers {
+		allResources[GetResourceID(mcpServer)] = true
 	}
 	for _, agent := range r.Agents {
 		allResources[GetResourceID(agent)] = true
@@ -433,18 +454,18 @@ func (r *Result) GetDependencyGraphDot() string {
 		if len(deps) == 0 {
 			continue
 		}
-		
+
 		// Sort dependencies for consistent output
 		sortedDeps := make([]string, len(deps))
 		copy(sortedDeps, deps)
 		sort.Strings(sortedDeps)
-		
+
 		for _, depID := range sortedDeps {
 			// Skip external references in visualization
 			if isExternalReference(depID) {
 				continue
 			}
-			
+
 			result += fmt.Sprintf("  \"%s\" -> \"%s\";\n", depID, resourceID)
 		}
 	}
@@ -457,14 +478,16 @@ func (r *Result) GetDependencyGraphDot() string {
 // getNodeStyle returns the shape and color for a resource type in Graphviz DOT format.
 func getNodeStyle(resourceID string) (shape string, color string) {
 	resourceType := getResourceType(resourceID)
-	
+
 	switch resourceType {
 	case "skill":
-		return "box", "#e1f5e1"
+		return "box", "#e1f5e1" // Green
+	case "mcp_server":
+		return "diamond", "#f3e5f5" // Purple
 	case "agent":
-		return "ellipse", "#e3f2fd"
+		return "ellipse", "#e3f2fd" // Blue
 	case "workflow":
-		return "hexagon", "#fff3e0"
+		return "hexagon", "#fff3e0" // Orange
 	default:
 		return "ellipse", "#f5f5f5"
 	}
@@ -494,10 +517,13 @@ func sanitizeMermaidID(resourceID string) string {
 }
 
 // getResourceType determines the resource type from a resource ID.
-// Returns "skill", "agent", or "workflow" for styling purposes.
+// Returns "skill", "mcp_server", "agent", or "workflow" for styling purposes.
 func getResourceType(resourceID string) string {
 	if len(resourceID) >= 6 && resourceID[:6] == "skill:" {
 		return "skill"
+	}
+	if len(resourceID) >= 11 && resourceID[:11] == "mcp_server:" {
+		return "mcp_server"
 	}
 	if len(resourceID) >= 6 && resourceID[:6] == "agent:" {
 		return "agent"

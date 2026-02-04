@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/pkg/errors"
@@ -19,16 +20,18 @@ import (
 //
 // The SDK writes:
 //   - skill-0.pb, skill-1.pb, ...
+//   - mcpserver-0.pb, mcpserver-1.pb, ...
 //   - agent-0.pb, agent-1.pb, ...
 //   - workflow-0.pb, workflow-1.pb, ...
-//   - dependencies.json
+//   - dependencies.json (for LOCAL validation only)
 //
 // This function reads all these files and returns a Result.
 func ReadFromDirectory(outputDir string) (*Result, error) {
 	result := &Result{
-		Skills:    make([]*skillv1.Skill, 0),
-		Agents:    make([]*agentv1.Agent, 0),
-		Workflows: make([]*workflowv1.Workflow, 0),
+		Skills:     make([]*skillv1.Skill, 0),
+		McpServers: make([]*mcpserverv1.McpServer, 0),
+		Agents:     make([]*agentv1.Agent, 0),
+		Workflows:  make([]*workflowv1.Workflow, 0),
 	}
 
 	// Read skills (skill-0.pb, skill-1.pb, ...)
@@ -37,6 +40,13 @@ func ReadFromDirectory(outputDir string) (*Result, error) {
 		return nil, errors.Wrap(err, "failed to read skills")
 	}
 	result.Skills = skills
+
+	// Read MCP servers (mcpserver-0.pb, mcpserver-1.pb, ...)
+	mcpServers, err := readProtoFiles[*mcpserverv1.McpServer](outputDir, "mcpserver-*.pb")
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read MCP servers")
+	}
+	result.McpServers = mcpServers
 
 	// Read agents (agent-0.pb, agent-1.pb, ...)
 	agents, err := readProtoFiles[*agentv1.Agent](outputDir, "agent-*.pb")
@@ -52,7 +62,7 @@ func ReadFromDirectory(outputDir string) (*Result, error) {
 	}
 	result.Workflows = workflows
 
-	// Read dependencies.json
+	// Read dependencies.json (for LOCAL validation only - NOT sent to backend)
 	deps, err := readDependencies(outputDir)
 	if err != nil {
 		// Dependencies are optional - if file doesn't exist, that's okay
@@ -129,6 +139,7 @@ func readDependencies(outputDir string) (map[string][]string, error) {
 //
 // Format:
 //   - Skills: "skill:{slug}"
+//   - MCP Servers: "mcp_server:{slug}"
 //   - Agents: "agent:{slug}"
 //   - Workflows: "workflow:{slug}"
 func GetResourceID(msg proto.Message) string {
@@ -139,6 +150,12 @@ func GetResourceID(msg proto.Message) string {
 			slug = m.GetMetadata().GetName()
 		}
 		return fmt.Sprintf("skill:%s", strings.ToLower(slug))
+	case *mcpserverv1.McpServer:
+		slug := m.GetMetadata().GetSlug()
+		if slug == "" {
+			slug = m.GetMetadata().GetName()
+		}
+		return fmt.Sprintf("mcp_server:%s", strings.ToLower(slug))
 	case *agentv1.Agent:
 		slug := m.GetMetadata().GetSlug()
 		if slug == "" {
