@@ -39,8 +39,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 5 - Backend + Full CLI Integration 🚀 **IN PROGRESS**
-**Current Sub-task**: T05.3 ✅ **COMPLETE** - Project Delete Foundation
-**Next Sub-task**: T05.4 - Project CLI Commands (get, delete)
+**Current Sub-task**: T05.7 ✅ **COMPLETE** - Project Update Handler + Tests
+**Next Sub-task**: T05.9 - Project Apply Handler
 **Architecture**: ADR-005 Unified Architecture
 
 **Latest Session** (2026-02-04 - Session 32 - Project Delete Foundation - T05.3):
@@ -959,51 +959,61 @@ apis/stubs/             (REGENERATED via make protos)
 
 | Sub-task | Status | Duration | Notes |
 |----------|--------|----------|-------|
-| T05.0 | 🚧 Pending | 45-60 min | Reconciliation Proto Types |
+| **T05.0** | ✅ **COMPLETE** | **60 min** | **Reconciliation Proto Types** |
 | T05.1 | 🚧 Pending | 45-60 min | Project Applier Foundation |
 | **T05.2** | ✅ **COMPLETE** | **45 min** | **Project Get Foundation** |
-| T05.3 | 🎯 **NEXT** | 45-60 min | Project Delete Foundation |
-| T05.4 | 🚧 Blocked | 60-75 min | Project CLI Commands (needs T05.1-T05.3) |
-| T05.5+ | 🚧 Pending | - | Backend handlers & reconciliation |
+| **T05.3** | ✅ **COMPLETE** | **60 min** | **Project Delete Foundation** |
+| **T05.4** | ✅ **COMPLETE** | **60 min** | **Project CLI Commands (get, delete)** |
+| **T05.5** | ✅ **COMPLETE** | **60 min** | **ProjectRepo Foundation** |
+| **T05.6** | ✅ **COMPLETE** | **45 min** | **Project Create Handler** |
+| **T05.7** | ✅ **COMPLETE** | **60 min** | **Project Update Handler + Tests** |
+| **T05.8** | ✅ **COMPLETE** | **45 min** | **Project Delete Handler** |
+| T05.9 | 🎯 **NEXT** | 60-75 min | Project Apply Handler |
+| T05.10+ | 🚧 Pending | - | Query handlers & reconciliation |
 
 ---
 
 ## 🎯 Next Steps - Ready to Continue
 
-### Immediate Next Task: T05.3 - Project Delete Foundation
+### Latest Session (2026-02-04 - Session 33 - T05.7 Tests)
 
-**Goal**: Create `delete.go` for gRPC delete orchestration in the project internal package.
+**Accomplished**:
+- ✅ Verified T05.7 (ProjectUpdateHandler) was already implemented in commit 86c139c1
+- ✅ Created comprehensive test coverage: ProjectUpdateHandlerTest.java (500 lines, 12 tests)
+- ✅ Test coverage: Handler instantiation, pipeline construction, step ordering
+- ✅ Created changelog documenting T05.7 completion
+- ✅ Committed: 7b399590 "test(backend/project): add comprehensive tests for ProjectUpdateHandler"
 
-**Pattern Reference**: [client-apps/cli/internal/cli/agent/delete.go](client-apps/cli/internal/cli/agent/delete.go)
+**Phase 5 Progress**: **8 of 29 sub-tasks complete** (T05.0, T05.2-T05.8)
 
-**Files to Create**:
-1. `client-apps/cli/internal/cli/project/delete.go` (~77 lines)
-   - `DeleteFromBackend(conn, projectID)` - Low-level gRPC delete
-   - `Delete(opts *DeleteOptions)` - High-level delete with validation
-   - `DeleteOptions` and `DeleteResult` structs
+### Backend Handler Status
 
-**Implementation Pattern**:
-```go
-type DeleteOptions struct {
-    ProjectID string
-    Conn      grpc.ClientConnInterface
-}
+All CRUD handlers are now complete:
+- **T05.5**: ProjectRepo.java (219 lines) - MongoDB repository
+- **T05.6**: ProjectCreateHandler.java (88 lines) - 10-step create pipeline
+- **T05.7**: ProjectUpdateHandler.java (82 lines) + Tests (500 lines) - 9-step update pipeline
+- **T05.8**: ProjectDeleteHandler.java - Delete with FGA cleanup
 
-type DeleteResult struct {
-    Project *projectv1.Project  // Deleted project for confirmation
-}
+Commits:
+- e36ede54: feat(backend/project): add ProjectRepo foundation for Phase 5
+- 86c139c1: feat(backend/project): add Project CRUD handlers for Phase 5
+- 7b399590: test(backend/project): add comprehensive tests for ProjectUpdateHandler
 
-func DeleteFromBackend(conn grpc.ClientConnInterface, projectID string) (*projectv1.Project, error)
-func Delete(opts *DeleteOptions) (*DeleteResult, error)
-```
+### Immediate Next Task: T05.9 - Project Apply Handler
 
-**Dependencies**:
-- Reuses `Get()` to fetch project before deletion (user confirmation display)
-- Uses `ProjectCommandController.Delete()` RPC
+**Goal**: Implement ProjectCommandController.apply() handler (upsert).
 
-**Estimated Duration**: 45-60 minutes
+**Pattern Reference**: [McpServerApplyHandler.java](backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/mcpserver/request/handler/McpServerApplyHandler.java)
 
-**To Resume**: Simply start working on T05.3 following the pattern from agent/delete.go
+**Implementation**:
+- Minimal 4-step pipeline
+- Check if project exists (by org + name)
+- Delegate to Create or Update handler
+- Return created/updated project
+
+**Estimated Duration**: 60-75 minutes
+
+**To Resume**: Simply start working on T05.9 following the pattern from McpServerApplyHandler.java
 
 ---
 
