@@ -39,11 +39,65 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 5 - Backend + Full CLI Integration 🚀 **IN PROGRESS**
-**Current Sub-task**: T05.23 ✅ **COMPLETE** - Apply Command Integration (Project Track deployment)
-**Next Sub-task**: T05.24 - Skill Pre-Push Flow (Integrate skill push into apply workflow)
+**Current Sub-task**: T05.24 ✅ **COMPLETE** - Skill Pre-Push Flow (Integrate skill push into apply workflow)
+**Next Sub-task**: T05.25 - Backend Unit Tests (Comprehensive handler coverage)
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-04 - Session 47 - Apply Command Integration - T05.23):
+**Latest Session** (2026-02-04 - Session 48 - Skill Pre-Push Validation - T05.24):
+- ✅ **COMPLETED Phase 5 Sub-task T05.24**: Skill Pre-Push Flow Integration
+- Implemented external skill reference validation in stigmer apply workflow
+- **Files Created**:
+  - `client-apps/cli/internal/cli/apply/skill_validation.go` (207 lines)
+  - `client-apps/cli/internal/cli/apply/skill_verify.go` (118 lines)
+  - `client-apps/cli/internal/cli/apply/skill_validation_test.go` (522 lines, 30+ tests)
+  - Changelog: `2026-02-04-183535-skill-pre-push-validation.md`
+- **Files Modified**:
+  - `cmd/stigmer/root/apply.go` (+17 lines - Step 10.5 verification)
+  - `internal/cli/apply/BUILD.bazel` (added dependencies)
+  - `pkg/display/table.go` (whitespace cleanup)
+- **Implementation Highlights**:
+  - External skill extraction from dependencies map and Agent.Spec.SkillRefs
+  - Backend verification via SkillQueryController.GetByReference() gRPC
+  - Blocks deployment if skills are missing with clear guidance
+  - Copy-paste ready commands in error messages
+  - Sub-agent skill reference support
+  - Inline skill exclusion to prevent false positives
+- **Architecture Flow**:
+  - Step 10.5: After backend connection, before deployment
+  - Extract → Verify → Block (if missing) OR Proceed (if found)
+  - Fail-fast with actionable error messages
+- **Key Design Decisions**:
+  - No auto-push: maintains separation of concerns (push vs apply)
+  - Dual extraction: dependencies map + proto SkillRefs for completeness
+  - File size compliance: Split into skill_validation.go + skill_verify.go (both <250 lines)
+  - User guidance: Explains why separate push is required (versioning, review, deduplication)
+- **Test Coverage** (30+ tests):
+  - Extraction tests (dependencies map, agent protos, sub-agents)
+  - Inline skill exclusion tests
+  - Deduplication tests
+  - Backend verification tests (mocked gRPC)
+  - Real-world scenario tests (data pipeline, microservice architectures)
+  - Helper function tests
+  - Edge case handling (nil inputs, empty results)
+- **Engineering Quality**:
+  - All files under 250 lines (split into two files: 207 + 118)
+  - All functions under 50 lines
+  - Zero linter errors
+  - gofmt clean, go vet clean
+  - 100% test pass rate
+- **Build Verification**:
+  - bazel build //client-apps/cli/internal/cli/apply:apply ✅ PASSED
+  - bazel test //client-apps/cli/internal/cli/apply:apply_test ✅ PASSED
+- **Impact**:
+  - **Completes T05.24**: Skill Pre-Push Flow task finished
+  - **Prevents runtime failures**: Catches missing skills before deployment
+  - **Improves UX**: Clear, actionable error messages
+  - **Enforces workflow**: Users understand push-then-apply pattern
+- **Commits**: 
+  - 7e64b51d feat(cli): add skill pre-push validation to apply workflow
+- **Completion Time**: ~2 hours (including comprehensive tests)
+
+**Previous Session** (2026-02-04 - Session 47 - Apply Command Integration - T05.23):
 - ✅ **COMPLETED Phase 5 Sub-task T05.23**: Apply Command Integration
 - Refactored root `stigmer apply` command to use Project Track architecture
 - **Files Created**:
