@@ -18,7 +18,7 @@ type ApplyOptions struct {
 	// OrgID is the organization ID for the resource
 	OrgID string
 	// Conn is the gRPC connection to the backend
-	Conn *grpc.ClientConn
+	Conn grpc.ClientConnInterface
 	// Quiet suppresses detailed output
 	Quiet bool
 	// DryRun validates without applying
