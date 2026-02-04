@@ -66,29 +66,27 @@ function Architecture({ className, ...props }: ArchitectureProps) {
  * Shows: You Write → Stigmer Handles → You Integrate
  */
 function ArchitectureDiagram() {
-  const [activeTab, setActiveTab] = React.useState<'yaml' | 'sdk'>('yaml');
-
   return (
     <div className="relative">
-      {/* Desktop: 3-column layout */}
-      <div className="hidden lg:grid lg:grid-cols-[1fr_auto_1.2fr_auto_1fr] lg:gap-0 lg:items-start">
+      {/* Desktop: 3-column layout with arrows */}
+      <div className="hidden lg:flex lg:items-start lg:justify-center lg:gap-4">
         {/* Column 1: You Write */}
-        <div className="flex flex-col">
+        <div className="flex flex-col w-[320px] shrink-0">
           <ColumnHeader
             title="You Write"
             subtitle="YAML for speed, SDK for production"
             variant="input"
           />
-          <CodeTabViewer activeTab={activeTab} onTabChange={setActiveTab} />
+          <CodeTabViewer />
         </div>
 
         {/* Arrow 1 */}
-        <div className="flex items-center justify-center px-4 pt-16">
+        <div className="flex items-center pt-16 shrink-0">
           <FlowArrow />
         </div>
 
         {/* Column 2: Stigmer Handles */}
-        <div className="flex flex-col">
+        <div className="flex flex-col w-[280px] shrink-0">
           <ColumnHeader
             title="Stigmer Handles"
             subtitle="The infrastructure layer you skip"
@@ -98,12 +96,12 @@ function ArchitectureDiagram() {
         </div>
 
         {/* Arrow 2 */}
-        <div className="flex items-center justify-center px-4 pt-16">
+        <div className="flex items-center pt-16 shrink-0">
           <FlowArrow />
         </div>
 
         {/* Column 3: You Integrate */}
-        <div className="flex flex-col">
+        <div className="flex flex-col w-[320px] shrink-0">
           <ColumnHeader
             title="You Integrate"
             subtitle="Call like any microservice"
@@ -122,7 +120,7 @@ function ArchitectureDiagram() {
               subtitle="YAML for speed, SDK for production"
               variant="input"
             />
-            <CodeTabViewer activeTab={activeTab} onTabChange={setActiveTab} />
+            <CodeTabViewer />
           </div>
           <div>
             <ColumnHeader
@@ -151,7 +149,7 @@ function ArchitectureDiagram() {
             subtitle="YAML for speed, SDK for production"
             variant="input"
           />
-          <CodeTabViewer activeTab={activeTab} onTabChange={setActiveTab} />
+          <CodeTabViewer />
         </div>
 
         <div className="flex justify-center py-4">
@@ -254,13 +252,13 @@ interface CodeSnippetCardProps {
 function CodeSnippetCard({ language, code }: CodeSnippetCardProps) {
   return (
     <Card variant="feature" className="overflow-hidden">
-      <div className="bg-muted/50 px-4 py-2 border-b border-border">
-        <span className="text-xs font-mono text-muted-foreground uppercase">
+      <div className="bg-muted/50 px-3 py-1.5 border-b border-border">
+        <span className="text-[10px] font-mono text-muted-foreground uppercase">
           {language}
         </span>
       </div>
-      <pre className="p-4 overflow-x-auto scrollbar-thin">
-        <code className="text-xs sm:text-sm font-mono text-foreground whitespace-pre">
+      <pre className="p-3 overflow-x-auto scrollbar-thin">
+        <code className="text-[11px] font-mono text-foreground whitespace-pre leading-relaxed">
           {code}
         </code>
       </pre>
@@ -269,54 +267,50 @@ function CodeSnippetCard({ language, code }: CodeSnippetCardProps) {
 }
 
 /**
- * Tabbed code viewer for YAML and Go SDK examples.
+ * Code viewer showing YAML example with SDK option.
  */
-interface CodeTabViewerProps {
-  activeTab: 'yaml' | 'sdk';
-  onTabChange: (tab: 'yaml' | 'sdk') => void;
-}
-
-function CodeTabViewer({ activeTab, onTabChange }: CodeTabViewerProps) {
+function CodeTabViewer() {
+  const [showSDK, setShowSDK] = React.useState(false);
+  
   const yamlCode = `apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: code-reviewer
 spec:
-  instructions: "Review code for security"
+  instructions: "Review code"
   mcpServers: [github]`;
 
-  const goCode = `agent := &agentic.Agent{
-    Metadata: &agentic.Metadata{
-        Name: "code-reviewer",
-    },
-    Spec: &agentic.AgentSpec{
-        Instructions: "Review code for security",
-        McpServers: []string{"github"},
-    },
-}`;
+  const goCode = `stigmer.Run(func(ctx *stigmer.Context) error {
+  a, _ := agent.New(ctx, "code-reviewer", 
+    &agent.AgentArgs{
+      Instructions: "Review code",
+    })
+  a.UseMCP("stigmer/github")
+  return nil
+})`;
 
   return (
-    <div className="space-y-3">
-      {/* Tab buttons */}
+    <div className="space-y-4">
+      {/* Toggle buttons */}
       <div className="flex gap-2">
         <button
-          onClick={() => onTabChange('yaml')}
+          onClick={() => setShowSDK(false)}
           className={cn(
-            "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-            activeTab === 'yaml'
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+            "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+            !showSDK
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted"
           )}
         >
           YAML
         </button>
         <button
-          onClick={() => onTabChange('sdk')}
+          onClick={() => setShowSDK(true)}
           className={cn(
-            "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-            activeTab === 'sdk'
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+            "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+            showSDK
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted"
           )}
         >
           Go SDK
@@ -324,12 +318,39 @@ spec:
       </div>
 
       {/* Code display */}
-      {activeTab === 'yaml' && (
-        <CodeSnippetCard language="yaml" code={yamlCode} />
-      )}
-      {activeTab === 'sdk' && (
-        <CodeSnippetCard language="go" code={goCode} />
-      )}
+      <CodeSnippetCard 
+        language={showSDK ? "go" : "yaml"} 
+        code={showSDK ? goCode : yamlCode} 
+      />
+
+      {/* Context note */}
+      <p className="text-xs text-muted-foreground mb-4">
+        {showSDK 
+          ? "Type-safe SDK for complex agents with conditionals and state"
+          : "Simple YAML for rapid prototyping and quick iteration"
+        }
+      </p>
+
+      {/* Feature badges */}
+      <div className="space-y-2">
+        {(showSDK ? [
+          { label: "Type Safety", desc: "Compile-time validation" },
+          { label: "Conditionals", desc: "If/else, loops, state" },
+          { label: "Testable", desc: "Unit test your agents" },
+        ] : [
+          { label: "No Build Step", desc: "Edit and run instantly" },
+          { label: "Git-Friendly", desc: "Version control ready" },
+          { label: "IDE Support", desc: "YAML schema validation" },
+        ]).map((item) => (
+          <div 
+            key={item.label}
+            className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30 border border-border"
+          >
+            <span className="text-xs font-medium">{item.label}</span>
+            <span className="text-[10px] text-muted-foreground">{item.desc}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -448,24 +469,19 @@ function IntegrationCard() {
       {/* Code example */}
       <CodeSnippetCard
         language="go"
-        code={`// Create execution
-execution, err := client.Create(ctx, &AgentExecution{
-    Spec: &AgentExecutionSpec{
-        AgentId: "code-reviewer",
-        Input: "Review PR #123",
-    },
-})
+        code={`// Execute agent
+exec, _ := client.Create(ctx, 
+  &AgentExecution{
+    AgentId: "code-reviewer",
+    Message: "Review PR #123",
+  })
 
-// Poll for completion
+// Stream updates
+stream, _ := client.Subscribe(ctx, exec.Id)
 for {
-    status, _ := client.GetStatus(ctx, execution.Id)
-    if status.Phase == "COMPLETED" { break }
-    time.Sleep(2 * time.Second)
-}
-
-// Retrieve result
-result, _ := client.GetResult(ctx, execution.Id)
-fmt.Println(result.Output)`}
+  resp, _ := stream.Recv()
+  if resp.Phase == "COMPLETED" { break }
+}`}
       />
 
       {/* Technical foundation footer */}
@@ -541,22 +557,25 @@ function PlatformComparisonVisual() {
 
           {/* Visual diagram */}
           <div className="mb-6 p-6 bg-background/50 rounded-lg">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <AppBox label="App 1" />
-                <svg width="80" height="20" viewBox="0 0 80 20" className="text-primary/60">
-                  <path d="M5 10 L75 10 M68 5 L75 10 L68 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <div className="flex justify-center">
-                <AgentServiceBox />
-              </div>
-              <div className="flex items-center justify-between">
-                <svg width="80" height="20" viewBox="0 0 80 20" className="text-primary/60">
-                  <path d="M75 10 L5 10 M12 5 L5 10 L12 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <AppBox label="App 2" />
-              </div>
+            <div className="flex items-center justify-center gap-4">
+              {/* App 1 */}
+              <AppBox label="App 1" />
+              
+              {/* Arrow from App 1 to Agent */}
+              <svg width="40" height="20" viewBox="0 0 40 20" className="text-primary/60 shrink-0">
+                <path d="M0 10 L35 10 M28 5 L35 10 L28 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              
+              {/* Agent Service (center) */}
+              <AgentServiceBox />
+              
+              {/* Arrow from Agent to App 2 */}
+              <svg width="40" height="20" viewBox="0 0 40 20" className="text-primary/60 shrink-0">
+                <path d="M40 10 L5 10 M12 5 L5 10 L12 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              
+              {/* App 2 */}
+              <AppBox label="App 2" />
             </div>
             <p className="text-xs text-primary/80 text-center mt-4 font-medium">
               Update agent = instant benefit for all
