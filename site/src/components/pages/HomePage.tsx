@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/sections/Hero";
 import { Features } from "@/components/sections/Features";
+import { Architecture } from "@/components/sections/Architecture";
 import { Integration } from "@/components/sections/Integration";
 import { Quickstart } from "@/components/sections/Quickstart";
 
@@ -17,6 +18,8 @@ export type HomePageProps = React.HTMLAttributes<HTMLDivElement>;
  * - Main content (with pt-16 offset for fixed header)
  *   - Hero section
  *   - Features section
+ *   - Architecture section
+ *   - Integration section
  *   - Quickstart section
  * - Footer
  *
@@ -43,6 +46,9 @@ function HomePage({ className, ...props }: HomePageProps) {
 
         {/* Features Section */}
         <Features />
+
+        {/* Architecture Section */}
+        <Architecture />
 
         {/* Integration Section */}
         <Integration />
