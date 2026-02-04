@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "apply",
+    srcs = ["synthesize.go"],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/apply",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
+        "//client-apps/cli/internal/cli/synthesis",
+        "@com_github_pkg_errors//:errors",
+    ],
+)
+
+go_test(
+    name = "apply_test",
+    srcs = ["synthesize_test.go"],
+    embed = [":apply"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)
