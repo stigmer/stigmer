@@ -39,11 +39,110 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 5 - Backend + Full CLI Integration 🚀 **IN PROGRESS**
-**Current Sub-task**: T05.11 ✅ **COMPLETE** - Project GetByReference Handler
-**Next Sub-task**: T05.12 - Domain Value Objects
+**Current Sub-task**: T05.13 ✅ **COMPLETE** - DependencyDiscoverer
+**Next Sub-task**: T05.14 - DependencyGraphBuilder
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-04 - Session 36 - Project GetByReference Handler - T05.11):
+**Latest Session** (2026-02-04 - Session 38 - DependencyDiscoverer - T05.13):
+- ✅ **COMPLETED Phase 5 Sub-task T05.13**: DependencyDiscoverer - Reflection-based scanner
+- Implemented reflection-based proto scanner that discovers all ApiResourceReference fields automatically
+- **Files Created**:
+  - `DependencyDiscoverer.java` (~210 lines) - Spring @Component with recursive proto traversal
+  - `DependencyDiscovererTest.java` (~380 lines) - 27 comprehensive test methods
+  - Changelog: `2026-02-04-163952-dependency-discoverer-t05.13.md`
+- **Key Design Decisions**:
+  - **Open/Closed Principle**: Uses proto reflection - no hardcoded field paths
+  - Type detection via descriptor full name: `ai.stigmer.commons.apiresource.ApiResourceReference`
+  - Automatically handles new reference fields when protos evolve
+  - Returns immutable `Set<ApiResourceReference>` - no wrapper classes
+  - Validates references (slug required minimum)
+- **Implementation Details**:
+  - Recursive DFS traversal: walkMessage() → processValue() → extractReference()
+  - Handles repeated fields, nested messages, any nesting level
+  - Extracts refs from dynamic messages using field descriptors
+  - Discovers: Agent skill_refs, mcp_server_usages, sub_agent skill_refs
+  - Workflow string-based refs require separate handling (T05.14+)
+- **Test Coverage** (27 test methods):
+  - Basic functionality (null handling, empty resources, immutability)
+  - Agent skill references (single, multiple, deduplication)
+  - Agent MCP server references
+  - Mixed references (skills + MCP servers)
+  - SubAgent nested references (multiple nesting levels)
+  - Non-agent resources (Workflow, McpServer, Skill - no deps)
+  - Edge cases (empty fields, versioned refs, blank slug validation)
+  - Real-world scenarios (complex agent with 8 refs, overlapping skills)
+- **Pattern References**:
+  - Follows RequestInputFieldsValidator, DynamicProtobufSorter patterns
+  - Uses getAllFields(), getDescriptorForType(), field descriptors
+  - Consistent with existing reconcile value objects
+- **Build Status**:
+  - Zero linter errors in new files
+  - Pre-existing build issues in workflowexecution/workflowinstance (unrelated)
+- **Impact**:
+  - Enables T05.14 (DependencyGraphBuilder) to build graphs from discovered refs
+  - Foundation for reconciliation engine's topological sorting
+  - Schema-driven: adding new proto reference fields works automatically
+- **Completion Time**: ~60 minutes (as estimated in Phase 5 plan)
+
+**Previous Session** (2026-02-04 - Session 37 - Domain Value Objects - T05.12):
+- ✅ **COMPLETED Phase 5 Sub-task T05.12**: Domain Value Objects for Reconciliation Engine
+- Implemented 8 immutable Java record value objects as reconciliation domain foundation
+- **Files Created**:
+  - `ChangeType.java` (37 lines) - Internal enum for CREATE/UPDATE/DELETE operations
+  - `ReconciliationError.java` (92 lines) - Error tracking with cause and context
+  - `DesiredState.java` (163 lines) - Parsed from Project.spec (what should exist)
+  - `ActualState.java` (177 lines) - Fetched from repositories (what currently exists)
+  - `ResourceChange.java` (169 lines) - Planned change with factory methods
+  - `DependencyGraph.java` (296 lines) - Topological sort + cycle detection (CRITICAL)
+  - `ReconciliationPlan.java` (261 lines) - Diff algorithm with execution ordering
+  - `ReconciliationResult.java` (281 lines) - Execution outcome with toProto() conversion
+- **Test Files Created**:
+  - `DependencyGraphTest.java` (20 test methods) - Linear chains, diamond, cycles, real-world
+  - `ReconciliationErrorTest.java` (10 test methods) - Construction, validation, toString
+  - `ResourceChangeTest.java` (12 test methods) - Factory methods, validation
+  - `DesiredStateTest.java` (12 test methods) - Construction, resource keys
+  - `ActualStateTest.java` (11 test methods) - getResource, getResourceId
+  - `ReconciliationPlanTest.java` (12 test methods) - fromDiff, execution order
+  - `ReconciliationResultTest.java` (14 test methods) - toProto, builder, dry-run
+- **Key Architectural Decisions**:
+  - No duplication: Uses `ApiResourceReference` proto directly (user feedback prevented duplication)
+  - ChangeType is internal domain concept (proto uses list membership)
+  - DependencyGraph implements Kahn's algorithm for topological sorting
+  - Spec-only comparison avoids false positives from metadata changes
+  - All value objects follow DDD immutability patterns
+- **Implementation Quality**:
+  - Total: ~1,476 lines implementation + ~800 lines tests
+  - 91 test methods covering all value objects
+  - Zero linter errors
+  - Comprehensive JavaDoc on all public APIs
+  - Defensive copying for all collections
+  - Factory methods (empty(), of(), fromDiff()) for clean construction
+- **Critical Component**: DependencyGraph
+  - Implements industry-standard Kahn's algorithm
+  - O(V + E) time complexity for topological sort
+  - DFS cycle detection with path extraction
+  - Supports both forward (create) and reverse (delete) ordering
+  - Builder pattern for incremental graph construction
+- **Engineering Excellence**:
+  - User feedback prevented ResourceReference duplication
+  - Pattern follows SearchCriteria and SearchPagedResult value objects
+  - Immutable records with compact constructors
+  - Type-safe switch expressions for resource kind handling
+  - Clear separation of concerns (state, plan, result)
+- **Test Coverage Highlights**:
+  - DependencyGraph: Linear chains, diamond patterns, cycle detection, real-world scenarios
+  - ReconciliationPlan: Creates, updates, deletes, mixed changes, execution order
+  - ReconciliationResult: Factory methods, builder pattern, proto conversion
+- **Impact**:
+  - Enables T05.13-T05.20 (reconciliation engine implementation)
+  - Foundation for entire Project Track workflow
+  - Reference implementation for DDD value objects in Stigmer
+  - Unblocks `stigmer apply` command
+- **Changelog**: `2026-02-04-162852-domain-value-objects-reconciliation-t05.12.md`
+- **Commit**: 30055488 feat(backend/project): add domain value objects for reconciliation engine (T05.12)
+- **Completion Time**: ~75 minutes (as estimated in Phase 5 plan)
+
+**Previous Session** (2026-02-04 - Session 36 - Project GetByReference Handler - T05.11):
 - ✅ **COMPLETED Phase 5 Sub-task T05.11**: Project GetByReference Handler
 - Implemented ProjectQueryController.getByReference() for org/slug-based Project retrieval
 - **Files Created**:
@@ -1077,27 +1176,37 @@ apis/stubs/             (REGENERATED via make protos)
 | **T05.9** | ✅ **COMPLETE** | **60 min** | **Project Apply Handler** |
 | **T05.10** | ✅ **COMPLETE** | **60 min** | **Project Get Handler** |
 | **T05.11** | ✅ **COMPLETE** | **45 min** | **Project GetByReference Handler** |
-| T05.12 | 🎯 **NEXT** | 60-75 min | Domain Value Objects |
-| T05.13+ | 🚧 Pending | - | Reconciliation domain logic |
+| **T05.12** | ✅ **COMPLETE** | **75 min** | **Domain Value Objects (8 records + 91 tests)** |
+| T05.13 | 🎯 **NEXT** | 60-75 min | DependencyDiscoverer (reflection-based) |
+| T05.14+ | 🚧 Pending | - | Remaining reconciliation implementation |
 
 ---
 
 ## 🎯 Next Steps - Ready to Continue
 
-### Latest Session (2026-02-04 - Session 35 - T05.10 Project Get Handler)
+### Latest Session (2026-02-04 - Session 37 - T05.12 Domain Value Objects)
 
 **Accomplished**:
-- ✅ **COMPLETED Phase 5 Sub-task T05.10**: Project Get Handler
-- ✅ Implemented ProjectGetHandler.java (60 lines) with 6-step read-only pipeline
-- ✅ Implemented ProjectGetHandlerTest.java (320 lines) with 12 comprehensive test cases
-- ✅ Routes to ProjectQueryControllerGrpc (not CommandController) for query operations
-- ✅ FGA authorization: can_view permission via proto-level configuration
-- ✅ Pipeline: validate → extractId → authorize → load → transform → send
-- ✅ 100% pattern fidelity with AgentGetHandler, WorkflowGetHandler, McpServerGetHandler
-- ✅ Created changelog: 2026-02-04-102032-project-get-handler-t05.10.md
-- ✅ Committed: cb5b94d8 feat(backend/project): add ProjectGetHandler for Phase 5 T05.10
+- ✅ **COMPLETED Phase 5 Sub-task T05.12**: Domain Value Objects for Reconciliation Engine
+- ✅ Implemented 8 immutable Java records (~1,476 lines):
+  - ChangeType.java (37 lines) - Internal enum for operation types
+  - ReconciliationError.java (92 lines) - Error tracking with cause
+  - DesiredState.java (163 lines) - Parsed from Project.spec
+  - ActualState.java (177 lines) - Fetched from repositories
+  - ResourceChange.java (169 lines) - Planned change with factories
+  - DependencyGraph.java (296 lines) - Kahn's algorithm + cycle detection
+  - ReconciliationPlan.java (261 lines) - Diff algorithm + execution order
+  - ReconciliationResult.java (281 lines) - Outcome + toProto()
+- ✅ Created comprehensive test suite (~800 lines, 91 test methods):
+  - DependencyGraphTest.java (20 methods) - Linear, diamond, cycles, real-world
+  - All other value objects tested with 10-14 methods each
+- ✅ Zero duplication: Uses ApiResourceReference proto directly
+- ✅ User feedback prevented ResourceReference duplication
+- ✅ Zero linter errors
+- ✅ Created changelog: 2026-02-04-162852-domain-value-objects-reconciliation-t05.12.md
+- ✅ Committed: 30055488 feat(backend/project): add domain value objects for reconciliation engine (T05.12)
 
-**Phase 5 Progress**: **11 of 29 sub-tasks complete** (T05.0, T05.2-T05.11)
+**Phase 5 Progress**: **12 of 29 sub-tasks complete** (T05.0, T05.2-T05.12)
 
 ### Backend Handler Status
 
@@ -1106,46 +1215,44 @@ All CRUD and query handlers complete (T05.5-T05.11):
 - **T05.6**: ProjectCreateHandler.java (88 lines) - 10-step create pipeline
 - **T05.7**: ProjectUpdateHandler.java (82 lines) + Tests (500 lines) - 9-step update pipeline
 - **T05.8**: ProjectDeleteHandler.java (87 lines) - Delete with FGA cleanup
-- **T05.9**: ProjectApplyHandler.java (104 lines) - Upsert (create-or-update)
-- **T05.10**: ProjectGetHandler.java (60 lines) - Retrieve by ID
-- **T05.11**: ProjectGetByReferenceHandler.java (183 lines) + Tests (499 lines) - Retrieve by org/slug
 - **T05.9**: ProjectApplyHandler.java (104 lines) - Idempotent create-or-update
+- **T05.10**: ProjectGetHandler.java (60 lines) + Tests (320 lines) - Get by ID
+- **T05.11**: ProjectGetByReferenceHandler.java (183 lines) + Tests (499 lines) - Get by org/slug
 
-Query handlers started (T05.10):
-- **T05.10**: ProjectGetHandler.java (60 lines) + Tests (320 lines) - 6-step get by ID
+Domain value objects complete (T05.12):
+- **T05.12**: 8 value objects (~1,476 lines) + 7 test files (~800 lines, 91 tests)
+  - DependencyGraph with Kahn's algorithm + cycle detection
+  - ReconciliationPlan with diff algorithm
+  - DesiredState and ActualState for state management
+  - ReconciliationResult with proto conversion
 
 Commits:
 - e36ede54: feat(backend/project): add ProjectRepo foundation for Phase 5
 - 86c139c1: feat(backend/project): add Project CRUD handlers for Phase 5
 - 7b399590: test(backend/project): add comprehensive tests for ProjectUpdateHandler
 - cb5b94d8: feat(backend/project): add ProjectGetHandler for Phase 5 T05.10
-- c2c22b46: refactor(backend/grpc-request): remove ApiResourceOwnerScope references (includes ProjectApplyHandler)
+- f45a7ba5: feat(backend/project): add ProjectGetByReferenceHandler for Phase 5 T05.11
+- c2c22b46: refactor(backend/grpc-request): remove ApiResourceOwnerScope references
+- 30055488: feat(backend/project): add domain value objects for reconciliation engine (T05.12)
 
-### Immediate Next Task: T05.12 - Domain Value Objects
+### Immediate Next Task: T05.13 - DependencyDiscoverer
 
-**Goal**: Create immutable Value Objects for reconciliation domain.
+**Goal**: Create reflection-based scanner that finds ALL ApiResourceReference fields dynamically.
 
-**Files to Create**:
-- `DependencyGraph.java` - INTERNAL domain concept (NOT a proto, derived by backend)
-- `ResourceReference.java` - Extracted from ApiResourceReference proto fields
-- `ReconciliationPlan.java` - What changes need to be made (pure, no side effects)
-- `ReconciliationResult.java` - What changes were made (immutable outcome)
-- `ResourceChange.java` - A planned change (before execution)
-- `DesiredState.java` - Parsed from project.spec
-- `ActualState.java` - Fetched from repositories
+**Pattern**: Open/Closed Principle - works automatically when proto evolves
 
-**Key Design Decisions**:
-- All as immutable Java records with defensive copying
-- DependencyGraph provides topological sort for execution order
-- ReconciliationPlan factory method: `fromDiff(desired, actual, graph)`
-- ReconciliationResult converts to proto for Apply response
+**Key Implementation**:
+- Scan proto message tree using reflection
+- Find all fields of type `ai.stigmer.commons.apiresource.ApiResourceReference`
+- Extract kind, org, slug from each reference
+- No hardcoded field paths - schema-driven discovery
+- Works automatically when new reference fields are added
 
 **Estimated Duration**: 60-75 minutes
-- Return Project proto
 
-**Estimated Duration**: 45-60 minutes
+**Pattern Reference**: Backend reflection patterns for proto introspection
 
-**To Resume**: Simply start working on T05.11 following the pattern from AgentGetByReferenceHandler.java
+**To Resume**: Start working on T05.13 following reflection-based scanning approach
 
 ---
 
@@ -1156,15 +1263,14 @@ To continue this project, open a new chat and drag this file:
 @_projects/2026-01/20260131.02.cli-agent-yaml-first/next-task.md
 ```
 
-Then say: **"Start working on T05.3"** or **"Continue with next subtask"**
+Then say: **"Start working on T05.13"** or **"Continue with next subtask"**
 
 The AI will:
 1. Read the Phase 5 plan for detailed implementation steps
-2. Create delete.go following agent/delete.go pattern
-3. Add comprehensive tests
-4. Update BUILD.bazel
-5. Verify build and tests
-6. Create changelog and commit
+2. Create DependencyDiscoverer.java using proto reflection
+3. Add comprehensive tests for nested messages and repeated fields
+4. Verify all ApiResourceReference fields are discovered dynamically
+5. Create changelog and commit
 
 ---
 
