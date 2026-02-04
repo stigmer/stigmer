@@ -4,19 +4,19 @@ overview: Create the MongoDB repository for Project resources in stigmer-cloud, 
 todos:
   - id: T05.5-prereq
     content: Run make java-stubs in stigmer-cloud/apis to generate Project Java stubs
-    status: pending
+    status: completed
   - id: T05.5-dir
     content: Create project domain directory structure in stigmer-cloud backend
-    status: pending
+    status: completed
   - id: T05.5-impl
     content: Implement ProjectRepo.java following AgentRepo pattern exactly (~150 lines)
-    status: pending
+    status: completed
   - id: T05.5-verify
     content: Build verification - Bazel build and Spring component scan
-    status: pending
+    status: completed
   - id: T05.5-test
     content: Unit tests - ProjectRepoTest.java with CRUD, lookup, and pagination tests
-    status: pending
+    status: completed
 isProject: false
 ---
 
