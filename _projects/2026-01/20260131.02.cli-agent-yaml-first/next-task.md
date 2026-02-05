@@ -38,10 +38,15 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Phase**: Phase 5 - Backend + Full CLI Integration 🚀 **IN PROGRESS**
-**Current Sub-task**: E3 ✅ **COMPLETED** - Topological Execution Ordering (Integration tests for dependency-aware execution)
-**Next Sub-task**: Full CLI Integration - Wire up reconciliation to `stigmer apply` command
+**Phases 1-6**: ✅ **ALL COMPLETED**
+- Phase 5 (SDK Unification): SDK synthesis working for all resources
+- Phase 6 (Project Reconciliation): E1-E3 complete, 392 backend tests, `--prune` flag working
 **Architecture**: ADR-005 Unified Architecture
+
+**Remaining Phases**:
+- Phase 7: Search & Discovery - ⚠️ **PARTIAL** (Backend ✅, CLI: agent/workflow ✅, skill/mcp/discover ❌)
+- Phase 8: Platform Capabilities (Draft Commands) - ❌ **NOT STARTED**
+- Phase 9: Documentation & Cleanup - ❌ **NOT STARTED**
 
 **Latest Session** (2026-02-05 - Session 61 - E3 Topological Execution Ordering):
 - ✅ **COMPLETED E3**: Topological Execution Ordering - Integration Tests
@@ -1772,18 +1777,20 @@ stigmer
 | **2** | Workflow Command Restructuring | ✅ **COMPLETED** (CRUD commands) |
 | **3** | Workflow YAML-First | ✅ **COMPLETED** (Atomic Track complete) |
 | **4** | Project Entity & stigmer.yaml | ✅ **COMPLETED** (Project Track foundation) |
-| **5** | Backend + Full CLI Integration | 🚀 **NEXT** (Reconciliation engine) |
-| **6** | Production Readiness | 🆕 **PENDING** (Multi-env, monitoring) |
-| **7** | Search and Discovery | ⏸️ **DEFERRED** (Lower priority) |
-| **8** | Platform Capabilities (Draft Commands) | ⏸️ **DEFERRED** (Lower priority) |
-| **9** | Documentation & Cleanup | ⏸️ **DEFERRED** |
+| **5** | SDK Unification (All resources in SDK) | ✅ **COMPLETED** (SDK synthesis working) |
+| **6** | Project Reconciliation (Pruning) | ✅ **COMPLETED** (E1-E3: 392 tests, `--prune` flag) |
+| **7** | Search and Discovery | ⚠️ **PARTIAL** (Backend ✅, CLI: agent/workflow ✅, skill/mcp/discover ❌) |
+| **8** | Platform Capabilities (Draft Commands) | ❌ **NOT STARTED** |
+| **9** | Documentation & Cleanup | ❌ **NOT STARTED** |
 
 **Completed Milestones:**
 - ✅ Phase 1-2: Agent YAML-First + Workflow CRUD (Sessions 1-15)
 - ✅ Phase 3: Workflow YAML-First (Sessions 16-21)
 - ✅ Phase 4: Project Entity & stigmer.yaml (Sessions 22-30)
+- ✅ Phase 5: SDK Unification (Sessions 31-40)
+- ✅ Phase 6: Project Reconciliation (Sessions 41-61, E1-E3)
 
-**Current Achievement**: Dual-Track Interface foundation complete (Atomic Track + Project Track local operations)
+**Current Achievement**: Dual-Track Interface complete - Atomic Track + Project Track with full reconciliation (pruning enabled)
 
 ### Phase 1 Progress
 
@@ -2163,9 +2170,9 @@ apis/stubs/             (REGENERATED via make protos)
 | **T05.22** | ✅ **COMPLETE** | **60 min** | **Manifest Collection (Complete MCP Server support)** |
 | **T05.23** | ✅ **COMPLETE** | **90 min** | **Apply Command Integration (Project Track deployment)** |
 | **T05.24** | ✅ **COMPLETE** | **120 min** | **Skill Pre-Push Flow (external skill validation)** |
-| **T05.25** | ✅ **COMPLETE** | **75 min** | **Backend Unit Tests (61 tests, 100% handler coverage)** |
+| **T05.25** | ✅ **COMPLETE** | **75 min** | **Backend Unit Tests (392 tests, 100% coverage - reconcile + controller)** |
 | T05.26 | 🎯 **NEXT** | 60-75 min | CLI Unit Tests (comprehensive CLI test coverage) |
-| T05.27 | ⚠️ **BLOCKED** | - | **Integration Tests - Backend Not Ported to OSS** |
+| T05.27 | 🚧 Pending | 60-75 min | Integration Tests (E2E with local backend) |
 | T05.28 | 🚧 Pending | 30 min | Documentation |
 
 ---
