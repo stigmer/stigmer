@@ -270,7 +270,8 @@ func Run() error {
 	log.Info().Msg("Registered McpServer controllers")
 
 	// Create and register Project controller
-	projectController := projectcontroller.NewProjectController(store)
+	// Pass nil for reconciliationService to use the default implementation
+	projectController := projectcontroller.NewProjectController(store, nil)
 	projectv1.RegisterProjectCommandControllerServer(grpcServer, projectController)
 	projectv1.RegisterProjectQueryControllerServer(grpcServer, projectController)
 

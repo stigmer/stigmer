@@ -11,14 +11,14 @@
 // the CLI synthesizes the SDK project into a Project proto and sends it to this
 // controller's Apply method.
 //
-// # Reconciliation (Phase E)
+// # Reconciliation
 //
-// The reconciliation engine (implemented in later phases) will:
-//  1. Parse desired state from Project.Spec (embedded agents, workflows, etc.)
-//  2. Fetch actual state from repositories (resources owned by this project)
-//  3. Build a dependency graph using proto reflection
-//  4. Compute a diff (creates, updates, deletes)
-//  5. Execute changes in topological order
+// The reconciliation engine:
+//  1. Parses desired state from Project.Spec (embedded agents, workflows, etc.)
+//  2. Fetches actual state from repositories (resources owned by this project)
+//  3. Builds a dependency graph using proto reflection
+//  4. Computes a diff (creates, updates, deletes)
+//  5. Executes changes in topological order
 //
 // # Usage
 //
@@ -28,7 +28,8 @@
 //
 // Example:
 //
-//	controller := project.NewProjectController(store)
+//	reconciliationService := reconcile.NewReconciliationService(store)
+//	controller := project.NewProjectController(store, reconciliationService)
 //	projectv1.RegisterProjectCommandControllerServer(grpcServer, controller)
 //	projectv1.RegisterProjectQueryControllerServer(grpcServer, controller)
 package project
@@ -36,6 +37,7 @@ package project
 import (
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/reconcile"
 )
 
 // ProjectController implements ProjectCommandController and ProjectQueryController.
@@ -55,15 +57,23 @@ import (
 type ProjectController struct {
 	projectv1.UnimplementedProjectCommandControllerServer
 	projectv1.UnimplementedProjectQueryControllerServer
-	store store.Store
+	store                 store.Store
+	reconciliationService reconcile.ReconciliationService
 }
 
-// NewProjectController creates a new ProjectController with the given store.
+// NewProjectController creates a new ProjectController with the given dependencies.
 //
-// The store is used for all persistence operations. In the OSS version,
-// this is typically a SQLite-backed store.
-func NewProjectController(store store.Store) *ProjectController {
+// Parameters:
+//   - store: Used for all persistence operations. In the OSS version,
+//     this is typically a SQLite-backed store.
+//   - reconciliationService: Orchestrates resource reconciliation during Apply.
+//     Pass nil to use a default implementation created from the store.
+func NewProjectController(store store.Store, reconciliationService reconcile.ReconciliationService) *ProjectController {
+	if reconciliationService == nil {
+		reconciliationService = reconcile.NewReconciliationService(store)
+	}
 	return &ProjectController{
-		store: store,
+		store:                 store,
+		reconciliationService: reconciliationService,
 	}
 }
