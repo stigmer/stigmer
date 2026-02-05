@@ -154,7 +154,8 @@ func TestProjectController_UnimplementedMethodsReturnError(t *testing.T) {
 
 	// Test that unimplemented methods return "not implemented" errors
 	// This verifies the embedded Unimplemented servers are working correctly
-	// Note: Create and Update are now implemented (D1), so only test remaining unimplemented methods
+	// Note: Create, Update, Get, and GetByReference are now implemented (D1, D2),
+	// so only test remaining unimplemented methods (Delete, Apply)
 
 	t.Run("Delete returns unimplemented", func(t *testing.T) {
 		_, err := controller.Delete(ctx, &projectv1.ProjectId{Value: "test-id"})
@@ -167,24 +168,6 @@ func TestProjectController_UnimplementedMethodsReturnError(t *testing.T) {
 		_, err := controller.Apply(ctx, createTestProject("test"))
 		if err == nil {
 			t.Error("Expected error from unimplemented Apply method")
-		}
-	})
-
-	t.Run("Get returns unimplemented", func(t *testing.T) {
-		_, err := controller.Get(ctx, &projectv1.ProjectId{Value: "test-id"})
-		if err == nil {
-			t.Error("Expected error from unimplemented Get method")
-		}
-	})
-
-	t.Run("GetByReference returns unimplemented", func(t *testing.T) {
-		ref := &apiresource.ApiResourceReference{
-			Slug: "test-slug",
-			Kind: apiresourcekind.ApiResourceKind_project,
-		}
-		_, err := controller.GetByReference(ctx, ref)
-		if err == nil {
-			t.Error("Expected error from unimplemented GetByReference method")
 		}
 	})
 }
