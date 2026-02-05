@@ -154,15 +154,8 @@ func TestProjectController_UnimplementedMethodsReturnError(t *testing.T) {
 
 	// Test that unimplemented methods return "not implemented" errors
 	// This verifies the embedded Unimplemented servers are working correctly
-	// Note: Create, Update, Get, and GetByReference are now implemented (D1, D2),
-	// so only test remaining unimplemented methods (Delete, Apply)
-
-	t.Run("Delete returns unimplemented", func(t *testing.T) {
-		_, err := controller.Delete(ctx, &projectv1.ProjectId{Value: "test-id"})
-		if err == nil {
-			t.Error("Expected error from unimplemented Delete method")
-		}
-	})
+	// Note: Create, Update, Get, GetByReference (D1, D2), and Delete (D3) are now implemented,
+	// so only test remaining unimplemented method (Apply)
 
 	t.Run("Apply returns unimplemented", func(t *testing.T) {
 		_, err := controller.Apply(ctx, createTestProject("test"))

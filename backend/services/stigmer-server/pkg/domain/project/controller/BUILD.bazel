@@ -4,6 +4,7 @@ go_library(
     name = "controller",
     srcs = [
         "create.go",
+        "delete.go",
         "get.go",
         "get_by_reference.go",
         "project_controller.go",
@@ -14,6 +15,7 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
@@ -24,6 +26,7 @@ go_test(
     name = "controller_test",
     srcs = [
         "create_test.go",
+        "delete_test.go",
         "get_by_reference_test.go",
         "get_test.go",
         "project_controller_test.go",

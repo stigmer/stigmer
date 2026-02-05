@@ -15,11 +15,11 @@ Project serves as the deployment unit for the CLI's "Project Track" (SDK synthes
 
 | Operation | Status | Description |
 |-----------|--------|-------------|
-| Create | Planned (D1) | Create a new project |
-| Update | Planned (D1) | Update an existing project |
-| Delete | Planned (D3) | Delete a project |
-| Get | Planned (D2) | Get project by ID |
-| GetByReference | Planned (D2) | Get project by slug |
+| Create | Implemented (D1) | Create a new project |
+| Update | Implemented (D1) | Update an existing project |
+| Delete | Implemented (D3) | Delete a project (no cascade) |
+| Get | Implemented (D2) | Get project by ID |
+| GetByReference | Implemented (D2) | Get project by slug |
 | Apply | Planned (D4) | Idempotent create-or-update with reconciliation |
 
 ## Architecture
