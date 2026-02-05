@@ -495,9 +495,190 @@ Run tests with:
 bazel test //backend/services/stigmer-server/pkg/domain/project/reconcile:reconcile_test
 ```
 
-## Future Extensions
+### Phase E: Reconciliation Service and Execution Engine
 
-This package will be extended in later phases with:
-- **Phase D**: CRUD handlers for Project entity
-- **Phase E**: `ReconciliationService` - Main orchestrator
-- **Phase E**: `ExecutionEngine` - Execute plan with partial failure handling
+#### ReconciliationService
+
+The main orchestrator that coordinates the reconciliation flow:
+
+```go
+// Create reconciliation service
+service := reconcile.NewReconciliationService(store, downstreamClients)
+
+// Reconcile a project
+result, err := service.Reconcile(ctx, project, reconcile.DefaultOptions())
+if err != nil {
+    return err
+}
+
+// Check result
+if result.HasErrors() {
+    for _, e := range result.Errors() {
+        log.Printf("Failed: %s - %s", e.ResourceKey(), e.Message())
+    }
+}
+```
+
+**Flow:**
+1. Parse desired state from `Project.Spec`
+2. Fetch actual state from store (by ownership annotation)
+3. Build dependency graph from desired state
+4. Compute diff to produce reconciliation plan
+5. Execute plan through ExecutionEngine
+
+#### ExecutionEngine
+
+Transforms reconciliation plans into actual resource changes with proper ordering:
+
+```go
+// ExecutePlan applies the reconciliation plan
+engine := reconcile.NewExecutionEngine(resourceController)
+result := engine.ExecutePlan(ctx, plan, projectID, projectOrg)
+```
+
+**Key Features:**
+- **Dependency-Aware Execution**: Resources are created/updated in topological order
+- **Safe Deletion Order**: Dependents are deleted before dependencies
+- **Ownership Annotations**: All managed resources get `stigmer.ai/sdk.project` annotation
+- **Partial Failure Handling**: Continues execution on error, accumulates failures
+
+### Phase E3: Topological Execution Ordering
+
+The ExecutionEngine respects dependency ordering to ensure resources are created, updated, and deleted safely.
+
+#### Create/Update Order
+
+Resources are created in dependency order - dependencies before dependents:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Create Execution Order                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Skills ──► MCP Servers ──► Agents ──► Workflows                 │
+│    ↑            ↑              ↑           ↑                     │
+│  (leaf)      (leaf)      (depends on   (depends on               │
+│                          skills/mcp)   agents)                   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+Example: If an Agent references an MCP Server, the MCP Server is created first.
+
+#### Delete Order
+
+Resources are deleted in reverse dependency order - dependents before dependencies:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Delete Execution Order                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Workflows ──► Agents ──► MCP Servers ──► Skills                 │
+│    ↑            ↑              ↑            ↑                    │
+│  (deleted     (deleted      (deleted      (deleted               │
+│   first)      second)       third)        last)                  │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+Example: If a Workflow references an Agent, the Workflow is deleted first.
+
+#### Ordering Algorithm
+
+1. **Topological Sort**: When a dependency graph is available, uses Kahn's algorithm for O(V+E) sorting
+2. **Kind Hierarchy Fallback**: When graph is unavailable or incomplete, falls back to safe kind-based ordering
+3. **Deterministic Ordering**: Within the same precedence level, resources are sorted by slug
+
+```go
+// The ExecutionEngine automatically uses the plan's ordering methods
+for _, change := range plan.GetChangesInExecutionOrder() {
+    // Dependencies are guaranteed to be created before this resource
+    engine.execute(change)
+}
+
+for _, change := range plan.GetDeletesInReverseDependencyOrder() {
+    // Dependents are guaranteed to be deleted before this resource
+    engine.delete(change)
+}
+```
+
+#### Partial Failure Behavior
+
+The ExecutionEngine continues execution even when some operations fail:
+
+```go
+// MCP creation fails, but independent skill still gets created
+result := engine.ExecutePlan(ctx, plan, projectID, projectOrg)
+
+if result.HasErrors() {
+    // Some operations failed
+    for _, err := range result.Errors() {
+        log.Printf("Failed: %s", err)
+    }
+}
+
+// Successfully created resources are still tracked
+for _, created := range result.Created() {
+    log.Printf("Created: %s", created.Slug)
+}
+```
+
+**Important:** Failed dependencies don't block unrelated resources. The engine executes all possible operations and reports the complete set of successes and failures.
+
+## File Structure
+
+```
+reconcile/
+├── resource_key.go              # ResourceKey type and functions
+├── resource_key_test.go         # 10 tests
+├── desired_state.go             # DesiredState value object
+├── desired_state_test.go        # 10 tests
+├── actual_state.go              # ActualState value object
+├── actual_state_test.go         # 9 tests
+├── change_type.go               # ChangeType enum constants
+├── change_type_test.go          # 6 tests
+├── resource_change.go           # ResourceChange value object
+├── resource_change_test.go      # 8 tests
+├── reconciliation_plan.go       # ReconciliationPlan container
+├── reconciliation_plan_test.go  # 6 tests
+├── reconciliation_result.go     # ReconciliationResult with Builder
+├── reconciliation_result_test.go# 7 tests
+├── reconciliation_error.go      # ReconciliationError type
+├── reconciliation_error_test.go # 4 tests
+├── reconciliation_options.go    # ReconciliationOptions config
+├── reconciliation_options_test.go# 6 tests
+├── dependency_graph.go          # DependencyGraph with topo sort
+├── dependency_graph_test.go     # 35 tests
+├── dependency_discoverer.go     # Proto reflection scanner
+├── dependency_discoverer_test.go# 25 tests
+├── graph_builder.go             # Build graph from state
+├── graph_builder_test.go        # 20 tests
+├── diff.go                      # Diff algorithm (ComputeDiff)
+├── diff_test.go                 # 35 tests
+├── execution_order.go           # Execution order functions (C2)
+├── execution_order_test.go      # 25 tests
+├── reconciliation_service.go    # ReconciliationService interface
+├── service.go                   # Service implementation (E1)
+├── service_test.go              # 32 tests
+├── execution_engine.go          # ExecutionEngine (E2)
+├── execution_engine_test.go     # 50+ tests (including E3 order tests)
+├── BUILD.bazel                  # Bazel build configuration
+└── README.md                    # This file
+```
+
+## Testing
+
+Run tests with:
+
+```bash
+bazel test //backend/services/stigmer-server/pkg/domain/project/reconcile:reconcile_test
+```
+
+Test categories include:
+- Value object construction and immutability
+- Dependency graph building and topological sorting
+- Diff algorithm with spec-only comparison
+- Execution order verification (E3)
+- Partial failure handling
+- Real-world scenario tests

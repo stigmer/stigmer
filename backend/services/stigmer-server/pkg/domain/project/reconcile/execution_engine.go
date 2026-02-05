@@ -544,7 +544,9 @@ func (a *ResourceControllerAdapter) DeleteSkill(ctx context.Context, id string) 
 // =============================================================================
 
 // GetProjectOrg extracts the org from a Project's metadata.
-func GetProjectOrg(project interface{ GetMetadata() *apiresource.ApiResourceMetadata }) string {
+func GetProjectOrg(project interface {
+	GetMetadata() *apiresource.ApiResourceMetadata
+}) string {
 	if project == nil {
 		return ""
 	}
