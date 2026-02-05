@@ -1,9 +1,17 @@
 "use client";
 
 import * as React from "react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { transitions, viewportSettings } from "@/lib/animations";
 import { Card } from "@/components/ui/card";
 import { Icon, type IconName } from "@/components/ui/icon";
+import {
+  FadeInUp,
+  StaggerContainer,
+  StaggerItem,
+  useReducedMotion,
+} from "@/components/ui/motion";
 
 export type ArchitectureProps = React.HTMLAttributes<HTMLElement>;
 
@@ -29,33 +37,35 @@ function Architecture({ className, ...props }: ArchitectureProps) {
       {...props}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2
-            id="architecture-heading"
-            className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4"
-          >
-            <span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-              How It Works
-            </span>
-          </h2>
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto">
-            From YAML to production-ready gRPC service. The infrastructure you don&apos;t have to build.
-          </p>
-        </div>
+        {/* Section Header - Animated */}
+        <FadeInUp>
+          <div className="text-center mb-16">
+            <h2
+              id="architecture-heading"
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4"
+            >
+              <span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+                How It Works
+              </span>
+            </h2>
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto">
+              From YAML to production-ready gRPC service. The infrastructure you don&apos;t have to build.
+            </p>
+          </div>
+        </FadeInUp>
 
         {/* Hero Architecture Diagram */}
         <ArchitectureDiagram />
 
-        {/* Platform vs Framework Comparison */}
-        <div className="mt-24">
+        {/* Platform vs Framework Comparison - Animated */}
+        <FadeInUp className="mt-24">
           <PlatformComparisonVisual />
-        </div>
+        </FadeInUp>
 
-        {/* Developer Journey */}
-        <div className="mt-24">
+        {/* Developer Journey - Animated */}
+        <FadeInUp className="mt-24">
           <DeveloperJourneyFlow />
-        </div>
+        </FadeInUp>
       </div>
     </section>
   );
@@ -68,120 +78,120 @@ function Architecture({ className, ...props }: ArchitectureProps) {
 function ArchitectureDiagram() {
   return (
     <div className="relative">
-      {/* Desktop: 3-column layout with arrows */}
+      {/* Desktop: 3-column layout with arrows - Sequential animation */}
       <div className="hidden lg:flex lg:items-start lg:justify-center lg:gap-4">
         {/* Column 1: You Write */}
-        <div className="flex flex-col w-[320px] shrink-0">
+        <FadeInUp delay={0} className="flex flex-col w-[320px] shrink-0">
           <ColumnHeader
             title="You Write"
             subtitle="YAML for speed, SDK for production"
             variant="input"
           />
           <CodeTabViewer />
-        </div>
+        </FadeInUp>
 
-        {/* Arrow 1 */}
-        <div className="flex items-center pt-16 shrink-0">
-          <FlowArrow />
-        </div>
+        {/* Arrow 1 - Animated */}
+        <FadeInUp delay={0.2} className="flex items-center pt-16 shrink-0">
+          <AnimatedFlowArrow delay={0.3} />
+        </FadeInUp>
 
         {/* Column 2: Stigmer Handles */}
-        <div className="flex flex-col w-[280px] shrink-0">
+        <FadeInUp delay={0.3} className="flex flex-col w-[280px] shrink-0">
           <ColumnHeader
             title="Stigmer Handles"
             subtitle="The infrastructure layer you skip"
             variant="platform"
           />
           <PlatformLayerStack />
-        </div>
+        </FadeInUp>
 
-        {/* Arrow 2 */}
-        <div className="flex items-center pt-16 shrink-0">
-          <FlowArrow />
-        </div>
+        {/* Arrow 2 - Animated */}
+        <FadeInUp delay={0.4} className="flex items-center pt-16 shrink-0">
+          <AnimatedFlowArrow delay={0.5} />
+        </FadeInUp>
 
         {/* Column 3: You Integrate */}
-        <div className="flex flex-col w-[320px] shrink-0">
+        <FadeInUp delay={0.5} className="flex flex-col w-[320px] shrink-0">
           <ColumnHeader
             title="You Integrate"
             subtitle="Call like any microservice"
             variant="output"
           />
           <IntegrationCard />
-        </div>
+        </FadeInUp>
       </div>
 
       {/* Tablet: 2-column layout */}
       <div className="hidden md:grid md:grid-cols-2 md:gap-8 lg:hidden">
-        <div className="space-y-8">
-          <div>
+        <StaggerContainer className="space-y-8" staggerDelay={0.15}>
+          <StaggerItem>
             <ColumnHeader
               title="You Write"
               subtitle="YAML for speed, SDK for production"
               variant="input"
             />
             <CodeTabViewer />
-          </div>
-          <div>
+          </StaggerItem>
+          <StaggerItem>
             <ColumnHeader
               title="Stigmer Handles"
               subtitle="The infrastructure layer you skip"
               variant="platform"
             />
             <PlatformLayerStack />
-          </div>
-        </div>
-        <div>
+          </StaggerItem>
+        </StaggerContainer>
+        <FadeInUp delay={0.2}>
           <ColumnHeader
             title="You Integrate"
             subtitle="Call like any microservice"
             variant="output"
           />
           <IntegrationCard />
-        </div>
+        </FadeInUp>
       </div>
 
       {/* Mobile: Single column */}
-      <div className="md:hidden space-y-8">
-        <div>
+      <StaggerContainer className="md:hidden space-y-8" staggerDelay={0.1}>
+        <StaggerItem>
           <ColumnHeader
             title="You Write"
             subtitle="YAML for speed, SDK for production"
             variant="input"
           />
           <CodeTabViewer />
-        </div>
+        </StaggerItem>
 
-        <div className="flex justify-center py-4">
-          <svg width="24" height="48" viewBox="0 0 24 48" fill="none" className="text-primary">
-            <path d="M12 0 L12 42 M6 36 L12 42 L18 36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </div>
+        <StaggerItem>
+          <div className="flex justify-center py-4">
+            <AnimatedVerticalArrow />
+          </div>
+        </StaggerItem>
 
-        <div>
+        <StaggerItem>
           <ColumnHeader
             title="Stigmer Handles"
             subtitle="The infrastructure layer you skip"
             variant="platform"
           />
           <PlatformLayerStack />
-        </div>
+        </StaggerItem>
 
-        <div className="flex justify-center py-4">
-          <svg width="24" height="48" viewBox="0 0 24 48" fill="none" className="text-primary">
-            <path d="M12 0 L12 42 M6 36 L12 42 L18 36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </div>
+        <StaggerItem>
+          <div className="flex justify-center py-4">
+            <AnimatedVerticalArrow />
+          </div>
+        </StaggerItem>
 
-        <div>
+        <StaggerItem>
           <ColumnHeader
             title="You Integrate"
             subtitle="Call like any microservice"
             variant="output"
           />
           <IntegrationCard />
-        </div>
-      </div>
+        </StaggerItem>
+      </StaggerContainer>
     </div>
   );
 }
@@ -218,7 +228,7 @@ function ColumnHeader({ title, subtitle, variant }: ColumnHeaderProps) {
 }
 
 /**
- * Flow arrow for desktop layout.
+ * Flow arrow for desktop layout (static fallback).
  */
 function FlowArrow() {
   return (
@@ -238,6 +248,85 @@ function FlowArrow() {
         strokeLinejoin="round"
       />
     </svg>
+  );
+}
+
+/**
+ * Animated horizontal flow arrow with pathLength animation.
+ */
+function AnimatedFlowArrow({ delay = 0 }: { delay?: number }) {
+  const prefersReducedMotion = useReducedMotion();
+
+  if (prefersReducedMotion) {
+    return <FlowArrow />;
+  }
+
+  return (
+    <motion.svg
+      width="48"
+      height="48"
+      viewBox="0 0 48 48"
+      fill="none"
+      className="text-primary/60"
+      aria-hidden="true"
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={viewportSettings.standard}
+      transition={{ delay, duration: 0.3 }}
+    >
+      <motion.path
+        d="M4 24 L38 24 M30 16 L38 24 L30 32"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0 }}
+        whileInView={{ pathLength: 1 }}
+        viewport={viewportSettings.standard}
+        transition={{ delay: delay + 0.1, duration: 0.5, ease: "easeOut" }}
+      />
+    </motion.svg>
+  );
+}
+
+/**
+ * Animated vertical arrow for mobile layout.
+ */
+function AnimatedVerticalArrow() {
+  const prefersReducedMotion = useReducedMotion();
+
+  if (prefersReducedMotion) {
+    return (
+      <svg width="24" height="48" viewBox="0 0 24 48" fill="none" className="text-primary">
+        <path d="M12 0 L12 42 M6 36 L12 42 L18 36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    );
+  }
+
+  return (
+    <motion.svg
+      width="24"
+      height="48"
+      viewBox="0 0 24 48"
+      fill="none"
+      className="text-primary"
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={viewportSettings.standard}
+      transition={{ duration: 0.3 }}
+    >
+      <motion.path
+        d="M12 0 L12 42 M6 36 L12 42 L18 36"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0 }}
+        whileInView={{ pathLength: 1 }}
+        viewport={viewportSettings.standard}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      />
+    </motion.svg>
   );
 }
 
@@ -389,44 +478,49 @@ function PlatformLayerStack() {
   ];
 
   return (
-    <div className="space-y-3">
+    <StaggerContainer className="space-y-3" staggerDelay={0.08} delayChildren={0.1}>
       {layers.map((layer) => (
-        <Card
-          key={layer.title}
-          variant="feature"
-          className={cn(
-            "p-4 transition-all duration-300 hover:scale-[1.02]",
-            layer.highlight && "border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10"
-          )}
-        >
-          <div className="flex items-start gap-3">
-            <div className={cn(
-              "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-              layer.highlight
-                ? "bg-gradient-to-br from-primary/30 to-accent/30 border-2 border-primary/40"
-                : "bg-muted border border-border"
-            )}>
-              <Icon
-                name={layer.icon}
-                size="sm"
-                className={layer.highlight ? "text-primary" : "text-muted-foreground"}
-              />
+        <StaggerItem key={layer.title}>
+          <Card
+            variant="feature"
+            className={cn(
+              "p-4 transition-all duration-300 hover:scale-[1.02]",
+              layer.highlight && "border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10"
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <motion.div
+                className={cn(
+                  "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+                  layer.highlight
+                    ? "bg-gradient-to-br from-primary/30 to-accent/30 border-2 border-primary/40"
+                    : "bg-muted border border-border"
+                )}
+                whileHover={{ scale: 1.1 }}
+                transition={transitions.spring}
+              >
+                <Icon
+                  name={layer.icon}
+                  size="sm"
+                  className={layer.highlight ? "text-primary" : "text-muted-foreground"}
+                />
+              </motion.div>
+              <div className="flex-1 min-w-0">
+                <h4 className={cn(
+                  "text-sm font-semibold mb-1",
+                  layer.highlight ? "text-foreground" : "text-foreground/90"
+                )}>
+                  {layer.title}
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {layer.description}
+                </p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h4 className={cn(
-                "text-sm font-semibold mb-1",
-                layer.highlight ? "text-foreground" : "text-foreground/90"
-              )}>
-                {layer.title}
-              </h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {layer.description}
-              </p>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </StaggerItem>
       ))}
-    </div>
+    </StaggerContainer>
   );
 }
 
@@ -683,37 +777,51 @@ function DeveloperJourneyFlow() {
 
   return (
     <div>
-      <div className="text-center mb-12">
-        <h3 className="text-2xl sm:text-3xl font-bold mb-3">
-          Start Simple, Scale Naturally
-        </h3>
-        <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-          From local development to production integration. Same platform, your pace.
-        </p>
-      </div>
+      <FadeInUp>
+        <div className="text-center mb-12">
+          <h3 className="text-2xl sm:text-3xl font-bold mb-3">
+            Start Simple, Scale Naturally
+          </h3>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+            From local development to production integration. Same platform, your pace.
+          </p>
+        </div>
+      </FadeInUp>
 
-      {/* Desktop: Horizontal timeline */}
-      <div className="hidden sm:grid sm:grid-cols-4 sm:gap-4">
+      {/* Desktop: Horizontal timeline - Staggered */}
+      <StaggerContainer
+        className="hidden sm:grid sm:grid-cols-4 sm:gap-4"
+        staggerDelay={0.12}
+        delayChildren={0.1}
+      >
         {steps.map((step) => (
-          <React.Fragment key={step.number}>
+          <StaggerItem key={step.number}>
             <JourneyStep {...step} />
-          </React.Fragment>
+          </StaggerItem>
         ))}
-      </div>
+      </StaggerContainer>
 
-      {/* Mobile: Vertical timeline */}
-      <div className="sm:hidden space-y-6">
+      {/* Mobile: Vertical timeline - Staggered */}
+      <StaggerContainer
+        className="sm:hidden space-y-6"
+        staggerDelay={0.1}
+        delayChildren={0.1}
+      >
         {steps.map((step) => (
-          <JourneyStep key={step.number} {...step} vertical />
+          <StaggerItem key={step.number}>
+            <JourneyStep {...step} vertical />
+          </StaggerItem>
         ))}
-      </div>
+      </StaggerContainer>
 
       {/* Footer note */}
-      <div className="mt-8 text-center">
-        <p className="text-sm text-muted-foreground">
-          Same gRPC contracts from local development to production deployment
-        </p>
-      </div>
+      <FadeInUp delay={0.5}>
+        <div className="mt-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            Same gRPC contracts from local development to production deployment
+          </p>
+        </div>
+      </FadeInUp>
     </div>
   );
 }
