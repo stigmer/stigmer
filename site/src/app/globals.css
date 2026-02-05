@@ -302,4 +302,62 @@
   .glow-accent {
     box-shadow: var(--glow-accent);
   }
+  
+  /* =========================================================================
+   * ACCESSIBILITY UTILITIES
+   * Screen reader only content and skip link support
+   * ========================================================================= */
+  
+  /**
+   * Screen reader only - visually hidden but accessible to assistive technology.
+   * Use for content that should be announced but not visible.
+   * 
+   * @example
+   * <span className="sr-only">Opens in new tab</span>
+   */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+  
+  /**
+   * Make sr-only content visible when focused (for skip links).
+   * Combines with sr-only to create accessible skip navigation.
+   * 
+   * @example
+   * <a href="#main" className="sr-only sr-only-focusable">Skip to main content</a>
+   */
+  .sr-only-focusable:focus,
+  .sr-only-focusable:focus-within {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+  
+  /**
+   * Negation class to make sr-only visible on focus.
+   * Alternative approach using focus:not-sr-only pattern.
+   */
+  .focus\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
 }

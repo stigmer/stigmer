@@ -342,6 +342,11 @@ function QuickstartStep({ number, title, description, children }: QuickstartStep
 
 /**
  * Code block with syntax highlighting and copy functionality.
+ *
+ * Accessibility features:
+ * - ARIA live region announces copy status to screen readers
+ * - Button has dynamic aria-label based on state
+ * - Keyboard accessible copy button
  */
 interface CodeBlockProps {
   code: string;
@@ -357,7 +362,7 @@ function CodeBlock({ code, language }: CodeBlockProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback
+      // Fallback for browsers without clipboard API
       const textArea = document.createElement("textarea");
       textArea.value = code;
       document.body.appendChild(textArea);
@@ -371,6 +376,16 @@ function CodeBlock({ code, language }: CodeBlockProps) {
 
   return (
     <div className="relative group rounded-lg overflow-hidden border border-border bg-muted/30">
+      {/* ARIA live region - announces copy status to screen readers */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {copied && "Code copied to clipboard"}
+      </div>
+
       {/* Language badge */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/50">
         <span className="text-xs font-mono text-muted-foreground uppercase">
@@ -382,14 +397,17 @@ function CodeBlock({ code, language }: CodeBlockProps) {
           onClick={handleCopy}
           className={cn(
             "h-7 px-2 text-xs",
-            "opacity-0 group-hover:opacity-100 transition-opacity"
+            "opacity-0 group-hover:opacity-100 transition-opacity",
+            // Ensure button is always accessible via keyboard even when visually hidden
+            "focus:opacity-100"
           )}
-          aria-label={copied ? "Copied!" : "Copy code"}
+          aria-label={copied ? "Copied to clipboard" : `Copy ${language} code`}
         >
           <Icon
             name={copied ? "check" : "copy"}
             size="xs"
             className={cn(copied && "text-green-500")}
+            aria-hidden="true"
           />
           <span className="ml-1">{copied ? "Copied!" : "Copy"}</span>
         </Button>

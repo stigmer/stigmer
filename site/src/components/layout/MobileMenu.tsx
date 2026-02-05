@@ -40,19 +40,36 @@ export interface MobileMenuProps {
    * Callback to close the menu.
    */
   onClose: () => void;
+  /**
+   * Ref to the trigger button for focus return on close.
+   * When the menu closes, focus will be returned to this element.
+   */
+  triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 /**
  * Mobile navigation menu with slide-out drawer pattern.
  *
+ * Accessibility features:
+ * - Focus trap: Tab cycles within menu while open
+ * - Focus management: Focus moves to close button on open
+ * - Focus return: Focus returns to trigger button on close
+ * - Escape key: Closes the menu
+ * - Body scroll lock: Prevents background scrolling
+ * - Reduced motion: Respects prefers-reduced-motion
+ *
  * @example
  * const [isOpen, setIsOpen] = useState(false);
- * <MobileMenu isOpen={isOpen} onClose={() => setIsOpen(false)} />
+ * const triggerRef = useRef<HTMLButtonElement>(null);
+ * <button ref={triggerRef} onClick={() => setIsOpen(true)}>Open</button>
+ * <MobileMenu isOpen={isOpen} onClose={() => setIsOpen(false)} triggerRef={triggerRef} />
  */
-function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
+function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
   const menuRef = React.useRef<HTMLDivElement>(null);
   const closeButtonRef = React.useRef<HTMLButtonElement>(null);
   const prefersReducedMotion = useReducedMotion();
+  // Track previous open state for focus return
+  const wasOpen = React.useRef(false);
 
   // Handle escape key
   React.useEffect(() => {
@@ -87,6 +104,20 @@ function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
+
+  // Focus return - restore focus to trigger button when closing
+  React.useEffect(() => {
+    // Only return focus when transitioning from open to closed
+    if (wasOpen.current && !isOpen && triggerRef?.current) {
+      // Small delay to ensure menu animation completes
+      const timer = setTimeout(() => {
+        triggerRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+    // Track open state for next render
+    wasOpen.current = isOpen;
+  }, [isOpen, triggerRef]);
 
   // Simple focus trap within the menu
   React.useEffect(() => {
