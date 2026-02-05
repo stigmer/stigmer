@@ -91,13 +91,8 @@ function ArchitectureDiagram() {
           <CodeTabViewer />
         </FadeInUp>
 
-        {/* Arrow 1 - Animated */}
-        <FadeInUp delay={0.2} className="flex items-center pt-16 shrink-0">
-          <AnimatedFlowArrow delay={0.3} />
-        </FadeInUp>
-
         {/* Column 2: Stigmer Handles */}
-        <FadeInUp delay={0.3} className="flex flex-col flex-1 min-w-0">
+        <FadeInUp delay={0.2} className="flex flex-col flex-1 min-w-0">
           <ColumnHeader
             title="Stigmer Handles"
             subtitle="The infrastructure layer you skip"
@@ -106,16 +101,11 @@ function ArchitectureDiagram() {
           <PlatformLayerStack />
         </FadeInUp>
 
-        {/* Arrow 2 - Animated */}
-        <FadeInUp delay={0.4} className="flex items-center pt-16 shrink-0">
-          <AnimatedFlowArrow delay={0.5} />
-        </FadeInUp>
-
         {/* Column 3: You Integrate */}
-        <FadeInUp delay={0.5} className="flex flex-col flex-1 min-w-0">
+        <FadeInUp delay={0.4} className="flex flex-col flex-1 min-w-0">
           <ColumnHeader
             title="You Integrate"
-            subtitle="Call like any microservice"
+            subtitle="Call your agents from any application"
             variant="output"
           />
           <IntegrationCard />
@@ -145,7 +135,7 @@ function ArchitectureDiagram() {
         <FadeInUp delay={0.2}>
           <ColumnHeader
             title="You Integrate"
-            subtitle="Call like any microservice"
+            subtitle="Call your agents from any application"
             variant="output"
           />
           <IntegrationCard />
@@ -187,7 +177,7 @@ function ArchitectureDiagram() {
         <StaggerItem>
           <ColumnHeader
             title="You Integrate"
-            subtitle="Call like any microservice"
+            subtitle="Call your agents from any application"
             variant="output"
           />
           <IntegrationCard />
@@ -450,9 +440,8 @@ function PlatformLayerStack() {
   const layers = [
     {
       icon: "network" as IconName,
-      title: "Agents as gRPC Services",
-      description: "Define once, call from anywhere via standard gRPC",
-      highlight: true,
+      title: "Invoke Agents via API",
+      description: "Call any agent from your apps using standard gRPC",
     },
     {
       icon: "shield" as IconName,
