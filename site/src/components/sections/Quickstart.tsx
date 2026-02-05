@@ -37,7 +37,7 @@ function Quickstart({ className, ...props }: QuickstartProps) {
       aria-labelledby="quickstart-heading"
       {...props}
     >
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header - Animated */}
         <FadeInUp>
           <div className="text-center mb-16">
@@ -55,8 +55,8 @@ function Quickstart({ className, ...props }: QuickstartProps) {
           </div>
         </FadeInUp>
 
-        {/* Steps - Staggered with progress line */}
-        <div className="relative">
+        {/* Steps - Staggered with progress line - Centered narrower content */}
+        <div className="relative max-w-4xl mx-auto">
           {/* Animated progress line */}
           <AnimatedProgressLine />
 
@@ -166,7 +166,8 @@ execution, err := client.Create(ctx, &agentexec.AgentExecution{
           </StaggerContainer>
         </div>
 
-        {/* SDK Callout - Animated */}
+        {/* SDK Callout - Animated (outside progress line container) */}
+        <div className="max-w-4xl mx-auto">
         <FadeInUp delay={0.2}>
           <div className="mt-12 p-6 rounded-lg border border-border bg-muted/30">
             <div className="flex items-start gap-4">
@@ -202,58 +203,8 @@ execution, err := client.Create(ctx, &agentexec.AgentExecution{
           </div>
         </FadeInUp>
 
-        {/* Progression Path Callout - Animated */}
-        <FadeInUp delay={0.3}>
-          <div className="mt-12 p-6 rounded-lg border border-border bg-background">
-            <h3 className="text-lg font-semibold text-foreground mb-4 text-center">
-              From Local Development to Production Integration
-            </h3>
-            <StaggerContainer
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-              staggerDelay={0.1}
-              delayChildren={0.1}
-            >
-              <StaggerItem>
-                <ProgressionStep
-                  number={1}
-                  title="Develop Locally"
-                  time=""
-                  description="Write YAML agents, test with stigmer server, iterate in seconds"
-                />
-              </StaggerItem>
-              <StaggerItem>
-                <ProgressionStep
-                  number={2}
-                  title="Add Complexity"
-                  time="optional"
-                  description="Graduate to Go SDK when you need conditionals, loops, state management"
-                />
-              </StaggerItem>
-              <StaggerItem>
-                <ProgressionStep
-                  number={3}
-                  title="Integrate via gRPC"
-                  time=""
-                  description="Generate gRPC clients, call agents from your app like any service"
-                />
-              </StaggerItem>
-              <StaggerItem>
-                <ProgressionStep
-                  number={4}
-                  title="Deploy to Production"
-                  time=""
-                  description="Same code, managed infrastructure (coming soon)"
-                />
-              </StaggerItem>
-            </StaggerContainer>
-            <p className="mt-4 text-sm text-muted-foreground text-center">
-              Start simple, scale naturally.
-            </p>
-          </div>
-        </FadeInUp>
-
         {/* CTA - Animated */}
-        <FadeInUp delay={0.4}>
+        <FadeInUp delay={0.3}>
           <div className="mt-16 text-center">
             <Button asChild size="lg">
               <Link href="/docs/getting-started">
@@ -263,6 +214,7 @@ execution, err := client.Create(ctx, &agentexec.AgentExecution{
             </Button>
           </div>
         </FadeInUp>
+        </div>
       </div>
     </section>
   );
@@ -419,32 +371,6 @@ function CodeBlock({ code, language }: CodeBlockProps) {
           {code}
         </code>
       </pre>
-    </div>
-  );
-}
-
-/**
- * Progression step component for the progression path callout.
- */
-interface ProgressionStepProps {
-  number: number;
-  title: string;
-  time: string;
-  description: string;
-}
-
-function ProgressionStep({ number, title, time, description }: ProgressionStepProps) {
-  return (
-    <div className="flex flex-col items-center text-center">
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold mb-2">
-        {number}
-      </div>
-      <h4 className="text-sm font-semibold text-foreground mb-1">
-        {title} <span className="text-xs text-muted-foreground">({time})</span>
-      </h4>
-      <p className="text-xs text-muted-foreground leading-relaxed">
-        {description}
-      </p>
     </div>
   );
 }
