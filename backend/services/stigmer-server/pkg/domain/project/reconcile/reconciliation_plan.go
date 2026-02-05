@@ -7,6 +7,7 @@ var emptyPlan = &ReconciliationPlan{
 	creates: []ResourceChange{},
 	updates: []ResourceChange{},
 	deletes: []ResourceChange{},
+	graph:   nil,
 }
 
 // ReconciliationPlan is an immutable container for computed changes.
@@ -36,12 +37,16 @@ type ReconciliationPlan struct {
 	creates []ResourceChange
 	updates []ResourceChange
 	deletes []ResourceChange
+	graph   *DependencyGraph // for execution order computation (C2)
 }
 
 // NewReconciliationPlan creates a new ReconciliationPlan with the given changes.
 //
 // The constructor performs defensive copying of all slices to ensure immutability.
-// Nil slices are converted to empty slices.
+// Nil slices are converted to empty slices. No dependency graph is associated.
+//
+// For plans that need execution ordering via GetChangesInExecutionOrder() or
+// GetDeletesInReverseDependencyOrder(), use NewReconciliationPlanWithGraph instead.
 //
 // Example:
 //
@@ -51,10 +56,29 @@ type ReconciliationPlan struct {
 //	creates[0] = ResourceChange{}
 //	plan.Creates()[0] // Still the original change
 func NewReconciliationPlan(creates, updates, deletes []ResourceChange) *ReconciliationPlan {
+	return NewReconciliationPlanWithGraph(creates, updates, deletes, nil)
+}
+
+// NewReconciliationPlanWithGraph creates a new ReconciliationPlan with dependency graph.
+//
+// The graph is used by GetChangesInExecutionOrder() and GetDeletesInReverseDependencyOrder()
+// to determine the correct execution order based on resource dependencies.
+//
+// The constructor performs defensive copying of all slices to ensure immutability.
+// Nil slices are converted to empty slices. A nil graph is acceptable and will
+// cause execution order methods to fall back to kind-based ordering.
+//
+// Example:
+//
+//	graph := BuildDependencyGraph(desired)
+//	plan := NewReconciliationPlanWithGraph(creates, updates, deletes, graph)
+//	ordered := plan.GetChangesInExecutionOrder()
+func NewReconciliationPlanWithGraph(creates, updates, deletes []ResourceChange, graph *DependencyGraph) *ReconciliationPlan {
 	return &ReconciliationPlan{
 		creates: cloneChangeSlice(creates),
 		updates: cloneChangeSlice(updates),
 		deletes: cloneChangeSlice(deletes),
+		graph:   graph,
 	}
 }
 
@@ -85,6 +109,15 @@ func (p *ReconciliationPlan) Updates() []ResourceChange {
 // Callers can safely modify the returned slice without affecting the plan.
 func (p *ReconciliationPlan) Deletes() []ResourceChange {
 	return slices.Clone(p.deletes)
+}
+
+// Graph returns the dependency graph associated with this plan.
+//
+// Returns nil if no graph was provided during construction.
+// The graph is used by GetChangesInExecutionOrder() and
+// GetDeletesInReverseDependencyOrder() for dependency-aware ordering.
+func (p *ReconciliationPlan) Graph() *DependencyGraph {
+	return p.graph
 }
 
 // IsEmpty returns true if there are no changes in the plan.

@@ -19,8 +19,9 @@ import (
 // The comparison is spec-only: metadata fields (id, timestamps, etc.) are ignored
 // to avoid false update detections. Only user-defined spec fields matter.
 //
-// The graph parameter is accepted for API consistency but is unused in C1.
-// It will be used in C2 (GetChangesInExecutionOrder) for topological sorting.
+// The graph parameter is used by the returned plan's GetChangesInExecutionOrder()
+// and GetDeletesInReverseDependencyOrder() methods for dependency-aware ordering.
+// Pass nil if execution order doesn't matter or if using kind-based fallback ordering.
 //
 // Example:
 //
@@ -31,6 +32,11 @@ import (
 //
 //	fmt.Printf("Creates: %d, Updates: %d, Deletes: %d\n",
 //	    plan.CreateCount(), plan.UpdateCount(), plan.DeleteCount())
+//
+//	// Get changes in safe execution order
+//	for _, change := range plan.GetChangesInExecutionOrder() {
+//	    execute(change)
+//	}
 func ComputeDiff(desired *DesiredState, actual *ActualState, graph *DependencyGraph) *ReconciliationPlan {
 	// Handle nil states by substituting empty singletons
 	if desired == nil {
@@ -54,7 +60,7 @@ func ComputeDiff(desired *DesiredState, actual *ActualState, graph *DependencyGr
 	diffMcpServers(desired.McpServers(), actual.McpServers(), &creates, &updates, &deletes)
 	diffSkills(desired.Skills(), actual.Skills(), &creates, &updates, &deletes)
 
-	return NewReconciliationPlan(creates, updates, deletes)
+	return NewReconciliationPlanWithGraph(creates, updates, deletes, graph)
 }
 
 // diffAgents computes diff for Agent resources.
