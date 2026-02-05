@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { transitions, viewportSettings } from "@/lib/animations";
 import { Card } from "@/components/ui/card";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { CodeSnippet } from "@/components/ui/code-block";
 import {
   FadeInUp,
   StaggerContainer,
@@ -79,9 +80,9 @@ function ArchitectureDiagram() {
   return (
     <div className="relative">
       {/* Desktop: 3-column layout with arrows - Sequential animation */}
-      <div className="hidden lg:flex lg:items-start lg:justify-center lg:gap-4">
+      <div className="hidden lg:flex lg:items-start lg:gap-8">
         {/* Column 1: You Write */}
-        <FadeInUp delay={0} className="flex flex-col w-[320px] shrink-0">
+        <FadeInUp delay={0} className="flex flex-col flex-1 min-w-0">
           <ColumnHeader
             title="You Write"
             subtitle="YAML for speed, SDK for production"
@@ -96,7 +97,7 @@ function ArchitectureDiagram() {
         </FadeInUp>
 
         {/* Column 2: Stigmer Handles */}
-        <FadeInUp delay={0.3} className="flex flex-col w-[280px] shrink-0">
+        <FadeInUp delay={0.3} className="flex flex-col flex-1 min-w-0">
           <ColumnHeader
             title="Stigmer Handles"
             subtitle="The infrastructure layer you skip"
@@ -111,7 +112,7 @@ function ArchitectureDiagram() {
         </FadeInUp>
 
         {/* Column 3: You Integrate */}
-        <FadeInUp delay={0.5} className="flex flex-col w-[320px] shrink-0">
+        <FadeInUp delay={0.5} className="flex flex-col flex-1 min-w-0">
           <ColumnHeader
             title="You Integrate"
             subtitle="Call like any microservice"
@@ -220,7 +221,7 @@ function ColumnHeader({ title, subtitle, variant }: ColumnHeaderProps) {
       )}>
         {title}
       </h3>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-base text-muted-foreground">
         {subtitle}
       </p>
     </div>
@@ -341,16 +342,14 @@ interface CodeSnippetCardProps {
 function CodeSnippetCard({ language, code }: CodeSnippetCardProps) {
   return (
     <Card variant="feature" className="overflow-hidden">
-      <div className="bg-muted/50 px-3 py-1.5 border-b border-border">
-        <span className="text-[10px] font-mono text-muted-foreground uppercase">
+      <div className="bg-muted/50 px-3 py-2 border-b border-border">
+        <span className="text-xs font-mono text-muted-foreground uppercase">
           {language}
         </span>
       </div>
-      <pre className="p-3 overflow-x-auto scrollbar-thin">
-        <code className="text-[11px] font-mono text-foreground whitespace-pre leading-relaxed">
-          {code}
-        </code>
-      </pre>
+      <div className="p-4">
+        <CodeSnippet code={code} language={language} size="sm" />
+      </div>
     </Card>
   );
 }
@@ -421,7 +420,7 @@ spec:
       </p>
 
       {/* Feature badges */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         {(showSDK ? [
           { label: "Type Safety", desc: "Compile-time validation" },
           { label: "Conditionals", desc: "If/else, loops, state" },
@@ -433,10 +432,10 @@ spec:
         ]).map((item) => (
           <div 
             key={item.label}
-            className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30 border border-border"
+            className="flex items-center justify-between px-4 py-2.5 rounded-lg bg-muted/30 border border-border"
           >
-            <span className="text-xs font-medium">{item.label}</span>
-            <span className="text-[10px] text-muted-foreground">{item.desc}</span>
+            <span className="text-sm font-medium">{item.label}</span>
+            <span className="text-xs text-muted-foreground">{item.desc}</span>
           </div>
         ))}
       </div>
@@ -478,13 +477,13 @@ function PlatformLayerStack() {
   ];
 
   return (
-    <StaggerContainer className="space-y-3" staggerDelay={0.08} delayChildren={0.1}>
+    <StaggerContainer className="space-y-4" staggerDelay={0.08} delayChildren={0.1}>
       {layers.map((layer) => (
         <StaggerItem key={layer.title}>
           <Card
             variant="feature"
             className={cn(
-              "p-4 transition-all duration-300 hover:scale-[1.02]",
+              "p-5 transition-all duration-300 hover:scale-[1.02]",
               layer.highlight && "border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10"
             )}
           >
@@ -512,7 +511,7 @@ function PlatformLayerStack() {
                 )}>
                   {layer.title}
                 </h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {layer.description}
                 </p>
               </div>
@@ -539,7 +538,7 @@ function IntegrationCard() {
   return (
     <div className="space-y-6">
       {/* Language badges */}
-      <Card variant="feature" className="p-6">
+      <Card variant="feature" className="p-7">
         <div className="flex items-center gap-2 mb-4">
           <Icon name="network" size="sm" className="text-primary" />
           <h4 className="text-sm font-semibold">Standard gRPC Protocol</h4>
@@ -555,7 +554,7 @@ function IntegrationCard() {
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Any language with gRPC support works out of the box
         </p>
       </Card>
@@ -580,10 +579,10 @@ for {
 
       {/* Technical foundation footer */}
       <div className="pt-4 border-t border-border">
-        <p className="text-xs text-muted-foreground text-center mb-3">
+        <p className="text-sm text-muted-foreground text-center mb-3">
           Built on proven infrastructure
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground/80">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground/80">
           <span>Temporal Workflows</span>
           <span className="text-muted-foreground/40">•</span>
           <span>SQLite/BadgerDB</span>
