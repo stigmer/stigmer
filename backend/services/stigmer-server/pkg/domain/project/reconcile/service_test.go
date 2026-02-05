@@ -358,7 +358,7 @@ func createServiceTestSkillWithID(slug, description, id string) *skillv1.Skill {
 
 func TestReconcile_NilProject_ReturnsError(t *testing.T) {
 	mockStore := newMockStore()
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	_, err := service.Reconcile(context.Background(), nil, DefaultOptions())
 	if err == nil {
@@ -371,7 +371,7 @@ func TestReconcile_NilProject_ReturnsError(t *testing.T) {
 
 func TestReconcile_ProjectWithoutID_ReturnsError(t *testing.T) {
 	mockStore := newMockStore()
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	project := &projectv1.Project{
 		Metadata: &apiresource.ApiResourceMetadata{
@@ -392,7 +392,7 @@ func TestReconcile_ProjectWithoutID_ReturnsError(t *testing.T) {
 
 func TestReconcile_NilMetadata_ReturnsError(t *testing.T) {
 	mockStore := newMockStore()
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	project := &projectv1.Project{
 		Spec: &projectv1.ProjectSpec{},
@@ -406,7 +406,7 @@ func TestReconcile_NilMetadata_ReturnsError(t *testing.T) {
 
 func TestReconcile_NilOptions_UsesDefaults(t *testing.T) {
 	mockStore := newMockStore()
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	project := createServiceTestProject("Test")
 
@@ -422,7 +422,7 @@ func TestReconcile_NilOptions_UsesDefaults(t *testing.T) {
 
 func TestReconcile_EmptyProject_ReturnsEmptyResult(t *testing.T) {
 	mockStore := newMockStore()
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	// Project with no embedded resources
 	project := createServiceTestProject("Empty Project")
@@ -439,7 +439,7 @@ func TestReconcile_EmptyProject_ReturnsEmptyResult(t *testing.T) {
 
 func TestReconcile_FirstApply_ReturnsAllCreates(t *testing.T) {
 	mockStore := newMockStore() // No existing resources
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	project := createServiceTestProjectWithAllResources()
 
@@ -465,7 +465,7 @@ func TestReconcile_NoChanges_ReturnsEmptyResult(t *testing.T) {
 	// Setup store with existing resources matching desired state
 	agent := createServiceTestAgentWithID("test-agent", "Test agent", "agt-123")
 	mockStore := newMockStore().withAgents(agent)
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	// Project with same agent (same spec)
 	project := createServiceTestProject("Test")
@@ -483,7 +483,7 @@ func TestReconcile_NoChanges_ReturnsEmptyResult(t *testing.T) {
 
 func TestReconcile_StoreError_ReturnsError(t *testing.T) {
 	mockStore := newMockStore().withFindAllByFieldError(errors.New("database connection failed"))
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	project := createServiceTestProjectWithAgents(createServiceTestAgent("test-agent", "desc"))
 
@@ -778,7 +778,7 @@ func TestFetchActualState_UsesCorrectAnnotationPath(t *testing.T) {
 
 func TestReconcile_DryRun_ReturnsFullPlan(t *testing.T) {
 	mockStore := newMockStore()
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	// Project with resources to create
 	project := createServiceTestProjectWithAgents(
@@ -804,7 +804,7 @@ func TestReconcile_DryRun_DoesNotModifyActualState(t *testing.T) {
 	// returns without calling the stub
 
 	mockStore := newMockStore()
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	project := createServiceTestProjectWithAgents(createServiceTestAgent("new-agent", "test"))
 
@@ -823,7 +823,7 @@ func TestReconcile_PruneDisabled_NoDeletes(t *testing.T) {
 	// Store has an orphan resource
 	orphan := createServiceTestAgentWithID("orphan", "To be deleted", "agt-orphan")
 	mockStore := newMockStore().withAgents(orphan)
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	// Project has no agents (orphan should be deleted normally)
 	project := createServiceTestProject("Empty Project")
@@ -844,7 +844,7 @@ func TestReconcile_PruneEnabled_IncludesDeletes(t *testing.T) {
 	// Store has an orphan resource
 	orphan := createServiceTestAgentWithID("orphan", "To be deleted", "agt-orphan")
 	mockStore := newMockStore().withAgents(orphan)
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	// Project has no agents (orphan should be detected)
 	project := createServiceTestProject("Empty Project")
@@ -887,7 +887,7 @@ func TestReconcile_ComplexScenario_CorrectPlan(t *testing.T) {
 	orphanAgent := createServiceTestAgentWithID("agent-orphan", "To be deleted", "agt-3")
 
 	mockStore := newMockStore().withAgents(existingAgent, updateAgent, orphanAgent)
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	// Desired state:
 	// - agent-existing: same spec (no change)
@@ -922,7 +922,7 @@ func TestReconcile_UpdateDetectsSpecChanges(t *testing.T) {
 	// Existing agent with one description
 	existing := createServiceTestAgentWithID("my-agent", "Original description", "agt-123")
 	mockStore := newMockStore().withAgents(existing)
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	// Desired agent with different description
 	project := createServiceTestProjectWithAgents(
@@ -944,7 +944,7 @@ func TestReconcile_UpdateIgnoresMetadataChanges(t *testing.T) {
 	// Existing agent with ID and timestamps
 	existing := createServiceTestAgentWithID("my-agent", "Same description", "agt-123")
 	mockStore := newMockStore().withAgents(existing)
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	// Desired agent without ID (as it would come from SDK)
 	desired := createServiceTestAgent("my-agent", "Same description")
@@ -973,7 +973,7 @@ func TestReconcile_OrphanDetection(t *testing.T) {
 		withAgents(orphan1).
 		withWorkflows(orphan2)
 
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	// Empty project - all existing resources are orphans
 	project := createServiceTestProject("Empty")
@@ -992,7 +992,7 @@ func TestReconcile_OrphanDetection(t *testing.T) {
 func TestReconcile_MixedResourceTypes_AllProcessed(t *testing.T) {
 	// Test that all four resource types are processed correctly
 	mockStore := newMockStore()
-	service := NewReconciliationService(mockStore)
+	service := NewReconciliationService(mockStore, nil)
 
 	project := createServiceTestProject("Mixed")
 	project.Spec.Agents = []*agentv1.Agent{

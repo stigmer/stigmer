@@ -70,10 +70,28 @@ type ProjectController struct {
 //     Pass nil to use a default implementation created from the store.
 func NewProjectController(store store.Store, reconciliationService reconcile.ReconciliationService) *ProjectController {
 	if reconciliationService == nil {
-		reconciliationService = reconcile.NewReconciliationService(store)
+		reconciliationService = reconcile.NewReconciliationService(store, nil)
 	}
 	return &ProjectController{
 		store:                 store,
 		reconciliationService: reconciliationService,
 	}
+}
+
+// SetReconciliationService replaces the controller's reconciliation service.
+//
+// This method enables late binding of the reconciliation service, which is
+// necessary because the ExecutionEngine requires downstream gRPC clients that
+// are only available after the in-process gRPC server is fully initialized.
+//
+// The server startup sequence is:
+//  1. Create ProjectController with a stub reconciliation service
+//  2. Register all controllers with the gRPC server
+//  3. Create in-process gRPC connection
+//  4. Create downstream clients using that connection
+//  5. Create ExecutionEngine with downstream clients
+//  6. Create full ReconciliationService with ExecutionEngine
+//  7. Call SetReconciliationService to inject the real implementation
+func (c *ProjectController) SetReconciliationService(service reconcile.ReconciliationService) {
+	c.reconciliationService = service
 }

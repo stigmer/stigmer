@@ -63,7 +63,6 @@ go_library(
         "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/internal/cli/config",
         "//client-apps/cli/internal/cli/daemon",
-        "//client-apps/cli/internal/cli/deploy",
         "//client-apps/cli/internal/cli/envfile",
         "//client-apps/cli/internal/cli/llm",
         "//client-apps/cli/internal/cli/logs",

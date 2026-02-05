@@ -99,10 +99,9 @@ func GetAgentBySlug(serverPort int, slug string, org string) (*agentv1.Agent, er
 	defer cancel()
 
 	agent, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
-		Scope: apiresource.ApiResourceOwnerScope_organization,
-		Org:   org,
-		Kind:  apiresourcekind.ApiResourceKind_agent,
-		Slug:  slug,
+		Org:  org,
+		Kind: apiresourcekind.ApiResourceKind_agent,
+		Slug: slug,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get agent by slug: %w", err)
@@ -542,34 +541,6 @@ func GetMcpServerViaAPI(serverPort int, mcpServerID string) (*mcpserverv1.McpSer
 	mcpServer, err := client.Get(ctx, &mcpserverv1.McpServerId{Value: mcpServerID})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get MCP server: %w", err)
-	}
-
-	return mcpServer, nil
-}
-
-// GetMcpServerBySlug queries an MCP server by slug and organization via gRPC API
-// This is the proper way to verify MCP servers by slug in tests
-func GetMcpServerBySlug(serverPort int, slug string, org string) (*mcpserverv1.McpServer, error) {
-	addr := fmt.Sprintf("localhost:%d", serverPort)
-	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to server: %w", err)
-	}
-	defer conn.Close()
-
-	client := mcpserverv1.NewMcpServerQueryControllerClient(conn)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	mcpServer, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
-		Scope: apiresource.ApiResourceOwnerScope_organization,
-		Org:   org,
-		Kind:  apiresourcekind.ApiResourceKind_mcp_server,
-		Slug:  slug,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get MCP server by slug: %w", err)
 	}
 
 	return mcpServer, nil

@@ -27,18 +27,21 @@ const ProjectOwnershipAnnotation = "stigmer.ai/sdk.project"
 //  2. Fetch actual state from store (resources with project ownership annotation)
 //  3. Build dependency graph
 //  4. Compute diff to create reconciliation plan
-//  5. Execute plan (stubbed in D4, full implementation in E2)
+//  5. Execute plan using the ExecutionEngine
 type reconciliationServiceImpl struct {
-	store store.Store
+	store  store.Store
+	engine *ExecutionEngine
 }
 
 // NewReconciliationService creates a new ReconciliationService.
 //
 // Parameters:
 //   - store: The store for querying actual state
-func NewReconciliationService(store store.Store) ReconciliationService {
+//   - engine: The execution engine for executing plans (optional, pass nil for stub mode)
+func NewReconciliationService(store store.Store, engine *ExecutionEngine) ReconciliationService {
 	return &reconciliationServiceImpl{
-		store: store,
+		store:  store,
+		engine: engine,
 	}
 }
 
@@ -61,6 +64,7 @@ func (s *reconciliationServiceImpl) Reconcile(
 	}
 
 	projectID := project.GetMetadata().GetId()
+	projectOrg := project.GetMetadata().GetOrg()
 
 	// Step 1: Parse desired state from Project.Spec
 	desired := s.parseDesiredState(project)
@@ -88,9 +92,7 @@ func (s *reconciliationServiceImpl) Reconcile(
 	}
 
 	// Step 5: Execute plan
-	// Note: In D4, execution is stubbed. The plan is computed but changes
-	// are not actually applied. Full execution will be implemented in E2.
-	return s.executePlan(ctx, plan, projectID)
+	return s.executePlan(ctx, plan, projectID, projectOrg)
 }
 
 // parseDesiredState extracts resources from Project.Spec into a DesiredState.
@@ -330,28 +332,24 @@ func (s *reconciliationServiceImpl) filterDeletes(plan *ReconciliationPlan) *Rec
 
 // executePlan executes the reconciliation plan.
 //
-// Note: In D4, this is a stub implementation. The plan is computed but
-// actual resource creation/update/deletion is deferred to Phase E2.
-// This stub returns a result as if all changes succeeded.
+// If an ExecutionEngine is configured, it delegates to the engine which calls
+// downstream controllers. Otherwise, it falls back to stub mode which returns
+// the plan as a result without actual execution (for testing).
 func (s *reconciliationServiceImpl) executePlan(
 	ctx context.Context,
 	plan *ReconciliationPlan,
 	projectID string,
+	projectOrg string,
 ) (*ReconciliationResult, error) {
 	if plan == nil || plan.IsEmpty() {
 		return EmptyResult(), nil
 	}
 
-	// D4 Stub: Return the plan as a success result without actual execution.
-	// Full execution (calling downstream controllers) will be implemented in E2.
-	//
-	// The stub:
-	// 1. Records all creates/updates/deletes as successful
-	// 2. Does NOT actually create, update, or delete any resources
-	// 3. Does NOT set ownership annotations on resources
-	//
-	// This allows testing the Apply handler flow end-to-end while
-	// deferring the complex execution logic to Phase E2.
+	// If engine is configured, use it for real execution
+	if s.engine != nil {
+		return s.engine.ExecutePlan(ctx, plan, projectID, projectOrg), nil
+	}
 
+	// Fallback: Stub mode for testing - return plan as success without execution
 	return s.planToResult(plan), nil
 }

@@ -116,6 +116,94 @@ func (c *Client) UpdateAsSystem(ctx context.Context, workflow *workflowv1.Workfl
 	return updated, nil
 }
 
+// Create creates a new workflow.
+//
+// This makes an in-process gRPC call to WorkflowCommandController.Create()
+// ensuring all gRPC interceptors run before reaching the handler.
+//
+// Use case: Reconciliation engine creates workflows as part of project apply.
+func (c *Client) Create(ctx context.Context, workflow *workflowv1.Workflow) (*workflowv1.Workflow, error) {
+	log.Debug().
+		Str("name", workflow.GetMetadata().GetName()).
+		Msg("Creating workflow via in-process gRPC")
+
+	created, err := c.commandClient.Create(ctx, workflow)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("name", workflow.GetMetadata().GetName()).
+			Msg("Failed to create workflow")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("id", created.GetMetadata().GetId()).
+		Str("name", created.GetMetadata().GetName()).
+		Msg("Successfully created workflow")
+
+	return created, nil
+}
+
+// Update updates an existing workflow.
+//
+// This makes an in-process gRPC call to WorkflowCommandController.Update()
+// ensuring all gRPC interceptors run before reaching the handler.
+//
+// Use case: Reconciliation engine updates workflows as part of project apply.
+func (c *Client) Update(ctx context.Context, workflow *workflowv1.Workflow) (*workflowv1.Workflow, error) {
+	log.Debug().
+		Str("id", workflow.GetMetadata().GetId()).
+		Str("name", workflow.GetMetadata().GetName()).
+		Msg("Updating workflow via in-process gRPC")
+
+	updated, err := c.commandClient.Update(ctx, workflow)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("id", workflow.GetMetadata().GetId()).
+			Msg("Failed to update workflow")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("id", updated.GetMetadata().GetId()).
+		Str("name", updated.GetMetadata().GetName()).
+		Msg("Successfully updated workflow")
+
+	return updated, nil
+}
+
+// Delete deletes a workflow by ID.
+//
+// This makes an in-process gRPC call to WorkflowCommandController.Delete()
+// using WorkflowId wrapper type.
+//
+// Use case: Reconciliation engine deletes orphan workflows during project apply.
+func (c *Client) Delete(ctx context.Context, resourceID string) (*workflowv1.Workflow, error) {
+	log.Debug().
+		Str("workflow_id", resourceID).
+		Msg("Deleting workflow via in-process gRPC")
+
+	workflowId := &workflowv1.WorkflowId{
+		Value: resourceID,
+	}
+
+	deleted, err := c.commandClient.Delete(ctx, workflowId)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("workflow_id", resourceID).
+			Msg("Failed to delete workflow")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("id", deleted.GetMetadata().GetId()).
+		Msg("Successfully deleted workflow")
+
+	return deleted, nil
+}
+
 // Close closes the underlying gRPC connection
 func (c *Client) Close() error {
 	if c.conn != nil {

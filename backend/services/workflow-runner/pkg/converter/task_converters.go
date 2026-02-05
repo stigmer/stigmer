@@ -227,11 +227,6 @@ func (c *Converter) convertAgentCallTask(cfg *tasksv1.AgentCallTaskConfig) map[s
 		"message": cfg.Message,
 	}
 
-	// Add scope if specified
-	if cfg.Scope != 0 { // 0 is unspecified
-		with["scope"] = cfg.Scope.String()
-	}
-
 	// Add env variables if present
 	if len(cfg.Env) > 0 {
 		with["env"] = cfg.Env
