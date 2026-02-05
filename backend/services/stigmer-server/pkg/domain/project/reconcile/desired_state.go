@@ -9,6 +9,7 @@ import (
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"google.golang.org/protobuf/proto"
 )
 
 // emptyDesiredState is a singleton empty state for reuse.
@@ -146,6 +147,64 @@ func (s *DesiredState) HasResource(key ResourceKey) bool {
 	default:
 		return false
 	}
+}
+
+// GetResource returns a resource by its key, or nil if not found.
+//
+// This method returns proto.Message interface to support generic handling
+// in the diff algorithm. Use the typed getters (GetAgent, GetWorkflow, etc.)
+// when you know the resource type.
+//
+// Note: This method explicitly checks for nil before returning to avoid
+// the Go interface nil gotcha where a nil pointer wrapped in an interface
+// is not equal to nil.
+//
+// Example:
+//
+//	key := MustResourceKey(apiresourcekind.ApiResourceKind_agent, "my-agent")
+//	if resource := desired.GetResource(key); resource != nil {
+//	    // Use resource
+//	}
+func (s *DesiredState) GetResource(key ResourceKey) proto.Message {
+	switch key.Kind() {
+	case apiresourcekind.ApiResourceKind_agent:
+		if agent := s.agents[key.Slug()]; agent != nil {
+			return agent
+		}
+	case apiresourcekind.ApiResourceKind_workflow:
+		if workflow := s.workflows[key.Slug()]; workflow != nil {
+			return workflow
+		}
+	case apiresourcekind.ApiResourceKind_mcp_server:
+		if mcpServer := s.mcpServers[key.Slug()]; mcpServer != nil {
+			return mcpServer
+		}
+	case apiresourcekind.ApiResourceKind_skill:
+		if skill := s.skills[key.Slug()]; skill != nil {
+			return skill
+		}
+	}
+	return nil
+}
+
+// GetAgent returns an agent by slug, or nil if not found.
+func (s *DesiredState) GetAgent(slug string) *agentv1.Agent {
+	return s.agents[slug]
+}
+
+// GetWorkflow returns a workflow by slug, or nil if not found.
+func (s *DesiredState) GetWorkflow(slug string) *workflowv1.Workflow {
+	return s.workflows[slug]
+}
+
+// GetMcpServer returns an MCP server by slug, or nil if not found.
+func (s *DesiredState) GetMcpServer(slug string) *mcpserverv1.McpServer {
+	return s.mcpServers[slug]
+}
+
+// GetSkill returns a skill by slug, or nil if not found.
+func (s *DesiredState) GetSkill(slug string) *skillv1.Skill {
+	return s.skills[slug]
 }
 
 // Agents returns a defensive copy of the agents map.
