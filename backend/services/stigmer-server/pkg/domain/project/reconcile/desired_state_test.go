@@ -316,3 +316,148 @@ func TestDesiredState_Getters_ReturnCopies(t *testing.T) {
 		}
 	})
 }
+
+func TestDesiredState_GetResource(t *testing.T) {
+	agent := createTestAgent("my-agent")
+	workflow := createTestWorkflow("my-workflow")
+	mcpServer := createTestMcpServer("my-mcp")
+	skill := createTestSkill("my-skill")
+
+	state := NewDesiredState(
+		map[string]*agentv1.Agent{"my-agent": agent},
+		map[string]*workflowv1.Workflow{"my-workflow": workflow},
+		map[string]*mcpserverv1.McpServer{"my-mcp": mcpServer},
+		map[string]*skillv1.Skill{"my-skill": skill},
+	)
+
+	t.Run("returns agent by key", func(t *testing.T) {
+		key := MustResourceKey(apiresourcekind.ApiResourceKind_agent, "my-agent")
+		resource := state.GetResource(key)
+		if resource == nil {
+			t.Fatal("expected non-nil resource")
+		}
+		if resource != agent {
+			t.Error("expected same agent instance")
+		}
+	})
+
+	t.Run("returns workflow by key", func(t *testing.T) {
+		key := MustResourceKey(apiresourcekind.ApiResourceKind_workflow, "my-workflow")
+		resource := state.GetResource(key)
+		if resource == nil {
+			t.Fatal("expected non-nil resource")
+		}
+		if resource != workflow {
+			t.Error("expected same workflow instance")
+		}
+	})
+
+	t.Run("returns mcp_server by key", func(t *testing.T) {
+		key := MustResourceKey(apiresourcekind.ApiResourceKind_mcp_server, "my-mcp")
+		resource := state.GetResource(key)
+		if resource == nil {
+			t.Fatal("expected non-nil resource")
+		}
+		if resource != mcpServer {
+			t.Error("expected same mcp_server instance")
+		}
+	})
+
+	t.Run("returns skill by key", func(t *testing.T) {
+		key := MustResourceKey(apiresourcekind.ApiResourceKind_skill, "my-skill")
+		resource := state.GetResource(key)
+		if resource == nil {
+			t.Fatal("expected non-nil resource")
+		}
+		if resource != skill {
+			t.Error("expected same skill instance")
+		}
+	})
+
+	t.Run("returns nil for missing resource", func(t *testing.T) {
+		key := MustResourceKey(apiresourcekind.ApiResourceKind_agent, "non-existent")
+		resource := state.GetResource(key)
+		if resource != nil {
+			t.Error("expected nil for missing resource")
+		}
+	})
+
+	t.Run("returns nil for wrong kind", func(t *testing.T) {
+		// Resource exists as agent, but we query as workflow
+		key := MustResourceKey(apiresourcekind.ApiResourceKind_workflow, "my-agent")
+		resource := state.GetResource(key)
+		if resource != nil {
+			t.Error("expected nil for wrong kind")
+		}
+	})
+}
+
+func TestDesiredState_TypedGetters(t *testing.T) {
+	agent := createTestAgent("my-agent")
+	workflow := createTestWorkflow("my-workflow")
+	mcpServer := createTestMcpServer("my-mcp")
+	skill := createTestSkill("my-skill")
+
+	state := NewDesiredState(
+		map[string]*agentv1.Agent{"my-agent": agent},
+		map[string]*workflowv1.Workflow{"my-workflow": workflow},
+		map[string]*mcpserverv1.McpServer{"my-mcp": mcpServer},
+		map[string]*skillv1.Skill{"my-skill": skill},
+	)
+
+	t.Run("GetAgent returns agent", func(t *testing.T) {
+		result := state.GetAgent("my-agent")
+		if result != agent {
+			t.Error("expected same agent instance")
+		}
+	})
+
+	t.Run("GetAgent returns nil for missing", func(t *testing.T) {
+		result := state.GetAgent("non-existent")
+		if result != nil {
+			t.Error("expected nil for missing agent")
+		}
+	})
+
+	t.Run("GetWorkflow returns workflow", func(t *testing.T) {
+		result := state.GetWorkflow("my-workflow")
+		if result != workflow {
+			t.Error("expected same workflow instance")
+		}
+	})
+
+	t.Run("GetWorkflow returns nil for missing", func(t *testing.T) {
+		result := state.GetWorkflow("non-existent")
+		if result != nil {
+			t.Error("expected nil for missing workflow")
+		}
+	})
+
+	t.Run("GetMcpServer returns mcp_server", func(t *testing.T) {
+		result := state.GetMcpServer("my-mcp")
+		if result != mcpServer {
+			t.Error("expected same mcp_server instance")
+		}
+	})
+
+	t.Run("GetMcpServer returns nil for missing", func(t *testing.T) {
+		result := state.GetMcpServer("non-existent")
+		if result != nil {
+			t.Error("expected nil for missing mcp_server")
+		}
+	})
+
+	t.Run("GetSkill returns skill", func(t *testing.T) {
+		result := state.GetSkill("my-skill")
+		if result != skill {
+			t.Error("expected same skill instance")
+		}
+	})
+
+	t.Run("GetSkill returns nil for missing", func(t *testing.T) {
+		result := state.GetSkill("non-existent")
+		if result != nil {
+			t.Error("expected nil for missing skill")
+		}
+	})
+}

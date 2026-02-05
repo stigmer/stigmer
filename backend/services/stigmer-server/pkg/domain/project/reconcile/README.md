@@ -277,6 +277,109 @@ Common empty values are singletons for efficiency:
 - `EmptyActualState()` - Empty actual state
 - `DefaultOptions()`, `DryRunOptions()`, `NoPruneOptions()` - Common option presets
 
+### Phase B: Dependency Graph
+
+#### DependencyGraph
+
+Immutable directed acyclic graph (DAG) representing resource dependencies.
+
+```go
+// Build graph using builder pattern
+graph := reconcile.NewDependencyGraphBuilder().
+    AddDependency(workflowKey, agentKey).
+    AddDependency(agentKey, mcpServerKey).
+    Build()
+
+// Query dependencies
+deps := graph.Dependencies(workflowKey)  // [agentKey]
+dependents := graph.Dependents(agentKey) // [workflowKey]
+
+// Topological sort for execution order
+order, err := graph.TopologicalSort()
+if err != nil {
+    // Handle cycle
+}
+// order: [mcpServerKey, agentKey, workflowKey]
+
+// Reverse sort for deletion order
+deleteOrder, _ := graph.ReverseTopologicalSort()
+// deleteOrder: [workflowKey, agentKey, mcpServerKey]
+
+// Cycle detection
+if graph.HasCycle() {
+    cyclePath, _ := graph.DetectCycle()
+}
+```
+
+#### DependencyDiscoverer
+
+Proto reflection scanner that finds ApiResourceReference fields.
+
+```go
+// Discover dependencies in any proto message
+refs := reconcile.DiscoverDependencies(agentProto)
+// refs: []*ApiResourceReference pointing to skills, MCP servers
+
+// Convert reference to ResourceKey
+key, err := reconcile.ToResourceKey(ref)
+```
+
+#### GraphBuilder
+
+Build dependency graph from DesiredState.
+
+```go
+desired := reconcile.NewDesiredState(agents, workflows, mcpServers, skills)
+graph := reconcile.BuildDependencyGraph(desired)
+// graph contains only internal dependencies (within the desired state)
+```
+
+### Phase C1: Diff Algorithm
+
+#### ComputeDiff
+
+Core diff algorithm that compares desired state with actual state.
+
+```go
+// Compute diff to produce reconciliation plan
+desired := reconcile.NewDesiredState(agents, workflows, mcpServers, skills)
+actual := reconcile.NewActualState(existingAgents, existingWorkflows, nil, nil)
+graph := reconcile.BuildDependencyGraph(desired)
+
+plan := reconcile.ComputeDiff(desired, actual, graph)
+
+// Plan categorizes all changes
+fmt.Printf("Creates: %d\n", plan.CreateCount())  // New resources
+fmt.Printf("Updates: %d\n", plan.UpdateCount())  // Changed specs
+fmt.Printf("Deletes: %d\n", plan.DeleteCount())  // Orphans
+
+// Iterate changes
+for _, change := range plan.Creates() {
+    fmt.Println(change.Key())           // e.g., "agent:new-agent"
+    fmt.Println(change.DesiredState())  // The proto to create
+}
+```
+
+**Diff Categories:**
+- **Creates**: Resources in desired but not in actual
+- **Updates**: Resources in both with different specs (metadata ignored)
+- **Deletes**: Resources in actual but not in desired (orphans)
+
+**Spec-Only Comparison:**
+
+The diff algorithm compares only the `spec` field of resources, ignoring metadata fields like `id`, `created_at`, `updated_at`. This prevents false update detections caused by system-managed metadata.
+
+```go
+// Same spec, different metadata -> NO update
+agent1 := &Agent{Spec: spec, Metadata: &Meta{Id: "a"}}
+agent2 := &Agent{Spec: spec, Metadata: &Meta{Id: "b"}}
+// These are considered equal
+
+// Different spec -> YES update
+agent3 := &Agent{Spec: differentSpec}
+// This triggers an update
+```
+
 ## File Structure
 
 ```
@@ -284,7 +387,7 @@ reconcile/
 ├── resource_key.go              # ResourceKey type and functions
 ├── resource_key_test.go         # 10 tests
 ├── desired_state.go             # DesiredState value object
-├── desired_state_test.go        # 8 tests
+├── desired_state_test.go        # 10 tests
 ├── actual_state.go              # ActualState value object
 ├── actual_state_test.go         # 9 tests
 ├── change_type.go               # ChangeType enum constants
@@ -299,6 +402,14 @@ reconcile/
 ├── reconciliation_error_test.go # 4 tests
 ├── reconciliation_options.go    # ReconciliationOptions config
 ├── reconciliation_options_test.go# 6 tests
+├── dependency_graph.go          # DependencyGraph with topo sort
+├── dependency_graph_test.go     # 35 tests
+├── dependency_discoverer.go     # Proto reflection scanner
+├── dependency_discoverer_test.go# 25 tests
+├── graph_builder.go             # Build graph from state
+├── graph_builder_test.go        # 20 tests
+├── diff.go                      # Diff algorithm (ComputeDiff)
+├── diff_test.go                 # 35 tests
 ├── BUILD.bazel                  # Bazel build configuration
 └── README.md                    # This file
 ```
@@ -314,9 +425,8 @@ bazel test //backend/services/stigmer-server/pkg/domain/project/reconcile:reconc
 ## Future Extensions
 
 This package will be extended in later phases with:
-- **Phase B**: `DependencyGraph` - Immutable graph with topological sort
-- **Phase B**: `DependencyDiscoverer` - Proto reflection to find ApiResourceReference fields
-- **Phase B**: `GraphBuilder` - Build dependency graph from state
-- **Phase C**: `ComputeDiff()` - Diff algorithm to produce ReconciliationPlan
-- **Phase C**: `GetChangesInExecutionOrder()` - Topological ordering for creates/updates
-- **Phase C**: `GetDeletesInReverseDependencyOrder()` - Safe deletion ordering
+- **Phase C2**: `GetChangesInExecutionOrder()` - Topological ordering for creates/updates
+- **Phase C2**: `GetDeletesInReverseDependencyOrder()` - Safe deletion ordering
+- **Phase D**: CRUD handlers for Project entity
+- **Phase E**: `ReconciliationService` - Main orchestrator
+- **Phase E**: `ExecutionEngine` - Execute plan with partial failure handling
