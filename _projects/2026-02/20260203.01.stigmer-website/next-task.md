@@ -68,9 +68,103 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-03 15:53
-**Last Updated**: 2026-02-05 (Logo Integration)
-**Current Task**: Logo Integration - ✅ COMPLETED
-**Status**: ✅ DEPLOYMENT READY - Logo visible, all quality gates passed, ready for GitHub Pages
+**Last Updated**: 2026-02-05 (Architecture Section UX Polish)
+**Current Task**: Visual Polish - ✅ COMPLETED
+**Status**: ✅ DEPLOYMENT READY - All sections optimized, messaging refined, ready for GitHub Pages
+
+## Session Progress (2026-02-05 - Architecture Section UX & Messaging)
+
+### Completed ✅
+
+**Architecture Section UX and Messaging Improvements**
+
+Refined the "How It Works" section based on founder feedback, removing decorative arrows to maximize code visibility and updating messaging to focus on developer capabilities rather than infrastructure mechanisms.
+
+**Accomplishments**:
+
+1. **Removed Horizontal Arrows** (`site/src/components/sections/Architecture.tsx`)
+   - Deleted two 48px arrow elements between desktop columns
+   - Gained ~100px of horizontal space for code samples
+   - Adjusted animation delays (0.2s spacing) for smooth stagger
+   - **Impact**: Code samples (YAML/Go SDK) more readable with less wrapping
+
+2. **Capability-First Messaging** (`site/src/components/sections/Architecture.tsx`)
+   - Updated highlighted card: "Agents as gRPC Services" → "Invoke Agents via API"
+   - Updated description: Infrastructure mechanism → Developer capability
+   - Updated "You Integrate" subtitle: "Call like any microservice" → "Call your agents from any application"
+   - **Impact**: Clearer value proposition focused on what developers can do
+
+3. **Removed False Affordance** (`site/src/components/sections/Architecture.tsx`)
+   - Removed `highlight: true` from platform layer card
+   - All infrastructure items now equal visual weight
+   - No visual emphasis on non-clickable elements
+   - **Impact**: Better UX patterns, no misleading hover cues
+
+**Quality Validation** ✅
+- TypeScript: Zero errors
+- ESLint: Zero errors
+- Build: Successful (no bundle impact)
+- Responsive: All layouts verified (desktop/tablet/mobile)
+
+**Files Modified**: 2 files
+- `site/src/components/sections/Architecture.tsx` (-25 lines, +8 modified)
+- `_changelog/2026-02/2026-02-05-173300-architecture-section-ux-messaging-improvements.md` - Documentation
+
+**Commit**: `74954afd` - feat(site): improve architecture section UX and messaging
+
+**Changelog**: `_changelog/2026-02/2026-02-05-173300-architecture-section-ux-messaging-improvements.md`
+
+---
+
+## Session Progress (2026-02-05 - Alignment & Logo Consistency)
+
+### Completed ✅
+
+**Visual Alignment and Logo Consistency - Final Polish**
+
+Fixed alignment issues and established consistent branding across all pages of the Stigmer website.
+
+**Accomplishments**:
+
+1. **Container Alignment** (`site/src/components/sections/Quickstart.tsx`)
+   - Changed outer container from `max-w-4xl` to `max-w-7xl` to match other sections
+   - Kept inner content centered at `max-w-4xl` for optimal readability
+   - Eliminated noticeable horizontal shift between sections
+   - **Impact**: Professional visual flow across entire homepage
+
+2. **Progress Line Fix** (`site/src/components/sections/Quickstart.tsx`)
+   - Moved SDK callout outside the `relative` container holding progress line
+   - Line now properly stops after Step 5, no overflow
+   - Clean separation between Quickstart steps and SDK callout
+   - **Impact**: No visual overlap, cleaner section boundaries
+
+3. **Footer Logo Consistency** (`site/src/components/layout/Footer.tsx`)
+   - Replaced placeholder `<Logo>` component with official SVG logo
+   - Matches Header implementation exactly
+   - Clickable link to homepage with hover effect
+   - **Impact**: Consistent brand identity across all pages
+
+4. **Content Deduplication** (`site/src/components/sections/Quickstart.tsx`)
+   - Removed duplicate "From Local Development to Production" section
+   - Already present in Architecture section above
+   - Cleaned up unused `ProgressionStep` component
+   - **Impact**: Removed ~90 lines of dead code
+
+**Quality Validation** ✅
+- TypeScript: Zero errors
+- ESLint: Zero errors
+- Build: Successful (171 KB First Load JS - unchanged)
+- Visual: All sections properly aligned
+
+**Files Modified**: 2 files
+- `site/src/components/sections/Quickstart.tsx` (-88 lines)
+- `site/src/components/layout/Footer.tsx` (+11/-6 lines)
+
+**Commit**: `3fe26e44` - fix(site): correct alignment and logo consistency
+
+**Changelog**: `_changelog/2026-02/2026-02-05-162620-website-alignment-and-logo-consistency.md`
+
+---
 
 ## Session Progress (2026-02-05 - Logo Integration)
 
