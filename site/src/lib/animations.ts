@@ -1,313 +1,238 @@
 /**
- * Animation Design System
+ * Animation Design System for Stigmer
  *
- * Centralized, type-safe animation configuration for Stigmer website.
- * All animations use compositor-only properties (transform, opacity) for
- * optimal performance. Designed to work with framer-motion.
+ * Centralized, type-safe animation configuration.
+ * All motion components consume these variants and transitions.
  *
- * @example
- * import { fadeInUp, transitions, viewportOnce } from "@/lib/animations";
- *
- * <motion.div
- *   initial="hidden"
- *   whileInView="visible"
- *   viewport={viewportOnce}
- *   variants={fadeInUp}
- *   transition={transitions.smooth}
- * >
- *   Content
- * </motion.div>
+ * Design Principles:
+ * - GPU-accelerated properties only (transform, opacity)
+ * - Composable: variants separate from transitions
+ * - Type-safe: full inference with `as const`
+ * - Accessible: works with useReducedMotion
  */
 
 import type { Variants, Transition } from "framer-motion";
 
 // =============================================================================
-// ENTRANCE ANIMATIONS
+// VARIANT DEFINITIONS
+// Animation states for different motion patterns
 // =============================================================================
 
 /**
- * Simple opacity fade.
+ * Fade in with upward motion - the workhorse entrance animation.
+ * Use for: cards, text blocks, images entering viewport.
  */
-export const fadeIn = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-} as const satisfies Variants;
-
-/**
- * Fade in while sliding up - most common entrance animation.
- */
-export const fadeInUp = {
+export const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
-} as const satisfies Variants;
+};
 
 /**
- * Fade in while sliding down.
+ * Fade in with downward motion.
+ * Use for: dropdown menus, tooltips, elements entering from above.
  */
-export const fadeInDown = {
+export const fadeInDown: Variants = {
   hidden: { opacity: 0, y: -20 },
   visible: { opacity: 1, y: 0 },
-} as const satisfies Variants;
+};
 
 /**
- * Fade in while sliding from left.
+ * Simple fade - no translation.
+ * Use for: overlays, backdrops, subtle reveals.
  */
-export const fadeInLeft = {
-  hidden: { opacity: 0, x: -20 },
-  visible: { opacity: 1, x: 0 },
-} as const satisfies Variants;
+export const fadeIn: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+};
 
 /**
- * Fade in while sliding from right.
+ * Scale in from slightly smaller.
+ * Use for: modals, cards with emphasis, focused elements.
  */
-export const fadeInRight = {
-  hidden: { opacity: 0, x: 20 },
-  visible: { opacity: 1, x: 0 },
-} as const satisfies Variants;
-
-/**
- * Scale up with fade - good for cards and modals.
- */
-export const scaleIn = {
+export const scaleIn: Variants = {
   hidden: { opacity: 0, scale: 0.95 },
   visible: { opacity: 1, scale: 1 },
-} as const satisfies Variants;
+};
 
 /**
- * Larger scale animation - for hero elements.
+ * Slide in from right with exit animation.
+ * Use for: side drawers, mobile menus, panels.
  */
-export const scaleInLarge = {
-  hidden: { opacity: 0, scale: 0.9 },
-  visible: { opacity: 1, scale: 1 },
-} as const satisfies Variants;
+export const slideInRight: Variants = {
+  hidden: { opacity: 0, x: 50 },
+  visible: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: 50 },
+};
+
+/**
+ * Slide in from left with exit animation.
+ * Use for: side panels opening from left.
+ */
+export const slideInLeft: Variants = {
+  hidden: { opacity: 0, x: -50 },
+  visible: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -50 },
+};
+
+/**
+ * Slide in from right (full panel width) for mobile menus.
+ * Use for: mobile navigation drawers.
+ */
+export const slideInRightFull: Variants = {
+  hidden: { x: "100%" },
+  visible: { x: 0 },
+  exit: { x: "100%" },
+};
+
+/**
+ * Backdrop fade for overlays.
+ * Use for: modal backdrops, menu overlays.
+ */
+export const backdropFade: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+  exit: { opacity: 0 },
+};
 
 // =============================================================================
 // STAGGER CONTAINERS
+// Parent variants that orchestrate child animations
 // =============================================================================
 
 /**
- * Standard stagger container for lists/grids.
- * Children animate with 100ms delay between each.
+ * Container for staggered children - standard timing.
+ * Use for: feature grids, lists, card collections.
  */
-export const staggerContainer = {
+export const staggerContainer: Variants = {
   hidden: {},
   visible: {
     transition: {
       staggerChildren: 0.1,
-      delayChildren: 0.2,
+      delayChildren: 0.1,
     },
   },
-} as const satisfies Variants;
+};
 
 /**
- * Faster stagger for smaller elements.
- * Children animate with 50ms delay between each.
+ * Container with faster stagger - for dense lists.
+ * Use for: navigation items, quick lists.
  */
-export const staggerFast = {
+export const staggerContainerFast: Variants = {
   hidden: {},
   visible: {
     transition: {
       staggerChildren: 0.05,
-      delayChildren: 0.1,
+      delayChildren: 0.05,
     },
   },
-} as const satisfies Variants;
+};
 
 /**
- * Slower stagger for dramatic effect.
- * Children animate with 150ms delay between each.
+ * Container with slower stagger - for emphasis.
+ * Use for: hero sections, important content.
  */
-export const staggerSlow = {
+export const staggerContainerSlow: Variants = {
   hidden: {},
   visible: {
     transition: {
       staggerChildren: 0.15,
-      delayChildren: 0.3,
+      delayChildren: 0.2,
     },
   },
-} as const satisfies Variants;
+};
 
 // =============================================================================
 // TRANSITION PRESETS
+// Reusable timing and easing configurations
 // =============================================================================
 
 /**
- * Pre-configured transitions for consistent animation feel.
- *
- * - spring: Bouncy, natural feel for interactive elements
- * - smooth: Elegant ease for content reveals
- * - fast: Quick feedback for micro-interactions
- * - slow: Dramatic effect for hero sections
+ * Transition presets for consistent motion feel.
+ * Use these with variants for complete animations.
  */
 export const transitions = {
-  /** Bouncy spring - good for interactive elements */
+  /** Spring physics - natural, bouncy feel */
   spring: {
     type: "spring",
     stiffness: 300,
     damping: 30,
   } as Transition,
 
-  /** Smooth cubic bezier - elegant content reveals */
+  /** Bouncier spring - more playful */
+  springBouncy: {
+    type: "spring",
+    stiffness: 400,
+    damping: 25,
+  } as Transition,
+
+  /** Gentle spring - subtle, professional */
+  springGentle: {
+    type: "spring",
+    stiffness: 200,
+    damping: 30,
+  } as Transition,
+
+  /** Smooth easing - standard entrance */
   smooth: {
     duration: 0.4,
     ease: [0.25, 0.1, 0.25, 1],
   } as Transition,
 
-  /** Fast easeOut - micro-interactions */
+  /** Fast easing - quick interactions */
   fast: {
     duration: 0.2,
     ease: "easeOut",
   } as Transition,
 
-  /** Slow ease - dramatic hero animations */
+  /** Slow easing - dramatic reveals */
   slow: {
     duration: 0.6,
     ease: [0.25, 0.1, 0.25, 1],
   } as Transition,
 
-  /** Very slow - for background/ambient effects */
-  slower: {
-    duration: 0.8,
-    ease: [0.25, 0.1, 0.25, 1],
+  /** Menu transition - optimized for drawers */
+  menu: {
+    type: "spring",
+    stiffness: 400,
+    damping: 40,
   } as Transition,
 } as const;
 
 // =============================================================================
-// VIEWPORT CONFIGURATION
+// DURATION CONSTANTS
+// Synchronized with CSS custom properties in globals.css
 // =============================================================================
 
 /**
- * Standard viewport config - animate once when element enters view.
- * Uses negative margin to trigger slightly before fully visible.
+ * Duration constants in seconds.
+ * These mirror the CSS variables for consistency.
  */
-export const viewportOnce = {
-  once: true,
-  margin: "-100px",
-} as const;
-
-/**
- * Viewport config for smaller margins (closer to edge trigger).
- */
-export const viewportOnceNear = {
-  once: true,
-  margin: "-50px",
-} as const;
-
-/**
- * Viewport config that re-animates on every scroll.
- * Use sparingly - only for decorative elements.
- */
-export const viewportAlways = {
-  once: false,
-  margin: "-50px",
+export const durations = {
+  instant: 0.1,
+  fast: 0.15,
+  normal: 0.3,
+  slow: 0.5,
+  slower: 0.8,
 } as const;
 
 // =============================================================================
-// HOVER & TAP ANIMATIONS
+// VIEWPORT SETTINGS
+// Reusable viewport configurations for whileInView
 // =============================================================================
 
 /**
- * Subtle scale on hover - good for cards.
+ * Viewport settings for scroll-triggered animations.
  */
-export const hoverScale = {
-  scale: 1.02,
-  transition: transitions.fast,
+export const viewportSettings = {
+  /** Standard - animate once when 100px into view */
+  standard: { once: true, margin: "-100px" },
+
+  /** Eager - animate as soon as visible */
+  eager: { once: true, margin: "0px" },
+
+  /** Lazy - animate when well into view */
+  lazy: { once: true, margin: "-200px" },
+
+  /** Repeat - re-animate on every scroll */
+  repeat: { once: false, margin: "-100px" },
 } as const;
-
-/**
- * Larger scale on hover - for CTAs.
- */
-export const hoverScaleLarge = {
-  scale: 1.05,
-  transition: transitions.fast,
-} as const;
-
-/**
- * Lift effect on hover (scale + slight move up).
- */
-export const hoverLift = {
-  scale: 1.02,
-  y: -4,
-  transition: transitions.fast,
-} as const;
-
-/**
- * Glow effect on hover - uses CSS variable.
- */
-export const hoverGlow = {
-  boxShadow: "0 0 20px hsl(var(--primary) / 0.3)",
-  transition: transitions.fast,
-} as const;
-
-/**
- * Press/tap feedback - slight scale down.
- */
-export const tapScale = {
-  scale: 0.98,
-} as const;
-
-/**
- * Stronger press feedback for buttons.
- */
-export const tapScaleStrong = {
-  scale: 0.95,
-} as const;
-
-// =============================================================================
-// REDUCED MOTION SUPPORT
-// =============================================================================
-
-/**
- * Returns empty motion props when user prefers reduced motion.
- * Use with framer-motion's useReducedMotion hook.
- *
- * @example
- * const prefersReducedMotion = useReducedMotion();
- * const motionProps = getMotionProps(prefersReducedMotion);
- *
- * <motion.div
- *   initial="hidden"
- *   whileInView="visible"
- *   variants={fadeInUp}
- *   {...motionProps}
- * />
- */
-export function getMotionProps(prefersReducedMotion: boolean | null) {
-  if (prefersReducedMotion) {
-    return {
-      initial: undefined,
-      animate: undefined,
-      whileInView: undefined,
-      variants: undefined,
-      transition: undefined,
-    };
-  }
-  return {};
-}
-
-/**
- * Returns a transition that respects reduced motion preference.
- * Instantly completes animation when reduced motion is preferred.
- */
-export function getTransition(
-  prefersReducedMotion: boolean | null,
-  transition: Transition = transitions.smooth
-): Transition {
-  if (prefersReducedMotion) {
-    return { duration: 0 };
-  }
-  return transition;
-}
-
-// =============================================================================
-// TYPE EXPORTS
-// =============================================================================
-
-/** Type for animation variant objects */
-export type AnimationVariant = typeof fadeInUp;
-
-/** Type for transition preset keys */
-export type TransitionPreset = keyof typeof transitions;
-
-/** Type for viewport configuration */
-export type ViewportConfig = typeof viewportOnce;

@@ -43,6 +43,20 @@ const cardVariants = cva(
           "hover:border-primary/30",
           "hover:shadow-lg hover:shadow-primary/5",
         ],
+        /** Glass card with glassmorphism and glow on hover */
+        glass: [
+          "glass", // Uses CSS utility from globals.css
+          "border border-[var(--glass-border)]",
+          "hover:border-[var(--glass-border-hover)]",
+          "hover:shadow-[var(--glow-primary)]",
+        ],
+        /** Glass card with accent glow */
+        glassAccent: [
+          "glass",
+          "border border-[var(--glass-border-accent)]",
+          "hover:border-[var(--accent)]/40",
+          "hover:shadow-[var(--glow-accent)]",
+        ],
       },
     },
     defaultVariants: {
