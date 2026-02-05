@@ -7,6 +7,7 @@ import { NAV_LINKS, SITE_CONFIG } from "@/lib/constants";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { FadeIn } from "@/components/ui/motion";
 import { MobileMenu } from "./MobileMenu";
 
 export type HeaderProps = React.HTMLAttributes<HTMLElement>;
@@ -40,9 +41,11 @@ function Header({ className, ...props }: HeaderProps) {
       >
         <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="h-full flex items-center justify-between">
-            {/* Logo */}
-            <Logo showText className="hidden sm:flex" />
-            <Logo showText={false} className="sm:hidden" />
+            {/* Logo - Subtle entrance animation */}
+            <FadeIn delay={0}>
+              <Logo showText className="hidden sm:flex" />
+              <Logo showText={false} className="sm:hidden" />
+            </FadeIn>
 
             {/* Desktop Navigation */}
             <nav
@@ -101,7 +104,13 @@ function Header({ className, ...props }: HeaderProps) {
 }
 
 /**
- * Navigation link with hover/active states.
+ * Navigation link with animated underline on hover.
+ * 
+ * Features:
+ * - Pure CSS pseudo-element animation (zero JS overhead)
+ * - Uses design token --duration-normal (300ms)
+ * - GPU-accelerated width transition
+ * - Automatic reduced-motion support via globals.css
  */
 interface NavLinkProps {
   href: string;
@@ -111,11 +120,19 @@ interface NavLinkProps {
 
 function NavLink({ href, external, children }: NavLinkProps) {
   const baseClasses = cn(
-    "px-3 py-2 rounded-md",
+    // Layout & typography
+    "relative px-3 py-2",
     "text-sm font-medium",
     "text-muted-foreground",
+    // Color transition
     "transition-colors",
-    "hover:text-foreground hover:bg-muted/50"
+    "hover:text-foreground",
+    // Animated underline pseudo-element
+    "after:absolute after:bottom-1 after:left-3 after:right-3",
+    "after:h-[2px] after:bg-primary",
+    "after:origin-left after:scale-x-0",
+    "after:transition-transform after:duration-[var(--duration-normal)] after:ease-out",
+    "hover:after:scale-x-100"
   );
 
   if (external) {
