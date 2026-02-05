@@ -15,6 +15,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
@@ -31,6 +32,7 @@ import (
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
 	mcpservercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller"
+	projectcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/controller"
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
 	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
@@ -267,11 +269,18 @@ func Run() error {
 
 	log.Info().Msg("Registered McpServer controllers")
 
+	// Create and register Project controller
+	projectController := projectcontroller.NewProjectController(store)
+	projectv1.RegisterProjectCommandControllerServer(grpcServer, projectController)
+	projectv1.RegisterProjectQueryControllerServer(grpcServer, projectController)
+
+	log.Info().Msg("Registered Project controllers")
+
 	// Create and register SearchService controller (CQRS Query Service)
 	// The search service provides unified search across all searchable resources
 	// (agents, skills, mcp_servers, workflows) using FTS5 full-text search.
 	searchQueryStore := searchstore.NewSQLiteSearchQueryStore(
-		store.(*sqlite.Store).DB(), // Get the underlying *sql.DB
+		store.DB(), // Get the underlying *sql.DB
 		store,
 		extractor.GetRegistry(),
 	)
