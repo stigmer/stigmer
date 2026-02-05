@@ -4,6 +4,8 @@ go_library(
     name = "controller",
     srcs = [
         "create.go",
+        "get.go",
+        "get_by_reference.go",
         "project_controller.go",
         "update.go",
     ],
@@ -11,6 +13,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
@@ -21,6 +24,8 @@ go_test(
     name = "controller_test",
     srcs = [
         "create_test.go",
+        "get_by_reference_test.go",
+        "get_test.go",
         "project_controller_test.go",
         "update_test.go",
     ],
