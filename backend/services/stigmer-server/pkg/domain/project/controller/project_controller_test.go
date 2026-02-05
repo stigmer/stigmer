@@ -2,6 +2,7 @@ package project
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
@@ -31,7 +32,8 @@ func setupTestController(t *testing.T) (*ProjectController, store.Store) {
 		t.Fatalf("failed to create store: %v", err)
 	}
 
-	controller := NewProjectController(store)
+	// Pass nil for reconciliationService to use the default implementation
+	controller := NewProjectController(store, nil)
 
 	return controller, store
 }
@@ -146,23 +148,25 @@ func TestProjectController_ImplementsQueryServer(t *testing.T) {
 	}
 }
 
-func TestProjectController_UnimplementedMethodsReturnError(t *testing.T) {
+func TestProjectController_AllMethodsImplemented(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
 
+	// Verify that the controller implements all expected methods
+	// All CRUD operations and Apply are now implemented (D1, D2, D3, D4)
+	// This is a compile-time check via interface satisfaction
+	var _ projectv1.ProjectCommandControllerServer = controller
+	var _ projectv1.ProjectQueryControllerServer = controller
+
+	// Verify we can call Apply without getting "unimplemented" error
 	ctx := contextWithProjectKind()
-
-	// Test that unimplemented methods return "not implemented" errors
-	// This verifies the embedded Unimplemented servers are working correctly
-	// Note: Create, Update, Get, GetByReference (D1, D2), and Delete (D3) are now implemented,
-	// so only test remaining unimplemented method (Apply)
-
-	t.Run("Apply returns unimplemented", func(t *testing.T) {
-		_, err := controller.Apply(ctx, createTestProject("test"))
-		if err == nil {
-			t.Error("Expected error from unimplemented Apply method")
+	_, err := controller.Apply(ctx, createTestProject("implemented-test"))
+	if err != nil {
+		// Apply may fail for other reasons, but should not be "unimplemented"
+		if strings.Contains(err.Error(), "unimplemented") {
+			t.Error("Apply should be implemented, got unimplemented error")
 		}
-	})
+	}
 }
 
 func TestCreateTestProject_ValidProto(t *testing.T) {
