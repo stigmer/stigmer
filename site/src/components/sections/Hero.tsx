@@ -157,6 +157,7 @@ function Hero({ className, ...props }: HeroProps) {
               <code className="flex-1 px-4 py-3 text-sm sm:text-base font-mono text-muted-foreground overflow-x-auto scrollbar-thin">
                 <span className="text-primary">$</span>{" "}
                 <span className="text-foreground">{installCommand}</span>
+                <span className="cursor-blink text-primary ml-0.5">|</span>
               </code>
               <Button
                 variant="ghost"

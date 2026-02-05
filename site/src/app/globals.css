@@ -155,7 +155,12 @@
   }
 }
 
-/* Animations */
+/* =============================================================================
+ * ANIMATIONS
+ * Keyframes for CSS animations used throughout the site
+ * ============================================================================= */
+
+/* Gradient text animation - used in Hero headline */
 @keyframes gradient {
   0% {
     background-position: 0% 50%;
@@ -168,11 +173,51 @@
   }
 }
 
+/* Terminal cursor blink - used in Hero install command */
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
 /* Custom scrollbar for dark theme */
 @layer utilities {
   .animate-gradient {
     animation: gradient 8s ease infinite;
   }
+  
+  /* Terminal cursor blink animation */
+  .cursor-blink {
+    animation: blink 1s step-end infinite;
+  }
+  
+  /* =========================================================================
+   * NAVIGATION UTILITIES
+   * Animated underline effect for navigation links
+   * ========================================================================= */
+  
+  .nav-underline {
+    position: relative;
+  }
+  
+  .nav-underline::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: hsl(var(--primary));
+    transition: width var(--duration-normal) ease;
+  }
+  
+  .nav-underline:hover::after {
+    width: 100%;
+  }
+  
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;
