@@ -90,19 +90,19 @@ function Hero({ className, ...props }: HeroProps) {
           delayChildren={0}
         >
           <StaggerItem>
-            <Badge variant="outline" className="gap-1">
+            <Badge variant="cyan" className="gap-1.5">
               <Icon name="terminal" size="xs" />
               Local-First
             </Badge>
           </StaggerItem>
           <StaggerItem>
-            <Badge variant="outline" className="gap-1">
+            <Badge variant="emerald" className="gap-1.5">
               <Icon name="unlock" size="xs" />
               Open Source
             </Badge>
           </StaggerItem>
           <StaggerItem>
-            <Badge variant="outline" className="gap-1">
+            <Badge variant="purple" className="gap-1.5">
               <Icon name="network" size="xs" />
               gRPC APIs
             </Badge>
