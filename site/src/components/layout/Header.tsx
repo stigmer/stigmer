@@ -4,10 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { NAV_LINKS, SITE_CONFIG } from "@/lib/constants";
-import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { FadeIn } from "@/components/ui/motion";
 import { MobileMenu } from "./MobileMenu";
 
 export type HeaderProps = React.HTMLAttributes<HTMLElement>;
@@ -44,11 +42,22 @@ function Header({ className, ...props }: HeaderProps) {
       >
         <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="h-full flex items-center justify-between">
-            {/* Logo - Subtle entrance animation */}
-            <FadeIn delay={0}>
-              <Logo showText className="hidden sm:flex" />
-              <Logo showText={false} className="sm:hidden" />
-            </FadeIn>
+            {/* Logo */}
+            <Link 
+              href="/" 
+              className="inline-flex items-center gap-2 transition-opacity hover:opacity-80"
+              aria-label={`${SITE_CONFIG.name} - Go to homepage`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                src="/logo.svg" 
+                alt="Stigmer" 
+                className="w-8 h-8 rounded-lg"
+              />
+              <span className="hidden sm:inline-block font-bold text-xl tracking-tight text-foreground">
+                {SITE_CONFIG.name}
+              </span>
+            </Link>
 
             {/* Desktop Navigation */}
             <nav
