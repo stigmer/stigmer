@@ -24,7 +24,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bufbuild/protovalidate-go"
+	"buf.build/go/protovalidate"
 	"github.com/rs/zerolog/log"
 
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
@@ -41,7 +41,7 @@ import (
 //  4. Build SearchResponse proto
 type SearchHandler struct {
 	store     store.SearchQueryStore
-	validator *protovalidate.Validator
+	validator protovalidate.Validator
 }
 
 // NewSearchHandler creates a new SearchHandler with the provided dependencies.

@@ -32,6 +32,12 @@ const badgeVariants = cva(
         warning: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
         /** Error/destructive indicator */
         destructive: "bg-destructive/10 text-destructive border border-destructive/20",
+        /** Cyan/teal accent - terminal/local feel */
+        cyan: "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30",
+        /** Purple/violet accent - API/technical feel */
+        purple: "bg-violet-500/15 text-violet-400 border border-violet-500/30",
+        /** Emerald/green accent - open source/community feel */
+        emerald: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
       },
     },
     defaultVariants: {
