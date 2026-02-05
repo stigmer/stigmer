@@ -409,33 +409,22 @@ function PlatformLayerStack() {
         <StaggerItem key={layer.title}>
           <Card
             variant="feature"
-            className={cn(
-              "p-5 transition-all duration-300 hover:scale-[1.02]",
-              layer.highlight && "border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10"
-            )}
+            className="p-5 transition-all duration-300 hover:scale-[1.02]"
           >
             <div className="flex items-start gap-3">
               <motion.div
-                className={cn(
-                  "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                  layer.highlight
-                    ? "bg-gradient-to-br from-primary/30 to-accent/30 border-2 border-primary/40"
-                    : "bg-muted border border-border"
-                )}
+                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-muted border border-border"
                 whileHover={{ scale: 1.1 }}
                 transition={transitions.spring}
               >
                 <Icon
                   name={layer.icon}
                   size="sm"
-                  className={layer.highlight ? "text-primary" : "text-muted-foreground"}
+                  className="text-muted-foreground"
                 />
               </motion.div>
               <div className="flex-1 min-w-0">
-                <h4 className={cn(
-                  "text-sm font-semibold mb-1",
-                  layer.highlight ? "text-foreground" : "text-foreground/90"
-                )}>
+                <h4 className="text-sm font-semibold mb-1 text-foreground/90">
                   {layer.title}
                 </h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
