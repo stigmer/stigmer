@@ -1975,8 +1975,8 @@ func TestExecutePlan_PartialFailure_UnrelatedResourcesStillExecute(t *testing.T)
 		Build()
 
 	creates := []ResourceChange{
-		NewCreateChange(mcpKey, mcp),             // Will fail
-		NewCreateChange(agentKey, agent),         // Will succeed (tries anyway)
+		NewCreateChange(mcpKey, mcp),              // Will fail
+		NewCreateChange(agentKey, agent),          // Will succeed (tries anyway)
 		NewCreateChange(unrelatedSkillKey, skill), // Will succeed (unrelated)
 	}
 
