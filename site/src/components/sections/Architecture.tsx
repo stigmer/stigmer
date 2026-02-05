@@ -219,68 +219,6 @@ function ColumnHeader({ title, subtitle, variant }: ColumnHeaderProps) {
 }
 
 /**
- * Flow arrow for desktop layout (static fallback).
- */
-function FlowArrow() {
-  return (
-    <svg
-      width="48"
-      height="48"
-      viewBox="0 0 48 48"
-      fill="none"
-      className="text-primary/60"
-      aria-hidden="true"
-    >
-      <path
-        d="M4 24 L38 24 M30 16 L38 24 L30 32"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-/**
- * Animated horizontal flow arrow with pathLength animation.
- */
-function AnimatedFlowArrow({ delay = 0 }: { delay?: number }) {
-  const prefersReducedMotion = useReducedMotion();
-
-  if (prefersReducedMotion) {
-    return <FlowArrow />;
-  }
-
-  return (
-    <motion.svg
-      width="48"
-      height="48"
-      viewBox="0 0 48 48"
-      fill="none"
-      className="text-primary/60"
-      aria-hidden="true"
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={viewportSettings.standard}
-      transition={{ delay, duration: 0.3 }}
-    >
-      <motion.path
-        d="M4 24 L38 24 M30 16 L38 24 L30 32"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        initial={{ pathLength: 0 }}
-        whileInView={{ pathLength: 1 }}
-        viewport={viewportSettings.standard}
-        transition={{ delay: delay + 0.1, duration: 0.5, ease: "easeOut" }}
-      />
-    </motion.svg>
-  );
-}
-
-/**
  * Animated vertical arrow for mobile layout.
  */
 function AnimatedVerticalArrow() {
