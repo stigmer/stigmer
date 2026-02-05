@@ -2,7 +2,6 @@ import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { FOOTER_LINKS, SITE_CONFIG } from "@/lib/constants";
-import { Logo } from "@/components/ui/logo";
 import { Icon, type IconName } from "@/components/ui/icon";
 
 export type FooterProps = React.HTMLAttributes<HTMLElement>;
@@ -35,7 +34,21 @@ function Footer({ className, ...props }: FooterProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
             {/* Brand Column */}
             <div className="lg:col-span-1">
-              <Logo size="md" asLink={false} className="mb-4" />
+              <Link 
+                href="/" 
+                className="inline-flex items-center gap-2 mb-4 transition-opacity hover:opacity-80"
+                aria-label={`${SITE_CONFIG.name} - Go to homepage`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src="/logo.svg" 
+                  alt="Stigmer" 
+                  className="w-8 h-8 rounded-lg"
+                />
+                <span className="font-bold text-xl tracking-tight text-foreground">
+                  {SITE_CONFIG.name}
+                </span>
+              </Link>
               <p className="text-sm text-muted-foreground leading-relaxed mb-4">
                 {SITE_CONFIG.description}
               </p>

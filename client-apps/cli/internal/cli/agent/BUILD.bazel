@@ -34,6 +34,10 @@ go_library(
 go_test(
     name = "agent_test",
     srcs = [
+        "applier_test.go",
+        "delete_test.go",
+        "display_test.go",
+        "get_test.go",
         "loader_test.go",
         "validator_test.go",
     ],
@@ -44,5 +48,6 @@ go_test(
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//:grpc",
     ],
 )

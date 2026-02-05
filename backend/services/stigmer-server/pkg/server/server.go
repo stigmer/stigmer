@@ -15,6 +15,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
@@ -31,6 +32,8 @@ import (
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
 	mcpservercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller"
+	projectcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/controller"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/reconcile"
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
 	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
@@ -41,6 +44,8 @@ import (
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/controller"
 	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
+	mcpserverclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/mcpserver"
+	skillclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/skill"
 
 	// Search service imports
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
@@ -267,11 +272,19 @@ func Run() error {
 
 	log.Info().Msg("Registered McpServer controllers")
 
+	// Create and register Project controller
+	// Pass nil for reconciliationService to use the default implementation
+	projectController := projectcontroller.NewProjectController(store, nil)
+	projectv1.RegisterProjectCommandControllerServer(grpcServer, projectController)
+	projectv1.RegisterProjectQueryControllerServer(grpcServer, projectController)
+
+	log.Info().Msg("Registered Project controllers")
+
 	// Create and register SearchService controller (CQRS Query Service)
 	// The search service provides unified search across all searchable resources
 	// (agents, skills, mcp_servers, workflows) using FTS5 full-text search.
 	searchQueryStore := searchstore.NewSQLiteSearchQueryStore(
-		store.(*sqlite.Store).DB(), // Get the underlying *sql.DB
+		store.DB(), // Get the underlying *sql.DB
 		store,
 		extractor.GetRegistry(),
 	)
@@ -321,8 +334,26 @@ func Run() error {
 	sessionClient := sessionclient.NewClient(inProcessConn)
 	workflowClient := workflowclient.NewClient(inProcessConn)
 	workflowInstanceClient := workflowinstanceclient.NewClient(inProcessConn)
+	mcpServerClient := mcpserverclient.NewClient(inProcessConn)
+	skillClient := skillclient.NewClient(inProcessConn)
 
-	log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, and WorkflowInstance")
+	log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, WorkflowInstance, McpServer, and Skill")
+
+	// Create the reconciliation execution engine
+	downstreamClients := &reconcile.DownstreamClients{
+		AgentClient:     agentClient,
+		WorkflowClient:  workflowClient,
+		McpServerClient: mcpServerClient,
+		SkillClient:     skillClient,
+	}
+	resourceController := reconcile.NewResourceControllerAdapter(downstreamClients)
+	executionEngine := reconcile.NewExecutionEngine(resourceController)
+	reconciliationService := reconcile.NewReconciliationService(store, executionEngine)
+
+	// Inject ReconciliationService into ProjectController
+	projectController.SetReconciliationService(reconciliationService)
+
+	log.Info().Msg("Created reconciliation ExecutionEngine and injected into ProjectController")
 
 	// Now inject dependencies into controllers that need them
 	// Note: Controllers are already registered, we're just updating their internal state

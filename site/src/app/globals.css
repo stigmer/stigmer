@@ -47,6 +47,53 @@
   
   /* Border radius */
   --radius: 0.5rem;
+  
+  /* ==========================================================================
+   * GLOW EFFECTS
+   * Composable shadow tokens for glow effects using existing color system
+   * ========================================================================== */
+  
+  /* Base glow sizes */
+  --glow-sm: 0 0 10px;
+  --glow-md: 0 0 20px;
+  --glow-lg: 0 0 40px;
+  
+  /* Semantic glow presets */
+  --glow-primary: var(--glow-md) hsl(var(--primary) / 0.3);
+  --glow-primary-intense: var(--glow-lg) hsl(var(--primary) / 0.4);
+  --glow-accent: var(--glow-md) hsl(var(--accent) / 0.3);
+  --glow-accent-intense: var(--glow-lg) hsl(var(--accent) / 0.4);
+  
+  /* ==========================================================================
+   * GLASSMORPHISM
+   * Backdrop blur and semi-transparent backgrounds
+   * ========================================================================== */
+  
+  /* Glass backgrounds - extend existing card token */
+  --glass-bg: hsl(var(--card) / 0.8);
+  --glass-bg-strong: hsl(var(--card) / 0.9);
+  --glass-bg-subtle: hsl(var(--card) / 0.6);
+  
+  /* Glass borders */
+  --glass-border: hsl(var(--primary) / 0.2);
+  --glass-border-hover: hsl(var(--primary) / 0.4);
+  --glass-border-accent: hsl(var(--accent) / 0.2);
+  
+  /* Blur intensities */
+  --glass-blur: 12px;
+  --glass-blur-strong: 20px;
+  --glass-blur-subtle: 8px;
+  
+  /* ==========================================================================
+   * ANIMATION DURATIONS
+   * Standardized timing for CSS transitions and JS reference
+   * ========================================================================== */
+  
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --duration-slower: 800ms;
 }
 
 /* Map semantic tokens to Tailwind v4 */
@@ -92,7 +139,28 @@
   }
 }
 
-/* Animations */
+/* =============================================================================
+ * REDUCED MOTION SUPPORT
+ * Respects user's motion preferences for accessibility
+ * ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =============================================================================
+ * ANIMATIONS
+ * Keyframes for CSS animations used throughout the site
+ * ============================================================================= */
+
+/* Gradient text animation - used in Hero headline */
 @keyframes gradient {
   0% {
     background-position: 0% 50%;
@@ -105,11 +173,51 @@
   }
 }
 
+/* Terminal cursor blink - used in Hero install command */
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
 /* Custom scrollbar for dark theme */
 @layer utilities {
   .animate-gradient {
     animation: gradient 8s ease infinite;
   }
+  
+  /* Terminal cursor blink animation */
+  .cursor-blink {
+    animation: blink 1s step-end infinite;
+  }
+  
+  /* =========================================================================
+   * NAVIGATION UTILITIES
+   * Animated underline effect for navigation links
+   * ========================================================================= */
+  
+  .nav-underline {
+    position: relative;
+  }
+  
+  .nav-underline::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: hsl(var(--primary));
+    transition: width var(--duration-normal) ease;
+  }
+  
+  .nav-underline:hover::after {
+    width: 100%;
+  }
+  
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;
@@ -131,5 +239,125 @@
   
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--muted-foreground));
+  }
+  
+  /* =========================================================================
+   * GLASSMORPHISM UTILITIES
+   * Apply glass effect to any element
+   * ========================================================================= */
+  
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border-color: var(--glass-border);
+  }
+  
+  .glass-strong {
+    background: var(--glass-bg-strong);
+    backdrop-filter: blur(var(--glass-blur-strong));
+    -webkit-backdrop-filter: blur(var(--glass-blur-strong));
+  }
+  
+  .glass-subtle {
+    background: var(--glass-bg-subtle);
+    backdrop-filter: blur(var(--glass-blur-subtle));
+    -webkit-backdrop-filter: blur(var(--glass-blur-subtle));
+  }
+  
+  /* =========================================================================
+   * GLOW UTILITIES
+   * Hover glow effects using design tokens
+   * ========================================================================= */
+  
+  .glow-on-hover {
+    transition: box-shadow var(--duration-normal) ease;
+  }
+  
+  .glow-on-hover:hover {
+    box-shadow: var(--glow-primary);
+  }
+  
+  .glow-on-hover-accent {
+    transition: box-shadow var(--duration-normal) ease;
+  }
+  
+  .glow-on-hover-accent:hover {
+    box-shadow: var(--glow-accent);
+  }
+  
+  .glow-on-hover-intense {
+    transition: box-shadow var(--duration-normal) ease;
+  }
+  
+  .glow-on-hover-intense:hover {
+    box-shadow: var(--glow-primary-intense);
+  }
+  
+  /* Static glow (always visible) */
+  .glow-primary {
+    box-shadow: var(--glow-primary);
+  }
+  
+  .glow-accent {
+    box-shadow: var(--glow-accent);
+  }
+  
+  /* =========================================================================
+   * ACCESSIBILITY UTILITIES
+   * Screen reader only content and skip link support
+   * ========================================================================= */
+  
+  /**
+   * Screen reader only - visually hidden but accessible to assistive technology.
+   * Use for content that should be announced but not visible.
+   * 
+   * @example
+   * <span className="sr-only">Opens in new tab</span>
+   */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+  
+  /**
+   * Make sr-only content visible when focused (for skip links).
+   * Combines with sr-only to create accessible skip navigation.
+   * 
+   * @example
+   * <a href="#main" className="sr-only sr-only-focusable">Skip to main content</a>
+   */
+  .sr-only-focusable:focus,
+  .sr-only-focusable:focus-within {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+  
+  /**
+   * Negation class to make sr-only visible on focus.
+   * Alternative approach using focus:not-sr-only pattern.
+   */
+  .focus\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
   }
 }

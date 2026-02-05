@@ -13,6 +13,24 @@ import (
 	"google.golang.org/grpc"
 )
 
+// ApplyCodeModeOptions contains options for the legacy apply code mode.
+// Deprecated: Use executeApply with applyOptions instead.
+type ApplyCodeModeOptions struct {
+	ConfigFile  string
+	OrgOverride string
+	DryRun      bool
+	Quiet       bool
+}
+
+// ApplyCodeMode is a legacy stub that delegates to the new project-track architecture.
+// Deprecated: This function exists for backwards compatibility. Use stigmer apply instead.
+func ApplyCodeMode(opts ApplyCodeModeOptions) ([]*skillv1.Skill, []*agentv1.Agent, []*workflowv1.Workflow, error) {
+	// This is a stub - the new architecture uses executeApply with project.Apply
+	// For now, return empty slices since this is only used by stigmer run auto-discovery
+	// which should use the new project track architecture
+	return nil, nil, nil, fmt.Errorf("ApplyCodeMode is deprecated: use 'stigmer apply' followed by 'stigmer run <name>'")
+}
+
 // runReferenceMode runs a specific agent or workflow by reference (name or ID)
 func runReferenceMode(reference string, message string, orgOverride string, runtimeEnv envfile.EnvMap, follow bool) {
 	// Check if we're in a Stigmer project directory

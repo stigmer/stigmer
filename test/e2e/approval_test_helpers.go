@@ -16,6 +16,8 @@ import (
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -121,8 +123,9 @@ func GetMcpServerBySlug(serverPort int, slug string, org string) (*mcpserverv1.M
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	server, err := client.GetBySlug(ctx, &mcpserverv1.GetMcpServerBySlugInput{
+	server, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
 		Org:  org,
+		Kind: apiresourcekind.ApiResourceKind_mcp_server,
 		Slug: slug,
 	})
 	if err != nil {
@@ -523,9 +526,9 @@ func VerifyWorkflowTaskStatus(
 	require.NotNil(t, execution.Status, "Execution status should not be nil")
 	require.NotNil(t, execution.Status.Tasks, "Tasks should not be nil")
 
-	var foundTask *workflowexecutionv1.WorkflowTaskExecutionStatus
+	var foundTask *workflowexecutionv1.WorkflowTask
 	for _, task := range execution.Status.Tasks {
-		if task.Name == taskName {
+		if task.TaskName == taskName {
 			foundTask = task
 			break
 		}

@@ -1,8 +1,13 @@
+"use client";
+
 import * as React from "react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { FEATURES } from "@/lib/constants";
+import { transitions } from "@/lib/animations";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/ui/motion";
 
 export type FeaturesProps = React.HTMLAttributes<HTMLElement>;
 
@@ -32,33 +37,40 @@ function Features({ className, ...props }: FeaturesProps) {
       {...props}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2
-            id="features-heading"
-            className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4"
-          >
-            <span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-              What We Handle So You Don&apos;t Have To
-            </span>
-          </h2>
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Stigmer solves the infrastructure challenges that derail agent projects. Sandboxing, orchestration, MCP security—all handled. You focus on agent logic, not plumbing.
-          </p>
-        </div>
+        {/* Section Header - Animated */}
+        <FadeInUp>
+          <div className="text-center mb-16">
+            <h2
+              id="features-heading"
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4"
+            >
+              <span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+                What We Handle So You Don&apos;t Have To
+              </span>
+            </h2>
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
+              Stigmer solves the infrastructure challenges that derail agent projects. Sandboxing, orchestration, MCP security—all handled. You focus on agent logic, not plumbing.
+            </p>
+          </div>
+        </FadeInUp>
 
-        {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Feature Grid - Staggered animation */}
+        <StaggerContainer
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          staggerDelay={0.1}
+          delayChildren={0.1}
+        >
           {FEATURES.map((feature, index) => (
-            <FeatureCard
-              key={feature.title}
-              title={feature.title}
-              description={feature.description}
-              icon={feature.icon as IconName}
-              index={index}
-            />
+            <StaggerItem key={feature.title}>
+              <FeatureCard
+                title={feature.title}
+                description={feature.description}
+                icon={feature.icon as IconName}
+                index={index}
+              />
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
       </div>
     </section>
   );
@@ -76,27 +88,28 @@ interface FeatureCardProps {
 
 function FeatureCard({ title, description, icon }: FeatureCardProps) {
   return (
-    <Card variant="feature" className="group">
+    <Card variant="glass" className="group h-full">
       <CardHeader className="space-y-4">
-        {/* Icon Container */}
-        <div
+        {/* Icon Container - with hover scale animation */}
+        <motion.div
           className={cn(
             "w-12 h-12 rounded-lg",
             "bg-gradient-to-br from-primary/20 to-accent/20",
             "border border-primary/20",
             "flex items-center justify-center",
-            "transition-all duration-300",
+            "transition-colors duration-300",
             "group-hover:from-primary/30 group-hover:to-accent/30",
-            "group-hover:border-primary/40",
-            "group-hover:shadow-lg group-hover:shadow-primary/10"
+            "group-hover:border-primary/40"
           )}
+          whileHover={{ scale: 1.1 }}
+          transition={transitions.spring}
         >
           <Icon
             name={icon}
             size="lg"
-            className="text-primary transition-colors group-hover:text-primary"
+            className="text-primary"
           />
-        </div>
+        </motion.div>
 
         {/* Title */}
         <CardTitle className="text-lg group-hover:text-foreground transition-colors">
