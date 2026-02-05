@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "actual_state.go",
         "change_type.go",
+        "dependency_graph.go",
         "desired_state.go",
         "reconciliation_error.go",
         "reconciliation_options.go",
@@ -31,6 +32,7 @@ go_test(
     srcs = [
         "actual_state_test.go",
         "change_type_test.go",
+        "dependency_graph_test.go",
         "desired_state_test.go",
         "reconciliation_error_test.go",
         "reconciliation_options_test.go",
