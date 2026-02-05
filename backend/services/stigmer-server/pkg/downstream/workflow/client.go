@@ -33,8 +33,8 @@ import (
 // with a network gRPC connection pointing to the workflow service endpoint.
 // No changes to this client code are needed - just the connection configuration.
 type Client struct {
-	conn         *grpc.ClientConn
-	queryClient  workflowv1.WorkflowQueryControllerClient
+	conn          *grpc.ClientConn
+	queryClient   workflowv1.WorkflowQueryControllerClient
 	commandClient workflowv1.WorkflowCommandControllerClient
 }
 
