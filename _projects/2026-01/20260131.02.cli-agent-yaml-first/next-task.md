@@ -39,11 +39,56 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Phase**: Phase 5 - Backend + Full CLI Integration 🚀 **IN PROGRESS**
-**Current Sub-task**: T05.26 🚧 **PARTIAL (2/6 suites)** - CLI Unit Tests (Foundation established)
-**Next Sub-task**: T05.26 (continue) - Complete Agent, Workflow, Display/Integration test suites
+**Current Sub-task**: A1 ✅ **COMPLETED** - Project Controller Foundation
+**Next Sub-task**: A2 - Reconciliation Value Objects (State)
 **Architecture**: ADR-005 Unified Architecture
 
-**Latest Session** (2026-02-04 - Session 50 - CLI Unit Tests Foundation - T05.26):
+**Latest Session** (2026-02-05 - Session 51 - Project Controller Foundation - A1):
+- ✅ **COMPLETED A1**: Project Controller Foundation - Backend Infrastructure Established
+- Implemented foundational Project entity controller following established Go backend patterns
+- **Files Created**:
+  - `backend/services/stigmer-server/pkg/domain/project/controller/project_controller.go` (66 lines)
+  - `backend/services/stigmer-server/pkg/domain/project/controller/project_controller_test.go` (248 lines, 10 tests)
+  - `backend/services/stigmer-server/pkg/domain/project/controller/BUILD.bazel`
+  - `backend/services/stigmer-server/pkg/domain/project/controller/README.md`
+  - Changelog: `_changelog/2026-02/2026-02-05-150556-a1-project-controller-foundation.md`
+- **Files Modified**:
+  - `backend/services/stigmer-server/pkg/server/server.go` (added Project controller registration)
+  - `backend/services/stigmer-server/pkg/server/BUILD.bazel` (added dependencies)
+  - `backend/services/stigmer-server/pkg/query/search/handler/search_handler.go` (fixed protovalidate import)
+  - `backend/services/stigmer-server/pkg/query/search/handler/BUILD.bazel` (fixed dependency)
+- **Implementation Highlights**:
+  - ProjectController struct with embedded gRPC server interfaces (Command & Query)
+  - Clean constructor accepting only store.Store
+  - Comprehensive package documentation explaining aggregate root role
+  - README with reconciliation architecture preview and roadmap
+- **Test Coverage**:
+  - 10 test functions covering controller creation, interface implementation, embedded servers
+  - Helper functions: `contextWithProjectKind()`, `setupTestController()`, `createTestProject()`
+  - Proto fixtures with embedded agents and workflows
+  - Context injection validation for resource kind
+- **Engineering Quality**:
+  - All functions under 50 lines
+  - All files under 300 lines
+  - Zero linter errors
+  - 100% test pass rate
+  - Pattern consistency with existing controllers (Agent, McpServer)
+- **Build Verification**:
+  - ✅ bazel build //...pkg/domain/project/controller:controller
+  - ✅ bazel test //...pkg/domain/project/controller:controller_test (10 tests passing)
+  - ✅ bazel build //...pkg/server:server
+  - ✅ gofmt (no formatting issues)
+- **Key Achievements**:
+  - Project controller foundation complete - ready for CRUD handlers
+  - Test infrastructure established with reusable patterns
+  - Server registration complete - endpoint exists for CLI integration
+  - Documentation provides clear roadmap for phases A2-E2
+- **Commits**:
+  - 9ce8a033 feat(backend): add Project controller foundation (A1)
+- **Completion Time**: ~1.5 hours (including comprehensive tests and documentation)
+- **Next Steps**: Phase A2 - Reconciliation Value Objects (ResourceKey, DesiredState, ActualState)
+
+**Previous Session** (2026-02-04 - Session 50 - CLI Unit Tests Foundation - T05.26):
 - 🚧 **PARTIAL COMPLETE T05.26** (2 of 6 suites): CLI Unit Tests - World-Class Foundation Established
 - Implemented comprehensive unit tests for MCP Server and Config packages (0% → 90%+ coverage)
 - **Files Created**:
@@ -1689,7 +1734,8 @@ apis/stubs/             (REGENERATED via make protos)
 | **T05.24** | ✅ **COMPLETE** | **120 min** | **Skill Pre-Push Flow (external skill validation)** |
 | **T05.25** | ✅ **COMPLETE** | **75 min** | **Backend Unit Tests (61 tests, 100% handler coverage)** |
 | T05.26 | 🎯 **NEXT** | 60-75 min | CLI Unit Tests (comprehensive CLI test coverage) |
-| T05.27+ | 🚧 Pending | - | Integration tests and documentation |
+| T05.27 | ⚠️ **BLOCKED** | - | **Integration Tests - Backend Not Ported to OSS** |
+| T05.28 | 🚧 Pending | 30 min | Documentation |
 
 ---
 
@@ -2091,6 +2137,57 @@ After loading context:
 
 ---
 
-*Last updated: 2026-02-04 (T05.27 Integration Tests Complete)*
-*Status: Phase 1 ✅, Phase 2 ✅, Phase 3 AWAITING APPROVAL, Phase 5 (28/29) 🚧*
+## Recent Session Progress (2026-02-05)
+
+### T05.27 Status Update - BLOCKED ⚠️
+
+**Discovery**: T05.27 integration tests cannot run - Project backend not implemented in OSS
+
+**Investigation Summary**:
+- Previous session (2026-02-04) wrote comprehensive integration tests for Project Track
+- Tests exist: 24 tests across 6 files (~820 lines) with 8 SDK fixtures
+- **Problem Found**: Project entity backend handlers don't exist in OSS Go backend
+- Phase 5 backend work (T05.5-T05.20) was implemented in **stigmer-cloud** (Java), not **stigmer** (Go OSS)
+
+**Missing Components in OSS**:
+```
+stigmer/backend/services/stigmer-server/pkg/domain/
+├── agent/       ✅ Exists
+├── workflow/    ✅ Exists
+├── mcpserver/   ✅ Exists
+└── project/     ❌ MISSING - No handlers, no reconciliation engine, no repository
+```
+
+**What's Blocked**:
+- T05.27 integration tests (can't test non-existent backend)
+- `stigmer apply` end-to-end flow (CLI exists but backend returns unimplemented)
+- Project Track functionality in OSS (works in stigmer-cloud only)
+
+**What's Working**:
+- CLI side: `stigmer apply` command, SDK synthesis, manifest collection all functional
+- Test infrastructure: Tests are well-written and ready to run when backend exists
+- Atomic Track: `stigmer agent apply`, `stigmer workflow apply` fully functional
+
+**Path Forward Options**:
+1. **Port Backend** (~40 hours): Implement Project handlers in Go OSS backend
+2. **Document Split**: Mark Project Track as cloud-only feature
+3. **Defer** (Recommended): Complete T05.26 (CLI tests) + T05.28 (docs), defer backend to Phase 6
+
+**Build Fixes Applied**:
+During investigation, fixed 6 compilation errors to enable verification:
+- Updated `protovalidate` import path and API usage
+- Removed dead code referencing deleted proto fields
+- Fixed test helpers for evolved proto definitions
+- Added legacy stub for deprecated `ApplyCodeMode()`
+
+**Status Update**:
+- T05.27: ❌ BLOCKED → ⚠️ Backend implementation gap
+- Phase 5: 27/29 complete (T05.26 in-progress, T05.27 blocked, T05.28 pending)
+
+**Changelog**: `_changelog/2026-02/2026-02-05-t05.27-blocked-backend-implementation-gap.md`
+
+---
+
+*Last updated: 2026-02-05 (T05.27 Blocked - Backend Gap Discovered)*
+*Status: Phase 1 ✅, Phase 2 ✅, Phase 3 AWAITING APPROVAL, Phase 5 (27/29) ⚠️*
 *Architecture: ADR-005 Dual-Track Interface adopted*
