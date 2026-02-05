@@ -2,18 +2,28 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "controller",
-    srcs = ["project_controller.go"],
+    srcs = [
+        "create.go",
+        "project_controller.go",
+        "update.go",
+    ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/controller",
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
+        "//backend/libs/go/grpc/request/pipeline",
+        "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
     ],
 )
 
 go_test(
     name = "controller_test",
-    srcs = ["project_controller_test.go"],
+    srcs = [
+        "create_test.go",
+        "project_controller_test.go",
+        "update_test.go",
+    ],
     embed = [":controller"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
@@ -23,5 +33,6 @@ go_test(
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/store/sqlite",
+        "@org_golang_google_protobuf//types/known/structpb",
     ],
 )

@@ -12,6 +12,7 @@ import (
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // contextWithProjectKind creates a context with the project resource kind injected.
@@ -64,7 +65,8 @@ func createTestProjectWithAgents(name string) *projectv1.Project {
 				Org:  "test-org",
 			},
 			Spec: &agentv1.AgentSpec{
-				Description: "A test agent",
+				Description:  "A test agent for project testing",
+				Instructions: "You are a helpful test agent that assists with testing.",
 			},
 		},
 	}
@@ -83,7 +85,20 @@ func createTestProjectWithWorkflows(name string) *projectv1.Project {
 				Org:  "test-org",
 			},
 			Spec: &workflowv1.WorkflowSpec{
-				Description: "A test workflow",
+				Description: "A test workflow for project testing",
+				Document: &workflowv1.WorkflowDocument{
+					Dsl:       "1.0.0",
+					Namespace: "test",
+					Name:      "test-workflow",
+					Version:   "1.0.0",
+				},
+				Tasks: []*workflowv1.WorkflowTask{
+					{
+						Name:       "test-task",
+						Kind:       workflowv1.WorkflowTaskKind_set_vars,
+						TaskConfig: &structpb.Struct{Fields: map[string]*structpb.Value{}},
+					},
+				},
 			},
 		},
 	}
@@ -139,20 +154,7 @@ func TestProjectController_UnimplementedMethodsReturnError(t *testing.T) {
 
 	// Test that unimplemented methods return "not implemented" errors
 	// This verifies the embedded Unimplemented servers are working correctly
-
-	t.Run("Create returns unimplemented", func(t *testing.T) {
-		_, err := controller.Create(ctx, createTestProject("test"))
-		if err == nil {
-			t.Error("Expected error from unimplemented Create method")
-		}
-	})
-
-	t.Run("Update returns unimplemented", func(t *testing.T) {
-		_, err := controller.Update(ctx, createTestProject("test"))
-		if err == nil {
-			t.Error("Expected error from unimplemented Update method")
-		}
-	})
+	// Note: Create and Update are now implemented (D1), so only test remaining unimplemented methods
 
 	t.Run("Delete returns unimplemented", func(t *testing.T) {
 		_, err := controller.Delete(ctx, &projectv1.ProjectId{Value: "test-id"})
@@ -227,8 +229,8 @@ func TestCreateTestProjectWithAgents_HasEmbeddedAgents(t *testing.T) {
 		t.Errorf("Expected agent name 'test-agent', got '%s'", agent.Metadata.Name)
 	}
 
-	if agent.Spec.Description != "A test agent" {
-		t.Errorf("Expected agent description 'A test agent', got '%s'", agent.Spec.Description)
+	if agent.Spec.Description != "A test agent for project testing" {
+		t.Errorf("Expected agent description 'A test agent for project testing', got '%s'", agent.Spec.Description)
 	}
 }
 
@@ -244,8 +246,8 @@ func TestCreateTestProjectWithWorkflows_HasEmbeddedWorkflows(t *testing.T) {
 		t.Errorf("Expected workflow name 'test-workflow', got '%s'", workflow.Metadata.Name)
 	}
 
-	if workflow.Spec.Description != "A test workflow" {
-		t.Errorf("Expected workflow description 'A test workflow', got '%s'", workflow.Spec.Description)
+	if workflow.Spec.Description != "A test workflow for project testing" {
+		t.Errorf("Expected workflow description 'A test workflow for project testing', got '%s'", workflow.Spec.Description)
 	}
 }
 
