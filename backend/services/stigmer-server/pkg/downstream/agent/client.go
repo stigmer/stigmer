@@ -119,6 +119,65 @@ func (c *Client) Update(ctx context.Context, agent *agentv1.Agent) (*agentv1.Age
 	return updated, nil
 }
 
+// Create creates a new agent.
+//
+// This makes an in-process gRPC call to AgentCommandController.Create()
+// ensuring all gRPC interceptors run before reaching the handler.
+//
+// Use case: Reconciliation engine creates agents as part of project apply.
+func (c *Client) Create(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
+	log.Debug().
+		Str("name", agent.GetMetadata().GetName()).
+		Msg("Creating agent via in-process gRPC")
+
+	created, err := c.cmdClient.Create(ctx, agent)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("name", agent.GetMetadata().GetName()).
+			Msg("Failed to create agent")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("id", created.GetMetadata().GetId()).
+		Str("name", created.GetMetadata().GetName()).
+		Msg("Successfully created agent")
+
+	return created, nil
+}
+
+// Delete deletes an agent by ID.
+//
+// This makes an in-process gRPC call to AgentCommandController.Delete()
+// using AgentId wrapper type.
+//
+// Use case: Reconciliation engine deletes orphan agents during project apply.
+func (c *Client) Delete(ctx context.Context, resourceID string) (*agentv1.Agent, error) {
+	log.Debug().
+		Str("agent_id", resourceID).
+		Msg("Deleting agent via in-process gRPC")
+
+	agentId := &agentv1.AgentId{
+		Value: resourceID,
+	}
+
+	deleted, err := c.cmdClient.Delete(ctx, agentId)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("agent_id", resourceID).
+			Msg("Failed to delete agent")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("id", deleted.GetMetadata().GetId()).
+		Msg("Successfully deleted agent")
+
+	return deleted, nil
+}
+
 // Close closes the underlying gRPC connection
 func (c *Client) Close() error {
 	if c.conn != nil {

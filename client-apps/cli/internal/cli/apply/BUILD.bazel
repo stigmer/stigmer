@@ -36,6 +36,7 @@ go_test(
         "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
         "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//client-apps/cli/internal/cli/synthesis",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//:grpc",

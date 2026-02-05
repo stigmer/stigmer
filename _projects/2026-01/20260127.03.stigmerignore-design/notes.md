@@ -461,9 +461,7 @@ warning: pattern "*.xyz" in .stigmerignore matches no files
 
 3. **Symlink handling?**
    - Git ignores symlinks by default
-   - **Recommendation**: Skip symlinks in v1, document behavior
-
----## Appendix: Library Evaluation### go-git/go-git gitignore package
+   - **Recommendation**: Skip symlinks in v1, document behavior---## Appendix: Library Evaluation### go-git/go-git gitignore package
 - **Pros**: Full gitignore spec, actively maintained, well-documented
 - **Cons**: Depends on billy filesystem abstraction
 - **Verdict**: ✅ Use this### denormal/go-gitignore

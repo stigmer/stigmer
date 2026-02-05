@@ -43,6 +43,9 @@ import (
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/controller"
 	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
+	mcpserverclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/mcpserver"
+	skillclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/skill"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/reconcile"
 
 	// Search service imports
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
@@ -331,8 +334,26 @@ func Run() error {
 	sessionClient := sessionclient.NewClient(inProcessConn)
 	workflowClient := workflowclient.NewClient(inProcessConn)
 	workflowInstanceClient := workflowinstanceclient.NewClient(inProcessConn)
+	mcpServerClient := mcpserverclient.NewClient(inProcessConn)
+	skillClient := skillclient.NewClient(inProcessConn)
 
-	log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, and WorkflowInstance")
+	log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, WorkflowInstance, McpServer, and Skill")
+
+	// Create the reconciliation execution engine
+	downstreamClients := &reconcile.DownstreamClients{
+		AgentClient:     agentClient,
+		WorkflowClient:  workflowClient,
+		McpServerClient: mcpServerClient,
+		SkillClient:     skillClient,
+	}
+	resourceController := reconcile.NewResourceControllerAdapter(downstreamClients)
+	executionEngine := reconcile.NewExecutionEngine(resourceController)
+	reconciliationService := reconcile.NewReconciliationService(store, executionEngine)
+
+	// Inject ReconciliationService into ProjectController
+	projectController.SetReconciliationService(reconciliationService)
+
+	log.Info().Msg("Created reconciliation ExecutionEngine and injected into ProjectController")
 
 	// Now inject dependencies into controllers that need them
 	// Note: Controllers are already registered, we're just updating their internal state
