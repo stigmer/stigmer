@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "actual_state.go",
         "change_type.go",
+        "dependency_discoverer.go",
         "dependency_graph.go",
         "desired_state.go",
         "reconciliation_error.go",
@@ -22,8 +23,10 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
         "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//reflect/protoreflect",
     ],
 )
 
@@ -32,6 +35,7 @@ go_test(
     srcs = [
         "actual_state_test.go",
         "change_type_test.go",
+        "dependency_discoverer_test.go",
         "dependency_graph_test.go",
         "desired_state_test.go",
         "reconciliation_error_test.go",
