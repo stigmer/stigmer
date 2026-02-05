@@ -380,6 +380,77 @@ agent3 := &Agent{Spec: differentSpec}
 // This triggers an update
 ```
 
+### Phase C2: Execution Order
+
+The execution order functions determine the safe order for applying changes during reconciliation. Without correct ordering, resources could be created before their dependencies exist, or deleted while still referenced.
+
+#### GetChangesInExecutionOrder
+
+Returns creates and updates in dependency order (dependencies first, dependents after).
+
+```go
+// Build plan with dependency graph
+graph := reconcile.BuildDependencyGraph(desired)
+plan := reconcile.ComputeDiff(desired, actual, graph)
+
+// Execute changes in safe order
+for _, change := range plan.GetChangesInExecutionOrder() {
+    if err := executeChange(change); err != nil {
+        // Handle error - dependencies are already created
+    }
+}
+```
+
+**Ordering Guarantees:**
+- If Agent depends on MCP Server, MCP Server is created first
+- If Workflow depends on Agent, Agent is created first
+- Uses topological sort when dependency graph is available
+- Falls back to kind hierarchy: Skills -> MCP Servers -> Agents -> Workflows
+
+#### GetDeletesInReverseDependencyOrder
+
+Returns deletes in reverse dependency order (dependents first, dependencies after).
+
+```go
+// Delete orphans safely
+for _, change := range plan.GetDeletesInReverseDependencyOrder() {
+    if err := deleteResource(change); err != nil {
+        // Handle error - dependents are already deleted
+    }
+}
+```
+
+**Ordering Guarantees:**
+- If Workflow references Agent, Workflow is deleted first
+- If Agent references MCP Server, Agent is deleted first
+- Uses reverse topological sort when dependency graph covers all deletes
+- Falls back to kind hierarchy: Workflows -> Agents -> MCP Servers -> Skills
+
+#### Kind Hierarchy
+
+When the dependency graph is not available or doesn't cover all resources, the system uses a safe kind-based ordering:
+
+**Creation Order (leaf nodes first):**
+1. Skills (no dependencies)
+2. MCP Servers (no dependencies)
+3. Agents (depend on Skills and MCP Servers)
+4. Workflows (depend on Agents)
+
+**Deletion Order (dependents first):**
+1. Workflows (depend on Agents)
+2. Agents (depend on Skills and MCP Servers)
+3. MCP Servers (no dependents among supported kinds)
+4. Skills (no dependents among supported kinds)
+
+#### Deterministic Ordering
+
+Within the same precedence level (same topological rank or same kind), resources are sorted by slug for deterministic, reproducible results:
+
+```go
+// Same dependency level - sorted by slug
+// Result: [agent:alpha, agent:beta, agent:charlie]
+```
+
 ## File Structure
 
 ```
@@ -410,6 +481,8 @@ reconcile/
 ├── graph_builder_test.go        # 20 tests
 ├── diff.go                      # Diff algorithm (ComputeDiff)
 ├── diff_test.go                 # 35 tests
+├── execution_order.go           # Execution order functions (C2)
+├── execution_order_test.go      # 25 tests
 ├── BUILD.bazel                  # Bazel build configuration
 └── README.md                    # This file
 ```
@@ -425,8 +498,6 @@ bazel test //backend/services/stigmer-server/pkg/domain/project/reconcile:reconc
 ## Future Extensions
 
 This package will be extended in later phases with:
-- **Phase C2**: `GetChangesInExecutionOrder()` - Topological ordering for creates/updates
-- **Phase C2**: `GetDeletesInReverseDependencyOrder()` - Safe deletion ordering
 - **Phase D**: CRUD handlers for Project entity
 - **Phase E**: `ReconciliationService` - Main orchestrator
 - **Phase E**: `ExecutionEngine` - Execute plan with partial failure handling
