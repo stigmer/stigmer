@@ -121,10 +121,11 @@ go test ./...
 **These imports DON'T change** (hand-written packages):
 
 ```go
-import "github.com/stigmer/stigmer/sdk/go/workflow"   // ✅ Same
-import "github.com/stigmer/stigmer/sdk/go/agent"      // ✅ Same
-import "github.com/stigmer/stigmer/sdk/go/skill"      // ✅ Same
-import "github.com/stigmer/stigmer/sdk/go/stigmer"    // ✅ Same
+import "github.com/stigmer/stigmer/sdk/go/workflow"      // ✅ Same
+import "github.com/stigmer/stigmer/sdk/go/agent"         // ✅ Same
+import "github.com/stigmer/stigmer/sdk/go/skillref"      // ✅ For skill references
+import "github.com/stigmer/stigmer/sdk/go/mcpserverref"  // ✅ For MCP server references
+import "github.com/stigmer/stigmer/sdk/go/stigmer"       // ✅ Same
 ```
 
 **Only generated types changed:**

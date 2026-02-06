@@ -1,15 +1,15 @@
-package mcpserver
+package skillref
 
 import (
 	"errors"
 	"fmt"
 )
 
-// Sentinel errors for MCP server reference parsing.
+// Sentinel errors for skill reference parsing.
 var (
-	// ErrInvalidFormat is returned when the MCP server reference format is invalid.
-	// Valid format is "org/slug".
-	ErrInvalidFormat = errors.New("invalid MCP server reference format")
+	// ErrInvalidFormat is returned when the skill reference format is invalid.
+	// Valid formats are "org/slug" or "org/slug@version".
+	ErrInvalidFormat = errors.New("invalid skill reference format")
 
 	// ErrEmptyOrg is returned when the organization part of a reference is empty.
 	ErrEmptyOrg = errors.New("organization cannot be empty")
@@ -36,9 +36,9 @@ type ParseError struct {
 // Error implements the error interface.
 func (e *ParseError) Error() string {
 	if e.Input == "" {
-		return fmt.Sprintf("mcpserver: %s", e.Message)
+		return fmt.Sprintf("skillref: %s", e.Message)
 	}
-	return fmt.Sprintf("mcpserver: %s (input: %q)", e.Message, e.Input)
+	return fmt.Sprintf("skillref: %s (input: %q)", e.Message, e.Input)
 }
 
 // Unwrap returns the underlying error for use with errors.Is and errors.As.

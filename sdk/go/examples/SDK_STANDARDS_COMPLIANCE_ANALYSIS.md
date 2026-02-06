@@ -33,7 +33,8 @@ agent.New(ctx, "code-reviewer", &agent.AgentArgs{
 
 **Applies To**:
 - Agent creation (`agent.New()`)
-- Skill creation (`skill.New()`)
+- Skill references (`skillref.New()`)
+- MCP server references (`mcpserverref.New()`)
 - Workflow creation (`workflow.New()`)
 - All workflow task methods (HttpPost, HttpGet, CallAgent, etc.)
 

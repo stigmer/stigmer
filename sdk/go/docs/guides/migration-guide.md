@@ -96,12 +96,12 @@ agent.UseMCP("stigmer/github")
 For parsing and validation, use these packages:
 
 ```go
-// SDK packages (optional - for creating reusable resources)
-import "github.com/stigmer/stigmer/sdk/go/skill"
-import "github.com/stigmer/stigmer/sdk/go/mcpserver"
+// SDK packages for referencing existing resources
+import "github.com/stigmer/stigmer/sdk/go/skillref"
+import "github.com/stigmer/stigmer/sdk/go/mcpserverref"
 
-skill, _ := skill.Parse("stigmer/security-scan@v2.1")
-mcp, _ := mcpserver.Parse("stigmer/github")
+skill, _ := skillref.Parse("stigmer/security-scan@v2.1")
+mcp, _ := mcpserverref.Parse("stigmer/github")
 ```
 
 ---
