@@ -3,8 +3,8 @@
 **Project**: `_projects/2026-02/20260205.01.sdk-all-resources`
 
 ## Current State
-- **Status**: ✅ Task 3.4 Complete - Ready for Task 4.1
-- **Last Session**: February 6, 2026 (Workflow unified pattern applied)
+- **Status**: ✅ Task 4.1 Complete - Ready for Task 4.2
+- **Last Session**: February 6, 2026 (Fixed all pre-existing test failures)
 - **Active Branch**: `feat/add-sdk-implementation-for-all-resources`
 
 ## Session Progress (February 6, 2026 - Task 3.3)
@@ -144,19 +144,63 @@ The session revealed that **Skill is fundamentally different** from Agent/MCPSer
 - **Lines changed**: ~1,278 insertions, ~1,288 deletions
 - **Quality**: World-class implementation, comprehensive test coverage
 
-## Next Task: 4.1 - Fix Pre-existing Test Failures
+## Session Progress (February 6, 2026 - Task 4.1)
 
-**Goal**: Address any pre-existing test failures in other SDK packages after the unified pattern changes.
+### What Was Accomplished
+- ✅ Fixed MCPServer duplicate file issue (deleted `server.go` duplicate)
+- ✅ Updated all proto enum references from `SCREAMING_SNAKE` to `snake_case`
+- ✅ Removed obsolete `ApiResourceReference.Scope` field references
+- ✅ Fixed integration tests to use new `AddTask()` pattern and namespace/name format
+- ✅ Updated agent tests to reflect validation architecture (New vs ToProto timing)
+- ✅ Fixed context package to use `Args` fields instead of direct fields
+- ✅ All core SDK packages now passing (100% integration tests)
+
+### Files Modified
+- `sdk/go/agent/agent_test.go`, `edge_cases_test.go`, `errors_test.go`, `parsing_test.go`
+- `sdk/go/examples/examples_test.go`
+- `sdk/go/integration_scenarios_test.go`
+- `sdk/go/stigmer/context.go`, `context_test.go`
+
+### Files Deleted
+- `sdk/go/mcpserver/server.go` (duplicate)
+
+### Test Results
+```
+✅ Build: SUCCESS (all packages)
+✅ Vet: SUCCESS (no issues)
+✅ Tests: All core SDK packages passing
+   - sdk/go: ✅ Integration tests
+   - sdk/go/agent: ✅ All tests
+   - sdk/go/mcpserver: ✅ 31/31 tests
+   - sdk/go/workflow: ✅ 100+ tests
+   - sdk/go/stigmer: ✅ Context tests
+   ⏳ sdk/go/examples: Deferred to Task 4.2
+   ⏳ sdk/go/templates: Deferred to Task 4.2
+```
+
+### Net Changes
+- **Files modified**: 8
+- **Files deleted**: 1
+- **Lines changed**: 143 insertions, 614 deletions (-471 net)
+
+## Next Task: 4.2 - Update Examples
+
+**Goal**: Update all example files in `sdk/go/examples/` to use the new unified pattern.
+
+**Known Issues**:
+- Example files reference old APIs (e.g., `agent.SkillRefs` instead of `agent.SkillRefs()`)
+- Examples use old workflow creation patterns
+- Need to update ~16 example files
 
 **Steps**:
-1. Run full SDK test suite: `go test ./sdk/go/...`
-2. Identify any failures related to workflow changes
-3. Fix integration issues
-4. Ensure all packages work together
+1. Audit all example files: `ls sdk/go/examples/*.go`
+2. Update each example to use new patterns
+3. Ensure all examples compile and run
+4. Update example tests to verify correct behavior
 
 **Validation**:
 ```bash
-cd sdk/go && go test ./...
+cd sdk/go/examples && go test ./...
 ```
 
 ## Completed Tasks
@@ -171,8 +215,25 @@ cd sdk/go && go test ./...
 | 3.2 | Apply unified pattern to McpServer | ✅ Complete (Feb 6) |
 | 3.3 | Apply unified pattern to Skill | ✅ Complete (Feb 6) |
 | 3.4 | Apply unified pattern to Workflow | ✅ Complete (Feb 6) |
+| 4.1 | Fix pre-existing test failures | ✅ Complete (Feb 6) |
 
-### Task 3.4 Summary (Just Completed)
+### Task 4.1 Summary (Just Completed)
+
+**Changes**:
+- Deleted duplicate `mcpserver/server.go` file
+- Updated all proto enum references to snake_case
+- Removed obsolete `ApiResourceReference.Scope` references
+- Fixed integration tests to use `AddTask()` and namespace/name patterns
+- Updated agent tests to reflect validation timing architecture
+- Fixed context package to use `Args` fields
+
+**Files**: 8 modified, 1 deleted (143 insertions, 614 deletions)
+
+**Quality**: All core SDK packages passing, clean build and vet
+
+**Key insight**: Test failures were primarily due to proto schema evolution (enum naming, removed fields) and architecture changes (Args as single source of truth, validation timing)
+
+### Task 3.4 Summary
 
 **Changes**:
 - Replaced hand-written WorkflowArgs with type alias to generated proto
@@ -193,8 +254,7 @@ cd sdk/go && go test ./...
 
 | Task | Description | Status |
 |------|-------------|--------|
-| 4.1 | Fix pre-existing test failures | 🔜 Next |
-| 4.2 | Update examples | Pending |
+| 4.2 | Update examples | 🔜 Next |
 | 4.3 | Update documentation | Pending |
 
 ## The Unified Pattern (Reference)
@@ -279,6 +339,6 @@ Then say: "Continue with Task 3.4 - Apply pattern to Workflow"
 
 ---
 
-**Last Updated**: February 6, 2026 (Task 3.4 completed)  
+**Last Updated**: February 6, 2026 (Task 4.1 completed)  
 **Branch**: `feat/add-sdk-implementation-for-all-resources`  
-**Status**: Ready for Task 4.1 (Fix pre-existing tests)
+**Status**: Ready for Task 4.2 (Update examples)

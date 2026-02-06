@@ -41,11 +41,10 @@ func TestNew(t *testing.T) {
 			errType: ErrInvalidName,
 		},
 		{
-			name:      "missing instructions",
+			name:      "nil args allowed (validation at ToProto time)",
 			agentName: "test-agent",
-			args:      &AgentArgs{},
-			wantErr:   true,
-			errType:   ErrInvalidInstructions,
+			args:      nil, // Args can be nil at New() - validation happens at ToProto()
+			wantErr:   false,
 		},
 		{
 			name:      "invalid name - uppercase",
@@ -65,34 +64,34 @@ func TestNew(t *testing.T) {
 			wantErr: true,
 			errType: ErrInvalidName,
 		},
+		// Note: Instructions, description, and iconURL validation was moved to ToProto() time
+		// using protovalidate. The following test cases verify that New() accepts these
+		// values (validation happens later at ToProto() time).
 		{
-			name:      "invalid instructions - too short",
+			name:      "short instructions allowed at New() (validated at ToProto)",
 			agentName: "test-agent",
 			args: &AgentArgs{
 				Instructions: "short",
 			},
-			wantErr: true,
-			errType: ErrInvalidInstructions,
+			wantErr: false, // Validation happens at ToProto() time, not New()
 		},
 		{
-			name:      "invalid description - too long",
+			name:      "long description allowed at New() (validated at ToProto)",
 			agentName: "test-agent",
 			args: &AgentArgs{
 				Instructions: "This is a test agent with valid instructions",
 				Description:  string(make([]byte, 501)),
 			},
-			wantErr: true,
-			errType: ErrInvalidDescription,
+			wantErr: false, // Validation happens at ToProto() time, not New()
 		},
 		{
-			name:      "invalid icon URL",
+			name:      "invalid icon URL allowed at New() (validated at ToProto)",
 			agentName: "test-agent",
 			args: &AgentArgs{
 				Instructions: "This is a test agent with valid instructions",
 				IconUrl:      "not-a-url",
 			},
-			wantErr: true,
-			errType: ErrInvalidIconURL,
+			wantErr: false, // Validation happens at ToProto() time, not New()
 		},
 	}
 

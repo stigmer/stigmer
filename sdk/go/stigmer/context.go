@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/internal/validation"
@@ -500,9 +501,14 @@ func (c *Context) TrackDependency(resourceID, dependsOnID string) {
 func (c *Context) trackWorkflowAgentDependencies(workflowID string, wf *workflow.Workflow) {
 	// Note: caller must hold c.mu.Lock()
 
+	// After workflow refactoring, tasks are stored in Args.Tasks as proto types
+	if wf.Args == nil || wf.Args.Tasks == nil {
+		return
+	}
+
 	// Scan all tasks for agent_call task type
-	for _, task := range wf.Tasks {
-		if task.Kind == workflow.TaskKindAgentCall {
+	for _, task := range wf.Args.Tasks {
+		if task.Kind == workflowv1.WorkflowTaskKind_agent_call {
 			// Extract agent reference from task config
 			// TODO: This requires accessing the AgentCallTaskConfig
 			// For now, we'll implement a helper method to extract agent refs
@@ -518,9 +524,9 @@ func (c *Context) trackWorkflowAgentDependencies(workflowID string, wf *workflow
 	}
 }
 
-// extractAgentRefsFromTask extracts agent references from a workflow task.
+// extractAgentRefsFromTask extracts agent references from a proto workflow task.
 // Returns agent names/slugs that this task depends on.
-func extractAgentRefsFromTask(task *workflow.Task) []string {
+func extractAgentRefsFromTask(task *workflowv1.WorkflowTask) []string {
 	// TODO: Implement proper extraction from task config
 	// This requires accessing AgentCallTaskConfig.Agent field
 	// For now, return empty - this will be implemented when we have
@@ -530,7 +536,9 @@ func extractAgentRefsFromTask(task *workflow.Task) []string {
 
 // workflowResourceID generates a resource ID for a workflow.
 func workflowResourceID(wf *workflow.Workflow) string {
-	return fmt.Sprintf("workflow:%s", wf.Document.Name)
+	// After refactoring, workflow identity is in Name field directly,
+	// Document.Name is the same as Name
+	return fmt.Sprintf("workflow:%s", wf.Name)
 }
 
 // agentResourceID generates a resource ID for an agent.
@@ -719,7 +727,7 @@ func (c *Context) synthesizeWorkflows(outputDir string) error {
 		workflowProto, err := wf.ToProto()
 		if err != nil {
 			return validation.NewSynthesisErrorForResource(
-				"workflows", "Workflow", wf.Document.Name,
+				"workflows", "Workflow", wf.Name,
 				"failed to convert to proto",
 				err,
 			)
@@ -729,7 +737,7 @@ func (c *Context) synthesizeWorkflows(outputDir string) error {
 		data, err := proto.Marshal(workflowProto)
 		if err != nil {
 			return validation.NewSynthesisErrorForResource(
-				"workflows", "Workflow", wf.Document.Name,
+				"workflows", "Workflow", wf.Name,
 				"failed to serialize protobuf",
 				err,
 			)
@@ -742,7 +750,7 @@ func (c *Context) synthesizeWorkflows(outputDir string) error {
 			return &validation.SynthesisError{
 				Phase:        "workflows",
 				ResourceType: "Workflow",
-				ResourceName: wf.Document.Name,
+				ResourceName: wf.Name,
 				Message:      fmt.Sprintf("failed to write manifest to %s", workflowPath),
 				Err:          validation.ErrManifestWrite,
 			}
