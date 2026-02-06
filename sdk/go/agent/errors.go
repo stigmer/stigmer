@@ -102,3 +102,76 @@ func NewResourceError(name, operation, message string) *ResourceError {
 func NewResourceErrorWithCause(name, operation, message string, err error) *ResourceError {
 	return validation.NewResourceErrorWithCause("Agent", name, operation, message, err)
 }
+
+// =============================================================================
+// SubAgent Errors
+// =============================================================================
+
+// Sentinel errors for skill reference parsing in SubAgent context.
+//
+// SubAgents differ from Agents in that they have no Org field.
+// All skill references must use explicit "org/slug" format.
+var (
+	// ErrSubAgentOrgRequired is returned when a slug-only reference is used.
+	// SubAgents have no org context, so explicit "org/slug" format is required.
+	ErrSubAgentOrgRequired = errors.New("explicit org/slug format required (subagents have no org context)")
+
+	// ErrSubAgentEmptyRef is returned when an empty reference string is provided.
+	ErrSubAgentEmptyRef = errors.New("reference string is empty")
+
+	// ErrSubAgentEmptyOrg is returned when the organization part of a reference is empty.
+	ErrSubAgentEmptyOrg = errors.New("organization is empty in reference")
+
+	// ErrSubAgentEmptySlug is returned when the slug part of a reference is empty.
+	ErrSubAgentEmptySlug = errors.New("slug is empty in reference")
+)
+
+// SubAgentRefParseError provides detailed context for skill reference parsing failures
+// in SubAgent context.
+//
+// This error type wraps sentinel errors and provides additional context
+// for debugging and user-facing error messages.
+//
+// Use errors.Is() to check for specific error types:
+//
+//	var parseErr *SubAgentRefParseError
+//	if errors.As(err, &parseErr) {
+//	    fmt.Printf("Failed to parse %q: %s\n", parseErr.Ref, parseErr.Message)
+//	}
+//	if errors.Is(err, ErrSubAgentOrgRequired) {
+//	    // Handle missing org specifically
+//	}
+type SubAgentRefParseError struct {
+	// Ref is the original reference string that failed to parse.
+	Ref string
+
+	// Message provides a human-readable description of what went wrong.
+	Message string
+
+	// Err is the underlying sentinel error for programmatic error checking.
+	Err error
+}
+
+// Error implements the error interface.
+//
+// Returns a formatted error message that includes:
+// - Package context ("subagent:")
+// - The original reference (if non-empty)
+// - A human-readable explanation
+func (e *SubAgentRefParseError) Error() string {
+	if e.Ref == "" {
+		return "subagent: " + e.Message
+	}
+	return "subagent: cannot parse \"" + e.Ref + "\": " + e.Message
+}
+
+// Unwrap returns the underlying error for use with errors.Is and errors.As.
+//
+// This allows callers to check for specific sentinel errors:
+//
+//	if errors.Is(err, ErrSubAgentOrgRequired) {
+//	    // Show help about org/slug format
+//	}
+func (e *SubAgentRefParseError) Unwrap() error {
+	return e.Err
+}

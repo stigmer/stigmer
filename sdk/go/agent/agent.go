@@ -9,7 +9,6 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
-	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
 // AgentArgs is an alias for the generated AgentArgs from gen/agent.
@@ -61,8 +60,9 @@ type Agent struct {
 	Args *AgentArgs
 
 	// SubAgents are sub-agents that can be delegated to (inline or referenced).
-	// Uses SDK-specific types for builder ergonomics, converted to proto in ToProto.
-	SubAgents []subagent.SubAgent
+	// SubAgents are value objects within the Agent aggregate - they cannot exist independently.
+	// Converted to proto in ToProto.
+	SubAgents []SubAgent
 
 	// Context reference (optional, used for typed variable management)
 	ctx Context
@@ -125,7 +125,7 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 		Name:      name,
 		Args:      args,
 		ctx:       ctx,
-		SubAgents: []subagent.SubAgent{},
+		SubAgents: []SubAgent{},
 	}
 
 	// Auto-generate slug from name if not provided
@@ -628,10 +628,10 @@ func (a *Agent) TryUseMCP(ref string, enabledTools ...string) (*Agent, error) {
 //
 // Example:
 //
-//	helper, _ := subagent.New("security", &subagent.Args{Instructions: "Check security"})
+//	helper, _ := agent.NewSubAgent("security", &agent.SubAgentArgs{Instructions: "Check security"})
 //	helper.GrantMcpAccess("github", "search_code")
-//	agent.AddSubAgent(helper)
-func (a *Agent) AddSubAgent(sub subagent.SubAgent) *Agent {
+//	ag.AddSubAgent(helper)
+func (a *Agent) AddSubAgent(sub SubAgent) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.SubAgents = append(a.SubAgents, sub)
@@ -643,9 +643,9 @@ func (a *Agent) AddSubAgent(sub subagent.SubAgent) *Agent {
 //
 // Example:
 //
-//	agent, _ := agent.New(agent.WithName("reviewer"))
-//	agent.AddSubAgents(sub1, sub2)
-func (a *Agent) AddSubAgents(subs ...subagent.SubAgent) *Agent {
+//	ag, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{Instructions: "Review code"})
+//	ag.AddSubAgents(sub1, sub2)
+func (a *Agent) AddSubAgents(subs ...SubAgent) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.SubAgents = append(a.SubAgents, subs...)

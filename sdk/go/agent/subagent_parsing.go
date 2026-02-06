@@ -1,4 +1,4 @@
-package subagent
+package agent
 
 import (
 	"strings"
@@ -7,9 +7,9 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
-// parseSkillRef parses a skill reference in "org/slug" or "org/slug@version" format.
+// parseSubAgentSkillRef parses a skill reference in "org/slug" or "org/slug@version" format.
 //
-// Unlike the Agent package, SubAgent has no Org field and therefore cannot resolve
+// Unlike Agent parsing, SubAgent has no Org field and therefore cannot resolve
 // slug-only references. All references must use explicit "org/slug" format.
 //
 // Parsing rules:
@@ -19,25 +19,25 @@ import (
 //   - "org/slug@email@domain" → uses last @ for version (slug="slug@email", version="domain")
 //
 // Error cases:
-//   - "" → ErrEmptyRef
-//   - "slug-only" (no /) → ErrOrgRequired
-//   - "/slug" → ErrEmptyOrg
-//   - "org/" → ErrEmptySlug
-//   - "org/@v1.0" → ErrEmptySlug
+//   - "" → ErrSubAgentEmptyRef
+//   - "slug-only" (no /) → ErrSubAgentOrgRequired
+//   - "/slug" → ErrSubAgentEmptyOrg
+//   - "org/" → ErrSubAgentEmptySlug
+//   - "org/@v1.0" → ErrSubAgentEmptySlug
 //
 // Version handling:
 //   - Version in string is extracted from last "@" character
 //   - Option version (via AtVersion) overrides string version
 //
-// Returns a RefParseError if parsing fails, allowing callers to use
+// Returns a SubAgentRefParseError if parsing fails, allowing callers to use
 // errors.Is() and errors.As() for specific error handling.
-func parseSkillRef(ref string, opts ...SkillOption) (*apiresource.ApiResourceReference, error) {
+func parseSubAgentSkillRef(ref string, opts ...SkillOption) (*apiresource.ApiResourceReference, error) {
 	// Validate non-empty input
 	if ref == "" {
-		return nil, &RefParseError{
+		return nil, &SubAgentRefParseError{
 			Ref:     ref,
 			Message: "reference string is empty",
-			Err:     ErrEmptyRef,
+			Err:     ErrSubAgentEmptyRef,
 		}
 	}
 
@@ -48,10 +48,10 @@ func parseSkillRef(ref string, opts ...SkillOption) (*apiresource.ApiResourceRef
 
 	// SubAgents require explicit org/slug format - no defaultOrg fallback
 	if !strings.Contains(ref, "/") {
-		return nil, &RefParseError{
+		return nil, &SubAgentRefParseError{
 			Ref:     ref,
 			Message: "subagents require explicit org/slug format (no org context available)",
-			Err:     ErrOrgRequired,
+			Err:     ErrSubAgentOrgRequired,
 		}
 	}
 
@@ -71,19 +71,19 @@ func parseSkillRef(ref string, opts ...SkillOption) (*apiresource.ApiResourceRef
 
 	// Validate org is not empty
 	if org == "" {
-		return nil, &RefParseError{
+		return nil, &SubAgentRefParseError{
 			Ref:     ref,
 			Message: "organization is empty in reference",
-			Err:     ErrEmptyOrg,
+			Err:     ErrSubAgentEmptyOrg,
 		}
 	}
 
 	// Validate slug is not empty
 	if slug == "" {
-		return nil, &RefParseError{
+		return nil, &SubAgentRefParseError{
 			Ref:     ref,
 			Message: "slug is empty in reference",
-			Err:     ErrEmptySlug,
+			Err:     ErrSubAgentEmptySlug,
 		}
 	}
 

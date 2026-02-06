@@ -103,10 +103,10 @@ func TestAgentRequireMultipleEnvVars(t *testing.T) {
 
 	// Verify each variable
 	testCases := []struct {
-		name        string
-		wantSecret  bool
-		wantValue   string
-		wantDesc    string
+		name       string
+		wantSecret bool
+		wantValue  string
+		wantDesc   string
 	}{
 		{"GITHUB_TOKEN", true, "", "GitHub API token"},
 		{"AWS_SECRET_KEY", true, "", "AWS secret access key"},
