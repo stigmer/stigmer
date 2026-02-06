@@ -19,7 +19,7 @@ import (
 // ReadFromDirectory reads all synthesized resources from the output directory.
 //
 // The SDK writes:
-//   - skill-0.pb, skill-1.pb, ...
+//   - skill-0.pb, skill-1.pb, ... (SkillSynth - input for skill creation)
 //   - mcpserver-0.pb, mcpserver-1.pb, ...
 //   - agent-0.pb, agent-1.pb, ...
 //   - workflow-0.pb, workflow-1.pb, ...
@@ -28,18 +28,19 @@ import (
 // This function reads all these files and returns a Result.
 func ReadFromDirectory(outputDir string) (*Result, error) {
 	result := &Result{
-		Skills:     make([]*skillv1.Skill, 0),
-		McpServers: make([]*mcpserverv1.McpServer, 0),
-		Agents:     make([]*agentv1.Agent, 0),
-		Workflows:  make([]*workflowv1.Workflow, 0),
+		SkillSynths: make([]*skillv1.SkillSynth, 0),
+		McpServers:  make([]*mcpserverv1.McpServer, 0),
+		Agents:      make([]*agentv1.Agent, 0),
+		Workflows:   make([]*workflowv1.Workflow, 0),
 	}
 
-	// Read skills (skill-0.pb, skill-1.pb, ...)
-	skills, err := readProtoFiles[*skillv1.Skill](outputDir, "skill-*.pb")
+	// Read skill synths (skill-0.pb, skill-1.pb, ...)
+	// These are SkillSynth messages that the CLI processes to create skill artifacts
+	skillSynths, err := readProtoFiles[*skillv1.SkillSynth](outputDir, "skill-*.pb")
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to read skills")
+		return nil, errors.Wrap(err, "failed to read skill synths")
 	}
-	result.Skills = skills
+	result.SkillSynths = skillSynths
 
 	// Read MCP servers (mcpserver-0.pb, mcpserver-1.pb, ...)
 	mcpServers, err := readProtoFiles[*mcpserverv1.McpServer](outputDir, "mcpserver-*.pb")
@@ -138,18 +139,21 @@ func readDependencies(outputDir string) (map[string][]string, error) {
 // GetResourceID generates a resource ID from a proto message.
 //
 // Format:
-//   - Skills: "skill:{slug}"
+//   - SkillSynths: "skill_synth:{source}" (source is local path or git URL)
 //   - MCP Servers: "mcp_server:{slug}"
 //   - Agents: "agent:{slug}"
 //   - Workflows: "workflow:{slug}"
 func GetResourceID(msg proto.Message) string {
 	switch m := msg.(type) {
-	case *skillv1.Skill:
-		slug := m.GetMetadata().GetSlug()
-		if slug == "" {
-			slug = m.GetMetadata().GetName()
+	case *skillv1.SkillSynth:
+		// SkillSynth doesn't have slug - use source for identification
+		if m.GetLocal() != nil {
+			return fmt.Sprintf("skill_synth:%s", m.GetLocal().GetPath())
 		}
-		return fmt.Sprintf("skill:%s", strings.ToLower(slug))
+		if m.GetGit() != nil {
+			return fmt.Sprintf("skill_synth:%s", m.GetGit().GetUrl())
+		}
+		return "skill_synth:unknown"
 	case *mcpserverv1.McpServer:
 		slug := m.GetMetadata().GetSlug()
 		if slug == "" {

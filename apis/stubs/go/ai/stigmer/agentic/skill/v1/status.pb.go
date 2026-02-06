@@ -98,7 +98,12 @@ type SkillStatus struct {
 	// This is determined by the system based on storage configuration.
 	ArtifactStorageKey string `protobuf:"bytes,2,opt,name=artifact_storage_key,json=artifactStorageKey,proto3" json:"artifact_storage_key,omitempty"`
 	// Current lifecycle state of the skill.
-	State         SkillState `protobuf:"varint,3,opt,name=state,proto3,enum=ai.stigmer.agentic.skill.v1.SkillState" json:"state,omitempty"`
+	State SkillState `protobuf:"varint,3,opt,name=state,proto3,enum=ai.stigmer.agentic.skill.v1.SkillState" json:"state,omitempty"`
+	// Git provenance tracking where the skill artifacts originated from.
+	// Populated by CLI during push, provides traceability and enables
+	// "view on GitHub" links and reproducible deployments.
+	// Absent when pushed from a non-git directory.
+	GitProvenance *GitProvenance `protobuf:"bytes,4,opt,name=git_provenance,json=gitProvenance,proto3" json:"git_provenance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -161,16 +166,118 @@ func (x *SkillStatus) GetState() SkillState {
 	return SkillState_SKILL_STATE_UNSPECIFIED
 }
 
+func (x *SkillStatus) GetGitProvenance() *GitProvenance {
+	if x != nil {
+		return x.GitProvenance
+	}
+	return nil
+}
+
+// GitProvenance tracks the git origin of skill artifacts.
+// This is system-detected metadata, not user-specified configuration.
+// Populated by CLI during push based on:
+// - Local push: auto-detected from directory's git context
+// - Git push: resolved from user-provided URL/ref
+type GitProvenance struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Git remote URL.
+	// For local push: detected "origin" remote URL
+	// For git push: the user-provided repository URL
+	// Example: "https://github.com/stigmer/skills.git"
+	RemoteUrl string `protobuf:"bytes,1,opt,name=remote_url,json=remoteUrl,proto3" json:"remote_url,omitempty"`
+	// Original git reference (for display purposes).
+	// For local push: detected branch name (e.g., "main") or empty if detached HEAD
+	// For git push: the user-provided ref (e.g., "v1.0.0", "main")
+	// This preserves user intent for display while commit provides immutability.
+	Ref string `protobuf:"bytes,2,opt,name=ref,proto3" json:"ref,omitempty"`
+	// Resolved commit SHA (for reproducibility).
+	// Always populated - this is the immutable version reference.
+	// Full 40-character SHA ensures exact reproducibility.
+	// Example: "abc123def456789012345678901234567890abcd"
+	Commit string `protobuf:"bytes,3,opt,name=commit,proto3" json:"commit,omitempty"`
+	// Subdirectory path relative to repo root.
+	// Empty if skill is at repo root.
+	// Example: "skills/calculator"
+	Subdir        string `protobuf:"bytes,4,opt,name=subdir,proto3" json:"subdir,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GitProvenance) Reset() {
+	*x = GitProvenance{}
+	mi := &file_ai_stigmer_agentic_skill_v1_status_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GitProvenance) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GitProvenance) ProtoMessage() {}
+
+func (x *GitProvenance) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_status_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GitProvenance.ProtoReflect.Descriptor instead.
+func (*GitProvenance) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_status_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GitProvenance) GetRemoteUrl() string {
+	if x != nil {
+		return x.RemoteUrl
+	}
+	return ""
+}
+
+func (x *GitProvenance) GetRef() string {
+	if x != nil {
+		return x.Ref
+	}
+	return ""
+}
+
+func (x *GitProvenance) GetCommit() string {
+	if x != nil {
+		return x.Commit
+	}
+	return ""
+}
+
+func (x *GitProvenance) GetSubdir() string {
+	if x != nil {
+		return x.Subdir
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_skill_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/skill/v1/status.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\x80\x02\n" +
+	"(ai/stigmer/agentic/skill/v1/status.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xd3\x02\n" +
 	"\vSkillStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x128\n" +
 	"\fversion_hash\x18\x01 \x01(\tB\x15\xbaH\x12r\x102\x0e^[a-f0-9]{64}$R\vversionHash\x120\n" +
 	"\x14artifact_storage_key\x18\x02 \x01(\tR\x12artifactStorageKey\x12=\n" +
-	"\x05state\x18\x03 \x01(\x0e2'.ai.stigmer.agentic.skill.v1.SkillStateR\x05state*s\n" +
+	"\x05state\x18\x03 \x01(\x0e2'.ai.stigmer.agentic.skill.v1.SkillStateR\x05state\x12Q\n" +
+	"\x0egit_provenance\x18\x04 \x01(\v2*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenance\"\x82\x01\n" +
+	"\rGitProvenance\x12&\n" +
+	"\n" +
+	"remote_url\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tremoteUrl\x12\x10\n" +
+	"\x03ref\x18\x02 \x01(\tR\x03ref\x12\x1f\n" +
+	"\x06commit\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06commit\x12\x16\n" +
+	"\x06subdir\x18\x04 \x01(\tR\x06subdir*s\n" +
 	"\n" +
 	"SkillState\x12\x1b\n" +
 	"\x17SKILL_STATE_UNSPECIFIED\x10\x00\x12\x19\n" +
@@ -192,20 +299,22 @@ func file_ai_stigmer_agentic_skill_v1_status_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_skill_v1_status_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_skill_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_agentic_skill_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_skill_v1_status_proto_goTypes = []any{
 	(SkillState)(0),                      // 0: ai.stigmer.agentic.skill.v1.SkillState
 	(*SkillStatus)(nil),                  // 1: ai.stigmer.agentic.skill.v1.SkillStatus
-	(*apiresource.ApiResourceAudit)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*GitProvenance)(nil),                // 2: ai.stigmer.agentic.skill.v1.GitProvenance
+	(*apiresource.ApiResourceAudit)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceAudit
 }
 var file_ai_stigmer_agentic_skill_v1_status_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.agentic.skill.v1.SkillStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	3, // 0: ai.stigmer.agentic.skill.v1.SkillStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
 	0, // 1: ai.stigmer.agentic.skill.v1.SkillStatus.state:type_name -> ai.stigmer.agentic.skill.v1.SkillState
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	2, // 2: ai.stigmer.agentic.skill.v1.SkillStatus.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_skill_v1_status_proto_init() }
@@ -219,7 +328,7 @@ func file_ai_stigmer_agentic_skill_v1_status_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_skill_v1_status_proto_rawDesc), len(file_ai_stigmer_agentic_skill_v1_status_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

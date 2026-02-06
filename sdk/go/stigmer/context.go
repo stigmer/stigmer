@@ -13,6 +13,7 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
+	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -60,6 +61,9 @@ type Context struct {
 	// mcpServers tracks all MCP servers created in this context
 	mcpServers []*mcpserver.MCPServer
 
+	// skills tracks all skills created in this context
+	skills []*skill.Skill
+
 	// dependencies tracks resource dependencies for creation order
 	// Map format: resourceID -> []dependencyIDs
 	// Example: "workflow:pr-review" -> ["agent:code-reviewer"]
@@ -81,6 +85,7 @@ func newContextWithContext(ctx context.Context) *Context {
 		workflows:    make([]*workflow.Workflow, 0),
 		agents:       make([]*agent.Agent, 0),
 		mcpServers:   make([]*mcpserver.MCPServer, 0),
+		skills:       make([]*skill.Skill, 0),
 		dependencies: make(map[string][]string),
 	}
 }
@@ -437,6 +442,15 @@ func (c *Context) RegisterMCPServer(m *mcpserver.MCPServer) {
 	c.mcpServers = append(c.mcpServers, m)
 }
 
+// RegisterSkill registers a skill with this context.
+// Called automatically by skill.FromDir() and skill.FromGit().
+func (c *Context) RegisterSkill(s *skill.Skill) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.skills = append(c.skills, s)
+}
+
 // =============================================================================
 // Dependency Tracking (Internal)
 // =============================================================================
@@ -576,6 +590,13 @@ func (c *Context) synthesizeManifests(outputDir string) error {
 		}
 	}
 
+	// Synthesize skills
+	if len(c.skills) > 0 {
+		if err := c.synthesizeSkills(outputDir); err != nil {
+			return err
+		}
+	}
+
 	// Write dependency graph
 	if err := c.synthesizeDependencies(outputDir); err != nil {
 		return err
@@ -699,6 +720,66 @@ func (c *Context) synthesizeWorkflows(outputDir string) error {
 				ResourceType: "Workflow",
 				ResourceName: wf.Document.Name,
 				Message:      fmt.Sprintf("failed to write manifest to %s", workflowPath),
+				Err:          validation.ErrManifestWrite,
+			}
+		}
+	}
+
+	return nil
+}
+
+// synthesizeSkills converts skills to protobuf and writes to disk
+func (c *Context) synthesizeSkills(outputDir string) error {
+	// Convert each skill to proto and write individually
+	for i, s := range c.skills {
+		// Convert skill to SkillSynth proto using ToProto() method
+		skillProto, err := s.ToProto()
+		if err != nil {
+			// Use a descriptive name based on source type
+			name := "unknown"
+			if s.IsLocal() {
+				name = s.LocalPath()
+			} else if s.IsGit() {
+				name = s.GitURL()
+			}
+			return validation.NewSynthesisErrorForResource(
+				"skills", "Skill", name,
+				"failed to convert to proto",
+				err,
+			)
+		}
+
+		// Serialize to binary protobuf
+		data, err := proto.Marshal(skillProto)
+		if err != nil {
+			name := "unknown"
+			if s.IsLocal() {
+				name = s.LocalPath()
+			} else if s.IsGit() {
+				name = s.GitURL()
+			}
+			return validation.NewSynthesisErrorForResource(
+				"skills", "Skill", name,
+				"failed to serialize protobuf",
+				err,
+			)
+		}
+
+		// Write to skill-{index}.pb (use index to maintain order)
+		filename := fmt.Sprintf("skill-%d.pb", i)
+		skillPath := filepath.Join(outputDir, filename)
+		if err := os.WriteFile(skillPath, data, 0644); err != nil {
+			name := "unknown"
+			if s.IsLocal() {
+				name = s.LocalPath()
+			} else if s.IsGit() {
+				name = s.GitURL()
+			}
+			return &validation.SynthesisError{
+				Phase:        "skills",
+				ResourceType: "Skill",
+				ResourceName: name,
+				Message:      fmt.Sprintf("failed to write manifest to %s", skillPath),
 				Err:          validation.ErrManifestWrite,
 			}
 		}
