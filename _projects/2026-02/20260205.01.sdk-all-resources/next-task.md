@@ -46,11 +46,11 @@ import "github.com/stigmer/stigmer/sdk/go/agent"
 sub, _ := agent.NewSubAgent("helper", &agent.SubAgentArgs{...})
 ```
 
-**Validation**:
-- ✅ `go build ./sdk/go/...` passes
-- ✅ `go test ./sdk/go/agent/...` passes (all SubAgent tests passing)
-- ✅ No linter errors
-- ✅ No remaining references to old `subagent` package
+**Commits**:
+- `a72049fd` - refactor(sdk/agent): consolidate subagent into agent bounded context
+
+**Changelog**:
+- `_changelog/2026-02/2026-02-06-164201-subagent-consolidation-into-agent-bounded-context.md`
 
 **DDD Principle Applied**:
 - SubAgent is correctly modeled as a value object within the Agent aggregate
