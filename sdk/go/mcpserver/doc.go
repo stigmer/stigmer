@@ -15,7 +15,7 @@
 //	import (
 //	    "github.com/stigmer/stigmer/sdk/go/mcpserver"
 //	    "github.com/stigmer/stigmer/sdk/go/gen/types"
-//	    "github.com/stigmer/stigmer/sdk/go/context"
+//	    "github.com/stigmer/stigmer/sdk/go/stigmer"
 //	)
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {

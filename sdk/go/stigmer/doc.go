@@ -125,7 +125,7 @@
 //   - skill: Skill definitions (content artifacts)
 //   - mcpserver: MCP server definitions (stdio, HTTP, Docker)
 //   - environment: Environment resource (first-class API resource)
-//   - ref: Resource reference factories
+//   - commons/ref: Resource reference factories
 //
 // # Design Patterns
 //

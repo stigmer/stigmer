@@ -7,7 +7,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	genWorkflow "github.com/stigmer/stigmer/sdk/go/gen/workflow"
-	"github.com/stigmer/stigmer/sdk/go/context/naming"
+	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 )
 
 // Context is a minimal interface that represents a stigmer context.

@@ -11,7 +11,7 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/context"
+	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
 
 // This example demonstrates creating an agent with typed context variables.

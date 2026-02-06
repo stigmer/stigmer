@@ -539,7 +539,7 @@ func TestAgentToProto(t *testing.T) {
 package main
 
 import (
-    "github.com/stigmer/stigmer/sdk/go/context"
+    "github.com/stigmer/stigmer/sdk/go/stigmer"
     "github.com/stigmer/stigmer/sdk/go/agent"
     "github.com/stigmer/stigmer/sdk/go/skillref"
 )
@@ -561,7 +561,7 @@ func main() {
 package main
 
 import (
-    "github.com/stigmer/stigmer/sdk/go/context"
+    "github.com/stigmer/stigmer/sdk/go/stigmer"
     "github.com/stigmer/stigmer/sdk/go/agent"
 )
 

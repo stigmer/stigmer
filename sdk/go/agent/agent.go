@@ -8,7 +8,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
-	"github.com/stigmer/stigmer/sdk/go/context/naming"
+	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 )
 
 // AgentArgs is an alias for the generated AgentArgs from gen/agent.
