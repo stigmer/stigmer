@@ -201,21 +201,21 @@ func printAgent(title string, ag *agent.Agent) {
 	fmt.Printf("\n%s\n", title)
 	fmt.Println("=" + string(make([]byte, len(title))))
 	fmt.Printf("Agent Name: %s\n", ag.Name)
-	fmt.Printf("Description: %s\n", ag.Description)
-	fmt.Printf("Instructions Length: %d characters\n", len(ag.Instructions))
-	fmt.Printf("Skill Refs: %d\n", len(ag.SkillRefs))
+	fmt.Printf("Description: %s\n", ag.Description())
+	fmt.Printf("Instructions Length: %d characters\n", len(ag.Instructions()))
+	fmt.Printf("Skill Refs: %d\n", len(ag.SkillRefs()))
 
 	// Show skill refs if any
-	if len(ag.SkillRefs) > 0 {
+	if len(ag.SkillRefs()) > 0 {
 		fmt.Println("Referenced Skills:")
-		for i, ref := range ag.SkillRefs {
+		for i, ref := range ag.SkillRefs() {
 			fmt.Printf("  %d. %s/%s\n", i+1, ref.Org, ref.Slug)
 		}
 	}
 
 	// Show first 100 chars of instructions
-	if len(ag.Instructions) > 0 {
-		preview := ag.Instructions
+	if len(ag.Instructions()) > 0 {
+		preview := ag.Instructions()
 		if len(preview) > 100 {
 			preview = preview[:100] + "..."
 		}

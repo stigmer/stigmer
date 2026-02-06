@@ -20,13 +20,10 @@ func main() {
 		apiBase := ctx.SetString("apiBase", "https://api.github.com")
 		_ = ctx.SetInt("maxRetries", 3) // Define max retries in context
 
-		// Create workflow
-		wf, err := workflow.New(ctx,
-			workflow.WithNamespace("resilient-workflows"),
-			workflow.WithName("resilient-api-call"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Make GitHub API calls with error handling and retries"),
-		)
+		// Create workflow using struct-based Args pattern
+		wf, err := workflow.New(ctx, "resilient-workflows/resilient-api-call", &workflow.WorkflowArgs{
+			Description: "Make GitHub API calls with error handling and retries",
+		})
 		if err != nil {
 			return err
 		}

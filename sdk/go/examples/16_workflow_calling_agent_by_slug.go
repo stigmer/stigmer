@@ -12,7 +12,7 @@ import (
 // This example demonstrates calling an agent by org/slug reference.
 //
 // Key learning points:
-// - Using workflow.AgentBySlug() for loose coupling with org/slug format
+// - Using "org/slug" string format for agent references
 // - Reference agents that exist in any organization
 // - No need to create the agent in the same context
 // - All agents belong to an organization
@@ -25,12 +25,9 @@ func main() {
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Create a workflow that references an agent by org/slug
 		// The agent doesn't need to exist in this context
-		wf, err := workflow.New(ctx,
-			workflow.WithNamespace("code-review"),
-			workflow.WithName("review-by-slug"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Review workflow using agent slug reference"),
-		)
+		wf, err := workflow.New(ctx, "code-review/review-by-slug", &workflow.WorkflowArgs{
+			Description: "Review workflow using agent slug reference",
+		})
 		if err != nil {
 			return err
 		}
@@ -38,9 +35,9 @@ func main() {
 		// ============================================================================
 		// Pattern 1: Reference agent from your organization
 		// ============================================================================
-		// This references "code-reviewer" from your organization
+		// Use "org/slug" string format directly
 		orgReviewTask := wf.CallAgent("orgReview", &workflow.AgentCallArgs{
-			Agent:   workflow.AgentBySlug("my-org/code-reviewer").Ref(),
+			Agent:   "my-org/code-reviewer", // Direct org/slug string
 			Message: "Review this code for my organization's standards",
 		})
 
@@ -51,18 +48,18 @@ func main() {
 		// ============================================================================
 		// This references "security-scanner" from the stigmer organization (public)
 		publicReviewTask := wf.CallAgent("publicReview", &workflow.AgentCallArgs{
-			Agent:   workflow.AgentBySlug("stigmer/security-scanner").Ref(),
+			Agent:   "stigmer/security-scanner", // Direct org/slug string
 			Message: "Run security scan using public agent",
 		})
 
 		log.Printf("Created public agent call: %s", publicReviewTask.Name)
 
 		// ============================================================================
-		// Pattern 3: Using AgentByOrgSlug for explicit org and slug
+		// Pattern 3: Using explicit org/slug format
 		// ============================================================================
-		// This is more explicit when org and slug are separate variables
+		// Simply use "org/slug" string when you have separate values
 		explicitTask := wf.CallAgent("explicitReview", &workflow.AgentCallArgs{
-			Agent:   workflow.AgentByOrgSlug("acme-corp", "senior-reviewer").Ref(),
+			Agent:   "acme-corp/senior-reviewer", // Format: "org/slug"
 			Message: "Review using explicitly specified org and slug",
 		})
 
@@ -73,12 +70,12 @@ func main() {
 		// ============================================================================
 		// Second task automatically depends on first when using output
 		finalReviewTask := wf.CallAgent("finalReview", &workflow.AgentCallArgs{
-			Agent:   workflow.AgentBySlug("my-org/senior-reviewer").Ref(),
+			Agent:   "my-org/senior-reviewer", // Direct org/slug string
 			Message: "Final review completed. All scans done.",
 		})
 
 		log.Printf("Created final review task: %s", finalReviewTask.Name)
-		log.Printf("Total tasks: %d", len(wf.Tasks))
+		log.Printf("Total tasks: %d", len(wf.Args.Tasks))
 
 		return nil
 	})
