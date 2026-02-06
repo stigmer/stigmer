@@ -288,7 +288,3 @@ func TestAgentBuilder_StringRefConcat(t *testing.T) {
 	}
 }
 
-func TestRefHelpers_toExpression(t *testing.T) {
-	// This is tested indirectly through all the agent builder tests above,
-	// but we can add explicit tests if needed
-}
