@@ -8,11 +8,11 @@ import (
 // Ref is the base interface for all typed references.
 // A Ref represents a variable that can be used in two ways:
 //
-// 1. Compile-time resolution: ${variableName} placeholders are replaced with
-//    actual values during synthesis. This is the default for context variables.
+//  1. Compile-time resolution: ${variableName} placeholders are replaced with
+//     actual values during synthesis. This is the default for context variables.
 //
-// 2. Runtime resolution: ${ $context.variableName } JQ expressions are evaluated
-//    at workflow execution time. This is used for computed values and task outputs.
+//  2. Runtime resolution: ${ $context.variableName } JQ expressions are evaluated
+//     at workflow execution time. This is used for computed values and task outputs.
 //
 // All Ref types must implement:
 // - Expression(): Generate JQ expressions for runtime evaluation
@@ -36,9 +36,9 @@ type Ref interface {
 
 // baseRef provides common functionality for all Ref implementations.
 type baseRef struct {
-	name         string
-	isSecret     bool
-	isComputed   bool   // If true, name contains full expression, not just variable name
+	name          string
+	isSecret      bool
+	isComputed    bool   // If true, name contains full expression, not just variable name
 	rawExpression string // For computed expressions, the full expression without ${ }
 }
 
@@ -98,7 +98,7 @@ func (s *StringRef) ToValue() interface{} {
 }
 
 // Concat creates a new StringRef that concatenates this string with other strings.
-// 
+//
 // SMART RESOLUTION: If all values are known at synthesis time (not runtime expressions),
 // the concatenation is computed immediately and returned as a resolved value.
 // Otherwise, it generates a JQ expression for runtime evaluation.
@@ -119,11 +119,11 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 	// A StringRef is "known" if it's NOT a computed expression (runtime reference)
 	// Both context variables (have name + value) AND literals (no name) are known at compile-time
 	allKnown := !s.isComputed
-	
+
 	// Build both the resolved value AND the expression (we'll use one or the other)
 	var resolvedParts []string
 	var expressions []string
-	
+
 	// Add base value/expression
 	if !s.isComputed {
 		// Context variable or literal - use value directly for resolution
@@ -148,7 +148,7 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 			// Literal string - always known
 			resolvedParts = append(resolvedParts, v)
 			expressions = append(expressions, fmt.Sprintf(`"%s"`, v))
-			
+
 		case *StringRef:
 			// Another StringRef - check if it's known
 			if !v.isComputed {
@@ -166,7 +166,7 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 				allKnown = false
 				expressions = append(expressions, v.rawExpression)
 			}
-		
+
 		case *IntRef:
 			// IntRef - check if it's known
 			if !v.isComputed {
@@ -184,7 +184,7 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 				allKnown = false
 				expressions = append(expressions, v.rawExpression)
 			}
-		
+
 		case *BoolRef:
 			// BoolRef - check if it's known
 			if !v.isComputed {
@@ -202,12 +202,12 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 				allKnown = false
 				expressions = append(expressions, v.rawExpression)
 			}
-			
+
 		case Ref:
 			// Other Ref types (like TaskFieldRef) - always runtime
 			allKnown = false
 			expressions = append(expressions, fmt.Sprintf("($context.%s | tostring)", v.Name()))
-			
+
 		default:
 			// Fallback - literal value
 			resolvedParts = append(resolvedParts, fmt.Sprintf("%v", v))
@@ -221,9 +221,9 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 		finalValue := strings.Join(resolvedParts, "")
 		return &StringRef{
 			baseRef: baseRef{
-				name:         "", // Not a context variable, it's a resolved literal
-				isSecret:     s.isSecret,
-				isComputed:   false, // ← KEY: This is a known value!
+				name:          "", // Not a context variable, it's a resolved literal
+				isSecret:      s.isSecret,
+				isComputed:    false, // ← KEY: This is a known value!
 				rawExpression: "",
 			},
 			value: finalValue, // ← The actual resolved string
@@ -234,9 +234,9 @@ func (s *StringRef) Concat(parts ...interface{}) *StringRef {
 	result := strings.Join(expressions, " + ")
 	return &StringRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     s.isSecret,
-			isComputed:   true,
+			name:          "",
+			isSecret:      s.isSecret,
+			isComputed:    true,
 			rawExpression: result,
 		},
 		value: "", // Runtime value, not known at synthesis time
@@ -259,9 +259,9 @@ func (s *StringRef) Upper() *StringRef {
 	}
 	return &StringRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     s.isSecret,
-			isComputed:   true,
+			name:          "",
+			isSecret:      s.isSecret,
+			isComputed:    true,
 			rawExpression: expr,
 		},
 		value: "",
@@ -284,9 +284,9 @@ func (s *StringRef) Lower() *StringRef {
 	}
 	return &StringRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     s.isSecret,
-			isComputed:   true,
+			name:          "",
+			isSecret:      s.isSecret,
+			isComputed:    true,
 			rawExpression: expr,
 		},
 		value: "",
@@ -309,9 +309,9 @@ func (s *StringRef) Prepend(prefix string) *StringRef {
 	}
 	return &StringRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     s.isSecret,
-			isComputed:   true,
+			name:          "",
+			isSecret:      s.isSecret,
+			isComputed:    true,
 			rawExpression: expr,
 		},
 		value: "",
@@ -334,9 +334,9 @@ func (s *StringRef) Append(suffix string) *StringRef {
 	}
 	return &StringRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     s.isSecret,
-			isComputed:   true,
+			name:          "",
+			isSecret:      s.isSecret,
+			isComputed:    true,
 			rawExpression: expr,
 		},
 		value: "",
@@ -394,9 +394,9 @@ func (i *IntRef) Add(other *IntRef) *IntRef {
 	}
 	return &IntRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     false,
-			isComputed:   true,
+			name:          "",
+			isSecret:      false,
+			isComputed:    true,
 			rawExpression: fmt.Sprintf("(%s + %s)", left, right),
 		},
 		value: 0,
@@ -419,9 +419,9 @@ func (i *IntRef) Subtract(other *IntRef) *IntRef {
 	}
 	return &IntRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     false,
-			isComputed:   true,
+			name:          "",
+			isSecret:      false,
+			isComputed:    true,
 			rawExpression: fmt.Sprintf("(%s - %s)", left, right),
 		},
 		value: 0,
@@ -444,9 +444,9 @@ func (i *IntRef) Multiply(other *IntRef) *IntRef {
 	}
 	return &IntRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     false,
-			isComputed:   true,
+			name:          "",
+			isSecret:      false,
+			isComputed:    true,
 			rawExpression: fmt.Sprintf("(%s * %s)", left, right),
 		},
 		value: 0,
@@ -469,9 +469,9 @@ func (i *IntRef) Divide(other *IntRef) *IntRef {
 	}
 	return &IntRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     false,
-			isComputed:   true,
+			name:          "",
+			isSecret:      false,
+			isComputed:    true,
 			rawExpression: fmt.Sprintf("(%s / %s)", left, right),
 		},
 		value: 0,
@@ -532,9 +532,9 @@ func (b *BoolRef) And(other *BoolRef) *BoolRef {
 	}
 	return &BoolRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     false,
-			isComputed:   true,
+			name:          "",
+			isSecret:      false,
+			isComputed:    true,
 			rawExpression: fmt.Sprintf("(%s and %s)", left, right),
 		},
 		value: false,
@@ -557,9 +557,9 @@ func (b *BoolRef) Or(other *BoolRef) *BoolRef {
 	}
 	return &BoolRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     false,
-			isComputed:   true,
+			name:          "",
+			isSecret:      false,
+			isComputed:    true,
 			rawExpression: fmt.Sprintf("(%s or %s)", left, right),
 		},
 		value: false,
@@ -583,9 +583,9 @@ func (b *BoolRef) Not() *BoolRef {
 	}
 	return &BoolRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     false,
-			isComputed:   true,
+			name:          "",
+			isSecret:      false,
+			isComputed:    true,
 			rawExpression: expr,
 		},
 		value: false,
@@ -643,9 +643,9 @@ func (o *ObjectRef) Field(name string) *ObjectRef {
 	}
 	return &ObjectRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     o.isSecret,
-			isComputed:   true,
+			name:          "",
+			isSecret:      o.isSecret,
+			isComputed:    true,
 			rawExpression: expr,
 		},
 		value: nil, // Nested value, not known at synthesis time
@@ -672,9 +672,9 @@ func (o *ObjectRef) FieldAsString(fields ...string) *StringRef {
 	}
 	return &StringRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     o.isSecret,
-			isComputed:   true,
+			name:          "",
+			isSecret:      o.isSecret,
+			isComputed:    true,
 			rawExpression: expr,
 		},
 		value: "",
@@ -695,9 +695,9 @@ func (o *ObjectRef) FieldAsInt(fields ...string) *IntRef {
 	}
 	return &IntRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     false,
-			isComputed:   true,
+			name:          "",
+			isSecret:      false,
+			isComputed:    true,
 			rawExpression: expr,
 		},
 		value: 0,
@@ -718,9 +718,9 @@ func (o *ObjectRef) FieldAsBool(fields ...string) *BoolRef {
 	}
 	return &BoolRef{
 		baseRef: baseRef{
-			name:         "",
-			isSecret:     false,
-			isComputed:   true,
+			name:          "",
+			isSecret:      false,
+			isComputed:    true,
 			rawExpression: expr,
 		},
 		value: false,
