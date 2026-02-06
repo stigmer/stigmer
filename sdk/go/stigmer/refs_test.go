@@ -643,7 +643,7 @@ func TestStringRef_ToValue(t *testing.T) {
 			if got != tt.expected {
 				t.Errorf("ToValue() = %v, want %v", got, tt.expected)
 			}
-			
+
 			// Verify type is string
 			if _, ok := got.(string); !ok {
 				t.Errorf("ToValue() returned %T, want string", got)
@@ -690,7 +690,7 @@ func TestIntRef_ToValue(t *testing.T) {
 			if got != tt.expected {
 				t.Errorf("ToValue() = %v, want %v", got, tt.expected)
 			}
-			
+
 			// Verify type is int
 			if _, ok := got.(int); !ok {
 				t.Errorf("ToValue() returned %T, want int", got)
@@ -729,7 +729,7 @@ func TestBoolRef_ToValue(t *testing.T) {
 			if got != tt.expected {
 				t.Errorf("ToValue() = %v, want %v", got, tt.expected)
 			}
-			
+
 			// Verify type is bool
 			if _, ok := got.(bool); !ok {
 				t.Errorf("ToValue() returned %T, want bool", got)
@@ -785,7 +785,7 @@ func TestObjectRef_ToValue(t *testing.T) {
 				if !ok {
 					t.Fatalf("ToValue() returned %T, want map[string]interface{}", got)
 				}
-				
+
 				db, ok := m["database"].(map[string]interface{})
 				if !ok {
 					t.Fatalf("database field should be map[string]interface{}")
@@ -793,7 +793,7 @@ func TestObjectRef_ToValue(t *testing.T) {
 				if db["host"] != "localhost" {
 					t.Errorf("database.host = %v, want localhost", db["host"])
 				}
-				
+
 				cache, ok := m["cache"].(map[string]interface{})
 				if !ok {
 					t.Fatalf("cache field should be map[string]interface{}")
@@ -832,29 +832,29 @@ func TestObjectRef_ToValue(t *testing.T) {
 func TestToValue_RefInterface(t *testing.T) {
 	// Test that ToValue() works via the Ref interface
 	var refs []Ref
-	
+
 	refs = append(refs, &StringRef{
 		baseRef: baseRef{name: "str"},
 		value:   "hello",
 	})
-	
+
 	refs = append(refs, &IntRef{
 		baseRef: baseRef{name: "num"},
 		value:   42,
 	})
-	
+
 	refs = append(refs, &BoolRef{
 		baseRef: baseRef{name: "flag"},
 		value:   true,
 	})
-	
+
 	refs = append(refs, &ObjectRef{
 		baseRef: baseRef{name: "obj"},
 		value: map[string]interface{}{
 			"key": "value",
 		},
 	})
-	
+
 	// Verify we can call ToValue() through the interface
 	for i, ref := range refs {
 		value := ref.ToValue()

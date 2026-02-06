@@ -5,8 +5,8 @@ package main
 import (
 	"log"
 
-	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
+	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -39,7 +39,7 @@ func main() {
 		// Use case: Categorize support tickets
 		// ============================================================================
 		categorizeTicket := wf.CallAgent("categorizeTicket", &workflow.AgentCallArgs{
-			Agent: "support-categorizer", // Slug-only uses workflow's org
+			Agent:   "support-categorizer", // Slug-only uses workflow's org
 			Message: "Categorize this support ticket: 'My login is not working'",
 			Config: &types.AgentExecutionConfig{
 				Model:       "claude-3-haiku", // Fast model for simple categorization
@@ -79,7 +79,7 @@ func main() {
 		// Use case: Write marketing copy
 		// ============================================================================
 		generateCopy := wf.CallAgent("generateCopy", &workflow.AgentCallArgs{
-			Agent: "content-writer", // Slug-only uses workflow's org
+			Agent:   "content-writer", // Slug-only uses workflow's org
 			Message: "Write engaging marketing copy for a new AI code review tool",
 			Config: &types.AgentExecutionConfig{
 				Model:       "claude-3-5-sonnet", // Creative model
@@ -140,7 +140,7 @@ func main() {
 		// Use case: Answer customer question in real-time
 		// ============================================================================
 		customerSupport := wf.CallAgent("customerSupport", &workflow.AgentCallArgs{
-			Agent: "support-agent", // Slug-only uses workflow's org
+			Agent:   "support-agent", // Slug-only uses workflow's org
 			Message: workflow.RuntimeEnv("CUSTOMER_QUESTION"),
 			Config: &types.AgentExecutionConfig{
 				Model:       "claude-3-haiku", // Fast model for quick response
