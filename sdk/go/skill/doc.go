@@ -1,60 +1,24 @@
-// Package skill provides helpers for creating skill references in agent definitions.
+// Package skill provides the Skill entity for defining skills in the SDK.
 //
-// When building agents, you add skills to give them specialized knowledge.
-// Skills are managed separately (via CLI: stigmer skill push) - this package
-// creates references to those skills.
+// This package is for DEFINING new skills that will be synthesized and applied.
+// For REFERENCING existing skills, use the skillref package instead.
 //
-// # Reference Format
+// # Domain Concept
 //
-// All skills follow the "org/slug" format:
-//   - "stigmer/web-search" - skill owned by stigmer org
-//   - "acme/internal-docs" - skill owned by acme org
-//   - "stigmer/code-review@v1.0" - skill with specific version
+// skill creates Skill entities - full resource definitions with configuration
+// that are registered with a context and synthesized to the .stigmer/ output directory.
 //
-// # Creating References
+// # Status
 //
-// There are three ways to create skill references:
+// This package is a placeholder for future Skill entity implementation.
+// Skill definition support (FromLocal, FromGit) will be added in a future release.
 //
-// 1. Using New() for explicit org/slug:
+// # Referencing Skills
 //
-//	ref := skill.New("stigmer", "web-search")
-//	ref := skill.New("stigmer", "web-search", skill.WithVersion("v1.0"))
+// To reference existing skills from agents, use the skillref package:
 //
-// 2. Using Parse() for string parsing (returns error):
+//	import "github.com/stigmer/stigmer/sdk/go/skillref"
 //
-//	ref, err := skill.Parse("stigmer/web-search")
-//	ref, err := skill.Parse("stigmer/web-search@v1.0")
-//
-// 3. Using MustParse() for string parsing (panics on error):
-//
-//	ref := skill.MustParse("stigmer/web-search")  // For init or tests
-//
-// # Version Formats
-//
-// Skills support optional versioning:
-//   - Empty/unset: Uses latest version
-//   - Tag name: e.g., "v1.0", "stable", "beta"
-//   - Exact hash: e.g., "abc123..." (64-char hex, immutable)
-//
-// # Usage with Agents
-//
-// When using with agents, prefer the agent's AddSkill method for convenience:
-//
-//	agent, _ := agent.New("code-reviewer", agent.InOrg("acme"))
-//	agent.AddSkill("stigmer/web-search")      // Uses string parsing
-//	agent.AddSkill("internal-docs")           // Uses agent's org (acme)
-//
-// # Error Handling
-//
-// Parse() returns a *ParseError that wraps one of these sentinel errors:
-//   - ErrInvalidFormat: Missing "/" separator or empty input
-//   - ErrEmptyOrg: Organization part is empty (e.g., "/slug")
-//   - ErrEmptySlug: Slug part is empty (e.g., "org/")
-//
-// Use errors.Is to check for specific errors:
-//
-//	ref, err := skill.Parse(input)
-//	if errors.Is(err, skill.ErrInvalidFormat) {
-//	    // Handle invalid format
-//	}
+//	reviewer.AddSkillRef(skillref.New("stigmer", "coding-best-practices"))
+//	reviewer.AddSkillRef(skillref.New("stigmer", "security-guidelines", skillref.WithVersion("v2.0")))
 package skill

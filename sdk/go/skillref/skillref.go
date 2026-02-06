@@ -1,4 +1,4 @@
-package skill
+package skillref
 
 import (
 	"strings"
@@ -36,9 +36,9 @@ func WithVersion(v string) Option {
 //
 // Examples:
 //
-//	skill.New("stigmer", "web-search")
-//	skill.New("stigmer", "code-review", skill.WithVersion("v1.0"))
-//	skill.New("acme", "internal-docs", skill.WithVersion("stable"))
+//	skillref.New("stigmer", "web-search")
+//	skillref.New("stigmer", "code-review", skillref.WithVersion("v1.0"))
+//	skillref.New("acme", "internal-docs", skillref.WithVersion("stable"))
 func New(org, slug string, opts ...Option) *apiresource.ApiResourceReference {
 	o := &options{}
 	for _, opt := range opts {
@@ -66,9 +66,9 @@ func New(org, slug string, opts ...Option) *apiresource.ApiResourceReference {
 //
 // Examples:
 //
-//	ref, err := skill.Parse("stigmer/web-search")
-//	ref, err := skill.Parse("stigmer/code-review@v1.0")
-//	ref, err := skill.Parse("acme/internal-docs@stable")
+//	ref, err := skillref.Parse("stigmer/web-search")
+//	ref, err := skillref.Parse("stigmer/code-review@v1.0")
+//	ref, err := skillref.Parse("acme/internal-docs@stable")
 func Parse(ref string) (*apiresource.ApiResourceReference, error) {
 	if ref == "" {
 		return nil, &ParseError{
@@ -129,8 +129,8 @@ func Parse(ref string) (*apiresource.ApiResourceReference, error) {
 //
 // Examples:
 //
-//	var defaultSkill = skill.MustParse("stigmer/web-search")
-//	var versionedSkill = skill.MustParse("stigmer/code-review@v1.0")
+//	var defaultSkill = skillref.MustParse("stigmer/web-search")
+//	var versionedSkill = skillref.MustParse("stigmer/code-review@v1.0")
 func MustParse(ref string) *apiresource.ApiResourceReference {
 	result, err := Parse(ref)
 	if err != nil {

@@ -1,4 +1,4 @@
-package skill
+package skillref
 
 import (
 	"errors"
@@ -270,7 +270,7 @@ func TestParseError(t *testing.T) {
 			Message: "something went wrong",
 			Err:     ErrInvalidFormat,
 		}
-		want := `skill: something went wrong (input: "bad-input")`
+		want := `skillref: something went wrong (input: "bad-input")`
 		if err.Error() != want {
 			t.Errorf("Error() = %q, want %q", err.Error(), want)
 		}
@@ -282,7 +282,7 @@ func TestParseError(t *testing.T) {
 			Message: "reference string is empty",
 			Err:     ErrInvalidFormat,
 		}
-		want := `skill: reference string is empty`
+		want := `skillref: reference string is empty`
 		if err.Error() != want {
 			t.Errorf("Error() = %q, want %q", err.Error(), want)
 		}

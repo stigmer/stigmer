@@ -1,54 +1,58 @@
-// Package mcpserver provides helpers for creating MCP server references in agent definitions.
+// Package mcpserver provides the MCPServer entity for defining MCP servers in the SDK.
 //
-// When building agents, you add MCP servers to give them access to external tools and services.
-// MCP servers are managed separately (via CLI: stigmer mcpserver apply) - this package
-// creates references to those servers.
+// This package is for DEFINING new MCP servers that will be synthesized and applied.
+// For REFERENCING existing MCP servers, use the mcpserverref package instead.
 //
-// # Reference Format
+// # Domain Concept
 //
-// All MCP servers follow the "org/slug" format:
-//   - "stigmer/github" - MCP server owned by stigmer org
-//   - "acme/internal-tools" - MCP server owned by acme org
+// mcpserver creates MCPServer entities - full resource definitions with configuration
+// that are registered with a context and synthesized to the .stigmer/ output directory.
 //
-// Note: Unlike skills, MCP servers do not support versioning.
+// # Creating MCP Servers
 //
-// # Creating References
+// Use Stdio() or HTTP() constructors to create MCP servers:
 //
-// There are three ways to create MCP server references:
+//	import (
+//	    "github.com/stigmer/stigmer/sdk/go/mcpserver"
+//	    "github.com/stigmer/stigmer/sdk/go/gen/types"
+//	    "github.com/stigmer/stigmer/sdk/go/stigmer"
+//	)
 //
-// 1. Using New() for explicit org/slug:
+//	stigmer.Run(func(ctx *stigmer.Context) error {
+//	    // Stdio-based MCP server (subprocess)
+//	    _, err := mcpserver.Stdio(ctx, "github-mcp", &mcpserver.McpServerArgs{
+//	        Description: "GitHub MCP server",
+//	        Stdio: &types.StdioServerConfig{
+//	            Command: "npx",
+//	            Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+//	        },
+//	    })
+//	    if err != nil {
+//	        return err
+//	    }
 //
-//	ref := mcpserver.New("stigmer", "github")
-//	ref := mcpserver.New("acme", "internal-tools")
+//	    // HTTP-based MCP server (remote)
+//	    _, err = mcpserver.HTTP(ctx, "external-api", &mcpserver.McpServerArgs{
+//	        Description: "External API server",
+//	        Http: &types.HttpServerConfig{
+//	            Url: "https://mcp.example.com/v1",
+//	        },
+//	    })
+//	    return err
+//	})
 //
-// 2. Using Parse() for string parsing (returns error):
+// # Server Types
 //
-//	ref, err := mcpserver.Parse("stigmer/github")
-//	ref, err := mcpserver.Parse("acme/internal-tools")
+// MCP servers can be one of three types:
+//   - Stdio: Runs as a subprocess, communicates via stdin/stdout (most common)
+//   - HTTP: Remote server accessible via HTTP + Server-Sent Events
+//   - Docker: Runs in a container (future support)
 //
-// 3. Using MustParse() for string parsing (panics on error):
+// # Referencing MCP Servers
 //
-//	ref := mcpserver.MustParse("stigmer/github")  // For init or tests
+// To reference existing MCP servers from agents, use the mcpserverref package:
 //
-// # Usage with Agents
+//	import "github.com/stigmer/stigmer/sdk/go/mcpserverref"
 //
-// When using with agents, prefer the agent's UseMCPServer method for convenience:
-//
-//	agent, _ := agent.New("code-reviewer", agent.InOrg("acme"))
-//	agent.UseMCPServer("stigmer/github")           // Uses string parsing
-//	agent.UseMCPServer("internal-tools")           // Uses agent's org (acme)
-//
-// # Error Handling
-//
-// Parse() returns a *ParseError that wraps one of these sentinel errors:
-//   - ErrInvalidFormat: Missing "/" separator or empty input
-//   - ErrEmptyOrg: Organization part is empty (e.g., "/slug")
-//   - ErrEmptySlug: Slug part is empty (e.g., "org/")
-//
-// Use errors.Is to check for specific errors:
-//
-//	ref, err := mcpserver.Parse(input)
-//	if errors.Is(err, mcpserver.ErrInvalidFormat) {
-//	    // Handle invalid format
-//	}
+//	reviewer.AddMcpServerUsage(mcpserverref.New("stigmer", "github"))
 package mcpserver

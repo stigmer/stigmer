@@ -1,4 +1,4 @@
-package mcpserver
+package mcpserverref
 
 import (
 	"strings"
@@ -16,9 +16,9 @@ import (
 //
 // Examples:
 //
-//	mcpserver.New("stigmer", "github")
-//	mcpserver.New("acme", "internal-tools")
-//	mcpserver.New("my-org", "slack-integration")
+//	mcpserverref.New("stigmer", "github")
+//	mcpserverref.New("acme", "internal-tools")
+//	mcpserverref.New("my-org", "slack-integration")
 func New(org, slug string) *apiresource.ApiResourceReference {
 	return &apiresource.ApiResourceReference{
 		Org:  org,
@@ -42,8 +42,8 @@ func New(org, slug string) *apiresource.ApiResourceReference {
 //
 // Examples:
 //
-//	ref, err := mcpserver.Parse("stigmer/github")
-//	ref, err := mcpserver.Parse("acme/internal-tools")
+//	ref, err := mcpserverref.Parse("stigmer/github")
+//	ref, err := mcpserverref.Parse("acme/internal-tools")
 func Parse(ref string) (*apiresource.ApiResourceReference, error) {
 	if ref == "" {
 		return nil, &ParseError{
@@ -96,8 +96,8 @@ func Parse(ref string) (*apiresource.ApiResourceReference, error) {
 //
 // Examples:
 //
-//	var defaultServer = mcpserver.MustParse("stigmer/github")
-//	var internalServer = mcpserver.MustParse("acme/internal-tools")
+//	var defaultServer = mcpserverref.MustParse("stigmer/github")
+//	var internalServer = mcpserverref.MustParse("acme/internal-tools")
 func MustParse(ref string) *apiresource.ApiResourceReference {
 	result, err := Parse(ref)
 	if err != nil {

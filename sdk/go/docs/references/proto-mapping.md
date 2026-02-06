@@ -277,8 +277,9 @@ Users only import SDK packages:
 ```go
 import (
     "github.com/stigmer/stigmer/sdk/go/agent"
-    "github.com/stigmer/stigmer/sdk/go/skill"
-    "github.com/stigmer/stigmer/sdk/go/mcpserver"
+    "github.com/stigmer/stigmer/sdk/go/skillref"       // For referencing skills
+    "github.com/stigmer/stigmer/sdk/go/mcpserver"      // For defining MCP servers
+    "github.com/stigmer/stigmer/sdk/go/mcpserverref"   // For referencing MCP servers
     "github.com/stigmer/stigmer/sdk/go/subagent"
     "github.com/stigmer/stigmer/sdk/go/environment"
 )
@@ -295,7 +296,7 @@ CLI imports both SDK and proto:
 import (
     // SDK imports
     sdkagent "github.com/stigmer/stigmer/sdk/go/agent"
-    sdkskill "github.com/stigmer/stigmer/sdk/go/skill"
+    sdkskillref "github.com/stigmer/stigmer/sdk/go/skillref"
     
     // Proto imports (CLI only!)
     agentv1 "github.com/leftbin/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"

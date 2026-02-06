@@ -108,8 +108,8 @@ type Agent struct {
 //	    if err != nil {
 //	        return err
 //	    }
-//	    ag.AddSkillRef(skillref.Platform("coding-best-practices"))
-//	    ag.AddMcpServerUsage(mcpserverref.Platform("github"), "create_pr", "search_code")
+//	    ag.AddSkillRef(skillref.New("stigmer", "coding-best-practices"))
+//	    ag.AddMcpServerUsage(mcpserverref.New("stigmer", "github"), "create_pr", "search_code")
 //	    return nil
 //	})
 func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {

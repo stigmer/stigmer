@@ -1,4 +1,4 @@
-package mcpserver
+package mcpserverref
 
 import (
 	"errors"
@@ -243,7 +243,7 @@ func TestParseError(t *testing.T) {
 			Message: "something went wrong",
 			Err:     ErrInvalidFormat,
 		}
-		want := `mcpserver: something went wrong (input: "bad-input")`
+		want := `mcpserverref: something went wrong (input: "bad-input")`
 		if err.Error() != want {
 			t.Errorf("Error() = %q, want %q", err.Error(), want)
 		}
@@ -255,7 +255,7 @@ func TestParseError(t *testing.T) {
 			Message: "reference string is empty",
 			Err:     ErrInvalidFormat,
 		}
-		want := `mcpserver: reference string is empty`
+		want := `mcpserverref: reference string is empty`
 		if err.Error() != want {
 			t.Errorf("Error() = %q, want %q", err.Error(), want)
 		}
@@ -336,8 +336,8 @@ func TestNoVersionSupport(t *testing.T) {
 	})
 
 	t.Run("Parse with @ in input treats it as part of slug", func(t *testing.T) {
-		// Unlike skill.Parse which extracts version from @,
-		// mcpserver.Parse treats @ as part of the slug
+		// Unlike skillref.Parse which extracts version from @,
+		// mcpserverref.Parse treats @ as part of the slug
 		ref, err := Parse("org/slug@v1")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
