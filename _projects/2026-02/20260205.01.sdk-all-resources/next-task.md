@@ -3,8 +3,8 @@
 **Project**: `_projects/2026-02/20260205.01.sdk-all-resources`
 
 ## Current State
-- **Status**: ✅ Task 3.1 Complete - Ready for Task 3.2
-- **Last Session**: February 6, 2026 (SubAgent fix implemented)
+- **Status**: ✅ Task 3.2 Complete - Ready for Task 3.3
+- **Last Session**: February 6, 2026 (McpServer unified pattern applied)
 - **Active Branch**: `feat/add-sdk-implementation-for-all-resources`
 
 ## Plan Correction (February 6, 2026)
@@ -34,6 +34,32 @@ The plan was corrected to match the **ACTUAL established pattern**:
 | 2.2 | Add ref.Environment() factory | ✅ Complete |
 | 2.3 | Unify Environment as first-class resource | ✅ Complete |
 | 3.1 | Consolidate SubAgent into Agent | ✅ Complete (Feb 6) |
+| 3.2 | Apply unified pattern to McpServer | ✅ Complete (Feb 6) |
+
+### Task 3.2 Details (Completed Feb 6, 2026)
+
+**What was done**:
+- Added `Org` field to MCPServer struct for organization scoping
+- Created `errors.go` with sentinel errors (ErrNameRequired, ErrStdioRequired, etc.)
+- Implemented 9 builder methods for ergonomic configuration
+  - SetDescription, SetIconUrl
+  - AddTag/AddTags for categorization
+  - EnableTool/EnableTools for default tools
+  - RequireApproval for tool approval policies
+  - RequireSecret/RequireConfig for environment variables
+- Added `ensureEnvSpec()` helper for thread-safe initialization
+- Updated constructors (Stdio/HTTP) to use sentinel errors
+- Updated ToProto() to include Org in metadata
+- Fixed test type imports (gen/types → proto stubs)
+- Added comprehensive tests (37 passing, race-tested)
+
+**Key accomplishment**: mcpserver now follows exact same pattern as Agent/Environment
+
+**Files changed**: 5 modified, 1 created (+582 net lines)
+
+**Commit**: `0a954a88` - feat(sdk/mcpserver): apply unified Name/Slug/Org/Args pattern
+
+**Changelog**: `_changelog/2026-02/2026-02-06-173352-apply-unified-pattern-to-mcpserver.md`
 
 ### Task 3.1 Details (Completed Feb 6, 2026)
 
@@ -53,29 +79,32 @@ The plan was corrected to match the **ACTUAL established pattern**:
 
 **Changelog**: `_changelog/2026-02/2026-02-06-165921-fix-subagent-args-single-source-of-truth.md`
 
-## Next Task: 3.2 - Apply Pattern to McpServer
+## Next Task: 3.3 - Apply Pattern to Skill
 
-**Goal**: Update `mcpserver/` package to follow the established Name/Slug/Args pattern.
+**Goal**: Update `skill/` package to follow the established Name/Slug/Org/Args pattern.
+
+**Current State**: skill/ has `skill/synth.go` with synthesis logic but needs full resource pattern
 
 **Steps**:
-1. Review current `mcpserver/server.go` implementation
-2. Verify/create Args alias: `type McpServerArgs = genMcpServer.McpServerArgs`
-3. Verify struct follows pattern: `MCPServer{Name, Slug, Org, Args}`
-4. Verify `New(ctx, name, args)` signature
-5. Ensure Context registration works
-6. Update tests if needed
+1. Review current skill/ implementation
+2. Create Args alias: `type SkillArgs = genSkill.SkillArgs`
+3. Create Skill struct: `Skill{Name, Slug, Org, Args, ctx, mu}`
+4. Implement `New(ctx Context, name string, args *SkillArgs) (*Skill, error)`
+5. Add builder methods (if applicable for skill configuration)
+6. Implement `ToProto()` method
+7. Create `errors.go` with sentinel errors
+8. Update/add tests
 
 **Validation**:
 ```bash
-go build ./mcpserver/... && go test ./mcpserver/...
+go build ./skill/... && go test ./skill/...
 ```
 
 ## Remaining Tasks
 
 | Task | Description | Status |
 |------|-------------|--------|
-| 3.2 | Apply unified pattern to McpServer | 🔜 Next |
-| 3.3 | Apply unified pattern to Skill | Pending |
+| 3.3 | Apply unified pattern to Skill | 🔜 Next |
 | 3.4 | Apply unified pattern to Workflow | Pending |
 | 4.1 | Fix pre-existing test failures | Pending |
 | 4.2 | Update examples | Pending |

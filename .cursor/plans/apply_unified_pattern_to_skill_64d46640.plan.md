@@ -7,16 +7,16 @@ todos:
     status: completed
   - id: update-synth
     content: Update sdk/go/skill/synth.go to use errors from errors.go instead of inline errors.New()
-    status: in_progress
+    status: completed
   - id: fix-docgo
     content: Fix sdk/go/skill/doc.go to remove incorrect API references (skill.New, skill.Parse)
-    status: pending
+    status: completed
   - id: add-validation
     content: Add protovalidate validation to ToProto() for consistency
-    status: pending
+    status: completed
   - id: create-tests
     content: Create comprehensive tests in sdk/go/skill/synth_test.go
-    status: pending
+    status: in_progress
   - id: verify-build
     content: Run go build and go test to verify implementation
     status: pending

@@ -1,10 +1,10 @@
-// Package skill provides the Skill entity for defining and referencing skills in the SDK.
+// Package skill provides the Skill entity for defining skills in the SDK.
 //
-// This package supports two use cases:
-//  1. DEFINING new skills via FromDir() or FromGit() for synthesis and deployment
-//  2. REFERENCING existing skills via New(), Parse(), or MustParse() for agent configuration
+// Skills are content artifacts (like Docker images) - the user points to a source
+// location (local directory or git repo), and the CLI fetches the content,
+// creates a ZIP artifact, and pushes it to the backend.
 //
-// # Defining Skills
+// # Defining Skills (this package)
 //
 // Use FromDir() to create a skill from a local directory:
 //
@@ -30,16 +30,21 @@
 //	    return nil
 //	})
 //
-// # Referencing Existing Skills
+// # Referencing Existing Skills (commons/ref package)
 //
-// Use New() or Parse() to reference existing skills in agent configurations:
+// To reference existing skills in agent configurations, use the commons/ref package:
+//
+//	import "github.com/stigmer/stigmer/sdk/go/commons/ref"
 //
 //	// Explicit org and slug
-//	ref := skill.New("stigmer", "web-search")
-//	ref := skill.New("stigmer", "code-review", skill.WithVersion("v1.0"))
+//	skillRef := ref.Skill("stigmer", "web-search")
+//	skillRef := ref.Skill("stigmer", "code-review", ref.WithVersion("v1.0"))
 //
 //	// Parse from string
-//	ref, err := skill.Parse("stigmer/web-search@stable")
+//	skillRef, err := ref.ParseSkill("stigmer/web-search@stable")
+//
+//	// Add to agent
+//	agent.AddSkillRef(ref.Skill("stigmer", "web-search"))
 //
 // # Synthesis Flow
 //
