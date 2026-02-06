@@ -5,8 +5,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-
-	"github.com/stigmer/stigmer/sdk/go/environment"
 )
 
 // =============================================================================
@@ -58,17 +56,15 @@ func TestAgentToProto_MaximumEnvironmentVars(t *testing.T) {
 		t.Fatalf("Failed to create agent: %v", err)
 	}
 
-	// Create and add 100 environment variables with unique names
+	// Add 100 environment variables with unique names using RequireSecret/RequireConfig
 	for i := 0; i < 100; i++ {
-		env, _ := environment.New(
-			nil,
-			fmt.Sprintf("ENV_VAR_%d", i),
-			&environment.VariableArgs{
-				DefaultValue: fmt.Sprintf("value%d", i),
-				IsSecret:     i%2 == 0, // Half are secrets
-			},
-		)
-		agent.AddEnvironmentVariable(*env)
+		if i%2 == 0 {
+			// Half are secrets
+			agent.RequireSecret(fmt.Sprintf("ENV_VAR_%d", i), fmt.Sprintf("Description for secret %d", i))
+		} else {
+			// Half are config
+			agent.RequireConfig(fmt.Sprintf("ENV_VAR_%d", i), fmt.Sprintf("value%d", i), fmt.Sprintf("Description for config %d", i))
+		}
 	}
 
 	proto, err := agent.ToProto()
@@ -188,13 +184,13 @@ func TestAgentToProto_NilFields(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "nil environment variables",
+			name: "nil EnvSpec",
 			agent: &Agent{
 				Name: "agent4",
 				Args: &AgentArgs{
 					Instructions: "Test instructions for agent validation",
+					EnvSpec:      nil, // nil EnvSpec
 				},
-				EnvironmentVariables: nil, // nil slice
 			},
 			wantErr: false,
 		},
@@ -206,9 +202,9 @@ func TestAgentToProto_NilFields(t *testing.T) {
 					Instructions:    "Test instructions for agent validation",
 					SkillRefs:       nil,
 					McpServerUsages: nil,
+					EnvSpec:         nil,
 				},
-				SubAgents:            nil,
-				EnvironmentVariables: nil,
+				SubAgents: nil,
 			},
 			wantErr: false,
 		},

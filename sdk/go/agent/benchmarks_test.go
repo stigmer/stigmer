@@ -4,12 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/stigmer/stigmer/sdk/go/environment"
 )
-
-// mockEnvContext implements the environment.Context interface for testing
-type mockEnvContext struct{}
 
 // =============================================================================
 // Benchmark Tests - Agent Creation
@@ -30,12 +25,6 @@ func BenchmarkAgent_New_Minimal(b *testing.B) {
 
 // BenchmarkAgent_New_Complete benchmarks complete agent creation.
 func BenchmarkAgent_New_Complete(b *testing.B) {
-	ctx := &mockEnvContext{}
-
-	env1, _ := environment.New(ctx, "API_KEY", &environment.VariableArgs{
-		IsSecret: true,
-	})
-
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		agent, err := New(nil, "complete-agent", &AgentArgs{
@@ -47,7 +36,7 @@ func BenchmarkAgent_New_Complete(b *testing.B) {
 			b.Fatal(err)
 		}
 		agent.AddSkill("stigmer/skill1")
-		agent.AddEnvironmentVariable(*env1)
+		agent.RequireSecret("API_KEY", "API key for authentication")
 	}
 }
 
@@ -98,25 +87,22 @@ func BenchmarkAgentToProto_WithSkillRefs(b *testing.B) {
 
 // BenchmarkAgentToProto_WithEnvironmentVariables benchmarks agent with varying env var counts.
 func BenchmarkAgentToProto_WithEnvironmentVariables(b *testing.B) {
-	ctx := &mockEnvContext{}
 	envVarCounts := []int{0, 5, 10, 50, 100}
 
 	for _, count := range envVarCounts {
 		b.Run(strings.Join([]string{"envvars_", string(rune('0' + count%10))}, ""), func(b *testing.B) {
-			// Create environment variables
-			envVars := make([]environment.Variable, count)
-			for i := 0; i < count; i++ {
-				env, _ := environment.New(ctx, "ENV_VAR_"+string(rune('A'+i%26)), &environment.VariableArgs{
-					DefaultValue: "value" + string(rune('0'+i%10)),
-					IsSecret:     i%2 == 0,
-				})
-				envVars[i] = *env
-			}
-
 			agent, _ := New(nil, "benchmark-agent", &AgentArgs{
 				Instructions: "Agent with multiple environment variables for benchmarking proto conversion",
 			})
-			agent.AddEnvironmentVariables(envVars...)
+
+			// Add environment variables using RequireSecret/RequireConfig
+			for i := 0; i < count; i++ {
+				if i%2 == 0 {
+					agent.RequireSecret("ENV_VAR_"+string(rune('A'+i%26)), "Secret env var for benchmarking")
+				} else {
+					agent.RequireConfig("ENV_VAR_"+string(rune('A'+i%26)), "value"+string(rune('0'+i%10)), "Config env var for benchmarking")
+				}
+			}
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -131,8 +117,6 @@ func BenchmarkAgentToProto_WithEnvironmentVariables(b *testing.B) {
 
 // BenchmarkAgentToProto_Complete benchmarks complete agent with all features.
 func BenchmarkAgentToProto_Complete(b *testing.B) {
-	ctx := &mockEnvContext{}
-
 	agent, _ := New(nil, "complete-benchmark-agent", &AgentArgs{
 		Description:  "Complete agent with all features for comprehensive benchmarking",
 		IconUrl:      "https://example.com/icon.png",
@@ -144,12 +128,13 @@ func BenchmarkAgentToProto_Complete(b *testing.B) {
 		agent.AddSkill(fmt.Sprintf("stigmer/skill-%d", i))
 	}
 
-	// Add 20 environment variables
+	// Add 20 environment variables using RequireSecret/RequireConfig
 	for i := 0; i < 20; i++ {
-		env, _ := environment.New(ctx, "ENV_VAR_"+string(rune('A'+i%26)), &environment.VariableArgs{
-			DefaultValue: "value" + string(rune('0'+i%10)),
-		})
-		agent.AddEnvironmentVariable(*env)
+		if i%2 == 0 {
+			agent.RequireSecret("ENV_VAR_"+string(rune('A'+i%26)), "Secret env var")
+		} else {
+			agent.RequireConfig("ENV_VAR_"+string(rune('A'+i%26)), "value"+string(rune('0'+i%10)), "Config env var")
+		}
 	}
 
 	b.ResetTimer()
@@ -188,8 +173,6 @@ func BenchmarkAgentToProto_Allocations(b *testing.B) {
 
 // BenchmarkAgentToProto_RealisticCodeReviewer benchmarks a realistic code reviewer agent.
 func BenchmarkAgentToProto_RealisticCodeReviewer(b *testing.B) {
-	ctx := &mockEnvContext{}
-
 	agent, _ := New(nil, "code-reviewer-pro", &AgentArgs{
 		Description: "Professional code reviewer with comprehensive analysis capabilities",
 		IconUrl:     "https://example.com/code-reviewer-icon.png",
@@ -211,14 +194,9 @@ func BenchmarkAgentToProto_RealisticCodeReviewer(b *testing.B) {
 		"stigmer/performance-analysis",
 	)
 
-	// Add environment variables
-	apiKey, _ := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
-		IsSecret: true,
-	})
-	repo, _ := environment.New(ctx, "REPOSITORY", &environment.VariableArgs{
-		DefaultValue: "myorg/myrepo",
-	})
-	agent.AddEnvironmentVariables(*apiKey, *repo)
+	// Add environment variables using RequireSecret/RequireConfig
+	agent.RequireSecret("GITHUB_TOKEN", "GitHub token for API access")
+	agent.RequireConfig("REPOSITORY", "myorg/myrepo", "Target repository for code review")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -231,8 +209,6 @@ func BenchmarkAgentToProto_RealisticCodeReviewer(b *testing.B) {
 
 // BenchmarkAgentToProto_RealisticDataAnalyst benchmarks a realistic data analyst agent.
 func BenchmarkAgentToProto_RealisticDataAnalyst(b *testing.B) {
-	ctx := &mockEnvContext{}
-
 	agent, _ := New(nil, "data-analyst-pro", &AgentArgs{
 		Description:  "Professional data analyst with SQL and visualization expertise",
 		Instructions: "Analyze data, create insightful visualizations, and generate comprehensive reports",
@@ -244,11 +220,8 @@ func BenchmarkAgentToProto_RealisticDataAnalyst(b *testing.B) {
 		"stigmer/data-visualization",
 	)
 
-	// Add environment variable
-	dbCreds, _ := environment.New(ctx, "DB_CONNECTION_STRING", &environment.VariableArgs{
-		IsSecret: true,
-	})
-	agent.AddEnvironmentVariable(*dbCreds)
+	// Add environment variable using RequireSecret
+	agent.RequireSecret("DB_CONNECTION_STRING", "Database connection string")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

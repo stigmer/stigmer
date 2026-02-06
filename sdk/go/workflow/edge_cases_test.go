@@ -6,7 +6,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
@@ -21,20 +20,6 @@ func TestWorkflowToProto_NilFields(t *testing.T) {
 		wf      *Workflow
 		wantErr bool
 	}{
-		{
-			name: "nil environment variables",
-			wf: &Workflow{
-				Document: Document{
-					DSL:       "1.0.0",
-					Namespace: "test",
-					Name:      "test-workflow",
-					Version:   "1.0.0",
-				},
-				Tasks:                []*Task{{Name: "t1", Kind: TaskKindSet, Config: &SetTaskConfig{Variables: map[string]string{"x": "y"}}}},
-				EnvironmentVariables: nil, // nil slice - this is valid
-			},
-			wantErr: false,
-		},
 		{
 			name: "empty tasks slice",
 			wf: &Workflow{
@@ -118,16 +103,6 @@ func TestWorkflowToProto_MaximumFields(t *testing.T) {
 		}
 	}
 
-	// Create many environment variables (50) with unique names using struct-args pattern
-	ctx := &mockEnvContext{}
-	envVars := make([]environment.Variable, 50)
-	for i := 0; i < 50; i++ {
-		env, _ := environment.New(ctx, fmt.Sprintf("ENV_VAR_%d", i), &environment.VariableArgs{
-			DefaultValue: fmt.Sprintf("value%d", i),
-		})
-		envVars[i] = *env
-	}
-
 	wf := &Workflow{
 		Document: Document{
 			DSL:         "1.0.0",
@@ -136,9 +111,8 @@ func TestWorkflowToProto_MaximumFields(t *testing.T) {
 			Version:     "1.0.0",
 			Description: strings.Repeat("Long description ", 50), // ~1000 chars
 		},
-		Description:          strings.Repeat("Workflow description ", 25), // ~500 chars
-		Tasks:                tasks,
-		EnvironmentVariables: envVars,
+		Description: strings.Repeat("Workflow description ", 25), // ~500 chars
+		Tasks:       tasks,
 	}
 
 	proto, err := wf.ToProto()
@@ -148,10 +122,6 @@ func TestWorkflowToProto_MaximumFields(t *testing.T) {
 
 	if len(proto.Spec.Tasks) != 100 {
 		t.Errorf("Expected 100 tasks, got %d", len(proto.Spec.Tasks))
-	}
-
-	if len(proto.Spec.EnvSpec.Data) != 50 {
-		t.Errorf("Expected 50 env vars, got %d", len(proto.Spec.EnvSpec.Data))
 	}
 }
 

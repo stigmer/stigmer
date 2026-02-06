@@ -54,8 +54,8 @@ func TestParseError_Error(t *testing.T) {
 
 func TestParseError_Unwrap(t *testing.T) {
 	tests := []struct {
-		name       string
-		parseErr   *ParseError
+		name         string
+		parseErr     *ParseError
 		wantSentinel error
 	}{
 		{
@@ -108,12 +108,12 @@ func TestParseError_ErrorsAs(t *testing.T) {
 	// Test that errors.As works correctly with ParseError
 	t.Run("errors.As with ParseSkill error", func(t *testing.T) {
 		_, err := ParseSkill("/invalid")
-		
+
 		var parseErr *ParseError
 		if !errors.As(err, &parseErr) {
 			t.Fatal("errors.As should return true for ParseError")
 		}
-		
+
 		if parseErr.Kind != "skill" {
 			t.Errorf("ParseError.Kind = %q, want %q", parseErr.Kind, "skill")
 		}
@@ -124,12 +124,12 @@ func TestParseError_ErrorsAs(t *testing.T) {
 
 	t.Run("errors.As with ParseMcpServer error", func(t *testing.T) {
 		_, err := ParseMcpServer("no-slash")
-		
+
 		var parseErr *ParseError
 		if !errors.As(err, &parseErr) {
 			t.Fatal("errors.As should return true for ParseError")
 		}
-		
+
 		if parseErr.Kind != "mcp_server" {
 			t.Errorf("ParseError.Kind = %q, want %q", parseErr.Kind, "mcp_server")
 		}

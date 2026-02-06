@@ -6,9 +6,7 @@ import (
 	"buf.build/go/protovalidate"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
@@ -33,7 +31,8 @@ func init() {
 //   - Spec converted from SDK agent to proto AgentSpec
 //
 // The spec is built from Args (single source of truth for configuration).
-// SubAgents and EnvironmentVariables are converted from SDK-specific types.
+// SubAgents are converted from SDK-specific types.
+// EnvSpec is used directly from Args.
 //
 // Example:
 //
@@ -54,12 +53,6 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 		return nil, fmt.Errorf("failed to convert sub-agents: %w", err)
 	}
 
-	// Convert environment variables (SDK-specific types to proto)
-	envSpec, err := convertEnvironmentVariables(a.EnvironmentVariables)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert environment variables: %w", err)
-	}
-
 	// Auto-generate slug if empty
 	slug := a.Slug
 	if slug == "" {
@@ -77,6 +70,7 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 
 	// Build spec from Args - single source of truth for configuration
 	// Args fields are already proto stub types, use them directly
+	// EnvSpec is used directly from Args (single source of truth)
 	spec := &agentv1.AgentSpec{
 		Description:     a.Args.Description,
 		IconUrl:         a.Args.IconUrl,
@@ -84,7 +78,7 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 		SkillRefs:       a.Args.SkillRefs,
 		McpServerUsages: a.Args.McpServerUsages,
 		SubAgents:       subAgents,
-		EnvSpec:         envSpec,
+		EnvSpec:         a.Args.EnvSpec,
 	}
 
 	// Build complete Agent proto
@@ -134,24 +128,3 @@ func convertSubAgents(subAgents []subagent.SubAgent) ([]*agentv1.SubAgent, error
 	return protoSubAgents, nil
 }
 
-// convertEnvironmentVariables converts SDK environment variables to proto EnvironmentSpec.
-func convertEnvironmentVariables(vars []environment.Variable) (*environmentv1.EnvironmentSpec, error) {
-	if len(vars) == 0 {
-		return nil, nil
-	}
-
-	// Build environment data map
-	envData := make(map[string]*environmentv1.EnvironmentValue)
-	for _, v := range vars {
-		envData[v.Name] = &environmentv1.EnvironmentValue{
-			Value:       v.DefaultValue, // Use default value as the template value
-			IsSecret:    v.IsSecret,
-			Description: v.Description,
-		}
-	}
-
-	return &environmentv1.EnvironmentSpec{
-		Description: fmt.Sprintf("Environment variables for agent (%d variables)", len(vars)),
-		Data:        envData,
-	}, nil
-}

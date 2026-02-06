@@ -4,12 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
-
-// mockEnvContext implements the environment.Context interface for testing.
-type mockEnvContext struct{}
 
 // =============================================================================
 // Benchmark Tests - Proto Conversion
@@ -189,53 +185,6 @@ func BenchmarkWorkflowToProto_MultipleTasks(b *testing.B) {
 					Version:   "1.0.0",
 				},
 				Tasks: tasks,
-			}
-
-			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
-				_, err := wf.ToProto()
-				if err != nil {
-					b.Fatal(err)
-				}
-			}
-		})
-	}
-}
-
-// BenchmarkWorkflowToProto_WithEnvironmentVariables benchmarks with varying env var counts.
-func BenchmarkWorkflowToProto_WithEnvironmentVariables(b *testing.B) {
-	ctx := &mockEnvContext{}
-	envVarCounts := []int{0, 5, 10, 50, 100}
-
-	for _, count := range envVarCounts {
-		b.Run(strings.Join([]string{"envvars_", string(rune('0' + count%10))}, ""), func(b *testing.B) {
-			// Create environment variables using struct-args pattern (Pulumi-aligned)
-			envVars := make([]environment.Variable, count)
-			for i := 0; i < count; i++ {
-				env, _ := environment.New(ctx, "ENV_VAR_"+string(rune('A'+i%26)), &environment.VariableArgs{
-					DefaultValue: "value" + string(rune('0'+i%10)),
-					IsSecret:     i%2 == 0,
-				})
-				envVars[i] = *env
-			}
-
-			wf := &Workflow{
-				Document: Document{
-					DSL:       "1.0.0",
-					Namespace: "test",
-					Name:      "benchmark-workflow",
-					Version:   "1.0.0",
-				},
-				Tasks: []*Task{
-					{
-						Name: "task1",
-						Kind: TaskKindSet,
-						Config: &SetTaskConfig{
-							Variables: map[string]string{"x": "y"},
-						},
-					},
-				},
-				EnvironmentVariables: envVars,
 			}
 
 			b.ResetTimer()

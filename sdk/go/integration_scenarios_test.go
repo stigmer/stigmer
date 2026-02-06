@@ -5,14 +5,10 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
-
-// mockIntegrationCtx implements the environment.Context interface for testing
-type mockIntegrationCtx struct{}
 
 // =============================================================================
 // Integration Scenarios - Multi-Resource Workflows
@@ -35,12 +31,11 @@ func TestIntegration_CompleteWorkflowWithAgent(t *testing.T) {
 		capturedAgent = codeReviewer
 
 		// Create workflow that uses the agent
-		wf, err := workflow.New(ctx,
-			workflow.WithName("pr-review-workflow"),
-			workflow.WithNamespace("ci-cd"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Automated PR review workflow"),
-		)
+		wf, err := workflow.New(ctx, "pr-review-workflow", &workflow.WorkflowArgs{
+			Namespace:   "ci-cd",
+			Version:     "1.0.0",
+			Description: "Automated PR review workflow",
+		})
 		if err != nil {
 			return err
 		}
@@ -147,11 +142,10 @@ func TestIntegration_MultiAgentWorkflow(t *testing.T) {
 		}
 
 		// Create workflow orchestrating all agents
-		wf, err := workflow.New(ctx,
-			workflow.WithName("comprehensive-review"),
-			workflow.WithNamespace("code-review"),
-			workflow.WithVersion("1.0.0"),
-		)
+		wf, err := workflow.New(ctx, "comprehensive-review", &workflow.WorkflowArgs{
+			Namespace: "code-review",
+			Version:   "1.0.0",
+		})
 		if err != nil {
 			return err
 		}
@@ -221,19 +215,9 @@ func TestIntegration_MultiAgentWorkflow(t *testing.T) {
 
 // TestIntegration_AgentWithAllFeatures tests agent with all nested resources.
 func TestIntegration_AgentWithAllFeatures(t *testing.T) {
-	ctx := &mockIntegrationCtx{}
 	var capturedAgent *agent.Agent
 
 	err := stigmer.Run(func(sCtx *stigmer.Context) error {
-		// Create environment variables
-		env1, _ := environment.New(ctx, "API_KEY", &environment.VariableArgs{
-			IsSecret: true,
-		})
-
-		env2, _ := environment.New(ctx, "REGION", &environment.VariableArgs{
-			DefaultValue: "us-east-1",
-		})
-
 		// Create comprehensive agent with skill refs (SDK references skills, doesn't create them)
 		comprehensiveAgent, err := agent.New(sCtx, "comprehensive-agent", &agent.AgentArgs{
 			Description:  "Agent with all features for integration testing",
@@ -247,7 +231,9 @@ func TestIntegration_AgentWithAllFeatures(t *testing.T) {
 			"stigmer/skill1",
 			"stigmer/skill2",
 		)
-		comprehensiveAgent.AddEnvironmentVariables(*env1, *env2)
+		// Use the new RequireSecret/RequireConfig API
+		comprehensiveAgent.RequireSecret("API_KEY", "API authentication key")
+		comprehensiveAgent.RequireConfig("REGION", "us-east-1", "AWS region")
 
 		capturedAgent = comprehensiveAgent
 		return nil
@@ -305,11 +291,10 @@ func TestIntegration_DependencyTracking(t *testing.T) {
 		agent2.AddSkill("stigmer/security-best-practices")
 
 		// Create workflow using agents
-		_, err = workflow.New(ctx,
-			workflow.WithName("review-workflow"),
-			workflow.WithNamespace("reviews"),
-			workflow.WithVersion("1.0.0"),
-		)
+		_, err = workflow.New(ctx, "review-workflow", &workflow.WorkflowArgs{
+			Namespace: "reviews",
+			Version:   "1.0.0",
+		})
 		if err != nil {
 			return err
 		}
@@ -360,11 +345,10 @@ func TestIntegration_ManyResourcesStressTest(t *testing.T) {
 
 		// Create 10 workflows with unique names
 		for i := 0; i < 10; i++ {
-			wf, err := workflow.New(ctx,
-				workflow.WithName(fmt.Sprintf("stress-workflow-%d", i)),
-				workflow.WithNamespace("stress-test"),
-				workflow.WithVersion("1.0.0"),
-			)
+			wf, err := workflow.New(ctx, fmt.Sprintf("stress-workflow-%d", i), &workflow.WorkflowArgs{
+				Namespace: "stress-test",
+				Version:   "1.0.0",
+			})
 			if err != nil {
 				return err
 			}
@@ -416,12 +400,11 @@ func TestIntegration_RealWorld_DataPipeline(t *testing.T) {
 		}
 
 		// Create workflow
-		wf, err := workflow.New(ctx,
-			workflow.WithName("daily-data-pipeline"),
-			workflow.WithNamespace("data-pipelines"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Daily data processing and validation pipeline"),
-		)
+		wf, err := workflow.New(ctx, "daily-data-pipeline", &workflow.WorkflowArgs{
+			Namespace:   "data-pipelines",
+			Version:     "1.0.0",
+			Description: "Daily data processing and validation pipeline",
+		})
 		if err != nil {
 			return err
 		}
@@ -515,11 +498,10 @@ func TestIntegration_RealWorld_CustomerSupport(t *testing.T) {
 		})
 
 		// Create workflow
-		wf, err := workflow.New(ctx,
-			workflow.WithName("customer-support-automation"),
-			workflow.WithNamespace("support"),
-			workflow.WithVersion("1.0.0"),
-		)
+		wf, err := workflow.New(ctx, "customer-support-automation", &workflow.WorkflowArgs{
+			Namespace: "support",
+			Version:   "1.0.0",
+		})
 		if err != nil {
 			return err
 		}
@@ -598,11 +580,10 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 		})
 
 		// Create workflow with error handling
-		wf, err := workflow.New(ctx,
-			workflow.WithName("resilient-workflow"),
-			workflow.WithNamespace("resilience"),
-			workflow.WithVersion("1.0.0"),
-		)
+		wf, err := workflow.New(ctx, "resilient-workflow", &workflow.WorkflowArgs{
+			Namespace: "resilience",
+			Version:   "1.0.0",
+		})
 		if err != nil {
 			return err
 		}

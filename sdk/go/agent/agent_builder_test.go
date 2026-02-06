@@ -3,12 +3,8 @@ package agent
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
-
-// mockBuilderCtx implements the environment.Context interface for testing
-type mockBuilderCtx struct{}
 
 func TestAddSkillRef(t *testing.T) {
 	agent, err := New(
@@ -287,9 +283,7 @@ func TestAddSubAgent_Chaining(t *testing.T) {
 	}
 }
 
-func TestAddEnvironmentVariable(t *testing.T) {
-	ctx := &mockBuilderCtx{}
-
+func TestRequireSecret_Builder(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -301,27 +295,21 @@ func TestAddEnvironmentVariable(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	githubToken, err := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
-		IsSecret: true,
-	})
-	if err != nil {
-		t.Fatalf("Failed to create environment variable: %v", err)
-	}
+	// Add required secret using new convenience method
+	agent.RequireSecret("GITHUB_TOKEN", "GitHub API token")
 
-	// Add environment variable using builder method
-	agent.AddEnvironmentVariable(*githubToken)
-
-	if len(agent.EnvironmentVariables) != 1 {
-		t.Errorf("EnvironmentVariables count = %d, want 1", len(agent.EnvironmentVariables))
+	if agent.Args.EnvSpec == nil {
+		t.Fatal("Args.EnvSpec is nil")
 	}
-	if agent.EnvironmentVariables[0].Name != "GITHUB_TOKEN" {
-		t.Errorf("EnvironmentVariable name = %q, want %q", agent.EnvironmentVariables[0].Name, "GITHUB_TOKEN")
+	if len(agent.Args.EnvSpec.Data) != 1 {
+		t.Errorf("EnvSpec.Data count = %d, want 1", len(agent.Args.EnvSpec.Data))
+	}
+	if _, ok := agent.Args.EnvSpec.Data["GITHUB_TOKEN"]; !ok {
+		t.Error("GITHUB_TOKEN not found in EnvSpec.Data")
 	}
 }
 
-func TestAddEnvironmentVariables(t *testing.T) {
-	ctx := &mockBuilderCtx{}
-
+func TestRequireConfig_Builder(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -333,25 +321,25 @@ func TestAddEnvironmentVariables(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	githubToken, _ := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
-		IsSecret: true,
-	})
+	// Add required config with default using new convenience method
+	agent.RequireConfig("AWS_REGION", "us-east-1", "AWS region")
 
-	awsRegion, _ := environment.New(ctx, "AWS_REGION", &environment.VariableArgs{
-		DefaultValue: "us-east-1",
-	})
-
-	// Add multiple environment variables using builder method
-	agent.AddEnvironmentVariables(*githubToken, *awsRegion)
-
-	if len(agent.EnvironmentVariables) != 2 {
-		t.Errorf("EnvironmentVariables count = %d, want 2", len(agent.EnvironmentVariables))
+	if agent.Args.EnvSpec == nil {
+		t.Fatal("Args.EnvSpec is nil")
+	}
+	if len(agent.Args.EnvSpec.Data) != 1 {
+		t.Errorf("EnvSpec.Data count = %d, want 1", len(agent.Args.EnvSpec.Data))
+	}
+	val, ok := agent.Args.EnvSpec.Data["AWS_REGION"]
+	if !ok {
+		t.Fatal("AWS_REGION not found in EnvSpec.Data")
+	}
+	if val.Value != "us-east-1" {
+		t.Errorf("AWS_REGION.Value = %q, want %q", val.Value, "us-east-1")
 	}
 }
 
-func TestAddEnvironmentVariable_Chaining(t *testing.T) {
-	ctx := &mockBuilderCtx{}
-
+func TestRequireEnvVar_Chaining(t *testing.T) {
 	agent, err := New(
 		nil, // No context needed for builder tests
 		"test-agent",
@@ -363,35 +351,21 @@ func TestAddEnvironmentVariable_Chaining(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	githubToken, _ := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
-		IsSecret: true,
-	})
-
-	awsRegion, _ := environment.New(ctx, "AWS_REGION", &environment.VariableArgs{
-		DefaultValue: "us-east-1",
-	})
-
-	// Chain multiple AddEnvironmentVariable calls
+	// Chain multiple RequireSecret/RequireConfig calls
 	agent.
-		AddEnvironmentVariable(*githubToken).
-		AddEnvironmentVariable(*awsRegion)
+		RequireSecret("GITHUB_TOKEN", "GitHub API token").
+		RequireConfig("AWS_REGION", "us-east-1", "AWS region")
 
-	if len(agent.EnvironmentVariables) != 2 {
-		t.Errorf("EnvironmentVariables count = %d, want 2", len(agent.EnvironmentVariables))
+	if len(agent.Args.EnvSpec.Data) != 2 {
+		t.Errorf("EnvSpec.Data count = %d, want 2", len(agent.Args.EnvSpec.Data))
 	}
 }
 
 func TestBuilder_ComplexChaining(t *testing.T) {
-	ctx := &mockBuilderCtx{}
-
 	helper, _ := subagent.New("helper", &subagent.Args{
 		Instructions: "Helper instructions",
 	})
 	helper.GrantMcpAccess("github", "search_code")
-
-	githubToken, _ := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
-		IsSecret: true,
-	})
 
 	agent, err := New(
 		nil, // No context needed for builder tests
@@ -410,7 +384,7 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 		AddSkill("stigmer/security-analysis").
 		UseMCP("stigmer/github", "create_pr", "search_code").
 		AddSubAgent(helper).
-		AddEnvironmentVariable(*githubToken)
+		RequireSecret("GITHUB_TOKEN", "GitHub API token")
 
 	// Verify all were added
 	if len(agent.SkillRefs()) != 2 {
@@ -422,8 +396,8 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 	if len(agent.SubAgents) != 1 {
 		t.Errorf("SubAgents count = %d, want 1", len(agent.SubAgents))
 	}
-	if len(agent.EnvironmentVariables) != 1 {
-		t.Errorf("EnvironmentVariables count = %d, want 1", len(agent.EnvironmentVariables))
+	if len(agent.Args.EnvSpec.Data) != 1 {
+		t.Errorf("EnvSpec.Data count = %d, want 1", len(agent.Args.EnvSpec.Data))
 	}
 }
 
