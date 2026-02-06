@@ -457,9 +457,7 @@ warning: pattern "*.xyz" in .stigmerignore matches no files
 2. **Should `stigmer.yaml` also support ignore patterns?**
    - Pro: Programmatic, can be generated
    - Con: Two places to configure same thing
-   - **Recommendation**: Support both, file takes precedence
-
-3. **Symlink handling?**
+   - **Recommendation**: Support both, file takes precedence3. **Symlink handling?**
    - Git ignores symlinks by default
    - **Recommendation**: Skip symlinks in v1, document behavior---## Appendix: Library Evaluation### go-git/go-git gitignore package
 - **Pros**: Full gitignore spec, actively maintained, well-documented
