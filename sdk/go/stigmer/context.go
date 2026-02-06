@@ -10,8 +10,12 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/sdk/go/agent"
+	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/internal/validation"
+	"github.com/stigmer/stigmer/sdk/go/mcpserver"
+	"github.com/stigmer/stigmer/sdk/go/skill"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -56,6 +60,15 @@ type Context struct {
 	// agents tracks all agents created in this context
 	agents []*agent.Agent
 
+	// mcpServers tracks all MCP servers created in this context
+	mcpServers []*mcpserver.MCPServer
+
+	// skills tracks all skills created in this context
+	skills []*skill.Skill
+
+	// environments tracks all environments created in this context
+	environments []*environment.Environment
+
 	// dependencies tracks resource dependencies for creation order
 	// Map format: resourceID -> []dependencyIDs
 	// Example: "workflow:pr-review" -> ["agent:code-reviewer"]
@@ -76,6 +89,9 @@ func newContextWithContext(ctx context.Context) *Context {
 		variables:    make(map[string]Ref),
 		workflows:    make([]*workflow.Workflow, 0),
 		agents:       make([]*agent.Agent, 0),
+		mcpServers:   make([]*mcpserver.MCPServer, 0),
+		skills:       make([]*skill.Skill, 0),
+		environments: make([]*environment.Environment, 0),
 		dependencies: make(map[string][]string),
 	}
 }
@@ -144,6 +160,9 @@ func (c *Context) WithValue(key, val any) *Context {
 		variables:    c.variables,
 		workflows:    c.workflows,
 		agents:       c.agents,
+		mcpServers:   c.mcpServers,
+		skills:       c.skills,
+		environments: c.environments,
 		dependencies: c.dependencies,
 		// Note: mu and synthesized are zero-valued (new mutex, false)
 		// This is intentional - WithValue creates a derived context for
@@ -422,6 +441,34 @@ func (c *Context) RegisterAgent(ag *agent.Agent) {
 	// The agent only holds references to existing skills via SkillRefs.
 }
 
+// RegisterMCPServer registers an MCP server with this context.
+// This is typically called automatically by mcpserver.Stdio() or mcpserver.HTTP()
+// when passed a context.
+func (c *Context) RegisterMCPServer(m *mcpserver.MCPServer) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.mcpServers = append(c.mcpServers, m)
+}
+
+// RegisterSkill registers a skill with this context.
+// Called automatically by skill.FromDir() and skill.FromGit().
+func (c *Context) RegisterSkill(s *skill.Skill) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.skills = append(c.skills, s)
+}
+
+// RegisterEnvironment registers an environment with this context.
+// Called automatically by environment.New().
+func (c *Context) RegisterEnvironment(e *environment.Environment) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.environments = append(c.environments, e)
+}
+
 // =============================================================================
 // Dependency Tracking (Internal)
 // =============================================================================
@@ -454,9 +501,14 @@ func (c *Context) TrackDependency(resourceID, dependsOnID string) {
 func (c *Context) trackWorkflowAgentDependencies(workflowID string, wf *workflow.Workflow) {
 	// Note: caller must hold c.mu.Lock()
 
+	// After workflow refactoring, tasks are stored in Args.Tasks as proto types
+	if wf.Args == nil || wf.Args.Tasks == nil {
+		return
+	}
+
 	// Scan all tasks for agent_call task type
-	for _, task := range wf.Tasks {
-		if task.Kind == workflow.TaskKindAgentCall {
+	for _, task := range wf.Args.Tasks {
+		if task.Kind == workflowv1.WorkflowTaskKind_agent_call {
 			// Extract agent reference from task config
 			// TODO: This requires accessing the AgentCallTaskConfig
 			// For now, we'll implement a helper method to extract agent refs
@@ -472,9 +524,9 @@ func (c *Context) trackWorkflowAgentDependencies(workflowID string, wf *workflow
 	}
 }
 
-// extractAgentRefsFromTask extracts agent references from a workflow task.
+// extractAgentRefsFromTask extracts agent references from a proto workflow task.
 // Returns agent names/slugs that this task depends on.
-func extractAgentRefsFromTask(task *workflow.Task) []string {
+func extractAgentRefsFromTask(task *workflowv1.WorkflowTask) []string {
 	// TODO: Implement proper extraction from task config
 	// This requires accessing AgentCallTaskConfig.Agent field
 	// For now, return empty - this will be implemented when we have
@@ -484,7 +536,9 @@ func extractAgentRefsFromTask(task *workflow.Task) []string {
 
 // workflowResourceID generates a resource ID for a workflow.
 func workflowResourceID(wf *workflow.Workflow) string {
-	return fmt.Sprintf("workflow:%s", wf.Document.Name)
+	// After refactoring, workflow identity is in Name field directly,
+	// Document.Name is the same as Name
+	return fmt.Sprintf("workflow:%s", wf.Name)
 }
 
 // agentResourceID generates a resource ID for an agent.
@@ -528,7 +582,7 @@ func (c *Context) Synthesize() error {
 	return nil
 }
 
-// synthesizeManifests writes agent and workflow manifests to disk.
+// synthesizeManifests writes agent, workflow, and MCP server manifests to disk.
 // Skills are pushed via CLI (`stigmer skill push`), not synthesized from SDK.
 func (c *Context) synthesizeManifests(outputDir string) error {
 	// Ensure output directory exists
@@ -547,9 +601,30 @@ func (c *Context) synthesizeManifests(outputDir string) error {
 		}
 	}
 
+	// Synthesize MCP servers
+	if len(c.mcpServers) > 0 {
+		if err := c.synthesizeMCPServers(outputDir); err != nil {
+			return err
+		}
+	}
+
 	// Synthesize workflows
 	if len(c.workflows) > 0 {
 		if err := c.synthesizeWorkflows(outputDir); err != nil {
+			return err
+		}
+	}
+
+	// Synthesize skills
+	if len(c.skills) > 0 {
+		if err := c.synthesizeSkills(outputDir); err != nil {
+			return err
+		}
+	}
+
+	// Synthesize environments
+	if len(c.environments) > 0 {
+		if err := c.synthesizeEnvironments(outputDir); err != nil {
 			return err
 		}
 	}
@@ -603,6 +678,47 @@ func (c *Context) synthesizeAgents(outputDir string) error {
 	return nil
 }
 
+// synthesizeMCPServers converts MCP servers to protobuf and writes to disk
+func (c *Context) synthesizeMCPServers(outputDir string) error {
+	// Convert each MCP server to proto and write individually
+	for i, m := range c.mcpServers {
+		// Convert MCP server to proto using ToProto() method
+		mcpServerProto, err := m.ToProto()
+		if err != nil {
+			return validation.NewSynthesisErrorForResource(
+				"mcpservers", "MCPServer", m.Name,
+				"failed to convert to proto",
+				err,
+			)
+		}
+
+		// Serialize to binary protobuf
+		data, err := proto.Marshal(mcpServerProto)
+		if err != nil {
+			return validation.NewSynthesisErrorForResource(
+				"mcpservers", "MCPServer", m.Name,
+				"failed to serialize protobuf",
+				err,
+			)
+		}
+
+		// Write to mcpserver-{index}.pb (use index to maintain order)
+		filename := fmt.Sprintf("mcpserver-%d.pb", i)
+		mcpServerPath := filepath.Join(outputDir, filename)
+		if err := os.WriteFile(mcpServerPath, data, 0644); err != nil {
+			return &validation.SynthesisError{
+				Phase:        "mcpservers",
+				ResourceType: "MCPServer",
+				ResourceName: m.Name,
+				Message:      fmt.Sprintf("failed to write manifest to %s", mcpServerPath),
+				Err:          validation.ErrManifestWrite,
+			}
+		}
+	}
+
+	return nil
+}
+
 // synthesizeWorkflows converts workflows to protobuf and writes to disk
 func (c *Context) synthesizeWorkflows(outputDir string) error {
 	// Convert each workflow to proto and write individually
@@ -611,7 +727,7 @@ func (c *Context) synthesizeWorkflows(outputDir string) error {
 		workflowProto, err := wf.ToProto()
 		if err != nil {
 			return validation.NewSynthesisErrorForResource(
-				"workflows", "Workflow", wf.Document.Name,
+				"workflows", "Workflow", wf.Name,
 				"failed to convert to proto",
 				err,
 			)
@@ -621,7 +737,7 @@ func (c *Context) synthesizeWorkflows(outputDir string) error {
 		data, err := proto.Marshal(workflowProto)
 		if err != nil {
 			return validation.NewSynthesisErrorForResource(
-				"workflows", "Workflow", wf.Document.Name,
+				"workflows", "Workflow", wf.Name,
 				"failed to serialize protobuf",
 				err,
 			)
@@ -634,8 +750,109 @@ func (c *Context) synthesizeWorkflows(outputDir string) error {
 			return &validation.SynthesisError{
 				Phase:        "workflows",
 				ResourceType: "Workflow",
-				ResourceName: wf.Document.Name,
+				ResourceName: wf.Name,
 				Message:      fmt.Sprintf("failed to write manifest to %s", workflowPath),
+				Err:          validation.ErrManifestWrite,
+			}
+		}
+	}
+
+	return nil
+}
+
+// synthesizeSkills converts skills to protobuf and writes to disk
+func (c *Context) synthesizeSkills(outputDir string) error {
+	// Convert each skill to proto and write individually
+	for i, s := range c.skills {
+		// Convert skill to SkillSynth proto using ToProto() method
+		skillProto, err := s.ToProto()
+		if err != nil {
+			// Use a descriptive name based on source type
+			name := "unknown"
+			if s.IsLocal() {
+				name = s.LocalPath()
+			} else if s.IsGit() {
+				name = s.GitURL()
+			}
+			return validation.NewSynthesisErrorForResource(
+				"skills", "Skill", name,
+				"failed to convert to proto",
+				err,
+			)
+		}
+
+		// Serialize to binary protobuf
+		data, err := proto.Marshal(skillProto)
+		if err != nil {
+			name := "unknown"
+			if s.IsLocal() {
+				name = s.LocalPath()
+			} else if s.IsGit() {
+				name = s.GitURL()
+			}
+			return validation.NewSynthesisErrorForResource(
+				"skills", "Skill", name,
+				"failed to serialize protobuf",
+				err,
+			)
+		}
+
+		// Write to skill-{index}.pb (use index to maintain order)
+		filename := fmt.Sprintf("skill-%d.pb", i)
+		skillPath := filepath.Join(outputDir, filename)
+		if err := os.WriteFile(skillPath, data, 0644); err != nil {
+			name := "unknown"
+			if s.IsLocal() {
+				name = s.LocalPath()
+			} else if s.IsGit() {
+				name = s.GitURL()
+			}
+			return &validation.SynthesisError{
+				Phase:        "skills",
+				ResourceType: "Skill",
+				ResourceName: name,
+				Message:      fmt.Sprintf("failed to write manifest to %s", skillPath),
+				Err:          validation.ErrManifestWrite,
+			}
+		}
+	}
+
+	return nil
+}
+
+// synthesizeEnvironments converts environments to JSON and writes to disk.
+// Note: Environments are serialized as JSON since they're configuration data
+// that may be referenced by AgentInstance/WorkflowInstance.
+func (c *Context) synthesizeEnvironments(outputDir string) error {
+	// Convert each environment to a serializable format and write individually
+	for i, e := range c.environments {
+		// Create a serializable representation
+		envData := map[string]interface{}{
+			"name":        e.Name,
+			"slug":        e.Slug,
+			"description": e.Args.Description,
+			"data":        e.Args.Data,
+		}
+
+		// Serialize to JSON
+		data, err := json.MarshalIndent(envData, "", "  ")
+		if err != nil {
+			return validation.NewSynthesisErrorForResource(
+				"environments", "Environment", e.Name,
+				"failed to serialize JSON",
+				err,
+			)
+		}
+
+		// Write to environment-{index}.json
+		filename := fmt.Sprintf("environment-%d.json", i)
+		envPath := filepath.Join(outputDir, filename)
+		if err := os.WriteFile(envPath, data, 0644); err != nil {
+			return &validation.SynthesisError{
+				Phase:        "environments",
+				ResourceType: "Environment",
+				ResourceName: e.Name,
+				Message:      fmt.Sprintf("failed to write manifest to %s", envPath),
 				Err:          validation.ErrManifestWrite,
 			}
 		}
@@ -820,6 +1037,30 @@ func (c *Context) Agents() []*agent.Agent {
 	// Return a copy to prevent external modification
 	result := make([]*agent.Agent, len(c.agents))
 	copy(result, c.agents)
+	return result
+}
+
+// MCPServers returns a copy of all MCP servers registered in the context.
+// This is primarily useful for testing and debugging.
+func (c *Context) MCPServers() []*mcpserver.MCPServer {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	// Return a copy to prevent external modification
+	result := make([]*mcpserver.MCPServer, len(c.mcpServers))
+	copy(result, c.mcpServers)
+	return result
+}
+
+// Environments returns a copy of all environments registered in the context.
+// This is primarily useful for testing and debugging.
+func (c *Context) Environments() []*environment.Environment {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	// Return a copy to prevent external modification
+	result := make([]*environment.Environment, len(c.environments))
+	copy(result, c.environments)
 	return result
 }
 

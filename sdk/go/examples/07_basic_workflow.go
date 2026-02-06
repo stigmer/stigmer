@@ -6,7 +6,6 @@ package main
 import (
 	"log"
 
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
@@ -26,37 +25,26 @@ import (
 // - Clear task output references: fetchTask.Field("title")
 // - Implicit dependencies through field references
 // - No ExportAll() needed - outputs always available
+// - RequireSecret for environment requirements
 // - Professional, Pulumi-like code style
 func main() {
 	// Use stigmer.Run() for automatic context and synthesis management
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
 		// Context: ONLY for shared configuration (like Pulumi's Config)
 		apiBase := ctx.SetString("apiBase", "https://api.github.com")
-		orgName := ctx.SetString("org", "my-org")
+		_ = ctx.SetString("org", "my-org") // Set org context (used elsewhere)
 
-		// Create environment variable for API token using struct-args pattern
-		apiToken, err := environment.New(ctx, "API_TOKEN", &environment.VariableArgs{
-			IsSecret:    true,
-			Description: "Authentication token for the API",
-		})
-		if err != nil {
-			return err
-		}
-
-		// Create workflow using struct-args pattern
+		// Create workflow using struct-based Args pattern
 		// Name format: "namespace/name" (e.g., "data-processing/basic-data-fetch")
 		wf, err := workflow.New(ctx, "data-processing/basic-data-fetch", &workflow.WorkflowArgs{
-			Namespace:   "data-processing",
-			Version:     "1.0.0",
 			Description: "Fetch pull request data from GitHub API using Pulumi-aligned patterns",
-			Org:         orgName.Value(),
 		})
 		if err != nil {
 			return err
 		}
 
-		// Add environment variable using builder method
-		wf.AddEnvironmentVariable(*apiToken)
+		// Declare environment requirements using builder methods
+		wf.RequireSecret("API_TOKEN", "Authentication token for the API")
 
 		// Task 1: Fetch pull request from GitHub API (clean, one-liner!)
 		// No ExportAll() needed - outputs are always available
@@ -87,7 +75,7 @@ func main() {
 		// processTask automatically depends on fetchTask because it uses fetchTask.Field()
 
 		log.Printf("Created workflow: %s", wf)
-		log.Printf("Tasks: %d", len(wf.Tasks))
+		log.Printf("Tasks: %d", len(wf.Args.Tasks))
 		log.Printf("  - %s (HTTP GET from GitHub API)", fetchTask.Name)
 		log.Printf("  - %s (depends on %s implicitly)", processTask.Name, fetchTask.Name)
 		log.Println("Workflow will be synthesized automatically on completion")

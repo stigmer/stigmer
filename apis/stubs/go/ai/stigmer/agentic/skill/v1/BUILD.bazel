@@ -11,6 +11,7 @@ go_library(
         "query_grpc.pb.go",
         "spec.pb.go",
         "status.pb.go",
+        "synth.pb.go",
     ],
     importpath = "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1",
     visibility = ["//visibility:public"],

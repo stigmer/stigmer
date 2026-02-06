@@ -1,9 +1,12 @@
 package workflow
 
 import (
+	"fmt"
 	"sync"
 
-	"github.com/stigmer/stigmer/sdk/go/environment"
+	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	genWorkflow "github.com/stigmer/stigmer/sdk/go/gen/workflow"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 )
 
@@ -16,30 +19,15 @@ type Context interface {
 	RegisterWorkflow(*Workflow)
 }
 
-// WorkflowArgs contains the configuration arguments for creating a Workflow.
+// WorkflowArgs is an alias for the generated WorkflowArgs from gen/workflow.
+// This provides a single source of truth for workflow configuration.
 //
-// This struct follows the Pulumi Args pattern for resource configuration.
-// Required fields: Namespace
-// Optional fields: Version (defaults to "0.1.0"), Description, Org, Slug
-type WorkflowArgs struct {
-	// Namespace is the workflow namespace for organization/categorization.
-	// This is a required field.
-	Namespace string
-
-	// Version is the workflow version (semver format, e.g., "1.0.0").
-	// Defaults to "0.1.0" if not provided.
-	Version string
-
-	// Description is a human-readable description for UI and marketplace display.
-	Description string
-
-	// Org is the organization that owns this workflow (optional).
-	Org string
-
-	// Slug is a custom URL-friendly identifier.
-	// If not provided, auto-generated from the name.
-	Slug string
-}
+// Fields:
+//   - Description: Human-readable description for UI and marketplace display
+//   - Document: Workflow document metadata (DSL version, namespace, name, version)
+//   - Tasks: Ordered list of proto tasks (populated via AddTask)
+//   - EnvSpec: Environment variables required by the workflow
+type WorkflowArgs = genWorkflow.WorkflowArgs
 
 // Workflow represents a workflow orchestration definition.
 //
@@ -47,38 +35,36 @@ type WorkflowArgs struct {
 // or in parallel. They support various task types including HTTP calls, gRPC calls,
 // conditional logic, loops, error handling, and more.
 //
+// The Workflow struct follows the unified resource pattern with Args as the
+// SINGLE source of truth for configuration. Tasks are converted to proto
+// immediately when added via AddTask(), providing fail-fast error handling.
+//
 // Use workflow.New() with stigmer.Run() to create a workflow:
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
 //	    wf, err := workflow.New(ctx, "data-processing/data-pipeline", &workflow.WorkflowArgs{
-//	        Version:     "1.0.0",
 //	        Description: "Process data from external API",
 //	    })
 //	    return err
 //	})
 type Workflow struct {
-	// Workflow metadata (namespace, name, version, description)
-	Document Document
+	// Name is the workflow name (identity field)
+	Name string
 
 	// Slug is the URL-friendly identifier (auto-generated from name if not provided)
 	Slug string
 
-	// Human-readable description for UI and marketplace display
-	Description string
-
-	// Ordered list of tasks that make up this workflow
-	Tasks []*Task
-
-	// Environment variables required by the workflow
-	EnvironmentVariables []environment.Variable
-
-	// Organization that owns this workflow (optional)
+	// Org is the organization that owns this workflow (optional metadata)
 	Org string
 
-	// Context reference (optional, used for typed variable management)
+	// Args is the SINGLE SOURCE OF TRUTH for workflow configuration.
+	// Contains Document, Tasks (proto), EnvSpec, and Description.
+	Args *WorkflowArgs
+
+	// ctx is the context reference for registration
 	ctx Context
 
-	// mu protects concurrent access to Tasks and EnvironmentVariables slices
+	// mu protects concurrent access to Args fields
 	mu sync.Mutex
 }
 
@@ -88,35 +74,25 @@ type Workflow struct {
 // Follows Pulumi's Args pattern: name as parameter, args struct for configuration.
 //
 // The name parameter can be either:
-//   - Simple name: "data-pipeline" (namespace must be provided in args)
+//   - Simple name: "data-pipeline" (namespace must be provided in args.Document)
 //   - Namespaced name: "data-processing/data-pipeline" (namespace parsed from name)
 //
 // Required:
 //   - name: workflow name (or namespace/name format)
-//   - args.Namespace: workflow namespace (if not in name)
+//   - namespace: either in name or in args.Document.Namespace
 //
 // Optional args fields:
-//   - Version: workflow version (defaults to "0.1.0")
 //   - Description: human-readable description
-//   - Org: organization identifier
-//   - Slug: custom slug (overrides auto-generation from name)
+//   - Document.Version: workflow version (defaults to "0.1.0")
+//   - EnvSpec: environment variables (populated via RequireSecret/RequireConfig)
 //
 // Example:
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
 //	    wf, err := workflow.New(ctx, "data-processing/daily-sync", &workflow.WorkflowArgs{
-//	        Version:     "1.0.0",
 //	        Description: "Sync data daily",
 //	    })
 //	    return err
-//	})
-//
-// Example with separate namespace:
-//
-//	wf, err := workflow.New(ctx, "daily-sync", &workflow.WorkflowArgs{
-//	    Namespace:   "data-processing",
-//	    Version:     "1.0.0",
-//	    Description: "Sync data daily",
 //	})
 //
 // Example with nil args (uses defaults):
@@ -131,40 +107,42 @@ func New(ctx Context, name string, args *WorkflowArgs) (*Workflow, error) {
 	// Parse namespace/name from the name parameter
 	namespace, workflowName := parseName(name)
 
-	// Use namespace from args if not in name
-	if namespace == "" {
-		namespace = args.Namespace
+	// Preserve user-provided values if Args.Document exists
+	version := "0.1.0"
+	if args.Document != nil {
+		if args.Document.Version != "" {
+			version = args.Document.Version
+		}
+		if args.Document.Namespace != "" && namespace == "" {
+			namespace = args.Document.Namespace
+		}
+	}
+
+	// Build Args.Document directly (NO SDK Document struct)
+	args.Document = &workflowv1.WorkflowDocument{
+		Dsl:       "1.0.0",
+		Namespace: namespace,
+		Name:      workflowName,
+		Version:   version,
+	}
+
+	// Initialize Tasks slice if nil
+	if args.Tasks == nil {
+		args.Tasks = []*workflowv1.WorkflowTask{}
+	}
+
+	// Determine slug
+	slug := ""
+	if workflowName != "" {
+		slug = naming.GenerateSlug(workflowName)
 	}
 
 	w := &Workflow{
-		Document: Document{
-			DSL:         "1.0.0", // Default DSL version
-			Namespace:   namespace,
-			Name:        workflowName,
-			Version:     args.Version,
-			Description: args.Description,
-		},
-		Description:          args.Description,
-		Org:                  args.Org,
-		Slug:                 args.Slug,
-		Tasks:                []*Task{},
-		EnvironmentVariables: []environment.Variable{},
-		ctx:                  ctx,
-	}
-
-	// Auto-generate slug from name if not provided
-	if w.Slug == "" && w.Document.Name != "" {
-		w.Slug = naming.GenerateSlug(w.Document.Name)
-	}
-
-	// If name not provided but slug is, use slug as name
-	if w.Document.Name == "" && w.Slug != "" {
-		w.Document.Name = w.Slug
-	}
-
-	// Auto-generate version if not provided
-	if w.Document.Version == "" {
-		w.Document.Version = "0.1.0" // Default version for development
+		Name: workflowName,
+		Slug: slug,
+		Org:  "", // Can be set via builder method if needed
+		Args: args,
+		ctx:  ctx,
 	}
 
 	// Validate the workflow
@@ -200,21 +178,34 @@ func parseName(name string) (string, string) {
 
 // AddTask adds a task to the workflow after creation.
 //
-// This is a builder method that allows adding tasks after the workflow is created.
+// This method converts the SDK Task to proto IMMEDIATELY and stores it in Args.Tasks.
+// This provides fail-fast error handling - conversion errors surface at AddTask time,
+// not at ToProto() time.
+//
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	wf, _ := workflow.New(ctx, "ns/my-workflow", &workflow.WorkflowArgs{Version: "1.0.0"})
+//	wf, _ := workflow.New(ctx, "ns/my-workflow", nil)
 //	wf.AddTask(workflow.Set("init", &workflow.SetArgs{...}))
 func (w *Workflow) AddTask(task *Task) *Workflow {
+	// Convert SDK Task to proto immediately (fail-fast)
+	protoTask, err := convertTask(task)
+	if err != nil {
+		panic(fmt.Sprintf("workflow: failed to convert task %q: %v", task.Name, err))
+	}
+
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	w.Tasks = append(w.Tasks, task)
+	w.Args.Tasks = append(w.Args.Tasks, protoTask)
 	return w
 }
 
 // AddTasks adds multiple tasks to the workflow after creation.
+//
+// This method converts each SDK Task to proto IMMEDIATELY and stores them in Args.Tasks.
+// This provides fail-fast error handling - conversion errors surface at AddTasks time.
+//
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
@@ -225,38 +216,19 @@ func (w *Workflow) AddTask(task *Task) *Workflow {
 //	    workflow.HttpGet("fetch", "https://api.example.com"),
 //	)
 func (w *Workflow) AddTasks(tasks ...*Task) *Workflow {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.Tasks = append(w.Tasks, tasks...)
-	return w
-}
+	// Convert all SDK Tasks to proto immediately (fail-fast)
+	protoTasks := make([]*workflowv1.WorkflowTask, 0, len(tasks))
+	for _, task := range tasks {
+		protoTask, err := convertTask(task)
+		if err != nil {
+			panic(fmt.Sprintf("workflow: failed to convert task %q: %v", task.Name, err))
+		}
+		protoTasks = append(protoTasks, protoTask)
+	}
 
-// AddEnvironmentVariable adds an environment variable to the workflow after creation.
-// This method is thread-safe and can be called concurrently.
-//
-// Example:
-//
-//	wf, _ := workflow.New(ctx, "ns/my-workflow", nil)
-//	apiToken, _ := environment.New(ctx, "API_TOKEN", &environment.VariableArgs{IsSecret: true})
-//	wf.AddEnvironmentVariable(apiToken)
-func (w *Workflow) AddEnvironmentVariable(variable environment.Variable) *Workflow {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	w.EnvironmentVariables = append(w.EnvironmentVariables, variable)
-	return w
-}
-
-// AddEnvironmentVariables adds multiple environment variables to the workflow after creation.
-// This method is thread-safe and can be called concurrently.
-//
-// Example:
-//
-//	wf, _ := workflow.New(...)
-//	wf.AddEnvironmentVariables(apiToken, apiURL)
-func (w *Workflow) AddEnvironmentVariables(variables ...environment.Variable) *Workflow {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.EnvironmentVariables = append(w.EnvironmentVariables, variables...)
+	w.Args.Tasks = append(w.Args.Tasks, protoTasks...)
 	return w
 }
 
@@ -495,5 +467,75 @@ func (w *Workflow) Fork(name string, args *ForkArgs) *Task {
 
 // String returns a string representation of the Workflow.
 func (w *Workflow) String() string {
-	return "Workflow(namespace=" + w.Document.Namespace + ", name=" + w.Document.Name + ", version=" + w.Document.Version + ")"
+	if w.Args == nil || w.Args.Document == nil {
+		return "Workflow(name=" + w.Name + ")"
+	}
+	return "Workflow(namespace=" + w.Args.Document.Namespace + ", name=" + w.Name + ", version=" + w.Args.Document.Version + ")"
+}
+
+// ============================================================================
+// Environment Methods (RequireSecret, RequireConfig)
+// ============================================================================
+
+// ensureEnvSpec initializes Args.EnvSpec if it's nil.
+// This helper must be called with the mutex held.
+func (w *Workflow) ensureEnvSpec() {
+	if w.Args == nil {
+		w.Args = &WorkflowArgs{}
+	}
+	if w.Args.EnvSpec == nil {
+		w.Args.EnvSpec = &environmentv1.EnvironmentSpec{
+			Data: make(map[string]*environmentv1.EnvironmentValue),
+		}
+	}
+	if w.Args.EnvSpec.Data == nil {
+		w.Args.EnvSpec.Data = make(map[string]*environmentv1.EnvironmentValue)
+	}
+}
+
+// RequireSecret declares that this workflow requires a secret environment variable.
+//
+// The secret must be provided at instance time (Value is empty = required).
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	wf, _ := workflow.New(ctx, "ns/my-workflow", nil)
+//	wf.RequireSecret("API_KEY", "API key for external service")
+//	wf.RequireSecret("DB_PASSWORD", "Database password")
+func (w *Workflow) RequireSecret(name, description string) *Workflow {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	w.ensureEnvSpec()
+	w.Args.EnvSpec.Data[name] = &environmentv1.EnvironmentValue{
+		Value:       "", // Empty = must be provided at instance time
+		IsSecret:    true,
+		Description: description,
+	}
+	return w
+}
+
+// RequireConfig declares that this workflow requires a configuration environment variable.
+//
+// If defaultValue is empty, the config must be provided at instance time.
+// If defaultValue is non-empty, it's used as the default when not provided.
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	wf, _ := workflow.New(ctx, "ns/my-workflow", nil)
+//	wf.RequireConfig("LOG_LEVEL", "info", "Logging level (debug, info, warn, error)")
+//	wf.RequireConfig("BATCH_SIZE", "100", "Number of items to process per batch")
+func (w *Workflow) RequireConfig(name, defaultValue, description string) *Workflow {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	w.ensureEnvSpec()
+	w.Args.EnvSpec.Data[name] = &environmentv1.EnvironmentValue{
+		Value:       defaultValue,
+		IsSecret:    false,
+		Description: description,
+	}
+	return w
 }

@@ -74,12 +74,13 @@ import (
     "log"
     
     "github.com/leftbin/stigmer-sdk/go/agent"
+    "github.com/leftbin/stigmer-sdk/go/ref"
     "github.com/leftbin/stigmer-sdk/go/mcpserver"
-    "github.com/leftbin/stigmer-sdk/go/stigmer"
+    "github.com/leftbin/stigmer-sdk/go/context"
 )
 
 func main() {
-    err := stigmer.Run(func(ctx *stigmer.Context) error {
+    err := stigmer.Run(func(ctx *stigmer.Context) error {  // Note: package is still "stigmer"
         // Create MCP server with struct-based args
         githubMCP, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
             Command: "npx",
@@ -103,10 +104,10 @@ func main() {
         }
         
         // Add skill references and MCP servers using builder methods
-        // Skills use org/slug format: "org/slug" or just "slug" if agent.Org is set
+        // Use ref package for creating resource references
         myAgent.
-            AddSkill("stigmer/security-analysis").
-            AddMCPServer(githubMCP)
+            AddSkillRef(ref.Skill("stigmer", "security-analysis")).
+            AddMcpServerUsage(ref.McpServer("stigmer", "github"))
         
         fmt.Printf("Agent created: %s\n", myAgent.Name)
         
@@ -124,16 +125,16 @@ func main() {
 ### Agent
 
 The `Agent` is the main blueprint that defines:
-- Name and instructions (required) - load from files with `WithInstructionsFromFile()`
+- Name and instructions (required) - load from files using `os.ReadFile()`
 - Description and icon (optional)
-- Skills (knowledge references) - inline or platform/org references
+- Skills (knowledge references) - use `ref` package
 - MCP servers (tool providers)
-- Sub-agents (delegatable agents)
+- Sub-agents (delegatable agents) - use `agent.NewSubAgent()`
 - Environment variables (configuration)
 
 **Key Features:**
-- **File-based instructions**: Load from markdown files instead of inline strings
-- **Builder pattern**: Add components after creation with `AddSkill()`, `AddMCPServer()`, etc.
+- **File-based instructions**: Load from markdown files using `os.ReadFile()`
+- **Builder pattern**: Add components after creation with `AddSkillRef()`, `AddMcpServerUsage()`, etc.
 - **Proto-agnostic**: No proto types or conversion - just pure Go
 
 ### Skills
@@ -145,7 +146,9 @@ Reference skills available platform-wide using the `org/slug` format:
 
 ```go
 // Use "stigmer/" prefix for platform skills
-myAgent.AddSkill("stigmer/coding-best-practices")
+import "github.com/leftbin/stigmer-sdk/go/ref"
+
+myAgent.AddSkillRef(ref.Skill("stigmer", "coding-best-practices"))
 ```
 
 #### 2. Organization Skills (Private)
@@ -153,29 +156,34 @@ Reference skills private to your organization:
 
 ```go
 // Use "org/slug" format for organization skills
-myAgent.AddSkill("my-org/internal-standards")
+import "github.com/leftbin/stigmer-sdk/go/ref"
+
+myAgent.AddSkillRef(ref.Skill("my-org", "internal-standards"))
 ```
 
 #### 3. Multiple Skills at Once
 Add multiple skill references in one call:
 
 ```go
-myAgent.AddSkills(
-    "stigmer/coding-best-practices",
-    "stigmer/security-analysis",
-    "my-org/internal-standards",
-)
+import "github.com/leftbin/stigmer-sdk/go/ref"
+
+myAgent.
+    AddSkillRef(ref.Skill("stigmer", "coding-best-practices")).
+    AddSkillRef(ref.Skill("stigmer", "security-analysis")).
+    AddSkillRef(ref.Skill("my-org", "internal-standards"))
 ```
 
 #### 4. Versioned Skills
 Reference specific versions of skills:
 
 ```go
-// With version suffix
-myAgent.AddSkill("stigmer/coding-best-practices@v2.0")
+import "github.com/leftbin/stigmer-sdk/go/ref"
 
-// Or using AtVersion option
-myAgent.AddSkill("stigmer/coding-best-practices", agent.AtVersion("v2.0"))
+// With version suffix
+myAgent.AddSkillRef(ref.Skill("stigmer", "coding-best-practices", ref.WithVersion("v2.0")))
+
+// Or using separate version parameter
+myAgent.AddSkillRef(ref.Skill("stigmer", "coding-best-practices", ref.WithVersion("v2.0")))
 ```
 
 **Benefits:**
@@ -199,7 +207,8 @@ githubServer, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
         "GITHUB_TOKEN": "${GITHUB_TOKEN}",
     },
 })
-agent.AddMCPServer(githubServer)
+// Reference the MCP server in an agent
+agent.AddMcpServerUsage(ref.McpServer("stigmer", "github"))
 ```
 
 #### 2. HTTP Servers
@@ -213,7 +222,8 @@ httpServer, err := mcpserver.HTTP(ctx, "remote-mcp", &mcpserver.HTTPArgs{
     },
     TimeoutSeconds: 30,
 })
-agent.AddMCPServer(httpServer)
+// Reference the MCP server in an agent
+agent.AddMcpServerUsage(ref.McpServer("stigmer", "remote-mcp"))
 ```
 
 #### 3. Docker Servers
@@ -229,59 +239,83 @@ dockerServer, err := mcpserver.Docker(ctx, "custom-mcp", &mcpserver.DockerArgs{
         {HostPort: 8080, ContainerPort: 80, Protocol: "tcp"},
     },
 })
-agent.AddMCPServer(dockerServer)
+// Reference the MCP server in an agent
+agent.AddMcpServerUsage(ref.McpServer("my-org", "custom-mcp"))
 ```
 
 ### Sub-Agents
 
-Sub-agents allow delegation to specialized agents. Sub-agents are always inline (defined within the parent):
+Sub-agents allow delegation to specialized agents. Sub-agents are inline value objects within the parent agent.
 
 #### Creating Inline Sub-Agents
 
 ```go
-analyzer, err := subagent.New(ctx, "code-analyzer", &subagent.SubAgentArgs{
-    Instructions: "Analyze code quality and provide detailed feedback",
-    Description:  "Specialized code analyzer",
-})
-// Add MCP servers and skill refs to sub-agent
-analyzer.AddMCPServerRef("github")
-analyzer.AddSkill("stigmer/static-analysis")
+import (
+    "github.com/leftbin/stigmer-sdk/go/agent"
+    "github.com/leftbin/stigmer-sdk/go/ref"
+)
+
+// Create a sub-agent (simple helper function)
+analyzer := agent.NewSubAgent("code-analyzer", "Analyze code quality and provide detailed feedback")
+
+// Or use the builder for more complex sub-agents
+analyzer := agent.BuildSubAgent("code-analyzer", "Analyze code quality").
+    Description("Specialized code analyzer").
+    GrantMcpAccess("github", "search_code", "get_file").
+    AddSkillRef(ref.Skill("stigmer", "static-analysis")).
+    Build()
 
 // Add sub-agent to parent agent
 parentAgent.AddSubAgent(analyzer)
 ```
 
-**Note**: Sub-agents use `AddMCPServerRef()` and `AddSkill()` with simple slug names since they inherit from the parent's context.
+**Note**: Sub-agents are part of the agent package and return proto types directly. Use `NewSubAgent()` for simple cases or `BuildSubAgent()` for complex configurations.
 
 ### Environment Variables
 
-Define configuration and secret requirements for agents.
+Agents and workflows can declare required environment variables using builder methods.
 
 #### Secret Variables
 Required secrets are encrypted at rest:
 
 ```go
-apiKey, err := environment.New(ctx, "API_KEY", &environment.VariableArgs{
-    IsSecret:    true,
-    Description: "API key for external service",
-})
-agent.AddEnvironmentVariable(apiKey)
+// On agents - use RequireSecret builder method
+myAgent.RequireSecret("API_KEY", "API key for external service")
+
+// On workflows - use RequireSecret builder method
+wf.RequireSecret("DATABASE_URL", "Database connection string")
 ```
 
 #### Configuration with Defaults
 Optional configuration values with sensible defaults:
 
 ```go
-region, err := environment.New(ctx, "AWS_REGION", &environment.VariableArgs{
-    DefaultValue: "us-east-1",
-    Description:  "AWS deployment region",
+// On agents - use RequireConfig builder method
+myAgent.RequireConfig("AWS_REGION", "us-east-1", "AWS deployment region")
+
+// On workflows - use RequireConfig builder method
+wf.RequireConfig("LOG_LEVEL", "info", "Application log level")
+```
+
+#### Environment Resource (First-Class API Resource)
+
+For defining actual environment values (not just requirements), use the Environment resource:
+
+```go
+import "github.com/leftbin/stigmer-sdk/go/environment"
+
+env, err := environment.New(ctx, "production-aws", &environment.EnvironmentArgs{
+    Description: "Production AWS credentials",
 })
-agent.AddEnvironmentVariable(region)
+env.
+    SetConfig("AWS_REGION", "us-west-2").
+    SetSecret("AWS_ACCESS_KEY_ID", "${secrets.aws_key}").
+    SetSecret("AWS_SECRET_ACCESS_KEY", "${secrets.aws_secret}")
 ```
 
 #### Key Features
-- **Secrets**: Encrypted at rest, redacted in logs (use `IsSecret: true`)
-- **Configuration**: Plaintext values for non-sensitive data
+- **Secrets**: Encrypted at rest, redacted in logs (use `RequireSecret()` or `SetSecret()`)
+- **Configuration**: Plaintext values for non-sensitive data (use `RequireConfig()` or `SetConfig()`)
 - **Defaults**: Variables with defaults are automatically optional
 - **Validation**: Names must be uppercase with underscores (e.g., `GITHUB_TOKEN`)
 - **Required/Optional**: Control whether values must be provided
@@ -320,7 +354,9 @@ All inputs are validated at construction time:
 Validation errors provide clear, actionable feedback:
 
 ```go
-agent, err := agent.New(agent.WithName("Invalid Name!"))
+agent, err := agent.New(ctx, "Invalid Name!", &agent.AgentArgs{
+    Instructions: "Test instructions",
+})
 // err: validation failed for field "name": name must be lowercase...
 ```
 
@@ -335,7 +371,7 @@ package main
 
 import (
     "log"
-    "github.com/leftbin/stigmer-sdk/go/stigmer"
+    "github.com/leftbin/stigmer-sdk/go/context"
     "github.com/leftbin/stigmer-sdk/go/workflow"
 )
 
@@ -344,15 +380,12 @@ func main() {
     err := stigmer.Run(func(ctx *stigmer.Context) error {
         // Context: ONLY for shared configuration (like Pulumi's Config)
         apiBase := ctx.SetString("apiBase", "https://api.github.com")
-        orgName := ctx.SetString("org", "my-org")
+        _ = ctx.SetString("org", "my-org")
         
-        // Create workflow with context
-        wf, err := workflow.New(ctx,
-            workflow.WithNamespace("data-processing"),
-            workflow.WithName("basic-data-fetch"),
-            workflow.WithVersion("1.0.0"),
-            workflow.WithOrg(orgName),  // Use context config
-        )
+        // Create workflow with struct-based args
+        wf, err := workflow.New(ctx, "data-processing/basic-data-fetch", &workflow.WorkflowArgs{
+            Description: "Fetch pull request data from GitHub API",
+        })
         if err != nil {
             return err
         }
@@ -379,7 +412,7 @@ func main() {
         // No manual dependency management needed!
         // processTask automatically depends on fetchTask
         
-        log.Printf("Created workflow with %d tasks", len(wf.Tasks))
+        log.Printf("Created workflow with %d tasks", len(wf.Args.Tasks))
         return nil
     })
     
@@ -559,11 +592,16 @@ If you're migrating from the Python SDK, see [docs/guides/migration-guide.md](do
 
 ```
 sdk/go/
-├── agent/           # Core agent builder
-├── skill/           # Skill configuration
+├── agent/           # Agent builder (includes SubAgent)
+├── skill/           # Skill definitions (content artifacts)
 ├── mcpserver/       # MCP server definitions
-├── subagent/        # Sub-agent configuration
-├── environment/     # Environment variables
+├── workflow/        # Workflow orchestration
+├── environment/     # Environment resource (first-class API resource)
+├── context/         # Context and synthesis (package name: stigmer)
+├── ref/             # Resource reference factories
+├── metadata/        # Metadata utilities
+├── gen/             # Generated Args from proto (DO NOT EDIT)
+├── internal/        # Internal utilities (validation, templates)
 ├── examples/        # Usage examples
 ├── testdata/        # Test fixtures and golden files
 └── Makefile         # Build targets

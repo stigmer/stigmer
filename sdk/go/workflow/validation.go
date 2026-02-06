@@ -7,58 +7,143 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 )
 
-// Validation constants for SDK-specific task name format.
+// Validation constants for SDK-specific rules.
 const (
+	// Task name validation
 	taskNameMaxLength = 100
+
+	// Document validation (from document.go)
+	dslVersion           = "1.0.0"
+	namespaceMinLength   = 1
+	namespaceMaxLength   = 100
+	nameMinLength        = 1
+	nameMaxLength        = 100
+	descriptionMaxLength = 500
 )
 
 // taskNameRegex matches valid task names (alphanumeric with hyphens and underscores).
 // This is an SDK-specific naming convention.
 var taskNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
+// semverRegex matches valid semver strings (simplified).
+var semverRegex = regexp.MustCompile(`^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?$`)
+
 // validate validates SDK-specific rules for a Workflow.
 //
-// This function validates only SDK-specific conventions that are not covered
-// by protovalidate rules. Field-level validations (required fields, min/max
-// lengths, etc.) are handled by protovalidate in ToProto().
+// This function validates:
+//   - Args.Document fields (namespace, name, version format)
+//   - Task name format and uniqueness (when tasks exist)
 //
-// SDK-specific rules validated here:
-//   - Task name format: alphanumeric with hyphens and underscores (SDK naming convention)
-//   - Task name uniqueness: no duplicate task names within workflow (cross-field validation)
+// Note: Proto-level validations are handled by protovalidate in ToProto().
 func validate(w *Workflow) error {
-	// Note: Document validation (DSL version, namespace, name required) is handled
-	// by protovalidate when ToProto() is called. The proto has:
-	// - dsl: string.pattern = "^1\.0\.0$"
-	// - namespace: required = true
-	// - name: required = true
-	// - version: required = true
+	// Validate Args exists
+	if w.Args == nil {
+		return validation.NewValidationErrorWithCause(
+			"args",
+			"",
+			"required",
+			"workflow args is required",
+			ErrMissingRequiredField,
+		)
+	}
+
+	// Validate Args.Document
+	if err := validateArgsDocument(w); err != nil {
+		return err
+	}
 
 	// Note: We allow empty workflows during creation to support the Pulumi-style
 	// pattern where workflows are created first, then tasks are added via
-	// wf.HttpGet(), wf.SetVars(), etc. Task config validation happens in ToProto()
-	// via protovalidate.
-	if len(w.Tasks) == 0 {
-		return nil
+	// wf.HttpGet(), wf.SetVars(), etc. Task name validation happens at AddTask time.
+	// Proto-level task validation happens in ToProto() via protovalidate.
+
+	return nil
+}
+
+// validateArgsDocument validates Args.Document fields.
+func validateArgsDocument(w *Workflow) error {
+	doc := w.Args.Document
+	if doc == nil {
+		return validation.NewValidationErrorWithCause(
+			"args.document",
+			"",
+			"required",
+			"workflow document is required",
+			ErrMissingRequiredField,
+		)
 	}
 
-	// Validate task names are unique (SDK-specific cross-field validation)
-	// This cannot be expressed in proto validation rules.
-	taskNames := make(map[string]bool)
-	for i, task := range w.Tasks {
-		if err := validateTaskName(task.Name); err != nil {
-			return fmt.Errorf("task[%d]: %w", i, err)
-		}
+	// Validate DSL version
+	if doc.Dsl != dslVersion {
+		return validation.NewValidationErrorWithCause(
+			"args.document.dsl",
+			doc.Dsl,
+			"const",
+			fmt.Sprintf("DSL version must be %q", dslVersion),
+			ErrInvalidVersion,
+		)
+	}
 
-		if taskNames[task.Name] {
-			return validation.NewValidationErrorWithCause(
-				validation.FieldPath("tasks", i, "name"),
-				task.Name,
-				"unique",
-				fmt.Sprintf("duplicate task name: %q", task.Name),
-				ErrDuplicateTaskName,
-			)
-		}
-		taskNames[task.Name] = true
+	// Validate namespace (required)
+	if doc.Namespace == "" {
+		return validation.NewValidationErrorWithCause(
+			"args.document.namespace",
+			doc.Namespace,
+			"required",
+			"namespace is required",
+			ErrInvalidNamespace,
+		)
+	}
+	if len(doc.Namespace) < namespaceMinLength || len(doc.Namespace) > namespaceMaxLength {
+		return validation.NewValidationErrorWithCause(
+			"args.document.namespace",
+			doc.Namespace,
+			"length",
+			fmt.Sprintf("namespace must be between %d and %d characters", namespaceMinLength, namespaceMaxLength),
+			ErrInvalidNamespace,
+		)
+	}
+
+	// Validate name (required)
+	if doc.Name == "" {
+		return validation.NewValidationErrorWithCause(
+			"args.document.name",
+			doc.Name,
+			"required",
+			"name is required",
+			ErrInvalidName,
+		)
+	}
+	if len(doc.Name) < nameMinLength || len(doc.Name) > nameMaxLength {
+		return validation.NewValidationErrorWithCause(
+			"args.document.name",
+			doc.Name,
+			"length",
+			fmt.Sprintf("name must be between %d and %d characters", nameMinLength, nameMaxLength),
+			ErrInvalidName,
+		)
+	}
+
+	// Validate version (if provided, must be semver)
+	if doc.Version != "" && !semverRegex.MatchString(doc.Version) {
+		return validation.NewValidationErrorWithCause(
+			"args.document.version",
+			doc.Version,
+			"semver",
+			"version must be valid semver (e.g., 1.0.0)",
+			ErrInvalidVersion,
+		)
+	}
+
+	// Validate description (optional)
+	if len(w.Args.Description) > descriptionMaxLength {
+		return validation.NewValidationErrorWithCause(
+			"args.description",
+			w.Args.Description,
+			"max_length",
+			fmt.Sprintf("description must be at most %d characters", descriptionMaxLength),
+			ErrInvalidDescription,
+		)
 	}
 
 	return nil

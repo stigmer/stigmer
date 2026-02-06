@@ -26,6 +26,12 @@ message SkillStatus {
 
   // Current lifecycle state of the skill.
   SkillState state = 3;
+
+  // Git provenance tracking where the skill artifacts originated from.
+  // Populated by CLI during push, provides traceability and enables
+  // "view on GitHub" links and reproducible deployments.
+  // Absent when pushed from a non-git directory.
+  GitProvenance git_provenance = 4;
 }
 
 // SkillState represents the lifecycle state of a skill.
@@ -41,4 +47,34 @@ enum SkillState {
 
   // Skill upload or processing failed.
   SKILL_STATE_FAILED = 3;
+}
+
+// GitProvenance tracks the git origin of skill artifacts.
+// This is system-detected metadata, not user-specified configuration.
+// Populated by CLI during push based on:
+// - Local push: auto-detected from directory's git context
+// - Git push: resolved from user-provided URL/ref
+message GitProvenance {
+  // Git remote URL.
+  // For local push: detected "origin" remote URL
+  // For git push: the user-provided repository URL
+  // Example: "https://github.com/stigmer/skills.git"
+  string remote_url = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Original git reference (for display purposes).
+  // For local push: detected branch name (e.g., "main") or empty if detached HEAD
+  // For git push: the user-provided ref (e.g., "v1.0.0", "main")
+  // This preserves user intent for display while commit provides immutability.
+  string ref = 2;
+
+  // Resolved commit SHA (for reproducibility).
+  // Always populated - this is the immutable version reference.
+  // Full 40-character SHA ensures exact reproducibility.
+  // Example: "abc123def456789012345678901234567890abcd"
+  string commit = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Subdirectory path relative to repo root.
+  // Empty if skill is at repo root.
+  // Example: "skills/calculator"
+  string subdir = 4;
 }

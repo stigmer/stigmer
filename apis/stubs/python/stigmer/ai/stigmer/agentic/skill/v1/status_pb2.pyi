@@ -20,13 +20,27 @@ SKILL_STATE_READY: SkillState
 SKILL_STATE_FAILED: SkillState
 
 class SkillStatus(_message.Message):
-    __slots__ = ("audit", "version_hash", "artifact_storage_key", "state")
+    __slots__ = ("audit", "version_hash", "artifact_storage_key", "state", "git_provenance")
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     VERSION_HASH_FIELD_NUMBER: _ClassVar[int]
     ARTIFACT_STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
+    GIT_PROVENANCE_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     version_hash: str
     artifact_storage_key: str
     state: SkillState
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., version_hash: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., state: _Optional[_Union[SkillState, str]] = ...) -> None: ...
+    git_provenance: GitProvenance
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., version_hash: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., state: _Optional[_Union[SkillState, str]] = ..., git_provenance: _Optional[_Union[GitProvenance, _Mapping]] = ...) -> None: ...
+
+class GitProvenance(_message.Message):
+    __slots__ = ("remote_url", "ref", "commit", "subdir")
+    REMOTE_URL_FIELD_NUMBER: _ClassVar[int]
+    REF_FIELD_NUMBER: _ClassVar[int]
+    COMMIT_FIELD_NUMBER: _ClassVar[int]
+    SUBDIR_FIELD_NUMBER: _ClassVar[int]
+    remote_url: str
+    ref: str
+    commit: str
+    subdir: str
+    def __init__(self, remote_url: _Optional[str] = ..., ref: _Optional[str] = ..., commit: _Optional[str] = ..., subdir: _Optional[str] = ...) -> None: ...

@@ -153,24 +153,34 @@ message SkillSource {
 
 **Goal**: MCP servers become first-class synthesized resources.
 
-#### A1: Add RegisterMCPServer to Context
-- [ ] Add `mcpServers []*mcpserver.MCPServer` field to Context
-- [ ] Add `RegisterMCPServer(*mcpserver.MCPServer)` method
-- [ ] Update `mcpserver.Stdio()`, `HTTP()`, `Docker()` to auto-register
+#### A1: Add RegisterMCPServer to Context ✅ COMPLETED
+- [x] Add `mcpServers []*mcpserver.MCPServer` field to Context
+- [x] Add `RegisterMCPServer(*mcpserver.MCPServer)` method
+- [x] Add `MCPServers()` accessor method
+- [x] Create `MCPServer` struct using **composition pattern** (embeds `Args *McpServerArgs`)
+- [x] Implement `mcpserver.Stdio()` and `mcpserver.HTTP()` constructors with auto-registration
+- [x] Implement `ToProto()` method reading from embedded Args
+- [x] Add unit tests for constructors and ToProto
+- [x] All 28 tests passing
 
-#### A2: Add synthesizeMCPServers
-- [ ] Add `synthesizeMCPServers(outputDir string) error` to Context
-- [ ] Iterate registered MCP servers
-- [ ] Call `ToProto()` → serialize → write `mcpserver-N.pb`
+**Architectural Note**: MCPServer uses the composition pattern (embedding Args) as the reference implementation. Agent and Workflow should be refactored to follow this pattern (see Backlog section).
 
-#### A3: Verify MCPServer ToProto
-- [ ] Verify `mcpserver` package has proper `ToProto()` method
-- [ ] Add if missing (pattern from agent/workflow)
+#### A2: Add synthesizeMCPServers ✅ COMPLETED
+- [x] Add `synthesizeMCPServers(outputDir string) error` to Context
+- [x] Iterate registered MCP servers
+- [x] Call `ToProto()` → serialize → write `mcpserver-N.pb`
 
-#### A4: Tests
-- [ ] Unit tests for RegisterMCPServer
-- [ ] Unit tests for synthesis output
-- [ ] Integration tests
+#### A3: Verify MCPServer ToProto ✅ COMPLETED
+- [x] `mcpserver` package has proper `ToProto()` method
+- [x] Includes protovalidate validation
+- [x] Includes SDK annotations
+
+#### A4: Tests ✅ COMPLETED
+- [x] Unit tests for Stdio() and HTTP() constructors
+- [x] Unit tests for ToProto()
+- [x] Unit tests for ServerType() and String()
+- [x] Unit tests for slug generation
+- [x] All tests passing
 
 **Deliverable**: MCP servers are synthesized to `mcpserver-N.pb`.
 
@@ -386,6 +396,80 @@ Phases A and B can be done in parallel.
 | C: Unified Synthesis | 3 | ~2-3 hours |
 | D: Documentation | 2 | ~2 hours |
 | **Total** | 17 | ~2 days |
+
+---
+
+## Backlog: SDK Resource Composition Refactoring
+
+**Priority**: Medium
+**Type**: Tech Debt
+**Breaking**: Yes
+
+### Context
+
+During Phase A1 implementation, an architectural decision was made to use the **composition pattern** for MCPServer (embedding Args struct) rather than **field duplication** (copying fields from Args into the resource struct). This is the correct pattern that aligns with DDD principles and Pulumi's resource design.
+
+### Current State (Technical Debt)
+
+Agent and Workflow currently use the **duplication pattern**:
+
+```go
+// Current Agent pattern - DUPLICATES fields from Args
+type Agent struct {
+    Description  string  // DUPLICATED from AgentArgs
+    Instructions string  // DUPLICATED from AgentArgs
+    IconURL      string  // DUPLICATED from AgentArgs
+    Name         string  // From constructor
+    ctx          Context // Runtime
+}
+```
+
+This violates DRY and creates maintenance burden when the generator changes.
+
+### Correct Pattern (MCPServer reference implementation)
+
+MCPServer uses the **composition pattern**:
+
+```go
+// MCPServer pattern - COMPOSES Args
+type MCPServer struct {
+    Name string          // From constructor
+    Slug string          // From constructor
+    Args *McpServerArgs  // Single source of truth for config
+    ctx  Context         // Runtime
+}
+```
+
+Benefits:
+- Single source of truth (Args)
+- Generator changes automatically propagate
+- Access pattern: `server.Args.Description`
+- Lower maintenance burden
+
+### Tasks
+
+- [ ] Refactor `Agent` struct to embed `Args *AgentArgs` instead of duplicating fields
+- [ ] Update all access patterns from `agent.Description` to `agent.Args.Description`
+- [ ] Update `Agent.ToProto()` to read from `Args`
+- [ ] Update all Agent tests
+- [ ] Refactor `Workflow` struct to embed `Args *WorkflowArgs` (if applicable)
+- [ ] Update all Workflow tests
+- [ ] Create migration guide for SDK users
+- [ ] Consider semver major version bump (breaking change)
+
+### Breaking Change Considerations
+
+This is a **breaking API change** that affects:
+- Direct field access: `agent.Description` → `agent.Args.Description`
+- Constructor patterns may change
+- All SDK users will need to update their code
+
+### Migration Strategy
+
+1. Release with deprecation warnings first (optional)
+2. Provide automated migration script if possible
+3. Document all breaking changes
+4. Major version bump (e.g., v0.x → v1.0 or v1.x → v2.0)
 
 ---
 

@@ -15,8 +15,7 @@ import (
 //
 // Key learning points:
 // - Creating an agent in the same context
-// - Referencing the agent from a workflow
-// - Using workflow.Agent() for direct instance references
+// - Referencing the agent from a workflow using agent.Slug
 // - Basic agent call with a simple message
 //
 // This is the "Hello World" of agent-workflow integration.
@@ -42,12 +41,9 @@ Provide constructive feedback in a friendly tone.`,
 		// ============================================================================
 		// Step 2: Create a workflow that calls the agent
 		// ============================================================================
-		wf, err := workflow.New(ctx,
-			workflow.WithNamespace("code-review"),
-			workflow.WithName("simple-review"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Simple code review workflow"),
-		)
+		wf, err := workflow.New(ctx, "code-review/simple-review", &workflow.WorkflowArgs{
+			Description: "Simple code review workflow",
+		})
 		if err != nil {
 			return err
 		}
@@ -55,13 +51,13 @@ Provide constructive feedback in a friendly tone.`,
 		// ============================================================================
 		// Step 3: Call the agent with a static message
 		// ============================================================================
-		// Using workflow.Agent() to reference the agent instance
+		// Reference the agent using its Slug field directly
 		reviewTask := wf.CallAgent("reviewCode", &workflow.AgentCallArgs{
-			Agent:   workflow.Agent(codeReviewer).Slug(), // Direct instance reference
+			Agent:   codeReviewer.Slug, // Direct slug reference
 			Message: "Please review this function:\n\n```go\nfunc divide(a, b int) int {\n    return a / b\n}\n```",
 		})
 
-		log.Printf("✅ Created workflow: %s", wf.Document.Name)
+		log.Printf("✅ Created workflow: %s", wf.Name)
 		log.Printf("✅ Created agent call task: %s", reviewTask.Name)
 		log.Printf("   - Agent: %s", codeReviewer.Name)
 		log.Printf("   - Task kind: %s", reviewTask.Kind)

@@ -2,16 +2,17 @@
 
 // Example 05: Agent with Environment Variables
 //
-// This example demonstrates how to define environment variables for agents.
-// Environment variables can be configuration values or secrets that agents
-// need at runtime.
+// This example demonstrates how to declare environment requirements for agents
+// using the RequireSecret and RequireConfig builder methods.
 //
 // Key concepts:
-//   - Secrets (IsSecret=true): Encrypted at rest, redacted in logs
-//   - Config (IsSecret=false): Plaintext, visible in audit logs
-//   - Required: Must be provided at AgentInstance creation
-//   - Optional: Can use default value if not provided
-//   - Variables with defaults are automatically optional
+//   - RequireSecret: Declares a required secret (encrypted at rest, redacted in logs)
+//   - RequireConfig: Declares a config variable with optional default value
+//   - EnvSpec: All environment requirements are stored in Args.EnvSpec
+//   - Runtime Resolution: Values are provided at AgentInstance creation time
+//
+// The old environment.VariableArgs pattern has been replaced with cleaner
+// builder methods that directly modify the agent's EnvSpec.
 package main
 
 import (
@@ -19,7 +20,6 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
 
@@ -28,73 +28,11 @@ func main() {
 		fmt.Println("=== Example 05: Agent with Environment Variables ===\n")
 
 		// =============================================================================
-		// Example 1: Required Secret Variable
+		// Creating an Agent with Environment Requirements
 		// =============================================================================
-		// Secrets are encrypted at rest and redacted in logs.
-		// By default, variables are required.
-		githubToken, err := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
-			IsSecret:    true,
-			Description: "GitHub personal access token with repo scope",
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create GITHUB_TOKEN: %w", err)
-		}
-		fmt.Printf("Created secret: %s\n", githubToken)
+		// Environment requirements are declared using builder methods on the agent.
+		// This is cleaner than the old pattern of creating separate VariableArgs.
 
-		// =============================================================================
-		// Example 2: Optional Configuration with Default Value
-		// =============================================================================
-		// Variables with default values are automatically optional.
-		// Configuration values are stored as plaintext.
-		awsRegion, err := environment.New(ctx, "AWS_REGION", &environment.VariableArgs{
-			DefaultValue: "us-east-1",
-			Description:  "AWS region for resource deployment",
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create AWS_REGION: %w", err)
-		}
-		fmt.Printf("Created config with default: %s\n", awsRegion)
-
-		// =============================================================================
-		// Example 3: Optional Configuration (no default)
-		// =============================================================================
-		// To make a variable optional without a default, set Required to false.
-		optionalFalse := false
-		logLevel, err := environment.New(ctx, "LOG_LEVEL", &environment.VariableArgs{
-			Required:    &optionalFalse,
-			Description: "Logging level (debug, info, warn, error)",
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create LOG_LEVEL: %w", err)
-		}
-		fmt.Printf("Created optional config: %s\n", logLevel)
-
-		// =============================================================================
-		// Example 4: Multiple Secrets for Different Services
-		// =============================================================================
-		slackToken, err := environment.New(ctx, "SLACK_BOT_TOKEN", &environment.VariableArgs{
-			IsSecret:    true,
-			Description: "Slack bot token for team communication",
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create SLACK_BOT_TOKEN: %w", err)
-		}
-
-		openaiKey, err := environment.New(ctx, "OPENAI_API_KEY", &environment.VariableArgs{
-			IsSecret:    true,
-			Description: "OpenAI API key for embeddings",
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create OPENAI_API_KEY: %w", err)
-		}
-		fmt.Printf("Created multiple secrets: %s, %s\n\n", slackToken, openaiKey)
-
-		// =============================================================================
-		// Example 5: Agent with Environment Variables
-		// =============================================================================
-		fmt.Println("=== Creating Agent with Environment Variables ===\n")
-
-		// Create agent with environment variables
 		deployAgent, err := agent.New(ctx, "cloud-deployer", &agent.AgentArgs{
 			Instructions: `You are a cloud deployment agent that manages infrastructure across AWS and GitHub.
 
@@ -112,143 +50,166 @@ Always check environment configurations before deployment.`,
 			return fmt.Errorf("failed to create agent: %w", err)
 		}
 
-		// Add MCP server reference using new org/slug format
+		// =============================================================================
+		// Declaring Secret Requirements
+		// =============================================================================
+		// Secrets are encrypted at rest and redacted in logs.
+		// Use RequireSecret for API keys, tokens, and passwords.
+		// These MUST be provided at AgentInstance creation time.
+
+		deployAgent.
+			RequireSecret("GITHUB_TOKEN", "GitHub personal access token with repo scope").
+			RequireSecret("SLACK_BOT_TOKEN", "Slack bot token for team communication").
+			RequireSecret("OPENAI_API_KEY", "OpenAI API key for intelligent suggestions")
+
+		fmt.Println("✓ Declared required secrets: GITHUB_TOKEN, SLACK_BOT_TOKEN, OPENAI_API_KEY")
+
+		// =============================================================================
+		// Declaring Config Requirements with Defaults
+		// =============================================================================
+		// Config values are non-secret environment variables.
+		// If a default value is provided, the variable becomes optional.
+		// If default is empty string, the variable is required at runtime.
+
+		deployAgent.
+			RequireConfig("AWS_REGION", "us-east-1", "AWS region for resource deployment").
+			RequireConfig("LOG_LEVEL", "info", "Logging level (debug, info, warn, error)").
+			RequireConfig("DEPLOYMENT_TIMEOUT", "300", "Deployment timeout in seconds")
+
+		fmt.Println("✓ Declared config with defaults: AWS_REGION, LOG_LEVEL, DEPLOYMENT_TIMEOUT")
+
+		// =============================================================================
+		// Declaring Required Config (no default)
+		// =============================================================================
+		// Pass empty string as default to make a config variable required.
+
+		deployAgent.
+			RequireConfig("TARGET_ENVIRONMENT", "", "Target deployment environment (staging/production)")
+
+		fmt.Println("✓ Declared required config: TARGET_ENVIRONMENT")
+
+		// =============================================================================
+		// Adding MCP Server Reference
+		// =============================================================================
+		// MCP servers are referenced using org/slug format.
+
 		deployAgent.UseMCP("stigmer/github", "create_pr", "search_code", "list_repos")
 
-		// Add environment variables using builder methods
-		deployAgent.AddEnvironmentVariables(
-			*githubToken,
-			*awsRegion,
-			*logLevel,
-			*slackToken,
-			*openaiKey,
-		)
+		fmt.Println("✓ Added MCP server usage: stigmer/github")
 
-		fmt.Printf("Created agent: %s\n", deployAgent.Name)
-		fmt.Printf("  - Instructions: %d characters\n", len(deployAgent.Instructions))
-		fmt.Printf("  - Environment Variables: %d\n", len(deployAgent.EnvironmentVariables))
-		fmt.Printf("  - MCP Server Usages: %d\n\n", len(deployAgent.McpServerUsages))
+		// =============================================================================
+		// Display Agent Configuration
+		// =============================================================================
+		fmt.Println("\n=== Agent Configuration Summary ===\n")
+		fmt.Printf("Agent: %s\n", deployAgent.Name)
+		fmt.Printf("  - Instructions: %d characters\n", len(deployAgent.Args.Instructions))
+		fmt.Printf("  - MCP Server Usages: %d\n", len(deployAgent.Args.McpServerUsages))
 
-		// Display environment variables
-		fmt.Println("=== Environment Variables Configuration ===\n")
-		for i, envVar := range deployAgent.EnvironmentVariables {
-			fmt.Printf("%d. %s\n", i+1, envVar)
-			fmt.Printf("   - Secret: %v\n", envVar.IsSecret)
-			fmt.Printf("   - Required: %v\n", envVar.Required)
-			if envVar.DefaultValue != "" {
-				fmt.Printf("   - Default: %s\n", envVar.DefaultValue)
+		// Display environment spec
+		if deployAgent.Args.EnvSpec != nil && len(deployAgent.Args.EnvSpec.Data) > 0 {
+			fmt.Printf("  - Environment Variables: %d\n\n", len(deployAgent.Args.EnvSpec.Data))
+
+			fmt.Println("=== Environment Requirements ===\n")
+			for name, value := range deployAgent.Args.EnvSpec.Data {
+				fmt.Printf("%s:\n", name)
+				fmt.Printf("   - Secret: %v\n", value.IsSecret)
+				if value.Value != "" {
+					fmt.Printf("   - Default: %s\n", value.Value)
+				} else {
+					fmt.Printf("   - Required: yes (no default)\n")
+				}
+				if value.Description != "" {
+					fmt.Printf("   - Description: %s\n", value.Description)
+				}
+				fmt.Println()
 			}
-			if envVar.Description != "" {
-				fmt.Printf("   - Description: %s\n", envVar.Description)
-			}
-			fmt.Println()
 		}
 
 		// =============================================================================
-		// Example 6: Validation Examples
-		// =============================================================================
-		fmt.Println("=== Validation Examples ===\n")
-
-		// Invalid name (lowercase) - should be rejected
-		_, err = environment.New(ctx, "github_token", nil) // Should be uppercase
-		if err != nil {
-			fmt.Printf("Correctly rejected invalid name: %v\n", err)
-		}
-
-		// Invalid name (starts with number) - should be rejected
-		_, err = environment.New(ctx, "2FA_TOKEN", nil)
-		if err != nil {
-			fmt.Printf("Correctly rejected name starting with number: %v\n", err)
-		}
-
-		// Invalid name (special characters) - should be rejected
-		_, err = environment.New(ctx, "API-KEY", nil)
-		if err != nil {
-			fmt.Printf("Correctly rejected name with hyphens: %v\n", err)
-		}
-
-		// Empty name - should be rejected
-		_, err = environment.New(ctx, "", &environment.VariableArgs{IsSecret: true})
-		if err != nil {
-			fmt.Printf("Correctly rejected empty name: %v\n\n", err)
-		}
-
-		// =============================================================================
-		// Example 7: Common Use Cases
+		// Common Use Cases
 		// =============================================================================
 		fmt.Println("=== Common Use Cases ===\n")
 
-		// Use Case 1: Database Connection
-		dbHost, _ := environment.New(ctx, "DB_HOST", &environment.VariableArgs{
-			DefaultValue: "localhost",
-			Description:  "Database host address",
+		// Use Case 1: Database Agent
+		dbAgent, err := agent.New(ctx, "database-manager", &agent.AgentArgs{
+			Instructions: "Manage database operations including queries, migrations, and backups.",
+			Description:  "Database management agent",
 		})
-		dbPort, _ := environment.New(ctx, "DB_PORT", &environment.VariableArgs{
-			DefaultValue: "5432",
-			Description:  "Database port",
-		})
-		dbPassword, _ := environment.New(ctx, "DB_PASSWORD", &environment.VariableArgs{
-			IsSecret:    true,
-			Description: "Database password",
-		})
-		fmt.Println("Database connection variables:")
-		fmt.Printf("  %s, %s, %s\n\n", dbHost, dbPort, dbPassword)
+		if err != nil {
+			return err
+		}
 
-		// Use Case 2: API Integration
-		apiEndpoint, _ := environment.New(ctx, "API_ENDPOINT", &environment.VariableArgs{
-			DefaultValue: "https://api.example.com",
-			Description:  "External API endpoint URL",
-		})
-		apiKey, _ := environment.New(ctx, "API_KEY", &environment.VariableArgs{
-			IsSecret:    true,
-			Description: "API authentication key",
-		})
-		apiTimeout, _ := environment.New(ctx, "API_TIMEOUT", &environment.VariableArgs{
-			DefaultValue: "30",
-			Description:  "API request timeout in seconds",
-		})
-		fmt.Println("API integration variables:")
-		fmt.Printf("  %s, %s, %s\n\n", apiEndpoint, apiKey, apiTimeout)
+		dbAgent.
+			RequireConfig("DB_HOST", "localhost", "Database host address").
+			RequireConfig("DB_PORT", "5432", "Database port").
+			RequireConfig("DB_NAME", "", "Database name (required)").
+			RequireSecret("DB_PASSWORD", "Database password")
 
-		// Use Case 3: Feature Flags
-		featureDebug, _ := environment.New(ctx, "FEATURE_DEBUG", &environment.VariableArgs{
-			DefaultValue: "false",
-			Description:  "Enable debug mode",
+		fmt.Println("Database Agent:")
+		fmt.Printf("  - Config: DB_HOST (default: localhost), DB_PORT (default: 5432), DB_NAME (required)\n")
+		fmt.Printf("  - Secrets: DB_PASSWORD\n\n")
+
+		// Use Case 2: API Integration Agent
+		apiAgent, err := agent.New(ctx, "api-integrator", &agent.AgentArgs{
+			Instructions: "Integrate with external APIs and handle data transformation.",
+			Description:  "External API integration agent",
 		})
-		featureCache, _ := environment.New(ctx, "FEATURE_CACHE", &environment.VariableArgs{
-			DefaultValue: "true",
-			Description:  "Enable caching",
+		if err != nil {
+			return err
+		}
+
+		apiAgent.
+			RequireConfig("API_ENDPOINT", "https://api.example.com", "External API endpoint URL").
+			RequireConfig("API_TIMEOUT", "30", "API request timeout in seconds").
+			RequireSecret("API_KEY", "API authentication key")
+
+		fmt.Println("API Integration Agent:")
+		fmt.Printf("  - Config: API_ENDPOINT, API_TIMEOUT (with defaults)\n")
+		fmt.Printf("  - Secrets: API_KEY\n\n")
+
+		// Use Case 3: Feature Flag Agent
+		featureAgent, err := agent.New(ctx, "feature-manager", &agent.AgentArgs{
+			Instructions: "Manage feature flags and A/B testing configurations.",
+			Description:  "Feature flag management agent",
 		})
-		fmt.Println("Feature flag variables:")
-		fmt.Printf("  %s, %s\n\n", featureDebug, featureCache)
+		if err != nil {
+			return err
+		}
+
+		featureAgent.
+			RequireConfig("FEATURE_DEBUG", "false", "Enable debug mode").
+			RequireConfig("FEATURE_CACHE", "true", "Enable caching").
+			RequireConfig("CACHE_TTL", "3600", "Cache TTL in seconds")
+
+		fmt.Println("Feature Flag Agent:")
+		fmt.Printf("  - Config: FEATURE_DEBUG, FEATURE_CACHE, CACHE_TTL (all with defaults)\n")
+		fmt.Printf("  - Secrets: none\n\n")
 
 		// =============================================================================
 		// Key Concepts Summary
 		// =============================================================================
 		fmt.Println("=== Key Concepts ===\n")
-		fmt.Println("1. Secret vs Configuration:")
-		fmt.Println("   - Secrets (IsSecret=true): Encrypted at rest, redacted in logs")
-		fmt.Println("   - Config (IsSecret=false): Plaintext, visible in audit logs")
+		fmt.Println("1. RequireSecret(name, description):")
+		fmt.Println("   - For sensitive data (API keys, tokens, passwords)")
+		fmt.Println("   - Encrypted at rest, redacted in logs")
+		fmt.Println("   - Always required at runtime")
 		fmt.Println()
-		fmt.Println("2. Required vs Optional:")
-		fmt.Println("   - Required (default): Must be provided at AgentInstance creation")
-		fmt.Println("   - Optional: Set Required=&false or provide DefaultValue")
+		fmt.Println("2. RequireConfig(name, defaultValue, description):")
+		fmt.Println("   - For non-sensitive configuration")
+		fmt.Println("   - With default: optional at runtime")
+		fmt.Println("   - Empty default: required at runtime")
 		fmt.Println()
-		fmt.Println("3. Default Values:")
-		fmt.Println("   - Variables with defaults are automatically optional")
-		fmt.Println("   - Useful for configuration with sensible defaults")
+		fmt.Println("3. Builder Method Pattern:")
+		fmt.Println("   - Methods return *Agent for fluent chaining")
+		fmt.Println("   - All requirements stored in Args.EnvSpec")
+		fmt.Println("   - Thread-safe for concurrent modification")
 		fmt.Println()
-		fmt.Println("4. Variable Names:")
-		fmt.Println("   - Must be uppercase letters, numbers, and underscores")
-		fmt.Println("   - Cannot start with a number")
-		fmt.Println("   - Follow standard environment variable conventions")
-		fmt.Println()
-		fmt.Println("5. MCP Server Configuration:")
-		fmt.Println("   - MCP servers are now standalone resources (McpServer)")
-		fmt.Println("   - Agents reference them using org/slug format (e.g., stigmer/github)")
-		fmt.Println("   - Environment variables for MCP servers are defined in McpServer spec")
+		fmt.Println("4. Runtime Resolution:")
+		fmt.Println("   - Values provided at AgentInstance creation")
+		fmt.Println("   - Secrets resolved just-in-time during execution")
+		fmt.Println("   - Never appear in manifests or logs")
 
-		fmt.Println("\nExample completed successfully!")
+		fmt.Println("\n✅ Example completed successfully!")
 		return nil
 	})
 

@@ -1,0 +1,29 @@
+{
+  "name": "AgentStatus",
+  "description": "AgentStatus contains system-managed state for an Agent resource.",
+  "protoType": "ai.stigmer.agentic.agent.v1.AgentStatus",
+  "protoFile": "apis/ai/stigmer/agentic/agent/v1/status.proto",
+  "fields": [
+    {
+      "name": "Audit",
+      "jsonName": "audit",
+      "protoField": "audit",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceAudit"
+      },
+      "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+      "required": false
+    },
+    {
+      "name": "DefaultInstanceId",
+      "jsonName": "defaultInstanceId",
+      "protoField": "default_instance_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the default agent instance created automatically for this agent.\n Every agent has exactly one default instance that requires no configuration.\n This instance has no environment variables and uses all agent defaults.\n Created automatically when the agent is created.",
+      "required": false
+    }
+  ]
+}

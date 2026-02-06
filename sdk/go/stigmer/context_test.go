@@ -523,8 +523,8 @@ func TestContext_RegisterAgent(t *testing.T) {
 
 	// Create an agent with skill refs using new API
 	ag := &agent.Agent{
-		Name:         "test-agent",
-		Instructions: "Test agent instructions",
+		Name: "test-agent",
+		Args: &agent.AgentArgs{Instructions: "Test agent instructions"},
 	}
 	ag.AddSkill("stigmer/code-analysis")
 
@@ -546,8 +546,8 @@ func TestContext_RegisterAgent_MultipleSkillRefs(t *testing.T) {
 
 	// Create an agent with multiple skill refs using new API
 	ag := &agent.Agent{
-		Name:         "test-agent",
-		Instructions: "Test agent instructions",
+		Name: "test-agent",
+		Args: &agent.AgentArgs{Instructions: "Test agent instructions"},
 	}
 	ag.AddSkills(
 		"stigmer/skill1",
@@ -564,8 +564,8 @@ func TestContext_RegisterAgent_MultipleSkillRefs(t *testing.T) {
 	}
 
 	// Verify skill refs are preserved
-	if len(agents[0].SkillRefs) != 3 {
-		t.Errorf("Expected 3 skill refs, got %d", len(agents[0].SkillRefs))
+	if len(agents[0].Args.SkillRefs) != 3 {
+		t.Errorf("Expected 3 skill refs, got %d", len(agents[0].Args.SkillRefs))
 	}
 }
 
@@ -602,8 +602,8 @@ func TestContext_Dependencies(t *testing.T) {
 
 	// Create agent using new API
 	ag := &agent.Agent{
-		Name:         "test-agent",
-		Instructions: "Test instructions",
+		Name: "test-agent",
+		Args: &agent.AgentArgs{Instructions: "Test instructions"},
 	}
 	ag.AddSkill("stigmer/skill1")
 	ctx.RegisterAgent(ag)
@@ -643,7 +643,7 @@ func TestResourceIDGeneration(t *testing.T) {
 			name: "workflow ID",
 			genFunc: func() string {
 				return workflowResourceID(&workflow.Workflow{
-					Document: workflow.Document{Name: "my-workflow"},
+					Name: "my-workflow",
 				})
 			},
 			expected: "workflow:my-workflow",
@@ -716,14 +716,14 @@ func TestContext_AgentRegistrationIntegration(t *testing.T) {
 
 	// Create agents with skill refs using new API (SDK references skills, doesn't create them)
 	agent1 := &agent.Agent{
-		Name:         "code-reviewer",
-		Instructions: "Review code quality",
+		Name: "code-reviewer",
+		Args: &agent.AgentArgs{Instructions: "Review code quality"},
 	}
 	agent1.AddSkill("stigmer/coding-guidelines")
 
 	agent2 := &agent.Agent{
-		Name:         "sec-reviewer",
-		Instructions: "Review security",
+		Name: "sec-reviewer",
+		Args: &agent.AgentArgs{Instructions: "Review security"},
 	}
 	agent2.AddSkill("stigmer/security-best-practices")
 
@@ -737,10 +737,10 @@ func TestContext_AgentRegistrationIntegration(t *testing.T) {
 	}
 
 	// Verify skill refs are preserved
-	if len(agents[0].SkillRefs) != 1 {
-		t.Errorf("agent1 should have 1 skill ref, got %d", len(agents[0].SkillRefs))
+	if len(agents[0].Args.SkillRefs) != 1 {
+		t.Errorf("agent1 should have 1 skill ref, got %d", len(agents[0].Args.SkillRefs))
 	}
-	if len(agents[1].SkillRefs) != 1 {
-		t.Errorf("agent2 should have 1 skill ref, got %d", len(agents[1].SkillRefs))
+	if len(agents[1].Args.SkillRefs) != 1 {
+		t.Errorf("agent2 should have 1 skill ref, got %d", len(agents[1].Args.SkillRefs))
 	}
 }

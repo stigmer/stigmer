@@ -11,7 +11,6 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
 
@@ -27,7 +26,7 @@ import (
 //   - Typed context variables (agentName, iconURL, org)
 //   - Compile-time checked references (no string typos)
 //   - IDE autocomplete for context variables
-//   - Struct-args pattern for environment variables
+//   - RequireSecret/RequireConfig for environment requirements
 //   - MCP server references using org/slug format
 //   - Automatic synthesis on completion
 func main() {
@@ -40,15 +39,6 @@ func main() {
 
 		// Type-safe string concatenation for icon URL
 		iconURL := baseIconURL.Concat("/icons/code-reviewer.png")
-
-		// Create environment variable using struct-args pattern
-		githubToken, err := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
-			IsSecret:    true,
-			Description: "GitHub personal access token for code review",
-		})
-		if err != nil {
-			return err
-		}
 
 		// Create the agent with typed context values
 		// Use .Value() to convert typed references to strings
@@ -73,15 +63,21 @@ func main() {
 		// Add MCP server reference using org/slug format
 		ag.UseMCP("stigmer/github", "create_pr", "search_code", "get_file")
 
-		// Add environment variable
-		ag.AddEnvironmentVariable(*githubToken)
+		// Declare environment requirements using builder methods
+		ag.RequireSecret("GITHUB_TOKEN", "GitHub personal access token for code review")
+
+		// Count env vars from EnvSpec
+		envVarCount := 0
+		if ag.Args.EnvSpec != nil && ag.Args.EnvSpec.Data != nil {
+			envVarCount = len(ag.Args.EnvSpec.Data)
+		}
 
 		log.Printf("Created agent: %s", ag)
 		log.Printf("  - Organization: %s", ag.Org)
-		log.Printf("  - Icon URL: %s", ag.IconURL)
-		log.Printf("  - Skill Refs: %d", len(ag.SkillRefs))
-		log.Printf("  - MCP Server Usages: %d", len(ag.McpServerUsages))
-		log.Printf("  - Environment Variables: %d", len(ag.EnvironmentVariables))
+		log.Printf("  - Icon URL: %s", ag.Args.IconUrl)
+		log.Printf("  - Skill Refs: %d", len(ag.Args.SkillRefs))
+		log.Printf("  - MCP Server Usages: %d", len(ag.Args.McpServerUsages))
+		log.Printf("  - Environment Requirements: %d", envVarCount)
 		log.Println("Agent will be synthesized automatically on completion")
 		return nil
 	})

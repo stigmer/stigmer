@@ -11,7 +11,6 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 )
 
 // TestExample01_BasicAgent tests the basic agent example
@@ -191,31 +190,22 @@ func TestExample03_AgentWithMCPServers(t *testing.T) {
 			t.Error("Agent should have MCP server usages")
 		}
 
-		// Check for different scopes
-		hasPlatform := false
-		hasOrg := false
-		hasPersonal := false
-
+		// Verify MCP server references have valid org and slug
+		// Note: Scope field was removed from ApiResourceReference - org field now
+		// implicitly indicates ownership (e.g., "stigmer" for platform resources)
+		validRefs := 0
 		for _, usage := range agent.Spec.McpServerUsages {
-			if usage.McpServerRef == nil {
-				continue
-			}
-			switch usage.McpServerRef.Scope {
-			case apiresource.ApiResourceOwnerScope_platform:
-				hasPlatform = true
-			case apiresource.ApiResourceOwnerScope_organization:
-				hasOrg = true
-			case apiresource.ApiResourceOwnerScope_identity_account:
-				hasPersonal = true
+			if usage.McpServerRef != nil && usage.McpServerRef.Org != "" && usage.McpServerRef.Slug != "" {
+				validRefs++
 			}
 		}
 
-		if !hasPlatform {
-			t.Error("Agent should have at least one platform MCP server reference")
+		if validRefs == 0 {
+			t.Error("Agent should have at least one valid MCP server reference with org and slug")
 		}
 
-		t.Logf("✅ Agent with %d MCP server usages created (platform: %v, org: %v, personal: %v)",
-			len(agent.Spec.McpServerUsages), hasPlatform, hasOrg, hasPersonal)
+		t.Logf("✅ Agent with %d MCP server usages created (%d with valid org/slug refs)",
+			len(agent.Spec.McpServerUsages), validRefs)
 	})
 }
 
@@ -313,7 +303,7 @@ func TestExample08_WorkflowWithConditionals(t *testing.T) {
 		// Verify workflow has switch task
 		hasSwitch := false
 		for _, task := range wf.Spec.Tasks {
-			if task.Kind == apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SWITCH {
+			if task.Kind == workflowv1.WorkflowTaskKind_switch_case {
 				hasSwitch = true
 				break
 			}
@@ -343,7 +333,7 @@ func TestExample09_WorkflowWithLoops(t *testing.T) {
 		// Verify workflow has for task
 		hasFor := false
 		for _, task := range wf.Spec.Tasks {
-			if task.Kind == apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_FOR {
+			if task.Kind == workflowv1.WorkflowTaskKind_for_each {
 				hasFor = true
 				break
 			}
@@ -373,7 +363,7 @@ func TestExample10_WorkflowWithErrorHandling(t *testing.T) {
 		// Verify workflow has try task
 		hasTry := false
 		for _, task := range wf.Spec.Tasks {
-			if task.Kind == apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_TRY {
+			if task.Kind == workflowv1.WorkflowTaskKind_try_catch {
 				hasTry = true
 				break
 			}
@@ -403,7 +393,7 @@ func TestExample11_WorkflowWithParallelExecution(t *testing.T) {
 		// Verify workflow has fork task
 		hasFork := false
 		for _, task := range wf.Spec.Tasks {
-			if task.Kind == apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_FORK {
+			if task.Kind == workflowv1.WorkflowTaskKind_fork {
 				hasFork = true
 				break
 			}
@@ -469,7 +459,7 @@ func TestExample15_WorkflowCallingSimpleAgent(t *testing.T) {
 		// Verify workflow has agent call task
 		hasAgentCall := false
 		for _, task := range wf.Spec.Tasks {
-			if task.Kind == apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL {
+			if task.Kind == workflowv1.WorkflowTaskKind_agent_call {
 				hasAgentCall = true
 				break
 			}
@@ -499,7 +489,7 @@ func TestExample16_WorkflowCallingAgentBySlug(t *testing.T) {
 		// Verify workflow has agent call tasks
 		agentCallCount := 0
 		for _, task := range wf.Spec.Tasks {
-			if task.Kind == apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL {
+			if task.Kind == workflowv1.WorkflowTaskKind_agent_call {
 				agentCallCount++
 			}
 		}
@@ -532,7 +522,7 @@ func TestExample17_WorkflowAgentWithRuntimeSecrets(t *testing.T) {
 		// Verify workflow has agent call task (calling agent by slug)
 		hasAgentCall := false
 		for _, task := range wf.Spec.Tasks {
-			if task.Kind == apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL {
+			if task.Kind == workflowv1.WorkflowTaskKind_agent_call {
 				hasAgentCall = true
 				break
 			}
@@ -563,7 +553,7 @@ func TestExample18_WorkflowMultiAgentOrchestration(t *testing.T) {
 		// Count agent call tasks (should have multiple)
 		agentCallCount := 0
 		for _, task := range wf.Spec.Tasks {
-			if task.Kind == apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL {
+			if task.Kind == workflowv1.WorkflowTaskKind_agent_call {
 				agentCallCount++
 			}
 		}
@@ -602,7 +592,7 @@ func TestExample19_WorkflowAgentExecutionConfig(t *testing.T) {
 		// Verify workflow has agent call tasks with execution config
 		hasAgentCall := false
 		for _, task := range wf.Spec.Tasks {
-			if task.Kind == apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_AGENT_CALL {
+			if task.Kind == workflowv1.WorkflowTaskKind_agent_call {
 				hasAgentCall = true
 				break
 			}

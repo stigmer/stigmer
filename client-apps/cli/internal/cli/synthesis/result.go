@@ -13,13 +13,15 @@ import (
 // The CLI reads these files and constructs a Result for deployment.
 //
 // Resource Types:
-//   - Skills: Independent capabilities (no dependencies)
+//   - SkillSynths: Skill synthesis inputs (CLI processes these to create skill artifacts)
 //   - MCP Servers: External tool integrations (no dependencies)
 //   - Agents: May depend on skills and MCP servers
 //   - Workflows: May depend on agents
 type Result struct {
-	// Skills are inline skill definitions (skill-0.pb, skill-1.pb, ...)
-	Skills []*skillv1.Skill
+	// SkillSynths are skill synthesis inputs (skill-0.pb, skill-1.pb, ...)
+	// These contain source location (local dir or git) and tag.
+	// CLI processes these to create artifact ZIPs and push to backend.
+	SkillSynths []*skillv1.SkillSynth
 
 	// McpServers are MCP server definitions (mcpserver-0.pb, mcpserver-1.pb, ...)
 	McpServers []*mcpserverv1.McpServer
@@ -41,12 +43,12 @@ type Result struct {
 
 // TotalResources returns the total count of all resources.
 func (r *Result) TotalResources() int {
-	return len(r.Skills) + len(r.McpServers) + len(r.Agents) + len(r.Workflows)
+	return len(r.SkillSynths) + len(r.McpServers) + len(r.Agents) + len(r.Workflows)
 }
 
-// SkillCount returns the number of skills.
-func (r *Result) SkillCount() int {
-	return len(r.Skills)
+// SkillSynthCount returns the number of skill synths.
+func (r *Result) SkillSynthCount() int {
+	return len(r.SkillSynths)
 }
 
 // McpServerCount returns the number of MCP servers.

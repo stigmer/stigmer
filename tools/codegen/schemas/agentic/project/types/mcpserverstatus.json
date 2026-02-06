@@ -1,0 +1,39 @@
+{
+  "name": "McpServerStatus",
+  "description": "McpServerStatus represents the system-managed state of an MCP server definition.\n This status tracks the validity of the definition itself, NOT runtime health.\n\n IMPORTANT: Tool discovery and health checks happen at RUNTIME (in agent-runner),\n not here. This is because:\n 1. Tool discovery requires valid credentials (e.g., GITHUB_TOKEN)\n 2. The MCP server must be running to query its tools\n 3. Credentials come from AgentInstance's environment, not the McpServer definition\n\n This status only tracks whether the McpServer definition is structurally valid\n and can be used by agents.",
+  "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServerStatus",
+  "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+  "fields": [
+    {
+      "name": "ValidationState",
+      "jsonName": "validationState",
+      "protoField": "validation_state",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Validation state of the MCP server definition.\n Indicates whether the definition passed structural validation.",
+      "required": false
+    },
+    {
+      "name": "ValidationMessage",
+      "jsonName": "validationMessage",
+      "protoField": "validation_message",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable validation message.\n Populated when validation_state is INVALID to explain what's wrong.\n Empty when validation_state is VALID or UNSPECIFIED.\n Examples:\n - \"server_type is required: must specify stdio, http, or docker\"\n - \"http.url is not a valid URL: missing scheme\"\n - \"docker.image is required\"",
+      "required": false
+    },
+    {
+      "name": "Audit",
+      "jsonName": "audit",
+      "protoField": "audit",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceAudit"
+      },
+      "description": "Standard audit information tracking creation and modification.\n Field 99 follows Stigmer convention for audit placement in status messages.",
+      "required": false
+    }
+  ]
+}

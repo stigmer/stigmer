@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.skill.v1;
 
-import "ai/stigmer/agentic/skill/v1/spec.proto";
+import "ai/stigmer/agentic/skill/v1/status.proto";
 import "buf/validate/validate.proto";
 
 // SkillId wraps a skill identifier.
@@ -37,10 +37,13 @@ message PushSkillRequest {
   // Examples: "stable", "v1.0", "latest"
   string tag = 3 [(buf.validate.field).string.pattern = "^$|^[a-zA-Z0-9._-]+$"];
 
-  // Source information tracking where the skill artifacts originated from.
-  // For local pushes, CLI auto-detects git information if available.
-  // For remote pushes, this contains the git URL, ref, and subdir.
-  SkillSource source = 4;
+  // Git provenance for this skill version. Optional.
+  // Populated by CLI during push:
+  // - For local pushes: auto-detected if directory is within a git repository
+  // - For git pushes: resolved from user-provided URL/ref
+  // Absent when pushed from a non-git directory.
+  // This is stored in SkillStatus.git_provenance for traceability.
+  GitProvenance git_provenance = 4;
 
   // Reserved field numbers from previous schema versions.
   reserved 5;

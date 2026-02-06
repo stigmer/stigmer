@@ -1,0 +1,64 @@
+{
+  "name": "McpServer",
+  "description": "McpServer represents a reusable MCP (Model Context Protocol) server configuration.\n MCP servers provide tools and capabilities to AI agents via a standardized protocol.\n\n Unlike inline McpServerDefinition in AgentSpec, McpServer is a first-class resource that:\n - Can be referenced by multiple agents (reusability)\n - Has proper access control via FGA (authorization)\n - Can be discovered in the marketplace (discoverability)\n - Belongs to an organization with PUBLIC/PRIVATE visibility\n\n Lifecycle:\n 1. Create McpServer definition (this resource) with server type and env requirements\n 2. Reference in Agent via mcp_server_usages\n 3. Create AgentInstance with environment_ref providing actual secrets\n 4. Agent runner resolves McpServer, gets secrets from Environment, starts server\n\n Example YAML:\n   apiVersion: agentic.stigmer.ai/v1\n   kind: McpServer\n   metadata:\n     name: github\n     scope: platform\n   spec:\n     description: \"GitHub MCP server for repository operations\"\n     stdio:\n       command: npx\n       args: [\"-y\", \"@modelcontextprotocol/server-github\"]\n     env_spec:\n       data:\n         GITHUB_TOKEN:\n           is_secret: true\n           description: \"GitHub personal access token\"",
+  "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+  "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/api.proto",
+  "fields": [
+    {
+      "name": "ApiVersion",
+      "jsonName": "apiVersion",
+      "protoField": "api_version",
+      "type": {
+        "kind": "string"
+      },
+      "description": "API version for this resource type.\n Must be exactly \"agentic.stigmer.ai/v1\".",
+      "required": false
+    },
+    {
+      "name": "Kind",
+      "jsonName": "kind",
+      "protoField": "kind",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Resource kind identifier.\n Must be exactly \"McpServer\".",
+      "required": false
+    },
+    {
+      "name": "Metadata",
+      "jsonName": "metadata",
+      "protoField": "metadata",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceMetadata"
+      },
+      "description": "Standard resource metadata including name, id, org, visibility, labels, and tags.\n\n Key fields:\n - name: Human-readable name (e.g., \"GitHub MCP Server\")\n - slug: URL-friendly identifier (e.g., \"github\")\n - org: Organization that owns this MCP server (required)\n - visibility: Access control (PUBLIC or PRIVATE)\n\n Visibility semantics:\n - PUBLIC: Marketplace server, discoverable by all users\n - PRIVATE: Only accessible to organization members\n\n Reference format: \"org/slug\" (e.g., \"stigmer/github\", \"acme/internal-tools\")",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Spec",
+      "jsonName": "spec",
+      "protoField": "spec",
+      "type": {
+        "kind": "message",
+        "messageType": "McpServerSpec"
+      },
+      "description": "User-provided MCP server configuration (desired state).\n Defines the server type, connection details, and environment requirements.",
+      "required": false
+    },
+    {
+      "name": "Status",
+      "jsonName": "status",
+      "protoField": "status",
+      "type": {
+        "kind": "message",
+        "messageType": "McpServerStatus"
+      },
+      "description": "System-managed MCP server state (observed state).\n Contains validation status and audit information.\n This is populated by the system, not by users.",
+      "required": false
+    }
+  ]
+}

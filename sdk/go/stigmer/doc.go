@@ -9,21 +9,16 @@
 // Create an agent with typed context:
 //
 //	err := stigmer.Run(func(ctx *stigmer.Context) error {
-//	    // Context for shared configuration
-//	    orgName := ctx.SetString("org", "my-org")
-//	    iconBase := ctx.SetString("iconBase", "https://cdn.example.com")
-//	    
-//	    // Create agent
-//	    ag, err := agent.New(ctx,
-//	        agent.WithName("code-reviewer"),
-//	        agent.WithInstructions("Review code and suggest improvements"),
-//	        agent.WithOrg(orgName),
-//	        agent.WithIconURL(iconBase.Concat("/reviewer.png")),
-//	    )
+//	    // Create agent with struct-based args
+//	    ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+//	        Instructions: "Review code and suggest improvements",
+//	        Description:  "AI code reviewer",
+//	        IconUrl:      "https://cdn.example.com/reviewer.png",
+//	    })
 //	    if err != nil {
 //	        return err
 //	    }
-//	    
+//
 //	    // Agent automatically synthesized on return
 //	    return nil
 //	})
@@ -35,24 +30,22 @@
 //	err := stigmer.Run(func(ctx *stigmer.Context) error {
 //	    // Context ONLY for configuration (not workflow data flow)
 //	    apiBase := ctx.SetString("apiBase", "https://api.example.com")
-//	    orgName := ctx.SetString("org", "my-org")
-//	    
-//	    // Create workflow
-//	    wf, _ := workflow.New(ctx,
-//	        workflow.WithName("data-fetch"),
-//	        workflow.WithOrg(orgName),
-//	    )
-//	    
+//
+//	    // Create workflow with struct-based args
+//	    wf, _ := workflow.New(ctx, "data-processing/data-fetch", &workflow.WorkflowArgs{
+//	        Description: "Fetch and process data",
+//	    })
+//
 //	    // Task 1: HTTP GET (clean, one-liner!)
 //	    endpoint := apiBase.Concat("/posts/1")
 //	    fetchTask := wf.HttpGet("fetch", endpoint)
-//	    
+//
 //	    // Task 2: Process with direct references (implicit dependencies!)
 //	    processTask := wf.SetVars("process",
 //	        "title", fetchTask.Field("title"),  // From fetchTask - clear!
 //	        "body", fetchTask.Field("body"),
 //	    )
-//	    
+//
 //	    // Dependencies are automatic - no manual wiring!
 //	    return nil
 //	})
@@ -67,7 +60,7 @@
 //
 //	apiBase := ctx.SetString("apiBase", "https://api.example.com")  // Config
 //	timeout := ctx.SetInt("timeout", 30)                            // Config
-//	
+//
 //	// Use in workflow metadata or task inputs
 //	wf.WithOrg(ctx.SetString("org", "my-org"))
 //	endpoint := apiBase.Concat("/users")
@@ -97,7 +90,7 @@
 // references - no manual ThenRef() or DependsOn() needed:
 //
 //	userTask := wf.HttpGet("getUser", userEndpoint)
-//	postsTask := wf.HttpGet("getPosts", 
+//	postsTask := wf.HttpGet("getPosts",
 //	    userTask.Field("id").Concat("/posts"),  // References userTask
 //	)
 //	// Dependency chain: userTask → postsTask (automatic!)
@@ -128,11 +121,11 @@
 //
 //   - stigmer: Core orchestration and context management
 //   - workflow: Workflow builder with Pulumi-aligned task APIs
-//   - agent: Agent builder with typed context support
-//   - skill: Skill reference configuration
+//   - agent: Agent builder (includes SubAgent)
+//   - skill: Skill definitions (content artifacts)
 //   - mcpserver: MCP server definitions (stdio, HTTP, Docker)
-//   - subagent: Sub-agent configuration (inline and referenced)
-//   - environment: Environment variable configuration
+//   - environment: Environment resource (first-class API resource)
+//   - commons/ref: Resource reference factories
 //
 // # Design Patterns
 //
@@ -152,7 +145,7 @@
 //	// ✅ Good: Configuration
 //	apiBase := ctx.SetString("apiBase", "https://api.example.com")
 //	orgName := ctx.SetString("org", "my-org")
-//	
+//
 //	// ❌ Bad: Don't use context for workflow internal state
 //	// Internal state belongs in tasks, not context
 //
@@ -165,7 +158,7 @@
 //	processTask := wf.SetVars("process",
 //	    "title", fetchTask.Field("title"),  // From fetchTask!
 //	)
-//	
+//
 //	// ❌ Bad: Magic string reference (OLD API)
 //	// workflow.FieldRef("title")  // Where does "title" come from???
 //
@@ -178,7 +171,7 @@
 //	    workflow.Header("Content-Type", "application/json"),
 //	    workflow.Timeout(30),
 //	)
-//	
+//
 //	// ❌ Bad: Verbose (OLD API)
 //	// task := workflow.HttpCallTask("fetch",
 //	//     workflow.WithHTTPGet(),

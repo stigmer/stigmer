@@ -93,13 +93,13 @@ Use these tools to help with infrastructure automation, deployments, and DevOps 
 		fmt.Println("=== Agent Configuration ===")
 		fmt.Printf("Name: %s\n", a.Name)
 		fmt.Printf("Org: %s\n", a.Org)
-		fmt.Printf("Instructions: %s...\n", a.Instructions[:80])
-		fmt.Printf("Skill Refs: %d\n", len(a.SkillRefs))
-		fmt.Printf("MCP Server Usages: %d\n\n", len(a.McpServerUsages))
+		fmt.Printf("Instructions: %s...\n", a.Args.Instructions[:80])
+		fmt.Printf("Skill Refs: %d\n", len(a.Args.SkillRefs))
+		fmt.Printf("MCP Server Usages: %d\n\n", len(a.Args.McpServerUsages))
 
 		// Display MCP server usages
 		fmt.Println("=== MCP Server Usages ===")
-		for i, usage := range a.McpServerUsages {
+		for i, usage := range a.Args.McpServerUsages {
 			ref := usage.McpServerRef
 			fmt.Printf("%d. %s/%s\n", i+1, ref.Org, ref.Slug)
 			if len(usage.EnabledTools) > 0 {

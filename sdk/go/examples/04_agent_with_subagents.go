@@ -7,10 +7,11 @@
 // restricted access to the parent's MCP servers via McpAccess grants.
 //
 // Key concepts:
+//   - Sub-agents are stored in Args.SubAgents (single source of truth)
 //   - Sub-agents can only access MCP servers that the parent has declared
 //   - Sub-agent tools must be a subset of parent's enabled tools (can restrict, not expand)
 //   - Sub-agents can have their own skill references independent of parent
-//   - All references use the org/slug format
+//   - Use NewSubAgent() for simple cases, BuildSubAgent() for complex configurations
 //
 // Run: go run examples/04_agent_with_subagents.go
 package main
@@ -20,8 +21,8 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
+	"github.com/stigmer/stigmer/sdk/go/ref"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
-	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
 func main() {
@@ -71,17 +72,8 @@ func main() {
 	}
 }
 
-// Example 1: Simple sub-agent
+// Example 1: Simple sub-agent using NewSubAgent helper
 func createSimpleAgentWithSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create sub-agent using struct args pattern
-	securityScanner, err := subagent.New("security-scanner", &subagent.Args{
-		Instructions: "Scan code for security vulnerabilities and provide detailed security reports",
-		Description:  "Security-focused code analyzer",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sub-agent: %w", err)
-	}
-
 	ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
 		Instructions: "Review code changes and coordinate with specialized sub-agents for deeper analysis",
 		Description:  "Main code review orchestrator",
@@ -90,46 +82,19 @@ func createSimpleAgentWithSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
 
-	// Add sub-agent using builder method
+	// Create and add sub-agent using NewSubAgent helper
+	securityScanner := agent.NewSubAgentWithDescription(
+		"security-scanner",
+		"Scan code for security vulnerabilities and provide detailed security reports",
+		"Security-focused code analyzer",
+	)
 	ag.AddSubAgent(securityScanner)
+
 	return ag, nil
 }
 
 // Example 2: Complex agent with multiple sub-agents
 func createComplexAgentWithMultipleSubAgents(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create multiple sub-agents
-	codeQualityChecker, err := subagent.New("code-quality-checker", &subagent.Args{
-		Instructions: "Run linting, formatting checks, and code quality metrics",
-		Description:  "Code quality analyzer",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create code quality checker: %w", err)
-	}
-
-	testRunner, err := subagent.New("test-runner", &subagent.Args{
-		Instructions: "Execute all test suites and report results",
-		Description:  "Test execution coordinator",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create test runner: %w", err)
-	}
-
-	securityScanner, err := subagent.New("security-scanner", &subagent.Args{
-		Instructions: "Scan for security vulnerabilities in code and dependencies",
-		Description:  "Security vulnerability scanner",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create security scanner: %w", err)
-	}
-
-	deployer, err := subagent.New("deployer", &subagent.Args{
-		Instructions: "Handle deployment tasks after all checks pass",
-		Description:  "Deployment automation agent",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create deployer: %w", err)
-	}
-
 	ag, err := agent.New(ctx, "ci-cd-orchestrator", &agent.AgentArgs{
 		Instructions: "Manage the entire CI/CD pipeline by delegating to specialized agents",
 		Description:  "Complete CI/CD pipeline orchestrator",
@@ -138,14 +103,35 @@ func createComplexAgentWithMultipleSubAgents(ctx *stigmer.Context) (*agent.Agent
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
 
-	// Add all sub-agents using builder method
-	ag.AddSubAgents(codeQualityChecker, testRunner, securityScanner, deployer)
+	// Create multiple sub-agents using NewSubAgentWithDescription
+	ag.AddSubAgents(
+		agent.NewSubAgentWithDescription(
+			"code-quality-checker",
+			"Run linting, formatting checks, and code quality metrics",
+			"Code quality analyzer",
+		),
+		agent.NewSubAgentWithDescription(
+			"test-runner",
+			"Execute all test suites and report results",
+			"Test execution coordinator",
+		),
+		agent.NewSubAgentWithDescription(
+			"security-scanner",
+			"Scan for security vulnerabilities in code and dependencies",
+			"Security vulnerability scanner",
+		),
+		agent.NewSubAgentWithDescription(
+			"deployer",
+			"Handle deployment tasks after all checks pass",
+			"Deployment automation agent",
+		),
+	)
+
 	return ag, nil
 }
 
-// Example 3: Sub-agent with MCP access grants
+// Example 3: Sub-agent with MCP access grants using BuildSubAgent
 func createAgentWithMCPSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create agent that references MCP servers
 	ag, err := agent.New(ctx, "multi-repo-manager", &agent.AgentArgs{
 		Instructions: "Manage repositories across multiple platforms",
 		Description:  "Multi-platform repository manager",
@@ -154,56 +140,34 @@ func createAgentWithMCPSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
 
-	// Add MCP server references to the parent agent using new API
+	// Add MCP server references to the parent agent
 	ag.UseMCP("stigmer/github")
 	ag.UseMCP("stigmer/gitlab")
 
-	// Create sub-agents that have access to parent's MCP servers
-	githubSpecialist, err := subagent.New("github-specialist", &subagent.Args{
-		Instructions: "Handle all GitHub-specific operations",
-		Description:  "GitHub operations specialist",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create github specialist: %w", err)
-	}
-	// Grant access to github MCP server (inherits all tools from parent)
-	githubSpecialist.GrantMcpAccess("github")
+	// Create sub-agents with MCP access using BuildSubAgent
+	githubSpecialist := agent.BuildSubAgent(
+		"github-specialist",
+		"Handle all GitHub-specific operations",
+	).
+		Description("GitHub operations specialist").
+		GrantMcpAccess("github"). // Inherits all tools from parent
+		Build()
 
-	crossPlatformSync, err := subagent.New("cross-platform-sync", &subagent.Args{
-		Instructions: "Sync changes across GitHub and GitLab",
-		Description:  "Cross-platform synchronization",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create cross-platform sync: %w", err)
-	}
-	// Grant access to both MCP servers
-	crossPlatformSync.GrantMcpAccess("github").GrantMcpAccess("gitlab")
+	crossPlatformSync := agent.BuildSubAgent(
+		"cross-platform-sync",
+		"Sync changes across GitHub and GitLab",
+	).
+		Description("Cross-platform synchronization").
+		GrantMcpAccess("github").
+		GrantMcpAccess("gitlab").
+		Build()
 
-	// Add sub-agents
 	ag.AddSubAgents(githubSpecialist, crossPlatformSync)
 	return ag, nil
 }
 
-// Example 4: Sub-agent with skills
+// Example 4: Sub-agent with skills using BuildSubAgent
 func createAgentWithSkilledSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create sub-agent with skill references
-	codingExpert, err := subagent.New("coding-expert", &subagent.Args{
-		Instructions: "Provide coding guidance using best practices and internal documentation",
-		Description:  "Coding expert with knowledge base",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create coding expert: %w", err)
-	}
-
-	// Add skills to the sub-agent using new org/slug format
-	// Note: SubAgents require explicit org/slug (no slug-only references)
-	codingExpert.AddSkills(
-		"stigmer/coding-best-practices",
-		"stigmer/design-patterns",
-		"my-org/internal-apis",
-		"my-org/architecture-guidelines",
-	)
-
 	ag, err := agent.New(ctx, "development-assistant", &agent.AgentArgs{
 		Instructions: "Assist with software development tasks by leveraging specialized knowledge",
 		Description:  "Intelligent development assistant",
@@ -212,14 +176,24 @@ func createAgentWithSkilledSubAgent(ctx *stigmer.Context) (*agent.Agent, error) 
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
 
-	// Add sub-agent using builder method
+	// Create sub-agent with skills using BuildSubAgent
+	codingExpert := agent.BuildSubAgent(
+		"coding-expert",
+		"Provide coding guidance using best practices and internal documentation",
+	).
+		Description("Coding expert with knowledge base").
+		AddSkillRef(ref.Skill("stigmer", "coding-best-practices")).
+		AddSkillRef(ref.Skill("stigmer", "design-patterns")).
+		AddSkillRef(ref.Skill("my-org", "internal-apis")).
+		AddSkillRef(ref.Skill("my-org", "architecture-guidelines")).
+		Build()
+
 	ag.AddSubAgent(codingExpert)
 	return ag, nil
 }
 
 // Example 5: Sub-agent with restricted tool access
 func createAgentWithSelectiveSubAgent(ctx *stigmer.Context) (*agent.Agent, error) {
-	// Create agent with MCP server reference
 	ag, err := agent.New(ctx, "selective-github-bot", &agent.AgentArgs{
 		Instructions: "Manage GitHub operations with specialized sub-agents",
 		Description:  "GitHub bot with selective tool access",
@@ -230,34 +204,28 @@ func createAgentWithSelectiveSubAgent(ctx *stigmer.Context) (*agent.Agent, error
 
 	// Parent agent has access to all GitHub tools
 	ag.UseMCP("stigmer/github",
-		// Parent enables all these tools
 		"create_issue", "update_issue", "list_issues",
 		"list_pull_requests", "review_pull_request", "comment_on_pr",
 		"create_repository", "delete_repository",
 	)
 
 	// Create sub-agents with restricted tool access
-	issueManager, err := subagent.New("issue-manager", &subagent.Args{
-		Instructions: "Manage GitHub issues only, cannot access other GitHub features",
-		Description:  "Issue management specialist",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create issue manager: %w", err)
-	}
-	// Grant access with restricted tools (subset of parent's tools)
-	issueManager.GrantMcpAccess("github", "create_issue", "update_issue", "list_issues")
+	issueManager := agent.BuildSubAgent(
+		"issue-manager",
+		"Manage GitHub issues only, cannot access other GitHub features",
+	).
+		Description("Issue management specialist").
+		GrantMcpAccess("github", "create_issue", "update_issue", "list_issues"). // Restricted tools
+		Build()
 
-	prReviewer, err := subagent.New("pr-reviewer", &subagent.Args{
-		Instructions: "Review pull requests only, cannot modify issues or repositories",
-		Description:  "Pull request reviewer",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create PR reviewer: %w", err)
-	}
-	// Grant access with different restricted tools
-	prReviewer.GrantMcpAccess("github", "list_pull_requests", "review_pull_request", "comment_on_pr")
+	prReviewer := agent.BuildSubAgent(
+		"pr-reviewer",
+		"Review pull requests only, cannot modify issues or repositories",
+	).
+		Description("Pull request reviewer").
+		GrantMcpAccess("github", "list_pull_requests", "review_pull_request", "comment_on_pr"). // Different restricted tools
+		Build()
 
-	// Add sub-agents
 	ag.AddSubAgents(issueManager, prReviewer)
 	return ag, nil
 }
@@ -267,15 +235,15 @@ func printAgent(title string, ag *agent.Agent) {
 	fmt.Printf("\n%s\n", title)
 	fmt.Println("=" + string(make([]byte, len(title))))
 	fmt.Printf("Agent Name: %s\n", ag.Name)
-	fmt.Printf("Instructions: %s\n", ag.Instructions)
-	fmt.Printf("MCP Server Usages: %d\n", len(ag.McpServerUsages))
-	fmt.Printf("Sub-Agents: %d\n", len(ag.SubAgents))
+	fmt.Printf("Instructions: %s\n", ag.Args.Instructions)
+	fmt.Printf("MCP Server Usages: %d\n", len(ag.Args.McpServerUsages))
+	fmt.Printf("Sub-Agents: %d\n", len(ag.Args.SubAgents))
 
-	for i, sub := range ag.SubAgents {
-		fmt.Printf("  [%d] %s: %s\n", i+1, sub.Name(), sub.Description())
-		if len(sub.McpAccess()) > 0 {
+	for i, sub := range ag.Args.SubAgents {
+		fmt.Printf("  [%d] %s: %s\n", i+1, sub.Name, sub.Description)
+		if len(sub.McpAccess) > 0 {
 			fmt.Printf("      MCP Access: ")
-			for _, access := range sub.McpAccess() {
+			for _, access := range sub.McpAccess {
 				if len(access.EnabledTools) > 0 {
 					fmt.Printf("%s (tools: %v) ", access.McpServer, access.EnabledTools)
 				} else {
@@ -284,8 +252,8 @@ func printAgent(title string, ag *agent.Agent) {
 			}
 			fmt.Println()
 		}
-		if len(sub.SkillRefs()) > 0 {
-			fmt.Printf("      Skills: %d references\n", len(sub.SkillRefs()))
+		if len(sub.SkillRefs) > 0 {
+			fmt.Printf("      Skills: %d references\n", len(sub.SkillRefs))
 		}
 	}
 

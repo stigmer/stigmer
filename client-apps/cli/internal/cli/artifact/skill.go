@@ -192,8 +192,8 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 		cliprint.PrintInfo("Version hash: %s", hashHex[:16]+"...") // Show first 16 chars
 	}
 
-	// Step 5: Collect source information (git detection)
-	source := collectLocalSource(opts.Directory, opts.Quiet)
+	// Step 5: Collect git provenance (auto-detect from local git repo)
+	gitProvenance := collectGitProvenance(opts.Directory, opts.Quiet)
 
 	// Step 6: Upload to backend
 	if !opts.Quiet {
@@ -208,10 +208,10 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 
 	client := skillv1.NewSkillCommandControllerClient(opts.Conn)
 	response, err := client.Push(context.Background(), &skillv1.PushSkillRequest{
-		Org:      opts.OrgID,
-		Artifact: zipBytes,
-		Tag:      tag,
-		Source:   source,
+		Org:           opts.OrgID,
+		Artifact:      zipBytes,
+		Tag:           tag,
+		GitProvenance: gitProvenance,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to upload skill artifact")
@@ -293,15 +293,18 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 		cliprint.PrintInfo("Version hash: %s", hashHex[:16]+"...")
 	}
 
-	// Step 5: Create GitSource for source tracking
-	source := &skillv1.SkillSource{
-		Source: &skillv1.SkillSource_Git{
-			Git: &skillv1.GitSource{
-				Url:    opts.GitURL,
-				Ref:    opts.GitRef,
-				Subdir: opts.GitSubdir,
-			},
-		},
+	// Step 5: Create GitProvenance for source tracking
+	// Resolve the ref to a commit SHA from the cloned directory
+	commit, err := getGitCommit(opts.Directory)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get commit SHA from cloned repository")
+	}
+
+	gitProvenance := &skillv1.GitProvenance{
+		RemoteUrl: opts.GitURL,
+		Ref:       opts.GitRef, // Original user-provided ref (for display)
+		Commit:    commit,      // Resolved immutable commit SHA
+		Subdir:    opts.GitSubdir,
 	}
 
 	if !opts.Quiet {
@@ -310,6 +313,7 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 		if opts.GitRef != "" {
 			cliprint.PrintInfo("  Ref: %s", opts.GitRef)
 		}
+		cliprint.PrintInfo("  Commit: %s", commit[:min(12, len(commit))])
 		if opts.GitSubdir != "" {
 			cliprint.PrintInfo("  Subdir: %s", opts.GitSubdir)
 		}
@@ -328,10 +332,10 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 
 	client := skillv1.NewSkillCommandControllerClient(opts.Conn)
 	response, err := client.Push(context.Background(), &skillv1.PushSkillRequest{
-		Org:      opts.OrgID,
-		Artifact: zipBytes,
-		Tag:      tag,
-		Source:   source,
+		Org:           opts.OrgID,
+		Artifact:      zipBytes,
+		Tag:           tag,
+		GitProvenance: gitProvenance,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to upload skill artifact")
@@ -591,35 +595,41 @@ func formatBytes(bytes int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
-// collectLocalSource detects git information and creates a SkillSource for local pushes.
-// If the directory is within a git repo, it collects remote URL, commit SHA, and subdir.
-func collectLocalSource(directory string, quiet bool) *skillv1.SkillSource {
-	localSource := &skillv1.LocalSource{
-		IsGitRepo: false,
-	}
-
+// collectGitProvenance detects git information and creates GitProvenance for local pushes.
+// If the directory is within a git repo, it collects remote URL, commit SHA, branch/ref, and subdir.
+// Returns nil if the directory is not a git repository.
+func collectGitProvenance(directory string, quiet bool) *skillv1.GitProvenance {
 	// Check if we're in a git repo
 	repoRoot, err := getGitRepoRoot(directory)
 	if err != nil {
-		// Not a git repo, return empty local source
+		// Not a git repo, no provenance to track
 		if !quiet {
 			cliprint.PrintInfo("Source: local directory (not a git repository)")
 		}
-		return &skillv1.SkillSource{
-			Source: &skillv1.SkillSource_Local{Local: localSource},
-		}
+		return nil
 	}
 
-	localSource.IsGitRepo = true
+	provenance := &skillv1.GitProvenance{}
 
 	// Get git remote URL (origin)
 	if remoteURL, err := getGitRemoteURL(directory); err == nil && remoteURL != "" {
-		localSource.GitRemoteUrl = remoteURL
+		provenance.RemoteUrl = remoteURL
+	} else {
+		// No remote URL means we can't provide meaningful provenance
+		if !quiet {
+			cliprint.PrintInfo("Source: local git repository (no remote)")
+		}
+		return nil
 	}
 
-	// Get current commit SHA
+	// Get current commit SHA (required for provenance)
 	if commit, err := getGitCommit(directory); err == nil && commit != "" {
-		localSource.GitCommit = commit
+		provenance.Commit = commit
+	}
+
+	// Get current branch name (for display purposes)
+	if ref, err := getGitBranchName(directory); err == nil && ref != "" {
+		provenance.Ref = ref
 	}
 
 	// Calculate subdir relative to repo root
@@ -627,28 +637,42 @@ func collectLocalSource(directory string, quiet bool) *skillv1.SkillSource {
 	if err == nil {
 		relPath, err := filepath.Rel(repoRoot, absDir)
 		if err == nil && relPath != "." {
-			localSource.Subdir = relPath
+			provenance.Subdir = relPath
 		}
 	}
 
 	if !quiet {
-		if localSource.GitRemoteUrl != "" {
-			cliprint.PrintInfo("Source: git repository")
-			cliprint.PrintInfo("  Remote: %s", localSource.GitRemoteUrl)
-			if localSource.GitCommit != "" {
-				cliprint.PrintInfo("  Commit: %s", localSource.GitCommit[:min(12, len(localSource.GitCommit))])
-			}
-			if localSource.Subdir != "" {
-				cliprint.PrintInfo("  Subdir: %s", localSource.Subdir)
-			}
-		} else {
-			cliprint.PrintInfo("Source: local git repository (no remote)")
+		cliprint.PrintInfo("Source: git repository")
+		cliprint.PrintInfo("  Remote: %s", provenance.RemoteUrl)
+		if provenance.Ref != "" {
+			cliprint.PrintInfo("  Branch: %s", provenance.Ref)
+		}
+		if provenance.Commit != "" {
+			cliprint.PrintInfo("  Commit: %s", provenance.Commit[:min(12, len(provenance.Commit))])
+		}
+		if provenance.Subdir != "" {
+			cliprint.PrintInfo("  Subdir: %s", provenance.Subdir)
 		}
 	}
 
-	return &skillv1.SkillSource{
-		Source: &skillv1.SkillSource_Local{Local: localSource},
+	return provenance
+}
+
+// getGitBranchName returns the current branch name.
+// Returns empty string if in detached HEAD state or on error.
+func getGitBranchName(directory string) (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd.Dir = directory
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
 	}
+	branch := strings.TrimSpace(string(output))
+	// "HEAD" means detached HEAD state
+	if branch == "HEAD" {
+		return "", nil
+	}
+	return branch, nil
 }
 
 // getGitRepoRoot returns the root directory of the git repository.

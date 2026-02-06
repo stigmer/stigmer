@@ -4,15 +4,15 @@ import (
 	"sync"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
-	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
-// AgentArgs is an alias for the generated AgentArgs from gen/agent
+// AgentArgs is an alias for the generated AgentArgs from gen/agent.
+// This provides a single source of truth for agent configuration.
 type AgentArgs = genAgent.AgentArgs
 
 // Context is a minimal interface that represents a stigmer context.
@@ -25,6 +25,9 @@ type Context interface {
 }
 
 // Agent represents an AI agent template with skills, MCP servers, and configuration.
+//
+// Agent uses the COMPOSITION pattern - it embeds Args rather than duplicating its fields.
+// This provides a single source of truth for configuration and reduces maintenance burden.
 //
 // The Agent is the "template" layer - it defines the immutable logic and requirements
 // for an agent. Actual configuration with secrets happens at the AgentInstance level.
@@ -39,43 +42,28 @@ type Context interface {
 //	})
 type Agent struct {
 	// Name is the agent name (lowercase alphanumeric with hyphens, max 63 chars).
+	// This is an identity field, not part of Args.
 	Name string
 
 	// Slug is the URL-friendly identifier (auto-generated from name if not provided).
+	// This is an identity field, not part of Args.
 	Slug string
 
-	// Instructions define the agent's behavior and personality (min 10, max 10000 chars).
-	Instructions string
-
-	// Description is a human-readable description for UI display (optional, max 500 chars).
-	Description string
-
-	// IconURL is the icon URL for marketplace and UI display (optional).
-	IconURL string
-
 	// Org is the organization that owns this agent (optional).
+	// This is metadata, not part of Args.
 	Org string
 
-	// SkillRefs are references to Skill resources providing agent knowledge.
-	// Use AddSkillRef() for platform skills or AddOrgSkillRef() for organization skills.
-	// Skills are pushed via `stigmer skill push` CLI - the SDK only references them.
-	SkillRefs []*apiresource.ApiResourceReference
-
-	// McpServerUsages are references to McpServer resources this agent uses.
-	// Each usage specifies which MCP server to use and optionally which tools to enable.
-	// Use AddMcpServerUsage() or UseMCPServer() to add usages.
-	McpServerUsages []*agentv1.McpServerUsage
-
-	// SubAgents are sub-agents that can be delegated to (inline or referenced).
-	SubAgents []subagent.SubAgent
-
-	// EnvironmentVariables are environment variables required by the agent.
-	EnvironmentVariables []environment.Variable
+	// Args contains all configuration for this agent.
+	// This is the SINGLE SOURCE OF TRUTH for configuration.
+	// Uses COMPOSITION pattern - we embed the generated Args struct
+	// rather than duplicating its fields.
+	// SubAgents are stored in Args.SubAgents - NOT as a separate field.
+	Args *AgentArgs
 
 	// Context reference (optional, used for typed variable management)
 	ctx Context
 
-	// mu protects concurrent access to SkillRefs, McpServerUsages, SubAgents, and EnvironmentVariables slices
+	// mu protects concurrent access to mutable fields
 	mu sync.Mutex
 }
 
@@ -96,8 +84,7 @@ type Agent struct {
 //
 //	import (
 //	    "github.com/stigmer/stigmer/sdk/go/agent"
-//	    "github.com/stigmer/stigmer/sdk/go/mcpserverref"
-//	    "github.com/stigmer/stigmer/sdk/go/skillref"
+//	    "github.com/stigmer/stigmer/sdk/go/ref"
 //	)
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
@@ -108,8 +95,8 @@ type Agent struct {
 //	    if err != nil {
 //	        return err
 //	    }
-//	    ag.AddSkillRef(skillref.Platform("coding-best-practices"))
-//	    ag.AddMcpServerUsage(mcpserverref.Platform("github"), "create_pr", "search_code")
+//	    ag.AddSkillRef(ref.Skill("stigmer", "coding-best-practices"))
+//	    ag.AddMcpServerUsage(ref.McpServer("stigmer", "github"), "create_pr", "search_code")
 //	    return nil
 //	})
 func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
@@ -118,20 +105,23 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 		args = &AgentArgs{}
 	}
 
-	// Create Agent from args
-	a := &Agent{
-		Name:         name,
-		Instructions: args.Instructions,
-		Description:  args.Description,
-		IconURL:      args.IconUrl,
-		ctx:          ctx,
+	// Initialize empty slices in Args to avoid nil pointer issues
+	if args.SkillRefs == nil {
+		args.SkillRefs = []*apiresource.ApiResourceReference{}
+	}
+	if args.McpServerUsages == nil {
+		args.McpServerUsages = []*agentv1.McpServerUsage{}
+	}
+	if args.SubAgents == nil {
+		args.SubAgents = []*agentv1.SubAgent{}
 	}
 
-	// Initialize empty slices to avoid nil pointer issues
-	a.SkillRefs = []*apiresource.ApiResourceReference{}
-	a.McpServerUsages = []*agentv1.McpServerUsage{}
-	a.SubAgents = []subagent.SubAgent{}
-	a.EnvironmentVariables = []environment.Variable{}
+	// Create Agent with Args as single source of truth
+	a := &Agent{
+		Name: name,
+		Args: args,
+		ctx:  ctx,
+	}
 
 	// Auto-generate slug from name if not provided
 	if a.Slug == "" && a.Name != "" {
@@ -164,24 +154,27 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 }
 
 // ============================================================================
-// Builder Methods - Modify agent after construction
+// Builder Methods - Modify Args (single source of truth)
 // ============================================================================
 
 // AddSkillRef adds a skill reference to the agent.
 //
-// Use skillref.Platform() to create platform skill references.
+// Use ref.Skill() to create skill references.
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	import "github.com/stigmer/stigmer/sdk/go/skillref"
+//	import "github.com/stigmer/stigmer/sdk/go/ref"
 //
-//	agent.AddSkillRef(skillref.Platform("coding-best-practices"))
-//	agent.AddSkillRef(skillref.Platform("code-review", "v1.0"))
+//	agent.AddSkillRef(ref.Skill("stigmer", "coding-best-practices"))
+//	agent.AddSkillRef(ref.Skill("stigmer", "code-review", ref.WithVersion("v1.0")))
 func (a *Agent) AddSkillRef(ref *apiresource.ApiResourceReference) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, ref)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, ref)
 	return a
 }
 
@@ -197,7 +190,10 @@ func (a *Agent) AddSkillRef(ref *apiresource.ApiResourceReference) *Agent {
 func (a *Agent) AddSkillRefs(refs ...*apiresource.ApiResourceReference) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, refs...)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, refs...)
 	return a
 }
 
@@ -225,7 +221,10 @@ func (a *Agent) AddOrgSkillRef(slug string, version ...string) *Agent {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, ref)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, ref)
 	return a
 }
 
@@ -265,7 +264,10 @@ func (a *Agent) AddSkill(ref string, opts ...SkillOption) *Agent {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, parsed)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, parsed)
 	return a
 }
 
@@ -301,7 +303,10 @@ func (a *Agent) AddSkills(refs ...string) *Agent {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, parsed...)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, parsed...)
 	return a
 }
 
@@ -330,7 +335,10 @@ func (a *Agent) TryAddSkill(ref string, opts ...SkillOption) (*Agent, error) {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, parsed)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, parsed)
 	return a, nil
 }
 
@@ -365,7 +373,10 @@ func (a *Agent) TryAddSkills(refs ...string) (*Agent, error) {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, parsed...)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, parsed...)
 	return a, nil
 }
 
@@ -375,28 +386,26 @@ func (a *Agent) TryAddSkills(refs ...string) (*Agent, error) {
 
 // AddMcpServerUsage adds an MCP server usage to the agent.
 //
-// Use mcpserverref.Platform(), mcpserverref.Organization(), or mcpserverref.Personal()
-// to create the reference. Optionally specify which tools to enable from the server.
+// Use ref.McpServer() to create the reference. Optionally specify which tools
+// to enable from the server.
 //
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	import "github.com/stigmer/stigmer/sdk/go/mcpserverref"
+//	import "github.com/stigmer/stigmer/sdk/go/ref"
 //
 //	// Enable all tools from the GitHub MCP server
-//	agent.AddMcpServerUsage(mcpserverref.Platform("github"))
+//	agent.AddMcpServerUsage(ref.McpServer("stigmer", "github"))
 //
 //	// Enable specific tools only
 //	agent.AddMcpServerUsage(
-//	    mcpserverref.Platform("github"),
+//	    ref.McpServer("stigmer", "github"),
 //	    "create_issue", "list_repos", "create_pr",
 //	)
 //
 //	// Reference an organization MCP server
-//	agent.AddMcpServerUsage(
-//	    mcpserverref.Organization("acme-corp", "internal-tools"),
-//	)
+//	agent.AddMcpServerUsage(ref.McpServer("acme-corp", "internal-tools"))
 func (a *Agent) AddMcpServerUsage(ref *apiresource.ApiResourceReference, enabledTools ...string) *Agent {
 	usage := &agentv1.McpServerUsage{
 		McpServerRef: ref,
@@ -405,7 +414,10 @@ func (a *Agent) AddMcpServerUsage(ref *apiresource.ApiResourceReference, enabled
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.McpServerUsages = append(a.McpServerUsages, usage)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.McpServerUsages = append(a.Args.McpServerUsages, usage)
 	return a
 }
 
@@ -426,7 +438,10 @@ func (a *Agent) AddMcpServerUsage(ref *apiresource.ApiResourceReference, enabled
 func (a *Agent) AddMcpServerUsages(usages ...*agentv1.McpServerUsage) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.McpServerUsages = append(a.McpServerUsages, usages...)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.McpServerUsages = append(a.Args.McpServerUsages, usages...)
 	return a
 }
 
@@ -511,7 +526,10 @@ func (a *Agent) UseMCP(ref string, enabledTools ...string) *Agent {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.McpServerUsages = append(a.McpServerUsages, usage)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.McpServerUsages = append(a.Args.McpServerUsages, usage)
 	return a
 }
 
@@ -545,70 +563,129 @@ func (a *Agent) TryUseMCP(ref string, enabledTools ...string) (*Agent, error) {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.McpServerUsages = append(a.McpServerUsages, usage)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.McpServerUsages = append(a.Args.McpServerUsages, usage)
 	return a, nil
 }
 
 // ============================================================================
-// SubAgent and Environment Methods
+// SubAgent Methods
 // ============================================================================
 
-// AddSubAgent adds a sub-agent to the agent after creation.
+// AddSubAgent adds a sub-agent to Args.SubAgents (single source of truth).
 // This method is thread-safe and can be called concurrently.
+//
+// Use NewSubAgent() or BuildSubAgent() to create sub-agents ergonomically.
 //
 // Example:
 //
-//	helper, _ := subagent.New("security", &subagent.Args{Instructions: "Check security"})
-//	helper.GrantMcpAccess("github", "search_code")
-//	agent.AddSubAgent(helper)
-func (a *Agent) AddSubAgent(sub subagent.SubAgent) *Agent {
+//	sub := agent.BuildSubAgent("security", "Check code for security issues").
+//	    GrantMcpAccess("github", "search_code").
+//	    Build()
+//	ag.AddSubAgent(sub)
+//
+//	// Or directly with proto type:
+//	ag.AddSubAgent(&agentv1.SubAgent{
+//	    Name:         "security",
+//	    Instructions: "Check code for security issues",
+//	})
+func (a *Agent) AddSubAgent(sub *agentv1.SubAgent) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SubAgents = append(a.SubAgents, sub)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SubAgents = append(a.Args.SubAgents, sub)
 	return a
 }
 
-// AddSubAgents adds multiple sub-agents to the agent after creation.
+// AddSubAgents adds multiple sub-agents to Args.SubAgents (single source of truth).
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	agent, _ := agent.New(agent.WithName("reviewer"))
-//	agent.AddSubAgents(sub1, sub2)
-func (a *Agent) AddSubAgents(subs ...subagent.SubAgent) *Agent {
+//	ag.AddSubAgents(
+//	    agent.NewSubAgent("analyzer", "Analyze code"),
+//	    agent.NewSubAgent("reviewer", "Review changes"),
+//	)
+func (a *Agent) AddSubAgents(subs ...*agentv1.SubAgent) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SubAgents = append(a.SubAgents, subs...)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SubAgents = append(a.Args.SubAgents, subs...)
 	return a
 }
 
-// AddEnvironmentVariable adds an environment variable to the agent after creation.
+// ============================================================================
+// Environment Variable Declaration Methods
+// ============================================================================
+
+// RequireSecret declares that this agent requires a secret env var.
+// This adds to Args.EnvSpec with is_secret=true and empty value (must be provided at runtime).
+//
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	agent, _ := agent.New(agent.WithName("reviewer"))
-//	githubToken, _ := environment.New(environment.WithName("GITHUB_TOKEN"))
-//	agent.AddEnvironmentVariable(githubToken)
-func (a *Agent) AddEnvironmentVariable(variable environment.Variable) *Agent {
+//	agent.RequireSecret("GITHUB_TOKEN", "GitHub API token for repository access")
+//	agent.RequireSecret("AWS_SECRET_KEY", "AWS secret access key")
+func (a *Agent) RequireSecret(name, description string) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.EnvironmentVariables = append(a.EnvironmentVariables, variable)
+
+	a.ensureEnvSpec()
+	a.Args.EnvSpec.Data[name] = &environmentv1.EnvironmentValue{
+		Value:       "", // Empty = must be provided at instance time
+		IsSecret:    true,
+		Description: description,
+	}
 	return a
 }
 
-// AddEnvironmentVariables adds multiple environment variables to the agent after creation.
+// RequireConfig declares that this agent requires a config env var (non-secret).
+// This adds to Args.EnvSpec with is_secret=false.
+//
+// If defaultValue is non-empty, it will be used when the variable is not provided.
+// If defaultValue is empty, the variable is required at runtime.
+//
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	agent, _ := agent.New(agent.WithName("reviewer"))
-//	agent.AddEnvironmentVariables(githubToken, awsRegion)
-func (a *Agent) AddEnvironmentVariables(variables ...environment.Variable) *Agent {
+//	agent.RequireConfig("AWS_REGION", "us-east-1", "AWS region for deployments")
+//	agent.RequireConfig("LOG_LEVEL", "info", "Logging verbosity")
+//	agent.RequireConfig("ENVIRONMENT", "", "Deployment environment (required)")
+func (a *Agent) RequireConfig(name, defaultValue, description string) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.EnvironmentVariables = append(a.EnvironmentVariables, variables...)
+
+	a.ensureEnvSpec()
+	a.Args.EnvSpec.Data[name] = &environmentv1.EnvironmentValue{
+		Value:       defaultValue,
+		IsSecret:    false,
+		Description: description,
+	}
 	return a
+}
+
+// ensureEnvSpec ensures Args and Args.EnvSpec are initialized.
+// Must be called with a.mu held.
+func (a *Agent) ensureEnvSpec() {
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	if a.Args.EnvSpec == nil {
+		a.Args.EnvSpec = &environmentv1.EnvironmentSpec{
+			Data: make(map[string]*environmentv1.EnvironmentValue),
+		}
+	}
+	if a.Args.EnvSpec.Data == nil {
+		a.Args.EnvSpec.Data = make(map[string]*environmentv1.EnvironmentValue)
+	}
 }
 
 // String returns a string representation of the Agent.

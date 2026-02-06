@@ -19,13 +19,10 @@ func main() {
 		apiBase := ctx.SetString("apiBase", "https://api.github.com")
 		batchSize := ctx.SetInt("batchSize", 10)
 
-		// Create workflow
-		wf, err := workflow.New(ctx,
-			workflow.WithNamespace("batch-processing"),
-			workflow.WithName("batch-processor"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Process GitHub commits in batches using loops"),
-		)
+		// Create workflow using struct-based Args pattern
+		wf, err := workflow.New(ctx, "batch-processing/batch-processor", &workflow.WorkflowArgs{
+			Description: "Process GitHub commits in batches using loops",
+		})
 		if err != nil {
 			return err
 		}

@@ -27,12 +27,9 @@ import (
 // - Short timeout for quick checks, long timeout for deep analysis
 func main() {
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
-		wf, err := workflow.New(ctx,
-			workflow.WithNamespace("execution-config"),
-			workflow.WithName("agent-config-demo"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Demonstrates agent execution configuration"),
-		)
+		wf, err := workflow.New(ctx, "execution-config/agent-config-demo", &workflow.WorkflowArgs{
+			Description: "Demonstrates agent execution configuration",
+		})
 		if err != nil {
 			return err
 		}
@@ -42,7 +39,7 @@ func main() {
 		// Use case: Categorize support tickets
 		// ============================================================================
 		categorizeTicket := wf.CallAgent("categorizeTicket", &workflow.AgentCallArgs{
-			Agent:   workflow.AgentBySlug("support-categorizer").Slug(),
+			Agent: "support-categorizer", // Slug-only uses workflow's org
 			Message: "Categorize this support ticket: 'My login is not working'",
 			Config: &types.AgentExecutionConfig{
 				Model:       "claude-3-haiku", // Fast model for simple categorization
@@ -60,7 +57,7 @@ func main() {
 		// Use case: Architectural review of complex system
 		// ============================================================================
 		architectureReview := wf.CallAgent("architectureReview", &workflow.AgentCallArgs{
-			Agent: workflow.AgentBySlug("senior-architect").Slug(),
+			Agent: "senior-architect", // Slug-only uses workflow's org
 			Message: workflow.Interpolate(
 				"Review the architecture of this microservices system:\n",
 				categorizeTicket.Field("system_info"), // Uses output from previous task
@@ -82,7 +79,7 @@ func main() {
 		// Use case: Write marketing copy
 		// ============================================================================
 		generateCopy := wf.CallAgent("generateCopy", &workflow.AgentCallArgs{
-			Agent:   workflow.AgentBySlug("content-writer").Slug(),
+			Agent: "content-writer", // Slug-only uses workflow's org
 			Message: "Write engaging marketing copy for a new AI code review tool",
 			Config: &types.AgentExecutionConfig{
 				Model:       "claude-3-5-sonnet", // Creative model
@@ -100,7 +97,7 @@ func main() {
 		// Use case: Extract fields from unstructured text
 		// ============================================================================
 		extractData := wf.CallAgent("extractData", &workflow.AgentCallArgs{
-			Agent: workflow.AgentBySlug("data-extractor").Slug(),
+			Agent: "data-extractor", // Slug-only uses workflow's org
 			Message: workflow.Interpolate(
 				"Extract structured data from this marketing copy:\n",
 				generateCopy.Field("content"), // Use output from creative task
@@ -121,7 +118,7 @@ func main() {
 		// Use case: Generate implementation from spec
 		// ============================================================================
 		generateCode := wf.CallAgent("generateCode", &workflow.AgentCallArgs{
-			Agent: workflow.AgentBySlug("code-generator").Slug(),
+			Agent: "code-generator", // Slug-only uses workflow's org
 			Message: workflow.Interpolate(
 				"Generate Go code implementation for these requirements:\n",
 				extractData.Field("requirements"),
@@ -143,7 +140,7 @@ func main() {
 		// Use case: Answer customer question in real-time
 		// ============================================================================
 		customerSupport := wf.CallAgent("customerSupport", &workflow.AgentCallArgs{
-			Agent:   workflow.AgentBySlug("support-agent").Slug(),
+			Agent: "support-agent", // Slug-only uses workflow's org
 			Message: workflow.RuntimeEnv("CUSTOMER_QUESTION"),
 			Config: &types.AgentExecutionConfig{
 				Model:       "claude-3-haiku", // Fast model for quick response
@@ -161,7 +158,7 @@ func main() {
 		// Summary
 		// ============================================================================
 		log.Println("\n📊 Execution Configuration Summary:")
-		log.Printf("   Total tasks: %d\n", len(wf.Tasks))
+		log.Printf("   Total tasks: %d\n", len(wf.Args.Tasks))
 		log.Println("\n   Model selection strategy:")
 		log.Println("   - claude-3-haiku: Fast, simple tasks (categorization, extraction, support)")
 		log.Println("   - claude-3-5-sonnet: Complex tasks (architecture, code gen, content)")
