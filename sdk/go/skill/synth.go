@@ -324,13 +324,13 @@ func (s *Skill) ToProto() (*skillv1.SkillSynth, error) {
 		Tag: s.tag,
 	}
 
-	if s.IsLocal() {
+	if s.IsLocal() && s.localPath != "" {
 		synth.Source = &skillv1.SkillSynth_Local{
 			Local: &skillv1.LocalDir{
 				Path: s.localPath,
 			},
 		}
-	} else if s.IsGit() {
+	} else if s.IsGit() && s.gitURL != "" {
 		synth.Source = &skillv1.SkillSynth_Git{
 			Git: &skillv1.Git{
 				Url:    s.gitURL,
