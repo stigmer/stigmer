@@ -1,4 +1,4 @@
-package mcpserverref
+package ref
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
-func TestNew(t *testing.T) {
+func TestMcpServer(t *testing.T) {
 	tests := []struct {
 		name     string
 		org      string
@@ -47,7 +47,7 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ref := New(tt.org, tt.slug)
+			ref := McpServer(tt.org, tt.slug)
 
 			if ref.Org != tt.wantOrg {
 				t.Errorf("Org = %q, want %q", ref.Org, tt.wantOrg)
@@ -66,7 +66,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestParse(t *testing.T) {
+func TestParseMcpServer(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -136,11 +136,23 @@ func TestParse(t *testing.T) {
 			wantOrg:  "acme",
 			wantSlug: "api.v2",
 		},
+		{
+			name:     "@ treated as part of slug",
+			input:    "org/slug@v1",
+			wantOrg:  "org",
+			wantSlug: "slug@v1",
+		},
+		{
+			name:     "multiple @ treated as part of slug",
+			input:    "org/slug@email@domain.com",
+			wantOrg:  "org",
+			wantSlug: "slug@email@domain.com",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ref, err := Parse(tt.input)
+			ref, err := ParseMcpServer(tt.input)
 
 			if tt.wantErr != nil {
 				if err == nil {
@@ -153,6 +165,8 @@ func TestParse(t *testing.T) {
 				var parseErr *ParseError
 				if !errors.As(err, &parseErr) {
 					t.Errorf("expected ParseError, got %T", err)
+				} else if parseErr.Kind != mcpServerKind {
+					t.Errorf("ParseError.Kind = %q, want %q", parseErr.Kind, mcpServerKind)
 				}
 				return
 			}
@@ -178,9 +192,9 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func TestMustParse(t *testing.T) {
+func TestMustParseMcpServer(t *testing.T) {
 	t.Run("valid reference", func(t *testing.T) {
-		ref := MustParse("stigmer/github")
+		ref := MustParseMcpServer("stigmer/github")
 		if ref.Org != "stigmer" {
 			t.Errorf("Org = %q, want %q", ref.Org, "stigmer")
 		}
@@ -190,7 +204,7 @@ func TestMustParse(t *testing.T) {
 	})
 
 	t.Run("valid reference with hyphenated names", func(t *testing.T) {
-		ref := MustParse("acme-corp/internal-tools")
+		ref := MustParseMcpServer("acme-corp/internal-tools")
 		if ref.Org != "acme-corp" {
 			t.Errorf("Org = %q, want %q", ref.Org, "acme-corp")
 		}
@@ -205,7 +219,7 @@ func TestMustParse(t *testing.T) {
 				t.Error("expected panic, got none")
 			}
 		}()
-		MustParse("") // Should panic
+		MustParseMcpServer("") // Should panic
 	})
 
 	t.Run("panics on missing slash", func(t *testing.T) {
@@ -214,7 +228,7 @@ func TestMustParse(t *testing.T) {
 				t.Error("expected panic, got none")
 			}
 		}()
-		MustParse("no-slash") // Should panic
+		MustParseMcpServer("no-slash") // Should panic
 	})
 
 	t.Run("panics on empty org", func(t *testing.T) {
@@ -223,7 +237,7 @@ func TestMustParse(t *testing.T) {
 				t.Error("expected panic, got none")
 			}
 		}()
-		MustParse("/slug") // Should panic
+		MustParseMcpServer("/slug") // Should panic
 	})
 
 	t.Run("panics on empty slug", func(t *testing.T) {
@@ -232,67 +246,19 @@ func TestMustParse(t *testing.T) {
 				t.Error("expected panic, got none")
 			}
 		}()
-		MustParse("org/") // Should panic
+		MustParseMcpServer("org/") // Should panic
 	})
 }
 
-func TestParseError(t *testing.T) {
-	t.Run("error message with input", func(t *testing.T) {
-		err := &ParseError{
-			Input:   "bad-input",
-			Message: "something went wrong",
-			Err:     ErrInvalidFormat,
-		}
-		want := `mcpserverref: something went wrong (input: "bad-input")`
-		if err.Error() != want {
-			t.Errorf("Error() = %q, want %q", err.Error(), want)
-		}
-	})
-
-	t.Run("error message without input", func(t *testing.T) {
-		err := &ParseError{
-			Input:   "",
-			Message: "reference string is empty",
-			Err:     ErrInvalidFormat,
-		}
-		want := `mcpserverref: reference string is empty`
-		if err.Error() != want {
-			t.Errorf("Error() = %q, want %q", err.Error(), want)
-		}
-	})
-
-	t.Run("unwrap returns underlying error", func(t *testing.T) {
-		err := &ParseError{
-			Input:   "test",
-			Message: "test message",
-			Err:     ErrEmptyOrg,
-		}
-		if !errors.Is(err, ErrEmptyOrg) {
-			t.Error("errors.Is should return true for underlying error")
-		}
-	})
-
-	t.Run("errors.As works with ParseError", func(t *testing.T) {
-		_, err := Parse("/invalid")
-		var parseErr *ParseError
-		if !errors.As(err, &parseErr) {
-			t.Error("errors.As should work with ParseError")
-		}
-		if parseErr.Input != "/invalid" {
-			t.Errorf("ParseError.Input = %q, want %q", parseErr.Input, "/invalid")
-		}
-	})
-}
-
-func TestKindIsMcpServer(t *testing.T) {
+func TestMcpServerKindIsMcpServer(t *testing.T) {
 	// Verify all creation methods return mcp_server kind
-	refs := []*struct {
+	refs := []struct {
 		name string
 		fn   func() interface{}
 	}{
-		{"New", func() interface{} { return New("org", "slug") }},
-		{"Parse", func() interface{} { ref, _ := Parse("org/slug"); return ref }},
-		{"MustParse", func() interface{} { return MustParse("org/slug") }},
+		{"McpServer", func() interface{} { return McpServer("org", "slug") }},
+		{"ParseMcpServer", func() interface{} { ref, _ := ParseMcpServer("org/slug"); return ref }},
+		{"MustParseMcpServer", func() interface{} { return MustParseMcpServer("org/slug") }},
 	}
 
 	for _, tt := range refs {
@@ -315,18 +281,18 @@ func TestKindIsMcpServer(t *testing.T) {
 	}
 }
 
-func TestNoVersionSupport(t *testing.T) {
+func TestMcpServerNoVersionSupport(t *testing.T) {
 	// MCP servers do NOT support versioning - verify Version is always empty
 
-	t.Run("New returns empty version", func(t *testing.T) {
-		ref := New("org", "slug")
+	t.Run("McpServer returns empty version", func(t *testing.T) {
+		ref := McpServer("org", "slug")
 		if ref.Version != "" {
 			t.Errorf("Version = %q, want empty", ref.Version)
 		}
 	})
 
-	t.Run("Parse returns empty version", func(t *testing.T) {
-		ref, err := Parse("org/slug")
+	t.Run("ParseMcpServer returns empty version", func(t *testing.T) {
+		ref, err := ParseMcpServer("org/slug")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -335,10 +301,10 @@ func TestNoVersionSupport(t *testing.T) {
 		}
 	})
 
-	t.Run("Parse with @ in input treats it as part of slug", func(t *testing.T) {
-		// Unlike skillref.Parse which extracts version from @,
-		// mcpserverref.Parse treats @ as part of the slug
-		ref, err := Parse("org/slug@v1")
+	t.Run("ParseMcpServer with @ in input treats it as part of slug", func(t *testing.T) {
+		// Unlike ParseSkill which extracts version from @,
+		// ParseMcpServer treats @ as part of the slug
+		ref, err := ParseMcpServer("org/slug@v1")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

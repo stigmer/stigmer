@@ -92,8 +92,7 @@ type Agent struct {
 //
 //	import (
 //	    "github.com/stigmer/stigmer/sdk/go/agent"
-//	    "github.com/stigmer/stigmer/sdk/go/mcpserverref"
-//	    "github.com/stigmer/stigmer/sdk/go/skillref"
+//	    "github.com/stigmer/stigmer/sdk/go/commons/ref"
 //	)
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
@@ -104,8 +103,8 @@ type Agent struct {
 //	    if err != nil {
 //	        return err
 //	    }
-//	    ag.AddSkillRef(skillref.New("stigmer", "coding-best-practices"))
-//	    ag.AddMcpServerUsage(mcpserverref.New("stigmer", "github"), "create_pr", "search_code")
+//	    ag.AddSkillRef(ref.Skill("stigmer", "coding-best-practices"))
+//	    ag.AddMcpServerUsage(ref.McpServer("stigmer", "github"), "create_pr", "search_code")
 //	    return nil
 //	})
 func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
@@ -214,15 +213,15 @@ func (a *Agent) McpServerUsages() []*agentv1.McpServerUsage {
 
 // AddSkillRef adds a skill reference to the agent.
 //
-// Use skillref.Platform() to create platform skill references.
+// Use ref.Skill() to create skill references.
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	import "github.com/stigmer/stigmer/sdk/go/skillref"
+//	import "github.com/stigmer/stigmer/sdk/go/commons/ref"
 //
-//	agent.AddSkillRef(skillref.Platform("coding-best-practices"))
-//	agent.AddSkillRef(skillref.Platform("code-review", "v1.0"))
+//	agent.AddSkillRef(ref.Skill("stigmer", "coding-best-practices"))
+//	agent.AddSkillRef(ref.Skill("stigmer", "code-review", ref.WithVersion("v1.0")))
 func (a *Agent) AddSkillRef(ref *apiresource.ApiResourceReference) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -441,28 +440,26 @@ func (a *Agent) TryAddSkills(refs ...string) (*Agent, error) {
 
 // AddMcpServerUsage adds an MCP server usage to the agent.
 //
-// Use mcpserverref.Platform(), mcpserverref.Organization(), or mcpserverref.Personal()
-// to create the reference. Optionally specify which tools to enable from the server.
+// Use ref.McpServer() to create the reference. Optionally specify which tools
+// to enable from the server.
 //
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	import "github.com/stigmer/stigmer/sdk/go/mcpserverref"
+//	import "github.com/stigmer/stigmer/sdk/go/commons/ref"
 //
 //	// Enable all tools from the GitHub MCP server
-//	agent.AddMcpServerUsage(mcpserverref.Platform("github"))
+//	agent.AddMcpServerUsage(ref.McpServer("stigmer", "github"))
 //
 //	// Enable specific tools only
 //	agent.AddMcpServerUsage(
-//	    mcpserverref.Platform("github"),
+//	    ref.McpServer("stigmer", "github"),
 //	    "create_issue", "list_repos", "create_pr",
 //	)
 //
 //	// Reference an organization MCP server
-//	agent.AddMcpServerUsage(
-//	    mcpserverref.Organization("acme-corp", "internal-tools"),
-//	)
+//	agent.AddMcpServerUsage(ref.McpServer("acme-corp", "internal-tools"))
 func (a *Agent) AddMcpServerUsage(ref *apiresource.ApiResourceReference, enabledTools ...string) *Agent {
 	usage := &agentv1.McpServerUsage{
 		McpServerRef: ref,

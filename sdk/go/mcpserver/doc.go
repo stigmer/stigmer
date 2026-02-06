@@ -50,9 +50,9 @@
 //
 // # Referencing MCP Servers
 //
-// To reference existing MCP servers from agents, use the mcpserverref package:
+// To reference existing MCP servers from agents, use the commons/ref package:
 //
-//	import "github.com/stigmer/stigmer/sdk/go/mcpserverref"
+//	import "github.com/stigmer/stigmer/sdk/go/commons/ref"
 //
-//	reviewer.AddMcpServerUsage(mcpserverref.New("stigmer", "github"))
+//	reviewer.AddMcpServerUsage(ref.McpServer("stigmer", "github"))
 package mcpserver
