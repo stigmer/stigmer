@@ -10,6 +10,7 @@ import (
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
@@ -70,6 +71,15 @@ func (d *Deployer) deploySequential(synthesisResult *synthesis.Result) (*DeployR
 		DeployedSkills:    make([]*skillv1.Skill, 0),
 		DeployedAgents:    make([]*agentv1.Agent, 0),
 		DeployedWorkflows: make([]*workflowv1.Workflow, 0),
+	}
+
+	// Deploy skill synths first (skills are typically dependencies)
+	if len(synthesisResult.SkillSynths) > 0 {
+		skills, err := d.deploySkillSynths(synthesisResult.SkillSynths)
+		if err != nil {
+			return nil, err
+		}
+		result.DeployedSkills = skills
 	}
 
 	// Deploy agents
@@ -207,8 +217,8 @@ func (d *Deployer) deployResourceGroup(resources []*synthesis.ResourceWithID) ([
 // deployResource deploys a single resource based on its type.
 func (d *Deployer) deployResource(res *synthesis.ResourceWithID) (proto.Message, error) {
 	switch r := res.Resource.(type) {
-	case *skillv1.Skill:
-		return d.deploySkill(r)
+	case *skillv1.SkillSynth:
+		return d.deploySkillSynth(r)
 	case *agentv1.Agent:
 		return d.deployAgent(r)
 	case *workflowv1.Workflow:
@@ -216,6 +226,82 @@ func (d *Deployer) deployResource(res *synthesis.ResourceWithID) (proto.Message,
 	default:
 		return nil, errors.Errorf("unknown resource type: %T", res.Resource)
 	}
+}
+
+// deploySkillSynth processes a SkillSynth to create an artifact and push it to the backend.
+// This handles both local directory and git repository sources.
+func (d *Deployer) deploySkillSynth(synth *skillv1.SkillSynth) (*skillv1.Skill, error) {
+	quiet := d.opts.ProgressCallback == nil
+
+	// Determine source type and process accordingly
+	if local := synth.GetLocal(); local != nil {
+		// Local directory source
+		if d.opts.ProgressCallback != nil {
+			d.opts.ProgressCallback(fmt.Sprintf("Processing skill from local directory: %s", local.Path))
+		}
+
+		result, err := artifact.PushSkill(&artifact.SkillArtifactOptions{
+			Directory: local.Path,
+			OrgID:     d.opts.OrgID,
+			Tag:       synth.Tag,
+			Conn:      d.opts.Conn,
+			Quiet:     quiet,
+		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to push skill from %s", local.Path)
+		}
+
+		if d.opts.ProgressCallback != nil {
+			d.opts.ProgressCallback(fmt.Sprintf("✓ Skill deployed: %s (hash: %s)", result.SkillName, result.VersionHash[:12]))
+		}
+
+		// Return a minimal Skill proto with the result info
+		return &skillv1.Skill{
+			Spec: &skillv1.SkillSpec{
+				Name: result.SkillName,
+				Tag:  result.Tag,
+			},
+			Status: &skillv1.SkillStatus{
+				VersionHash:       result.VersionHash,
+				ArtifactStorageKey: result.StorageKey,
+			},
+		}, nil
+	}
+
+	if git := synth.GetGit(); git != nil {
+		// Git repository source - this requires cloning the repo first
+		// For now, we'll return an error since this requires more infrastructure
+		// TODO: Implement git clone and PushSkillFromGit
+		return nil, errors.New("deploying skills from git repositories is not yet implemented in this flow - use 'stigmer skill push --git' command instead")
+	}
+
+	return nil, errors.New("skill synth has neither local nor git source")
+}
+
+// deploySkillSynths deploys all skill synths sequentially.
+func (d *Deployer) deploySkillSynths(synths []*skillv1.SkillSynth) ([]*skillv1.Skill, error) {
+	deployedSkills := make([]*skillv1.Skill, 0, len(synths))
+
+	for i, synth := range synths {
+		if d.opts.ProgressCallback != nil {
+			source := "unknown"
+			if synth.GetLocal() != nil {
+				source = synth.GetLocal().Path
+			} else if synth.GetGit() != nil {
+				source = synth.GetGit().Url
+			}
+			d.opts.ProgressCallback(fmt.Sprintf("Deploying skill %d/%d from: %s", i+1, len(synths), source))
+		}
+
+		deployed, err := d.deploySkillSynth(synth)
+		if err != nil {
+			return nil, err
+		}
+
+		deployedSkills = append(deployedSkills, deployed)
+	}
+
+	return deployedSkills, nil
 }
 
 // deployAgent deploys a single agent.

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
 )
@@ -43,7 +42,12 @@ type SkillVerificationResult struct {
 //
 // It identifies skills that are:
 // 1. Referenced in the dependencies map with format "skill:external:{slug}"
-// 2. Referenced in Agent.Spec.SkillRefs but not defined inline in Result.Skills
+// 2. Referenced in Agent.Spec.SkillRefs but not defined inline (SkillSynths)
+//
+// Note: SkillSynth doesn't contain slug information (only source location),
+// so we cannot exclude inline skills from this list. All skill refs are
+// treated as potentially external until the CLI processes the SkillSynth
+// and discovers the actual skill name from SKILL.md.
 //
 // The returned refs are deduplicated by org/slug.
 func ExtractExternalSkillRefs(result *synthesis.Result) []ExternalSkillRef {
@@ -51,8 +55,11 @@ func ExtractExternalSkillRefs(result *synthesis.Result) []ExternalSkillRef {
 		return nil
 	}
 
-	// Build set of inline skill slugs for exclusion
-	inlineSkillSlugs := buildInlineSkillSet(result.Skills)
+	// Note: With SkillSynth, we cannot determine inline skill slugs until
+	// the synth is processed (SKILL.md is read from source). For now, we
+	// treat all skill refs as external since we don't know which ones
+	// will be defined by the SkillSynths.
+	inlineSkillSlugs := make(map[string]bool)
 
 	// Extract from dependencies map and agent protos
 	refMap := make(map[string]*ExternalSkillRef)
@@ -65,23 +72,6 @@ func ExtractExternalSkillRefs(result *synthesis.Result) []ExternalSkillRef {
 		refs = append(refs, *ref)
 	}
 	return refs
-}
-
-// buildInlineSkillSet creates a set of slug names for inline skills.
-func buildInlineSkillSet(skills []*skillv1.Skill) map[string]bool {
-	slugs := make(map[string]bool, len(skills))
-	for _, skill := range skills {
-		if skill != nil && skill.Metadata != nil {
-			slug := skill.Metadata.Slug
-			if slug == "" {
-				slug = strings.ToLower(skill.Metadata.Name)
-			}
-			if slug != "" {
-				slugs[slug] = true
-			}
-		}
-	}
-	return slugs
 }
 
 // extractFromDependencies extracts external skill refs from the dependencies map.

@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.skill.v1;
+
+// SkillSynth defines the input for SDK-to-CLI skill handover.
+// SDK synthesizes this to .stigmer/skill-N.pb, CLI reads and processes it.
+//
+// This is NOT the stored SkillSpec - it's input for creating the spec.
+// CLI reads this, fetches content from source, and calls PushSkillRequest.
+//
+// Flow:
+//   1. SDK: skill.FromDir(ctx, "./calculator") or skill.FromGit(ctx, "github.com/org/skills")
+//   2. SDK: Writes SkillSynth to .stigmer/skill-N.pb
+//   3. CLI: Reads SkillSynth, fetches content, creates artifact ZIP
+//   4. CLI: Detects git provenance, calls PushSkillRequest
+//   5. Backend: Extracts SKILL.md, stores SkillSpec + SkillStatus
+message SkillSynth {
+  // Source location of the skill artifacts.
+  oneof source {
+    // Local directory containing SKILL.md
+    LocalDir local = 1;
+    // Remote git repository containing SKILL.md
+    Git git = 2;
+  }
+
+  // Optional version tag for this skill.
+  // Tags are mutable pointers that can be updated to reference new versions.
+  // Examples: "stable", "v1.0", "beta", "latest"
+  // If not provided, the version will only be accessible via its immutable hash.
+  string tag = 3;
+}
+
+// LocalDir points to a local directory containing SKILL.md.
+// CLI will read this directory, create a ZIP artifact, and auto-detect
+// git provenance if the directory is within a git repository.
+message LocalDir {
+  // Path to the skill directory (relative to SDK project root or absolute).
+  // The directory must contain a SKILL.md file.
+  // Relative paths are resolved from the directory containing main.go.
+  // Examples: "./skills/calculator", "../shared-skills/web-search", "/home/user/my-skill"
+  string path = 1;
+}
+
+// Git points to a git repository containing SKILL.md.
+// CLI will clone the repository, checkout the specified ref, and create
+// a ZIP artifact from the specified subdirectory.
+message Git {
+  // Git repository URL (HTTPS or SSH).
+  // CLI uses locally configured git credentials for authentication.
+  // Examples: "https://github.com/stigmer/skills.git", "git@github.com:stigmer/skills.git"
+  string url = 1;
+
+  // Git reference - tag, branch name, or commit SHA.
+  // If empty, defaults to the repository's default branch (usually "main").
+  // CLI resolves this to a commit SHA for provenance tracking.
+  // Examples: "v1.0.0", "main", "feature/new-skill", "abc123def456..."
+  string ref = 2;
+
+  // Subdirectory within the repository containing SKILL.md.
+  // If empty, SKILL.md is expected at the repository root.
+  // Example: "skills/calculator"
+  string subdir = 3;
+}

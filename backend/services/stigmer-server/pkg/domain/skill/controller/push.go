@@ -455,9 +455,10 @@ func (s *PopulateSkillFieldsStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 	skill.Spec.Name = extractResult.Name
 	skill.Spec.Description = extractResult.Description
 
-	// 3. Set source metadata for traceability (local git or remote git)
-	if req.Source != nil {
-		skill.Spec.Source = req.Source
+	// 3. Set git provenance metadata for traceability (if available)
+	// This is optional - absent when pushed from a non-git directory
+	if req.GitProvenance != nil {
+		skill.Status.GitProvenance = req.GitProvenance
 	}
 
 	// 4. Populate status with artifact metadata

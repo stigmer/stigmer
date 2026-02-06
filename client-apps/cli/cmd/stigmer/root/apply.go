@@ -129,10 +129,11 @@ func executeApply(opts applyOptions) error {
 
 	// Step 5: Embed synthesized resources into Project.Spec
 	// NOTE: No dependency_graph field - backend derives it via proto reflection
+	// NOTE: Skills are handled separately - they're pushed as artifacts, not embedded
 	proj.Spec.Agents = result.Agents
 	proj.Spec.Workflows = result.Workflows
 	proj.Spec.McpServers = result.McpServers
-	proj.Spec.Skills = result.Skills
+	// proj.Spec.Skills will be populated from deployed skills after artifact push
 
 	// Step 6: Handle dry-run mode
 	if opts.DryRun {
@@ -236,8 +237,8 @@ func displaySynthesisResult(result *synthesis.Result) {
 	cliprint.PrintSuccess("✓ Synthesis complete: %d resource(s) discovered", result.TotalResources())
 	fmt.Println()
 
-	if result.SkillCount() > 0 {
-		cliprint.PrintInfo("  Skills:      %d", result.SkillCount())
+	if result.SkillSynthCount() > 0 {
+		cliprint.PrintInfo("  Skills:      %d", result.SkillSynthCount())
 	}
 	if result.McpServerCount() > 0 {
 		cliprint.PrintInfo("  MCP Servers: %d", result.McpServerCount())
@@ -260,11 +261,18 @@ func displayDryRunPreview(proj *projectv1.Project, result *synthesis.Result) {
 
 	resultTable := display.NewApplyResultTable()
 
-	// Add skills
-	for _, skill := range result.Skills {
+	// Add skill synths
+	for _, synth := range result.SkillSynths {
+		// SkillSynth doesn't have name - use source location
+		name := "unknown"
+		if synth.GetLocal() != nil {
+			name = synth.GetLocal().Path
+		} else if synth.GetGit() != nil {
+			name = synth.GetGit().Url
+		}
 		resultTable.AddResource(
 			display.ResourceTypeSkill,
-			skill.Metadata.Name,
+			name,
 			display.ApplyStatusCreated,
 			"",
 			nil,

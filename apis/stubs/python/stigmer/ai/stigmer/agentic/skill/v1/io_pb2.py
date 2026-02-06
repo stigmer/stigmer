@@ -22,11 +22,11 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from ai.stigmer.agentic.skill.v1 import spec_pb2 as ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_spec__pb2
+from ai.stigmer.agentic.skill.v1 import status_pb2 as ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_status__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/skill/v1/io.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\"\'\n\x07SkillId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xc7\x01\n\x10PushSkillRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\"\n\x08\x61rtifact\x18\x02 \x01(\x0c\x42\x06\xbaH\x03\xc8\x01\x01R\x08\x61rtifact\x12-\n\x03tag\x18\x03 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12@\n\x06source\x18\x04 \x01(\x0b\x32(.ai.stigmer.agentic.skill.v1.SkillSourceR\x06sourceJ\x04\x08\x05\x10\x06\"N\n\x12GetArtifactRequest\x12\x38\n\x14\x61rtifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12\x61rtifactStorageKey\"1\n\x13GetArtifactResponse\x12\x1a\n\x08\x61rtifact\x18\x01 \x01(\x0cR\x08\x61rtifactB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/skill/v1/io.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a\x1b\x62uf/validate/validate.proto\"\'\n\x07SkillId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xd8\x01\n\x10PushSkillRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\"\n\x08\x61rtifact\x18\x02 \x01(\x0c\x42\x06\xbaH\x03\xc8\x01\x01R\x08\x61rtifact\x12-\n\x03tag\x18\x03 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12Q\n\x0egit_provenance\x18\x04 \x01(\x0b\x32*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenanceJ\x04\x08\x05\x10\x06\"N\n\x12GetArtifactRequest\x12\x38\n\x14\x61rtifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12\x61rtifactStorageKey\"1\n\x13GetArtifactResponse\x12\x1a\n\x08\x61rtifact\x18\x01 \x01(\x0cR\x08\x61rtifactB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -44,12 +44,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PUSHSKILLREQUEST'].fields_by_name['tag']._serialized_options = b'\272H\030r\0262\024^$|^[a-zA-Z0-9._-]+$'
   _globals['_GETARTIFACTREQUEST'].fields_by_name['artifact_storage_key']._loaded_options = None
   _globals['_GETARTIFACTREQUEST'].fields_by_name['artifact_storage_key']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_SKILLID']._serialized_start=138
-  _globals['_SKILLID']._serialized_end=177
-  _globals['_PUSHSKILLREQUEST']._serialized_start=180
-  _globals['_PUSHSKILLREQUEST']._serialized_end=379
-  _globals['_GETARTIFACTREQUEST']._serialized_start=381
-  _globals['_GETARTIFACTREQUEST']._serialized_end=459
-  _globals['_GETARTIFACTRESPONSE']._serialized_start=461
-  _globals['_GETARTIFACTRESPONSE']._serialized_end=510
+  _globals['_SKILLID']._serialized_start=140
+  _globals['_SKILLID']._serialized_end=179
+  _globals['_PUSHSKILLREQUEST']._serialized_start=182
+  _globals['_PUSHSKILLREQUEST']._serialized_end=398
+  _globals['_GETARTIFACTREQUEST']._serialized_start=400
+  _globals['_GETARTIFACTREQUEST']._serialized_end=478
+  _globals['_GETARTIFACTRESPONSE']._serialized_start=480
+  _globals['_GETARTIFACTRESPONSE']._serialized_end=529
 # @@protoc_insertion_point(module_scope)

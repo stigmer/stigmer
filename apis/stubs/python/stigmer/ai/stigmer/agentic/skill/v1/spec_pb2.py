@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/skill/v1/spec.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a\x1b\x62uf/validate/validate.proto\"\xf7\x01\n\tSkillSpec\x12\"\n\x08skill_md\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07skillMd\x12-\n\x03tag\x18\x02 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12\x33\n\x04name\x18\x03 \x01(\tB\x1f\xbaH\x1cr\x1a\x32\x18^[a-z0-9]+(-[a-z0-9]+)*$R\x04name\x12@\n\x06source\x18\x04 \x01(\x0b\x32(.ai.stigmer.agentic.skill.v1.SkillSourceR\x06source\x12 \n\x0b\x64\x65scription\x18\x05 \x01(\tR\x0b\x64\x65scription\"\x95\x01\n\x0bSkillSource\x12@\n\x05local\x18\x01 \x01(\x0b\x32(.ai.stigmer.agentic.skill.v1.LocalSourceH\x00R\x05local\x12:\n\x03git\x18\x02 \x01(\x0b\x32&.ai.stigmer.agentic.skill.v1.GitSourceH\x00R\x03gitB\x08\n\x06source\"\x8a\x01\n\x0bLocalSource\x12$\n\x0egit_remote_url\x18\x01 \x01(\tR\x0cgitRemoteUrl\x12\x1d\n\ngit_commit\x18\x02 \x01(\tR\tgitCommit\x12\x16\n\x06subdir\x18\x03 \x01(\tR\x06subdir\x12\x1e\n\x0bis_git_repo\x18\x04 \x01(\x08R\tisGitRepo\"P\n\tGitSource\x12\x19\n\x03url\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03url\x12\x10\n\x03ref\x18\x02 \x01(\tR\x03ref\x12\x16\n\x06subdir\x18\x03 \x01(\tR\x06subdirB\xbd\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/skill/v1/spec.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a\x1b\x62uf/validate/validate.proto\"\xbb\x01\n\tSkillSpec\x12\"\n\x08skill_md\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07skillMd\x12-\n\x03tag\x18\x02 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12\x33\n\x04name\x18\x03 \x01(\tB\x1f\xbaH\x1cr\x1a\x32\x18^[a-z0-9]+(-[a-z0-9]+)*$R\x04name\x12 \n\x0b\x64\x65scription\x18\x05 \x01(\tR\x0b\x64\x65scriptionJ\x04\x08\x04\x10\x05\x42\xbd\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,14 +39,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SKILLSPEC'].fields_by_name['tag']._serialized_options = b'\272H\030r\0262\024^$|^[a-zA-Z0-9._-]+$'
   _globals['_SKILLSPEC'].fields_by_name['name']._loaded_options = None
   _globals['_SKILLSPEC'].fields_by_name['name']._serialized_options = b'\272H\034r\0322\030^[a-z0-9]+(-[a-z0-9]+)*$'
-  _globals['_GITSOURCE'].fields_by_name['url']._loaded_options = None
-  _globals['_GITSOURCE'].fields_by_name['url']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_SKILLSPEC']._serialized_start=101
-  _globals['_SKILLSPEC']._serialized_end=348
-  _globals['_SKILLSOURCE']._serialized_start=351
-  _globals['_SKILLSOURCE']._serialized_end=500
-  _globals['_LOCALSOURCE']._serialized_start=503
-  _globals['_LOCALSOURCE']._serialized_end=641
-  _globals['_GITSOURCE']._serialized_start=643
-  _globals['_GITSOURCE']._serialized_end=723
+  _globals['_SKILLSPEC']._serialized_end=288
 # @@protoc_insertion_point(module_scope)

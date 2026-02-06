@@ -33,7 +33,6 @@ go_library(
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
-        "@com_github_rs_zerolog//log",
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//reflect/protoreflect",
     ],
@@ -69,5 +68,6 @@ go_test(
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/store",
+        "@org_golang_google_protobuf//proto",
     ],
 )
