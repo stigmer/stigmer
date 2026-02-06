@@ -30,11 +30,11 @@
 //	    return nil
 //	})
 //
-// # Referencing Existing Skills (commons/ref package)
+// # Referencing Existing Skills (ref package)
 //
-// To reference existing skills in agent configurations, use the commons/ref package:
+// To reference existing skills in agent configurations, use the ref package:
 //
-//	import "github.com/stigmer/stigmer/sdk/go/commons/ref"
+//	import "github.com/stigmer/stigmer/sdk/go/ref"
 //
 //	// Explicit org and slug
 //	skillRef := ref.Skill("stigmer", "web-search")

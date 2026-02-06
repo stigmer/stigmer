@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	"github.com/stigmer/stigmer/sdk/go/commons/metadata"
+	"github.com/stigmer/stigmer/sdk/go/metadata"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 

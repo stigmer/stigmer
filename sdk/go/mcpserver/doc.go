@@ -15,7 +15,7 @@
 //	import (
 //	    "github.com/stigmer/stigmer/sdk/go/mcpserver"
 //	    "github.com/stigmer/stigmer/sdk/go/gen/types"
-//	    "github.com/stigmer/stigmer/sdk/go/stigmer"
+//	    "github.com/stigmer/stigmer/sdk/go/context"
 //	)
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
@@ -50,9 +50,9 @@
 //
 // # Referencing MCP Servers
 //
-// To reference existing MCP servers from agents, use the commons/ref package:
+// To reference existing MCP servers from agents, use the ref package:
 //
-//	import "github.com/stigmer/stigmer/sdk/go/commons/ref"
+//	import "github.com/stigmer/stigmer/sdk/go/ref"
 //
 //	reviewer.AddMcpServerUsage(ref.McpServer("stigmer", "github"))
 package mcpserver

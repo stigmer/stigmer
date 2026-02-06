@@ -40,9 +40,9 @@
 //
 // # Referencing Environments
 //
-// Use the commons/ref package to reference environments in instance creation:
+// Use the ref package to reference environments in instance creation:
 //
-//	import "github.com/stigmer/stigmer/sdk/go/commons/ref"
+//	import "github.com/stigmer/stigmer/sdk/go/ref"
 //
 //	envRef := ref.Environment("my-org", "production-aws")
 //	// Use envRef in AgentInstance.environment_refs

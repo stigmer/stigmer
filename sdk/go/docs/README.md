@@ -330,8 +330,8 @@ agent, err := agent.New(ctx, "my-agent", &agent.AgentArgs{
     Description:  "Agent description",
 })
 
-// Add skill references using commons/ref
-import "github.com/stigmer/stigmer/sdk/go/commons/ref"
+// Add skill references using ref
+import "github.com/stigmer/stigmer/sdk/go/ref"
 agent.AddSkillRef(ref.Skill("stigmer", "coding-best-practices"))
 ```
 

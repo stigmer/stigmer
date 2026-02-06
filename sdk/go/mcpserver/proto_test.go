@@ -5,7 +5,7 @@ import (
 
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/sdk/go/commons/metadata"
+	"github.com/stigmer/stigmer/sdk/go/metadata"
 )
 
 func TestToProto_StdioServer(t *testing.T) {

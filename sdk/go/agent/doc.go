@@ -5,7 +5,7 @@
 //
 // # Basic Usage
 //
-//	import "github.com/stigmer/stigmer/sdk/go/stigmer"
+//	import "github.com/stigmer/stigmer/sdk/go/context"
 //	import "github.com/stigmer/stigmer/sdk/go/agent"
 //
 //	func main() {
@@ -63,7 +63,7 @@
 //   - IconUrl: Display icon URL (optional)
 //
 // Builder Methods (after creation):
-//   - AddSkillRef: Add a skill reference using commons/ref
+//   - AddSkillRef: Add a skill reference using ref
 //   - AddMcpServerUsage: Add an MCP server usage reference
 //   - AddSubAgent: Add a sub-agent (inline value object)
 //   - RequireSecret: Declare required secret environment variable

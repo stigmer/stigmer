@@ -80,7 +80,7 @@ package main
 import (
     "log"
     "os"
-    "github.com/stigmer/stigmer/sdk/go/stigmer"
+    "github.com/stigmer/stigmer/sdk/go/context"
     "github.com/stigmer/stigmer/sdk/go/agent"
 )
 
@@ -132,7 +132,7 @@ package main
 
 import (
     "log"
-    "github.com/stigmer/stigmer/sdk/go/stigmer"
+    "github.com/stigmer/stigmer/sdk/go/context"
     "github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -266,9 +266,9 @@ my-project/
 import (
     "os"
     "github.com/stigmer/stigmer/sdk/go/agent"
-    "github.com/stigmer/stigmer/sdk/go/commons/ref"
+    "github.com/stigmer/stigmer/sdk/go/ref"
     "github.com/stigmer/stigmer/sdk/go/skill"
-    "github.com/stigmer/stigmer/sdk/go/stigmer"
+    "github.com/stigmer/stigmer/sdk/go/context"
 )
 
 stigmer.Run(func(ctx *stigmer.Context) error {
@@ -285,7 +285,7 @@ stigmer.Run(func(ctx *stigmer.Context) error {
         Description:  "Code reviewer with standards",
     })
     
-    // Add skill reference using commons/ref
+    // Add skill reference using ref
     ag.AddSkillRef(ref.Skill("stigmer", "security-analysis"))
     
     return nil

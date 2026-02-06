@@ -501,12 +501,12 @@ func (w *Workflow) HttpCall(name string, args *HttpCallArgs) *Task {
 
 ## Key Architecture Components
 
-### commons/ref Package - Resource References
+### ref Package - Resource References
 
-The `commons/ref` package provides type-safe factory functions for creating resource references:
+The `ref` package provides type-safe factory functions for creating resource references:
 
 ```go
-import "github.com/stigmer/stigmer/sdk/go/commons/ref"
+import "github.com/stigmer/stigmer/sdk/go/ref"
 
 // Skills (versioned resources)
 skillRef := ref.Skill("stigmer", "web-search")
