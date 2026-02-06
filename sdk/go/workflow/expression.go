@@ -1,8 +1,19 @@
+// expression.go provides expression and reference helpers for workflow tasks.
+//
+// This file consolidates all expression-related utilities used throughout
+// the workflow package for handling typed references, value coercion, and
+// expression generation.
+
 package workflow
 
 import (
 	"fmt"
+	"reflect"
 )
+
+// =============================================================================
+// Reference Interfaces
+// =============================================================================
 
 // Ref is a minimal interface that represents a typed reference to a value.
 // This allows the workflow package to work with context references without
@@ -33,8 +44,62 @@ type StringValue interface {
 	Value() string
 }
 
+// =============================================================================
+// Value Checking
+// =============================================================================
+
+// IsEmpty checks if a value is empty/zero.
+// Used by ToProto methods to skip optional fields.
+func IsEmpty(v interface{}) bool {
+	if v == nil {
+		return true
+	}
+	val := reflect.ValueOf(v)
+	return val.IsZero()
+}
+
+// isEmpty is an alias for backward compatibility
+var isEmpty = IsEmpty
+
+// =============================================================================
+// String Coercion
+// =============================================================================
+
+// CoerceToString converts various types to strings for expression support.
+// Used by option functions to accept both string literals and expressions.
+func CoerceToString(value interface{}) string {
+	if s, ok := value.(string); ok {
+		return s
+	}
+	// Handle *Task - convert to task reference expression
+	if task, ok := value.(*Task); ok {
+		return fmt.Sprintf("${ $context[\"%s\"] }", task.Name)
+	}
+	// Handle StringRef - use Value() for resolved literals, Expression() for computed
+	if sr, ok := value.(interface {
+		Value() string
+		Expression() string
+	}); ok {
+		// Try Value() first (for resolved StringRef from Concat, etc.)
+		if v := sr.Value(); v != "" {
+			return v
+		}
+		// Fall back to Expression() for computed/context refs
+		return sr.Expression()
+	}
+	// Handle TaskFieldRef and other expression types
+	if expr, ok := value.(interface{ Expression() string }); ok {
+		return expr.Expression()
+	}
+	return fmt.Sprintf("%v", value)
+}
+
+// =============================================================================
+// Type Conversion Helpers
+// =============================================================================
+
 // toExpression converts various input types to expression strings.
-// 
+//
 // SMART RESOLUTION: If the value is a known constant (StringValue, IntValue, BoolValue),
 // returns the actual value. If it's a runtime expression (Ref without value), returns
 // the JQ expression.
@@ -79,7 +144,7 @@ func toExpression(value interface{}) string {
 		return fmt.Sprintf("%f", v)
 	case float64:
 		return fmt.Sprintf("%f", v)
-	
+
 	// IMPORTANT: Check value interfaces BEFORE Ref interface
 	// This allows resolved StringRef/IntRef/BoolRef to return their values
 	// instead of empty expressions from Expression()
@@ -92,13 +157,13 @@ func toExpression(value interface{}) string {
 	case BoolValue:
 		// This is a known bool value - convert to string (compile-time resolution)
 		return fmt.Sprintf("%t", v.Value())
-	
+
 	// Check Ref last (for runtime expressions like task field outputs)
 	case Ref:
 		// Use Expression() for context variables and computed expressions
 		// This handles TaskFieldRef and other runtime references
 		return v.Expression()
-	
+
 	default:
 		// Fallback: convert to string
 		return fmt.Sprintf("%v", value)
