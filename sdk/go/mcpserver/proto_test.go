@@ -3,8 +3,9 @@ package mcpserver
 import (
 	"testing"
 
+	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/sdk/go/commons/metadata"
-	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
 func TestToProto_StdioServer(t *testing.T) {
@@ -15,7 +16,7 @@ func TestToProto_StdioServer(t *testing.T) {
 			Description: "GitHub MCP server for repository operations",
 			IconUrl:     "https://github.com/favicon.ico",
 			Tags:        []string{"git", "vcs", "code-analysis"},
-			Stdio: &types.StdioServerConfig{
+			Stdio: &mcpserverv1.StdioServerConfig{
 				Command:    "npx",
 				Args:       []string{"-y", "@modelcontextprotocol/server-github"},
 				WorkingDir: "/tmp",
@@ -102,7 +103,7 @@ func TestToProto_HttpServer(t *testing.T) {
 		Slug: "external-api",
 		Args: &McpServerArgs{
 			Description: "External API MCP server",
-			Http: &types.HttpServerConfig{
+			Http: &mcpserverv1.HttpServerConfig{
 				Url: "https://mcp.example.com/v1",
 				Headers: map[string]string{
 					"Authorization": "Bearer ${API_TOKEN}",
@@ -161,25 +162,25 @@ func TestToProto_WithEnvSpec(t *testing.T) {
 		Name: "github-mcp",
 		Slug: "github-mcp",
 		Args: &McpServerArgs{
-			Stdio: &types.StdioServerConfig{
+			Stdio: &mcpserverv1.StdioServerConfig{
 				Command: "npx",
 				Args:    []string{"-y", "@modelcontextprotocol/server-github"},
 			},
-			EnvSpec: &types.EnvironmentSpec{
-				Description: "GitHub environment variables",
-				Data: map[string]*types.EnvironmentValue{
-					"GITHUB_TOKEN": {
-						Value:       "",
-						IsSecret:    true,
-						Description: "GitHub personal access token",
-					},
-					"GITHUB_OWNER": {
-						Value:       "default-org",
-						IsSecret:    false,
-						Description: "Default GitHub organization",
-					},
+		EnvSpec: &environmentv1.EnvironmentSpec{
+			Description: "GitHub environment variables",
+			Data: map[string]*environmentv1.EnvironmentValue{
+				"GITHUB_TOKEN": {
+					Value:       "",
+					IsSecret:    true,
+					Description: "GitHub personal access token",
+				},
+				"GITHUB_OWNER": {
+					Value:       "default-org",
+					IsSecret:    false,
+					Description: "Default GitHub organization",
 				},
 			},
+		},
 		},
 	}
 
@@ -206,6 +207,31 @@ func TestToProto_WithEnvSpec(t *testing.T) {
 		}
 	} else {
 		t.Error("GITHUB_TOKEN not found in EnvSpec.Data")
+	}
+}
+
+func TestToProto_WithOrg(t *testing.T) {
+	server := &MCPServer{
+		Name: "github-mcp",
+		Slug: "github-mcp",
+		Org:  "my-org",
+		Args: &McpServerArgs{
+			Description: "GitHub MCP server",
+			Stdio: &mcpserverv1.StdioServerConfig{
+				Command: "npx",
+				Args:    []string{"-y", "@modelcontextprotocol/server-github"},
+			},
+		},
+	}
+
+	proto, err := server.ToProto()
+	if err != nil {
+		t.Fatalf("ToProto() returned error: %v", err)
+	}
+
+	// Verify Org is included in metadata
+	if proto.Metadata.Org != "my-org" {
+		t.Errorf("Metadata.Org = %q, want %q", proto.Metadata.Org, "my-org")
 	}
 }
 

@@ -1,8 +1,10 @@
 package mcpserver
 
 import (
-	"errors"
 	"sync"
+
+	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 
 	genMcpServer "github.com/stigmer/stigmer/sdk/go/gen/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
@@ -51,6 +53,10 @@ type MCPServer struct {
 	// This comes from the constructor, not from Args.
 	Slug string
 
+	// Org is the organization that owns this MCP server (optional).
+	// This is metadata, not part of Args.
+	Org string
+
 	// Args contains all configuration for this MCP server.
 	// This is the SINGLE SOURCE OF TRUTH for configuration.
 	// Uses COMPOSITION pattern - we embed the generated Args struct
@@ -93,7 +99,7 @@ type MCPServer struct {
 //	})
 func Stdio(ctx Context, name string, args *McpServerArgs) (*MCPServer, error) {
 	if name == "" {
-		return nil, errors.New("mcpserver: name is required")
+		return nil, ErrNameRequired
 	}
 
 	// Nil-safety: if args is nil, create empty args
@@ -103,12 +109,12 @@ func Stdio(ctx Context, name string, args *McpServerArgs) (*MCPServer, error) {
 
 	// Validate that Stdio config is provided
 	if args.Stdio == nil {
-		return nil, errors.New("mcpserver: Stdio configuration is required for Stdio server")
+		return nil, ErrStdioRequired
 	}
 
 	// Validate command is provided
 	if args.Stdio.Command == "" {
-		return nil, errors.New("mcpserver: Stdio.Command is required")
+		return nil, ErrCommandRequired
 	}
 
 	m := &MCPServer{
@@ -161,7 +167,7 @@ func Stdio(ctx Context, name string, args *McpServerArgs) (*MCPServer, error) {
 //	})
 func HTTP(ctx Context, name string, args *McpServerArgs) (*MCPServer, error) {
 	if name == "" {
-		return nil, errors.New("mcpserver: name is required")
+		return nil, ErrNameRequired
 	}
 
 	// Nil-safety: if args is nil, create empty args
@@ -171,12 +177,12 @@ func HTTP(ctx Context, name string, args *McpServerArgs) (*MCPServer, error) {
 
 	// Validate that HTTP config is provided
 	if args.Http == nil {
-		return nil, errors.New("mcpserver: Http configuration is required for HTTP server")
+		return nil, ErrHttpRequired
 	}
 
 	// Validate URL is provided
 	if args.Http.Url == "" {
-		return nil, errors.New("mcpserver: Http.Url is required")
+		return nil, ErrUrlRequired
 	}
 
 	m := &MCPServer{
@@ -224,4 +230,198 @@ func (m *MCPServer) ServerType() string {
 		return "http"
 	}
 	return "unknown"
+}
+
+// ============================================================================
+// Builder Methods - Modify Args (single source of truth)
+// ============================================================================
+
+// SetDescription sets the MCP server description.
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	server.SetDescription("GitHub MCP server for repository operations")
+func (m *MCPServer) SetDescription(description string) *MCPServer {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.Args == nil {
+		m.Args = &McpServerArgs{}
+	}
+	m.Args.Description = description
+	return m
+}
+
+// SetIconUrl sets the MCP server icon URL.
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	server.SetIconUrl("https://github.githubassets.com/favicons/favicon.svg")
+func (m *MCPServer) SetIconUrl(url string) *MCPServer {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.Args == nil {
+		m.Args = &McpServerArgs{}
+	}
+	m.Args.IconUrl = url
+	return m
+}
+
+// AddTag adds a categorization tag for marketplace discoverability.
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	server.AddTag("git").AddTag("vcs").AddTag("code-analysis")
+func (m *MCPServer) AddTag(tag string) *MCPServer {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.Args == nil {
+		m.Args = &McpServerArgs{}
+	}
+	m.Args.Tags = append(m.Args.Tags, tag)
+	return m
+}
+
+// AddTags adds multiple categorization tags for marketplace discoverability.
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	server.AddTags("git", "vcs", "code-analysis")
+func (m *MCPServer) AddTags(tags ...string) *MCPServer {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.Args == nil {
+		m.Args = &McpServerArgs{}
+	}
+	m.Args.Tags = append(m.Args.Tags, tags...)
+	return m
+}
+
+// EnableTool adds a tool to the default enabled tools list.
+// Tools must match exactly what the MCP server reports via tools/list.
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	server.EnableTool("create_pull_request").EnableTool("search_code")
+func (m *MCPServer) EnableTool(tool string) *MCPServer {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.Args == nil {
+		m.Args = &McpServerArgs{}
+	}
+	m.Args.DefaultEnabledTools = append(m.Args.DefaultEnabledTools, tool)
+	return m
+}
+
+// EnableTools adds multiple tools to the default enabled tools list.
+// Tools must match exactly what the MCP server reports via tools/list.
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	server.EnableTools("create_pull_request", "search_code", "get_file_contents")
+func (m *MCPServer) EnableTools(tools ...string) *MCPServer {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.Args == nil {
+		m.Args = &McpServerArgs{}
+	}
+	m.Args.DefaultEnabledTools = append(m.Args.DefaultEnabledTools, tools...)
+	return m
+}
+
+// RequireApproval adds a default tool approval policy for a specific tool.
+// Tools with approval policies require user approval before execution.
+// This method is thread-safe and can be called concurrently.
+//
+// The message supports {{args.field}} placeholders for dynamic content.
+// If message is empty, a default message is generated: "Execute tool: {tool_name}"
+//
+// Example:
+//
+//	server.RequireApproval("delete_repository", "Delete repository: {{args.repo}}")
+//	server.RequireApproval("force_push", "Force push to {{args.branch}}")
+func (m *MCPServer) RequireApproval(toolName, message string) *MCPServer {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.Args == nil {
+		m.Args = &McpServerArgs{}
+	}
+	policy := &mcpserverv1.ToolApprovalPolicy{
+		ToolName: toolName,
+		Message:  message,
+	}
+	m.Args.DefaultToolApprovals = append(m.Args.DefaultToolApprovals, policy)
+	return m
+}
+
+// ============================================================================
+// Environment Variable Declaration Methods
+// ============================================================================
+
+// RequireSecret declares that this MCP server requires a secret environment variable.
+// This adds to Args.EnvSpec with is_secret=true and empty value (must be provided at runtime).
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	server.RequireSecret("GITHUB_TOKEN", "GitHub personal access token with repo scope")
+//	server.RequireSecret("AWS_SECRET_KEY", "AWS secret access key for S3 operations")
+func (m *MCPServer) RequireSecret(name, description string) *MCPServer {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.ensureEnvSpec()
+	m.Args.EnvSpec.Data[name] = &environmentv1.EnvironmentValue{
+		Value:       "", // Empty = must be provided at instance time
+		IsSecret:    true,
+		Description: description,
+	}
+	return m
+}
+
+// RequireConfig declares that this MCP server requires a configuration environment variable (non-secret).
+// This adds to Args.EnvSpec with is_secret=false.
+//
+// If defaultValue is non-empty, it will be used when the variable is not provided.
+// If defaultValue is empty, the variable is required at runtime.
+//
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	server.RequireConfig("GITHUB_OWNER", "stigmer", "Default GitHub organization or user")
+//	server.RequireConfig("LOG_LEVEL", "info", "Logging verbosity (debug, info, warn, error)")
+//	server.RequireConfig("API_BASE_URL", "", "API base URL (required)")
+func (m *MCPServer) RequireConfig(name, defaultValue, description string) *MCPServer {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.ensureEnvSpec()
+	m.Args.EnvSpec.Data[name] = &environmentv1.EnvironmentValue{
+		Value:       defaultValue,
+		IsSecret:    false,
+		Description: description,
+	}
+	return m
+}
+
+// ensureEnvSpec ensures Args and Args.EnvSpec are initialized.
+// Must be called with m.mu held.
+func (m *MCPServer) ensureEnvSpec() {
+	if m.Args == nil {
+		m.Args = &McpServerArgs{}
+	}
+	if m.Args.EnvSpec == nil {
+		m.Args.EnvSpec = &environmentv1.EnvironmentSpec{
+			Data: make(map[string]*environmentv1.EnvironmentValue),
+		}
+	}
+	if m.Args.EnvSpec.Data == nil {
+		m.Args.EnvSpec.Data = make(map[string]*environmentv1.EnvironmentValue)
+	}
 }
