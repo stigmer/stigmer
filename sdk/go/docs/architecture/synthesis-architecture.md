@@ -24,24 +24,17 @@ package main
 import (
     "github.com/stigmer/stigmer/sdk/go/stigmer"
     "github.com/stigmer/stigmer/sdk/go/agent"
-    "github.com/stigmer/stigmer/sdk/go/skill"
+    "github.com/stigmer/stigmer/sdk/go/skillref"
     "github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
 func main() {
     stigmer.Run(func(ctx *stigmer.Context) error {
-        // Create inline skill
-        skill1, _ := skill.New(
-            skill.WithName("code-analysis"),
-            skill.WithMarkdown("# Code Analysis..."),
-        )
-        
-        // Create agent using skill
-        agent1, _ := agent.New(ctx,
-            agent.WithName("code-reviewer"),
-            agent.WithInstructions("Review code"),
-            agent.WithSkills(*skill1),  // Dependency tracked automatically
-        )
+        // Create agent with skill reference
+        agent1, _ := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+            Instructions: "Review code",
+        })
+        agent1.AddSkillRef(skillref.New("stigmer", "code-analysis"))
         
         // Create workflow that calls agent
         wf, _ := workflow.New(ctx,

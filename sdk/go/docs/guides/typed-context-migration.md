@@ -26,7 +26,7 @@ The SDK underwent a major API redesign to align with professional infrastructure
 import stigmeragent "github.com/leftbin/stigmer-sdk/go"
 
 // AFTER ✅
-import "github.com/leftbin/stigmer-sdk/go/stigmer"
+import "github.com/leftbin/stigmer-sdk/go/context"
 ```
 
 ### Entry Point
@@ -168,7 +168,7 @@ import stigmeragent "github.com/leftbin/stigmer-sdk/go"
 stigmeragent.Run(...)
 
 // AFTER ✅
-import "github.com/leftbin/stigmer-sdk/go/stigmer"
+import "github.com/leftbin/stigmer-sdk/go/context"
 stigmer.Run(...)
 ```
 
@@ -185,7 +185,7 @@ Replace the old import with the new package path:
 import stigmeragent "github.com/leftbin/stigmer-sdk/go"
 
 // Add this
-import "github.com/leftbin/stigmer-sdk/go/stigmer"
+import "github.com/leftbin/stigmer-sdk/go/context"
 ```
 
 Update all references from `stigmeragent.X` to `stigmer.X`.
@@ -389,7 +389,7 @@ package main
 
 import (
     "log"
-    "github.com/leftbin/stigmer-sdk/go/stigmer"
+    "github.com/leftbin/stigmer-sdk/go/context"
     "github.com/leftbin/stigmer-sdk/go/workflow"
 )
 
@@ -472,7 +472,7 @@ func main() {
 | Old | New |
 |-----|-----|
 | `stigmeragent` | `stigmer` |
-| `import stigmeragent "github.com/leftbin/stigmer-sdk/go"` | `import "github.com/leftbin/stigmer-sdk/go/stigmer"` |
+| `import stigmeragent "github.com/leftbin/stigmer-sdk/go"` | `import "github.com/leftbin/stigmer-sdk/go/context"` |
 | `stigmeragent.Run()` | `stigmer.Run()` |
 | `stigmeragent.Context` | `stigmer.Context` |
 
@@ -547,7 +547,7 @@ wf.HttpGet("fetch", endpoint)
 import stigmeragent "github.com/leftbin/stigmer-sdk/go"
 
 // Add
-import "github.com/leftbin/stigmer-sdk/go/stigmer"
+import "github.com/leftbin/stigmer-sdk/go/context"
 ```
 
 ### Error: "FieldRef not found in workflow"

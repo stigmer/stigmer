@@ -22,13 +22,17 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// SkillSpec defines the user-provided configuration of a skill.
-// This represents user intent (desired state).
+// SkillSpec defines the stored desired state of a skill.
+// All fields are extracted from the skill artifact by the backend.
+// This follows the Kubernetes spec pattern - contains user's desired state.
+//
+// Note: Source/provenance information is NOT stored here - it's in SkillStatus
+// as GitProvenance (observed state). See synth.proto for SDK input structure.
 type SkillSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// SKILL.md content containing the skill's interface definition,
-	// documentation, usage examples, and tool descriptions.
-	// This content is injected into agent prompts.
+	// SKILL.md content extracted from the artifact.
+	// Contains the skill's interface definition, documentation, usage examples,
+	// and tool descriptions. This content is injected into agent prompts.
 	SkillMd string `protobuf:"bytes,1,opt,name=skill_md,json=skillMd,proto3" json:"skill_md,omitempty"`
 	// Optional user-provided tag for this skill version.
 	// Tags are mutable pointers that can be updated to reference new versions.
@@ -40,9 +44,6 @@ type SkillSpec struct {
 	// Must be kebab-case: lowercase letters, numbers, and hyphens only.
 	// Examples: "calculator", "web-scraper", "math-utils"
 	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	// Source information tracking where the skill artifacts originated from.
-	// This provides traceability and enables reproducible deployments.
-	Source *SkillSource `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
 	// Human-readable description extracted from SKILL.md YAML frontmatter.
 	// Provides a concise summary of what this skill does for marketplace display
 	// and system prompt injection into AI agents.
@@ -104,257 +105,9 @@ func (x *SkillSpec) GetName() string {
 	return ""
 }
 
-func (x *SkillSpec) GetSource() *SkillSource {
-	if x != nil {
-		return x.Source
-	}
-	return nil
-}
-
 func (x *SkillSpec) GetDescription() string {
 	if x != nil {
 		return x.Description
-	}
-	return ""
-}
-
-// SkillSource identifies where the skill artifacts originated from.
-// This provides traceability and enables features like "push from GitHub".
-// Similar to buf's input concept with support for local directories and git repos.
-type SkillSource struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Source:
-	//
-	//	*SkillSource_Local
-	//	*SkillSource_Git
-	Source        isSkillSource_Source `protobuf_oneof:"source"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SkillSource) Reset() {
-	*x = SkillSource{}
-	mi := &file_ai_stigmer_agentic_skill_v1_spec_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SkillSource) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SkillSource) ProtoMessage() {}
-
-func (x *SkillSource) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_skill_v1_spec_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SkillSource.ProtoReflect.Descriptor instead.
-func (*SkillSource) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_skill_v1_spec_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *SkillSource) GetSource() isSkillSource_Source {
-	if x != nil {
-		return x.Source
-	}
-	return nil
-}
-
-func (x *SkillSource) GetLocal() *LocalSource {
-	if x != nil {
-		if x, ok := x.Source.(*SkillSource_Local); ok {
-			return x.Local
-		}
-	}
-	return nil
-}
-
-func (x *SkillSource) GetGit() *GitSource {
-	if x != nil {
-		if x, ok := x.Source.(*SkillSource_Git); ok {
-			return x.Git
-		}
-	}
-	return nil
-}
-
-type isSkillSource_Source interface {
-	isSkillSource_Source()
-}
-
-type SkillSource_Local struct {
-	// Local directory push - git info auto-detected if available
-	Local *LocalSource `protobuf:"bytes,1,opt,name=local,proto3,oneof"`
-}
-
-type SkillSource_Git struct {
-	// Remote git repository push (URL + ref + subdir)
-	Git *GitSource `protobuf:"bytes,2,opt,name=git,proto3,oneof"`
-}
-
-func (*SkillSource_Local) isSkillSource_Source() {}
-
-func (*SkillSource_Git) isSkillSource_Source() {}
-
-// LocalSource represents a skill pushed from a local directory.
-// Git information is auto-detected when the directory is within a git repository.
-type LocalSource struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Git remote URL if the directory is within a git repo (auto-detected).
-	// Typically the "origin" remote URL.
-	// Empty if not a git repository.
-	// Example: "https://github.com/stigmer/skills.git"
-	GitRemoteUrl string `protobuf:"bytes,1,opt,name=git_remote_url,json=gitRemoteUrl,proto3" json:"git_remote_url,omitempty"`
-	// Git commit SHA at time of push (auto-detected).
-	// Empty if not a git repository.
-	// Example: "abc123def456789..."
-	GitCommit string `protobuf:"bytes,2,opt,name=git_commit,json=gitCommit,proto3" json:"git_commit,omitempty"`
-	// Sub-directory path relative to the git repo root.
-	// Empty if pushed from the repo root or not a git repository.
-	// Example: "skills/calculator"
-	Subdir string `protobuf:"bytes,3,opt,name=subdir,proto3" json:"subdir,omitempty"`
-	// Whether the directory was detected to be within a git repository.
-	// When true, git_remote_url and git_commit should be populated.
-	IsGitRepo     bool `protobuf:"varint,4,opt,name=is_git_repo,json=isGitRepo,proto3" json:"is_git_repo,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LocalSource) Reset() {
-	*x = LocalSource{}
-	mi := &file_ai_stigmer_agentic_skill_v1_spec_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalSource) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalSource) ProtoMessage() {}
-
-func (x *LocalSource) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_skill_v1_spec_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalSource.ProtoReflect.Descriptor instead.
-func (*LocalSource) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_skill_v1_spec_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *LocalSource) GetGitRemoteUrl() string {
-	if x != nil {
-		return x.GitRemoteUrl
-	}
-	return ""
-}
-
-func (x *LocalSource) GetGitCommit() string {
-	if x != nil {
-		return x.GitCommit
-	}
-	return ""
-}
-
-func (x *LocalSource) GetSubdir() string {
-	if x != nil {
-		return x.Subdir
-	}
-	return ""
-}
-
-func (x *LocalSource) GetIsGitRepo() bool {
-	if x != nil {
-		return x.IsGitRepo
-	}
-	return false
-}
-
-// GitSource represents a skill pushed from a remote git repository.
-// This enables pushing skills directly from GitHub without cloning locally.
-// Similar to buf's git_repo input format.
-type GitSource struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Git repository URL (required).
-	// Must be a valid git URL (HTTPS or SSH).
-	// Example: "https://github.com/stigmer/skills.git"
-	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
-	// Git reference - tag, branch name, or commit SHA.
-	// If empty, defaults to the repository's default branch (usually "main").
-	// Examples: "v1.0.0", "main", "feature/new-skill", "abc123def456..."
-	Ref string `protobuf:"bytes,2,opt,name=ref,proto3" json:"ref,omitempty"`
-	// Sub-directory within the repository containing SKILL.md.
-	// If empty, SKILL.md is expected at the repository root.
-	// Example: "skills/calculator"
-	Subdir        string `protobuf:"bytes,3,opt,name=subdir,proto3" json:"subdir,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GitSource) Reset() {
-	*x = GitSource{}
-	mi := &file_ai_stigmer_agentic_skill_v1_spec_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GitSource) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GitSource) ProtoMessage() {}
-
-func (x *GitSource) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_skill_v1_spec_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GitSource.ProtoReflect.Descriptor instead.
-func (*GitSource) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_skill_v1_spec_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *GitSource) GetUrl() string {
-	if x != nil {
-		return x.Url
-	}
-	return ""
-}
-
-func (x *GitSource) GetRef() string {
-	if x != nil {
-		return x.Ref
-	}
-	return ""
-}
-
-func (x *GitSource) GetSubdir() string {
-	if x != nil {
-		return x.Subdir
 	}
 	return ""
 }
@@ -363,27 +116,12 @@ var File_ai_stigmer_agentic_skill_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/skill/v1/spec.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a\x1bbuf/validate/validate.proto\"\xf7\x01\n" +
+	"&ai/stigmer/agentic/skill/v1/spec.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a\x1bbuf/validate/validate.proto\"\xbb\x01\n" +
 	"\tSkillSpec\x12\"\n" +
 	"\bskill_md\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\askillMd\x12-\n" +
 	"\x03tag\x18\x02 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x123\n" +
-	"\x04name\x18\x03 \x01(\tB\x1f\xbaH\x1cr\x1a2\x18^[a-z0-9]+(-[a-z0-9]+)*$R\x04name\x12@\n" +
-	"\x06source\x18\x04 \x01(\v2(.ai.stigmer.agentic.skill.v1.SkillSourceR\x06source\x12 \n" +
-	"\vdescription\x18\x05 \x01(\tR\vdescription\"\x95\x01\n" +
-	"\vSkillSource\x12@\n" +
-	"\x05local\x18\x01 \x01(\v2(.ai.stigmer.agentic.skill.v1.LocalSourceH\x00R\x05local\x12:\n" +
-	"\x03git\x18\x02 \x01(\v2&.ai.stigmer.agentic.skill.v1.GitSourceH\x00R\x03gitB\b\n" +
-	"\x06source\"\x8a\x01\n" +
-	"\vLocalSource\x12$\n" +
-	"\x0egit_remote_url\x18\x01 \x01(\tR\fgitRemoteUrl\x12\x1d\n" +
-	"\n" +
-	"git_commit\x18\x02 \x01(\tR\tgitCommit\x12\x16\n" +
-	"\x06subdir\x18\x03 \x01(\tR\x06subdir\x12\x1e\n" +
-	"\vis_git_repo\x18\x04 \x01(\bR\tisGitRepo\"P\n" +
-	"\tGitSource\x12\x19\n" +
-	"\x03url\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03url\x12\x10\n" +
-	"\x03ref\x18\x02 \x01(\tR\x03ref\x12\x16\n" +
-	"\x06subdir\x18\x03 \x01(\tR\x06subdirB\x8b\x02\n" +
+	"\x04name\x18\x03 \x01(\tB\x1f\xbaH\x1cr\x1a2\x18^[a-z0-9]+(-[a-z0-9]+)*$R\x04name\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescriptionJ\x04\b\x04\x10\x05B\x8b\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.skill.v1B\tSpecProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var (
@@ -398,22 +136,16 @@ func file_ai_stigmer_agentic_skill_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_skill_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_skill_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ai_stigmer_agentic_skill_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_agentic_skill_v1_spec_proto_goTypes = []any{
-	(*SkillSpec)(nil),   // 0: ai.stigmer.agentic.skill.v1.SkillSpec
-	(*SkillSource)(nil), // 1: ai.stigmer.agentic.skill.v1.SkillSource
-	(*LocalSource)(nil), // 2: ai.stigmer.agentic.skill.v1.LocalSource
-	(*GitSource)(nil),   // 3: ai.stigmer.agentic.skill.v1.GitSource
+	(*SkillSpec)(nil), // 0: ai.stigmer.agentic.skill.v1.SkillSpec
 }
 var file_ai_stigmer_agentic_skill_v1_spec_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.skill.v1.SkillSpec.source:type_name -> ai.stigmer.agentic.skill.v1.SkillSource
-	2, // 1: ai.stigmer.agentic.skill.v1.SkillSource.local:type_name -> ai.stigmer.agentic.skill.v1.LocalSource
-	3, // 2: ai.stigmer.agentic.skill.v1.SkillSource.git:type_name -> ai.stigmer.agentic.skill.v1.GitSource
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0, // [0:0] is the sub-list for method output_type
+	0, // [0:0] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_skill_v1_spec_proto_init() }
@@ -421,17 +153,13 @@ func file_ai_stigmer_agentic_skill_v1_spec_proto_init() {
 	if File_ai_stigmer_agentic_skill_v1_spec_proto != nil {
 		return
 	}
-	file_ai_stigmer_agentic_skill_v1_spec_proto_msgTypes[1].OneofWrappers = []any{
-		(*SkillSource_Local)(nil),
-		(*SkillSource_Git)(nil),
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_skill_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_skill_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

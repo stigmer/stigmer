@@ -181,18 +181,23 @@ func extractDomainFromProtoType(protoType string) string {
 //
 //	"apis/ai/stigmer/agentic/agent/v1/spec.proto" -> "agent"
 //	"apis/ai/stigmer/agentic/skill/v1/spec.proto" -> "skill"
+//	"apis/ai/stigmer/iam/apikey/v1/spec.proto" -> "apikey"
+//	"apis/ai/stigmer/tenancy/organization/v1/spec.proto" -> "organization"
 //	"apis/ai/stigmer/commons/apiresource/io.proto" -> ""
 func extractSubdomainFromProtoFile(protoFile string) string {
-	// Pattern: apis/ai/stigmer/<domain>/<subdomain>/...
+	// Pattern: apis/ai/stigmer/<domain>/<subdomain>/v<version>/...
 	parts := strings.Split(protoFile, "/")
 	if len(parts) >= 6 && parts[0] == "apis" && parts[1] == "ai" && parts[2] == "stigmer" {
-		// parts[3] is domain (e.g., "agentic", "commons")
-		// parts[4] is subdomain (e.g., "agent", "skill") or version for commons
-		if parts[3] == "agentic" {
-			return parts[4] // "agent", "skill", "workflow", etc.
+		domain := parts[3] // "agentic", "iam", "tenancy", "commons"
+
+		// Skip commons - no subdomain concept, types go to gen/types/
+		if domain == "commons" {
+			return ""
 		}
-		// For commons, there's no subdomain, just the module name
-		return ""
+
+		// For all other domains (agentic, iam, tenancy), parts[4] is the resource subdomain
+		// e.g., agentic/agent, iam/apikey, tenancy/organization
+		return parts[4]
 	}
 	return ""
 }
@@ -275,7 +280,7 @@ func (g *Generator) loadSchemas() error {
 	// Track loaded types to avoid duplicates
 	loadedTypes := make(map[string]bool)
 
-	// Load shared types from types/ directory (workflow task types)
+	// Load shared types from types/ directory (if exists)
 	typesDir := filepath.Join(g.schemaDir, "types")
 	if _, err := os.Stat(typesDir); err == nil {
 		entries, err := os.ReadDir(typesDir)
@@ -303,6 +308,40 @@ func (g *Generator) loadSchemas() error {
 			// Extract domain from proto namespace (data-driven, no hard-coding)
 			schema.Domain = extractDomainFromProtoType(schema.ProtoType)
 			fmt.Printf("  Loaded type: %s (domain: %s)\n", schema.Name, schema.Domain)
+
+			g.sharedTypes = append(g.sharedTypes, schema)
+		}
+	}
+
+	// Load workflow task types from tasks/types/ directory
+	// These are types used by workflow task configs (e.g., AgentExecutionConfig, ForkBranch, etc.)
+	tasksTypesDir := filepath.Join(g.schemaDir, "tasks", "types")
+	if _, err := os.Stat(tasksTypesDir); err == nil {
+		entries, err := os.ReadDir(tasksTypesDir)
+		if err != nil {
+			return fmt.Errorf("failed to read tasks/types directory: %w", err)
+		}
+
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+				continue
+			}
+
+			path := filepath.Join(tasksTypesDir, entry.Name())
+			schema, err := loadTypeSchema(path)
+			if err != nil {
+				return fmt.Errorf("failed to load task type %s: %w", entry.Name(), err)
+			}
+
+			// Skip duplicates
+			if loadedTypes[schema.Name] {
+				continue
+			}
+			loadedTypes[schema.Name] = true
+
+			// Extract domain from proto namespace - workflow task types go to "workflow" domain
+			schema.Domain = extractDomainFromProtoType(schema.ProtoType)
+			fmt.Printf("  Loaded task type: %s (domain: %s, from tasks/types/)\n", schema.Name, schema.Domain)
 
 			g.sharedTypes = append(g.sharedTypes, schema)
 		}
@@ -673,17 +712,11 @@ func (g *Generator) generateTaskFile(taskConfig *TaskConfigSchema) error {
 
 // generateResourceArgsFile generates Args struct for an SDK resource spec (Pulumi pattern)
 func (g *Generator) generateResourceArgsFile(resourceSpec *TaskConfigSchema) error {
-	// Collect shared type names
-	sharedTypeNames := make([]string, 0, len(g.sharedTypes))
-	for _, t := range g.sharedTypes {
-		sharedTypeNames = append(sharedTypeNames, t.Name)
-	}
-
 	// Determine package name dynamically from proto file path
 	packageName := g.getPackageName(resourceSpec)
 
-	// Create context aware of shared types
-	ctx := newGenContextWithSharedTypes(packageName, sharedTypeNames)
+	// Create context that uses proto stubs types for resource Args
+	ctx := newGenContextForResourceArgs(packageName, g.sharedTypes)
 
 	var buf bytes.Buffer
 
@@ -751,21 +784,32 @@ func (g *Generator) writeFormattedFileToDir(outputDir, filename string, code []b
 // Generation Context
 // ============================================================================
 
+// protoStubInfo holds information for mapping message types to proto stubs
+type protoStubInfo struct {
+	importPath   string // Full Go import path
+	packageAlias string // Go package alias to use in generated code
+	typeName     string // Type name in the proto stubs package
+}
+
 // genContext holds state during code generation
 type genContext struct {
-	packageName string
-	imports     map[string]struct{}
-	generated   map[string]struct{}
-	sharedTypes map[string]struct{} // Set of shared type names (from types package)
+	packageName    string
+	imports        map[string]struct{}
+	generated      map[string]struct{}
+	sharedTypes    map[string]struct{}    // Set of shared type names (from types package)
+	protoStubTypes map[string]*TypeSchema // Map of message type name to its schema (for proto stubs lookup)
+	useProtoStubs  bool                   // Whether to use proto stubs types instead of gen/types
 }
 
 // newGenContext creates a new generation context
 func newGenContext(packageName string) *genContext {
 	return &genContext{
-		packageName: packageName,
-		imports:     make(map[string]struct{}),
-		generated:   make(map[string]struct{}),
-		sharedTypes: make(map[string]struct{}),
+		packageName:    packageName,
+		imports:        make(map[string]struct{}),
+		generated:      make(map[string]struct{}),
+		sharedTypes:    make(map[string]struct{}),
+		protoStubTypes: make(map[string]*TypeSchema),
+		useProtoStubs:  false,
 	}
 }
 
@@ -778,9 +822,66 @@ func newGenContextWithSharedTypes(packageName string, sharedTypeNames []string) 
 	return ctx
 }
 
+// newGenContextForResourceArgs creates a context for generating resource Args structs
+// that uses proto stubs types directly instead of gen/types package
+func newGenContextForResourceArgs(packageName string, sharedTypes []*TypeSchema) *genContext {
+	ctx := newGenContext(packageName)
+	ctx.useProtoStubs = true
+	for _, typeSchema := range sharedTypes {
+		ctx.sharedTypes[typeSchema.Name] = struct{}{}
+		ctx.protoStubTypes[typeSchema.Name] = typeSchema
+	}
+	return ctx
+}
+
+// protoTypeToGoImportPath converts a proto type namespace to a Go import path
+// Example: "ai.stigmer.agentic.agent.v1.McpServerUsage" -> "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+func protoTypeToGoImportPath(protoType string) string {
+	// Proto type format: ai.stigmer.<domain>.<subdomain>.<version>.<TypeName>
+	// or: ai.stigmer.commons.<module>.<TypeName>
+	parts := strings.Split(protoType, ".")
+	if len(parts) < 4 {
+		return ""
+	}
+
+	// Remove the type name (last element)
+	pathParts := parts[:len(parts)-1]
+
+	// Build the Go import path
+	return "github.com/stigmer/stigmer/apis/stubs/go/" + strings.Join(pathParts, "/")
+}
+
+// protoTypeToPackageAlias returns a Go package alias for a proto type
+// Example: "ai.stigmer.agentic.agent.v1.McpServerUsage" -> "agentv1"
+// Example: "ai.stigmer.commons.apiresource.ApiResourceReference" -> "apiresource"
+func protoTypeToPackageAlias(protoType string) string {
+	parts := strings.Split(protoType, ".")
+	if len(parts) < 4 {
+		return ""
+	}
+
+	// For versioned packages (e.g., ai.stigmer.agentic.agent.v1.TypeName)
+	// Use <subdomain><version> as alias (e.g., "agentv1")
+	if len(parts) >= 6 && strings.HasPrefix(parts[len(parts)-2], "v") {
+		subdomain := parts[len(parts)-3] // e.g., "agent"
+		version := parts[len(parts)-2]   // e.g., "v1"
+		return subdomain + version       // e.g., "agentv1"
+	}
+
+	// For non-versioned packages (e.g., ai.stigmer.commons.apiresource.TypeName)
+	// Use the module name as alias (e.g., "apiresource")
+	return parts[len(parts)-2]
+}
+
 // addImport adds an import to the context
 func (c *genContext) addImport(pkg string) {
 	c.imports[pkg] = struct{}{}
+}
+
+// addImportWithAlias adds an import with a specific alias to the context
+// The alias is stored by prefixing "alias:" to the import path
+func (c *genContext) addImportWithAlias(pkg, alias string) {
+	c.imports[alias+":"+pkg] = struct{}{}
 }
 
 // genImports generates the import block
@@ -789,19 +890,132 @@ func (c *genContext) genImports(w *bytes.Buffer) {
 		return
 	}
 
-	// Sort imports for deterministic output
-	imports := make([]string, 0, len(c.imports))
-	for imp := range c.imports {
-		imports = append(imports, imp)
+	// Separate aliased and non-aliased imports
+	type importEntry struct {
+		alias string
+		path  string
 	}
-	sort.Strings(imports)
+	var entries []importEntry
+
+	for imp := range c.imports {
+		if strings.Contains(imp, ":") {
+			// Aliased import: "alias:path"
+			parts := strings.SplitN(imp, ":", 2)
+			entries = append(entries, importEntry{alias: parts[0], path: parts[1]})
+		} else {
+			// Regular import
+			entries = append(entries, importEntry{alias: "", path: imp})
+		}
+	}
+
+	// Sort imports for deterministic output (by path)
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].path < entries[j].path
+	})
 
 	// Write import block
 	fmt.Fprintf(w, "import (\n")
-	for _, imp := range imports {
-		fmt.Fprintf(w, "\t\"%s\"\n", imp)
+	for _, entry := range entries {
+		if entry.alias != "" {
+			fmt.Fprintf(w, "\t%s \"%s\"\n", entry.alias, entry.path)
+		} else {
+			fmt.Fprintf(w, "\t\"%s\"\n", entry.path)
+		}
 	}
 	fmt.Fprintf(w, ")\n\n")
+}
+
+// wellKnownProtoType returns the Go type for well-known protobuf types
+// Returns empty string if not a well-known type
+func (c *genContext) wellKnownProtoType(messageType string) string {
+	switch messageType {
+	case "Timestamp":
+		c.addImportWithAlias("google.golang.org/protobuf/types/known/timestamppb", "timestamppb")
+		return "*timestamppb.Timestamp"
+	case "Duration":
+		c.addImportWithAlias("google.golang.org/protobuf/types/known/durationpb", "durationpb")
+		return "*durationpb.Duration"
+	case "Any":
+		c.addImportWithAlias("google.golang.org/protobuf/types/known/anypb", "anypb")
+		return "*anypb.Any"
+	case "Empty":
+		c.addImportWithAlias("google.golang.org/protobuf/types/known/emptypb", "emptypb")
+		return "*emptypb.Empty"
+	case "FieldMask":
+		c.addImportWithAlias("google.golang.org/protobuf/types/known/fieldmaskpb", "fieldmaskpb")
+		return "*fieldmaskpb.FieldMask"
+	case "Value", "ListValue", "NullValue":
+		c.addImportWithAlias("google.golang.org/protobuf/types/known/structpb", "structpb")
+		return "*structpb." + messageType
+	case "BoolValue", "Int32Value", "Int64Value", "UInt32Value", "UInt64Value",
+		"FloatValue", "DoubleValue", "StringValue", "BytesValue":
+		c.addImportWithAlias("google.golang.org/protobuf/types/known/wrapperspb", "wrapperspb")
+		return "*wrapperspb." + messageType
+	default:
+		return ""
+	}
+}
+
+// isWellKnownProtoType checks if a message type is a well-known protobuf type
+func (c *genContext) isWellKnownProtoType(messageType string) bool {
+	switch messageType {
+	case "Timestamp", "Duration", "Any", "Empty", "FieldMask",
+		"Value", "ListValue", "NullValue",
+		"BoolValue", "Int32Value", "Int64Value", "UInt32Value", "UInt64Value",
+		"FloatValue", "DoubleValue", "StringValue", "BytesValue":
+		return true
+	default:
+		return false
+	}
+}
+
+// genWellKnownTypeFromProto generates FromProto conversion code for well-known proto types
+func (c *genContext) genWellKnownTypeFromProto(w *bytes.Buffer, field *FieldSchema) {
+	switch field.Type.MessageType {
+	case "Timestamp":
+		// Timestamps in structpb are typically RFC 3339 strings
+		// Parse them directly into timestamppb.Timestamp
+		c.addImportWithAlias("google.golang.org/protobuf/types/known/timestamppb", "timestamppb")
+		c.addImport("time")
+		fmt.Fprintf(w, "\t\t// Parse timestamp from RFC 3339 string or struct with seconds/nanos\n")
+		fmt.Fprintf(w, "\t\tif strVal := val.GetStringValue(); strVal != \"\" {\n")
+		fmt.Fprintf(w, "\t\t\tt, err := time.Parse(time.RFC3339Nano, strVal)\n")
+		fmt.Fprintf(w, "\t\t\tif err != nil {\n")
+		fmt.Fprintf(w, "\t\t\t\treturn err\n")
+		fmt.Fprintf(w, "\t\t\t}\n")
+		fmt.Fprintf(w, "\t\t\tc.%s = timestamppb.New(t)\n", field.Name)
+		fmt.Fprintf(w, "\t\t} else if structVal := val.GetStructValue(); structVal != nil {\n")
+		fmt.Fprintf(w, "\t\t\tfields := structVal.GetFields()\n")
+		fmt.Fprintf(w, "\t\t\tseconds := int64(0)\n")
+		fmt.Fprintf(w, "\t\t\tnanos := int32(0)\n")
+		fmt.Fprintf(w, "\t\t\tif s, ok := fields[\"seconds\"]; ok {\n")
+		fmt.Fprintf(w, "\t\t\t\tseconds = int64(s.GetNumberValue())\n")
+		fmt.Fprintf(w, "\t\t\t}\n")
+		fmt.Fprintf(w, "\t\t\tif n, ok := fields[\"nanos\"]; ok {\n")
+		fmt.Fprintf(w, "\t\t\t\tnanos = int32(n.GetNumberValue())\n")
+		fmt.Fprintf(w, "\t\t\t}\n")
+		fmt.Fprintf(w, "\t\t\tc.%s = &timestamppb.Timestamp{Seconds: seconds, Nanos: nanos}\n", field.Name)
+		fmt.Fprintf(w, "\t\t}\n")
+	case "Duration":
+		c.addImportWithAlias("google.golang.org/protobuf/types/known/durationpb", "durationpb")
+		fmt.Fprintf(w, "\t\t// Parse duration from struct with seconds/nanos\n")
+		fmt.Fprintf(w, "\t\tif structVal := val.GetStructValue(); structVal != nil {\n")
+		fmt.Fprintf(w, "\t\t\tfields := structVal.GetFields()\n")
+		fmt.Fprintf(w, "\t\t\tseconds := int64(0)\n")
+		fmt.Fprintf(w, "\t\t\tnanos := int32(0)\n")
+		fmt.Fprintf(w, "\t\t\tif s, ok := fields[\"seconds\"]; ok {\n")
+		fmt.Fprintf(w, "\t\t\t\tseconds = int64(s.GetNumberValue())\n")
+		fmt.Fprintf(w, "\t\t\t}\n")
+		fmt.Fprintf(w, "\t\t\tif n, ok := fields[\"nanos\"]; ok {\n")
+		fmt.Fprintf(w, "\t\t\t\tnanos = int32(n.GetNumberValue())\n")
+		fmt.Fprintf(w, "\t\t\t}\n")
+		fmt.Fprintf(w, "\t\t\tc.%s = &durationpb.Duration{Seconds: seconds, Nanos: nanos}\n", field.Name)
+		fmt.Fprintf(w, "\t\t}\n")
+	default:
+		// For other well-known types, skip the FromProto (they're complex and rarely used in this context)
+		fmt.Fprintf(w, "\t\t// TODO: Handle well-known type %s\n", field.Type.MessageType)
+		fmt.Fprintf(w, "\t\t_ = val // suppress unused variable warning\n")
+	}
 }
 
 // genConfigStruct generates a Go struct for a task config
@@ -1184,15 +1398,21 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 		fmt.Fprintf(w, "\t\tc.%s = val.GetStructValue().AsMap()\n", field.Name)
 
 	case "message":
-		// Check if this is a shared type that needs types. prefix
-		typeName := field.Type.MessageType
-		if _, isShared := c.sharedTypes[typeName]; isShared && c.packageName != "types" {
-			typeName = "types." + typeName
+		// Handle well-known proto types specially
+		if c.isWellKnownProtoType(field.Type.MessageType) {
+			c.genWellKnownTypeFromProto(w, field)
+		} else {
+			// Check if this is a shared type that needs types. prefix
+			typeName := field.Type.MessageType
+			if _, isShared := c.sharedTypes[typeName]; isShared && c.packageName != "types" {
+				typeName = "types." + typeName
+				c.addImport("github.com/stigmer/stigmer/sdk/go/gen/types")
+			}
+			fmt.Fprintf(w, "\t\tc.%s = &%s{}\n", field.Name, typeName)
+			fmt.Fprintf(w, "\t\tif err := c.%s.FromProto(val.GetStructValue()); err != nil {\n", field.Name)
+			fmt.Fprintf(w, "\t\t\treturn err\n")
+			fmt.Fprintf(w, "\t\t}\n")
 		}
-		fmt.Fprintf(w, "\t\tc.%s = &%s{}\n", field.Name, typeName)
-		fmt.Fprintf(w, "\t\tif err := c.%s.FromProto(val.GetStructValue()); err != nil {\n", field.Name)
-		fmt.Fprintf(w, "\t\t\treturn err\n")
-		fmt.Fprintf(w, "\t\t}\n")
 
 	case "array":
 		elementType := field.Type.ElementType
@@ -1375,9 +1595,26 @@ func (c *genContext) goType(typeSpec TypeSpec) string {
 		return fmt.Sprintf("[]%s", elementType)
 
 	case "message":
-		// Check if this is a shared type from types package
+		// Handle well-known proto types first
+		if wellKnownType := c.wellKnownProtoType(typeSpec.MessageType); wellKnownType != "" {
+			return wellKnownType
+		}
+
+		// Check if this is a shared type
 		if _, isShared := c.sharedTypes[typeSpec.MessageType]; isShared {
-			// Add types package import if we're not already in types package
+			// If useProtoStubs is enabled, use proto stubs types directly
+			if c.useProtoStubs {
+				if typeSchema, ok := c.protoStubTypes[typeSpec.MessageType]; ok && typeSchema.ProtoType != "" {
+					importPath := protoTypeToGoImportPath(typeSchema.ProtoType)
+					pkgAlias := protoTypeToPackageAlias(typeSchema.ProtoType)
+					if importPath != "" && pkgAlias != "" {
+						c.addImportWithAlias(importPath, pkgAlias)
+						return "*" + pkgAlias + "." + typeSpec.MessageType
+					}
+				}
+			}
+
+			// Fall back to gen/types package
 			if c.packageName != "types" {
 				c.addImport("github.com/stigmer/stigmer/sdk/go/gen/types")
 			}

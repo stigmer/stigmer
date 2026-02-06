@@ -2,6 +2,8 @@ package agent
 
 import (
 	"testing"
+
+	"github.com/stigmer/stigmer/sdk/go/metadata"
 )
 
 // TestAgentToProto_Complete tests full agent with all optional fields.
@@ -39,7 +41,7 @@ func TestAgentToProto_Complete(t *testing.T) {
 	if len(proto.Metadata.Annotations) == 0 {
 		t.Error("Expected SDK annotations, got none")
 	}
-	if proto.Metadata.Annotations[AnnotationSDKLanguage] != "go" {
+	if proto.Metadata.Annotations[metadata.AnnotationSDKLanguage] != "go" {
 		t.Error("Expected SDK language annotation to be 'go'")
 	}
 
@@ -150,7 +152,7 @@ func TestAgentToProto_WithSkill(t *testing.T) {
 	if len(proto.Metadata.Annotations) == 0 {
 		t.Error("Expected SDK annotations, got none")
 	}
-	if proto.Metadata.Annotations[AnnotationSDKLanguage] != "go" {
+	if proto.Metadata.Annotations[metadata.AnnotationSDKLanguage] != "go" {
 		t.Error("Expected SDK language annotation to be 'go'")
 	}
 

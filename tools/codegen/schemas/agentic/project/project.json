@@ -1,0 +1,98 @@
+{
+  "name": "ProjectSpec",
+  "kind": "PROJECT_SPEC",
+  "description": "ProjectSpec defines the configuration for a Stigmer project.\n Projects use SDK synthesis - all resources are defined in code.\n\n The SDK:\n 1. Reads the entry_point file\n 2. Executes it to generate a resource manifest\n 3. Writes manifest for CLI to apply\n\n Note: No YAML glob patterns. Use Atomic Track (`stigmer \u003cresource\u003e apply`)\n for individual YAML files. Project Track is SDK-only.\n\n The Project is an aggregate root that contains all managed resources.\n On apply, the backend reconciles resources to match this specification:\n - Resources in spec are created or updated\n - Resources removed from spec are deleted (orphan pruning)\n - Resource dependencies are resolved in order (MCP Servers → Agents → Workflows)",
+  "protoType": "ai.stigmer.agentic.project.v1.ProjectSpec",
+  "protoFile": "apis/ai/stigmer/agentic/project/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Runtime",
+      "jsonName": "runtime",
+      "protoField": "runtime",
+      "type": {
+        "kind": "string"
+      },
+      "description": "SDK runtime for resource synthesis.\n Determines how the entry_point is executed to generate the manifest.\n\n Required - must be a valid enum value (not UNSPECIFIED).",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "EntryPoint",
+      "jsonName": "entryPoint",
+      "protoField": "entry_point",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Entry point file for SDK synthesis.\n This file is executed to generate the resource manifest.\n\n Optional - defaults based on runtime:\n - go: main.go\n - python: main.py\n - node: index.ts\n\n Cross-field validation (runtime + entry_point extension consistency)\n is handled by the CLI validator.",
+      "required": false
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description of the project.",
+      "required": false
+    },
+    {
+      "name": "Agents",
+      "jsonName": "agents",
+      "protoField": "agents",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "Agent"
+        }
+      },
+      "description": "Agents managed by this project.\n\n Each Agent must have unique metadata.name within the project.\n Agents may reference MCP Servers (via mcp_server_usages) and Skills\n (via skill_refs) - these dependencies are resolved during reconciliation.\n\n On apply:\n - Agents present here are created or updated\n - Agents removed from this list are deleted (orphan pruning)\n - Agent IDs are assigned by the backend and populated in the response",
+      "required": false
+    },
+    {
+      "name": "Workflows",
+      "jsonName": "workflows",
+      "protoField": "workflows",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "Workflow"
+        }
+      },
+      "description": "Workflows managed by this project.\n\n Each Workflow must have unique metadata.name within the project.\n Workflows define multi-step orchestrations using the Zigflow DSL.\n\n On apply:\n - Workflows present here are created or updated\n - Workflows removed from this list are deleted (orphan pruning)\n - Workflow IDs are assigned by the backend and populated in the response",
+      "required": false
+    },
+    {
+      "name": "McpServers",
+      "jsonName": "mcpServers",
+      "protoField": "mcp_servers",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "McpServer"
+        }
+      },
+      "description": "MCP Servers managed by this project.\n\n Each McpServer must have unique metadata.name within the project.\n MCP Servers are processed first during reconciliation since Agents\n may depend on them via mcp_server_usages.\n\n On apply:\n - MCP Servers present here are created or updated\n - MCP Servers removed from this list are deleted (orphan pruning)\n - Server IDs are assigned by the backend and populated in the response",
+      "required": false
+    },
+    {
+      "name": "Skills",
+      "jsonName": "skills",
+      "protoField": "skills",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "Skill"
+        }
+      },
+      "description": "Skills managed by this project.\n\n Each Skill must have unique metadata.name within the project.\n Skills are special: they require code to be pushed separately before\n project apply. The CLI handles this flow:\n 1. CLI pushes skill code → SkillCommandController.Push() → returns Skill with ID\n 2. CLI adds returned Skill to project.spec.skills\n 3. CLI calls ProjectCommandController.Apply()\n 4. Backend validates skill references exist\n\n On apply:\n - Skills present here are validated (code must already be pushed)\n - Skills removed from this list are deleted (orphan pruning)",
+      "required": false
+    }
+  ]
+}

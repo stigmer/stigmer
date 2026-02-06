@@ -1,0 +1,18 @@
+{
+  "name": "FlowControl",
+  "description": "FlowControl defines which task executes next.\n Maps to the `then:` directive in Zigflow DSL.\n\n Examples:\n - {\"then\": \"nextTaskName\"} - Jump to specific task\n - {\"then\": \"end\"} - Terminate workflow\n - Not set - Continue to next task in sequence (default)",
+  "protoType": "ai.stigmer.agentic.workflow.v1.FlowControl",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Then",
+      "jsonName": "then",
+      "protoField": "then",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Target task name or \"end\" to terminate workflow.",
+      "required": false
+    }
+  ]
+}

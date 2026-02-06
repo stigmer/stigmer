@@ -29,12 +29,12 @@ func (r *Result) GetOrderedResources() ([]*ResourceWithID, error) {
 	// Build a list of all resources with their IDs
 	allResources := make([]*ResourceWithID, 0, r.TotalResources())
 
-	// Add skills first (no dependencies)
-	for _, skill := range r.Skills {
-		id := GetResourceID(skill)
+	// Add skill synths first (no dependencies)
+	for _, skillSynth := range r.SkillSynths {
+		id := GetResourceID(skillSynth)
 		allResources = append(allResources, &ResourceWithID{
 			ID:       id,
-			Resource: skill,
+			Resource: skillSynth,
 		})
 	}
 
@@ -190,8 +190,8 @@ func (r *Result) ValidateDependencies() error {
 	// Build set of valid resource IDs
 	validIDs := make(map[string]bool)
 
-	for _, skill := range r.Skills {
-		validIDs[GetResourceID(skill)] = true
+	for _, skillSynth := range r.SkillSynths {
+		validIDs[GetResourceID(skillSynth)] = true
 	}
 	for _, mcpServer := range r.McpServers {
 		validIDs[GetResourceID(mcpServer)] = true
@@ -299,9 +299,9 @@ func (r *Result) GetDependencyGraphMermaid() string {
 	// Collect all resource IDs
 	allResources := make(map[string]bool)
 
-	// Add resources from skills, mcp servers, agents, workflows
-	for _, skill := range r.Skills {
-		allResources[GetResourceID(skill)] = true
+	// Add resources from skill synths, mcp servers, agents, workflows
+	for _, skillSynth := range r.SkillSynths {
+		allResources[GetResourceID(skillSynth)] = true
 	}
 	for _, mcpServer := range r.McpServers {
 		allResources[GetResourceID(mcpServer)] = true
@@ -371,7 +371,7 @@ func (r *Result) GetDependencyGraphMermaid() string {
 	}
 
 	// Add styling for all resource types
-	result += "  classDef skill fill:#e1f5e1,stroke:#4caf50,stroke-width:2px\n"
+	result += "  classDef skill_synth fill:#e1f5e1,stroke:#4caf50,stroke-width:2px\n"
 	result += "  classDef mcp_server fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px\n"
 	result += "  classDef agent fill:#e3f2fd,stroke:#2196f3,stroke-width:2px\n"
 	result += "  classDef workflow fill:#fff3e0,stroke:#ff9800,stroke-width:2px\n"
@@ -404,9 +404,9 @@ func (r *Result) GetDependencyGraphDot() string {
 	// Collect all resource IDs
 	allResources := make(map[string]bool)
 
-	// Add resources from skills, mcp servers, agents, workflows
-	for _, skill := range r.Skills {
-		allResources[GetResourceID(skill)] = true
+	// Add resources from skill synths, mcp servers, agents, workflows
+	for _, skillSynth := range r.SkillSynths {
+		allResources[GetResourceID(skillSynth)] = true
 	}
 	for _, mcpServer := range r.McpServers {
 		allResources[GetResourceID(mcpServer)] = true
@@ -480,7 +480,7 @@ func getNodeStyle(resourceID string) (shape string, color string) {
 	resourceType := getResourceType(resourceID)
 
 	switch resourceType {
-	case "skill":
+	case "skill_synth":
 		return "box", "#e1f5e1" // Green
 	case "mcp_server":
 		return "diamond", "#f3e5f5" // Purple
@@ -517,10 +517,10 @@ func sanitizeMermaidID(resourceID string) string {
 }
 
 // getResourceType determines the resource type from a resource ID.
-// Returns "skill", "mcp_server", "agent", or "workflow" for styling purposes.
+// Returns "skill_synth", "mcp_server", "agent", or "workflow" for styling purposes.
 func getResourceType(resourceID string) string {
-	if len(resourceID) >= 6 && resourceID[:6] == "skill:" {
-		return "skill"
+	if len(resourceID) >= 12 && resourceID[:12] == "skill_synth:" {
+		return "skill_synth"
 	}
 	if len(resourceID) >= 11 && resourceID[:11] == "mcp_server:" {
 		return "mcp_server"

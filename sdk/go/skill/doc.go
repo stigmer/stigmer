@@ -1,60 +1,62 @@
-// Package skill provides helpers for creating skill references in agent definitions.
+// Package skill provides the Skill entity for defining skills in the SDK.
 //
-// When building agents, you add skills to give them specialized knowledge.
-// Skills are managed separately (via CLI: stigmer skill push) - this package
-// creates references to those skills.
+// Skills are content artifacts (like Docker images) - the user points to a source
+// location (local directory or git repo), and the CLI fetches the content,
+// creates a ZIP artifact, and pushes it to the backend.
 //
-// # Reference Format
+// # Defining Skills (this package)
 //
-// All skills follow the "org/slug" format:
-//   - "stigmer/web-search" - skill owned by stigmer org
-//   - "acme/internal-docs" - skill owned by acme org
-//   - "stigmer/code-review@v1.0" - skill with specific version
+// Use FromDir() to create a skill from a local directory:
 //
-// # Creating References
+//	stigmer.Run(func(ctx *stigmer.Context) error {
+//	    calc, err := skill.FromDir(ctx, "./skills/calculator",
+//	        skill.WithTag("stable"))
+//	    if err != nil {
+//	        return err
+//	    }
+//	    return nil
+//	})
 //
-// There are three ways to create skill references:
+// Use FromGit() to create a skill from a remote git repository:
 //
-// 1. Using New() for explicit org/slug:
+//	stigmer.Run(func(ctx *stigmer.Context) error {
+//	    search, err := skill.FromGit(ctx, "https://github.com/stigmer/skills.git",
+//	        skill.WithRef("v1.0"),
+//	        skill.WithSubdir("skills/web-search"),
+//	        skill.WithGitTag("stable"))
+//	    if err != nil {
+//	        return err
+//	    }
+//	    return nil
+//	})
 //
-//	ref := skill.New("stigmer", "web-search")
-//	ref := skill.New("stigmer", "web-search", skill.WithVersion("v1.0"))
+// # Referencing Existing Skills (ref package)
 //
-// 2. Using Parse() for string parsing (returns error):
+// To reference existing skills in agent configurations, use the ref package:
 //
-//	ref, err := skill.Parse("stigmer/web-search")
-//	ref, err := skill.Parse("stigmer/web-search@v1.0")
+//	import "github.com/stigmer/stigmer/sdk/go/ref"
 //
-// 3. Using MustParse() for string parsing (panics on error):
+//	// Explicit org and slug
+//	skillRef := ref.Skill("stigmer", "web-search")
+//	skillRef := ref.Skill("stigmer", "code-review", ref.WithVersion("v1.0"))
 //
-//	ref := skill.MustParse("stigmer/web-search")  // For init or tests
+//	// Parse from string
+//	skillRef, err := ref.ParseSkill("stigmer/web-search@stable")
 //
-// # Version Formats
+//	// Add to agent
+//	agent.AddSkillRef(ref.Skill("stigmer", "web-search"))
 //
-// Skills support optional versioning:
-//   - Empty/unset: Uses latest version
-//   - Tag name: e.g., "v1.0", "stable", "beta"
-//   - Exact hash: e.g., "abc123..." (64-char hex, immutable)
+// # Synthesis Flow
 //
-// # Usage with Agents
+// When you call skill.FromDir() or skill.FromGit(), the SDK:
+//  1. Creates a Skill entity with source information
+//  2. Registers it with the stigmer.Context
+//  3. During synthesis, writes a SkillSynth proto to .stigmer/skill-N.pb
 //
-// When using with agents, prefer the agent's AddSkill method for convenience:
-//
-//	agent, _ := agent.New("code-reviewer", agent.InOrg("acme"))
-//	agent.AddSkill("stigmer/web-search")      // Uses string parsing
-//	agent.AddSkill("internal-docs")           // Uses agent's org (acme)
-//
-// # Error Handling
-//
-// Parse() returns a *ParseError that wraps one of these sentinel errors:
-//   - ErrInvalidFormat: Missing "/" separator or empty input
-//   - ErrEmptyOrg: Organization part is empty (e.g., "/slug")
-//   - ErrEmptySlug: Slug part is empty (e.g., "org/")
-//
-// Use errors.Is to check for specific errors:
-//
-//	ref, err := skill.Parse(input)
-//	if errors.Is(err, skill.ErrInvalidFormat) {
-//	    // Handle invalid format
-//	}
+// The CLI then:
+//  1. Reads SkillSynth from .stigmer/skill-N.pb
+//  2. Fetches content from the source (local dir or git clone)
+//  3. Creates a ZIP artifact
+//  4. Detects git provenance (if applicable)
+//  5. Calls PushSkillRequest to upload to backend
 package skill

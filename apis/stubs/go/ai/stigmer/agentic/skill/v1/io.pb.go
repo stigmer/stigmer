@@ -93,10 +93,13 @@ type PushSkillRequest struct {
 	// If empty/not provided, the version will only be accessible via its hash.
 	// Examples: "stable", "v1.0", "latest"
 	Tag string `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
-	// Source information tracking where the skill artifacts originated from.
-	// For local pushes, CLI auto-detects git information if available.
-	// For remote pushes, this contains the git URL, ref, and subdir.
-	Source        *SkillSource `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
+	// Git provenance for this skill version. Optional.
+	// Populated by CLI during push:
+	// - For local pushes: auto-detected if directory is within a git repository
+	// - For git pushes: resolved from user-provided URL/ref
+	// Absent when pushed from a non-git directory.
+	// This is stored in SkillStatus.git_provenance for traceability.
+	GitProvenance *GitProvenance `protobuf:"bytes,4,opt,name=git_provenance,json=gitProvenance,proto3" json:"git_provenance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -152,9 +155,9 @@ func (x *PushSkillRequest) GetTag() string {
 	return ""
 }
 
-func (x *PushSkillRequest) GetSource() *SkillSource {
+func (x *PushSkillRequest) GetGitProvenance() *GitProvenance {
 	if x != nil {
-		return x.Source
+		return x.GitProvenance
 	}
 	return nil
 }
@@ -257,14 +260,14 @@ var File_ai_stigmer_agentic_skill_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/skill/v1/io.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a&ai/stigmer/agentic/skill/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"'\n" +
+	"$ai/stigmer/agentic/skill/v1/io.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a\x1bbuf/validate/validate.proto\"'\n" +
 	"\aSkillId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xc7\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xd8\x01\n" +
 	"\x10PushSkillRequest\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\"\n" +
 	"\bartifact\x18\x02 \x01(\fB\x06\xbaH\x03\xc8\x01\x01R\bartifact\x12-\n" +
-	"\x03tag\x18\x03 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12@\n" +
-	"\x06source\x18\x04 \x01(\v2(.ai.stigmer.agentic.skill.v1.SkillSourceR\x06sourceJ\x04\b\x05\x10\x06\"N\n" +
+	"\x03tag\x18\x03 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12Q\n" +
+	"\x0egit_provenance\x18\x04 \x01(\v2*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenanceJ\x04\b\x05\x10\x06\"N\n" +
 	"\x12GetArtifactRequest\x128\n" +
 	"\x14artifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12artifactStorageKey\"1\n" +
 	"\x13GetArtifactResponse\x12\x1a\n" +
@@ -289,10 +292,10 @@ var file_ai_stigmer_agentic_skill_v1_io_proto_goTypes = []any{
 	(*PushSkillRequest)(nil),    // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest
 	(*GetArtifactRequest)(nil),  // 2: ai.stigmer.agentic.skill.v1.GetArtifactRequest
 	(*GetArtifactResponse)(nil), // 3: ai.stigmer.agentic.skill.v1.GetArtifactResponse
-	(*SkillSource)(nil),         // 4: ai.stigmer.agentic.skill.v1.SkillSource
+	(*GitProvenance)(nil),       // 4: ai.stigmer.agentic.skill.v1.GitProvenance
 }
 var file_ai_stigmer_agentic_skill_v1_io_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest.source:type_name -> ai.stigmer.agentic.skill.v1.SkillSource
+	4, // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -305,7 +308,7 @@ func file_ai_stigmer_agentic_skill_v1_io_proto_init() {
 	if File_ai_stigmer_agentic_skill_v1_io_proto != nil {
 		return
 	}
-	file_ai_stigmer_agentic_skill_v1_spec_proto_init()
+	file_ai_stigmer_agentic_skill_v1_status_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

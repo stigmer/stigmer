@@ -60,11 +60,10 @@ func runWorkflow(ctx *stigmer.Context) error {
 	// ============================================================================
 	// Use RuntimeSecret() for API keys that should NEVER be in manifests
 
-	wf, err := workflow.New(ctx,
-		workflow.WithNamespace("security"),
-		workflow.WithName("secure-api-workflow"),
-		workflow.WithVersion("1.0.0"),
-	)
+	// Create workflow using struct-based Args pattern
+	wf, err := workflow.New(ctx, "security/secure-api-workflow", &workflow.WorkflowArgs{
+		Description: "Secure API workflow demonstrating runtime secrets",
+	})
 	if err != nil {
 		return err
 	}

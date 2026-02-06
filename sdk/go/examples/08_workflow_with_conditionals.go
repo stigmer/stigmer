@@ -26,13 +26,10 @@ func main() {
 		// Context for configuration
 		apiBase := ctx.SetString("apiBase", "https://api.github.com")
 
-		// Create workflow
-		wf, err := workflow.New(ctx,
-			workflow.WithNamespace("deployments"),
-			workflow.WithName("conditional-deployment"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Deploy based on pull request status from GitHub"),
-		)
+		// Create workflow using struct-based Args pattern
+		wf, err := workflow.New(ctx, "deployments/conditional-deployment", &workflow.WorkflowArgs{
+			Description: "Deploy based on pull request status from GitHub",
+		})
 		if err != nil {
 			return err
 		}

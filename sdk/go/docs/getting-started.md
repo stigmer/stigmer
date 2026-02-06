@@ -79,18 +79,24 @@ package main
 
 import (
     "log"
+    "os"
     "github.com/stigmer/stigmer/sdk/go/stigmer"
     "github.com/stigmer/stigmer/sdk/go/agent"
 )
 
 func main() {
     err := stigmer.Run(func(ctx *stigmer.Context) error {
-        // Create agent
-        codeReviewer, err := agent.New(ctx,
-            agent.WithName("code-reviewer"),
-            agent.WithInstructionsFromFile("instructions/reviewer.md"),
-            agent.WithDescription("AI code reviewer"),
-        )
+        // Load instructions from file
+        instructions, err := os.ReadFile("instructions/reviewer.md")
+        if err != nil {
+            return err
+        }
+        
+        // Create agent with struct-based args
+        codeReviewer, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+            Instructions: string(instructions),
+            Description:  "AI code reviewer",
+        })
         if err != nil {
             return err
         }
@@ -132,12 +138,10 @@ import (
 
 func main() {
     err := stigmer.Run(func(ctx *stigmer.Context) error {
-        // Create workflow
-        wf, err := workflow.New(ctx,
-            workflow.WithNamespace("examples"),
-            workflow.WithName("hello-workflow"),
-            workflow.WithVersion("1.0.0"),
-        )
+        // Create workflow with struct-based args
+        wf, err := workflow.New(ctx, "examples/hello-workflow", &workflow.WorkflowArgs{
+            Description: "Hello world workflow",
+        })
         if err != nil {
             return err
         }
@@ -155,7 +159,7 @@ func main() {
             "status", "complete",
         )
         
-        log.Printf("✅ Created workflow with %d tasks", len(wf.Tasks))
+        log.Printf("✅ Created workflow with %d tasks", len(wf.Args.Tasks))
         return nil
     })
     
@@ -203,10 +207,14 @@ The context (`ctx`) is your control center:
 ```go
 stigmer.Run(func(ctx *stigmer.Context) error {
     // Create agent (registers with context)
-    agent, _ := agent.New(ctx, agent.WithName("my-agent"))
+    agent, _ := agent.New(ctx, "my-agent", &agent.AgentArgs{
+        Instructions: "Agent instructions here",
+    })
     
     // Create workflow (registers with context)
-    wf, _ := workflow.New(ctx, workflow.WithName("my-workflow"))
+    wf, _ := workflow.New(ctx, "my-namespace/my-workflow", &workflow.WorkflowArgs{
+        Description: "Workflow description",
+    })
     
     return nil
 })
@@ -255,19 +263,30 @@ my-project/
 ### Pattern 2: Agent with Skills
 
 ```go
+import (
+    "os"
+    "github.com/stigmer/stigmer/sdk/go/agent"
+    "github.com/stigmer/stigmer/sdk/go/ref"
+    "github.com/stigmer/stigmer/sdk/go/skill"
+    "github.com/stigmer/stigmer/sdk/go/stigmer"
+)
+
 stigmer.Run(func(ctx *stigmer.Context) error {
-    // Create skill
-    skill, _ := skill.New(
-        skill.WithName("coding-standards"),
-        skill.WithMarkdownFromFile("skills/coding.md"),
-    )
+    // Define a skill from local directory
+    codingSkill, _ := skill.FromDir(ctx, "./skills/coding-standards",
+        skill.WithTag("stable"))
     
-    // Create agent with skill
-    agent, _ := agent.New(ctx,
-        agent.WithName("code-reviewer"),
-        agent.WithInstructionsFromFile("instructions/reviewer.md"),
-        agent.WithSkills(skill),
-    )
+    // Load agent instructions from file
+    instructions, _ := os.ReadFile("instructions/reviewer.md")
+    
+    // Create agent with skill reference
+    ag, _ := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+        Instructions: string(instructions),
+        Description:  "Code reviewer with standards",
+    })
+    
+    // Add skill reference using ref
+    ag.AddSkillRef(ref.Skill("stigmer", "security-analysis"))
     
     return nil
 })
@@ -277,11 +296,9 @@ stigmer.Run(func(ctx *stigmer.Context) error {
 
 ```go
 stigmer.Run(func(ctx *stigmer.Context) error {
-    wf, _ := workflow.New(ctx,
-        workflow.WithNamespace("api-client"),
-        workflow.WithName("data-fetch"),
-        workflow.WithVersion("1.0.0"),
-    )
+    wf, _ := workflow.New(ctx, "api-client/data-fetch", &workflow.WorkflowArgs{
+        Description: "Fetch and process data",
+    })
     
     // Fetch data
     fetchTask := wf.HttpGet("fetch", "https://api.example.com/data",
@@ -380,29 +397,34 @@ stigmer apply main.go --org my-org --env dev
 ### Agent Creation
 
 ```go
-agent, err := agent.New(ctx,
-    agent.WithName("my-agent"),
-    agent.WithInstructionsFromFile("instructions/agent.md"),
-)
+import "os"
+
+instructions, _ := os.ReadFile("instructions/agent.md")
+agent, err := agent.New(ctx, "my-agent", &agent.AgentArgs{
+    Instructions: string(instructions),
+    Description:  "Agent description",
+})
 ```
 
 ### Skill Creation
 
 ```go
-skill, err := skill.New(
-    skill.WithName("my-skill"),
-    skill.WithMarkdownFromFile("skills/skill.md"),
-)
+// From local directory
+skill, err := skill.FromDir(ctx, "./skills/my-skill",
+    skill.WithTag("v1.0"))
+
+// From git repository
+skill, err := skill.FromGit(ctx, "https://github.com/org/skills.git",
+    skill.WithRef("main"),
+    skill.WithSubdir("skills/my-skill"))
 ```
 
 ### Workflow Creation
 
 ```go
-wf, err := workflow.New(ctx,
-    workflow.WithNamespace("my-namespace"),
-    workflow.WithName("my-workflow"),
-    workflow.WithVersion("1.0.0"),
-)
+wf, err := workflow.New(ctx, "my-namespace/my-workflow", &workflow.WorkflowArgs{
+    Description: "Workflow description",
+})
 ```
 
 ### HTTP Task
@@ -448,10 +470,14 @@ go mod tidy
 
 ```go
 // ❌ Wrong
-agent, _ := agent.New(agent.WithName("my-agent"))
+agent, _ := agent.New("my-agent", &agent.AgentArgs{
+    Instructions: "...",
+})
 
 // ✅ Correct
-agent, _ := agent.New(ctx, agent.WithName("my-agent"))
+agent, _ := agent.New(ctx, "my-agent", &agent.AgentArgs{
+    Instructions: "...",
+})
 ```
 
 ### "validation failed: name must be lowercase"
@@ -460,10 +486,10 @@ agent, _ := agent.New(ctx, agent.WithName("my-agent"))
 
 ```go
 // ❌ Wrong
-agent.WithName("My Agent")
+agent.New(ctx, "My Agent", &agent.AgentArgs{...})
 
 // ✅ Correct
-agent.WithName("my-agent")
+agent.New(ctx, "my-agent", &agent.AgentArgs{...})
 ```
 
 ### "file not found"
@@ -472,7 +498,10 @@ agent.WithName("my-agent")
 
 ```go
 // Make sure file exists
-agent.WithInstructionsFromFile("instructions/agent.md")
+instructions, err := os.ReadFile("instructions/agent.md")
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 ---

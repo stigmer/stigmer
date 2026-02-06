@@ -1,0 +1,41 @@
+{
+  "name": "ToolApprovalOverride",
+  "description": "ToolApprovalOverride allows per-agent customization of approval requirements.\n\n ## Override Semantics\n\n - requires_approval=true: Tool requires approval (even if MCP has no default)\n - requires_approval=false: Tool does NOT require approval (overrides MCP default)\n\n ## Message Inheritance\n\n When requires_approval=true and message is empty:\n - If McpServer has default_tool_approvals for this tool, uses that message\n - Otherwise, auto-generates: \"Execute tool: {tool_name}\"\n\n When message is provided, it overrides any McpServer default message.\n\n ## Policy Chain Position\n\n This sits in the middle of the approval policy chain:\n 1. McpServer.default_tool_approvals - Platform/org defaults (lowest priority)\n 2. Agent.McpServerUsage.tool_approval_overrides (this message) - Per-agent customization\n 3. AgentExecution.auto_approve_all - Runtime bypass (highest priority)\n\n ## Validation\n\n The tool_name should match a tool in the referenced McpServer's tools/list.\n Invalid tool names are silently ignored (no approval applied).\n This allows forward-compatibility when MCP servers add/remove tools.",
+  "protoType": "ai.stigmer.agentic.agent.v1.ToolApprovalOverride",
+  "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
+  "fields": [
+    {
+      "name": "ToolName",
+      "jsonName": "toolName",
+      "protoField": "tool_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Name of the tool to override.\n Must match exactly (case-sensitive) with MCP server's tool name.\n Example: \"delete_repository\", \"send_email\", \"execute_sql\"",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "RequiresApproval",
+      "jsonName": "requiresApproval",
+      "protoField": "requires_approval",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether this tool requires approval for this agent.\n\n false: No approval needed (overrides any McpServer default)\n true: Approval required (even if McpServer has no default)\n\n Note: This can be further overridden at execution time by\n AgentExecutionSpec.auto_approve_all=true",
+      "required": false
+    },
+    {
+      "name": "Message",
+      "jsonName": "message",
+      "protoField": "message",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Optional: Custom approval message for this agent.\n Supports {{args.field}} placeholders like ToolApprovalPolicy.message.\n\n If empty and requires_approval=true:\n - Uses McpServer's default message for this tool (if exists)\n - Otherwise auto-generates: \"Execute tool: {tool_name}\"\n\n Guidelines for effective messages:\n   - Be specific to this agent's context\n   - Include the most important argument values\n   - Keep under 100 characters for UI display",
+      "required": false
+    }
+  ]
+}

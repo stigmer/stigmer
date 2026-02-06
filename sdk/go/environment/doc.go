@@ -1,54 +1,61 @@
-// Package environment provides types and builders for defining environment variables
-// in Stigmer agents.
+// Package environment provides the Environment resource type for defining
+// collections of configuration values and secrets in Stigmer.
 //
-// Environment variables can be configuration values or secrets. They define what
-// external configuration an agent needs to run, with support for default values
-// and marking sensitive data.
+// Environment is a first-class API resource that holds actual env var values.
+// It follows the same Name/Slug/Args pattern as Agent, Workflow, McpServer.
+// Environments are created separately and referenced during AgentInstance or
+// WorkflowInstance creation via environment_refs.
 //
 // # Basic Usage
 //
-// Create environment variables using struct-based args:
+// Create an Environment resource using struct-based args:
 //
-//	// Required secret
-//	githubToken, err := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
-//	    IsSecret:    true,
-//	    Description: "GitHub API token",
+//	import (
+//	    "github.com/stigmer/stigmer/sdk/go/environment"
+//	    environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
+//	)
+//
+//	env, err := environment.New(ctx, "production-aws", &environment.EnvironmentArgs{
+//	    Description: "Production AWS credentials",
+//	    Data: map[string]*environmentv1.EnvironmentValue{
+//	        "AWS_REGION":        {Value: "us-west-2", IsSecret: false},
+//	        "AWS_ACCESS_KEY_ID": {Value: "${secrets.aws_key}", IsSecret: true},
+//	    },
 //	})
 //
-//	// Optional config with default
-//	region, err := environment.New(ctx, "AWS_REGION", &environment.VariableArgs{
-//	    DefaultValue: "us-east-1",
-//	    Description:  "AWS region for deployments",
-//	})
+// # Builder Pattern
+//
+// Use builder methods for fluent configuration:
+//
+//	env, _ := environment.New(ctx, "production-aws", nil)
+//	env.SetConfig("AWS_REGION", "us-west-2").
+//	    SetSecret("AWS_ACCESS_KEY_ID", "${secrets.aws_key}").
+//	    SetSecret("AWS_SECRET_ACCESS_KEY", "${secrets.aws_secret}")
 //
 // # Secret vs Configuration
 //
-// Environment variables can be marked as secrets:
+// Environment values can be marked as secrets:
 //   - Secrets (is_secret=true): Encrypted at rest, redacted in logs
 //   - Configuration (is_secret=false): Stored as plaintext, visible in audit logs
 //
-// # Required vs Optional
+// # Referencing Environments
 //
-// Variables can be required or optional:
-//   - Required (default): Must be provided at AgentInstance creation
-//   - Optional: Can use default value if not provided
+// Use the ref package to reference environments in instance creation:
 //
-// # Integration with Agent
+//	import "github.com/stigmer/stigmer/sdk/go/ref"
 //
-// Add environment variables to agents using builder methods:
+//	envRef := ref.Environment("my-org", "production-aws")
+//	// Use envRef in AgentInstance.environment_refs
 //
-//	agent, err := agent.New(ctx, "github-bot", &agent.AgentArgs{
-//	    Instructions: "Manage GitHub repositories",
-//	})
-//	agent.AddEnvironmentVariable(githubToken)
-//	agent.AddEnvironmentVariable(region)
+// # Architecture Note
 //
-// # Proto Conversion
+// This package provides the Environment RESOURCE (first-class API object with
+// actual values). For declaring what env vars an Agent/Workflow NEEDS (template
+// level requirements), use Args.EnvSpec directly on the Agent/Workflow:
 //
-// The package converts to protobuf EnvironmentSpec messages:
+//	ag.RequireSecret("GITHUB_TOKEN", "GitHub API token")
+//	ag.RequireConfig("AWS_REGION", "us-east-1", "AWS region")
 //
-//	proto := environment.ToEnvironmentSpec(variables)
-//
-// This proto representation is used when creating Agent resources in the
-// Stigmer platform.
+// This ensures a single source of truth using the generated EnvironmentSpec
+// from the proto definition.
 package environment

@@ -20,6 +20,51 @@ The Stigmer SDK uses **struct-based args** (Pulumi pattern) for all resource con
 
 ## Design Principles
 
+### 0. Unified Resource Pattern (Name/Slug/Org/Args)
+
+All SDK resources follow the **Name/Slug/Org/Args pattern** for consistency:
+
+```go
+// Every resource has these identity fields + Args
+type Resource struct {
+    Name string         // Identity field (required, user-provided)
+    Slug string         // URL-friendly identifier (auto-generated from Name)
+    Org  string         // Organization scope (optional metadata)
+    Args *ResourceArgs  // Single source of truth for configuration
+}
+
+// Constructor signature is consistent
+func New(ctx Context, name string, args *ResourceArgs) (*Resource, error)
+```
+
+**Resource Consistency Table**:
+
+| Resource | Constructor | Args Type | Notes |
+|----------|-------------|-----------|-------|
+| Agent | `agent.New(ctx, name, &AgentArgs{})` | AgentArgs | Includes SubAgents in Args |
+| Workflow | `workflow.New(ctx, name, &WorkflowArgs{})` | WorkflowArgs | Name can be "namespace/name" |
+| Environment | `environment.New(ctx, name, &EnvironmentArgs{})` | EnvironmentArgs | First-class API resource |
+| MCPServer | `mcpserver.Stdio(ctx, name, &McpServerArgs{})` | McpServerArgs | Type-specific constructors |
+| Skill | `skill.FromDir(ctx, path, opts...)` | N/A | Content artifact (unique) |
+
+**Key Principles**:
+- ✅ Name is always the first parameter (after context)
+- ✅ Slug is auto-generated from Name (consistent naming.ToSlug() logic)
+- ✅ Args struct is the SINGLE source of truth (no duplicate fields)
+- ✅ Builder methods modify Args directly (not separate fields)
+- ✅ All resources registered with Context for synthesis
+
+**Example - Agent**:
+```go
+ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+    Instructions: "Review code carefully",
+    Description:  "AI code reviewer",
+})
+// ag.Name = "code-reviewer"
+// ag.Slug = "code-reviewer" (auto-generated)
+// ag.Args contains all configuration
+```
+
 ### 1. Name as First Parameter
 
 All resources accept their name as the first parameter, not as an option:
@@ -451,6 +496,109 @@ func (w *Workflow) HttpCall(name string, args *HttpCallArgs) *Task {
     // ...
 }
 ```
+
+---
+
+## Key Architecture Components
+
+### ref Package - Resource References
+
+The `ref` package provides type-safe factory functions for creating resource references:
+
+```go
+import "github.com/stigmer/stigmer/sdk/go/ref"
+
+// Skills (versioned resources)
+skillRef := ref.Skill("stigmer", "web-search")
+skillRefVersioned := ref.Skill("stigmer", "web-search", ref.WithVersion("v1.0"))
+
+// MCP Servers (non-versioned)
+mcpRef := ref.McpServer("stigmer", "github")
+
+// Environments (first-class resources)
+envRef := ref.Environment("my-org", "production-aws")
+```
+
+**Design Principles**:
+- ✅ Centralized reference creation (single package for all reference types)
+- ✅ Type-safe factories (compile-time checks)
+- ✅ Consistent API across resource types
+- ✅ Version support for versioned resources (skills)
+- ✅ Parse and MustParse helpers for string-based references
+
+**Usage in SDK**:
+```go
+// Add skill reference to agent
+ag.AddSkillRef(ref.Skill("stigmer", "coding-best-practices"))
+
+// Add MCP server usage to agent
+ag.AddMcpServerUsage(ref.McpServer("stigmer", "github"))
+
+// Reference environment in instance creation
+instanceEnvRefs := []apiresource.ApiResourceReference{
+    ref.Environment("my-org", "production-aws"),
+}
+```
+
+### Fail-Fast Validation
+
+The SDK uses **fail-fast validation** to surface errors as early as possible:
+
+**Validation Points**:
+1. **Constructor** - Basic field validation (name format, required fields)
+2. **Builder Methods** - Immediate validation of references
+3. **ToProto** - Final proto validation using protovalidate
+
+**Example - Workflow Task Conversion**:
+```go
+// OLD: Tasks stored as SDK types, converted at ToProto (errors delayed)
+wf.Tasks = append(wf.Tasks, sdkTask)  // Error happens later!
+
+// NEW: Tasks converted to proto immediately (fail-fast)
+func (w *Workflow) AddTask(task *Task) error {
+    protoTask := task.ToProto()
+    if err := validateProtoTask(protoTask); err != nil {
+        return fmt.Errorf("task validation failed: %w", err)
+    }
+    w.Args.Tasks = append(w.Args.Tasks, protoTask)
+    return nil
+}
+```
+
+**Benefits**:
+- ✅ Errors surface at build time, not synthesis time
+- ✅ Clear error messages with context
+- ✅ Easier debugging (stack trace points to actual issue)
+- ✅ Fail-fast principle (don't continue with invalid state)
+
+### Args as Single Source of Truth
+
+**Anti-Pattern** (dual state):
+```go
+// BAD: Duplicate state in SDK and Args
+type Workflow struct {
+    Document *WorkflowDocument  // SDK type
+    Tasks    []*Task           // SDK type
+    Args     *WorkflowArgs     // Proto type with duplicate Document/Tasks
+}
+```
+
+**Correct Pattern** (single source):
+```go
+// GOOD: Args is the only source of truth
+type Workflow struct {
+    Name string
+    Slug string
+    Org  string
+    Args *WorkflowArgs  // Contains Document, Tasks, EnvSpec, Description
+}
+```
+
+**Implementation**:
+- Builder methods modify Args directly
+- No separate SDK fields alongside Args fields
+- ToProto() is pure delegation (no conversion logic)
+- Consistent across all resources
 
 ---
 

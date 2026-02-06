@@ -4,12 +4,16 @@ package ai.stigmer.agentic.skill.v1;
 
 import "buf/validate/validate.proto";
 
-// SkillSpec defines the user-provided configuration of a skill.
-// This represents user intent (desired state).
+// SkillSpec defines the stored desired state of a skill.
+// All fields are extracted from the skill artifact by the backend.
+// This follows the Kubernetes spec pattern - contains user's desired state.
+//
+// Note: Source/provenance information is NOT stored here - it's in SkillStatus
+// as GitProvenance (observed state). See synth.proto for SDK input structure.
 message SkillSpec {
-  // SKILL.md content containing the skill's interface definition,
-  // documentation, usage examples, and tool descriptions.
-  // This content is injected into agent prompts.
+  // SKILL.md content extracted from the artifact.
+  // Contains the skill's interface definition, documentation, usage examples,
+  // and tool descriptions. This content is injected into agent prompts.
   string skill_md = 1 [(buf.validate.field).string.min_len = 1];
 
   // Optional user-provided tag for this skill version.
@@ -24,9 +28,9 @@ message SkillSpec {
   // Examples: "calculator", "web-scraper", "math-utils"
   string name = 3 [(buf.validate.field).string.pattern = "^[a-z0-9]+(-[a-z0-9]+)*$"];
 
-  // Source information tracking where the skill artifacts originated from.
-  // This provides traceability and enables reproducible deployments.
-  SkillSource source = 4;
+  // Field 4 was previously SkillSource - now removed.
+  // Provenance is tracked in SkillStatus.git_provenance instead.
+  reserved 4;
 
   // Human-readable description extracted from SKILL.md YAML frontmatter.
   // Provides a concise summary of what this skill does for marketplace display
@@ -34,60 +38,4 @@ message SkillSpec {
   // Should be 1-2 sentences, ideally under 100 tokens for prompt efficiency.
   // Example: "Extracts text and tables from PDF files using OCR when needed"
   string description = 5;
-}
-
-// SkillSource identifies where the skill artifacts originated from.
-// This provides traceability and enables features like "push from GitHub".
-// Similar to buf's input concept with support for local directories and git repos.
-message SkillSource {
-  oneof source {
-    // Local directory push - git info auto-detected if available
-    LocalSource local = 1;
-    // Remote git repository push (URL + ref + subdir)
-    GitSource git = 2;
-  }
-}
-
-// LocalSource represents a skill pushed from a local directory.
-// Git information is auto-detected when the directory is within a git repository.
-message LocalSource {
-  // Git remote URL if the directory is within a git repo (auto-detected).
-  // Typically the "origin" remote URL.
-  // Empty if not a git repository.
-  // Example: "https://github.com/stigmer/skills.git"
-  string git_remote_url = 1;
-
-  // Git commit SHA at time of push (auto-detected).
-  // Empty if not a git repository.
-  // Example: "abc123def456789..."
-  string git_commit = 2;
-
-  // Sub-directory path relative to the git repo root.
-  // Empty if pushed from the repo root or not a git repository.
-  // Example: "skills/calculator"
-  string subdir = 3;
-
-  // Whether the directory was detected to be within a git repository.
-  // When true, git_remote_url and git_commit should be populated.
-  bool is_git_repo = 4;
-}
-
-// GitSource represents a skill pushed from a remote git repository.
-// This enables pushing skills directly from GitHub without cloning locally.
-// Similar to buf's git_repo input format.
-message GitSource {
-  // Git repository URL (required).
-  // Must be a valid git URL (HTTPS or SSH).
-  // Example: "https://github.com/stigmer/skills.git"
-  string url = 1 [(buf.validate.field).string.min_len = 1];
-
-  // Git reference - tag, branch name, or commit SHA.
-  // If empty, defaults to the repository's default branch (usually "main").
-  // Examples: "v1.0.0", "main", "feature/new-skill", "abc123def456..."
-  string ref = 2;
-
-  // Sub-directory within the repository containing SKILL.md.
-  // If empty, SKILL.md is expected at the repository root.
-  // Example: "skills/calculator"
-  string subdir = 3;
 }

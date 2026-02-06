@@ -13,6 +13,17 @@
       },
       "description": "The model to use for this execution.\n Example: \"claude-sonnet-4-20250514\"",
       "required": false
+    },
+    {
+      "name": "ContextManagement",
+      "jsonName": "contextManagement",
+      "protoField": "context_management",
+      "type": {
+        "kind": "message",
+        "messageType": "ContextManagementConfig"
+      },
+      "description": "Context management configuration for this execution.\n Controls automatic summarization behavior for long-running conversations.\n When not specified, defaults are derived from the Model Registry.",
+      "required": false
     }
   ]
 }

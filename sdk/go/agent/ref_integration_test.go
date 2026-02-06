@@ -103,8 +103,8 @@ func TestAgentBuilder_WithInstructionsStringRef(t *testing.T) {
 	}
 
 	expected := "Review code and suggest improvements based on best practices"
-	if ag.Instructions != expected {
-		t.Errorf("Expected instructions '%s', got '%s'", expected, ag.Instructions)
+	if ag.Args.Instructions != expected {
+		t.Errorf("Expected instructions '%s', got '%s'", expected, ag.Args.Instructions)
 	}
 }
 
@@ -119,8 +119,8 @@ func TestAgentBuilder_WithInstructionsString(t *testing.T) {
 	}
 
 	expected := "Review code and suggest improvements"
-	if ag.Instructions != expected {
-		t.Errorf("Expected instructions '%s', got '%s'", expected, ag.Instructions)
+	if ag.Args.Instructions != expected {
+		t.Errorf("Expected instructions '%s', got '%s'", expected, ag.Args.Instructions)
 	}
 }
 
@@ -138,8 +138,8 @@ func TestAgentBuilder_WithDescriptionStringRef(t *testing.T) {
 	}
 
 	expected := "AI-powered code reviewer"
-	if ag.Description != expected {
-		t.Errorf("Expected description '%s', got '%s'", expected, ag.Description)
+	if ag.Args.Description != expected {
+		t.Errorf("Expected description '%s', got '%s'", expected, ag.Args.Description)
 	}
 }
 
@@ -155,8 +155,8 @@ func TestAgentBuilder_WithDescriptionString(t *testing.T) {
 	}
 
 	expected := "AI code reviewer"
-	if ag.Description != expected {
-		t.Errorf("Expected description '%s', got '%s'", expected, ag.Description)
+	if ag.Args.Description != expected {
+		t.Errorf("Expected description '%s', got '%s'", expected, ag.Args.Description)
 	}
 }
 
@@ -174,8 +174,8 @@ func TestAgentBuilder_WithIconURLStringRef(t *testing.T) {
 	}
 
 	expected := "https://example.com/icon.png"
-	if ag.IconURL != expected {
-		t.Errorf("Expected iconURL '%s', got '%s'", expected, ag.IconURL)
+	if ag.Args.IconUrl != expected {
+		t.Errorf("Expected iconURL '%s', got '%s'", expected, ag.Args.IconUrl)
 	}
 }
 
@@ -191,8 +191,8 @@ func TestAgentBuilder_WithIconURLString(t *testing.T) {
 	}
 
 	expected := "https://example.com/icon.png"
-	if ag.IconURL != expected {
-		t.Errorf("Expected iconURL '%s', got '%s'", expected, ag.IconURL)
+	if ag.Args.IconUrl != expected {
+		t.Errorf("Expected iconURL '%s', got '%s'", expected, ag.Args.IconUrl)
 	}
 }
 
@@ -255,11 +255,11 @@ func TestAgentBuilder_MixedTypedAndLegacy(t *testing.T) {
 	if ag.Name != "code-reviewer" {
 		t.Errorf("Expected name 'code-reviewer', got '%s'", ag.Name)
 	}
-	if ag.Instructions != "Review code and suggest fixes" {
-		t.Errorf("Expected instructions 'Review code and suggest fixes', got '%s'", ag.Instructions)
+	if ag.Args.Instructions != "Review code and suggest fixes" {
+		t.Errorf("Expected instructions 'Review code and suggest fixes', got '%s'", ag.Args.Instructions)
 	}
-	if ag.Description != "AI reviewer" {
-		t.Errorf("Expected description 'AI reviewer', got '%s'", ag.Description)
+	if ag.Args.Description != "AI reviewer" {
+		t.Errorf("Expected description 'AI reviewer', got '%s'", ag.Args.Description)
 	}
 	if ag.Org != "my-org" {
 		t.Errorf("Expected org 'my-org', got '%s'", ag.Org)
@@ -286,9 +286,4 @@ func TestAgentBuilder_StringRefConcat(t *testing.T) {
 	if ag == nil {
 		t.Fatal("Agent should not be nil")
 	}
-}
-
-func TestRefHelpers_toExpression(t *testing.T) {
-	// This is tested indirectly through all the agent builder tests above,
-	// but we can add explicit tests if needed
 }

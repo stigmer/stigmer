@@ -61,17 +61,6 @@
       "required": false
     },
     {
-      "name": "Docker",
-      "jsonName": "docker",
-      "protoField": "docker",
-      "type": {
-        "kind": "message",
-        "messageType": "DockerServerConfig"
-      },
-      "description": "Docker-based server (containerized MCP server).\n Used for isolated, reproducible MCP server environments.",
-      "required": false
-    },
-    {
       "name": "DefaultEnabledTools",
       "jsonName": "defaultEnabledTools",
       "protoField": "default_enabled_tools",
@@ -93,6 +82,20 @@
         "messageType": "EnvironmentSpec"
       },
       "description": "Environment specification declaring required environment variables.\n This defines the SCHEMA of required env vars - actual values are provided\n at runtime via AgentInstance's environment_ref.\n\n Use this to declare what environment variables the MCP server needs,\n whether they are secrets (e.g., API tokens), and their descriptions.\n Values in this spec can be empty - they serve as documentation and validation.\n\n Example:\n   data:\n     GITHUB_TOKEN:\n       is_secret: true\n       description: \"GitHub personal access token with repo scope\"\n     GITHUB_OWNER:\n       is_secret: false\n       description: \"Default GitHub organization or user\"",
+      "required": false
+    },
+    {
+      "name": "DefaultToolApprovals",
+      "jsonName": "defaultToolApprovals",
+      "protoField": "default_tool_approvals",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ToolApprovalPolicy"
+        }
+      },
+      "description": "Default tool approval policies for this MCP server.\n\n Tools listed here require user approval before execution by default.\n This is the first layer in the approval policy chain:\n   McpServer.default_tool_approvals → Agent.tool_approval_overrides → auto_approve_all\n\n Use cases:\n - Mark destructive operations as requiring approval by default\n - Protect sensitive data access across all agents using this server\n - Establish organization-wide safety policies for dangerous tools\n\n Example (GitHub MCP):\n   default_tool_approvals:\n     - tool_name: \"delete_repository\"\n       message: \"Delete repository: {{args.repo}}\"\n     - tool_name: \"force_push\"\n       message: \"Force push to {{args.branch}}\"\n     - tool_name: \"add_collaborator\"\n       message: \"Add {{args.user}} as collaborator to {{args.repo}}\"\n\n Example (Database MCP):\n   default_tool_approvals:\n     - tool_name: \"execute_sql\"\n       message: \"Execute SQL: {{args.query}}\"\n     - tool_name: \"drop_table\"\n       message: \"Drop table: {{args.table_name}}\"\n\n Tools not listed here do not require approval by default.\n Agents can still add approval requirements via tool_approval_overrides.",
       "required": false
     }
   ]

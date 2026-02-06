@@ -5,14 +5,10 @@ import (
 	"testing"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
-
-// mockIntegrationCtx implements the environment.Context interface for testing
-type mockIntegrationCtx struct{}
 
 // =============================================================================
 // Integration Scenarios - Multi-Resource Workflows
@@ -35,12 +31,10 @@ func TestIntegration_CompleteWorkflowWithAgent(t *testing.T) {
 		capturedAgent = codeReviewer
 
 		// Create workflow that uses the agent
-		wf, err := workflow.New(ctx,
-			workflow.WithName("pr-review-workflow"),
-			workflow.WithNamespace("ci-cd"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Automated PR review workflow"),
-		)
+		// Note: namespace is now parsed from the name parameter (namespace/name format)
+		wf, err := workflow.New(ctx, "ci-cd/pr-review-workflow", &workflow.WorkflowArgs{
+			Description: "Automated PR review workflow",
+		})
 		if err != nil {
 			return err
 		}
@@ -56,10 +50,10 @@ func TestIntegration_CompleteWorkflowWithAgent(t *testing.T) {
 			},
 			TimeoutSeconds: 30,
 		})
-		wf.Tasks = append(wf.Tasks, fetchPR)
+		wf.AddTask(fetchPR)
 
-		// Add agent call task (using low-level API since high-level not yet implemented)
-		wf.Tasks = append(wf.Tasks, &workflow.Task{
+		// Add agent call task
+		reviewTask := &workflow.Task{
 			Name: "reviewCode",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -67,7 +61,8 @@ func TestIntegration_CompleteWorkflowWithAgent(t *testing.T) {
 				Message: "${fetchPR.body}",
 			},
 			ExportAs: "${.}",
-		})
+		}
+		wf.AddTask(reviewTask)
 
 		// Add comment posting task with timeout
 		postComment := workflow.HttpCall("postComment", &workflow.HttpCallArgs{
@@ -80,7 +75,7 @@ func TestIntegration_CompleteWorkflowWithAgent(t *testing.T) {
 			},
 			TimeoutSeconds: 15,
 		})
-		wf.Tasks = append(wf.Tasks, postComment)
+		wf.AddTask(postComment)
 
 		capturedWorkflow = wf
 		return nil
@@ -147,21 +142,17 @@ func TestIntegration_MultiAgentWorkflow(t *testing.T) {
 		}
 
 		// Create workflow orchestrating all agents
-		wf, err := workflow.New(ctx,
-			workflow.WithName("comprehensive-review"),
-			workflow.WithNamespace("code-review"),
-			workflow.WithVersion("1.0.0"),
-		)
+		wf, err := workflow.New(ctx, "code-review/comprehensive-review", nil)
 		if err != nil {
 			return err
 		}
 
 		// Fetch code
 		fetchCode := workflow.HttpGet("fetchCode", "https://api.example.com/code", nil)
-		wf.Tasks = append(wf.Tasks, fetchCode)
+		wf.AddTask(fetchCode)
 
 		// Add agent call tasks using low-level API
-		wf.Tasks = append(wf.Tasks, &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "securityReview",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -171,7 +162,7 @@ func TestIntegration_MultiAgentWorkflow(t *testing.T) {
 			ExportAs: "${.}",
 		})
 
-		wf.Tasks = append(wf.Tasks, &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "performanceReview",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -181,7 +172,7 @@ func TestIntegration_MultiAgentWorkflow(t *testing.T) {
 			ExportAs: "${.}",
 		})
 
-		wf.Tasks = append(wf.Tasks, &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "generateDocs",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -221,19 +212,9 @@ func TestIntegration_MultiAgentWorkflow(t *testing.T) {
 
 // TestIntegration_AgentWithAllFeatures tests agent with all nested resources.
 func TestIntegration_AgentWithAllFeatures(t *testing.T) {
-	ctx := &mockIntegrationCtx{}
 	var capturedAgent *agent.Agent
 
 	err := stigmer.Run(func(sCtx *stigmer.Context) error {
-		// Create environment variables
-		env1, _ := environment.New(ctx, "API_KEY", &environment.VariableArgs{
-			IsSecret: true,
-		})
-
-		env2, _ := environment.New(ctx, "REGION", &environment.VariableArgs{
-			DefaultValue: "us-east-1",
-		})
-
 		// Create comprehensive agent with skill refs (SDK references skills, doesn't create them)
 		comprehensiveAgent, err := agent.New(sCtx, "comprehensive-agent", &agent.AgentArgs{
 			Description:  "Agent with all features for integration testing",
@@ -247,7 +228,9 @@ func TestIntegration_AgentWithAllFeatures(t *testing.T) {
 			"stigmer/skill1",
 			"stigmer/skill2",
 		)
-		comprehensiveAgent.AddEnvironmentVariables(*env1, *env2)
+		// Use the new RequireSecret/RequireConfig API
+		comprehensiveAgent.RequireSecret("API_KEY", "API authentication key")
+		comprehensiveAgent.RequireConfig("REGION", "us-east-1", "AWS region")
 
 		capturedAgent = comprehensiveAgent
 		return nil
@@ -305,11 +288,7 @@ func TestIntegration_DependencyTracking(t *testing.T) {
 		agent2.AddSkill("stigmer/security-best-practices")
 
 		// Create workflow using agents
-		_, err = workflow.New(ctx,
-			workflow.WithName("review-workflow"),
-			workflow.WithNamespace("reviews"),
-			workflow.WithVersion("1.0.0"),
-		)
+		_, err = workflow.New(ctx, "reviews/review-workflow", nil)
 		if err != nil {
 			return err
 		}
@@ -360,11 +339,7 @@ func TestIntegration_ManyResourcesStressTest(t *testing.T) {
 
 		// Create 10 workflows with unique names
 		for i := 0; i < 10; i++ {
-			wf, err := workflow.New(ctx,
-				workflow.WithName(fmt.Sprintf("stress-workflow-%d", i)),
-				workflow.WithNamespace("stress-test"),
-				workflow.WithVersion("1.0.0"),
-			)
+			wf, err := workflow.New(ctx, fmt.Sprintf("stress-test/stress-workflow-%d", i), nil)
 			if err != nil {
 				return err
 			}
@@ -376,7 +351,7 @@ func TestIntegration_ManyResourcesStressTest(t *testing.T) {
 						fmt.Sprintf("key%d", j): fmt.Sprintf("value%d", j),
 					},
 				})
-				wf.Tasks = append(wf.Tasks, setTask)
+				wf.AddTask(setTask)
 			}
 		}
 
@@ -416,12 +391,9 @@ func TestIntegration_RealWorld_DataPipeline(t *testing.T) {
 		}
 
 		// Create workflow
-		wf, err := workflow.New(ctx,
-			workflow.WithName("daily-data-pipeline"),
-			workflow.WithNamespace("data-pipelines"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Daily data processing and validation pipeline"),
-		)
+		wf, err := workflow.New(ctx, "data-pipelines/daily-data-pipeline", &workflow.WorkflowArgs{
+			Description: "Daily data processing and validation pipeline",
+		})
 		if err != nil {
 			return err
 		}
@@ -437,10 +409,10 @@ func TestIntegration_RealWorld_DataPipeline(t *testing.T) {
 			},
 			TimeoutSeconds: 120,
 		})
-		wf.Tasks = append(wf.Tasks, fetchData)
+		wf.AddTask(fetchData)
 
 		// Transform data (low-level API)
-		wf.Tasks = append(wf.Tasks, &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "transformData",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -451,7 +423,7 @@ func TestIntegration_RealWorld_DataPipeline(t *testing.T) {
 		})
 
 		// Quality check (low-level API)
-		wf.Tasks = append(wf.Tasks, &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "qualityCheck",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -472,7 +444,7 @@ func TestIntegration_RealWorld_DataPipeline(t *testing.T) {
 			},
 			TimeoutSeconds: 60,
 		})
-		wf.Tasks = append(wf.Tasks, loadData)
+		wf.AddTask(loadData)
 
 		_ = dataTransformer
 		_ = dataQuality
@@ -515,21 +487,17 @@ func TestIntegration_RealWorld_CustomerSupport(t *testing.T) {
 		})
 
 		// Create workflow
-		wf, err := workflow.New(ctx,
-			workflow.WithName("customer-support-automation"),
-			workflow.WithNamespace("support"),
-			workflow.WithVersion("1.0.0"),
-		)
+		wf, err := workflow.New(ctx, "support/customer-support-automation", nil)
 		if err != nil {
 			return err
 		}
 
 		// Receive ticket
 		receiveTicket := workflow.HttpGet("receiveTicket", "https://api.support.com/tickets/next", nil)
-		wf.Tasks = append(wf.Tasks, receiveTicket)
+		wf.AddTask(receiveTicket)
 
 		// Classify ticket (low-level API)
-		wf.Tasks = append(wf.Tasks, &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "classifyTicket",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -540,7 +508,7 @@ func TestIntegration_RealWorld_CustomerSupport(t *testing.T) {
 		})
 
 		// Generate response (low-level API)
-		wf.Tasks = append(wf.Tasks, &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "generateResponse",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -555,7 +523,7 @@ func TestIntegration_RealWorld_CustomerSupport(t *testing.T) {
 			map[string]string{"Content-Type": "application/json"},
 			nil,
 		)
-		wf.Tasks = append(wf.Tasks, sendResponse)
+		wf.AddTask(sendResponse)
 
 		_ = ticketClassifier
 		_ = responseGenerator
@@ -598,11 +566,7 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 		})
 
 		// Create workflow with error handling
-		wf, err := workflow.New(ctx,
-			workflow.WithName("resilient-workflow"),
-			workflow.WithNamespace("resilience"),
-			workflow.WithVersion("1.0.0"),
-		)
+		wf, err := workflow.New(ctx, "resilience/resilient-workflow", nil)
 		if err != nil {
 			return err
 		}
@@ -615,10 +579,10 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 			},
 			TimeoutSeconds: 10,
 		})
-		wf.Tasks = append(wf.Tasks, riskyCall)
+		wf.AddTask(riskyCall)
 
 		// Fallback agent call on error (low-level API)
-		wf.Tasks = append(wf.Tasks, &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "handleError",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
