@@ -287,4 +287,3 @@ func TestAgentBuilder_StringRefConcat(t *testing.T) {
 		t.Fatal("Agent should not be nil")
 	}
 }
-

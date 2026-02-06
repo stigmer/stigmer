@@ -46,7 +46,7 @@ func init() {
 //	proto, err := server.ToProto()
 func (m *MCPServer) ToProto() (*mcpserverv1.McpServer, error) {
 	if m.Args == nil {
-		return nil, fmt.Errorf("mcpserver: Args is nil, cannot convert to proto")
+		return nil, ErrArgsNil
 	}
 
 	// Build spec from Args - single source of truth
@@ -79,9 +79,10 @@ func (m *MCPServer) ToProto() (*mcpserverv1.McpServer, error) {
 
 	// Build metadata
 	// Default to private visibility for SDK-created MCP servers
-	metadata := &apiresource.ApiResourceMetadata{
+	meta := &apiresource.ApiResourceMetadata{
 		Name:        m.Name,
 		Slug:        slug,
+		Org:         m.Org,
 		Annotations: metadata.SDKAnnotations(),
 		Visibility:  apiresource.ApiResourceVisibility_visibility_private,
 	}
@@ -90,7 +91,7 @@ func (m *MCPServer) ToProto() (*mcpserverv1.McpServer, error) {
 	mcpServer := &mcpserverv1.McpServer{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "McpServer",
-		Metadata:   metadata,
+		Metadata:   meta,
 		Spec:       spec,
 	}
 
