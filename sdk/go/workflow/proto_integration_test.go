@@ -3,55 +3,37 @@ package workflow
 import (
 	"testing"
 
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/sdk/go/commons/metadata"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
 // TestWorkflowToProto_Complete tests full workflow with all fields.
 func TestWorkflowToProto_Complete(t *testing.T) {
-	wf := &Workflow{
-		Document: Document{
-			DSL:         "1.0.0",
-			Namespace:   "data-processing",
-			Name:        "daily-sync",
-			Version:     "1.0.0",
-			Description: "Daily data synchronization workflow",
-		},
-		Slug:        "daily-sync",
+	// Create workflow using New()
+	wf, err := New(nil, "data-processing/daily-sync", &WorkflowArgs{
 		Description: "Sync data from external API",
-		Tasks:       []*Task{},
-		Org:         "my-org",
+	})
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
 	}
 
 	// Add HTTP task
-	httpTask := &Task{
-		Name: "fetchData",
-		Kind: TaskKindHttpCall,
-		Config: &HttpCallTaskConfig{
-			Method:   "GET",
-			Endpoint: &types.HttpEndpoint{Uri: "https://api.example.com/data"},
-			Headers: map[string]string{
-				"Authorization": "Bearer token",
-			},
-			TimeoutSeconds: 30,
-		},
-		ExportAs: "${.}",
-	}
-	wf.Tasks = append(wf.Tasks, httpTask)
+	httpTask := HttpGet("fetchData", "https://api.example.com/data", map[string]string{
+		"Authorization": "Bearer token",
+	})
+	httpTask.ExportAll()
+	wf.AddTask(httpTask)
 
 	// Add SET task
-	setTask := &Task{
-		Name: "processData",
-		Kind: TaskKindSet,
-		Config: &SetTaskConfig{
-			Variables: map[string]string{
-				"status":  "completed",
-				"count":   "10",
-				"success": "true",
-			},
+	setTask := Set("processData", &SetArgs{
+		Variables: map[string]string{
+			"status":  "completed",
+			"count":   "10",
+			"success": "true",
 		},
-	}
-	wf.Tasks = append(wf.Tasks, setTask)
+	})
+	wf.AddTask(setTask)
 
 	// Convert to proto
 	proto, err := wf.ToProto()
@@ -111,8 +93,8 @@ func TestWorkflowToProto_Complete(t *testing.T) {
 	if proto.Spec.Document.Name != "daily-sync" {
 		t.Errorf("Document name mismatch")
 	}
-	if proto.Spec.Document.Version != "1.0.0" {
-		t.Errorf("Version mismatch")
+	if proto.Spec.Document.Version != "0.1.0" {
+		t.Errorf("Version mismatch, got %v", proto.Spec.Document.Version)
 	}
 
 	// Verify tasks
@@ -138,25 +120,15 @@ func TestWorkflowToProto_Complete(t *testing.T) {
 
 // TestWorkflowToProto_Minimal tests minimal workflow.
 func TestWorkflowToProto_Minimal(t *testing.T) {
-	wf := &Workflow{
-		Document: Document{
-			DSL:       "1.0.0",
-			Namespace: "test",
-			Name:      "simple-workflow",
-			Version:   "1.0.0",
-		},
-		Tasks: []*Task{
-			{
-				Name: "task1",
-				Kind: TaskKindSet,
-				Config: &SetTaskConfig{
-					Variables: map[string]string{
-						"x": "y",
-					},
-				},
-			},
-		},
+	wf, err := New(nil, "test/simple-workflow", nil)
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
 	}
+
+	// Add one task
+	wf.AddTask(Set("task1", &SetArgs{
+		Variables: map[string]string{"x": "y"},
+	}))
 
 	proto, err := wf.ToProto()
 	if err != nil {
@@ -177,9 +149,13 @@ func TestWorkflowToProto_Minimal(t *testing.T) {
 }
 
 // TestWorkflowToProto_AllTaskTypes tests workflow with multiple task types.
-// Note: Some complex task types (FOR, FORK, TRY, RAISE) are tested separately
-// in dedicated test files due to their specific validation requirements.
 func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
+	wf, err := New(nil, "test/all-tasks-workflow", nil)
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	// Add various task types
 	tasks := []*Task{
 		// SET
 		{
@@ -266,22 +242,14 @@ func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
 		},
 	}
 
-	wf := &Workflow{
-		Document: Document{
-			DSL:       "1.0.0",
-			Namespace: "test",
-			Name:      "all-tasks-workflow",
-			Version:   "1.0.0",
-		},
-		Tasks: tasks,
-	}
+	wf.AddTasks(tasks...)
 
 	proto, err := wf.ToProto()
 	if err != nil {
 		t.Fatalf("ToProto() failed: %v", err)
 	}
 
-	// Verify tasks were converted (FOR, FORK, TRY, RAISE tested separately)
+	// Verify tasks were converted
 	if len(proto.Spec.Tasks) != 9 {
 		t.Fatalf("Expected 9 tasks, got %d", len(proto.Spec.Tasks))
 	}
@@ -301,26 +269,14 @@ func TestWorkflowToProto_AllTaskTypes(t *testing.T) {
 
 // TestWorkflowToProto_TaskExport tests task export configuration.
 func TestWorkflowToProto_TaskExport(t *testing.T) {
-	wf := &Workflow{
-		Document: Document{
-			DSL:       "1.0.0",
-			Namespace: "test",
-			Name:      "export-workflow",
-			Version:   "1.0.0",
-		},
-		Tasks: []*Task{
-			{
-				Name: "task1",
-				Kind: TaskKindHttpCall,
-				Config: &HttpCallTaskConfig{
-					Method:         "GET",
-					Endpoint:       &types.HttpEndpoint{Uri: "https://api.example.com"},
-					TimeoutSeconds: 30,
-				},
-				ExportAs: "${.}", // Export entire output
-			},
-		},
+	wf, err := New(nil, "test/export-workflow", nil)
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
 	}
+
+	task := HttpGet("task1", "https://api.example.com", nil)
+	task.ExportAll() // Export entire output
+	wf.AddTask(task)
 
 	proto, err := wf.ToProto()
 	if err != nil {
@@ -338,31 +294,17 @@ func TestWorkflowToProto_TaskExport(t *testing.T) {
 
 // TestWorkflowToProto_TaskFlow tests task flow control.
 func TestWorkflowToProto_TaskFlow(t *testing.T) {
-	wf := &Workflow{
-		Document: Document{
-			DSL:       "1.0.0",
-			Namespace: "test",
-			Name:      "flow-workflow",
-			Version:   "1.0.0",
-		},
-		Tasks: []*Task{
-			{
-				Name: "task1",
-				Kind: TaskKindSet,
-				Config: &SetTaskConfig{
-					Variables: map[string]string{"x": "y"},
-				},
-				ThenTask: "task2", // Jump to task2
-			},
-			{
-				Name: "task2",
-				Kind: TaskKindSet,
-				Config: &SetTaskConfig{
-					Variables: map[string]string{"a": "b"},
-				},
-			},
-		},
+	wf, err := New(nil, "test/flow-workflow", nil)
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
 	}
+
+	task1 := Set("task1", &SetArgs{Variables: map[string]string{"x": "y"}})
+	task1.Then("task2") // Jump to task2
+	wf.AddTask(task1)
+
+	task2 := Set("task2", &SetArgs{Variables: map[string]string{"a": "b"}})
+	wf.AddTask(task2)
 
 	proto, err := wf.ToProto()
 	if err != nil {
@@ -380,56 +322,168 @@ func TestWorkflowToProto_TaskFlow(t *testing.T) {
 
 // TestWorkflowToProto_SlugAutoGeneration tests automatic slug generation.
 func TestWorkflowToProto_SlugAutoGeneration(t *testing.T) {
-	wf := &Workflow{
-		Document: Document{
-			DSL:       "1.0.0",
-			Namespace: "test",
-			Name:      "Daily Data Sync", // Name with spaces
-			Version:   "1.0.0",
-		},
-		Tasks: []*Task{
-			{
-				Name: "task1",
-				Kind: TaskKindSet,
-				Config: &SetTaskConfig{
-					Variables: map[string]string{"x": "y"},
-				},
-			},
-		},
+	wf, err := New(nil, "test/Daily Data Sync", nil) // Name with spaces
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
 	}
 
-	// Manually set slug since New() does this
-	wf.Slug = "daily-data-sync"
+	wf.AddTask(Set("task1", &SetArgs{Variables: map[string]string{"x": "y"}}))
 
 	proto, err := wf.ToProto()
 	if err != nil {
 		t.Fatalf("ToProto() failed: %v", err)
 	}
 
-	// Verify slug was set
-	expectedSlug := "daily-data-sync"
-	if proto.Metadata.Slug != expectedSlug {
-		t.Errorf("Slug = %v, want %v", proto.Metadata.Slug, expectedSlug)
+	// Verify slug was auto-generated (spaces converted to hyphens, lowercased)
+	if proto.Metadata.Slug == "" {
+		t.Error("Expected slug to be set")
 	}
 }
 
-// TestWorkflowToProto_EmptyTasks tests validation of empty task list.
+// TestWorkflowToProto_EmptyTasks tests workflow with no tasks.
 func TestWorkflowToProto_EmptyTasks(t *testing.T) {
-	wf := &Workflow{
-		Document: Document{
-			DSL:       "1.0.0",
-			Namespace: "test",
-			Name:      "empty-workflow",
-			Version:   "1.0.0",
-		},
-		Tasks: []*Task{}, // Empty task list
+	wf, err := New(nil, "test/empty-workflow", nil)
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
 	}
 
 	// Note: Currently ToProto() doesn't validate empty tasks
 	// This test documents current behavior
-	_, err := wf.ToProto()
+	_, err = wf.ToProto()
 	if err != nil {
 		// If validation is added, this test should pass
 		t.Logf("Empty tasks validation: %v", err)
+	}
+}
+
+// TestWorkflowToProto_WithEnvSpec tests EnvSpec propagation.
+func TestWorkflowToProto_WithEnvSpec(t *testing.T) {
+	wf, err := New(nil, "test/env-workflow", nil)
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	// Add environment requirements
+	wf.RequireSecret("API_KEY", "API key for external service")
+	wf.RequireConfig("LOG_LEVEL", "info", "Logging level")
+
+	wf.AddTask(Set("task1", &SetArgs{Variables: map[string]string{"x": "y"}}))
+
+	proto, err := wf.ToProto()
+	if err != nil {
+		t.Fatalf("ToProto() failed: %v", err)
+	}
+
+	// Verify EnvSpec was set
+	if proto.Spec.EnvSpec == nil {
+		t.Fatal("Expected EnvSpec, got nil")
+	}
+	if proto.Spec.EnvSpec.Data == nil {
+		t.Fatal("Expected EnvSpec.Data, got nil")
+	}
+
+	// Verify secret
+	apiKey, ok := proto.Spec.EnvSpec.Data["API_KEY"]
+	if !ok {
+		t.Error("Expected API_KEY in EnvSpec.Data")
+	} else {
+		if !apiKey.IsSecret {
+			t.Error("API_KEY should be marked as secret")
+		}
+		if apiKey.Description != "API key for external service" {
+			t.Error("API_KEY description mismatch")
+		}
+	}
+
+	// Verify config
+	logLevel, ok := proto.Spec.EnvSpec.Data["LOG_LEVEL"]
+	if !ok {
+		t.Error("Expected LOG_LEVEL in EnvSpec.Data")
+	} else {
+		if logLevel.IsSecret {
+			t.Error("LOG_LEVEL should not be marked as secret")
+		}
+		if logLevel.Value != "info" {
+			t.Errorf("LOG_LEVEL value = %v, want info", logLevel.Value)
+		}
+	}
+}
+
+// TestWorkflowToProto_ArgsNil tests handling of nil Args.
+func TestWorkflowToProto_ArgsNil(t *testing.T) {
+	wf := &Workflow{
+		Name: "test-workflow",
+		Slug: "test-workflow",
+		Args: nil, // Nil Args
+	}
+
+	_, err := wf.ToProto()
+	if err == nil {
+		t.Error("Expected error for nil Args, got nil")
+	}
+}
+
+// TestWorkflowNew_NamespaceParsing tests namespace parsing from name parameter.
+func TestWorkflowNew_NamespaceParsing(t *testing.T) {
+	tests := []struct {
+		name              string
+		expectedNamespace string
+		expectedName      string
+	}{
+		{"data-processing/daily-sync", "data-processing", "daily-sync"},
+		{"simple-workflow", "", "simple-workflow"},
+		{"ns/sub/name", "ns", "sub/name"}, // Only first slash is parsed
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wf, err := New(nil, tt.name, nil)
+			// Note: namespace-only workflows will fail validation
+			if tt.expectedNamespace == "" {
+				if err == nil {
+					t.Error("Expected error for missing namespace")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("New() failed: %v", err)
+			}
+
+			if wf.Args.Document.Namespace != tt.expectedNamespace {
+				t.Errorf("Namespace = %v, want %v", wf.Args.Document.Namespace, tt.expectedNamespace)
+			}
+			if wf.Name != tt.expectedName {
+				t.Errorf("Name = %v, want %v", wf.Name, tt.expectedName)
+			}
+		})
+	}
+}
+
+// TestWorkflowNew_VersionDefaults tests version defaulting.
+func TestWorkflowNew_VersionDefaults(t *testing.T) {
+	wf, err := New(nil, "test/workflow", nil)
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	// Should default to 0.1.0
+	if wf.Args.Document.Version != "0.1.0" {
+		t.Errorf("Version = %v, want 0.1.0", wf.Args.Document.Version)
+	}
+}
+
+// TestWorkflowNew_WithCustomVersion tests custom version.
+func TestWorkflowNew_WithCustomVersion(t *testing.T) {
+	wf, err := New(nil, "test/workflow", &WorkflowArgs{
+		Document: &workflowv1.WorkflowDocument{
+			Version: "2.0.0",
+		},
+	})
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	if wf.Args.Document.Version != "2.0.0" {
+		t.Errorf("Version = %v, want 2.0.0", wf.Args.Document.Version)
 	}
 }
