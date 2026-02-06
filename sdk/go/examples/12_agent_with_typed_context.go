@@ -74,9 +74,9 @@ func main() {
 
 		log.Printf("Created agent: %s", ag)
 		log.Printf("  - Organization: %s", ag.Org)
-		log.Printf("  - Icon URL: %s", ag.IconURL())
-		log.Printf("  - Skill Refs: %d", len(ag.SkillRefs()))
-		log.Printf("  - MCP Server Usages: %d", len(ag.McpServerUsages()))
+		log.Printf("  - Icon URL: %s", ag.Args.IconUrl)
+		log.Printf("  - Skill Refs: %d", len(ag.Args.SkillRefs))
+		log.Printf("  - MCP Server Usages: %d", len(ag.Args.McpServerUsages))
 		log.Printf("  - Environment Requirements: %d", envVarCount)
 		log.Println("Agent will be synthesized automatically on completion")
 		return nil

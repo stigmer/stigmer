@@ -282,16 +282,16 @@ func TestEnvironment_Accessors(t *testing.T) {
 		t.Fatalf("New() error: %v", err)
 	}
 
-	if env.Description() != "Test environment" {
-		t.Errorf("Description() = %v, want 'Test environment'", env.Description())
+	if env.Args.Description != "Test environment" {
+		t.Errorf("Description() = %v, want 'Test environment'", env.Args.Description)
 	}
 
-	if env.Data() == nil {
+	if env.Args.Data == nil {
 		t.Error("Data() returned nil")
 	}
 
-	if len(env.Data()) != 1 {
-		t.Errorf("len(Data()) = %v, want 1", len(env.Data()))
+	if len(env.Args.Data) != 1 {
+		t.Errorf("len(Data()) = %v, want 1", len(env.Args.Data))
 	}
 }
 
@@ -309,19 +309,6 @@ func TestEnvironment_String(t *testing.T) {
 	}
 }
 
-func TestEnvironment_NilArgs_Accessors(t *testing.T) {
-	// Test that accessors handle nil Args gracefully
-	env := &Environment{
-		Name: "test",
-		Slug: "test",
-		Args: nil,
-	}
-
-	if env.Description() != "" {
-		t.Errorf("Description() with nil Args = %v, want empty string", env.Description())
-	}
-
-	if env.Data() != nil {
-		t.Errorf("Data() with nil Args = %v, want nil", env.Data())
-	}
-}
+// TestEnvironment_NilArgs_Accessors removed - accessor methods were removed
+// in favor of direct field access (agent.Args.Field pattern).
+// Args is always initialized by New(), so nil Args is not a valid scenario.

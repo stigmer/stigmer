@@ -197,26 +197,6 @@ func (e *Environment) SetConfig(name, value string) *Environment {
 	return e.Set(name, value, false)
 }
 
-// ============================================================================
-// Accessor Methods
-// ============================================================================
-
-// Description returns the environment's description from Args.
-func (e *Environment) Description() string {
-	if e.Args == nil {
-		return ""
-	}
-	return e.Args.Description
-}
-
-// Data returns the environment's data map from Args.
-func (e *Environment) Data() map[string]*environmentv1.EnvironmentValue {
-	if e.Args == nil {
-		return nil
-	}
-	return e.Args.Data
-}
-
 // String returns a string representation of the Environment.
 func (e *Environment) String() string {
 	return "Environment(name=" + e.Name + ")"

@@ -102,8 +102,8 @@ Always check environment configurations before deployment.`,
 		// =============================================================================
 		fmt.Println("\n=== Agent Configuration Summary ===\n")
 		fmt.Printf("Agent: %s\n", deployAgent.Name)
-		fmt.Printf("  - Instructions: %d characters\n", len(deployAgent.Instructions()))
-		fmt.Printf("  - MCP Server Usages: %d\n", len(deployAgent.McpServerUsages()))
+		fmt.Printf("  - Instructions: %d characters\n", len(deployAgent.Args.Instructions))
+		fmt.Printf("  - MCP Server Usages: %d\n", len(deployAgent.Args.McpServerUsages))
 
 		// Display environment spec
 		if deployAgent.Args.EnvSpec != nil && len(deployAgent.Args.EnvSpec.Data) > 0 {

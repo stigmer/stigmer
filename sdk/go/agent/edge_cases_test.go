@@ -328,7 +328,7 @@ func TestAgent_ConcurrentSkillAddition(t *testing.T) {
 	// Verify all 50 skills were added successfully
 	// With thread-safe implementation, we should get exactly 50 skills
 	agent.mu.Lock()
-	skillCount := len(agent.SkillRefs())
+	skillCount := len(agent.Args.SkillRefs)
 	agent.mu.Unlock()
 
 	if skillCount != 50 {
