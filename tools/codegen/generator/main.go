@@ -275,7 +275,7 @@ func (g *Generator) loadSchemas() error {
 	// Track loaded types to avoid duplicates
 	loadedTypes := make(map[string]bool)
 
-	// Load shared types from types/ directory (workflow task types)
+	// Load shared types from types/ directory (if exists)
 	typesDir := filepath.Join(g.schemaDir, "types")
 	if _, err := os.Stat(typesDir); err == nil {
 		entries, err := os.ReadDir(typesDir)
@@ -303,6 +303,40 @@ func (g *Generator) loadSchemas() error {
 			// Extract domain from proto namespace (data-driven, no hard-coding)
 			schema.Domain = extractDomainFromProtoType(schema.ProtoType)
 			fmt.Printf("  Loaded type: %s (domain: %s)\n", schema.Name, schema.Domain)
+
+			g.sharedTypes = append(g.sharedTypes, schema)
+		}
+	}
+
+	// Load workflow task types from tasks/types/ directory
+	// These are types used by workflow task configs (e.g., AgentExecutionConfig, ForkBranch, etc.)
+	tasksTypesDir := filepath.Join(g.schemaDir, "tasks", "types")
+	if _, err := os.Stat(tasksTypesDir); err == nil {
+		entries, err := os.ReadDir(tasksTypesDir)
+		if err != nil {
+			return fmt.Errorf("failed to read tasks/types directory: %w", err)
+		}
+
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+				continue
+			}
+
+			path := filepath.Join(tasksTypesDir, entry.Name())
+			schema, err := loadTypeSchema(path)
+			if err != nil {
+				return fmt.Errorf("failed to load task type %s: %w", entry.Name(), err)
+			}
+
+			// Skip duplicates
+			if loadedTypes[schema.Name] {
+				continue
+			}
+			loadedTypes[schema.Name] = true
+
+			// Extract domain from proto namespace - workflow task types go to "workflow" domain
+			schema.Domain = extractDomainFromProtoType(schema.ProtoType)
+			fmt.Printf("  Loaded task type: %s (domain: %s, from tasks/types/)\n", schema.Name, schema.Domain)
 
 			g.sharedTypes = append(g.sharedTypes, schema)
 		}
@@ -1367,6 +1401,7 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 			typeName := field.Type.MessageType
 			if _, isShared := c.sharedTypes[typeName]; isShared && c.packageName != "types" {
 				typeName = "types." + typeName
+				c.addImport("github.com/stigmer/stigmer/sdk/go/gen/types")
 			}
 			fmt.Fprintf(w, "\t\tc.%s = &%s{}\n", field.Name, typeName)
 			fmt.Fprintf(w, "\t\tif err := c.%s.FromProto(val.GetStructValue()); err != nil {\n", field.Name)

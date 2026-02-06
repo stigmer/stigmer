@@ -32,6 +32,15 @@ var (
 	TaskKindRaiseError   = workflowv1.WorkflowTaskKind_raise_error
 	TaskKindRunWorkflow  = workflowv1.WorkflowTaskKind_run_workflow
 	TaskKindAgentCall    = workflowv1.WorkflowTaskKind_agent_call
+
+	// Aliases for consistent naming with generated code patterns
+	TaskKindSet          = TaskKindSetVars
+	TaskKindCallActivity = TaskKindActivityCall
+	TaskKindSwitch       = TaskKindSwitchCase
+	TaskKindFor          = TaskKindForEach
+	TaskKindTry          = TaskKindTryCatch
+	TaskKindRaise        = TaskKindRaiseError
+	TaskKindRun          = TaskKindRunWorkflow
 )
 
 // Special task flow control constants.
