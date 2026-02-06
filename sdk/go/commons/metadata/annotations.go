@@ -1,4 +1,4 @@
-package agent
+package metadata
 
 import (
 	"fmt"
@@ -6,16 +6,16 @@ import (
 )
 
 const (
-	// SDKLanguage is the programming language used for this agent definition
+	// SDKLanguage is the programming language used for resource definitions.
 	SDKLanguage = "go"
 
-	// SDKVersion is the version of the Go SDK
+	// SDKVersion is the version of the Go SDK.
 	// TODO: Read from version file or embed during build
 	SDKVersion = "0.1.0"
 
 	// Annotation keys for SDK metadata
-	AnnotationSDKLanguage   = "stigmer.ai/sdk.language"
-	AnnotationSDKVersion    = "stigmer.ai/sdk.version"
+	AnnotationSDKLanguage    = "stigmer.ai/sdk.language"
+	AnnotationSDKVersion     = "stigmer.ai/sdk.version"
 	AnnotationSDKGeneratedAt = "stigmer.ai/sdk.generated-at"
 )
 
@@ -27,14 +27,14 @@ const (
 // Returns:
 //
 //	map[string]string{
-//	    "stigmer.ai/sdk.language":    "go",
-//	    "stigmer.ai/sdk.version":     "0.1.0",
+//	    "stigmer.ai/sdk.language":     "go",
+//	    "stigmer.ai/sdk.version":      "0.1.0",
 //	    "stigmer.ai/sdk.generated-at": "1706789123",  // Unix timestamp
 //	}
 func SDKAnnotations() map[string]string {
 	return map[string]string{
-		AnnotationSDKLanguage:   SDKLanguage,
-		AnnotationSDKVersion:    SDKVersion,
+		AnnotationSDKLanguage:    SDKLanguage,
+		AnnotationSDKVersion:     SDKVersion,
 		AnnotationSDKGeneratedAt: fmt.Sprintf("%d", time.Now().Unix()),
 	}
 }
@@ -50,7 +50,7 @@ func SDKAnnotations() map[string]string {
 //	    "app.example.com/team": "backend",
 //	    "app.example.com/env":  "prod",
 //	}
-//	allAnnotations := agent.MergeAnnotations(userAnnotations)
+//	allAnnotations := metadata.MergeAnnotations(userAnnotations)
 //	// Returns: user annotations + SDK annotations
 func MergeAnnotations(userAnnotations map[string]string) map[string]string {
 	result := SDKAnnotations()

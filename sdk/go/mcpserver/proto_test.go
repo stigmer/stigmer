@@ -3,6 +3,7 @@ package mcpserver
 import (
 	"testing"
 
+	"github.com/stigmer/stigmer/sdk/go/commons/metadata"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
@@ -51,11 +52,11 @@ func TestToProto_StdioServer(t *testing.T) {
 	if proto.Metadata.Annotations == nil {
 		t.Fatal("Metadata.Annotations is nil")
 	}
-	if proto.Metadata.Annotations[AnnotationSDKLanguage] != "go" {
-		t.Errorf("Annotation %s = %q, want %q", AnnotationSDKLanguage, proto.Metadata.Annotations[AnnotationSDKLanguage], "go")
+	if proto.Metadata.Annotations[metadata.AnnotationSDKLanguage] != "go" {
+		t.Errorf("Annotation %s = %q, want %q", metadata.AnnotationSDKLanguage, proto.Metadata.Annotations[metadata.AnnotationSDKLanguage], "go")
 	}
-	if proto.Metadata.Annotations[AnnotationSDKVersion] != SDKVersion {
-		t.Errorf("Annotation %s = %q, want %q", AnnotationSDKVersion, proto.Metadata.Annotations[AnnotationSDKVersion], SDKVersion)
+	if proto.Metadata.Annotations[metadata.AnnotationSDKVersion] != metadata.SDKVersion {
+		t.Errorf("Annotation %s = %q, want %q", metadata.AnnotationSDKVersion, proto.Metadata.Annotations[metadata.AnnotationSDKVersion], metadata.SDKVersion)
 	}
 
 	// Verify spec
@@ -209,17 +210,17 @@ func TestToProto_WithEnvSpec(t *testing.T) {
 }
 
 func TestSDKAnnotations(t *testing.T) {
-	annotations := SDKAnnotations()
+	annotations := metadata.SDKAnnotations()
 
-	if annotations[AnnotationSDKLanguage] != "go" {
-		t.Errorf("SDKAnnotations()[%s] = %q, want %q", AnnotationSDKLanguage, annotations[AnnotationSDKLanguage], "go")
+	if annotations[metadata.AnnotationSDKLanguage] != "go" {
+		t.Errorf("SDKAnnotations()[%s] = %q, want %q", metadata.AnnotationSDKLanguage, annotations[metadata.AnnotationSDKLanguage], "go")
 	}
 
-	if annotations[AnnotationSDKVersion] != SDKVersion {
-		t.Errorf("SDKAnnotations()[%s] = %q, want %q", AnnotationSDKVersion, annotations[AnnotationSDKVersion], SDKVersion)
+	if annotations[metadata.AnnotationSDKVersion] != metadata.SDKVersion {
+		t.Errorf("SDKAnnotations()[%s] = %q, want %q", metadata.AnnotationSDKVersion, annotations[metadata.AnnotationSDKVersion], metadata.SDKVersion)
 	}
 
-	if _, ok := annotations[AnnotationSDKGeneratedAt]; !ok {
-		t.Errorf("SDKAnnotations() missing %s", AnnotationSDKGeneratedAt)
+	if _, ok := annotations[metadata.AnnotationSDKGeneratedAt]; !ok {
+		t.Errorf("SDKAnnotations() missing %s", metadata.AnnotationSDKGeneratedAt)
 	}
 }

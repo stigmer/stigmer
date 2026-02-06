@@ -2,27 +2,13 @@ package mcpserver
 
 import (
 	"fmt"
-	"time"
 
 	"buf.build/go/protovalidate"
 
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/commons/metadata"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
-)
-
-const (
-	// SDKLanguage is the programming language used for this MCP server definition
-	SDKLanguage = "go"
-
-	// SDKVersion is the version of the Go SDK
-	// TODO: Read from version file or embed during build
-	SDKVersion = "0.1.0"
-
-	// Annotation keys for SDK metadata
-	AnnotationSDKLanguage    = "stigmer.ai/sdk.language"
-	AnnotationSDKVersion     = "stigmer.ai/sdk.version"
-	AnnotationSDKGeneratedAt = "stigmer.ai/sdk.generated-at"
 )
 
 // validator is the global protovalidate validator instance.
@@ -34,26 +20,6 @@ func init() {
 	validator, err = protovalidate.New()
 	if err != nil {
 		panic(fmt.Sprintf("failed to initialize protovalidate: %v", err))
-	}
-}
-
-// SDKAnnotations returns a map of SDK metadata annotations to be added to resource metadata.
-//
-// These annotations track that the resource was created by the Go SDK and when.
-// The CLI and platform use these annotations for telemetry and debugging.
-//
-// Returns:
-//
-//	map[string]string{
-//	    "stigmer.ai/sdk.language":    "go",
-//	    "stigmer.ai/sdk.version":     "0.1.0",
-//	    "stigmer.ai/sdk.generated-at": "1706789123",  // Unix timestamp
-//	}
-func SDKAnnotations() map[string]string {
-	return map[string]string{
-		AnnotationSDKLanguage:    SDKLanguage,
-		AnnotationSDKVersion:     SDKVersion,
-		AnnotationSDKGeneratedAt: fmt.Sprintf("%d", time.Now().Unix()),
 	}
 }
 
@@ -116,7 +82,7 @@ func (m *MCPServer) ToProto() (*mcpserverv1.McpServer, error) {
 	metadata := &apiresource.ApiResourceMetadata{
 		Name:        m.Name,
 		Slug:        slug,
-		Annotations: SDKAnnotations(),
+		Annotations: metadata.SDKAnnotations(),
 		Visibility:  apiresource.ApiResourceVisibility_visibility_private,
 	}
 

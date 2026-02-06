@@ -11,6 +11,7 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/commons/metadata"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
@@ -52,7 +53,7 @@ func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
 	metadata := &apiresource.ApiResourceMetadata{
 		Name:        w.Document.Name,
 		Slug:        w.Slug, // Include slug for backend resolution
-		Annotations: SDKAnnotations(),
+		Annotations: metadata.SDKAnnotations(),
 		// Default to private visibility for SDK-created workflows
 		Visibility: apiresource.ApiResourceVisibility_visibility_private,
 	}

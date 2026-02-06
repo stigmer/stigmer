@@ -7,6 +7,7 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/sdk/go/commons/metadata"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 )
 
@@ -56,7 +57,7 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 	metadata := &apiresource.ApiResourceMetadata{
 		Name:        a.Name,
 		Slug:        slug,
-		Annotations: SDKAnnotations(),
+		Annotations: metadata.SDKAnnotations(),
 		Visibility:  apiresource.ApiResourceVisibility_visibility_private,
 	}
 

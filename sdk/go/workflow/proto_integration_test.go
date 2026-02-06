@@ -3,6 +3,7 @@ package workflow
 import (
 	"testing"
 
+	"github.com/stigmer/stigmer/sdk/go/commons/metadata"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
@@ -77,7 +78,7 @@ func TestWorkflowToProto_Complete(t *testing.T) {
 	if len(proto.Metadata.Annotations) == 0 {
 		t.Error("Expected SDK annotations, got none")
 	}
-	if proto.Metadata.Annotations[AnnotationSDKLanguage] != "go" {
+	if proto.Metadata.Annotations[metadata.AnnotationSDKLanguage] != "go" {
 		t.Error("Expected SDK language annotation to be 'go'")
 	}
 
