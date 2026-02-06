@@ -12,6 +12,7 @@ import (
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/internal/validation"
+	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -56,6 +57,9 @@ type Context struct {
 	// agents tracks all agents created in this context
 	agents []*agent.Agent
 
+	// mcpServers tracks all MCP servers created in this context
+	mcpServers []*mcpserver.MCPServer
+
 	// dependencies tracks resource dependencies for creation order
 	// Map format: resourceID -> []dependencyIDs
 	// Example: "workflow:pr-review" -> ["agent:code-reviewer"]
@@ -76,6 +80,7 @@ func newContextWithContext(ctx context.Context) *Context {
 		variables:    make(map[string]Ref),
 		workflows:    make([]*workflow.Workflow, 0),
 		agents:       make([]*agent.Agent, 0),
+		mcpServers:   make([]*mcpserver.MCPServer, 0),
 		dependencies: make(map[string][]string),
 	}
 }
@@ -422,6 +427,16 @@ func (c *Context) RegisterAgent(ag *agent.Agent) {
 	// The agent only holds references to existing skills via SkillRefs.
 }
 
+// RegisterMCPServer registers an MCP server with this context.
+// This is typically called automatically by mcpserver.Stdio() or mcpserver.HTTP()
+// when passed a context.
+func (c *Context) RegisterMCPServer(m *mcpserver.MCPServer) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.mcpServers = append(c.mcpServers, m)
+}
+
 // =============================================================================
 // Dependency Tracking (Internal)
 // =============================================================================
@@ -528,7 +543,7 @@ func (c *Context) Synthesize() error {
 	return nil
 }
 
-// synthesizeManifests writes agent and workflow manifests to disk.
+// synthesizeManifests writes agent, workflow, and MCP server manifests to disk.
 // Skills are pushed via CLI (`stigmer skill push`), not synthesized from SDK.
 func (c *Context) synthesizeManifests(outputDir string) error {
 	// Ensure output directory exists
@@ -543,6 +558,13 @@ func (c *Context) synthesizeManifests(outputDir string) error {
 	// Synthesize agents
 	if len(c.agents) > 0 {
 		if err := c.synthesizeAgents(outputDir); err != nil {
+			return err
+		}
+	}
+
+	// Synthesize MCP servers
+	if len(c.mcpServers) > 0 {
+		if err := c.synthesizeMCPServers(outputDir); err != nil {
 			return err
 		}
 	}
@@ -595,6 +617,47 @@ func (c *Context) synthesizeAgents(outputDir string) error {
 				ResourceType: "Agent",
 				ResourceName: ag.Name,
 				Message:      fmt.Sprintf("failed to write manifest to %s", agentPath),
+				Err:          validation.ErrManifestWrite,
+			}
+		}
+	}
+
+	return nil
+}
+
+// synthesizeMCPServers converts MCP servers to protobuf and writes to disk
+func (c *Context) synthesizeMCPServers(outputDir string) error {
+	// Convert each MCP server to proto and write individually
+	for i, m := range c.mcpServers {
+		// Convert MCP server to proto using ToProto() method
+		mcpServerProto, err := m.ToProto()
+		if err != nil {
+			return validation.NewSynthesisErrorForResource(
+				"mcpservers", "MCPServer", m.Name,
+				"failed to convert to proto",
+				err,
+			)
+		}
+
+		// Serialize to binary protobuf
+		data, err := proto.Marshal(mcpServerProto)
+		if err != nil {
+			return validation.NewSynthesisErrorForResource(
+				"mcpservers", "MCPServer", m.Name,
+				"failed to serialize protobuf",
+				err,
+			)
+		}
+
+		// Write to mcpserver-{index}.pb (use index to maintain order)
+		filename := fmt.Sprintf("mcpserver-%d.pb", i)
+		mcpServerPath := filepath.Join(outputDir, filename)
+		if err := os.WriteFile(mcpServerPath, data, 0644); err != nil {
+			return &validation.SynthesisError{
+				Phase:        "mcpservers",
+				ResourceType: "MCPServer",
+				ResourceName: m.Name,
+				Message:      fmt.Sprintf("failed to write manifest to %s", mcpServerPath),
 				Err:          validation.ErrManifestWrite,
 			}
 		}
@@ -820,6 +883,18 @@ func (c *Context) Agents() []*agent.Agent {
 	// Return a copy to prevent external modification
 	result := make([]*agent.Agent, len(c.agents))
 	copy(result, c.agents)
+	return result
+}
+
+// MCPServers returns a copy of all MCP servers registered in the context.
+// This is primarily useful for testing and debugging.
+func (c *Context) MCPServers() []*mcpserver.MCPServer {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	// Return a copy to prevent external modification
+	result := make([]*mcpserver.MCPServer, len(c.mcpServers))
+	copy(result, c.mcpServers)
 	return result
 }
 
