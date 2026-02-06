@@ -110,12 +110,9 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 		// ============================================================================
 		// Create orchestration workflow
 		// ============================================================================
-		wf, err := workflow.New(ctx,
-			workflow.WithNamespace("ci-cd"),
-			workflow.WithName("intelligent-deployment-pipeline"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Multi-agent CI/CD pipeline with automated review and deployment"),
-		)
+		wf, err := workflow.New(ctx, "ci-cd/intelligent-deployment-pipeline", &workflow.WorkflowArgs{
+			Description: "Multi-agent CI/CD pipeline with automated review and deployment",
+		})
 		if err != nil {
 			return err
 		}
@@ -138,7 +135,7 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 		// Step 2: Security scan (Agent 1)
 		// ============================================================================
 		securityScan := wf.CallAgent("securityScan", &workflow.AgentCallArgs{
-			Agent: workflow.Agent(securityAgent).Slug(),
+			Agent: securityAgent.Slug, // Direct slug reference
 			Message: workflow.Interpolate(
 				"Scan this PR for security vulnerabilities:\n",
 				"Title: ", fetchPR.Field("title"), "\n",
@@ -160,7 +157,7 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 		// Step 3: Code quality review (Agent 2)
 		// ============================================================================
 		codeReview := wf.CallAgent("codeReview", &workflow.AgentCallArgs{
-			Agent: workflow.Agent(codeReviewAgent).Slug(),
+			Agent: codeReviewAgent.Slug, // Direct slug reference
 			Message: workflow.Interpolate(
 				"Review code quality for this PR:\n",
 				"Title: ", fetchPR.Field("title"), "\n",
@@ -181,7 +178,7 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 		// Step 4: Performance analysis (Agent 3)
 		// ============================================================================
 		performanceAnalysis := wf.CallAgent("performanceAnalysis", &workflow.AgentCallArgs{
-			Agent: workflow.Agent(performanceAgent).Slug(),
+			Agent: performanceAgent.Slug, // Direct slug reference
 			Message: workflow.Interpolate(
 				"Analyze performance impact of this PR:\n",
 				"Changed files: ", fetchPR.Field("changed_files"), "\n",
@@ -214,7 +211,7 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 		// Step 6: Generate deployment plan (Agent 4)
 		// ============================================================================
 		deploymentPlan := wf.CallAgent("generateDeploymentPlan", &workflow.AgentCallArgs{
-			Agent: workflow.Agent(devopsAgent).Slug(),
+			Agent: devopsAgent.Slug, // Direct slug reference
 			Message: workflow.Interpolate(
 				"Create deployment plan based on review results:\n",
 				"Security: ", aggregateResults.Field("security_status"), " (Risk: ", aggregateResults.Field("security_risk"), ")\n",
@@ -251,7 +248,7 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 		// Step 8: Post-deployment verification (Agent 5)
 		// ============================================================================
 		verifyDeployment := wf.CallAgent("verifyDeployment", &workflow.AgentCallArgs{
-			Agent: workflow.Agent(qaAgent).Slug(),
+			Agent: qaAgent.Slug, // Direct slug reference
 			Message: workflow.Interpolate(
 				"Verify deployment health:\n",
 				"Deployment ID: ", executeDeploy.Field("deployment_id"), "\n",
@@ -291,7 +288,7 @@ Return JSON: {"status": "healthy|degraded|failed", "metrics": {...}, "action": "
 		// Pipeline Summary
 		// ============================================================================
 		log.Println("\n📊 Pipeline Summary:")
-		log.Printf("   - Total tasks: %d", len(wf.Tasks))
+		log.Printf("   - Total tasks: %d", len(wf.Args.Tasks))
 		log.Printf("   - Agents used: 5 (security, code-review, performance, devops, qa)")
 		log.Printf("   - HTTP calls: 4 (fetch PR, deploy, notify)")
 		log.Printf("   - Data aggregation: 1")

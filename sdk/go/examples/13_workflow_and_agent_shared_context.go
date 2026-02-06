@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
@@ -30,28 +29,17 @@ func main() {
 		orgName := ctx.SetString("orgName", "data-processing-team")
 		retryCount := ctx.SetInt("retryCount", 3)
 
-		// Create shared environment variable using struct-args pattern
-		apiToken, err := environment.New(ctx, "API_TOKEN", &environment.VariableArgs{
-			IsSecret:    true,
-			Description: "API authentication token",
-		})
-		if err != nil {
-			return err
-		}
-
-		// Create a workflow that uses the shared context using struct-args pattern
+		// Create a workflow that uses the shared context using struct-based Args pattern
 		wf, err := workflow.New(ctx, "data-processing/fetch-and-analyze", &workflow.WorkflowArgs{
-			Namespace:   "data-processing",
-			Version:     "1.0.0",
 			Description: "Fetch data from API and analyze with agent",
-			Org:         orgName.Value(),
 		})
 		if err != nil {
 			return err
 		}
 
-		// Add environment variable using builder method
-		wf.AddEnvironmentVariable(*apiToken)
+		// Declare shared environment requirement using builder method
+		// Both workflow and agent can declare the same env var requirement
+		wf.RequireSecret("API_TOKEN", "API authentication token")
 
 		// Add workflow tasks using shared context variables
 		// Use workflow.Interpolate() to build URL from context variable and literal path
@@ -82,8 +70,8 @@ func main() {
 		// Set Org field directly (same shared typed reference as workflow!)
 		ag.Org = orgName.Value()
 
-		// Add environment variable using builder method (dereference pointer)
-		ag.AddEnvironmentVariable(*apiToken) // Same environment variable as workflow!
+		// Agent declares the same secret requirement - resolved at instance time
+		ag.RequireSecret("API_TOKEN", "API authentication token")
 
 		log.Printf("Created workflow: %s", wf)
 		log.Printf("Created agent: %s", ag)

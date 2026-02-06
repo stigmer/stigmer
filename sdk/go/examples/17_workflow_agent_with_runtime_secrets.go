@@ -30,12 +30,9 @@ import (
 //	  --runtime-env PR_NUMBER=42
 func main() {
 	err := stigmer.Run(func(ctx *stigmer.Context) error {
-		wf, err := workflow.New(ctx,
-			workflow.WithNamespace("github"),
-			workflow.WithName("github-pr-review"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Automated PR review with GitHub integration"),
-		)
+		wf, err := workflow.New(ctx, "github/github-pr-review", &workflow.WorkflowArgs{
+			Description: "Automated PR review with GitHub integration",
+		})
 		if err != nil {
 			return err
 		}
@@ -60,7 +57,7 @@ func main() {
 		// Pass GitHub token to agent via environment variable
 		// Agent can use it to fetch additional context or post comments
 		reviewTask := wf.CallAgent("reviewPR", &workflow.AgentCallArgs{
-			Agent: workflow.AgentBySlug("code-reviewer").Slug(),
+			Agent: "code-reviewer", // Slug-only uses workflow's org
 			// Message uses PR data from previous task
 			Message: workflow.Interpolate(
 				"Review this PR:\n",
@@ -116,7 +113,7 @@ func main() {
 		)
 
 		log.Printf("✅ Created notifySlack task")
-		log.Printf("📊 Total tasks: %d", len(wf.Tasks))
+		log.Printf("📊 Total tasks: %d", len(wf.Args.Tasks))
 		log.Printf("🔐 Runtime secrets used: GITHUB_TOKEN, SLACK_WEBHOOK")
 		log.Printf("🌍 Runtime env vars used: PR_NUMBER")
 

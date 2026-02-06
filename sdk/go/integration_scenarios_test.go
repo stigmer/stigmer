@@ -149,10 +149,10 @@ func TestIntegration_MultiAgentWorkflow(t *testing.T) {
 
 		// Fetch code
 		fetchCode := workflow.HttpGet("fetchCode", "https://api.example.com/code", nil)
-		wf.AddTask( fetchCode)
+		wf.AddTask(fetchCode)
 
 		// Add agent call tasks using low-level API
-		wf.AddTask( &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "securityReview",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -162,7 +162,7 @@ func TestIntegration_MultiAgentWorkflow(t *testing.T) {
 			ExportAs: "${.}",
 		})
 
-		wf.AddTask( &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "performanceReview",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -172,7 +172,7 @@ func TestIntegration_MultiAgentWorkflow(t *testing.T) {
 			ExportAs: "${.}",
 		})
 
-		wf.AddTask( &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "generateDocs",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -351,7 +351,7 @@ func TestIntegration_ManyResourcesStressTest(t *testing.T) {
 						fmt.Sprintf("key%d", j): fmt.Sprintf("value%d", j),
 					},
 				})
-				wf.AddTask( setTask)
+				wf.AddTask(setTask)
 			}
 		}
 
@@ -409,10 +409,10 @@ func TestIntegration_RealWorld_DataPipeline(t *testing.T) {
 			},
 			TimeoutSeconds: 120,
 		})
-		wf.AddTask( fetchData)
+		wf.AddTask(fetchData)
 
 		// Transform data (low-level API)
-		wf.AddTask( &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "transformData",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -423,7 +423,7 @@ func TestIntegration_RealWorld_DataPipeline(t *testing.T) {
 		})
 
 		// Quality check (low-level API)
-		wf.AddTask( &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "qualityCheck",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -444,7 +444,7 @@ func TestIntegration_RealWorld_DataPipeline(t *testing.T) {
 			},
 			TimeoutSeconds: 60,
 		})
-		wf.AddTask( loadData)
+		wf.AddTask(loadData)
 
 		_ = dataTransformer
 		_ = dataQuality
@@ -494,10 +494,10 @@ func TestIntegration_RealWorld_CustomerSupport(t *testing.T) {
 
 		// Receive ticket
 		receiveTicket := workflow.HttpGet("receiveTicket", "https://api.support.com/tickets/next", nil)
-		wf.AddTask( receiveTicket)
+		wf.AddTask(receiveTicket)
 
 		// Classify ticket (low-level API)
-		wf.AddTask( &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "classifyTicket",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -508,7 +508,7 @@ func TestIntegration_RealWorld_CustomerSupport(t *testing.T) {
 		})
 
 		// Generate response (low-level API)
-		wf.AddTask( &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "generateResponse",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{
@@ -523,7 +523,7 @@ func TestIntegration_RealWorld_CustomerSupport(t *testing.T) {
 			map[string]string{"Content-Type": "application/json"},
 			nil,
 		)
-		wf.AddTask( sendResponse)
+		wf.AddTask(sendResponse)
 
 		_ = ticketClassifier
 		_ = responseGenerator
@@ -579,10 +579,10 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 			},
 			TimeoutSeconds: 10,
 		})
-		wf.AddTask( riskyCall)
+		wf.AddTask(riskyCall)
 
 		// Fallback agent call on error (low-level API)
-		wf.AddTask( &workflow.Task{
+		wf.AddTask(&workflow.Task{
 			Name: "handleError",
 			Kind: workflow.TaskKindAgentCall,
 			Config: &workflow.AgentCallTaskConfig{

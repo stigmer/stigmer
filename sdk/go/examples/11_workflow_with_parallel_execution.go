@@ -19,13 +19,10 @@ func main() {
 		apiBase := ctx.SetString("apiBase", "https://api.github.com/repos/stigmer/hello-stigmer")
 		_ = ctx.SetInt("timeout", 60) // Define timeout in context
 
-		// Create workflow
-		wf, err := workflow.New(ctx,
-			workflow.WithNamespace("parallel-processing"),
-			workflow.WithName("parallel-data-fetch"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Fetch GitHub data from multiple endpoints in parallel"),
-		)
+		// Create workflow using struct-based Args pattern
+		wf, err := workflow.New(ctx, "parallel-processing/parallel-data-fetch", &workflow.WorkflowArgs{
+			Description: "Fetch GitHub data from multiple endpoints in parallel",
+		})
 		if err != nil {
 			return err
 		}
