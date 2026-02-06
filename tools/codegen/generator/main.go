@@ -181,18 +181,23 @@ func extractDomainFromProtoType(protoType string) string {
 //
 //	"apis/ai/stigmer/agentic/agent/v1/spec.proto" -> "agent"
 //	"apis/ai/stigmer/agentic/skill/v1/spec.proto" -> "skill"
+//	"apis/ai/stigmer/iam/apikey/v1/spec.proto" -> "apikey"
+//	"apis/ai/stigmer/tenancy/organization/v1/spec.proto" -> "organization"
 //	"apis/ai/stigmer/commons/apiresource/io.proto" -> ""
 func extractSubdomainFromProtoFile(protoFile string) string {
-	// Pattern: apis/ai/stigmer/<domain>/<subdomain>/...
+	// Pattern: apis/ai/stigmer/<domain>/<subdomain>/v<version>/...
 	parts := strings.Split(protoFile, "/")
 	if len(parts) >= 6 && parts[0] == "apis" && parts[1] == "ai" && parts[2] == "stigmer" {
-		// parts[3] is domain (e.g., "agentic", "commons")
-		// parts[4] is subdomain (e.g., "agent", "skill") or version for commons
-		if parts[3] == "agentic" {
-			return parts[4] // "agent", "skill", "workflow", etc.
+		domain := parts[3] // "agentic", "iam", "tenancy", "commons"
+
+		// Skip commons - no subdomain concept, types go to gen/types/
+		if domain == "commons" {
+			return ""
 		}
-		// For commons, there's no subdomain, just the module name
-		return ""
+
+		// For all other domains (agentic, iam, tenancy), parts[4] is the resource subdomain
+		// e.g., agentic/agent, iam/apikey, tenancy/organization
+		return parts[4]
 	}
 	return ""
 }
@@ -858,9 +863,9 @@ func protoTypeToPackageAlias(protoType string) string {
 	// For versioned packages (e.g., ai.stigmer.agentic.agent.v1.TypeName)
 	// Use <subdomain><version> as alias (e.g., "agentv1")
 	if len(parts) >= 6 && strings.HasPrefix(parts[len(parts)-2], "v") {
-		subdomain := parts[len(parts)-3]      // e.g., "agent"
-		version := parts[len(parts)-2]        // e.g., "v1"
-		return subdomain + version            // e.g., "agentv1"
+		subdomain := parts[len(parts)-3] // e.g., "agent"
+		version := parts[len(parts)-2]   // e.g., "v1"
+		return subdomain + version       // e.g., "agentv1"
 	}
 
 	// For non-versioned packages (e.g., ai.stigmer.commons.apiresource.TypeName)
@@ -1608,7 +1613,7 @@ func (c *genContext) goType(typeSpec TypeSpec) string {
 					}
 				}
 			}
-			
+
 			// Fall back to gen/types package
 			if c.packageName != "types" {
 				c.addImport("github.com/stigmer/stigmer/sdk/go/gen/types")

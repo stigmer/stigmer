@@ -1,4 +1,4 @@
-package skillref
+package ref
 
 import (
 	"errors"
@@ -7,12 +7,12 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
-func TestNew(t *testing.T) {
+func TestSkill(t *testing.T) {
 	tests := []struct {
 		name        string
 		org         string
 		slug        string
-		opts        []Option
+		opts        []SkillOption
 		wantOrg     string
 		wantSlug    string
 		wantVersion string
@@ -29,7 +29,7 @@ func TestNew(t *testing.T) {
 			name:        "with version tag",
 			org:         "stigmer",
 			slug:        "code-review",
-			opts:        []Option{WithVersion("v1.0")},
+			opts:        []SkillOption{WithVersion("v1.0")},
 			wantOrg:     "stigmer",
 			wantSlug:    "code-review",
 			wantVersion: "v1.0",
@@ -38,7 +38,7 @@ func TestNew(t *testing.T) {
 			name:        "with stable tag",
 			org:         "acme",
 			slug:        "internal-docs",
-			opts:        []Option{WithVersion("stable")},
+			opts:        []SkillOption{WithVersion("stable")},
 			wantOrg:     "acme",
 			wantSlug:    "internal-docs",
 			wantVersion: "stable",
@@ -47,7 +47,7 @@ func TestNew(t *testing.T) {
 			name:        "with latest version",
 			org:         "stigmer",
 			slug:        "test-skill",
-			opts:        []Option{WithVersion("latest")},
+			opts:        []SkillOption{WithVersion("latest")},
 			wantOrg:     "stigmer",
 			wantSlug:    "test-skill",
 			wantVersion: "latest",
@@ -56,7 +56,7 @@ func TestNew(t *testing.T) {
 			name:        "with exact hash",
 			org:         "stigmer",
 			slug:        "immutable",
-			opts:        []Option{WithVersion("abc123def456abc123def456abc123def456abc123def456abc123def456abc123")},
+			opts:        []SkillOption{WithVersion("abc123def456abc123def456abc123def456abc123def456abc123def456abc123")},
 			wantOrg:     "stigmer",
 			wantSlug:    "immutable",
 			wantVersion: "abc123def456abc123def456abc123def456abc123def456abc123def456abc123",
@@ -65,16 +65,24 @@ func TestNew(t *testing.T) {
 			name:        "empty version option is no-op",
 			org:         "org",
 			slug:        "slug",
-			opts:        []Option{WithVersion("")},
+			opts:        []SkillOption{WithVersion("")},
 			wantOrg:     "org",
 			wantSlug:    "slug",
+			wantVersion: "",
+		},
+		{
+			name:        "hyphenated names",
+			org:         "acme-corp",
+			slug:        "my-custom-skill",
+			wantOrg:     "acme-corp",
+			wantSlug:    "my-custom-skill",
 			wantVersion: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ref := New(tt.org, tt.slug, tt.opts...)
+			ref := Skill(tt.org, tt.slug, tt.opts...)
 
 			if ref.Org != tt.wantOrg {
 				t.Errorf("Org = %q, want %q", ref.Org, tt.wantOrg)
@@ -92,7 +100,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestParse(t *testing.T) {
+func TestParseSkill(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       string
@@ -179,11 +187,23 @@ func TestParse(t *testing.T) {
 			wantSlug:    "slug@email",
 			wantVersion: "domain.com",
 		},
+		{
+			name:     "numbers in names",
+			input:    "org123/skill456",
+			wantOrg:  "org123",
+			wantSlug: "skill456",
+		},
+		{
+			name:     "dots in slug",
+			input:    "acme/api.v2",
+			wantOrg:  "acme",
+			wantSlug: "api.v2",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ref, err := Parse(tt.input)
+			ref, err := ParseSkill(tt.input)
 
 			if tt.wantErr != nil {
 				if err == nil {
@@ -196,6 +216,8 @@ func TestParse(t *testing.T) {
 				var parseErr *ParseError
 				if !errors.As(err, &parseErr) {
 					t.Errorf("expected ParseError, got %T", err)
+				} else if parseErr.Kind != skillKind {
+					t.Errorf("ParseError.Kind = %q, want %q", parseErr.Kind, skillKind)
 				}
 				return
 			}
@@ -220,9 +242,9 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func TestMustParse(t *testing.T) {
+func TestMustParseSkill(t *testing.T) {
 	t.Run("valid reference", func(t *testing.T) {
-		ref := MustParse("stigmer/web-search")
+		ref := MustParseSkill("stigmer/web-search")
 		if ref.Org != "stigmer" {
 			t.Errorf("Org = %q, want %q", ref.Org, "stigmer")
 		}
@@ -232,7 +254,7 @@ func TestMustParse(t *testing.T) {
 	})
 
 	t.Run("valid reference with version", func(t *testing.T) {
-		ref := MustParse("stigmer/web-search@v1.0")
+		ref := MustParseSkill("stigmer/web-search@v1.0")
 		if ref.Org != "stigmer" {
 			t.Errorf("Org = %q, want %q", ref.Org, "stigmer")
 		}
@@ -250,7 +272,7 @@ func TestMustParse(t *testing.T) {
 				t.Error("expected panic, got none")
 			}
 		}()
-		MustParse("") // Should panic
+		MustParseSkill("") // Should panic
 	})
 
 	t.Run("panics on missing slash", func(t *testing.T) {
@@ -259,57 +281,38 @@ func TestMustParse(t *testing.T) {
 				t.Error("expected panic, got none")
 			}
 		}()
-		MustParse("no-slash") // Should panic
+		MustParseSkill("no-slash") // Should panic
+	})
+
+	t.Run("panics on empty org", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("expected panic, got none")
+			}
+		}()
+		MustParseSkill("/slug") // Should panic
+	})
+
+	t.Run("panics on empty slug", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("expected panic, got none")
+			}
+		}()
+		MustParseSkill("org/") // Should panic
 	})
 }
 
-func TestParseError(t *testing.T) {
-	t.Run("error message with input", func(t *testing.T) {
-		err := &ParseError{
-			Input:   "bad-input",
-			Message: "something went wrong",
-			Err:     ErrInvalidFormat,
-		}
-		want := `skillref: something went wrong (input: "bad-input")`
-		if err.Error() != want {
-			t.Errorf("Error() = %q, want %q", err.Error(), want)
-		}
-	})
-
-	t.Run("error message without input", func(t *testing.T) {
-		err := &ParseError{
-			Input:   "",
-			Message: "reference string is empty",
-			Err:     ErrInvalidFormat,
-		}
-		want := `skillref: reference string is empty`
-		if err.Error() != want {
-			t.Errorf("Error() = %q, want %q", err.Error(), want)
-		}
-	})
-
-	t.Run("unwrap returns underlying error", func(t *testing.T) {
-		err := &ParseError{
-			Input:   "test",
-			Message: "test message",
-			Err:     ErrEmptyOrg,
-		}
-		if !errors.Is(err, ErrEmptyOrg) {
-			t.Error("errors.Is should return true for underlying error")
-		}
-	})
-}
-
-func TestKindIsSkill(t *testing.T) {
+func TestSkillKindIsSkill(t *testing.T) {
 	// Verify all creation methods return skill kind
-	refs := []*struct {
+	refs := []struct {
 		name string
 		fn   func() interface{}
 	}{
-		{"New", func() interface{} { return New("org", "slug") }},
-		{"New with version", func() interface{} { return New("org", "slug", WithVersion("v1")) }},
-		{"Parse", func() interface{} { ref, _ := Parse("org/slug"); return ref }},
-		{"MustParse", func() interface{} { return MustParse("org/slug") }},
+		{"Skill", func() interface{} { return Skill("org", "slug") }},
+		{"Skill with version", func() interface{} { return Skill("org", "slug", WithVersion("v1")) }},
+		{"ParseSkill", func() interface{} { ref, _ := ParseSkill("org/slug"); return ref }},
+		{"MustParseSkill", func() interface{} { return MustParseSkill("org/slug") }},
 	}
 
 	for _, tt := range refs {
