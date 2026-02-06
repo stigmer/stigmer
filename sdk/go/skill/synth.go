@@ -1,11 +1,25 @@
 package skill
 
 import (
-	"errors"
+	"fmt"
 	"sync"
+
+	"buf.build/go/protovalidate"
 
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 )
+
+// validator is the global protovalidate validator instance.
+var validator protovalidate.Validator
+
+func init() {
+	// Initialize validator once at package load time
+	var err error
+	validator, err = protovalidate.New()
+	if err != nil {
+		panic(fmt.Sprintf("failed to initialize protovalidate: %v", err))
+	}
+}
 
 // Context is a minimal interface that represents a stigmer context.
 // This allows the skill package to work with contexts without importing
@@ -115,7 +129,7 @@ func WithTag(tag string) SynthOption {
 //	})
 func FromDir(ctx Context, path string, opts ...SynthOption) (*Skill, error) {
 	if path == "" {
-		return nil, errors.New("skill: path is required for FromDir")
+		return nil, ErrPathRequired
 	}
 
 	o := &synthOptions{}
@@ -210,7 +224,7 @@ func WithGitTag(tag string) GitOption {
 //	})
 func FromGit(ctx Context, url string, opts ...GitOption) (*Skill, error) {
 	if url == "" {
-		return nil, errors.New("skill: url is required for FromGit")
+		return nil, ErrUrlRequired
 	}
 
 	o := &gitOptions{}
@@ -324,6 +338,13 @@ func (s *Skill) ToProto() (*skillv1.SkillSynth, error) {
 				Subdir: s.gitSubdir,
 			},
 		}
+	} else {
+		return nil, ErrSourceNil
+	}
+
+	// Validate the proto message against buf.validate rules
+	if err := validator.Validate(synth); err != nil {
+		return nil, fmt.Errorf("skill synth validation failed: %w", err)
 	}
 
 	return synth, nil
