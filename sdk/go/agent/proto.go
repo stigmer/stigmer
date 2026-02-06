@@ -30,8 +30,7 @@ func init() {
 //   - Spec converted from SDK agent to proto AgentSpec
 //
 // The spec is built from Args (single source of truth for configuration).
-// SubAgents are converted from SDK-specific types.
-// EnvSpec is used directly from Args.
+// All fields including SubAgents are used directly from Args.
 //
 // Example:
 //
@@ -44,12 +43,6 @@ func init() {
 func (a *Agent) ToProto() (*agentv1.Agent, error) {
 	if a.Args == nil {
 		return nil, fmt.Errorf("agent: Args is nil, cannot convert to proto")
-	}
-
-	// Convert sub-agents (SDK-specific types to proto)
-	subAgents, err := convertSubAgents(a.SubAgents)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert sub-agents: %w", err)
 	}
 
 	// Auto-generate slug if empty
@@ -68,15 +61,14 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 	}
 
 	// Build spec from Args - single source of truth for configuration
-	// Args fields are already proto stub types, use them directly
-	// EnvSpec is used directly from Args (single source of truth)
+	// All fields are already proto stub types, use them directly
 	spec := &agentv1.AgentSpec{
 		Description:     a.Args.Description,
 		IconUrl:         a.Args.IconUrl,
 		Instructions:    a.Args.Instructions,
 		SkillRefs:       a.Args.SkillRefs,
 		McpServerUsages: a.Args.McpServerUsages,
-		SubAgents:       subAgents,
+		SubAgents:       a.Args.SubAgents, // Direct from Args - single source of truth
 		EnvSpec:         a.Args.EnvSpec,
 	}
 
@@ -94,35 +86,4 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 	}
 
 	return agent, nil
-}
-
-// convertSubAgents converts SDK sub-agents to proto sub-agents.
-// SubAgent now uses McpAccess for granting access to parent's MCP servers.
-func convertSubAgents(subAgents []SubAgent) ([]*agentv1.SubAgent, error) {
-	if len(subAgents) == 0 {
-		return []*agentv1.SubAgent{}, nil
-	}
-
-	protoSubAgents := make([]*agentv1.SubAgent, 0, len(subAgents))
-	for _, sa := range subAgents {
-		// Convert McpAccess grants
-		mcpAccess := make([]*agentv1.McpAccess, 0, len(sa.McpAccess()))
-		for _, access := range sa.McpAccess() {
-			mcpAccess = append(mcpAccess, &agentv1.McpAccess{
-				McpServer:    access.McpServer,
-				EnabledTools: access.EnabledTools,
-			})
-		}
-
-		// SubAgent fields are directly on the proto message
-		protoSubAgents = append(protoSubAgents, &agentv1.SubAgent{
-			Name:         sa.Name(),
-			Description:  sa.Description(),
-			Instructions: sa.Instructions(),
-			McpAccess:    mcpAccess,
-			SkillRefs:    sa.SkillRefs(),
-		})
-	}
-
-	return protoSubAgents, nil
 }

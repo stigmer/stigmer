@@ -173,13 +173,13 @@ func TestAgentToProto_NilFields(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "nil sub-agents",
+			name: "nil sub-agents in Args",
 			agent: &Agent{
 				Name: "agent3",
 				Args: &AgentArgs{
 					Instructions: "Test instructions for agent validation",
+					SubAgents:    nil, // nil slice in Args
 				},
-				SubAgents: nil, // nil slice
 			},
 			wantErr: false,
 		},
@@ -202,9 +202,9 @@ func TestAgentToProto_NilFields(t *testing.T) {
 					Instructions:    "Test instructions for agent validation",
 					SkillRefs:       nil,
 					McpServerUsages: nil,
+					SubAgents:       nil,
 					EnvSpec:         nil,
 				},
-				SubAgents: nil,
 			},
 			wantErr: false,
 		},

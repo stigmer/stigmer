@@ -2,22 +2,13 @@ package agent
 
 import (
 	"testing"
+
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	"github.com/stigmer/stigmer/sdk/go/commons/ref"
 )
 
-// mustSubAgent creates a sub-agent or panics on error.
-// This is a test helper for concise test cases.
-func mustSubAgent(name string, args *SubAgentArgs) SubAgent {
-	sub, err := NewSubAgent(name, args)
-	if err != nil {
-		panic("failed to create sub-agent: " + err.Error())
-	}
-	return sub
-}
-
 func TestAgentWithSubAgent(t *testing.T) {
-	helper := mustSubAgent("helper", &SubAgentArgs{
-		Instructions: "Helper instructions",
-	})
+	helper := NewSubAgent("helper", "Helper instructions")
 
 	agent, err := New(nil, "main-agent", &AgentArgs{
 		Instructions: "Main agent instructions",
@@ -29,26 +20,18 @@ func TestAgentWithSubAgent(t *testing.T) {
 	// Add sub-agent using builder method
 	agent.AddSubAgent(helper)
 
-	if len(agent.SubAgents) != 1 {
-		t.Errorf("len(SubAgents) = %d, want 1", len(agent.SubAgents))
+	if len(agent.Args.SubAgents) != 1 {
+		t.Errorf("len(Args.SubAgents) = %d, want 1", len(agent.Args.SubAgents))
 	}
-	if agent.SubAgents[0].Name() != "helper" {
-		t.Errorf("SubAgents[0].Name() = %q, want %q", agent.SubAgents[0].Name(), "helper")
+	if agent.Args.SubAgents[0].Name != "helper" {
+		t.Errorf("Args.SubAgents[0].Name = %q, want %q", agent.Args.SubAgents[0].Name, "helper")
 	}
 }
 
 func TestAgentWithMultipleSubAgents(t *testing.T) {
-	analyzer := mustSubAgent("analyzer", &SubAgentArgs{
-		Instructions: "Analyze code for bugs",
-	})
-
-	reviewer := mustSubAgent("reviewer", &SubAgentArgs{
-		Instructions: "Review code for style",
-	})
-
-	security := mustSubAgent("security", &SubAgentArgs{
-		Instructions: "Check for security issues",
-	})
+	analyzer := NewSubAgent("analyzer", "Analyze code for bugs")
+	reviewer := NewSubAgent("reviewer", "Review code for style")
+	security := NewSubAgent("security", "Check for security issues")
 
 	agent, err := New(nil, "orchestrator", &AgentArgs{
 		Instructions: "Orchestrate multiple sub-agents",
@@ -60,26 +43,25 @@ func TestAgentWithMultipleSubAgents(t *testing.T) {
 	// Add all sub-agents using builder method
 	agent.AddSubAgents(analyzer, reviewer, security)
 
-	if len(agent.SubAgents) != 3 {
-		t.Errorf("len(SubAgents) = %d, want 3", len(agent.SubAgents))
+	if len(agent.Args.SubAgents) != 3 {
+		t.Errorf("len(Args.SubAgents) = %d, want 3", len(agent.Args.SubAgents))
 	}
-	if agent.SubAgents[0].Name() != "analyzer" {
-		t.Errorf("SubAgents[0].Name() = %q, want %q", agent.SubAgents[0].Name(), "analyzer")
+	if agent.Args.SubAgents[0].Name != "analyzer" {
+		t.Errorf("Args.SubAgents[0].Name = %q, want %q", agent.Args.SubAgents[0].Name, "analyzer")
 	}
-	if agent.SubAgents[1].Name() != "reviewer" {
-		t.Errorf("SubAgents[1].Name() = %q, want %q", agent.SubAgents[1].Name(), "reviewer")
+	if agent.Args.SubAgents[1].Name != "reviewer" {
+		t.Errorf("Args.SubAgents[1].Name = %q, want %q", agent.Args.SubAgents[1].Name, "reviewer")
 	}
-	if agent.SubAgents[2].Name() != "security" {
-		t.Errorf("SubAgents[2].Name() = %q, want %q", agent.SubAgents[2].Name(), "security")
+	if agent.Args.SubAgents[2].Name != "security" {
+		t.Errorf("Args.SubAgents[2].Name = %q, want %q", agent.Args.SubAgents[2].Name, "security")
 	}
 }
 
 func TestAgentWithSubAgentUsingMCPAccess(t *testing.T) {
-	// Create sub-agent with MCP access grants
-	githubHelper := mustSubAgent("github-helper", &SubAgentArgs{
-		Instructions: "Help with GitHub operations",
-	})
-	githubHelper.GrantMcpAccess("github")
+	// Create sub-agent with MCP access grants using builder
+	githubHelper := BuildSubAgent("github-helper", "Help with GitHub operations").
+		GrantMcpAccess("github").
+		Build()
 
 	agent, err := New(nil, "main-agent", &AgentArgs{
 		Instructions: "Main agent with sub-agent that uses MCP servers",
@@ -88,21 +70,21 @@ func TestAgentWithSubAgentUsingMCPAccess(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	// Add MCP server usage to parent using new smart parsing API
+	// Add MCP server usage to parent using smart parsing API
 	agent.UseMCP("stigmer/github")
 	agent.AddSubAgent(githubHelper)
 
 	if len(agent.McpServerUsages()) != 1 {
 		t.Errorf("len(McpServerUsages) = %d, want 1", len(agent.McpServerUsages()))
 	}
-	if len(agent.SubAgents) != 1 {
-		t.Errorf("len(SubAgents) = %d, want 1", len(agent.SubAgents))
+	if len(agent.Args.SubAgents) != 1 {
+		t.Errorf("len(Args.SubAgents) = %d, want 1", len(agent.Args.SubAgents))
 	}
 
 	// Verify sub-agent has MCP access
-	mcpAccess := agent.SubAgents[0].McpAccess()
+	mcpAccess := agent.Args.SubAgents[0].McpAccess
 	if len(mcpAccess) != 1 {
-		t.Errorf("len(SubAgents[0].McpAccess()) = %d, want 1", len(mcpAccess))
+		t.Errorf("len(Args.SubAgents[0].McpAccess) = %d, want 1", len(mcpAccess))
 	}
 	if mcpAccess[0].McpServer != "github" {
 		t.Errorf("McpAccess[0].McpServer = %q, want %q", mcpAccess[0].McpServer, "github")
@@ -110,13 +92,11 @@ func TestAgentWithSubAgentUsingMCPAccess(t *testing.T) {
 }
 
 func TestAgentWithSubAgentUsingSkills(t *testing.T) {
-	skilledHelper := mustSubAgent("skilled-helper", &SubAgentArgs{
-		Instructions: "Use coding knowledge",
-	})
-	skilledHelper.AddSubAgentSkills(
-		"stigmer/coding-best-practices",
-		"my-org/internal-apis",
-	)
+	// Create sub-agent with skill refs using builder
+	skilledHelper := BuildSubAgent("skilled-helper", "Use coding knowledge").
+		AddSkillRef(ref.Skill("stigmer", "coding-best-practices")).
+		AddSkillRef(ref.Skill("my-org", "internal-apis")).
+		Build()
 
 	agent, err := New(nil, "main-agent", &AgentArgs{
 		Instructions: "Main agent with sub-agent that uses skills",
@@ -131,27 +111,25 @@ func TestAgentWithSubAgentUsingSkills(t *testing.T) {
 	// Add sub-agent using builder method
 	agent.AddSubAgent(skilledHelper)
 
-	if len(agent.SubAgents) != 1 {
-		t.Errorf("len(SubAgents) = %d, want 1", len(agent.SubAgents))
+	if len(agent.Args.SubAgents) != 1 {
+		t.Errorf("len(Args.SubAgents) = %d, want 1", len(agent.Args.SubAgents))
 	}
 	if len(agent.SkillRefs()) != 1 {
 		t.Errorf("len(SkillRefs) = %d, want 1", len(agent.SkillRefs()))
 	}
 
 	// Verify sub-agent has skills
-	subSkills := agent.SubAgents[0].SkillRefs()
+	subSkills := agent.Args.SubAgents[0].SkillRefs
 	if len(subSkills) != 2 {
-		t.Errorf("len(SubAgents[0].SkillRefs()) = %d, want 2", len(subSkills))
+		t.Errorf("len(Args.SubAgents[0].SkillRefs) = %d, want 2", len(subSkills))
 	}
 }
 
 func TestAgentWithSubAgentUsingRestrictedTools(t *testing.T) {
-	// Create sub-agent with restricted tool access
-	selectiveHelper := mustSubAgent("selective-helper", &SubAgentArgs{
-		Instructions: "Use specific GitHub tools",
-	})
-	// Grant access with restricted tools (subset of parent's tools)
-	selectiveHelper.GrantMcpAccess("github", "create_issue", "list_repos")
+	// Create sub-agent with restricted tool access using builder
+	selectiveHelper := BuildSubAgent("selective-helper", "Use specific GitHub tools").
+		GrantMcpAccess("github", "create_issue", "list_repos").
+		Build()
 
 	agent, err := New(nil, "main-agent", &AgentArgs{
 		Instructions: "Main agent with selective sub-agent",
@@ -164,14 +142,14 @@ func TestAgentWithSubAgentUsingRestrictedTools(t *testing.T) {
 	agent.UseMCP("stigmer/github", "create_issue", "list_repos", "create_pr", "search_code")
 	agent.AddSubAgent(selectiveHelper)
 
-	if len(agent.SubAgents) != 1 {
-		t.Errorf("len(SubAgents) = %d, want 1", len(agent.SubAgents))
+	if len(agent.Args.SubAgents) != 1 {
+		t.Errorf("len(Args.SubAgents) = %d, want 1", len(agent.Args.SubAgents))
 	}
 
 	// Verify sub-agent has restricted access
-	mcpAccess := agent.SubAgents[0].McpAccess()
+	mcpAccess := agent.Args.SubAgents[0].McpAccess
 	if len(mcpAccess) != 1 {
-		t.Errorf("len(McpAccess()) = %d, want 1", len(mcpAccess))
+		t.Errorf("len(McpAccess) = %d, want 1", len(mcpAccess))
 	}
 	if mcpAccess[0].McpServer != "github" {
 		t.Errorf("McpAccess[0].McpServer = %q, want %q", mcpAccess[0].McpServer, "github")
@@ -182,13 +160,12 @@ func TestAgentWithSubAgentUsingRestrictedTools(t *testing.T) {
 }
 
 func TestAgentWithSubAgentMultipleMCPAccess(t *testing.T) {
-	// Create sub-agent with access to multiple MCP servers
-	multiHelper := mustSubAgent("multi-helper", &SubAgentArgs{
-		Instructions: "Use multiple platforms",
-	})
-	multiHelper.GrantMcpAccess("github", "create_pr").
+	// Create sub-agent with access to multiple MCP servers using builder
+	multiHelper := BuildSubAgent("multi-helper", "Use multiple platforms").
+		GrantMcpAccess("github", "create_pr").
 		GrantMcpAccess("gitlab").
-		GrantMcpAccess("slack", "send_message")
+		GrantMcpAccess("slack", "send_message").
+		Build()
 
 	agent, err := New(nil, "orchestrator", &AgentArgs{
 		Instructions: "Orchestrate multiple platforms",
@@ -204,9 +181,9 @@ func TestAgentWithSubAgentMultipleMCPAccess(t *testing.T) {
 	agent.AddSubAgent(multiHelper)
 
 	// Verify sub-agent has all MCP access grants
-	mcpAccess := agent.SubAgents[0].McpAccess()
+	mcpAccess := agent.Args.SubAgents[0].McpAccess
 	if len(mcpAccess) != 3 {
-		t.Errorf("len(McpAccess()) = %d, want 3", len(mcpAccess))
+		t.Errorf("len(McpAccess) = %d, want 3", len(mcpAccess))
 	}
 
 	// Verify each access grant
@@ -223,5 +200,78 @@ func TestAgentWithSubAgentMultipleMCPAccess(t *testing.T) {
 	}
 	if servers["slack"] != 1 {
 		t.Errorf("slack tools count = %d, want 1", servers["slack"])
+	}
+}
+
+func TestSubAgentBuilder(t *testing.T) {
+	// Test the SubAgentBuilder fluent API
+	sub := BuildSubAgent("test-agent", "Test instructions").
+		Description("Test description").
+		GrantMcpAccess("github", "search_code").
+		GrantMcpAccess("aws").
+		AddSkillRef(ref.Skill("stigmer", "coding")).
+		Build()
+
+	if sub.Name != "test-agent" {
+		t.Errorf("Name = %q, want %q", sub.Name, "test-agent")
+	}
+	if sub.Instructions != "Test instructions" {
+		t.Errorf("Instructions = %q, want %q", sub.Instructions, "Test instructions")
+	}
+	if sub.Description != "Test description" {
+		t.Errorf("Description = %q, want %q", sub.Description, "Test description")
+	}
+	if len(sub.McpAccess) != 2 {
+		t.Errorf("len(McpAccess) = %d, want 2", len(sub.McpAccess))
+	}
+	if len(sub.SkillRefs) != 1 {
+		t.Errorf("len(SkillRefs) = %d, want 1", len(sub.SkillRefs))
+	}
+}
+
+func TestNewSubAgentHelpers(t *testing.T) {
+	// Test NewSubAgent helper
+	sub1 := NewSubAgent("helper", "Help with tasks")
+	if sub1.Name != "helper" {
+		t.Errorf("Name = %q, want %q", sub1.Name, "helper")
+	}
+	if sub1.Instructions != "Help with tasks" {
+		t.Errorf("Instructions = %q, want %q", sub1.Instructions, "Help with tasks")
+	}
+
+	// Test NewSubAgentWithDescription helper
+	sub2 := NewSubAgentWithDescription("helper2", "Instructions here", "A helpful sub-agent")
+	if sub2.Name != "helper2" {
+		t.Errorf("Name = %q, want %q", sub2.Name, "helper2")
+	}
+	if sub2.Description != "A helpful sub-agent" {
+		t.Errorf("Description = %q, want %q", sub2.Description, "A helpful sub-agent")
+	}
+}
+
+func TestAgentWithDirectProtoSubAgent(t *testing.T) {
+	// Test that we can use proto SubAgent directly
+	agent, err := New(nil, "test-agent", &AgentArgs{
+		Instructions: "Test agent",
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Add SubAgent directly using proto type
+	agent.AddSubAgent(&agentv1.SubAgent{
+		Name:         "direct-sub",
+		Instructions: "Direct proto sub-agent",
+		Description:  "Created directly with proto type",
+		McpAccess: []*agentv1.McpAccess{
+			{McpServer: "github", EnabledTools: []string{"search_code"}},
+		},
+	})
+
+	if len(agent.Args.SubAgents) != 1 {
+		t.Errorf("len(Args.SubAgents) = %d, want 1", len(agent.Args.SubAgents))
+	}
+	if agent.Args.SubAgents[0].Name != "direct-sub" {
+		t.Errorf("Name = %q, want %q", agent.Args.SubAgents[0].Name, "direct-sub")
 	}
 }
