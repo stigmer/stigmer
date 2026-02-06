@@ -8,11 +8,9 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
@@ -44,12 +42,6 @@ func init() {
 //	)
 //	proto, err := wf.ToProto()
 func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
-	// Convert environment variables
-	envSpec, err := convertEnvironmentVariables(w.EnvironmentVariables)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert environment variables: %w", err)
-	}
-
 	// Convert tasks
 	tasks, err := convertTasks(w.Tasks)
 	if err != nil {
@@ -75,6 +67,7 @@ func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
 	}
 
 	// Build complete Workflow proto
+	// Note: EnvSpec is nil - use generated WorkflowArgs.EnvSpec for env var requirements
 	workflow := &workflowv1.Workflow{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
@@ -83,7 +76,7 @@ func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
 			Description: w.Description,
 			Document:    document,
 			Tasks:       tasks,
-			EnvSpec:     envSpec,
+			EnvSpec:     nil, // TODO: Add support for generated WorkflowArgs.EnvSpec
 		},
 	}
 
@@ -93,27 +86,6 @@ func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
 	}
 
 	return workflow, nil
-}
-
-// convertEnvironmentVariables converts SDK environment variables to proto EnvironmentSpec.
-func convertEnvironmentVariables(envVars []environment.Variable) (*environmentv1.EnvironmentSpec, error) {
-	if len(envVars) == 0 {
-		return nil, nil
-	}
-
-	data := make(map[string]*environmentv1.EnvironmentValue)
-
-	for _, v := range envVars {
-		data[v.Name] = &environmentv1.EnvironmentValue{
-			Value:       v.DefaultValue,
-			IsSecret:    v.IsSecret,
-			Description: v.Description,
-		}
-	}
-
-	return &environmentv1.EnvironmentSpec{
-		Data: data,
-	}, nil
 }
 
 // convertTasks converts SDK tasks to proto WorkflowTask messages.

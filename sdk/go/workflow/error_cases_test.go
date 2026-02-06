@@ -1,11 +1,9 @@
 package workflow
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
@@ -251,68 +249,6 @@ func TestWorkflowToProto_InvalidTaskConfigurations(t *testing.T) {
 	}
 }
 
-// TestWorkflowToProto_InvalidEnvironmentVariables tests invalid env vars.
-func TestWorkflowToProto_InvalidEnvironmentVariables(t *testing.T) {
-	ctx := &mockEnvContext{}
-
-	tests := []struct {
-		name    string
-		envVars []environment.Variable
-		wantErr bool
-	}{
-		{
-			name: "duplicate environment variable names",
-			envVars: func() []environment.Variable {
-				env1, _ := environment.New(ctx, "API_KEY", &environment.VariableArgs{
-					IsSecret: true,
-				})
-				env2, _ := environment.New(ctx, "API_KEY", &environment.VariableArgs{ // duplicate
-					DefaultValue: "test",
-				})
-				return []environment.Variable{*env1, *env2}
-			}(),
-			wantErr: false, // May not validate duplicates
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			wf := &Workflow{
-				Document: Document{
-					DSL:       "1.0.0",
-					Namespace: "test",
-					Name:      "env-error-test",
-					Version:   "1.0.0",
-				},
-				Tasks: []*Task{
-					{
-						Name: "task1",
-						Kind: TaskKindSet,
-						Config: &SetTaskConfig{
-							Variables: map[string]string{"x": "y"},
-						},
-					},
-				},
-				EnvironmentVariables: tt.envVars,
-			}
-
-			_, err := wf.ToProto()
-
-			if tt.wantErr {
-				if err == nil {
-					t.Error("Expected error but got none")
-					return
-				}
-				t.Logf("Got expected error: %v", err)
-			} else {
-				if err != nil {
-					t.Logf("Got error (may or may not be expected): %v", err)
-				}
-			}
-		})
-	}
-}
-
 // =============================================================================
 // Error Case Tests - Task Type Mismatches
 // =============================================================================
@@ -464,57 +400,6 @@ func TestWorkflowToProto_InvalidFlowControl(t *testing.T) {
 // =============================================================================
 // Error Case Tests - Error Propagation
 // =============================================================================
-
-// TestWorkflowToProto_NestedErrorPropagation tests error propagation from nested operations.
-func TestWorkflowToProto_NestedErrorPropagation(t *testing.T) {
-	ctx := &mockEnvContext{}
-
-	// Create invalid environment variable - empty name should fail validation
-	invalidEnv, err := environment.New(ctx, "", nil) // invalid - empty name
-
-	if err == nil {
-		t.Log("Environment validation may allow empty names")
-	}
-
-	// If env creation failed, use a zero-value Variable to test error propagation
-	var envVar environment.Variable
-	if invalidEnv != nil {
-		envVar = *invalidEnv
-	}
-
-	wf := &Workflow{
-		Document: Document{
-			DSL:       "1.0.0",
-			Namespace: "test",
-			Name:      "error-propagation",
-			Version:   "1.0.0",
-		},
-		Tasks: []*Task{
-			{
-				Name: "task1",
-				Kind: TaskKindSet,
-				Config: &SetTaskConfig{
-					Variables: map[string]string{"x": "y"},
-				},
-			},
-		},
-		EnvironmentVariables: []environment.Variable{envVar},
-	}
-
-	_, err = wf.ToProto()
-
-	// Document behavior - errors may or may not propagate depending on validation
-	if err != nil {
-		t.Logf("Error propagated from nested operation: %v", err)
-
-		// Check if error is wrapped properly
-		if !errors.Is(err, err) {
-			t.Error("Error should be properly wrapped")
-		}
-	} else {
-		t.Log("No error from invalid nested environment variable")
-	}
-}
 
 // TestWorkflowToProto_MultipleValidationErrors tests handling of multiple errors.
 func TestWorkflowToProto_MultipleValidationErrors(t *testing.T) {

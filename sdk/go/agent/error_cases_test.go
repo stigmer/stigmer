@@ -4,12 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
-
-	"github.com/stigmer/stigmer/sdk/go/environment"
 )
-
-// mockEnvCtx implements the environment.Context interface for testing
-type mockEnvCtx struct{}
 
 // =============================================================================
 // Error Case Tests - Validation Failures
@@ -239,17 +234,20 @@ func TestNew_InvalidSubAgents(t *testing.T) {
 
 // TestNew_InvalidEnvironmentVariables tests agent creation with invalid env vars.
 func TestNew_InvalidEnvironmentVariables(t *testing.T) {
-	ctx := &mockEnvCtx{}
-
-	// Create invalid environment variable (empty name)
-	_, err := environment.New(ctx, "", nil)
-
+	agent, err := New(nil, "test-agent", &AgentArgs{
+		Instructions: "Test agent for environment variable validation",
+	})
 	if err != nil {
-		t.Log("Environment variable validation caught empty name at creation")
-		return
+		t.Fatalf("Failed to create agent: %v", err)
 	}
 
-	t.Log("Environment variable validation may be deferred to deployment")
+	// Test RequireSecret with empty name - currently allowed at SDK level
+	// Validation happens via protovalidate at deployment time
+	agent.RequireSecret("", "Test description")
+
+	if agent.Args.EnvSpec != nil && len(agent.Args.EnvSpec.Data) > 0 {
+		t.Log("Environment variable validation may be deferred to deployment")
+	}
 }
 
 // =============================================================================
@@ -286,8 +284,6 @@ func TestAgentToProto_ErrorPropagation(t *testing.T) {
 // TestAgentToProto_MultipleErrorSources tests agent with multiple potential error sources.
 // Simplified version without MCP servers and sub-agents.
 func TestAgentToProto_MultipleErrorSources(t *testing.T) {
-	ctx := &mockEnvCtx{}
-
 	agent, err := New(nil, "multi-error-agent", &AgentArgs{
 		Instructions: "Agent with multiple nested resources for error testing",
 	})
@@ -300,15 +296,14 @@ func TestAgentToProto_MultipleErrorSources(t *testing.T) {
 		agent.AddSkill("stigmer/skill" + string(rune('0'+i)))
 	}
 
-	// Create and add environment variables
-	envVars := []environment.Variable{}
+	// Add environment variables using the new RequireSecret/RequireConfig API
 	for i := 0; i < 10; i++ {
-		env, _ := environment.New(ctx, "ENV_VAR_"+string(rune('A'+i%26)), &environment.VariableArgs{
-			DefaultValue: "value" + string(rune('0'+i)),
-		})
-		envVars = append(envVars, *env)
+		if i%2 == 0 {
+			agent.RequireSecret("ENV_VAR_"+string(rune('A'+i%26)), "Secret env var for testing")
+		} else {
+			agent.RequireConfig("ENV_VAR_"+string(rune('A'+i%26)), "value"+string(rune('0'+i)), "Config env var for testing")
+		}
 	}
-	agent.AddEnvironmentVariables(envVars...)
 
 	proto, err := agent.ToProto()
 

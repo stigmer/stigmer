@@ -4,9 +4,9 @@ import (
 	"sync"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 	"github.com/stigmer/stigmer/sdk/go/subagent"
@@ -63,10 +63,6 @@ type Agent struct {
 	// SubAgents are sub-agents that can be delegated to (inline or referenced).
 	// Uses SDK-specific types for builder ergonomics, converted to proto in ToProto.
 	SubAgents []subagent.SubAgent
-
-	// EnvironmentVariables are environment variables required by the agent.
-	// Uses SDK-specific types for builder ergonomics, converted to proto in ToProto.
-	EnvironmentVariables []environment.Variable
 
 	// Context reference (optional, used for typed variable management)
 	ctx Context
@@ -126,11 +122,10 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 
 	// Create Agent with Args as single source of truth
 	a := &Agent{
-		Name:                 name,
-		Args:                 args,
-		ctx:                  ctx,
-		SubAgents:            []subagent.SubAgent{},
-		EnvironmentVariables: []environment.Variable{},
+		Name:      name,
+		Args:      args,
+		ctx:       ctx,
+		SubAgents: []subagent.SubAgent{},
 	}
 
 	// Auto-generate slug from name if not provided
@@ -657,33 +652,72 @@ func (a *Agent) AddSubAgents(subs ...subagent.SubAgent) *Agent {
 	return a
 }
 
-// AddEnvironmentVariable adds an environment variable to the agent after creation.
+// ============================================================================
+// Environment Variable Declaration Methods
+// ============================================================================
+
+// RequireSecret declares that this agent requires a secret env var.
+// This adds to Args.EnvSpec with is_secret=true and empty value (must be provided at runtime).
+//
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	agent, _ := agent.New(agent.WithName("reviewer"))
-//	githubToken, _ := environment.New(environment.WithName("GITHUB_TOKEN"))
-//	agent.AddEnvironmentVariable(githubToken)
-func (a *Agent) AddEnvironmentVariable(variable environment.Variable) *Agent {
+//	agent.RequireSecret("GITHUB_TOKEN", "GitHub API token for repository access")
+//	agent.RequireSecret("AWS_SECRET_KEY", "AWS secret access key")
+func (a *Agent) RequireSecret(name, description string) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.EnvironmentVariables = append(a.EnvironmentVariables, variable)
+
+	a.ensureEnvSpec()
+	a.Args.EnvSpec.Data[name] = &environmentv1.EnvironmentValue{
+		Value:       "", // Empty = must be provided at instance time
+		IsSecret:    true,
+		Description: description,
+	}
 	return a
 }
 
-// AddEnvironmentVariables adds multiple environment variables to the agent after creation.
+// RequireConfig declares that this agent requires a config env var (non-secret).
+// This adds to Args.EnvSpec with is_secret=false.
+//
+// If defaultValue is non-empty, it will be used when the variable is not provided.
+// If defaultValue is empty, the variable is required at runtime.
+//
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	agent, _ := agent.New(agent.WithName("reviewer"))
-//	agent.AddEnvironmentVariables(githubToken, awsRegion)
-func (a *Agent) AddEnvironmentVariables(variables ...environment.Variable) *Agent {
+//	agent.RequireConfig("AWS_REGION", "us-east-1", "AWS region for deployments")
+//	agent.RequireConfig("LOG_LEVEL", "info", "Logging verbosity")
+//	agent.RequireConfig("ENVIRONMENT", "", "Deployment environment (required)")
+func (a *Agent) RequireConfig(name, defaultValue, description string) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.EnvironmentVariables = append(a.EnvironmentVariables, variables...)
+
+	a.ensureEnvSpec()
+	a.Args.EnvSpec.Data[name] = &environmentv1.EnvironmentValue{
+		Value:       defaultValue,
+		IsSecret:    false,
+		Description: description,
+	}
 	return a
+}
+
+// ensureEnvSpec ensures Args and Args.EnvSpec are initialized.
+// Must be called with a.mu held.
+func (a *Agent) ensureEnvSpec() {
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	if a.Args.EnvSpec == nil {
+		a.Args.EnvSpec = &environmentv1.EnvironmentSpec{
+			Data: make(map[string]*environmentv1.EnvironmentValue),
+		}
+	}
+	if a.Args.EnvSpec.Data == nil {
+		a.Args.EnvSpec.Data = make(map[string]*environmentv1.EnvironmentValue)
+	}
 }
 
 // String returns a string representation of the Agent.

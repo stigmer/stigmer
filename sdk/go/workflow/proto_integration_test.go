@@ -3,23 +3,11 @@ package workflow
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 )
 
 // TestWorkflowToProto_Complete tests full workflow with all fields.
 func TestWorkflowToProto_Complete(t *testing.T) {
-	ctx := &mockEnvContext{}
-
-	// Create environment variable using struct-args pattern (Pulumi-aligned)
-	env1, err := environment.New(ctx, "API_TOKEN", &environment.VariableArgs{
-		IsSecret:    true,
-		Description: "API authentication token",
-	})
-	if err != nil {
-		t.Fatalf("Failed to create env var: %v", err)
-	}
-
 	wf := &Workflow{
 		Document: Document{
 			DSL:         "1.0.0",
@@ -28,11 +16,10 @@ func TestWorkflowToProto_Complete(t *testing.T) {
 			Version:     "1.0.0",
 			Description: "Daily data synchronization workflow",
 		},
-		Slug:                 "daily-sync",
-		Description:          "Sync data from external API",
-		Tasks:                []*Task{},
-		EnvironmentVariables: []environment.Variable{*env1},
-		Org:                  "my-org",
+		Slug:        "daily-sync",
+		Description: "Sync data from external API",
+		Tasks:       []*Task{},
+		Org:         "my-org",
 	}
 
 	// Add HTTP task
@@ -145,21 +132,6 @@ func TestWorkflowToProto_Complete(t *testing.T) {
 	setProtoTask := proto.Spec.Tasks[1]
 	if setProtoTask.Name != "processData" {
 		t.Errorf("SET task name mismatch")
-	}
-
-	// Verify environment variables
-	if proto.Spec.EnvSpec == nil {
-		t.Fatal("EnvSpec is nil")
-	}
-	if len(proto.Spec.EnvSpec.Data) != 1 {
-		t.Fatalf("Expected 1 env var, got %d", len(proto.Spec.EnvSpec.Data))
-	}
-	apiToken, exists := proto.Spec.EnvSpec.Data["API_TOKEN"]
-	if !exists {
-		t.Fatal("API_TOKEN not found in env vars")
-	}
-	if !apiToken.IsSecret {
-		t.Error("API_TOKEN should be marked as secret")
 	}
 }
 
@@ -437,78 +409,6 @@ func TestWorkflowToProto_SlugAutoGeneration(t *testing.T) {
 	expectedSlug := "daily-data-sync"
 	if proto.Metadata.Slug != expectedSlug {
 		t.Errorf("Slug = %v, want %v", proto.Metadata.Slug, expectedSlug)
-	}
-}
-
-// TestWorkflowToProto_MultipleEnvVars tests multiple environment variables.
-func TestWorkflowToProto_MultipleEnvVars(t *testing.T) {
-	ctx := &mockEnvContext{}
-
-	// Create environment variables using struct-args pattern (Pulumi-aligned)
-	env1, _ := environment.New(ctx, "API_KEY", &environment.VariableArgs{
-		IsSecret: true,
-	})
-	env2, _ := environment.New(ctx, "REGION", &environment.VariableArgs{
-		DefaultValue: "us-east-1",
-	})
-	env3, _ := environment.New(ctx, "DEBUG", &environment.VariableArgs{
-		DefaultValue: "false",
-	})
-
-	wf := &Workflow{
-		Document: Document{
-			DSL:       "1.0.0",
-			Namespace: "test",
-			Name:      "env-workflow",
-			Version:   "1.0.0",
-		},
-		Tasks: []*Task{
-			{
-				Name: "task1",
-				Kind: TaskKindSet,
-				Config: &SetTaskConfig{
-					Variables: map[string]string{"x": "y"},
-				},
-			},
-		},
-		EnvironmentVariables: []environment.Variable{*env1, *env2, *env3},
-	}
-
-	proto, err := wf.ToProto()
-	if err != nil {
-		t.Fatalf("ToProto() failed: %v", err)
-	}
-
-	// Verify all environment variables
-	if len(proto.Spec.EnvSpec.Data) != 3 {
-		t.Fatalf("Expected 3 env vars, got %d", len(proto.Spec.EnvSpec.Data))
-	}
-
-	// Check API_KEY
-	apiKey, exists := proto.Spec.EnvSpec.Data["API_KEY"]
-	if !exists {
-		t.Fatal("API_KEY not found")
-	}
-	if !apiKey.IsSecret {
-		t.Error("API_KEY should be secret")
-	}
-
-	// Check REGION
-	region, exists := proto.Spec.EnvSpec.Data["REGION"]
-	if !exists {
-		t.Fatal("REGION not found")
-	}
-	if region.Value != "us-east-1" {
-		t.Errorf("REGION value = %v, want us-east-1", region.Value)
-	}
-
-	// Check DEBUG
-	debug, exists := proto.Spec.EnvSpec.Data["DEBUG"]
-	if !exists {
-		t.Fatal("DEBUG not found")
-	}
-	if debug.Value != "false" {
-		t.Errorf("DEBUG value = %v, want false", debug.Value)
 	}
 }
 

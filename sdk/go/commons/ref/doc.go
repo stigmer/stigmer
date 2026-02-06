@@ -2,7 +2,7 @@
 //
 // This package mirrors the proto commons/apiresource structure and provides
 // type-safe construction of ApiResourceReference messages for different
-// resource kinds (skills, MCP servers, etc.).
+// resource kinds (skills, MCP servers, environments, etc.).
 //
 // # Skills (versioned resources)
 //
@@ -29,6 +29,19 @@
 //
 //	ref, err := ref.ParseMcpServer("stigmer/github")
 //	ref := ref.MustParseMcpServer("acme/internal-tools")  // panics on error
+//
+// # Environments (non-versioned resources)
+//
+// Environments are first-class API resources holding actual env var values.
+// They are referenced by AgentInstance and WorkflowInstance:
+//
+//	ref.Environment("acme", "production-aws")
+//	ref.Environment("acme", "staging-gcp")
+//
+// Parse environment references from strings:
+//
+//	ref, err := ref.ParseEnvironment("acme/production-aws")
+//	ref := ref.MustParseEnvironment("acme/staging")  // panics on error
 //
 // # Error Handling
 //
@@ -57,4 +70,5 @@
 //   - "stigmer/web-search" - skill without version
 //   - "stigmer/web-search@v1.0" - skill with version tag
 //   - "acme/internal-tools" - MCP server (no version support)
+//   - "acme/production-aws" - environment (no version support)
 package ref

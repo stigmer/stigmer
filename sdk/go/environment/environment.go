@@ -1,11 +1,16 @@
 package environment
 
 import (
-	"fmt"
-	"regexp"
+	"sync"
 
-	"github.com/stigmer/stigmer/sdk/go/internal/validation"
+	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
+	genEnv "github.com/stigmer/stigmer/sdk/go/gen/environment"
+	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 )
+
+// EnvironmentArgs is an alias for the generated EnvironmentArgs from gen/environment.
+// This provides a single source of truth for environment configuration.
+type EnvironmentArgs = genEnv.EnvironmentArgs
 
 // Context is a minimal interface that represents a stigmer context.
 // This allows the environment package to work with contexts without importing
@@ -13,176 +18,206 @@ import (
 //
 // The stigmer.Context type implements this interface.
 type Context interface {
-	// Environment variables are helper types, not registered resources.
-	// Context is included for consistency with Pulumi patterns.
+	RegisterEnvironment(*Environment)
 }
 
-// VariableArgs contains the configuration arguments for creating an environment Variable.
+// Environment represents a first-class API resource containing configuration and secrets.
 //
-// This struct follows the Pulumi Args pattern for resource configuration.
-type VariableArgs struct {
-	// IsSecret indicates whether this value should be treated as a secret.
-	// When true:
-	// - Value is encrypted at rest
-	// - Value is redacted in logs
-	// - Value requires special permissions to read
-	// When false (default):
-	// - Value is stored as plaintext
-	// - Value is visible in audit logs
-	IsSecret bool
-
-	// Description is a human-readable description of the variable.
-	// Recommended for all variables, especially secrets, to document
-	// their purpose and expected format.
-	Description string
-
-	// DefaultValue is the default value if not provided at instance level.
-	// Only applicable for optional variables.
-	// Setting a default value automatically marks the variable as optional.
-	DefaultValue string
-
-	// Required indicates whether this variable must be provided.
-	// Defaults to true. Variables with default values are automatically optional.
-	Required *bool
-}
-
-// Variable represents an environment variable required by an agent.
+// Environment follows the same Name/Slug/Args pattern as Agent, Workflow, McpServer.
+// It holds actual env var values and is referenced by AgentInstance/WorkflowInstance
+// via environment_refs.
 //
-// Environment variables can be configuration values or secrets. They define what
-// external configuration an agent needs to run.
+// Use environment.New() with stigmer.Run() to create an Environment:
 //
-// Use New() with struct args (Pulumi pattern) to create an environment variable:
-//
-//	githubToken, err := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
-//	    IsSecret:    true,
-//	    Description: "GitHub API token",
+//	stigmer.Run(func(ctx *stigmer.Context) error {
+//	    env, err := environment.New(ctx, "production-aws", &environment.EnvironmentArgs{
+//	        Description: "Production AWS credentials",
+//	        Data: map[string]*environmentv1.EnvironmentValue{
+//	            "AWS_REGION":        {Value: "us-west-2", IsSecret: false},
+//	            "AWS_ACCESS_KEY_ID": {Value: "${secrets.aws_key}", IsSecret: true},
+//	        },
+//	    })
+//	    return err
 //	})
-type Variable struct {
-	// Name is the environment variable name (e.g., "GITHUB_TOKEN", "AWS_REGION").
+//
+// After creation, reference the environment in AgentInstance:
+//
+//	import "github.com/stigmer/stigmer/sdk/go/commons/ref"
+//
+//	// At instance creation time:
+//	envRef := ref.Environment("my-org", "production-aws")
+type Environment struct {
+	// Name is the environment name (lowercase alphanumeric with hyphens).
+	// This is an identity field, not part of Args.
 	Name string
 
-	// IsSecret indicates whether this value should be treated as a secret.
-	// When true:
-	// - Value is encrypted at rest
-	// - Value is redacted in logs
-	// - Value requires special permissions to read
-	// When false:
-	// - Value is stored as plaintext
-	// - Value is visible in audit logs
-	IsSecret bool
+	// Slug is the URL-friendly identifier (auto-generated from name if not provided).
+	// This is an identity field, not part of Args.
+	Slug string
 
-	// Description is a human-readable description of the variable.
-	Description string
+	// Org is the organization that owns this environment (optional).
+	// This is metadata, not part of Args.
+	Org string
 
-	// DefaultValue is the default value if not provided at instance level.
-	// Only applicable for optional variables.
-	DefaultValue string
+	// Args contains all configuration for this environment.
+	// This is the SINGLE SOURCE OF TRUTH for configuration.
+	// Uses COMPOSITION pattern - we embed the generated Args struct.
+	Args *EnvironmentArgs
 
-	// Required indicates whether this variable must be provided.
-	// Required variables without a default value must be provided at AgentInstance creation.
-	Required bool
+	// ctx is the context that this environment is registered with.
+	ctx Context
+
+	// mu protects concurrent access to mutable fields.
+	mu sync.Mutex
 }
 
-// envVarNameRegex matches valid environment variable names.
-// Must be uppercase letters, numbers, and underscores, not starting with a number.
-var envVarNameRegex = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
-
-// New creates a new environment variable with struct-based args (Pulumi pattern).
+// New creates a new Environment resource with struct-based args (Pulumi pattern).
 //
-// Follows Pulumi's Args pattern: context, name as parameters, struct args for configuration.
+// The environment is automatically registered with the provided context for synthesis.
+// Follows Pulumi's Args pattern: name as parameter, args struct for configuration.
 //
 // Required:
-//   - ctx: stigmer context (for consistency with other resources)
-//   - name: variable name (uppercase letters, numbers, underscores)
+//   - name: environment name (will be converted to slug)
 //
 // Optional args fields:
-//   - IsSecret: whether the value should be treated as a secret
 //   - Description: human-readable description
-//   - DefaultValue: default value (makes the variable optional)
-//   - Required: whether the variable is required (defaults to true)
+//   - Data: map of environment variable names to values
 //
 // Example:
 //
-//	githubToken, err := environment.New(ctx, "GITHUB_TOKEN", &environment.VariableArgs{
-//	    IsSecret:    true,
-//	    Description: "GitHub API token",
-//	})
-//	if err != nil {
-//	    log.Fatal(err)
-//	}
-//
-// Example with default value (makes variable optional):
-//
-//	awsRegion, err := environment.New(ctx, "AWS_REGION", &environment.VariableArgs{
-//	    DefaultValue: "us-east-1",
-//	    Description:  "AWS region for deployment",
+//	env, err := environment.New(ctx, "production-aws", &environment.EnvironmentArgs{
+//	    Description: "Production AWS credentials",
+//	    Data: map[string]*environmentv1.EnvironmentValue{
+//	        "AWS_REGION": {Value: "us-west-2", IsSecret: false},
+//	        "AWS_ACCESS_KEY_ID": {Value: "${secrets.aws_key}", IsSecret: true},
+//	    },
 //	})
 //
-// Example with nil args (creates required variable):
+// Example with nil args (creates empty environment):
 //
-//	apiKey, err := environment.New(ctx, "API_KEY", nil)
-func New(ctx Context, name string, args *VariableArgs) (*Variable, error) {
+//	env, err := environment.New(ctx, "staging", nil)
+func New(ctx Context, name string, args *EnvironmentArgs) (*Environment, error) {
+	if name == "" {
+		return nil, ErrNameRequired
+	}
+
 	// Nil-safety: if args is nil, create empty args
 	if args == nil {
-		args = &VariableArgs{}
+		args = &EnvironmentArgs{}
 	}
 
-	// Determine if required
-	required := true
-	if args.Required != nil {
-		required = *args.Required
-	}
-	// Variables with defaults are optional
-	if args.DefaultValue != "" {
-		required = false
+	// Initialize Data map if nil
+	if args.Data == nil {
+		args.Data = make(map[string]*environmentv1.EnvironmentValue)
 	}
 
-	v := &Variable{
-		Name:         name,
-		IsSecret:     args.IsSecret,
-		Description:  args.Description,
-		DefaultValue: args.DefaultValue,
-		Required:     required,
+	e := &Environment{
+		Name: name,
+		Slug: naming.GenerateSlug(name),
+		Args: args,
+		ctx:  ctx,
 	}
 
-	// Validate the variable
-	if err := validate(v); err != nil {
+	// Validate slug format
+	if err := naming.ValidateSlug(e.Slug); err != nil {
 		return nil, err
 	}
 
-	return v, nil
+	// Register with context (if provided)
+	if ctx != nil {
+		ctx.RegisterEnvironment(e)
+	}
+
+	return e, nil
 }
 
-// String returns a string representation of the Variable.
-func (v Variable) String() string {
-	secretMarker := ""
-	if v.IsSecret {
-		secretMarker = " (secret)"
+// ============================================================================
+// Builder Methods - Modify Args (single source of truth)
+// ============================================================================
+
+// Set adds or updates an environment value.
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	env.Set("AWS_REGION", "us-west-2", false)
+//	env.Set("AWS_SECRET_KEY", "${secrets.aws_key}", true)
+func (e *Environment) Set(name string, value string, isSecret bool) *Environment {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	if e.Args.Data == nil {
+		e.Args.Data = make(map[string]*environmentv1.EnvironmentValue)
 	}
-	requiredMarker := ""
-	if !v.Required {
-		requiredMarker = " (optional)"
+	e.Args.Data[name] = &environmentv1.EnvironmentValue{
+		Value:    value,
+		IsSecret: isSecret,
 	}
-	return fmt.Sprintf("EnvVar(%s%s%s)", v.Name, secretMarker, requiredMarker)
+	return e
 }
 
-// validate validates the Variable configuration.
-func validate(v *Variable) error {
-	if err := validation.RequiredWithMessage("name", v.Name, "environment variable name is required"); err != nil {
-		return err
-	}
+// SetWithDescription adds or updates an environment value with a description.
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	env.SetWithDescription("AWS_REGION", "us-west-2", false, "AWS region for deployments")
+func (e *Environment) SetWithDescription(name, value string, isSecret bool, description string) *Environment {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 
-	// Validate name follows environment variable conventions
-	if err := validation.MatchesPattern("name", v.Name, envVarNameRegex,
-		"uppercase letters, numbers, and underscores (not starting with a number)"); err != nil {
-		return validation.NewValidationErrorWithCause(
-			"name",
-			v.Name,
-			"format",
-			fmt.Sprintf("invalid environment variable name: %s (must be uppercase letters, numbers, and underscores)", v.Name),
-			validation.ErrInvalidFormat,
-		)
+	if e.Args.Data == nil {
+		e.Args.Data = make(map[string]*environmentv1.EnvironmentValue)
 	}
+	e.Args.Data[name] = &environmentv1.EnvironmentValue{
+		Value:       value,
+		IsSecret:    isSecret,
+		Description: description,
+	}
+	return e
+}
 
-	return nil
+// SetSecret is a convenience method for adding a secret.
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	env.SetSecret("AWS_SECRET_KEY", "${secrets.aws_key}")
+func (e *Environment) SetSecret(name, value string) *Environment {
+	return e.Set(name, value, true)
+}
+
+// SetConfig is a convenience method for adding a non-secret config.
+// This method is thread-safe and can be called concurrently.
+//
+// Example:
+//
+//	env.SetConfig("AWS_REGION", "us-west-2")
+func (e *Environment) SetConfig(name, value string) *Environment {
+	return e.Set(name, value, false)
+}
+
+// ============================================================================
+// Accessor Methods
+// ============================================================================
+
+// Description returns the environment's description from Args.
+func (e *Environment) Description() string {
+	if e.Args == nil {
+		return ""
+	}
+	return e.Args.Description
+}
+
+// Data returns the environment's data map from Args.
+func (e *Environment) Data() map[string]*environmentv1.EnvironmentValue {
+	if e.Args == nil {
+		return nil
+	}
+	return e.Args.Data
+}
+
+// String returns a string representation of the Environment.
+func (e *Environment) String() string {
+	return "Environment(name=" + e.Name + ")"
 }

@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
+	"github.com/stigmer/stigmer/sdk/go/environment"
 	"github.com/stigmer/stigmer/sdk/go/internal/validation"
 	"github.com/stigmer/stigmer/sdk/go/mcpserver"
 	"github.com/stigmer/stigmer/sdk/go/skill"
@@ -64,6 +65,9 @@ type Context struct {
 	// skills tracks all skills created in this context
 	skills []*skill.Skill
 
+	// environments tracks all environments created in this context
+	environments []*environment.Environment
+
 	// dependencies tracks resource dependencies for creation order
 	// Map format: resourceID -> []dependencyIDs
 	// Example: "workflow:pr-review" -> ["agent:code-reviewer"]
@@ -86,6 +90,7 @@ func newContextWithContext(ctx context.Context) *Context {
 		agents:       make([]*agent.Agent, 0),
 		mcpServers:   make([]*mcpserver.MCPServer, 0),
 		skills:       make([]*skill.Skill, 0),
+		environments: make([]*environment.Environment, 0),
 		dependencies: make(map[string][]string),
 	}
 }
@@ -154,6 +159,9 @@ func (c *Context) WithValue(key, val any) *Context {
 		variables:    c.variables,
 		workflows:    c.workflows,
 		agents:       c.agents,
+		mcpServers:   c.mcpServers,
+		skills:       c.skills,
+		environments: c.environments,
 		dependencies: c.dependencies,
 		// Note: mu and synthesized are zero-valued (new mutex, false)
 		// This is intentional - WithValue creates a derived context for
@@ -451,6 +459,15 @@ func (c *Context) RegisterSkill(s *skill.Skill) {
 	c.skills = append(c.skills, s)
 }
 
+// RegisterEnvironment registers an environment with this context.
+// Called automatically by environment.New().
+func (c *Context) RegisterEnvironment(e *environment.Environment) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.environments = append(c.environments, e)
+}
+
 // =============================================================================
 // Dependency Tracking (Internal)
 // =============================================================================
@@ -593,6 +610,13 @@ func (c *Context) synthesizeManifests(outputDir string) error {
 	// Synthesize skills
 	if len(c.skills) > 0 {
 		if err := c.synthesizeSkills(outputDir); err != nil {
+			return err
+		}
+	}
+
+	// Synthesize environments
+	if len(c.environments) > 0 {
+		if err := c.synthesizeEnvironments(outputDir); err != nil {
 			return err
 		}
 	}
@@ -780,6 +804,47 @@ func (c *Context) synthesizeSkills(outputDir string) error {
 				ResourceType: "Skill",
 				ResourceName: name,
 				Message:      fmt.Sprintf("failed to write manifest to %s", skillPath),
+				Err:          validation.ErrManifestWrite,
+			}
+		}
+	}
+
+	return nil
+}
+
+// synthesizeEnvironments converts environments to JSON and writes to disk.
+// Note: Environments are serialized as JSON since they're configuration data
+// that may be referenced by AgentInstance/WorkflowInstance.
+func (c *Context) synthesizeEnvironments(outputDir string) error {
+	// Convert each environment to a serializable format and write individually
+	for i, e := range c.environments {
+		// Create a serializable representation
+		envData := map[string]interface{}{
+			"name":        e.Name,
+			"slug":        e.Slug,
+			"description": e.Args.Description,
+			"data":        e.Args.Data,
+		}
+
+		// Serialize to JSON
+		data, err := json.MarshalIndent(envData, "", "  ")
+		if err != nil {
+			return validation.NewSynthesisErrorForResource(
+				"environments", "Environment", e.Name,
+				"failed to serialize JSON",
+				err,
+			)
+		}
+
+		// Write to environment-{index}.json
+		filename := fmt.Sprintf("environment-%d.json", i)
+		envPath := filepath.Join(outputDir, filename)
+		if err := os.WriteFile(envPath, data, 0644); err != nil {
+			return &validation.SynthesisError{
+				Phase:        "environments",
+				ResourceType: "Environment",
+				ResourceName: e.Name,
+				Message:      fmt.Sprintf("failed to write manifest to %s", envPath),
 				Err:          validation.ErrManifestWrite,
 			}
 		}
@@ -976,6 +1041,18 @@ func (c *Context) MCPServers() []*mcpserver.MCPServer {
 	// Return a copy to prevent external modification
 	result := make([]*mcpserver.MCPServer, len(c.mcpServers))
 	copy(result, c.mcpServers)
+	return result
+}
+
+// Environments returns a copy of all environments registered in the context.
+// This is primarily useful for testing and debugging.
+func (c *Context) Environments() []*environment.Environment {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	// Return a copy to prevent external modification
+	result := make([]*environment.Environment, len(c.environments))
+	copy(result, c.environments)
 	return result
 }
 
