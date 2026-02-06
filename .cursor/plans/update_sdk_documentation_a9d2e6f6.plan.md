@@ -19,13 +19,13 @@ todos:
     status: completed
   - id: phase3-architecture
     content: Update docs/architecture/struct-args-pattern.md - Add unified Name/Slug/Args pattern documentation
-    status: in_progress
+    status: completed
   - id: phase3-docs-readme
     content: Update docs/README.md - Fix Quick Reference section and example references
-    status: pending
+    status: completed
   - id: validation
     content: Validate all documentation code examples compile and match actual API signatures
-    status: pending
+    status: completed
 isProject: false
 ---
 

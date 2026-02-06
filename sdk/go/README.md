@@ -255,22 +255,21 @@ import (
     "github.com/leftbin/stigmer-sdk/go/commons/ref"
 )
 
-// Create a sub-agent (inline value object, not a separate resource)
-analyzer := agent.NewSubAgent("code-analyzer", &agent.SubAgentArgs{
-    Instructions: "Analyze code quality and provide detailed feedback",
-    Description:  "Specialized code analyzer",
-})
+// Create a sub-agent (simple helper function)
+analyzer := agent.NewSubAgent("code-analyzer", "Analyze code quality and provide detailed feedback")
 
-// Add skill and MCP server references to sub-agent
-analyzer.
+// Or use the builder for more complex sub-agents
+analyzer := agent.BuildSubAgent("code-analyzer", "Analyze code quality").
+    Description("Specialized code analyzer").
+    GrantMcpAccess("github", "search_code", "get_file").
     AddSkillRef(ref.Skill("stigmer", "static-analysis")).
-    AddMcpServerUsage(ref.McpServer("stigmer", "github"))
+    Build()
 
 // Add sub-agent to parent agent
 parentAgent.AddSubAgent(analyzer)
 ```
 
-**Note**: Sub-agents are part of the agent package and use the same builder methods for adding skills and MCP servers.
+**Note**: Sub-agents are part of the agent package and return proto types directly. Use `NewSubAgent()` for simple cases or `BuildSubAgent()` for complex configurations.
 
 ### Environment Variables
 

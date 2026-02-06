@@ -19,22 +19,22 @@ todos:
     status: completed
   - id: task-3.2
     content: Apply unified pattern to McpServer resource
-    status: pending
+    status: completed
   - id: task-3.3
     content: Apply unified pattern to Skill resource
-    status: pending
+    status: completed
   - id: task-3.4
     content: Apply unified pattern to Workflow resource
-    status: pending
+    status: completed
   - id: task-4.1
     content: Fix pre-existing test failures across packages
-    status: pending
+    status: completed
   - id: task-4.2
     content: Update examples to use unified API
-    status: pending
+    status: completed
   - id: task-4.3
     content: Update documentation for new patterns
-    status: pending
+    status: completed
 isProject: false
 ---
 
