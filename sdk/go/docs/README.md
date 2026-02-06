@@ -327,20 +327,20 @@ instructions, _ := os.ReadFile("instructions/agent.md")
 // Create agent with struct-based args
 agent, err := agent.New(ctx, "my-agent", &agent.AgentArgs{
     Instructions: string(instructions),
+    Description:  "Agent description",
 })
 
-// Add skills using builder methods
-agent.AddSkill(skill)
+// Add skill references using commons/ref
+import "github.com/stigmer/stigmer/sdk/go/commons/ref"
+agent.AddSkillRef(ref.Skill("stigmer", "coding-best-practices"))
 ```
 
 ### Workflow Creation
 
 ```go
-wf, err := workflow.New(ctx,
-    workflow.WithNamespace("my-namespace"),
-    workflow.WithName("my-workflow"),
-    workflow.WithVersion("1.0.0"),
-)
+wf, err := workflow.New(ctx, "my-namespace/my-workflow", &workflow.WorkflowArgs{
+    Description: "Workflow description",
+})
 ```
 
 ### HTTP Task (Convenience Method)
