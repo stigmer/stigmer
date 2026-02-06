@@ -262,7 +262,7 @@ func (d *Deployer) deploySkillSynth(synth *skillv1.SkillSynth) (*skillv1.Skill, 
 				Tag:  result.Tag,
 			},
 			Status: &skillv1.SkillStatus{
-				VersionHash:       result.VersionHash,
+				VersionHash:        result.VersionHash,
 				ArtifactStorageKey: result.StorageKey,
 			},
 		}, nil

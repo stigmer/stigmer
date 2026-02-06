@@ -157,35 +157,43 @@ func TestAgentToProto_NilFields(t *testing.T) {
 		{
 			name: "nil skills",
 			agent: &Agent{
-				Name:         "agent1",
-				Instructions: "Test instructions for agent validation",
-				SkillRefs:    nil, // nil slice
+				Name: "agent1",
+				Args: &AgentArgs{
+					Instructions: "Test instructions for agent validation",
+					SkillRefs:    nil, // nil slice
+				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "nil MCP servers",
 			agent: &Agent{
-				Name:            "agent2",
-				Instructions:    "Test instructions for agent validation",
-				McpServerUsages: nil, // nil slice
+				Name: "agent2",
+				Args: &AgentArgs{
+					Instructions:    "Test instructions for agent validation",
+					McpServerUsages: nil, // nil slice
+				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "nil sub-agents",
 			agent: &Agent{
-				Name:         "agent3",
-				Instructions: "Test instructions for agent validation",
-				SubAgents:    nil, // nil slice
+				Name: "agent3",
+				Args: &AgentArgs{
+					Instructions: "Test instructions for agent validation",
+				},
+				SubAgents: nil, // nil slice
 			},
 			wantErr: false,
 		},
 		{
 			name: "nil environment variables",
 			agent: &Agent{
-				Name:                 "agent4",
-				Instructions:         "Test instructions for agent validation",
+				Name: "agent4",
+				Args: &AgentArgs{
+					Instructions: "Test instructions for agent validation",
+				},
 				EnvironmentVariables: nil, // nil slice
 			},
 			wantErr: false,
@@ -193,10 +201,12 @@ func TestAgentToProto_NilFields(t *testing.T) {
 		{
 			name: "all fields nil",
 			agent: &Agent{
-				Name:                 "agent5",
-				Instructions:         "Test instructions for agent validation",
-				SkillRefs:            nil,
-				McpServerUsages:      nil,
+				Name: "agent5",
+				Args: &AgentArgs{
+					Instructions:    "Test instructions for agent validation",
+					SkillRefs:       nil,
+					McpServerUsages: nil,
+				},
 				SubAgents:            nil,
 				EnvironmentVariables: nil,
 			},
@@ -240,11 +250,13 @@ func TestAgentToProto_NilFields(t *testing.T) {
 // TestAgentToProto_EmptyStringFields tests empty string fields.
 func TestAgentToProto_EmptyStringFields(t *testing.T) {
 	agent := &Agent{
-		Name:         "empty-fields-agent",
-		Instructions: "Valid instructions for testing empty fields",
-		Description:  "", // empty description (valid - optional field)
-		IconURL:      "", // empty icon URL (valid - optional field)
-		Slug:         "", // empty slug (should be auto-generated)
+		Name: "empty-fields-agent",
+		Slug: "", // empty slug (should be auto-generated)
+		Args: &AgentArgs{
+			Instructions: "Valid instructions for testing empty fields",
+			Description:  "", // empty description (valid - optional field)
+			IconUrl:      "", // empty icon URL (valid - optional field)
+		},
 	}
 
 	proto, err := agent.ToProto()
@@ -321,7 +333,7 @@ func TestAgent_ConcurrentSkillAddition(t *testing.T) {
 	// Verify all 50 skills were added successfully
 	// With thread-safe implementation, we should get exactly 50 skills
 	agent.mu.Lock()
-	skillCount := len(agent.SkillRefs)
+	skillCount := len(agent.SkillRefs())
 	agent.mu.Unlock()
 
 	if skillCount != 50 {

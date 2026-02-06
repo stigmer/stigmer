@@ -23,18 +23,18 @@ func TestAddSkillRef(t *testing.T) {
 	}
 
 	// Start with no skill refs
-	if len(agent.SkillRefs) != 0 {
-		t.Errorf("Initial SkillRefs count = %d, want 0", len(agent.SkillRefs))
+	if len(agent.SkillRefs()) != 0 {
+		t.Errorf("Initial SkillRefs count = %d, want 0", len(agent.SkillRefs()))
 	}
 
 	// Add skill ref using new smart parsing API
 	agent.AddSkill("stigmer/coding-best-practices")
 
-	if len(agent.SkillRefs) != 1 {
-		t.Errorf("SkillRefs count = %d, want 1", len(agent.SkillRefs))
+	if len(agent.SkillRefs()) != 1 {
+		t.Errorf("SkillRefs count = %d, want 1", len(agent.SkillRefs()))
 	}
-	if agent.SkillRefs[0].Slug != "coding-best-practices" {
-		t.Errorf("SkillRef slug = %q, want %q", agent.SkillRefs[0].Slug, "coding-best-practices")
+	if agent.SkillRefs()[0].Slug != "coding-best-practices" {
+		t.Errorf("SkillRef slug = %q, want %q", agent.SkillRefs()[0].Slug, "coding-best-practices")
 	}
 }
 
@@ -57,8 +57,8 @@ func TestAddSkillRefs(t *testing.T) {
 		"my-org/internal-docs",
 	)
 
-	if len(agent.SkillRefs) != 3 {
-		t.Errorf("SkillRefs count = %d, want 3", len(agent.SkillRefs))
+	if len(agent.SkillRefs()) != 3 {
+		t.Errorf("SkillRefs count = %d, want 3", len(agent.SkillRefs()))
 	}
 }
 
@@ -80,8 +80,8 @@ func TestAddSkillRef_Chaining(t *testing.T) {
 		AddSkill("stigmer/skill2").
 		AddSkill("stigmer/skill3")
 
-	if len(agent.SkillRefs) != 3 {
-		t.Errorf("SkillRefs count = %d, want 3", len(agent.SkillRefs))
+	if len(agent.SkillRefs()) != 3 {
+		t.Errorf("SkillRefs count = %d, want 3", len(agent.SkillRefs()))
 	}
 }
 
@@ -100,11 +100,11 @@ func TestAddMcpServerUsage(t *testing.T) {
 	// Add MCP server usage using new smart parsing API
 	agent.UseMCP("stigmer/github")
 
-	if len(agent.McpServerUsages) != 1 {
-		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages))
+	if len(agent.McpServerUsages()) != 1 {
+		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages()))
 	}
-	if agent.McpServerUsages[0].McpServerRef.Slug != "github" {
-		t.Errorf("McpServerRef slug = %q, want %q", agent.McpServerUsages[0].McpServerRef.Slug, "github")
+	if agent.McpServerUsages()[0].McpServerRef.Slug != "github" {
+		t.Errorf("McpServerRef slug = %q, want %q", agent.McpServerUsages()[0].McpServerRef.Slug, "github")
 	}
 }
 
@@ -123,11 +123,11 @@ func TestAddMcpServerUsage_WithTools(t *testing.T) {
 	// Add MCP server usage with enabled tools using new API
 	agent.UseMCP("stigmer/github", "create_issue", "list_repos", "create_pr")
 
-	if len(agent.McpServerUsages) != 1 {
-		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages))
+	if len(agent.McpServerUsages()) != 1 {
+		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages()))
 	}
-	if len(agent.McpServerUsages[0].EnabledTools) != 3 {
-		t.Errorf("EnabledTools count = %d, want 3", len(agent.McpServerUsages[0].EnabledTools))
+	if len(agent.McpServerUsages()[0].EnabledTools) != 3 {
+		t.Errorf("EnabledTools count = %d, want 3", len(agent.McpServerUsages()[0].EnabledTools))
 	}
 }
 
@@ -146,11 +146,11 @@ func TestUseMCPServer(t *testing.T) {
 	// Use convenience method with org/slug format
 	agent.UseMCP("stigmer/github", "create_issue")
 
-	if len(agent.McpServerUsages) != 1 {
-		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages))
+	if len(agent.McpServerUsages()) != 1 {
+		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages()))
 	}
-	if agent.McpServerUsages[0].McpServerRef.Slug != "github" {
-		t.Errorf("McpServerRef slug = %q, want %q", agent.McpServerUsages[0].McpServerRef.Slug, "github")
+	if agent.McpServerUsages()[0].McpServerRef.Slug != "github" {
+		t.Errorf("McpServerRef slug = %q, want %q", agent.McpServerUsages()[0].McpServerRef.Slug, "github")
 	}
 }
 
@@ -171,8 +171,8 @@ func TestAddMcpServerUsage_Chaining(t *testing.T) {
 		UseMCP("stigmer/github", "create_pr").
 		UseMCP("stigmer/gitlab")
 
-	if len(agent.McpServerUsages) != 2 {
-		t.Errorf("McpServerUsages count = %d, want 2", len(agent.McpServerUsages))
+	if len(agent.McpServerUsages()) != 2 {
+		t.Errorf("McpServerUsages count = %d, want 2", len(agent.McpServerUsages()))
 	}
 }
 
@@ -194,8 +194,8 @@ func TestUseMCPServer_Chaining(t *testing.T) {
 		UseMCP("stigmer/gitlab").
 		UseMCP("stigmer/slack", "send_message")
 
-	if len(agent.McpServerUsages) != 3 {
-		t.Errorf("McpServerUsages count = %d, want 3", len(agent.McpServerUsages))
+	if len(agent.McpServerUsages()) != 3 {
+		t.Errorf("McpServerUsages count = %d, want 3", len(agent.McpServerUsages()))
 	}
 }
 
@@ -413,11 +413,11 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 		AddEnvironmentVariable(*githubToken)
 
 	// Verify all were added
-	if len(agent.SkillRefs) != 2 {
-		t.Errorf("SkillRefs count = %d, want 2", len(agent.SkillRefs))
+	if len(agent.SkillRefs()) != 2 {
+		t.Errorf("SkillRefs count = %d, want 2", len(agent.SkillRefs()))
 	}
-	if len(agent.McpServerUsages) != 1 {
-		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages))
+	if len(agent.McpServerUsages()) != 1 {
+		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages()))
 	}
 	if len(agent.SubAgents) != 1 {
 		t.Errorf("SubAgents count = %d, want 1", len(agent.SubAgents))
@@ -444,16 +444,16 @@ func TestAddMcpServerUsage_MultipleOrgs(t *testing.T) {
 		UseMCP("stigmer/github").
 		UseMCP("acme-corp/internal-tools")
 
-	if len(agent.McpServerUsages) != 2 {
-		t.Errorf("McpServerUsages count = %d, want 2", len(agent.McpServerUsages))
+	if len(agent.McpServerUsages()) != 2 {
+		t.Errorf("McpServerUsages count = %d, want 2", len(agent.McpServerUsages()))
 	}
 
 	// Verify orgs
-	if agent.McpServerUsages[0].McpServerRef.Slug != "github" {
-		t.Errorf("First usage slug = %q, want github", agent.McpServerUsages[0].McpServerRef.Slug)
+	if agent.McpServerUsages()[0].McpServerRef.Slug != "github" {
+		t.Errorf("First usage slug = %q, want github", agent.McpServerUsages()[0].McpServerRef.Slug)
 	}
-	if agent.McpServerUsages[1].McpServerRef.Org != "acme-corp" {
-		t.Errorf("Second usage org = %q, want acme-corp", agent.McpServerUsages[1].McpServerRef.Org)
+	if agent.McpServerUsages()[1].McpServerRef.Org != "acme-corp" {
+		t.Errorf("Second usage org = %q, want acme-corp", agent.McpServerUsages()[1].McpServerRef.Org)
 	}
 }
 
@@ -475,11 +475,11 @@ func TestSlugOnlyMcpServer(t *testing.T) {
 	// Add MCP server using slug-only (should use agent.Org)
 	agent.UseMCP("my-dev-tools")
 
-	if len(agent.McpServerUsages) != 1 {
-		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages))
+	if len(agent.McpServerUsages()) != 1 {
+		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages()))
 	}
 
-	if agent.McpServerUsages[0].McpServerRef.Org != "my-org" {
-		t.Errorf("McpServerRef org = %q, want my-org (from agent.Org)", agent.McpServerUsages[0].McpServerRef.Org)
+	if agent.McpServerUsages()[0].McpServerRef.Org != "my-org" {
+		t.Errorf("McpServerRef org = %q, want my-org (from agent.Org)", agent.McpServerUsages()[0].McpServerRef.Org)
 	}
 }

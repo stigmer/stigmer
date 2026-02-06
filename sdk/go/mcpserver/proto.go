@@ -6,10 +6,8 @@ import (
 
 	"buf.build/go/protovalidate"
 
-	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/sdk/go/gen/types"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 )
 
@@ -67,14 +65,14 @@ func SDKAnnotations() map[string]string {
 //   - Spec converted from SDK MCPServer.Args to proto McpServerSpec
 //
 // The implementation reads from Args (single source of truth) following the
-// composition pattern. This ensures no data duplication and makes the code
-// easier to maintain.
+// composition pattern. Args fields are already proto stubs types, so they
+// can be used directly without conversion.
 //
 // Example:
 //
 //	server, _ := mcpserver.Stdio(ctx, "github-mcp", &mcpserver.McpServerArgs{
 //	    Description: "GitHub MCP server",
-//	    Stdio: &types.StdioServerConfig{
+//	    Stdio: &mcpserverv1.StdioServerConfig{
 //	        Command: "npx",
 //	        Args:    []string{"-y", "@modelcontextprotocol/server-github"},
 //	    },
@@ -86,28 +84,25 @@ func (m *MCPServer) ToProto() (*mcpserverv1.McpServer, error) {
 	}
 
 	// Build spec from Args - single source of truth
+	// Args fields are already proto stubs types, use them directly
 	spec := &mcpserverv1.McpServerSpec{
-		Description:         m.Args.Description,
-		IconUrl:             m.Args.IconUrl,
-		Tags:                m.Args.Tags,
-		DefaultEnabledTools: m.Args.DefaultEnabledTools,
+		Description:          m.Args.Description,
+		IconUrl:              m.Args.IconUrl,
+		Tags:                 m.Args.Tags,
+		DefaultEnabledTools:  m.Args.DefaultEnabledTools,
+		EnvSpec:              m.Args.EnvSpec,
+		DefaultToolApprovals: m.Args.DefaultToolApprovals,
 	}
 
-	// Convert server type from Args
+	// Set server type from Args (oneof field)
 	if m.Args.Stdio != nil {
 		spec.ServerType = &mcpserverv1.McpServerSpec_Stdio{
-			Stdio: convertStdioConfig(m.Args.Stdio),
+			Stdio: m.Args.Stdio,
 		}
 	} else if m.Args.Http != nil {
 		spec.ServerType = &mcpserverv1.McpServerSpec_Http{
-			Http: convertHttpConfig(m.Args.Http),
+			Http: m.Args.Http,
 		}
-	}
-	// Note: Docker is in Args but not in the proto spec (only Stdio and Http are supported)
-
-	// Convert environment spec if present
-	if m.Args.EnvSpec != nil {
-		spec.EnvSpec = convertEnvSpec(m.Args.EnvSpec)
 	}
 
 	// Auto-generate slug if empty
@@ -139,53 +134,4 @@ func (m *MCPServer) ToProto() (*mcpserverv1.McpServer, error) {
 	}
 
 	return mcpServer, nil
-}
-
-// convertStdioConfig converts SDK StdioServerConfig to proto StdioServerConfig.
-func convertStdioConfig(sdk *types.StdioServerConfig) *mcpserverv1.StdioServerConfig {
-	if sdk == nil {
-		return nil
-	}
-	return &mcpserverv1.StdioServerConfig{
-		Command:    sdk.Command,
-		Args:       sdk.Args,
-		WorkingDir: sdk.WorkingDir,
-	}
-}
-
-// convertHttpConfig converts SDK HttpServerConfig to proto HttpServerConfig.
-func convertHttpConfig(sdk *types.HttpServerConfig) *mcpserverv1.HttpServerConfig {
-	if sdk == nil {
-		return nil
-	}
-	return &mcpserverv1.HttpServerConfig{
-		Url:            sdk.Url,
-		Headers:        sdk.Headers,
-		QueryParams:    sdk.QueryParams,
-		TimeoutSeconds: sdk.TimeoutSeconds,
-	}
-}
-
-// convertEnvSpec converts SDK EnvironmentSpec to proto EnvironmentSpec.
-func convertEnvSpec(sdk *types.EnvironmentSpec) *environmentv1.EnvironmentSpec {
-	if sdk == nil {
-		return nil
-	}
-
-	// Convert environment data
-	data := make(map[string]*environmentv1.EnvironmentValue)
-	for k, v := range sdk.Data {
-		if v != nil {
-			data[k] = &environmentv1.EnvironmentValue{
-				Value:       v.Value,
-				IsSecret:    v.IsSecret,
-				Description: v.Description,
-			}
-		}
-	}
-
-	return &environmentv1.EnvironmentSpec{
-		Description: sdk.Description,
-		Data:        data,
-	}
 }

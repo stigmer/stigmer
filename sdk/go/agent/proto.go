@@ -32,6 +32,9 @@ func init() {
 //   - Metadata with SDK annotations
 //   - Spec converted from SDK agent to proto AgentSpec
 //
+// The spec is built from Args (single source of truth for configuration).
+// SubAgents and EnvironmentVariables are converted from SDK-specific types.
+//
 // Example:
 //
 //	agent, _ := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
@@ -41,13 +44,17 @@ func init() {
 //	agent.AddMcpServerUsage(mcpserverref.Platform("github"), "create_pr")
 //	proto, err := agent.ToProto()
 func (a *Agent) ToProto() (*agentv1.Agent, error) {
-	// Convert sub-agents
+	if a.Args == nil {
+		return nil, fmt.Errorf("agent: Args is nil, cannot convert to proto")
+	}
+
+	// Convert sub-agents (SDK-specific types to proto)
 	subAgents, err := convertSubAgents(a.SubAgents)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert sub-agents: %w", err)
 	}
 
-	// Convert environment variables
+	// Convert environment variables (SDK-specific types to proto)
 	envSpec, err := convertEnvironmentVariables(a.EnvironmentVariables)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert environment variables: %w", err)
@@ -68,21 +75,24 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 		Visibility:  apiresource.ApiResourceVisibility_visibility_private,
 	}
 
+	// Build spec from Args - single source of truth for configuration
+	// Args fields are already proto stub types, use them directly
+	spec := &agentv1.AgentSpec{
+		Description:     a.Args.Description,
+		IconUrl:         a.Args.IconUrl,
+		Instructions:    a.Args.Instructions,
+		SkillRefs:       a.Args.SkillRefs,
+		McpServerUsages: a.Args.McpServerUsages,
+		SubAgents:       subAgents,
+		EnvSpec:         envSpec,
+	}
+
 	// Build complete Agent proto
-	// SkillRefs and McpServerUsages are already proto types - no conversion needed
 	agent := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
 		Metadata:   metadata,
-		Spec: &agentv1.AgentSpec{
-			Description:     a.Description,
-			IconUrl:         a.IconURL,
-			Instructions:    a.Instructions,
-			SkillRefs:       a.SkillRefs,
-			McpServerUsages: a.McpServerUsages,
-			SubAgents:       subAgents,
-			EnvSpec:         envSpec,
-		},
+		Spec:       spec,
 	}
 
 	// Validate the proto message against buf.validate rules
