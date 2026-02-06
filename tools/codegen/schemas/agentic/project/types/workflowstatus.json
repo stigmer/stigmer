@@ -1,0 +1,40 @@
+{
+  "name": "WorkflowStatus",
+  "description": "WorkflowStatus contains system-managed state for a Workflow resource.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowStatus",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/status.proto",
+  "fields": [
+    {
+      "name": "Audit",
+      "jsonName": "audit",
+      "protoField": "audit",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceAudit"
+      },
+      "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+      "required": false
+    },
+    {
+      "name": "DefaultInstanceId",
+      "jsonName": "defaultInstanceId",
+      "protoField": "default_instance_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the default workflow instance created automatically for this workflow.\n Every workflow has exactly one default instance that requires no configuration.\n This instance has no environment bindings and uses all workflow defaults.\n Created automatically when the workflow is created.",
+      "required": false
+    },
+    {
+      "name": "ServerlessWorkflowValidation",
+      "jsonName": "serverlessWorkflowValidation",
+      "protoField": "serverless_workflow_validation",
+      "type": {
+        "kind": "message",
+        "messageType": "ServerlessWorkflowValidation"
+      },
+      "description": "Serverless Workflow YAML generation and validation state.\n Populated asynchronously after workflow creation via Temporal workflow.\n Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.\n\n Workflow creation does NOT block on validation - the workflow is created immediately\n with status.state = PENDING, then validation runs in the background.\n\n Users can check this field to see if their workflow is valid before executing it.",
+      "required": false
+    }
+  ]
+}

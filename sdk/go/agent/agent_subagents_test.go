@@ -94,8 +94,8 @@ func TestAgentWithSubAgentUsingMCPAccess(t *testing.T) {
 	agent.UseMCP("stigmer/github")
 	agent.AddSubAgent(githubHelper)
 
-	if len(agent.McpServerUsages) != 1 {
-		t.Errorf("len(McpServerUsages) = %d, want 1", len(agent.McpServerUsages))
+	if len(agent.McpServerUsages()) != 1 {
+		t.Errorf("len(McpServerUsages) = %d, want 1", len(agent.McpServerUsages()))
 	}
 	if len(agent.SubAgents) != 1 {
 		t.Errorf("len(SubAgents) = %d, want 1", len(agent.SubAgents))
@@ -136,8 +136,8 @@ func TestAgentWithSubAgentUsingSkills(t *testing.T) {
 	if len(agent.SubAgents) != 1 {
 		t.Errorf("len(SubAgents) = %d, want 1", len(agent.SubAgents))
 	}
-	if len(agent.SkillRefs) != 1 {
-		t.Errorf("len(SkillRefs) = %d, want 1", len(agent.SkillRefs))
+	if len(agent.SkillRefs()) != 1 {
+		t.Errorf("len(SkillRefs) = %d, want 1", len(agent.SkillRefs()))
 	}
 
 	// Verify sub-agent has skills

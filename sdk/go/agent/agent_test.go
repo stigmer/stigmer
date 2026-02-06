@@ -130,8 +130,10 @@ func TestNew(t *testing.T) {
 
 func TestAgent_String(t *testing.T) {
 	agent := &Agent{
-		Name:         "test-agent",
-		Instructions: "Test instructions",
+		Name: "test-agent",
+		Args: &AgentArgs{
+			Instructions: "Test instructions",
+		},
 	}
 
 	result := agent.String()

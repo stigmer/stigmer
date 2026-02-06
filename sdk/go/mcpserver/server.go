@@ -207,14 +207,12 @@ func (m *MCPServer) String() string {
 			serverType = "stdio"
 		} else if m.Args.Http != nil {
 			serverType = "http"
-		} else if m.Args.Docker != nil {
-			serverType = "docker"
 		}
 	}
 	return "MCPServer(name=" + m.Name + ", type=" + serverType + ")"
 }
 
-// ServerType returns the type of this MCP server ("stdio", "http", "docker", or "unknown").
+// ServerType returns the type of this MCP server ("stdio", "http", or "unknown").
 func (m *MCPServer) ServerType() string {
 	if m.Args == nil {
 		return "unknown"
@@ -224,9 +222,6 @@ func (m *MCPServer) ServerType() string {
 	}
 	if m.Args.Http != nil {
 		return "http"
-	}
-	if m.Args.Docker != nil {
-		return "docker"
 	}
 	return "unknown"
 }

@@ -69,51 +69,63 @@ func TestValidate(t *testing.T) {
 		{
 			name: "valid minimal agent",
 			agent: &Agent{
-				Name:         "test-agent",
-				Instructions: "This is a test agent with valid instructions",
+				Name: "test-agent",
+				Args: &AgentArgs{
+					Instructions: "This is a test agent with valid instructions",
+				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "valid complete agent",
 			agent: &Agent{
-				Name:         "test-agent",
-				Instructions: "This is a test agent with valid instructions",
-				Description:  "Test description",
-				IconURL:      "https://example.com/icon.png",
-				Org:          "test-org",
+				Name: "test-agent",
+				Org:  "test-org",
+				Args: &AgentArgs{
+					Instructions: "This is a test agent with valid instructions",
+					Description:  "Test description",
+					IconUrl:      "https://example.com/icon.png",
+				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "invalid name - uppercase",
 			agent: &Agent{
-				Name:         "Invalid Name",
-				Instructions: "This is a test agent with valid instructions",
+				Name: "Invalid Name",
+				Args: &AgentArgs{
+					Instructions: "This is a test agent with valid instructions",
+				},
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid name - empty",
 			agent: &Agent{
-				Name:         "",
-				Instructions: "This is a test agent with valid instructions",
+				Name: "",
+				Args: &AgentArgs{
+					Instructions: "This is a test agent with valid instructions",
+				},
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid name - too long",
 			agent: &Agent{
-				Name:         strings.Repeat("a", 64),
-				Instructions: "This is a test agent with valid instructions",
+				Name: strings.Repeat("a", 64),
+				Args: &AgentArgs{
+					Instructions: "This is a test agent with valid instructions",
+				},
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid name - starts with hyphen",
 			agent: &Agent{
-				Name:         "-invalid",
-				Instructions: "This is a test agent with valid instructions",
+				Name: "-invalid",
+				Args: &AgentArgs{
+					Instructions: "This is a test agent with valid instructions",
+				},
 			},
 			wantErr: true,
 		},

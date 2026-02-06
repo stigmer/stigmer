@@ -1,7 +1,7 @@
 {
   "name": "AgentCallTaskConfig",
   "kind": "AGENT_CALL",
-  "description": "AgentCallTaskConfig defines the configuration for AGENT_CALL tasks.\n\n This enables workflows to invoke AI agents as tasks, delegating complex\n operations to specialized agents with their own skills and context.\n\n The agent is referenced using the org/slug format (e.g., \"stigmer/code-reviewer\").\n All agents belong to an organization.\n\n The workflow's execution context (environment variables, secrets) is\n passed to the agent invocation, allowing agents to access workflow state.\n\n YAML Example:\n   - analyze:\n       call: agent\n       with:\n         agent: \"stigmer/code-reviewer\"\n         message: \"Review this code: ${ $context.fetchCode.body }\"\n         env:\n           GITHUB_TOKEN: \"${ .secrets.GH_TOKEN }\"\n         config:\n           model: \"claude-3-5-sonnet\"\n           timeout: 300",
+  "description": "AgentCallTaskConfig defines the configuration for AGENT_CALL tasks.\n\n This enables workflows to invoke AI agents as tasks, delegating complex\n operations to specialized agents with their own skills and context.\n\n The agent is referenced by org/slug format (e.g., \"stigmer/code-reviewer\").\n Resolution order:\n 1. If org is specified: look in that org's agents\n 2. If org is empty: use the workflow's org\n 3. Before external lookup, check manifest (current deployment)\n\n The workflow's execution context (environment variables, secrets) is\n passed to the agent invocation, allowing agents to access workflow state.\n\n YAML Example:\n   - analyze:\n       call: agent\n       with:\n         agent: \"code-reviewer\"           # Uses workflow's org\n         # OR agent: \"stigmer/code-reviewer\"  # Explicit org reference\n         message: \"Review this code: ${ $context.fetchCode.body }\"\n         env:\n           GITHUB_TOKEN: \"${ .secrets.GH_TOKEN }\"\n         config:\n           model: \"claude-3-5-sonnet\"\n           timeout: 300\n\n Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto",
   "fields": [
@@ -12,13 +12,23 @@
       "type": {
         "kind": "string"
       },
-      "description": "Agent reference in org/slug format (e.g., \"stigmer/code-reviewer\").\n Required field.",
+      "description": "Agent reference in \"org/slug\" or \"slug\" format.\n - \"slug\" only: uses the workflow's organization\n - \"org/slug\": explicit organization reference\n Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\"\n Required field.",
       "required": true,
       "validation": {
         "required": true,
         "minLength": 1,
         "maxLength": 127
       }
+    },
+    {
+      "name": "Org",
+      "jsonName": "org",
+      "protoField": "org",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Explicit organization for agent resolution. Optional.\n If empty, the org is parsed from the agent field or defaults to workflow's org.\n Use this when you need to override the parsed org.",
+      "required": false
     },
     {
       "name": "Message",

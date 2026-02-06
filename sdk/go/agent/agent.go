@@ -12,7 +12,8 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
-// AgentArgs is an alias for the generated AgentArgs from gen/agent
+// AgentArgs is an alias for the generated AgentArgs from gen/agent.
+// This provides a single source of truth for agent configuration.
 type AgentArgs = genAgent.AgentArgs
 
 // Context is a minimal interface that represents a stigmer context.
@@ -25,6 +26,9 @@ type Context interface {
 }
 
 // Agent represents an AI agent template with skills, MCP servers, and configuration.
+//
+// Agent uses the COMPOSITION pattern - it embeds Args rather than duplicating its fields.
+// This provides a single source of truth for configuration and reduces maintenance burden.
 //
 // The Agent is the "template" layer - it defines the immutable logic and requirements
 // for an agent. Actual configuration with secrets happens at the AgentInstance level.
@@ -39,43 +43,35 @@ type Context interface {
 //	})
 type Agent struct {
 	// Name is the agent name (lowercase alphanumeric with hyphens, max 63 chars).
+	// This is an identity field, not part of Args.
 	Name string
 
 	// Slug is the URL-friendly identifier (auto-generated from name if not provided).
+	// This is an identity field, not part of Args.
 	Slug string
 
-	// Instructions define the agent's behavior and personality (min 10, max 10000 chars).
-	Instructions string
-
-	// Description is a human-readable description for UI display (optional, max 500 chars).
-	Description string
-
-	// IconURL is the icon URL for marketplace and UI display (optional).
-	IconURL string
-
 	// Org is the organization that owns this agent (optional).
+	// This is metadata, not part of Args.
 	Org string
 
-	// SkillRefs are references to Skill resources providing agent knowledge.
-	// Use AddSkillRef() for platform skills or AddOrgSkillRef() for organization skills.
-	// Skills are pushed via `stigmer skill push` CLI - the SDK only references them.
-	SkillRefs []*apiresource.ApiResourceReference
-
-	// McpServerUsages are references to McpServer resources this agent uses.
-	// Each usage specifies which MCP server to use and optionally which tools to enable.
-	// Use AddMcpServerUsage() or UseMCPServer() to add usages.
-	McpServerUsages []*agentv1.McpServerUsage
+	// Args contains all configuration for this agent.
+	// This is the SINGLE SOURCE OF TRUTH for configuration.
+	// Uses COMPOSITION pattern - we embed the generated Args struct
+	// rather than duplicating its fields.
+	Args *AgentArgs
 
 	// SubAgents are sub-agents that can be delegated to (inline or referenced).
+	// Uses SDK-specific types for builder ergonomics, converted to proto in ToProto.
 	SubAgents []subagent.SubAgent
 
 	// EnvironmentVariables are environment variables required by the agent.
+	// Uses SDK-specific types for builder ergonomics, converted to proto in ToProto.
 	EnvironmentVariables []environment.Variable
 
 	// Context reference (optional, used for typed variable management)
 	ctx Context
 
-	// mu protects concurrent access to SkillRefs, McpServerUsages, SubAgents, and EnvironmentVariables slices
+	// mu protects concurrent access to mutable fields
 	mu sync.Mutex
 }
 
@@ -118,20 +114,25 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 		args = &AgentArgs{}
 	}
 
-	// Create Agent from args
-	a := &Agent{
-		Name:         name,
-		Instructions: args.Instructions,
-		Description:  args.Description,
-		IconURL:      args.IconUrl,
-		ctx:          ctx,
+	// Initialize empty slices in Args to avoid nil pointer issues
+	if args.SkillRefs == nil {
+		args.SkillRefs = []*apiresource.ApiResourceReference{}
+	}
+	if args.McpServerUsages == nil {
+		args.McpServerUsages = []*agentv1.McpServerUsage{}
+	}
+	if args.SubAgents == nil {
+		args.SubAgents = []*agentv1.SubAgent{}
 	}
 
-	// Initialize empty slices to avoid nil pointer issues
-	a.SkillRefs = []*apiresource.ApiResourceReference{}
-	a.McpServerUsages = []*agentv1.McpServerUsage{}
-	a.SubAgents = []subagent.SubAgent{}
-	a.EnvironmentVariables = []environment.Variable{}
+	// Create Agent with Args as single source of truth
+	a := &Agent{
+		Name:                 name,
+		Args:                 args,
+		ctx:                  ctx,
+		SubAgents:            []subagent.SubAgent{},
+		EnvironmentVariables: []environment.Variable{},
+	}
 
 	// Auto-generate slug from name if not provided
 	if a.Slug == "" && a.Name != "" {
@@ -164,7 +165,51 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 }
 
 // ============================================================================
-// Builder Methods - Modify agent after construction
+// Accessor Methods - Read from Args (single source of truth)
+// ============================================================================
+
+// Instructions returns the agent's instructions from Args.
+func (a *Agent) Instructions() string {
+	if a.Args == nil {
+		return ""
+	}
+	return a.Args.Instructions
+}
+
+// Description returns the agent's description from Args.
+func (a *Agent) Description() string {
+	if a.Args == nil {
+		return ""
+	}
+	return a.Args.Description
+}
+
+// IconURL returns the agent's icon URL from Args.
+func (a *Agent) IconURL() string {
+	if a.Args == nil {
+		return ""
+	}
+	return a.Args.IconUrl
+}
+
+// SkillRefs returns the agent's skill references from Args.
+func (a *Agent) SkillRefs() []*apiresource.ApiResourceReference {
+	if a.Args == nil {
+		return nil
+	}
+	return a.Args.SkillRefs
+}
+
+// McpServerUsages returns the agent's MCP server usages from Args.
+func (a *Agent) McpServerUsages() []*agentv1.McpServerUsage {
+	if a.Args == nil {
+		return nil
+	}
+	return a.Args.McpServerUsages
+}
+
+// ============================================================================
+// Builder Methods - Modify Args (single source of truth)
 // ============================================================================
 
 // AddSkillRef adds a skill reference to the agent.
@@ -181,7 +226,10 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 func (a *Agent) AddSkillRef(ref *apiresource.ApiResourceReference) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, ref)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, ref)
 	return a
 }
 
@@ -197,7 +245,10 @@ func (a *Agent) AddSkillRef(ref *apiresource.ApiResourceReference) *Agent {
 func (a *Agent) AddSkillRefs(refs ...*apiresource.ApiResourceReference) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, refs...)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, refs...)
 	return a
 }
 
@@ -225,7 +276,10 @@ func (a *Agent) AddOrgSkillRef(slug string, version ...string) *Agent {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, ref)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, ref)
 	return a
 }
 
@@ -265,7 +319,10 @@ func (a *Agent) AddSkill(ref string, opts ...SkillOption) *Agent {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, parsed)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, parsed)
 	return a
 }
 
@@ -301,7 +358,10 @@ func (a *Agent) AddSkills(refs ...string) *Agent {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, parsed...)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, parsed...)
 	return a
 }
 
@@ -330,7 +390,10 @@ func (a *Agent) TryAddSkill(ref string, opts ...SkillOption) (*Agent, error) {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, parsed)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, parsed)
 	return a, nil
 }
 
@@ -365,7 +428,10 @@ func (a *Agent) TryAddSkills(refs ...string) (*Agent, error) {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SkillRefs = append(a.SkillRefs, parsed...)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SkillRefs = append(a.Args.SkillRefs, parsed...)
 	return a, nil
 }
 
@@ -405,7 +471,10 @@ func (a *Agent) AddMcpServerUsage(ref *apiresource.ApiResourceReference, enabled
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.McpServerUsages = append(a.McpServerUsages, usage)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.McpServerUsages = append(a.Args.McpServerUsages, usage)
 	return a
 }
 
@@ -426,7 +495,10 @@ func (a *Agent) AddMcpServerUsage(ref *apiresource.ApiResourceReference, enabled
 func (a *Agent) AddMcpServerUsages(usages ...*agentv1.McpServerUsage) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.McpServerUsages = append(a.McpServerUsages, usages...)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.McpServerUsages = append(a.Args.McpServerUsages, usages...)
 	return a
 }
 
@@ -511,7 +583,10 @@ func (a *Agent) UseMCP(ref string, enabledTools ...string) *Agent {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.McpServerUsages = append(a.McpServerUsages, usage)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.McpServerUsages = append(a.Args.McpServerUsages, usage)
 	return a
 }
 
@@ -545,7 +620,10 @@ func (a *Agent) TryUseMCP(ref string, enabledTools ...string) (*Agent, error) {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.McpServerUsages = append(a.McpServerUsages, usage)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.McpServerUsages = append(a.Args.McpServerUsages, usage)
 	return a, nil
 }
 

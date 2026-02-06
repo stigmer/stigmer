@@ -1,0 +1,75 @@
+{
+  "name": "ServerlessWorkflowValidation",
+  "description": "ServerlessWorkflowValidation contains the generated Serverless Workflow YAML\n and its validation state. This is populated asynchronously after workflow creation\n via a Temporal workflow that validates the workflow structure.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/serverless/validation.proto",
+  "fields": [
+    {
+      "name": "State",
+      "jsonName": "state",
+      "protoField": "state",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Current validation state",
+      "required": false
+    },
+    {
+      "name": "Yaml",
+      "jsonName": "yaml",
+      "protoField": "yaml",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)\n This YAML may contain runtime expressions for environment variables:\n   Example: ${ .env.API_BASE_URL }\n\n Present even if validation failed (helps debugging).\n Empty if validation hasn't started yet.",
+      "required": false
+    },
+    {
+      "name": "Errors",
+      "jsonName": "errors",
+      "protoField": "errors",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Validation errors (empty if valid)\n Examples:\n   - \"Invalid YAML syntax at line 15\"\n   - \"Unknown task type 'invalid_task'\"\n   - \"Missing required field: document.namespace\"",
+      "required": false
+    },
+    {
+      "name": "Warnings",
+      "jsonName": "warnings",
+      "protoField": "warnings",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Non-fatal warnings\n Examples:\n   - \"Environment variable API_KEY referenced but not defined\"\n   - \"Task 'fetchData' has no error handling\"",
+      "required": false
+    },
+    {
+      "name": "ValidatedAt",
+      "jsonName": "validatedAt",
+      "protoField": "validated_at",
+      "type": {
+        "kind": "message",
+        "messageType": "Timestamp"
+      },
+      "description": "When validation was performed\n Null if validation hasn't completed yet",
+      "required": false
+    },
+    {
+      "name": "ValidationWorkflowId",
+      "jsonName": "validationWorkflowId",
+      "protoField": "validation_workflow_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Temporal workflow ID for the validation workflow\n Format: \"validate-workflow-{workflow_id}\"\n Useful for tracking/debugging validation progress",
+      "required": false
+    }
+  ]
+}
