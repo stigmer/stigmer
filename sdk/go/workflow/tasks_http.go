@@ -1,3 +1,8 @@
+// tasks_http.go provides factory functions for HTTP_CALL workflow tasks.
+//
+// This file contains the HttpCall factory and convenience methods for
+// common HTTP methods (GET, POST, PUT, PATCH, DELETE).
+
 package workflow
 
 import (
@@ -40,9 +45,9 @@ func HttpCall(name string, args *HttpCallArgs) *Task {
 	}
 }
 
-// ============================================================================
+// =============================================================================
 // Convenience Constructors for Common HTTP Methods
-// ============================================================================
+// =============================================================================
 
 // HttpGet creates an HTTP GET task with a default 30-second timeout.
 //
