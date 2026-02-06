@@ -38,8 +38,14 @@ var (
 	// ErrMissingRequiredField is returned when a required field is missing.
 	ErrMissingRequiredField = errors.New("missing required field")
 
+	// ErrArgsNil is returned when Args is unexpectedly nil.
+	ErrArgsNil = errors.New("workflow args is nil")
+
 	// ErrConversion is returned when proto conversion fails.
 	ErrConversion = errors.New("proto conversion failed")
+
+	// ErrTaskConversion is returned when task conversion fails.
+	ErrTaskConversion = errors.New("task conversion failed")
 )
 
 // ValidationError is an alias to the shared validation error type.

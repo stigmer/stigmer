@@ -29,55 +29,42 @@ func init() {
 
 // ToProto converts the SDK Workflow to a platform Workflow proto message.
 //
-// This method creates a complete Workflow proto with:
-//   - API version and kind
-//   - Metadata with SDK annotations
-//   - Spec converted from SDK workflow to proto WorkflowSpec
+// This method delegates directly to Args fields - no conversion needed since:
+//   - Args.Document is already *workflowv1.WorkflowDocument
+//   - Args.Tasks is already []*workflowv1.WorkflowTask (converted in AddTask)
+//   - Args.EnvSpec is already *environmentv1.EnvironmentSpec
 //
 // Example:
 //
-//	wf, _ := workflow.New(ctx,
-//	    workflow.WithNamespace("data-processing"),
-//	    workflow.WithName("daily-sync"),
-//	    workflow.WithVersion("1.0.0"),
-//	)
+//	wf, _ := workflow.New(ctx, "data-processing/daily-sync", &workflow.WorkflowArgs{
+//	    Description: "Sync data daily",
+//	})
+//	wf.HttpGet("fetch", "https://api.example.com", nil)
 //	proto, err := wf.ToProto()
 func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
-	// Convert tasks
-	tasks, err := convertTasks(w.Tasks)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert tasks: %w", err)
+	// Nil-safety check
+	if w.Args == nil {
+		return nil, fmt.Errorf("workflow: Args is nil, cannot convert to proto")
 	}
 
-	// Build metadata
-	metadata := &apiresource.ApiResourceMetadata{
-		Name:        w.Document.Name,
-		Slug:        w.Slug, // Include slug for backend resolution
+	// Build metadata with SDK annotations
+	meta := &apiresource.ApiResourceMetadata{
+		Name:        w.Name,
+		Slug:        w.Slug,
 		Annotations: metadata.SDKAnnotations(),
-		// Default to private visibility for SDK-created workflows
-		Visibility: apiresource.ApiResourceVisibility_visibility_private,
+		Visibility:  apiresource.ApiResourceVisibility_visibility_private,
 	}
 
-	// Build WorkflowDocument
-	document := &workflowv1.WorkflowDocument{
-		Dsl:         w.Document.DSL,
-		Namespace:   w.Document.Namespace,
-		Name:        w.Document.Name,
-		Version:     w.Document.Version,
-		Description: w.Document.Description,
-	}
-
-	// Build complete Workflow proto
-	// Note: EnvSpec is nil - use generated WorkflowArgs.EnvSpec for env var requirements
+	// Build complete Workflow proto - pure delegation to Args
 	workflow := &workflowv1.Workflow{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
-		Metadata:   metadata,
+		Metadata:   meta,
 		Spec: &workflowv1.WorkflowSpec{
-			Description: w.Description,
-			Document:    document,
-			Tasks:       tasks,
-			EnvSpec:     nil, // TODO: Add support for generated WorkflowArgs.EnvSpec
+			Description: w.Args.Description,
+			Document:    w.Args.Document, // Direct use - already proto type
+			Tasks:       w.Args.Tasks,    // Direct use - already proto types
+			EnvSpec:     w.Args.EnvSpec,  // Direct use - populated via RequireSecret/Config
 		},
 	}
 
@@ -87,25 +74,6 @@ func (w *Workflow) ToProto() (*workflowv1.Workflow, error) {
 	}
 
 	return workflow, nil
-}
-
-// convertTasks converts SDK tasks to proto WorkflowTask messages.
-func convertTasks(tasks []*Task) ([]*workflowv1.WorkflowTask, error) {
-	if len(tasks) == 0 {
-		return nil, nil
-	}
-
-	protoTasks := make([]*workflowv1.WorkflowTask, 0, len(tasks))
-
-	for _, task := range tasks {
-		protoTask, err := convertTask(task)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert task %s: %w", task.Name, err)
-		}
-		protoTasks = append(protoTasks, protoTask)
-	}
-
-	return protoTasks, nil
 }
 
 // validateTaskConfigStruct validates a task config by unmarshaling it back to typed proto.

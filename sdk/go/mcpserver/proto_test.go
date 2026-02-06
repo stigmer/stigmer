@@ -166,21 +166,21 @@ func TestToProto_WithEnvSpec(t *testing.T) {
 				Command: "npx",
 				Args:    []string{"-y", "@modelcontextprotocol/server-github"},
 			},
-		EnvSpec: &environmentv1.EnvironmentSpec{
-			Description: "GitHub environment variables",
-			Data: map[string]*environmentv1.EnvironmentValue{
-				"GITHUB_TOKEN": {
-					Value:       "",
-					IsSecret:    true,
-					Description: "GitHub personal access token",
-				},
-				"GITHUB_OWNER": {
-					Value:       "default-org",
-					IsSecret:    false,
-					Description: "Default GitHub organization",
+			EnvSpec: &environmentv1.EnvironmentSpec{
+				Description: "GitHub environment variables",
+				Data: map[string]*environmentv1.EnvironmentValue{
+					"GITHUB_TOKEN": {
+						Value:       "",
+						IsSecret:    true,
+						Description: "GitHub personal access token",
+					},
+					"GITHUB_OWNER": {
+						Value:       "default-org",
+						IsSecret:    false,
+						Description: "Default GitHub organization",
+					},
 				},
 			},
-		},
 		},
 	}
 

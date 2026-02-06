@@ -16,10 +16,10 @@ todos:
     status: completed
   - id: create-tests
     content: Create comprehensive tests in sdk/go/skill/synth_test.go
-    status: in_progress
+    status: completed
   - id: verify-build
     content: Run go build and go test to verify implementation
-    status: pending
+    status: completed
 isProject: false
 ---
 
