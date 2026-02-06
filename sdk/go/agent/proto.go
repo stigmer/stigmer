@@ -8,7 +8,6 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
-	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
 // validator is the global protovalidate validator instance.
@@ -99,7 +98,7 @@ func (a *Agent) ToProto() (*agentv1.Agent, error) {
 
 // convertSubAgents converts SDK sub-agents to proto sub-agents.
 // SubAgent now uses McpAccess for granting access to parent's MCP servers.
-func convertSubAgents(subAgents []subagent.SubAgent) ([]*agentv1.SubAgent, error) {
+func convertSubAgents(subAgents []SubAgent) ([]*agentv1.SubAgent, error) {
 	if len(subAgents) == 0 {
 		return []*agentv1.SubAgent{}, nil
 	}
@@ -127,4 +126,3 @@ func convertSubAgents(subAgents []subagent.SubAgent) ([]*agentv1.SubAgent, error
 
 	return protoSubAgents, nil
 }
-

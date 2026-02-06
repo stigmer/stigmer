@@ -2,14 +2,12 @@ package agent
 
 import (
 	"testing"
-
-	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
 // mustSubAgent creates a sub-agent or panics on error.
 // This is a test helper for concise test cases.
-func mustSubAgent(name string, args *subagent.Args) subagent.SubAgent {
-	sub, err := subagent.New(name, args)
+func mustSubAgent(name string, args *SubAgentArgs) SubAgent {
+	sub, err := NewSubAgent(name, args)
 	if err != nil {
 		panic("failed to create sub-agent: " + err.Error())
 	}
@@ -17,7 +15,7 @@ func mustSubAgent(name string, args *subagent.Args) subagent.SubAgent {
 }
 
 func TestAgentWithSubAgent(t *testing.T) {
-	helper := mustSubAgent("helper", &subagent.Args{
+	helper := mustSubAgent("helper", &SubAgentArgs{
 		Instructions: "Helper instructions",
 	})
 
@@ -40,15 +38,15 @@ func TestAgentWithSubAgent(t *testing.T) {
 }
 
 func TestAgentWithMultipleSubAgents(t *testing.T) {
-	analyzer := mustSubAgent("analyzer", &subagent.Args{
+	analyzer := mustSubAgent("analyzer", &SubAgentArgs{
 		Instructions: "Analyze code for bugs",
 	})
 
-	reviewer := mustSubAgent("reviewer", &subagent.Args{
+	reviewer := mustSubAgent("reviewer", &SubAgentArgs{
 		Instructions: "Review code for style",
 	})
 
-	security := mustSubAgent("security", &subagent.Args{
+	security := mustSubAgent("security", &SubAgentArgs{
 		Instructions: "Check for security issues",
 	})
 
@@ -78,7 +76,7 @@ func TestAgentWithMultipleSubAgents(t *testing.T) {
 
 func TestAgentWithSubAgentUsingMCPAccess(t *testing.T) {
 	// Create sub-agent with MCP access grants
-	githubHelper := mustSubAgent("github-helper", &subagent.Args{
+	githubHelper := mustSubAgent("github-helper", &SubAgentArgs{
 		Instructions: "Help with GitHub operations",
 	})
 	githubHelper.GrantMcpAccess("github")
@@ -112,10 +110,10 @@ func TestAgentWithSubAgentUsingMCPAccess(t *testing.T) {
 }
 
 func TestAgentWithSubAgentUsingSkills(t *testing.T) {
-	skilledHelper := mustSubAgent("skilled-helper", &subagent.Args{
+	skilledHelper := mustSubAgent("skilled-helper", &SubAgentArgs{
 		Instructions: "Use coding knowledge",
 	})
-	skilledHelper.AddSkills(
+	skilledHelper.AddSubAgentSkills(
 		"stigmer/coding-best-practices",
 		"my-org/internal-apis",
 	)
@@ -149,7 +147,7 @@ func TestAgentWithSubAgentUsingSkills(t *testing.T) {
 
 func TestAgentWithSubAgentUsingRestrictedTools(t *testing.T) {
 	// Create sub-agent with restricted tool access
-	selectiveHelper := mustSubAgent("selective-helper", &subagent.Args{
+	selectiveHelper := mustSubAgent("selective-helper", &SubAgentArgs{
 		Instructions: "Use specific GitHub tools",
 	})
 	// Grant access with restricted tools (subset of parent's tools)
@@ -185,7 +183,7 @@ func TestAgentWithSubAgentUsingRestrictedTools(t *testing.T) {
 
 func TestAgentWithSubAgentMultipleMCPAccess(t *testing.T) {
 	// Create sub-agent with access to multiple MCP servers
-	multiHelper := mustSubAgent("multi-helper", &subagent.Args{
+	multiHelper := mustSubAgent("multi-helper", &SubAgentArgs{
 		Instructions: "Use multiple platforms",
 	})
 	multiHelper.GrantMcpAccess("github", "create_pr").

@@ -2,8 +2,6 @@ package agent
 
 import (
 	"testing"
-
-	"github.com/stigmer/stigmer/sdk/go/subagent"
 )
 
 func TestAddSkillRef(t *testing.T) {
@@ -207,7 +205,7 @@ func TestAddSubAgent(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	helper, err := subagent.New("helper", &subagent.Args{
+	helper, err := NewSubAgent("helper", &SubAgentArgs{
 		Instructions: "Helper instructions",
 	})
 	if err != nil {
@@ -237,11 +235,11 @@ func TestAddSubAgents(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	helper1, _ := subagent.New("helper1", &subagent.Args{
+	helper1, _ := NewSubAgent("helper1", &SubAgentArgs{
 		Instructions: "Helper 1 instructions",
 	})
 
-	helper2, _ := subagent.New("helper2", &subagent.Args{
+	helper2, _ := NewSubAgent("helper2", &SubAgentArgs{
 		Instructions: "Helper 2 instructions",
 	})
 
@@ -265,11 +263,11 @@ func TestAddSubAgent_Chaining(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	helper1, _ := subagent.New("helper1", &subagent.Args{
+	helper1, _ := NewSubAgent("helper1", &SubAgentArgs{
 		Instructions: "Helper 1 instructions",
 	})
 
-	helper2, _ := subagent.New("helper2", &subagent.Args{
+	helper2, _ := NewSubAgent("helper2", &SubAgentArgs{
 		Instructions: "Helper 2 instructions",
 	})
 
@@ -362,7 +360,7 @@ func TestRequireEnvVar_Chaining(t *testing.T) {
 }
 
 func TestBuilder_ComplexChaining(t *testing.T) {
-	helper, _ := subagent.New("helper", &subagent.Args{
+	helper, _ := NewSubAgent("helper", &SubAgentArgs{
 		Instructions: "Helper instructions",
 	})
 	helper.GrantMcpAccess("github", "search_code")

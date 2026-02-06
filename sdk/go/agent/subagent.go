@@ -1,4 +1,4 @@
-package subagent
+package agent
 
 import (
 	"fmt"
@@ -9,8 +9,8 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
-// Args contains configuration for a sub-agent (Pulumi Args pattern).
-type Args struct {
+// SubAgentArgs contains configuration for a sub-agent (Pulumi Args pattern).
+type SubAgentArgs struct {
 	// Description of what this sub-agent does.
 	Description string
 
@@ -18,12 +18,14 @@ type Args struct {
 	Instructions string
 }
 
-// SubAgent represents a sub-agent that can be delegated to.
-// Sub-agents are defined inline within the parent agent spec.
+// SubAgent represents a sub-agent that can be delegated to within the Agent aggregate.
 //
-// Sub-agents have restricted access to the parent's MCP servers via McpAccess grants.
-// They can only use MCP servers that the parent has declared and can only restrict
-// the tools further (cannot expand access beyond what parent has).
+// SubAgents are value objects - they cannot exist independently. They are defined
+// inline within the parent agent spec and have restricted access to the parent's
+// MCP servers via McpAccess grants.
+//
+// Sub-agents can only use MCP servers that the parent has declared and can only
+// restrict the tools further (cannot expand access beyond what parent has).
 //
 // Unlike Agent, SubAgent has no Org field. All skill references must use explicit
 // "org/slug" format. Use AddSkill() or TryAddSkill() for smart parsing.
@@ -40,7 +42,7 @@ type SubAgent struct {
 	mu sync.Mutex
 }
 
-// New creates a sub-agent definition with struct args (Pulumi pattern).
+// NewSubAgent creates a sub-agent definition with struct args (Pulumi pattern).
 //
 // Required:
 //   - name: sub-agent name (non-empty)
@@ -54,15 +56,15 @@ type SubAgent struct {
 //
 // Example:
 //
-//	sub, err := subagent.New("code-analyzer", &subagent.Args{
+//	sub, err := agent.NewSubAgent("code-analyzer", &agent.SubAgentArgs{
 //	    Instructions: "Analyze code for bugs and security issues",
 //	    Description:  "Static code analyzer",
 //	})
 //	sub.GrantMcpAccess("github", "search_code", "get_file")
-func New(name string, args *Args) (SubAgent, error) {
+func NewSubAgent(name string, args *SubAgentArgs) (SubAgent, error) {
 	// Nil-safety: if args is nil, create empty args
 	if args == nil {
-		args = &Args{}
+		args = &SubAgentArgs{}
 	}
 
 	s := SubAgent{
@@ -144,7 +146,7 @@ func (s *SubAgent) GrantMcpAccess(mcpServerSlug string, enabledTools ...string) 
 //
 // Example:
 //
-//	sub.AddSkillRef(skillref.Platform("code-review-best-practices"))
+//	sub.AddSkillRef(ref.Skill("stigmer", "code-review-best-practices"))
 func (s *SubAgent) AddSkillRef(ref *apiresource.ApiResourceReference) *SubAgent {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -159,8 +161,8 @@ func (s *SubAgent) AddSkillRef(ref *apiresource.ApiResourceReference) *SubAgent 
 // Example:
 //
 //	sub.AddSkillRefs(
-//	    skillref.Platform("code-review"),
-//	    skillref.Platform("security-guidelines"),
+//	    ref.Skill("stigmer", "code-review"),
+//	    ref.Skill("stigmer", "security-guidelines"),
 //	)
 func (s *SubAgent) AddSkillRefs(refs ...*apiresource.ApiResourceReference) *SubAgent {
 	s.mu.Lock()
@@ -200,7 +202,7 @@ func (s *SubAgent) AddOrgSkillRef(org, slug string, version ...string) *SubAgent
 // Smart Parsing Methods - Add skills with org/slug parsing
 // ============================================================================
 
-// AddSkill adds a skill reference using smart org/slug parsing.
+// AddSubAgentSkill adds a skill reference using smart org/slug parsing.
 //
 // Unlike Agent.AddSkill(), SubAgents have no Org field and therefore cannot
 // resolve slug-only references. All references must use explicit "org/slug" format.
@@ -211,23 +213,23 @@ func (s *SubAgent) AddOrgSkillRef(org, slug string, version ...string) *SubAgent
 //   - Version can also be set via AtVersion() option (overrides string version)
 //
 // Panics if the format is invalid or if the reference is slug-only.
-// For dynamic/user-provided input, use TryAddSkill instead.
+// For dynamic/user-provided input, use TryAddSubAgentSkill instead.
 //
 // This method is thread-safe and can be called concurrently.
 //
 // Examples:
 //
-//	sub.AddSkill("stigmer/web-search")                    // Explicit org/slug
-//	sub.AddSkill("stigmer/web-search@v1.0")               // With version in string
-//	sub.AddSkill("stigmer/web-search", AtVersion("v1.0")) // With version option
+//	sub.AddSubAgentSkill("stigmer/web-search")                    // Explicit org/slug
+//	sub.AddSubAgentSkill("stigmer/web-search@v1.0")               // With version in string
+//	sub.AddSubAgentSkill("stigmer/web-search", AtVersion("v1.0")) // With version option
 //
 //	// Chain multiple skills
-//	sub.AddSkill("stigmer/code-review").AddSkill("acme/security-analysis")
+//	sub.AddSubAgentSkill("stigmer/code-review").AddSubAgentSkill("acme/security-analysis")
 //
 //	// ERROR: slug-only not supported (no org context)
-//	sub.AddSkill("web-search")  // Panics with ErrOrgRequired
-func (s *SubAgent) AddSkill(ref string, opts ...SkillOption) *SubAgent {
-	parsed, err := parseSkillRef(ref, opts...)
+//	sub.AddSubAgentSkill("web-search")  // Panics with ErrSubAgentOrgRequired
+func (s *SubAgent) AddSubAgentSkill(ref string, opts ...SkillOption) *SubAgent {
+	parsed, err := parseSubAgentSkillRef(ref, opts...)
 	if err != nil {
 		panic(err)
 	}
@@ -238,9 +240,9 @@ func (s *SubAgent) AddSkill(ref string, opts ...SkillOption) *SubAgent {
 	return s
 }
 
-// AddSkills adds multiple skill references using smart org/slug parsing.
+// AddSubAgentSkills adds multiple skill references using smart org/slug parsing.
 //
-// Each reference follows the same parsing rules as AddSkill.
+// Each reference follows the same parsing rules as AddSubAgentSkill.
 // Panics on the first invalid reference - no skills are added if any is invalid
 // (atomic operation).
 //
@@ -248,12 +250,12 @@ func (s *SubAgent) AddSkill(ref string, opts ...SkillOption) *SubAgent {
 //
 // Example:
 //
-//	sub.AddSkills(
+//	sub.AddSubAgentSkills(
 //	    "stigmer/web-search",           // Explicit org/slug
 //	    "acme/code-review",             // Different org
 //	    "stigmer/security@v2.0",        // With version
 //	)
-func (s *SubAgent) AddSkills(refs ...string) *SubAgent {
+func (s *SubAgent) AddSubAgentSkills(refs ...string) *SubAgent {
 	if len(refs) == 0 {
 		return s
 	}
@@ -261,7 +263,7 @@ func (s *SubAgent) AddSkills(refs ...string) *SubAgent {
 	// Parse all refs first to fail fast before modifying state
 	parsed := make([]*apiresource.ApiResourceReference, len(refs))
 	for i, ref := range refs {
-		p, err := parseSkillRef(ref)
+		p, err := parseSubAgentSkillRef(ref)
 		if err != nil {
 			panic(err)
 		}
@@ -274,7 +276,7 @@ func (s *SubAgent) AddSkills(refs ...string) *SubAgent {
 	return s
 }
 
-// TryAddSkill is like AddSkill but returns an error instead of panicking.
+// TryAddSubAgentSkill is like AddSubAgentSkill but returns an error instead of panicking.
 //
 // Use this for dynamic/user-provided references where panicking is not appropriate.
 // Returns the SubAgent and nil error on success, or the SubAgent and the error
@@ -285,19 +287,19 @@ func (s *SubAgent) AddSkills(refs ...string) *SubAgent {
 // Example:
 //
 //	ref := getUserInput() // Dynamic input
-//	sub, err := sub.TryAddSkill(ref)
+//	sub, err := sub.TryAddSubAgentSkill(ref)
 //	if err != nil {
-//	    var parseErr *RefParseError
+//	    var parseErr *SubAgentRefParseError
 //	    if errors.As(err, &parseErr) {
 //	        log.Printf("Invalid skill reference %q: %s", parseErr.Ref, parseErr.Message)
 //	    }
-//	    if errors.Is(err, ErrOrgRequired) {
+//	    if errors.Is(err, ErrSubAgentOrgRequired) {
 //	        log.Printf("Hint: Use explicit org/slug format like 'stigmer/web-search'")
 //	    }
 //	    return err
 //	}
-func (s *SubAgent) TryAddSkill(ref string, opts ...SkillOption) (*SubAgent, error) {
-	parsed, err := parseSkillRef(ref, opts...)
+func (s *SubAgent) TryAddSubAgentSkill(ref string, opts ...SkillOption) (*SubAgent, error) {
+	parsed, err := parseSubAgentSkillRef(ref, opts...)
 	if err != nil {
 		return s, err
 	}
@@ -308,7 +310,7 @@ func (s *SubAgent) TryAddSkill(ref string, opts ...SkillOption) (*SubAgent, erro
 	return s, nil
 }
 
-// TryAddSkills is like AddSkills but returns an error instead of panicking.
+// TryAddSubAgentSkills is like AddSubAgentSkills but returns an error instead of panicking.
 //
 // Stops on the first invalid reference and returns the error.
 // No skills are added if any reference is invalid (atomic operation).
@@ -318,11 +320,11 @@ func (s *SubAgent) TryAddSkill(ref string, opts ...SkillOption) (*SubAgent, erro
 // Example:
 //
 //	refs := getSkillRefsFromConfig() // Dynamic input
-//	sub, err := sub.TryAddSkills(refs...)
+//	sub, err := sub.TryAddSubAgentSkills(refs...)
 //	if err != nil {
 //	    return fmt.Errorf("invalid skill configuration: %w", err)
 //	}
-func (s *SubAgent) TryAddSkills(refs ...string) (*SubAgent, error) {
+func (s *SubAgent) TryAddSubAgentSkills(refs ...string) (*SubAgent, error) {
 	if len(refs) == 0 {
 		return s, nil
 	}
@@ -330,7 +332,7 @@ func (s *SubAgent) TryAddSkills(refs ...string) (*SubAgent, error) {
 	// Parse all refs first to fail fast before modifying state
 	parsed := make([]*apiresource.ApiResourceReference, len(refs))
 	for i, ref := range refs {
-		p, err := parseSkillRef(ref)
+		p, err := parseSubAgentSkillRef(ref)
 		if err != nil {
 			return s, err
 		}
