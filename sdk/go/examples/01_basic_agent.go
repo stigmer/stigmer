@@ -30,7 +30,7 @@ func main() {
 
 		fmt.Println("✅ Created basic agent:")
 		fmt.Printf("   Name: %s\n", basicAgent.Name)
-		fmt.Printf("   Instructions: %s\n", basicAgent.Instructions())
+		fmt.Printf("   Instructions: %s\n", basicAgent.Args.Instructions)
 
 		// Create an agent with optional fields
 		fullAgent, err := agent.New(ctx, "code-reviewer-pro", &agent.AgentArgs{
@@ -44,9 +44,9 @@ func main() {
 
 		fmt.Println("\n✅ Created full agent:")
 		fmt.Printf("   Name: %s\n", fullAgent.Name)
-		fmt.Printf("   Instructions: %s\n", fullAgent.Instructions())
-		fmt.Printf("   Description: %s\n", fullAgent.Description())
-		fmt.Printf("   IconURL: %s\n", fullAgent.IconURL())
+		fmt.Printf("   Instructions: %s\n", fullAgent.Args.Instructions)
+		fmt.Printf("   Description: %s\n", fullAgent.Args.Description)
+		fmt.Printf("   IconURL: %s\n", fullAgent.Args.IconUrl)
 
 		// Example of validation error
 		fmt.Println("\n❌ Attempting to create invalid agent:")

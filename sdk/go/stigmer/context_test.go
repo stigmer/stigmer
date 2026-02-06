@@ -564,8 +564,8 @@ func TestContext_RegisterAgent_MultipleSkillRefs(t *testing.T) {
 	}
 
 	// Verify skill refs are preserved
-	if len(agents[0].SkillRefs()) != 3 {
-		t.Errorf("Expected 3 skill refs, got %d", len(agents[0].SkillRefs()))
+	if len(agents[0].Args.SkillRefs) != 3 {
+		t.Errorf("Expected 3 skill refs, got %d", len(agents[0].Args.SkillRefs))
 	}
 }
 
@@ -737,10 +737,10 @@ func TestContext_AgentRegistrationIntegration(t *testing.T) {
 	}
 
 	// Verify skill refs are preserved
-	if len(agents[0].SkillRefs()) != 1 {
-		t.Errorf("agent1 should have 1 skill ref, got %d", len(agents[0].SkillRefs()))
+	if len(agents[0].Args.SkillRefs) != 1 {
+		t.Errorf("agent1 should have 1 skill ref, got %d", len(agents[0].Args.SkillRefs))
 	}
-	if len(agents[1].SkillRefs()) != 1 {
-		t.Errorf("agent2 should have 1 skill ref, got %d", len(agents[1].SkillRefs()))
+	if len(agents[1].Args.SkillRefs) != 1 {
+		t.Errorf("agent2 should have 1 skill ref, got %d", len(agents[1].Args.SkillRefs))
 	}
 }

@@ -235,8 +235,8 @@ func printAgent(title string, ag *agent.Agent) {
 	fmt.Printf("\n%s\n", title)
 	fmt.Println("=" + string(make([]byte, len(title))))
 	fmt.Printf("Agent Name: %s\n", ag.Name)
-	fmt.Printf("Instructions: %s\n", ag.Instructions())
-	fmt.Printf("MCP Server Usages: %d\n", len(ag.McpServerUsages()))
+	fmt.Printf("Instructions: %s\n", ag.Args.Instructions)
+	fmt.Printf("MCP Server Usages: %d\n", len(ag.Args.McpServerUsages))
 	fmt.Printf("Sub-Agents: %d\n", len(ag.Args.SubAgents))
 
 	for i, sub := range ag.Args.SubAgents {

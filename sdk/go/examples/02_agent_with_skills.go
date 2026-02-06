@@ -47,8 +47,8 @@ func main() {
 
 		fmt.Println("Created agent with public skill references:")
 		fmt.Printf("   Name: %s\n", publicAgent.Name)
-		fmt.Printf("   Skill Refs: %d\n", len(publicAgent.SkillRefs()))
-		for i, ref := range publicAgent.SkillRefs() {
+		fmt.Printf("   Skill Refs: %d\n", len(publicAgent.Args.SkillRefs))
+		for i, ref := range publicAgent.Args.SkillRefs {
 			fmt.Printf("     %d. %s/%s\n", i+1, ref.Org, ref.Slug)
 		}
 
@@ -72,8 +72,8 @@ func main() {
 
 		fmt.Println("\nCreated agent with private organization skill references:")
 		fmt.Printf("   Name: %s\n", orgAgent.Name)
-		fmt.Printf("   Skill Refs: %d\n", len(orgAgent.SkillRefs()))
-		for i, ref := range orgAgent.SkillRefs() {
+		fmt.Printf("   Skill Refs: %d\n", len(orgAgent.Args.SkillRefs))
+		for i, ref := range orgAgent.Args.SkillRefs {
 			fmt.Printf("     %d. %s/%s\n", i+1, ref.Org, ref.Slug)
 		}
 
@@ -98,8 +98,8 @@ func main() {
 
 		fmt.Println("\nCreated agent with mixed skill references:")
 		fmt.Printf("   Name: %s\n", mixedAgent.Name)
-		fmt.Printf("   Skill Refs: %d\n", len(mixedAgent.SkillRefs()))
-		for i, ref := range mixedAgent.SkillRefs() {
+		fmt.Printf("   Skill Refs: %d\n", len(mixedAgent.Args.SkillRefs))
+		for i, ref := range mixedAgent.Args.SkillRefs {
 			fmt.Printf("     %d. %s/%s\n", i+1, ref.Org, ref.Slug)
 		}
 
@@ -128,8 +128,8 @@ func main() {
 		fmt.Println("\nCreated agent with auto-resolved org references:")
 		fmt.Printf("   Name: %s\n", autoOrgAgent.Name)
 		fmt.Printf("   Agent Org: %s\n", autoOrgAgent.Org)
-		fmt.Printf("   Skill Refs: %d\n", len(autoOrgAgent.SkillRefs()))
-		for i, ref := range autoOrgAgent.SkillRefs() {
+		fmt.Printf("   Skill Refs: %d\n", len(autoOrgAgent.Args.SkillRefs))
+		for i, ref := range autoOrgAgent.Args.SkillRefs {
 			fmt.Printf("     %d. %s/%s\n", i+1, ref.Org, ref.Slug)
 		}
 
@@ -154,8 +154,8 @@ func main() {
 
 		fmt.Println("\nCreated agent with versioned skill references:")
 		fmt.Printf("   Name: %s\n", versionedAgent.Name)
-		fmt.Printf("   Skill Refs: %d\n", len(versionedAgent.SkillRefs()))
-		for i, ref := range versionedAgent.SkillRefs() {
+		fmt.Printf("   Skill Refs: %d\n", len(versionedAgent.Args.SkillRefs))
+		for i, ref := range versionedAgent.Args.SkillRefs {
 			version := ref.Version
 			if version == "" {
 				version = "latest"

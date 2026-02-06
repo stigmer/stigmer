@@ -63,14 +63,11 @@
 //   - IconUrl: Display icon URL (optional)
 //
 // Builder Methods (after creation):
-//   - AddSkillRef: Add a skill reference
-//   - AddSkillRefs: Add multiple skill references
-//   - AddMCPServer: Add an MCP server
-//   - AddMCPServers: Add multiple MCP servers
-//   - AddSubAgent: Add a sub-agent
-//   - AddSubAgents: Add multiple sub-agents
-//   - AddEnvironmentVariable: Add an environment variable
-//   - AddEnvironmentVariables: Add multiple environment variables
+//   - AddSkillRef: Add a skill reference using commons/ref
+//   - AddMcpServerUsage: Add an MCP server usage reference
+//   - AddSubAgent: Add a sub-agent (inline value object)
+//   - RequireSecret: Declare required secret environment variable
+//   - RequireConfig: Declare required config environment variable
 //
 // # Error Handling
 //

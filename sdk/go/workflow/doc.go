@@ -13,12 +13,9 @@
 //	    orgName := ctx.SetString("org", "my-org")
 //	    
 //	    // Create workflow
-//	    wf, err := workflow.New(ctx,
-//	        workflow.WithNamespace("data-processing"),
-//	        workflow.WithName("daily-sync"),
-//	        workflow.WithVersion("1.0.0"),
-//	        workflow.WithOrg(orgName),
-//	    )
+//	    wf, err := workflow.New(ctx, "data-processing/daily-sync", &workflow.WorkflowArgs{
+//	        Description: "Daily data synchronization",
+//	    })
 //	    if err != nil {
 //	        return err
 //	    }
@@ -220,49 +217,48 @@
 //	)
 //	
 //	func main() {
-//	    err := stigmer.Run(func(ctx *stigmer.Context) error {
-//	        // Context: shared configuration
-//	        apiBase := ctx.SetString("apiBase", "https://api.example.com")
-//	        orgName := ctx.SetString("org", "my-org")
-//	        
-//	        // Environment variable
-//	        apiToken, _ := environment.New(
-//	            environment.WithName("API_TOKEN"),
-//	            environment.WithSecret(true),
-//	        )
-//	        
-//	        // Create workflow
-//	        wf, _ := workflow.New(ctx,
-//	            workflow.WithNamespace("data-processing"),
-//	            workflow.WithName("user-sync"),
-//	            workflow.WithVersion("1.0.0"),
-//	            workflow.WithOrg(orgName),
-//	            workflow.WithEnvironmentVariable(apiToken),
-//	        )
-//	        
-//	        // Task 1: Fetch user data
-//	        userEndpoint := apiBase.Concat("/users/123")
-//	        userTask := wf.HttpGet("getUser", userEndpoint,
-//	            workflow.Header("Authorization", "Bearer ${API_TOKEN}"),
-//	        )
-//	        
-//	        // Task 2: Fetch user's posts (depends on userTask)
-//	        postsTask := wf.HttpGet("getPosts",
-//	            apiBase.Concat("/posts?userId=").Concat(userTask.Field("id")),
-//	        )
-//	        
-//	        // Task 3: Create summary (depends on both tasks)
-//	        summaryTask := wf.SetVars("createSummary",
-//	            "userName", userTask.Field("name"),
-//	            "userEmail", userTask.Field("email"),
-//	            "postCount", postsTask.Field("total"),
-//	            "firstPost", postsTask.Field("items[0].title"),
-//	        )
-//	        
-//	        log.Printf("Created workflow with %d tasks", len(wf.Tasks))
-//	        // Dependencies: userTask → postsTask → summaryTask (automatic!)
-//	        return nil
+//	err := stigmer.Run(func(ctx *stigmer.Context) error {
+//	    // Context: shared configuration
+//	    apiBase := ctx.SetString("apiBase", "https://api.example.com")
+//	    orgName := ctx.SetString("org", "my-org")
+//	    
+//	    // Environment variable
+//	    apiToken, _ := environment.New(ctx, "API_TOKEN", &environment.EnvironmentArgs{
+//	        Description: "API authentication token",
 //	    })
+//	    apiToken.SetSecret("API_TOKEN", "${secrets.api_token}")
+//	    
+//	    // Create workflow with struct-based args
+//	    wf, _ := workflow.New(ctx, "data-processing/user-sync", &workflow.WorkflowArgs{
+//	        Description: "Sync user data",
+//	    })
+//	    
+//	    // Declare environment requirements
+//	    wf.RequireSecret("API_TOKEN", "API authentication token")
+//	    
+//	    // Task 1: Fetch user data
+//	    userEndpoint := apiBase.Concat("/users/123")
+//	    userTask := wf.HttpGet("getUser", userEndpoint,
+//	        workflow.Header("Authorization", "Bearer ${API_TOKEN}"),
+//	    )
+//	    
+//	    // Task 2: Fetch user's posts (depends on userTask)
+//	    postsTask := wf.HttpGet("getPosts",
+//	        apiBase.Concat("/posts?userId=").Concat(userTask.Field("id")),
+//	    )
+//	    
+//	    // Task 3: Create summary (depends on both tasks)
+//	    summaryTask := wf.SetVars("createSummary",
+//	        "userName", userTask.Field("name"),
+//	        "userEmail", userTask.Field("email"),
+//	        "postCount", postsTask.Field("total"),
+//	        "firstPost", postsTask.Field("items[0].title"),
+//	    )
+//	    
+//	    log.Printf("Created workflow with %d tasks", len(wf.Args.Tasks))
+//	    // Dependencies: userTask → postsTask → summaryTask (automatic!)
+//	    return nil
+//	})
 //	    
 //	    if err != nil {
 //	        log.Fatal(err)

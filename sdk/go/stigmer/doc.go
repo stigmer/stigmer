@@ -9,17 +9,12 @@
 // Create an agent with typed context:
 //
 //	err := stigmer.Run(func(ctx *stigmer.Context) error {
-//	    // Context for shared configuration
-//	    orgName := ctx.SetString("org", "my-org")
-//	    iconBase := ctx.SetString("iconBase", "https://cdn.example.com")
-//	    
-//	    // Create agent
-//	    ag, err := agent.New(ctx,
-//	        agent.WithName("code-reviewer"),
-//	        agent.WithInstructions("Review code and suggest improvements"),
-//	        agent.WithOrg(orgName),
-//	        agent.WithIconURL(iconBase.Concat("/reviewer.png")),
-//	    )
+//	    // Create agent with struct-based args
+//	    ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+//	        Instructions: "Review code and suggest improvements",
+//	        Description:  "AI code reviewer",
+//	        IconUrl:      "https://cdn.example.com/reviewer.png",
+//	    })
 //	    if err != nil {
 //	        return err
 //	    }
@@ -35,13 +30,11 @@
 //	err := stigmer.Run(func(ctx *stigmer.Context) error {
 //	    // Context ONLY for configuration (not workflow data flow)
 //	    apiBase := ctx.SetString("apiBase", "https://api.example.com")
-//	    orgName := ctx.SetString("org", "my-org")
 //	    
-//	    // Create workflow
-//	    wf, _ := workflow.New(ctx,
-//	        workflow.WithName("data-fetch"),
-//	        workflow.WithOrg(orgName),
-//	    )
+//	    // Create workflow with struct-based args
+//	    wf, _ := workflow.New(ctx, "data-processing/data-fetch", &workflow.WorkflowArgs{
+//	        Description: "Fetch and process data",
+//	    })
 //	    
 //	    // Task 1: HTTP GET (clean, one-liner!)
 //	    endpoint := apiBase.Concat("/posts/1")
@@ -128,11 +121,11 @@
 //
 //   - stigmer: Core orchestration and context management
 //   - workflow: Workflow builder with Pulumi-aligned task APIs
-//   - agent: Agent builder with typed context support
-//   - skill: Skill reference configuration
+//   - agent: Agent builder (includes SubAgent)
+//   - skill: Skill definitions (content artifacts)
 //   - mcpserver: MCP server definitions (stdio, HTTP, Docker)
-//   - subagent: Sub-agent configuration (inline and referenced)
-//   - environment: Environment variable configuration
+//   - environment: Environment resource (first-class API resource)
+//   - commons/ref: Resource reference factories
 //
 // # Design Patterns
 //

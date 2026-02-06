@@ -20,6 +20,51 @@ The Stigmer SDK uses **struct-based args** (Pulumi pattern) for all resource con
 
 ## Design Principles
 
+### 0. Unified Resource Pattern (Name/Slug/Org/Args)
+
+All SDK resources follow the **Name/Slug/Org/Args pattern** for consistency:
+
+```go
+// Every resource has these identity fields + Args
+type Resource struct {
+    Name string         // Identity field (required, user-provided)
+    Slug string         // URL-friendly identifier (auto-generated from Name)
+    Org  string         // Organization scope (optional metadata)
+    Args *ResourceArgs  // Single source of truth for configuration
+}
+
+// Constructor signature is consistent
+func New(ctx Context, name string, args *ResourceArgs) (*Resource, error)
+```
+
+**Resource Consistency Table**:
+
+| Resource | Constructor | Args Type | Notes |
+|----------|-------------|-----------|-------|
+| Agent | `agent.New(ctx, name, &AgentArgs{})` | AgentArgs | Includes SubAgents in Args |
+| Workflow | `workflow.New(ctx, name, &WorkflowArgs{})` | WorkflowArgs | Name can be "namespace/name" |
+| Environment | `environment.New(ctx, name, &EnvironmentArgs{})` | EnvironmentArgs | First-class API resource |
+| MCPServer | `mcpserver.Stdio(ctx, name, &McpServerArgs{})` | McpServerArgs | Type-specific constructors |
+| Skill | `skill.FromDir(ctx, path, opts...)` | N/A | Content artifact (unique) |
+
+**Key Principles**:
+- ✅ Name is always the first parameter (after context)
+- ✅ Slug is auto-generated from Name (consistent naming.ToSlug() logic)
+- ✅ Args struct is the SINGLE source of truth (no duplicate fields)
+- ✅ Builder methods modify Args directly (not separate fields)
+- ✅ All resources registered with Context for synthesis
+
+**Example - Agent**:
+```go
+ag, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+    Instructions: "Review code carefully",
+    Description:  "AI code reviewer",
+})
+// ag.Name = "code-reviewer"
+// ag.Slug = "code-reviewer" (auto-generated)
+// ag.Args contains all configuration
+```
+
 ### 1. Name as First Parameter
 
 All resources accept their name as the first parameter, not as an option:

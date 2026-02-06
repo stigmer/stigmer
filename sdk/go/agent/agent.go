@@ -154,50 +154,6 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 }
 
 // ============================================================================
-// Accessor Methods - Read from Args (single source of truth)
-// ============================================================================
-
-// Instructions returns the agent's instructions from Args.
-func (a *Agent) Instructions() string {
-	if a.Args == nil {
-		return ""
-	}
-	return a.Args.Instructions
-}
-
-// Description returns the agent's description from Args.
-func (a *Agent) Description() string {
-	if a.Args == nil {
-		return ""
-	}
-	return a.Args.Description
-}
-
-// IconURL returns the agent's icon URL from Args.
-func (a *Agent) IconURL() string {
-	if a.Args == nil {
-		return ""
-	}
-	return a.Args.IconUrl
-}
-
-// SkillRefs returns the agent's skill references from Args.
-func (a *Agent) SkillRefs() []*apiresource.ApiResourceReference {
-	if a.Args == nil {
-		return nil
-	}
-	return a.Args.SkillRefs
-}
-
-// McpServerUsages returns the agent's MCP server usages from Args.
-func (a *Agent) McpServerUsages() []*agentv1.McpServerUsage {
-	if a.Args == nil {
-		return nil
-	}
-	return a.Args.McpServerUsages
-}
-
-// ============================================================================
 // Builder Methods - Modify Args (single source of truth)
 // ============================================================================
 

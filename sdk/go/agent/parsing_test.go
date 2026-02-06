@@ -113,11 +113,11 @@ func TestAddSkill(t *testing.T) {
 				t.Error("AddSkill should return the same agent for chaining")
 			}
 
-			if len(agent.SkillRefs()) != 1 {
-				t.Fatalf("expected 1 skill ref, got %d", len(agent.SkillRefs()))
+			if len(agent.Args.SkillRefs) != 1 {
+				t.Fatalf("expected 1 skill ref, got %d", len(agent.Args.SkillRefs))
 			}
 
-			ref := agent.SkillRefs()[0]
+			ref := agent.Args.SkillRefs[0]
 			if ref.Org != tt.wantOrg {
 				t.Errorf("Org = %q, want %q", ref.Org, tt.wantOrg)
 			}
@@ -250,11 +250,11 @@ func TestTryAddSkill(t *testing.T) {
 				t.Error("TryAddSkill should return the same agent")
 			}
 
-			if len(agent.SkillRefs()) != 1 {
-				t.Fatalf("expected 1 skill ref, got %d", len(agent.SkillRefs()))
+			if len(agent.Args.SkillRefs) != 1 {
+				t.Fatalf("expected 1 skill ref, got %d", len(agent.Args.SkillRefs))
 			}
 
-			ref := agent.SkillRefs()[0]
+			ref := agent.Args.SkillRefs[0]
 			if ref.Org != tt.wantOrg {
 				t.Errorf("Org = %q, want %q", ref.Org, tt.wantOrg)
 			}
@@ -321,8 +321,8 @@ func TestTryAddSkillErrors(t *testing.T) {
 			}
 
 			// Verify agent was not modified
-			if len(agent.SkillRefs()) != 0 {
-				t.Errorf("expected 0 skill refs after error, got %d", len(agent.SkillRefs()))
+			if len(agent.Args.SkillRefs) != 0 {
+				t.Errorf("expected 0 skill refs after error, got %d", len(agent.Args.SkillRefs))
 			}
 		})
 	}
@@ -347,26 +347,26 @@ func TestAddSkills(t *testing.T) {
 			t.Error("AddSkills should return the same agent")
 		}
 
-		if len(agent.SkillRefs()) != 3 {
-			t.Fatalf("expected 3 skill refs, got %d", len(agent.SkillRefs()))
+		if len(agent.Args.SkillRefs) != 3 {
+			t.Fatalf("expected 3 skill refs, got %d", len(agent.Args.SkillRefs))
 		}
 
 		// Verify first ref
-		if agent.SkillRefs()[0].Org != "my-org" || agent.SkillRefs()[0].Slug != "web-search" {
+		if agent.Args.SkillRefs[0].Org != "my-org" || agent.Args.SkillRefs[0].Slug != "web-search" {
 			t.Errorf("first ref = %s/%s, want my-org/web-search",
-				agent.SkillRefs()[0].Org, agent.SkillRefs()[0].Slug)
+				agent.Args.SkillRefs[0].Org, agent.Args.SkillRefs[0].Slug)
 		}
 
 		// Verify second ref
-		if agent.SkillRefs()[1].Org != "stigmer" || agent.SkillRefs()[1].Slug != "code-review" {
+		if agent.Args.SkillRefs[1].Org != "stigmer" || agent.Args.SkillRefs[1].Slug != "code-review" {
 			t.Errorf("second ref = %s/%s, want stigmer/code-review",
-				agent.SkillRefs()[1].Org, agent.SkillRefs()[1].Slug)
+				agent.Args.SkillRefs[1].Org, agent.Args.SkillRefs[1].Slug)
 		}
 
 		// Verify third ref with version
-		if agent.SkillRefs()[2].Org != "stigmer" || agent.SkillRefs()[2].Slug != "security" || agent.SkillRefs()[2].Version != "v2.0" {
+		if agent.Args.SkillRefs[2].Org != "stigmer" || agent.Args.SkillRefs[2].Slug != "security" || agent.Args.SkillRefs[2].Version != "v2.0" {
 			t.Errorf("third ref = %s/%s@%s, want stigmer/security@v2.0",
-				agent.SkillRefs()[2].Org, agent.SkillRefs()[2].Slug, agent.SkillRefs()[2].Version)
+				agent.Args.SkillRefs[2].Org, agent.Args.SkillRefs[2].Slug, agent.Args.SkillRefs[2].Version)
 		}
 	})
 
@@ -380,8 +380,8 @@ func TestAddSkills(t *testing.T) {
 			t.Error("AddSkills should return the same agent")
 		}
 
-		if len(agent.SkillRefs()) != 0 {
-			t.Errorf("expected 0 skill refs, got %d", len(agent.SkillRefs()))
+		if len(agent.Args.SkillRefs) != 0 {
+			t.Errorf("expected 0 skill refs, got %d", len(agent.Args.SkillRefs))
 		}
 	})
 
@@ -396,8 +396,8 @@ func TestAddSkills(t *testing.T) {
 			}
 
 			// Verify no refs were added (atomic operation)
-			if len(agent.SkillRefs()) != 0 {
-				t.Errorf("expected 0 skill refs after panic, got %d", len(agent.SkillRefs()))
+			if len(agent.Args.SkillRefs) != 0 {
+				t.Errorf("expected 0 skill refs after panic, got %d", len(agent.Args.SkillRefs))
 			}
 		}()
 
@@ -426,8 +426,8 @@ func TestTryAddSkills(t *testing.T) {
 			t.Error("TryAddSkills should return the same agent")
 		}
 
-		if len(agent.SkillRefs()) != 2 {
-			t.Fatalf("expected 2 skill refs, got %d", len(agent.SkillRefs()))
+		if len(agent.Args.SkillRefs) != 2 {
+			t.Fatalf("expected 2 skill refs, got %d", len(agent.Args.SkillRefs))
 		}
 	})
 
@@ -445,8 +445,8 @@ func TestTryAddSkills(t *testing.T) {
 		}
 
 		// Verify no refs were added (atomic operation)
-		if len(agent.SkillRefs()) != 0 {
-			t.Errorf("expected 0 skill refs after error, got %d", len(agent.SkillRefs()))
+		if len(agent.Args.SkillRefs) != 0 {
+			t.Errorf("expected 0 skill refs after error, got %d", len(agent.Args.SkillRefs))
 		}
 	})
 
@@ -527,11 +527,11 @@ func TestUseMCP(t *testing.T) {
 				t.Error("UseMCP should return the same agent for chaining")
 			}
 
-			if len(agent.McpServerUsages()) != 1 {
-				t.Fatalf("expected 1 mcp server usage, got %d", len(agent.McpServerUsages()))
+			if len(agent.Args.McpServerUsages) != 1 {
+				t.Fatalf("expected 1 mcp server usage, got %d", len(agent.Args.McpServerUsages))
 			}
 
-			usage := agent.McpServerUsages()[0]
+			usage := agent.Args.McpServerUsages[0]
 			if usage.McpServerRef.Org != tt.wantOrg {
 				t.Errorf("Org = %q, want %q", usage.McpServerRef.Org, tt.wantOrg)
 			}
@@ -631,8 +631,8 @@ func TestTryUseMCP(t *testing.T) {
 			t.Error("TryUseMCP should return the same agent")
 		}
 
-		if len(agent.McpServerUsages()) != 1 {
-			t.Fatalf("expected 1 mcp server usage, got %d", len(agent.McpServerUsages()))
+		if len(agent.Args.McpServerUsages) != 1 {
+			t.Fatalf("expected 1 mcp server usage, got %d", len(agent.Args.McpServerUsages))
 		}
 	})
 
@@ -649,8 +649,8 @@ func TestTryUseMCP(t *testing.T) {
 			t.Errorf("error = %v, want %v", err, ErrOrgRequired)
 		}
 
-		if len(agent.McpServerUsages()) != 0 {
-			t.Errorf("expected 0 usages after error, got %d", len(agent.McpServerUsages()))
+		if len(agent.Args.McpServerUsages) != 0 {
+			t.Errorf("expected 0 usages after error, got %d", len(agent.Args.McpServerUsages))
 		}
 	})
 }
@@ -671,32 +671,32 @@ func TestChaining(t *testing.T) {
 		UseMCP("github", "create_pr").
 		UseMCP("stigmer/slack", "send_message")
 
-	if len(agent.SkillRefs()) != 2 {
-		t.Errorf("expected 2 skill refs, got %d", len(agent.SkillRefs()))
+	if len(agent.Args.SkillRefs) != 2 {
+		t.Errorf("expected 2 skill refs, got %d", len(agent.Args.SkillRefs))
 	}
 
-	if len(agent.McpServerUsages()) != 2 {
-		t.Errorf("expected 2 mcp server usages, got %d", len(agent.McpServerUsages()))
+	if len(agent.Args.McpServerUsages) != 2 {
+		t.Errorf("expected 2 mcp server usages, got %d", len(agent.Args.McpServerUsages))
 	}
 
 	// Verify first skill
-	if agent.SkillRefs()[0].Org != "my-org" || agent.SkillRefs()[0].Slug != "web-search" {
+	if agent.Args.SkillRefs[0].Org != "my-org" || agent.Args.SkillRefs[0].Slug != "web-search" {
 		t.Errorf("first skill = %s/%s, want my-org/web-search",
-			agent.SkillRefs()[0].Org, agent.SkillRefs()[0].Slug)
+			agent.Args.SkillRefs[0].Org, agent.Args.SkillRefs[0].Slug)
 	}
 
 	// Verify second skill with version
-	if agent.SkillRefs()[1].Org != "stigmer" || agent.SkillRefs()[1].Slug != "code-review" || agent.SkillRefs()[1].Version != "v1.0" {
+	if agent.Args.SkillRefs[1].Org != "stigmer" || agent.Args.SkillRefs[1].Slug != "code-review" || agent.Args.SkillRefs[1].Version != "v1.0" {
 		t.Errorf("second skill = %s/%s@%s, want stigmer/code-review@v1.0",
-			agent.SkillRefs()[1].Org, agent.SkillRefs()[1].Slug, agent.SkillRefs()[1].Version)
+			agent.Args.SkillRefs[1].Org, agent.Args.SkillRefs[1].Slug, agent.Args.SkillRefs[1].Version)
 	}
 
 	// Verify first MCP server
-	if agent.McpServerUsages()[0].McpServerRef.Org != "my-org" ||
-		agent.McpServerUsages()[0].McpServerRef.Slug != "github" {
+	if agent.Args.McpServerUsages[0].McpServerRef.Org != "my-org" ||
+		agent.Args.McpServerUsages[0].McpServerRef.Slug != "github" {
 		t.Errorf("first mcp = %s/%s, want my-org/github",
-			agent.McpServerUsages()[0].McpServerRef.Org,
-			agent.McpServerUsages()[0].McpServerRef.Slug)
+			agent.Args.McpServerUsages[0].McpServerRef.Org,
+			agent.Args.McpServerUsages[0].McpServerRef.Slug)
 	}
 }
 
@@ -721,8 +721,8 @@ func TestAddSkillConcurrent(t *testing.T) {
 
 	wg.Wait()
 
-	if len(agent.SkillRefs()) != numGoroutines {
-		t.Errorf("expected %d skill refs, got %d", numGoroutines, len(agent.SkillRefs()))
+	if len(agent.Args.SkillRefs) != numGoroutines {
+		t.Errorf("expected %d skill refs, got %d", numGoroutines, len(agent.Args.SkillRefs))
 	}
 }
 
@@ -743,8 +743,8 @@ func TestUseMCPConcurrent(t *testing.T) {
 
 	wg.Wait()
 
-	if len(agent.McpServerUsages()) != numGoroutines {
-		t.Errorf("expected %d mcp usages, got %d", numGoroutines, len(agent.McpServerUsages()))
+	if len(agent.Args.McpServerUsages) != numGoroutines {
+		t.Errorf("expected %d mcp usages, got %d", numGoroutines, len(agent.Args.McpServerUsages))
 	}
 }
 
@@ -776,12 +776,12 @@ func TestMixedConcurrent(t *testing.T) {
 
 	wg.Wait()
 
-	if len(agent.SkillRefs()) != numGoroutines {
-		t.Errorf("expected %d skill refs, got %d", numGoroutines, len(agent.SkillRefs()))
+	if len(agent.Args.SkillRefs) != numGoroutines {
+		t.Errorf("expected %d skill refs, got %d", numGoroutines, len(agent.Args.SkillRefs))
 	}
 
-	if len(agent.McpServerUsages()) != numGoroutines {
-		t.Errorf("expected %d mcp usages, got %d", numGoroutines, len(agent.McpServerUsages()))
+	if len(agent.Args.McpServerUsages) != numGoroutines {
+		t.Errorf("expected %d mcp usages, got %d", numGoroutines, len(agent.Args.McpServerUsages))
 	}
 }
 
@@ -851,13 +851,13 @@ func TestIntegrationWithAgentNew(t *testing.T) {
 		UseMCP("stigmer/slack")
 
 	// Verify skills
-	if len(agent.SkillRefs()) != 4 {
-		t.Errorf("expected 4 skill refs, got %d", len(agent.SkillRefs()))
+	if len(agent.Args.SkillRefs) != 4 {
+		t.Errorf("expected 4 skill refs, got %d", len(agent.Args.SkillRefs))
 	}
 
 	// Verify MCP servers
-	if len(agent.McpServerUsages()) != 2 {
-		t.Errorf("expected 2 mcp usages, got %d", len(agent.McpServerUsages()))
+	if len(agent.Args.McpServerUsages) != 2 {
+		t.Errorf("expected 2 mcp usages, got %d", len(agent.Args.McpServerUsages))
 	}
 
 	// Verify specific refs
@@ -873,21 +873,21 @@ func TestIntegrationWithAgentNew(t *testing.T) {
 	}
 
 	for i, expected := range expectedSkills {
-		if agent.SkillRefs()[i].Org != expected.org {
-			t.Errorf("skill[%d].Org = %q, want %q", i, agent.SkillRefs()[i].Org, expected.org)
+		if agent.Args.SkillRefs[i].Org != expected.org {
+			t.Errorf("skill[%d].Org = %q, want %q", i, agent.Args.SkillRefs[i].Org, expected.org)
 		}
-		if agent.SkillRefs()[i].Slug != expected.slug {
-			t.Errorf("skill[%d].Slug = %q, want %q", i, agent.SkillRefs()[i].Slug, expected.slug)
+		if agent.Args.SkillRefs[i].Slug != expected.slug {
+			t.Errorf("skill[%d].Slug = %q, want %q", i, agent.Args.SkillRefs[i].Slug, expected.slug)
 		}
-		if agent.SkillRefs()[i].Version != expected.version {
-			t.Errorf("skill[%d].Version = %q, want %q", i, agent.SkillRefs()[i].Version, expected.version)
+		if agent.Args.SkillRefs[i].Version != expected.version {
+			t.Errorf("skill[%d].Version = %q, want %q", i, agent.Args.SkillRefs[i].Version, expected.version)
 		}
 	}
 
 	// Verify MCP server enabled tools
-	if len(agent.McpServerUsages()[0].EnabledTools) != 2 {
+	if len(agent.Args.McpServerUsages[0].EnabledTools) != 2 {
 		t.Errorf("expected 2 enabled tools for github, got %d",
-			len(agent.McpServerUsages()[0].EnabledTools))
+			len(agent.Args.McpServerUsages[0].EnabledTools))
 	}
 }
 
@@ -900,13 +900,13 @@ func TestKindIsCorrect(t *testing.T) {
 	agent.UseMCP("github")
 
 	// Verify skill kind
-	if agent.SkillRefs()[0].Kind != apiresourcekind.ApiResourceKind_skill {
-		t.Errorf("skill kind = %v, want skill", agent.SkillRefs()[0].Kind)
+	if agent.Args.SkillRefs[0].Kind != apiresourcekind.ApiResourceKind_skill {
+		t.Errorf("skill kind = %v, want skill", agent.Args.SkillRefs[0].Kind)
 	}
 
 	// Verify MCP server kind
-	if agent.McpServerUsages()[0].McpServerRef.Kind != apiresourcekind.ApiResourceKind_mcp_server {
+	if agent.Args.McpServerUsages[0].McpServerRef.Kind != apiresourcekind.ApiResourceKind_mcp_server {
 		t.Errorf("mcp server kind = %v, want mcp_server",
-			agent.McpServerUsages()[0].McpServerRef.Kind)
+			agent.Args.McpServerUsages[0].McpServerRef.Kind)
 	}
 }
