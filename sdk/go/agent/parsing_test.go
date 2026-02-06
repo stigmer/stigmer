@@ -103,7 +103,7 @@ func TestAddSkill(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			agent := &Agent{Org: tt.agentOrg}
+			agent := &Agent{Org: tt.agentOrg, Args: &AgentArgs{}}
 			agent.Args.SkillRefs = nil // Ensure clean slate
 
 			result := agent.AddSkill(tt.ref, tt.opts...)
@@ -175,7 +175,7 @@ func TestAddSkillPanics(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			agent := &Agent{Org: tt.agentOrg}
+			agent := &Agent{Org: tt.agentOrg, Args: &AgentArgs{}}
 
 			defer func() {
 				r := recover()
@@ -238,7 +238,7 @@ func TestTryAddSkill(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			agent := &Agent{Org: tt.agentOrg}
+			agent := &Agent{Org: tt.agentOrg, Args: &AgentArgs{}}
 			agent.Args.SkillRefs = nil
 
 			result, err := agent.TryAddSkill(tt.ref, tt.opts...)
@@ -303,7 +303,7 @@ func TestTryAddSkillErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			agent := &Agent{Org: tt.agentOrg}
+			agent := &Agent{Org: tt.agentOrg, Args: &AgentArgs{}}
 			agent.Args.SkillRefs = nil
 
 			_, err := agent.TryAddSkill(tt.ref)
@@ -334,7 +334,7 @@ func TestTryAddSkillErrors(t *testing.T) {
 
 func TestAddSkills(t *testing.T) {
 	t.Run("multiple valid refs", func(t *testing.T) {
-		agent := &Agent{Org: "my-org"}
+		agent := &Agent{Org: "my-org", Args: &AgentArgs{}}
 		agent.Args.SkillRefs = nil
 
 		result := agent.AddSkills(
@@ -371,7 +371,7 @@ func TestAddSkills(t *testing.T) {
 	})
 
 	t.Run("empty list is no-op", func(t *testing.T) {
-		agent := &Agent{Org: "my-org"}
+		agent := &Agent{Org: "my-org", Args: &AgentArgs{}}
 		agent.Args.SkillRefs = nil
 
 		result := agent.AddSkills()
@@ -386,7 +386,7 @@ func TestAddSkills(t *testing.T) {
 	})
 
 	t.Run("panics on first invalid ref", func(t *testing.T) {
-		agent := &Agent{Org: "my-org"}
+		agent := &Agent{Org: "my-org", Args: &AgentArgs{}}
 		agent.Args.SkillRefs = nil
 
 		defer func() {
@@ -411,7 +411,7 @@ func TestAddSkills(t *testing.T) {
 
 func TestTryAddSkills(t *testing.T) {
 	t.Run("multiple valid refs", func(t *testing.T) {
-		agent := &Agent{Org: "my-org"}
+		agent := &Agent{Org: "my-org", Args: &AgentArgs{}}
 		agent.Args.SkillRefs = nil
 
 		result, err := agent.TryAddSkills(
@@ -432,7 +432,7 @@ func TestTryAddSkills(t *testing.T) {
 	})
 
 	t.Run("error on invalid ref - atomic", func(t *testing.T) {
-		agent := &Agent{Org: "my-org"}
+		agent := &Agent{Org: "my-org", Args: &AgentArgs{}}
 		agent.Args.SkillRefs = nil
 
 		_, err := agent.TryAddSkills(
@@ -451,7 +451,7 @@ func TestTryAddSkills(t *testing.T) {
 	})
 
 	t.Run("empty list is no-op", func(t *testing.T) {
-		agent := &Agent{Org: "my-org"}
+		agent := &Agent{Org: "my-org", Args: &AgentArgs{}}
 		agent.Args.SkillRefs = nil
 
 		result, err := agent.TryAddSkills()
@@ -518,7 +518,7 @@ func TestUseMCP(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			agent := &Agent{Org: tt.agentOrg}
+			agent := &Agent{Org: tt.agentOrg, Args: &AgentArgs{}}
 			agent.Args.McpServerUsages = nil
 
 			result := agent.UseMCP(tt.ref, tt.enabledTools...)
@@ -594,7 +594,7 @@ func TestUseMCPPanics(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			agent := &Agent{Org: tt.agentOrg}
+			agent := &Agent{Org: tt.agentOrg, Args: &AgentArgs{}}
 
 			defer func() {
 				r := recover()
@@ -619,7 +619,7 @@ func TestUseMCPPanics(t *testing.T) {
 
 func TestTryUseMCP(t *testing.T) {
 	t.Run("valid ref", func(t *testing.T) {
-		agent := &Agent{Org: "my-org"}
+		agent := &Agent{Org: "my-org", Args: &AgentArgs{}}
 		agent.Args.McpServerUsages = nil
 
 		result, err := agent.TryUseMCP("github", "create_pr")
@@ -637,7 +637,7 @@ func TestTryUseMCP(t *testing.T) {
 	})
 
 	t.Run("error on invalid ref", func(t *testing.T) {
-		agent := &Agent{Org: ""}
+		agent := &Agent{Org: "", Args: &AgentArgs{}}
 		agent.Args.McpServerUsages = nil
 
 		_, err := agent.TryUseMCP("github")
@@ -660,7 +660,7 @@ func TestTryUseMCP(t *testing.T) {
 // ============================================================================
 
 func TestChaining(t *testing.T) {
-	agent := &Agent{Org: "my-org"}
+	agent := &Agent{Org: "my-org", Args: &AgentArgs{}}
 	agent.Args.SkillRefs = nil
 	agent.Args.McpServerUsages = nil
 
@@ -705,7 +705,7 @@ func TestChaining(t *testing.T) {
 // ============================================================================
 
 func TestAddSkillConcurrent(t *testing.T) {
-	agent := &Agent{Org: "my-org"}
+	agent := &Agent{Org: "my-org", Args: &AgentArgs{}}
 	agent.Args.SkillRefs = nil
 
 	var wg sync.WaitGroup
@@ -727,7 +727,7 @@ func TestAddSkillConcurrent(t *testing.T) {
 }
 
 func TestUseMCPConcurrent(t *testing.T) {
-	agent := &Agent{Org: "my-org"}
+	agent := &Agent{Org: "my-org", Args: &AgentArgs{}}
 	agent.Args.McpServerUsages = nil
 
 	var wg sync.WaitGroup
@@ -749,7 +749,7 @@ func TestUseMCPConcurrent(t *testing.T) {
 }
 
 func TestMixedConcurrent(t *testing.T) {
-	agent := &Agent{Org: "my-org"}
+	agent := &Agent{Org: "my-org", Args: &AgentArgs{}}
 	agent.Args.SkillRefs = nil
 	agent.Args.McpServerUsages = nil
 
@@ -892,7 +892,7 @@ func TestIntegrationWithAgentNew(t *testing.T) {
 }
 
 func TestKindIsCorrect(t *testing.T) {
-	agent := &Agent{Org: "my-org"}
+	agent := &Agent{Org: "my-org", Args: &AgentArgs{}}
 	agent.Args.SkillRefs = nil
 	agent.Args.McpServerUsages = nil
 

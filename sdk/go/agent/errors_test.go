@@ -273,88 +273,82 @@ func TestNew_ValidationErrors(t *testing.T) {
 			wantErr: true,
 			errType: ErrInvalidName,
 		},
+		// Note: Instructions, description, and iconURL validation has been moved to ToProto() time
+		// using protovalidate. These test cases verify that New() accepts these values
+		// (validation happens at ToProto() time, not New() time).
 		{
-			name:      "missing instructions",
+			name:      "missing instructions (validated at ToProto)",
 			agentName: "test-agent",
 			args:      &AgentArgs{},
-			wantErr:   true,
-			errType:   ErrInvalidInstructions,
+			wantErr:   false, // Validation happens at ToProto() time, not New()
 		},
 		{
-			name:      "empty instructions",
+			name:      "empty instructions (validated at ToProto)",
 			agentName: "test-agent",
 			args: &AgentArgs{
 				Instructions: "",
 			},
-			wantErr: true,
-			errType: ErrInvalidInstructions,
+			wantErr: false, // Validation happens at ToProto() time, not New()
 		},
 		{
-			name:      "instructions too short",
+			name:      "instructions too short (validated at ToProto)",
 			agentName: "test-agent",
 			args: &AgentArgs{
 				Instructions: "short", // less than 10 chars
 			},
-			wantErr: true,
-			errType: ErrInvalidInstructions,
+			wantErr: false, // Validation happens at ToProto() time, not New()
 		},
 		{
-			name:      "instructions too long",
+			name:      "instructions too long (validated at ToProto)",
 			agentName: "test-agent",
 			args: &AgentArgs{
 				Instructions: strings.Repeat("a", 10001), // over 10,000 chars
 			},
-			wantErr: true,
-			errType: ErrInvalidInstructions,
+			wantErr: false, // Validation happens at ToProto() time, not New()
 		},
 		{
-			name:      "instructions only whitespace",
+			name:      "instructions only whitespace (validated at ToProto)",
 			agentName: "test-agent",
 			args: &AgentArgs{
 				Instructions: "          ", // only spaces
 			},
-			wantErr: true,
-			errType: ErrInvalidInstructions,
+			wantErr: false, // Validation happens at ToProto() time, not New()
 		},
 		{
-			name:      "description too long",
+			name:      "description too long (validated at ToProto)",
 			agentName: "test-agent",
 			args: &AgentArgs{
 				Instructions: "Valid instructions for testing description length",
 				Description:  strings.Repeat("a", 501), // over 500 chars
 			},
-			wantErr: true,
-			errType: ErrInvalidDescription,
+			wantErr: false, // Validation happens at ToProto() time, not New()
 		},
 		{
-			name:      "invalid icon URL",
+			name:      "invalid icon URL (validated at ToProto)",
 			agentName: "test-agent",
 			args: &AgentArgs{
 				Instructions: "Valid instructions for testing invalid icon URL",
 				IconUrl:      "not-a-valid-url",
 			},
-			wantErr: true,
-			errType: ErrInvalidIconURL,
+			wantErr: false, // Validation happens at ToProto() time, not New()
 		},
 		{
-			name:      "invalid icon URL - missing scheme",
+			name:      "invalid icon URL - missing scheme (validated at ToProto)",
 			agentName: "test-agent",
 			args: &AgentArgs{
 				Instructions: "Valid instructions for testing icon URL missing scheme",
 				IconUrl:      "example.com/icon.png",
 			},
-			wantErr: true,
-			errType: ErrInvalidIconURL,
+			wantErr: false, // Validation happens at ToProto() time, not New()
 		},
 		{
-			name:      "invalid icon URL - wrong scheme",
+			name:      "invalid icon URL - wrong scheme (validated at ToProto)",
 			agentName: "test-agent",
 			args: &AgentArgs{
 				Instructions: "Valid instructions for testing icon URL with wrong scheme",
 				IconUrl:      "ftp://example.com/icon.png",
 			},
-			wantErr: true,
-			errType: ErrInvalidIconURL,
+			wantErr: false, // Validation happens at ToProto() time, not New()
 		},
 	}
 
@@ -589,25 +583,8 @@ func TestValidationError_ErrorMessage(t *testing.T) {
 			expectedInMsg:  []string{"name", "invalid"},
 			notExpectedMsg: []string{"instructions"},
 		},
-		{
-			name:      "instructions validation error",
-			agentName: "valid-agent",
-			args: &AgentArgs{
-				Instructions: "short",
-			},
-			expectedInMsg:  []string{"instructions"},
-			notExpectedMsg: []string{"name"},
-		},
-		{
-			name:      "description validation error",
-			agentName: "valid-agent",
-			args: &AgentArgs{
-				Instructions: "Valid instructions for testing description validation error message",
-				Description:  strings.Repeat("a", 501),
-			},
-			expectedInMsg:  []string{"description"},
-			notExpectedMsg: []string{"name", "instructions"},
-		},
+		// Note: Instructions and description validation has been moved to ToProto() time.
+		// These test cases are removed as they tested validation that no longer happens at New() time.
 	}
 
 	for _, tt := range tests {
