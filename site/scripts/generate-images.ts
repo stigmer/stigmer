@@ -60,23 +60,34 @@ const OG_IMAGE = {
 // ============================================================================
 
 /**
- * Extracts the embedded PNG from the logo.svg file.
- * The SVG contains a base64-encoded 1024x1024 PNG image.
+ * Loads the logo from the SVG file.
+ * Supports both embedded PNG (base64) and vector SVG formats.
+ * Returns a high-resolution PNG buffer for further processing.
  */
 async function extractLogoFromSvg(): Promise<Buffer> {
   const svgContent = await fs.readFile(LOGO_SVG_PATH, "utf-8");
 
-  // Extract base64 data from the xlink:href attribute
+  // Try to extract base64 PNG if embedded (legacy format)
   const base64Match = svgContent.match(
     /xlink:href="data:image\/png;base64,([^"]+)"/
   );
 
-  if (!base64Match || !base64Match[1]) {
-    throw new Error("Could not extract base64 PNG from logo.svg");
+  if (base64Match && base64Match[1]) {
+    const base64Data = base64Match[1];
+    return Buffer.from(base64Data, "base64");
   }
 
-  const base64Data = base64Match[1];
-  return Buffer.from(base64Data, "base64");
+  // For vector SVGs, render to a high-resolution PNG using sharp
+  // Use 1024x1024 as the base resolution for icon generation
+  const logoBuffer = await sharp(Buffer.from(svgContent))
+    .resize(1024, 1024, {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toBuffer();
+
+  return logoBuffer;
 }
 
 // ============================================================================
@@ -191,35 +202,34 @@ function createOgBackground(): Buffer {
  * Positioned below the logo in the OG image.
  */
 function createOgText(): Buffer {
-  const brandName = "Stigmer";
-  const tagline = "Agents as Microservices";
-  const valueProp =
-    "Build agents in YAML or Go. Deploy once. Call from everywhere via gRPC.";
+  const headline = "Build Agents. Skip the Infrastructure.";
+  const subheadline =
+    "We handle sandboxing, orchestration, and MCP security.";
+  const subheadline2 = "You write 5 lines of YAML. Your agent runs anywhere.";
 
   const svg = `
     <svg width="${OG_IMAGE.width}" height="${OG_IMAGE.height}" xmlns="http://www.w3.org/2000/svg">
-      <!-- Brand name -->
-      <text x="50%" y="340" 
+      <!-- Headline -->
+      <text x="50%" y="320" 
             font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-            font-size="72" font-weight="700" 
+            font-size="52" font-weight="700" 
             fill="${COLORS.white}" 
             text-anchor="middle"
-            letter-spacing="-1.5">${brandName}</text>
+            letter-spacing="-1">${headline}</text>
       
-      <!-- Tagline -->
-      <text x="50%" y="400" 
+      <!-- Subheadline line 1 -->
+      <text x="50%" y="390" 
             font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-            font-size="42" font-weight="500" 
-            fill="${COLORS.slate400}" 
-            text-anchor="middle"
-            letter-spacing="-0.5">${tagline}</text>
-      
-      <!-- Value proposition -->
-      <text x="50%" y="460" 
-            font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-            font-size="26" font-weight="400" 
+            font-size="28" font-weight="400" 
             fill="${COLORS.slate300}" 
-            text-anchor="middle">${valueProp}</text>
+            text-anchor="middle">${subheadline}</text>
+      
+      <!-- Subheadline line 2 -->
+      <text x="50%" y="430" 
+            font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+            font-size="28" font-weight="400" 
+            fill="${COLORS.slate300}" 
+            text-anchor="middle">${subheadline2}</text>
     </svg>
   `;
   return Buffer.from(svg);
@@ -230,9 +240,9 @@ function createOgText(): Buffer {
  */
 function createOgBadges(): Buffer {
   const badges = [
-    { text: "Open Source", color: COLORS.blue },
-    { text: "gRPC APIs", color: COLORS.purple },
-    { text: "YAML + SDK", color: COLORS.blue },
+    { text: "Local-First", color: COLORS.blue },
+    { text: "Open Source", color: COLORS.purple },
+    { text: "gRPC APIs", color: COLORS.blue },
   ];
 
   const badgeWidth = 160;
@@ -273,47 +283,22 @@ function createOgBadges(): Buffer {
 }
 
 /**
- * Creates a logo container with gradient background and rounded corners.
- * The logo is placed in a 140x140 container with drop shadow effect.
+ * Prepares the logo for the OG image.
+ * Resizes to the target size for display in the social preview.
  */
-async function createLogoContainer(logoBuffer: Buffer): Promise<Buffer> {
-  const containerSize = 140;
-  const borderRadius = 28;
+async function prepareLogoForOgImage(logoBuffer: Buffer): Promise<Buffer> {
+  const logoSize = 140;
 
-  // Create the container background with gradient
-  const containerBg = `
-    <svg width="${containerSize}" height="${containerSize}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="${COLORS.blue}"/>
-          <stop offset="100%" stop-color="${COLORS.purple}"/>
-        </linearGradient>
-      </defs>
-      <rect width="${containerSize}" height="${containerSize}" 
-            rx="${borderRadius}" ry="${borderRadius}" 
-            fill="url(#logoGrad)"/>
-    </svg>
-  `;
-
-  // Resize logo to fit inside container with padding
-  const logoSize = containerSize - 20; // 10px padding on each side
+  // Resize logo to target size
   const resizedLogo = await sharp(logoBuffer)
-    .resize(logoSize, logoSize, { fit: "contain" })
-    .toBuffer();
-
-  // Composite logo onto container
-  const container = await sharp(Buffer.from(containerBg))
-    .composite([
-      {
-        input: resizedLogo,
-        left: 10,
-        top: 10,
-      },
-    ])
+    .resize(logoSize, logoSize, {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
     .png()
     .toBuffer();
 
-  return container;
+  return resizedLogo;
 }
 
 /**
@@ -322,8 +307,8 @@ async function createLogoContainer(logoBuffer: Buffer): Promise<Buffer> {
 async function generateOgImage(logoBuffer: Buffer): Promise<void> {
   console.log("\n🖼️  Generating OG image...");
 
-  // Create the logo container
-  const logoContainer = await createLogoContainer(logoBuffer);
+  // Prepare the logo (resized, no extra container since logo has its own background)
+  const logo = await prepareLogoForOgImage(logoBuffer);
 
   // Start with background
   const background = await sharp(createOgBackground()).png().toBuffer();
@@ -331,9 +316,9 @@ async function generateOgImage(logoBuffer: Buffer): Promise<void> {
   // Composite all layers and write to file
   await sharp(background)
     .composite([
-      // Logo container (centered horizontally, positioned above text)
+      // Logo (centered horizontally, positioned above text)
       {
-        input: logoContainer,
+        input: logo,
         left: Math.round((OG_IMAGE.width - 140) / 2),
         top: 120,
       },
@@ -367,10 +352,10 @@ async function main(): Promise<void> {
   console.log("===================================");
 
   try {
-    // Extract logo from SVG
-    console.log("\n📂 Extracting logo from SVG...");
+    // Load logo from SVG
+    console.log("\n📂 Loading logo from SVG...");
     const logoBuffer = await extractLogoFromSvg();
-    console.log("  ✓ Logo extracted (1024x1024 PNG)");
+    console.log("  ✓ Logo loaded (1024x1024 PNG)");
 
     // Generate all icons
     await generateAllIcons(logoBuffer);
