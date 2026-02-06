@@ -205,21 +205,16 @@ func TestAddSubAgent(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	helper, err := NewSubAgent("helper", &SubAgentArgs{
-		Instructions: "Helper instructions",
-	})
-	if err != nil {
-		t.Fatalf("Failed to create sub-agent: %v", err)
-	}
+	helper := NewSubAgent("helper", "Helper instructions")
 
 	// Add sub-agent using builder method
 	agent.AddSubAgent(helper)
 
-	if len(agent.SubAgents) != 1 {
-		t.Errorf("SubAgents count = %d, want 1", len(agent.SubAgents))
+	if len(agent.Args.SubAgents) != 1 {
+		t.Errorf("Args.SubAgents count = %d, want 1", len(agent.Args.SubAgents))
 	}
-	if agent.SubAgents[0].Name() != "helper" {
-		t.Errorf("SubAgent name = %q, want %q", agent.SubAgents[0].Name(), "helper")
+	if agent.Args.SubAgents[0].Name != "helper" {
+		t.Errorf("SubAgent name = %q, want %q", agent.Args.SubAgents[0].Name, "helper")
 	}
 }
 
@@ -235,19 +230,14 @@ func TestAddSubAgents(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	helper1, _ := NewSubAgent("helper1", &SubAgentArgs{
-		Instructions: "Helper 1 instructions",
-	})
-
-	helper2, _ := NewSubAgent("helper2", &SubAgentArgs{
-		Instructions: "Helper 2 instructions",
-	})
+	helper1 := NewSubAgent("helper1", "Helper 1 instructions")
+	helper2 := NewSubAgent("helper2", "Helper 2 instructions")
 
 	// Add multiple sub-agents using builder method
 	agent.AddSubAgents(helper1, helper2)
 
-	if len(agent.SubAgents) != 2 {
-		t.Errorf("SubAgents count = %d, want 2", len(agent.SubAgents))
+	if len(agent.Args.SubAgents) != 2 {
+		t.Errorf("Args.SubAgents count = %d, want 2", len(agent.Args.SubAgents))
 	}
 }
 
@@ -263,21 +253,16 @@ func TestAddSubAgent_Chaining(t *testing.T) {
 		t.Fatalf("New() error = %v", err)
 	}
 
-	helper1, _ := NewSubAgent("helper1", &SubAgentArgs{
-		Instructions: "Helper 1 instructions",
-	})
-
-	helper2, _ := NewSubAgent("helper2", &SubAgentArgs{
-		Instructions: "Helper 2 instructions",
-	})
+	helper1 := NewSubAgent("helper1", "Helper 1 instructions")
+	helper2 := NewSubAgent("helper2", "Helper 2 instructions")
 
 	// Chain multiple AddSubAgent calls
 	agent.
 		AddSubAgent(helper1).
 		AddSubAgent(helper2)
 
-	if len(agent.SubAgents) != 2 {
-		t.Errorf("SubAgents count = %d, want 2", len(agent.SubAgents))
+	if len(agent.Args.SubAgents) != 2 {
+		t.Errorf("Args.SubAgents count = %d, want 2", len(agent.Args.SubAgents))
 	}
 }
 
@@ -360,10 +345,9 @@ func TestRequireEnvVar_Chaining(t *testing.T) {
 }
 
 func TestBuilder_ComplexChaining(t *testing.T) {
-	helper, _ := NewSubAgent("helper", &SubAgentArgs{
-		Instructions: "Helper instructions",
-	})
-	helper.GrantMcpAccess("github", "search_code")
+	helper := BuildSubAgent("helper", "Helper instructions").
+		GrantMcpAccess("github", "search_code").
+		Build()
 
 	agent, err := New(
 		nil, // No context needed for builder tests
@@ -391,8 +375,8 @@ func TestBuilder_ComplexChaining(t *testing.T) {
 	if len(agent.McpServerUsages()) != 1 {
 		t.Errorf("McpServerUsages count = %d, want 1", len(agent.McpServerUsages()))
 	}
-	if len(agent.SubAgents) != 1 {
-		t.Errorf("SubAgents count = %d, want 1", len(agent.SubAgents))
+	if len(agent.Args.SubAgents) != 1 {
+		t.Errorf("Args.SubAgents count = %d, want 1", len(agent.Args.SubAgents))
 	}
 	if len(agent.Args.EnvSpec.Data) != 1 {
 		t.Errorf("EnvSpec.Data count = %d, want 1", len(agent.Args.EnvSpec.Data))

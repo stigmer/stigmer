@@ -57,12 +57,8 @@ type Agent struct {
 	// This is the SINGLE SOURCE OF TRUTH for configuration.
 	// Uses COMPOSITION pattern - we embed the generated Args struct
 	// rather than duplicating its fields.
+	// SubAgents are stored in Args.SubAgents - NOT as a separate field.
 	Args *AgentArgs
-
-	// SubAgents are sub-agents that can be delegated to (inline or referenced).
-	// SubAgents are value objects within the Agent aggregate - they cannot exist independently.
-	// Converted to proto in ToProto.
-	SubAgents []SubAgent
 
 	// Context reference (optional, used for typed variable management)
 	ctx Context
@@ -122,10 +118,9 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 
 	// Create Agent with Args as single source of truth
 	a := &Agent{
-		Name:      name,
-		Args:      args,
-		ctx:       ctx,
-		SubAgents: []SubAgent{},
+		Name: name,
+		Args: args,
+		ctx:  ctx,
 	}
 
 	// Auto-generate slug from name if not provided
@@ -620,35 +615,52 @@ func (a *Agent) TryUseMCP(ref string, enabledTools ...string) (*Agent, error) {
 }
 
 // ============================================================================
-// SubAgent and Environment Methods
+// SubAgent Methods
 // ============================================================================
 
-// AddSubAgent adds a sub-agent to the agent after creation.
+// AddSubAgent adds a sub-agent to Args.SubAgents (single source of truth).
 // This method is thread-safe and can be called concurrently.
+//
+// Use NewSubAgent() or BuildSubAgent() to create sub-agents ergonomically.
 //
 // Example:
 //
-//	helper, _ := agent.NewSubAgent("security", &agent.SubAgentArgs{Instructions: "Check security"})
-//	helper.GrantMcpAccess("github", "search_code")
-//	ag.AddSubAgent(helper)
-func (a *Agent) AddSubAgent(sub SubAgent) *Agent {
+//	sub := agent.BuildSubAgent("security", "Check code for security issues").
+//	    GrantMcpAccess("github", "search_code").
+//	    Build()
+//	ag.AddSubAgent(sub)
+//
+//	// Or directly with proto type:
+//	ag.AddSubAgent(&agentv1.SubAgent{
+//	    Name:         "security",
+//	    Instructions: "Check code for security issues",
+//	})
+func (a *Agent) AddSubAgent(sub *agentv1.SubAgent) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SubAgents = append(a.SubAgents, sub)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SubAgents = append(a.Args.SubAgents, sub)
 	return a
 }
 
-// AddSubAgents adds multiple sub-agents to the agent after creation.
+// AddSubAgents adds multiple sub-agents to Args.SubAgents (single source of truth).
 // This method is thread-safe and can be called concurrently.
 //
 // Example:
 //
-//	ag, _ := agent.New(ctx, "reviewer", &agent.AgentArgs{Instructions: "Review code"})
-//	ag.AddSubAgents(sub1, sub2)
-func (a *Agent) AddSubAgents(subs ...SubAgent) *Agent {
+//	ag.AddSubAgents(
+//	    agent.NewSubAgent("analyzer", "Analyze code"),
+//	    agent.NewSubAgent("reviewer", "Review changes"),
+//	)
+func (a *Agent) AddSubAgents(subs ...*agentv1.SubAgent) *Agent {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.SubAgents = append(a.SubAgents, subs...)
+	if a.Args == nil {
+		a.Args = &AgentArgs{}
+	}
+	a.Args.SubAgents = append(a.Args.SubAgents, subs...)
 	return a
 }
 
