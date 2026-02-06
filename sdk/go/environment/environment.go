@@ -5,7 +5,7 @@ import (
 
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	genEnv "github.com/stigmer/stigmer/sdk/go/gen/environment"
-	"github.com/stigmer/stigmer/sdk/go/context/naming"
+	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
 )
 
 // EnvironmentArgs is an alias for the generated EnvironmentArgs from gen/environment.

@@ -5,7 +5,7 @@
 //
 // # Basic Usage
 //
-//	import "github.com/stigmer/stigmer/sdk/go/context"
+//	import "github.com/stigmer/stigmer/sdk/go/stigmer"
 //	import "github.com/stigmer/stigmer/sdk/go/agent"
 //
 //	func main() {

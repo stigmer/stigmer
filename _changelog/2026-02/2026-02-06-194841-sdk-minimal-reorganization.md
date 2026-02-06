@@ -81,7 +81,7 @@ import "github.com/stigmer/stigmer/sdk/go/commons/ref"
 import "github.com/stigmer/stigmer/sdk/go/templates"
 
 // After  
-import "github.com/stigmer/stigmer/sdk/go/context"
+import "github.com/stigmer/stigmer/sdk/go/stigmer"
 import "github.com/stigmer/stigmer/sdk/go/ref"
 import "github.com/stigmer/stigmer/sdk/go/internal/templates"
 ```
@@ -152,7 +152,7 @@ Usage code remains unchanged since package name `stigmer` is preserved.
 Example - code works identically:
 ```go
 // Only import changed, usage identical
-import "github.com/stigmer/stigmer/sdk/go/context"
+import "github.com/stigmer/stigmer/sdk/go/stigmer"
 
 stigmer.Run(func(ctx *stigmer.Context) error {
     // ... same code as before

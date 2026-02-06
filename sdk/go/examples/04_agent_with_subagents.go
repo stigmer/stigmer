@@ -22,7 +22,7 @@ import (
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
 	"github.com/stigmer/stigmer/sdk/go/ref"
-	"github.com/stigmer/stigmer/sdk/go/context"
+	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
 
 func main() {

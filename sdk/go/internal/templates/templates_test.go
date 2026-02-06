@@ -19,7 +19,7 @@ func TestBasicAgent(t *testing.T) {
 	verifyValidGoCode(t, "BasicAgent", code)
 	verifyContainsImports(t, "BasicAgent", code, []string{
 		"github.com/stigmer/stigmer/sdk/go/agent",
-		"github.com/stigmer/stigmer/sdk/go/context",
+		"github.com/stigmer/stigmer/sdk/go/stigmer",
 	})
 	verifyContainsFunction(t, "BasicAgent", code, "agent.New")
 	verifyContainsFunction(t, "BasicAgent", code, "stigmer.Run")
@@ -30,7 +30,7 @@ func TestBasicWorkflow(t *testing.T) {
 	code := templates.BasicWorkflow()
 	verifyValidGoCode(t, "BasicWorkflow", code)
 	verifyContainsImports(t, "BasicWorkflow", code, []string{
-		"github.com/stigmer/stigmer/sdk/go/context",
+		"github.com/stigmer/stigmer/sdk/go/stigmer",
 		"github.com/stigmer/stigmer/sdk/go/workflow",
 	})
 	verifyContainsFunction(t, "BasicWorkflow", code, "workflow.New(ctx,")
@@ -44,7 +44,7 @@ func TestAgentAndWorkflow(t *testing.T) {
 	verifyValidGoCode(t, "AgentAndWorkflow", code)
 	verifyContainsImports(t, "AgentAndWorkflow", code, []string{
 		"github.com/stigmer/stigmer/sdk/go/agent",
-		"github.com/stigmer/stigmer/sdk/go/context",
+		"github.com/stigmer/stigmer/sdk/go/stigmer",
 		"github.com/stigmer/stigmer/sdk/go/workflow",
 	})
 	verifyContainsFunction(t, "AgentAndWorkflow", code, "agent.New")

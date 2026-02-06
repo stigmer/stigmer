@@ -19,7 +19,7 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/context"
+	"github.com/stigmer/stigmer/sdk/go/stigmer"
 )
 
 func main() {
@@ -70,7 +70,7 @@ func BasicWorkflow() string {
 import (
 	"log"
 
-	"github.com/stigmer/stigmer/sdk/go/context"
+	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -138,7 +138,7 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/context"
+	"github.com/stigmer/stigmer/sdk/go/stigmer"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )

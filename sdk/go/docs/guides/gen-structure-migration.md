@@ -125,7 +125,7 @@ import "github.com/stigmer/stigmer/sdk/go/workflow"      // ✅ Same
 import "github.com/stigmer/stigmer/sdk/go/agent"         // ✅ Same
 import "github.com/stigmer/stigmer/sdk/go/skillref"      // ✅ For skill references
 import "github.com/stigmer/stigmer/sdk/go/mcpserverref"  // ✅ For MCP server references
-import "github.com/stigmer/stigmer/sdk/go/context"       // ✅ Same
+import "github.com/stigmer/stigmer/sdk/go/stigmer"       // ✅ Same
 ```
 
 **Only generated types changed:**
@@ -158,7 +158,7 @@ import "github.com/stigmer/stigmer/sdk/go/gen/types"  // ✅ New
 **Before (v0.2.0)**:
 ```go
 import (
-    "github.com/stigmer/stigmer/sdk/go/context"
+    "github.com/stigmer/stigmer/sdk/go/stigmer"
     "github.com/stigmer/stigmer/sdk/go/types"       // Old import
     "github.com/stigmer/stigmer/sdk/go/workflow"
 )
@@ -179,7 +179,7 @@ func main() {
 **After (v0.3.0)**:
 ```go
 import (
-    "github.com/stigmer/stigmer/sdk/go/context"
+    "github.com/stigmer/stigmer/sdk/go/stigmer"
     "github.com/stigmer/stigmer/sdk/go/gen/types"  // New import!
     "github.com/stigmer/stigmer/sdk/go/workflow"
 )
