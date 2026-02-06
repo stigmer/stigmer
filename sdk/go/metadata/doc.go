@@ -19,7 +19,7 @@
 // Resource packages (agent, workflow, mcpserver, etc.) import this package
 // and call SDKAnnotations() in their ToProto() methods:
 //
-//	import "github.com/stigmer/stigmer/sdk/go/commons/metadata"
+//	import "github.com/stigmer/stigmer/sdk/go/metadata"
 //
 //	func (a *Agent) ToProto() (*agentv1.Agent, error) {
 //	    return &agentv1.Agent{

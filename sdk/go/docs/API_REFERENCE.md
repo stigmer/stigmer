@@ -22,7 +22,7 @@ Complete API reference for the Stigmer Go SDK using struct-based args (Pulumi pa
 
 ## Package: stigmer
 
-**Import**: `github.com/stigmer/stigmer/sdk/go/stigmer`
+**Import**: `github.com/stigmer/stigmer/sdk/go/context`
 
 Core package for resource management and synthesis.
 

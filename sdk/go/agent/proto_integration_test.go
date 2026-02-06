@@ -3,7 +3,7 @@ package agent
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/commons/metadata"
+	"github.com/stigmer/stigmer/sdk/go/metadata"
 )
 
 // TestAgentToProto_Complete tests full agent with all optional fields.

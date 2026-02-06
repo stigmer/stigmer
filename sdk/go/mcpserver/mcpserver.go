@@ -7,7 +7,7 @@ import (
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 
 	genMcpServer "github.com/stigmer/stigmer/sdk/go/gen/mcpserver"
-	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
+	"github.com/stigmer/stigmer/sdk/go/context/naming"
 )
 
 // McpServerArgs is an alias for the generated McpServerArgs from gen/mcpserver.

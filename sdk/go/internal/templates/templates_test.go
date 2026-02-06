@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/templates"
+	"github.com/stigmer/stigmer/sdk/go/internal/templates"
 )
 
 // TestBasicAgent verifies the BasicAgent template is valid Go code.
@@ -19,7 +19,7 @@ func TestBasicAgent(t *testing.T) {
 	verifyValidGoCode(t, "BasicAgent", code)
 	verifyContainsImports(t, "BasicAgent", code, []string{
 		"github.com/stigmer/stigmer/sdk/go/agent",
-		"github.com/stigmer/stigmer/sdk/go/stigmer",
+		"github.com/stigmer/stigmer/sdk/go/context",
 	})
 	verifyContainsFunction(t, "BasicAgent", code, "agent.New")
 	verifyContainsFunction(t, "BasicAgent", code, "stigmer.Run")
@@ -30,11 +30,12 @@ func TestBasicWorkflow(t *testing.T) {
 	code := templates.BasicWorkflow()
 	verifyValidGoCode(t, "BasicWorkflow", code)
 	verifyContainsImports(t, "BasicWorkflow", code, []string{
-		"github.com/stigmer/stigmer/sdk/go/stigmer",
+		"github.com/stigmer/stigmer/sdk/go/context",
 		"github.com/stigmer/stigmer/sdk/go/workflow",
 	})
-	verifyContainsFunction(t, "BasicWorkflow", code, "workflow.New")
+	verifyContainsFunction(t, "BasicWorkflow", code, "workflow.New(ctx,")
 	verifyContainsFunction(t, "BasicWorkflow", code, "stigmer.Run")
+	verifyContainsFunction(t, "BasicWorkflow", code, "&workflow.WorkflowArgs{")
 }
 
 // TestAgentAndWorkflow verifies the combined template is valid Go code.
@@ -43,7 +44,7 @@ func TestAgentAndWorkflow(t *testing.T) {
 	verifyValidGoCode(t, "AgentAndWorkflow", code)
 	verifyContainsImports(t, "AgentAndWorkflow", code, []string{
 		"github.com/stigmer/stigmer/sdk/go/agent",
-		"github.com/stigmer/stigmer/sdk/go/stigmer",
+		"github.com/stigmer/stigmer/sdk/go/context",
 		"github.com/stigmer/stigmer/sdk/go/workflow",
 	})
 	verifyContainsFunction(t, "AgentAndWorkflow", code, "agent.New")
@@ -83,14 +84,14 @@ func TestTemplatesCompile(t *testing.T) {
 			}
 
 			// Initialize go.mod
-			// Note: Replace path assumes tests run from templates/ directory
-			// From templates/, we need to go up one level to reach sdk/go/
-			sdkRootPath, err := filepath.Abs("..")
+			// Note: Replace path assumes tests run from internal/templates/ directory
+			// From internal/templates/, we need to go up two levels to reach sdk/go/
+			sdkRootPath, err := filepath.Abs("../..")
 			if err != nil {
 				t.Fatalf("failed to get SDK root path: %v", err)
 			}
 			// Also need to replace apis/stubs/go which is a dependency of the SDK
-			apisStubsPath, err := filepath.Abs("../../../apis/stubs/go")
+			apisStubsPath, err := filepath.Abs("../../../../apis/stubs/go")
 			if err != nil {
 				t.Fatalf("failed to get apis/stubs/go path: %v", err)
 			}
@@ -173,6 +174,7 @@ func TestCorrectAPIs(t *testing.T) {
 			requiredAPIs: []string{
 				"agent.New(ctx,",
 				"stigmer.Run(",
+				"&agent.AgentArgs{",
 			},
 		},
 		{
@@ -181,6 +183,8 @@ func TestCorrectAPIs(t *testing.T) {
 			requiredAPIs: []string{
 				"workflow.New(ctx,",
 				"stigmer.Run(",
+				"&workflow.WorkflowArgs{",
+				"&workflow.SetArgs{",
 			},
 		},
 		{
@@ -193,7 +197,7 @@ func TestCorrectAPIs(t *testing.T) {
 				"CallAgent(",               // Verify agent call feature is demonstrated
 				"&workflow.AgentCallArgs{", // Verify new Args-based API
 				"reviewer.Name",            // Verify agent reference using name
-				// Note: ctx.SetString() removed - this template demonstrates zero-config approach
+				"&workflow.WorkflowArgs{",  // Verify struct-based workflow args
 			},
 		},
 	}

@@ -111,7 +111,7 @@ func (b *SubAgentBuilder) GrantMcpAccess(mcpServer string, enabledTools ...strin
 //
 // Example:
 //
-//	import "github.com/stigmer/stigmer/sdk/go/commons/ref"
+//	import "github.com/stigmer/stigmer/sdk/go/ref"
 //
 //	builder.AddSkillRef(ref.Skill("stigmer", "code-review"))
 func (b *SubAgentBuilder) AddSkillRef(ref *apiresource.ApiResourceReference) *SubAgentBuilder {

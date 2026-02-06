@@ -19,7 +19,7 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/stigmer"
+	"github.com/stigmer/stigmer/sdk/go/context"
 )
 
 func main() {
@@ -43,7 +43,7 @@ Examples:
 
 		log.Println("✅ Created joke-telling agent:")
 		log.Printf("   Name: %s\n", jokeAgent.Name)
-		log.Printf("   Description: %s\n", jokeAgent.Description)
+		log.Printf("   Description: %s\n", jokeAgent.Args.Description)
 		log.Println("\n🚀 Agent created successfully!")
 		log.Println("   Deploy with: stigmer apply")
 
@@ -70,7 +70,7 @@ func BasicWorkflow() string {
 import (
 	"log"
 
-	"github.com/stigmer/stigmer/sdk/go/stigmer"
+	"github.com/stigmer/stigmer/sdk/go/context"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
 
@@ -80,13 +80,10 @@ func main() {
 		// Use context for shared configuration (Pulumi-aligned pattern)
 		apiBase := ctx.SetString("apiBase", "https://jsonplaceholder.typicode.com")
 
-		// Create workflow with context
-		wf, err := workflow.New(ctx,
-			workflow.WithNamespace("demo"),
-			workflow.WithName("basic-data-fetch"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("A simple workflow that fetches data from an API"),
-		)
+		// Create workflow with struct-based args (Pulumi pattern)
+		wf, err := workflow.New(ctx, "demo/basic-data-fetch", &workflow.WorkflowArgs{
+			Description: "A simple workflow that fetches data from an API",
+		})
 		if err != nil {
 			return err
 		}
@@ -102,7 +99,7 @@ func main() {
 
 		// Task 2: Process response using direct task references
 		// Dependencies are automatic through field references!
-		processTask := wf.Set("processResponse", &workflow.SetArgs{
+		_ = wf.Set("processResponse", &workflow.SetArgs{
 			Variables: map[string]string{
 				"postTitle": fetchTask.Field("title").Expression(),
 				"postBody":  fetchTask.Field("body").Expression(),
@@ -111,11 +108,8 @@ func main() {
 		})
 
 		log.Println("✅ Created data-fetching workflow:")
-		log.Printf("   Name: %s\n", wf.Document.Name)
-		log.Printf("   Description: %s\n", wf.Description)
-		log.Printf("   Tasks: %d\n", len(wf.Tasks))
-		log.Printf("     - %s (HTTP GET)\n", fetchTask.Name)
-		log.Printf("     - %s (depends on %s implicitly)\n", processTask.Name, fetchTask.Name)
+		log.Printf("   Name: %s\n", wf.Name)
+		log.Printf("   Tasks: %d\n", len(wf.Args.Tasks))
 		log.Println("\n🚀 Workflow created successfully!")
 		log.Println("   Deploy with: stigmer apply")
 
@@ -144,7 +138,7 @@ import (
 	"log"
 
 	"github.com/stigmer/stigmer/sdk/go/agent"
-	"github.com/stigmer/stigmer/sdk/go/stigmer"
+	"github.com/stigmer/stigmer/sdk/go/context"
 	"github.com/stigmer/stigmer/sdk/go/gen/types"
 	"github.com/stigmer/stigmer/sdk/go/workflow"
 )
@@ -180,12 +174,9 @@ Be concise and helpful.` + "`" + `,
 		// ============================================
 		// This workflow fetches a real PR from GitHub and asks the agent to review it
 
-		pipeline, err := workflow.New(ctx,
-			workflow.WithNamespace("quickstart"),
-			workflow.WithName("review-demo-pr"),
-			workflow.WithVersion("1.0.0"),
-			workflow.WithDescription("Analyzes a demo pull request with AI"),
-		)
+		pipeline, err := workflow.New(ctx, "quickstart/review-demo-pr", &workflow.WorkflowArgs{
+			Description: "Analyzes a demo pull request with AI",
+		})
 		if err != nil {
 			return err
 		}
@@ -221,7 +212,7 @@ Be concise and helpful.` + "`" + `,
 		})
 
 		// Step 4: Store the results
-		results := pipeline.Set("store-results", &workflow.SetArgs{
+		_ = pipeline.Set("store-results", &workflow.SetArgs{
 			Variables: map[string]string{
 				"prTitle":    fetchPR.Field("title").Expression(),
 				"prNumber":   fetchPR.Field("number").Expression(),
@@ -229,13 +220,12 @@ Be concise and helpful.` + "`" + `,
 				"reviewedAt": "${.context.timestamp}",
 			},
 		})
-		results.ExportAs = "pr-review-result"
 
 		// ============================================
 		// SUMMARY: Show what was created
 		// ============================================
 		log.Println("\n✅ Created PR review pipeline:")
-		log.Printf("   Workflow: %s\n", pipeline.Document.Name)
+		log.Printf("   Workflow: %s\n", pipeline.Name)
 		log.Printf("   Agent: %s\n", reviewer.Name)
 		log.Println("\n   What it does:")
 		log.Println("     1. Fetches PR from github.com/stigmer/hello-stigmer")

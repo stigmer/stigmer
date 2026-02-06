@@ -74,13 +74,13 @@ import (
     "log"
     
     "github.com/leftbin/stigmer-sdk/go/agent"
-    "github.com/leftbin/stigmer-sdk/go/commons/ref"
+    "github.com/leftbin/stigmer-sdk/go/ref"
     "github.com/leftbin/stigmer-sdk/go/mcpserver"
-    "github.com/leftbin/stigmer-sdk/go/stigmer"
+    "github.com/leftbin/stigmer-sdk/go/context"
 )
 
 func main() {
-    err := stigmer.Run(func(ctx *stigmer.Context) error {
+    err := stigmer.Run(func(ctx *stigmer.Context) error {  // Note: package is still "stigmer"
         // Create MCP server with struct-based args
         githubMCP, err := mcpserver.Stdio(ctx, "github", &mcpserver.StdioArgs{
             Command: "npx",
@@ -104,7 +104,7 @@ func main() {
         }
         
         // Add skill references and MCP servers using builder methods
-        // Use commons/ref package for creating resource references
+        // Use ref package for creating resource references
         myAgent.
             AddSkillRef(ref.Skill("stigmer", "security-analysis")).
             AddMcpServerUsage(ref.McpServer("stigmer", "github"))
@@ -127,7 +127,7 @@ func main() {
 The `Agent` is the main blueprint that defines:
 - Name and instructions (required) - load from files using `os.ReadFile()`
 - Description and icon (optional)
-- Skills (knowledge references) - use `commons/ref` package
+- Skills (knowledge references) - use `ref` package
 - MCP servers (tool providers)
 - Sub-agents (delegatable agents) - use `agent.NewSubAgent()`
 - Environment variables (configuration)
@@ -146,7 +146,7 @@ Reference skills available platform-wide using the `org/slug` format:
 
 ```go
 // Use "stigmer/" prefix for platform skills
-import "github.com/leftbin/stigmer-sdk/go/commons/ref"
+import "github.com/leftbin/stigmer-sdk/go/ref"
 
 myAgent.AddSkillRef(ref.Skill("stigmer", "coding-best-practices"))
 ```
@@ -156,7 +156,7 @@ Reference skills private to your organization:
 
 ```go
 // Use "org/slug" format for organization skills
-import "github.com/leftbin/stigmer-sdk/go/commons/ref"
+import "github.com/leftbin/stigmer-sdk/go/ref"
 
 myAgent.AddSkillRef(ref.Skill("my-org", "internal-standards"))
 ```
@@ -165,7 +165,7 @@ myAgent.AddSkillRef(ref.Skill("my-org", "internal-standards"))
 Add multiple skill references in one call:
 
 ```go
-import "github.com/leftbin/stigmer-sdk/go/commons/ref"
+import "github.com/leftbin/stigmer-sdk/go/ref"
 
 myAgent.
     AddSkillRef(ref.Skill("stigmer", "coding-best-practices")).
@@ -177,7 +177,7 @@ myAgent.
 Reference specific versions of skills:
 
 ```go
-import "github.com/leftbin/stigmer-sdk/go/commons/ref"
+import "github.com/leftbin/stigmer-sdk/go/ref"
 
 // With version suffix
 myAgent.AddSkillRef(ref.Skill("stigmer", "coding-best-practices", ref.WithVersion("v2.0")))
@@ -252,7 +252,7 @@ Sub-agents allow delegation to specialized agents. Sub-agents are inline value o
 ```go
 import (
     "github.com/leftbin/stigmer-sdk/go/agent"
-    "github.com/leftbin/stigmer-sdk/go/commons/ref"
+    "github.com/leftbin/stigmer-sdk/go/ref"
 )
 
 // Create a sub-agent (simple helper function)
@@ -371,7 +371,7 @@ package main
 
 import (
     "log"
-    "github.com/leftbin/stigmer-sdk/go/stigmer"
+    "github.com/leftbin/stigmer-sdk/go/context"
     "github.com/leftbin/stigmer-sdk/go/workflow"
 )
 
@@ -597,10 +597,11 @@ sdk/go/
 ├── mcpserver/       # MCP server definitions
 ├── workflow/        # Workflow orchestration
 ├── environment/     # Environment resource (first-class API resource)
-├── commons/         # Shared utilities
-│   └── ref/         # Resource reference factories
-├── stigmer/         # Context and synthesis
+├── context/         # Context and synthesis (package name: stigmer)
+├── ref/             # Resource reference factories
+├── metadata/        # Metadata utilities
 ├── gen/             # Generated Args from proto (DO NOT EDIT)
+├── internal/        # Internal utilities (validation, templates)
 ├── examples/        # Usage examples
 ├── testdata/        # Test fixtures and golden files
 └── Makefile         # Build targets

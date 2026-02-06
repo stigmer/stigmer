@@ -5,7 +5,7 @@ import (
 
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	genEnv "github.com/stigmer/stigmer/sdk/go/gen/environment"
-	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
+	"github.com/stigmer/stigmer/sdk/go/context/naming"
 )
 
 // EnvironmentArgs is an alias for the generated EnvironmentArgs from gen/environment.
@@ -42,7 +42,7 @@ type Context interface {
 //
 // After creation, reference the environment in AgentInstance:
 //
-//	import "github.com/stigmer/stigmer/sdk/go/commons/ref"
+//	import "github.com/stigmer/stigmer/sdk/go/ref"
 //
 //	// At instance creation time:
 //	envRef := ref.Environment("my-org", "production-aws")

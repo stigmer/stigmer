@@ -7,8 +7,8 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/sdk/go/commons/metadata"
-	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
+	"github.com/stigmer/stigmer/sdk/go/metadata"
+	"github.com/stigmer/stigmer/sdk/go/context/naming"
 )
 
 // validator is the global protovalidate validator instance.

@@ -988,7 +988,7 @@ for _, schema := range loadFromDir("agent/types/") {
 - `sdk/go/workflow/` - Workflow SDK (hand-written)
 - `sdk/go/agent/` - Agent SDK (hand-written)
 - `sdk/go/skill/` - Skill SDK (hand-written)
-- `sdk/go/stigmer/` - Context and orchestration
+- `sdk/go/context/` - Context and orchestration (package name: stigmer)
 
 **Bridge Files** (type aliases):
 - `sdk/go/workflow/gen_types.go` - Aliases for generated task configs

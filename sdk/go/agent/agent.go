@@ -8,7 +8,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	genAgent "github.com/stigmer/stigmer/sdk/go/gen/agent"
-	"github.com/stigmer/stigmer/sdk/go/stigmer/naming"
+	"github.com/stigmer/stigmer/sdk/go/context/naming"
 )
 
 // AgentArgs is an alias for the generated AgentArgs from gen/agent.
@@ -84,7 +84,7 @@ type Agent struct {
 //
 //	import (
 //	    "github.com/stigmer/stigmer/sdk/go/agent"
-//	    "github.com/stigmer/stigmer/sdk/go/commons/ref"
+//	    "github.com/stigmer/stigmer/sdk/go/ref"
 //	)
 //
 //	stigmer.Run(func(ctx *stigmer.Context) error {
@@ -164,7 +164,7 @@ func New(ctx Context, name string, args *AgentArgs) (*Agent, error) {
 //
 // Example:
 //
-//	import "github.com/stigmer/stigmer/sdk/go/commons/ref"
+//	import "github.com/stigmer/stigmer/sdk/go/ref"
 //
 //	agent.AddSkillRef(ref.Skill("stigmer", "coding-best-practices"))
 //	agent.AddSkillRef(ref.Skill("stigmer", "code-review", ref.WithVersion("v1.0")))
@@ -393,7 +393,7 @@ func (a *Agent) TryAddSkills(refs ...string) (*Agent, error) {
 //
 // Example:
 //
-//	import "github.com/stigmer/stigmer/sdk/go/commons/ref"
+//	import "github.com/stigmer/stigmer/sdk/go/ref"
 //
 //	// Enable all tools from the GitHub MCP server
 //	agent.AddMcpServerUsage(ref.McpServer("stigmer", "github"))
