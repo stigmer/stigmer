@@ -55,6 +55,9 @@ func init() {
 	rootCmd.AddCommand(root.NewSearchCommand())
 	rootCmd.AddCommand(root.NewPushCommand())
 
+	// Discoverability command (T05)
+	rootCmd.AddCommand(root.NewResourcesCommand())
+
 	// Deprecated resource-specific parent commands (kept for migration guidance)
 	rootCmd.AddCommand(root.NewAgentCommand())
 	rootCmd.AddCommand(root.NewWorkflowCommand())
