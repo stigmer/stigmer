@@ -68,16 +68,51 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-07 13:52
-**Current Task**: T01 (Initial Setup)
-**Status**: Planning
+**Current Task**: T0 (WorkflowRunner Cleanup)
+**Status**: APPROVED - Ready for Execution
+
+## Active Plan
+
+**File**: `tasks/T01_2_final_plan.md`
+
+### Research Validation
+- DeepSeek/ChatGPT research completed (07.report.gpt.md)
+- Recommendation: **Option C (Minimal Viable Both)**
+- Key insight: "retry and resume" claim requires cancel + recover APIs
+
+### MVP Scope (Research-Validated)
+
+| Feature | Domain Term | Description |
+|---------|-------------|-------------|
+| Graceful Stop | `cancel` | Stop running execution gracefully |
+| Hard Stop | `terminate` | Force stop immediately |
+| Recover from Failure | `recover` | Continue from checkpoint (Temporal Reset) |
+| Enhanced Wait | `wait` | ISO durations + "until" timestamp |
+
+### Execution Order
+
+```
+T0: Remove WorkflowRunner gRPC interface (FIRST - cleanup)
+T1: Add EXECUTION_TERMINATED enum
+T2: Add cancel/terminate/recover RPCs
+T3: Add IO messages
+T4: Implement backend handlers
+T5: Add CLI commands
+T6: Expand WaitTaskConfig
+T7: Update wait converter
+```
+
+### Key Architecture Decision
+
+**Remove dual control plane**: WorkflowRunner gRPC interface deleted. Lifecycle control happens at Stigmer service level via direct Temporal API.
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01" - Resume the current task
+- "Start T0 cleanup" - Begin WorkflowRunner cleanup
+- "Continue with the plan" - Resume execution
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
 
 ---
 
