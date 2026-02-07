@@ -225,9 +225,19 @@ func listProjects(orgID, format string, limit int32, conn *grpc.ClientConn) erro
 
 // listSkills lists all skills.
 func listSkills(orgID, format string, limit int32, conn *grpc.ClientConn) error {
-	// TODO: Implement skill list when skill handlers are available
-	fmt.Println()
-	cliprint.PrintWarning("Skill list not yet implemented")
-	fmt.Println()
+	result, err := search.List(&search.ListOptions{
+		Kind:     apiresourcekind.ApiResourceKind_skill,
+		Org:      orgID,
+		Conn:     conn,
+		PageSize: limit,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to list skills")
+	}
+
+	search.DisplayResults(result, &search.DisplayOptions{
+		Format:       format,
+		ResourceName: "Skill",
+	})
 	return nil
 }
