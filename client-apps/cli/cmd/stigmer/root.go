@@ -44,13 +44,22 @@ func init() {
 	rootCmd.AddCommand(root.NewServerCommand())
 	rootCmd.AddCommand(root.NewBackendCommand())
 	rootCmd.AddCommand(root.NewConfigCommand())
-	rootCmd.AddCommand(root.NewSkillCommand())
-	rootCmd.AddCommand(root.NewMcpServerCommand())
-	rootCmd.AddCommand(root.NewAgentCommand())
-	rootCmd.AddCommand(root.NewWorkflowCommand())
-	rootCmd.AddCommand(root.NewProjectCommand())
+
+	// Unified verb-first commands (T03 + T04)
 	rootCmd.AddCommand(root.NewApplyCommand())
+	rootCmd.AddCommand(root.NewValidateCommand())
+	rootCmd.AddCommand(root.NewGetCommand())
+	rootCmd.AddCommand(root.NewListCommand())
+	rootCmd.AddCommand(root.NewDeleteCommand())
 	rootCmd.AddCommand(root.NewRunCommand())
+	rootCmd.AddCommand(root.NewSearchCommand())
+	rootCmd.AddCommand(root.NewPushCommand())
+
+	// Discoverability command (T05)
+	rootCmd.AddCommand(root.NewResourcesCommand())
+
+	// Shell completion (T08)
+	rootCmd.AddCommand(root.NewCompletionCommand())
 
 	// Add hidden internal commands (used by daemon for BusyBox pattern)
 	rootCmd.AddCommand(root.NewInternalServerCommand())

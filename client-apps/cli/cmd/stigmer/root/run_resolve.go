@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/pkg/errors"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
@@ -146,61 +145,4 @@ func resolveWorkflow(ref string, orgID string, conn *grpc.ClientConn) (*workflow
 	}
 
 	return workflow, nil
-}
-
-// selectResourceToRun builds selection options and prompts user to select a resource
-// Returns resourceType ("agent" or "workflow") and index, or empty string if cancelled
-func selectResourceToRun(agents []*agentv1.Agent, workflows []*workflowv1.Workflow) (string, int) {
-	totalResources := len(agents) + len(workflows)
-
-	type resourceOption struct {
-		resourceType string
-		index        int
-	}
-
-	options := make([]resourceOption, 0, totalResources)
-	optionLabels := make([]string, 0, totalResources)
-
-	// Add agents
-	for i, agent := range agents {
-		displayName := fmt.Sprintf("[Agent] %s", agent.Metadata.Name)
-		if agent.Spec.Description != "" {
-			displayName = fmt.Sprintf("[Agent] %s - %s", agent.Metadata.Name, agent.Spec.Description)
-		}
-		options = append(options, resourceOption{resourceType: "agent", index: i})
-		optionLabels = append(optionLabels, displayName)
-	}
-
-	// Add workflows
-	for i, workflow := range workflows {
-		displayName := fmt.Sprintf("[Workflow] %s", workflow.Metadata.Name)
-		if workflow.Spec.Description != "" {
-			displayName = fmt.Sprintf("[Workflow] %s - %s", workflow.Metadata.Name, workflow.Spec.Description)
-		}
-		options = append(options, resourceOption{resourceType: "workflow", index: i})
-		optionLabels = append(optionLabels, displayName)
-	}
-
-	// If only one resource, auto-select it
-	if totalResources == 1 {
-		cliprint.PrintInfo("Auto-selected: %s", optionLabels[0])
-		fmt.Println()
-		return options[0].resourceType, options[0].index
-	}
-
-	// Multiple resources - prompt for selection
-	prompt := &survey.Select{
-		Message: "Select resource to run:",
-		Options: optionLabels,
-	}
-
-	var selectedIndex int
-	err := survey.AskOne(prompt, &selectedIndex)
-	if err != nil {
-		cliprint.PrintError("Selection cancelled")
-		return "", 0
-	}
-
-	fmt.Println()
-	return options[selectedIndex].resourceType, options[selectedIndex].index
 }

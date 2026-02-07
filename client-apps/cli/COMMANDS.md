@@ -1,8 +1,277 @@
 # Stigmer CLI Commands
 
-## Available Commands
+## Command Structure
 
-### Server Management
+Stigmer CLI follows a **verb-first** command pattern for resource operations:
+
+```bash
+stigmer <verb> <type> [args] [flags]
+```
+
+- **Verb**: The operation to perform (`apply`, `get`, `run`, etc.)
+- **Type**: The resource type with flexible aliases (`agent`, `agents`, `agt`)
+- **Args**: Resource reference (ID, slug, or org/slug)
+- **Flags**: Command-specific options
+
+## Resource Types
+
+Use `stigmer resources` to see all available types and their supported verbs:
+
+```bash
+stigmer resources                    # Show all resource types
+stigmer resources --verb run         # Show types that support 'run'
+stigmer resources --output yaml      # Output as YAML
+```
+
+| Type | Aliases | Supported Verbs |
+|------|---------|-----------------|
+| Agent | `agent`, `agents`, `agt` | apply, validate, get, list, delete, run, search |
+| Workflow | `workflow`, `workflows`, `wfl`, `wf` | apply, validate, get, list, delete, run, search |
+| Skill | `skill`, `skills`, `skl` | get, list, delete, push |
+| McpServer | `mcpserver`, `mcp-server`, `mcp` | apply, validate, get, list, delete |
+| Project | `project`, `projects`, `prj` | apply, validate, get, list, delete |
+
+## Unified Verb Commands
+
+### apply - Deploy Resources
+
+Deploy resources from YAML files or project configuration.
+
+```bash
+# File mode - apply from YAML file
+stigmer apply -f agent.yaml
+stigmer apply -f workflow.yaml
+stigmer apply -f ./manifests/              # Apply all YAML files in directory
+
+# File mode with dry-run
+stigmer apply -f agent.yaml --dry-run
+
+# Project mode - deploy from stigmer.yaml project
+stigmer apply                              # Detect and deploy from current directory
+stigmer apply --config /path/to/project/   # Specify project directory
+stigmer apply --prune=false                # Don't delete orphaned resources
+```
+
+**Flags:**
+- `-f, --file`: Path to YAML file or directory (file mode)
+- `--config`: Path to project directory (project mode)
+- `--dry-run`: Validate without applying
+- `--org`: Organization ID override
+- `--prune`: Delete orphaned resources (default: true, project mode only)
+
+### validate - Validate Resources
+
+Validate resource files without applying them.
+
+```bash
+stigmer validate -f agent.yaml
+stigmer validate -f workflow.yaml
+stigmer validate -f ./manifests/           # Validate all YAML files
+```
+
+**Flags:**
+- `-f, --file`: Path to YAML file or directory (required)
+
+### get - Get Resource Details
+
+Retrieve a single resource by type and reference.
+
+```bash
+# Get by slug
+stigmer get agent my-agent
+stigmer get workflow my-workflow
+
+# Get by resource ID
+stigmer get agent agt_abc123
+stigmer get workflow wfl_xyz789
+
+# Get with org/slug format
+stigmer get agent acme-corp/my-agent
+
+# Output as YAML or JSON
+stigmer get agent my-agent --output yaml
+stigmer get workflow my-wf --output json
+```
+
+**Flags:**
+- `-o, --output`: Output format: `table` (default), `yaml`, `json`
+- `--org`: Organization ID override
+
+### list - List Resources
+
+List all resources of a type.
+
+```bash
+stigmer list agents
+stigmer list workflows
+stigmer list skills
+stigmer list mcpservers
+stigmer list projects
+
+# Output as YAML or JSON
+stigmer list agents --output yaml
+stigmer list workflows --output json
+
+# Limit results
+stigmer list agents --limit 100
+```
+
+**Flags:**
+- `-o, --output`: Output format: `table` (default), `yaml`, `json`
+- `--org`: Organization ID override
+- `--limit`: Maximum number of results (default: 50)
+
+### delete - Delete Resources
+
+Delete a resource by type and reference.
+
+```bash
+# Delete by slug (prompts for confirmation)
+stigmer delete agent my-agent
+stigmer delete workflow my-workflow
+
+# Delete by resource ID
+stigmer delete agent agt_abc123
+
+# Skip confirmation prompt
+stigmer delete agent my-agent --force
+```
+
+**Flags:**
+- `-f, --force`: Skip confirmation prompt
+- `--org`: Organization ID override
+
+### run - Execute Agents and Workflows
+
+Execute an agent or workflow with optional parameters.
+
+```bash
+# Run by slug
+stigmer run agent my-agent
+stigmer run workflow my-workflow
+
+# Run with initial message
+stigmer run agent my-agent -m "Review this code"
+stigmer run workflow my-wf --message "Deploy to production"
+
+# Run by resource ID
+stigmer run agent agt_abc123
+
+# Run with org/slug format
+stigmer run agent acme-corp/code-reviewer
+
+# Run without streaming logs
+stigmer run agent my-agent --no-follow
+
+# Run with environment variables
+stigmer run agent my-agent --env API_URL=https://api.example.com
+stigmer run agent my-agent --env DEBUG=true --env TIMEOUT=30
+
+# Run with secrets (encrypted)
+stigmer run agent my-agent --secret API_KEY=sk_live_xxx
+
+# Run with environment file
+stigmer run agent my-agent --env-file .env
+
+# Run with secret file
+stigmer run agent my-agent --secret-file .env.secrets
+
+# Combine env files and inline overrides
+stigmer run agent my-agent --env-file .env --secret-file .env.secrets --env DEBUG=true
+```
+
+**Flags:**
+- `-m, --message`: Initial message/prompt for execution
+- `--env`: Runtime environment variable (KEY=VALUE, repeatable)
+- `--secret`: Secret environment variable (KEY=VALUE, repeatable, encrypted)
+- `--env-file`: Load environment from file (repeatable)
+- `--secret-file`: Load secrets from file (repeatable, all values encrypted)
+- `--follow`: Stream execution logs in real-time (default: true)
+- `--org`: Organization ID override
+
+**Environment Variable Precedence** (highest to lowest):
+1. `--env` and `--secret` flags (inline values)
+2. Later `--env-file` and `--secret-file` flags
+3. Earlier `--env-file` and `--secret-file` flags
+
+### search - Search Resources
+
+Search for resources matching a text query.
+
+```bash
+# Search agents
+stigmer search agents "code review"
+stigmer search agents "kubernetes"
+
+# Search workflows
+stigmer search workflows "deploy"
+stigmer search workflows "data pipeline"
+
+# Search within specific organization
+stigmer search agents "api" --org acme-corp
+
+# Exclude public/platform resources
+stigmer search agents "api" --exclude-public
+
+# Output as JSON for scripting
+stigmer search workflows "data" --output json
+
+# Paginate results
+stigmer search agents "test" --page 2 --page-size 50
+```
+
+**Flags:**
+- `-o, --output`: Output format: `table` (default), `yaml`, `json`
+- `--org`: Search within specific organization
+- `--exclude-public`: Exclude public/platform resources
+- `--page`: Page number (1-indexed, default: 1)
+- `--page-size`: Results per page (max 100, default: 20)
+
+### push - Push Skills to Registry
+
+Push skills to the Stigmer registry.
+
+```bash
+# Push skill from current directory
+stigmer push skill
+
+# Push skill from specific directory
+stigmer push skill ./my-skill/
+
+# Push with specific tag
+stigmer push skill --tag v1.0.0
+
+# Push to specific organization
+stigmer push skill --org acme-corp
+
+# Dry run (validate without pushing)
+stigmer push skill --dry-run
+
+# Push from remote GitHub repository
+stigmer push skill --git-url https://github.com/org/repo.git --git-ref v1.0.0
+
+# Push from GitHub repository subdirectory
+stigmer push skill \
+  --git-url https://github.com/org/repo.git \
+  --git-ref main \
+  --subdir skills/calculator
+```
+
+**Flags:**
+- `--tag`: Version tag (default: "latest")
+- `--org`: Organization ID override
+- `--dry-run`: Validate without pushing
+- `--git-url`: Push from remote git repository URL
+- `--git-ref`: Git reference (tag, branch, or commit SHA)
+- `--subdir`: Subdirectory within git repository
+- `--ignore`: Additional patterns to ignore (repeatable)
+- `--include`: Patterns to force-include (repeatable)
+- `--no-gitignore`: Don't respect .gitignore patterns
+- `--verbose`: Show detailed output including ignore decisions
+
+Skills must contain a `SKILL.md` file with YAML frontmatter defining the skill name.
+
+## Server Management
 
 ```bash
 # Start Stigmer server (auto-initializes on first run)
@@ -14,13 +283,10 @@ stigmer server stop
 # Check server status
 stigmer server status
 
-# Restart server (start automatically stops if already running)
-stigmer server start
-
 # View server logs (last 50 lines)
 stigmer server logs
 
-# Stream logs in real-time (like kubectl logs -f)
+# Stream logs in real-time
 stigmer server logs --follow
 
 # View agent-runner logs
@@ -33,7 +299,7 @@ stigmer server logs --stderr
 stigmer server logs --tail 100
 ```
 
-### Backend Configuration
+## Backend Configuration
 
 ```bash
 # Show current backend (local/cloud)
@@ -46,54 +312,14 @@ stigmer backend set local
 stigmer backend set cloud
 ```
 
-### Skill Management
+## Project Scaffolding
 
 ```bash
-# Push skill from current directory (must contain SKILL.md with name in YAML frontmatter)
-stigmer skill push
-
-# Push skill from specific directory
-stigmer skill push ./my-skill/
-
-# Push with specific tag
-stigmer skill push --tag v1.0.0
-
-# Push to specific organization
-stigmer skill push --org acme-corp
-
-# Push from remote GitHub repository
-stigmer skill push --git-url https://github.com/org/repo.git --git-ref v1.0.0
-
-# Push from GitHub repository subdirectory
-stigmer skill push \
-  --git-url https://github.com/org/repo.git \
-  --git-ref main \
-  --subdir skills/calculator
-
-# Dry run (validate without pushing)
-stigmer skill push --dry-run
-```
-
-Skills are reusable capabilities that extend agent functionality.
-Each skill is a directory containing a SKILL.md file (with name in YAML
-frontmatter) and supporting implementation files. Skills are versioned
-and stored in the Stigmer registry, and can be referenced by agents
-using tags or exact version hashes.
-
-**Source Metadata**: Skills automatically capture source information:
-- **Local pushes**: Auto-detects git repository (remote URL, commit SHA, subdirectory)
-- **Remote pushes**: Stores GitHub URL, ref (tag/branch/commit), and subdirectory
-- **Traceability**: All metadata is stored for debugging and auditing
-
-### Project Scaffolding
-
-```bash
-# Option 1: Create in current directory (Pulumi-style)
-# Uses directory name as project name
+# Create in current directory (uses directory name as project name)
 mkdir my-project && cd my-project
 stigmer new
 
-# Option 2: Create new directory with specified name
+# Create new directory with specified name
 stigmer new my-project
 cd my-project
 
@@ -104,8 +330,29 @@ cd my-project
 # - Complete documentation
 
 # After creation:
-stigmer run
+stigmer apply
+stigmer run agent <agent-name>
 ```
+
+## Shell Completion
+
+Generate shell completion scripts for auto-complete support.
+
+```bash
+# Bash
+source <(stigmer completion bash)
+
+# Zsh
+source <(stigmer completion zsh)
+
+# Fish
+stigmer completion fish | source
+
+# PowerShell
+stigmer completion powershell | Out-String | Invoke-Expression
+```
+
+For permanent installation, see `stigmer completion --help`.
 
 ## Configuration
 
@@ -139,36 +386,48 @@ backend:
 mkdir my-first-project && cd my-first-project
 stigmer new
 
-# Or create new directory:
-# stigmer new my-first-project && cd my-first-project
-
 # 2. Start the server
 stigmer server
 
-# 3. Run the example workflow
-stigmer run
+# 3. Deploy the project
+stigmer apply
 
-# The example demonstrates:
-# - AI agent that reviews code
-# - Workflow that fetches and analyzes a real GitHub PR
-# - Zero configuration required
+# 4. Run an agent or workflow
+stigmer run agent <agent-name>
 ```
 
-### Option 2: Manual Setup
+### Option 2: Apply Individual Resources
 
 ```bash
-# 1. Start the server (auto-initializes everything)
+# 1. Start the server
 stigmer server
 
-# 2. Use the Stigmer UI or API to create agents and workflows
-#    Open: http://localhost:8233 (Temporal UI)
+# 2. Apply individual resource files
+stigmer apply -f agent.yaml
+stigmer apply -f workflow.yaml
 
-# 3. Check server status anytime
-stigmer server status
-
-# 4. Stop when done
-stigmer server stop
+# 3. Run
+stigmer run agent my-agent
 ```
+
+## Migration from Old Commands
+
+| Old Command | New Command |
+|-------------|-------------|
+| `stigmer init` | `stigmer server` (auto-initializes) |
+| `stigmer agent apply -f agent.yaml` | `stigmer apply -f agent.yaml` |
+| `stigmer workflow apply -f wf.yaml` | `stigmer apply -f wf.yaml` |
+| `stigmer agent get <id>` | `stigmer get agent <id>` |
+| `stigmer workflow get <id>` | `stigmer get workflow <id>` |
+| `stigmer agent list` | `stigmer list agents` |
+| `stigmer workflow list` | `stigmer list workflows` |
+| `stigmer agent delete <id>` | `stigmer delete agent <id>` |
+| `stigmer workflow delete <id>` | `stigmer delete workflow <id>` |
+| `stigmer agent run <id>` | `stigmer run agent <id>` |
+| `stigmer workflow run <id>` | `stigmer run workflow <id>` |
+| `stigmer skill push` | `stigmer push skill` |
+| `stigmer agent search "query"` | `stigmer search agents "query"` |
+| `stigmer workflow search "query"` | `stigmer search workflows "query"` |
 
 ## Development
 
@@ -205,30 +464,3 @@ Port allocation:
 - **8233** - Temporal UI
 
 Everything runs locally with zero external dependencies.
-
-## Future Commands (Planned)
-
-The following commands are planned for future releases:
-
-```bash
-# Resource management via YAML
-stigmer apply -f agent.yaml
-stigmer delete -f workflow.yaml
-
-# Direct execution
-stigmer agent execute <id> <prompt>
-stigmer workflow execute <id> --input key=value
-```
-
-## Migration from Old Commands
-
-| Old Command | New Command |
-|------------|-------------|
-| `stigmer init` | `stigmer server` (auto-initializes) |
-| `stigmer server start` | `stigmer server` |
-| `stigmer server stop` | `stigmer server stop` |
-| `stigmer server status` | `stigmer server status` |
-| `stigmer server restart` | `stigmer server start` (idempotent) |
-| `stigmer agent create` | Use UI or API (removed from CLI) |
-| `stigmer workflow create` | Use UI or API (removed from CLI) |
-| `stigmer version` | Removed (use `--version` flag) |

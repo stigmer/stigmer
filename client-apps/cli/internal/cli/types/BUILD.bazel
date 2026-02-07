@@ -1,0 +1,35 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "types",
+    srcs = [
+        "aliases.go",
+        "detect.go",
+        "doc.go",
+        "registry.go",
+        "typeinfo.go",
+        "verb.go",
+        "verb_support.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/types",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//backend/libs/go/apiresource",
+        "@com_github_pkg_errors//:errors",
+        "@in_gopkg_yaml_v3//:yaml_v3",
+    ],
+)
+
+go_test(
+    name = "types_test",
+    srcs = [
+        "aliases_test.go",
+        "detect_test.go",
+        "registry_test.go",
+    ],
+    embed = [":types"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+    ],
+)
