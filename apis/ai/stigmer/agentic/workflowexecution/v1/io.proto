@@ -521,3 +521,210 @@ enum WorkflowUpdateType {
   // Note: This is a terminal event - no more updates will follow.
   wf_update_execution_cancelled = 6;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lifecycle Control Input Messages
+//
+// These messages are used by lifecycle control RPCs (cancel, terminate, recover)
+// to manage workflow execution state.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// CancelWorkflowExecutionInput requests graceful cancellation of a workflow execution.
+//
+// Cancellation sends a signal to the workflow, allowing it to clean up gracefully.
+// The workflow code can handle the cancellation signal (e.g., via defer blocks,
+// compensation logic) before the execution transitions to CANCELLED phase.
+//
+// ## Behavior
+//
+// - Sends cancellation signal to Temporal via CancelWorkflow API
+// - Workflow code receives the signal and can perform cleanup
+// - Execution transitions to EXECUTION_CANCELLED phase after cleanup
+// - In-progress tasks may complete or be interrupted depending on workflow logic
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+// - User must have can_edit permission on the workflow execution
+//
+// ## Idempotency
+//
+// If the execution is already cancelled (phase == EXECUTION_CANCELLED),
+// the call succeeds as a no-op and returns the current execution state.
+//
+// ## Use Cases
+//
+// - User realizes they triggered the wrong workflow
+// - Business decision to stop a long-running process
+// - Graceful shutdown before maintenance window
+// - Cancel stuck workflow that is still responsive
+//
+// ## Example
+//
+// {
+//   "id": "wfx-abc123xyz456",
+//   "reason": "Customer requested cancellation - no longer needed"
+// }
+message CancelWorkflowExecutionInput {
+  // Workflow execution ID to cancel.
+  //
+  // Format: "wfx-{ulid}" (auto-generated unique identifier)
+  // Example: "wfx-abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable reason for cancellation.
+  //
+  // Stored in the audit trail and passed to Temporal for operational debugging.
+  // Optional but strongly recommended for compliance and troubleshooting.
+  //
+  // Examples:
+  // - "Customer requested cancellation"
+  // - "Incorrect workflow triggered by mistake"
+  // - "Superseded by newer execution wfx-def456"
+  // - "Pre-maintenance shutdown"
+  string reason = 2;
+}
+
+// TerminateWorkflowExecutionInput requests immediate termination of a workflow execution.
+//
+// Termination forcefully kills the workflow without allowing cleanup.
+// Unlike cancellation, the workflow code cannot respond to termination -
+// it is stopped immediately. Use this for stuck or unresponsive workflows.
+//
+// ## Behavior
+//
+// - Force-kills workflow via Temporal TerminateWorkflow API
+// - Workflow code does NOT receive any signal (cannot clean up)
+// - Execution transitions to EXECUTION_TERMINATED phase immediately
+// - All in-progress tasks are stopped abruptly
+// - No compensation or defer blocks are executed
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+// - User must have can_edit permission on the workflow execution
+//
+// ## Idempotency
+//
+// If the execution is already terminated (phase == EXECUTION_TERMINATED),
+// the call succeeds as a no-op and returns the current execution state.
+//
+// ## Terminated vs Cancelled
+//
+// | Aspect | Cancel | Terminate |
+// |--------|--------|-----------|
+// | Signal | Workflow receives cancellation signal | No signal sent |
+// | Cleanup | Workflow can clean up gracefully | No cleanup possible |
+// | Use case | Normal cancellation | Stuck/unresponsive workflows |
+// | Recovery | Cannot recover | Cannot recover |
+//
+// ## Use Cases
+//
+// - Workflow is stuck and not responding to cancellation
+// - Workflow is consuming excessive resources (infinite loop, memory leak)
+// - Emergency stop for misbehaving workflow
+// - Workflow has a bug causing it to ignore cancellation signals
+//
+// ## Example
+//
+// {
+//   "id": "wfx-abc123xyz456",
+//   "reason": "Workflow stuck for 2 hours, not responding to cancel"
+// }
+message TerminateWorkflowExecutionInput {
+  // Workflow execution ID to terminate.
+  //
+  // Format: "wfx-{ulid}" (auto-generated unique identifier)
+  // Example: "wfx-abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable reason for termination.
+  //
+  // Stored in the audit trail and passed to Temporal for operational debugging.
+  // Optional but strongly recommended - termination is a drastic action
+  // and the reason helps with post-incident analysis.
+  //
+  // Examples:
+  // - "Workflow stuck for 2 hours, not responding to cancel"
+  // - "Infinite loop detected, consuming 100% CPU"
+  // - "Emergency stop - incorrect data being processed"
+  // - "Cancel failed after 3 attempts, force terminating"
+  string reason = 2;
+}
+
+// RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.
+//
+// Recovery resumes execution from the last successful checkpoint, preserving
+// all completed work. This uses Temporal's Reset functionality to continue
+// the workflow without re-executing successful steps.
+//
+// ## Behavior
+//
+// - Uses Temporal ResetWorkflow API to resume from last successful point
+// - Completed tasks are preserved - NOT re-executed
+// - Creates a new Temporal run in the same workflow ID chain
+// - Execution transitions from FAILED back to IN_PROGRESS phase
+// - Workflow continues from where it failed
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_FAILED phase
+// - TERMINATED executions cannot be recovered (use case: data corruption risk)
+// - CANCELLED executions cannot be recovered (intentional user action)
+// - User must have can_edit permission on the workflow execution
+//
+// ## Idempotency
+//
+// If recovery is already in progress (execution moved to IN_PROGRESS after
+// a previous recover call), the call succeeds as a no-op and returns current state.
+//
+// ## Recovery vs Restart
+//
+// | Aspect | Recover | Restart (create new) |
+// |--------|---------|----------------------|
+// | Completed work | Preserved | Lost (re-executed) |
+// | Side effects | Not duplicated | May duplicate |
+// | Execution ID | Same | New ID |
+// | Use case | Resume after fix | Start fresh |
+//
+// ## Use Cases
+//
+// - Workflow failed due to transient error (network timeout, rate limit)
+// - External dependency was down but is now available
+// - Bug was fixed and workflow should continue from failure point
+// - Retry after investigating and fixing the root cause
+//
+// ## Example
+//
+// {
+//   "id": "wfx-abc123xyz456",
+//   "reason": "Stripe API was down, now recovered - resuming payment processing"
+// }
+message RecoverWorkflowExecutionInput {
+  // Workflow execution ID to recover.
+  //
+  // Must be in FAILED phase. TERMINATED and CANCELLED executions
+  // cannot be recovered.
+  //
+  // Format: "wfx-{ulid}" (auto-generated unique identifier)
+  // Example: "wfx-abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable reason for recovery.
+  //
+  // Stored in the audit trail for operational debugging and compliance.
+  // Helps track why the recovery was needed and what was fixed.
+  //
+  // Examples:
+  // - "Stripe API recovered, resuming payment processing"
+  // - "Fixed typo in email template, continuing workflow"
+  // - "Increased timeout for slow API, retrying"
+  // - "Root cause identified and fixed in config"
+  string reason = 2;
+}

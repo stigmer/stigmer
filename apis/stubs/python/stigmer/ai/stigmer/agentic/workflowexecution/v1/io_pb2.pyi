@@ -105,3 +105,27 @@ class WorkflowExecutionUpdate(_message.Message):
     execution: _api_pb2_1.WorkflowExecution
     task: _api_pb2_1.WorkflowTask
     def __init__(self, update_type: _Optional[_Union[WorkflowUpdateType, str]] = ..., execution: _Optional[_Union[_api_pb2_1.WorkflowExecution, _Mapping]] = ..., task: _Optional[_Union[_api_pb2_1.WorkflowTask, _Mapping]] = ...) -> None: ...
+
+class CancelWorkflowExecutionInput(_message.Message):
+    __slots__ = ("id", "reason")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    reason: str
+    def __init__(self, id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class TerminateWorkflowExecutionInput(_message.Message):
+    __slots__ = ("id", "reason")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    reason: str
+    def __init__(self, id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class RecoverWorkflowExecutionInput(_message.Message):
+    __slots__ = ("id", "reason")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    reason: str
+    def __init__(self, id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...

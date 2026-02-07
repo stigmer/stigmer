@@ -55,6 +55,21 @@ class WorkflowExecutionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
                 _registered_method=True)
+        self.cancel = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/cancel',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.CancelWorkflowExecutionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+                _registered_method=True)
+        self.terminate = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/terminate',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.TerminateWorkflowExecutionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+                _registered_method=True)
+        self.recover = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/recover',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.RecoverWorkflowExecutionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+                _registered_method=True)
 
 
 class WorkflowExecutionCommandControllerServicer(object):
@@ -379,6 +394,240 @@ class WorkflowExecutionCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def cancel(self, request, context):
+        """─────────────────────────────────────────────────────────────────────────────
+        Lifecycle Control Operations
+
+        These RPCs control the workflow execution lifecycle, mapping to Temporal
+        workflow operations. They enable users to gracefully stop, force-stop,
+        or recover workflow executions.
+        ─────────────────────────────────────────────────────────────────────────────
+
+        Cancel a running workflow execution gracefully.
+
+        Sends a cancellation signal to the workflow via Temporal's CancelWorkflow API.
+        The workflow code can handle the cancellation signal to perform cleanup
+        (e.g., compensation logic, resource cleanup, notifications) before
+        transitioning to the CANCELLED phase.
+
+        Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
+
+        ## Behavior
+
+        1. Validates execution exists and is in a cancellable phase
+        2. Sends cancellation signal to Temporal workflow
+        3. Workflow code receives the signal and can perform cleanup
+        4. Execution transitions to EXECUTION_CANCELLED phase
+        5. Returns updated WorkflowExecution with new phase
+
+        ## Preconditions
+
+        - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+        - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+
+        ## State Transitions
+
+        - status.phase: PENDING/IN_PROGRESS → CANCELLED
+        - status.completed_at: Set to current timestamp
+        - In-progress tasks: May complete cleanup or be interrupted
+
+        ## Idempotency
+
+        Cancelling an already-cancelled execution succeeds as a no-op.
+        The call returns the current execution state without side effects.
+        This ensures safe retry of cancel requests.
+
+        ## Error Cases
+
+        - NOT_FOUND: Execution with given ID doesn't exist
+        - PERMISSION_DENIED: User lacks can_edit permission on the execution
+        - FAILED_PRECONDITION: Execution is in a terminal phase (COMPLETED, FAILED, TERMINATED)
+        - INVALID_ARGUMENT: ID is empty or malformed
+
+        ## Example Request
+
+        {
+        "id": "wfx-abc123xyz456",
+        "reason": "Customer requested cancellation - order no longer needed"
+        }
+
+        ## Example Response
+
+        {
+        "api_version": "agentic.stigmer.ai/v1",
+        "kind": "WorkflowExecution",
+        "metadata": { "id": "wfx-abc123xyz456" },
+        "status": {
+        "phase": 5,  // EXECUTION_CANCELLED
+        "completed_at": "2026-02-07T18:30:00Z"
+        }
+        }
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def terminate(self, request, context):
+        """Terminate a workflow execution immediately.
+
+        Force-stops the workflow via Temporal's TerminateWorkflow API without
+        allowing cleanup. Unlike cancel, the workflow code cannot respond to
+        termination - it is stopped immediately. Use this for stuck or
+        unresponsive workflows that don't respond to cancellation.
+
+        Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
+
+        ## Behavior
+
+        1. Validates execution exists and is in a terminable phase
+        2. Force-kills workflow via Temporal (no signal sent to workflow)
+        3. Execution transitions to EXECUTION_TERMINATED phase immediately
+        4. No cleanup callbacks or defer blocks are executed
+        5. Returns updated WorkflowExecution with TERMINATED phase
+
+        ## Preconditions
+
+        - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+        - Cannot terminate already-terminal executions
+
+        ## State Transitions
+
+        - status.phase: PENDING/IN_PROGRESS → TERMINATED
+        - status.completed_at: Set to current timestamp
+        - status.error: May contain termination reason
+        - In-progress tasks: Stopped abruptly (no cleanup)
+
+        ## Terminated vs Cancelled
+
+        | Aspect | cancel | terminate |
+        |--------|--------|-----------|
+        | Signal to workflow | Yes (can handle) | No |
+        | Cleanup opportunity | Yes | No |
+        | Use case | Normal stop | Stuck workflows |
+        | Can recover? | No | No |
+
+        ## Idempotency
+
+        Terminating an already-terminated execution succeeds as a no-op.
+        The call returns the current execution state without side effects.
+
+        ## Error Cases
+
+        - NOT_FOUND: Execution with given ID doesn't exist
+        - PERMISSION_DENIED: User lacks can_edit permission on the execution
+        - FAILED_PRECONDITION: Execution is in a terminal phase
+        - INVALID_ARGUMENT: ID is empty or malformed
+
+        ## Example Request
+
+        {
+        "id": "wfx-abc123xyz456",
+        "reason": "Workflow stuck for 2 hours, not responding to cancel"
+        }
+
+        ## Example Response
+
+        {
+        "api_version": "agentic.stigmer.ai/v1",
+        "kind": "WorkflowExecution",
+        "metadata": { "id": "wfx-abc123xyz456" },
+        "status": {
+        "phase": 6,  // EXECUTION_TERMINATED
+        "completed_at": "2026-02-07T18:35:00Z",
+        "error": "Terminated by operator: Workflow stuck for 2 hours"
+        }
+        }
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def recover(self, request, context):
+        """Recover a failed workflow execution from the last checkpoint.
+
+        Resumes execution from the last successful point using Temporal's
+        ResetWorkflow API. Completed work is preserved - successful tasks
+        are NOT re-executed. This enables "retry and resume" semantics
+        without duplicating side effects.
+
+        Temporal Equivalent: `temporal workflow reset --workflow-id <id> --type LastWorkflowTask`
+
+        ## Behavior
+
+        1. Validates execution is in FAILED phase (recoverable)
+        2. Identifies the last successful checkpoint in workflow history
+        3. Creates new Temporal run from that checkpoint via ResetWorkflow
+        4. Execution transitions from FAILED to IN_PROGRESS phase
+        5. Workflow continues from where it failed
+        6. Returns updated WorkflowExecution with IN_PROGRESS phase
+
+        ## Preconditions
+
+        - Execution must be in EXECUTION_FAILED phase
+        - TERMINATED executions cannot be recovered (intentional hard stop)
+        - CANCELLED executions cannot be recovered (intentional user action)
+        - COMPLETED executions don't need recovery
+
+        ## State Transitions
+
+        - status.phase: FAILED → IN_PROGRESS
+        - status.completed_at: Cleared (execution is running again)
+        - status.error: Cleared (no longer failed)
+        - Completed tasks: Preserved (not re-executed)
+        - Failed tasks: Reset to pending, will be retried
+
+        ## Recovery vs Restart
+
+        | Aspect | recover | Create new execution |
+        |--------|---------|----------------------|
+        | Completed work | Preserved | Lost (re-executed) |
+        | Side effects | Not duplicated | May duplicate |
+        | Execution ID | Same | New ID |
+        | Use case | Resume after fix | Start fresh |
+
+        ## Idempotency
+
+        If recovery already succeeded (execution is now IN_PROGRESS from a
+        previous recover call), the call succeeds as a no-op and returns
+        the current execution state.
+
+        ## Error Cases
+
+        - NOT_FOUND: Execution with given ID doesn't exist
+        - PERMISSION_DENIED: User lacks can_edit permission on the execution
+        - FAILED_PRECONDITION:
+        - Execution is not in FAILED phase
+        - Execution is TERMINATED (cannot recover)
+        - Execution is CANCELLED (cannot recover)
+        - INVALID_ARGUMENT: ID is empty or malformed
+
+        ## Example Request
+
+        {
+        "id": "wfx-abc123xyz456",
+        "reason": "Stripe API recovered, resuming payment processing"
+        }
+
+        ## Example Response
+
+        {
+        "api_version": "agentic.stigmer.ai/v1",
+        "kind": "WorkflowExecution",
+        "metadata": { "id": "wfx-abc123xyz456" },
+        "status": {
+        "phase": 2,  // EXECUTION_IN_PROGRESS
+        "started_at": "2026-02-07T10:00:00Z",
+        "tasks": [
+        { "task_id": "task-1", "status": 3 },  // COMPLETED (preserved)
+        { "task_id": "task-2", "status": 2 }   // IN_PROGRESS (resumed)
+        ]
+        }
+        }
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_WorkflowExecutionCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -405,6 +654,21 @@ def add_WorkflowExecutionCommandControllerServicer_to_server(servicer, server):
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
+            ),
+            'cancel': grpc.unary_unary_rpc_method_handler(
+                    servicer.cancel,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.CancelWorkflowExecutionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
+            ),
+            'terminate': grpc.unary_unary_rpc_method_handler(
+                    servicer.terminate,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.TerminateWorkflowExecutionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
+            ),
+            'recover': grpc.unary_unary_rpc_method_handler(
+                    servicer.recover,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.RecoverWorkflowExecutionInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
             ),
     }
@@ -556,6 +820,87 @@ class WorkflowExecutionCommandController(object):
             target,
             '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/delete',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def cancel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/cancel',
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.CancelWorkflowExecutionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def terminate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/terminate',
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.TerminateWorkflowExecutionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def recover(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/recover',
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.RecoverWorkflowExecutionInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
             options,
             channel_credentials,

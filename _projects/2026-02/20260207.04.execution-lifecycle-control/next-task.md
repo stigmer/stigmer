@@ -68,9 +68,62 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-07 13:52
-**Current Task**: T2 (Add cancel/terminate/recover RPCs)
+**Current Task**: T4 (Implement backend handlers)
 **Status**: Ready to Start
-**Last Session**: 2026-02-07 17:24
+**Last Session**: 2026-02-07 (Session 3)
+
+## Session Progress (2026-02-07 - Session 3)
+
+### ✅ Completed: T2+T3 - Add Lifecycle Control RPCs and IO Messages
+
+**Accomplishments**:
+- ✅ Added `cancel` RPC with comprehensive documentation (~65 lines)
+- ✅ Added `terminate` RPC with comprehensive documentation (~60 lines)
+- ✅ Added `recover` RPC with comprehensive documentation (~75 lines)
+- ✅ Added `CancelWorkflowExecutionInput` message with field documentation
+- ✅ Added `TerminateWorkflowExecutionInput` message with field documentation
+- ✅ Added `RecoverWorkflowExecutionInput` message with field documentation
+- ✅ Regenerated Go stubs (client + server methods added)
+- ✅ Regenerated Python stubs
+- ✅ Verified bazel build passes (23 targets)
+
+**Key Decisions**:
+1. **Combined T2+T3**: RPCs need their input message types to compile - combined into single task
+2. **Deferred env_overrides**: `RecoverWorkflowExecutionInput.env_overrides` deferred to post-MVP for simplicity
+3. **Authorization**: All three RPCs use `can_edit` permission (consistent with existing write operations)
+4. **Field path**: All use `id` as field_path for authorization extraction
+
+**Code Changes**:
+- **command.proto**: +200 lines (3 RPCs with comprehensive documentation)
+- **io.proto**: +190 lines (3 input messages with section header and documentation)
+- **Go stubs**: `command_grpc.pb.go` (new client/server methods), `io.pb.go` (new message types)
+- **Python stubs**: `command_pb2.py`, `command_pb2_grpc.py`, `io_pb2.py`
+
+**RPC Documentation Quality**:
+- Each RPC has 40-75 lines of documentation
+- Temporal equivalent commands documented
+- Preconditions clearly stated
+- State transitions documented
+- Idempotency behavior explained
+- Error cases enumerated (NOT_FOUND, PERMISSION_DENIED, FAILED_PRECONDITION)
+- Example request/response in JSON format
+- Cancel vs Terminate comparison table
+
+**Input Message Documentation Quality**:
+- Section header explaining lifecycle control messages
+- Each message has 40+ lines of documentation
+- Behavior, preconditions, idempotency, use cases documented
+- Example JSON requests included
+
+**Verification**:
+- ✅ `buf lint` passed
+- ✅ `buf format` passed
+- ✅ `make build` succeeded
+- ✅ `bazel build //apis/stubs/...` succeeded (23 targets)
+- ✅ Go stubs contain `Cancel`, `Terminate`, `Recover` methods
+- ✅ Python stubs contain new messages and RPC methods
+
+---
 
 ## Session Progress (2026-02-07 17:24)
 
@@ -148,33 +201,35 @@ When starting a new session:
 
 ## Next Steps
 
-### Immediate Next Task: T2 - Add cancel/terminate/recover RPCs
+### Immediate Next Task: T4 - Implement backend handlers
 
-**File**: `tasks/T01_2_final_plan.md` (Phase 1, Task 2)
+**File**: `tasks/T01_2_final_plan.md` (Phase 2, Task 4)
 
 **What to do**:
-1. Add three new RPCs to `apis/ai/stigmer/agentic/workflowexecution/v1/command.proto`:
-   - `rpc cancel(CancelWorkflowExecutionInput) returns (WorkflowExecution);`
-   - `rpc terminate(TerminateWorkflowExecutionInput) returns (WorkflowExecution);`
-   - `rpc recover(RecoverWorkflowExecutionInput) returns (WorkflowExecution);`
-2. Add comprehensive documentation for each RPC explaining:
-   - What operation does (cancel: graceful, terminate: immediate, recover: from checkpoint)
-   - Temporal equivalent (CancelWorkflow, TerminateWorkflow, ResetWorkflow)
-   - Idempotency behavior
-   - Required preconditions (e.g., recover requires FAILED phase)
-3. Regenerate stubs: `cd apis && make build`
-4. Verify build: `bazel build //apis/stubs/...`
+1. Implement `cancel` handler in Stigmer service (Java/Kotlin):
+   - Validate execution is in PENDING or IN_PROGRESS phase
+   - Call Temporal `CancelWorkflow(workflowId)`
+   - Update execution phase to CANCELLED
+   - Return updated WorkflowExecution
+2. Implement `terminate` handler:
+   - Call Temporal `TerminateWorkflow(workflowId, reason)`
+   - Update execution phase to TERMINATED
+   - Return updated WorkflowExecution
+3. Implement `recover` handler:
+   - Validate execution is in FAILED phase
+   - Call Temporal `ResetWorkflow(workflowId, eventId)`
+   - Update execution phase to IN_PROGRESS
+   - Return updated WorkflowExecution
 
-**Context**: T1 enum foundation is complete. T2 adds the RPC signatures, T3 adds the IO messages.
+**Context**: Proto API is complete (T2+T3). Backend handlers implement the actual Temporal integration.
 
 ### Following Tasks
 
 ```
 ✅ T0: Remove WorkflowRunner gRPC interface (COMPLETED)
 ✅ T1: Add EXECUTION_TERMINATED enum (COMPLETED)
-→  T2: Add cancel/terminate/recover RPCs (NEXT)
-   T3: Add IO messages
-   T4: Implement backend handlers
+✅ T2+T3: Add cancel/terminate/recover RPCs + IO messages (COMPLETED)
+→  T4: Implement backend handlers (NEXT)
    T5: Add CLI commands
    T6: Expand WaitTaskConfig
    T7: Update wait converter
@@ -204,13 +259,18 @@ When starting a new session:
 
 ## Context for Resume
 
-**Foundation established**:
+**Proto API Complete**:
 - ✅ Dual control plane eliminated (T0)
 - ✅ WorkflowRunner is now a pure Temporal worker
 - ✅ EXECUTION_TERMINATED enum added (T1)
-- ✅ All lifecycle control will be at Stigmer service level
-- ✅ ~4,900 lines of dead code removed
+- ✅ cancel/terminate/recover RPCs added (T2+T3)
+- ✅ Input messages added with comprehensive documentation
+- ✅ Go and Python stubs regenerated
 - ✅ Build verified and passing
+
+**Proto Files Changed**:
+- `command.proto`: 3 new RPCs with authorization options
+- `io.proto`: 3 new input messages (CancelWorkflowExecutionInput, TerminateWorkflowExecutionInput, RecoverWorkflowExecutionInput)
 
 **Lessons Learned**:
 1. Always check for pre-existing test failures before assuming new code broke things
@@ -218,36 +278,39 @@ When starting a new session:
 3. Complete deletion is clearer than gradual deprecation when there are no active users
 4. Proto stub regeneration uses `make build` from `apis/` directory, not direct `buf` commands
 5. **T1 specific**: Enum documentation should match depth/style of existing values for consistency
+6. **T2+T3 specific**: RPCs and their input messages should be added together (can't compile without message types)
 
 **Quality Standards Applied**:
-- Documentation matched existing enum value depth (CANCELLED: 23 lines, TERMINATED: 28 lines)
-- Clear semantic distinctions emphasized in comments
-- Phase transition diagrams updated comprehensively
-- All verification steps completed before committing
+- RPC documentation follows existing patterns (40-75 lines per RPC)
+- Temporal equivalents documented for each operation
+- Idempotency behavior explicitly documented
+- Error cases enumerated (NOT_FOUND, PERMISSION_DENIED, FAILED_PRECONDITION)
+- Example request/response JSON included
+- Cancel vs Terminate comparison table added
 
-**No Blockers**: T2 (RPC definitions) can proceed immediately
+**No Blockers**: T4 (backend handlers) can proceed immediately
 
 ## Quick Commands
 
 After loading context:
-- "Start T2" - Add cancel/terminate/recover RPCs
+- "Start T4" - Implement backend handlers for cancel/terminate/recover
 - "Continue with the plan" - Resume with next task
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 
-## Session Summary (2026-02-07 17:24)
+## Session Summary (2026-02-07 - Session 3)
 
-**Time**: ~15 minutes  
-**Task Completed**: T1 - Add EXECUTION_TERMINATED enum  
-**Files Changed**: 5 files (1 proto, 2 Go stubs, 2 Python stubs, 1 changelog)  
-**Lines Added**: +98 (net: +84)  
-**Commit**: `544360a9`
+**Task Completed**: T2+T3 - Add lifecycle control RPCs and IO messages  
+**Files Changed**: 2 proto files, 4 Go stubs, 4 Python stubs  
+**Lines Added**: ~390 lines (proto) + generated stubs
 
 **Quality Highlights**:
-- Comprehensive documentation (28 lines) with clear semantic distinctions
+- Comprehensive RPC documentation (40-75 lines each)
+- Temporal equivalents documented for each operation
+- Idempotency, preconditions, and error cases documented
+- Example request/response JSON included
 - All verification steps passed (lint, format, build)
-- Changelog created documenting rationale and context
-- Ready for T2 (RPC definitions)
+- Ready for T4 (backend handlers)
 
 ---
 
