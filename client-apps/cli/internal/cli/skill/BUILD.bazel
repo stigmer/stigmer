@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "skill",
+    srcs = [
+        "delete.go",
+        "display.go",
+        "get.go",
+        "push.go",
+        "push_remote.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/skill",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//client-apps/cli/internal/cli/artifact",
+        "//client-apps/cli/internal/cli/clierr",
+        "//client-apps/cli/internal/cli/cliprint",
+        "//client-apps/cli/pkg/reference",
+        "@com_github_pkg_errors//:errors",
+        "@in_gopkg_yaml_v3//:yaml_v3",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)

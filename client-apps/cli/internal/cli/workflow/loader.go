@@ -68,6 +68,20 @@ func Load(opts *LoadOptions) (*LoadResult, error) {
 	}, nil
 }
 
+// LoadFromBytes loads a Workflow configuration from raw YAML/JSON bytes.
+// Used when content is already in memory (e.g., from multi-doc YAML).
+func LoadFromBytes(content []byte) (*LoadResult, error) {
+	workflow, err := parseContent(content, "memory")
+	if err != nil {
+		return nil, err
+	}
+
+	return &LoadResult{
+		Workflow:   workflow,
+		SourcePath: "memory",
+	}, nil
+}
+
 // resolveFilePath validates that the file path is provided and exists.
 // Unlike kubectl which uses -f flag, we require the file path as an argument.
 func resolveFilePath(filePath string) (string, error) {

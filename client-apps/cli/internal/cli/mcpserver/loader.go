@@ -54,6 +54,20 @@ func Load(opts *LoadOptions) (*LoadResult, error) {
 	}, nil
 }
 
+// LoadFromBytes loads an MCP server configuration from raw YAML/JSON bytes.
+// Used when content is already in memory (e.g., from multi-doc YAML).
+func LoadFromBytes(content []byte) (*LoadResult, error) {
+	mcpServer, err := parseContent(content, "memory")
+	if err != nil {
+		return nil, err
+	}
+
+	return &LoadResult{
+		McpServer:  mcpServer,
+		SourcePath: "memory",
+	}, nil
+}
+
 // resolveFilePath validates that the file path is provided and exists.
 func resolveFilePath(filePath string) (string, error) {
 	if filePath == "" {

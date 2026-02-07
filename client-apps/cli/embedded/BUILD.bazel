@@ -9,6 +9,7 @@ go_library(
         "embedded_linux_amd64.go",
         "extract.go",
         "sdk_version.go",
+        "templates.go",
         "version.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/embedded",

@@ -17,77 +17,98 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
-// NewApplyCommand creates the apply command for deploying resources from a Project.
+// NewApplyCommand creates the apply command for deploying resources.
+// Supports two modes:
+//   - File mode (-f flag): Apply resources from YAML files with auto-detection
+//   - Project mode (default): SDK synthesis from stigmer.yaml project
 func NewApplyCommand() *cobra.Command {
 	var dryRun bool
 	var configDir string
 	var orgOverride string
 	var pruneEnabled bool
+	var filePath string
 
 	cmd := &cobra.Command{
 		Use:   "apply",
-		Short: "Deploy resources from current project",
-		Long: `Deploy resources from your Stigmer project.
+		Short: "Apply resources from files or project",
+		Long: `Apply resources to the Stigmer backend.
 
-Detects your project configuration (stigmer.yaml), executes SDK synthesis,
-and deploys all resources (agents, workflows, skills, mcp servers) to the backend.
+TWO MODES:
 
-The backend performs reconciliation:
-  - Creates new resources
-  - Updates changed resources
-  - Deletes orphaned resources (unless --prune=false)
+1. FILE MODE (with -f flag):
+   Apply resources from YAML files. Kind is auto-detected from the file.
+   Supports single files, directories, and multi-document YAML.
 
-Track Detection:
-  - Project Track: stigmer.yaml found - runs SDK synthesis
-  - Atomic Track: no stigmer.yaml - use 'stigmer <resource> apply <file>' instead
+2. PROJECT MODE (without -f flag):
+   Detects stigmer.yaml, runs SDK synthesis, and deploys all resources.
+   The backend performs reconciliation (create, update, delete orphans).
 
-Runtimes Supported:
+FILE MODE supports:
+  - Agent, Workflow, McpServer resources
+  - Directory paths (applies all .yaml/.yml files)
+  - Multi-document YAML (--- separated)
+
+PROJECT MODE supports:
   - Go:     go run <entry_point>
   - Python: python <entry_point>
   - Node:   npx ts-node <entry_point> (for .ts) or node <entry_point>`,
-		Example: `  # Deploy from current directory
+		Example: `  # File mode - apply from YAML file
+  stigmer apply -f agent.yaml
+  stigmer apply -f workflow.yaml --dry-run
+  stigmer apply -f ./manifests/  # directory
+
+  # Project mode - deploy from stigmer.yaml project
   stigmer apply
-  
-  # Deploy from specific directory
   stigmer apply --config /path/to/project/
-  
-  # Dry run (validate and preview without deploying)
   stigmer apply --dry-run
-  
-  # Deploy without orphan pruning
-  stigmer apply --prune=false
-  
-  # Override organization
-  stigmer apply --org my-org-id`,
+  stigmer apply --prune=false`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := executeApply(applyOptions{
-				ConfigDir:    configDir,
-				OrgOverride:  orgOverride,
-				DryRun:       dryRun,
-				PruneEnabled: pruneEnabled,
-			})
+			var err error
+
+			// Mode detection: -f flag means file mode
+			if filePath != "" {
+				err = executeFileApply(fileApplyOptions{
+					FilePath:    filePath,
+					OrgOverride: orgOverride,
+					DryRun:      dryRun,
+				})
+			} else {
+				err = executeProjectApply(projectApplyOptions{
+					ConfigDir:    configDir,
+					OrgOverride:  orgOverride,
+					DryRun:       dryRun,
+					PruneEnabled: pruneEnabled,
+				})
+			}
+
 			clierr.Handle(err)
 		},
 	}
 
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate and preview without deploying")
-	cmd.Flags().StringVar(&configDir, "config", "", "path to project directory containing stigmer.yaml (default: current directory)")
-	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID (overrides stigmer.yaml and context)")
-	cmd.Flags().BoolVar(&pruneEnabled, "prune", true, "delete orphaned resources not in SDK output (disable with --prune=false)")
+	// File mode flags
+	cmd.Flags().StringVarP(&filePath, "file", "f", "", "path to YAML file or directory")
+
+	// Project mode flags
+	cmd.Flags().StringVar(&configDir, "config", "", "path to project directory (project mode)")
+	cmd.Flags().BoolVar(&pruneEnabled, "prune", true, "delete orphaned resources (project mode)")
+
+	// Shared flags
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate without applying")
+	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID override")
 
 	return cmd
 }
 
-// applyOptions contains options for the apply command.
-type applyOptions struct {
+// projectApplyOptions contains options for project-based apply.
+type projectApplyOptions struct {
 	ConfigDir    string
 	OrgOverride  string
 	DryRun       bool
 	PruneEnabled bool
 }
 
-// executeApply implements the apply command logic.
-func executeApply(opts applyOptions) error {
+// executeProjectApply implements the project SDK synthesis apply mode.
+func executeProjectApply(opts projectApplyOptions) error {
 	// Step 1: Detect track (Project vs Atomic)
 	detectResult, err := project.DetectTrack(&project.DetectOptions{
 		StartDir: opts.ConfigDir,
@@ -220,10 +241,10 @@ func displayAtomicTrackGuidance() {
 	cliprint.PrintInfo("The 'stigmer apply' command requires a project with stigmer.yaml.")
 	cliprint.PrintInfo("This enables SDK synthesis and project-based reconciliation.")
 	fmt.Println()
-	cliprint.PrintInfo("For single-resource deployment (Atomic Track), use:")
-	cliprint.PrintInfo("  stigmer agent apply <file.yaml>")
-	cliprint.PrintInfo("  stigmer workflow apply <file.yaml>")
-	cliprint.PrintInfo("  stigmer mcpserver apply <file.yaml>")
+	cliprint.PrintInfo("For single-resource deployment, use file mode:")
+	cliprint.PrintInfo("  stigmer apply -f agent.yaml")
+	cliprint.PrintInfo("  stigmer apply -f workflow.yaml")
+	cliprint.PrintInfo("  stigmer apply -f mcpserver.yaml")
 	fmt.Println()
 	cliprint.PrintInfo("To create a new project:")
 	cliprint.PrintInfo("  1. Create stigmer.yaml in your project directory")
@@ -382,12 +403,12 @@ func displayApplyResult(result *project.ApplyResult, pruneEnabled bool) {
 	// Print next steps
 	fmt.Println()
 	cliprint.PrintInfo("Next steps:")
-	cliprint.PrintInfo("  - View project: stigmer project get %s", proj.Metadata.Name)
+	cliprint.PrintInfo("  - View project: stigmer get project %s", proj.Metadata.Name)
 	if len(proj.Spec.Agents) > 0 {
-		cliprint.PrintInfo("  - Run an agent: stigmer agent run <agent-name>")
+		cliprint.PrintInfo("  - Run an agent: stigmer run agent <agent-name>")
 	}
 	if len(proj.Spec.Workflows) > 0 {
-		cliprint.PrintInfo("  - Run a workflow: stigmer workflow run <workflow-name>")
+		cliprint.PrintInfo("  - Run a workflow: stigmer run workflow <workflow-name>")
 	}
 	cliprint.PrintInfo("  - Update and redeploy: edit code and run 'stigmer apply' again")
 	fmt.Println()
