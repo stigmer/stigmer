@@ -1,12 +1,18 @@
 package root
 
 import (
+	"fmt"
+
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
+	"google.golang.org/grpc"
 )
 
-// NewRunCommand creates the run command for executing agents and workflows
+// NewRunCommand creates the unified run command for executing agents and workflows.
 func NewRunCommand() *cobra.Command {
 	var message string
 	var envFlags []string
@@ -17,36 +23,18 @@ func NewRunCommand() *cobra.Command {
 	var follow bool
 
 	cmd := &cobra.Command{
-		Use:   "run [agent-or-workflow-name-or-id]",
+		Use:   "run <type> <name-or-id>",
 		Short: "Execute an agent or workflow",
-		Long: `Execute an agent or workflow by name/ID or from your project directory.
+		Long: `Execute a resource by type and name or ID.
 
-NOTE: This command is maintained for backward compatibility. For new projects,
-prefer the resource-specific commands:
-  - stigmer agent run <name>    # For agents
-  - stigmer workflow run <name> # For workflows
+The type can be specified using any alias:
+  - agent, agt, agents
+  - workflow, wf, workflows
 
-These commands provide the same functionality with better discoverability.
-
-TWO MODES:
-
-1. AUTO-DISCOVERY MODE (no arguments):
-   Automatically discovers and deploys agents/workflows from your Stigmer project.
-   If multiple resources found, prompts you to select which one to run.
-   
-   Example: 
-     stigmer run
-
-2. REFERENCE MODE (with agent/workflow name or ID):
-   Run a specific agent or workflow by name (slug) or ID.
-   If in a project directory (has Stigmer.yaml), applies latest code first.
-   If outside project directory, runs the deployed resource directly.
-   
-   Examples:
-     stigmer run my-agent           # Agent by name
-     stigmer run my-workflow        # Workflow by name  
-     stigmer run agt_01abc123       # Agent by ID
-     stigmer run wfl_01xyz789       # Workflow by ID
+The reference can be:
+  - Resource ID (e.g., agt_abc123, wfl_xyz789)
+  - Slug (e.g., my-agent)
+  - Org/slug (e.g., acme-corp/my-agent)
 
 ENVIRONMENT VARIABLES:
 
@@ -63,74 +51,62 @@ ENVIRONMENT VARIABLES:
 
 OTHER OPTIONS:
 
-  --message:      Initial prompt to send to the agent/workflow
+  --message, -m:  Initial prompt to send to the agent/workflow
   --follow:       Stream execution logs in real-time (default: true)
                   Use --no-follow to skip streaming`,
-		Example: `  # AUTO-DISCOVERY: Discover, deploy, and run from project
-  stigmer run
-  stigmer run --message "Execute with this prompt"
-  
-  # REFERENCE: Run specific agent (applies latest code if in project)
-  stigmer run my-agent
-  stigmer run my-agent --message "Tell me a joke"
-  
-  # REFERENCE: Run specific workflow
-  stigmer run my-workflow
-  stigmer run my-workflow --message "Process data"
-  
-  # Run without log streaming
-  stigmer run my-agent --no-follow
-  
-  # Run with inline environment variables
-  stigmer run my-agent --env API_URL=https://api.example.com --env DEBUG=true
-  
-  # Run with inline secrets (encrypted)
-  stigmer run my-agent --secret DB_PASSWORD=supersecret --secret API_KEY=ghp_abc123
-  
-  # Run with environment file (all values are non-secrets)
-  stigmer run my-agent --env-file .env
-  stigmer run my-agent --env-file .env.defaults --env-file .env.local
-  
-  # Run with secret file (all values are encrypted)
-  stigmer run my-agent --secret-file .env.secret
-  
-  # Combine env files, secret files, and inline overrides
-  stigmer run my-agent --env-file .env --secret-file .env.secret --env DEBUG=true
-  
-  # Run by ID
-  stigmer run agt_01kewqjbtdy0w4d14bnhhy4yc2
-  stigmer run wfl_01abc123xyz456
-  
+		Example: `  # Run an agent by name
+  stigmer run agent my-agent
+
+  # Run a workflow with a message
+  stigmer run workflow my-wf --message "Process the data"
+  stigmer run workflow my-wf -m "Deploy to production"
+
+  # Run by resource ID
+  stigmer run agent agt_01kewqjbtdy0w4d14bnhhy4yc2
+  stigmer run workflow wfl_01abc123xyz456
+
+  # Run with org/slug format
+  stigmer run agent acme-corp/code-reviewer
+
+  # Run without streaming logs
+  stigmer run agent my-agent --no-follow
+
+  # Run with environment variables
+  stigmer run agent my-agent --env API_URL=https://api.example.com --env DEBUG=true
+
+  # Run with secrets (encrypted)
+  stigmer run agent my-agent --secret API_KEY=sk_live_xxx
+
+  # Run with environment file
+  stigmer run agent my-agent --env-file .env
+
+  # Run with secret file
+  stigmer run agent my-agent --secret-file .env.secrets
+
+  # Combine env files and inline overrides
+  stigmer run agent my-agent --env-file .env --secret-file .env.secrets --env DEBUG=true
+
   # Override organization
-  stigmer run my-agent --org my-org-id`,
+  stigmer run agent my-agent --org acme-corp`,
+		Args: cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			// Parse and merge environment variables and secrets from files and flags
-			runtimeEnv, err := envfile.LoadAndMergeWithSecrets(
-				envFileFlags,
-				secretFileFlags,
-				envFlags,
-				secretFlags,
-			)
-			if err != nil {
-				cliprint.PrintError("Failed to load environment: %s", err)
-				return
-			}
-
-			hasReference := len(args) > 0
-
-			if hasReference {
-				// REFERENCE MODE: Run specific agent/workflow by name/ID
-				reference := args[0]
-				runReferenceMode(reference, message, orgOverride, runtimeEnv, follow)
-			} else {
-				// AUTO-DISCOVERY MODE: Discover from Stigmer.yaml and prompt for selection
-				runAutoDiscoveryMode(message, orgOverride, runtimeEnv, follow)
-			}
+			err := executeRun(runOptions{
+				TypeArg:         args[0],
+				Reference:       args[1],
+				Message:         message,
+				EnvFlags:        envFlags,
+				EnvFileFlags:    envFileFlags,
+				SecretFlags:     secretFlags,
+				SecretFileFlags: secretFileFlags,
+				Follow:          follow,
+				OrgOverride:     orgOverride,
+			})
+			clierr.Handle(err)
 		},
 	}
 
 	// Message flag
-	cmd.Flags().StringVar(&message, "message", "", "initial message/prompt for execution")
+	cmd.Flags().StringVarP(&message, "message", "m", "", "initial message/prompt for execution")
 
 	// Environment variable flags (non-secrets)
 	cmd.Flags().StringArrayVar(&envFlags, "env", []string{},
@@ -145,8 +121,71 @@ OTHER OPTIONS:
 		"load secrets from file (can be repeated, all values encrypted)")
 
 	// Execution flags
-	cmd.Flags().BoolVar(&follow, "follow", true, "stream execution logs in real-time (default: true)")
-	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID (overrides Stigmer.yaml and context)")
+	cmd.Flags().BoolVar(&follow, "follow", true, "stream execution logs in real-time")
+	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID (overrides context)")
 
 	return cmd
+}
+
+// runOptions contains options for the run command.
+type runOptions struct {
+	TypeArg         string
+	Reference       string
+	Message         string
+	EnvFlags        []string
+	EnvFileFlags    []string
+	SecretFlags     []string
+	SecretFileFlags []string
+	Follow          bool
+	OrgOverride     string
+}
+
+// executeRun validates type and routes to the appropriate run handler.
+func executeRun(opts runOptions) error {
+	// Step 1: Resolve type from alias
+	reg := types.DefaultRegistry()
+	info, ok := reg.GetByAlias(opts.TypeArg)
+	if !ok {
+		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: agent, workflow", opts.TypeArg)
+	}
+
+	// Step 2: Check verb support
+	if !info.SupportsVerb(types.VerbRun) {
+		return formatUnsupportedVerbError(info, types.VerbRun)
+	}
+
+	// Step 3: Load and merge environment variables
+	runtimeEnv, err := envfile.LoadAndMergeWithSecrets(
+		opts.EnvFileFlags,
+		opts.SecretFileFlags,
+		opts.EnvFlags,
+		opts.SecretFlags,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to load environment")
+	}
+
+	// Step 4: Connect to backend
+	conn, orgID, err := connectToBackend(opts.OrgOverride)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	// Step 5: Route to appropriate handler
+	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, opts.Follow, orgID, conn)
+}
+
+// routeRun routes to the appropriate run handler based on kind.
+func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, follow bool, orgID string, conn *grpc.ClientConn) error {
+	switch info.ProtoKind {
+	case apiresourcekind.ApiResourceKind_agent:
+		return runAgent(ref, message, env, follow, orgID, conn)
+
+	case apiresourcekind.ApiResourceKind_workflow:
+		return runWorkflow(ref, message, env, follow, orgID, conn)
+
+	default:
+		return fmt.Errorf("run not implemented for %s", info.DisplayName)
+	}
 }

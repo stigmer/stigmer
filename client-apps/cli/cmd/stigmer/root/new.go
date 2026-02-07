@@ -11,7 +11,6 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
-	"github.com/stigmer/stigmer/sdk/go/templates"
 )
 
 // NewCommand creates the new command for project scaffolding
@@ -51,7 +50,7 @@ func newHandler(cmd *cobra.Command, args []string) {
 	// Determine project name and directory
 	var projectName string
 	var projectDir string
-	
+
 	if len(args) > 0 {
 		// User provided a name - create new directory
 		projectName = args[0]
@@ -83,7 +82,7 @@ func newHandler(cmd *cobra.Command, args []string) {
 			clierr.Handle(err)
 			return
 		}
-		
+
 		// Filter out hidden files and check if directory is empty
 		hasVisibleFiles := false
 		for _, entry := range entries {
@@ -92,7 +91,7 @@ func newHandler(cmd *cobra.Command, args []string) {
 				break
 			}
 		}
-		
+
 		if hasVisibleFiles {
 			cliprint.PrintError("Current directory is not empty")
 			cliprint.PrintInfo("Please run 'stigmer new' in an empty directory or provide a project name:")
@@ -141,7 +140,7 @@ func newHandler(cmd *cobra.Command, args []string) {
 		content  string
 	}{
 		{"Stigmer.yaml", "Stigmer.yaml", generateStigmerYAML(projectName)},
-		{"main.go (AI-powered PR reviewer)", "main.go", templates.AgentAndWorkflow()},
+		{"main.go (AI-powered PR reviewer)", "main.go", embedded.AgentAndWorkflow()},
 		{"go.mod", "go.mod", embedded.GenerateGoModContent(projectName)},
 		{".gitignore", ".gitignore", generateGitignore()},
 		{"README.md", "README.md", generateReadme(projectName)},
@@ -162,7 +161,7 @@ func newHandler(cmd *cobra.Command, args []string) {
 
 	// Install dependencies
 	cliprint.PrintInfo("Installing dependencies...")
-	
+
 	// Get the latest SDK version
 	getCmd := exec.Command("go", "get", "github.com/stigmer/stigmer/sdk/go@latest")
 	getCmd.Dir = projectDir
@@ -171,7 +170,7 @@ func newHandler(cmd *cobra.Command, args []string) {
 	if err := getCmd.Run(); err != nil {
 		cliprint.PrintWarning("Failed to fetch SDK - you may need to run 'go get github.com/stigmer/stigmer/sdk/go@latest' manually")
 	}
-	
+
 	// Run go mod tidy to resolve all dependencies
 	tidyCmd := exec.Command("go", "mod", "tidy")
 	tidyCmd.Dir = projectDir

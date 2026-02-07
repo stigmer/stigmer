@@ -223,8 +223,8 @@ func TestRegistry_GetByYAMLKind(t *testing.T) {
 		{"Skill", "Skill", true},
 		{"McpServer", "McpServer", true},
 		{"Project", "Project", true},
-		{"agent", "", false},       // Must be exact match
-		{"mcp-server", "", false},  // Must be exact match
+		{"agent", "", false},      // Must be exact match
+		{"mcp-server", "", false}, // Must be exact match
 		{"Unknown", "", false},
 	}
 
