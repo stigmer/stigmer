@@ -14,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/skill"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
 	"google.golang.org/grpc"
@@ -251,6 +252,26 @@ func deleteProject(ref, orgID string, force bool, conn *grpc.ClientConn) error {
 
 // deleteSkill deletes a skill.
 func deleteSkill(ref, orgID string, force bool, conn *grpc.ClientConn) error {
-	// TODO: Implement skill delete when skill handlers are available
-	return fmt.Errorf("skill delete not yet implemented")
+	// Get the skill first to show confirmation and resolve the ID
+	skillRes, err := skill.GetFromBackend(conn, orgID, ref)
+	if err != nil {
+		return err
+	}
+
+	if !force {
+		skill.DisplayDeleteConfirmation(skillRes)
+		cliprint.PrintInfo("Use --force to skip this confirmation")
+		fmt.Println()
+	}
+
+	result, err := skill.Delete(&skill.DeleteOptions{
+		SkillID: skillRes.Metadata.Id,
+		Conn:    conn,
+	})
+	if err != nil {
+		return err
+	}
+
+	skill.DisplayDeleteResult(result)
+	return nil
 }

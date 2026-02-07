@@ -13,6 +13,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/skill"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
 	"google.golang.org/grpc"
@@ -187,6 +188,10 @@ func getProject(ref, orgID, format string, conn *grpc.ClientConn) error {
 
 // getSkill retrieves a skill.
 func getSkill(ref, orgID, format string, conn *grpc.ClientConn) error {
-	// TODO: Implement skill get when skill handlers are available
-	return fmt.Errorf("skill get not yet implemented")
+	result, err := skill.GetFromBackend(conn, orgID, ref)
+	if err != nil {
+		return err
+	}
+	skill.DisplayGetResult(result, format)
+	return nil
 }

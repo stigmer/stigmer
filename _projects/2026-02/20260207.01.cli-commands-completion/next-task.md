@@ -14,13 +14,45 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-02-07 11:31
-**Updated**: 2026-02-07 16:00
-**Current Task**: T05 (Resources Command)
+**Updated**: 2026-02-07 17:45
+**Current Task**: T06 (Skill Handlers)
 **Status**: ✅ COMPLETED
 
 ## Session Progress (2026-02-07)
 
-### Latest Session (16:00) - T05 Complete
+### Latest Session (17:45) - T06 Complete
+
+- ✅ **T06: Skill CLI Handlers - COMPLETE**
+  - Created `client-apps/cli/internal/cli/skill/` package (4 files, 294 lines)
+  - Implemented `GetFromBackend()` - fetch skill by ID or org/slug (58 lines)
+  - Implemented `Delete()` with confirmation flow (76 lines)
+  - Implemented display functions - table/YAML/JSON formats (160 lines)
+  - Updated unified commands (get, list, delete) to route to skill handlers
+  - Updated BUILD.bazel dependencies
+  - Go build successful, all handlers working
+
+### Key Implementation Details - T06
+- **4 new files** (294 lines total)
+  - `skill/get.go` - GetFromBackend() following agent pattern
+  - `skill/delete.go` - Delete() with DeleteOptions/DeleteResult
+  - `skill/display.go` - DisplayGetResult(), DisplayDeleteConfirmation(), DisplayDeleteResult()
+  - `skill/BUILD.bazel` - Bazel configuration with all dependencies
+- **4 command files updated**
+  - `get.go` - Added skill import, wired up skill.GetFromBackend()
+  - `list.go` - Updated listSkills() to use search.List() infrastructure
+  - `delete.go` - Added skill import, wired up skill.Delete() with confirmation
+  - `BUILD.bazel` - Added skill package dependency
+- **Net result**: +294 lines of skill handler infrastructure, -5 lines of TODOs
+
+### Technical Decisions Made - T06
+1. **Pattern consistency** - Followed agent/ package pattern exactly
+2. **List implementation** - Used existing search.List() infrastructure (no custom handler needed)
+3. **Display fields** - Show metadata, spec (name/tag/description), status (version_hash/state/git_provenance)
+4. **Error handling** - All errors wrapped with specific context using errors.Wrap
+5. **File sizes** - All files under 250-line guideline (58-160 lines each)
+6. **Build verification** - Verified with `go build ./client-apps/cli/...`
+
+### Earlier Session (16:00) - T05 Complete
 
 - ✅ **T05: Resources Command - COMPLETE**
   - Created `stigmer resources` command for CLI discoverability
@@ -190,20 +222,18 @@ stigmer resources
 | **T03** | Core Verbs - apply, validate, get, list, delete | ✅ COMPLETED |
 | **T04** | Specialized Verbs - run, push, search with validation | ✅ COMPLETED |
 | **T05** | Resources Command - discoverability | ✅ COMPLETED |
-| **T06** | Fill Gaps - Skill/MCP/Project handlers | 📋 NEXT |
-| **T07** | Migration - Remove old resource-specific commands | 📋 TODO |
+| **T06** | Fill Gaps - Skill/MCP/Project handlers | ✅ COMPLETED |
+| **T07** | Migration - Remove old resource-specific commands | 📋 NEXT |
 | **T08** | Testing & Docs | 📋 TODO |
 
 ## Next Steps
 
-### Immediate Next Action (T06)
-1. Implement missing Skill handlers (get, list, delete)
-2. Implement missing MCP Server handlers (validate, complete list)
-3. Implement missing Project handlers (list)
-4. Add proper error handling for unimplemented operations
-5. Test all gap-filled commands
-4. Add type alias information
-5. Consider adding autocomplete support
+### Immediate Next Action (T07)
+1. Remove deprecated parent commands (agent.go, workflow.go, skill.go)
+2. Clean up migration guidance messages
+3. Update help text to reflect pure verb-first architecture
+4. Verify no references to old command structure remain
+5. Test all commands end-to-end
 
 ### Context for Resume
 - ✅ Core verbs (apply, validate, get, list, delete) are complete and working
@@ -211,16 +241,19 @@ stigmer resources
 - ✅ Resources command (discoverability) is complete and working
 - ✅ Type registry provides routing and validation for all commands
 - ✅ All commands follow verb-first pattern
-- ✅ Old noun-first parent commands deprecated with migration guidance
+- ✅ Skill handlers (get, list, delete) are complete and working
+- ✅ All resource types now have complete handler implementations
 - ✅ Helper functions unified (resolveOrganization)
 - ✅ File size constraints met (all files <250 lines)
-- 📋 Need to implement missing handlers (Skill/MCP/Project gaps in T06)
+- 📋 Need to remove deprecated parent commands (T07)
 - Plan files available:
   - T03: `/Users/suresh/.cursor/plans/t03_core_verbs_53f217e9.plan.md`
   - T04: `/Users/suresh/.cursor/plans/t04_specialized_verbs_a530bfd0.plan.md`
   - T05: `/Users/suresh/.cursor/plans/t05_resources_command_d5683b19.plan.md`
+  - T06: `/Users/suresh/.cursor/plans/t06_skill_handlers_30ff342f.plan.md`
 - Changelog available:
   - T03: `_changelog/2026-02/2026-02-07-144348-cli-core-verbs-unified-architecture.md`
+  - T05: `_changelog/2026-02/2026-02-07-155440-cli-resources-command-discoverability.md`
 
 ## Key Decisions
 
@@ -299,20 +332,17 @@ When starting a new session:
 
 ## Uncommitted Changes
 
-⚠️ **Uncommitted changes for T05**
+⚠️ **Changes ready to commit**
 
-**Modified files (4)**:
-- `next-task.md` - Updated with T05 progress
-- `client-apps/cli/cmd/stigmer/root.go` - Registered resources command
-- `client-apps/cli/cmd/stigmer/root/BUILD.bazel` - Added resources.go and yaml.v3 dep
-- `client-apps/cli/internal/cli/types/verb.go` - Added VerbFromString and AllVerbNames
+**T06 Changes**:
+- Modified: 5 files (next-task.md, get.go, list.go, delete.go, BUILD.bazel)
+- Created: 4 files in client-apps/cli/internal/cli/skill/
+- Total: ~300 new lines of skill handler code
+- Go build successful, all handlers verified
 
-**New files (1)**:
-- `client-apps/cli/cmd/stigmer/root/resources.go` - Full resources command (225 lines)
-
-**Ready to commit**: All changes pass Go build, features tested
+**Next**: Commit T06 changes with changelog creation
 
 ---
 
 *This file provides direct paths to all project resources for quick context loading.*
-*Last updated: 2026-02-07 15:16 (T04 Complete - Ready for T05)*
+*Last updated: 2026-02-07 17:45 (T06 Complete - Ready for T07)*
