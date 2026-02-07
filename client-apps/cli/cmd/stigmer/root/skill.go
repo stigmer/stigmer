@@ -10,162 +10,42 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 )
 
-// NewSkillCommand creates the skill management command group
+// NewSkillCommand creates a deprecated skill command group.
+// All skill commands have been migrated to verb-first pattern.
 func NewSkillCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "skill",
-		Short: "Manage skills",
-		Long: `Manage skill artifacts for AI agents.
+		Use:        "skill",
+		Aliases:    []string{"skl"},
+		Short:      "[DEPRECATED] Use verb-first commands instead",
+		Deprecated: "All skill commands have been migrated to verb-first pattern.",
+		Long: `DEPRECATED: All skill commands have been migrated to verb-first pattern.
 
-Skills are reusable capabilities that extend agent functionality.
-Each skill is a directory containing a SKILL.md definition file
-and supporting implementation files.
+Use these commands instead:
 
-Skills are versioned and stored in the Stigmer registry. They can be
-referenced by agents using tags (e.g., "latest", "v1.0") or exact
-version hashes for reproducible deployments.`,
-	}
+  stigmer push skill [path]        # Push skill artifact to registry
+  stigmer get skill <name>         # Get skill details
+  stigmer list skills              # List all skills
+  stigmer delete skill <name>      # Delete a skill
 
-	cmd.AddCommand(newSkillPushCommand())
-	// Future: cmd.AddCommand(newSkillListCommand())
-	// Future: cmd.AddCommand(newSkillGetCommand())
-	// Future: cmd.AddCommand(newSkillDeleteCommand())
-
-	return cmd
-}
-
-// newSkillPushCommand creates the skill push subcommand
-func newSkillPushCommand() *cobra.Command {
-	var tag string
-	var orgOverride string
-	var dryRun bool
-	var gitURL string
-	var gitRef string
-	var gitSubdir string
-	var ignorePatterns []string
-	var includePatterns []string
-	var noGitignore bool
-	var verbose bool
-
-	cmd := &cobra.Command{
-		Use:   "push [directory]",
-		Short: "Push a skill artifact to the registry",
-		Long: `Push a skill directory as an artifact to the Stigmer registry.
-
-The directory must contain a SKILL.md file with YAML frontmatter defining
-the skill name. Files are filtered using gitignore-compatible patterns with
-layered precedence:
-
-  1. Built-in security defaults (credentials, .git, node_modules, etc.)
-  2. .gitignore patterns (if present and --no-gitignore not set)
-  3. .stigmerignore patterns (Stigmer-specific overrides)
-  4. CLI --ignore flags
-  5. CLI --include flags (highest priority, force includes)
-
-Use negation patterns (e.g., "!.env.example") to include files that would
-otherwise be excluded.
-
-The skill name is extracted from the SKILL.md YAML frontmatter 'name' field.
-A SHA256 hash is calculated from the artifact contents for content-addressable
-storage and deduplication.
-
-SOURCE MODES:
-  Local Push:  Push from a local directory (default). Git info is auto-detected.
-  Remote Push: Push directly from a GitHub URL using --git-url flag.`,
-		Example: `  # Push skill from current directory
-  stigmer skill push
-
-  # Push skill from specific directory
-  stigmer skill push ./my-skill/
-
-  # Push with a specific tag
-  stigmer skill push --tag v1.0.0
-
-  # Push to a specific organization
-  stigmer skill push --org my-org
-
-  # Push from a GitHub repository
-  stigmer skill push --git-url https://github.com/stigmer/skills.git --git-ref v1.0.0 --subdir skills/calculator
-
-  # Dry run (validate without pushing)
-  stigmer skill push --dry-run
-
-  # Ignore additional patterns
-  stigmer skill push --ignore "*.tmp" --ignore "draft/**"
-
-  # Force include specific files that would be ignored
-  stigmer skill push --include ".env.example"
-
-  # Don't respect .gitignore patterns
-  stigmer skill push --no-gitignore
-
-  # Show verbose output with ignore decisions
-  stigmer skill push --verbose`,
-		Args: cobra.MaximumNArgs(1),
+The verb-first pattern provides consistency across all resource types
+and better discoverability.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			var result *artifact.SkillArtifactResult
-			var err error
-
-			// Check if remote push mode (--git-url provided)
-			if gitURL != "" {
-				result, err = executeRemoteSkillPush(remotePushOptions{
-					GitURL:          gitURL,
-					GitRef:          gitRef,
-					GitSubdir:       gitSubdir,
-					Tag:             tag,
-					OrgOverride:     orgOverride,
-					DryRun:          dryRun,
-					IgnorePatterns:  ignorePatterns,
-					IncludePatterns: includePatterns,
-					NoGitignore:     noGitignore,
-					Verbose:         verbose,
-				})
-			} else {
-				// Local push mode
-				directory, dirErr := resolveSkillDirectory(args)
-				clierr.Handle(dirErr)
-
-				result, err = executeSkillPush(skillPushOptions{
-					Directory:       directory,
-					Tag:             tag,
-					OrgOverride:     orgOverride,
-					DryRun:          dryRun,
-					IgnorePatterns:  ignorePatterns,
-					IncludePatterns: includePatterns,
-					NoGitignore:     noGitignore,
-					Verbose:         verbose,
-				})
-			}
-			clierr.Handle(err)
-
-			// Display result
-			if !dryRun && result != nil {
-				displaySkillPushResult(result)
-			}
+			fmt.Println()
+			fmt.Println("DEPRECATED: All skill commands have been migrated to verb-first pattern.")
+			fmt.Println()
+			fmt.Println("Use these commands instead:")
+			fmt.Println("  stigmer push skill [path]        # Push skill artifact to registry")
+			fmt.Println("  stigmer get skill <name>         # Get skill details")
+			fmt.Println("  stigmer list skills              # List all skills")
+			fmt.Println("  stigmer delete skill <name>      # Delete a skill")
+			fmt.Println()
 		},
 	}
-
-	// Core flags
-	cmd.Flags().StringVar(&tag, "tag", "latest", "version tag for the skill")
-	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID (overrides context)")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate without pushing")
-
-	// Git source flags
-	cmd.Flags().StringVar(&gitURL, "git-url", "", "push from a remote git repository URL")
-	cmd.Flags().StringVar(&gitRef, "git-ref", "", "git reference (tag, branch, or commit SHA) for remote push")
-	cmd.Flags().StringVar(&gitSubdir, "subdir", "", "subdirectory within git repository containing SKILL.md")
-
-	// Ignore filtering flags
-	cmd.Flags().StringArrayVar(&ignorePatterns, "ignore", nil, "additional patterns to ignore (can be repeated)")
-	cmd.Flags().StringArrayVar(&includePatterns, "include", nil, "patterns to force-include (can be repeated)")
-	cmd.Flags().BoolVar(&noGitignore, "no-gitignore", false, "don't respect .gitignore patterns")
-	cmd.Flags().BoolVar(&verbose, "verbose", false, "show detailed output including ignore decisions")
 
 	return cmd
 }
@@ -194,19 +74,6 @@ type remotePushOptions struct {
 	IncludePatterns []string
 	NoGitignore     bool
 	Verbose         bool
-}
-
-// resolveSkillDirectory determines the skill directory from args or current directory
-func resolveSkillDirectory(args []string) (string, error) {
-	if len(args) > 0 {
-		return args[0], nil
-	}
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current directory: %w", err)
-	}
-	return cwd, nil
 }
 
 // executeRemoteSkillPush handles pushing a skill from a remote git repository
@@ -513,32 +380,6 @@ func executeSkillPush(opts skillPushOptions) (*artifact.SkillArtifactResult, err
 	}
 
 	return result, nil
-}
-
-// resolveOrganization determines the organization ID based on backend type and overrides
-func resolveOrganization(cfg *config.Config, orgOverride string) (string, error) {
-	switch cfg.Backend.Type {
-	case config.BackendTypeLocal:
-		orgID := "local"
-		cliprint.PrintInfo("Using local backend (organization: %s)", orgID)
-		return orgID, nil
-
-	case config.BackendTypeCloud:
-		if orgOverride != "" {
-			cliprint.PrintInfo("Using organization from flag: %s", orgOverride)
-			return orgOverride, nil
-		}
-
-		if cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
-			cliprint.PrintInfo("Using organization from context: %s", cfg.Backend.Cloud.OrgID)
-			return cfg.Backend.Cloud.OrgID, nil
-		}
-
-		return "", fmt.Errorf("organization not set for cloud mode\n\nUse --org flag or run: stigmer context set --org <org-id>")
-
-	default:
-		return "", fmt.Errorf("unknown backend type: %s", cfg.Backend.Type)
-	}
 }
 
 // displaySkillPushResult displays the result of a successful skill push

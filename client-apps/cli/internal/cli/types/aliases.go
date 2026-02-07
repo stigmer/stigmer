@@ -28,10 +28,10 @@ func GenerateAliases(name, displayName, idPrefix string) []string {
 	}
 
 	// From name: "McpServer"
-	addAlias(strings.ToLower(name))  // "mcpserver"
-	addAlias(toKebabCase(name))      // "mcp-server"
-	addAlias(toSnakeCase(name))      // "mcp_server"
-	addAlias(name)                   // "McpServer"
+	addAlias(strings.ToLower(name)) // "mcpserver"
+	addAlias(toKebabCase(name))     // "mcp-server"
+	addAlias(toSnakeCase(name))     // "mcp_server"
+	addAlias(name)                  // "McpServer"
 
 	// From display_name: "MCP Server"
 	words := strings.Fields(displayName)
