@@ -14,13 +14,43 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-02-07 11:31
-**Updated**: 2026-02-07 15:16
-**Current Task**: T04 (Specialized Verbs Migration)
+**Updated**: 2026-02-07 16:00
+**Current Task**: T05 (Resources Command)
 **Status**: ✅ COMPLETED
 
 ## Session Progress (2026-02-07)
 
-### Latest Session (15:16) - T04 Complete
+### Latest Session (16:00) - T05 Complete
+
+- ✅ **T05: Resources Command - COMPLETE**
+  - Created `stigmer resources` command for CLI discoverability
+  - Supports table/yaml/json output formats
+  - Implements `--verb` filter to show types supporting specific verbs
+  - Added `VerbFromString()` and `AllVerbNames()` to types package
+  - Registry-driven (no hardcoded resource lists)
+  - Clean table formatting with aliases and verb support
+  - Comprehensive help text with examples
+  - Go build successful, all formats tested
+
+### Key Implementation Details - T05
+- **1 new command file** (225 lines)
+  - `resources.go` - Full command implementation
+- **1 updated types file** (+36 lines)
+  - `verb.go` - Added verb parsing and name functions
+- **2 config files updated**
+  - `root.go` - Registered resources command
+  - `BUILD.bazel` - Added yaml.v3 dependency
+- **Net result**: +261 lines of discoverability infrastructure
+
+### Technical Decisions Made - T05
+1. **Command name** - `resources` (kubectl-aligned, domain-appropriate)
+2. **Output formats** - Support table/yaml/json for programmatic use
+3. **Verb filtering** - Enable `--verb` flag to filter by operation
+4. **Alias display** - Show only useful aliases in table (ID prefix + plural)
+5. **Full metadata** - Include all aliases in JSON/YAML for completeness
+6. **Error messaging** - Clear errors for invalid verbs with available options
+
+### Earlier Session (15:16) - T04 Complete
 
 - ✅ **T04: Specialized Verbs Migration - COMPLETE**
   - Created 3 unified specialized verb commands: `run`, `search`, `push`
@@ -159,33 +189,36 @@ stigmer resources
 | **T02** | Type Registry - resource types, verb support matrix, YAML detection | ✅ COMPLETED |
 | **T03** | Core Verbs - apply, validate, get, list, delete | ✅ COMPLETED |
 | **T04** | Specialized Verbs - run, push, search with validation | ✅ COMPLETED |
-| **T05** | Resources Command - discoverability | 📋 NEXT |
-| **T06** | Fill Gaps - Skill/MCP/Project handlers | 📋 TODO |
+| **T05** | Resources Command - discoverability | ✅ COMPLETED |
+| **T06** | Fill Gaps - Skill/MCP/Project handlers | 📋 NEXT |
 | **T07** | Migration - Remove old resource-specific commands | 📋 TODO |
 | **T08** | Testing & Docs | 📋 TODO |
 
 ## Next Steps
 
-### Immediate Next Action (T05)
-1. Create `stigmer resources` command for discoverability
-2. Show all available resource types and supported verbs
-3. Provide helpful examples for each verb
+### Immediate Next Action (T06)
+1. Implement missing Skill handlers (get, list, delete)
+2. Implement missing MCP Server handlers (validate, complete list)
+3. Implement missing Project handlers (list)
+4. Add proper error handling for unimplemented operations
+5. Test all gap-filled commands
 4. Add type alias information
 5. Consider adding autocomplete support
 
 ### Context for Resume
 - ✅ Core verbs (apply, validate, get, list, delete) are complete and working
 - ✅ Specialized verbs (run, push, search) are complete and working
+- ✅ Resources command (discoverability) is complete and working
 - ✅ Type registry provides routing and validation for all commands
 - ✅ All commands follow verb-first pattern
 - ✅ Old noun-first parent commands deprecated with migration guidance
 - ✅ Helper functions unified (resolveOrganization)
 - ✅ File size constraints met (all files <250 lines)
-- 📋 Need to add resources command for discoverability (T05)
 - 📋 Need to implement missing handlers (Skill/MCP/Project gaps in T06)
 - Plan files available:
   - T03: `/Users/suresh/.cursor/plans/t03_core_verbs_53f217e9.plan.md`
   - T04: `/Users/suresh/.cursor/plans/t04_specialized_verbs_a530bfd0.plan.md`
+  - T05: `/Users/suresh/.cursor/plans/t05_resources_command_d5683b19.plan.md`
 - Changelog available:
   - T03: `_changelog/2026-02/2026-02-07-144348-cli-core-verbs-unified-architecture.md`
 
@@ -254,53 +287,32 @@ When starting a new session:
 
 ## Quick Commands
 
-- "Continue with T05" - Start implementing resources command for discoverability
+- "Continue with T06" - Start implementing missing Skill/MCP/Project handlers
+- "Show T05 plan" - Review t05_resources_command_d5683b19.plan.md
 - "Show T04 plan" - Review t04_specialized_verbs_a530bfd0.plan.md
-- "Show T03 plan" - Review t03_core_verbs_53f217e9.plan.md
 - "What was accomplished?" - Read changelog at `_changelog/2026-02/2026-02-07-144348-cli-core-verbs-unified-architecture.md`
 
 ---
 
 *This file provides direct paths to all project resources for quick context loading.*
-*Last updated: 2026-02-07 15:16 (T04 Complete - Ready for T05)*
+*Last updated: 2026-02-07 16:00 (T05 Complete - Ready for T06)*
 
 ## Uncommitted Changes
 
-⚠️ **51 files with uncommitted changes** (ready to commit):
-- T03 changes: 10 modified, 6 created, 13 deleted (-1,549 lines)
-- T04 changes: 6 modified, 4 created, 5 deleted (-483 lines)
-- Total: Net -2,032 lines (47% code reduction across T03+T04)
+⚠️ **Uncommitted changes for T05**
 
-### Files Modified/Created in T04
-```
-Modified (6):
-  - cmd/stigmer/root.go (registered search, push commands)
-  - cmd/stigmer/root/agent.go (deprecated, shows migration guidance)
-  - cmd/stigmer/root/workflow.go (deprecated, shows migration guidance)
-  - cmd/stigmer/root/skill.go (deprecated, removed push subcommand)
-  - cmd/stigmer/root/run.go (replaced old auto-discovery with verb-first)
-  - cmd/stigmer/root/run_resolve.go (removed unused functions)
-  - cmd/stigmer/root/verb_helpers.go (added resolveOrganization)
-  - cmd/stigmer/root/agent_search.go (updated to use resolveOrganization)
-  - cmd/stigmer/root/workflow_search.go (updated to use resolveOrganization)
+**Modified files (4)**:
+- `next-task.md` - Updated with T05 progress
+- `client-apps/cli/cmd/stigmer/root.go` - Registered resources command
+- `client-apps/cli/cmd/stigmer/root/BUILD.bazel` - Added resources.go and yaml.v3 dep
+- `client-apps/cli/internal/cli/types/verb.go` - Added VerbFromString and AllVerbNames
 
-Created (4):
-  - cmd/stigmer/root/search.go (182 lines)
-  - cmd/stigmer/root/push.go (210 lines)
-  - cmd/stigmer/root/run_handlers.go (96 lines)
-  - checkpoints/2026-02-07-session-2.md (this file)
+**New files (1)**:
+- `client-apps/cli/cmd/stigmer/root/resources.go` - Full resources command (225 lines)
 
-Deleted (5):
-  - cmd/stigmer/root/agent_run.go
-  - cmd/stigmer/root/workflow_run.go
-  - cmd/stigmer/root/agent_search.go
-  - cmd/stigmer/root/workflow_search.go
-  - cmd/stigmer/root/run_execute.go
-```
-
-Changes verified and ready for commit. Consider committing T03+T04 together as a complete verb-first migration.
+**Ready to commit**: All changes pass Go build, features tested
 
 ---
 
 *This file provides direct paths to all project resources for quick context loading.*
-*Last updated: 2026-02-07 14:44 (T03 Complete - Ready for T04)*
+*Last updated: 2026-02-07 15:16 (T04 Complete - Ready for T05)*

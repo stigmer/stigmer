@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 // Verb represents a CLI operation that can be performed on a resource.
 type Verb string
 
@@ -62,4 +64,39 @@ func (v Verb) IsReferenceBasedVerb() bool {
 // IsListVerb returns true if the verb lists resources.
 func (v Verb) IsListVerb() bool {
 	return v == VerbList
+}
+
+// VerbFromString parses a string into a Verb.
+// Returns an error if the string is not a valid verb.
+func VerbFromString(s string) (Verb, error) {
+	switch s {
+	case "apply":
+		return VerbApply, nil
+	case "validate":
+		return VerbValidate, nil
+	case "get":
+		return VerbGet, nil
+	case "list":
+		return VerbList, nil
+	case "delete":
+		return VerbDelete, nil
+	case "run":
+		return VerbRun, nil
+	case "push":
+		return VerbPush, nil
+	case "search":
+		return VerbSearch, nil
+	default:
+		return "", fmt.Errorf("unknown verb: %s", s)
+	}
+}
+
+// AllVerbNames returns all verb names as strings.
+func AllVerbNames() []string {
+	verbs := AllVerbs()
+	names := make([]string, len(verbs))
+	for i, v := range verbs {
+		names[i] = v.String()
+	}
+	return names
 }

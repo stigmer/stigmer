@@ -15,6 +15,7 @@ go_library(
         "internal.go",
         "list.go",
         "new.go",
+        "resources.go",
         "run.go",
         "run_approval.go",
         "run_create.go",
@@ -68,6 +69,7 @@ go_library(
         "@com_github_alecaivazis_survey_v2//:survey",
         "@com_github_pkg_errors//:errors",
         "@com_github_spf13_cobra//:cobra",
+        "@in_gopkg_yaml_v3//:yaml_v3",
         "@org_golang_google_grpc//:grpc",
     ],
 )
