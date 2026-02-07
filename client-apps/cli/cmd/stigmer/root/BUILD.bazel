@@ -6,6 +6,7 @@ go_library(
         "apply.go",
         "apply_file.go",
         "backend.go",
+        "completion.go",
         "config.go",
         "delete.go",
         "get.go",
@@ -73,15 +74,19 @@ go_library(
 go_test(
     name = "root_test",
     srcs = [
+        "routing_test.go",
         "run_approval_test.go",
         "run_display_approval_test.go",
         "run_display_test.go",
         "run_stream_approval_test.go",
+        "verb_support_test.go",
     ],
     embed = [":root"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "//apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1:workflowexecution",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//client-apps/cli/internal/cli/types",
         "//client-apps/cli/pkg/approval",
         "@com_github_fatih_color//:color",
     ],

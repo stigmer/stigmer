@@ -58,6 +58,9 @@ func init() {
 	// Discoverability command (T05)
 	rootCmd.AddCommand(root.NewResourcesCommand())
 
+	// Shell completion (T08)
+	rootCmd.AddCommand(root.NewCompletionCommand())
+
 	// Add hidden internal commands (used by daemon for BusyBox pattern)
 	rootCmd.AddCommand(root.NewInternalServerCommand())
 	rootCmd.AddCommand(root.NewInternalWorkflowRunnerCommand())
