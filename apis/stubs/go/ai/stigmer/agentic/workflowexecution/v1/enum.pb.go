@@ -43,10 +43,15 @@ const (
 // EXECUTION_PENDING → EXECUTION_CANCELLED
 // EXECUTION_IN_PROGRESS → EXECUTION_CANCELLED
 //
+// Termination flow (force stop):
+// EXECUTION_PENDING → EXECUTION_TERMINATED
+// EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED
+//
 // Terminal States:
 // - EXECUTION_COMPLETED: Workflow finished successfully
 // - EXECUTION_FAILED: Workflow encountered an error
-// - EXECUTION_CANCELLED: Workflow was stopped by user or system
+// - EXECUTION_CANCELLED: Workflow was stopped gracefully by user or system
+// - EXECUTION_TERMINATED: Workflow was force-stopped immediately
 //
 // Once a workflow reaches a terminal state, it cannot transition to another phase.
 type ExecutionPhase int32
@@ -62,7 +67,7 @@ const (
 	//
 	// Typical duration: < 1 second (unless workflow runner is overloaded)
 	//
-	// Next phases: EXECUTION_IN_PROGRESS, EXECUTION_CANCELLED
+	// Next phases: EXECUTION_IN_PROGRESS, EXECUTION_CANCELLED, EXECUTION_TERMINATED
 	ExecutionPhase_EXECUTION_PENDING ExecutionPhase = 1
 	// Execution is actively running tasks.
 	//
@@ -76,7 +81,7 @@ const (
 	//
 	// Typical duration: Seconds to hours (depends on workflow complexity)
 	//
-	// Next phases: EXECUTION_COMPLETED, EXECUTION_FAILED, EXECUTION_CANCELLED
+	// Next phases: EXECUTION_COMPLETED, EXECUTION_FAILED, EXECUTION_CANCELLED, EXECUTION_TERMINATED
 	ExecutionPhase_EXECUTION_IN_PROGRESS ExecutionPhase = 2
 	// Execution completed successfully.
 	//
@@ -142,6 +147,33 @@ const (
 	// - Cancelled: User or system intentionally stopped the workflow
 	// - Failed: Workflow encountered an error during execution
 	ExecutionPhase_EXECUTION_CANCELLED ExecutionPhase = 5
+	// Execution was force-stopped immediately.
+	//
+	// Unlike CANCELLED (graceful stop with cleanup opportunity), TERMINATED
+	// means the workflow was killed immediately without giving workflow code
+	// a chance to clean up. This is used for stuck or unresponsive workflows.
+	//
+	// Terminal state - execution will not change phases again.
+	//
+	// When this phase is reached:
+	// - completed_at timestamp is set
+	// - error field may contain termination reason
+	// - In-progress tasks are stopped abruptly
+	// - No cleanup callbacks are executed
+	//
+	// Use Cases:
+	// - Force-stop stuck workflows that don't respond to cancellation
+	// - Emergency stop for workflows consuming excessive resources
+	// - Kill workflows with infinite loops or deadlocks
+	//
+	// Terminated vs Cancelled:
+	// - Terminated: Immediate kill, no cleanup, use when workflow is unresponsive
+	// - Cancelled: Graceful stop, cleanup allowed, use when you want controlled shutdown
+	//
+	// Recovery:
+	// - Terminated executions CANNOT be recovered (unlike FAILED)
+	// - Use terminate only when cancel doesn't work
+	ExecutionPhase_EXECUTION_TERMINATED ExecutionPhase = 6
 )
 
 // Enum value maps for ExecutionPhase.
@@ -153,6 +185,7 @@ var (
 		3: "EXECUTION_COMPLETED",
 		4: "EXECUTION_FAILED",
 		5: "EXECUTION_CANCELLED",
+		6: "EXECUTION_TERMINATED",
 	}
 	ExecutionPhase_value = map[string]int32{
 		"EXECUTION_PHASE_UNSPECIFIED": 0,
@@ -161,6 +194,7 @@ var (
 		"EXECUTION_COMPLETED":         3,
 		"EXECUTION_FAILED":            4,
 		"EXECUTION_CANCELLED":         5,
+		"EXECUTION_TERMINATED":        6,
 	}
 )
 
@@ -693,14 +727,15 @@ var File_ai_stigmer_agentic_workflowexecution_v1_enum_proto protoreflect.FileDes
 
 const file_ai_stigmer_agentic_workflowexecution_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x12'ai.stigmer.agentic.workflowexecution.v1*\xab\x01\n" +
+	"2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x12'ai.stigmer.agentic.workflowexecution.v1*\xc5\x01\n" +
 	"\x0eExecutionPhase\x12\x1f\n" +
 	"\x1bEXECUTION_PHASE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11EXECUTION_PENDING\x10\x01\x12\x19\n" +
 	"\x15EXECUTION_IN_PROGRESS\x10\x02\x12\x17\n" +
 	"\x13EXECUTION_COMPLETED\x10\x03\x12\x14\n" +
 	"\x10EXECUTION_FAILED\x10\x04\x12\x17\n" +
-	"\x13EXECUTION_CANCELLED\x10\x05*\x84\x02\n" +
+	"\x13EXECUTION_CANCELLED\x10\x05\x12\x18\n" +
+	"\x14EXECUTION_TERMINATED\x10\x06*\x84\x02\n" +
 	"\x10WorkflowTaskType\x12\"\n" +
 	"\x1eWORKFLOW_TASK_TYPE_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eWORKFLOW_TASK_AGENT_INVOCATION\x10\x01\x12\x1a\n" +
