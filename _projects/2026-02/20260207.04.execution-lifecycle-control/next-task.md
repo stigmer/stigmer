@@ -68,11 +68,50 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-07 13:52
-**Current Task**: T1 (Add EXECUTION_TERMINATED enum)
+**Current Task**: T2 (Add cancel/terminate/recover RPCs)
 **Status**: Ready to Start
-**Last Session**: 2026-02-07 17:03
+**Last Session**: 2026-02-07 17:24
 
-## Session Progress (2026-02-07)
+## Session Progress (2026-02-07 17:24)
+
+### ✅ Completed: T1 - Add EXECUTION_TERMINATED Enum
+
+**Accomplishments**:
+- ✅ Added `EXECUTION_TERMINATED = 6` to ExecutionPhase enum
+- ✅ Updated phase transition diagrams in header comments
+- ✅ Added comprehensive documentation (28 lines) explaining terminated vs cancelled semantics
+- ✅ Regenerated Go stubs with new enum constant
+- ✅ Regenerated Python stubs with new enum constant
+- ✅ Verified bazel build passes (23 targets)
+- ✅ Created comprehensive changelog documenting the change
+- ✅ Committed with conventional commit message
+
+**Key Decisions**:
+1. **Enum value = 6**: Next sequential value after CANCELLED = 5
+2. **Scope limited to workflowexecution**: Deferred agentexecution to separate task per user decision
+3. **CLI display deferred**: Will be updated in T5 when terminate command exists
+4. **Semantic clarity emphasized**: Documentation highlights terminated (hard stop) vs cancelled (graceful)
+
+**Code Changes**:
+- **Proto file**: `enum.proto` (+39 lines documentation and enum value)
+- **Go stubs**: `enum.pb.go` (+45 lines with generated constants and maps)
+- **Python stubs**: `enum_pb2.py`, `enum_pb2.pyi` (+2 lines)
+- **Commit**: `544360a9` - "feat(apis/workflowexecution): add EXECUTION_TERMINATED phase enum"
+- **Changelog**: `_changelog/2026-02/2026-02-07-172411-execution-terminated-enum.md`
+
+**Documentation Quality**:
+- Matches depth and style of existing enum values (CANCELLED, FAILED)
+- Clear "Terminated vs Cancelled" comparison section
+- Explicit recovery limitations noted
+- Use cases well-defined (stuck workflows, resource consumption, infinite loops)
+
+**Verification**:
+- ✅ `buf lint` passed
+- ✅ `buf format` passed
+- ✅ Go stubs contain `ExecutionPhase_EXECUTION_TERMINATED = 6`
+- ✅ Python stubs contain `EXECUTION_TERMINATED` constant
+- ✅ `bazel build //apis/stubs/...` succeeded
+- ✅ Pre-commit hooks passed
 
 ### ✅ Completed: T0 - WorkflowRunner Cleanup
 
@@ -109,25 +148,31 @@ When starting a new session:
 
 ## Next Steps
 
-### Immediate Next Task: T1 - Add EXECUTION_TERMINATED Enum
+### Immediate Next Task: T2 - Add cancel/terminate/recover RPCs
 
-**File**: `tasks/T01_2_final_plan.md` (Phase 1, Task 1)
+**File**: `tasks/T01_2_final_plan.md` (Phase 1, Task 2)
 
 **What to do**:
-1. Add `EXECUTION_TERMINATED = 9` to `apis/ai/stigmer/agentic/workflowexecution/v1/enum.proto`
-2. Add detailed documentation explaining terminated vs completed/failed/cancelled
+1. Add three new RPCs to `apis/ai/stigmer/agentic/workflowexecution/v1/command.proto`:
+   - `rpc cancel(CancelWorkflowExecutionInput) returns (WorkflowExecution);`
+   - `rpc terminate(TerminateWorkflowExecutionInput) returns (WorkflowExecution);`
+   - `rpc recover(RecoverWorkflowExecutionInput) returns (WorkflowExecution);`
+2. Add comprehensive documentation for each RPC explaining:
+   - What operation does (cancel: graceful, terminate: immediate, recover: from checkpoint)
+   - Temporal equivalent (CancelWorkflow, TerminateWorkflow, ResetWorkflow)
+   - Idempotency behavior
+   - Required preconditions (e.g., recover requires FAILED phase)
 3. Regenerate stubs: `cd apis && make build`
 4. Verify build: `bazel build //apis/stubs/...`
-5. Update any related constants or mappings if needed
 
-**Context**: T0 cleanup is complete. Foundation is now clean for adding user-facing lifecycle controls.
+**Context**: T1 enum foundation is complete. T2 adds the RPC signatures, T3 adds the IO messages.
 
 ### Following Tasks
 
 ```
 ✅ T0: Remove WorkflowRunner gRPC interface (COMPLETED)
-→  T1: Add EXECUTION_TERMINATED enum (NEXT)
-   T2: Add cancel/terminate/recover RPCs
+✅ T1: Add EXECUTION_TERMINATED enum (COMPLETED)
+→  T2: Add cancel/terminate/recover RPCs (NEXT)
    T3: Add IO messages
    T4: Implement backend handlers
    T5: Add CLI commands
@@ -159,28 +204,50 @@ When starting a new session:
 
 ## Context for Resume
 
-**Clean foundation established**:
-- Dual control plane eliminated (T0)
-- WorkflowRunner is now a pure Temporal worker
-- All lifecycle control will be at Stigmer service level
-- ~4,900 lines of dead code removed
-- Build verified and passing
+**Foundation established**:
+- ✅ Dual control plane eliminated (T0)
+- ✅ WorkflowRunner is now a pure Temporal worker
+- ✅ EXECUTION_TERMINATED enum added (T1)
+- ✅ All lifecycle control will be at Stigmer service level
+- ✅ ~4,900 lines of dead code removed
+- ✅ Build verified and passing
 
 **Lessons Learned**:
 1. Always check for pre-existing test failures before assuming new code broke things
 2. Bazel visibility rules need careful attention when refactoring package boundaries
 3. Complete deletion is clearer than gradual deprecation when there are no active users
 4. Proto stub regeneration uses `make build` from `apis/` directory, not direct `buf` commands
+5. **T1 specific**: Enum documentation should match depth/style of existing values for consistency
 
-**No Blockers**: T1 is straightforward proto enum addition
+**Quality Standards Applied**:
+- Documentation matched existing enum value depth (CANCELLED: 23 lines, TERMINATED: 28 lines)
+- Clear semantic distinctions emphasized in comments
+- Phase transition diagrams updated comprehensively
+- All verification steps completed before committing
+
+**No Blockers**: T2 (RPC definitions) can proceed immediately
 
 ## Quick Commands
 
 After loading context:
-- "Start T1" - Add EXECUTION_TERMINATED enum
+- "Start T2" - Add cancel/terminate/recover RPCs
 - "Continue with the plan" - Resume with next task
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
+
+## Session Summary (2026-02-07 17:24)
+
+**Time**: ~15 minutes  
+**Task Completed**: T1 - Add EXECUTION_TERMINATED enum  
+**Files Changed**: 5 files (1 proto, 2 Go stubs, 2 Python stubs, 1 changelog)  
+**Lines Added**: +98 (net: +84)  
+**Commit**: `544360a9`
+
+**Quality Highlights**:
+- Comprehensive documentation (28 lines) with clear semantic distinctions
+- All verification steps passed (lint, format, build)
+- Changelog created documenting rationale and context
+- Ready for T2 (RPC definitions)
 
 ---
 
