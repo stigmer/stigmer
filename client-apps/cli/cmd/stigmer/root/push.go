@@ -6,9 +6,14 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/skill"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
+	"google.golang.org/grpc"
 )
 
 // NewPushCommand creates the unified push command for pushing artifacts.
@@ -157,53 +162,104 @@ func executePush(opts pushOptions) error {
 
 // pushSkill handles skill push operations.
 func pushSkill(opts pushOptions) error {
-	var result *artifact.SkillArtifactResult
-	var err error
-
-	// Check if remote push mode (--git-url provided)
-	if opts.GitURL != "" {
-		result, err = executeRemoteSkillPush(remotePushOptions{
-			GitURL:          opts.GitURL,
-			GitRef:          opts.GitRef,
-			GitSubdir:       opts.GitSubdir,
-			Tag:             opts.Tag,
-			OrgOverride:     opts.OrgOverride,
-			DryRun:          opts.DryRun,
-			IgnorePatterns:  opts.IgnorePatterns,
-			IncludePatterns: opts.IncludePatterns,
-			NoGitignore:     opts.NoGitignore,
-			Verbose:         opts.Verbose,
-		})
-	} else {
-		// Local push mode - resolve directory
-		directory := opts.Path
-		if directory == "" {
-			cwd, dirErr := os.Getwd()
-			if dirErr != nil {
-				return fmt.Errorf("failed to get current directory: %w", dirErr)
-			}
-			directory = cwd
-		}
-
-		result, err = executeSkillPush(skillPushOptions{
-			Directory:       directory,
-			Tag:             opts.Tag,
-			OrgOverride:     opts.OrgOverride,
-			DryRun:          opts.DryRun,
-			IgnorePatterns:  opts.IgnorePatterns,
-			IncludePatterns: opts.IncludePatterns,
-			NoGitignore:     opts.NoGitignore,
-			Verbose:         opts.Verbose,
-		})
-	}
-
+	// Step 1: Load backend configuration
+	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	// Display result
+	// Step 2: Determine organization
+	orgID, err := resolveOrganization(cfg, opts.OrgOverride)
+	if err != nil {
+		return err
+	}
+
+	// Step 3: Ensure daemon is running (local mode only)
+	if cfg.Backend.Type == config.BackendTypeLocal {
+		dataDir, err := config.GetDataDir()
+		if err != nil {
+			return err
+		}
+
+		if err := daemon.EnsureRunning(dataDir); err != nil {
+			return err
+		}
+	}
+
+	// Step 4: Connect to backend
+	cliprint.PrintInfo("Connecting to backend...")
+
+	conn, err := backend.NewConnection()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	cliprint.PrintSuccess("✓ Connected to backend")
+	fmt.Println()
+
+	// Step 5: Execute push based on mode
+	if opts.GitURL != "" {
+		return pushSkillRemote(opts, orgID, conn)
+	}
+	return pushSkillLocal(opts, orgID, conn)
+}
+
+// pushSkillLocal handles local directory push.
+func pushSkillLocal(opts pushOptions, orgID string, conn *grpc.ClientConn) error {
+	// Resolve directory
+	directory := opts.Path
+	if directory == "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get current directory: %w", err)
+		}
+		directory = cwd
+	}
+
+	result, err := skill.Push(skill.PushOptions{
+		Directory:       directory,
+		OrgID:           orgID,
+		Tag:             opts.Tag,
+		DryRun:          opts.DryRun,
+		IgnorePatterns:  opts.IgnorePatterns,
+		IncludePatterns: opts.IncludePatterns,
+		NoGitignore:     opts.NoGitignore,
+		Verbose:         opts.Verbose,
+		Conn:            conn,
+	})
+	if err != nil {
+		return err
+	}
+
 	if !opts.DryRun && result != nil {
-		displaySkillPushResult(result)
+		skill.DisplayPushResult(result)
+	}
+
+	return nil
+}
+
+// pushSkillRemote handles remote git repository push.
+func pushSkillRemote(opts pushOptions, orgID string, conn *grpc.ClientConn) error {
+	result, err := skill.PushRemote(skill.RemotePushOptions{
+		GitURL:          opts.GitURL,
+		GitRef:          opts.GitRef,
+		GitSubdir:       opts.GitSubdir,
+		OrgID:           orgID,
+		Tag:             opts.Tag,
+		DryRun:          opts.DryRun,
+		IgnorePatterns:  opts.IgnorePatterns,
+		IncludePatterns: opts.IncludePatterns,
+		NoGitignore:     opts.NoGitignore,
+		Verbose:         opts.Verbose,
+		Conn:            conn,
+	})
+	if err != nil {
+		return err
+	}
+
+	if !opts.DryRun && result != nil {
+		skill.DisplayPushResult(result)
 	}
 
 	return nil

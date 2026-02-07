@@ -58,11 +58,6 @@ func init() {
 	// Discoverability command (T05)
 	rootCmd.AddCommand(root.NewResourcesCommand())
 
-	// Deprecated resource-specific parent commands (kept for migration guidance)
-	rootCmd.AddCommand(root.NewAgentCommand())
-	rootCmd.AddCommand(root.NewWorkflowCommand())
-	rootCmd.AddCommand(root.NewSkillCommand())
-
 	// Add hidden internal commands (used by daemon for BusyBox pattern)
 	rootCmd.AddCommand(root.NewInternalServerCommand())
 	rootCmd.AddCommand(root.NewInternalWorkflowRunnerCommand())

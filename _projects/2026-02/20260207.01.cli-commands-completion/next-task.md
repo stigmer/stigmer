@@ -14,13 +14,46 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-02-07 11:31
-**Updated**: 2026-02-07 17:45
-**Current Task**: T06 (Skill Handlers)
+**Updated**: 2026-02-07 16:25
+**Current Task**: T07 (Migration Cleanup)
 **Status**: ✅ COMPLETED
 
 ## Session Progress (2026-02-07)
 
-### Latest Session (17:45) - T06 Complete
+### Latest Session (16:25) - T07 Complete
+
+- ✅ **T07: Migration Cleanup - COMPLETE**
+  - Removed deprecated command wrappers (agent.go, workflow.go, skill.go)
+  - Extracted skill push logic to `internal/cli/skill/` package
+  - Created `push.go` (171 lines) - local push with dry-run support
+  - Created `push_remote.go` (188 lines) - git clone + push logic
+  - Updated `push.go` (root) to use skill handlers
+  - Fixed BUILD.bazel (removed stale T04 references)
+  - Updated root.go (removed deprecated command registrations)
+  - Go build successful, all commands verified
+
+### Key Implementation Details - T07
+- **2 new handler files** (359 lines total)
+  - `skill/push.go` - Push(), PushOptions, DisplayPushResult(), formatBytes()
+  - `skill/push_remote.go` - PushRemote(), RemotePushOptions, git clone logic
+- **3 deprecated files deleted** (515 lines removed)
+  - `agent.go`, `workflow.go`, `skill.go`
+- **4 files updated**
+  - `root/push.go` - Orchestration: config load, backend connect, handler routing
+  - `root/root.go` - Removed deprecated command registrations
+  - `root/BUILD.bazel` - Fixed stale file references
+  - `skill/BUILD.bazel` - Added new files and artifact dependency
+- **Net result**: -156 lines (31% reduction while improving organization)
+
+### Technical Decisions Made - T07
+1. **Pre-resolved dependencies** - Handlers receive orgID and conn from command layer
+2. **Git clone in push_remote.go** - YAGNI: no extraction to pkg/git/ until second use case
+3. **Dry run separation** - executeDryRun() extracted as helper for SRP
+4. **Display function exported** - DisplayPushResult() matches DisplayGetResult() pattern
+5. **Orchestration in command layer** - Config load, connection, org resolution before handler call
+6. **Pattern consistency** - Follows established internal/cli/skill/ package structure
+
+### Earlier Session (17:45) - T06 Complete
 
 - ✅ **T06: Skill CLI Handlers - COMPLETE**
   - Created `client-apps/cli/internal/cli/skill/` package (4 files, 294 lines)
@@ -228,12 +261,12 @@ stigmer resources
 
 ## Next Steps
 
-### Immediate Next Action (T07)
-1. Remove deprecated parent commands (agent.go, workflow.go, skill.go)
-2. Clean up migration guidance messages
-3. Update help text to reflect pure verb-first architecture
-4. Verify no references to old command structure remain
-5. Test all commands end-to-end
+### Immediate Next Action (T08)
+1. Add integration tests for unified verb commands
+2. Update CLI documentation with verb-first examples
+3. Create migration guide for users upgrading from noun-first syntax
+4. Update README with new command structure
+5. Generate shell completion scripts for verb-first commands
 
 ### Context for Resume
 - ✅ Core verbs (apply, validate, get, list, delete) are complete and working
@@ -245,15 +278,21 @@ stigmer resources
 - ✅ All resource types now have complete handler implementations
 - ✅ Helper functions unified (resolveOrganization)
 - ✅ File size constraints met (all files <250 lines)
-- 📋 Need to remove deprecated parent commands (T07)
+- ✅ Deprecated commands removed (T07)
+- ✅ Skill push logic extracted to domain layer (T07)
+- ✅ BUILD.bazel cleaned up (removed stale T04 references)
+- 📋 Need testing and documentation (T08)
 - Plan files available:
   - T03: `/Users/suresh/.cursor/plans/t03_core_verbs_53f217e9.plan.md`
   - T04: `/Users/suresh/.cursor/plans/t04_specialized_verbs_a530bfd0.plan.md`
   - T05: `/Users/suresh/.cursor/plans/t05_resources_command_d5683b19.plan.md`
   - T06: `/Users/suresh/.cursor/plans/t06_skill_handlers_30ff342f.plan.md`
+  - T07: `/Users/suresh/.cursor/plans/t07_migration_cleanup_5d869310.plan.md`
 - Changelog available:
   - T03: `_changelog/2026-02/2026-02-07-144348-cli-core-verbs-unified-architecture.md`
   - T05: `_changelog/2026-02/2026-02-07-155440-cli-resources-command-discoverability.md`
+  - T06: `_changelog/2026-02/2026-02-07-161327-cli-skill-handlers-implementation.md`
+  - T07: `_changelog/2026-02/2026-02-07-162457-cli-migration-cleanup-verb-first-complete.md`
 
 ## Key Decisions
 
@@ -332,18 +371,34 @@ When starting a new session:
 
 ## Uncommitted Changes
 
-✅ **All changes committed!**
+⚠️ **Changes ready to commit:**
 
-**Commit**: `a97c50c6` - feat(cli): implement skill handlers for get/list/delete commands
-- T06: 8 files changed (4 created, 4 modified)
-- Total: +347 insertions (skill handlers + routing)
-- Features: get/list/delete for skills, table/YAML/JSON formats
-- Go build successful, all handlers verified
+**T07 Changes**:
+- Modified: 4 files (root.go, push.go, 2x BUILD.bazel)
+- Deleted: 3 files (agent.go, workflow.go, skill.go)
+- Created: 2 files (push.go, push_remote.go in skill package)
+- Untracked: 1 plan file (t07_migration_cleanup_5d869310.plan.md)
+- Net change: -156 lines
 
 **Changelog created**:
-- T06: `_changelog/2026-02/2026-02-07-161327-cli-skill-handlers-implementation.md`
+- T07: `_changelog/2026-02/2026-02-07-162457-cli-migration-cleanup-verb-first-complete.md`
+
+**Commit message prepared**:
+```
+feat(cli): complete verb-first migration by removing deprecated commands
+
+Remove deprecated noun-first command wrappers (agent, workflow, skill)
+and extract skill push logic to internal/cli/skill/ package.
+
+- Delete agent.go, workflow.go, skill.go (515 lines)
+- Create skill/push.go and skill/push_remote.go (359 lines)
+- Update push.go to use skill handlers with proper orchestration
+- Fix BUILD.bazel stale file references from T04
+- Remove deprecated command registrations from root.go
+- Net: -156 lines while improving code organization
+```
 
 ---
 
 *This file provides direct paths to all project resources for quick context loading.*
-*Last updated: 2026-02-07 17:45 (T06 Complete - Ready for T07)*
+*Last updated: 2026-02-07 16:25 (T07 Complete - Ready to commit)*
