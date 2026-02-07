@@ -332,15 +332,16 @@ When starting a new session:
 
 ## Uncommitted Changes
 
-⚠️ **Changes ready to commit**
+✅ **All changes committed!**
 
-**T06 Changes**:
-- Modified: 5 files (next-task.md, get.go, list.go, delete.go, BUILD.bazel)
-- Created: 4 files in client-apps/cli/internal/cli/skill/
-- Total: ~300 new lines of skill handler code
+**Commit**: `a97c50c6` - feat(cli): implement skill handlers for get/list/delete commands
+- T06: 8 files changed (4 created, 4 modified)
+- Total: +347 insertions (skill handlers + routing)
+- Features: get/list/delete for skills, table/YAML/JSON formats
 - Go build successful, all handlers verified
 
-**Next**: Commit T06 changes with changelog creation
+**Changelog created**:
+- T06: `_changelog/2026-02/2026-02-07-161327-cli-skill-handlers-implementation.md`
 
 ---
 
