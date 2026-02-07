@@ -9,7 +9,7 @@ Implement hybrid capabilities bundle model for AI-powered draft commands. Embed 
 ## Project Information
 
 ### Primary Goal
-Enable stigmer agent|workflow|skill|mcpserver draft commands with embedded platform capabilities that power AI-assisted YAML authoring. Implement capabilities command group (status, update, pin, list) for managing capability bundles.
+Enable stigmer draft agent|workflow|skill|mcpserver commands with embedded platform capabilities that power AI-assisted YAML authoring. Implement capabilities command group (status, update, pin, list) for managing capability bundles.
 
 ### Timeline
 **Target Completion**: 2-3 weeks
@@ -30,7 +30,7 @@ CLI commands (client-apps/cli), Capabilities bundle (internal/capabilities), Reg
 - **Research Report**: `research.platform-capabilities-draft-implementation/04.report.gpt.md`
 
 ### Success Criteria
-1. All 4 draft commands working (`stigmer agent|workflow|skill|mcpserver draft`)
+1. All 4 draft commands working (`stigmer draft agent|workflow|skill|mcpserver`)
 2. Embedded baseline bundle (~100KB) works offline with zero config
 3. Capabilities commands functional (`status`, `update`, `pin`, `list`)
 4. System capabilities NOT visible in `stigmer skill list`
