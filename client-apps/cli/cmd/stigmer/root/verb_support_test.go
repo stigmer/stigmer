@@ -16,9 +16,9 @@ func TestVerbSupport_Matrix(t *testing.T) {
 	// Define the expected verb support matrix
 	// This should match the matrix in verb_support.go
 	tests := []struct {
-		kind         apiresourcekind.ApiResourceKind
-		verb         types.Verb
-		wantSupport  bool
+		kind        apiresourcekind.ApiResourceKind
+		verb        types.Verb
+		wantSupport bool
 	}{
 		// Agent: supports all verbs except push
 		{apiresourcekind.ApiResourceKind_agent, types.VerbApply, true},

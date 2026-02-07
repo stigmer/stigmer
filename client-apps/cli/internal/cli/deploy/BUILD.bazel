@@ -10,6 +10,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//client-apps/cli/internal/cli/artifact",
         "//client-apps/cli/internal/cli/synthesis",
         "@com_github_pkg_errors//:errors",
         "@org_golang_google_grpc//:grpc",
