@@ -97,14 +97,14 @@ func TestBootstrapper_Run_Success(t *testing.T) {
 
 	// Verify skill was pushed (seedpack has skill-creator)
 	assert.Len(t, skillClient.PushCalls, 1)
-	assert.Equal(t, "stigmer", skillClient.PushCalls[0].GetOrg())
+	assert.Equal(t, "local", skillClient.PushCalls[0].GetOrg())
 	assert.NotEmpty(t, skillClient.PushCalls[0].GetArtifact())
 	assert.Equal(t, "system", skillClient.PushCalls[0].GetTag())
 
 	// Verify agent was applied (seedpack has skill-creator-agent)
 	assert.Len(t, agentClient.ApplyCalls, 1)
 	assert.Equal(t, "skill-creator-agent", agentClient.ApplyCalls[0].GetMetadata().GetName())
-	assert.Equal(t, "stigmer", agentClient.ApplyCalls[0].GetMetadata().GetOrg())
+	assert.Equal(t, "local", agentClient.ApplyCalls[0].GetMetadata().GetOrg())
 
 	// Verify state was recorded
 	status, err := store.GetBootstrapState(ctx, KeyBootstrapStatus)
@@ -297,5 +297,5 @@ func TestNewBootstrapper(t *testing.T) {
 	assert.Equal(t, store, bootstrapper.store)
 	assert.Equal(t, skillClient, bootstrapper.skillClient)
 	assert.Equal(t, agentClient, bootstrapper.agentClient)
-	assert.Equal(t, "stigmer", bootstrapper.org)
+	assert.Equal(t, "local", bootstrapper.org)
 }

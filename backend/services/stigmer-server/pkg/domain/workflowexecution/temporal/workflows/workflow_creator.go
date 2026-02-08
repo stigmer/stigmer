@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/rs/zerolog/log"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"go.temporal.io/sdk/client"
 )
 
@@ -44,9 +44,9 @@ func (c *InvokeWorkflowExecutionWorkflowCreator) Create(ctx context.Context, exe
 	workflowID := fmt.Sprintf("%s/%s", InvokeWorkflowExecutionWorkflowName, executionID)
 
 	options := client.StartWorkflowOptions{
-		ID:                    workflowID,
-		TaskQueue:             c.stigmerQueue,
-		WorkflowRunTimeout:    30 * time.Minute, // Max 30 minutes per workflow execution
+		ID:                 workflowID,
+		TaskQueue:          c.stigmerQueue,
+		WorkflowRunTimeout: 30 * time.Minute, // Max 30 minutes per workflow execution
 		Memo: map[string]interface{}{
 			"activityTaskQueue": c.runnerQueue, // Pass runner queue to workflow
 		},
