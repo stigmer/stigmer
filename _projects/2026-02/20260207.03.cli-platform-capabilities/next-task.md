@@ -158,13 +158,13 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-07 13:36
-**Updated**: 2026-02-08 (Session 1)
-**Current Task**: T01 Phase 1.2 (Seedpack structure and manifest)
-**Status**: Phase 1.1 Complete ✅
+**Updated**: 2026-02-08 (Session 2)
+**Current Task**: T01 Phase 2.1 (Bootstrap state machine)
+**Status**: Phase 1.1, 1.2, 1.3 Complete ✅
 
 **Active Plan**: `tasks/T01_2_practical_plan.md` (research-informed, APPROVED)
 
-### Session Progress (2026-02-08)
+### Session Progress (2026-02-08 Session 1)
 
 **Phase 1.1: Vendor skill-creator - COMPLETED**
 - ✅ Created `internal/seedpack/` directory structure
@@ -174,35 +174,66 @@ When starting a new session:
 - ✅ Added BUILD.bazel and verification tests
 - ✅ Tests pass with both `go test` and `bazel test`
 
+### Session Progress (2026-02-08 Session 2)
+
+**Phase 1.2-1.3: Seedpack Infrastructure - COMPLETED**
+
+**Key Decision: SDK Approach**
+- Chose programmatic agent creation over static YAML files
+- `skill-creator-agent` will be created in bootstrap.go using proto structs
+- Follows existing Stigmer patterns and provides compile-time safety
+
+**Relocation**:
+- ✅ Moved seedpack from `cli/internal/seedpack/` to `backend/libs/go/seedpack/`
+- Enables both CLI and server to import the package
+- Follows established pattern (CLI already imports from `backend/libs/go/`)
+
 **Files Created**:
 ```
-client-apps/cli/internal/seedpack/
-├── BUILD.bazel                              # Bazel build config
-├── seedpack_test.go                         # Verification tests
-├── tools/vendor_skill.sh                    # Automated vendoring
-└── skills/skill-creator/                    # 8 files, ~50KB
-    ├── SKILL.md, LICENSE.txt, provenance.json
-    ├── scripts/ (3 Python scripts)
-    └── references/ (2 markdown docs)
+backend/libs/go/seedpack/
+├── manifest.json                            # Seedpack metadata
+├── embed.go                                 # Go embed directives
+├── seedpack.go                              # Loader functions (340 lines)
+├── seedpack_test.go                         # Comprehensive tests (450 lines)
+├── BUILD.bazel                              # Bazel configuration
+├── skills/skill-creator/                    # Vendored content (moved)
+└── tools/vendor_skill.sh                    # Vendoring script (moved)
 ```
 
+**API Surface**:
+- `LoadManifest()` - Parse manifest.json
+- `LoadSkillContent()` - Load SKILL.md content
+- `LoadSkillMetadata()` - Parse YAML frontmatter
+- `LoadSkillProvenance()` - Load provenance.json
+- `ListSkillFiles()` - List all skill files
+- `LoadSkillFile()` - Load individual skill files
+- `GetSkillByName()` - Lookup skill by name
+- `GetAgentByName()` - Lookup system agent by name
+
+**Test Results**:
+- ✅ All 14 tests pass with `go test`
+- ✅ All tests pass with `bazel test`
+- ✅ Content digest verification passes (7 files verified)
+- ✅ No linter errors
+
 **Key Achievements**:
-- Reproducible vendoring with provenance tracking
-- Content digest: `sha256:c2cb6665d579f8ea...`
-- Compatible with existing `artifact.ParseSkillMetadata()`
-- Supply chain security: pinned commit + per-file digests
+- Inline SKILL.md parsing (no external dependency duplication)
+- Proper embed support in Bazel with `embedsrcs`
+- Comprehensive error handling and validation
+- Ready for Phase 2 bootstrap integration
 
 ## Next Steps (for Next Session)
 
-1. **Start Phase 1.2**: Create seedpack manifest.json
-   - Define manifest schema (version, digests, skill/agent metadata)
-   - Generate manifest from vendored content
-   - Document manifest format
+1. **Start Phase 2.1**: Implement Bootstrap State Machine
+   - Create `backend/services/stigmer-server/pkg/server/bootstrap.go`
+   - Define BootstrapStep enum and BootstrapState struct
+   - Implement step-level durability with SQLite persistence
+   - Add `bootstrap_state` table to schema
 
-2. **Then Phase 1.3**: Implement Go embed infrastructure
-   - Add `embed.go` with `//go:embed` directive
-   - Implement `LoadManifest()` and `LoadSkillContent()`
-   - Parse SKILL.md frontmatter for metadata
+2. **Then Phase 2.2**: Server Integration
+   - Hook bootstrap into `server.Run()` after store initialization
+   - Ensure bootstrap doesn't block startup on failure
+   - Use embedded seedpack content (no network required)
 
 ## Quick Commands
 

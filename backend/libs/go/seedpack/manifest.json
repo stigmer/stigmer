@@ -1,0 +1,26 @@
+{
+  "schema_version": "1",
+  "version": "1.0.0",
+  "created_at": "2026-02-08T00:00:00Z",
+  "description": "Stigmer system seedpack - bootstrap resources for offline operation",
+  "skills": [
+    {
+      "name": "skill-creator",
+      "path": "skills/skill-creator",
+      "content_digest": "sha256:c2cb6665d579f8eafaba1194ea4751599ab0236d8766f8ced5a89579208ff47b",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/anthropics/skills",
+        "commit_sha": "1ed29a03dc852d30fa6ef2ca53a67dc2c2c2c563"
+      }
+    }
+  ],
+  "system_agents": [
+    {
+      "name": "skill-creator-agent",
+      "description": "Creates new skills using the SKILL.md format from Anthropic",
+      "instructions": "You are a skill creation assistant. Help users create well-structured SKILL.md packages following the Agent Skills format. Use skill.read(\"skill-creator\") to access format guidelines.",
+      "skill_refs": ["skill-creator"]
+    }
+  ]
+}
