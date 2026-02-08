@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 )
 
@@ -26,10 +28,12 @@ type Manifest struct {
 
 // SkillEntry describes a skill included in the seedpack.
 type SkillEntry struct {
-	Name          string      `json:"name"`
-	Path          string      `json:"path"`
-	ContentDigest string      `json:"content_digest"`
-	Source        SkillSource `json:"source"`
+	Name           string      `json:"name"`
+	Path           string      `json:"path"`
+	ArtifactPath   string      `json:"artifact_path,omitempty"`   // Pre-built ZIP artifact path
+	ArtifactDigest string      `json:"artifact_digest,omitempty"` // SHA256 of the ZIP artifact
+	ContentDigest  string      `json:"content_digest"`
+	Source         SkillSource `json:"source"`
 }
 
 // SkillSource tracks the origin of a vendored skill.
@@ -40,12 +44,10 @@ type SkillSource struct {
 }
 
 // AgentEntry describes a system agent defined in the seedpack.
-// These are created programmatically during bootstrap, not stored as YAML.
+// Agents are stored as YAML files and loaded during bootstrap.
 type AgentEntry struct {
-	Name         string   `json:"name"`
-	Description  string   `json:"description"`
-	Instructions string   `json:"instructions"`
-	SkillRefs    []string `json:"skill_refs"`
+	Name string `json:"name"`
+	Path string `json:"path"` // Path to YAML file (e.g., "agents/skill-creator-agent.yaml")
 }
 
 // SkillMetadata represents the YAML frontmatter parsed from SKILL.md.
@@ -200,6 +202,99 @@ func GetAgentByName(name string) (*AgentEntry, error) {
 	}
 
 	return nil, nil
+}
+
+// =============================================================================
+// Bootstrap Artifact Functions
+// =============================================================================
+// These functions support the server bootstrap process by loading pre-built
+// artifacts (ZIP files, agent YAML) that were created during vendoring.
+
+// LoadSkillArtifact loads a pre-built ZIP artifact for a skill.
+// The artifactPath should be relative to the seedpack root (e.g., "artifacts/skill-creator.zip").
+// Returns the raw ZIP bytes ready to be sent to the Push API.
+func LoadSkillArtifact(artifactPath string) ([]byte, error) {
+	data, err := content.ReadFile(artifactPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read skill artifact %s", artifactPath)
+	}
+	return data, nil
+}
+
+// LoadAgentYAML loads and parses an agent YAML file into a proto message.
+// The agentPath should be relative to the seedpack root (e.g., "agents/skill-creator-agent.yaml").
+// Returns the Agent proto ready to be sent to the Apply API.
+func LoadAgentYAML(agentPath string) (*agentv1.Agent, error) {
+	data, err := content.ReadFile(agentPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read agent YAML %s", agentPath)
+	}
+
+	return parseAgentYAML(data, agentPath)
+}
+
+// parseAgentYAML parses YAML content into an Agent proto message.
+// This follows the same pattern as the CLI agent loader for consistency.
+func parseAgentYAML(data []byte, sourcePath string) (*agentv1.Agent, error) {
+	// Parse YAML to intermediate map
+	var intermediate map[string]interface{}
+	if err := yaml.Unmarshal(data, &intermediate); err != nil {
+		return nil, errors.Wrapf(err, "failed to parse YAML from %s", sourcePath)
+	}
+
+	// Convert YAML map to JSON (protojson requires JSON input)
+	jsonBytes, err := yamlMapToJSON(intermediate)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to convert YAML to JSON from %s", sourcePath)
+	}
+
+	// Use protojson to unmarshal into the proto message
+	agent := &agentv1.Agent{}
+	unmarshaler := protojson.UnmarshalOptions{
+		DiscardUnknown: false, // Strict parsing - reject unknown fields
+	}
+
+	if err := unmarshaler.Unmarshal(jsonBytes, agent); err != nil {
+		return nil, errors.Wrapf(err, "failed to parse Agent proto from %s", sourcePath)
+	}
+
+	return agent, nil
+}
+
+// yamlMapToJSON converts a YAML-parsed map to JSON bytes.
+// This handles the map[interface{}]interface{} that YAML produces.
+func yamlMapToJSON(m map[string]interface{}) ([]byte, error) {
+	converted := convertYAMLValue(m)
+	return json.Marshal(converted)
+}
+
+// convertYAMLValue recursively converts YAML values to JSON-compatible values.
+// YAML sometimes produces map[interface{}]interface{} which JSON can't handle.
+func convertYAMLValue(v interface{}) interface{} {
+	switch val := v.(type) {
+	case map[string]interface{}:
+		result := make(map[string]interface{})
+		for k, v := range val {
+			result[k] = convertYAMLValue(v)
+		}
+		return result
+	case map[interface{}]interface{}:
+		// YAML sometimes produces map[interface{}]interface{}
+		result := make(map[string]interface{})
+		for k, v := range val {
+			keyStr := fmt.Sprintf("%v", k)
+			result[keyStr] = convertYAMLValue(v)
+		}
+		return result
+	case []interface{}:
+		result := make([]interface{}, len(val))
+		for i, v := range val {
+			result[i] = convertYAMLValue(v)
+		}
+		return result
+	default:
+		return val
+	}
 }
 
 // parseSkillMdContent parses SKILL.md content and extracts YAML frontmatter.

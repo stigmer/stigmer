@@ -41,6 +41,9 @@ readonly SEEDPACK_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 readonly SKILLS_DIR="${SEEDPACK_DIR}/skills"
 readonly PROVENANCE_SCHEMA_VERSION="1"
 
+# Build artifacts directory (for pre-built ZIPs)
+readonly ARTIFACTS_DIR="${SEEDPACK_DIR}/artifacts"
+
 # ------------------------------------------------------------------------------
 # Logging utilities
 # ------------------------------------------------------------------------------
@@ -110,6 +113,10 @@ check_dependencies() {
     
     if ! command -v sha256sum &>/dev/null && ! command -v shasum &>/dev/null; then
         missing+=("sha256sum or shasum")
+    fi
+    
+    if ! command -v zip &>/dev/null; then
+        missing+=("zip")
     fi
     
     if [[ ${#missing[@]} -gt 0 ]]; then
@@ -244,6 +251,41 @@ vendor_skill() {
             files: $files
         }' > "$dest_dir/provenance.json"
     
+    # -------------------------------------------------------------------------
+    # Create pre-built ZIP artifact for bootstrap
+    # -------------------------------------------------------------------------
+    # The ZIP is created in the same format as the CLI's artifact.PushSkill
+    # expects: a ZIP containing the skill files without provenance.json.
+    # This enables the server to bootstrap skills without any ZIP creation
+    # logic at runtime - just load bytes and call the Push API.
+    # -------------------------------------------------------------------------
+    
+    log_info "Creating pre-built ZIP artifact..."
+    mkdir -p "$ARTIFACTS_DIR"
+    
+    local artifact_path="${ARTIFACTS_DIR}/${skill_name}.zip"
+    
+    # Create ZIP from skill directory, excluding provenance.json
+    # (provenance is metadata for us, not part of the skill artifact)
+    (
+        cd "$dest_dir"
+        # Use -r for recursive, -q for quiet
+        # Exclude provenance.json as it's not part of the skill content
+        zip -rq "$artifact_path" . -x "provenance.json"
+    )
+    
+    # Calculate artifact digest
+    local artifact_digest
+    artifact_digest=$(calculate_sha256 "$artifact_path")
+    log_info "Artifact created: ${artifact_path}"
+    log_info "Artifact digest: sha256:${artifact_digest}"
+    
+    # Store artifact info for manifest update (caller can parse this)
+    echo ""
+    echo "ARTIFACT_INFO:"
+    echo "  artifact_path: artifacts/${skill_name}.zip"
+    echo "  artifact_digest: sha256:${artifact_digest}"
+    
     # Summary
     log_success "Successfully vendored '${skill_name}'"
     echo ""
@@ -255,6 +297,10 @@ vendor_skill() {
     echo "  Commit:     ${commit_sha}"
     echo "  Digest:     sha256:${content_digest}"
     echo "  Vendored:   ${vendored_at}"
+    echo ""
+    echo "Pre-built artifact:"
+    echo "  Path:   artifacts/${skill_name}.zip"
+    echo "  Digest: sha256:${artifact_digest}"
     
     # Show diff if re-vendoring
     if [[ -n "$old_provenance" ]]; then

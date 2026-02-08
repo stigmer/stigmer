@@ -43,6 +43,7 @@ import (
 	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/controller"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/bootstrap"
 	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	mcpserverclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/mcpserver"
 	skillclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/skill"
@@ -338,6 +339,22 @@ func Run() error {
 	skillClient := skillclient.NewClient(inProcessConn)
 
 	log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, WorkflowInstance, McpServer, and Skill")
+
+	// ============================================================================
+	// Run seedpack bootstrap (before network server starts)
+	// ============================================================================
+	// Bootstrap runs after in-process clients are ready but before accepting
+	// external connections. This ensures system skills and agents are available
+	// when the server is ready to serve requests.
+	//
+	// Bootstrap is idempotent and graceful:
+	// - Skips if already completed with same seedpack version
+	// - Continues in degraded mode if bootstrap fails (logs warnings)
+	bootstrapper := bootstrap.NewBootstrapper(store, skillClient, agentClient)
+	if err := bootstrapper.Run(context.Background()); err != nil {
+		// Bootstrap returns nil on degraded mode - only fails on critical errors
+		log.Fatal().Err(err).Msg("Critical bootstrap failure")
+	}
 
 	// Create the reconciliation execution engine
 	downstreamClients := &reconcile.DownstreamClients{

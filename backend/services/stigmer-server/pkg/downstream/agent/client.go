@@ -147,6 +147,38 @@ func (c *Client) Create(ctx context.Context, agent *agentv1.Agent) (*agentv1.Age
 	return created, nil
 }
 
+// Apply creates or updates an agent (idempotent operation).
+//
+// This makes an in-process gRPC call to AgentCommandController.Apply()
+// ensuring all gRPC interceptors run before reaching the handler.
+//
+// Apply is used for both create and update operations:
+//   - If agent with same name exists, it updates the existing agent
+//   - If agent doesn't exist, it creates a new one
+//
+// Use case: Bootstrap applies system agents from seedpack (idempotent on restart).
+func (c *Client) Apply(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
+	log.Debug().
+		Str("name", agent.GetMetadata().GetName()).
+		Msg("Applying agent via in-process gRPC")
+
+	applied, err := c.cmdClient.Apply(ctx, agent)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("name", agent.GetMetadata().GetName()).
+			Msg("Failed to apply agent")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("id", applied.GetMetadata().GetId()).
+		Str("name", applied.GetMetadata().GetName()).
+		Msg("Successfully applied agent")
+
+	return applied, nil
+}
+
 // Delete deletes an agent by ID.
 //
 // This makes an in-process gRPC call to AgentCommandController.Delete()

@@ -29,9 +29,11 @@ const (
 	schemaVersion2 = 2
 	// schemaVersion3: FTS5 full-text search index for unified search
 	schemaVersion3 = 3
+	// schemaVersion4: Bootstrap state tracking for seedpack initialization
+	schemaVersion4 = 4
 
 	// currentSchemaVersion is the target version for new databases
-	currentSchemaVersion = schemaVersion3
+	currentSchemaVersion = schemaVersion4
 )
 
 // Store implements store.Store using SQLite as the backing storage.
@@ -132,6 +134,12 @@ func runMigrations(db *sql.DB) error {
 	if currentVersion < schemaVersion3 {
 		if err := migrateToV3(db); err != nil {
 			return fmt.Errorf("migrate to v3: %w", err)
+		}
+	}
+
+	if currentVersion < schemaVersion4 {
+		if err := migrateToV4(db); err != nil {
+			return fmt.Errorf("migrate to v4: %w", err)
 		}
 	}
 
@@ -294,6 +302,44 @@ func migrateToV3(db *sql.DB) error {
 	}
 
 	if err := setSchemaVersion(tx, schemaVersion3); err != nil {
+		return fmt.Errorf("set schema version: %w", err)
+	}
+
+	return tx.Commit()
+}
+
+// migrateToV4 creates the bootstrap_state table for tracking seedpack initialization.
+// This enables idempotent bootstrap operations by recording:
+//   - Overall bootstrap status and seedpack version
+//   - Per-resource application state (skills, agents)
+//
+// The table uses a key-value design for flexibility:
+//   - "seedpack_version" -> "1.1.0"
+//   - "bootstrap_status" -> "completed" / "pending" / "in_progress" / "failed"
+//   - "skill:<name>" -> "applied:<artifact_digest>"
+//   - "agent:<name>" -> "applied:<content_hash>"
+func migrateToV4(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Key-value table for bootstrap state tracking
+	// WITHOUT ROWID for efficient key-based lookups
+	schema := `
+		CREATE TABLE IF NOT EXISTS bootstrap_state (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL,
+			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+		) WITHOUT ROWID;
+	`
+
+	if _, err := tx.Exec(schema); err != nil {
+		return fmt.Errorf("create bootstrap_state table: %w", err)
+	}
+
+	if err := setSchemaVersion(tx, schemaVersion4); err != nil {
 		return fmt.Errorf("set schema version: %w", err)
 	}
 
@@ -1004,6 +1050,143 @@ func (s *Store) DeleteSearchIndex(ctx context.Context, kind apiresourcekind.ApiR
 		kind.String(), resourceId)
 	if err != nil {
 		return fmt.Errorf("delete search index entry: %w", err)
+	}
+
+	return nil
+}
+
+// =============================================================================
+// Bootstrap State Operations
+// =============================================================================
+
+// GetBootstrapState retrieves a bootstrap state value by key.
+// Returns an empty string if the key does not exist.
+//
+// Common keys:
+//   - "seedpack_version": Version of the seedpack currently applied
+//   - "bootstrap_status": Overall status (pending, in_progress, completed, failed)
+//   - "skill:<name>": State of a skill (e.g., "applied:sha256:...")
+//   - "agent:<name>": State of an agent (e.g., "applied:sha256:...")
+func (s *Store) GetBootstrapState(ctx context.Context, key string) (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return "", fmt.Errorf("store is closed")
+	}
+
+	var value string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT value FROM bootstrap_state WHERE key = ?`,
+		key).Scan(&value)
+
+	if err == sql.ErrNoRows {
+		return "", nil // Key not found, return empty string (not an error)
+	}
+	if err != nil {
+		return "", fmt.Errorf("query bootstrap state: %w", err)
+	}
+
+	return value, nil
+}
+
+// SetBootstrapState stores or updates a bootstrap state value.
+// Uses INSERT OR REPLACE for upsert semantics.
+func (s *Store) SetBootstrapState(ctx context.Context, key, value string) error {
+	// Acquire write lock to serialize writes (SQLite single-writer limitation)
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("store is closed")
+	}
+
+	_, err := s.db.ExecContext(ctx,
+		`INSERT OR REPLACE INTO bootstrap_state (key, value, updated_at) VALUES (?, ?, datetime('now'))`,
+		key, value)
+	if err != nil {
+		return fmt.Errorf("set bootstrap state: %w", err)
+	}
+
+	return nil
+}
+
+// GetAllBootstrapState retrieves all bootstrap state key-value pairs.
+// Returns an empty map if no state exists.
+func (s *Store) GetAllBootstrapState(ctx context.Context) (map[string]string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return nil, fmt.Errorf("store is closed")
+	}
+
+	rows, err := s.db.QueryContext(ctx, `SELECT key, value FROM bootstrap_state`)
+	if err != nil {
+		return nil, fmt.Errorf("query all bootstrap state: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[string]string)
+	for rows.Next() {
+		var key, value string
+		if err := rows.Scan(&key, &value); err != nil {
+			return nil, fmt.Errorf("scan row: %w", err)
+		}
+		result[key] = value
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate rows: %w", err)
+	}
+
+	return result, nil
+}
+
+// DeleteBootstrapState removes a bootstrap state entry.
+// Returns nil (no error) if the key does not exist.
+func (s *Store) DeleteBootstrapState(ctx context.Context, key string) error {
+	// Acquire write lock to serialize writes (SQLite single-writer limitation)
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("store is closed")
+	}
+
+	_, err := s.db.ExecContext(ctx,
+		`DELETE FROM bootstrap_state WHERE key = ?`,
+		key)
+	if err != nil {
+		return fmt.Errorf("delete bootstrap state: %w", err)
+	}
+
+	return nil
+}
+
+// ClearBootstrapState removes all bootstrap state entries.
+// This is useful for testing or forcing a re-bootstrap.
+func (s *Store) ClearBootstrapState(ctx context.Context) error {
+	// Acquire write lock to serialize writes (SQLite single-writer limitation)
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("store is closed")
+	}
+
+	_, err := s.db.ExecContext(ctx, `DELETE FROM bootstrap_state`)
+	if err != nil {
+		return fmt.Errorf("clear bootstrap state: %w", err)
 	}
 
 	return nil

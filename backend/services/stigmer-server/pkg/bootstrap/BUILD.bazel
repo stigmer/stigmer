@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "bootstrap",
+    srcs = ["bootstrap.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/bootstrap",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
+        "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
+        "//backend/libs/go/seedpack",
+        "//backend/libs/go/store/sqlite",
+        "@com_github_rs_zerolog//log",
+    ],
+)
+
+go_test(
+    name = "bootstrap_test",
+    srcs = ["bootstrap_test.go"],
+    embed = [":bootstrap"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
+        "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//backend/libs/go/store/sqlite",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

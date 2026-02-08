@@ -158,9 +158,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-07 13:36
-**Updated**: 2026-02-08 (Session 2)
-**Current Task**: T01 Phase 2.1 (Bootstrap state machine)
-**Status**: Phase 1.1, 1.2, 1.3 Complete ✅
+**Updated**: 2026-02-08 (Session 3)
+**Current Task**: T01 Phase 2.1, 2.2 (Bootstrap state machine + Server integration)
+**Status**: Phase 1.1, 1.2, 1.3, 2.1, 2.2 Complete ✅
 
 **Active Plan**: `tasks/T01_2_practical_plan.md` (research-informed, APPROVED)
 
@@ -188,52 +188,92 @@ When starting a new session:
 - Enables both CLI and server to import the package
 - Follows established pattern (CLI already imports from `backend/libs/go/`)
 
-**Files Created**:
+### Session Progress (2026-02-08 Session 3) - CURRENT
+
+**Phase 2.1: Bootstrap State Machine - COMPLETED**
+
+**Key Design Decision: Pre-built Artifacts**
+After user challenge on SDK usage, revised approach to:
+- Pre-build ZIP artifacts at vendor time (not runtime)
+- Store agents as YAML, parse at runtime with CLI's proven pattern
+- Directly call existing gRPC APIs (Push for skills, Apply for agents)
+
+**SQLite Schema v4: bootstrap_state table**
+- ✅ Added `bootstrap_state` key-value table for tracking progress
+- ✅ Methods: `GetBootstrapState()`, `SetBootstrapState()`, `GetAllBootstrapState()`, `DeleteBootstrapState()`, `ClearBootstrapState()`
+- ✅ Tests pass: 10 new bootstrap state tests
+
+**Seedpack Updates (Schema v2)**:
+- ✅ Updated `manifest.json` with `artifact_path`, `artifact_digest` for skills
+- ✅ Created `agents/skill-creator-agent.yaml` (system agent definition)
+- ✅ Created `artifacts/skill-creator.zip` (pre-built ZIP)
+- ✅ Updated `vendor_skill.sh` to create pre-built ZIPs
+- ✅ Added `LoadSkillArtifact()` and `LoadAgentYAML()` functions
+- ✅ Tests pass: 7 updated + 2 new seedpack tests
+
+**Bootstrap Module** (`backend/services/stigmer-server/pkg/bootstrap/`):
+- ✅ Created `bootstrap.go` with `Bootstrapper` struct and `Run()` method
+- ✅ Loads seedpack manifest, checks version
+- ✅ Pushes skills via gRPC Push API (idempotent)
+- ✅ Applies agents via gRPC Apply API (idempotent)
+- ✅ Tracks per-resource state with content digests
+- ✅ Graceful degradation on failure (server continues)
+- ✅ Tests pass: 7 comprehensive tests
+
+**Phase 2.2: Server Integration - COMPLETED**
+- ✅ Added `Apply()` method to agent downstream client
+- ✅ Integrated bootstrap into `server.go` after in-process clients ready
+- ✅ Updated `BUILD.bazel` with bootstrap dependency
+- ✅ All builds pass with `go build`
+
+**Files Created/Modified**:
 ```
 backend/libs/go/seedpack/
-├── manifest.json                            # Seedpack metadata
-├── embed.go                                 # Go embed directives
-├── seedpack.go                              # Loader functions (340 lines)
-├── seedpack_test.go                         # Comprehensive tests (450 lines)
-├── BUILD.bazel                              # Bazel configuration
-├── skills/skill-creator/                    # Vendored content (moved)
-└── tools/vendor_skill.sh                    # Vendoring script (moved)
+├── manifest.json                    # Updated to schema v2
+├── embed.go                         # Added artifacts/* and agents/*
+├── seedpack.go                      # Added LoadSkillArtifact, LoadAgentYAML
+├── seedpack_test.go                 # Updated + new tests
+├── agents/skill-creator-agent.yaml  # NEW: System agent definition
+├── artifacts/skill-creator.zip      # NEW: Pre-built artifact
+└── tools/vendor_skill.sh            # Updated: creates ZIP artifacts
+
+backend/libs/go/store/sqlite/
+├── store.go                         # Schema v4: bootstrap_state table + methods
+└── store_test.go                    # 10 new bootstrap state tests
+
+backend/services/stigmer-server/pkg/bootstrap/  # NEW PACKAGE
+├── bootstrap.go                     # Core bootstrapper (~340 lines)
+├── bootstrap_test.go                # Comprehensive tests (~220 lines)
+└── BUILD.bazel                      # Bazel configuration
+
+backend/services/stigmer-server/pkg/downstream/agent/
+└── client.go                        # Added Apply() method
+
+backend/services/stigmer-server/pkg/server/
+├── BUILD.bazel                      # Added bootstrap dependency
+└── server.go                        # Integrated bootstrap call
 ```
 
-**API Surface**:
-- `LoadManifest()` - Parse manifest.json
-- `LoadSkillContent()` - Load SKILL.md content
-- `LoadSkillMetadata()` - Parse YAML frontmatter
-- `LoadSkillProvenance()` - Load provenance.json
-- `ListSkillFiles()` - List all skill files
-- `LoadSkillFile()` - Load individual skill files
-- `GetSkillByName()` - Lookup skill by name
-- `GetAgentByName()` - Lookup system agent by name
-
-**Test Results**:
-- ✅ All 14 tests pass with `go test`
-- ✅ All tests pass with `bazel test`
-- ✅ Content digest verification passes (7 files verified)
-- ✅ No linter errors
-
-**Key Achievements**:
-- Inline SKILL.md parsing (no external dependency duplication)
-- Proper embed support in Bazel with `embedsrcs`
-- Comprehensive error handling and validation
-- Ready for Phase 2 bootstrap integration
+**All Tests Pass**:
+- ✅ `backend/libs/go/seedpack/...` - 15 tests
+- ✅ `backend/libs/go/store/sqlite/...` - 37 tests
+- ✅ `backend/services/stigmer-server/pkg/bootstrap/...` - 7 tests
 
 ## Next Steps (for Next Session)
 
-1. **Start Phase 2.1**: Implement Bootstrap State Machine
-   - Create `backend/services/stigmer-server/pkg/server/bootstrap.go`
-   - Define BootstrapStep enum and BootstrapState struct
-   - Implement step-level durability with SQLite persistence
-   - Add `bootstrap_state` table to schema
+1. **Start Phase 3.1**: Skill Resolver
+   - Create resolver that checks registry first, falls back to embedded
+   - Enable skills to be loaded from seedpack during agent execution
 
-2. **Then Phase 2.2**: Server Integration
-   - Hook bootstrap into `server.Run()` after store initialization
-   - Ensure bootstrap doesn't block startup on failure
-   - Use embedded seedpack content (no network required)
+2. **Then Phase 4.1**: Agent Runtime Integration
+   - Wire skill resolver into agent invocation flow
+   - Enable skill-creator-agent to actually use skill-creator skill
+
+3. **Future Phases**:
+   - Phase 5.1: `stigmer draft agent` command
+   - Phase 5.2: Other draft commands (workflow, skill, mcpserver)
+   - Phase 6.1: `stigmer seed update` command
+   - Phase 6.2: `stigmer system` commands
 
 ## Quick Commands
 
