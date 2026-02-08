@@ -245,6 +245,93 @@ Supported authentication methods:
 - Custom headers
 - Any authentication format supported by your MCP server
 
+## Durable Execution & Tool Idempotency
+
+When running Graphton agents through Temporal workflows (as in Stigmer), agents benefit from **durable execution** - the ability to resume from checkpoints after crashes or failures.
+
+### How Crash Recovery Works
+
+1. **LangGraph checkpoints** state (messages, tool decisions) to MongoDB after each step
+2. **Temporal heartbeats** include the `thread_id` (checkpoint identifier)
+3. **On crash/retry**, the activity extracts `thread_id` from heartbeat and resumes from checkpoint
+4. **Agent continues** from the last saved state instead of restarting
+
+### Tool Idempotency Guidelines
+
+While LangGraph checkpointing handles most crash recovery, there's a small window where a tool may execute but the checkpoint hasn't been saved yet. For critical operations, tools should be designed to be **idempotent** (safe to run multiple times).
+
+#### Read-only tools (no special handling needed)
+
+These tools are naturally idempotent - re-running them produces the same result:
+
+- `read_file`, `search`, `list_directory`, `grep`
+- Database queries (SELECT statements)
+- API GET requests
+
+#### Create operations (should check for existing resources)
+
+Tools that create resources should check if the resource already exists:
+
+```python
+@tool
+async def create_pull_request(title: str, branch: str) -> str:
+    """Create a PR - checks for existing PR first."""
+    # Check if PR already exists
+    existing = await github.get_prs(head=branch, state="open")
+    if existing:
+        return f"PR already exists: {existing[0].url}"
+    
+    # Create new PR
+    pr = await github.create_pr(title=title, branch=branch)
+    return f"Created PR: {pr.url}"
+```
+
+#### External API calls (use API-level idempotency)
+
+Many APIs support idempotency keys to prevent duplicate operations:
+
+```python
+@tool
+async def charge_payment(amount: float, customer_id: str) -> str:
+    """Charge payment with idempotency key."""
+    import hashlib
+    
+    # Generate deterministic idempotency key from operation parameters
+    key = hashlib.sha256(f"{customer_id}:{amount}:{context.execution_id}".encode()).hexdigest()
+    
+    result = await stripe.charges.create(
+        amount=int(amount * 100),
+        customer=customer_id,
+        idempotency_key=key,  # Stripe prevents duplicate charges
+    )
+    return f"Charged ${amount}: {result.id}"
+```
+
+#### Destructive operations (usually idempotent)
+
+Most delete operations are naturally idempotent:
+
+- `delete_file` - deleting a non-existent file is typically a no-op
+- `remove_user` - removing a non-existent user returns success
+
+#### When idempotency is critical
+
+For operations with significant side effects, consider:
+
+1. **Check-before-act**: Verify the operation hasn't been done
+2. **Idempotency keys**: Use API-provided idempotency mechanisms
+3. **Transaction IDs**: Include execution context in transaction identifiers
+
+### Summary
+
+| Tool Type | Idempotent? | Recommendation |
+|-----------|-------------|----------------|
+| Read operations | Yes | No action needed |
+| Create operations | No | Check if resource exists first |
+| API calls with idempotency | Yes | Use idempotency keys |
+| Delete operations | Usually | Handle "not found" gracefully |
+| Send notifications | No | Use API idempotency or dedup logic |
+
 ## Requirements
 
 - Python 3.11 or higher

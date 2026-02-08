@@ -125,7 +125,54 @@ async def _execute_graphton_impl(
     """
     Internal implementation of execute_graphton with existing error handling.
     This function contains the original implementation wrapped in the main try-except.
+    
+    Durable Execution Support:
+    - On retry (attempt > 1), extracts thread_id from last heartbeat for checkpoint resume
+    - LangGraph automatically loads checkpoint state when invoked with existing thread_id
+    - This enables crash recovery without re-running from the beginning
     """
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Crash Recovery: Detect retry and resume from checkpoint
+    #
+    # When Temporal retries this activity after a crash:
+    # 1. heartbeat_details contains the last heartbeat from the previous attempt
+    # 2. We extract thread_id to resume from the LangGraph checkpoint
+    # 3. LangGraph automatically loads state when invoked with the same thread_id
+    # ─────────────────────────────────────────────────────────────────────────────
+    attempt = activity.info().attempt
+    heartbeat_details = activity.info().heartbeat_details
+    is_retry = attempt > 1 and heartbeat_details is not None
+    
+    if is_retry:
+        # Extract thread_id from last heartbeat for checkpoint resume
+        try:
+            # heartbeat_details can be a tuple/list of the heartbeat payload(s)
+            last_heartbeat = heartbeat_details[0] if isinstance(heartbeat_details, (list, tuple)) else heartbeat_details
+            
+            if isinstance(last_heartbeat, dict) and "thread_id" in last_heartbeat:
+                resume_thread_id = last_heartbeat["thread_id"]
+                activity_logger.info(
+                    f"🔄 RETRY DETECTED: attempt={attempt}, "
+                    f"resuming from checkpoint with thread_id={resume_thread_id} "
+                    f"(original thread_id={thread_id})"
+                )
+                # Override thread_id with the one from heartbeat for checkpoint resume
+                thread_id = resume_thread_id
+            else:
+                activity_logger.warning(
+                    f"⚠️ RETRY DETECTED: attempt={attempt}, but heartbeat missing thread_id. "
+                    f"Heartbeat data: {last_heartbeat}. Using provided thread_id={thread_id}"
+                )
+        except Exception as e:
+            activity_logger.warning(
+                f"⚠️ RETRY DETECTED: attempt={attempt}, failed to extract thread_id from heartbeat: {e}. "
+                f"Using provided thread_id={thread_id}"
+            )
+    else:
+        activity_logger.info(
+            f"First attempt (attempt={attempt}): using thread_id={thread_id}"
+        )
+    
     activity_logger.info(
         f"Execution parameters: agent_id={agent_id}, "
         f"session_id='{session_id_from_spec}' (empty={not session_id_from_spec})"
@@ -914,11 +961,16 @@ async def _execute_graphton_impl(
             
             # Send activity heartbeat to prevent Temporal timeout
             # Time-based: every 2 seconds (independent of status updates)
+            # 
+            # CRASH RECOVERY: Heartbeat includes thread_id for checkpoint resume
+            # On retry, we extract thread_id from heartbeat_details to resume from
+            # the LangGraph checkpoint instead of restarting from the beginning.
             now = time.monotonic()
             time_since_heartbeat_ms = (now - last_heartbeat_time) * 1000
             if time_since_heartbeat_ms >= heartbeat_interval_ms:
                 try:
                     activity.heartbeat({
+                        "thread_id": thread_id,  # For checkpoint resume on retry
                         "events_processed": events_processed,
                         "messages": len(status_builder.current_status.messages),
                         "tool_calls": len(status_builder.current_status.tool_calls),
