@@ -40,11 +40,11 @@ const (
 
 // State key constants for bootstrap_state table
 const (
-	KeySeedpackVersion  = "seedpack_version"
-	KeyBootstrapStatus  = "bootstrap_status"
-	KeySkillPrefix      = "skill:"
-	KeyAgentPrefix      = "agent:"
-	KeyAppliedPrefix    = "applied:"
+	KeySeedpackVersion = "seedpack_version"
+	KeyBootstrapStatus = "bootstrap_status"
+	KeySkillPrefix     = "skill:"
+	KeyAgentPrefix     = "agent:"
+	KeyAppliedPrefix   = "applied:"
 )
 
 // SkillClient defines the interface for pushing skills.

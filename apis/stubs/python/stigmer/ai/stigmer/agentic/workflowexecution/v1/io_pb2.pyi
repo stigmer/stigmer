@@ -2,6 +2,7 @@ from ai.stigmer.agentic.agentexecution.v1 import api_pb2 as _api_pb2
 from ai.stigmer.agentic.workflowexecution.v1 import api_pb2 as _api_pb2_1
 from ai.stigmer.agentic.workflowexecution.v1 import enum_pb2 as _enum_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -129,3 +130,13 @@ class RecoverWorkflowExecutionInput(_message.Message):
     id: str
     reason: str
     def __init__(self, id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class SendSignalInput(_message.Message):
+    __slots__ = ("execution_id", "signal_name", "payload")
+    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    SIGNAL_NAME_FIELD_NUMBER: _ClassVar[int]
+    PAYLOAD_FIELD_NUMBER: _ClassVar[int]
+    execution_id: str
+    signal_name: str
+    payload: _struct_pb2.Struct
+    def __init__(self, execution_id: _Optional[str] = ..., signal_name: _Optional[str] = ..., payload: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...

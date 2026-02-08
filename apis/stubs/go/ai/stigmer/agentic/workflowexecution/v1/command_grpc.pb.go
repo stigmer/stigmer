@@ -25,6 +25,7 @@ const (
 	WorkflowExecutionCommandController_UpdateStatus_FullMethodName   = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/updateStatus"
 	WorkflowExecutionCommandController_SubmitApproval_FullMethodName = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitApproval"
 	WorkflowExecutionCommandController_Delete_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/delete"
+	WorkflowExecutionCommandController_SendSignal_FullMethodName     = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/sendSignal"
 	WorkflowExecutionCommandController_Cancel_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/cancel"
 	WorkflowExecutionCommandController_Terminate_FullMethodName      = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/terminate"
 	WorkflowExecutionCommandController_Recover_FullMethodName        = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/recover"
@@ -333,6 +334,79 @@ type WorkflowExecutionCommandControllerClient interface {
 	SubmitApproval(ctx context.Context, in *SubmitWorkflowApprovalInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
 	// Delete an execution.
 	Delete(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*WorkflowExecution, error)
+	// Send a signal to a running workflow execution.
+	//
+	// Delivers a signal to a workflow execution, typically to unblock a LISTEN task.
+	// Uses Temporal's SignalWithStart API internally for race-proof delivery.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a signalable phase
+	// 2. Uses Temporal SignalWithStart for atomic delivery:
+	//   - If workflow exists → sends signal immediately
+	//   - If workflow not started yet → starts workflow, then sends signal
+	//
+	// 3. Signal is delivered to workflow's signal channel
+	// 4. LISTEN task waiting for this signal will unblock and continue
+	// 5. Returns the current WorkflowExecution state
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	// - User must have can_edit permission on the workflow execution
+	//
+	// ## Race-Proof Delivery (SignalWithStart)
+	//
+	// This RPC uses Temporal's SignalWithStart API to handle the race condition
+	// where a signal might arrive before the workflow is fully started:
+	// - Traditional SignalWorkflow fails with "WorkflowNotFound" if called too early
+	// - SignalWithStart atomically: starts workflow if needed, then sends signal
+	// - Guarantees signal delivery even in race conditions
+	//
+	// ## Signal Matching
+	//
+	// The signal_name must match the signal ID defined in the workflow's LISTEN task:
+	//
+	// Workflow YAML:
+	//   - waitForPayment:
+	//     listen:
+	//     to:
+	//     one:
+	//     with:
+	//     id: payment_confirmed  # <-- signal_name must match this
+	//     type: signal
+	//
+	// API Call:
+	//
+	//	{ "signal_name": "payment_confirmed", "payload": {...} }
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Workflow execution doesn't exist
+	// - PERMISSION_DENIED: User doesn't have can_edit permission
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: execution_id or signal_name is empty
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "execution_id": "wfx-abc123xyz456",
+	//	  "signal_name": "payment_confirmed",
+	//	  "payload": {
+	//	    "transaction_id": "txn_123",
+	//	    "amount": 99.99,
+	//	    "currency": "USD"
+	//	  }
+	//	}
+	//
+	// ## Example Response
+	//
+	// Returns the current WorkflowExecution state (phase may still be IN_PROGRESS
+	// as the workflow continues after receiving the signal).
+	//
+	// @since Gap B1 (Signal-With-Start for race-proof event delivery)
+	SendSignal(ctx context.Context, in *SendSignalInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
 	// Cancel a running workflow execution gracefully.
 	//
 	// Sends a cancellation signal to the workflow via Temporal's CancelWorkflow API.
@@ -599,6 +673,16 @@ func (c *workflowExecutionCommandControllerClient) Delete(ctx context.Context, i
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WorkflowExecution)
 	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_Delete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowExecutionCommandControllerClient) SendSignal(ctx context.Context, in *SendSignalInput, opts ...grpc.CallOption) (*WorkflowExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowExecution)
+	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_SendSignal_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -938,6 +1022,79 @@ type WorkflowExecutionCommandControllerServer interface {
 	SubmitApproval(context.Context, *SubmitWorkflowApprovalInput) (*WorkflowExecution, error)
 	// Delete an execution.
 	Delete(context.Context, *apiresource.ApiResourceId) (*WorkflowExecution, error)
+	// Send a signal to a running workflow execution.
+	//
+	// Delivers a signal to a workflow execution, typically to unblock a LISTEN task.
+	// Uses Temporal's SignalWithStart API internally for race-proof delivery.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a signalable phase
+	// 2. Uses Temporal SignalWithStart for atomic delivery:
+	//   - If workflow exists → sends signal immediately
+	//   - If workflow not started yet → starts workflow, then sends signal
+	//
+	// 3. Signal is delivered to workflow's signal channel
+	// 4. LISTEN task waiting for this signal will unblock and continue
+	// 5. Returns the current WorkflowExecution state
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	// - User must have can_edit permission on the workflow execution
+	//
+	// ## Race-Proof Delivery (SignalWithStart)
+	//
+	// This RPC uses Temporal's SignalWithStart API to handle the race condition
+	// where a signal might arrive before the workflow is fully started:
+	// - Traditional SignalWorkflow fails with "WorkflowNotFound" if called too early
+	// - SignalWithStart atomically: starts workflow if needed, then sends signal
+	// - Guarantees signal delivery even in race conditions
+	//
+	// ## Signal Matching
+	//
+	// The signal_name must match the signal ID defined in the workflow's LISTEN task:
+	//
+	// Workflow YAML:
+	//   - waitForPayment:
+	//     listen:
+	//     to:
+	//     one:
+	//     with:
+	//     id: payment_confirmed  # <-- signal_name must match this
+	//     type: signal
+	//
+	// API Call:
+	//
+	//	{ "signal_name": "payment_confirmed", "payload": {...} }
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Workflow execution doesn't exist
+	// - PERMISSION_DENIED: User doesn't have can_edit permission
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: execution_id or signal_name is empty
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "execution_id": "wfx-abc123xyz456",
+	//	  "signal_name": "payment_confirmed",
+	//	  "payload": {
+	//	    "transaction_id": "txn_123",
+	//	    "amount": 99.99,
+	//	    "currency": "USD"
+	//	  }
+	//	}
+	//
+	// ## Example Response
+	//
+	// Returns the current WorkflowExecution state (phase may still be IN_PROGRESS
+	// as the workflow continues after receiving the signal).
+	//
+	// @since Gap B1 (Signal-With-Start for race-proof event delivery)
+	SendSignal(context.Context, *SendSignalInput) (*WorkflowExecution, error)
 	// Cancel a running workflow execution gracefully.
 	//
 	// Sends a cancellation signal to the workflow via Temporal's CancelWorkflow API.
@@ -1174,6 +1331,9 @@ func (UnimplementedWorkflowExecutionCommandControllerServer) SubmitApproval(cont
 func (UnimplementedWorkflowExecutionCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceId) (*WorkflowExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
+func (UnimplementedWorkflowExecutionCommandControllerServer) SendSignal(context.Context, *SendSignalInput) (*WorkflowExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendSignal not implemented")
+}
 func (UnimplementedWorkflowExecutionCommandControllerServer) Cancel(context.Context, *CancelWorkflowExecutionInput) (*WorkflowExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Cancel not implemented")
 }
@@ -1293,6 +1453,24 @@ func _WorkflowExecutionCommandController_Delete_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkflowExecutionCommandController_SendSignal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendSignalInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionCommandControllerServer).SendSignal(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionCommandController_SendSignal_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionCommandControllerServer).SendSignal(ctx, req.(*SendSignalInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _WorkflowExecutionCommandController_Cancel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CancelWorkflowExecutionInput)
 	if err := dec(in); err != nil {
@@ -1373,6 +1551,10 @@ var WorkflowExecutionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _WorkflowExecutionCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "sendSignal",
+			Handler:    _WorkflowExecutionCommandController_SendSignal_Handler,
 		},
 		{
 			MethodName: "cancel",

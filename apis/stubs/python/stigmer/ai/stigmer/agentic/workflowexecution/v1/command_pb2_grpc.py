@@ -55,6 +55,11 @@ class WorkflowExecutionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
                 _registered_method=True)
+        self.sendSignal = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/sendSignal',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SendSignalInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+                _registered_method=True)
         self.cancel = channel.unary_unary(
                 '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/cancel',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.CancelWorkflowExecutionInput.SerializeToString,
@@ -394,6 +399,90 @@ class WorkflowExecutionCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def sendSignal(self, request, context):
+        """─────────────────────────────────────────────────────────────────────────────
+        Signal Operations
+
+        These RPCs enable communication with running workflow executions via
+        Temporal signals. Signals are used to deliver external events to workflows
+        waiting at LISTEN tasks.
+        ─────────────────────────────────────────────────────────────────────────────
+
+        Send a signal to a running workflow execution.
+
+        Delivers a signal to a workflow execution, typically to unblock a LISTEN task.
+        Uses Temporal's SignalWithStart API internally for race-proof delivery.
+
+        ## Behavior
+
+        1. Validates execution exists and is in a signalable phase
+        2. Uses Temporal SignalWithStart for atomic delivery:
+        - If workflow exists → sends signal immediately
+        - If workflow not started yet → starts workflow, then sends signal
+        3. Signal is delivered to workflow's signal channel
+        4. LISTEN task waiting for this signal will unblock and continue
+        5. Returns the current WorkflowExecution state
+
+        ## Preconditions
+
+        - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+        - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+        - User must have can_edit permission on the workflow execution
+
+        ## Race-Proof Delivery (SignalWithStart)
+
+        This RPC uses Temporal's SignalWithStart API to handle the race condition
+        where a signal might arrive before the workflow is fully started:
+        - Traditional SignalWorkflow fails with "WorkflowNotFound" if called too early
+        - SignalWithStart atomically: starts workflow if needed, then sends signal
+        - Guarantees signal delivery even in race conditions
+
+        ## Signal Matching
+
+        The signal_name must match the signal ID defined in the workflow's LISTEN task:
+
+        Workflow YAML:
+        - waitForPayment:
+        listen:
+        to:
+        one:
+        with:
+        id: payment_confirmed  # <-- signal_name must match this
+        type: signal
+
+        API Call:
+        { "signal_name": "payment_confirmed", "payload": {...} }
+
+        ## Error Cases
+
+        - NOT_FOUND: Workflow execution doesn't exist
+        - PERMISSION_DENIED: User doesn't have can_edit permission
+        - FAILED_PRECONDITION: Execution is in a terminal phase
+        - INVALID_ARGUMENT: execution_id or signal_name is empty
+
+        ## Example Request
+
+        {
+        "execution_id": "wfx-abc123xyz456",
+        "signal_name": "payment_confirmed",
+        "payload": {
+        "transaction_id": "txn_123",
+        "amount": 99.99,
+        "currency": "USD"
+        }
+        }
+
+        ## Example Response
+
+        Returns the current WorkflowExecution state (phase may still be IN_PROGRESS
+        as the workflow continues after receiving the signal).
+
+        @since Gap B1 (Signal-With-Start for race-proof event delivery)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def cancel(self, request, context):
         """─────────────────────────────────────────────────────────────────────────────
         Lifecycle Control Operations
@@ -656,6 +745,11 @@ def add_WorkflowExecutionCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
             ),
+            'sendSignal': grpc.unary_unary_rpc_method_handler(
+                    servicer.sendSignal,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SendSignalInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
+            ),
             'cancel': grpc.unary_unary_rpc_method_handler(
                     servicer.cancel,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.CancelWorkflowExecutionInput.FromString,
@@ -820,6 +914,33 @@ class WorkflowExecutionCommandController(object):
             target,
             '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/delete',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def sendSignal(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/sendSignal',
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SendSignalInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
             options,
             channel_credentials,

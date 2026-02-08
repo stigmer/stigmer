@@ -72,3 +72,65 @@ func (c *InvokeWorkflowExecutionWorkflowCreator) Create(ctx context.Context, exe
 
 	return nil
 }
+
+// SignalWithStart sends a signal to a workflow, starting it first if needed.
+// This provides race-proof signal delivery for LISTEN tasks.
+//
+// Uses Temporal's SignalWithStart API which atomically handles both cases:
+// - Workflow exists → sends signal immediately
+// - Workflow not started yet → starts workflow, then sends signal
+//
+// This solves the race condition where a signal might arrive before the Temporal
+// workflow is fully started. Without SignalWithStart, SignalWorkflow would fail
+// with "WorkflowNotFound" if called too early.
+func (c *InvokeWorkflowExecutionWorkflowCreator) SignalWithStart(
+	ctx context.Context,
+	execution *workflowexecutionv1.WorkflowExecution,
+	signalName string,
+	signalPayload interface{},
+) error {
+	executionID := execution.GetMetadata().GetId()
+
+	// Workflow ID format: stigmer/workflow-execution/invoke/{execution-id}
+	workflowID := fmt.Sprintf("%s/%s", InvokeWorkflowExecutionWorkflowName, executionID)
+
+	options := client.StartWorkflowOptions{
+		ID:                 workflowID,
+		TaskQueue:          c.stigmerQueue,
+		WorkflowRunTimeout: 30 * time.Minute,
+		Memo: map[string]interface{}{
+			"activityTaskQueue": c.runnerQueue,
+		},
+	}
+
+	// SignalWithStart: atomically start workflow if needed, then send signal.
+	// This ensures signal delivery even in race conditions where the signal
+	// arrives before the workflow is fully started.
+	_, err := c.workflowClient.SignalWithStartWorkflow(
+		ctx,
+		workflowID,
+		signalName,
+		signalPayload,
+		options,
+		InvokeWorkflowExecutionWorkflowName,
+		execution,
+	)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("workflow_id", workflowID).
+			Str("execution_id", executionID).
+			Str("signal_name", signalName).
+			Msg("Failed to SignalWithStart workflow")
+		return fmt.Errorf("failed to signal workflow: %w", err)
+	}
+
+	log.Info().
+		Str("workflow_id", workflowID).
+		Str("execution_id", executionID).
+		Str("signal_name", signalName).
+		Str("stigmer_queue", c.stigmerQueue).
+		Msg("SignalWithStart completed successfully")
+
+	return nil
+}
