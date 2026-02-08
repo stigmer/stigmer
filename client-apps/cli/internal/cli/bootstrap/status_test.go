@@ -109,8 +109,8 @@ func TestExtractDigest(t *testing.T) {
 
 func TestParseBootstrapState(t *testing.T) {
 	stateMap := map[string]string{
-		"bootstrap_status": "completed",
-		"seedpack_version": "1.1.0",
+		"bootstrap_status":          "completed",
+		"seedpack_version":          "1.1.0",
 		"skill:skill-creator":       "applied:sha256:abc123",
 		"agent:skill-creator-agent": "applied:sha256:def456",
 	}

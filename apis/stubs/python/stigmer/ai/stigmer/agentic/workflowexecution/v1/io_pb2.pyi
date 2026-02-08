@@ -132,11 +132,13 @@ class RecoverWorkflowExecutionInput(_message.Message):
     def __init__(self, id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
 
 class SendSignalInput(_message.Message):
-    __slots__ = ("execution_id", "signal_name", "payload")
+    __slots__ = ("execution_id", "signal_name", "payload", "idempotency_key")
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     SIGNAL_NAME_FIELD_NUMBER: _ClassVar[int]
     PAYLOAD_FIELD_NUMBER: _ClassVar[int]
+    IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
     execution_id: str
     signal_name: str
     payload: _struct_pb2.Struct
-    def __init__(self, execution_id: _Optional[str] = ..., signal_name: _Optional[str] = ..., payload: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
+    idempotency_key: str
+    def __init__(self, execution_id: _Optional[str] = ..., signal_name: _Optional[str] = ..., payload: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., idempotency_key: _Optional[str] = ...) -> None: ...

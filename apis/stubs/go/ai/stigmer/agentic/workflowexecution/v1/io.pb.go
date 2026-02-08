@@ -1442,9 +1442,49 @@ type SendSignalInput struct {
 	// - { "verified": true }
 	//
 	// Note: Use google.protobuf.Struct for arbitrary JSON payloads.
-	Payload       *structpb.Struct `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Payload *structpb.Struct `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	// Idempotency key for deduplication of signal delivery.
+	//
+	// Optional - if not provided, signal is processed without dedupe protection.
+	// When provided, duplicate signals with the same key (within the TTL window)
+	// return the cached response instead of re-delivering the signal.
+	//
+	// ## Format Recommendations
+	//
+	// - Webhook sources: "{source}:{event_id}" (e.g., "stripe:evt_1234567890")
+	// - API callers: Client-generated UUID (e.g., "550e8400-e29b-41d4-a716-446655440000")
+	// - Scheduled events: "{schedule_id}:{timestamp}" (e.g., "sched_abc:2026-02-08T12:00:00Z")
+	//
+	// ## Scope
+	//
+	// Keys are scoped to the organization to prevent cross-org collisions.
+	// The effective key stored is: "{org_id}:{idempotency_key}"
+	//
+	// ## TTL (Time-To-Live)
+	//
+	// Keys expire after 24 hours by default. After expiration, the same key
+	// can be reused and will trigger a new signal delivery. This aligns with
+	// industry standards (e.g., Stripe's 24-hour idempotency window).
+	//
+	// ## Behavior on Duplicate
+	//
+	// When a duplicate key is detected:
+	// - The signal is NOT re-delivered to the workflow
+	// - The original WorkflowExecution state is returned (idempotent response)
+	// - No error is returned (success with cached result)
+	//
+	// ## Use Cases
+	//
+	// 1. Webhook retry protection: Stripe/GitHub may retry webhooks on timeout
+	// 2. Client retry safety: API clients can safely retry on network errors
+	// 3. At-least-once to effectively-once: Convert retries into safe operations
+	//
+	// Example: "stripe:evt_1NqZP92eZvKYlo2CqOc7XYRT"
+	//
+	// @since Gap B2 (Event Dedupe)
+	IdempotencyKey string `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SendSignalInput) Reset() {
@@ -1498,6 +1538,13 @@ func (x *SendSignalInput) GetPayload() *structpb.Struct {
 	return nil
 }
 
+func (x *SendSignalInput) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_workflowexecution_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
@@ -1549,12 +1596,13 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"P\n" +
 	"\x1dRecoverWorkflowExecutionInput\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\"\x9a\x01\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xc3\x01\n" +
 	"\x0fSendSignalInput\x12*\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12(\n" +
 	"\vsignal_name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"signalName\x121\n" +
-	"\apayload\x18\x03 \x01(\v2\x17.google.protobuf.StructR\apayload*\xf3\x01\n" +
+	"\apayload\x18\x03 \x01(\v2\x17.google.protobuf.StructR\apayload\x12'\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey*\xf3\x01\n" +
 	"\x12WorkflowUpdateType\x12$\n" +
 	" workflow_update_type_unspecified\x10\x00\x12\x1c\n" +
 	"\x18wf_update_status_changed\x10\x01\x12\x1a\n" +

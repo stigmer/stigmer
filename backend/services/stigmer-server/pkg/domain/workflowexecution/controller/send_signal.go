@@ -9,6 +9,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/dedupe"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"google.golang.org/protobuf/proto"
 )
@@ -17,12 +18,25 @@ import (
 // Interface constraint for SendSignal pipeline
 // =============================================================================
 
-// SignalInput is the interface for inputs that have execution_id and signal_name
+// SignalInput is the interface for inputs that have execution_id, signal_name, and optional idempotency_key
 type SignalInput interface {
 	proto.Message
 	GetExecutionId() string
 	GetSignalName() string
+	GetIdempotencyKey() string // Added for Gap B2 (Event Dedupe)
 }
+
+// =============================================================================
+// Context Keys for Pipeline
+// =============================================================================
+
+// DedupeClaimedKey is the pipeline context key indicating dedupe was claimed.
+// If set to true, the DedupeMarkDeliveredStep should update the record.
+const DedupeClaimedKey = "dedupe_claimed"
+
+// DedupeSkippedKey is the pipeline context key indicating dedupe was skipped.
+// Set when no idempotency_key was provided (backward compatible behavior).
+const DedupeSkippedKey = "dedupe_skipped"
 
 // =============================================================================
 // SendSignal RPC Handler
@@ -88,13 +102,23 @@ func (c *WorkflowExecutionController) SendSignal(
 	return execution.(*workflowexecutionv1.WorkflowExecution), nil
 }
 
-// buildSendSignalPipeline constructs the pipeline for send signal operations
+// buildSendSignalPipeline constructs the pipeline for send signal operations.
+//
+// Pipeline Steps (Gap B2 updated):
+// 1. ValidateSignalInput - Check execution_id and signal_name are present
+// 2. LoadExecutionByExecutionId - Load execution from database
+// 3. ValidateSignalable - Ensure execution is in a signalable phase
+// 4. DedupeClaimStep - Claim idempotency key (if provided) [NEW - Gap B2]
+// 5. SendSignalToWorkflow - Send signal via workflow creator's SignalWithStart
+// 6. DedupeMarkDeliveredStep - Mark idempotency key as delivered [NEW - Gap B2]
 func (c *WorkflowExecutionController) buildSendSignalPipeline() *pipeline.Pipeline[*workflowexecutionv1.SendSignalInput] {
 	return pipeline.NewPipeline[*workflowexecutionv1.SendSignalInput]("workflowexecution-send-signal").
 		AddStep(NewValidateSignalInputStep[*workflowexecutionv1.SendSignalInput]()).
 		AddStep(NewLoadExecutionByExecutionIdStep[*workflowexecutionv1.SendSignalInput](c.store)).
 		AddStep(NewValidateSignalableStep[*workflowexecutionv1.SendSignalInput]()).
+		AddStep(NewDedupeClaimStep[*workflowexecutionv1.SendSignalInput](c.signalDedupeStore)).       // Gap B2
 		AddStep(NewSendSignalToWorkflowStep[*workflowexecutionv1.SendSignalInput](c.workflowCreator)).
+		AddStep(NewDedupeMarkDeliveredStep[*workflowexecutionv1.SendSignalInput](c.signalDedupeStore)). // Gap B2
 		Build()
 }
 
@@ -281,6 +305,180 @@ func (s *SendSignalToWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) e
 		Str("execution_id", executionID).
 		Str("signal_name", signalName).
 		Msg("Signal sent successfully via SignalWithStart")
+
+	return nil
+}
+
+// =============================================================================
+// Dedupe Claim Step (Gap B2)
+// =============================================================================
+
+// DedupeClaimStep attempts to claim an idempotency key before signal delivery.
+// If the key was already used, returns early with the cached execution.
+// If no idempotency_key is provided, skips deduplication (backward compatible).
+//
+// @since Gap B2 (Event Dedupe)
+type DedupeClaimStep[T SignalInput] struct {
+	dedupeStore dedupe.SignalDedupeStore
+}
+
+// NewDedupeClaimStep creates a new DedupeClaimStep
+func NewDedupeClaimStep[T SignalInput](dedupeStore dedupe.SignalDedupeStore) *DedupeClaimStep[T] {
+	return &DedupeClaimStep[T]{dedupeStore: dedupeStore}
+}
+
+// Name returns the step name
+func (s *DedupeClaimStep[T]) Name() string {
+	return "DedupeClaimStep"
+}
+
+// Execute attempts to claim the idempotency key
+func (s *DedupeClaimStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
+	input := ctx.NewState()
+	idempotencyKey := input.GetIdempotencyKey()
+
+	// If no idempotency key provided, skip deduplication (backward compatible)
+	if idempotencyKey == "" {
+		log.Debug().
+			Str("execution_id", input.GetExecutionId()).
+			Msg("No idempotency_key provided, skipping deduplication")
+		ctx.Set(DedupeSkippedKey, true)
+		return nil
+	}
+
+	// If dedupe store not available, skip (graceful degradation)
+	if s.dedupeStore == nil {
+		log.Warn().
+			Str("execution_id", input.GetExecutionId()).
+			Str("idempotency_key", idempotencyKey).
+			Msg("Signal dedupe store not available, skipping deduplication")
+		ctx.Set(DedupeSkippedKey, true)
+		return nil
+	}
+
+	execution := ctx.Get(LoadedExecutionKey).(*workflowexecutionv1.WorkflowExecution)
+	org := execution.GetMetadata().GetOrg()
+	executionID := execution.GetMetadata().GetId()
+	signalName := input.GetSignalName()
+
+	log.Debug().
+		Str("execution_id", executionID).
+		Str("org", org).
+		Str("idempotency_key", idempotencyKey).
+		Str("signal_name", signalName).
+		Msg("Attempting to claim idempotency key for signal")
+
+	// Attempt to claim the key
+	result, err := s.dedupeStore.Claim(
+		ctx.Context(),
+		org,
+		idempotencyKey,
+		executionID,
+		signalName,
+		dedupe.DefaultSignalDedupeTTL,
+	)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("execution_id", executionID).
+			Str("idempotency_key", idempotencyKey).
+			Msg("Failed to claim idempotency key")
+		// Don't fail the request - continue without dedupe protection
+		ctx.Set(DedupeSkippedKey, true)
+		return nil
+	}
+
+	// Check claim result
+	if result.Status == dedupe.ClaimStatusDuplicate {
+		log.Info().
+			Str("execution_id", executionID).
+			Str("idempotency_key", idempotencyKey).
+			Str("original_execution_id", result.Record.ExecutionID).
+			Str("original_status", string(result.Record.Status)).
+			Msg("Duplicate signal detected - returning cached response")
+
+		// For duplicate, we return an error indicating the signal was already delivered
+		// The signal was already delivered, so this is idempotent behavior
+		return grpclib.AlreadyExistsError(
+			"signal_with_idempotency_key",
+			idempotencyKey,
+		)
+	}
+
+	// Claim successful - mark that we need to update on completion
+	log.Info().
+		Str("execution_id", executionID).
+		Str("idempotency_key", idempotencyKey).
+		Msg("Successfully claimed idempotency key")
+	ctx.Set(DedupeClaimedKey, true)
+
+	return nil
+}
+
+// =============================================================================
+// Dedupe Mark Delivered Step (Gap B2)
+// =============================================================================
+
+// DedupeMarkDeliveredStep marks an idempotency key as delivered after successful
+// signal delivery. Only runs if DedupeClaimStep successfully claimed the key.
+//
+// @since Gap B2 (Event Dedupe)
+type DedupeMarkDeliveredStep[T SignalInput] struct {
+	dedupeStore dedupe.SignalDedupeStore
+}
+
+// NewDedupeMarkDeliveredStep creates a new DedupeMarkDeliveredStep
+func NewDedupeMarkDeliveredStep[T SignalInput](dedupeStore dedupe.SignalDedupeStore) *DedupeMarkDeliveredStep[T] {
+	return &DedupeMarkDeliveredStep[T]{dedupeStore: dedupeStore}
+}
+
+// Name returns the step name
+func (s *DedupeMarkDeliveredStep[T]) Name() string {
+	return "DedupeMarkDeliveredStep"
+}
+
+// Execute marks the idempotency key as delivered
+func (s *DedupeMarkDeliveredStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
+	// Check if dedupe was skipped
+	if skipped, ok := ctx.Get(DedupeSkippedKey).(bool); ok && skipped {
+		return nil
+	}
+
+	// Check if we claimed the key
+	if claimed, ok := ctx.Get(DedupeClaimedKey).(bool); !ok || !claimed {
+		return nil
+	}
+
+	// If dedupe store not available, skip
+	if s.dedupeStore == nil {
+		return nil
+	}
+
+	input := ctx.NewState()
+	idempotencyKey := input.GetIdempotencyKey()
+	execution := ctx.Get(LoadedExecutionKey).(*workflowexecutionv1.WorkflowExecution)
+	org := execution.GetMetadata().GetOrg()
+
+	log.Debug().
+		Str("execution_id", execution.GetMetadata().GetId()).
+		Str("org", org).
+		Str("idempotency_key", idempotencyKey).
+		Msg("Marking idempotency key as delivered")
+
+	err := s.dedupeStore.MarkDelivered(ctx.Context(), org, idempotencyKey)
+	if err != nil {
+		// Log but don't fail - the signal was already delivered
+		log.Warn().
+			Err(err).
+			Str("execution_id", execution.GetMetadata().GetId()).
+			Str("idempotency_key", idempotencyKey).
+			Msg("Failed to mark idempotency key as delivered (signal was sent)")
+	} else {
+		log.Info().
+			Str("execution_id", execution.GetMetadata().GetId()).
+			Str("idempotency_key", idempotencyKey).
+			Msg("Marked idempotency key as delivered")
+	}
 
 	return nil
 }
