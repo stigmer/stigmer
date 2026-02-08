@@ -6,103 +6,99 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Project: CLI Platform Capabilities (Draft Commands)
 
-**Description**: Implement hybrid capabilities bundle model for AI-powered draft commands. Embed baseline capabilities in CLI binary (go:embed) with optional signed updates from registry. Capabilities are system-scoped, not user-visible skills.
+**Description**: Implement self-bootstrapping agent & skill system with vendored seedpack for offline-first operation. Enable AI-powered draft commands using embedded Anthropic skill-creator.
 
-**Goal**: Enable `stigmer agent|workflow|skill|mcpserver draft` commands with embedded platform capabilities that power AI-assisted YAML authoring. Implement `stigmer capabilities` command group (status, update, pin, list) for managing capability bundles.
+**Goal**: Enable `stigmer draft agent|workflow|skill|mcpserver` commands with embedded platform capabilities that power AI-assisted YAML authoring. Implement `stigmer system` and `stigmer seed` command groups for managing system resources.
 
-**Tech Stack**: Go (CLI), go:embed, YAML, GitHub Releases
+**Tech Stack**: Go (CLI), go:embed, YAML, Temporal
 
 **Components**: 
 - CLI commands: `/Users/suresh/scm/github.com/stigmer/stigmer/client-apps/cli`
-- Capabilities bundle: `internal/capabilities/` (new)
-- Registry integration (GitHub releases)
+- Seedpack bundle: `internal/seedpack/` (new)
+- Server bootstrap: `backend/services/stigmer-server/pkg/server/bootstrap.go` (new)
 
 ---
 
-## Research Summary (Deep Research Completed)
+## Research Summary (Three Research Reports)
 
 **Research Reports**:
-- `research.platform-capabilities-draft-implementation/04.report.gpt.md` (Original)
-- `research.skill-format-integration-strategy/04.report.gpt.md` (Primary - Self-Bootstrapping)
+1. `research.platform-capabilities-draft-implementation/04.report.gpt.md` (Original)
+2. `research.skill-format-integration-strategy/04.report.gpt.md` (Self-Bootstrapping)
+3. `research.seedpack-bootstrap-architecture/04.report.gpt.md` (Architecture Validation) **← LATEST**
 
-### Key Findings (Revised)
+### Key Findings (From Seedpack Bootstrap Research)
 
-**Recommended Architecture: Self-Bootstrapping Agent & Skill System**
+**Architecture Validated Against**:
+- K3s packaged components (bundled content, applied on startup)
+- OpenAI Codex (SYSTEM skill-creator)
+- Terraform (lockfile with checksums)
+- Ollama (server starts without network)
 
-1. **Two-Plane Design**
-   - Control plane: DB-backed registry for skills, agents, versions
-   - Runtime plane: Execution engine with tracing, permissions, progressive disclosure
+**Critical Design Decision**:
+> **"Do not auto-clone upstream repos during server startup."**
 
-2. **Hybrid Distribution**
-   - Embedded seed pack in CLI (`go:embed`) for offline bootstrap
-   - DB registry takes precedence when available
-   - `stigmer system sync` to bootstrap/update
+**Revised Architecture: Vendored Seedpack**
+1. **Vendor skill content** in binary (pinned to commit SHA)
+2. **No network** required for server startup
+3. **Explicit updates** via `stigmer seed update`
+4. **Provenance tracking** (git url, commit, digest)
+5. **Bootstrap as state machine** (resumable, debuggable)
 
-3. **Progressive Disclosure** (matches Codex/Claude)
-   - Level 1: Metadata only (`name`, `description`) - always loaded
-   - Level 2: Instructions (`SKILL.md` body) - loaded when skill triggers
-   - Level 3: Resources/scripts - loaded on-demand via tools
-
-4. **Skills as Versioned Packages**
-   - First-class DB resources (not prompt blobs)
-   - Immutable versions with provenance tracking
-   - Content-addressed blob storage
-
-5. **Trust Boundaries**
-   - AI-generated skills start in DRAFT state
-   - Review gates before publishing
-   - Permission profiles per invocation
-
-### Bootstrapping Flow
+### Bootstrapping Flow (Revised)
 ```
-Anthropic skill-creator → Import → skill-creator-agent
-                                          ↓
-                                   Invoke with schemas
-                                          ↓
-                                   Creates drafter skills
-                                          ↓
-                                   Create drafter agents
-                                          ↓
-                                   stigmer draft <resource>
+Build Time: Vendor Anthropic skill-creator → Embed in CLI binary
+                                                    ↓
+Runtime: stigmer server starts → Bootstrap (offline, embedded content)
+                                                    ↓
+                                      skill-creator + skill-creator-agent created
+                                                    ↓
+User: stigmer run agent skill-creator-agent → Creates yaml-validator
+                                                    ↓
+User: Creates drafter skills → Creates drafter agents
+                                                    ↓
+                                      stigmer draft <resource> works
 ```
 
-### Target Command Structure
+### Target Command Structure (Revised)
 ```
 stigmer system
-├── sync       # Bootstrap/sync system pack to DB
-└── status     # Show system pack version
+├── list       # List all system resources
+├── status     # Show bootstrap state
+├── disable    # Disable system skill without removing
+└── enable     # Re-enable system skill
+
+stigmer seed
+├── update     # Explicit upstream sync (requires network)
+└── status     # Show seedpack version
 
 stigmer draft agent      # AI-assisted agent YAML creation
 stigmer draft workflow   # AI-assisted workflow YAML creation
 stigmer draft skill      # AI-assisted skill YAML creation
 stigmer draft mcpserver  # AI-assisted MCP server YAML creation
-
-stigmer skill
-├── create     # Create skill from SKILL.md package
-├── publish    # Promote DRAFT → PUBLISHED
-├── eval       # Run skill evaluation suite
-└── list       # List skills by scope
-
-stigmer invoke agent <agent-name>  # Invoke agent (for bootstrapping)
 ```
 
 ---
 
 ## Essential Files to Review
 
-### 1. Revised Plan (CRITICAL - START HERE)
-Read the revised plan based on deep research:
+### 1. Current Plan (CRITICAL - START HERE)
+Read the practical plan with research findings incorporated:
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/tasks/T01_1_revised_plan.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/tasks/T01_2_practical_plan.md
 ```
 
 ### 2. Deep Research Reports
-Primary research report (self-bootstrapping architecture):
+Seedpack bootstrap architecture (latest):
+```
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/research.seedpack-bootstrap-architecture/04.report.gpt.md
+```
+
+Self-bootstrapping architecture:
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/research.skill-format-integration-strategy/04.report.gpt.md
 ```
 
-Original research report (platform capabilities):
+Original platform capabilities:
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/research.platform-capabilities-draft-implementation/04.report.gpt.md
 ```
@@ -119,7 +115,7 @@ Review all task files:
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/tasks/
 ```
 
-### 4. Project Documentation
+### 5. Project Documentation
 - **README**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/README.md`
 
 ## Knowledge Folders to Check
@@ -162,34 +158,86 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-07 13:36
-**Current Task**: T01 Phase 0.1 (Skill Data Model)
-**Status**: Ready to Execute
+**Updated**: 2026-02-08 (Session 1)
+**Current Task**: T01 Phase 1.2 (Seedpack structure and manifest)
+**Status**: Phase 1.1 Complete ✅
 
-**Revised Plan**: `tasks/T01_1_revised_plan.md` (based on deep research)
+**Active Plan**: `tasks/T01_2_practical_plan.md` (research-informed, APPROVED)
+
+### Session Progress (2026-02-08)
+
+**Phase 1.1: Vendor skill-creator - COMPLETED**
+- ✅ Created `internal/seedpack/` directory structure
+- ✅ Implemented `vendor_skill.sh` with full automation
+- ✅ Vendored skill-creator from Anthropic (commit: `1ed29a03dc85`)
+- ✅ Generated provenance.json with digests
+- ✅ Added BUILD.bazel and verification tests
+- ✅ Tests pass with both `go test` and `bazel test`
+
+**Files Created**:
+```
+client-apps/cli/internal/seedpack/
+├── BUILD.bazel                              # Bazel build config
+├── seedpack_test.go                         # Verification tests
+├── tools/vendor_skill.sh                    # Automated vendoring
+└── skills/skill-creator/                    # 8 files, ~50KB
+    ├── SKILL.md, LICENSE.txt, provenance.json
+    ├── scripts/ (3 Python scripts)
+    └── references/ (2 markdown docs)
+```
+
+**Key Achievements**:
+- Reproducible vendoring with provenance tracking
+- Content digest: `sha256:c2cb6665d579f8ea...`
+- Compatible with existing `artifact.ParseSkillMetadata()`
+- Supply chain security: pinned commit + per-file digests
+
+## Next Steps (for Next Session)
+
+1. **Start Phase 1.2**: Create seedpack manifest.json
+   - Define manifest schema (version, digests, skill/agent metadata)
+   - Generate manifest from vendored content
+   - Document manifest format
+
+2. **Then Phase 1.3**: Implement Go embed infrastructure
+   - Add `embed.go` with `//go:embed` directive
+   - Implement `LoadManifest()` and `LoadSkillContent()`
+   - Parse SKILL.md frontmatter for metadata
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 0.1" - Begin skill data model implementation
+- "Start Phase 1.2" - Create manifest.json
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
 
-## Implementation Order (from Revised Plan)
+## Implementation Order (from T01_2 Practical Plan)
 
-| Order | Phase | Description |
-|-------|-------|-------------|
-| 1 | Phase 0.1 | Skill package data model |
-| 2 | Phase 0.4 | Execution tracing |
-| 3 | Phase 0.2 | Progressive disclosure |
-| 4 | Phase 0.3 | Permission profiles |
-| 5 | Phase 1 | System pack embedding |
-| 6 | Phase 2 | `stigmer system sync` |
-| 7 | Phase 3 | Create drafter skills |
-| 8 | Phase 4 | Create drafter agents |
-| 9 | Phase 5 | Draft commands |
-| 10 | Phase 6 | Lifecycle & evals |
-| 11 | Phase 7 | Trust boundaries |
+| Order | Phase | Task | Description |
+|-------|-------|------|-------------|
+| 1 | 1.1 | Vendor skill-creator | Pin to commit SHA, record provenance |
+| 2 | 1.2 | Seedpack structure | Directory and manifest setup |
+| 3 | 1.3 | Go embed infrastructure | Load skills from binary |
+| 4 | 2.1 | Bootstrap state machine | Durable bootstrap logic |
+| 5 | 2.2 | Server integration | Hook bootstrap to server start |
+| 6 | 3.1 | Skill resolver | Resolve from registry or embedded |
+| 7 | 4.1 | Agent runtime integration | Wire skills into agent invocation |
+| 8 | 4.2 | skill-creator-agent | The agent that creates skills |
+| 9 | 5.1 | `draft agent` command | User-facing feature |
+| 10 | 5.2 | Other draft commands | workflow, skill, mcpserver |
+| 11 | 6.1 | Seed update command | Explicit upstream sync |
+| 12 | 6.2 | System commands | list, status, disable, enable |
+
+## Key Design Decisions (from Research)
+
+| Decision | Rationale |
+|----------|-----------|
+| Vendor content, no git clone on startup | Offline-first, supply-chain security (K3s, Ollama) |
+| Track provenance (url, commit, digest) | Reproducibility, audit trail (Terraform lockfile) |
+| Bootstrap as state machine | Resumable, debuggable (K3s AddOn status) |
+| Explicit update command | User controls network usage (Terraform `-upgrade`) |
+| System scope with disable | Override without mutation (Codex system skills) |
 
 ---
 
