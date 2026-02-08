@@ -68,9 +68,86 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-07 13:52
-**Current Task**: T4 (Implement backend handlers)
-**Status**: ✅ COMPLETE - Annotation processor fixed, handlers ready
-**Last Session**: 2026-02-07 (Session 5 - Annotation Processor Fix)
+**Current Task**: T5 (Add CLI commands)
+**Status**: 🟢 READY - T4 complete (both Java and Go backends), CLI can now proceed
+**Last Session**: 2026-02-07 (Session 6 - Go Backend Lifecycle Handlers)
+
+## Session Progress (2026-02-07 - Session 6)
+
+### ✅ Completed: T4 (Go Backend) - Implement Lifecycle Handlers in stigmer-server
+
+**Primary Accomplishment**: Brought Go backend (stigmer-server) to feature parity with Java backend (stigmer-service) for workflow lifecycle control
+
+**Accomplishments**:
+- ✅ **Controller Enhancements** (`workflowexecution_controller.go`)
+  - Added `temporalClient client.Client` field for Temporal API access
+  - Added `SetTemporalClient()` method for dependency injection
+  - Added `GetTemporalClient()` method for pipeline step access
+  
+- ✅ **Generic Pipeline Steps** (`lifecycle_steps.go`, 667 lines)
+  - Created reusable, type-safe steps using Go generics
+  - Validation steps: `ValidateCancellableStep`, `ValidateTerminableStep`, `ValidateRecoverableStep`
+  - Temporal operation steps: `CancelTemporalWorkflowStep`, `TerminateTemporalWorkflowStep`, `ResetTemporalWorkflowStep`
+  - State management steps: `LoadExecutionByIdStep`, `UpdateExecutionPhaseStep`, `LifecyclePersistStep`, `LifecycleBroadcastStep`
+  - All steps include proper idempotency logic
+
+- ✅ **Handler Implementations**
+  - `cancel.go`: Cancel handler with 6-step pipeline, idempotent for CANCELLED state
+  - `terminate.go`: Terminate handler with 6-step pipeline, idempotent for TERMINATED state
+  - `recover.go`: Recover handler with 6-step pipeline, idempotent for IN_PROGRESS state (only FAILED executions can be recovered)
+
+- ✅ **Server Integration**
+  - Updated `server.go` to inject Temporal client on startup
+  - Updated `temporal_manager.go` to reinject client on Temporal reconnection
+
+- ✅ **Comprehensive Testing** (`lifecycle_test.go`)
+  - 20 test cases total (7 Cancel, 6 Terminate, 7 Recover)
+  - Tests cover validation logic, idempotency, edge cases, error scenarios
+  - All tests passing (without live Temporal - tests focus on business logic)
+  - Created unique resource naming to avoid test data conflicts
+
+**Key Technical Decisions**:
+1. **Generic Type Constraints**: Used `LifecycleInput` and `LifecycleInputWithReason` interfaces to make pipeline steps reusable across different input types
+2. **Direct Temporal Integration**: Chose direct client injection (Option A) over facade service for simplicity
+3. **Idempotency First**: All handlers check if execution is already in target state before calling Temporal
+4. **Pipeline Pattern**: Followed established stigmer-server patterns for consistency
+5. **UpdateStatus for Tests**: Used `UpdateStatus` (not `Update`) to properly set execution phases in test helpers
+
+**Code Changes** (stigmer-server):
+- **New files**: 5 files (cancel.go, terminate.go, recover.go, lifecycle_steps.go, lifecycle_test.go)
+- **Modified files**: 3 files (workflowexecution_controller.go, server.go, temporal_manager.go)
+- **Total new code**: ~900 lines (including comprehensive tests)
+
+**Build Verification**:
+- ✅ All files compile successfully
+- ✅ All unit tests pass (`go test` exit code: 0)
+- ✅ No lint errors introduced
+
+**Comparison: Java vs Go Implementation**:
+
+| Aspect | Java (stigmer-service) | Go (stigmer-server) |
+|--------|------------------------|---------------------|
+| Lines of Code | ~1,550 lines (handlers only) | ~900 lines (handlers + steps) |
+| Pattern | CustomOperationHandlerV2 | Pipeline with generic steps |
+| Testing | 1,386 lines (3 test files) | Integrated in lifecycle_test.go |
+| Reusability | Per-handler steps | Generic steps shared across handlers |
+| Status | ✅ Complete (Session 5) | ✅ Complete (Session 6) |
+
+**Blocker Resolution Timeline**:
+- Session 4: Java handlers complete but blocked by annotation processor
+- Session 5: Fixed annotation processor, unblocked Java handlers
+- **Session 6**: Implemented Go handlers (no blockers, clean implementation)
+
+**Impact**:
+- ✅ **T4 fully complete** for both Java and Go backends
+- ✅ **CLI commands (T5) now unblocked** - can proceed with implementation
+- ✅ **Feature parity achieved** between open-source and cloud versions
+
+**Commit**: `d6e93c87` - "feat(backend): implement workflow execution lifecycle handlers"
+
+**Changelog**: `_changelog/2026-02/2026-02-07-190431-go-lifecycle-handlers.md`
+
+---
 
 ## Session Progress (2026-02-07 - Session 5)
 
