@@ -13,9 +13,18 @@ package seedpack
 import "embed"
 
 // content embeds the seedpack files at build time.
-// Only manifest.json and skills/* are embedded - tools/ is excluded as it's
-// a build-time script, not runtime content.
+//
+// Embedded directories:
+//   - manifest.json: Seedpack metadata and skill/agent registry
+//   - skills/*: Raw skill content (SKILL.md, scripts, references)
+//   - artifacts/*: Pre-built ZIP artifacts for bootstrap (created by vendor_skill.sh)
+//   - agents/*: System agent YAML definitions for bootstrap
+//
+// Excluded:
+//   - tools/: Build-time scripts, not runtime content
 //
 //go:embed manifest.json
 //go:embed skills/*
+//go:embed artifacts/*
+//go:embed agents/*
 var content embed.FS

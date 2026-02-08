@@ -15,13 +15,13 @@ func TestLoadManifest(t *testing.T) {
 	}
 
 	// Validate schema version
-	if manifest.SchemaVersion != "1" {
-		t.Errorf("Expected schema_version '1', got '%s'", manifest.SchemaVersion)
+	if manifest.SchemaVersion != "2" {
+		t.Errorf("Expected schema_version '2', got '%s'", manifest.SchemaVersion)
 	}
 
 	// Validate version
-	if manifest.Version != "1.0.0" {
-		t.Errorf("Expected version '1.0.0', got '%s'", manifest.Version)
+	if manifest.Version != "1.1.0" {
+		t.Errorf("Expected version '1.1.0', got '%s'", manifest.Version)
 	}
 
 	// Validate skills
@@ -62,6 +62,16 @@ func TestLoadManifest_SkillCreatorEntry(t *testing.T) {
 		t.Errorf("Expected path 'skills/skill-creator', got '%s'", skillCreator.Path)
 	}
 
+	// Validate artifact path (schema v2)
+	if skillCreator.ArtifactPath != "artifacts/skill-creator.zip" {
+		t.Errorf("Expected artifact_path 'artifacts/skill-creator.zip', got '%s'", skillCreator.ArtifactPath)
+	}
+
+	// Validate artifact digest
+	if !strings.HasPrefix(skillCreator.ArtifactDigest, "sha256:") {
+		t.Errorf("Expected artifact_digest to start with 'sha256:', got '%s'", skillCreator.ArtifactDigest)
+	}
+
 	if !strings.HasPrefix(skillCreator.ContentDigest, "sha256:") {
 		t.Errorf("Expected content_digest to start with 'sha256:', got '%s'", skillCreator.ContentDigest)
 	}
@@ -74,8 +84,8 @@ func TestLoadManifest_SkillCreatorEntry(t *testing.T) {
 		t.Errorf("Expected source.url 'https://github.com/anthropics/skills', got '%s'", skillCreator.Source.URL)
 	}
 
-	t.Logf("skill-creator: path=%s, digest=%s...",
-		skillCreator.Path, skillCreator.ContentDigest[:30])
+	t.Logf("skill-creator: path=%s, artifact=%s, digest=%s...",
+		skillCreator.Path, skillCreator.ArtifactPath, skillCreator.ContentDigest[:30])
 }
 
 func TestLoadManifest_SkillCreatorAgentEntry(t *testing.T) {
@@ -85,35 +95,67 @@ func TestLoadManifest_SkillCreatorAgentEntry(t *testing.T) {
 	}
 
 	// Find skill-creator-agent entry
-	var agent *AgentEntry
+	var agentEntry *AgentEntry
 	for i := range manifest.SystemAgents {
 		if manifest.SystemAgents[i].Name == "skill-creator-agent" {
-			agent = &manifest.SystemAgents[i]
+			agentEntry = &manifest.SystemAgents[i]
 			break
 		}
 	}
 
-	if agent == nil {
+	if agentEntry == nil {
 		t.Fatal("skill-creator-agent not found in manifest")
 	}
 
-	// Validate agent entry
-	if agent.Description == "" {
+	// Validate agent entry has correct path (schema v2)
+	if agentEntry.Path != "agents/skill-creator-agent.yaml" {
+		t.Errorf("Expected path 'agents/skill-creator-agent.yaml', got '%s'", agentEntry.Path)
+	}
+
+	t.Logf("skill-creator-agent: name=%s, path=%s", agentEntry.Name, agentEntry.Path)
+}
+
+func TestLoadAgentYAML(t *testing.T) {
+	// Load agent from YAML file
+	agent, err := LoadAgentYAML("agents/skill-creator-agent.yaml")
+	if err != nil {
+		t.Fatalf("LoadAgentYAML() failed: %v", err)
+	}
+
+	if agent == nil {
+		t.Fatal("Expected non-nil agent")
+	}
+
+	// Validate metadata
+	if agent.Metadata == nil {
+		t.Fatal("Expected non-nil metadata")
+	}
+
+	if agent.Metadata.Name != "skill-creator-agent" {
+		t.Errorf("Expected name 'skill-creator-agent', got '%s'", agent.Metadata.Name)
+	}
+
+	// Validate spec
+	if agent.Spec == nil {
+		t.Fatal("Expected non-nil spec")
+	}
+
+	if agent.Spec.Description == "" {
 		t.Error("Expected non-empty description")
 	}
 
-	if agent.Instructions == "" {
+	if agent.Spec.Instructions == "" {
 		t.Error("Expected non-empty instructions")
 	}
 
-	if len(agent.SkillRefs) == 0 {
+	if len(agent.Spec.SkillRefs) == 0 {
 		t.Error("Expected at least one skill_ref")
 	}
 
 	// Verify skill-creator is referenced
 	found := false
-	for _, ref := range agent.SkillRefs {
-		if ref == "skill-creator" {
+	for _, ref := range agent.Spec.SkillRefs {
+		if ref.Slug == "skill-creator" {
 			found = true
 			break
 		}
@@ -122,7 +164,55 @@ func TestLoadManifest_SkillCreatorAgentEntry(t *testing.T) {
 		t.Error("Expected skill-creator in skill_refs")
 	}
 
-	t.Logf("skill-creator-agent: skill_refs=%v", agent.SkillRefs)
+	t.Logf("skill-creator-agent: description=%s..., skill_refs=%d",
+		truncate(agent.Spec.Description, 50), len(agent.Spec.SkillRefs))
+}
+
+func TestLoadSkillArtifact(t *testing.T) {
+	// Load the pre-built ZIP artifact
+	zipData, err := LoadSkillArtifact("artifacts/skill-creator.zip")
+	if err != nil {
+		t.Fatalf("LoadSkillArtifact() failed: %v", err)
+	}
+
+	if len(zipData) == 0 {
+		t.Fatal("Expected non-empty ZIP data")
+	}
+
+	// Verify it's a valid ZIP (check magic bytes)
+	// ZIP files start with PK\x03\x04
+	if len(zipData) < 4 || string(zipData[:2]) != "PK" {
+		t.Error("Expected valid ZIP file (PK magic bytes)")
+	}
+
+	// Verify artifact digest matches manifest
+	manifest, err := LoadManifest()
+	if err != nil {
+		t.Fatalf("LoadManifest() failed: %v", err)
+	}
+
+	skill, err := GetSkillByName("skill-creator")
+	if err != nil {
+		t.Fatalf("GetSkillByName() failed: %v", err)
+	}
+
+	if skill.ArtifactDigest == "" {
+		t.Error("Expected non-empty artifact_digest in manifest")
+	}
+
+	// Calculate actual digest
+	hash := sha256.Sum256(zipData)
+	actualDigest := "sha256:" + hex.EncodeToString(hash[:])
+
+	if actualDigest != skill.ArtifactDigest {
+		t.Errorf("Artifact digest mismatch:\n  expected: %s\n  actual:   %s",
+			skill.ArtifactDigest, actualDigest)
+	}
+
+	t.Logf("Artifact: %d bytes, digest=%s", len(zipData), actualDigest[:40]+"...")
+
+	// Suppress unused variable warning
+	_ = manifest
 }
 
 func TestLoadSkillContent(t *testing.T) {
