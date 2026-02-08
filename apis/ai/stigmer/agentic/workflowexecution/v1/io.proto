@@ -817,4 +817,45 @@ message SendSignalInput {
   //
   // Note: Use google.protobuf.Struct for arbitrary JSON payloads.
   google.protobuf.Struct payload = 3;
+
+  // Idempotency key for deduplication of signal delivery.
+  //
+  // Optional - if not provided, signal is processed without dedupe protection.
+  // When provided, duplicate signals with the same key (within the TTL window)
+  // return the cached response instead of re-delivering the signal.
+  //
+  // ## Format Recommendations
+  //
+  // - Webhook sources: "{source}:{event_id}" (e.g., "stripe:evt_1234567890")
+  // - API callers: Client-generated UUID (e.g., "550e8400-e29b-41d4-a716-446655440000")
+  // - Scheduled events: "{schedule_id}:{timestamp}" (e.g., "sched_abc:2026-02-08T12:00:00Z")
+  //
+  // ## Scope
+  //
+  // Keys are scoped to the organization to prevent cross-org collisions.
+  // The effective key stored is: "{org_id}:{idempotency_key}"
+  //
+  // ## TTL (Time-To-Live)
+  //
+  // Keys expire after 24 hours by default. After expiration, the same key
+  // can be reused and will trigger a new signal delivery. This aligns with
+  // industry standards (e.g., Stripe's 24-hour idempotency window).
+  //
+  // ## Behavior on Duplicate
+  //
+  // When a duplicate key is detected:
+  // - The signal is NOT re-delivered to the workflow
+  // - The original WorkflowExecution state is returned (idempotent response)
+  // - No error is returned (success with cached result)
+  //
+  // ## Use Cases
+  //
+  // 1. Webhook retry protection: Stripe/GitHub may retry webhooks on timeout
+  // 2. Client retry safety: API clients can safely retry on network errors
+  // 3. At-least-once to effectively-once: Convert retries into safe operations
+  //
+  // Example: "stripe:evt_1NqZP92eZvKYlo2CqOc7XYRT"
+  //
+  // @since Gap B2 (Event Dedupe)
+  string idempotency_key = 4;
 }

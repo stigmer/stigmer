@@ -68,9 +68,36 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-08 12:26
-**Last Session**: 2026-02-08 16:41 - Gap B1: Signal-With-Start Implementation
-**Current Task**: Gap B1 Complete - Ready for Integration Testing
+**Last Session**: 2026-02-08 17:57 - Gap B2: Event Deduplication Implementation
+**Current Task**: Gap B2 Complete - Ready for Integration Testing
 **Status**: IMPLEMENTED - Both Go and Java
+
+## Session Progress (2026-02-08 17:57)
+
+### Gap B2: Event Deduplication Implementation Complete
+
+**Completed**:
+- ✅ Proto API: Added `idempotency_key` field to `SendSignalInput` message
+- ✅ Regenerated all language stubs (Go, Python)
+- ✅ Go: `SignalDedupeStore` interface with SQLite implementation
+- ✅ Go: `DedupeClaimStep` and `DedupeMarkDeliveredStep` pipeline steps
+- ✅ Go: Comprehensive unit tests for dedupe store
+- ✅ Java: `SignalDedupeStore`, `SignalDedupeRecord`, `SignalDedupeRepo` (MongoDB)
+- ✅ Java: Dedupe pipeline steps in `WorkflowExecutionSendSignalHandler`
+- ✅ Changelog created: `_changelog/2026-02/2026-02-08-175743-gap-b2-event-deduplication.md`
+
+**Key Decisions**:
+- MongoDB (Java/cloud) and SQLite (Go/local) for durable dedupe storage
+- Per-organization key scoping to prevent cross-org collisions
+- 24-hour TTL matching industry standards (Stripe, GitHub)
+- Optional idempotency key for backward compatibility
+- Graceful degradation - dedupe failures don't block signal delivery
+
+**Files Modified**:
+- stigmer: 5 files (new dedupe package + proto update)
+- stigmer-cloud: 4 files (new dedupe package)
+
+---
 
 ## Session Progress (2026-02-08 16:41)
 
@@ -173,20 +200,25 @@ We decided NOT to implement a Redis-backed tool ledger because:
 
 ## Next Steps
 
-1. **Integration Test Gap B1** with running Temporal cluster
+1. **Integration Test Gap B1 & B2** with running Temporal cluster
    - Test signal delivery to PENDING workflow
    - Test signal delivery to IN_PROGRESS workflow
    - Verify race condition handling with concurrent signals
    - Test phase validation (terminal states reject signals)
+   - Test idempotency key deduplication
+   - Test duplicate signal rejection with ALREADY_EXISTS
 
-2. **Manual Test Gap B1** with LISTEN task workflow
+2. **Manual Test Gap B1 & B2** with LISTEN task workflow
    - Create workflow with LISTEN task waiting for external signal
-   - Use `sendSignal` RPC to send signal with payload
+   - Use `sendSignal` RPC to send signal with idempotency_key
+   - Verify duplicate signals return same response
    - Verify workflow resumes and receives payload data
 
-3. **Gap B2: Event Dedupe** for idempotent event ingress (future phase)
+3. **Gap A3: Pause/Resume Propagation** for graceful agent pausing
 
-4. **Gap C1: Workflow-Level Checkpointing** (depends on Gap B1)
+4. **Gap B6: ISO 8601 Wait Semantics** for standardized duration formats
+
+5. **Gap C1: Workflow-Level Checkpointing** (depends on Gap B1)
 
 ## Context for Resume
 

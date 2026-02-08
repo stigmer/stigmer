@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "dedupe",
+    srcs = ["signal_dedupe_store.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/dedupe",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_rs_zerolog//log"],
+)
