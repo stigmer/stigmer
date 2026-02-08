@@ -74,7 +74,7 @@ func NewBootstrapper(store *sqlite.Store, skillClient SkillClient, agentClient A
 		store:       store,
 		skillClient: skillClient,
 		agentClient: agentClient,
-		org:         "stigmer", // System organization for bootstrapped resources
+		org:         "local", // Local organization for bootstrapped resources (single-tenant local mode)
 	}
 }
 

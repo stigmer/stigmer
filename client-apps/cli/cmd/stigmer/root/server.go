@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/bootstrap"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -274,6 +275,10 @@ func handleServerStatus() {
 		cliprint.Info("Server Details:")
 		cliprint.Info("  Port:   %d", daemon.DaemonPort)
 		cliprint.Info("  Data:   %s", dataDir)
+		
+		// Show bootstrap status
+		showBootstrapStatus()
+		
 		cliprint.Info("")
 		
 		// Show LLM status
@@ -482,6 +487,42 @@ func formatDuration(d time.Duration) string {
 		hours := int(d.Hours()) % 24
 		return fmt.Sprintf("%dd %dh", days, hours)
 	}
+}
+
+// showBootstrapStatus displays the bootstrap/seedpack status
+func showBootstrapStatus() {
+	fmt.Println("\nBootstrap:")
+	
+	status, err := bootstrap.GetBootstrapStatus()
+	if err != nil {
+		cliprint.Warning("  Status:   Unable to read (%v)", err)
+		return
+	}
+
+	// Display status with symbol
+	statusDisplay := bootstrap.GetStatusDisplay(status.Status)
+	statusSymbol := bootstrap.GetStatusSymbol(status.Status)
+	
+	if status.Status == bootstrap.StatusCompleted {
+		cliprint.Info("  Status:   %s %s", statusDisplay, statusSymbol)
+	} else if status.Status == bootstrap.StatusFailed {
+		cliprint.Warning("  Status:   %s %s", statusDisplay, statusSymbol)
+	} else {
+		cliprint.Info("  Status:   %s %s", statusDisplay, statusSymbol)
+	}
+	
+	// Display version if available
+	if status.Version != "" {
+		cliprint.Info("  Version:  %s", status.Version)
+	}
+	
+	// Display skills count and names
+	skillNames := bootstrap.FormatResourceNames(status.Skills)
+	cliprint.Info("  Skills:   %d applied (%s)", len(status.Skills), skillNames)
+	
+	// Display agents count and names
+	agentNames := bootstrap.FormatResourceNames(status.Agents)
+	cliprint.Info("  Agents:   %d applied (%s)", len(status.Agents), agentNames)
 }
 
 // showLLMStatus displays the current LLM configuration and status

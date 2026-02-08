@@ -64,9 +64,6 @@ func Register(extractor SearchableExtractor) {
 	}
 
 	globalRegistry.extractors[kind] = extractor
-	log.Debug().
-		Str("kind", kind.String()).
-		Msgf("Registered SearchableExtractor: %T", extractor)
 }
 
 // GetRegistry returns the global SearchableResourceRegistry.
