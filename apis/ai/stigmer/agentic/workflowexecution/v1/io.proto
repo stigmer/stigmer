@@ -6,6 +6,7 @@ import "ai/stigmer/agentic/agentexecution/v1/api.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/api.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/enum.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
 
 // WorkflowExecutionId wraps a workflow execution identifier.
 //
@@ -727,4 +728,93 @@ message RecoverWorkflowExecutionInput {
   // - "Increased timeout for slow API, retrying"
   // - "Root cause identified and fixed in config"
   string reason = 2;
+}
+
+// SendSignalInput requests delivery of a signal to a workflow execution.
+//
+// Sends a signal to a running workflow execution, typically to unblock a LISTEN task.
+// Uses Temporal's SignalWithStart API internally for race-proof delivery - if the
+// workflow hasn't started yet, it will be started first and then receive the signal.
+//
+// ## Behavior
+//
+// 1. Validates execution exists and is in a signalable phase
+// 2. Uses Temporal SignalWithStart for atomic delivery:
+//    - If workflow exists → sends signal immediately
+//    - If workflow not started yet → starts workflow, then sends signal
+// 3. Signal is delivered to workflow's signal channel
+// 4. LISTEN task waiting for this signal will unblock and continue
+// 5. Returns the current WorkflowExecution state
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+// - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+// - User must have can_edit permission on the workflow execution
+//
+// ## Race-Proof Delivery
+//
+// SignalWithStart solves the race condition where a signal might arrive before
+// the Temporal workflow is fully started. Without it, SignalWorkflow fails with
+// "WorkflowNotFound" if called too early. SignalWithStart handles both cases
+// atomically, ensuring signals are never lost.
+//
+// ## Use Cases
+//
+// - External system events (webhooks, CDC) triggering workflow continuation
+// - Human-in-the-loop approvals via external systems
+// - Integration with third-party services that send callbacks
+// - Testing LISTEN tasks during development
+//
+// ## Example
+//
+// {
+//   "execution_id": "wfx-abc123xyz456",
+//   "signal_name": "payment_confirmed",
+//   "payload": {
+//     "transaction_id": "txn_123",
+//     "amount": 99.99,
+//     "currency": "USD"
+//   }
+// }
+//
+// @since Gap B1 (Signal-With-Start)
+message SendSignalInput {
+  // Workflow execution ID to send the signal to.
+  //
+  // Format: "wfx-{ulid}" (auto-generated unique identifier)
+  // Example: "wfx-abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Signal name to send.
+  //
+  // Must match the signal ID defined in the workflow's LISTEN task.
+  // Signal names are case-sensitive and should follow snake_case convention.
+  //
+  // Examples:
+  // - "payment_confirmed"
+  // - "approval_received"
+  // - "external_event"
+  // - "verification_complete"
+  //
+  // Validation: Required, cannot be empty
+  string signal_name = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Signal payload data.
+  //
+  // JSON-serializable data to send with the signal. The payload is delivered
+  // to the workflow and can be accessed by the LISTEN task.
+  //
+  // Optional - signals can be sent without payload if they just need to
+  // unblock the workflow without passing data.
+  //
+  // Examples:
+  // - { "status": "approved", "approver": "jane@example.com" }
+  // - { "transaction_id": "txn_123", "amount": 99.99 }
+  // - { "verified": true }
+  //
+  // Note: Use google.protobuf.Struct for arbitrary JSON payloads.
+  google.protobuf.Struct payload = 3;
 }

@@ -68,8 +68,33 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-08 12:26
-**Current Task**: Gap A1 Implementation Complete - Ready for Testing
-**Status**: IMPLEMENTED - Pending Manual Testing
+**Last Session**: 2026-02-08 16:41 - Gap B1: Signal-With-Start Implementation
+**Current Task**: Gap B1 Complete - Ready for Integration Testing
+**Status**: IMPLEMENTED - Both Go and Java
+
+## Session Progress (2026-02-08 16:41)
+
+### Gap B1: Signal-With-Start Implementation Complete
+
+**Completed**:
+- ✅ Proto API: Added `SendSignalInput` message and `sendSignal` RPC to `workflowexecution/v1/command.proto`
+- ✅ Regenerated all language stubs (Go, Java, Python, TypeScript, Dart)
+- ✅ Go: `SignalWithStart` method in `InvokeWorkflowExecutionWorkflowCreator`
+- ✅ Go: `SendSignal` handler with 4-step validation pipeline
+- ✅ Go: Unit tests for phase validation (terminal phases reject signals)
+- ✅ Java: `signalWithStart` method in `InvokeWorkflowExecutionWorkflowCreator`
+- ✅ Java: `WorkflowExecutionSendSignalHandler` with 5-step pipeline
+- ✅ Changelog created: `_changelog/2026-02/2026-02-08-164113-signal-with-start-api.md`
+
+**Key Decisions**:
+- Chose **Pattern 2** (signal delivery to LISTEN tasks) over Pattern 1 (event-driven workflow creation)
+- Pattern 1 deferred as future platform feature - requires webhook ingress system
+- Phase validation: Only PENDING and IN_PROGRESS executions can receive signals
+- Used Temporal's atomic SignalWithStart API to eliminate race conditions
+
+**Files Modified**:
+- stigmer: 16 files (805 insertions, 77 deletions)
+- stigmer-cloud: 77 files (6503 insertions, 17747 deletions - mostly stub regeneration)
 
 ## Implementation Complete (2026-02-08)
 
@@ -148,9 +173,20 @@ We decided NOT to implement a Redis-backed tool ledger because:
 
 ## Next Steps
 
-1. **Test crash recovery** manually using instructions above
-2. **Gap B1: Signal-With-Start** for race-proof event delivery (future phase)
+1. **Integration Test Gap B1** with running Temporal cluster
+   - Test signal delivery to PENDING workflow
+   - Test signal delivery to IN_PROGRESS workflow
+   - Verify race condition handling with concurrent signals
+   - Test phase validation (terminal states reject signals)
+
+2. **Manual Test Gap B1** with LISTEN task workflow
+   - Create workflow with LISTEN task waiting for external signal
+   - Use `sendSignal` RPC to send signal with payload
+   - Verify workflow resumes and receives payload data
+
 3. **Gap B2: Event Dedupe** for idempotent event ingress (future phase)
+
+4. **Gap C1: Workflow-Level Checkpointing** (depends on Gap B1)
 
 ## Context for Resume
 

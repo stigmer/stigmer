@@ -26,9 +26,10 @@ from ai.stigmer.agentic.agentexecution.v1 import api_pb2 as ai_dot_stigmer_dot_a
 from ai.stigmer.agentic.workflowexecution.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.workflowexecution.v1 import enum_pb2 as ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_enum__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
+from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n0ai/stigmer/agentic/workflowexecution/v1/io.proto\x12\'ai.stigmer.agentic.workflowexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a\x31\x61i/stigmer/agentic/workflowexecution/v1/api.proto\x1a\x32\x61i/stigmer/agentic/workflowexecution/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"3\n\x13WorkflowExecutionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"*\n\nWorkflowId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x8e\x01\n\x15WorkflowExecutionList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12T\n\x07\x65ntries\x18\x02 \x03(\x0b\x32:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionR\x07\x65ntries\"\xbe\x01\n\x1dListWorkflowExecutionsRequest\x12\x1b\n\tpage_size\x18\x01 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12M\n\x05phase\x18\x03 \x01(\x0e\x32\x37.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhaseR\x05phase\x12\x12\n\x04tags\x18\x04 \x03(\tR\x04tags\"\x8e\x01\n\'ListWorkflowExecutionsByWorkflowRequest\x12\'\n\x0bworkflow_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nworkflowId\x12\x1b\n\tpage_size\x18\x02 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"\xb2\x01\n\"WorkflowExecutionUpdateStatusInput\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12`\n\x06status\x18\x02 \x01(\x0b\x32@.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\"\xe8\x01\n\x1bSubmitWorkflowApprovalInput\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12)\n\x0ctool_call_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\ntoolCallId\x12X\n\x06\x61\x63tion\x18\x03 \x01(\x0e\x32\x34.ai.stigmer.agentic.agentexecution.v1.ApprovalActionB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x06\x61\x63tion\x12\x18\n\x07\x63omment\x18\x04 \x01(\tR\x07\x63omment\"N\n!SubscribeWorkflowExecutionRequest\x12)\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xecutionId\"\xa6\x02\n\x17WorkflowExecutionUpdate\x12\x66\n\x0bupdate_type\x18\x01 \x01(\x0e\x32;.ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateTypeB\x08\xbaH\x05\x82\x01\x02\x10\x01R\nupdateType\x12X\n\texecution\x18\x02 \x01(\x0b\x32:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionR\texecution\x12I\n\x04task\x18\x03 \x01(\x0b\x32\x35.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskR\x04task\"O\n\x1c\x43\x61ncelWorkflowExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"R\n\x1fTerminateWorkflowExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"P\n\x1dRecoverWorkflowExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason*\xf3\x01\n\x12WorkflowUpdateType\x12$\n workflow_update_type_unspecified\x10\x00\x12\x1c\n\x18wf_update_status_changed\x10\x01\x12\x1a\n\x16wf_update_task_started\x10\x02\x12\x1c\n\x18wf_update_task_completed\x10\x03\x12\x19\n\x15wf_update_task_failed\x10\x04\x12!\n\x1dwf_update_execution_completed\x10\x05\x12!\n\x1dwf_update_execution_cancelled\x10\x06\x42\xf7\x01\n+com.ai.stigmer.agentic.workflowexecution.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02\'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x02\x33\x41i\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n0ai/stigmer/agentic/workflowexecution/v1/io.proto\x12\'ai.stigmer.agentic.workflowexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a\x31\x61i/stigmer/agentic/workflowexecution/v1/api.proto\x1a\x32\x61i/stigmer/agentic/workflowexecution/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"3\n\x13WorkflowExecutionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"*\n\nWorkflowId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x8e\x01\n\x15WorkflowExecutionList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12T\n\x07\x65ntries\x18\x02 \x03(\x0b\x32:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionR\x07\x65ntries\"\xbe\x01\n\x1dListWorkflowExecutionsRequest\x12\x1b\n\tpage_size\x18\x01 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12M\n\x05phase\x18\x03 \x01(\x0e\x32\x37.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhaseR\x05phase\x12\x12\n\x04tags\x18\x04 \x03(\tR\x04tags\"\x8e\x01\n\'ListWorkflowExecutionsByWorkflowRequest\x12\'\n\x0bworkflow_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nworkflowId\x12\x1b\n\tpage_size\x18\x02 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"\xb2\x01\n\"WorkflowExecutionUpdateStatusInput\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12`\n\x06status\x18\x02 \x01(\x0b\x32@.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\"\xe8\x01\n\x1bSubmitWorkflowApprovalInput\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12)\n\x0ctool_call_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\ntoolCallId\x12X\n\x06\x61\x63tion\x18\x03 \x01(\x0e\x32\x34.ai.stigmer.agentic.agentexecution.v1.ApprovalActionB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x06\x61\x63tion\x12\x18\n\x07\x63omment\x18\x04 \x01(\tR\x07\x63omment\"N\n!SubscribeWorkflowExecutionRequest\x12)\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xecutionId\"\xa6\x02\n\x17WorkflowExecutionUpdate\x12\x66\n\x0bupdate_type\x18\x01 \x01(\x0e\x32;.ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateTypeB\x08\xbaH\x05\x82\x01\x02\x10\x01R\nupdateType\x12X\n\texecution\x18\x02 \x01(\x0b\x32:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionR\texecution\x12I\n\x04task\x18\x03 \x01(\x0b\x32\x35.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskR\x04task\"O\n\x1c\x43\x61ncelWorkflowExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"R\n\x1fTerminateWorkflowExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"P\n\x1dRecoverWorkflowExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"\x9a\x01\n\x0fSendSignalInput\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12(\n\x0bsignal_name\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\nsignalName\x12\x31\n\x07payload\x18\x03 \x01(\x0b\x32\x17.google.protobuf.StructR\x07payload*\xf3\x01\n\x12WorkflowUpdateType\x12$\n workflow_update_type_unspecified\x10\x00\x12\x1c\n\x18wf_update_status_changed\x10\x01\x12\x1a\n\x16wf_update_task_started\x10\x02\x12\x1c\n\x18wf_update_task_completed\x10\x03\x12\x19\n\x15wf_update_task_failed\x10\x04\x12!\n\x1dwf_update_execution_completed\x10\x05\x12!\n\x1dwf_update_execution_cancelled\x10\x06\x42\xf7\x01\n+com.ai.stigmer.agentic.workflowexecution.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02\'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x02\x33\x41i\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -62,30 +63,36 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_TERMINATEWORKFLOWEXECUTIONINPUT'].fields_by_name['id']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_RECOVERWORKFLOWEXECUTIONINPUT'].fields_by_name['id']._loaded_options = None
   _globals['_RECOVERWORKFLOWEXECUTIONINPUT'].fields_by_name['id']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_WORKFLOWUPDATETYPE']._serialized_start=1894
-  _globals['_WORKFLOWUPDATETYPE']._serialized_end=2137
-  _globals['_WORKFLOWEXECUTIONID']._serialized_start=273
-  _globals['_WORKFLOWEXECUTIONID']._serialized_end=324
-  _globals['_WORKFLOWID']._serialized_start=326
-  _globals['_WORKFLOWID']._serialized_end=368
-  _globals['_WORKFLOWEXECUTIONLIST']._serialized_start=371
-  _globals['_WORKFLOWEXECUTIONLIST']._serialized_end=513
-  _globals['_LISTWORKFLOWEXECUTIONSREQUEST']._serialized_start=516
-  _globals['_LISTWORKFLOWEXECUTIONSREQUEST']._serialized_end=706
-  _globals['_LISTWORKFLOWEXECUTIONSBYWORKFLOWREQUEST']._serialized_start=709
-  _globals['_LISTWORKFLOWEXECUTIONSBYWORKFLOWREQUEST']._serialized_end=851
-  _globals['_WORKFLOWEXECUTIONUPDATESTATUSINPUT']._serialized_start=854
-  _globals['_WORKFLOWEXECUTIONUPDATESTATUSINPUT']._serialized_end=1032
-  _globals['_SUBMITWORKFLOWAPPROVALINPUT']._serialized_start=1035
-  _globals['_SUBMITWORKFLOWAPPROVALINPUT']._serialized_end=1267
-  _globals['_SUBSCRIBEWORKFLOWEXECUTIONREQUEST']._serialized_start=1269
-  _globals['_SUBSCRIBEWORKFLOWEXECUTIONREQUEST']._serialized_end=1347
-  _globals['_WORKFLOWEXECUTIONUPDATE']._serialized_start=1350
-  _globals['_WORKFLOWEXECUTIONUPDATE']._serialized_end=1644
-  _globals['_CANCELWORKFLOWEXECUTIONINPUT']._serialized_start=1646
-  _globals['_CANCELWORKFLOWEXECUTIONINPUT']._serialized_end=1725
-  _globals['_TERMINATEWORKFLOWEXECUTIONINPUT']._serialized_start=1727
-  _globals['_TERMINATEWORKFLOWEXECUTIONINPUT']._serialized_end=1809
-  _globals['_RECOVERWORKFLOWEXECUTIONINPUT']._serialized_start=1811
-  _globals['_RECOVERWORKFLOWEXECUTIONINPUT']._serialized_end=1891
+  _globals['_SENDSIGNALINPUT'].fields_by_name['execution_id']._loaded_options = None
+  _globals['_SENDSIGNALINPUT'].fields_by_name['execution_id']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_SENDSIGNALINPUT'].fields_by_name['signal_name']._loaded_options = None
+  _globals['_SENDSIGNALINPUT'].fields_by_name['signal_name']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_WORKFLOWUPDATETYPE']._serialized_start=2081
+  _globals['_WORKFLOWUPDATETYPE']._serialized_end=2324
+  _globals['_WORKFLOWEXECUTIONID']._serialized_start=303
+  _globals['_WORKFLOWEXECUTIONID']._serialized_end=354
+  _globals['_WORKFLOWID']._serialized_start=356
+  _globals['_WORKFLOWID']._serialized_end=398
+  _globals['_WORKFLOWEXECUTIONLIST']._serialized_start=401
+  _globals['_WORKFLOWEXECUTIONLIST']._serialized_end=543
+  _globals['_LISTWORKFLOWEXECUTIONSREQUEST']._serialized_start=546
+  _globals['_LISTWORKFLOWEXECUTIONSREQUEST']._serialized_end=736
+  _globals['_LISTWORKFLOWEXECUTIONSBYWORKFLOWREQUEST']._serialized_start=739
+  _globals['_LISTWORKFLOWEXECUTIONSBYWORKFLOWREQUEST']._serialized_end=881
+  _globals['_WORKFLOWEXECUTIONUPDATESTATUSINPUT']._serialized_start=884
+  _globals['_WORKFLOWEXECUTIONUPDATESTATUSINPUT']._serialized_end=1062
+  _globals['_SUBMITWORKFLOWAPPROVALINPUT']._serialized_start=1065
+  _globals['_SUBMITWORKFLOWAPPROVALINPUT']._serialized_end=1297
+  _globals['_SUBSCRIBEWORKFLOWEXECUTIONREQUEST']._serialized_start=1299
+  _globals['_SUBSCRIBEWORKFLOWEXECUTIONREQUEST']._serialized_end=1377
+  _globals['_WORKFLOWEXECUTIONUPDATE']._serialized_start=1380
+  _globals['_WORKFLOWEXECUTIONUPDATE']._serialized_end=1674
+  _globals['_CANCELWORKFLOWEXECUTIONINPUT']._serialized_start=1676
+  _globals['_CANCELWORKFLOWEXECUTIONINPUT']._serialized_end=1755
+  _globals['_TERMINATEWORKFLOWEXECUTIONINPUT']._serialized_start=1757
+  _globals['_TERMINATEWORKFLOWEXECUTIONINPUT']._serialized_end=1839
+  _globals['_RECOVERWORKFLOWEXECUTIONINPUT']._serialized_start=1841
+  _globals['_RECOVERWORKFLOWEXECUTIONINPUT']._serialized_end=1921
+  _globals['_SENDSIGNALINPUT']._serialized_start=1924
+  _globals['_SENDSIGNALINPUT']._serialized_end=2078
 # @@protoc_insertion_point(module_scope)

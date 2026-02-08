@@ -11,6 +11,7 @@ import (
 	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -1355,11 +1356,153 @@ func (x *RecoverWorkflowExecutionInput) GetReason() string {
 	return ""
 }
 
+// SendSignalInput requests delivery of a signal to a workflow execution.
+//
+// Sends a signal to a running workflow execution, typically to unblock a LISTEN task.
+// Uses Temporal's SignalWithStart API internally for race-proof delivery - if the
+// workflow hasn't started yet, it will be started first and then receive the signal.
+//
+// ## Behavior
+//
+// 1. Validates execution exists and is in a signalable phase
+// 2. Uses Temporal SignalWithStart for atomic delivery:
+//   - If workflow exists → sends signal immediately
+//   - If workflow not started yet → starts workflow, then sends signal
+//
+// 3. Signal is delivered to workflow's signal channel
+// 4. LISTEN task waiting for this signal will unblock and continue
+// 5. Returns the current WorkflowExecution state
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+// - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+// - User must have can_edit permission on the workflow execution
+//
+// ## Race-Proof Delivery
+//
+// SignalWithStart solves the race condition where a signal might arrive before
+// the Temporal workflow is fully started. Without it, SignalWorkflow fails with
+// "WorkflowNotFound" if called too early. SignalWithStart handles both cases
+// atomically, ensuring signals are never lost.
+//
+// ## Use Cases
+//
+// - External system events (webhooks, CDC) triggering workflow continuation
+// - Human-in-the-loop approvals via external systems
+// - Integration with third-party services that send callbacks
+// - Testing LISTEN tasks during development
+//
+// ## Example
+//
+//	{
+//	  "execution_id": "wfx-abc123xyz456",
+//	  "signal_name": "payment_confirmed",
+//	  "payload": {
+//	    "transaction_id": "txn_123",
+//	    "amount": 99.99,
+//	    "currency": "USD"
+//	  }
+//	}
+//
+// @since Gap B1 (Signal-With-Start)
+type SendSignalInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Workflow execution ID to send the signal to.
+	//
+	// Format: "wfx-{ulid}" (auto-generated unique identifier)
+	// Example: "wfx-abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// Signal name to send.
+	//
+	// Must match the signal ID defined in the workflow's LISTEN task.
+	// Signal names are case-sensitive and should follow snake_case convention.
+	//
+	// Examples:
+	// - "payment_confirmed"
+	// - "approval_received"
+	// - "external_event"
+	// - "verification_complete"
+	//
+	// Validation: Required, cannot be empty
+	SignalName string `protobuf:"bytes,2,opt,name=signal_name,json=signalName,proto3" json:"signal_name,omitempty"`
+	// Signal payload data.
+	//
+	// JSON-serializable data to send with the signal. The payload is delivered
+	// to the workflow and can be accessed by the LISTEN task.
+	//
+	// Optional - signals can be sent without payload if they just need to
+	// unblock the workflow without passing data.
+	//
+	// Examples:
+	// - { "status": "approved", "approver": "jane@example.com" }
+	// - { "transaction_id": "txn_123", "amount": 99.99 }
+	// - { "verified": true }
+	//
+	// Note: Use google.protobuf.Struct for arbitrary JSON payloads.
+	Payload       *structpb.Struct `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendSignalInput) Reset() {
+	*x = SendSignalInput{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendSignalInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendSignalInput) ProtoMessage() {}
+
+func (x *SendSignalInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendSignalInput.ProtoReflect.Descriptor instead.
+func (*SendSignalInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *SendSignalInput) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *SendSignalInput) GetSignalName() string {
+	if x != nil {
+		return x.SignalName
+	}
+	return ""
+}
+
+func (x *SendSignalInput) GetPayload() *structpb.Struct {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_workflowexecution_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/agentic/workflowexecution/v1/io.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"3\n" +
+	"0ai/stigmer/agentic/workflowexecution/v1/io.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"3\n" +
 	"\x13WorkflowExecutionId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"*\n" +
 	"\n" +
@@ -1406,7 +1549,12 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"P\n" +
 	"\x1dRecoverWorkflowExecutionInput\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason*\xf3\x01\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"\x9a\x01\n" +
+	"\x0fSendSignalInput\x12*\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12(\n" +
+	"\vsignal_name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
+	"signalName\x121\n" +
+	"\apayload\x18\x03 \x01(\v2\x17.google.protobuf.StructR\apayload*\xf3\x01\n" +
 	"\x12WorkflowUpdateType\x12$\n" +
 	" workflow_update_type_unspecified\x10\x00\x12\x1c\n" +
 	"\x18wf_update_status_changed\x10\x01\x12\x1a\n" +
@@ -1430,7 +1578,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP() []byte 
 }
 
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_goTypes = []any{
 	(WorkflowUpdateType)(0),                         // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType
 	(*WorkflowExecutionId)(nil),                     // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId
@@ -1445,25 +1593,28 @@ var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_goTypes = []any{
 	(*CancelWorkflowExecutionInput)(nil),            // 10: ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput
 	(*TerminateWorkflowExecutionInput)(nil),         // 11: ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput
 	(*RecoverWorkflowExecutionInput)(nil),           // 12: ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput
-	(*WorkflowExecution)(nil),                       // 13: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	(ExecutionPhase)(0),                             // 14: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	(*WorkflowExecutionStatus)(nil),                 // 15: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
-	(v1.ApprovalAction)(0),                          // 16: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(*WorkflowTask)(nil),                            // 17: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
+	(*SendSignalInput)(nil),                         // 13: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput
+	(*WorkflowExecution)(nil),                       // 14: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	(ExecutionPhase)(0),                             // 15: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	(*WorkflowExecutionStatus)(nil),                 // 16: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
+	(v1.ApprovalAction)(0),                          // 17: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(*WorkflowTask)(nil),                            // 18: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
+	(*structpb.Struct)(nil),                         // 19: google.protobuf.Struct
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_depIdxs = []int32{
-	13, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList.entries:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	14, // 1: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	15, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
-	16, // 3: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	14, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList.entries:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	15, // 1: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	16, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
+	17, // 3: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 	0,  // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.update_type:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType
-	13, // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.execution:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	17, // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.task:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
-	7,  // [7:7] is the sub-list for method output_type
-	7,  // [7:7] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	14, // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.execution:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	18, // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.task:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
+	19, // 7: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput.payload:type_name -> google.protobuf.Struct
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflowexecution_v1_io_proto_init() }
@@ -1479,7 +1630,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
