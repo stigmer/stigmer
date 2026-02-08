@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+# Seedpack package - embeds system skills for offline-first bootstrap
+#
+# Directory structure:
+#   skills/           - Vendored skill content (e.g., skill-creator from Anthropic)
+#   tools/            - Vendoring and maintenance scripts
+#
+# The Go embed infrastructure will be added in Phase 1.3.
+# For now, this package contains only verification tests.
+
+go_test(
+    name = "seedpack_test",
+    srcs = ["seedpack_test.go"],
+    data = glob([
+        "skills/**",
+    ]),
+    deps = [
+        "//client-apps/cli/internal/cli/artifact",
+    ],
+)
