@@ -52,6 +52,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Backend Abstraction](architecture/backend-abstraction.md) - Backend interface design and abstraction layers
 - [CLI Subprocess Lifecycle](architecture/cli-subprocess-lifecycle.md) - Production-grade subprocess management with lock files, health checks, and auto-restart
 - [Health Monitoring](architecture/health-monitoring.md) - Production-grade health monitoring and automatic restart for daemon components
+- [Workflow Execution Lifecycle](architecture/workflow-execution-lifecycle.md) - **NEW**: Complete guide to workflow phases, lifecycle commands (pause/resume/cancel/terminate), and checkpoint preservation
 - [LLM Automation](architecture/llm-automation.md) - Zero-config local LLM setup, automatic binary downloads, and lifecycle management
 - [Go Module Structure](architecture/go-module-structure.md) - Go workspace and module organization pattern for contributors
 - [McpServer Resource](architecture/mcp-server-resource.md) - First-class MCP server resource with tri-scope support, FGA authorization, and marketplace patterns
