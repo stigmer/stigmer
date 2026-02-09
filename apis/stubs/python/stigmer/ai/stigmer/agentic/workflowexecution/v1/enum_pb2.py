@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x12\'ai.stigmer.agentic.workflowexecution.v1*\xc5\x01\n\x0e\x45xecutionPhase\x12\x1f\n\x1b\x45XECUTION_PHASE_UNSPECIFIED\x10\x00\x12\x15\n\x11\x45XECUTION_PENDING\x10\x01\x12\x19\n\x15\x45XECUTION_IN_PROGRESS\x10\x02\x12\x17\n\x13\x45XECUTION_COMPLETED\x10\x03\x12\x14\n\x10\x45XECUTION_FAILED\x10\x04\x12\x17\n\x13\x45XECUTION_CANCELLED\x10\x05\x12\x18\n\x14\x45XECUTION_TERMINATED\x10\x06*\x84\x02\n\x10WorkflowTaskType\x12\"\n\x1eWORKFLOW_TASK_TYPE_UNSPECIFIED\x10\x00\x12\"\n\x1eWORKFLOW_TASK_AGENT_INVOCATION\x10\x01\x12\x1a\n\x16WORKFLOW_TASK_APPROVAL\x10\x02\x12\x1a\n\x16WORKFLOW_TASK_API_CALL\x10\x03\x12\x1d\n\x19WORKFLOW_TASK_CONDITIONAL\x10\x04\x12\x1a\n\x16WORKFLOW_TASK_PARALLEL\x10\x05\x12\x1b\n\x17WORKFLOW_TASK_TRANSFORM\x10\x06\x12\x18\n\x14WORKFLOW_TASK_CUSTOM\x10\x07*\xea\x01\n\x12WorkflowTaskStatus\x12$\n WORKFLOW_TASK_STATUS_UNSPECIFIED\x10\x00\x12\x19\n\x15WORKFLOW_TASK_PENDING\x10\x01\x12\x1d\n\x19WORKFLOW_TASK_IN_PROGRESS\x10\x02\x12\x1b\n\x17WORKFLOW_TASK_COMPLETED\x10\x03\x12\x18\n\x14WORKFLOW_TASK_FAILED\x10\x04\x12\x19\n\x15WORKFLOW_TASK_SKIPPED\x10\x05\x12\"\n\x1eWORKFLOW_TASK_WAITING_APPROVAL\x10\x06\x42\xf9\x01\n+com.ai.stigmer.agentic.workflowexecution.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02\'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x02\x33\x41i\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x12\'ai.stigmer.agentic.workflowexecution.v1*\xdb\x01\n\x0e\x45xecutionPhase\x12\x1f\n\x1b\x45XECUTION_PHASE_UNSPECIFIED\x10\x00\x12\x15\n\x11\x45XECUTION_PENDING\x10\x01\x12\x19\n\x15\x45XECUTION_IN_PROGRESS\x10\x02\x12\x17\n\x13\x45XECUTION_COMPLETED\x10\x03\x12\x14\n\x10\x45XECUTION_FAILED\x10\x04\x12\x17\n\x13\x45XECUTION_CANCELLED\x10\x05\x12\x18\n\x14\x45XECUTION_TERMINATED\x10\x06\x12\x14\n\x10\x45XECUTION_PAUSED\x10\x07*\x84\x02\n\x10WorkflowTaskType\x12\"\n\x1eWORKFLOW_TASK_TYPE_UNSPECIFIED\x10\x00\x12\"\n\x1eWORKFLOW_TASK_AGENT_INVOCATION\x10\x01\x12\x1a\n\x16WORKFLOW_TASK_APPROVAL\x10\x02\x12\x1a\n\x16WORKFLOW_TASK_API_CALL\x10\x03\x12\x1d\n\x19WORKFLOW_TASK_CONDITIONAL\x10\x04\x12\x1a\n\x16WORKFLOW_TASK_PARALLEL\x10\x05\x12\x1b\n\x17WORKFLOW_TASK_TRANSFORM\x10\x06\x12\x18\n\x14WORKFLOW_TASK_CUSTOM\x10\x07*\xea\x01\n\x12WorkflowTaskStatus\x12$\n WORKFLOW_TASK_STATUS_UNSPECIFIED\x10\x00\x12\x19\n\x15WORKFLOW_TASK_PENDING\x10\x01\x12\x1d\n\x19WORKFLOW_TASK_IN_PROGRESS\x10\x02\x12\x1b\n\x17WORKFLOW_TASK_COMPLETED\x10\x03\x12\x18\n\x14WORKFLOW_TASK_FAILED\x10\x04\x12\x19\n\x15WORKFLOW_TASK_SKIPPED\x10\x05\x12\"\n\x1eWORKFLOW_TASK_WAITING_APPROVAL\x10\x06\x42\xf9\x01\n+com.ai.stigmer.agentic.workflowexecution.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02\'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x02\x33\x41i\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,9 +33,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n+com.ai.stigmer.agentic.workflowexecution.v1B\tEnumProtoP\001\242\002\004ASAW\252\002\'Ai.Stigmer.Agentic.Workflowexecution.V1\312\002\'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\342\0023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\352\002+Ai::Stigmer::Agentic::Workflowexecution::V1'
   _globals['_EXECUTIONPHASE']._serialized_start=96
-  _globals['_EXECUTIONPHASE']._serialized_end=293
-  _globals['_WORKFLOWTASKTYPE']._serialized_start=296
-  _globals['_WORKFLOWTASKTYPE']._serialized_end=556
-  _globals['_WORKFLOWTASKSTATUS']._serialized_start=559
-  _globals['_WORKFLOWTASKSTATUS']._serialized_end=793
+  _globals['_EXECUTIONPHASE']._serialized_end=315
+  _globals['_WORKFLOWTASKTYPE']._serialized_start=318
+  _globals['_WORKFLOWTASKTYPE']._serialized_end=578
+  _globals['_WORKFLOWTASKSTATUS']._serialized_start=581
+  _globals['_WORKFLOWTASKSTATUS']._serialized_end=815
 # @@protoc_insertion_point(module_scope)

@@ -34,10 +34,17 @@ const (
 // Approval flow (HITL):
 // EXECUTION_IN_PROGRESS → EXECUTION_WAITING_FOR_APPROVAL → EXECUTION_IN_PROGRESS
 //
+// Pause/Resume flow:
+// EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+//
 // Terminal States:
 // - EXECUTION_COMPLETED: Agent finished successfully
 // - EXECUTION_FAILED: Agent encountered an error
 // - EXECUTION_CANCELLED: Agent was stopped by user or system
+//
+// Non-Terminal States:
+// - EXECUTION_WAITING_FOR_APPROVAL: Awaiting user approval for tool
+// - EXECUTION_PAUSED: Temporarily paused, can be resumed
 type ExecutionPhase int32
 
 const (
@@ -61,6 +68,31 @@ const (
 	//
 	// UI should show distinct treatment for this phase (e.g., approval dialog).
 	ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL ExecutionPhase = 6
+	// Execution was paused by user and can be resumed.
+	//
+	// The execution was temporarily stopped at a checkpoint and can continue
+	// from where it left off. Unlike CANCELLED, the execution is not terminal.
+	//
+	// Pause flow:
+	// EXECUTION_IN_PROGRESS → EXECUTION_PAUSED
+	//
+	// Resume flow:
+	// EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+	//
+	// NOT a terminal state - execution can be resumed.
+	//
+	// When this phase is reached:
+	// - Running activities are gracefully cancelled
+	// - LangGraph checkpoints are saved (thread_id preserved)
+	// - No completed_at timestamp (execution is not finished)
+	//
+	// Resume behavior:
+	// - Activity is re-invoked with same thread_id
+	// - LangGraph loads from checkpoint automatically
+	// - Execution continues from where it was paused
+	//
+	// @since Gap A3 (Pause/Resume Propagation)
+	ExecutionPhase_EXECUTION_PAUSED ExecutionPhase = 7
 )
 
 // Enum value maps for ExecutionPhase.
@@ -73,6 +105,7 @@ var (
 		4: "EXECUTION_FAILED",
 		5: "EXECUTION_CANCELLED",
 		6: "EXECUTION_WAITING_FOR_APPROVAL",
+		7: "EXECUTION_PAUSED",
 	}
 	ExecutionPhase_value = map[string]int32{
 		"EXECUTION_PHASE_UNSPECIFIED":    0,
@@ -82,6 +115,7 @@ var (
 		"EXECUTION_FAILED":               4,
 		"EXECUTION_CANCELLED":            5,
 		"EXECUTION_WAITING_FOR_APPROVAL": 6,
+		"EXECUTION_PAUSED":               7,
 	}
 )
 
@@ -389,7 +423,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/enum.proto\x12$ai.stigmer.agentic.agentexecution.v1*\xcf\x01\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/enum.proto\x12$ai.stigmer.agentic.agentexecution.v1*\xe5\x01\n" +
 	"\x0eExecutionPhase\x12\x1f\n" +
 	"\x1bEXECUTION_PHASE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11EXECUTION_PENDING\x10\x01\x12\x19\n" +
@@ -397,7 +431,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x13EXECUTION_COMPLETED\x10\x03\x12\x14\n" +
 	"\x10EXECUTION_FAILED\x10\x04\x12\x17\n" +
 	"\x13EXECUTION_CANCELLED\x10\x05\x12\"\n" +
-	"\x1eEXECUTION_WAITING_FOR_APPROVAL\x10\x06*t\n" +
+	"\x1eEXECUTION_WAITING_FOR_APPROVAL\x10\x06\x12\x14\n" +
+	"\x10EXECUTION_PAUSED\x10\a*t\n" +
 	"\vMessageType\x12\x1c\n" +
 	"\x18MESSAGE_TYPE_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rMESSAGE_HUMAN\x10\x01\x12\x0e\n" +

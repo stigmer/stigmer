@@ -1356,6 +1356,173 @@ func (x *RecoverWorkflowExecutionInput) GetReason() string {
 	return ""
 }
 
+// PauseWorkflowExecutionInput requests temporarily pausing a workflow execution.
+//
+// Pauses the workflow at its current checkpoint. Unlike cancel, the execution
+// is NOT terminal and can be resumed later from where it left off.
+//
+// ## Behavior
+//
+// When a workflow is paused:
+// 1. A "pause" signal is sent to the Temporal workflow
+// 2. Running activities are gracefully cancelled (checkpoint saved)
+// 3. Execution transitions to EXECUTION_PAUSED phase
+// 4. Workflow waits for resume signal (no resources consumed)
+//
+// ## Resume Flow
+//
+// The paused workflow can be resumed via the resume RPC:
+// 1. Resume signal unblocks the workflow
+// 2. Activities are re-invoked with same thread_id
+// 3. LangGraph loads from checkpoint automatically
+// 4. Execution continues from exact pause point
+//
+// @since Gap A3 (Pause/Resume Propagation)
+type PauseWorkflowExecutionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Workflow execution ID to pause.
+	//
+	// Must be in PENDING or IN_PROGRESS phase. Cannot pause
+	// executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+	//
+	// Format: "wfx-{ulid}" (auto-generated unique identifier)
+	// Example: "wfx-abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Human-readable reason for pausing.
+	//
+	// Stored in the audit trail for operational debugging and compliance.
+	// Helps track why the pause was needed.
+	//
+	// Examples:
+	// - "Pausing for scheduled maintenance window"
+	// - "User requested pause to review progress"
+	// - "Pausing due to rate limit concerns"
+	// - "Emergency pause - investigating issue"
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PauseWorkflowExecutionInput) Reset() {
+	*x = PauseWorkflowExecutionInput{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PauseWorkflowExecutionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PauseWorkflowExecutionInput) ProtoMessage() {}
+
+func (x *PauseWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PauseWorkflowExecutionInput.ProtoReflect.Descriptor instead.
+func (*PauseWorkflowExecutionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *PauseWorkflowExecutionInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *PauseWorkflowExecutionInput) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// ResumeWorkflowExecutionInput requests resuming a paused workflow execution.
+//
+// Continues execution from the checkpoint where it was paused. The workflow
+// re-invokes activities with the same thread_id, which loads from checkpoint
+// and continues from where it left off.
+//
+// ## Behavior
+//
+// When a workflow is resumed:
+// 1. A "resume" signal is sent to the paused Temporal workflow
+// 2. Workflow unblocks from its wait state
+// 3. Activities are re-invoked with same execution context
+// 4. LangGraph loads checkpoint using thread_id
+// 5. Execution continues from exact pause point
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PAUSED phase
+// - Cannot resume non-paused executions
+//
+// @since Gap A3 (Pause/Resume Propagation)
+type ResumeWorkflowExecutionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Workflow execution ID to resume.
+	//
+	// Must be in PAUSED phase. Cannot resume executions
+	// that are not paused.
+	//
+	// Format: "wfx-{ulid}" (auto-generated unique identifier)
+	// Example: "wfx-abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResumeWorkflowExecutionInput) Reset() {
+	*x = ResumeWorkflowExecutionInput{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResumeWorkflowExecutionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResumeWorkflowExecutionInput) ProtoMessage() {}
+
+func (x *ResumeWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResumeWorkflowExecutionInput.ProtoReflect.Descriptor instead.
+func (*ResumeWorkflowExecutionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ResumeWorkflowExecutionInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
 // SendSignalInput requests delivery of a signal to a workflow execution.
 //
 // Sends a signal to a running workflow execution, typically to unblock a LISTEN task.
@@ -1489,7 +1656,7 @@ type SendSignalInput struct {
 
 func (x *SendSignalInput) Reset() {
 	*x = SendSignalInput{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1501,7 +1668,7 @@ func (x *SendSignalInput) String() string {
 func (*SendSignalInput) ProtoMessage() {}
 
 func (x *SendSignalInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1514,7 +1681,7 @@ func (x *SendSignalInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendSignalInput.ProtoReflect.Descriptor instead.
 func (*SendSignalInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{12}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SendSignalInput) GetExecutionId() string {
@@ -1596,7 +1763,12 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"P\n" +
 	"\x1dRecoverWorkflowExecutionInput\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xc3\x01\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"N\n" +
+	"\x1bPauseWorkflowExecutionInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"7\n" +
+	"\x1cResumeWorkflowExecutionInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"\xc3\x01\n" +
 	"\x0fSendSignalInput\x12*\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12(\n" +
 	"\vsignal_name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
@@ -1626,7 +1798,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP() []byte 
 }
 
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_goTypes = []any{
 	(WorkflowUpdateType)(0),                         // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType
 	(*WorkflowExecutionId)(nil),                     // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId
@@ -1641,23 +1813,25 @@ var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_goTypes = []any{
 	(*CancelWorkflowExecutionInput)(nil),            // 10: ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput
 	(*TerminateWorkflowExecutionInput)(nil),         // 11: ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput
 	(*RecoverWorkflowExecutionInput)(nil),           // 12: ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput
-	(*SendSignalInput)(nil),                         // 13: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput
-	(*WorkflowExecution)(nil),                       // 14: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	(ExecutionPhase)(0),                             // 15: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	(*WorkflowExecutionStatus)(nil),                 // 16: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
-	(v1.ApprovalAction)(0),                          // 17: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(*WorkflowTask)(nil),                            // 18: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
-	(*structpb.Struct)(nil),                         // 19: google.protobuf.Struct
+	(*PauseWorkflowExecutionInput)(nil),             // 13: ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput
+	(*ResumeWorkflowExecutionInput)(nil),            // 14: ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput
+	(*SendSignalInput)(nil),                         // 15: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput
+	(*WorkflowExecution)(nil),                       // 16: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	(ExecutionPhase)(0),                             // 17: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	(*WorkflowExecutionStatus)(nil),                 // 18: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
+	(v1.ApprovalAction)(0),                          // 19: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(*WorkflowTask)(nil),                            // 20: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
+	(*structpb.Struct)(nil),                         // 21: google.protobuf.Struct
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_depIdxs = []int32{
-	14, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList.entries:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	15, // 1: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	16, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
-	17, // 3: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	16, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList.entries:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	17, // 1: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	18, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
+	19, // 3: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 	0,  // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.update_type:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType
-	14, // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.execution:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	18, // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.task:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
-	19, // 7: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput.payload:type_name -> google.protobuf.Struct
+	16, // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.execution:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	20, // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.task:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
+	21, // 7: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput.payload:type_name -> google.protobuf.Struct
 	8,  // [8:8] is the sub-list for method output_type
 	8,  // [8:8] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
@@ -1678,7 +1852,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

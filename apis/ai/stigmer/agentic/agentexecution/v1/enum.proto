@@ -15,10 +15,17 @@ package ai.stigmer.agentic.agentexecution.v1;
 // Approval flow (HITL):
 // EXECUTION_IN_PROGRESS → EXECUTION_WAITING_FOR_APPROVAL → EXECUTION_IN_PROGRESS
 //
+// Pause/Resume flow:
+// EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+//
 // Terminal States:
 // - EXECUTION_COMPLETED: Agent finished successfully
 // - EXECUTION_FAILED: Agent encountered an error
 // - EXECUTION_CANCELLED: Agent was stopped by user or system
+//
+// Non-Terminal States:
+// - EXECUTION_WAITING_FOR_APPROVAL: Awaiting user approval for tool
+// - EXECUTION_PAUSED: Temporarily paused, can be resumed
 enum ExecutionPhase {
   EXECUTION_PHASE_UNSPECIFIED = 0;
   EXECUTION_PENDING = 1; // Waiting to start
@@ -41,6 +48,32 @@ enum ExecutionPhase {
   //
   // UI should show distinct treatment for this phase (e.g., approval dialog).
   EXECUTION_WAITING_FOR_APPROVAL = 6;
+
+  // Execution was paused by user and can be resumed.
+  //
+  // The execution was temporarily stopped at a checkpoint and can continue
+  // from where it left off. Unlike CANCELLED, the execution is not terminal.
+  //
+  // Pause flow:
+  // EXECUTION_IN_PROGRESS → EXECUTION_PAUSED
+  //
+  // Resume flow:
+  // EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+  //
+  // NOT a terminal state - execution can be resumed.
+  //
+  // When this phase is reached:
+  // - Running activities are gracefully cancelled
+  // - LangGraph checkpoints are saved (thread_id preserved)
+  // - No completed_at timestamp (execution is not finished)
+  //
+  // Resume behavior:
+  // - Activity is re-invoked with same thread_id
+  // - LangGraph loads from checkpoint automatically
+  // - Execution continues from where it was paused
+  //
+  // @since Gap A3 (Pause/Resume Propagation)
+  EXECUTION_PAUSED = 7;
 }
 
 // MessageType defines the type of message in the conversation.

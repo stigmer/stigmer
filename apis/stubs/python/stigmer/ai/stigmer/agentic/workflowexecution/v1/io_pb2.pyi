@@ -131,6 +131,20 @@ class RecoverWorkflowExecutionInput(_message.Message):
     reason: str
     def __init__(self, id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
 
+class PauseWorkflowExecutionInput(_message.Message):
+    __slots__ = ("id", "reason")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    reason: str
+    def __init__(self, id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class ResumeWorkflowExecutionInput(_message.Message):
+    __slots__ = ("id",)
+    ID_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    def __init__(self, id: _Optional[str] = ...) -> None: ...
+
 class SendSignalInput(_message.Message):
     __slots__ = ("execution_id", "signal_name", "payload", "idempotency_key")
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]

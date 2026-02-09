@@ -116,7 +116,7 @@ func (c *WorkflowExecutionController) buildSendSignalPipeline() *pipeline.Pipeli
 		AddStep(NewValidateSignalInputStep[*workflowexecutionv1.SendSignalInput]()).
 		AddStep(NewLoadExecutionByExecutionIdStep[*workflowexecutionv1.SendSignalInput](c.store)).
 		AddStep(NewValidateSignalableStep[*workflowexecutionv1.SendSignalInput]()).
-		AddStep(NewDedupeClaimStep[*workflowexecutionv1.SendSignalInput](c.signalDedupeStore)).       // Gap B2
+		AddStep(NewDedupeClaimStep[*workflowexecutionv1.SendSignalInput](c.signalDedupeStore)). // Gap B2
 		AddStep(NewSendSignalToWorkflowStep[*workflowexecutionv1.SendSignalInput](c.workflowCreator)).
 		AddStep(NewDedupeMarkDeliveredStep[*workflowexecutionv1.SendSignalInput](c.signalDedupeStore)). // Gap B2
 		Build()

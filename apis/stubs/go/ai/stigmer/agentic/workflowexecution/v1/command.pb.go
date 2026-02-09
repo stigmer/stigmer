@@ -26,7 +26,7 @@ var File_ai_stigmer_agentic_workflowexecution_v1_command_proto protoreflect.File
 
 const file_ai_stigmer_agentic_workflowexecution_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"5ai/stigmer/agentic/workflowexecution/v1/command.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a0ai/stigmer/agentic/workflowexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x9e\x0e\n" +
+	"5ai/stigmer/agentic/workflowexecution/v1/command.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a0ai/stigmer/agentic/workflowexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xa9\x11\n" +
 	"\"WorkflowExecutionCommandController\x12\x80\x01\n" +
 	"\x06create\x12:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x12\xc2\x01\n" +
 	"\x06update\x12:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"@¸\x18<\b\x04\x104\"\vmetadata.id*)unauthorized to update workflow execution\x12\xe1\x01\n" +
@@ -37,7 +37,9 @@ const file_ai_stigmer_agentic_workflowexecution_v1_command_proto_rawDesc = "" +
 	"sendSignal\x128.ai.stigmer.agentic.workflowexecution.v1.SendSignalInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"I¸\x18E\b\x04\x104\"\fexecution_id*1unauthorized to send signal to workflow execution\x12\xc4\x01\n" +
 	"\x06cancel\x12E.ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"7¸\x183\b\x04\x104\"\x02id*)unauthorized to cancel workflow execution\x12\xcd\x01\n" +
 	"\tterminate\x12H.ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\":¸\x186\b\x04\x104\"\x02id*,unauthorized to terminate workflow execution\x12\xc7\x01\n" +
-	"\arecover\x12F.ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"8¸\x184\b\x04\x104\"\x02id**unauthorized to recover workflow execution\x1a\x04\xa0\xff+4B\xe2\x02\n" +
+	"\arecover\x12F.ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"8¸\x184\b\x04\x104\"\x02id**unauthorized to recover workflow execution\x12\xc1\x01\n" +
+	"\x05pause\x12D.ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"6¸\x182\b\x04\x104\"\x02id*(unauthorized to pause workflow execution\x12\xc4\x01\n" +
+	"\x06resume\x12E.ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"7¸\x183\b\x04\x104\"\x02id*)unauthorized to resume workflow execution\x1a\x04\xa0\xff+4B\xe2\x02\n" +
 	"+com.ai.stigmer.agentic.workflowexecution.v1B\fCommandProtoP\x01Zdgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_workflowexecution_v1_command_proto_goTypes = []any{
@@ -49,31 +51,37 @@ var file_ai_stigmer_agentic_workflowexecution_v1_command_proto_goTypes = []any{
 	(*CancelWorkflowExecutionInput)(nil),       // 5: ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput
 	(*TerminateWorkflowExecutionInput)(nil),    // 6: ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput
 	(*RecoverWorkflowExecutionInput)(nil),      // 7: ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput
+	(*PauseWorkflowExecutionInput)(nil),        // 8: ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput
+	(*ResumeWorkflowExecutionInput)(nil),       // 9: ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_command_proto_depIdxs = []int32{
-	0, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.create:input_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	0, // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.update:input_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	1, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.updateStatus:input_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput
-	2, // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.submitApproval:input_type -> ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput
-	3, // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceId
-	4, // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.sendSignal:input_type -> ai.stigmer.agentic.workflowexecution.v1.SendSignalInput
-	5, // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.cancel:input_type -> ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput
-	6, // 7: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.terminate:input_type -> ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput
-	7, // 8: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.recover:input_type -> ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput
-	0, // 9: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.create:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	0, // 10: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.update:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	0, // 11: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.updateStatus:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	0, // 12: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.submitApproval:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	0, // 13: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.delete:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	0, // 14: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.sendSignal:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	0, // 15: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.cancel:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	0, // 16: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.terminate:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	0, // 17: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.recover:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	9, // [9:18] is the sub-list for method output_type
-	0, // [0:9] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.create:input_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0,  // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.update:input_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	1,  // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.updateStatus:input_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput
+	2,  // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.submitApproval:input_type -> ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput
+	3,  // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceId
+	4,  // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.sendSignal:input_type -> ai.stigmer.agentic.workflowexecution.v1.SendSignalInput
+	5,  // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.cancel:input_type -> ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput
+	6,  // 7: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.terminate:input_type -> ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput
+	7,  // 8: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.recover:input_type -> ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput
+	8,  // 9: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.pause:input_type -> ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput
+	9,  // 10: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.resume:input_type -> ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput
+	0,  // 11: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.create:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0,  // 12: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.update:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0,  // 13: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.updateStatus:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0,  // 14: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.submitApproval:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0,  // 15: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.delete:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0,  // 16: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.sendSignal:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0,  // 17: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.cancel:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0,  // 18: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.terminate:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0,  // 19: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.recover:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0,  // 20: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.pause:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	0,  // 21: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.resume:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	11, // [11:22] is the sub-list for method output_type
+	0,  // [0:11] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflowexecution_v1_command_proto_init() }

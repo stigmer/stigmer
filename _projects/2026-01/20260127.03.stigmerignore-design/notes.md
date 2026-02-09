@@ -447,9 +447,7 @@ warning: pattern "*.xyz" in .stigmerignore matches no files
 
 ---
 
-## Open Questions
-
-1. **Should we support `.stigmerignore` in subdirectories?**
+## Open Questions1. **Should we support `.stigmerignore` in subdirectories?**
    - Pro: Matches Git behavior exactly
    - Con: Added complexity, may not be needed initially
    - **Recommendation**: Start with root-only, add later if needed2. **Should `stigmer.yaml` also support ignore patterns?**

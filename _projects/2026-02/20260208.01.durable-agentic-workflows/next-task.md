@@ -68,9 +68,40 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-08 12:26
-**Last Session**: 2026-02-08 17:57 - Gap B2: Event Deduplication Implementation
-**Current Task**: Gap B2 Complete - Ready for Integration Testing
-**Status**: IMPLEMENTED - Both Go and Java
+**Last Session**: 2026-02-09 17:46 - Gap A3: Pause/Resume Implementation
+**Current Task**: Gap A3 Complete - Ready for Integration Testing
+**Status**: IMPLEMENTED - Proto, Go, Java, Python complete
+
+## Session Progress (2026-02-09 17:46)
+
+### Gap A3: Pause/Resume Implementation Complete
+
+**Completed**:
+- ✅ Proto: Added `EXECUTION_PAUSED` phase to workflowexecution and agentexecution enums
+- ✅ Proto: Added `pause` and `resume` RPCs to command.proto with input messages
+- ✅ Regenerated all language stubs (Go, Python)
+- ✅ Go: Added 4 new lifecycle pipeline steps (ValidatePausable, ValidateResumable, SignalPause, SignalResume)
+- ✅ Go: Created `pause.go` and `resume.go` handlers following lifecycle pattern
+- ✅ Java: Added pause/resume signal methods to workflow interface and implementation
+- ✅ Java: Rewrote `executeWorkflowFlow()` with CancellationScope and pause/resume loop
+- ✅ Python: Added graceful cancellation handling in `execute_graphton.py`
+- ✅ Python: Added PAUSED status reporting and checkpoint preservation
+- ✅ Checkpoint created: `checkpoints/2026-02-09-gap-a3-pause-resume-complete.md`
+- ✅ Changelog created: `_changelog/2026-02/2026-02-09-174619-implement-pause-resume-for-workflows.md`
+
+**Key Decisions**:
+- Pause via Temporal signal + CancellationScope for graceful activity cancellation
+- PAUSED as non-terminal phase (can transition back to IN_PROGRESS)
+- LangGraph automatic checkpointing on cancellation (no data loss)
+- Idempotent operations (pause PAUSED, resume IN_PROGRESS are no-ops)
+- Scope: Workflow execution only (agent execution lifecycle is follow-up)
+
+**Files Modified**:
+- stigmer: 25 files (4 protos + 12 stubs + 3 Go + 1 Python + 2 BUILD + 3 unrelated)
+- stigmer-cloud: 2 files (Java workflow interface + implementation)
+- Total: ~2,300 lines added
+
+---
 
 ## Session Progress (2026-02-08 17:57)
 

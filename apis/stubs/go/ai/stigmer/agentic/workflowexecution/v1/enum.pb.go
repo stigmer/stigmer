@@ -47,11 +47,18 @@ const (
 // EXECUTION_PENDING → EXECUTION_TERMINATED
 // EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED
 //
+// Pause/Resume flow:
+// EXECUTION_PENDING → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+// EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+//
 // Terminal States:
 // - EXECUTION_COMPLETED: Workflow finished successfully
 // - EXECUTION_FAILED: Workflow encountered an error
 // - EXECUTION_CANCELLED: Workflow was stopped gracefully by user or system
 // - EXECUTION_TERMINATED: Workflow was force-stopped immediately
+//
+// Non-Terminal States:
+// - EXECUTION_PAUSED: Workflow temporarily stopped, can be resumed
 //
 // Once a workflow reaches a terminal state, it cannot transition to another phase.
 type ExecutionPhase int32
@@ -174,6 +181,40 @@ const (
 	// - Terminated executions CANNOT be recovered (unlike FAILED)
 	// - Use terminate only when cancel doesn't work
 	ExecutionPhase_EXECUTION_TERMINATED ExecutionPhase = 6
+	// Execution was paused by user and can be resumed.
+	//
+	// The workflow was temporarily stopped at a checkpoint and can continue
+	// from where it left off. Unlike CANCELLED, the execution is not terminal.
+	//
+	// Pause flow:
+	// EXECUTION_IN_PROGRESS → EXECUTION_PAUSED
+	// EXECUTION_PENDING → EXECUTION_PAUSED (rare, but allowed)
+	//
+	// Resume flow:
+	// EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+	//
+	// NOT a terminal state - execution can be resumed.
+	//
+	// When this phase is reached:
+	// - Running activities are gracefully cancelled
+	// - Checkpoints are saved (LangGraph thread_id preserved)
+	// - No completed_at timestamp (execution is not finished)
+	//
+	// Use Cases:
+	// - Pause long-running workflows during maintenance windows
+	// - User wants to review progress before continuing
+	// - Resource conservation (pause idle workflows)
+	// - Wait for external conditions before continuing
+	//
+	// Paused vs Cancelled:
+	// - Paused: Temporary stop, can resume from checkpoint, execution continues
+	// - Cancelled: Permanent stop, cannot resume, execution is terminated
+	//
+	// Resume behavior:
+	// - Workflow re-invokes activity with same thread_id
+	// - Activity loads from LangGraph checkpoint
+	// - Execution continues from where it was paused
+	ExecutionPhase_EXECUTION_PAUSED ExecutionPhase = 7
 )
 
 // Enum value maps for ExecutionPhase.
@@ -186,6 +227,7 @@ var (
 		4: "EXECUTION_FAILED",
 		5: "EXECUTION_CANCELLED",
 		6: "EXECUTION_TERMINATED",
+		7: "EXECUTION_PAUSED",
 	}
 	ExecutionPhase_value = map[string]int32{
 		"EXECUTION_PHASE_UNSPECIFIED": 0,
@@ -195,6 +237,7 @@ var (
 		"EXECUTION_FAILED":            4,
 		"EXECUTION_CANCELLED":         5,
 		"EXECUTION_TERMINATED":        6,
+		"EXECUTION_PAUSED":            7,
 	}
 )
 
@@ -727,7 +770,7 @@ var File_ai_stigmer_agentic_workflowexecution_v1_enum_proto protoreflect.FileDes
 
 const file_ai_stigmer_agentic_workflowexecution_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x12'ai.stigmer.agentic.workflowexecution.v1*\xc5\x01\n" +
+	"2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x12'ai.stigmer.agentic.workflowexecution.v1*\xdb\x01\n" +
 	"\x0eExecutionPhase\x12\x1f\n" +
 	"\x1bEXECUTION_PHASE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11EXECUTION_PENDING\x10\x01\x12\x19\n" +
@@ -735,7 +778,8 @@ const file_ai_stigmer_agentic_workflowexecution_v1_enum_proto_rawDesc = "" +
 	"\x13EXECUTION_COMPLETED\x10\x03\x12\x14\n" +
 	"\x10EXECUTION_FAILED\x10\x04\x12\x17\n" +
 	"\x13EXECUTION_CANCELLED\x10\x05\x12\x18\n" +
-	"\x14EXECUTION_TERMINATED\x10\x06*\x84\x02\n" +
+	"\x14EXECUTION_TERMINATED\x10\x06\x12\x14\n" +
+	"\x10EXECUTION_PAUSED\x10\a*\x84\x02\n" +
 	"\x10WorkflowTaskType\x12\"\n" +
 	"\x1eWORKFLOW_TASK_TYPE_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eWORKFLOW_TASK_AGENT_INVOCATION\x10\x01\x12\x1a\n" +
