@@ -29,6 +29,8 @@ const (
 	WorkflowExecutionCommandController_Cancel_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/cancel"
 	WorkflowExecutionCommandController_Terminate_FullMethodName      = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/terminate"
 	WorkflowExecutionCommandController_Recover_FullMethodName        = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/recover"
+	WorkflowExecutionCommandController_Pause_FullMethodName          = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/pause"
+	WorkflowExecutionCommandController_Resume_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/resume"
 )
 
 // WorkflowExecutionCommandControllerClient is the client API for WorkflowExecutionCommandController service.
@@ -619,6 +621,155 @@ type WorkflowExecutionCommandControllerClient interface {
 	//	  }
 	//	}
 	Recover(ctx context.Context, in *RecoverWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
+	// Pause a running workflow execution.
+	//
+	// Temporarily stops the workflow at its current checkpoint. Unlike cancel,
+	// the execution is NOT terminal and can be resumed later from where it left off.
+	// The workflow gracefully checkpoints and exits, preserving all progress.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a pausable phase
+	// 2. Sends "pause" signal to Temporal workflow
+	// 3. Workflow receives signal and sets pauseRequested flag
+	// 4. Running activities are gracefully cancelled (checkpoints saved)
+	// 5. Execution transitions to EXECUTION_PAUSED phase
+	// 6. Workflow waits for resume signal (no resources consumed)
+	// 7. Returns updated WorkflowExecution with PAUSED phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot pause already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → PAUSED
+	// - status.completed_at: NOT set (execution is not finished)
+	// - Running activities: Gracefully cancelled, checkpoint saved
+	// - LangGraph state: Preserved via thread_id checkpoint
+	//
+	// ## Paused vs Cancelled
+	//
+	// | Aspect | pause | cancel |
+	// |--------|-------|--------|
+	// | Terminal state? | No | Yes |
+	// | Can resume? | Yes (via resume RPC) | No |
+	// | Checkpoint saved? | Yes | Best-effort |
+	// | Progress preserved? | Yes | No |
+	// | Use case | Temporary stop, maintenance | Permanent stop |
+	//
+	// ## Agent Activity Behavior
+	//
+	// When pause is signaled to a workflow running an agent:
+	// 1. Workflow cancels the running activity gracefully
+	// 2. Python activity catches CancelledError
+	// 3. LangGraph saves final checkpoint automatically
+	// 4. Activity returns with paused status
+	// 5. On resume, activity loads from checkpoint and continues
+	//
+	// ## Idempotency
+	//
+	// Pausing an already-paused execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456",
+	//	  "reason": "Pausing for scheduled maintenance window"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 7,  // EXECUTION_PAUSED
+	//	    "started_at": "2026-02-07T10:00:00Z"
+	//	    // Note: completed_at is NOT set (execution can be resumed)
+	//	  }
+	//	}
+	//
+	// @since Gap A3 (Pause/Resume Propagation)
+	Pause(ctx context.Context, in *PauseWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
+	// Resume a paused workflow execution.
+	//
+	// Continues execution from the checkpoint where it was paused. The workflow
+	// re-invokes activities with the same thread_id, which loads from checkpoint
+	// and continues from where it left off.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution is in EXECUTION_PAUSED phase
+	// 2. Sends "resume" signal to Temporal workflow
+	// 3. Workflow receives signal and sets resumeSignalReceived flag
+	// 4. Workflow re-invokes activity with same execution context
+	// 5. Activity detects resume and loads from LangGraph checkpoint
+	// 6. Execution transitions back to EXECUTION_IN_PROGRESS phase
+	// 7. Returns updated WorkflowExecution with IN_PROGRESS phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PAUSED phase
+	// - Cannot resume non-paused executions
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PAUSED → IN_PROGRESS
+	// - Activities: Re-invoked, load from checkpoint
+	// - LangGraph state: Loaded from checkpoint via thread_id
+	//
+	// ## Resume Behavior
+	//
+	// When resume is signaled to a paused workflow:
+	// 1. Java workflow unblocks from Workflow.await()
+	// 2. Workflow re-invokes the activity with same parameters
+	// 3. Python activity reads thread_id from heartbeat_details
+	// 4. LangGraph loads checkpoint using thread_id
+	// 5. Agent continues from exact position where it was paused
+	//
+	// ## Idempotency
+	//
+	// Resuming an already-running execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is not in PAUSED phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 2,  // EXECUTION_IN_PROGRESS
+	//	    "started_at": "2026-02-07T10:00:00Z"
+	//	  }
+	//	}
+	//
+	// @since Gap A3 (Pause/Resume Propagation)
+	Resume(ctx context.Context, in *ResumeWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
 }
 
 type workflowExecutionCommandControllerClient struct {
@@ -713,6 +864,26 @@ func (c *workflowExecutionCommandControllerClient) Recover(ctx context.Context, 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WorkflowExecution)
 	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_Recover_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowExecutionCommandControllerClient) Pause(ctx context.Context, in *PauseWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowExecution)
+	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_Pause_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowExecutionCommandControllerClient) Resume(ctx context.Context, in *ResumeWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowExecution)
+	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_Resume_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1307,6 +1478,155 @@ type WorkflowExecutionCommandControllerServer interface {
 	//	  }
 	//	}
 	Recover(context.Context, *RecoverWorkflowExecutionInput) (*WorkflowExecution, error)
+	// Pause a running workflow execution.
+	//
+	// Temporarily stops the workflow at its current checkpoint. Unlike cancel,
+	// the execution is NOT terminal and can be resumed later from where it left off.
+	// The workflow gracefully checkpoints and exits, preserving all progress.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a pausable phase
+	// 2. Sends "pause" signal to Temporal workflow
+	// 3. Workflow receives signal and sets pauseRequested flag
+	// 4. Running activities are gracefully cancelled (checkpoints saved)
+	// 5. Execution transitions to EXECUTION_PAUSED phase
+	// 6. Workflow waits for resume signal (no resources consumed)
+	// 7. Returns updated WorkflowExecution with PAUSED phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot pause already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → PAUSED
+	// - status.completed_at: NOT set (execution is not finished)
+	// - Running activities: Gracefully cancelled, checkpoint saved
+	// - LangGraph state: Preserved via thread_id checkpoint
+	//
+	// ## Paused vs Cancelled
+	//
+	// | Aspect | pause | cancel |
+	// |--------|-------|--------|
+	// | Terminal state? | No | Yes |
+	// | Can resume? | Yes (via resume RPC) | No |
+	// | Checkpoint saved? | Yes | Best-effort |
+	// | Progress preserved? | Yes | No |
+	// | Use case | Temporary stop, maintenance | Permanent stop |
+	//
+	// ## Agent Activity Behavior
+	//
+	// When pause is signaled to a workflow running an agent:
+	// 1. Workflow cancels the running activity gracefully
+	// 2. Python activity catches CancelledError
+	// 3. LangGraph saves final checkpoint automatically
+	// 4. Activity returns with paused status
+	// 5. On resume, activity loads from checkpoint and continues
+	//
+	// ## Idempotency
+	//
+	// Pausing an already-paused execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456",
+	//	  "reason": "Pausing for scheduled maintenance window"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 7,  // EXECUTION_PAUSED
+	//	    "started_at": "2026-02-07T10:00:00Z"
+	//	    // Note: completed_at is NOT set (execution can be resumed)
+	//	  }
+	//	}
+	//
+	// @since Gap A3 (Pause/Resume Propagation)
+	Pause(context.Context, *PauseWorkflowExecutionInput) (*WorkflowExecution, error)
+	// Resume a paused workflow execution.
+	//
+	// Continues execution from the checkpoint where it was paused. The workflow
+	// re-invokes activities with the same thread_id, which loads from checkpoint
+	// and continues from where it left off.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution is in EXECUTION_PAUSED phase
+	// 2. Sends "resume" signal to Temporal workflow
+	// 3. Workflow receives signal and sets resumeSignalReceived flag
+	// 4. Workflow re-invokes activity with same execution context
+	// 5. Activity detects resume and loads from LangGraph checkpoint
+	// 6. Execution transitions back to EXECUTION_IN_PROGRESS phase
+	// 7. Returns updated WorkflowExecution with IN_PROGRESS phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PAUSED phase
+	// - Cannot resume non-paused executions
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PAUSED → IN_PROGRESS
+	// - Activities: Re-invoked, load from checkpoint
+	// - LangGraph state: Loaded from checkpoint via thread_id
+	//
+	// ## Resume Behavior
+	//
+	// When resume is signaled to a paused workflow:
+	// 1. Java workflow unblocks from Workflow.await()
+	// 2. Workflow re-invokes the activity with same parameters
+	// 3. Python activity reads thread_id from heartbeat_details
+	// 4. LangGraph loads checkpoint using thread_id
+	// 5. Agent continues from exact position where it was paused
+	//
+	// ## Idempotency
+	//
+	// Resuming an already-running execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is not in PAUSED phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 2,  // EXECUTION_IN_PROGRESS
+	//	    "started_at": "2026-02-07T10:00:00Z"
+	//	  }
+	//	}
+	//
+	// @since Gap A3 (Pause/Resume Propagation)
+	Resume(context.Context, *ResumeWorkflowExecutionInput) (*WorkflowExecution, error)
 }
 
 // UnimplementedWorkflowExecutionCommandControllerServer should be embedded to have
@@ -1342,6 +1662,12 @@ func (UnimplementedWorkflowExecutionCommandControllerServer) Terminate(context.C
 }
 func (UnimplementedWorkflowExecutionCommandControllerServer) Recover(context.Context, *RecoverWorkflowExecutionInput) (*WorkflowExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Recover not implemented")
+}
+func (UnimplementedWorkflowExecutionCommandControllerServer) Pause(context.Context, *PauseWorkflowExecutionInput) (*WorkflowExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Pause not implemented")
+}
+func (UnimplementedWorkflowExecutionCommandControllerServer) Resume(context.Context, *ResumeWorkflowExecutionInput) (*WorkflowExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Resume not implemented")
 }
 func (UnimplementedWorkflowExecutionCommandControllerServer) testEmbeddedByValue() {}
 
@@ -1525,6 +1851,42 @@ func _WorkflowExecutionCommandController_Recover_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkflowExecutionCommandController_Pause_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PauseWorkflowExecutionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionCommandControllerServer).Pause(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionCommandController_Pause_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionCommandControllerServer).Pause(ctx, req.(*PauseWorkflowExecutionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkflowExecutionCommandController_Resume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResumeWorkflowExecutionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionCommandControllerServer).Resume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionCommandController_Resume_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionCommandControllerServer).Resume(ctx, req.(*ResumeWorkflowExecutionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkflowExecutionCommandController_ServiceDesc is the grpc.ServiceDesc for WorkflowExecutionCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1567,6 +1929,14 @@ var WorkflowExecutionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "recover",
 			Handler:    _WorkflowExecutionCommandController_Recover_Handler,
+		},
+		{
+			MethodName: "pause",
+			Handler:    _WorkflowExecutionCommandController_Pause_Handler,
+		},
+		{
+			MethodName: "resume",
+			Handler:    _WorkflowExecutionCommandController_Resume_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

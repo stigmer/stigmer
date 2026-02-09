@@ -13,6 +13,7 @@ class ExecutionPhase(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     EXECUTION_FAILED: _ClassVar[ExecutionPhase]
     EXECUTION_CANCELLED: _ClassVar[ExecutionPhase]
     EXECUTION_TERMINATED: _ClassVar[ExecutionPhase]
+    EXECUTION_PAUSED: _ClassVar[ExecutionPhase]
 
 class WorkflowTaskType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -41,6 +42,7 @@ EXECUTION_COMPLETED: ExecutionPhase
 EXECUTION_FAILED: ExecutionPhase
 EXECUTION_CANCELLED: ExecutionPhase
 EXECUTION_TERMINATED: ExecutionPhase
+EXECUTION_PAUSED: ExecutionPhase
 WORKFLOW_TASK_TYPE_UNSPECIFIED: WorkflowTaskType
 WORKFLOW_TASK_AGENT_INVOCATION: WorkflowTaskType
 WORKFLOW_TASK_APPROVAL: WorkflowTaskType

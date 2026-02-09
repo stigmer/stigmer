@@ -13,6 +13,7 @@ class ExecutionPhase(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     EXECUTION_FAILED: _ClassVar[ExecutionPhase]
     EXECUTION_CANCELLED: _ClassVar[ExecutionPhase]
     EXECUTION_WAITING_FOR_APPROVAL: _ClassVar[ExecutionPhase]
+    EXECUTION_PAUSED: _ClassVar[ExecutionPhase]
 
 class MessageType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -54,6 +55,7 @@ EXECUTION_COMPLETED: ExecutionPhase
 EXECUTION_FAILED: ExecutionPhase
 EXECUTION_CANCELLED: ExecutionPhase
 EXECUTION_WAITING_FOR_APPROVAL: ExecutionPhase
+EXECUTION_PAUSED: ExecutionPhase
 MESSAGE_TYPE_UNSPECIFIED: MessageType
 MESSAGE_HUMAN: MessageType
 MESSAGE_AI: MessageType

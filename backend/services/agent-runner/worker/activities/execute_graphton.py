@@ -34,6 +34,7 @@ from worker.resilience import (
     GrpcNonRetryableError,
     RetryConfig,
 )
+import asyncio
 import os
 import time
 
@@ -949,37 +950,66 @@ async def _execute_graphton_impl(
                 f"burst_threshold={streaming_config.burst_threshold})"
             )
         
-        async for event in agent_graph.astream_events(
-            graph_input,
-            config=config,
-            version="v2",  # Use v2 schema for consistent event structure
-        ):
-            # Process event locally (builds status in memory)
-            await status_builder.process_event(event)
-            
-            events_processed += 1
-            
-            # Send activity heartbeat to prevent Temporal timeout
-            # Time-based: every 2 seconds (independent of status updates)
-            # 
-            # CRASH RECOVERY: Heartbeat includes thread_id for checkpoint resume
-            # On retry, we extract thread_id from heartbeat_details to resume from
-            # the LangGraph checkpoint instead of restarting from the beginning.
-            now = time.monotonic()
-            time_since_heartbeat_ms = (now - last_heartbeat_time) * 1000
-            if time_since_heartbeat_ms >= heartbeat_interval_ms:
-                try:
-                    activity.heartbeat({
-                        "thread_id": thread_id,  # For checkpoint resume on retry
-                        "events_processed": events_processed,
-                        "messages": len(status_builder.current_status.messages),
-                        "tool_calls": len(status_builder.current_status.tool_calls),
-                        "phase": status_builder.current_status.phase,
-                    })
-                    last_heartbeat_time = now
-                except Exception as e:
-                    # Heartbeat failure is not critical - log and continue
-                    activity_logger.debug(f"Heartbeat failed (event {events_processed}): {e}")
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Pause/Resume Support (Gap A3)
+        #
+        # The activity can be cancelled gracefully by the Java workflow when a pause
+        # signal is received. On cancellation:
+        # 1. We check activity.is_cancelled() between events
+        # 2. LangGraph automatically saves checkpoint (thread_id preserved)
+        # 3. We return EXECUTION_PAUSED status instead of failing
+        # 4. On resume, workflow re-invokes activity with same thread_id
+        # 5. LangGraph loads checkpoint and continues from where it left off
+        # ─────────────────────────────────────────────────────────────────────────────
+        
+        try:
+            async for event in agent_graph.astream_events(
+                graph_input,
+                config=config,
+                version="v2",  # Use v2 schema for consistent event structure
+            ):
+                # ─────────────────────────────────────────────────────────────────
+                # Check for pause (activity cancellation) between events
+                # This allows graceful checkpoint save before exiting
+                # ─────────────────────────────────────────────────────────────────
+                if activity.is_cancelled():
+                    activity_logger.info(
+                        f"⏸️ PAUSE: Activity cancelled for execution {execution_id}, "
+                        f"saving checkpoint (thread_id={thread_id})"
+                    )
+                    # LangGraph automatically saves checkpoint on iteration
+                    # Raise CancelledError to exit the loop gracefully
+                    raise asyncio.CancelledError("Paused by user")
+                
+                # Process event locally (builds status in memory)
+                await status_builder.process_event(event)
+                
+                events_processed += 1
+                
+                # Send activity heartbeat to prevent Temporal timeout
+                # Time-based: every 2 seconds (independent of status updates)
+                # 
+                # CRASH RECOVERY: Heartbeat includes thread_id for checkpoint resume
+                # On retry, we extract thread_id from heartbeat_details to resume from
+                # the LangGraph checkpoint instead of restarting from the beginning.
+                # 
+                # PAUSE/RESUME: Heartbeat includes paused flag for resume detection
+                now = time.monotonic()
+                time_since_heartbeat_ms = (now - last_heartbeat_time) * 1000
+                if time_since_heartbeat_ms >= heartbeat_interval_ms:
+                    try:
+                        activity.heartbeat({
+                            "thread_id": thread_id,  # For checkpoint resume on retry/resume
+                            "paused": activity.is_cancelled(),  # For pause detection
+                            "events_processed": events_processed,
+                            "messages": len(status_builder.current_status.messages),
+                            "tool_calls": len(status_builder.current_status.tool_calls),
+                            "phase": status_builder.current_status.phase,
+                        })
+                        last_heartbeat_time = now
+                    except Exception as e:
+                        # Heartbeat failure is not critical - log and continue
+                        activity_logger.debug(f"Heartbeat failed (event {events_processed}): {e}")
             
             # Send progressive status update via gRPC using hybrid scheduler
             # Triggers on: time threshold (500ms), burst (50 events), or keepalive (5s)
@@ -1019,9 +1049,65 @@ async def _execute_graphton_impl(
                     )
                     update_scheduler.mark_update_sent(events_processed)
             
-            # Log progress periodically (every 50 events for reduced noise)
-            if events_processed % 50 == 0:
-                activity_logger.debug(f"Processed {events_processed} events")
+                # Log progress periodically (every 50 events for reduced noise)
+                if events_processed % 50 == 0:
+                    activity_logger.debug(f"Processed {events_processed} events")
+        
+        except asyncio.CancelledError:
+            # ─────────────────────────────────────────────────────────────────────────────
+            # Graceful Pause Handling (Gap A3)
+            #
+            # Activity was cancelled (paused by user). LangGraph has already saved
+            # the checkpoint automatically. We return EXECUTION_PAUSED status so the
+            # workflow knows this is a pause, not a failure.
+            #
+            # On resume:
+            # 1. Workflow sends resume signal
+            # 2. Workflow re-invokes this activity with same execution/thread_id
+            # 3. LangGraph loads checkpoint via thread_id
+            # 4. Agent continues from where it was paused
+            # ─────────────────────────────────────────────────────────────────────────────
+            activity_logger.info(
+                f"⏸️ Graceful pause for execution {execution_id} - checkpoint saved "
+                f"(thread_id={thread_id}, events_processed={events_processed})"
+            )
+            
+            # Finalize context info before returning (capture any accumulated data)
+            status_builder.finalize_context_info()
+            
+            # Set phase to PAUSED (not FAILED - this is a pause, not an error)
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_PAUSED
+            
+            # Add message indicating pause
+            from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
+            from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+            from datetime import datetime
+            
+            pause_msg = AgentMessage(
+                type=MessageType.MESSAGE_SYSTEM,
+                content="⏸️ Execution paused by user. Use resume to continue from this checkpoint.",
+                timestamp=datetime.utcnow().isoformat(),
+            )
+            status_builder.current_status.messages.append(pause_msg)
+            
+            # Send paused status update via gRPC (best effort)
+            try:
+                activity_logger.info(f"📤 [PAUSE] Sending PAUSED status update")
+                await execution_client.update_status(
+                    execution_id=execution_id,
+                    status=status_builder.current_status
+                )
+                activity_logger.info(f"✅ [PAUSE] Status update sent successfully")
+            except Exception as update_error:
+                activity_logger.warning(f"[PAUSE] Failed to send status update: {update_error}")
+                # Continue - status will be returned to workflow anyway
+            
+            activity_logger.info(
+                f"⏸️ Returning PAUSED status to workflow for execution {execution_id}"
+            )
+            
+            # Return paused status to workflow
+            return status_builder.current_status
         
         # Verify stream processed data
         if events_processed == 0:

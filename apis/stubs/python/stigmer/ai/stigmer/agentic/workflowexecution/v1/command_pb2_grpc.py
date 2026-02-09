@@ -75,6 +75,16 @@ class WorkflowExecutionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.RecoverWorkflowExecutionInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
                 _registered_method=True)
+        self.pause = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/pause',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.PauseWorkflowExecutionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+                _registered_method=True)
+        self.resume = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/resume',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.ResumeWorkflowExecutionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+                _registered_method=True)
 
 
 class WorkflowExecutionCommandControllerServicer(object):
@@ -717,6 +727,165 @@ class WorkflowExecutionCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def pause(self, request, context):
+        """Pause a running workflow execution.
+
+        Temporarily stops the workflow at its current checkpoint. Unlike cancel,
+        the execution is NOT terminal and can be resumed later from where it left off.
+        The workflow gracefully checkpoints and exits, preserving all progress.
+
+        ## Behavior
+
+        1. Validates execution exists and is in a pausable phase
+        2. Sends "pause" signal to Temporal workflow
+        3. Workflow receives signal and sets pauseRequested flag
+        4. Running activities are gracefully cancelled (checkpoints saved)
+        5. Execution transitions to EXECUTION_PAUSED phase
+        6. Workflow waits for resume signal (no resources consumed)
+        7. Returns updated WorkflowExecution with PAUSED phase
+
+        ## Preconditions
+
+        - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+        - Cannot pause already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+
+        ## State Transitions
+
+        - status.phase: PENDING/IN_PROGRESS → PAUSED
+        - status.completed_at: NOT set (execution is not finished)
+        - Running activities: Gracefully cancelled, checkpoint saved
+        - LangGraph state: Preserved via thread_id checkpoint
+
+        ## Paused vs Cancelled
+
+        | Aspect | pause | cancel |
+        |--------|-------|--------|
+        | Terminal state? | No | Yes |
+        | Can resume? | Yes (via resume RPC) | No |
+        | Checkpoint saved? | Yes | Best-effort |
+        | Progress preserved? | Yes | No |
+        | Use case | Temporary stop, maintenance | Permanent stop |
+
+        ## Agent Activity Behavior
+
+        When pause is signaled to a workflow running an agent:
+        1. Workflow cancels the running activity gracefully
+        2. Python activity catches CancelledError
+        3. LangGraph saves final checkpoint automatically
+        4. Activity returns with paused status
+        5. On resume, activity loads from checkpoint and continues
+
+        ## Idempotency
+
+        Pausing an already-paused execution succeeds as a no-op.
+        The call returns the current execution state without side effects.
+
+        ## Error Cases
+
+        - NOT_FOUND: Execution with given ID doesn't exist
+        - PERMISSION_DENIED: User lacks can_edit permission on the execution
+        - FAILED_PRECONDITION: Execution is in a terminal phase
+        - INVALID_ARGUMENT: ID is empty or malformed
+
+        ## Example Request
+
+        {
+        "id": "wfx-abc123xyz456",
+        "reason": "Pausing for scheduled maintenance window"
+        }
+
+        ## Example Response
+
+        {
+        "api_version": "agentic.stigmer.ai/v1",
+        "kind": "WorkflowExecution",
+        "metadata": { "id": "wfx-abc123xyz456" },
+        "status": {
+        "phase": 7,  // EXECUTION_PAUSED
+        "started_at": "2026-02-07T10:00:00Z"
+        // Note: completed_at is NOT set (execution can be resumed)
+        }
+        }
+
+        @since Gap A3 (Pause/Resume Propagation)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def resume(self, request, context):
+        """Resume a paused workflow execution.
+
+        Continues execution from the checkpoint where it was paused. The workflow
+        re-invokes activities with the same thread_id, which loads from checkpoint
+        and continues from where it left off.
+
+        ## Behavior
+
+        1. Validates execution is in EXECUTION_PAUSED phase
+        2. Sends "resume" signal to Temporal workflow
+        3. Workflow receives signal and sets resumeSignalReceived flag
+        4. Workflow re-invokes activity with same execution context
+        5. Activity detects resume and loads from LangGraph checkpoint
+        6. Execution transitions back to EXECUTION_IN_PROGRESS phase
+        7. Returns updated WorkflowExecution with IN_PROGRESS phase
+
+        ## Preconditions
+
+        - Execution must be in EXECUTION_PAUSED phase
+        - Cannot resume non-paused executions
+
+        ## State Transitions
+
+        - status.phase: PAUSED → IN_PROGRESS
+        - Activities: Re-invoked, load from checkpoint
+        - LangGraph state: Loaded from checkpoint via thread_id
+
+        ## Resume Behavior
+
+        When resume is signaled to a paused workflow:
+        1. Java workflow unblocks from Workflow.await()
+        2. Workflow re-invokes the activity with same parameters
+        3. Python activity reads thread_id from heartbeat_details
+        4. LangGraph loads checkpoint using thread_id
+        5. Agent continues from exact position where it was paused
+
+        ## Idempotency
+
+        Resuming an already-running execution succeeds as a no-op.
+        The call returns the current execution state without side effects.
+
+        ## Error Cases
+
+        - NOT_FOUND: Execution with given ID doesn't exist
+        - PERMISSION_DENIED: User lacks can_edit permission on the execution
+        - FAILED_PRECONDITION: Execution is not in PAUSED phase
+        - INVALID_ARGUMENT: ID is empty or malformed
+
+        ## Example Request
+
+        {
+        "id": "wfx-abc123xyz456"
+        }
+
+        ## Example Response
+
+        {
+        "api_version": "agentic.stigmer.ai/v1",
+        "kind": "WorkflowExecution",
+        "metadata": { "id": "wfx-abc123xyz456" },
+        "status": {
+        "phase": 2,  // EXECUTION_IN_PROGRESS
+        "started_at": "2026-02-07T10:00:00Z"
+        }
+        }
+
+        @since Gap A3 (Pause/Resume Propagation)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_WorkflowExecutionCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -763,6 +932,16 @@ def add_WorkflowExecutionCommandControllerServicer_to_server(servicer, server):
             'recover': grpc.unary_unary_rpc_method_handler(
                     servicer.recover,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.RecoverWorkflowExecutionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
+            ),
+            'pause': grpc.unary_unary_rpc_method_handler(
+                    servicer.pause,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.PauseWorkflowExecutionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
+            ),
+            'resume': grpc.unary_unary_rpc_method_handler(
+                    servicer.resume,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.ResumeWorkflowExecutionInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
             ),
     }
@@ -1022,6 +1201,60 @@ class WorkflowExecutionCommandController(object):
             target,
             '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/recover',
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.RecoverWorkflowExecutionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def pause(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/pause',
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.PauseWorkflowExecutionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def resume(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/resume',
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.ResumeWorkflowExecutionInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
             options,
             channel_credentials,

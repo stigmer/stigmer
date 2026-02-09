@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/agentexecution/v1/enum.proto\x12$ai.stigmer.agentic.agentexecution.v1*\xcf\x01\n\x0e\x45xecutionPhase\x12\x1f\n\x1b\x45XECUTION_PHASE_UNSPECIFIED\x10\x00\x12\x15\n\x11\x45XECUTION_PENDING\x10\x01\x12\x19\n\x15\x45XECUTION_IN_PROGRESS\x10\x02\x12\x17\n\x13\x45XECUTION_COMPLETED\x10\x03\x12\x14\n\x10\x45XECUTION_FAILED\x10\x04\x12\x17\n\x13\x45XECUTION_CANCELLED\x10\x05\x12\"\n\x1e\x45XECUTION_WAITING_FOR_APPROVAL\x10\x06*t\n\x0bMessageType\x12\x1c\n\x18MESSAGE_TYPE_UNSPECIFIED\x10\x00\x12\x11\n\rMESSAGE_HUMAN\x10\x01\x12\x0e\n\nMESSAGE_AI\x10\x02\x12\x10\n\x0cMESSAGE_TOOL\x10\x03\x12\x12\n\x0eMESSAGE_SYSTEM\x10\x04*\xc6\x01\n\x0eToolCallStatus\x12 \n\x1cTOOL_CALL_STATUS_UNSPECIFIED\x10\x00\x12\x15\n\x11TOOL_CALL_PENDING\x10\x01\x12\x15\n\x11TOOL_CALL_RUNNING\x10\x02\x12\x17\n\x13TOOL_CALL_COMPLETED\x10\x03\x12\x14\n\x10TOOL_CALL_FAILED\x10\x04\x12\x1e\n\x1aTOOL_CALL_WAITING_APPROVAL\x10\x05\x12\x15\n\x11TOOL_CALL_SKIPPED\x10\x06*y\n\nTodoStatus\x12\x1b\n\x17TODO_STATUS_UNSPECIFIED\x10\x00\x12\x10\n\x0cTODO_PENDING\x10\x01\x12\x14\n\x10TODO_IN_PROGRESS\x10\x02\x12\x12\n\x0eTODO_COMPLETED\x10\x03\x12\x12\n\x0eTODO_CANCELLED\x10\x04*\x93\x01\n\x0eSubAgentStatus\x12 \n\x1cSUB_AGENT_STATUS_UNSPECIFIED\x10\x00\x12\x15\n\x11SUB_AGENT_PENDING\x10\x01\x12\x19\n\x15SUB_AGENT_IN_PROGRESS\x10\x02\x12\x17\n\x13SUB_AGENT_COMPLETED\x10\x03\x12\x14\n\x10SUB_AGENT_FAILED\x10\x04\x42\xea\x01\n(com.ai.stigmer.agentic.agentexecution.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/agentexecution/v1/enum.proto\x12$ai.stigmer.agentic.agentexecution.v1*\xe5\x01\n\x0e\x45xecutionPhase\x12\x1f\n\x1b\x45XECUTION_PHASE_UNSPECIFIED\x10\x00\x12\x15\n\x11\x45XECUTION_PENDING\x10\x01\x12\x19\n\x15\x45XECUTION_IN_PROGRESS\x10\x02\x12\x17\n\x13\x45XECUTION_COMPLETED\x10\x03\x12\x14\n\x10\x45XECUTION_FAILED\x10\x04\x12\x17\n\x13\x45XECUTION_CANCELLED\x10\x05\x12\"\n\x1e\x45XECUTION_WAITING_FOR_APPROVAL\x10\x06\x12\x14\n\x10\x45XECUTION_PAUSED\x10\x07*t\n\x0bMessageType\x12\x1c\n\x18MESSAGE_TYPE_UNSPECIFIED\x10\x00\x12\x11\n\rMESSAGE_HUMAN\x10\x01\x12\x0e\n\nMESSAGE_AI\x10\x02\x12\x10\n\x0cMESSAGE_TOOL\x10\x03\x12\x12\n\x0eMESSAGE_SYSTEM\x10\x04*\xc6\x01\n\x0eToolCallStatus\x12 \n\x1cTOOL_CALL_STATUS_UNSPECIFIED\x10\x00\x12\x15\n\x11TOOL_CALL_PENDING\x10\x01\x12\x15\n\x11TOOL_CALL_RUNNING\x10\x02\x12\x17\n\x13TOOL_CALL_COMPLETED\x10\x03\x12\x14\n\x10TOOL_CALL_FAILED\x10\x04\x12\x1e\n\x1aTOOL_CALL_WAITING_APPROVAL\x10\x05\x12\x15\n\x11TOOL_CALL_SKIPPED\x10\x06*y\n\nTodoStatus\x12\x1b\n\x17TODO_STATUS_UNSPECIFIED\x10\x00\x12\x10\n\x0cTODO_PENDING\x10\x01\x12\x14\n\x10TODO_IN_PROGRESS\x10\x02\x12\x12\n\x0eTODO_COMPLETED\x10\x03\x12\x12\n\x0eTODO_CANCELLED\x10\x04*\x93\x01\n\x0eSubAgentStatus\x12 \n\x1cSUB_AGENT_STATUS_UNSPECIFIED\x10\x00\x12\x15\n\x11SUB_AGENT_PENDING\x10\x01\x12\x19\n\x15SUB_AGENT_IN_PROGRESS\x10\x02\x12\x17\n\x13SUB_AGENT_COMPLETED\x10\x03\x12\x14\n\x10SUB_AGENT_FAILED\x10\x04\x42\xea\x01\n(com.ai.stigmer.agentic.agentexecution.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,13 +33,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n(com.ai.stigmer.agentic.agentexecution.v1B\tEnumProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agentexecution.V1\312\002$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\352\002(Ai::Stigmer::Agentic::Agentexecution::V1'
   _globals['_EXECUTIONPHASE']._serialized_start=90
-  _globals['_EXECUTIONPHASE']._serialized_end=297
-  _globals['_MESSAGETYPE']._serialized_start=299
-  _globals['_MESSAGETYPE']._serialized_end=415
-  _globals['_TOOLCALLSTATUS']._serialized_start=418
-  _globals['_TOOLCALLSTATUS']._serialized_end=616
-  _globals['_TODOSTATUS']._serialized_start=618
-  _globals['_TODOSTATUS']._serialized_end=739
-  _globals['_SUBAGENTSTATUS']._serialized_start=742
-  _globals['_SUBAGENTSTATUS']._serialized_end=889
+  _globals['_EXECUTIONPHASE']._serialized_end=319
+  _globals['_MESSAGETYPE']._serialized_start=321
+  _globals['_MESSAGETYPE']._serialized_end=437
+  _globals['_TOOLCALLSTATUS']._serialized_start=440
+  _globals['_TOOLCALLSTATUS']._serialized_end=638
+  _globals['_TODOSTATUS']._serialized_start=640
+  _globals['_TODOSTATUS']._serialized_end=761
+  _globals['_SUBAGENTSTATUS']._serialized_start=764
+  _globals['_SUBAGENTSTATUS']._serialized_end=911
 # @@protoc_insertion_point(module_scope)

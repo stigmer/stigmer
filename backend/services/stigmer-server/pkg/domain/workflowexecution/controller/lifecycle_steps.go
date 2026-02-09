@@ -234,6 +234,229 @@ func (s *ValidateRecoverableStep[T]) Execute(ctx *pipeline.RequestContext[T]) er
 }
 
 // =============================================================================
+// Validate Pausable Step
+// =============================================================================
+
+// ValidatePausableStep validates that the execution can be paused
+type ValidatePausableStep[T LifecycleInput] struct{}
+
+// NewValidatePausableStep creates a new ValidatePausableStep
+func NewValidatePausableStep[T LifecycleInput]() *ValidatePausableStep[T] {
+	return &ValidatePausableStep[T]{}
+}
+
+// Name returns the step name
+func (s *ValidatePausableStep[T]) Name() string {
+	return "ValidatePausable"
+}
+
+// Execute validates the execution phase for pausing
+func (s *ValidatePausableStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
+	execution := ctx.Get(LoadedExecutionKey).(*workflowexecutionv1.WorkflowExecution)
+	phase := execution.GetStatus().GetPhase()
+
+	// Idempotency: Already paused is success
+	if phase == workflowexecutionv1.ExecutionPhase_EXECUTION_PAUSED {
+		log.Debug().
+			Str("execution_id", execution.GetMetadata().GetId()).
+			Msg("Execution already paused, returning success (idempotent)")
+		ctx.Set("alreadyInTargetState", true)
+		return nil
+	}
+
+	// Can only pause PENDING or IN_PROGRESS
+	if phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PENDING &&
+		phase != workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS {
+		return grpclib.FailedPreconditionError(
+			"cannot pause execution in phase %s; only PENDING or IN_PROGRESS can be paused",
+			phase.String(),
+		)
+	}
+
+	return nil
+}
+
+// =============================================================================
+// Validate Resumable Step
+// =============================================================================
+
+// ValidateResumableStep validates that the execution can be resumed
+type ValidateResumableStep[T LifecycleInput] struct{}
+
+// NewValidateResumableStep creates a new ValidateResumableStep
+func NewValidateResumableStep[T LifecycleInput]() *ValidateResumableStep[T] {
+	return &ValidateResumableStep[T]{}
+}
+
+// Name returns the step name
+func (s *ValidateResumableStep[T]) Name() string {
+	return "ValidateResumable"
+}
+
+// Execute validates the execution phase for resuming
+func (s *ValidateResumableStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
+	execution := ctx.Get(LoadedExecutionKey).(*workflowexecutionv1.WorkflowExecution)
+	phase := execution.GetStatus().GetPhase()
+
+	// Idempotency: If already IN_PROGRESS (from previous resume), success
+	if phase == workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS {
+		log.Debug().
+			Str("execution_id", execution.GetMetadata().GetId()).
+			Msg("Execution already in progress, returning success (idempotent)")
+		ctx.Set("alreadyInTargetState", true)
+		return nil
+	}
+
+	// Can only resume PAUSED executions
+	if phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PAUSED {
+		return grpclib.FailedPreconditionError(
+			"cannot resume execution in phase %s; only PAUSED executions can be resumed",
+			phase.String(),
+		)
+	}
+
+	return nil
+}
+
+// =============================================================================
+// Signal Pause To Temporal Step
+// =============================================================================
+
+// SignalPauseToTemporalStep sends a pause signal to the Temporal workflow
+type SignalPauseToTemporalStep[T LifecycleInputWithReason] struct {
+	temporalClient client.Client
+}
+
+// NewSignalPauseToTemporalStep creates a new SignalPauseToTemporalStep
+func NewSignalPauseToTemporalStep[T LifecycleInputWithReason](tc client.Client) *SignalPauseToTemporalStep[T] {
+	return &SignalPauseToTemporalStep[T]{temporalClient: tc}
+}
+
+// Name returns the step name
+func (s *SignalPauseToTemporalStep[T]) Name() string {
+	return "SignalPauseToTemporal"
+}
+
+// Execute sends a pause signal to the Temporal workflow
+func (s *SignalPauseToTemporalStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
+	// Skip if already in target state
+	if ctx.Get("alreadyInTargetState") == true {
+		return nil
+	}
+
+	if s.temporalClient == nil {
+		return grpclib.FailedPreconditionError("Temporal is not available")
+	}
+
+	input := ctx.NewState()
+	execution := ctx.Get(LoadedExecutionKey).(*workflowexecutionv1.WorkflowExecution)
+	executionID := execution.GetMetadata().GetId()
+	reason := input.GetReason()
+
+	if reason == "" {
+		reason = "Paused by user"
+	}
+
+	// Build Temporal workflow ID
+	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeWorkflowExecutionWorkflowName, executionID)
+
+	log.Info().
+		Str("execution_id", executionID).
+		Str("workflow_id", workflowID).
+		Str("reason", reason).
+		Msg("Sending pause signal to Temporal workflow")
+
+	// Send pause signal to workflow
+	err := s.temporalClient.SignalWorkflow(ctx.Context(), workflowID, "", "pause", reason)
+	if err != nil {
+		// Handle workflow not found (already completed/terminated)
+		if _, ok := err.(*serviceerror.NotFound); ok {
+			log.Warn().
+				Str("execution_id", executionID).
+				Str("workflow_id", workflowID).
+				Msg("Temporal workflow not found, may have already completed")
+			// Continue anyway - update local state
+			return nil
+		}
+		return grpclib.InternalError(err, "failed to send pause signal to Temporal workflow")
+	}
+
+	// Store reason for audit purposes
+	ctx.Set(ReasonKey, reason)
+
+	log.Info().
+		Str("execution_id", executionID).
+		Str("workflow_id", workflowID).
+		Msg("Pause signal sent to Temporal workflow")
+
+	return nil
+}
+
+// =============================================================================
+// Signal Resume To Temporal Step
+// =============================================================================
+
+// SignalResumeToTemporalStep sends a resume signal to the Temporal workflow
+type SignalResumeToTemporalStep[T LifecycleInput] struct {
+	temporalClient client.Client
+}
+
+// NewSignalResumeToTemporalStep creates a new SignalResumeToTemporalStep
+func NewSignalResumeToTemporalStep[T LifecycleInput](tc client.Client) *SignalResumeToTemporalStep[T] {
+	return &SignalResumeToTemporalStep[T]{temporalClient: tc}
+}
+
+// Name returns the step name
+func (s *SignalResumeToTemporalStep[T]) Name() string {
+	return "SignalResumeToTemporal"
+}
+
+// Execute sends a resume signal to the Temporal workflow
+func (s *SignalResumeToTemporalStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
+	// Skip if already in target state
+	if ctx.Get("alreadyInTargetState") == true {
+		return nil
+	}
+
+	if s.temporalClient == nil {
+		return grpclib.FailedPreconditionError("Temporal is not available")
+	}
+
+	execution := ctx.Get(LoadedExecutionKey).(*workflowexecutionv1.WorkflowExecution)
+	executionID := execution.GetMetadata().GetId()
+
+	// Build Temporal workflow ID
+	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeWorkflowExecutionWorkflowName, executionID)
+
+	log.Info().
+		Str("execution_id", executionID).
+		Str("workflow_id", workflowID).
+		Msg("Sending resume signal to Temporal workflow")
+
+	// Send resume signal to workflow (empty payload)
+	err := s.temporalClient.SignalWorkflow(ctx.Context(), workflowID, "", "resume", nil)
+	if err != nil {
+		// Handle workflow not found (already completed/terminated)
+		if _, ok := err.(*serviceerror.NotFound); ok {
+			log.Warn().
+				Str("execution_id", executionID).
+				Str("workflow_id", workflowID).
+				Msg("Temporal workflow not found, may have already completed")
+			// Continue anyway - update local state
+			return nil
+		}
+		return grpclib.InternalError(err, "failed to send resume signal to Temporal workflow")
+	}
+
+	log.Info().
+		Str("execution_id", executionID).
+		Str("workflow_id", workflowID).
+		Msg("Resume signal sent to Temporal workflow")
+
+	return nil
+}
+
+// =============================================================================
 // Cancel Temporal Workflow Step
 // =============================================================================
 
@@ -532,15 +755,19 @@ func (s *UpdateExecutionPhaseStep[T]) Execute(ctx *pipeline.RequestContext[T]) e
 	execution.Status.Phase = s.targetPhase
 
 	// Set completed_at for terminal phases (RFC3339 format)
+	// Note: PAUSED is NOT terminal, so we don't set completed_at for it
 	if s.targetPhase == workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED ||
 		s.targetPhase == workflowexecutionv1.ExecutionPhase_EXECUTION_TERMINATED {
 		execution.Status.CompletedAt = time.Now().Format(time.RFC3339)
 	}
 
-	// Clear completed_at for recovery (back to IN_PROGRESS)
+	// Clear completed_at for recovery (back to IN_PROGRESS) or resume from PAUSED
 	if s.targetPhase == workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS {
 		execution.Status.CompletedAt = ""
 	}
+
+	// PAUSED phase: don't set completed_at (execution is not finished, can be resumed)
+	// No action needed - just leave completed_at as-is (should be empty)
 
 	// Set error for terminate
 	if s.setError {

@@ -730,6 +730,87 @@ message RecoverWorkflowExecutionInput {
   string reason = 2;
 }
 
+// PauseWorkflowExecutionInput requests temporarily pausing a workflow execution.
+//
+// Pauses the workflow at its current checkpoint. Unlike cancel, the execution
+// is NOT terminal and can be resumed later from where it left off.
+//
+// ## Behavior
+//
+// When a workflow is paused:
+// 1. A "pause" signal is sent to the Temporal workflow
+// 2. Running activities are gracefully cancelled (checkpoint saved)
+// 3. Execution transitions to EXECUTION_PAUSED phase
+// 4. Workflow waits for resume signal (no resources consumed)
+//
+// ## Resume Flow
+//
+// The paused workflow can be resumed via the resume RPC:
+// 1. Resume signal unblocks the workflow
+// 2. Activities are re-invoked with same thread_id
+// 3. LangGraph loads from checkpoint automatically
+// 4. Execution continues from exact pause point
+//
+// @since Gap A3 (Pause/Resume Propagation)
+message PauseWorkflowExecutionInput {
+  // Workflow execution ID to pause.
+  //
+  // Must be in PENDING or IN_PROGRESS phase. Cannot pause
+  // executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+  //
+  // Format: "wfx-{ulid}" (auto-generated unique identifier)
+  // Example: "wfx-abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable reason for pausing.
+  //
+  // Stored in the audit trail for operational debugging and compliance.
+  // Helps track why the pause was needed.
+  //
+  // Examples:
+  // - "Pausing for scheduled maintenance window"
+  // - "User requested pause to review progress"
+  // - "Pausing due to rate limit concerns"
+  // - "Emergency pause - investigating issue"
+  string reason = 2;
+}
+
+// ResumeWorkflowExecutionInput requests resuming a paused workflow execution.
+//
+// Continues execution from the checkpoint where it was paused. The workflow
+// re-invokes activities with the same thread_id, which loads from checkpoint
+// and continues from where it left off.
+//
+// ## Behavior
+//
+// When a workflow is resumed:
+// 1. A "resume" signal is sent to the paused Temporal workflow
+// 2. Workflow unblocks from its wait state
+// 3. Activities are re-invoked with same execution context
+// 4. LangGraph loads checkpoint using thread_id
+// 5. Execution continues from exact pause point
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PAUSED phase
+// - Cannot resume non-paused executions
+//
+// @since Gap A3 (Pause/Resume Propagation)
+message ResumeWorkflowExecutionInput {
+  // Workflow execution ID to resume.
+  //
+  // Must be in PAUSED phase. Cannot resume executions
+  // that are not paused.
+  //
+  // Format: "wfx-{ulid}" (auto-generated unique identifier)
+  // Example: "wfx-abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
 // SendSignalInput requests delivery of a signal to a workflow execution.
 //
 // Sends a signal to a running workflow execution, typically to unblock a LISTEN task.

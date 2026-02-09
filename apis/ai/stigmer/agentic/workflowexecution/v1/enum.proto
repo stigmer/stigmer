@@ -28,11 +28,18 @@ package ai.stigmer.agentic.workflowexecution.v1;
 // EXECUTION_PENDING → EXECUTION_TERMINATED
 // EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED
 //
+// Pause/Resume flow:
+// EXECUTION_PENDING → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+// EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+//
 // Terminal States:
 // - EXECUTION_COMPLETED: Workflow finished successfully
 // - EXECUTION_FAILED: Workflow encountered an error
 // - EXECUTION_CANCELLED: Workflow was stopped gracefully by user or system
 // - EXECUTION_TERMINATED: Workflow was force-stopped immediately
+//
+// Non-Terminal States:
+// - EXECUTION_PAUSED: Workflow temporarily stopped, can be resumed
 //
 // Once a workflow reaches a terminal state, it cannot transition to another phase.
 enum ExecutionPhase {
@@ -159,6 +166,41 @@ enum ExecutionPhase {
   // - Terminated executions CANNOT be recovered (unlike FAILED)
   // - Use terminate only when cancel doesn't work
   EXECUTION_TERMINATED = 6;
+
+  // Execution was paused by user and can be resumed.
+  //
+  // The workflow was temporarily stopped at a checkpoint and can continue
+  // from where it left off. Unlike CANCELLED, the execution is not terminal.
+  //
+  // Pause flow:
+  // EXECUTION_IN_PROGRESS → EXECUTION_PAUSED
+  // EXECUTION_PENDING → EXECUTION_PAUSED (rare, but allowed)
+  //
+  // Resume flow:
+  // EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+  //
+  // NOT a terminal state - execution can be resumed.
+  //
+  // When this phase is reached:
+  // - Running activities are gracefully cancelled
+  // - Checkpoints are saved (LangGraph thread_id preserved)
+  // - No completed_at timestamp (execution is not finished)
+  //
+  // Use Cases:
+  // - Pause long-running workflows during maintenance windows
+  // - User wants to review progress before continuing
+  // - Resource conservation (pause idle workflows)
+  // - Wait for external conditions before continuing
+  //
+  // Paused vs Cancelled:
+  // - Paused: Temporary stop, can resume from checkpoint, execution continues
+  // - Cancelled: Permanent stop, cannot resume, execution is terminated
+  //
+  // Resume behavior:
+  // - Workflow re-invokes activity with same thread_id
+  // - Activity loads from LangGraph checkpoint
+  // - Execution continues from where it was paused
+  EXECUTION_PAUSED = 7;
 }
 
 // WorkflowTaskType defines the type of workflow task.
