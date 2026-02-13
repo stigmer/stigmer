@@ -19,7 +19,9 @@ from graphton.core.summarization_callback import (
     SummarizationEventData,
 )
 from graphton.core.summarization_config import SummarizationConfig
-from graphton.core.token_counter import TokenCounter, TokenCountingError__all__ = [
+from graphton.core.token_counter import TokenCounter, TokenCountingError
+
+__all__ = [
     # Error handling
     "enrich_error_message",
     # Model registry

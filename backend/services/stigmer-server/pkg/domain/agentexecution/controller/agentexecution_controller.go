@@ -3,10 +3,12 @@ package agentexecution
 import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
+	temporalclient "go.temporal.io/sdk/client"
 )
 
 // AgentExecutionController implements AgentExecutionCommandController and AgentExecutionQueryController
@@ -19,6 +21,8 @@ type AgentExecutionController struct {
 	sessionClient       *session.Client
 	workflowCreator     *temporal.InvokeAgentExecutionWorkflowCreator
 	streamBroker        *StreamBroker
+	temporalClient      temporalclient.Client          // Temporal client for lifecycle operations
+	artifactStorage     artifactstorage.ArtifactStorage // Artifact storage for attachments and outputs
 }
 
 // NewAgentExecutionController creates a new AgentExecutionController
@@ -69,4 +73,17 @@ func (c *AgentExecutionController) SetWorkflowCreator(creator *temporal.InvokeAg
 // This allows workflow error recovery to broadcast status updates to subscribers
 func (c *AgentExecutionController) GetStreamBroker() *StreamBroker {
 	return c.streamBroker
+}
+
+// SetTemporalClient sets the Temporal client for lifecycle operations
+// This is used when the controller is created before the Temporal client is initialized
+// If nil, lifecycle operations (cancel, terminate, pause, resume, recover) will fail gracefully
+func (c *AgentExecutionController) SetTemporalClient(client temporalclient.Client) {
+	c.temporalClient = client
+}
+
+// SetArtifactStorage sets the artifact storage backend
+// This is used for processing attachments and managing execution outputs
+func (c *AgentExecutionController) SetArtifactStorage(storage artifactstorage.ArtifactStorage) {
+	c.artifactStorage = storage
 }

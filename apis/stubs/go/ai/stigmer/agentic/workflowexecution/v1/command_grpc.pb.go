@@ -25,6 +25,12 @@ const (
 	WorkflowExecutionCommandController_UpdateStatus_FullMethodName   = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/updateStatus"
 	WorkflowExecutionCommandController_SubmitApproval_FullMethodName = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitApproval"
 	WorkflowExecutionCommandController_Delete_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/delete"
+	WorkflowExecutionCommandController_SendSignal_FullMethodName     = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/sendSignal"
+	WorkflowExecutionCommandController_Cancel_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/cancel"
+	WorkflowExecutionCommandController_Terminate_FullMethodName      = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/terminate"
+	WorkflowExecutionCommandController_Recover_FullMethodName        = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/recover"
+	WorkflowExecutionCommandController_Pause_FullMethodName          = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/pause"
+	WorkflowExecutionCommandController_Resume_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/resume"
 )
 
 // WorkflowExecutionCommandControllerClient is the client API for WorkflowExecutionCommandController service.
@@ -330,6 +336,440 @@ type WorkflowExecutionCommandControllerClient interface {
 	SubmitApproval(ctx context.Context, in *SubmitWorkflowApprovalInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
 	// Delete an execution.
 	Delete(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*WorkflowExecution, error)
+	// Send a signal to a running workflow execution.
+	//
+	// Delivers a signal to a workflow execution, typically to unblock a LISTEN task.
+	// Uses Temporal's SignalWithStart API internally for race-proof delivery.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a signalable phase
+	// 2. Uses Temporal SignalWithStart for atomic delivery:
+	//   - If workflow exists → sends signal immediately
+	//   - If workflow not started yet → starts workflow, then sends signal
+	//
+	// 3. Signal is delivered to workflow's signal channel
+	// 4. LISTEN task waiting for this signal will unblock and continue
+	// 5. Returns the current WorkflowExecution state
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	// - User must have can_edit permission on the workflow execution
+	//
+	// ## Race-Proof Delivery (SignalWithStart)
+	//
+	// This RPC uses Temporal's SignalWithStart API to handle the race condition
+	// where a signal might arrive before the workflow is fully started:
+	// - Traditional SignalWorkflow fails with "WorkflowNotFound" if called too early
+	// - SignalWithStart atomically: starts workflow if needed, then sends signal
+	// - Guarantees signal delivery even in race conditions
+	//
+	// ## Signal Matching
+	//
+	// The signal_name must match the signal ID defined in the workflow's LISTEN task:
+	//
+	// Workflow YAML:
+	//   - waitForPayment:
+	//     listen:
+	//     to:
+	//     one:
+	//     with:
+	//     id: payment_confirmed  # <-- signal_name must match this
+	//     type: signal
+	//
+	// API Call:
+	//
+	//	{ "signal_name": "payment_confirmed", "payload": {...} }
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Workflow execution doesn't exist
+	// - PERMISSION_DENIED: User doesn't have can_edit permission
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: execution_id or signal_name is empty
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "execution_id": "wfx-abc123xyz456",
+	//	  "signal_name": "payment_confirmed",
+	//	  "payload": {
+	//	    "transaction_id": "txn_123",
+	//	    "amount": 99.99,
+	//	    "currency": "USD"
+	//	  }
+	//	}
+	//
+	// ## Example Response
+	//
+	// Returns the current WorkflowExecution state (phase may still be IN_PROGRESS
+	// as the workflow continues after receiving the signal).
+	//
+	// @since Gap B1 (Signal-With-Start for race-proof event delivery)
+	SendSignal(ctx context.Context, in *SendSignalInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
+	// Cancel a running workflow execution gracefully.
+	//
+	// Sends a cancellation signal to the workflow via Temporal's CancelWorkflow API.
+	// The workflow code can handle the cancellation signal to perform cleanup
+	// (e.g., compensation logic, resource cleanup, notifications) before
+	// transitioning to the CANCELLED phase.
+	//
+	// Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a cancellable phase
+	// 2. Sends cancellation signal to Temporal workflow
+	// 3. Workflow code receives the signal and can perform cleanup
+	// 4. Execution transitions to EXECUTION_CANCELLED phase
+	// 5. Returns updated WorkflowExecution with new phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → CANCELLED
+	// - status.completed_at: Set to current timestamp
+	// - In-progress tasks: May complete cleanup or be interrupted
+	//
+	// ## Idempotency
+	//
+	// Cancelling an already-cancelled execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	// This ensures safe retry of cancel requests.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is in a terminal phase (COMPLETED, FAILED, TERMINATED)
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456",
+	//	  "reason": "Customer requested cancellation - order no longer needed"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 5,  // EXECUTION_CANCELLED
+	//	    "completed_at": "2026-02-07T18:30:00Z"
+	//	  }
+	//	}
+	Cancel(ctx context.Context, in *CancelWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
+	// Terminate a workflow execution immediately.
+	//
+	// Force-stops the workflow via Temporal's TerminateWorkflow API without
+	// allowing cleanup. Unlike cancel, the workflow code cannot respond to
+	// termination - it is stopped immediately. Use this for stuck or
+	// unresponsive workflows that don't respond to cancellation.
+	//
+	// Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a terminable phase
+	// 2. Force-kills workflow via Temporal (no signal sent to workflow)
+	// 3. Execution transitions to EXECUTION_TERMINATED phase immediately
+	// 4. No cleanup callbacks or defer blocks are executed
+	// 5. Returns updated WorkflowExecution with TERMINATED phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot terminate already-terminal executions
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → TERMINATED
+	// - status.completed_at: Set to current timestamp
+	// - status.error: May contain termination reason
+	// - In-progress tasks: Stopped abruptly (no cleanup)
+	//
+	// ## Terminated vs Cancelled
+	//
+	// | Aspect | cancel | terminate |
+	// |--------|--------|-----------|
+	// | Signal to workflow | Yes (can handle) | No |
+	// | Cleanup opportunity | Yes | No |
+	// | Use case | Normal stop | Stuck workflows |
+	// | Can recover? | No | No |
+	//
+	// ## Idempotency
+	//
+	// Terminating an already-terminated execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456",
+	//	  "reason": "Workflow stuck for 2 hours, not responding to cancel"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 6,  // EXECUTION_TERMINATED
+	//	    "completed_at": "2026-02-07T18:35:00Z",
+	//	    "error": "Terminated by operator: Workflow stuck for 2 hours"
+	//	  }
+	//	}
+	Terminate(ctx context.Context, in *TerminateWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
+	// Recover a failed workflow execution from the last checkpoint.
+	//
+	// Resumes execution from the last successful point using Temporal's
+	// ResetWorkflow API. Completed work is preserved - successful tasks
+	// are NOT re-executed. This enables "retry and resume" semantics
+	// without duplicating side effects.
+	//
+	// Temporal Equivalent: `temporal workflow reset --workflow-id <id> --type LastWorkflowTask`
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution is in FAILED phase (recoverable)
+	// 2. Identifies the last successful checkpoint in workflow history
+	// 3. Creates new Temporal run from that checkpoint via ResetWorkflow
+	// 4. Execution transitions from FAILED to IN_PROGRESS phase
+	// 5. Workflow continues from where it failed
+	// 6. Returns updated WorkflowExecution with IN_PROGRESS phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_FAILED phase
+	// - TERMINATED executions cannot be recovered (intentional hard stop)
+	// - CANCELLED executions cannot be recovered (intentional user action)
+	// - COMPLETED executions don't need recovery
+	//
+	// ## State Transitions
+	//
+	// - status.phase: FAILED → IN_PROGRESS
+	// - status.completed_at: Cleared (execution is running again)
+	// - status.error: Cleared (no longer failed)
+	// - Completed tasks: Preserved (not re-executed)
+	// - Failed tasks: Reset to pending, will be retried
+	//
+	// ## Recovery vs Restart
+	//
+	// | Aspect | recover | Create new execution |
+	// |--------|---------|----------------------|
+	// | Completed work | Preserved | Lost (re-executed) |
+	// | Side effects | Not duplicated | May duplicate |
+	// | Execution ID | Same | New ID |
+	// | Use case | Resume after fix | Start fresh |
+	//
+	// ## Idempotency
+	//
+	// If recovery already succeeded (execution is now IN_PROGRESS from a
+	// previous recover call), the call succeeds as a no-op and returns
+	// the current execution state.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION:
+	//   - Execution is not in FAILED phase
+	//   - Execution is TERMINATED (cannot recover)
+	//   - Execution is CANCELLED (cannot recover)
+	//
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456",
+	//	  "reason": "Stripe API recovered, resuming payment processing"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 2,  // EXECUTION_IN_PROGRESS
+	//	    "started_at": "2026-02-07T10:00:00Z",
+	//	    "tasks": [
+	//	      { "task_id": "task-1", "status": 3 },  // COMPLETED (preserved)
+	//	      { "task_id": "task-2", "status": 2 }   // IN_PROGRESS (resumed)
+	//	    ]
+	//	  }
+	//	}
+	Recover(ctx context.Context, in *RecoverWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
+	// Pause a running workflow execution.
+	//
+	// Temporarily stops the workflow at its current checkpoint. Unlike cancel,
+	// the execution is NOT terminal and can be resumed later from where it left off.
+	// The workflow gracefully checkpoints and exits, preserving all progress.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a pausable phase
+	// 2. Sends "pause" signal to Temporal workflow
+	// 3. Workflow receives signal and sets pauseRequested flag
+	// 4. Running activities are gracefully cancelled (checkpoints saved)
+	// 5. Execution transitions to EXECUTION_PAUSED phase
+	// 6. Workflow waits for resume signal (no resources consumed)
+	// 7. Returns updated WorkflowExecution with PAUSED phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot pause already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → PAUSED
+	// - status.completed_at: NOT set (execution is not finished)
+	// - Running activities: Gracefully cancelled, checkpoint saved
+	// - LangGraph state: Preserved via thread_id checkpoint
+	//
+	// ## Paused vs Cancelled
+	//
+	// | Aspect | pause | cancel |
+	// |--------|-------|--------|
+	// | Terminal state? | No | Yes |
+	// | Can resume? | Yes (via resume RPC) | No |
+	// | Checkpoint saved? | Yes | Best-effort |
+	// | Progress preserved? | Yes | No |
+	// | Use case | Temporary stop, maintenance | Permanent stop |
+	//
+	// ## Agent Activity Behavior
+	//
+	// When pause is signaled to a workflow running an agent:
+	// 1. Workflow cancels the running activity gracefully
+	// 2. Python activity catches CancelledError
+	// 3. LangGraph saves final checkpoint automatically
+	// 4. Activity returns with paused status
+	// 5. On resume, activity loads from checkpoint and continues
+	//
+	// ## Idempotency
+	//
+	// Pausing an already-paused execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456",
+	//	  "reason": "Pausing for scheduled maintenance window"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 7,  // EXECUTION_PAUSED
+	//	    "started_at": "2026-02-07T10:00:00Z"
+	//	    // Note: completed_at is NOT set (execution can be resumed)
+	//	  }
+	//	}
+	//
+	// @since Gap A3 (Pause/Resume Propagation)
+	Pause(ctx context.Context, in *PauseWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
+	// Resume a paused workflow execution.
+	//
+	// Continues execution from the checkpoint where it was paused. The workflow
+	// re-invokes activities with the same thread_id, which loads from checkpoint
+	// and continues from where it left off.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution is in EXECUTION_PAUSED phase
+	// 2. Sends "resume" signal to Temporal workflow
+	// 3. Workflow receives signal and sets resumeSignalReceived flag
+	// 4. Workflow re-invokes activity with same execution context
+	// 5. Activity detects resume and loads from LangGraph checkpoint
+	// 6. Execution transitions back to EXECUTION_IN_PROGRESS phase
+	// 7. Returns updated WorkflowExecution with IN_PROGRESS phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PAUSED phase
+	// - Cannot resume non-paused executions
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PAUSED → IN_PROGRESS
+	// - Activities: Re-invoked, load from checkpoint
+	// - LangGraph state: Loaded from checkpoint via thread_id
+	//
+	// ## Resume Behavior
+	//
+	// When resume is signaled to a paused workflow:
+	// 1. Java workflow unblocks from Workflow.await()
+	// 2. Workflow re-invokes the activity with same parameters
+	// 3. Python activity reads thread_id from heartbeat_details
+	// 4. LangGraph loads checkpoint using thread_id
+	// 5. Agent continues from exact position where it was paused
+	//
+	// ## Idempotency
+	//
+	// Resuming an already-running execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is not in PAUSED phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 2,  // EXECUTION_IN_PROGRESS
+	//	    "started_at": "2026-02-07T10:00:00Z"
+	//	  }
+	//	}
+	//
+	// @since Gap A3 (Pause/Resume Propagation)
+	Resume(ctx context.Context, in *ResumeWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
 }
 
 type workflowExecutionCommandControllerClient struct {
@@ -384,6 +824,66 @@ func (c *workflowExecutionCommandControllerClient) Delete(ctx context.Context, i
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WorkflowExecution)
 	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_Delete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowExecutionCommandControllerClient) SendSignal(ctx context.Context, in *SendSignalInput, opts ...grpc.CallOption) (*WorkflowExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowExecution)
+	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_SendSignal_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowExecutionCommandControllerClient) Cancel(ctx context.Context, in *CancelWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowExecution)
+	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_Cancel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowExecutionCommandControllerClient) Terminate(ctx context.Context, in *TerminateWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowExecution)
+	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_Terminate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowExecutionCommandControllerClient) Recover(ctx context.Context, in *RecoverWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowExecution)
+	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_Recover_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowExecutionCommandControllerClient) Pause(ctx context.Context, in *PauseWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowExecution)
+	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_Pause_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowExecutionCommandControllerClient) Resume(ctx context.Context, in *ResumeWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowExecution)
+	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_Resume_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -693,6 +1193,440 @@ type WorkflowExecutionCommandControllerServer interface {
 	SubmitApproval(context.Context, *SubmitWorkflowApprovalInput) (*WorkflowExecution, error)
 	// Delete an execution.
 	Delete(context.Context, *apiresource.ApiResourceId) (*WorkflowExecution, error)
+	// Send a signal to a running workflow execution.
+	//
+	// Delivers a signal to a workflow execution, typically to unblock a LISTEN task.
+	// Uses Temporal's SignalWithStart API internally for race-proof delivery.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a signalable phase
+	// 2. Uses Temporal SignalWithStart for atomic delivery:
+	//   - If workflow exists → sends signal immediately
+	//   - If workflow not started yet → starts workflow, then sends signal
+	//
+	// 3. Signal is delivered to workflow's signal channel
+	// 4. LISTEN task waiting for this signal will unblock and continue
+	// 5. Returns the current WorkflowExecution state
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	// - User must have can_edit permission on the workflow execution
+	//
+	// ## Race-Proof Delivery (SignalWithStart)
+	//
+	// This RPC uses Temporal's SignalWithStart API to handle the race condition
+	// where a signal might arrive before the workflow is fully started:
+	// - Traditional SignalWorkflow fails with "WorkflowNotFound" if called too early
+	// - SignalWithStart atomically: starts workflow if needed, then sends signal
+	// - Guarantees signal delivery even in race conditions
+	//
+	// ## Signal Matching
+	//
+	// The signal_name must match the signal ID defined in the workflow's LISTEN task:
+	//
+	// Workflow YAML:
+	//   - waitForPayment:
+	//     listen:
+	//     to:
+	//     one:
+	//     with:
+	//     id: payment_confirmed  # <-- signal_name must match this
+	//     type: signal
+	//
+	// API Call:
+	//
+	//	{ "signal_name": "payment_confirmed", "payload": {...} }
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Workflow execution doesn't exist
+	// - PERMISSION_DENIED: User doesn't have can_edit permission
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: execution_id or signal_name is empty
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "execution_id": "wfx-abc123xyz456",
+	//	  "signal_name": "payment_confirmed",
+	//	  "payload": {
+	//	    "transaction_id": "txn_123",
+	//	    "amount": 99.99,
+	//	    "currency": "USD"
+	//	  }
+	//	}
+	//
+	// ## Example Response
+	//
+	// Returns the current WorkflowExecution state (phase may still be IN_PROGRESS
+	// as the workflow continues after receiving the signal).
+	//
+	// @since Gap B1 (Signal-With-Start for race-proof event delivery)
+	SendSignal(context.Context, *SendSignalInput) (*WorkflowExecution, error)
+	// Cancel a running workflow execution gracefully.
+	//
+	// Sends a cancellation signal to the workflow via Temporal's CancelWorkflow API.
+	// The workflow code can handle the cancellation signal to perform cleanup
+	// (e.g., compensation logic, resource cleanup, notifications) before
+	// transitioning to the CANCELLED phase.
+	//
+	// Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a cancellable phase
+	// 2. Sends cancellation signal to Temporal workflow
+	// 3. Workflow code receives the signal and can perform cleanup
+	// 4. Execution transitions to EXECUTION_CANCELLED phase
+	// 5. Returns updated WorkflowExecution with new phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → CANCELLED
+	// - status.completed_at: Set to current timestamp
+	// - In-progress tasks: May complete cleanup or be interrupted
+	//
+	// ## Idempotency
+	//
+	// Cancelling an already-cancelled execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	// This ensures safe retry of cancel requests.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is in a terminal phase (COMPLETED, FAILED, TERMINATED)
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456",
+	//	  "reason": "Customer requested cancellation - order no longer needed"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 5,  // EXECUTION_CANCELLED
+	//	    "completed_at": "2026-02-07T18:30:00Z"
+	//	  }
+	//	}
+	Cancel(context.Context, *CancelWorkflowExecutionInput) (*WorkflowExecution, error)
+	// Terminate a workflow execution immediately.
+	//
+	// Force-stops the workflow via Temporal's TerminateWorkflow API without
+	// allowing cleanup. Unlike cancel, the workflow code cannot respond to
+	// termination - it is stopped immediately. Use this for stuck or
+	// unresponsive workflows that don't respond to cancellation.
+	//
+	// Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a terminable phase
+	// 2. Force-kills workflow via Temporal (no signal sent to workflow)
+	// 3. Execution transitions to EXECUTION_TERMINATED phase immediately
+	// 4. No cleanup callbacks or defer blocks are executed
+	// 5. Returns updated WorkflowExecution with TERMINATED phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot terminate already-terminal executions
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → TERMINATED
+	// - status.completed_at: Set to current timestamp
+	// - status.error: May contain termination reason
+	// - In-progress tasks: Stopped abruptly (no cleanup)
+	//
+	// ## Terminated vs Cancelled
+	//
+	// | Aspect | cancel | terminate |
+	// |--------|--------|-----------|
+	// | Signal to workflow | Yes (can handle) | No |
+	// | Cleanup opportunity | Yes | No |
+	// | Use case | Normal stop | Stuck workflows |
+	// | Can recover? | No | No |
+	//
+	// ## Idempotency
+	//
+	// Terminating an already-terminated execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456",
+	//	  "reason": "Workflow stuck for 2 hours, not responding to cancel"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 6,  // EXECUTION_TERMINATED
+	//	    "completed_at": "2026-02-07T18:35:00Z",
+	//	    "error": "Terminated by operator: Workflow stuck for 2 hours"
+	//	  }
+	//	}
+	Terminate(context.Context, *TerminateWorkflowExecutionInput) (*WorkflowExecution, error)
+	// Recover a failed workflow execution from the last checkpoint.
+	//
+	// Resumes execution from the last successful point using Temporal's
+	// ResetWorkflow API. Completed work is preserved - successful tasks
+	// are NOT re-executed. This enables "retry and resume" semantics
+	// without duplicating side effects.
+	//
+	// Temporal Equivalent: `temporal workflow reset --workflow-id <id> --type LastWorkflowTask`
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution is in FAILED phase (recoverable)
+	// 2. Identifies the last successful checkpoint in workflow history
+	// 3. Creates new Temporal run from that checkpoint via ResetWorkflow
+	// 4. Execution transitions from FAILED to IN_PROGRESS phase
+	// 5. Workflow continues from where it failed
+	// 6. Returns updated WorkflowExecution with IN_PROGRESS phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_FAILED phase
+	// - TERMINATED executions cannot be recovered (intentional hard stop)
+	// - CANCELLED executions cannot be recovered (intentional user action)
+	// - COMPLETED executions don't need recovery
+	//
+	// ## State Transitions
+	//
+	// - status.phase: FAILED → IN_PROGRESS
+	// - status.completed_at: Cleared (execution is running again)
+	// - status.error: Cleared (no longer failed)
+	// - Completed tasks: Preserved (not re-executed)
+	// - Failed tasks: Reset to pending, will be retried
+	//
+	// ## Recovery vs Restart
+	//
+	// | Aspect | recover | Create new execution |
+	// |--------|---------|----------------------|
+	// | Completed work | Preserved | Lost (re-executed) |
+	// | Side effects | Not duplicated | May duplicate |
+	// | Execution ID | Same | New ID |
+	// | Use case | Resume after fix | Start fresh |
+	//
+	// ## Idempotency
+	//
+	// If recovery already succeeded (execution is now IN_PROGRESS from a
+	// previous recover call), the call succeeds as a no-op and returns
+	// the current execution state.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION:
+	//   - Execution is not in FAILED phase
+	//   - Execution is TERMINATED (cannot recover)
+	//   - Execution is CANCELLED (cannot recover)
+	//
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456",
+	//	  "reason": "Stripe API recovered, resuming payment processing"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 2,  // EXECUTION_IN_PROGRESS
+	//	    "started_at": "2026-02-07T10:00:00Z",
+	//	    "tasks": [
+	//	      { "task_id": "task-1", "status": 3 },  // COMPLETED (preserved)
+	//	      { "task_id": "task-2", "status": 2 }   // IN_PROGRESS (resumed)
+	//	    ]
+	//	  }
+	//	}
+	Recover(context.Context, *RecoverWorkflowExecutionInput) (*WorkflowExecution, error)
+	// Pause a running workflow execution.
+	//
+	// Temporarily stops the workflow at its current checkpoint. Unlike cancel,
+	// the execution is NOT terminal and can be resumed later from where it left off.
+	// The workflow gracefully checkpoints and exits, preserving all progress.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a pausable phase
+	// 2. Sends "pause" signal to Temporal workflow
+	// 3. Workflow receives signal and sets pauseRequested flag
+	// 4. Running activities are gracefully cancelled (checkpoints saved)
+	// 5. Execution transitions to EXECUTION_PAUSED phase
+	// 6. Workflow waits for resume signal (no resources consumed)
+	// 7. Returns updated WorkflowExecution with PAUSED phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot pause already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → PAUSED
+	// - status.completed_at: NOT set (execution is not finished)
+	// - Running activities: Gracefully cancelled, checkpoint saved
+	// - LangGraph state: Preserved via thread_id checkpoint
+	//
+	// ## Paused vs Cancelled
+	//
+	// | Aspect | pause | cancel |
+	// |--------|-------|--------|
+	// | Terminal state? | No | Yes |
+	// | Can resume? | Yes (via resume RPC) | No |
+	// | Checkpoint saved? | Yes | Best-effort |
+	// | Progress preserved? | Yes | No |
+	// | Use case | Temporary stop, maintenance | Permanent stop |
+	//
+	// ## Agent Activity Behavior
+	//
+	// When pause is signaled to a workflow running an agent:
+	// 1. Workflow cancels the running activity gracefully
+	// 2. Python activity catches CancelledError
+	// 3. LangGraph saves final checkpoint automatically
+	// 4. Activity returns with paused status
+	// 5. On resume, activity loads from checkpoint and continues
+	//
+	// ## Idempotency
+	//
+	// Pausing an already-paused execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456",
+	//	  "reason": "Pausing for scheduled maintenance window"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 7,  // EXECUTION_PAUSED
+	//	    "started_at": "2026-02-07T10:00:00Z"
+	//	    // Note: completed_at is NOT set (execution can be resumed)
+	//	  }
+	//	}
+	//
+	// @since Gap A3 (Pause/Resume Propagation)
+	Pause(context.Context, *PauseWorkflowExecutionInput) (*WorkflowExecution, error)
+	// Resume a paused workflow execution.
+	//
+	// Continues execution from the checkpoint where it was paused. The workflow
+	// re-invokes activities with the same thread_id, which loads from checkpoint
+	// and continues from where it left off.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution is in EXECUTION_PAUSED phase
+	// 2. Sends "resume" signal to Temporal workflow
+	// 3. Workflow receives signal and sets resumeSignalReceived flag
+	// 4. Workflow re-invokes activity with same execution context
+	// 5. Activity detects resume and loads from LangGraph checkpoint
+	// 6. Execution transitions back to EXECUTION_IN_PROGRESS phase
+	// 7. Returns updated WorkflowExecution with IN_PROGRESS phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PAUSED phase
+	// - Cannot resume non-paused executions
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PAUSED → IN_PROGRESS
+	// - Activities: Re-invoked, load from checkpoint
+	// - LangGraph state: Loaded from checkpoint via thread_id
+	//
+	// ## Resume Behavior
+	//
+	// When resume is signaled to a paused workflow:
+	// 1. Java workflow unblocks from Workflow.await()
+	// 2. Workflow re-invokes the activity with same parameters
+	// 3. Python activity reads thread_id from heartbeat_details
+	// 4. LangGraph loads checkpoint using thread_id
+	// 5. Agent continues from exact position where it was paused
+	//
+	// ## Idempotency
+	//
+	// Resuming an already-running execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is not in PAUSED phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// ## Example Request
+	//
+	//	{
+	//	  "id": "wfx-abc123xyz456"
+	//	}
+	//
+	// ## Example Response
+	//
+	//	{
+	//	  "api_version": "agentic.stigmer.ai/v1",
+	//	  "kind": "WorkflowExecution",
+	//	  "metadata": { "id": "wfx-abc123xyz456" },
+	//	  "status": {
+	//	    "phase": 2,  // EXECUTION_IN_PROGRESS
+	//	    "started_at": "2026-02-07T10:00:00Z"
+	//	  }
+	//	}
+	//
+	// @since Gap A3 (Pause/Resume Propagation)
+	Resume(context.Context, *ResumeWorkflowExecutionInput) (*WorkflowExecution, error)
 }
 
 // UnimplementedWorkflowExecutionCommandControllerServer should be embedded to have
@@ -716,6 +1650,24 @@ func (UnimplementedWorkflowExecutionCommandControllerServer) SubmitApproval(cont
 }
 func (UnimplementedWorkflowExecutionCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceId) (*WorkflowExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedWorkflowExecutionCommandControllerServer) SendSignal(context.Context, *SendSignalInput) (*WorkflowExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendSignal not implemented")
+}
+func (UnimplementedWorkflowExecutionCommandControllerServer) Cancel(context.Context, *CancelWorkflowExecutionInput) (*WorkflowExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Cancel not implemented")
+}
+func (UnimplementedWorkflowExecutionCommandControllerServer) Terminate(context.Context, *TerminateWorkflowExecutionInput) (*WorkflowExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Terminate not implemented")
+}
+func (UnimplementedWorkflowExecutionCommandControllerServer) Recover(context.Context, *RecoverWorkflowExecutionInput) (*WorkflowExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Recover not implemented")
+}
+func (UnimplementedWorkflowExecutionCommandControllerServer) Pause(context.Context, *PauseWorkflowExecutionInput) (*WorkflowExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Pause not implemented")
+}
+func (UnimplementedWorkflowExecutionCommandControllerServer) Resume(context.Context, *ResumeWorkflowExecutionInput) (*WorkflowExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Resume not implemented")
 }
 func (UnimplementedWorkflowExecutionCommandControllerServer) testEmbeddedByValue() {}
 
@@ -827,6 +1779,114 @@ func _WorkflowExecutionCommandController_Delete_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkflowExecutionCommandController_SendSignal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendSignalInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionCommandControllerServer).SendSignal(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionCommandController_SendSignal_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionCommandControllerServer).SendSignal(ctx, req.(*SendSignalInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkflowExecutionCommandController_Cancel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelWorkflowExecutionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionCommandControllerServer).Cancel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionCommandController_Cancel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionCommandControllerServer).Cancel(ctx, req.(*CancelWorkflowExecutionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkflowExecutionCommandController_Terminate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TerminateWorkflowExecutionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionCommandControllerServer).Terminate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionCommandController_Terminate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionCommandControllerServer).Terminate(ctx, req.(*TerminateWorkflowExecutionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkflowExecutionCommandController_Recover_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecoverWorkflowExecutionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionCommandControllerServer).Recover(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionCommandController_Recover_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionCommandControllerServer).Recover(ctx, req.(*RecoverWorkflowExecutionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkflowExecutionCommandController_Pause_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PauseWorkflowExecutionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionCommandControllerServer).Pause(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionCommandController_Pause_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionCommandControllerServer).Pause(ctx, req.(*PauseWorkflowExecutionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkflowExecutionCommandController_Resume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResumeWorkflowExecutionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionCommandControllerServer).Resume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionCommandController_Resume_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionCommandControllerServer).Resume(ctx, req.(*ResumeWorkflowExecutionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkflowExecutionCommandController_ServiceDesc is the grpc.ServiceDesc for WorkflowExecutionCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -853,6 +1913,30 @@ var WorkflowExecutionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _WorkflowExecutionCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "sendSignal",
+			Handler:    _WorkflowExecutionCommandController_SendSignal_Handler,
+		},
+		{
+			MethodName: "cancel",
+			Handler:    _WorkflowExecutionCommandController_Cancel_Handler,
+		},
+		{
+			MethodName: "terminate",
+			Handler:    _WorkflowExecutionCommandController_Terminate_Handler,
+		},
+		{
+			MethodName: "recover",
+			Handler:    _WorkflowExecutionCommandController_Recover_Handler,
+		},
+		{
+			MethodName: "pause",
+			Handler:    _WorkflowExecutionCommandController_Pause_Handler,
+		},
+		{
+			MethodName: "resume",
+			Handler:    _WorkflowExecutionCommandController_Resume_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

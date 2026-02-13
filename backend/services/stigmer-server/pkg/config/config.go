@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+
+	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 )
 
 // Config holds server configuration
@@ -18,6 +20,9 @@ type Config struct {
 	// Temporal configuration
 	TemporalHostPort  string // Default: "localhost:7233"
 	TemporalNamespace string // Default: "default"
+
+	// Artifact storage configuration
+	ArtifactStorage artifactstorage.Config
 }
 
 // LoadConfig loads configuration from environment variables
@@ -32,6 +37,18 @@ func LoadConfig() (*Config, error) {
 		// Temporal configuration
 		TemporalHostPort:  getEnvString("TEMPORAL_HOST_PORT", "localhost:7233"),
 		TemporalNamespace: getEnvString("TEMPORAL_NAMESPACE", "default"),
+
+		// Artifact storage configuration
+		ArtifactStorage: artifactstorage.Config{
+			Type:              getEnvString("ARTIFACT_STORAGE_TYPE", "local"), // Default to local
+			LocalBasePath:     getEnvString("ARTIFACT_LOCAL_BASE_PATH", defaultArtifactPath()),
+			LocalServeURL:     getEnvString("ARTIFACT_LOCAL_SERVE_URL", "http://localhost:8080/artifacts"),
+			R2Bucket:          getEnvString("R2_BUCKET", ""),
+			R2Endpoint:        getEnvString("R2_ENDPOINT", ""),
+			R2AccessKeyID:     getEnvString("R2_ACCESS_KEY_ID", ""),
+			R2SecretAccessKey: getEnvString("R2_SECRET_ACCESS_KEY", ""),
+			R2Region:          getEnvString("R2_REGION", "auto"),
+		},
 	}
 
 	// Ensure database directory exists
@@ -42,6 +59,20 @@ func LoadConfig() (*Config, error) {
 	// Ensure storage directory exists
 	if err := ensureStorageDir(config.StoragePath); err != nil {
 		return nil, fmt.Errorf("failed to ensure storage directory: %w", err)
+	}
+
+	// Ensure artifact storage directory exists (for local mode)
+	if config.ArtifactStorage.Type == "local" {
+		if err := ensureArtifactDir(config.ArtifactStorage.LocalBasePath); err != nil {
+			return nil, fmt.Errorf("failed to ensure artifact directory: %w", err)
+		}
+	}
+
+	// Validate R2 configuration if R2 storage is enabled
+	if config.ArtifactStorage.Type == "r2" {
+		if err := validateR2Config(config.ArtifactStorage); err != nil {
+			return nil, fmt.Errorf("invalid R2 configuration: %w", err)
+		}
 	}
 
 	return config, nil
@@ -83,6 +114,18 @@ func defaultStoragePath() string {
 	return filepath.Join(home, ".stigmer", "storage")
 }
 
+// defaultArtifactPath returns the default artifact storage base path (~/.stigmer/data)
+// The storage layer (local_storage.go) creates an "artifacts" subdirectory under this path.
+// This path is shared with agent-runner (via volume mount at ~/.stigmer/data/artifacts)
+// for attachment storage.
+func defaultArtifactPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "./"
+	}
+	return filepath.Join(home, ".stigmer", "data")
+}
+
 // ensureDBDir ensures the database directory exists
 func ensureDBDir(dbPath string) error {
 	dir := filepath.Dir(dbPath)
@@ -102,6 +145,31 @@ func ensureStorageDir(storagePath string) error {
 	skillsDir := filepath.Join(storagePath, "skills")
 	if err := os.MkdirAll(skillsDir, 0755); err != nil {
 		return err
+	}
+	return nil
+}
+
+// ensureArtifactDir ensures the artifact storage directory exists
+func ensureArtifactDir(artifactPath string) error {
+	if err := os.MkdirAll(artifactPath, 0755); err != nil {
+		return err
+	}
+	return nil
+}
+
+// validateR2Config validates that all required R2 configuration is present
+func validateR2Config(cfg artifactstorage.Config) error {
+	if cfg.R2Bucket == "" {
+		return fmt.Errorf("R2_BUCKET is required when ARTIFACT_STORAGE_TYPE=r2")
+	}
+	if cfg.R2Endpoint == "" {
+		return fmt.Errorf("R2_ENDPOINT is required when ARTIFACT_STORAGE_TYPE=r2")
+	}
+	if cfg.R2AccessKeyID == "" {
+		return fmt.Errorf("R2_ACCESS_KEY_ID is required when ARTIFACT_STORAGE_TYPE=r2")
+	}
+	if cfg.R2SecretAccessKey == "" {
+		return fmt.Errorf("R2_SECRET_ACCESS_KEY is required when ARTIFACT_STORAGE_TYPE=r2")
 	}
 	return nil
 }

@@ -24,10 +24,22 @@ package ai.stigmer.agentic.workflowexecution.v1;
 // EXECUTION_PENDING → EXECUTION_CANCELLED
 // EXECUTION_IN_PROGRESS → EXECUTION_CANCELLED
 //
+// Termination flow (force stop):
+// EXECUTION_PENDING → EXECUTION_TERMINATED
+// EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED
+//
+// Pause/Resume flow:
+// EXECUTION_PENDING → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+// EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+//
 // Terminal States:
 // - EXECUTION_COMPLETED: Workflow finished successfully
 // - EXECUTION_FAILED: Workflow encountered an error
-// - EXECUTION_CANCELLED: Workflow was stopped by user or system
+// - EXECUTION_CANCELLED: Workflow was stopped gracefully by user or system
+// - EXECUTION_TERMINATED: Workflow was force-stopped immediately
+//
+// Non-Terminal States:
+// - EXECUTION_PAUSED: Workflow temporarily stopped, can be resumed
 //
 // Once a workflow reaches a terminal state, it cannot transition to another phase.
 enum ExecutionPhase {
@@ -42,7 +54,7 @@ enum ExecutionPhase {
   //
   // Typical duration: < 1 second (unless workflow runner is overloaded)
   //
-  // Next phases: EXECUTION_IN_PROGRESS, EXECUTION_CANCELLED
+  // Next phases: EXECUTION_IN_PROGRESS, EXECUTION_CANCELLED, EXECUTION_TERMINATED
   EXECUTION_PENDING = 1;
 
   // Execution is actively running tasks.
@@ -57,7 +69,7 @@ enum ExecutionPhase {
   //
   // Typical duration: Seconds to hours (depends on workflow complexity)
   //
-  // Next phases: EXECUTION_COMPLETED, EXECUTION_FAILED, EXECUTION_CANCELLED
+  // Next phases: EXECUTION_COMPLETED, EXECUTION_FAILED, EXECUTION_CANCELLED, EXECUTION_TERMINATED
   EXECUTION_IN_PROGRESS = 2;
 
   // Execution completed successfully.
@@ -126,6 +138,69 @@ enum ExecutionPhase {
   // - Cancelled: User or system intentionally stopped the workflow
   // - Failed: Workflow encountered an error during execution
   EXECUTION_CANCELLED = 5;
+
+  // Execution was force-stopped immediately.
+  //
+  // Unlike CANCELLED (graceful stop with cleanup opportunity), TERMINATED
+  // means the workflow was killed immediately without giving workflow code
+  // a chance to clean up. This is used for stuck or unresponsive workflows.
+  //
+  // Terminal state - execution will not change phases again.
+  //
+  // When this phase is reached:
+  // - completed_at timestamp is set
+  // - error field may contain termination reason
+  // - In-progress tasks are stopped abruptly
+  // - No cleanup callbacks are executed
+  //
+  // Use Cases:
+  // - Force-stop stuck workflows that don't respond to cancellation
+  // - Emergency stop for workflows consuming excessive resources
+  // - Kill workflows with infinite loops or deadlocks
+  //
+  // Terminated vs Cancelled:
+  // - Terminated: Immediate kill, no cleanup, use when workflow is unresponsive
+  // - Cancelled: Graceful stop, cleanup allowed, use when you want controlled shutdown
+  //
+  // Recovery:
+  // - Terminated executions CANNOT be recovered (unlike FAILED)
+  // - Use terminate only when cancel doesn't work
+  EXECUTION_TERMINATED = 6;
+
+  // Execution was paused by user and can be resumed.
+  //
+  // The workflow was temporarily stopped at a checkpoint and can continue
+  // from where it left off. Unlike CANCELLED, the execution is not terminal.
+  //
+  // Pause flow:
+  // EXECUTION_IN_PROGRESS → EXECUTION_PAUSED
+  // EXECUTION_PENDING → EXECUTION_PAUSED (rare, but allowed)
+  //
+  // Resume flow:
+  // EXECUTION_PAUSED → EXECUTION_IN_PROGRESS
+  //
+  // NOT a terminal state - execution can be resumed.
+  //
+  // When this phase is reached:
+  // - Running activities are gracefully cancelled
+  // - Checkpoints are saved (LangGraph thread_id preserved)
+  // - No completed_at timestamp (execution is not finished)
+  //
+  // Use Cases:
+  // - Pause long-running workflows during maintenance windows
+  // - User wants to review progress before continuing
+  // - Resource conservation (pause idle workflows)
+  // - Wait for external conditions before continuing
+  //
+  // Paused vs Cancelled:
+  // - Paused: Temporary stop, can resume from checkpoint, execution continues
+  // - Cancelled: Permanent stop, cannot resume, execution is terminated
+  //
+  // Resume behavior:
+  // - Workflow re-invokes activity with same thread_id
+  // - Activity loads from LangGraph checkpoint
+  // - Execution continues from where it was paused
+  EXECUTION_PAUSED = 7;
 }
 
 // WorkflowTaskType defines the type of workflow task.

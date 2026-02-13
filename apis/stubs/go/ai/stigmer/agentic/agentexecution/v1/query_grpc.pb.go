@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AgentExecutionQueryController_Get_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/get"
-	AgentExecutionQueryController_List_FullMethodName          = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/list"
-	AgentExecutionQueryController_ListBySession_FullMethodName = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/listBySession"
-	AgentExecutionQueryController_Subscribe_FullMethodName     = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/subscribe"
+	AgentExecutionQueryController_Get_FullMethodName                    = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/get"
+	AgentExecutionQueryController_List_FullMethodName                   = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/list"
+	AgentExecutionQueryController_ListBySession_FullMethodName          = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/listBySession"
+	AgentExecutionQueryController_Subscribe_FullMethodName              = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/subscribe"
+	AgentExecutionQueryController_GetArtifactDownloadUrl_FullMethodName = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getArtifactDownloadUrl"
 )
 
 // AgentExecutionQueryControllerClient is the client API for AgentExecutionQueryController service.
@@ -42,6 +43,43 @@ type AgentExecutionQueryControllerClient interface {
 	// Subscribe to real-time execution updates (streaming).
 	// Authorization is handled by the FJ model via proto configuration.
 	Subscribe(ctx context.Context, in *AgentExecutionId, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentExecution], error)
+	// Get a presigned download URL for an execution artifact.
+	//
+	// Returns a time-limited URL for downloading an artifact published by
+	// an agent during execution. The URL can be used with a simple HTTP GET
+	// request without authentication.
+	//
+	// ## Authorization
+	//
+	// Requires can_view permission on the execution. This ensures users can
+	// only download artifacts from executions they have access to.
+	//
+	// ## Security
+	//
+	// The storage_key is validated to ensure it belongs to the specified
+	// execution. Keys must start with "artifacts/{execution_id}/" to prevent
+	// path traversal attacks.
+	//
+	// ## URL Expiration
+	//
+	// Download URLs expire after 7 days (configurable). After expiration,
+	// call this endpoint again to get a fresh URL.
+	//
+	// ## Use Cases
+	//
+	// - CLI downloading agent-created files
+	// - Web UI providing download links for artifacts
+	// - Refreshing expired download URLs
+	//
+	// ## Example Flow
+	//
+	// 1. Get execution via AgentExecutionQueryController.get
+	// 2. Find artifact in status.artifacts[]
+	// 3. Call getArtifactDownloadUrl with execution_id and storage_key
+	// 4. Use returned download_url for HTTP GET
+	//
+	// @since Artifact Lifecycle (Attachments & Artifacts)
+	GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactDownloadUrlRequest, opts ...grpc.CallOption) (*GetArtifactDownloadUrlResponse, error)
 }
 
 type agentExecutionQueryControllerClient struct {
@@ -101,6 +139,16 @@ func (c *agentExecutionQueryControllerClient) Subscribe(ctx context.Context, in 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type AgentExecutionQueryController_SubscribeClient = grpc.ServerStreamingClient[AgentExecution]
 
+func (c *agentExecutionQueryControllerClient) GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactDownloadUrlRequest, opts ...grpc.CallOption) (*GetArtifactDownloadUrlResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetArtifactDownloadUrlResponse)
+	err := c.cc.Invoke(ctx, AgentExecutionQueryController_GetArtifactDownloadUrl_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentExecutionQueryControllerServer is the server API for AgentExecutionQueryController service.
 // All implementations should embed UnimplementedAgentExecutionQueryControllerServer
 // for forward compatibility.
@@ -118,6 +166,43 @@ type AgentExecutionQueryControllerServer interface {
 	// Subscribe to real-time execution updates (streaming).
 	// Authorization is handled by the FJ model via proto configuration.
 	Subscribe(*AgentExecutionId, grpc.ServerStreamingServer[AgentExecution]) error
+	// Get a presigned download URL for an execution artifact.
+	//
+	// Returns a time-limited URL for downloading an artifact published by
+	// an agent during execution. The URL can be used with a simple HTTP GET
+	// request without authentication.
+	//
+	// ## Authorization
+	//
+	// Requires can_view permission on the execution. This ensures users can
+	// only download artifacts from executions they have access to.
+	//
+	// ## Security
+	//
+	// The storage_key is validated to ensure it belongs to the specified
+	// execution. Keys must start with "artifacts/{execution_id}/" to prevent
+	// path traversal attacks.
+	//
+	// ## URL Expiration
+	//
+	// Download URLs expire after 7 days (configurable). After expiration,
+	// call this endpoint again to get a fresh URL.
+	//
+	// ## Use Cases
+	//
+	// - CLI downloading agent-created files
+	// - Web UI providing download links for artifacts
+	// - Refreshing expired download URLs
+	//
+	// ## Example Flow
+	//
+	// 1. Get execution via AgentExecutionQueryController.get
+	// 2. Find artifact in status.artifacts[]
+	// 3. Call getArtifactDownloadUrl with execution_id and storage_key
+	// 4. Use returned download_url for HTTP GET
+	//
+	// @since Artifact Lifecycle (Attachments & Artifacts)
+	GetArtifactDownloadUrl(context.Context, *GetArtifactDownloadUrlRequest) (*GetArtifactDownloadUrlResponse, error)
 }
 
 // UnimplementedAgentExecutionQueryControllerServer should be embedded to have
@@ -138,6 +223,9 @@ func (UnimplementedAgentExecutionQueryControllerServer) ListBySession(context.Co
 }
 func (UnimplementedAgentExecutionQueryControllerServer) Subscribe(*AgentExecutionId, grpc.ServerStreamingServer[AgentExecution]) error {
 	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
+}
+func (UnimplementedAgentExecutionQueryControllerServer) GetArtifactDownloadUrl(context.Context, *GetArtifactDownloadUrlRequest) (*GetArtifactDownloadUrlResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactDownloadUrl not implemented")
 }
 func (UnimplementedAgentExecutionQueryControllerServer) testEmbeddedByValue() {}
 
@@ -224,6 +312,24 @@ func _AgentExecutionQueryController_Subscribe_Handler(srv interface{}, stream gr
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type AgentExecutionQueryController_SubscribeServer = grpc.ServerStreamingServer[AgentExecution]
 
+func _AgentExecutionQueryController_GetArtifactDownloadUrl_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArtifactDownloadUrlRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionQueryControllerServer).GetArtifactDownloadUrl(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionQueryController_GetArtifactDownloadUrl_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionQueryControllerServer).GetArtifactDownloadUrl(ctx, req.(*GetArtifactDownloadUrlRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentExecutionQueryController_ServiceDesc is the grpc.ServiceDesc for AgentExecutionQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -242,6 +348,10 @@ var AgentExecutionQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "listBySession",
 			Handler:    _AgentExecutionQueryController_ListBySession_Handler,
+		},
+		{
+			MethodName: "getArtifactDownloadUrl",
+			Handler:    _AgentExecutionQueryController_GetArtifactDownloadUrl_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

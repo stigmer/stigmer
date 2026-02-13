@@ -20,9 +20,10 @@ import (
 	"time"
 
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 )
 
-// Convert the Serverless Workflow duration into a time Duration
+// ToDuration converts the Serverless Workflow SDK duration into a time.Duration.
 func ToDuration(v *model.Duration) (duration time.Duration) {
 	if v != nil {
 		inline := v.AsInline()
@@ -37,4 +38,31 @@ func ToDuration(v *model.Duration) (duration time.Duration) {
 	}
 
 	return duration
+}
+
+// ProtoToSDKDuration converts a proto Duration message to the Serverless Workflow SDK Duration.
+//
+// This enables direct conversion from the proto API to the SDK model without going through YAML.
+// Returns nil if the input is nil.
+func ProtoToSDKDuration(d *tasksv1.Duration) *model.Duration {
+	if d == nil {
+		return nil
+	}
+	return &model.Duration{
+		Value: model.DurationInline{
+			Days:         int32(d.GetDays()),
+			Hours:        int32(d.GetHours()),
+			Minutes:      int32(d.GetMinutes()),
+			Seconds:      int32(d.GetSeconds()),
+			Milliseconds: int32(d.GetMilliseconds()),
+		},
+	}
+}
+
+// ProtoToTimeDuration converts a proto Duration message directly to a time.Duration.
+//
+// This is a convenience function that combines ProtoToSDKDuration and ToDuration.
+// Returns 0 if the input is nil.
+func ProtoToTimeDuration(d *tasksv1.Duration) time.Duration {
+	return ToDuration(ProtoToSDKDuration(d))
 }

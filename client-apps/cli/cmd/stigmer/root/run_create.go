@@ -12,8 +12,9 @@ import (
 	"google.golang.org/grpc"
 )
 
-// createAgentExecution creates a new agent execution
-func createAgentExecution(agentID string, orgID string, message string, runtimeEnv envfile.EnvMap, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+// createAgentExecution creates a new agent execution.
+// model is optional - if provided, it overrides the server's default model.
+func createAgentExecution(agentID string, orgID string, message string, runtimeEnv envfile.EnvMap, attachments []*agentexecutionv1.Attachment, model string, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
 	if message == "" {
 		message = "execute"
 	}
@@ -21,9 +22,17 @@ func createAgentExecution(agentID string, orgID string, message string, runtimeE
 	executionName := fmt.Sprintf("execution-%d", time.Now().UnixMicro())
 
 	spec := &agentexecutionv1.AgentExecutionSpec{
-		AgentId:    agentID,
-		Message:    message,
-		RuntimeEnv: runtimeEnv,
+		AgentId:     agentID,
+		Message:     message,
+		RuntimeEnv:  runtimeEnv,
+		Attachments: attachments,
+	}
+
+	// Set execution config with model override if provided
+	if model != "" {
+		spec.ExecutionConfig = &agentexecutionv1.ExecutionConfig{
+			ModelName: model,
+		}
 	}
 
 	execution := &agentexecutionv1.AgentExecution{

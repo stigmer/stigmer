@@ -11,6 +11,7 @@ import (
 	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -1017,11 +1018,705 @@ func (x *WorkflowExecutionUpdate) GetTask() *WorkflowTask {
 	return nil
 }
 
+// CancelWorkflowExecutionInput requests graceful cancellation of a workflow execution.
+//
+// Cancellation sends a signal to the workflow, allowing it to clean up gracefully.
+// The workflow code can handle the cancellation signal (e.g., via defer blocks,
+// compensation logic) before the execution transitions to CANCELLED phase.
+//
+// ## Behavior
+//
+// - Sends cancellation signal to Temporal via CancelWorkflow API
+// - Workflow code receives the signal and can perform cleanup
+// - Execution transitions to EXECUTION_CANCELLED phase after cleanup
+// - In-progress tasks may complete or be interrupted depending on workflow logic
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+// - User must have can_edit permission on the workflow execution
+//
+// ## Idempotency
+//
+// If the execution is already cancelled (phase == EXECUTION_CANCELLED),
+// the call succeeds as a no-op and returns the current execution state.
+//
+// ## Use Cases
+//
+// - User realizes they triggered the wrong workflow
+// - Business decision to stop a long-running process
+// - Graceful shutdown before maintenance window
+// - Cancel stuck workflow that is still responsive
+//
+// ## Example
+//
+//	{
+//	  "id": "wfx-abc123xyz456",
+//	  "reason": "Customer requested cancellation - no longer needed"
+//	}
+type CancelWorkflowExecutionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Workflow execution ID to cancel.
+	//
+	// Format: "wfx-{ulid}" (auto-generated unique identifier)
+	// Example: "wfx-abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Human-readable reason for cancellation.
+	//
+	// Stored in the audit trail and passed to Temporal for operational debugging.
+	// Optional but strongly recommended for compliance and troubleshooting.
+	//
+	// Examples:
+	// - "Customer requested cancellation"
+	// - "Incorrect workflow triggered by mistake"
+	// - "Superseded by newer execution wfx-def456"
+	// - "Pre-maintenance shutdown"
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelWorkflowExecutionInput) Reset() {
+	*x = CancelWorkflowExecutionInput{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelWorkflowExecutionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelWorkflowExecutionInput) ProtoMessage() {}
+
+func (x *CancelWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelWorkflowExecutionInput.ProtoReflect.Descriptor instead.
+func (*CancelWorkflowExecutionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *CancelWorkflowExecutionInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *CancelWorkflowExecutionInput) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// TerminateWorkflowExecutionInput requests immediate termination of a workflow execution.
+//
+// Termination forcefully kills the workflow without allowing cleanup.
+// Unlike cancellation, the workflow code cannot respond to termination -
+// it is stopped immediately. Use this for stuck or unresponsive workflows.
+//
+// ## Behavior
+//
+// - Force-kills workflow via Temporal TerminateWorkflow API
+// - Workflow code does NOT receive any signal (cannot clean up)
+// - Execution transitions to EXECUTION_TERMINATED phase immediately
+// - All in-progress tasks are stopped abruptly
+// - No compensation or defer blocks are executed
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+// - User must have can_edit permission on the workflow execution
+//
+// ## Idempotency
+//
+// If the execution is already terminated (phase == EXECUTION_TERMINATED),
+// the call succeeds as a no-op and returns the current execution state.
+//
+// ## Terminated vs Cancelled
+//
+// | Aspect | Cancel | Terminate |
+// |--------|--------|-----------|
+// | Signal | Workflow receives cancellation signal | No signal sent |
+// | Cleanup | Workflow can clean up gracefully | No cleanup possible |
+// | Use case | Normal cancellation | Stuck/unresponsive workflows |
+// | Recovery | Cannot recover | Cannot recover |
+//
+// ## Use Cases
+//
+// - Workflow is stuck and not responding to cancellation
+// - Workflow is consuming excessive resources (infinite loop, memory leak)
+// - Emergency stop for misbehaving workflow
+// - Workflow has a bug causing it to ignore cancellation signals
+//
+// ## Example
+//
+//	{
+//	  "id": "wfx-abc123xyz456",
+//	  "reason": "Workflow stuck for 2 hours, not responding to cancel"
+//	}
+type TerminateWorkflowExecutionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Workflow execution ID to terminate.
+	//
+	// Format: "wfx-{ulid}" (auto-generated unique identifier)
+	// Example: "wfx-abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Human-readable reason for termination.
+	//
+	// Stored in the audit trail and passed to Temporal for operational debugging.
+	// Optional but strongly recommended - termination is a drastic action
+	// and the reason helps with post-incident analysis.
+	//
+	// Examples:
+	// - "Workflow stuck for 2 hours, not responding to cancel"
+	// - "Infinite loop detected, consuming 100% CPU"
+	// - "Emergency stop - incorrect data being processed"
+	// - "Cancel failed after 3 attempts, force terminating"
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TerminateWorkflowExecutionInput) Reset() {
+	*x = TerminateWorkflowExecutionInput{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TerminateWorkflowExecutionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TerminateWorkflowExecutionInput) ProtoMessage() {}
+
+func (x *TerminateWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TerminateWorkflowExecutionInput.ProtoReflect.Descriptor instead.
+func (*TerminateWorkflowExecutionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *TerminateWorkflowExecutionInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TerminateWorkflowExecutionInput) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.
+//
+// Recovery resumes execution from the last successful checkpoint, preserving
+// all completed work. This uses Temporal's Reset functionality to continue
+// the workflow without re-executing successful steps.
+//
+// ## Behavior
+//
+// - Uses Temporal ResetWorkflow API to resume from last successful point
+// - Completed tasks are preserved - NOT re-executed
+// - Creates a new Temporal run in the same workflow ID chain
+// - Execution transitions from FAILED back to IN_PROGRESS phase
+// - Workflow continues from where it failed
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_FAILED phase
+// - TERMINATED executions cannot be recovered (use case: data corruption risk)
+// - CANCELLED executions cannot be recovered (intentional user action)
+// - User must have can_edit permission on the workflow execution
+//
+// ## Idempotency
+//
+// If recovery is already in progress (execution moved to IN_PROGRESS after
+// a previous recover call), the call succeeds as a no-op and returns current state.
+//
+// ## Recovery vs Restart
+//
+// | Aspect | Recover | Restart (create new) |
+// |--------|---------|----------------------|
+// | Completed work | Preserved | Lost (re-executed) |
+// | Side effects | Not duplicated | May duplicate |
+// | Execution ID | Same | New ID |
+// | Use case | Resume after fix | Start fresh |
+//
+// ## Use Cases
+//
+// - Workflow failed due to transient error (network timeout, rate limit)
+// - External dependency was down but is now available
+// - Bug was fixed and workflow should continue from failure point
+// - Retry after investigating and fixing the root cause
+//
+// ## Example
+//
+//	{
+//	  "id": "wfx-abc123xyz456",
+//	  "reason": "Stripe API was down, now recovered - resuming payment processing"
+//	}
+type RecoverWorkflowExecutionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Workflow execution ID to recover.
+	//
+	// Must be in FAILED phase. TERMINATED and CANCELLED executions
+	// cannot be recovered.
+	//
+	// Format: "wfx-{ulid}" (auto-generated unique identifier)
+	// Example: "wfx-abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Human-readable reason for recovery.
+	//
+	// Stored in the audit trail for operational debugging and compliance.
+	// Helps track why the recovery was needed and what was fixed.
+	//
+	// Examples:
+	// - "Stripe API recovered, resuming payment processing"
+	// - "Fixed typo in email template, continuing workflow"
+	// - "Increased timeout for slow API, retrying"
+	// - "Root cause identified and fixed in config"
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecoverWorkflowExecutionInput) Reset() {
+	*x = RecoverWorkflowExecutionInput{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecoverWorkflowExecutionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecoverWorkflowExecutionInput) ProtoMessage() {}
+
+func (x *RecoverWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecoverWorkflowExecutionInput.ProtoReflect.Descriptor instead.
+func (*RecoverWorkflowExecutionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *RecoverWorkflowExecutionInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RecoverWorkflowExecutionInput) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// PauseWorkflowExecutionInput requests temporarily pausing a workflow execution.
+//
+// Pauses the workflow at its current checkpoint. Unlike cancel, the execution
+// is NOT terminal and can be resumed later from where it left off.
+//
+// ## Behavior
+//
+// When a workflow is paused:
+// 1. A "pause" signal is sent to the Temporal workflow
+// 2. Running activities are gracefully cancelled (checkpoint saved)
+// 3. Execution transitions to EXECUTION_PAUSED phase
+// 4. Workflow waits for resume signal (no resources consumed)
+//
+// ## Resume Flow
+//
+// The paused workflow can be resumed via the resume RPC:
+// 1. Resume signal unblocks the workflow
+// 2. Activities are re-invoked with same thread_id
+// 3. LangGraph loads from checkpoint automatically
+// 4. Execution continues from exact pause point
+//
+// @since Gap A3 (Pause/Resume Propagation)
+type PauseWorkflowExecutionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Workflow execution ID to pause.
+	//
+	// Must be in PENDING or IN_PROGRESS phase. Cannot pause
+	// executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+	//
+	// Format: "wfx-{ulid}" (auto-generated unique identifier)
+	// Example: "wfx-abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Human-readable reason for pausing.
+	//
+	// Stored in the audit trail for operational debugging and compliance.
+	// Helps track why the pause was needed.
+	//
+	// Examples:
+	// - "Pausing for scheduled maintenance window"
+	// - "User requested pause to review progress"
+	// - "Pausing due to rate limit concerns"
+	// - "Emergency pause - investigating issue"
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PauseWorkflowExecutionInput) Reset() {
+	*x = PauseWorkflowExecutionInput{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PauseWorkflowExecutionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PauseWorkflowExecutionInput) ProtoMessage() {}
+
+func (x *PauseWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PauseWorkflowExecutionInput.ProtoReflect.Descriptor instead.
+func (*PauseWorkflowExecutionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *PauseWorkflowExecutionInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *PauseWorkflowExecutionInput) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// ResumeWorkflowExecutionInput requests resuming a paused workflow execution.
+//
+// Continues execution from the checkpoint where it was paused. The workflow
+// re-invokes activities with the same thread_id, which loads from checkpoint
+// and continues from where it left off.
+//
+// ## Behavior
+//
+// When a workflow is resumed:
+// 1. A "resume" signal is sent to the paused Temporal workflow
+// 2. Workflow unblocks from its wait state
+// 3. Activities are re-invoked with same execution context
+// 4. LangGraph loads checkpoint using thread_id
+// 5. Execution continues from exact pause point
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PAUSED phase
+// - Cannot resume non-paused executions
+//
+// @since Gap A3 (Pause/Resume Propagation)
+type ResumeWorkflowExecutionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Workflow execution ID to resume.
+	//
+	// Must be in PAUSED phase. Cannot resume executions
+	// that are not paused.
+	//
+	// Format: "wfx-{ulid}" (auto-generated unique identifier)
+	// Example: "wfx-abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResumeWorkflowExecutionInput) Reset() {
+	*x = ResumeWorkflowExecutionInput{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResumeWorkflowExecutionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResumeWorkflowExecutionInput) ProtoMessage() {}
+
+func (x *ResumeWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResumeWorkflowExecutionInput.ProtoReflect.Descriptor instead.
+func (*ResumeWorkflowExecutionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ResumeWorkflowExecutionInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+// SendSignalInput requests delivery of a signal to a workflow execution.
+//
+// Sends a signal to a running workflow execution, typically to unblock a LISTEN task.
+// Uses Temporal's SignalWithStart API internally for race-proof delivery - if the
+// workflow hasn't started yet, it will be started first and then receive the signal.
+//
+// ## Behavior
+//
+// 1. Validates execution exists and is in a signalable phase
+// 2. Uses Temporal SignalWithStart for atomic delivery:
+//   - If workflow exists → sends signal immediately
+//   - If workflow not started yet → starts workflow, then sends signal
+//
+// 3. Signal is delivered to workflow's signal channel
+// 4. LISTEN task waiting for this signal will unblock and continue
+// 5. Returns the current WorkflowExecution state
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+// - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+// - User must have can_edit permission on the workflow execution
+//
+// ## Race-Proof Delivery
+//
+// SignalWithStart solves the race condition where a signal might arrive before
+// the Temporal workflow is fully started. Without it, SignalWorkflow fails with
+// "WorkflowNotFound" if called too early. SignalWithStart handles both cases
+// atomically, ensuring signals are never lost.
+//
+// ## Use Cases
+//
+// - External system events (webhooks, CDC) triggering workflow continuation
+// - Human-in-the-loop approvals via external systems
+// - Integration with third-party services that send callbacks
+// - Testing LISTEN tasks during development
+//
+// ## Example
+//
+//	{
+//	  "execution_id": "wfx-abc123xyz456",
+//	  "signal_name": "payment_confirmed",
+//	  "payload": {
+//	    "transaction_id": "txn_123",
+//	    "amount": 99.99,
+//	    "currency": "USD"
+//	  }
+//	}
+//
+// @since Gap B1 (Signal-With-Start)
+type SendSignalInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Workflow execution ID to send the signal to.
+	//
+	// Format: "wfx-{ulid}" (auto-generated unique identifier)
+	// Example: "wfx-abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// Signal name to send.
+	//
+	// Must match the signal ID defined in the workflow's LISTEN task.
+	// Signal names are case-sensitive and should follow snake_case convention.
+	//
+	// Examples:
+	// - "payment_confirmed"
+	// - "approval_received"
+	// - "external_event"
+	// - "verification_complete"
+	//
+	// Validation: Required, cannot be empty
+	SignalName string `protobuf:"bytes,2,opt,name=signal_name,json=signalName,proto3" json:"signal_name,omitempty"`
+	// Signal payload data.
+	//
+	// JSON-serializable data to send with the signal. The payload is delivered
+	// to the workflow and can be accessed by the LISTEN task.
+	//
+	// Optional - signals can be sent without payload if they just need to
+	// unblock the workflow without passing data.
+	//
+	// Examples:
+	// - { "status": "approved", "approver": "jane@example.com" }
+	// - { "transaction_id": "txn_123", "amount": 99.99 }
+	// - { "verified": true }
+	//
+	// Note: Use google.protobuf.Struct for arbitrary JSON payloads.
+	Payload *structpb.Struct `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	// Idempotency key for deduplication of signal delivery.
+	//
+	// Optional - if not provided, signal is processed without dedupe protection.
+	// When provided, duplicate signals with the same key (within the TTL window)
+	// return the cached response instead of re-delivering the signal.
+	//
+	// ## Format Recommendations
+	//
+	// - Webhook sources: "{source}:{event_id}" (e.g., "stripe:evt_1234567890")
+	// - API callers: Client-generated UUID (e.g., "550e8400-e29b-41d4-a716-446655440000")
+	// - Scheduled events: "{schedule_id}:{timestamp}" (e.g., "sched_abc:2026-02-08T12:00:00Z")
+	//
+	// ## Scope
+	//
+	// Keys are scoped to the organization to prevent cross-org collisions.
+	// The effective key stored is: "{org_id}:{idempotency_key}"
+	//
+	// ## TTL (Time-To-Live)
+	//
+	// Keys expire after 24 hours by default. After expiration, the same key
+	// can be reused and will trigger a new signal delivery. This aligns with
+	// industry standards (e.g., Stripe's 24-hour idempotency window).
+	//
+	// ## Behavior on Duplicate
+	//
+	// When a duplicate key is detected:
+	// - The signal is NOT re-delivered to the workflow
+	// - The original WorkflowExecution state is returned (idempotent response)
+	// - No error is returned (success with cached result)
+	//
+	// ## Use Cases
+	//
+	// 1. Webhook retry protection: Stripe/GitHub may retry webhooks on timeout
+	// 2. Client retry safety: API clients can safely retry on network errors
+	// 3. At-least-once to effectively-once: Convert retries into safe operations
+	//
+	// Example: "stripe:evt_1NqZP92eZvKYlo2CqOc7XYRT"
+	//
+	// @since Gap B2 (Event Dedupe)
+	IdempotencyKey string `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *SendSignalInput) Reset() {
+	*x = SendSignalInput{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendSignalInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendSignalInput) ProtoMessage() {}
+
+func (x *SendSignalInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendSignalInput.ProtoReflect.Descriptor instead.
+func (*SendSignalInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *SendSignalInput) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *SendSignalInput) GetSignalName() string {
+	if x != nil {
+		return x.SignalName
+	}
+	return ""
+}
+
+func (x *SendSignalInput) GetPayload() *structpb.Struct {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+func (x *SendSignalInput) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_workflowexecution_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/agentic/workflowexecution/v1/io.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"3\n" +
+	"0ai/stigmer/agentic/workflowexecution/v1/io.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"3\n" +
 	"\x13WorkflowExecutionId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"*\n" +
 	"\n" +
@@ -1059,7 +1754,27 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\vupdate_type\x18\x01 \x01(\x0e2;.ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateTypeB\b\xbaH\x05\x82\x01\x02\x10\x01R\n" +
 	"updateType\x12X\n" +
 	"\texecution\x18\x02 \x01(\v2:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionR\texecution\x12I\n" +
-	"\x04task\x18\x03 \x01(\v25.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskR\x04task*\xf3\x01\n" +
+	"\x04task\x18\x03 \x01(\v25.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskR\x04task\"O\n" +
+	"\x1cCancelWorkflowExecutionInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"R\n" +
+	"\x1fTerminateWorkflowExecutionInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"P\n" +
+	"\x1dRecoverWorkflowExecutionInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"N\n" +
+	"\x1bPauseWorkflowExecutionInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"7\n" +
+	"\x1cResumeWorkflowExecutionInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"\xc3\x01\n" +
+	"\x0fSendSignalInput\x12*\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12(\n" +
+	"\vsignal_name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
+	"signalName\x121\n" +
+	"\apayload\x18\x03 \x01(\v2\x17.google.protobuf.StructR\apayload\x12'\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey*\xf3\x01\n" +
 	"\x12WorkflowUpdateType\x12$\n" +
 	" workflow_update_type_unspecified\x10\x00\x12\x1c\n" +
 	"\x18wf_update_status_changed\x10\x01\x12\x1a\n" +
@@ -1083,7 +1798,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP() []byte 
 }
 
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_goTypes = []any{
 	(WorkflowUpdateType)(0),                         // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType
 	(*WorkflowExecutionId)(nil),                     // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId
@@ -1095,25 +1810,33 @@ var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_goTypes = []any{
 	(*SubmitWorkflowApprovalInput)(nil),             // 7: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput
 	(*SubscribeWorkflowExecutionRequest)(nil),       // 8: ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest
 	(*WorkflowExecutionUpdate)(nil),                 // 9: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate
-	(*WorkflowExecution)(nil),                       // 10: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	(ExecutionPhase)(0),                             // 11: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	(*WorkflowExecutionStatus)(nil),                 // 12: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
-	(v1.ApprovalAction)(0),                          // 13: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(*WorkflowTask)(nil),                            // 14: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
+	(*CancelWorkflowExecutionInput)(nil),            // 10: ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput
+	(*TerminateWorkflowExecutionInput)(nil),         // 11: ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput
+	(*RecoverWorkflowExecutionInput)(nil),           // 12: ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput
+	(*PauseWorkflowExecutionInput)(nil),             // 13: ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput
+	(*ResumeWorkflowExecutionInput)(nil),            // 14: ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput
+	(*SendSignalInput)(nil),                         // 15: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput
+	(*WorkflowExecution)(nil),                       // 16: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	(ExecutionPhase)(0),                             // 17: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	(*WorkflowExecutionStatus)(nil),                 // 18: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
+	(v1.ApprovalAction)(0),                          // 19: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(*WorkflowTask)(nil),                            // 20: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
+	(*structpb.Struct)(nil),                         // 21: google.protobuf.Struct
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_depIdxs = []int32{
-	10, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList.entries:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	11, // 1: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	12, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
-	13, // 3: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	16, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList.entries:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	17, // 1: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	18, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
+	19, // 3: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 	0,  // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.update_type:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType
-	10, // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.execution:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	14, // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.task:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
-	7,  // [7:7] is the sub-list for method output_type
-	7,  // [7:7] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	16, // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.execution:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	20, // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.task:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
+	21, // 7: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput.payload:type_name -> google.protobuf.Struct
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflowexecution_v1_io_proto_init() }
@@ -1129,7 +1852,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   9,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

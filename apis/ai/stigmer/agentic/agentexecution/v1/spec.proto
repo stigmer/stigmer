@@ -197,6 +197,28 @@ message AgentExecutionSpec {
   //
   // @since Phase 5.1 (Events-Based Approval Notification)
   string parent_workflow_id = 8;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // File Attachments (Artifact Lifecycle)
+  //
+  // Files to inject into the sandbox before execution begins.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Files attached to this execution.
+  //
+  // Attachments are injected into the sandbox before execution begins.
+  // The agent can read these files from the specified mount paths.
+  //
+  // Use cases:
+  // - Provide input data files to process
+  // - Pass configuration files
+  // - Supply reference documents for analysis
+  //
+  // Example CLI usage:
+  //   stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
+  //
+  // @since Artifact Lifecycle (Attachments & Outputs)
+  repeated Attachment attachments = 9;
 }
 
 // Configuration that can be applied at execution time.
@@ -299,4 +321,57 @@ message ContextManagementConfig {
   //
   // Default: 0 (use model default from Model Registry)
   int32 custom_target_tokens = 3 [(buf.validate.field).int32.gte = 0];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// File Attachments (Artifact Lifecycle)
+//
+// These types support file input to agent executions.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Attachment represents a file attached to an agent execution.
+//
+// All files must be pre-uploaded via the uploadAttachment RPC and referenced
+// by storage_key. This ensures consistent behavior regardless of file size
+// and avoids Temporal payload limits (2MB).
+//
+// ## Usage Flow
+//
+// 1. Client calls uploadAttachment RPC with file content
+// 2. Server returns a storage_key
+// 3. Client creates execution with Attachment containing that storage_key
+// 4. Agent-runner downloads file from storage and injects into sandbox
+//
+// ## Mount Path
+//
+// The mount_path determines where the file appears in the sandbox.
+// If not specified, defaults to /inputs/{filename}
+//
+// Examples:
+//   - mount_path: "/inputs/config.yaml" -> file at /inputs/config.yaml
+//   - mount_path: "/workspace/data/" -> directory extracted at /workspace/data/
+//
+// @since Artifact Lifecycle (Attachments & Outputs)
+message Attachment {
+  // Original filename for display and default mount path derivation.
+  // Example: "config.yaml", "input-data.zip"
+  string filename = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Reserved: Previously 'content' (bytes) for inline file content.
+  // Removed to enforce storage-first approach and avoid Temporal payload limits.
+  reserved 2;
+
+  // Reference to pre-uploaded file in artifact store (required).
+  // Obtained by calling uploadAttachment RPC before creating the execution.
+  // Format: "attachments/{ulid}/{filename}"
+  string storage_key = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Path in sandbox where file will be placed.
+  // Defaults to "/inputs/{filename}" if not specified.
+  // Example: "/workspace/input.yaml", "/inputs/data/"
+  string mount_path = 4;
+
+  // MIME type for content negotiation (optional).
+  // Example: "application/yaml", "text/plain", "application/zip"
+  string content_type = 5;
 }

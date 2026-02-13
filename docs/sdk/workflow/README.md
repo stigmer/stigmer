@@ -142,11 +142,139 @@ workflow.ListenTask("waitForApproval",
 
 ### 9. WAIT - Delay Execution
 
+Wait tasks pause workflow execution for a specified duration or until an absolute timestamp.
+
+#### Relative Duration (Wait for N days/hours/minutes)
+
 ```go
+// Wait 1 week
+workflow.WaitTask("waitForApproval",
+    workflow.WithDuration("7d"),
+)
+
+// Wait 2.5 hours (composite duration)
+workflow.WaitTask("cooldownPeriod",
+    workflow.WithDuration("2h30m"),
+)
+
+// Wait 5 seconds
 workflow.WaitTask("delay",
     workflow.WithDuration("5s"),
 )
 ```
+
+**Supported duration units:**
+- `d` - days
+- `h` - hours
+- `m` - minutes
+- `s` - seconds
+- `ms` - milliseconds
+
+**Examples:**
+- `"7d"` - 1 week
+- `"2h30m"` - 2 hours and 30 minutes
+- `"1d12h"` - 1 day and 12 hours
+- `"500ms"` - 500 milliseconds
+
+#### Absolute Timestamp (Wait until specific time)
+
+```go
+// Wait until market open (9:30 AM EST on March 2, 2026)
+workflow.WaitTask("waitUntilMarketOpen",
+    workflow.WithUntil("2026-03-02T09:30:00-05:00"),
+)
+
+// Wait until midnight UTC
+workflow.WaitTask("waitUntilMidnight",
+    workflow.WithUntil("2026-03-01T00:00:00Z"),
+)
+```
+
+**Timestamp format:** RFC3339 (ISO 8601)
+- `"2026-03-02T09:30:00Z"` - UTC time
+- `"2026-03-02T09:30:00-05:00"` - With timezone offset
+
+#### Proto Definition
+
+Under the hood, wait tasks use a structured `Duration` message or absolute `Timestamp`:
+
+```protobuf
+message Duration {
+  uint32 days = 1;
+  uint32 hours = 2;
+  uint32 minutes = 3;
+  uint32 seconds = 4;
+  uint32 milliseconds = 5;
+}
+
+message WaitTaskConfig {
+  oneof wait_type {
+    Duration duration = 1;                    // Relative: wait for duration
+    google.protobuf.Timestamp until = 2;     // Absolute: wait until timestamp
+  }
+}
+```
+
+#### YAML Representation
+
+```yaml
+# Relative: wait 1 week
+- waitForApproval:
+    wait:
+      duration:
+        days: 7
+
+# Composite: wait 2 hours 30 minutes
+- cooldownPeriod:
+    wait:
+      duration:
+        hours: 2
+        minutes: 30
+
+# Absolute: wait until specific time
+- waitUntilMarketOpen:
+    wait:
+      until: "2026-03-02T09:30:00Z"
+```
+
+#### Use Cases
+
+**Long-running approval flows:**
+```go
+workflow.WaitTask("waitForApproval",
+    workflow.WithDuration("7d"),  // Wait up to 1 week for approval
+)
+```
+
+**Rate limiting / cooldowns:**
+```go
+workflow.WaitTask("cooldown",
+    workflow.WithDuration("1h"),  // Wait 1 hour between API calls
+)
+```
+
+**Scheduled operations:**
+```go
+workflow.WaitTask("waitForSchedule",
+    workflow.WithUntil("2026-03-02T09:00:00Z"),  // Run at specific time
+)
+```
+
+**Multi-day workflows:**
+```go
+workflow.WaitTask("waitWeek",
+    workflow.WithDuration("7d"),  // Part of a 2-week workflow
+)
+```
+
+#### Notes
+
+- Wait tasks leverage Temporal's durable timers - workflow execution can pause for days/weeks
+- Use `duration` for relative waits (from now)
+- Use `until` for absolute waits (specific timestamp)
+- Cannot specify both - use `oneof` semantics
+- Workflows resume exactly where they left off after the wait completes
+- See [Durable Execution Guide](../../guides/durable-execution.md) for crash recovery details
 
 ### 10. CALL_ACTIVITY - Execute Activities
 

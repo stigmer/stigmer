@@ -249,6 +249,13 @@ func (s *Supervisor) startAgentRunner() error {
 		return errors.Wrap(err, "failed to create workspace directory")
 	}
 
+	// Prepare artifacts directory for attachment storage
+	// This is shared between stigmer-server (writes) and agent-runner (reads)
+	artifactsDir := filepath.Join(s.config.DataDir, "artifacts")
+	if err := os.MkdirAll(artifactsDir, 0755); err != nil {
+		return errors.Wrap(err, "failed to create artifacts directory")
+	}
+
 	// Resolve host addresses for Docker
 	hostAddr := s.resolveDockerHostAddress(s.config.TemporalAddr)
 	backendAddr := s.resolveDockerHostAddress(fmt.Sprintf("localhost:%d", s.config.StigmerServerPort))
@@ -282,6 +289,14 @@ func (s *Supervisor) startAgentRunner() error {
 		"-e", fmt.Sprintf("OLLAMA_BASE_URL=%s", llmBaseURL), // LangChain standard variable
 	)
 
+	// Artifact storage configuration
+	// Agent-runner reads attachments uploaded by stigmer-server
+	// Both must use the same directory (mounted into container as /artifacts)
+	args = append(args,
+		"-e", "LOCAL_ARTIFACT_PATH=/artifacts",
+		"-e", fmt.Sprintf("LOCAL_ARTIFACT_SERVE_URL=%s/api/v1/artifacts", backendAddr),
+	)
+
 	// Add LLM secrets
 	for key, value := range s.config.LLMSecrets {
 		args = append(args, "-e", fmt.Sprintf("%s=%s", key, value))
@@ -290,6 +305,7 @@ func (s *Supervisor) startAgentRunner() error {
 	// Add volumes
 	args = append(args,
 		"-v", fmt.Sprintf("%s:/workspace", workspaceDir),
+		"-v", fmt.Sprintf("%s:/artifacts", artifactsDir),
 		"-v", fmt.Sprintf("%s:/logs", s.config.LogDir),
 	)
 

@@ -54,6 +54,10 @@ func init() {
 	rootCmd.AddCommand(root.NewRunCommand())
 	rootCmd.AddCommand(root.NewSearchCommand())
 	rootCmd.AddCommand(root.NewPushCommand())
+	rootCmd.AddCommand(root.NewDownloadCommand())
+
+	// AI-assisted resource creation
+	rootCmd.AddCommand(root.NewDraftCommand())
 
 	// Discoverability command (T05)
 	rootCmd.AddCommand(root.NewResourcesCommand())

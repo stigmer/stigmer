@@ -88,4 +88,306 @@ service AgentExecutionCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "agent_execution_id";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to submit approval for agent execution";
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Lifecycle Control Operations
+  //
+  // These RPCs control the agent execution lifecycle, mapping to Temporal
+  // workflow operations. They enable users to gracefully stop, force-stop,
+  // pause, resume, or recover agent executions.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Cancel a running agent execution gracefully.
+  //
+  // Sends a cancellation signal to the agent execution via Temporal's CancelWorkflow API.
+  // The agent can handle the cancellation signal to save checkpoint and clean up
+  // before transitioning to the CANCELLED phase.
+  //
+  // Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
+  //
+  // ## Behavior
+  //
+  // 1. Validates execution exists and is in a cancellable phase
+  // 2. Sends cancellation signal to Temporal workflow
+  // 3. Python activity receives cancellation and saves LangGraph checkpoint
+  // 4. Execution transitions to EXECUTION_CANCELLED phase
+  // 5. Returns updated AgentExecution with new phase
+  //
+  // ## Preconditions
+  //
+  // - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+  // - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+  //
+  // ## State Transitions
+  //
+  // - status.phase: PENDING/IN_PROGRESS → CANCELLED
+  // - status.completed_at: Set to current timestamp
+  // - LangGraph checkpoint: Preserved for potential future reference
+  //
+  // ## Idempotency
+  //
+  // Cancelling an already-cancelled execution succeeds as a no-op.
+  // The call returns the current execution state without side effects.
+  //
+  // ## Error Cases
+  //
+  // - NOT_FOUND: Execution with given ID doesn't exist
+  // - PERMISSION_DENIED: User lacks can_edit permission on the execution
+  // - FAILED_PRECONDITION: Execution is in a terminal phase
+  // - INVALID_ARGUMENT: ID is empty or malformed
+  //
+  // @since Agent Execution Lifecycle
+  rpc cancel(CancelAgentExecutionInput) returns (AgentExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to cancel agent execution";
+  }
+
+  // Terminate an agent execution immediately.
+  //
+  // Force-stops the agent execution via Temporal's TerminateWorkflow API without
+  // allowing cleanup. Unlike cancel, the agent cannot respond to termination -
+  // it is stopped immediately. Use this for stuck or unresponsive agents.
+  //
+  // Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
+  //
+  // ## Behavior
+  //
+  // 1. Validates execution exists and is in a terminable phase
+  // 2. Force-kills workflow via Temporal (no signal sent to agent)
+  // 3. Execution transitions to EXECUTION_TERMINATED phase immediately
+  // 4. No cleanup callbacks or checkpoint saves occur
+  // 5. Returns updated AgentExecution with TERMINATED phase
+  //
+  // ## Preconditions
+  //
+  // - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+  // - Cannot terminate already-terminal executions
+  //
+  // ## State Transitions
+  //
+  // - status.phase: PENDING/IN_PROGRESS → TERMINATED
+  // - status.completed_at: Set to current timestamp
+  // - LangGraph checkpoint: May be incomplete (no graceful save)
+  //
+  // ## Terminated vs Cancelled
+  //
+  // | Aspect | cancel | terminate |
+  // |--------|--------|-----------|
+  // | Signal to agent | Yes (can handle) | No |
+  // | Checkpoint saved | Yes (graceful) | No |
+  // | Use case | Normal stop | Stuck agents |
+  // | Can recover? | No | No |
+  //
+  // ## Idempotency
+  //
+  // Terminating an already-terminated execution succeeds as a no-op.
+  //
+  // ## Error Cases
+  //
+  // - NOT_FOUND: Execution with given ID doesn't exist
+  // - PERMISSION_DENIED: User lacks can_edit permission on the execution
+  // - FAILED_PRECONDITION: Execution is in a terminal phase
+  // - INVALID_ARGUMENT: ID is empty or malformed
+  //
+  // @since Agent Execution Lifecycle
+  rpc terminate(TerminateAgentExecutionInput) returns (AgentExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to terminate agent execution";
+  }
+
+  // Recover a failed agent execution from the last checkpoint.
+  //
+  // Resumes execution from the last LangGraph checkpoint using Temporal's
+  // ResetWorkflow API. Completed work is preserved - successful tool calls
+  // are NOT re-executed.
+  //
+  // Temporal Equivalent: `temporal workflow reset --workflow-id <id> --type LastWorkflowTask`
+  //
+  // ## Behavior
+  //
+  // 1. Validates execution is in FAILED phase (recoverable)
+  // 2. Uses Temporal ResetWorkflow to resume from last checkpoint
+  // 3. Activity re-invoked with same thread_id
+  // 4. LangGraph loads from checkpoint automatically
+  // 5. Execution transitions from FAILED to IN_PROGRESS phase
+  // 6. Agent continues from where it failed
+  //
+  // ## Preconditions
+  //
+  // - Execution must be in EXECUTION_FAILED phase
+  // - TERMINATED executions cannot be recovered (incomplete checkpoint)
+  // - CANCELLED executions cannot be recovered (intentional user action)
+  //
+  // ## State Transitions
+  //
+  // - status.phase: FAILED → IN_PROGRESS
+  // - status.completed_at: Cleared
+  // - status.error: Cleared
+  // - Completed tool calls: Preserved (not re-executed)
+  //
+  // ## Idempotency
+  //
+  // If recovery already succeeded (execution is now IN_PROGRESS),
+  // the call succeeds as a no-op.
+  //
+  // ## Error Cases
+  //
+  // - NOT_FOUND: Execution with given ID doesn't exist
+  // - PERMISSION_DENIED: User lacks can_edit permission
+  // - FAILED_PRECONDITION: Execution is not in FAILED phase
+  // - INVALID_ARGUMENT: ID is empty or malformed
+  //
+  // @since Agent Execution Lifecycle
+  rpc recover(RecoverAgentExecutionInput) returns (AgentExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to recover agent execution";
+  }
+
+  // Pause a running agent execution.
+  //
+  // Temporarily stops the agent at its current checkpoint. Unlike cancel,
+  // the execution is NOT terminal and can be resumed later from where it left off.
+  //
+  // ## Behavior
+  //
+  // 1. Validates execution exists and is in a pausable phase
+  // 2. Sends "pause" signal to Temporal workflow
+  // 3. Workflow cancels running activity gracefully
+  // 4. Python activity saves LangGraph checkpoint on cancellation
+  // 5. Execution transitions to EXECUTION_PAUSED phase
+  // 6. Workflow waits for resume signal (no resources consumed)
+  //
+  // ## Preconditions
+  //
+  // - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+  // - Cannot pause already-terminal or already-paused executions
+  //
+  // ## State Transitions
+  //
+  // - status.phase: PENDING/IN_PROGRESS → PAUSED
+  // - status.completed_at: NOT set (execution is not finished)
+  // - LangGraph checkpoint: Saved via thread_id
+  //
+  // ## Paused vs Cancelled
+  //
+  // | Aspect | pause | cancel |
+  // |--------|-------|--------|
+  // | Terminal state? | No | Yes |
+  // | Can resume? | Yes (via resume RPC) | No |
+  // | Checkpoint saved? | Yes | Best-effort |
+  // | Use case | Temporary stop | Permanent stop |
+  //
+  // ## Idempotency
+  //
+  // Pausing an already-paused execution succeeds as a no-op.
+  //
+  // ## Error Cases
+  //
+  // - NOT_FOUND: Execution with given ID doesn't exist
+  // - PERMISSION_DENIED: User lacks can_edit permission
+  // - FAILED_PRECONDITION: Execution is in a terminal phase
+  // - INVALID_ARGUMENT: ID is empty or malformed
+  //
+  // @since Agent Execution Lifecycle
+  rpc pause(PauseAgentExecutionInput) returns (AgentExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to pause agent execution";
+  }
+
+  // Resume a paused agent execution.
+  //
+  // Continues execution from the checkpoint where it was paused. The agent
+  // re-invokes with the same thread_id, loading from LangGraph checkpoint
+  // and continuing from where it left off.
+  //
+  // ## Behavior
+  //
+  // 1. Validates execution is in EXECUTION_PAUSED phase
+  // 2. Sends "resume" signal to Temporal workflow
+  // 3. Workflow unblocks and re-invokes activity
+  // 4. Activity loads from LangGraph checkpoint using thread_id
+  // 5. Execution transitions back to EXECUTION_IN_PROGRESS phase
+  // 6. Agent continues from exact pause point
+  //
+  // ## Preconditions
+  //
+  // - Execution must be in EXECUTION_PAUSED phase
+  // - Cannot resume non-paused executions
+  //
+  // ## State Transitions
+  //
+  // - status.phase: PAUSED → IN_PROGRESS
+  // - Activities: Re-invoked, load from checkpoint
+  // - LangGraph state: Loaded from checkpoint via thread_id
+  //
+  // ## Idempotency
+  //
+  // Resuming an already-running execution succeeds as a no-op.
+  //
+  // ## Error Cases
+  //
+  // - NOT_FOUND: Execution with given ID doesn't exist
+  // - PERMISSION_DENIED: User lacks can_edit permission
+  // - FAILED_PRECONDITION: Execution is not in PAUSED phase
+  // - INVALID_ARGUMENT: ID is empty or malformed
+  //
+  // @since Agent Execution Lifecycle
+  rpc resume(ResumeAgentExecutionInput) returns (AgentExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to resume agent execution";
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Artifact Lifecycle Operations
+  //
+  // These RPCs support file attachments and artifacts for agent executions.
+  // Attachments are input files provided before execution; artifacts are
+  // output files created during execution.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Upload a file attachment for use in an agent execution.
+  //
+  // Pre-uploads files to artifact storage before creating an execution.
+  // The returned storage_key can be used in Attachment.storage_key when
+  // creating the execution.
+  //
+  // ## Authorization
+  //
+  // This endpoint does not require authorization. The storage_key returned
+  // acts as a capability token - knowing the key grants access to the content.
+  // This simplifies the upload flow for CLI and other clients.
+  //
+  // ## Storage Path
+  //
+  // Files are stored at: attachments/{ulid}/{filename}
+  // The ULID ensures unique paths and enables future cleanup policies.
+  //
+  // ## Use Cases
+  //
+  // - CLI uploading files (>4MB) before agent execution
+  // - Pre-uploading datasets for agent processing
+  // - Uploading binary files that cannot be embedded inline in Attachment
+  //
+  // ## Example Flow
+  //
+  // 1. Client calls uploadAttachment with file content
+  // 2. Server uploads to storage, returns storage_key
+  // 3. Client creates AgentExecution with Attachment using storage_key
+  // 4. Agent-runner downloads attachment content when execution starts
+  //
+  // @since Artifact Lifecycle (Attachments & Artifacts)
+  rpc uploadAttachment(UploadAttachmentRequest) returns (UploadAttachmentResponse) {
+    // No authorization - storage_key acts as capability token
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }

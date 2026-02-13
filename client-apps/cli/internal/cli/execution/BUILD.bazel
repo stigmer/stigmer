@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "execution",
+    srcs = [
+        "cancel.go",
+        "display.go",
+        "get.go",
+        "list.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
+        "//client-apps/cli/internal/cli/clierr",
+        "//client-apps/cli/internal/cli/cliprint",
+        "//client-apps/cli/pkg/reference",
+        "@com_github_pkg_errors//:errors",
+        "@in_gopkg_yaml_v3//:yaml_v3",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)

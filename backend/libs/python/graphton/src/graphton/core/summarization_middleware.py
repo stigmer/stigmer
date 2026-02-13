@@ -19,11 +19,11 @@ Design Principles:
     4. Observable - Comprehensive logging and callback support
 
 Example:
-    >>> from graphton.core.summarization_middleware import SummarizationMiddleware
+    >>> from graphton.core.summarization_middleware import ContextSummarizationMiddleware
     >>> from graphton.core.summarization_config import SummarizationConfig
     >>> 
     >>> config = SummarizationConfig.for_model("claude-sonnet-4.5")
-    >>> middleware = SummarizationMiddleware(config=config)
+    >>> middleware = ContextSummarizationMiddleware(config=config)
     >>> # Middleware is typically injected by create_deep_agent()
 
 Example with callback:
@@ -35,7 +35,7 @@ Example with callback:
     ...     def on_token_count_updated(self, token_count):
     ...         print(f"Token count: {token_count}")
     >>>
-    >>> middleware = SummarizationMiddleware(config=config, callback=MyCallback())
+    >>> middleware = ContextSummarizationMiddleware(config=config, callback=MyCallback())
 
 """
 
@@ -74,7 +74,7 @@ logger = logging.getLogger(__name__)
 RUNNING_SUMMARY_STATE_KEY = "_context_running_summary"
 
 
-class SummarizationMiddleware(AgentMiddleware):
+class ContextSummarizationMiddleware(AgentMiddleware):
     """Middleware for automatic context summarization.
     
     This middleware monitors the token count of the conversation and triggers
@@ -88,6 +88,11 @@ class SummarizationMiddleware(AgentMiddleware):
     The middleware uses LangMem's summarize_messages() function with a
     running summary to avoid re-summarizing already summarized content.
     
+    Note:
+        This class is named ContextSummarizationMiddleware (not SummarizationMiddleware)
+        to avoid name collision with DeepAgents' auto-injected SummarizationMiddleware.
+        Both can coexist in the middleware stack without conflict.
+    
     Attributes:
         config: SummarizationConfig with thresholds and model settings
         callback: Optional callback for reporting summarization events
@@ -99,7 +104,7 @@ class SummarizationMiddleware(AgentMiddleware):
         >>> from graphton.core.summarization_config import SummarizationConfig
         >>> 
         >>> config = SummarizationConfig.for_model("claude-opus-4")
-        >>> middleware = SummarizationMiddleware(config=config)
+        >>> middleware = ContextSummarizationMiddleware(config=config)
         >>> 
         >>> # Middleware is added to middleware_list in create_deep_agent()
     
@@ -110,7 +115,7 @@ class SummarizationMiddleware(AgentMiddleware):
         ...     def on_token_count_updated(self, count):
         ...         self._token_count = count
         >>>
-        >>> middleware = SummarizationMiddleware(
+        >>> middleware = ContextSummarizationMiddleware(
         ...     config=config,
         ...     callback=StatusBuilder(),
         ... )
@@ -142,7 +147,7 @@ class SummarizationMiddleware(AgentMiddleware):
         self._current_token_count: int = 0
         
         logger.info(
-            "SummarizationMiddleware initialized: enabled=%s, trigger=%d, "
+            "ContextSummarizationMiddleware initialized: enabled=%s, trigger=%d, "
             "target=%d, model='%s', callback=%s",
             config.enabled,
             config.trigger_threshold,
@@ -665,6 +670,6 @@ class SummarizationMiddleware(AgentMiddleware):
 
 # Module-level exports
 __all__ = [
-    "SummarizationMiddleware",
+    "ContextSummarizationMiddleware",
     "RUNNING_SUMMARY_STATE_KEY",
 ]

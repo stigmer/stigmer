@@ -18,6 +18,7 @@ package validation
 
 import (
 	"testing"
+	"time"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
@@ -156,9 +157,13 @@ func TestUnmarshalSwitchTaskConfig(t *testing.T) {
 }
 
 func TestUnmarshalWaitTaskConfig(t *testing.T) {
-	t.Run("valid config", func(t *testing.T) {
+	t.Run("valid duration config", func(t *testing.T) {
 		config, err := structpb.NewStruct(map[string]interface{}{
-			"seconds": 5,
+			"duration": map[string]interface{}{
+				"days":    7,
+				"hours":   12,
+				"seconds": 30,
+			},
 		})
 		require.NoError(t, err)
 
@@ -172,7 +177,39 @@ func TestUnmarshalWaitTaskConfig(t *testing.T) {
 
 		waitConfig, ok := msg.(*tasksv1.WaitTaskConfig)
 		require.True(t, ok, "expected WaitTaskConfig type")
-		assert.Equal(t, int32(5), waitConfig.Seconds)
+
+		duration := waitConfig.GetDuration()
+		require.NotNil(t, duration, "expected duration to be set")
+		assert.Equal(t, uint32(7), duration.GetDays())
+		assert.Equal(t, uint32(12), duration.GetHours())
+		assert.Equal(t, uint32(30), duration.GetSeconds())
+	})
+
+	t.Run("valid until config", func(t *testing.T) {
+		config, err := structpb.NewStruct(map[string]interface{}{
+			"until": "2026-03-01T09:00:00Z",
+		})
+		require.NoError(t, err)
+
+		msg, err := UnmarshalTaskConfig(
+			workflowv1.WorkflowTaskKind_wait,
+			config,
+		)
+
+		require.NoError(t, err)
+		require.NotNil(t, msg)
+
+		waitConfig, ok := msg.(*tasksv1.WaitTaskConfig)
+		require.True(t, ok, "expected WaitTaskConfig type")
+
+		until := waitConfig.GetUntil()
+		require.NotNil(t, until, "expected until to be set")
+		// Verify the timestamp was parsed - check year and month
+		parsedTime := until.AsTime()
+		assert.Equal(t, 2026, parsedTime.Year())
+		assert.Equal(t, time.March, parsedTime.Month())
+		assert.Equal(t, 1, parsedTime.Day())
+		assert.Equal(t, 9, parsedTime.Hour())
 	})
 }
 

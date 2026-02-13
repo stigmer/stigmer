@@ -9,15 +9,21 @@ import (
 //
 // Verb support matrix:
 //
-//	| Kind      | apply | validate | get | list | delete | run | push | search |
-//	|-----------|-------|----------|-----|------|--------|-----|------|--------|
-//	| Agent     | Y     | Y        | Y   | Y    | Y      | Y   | -    | Y      |
-//	| Workflow  | Y     | Y        | Y   | Y    | Y      | Y   | -    | Y      |
-//	| Skill     | -     | -        | Y   | Y    | Y      | -   | Y    | -      |
-//	| McpServer | Y     | Y        | Y   | Y    | Y      | -   | -    | -      |
-//	| Project   | Y*    | Y        | Y   | Y    | Y      | -   | -    | -      |
+//	| Kind      | apply | validate | get | list | delete | run | push | search | download |
+//	|-----------|-------|----------|-----|------|--------|-----|------|--------|----------|
+//	| Agent     | Y     | Y        | Y   | Y    | Y      | Y   | -    | Y      | -        |
+//	| Workflow  | Y     | Y        | Y   | Y    | Y      | Y   | -    | Y      | -        |
+//	| Skill     | -     | -        | Y   | Y    | Y      | -   | Y    | -      | -        |
+//	| McpServer | Y     | Y        | Y   | Y    | Y      | -   | -    | -      | -        |
+//	| Project   | Y*    | Y        | Y   | Y    | Y      | -   | -    | -      | -        |
+//	| Execution | -     | -        | Y   | Y    | Y**    | -   | -    | -      | Y        |
 //
 // *Project "apply" triggers SDK synthesis mode
+// **Execution "delete" maps to cancel operation
+//
+// Note: agent_execution is special - it uses its own AgentExecutionQueryController RPCs,
+// not the unified SearchService. It is included here for documentation and validation
+// but is NOT added to cliRelevantKinds in registry.go.
 var verbSupport = map[apiresourcekind.ApiResourceKind]map[Verb]bool{
 	apiresourcekind.ApiResourceKind_agent: {
 		VerbApply:    true,
@@ -56,6 +62,14 @@ var verbSupport = map[apiresourcekind.ApiResourceKind]map[Verb]bool{
 		VerbGet:      true,
 		VerbList:     true,
 		VerbDelete:   true,
+	},
+	// agent_execution is special - uses dedicated AgentExecutionQueryController RPCs
+	// not the unified SearchService. Handled as special case in commands.
+	apiresourcekind.ApiResourceKind_agent_execution: {
+		VerbGet:      true,
+		VerbList:     true,
+		VerbDelete:   true, // Maps to cancel operation
+		VerbDownload: true,
 	},
 }
 

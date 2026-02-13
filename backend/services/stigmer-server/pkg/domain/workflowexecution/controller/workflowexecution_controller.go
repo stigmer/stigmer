@@ -3,8 +3,10 @@ package workflowexecution
 import (
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/dedupe"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
+	"go.temporal.io/sdk/client"
 )
 
 // WorkflowExecutionController implements WorkflowExecutionCommandController and WorkflowExecutionQueryController
@@ -39,6 +41,8 @@ type WorkflowExecutionController struct {
 	workflowCreator        *workflows.InvokeWorkflowExecutionWorkflowCreator
 	streamBroker           *StreamBroker
 	agentExecutionClient   AgentExecutionApprovalClient // For forwarding approvals to child agents
+	temporalClient         client.Client                // For lifecycle operations (cancel, terminate, recover)
+	signalDedupeStore      dedupe.SignalDedupeStore     // For signal deduplication (Gap B2)
 }
 
 // NewWorkflowExecutionController creates a new WorkflowExecutionController
@@ -81,4 +85,32 @@ func (c *WorkflowExecutionController) GetStreamBroker() *StreamBroker {
 // If nil, approval forwarding will be skipped (graceful degradation)
 func (c *WorkflowExecutionController) SetAgentExecutionClient(client AgentExecutionApprovalClient) {
 	c.agentExecutionClient = client
+}
+
+// SetTemporalClient sets the Temporal client for lifecycle operations (cancel, terminate, recover)
+// This is used when the controller is created before the Temporal client is initialized
+// If nil, lifecycle operations will return an error indicating Temporal is unavailable
+func (c *WorkflowExecutionController) SetTemporalClient(tc client.Client) {
+	c.temporalClient = tc
+}
+
+// GetTemporalClient returns the Temporal client for lifecycle operations
+// Used by pipeline steps that need to interact with Temporal
+func (c *WorkflowExecutionController) GetTemporalClient() client.Client {
+	return c.temporalClient
+}
+
+// SetSignalDedupeStore sets the signal dedupe store for idempotent signal delivery
+// This is used when the controller is created before the database is initialized
+// If nil, signal deduplication will be skipped (graceful degradation)
+//
+// @since Gap B2 (Event Dedupe)
+func (c *WorkflowExecutionController) SetSignalDedupeStore(dedupeStore dedupe.SignalDedupeStore) {
+	c.signalDedupeStore = dedupeStore
+}
+
+// GetSignalDedupeStore returns the signal dedupe store
+// Used by pipeline steps that need to check/update dedupe records
+func (c *WorkflowExecutionController) GetSignalDedupeStore() dedupe.SignalDedupeStore {
+	return c.signalDedupeStore
 }

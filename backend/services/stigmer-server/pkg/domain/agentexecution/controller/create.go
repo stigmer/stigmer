@@ -64,6 +64,8 @@ func (c *AgentExecutionController) Create(ctx context.Context, execution *agente
 }
 
 // buildCreatePipeline constructs the pipeline for agent execution creation
+
+// buildCreatePipeline constructs the pipeline for agent execution creation
 func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*agentexecutionv1.AgentExecution] {
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecution]("agent-execution-create").
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).                      // 1. Validate field constraints
@@ -73,8 +75,9 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)). // 5. Create default instance if needed
 		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).                        // 6. Create session if needed
 		AddStep(newSetInitialPhaseStep()).                                                            // 7. Set phase to PENDING
-		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                     // 8. Persist execution
-		AddStep(c.newStartWorkflowStep()).                                                            // 9. Start Temporal workflow
+		AddStep(c.newProcessAttachmentsStep()).                                                       // 8. Process attachments (upload large files to storage)
+		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                     // 9. Persist execution
+		AddStep(c.newStartWorkflowStep()).                                                            // 10. Start Temporal workflow
 		Build()
 }
 
@@ -520,6 +523,53 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 	log.Info().
 		Str("execution_id", executionID).
 		Msg("Temporal workflow started successfully")
+
+	return nil
+}
+
+// processAttachmentsStep validates attachments have required storage_key.
+//
+// All attachments must be pre-uploaded via the uploadAttachment RPC.
+// This step validates that each attachment has a storage_key reference.
+type processAttachmentsStep struct{}
+
+func (c *AgentExecutionController) newProcessAttachmentsStep() *processAttachmentsStep {
+	return &processAttachmentsStep{}
+}
+
+func (s *processAttachmentsStep) Name() string {
+	return "ProcessAttachments"
+}
+
+func (s *processAttachmentsStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution]) error {
+	execution := ctx.NewState()
+	attachments := execution.GetSpec().GetAttachments()
+
+	if len(attachments) == 0 {
+		log.Debug().Msg("No attachments to process")
+		return nil
+	}
+
+	for _, attachment := range attachments {
+		if attachment.GetStorageKey() == "" {
+			log.Error().
+				Str("filename", attachment.GetFilename()).
+				Msg("Attachment missing storage_key - all attachments must be pre-uploaded via uploadAttachment RPC")
+			return grpclib.InvalidArgumentError(
+				"attachment '%s' missing storage_key: all attachments must be pre-uploaded via uploadAttachment RPC",
+				attachment.GetFilename(),
+			)
+		}
+
+		log.Debug().
+			Str("filename", attachment.GetFilename()).
+			Str("storage_key", attachment.GetStorageKey()).
+			Msg("Attachment validated")
+	}
+
+	log.Info().
+		Int("attachment_count", len(attachments)).
+		Msg("All attachments validated successfully")
 
 	return nil
 }

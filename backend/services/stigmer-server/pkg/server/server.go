@@ -24,6 +24,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/bootstrap"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
 	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller"
@@ -37,6 +38,7 @@ import (
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
 	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
+	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
 	workflowtemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
 	workflowexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/controller"
@@ -225,9 +227,29 @@ func Run() error {
 	skillv1.RegisterSkillCommandControllerServer(grpcServer, skillController)
 	skillv1.RegisterSkillQueryControllerServer(grpcServer, skillController)
 
+
 	log.Info().
 		Str("storage_path", cfg.StoragePath).
 		Msg("Registered Skill controllers with artifact storage")
+
+	// Create artifact storage for agent execution attachments and outputs
+	ctx := context.Background()
+	agentExecutionArtifactStorage, err := artifactstorage.NewArtifactStorage(ctx, cfg.ArtifactStorage)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize agent execution artifact storage")
+	}
+
+	// Health check the artifact storage
+	if err := agentExecutionArtifactStorage.Health(ctx); err != nil {
+		log.Warn().Err(err).Msg("Artifact storage health check failed - continuing with degraded functionality")
+	}
+
+	// Inject artifact storage into AgentExecutionController
+	agentExecutionController.SetArtifactStorage(agentExecutionArtifactStorage)
+
+	log.Info().
+		Str("storage_type", cfg.ArtifactStorage.Type).
+		Msg("Initialized artifact storage for agent execution attachments and outputs")
 
 	// Create and register Agent controller (without dependencies initially)
 	agentController := agentcontroller.NewAgentController(store, nil)
@@ -339,6 +361,22 @@ func Run() error {
 
 	log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, WorkflowInstance, McpServer, and Skill")
 
+	// ============================================================================
+	// Run seedpack bootstrap (before network server starts)
+	// ============================================================================
+	// Bootstrap runs after in-process clients are ready but before accepting
+	// external connections. This ensures system skills and agents are available
+	// when the server is ready to serve requests.
+	//
+	// Bootstrap is idempotent and graceful:
+	// - Skips if already completed with same seedpack version
+	// - Continues in degraded mode if bootstrap fails (logs warnings)
+	bootstrapper := bootstrap.NewBootstrapper(store, skillClient, agentClient)
+	if err := bootstrapper.Run(context.Background()); err != nil {
+		// Bootstrap returns nil on degraded mode - only fails on critical errors
+		log.Fatal().Err(err).Msg("Critical bootstrap failure")
+	}
+
 	// Create the reconciliation execution engine
 	downstreamClients := &reconcile.DownstreamClients{
 		AgentClient:     agentClient,
@@ -366,6 +404,11 @@ func Run() error {
 	// Inject workflow creators (nil-safe, controllers handle gracefully)
 	workflowExecutionController.SetWorkflowCreator(workflowExecutionWorkflowCreator)
 	agentExecutionController.SetWorkflowCreator(agentExecutionWorkflowCreator)
+
+	// Inject Temporal client for lifecycle operations (cancel, terminate, recover, pause, resume)
+	// This enables direct Temporal API calls for workflow lifecycle management
+	workflowExecutionController.SetTemporalClient(temporalClient)
+	agentExecutionController.SetTemporalClient(temporalClient)
 
 	// Inject AgentExecution client for HITL approval forwarding
 	// This enables WorkflowExecution.SubmitApproval to forward decisions to child agent executions

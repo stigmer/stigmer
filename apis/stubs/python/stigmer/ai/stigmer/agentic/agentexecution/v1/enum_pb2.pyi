@@ -12,7 +12,9 @@ class ExecutionPhase(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     EXECUTION_COMPLETED: _ClassVar[ExecutionPhase]
     EXECUTION_FAILED: _ClassVar[ExecutionPhase]
     EXECUTION_CANCELLED: _ClassVar[ExecutionPhase]
+    EXECUTION_TERMINATED: _ClassVar[ExecutionPhase]
     EXECUTION_WAITING_FOR_APPROVAL: _ClassVar[ExecutionPhase]
+    EXECUTION_PAUSED: _ClassVar[ExecutionPhase]
 
 class MessageType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -47,13 +49,21 @@ class SubAgentStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SUB_AGENT_IN_PROGRESS: _ClassVar[SubAgentStatus]
     SUB_AGENT_COMPLETED: _ClassVar[SubAgentStatus]
     SUB_AGENT_FAILED: _ClassVar[SubAgentStatus]
+
+class ExecutionArtifactKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EXECUTION_ARTIFACT_KIND_UNSPECIFIED: _ClassVar[ExecutionArtifactKind]
+    EXECUTION_ARTIFACT_KIND_FILE: _ClassVar[ExecutionArtifactKind]
+    EXECUTION_ARTIFACT_KIND_DIRECTORY: _ClassVar[ExecutionArtifactKind]
 EXECUTION_PHASE_UNSPECIFIED: ExecutionPhase
 EXECUTION_PENDING: ExecutionPhase
 EXECUTION_IN_PROGRESS: ExecutionPhase
 EXECUTION_COMPLETED: ExecutionPhase
 EXECUTION_FAILED: ExecutionPhase
 EXECUTION_CANCELLED: ExecutionPhase
+EXECUTION_TERMINATED: ExecutionPhase
 EXECUTION_WAITING_FOR_APPROVAL: ExecutionPhase
+EXECUTION_PAUSED: ExecutionPhase
 MESSAGE_TYPE_UNSPECIFIED: MessageType
 MESSAGE_HUMAN: MessageType
 MESSAGE_AI: MessageType
@@ -76,3 +86,6 @@ SUB_AGENT_PENDING: SubAgentStatus
 SUB_AGENT_IN_PROGRESS: SubAgentStatus
 SUB_AGENT_COMPLETED: SubAgentStatus
 SUB_AGENT_FAILED: SubAgentStatus
+EXECUTION_ARTIFACT_KIND_UNSPECIFIED: ExecutionArtifactKind
+EXECUTION_ARTIFACT_KIND_FILE: ExecutionArtifactKind
+EXECUTION_ARTIFACT_KIND_DIRECTORY: ExecutionArtifactKind

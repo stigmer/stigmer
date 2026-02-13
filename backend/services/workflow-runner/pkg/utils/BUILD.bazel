@@ -18,6 +18,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils",
     visibility = ["//visibility:public"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks",
         "@com_github_go_playground_locales//en",
         "@com_github_go_playground_universal_translator//:universal-translator",
         "@com_github_go_playground_validator_v10//:validator",
@@ -38,7 +39,9 @@ go_test(
     srcs = ["duration_test.go"],
     deps = [
         ":utils",
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks",
         "@com_github_serverlessworkflow_sdk_go_v3//model",
         "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
     ],
 )

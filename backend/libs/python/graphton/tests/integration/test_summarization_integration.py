@@ -24,7 +24,7 @@ from graphton.core.model_registry import TokenCounterMethod
 from graphton.core.summarization_config import SummarizationConfig
 from graphton.core.summarization_middleware import (
     RUNNING_SUMMARY_STATE_KEY,
-    SummarizationMiddleware,
+    ContextSummarizationMiddleware,
 )
 from graphton.core.token_counter import TokenCounter
 
@@ -42,7 +42,7 @@ requires_llm = pytest.mark.skipif(
 
 
 class TestSummarizationMiddlewareLifecycle:
-    """Test SummarizationMiddleware lifecycle methods."""
+    """Test ContextSummarizationMiddleware lifecycle methods."""
     
     @pytest.fixture
     def config(self):
@@ -59,7 +59,7 @@ class TestSummarizationMiddlewareLifecycle:
     @pytest.fixture
     def middleware(self, config):
         """Create middleware instance."""
-        return SummarizationMiddleware(config=config)
+        return ContextSummarizationMiddleware(config=config)
     
     @pytest.fixture
     def mock_runtime(self):
@@ -70,7 +70,7 @@ class TestSummarizationMiddlewareLifecycle:
     async def test_abefore_agent_disabled(self, mock_runtime):
         """abefore_agent returns None when disabled."""
         config = SummarizationConfig.disabled()
-        middleware = SummarizationMiddleware(config=config)
+        middleware = ContextSummarizationMiddleware(config=config)
         
         state = {"messages": [HumanMessage(content="Hello")]}
         result = await middleware.abefore_agent(state, mock_runtime)
@@ -127,7 +127,7 @@ class TestSummarizationMiddlewareLifecycle:
     async def test_aafter_agent_disabled(self, mock_runtime):
         """aafter_agent returns None when disabled."""
         config = SummarizationConfig.disabled()
-        middleware = SummarizationMiddleware(config=config)
+        middleware = ContextSummarizationMiddleware(config=config)
         
         state = {"messages": []}
         result = await middleware.aafter_agent(state, mock_runtime)
@@ -328,7 +328,7 @@ class TestErrorHandling:
             summarization_model="gpt-4o-mini",
             token_counter_method=TokenCounterMethod.APPROXIMATE,
         )
-        middleware = SummarizationMiddleware(config=config)
+        middleware = ContextSummarizationMiddleware(config=config)
         
         # Create state that should trigger summarization
         state = {"messages": [HumanMessage(content="x" * 100)]}
@@ -379,7 +379,7 @@ class TestFullPipelineMocked:
             summarization_model="gpt-4o-mini",
             token_counter_method=TokenCounterMethod.APPROXIMATE,
         )
-        middleware = SummarizationMiddleware(config=config)
+        middleware = ContextSummarizationMiddleware(config=config)
         
         # Create messages that exceed threshold
         messages = [
@@ -421,7 +421,7 @@ class TestFullPipelineMocked:
         )
         
         # First cycle
-        middleware1 = SummarizationMiddleware(config=config)
+        middleware1 = ContextSummarizationMiddleware(config=config)
         state1: dict[str, Any] = {
             "messages": [HumanMessage(content="x" * 100, id="msg_1")],
         }
@@ -447,7 +447,7 @@ class TestFullPipelineMocked:
         assert RUNNING_SUMMARY_STATE_KEY in state1
         
         # Second cycle - should load previous summary
-        middleware2 = SummarizationMiddleware(config=config)
+        middleware2 = ContextSummarizationMiddleware(config=config)
         state2: dict[str, Any] = {
             "messages": [HumanMessage(content="y" * 100, id="msg_2")],
             RUNNING_SUMMARY_STATE_KEY: state1[RUNNING_SUMMARY_STATE_KEY],
@@ -500,7 +500,7 @@ class TestCallbackIntegration:
             summarization_model="gpt-4o-mini",
             token_counter_method=TokenCounterMethod.APPROXIMATE,
         )
-        middleware = SummarizationMiddleware(config=config, callback=TestCallback())
+        middleware = ContextSummarizationMiddleware(config=config, callback=TestCallback())
         
         state = {"messages": [HumanMessage(content="Hello world")]}
         await middleware.abefore_agent(state, {})
@@ -531,7 +531,7 @@ class TestCallbackIntegration:
             summarization_model="gpt-4o-mini",
             token_counter_method=TokenCounterMethod.APPROXIMATE,
         )
-        middleware = SummarizationMiddleware(config=config, callback=TestCallback())
+        middleware = ContextSummarizationMiddleware(config=config, callback=TestCallback())
         
         # Create messages that exceed threshold
         messages = [
@@ -582,7 +582,7 @@ class TestCallbackIntegration:
             summarization_model="gpt-4o-mini",
             token_counter_method=TokenCounterMethod.APPROXIMATE,
         )
-        middleware = SummarizationMiddleware(config=config, callback=BrokenCallback())
+        middleware = ContextSummarizationMiddleware(config=config, callback=BrokenCallback())
         
         messages = [
             SystemMessage(content="You are helpful.", id="sys_1"),
@@ -617,7 +617,7 @@ class TestCallbackIntegration:
             summarization_model="gpt-4o-mini",
             token_counter_method=TokenCounterMethod.APPROXIMATE,
         )
-        middleware = SummarizationMiddleware(config=config, callback=None)
+        middleware = ContextSummarizationMiddleware(config=config, callback=None)
         
         state = {"messages": [HumanMessage(content="Hello world")]}
         

@@ -2,6 +2,7 @@ package root
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -11,11 +12,13 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/skill"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	"google.golang.org/grpc"
 )
 
@@ -35,16 +38,20 @@ The type can be specified using any alias:
   - mcpserver, mcp, mcp-server
   - project, proj, projects
   - skill, skills
+  - execution, exec (by execution ID only)
 
 The reference can be:
-  - Resource ID (e.g., agt_abc123)
-  - Slug (e.g., my-agent)
-  - Org/slug (e.g., stigmer/my-agent)`,
+  - Resource ID (e.g., agt_abc123, aex_xyz789)
+  - Slug (e.g., my-agent) - not for executions
+  - Org/slug (e.g., stigmer/my-agent) - not for executions`,
 		Example: `  # Get agent by slug
   stigmer get agent my-agent
 
   # Get workflow by ID
   stigmer get workflow wfl_abc123
+
+  # Get execution by ID (shows artifacts)
+  stigmer get execution aex_01abc123
 
   # Get with org/slug reference
   stigmer get agent stigmer/my-agent
@@ -78,13 +85,25 @@ type getOptions struct {
 	OutputFormat string
 }
 
+// isGetExecutionType checks if the type arg refers to executions.
+func isGetExecutionType(typeArg string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(typeArg))
+	return normalized == "execution" || normalized == "executions" || normalized == "exec"
+}
+
 // executeGet retrieves a resource by type and reference.
 func executeGet(opts getOptions) error {
+	// Special case: Executions don't go through the registry
+	// They use their own AgentExecutionQueryController.get() RPC
+	if isGetExecutionType(opts.TypeArg) {
+		return executeGetExecution(opts)
+	}
+
 	// Step 1: Resolve type from alias
 	reg := types.DefaultRegistry()
 	info, ok := reg.GetByAlias(opts.TypeArg)
 	if !ok {
-		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: agent, workflow, mcpserver, project, skill", opts.TypeArg)
+		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: agent, workflow, mcpserver, project, skill, execution", opts.TypeArg)
 	}
 
 	// Step 2: Check verb support
@@ -193,5 +212,46 @@ func getSkill(ref, orgID, format string, conn *grpc.ClientConn) error {
 		return err
 	}
 	skill.DisplayGetResult(result, format)
+	return nil
+}
+
+// executeGetExecution handles the special case of getting an execution.
+// Executions use their own dedicated RPC and are always referenced by ID.
+func executeGetExecution(opts getOptions) error {
+	// Validate reference is an execution ID
+	if !reference.IsAgentExecutionID(opts.Reference) {
+		return fmt.Errorf("invalid execution ID: %s\n\nExecutions must be referenced by ID (e.g., aex_01abc123)", opts.Reference)
+	}
+
+	// Setup backend connection
+	cfg, err := config.Load()
+	if err != nil {
+		return errors.Wrap(err, "failed to load configuration")
+	}
+
+	if cfg.Backend.Type == config.BackendTypeLocal {
+		dataDir, err := config.GetDataDir()
+		if err != nil {
+			return errors.Wrap(err, "failed to get data directory")
+		}
+		if err := daemon.EnsureRunning(dataDir); err != nil {
+			return errors.Wrap(err, "failed to start daemon")
+		}
+	}
+
+	conn, err := backend.NewConnection()
+	if err != nil {
+		return errors.Wrap(err, "failed to connect to backend")
+	}
+	defer conn.Close()
+
+	// Get execution using dedicated package
+	result, err := execution.GetFromBackend(conn, opts.Reference)
+	if err != nil {
+		return errors.Wrap(err, "failed to get execution")
+	}
+
+	// Display result
+	execution.DisplayGetResult(result, opts.OutputFormat)
 	return nil
 }
