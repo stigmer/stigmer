@@ -27,6 +27,8 @@ from worker.activities.graphton.approval_policy import (
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
 from worker.checkpointer import create_checkpointer
 from worker.mcp import transform_all_mcp_configs
+from worker.storage import ArtifactStorageConfig, create_artifact_storage, ArtifactStorage
+from worker.tools import create_publish_output_tool
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.resilience import (
     GrpcRetryExecutor,
@@ -37,6 +39,86 @@ from worker.resilience import (
 import asyncio
 import os
 import time
+
+
+async def inject_attachments(
+    sandbox,
+    attachments: list,
+    storage: ArtifactStorage | None,
+    logger,
+    local_root: str | None = None,
+) -> None:
+    """Inject attachments into sandbox at their mount_path.
+    
+    Handles both inline content (< 4MB) and storage_key references
+    for larger files. Supports both local filesystem and Daytona sandbox modes.
+    
+    Args:
+        sandbox: Daytona sandbox instance (None for local mode)
+        attachments: List of Attachment proto messages
+        storage: ArtifactStorage for downloading storage_key references
+        logger: Activity logger for debugging
+        local_root: Root path for local filesystem mode (when sandbox is None)
+        
+    Raises:
+        ValueError: If storage_key attachment provided without storage client
+    """
+    if not attachments:
+        return
+    
+    logger.info(f"Injecting {len(attachments)} attachments into sandbox")
+    
+    # Import FileUpload for Daytona sandbox uploads
+    try:
+        from daytona import FileUpload
+    except ImportError:
+        FileUpload = None  # Local mode doesn't need this
+    
+    file_uploads = []  # For Daytona batch upload
+    
+    for attachment in attachments:
+        # Determine content source
+        if attachment.content:
+            # Inline content (< 4MB)
+            content = attachment.content
+            logger.debug(f"Using inline content for {attachment.filename} ({len(content)} bytes)")
+        elif attachment.storage_key:
+            # Pre-uploaded to storage, download first
+            if not storage:
+                raise ValueError(
+                    f"Storage client required for storage_key attachment: {attachment.filename}"
+                )
+            logger.debug(f"Downloading {attachment.filename} from storage key: {attachment.storage_key}")
+            content = storage.download(attachment.storage_key)
+            logger.debug(f"Downloaded {len(content)} bytes for {attachment.filename}")
+        else:
+            logger.warning(f"Skipping attachment {attachment.filename}: no content or storage_key")
+            continue
+        
+        # Determine mount path (default to /inputs/{filename})
+        mount_path = attachment.mount_path if attachment.mount_path else f"/inputs/{attachment.filename}"
+        
+        if sandbox is not None:
+            # Daytona sandbox mode - collect for batch upload
+            if FileUpload is None:
+                raise RuntimeError("Daytona FileUpload not available")
+            file_uploads.append(FileUpload(source=content, destination=mount_path))
+            logger.info(f"Prepared attachment: {attachment.filename} -> {mount_path}")
+        else:
+            # Local filesystem mode - write directly
+            if not local_root:
+                raise ValueError("local_root required for local filesystem mode")
+            
+            from pathlib import Path
+            file_path = Path(local_root) / mount_path.lstrip('/')
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path.write_bytes(content)
+            logger.info(f"Wrote attachment to local filesystem: {attachment.filename} -> {file_path}")
+    
+    # Batch upload to Daytona sandbox
+    if sandbox is not None and file_uploads:
+        sandbox.fs.upload_files(file_uploads)
+        logger.info(f"Uploaded {len(file_uploads)} attachments to sandbox")
 
 
 @activity.defn(name="ExecuteGraphton")
@@ -451,6 +533,47 @@ async def _execute_graphton_impl(
                 activity_logger.error(f"Unexpected error preparing skills: {e}")
                 raise
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 3.5: Inject Attachments into Sandbox
+        #
+        # Attachments are files provided by the user with the execution request.
+        # They are injected into the sandbox at their specified mount_path
+        # (default: /inputs/{filename}), making them available to the agent.
+        #
+        # Supports two content modes:
+        # - Inline content: Small files (< 4MB) embedded in the proto
+        # - Storage key: Large files pre-uploaded to artifact storage
+        # ─────────────────────────────────────────────────────────────────────────────
+        attachments = list(execution.spec.attachments) if execution.spec.attachments else []
+        
+        if attachments:
+            activity_logger.info(
+                f"Processing {len(attachments)} attachments: "
+                f"{[a.filename for a in attachments]}"
+            )
+            
+            # Create artifact storage for downloading storage_key references
+            artifact_storage = None
+            if any(a.storage_key for a in attachments):
+                artifact_storage = create_artifact_storage(worker_config.artifact_storage)
+                activity_logger.info(
+                    f"Created artifact storage ({worker_config.artifact_storage.storage_type}) "
+                    "for attachment downloads"
+                )
+            
+            try:
+                await inject_attachments(
+                    sandbox=sandbox,  # None for local mode
+                    attachments=attachments,
+                    storage=artifact_storage,
+                    logger=activity_logger,
+                    local_root=sandbox_config.get('root_dir') if worker_config.is_local_mode() else None,
+                )
+                activity_logger.info(f"Successfully injected {len(attachments)} attachments")
+            except Exception as e:
+                activity_logger.error(f"Failed to inject attachments: {e}")
+                raise ValueError(f"Attachment injection failed: {e}") from e
+        
         # Step 4: Get merged environment variables
         # Try ExecutionContext first (new flow with pre-merged/decrypted env vars)
         # Fall back to legacy environment merging if ExecutionContext not found
@@ -803,6 +926,34 @@ async def _execute_graphton_impl(
                 activity_logger.warning("Continuing without sub-agents - agent will not delegate tasks")
                 transformed_subagents = None
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 5.10: Create Built-in Tools (Artifact Lifecycle)
+        #
+        # Creates the publish_output tool that allows agents to make files/directories
+        # available for download by users. This is a core capability for the artifact
+        # lifecycle feature.
+        # ─────────────────────────────────────────────────────────────────────────────
+        builtin_tools = []
+        
+        # Create artifact storage for outputs (needed by publish_output tool)
+        output_artifact_storage = create_artifact_storage(worker_config.artifact_storage)
+        activity_logger.info(
+            f"Created artifact storage ({worker_config.artifact_storage.storage_type}) "
+            "for output publishing"
+        )
+        
+        # Create publish_output tool with injected dependencies
+        publish_output_tool = create_publish_output_tool(
+            sandbox=sandbox,  # None for local mode
+            storage=output_artifact_storage,
+            execution_id=execution_id,
+            status_builder=status_builder,
+            local_root=sandbox_config.get('root_dir') if worker_config.is_local_mode() else None,
+        )
+        builtin_tools.append(publish_output_tool)
+        
+        activity_logger.info(f"Created {len(builtin_tools)} built-in tools: [publish_output]")
+        
         # Create Graphton agent
         # Recursion limit set to 1000 for maximum autonomy
         # Graphton's loop detection middleware prevents infinite loops
@@ -813,6 +964,7 @@ async def _execute_graphton_impl(
             system_prompt=enhanced_system_prompt,
             mcp_servers=mcp_servers_config if mcp_servers_config else None,
             mcp_tools=mcp_tools_config if mcp_tools_config else None,
+            tools=builtin_tools if builtin_tools else None,  # Built-in tools including publish_output
             subagents=transformed_subagents,  # Sub-agents from AgentSpec.sub_agents
             sandbox_config=sandbox_config_for_agent,
             recursion_limit=1000,

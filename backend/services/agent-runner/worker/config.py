@@ -26,9 +26,12 @@ How Polyglot Works:
 """
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from enum import Enum
 import os
+
+if TYPE_CHECKING:
+    from worker.storage import ArtifactStorageConfig
 
 
 class ExecutionMode(Enum):
@@ -384,6 +387,9 @@ class Config:
     sandbox_auto_pull: bool  # Auto-pull image if missing
     sandbox_cleanup: bool  # Cleanup containers after execution
     sandbox_ttl: int  # Container reuse TTL in seconds
+    
+    # Artifact storage configuration (for attachments and outputs)
+    artifact_storage: "ArtifactStorageConfig"
 
     @classmethod
     def load_from_env(cls):
@@ -397,6 +403,10 @@ class Config:
         
         # Load checkpointer configuration (mode-aware)
         checkpointer_config = CheckpointerConfig.load_from_env(mode)
+        
+        # Load artifact storage configuration (mode-aware)
+        from worker.storage import ArtifactStorageConfig
+        artifact_storage_config = ArtifactStorageConfig.load_from_env(mode)
         
         # Load execution mode configuration
         execution_mode_str = os.getenv("STIGMER_EXECUTION_MODE", "local")
@@ -474,6 +484,7 @@ class Config:
             sandbox_auto_pull=sandbox_auto_pull,
             sandbox_cleanup=sandbox_cleanup,
             sandbox_ttl=sandbox_ttl,
+            artifact_storage=artifact_storage_config,
         )
     
     def get_sandbox_config(self) -> dict:

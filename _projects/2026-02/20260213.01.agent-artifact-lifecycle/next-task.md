@@ -121,13 +121,61 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-13
-**Last Session**: 2026-02-13 - Proto definitions completed
+**Last Session**: 2026-02-13 - Agent Runner Python Implementation completed
 **Current Task**: T02 (Agent Runner Implementation)
-**Status**: IN PROGRESS - Proto foundation complete, ready for Python implementation
+**Status**: ✅ COMPLETED - Full Python artifact lifecycle implemented
 
 ---
 
-## Session Progress (2026-02-13)
+## Session Progress (2026-02-13 - Session 2)
+
+### Completed ✅
+- **Task 2**: Agent Runner Python Implementation
+  - **Storage Abstraction Layer** (worker/storage/)
+    - Created `ArtifactStorage` protocol with dual backend support
+    - `LocalArtifactStorage` for OSS/local deployments (filesystem-based)
+    - `R2ArtifactStorage` for cloud deployments (Cloudflare R2 via boto3)
+    - Factory function with environment-based configuration
+  - **Attachment Injection** (`execute_graphton.py`)
+    - Added `inject_attachments()` function supporting both inline content and storage_key
+    - Handles both local filesystem and Daytona sandbox modes
+    - Integrated as Step 3.5 after skill writing
+  - **publish_output Tool** (worker/tools/)
+    - Created LangChain-compatible StructuredTool for artifact publishing
+    - Automatic ZIP creation for directories
+    - Supports both local and R2 storage backends
+    - Returns `ExecutionOutput` proto with download URLs
+  - **Tool Registration**
+    - Integrated `publish_output` as built-in tool in agent creation
+    - Injected dependencies (sandbox, storage, execution_id, status_builder)
+  - **StatusBuilder Output Tracking**
+    - Added `add_output()` method for tracking published outputs
+    - Updated `finalize_context_info()` to include outputs in final status
+    - Outputs properly propagated to `AgentExecutionStatus` proto
+
+### Key Design Decisions
+- **Storage Abstraction**: Followed existing Go pattern from `workflow-runner/pkg/claimcheck/store.go`
+- **Local vs R2**: Mode-based factory pattern with environment configuration
+- **Tool Integration**: Used LangChain `StructuredTool` for seamless Graphton integration
+- **Dependency Injection**: Tool captures sandbox, storage, and status_builder context
+- **Async Support**: Proper async/await pattern for tool execution
+
+### Files Created
+- `backend/services/agent-runner/worker/storage/__init__.py` - Factory and config
+- `backend/services/agent-runner/worker/storage/base.py` - Protocol definition
+- `backend/services/agent-runner/worker/storage/local.py` - Local filesystem storage
+- `backend/services/agent-runner/worker/storage/r2.py` - R2/S3 storage (boto3)
+- `backend/services/agent-runner/worker/tools/__init__.py` - Tools package
+- `backend/services/agent-runner/worker/tools/publish_output.py` - publish_output tool
+
+### Files Modified
+- `backend/services/agent-runner/worker/config.py` - Added artifact_storage config
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` - Attachment injection + tool registration
+- `backend/services/agent-runner/worker/activities/graphton/status_builder.py` - Output tracking
+
+---
+
+## Previous Session Progress (2026-02-13 - Session 1)
 
 ### Completed ✅
 - **Task 1**: Proto definitions for Attachments & Outputs
@@ -136,19 +184,6 @@ When starting a new session:
   - Added `ExecutionOutput` message to `api.proto` (field 15 in AgentExecutionStatus)
   - Regenerated Go and Python stubs successfully
   - All proto linting passed
-
-### Key Design Decisions
-- Used sequential field numbers (9, 15) following codebase pattern
-- Used ISO 8601 strings for timestamps (not `google.protobuf.Timestamp`)
-- Placed enum in `enum.proto` following existing conventions
-- Handler-level validation for `content`/`storage_key` mutual exclusivity
-- Comprehensive documentation matching codebase style
-
-### Files Modified
-- `apis/ai/stigmer/agentic/agentexecution/v1/enum.proto`
-- `apis/ai/stigmer/agentic/agentexecution/v1/spec.proto`
-- `apis/ai/stigmer/agentic/agentexecution/v1/api.proto`
-- Generated stubs: 14 files (Go + Python)
 
 ---
 
