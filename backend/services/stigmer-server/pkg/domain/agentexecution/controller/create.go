@@ -18,6 +18,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
@@ -64,6 +65,8 @@ func (c *AgentExecutionController) Create(ctx context.Context, execution *agente
 }
 
 // buildCreatePipeline constructs the pipeline for agent execution creation
+
+// buildCreatePipeline constructs the pipeline for agent execution creation
 func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*agentexecutionv1.AgentExecution] {
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecution]("agent-execution-create").
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).                      // 1. Validate field constraints
@@ -73,8 +76,9 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)). // 5. Create default instance if needed
 		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).                        // 6. Create session if needed
 		AddStep(newSetInitialPhaseStep()).                                                            // 7. Set phase to PENDING
-		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                     // 8. Persist execution
-		AddStep(c.newStartWorkflowStep()).                                                            // 9. Start Temporal workflow
+		AddStep(c.newProcessAttachmentsStep()).                                                       // 8. Process attachments (upload large files to storage)
+		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                     // 9. Persist execution
+		AddStep(c.newStartWorkflowStep()).                                                            // 10. Start Temporal workflow
 		Build()
 }
 
@@ -520,6 +524,106 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 	log.Info().
 		Str("execution_id", executionID).
 		Msg("Temporal workflow started successfully")
+
+	return nil
+}
+
+// processAttachmentsStep processes attachments to avoid Temporal payload limits.
+//
+// This step:
+// 1. Iterates through all attachments in the execution spec
+// 2. For attachments with inline content > 4MB, uploads to artifact storage and sets storage_key
+// 3. Clears the inline content field to keep Temporal payload under limits (2MB max)
+//
+// This ensures large files don't cause Temporal workflow start failures due to payload size.
+type processAttachmentsStep struct {
+	artifactStorage artifactstorage.ArtifactStorage
+}
+
+func (c *AgentExecutionController) newProcessAttachmentsStep() *processAttachmentsStep {
+	return &processAttachmentsStep{
+		artifactStorage: c.artifactStorage,
+	}
+}
+
+func (s *processAttachmentsStep) Name() string {
+	return "ProcessAttachments"
+}
+
+func (s *processAttachmentsStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution]) error {
+	execution := ctx.NewState()
+	attachments := execution.GetSpec().GetAttachments()
+
+	if len(attachments) == 0 {
+		log.Debug().Msg("No attachments to process")
+		return nil
+	}
+
+	// Skip if artifact storage is not configured (graceful degradation)
+	if s.artifactStorage == nil {
+		log.Warn().
+			Int("attachment_count", len(attachments)).
+			Msg("Artifact storage not configured - attachments with large content may cause Temporal payload errors")
+		return nil
+	}
+
+	const maxInlineSize = 4 * 1024 * 1024 // 4MB
+	executionID := execution.GetMetadata().GetId()
+
+	for i, attachment := range attachments {
+		// Skip if already using storage_key
+		if attachment.GetStorageKey() != "" {
+			log.Debug().
+				Str("filename", attachment.GetFilename()).
+				Str("storage_key", attachment.GetStorageKey()).
+				Msg("Attachment already using storage_key")
+			continue
+		}
+
+		// Check inline content size
+		content := attachment.GetContent()
+		if len(content) == 0 {
+			log.Debug().
+				Str("filename", attachment.GetFilename()).
+				Msg("Attachment has no content")
+			continue
+		}
+
+		if len(content) > maxInlineSize {
+			// Upload large content to artifact storage
+			filename := attachment.GetFilename()
+			storageKey := fmt.Sprintf("attachments/%s/%s", executionID, filename)
+
+			log.Info().
+				Str("filename", filename).
+				Int("size_bytes", len(content)).
+				Str("storage_key", storageKey).
+				Msg("Uploading large attachment to artifact storage")
+
+			err := s.artifactStorage.Upload(ctx.Context(), storageKey, content, attachment.GetContentType())
+			if err != nil {
+				log.Error().
+					Err(err).
+					Str("filename", filename).
+					Msg("Failed to upload attachment to artifact storage")
+				return grpclib.InternalError(err, fmt.Sprintf("failed to upload attachment %s", filename))
+			}
+
+			// Set storage_key and clear inline content
+			attachments[i].StorageKey = storageKey
+			attachments[i].Content = nil
+
+			log.Info().
+				Str("filename", filename).
+				Str("storage_key", storageKey).
+				Msg("Attachment uploaded successfully, cleared inline content")
+		} else {
+			log.Debug().
+				Str("filename", attachment.GetFilename()).
+				Int("size_bytes", len(content)).
+				Msg("Attachment size is within inline limit, keeping as inline content")
+		}
+	}
 
 	return nil
 }

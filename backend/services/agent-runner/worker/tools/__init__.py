@@ -2,13 +2,13 @@
 
 This module provides tools that are injected directly into the agent,
 independent of MCP servers. These tools enable core agent capabilities
-like publishing downloadable outputs.
+like publishing downloadable artifacts.
 
 Usage:
-    from worker.tools import create_publish_output_tool
+    from worker.tools import create_publish_artifact_tool
     
     # Create tool with dependencies injected
-    tool = create_publish_output_tool(
+    tool = create_publish_artifact_tool(
         sandbox=sandbox,
         storage=artifact_storage,
         execution_id=execution_id,
@@ -19,16 +19,16 @@ Usage:
     agent = create_deep_agent(
         model="claude-sonnet-4.5",
         system_prompt="...",
-        tools=[tool],  # Pass the publish_output tool
+        tools=[tool],  # Pass the publish_artifact tool
     )
 """
 
-from worker.tools.publish_output import (
-    publish_output,
-    create_publish_output_tool,
+from worker.tools.publish_artifact import (
+    publish_artifact,
+    create_publish_artifact_tool,
 )
 
 __all__ = [
-    "publish_output",
-    "create_publish_output_tool",
+    "publish_artifact",
+    "create_publish_artifact_tool",
 ]

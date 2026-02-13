@@ -41,10 +41,10 @@ import (
 // TestE2E_TypedProtoToYAML_AllTaskTypes verifies conversion for all task types
 func TestE2E_TypedProtoToYAML_AllTaskTypes(t *testing.T) {
 	testCases := []struct {
-		name         string
-		taskKind     apiresourcev1.WorkflowTaskKind
-		typedProto   proto.Message
-		expectYAML   []string // Strings that should appear in YAML
+		name       string
+		taskKind   apiresourcev1.WorkflowTaskKind
+		typedProto proto.Message
+		expectYAML []string // Strings that should appear in YAML
 	}{
 		{
 			name:     "SET task",
@@ -349,7 +349,7 @@ func TestE2E_EmptyOptionalFields(t *testing.T) {
 
 	// Should contain timeout since it's required
 	assert.Contains(t, yaml, "timeout_seconds: 30")
-	
+
 	// Should NOT contain truly optional fields
 	assert.NotContains(t, yaml, "body:")
 }

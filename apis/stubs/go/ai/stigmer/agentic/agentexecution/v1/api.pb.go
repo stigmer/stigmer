@@ -302,16 +302,16 @@ type AgentExecutionStatus struct {
 	// Files/directories published by the agent for download.
 	//
 	// When an agent creates artifacts (e.g., generated code, reports, skills),
-	// it can call the publish_output tool to make them downloadable.
-	// Each output includes a pre-signed URL for direct download.
+	// it can call the publish_artifact tool to make them downloadable.
+	// Each artifact includes a pre-signed URL for direct download.
 	//
-	// Outputs are stored in R2 and URLs expire after a configured period.
+	// Artifacts are stored in R2 and URLs expire after a configured period.
 	// Use the execution download endpoint to refresh expired URLs.
 	//
 	// Ordered by creation time (oldest first).
 	//
-	// @since Artifact Lifecycle (Attachments & Outputs)
-	Outputs       []*ExecutionOutput `protobuf:"bytes,15,rep,name=outputs,proto3" json:"outputs,omitempty"`
+	// @since Artifact Lifecycle (Attachments & Artifacts)
+	Artifacts     []*ExecutionArtifact `protobuf:"bytes,15,rep,name=artifacts,proto3" json:"artifacts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -444,9 +444,9 @@ func (x *AgentExecutionStatus) GetContextInfo() *ContextInfo {
 	return nil
 }
 
-func (x *AgentExecutionStatus) GetOutputs() []*ExecutionOutput {
+func (x *AgentExecutionStatus) GetArtifacts() []*ExecutionArtifact {
 	if x != nil {
-		return x.Outputs
+		return x.Artifacts
 	}
 	return nil
 }
@@ -1718,15 +1718,15 @@ func (x *ContextInfo) GetUtilizationPercent() float32 {
 	return 0
 }
 
-// ExecutionOutput represents a file or directory published by an agent.
+// ExecutionArtifact represents a file or directory published by an agent.
 //
 // When an agent creates artifacts that users should download, it calls
-// the publish_output tool. This generates a downloadable artifact stored
+// the publish_artifact tool. This generates a downloadable artifact stored
 // in R2 with a time-limited signed URL.
 //
 // ## Storage
 //
-// Outputs are stored in R2 under: outputs/{execution_id}/{filename}
+// Artifacts are stored in R2 under: artifacts/{execution_id}/{filename}
 // Download URLs are pre-signed and expire after a configured period.
 //
 // ## Directory Handling
@@ -1734,28 +1734,28 @@ func (x *ContextInfo) GetUtilizationPercent() float32 {
 // Directories are automatically archived as ZIP files before storage.
 // The kind field indicates DIRECTORY so clients know to extract after download.
 //
-// @since Artifact Lifecycle (Attachments & Outputs)
-type ExecutionOutput struct {
+// @since Artifact Lifecycle (Attachments & Artifacts)
+type ExecutionArtifact struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Display name for this output.
+	// Display name for this artifact.
 	// Example: "generated-skill", "analysis-report"
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Original path in sandbox where the artifact was created.
 	// Example: "/workspace/my-skill", "/tmp/report.pdf"
 	SandboxPath string `protobuf:"bytes,2,opt,name=sandbox_path,json=sandboxPath,proto3" json:"sandbox_path,omitempty"`
-	// Type of output: file or directory.
-	Kind ExecutionOutputKind `protobuf:"varint,3,opt,name=kind,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ExecutionOutputKind" json:"kind,omitempty"`
+	// Type of artifact: file or directory.
+	Kind ExecutionArtifactKind `protobuf:"varint,3,opt,name=kind,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind" json:"kind,omitempty"`
 	// Total size in bytes.
 	// For directories, this is the ZIP file size.
 	SizeBytes int64 `protobuf:"varint,4,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
 	// Storage location in R2.
-	// Format: "outputs/{execution_id}/{filename}"
+	// Format: "artifacts/{execution_id}/{filename}"
 	StorageKey string `protobuf:"bytes,5,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
 	// Pre-signed URL for downloading the artifact.
 	// Expires after a configured period (default: 7 days).
 	// Clients can call the refresh endpoint to get a new URL if expired.
 	DownloadUrl string `protobuf:"bytes,6,opt,name=download_url,json=downloadUrl,proto3" json:"download_url,omitempty"`
-	// ISO 8601 timestamp when the output was created.
+	// ISO 8601 timestamp when the artifact was created.
 	// Example: "2026-02-13T10:30:00Z"
 	CreatedAt string `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// ISO 8601 timestamp when the download URL expires.
@@ -1765,20 +1765,20 @@ type ExecutionOutput struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ExecutionOutput) Reset() {
-	*x = ExecutionOutput{}
+func (x *ExecutionArtifact) Reset() {
+	*x = ExecutionArtifact{}
 	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ExecutionOutput) String() string {
+func (x *ExecutionArtifact) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ExecutionOutput) ProtoMessage() {}
+func (*ExecutionArtifact) ProtoMessage() {}
 
-func (x *ExecutionOutput) ProtoReflect() protoreflect.Message {
+func (x *ExecutionArtifact) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_agentexecution_v1_api_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1790,61 +1790,61 @@ func (x *ExecutionOutput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ExecutionOutput.ProtoReflect.Descriptor instead.
-func (*ExecutionOutput) Descriptor() ([]byte, []int) {
+// Deprecated: Use ExecutionArtifact.ProtoReflect.Descriptor instead.
+func (*ExecutionArtifact) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *ExecutionOutput) GetName() string {
+func (x *ExecutionArtifact) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *ExecutionOutput) GetSandboxPath() string {
+func (x *ExecutionArtifact) GetSandboxPath() string {
 	if x != nil {
 		return x.SandboxPath
 	}
 	return ""
 }
 
-func (x *ExecutionOutput) GetKind() ExecutionOutputKind {
+func (x *ExecutionArtifact) GetKind() ExecutionArtifactKind {
 	if x != nil {
 		return x.Kind
 	}
-	return ExecutionOutputKind_EXECUTION_OUTPUT_KIND_UNSPECIFIED
+	return ExecutionArtifactKind_EXECUTION_ARTIFACT_KIND_UNSPECIFIED
 }
 
-func (x *ExecutionOutput) GetSizeBytes() int64 {
+func (x *ExecutionArtifact) GetSizeBytes() int64 {
 	if x != nil {
 		return x.SizeBytes
 	}
 	return 0
 }
 
-func (x *ExecutionOutput) GetStorageKey() string {
+func (x *ExecutionArtifact) GetStorageKey() string {
 	if x != nil {
 		return x.StorageKey
 	}
 	return ""
 }
 
-func (x *ExecutionOutput) GetDownloadUrl() string {
+func (x *ExecutionArtifact) GetDownloadUrl() string {
 	if x != nil {
 		return x.DownloadUrl
 	}
 	return ""
 }
 
-func (x *ExecutionOutput) GetCreatedAt() string {
+func (x *ExecutionArtifact) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
 	}
 	return ""
 }
 
-func (x *ExecutionOutput) GetExpiresAt() string {
+func (x *ExecutionArtifact) GetExpiresAt() string {
 	if x != nil {
 		return x.ExpiresAt
 	}
@@ -2162,7 +2162,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0eAgentExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xc2\t\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xc8\t\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -2180,8 +2180,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x05usage\x18\v \x01(\v22.ai.stigmer.agentic.agentexecution.v1.UsageMetricsR\x05usage\x12i\n" +
 	"\x10resolved_context\x18\f \x01(\v2>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContextR\x0fresolvedContext\x12`\n" +
 	"\x10pending_approval\x18\r \x01(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x0fpendingApproval\x12T\n" +
-	"\fcontext_info\x18\x0e \x01(\v21.ai.stigmer.agentic.agentexecution.v1.ContextInfoR\vcontextInfo\x12O\n" +
-	"\aoutputs\x18\x0f \x03(\v25.ai.stigmer.agentic.agentexecution.v1.ExecutionOutputR\aoutputs\x1ah\n" +
+	"\fcontext_info\x18\x0e \x01(\v21.ai.stigmer.agentic.agentexecution.v1.ContextInfoR\vcontextInfo\x12U\n" +
+	"\tartifacts\x18\x0f \x03(\v27.ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactR\tartifacts\x1ah\n" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
@@ -2282,11 +2282,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x1bsummarization_target_tokens\x18\x04 \x01(\x05R\x19summarizationTargetTokens\x123\n" +
 	"\x15summarization_enabled\x18\x05 \x01(\bR\x14summarizationEnabled\x12k\n" +
 	"\x14summarization_events\x18\x06 \x03(\v28.ai.stigmer.agentic.agentexecution.v1.SummarizationEventR\x13summarizationEvents\x12/\n" +
-	"\x13utilization_percent\x18\a \x01(\x02R\x12utilizationPercent\"\xc2\x02\n" +
-	"\x0fExecutionOutput\x12\x12\n" +
+	"\x13utilization_percent\x18\a \x01(\x02R\x12utilizationPercent\"\xc6\x02\n" +
+	"\x11ExecutionArtifact\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
-	"\fsandbox_path\x18\x02 \x01(\tR\vsandboxPath\x12W\n" +
-	"\x04kind\x18\x03 \x01(\x0e29.ai.stigmer.agentic.agentexecution.v1.ExecutionOutputKindB\b\xbaH\x05\x82\x01\x02\x10\x01R\x04kind\x12\x1d\n" +
+	"\fsandbox_path\x18\x02 \x01(\tR\vsandboxPath\x12Y\n" +
+	"\x04kind\x18\x03 \x01(\x0e2;.ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKindB\b\xbaH\x05\x82\x01\x02\x10\x01R\x04kind\x12\x1d\n" +
 	"\n" +
 	"size_bytes\x18\x04 \x01(\x03R\tsizeBytes\x12\x1f\n" +
 	"\vstorage_key\x18\x05 \x01(\tR\n" +
@@ -2349,7 +2349,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*McpServerResolutionStatus)(nil),       // 10: ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
 	(*SummarizationEvent)(nil),              // 11: ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
 	(*ContextInfo)(nil),                     // 12: ai.stigmer.agentic.agentexecution.v1.ContextInfo
-	(*ExecutionOutput)(nil),                 // 13: ai.stigmer.agentic.agentexecution.v1.ExecutionOutput
+	(*ExecutionArtifact)(nil),               // 13: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
 	(*PendingApproval)(nil),                 // 14: ai.stigmer.agentic.agentexecution.v1.PendingApproval
 	(*ChildApprovalNotification)(nil),       // 15: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification
 	nil,                                     // 16: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
@@ -2363,7 +2363,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*structpb.Struct)(nil),                 // 24: google.protobuf.Struct
 	(ToolCallStatus)(0),                     // 25: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
 	(SubAgentStatus)(0),                     // 26: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
-	(ExecutionOutputKind)(0),                // 27: ai.stigmer.agentic.agentexecution.v1.ExecutionOutputKind
+	(ExecutionArtifactKind)(0),              // 27: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	18, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
@@ -2379,7 +2379,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	9,  // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.resolved_context:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
 	14, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.pending_approval:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
 	12, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.context_info:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextInfo
-	13, // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.outputs:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionOutput
+	13, // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.artifacts:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
 	22, // 14: ai.stigmer.agentic.agentexecution.v1.TodoItem.status:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoStatus
 	23, // 15: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
 	5,  // 16: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
@@ -2396,7 +2396,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	8,  // 27: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
 	17, // 28: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.mcp_servers:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
 	11, // 29: ai.stigmer.agentic.agentexecution.v1.ContextInfo.summarization_events:type_name -> ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
-	27, // 30: ai.stigmer.agentic.agentexecution.v1.ExecutionOutput.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionOutputKind
+	27, // 30: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
 	3,  // 31: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
 	10, // 32: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
 	33, // [33:33] is the sub-list for method output_type

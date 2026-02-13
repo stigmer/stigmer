@@ -68,6 +68,11 @@ class AgentExecutionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.ResumeAgentExecutionInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
                 _registered_method=True)
+        self.uploadAttachment = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/uploadAttachment',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UploadAttachmentRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UploadAttachmentResponse.FromString,
+                _registered_method=True)
 
 
 class AgentExecutionCommandControllerServicer(object):
@@ -404,6 +409,51 @@ class AgentExecutionCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def uploadAttachment(self, request, context):
+        """─────────────────────────────────────────────────────────────────────────────
+        Artifact Lifecycle Operations
+
+        These RPCs support file attachments and artifacts for agent executions.
+        Attachments are input files provided before execution; artifacts are
+        output files created during execution.
+        ─────────────────────────────────────────────────────────────────────────────
+
+        Upload a file attachment for use in an agent execution.
+
+        Pre-uploads files to artifact storage before creating an execution.
+        The returned storage_key can be used in Attachment.storage_key when
+        creating the execution.
+
+        ## Authorization
+
+        This endpoint does not require authorization. The storage_key returned
+        acts as a capability token - knowing the key grants access to the content.
+        This simplifies the upload flow for CLI and other clients.
+
+        ## Storage Path
+
+        Files are stored at: attachments/{ulid}/{filename}
+        The ULID ensures unique paths and enables future cleanup policies.
+
+        ## Use Cases
+
+        - CLI uploading files (>4MB) before agent execution
+        - Pre-uploading datasets for agent processing
+        - Uploading binary files that cannot be embedded inline in Attachment
+
+        ## Example Flow
+
+        1. Client calls uploadAttachment with file content
+        2. Server uploads to storage, returns storage_key
+        3. Client creates AgentExecution with Attachment using storage_key
+        4. Agent-runner downloads attachment content when execution starts
+
+        @since Artifact Lifecycle (Attachments & Artifacts)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AgentExecutionCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -456,6 +506,11 @@ def add_AgentExecutionCommandControllerServicer_to_server(servicer, server):
                     servicer.resume,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.ResumeAgentExecutionInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
+            ),
+            'uploadAttachment': grpc.unary_unary_rpc_method_handler(
+                    servicer.uploadAttachment,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UploadAttachmentRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UploadAttachmentResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -730,6 +785,33 @@ class AgentExecutionCommandController(object):
             '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/resume',
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.ResumeAgentExecutionInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def uploadAttachment(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/uploadAttachment',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UploadAttachmentRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UploadAttachmentResponse.FromString,
             options,
             channel_credentials,
             insecure,

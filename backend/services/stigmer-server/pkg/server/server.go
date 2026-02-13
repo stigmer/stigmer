@@ -38,6 +38,7 @@ import (
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
 	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
+	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
 	workflowtemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
 	workflowexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/controller"
@@ -226,9 +227,29 @@ func Run() error {
 	skillv1.RegisterSkillCommandControllerServer(grpcServer, skillController)
 	skillv1.RegisterSkillQueryControllerServer(grpcServer, skillController)
 
+
 	log.Info().
 		Str("storage_path", cfg.StoragePath).
 		Msg("Registered Skill controllers with artifact storage")
+
+	// Create artifact storage for agent execution attachments and outputs
+	ctx := context.Background()
+	agentExecutionArtifactStorage, err := artifactstorage.NewArtifactStorage(ctx, cfg.ArtifactStorage)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize agent execution artifact storage")
+	}
+
+	// Health check the artifact storage
+	if err := agentExecutionArtifactStorage.Health(ctx); err != nil {
+		log.Warn().Err(err).Msg("Artifact storage health check failed - continuing with degraded functionality")
+	}
+
+	// Inject artifact storage into AgentExecutionController
+	agentExecutionController.SetArtifactStorage(agentExecutionArtifactStorage)
+
+	log.Info().
+		Str("storage_type", cfg.ArtifactStorage.Type).
+		Msg("Initialized artifact storage for agent execution attachments and outputs")
 
 	// Create and register Agent controller (without dependencies initially)
 	agentController := agentcontroller.NewAgentController(store, nil)

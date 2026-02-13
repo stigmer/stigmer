@@ -37,6 +37,7 @@ go_library(
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows",
+        "//backend/services/stigmer-server/pkg/domain/artifact/storage",
         "//backend/services/stigmer-server/pkg/downstream/agent",
         "//backend/services/stigmer-server/pkg/downstream/agentinstance",
         "//backend/services/stigmer-server/pkg/downstream/session",

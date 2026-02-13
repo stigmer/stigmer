@@ -449,56 +449,56 @@ func (SubAgentStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{4}
 }
 
-// ExecutionOutputKind defines the type of artifact published by an agent.
+// ExecutionArtifactKind defines the type of artifact published by an agent.
 //
 // When an agent publishes a file, it's stored as-is.
 // When an agent publishes a directory, it's archived as a ZIP file.
-type ExecutionOutputKind int32
+type ExecutionArtifactKind int32
 
 const (
-	ExecutionOutputKind_EXECUTION_OUTPUT_KIND_UNSPECIFIED ExecutionOutputKind = 0
-	ExecutionOutputKind_EXECUTION_OUTPUT_KIND_FILE        ExecutionOutputKind = 1 // Single file
-	ExecutionOutputKind_EXECUTION_OUTPUT_KIND_DIRECTORY   ExecutionOutputKind = 2 // Directory (stored as ZIP)
+	ExecutionArtifactKind_EXECUTION_ARTIFACT_KIND_UNSPECIFIED ExecutionArtifactKind = 0
+	ExecutionArtifactKind_EXECUTION_ARTIFACT_KIND_FILE        ExecutionArtifactKind = 1 // Single file
+	ExecutionArtifactKind_EXECUTION_ARTIFACT_KIND_DIRECTORY   ExecutionArtifactKind = 2 // Directory (stored as ZIP)
 )
 
-// Enum value maps for ExecutionOutputKind.
+// Enum value maps for ExecutionArtifactKind.
 var (
-	ExecutionOutputKind_name = map[int32]string{
-		0: "EXECUTION_OUTPUT_KIND_UNSPECIFIED",
-		1: "EXECUTION_OUTPUT_KIND_FILE",
-		2: "EXECUTION_OUTPUT_KIND_DIRECTORY",
+	ExecutionArtifactKind_name = map[int32]string{
+		0: "EXECUTION_ARTIFACT_KIND_UNSPECIFIED",
+		1: "EXECUTION_ARTIFACT_KIND_FILE",
+		2: "EXECUTION_ARTIFACT_KIND_DIRECTORY",
 	}
-	ExecutionOutputKind_value = map[string]int32{
-		"EXECUTION_OUTPUT_KIND_UNSPECIFIED": 0,
-		"EXECUTION_OUTPUT_KIND_FILE":        1,
-		"EXECUTION_OUTPUT_KIND_DIRECTORY":   2,
+	ExecutionArtifactKind_value = map[string]int32{
+		"EXECUTION_ARTIFACT_KIND_UNSPECIFIED": 0,
+		"EXECUTION_ARTIFACT_KIND_FILE":        1,
+		"EXECUTION_ARTIFACT_KIND_DIRECTORY":   2,
 	}
 )
 
-func (x ExecutionOutputKind) Enum() *ExecutionOutputKind {
-	p := new(ExecutionOutputKind)
+func (x ExecutionArtifactKind) Enum() *ExecutionArtifactKind {
+	p := new(ExecutionArtifactKind)
 	*p = x
 	return p
 }
 
-func (x ExecutionOutputKind) String() string {
+func (x ExecutionArtifactKind) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (ExecutionOutputKind) Descriptor() protoreflect.EnumDescriptor {
+func (ExecutionArtifactKind) Descriptor() protoreflect.EnumDescriptor {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[5].Descriptor()
 }
 
-func (ExecutionOutputKind) Type() protoreflect.EnumType {
+func (ExecutionArtifactKind) Type() protoreflect.EnumType {
 	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[5]
 }
 
-func (x ExecutionOutputKind) Number() protoreflect.EnumNumber {
+func (x ExecutionArtifactKind) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use ExecutionOutputKind.Descriptor instead.
-func (ExecutionOutputKind) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use ExecutionArtifactKind.Descriptor instead.
+func (ExecutionArtifactKind) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{5}
 }
 
@@ -544,11 +544,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x11SUB_AGENT_PENDING\x10\x01\x12\x19\n" +
 	"\x15SUB_AGENT_IN_PROGRESS\x10\x02\x12\x17\n" +
 	"\x13SUB_AGENT_COMPLETED\x10\x03\x12\x14\n" +
-	"\x10SUB_AGENT_FAILED\x10\x04*\x81\x01\n" +
-	"\x13ExecutionOutputKind\x12%\n" +
-	"!EXECUTION_OUTPUT_KIND_UNSPECIFIED\x10\x00\x12\x1e\n" +
-	"\x1aEXECUTION_OUTPUT_KIND_FILE\x10\x01\x12#\n" +
-	"\x1fEXECUTION_OUTPUT_KIND_DIRECTORY\x10\x02B\xca\x02\n" +
+	"\x10SUB_AGENT_FAILED\x10\x04*\x89\x01\n" +
+	"\x15ExecutionArtifactKind\x12'\n" +
+	"#EXECUTION_ARTIFACT_KIND_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cEXECUTION_ARTIFACT_KIND_FILE\x10\x01\x12%\n" +
+	"!EXECUTION_ARTIFACT_KIND_DIRECTORY\x10\x02B\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tEnumProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -565,12 +565,12 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
-	(ExecutionPhase)(0),      // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	(MessageType)(0),         // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
-	(ToolCallStatus)(0),      // 2: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	(TodoStatus)(0),          // 3: ai.stigmer.agentic.agentexecution.v1.TodoStatus
-	(SubAgentStatus)(0),      // 4: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
-	(ExecutionOutputKind)(0), // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionOutputKind
+	(ExecutionPhase)(0),        // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(MessageType)(0),           // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
+	(ToolCallStatus)(0),        // 2: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	(TodoStatus)(0),            // 3: ai.stigmer.agentic.agentexecution.v1.TodoStatus
+	(SubAgentStatus)(0),        // 4: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	(ExecutionArtifactKind)(0), // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
 }
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type

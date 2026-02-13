@@ -19,8 +19,8 @@ package utils
 import (
 	"time"
 
-	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 )
 
 // ToDuration converts the Serverless Workflow SDK duration into a time.Duration.

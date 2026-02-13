@@ -28,7 +28,7 @@ from worker.activities.graphton.subagent_transformer import transform_sub_agents
 from worker.checkpointer import create_checkpointer
 from worker.mcp import transform_all_mcp_configs
 from worker.storage import ArtifactStorageConfig, create_artifact_storage, ArtifactStorage
-from worker.tools import create_publish_output_tool
+from worker.tools import create_publish_artifact_tool
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.resilience import (
     GrpcRetryExecutor,
@@ -929,30 +929,30 @@ async def _execute_graphton_impl(
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 5.10: Create Built-in Tools (Artifact Lifecycle)
         #
-        # Creates the publish_output tool that allows agents to make files/directories
+        # Creates the publish_artifact tool that allows agents to make files/directories
         # available for download by users. This is a core capability for the artifact
         # lifecycle feature.
         # ─────────────────────────────────────────────────────────────────────────────
         builtin_tools = []
         
-        # Create artifact storage for outputs (needed by publish_output tool)
-        output_artifact_storage = create_artifact_storage(worker_config.artifact_storage)
+        # Create artifact storage for artifacts (needed by publish_artifact tool)
+        artifact_storage = create_artifact_storage(worker_config.artifact_storage)
         activity_logger.info(
             f"Created artifact storage ({worker_config.artifact_storage.storage_type}) "
-            "for output publishing"
+            "for artifact publishing"
         )
         
-        # Create publish_output tool with injected dependencies
-        publish_output_tool = create_publish_output_tool(
+        # Create publish_artifact tool with injected dependencies
+        publish_artifact_tool = create_publish_artifact_tool(
             sandbox=sandbox,  # None for local mode
-            storage=output_artifact_storage,
+            storage=artifact_storage,
             execution_id=execution_id,
             status_builder=status_builder,
             local_root=sandbox_config.get('root_dir') if worker_config.is_local_mode() else None,
         )
-        builtin_tools.append(publish_output_tool)
+        builtin_tools.append(publish_artifact_tool)
         
-        activity_logger.info(f"Created {len(builtin_tools)} built-in tools: [publish_output]")
+        activity_logger.info(f"Created {len(builtin_tools)} built-in tools: [publish_artifact]")
         
         # Create Graphton agent
         # Recursion limit set to 1000 for maximum autonomy
@@ -964,7 +964,7 @@ async def _execute_graphton_impl(
             system_prompt=enhanced_system_prompt,
             mcp_servers=mcp_servers_config if mcp_servers_config else None,
             mcp_tools=mcp_tools_config if mcp_tools_config else None,
-            tools=builtin_tools if builtin_tools else None,  # Built-in tools including publish_output
+            tools=builtin_tools if builtin_tools else None,  # Built-in tools including publish_artifact
             subagents=transformed_subagents,  # Sub-agents from AgentSpec.sub_agents
             sandbox_config=sandbox_config_for_agent,
             recursion_limit=1000,

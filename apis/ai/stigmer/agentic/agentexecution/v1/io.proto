@@ -402,3 +402,188 @@ message ResumeAgentExecutionInput {
   // Validation: Required, cannot be empty
   string id = 1 [(buf.validate.field).string.min_len = 1];
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Artifact Lifecycle Messages
+//
+// These messages support file attachments (inputs) and artifacts (outputs)
+// for agent executions. Attachments are files provided to agents before
+// execution; artifacts are files created by agents during execution.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// UploadAttachmentRequest uploads a file attachment for use in an agent execution.
+//
+// This endpoint allows CLI and other clients to pre-upload large files (>4MB)
+// to artifact storage before creating an agent execution. The returned storage_key
+// can then be used in the Attachment message when creating the execution.
+//
+// ## Storage
+//
+// Files are uploaded to: attachments/{ulid}/{filename}
+// The ULID ensures unique paths and allows for future cleanup policies.
+//
+// ## Authorization
+//
+// This endpoint does not require authorization. The storage_key returned acts
+// as a capability token - knowing the key grants access to the content. This
+// simplifies the upload flow while maintaining security through obscurity
+// of the storage path.
+//
+// ## Use Cases
+//
+// - CLI uploading files before agent execution
+// - Pre-uploading large datasets for agent processing
+// - Uploading binary files that cannot be embedded inline
+//
+// ## Example
+//
+// Request:
+// {
+//   "filename": "dataset.csv",
+//   "content": <binary data>,
+//   "content_type": "text/csv"
+// }
+//
+// Response:
+// {
+//   "storage_key": "attachments/01HGXXX.../dataset.csv"
+// }
+//
+// @since Artifact Lifecycle (Attachments & Artifacts)
+message UploadAttachmentRequest {
+  // Original filename of the attachment.
+  //
+  // Used in the storage path and for display purposes.
+  // Should not contain path separators or special characters.
+  //
+  // Examples: "dataset.csv", "config.json", "report.pdf"
+  //
+  // Validation: Required, minimum 1 character
+  string filename = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Binary content of the file.
+  //
+  // Maximum size depends on gRPC message limits (typically 4MB).
+  // For very large files, consider chunked upload (future enhancement).
+  //
+  // Validation: Required, cannot be empty
+  bytes content = 2 [(buf.validate.field).required = true];
+
+  // MIME type of the file content.
+  //
+  // Used for Content-Type header when downloading.
+  // If not provided, will be guessed from filename extension.
+  //
+  // Examples: "text/csv", "application/json", "application/pdf"
+  string content_type = 3;
+}
+
+// UploadAttachmentResponse returns the storage key for the uploaded attachment.
+//
+// The storage_key should be used in the Attachment message when creating
+// an agent execution. The key is opaque to clients - do not parse or
+// construct keys manually.
+//
+// @since Artifact Lifecycle (Attachments & Artifacts)
+message UploadAttachmentResponse {
+  // Storage key for the uploaded attachment.
+  //
+  // Use this key in Attachment.storage_key when creating an execution.
+  // The key includes a unique identifier and the filename.
+  //
+  // Format: "attachments/{ulid}/{filename}"
+  // Example: "attachments/01HGXXX123ABC/dataset.csv"
+  string storage_key = 1;
+}
+
+// GetArtifactDownloadUrlRequest requests a download URL for an execution artifact.
+//
+// This endpoint generates presigned URLs for artifacts published by agents
+// during execution. The URLs are time-limited and can be used for direct
+// HTTP download without authentication.
+//
+// ## Authorization
+//
+// Requires can_view permission on the execution. This ensures users can only
+// access artifacts from executions they have access to.
+//
+// ## Security
+//
+// The storage_key is validated to ensure it belongs to the specified execution.
+// Storage keys must start with "artifacts/{execution_id}/" to prevent path
+// traversal attacks where a user could request URLs for other executions'
+// artifacts.
+//
+// ## Use Cases
+//
+// - CLI downloading agent-created files
+// - Web UI providing download links for artifacts
+// - Refreshing expired download URLs
+//
+// ## Example
+//
+// Request:
+// {
+//   "execution_id": "aex_abc123xyz456",
+//   "storage_key": "artifacts/aex_abc123xyz456/generated-skill.zip"
+// }
+//
+// Response:
+// {
+//   "download_url": "https://r2.example.com/...",
+//   "expires_at": "2026-02-20T10:30:00Z"
+// }
+//
+// @since Artifact Lifecycle (Attachments & Artifacts)
+message GetArtifactDownloadUrlRequest {
+  // ID of the agent execution that produced the artifact.
+  //
+  // Used for authorization (can_view check) and storage_key validation.
+  //
+  // Format: "aex_{ulid}"
+  // Example: "aex_abc123xyz456"
+  //
+  // Validation: Required, minimum 1 character
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Storage key of the artifact to download.
+  //
+  // Must be an artifact from the specified execution. The storage_key
+  // is validated to start with "artifacts/{execution_id}/" to prevent
+  // access to other executions' artifacts.
+  //
+  // Obtain this value from ExecutionArtifact.storage_key in the execution status.
+  //
+  // Format: "artifacts/{execution_id}/{filename}"
+  // Example: "artifacts/aex_abc123xyz456/generated-skill.zip"
+  //
+  // Validation: Required, minimum 1 character
+  string storage_key = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// GetArtifactDownloadUrlResponse returns a presigned download URL for an artifact.
+//
+// The download_url can be used with a simple HTTP GET request to download
+// the artifact. No authentication headers are required - the URL contains
+// embedded authorization.
+//
+// @since Artifact Lifecycle (Attachments & Artifacts)
+message GetArtifactDownloadUrlResponse {
+  // Presigned URL for downloading the artifact.
+  //
+  // Valid for direct HTTP GET request without authentication.
+  // The URL includes embedded authorization that expires at expires_at.
+  //
+  // Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
+  string download_url = 1;
+
+  // ISO 8601 timestamp when the download URL expires.
+  //
+  // After this time, the URL will no longer work and a new URL
+  // must be requested via this endpoint.
+  //
+  // Default expiration: 7 days from generation.
+  //
+  // Example: "2026-02-20T10:30:00Z"
+  string expires_at = 2;
+}
