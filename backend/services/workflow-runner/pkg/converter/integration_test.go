@@ -98,9 +98,13 @@ func TestE2E_TypedProtoToYAML_AllTaskTypes(t *testing.T) {
 			name:     "WAIT task",
 			taskKind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_WAIT,
 			typedProto: &tasksv1.WaitTaskConfig{
-				Seconds: 5,
+				WaitType: &tasksv1.WaitTaskConfig_Duration{
+					Duration: &tasksv1.Duration{
+						Seconds: 5,
+					},
+				},
 			},
-			expectYAML: []string{"wait: 5"},
+			expectYAML: []string{"wait:", "seconds: 5"},
 		},
 		{
 			name:     "RAISE task",
