@@ -44,24 +44,25 @@ import time
 async def inject_attachments(
     sandbox,
     attachments: list,
-    storage: ArtifactStorage | None,
+    storage: ArtifactStorage,
     logger,
     local_root: str | None = None,
 ) -> None:
     """Inject attachments into sandbox at their mount_path.
     
-    Handles both inline content (< 4MB) and storage_key references
-    for larger files. Supports both local filesystem and Daytona sandbox modes.
+    All attachments must have a storage_key. The content is downloaded from
+    artifact storage and injected into the sandbox. Supports both local
+    filesystem and Daytona sandbox modes.
     
     Args:
         sandbox: Daytona sandbox instance (None for local mode)
-        attachments: List of Attachment proto messages
-        storage: ArtifactStorage for downloading storage_key references
+        attachments: List of Attachment proto messages (all must have storage_key)
+        storage: ArtifactStorage for downloading attachments (required)
         logger: Activity logger for debugging
         local_root: Root path for local filesystem mode (when sandbox is None)
         
     Raises:
-        ValueError: If storage_key attachment provided without storage client
+        ValueError: If any attachment is missing storage_key
     """
     if not attachments:
         return
@@ -77,23 +78,12 @@ async def inject_attachments(
     file_uploads = []  # For Daytona batch upload
     
     for attachment in attachments:
-        # Determine content source
-        if attachment.content:
-            # Inline content (< 4MB)
-            content = attachment.content
-            logger.debug(f"Using inline content for {attachment.filename} ({len(content)} bytes)")
-        elif attachment.storage_key:
-            # Pre-uploaded to storage, download first
-            if not storage:
-                raise ValueError(
-                    f"Storage client required for storage_key attachment: {attachment.filename}"
-                )
-            logger.debug(f"Downloading {attachment.filename} from storage key: {attachment.storage_key}")
-            content = storage.download(attachment.storage_key)
-            logger.debug(f"Downloaded {len(content)} bytes for {attachment.filename}")
-        else:
-            logger.warning(f"Skipping attachment {attachment.filename}: no content or storage_key")
-            continue
+        if not attachment.storage_key:
+            raise ValueError(f"Attachment missing storage_key: {attachment.filename}")
+        
+        logger.debug(f"Downloading {attachment.filename} from storage key: {attachment.storage_key}")
+        content = storage.download(attachment.storage_key)
+        logger.debug(f"Downloaded {len(content)} bytes for {attachment.filename}")
         
         # Determine mount path (default to /inputs/{filename})
         mount_path = attachment.mount_path if attachment.mount_path else f"/inputs/{attachment.filename}"
@@ -540,9 +530,7 @@ async def _execute_graphton_impl(
         # They are injected into the sandbox at their specified mount_path
         # (default: /inputs/{filename}), making them available to the agent.
         #
-        # Supports two content modes:
-        # - Inline content: Small files (< 4MB) embedded in the proto
-        # - Storage key: Large files pre-uploaded to artifact storage
+        # All attachments must have storage_key (pre-uploaded via uploadAttachment RPC).
         # ─────────────────────────────────────────────────────────────────────────────
         attachments = list(execution.spec.attachments) if execution.spec.attachments else []
         
@@ -552,14 +540,12 @@ async def _execute_graphton_impl(
                 f"{[a.filename for a in attachments]}"
             )
             
-            # Create artifact storage for downloading storage_key references
-            artifact_storage = None
-            if any(a.storage_key for a in attachments):
-                artifact_storage = create_artifact_storage(worker_config.artifact_storage)
-                activity_logger.info(
-                    f"Created artifact storage ({worker_config.artifact_storage.storage_type}) "
-                    "for attachment downloads"
-                )
+            # Create artifact storage for downloading attachments
+            artifact_storage = create_artifact_storage(worker_config.artifact_storage)
+            activity_logger.info(
+                f"Created artifact storage ({worker_config.artifact_storage.storage_type}) "
+                "for attachment downloads"
+            )
             
             try:
                 await inject_attachments(

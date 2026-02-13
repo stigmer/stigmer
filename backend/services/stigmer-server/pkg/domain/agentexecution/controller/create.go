@@ -18,7 +18,6 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
-	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
@@ -528,22 +527,14 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 	return nil
 }
 
-// processAttachmentsStep processes attachments to avoid Temporal payload limits.
+// processAttachmentsStep validates attachments have required storage_key.
 //
-// This step:
-// 1. Iterates through all attachments in the execution spec
-// 2. For attachments with inline content > 4MB, uploads to artifact storage and sets storage_key
-// 3. Clears the inline content field to keep Temporal payload under limits (2MB max)
-//
-// This ensures large files don't cause Temporal workflow start failures due to payload size.
-type processAttachmentsStep struct {
-	artifactStorage artifactstorage.ArtifactStorage
-}
+// All attachments must be pre-uploaded via the uploadAttachment RPC.
+// This step validates that each attachment has a storage_key reference.
+type processAttachmentsStep struct{}
 
 func (c *AgentExecutionController) newProcessAttachmentsStep() *processAttachmentsStep {
-	return &processAttachmentsStep{
-		artifactStorage: c.artifactStorage,
-	}
+	return &processAttachmentsStep{}
 }
 
 func (s *processAttachmentsStep) Name() string {
@@ -559,71 +550,26 @@ func (s *processAttachmentsStep) Execute(ctx *pipeline.RequestContext[*agentexec
 		return nil
 	}
 
-	// Skip if artifact storage is not configured (graceful degradation)
-	if s.artifactStorage == nil {
-		log.Warn().
-			Int("attachment_count", len(attachments)).
-			Msg("Artifact storage not configured - attachments with large content may cause Temporal payload errors")
-		return nil
+	for _, attachment := range attachments {
+		if attachment.GetStorageKey() == "" {
+			log.Error().
+				Str("filename", attachment.GetFilename()).
+				Msg("Attachment missing storage_key - all attachments must be pre-uploaded via uploadAttachment RPC")
+			return grpclib.InvalidArgumentError(
+				"attachment '%s' missing storage_key: all attachments must be pre-uploaded via uploadAttachment RPC",
+				attachment.GetFilename(),
+			)
+		}
+
+		log.Debug().
+			Str("filename", attachment.GetFilename()).
+			Str("storage_key", attachment.GetStorageKey()).
+			Msg("Attachment validated")
 	}
 
-	const maxInlineSize = 4 * 1024 * 1024 // 4MB
-	executionID := execution.GetMetadata().GetId()
-
-	for i, attachment := range attachments {
-		// Skip if already using storage_key
-		if attachment.GetStorageKey() != "" {
-			log.Debug().
-				Str("filename", attachment.GetFilename()).
-				Str("storage_key", attachment.GetStorageKey()).
-				Msg("Attachment already using storage_key")
-			continue
-		}
-
-		// Check inline content size
-		content := attachment.GetContent()
-		if len(content) == 0 {
-			log.Debug().
-				Str("filename", attachment.GetFilename()).
-				Msg("Attachment has no content")
-			continue
-		}
-
-		if len(content) > maxInlineSize {
-			// Upload large content to artifact storage
-			filename := attachment.GetFilename()
-			storageKey := fmt.Sprintf("attachments/%s/%s", executionID, filename)
-
-			log.Info().
-				Str("filename", filename).
-				Int("size_bytes", len(content)).
-				Str("storage_key", storageKey).
-				Msg("Uploading large attachment to artifact storage")
-
-			err := s.artifactStorage.Upload(ctx.Context(), storageKey, content, attachment.GetContentType())
-			if err != nil {
-				log.Error().
-					Err(err).
-					Str("filename", filename).
-					Msg("Failed to upload attachment to artifact storage")
-				return grpclib.InternalError(err, fmt.Sprintf("failed to upload attachment %s", filename))
-			}
-
-			// Set storage_key and clear inline content
-			attachments[i].StorageKey = storageKey
-			attachments[i].Content = nil
-
-			log.Info().
-				Str("filename", filename).
-				Str("storage_key", storageKey).
-				Msg("Attachment uploaded successfully, cleared inline content")
-		} else {
-			log.Debug().
-				Str("filename", attachment.GetFilename()).
-				Int("size_bytes", len(content)).
-				Msg("Attachment size is within inline limit, keeping as inline content")
-		}
-	}
+	log.Info().
+		Int("attachment_count", len(attachments)).
+		Msg("All attachments validated successfully")
 
 	return nil
 }
