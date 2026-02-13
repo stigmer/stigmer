@@ -93,7 +93,9 @@ class ModelMetadata:
     preventing accidental modifications after creation.
     
     Attributes:
-        model_id: Canonical model identifier (e.g., "claude-sonnet-4.5")
+        model_id: Platform canonical identifier (e.g., "claude-sonnet-4.5")
+        api_model_id: Actual API model identifier sent to provider
+            (e.g., "claude-sonnet-4-5-20250929"). If None, model_id is used.
         provider: Provider name (anthropic, openai, ollama)
         display_name: Human-readable name for UI display
         context_window_tokens: Total context window size in tokens
@@ -112,6 +114,7 @@ class ModelMetadata:
     Example:
         >>> metadata = ModelMetadata(
         ...     model_id="claude-sonnet-4.5",
+        ...     api_model_id="claude-sonnet-4-5-20250929",
         ...     provider="anthropic",
         ...     display_name="Claude Sonnet 4.5",
         ...     context_window_tokens=200000,
@@ -126,6 +129,8 @@ class ModelMetadata:
         ... )
         >>> metadata.context_window_tokens
         200000
+        >>> metadata.get_api_model_id()
+        'claude-sonnet-4-5-20250929'
     
     """
     
@@ -148,6 +153,12 @@ class ModelMetadata:
     
     # Economics
     cost_tier: CostTier
+    
+    # API Model ID - actual identifier sent to provider API
+    # If None, model_id is used as the API identifier
+    # Example: model_id="claude-sonnet-4.5" -> api_model_id="claude-sonnet-4-5-20250929"
+    api_model_id: str | None = None
+    
     input_cost_per_1k: float | None = None
     output_cost_per_1k: float | None = None
     
@@ -155,6 +166,28 @@ class ModelMetadata:
     supports_tool_use: bool = True
     supports_vision: bool = False
     supports_streaming: bool = True
+    
+    def get_api_model_id(self) -> str:
+        """Get the API model identifier to use when calling the provider.
+        
+        Returns the api_model_id if set, otherwise falls back to model_id.
+        This allows platform-friendly names while sending correct IDs to APIs.
+        
+        Returns:
+            The model identifier to send to the provider API.
+        
+        Example:
+            >>> metadata = ModelRegistry.get("claude-sonnet-4.5")
+            >>> metadata.get_api_model_id()
+            'claude-sonnet-4-5-20250929'
+            >>> 
+            >>> # For models without mapping, returns model_id
+            >>> metadata = ModelRegistry.get("gpt-4o")
+            >>> metadata.get_api_model_id()
+            'gpt-4o'
+        
+        """
+        return self.api_model_id if self.api_model_id is not None else self.model_id
 
 
 # Default metadata for unknown models - conservative 8K context
@@ -228,6 +261,7 @@ class ModelRegistry:
             max_summary_tokens=2000,
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.PREMIUM,
+            api_model_id="claude-opus-4-20250514",
             input_cost_per_1k=15.0,
             output_cost_per_1k=75.0,
             supports_vision=True,
@@ -243,6 +277,7 @@ class ModelRegistry:
             max_summary_tokens=2000,
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.STANDARD,
+            api_model_id="claude-sonnet-4-5-20250929",
             input_cost_per_1k=3.0,
             output_cost_per_1k=15.0,
             supports_vision=True,
@@ -258,6 +293,7 @@ class ModelRegistry:
             max_summary_tokens=2000,
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.ECONOMY,
+            api_model_id="claude-haiku-4-20250313",
             input_cost_per_1k=1.0,
             output_cost_per_1k=5.0,
             supports_vision=True,
@@ -273,6 +309,7 @@ class ModelRegistry:
             max_summary_tokens=2000,
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.STANDARD,
+            api_model_id="claude-3-5-sonnet-20241022",
             input_cost_per_1k=3.0,
             output_cost_per_1k=15.0,
             supports_vision=True,
@@ -288,6 +325,7 @@ class ModelRegistry:
             max_summary_tokens=2000,
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.ECONOMY,
+            api_model_id="claude-3-5-haiku-20241022",
             input_cost_per_1k=0.80,
             output_cost_per_1k=4.0,
             supports_vision=True,
@@ -580,6 +618,127 @@ class ModelRegistry:
             token_counter_method=_DEFAULT_METADATA.token_counter_method,
             cost_tier=_DEFAULT_METADATA.cost_tier,
         )
+    
+    @classmethod
+    def resolve(cls, user_input: str) -> tuple[str, ModelMetadata]:
+        """Resolve user input to an API model ID and metadata.
+        
+        This method accepts various forms of model identifiers and resolves them
+        to the canonical API model ID that should be sent to the provider.
+        
+        Resolution priority:
+            1. Exact match on model_id (e.g., "claude-sonnet-4.5")
+            2. Exact match on api_model_id (e.g., "claude-sonnet-4-5-20250929")
+            3. Case-insensitive match on model_id with normalization
+        
+        Args:
+            user_input: The model identifier provided by the user. Can be:
+                - Platform canonical ID: "claude-sonnet-4.5"
+                - Full API model ID: "claude-sonnet-4-5-20250929"
+                - Case variations: "Claude-Sonnet-4.5", "CLAUDE-SONNET-4.5"
+        
+        Returns:
+            A tuple of (api_model_id, ModelMetadata) where api_model_id is the
+            identifier to send to the provider API.
+        
+        Raises:
+            KeyError: If no matching model is found in the registry.
+        
+        Example:
+            >>> api_id, metadata = ModelRegistry.resolve("claude-sonnet-4.5")
+            >>> print(api_id)
+            claude-sonnet-4-5-20250929
+            >>> print(metadata.display_name)
+            Claude Sonnet 4.5
+            >>> 
+            >>> # Also accepts full API IDs
+            >>> api_id, metadata = ModelRegistry.resolve("claude-sonnet-4-5-20250929")
+            >>> print(api_id)
+            claude-sonnet-4-5-20250929
+            >>> 
+            >>> # Case-insensitive matching
+            >>> api_id, _ = ModelRegistry.resolve("Claude-Sonnet-4.5")
+            >>> print(api_id)
+            claude-sonnet-4-5-20250929
+        
+        """
+        if not user_input or not user_input.strip():
+            raise KeyError("Model identifier cannot be empty")
+        
+        user_input = user_input.strip()
+        
+        # Priority 1: Exact match on model_id
+        if user_input in cls._MODELS:
+            metadata = cls._MODELS[user_input]
+            return (metadata.get_api_model_id(), metadata)
+        
+        # Priority 2: Exact match on api_model_id
+        for metadata in cls._MODELS.values():
+            if metadata.api_model_id is not None and metadata.api_model_id == user_input:
+                return (metadata.get_api_model_id(), metadata)
+        
+        # Priority 3: Case-insensitive match on model_id
+        user_input_lower = user_input.lower()
+        for model_id, metadata in cls._MODELS.items():
+            if model_id.lower() == user_input_lower:
+                logger.debug(
+                    "Resolved '%s' to '%s' via case-insensitive match",
+                    user_input,
+                    model_id,
+                )
+                return (metadata.get_api_model_id(), metadata)
+        
+        # No match found
+        available = ", ".join(sorted(cls._MODELS.keys()))
+        raise KeyError(
+            f"Model '{user_input}' not found in registry. "
+            f"Available models: {available}. "
+            f"Use a registered model_id or api_model_id."
+        )
+    
+    @classmethod
+    def resolve_or_passthrough(
+        cls,
+        user_input: str,
+        provider: str = "unknown",
+    ) -> tuple[str, ModelMetadata]:
+        """Resolve user input, or pass through unknown models.
+        
+        Like resolve(), but for unknown models returns the input as-is
+        along with default metadata. This allows using custom/unlisted models
+        while still benefiting from resolution for known models.
+        
+        Args:
+            user_input: The model identifier provided by the user.
+            provider: Provider hint for unknown models.
+        
+        Returns:
+            A tuple of (api_model_id, ModelMetadata). For unknown models,
+            api_model_id equals user_input.
+        
+        Example:
+            >>> # Known model gets resolved
+            >>> api_id, _ = ModelRegistry.resolve_or_passthrough("claude-sonnet-4.5")
+            >>> print(api_id)
+            claude-sonnet-4-5-20250929
+            >>> 
+            >>> # Unknown model passes through
+            >>> api_id, metadata = ModelRegistry.resolve_or_passthrough("my-custom-model")
+            >>> print(api_id)
+            my-custom-model
+            >>> print(metadata.context_window_tokens)
+            8192
+        
+        """
+        try:
+            return cls.resolve(user_input)
+        except KeyError:
+            logger.warning(
+                "Model '%s' not found in registry, passing through as-is",
+                user_input,
+            )
+            metadata = cls.get_or_default(user_input, provider=provider)
+            return (user_input, metadata)
     
     @classmethod
     def get_summarization_model(cls, primary_model: str) -> str:

@@ -53,7 +53,7 @@ mkdir -p "$OUTPUTS_DIR"
 
 echo "=== Agent-Drafter Skill Generation ==="
 echo "Provider: anthropic"
-echo "Model: claude-sonnet-4-20250514"
+echo "Model: claude-sonnet-4.5"
 echo "Inputs directory: $INPUTS_DIR"
 echo "Outputs directory: $OUTPUTS_DIR"
 echo ""
@@ -75,7 +75,7 @@ stigmer draft skill \
   --attach "$INPUTS_DIR/requirements.md" \
   --output "$OUTPUTS_DIR" \
   --follow \
-  --model claude-sonnet-4-20250514 \
+  --model claude-sonnet-4.5 \
   -m "Create an agent-drafter skill that helps AI assistants create valid Stigmer Agent YAML files. Use the attached proto files for the exact schema, the managing-agents.md for CLI usage examples, and the example-agent.yaml as a reference implementation."
 
 echo ""
