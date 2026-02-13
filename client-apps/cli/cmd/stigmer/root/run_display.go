@@ -2,6 +2,7 @@ package root
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -9,6 +10,12 @@ import (
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 )
+
+// flushStdout ensures output is immediately visible, especially important
+// when stdout is not a TTY (e.g., running from shell scripts).
+func flushStdout() {
+	_ = os.Stdout.Sync()
+}
 
 // displayAgentPhaseChange shows when agent execution phase changes
 func displayAgentPhaseChange(phase agentexecutionv1.ExecutionPhase) {
@@ -27,6 +34,7 @@ func displayAgentPhaseChange(phase agentexecutionv1.ExecutionPhase) {
 		cliprint.PrintWarning("⏸️  Approval required")
 	}
 	fmt.Println()
+	flushStdout()
 }
 
 // displayAgentMessage displays a single agent message
@@ -50,6 +58,7 @@ func displayAgentMessage(msg *agentexecutionv1.AgentMessage) {
 	}
 
 	fmt.Printf("%s %s: %s\n\n", icon, label, msg.Content)
+	flushStdout()
 }
 
 // displayWorkflowPhaseChange shows when workflow execution phase changes
@@ -67,6 +76,7 @@ func displayWorkflowPhaseChange(phase workflowexecutionv1.ExecutionPhase) {
 		cliprint.PrintWarning("⚠️  Execution cancelled")
 	}
 	fmt.Println()
+	flushStdout()
 }
 
 // displayWorkflowTask displays a workflow task's status
@@ -103,6 +113,7 @@ func displayWorkflowTask(task *workflowexecutionv1.WorkflowTask) {
 	}
 
 	fmt.Println()
+	flushStdout()
 }
 
 // displayAgentExecutionComplete shows final agent execution summary
@@ -136,6 +147,7 @@ func displayAgentExecutionComplete(execution *agentexecutionv1.AgentExecution) {
 
 	fmt.Println(strings.Repeat("─", 80))
 	fmt.Println()
+	flushStdout()
 }
 
 // displayWorkflowExecutionComplete shows final workflow execution summary
@@ -191,6 +203,7 @@ func displayWorkflowExecutionComplete(execution *workflowexecutionv1.WorkflowExe
 
 	fmt.Println(strings.Repeat("─", 80))
 	fmt.Println()
+	flushStdout()
 }
 
 // isTerminalAgentPhase checks if agent execution phase is terminal

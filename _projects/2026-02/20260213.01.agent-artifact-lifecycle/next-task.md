@@ -121,9 +121,53 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-13
-**Last Session**: 2026-02-13 Session 5 - CLI Artifact Lifecycle Implementation completed
-**Current Task**: T04 (CLI Implementation)
-**Status**: ✅ COMPLETED - Full CLI artifact lifecycle interface with file attachments, execution management, and artifact downloads
+**Last Session**: 2026-02-13 Session 6 - Architectural Cleanup: Removed Inline Attachment Content
+**Current Task**: Refactoring (Post-Implementation Cleanup)
+**Status**: ✅ COMPLETED - Storage-first architecture enforced, hybrid approach removed
+
+---
+
+## Session Progress (2026-02-13 - Session 6)
+
+### Completed ✅
+- **Architectural Refactoring**: Remove Inline Attachment Content
+  - **Proto Breaking Change**
+    - Removed `bytes content = 2` field from Attachment message
+    - Added `reserved 2` to prevent field reuse
+    - Made `storage_key` required with buf.validate (min_len = 1)
+    - Updated documentation to explain storage-first flow
+  - **CLI Simplification** (`run_attachments.go`)
+    - Removed `MaxInlineSize` constant (was 4MB)
+    - Removed `createInlineAttachment()` function  
+    - Removed size-based routing logic
+    - All files now always uploaded via RPC
+    - Reduced from ~190 lines to ~145 lines
+  - **Agent Runner Simplification** (`execute_graphton.py`)
+    - Removed inline content handling branch
+    - Storage now required (not optional)
+    - Single code path: always download from storage
+    - Simplified `inject_attachments()` function
+  - **Backend Validation Update** (`create.go`)
+    - Removed artifact storage dependency from `processAttachmentsStep`
+    - Removed upload fallback logic for large files
+    - Now only validates storage_key presence
+    - Reduced from ~100 lines to ~40 lines
+  - **Benefits Achieved**
+    - Eliminated Temporal 2MB payload risk
+    - Removed ~125 lines of conditional logic
+    - Single consistent mental model
+    - Clearer failure modes
+  
+### Commit
+- **SHA**: 8f36471a
+- **Message**: `refactor(artifact-lifecycle): remove inline attachment content, enforce storage-first`
+- **Breaking Change**: Yes - Attachment.content field removed
+- **Files**: 8 files changed (+370, -202)
+
+### Changelog Created
+- File: `_changelog/2026-02/2026-02-13-173552-remove-inline-attachment-content.md`
+- Comprehensive documentation of architectural change
+- Migration guidance for coordinated deployment
 
 ---
 
@@ -448,12 +492,32 @@ Artifact Download:
 
 ### Immediate (Task 6: Integration Testing)
 
-All implementation complete - ready for end-to-end testing:
-1. End-to-end test: CLI upload → Agent execution → CLI download
-2. Test large file handling (>4MB)
-3. Test directory artifacts (ZIP handling)
-4. Test presigned URL expiration and refresh
-5. Test security validation (path traversal prevention)
+All implementation complete (including architectural cleanup) - ready for end-to-end testing:
+1. **End-to-end test**: CLI upload → Agent execution → CLI download
+   - Verify all files are uploaded (no inline path exists)
+   - Test various file sizes (small, medium, large)
+   - Confirm storage_key validation works
+2. **Error handling**: Test missing storage_key (should fail gracefully)
+3. **Directory artifacts**: Test ZIP handling for publish_artifact
+4. **Presigned URL**: Test expiration and refresh
+5. **Security**: Test path traversal prevention in download handler
+
+### Follow-Up Work (Post-Testing)
+
+**Java Backend Alignment** (if applicable):
+- Check if `stigmer-cloud` has similar inline content logic
+- Update Java handlers to match storage-first pattern
+- Update Java tests that may use inline attachments
+
+**Documentation Updates**:
+- Update API documentation (uploadAttachment is now mandatory)
+- Update CLI usage examples (show upload step)
+- Update architecture diagrams (remove inline content path)
+
+**Monitoring** (Production):
+- Add metrics for upload RPC success/failure rates
+- Track attachment size distribution
+- Monitor storage backend health
 
 ### Context for Resume
 - **🎉 ALL IMPLEMENTATION COMPLETE**: Backend (Go/Java/Python) + CLI fully implemented

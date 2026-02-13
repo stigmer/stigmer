@@ -14,6 +14,7 @@ type draftSkillOptions struct {
 	AttachFlags []string
 	OutputDir   string
 	Follow      bool
+	Model       string
 }
 
 // executeDraftSkill handles the draft skill command by invoking the skill-creator-agent.
@@ -56,7 +57,7 @@ func executeDraftSkill(opts draftSkillOptions) error {
 
 	// 4. Create execution
 	cliprint.PrintInfo("Invoking skill-creator-agent...")
-	exec, err := createAgentExecution(agent.Metadata.Id, orgID, opts.Message, nil, attachments, conn)
+	exec, err := createAgentExecution(agent.Metadata.Id, orgID, opts.Message, nil, attachments, opts.Model, conn)
 	if err != nil {
 		return errors.Wrap(err, "failed to create execution")
 	}

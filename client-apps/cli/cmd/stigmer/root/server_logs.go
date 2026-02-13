@@ -20,11 +20,11 @@ import (
 
 func newServerLogsCommand() *cobra.Command {
 	var (
-		follow       bool
-		lines        int
-		component    string
-		showStderr   bool
-		showAll      bool
+		follow     bool
+		lines      int
+		component  string
+		showStderr bool
+		showAll    bool
 	)
 
 	cmd := &cobra.Command{
@@ -52,12 +52,12 @@ Use --all to view logs from all components in a single interleaved stream (defau
 			// If --component is explicitly set, use single-component mode (unless --all is also explicitly set)
 			componentExplicitlySet := cmd.Flags().Changed("component")
 			allExplicitlySet := cmd.Flags().Changed("all")
-			
+
 			// Use all-components mode if:
 			// 1. --all is explicitly set to true, OR
 			// 2. Neither --component nor --all was explicitly set (default behavior)
 			useAllMode := (allExplicitlySet && showAll) || (!componentExplicitlySet && !allExplicitlySet && showAll)
-			
+
 			if useAllMode {
 				// Smart defaults: use the stream that actually has logs for each component
 				// - stigmer-server: stderr (zerolog defaults to stderr)
@@ -65,9 +65,9 @@ Use --all to view logs from all components in a single interleaved stream (defau
 				// - agent-runner: both stdout and stderr from Docker
 				// If user explicitly set --stderr, respect that for all components
 				useSmartDefaults := !cmd.Flags().Changed("stderr")
-				
+
 				components := getComponentConfigsWithStreamPreferences(dataDir, logDir, useSmartDefaults)
-				
+
 				streamType := "mixed (smart defaults)"
 				if !useSmartDefaults {
 					if showStderr {
@@ -76,12 +76,12 @@ Use --all to view logs from all components in a single interleaved stream (defau
 						streamType = "stdout"
 					}
 				}
-				
+
 				if follow {
 					cliprint.PrintInfo("Streaming logs from all components (%s, interleaved by timestamp)", streamType)
 					cliprint.PrintInfo("Press Ctrl+C to stop")
 					fmt.Println()
-					
+
 					if err := logs.StreamAllLogsWithPreferences(components, lines); err != nil {
 						cliprint.PrintError("Failed to stream logs")
 						clierr.Handle(err)
@@ -90,7 +90,7 @@ Use --all to view logs from all components in a single interleaved stream (defau
 				} else {
 					cliprint.PrintInfo("Showing last %d lines from all components (%s, interleaved by timestamp)", lines, streamType)
 					fmt.Println()
-					
+
 					mergedLines, err := logs.MergeLogFilesWithPreferences(components, lines)
 					if err != nil {
 						cliprint.PrintError("Failed to read logs")
@@ -122,7 +122,7 @@ Use --all to view logs from all components in a single interleaved stream (defau
 
 			// Determine log file
 			var logFile string
-			
+
 			if component == "stigmer-server" {
 				if showStderr {
 					logFile = filepath.Join(logDir, "stigmer-server.err")
@@ -151,20 +151,20 @@ Use --all to view logs from all components in a single interleaved stream (defau
 				return
 			}
 
-		// Stream or show logs
-		if follow {
-			if err := streamLogs(logFile, lines); err != nil {
-				cliprint.PrintError("Failed to stream logs")
-				clierr.Handle(err)
-				return
+			// Stream or show logs
+			if follow {
+				if err := streamLogs(logFile, lines); err != nil {
+					cliprint.PrintError("Failed to stream logs")
+					clierr.Handle(err)
+					return
+				}
+			} else {
+				if err := showLastNLines(logFile, lines); err != nil {
+					cliprint.PrintError("Failed to read logs")
+					clierr.Handle(err)
+					return
+				}
 			}
-		} else {
-			if err := showLastNLines(logFile, lines); err != nil {
-				cliprint.PrintError("Failed to read logs")
-				clierr.Handle(err)
-				return
-			}
-		}
 		},
 	}
 
@@ -191,11 +191,11 @@ func getComponentConfigs(dataDir, logDir string) []logs.ComponentConfig {
 			ErrFile: filepath.Join(logDir, "workflow-runner.err"),
 		},
 	}
-	
+
 	// Check if agent-runner is running in Docker
 	if daemon.IsAgentRunnerDocker(dataDir) {
 		components = append(components, logs.ComponentConfig{
-			Name:           "agent-runner",
+			Name:            "agent-runner",
 			DockerContainer: daemon.AgentRunnerContainerName,
 		})
 	} else {
@@ -205,7 +205,7 @@ func getComponentConfigs(dataDir, logDir string) []logs.ComponentConfig {
 			ErrFile: filepath.Join(logDir, "agent-runner.err"),
 		})
 	}
-	
+
 	return components
 }
 
@@ -216,35 +216,35 @@ func getComponentConfigs(dataDir, logDir string) []logs.ComponentConfig {
 func getComponentConfigsWithStreamPreferences(dataDir, logDir string, useSmartDefaults bool) []logs.ComponentConfig {
 	components := []logs.ComponentConfig{
 		{
-			Name:           "stigmer-server",
-			LogFile:        filepath.Join(logDir, "stigmer-server.log"),
-			ErrFile:        filepath.Join(logDir, "stigmer-server.err"),
-			PreferStderr:   false, // Both stdout and stderr are redirected to .log file in daemon.go
+			Name:         "stigmer-server",
+			LogFile:      filepath.Join(logDir, "stigmer-server.log"),
+			ErrFile:      filepath.Join(logDir, "stigmer-server.err"),
+			PreferStderr: false, // Both stdout and stderr are redirected to .log file in daemon.go
 		},
 		{
-			Name:           "workflow-runner",
-			LogFile:        filepath.Join(logDir, "workflow-runner.log"),
-			ErrFile:        filepath.Join(logDir, "workflow-runner.err"),
-			PreferStderr:   false, // Both stdout and stderr are redirected to .log file in daemon.go
+			Name:         "workflow-runner",
+			LogFile:      filepath.Join(logDir, "workflow-runner.log"),
+			ErrFile:      filepath.Join(logDir, "workflow-runner.err"),
+			PreferStderr: false, // Both stdout and stderr are redirected to .log file in daemon.go
 		},
 	}
-	
+
 	// Check if agent-runner is running in Docker
 	if daemon.IsAgentRunnerDocker(dataDir) {
 		components = append(components, logs.ComponentConfig{
-			Name:           "agent-runner",
+			Name:            "agent-runner",
 			DockerContainer: daemon.AgentRunnerContainerName,
-			PreferStderr:   false, // Docker logs include both streams
+			PreferStderr:    false, // Docker logs include both streams
 		})
 	} else {
 		components = append(components, logs.ComponentConfig{
-			Name:           "agent-runner",
-			LogFile:        filepath.Join(logDir, "agent-runner.log"),
-			ErrFile:        filepath.Join(logDir, "agent-runner.err"),
-			PreferStderr:   false, // agent-runner logs to stdout
+			Name:         "agent-runner",
+			LogFile:      filepath.Join(logDir, "agent-runner.log"),
+			ErrFile:      filepath.Join(logDir, "agent-runner.err"),
+			PreferStderr: false, // agent-runner logs to stdout
 		})
 	}
-	
+
 	return components
 }
 
@@ -269,7 +269,7 @@ func streamLogs(logFile string, tailLines int) error {
 
 	// Read and display existing logs
 	scanner := bufio.NewScanner(file)
-	
+
 	if tailLines == 0 {
 		// Show all existing logs
 		for scanner.Scan() {
@@ -313,7 +313,7 @@ func streamLogs(logFile string, tailLines int) error {
 			if err == io.EOF {
 				// No more data, wait and try again
 				time.Sleep(100 * time.Millisecond)
-				
+
 				// Re-check file size (in case it was truncated/rotated)
 				stat, statErr := file.Stat()
 				if statErr == nil {
@@ -350,10 +350,10 @@ func showLastNLines(logFile string, n int) error {
 	// Read all lines into a circular buffer
 	lines := make([]string, 0, n)
 	scanner := bufio.NewScanner(file)
-	
+
 	for scanner.Scan() {
 		line := scanner.Text()
-		
+
 		if len(lines) < n {
 			lines = append(lines, line)
 		} else {
@@ -377,26 +377,26 @@ func showLastNLines(logFile string, n int) error {
 // streamDockerLogs streams logs from a Docker container
 func streamDockerLogs(containerName string, follow bool, tailLines int) error {
 	args := []string{"logs"}
-	
+
 	if follow {
 		args = append(args, "-f")
 	}
-	
+
 	if tailLines > 0 {
 		args = append(args, "--tail", strconv.Itoa(tailLines))
 	}
-	
+
 	args = append(args, containerName)
-	
+
 	cliprint.PrintInfo("Streaming logs from Docker container: %s", containerName)
 	if follow {
 		cliprint.PrintInfo("Press Ctrl+C to stop")
 	}
 	fmt.Println()
-	
+
 	cmd := exec.Command("docker", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
+
 	return cmd.Run()
 }
