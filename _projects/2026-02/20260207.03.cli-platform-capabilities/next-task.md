@@ -158,9 +158,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-07 13:36
-**Updated**: 2026-02-13 (Post-deferral cleanup)
-**Current Task**: Phase 5.1 - `stigmer draft agent` command
-**Status**: Phases 1.1-2.2 Complete ✅ | Phases 3.1, 4.1 Deferred 🚫
+**Updated**: 2026-02-13 (Session 4 - Draft Skill Implemented)
+**Current Task**: Phase 5.1 Complete - Ready for Phase 5.2 or 6.x
+**Status**: Phases 1.1-2.2, 5.1 Complete ✅ | Phases 3.1, 4.1 Deferred 🚫
 
 **Active Plan**: `tasks/T01_2_practical_plan.md` (research-informed, APPROVED)
 
@@ -188,7 +188,41 @@ When starting a new session:
 - Enables both CLI and server to import the package
 - Follows established pattern (CLI already imports from `backend/libs/go/`)
 
-### Session Progress (2026-02-08 Session 3) - CURRENT
+## Session Progress (2026-02-13 Session 4) - CURRENT
+
+**Phase 5.1: Draft Skill Command - COMPLETED**
+
+**Implementation**:
+- ✅ Created `draft.go` - Command group with extensible structure
+- ✅ Created `draft_skill.go` - Subcommand with flags (--attach, --output, --follow)
+- ✅ Created `draft_skill_handler.go` - Handler delegating to existing infrastructure
+- ✅ Wired `NewDraftCommand()` in root.go
+- ✅ Build verified - no errors, help text correct
+
+**Key Design**:
+- Thin wrapper pattern - reuses 100% of existing artifact lifecycle infrastructure
+- Resolves `local/skill-creator-agent` (matches bootstrap org)
+- Always waits for completion and downloads artifacts
+- Zero code duplication - delegates to `runAgent()`, `AttachmentProcessor`, `downloadArtifacts()`
+
+**Bug Fix**:
+- Fixed `skill-creator-agent.yaml` skill_refs: changed org from `stigmer` to `local`
+
+**Files Created**:
+- `client-apps/cli/cmd/stigmer/root/draft.go` (35 lines)
+- `client-apps/cli/cmd/stigmer/root/draft_skill.go` (80 lines)
+- `client-apps/cli/cmd/stigmer/root/draft_skill_handler.go` (110 lines)
+- `_changelog/2026-02/2026-02-13-153224-draft-skill-command.md`
+
+**Files Modified**:
+- `backend/libs/go/seedpack/agents/skill-creator-agent.yaml` (org fix)
+- `client-apps/cli/cmd/stigmer/root.go` (wired draft command)
+
+**Commit**: `ae2ed04d` - feat(cli): add draft skill command with artifact lifecycle integration
+
+---
+
+### Session Progress (2026-02-08 Session 3)
 
 **Phase 2.1: Bootstrap State Machine - COMPLETED**
 
@@ -261,28 +295,31 @@ backend/services/stigmer-server/pkg/server/
 
 ## Next Steps (for Next Session)
 
-**DEFERRED**: Phase 3.1 (Skill Resolver) has been deferred. Skills are available in the registry via bootstrap; the embedded fallback resolver is not needed at this time.
+**Phase 5.1 Complete!** The `stigmer draft skill` command is implemented and working.
 
-**Recommended Next Task: Phase 5.1 - `stigmer draft agent` command**
+**Recommended Next Tasks:**
 
-This is the user-facing feature that delivers the project goal. Prerequisites are met:
-- `skill-creator` skill is pushed to registry via bootstrap
-- `skill-creator-agent` is created via bootstrap  
-- Agent can be invoked using existing `stigmer run agent` flow
+**Option A: Phase 5.2 - Other Draft Commands**
+- Implement `stigmer draft agent` (requires agent-drafter-agent)
+- Implement `stigmer draft workflow` (requires workflow-drafter-agent)
+- Implement `stigmer draft mcpserver` (requires mcpserver-drafter-agent)
 
-1. **Phase 5.1**: `stigmer draft agent` command
-   - Create `draft` command group
-   - Implement `draft agent` that invokes `skill-creator-agent`
-   - Streaming conversation support
+Each requires:
+1. Using `stigmer draft skill` to create a drafter skill for that resource type
+2. Creating a drafter agent that uses the skill (can use skill-creator-agent)
+3. Adding CLI command wiring (same pattern as draft skill)
 
-2. **Phase 5.2**: Other draft commands (workflow, skill, mcpserver)
-   - Extend pattern to other resource types
+**Option B: Phase 6.1 - Seed Update Command**
+- Implement `stigmer seed update` for upstream sync
+- Enable updating vendored skills from Anthropic repo
+- Requires network connectivity
 
-3. **Phase 6.1**: `stigmer seed update` command
-   - Explicit upstream sync (requires network)
+**Option C: Phase 6.2 - System Commands**
+- Implement `stigmer system list` - show all system resources
+- Implement `stigmer system status` - show bootstrap state
+- Implement `stigmer system disable/enable` - control system resources
 
-4. **Phase 6.2**: `stigmer system` commands
-   - list, status, disable, enable
+**Recommended**: Start with Option A (draft agent) or test the draft skill command end-to-end first.
 
 ## Quick Commands
 
@@ -304,8 +341,8 @@ After loading context:
 | ~~6~~ | ~~3.1~~ | ~~Skill resolver~~ | ~~Resolve from registry or embedded~~ | 🚫 Deferred |
 | ~~7~~ | ~~4.1~~ | ~~Agent runtime integration~~ | ~~Wire skills into agent invocation~~ | 🚫 Deferred |
 | ~~8~~ | ~~4.2~~ | ~~skill-creator-agent~~ | ~~The agent that creates skills~~ | ✅ Created via bootstrap |
-| **→ 6** | **5.1** | **`draft agent` command** | **User-facing feature** | 🎯 Next |
-| 7 | 5.2 | Other draft commands | workflow, skill, mcpserver | Pending |
+| **6** | **5.1** | **`draft skill` command** | **User-facing feature** | ✅ **Complete** |
+| **→ 7** | **5.2** | **Other draft commands** | **workflow, agent, mcpserver** | 🎯 Next |
 | 8 | 6.1 | Seed update command | Explicit upstream sync | Pending |
 | 9 | 6.2 | System commands | list, status, disable, enable | Pending |
 
