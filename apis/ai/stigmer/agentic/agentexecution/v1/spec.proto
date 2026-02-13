@@ -331,15 +331,16 @@ message ContextManagementConfig {
 
 // Attachment represents a file attached to an agent execution.
 //
-// Files can be provided inline (for small files) or by reference to
-// pre-uploaded storage (for large files or reuse).
+// All files must be pre-uploaded via the uploadAttachment RPC and referenced
+// by storage_key. This ensures consistent behavior regardless of file size
+// and avoids Temporal payload limits (2MB).
 //
-// ## Inline vs Reference
+// ## Usage Flow
 //
-// - **content** (bytes): For files < 4MB, embed directly in the request
-// - **storage_key** (string): For large files, pre-upload to artifact store
-//
-// Exactly one of content or storage_key must be provided (enforced in handler).
+// 1. Client calls uploadAttachment RPC with file content
+// 2. Server returns a storage_key
+// 3. Client creates execution with Attachment containing that storage_key
+// 4. Agent-runner downloads file from storage and injects into sandbox
 //
 // ## Mount Path
 //
@@ -356,15 +357,14 @@ message Attachment {
   // Example: "config.yaml", "input-data.zip"
   string filename = 1 [(buf.validate.field).string.min_len = 1];
 
-  // File content (for small files < 4MB).
-  // Mutually exclusive with storage_key (enforced in handler).
-  // Serialized as base64 in JSON representation.
-  bytes content = 2;
+  // Reserved: Previously 'content' (bytes) for inline file content.
+  // Removed to enforce storage-first approach and avoid Temporal payload limits.
+  reserved 2;
 
-  // Reference to pre-uploaded file in artifact store.
-  // Mutually exclusive with content (enforced in handler).
-  // Format: "attachments/{org}/{hash}" or similar storage key.
-  string storage_key = 3;
+  // Reference to pre-uploaded file in artifact store (required).
+  // Obtained by calling uploadAttachment RPC before creating the execution.
+  // Format: "attachments/{ulid}/{filename}"
+  string storage_key = 3 [(buf.validate.field).string.min_len = 1];
 
   // Path in sandbox where file will be placed.
   // Defaults to "/inputs/{filename}" if not specified.

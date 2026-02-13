@@ -510,15 +510,16 @@ func (x *ContextManagementConfig) GetCustomTargetTokens() int32 {
 
 // Attachment represents a file attached to an agent execution.
 //
-// Files can be provided inline (for small files) or by reference to
-// pre-uploaded storage (for large files or reuse).
+// All files must be pre-uploaded via the uploadAttachment RPC and referenced
+// by storage_key. This ensures consistent behavior regardless of file size
+// and avoids Temporal payload limits (2MB).
 //
-// ## Inline vs Reference
+// ## Usage Flow
 //
-// - **content** (bytes): For files < 4MB, embed directly in the request
-// - **storage_key** (string): For large files, pre-upload to artifact store
-//
-// Exactly one of content or storage_key must be provided (enforced in handler).
+// 1. Client calls uploadAttachment RPC with file content
+// 2. Server returns a storage_key
+// 3. Client creates execution with Attachment containing that storage_key
+// 4. Agent-runner downloads file from storage and injects into sandbox
 //
 // ## Mount Path
 //
@@ -535,13 +536,9 @@ type Attachment struct {
 	// Original filename for display and default mount path derivation.
 	// Example: "config.yaml", "input-data.zip"
 	Filename string `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
-	// File content (for small files < 4MB).
-	// Mutually exclusive with storage_key (enforced in handler).
-	// Serialized as base64 in JSON representation.
-	Content []byte `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
-	// Reference to pre-uploaded file in artifact store.
-	// Mutually exclusive with content (enforced in handler).
-	// Format: "attachments/{org}/{hash}" or similar storage key.
+	// Reference to pre-uploaded file in artifact store (required).
+	// Obtained by calling uploadAttachment RPC before creating the execution.
+	// Format: "attachments/{ulid}/{filename}"
 	StorageKey string `protobuf:"bytes,3,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
 	// Path in sandbox where file will be placed.
 	// Defaults to "/inputs/{filename}" if not specified.
@@ -589,13 +586,6 @@ func (x *Attachment) GetFilename() string {
 		return x.Filename
 	}
 	return ""
-}
-
-func (x *Attachment) GetContent() []byte {
-	if x != nil {
-		return x.Content
-	}
-	return nil
 }
 
 func (x *Attachment) GetStorageKey() string {
@@ -646,16 +636,15 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x17ContextManagementConfig\x123\n" +
 	"\x15disable_summarization\x18\x01 \x01(\bR\x14disableSummarization\x12A\n" +
 	"\x18custom_trigger_threshold\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x16customTriggerThreshold\x129\n" +
-	"\x14custom_target_tokens\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x12customTargetTokens\"\xae\x01\n" +
+	"\x14custom_target_tokens\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x12customTargetTokens\"\xa3\x01\n" +
 	"\n" +
 	"Attachment\x12#\n" +
-	"\bfilename\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfilename\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\fR\acontent\x12\x1f\n" +
-	"\vstorage_key\x18\x03 \x01(\tR\n" +
+	"\bfilename\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfilename\x12(\n" +
+	"\vstorage_key\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"storageKey\x12\x1d\n" +
 	"\n" +
 	"mount_path\x18\x04 \x01(\tR\tmountPath\x12!\n" +
-	"\fcontent_type\x18\x05 \x01(\tR\vcontentTypeB\xca\x02\n" +
+	"\fcontent_type\x18\x05 \x01(\tR\vcontentTypeJ\x04\b\x02\x10\x03B\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tSpecProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (

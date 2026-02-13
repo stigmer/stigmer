@@ -56,15 +56,13 @@ class ContextManagementConfig(_message.Message):
     def __init__(self, disable_summarization: bool = ..., custom_trigger_threshold: _Optional[int] = ..., custom_target_tokens: _Optional[int] = ...) -> None: ...
 
 class Attachment(_message.Message):
-    __slots__ = ("filename", "content", "storage_key", "mount_path", "content_type")
+    __slots__ = ("filename", "storage_key", "mount_path", "content_type")
     FILENAME_FIELD_NUMBER: _ClassVar[int]
-    CONTENT_FIELD_NUMBER: _ClassVar[int]
     STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
     MOUNT_PATH_FIELD_NUMBER: _ClassVar[int]
     CONTENT_TYPE_FIELD_NUMBER: _ClassVar[int]
     filename: str
-    content: bytes
     storage_key: str
     mount_path: str
     content_type: str
-    def __init__(self, filename: _Optional[str] = ..., content: _Optional[bytes] = ..., storage_key: _Optional[str] = ..., mount_path: _Optional[str] = ..., content_type: _Optional[str] = ...) -> None: ...
+    def __init__(self, filename: _Optional[str] = ..., storage_key: _Optional[str] = ..., mount_path: _Optional[str] = ..., content_type: _Optional[str] = ...) -> None: ...

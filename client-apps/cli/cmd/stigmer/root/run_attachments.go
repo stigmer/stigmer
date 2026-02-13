@@ -14,17 +14,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	// MaxInlineSize is the maximum file size (4MB) that can be embedded inline
-	// in the Attachment message. Files larger than this must be uploaded via
-	// uploadAttachment RPC.
-	MaxInlineSize = 4 * 1024 * 1024 // 4MB
-)
-
 // AttachmentProcessor handles file attachments for the run command.
-// It transparently handles the size-based routing:
-// - Files < 4MB: embedded inline in Attachment.content
-// - Files >= 4MB: uploaded via uploadAttachment RPC, referenced by storage_key
+// All files are uploaded via the uploadAttachment RPC and referenced by storage_key.
+// This ensures consistent behavior regardless of file size and avoids Temporal
+// payload limits (2MB).
 type AttachmentProcessor struct {
 	conn grpc.ClientConnInterface
 }
@@ -35,11 +28,8 @@ func NewAttachmentProcessor(conn grpc.ClientConnInterface) *AttachmentProcessor 
 }
 
 // ProcessFiles converts file paths to Attachment protos.
-// For each file:
-//   - If size < 4MB: creates Attachment with inline content
-//   - If size >= 4MB: uploads via RPC, creates Attachment with storage_key
-//
-// Returns a slice of Attachment protos ready for use in AgentExecutionSpec.
+// Each file is uploaded via the uploadAttachment RPC and an Attachment with
+// storage_key is returned.
 func (p *AttachmentProcessor) ProcessFiles(paths []string) ([]*agentexecutionv1.Attachment, error) {
 	if len(paths) == 0 {
 		return nil, nil
@@ -58,9 +48,8 @@ func (p *AttachmentProcessor) ProcessFiles(paths []string) ([]*agentexecutionv1.
 	return attachments, nil
 }
 
-// processFile processes a single file and returns an Attachment proto.
+// processFile validates a file and uploads it, returning an Attachment proto.
 func (p *AttachmentProcessor) processFile(path string) (*agentexecutionv1.Attachment, error) {
-	// Check file exists
 	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -76,42 +65,20 @@ func (p *AttachmentProcessor) processFile(path string) (*agentexecutionv1.Attach
 	filename := filepath.Base(path)
 	contentType := detectContentType(filename)
 
-	// Route based on file size
-	if info.Size() < MaxInlineSize {
-		return p.createInlineAttachment(path, filename, contentType)
-	}
-	return p.createUploadedAttachment(path, filename, contentType)
+	return p.uploadFile(path, filename, contentType, info.Size())
 }
 
-// createInlineAttachment creates an Attachment with inline content for small files.
-func (p *AttachmentProcessor) createInlineAttachment(path, filename, contentType string) (*agentexecutionv1.Attachment, error) {
+// uploadFile uploads a file and creates an Attachment with storage_key.
+func (p *AttachmentProcessor) uploadFile(path, filename, contentType string, size int64) (*agentexecutionv1.Attachment, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read file")
 	}
 
-	return &agentexecutionv1.Attachment{
-		Filename:    filename,
-		Content:     content,
-		ContentType: contentType,
-		// mount_path defaults to /inputs/{filename} on server side
-	}, nil
-}
+	cliprint.PrintInfo("Uploading %s (%s)...", filename, formatFileSize(size))
 
-// createUploadedAttachment uploads a large file and creates an Attachment with storage_key.
-func (p *AttachmentProcessor) createUploadedAttachment(path, filename, contentType string) (*agentexecutionv1.Attachment, error) {
-	// Read file content
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read file")
-	}
-
-	fileSize := len(content)
-	cliprint.PrintInfo("Uploading %s (%s)...", filename, formatFileSize(int64(fileSize)))
-
-	// Upload via RPC
 	client := agentexecutionv1.NewAgentExecutionCommandControllerClient(p.conn)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute) // Longer timeout for uploads
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	resp, err := client.UploadAttachment(ctx, &agentexecutionv1.UploadAttachmentRequest{
@@ -139,13 +106,11 @@ func detectContentType(filename string) string {
 		return "application/octet-stream"
 	}
 
-	// Use mime package for standard types
 	mimeType := mime.TypeByExtension(ext)
 	if mimeType != "" {
 		return mimeType
 	}
 
-	// Common extensions not in mime package
 	switch ext {
 	case ".md", ".markdown":
 		return "text/markdown"
