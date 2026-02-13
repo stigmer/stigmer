@@ -114,13 +114,16 @@ func defaultStoragePath() string {
 	return filepath.Join(home, ".stigmer", "storage")
 }
 
-// defaultArtifactPath returns the default artifact storage path (~/.stigmer/artifacts)
+// defaultArtifactPath returns the default artifact storage base path (~/.stigmer/data)
+// The storage layer (local_storage.go) creates an "artifacts" subdirectory under this path.
+// This path is shared with agent-runner (via volume mount at ~/.stigmer/data/artifacts)
+// for attachment storage.
 func defaultArtifactPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return "./artifacts"
+		return "./"
 	}
-	return filepath.Join(home, ".stigmer", "artifacts")
+	return filepath.Join(home, ".stigmer", "data")
 }
 
 // ensureDBDir ensures the database directory exists
