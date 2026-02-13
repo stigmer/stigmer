@@ -158,11 +158,13 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-07 13:36
-**Updated**: 2026-02-13 (Session 4 - Draft Skill Implemented)
+**Updated**: 2026-02-13 (Session 5 - Agent-Runner Visibility Fixed)
 **Current Task**: Phase 5.1 Complete - Ready for Phase 5.2 or 6.x
 **Status**: Phases 1.1-2.2, 5.1 Complete ✅ | Phases 3.1, 4.1 Deferred 🚫
 
 **Active Plan**: `tasks/T01_2_practical_plan.md` (research-informed, APPROVED)
+
+**Blocker Resolved**: Issue I01 (agent-runner startup failures hidden) - now fixed ✅
 
 ### Session Progress (2026-02-08 Session 1)
 
@@ -219,6 +221,57 @@ When starting a new session:
 - `client-apps/cli/cmd/stigmer/root.go` (wired draft command)
 
 **Commit**: `ae2ed04d` - feat(cli): add draft skill command with artifact lifecycle integration
+
+---
+
+## Session Progress (2026-02-13 Session 5) - Agent-Runner Visibility Fix
+
+**Context**: The draft skill work from Session 4 was blocked by a hidden agent-runner failure. Agent-runner container was in a crash loop due to a Python syntax error, but `stigmer server status` didn't show agent-runner at all, and error messages were cryptic.
+
+**Issue Fixed**: `I01_agent_runner_startup_failure_hidden.md`
+
+**Implementation**:
+- ✅ Created unified `GetAgentRunnerStatus()` in daemon package with fallback to docker ps
+- ✅ Enhanced `DockerContainerHealthCheck` to detect restart loops, exit codes, restarting state
+- ✅ Modified `stigmer server status` to always show agent-runner section (even if not found)
+- ✅ Added crash loop indicators and restart count display
+- ✅ Implemented smart error extraction from container logs (Python SyntaxError, ImportError, etc.)
+- ✅ Fixed `stigmer server logs --component agent-runner` to properly show Docker container logs
+- ✅ Added actionable help messages with exact log viewing commands
+
+**Before**:
+```
+Stigmer Server:    Running ✓
+Workflow Runner:   Running ✓
+[No agent-runner section shown]
+
+$ stigmer draft skill
+Error: activity failed: No worker available
+[User has to manually run: docker logs stigmer-agent-runner]
+```
+
+**After**:
+```
+Agent Runner (Docker):
+⚠   Status:   Unhealthy (crash loop) ✗
+ℹ   Container: 8a429e4b4548
+⚠   Restarts: 35 (crash loop detected)
+⚠   Last Error: SyntaxError: invalid syntax
+ℹ 
+ℹ   View logs: stigmer server logs --component agent-runner
+ℹ         or:  docker logs stigmer-agent-runner
+```
+
+**Files Modified**:
+- `client-apps/cli/internal/cli/daemon/daemon.go` (+214 lines)
+- `client-apps/cli/internal/cli/health/checks.go` (+45 lines)
+- `client-apps/cli/cmd/stigmer/root/server.go` (+125 lines)
+- `client-apps/cli/cmd/stigmer/root/server_logs.go` (+6 lines, -13 lines)
+- `_changelog/2026-02/2026-02-13-173940-agent-runner-visibility-fix.md` (new)
+
+**Commit**: `cf788050` - feat(cli): improve agent-runner visibility and crash loop detection
+
+**Impact**: Eliminates the most confusing UX issue where server appears healthy but agent executions mysteriously fail. Now users get immediate, actionable feedback about agent-runner problems.
 
 ---
 
@@ -296,6 +349,10 @@ backend/services/stigmer-server/pkg/server/
 ## Next Steps (for Next Session)
 
 **Phase 5.1 Complete!** The `stigmer draft skill` command is implemented and working.
+
+**Blocker Resolved!** Agent-runner visibility is now working - we can see and diagnose container issues immediately.
+
+**Ready for**: Creating drafter skills and agents using the working `stigmer draft skill` command.
 
 **Recommended Next Tasks:**
 
