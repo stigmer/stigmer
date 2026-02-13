@@ -266,10 +266,9 @@ func handleServerStatus() {
 			showComponentStatus("Workflow Runner", healthSummary["workflow-runner"], wfPID)
 		}
 
-		// Agent Runner
-		if containerID, err := daemon.GetAgentRunnerContainerID(dataDir); err == nil {
-			showAgentRunnerStatus(healthSummary["agent-runner"], containerID)
-		}
+		// Agent Runner - always show status using unified detection
+		agentStatus := daemon.GetAgentRunnerStatus(dataDir)
+		showAgentRunnerStatusEnhanced(healthSummary["agent-runner"], agentStatus)
 
 		cliprint.Info("")
 		cliprint.Info("Server Details:")
@@ -350,18 +349,36 @@ func createBasicHealthStatus(dataDir string, stigmerPID int) map[string]daemon.C
 		}
 	}
 
-	// Agent Runner - check if container exists AND is actually running
-	if containerID, err := daemon.GetAgentRunnerContainerID(dataDir); err == nil {
-		// CRITICAL: Actually verify the container is running, not just that ID file exists
-		if isDockerContainerRunning(containerID) {
-			healthMap["agent-runner"] = daemon.ComponentHealth{
-				State: daemon.ComponentState("running"),
+	// Agent Runner - use unified detection with fallback to docker ps
+	agentStatus := daemon.GetAgentRunnerStatus(dataDir)
+	if agentStatus.Found {
+		health := daemon.ComponentHealth{}
+
+		// Determine state based on container status
+		if agentStatus.Restarting || agentStatus.InCrashLoop {
+			health.State = daemon.ComponentState("unhealthy")
+			if agentStatus.LastError != "" {
+				health.LastError = fmt.Errorf("%s", agentStatus.LastError)
+			} else {
+				health.LastError = fmt.Errorf("container in crash loop (%d restarts)", agentStatus.RestartCount)
 			}
+		} else if agentStatus.Running {
+			health.State = daemon.ComponentState("running")
 		} else {
-			// Container is stopped but ID file exists (stale)
-			healthMap["agent-runner"] = daemon.ComponentHealth{
-				State: daemon.ComponentState("unhealthy"),
+			health.State = daemon.ComponentState("stopped")
+			if agentStatus.ExitCode != 0 {
+				health.LastError = fmt.Errorf("exited with code %d", agentStatus.ExitCode)
 			}
+		}
+
+		// Store restart count (Docker's count, not internal)
+		health.RestartCount = agentStatus.RestartCount
+
+		healthMap["agent-runner"] = health
+	} else {
+		// Container not found at all
+		healthMap["agent-runner"] = daemon.ComponentHealth{
+			State: daemon.ComponentState("stopped"),
 		}
 	}
 
@@ -427,6 +444,107 @@ func showAgentRunnerStatus(health daemon.ComponentHealth, containerID string) {
 
 	if health.State == "unhealthy" && health.LastError != nil {
 		cliprint.Warning("  Last Error: %v", health.LastError)
+	}
+}
+
+// showAgentRunnerStatusEnhanced displays enhanced status for agent-runner with actionable messages
+func showAgentRunnerStatusEnhanced(health daemon.ComponentHealth, agentStatus *daemon.AgentRunnerStatus) {
+	fmt.Printf("\nAgent Runner (Docker):\n")
+
+	// If not found at all, show helpful message
+	if !agentStatus.Found {
+		cliprint.Warning("  Status:   Not Running ○")
+		cliprint.Info("  Container: not found")
+		cliprint.Info("")
+		cliprint.Info("  Agent-runner container is not running.")
+		cliprint.Info("  Try restarting: stigmer server restart")
+		return
+	}
+
+	// Determine state to display - prefer agent status details over health summary
+	var displayState daemon.ComponentState
+	var displaySymbol string
+
+	if agentStatus.InCrashLoop || agentStatus.Restarting {
+		displayState = "unhealthy"
+		displaySymbol = "✗"
+	} else if agentStatus.Running {
+		displayState = "running"
+		displaySymbol = "✓"
+	} else {
+		displayState = "stopped"
+		displaySymbol = "○"
+	}
+
+	// Use health summary state if available and more specific
+	if health.State != "" {
+		displayState = health.State
+		displaySymbol = getHealthSymbol(health.State)
+	}
+
+	// Show status with crash loop indicator
+	if agentStatus.InCrashLoop {
+		cliprint.Warning("  Status:   %s (crash loop) %s", getStateDisplay(displayState), displaySymbol)
+	} else if agentStatus.Restarting {
+		cliprint.Warning("  Status:   %s (restarting) %s", getStateDisplay(displayState), displaySymbol)
+	} else {
+		if displayState == "running" {
+			cliprint.Info("  Status:   %s %s", getStateDisplay(displayState), displaySymbol)
+		} else {
+			cliprint.Warning("  Status:   %s %s", getStateDisplay(displayState), displaySymbol)
+		}
+	}
+
+	// Show container ID
+	containerID := agentStatus.ContainerID
+	if len(containerID) > 12 {
+		cliprint.Info("  Container: %s", containerID[:12])
+	} else if containerID != "" {
+		cliprint.Info("  Container: %s", containerID)
+	}
+
+	// Show uptime from health summary if available
+	if !health.StartTime.IsZero() {
+		uptime := time.Since(health.StartTime)
+		cliprint.Info("  Uptime:   %s", formatDuration(uptime))
+	}
+
+	// Show restart count - use Docker's count if available
+	restartCount := agentStatus.RestartCount
+	if health.RestartCount > 0 && health.RestartCount > restartCount {
+		restartCount = health.RestartCount
+	}
+
+	if restartCount > 0 {
+		if agentStatus.InCrashLoop {
+			cliprint.Warning("  Restarts: %d (crash loop detected)", restartCount)
+		} else {
+			cliprint.Warning("  Restarts: %d", restartCount)
+		}
+	} else {
+		cliprint.Info("  Restarts: 0")
+	}
+
+	// Show exit code if non-zero and not running
+	if !agentStatus.Running && agentStatus.ExitCode != 0 {
+		cliprint.Warning("  Exit Code: %d", agentStatus.ExitCode)
+	}
+
+	// Show last error - prefer agent status error, fall back to health error
+	lastError := agentStatus.LastError
+	if lastError == "" && health.LastError != nil {
+		lastError = health.LastError.Error()
+	}
+
+	if lastError != "" && (displayState == "unhealthy" || displayState == "stopped" || !agentStatus.Running) {
+		cliprint.Warning("  Last Error: %s", lastError)
+	}
+
+	// Show actionable help when unhealthy
+	if displayState == "unhealthy" || displayState == "stopped" || agentStatus.InCrashLoop || !agentStatus.Running {
+		cliprint.Info("")
+		cliprint.Info("  View logs: stigmer server logs --component agent-runner")
+		cliprint.Info("        or:  docker logs %s", daemon.AgentRunnerContainerName)
 	}
 }
 
