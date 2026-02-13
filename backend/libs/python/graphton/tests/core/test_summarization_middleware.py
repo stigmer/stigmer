@@ -1,6 +1,6 @@
-"""Comprehensive tests for SummarizationMiddleware.
+"""Comprehensive tests for ContextSummarizationMiddleware.
 
-This test module provides thorough coverage for the SummarizationMiddleware class,
+This test module provides thorough coverage for the ContextSummarizationMiddleware class,
 including:
 - Model creation with various providers
 - Import error handling for LangChain provider packages
@@ -20,7 +20,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from graphton.core.model_registry import TokenCounterMethod
 from graphton.core.summarization_config import SummarizationConfig
-from graphton.core.summarization_middleware import SummarizationMiddleware
+from graphton.core.summarization_middleware import ContextSummarizationMiddleware
 
 
 # =============================================================================
@@ -71,9 +71,9 @@ class TestModelCreation:
 
     def test_create_anthropic_model_success(self, anthropic_config):
         """Successfully creates Anthropic model when langchain-anthropic installed."""
-        middleware = SummarizationMiddleware(config=anthropic_config)
+        middleware = ContextSummarizationMiddleware(config=anthropic_config)
         
-        with patch('graphton.core.summarization_middleware.SummarizationMiddleware._create_anthropic_model') as mock:
+        with patch('graphton.core.summarization_middleware.ContextSummarizationMiddleware._create_anthropic_model') as mock:
             mock_model = MagicMock()
             mock.return_value = mock_model
             
@@ -84,9 +84,9 @@ class TestModelCreation:
 
     def test_create_openai_model_success(self, openai_config):
         """Successfully creates OpenAI model when langchain-openai installed."""
-        middleware = SummarizationMiddleware(config=openai_config)
+        middleware = ContextSummarizationMiddleware(config=openai_config)
         
-        with patch('graphton.core.summarization_middleware.SummarizationMiddleware._create_openai_model') as mock:
+        with patch('graphton.core.summarization_middleware.ContextSummarizationMiddleware._create_openai_model') as mock:
             mock_model = MagicMock()
             mock.return_value = mock_model
             
@@ -97,9 +97,9 @@ class TestModelCreation:
 
     def test_create_ollama_model_success(self, ollama_config):
         """Successfully creates Ollama model when langchain-ollama installed."""
-        middleware = SummarizationMiddleware(config=ollama_config)
+        middleware = ContextSummarizationMiddleware(config=ollama_config)
         
-        with patch('graphton.core.summarization_middleware.SummarizationMiddleware._create_ollama_model') as mock:
+        with patch('graphton.core.summarization_middleware.ContextSummarizationMiddleware._create_ollama_model') as mock:
             mock_model = MagicMock()
             mock.return_value = mock_model
             
@@ -114,7 +114,7 @@ class TestModelCreationImportErrors:
 
     def test_anthropic_import_error(self, anthropic_config):
         """Raises ImportError when langchain-anthropic not installed."""
-        middleware = SummarizationMiddleware(config=anthropic_config)
+        middleware = ContextSummarizationMiddleware(config=anthropic_config)
         
         with patch.dict('sys.modules', {'langchain_anthropic': None}):
             with pytest.raises(ImportError) as exc_info:
@@ -125,7 +125,7 @@ class TestModelCreationImportErrors:
 
     def test_openai_import_error(self, openai_config):
         """Raises ImportError when langchain-openai not installed."""
-        middleware = SummarizationMiddleware(config=openai_config)
+        middleware = ContextSummarizationMiddleware(config=openai_config)
         
         with patch.dict('sys.modules', {'langchain_openai': None}):
             with pytest.raises(ImportError) as exc_info:
@@ -136,7 +136,7 @@ class TestModelCreationImportErrors:
 
     def test_ollama_import_error(self, ollama_config):
         """Raises ImportError when langchain-ollama not installed."""
-        middleware = SummarizationMiddleware(config=ollama_config)
+        middleware = ContextSummarizationMiddleware(config=ollama_config)
         
         with patch.dict('sys.modules', {'langchain_ollama': None}):
             with pytest.raises(ImportError) as exc_info:
@@ -152,7 +152,7 @@ class TestProviderDetection:
     def test_provider_detection_anthropic(self):
         """Anthropic models are correctly detected via ModelRegistry."""
         config = SummarizationConfig.for_model("claude-opus-4")
-        middleware = SummarizationMiddleware(config=config)
+        middleware = ContextSummarizationMiddleware(config=config)
         
         with patch.object(middleware, '_create_anthropic_model') as mock:
             mock.return_value = MagicMock()
@@ -162,7 +162,7 @@ class TestProviderDetection:
     def test_provider_detection_openai(self):
         """OpenAI models are correctly detected via ModelRegistry."""
         config = SummarizationConfig.for_model("gpt-4")
-        middleware = SummarizationMiddleware(config=config)
+        middleware = ContextSummarizationMiddleware(config=config)
         
         with patch.object(middleware, '_create_openai_model') as mock:
             mock.return_value = MagicMock()
@@ -172,7 +172,7 @@ class TestProviderDetection:
     def test_provider_detection_ollama(self):
         """Ollama models are correctly detected via ModelRegistry."""
         config = SummarizationConfig.for_model("mistral:7b")
-        middleware = SummarizationMiddleware(config=config)
+        middleware = ContextSummarizationMiddleware(config=config)
         
         with patch.object(middleware, '_create_ollama_model') as mock:
             mock.return_value = MagicMock()
@@ -190,7 +190,7 @@ class TestProviderDetection:
             summarization_model="my-custom-model",
             token_counter_method=TokenCounterMethod.APPROXIMATE,
         )
-        middleware = SummarizationMiddleware(config=config)
+        middleware = ContextSummarizationMiddleware(config=config)
         
         with patch.object(middleware, '_create_ollama_model') as mock:
             mock.return_value = MagicMock()
@@ -208,7 +208,7 @@ class TestSelectRecentMessages:
 
     def test_empty_messages(self, anthropic_config):
         """Empty message list returns empty list."""
-        middleware = SummarizationMiddleware(config=anthropic_config)
+        middleware = ContextSummarizationMiddleware(config=anthropic_config)
         
         result = middleware._select_recent_messages([])
         
@@ -216,7 +216,7 @@ class TestSelectRecentMessages:
 
     def test_single_message(self, anthropic_config):
         """Single message is always kept."""
-        middleware = SummarizationMiddleware(config=anthropic_config)
+        middleware = ContextSummarizationMiddleware(config=anthropic_config)
         messages = [HumanMessage(content="Hello!")]
         
         result = middleware._select_recent_messages(messages)
@@ -226,7 +226,7 @@ class TestSelectRecentMessages:
 
     def test_preserves_message_order(self, anthropic_config):
         """Messages are kept in original order."""
-        middleware = SummarizationMiddleware(config=anthropic_config)
+        middleware = ContextSummarizationMiddleware(config=anthropic_config)
         messages = [
             HumanMessage(content="First"),
             AIMessage(content="Second"),
@@ -252,7 +252,7 @@ class TestSelectRecentMessages:
             summarization_model="claude-haiku-4",
             token_counter_method=TokenCounterMethod.APPROXIMATE,
         )
-        middleware = SummarizationMiddleware(config=config)
+        middleware = ContextSummarizationMiddleware(config=config)
         
         # Create messages with known token counts
         # Each "Hello!" is ~2 tokens + 4 overhead = 6 tokens
@@ -281,7 +281,7 @@ class TestSelectRecentMessages:
             summarization_model="claude-haiku-4",
             token_counter_method=TokenCounterMethod.APPROXIMATE,
         )
-        middleware = SummarizationMiddleware(config=config)
+        middleware = ContextSummarizationMiddleware(config=config)
         
         # Create a message larger than target
         large_content = "x" * 200  # ~50 tokens
@@ -303,7 +303,7 @@ class TestSelectRecentMessages:
             summarization_model="claude-haiku-4",
             token_counter_method=TokenCounterMethod.APPROXIMATE,
         )
-        middleware = SummarizationMiddleware(config=config)
+        middleware = ContextSummarizationMiddleware(config=config)
         
         # Target is 100, half is 50 tokens for recent messages
         # Each short message is ~2-3 tokens + 4 overhead
@@ -332,7 +332,7 @@ class TestCallbackErrorHandling:
         """Callback errors don't stop execution."""
         mock_callback.on_token_count_updated.side_effect = RuntimeError("Callback failed")
         
-        middleware = SummarizationMiddleware(
+        middleware = ContextSummarizationMiddleware(
             config=anthropic_config,
             callback=mock_callback,
         )
@@ -351,7 +351,7 @@ class TestCallbackErrorHandling:
     @pytest.mark.asyncio
     async def test_callback_none_is_safe(self, anthropic_config):
         """Middleware works correctly without callback."""
-        middleware = SummarizationMiddleware(
+        middleware = ContextSummarizationMiddleware(
             config=anthropic_config,
             callback=None,
         )
@@ -377,7 +377,7 @@ class TestDisabledConfig:
     @pytest.mark.asyncio
     async def test_disabled_skips_processing(self, disabled_config):
         """Disabled config skips all processing."""
-        middleware = SummarizationMiddleware(config=disabled_config)
+        middleware = ContextSummarizationMiddleware(config=disabled_config)
         
         state = {"messages": [HumanMessage(content="Test" * 100)]}
         runtime = {}
@@ -389,7 +389,7 @@ class TestDisabledConfig:
     @pytest.mark.asyncio
     async def test_disabled_aafter_agent_returns_none(self, disabled_config):
         """Disabled config aafter_agent returns None."""
-        middleware = SummarizationMiddleware(config=disabled_config)
+        middleware = ContextSummarizationMiddleware(config=disabled_config)
         
         state = {"messages": []}
         runtime = {}
@@ -410,7 +410,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_empty_messages_skips(self, anthropic_config):
         """Empty message list skips summarization check."""
-        middleware = SummarizationMiddleware(config=anthropic_config)
+        middleware = ContextSummarizationMiddleware(config=anthropic_config)
         
         state = {"messages": []}
         runtime = {}
@@ -422,7 +422,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_no_messages_key_skips(self, anthropic_config):
         """Missing messages key skips summarization check."""
-        middleware = SummarizationMiddleware(config=anthropic_config)
+        middleware = ContextSummarizationMiddleware(config=anthropic_config)
         
         state = {}
         runtime = {}
@@ -434,7 +434,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_below_threshold_no_summarization(self, anthropic_config):
         """Messages below threshold don't trigger summarization."""
-        middleware = SummarizationMiddleware(config=anthropic_config)
+        middleware = ContextSummarizationMiddleware(config=anthropic_config)
         
         # Small message, well below 180K threshold
         state = {"messages": [HumanMessage(content="Hello!")]}
@@ -447,7 +447,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_aafter_step_returns_none(self, anthropic_config):
         """aafter_step is reserved and returns None."""
-        middleware = SummarizationMiddleware(config=anthropic_config)
+        middleware = ContextSummarizationMiddleware(config=anthropic_config)
         
         state = {"messages": []}
         runtime = {}
@@ -467,7 +467,7 @@ class TestInitialization:
 
     def test_init_with_config(self, anthropic_config):
         """Middleware initializes correctly with config."""
-        middleware = SummarizationMiddleware(config=anthropic_config)
+        middleware = ContextSummarizationMiddleware(config=anthropic_config)
         
         assert middleware.config == anthropic_config
         assert middleware._callback is None
@@ -476,7 +476,7 @@ class TestInitialization:
 
     def test_init_with_callback(self, anthropic_config, mock_callback):
         """Middleware initializes correctly with callback."""
-        middleware = SummarizationMiddleware(
+        middleware = ContextSummarizationMiddleware(
             config=anthropic_config,
             callback=mock_callback,
         )
@@ -485,6 +485,6 @@ class TestInitialization:
 
     def test_init_disabled_config(self, disabled_config):
         """Middleware initializes with disabled config."""
-        middleware = SummarizationMiddleware(config=disabled_config)
+        middleware = ContextSummarizationMiddleware(config=disabled_config)
         
         assert middleware.config.enabled is False
