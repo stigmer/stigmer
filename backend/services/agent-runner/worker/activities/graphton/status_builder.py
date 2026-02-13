@@ -25,6 +25,7 @@ from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     ApprovalAction,
     ContextInfo,
     SummarizationEvent,
+    ExecutionOutput,
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase, 
@@ -176,6 +177,14 @@ class StatusBuilder:
         
         # Accumulated summarization events during this execution
         self._summarization_events: List[SummarizationEvent] = []
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Execution Outputs Tracking (Artifact Lifecycle)
+        #
+        # Tracks outputs published by the agent via the publish_output tool.
+        # Outputs are accumulated during execution and added to the final status.
+        # ─────────────────────────────────────────────────────────────────────────
+        self._outputs: List[ExecutionOutput] = []
     
     async def process_event(self, event: Dict[str, Any]) -> None:
         """
@@ -1505,26 +1514,68 @@ class StatusBuilder:
         """
         Finalize context info and copy to status proto.
         
-        Called at the end of execution to copy accumulated context info
-        and summarization events to the status proto.
+        Called at the end of execution to copy accumulated context info,
+        summarization events, and execution outputs to the status proto.
         """
-        if self._context_info is None:
-            # Context tracking was not initialized
-            return
+        if self._context_info is not None:
+            # Copy summarization events to context info
+            for event in self._summarization_events:
+                self._context_info.summarization_events.append(event)
+            
+            # Copy context info to status proto
+            self.current_status.context_info.CopyFrom(self._context_info)
+            
+            # Summary log
+            summarization_count = len(self._summarization_events)
+            self.logger.info(
+                f"[CONTEXT] execution={self.execution_id} "
+                f"context_info finalized: "
+                f"final_tokens={self._context_info.current_token_count}, "
+                f"utilization={self._context_info.utilization_percent:.1f}%, "
+                f"summarizations={summarization_count}"
+            )
         
-        # Copy summarization events to context info
-        for event in self._summarization_events:
-            self._context_info.summarization_events.append(event)
+        # Copy outputs to status proto
+        if self._outputs:
+            for output in self._outputs:
+                self.current_status.outputs.append(output)
+            
+            self.logger.info(
+                f"[OUTPUTS] execution={self.execution_id} "
+                f"finalized {len(self._outputs)} outputs"
+            )
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Execution Outputs (Artifact Lifecycle)
+    #
+    # These methods track outputs published by the agent via the publish_output tool.
+    # Outputs are accumulated during execution and added to the final status.
+    # ─────────────────────────────────────────────────────────────────────────────
+    
+    def add_output(self, output: ExecutionOutput) -> None:
+        """
+        Add a published output to the tracking list.
         
-        # Copy context info to status proto
-        self.current_status.context_info.CopyFrom(self._context_info)
+        Called by the publish_output tool when an agent publishes
+        a file or directory as a downloadable output.
         
-        # Summary log
-        summarization_count = len(self._summarization_events)
+        Args:
+            output: ExecutionOutput proto with download URL and metadata.
+        """
+        self._outputs.append(output)
+        
         self.logger.info(
-            f"[CONTEXT] execution={self.execution_id} "
-            f"context_info finalized: "
-            f"final_tokens={self._context_info.current_token_count}, "
-            f"utilization={self._context_info.utilization_percent:.1f}%, "
-            f"summarizations={summarization_count}"
+            f"[OUTPUT] execution={self.execution_id} "
+            f"name={output.name} "
+            f"size={output.size_bytes} bytes "
+            f"path={output.sandbox_path}"
         )
+    
+    def get_outputs(self) -> List[ExecutionOutput]:
+        """
+        Get the current list of outputs.
+        
+        Returns:
+            List of ExecutionOutput protos published during this execution.
+        """
+        return list(self._outputs)
