@@ -346,4 +346,48 @@ service AgentExecutionCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "id";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to resume agent execution";
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Artifact Lifecycle Operations
+  //
+  // These RPCs support file attachments and artifacts for agent executions.
+  // Attachments are input files provided before execution; artifacts are
+  // output files created during execution.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Upload a file attachment for use in an agent execution.
+  //
+  // Pre-uploads files to artifact storage before creating an execution.
+  // The returned storage_key can be used in Attachment.storage_key when
+  // creating the execution.
+  //
+  // ## Authorization
+  //
+  // This endpoint does not require authorization. The storage_key returned
+  // acts as a capability token - knowing the key grants access to the content.
+  // This simplifies the upload flow for CLI and other clients.
+  //
+  // ## Storage Path
+  //
+  // Files are stored at: attachments/{ulid}/{filename}
+  // The ULID ensures unique paths and enables future cleanup policies.
+  //
+  // ## Use Cases
+  //
+  // - CLI uploading files (>4MB) before agent execution
+  // - Pre-uploading datasets for agent processing
+  // - Uploading binary files that cannot be embedded inline in Attachment
+  //
+  // ## Example Flow
+  //
+  // 1. Client calls uploadAttachment with file content
+  // 2. Server uploads to storage, returns storage_key
+  // 3. Client creates AgentExecution with Attachment using storage_key
+  // 4. Agent-runner downloads attachment content when execution starts
+  //
+  // @since Artifact Lifecycle (Attachments & Artifacts)
+  rpc uploadAttachment(UploadAttachmentRequest) returns (UploadAttachmentResponse) {
+    // No authorization - storage_key acts as capability token
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }

@@ -1,4 +1,4 @@
-"""Tool for publishing files/directories from sandbox as downloadable outputs.
+"""Tool for publishing files/directories from sandbox as downloadable artifacts.
 
 This tool enables agents to make files and directories they create available
 for download by users. It supports both single files and directories (which
@@ -9,7 +9,7 @@ making it compatible with both OSS and cloud deployments.
 
 Usage:
     # During agent execution
-    result = await publish_output(
+    result = await publish_artifact(
         sandbox=sandbox,
         storage=artifact_storage,
         execution_id="exec-123",
@@ -17,7 +17,7 @@ Usage:
         name="my-skill",
     )
     
-    # Result is an ExecutionOutput proto with download URL
+    # Result is an ExecutionArtifact proto with download URL
     print(f"Download at: {result.download_url}")
 """
 
@@ -27,8 +27,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Any
 
-from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ExecutionOutput
-from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionOutputKind
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ExecutionArtifact
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionArtifactKind
 
 if TYPE_CHECKING:
     from worker.storage.base import ArtifactStorage
@@ -53,35 +53,35 @@ def _guess_content_type(filename: str) -> str:
     return content_type or "application/octet-stream"
 
 
-async def publish_output(
+async def publish_artifact(
     sandbox,
     storage: "ArtifactStorage",
     execution_id: str,
     path: str,
     name: str,
     local_root: str | None = None,
-) -> ExecutionOutput:
-    """Publish a file or directory from sandbox as a downloadable output.
+) -> ExecutionArtifact:
+    """Publish a file or directory from sandbox as a downloadable artifact.
     
     For directories: Creates a ZIP archive before uploading.
     Works with both local storage (OSS) and R2 (cloud).
     
     Args:
         sandbox: Daytona sandbox instance (None for local mode)
-        storage: ArtifactStorage for uploading outputs
+        storage: ArtifactStorage for uploading artifacts
         execution_id: ID of the current execution (used in storage key)
         path: Path in sandbox to the file or directory to publish
-        name: Display name for the output
+        name: Display name for the artifact
         local_root: Root path for local filesystem mode (when sandbox is None)
         
     Returns:
-        ExecutionOutput proto with download URL
+        ExecutionArtifact proto with download URL
         
     Raises:
         FileNotFoundError: If path does not exist in sandbox
         IOError: If upload fails
     """
-    logger.info(f"Publishing output: path={path}, name={name}, execution_id={execution_id}")
+    logger.info(f"Publishing artifact: path={path}, name={name}, execution_id={execution_id}")
     
     if sandbox is not None:
         # Cloud mode - use Daytona sandbox
@@ -111,11 +111,11 @@ async def _publish_from_sandbox(
     execution_id: str,
     path: str,
     name: str,
-) -> ExecutionOutput:
-    """Publish output from Daytona sandbox.
+) -> ExecutionArtifact:
+    """Publish artifact from Daytona sandbox.
     
     Downloads file/directory from sandbox, uploads to storage,
-    and returns ExecutionOutput with download URL.
+    and returns ExecutionArtifact with download URL.
     """
     # Check if path exists and get info
     try:
@@ -142,18 +142,18 @@ async def _publish_from_sandbox(
         except Exception:
             pass  # Best effort cleanup
         
-        kind = ExecutionOutputKind.EXECUTION_OUTPUT_KIND_DIRECTORY
+        kind = ExecutionArtifactKind.EXECUTION_ARTIFACT_KIND_DIRECTORY
         filename = f"{name}.zip"
         content_type = "application/zip"
     else:
         # Download single file
         content = sandbox.fs.download_file(path)
-        kind = ExecutionOutputKind.EXECUTION_OUTPUT_KIND_FILE
+        kind = ExecutionArtifactKind.EXECUTION_ARTIFACT_KIND_FILE
         filename = name
         content_type = _guess_content_type(filename)
     
     # Upload to storage
-    storage_key = f"outputs/{execution_id}/{filename}"
+    storage_key = f"artifacts/{execution_id}/{filename}"
     logger.info(f"Uploading {len(content)} bytes to storage: {storage_key}")
     storage.upload(storage_key, content, content_type)
     
@@ -163,7 +163,7 @@ async def _publish_from_sandbox(
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(seconds=DEFAULT_EXPIRES_IN)
     
-    output = ExecutionOutput(
+    artifact = ExecutionArtifact(
         name=name,
         sandbox_path=path,
         kind=kind,
@@ -175,11 +175,11 @@ async def _publish_from_sandbox(
     )
     
     logger.info(
-        f"Published output: name={name}, kind={ExecutionOutputKind.Name(kind)}, "
+        f"Published artifact: name={name}, kind={ExecutionArtifactKind.Name(kind)}, "
         f"size={len(content)} bytes, expires={expires_at.isoformat()}"
     )
     
-    return output
+    return artifact
 
 
 async def _publish_from_local(
@@ -188,11 +188,11 @@ async def _publish_from_local(
     execution_id: str,
     path: str,
     name: str,
-) -> ExecutionOutput:
-    """Publish output from local filesystem.
+) -> ExecutionArtifact:
+    """Publish artifact from local filesystem.
     
     Reads file/directory from local filesystem, uploads to storage,
-    and returns ExecutionOutput with download URL.
+    and returns ExecutionArtifact with download URL.
     """
     import shutil
     import tempfile
@@ -228,18 +228,18 @@ async def _publish_from_local(
             except Exception:
                 pass
         
-        kind = ExecutionOutputKind.EXECUTION_OUTPUT_KIND_DIRECTORY
+        kind = ExecutionArtifactKind.EXECUTION_ARTIFACT_KIND_DIRECTORY
         filename = f"{name}.zip"
         content_type = "application/zip"
     else:
         # Read single file
         content = full_path.read_bytes()
-        kind = ExecutionOutputKind.EXECUTION_OUTPUT_KIND_FILE
+        kind = ExecutionArtifactKind.EXECUTION_ARTIFACT_KIND_FILE
         filename = name
         content_type = _guess_content_type(filename)
     
     # Upload to storage
-    storage_key = f"outputs/{execution_id}/{filename}"
+    storage_key = f"artifacts/{execution_id}/{filename}"
     logger.info(f"Uploading {len(content)} bytes to storage: {storage_key}")
     storage.upload(storage_key, content, content_type)
     
@@ -249,7 +249,7 @@ async def _publish_from_local(
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(seconds=DEFAULT_EXPIRES_IN)
     
-    output = ExecutionOutput(
+    artifact = ExecutionArtifact(
         name=name,
         sandbox_path=path,
         kind=kind,
@@ -261,18 +261,18 @@ async def _publish_from_local(
     )
     
     logger.info(
-        f"Published output: name={name}, kind={ExecutionOutputKind.Name(kind)}, "
+        f"Published artifact: name={name}, kind={ExecutionArtifactKind.Name(kind)}, "
         f"size={len(content)} bytes, expires={expires_at.isoformat()}"
     )
     
-    return output
+    return artifact
 
 
-class PublishOutputTool:
-    """Internal wrapper class for publish_output tool with injected dependencies.
+class PublishArtifactTool:
+    """Internal wrapper class for publish_artifact tool with injected dependencies.
     
     This class captures the sandbox, storage, execution_id, and status_builder
-    dependencies. Use create_publish_output_tool() to create a LangChain-compatible
+    dependencies. Use create_publish_artifact_tool() to create a LangChain-compatible
     BaseTool for registration with the agent.
     """
     
@@ -284,13 +284,13 @@ class PublishOutputTool:
         status_builder: "StatusBuilder",
         local_root: str | None = None,
     ):
-        """Initialize publish_output tool with dependencies.
+        """Initialize publish_artifact tool with dependencies.
         
         Args:
             sandbox: Daytona sandbox instance (None for local mode)
-            storage: ArtifactStorage for uploading outputs
+            storage: ArtifactStorage for uploading artifacts
             execution_id: ID of the current execution
-            status_builder: StatusBuilder to track outputs
+            status_builder: StatusBuilder to track artifacts
             local_root: Root path for local filesystem mode
         """
         self.sandbox = sandbox
@@ -300,18 +300,18 @@ class PublishOutputTool:
         self.local_root = local_root
     
     async def run(self, path: str, name: str) -> str:
-        """Publish a file or directory as a downloadable output.
+        """Publish a file or directory as a downloadable artifact.
         
         Args:
             path: Path in sandbox to the file or directory to publish
-            name: Display name for the output
+            name: Display name for the artifact
             
         Returns:
-            JSON string with output details including download URL
+            JSON string with artifact details including download URL
         """
         import json
         
-        output = await publish_output(
+        artifact = await publish_artifact(
             sandbox=self.sandbox,
             storage=self.storage,
             execution_id=self.execution_id,
@@ -320,39 +320,39 @@ class PublishOutputTool:
             local_root=self.local_root,
         )
         
-        # Track output in status builder
-        self.status_builder.add_output(output)
+        # Track artifact in status builder
+        self.status_builder.add_artifact(artifact)
         
         result = {
             "success": True,
-            "name": output.name,
-            "download_url": output.download_url,
-            "size_bytes": output.size_bytes,
-            "kind": "directory" if output.kind == ExecutionOutputKind.EXECUTION_OUTPUT_KIND_DIRECTORY else "file",
-            "expires_at": output.expires_at,
-            "message": f"Successfully published '{name}' as a downloadable output.",
+            "name": artifact.name,
+            "download_url": artifact.download_url,
+            "size_bytes": artifact.size_bytes,
+            "kind": "directory" if artifact.kind == ExecutionArtifactKind.EXECUTION_ARTIFACT_KIND_DIRECTORY else "file",
+            "expires_at": artifact.expires_at,
+            "message": f"Successfully published '{name}' as a downloadable artifact.",
         }
         
         return json.dumps(result)
 
 
-def create_publish_output_tool(
+def create_publish_artifact_tool(
     sandbox,
     storage: "ArtifactStorage",
     execution_id: str,
     status_builder: "StatusBuilder",
     local_root: str | None = None,
 ):
-    """Factory function to create a LangChain-compatible publish_output tool.
+    """Factory function to create a LangChain-compatible publish_artifact tool.
     
     Creates a StructuredTool that can be passed to create_deep_agent's tools parameter.
-    The tool allows agents to publish files and directories as downloadable outputs.
+    The tool allows agents to publish files and directories as downloadable artifacts.
     
     Args:
         sandbox: Daytona sandbox instance (None for local mode)
-        storage: ArtifactStorage for uploading outputs
+        storage: ArtifactStorage for uploading artifacts
         execution_id: ID of the current execution
-        status_builder: StatusBuilder to track outputs
+        status_builder: StatusBuilder to track artifacts
         local_root: Root path for local filesystem mode
         
     Returns:
@@ -362,7 +362,7 @@ def create_publish_output_tool(
     from pydantic import BaseModel, Field
     
     # Create the internal handler with captured dependencies
-    handler = PublishOutputTool(
+    handler = PublishArtifactTool(
         sandbox=sandbox,
         storage=storage,
         execution_id=execution_id,
@@ -371,41 +371,41 @@ def create_publish_output_tool(
     )
     
     # Define the input schema using Pydantic
-    class PublishOutputInput(BaseModel):
-        """Input schema for publish_output tool."""
+    class PublishArtifactInput(BaseModel):
+        """Input schema for publish_artifact tool."""
         path: str = Field(
             description="Path in the sandbox to the file or directory to publish. "
                        "Examples: '/workspace/my-skill', '/workspace/output.txt'"
         )
         name: str = Field(
-            description="Display name for the output. This name will be shown to the user. "
-                       "For directories, the output will be zipped with this name."
+            description="Display name for the artifact. This name will be shown to the user. "
+                       "For directories, the artifact will be zipped with this name."
         )
     
     # Create the async wrapper function
-    async def _publish_output_async(path: str, name: str) -> str:
-        """Async wrapper for publish_output."""
+    async def _publish_artifact_async(path: str, name: str) -> str:
+        """Async wrapper for publish_artifact."""
         return await handler.run(path, name)
     
     # Create the sync wrapper (LangChain will handle async conversion)
-    def _publish_output_sync(path: str, name: str) -> str:
-        """Sync wrapper for publish_output - raises if called synchronously."""
+    def _publish_artifact_sync(path: str, name: str) -> str:
+        """Sync wrapper for publish_artifact - raises if called synchronously."""
         raise RuntimeError(
-            "publish_output must be called asynchronously. "
+            "publish_artifact must be called asynchronously. "
             "Use await or the async version of agent.invoke()."
         )
     
     # Create and return the StructuredTool
     return StructuredTool(
-        name="publish_output",
+        name="publish_artifact",
         description=(
-            "Publish a file or directory as a downloadable output. "
+            "Publish a file or directory as a downloadable artifact. "
             "Use this when you've created something the user should be able to download, "
             "such as generated code, created files, or completed work. "
             "For directories, the contents will be automatically zipped. "
             "Returns a download URL that the user can use to retrieve the artifact."
         ),
-        func=_publish_output_sync,
-        coroutine=_publish_output_async,
-        args_schema=PublishOutputInput,
+        func=_publish_artifact_sync,
+        coroutine=_publish_artifact_async,
+        args_schema=PublishArtifactInput,
     )

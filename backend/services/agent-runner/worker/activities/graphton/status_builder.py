@@ -25,7 +25,7 @@ from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     ApprovalAction,
     ContextInfo,
     SummarizationEvent,
-    ExecutionOutput,
+    ExecutionArtifact,
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase, 
@@ -179,12 +179,12 @@ class StatusBuilder:
         self._summarization_events: List[SummarizationEvent] = []
         
         # ─────────────────────────────────────────────────────────────────────────
-        # Execution Outputs Tracking (Artifact Lifecycle)
+        # Execution Artifacts Tracking (Artifact Lifecycle)
         #
-        # Tracks outputs published by the agent via the publish_output tool.
-        # Outputs are accumulated during execution and added to the final status.
+        # Tracks artifacts published by the agent via the publish_artifact tool.
+        # Artifacts are accumulated during execution and added to the final status.
         # ─────────────────────────────────────────────────────────────────────────
-        self._outputs: List[ExecutionOutput] = []
+        self._artifacts: List[ExecutionArtifact] = []
     
     async def process_event(self, event: Dict[str, Any]) -> None:
         """
@@ -1535,47 +1535,47 @@ class StatusBuilder:
                 f"summarizations={summarization_count}"
             )
         
-        # Copy outputs to status proto
-        if self._outputs:
-            for output in self._outputs:
-                self.current_status.outputs.append(output)
+        # Copy artifacts to status proto
+        if self._artifacts:
+            for artifact in self._artifacts:
+                self.current_status.artifacts.append(artifact)
             
             self.logger.info(
-                f"[OUTPUTS] execution={self.execution_id} "
-                f"finalized {len(self._outputs)} outputs"
+                f"[ARTIFACTS] execution={self.execution_id} "
+                f"finalized {len(self._artifacts)} artifacts"
             )
     
     # ─────────────────────────────────────────────────────────────────────────────
-    # Execution Outputs (Artifact Lifecycle)
+    # Execution Artifacts (Artifact Lifecycle)
     #
-    # These methods track outputs published by the agent via the publish_output tool.
-    # Outputs are accumulated during execution and added to the final status.
+    # These methods track artifacts published by the agent via the publish_artifact tool.
+    # Artifacts are accumulated during execution and added to the final status.
     # ─────────────────────────────────────────────────────────────────────────────
     
-    def add_output(self, output: ExecutionOutput) -> None:
+    def add_artifact(self, artifact: ExecutionArtifact) -> None:
         """
-        Add a published output to the tracking list.
+        Add a published artifact to the tracking list.
         
-        Called by the publish_output tool when an agent publishes
-        a file or directory as a downloadable output.
+        Called by the publish_artifact tool when an agent publishes
+        a file or directory as a downloadable artifact.
         
         Args:
-            output: ExecutionOutput proto with download URL and metadata.
+            artifact: ExecutionArtifact proto with download URL and metadata.
         """
-        self._outputs.append(output)
+        self._artifacts.append(artifact)
         
         self.logger.info(
-            f"[OUTPUT] execution={self.execution_id} "
-            f"name={output.name} "
-            f"size={output.size_bytes} bytes "
-            f"path={output.sandbox_path}"
+            f"[ARTIFACT] execution={self.execution_id} "
+            f"name={artifact.name} "
+            f"size={artifact.size_bytes} bytes "
+            f"path={artifact.sandbox_path}"
         )
     
-    def get_outputs(self) -> List[ExecutionOutput]:
+    def get_artifacts(self) -> List[ExecutionArtifact]:
         """
-        Get the current list of outputs.
+        Get the current list of artifacts.
         
         Returns:
-            List of ExecutionOutput protos published during this execution.
+            List of ExecutionArtifact protos published during this execution.
         """
-        return list(self._outputs)
+        return list(self._artifacts)

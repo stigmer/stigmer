@@ -50,11 +50,11 @@ class SubAgentStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SUB_AGENT_COMPLETED: _ClassVar[SubAgentStatus]
     SUB_AGENT_FAILED: _ClassVar[SubAgentStatus]
 
-class ExecutionOutputKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+class ExecutionArtifactKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
-    EXECUTION_OUTPUT_KIND_UNSPECIFIED: _ClassVar[ExecutionOutputKind]
-    EXECUTION_OUTPUT_KIND_FILE: _ClassVar[ExecutionOutputKind]
-    EXECUTION_OUTPUT_KIND_DIRECTORY: _ClassVar[ExecutionOutputKind]
+    EXECUTION_ARTIFACT_KIND_UNSPECIFIED: _ClassVar[ExecutionArtifactKind]
+    EXECUTION_ARTIFACT_KIND_FILE: _ClassVar[ExecutionArtifactKind]
+    EXECUTION_ARTIFACT_KIND_DIRECTORY: _ClassVar[ExecutionArtifactKind]
 EXECUTION_PHASE_UNSPECIFIED: ExecutionPhase
 EXECUTION_PENDING: ExecutionPhase
 EXECUTION_IN_PROGRESS: ExecutionPhase
@@ -86,6 +86,6 @@ SUB_AGENT_PENDING: SubAgentStatus
 SUB_AGENT_IN_PROGRESS: SubAgentStatus
 SUB_AGENT_COMPLETED: SubAgentStatus
 SUB_AGENT_FAILED: SubAgentStatus
-EXECUTION_OUTPUT_KIND_UNSPECIFIED: ExecutionOutputKind
-EXECUTION_OUTPUT_KIND_FILE: ExecutionOutputKind
-EXECUTION_OUTPUT_KIND_DIRECTORY: ExecutionOutputKind
+EXECUTION_ARTIFACT_KIND_UNSPECIFIED: ExecutionArtifactKind
+EXECUTION_ARTIFACT_KIND_FILE: ExecutionArtifactKind
+EXECUTION_ARTIFACT_KIND_DIRECTORY: ExecutionArtifactKind

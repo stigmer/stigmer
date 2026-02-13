@@ -187,12 +187,12 @@ enum SubAgentStatus {
   SUB_AGENT_FAILED = 4; // Failed with error
 }
 
-// ExecutionOutputKind defines the type of artifact published by an agent.
+// ExecutionArtifactKind defines the type of artifact published by an agent.
 //
 // When an agent publishes a file, it's stored as-is.
 // When an agent publishes a directory, it's archived as a ZIP file.
-enum ExecutionOutputKind {
-  EXECUTION_OUTPUT_KIND_UNSPECIFIED = 0;
-  EXECUTION_OUTPUT_KIND_FILE = 1; // Single file
-  EXECUTION_OUTPUT_KIND_DIRECTORY = 2; // Directory (stored as ZIP)
+enum ExecutionArtifactKind {
+  EXECUTION_ARTIFACT_KIND_UNSPECIFIED = 0;
+  EXECUTION_ARTIFACT_KIND_FILE = 1; // Single file
+  EXECUTION_ARTIFACT_KIND_DIRECTORY = 2; // Directory (stored as ZIP)
 }

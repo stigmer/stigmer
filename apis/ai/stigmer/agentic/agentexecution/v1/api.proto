@@ -176,7 +176,7 @@ message AgentExecutionStatus {
   ContextInfo context_info = 14;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Execution Outputs (Artifact Lifecycle)
+  // Execution Artifacts (Artifact Lifecycle)
   //
   // Files and directories published by the agent for download.
   // ─────────────────────────────────────────────────────────────────────────────
@@ -184,16 +184,16 @@ message AgentExecutionStatus {
   // Files/directories published by the agent for download.
   //
   // When an agent creates artifacts (e.g., generated code, reports, skills),
-  // it can call the publish_output tool to make them downloadable.
-  // Each output includes a pre-signed URL for direct download.
+  // it can call the publish_artifact tool to make them downloadable.
+  // Each artifact includes a pre-signed URL for direct download.
   //
-  // Outputs are stored in R2 and URLs expire after a configured period.
+  // Artifacts are stored in R2 and URLs expire after a configured period.
   // Use the execution download endpoint to refresh expired URLs.
   //
   // Ordered by creation time (oldest first).
   //
-  // @since Artifact Lifecycle (Attachments & Outputs)
-  repeated ExecutionOutput outputs = 15;
+  // @since Artifact Lifecycle (Attachments & Artifacts)
+  repeated ExecutionArtifact artifacts = 15;
 }
 
 // Represents a single item in the agent's todo list.
@@ -745,20 +745,20 @@ message ContextInfo {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Execution Outputs (Artifact Lifecycle)
+// Execution Artifacts (Artifact Lifecycle)
 //
-// These types support file output from agent executions.
+// These types support file artifacts from agent executions.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ExecutionOutput represents a file or directory published by an agent.
+// ExecutionArtifact represents a file or directory published by an agent.
 //
 // When an agent creates artifacts that users should download, it calls
-// the publish_output tool. This generates a downloadable artifact stored
+// the publish_artifact tool. This generates a downloadable artifact stored
 // in R2 with a time-limited signed URL.
 //
 // ## Storage
 //
-// Outputs are stored in R2 under: outputs/{execution_id}/{filename}
+// Artifacts are stored in R2 under: artifacts/{execution_id}/{filename}
 // Download URLs are pre-signed and expire after a configured period.
 //
 // ## Directory Handling
@@ -766,9 +766,9 @@ message ContextInfo {
 // Directories are automatically archived as ZIP files before storage.
 // The kind field indicates DIRECTORY so clients know to extract after download.
 //
-// @since Artifact Lifecycle (Attachments & Outputs)
-message ExecutionOutput {
-  // Display name for this output.
+// @since Artifact Lifecycle (Attachments & Artifacts)
+message ExecutionArtifact {
+  // Display name for this artifact.
   // Example: "generated-skill", "analysis-report"
   string name = 1;
 
@@ -776,15 +776,15 @@ message ExecutionOutput {
   // Example: "/workspace/my-skill", "/tmp/report.pdf"
   string sandbox_path = 2;
 
-  // Type of output: file or directory.
-  ExecutionOutputKind kind = 3 [(buf.validate.field).enum.defined_only = true];
+  // Type of artifact: file or directory.
+  ExecutionArtifactKind kind = 3 [(buf.validate.field).enum.defined_only = true];
 
   // Total size in bytes.
   // For directories, this is the ZIP file size.
   int64 size_bytes = 4;
 
   // Storage location in R2.
-  // Format: "outputs/{execution_id}/{filename}"
+  // Format: "artifacts/{execution_id}/{filename}"
   string storage_key = 5;
 
   // Pre-signed URL for downloading the artifact.
@@ -792,7 +792,7 @@ message ExecutionOutput {
   // Clients can call the refresh endpoint to get a new URL if expired.
   string download_url = 6;
 
-  // ISO 8601 timestamp when the output was created.
+  // ISO 8601 timestamp when the artifact was created.
   // Example: "2026-02-13T10:30:00Z"
   string created_at = 7;
 

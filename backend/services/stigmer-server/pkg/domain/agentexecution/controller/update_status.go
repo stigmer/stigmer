@@ -181,6 +181,13 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.Todos = requestStatus.Todos
 	}
 
+	// Merge artifacts (replace with latest from request)
+	// Artifacts are published by agents via the publish_artifact tool during execution.
+	// When Python agent-runner sends artifacts via updateStatus RPC, they are persisted here.
+	if len(requestStatus.Artifacts) > 0 {
+		updated.Status.Artifacts = requestStatus.Artifacts
+	}
+
 	// Update phase (if provided)
 	if requestStatus.Phase != agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED {
 		updated.Status.Phase = requestStatus.Phase
@@ -204,6 +211,7 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		Str("phase", updated.Status.Phase.String()).
 		Int("messages_count", len(updated.Status.Messages)).
 		Int("tool_calls_count", len(updated.Status.ToolCalls)).
+		Int("artifacts_count", len(updated.Status.Artifacts)).
 		Msg("Merged status fields")
 
 	// Store merged execution in context for persist step

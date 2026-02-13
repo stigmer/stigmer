@@ -36,6 +36,11 @@ class AgentExecutionQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
                 _registered_method=True)
+        self.getArtifactDownloadUrl = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getArtifactDownloadUrl',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactDownloadUrlRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactDownloadUrlResponse.FromString,
+                _registered_method=True)
 
 
 class AgentExecutionQueryControllerServicer(object):
@@ -73,6 +78,54 @@ class AgentExecutionQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getArtifactDownloadUrl(self, request, context):
+        """─────────────────────────────────────────────────────────────────────────────
+        Artifact Lifecycle Operations
+
+        These RPCs support downloading artifacts created by agent executions.
+        ─────────────────────────────────────────────────────────────────────────────
+
+        Get a presigned download URL for an execution artifact.
+
+        Returns a time-limited URL for downloading an artifact published by
+        an agent during execution. The URL can be used with a simple HTTP GET
+        request without authentication.
+
+        ## Authorization
+
+        Requires can_view permission on the execution. This ensures users can
+        only download artifacts from executions they have access to.
+
+        ## Security
+
+        The storage_key is validated to ensure it belongs to the specified
+        execution. Keys must start with "artifacts/{execution_id}/" to prevent
+        path traversal attacks.
+
+        ## URL Expiration
+
+        Download URLs expire after 7 days (configurable). After expiration,
+        call this endpoint again to get a fresh URL.
+
+        ## Use Cases
+
+        - CLI downloading agent-created files
+        - Web UI providing download links for artifacts
+        - Refreshing expired download URLs
+
+        ## Example Flow
+
+        1. Get execution via AgentExecutionQueryController.get
+        2. Find artifact in status.artifacts[]
+        3. Call getArtifactDownloadUrl with execution_id and storage_key
+        4. Use returned download_url for HTTP GET
+
+        @since Artifact Lifecycle (Attachments & Artifacts)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AgentExecutionQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -95,6 +148,11 @@ def add_AgentExecutionQueryControllerServicer_to_server(servicer, server):
                     servicer.subscribe,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
+            ),
+            'getArtifactDownloadUrl': grpc.unary_unary_rpc_method_handler(
+                    servicer.getArtifactDownloadUrl,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactDownloadUrlRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactDownloadUrlResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -206,6 +264,33 @@ class AgentExecutionQueryController(object):
             '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/subscribe',
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionId.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getArtifactDownloadUrl(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getArtifactDownloadUrl',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactDownloadUrlRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactDownloadUrlResponse.FromString,
             options,
             channel_credentials,
             insecure,

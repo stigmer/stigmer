@@ -20,16 +20,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AgentExecutionCommandController_Create_FullMethodName         = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create"
-	AgentExecutionCommandController_Update_FullMethodName         = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/update"
-	AgentExecutionCommandController_UpdateStatus_FullMethodName   = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus"
-	AgentExecutionCommandController_Delete_FullMethodName         = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/delete"
-	AgentExecutionCommandController_SubmitApproval_FullMethodName = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitApproval"
-	AgentExecutionCommandController_Cancel_FullMethodName         = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/cancel"
-	AgentExecutionCommandController_Terminate_FullMethodName      = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/terminate"
-	AgentExecutionCommandController_Recover_FullMethodName        = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/recover"
-	AgentExecutionCommandController_Pause_FullMethodName          = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/pause"
-	AgentExecutionCommandController_Resume_FullMethodName         = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/resume"
+	AgentExecutionCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create"
+	AgentExecutionCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/update"
+	AgentExecutionCommandController_UpdateStatus_FullMethodName     = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus"
+	AgentExecutionCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/delete"
+	AgentExecutionCommandController_SubmitApproval_FullMethodName   = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitApproval"
+	AgentExecutionCommandController_Cancel_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/cancel"
+	AgentExecutionCommandController_Terminate_FullMethodName        = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/terminate"
+	AgentExecutionCommandController_Recover_FullMethodName          = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/recover"
+	AgentExecutionCommandController_Pause_FullMethodName            = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/pause"
+	AgentExecutionCommandController_Resume_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/resume"
+	AgentExecutionCommandController_UploadAttachment_FullMethodName = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/uploadAttachment"
 )
 
 // AgentExecutionCommandControllerClient is the client API for AgentExecutionCommandController service.
@@ -310,6 +311,38 @@ type AgentExecutionCommandControllerClient interface {
 	//
 	// @since Agent Execution Lifecycle
 	Resume(ctx context.Context, in *ResumeAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error)
+	// Upload a file attachment for use in an agent execution.
+	//
+	// Pre-uploads files to artifact storage before creating an execution.
+	// The returned storage_key can be used in Attachment.storage_key when
+	// creating the execution.
+	//
+	// ## Authorization
+	//
+	// This endpoint does not require authorization. The storage_key returned
+	// acts as a capability token - knowing the key grants access to the content.
+	// This simplifies the upload flow for CLI and other clients.
+	//
+	// ## Storage Path
+	//
+	// Files are stored at: attachments/{ulid}/{filename}
+	// The ULID ensures unique paths and enables future cleanup policies.
+	//
+	// ## Use Cases
+	//
+	// - CLI uploading files (>4MB) before agent execution
+	// - Pre-uploading datasets for agent processing
+	// - Uploading binary files that cannot be embedded inline in Attachment
+	//
+	// ## Example Flow
+	//
+	// 1. Client calls uploadAttachment with file content
+	// 2. Server uploads to storage, returns storage_key
+	// 3. Client creates AgentExecution with Attachment using storage_key
+	// 4. Agent-runner downloads attachment content when execution starts
+	//
+	// @since Artifact Lifecycle (Attachments & Artifacts)
+	UploadAttachment(ctx context.Context, in *UploadAttachmentRequest, opts ...grpc.CallOption) (*UploadAttachmentResponse, error)
 }
 
 type agentExecutionCommandControllerClient struct {
@@ -414,6 +447,16 @@ func (c *agentExecutionCommandControllerClient) Resume(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AgentExecution)
 	err := c.cc.Invoke(ctx, AgentExecutionCommandController_Resume_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentExecutionCommandControllerClient) UploadAttachment(ctx context.Context, in *UploadAttachmentRequest, opts ...grpc.CallOption) (*UploadAttachmentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UploadAttachmentResponse)
+	err := c.cc.Invoke(ctx, AgentExecutionCommandController_UploadAttachment_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -698,6 +741,38 @@ type AgentExecutionCommandControllerServer interface {
 	//
 	// @since Agent Execution Lifecycle
 	Resume(context.Context, *ResumeAgentExecutionInput) (*AgentExecution, error)
+	// Upload a file attachment for use in an agent execution.
+	//
+	// Pre-uploads files to artifact storage before creating an execution.
+	// The returned storage_key can be used in Attachment.storage_key when
+	// creating the execution.
+	//
+	// ## Authorization
+	//
+	// This endpoint does not require authorization. The storage_key returned
+	// acts as a capability token - knowing the key grants access to the content.
+	// This simplifies the upload flow for CLI and other clients.
+	//
+	// ## Storage Path
+	//
+	// Files are stored at: attachments/{ulid}/{filename}
+	// The ULID ensures unique paths and enables future cleanup policies.
+	//
+	// ## Use Cases
+	//
+	// - CLI uploading files (>4MB) before agent execution
+	// - Pre-uploading datasets for agent processing
+	// - Uploading binary files that cannot be embedded inline in Attachment
+	//
+	// ## Example Flow
+	//
+	// 1. Client calls uploadAttachment with file content
+	// 2. Server uploads to storage, returns storage_key
+	// 3. Client creates AgentExecution with Attachment using storage_key
+	// 4. Agent-runner downloads attachment content when execution starts
+	//
+	// @since Artifact Lifecycle (Attachments & Artifacts)
+	UploadAttachment(context.Context, *UploadAttachmentRequest) (*UploadAttachmentResponse, error)
 }
 
 // UnimplementedAgentExecutionCommandControllerServer should be embedded to have
@@ -736,6 +811,9 @@ func (UnimplementedAgentExecutionCommandControllerServer) Pause(context.Context,
 }
 func (UnimplementedAgentExecutionCommandControllerServer) Resume(context.Context, *ResumeAgentExecutionInput) (*AgentExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Resume not implemented")
+}
+func (UnimplementedAgentExecutionCommandControllerServer) UploadAttachment(context.Context, *UploadAttachmentRequest) (*UploadAttachmentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UploadAttachment not implemented")
 }
 func (UnimplementedAgentExecutionCommandControllerServer) testEmbeddedByValue() {}
 
@@ -937,6 +1015,24 @@ func _AgentExecutionCommandController_Resume_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentExecutionCommandController_UploadAttachment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UploadAttachmentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionCommandControllerServer).UploadAttachment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionCommandController_UploadAttachment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionCommandControllerServer).UploadAttachment(ctx, req.(*UploadAttachmentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentExecutionCommandController_ServiceDesc is the grpc.ServiceDesc for AgentExecutionCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -983,6 +1079,10 @@ var AgentExecutionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "resume",
 			Handler:    _AgentExecutionCommandController_Resume_Handler,
+		},
+		{
+			MethodName: "uploadAttachment",
+			Handler:    _AgentExecutionCommandController_UploadAttachment_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

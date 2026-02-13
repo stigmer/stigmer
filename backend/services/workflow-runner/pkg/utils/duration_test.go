@@ -20,9 +20,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/serverlessworkflow/sdk-go/v3/model"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
