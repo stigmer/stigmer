@@ -23,9 +23,10 @@ _sym_db = _symbol_database.Default()
 
 
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
+from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/workflow/v1/tasks/wait.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x1b\x62uf/validate/validate.proto\"6\n\x0eWaitTaskConfig\x12$\n\x07seconds\x18\x01 \x01(\x05\x42\n\xbaH\x07\x1a\x02(\x01\xc8\x01\x01R\x07secondsB\xed\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\tWaitProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/workflow/v1/tasks/wait.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb9\x02\n\x08\x44uration\x12\x12\n\x04\x64\x61ys\x18\x01 \x01(\rR\x04\x64\x61ys\x12\x14\n\x05hours\x18\x02 \x01(\rR\x05hours\x12\x18\n\x07minutes\x18\x03 \x01(\rR\x07minutes\x12\x18\n\x07seconds\x18\x04 \x01(\rR\x07seconds\x12\"\n\x0cmilliseconds\x18\x05 \x01(\rR\x0cmilliseconds:\xaa\x01\xbaH\xa6\x01\x1a\xa3\x01\n\x11\x64uration.non_zero\x12,at least one duration field must be non-zero\x1a`this.days > 0 || this.hours > 0 || this.minutes > 0 || this.seconds > 0 || this.milliseconds > 0\"\x9f\x01\n\x0eWaitTaskConfig\x12L\n\x08\x64uration\x18\x01 \x01(\x0b\x32..ai.stigmer.agentic.workflow.v1.tasks.DurationH\x00R\x08\x64uration\x12\x32\n\x05until\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x00R\x05untilB\x0b\n\twait_typeB\xed\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\tWaitProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,8 +34,10 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.agentic.workflow
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n(com.ai.stigmer.agentic.workflow.v1.tasksB\tWaitProtoP\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Agentic.Workflow.V1.Tasks\312\002$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\342\0020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\352\002)Ai::Stigmer::Agentic::Workflow::V1::Tasks'
-  _globals['_WAITTASKCONFIG'].fields_by_name['seconds']._loaded_options = None
-  _globals['_WAITTASKCONFIG'].fields_by_name['seconds']._serialized_options = b'\272H\007\032\002(\001\310\001\001'
-  _globals['_WAITTASKCONFIG']._serialized_start=118
-  _globals['_WAITTASKCONFIG']._serialized_end=172
+  _globals['_DURATION']._loaded_options = None
+  _globals['_DURATION']._serialized_options = b'\272H\246\001\032\243\001\n\021duration.non_zero\022,at least one duration field must be non-zero\032`this.days > 0 || this.hours > 0 || this.minutes > 0 || this.seconds > 0 || this.milliseconds > 0'
+  _globals['_DURATION']._serialized_start=152
+  _globals['_DURATION']._serialized_end=465
+  _globals['_WAITTASKCONFIG']._serialized_start=468
+  _globals['_WAITTASKCONFIG']._serialized_end=627
 # @@protoc_insertion_point(module_scope)

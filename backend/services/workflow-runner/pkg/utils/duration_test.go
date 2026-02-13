@@ -20,9 +20,11 @@ import (
 	"testing"
 	"time"
 
+	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestToDuration(t *testing.T) {
@@ -69,4 +71,80 @@ func TestToDuration(t *testing.T) {
 			}))
 		})
 	}
+}
+
+func TestProtoToSDKDuration(t *testing.T) {
+	t.Run("nil input returns nil", func(t *testing.T) {
+		result := utils.ProtoToSDKDuration(nil)
+		assert.Nil(t, result)
+	})
+
+	t.Run("converts all fields correctly", func(t *testing.T) {
+		proto := &tasksv1.Duration{
+			Days:         7,
+			Hours:        12,
+			Minutes:      30,
+			Seconds:      45,
+			Milliseconds: 500,
+		}
+
+		result := utils.ProtoToSDKDuration(proto)
+		require.NotNil(t, result)
+
+		inline := result.AsInline()
+		require.NotNil(t, inline)
+		assert.Equal(t, int32(7), inline.Days)
+		assert.Equal(t, int32(12), inline.Hours)
+		assert.Equal(t, int32(30), inline.Minutes)
+		assert.Equal(t, int32(45), inline.Seconds)
+		assert.Equal(t, int32(500), inline.Milliseconds)
+	})
+
+	t.Run("handles partial fields", func(t *testing.T) {
+		proto := &tasksv1.Duration{
+			Days: 1,
+			// All other fields default to 0
+		}
+
+		result := utils.ProtoToSDKDuration(proto)
+		require.NotNil(t, result)
+
+		inline := result.AsInline()
+		require.NotNil(t, inline)
+		assert.Equal(t, int32(1), inline.Days)
+		assert.Equal(t, int32(0), inline.Hours)
+		assert.Equal(t, int32(0), inline.Minutes)
+		assert.Equal(t, int32(0), inline.Seconds)
+		assert.Equal(t, int32(0), inline.Milliseconds)
+	})
+}
+
+func TestProtoToTimeDuration(t *testing.T) {
+	t.Run("nil input returns zero", func(t *testing.T) {
+		result := utils.ProtoToTimeDuration(nil)
+		assert.Equal(t, time.Duration(0), result)
+	})
+
+	t.Run("converts 1 week correctly", func(t *testing.T) {
+		proto := &tasksv1.Duration{
+			Days: 7,
+		}
+
+		result := utils.ProtoToTimeDuration(proto)
+		assert.Equal(t, 7*24*time.Hour, result)
+	})
+
+	t.Run("converts composite duration correctly", func(t *testing.T) {
+		proto := &tasksv1.Duration{
+			Days:         1,
+			Hours:        2,
+			Minutes:      30,
+			Seconds:      45,
+			Milliseconds: 100,
+		}
+
+		expected := (24 * time.Hour) + (2 * time.Hour) + (30 * time.Minute) + (45 * time.Second) + (100 * time.Millisecond)
+		result := utils.ProtoToTimeDuration(proto)
+		assert.Equal(t, expected, result)
+	})
 }
