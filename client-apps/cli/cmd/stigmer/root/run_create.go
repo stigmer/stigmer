@@ -13,7 +13,7 @@ import (
 )
 
 // createAgentExecution creates a new agent execution
-func createAgentExecution(agentID string, orgID string, message string, runtimeEnv envfile.EnvMap, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+func createAgentExecution(agentID string, orgID string, message string, runtimeEnv envfile.EnvMap, attachments []*agentexecutionv1.Attachment, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
 	if message == "" {
 		message = "execute"
 	}
@@ -21,9 +21,10 @@ func createAgentExecution(agentID string, orgID string, message string, runtimeE
 	executionName := fmt.Sprintf("execution-%d", time.Now().UnixMicro())
 
 	spec := &agentexecutionv1.AgentExecutionSpec{
-		AgentId:    agentID,
-		Message:    message,
-		RuntimeEnv: runtimeEnv,
+		AgentId:     agentID,
+		Message:     message,
+		RuntimeEnv:  runtimeEnv,
+		Attachments: attachments,
 	}
 
 	execution := &agentexecutionv1.AgentExecution{

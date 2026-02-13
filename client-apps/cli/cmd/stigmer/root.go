@@ -54,6 +54,7 @@ func init() {
 	rootCmd.AddCommand(root.NewRunCommand())
 	rootCmd.AddCommand(root.NewSearchCommand())
 	rootCmd.AddCommand(root.NewPushCommand())
+	rootCmd.AddCommand(root.NewDownloadCommand())
 
 	// Discoverability command (T05)
 	rootCmd.AddCommand(root.NewResourcesCommand())
