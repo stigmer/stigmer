@@ -49,7 +49,16 @@ Use --all to view logs from all components in a single interleaved stream (defau
 			logDir := filepath.Join(dataDir, "logs")
 
 			// Handle --all flag: show logs from all components
-			if showAll {
+			// If --component is explicitly set, use single-component mode (unless --all is also explicitly set)
+			componentExplicitlySet := cmd.Flags().Changed("component")
+			allExplicitlySet := cmd.Flags().Changed("all")
+			
+			// Use all-components mode if:
+			// 1. --all is explicitly set to true, OR
+			// 2. Neither --component nor --all was explicitly set (default behavior)
+			useAllMode := (allExplicitlySet && showAll) || (!componentExplicitlySet && !allExplicitlySet && showAll)
+			
+			if useAllMode {
 				// Smart defaults: use the stream that actually has logs for each component
 				// - stigmer-server: stderr (zerolog defaults to stderr)
 				// - workflow-runner: stdout (Go's log package defaults to stdout)
@@ -101,7 +110,7 @@ Use --all to view logs from all components in a single interleaved stream (defau
 			}
 
 			// Special handling for agent-runner: check if running in Docker
-			if component == "agent-runner" && isAgentRunnerDocker(dataDir) {
+			if component == "agent-runner" && daemon.IsAgentRunnerDocker(dataDir) {
 				cliprint.PrintInfo("Agent-runner is running in Docker, streaming from container")
 				if err := streamDockerLogs(daemon.AgentRunnerContainerName, follow, lines); err != nil {
 					cliprint.PrintError("Failed to stream Docker logs")
@@ -184,7 +193,7 @@ func getComponentConfigs(dataDir, logDir string) []logs.ComponentConfig {
 	}
 	
 	// Check if agent-runner is running in Docker
-	if isAgentRunnerDocker(dataDir) {
+	if daemon.IsAgentRunnerDocker(dataDir) {
 		components = append(components, logs.ComponentConfig{
 			Name:           "agent-runner",
 			DockerContainer: daemon.AgentRunnerContainerName,
@@ -221,7 +230,7 @@ func getComponentConfigsWithStreamPreferences(dataDir, logDir string, useSmartDe
 	}
 	
 	// Check if agent-runner is running in Docker
-	if isAgentRunnerDocker(dataDir) {
+	if daemon.IsAgentRunnerDocker(dataDir) {
 		components = append(components, logs.ComponentConfig{
 			Name:           "agent-runner",
 			DockerContainer: daemon.AgentRunnerContainerName,
@@ -363,20 +372,6 @@ func showLastNLines(logFile string, n int) error {
 	}
 
 	return nil
-}
-
-// isAgentRunnerDocker checks if agent-runner is running in Docker
-func isAgentRunnerDocker(dataDir string) bool {
-	// Check if container ID file exists
-	containerIDFile := filepath.Join(dataDir, daemon.AgentRunnerContainerIDFileName)
-	if _, err := os.Stat(containerIDFile); err == nil {
-		return true
-	}
-	
-	// Fallback: check if container exists by name
-	cmd := exec.Command("docker", "ps", "-q", "-f", fmt.Sprintf("name=^%s$", daemon.AgentRunnerContainerName))
-	output, err := cmd.Output()
-	return err == nil && len(output) > 0
 }
 
 // streamDockerLogs streams logs from a Docker container

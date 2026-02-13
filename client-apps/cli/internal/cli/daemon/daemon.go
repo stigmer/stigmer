@@ -1164,6 +1164,220 @@ func GetAgentRunnerContainerID(dataDir string) (string, error) {
 	return containerID, nil
 }
 
+// AgentRunnerStatus represents the current state of the agent-runner container
+type AgentRunnerStatus struct {
+	// Found indicates whether the agent-runner was found (via file or docker ps)
+	Found bool
+	// ContainerID is the Docker container ID (may be empty if not found)
+	ContainerID string
+	// Running indicates if the container is currently running
+	Running bool
+	// Restarting indicates if the container is currently in a restart loop
+	Restarting bool
+	// RestartCount is the number of times the container has been restarted
+	RestartCount int
+	// ExitCode is the exit code from the last container exit (0 = success)
+	ExitCode int
+	// LastError contains the last few lines of error output if unhealthy
+	LastError string
+	// InCrashLoop indicates the container appears to be in a crash loop
+	InCrashLoop bool
+}
+
+// GetAgentRunnerStatus returns comprehensive status for the agent-runner container.
+// It uses the container ID file with a fallback to docker ps by container name.
+// This provides unified detection logic for both status and logs commands.
+func GetAgentRunnerStatus(dataDir string) *AgentRunnerStatus {
+	status := &AgentRunnerStatus{}
+
+	// Try to get container ID from file first
+	containerID, err := GetAgentRunnerContainerID(dataDir)
+	if err == nil && containerID != "" {
+		status.ContainerID = containerID
+		status.Found = true
+	}
+
+	// Fallback: check if container exists by name using docker ps
+	if !status.Found {
+		containerID = getContainerIDByName(AgentRunnerContainerName)
+		if containerID != "" {
+			status.ContainerID = containerID
+			status.Found = true
+		}
+	}
+
+	// If still not found, return early with Found=false
+	if !status.Found {
+		return status
+	}
+
+	// Get extended status from docker inspect
+	populateContainerStatus(status)
+
+	// If container is not running or has non-zero exit code, capture last error
+	if !status.Running || status.ExitCode != 0 || status.Restarting {
+		status.LastError = getContainerLastError(status.ContainerID)
+	}
+
+	// Detect crash loop: restarting or high restart count with recent activity
+	if status.Restarting || (status.RestartCount >= 3 && !status.Running) {
+		status.InCrashLoop = true
+	}
+
+	return status
+}
+
+// IsAgentRunnerDocker checks if agent-runner is running in Docker mode.
+// This is the unified detection logic used by both status and logs commands.
+func IsAgentRunnerDocker(dataDir string) bool {
+	// Check if container ID file exists
+	containerIDFile := filepath.Join(dataDir, AgentRunnerContainerIDFileName)
+	if _, err := os.Stat(containerIDFile); err == nil {
+		return true
+	}
+
+	// Fallback: check if container exists by name
+	containerID := getContainerIDByName(AgentRunnerContainerName)
+	return containerID != ""
+}
+
+// getContainerIDByName finds a container ID by its name using docker ps
+func getContainerIDByName(containerName string) string {
+	cmd := exec.Command("docker", "ps", "-aq", "-f", fmt.Sprintf("name=^%s$", containerName))
+	output, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(output))
+}
+
+// populateContainerStatus fills in the status fields from docker inspect
+func populateContainerStatus(status *AgentRunnerStatus) {
+	// Get running state, restart count, exit code, and restarting flag in one inspect call
+	// Format: "{{.State.Running}}|{{.RestartCount}}|{{.State.ExitCode}}|{{.State.Restarting}}"
+	cmd := exec.Command("docker", "inspect",
+		"--format", "{{.State.Running}}|{{.RestartCount}}|{{.State.ExitCode}}|{{.State.Restarting}}",
+		status.ContainerID)
+	output, err := cmd.Output()
+	if err != nil {
+		return
+	}
+
+	parts := strings.Split(strings.TrimSpace(string(output)), "|")
+	if len(parts) != 4 {
+		return
+	}
+
+	// Parse running state
+	status.Running = parts[0] == "true"
+
+	// Parse restart count
+	if restartCount, err := strconv.Atoi(parts[1]); err == nil {
+		status.RestartCount = restartCount
+	}
+
+	// Parse exit code
+	if exitCode, err := strconv.Atoi(parts[2]); err == nil {
+		status.ExitCode = exitCode
+	}
+
+	// Parse restarting flag
+	status.Restarting = parts[3] == "true"
+}
+
+// getContainerLastError retrieves the last few lines of container logs to show the error
+func getContainerLastError(containerID string) string {
+	// Get last 30 lines to capture full error context (Python tracebacks can be long)
+	cmd := exec.Command("docker", "logs", "--tail", "30", containerID)
+	// Capture both stdout and stderr where Python errors go
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return ""
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) == 0 {
+		return ""
+	}
+
+	// Priority 1: Look for specific error type lines (most informative)
+	// These are the actual error declarations in Python tracebacks
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		// Match Python error type at start of line (e.g., "SyntaxError: invalid syntax")
+		if strings.HasPrefix(line, "SyntaxError:") ||
+			strings.HasPrefix(line, "ImportError:") ||
+			strings.HasPrefix(line, "ModuleNotFoundError:") ||
+			strings.HasPrefix(line, "NameError:") ||
+			strings.HasPrefix(line, "TypeError:") ||
+			strings.HasPrefix(line, "ValueError:") ||
+			strings.HasPrefix(line, "AttributeError:") ||
+			strings.HasPrefix(line, "KeyError:") ||
+			strings.HasPrefix(line, "RuntimeError:") ||
+			strings.HasPrefix(line, "Exception:") {
+			// Truncate if too long
+			if len(line) > 120 {
+				return line[:117] + "..."
+			}
+			return line
+		}
+	}
+
+	// Priority 2: Look for lines containing common error patterns
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		// Look for error patterns with context (e.g., "ERROR - Error: something")
+		if (strings.Contains(line, "Error:") || strings.Contains(line, "error:")) &&
+			!strings.Contains(line, "process exiting") &&
+			!strings.Contains(line, "Traceback") {
+			// Extract just the error message if it's a log line
+			if idx := strings.Index(line, "Error:"); idx != -1 {
+				errorPart := strings.TrimSpace(line[idx:])
+				if len(errorPart) > 120 {
+					return errorPart[:117] + "..."
+				}
+				return errorPart
+			}
+		}
+	}
+
+	// Priority 3: Look for STARTUP FAILURE indicator
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.Contains(line, "STARTUP FAILURE") {
+			// Get the next non-empty, non-separator line as context
+			continue
+		}
+	}
+
+	// Priority 4: Return last non-empty line that's not a generic exit message
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if line == "" {
+			continue
+		}
+		// Skip generic exit/info messages
+		if strings.Contains(line, "process exiting") ||
+			strings.Contains(line, "========") ||
+			strings.Contains(line, "Worker shutting down") {
+			continue
+		}
+		// Truncate if too long
+		if len(line) > 120 {
+			return line[:117] + "..."
+		}
+		return line
+	}
+
+	return ""
+}
+
 // findProcessByPort finds the PID of the process listening on the specified port
 // This is used as a fallback when the PID file is missing but the server is running
 func findProcessByPort(port int) (int, error) {
